@@ -33,18 +33,18 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of basic Analysis type -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- This is an abstract basic type so that it cannot appear in an -->
   <!-- instance document -->
   <xsd:complexType name="DT_AnalysisBasic" abstract="true"/>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of basic Analysis element -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- This element is abstract in order to force substitution -->
   <!-- by the derived specialised analysis elements -->
@@ -52,9 +52,9 @@
   <xsd:element name="AnalysisBasic" type="DT_AnalysisBasic" abstract="true"/> 
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisTransient -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="transient" type="DT_AnalysisTransient"
     substitutionGroup="AnalysisBasic"> 
   </xsd:element>
@@ -70,7 +70,8 @@
           <xsd:element name="stepSaveBeg" type="xsd:nonNegativeInteger"/>
           <xsd:element name="stepSaveEnd" type="xsd:nonNegativeInteger"/>
           <xsd:element name="stepSaveInc" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="timeDataFile" minOccurs="0" maxOccurs="unbounded">
+          <xsd:element name="timeDataFile" minOccurs="0"
+            maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:complexContent>
                 <xsd:restriction base="xsd:anyType">
@@ -87,9 +88,9 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisHarmonic -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="harmonic" type="DT_AnalysisHarmonic"
     substitutionGroup="AnalysisBasic"/>
 
@@ -104,6 +105,8 @@
           <xsd:element name="stopFreq" type="DT_PosFloat"/>
           <xsd:element name="adjustDamping" type="DT_CFSBool" minOccurs="0"
 	                     maxOccurs="1" default="no"/>
+          <xsd:element name="matDataFreq" type="DT_PosFloat" minOccurs="0"
+	                     maxOccurs="1"/>
         </xsd:sequence>
         <xsd:attribute name="tag"  type="xsd:string" use="optional"
           default="anyTag"/> 
@@ -112,27 +115,32 @@
   </xsd:complexType> 
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element paramIdent -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
- <xsd:element name="paramIdent" type="DT_AnalysisParamIdent"
+  <xsd:element name="paramIdent" type="DT_AnalysisParamIdent"
     substitutionGroup="AnalysisBasic"/>
 
-  <!-- Data type for parameter Identification and simple computations of impedance curves.-->
+  <!-- Data type for parameter Identification and simple computations of
+       impedance curves -->
   <xsd:complexType name="DT_AnalysisParamIdent">
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
-          <xsd:element name="calcImpedanceCurve" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
-          <xsd:element name="calcMechDisplCurve" type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/>
+          <xsd:element name="calcImpedanceCurve" type="DT_CFSBool"
+            minOccurs="0" maxOccurs="1" default="no"/>
+          <xsd:element name="calcMechDisplCurve" type="DT_CFSBool"
+            minOccurs="0" maxOccurs="1" default="no"/>
           <xsd:element name="mechDisplAtNode" type="xsd:nonNegativeInteger"/>
           <xsd:element name="dofOfMechDispl" type="xsd:nonNegativeInteger"/>
           <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
           <xsd:element name="startFreq" type="DT_PosFloat"/>
           <xsd:element name="stopFreq" type="DT_PosFloat"/>
-          <xsd:element name="maxNrInnerIterations" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="maxNrOuterIterations" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="maxNrInnerIterations"
+            type="xsd:nonNegativeInteger"/>
+          <xsd:element name="maxNrOuterIterations"
+            type="xsd:nonNegativeInteger"/>
           <xsd:element name="artDataNoise" type="DT_NonNegFloat"/>
         </xsd:sequence>
         <xsd:attribute name="tag"  type="xsd:string" use="optional"
@@ -141,9 +149,10 @@
     </xsd:complexContent>
   </xsd:complexType> 
 
- <!-- ******************************************************************** -->
+
+  <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisMultiHarmonic -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="multiHarmonic" type="DT_AnalysisMultiHarmonic"
     substitutionGroup="AnalysisBasic"/>
 
@@ -164,9 +173,9 @@
     </xsd:complexContent>
   </xsd:complexType> 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisMultiSequence -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="multiSequence" type="DT_AnalysisMultiSequence"
     substitutionGroup="AnalysisBasic"/> 
 
@@ -209,9 +218,9 @@
        piezoParamIdent analysis -->
   <!--<xsd:simpleType name="DT_PiezoParamIdent"/>-->
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for global non-linear parameters -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:simpleType name="DT_NonLinSolver">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="newton"/>
@@ -243,9 +252,9 @@
       default="no"/>
   </xsd:complexType>
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element bubbleDynamic -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="bubbleDynamic" type="DT_AnalysisBubbleDynamic"
     substitutionGroup="AnalysisBasic"/>
 
@@ -271,9 +280,9 @@
     </xsd:complexContent>
   </xsd:complexType> 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element bubbleDriver -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="bubbleDriver" type="DT_AnalysisBubbleDriver"
     substitutionGroup="AnalysisBasic"/>
 
@@ -299,9 +308,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
-  <!--   Definition of element AnalysisTransient for slice Technique        -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
+  <!--   Definition of element AnalysisTransient for slice Technique       -->
+  <!-- ******************************************************************* -->
   <xsd:element name="transient4Slice" type="DT_AnalysisTransientSlice"
     substitutionGroup="AnalysisBasic"> 
   </xsd:element>
@@ -317,7 +326,8 @@
           <xsd:element name="stepSaveBeg" type="xsd:nonNegativeInteger"/>
           <xsd:element name="stepSaveEnd" type="xsd:nonNegativeInteger"/>
           <xsd:element name="stepSaveInc" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="timeDataFile" minOccurs="0" maxOccurs="unbounded">
+          <xsd:element name="timeDataFile" minOccurs="0"
+            maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:complexContent>
                 <xsd:restriction base="xsd:anyType">
