@@ -211,20 +211,40 @@ namespace CoupledField {
 		 || actDescriptor->GetSecondaryMat() != NOTYPE ) 
 	       && startFreq_ > 0 ) {
 
+            // Obtain frequency value to which the damping parameters
+            // in the material file do belong
+            StdVector<Double> freqs;
+            Double matDataFreq;
+            params->GetList( "matDataFreq", freqs, "harmonic" );
+            if ( freqs.GetSize() == 1 ) {
+              matDataFreq = freqs[0] * 2.0 * PI;
+            }
+            else {
+              matDataFreq = startFreq_;
+            }
+
             // get multiplicative pre factor depending on frequency
-	    if (startFreq_ > 0 && actFreq_ > 0 ) {
+	    if ( matDataFreq > 0 && actFreq_ > 0 ) {
 	      FEMatrixType destMat =
                 actDescriptor->GetIntegrator()->GetBaseType();
 
 	      if ( destMat == STIFFNESS ) {
-		dampTransform = startFreq_ / actFreq_;
-                Info->PrintF( "", " dampTransform (stiffness matrix) = %e",
+		dampTransform = matDataFreq / actFreq_;
+                Info->PrintF( "", " dampTransform (stiffness matrix) = %e\n",
                               dampTransform );
+                std::cerr << " -> matDataFreq   = " << matDataFreq << '\n';
+                std::cerr << " -> actFreq_      = " << actFreq_ << '\n';
+                std::cerr << " -> startFreq_    = " << startFreq_ << '\n';
+                std::cerr << " -> dampTransform = " << dampTransform << '\n';
 	      }
 	      else if ( destMat == MASS ) {
-		dampTransform = actFreq_ / startFreq_;
-                Info->PrintF( "", " dampTransform (mass matrix) = %e",
+		dampTransform = actFreq_ / matDataFreq;
+                Info->PrintF( "", " dampTransform (mass matrix) = %e\n",
                               dampTransform );
+                std::cerr << " -> matDataFreq   = " << matDataFreq << '\n';
+                std::cerr << " -> actFreq_      = " << actFreq_ << '\n';
+                std::cerr << " -> startFreq_    = " << startFreq_ << '\n';
+                std::cerr << " -> dampTransform = " << dampTransform << '\n';
 	      }
 	    }
 
