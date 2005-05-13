@@ -315,9 +315,9 @@ endif
 
 # METIS
 ifeq "$(METIS)" "yes"
-  MACRO_METIS =
-else
   MACRO_METIS = -DUSE_METIS
+else
+  MACRO_METIS =
 endif
 
 # Combine everything
