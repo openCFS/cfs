@@ -160,7 +160,7 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
 
     if ( lastMinMax > 0 ) {
       //last entry was a maximum
-      if ( newX > lastX ) {
+      if ( newX >= lastX ) {
 	//overwrite last entry
 	 extremaList_[nrEl][posEL] = newX;
 	 if ( posMM == 0) {
@@ -181,7 +181,7 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
     }
     else {
       //last entry was a minimum
-      if ( newX < lastX ) {
+      if ( newX <= lastX ) {
 	//overwrite last entry
 	extremaList_[nrEl][posEL] = newX;
 	 if ( posMM == 0) {
@@ -203,8 +203,16 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
 
   //  Integer size = extremaList_[nrEl].size();
 
+//   std::cout << "Size=" << extremaList_[nrEl].size() << std::endl;
+//   std::vector<Double>   &extremaList =  extremaList_[nrEl];
+  
+//   std::cout << "List" << std::endl;
+//   for (Integer k=0; k < extremaList.size(); k++) {
+//     std::cout << " " << extremaList[k] << std::endl;
+//   }
+
   //now check, if we can cancle any extrema
-//   if (isMinMax_[nrEl].size() > 1) {
+//   if (isMinMax_[nrEl].size() > 0) {
 //     wipout(nrEl);
 //   }
 
@@ -218,7 +226,7 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
   //==========================================================================//
   //  clear all non dominant maxima out of the list                            
   //     
-  //  I) last (latest) value is a maxima: will be denotes as the actual 
+  //  I) last (latest) value is a maxima: will be denoted as the actual 
   //                                      maximum
   //
   //         if the actual maximum is larger than the last maximum    
@@ -258,6 +266,8 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
   std::vector<Double>::iterator endDeleteExtremList, startDeleteExtremList;
   std::vector<Integer>::iterator endDeleteMinMax, startDeleteMinMax ;
 
+  std::cout << "ExtremaList before wipout: " << extremaList.size() << std::endl;
+
   Boolean kill = TRUE;
   if ( lastMinMax == 1 ) {
     //last value is a maximum
@@ -265,6 +275,8 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
     Boolean minFound = FALSE;
 
     while ( kill ) {
+      std::cout << "kill=" << kill << std::endl;
+
       //position of actual maximum
       actPosMax = extremaList.size()-1;
 
@@ -280,14 +292,16 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
 	actPos = lastPos - 1;
 	--iterExtremalList;
 	--iterMinMax;
+	std::cout << "actPosMin=" << actPosMin << std::endl;
 
-	//now the iteration counter point to the last element
+	//now the iteration counter points to the last element
 	//in Extrema- and MinmaxList, which is a maximum!!
 	//this element is not allowed to be cleared!
 	endDeleteExtremList = iterExtremalList;
 	endDeleteMinMax     = iterMinMax;
 
 	while ( kill == TRUE && minFound == FALSE ) {
+	  std::cout << "actPos=" << actPos << std::endl;
 	  if ( actPos >= 0) {
 	    if ( isMinMax[actPos] == 2 || isMinMax[actPos] == -2 ) {
 	      kill = FALSE;
@@ -335,6 +349,8 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
       
     Boolean maxFound = FALSE;
     while ( kill ) {
+      std::cout << "kill=" << kill << std::endl;
+
       //position of actual minimum
       actPosMin = extremaList.size()-1;
 
@@ -345,19 +361,25 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
       iterExtremalList = extremaList.end();
       iterMinMax = isMinMax.end();
 
+      std::cout << "actPosMax=" << actPosMax << std::endl;
+
       if (actPosMax >= 0 && isMinMax[actPosMax] < 2 ) {
 	lastPos = actPosMax;
 	actPos  = lastPos - 1;
 	--iterExtremalList;
 	--iterMinMax;
 
-	//now the iteration counter point to the last element
+	std::cout << "lastPos=" << lastPos << std::endl;
+
+ 	//now the iteration counter point to the last element
 	//in Extrema- and MinmaxList, which is a maximum!!
 	//this element is not allowed to be cleared!
 	endDeleteExtremList = iterExtremalList;
 	endDeleteMinMax     = iterMinMax;
 
 	while ( kill == TRUE && maxFound == FALSE ) {
+	  std::cout << "In while, actPos=" << actPos << std::endl;
+
 	  if ( actPos >= 0) {
 	    if ( isMinMax[actPos] == 2 || isMinMax[actPos] == -2 ) {
 	      kill = FALSE;
@@ -373,7 +395,7 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
 	    --iterExtremalList;
 	    --iterMinMax;
 
-	    //if minFound = TRUE, then iterExtremalList (iterMinMax) points to
+	    //if maxFound = TRUE, then iterExtremalList (iterMinMax) points to
 	    //the first element, which will be wiped out
 	    startDeleteExtremList = iterExtremalList;
 	    startDeleteMinMax     = iterMinMax;
@@ -397,6 +419,8 @@ void Preisach :: updateMinMaxList(Double Xin, Integer nrEl)
    
     }
  }
+
+  std::cout << "ExtremaList after wipout: " << extremaList.size() << std::endl;
 
 }
 

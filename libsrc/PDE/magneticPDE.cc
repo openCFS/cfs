@@ -6,6 +6,7 @@
 #include "Driver/solveStepMag.hh"
 #include "Utils/Coil.hh"
 #include "Utils/SmoothSpline.hh"
+#include "Utils/LinInterpolate.hh"
 #include "Forms/curlfieldop.hh"
 #include "Forms/forms_header.hh"
 #include "trapezoidal.hh"
@@ -42,7 +43,6 @@ namespace CoupledField {
     //   Set coupling parameters
     // ---------------------------
     deltCoords_.Resize( dim_, numPDENodes_ );
-    
   }
 
 
@@ -69,11 +69,12 @@ namespace CoupledField {
     //   Get information about coils and open files for measurement coils
     // --------------------------------------------------------------------
     ReadCoils();
-    
+ 
     // -----------------------------
     // Check for permanent magnets
     // -----------------------------
     ReadMagnets();
+ 
   }
   
 
@@ -107,7 +108,7 @@ namespace CoupledField {
 
       // type of line search
       params->Get( "type", lineSearch_, pdename_, "lineSearch" );
-
+ 
       // incremental stopping criterion
       params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
       
@@ -145,7 +146,8 @@ namespace CoupledField {
 
         //read in the BH-curve data and compute the approximation
         std::string nlfnc = materialData_[actSD].GetBHCurveFileName();
-        ApproxData *nlinFnc = new SmoothSpline(nlfnc);
+	ApproxData *nlinFnc = new SmoothSpline(nlfnc);
+	//ApproxData *nlinFnc = new LinInterpolate(nlfnc);
         nlinFnc->CalcBestParameter();
         nlinFnc->CalcApproximation();
 

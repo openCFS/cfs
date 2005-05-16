@@ -195,8 +195,9 @@ namespace CoupledField
     if (matC==FALSE)
       material->DefFull3dMatrix(); // declare matrix with 9x9 entries
 
+    char nonLin[bufLength] = "no";
     ReadLine(fin,buffer);
-    SSCANF(buffer,"%*d%*s%s", materialName);  
+    SSCANF(buffer,"%*d%*s%s%s", materialName, nonLin);  
 
     material -> SetName(materialName);
 
@@ -313,7 +314,37 @@ namespace CoupledField
       std::cout << "*** The materialfile is corrupt! ***  Material: "
                 << materialName << std::endl;
     }
-    delete strPtr;	
+    delete strPtr;
+
+    if ( strcmp(nonLin,"hysteresis") == 0 ) {
+      Double Esat, Psat;
+      Integer dirPol;
+      ReadLine(fin,buffer);
+      strPtr = new std::istringstream(buffer);
+      *strPtr >>  Esat >> Psat >> dirPol;
+      if (strPtr->fail()) {
+	std::cout << "*** The materialfile is corrupt (hysteresis)! ***  Material: "
+		  << materialName << std::endl;
+	Error("");
+      }
+
+      //check for correct direction
+      std::string probGeo;
+      params->Get( "type", probGeo, "geometry" );
+      if ( (probGeo == "axi") || ( probGeo == "plane") ) {
+	if (dirPol == 3) {
+	  dirPol = 2;
+	}
+      }
+
+      material -> SetEsat(Esat);
+      material -> SetPsat(Psat);
+      material -> SetDirPol(dirPol);
+
+      delete strPtr;	
+    }
+
+
 
     // ================ SCALING OF PIEZOELECTRIC MATRICES =====================
     /*

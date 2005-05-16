@@ -200,7 +200,7 @@ void SolveStepElec::StepStaticNonLinEpsDiff(const Integer kstep, const Double as
     //    coeff = -oldSol;
     //algsys_->UpdateRHS(SYSTEM,coeff.GetPointer());
 
-    algsys_->Print(SYSTEM);
+    //   algsys_->Print(SYSTEM);
 
     // build in the Dirichlet vales in system mmatrix and rhs
     algsys_->BuildInDirichlet();

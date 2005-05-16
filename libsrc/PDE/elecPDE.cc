@@ -95,7 +95,7 @@ void ElecPDE::DefineIntegrators(const Integer level)
 void ElecPDE::DefineSolveStep()
 {
   ENTER_FCN( "ElecPDE::DefineSolveStep" );
-  
+
   solveStep_ = new SolveStepElec(*this);
 }
 
@@ -130,11 +130,11 @@ void ElecPDE::WriteResultsInFile(const Integer kstep,
     {
       solConverted = dynamic_cast<NodeStoreSol<Double>*>(sol_);
       
-      
       // write electric potential
-      if (saveSol_)
+      if (saveSol_) {
 	outFile_->WriteNodeSolutionTransient(*solConverted, actStep, actTime);
-      
+      }
+
       if (saveSolHist_)
 	outFile_->WriteNodeHistoryTransient(*solConverted, actStep, actTime);
       
@@ -144,35 +144,37 @@ void ElecPDE::WriteResultsInFile(const Integer kstep,
 	}
       
       if (calcCharges_.GetSize() !=0 )
-	{
-	  outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
-	}
+	outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
       
-      if (flags->CalcErrorMap_
-	  )
-	{
-	  // this is only a temporar solution
-	  error.SetNumSolutions(1);
-	  error.SetNumElems(errorMap_.GetSize());
-	  error.SetSolutionType(NO_SOLUTION_TYPE);
-	  error.SetNumDofs(dofspernode_);
-	  error.Init(0);
+
+//       if (flags->CalcErrorMap_ )
+// 	{
+
+// 	std::cout << "Do write" << std::endl;
+
+// 	  // this is only a temporar solution
+// 	  error.SetNumSolutions(1);
+// 	  error.SetNumElems(errorMap_.GetSize());
+// 	  error.SetSolutionType(NO_SOLUTION_TYPE);
+// 	  error.SetNumDofs(dofspernode_);
+// 	  error.Init(0);
       
-	  Error("Not implemented. Talk to Andreas and Elena", __FILE__, __LINE__);
+// 	  Error("Not implemented. Talk to Andreas and Elena", __FILE__, __LINE__);
 	  
-	  //Error.SetAlgSysVector(errorMap_);
+// 	  //Error.SetAlgSysVector(errorMap_);
 	  
-	  // ATTENTION!!
-	  // up to now now transformation of the Error performed,
-	  // since the calculation of the error is done on the global element numeration
-	  //Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_,actlevel_);
-	  //OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
-	  outFile_->WriteElemSolutionTransient(error_Mesh, actStep, actTime); 
-	}
+// 	  // ATTENTION!!
+// 	  // up to now now transformation of the Error performed,
+// 	  // since the calculation of the error is done on the global element numeration
+// 	  //Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_,actlevel_);
+// 	  //OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
+// 	  outFile_->WriteElemSolutionTransient(error_Mesh, actStep, actTime); 
+// 	}
       
-      if (calcEnergy_.GetSize() !=0 )
+
+      if (calcEnergy_.GetSize() !=0 ) {
 	CalcEnergy();
-      
+      }     
     }
   else
    Error("ElecPDE: Only static results can be written", __FILE__, __LINE__);

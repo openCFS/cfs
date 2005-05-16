@@ -35,9 +35,10 @@ private:
   Double nu;
   Double LameLambda;
   Double LameMu;
-//  Double permeability;
-//  Double conductivity;
   Double permMx, permMy, permMz;   // permanent magnetization
+  Double Esat;  //electric field intensity value for satuaration
+  Double Psat;  //electric polarization value for satuaration
+  Integer dirPol; //direction of polarization
   Integer scaledMatDat;
   char * name; 
   //char name[stringLength]; 
@@ -111,6 +112,14 @@ public:
   /// set BoverA (nonlinearity parameter in nonlinear acoustics)
   void SetBoverA(const Double& BA){BoverA = BA;};
 
+  /// set electric field value for saturation
+  void SetEsat(Double& val) {Esat = val;};
+
+  /// set electric polarization value for saturation
+  void SetPsat(Double& val) {Psat = val;};
+
+  /// set direction of electric polarization
+  void SetDirPol(Integer& val) {dirPol = val;};
 
   /// set values of permanent magnetization
   void SetPermMag(const Double& mX, const Double& mY, const Double& mZ)
@@ -235,6 +244,15 @@ public:
 
   /// get nu
   Double GetNu() const { return nu; };
+
+  /// get saturated electric field value
+  Double GetEsat() const {return Esat;};
+
+  /// get saturated electric polarization value
+  Double GetPsat() const {return Psat;};
+
+  /// get direction of polarization
+  Integer GetDirPol() const {return dirPol;};
 
   /// get conductivity
 //  Double GetConductivity() const {return conductivity; };
