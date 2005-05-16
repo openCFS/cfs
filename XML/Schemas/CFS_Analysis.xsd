@@ -247,7 +247,7 @@
       <xsd:element name="maxNumIters" type="xsd:positiveInteger"/>
     </xsd:sequence>
     <xsd:attribute name="method" type="DT_NonLinSolver" use="optional"
-      default="newton"/>
+      default="fixPoint"/>
     <xsd:attribute name="logging" type="DT_CFSBool" use="optional"
       default="no"/>
   </xsd:complexType>
