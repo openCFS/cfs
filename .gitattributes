@@ -438,6 +438,8 @@ libsrc/Utils/ApproxData.cc svneol=native#text/plain
 libsrc/Utils/ApproxData.hh svneol=native#text/plain
 libsrc/Utils/Coil.cc svneol=native#text/plain
 libsrc/Utils/Coil.hh svneol=native#text/plain
+libsrc/Utils/LinInterpolate.cc svneol=native#text/plain
+libsrc/Utils/LinInterpolate.hh svneol=native#text/plain
 libsrc/Utils/Makefile -text
 libsrc/Utils/SmoothSpline.cc svneol=native#text/plain
 libsrc/Utils/SmoothSpline.hh svneol=native#text/plain

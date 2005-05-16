@@ -151,6 +151,13 @@ namespace CoupledField {
         }
       }
 
+
+      //for hysteresis modelling
+      if (materialArray_ != NULL) {
+	//we set eps33
+	dMat[sizeofD-1][sizeofD-1] = (*materialArray_)[actSD_][actElemNr_];
+      }
+
       // multiply values of permittivity with -1 to obtain the correct
       // bilinearform
       for ( Integer i = sizeofD - 2; i < sizeofD; i++ ) {
@@ -276,6 +283,13 @@ namespace CoupledField {
         }
       }
 
+
+      //for hysteresis modelling
+      if (materialArray_ != NULL) {
+	//we set eps33
+	dMat[sizeofD-1][sizeofD-1] = (*materialArray_)[actSD_][actElemNr_];
+      }
+
       // Multiply values of permittivity with -1 to obtain the
       // correct bilinearform
       for ( Integer i = sizeofD - 2; i < sizeofD; i++ ) {
@@ -363,6 +377,12 @@ namespace CoupledField {
         for ( Integer j = 0; j < sizeofD; j++ ) {
           dMat[i][j] = (*matMatrix)[i][j];
         }
+      }
+
+      //for hysteresis modelling
+      if (materialArray_ != NULL) {
+	//we set eps33
+	dMat[sizeofD-1][sizeofD-1] = (*materialArray_)[actSD_][actElemNr_];
       }
 
       // Multiply values of permittivity with -1 to obtain the correct
@@ -459,6 +479,38 @@ namespace CoupledField {
     //    Vector<Double> stressElecVec = dMat * linStrainElec;
     stressElecVec = dMat * linStrainElec;
 
+  }
+
+  void linPiezoInt::CalcStressVec( Vector<Double>& stressElecVec, Integer ip, 
+                                   Matrix<Double> & ptCoord, Integer comp,
+				   Double Dval) {
+
+    ENTER_FCN( "linPiezoInt::CalcStressVec" );
+      
+    Matrix<Double> dMat;
+    calcDMat(dMat);
+ 
+    // convert displacement of all elem nodes into one vector: 
+    // (uNode1X, uNode1Y, VNode1, uNode2X, uNode2Y,VNode2,  ...)
+    Vector<Double> solVec;
+    elemSol_->ConvertToVec_AppendCols(solVec);
+
+    // linear differential operator B_lin
+    Matrix<Double> linBMat;    
+    calcBMat( linBMat, ip, ptCoord);
+
+    //set corrsponding permittivity to zero
+    Integer idx = dMat.GetSizeRow() - comp - 1;
+    dMat[idx][idx] = 0.0;
+    //    std::cout << "Mat:\n" << dMat << std::endl;
+
+    Vector<Double> linStrainElec(linBMat * solVec );
+
+    // | c Bmech u - e^T Belec V |
+    // | e Bmech u + eps Belec V |
+    //    Vector<Double> stressElecVec = dMat * linStrainElec;
+    stressElecVec = dMat * linStrainElec;
+    stressElecVec[idx] += Dval;
   }
 
   void linPiezoInt::CalcStressVec( Vector<Complex>& stressElecVec, Integer ip, 

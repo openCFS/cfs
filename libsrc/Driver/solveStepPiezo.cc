@@ -5,104 +5,155 @@
 #include "solveStepPiezo.hh"
 #include "Forms/forms_header.hh"
 #include "Utils/preisach.hh"
+#include "assemble.hh"
+
+#include "Utils/nodestoresol.hh"
+#include "PDE/StdPDE.hh"
 
 namespace CoupledField {
 
-SolveStepPiezo::SolveStepPiezo(BasePDE& apde) : BaseSolveStep(apde) {
-  ENTER_FCN( "SolveStepPiezo::SolveStepPiezo" );
+  SolveStepPiezo::SolveStepPiezo(StdPDE& apde) : StdSolveStep(apde)
+  {
 
-  doInit_ = TRUE;
-}
+    ENTER_FCN( "SolveStepPiezo::SolveStepPiezo" );
+    doInit_ = TRUE;
+  }
 
-SolveStepPiezo::~SolveStepPiezo() {
-  ENTER_FCN( "SolveStepPiezo::~SolveStepPiezo" );
-}
+
+  SolveStepPiezo::~SolveStepPiezo() {
+    ENTER_FCN( "SolveStepPiezo::~SolveStepPiezo" );
+  }
  
-// ======================================================
-// Solve Step Transient SECTION  
-// ======================================================
 
-void SolveStepPiezo::PreStepTrans( const Integer kstep, const Double asteptime,
-				   const Integer level, const Boolean reset ) {
+  // ======================================================
+  // Solve Step Static SECTION  
+  // ======================================================
 
-  ENTER_FCN( "SolveStepPiezo::PreStepTrans" );
+void SolveStepPiezo:: PreStepTrans(const Integer kstep, const Double asteptime,
+				   const Integer level, const Boolean reset)
+{
+  ENTER_FCN( "SolveStepPiezo::PreStepStatic" );
 
-  lasttimecalc_= asteptime;
-  
+  lasttimecalc_ = asteptime;
+  laststepcalc_ = kstep;
+
   // due to coupling-pdes, the RHS has to be initialized BEFORE 
   // the coupling forces are assembled to the RHS
   algsys_->InitRHS();
 
-  if (doInit_) {
-    //set the Preisach values; should be obtained from the xml_file
-    Esat_     = 2.0e6;
-    Psat_     = 0.04;
-    Ec_       = 0.9e6;
-    Dir_      = 2;
-    isVirgin_ = TRUE;
+  Integer numElems = PDE_.getPDE_numElems();
 
-    Integer numElems = PDE_.getPDE_numElems();
-    hyst_ = new Preisach(numElems, Esat_, Psat_, Ec_, isVirgin_);
+  if (isHyst_) {
+    if (kstep==1) {
+      Eprevious_.Resize(numElems);
+      Dprevious_.Resize(numElems);
+      epsDiff_.Resize(subdoms_.GetSize(),numElems);
+      Eprevious_.Init(0);
+      Dprevious_.Init(0);
+      epsDiff_.Init(8.854e-12);
+    }
 
-    doInit_ = FALSE;
-  }
-  else {
-    DoUpdateHyst();
+    if (doInit_) {
+      //set the Preisach values; should be obtained from the xml_file
+      StdVector<Elem*> elemssd;
+      Boolean isVirgin;
+      hyst_.Resize(subdoms_.GetSize());
+
+      for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++) {
+	Double Esat, Psat;
+	Double Ec = 0; //currently not used
+	Integer dir, numSDElems;
+	Esat = materialData_[iSD].GetEsat();
+	Psat = materialData_[iSD].GetPsat();
+	dir  = materialData_[iSD].GetDirPol();
+	isVirgin = TRUE; 
+
+	ptgrid_->GetElemSD(elemssd,subdoms_[iSD],actlevel_);
+	numSDElems = elemssd.GetSize(); 
+	hyst_[iSD] = new Preisach(numSDElems, Esat, Psat, Ec, isVirgin);
+      }
+      doInit_ = FALSE;
+    }
+    else {
+      DoUpdateHyst();
+    }
   }
 }
-  
-void SolveStepPiezo::StepTransNonLin(const Integer kstep, const Double asteptime,
-				     const Integer level, const Boolean reset) {
 
-  ENTER_FCN( "SolveStepPiezo::StepTransNonLin" );
+
+
+// time is used for a series of static calculations
+// don't get confused with REAL transient simulations!
+void SolveStepPiezo::SolveStepTrans(const Integer kstep, const Double asteptime,
+				    const Integer level, const Boolean reset) {
+
+  ENTER_FCN( "SolveStepPiezo::SolveStepTrans" );
+  
+  lasttimecalc_ = asteptime;
+  laststepcalc_ = kstep;
+  
+  if (isHyst_) {
+    StepTransNonLinEpsDiff(kstep,asteptime,level,reset);
+  }
+  else {
+    StepTransLin(kstep,asteptime,level,reset);
+  }
+
+}
+
+
+void SolveStepPiezo::StepTransNonLinEpsDiff(const Integer kstep, const Double asteptime,
+					    const Integer level, const Boolean reset) {
+
+  ENTER_FCN( "SolveStepPiezo::StepTransNonLinEpsDiff" );
 
   laststepcalc_ = kstep;
   lasttimecalc_ = asteptime;
 
-  Integer job;
+  Integer job=1;
   Boolean performOneMoreStep;
   Integer iterationCounter=0;
   
-  Vector<Double> newSol(numPDENodes_);
-  Vector<Double> oldSol(numPDENodes_);
+  Vector<Double> newSol(eqnData_->GetNumEQNs());
+  Vector<Double> oldSol(eqnData_->GetNumEQNs());
+  Vector<Double> solPrev(eqnData_->GetNumEQNs());
+  Vector<Double> incrSol(eqnData_->GetNumEQNs());
+
+  Double* actRHS;
+  Double* solPtr;
+
+  Vector<Double> coeff;
+
+  oldSol.Init(0);
+  newSol.Init(0);
   
-  // just update dirichlet values
-  job = 3;
-  
-  // if first time step, setup system matrix
-  if (laststepcalc_ == 1) {
-    assemble_->AssembleMatrices(level);
-    algsys_->ConstructEffectiveMatrix(matrix_factor_);
-    
-    //set job to 1: build in dirichlet BCs and compute preconditioner
-    job = 1;
-  }  
-  
+  //save solution opf previous time step  
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+  solhelp->GetAlgSysVector(solPrev);
 
-  //compute predictors
-  TS_alg_->Predictor(solhelp->GetAlgSysVector());
+  // Update extrema-list just for first time step
+  if (laststepcalc_ == 1) {
+    DoUpdateHyst();
+  }
 
-  // set BCs, if effective mass matrix formulation, values of BCs depend on 
-  //  predictors, so predictors have to be computed beforehand
+  //clear RHS
+  algsys_->InitRHS();
+
+  //set BCs
   SetBCs(level, lasttimecalc_);
 
-  // set old solution  
-  newSol = solhelp->GetAlgSysVector();
-
-  // Update RHS (mass matrix and damping matrix on right hand side)
-  TS_alg_->UpdateRHS();
   // stores this as linear part of RHS
-  StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
+  algsys_->GetRHSVal( actRHS );
+  StoreAlgsysToVec(RhsLinVal_, actRHS );
 
   do {
     iterationCounter++;
     // for every time step write out number of iteration loops to standard out
     if (iterationCounter == 1)
       std::cout << std::endl << "Time step:   "  << kstep 
-		<< "  ,Iterations: " << iterationCounter;
+		<< "  ,Iterations: " << iterationCounter << std::endl;
     else 
-      std::cout	<< "  " << iterationCounter;
+      std::cout	<< "Iter:  " << iterationCounter << std::endl;
     
 #ifdef DEBUG
     *debug << std::endl
@@ -113,33 +164,68 @@ void SolveStepPiezo::StepTransNonLin(const Integer kstep, const Double asteptime
 #endif
         
     // set solution of previous iteration
-    oldSol = newSol;
-    
-    if ( iterationCounter>1 ) 
-      job = 3;
-    
-    // Set linear part of RHS
-    algsys_->InitRHS(RhsLinVal_.GetPointer());
-    
-    // put nonlinear part to RHS
-    AddPolarizationToRHS();
-    
-    algsys_->BuildInDirichlet();
-    if ( job == 1 ) {
-      algsys_->SetupSolver(job);
-      algsys_->SetupPrecond(job);
+    if (iterationCounter == 1 ) {
+      oldSol = solPrev;
+    }
+    else {
+      oldSol = newSol;
     }
     
+    // Set linear part of RHS
+    //    algsys_->InitRHS(RhsLinVal_.GetPointer());
+
+    //clear RHS
+    algsys_->InitRHS();
+
+    //compute differential permittivity
+    if ( iterationCounter != 1 || laststepcalc_ ==1 ) {
+      ComputeDiffEpsilon();
+    }
+
+    //set up the new matrices
+    algsys_->InitMatrix(SYSTEM);
+    algsys_->InitMatrix(STIFFNESS);
+    if (dampingType_ != NONE)
+      algsys_->InitMatrix(DAMPING);
+    algsys_->InitMatrix(MASS); 
+    assemble_->SetReassemble();   
+
+    assemble_->SetMaterialArray( &epsDiff_ ); 
+    assemble_->AssembleMatrices(level);
+
+    algsys_->ConstructEffectiveMatrix(matrix_factor_);
+
+    // set changing part of RHS
+    algsys_->UpdateRHS(SYSTEM,solPrev.GetPointer());
+
+    //compute residual for incremental solution
+    //    coeff = -oldSol;
+    //algsys_->UpdateRHS(SYSTEM,coeff.GetPointer());
+
+    // build in the Dirichlet vales in system mmatrix and rhs
+    algsys_->BuildInDirichlet();
+
+    //   algsys_->Print(SYSTEM);
+
+    //get RHS
+    Vector<Double> RHS;
+    algsys_->GetRHSVal( actRHS );
+    StoreAlgsysToVec(RHS, actRHS );       
+    Double residualNorm = RhsL2Norm( RHS );
+
+    algsys_->SetupSolver(job);
+    algsys_->SetupPrecond(job);
+    
     algsys_->Solve();
-    
-    // store new solution in newSol
-    StoreAlgsysToVec(newSol, algsys_->GetSolutionVal() );
-    
-    // perform corrector step, if effective mass formulation is used,
-    //   we need the Corrector step before we store newsol to sol_,
-    //   because newsol is second time derivative at first!
-    TS_alg_->Corrector(newSol);
-    
+    algsys_->GetSolutionVal( solPtr );
+    StoreAlgsysToVec(incrSol, solPtr );
+
+    Double alpha = 1;
+    //    newSol = oldSol + incrSol * alpha;
+    newSol = incrSol;
+
+    //    std::cout << "New Solution:\n" << newSol << std::endl;
+    //    std::cout << "Old Solution:\n" << oldSol << std::endl;
 #ifdef DEBUG
     *debug << std::endl
 	   << "New Solution:" << std::endl << newSol << std::endl;
@@ -149,7 +235,7 @@ void SolveStepPiezo::StepTransNonLin(const Integer kstep, const Double asteptime
     sol_->SetAlgSysVector(newSol);  
     
     // compute L2-Norm of error between last incremental solution and
-    //   actual incremental solution
+    // actual incremental solution
     Double solIncrL2Norm=0;
     for (Integer i=0; i<newSol.GetSize(); i++)
       solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
@@ -165,78 +251,21 @@ void SolveStepPiezo::StepTransNonLin(const Integer kstep, const Double asteptime
     
     // output of norms and data
     if ( nonLinLogging_ == TRUE ) {
-      Info->WriteNonLinIter(pdename_, iterationCounter, incrementalErr,
+      Info->WriteNonLinIter(pdename_, iterationCounter, residualNorm,
 			    incrementalErr);
     }
-    
+
     // boolean variable, holds condition if another iteration step
     //   is necessary
-    performOneMoreStep =    (incrementalErr > incStopCrit_);
+    performOneMoreStep =  ( (incrementalErr > incStopCrit_) || (residualNorm > residualStopCrit_) )
+			    && (residualNorm > 1e-14) ;
     
-  } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
-  
-  
-}
+  } while ( performOneMoreStep && iterationCounter < nonLinMaxIter_ );  
 
-
-void SolveStepPiezo::AddPolarizationToRHS() {
-  
-  ENTER_FCN( "SolveStepPiezo::AddPolarizationToRHS" );
-
-  //we assume, that the actual solution is stored in sol_!
-  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-
-  GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
-								  *solhelp, ELEC_POTENTIAL, 
-								  actlevel_, isaxi_);
-
-  Vector<Double> LCoord, Efield;
-  Double Ecomp, Pval;
-  Integer comp = Dir_ - 1;
-  Integer pdeElem=1;
-
-  Matrix<Double>     ptCoord;
-  Vector<Double>     sol, solderiv1, solderiv2, rhs;
-  BaseFE             *ptElem;
-  StdVector<Integer> connect, connect_PDE;
-  
-  BaseForm * rhsInt = new  PiezoPolarizationInt(Dir_, PDE_.getPDE_dofspernode(), isaxi_);
-
-  for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-    StdVector<Elem*> elemssd;
-    ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
-    
-    for (Integer iel=0; iel < elemssd.GetSize(); iel++) {
-
-      //compute the electric field intensity
-      elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
-      FieldOp->CalcElemGradField( Efield, elemssd[iel], LCoord, 1);
-      
-      //get correct component of electric field for scalar Preisach model
-      Ecomp = Efield[comp]; 
-
-      //compute polarization
-      hyst_-> computeValue(Ecomp,pdeElem);
-     
-      ptElem  = elemssd[iel]->ptElem;
-      connect = elemssd[iel]->connect;
-      GetElemCoords(connect, ptCoord, actlevel_);
-      
-      rhsInt->SetElemPtr(ptElem);
-      rhsInt->SetFactor(Pval);
-
-      rhsInt->CalcElemVector(ptCoord, rhs);
-      
-      //get equation numbers 
-      eqnData_->Node2EQN(connect, connect_PDE);
-      
-      //assemble
-      algsys_->SetElementRHS(&rhs[0], connect_PDE.GetPointer(), connect_PDE.GetSize());
-
-      pdeElem++;
-    }  
+  if ( iterationCounter >=  nonLinMaxIter_) {
+    Error(" Number of nonlinear iterations too larger");
   }
-
+  
 }
 
 
@@ -253,14 +282,17 @@ void SolveStepPiezo::DoUpdateHyst() {
   Vector<Double> LCoord, Efield;
   StdVector<Elem*> elemssd;
   Integer pdeElem=1;
-  Double Ecomp;
-  Integer comp = Dir_-1;
-  
+  Double Ecomp, Pval, Dval;
+  Integer comp;
+
   // loop over all subdomains
   for (Integer isd=0; isd<subdoms_.GetSize(); isd++) {
     // get vector of Elem of subdomain with color: subdoms[isd]
     ptgrid_->GetElemSD(elemssd,subdoms_[isd],actlevel_);
       
+    //get direction of polarization
+    comp = materialData_[isd].GetDirPol() - 1;
+
     // loop over elements of subdomain
       for (Integer iel=0; iel< elemssd.GetSize(); iel++)	{
 	elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
@@ -271,7 +303,14 @@ void SolveStepPiezo::DoUpdateHyst() {
 	//get correct component of electric field for scalar Preisach model
 	//and invoke the update MinMaxList method
 	Ecomp = Efield[comp]; 
-	hyst_->updateMinMaxList(Ecomp, pdeElem);
+	hyst_[isd]->updateMinMaxList(Ecomp, pdeElem);
+
+	Pval = hyst_[isd]->computeValue(Ecomp,pdeElem);
+
+	//	std::cerr << Ecomp << "    " << Pval << std::endl;
+
+	Eprevious_[pdeElem-1] = Ecomp;
+	Dprevious_[pdeElem-1] = Pval; //8.85419E-12 * Ecomp + Pval;
 
 	pdeElem++;
       }
@@ -280,6 +319,72 @@ void SolveStepPiezo::DoUpdateHyst() {
   delete FieldOp;
 
 }
+
+
+void SolveStepPiezo::ComputeDiffEpsilon() {
+  
+  ENTER_FCN( "SolveStepPiezo::ComputeDiffEpsilon" );
+
+  //we assume, that the actual solution is stored in sol_!
+  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+
+  GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
+								  *solhelp, ELEC_POTENTIAL, 
+								  actlevel_, isaxi_);
+
+  Vector<Double> LCoord, Efield;
+  Double Ecomp, Pval, Dval, dE, dD, eps;
+  Integer comp;
+  Integer pdeElem=1;
+
+  BaseFE *ptElem;
+  
+  for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+    StdVector<Elem*> elemssd;
+    ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+    
+    //get direction of polarization
+    comp =  materialData_[actSD].GetDirPol() - 1;
+    
+    for (Integer iel=0; iel < elemssd.GetSize(); iel++) {
+
+      //compute the electric field intensity
+      elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
+      FieldOp->CalcElemGradField( Efield, elemssd[iel], LCoord, 1);
+
+      //get correct component of electric field for scalar Preisach model
+      Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
+
+      //compute polarization
+      Pval = hyst_[actSD]->computeValue(Ecomp,pdeElem);
+
+      //      Pval = Ecomp*2e-7;
+
+      //compute dielectric displacement
+      Dval = Pval; //8.85419E-12 * Ecomp + Pval;
+
+      //compute differential epsilon
+      dE = Ecomp - Eprevious_[pdeElem-1];
+      dD = Dval - Dprevious_[pdeElem-1];
+      if ( (abs(dD) < 1e-12) || (abs(dE) < 1e-10) ) {
+	eps = materialData_[actSD].GetPermittivity(2,2);
+	if (eps < 8.854e-12) {
+	  eps = 8.854e-12;
+	}
+	epsDiff_[actSD][iel] = eps;
+      }
+      else {
+	epsDiff_[actSD][iel] = dD / dE;
+      }
+
+      pdeElem++;
+    }  
+  }
+
+  //  std::cout << "EpsDiff: " << epsDiff_ << std::endl;
+}
+
+
 
 } // end of namespace
 

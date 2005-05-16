@@ -61,6 +61,8 @@ namespace CoupledField
 
     /// calculates mechanical stresses (vector notation), overloaded for real and complexvalued stresses
     virtual void CalcStressVec(Vector<Double>& StressVec, Integer ip, Matrix<Double> & ptCoord);  
+    virtual void CalcStressVec(Vector<Double>& StressVec, Integer ip, Matrix<Double> & ptCoord,
+			       Integer comp, Double Dval); 
     virtual void CalcStressVec(Vector<Complex>& StressVec, Integer ip, Matrix<Double> & ptCoord);  
 
 //     virtual void SetActElemSol(Matrix<Double>& disp) {

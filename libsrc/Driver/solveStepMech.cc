@@ -104,7 +104,8 @@ namespace CoupledField {
     PDE_.SetBCs(level, 0);
 
     // store linear part of RHS
-    Double extForcesL2Norm = SetLinRHS(level); 
+    Double loadFactor = 1.0;
+    Double extForcesL2Norm = SetLinRHS(level,loadFactor); 
 
     assemble_->AssembleNLRHS(level);
 
@@ -136,9 +137,7 @@ namespace CoupledField {
 	  algsys_->SetupSolver(job);
 	}
 
-	algsys_->Solve();
-
-      
+	algsys_->Solve();   
 
 	// new solution is only an increment of the full solution =============
 	Double *solPtr;
@@ -453,7 +452,8 @@ namespace CoupledField {
     TS_alg_->Predictor(solhelp->GetAlgSysVector());
 
     //! store linear part of RHS
-    Double extForcesL2Norm = SetLinRHS(level);
+    Double loadFactor = 1.0;
+    Double extForcesL2Norm = SetLinRHS(level, loadFactor);
 
     timeStepCounter++;
 

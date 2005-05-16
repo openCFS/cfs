@@ -93,6 +93,38 @@ namespace CoupledField {
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
 
+    isHysteresis_ = FALSE;
+    params->GetList( "nonLinear", nonLinType_, pdename_, "region" );
+    
+    for ( Integer k = 0; k < nonLinType_.GetSize(); k++ ) {
+      if ( nonLinType_[k] == "hysteresis" ) {
+        isHysteresis_ = TRUE;
+        break;
+      }
+    }
+
+    if( isHysteresis_ ) {
+
+      // solution method
+      params->Get( "method", nonLinMethod_, pdename_, "nonLinear" );
+      
+      // perform logging?
+      nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
+
+      // type of line search
+      params->Get( "type", lineSearch_, pdename_, "lineSearch" );
+
+      // incremental stopping criterion
+      params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
+      
+      // residual stopping criterion
+      params->Get( "resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
+
+      // maximal number of NL-iterations
+      params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
+    }
+ 
+
     // =====================================================================
     // set solution information
     // =====================================================================
@@ -292,7 +324,12 @@ namespace CoupledField {
   {
     ENTER_FCN( "PiezoPDE::DefineSolveStep" );
     
-    solveStep_ = new  StdSolveStep(*this);
+    if ( isHysteresis_ ) {
+      solveStep_ = new  SolveStepPiezo(*this);
+    }
+    else {
+      solveStep_ = new  StdSolveStep(*this);
+    }
   }
 
 
@@ -323,9 +360,12 @@ namespace CoupledField {
     NodeStoreSol<Double> * solTransient;
     NodeStoreSol<Complex> * solHarmonic;
 
-    Double actTime = lasttimecalc_ + timeOffset;
-    Integer actStep = laststepcalc_ + stepOffset;
- 
+//     Double actTime = lasttimecalc_ + timeOffset;
+//     Integer actStep = laststepcalc_ + stepOffset;
+
+    Double actTime = asteptime + timeOffset;
+    Integer actStep = kstep + stepOffset;
+
     if (analysistype_ == STATIC ||
         analysistype_ == TRANSIENT) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);      
@@ -1006,18 +1046,27 @@ namespace CoupledField {
     
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     StdVector<Elem*> surfElems, volElems;
-    Vector<Double> lCoordSurf, lCoordVol, elemDField;
+    Vector<Double> lCoordSurf, lCoordVol, elemDField, Efield;;
     GradientFieldOp<Double> * dFieldOp;
     ElecChargeOp * chargeOp;
     BaseFE * ptSurfElem, * ptVolElem;
     Double permittivity = 0.0;
     Double elemNormalD = 0.0;
     Double charge = 0.0;
+    Double Ecomp, Dcomp;
     Integer pdeElemNum = 0;
 
     ShortInt stressElecDim, stressDim, elecDim;
     Vector<Double> intPoint;
   
+
+    GradientFieldOp<Double> * FieldOp;
+    if (isHysteresis_) {
+      FieldOp = new GradientFieldOp<Double>(ptgrid_, this, eqnData_,
+					    *solhelp, ELEC_POTENTIAL, 
+					    actlevel_, isaxi_);
+    }
+
     if (subType_ == "planeStrain") 
       {
         stressDim = 3;
@@ -1052,7 +1101,14 @@ namespace CoupledField {
 
     //charge operator  
     chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, actlevel_, isaxi_);
-                              
+
+    Vector<Double> chargeSD(calcCharge_.GetSize());
+    chargeSD.Init(0);
+    Vector<Double> averageE(calcCharge_.GetSize());
+    averageE.Init(0);
+          
+    Integer actVolSD;
+                  
     // loop over all subdomains
     for (Integer iSD=0; iSD<calcCharge_.GetSize(); iSD++){
     
@@ -1067,8 +1123,14 @@ namespace CoupledField {
       ptgrid_->GetVolNeighboursForSurf(surfElems,chargeNeighborRegion_,
                                        volElems, actlevel_);
     
-      //get correct stress-
-      MaterialData actSDMat(materialData_[iSD]);
+      //get correct material data
+      //      actVolSD = 0;
+      for ( Integer k=0; k<subdoms_.GetSize(); k++ ) {
+	if ( chargeNeighborRegion_[0]  == subdoms_[k] ) {
+	  actVolSD = k;	 
+	}
+      }
+      MaterialData actSDMat(materialData_[actVolSD]);
       linPiezoInt * stress;
 
       if (subType_ == "planeStrain")
@@ -1125,13 +1187,32 @@ namespace CoupledField {
           Matrix<Double> ptCoord;
           GetElemCoords(volConnect, ptCoord, actlevel_);
 
+	  // check for electric hysteresis
+	  if (isHysteresis_) {
+	    FieldOp->CalcElemGradField( Efield, volElems[iElem], lCoordVol, 1);
+	    Integer comp =  materialData_[actVolSD].GetDirPol() - 1;;
+	    Ecomp = Efield[comp];
+	    Integer elemNr = volElems[iElem]->elemNum;
+	    
+	    Dcomp = solveStep_->GetHystOperator(actVolSD)->computeValue(Ecomp,elemNr); 
+	    //	    std::cerr << "nr=" << elemNr << " D=" << Dcomp << std::endl;
+	    //	    std::cerr << Ecomp << " " << Dcomp << std::endl;
+	    averageE[iSD] += Ecomp/surfElems.GetSize();
+	  }
+
           //calculates the stress
           Vector<Double> actElecD;
-        
-          stress->CalcStressVec(elemElecStress,1,ptCoord);
+
+	  if (isHysteresis_) {
+	    stress->CalcStressVec(elemElecStress,1,ptCoord, 0, Dcomp);
+	  }
+	  else {
+	    stress->CalcStressVec(elemElecStress,1,ptCoord);
+	  }
 
           actElecD = elemElecStress.Part(stressDim,elemElecStress.GetSize()-1);
-      
+	  //	  actElecD[1] = Dcomp;
+
           //scalar product with normal vector
           elemNormalD = lCoordVol * actElecD;
 
@@ -1146,12 +1227,22 @@ namespace CoupledField {
           Vector<Double> chargeVec(1);
           chargeVec[0] = charge;
           charges_.SetElemResult(pdeElemNum-1, chargeVec);
-        
+	  chargeSD[iSD] += charge;        
         }
       // Delete integrator again (reeller Stressabbau !)
       delete stress;
 
     }
+
+    //print to info-file
+    Info->PrintF(pdename_, "Computed Charges: ");
+    Info->PrintVec(chargeSD);
+
+    if (isHysteresis_) {
+      Info->PrintF(pdename_, "Averaged Efield: ");
+      Info->PrintVec(averageE);
+    }
+
     //  Warning ("Charges are written to unv/gmv file, although capapost \
 // can not draw them", __FILE__, __LINE__);
  }

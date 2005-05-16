@@ -11,7 +11,7 @@ SmoothSpline :: SmoothSpline(std::string nlFileName)
   : ApproxData(nlFileName)
 {
 
-  delta = 0.01;
+  delta = 0.05;
   mu    = 1e-14;;
   node  = nummeas-2;       // n = number of measurements
   size  = node*2;    // size of the spline system
@@ -117,7 +117,7 @@ void SmoothSpline :: CalcBestParameter()
 	}
     }
 
-//  std::cout << "first monotone mu BH " << mu << std::endl;
+  //  std::cout << "first monotone mu BH " << mu << std::endl;
 
   monotone = 1;
 
@@ -162,8 +162,8 @@ void SmoothSpline :: CalcBestParameter()
 
     }
 
-//  std::cout << "monotone BH " << MonotoneBH() << std::endl;
-//  std::cout << "monotone nu " << MonotoneNu() << std::endl;
+  //  std::cout << "monotone BH " << MonotoneBH() << std::endl;
+  //  std::cout << "monotone nu " << MonotoneNu() << std::endl;
 }
 
 
@@ -487,9 +487,9 @@ void SmoothSpline :: CalcMonotoneParameter()
       //std::cout << res << " " << mu << std::endl;
     }
 
-  //  std::cout << "res and mu  " << res << " " << mu << std::endl;
-  //  std::cout << "monotone BH " << MonotoneBH() << std::endl;
-  //std::cout << "monotone nu " << MonotoneNu() << std::endl;
+  //    std::cout << "res and mu  " << res << " " << mu << std::endl;
+  //    std::cout << "monotone BH " << MonotoneBH() << std::endl;
+  //    std::cout << "monotone nu " << MonotoneNu() << std::endl;
 }
 
 

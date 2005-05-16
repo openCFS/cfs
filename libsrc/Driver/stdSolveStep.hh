@@ -3,6 +3,7 @@
 
 #include "baseSolveStep.hh"
 #include "Utils/vector.hh"
+#include "Utils/hysteresis.hh"
 
 namespace CoupledField
 {
@@ -192,7 +193,7 @@ namespace CoupledField
     //----------------------- helpfull methods--------------------------------------
 
     //! computes linear part of RHS
-    Double SetLinRHS(const Integer level);
+    Double SetLinRHS(const Integer level, Double loadFactor);
 
     //! stores an algsys_ vector into a StdVector and returns that L2-norm
     void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
@@ -216,6 +217,11 @@ namespace CoupledField
 			 const Double extForcesL2Norm, const Double residualErr, 
 			 const Double solIncrL2Norm, const Double actSolL2Norm, 
 			 const Double incrementalErr);
+
+    //! returns the hysteresis operator
+    Hysteresis * GetHystOperator(Integer iSD) {
+      return hyst_[iSD];
+    };
 
   protected:
 
@@ -244,7 +250,6 @@ namespace CoupledField
     //! returns the vector of 2nd time derivative of the solution belonging to all nodes 
     //! of the actual element
     void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
-
 
     //-------------------------------- Pointers to (Copies of) StdPDE -------------------
 
@@ -276,6 +281,7 @@ namespace CoupledField
 
     std::string lineSearch_;   //!< switch for lineSearch
     Boolean nonLin_;           //!< flag for nonlinear calculations
+    Boolean isHyst_;           //!< flag for hystersis modeling
     Boolean geoUpdate_;        //!< flag for geometric update
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
@@ -289,7 +295,10 @@ namespace CoupledField
     Vector<Double> actSol_;    //! needed in iterative coupled computation 
     Boolean isIncrFormulation_;//! checks, if we have for the coupling a incremental solution
 
-    
+
+    //hysteresis operator;    
+    StdVector<Hysteresis *> hyst_;
+
     //! \todo Currently only two pdes can couple. This has to be extended
     //! for the general case
     //! Identification tag for first PDE

@@ -38,6 +38,7 @@ namespace CoupledField {
 
     lineSearch_       = PDE_.lineSearch_;
     nonLin_           = PDE_.nonLin_;
+    isHyst_           = PDE_.isHysteresis_;
     geoUpdate_        = PDE_.geoUpdate_;
     incStopCrit_      = PDE_.incStopCrit_;
     residualStopCrit_ = PDE_.residualStopCrit_;
@@ -183,6 +184,9 @@ namespace CoupledField {
                               const Integer level, const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::StepTransLin" );
+
+    PDE_.lasttimecalc_= asteptime;
+    PDE_.laststepcalc_= kstep;
 
     Double * ptsol;
     Integer job;
@@ -409,7 +413,7 @@ namespace CoupledField {
   // ======================================================
 
   // sets excitation coil and returns L2Norm of them
-  Double StdSolveStep::SetLinRHS(const Integer level)
+  Double StdSolveStep::SetLinRHS(const Integer level, Double loadFactor)
   {
     ENTER_FCN( "StdSolveStep::SetLinRHS" );
 
@@ -424,6 +428,8 @@ namespace CoupledField {
     Double *solPtr;
     algsys_->GetRHSVal( solPtr );
     StoreAlgsysToVec(RhsLinVal_, solPtr );
+
+    RhsLinVal_ *= loadFactor;
 
     RhsLinL2Norm = RhsLinVal_.NormL2();
  
@@ -458,8 +464,8 @@ namespace CoupledField {
     ENTER_FCN( "StdSolveStep::LineSearch" );
 
     Vector<Double> solOld(actSol);
-    const Integer nrEtas = 4;
-    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125};
+    const Integer nrEtas = 5;
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
     Double etaOpt;
     Double residualL2NormOpt = 1e15;
   
@@ -474,14 +480,13 @@ namespace CoupledField {
 	// recalculate RHS with new values to get new residual (f^(k+1))========
 	algsys_->InitRHS(RhsLinVal_.GetPointer());
 
-	if(trans)
-	  {
-	    assemble_->AssembleNLRHS(level, lasttimecalc_);
-	    TS_alg_->UpdateRHS(actSol);
-	  }
-	else
+	if(trans) {
+	  assemble_->AssembleNLRHS(level, lasttimecalc_);
+	  TS_alg_->UpdateRHS(actSol);
+	}
+	else {
 	  assemble_->AssembleNLRHS(level);
-
+	}
 
 
 	// =====================================================================
@@ -495,6 +500,7 @@ namespace CoupledField {
 	// calculation of residual error =======================================
 	Double residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
 
+	//	std::cout << "LineSearch: eta=" << eta[i] << "  res=" << residualL2Norm << std::endl;
 	if (residualL2Norm < residualL2NormOpt)
 	  {
 	    residualL2NormOpt = residualL2Norm;
@@ -588,7 +594,7 @@ namespace CoupledField {
   }
 
   Double StdSolveStep::RhsL2Norm(Vector<Double>& actRHS) {
-    PDE_.RhsL2Norm(actRHS);
+    return PDE_.RhsL2Norm(actRHS);
   }
 
   void StdSolveStep::SetPDEId( const PdeIdType pdeId ) {
