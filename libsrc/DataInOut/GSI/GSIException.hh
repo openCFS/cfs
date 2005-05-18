@@ -1,21 +1,29 @@
-// Exception class
+// GSI::Exception class
 
-#ifndef GSIException_class
-#define GSIException_class
+#ifndef GSI_EXCEPTION
+#define GSI_EXCEPTION
 
 #include <string>
 
-class GSIException
+#include "GSITypeDefs.hh"
+
+namespace GridlibSocketInterface
+{
+
+class Exception
 {
  public:
-  GSIException ( std::string s) :  m_s(s) { };
-  ~GSIException (){};
+  Exception ( std::string s) :  m_s(s) { };
+  ~Exception (){};
 
-  std::string description() { return m_s; }
+  std::string GetDescription() { return m_s; }
+  void SetDescription(const std::string& descr) { m_s = descr; }
 
  protected:
 
   std::string m_s;
 };
+ 
+}
 
-#endif
+#endif //GSI_EXCEPTION

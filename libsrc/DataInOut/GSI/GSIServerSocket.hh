@@ -1,24 +1,29 @@
-// Definition of the GSIServerSocket class
+// Definition of the GSI::ServerSocket class
 
-#ifndef GSIServerSocket_class
-#define GSIServerSocket_class
+#ifndef GSI_SERVERSOCKET
+#define GSI_SERVERSOCKET
 
 #include "GSISocket.hh"
 #include "GSISocketException.hh"
+#include "GSITypeDefs.hh"
 
-class GSIServerSocket : public GSISocket
+namespace GridlibSocketInterface
+{
+
+class ServerSocket : public Socket
 {
  public:
 
-  GSIServerSocket ( int port, int timeout = -1 );
-  GSIServerSocket ( int timeout = -1 )
-    : GSISocket(timeout) {};
+  ServerSocket ( int32 port, int32 timeout = -1 );
+  ServerSocket ( int32 timeout = -1 )
+    : Socket(timeout) {};
 
-  virtual ~GSIServerSocket();
+  virtual ~ServerSocket();
 
-  int accept ( GSIServerSocket&, int single = 0 ) throw (GSISocketException);
-  //  void accept ( GSIServerSocket&) throw (GSISocketException);
+  int32 accept ( ServerSocket&, int32 single = 0 ) throw (SocketException);
+  //  void accept ( ServerSocket&) throw (SocketException);
 };
+ 
+}
 
-
-#endif
+#endif //GSI_SERVERSOCKET

@@ -5,8 +5,12 @@
 #include "DataInOut/writeresults.hh"
 
 // forward declarations
-class GSIServerSocket;
-class GSIBaseIO;
+namespace GridlibSocketInterface
+{
+    class ServerSocket;
+    class BaseIO;
+}
+
 
 namespace CoupledField
 {
@@ -183,7 +187,7 @@ namespace CoupledField
     //GSIServerSocket *sock_;
 
     //! \todo document me
-    GSIBaseIO *io_;
+    GridlibSocketInterface::BaseIO *io_;
 
     //! \todo document me
     FILE* fp_;

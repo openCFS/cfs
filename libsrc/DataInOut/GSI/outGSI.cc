@@ -34,7 +34,7 @@ namespace CoupledField {
   
     fp_ = fopen(myfilename.c_str(), "wb");
   
-    io_ = new GSIXDRIO(NULL, fp_);
+    io_ = new GridlibSocketInterface::XDRIO(NULL, fp_);
 
     // Initialize history files
     InitHistoryFiles();
@@ -73,9 +73,9 @@ namespace CoupledField {
 	(*io_) << "---- BEGIN GRID ----";
 	//          (*io_) << (int) 1;
       }
-      catch (GSIIOException& e) {
+      catch (GridlibSocketInterface::IOException& e) {
 	std::cerr << "Exception in WriteResultsGSI::WriteGrid" << std::endl
-		  << e.description() << std::endl;
+		  << e.GetErrorString() << std::endl;
       }
       
       Dataset666(level);
@@ -95,9 +95,9 @@ namespace CoupledField {
     try {
       (*io_) << msg;
     }
-    catch ( GSIIOException& e ) {
+    catch ( GridlibSocketInterface::IOException& e ) {
       std::cerr << "Exception in WriteResultsGSI::WriteMsg" << std::endl
-		<< e.description() << std::endl;
+		<< e.GetErrorString() << std::endl;
     }
   }
 
@@ -119,9 +119,9 @@ namespace CoupledField {
     try {
       (*io_) >> in;
     }
-    catch (GSIIOException& e) {
+    catch (GridlibSocketInterface::IOException& e) {
       std::cerr << "Exception in WriteResultsGSI::DoCompute" << std::endl
-                << e.description() << std::endl;
+                << e.GetErrorString() << std::endl;
       return 0;
     }
 
@@ -141,10 +141,10 @@ namespace CoupledField {
     try {
       (*io_) >> in;
     }
-    catch (GSIIOException& e) {
+    catch (GridlibSocketInterface::IOException& e) {
       std::cerr << "Exception in WriteResultsGSI::TransferGrid()"
                 << std::endl
-                << e.description() << std::endl;
+                << e.GetErrorString() << std::endl;
       return 0;
     }
 
@@ -173,10 +173,10 @@ namespace CoupledField {
 	//        std::cerr << "---- DS666 ---- writing dim " << dim << " maxnumnodes "
 	//                  <<  maxnumnodes << " maxnumelem " << maxnumelem << std::endl;
       }
-    catch (GSIIOException& e)
+    catch (GridlibSocketInterface::IOException& e)
       {
         std::cerr << "Exception in WriteResultsGSI::Dataset666" << std::endl
-                  << e.description() << std::endl;
+                  << e.GetErrorString() << std::endl;
       }
   }
 
@@ -227,10 +227,10 @@ namespace CoupledField {
 	//        std::cerr << "---- DS781 ---- writing maxnumnodes*3 floats "
 	//                  << (maxnumnodes*3) << std::endl;
       }
-    catch (GSIIOException& e)
+    catch (GridlibSocketInterface::IOException& e)
       {
         std::cerr << "Exception in WriteResultsGSI::Dataset781" << std::endl
-                  << e.description() << std::endl;
+                  << e.GetErrorString() << std::endl;
       }
   }
 
@@ -324,10 +324,10 @@ namespace CoupledField {
 	//        std::cerr << "---- DS780 ---- subdoms " << (int) subdoms->GetSize()
 	//                  << std::endl;
       }
-    catch (GSIIOException& e) 
+    catch (GridlibSocketInterface::IOException& e) 
       {
         std::cerr << "Exception in WriteResultsGSI::Dataset780" << std::endl
-                  << e.description() << std::endl;
+                  << e.GetErrorString() << std::endl;
       }
   }
 
@@ -369,11 +369,11 @@ namespace CoupledField {
  
         io_->writeFloatVector(vec);
       }
-    catch (GSIIOException& e) 
+    catch (GridlibSocketInterface::IOException& e) 
       {
         std::cerr << "Exception in WriteResultsGSI::Dataset55_Transient"
                   << std::endl
-                  << e.description() << std::endl;
+                  << e.GetErrorString() << std::endl;
       }
   }  
 
@@ -439,10 +439,10 @@ namespace CoupledField {
         io_->writeFloatVector(vec1);
         io_->writeFloatVector(vec2);
       }
-    catch (GSIIOException& e) 
+    catch (GridlibSocketInterface::IOException& e) 
       {
         std::cerr << "Exception in WriteResultsGSI::Dataset55_Harmonic"
-                  << std::endl << e.description() << std::endl;
+                  << std::endl << e.GetErrorString() << std::endl;
       }  
   }
 
@@ -482,10 +482,10 @@ namespace CoupledField {
  
       io_->writeFloatVector(vec);
     }
-    catch (GSIIOException& e) 
+    catch (GridlibSocketInterface::IOException& e) 
       {
         std::cerr << "Exception in WriteResultsGSI::Dataset56_Transient"
-                  << std::endl << e.description() << std::endl;
+                  << std::endl << e.GetErrorString() << std::endl;
       }
   }  
 
@@ -552,10 +552,10 @@ namespace CoupledField {
         io_->writeFloatVector(vec1);
         io_->writeFloatVector(vec2);
       }
-    catch (GSIIOException& e) 
+    catch (GridlibSocketInterface::IOException& e) 
       {
         std::cerr << "Exception in WriteResultsGSI::Dataset55_Harmonic"
-                  << std::endl << e.description() << std::endl;
+                  << std::endl << e.GetErrorString() << std::endl;
       }
   }
 
@@ -586,10 +586,10 @@ namespace CoupledField {
       {
         (*io_) << "---- END OF RESULTS ----";
       }
-    catch (GSIIOException& e) 
+    catch (GridlibSocketInterface::IOException& e) 
       {
         std::cerr << "Exception in WriteResultsGSI::WriteNodeSolutionTransient"
-                  << std::endl << e.description() << std::endl;
+                  << std::endl << e.GetErrorString() << std::endl;
       }
   
   }
@@ -640,10 +640,10 @@ namespace CoupledField {
       {
         (*io_) << "---- END OF RESULTS ----";
       }
-    catch (GSIIOException& e) 
+    catch (GridlibSocketInterface::IOException& e) 
       {
         std::cerr << "Exception in WriteResultsGSI::WriteNodeSolutionHarmonic"
-                  << std::endl << e.description() << std::endl;
+                  << std::endl << e.GetErrorString() << std::endl;
       }
 
   }

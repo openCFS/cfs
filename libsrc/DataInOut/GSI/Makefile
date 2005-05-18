@@ -3,7 +3,7 @@ C_DIR = ../../..
 #
 include $(C_DIR)/main/Makefile.option
 #
-src = outGSI.cc GSIBaseIO.cc GSIXDRIO.cc GSISocket.cc
+src = outGSI.cc GSIBaseIO.cc GSIXDRIO.cc GSIRawIO.cc GSIIOException.cc GSIEndianConverter.cc GSISocket.cc
 #
 lib = gsi
 libpath = libsrc/DataInOut/GSI

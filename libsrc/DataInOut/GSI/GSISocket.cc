@@ -1,21 +1,15 @@
-// Implementation of the GSISocket class.
-
+// Implementation of the GSI::Socket class.
 
 #include <cstring>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/select.h>
-
-/* According to earlier standards */
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <iostream>
 
 #include "GSISocket.hh"
 
-static void file_status(int fd) {
-  int open_modus, wert;
+namespace GridlibSocketInterface
+{
+
+static void file_status(int32 fd) {
+  int32 open_modus, wert;
 
   if((wert=fcntl(fd, F_GETFL, 0)) == -1) {
     printf("Fehler bei fcntl\n");
@@ -29,7 +23,7 @@ static void file_status(int fd) {
   else printf("unbekannter open modus");
 
   if(wert & O_APPEND) printf(", append");
-  if(wert & O_NONBLOCK) printf(", nonblocking");  
+  if(wert & O_NONBLOCK) printf(", nonblocking");
 #ifdef O_SYNC
   if(wert & O_SYNC) printf(", O_SYNC gesetzt");
 #endif
@@ -37,7 +31,7 @@ static void file_status(int fd) {
 }
 
 
-GSISocket::GSISocket(int timeout) :
+Socket::Socket(int32 timeout) :
   m_sock ( -1 ), file_read(NULL), file_write (NULL), timeout_(timeout)
 {
   //  file_read = NULL;
@@ -49,12 +43,12 @@ GSISocket::GSISocket(int timeout) :
 
 }
 
-GSISocket::~GSISocket()
+Socket::~Socket()
 {
   cleanup();
 }
 
-bool GSISocket::create()
+bool Socket::create()
 {
   m_sock = socket ( AF_INET,
 		    SOCK_STREAM,
@@ -65,8 +59,8 @@ bool GSISocket::create()
 
 
   // TIME_WAIT - argh
-  int on = 1;
-  if ( setsockopt ( m_sock, SOL_SOCKET, SO_REUSEADDR, ( const char* ) &on, sizeof ( on ) ) == -1 )
+  int32 on = 1;
+  if ( setsockopt ( m_sock, SOL_SOCKET, SO_REUSEADDR, ( const int8* ) &on, sizeof ( on ) ) == -1 )
     return false;
 
 
@@ -75,7 +69,7 @@ bool GSISocket::create()
 
 
 
-bool GSISocket::bind ( const int port )
+bool Socket::bind ( const int32 port )
 {
 
   if ( ! is_valid() )
@@ -89,7 +83,7 @@ bool GSISocket::bind ( const int port )
   m_addr.sin_addr.s_addr = INADDR_ANY;
   m_addr.sin_port = htons ( port );
 
-  int bind_return = ::bind ( m_sock,
+  int32 bind_return = ::bind ( m_sock,
 			     ( struct sockaddr * ) &m_addr,
 			     sizeof ( m_addr ) );
   
@@ -103,14 +97,14 @@ bool GSISocket::bind ( const int port )
 }
 
 
-bool GSISocket::listen() const
+bool Socket::listen() const
 {
   if ( ! is_valid() )
     {
       return false;
     }
 
-  int listen_return = ::listen ( m_sock, MAXCONNECTIONS );
+  int32 listen_return = ::listen ( m_sock, MAXCONNECTIONS );
 
 
   if ( listen_return == -1 )
@@ -122,10 +116,10 @@ bool GSISocket::listen() const
 }
 
 
-int GSISocket::accept ( GSISocket& new_socket )
+int32 Socket::accept ( Socket& new_socket )
 {
-  int addr_length = sizeof ( m_addr );
-  int ret;
+  int32 addr_length = sizeof ( m_addr );
+  int32 ret;
 
   fd_set acceptset;
   struct timeval tv;
@@ -181,14 +175,14 @@ int GSISocket::accept ( GSISocket& new_socket )
       }
       
       /*
-      if( setvbuf(new_socket.file_read, (char *)NULL, _IONBF, 0) != 0)
+      if( setvbuf(new_socket.file_read, (int8 *)NULL, _IONBF, 0) != 0)
       {
           new_socket.cleanup();
           
           return -5;
       }
 
-      if( setvbuf(new_socket.file_write, (char *)NULL, _IONBF, 0) != 0)
+      if( setvbuf(new_socket.file_write, (int8 *)NULL, _IONBF, 0) != 0)
       {
           new_socket.cleanup();
           
@@ -200,9 +194,9 @@ int GSISocket::accept ( GSISocket& new_socket )
   }
 }
 
-int GSISocket::write(void* buf, int nbytes, int timeout)
+int32 Socket::write(void* buf, int32 nbytes, int32 timeout)
 {
-  int ret = -1;
+  int32 ret = -1;
 
   if(!is_valid())    
     return -1;  
@@ -215,12 +209,12 @@ int GSISocket::write(void* buf, int nbytes, int timeout)
   if(ret <= 0)
     return ret;
 
-  register const char *ptr = (const char *) buf;
-  register int bytesleft = nbytes;
+  register const int8 *ptr = (const int8 *) buf;
+  register int32 bytesleft = nbytes;
 
   do
   {
-      register int rc;
+      register int32 rc;
       
       do
         rc = ::write(m_sock, ptr, bytesleft);
@@ -265,9 +259,9 @@ int GSISocket::write(void* buf, int nbytes, int timeout)
   */
 }
 
-int GSISocket::read(void* buf, int nbytes, int timeout) 
+int32 Socket::read(void* buf, int32 nbytes, int32 timeout)
 {
-  int ret = -1;
+  int32 ret = -1;
   
   if(!is_valid())    
     return -1;
@@ -278,12 +272,12 @@ int GSISocket::read(void* buf, int nbytes, int timeout)
   if(ret <= 0)
     return ret;
   
-  register char *ptr = (char *) buf;
-  register int bytesleft = nbytes;
+  register int8 *ptr = (int8 *) buf;
+  register int32 bytesleft = nbytes;
   
   do
   {
-      register int rc;
+      register int32 rc;
       
       do
         rc = ::read(m_sock, ptr, bytesleft);
@@ -312,13 +306,13 @@ int GSISocket::read(void* buf, int nbytes, int timeout)
   */
 }
 
-void GSISocket::cleanup() 
+void Socket::cleanup() 
 {
   //  std::cout << "cleaning up file_read" << std::endl;
   if(file_read)
     while(fclose(file_read) == -1) 
     {
-        if(errno == EINTR) 
+        if(errno == EINTR)
           continue;
     }
   file_read = NULL;
@@ -327,7 +321,7 @@ void GSISocket::cleanup()
   if(file_write)
     while(fclose(file_write) == -1) 
     {
-        if(errno == EINTR) 
+        if(errno == EINTR)
           continue;
     }
   file_write = NULL;
@@ -347,12 +341,12 @@ void GSISocket::cleanup()
 	   sizeof ( m_addr ) );
 }
 
-void GSISocket::shutdownServer() 
+void Socket::shutdownServer() 
 {
   if(is_valid())
     while(close(m_sock) == -1) 
     {
-        if(errno == EINTR) 
+        if(errno == EINTR)
           continue;
     }
   
@@ -364,17 +358,17 @@ void GSISocket::shutdownServer()
 	   sizeof ( m_addr ) );
 }
 
-FILE* GSISocket::getReadHandle() {
+FILE* Socket::getReadHandle() {
   //  if(file_read==NULL) printf("WARNING: NULL readhandle\n");
   return file_read;
 }
 
-FILE* GSISocket::getWriteHandle() {
+FILE* Socket::getWriteHandle() {
   //  if(file_read==NULL) printf("WARNING: NULL writehandle\n");
   return file_write;
 }
 
-bool GSISocket::connect ( const std::string& hostname, const int port )
+bool Socket::connect ( const std::string& hostname, const int32 port )
 {
   if ( ! is_valid() ) return false;
 
@@ -382,7 +376,7 @@ bool GSISocket::connect ( const std::string& hostname, const int port )
   struct hostent *host;
   
   if(inet_aton(hostname.c_str(), &inadr)) 
-    host = gethostbyaddr((char*) &inadr, sizeof(inadr), AF_INET);
+    host = gethostbyaddr((int8*) &inadr, sizeof(inadr), AF_INET);
   else
     host = gethostbyname(hostname.c_str());
   
@@ -396,7 +390,7 @@ bool GSISocket::connect ( const std::string& hostname, const int port )
   //  int status = inet_pton ( AF_INET, host.c_str(), &m_addr.sin_addr );
   //  if ( errno == EAFNOSUPPORT ) return false;
 
-  int status;
+  int32 status;
 
   status = ::connect ( m_sock, ( sockaddr * ) &m_addr, sizeof ( m_addr ) );
 
@@ -417,10 +411,10 @@ bool GSISocket::connect ( const std::string& hostname, const int port )
     return false;
 }
 
-void GSISocket::set_non_blocking ( const bool b )
+void Socket::set_non_blocking ( const bool b )
 {
 
-  int opts;
+  int32 opts;
 
   opts = fcntl ( m_sock,
 		 F_GETFL );
@@ -440,9 +434,9 @@ void GSISocket::set_non_blocking ( const bool b )
 
 }
 
-int GSISocket::mayDoIO(int type, int timeout)
+int32 Socket::mayDoIO(int32 type, int32 timeout)
 {
-  int ret = -1;
+  int32 ret = -1;
 
   fd_set fdset;
   struct timeval tv;
@@ -471,7 +465,7 @@ int GSISocket::mayDoIO(int type, int timeout)
 
   if(ret < 0) 
   {
-      if(errno == EINTR) 
+      if(errno == EINTR)
       {
           return 0;
       }
@@ -497,10 +491,10 @@ int GSISocket::mayDoIO(int type, int timeout)
 #define SOCK_SMALLBUF (4*1024)
 #define SOCK_LARGEBUF (28*1024)
 
-FILE *GSISocket::sock_to_file(int sock, const char *mode)
+FILE *Socket::sock_to_file(int32 sock, const int8 *mode)
 {
-    int bufsz = SOCK_SMALLBUF;
-    int bufmode = _IOFBF;
+    int32 bufsz = SOCK_SMALLBUF;
+    int32 bufmode = _IOFBF;
 
     FILE *fp = fdopen(sock, (*mode == 'w') ? "w" : "r");
 
@@ -522,4 +516,6 @@ FILE *GSISocket::sock_to_file(int sock, const char *mode)
     setvbuf(fp, NULL, bufmode, bufsz);
 
     return fp;
+}
+ 
 }
