@@ -1,5 +1,14 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
 #ifndef GSI_TYPEDEFS
 #define GSI_TYPEDEFS
+
+// This file has to be adapted according to the software
+// package in which GSI will be used.
 
 namespace GridlibSocketInterface
 {
@@ -10,8 +19,8 @@ typedef unsigned short  uint16;
 typedef short           int16;
 typedef unsigned int    uint32;
 typedef int             int32;
-typedef float           float32;
-typedef double          float64;
+typedef float           real32;
+typedef double          real64;
   
 }
 

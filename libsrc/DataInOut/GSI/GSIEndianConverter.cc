@@ -1,8 +1,29 @@
-#include "GSIEndianConverter.hh"
+#ifdef USE_RCSID
+static const char RCSid_GSIEndianConverter[] = "$Id$";
+#endif
 
-// adapted from http://www.gamedev.net/reference/articles/article2091.asp
-// Writing Endian Independent Code in C++
-// by Promit Roy
+/*----------------------------------------------------------------------
+|
+|
+| $Log$
+| Revision 1.2  2005/05/18 19:26:02  strieben
+| Upgraded GSI library to newest available version.
+|
+| Revision 1.2  2004/09/01 15:24:58  simon
+| Added support for writing int16 and uint16
+|
+| Revision 1.1.1.1  2004/08/31 15:53:00  simon
+| Initial GSI import
+|
+|
+|
+| adapted from Writing Endian Independent Code in C++
+| by Promit Roy
+| http://www.gamedev.net/reference/articles/article2091.asp
+|
++---------------------------------------------------------------------*/
+
+#include "GSIEndianConverter.hh"
 
 namespace GridlibSocketInterface
 {
@@ -17,10 +38,10 @@ int32 (*BigINT32) ( int32 i );
 int32 (*LittleINT32) ( int32 i );
 uint32 (*BigUINT32) ( uint32 i );
 uint32 (*LittleUINT32) ( uint32 i );
-float32 (*BigFLOAT32) ( float32 f );
-float32 (*LittleFLOAT32) ( float32 f );
-float64 (*BigFLOAT64) ( float64 f );
-float64 (*LittleFLOAT64) ( float64 f );
+real32 (*BigREAL32) ( real32 f );
+real32 (*LittleREAL32) ( real32 f );
+real64 (*BigREAL64) ( real64 f );
+real64 (*LittleREAL64) ( real64 f );
 
 
 //adapted from Quake 2 source
@@ -92,11 +113,11 @@ uint32 UINT32_NoSwap( uint32 i )
 }
 
 
-float32 FLOAT32_Swap( float32 f )
+real32 REAL32_Swap( real32 f )
 {
 	union
 	{
-		float32 f;
+		real32 f;
 		uint8 b[4];
 	} dat1, dat2;
 
@@ -108,16 +129,16 @@ float32 FLOAT32_Swap( float32 f )
 	return dat2.f;
 }
 
-float32 FLOAT32_NoSwap( float32 f )
+real32 REAL32_NoSwap( real32 f )
 {
 	return f;
 }
 
-float64 FLOAT64_Swap( float64 f )
+real64 REAL64_Swap( real64 f )
 {
 	union
 	{
-		float64 f;
+		real64 f;
 		uint8 b[8];
 	} dat1, dat2;
 
@@ -134,7 +155,7 @@ float64 FLOAT64_Swap( float64 f )
 	return dat2.f;
 }
 
-float64 FLOAT64_NoSwap( float64 f )
+real64 REAL64_NoSwap( real64 f )
 {
 	return f;
 }
@@ -307,87 +328,87 @@ bool LittleUINT32Vector(std::vector<uint32> &dst, std::vector<uint32> &src)
 	return true;
 }
 
-bool BigFLOAT32Array(float32 *dst, float32 *src, int size)
+bool BigREAL32Array(real32 *dst, real32 *src, int size)
 {
 	if((dst == NULL) || (src == NULL))
 		return false;
 
 	for(int i = 0; i<size; i++)
-		dst[i] = BigFLOAT32(src[i]);
+		dst[i] = BigREAL32(src[i]);
 	return true;
 }
 
-bool LittleFLOAT32Array(float32 *dst, float32 *src, int size)
+bool LittleREAL32Array(real32 *dst, real32 *src, int size)
 {
 	if((dst == NULL) || (src == NULL))
 		return false;
 
 	for(int i = 0; i<size; i++)
-		dst[i] = LittleFLOAT32(src[i]);
+		dst[i] = LittleREAL32(src[i]);
 	return true;
 }
 
-bool BigFLOAT32Vector(std::vector<float32> &dst, std::vector<float32> &src)
+bool BigREAL32Vector(std::vector<real32> &dst, std::vector<real32> &src)
 {
 	if(dst.size() != src.size())
 		return false;
 
 	int size = dst.size();
 	for(int i = 0; i<size; i++)
-		dst[i] = BigFLOAT32(src[i]);
+		dst[i] = BigREAL32(src[i]);
 	return true;
 }
 
-bool LittleFLOAT32Vector(std::vector<float32> &dst, std::vector<float32> &src)
+bool LittleREAL32Vector(std::vector<real32> &dst, std::vector<real32> &src)
 {
 	if(dst.size() != src.size())
 		return false;
 
 	int size = dst.size();
 	for(int i = 0; i<size; i++)
-		dst[i] = LittleFLOAT32(src[i]);
+		dst[i] = LittleREAL32(src[i]);
 	return true;
 }
 
-bool BigFLOAT64Array(float64 *dst, float64 *src, int size)
+bool BigREAL64Array(real64 *dst, real64 *src, int size)
 {
 	if((dst == NULL) || (src == NULL))
 		return false;
 
 	for(int i = 0; i<size; i++)
-		dst[i] = BigFLOAT64(src[i]);
+		dst[i] = BigREAL64(src[i]);
 	return true;
 }
 
-bool LittleFLOAT64Array(float64 *dst, float64 *src, int size)
+bool LittleREAL64Array(real64 *dst, real64 *src, int size)
 {
 	if((dst == NULL) || (src == NULL))
 		return false;
 
 	for(int i = 0; i<size; i++)
-		dst[i] = LittleFLOAT64(src[i]);
+		dst[i] = LittleREAL64(src[i]);
 	return true;
 }
 
-bool BigFLOAT64Vector(std::vector<float64> &dst, std::vector<float64> &src)
+bool BigREAL64Vector(std::vector<real64> &dst, std::vector<real64> &src)
 {
 	if(dst.size() != src.size())
 		return false;
 
 	int size = dst.size();
 	for(int i = 0; i<size; i++)
-		dst[i] = BigFLOAT64(src[i]);
+		dst[i] = BigREAL64(src[i]);
 	return true;
 }
 
-bool LittleFLOAT64Vector(std::vector<float64> &dst, std::vector<float64> &src)
+bool LittleREAL64Vector(std::vector<real64> &dst, std::vector<real64> &src)
 {
 	if(dst.size() != src.size())
 		return false;
 
 	int size = dst.size();
 	for(int i = 0; i<size; i++)
-		dst[i] = LittleFLOAT64(src[i]);
+		dst[i] = LittleREAL64(src[i]);
 	return true;
 }
 
@@ -413,10 +434,10 @@ void InitEndian( void )
 		LittleINT32 = INT32_NoSwap;
 		BigUINT32 = UINT32_Swap;
 		LittleUINT32 = UINT32_NoSwap;
-		BigFLOAT32 = FLOAT32_Swap;
-		LittleFLOAT32 = FLOAT32_NoSwap;
-		BigFLOAT64 = FLOAT64_Swap;
-		LittleFLOAT64 = FLOAT64_NoSwap;
+		BigREAL32 = REAL32_Swap;
+		LittleREAL32 = REAL32_NoSwap;
+		BigREAL64 = REAL64_Swap;
+		LittleREAL64 = REAL64_NoSwap;
 	}
 	else
 	{
@@ -431,10 +452,10 @@ void InitEndian( void )
 		LittleINT32 = INT32_Swap;
 		BigUINT32 = UINT32_NoSwap;
 		LittleUINT32 = UINT32_Swap;
-		BigFLOAT32 = FLOAT32_NoSwap;
-		LittleFLOAT32 = FLOAT32_Swap;
-		BigFLOAT64 = FLOAT64_NoSwap;
-		LittleFLOAT64 = FLOAT64_Swap;
+		BigREAL32 = REAL32_NoSwap;
+		LittleREAL32 = REAL32_Swap;
+		BigREAL64 = REAL64_NoSwap;
+		LittleREAL64 = REAL64_Swap;
 	}
 }
 
@@ -481,8 +502,8 @@ int32 main(int32 argc, char** argv)
 	printf("Big UINT32: %d %d %d %d\n", utest32[0], utest32[1], utest32[2], utest32[3]);
 
 
-	float32 farray32[4] = {-1, 1, 0.5589693, 7834.99};
-	float32 ftest32[4];
+	real32 farray32[4] = {-1, 1, 0.5589693, 7834.99};
+	real32 ftest32[4];
 	printf("Array FLOAT32: %f %f %f %f\n", farray32[0], farray32[1], farray32[2], farray32[3]);
 
 	LittleFLOAT32Array(ftest32, farray32, 4);

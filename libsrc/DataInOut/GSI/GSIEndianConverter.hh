@@ -1,3 +1,9 @@
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
+
 #ifndef GSI_ENDIAN_CONVERTER
 #define GSI_ENDIAN_CONVERTER
 
@@ -24,11 +30,11 @@ int32 INT32_NoSwap( int32 i );
 uint32 UINT32_Swap( uint32 i );
 uint32 UINT32_NoSwap( uint32 i );
 
-float32 FLOAT32_Swap( float32 f );
-float32 FLOAT32_NoSwap( float32 f );
+real32 REAL32_Swap( real32 f );
+real32 REAL32_NoSwap( real32 f );
 
-float32 FLOAT32_Swap( float64 f );
-float32 FLOAT32_NoSwap( float64 f );
+real64 REAL64_Swap( real64 f );
+real64 REAL64_NoSwap( real64 f );
 
 //Use these functions
 extern int16 (*BigINT16) ( int16 i );
@@ -40,10 +46,10 @@ extern int32 (*LittleINT32) ( int32 i );
 extern uint32 (*BigUINT32) ( uint32 i );
 extern uint32 (*LittleUINT32) ( uint32 i );
 
-extern float32 (*BigFLOAT32) ( float32 f );
-extern float32 (*LittleFLOAT32) ( float32 f );
-extern float64 (*BigFLOAT64) ( float64 f );
-extern float64 (*LittleFLOAT64) ( float64 f );
+extern real32 (*BigREAL32) ( real32 f );
+extern real32 (*LittleREAL32) ( real32 f );
+extern real64 (*BigREAL64) ( real64 f );
+extern real64 (*LittleREAL64) ( real64 f );
 
 bool BigINT16Array(int16 *dst, int16 *src, int size);
 bool LittleINT16Array(int16 *dst, int16 *src, int size);
@@ -65,15 +71,15 @@ bool LittleUINT32Array(uint32 *dst, uint32 *src, int size);
 bool BigUINT32Vector(std::vector<uint32> &dst, std::vector<uint32> &src);
 bool LittleUINT32Vector(std::vector<uint32> &dst, std::vector<uint32> &src);
 
-bool BigFLOAT32Array(float32 *dst, float32 *src, int size);
-bool LittleFLOAT32Array(float32 *dst, float32 *src, int size);
-bool BigFLOAT32Vector(std::vector<float32> &dst, std::vector<float32> &src);
-bool LittleFLOAT32Vector(std::vector<float32> &dst, std::vector<float32> &src);
+bool BigREAL32Array(real32 *dst, real32 *src, int size);
+bool LittleREAL32Array(real32 *dst, real32 *src, int size);
+bool BigREAL32Vector(std::vector<real32> &dst, std::vector<real32> &src);
+bool LittleREAL32Vector(std::vector<real32> &dst, std::vector<real32> &src);
 
-bool BigFLOAT64Array(float64 *dst, float64 *src, int size);
-bool LittleFLOAT64Array(float64 *dst, float64 *src, int size);
-bool BigFLOAT64Vector(std::vector<float64> &dst, std::vector<float64> &src);
-bool LittleFLOAT64Vector(std::vector<float64> &dst, std::vector<float64> &src);
+bool BigREAL64Array(real64 *dst, real64 *src, int size);
+bool LittleREAL64Array(real64 *dst, real64 *src, int size);
+bool BigREAL64Vector(std::vector<real64> &dst, std::vector<real64> &src);
+bool LittleREAL64Vector(std::vector<real64> &dst, std::vector<real64> &src);
 
 }
 

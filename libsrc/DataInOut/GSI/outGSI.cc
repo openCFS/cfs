@@ -223,7 +223,7 @@ namespace CoupledField {
               }
           }
       
-        io_->writeFloatArray(vec, maxnumnodes*3);
+        io_->WriteFloatArray(vec, maxnumnodes*3);
 	//        std::cerr << "---- DS781 ---- writing maxnumnodes*3 floats "
 	//                  << (maxnumnodes*3) << std::endl;
       }
@@ -367,7 +367,7 @@ namespace CoupledField {
             vec[i] = (float) x[i];
           }
  
-        io_->writeFloatVector(vec);
+        io_->WriteFloatVector(vec);
       }
     catch (GridlibSocketInterface::IOException& e) 
       {
@@ -436,8 +436,8 @@ namespace CoupledField {
         (*io_) << (int) nrNodes;
         (*io_) << (int) nrDofs;
  
-        io_->writeFloatVector(vec1);
-        io_->writeFloatVector(vec2);
+        io_->WriteFloatVector(vec1);
+        io_->WriteFloatVector(vec2);
       }
     catch (GridlibSocketInterface::IOException& e) 
       {
@@ -480,7 +480,7 @@ namespace CoupledField {
           vec[i] = (float) x[i];
         }
  
-      io_->writeFloatVector(vec);
+      io_->WriteFloatVector(vec);
     }
     catch (GridlibSocketInterface::IOException& e) 
       {
@@ -549,8 +549,8 @@ namespace CoupledField {
         (*io_) << (int) numElems;
         (*io_) << (int) nrDofs;
  
-        io_->writeFloatVector(vec1);
-        io_->writeFloatVector(vec2);
+        io_->WriteFloatVector(vec1);
+        io_->WriteFloatVector(vec2);
       }
     catch (GridlibSocketInterface::IOException& e) 
       {
