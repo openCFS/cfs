@@ -1,13 +1,13 @@
-// Definition of the GSIRawIO class
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
 
 #ifndef GSI_RAWIO
 #define GSI_RAWIO
 
-#ifdef __sgi
-#include <stdio.h>
-#else
 #include <cstdio>
-#endif
 
 #include "GSIBaseIO.hh"
 #include "GSIIOException.hh"
@@ -16,87 +16,77 @@
 namespace GridlibSocketInterface
 {
 
-class RawIO : public BaseIO
-{
- public:
-  RawIO(FILE *file_read, FILE *file_write, bool bigendian = true);
-  RawIO(Socket *sock, int32 timeout = -1, bool bigendian = true);
+  class RawIO : public BaseIO
+  {
+  public:
+    RawIO(FILE *file_read, FILE *file_write, bool bigendian = true);
+#ifndef WIN32
+    RawIO(Socket *sock, int32 timeout = -1, bool bigendian = true);
+#endif
 
-  enum SeekPos {SET, CUR, END};
+    // tell the current stream position
+    virtual int32 TellRead() throw(IOException);
+    virtual int32 TellWrite() throw(IOException);
+    
+    // seek the position
+    virtual int32 SeekRead(int32 offset, SeekPos whence) throw(IOException);
+    virtual int32 SeekWrite(int32 offset, SeekPos whence) throw(IOException);
+    
+    virtual int32 EOFRead() throw(IOException);
+    //  int32 EOFWrite();
+    
+    virtual void   ReadMsg(std::string& s) throw(IOException);
+    
+    virtual int16  ReadShort() throw(IOException);
+    virtual void   ReadShortVector(std::vector<int16>& vec) throw(IOException);
+    virtual uint16 ReadUShort() throw(IOException);
+    virtual void   ReadUShortVector(std::vector<uint16>& vec) throw(IOException);
+    
+    virtual int32  ReadInt() throw(IOException);
+    virtual void   ReadIntVector(std::vector<int32>& vec) throw(IOException);
+    virtual uint32 ReadUInt() throw(IOException);
+    virtual void   ReadUIntVector(std::vector<uint32>& vec) throw(IOException);
+    
+    virtual real32 ReadFloat() throw(IOException);
+    virtual void   ReadFloatVector(std::vector<real32>& vec) throw(IOException);
+    
+    virtual real64 ReadDouble() throw(IOException);
+    virtual void   ReadDoubleVector(std::vector<real64>& vec) throw(IOException);
+    
 
-  // tell the current stream position
-  virtual int32 TellRead() throw(IOException);
-  virtual int32 TellWrite() throw(IOException);
+    virtual void WriteMsg(const std::string& s) throw(IOException);
+    
+    virtual void WriteShort(const int16 buff) throw(IOException);
+    virtual void WriteShortArray(const int16 *array, const int32 size) throw(IOException);
+    virtual void WriteShortVector(const std::vector<int16>& vec) throw(IOException);
+    virtual void WriteUShort(const uint16 buff) throw(IOException);
+    virtual void WriteUShortArray(const uint16 *array, const int32 size) throw(IOException);
+    virtual void WriteUShortVector(const std::vector<uint16>& vec) throw(IOException);
 
-  // seek the position
-  virtual int32 SeekRead(int32 offset, SeekPos whence) throw(IOException);
-  virtual int32 SeekWrite(int32 offset, SeekPos whence) throw(IOException);
+    virtual void WriteInt(const int32 buff) throw(IOException);
+    virtual void WriteIntArray(const int32 *array, const int32 size) throw(IOException);
+    virtual void WriteIntVector(const std::vector<int32>& vec) throw(IOException);
+    virtual void WriteUInt(const uint32 buff) throw(IOException);
+    virtual void WriteUIntArray(const uint32 *array, const int32 size) throw(IOException);
+    virtual void WriteUIntVector(const std::vector<uint32>& vec) throw(IOException);
+    
+    virtual void WriteFloat(const real32 buff) throw(IOException);
+    virtual void WriteFloatArray(const real32 *array, const int32 size) throw(IOException);
+    virtual void WriteFloatVector(const std::vector<real32>& vec) throw(IOException);
+    
+    virtual void WriteDouble(const real64 buff) throw(IOException);
+    virtual void WriteDoubleArray(const real64 *array, const int32 size) throw(IOException);
+    virtual void WriteDoubleVector(const std::vector<real64>& vec) throw(IOException);
 
-  virtual int32 EOFRead() throw(IOException);
-//  int32 EOFWrite();
-
-  // the Send Message function
-  virtual void writeMsg(const std::string& s) throw(IOException);
-
-  //!the function to recieve the Message; Returns a pointer to the string
-  virtual void readMsg(std::string& s) throw(IOException);
-
-  //!the function to recieve integers
-  virtual int32 readInt() throw(IOException);
-
-  virtual void readIntVector(std::vector<int32>& vec) throw(IOException);
-
-  virtual uint32 readUInt() throw(IOException);
-
-  virtual void readUIntVector(std::vector<uint32>& vec) throw(IOException);
-
-  virtual float32 readFloat() throw(IOException);
-
-  virtual void readFloatVector(std::vector<float32>& vec) throw(IOException);
-
-  virtual float64 readDouble() throw(IOException);
-
-  virtual void readDoubleVector(std::vector<float64>& vec) throw(IOException);
-
-  //!the function to recieve the vector;
-  //  virtual data readVector();
-
-  //!the function to Send integers
-  virtual void  writeInt(const int32 buff) throw(IOException);
-
-  virtual void writeIntArray(const int32 *array, const int32 size) throw(IOException);
-
-  virtual void writeIntVector(const std::vector<int32>& vec) throw(IOException);
-
-  virtual void  writeUInt(const uint32 buff) throw(IOException);
-
-  virtual void writeUIntArray(const uint32 *array, const int size) throw(IOException);
-
-  virtual void writeUIntVector(const std::vector<uint32>& vec) throw(IOException);
-
-  virtual void  writeFloat(const float32 buff) throw(IOException);
-
-  virtual void writeFloatArray(const float32 *array, const int32 size) throw(IOException);
-
-  virtual void writeFloatVector(const std::vector<float32>& vec) throw(IOException);
-
-  virtual void  writeDouble(const float64 buff) throw(IOException);
-
-  virtual void writeDoubleArray(const float64 *array, const int32 size) throw(IOException);
-
-  virtual void writeDoubleVector(const std::vector<float64>& vec) throw(IOException);
-  //!the function to Send the vector;
-  //  virtual void writeVector(data outgoing_xdr_struct);
-
-  virtual void Write(const void* data, int32 size) throw(IOException);
-  virtual void Read(void* data, int32 size) throw(IOException);
-
-  void SetBigEndianOn() {bigendian_ = true;}
-  void SetLittleEndianOn() {bigendian_ = false;}
+    virtual void Write(const void* data, int32 size) throw(IOException);
+    virtual void Read(void* data, int32 size) throw(IOException);
+    
+    void SetBigEndianOn() {bigendian_ = true;}
+    void SetLittleEndianOn() {bigendian_ = false;}
   protected:
-
-  bool bigendian_;
-};
+    
+    bool bigendian_;
+  };
 
 }
 

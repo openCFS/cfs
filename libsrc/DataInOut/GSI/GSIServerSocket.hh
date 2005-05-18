@@ -1,4 +1,8 @@
-// Definition of the GSI::ServerSocket class
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
 
 #ifndef GSI_SERVERSOCKET
 #define GSI_SERVERSOCKET

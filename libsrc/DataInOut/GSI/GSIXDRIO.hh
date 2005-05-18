@@ -1,4 +1,8 @@
-// Definition of the GSI::XDRIO class
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
 
 #ifndef GSI_XDRIO
 #define GSI_XDRIO
@@ -15,27 +19,40 @@ class XDRIO : public RawIO
 {
  public:
   XDRIO(FILE *file_read, FILE *file_write, bool bigendian = true);
+#ifndef WIN32
   XDRIO(Socket *sock, int32 timeout = -1, bool bigendian = true);
+#endif
 
-  // the Send Message function
-  virtual void writeMsg(const std::string& s) throw(IOException);
+  virtual void ReadMsg(std::string& s) throw(IOException);
 
-  //!the function to recieve the Message; Returns a pointer to the string
-  virtual void readMsg(std::string& s) throw(IOException);
+  virtual void ReadShortVector(std::vector<int16>& vec) throw(IOException);
+  virtual void ReadUShortVector(std::vector<uint16>& vec) throw(IOException);
 
-  virtual void readIntVector(std::vector<int32>& vec) throw(IOException);
-  virtual void readUIntVector(std::vector<uint32>& vec) throw(IOException);
-  virtual void readFloatVector(std::vector<float32>& vec) throw(IOException);
-  virtual void readDoubleVector(std::vector<float64>& vec) throw(IOException);
+  virtual void ReadIntVector(std::vector<int32>& vec) throw(IOException);
+  virtual void ReadUIntVector(std::vector<uint32>& vec) throw(IOException);
 
-  virtual void writeIntArray(const int32 *array, const int32 size) throw(IOException);
-  virtual void writeIntVector(const std::vector<int32>& vec) throw(IOException);
-  virtual void writeUIntArray(const uint32 *array, const int32 size) throw(IOException);
-  virtual void writeUIntVector(const std::vector<uint32>& vec) throw(IOException);
-  virtual void writeFloatArray(const float32 *array, const int32 size) throw(IOException);
-  virtual void writeFloatVector(const std::vector<float32>& vec) throw(IOException);
-  virtual void writeDoubleArray(const float64 *array, const int32 size) throw(IOException);
-  virtual void writeDoubleVector(const std::vector<float64>& vec) throw(IOException);
+  virtual void ReadFloatVector(std::vector<real32>& vec) throw(IOException);
+
+  virtual void ReadDoubleVector(std::vector<real64>& vec) throw(IOException);
+
+
+
+  virtual void WriteMsg(const std::string& s) throw(IOException);
+
+  virtual void WriteShortArray(const int16 *array, const int32 size) throw(IOException);
+  virtual void WriteShortVector(const std::vector<int16>& vec) throw(IOException);
+  virtual void WriteUShortArray(const uint16 *array, const int32 size) throw(IOException);
+  virtual void WriteUShortVector(const std::vector<uint16>& vec) throw(IOException);
+
+  virtual void WriteIntArray(const int32 *array, const int32 size) throw(IOException);
+  virtual void WriteIntVector(const std::vector<int32>& vec) throw(IOException);
+  virtual void WriteUIntArray(const uint32 *array, const int32 size) throw(IOException);
+  virtual void WriteUIntVector(const std::vector<uint32>& vec) throw(IOException);
+
+  virtual void WriteFloatArray(const real32 *array, const int32 size) throw(IOException);
+  virtual void WriteFloatVector(const std::vector<real32>& vec) throw(IOException);
+  virtual void WriteDoubleArray(const real64 *array, const int32 size) throw(IOException);
+  virtual void WriteDoubleVector(const std::vector<real64>& vec) throw(IOException);
 
  private:
  /*

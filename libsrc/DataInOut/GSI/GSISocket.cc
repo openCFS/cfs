@@ -1,4 +1,19 @@
-// Implementation of the GSI::Socket class.
+#ifdef USE_RCSID
+static const char RCSid_GSISocket[] = "$Id$";
+#endif
+
+/*----------------------------------------------------------------------
+|
+|
+| $Log$
+| Revision 1.3  2005/05/18 19:26:03  strieben
+| Upgraded GSI library to newest available version.
+|
+| Revision 1.1.1.1  2004/08/31 15:53:00  simon
+| Initial GSI import
+|
+|
++---------------------------------------------------------------------*/
 
 #include <cstring>
 #include <iostream>

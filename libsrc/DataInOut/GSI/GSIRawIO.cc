@@ -1,3 +1,23 @@
+#ifdef USE_RCSID
+static const char RCSid_GSIRawIO[] = "$Id$";
+#endif
+
+/*----------------------------------------------------------------------
+|
+|
+| $Log$
+| Revision 1.3  2005/05/18 19:26:03  strieben
+| Upgraded GSI library to newest available version.
+|
+| Revision 1.2  2004/09/01 15:24:58  simon
+| Added support for writing int16 and uint16
+|
+| Revision 1.1.1.1  2004/08/31 15:53:00  simon
+| Initial GSI import
+|
+|
++---------------------------------------------------------------------*/
+
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -18,13 +38,14 @@ bigendian_(bigendian)
   InitEndian();
 }
 
+#ifndef WIN32
 RawIO::RawIO(Socket *sock, int32 timeout, bool bigendian) :
 BaseIO(sock, timeout),
 bigendian_(bigendian)
 {
   InitEndian();
 }
-
+#endif
 
 int32 RawIO :: TellRead() throw(IOException)
 {
@@ -38,6 +59,7 @@ int32 RawIO :: TellRead() throw(IOException)
     ex.SetErrno(errno);
     throw ex;
   }
+  return ret;
 }
 
 int32 RawIO :: TellWrite() throw(IOException)
@@ -52,6 +74,7 @@ int32 RawIO :: TellWrite() throw(IOException)
     ex.SetErrno(errno);
     throw ex;
   }
+  return ret;
 }
 
 int32 RawIO :: SeekRead(int32 offset, SeekPos whence) throw(IOException)
@@ -83,6 +106,7 @@ int32 RawIO :: SeekRead(int32 offset, SeekPos whence) throw(IOException)
     ex.SetErrno(errno);
     throw ex;
   }
+  return ret;
 }
 
 int32 RawIO :: SeekWrite(int32 offset, SeekPos whence) throw(IOException)
@@ -114,6 +138,7 @@ int32 RawIO :: SeekWrite(int32 offset, SeekPos whence) throw(IOException)
     ex.SetErrno(errno);
     throw ex;
   }
+  return ret;
 }
 
 int32 RawIO :: EOFRead() throw(IOException)
@@ -128,12 +153,13 @@ int32 RawIO :: EOFRead() throw(IOException)
     ex.SetErrno(errno);
     throw ex;
   }
+  return ret;
 }
 
-void RawIO :: readMsg(std::string& s) throw(IOException)
+void RawIO :: ReadMsg(std::string& s) throw(IOException)
 {
   CHECK_READ();
-  int32 length = readInt();
+  int32 length = ReadInt();
   int32 pad = 4 - (length % 4);
   int32 bufsize = (pad == 4) ? length : length + pad;
 
@@ -154,7 +180,101 @@ void RawIO :: readMsg(std::string& s) throw(IOException)
   delete[] msg;
 }
 
-int32 RawIO :: readInt() throw(IOException)
+int16 RawIO :: ReadShort() throw(IOException)
+{
+  CHECK_READ();
+  // I use int32 because I want to make sure that that the files
+  // have always a size that is a multiple of 4 bytes
+  int32 buff;  
+
+  try{
+    Read(&buff, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while reading a Short");
+    throw ex;
+  }
+
+  buff = bigendian_ ? BigINT32(buff) : LittleINT32(buff);
+
+  return((int16) buff);
+}
+
+
+void RawIO :: ReadShortVector(std::vector<int16>& vec) throw(IOException)
+{
+  CHECK_READ();
+  int32 size = ReadInt();
+  int16 *buff= new int16[size];
+  int16 dummy;
+
+  try{
+    Read(buff, sizeof(int16)*size);
+    // make sure the 4 byte padding is right
+    if((size % 2) == 1)
+      Read(&dummy, sizeof(int16));
+  }
+  catch(IOException& ex) {
+    delete[] buff;
+    ex.SetDescription("An Error occured while reading a short array");
+    throw ex;
+  }
+
+  vec.resize(size);
+  for(int32 i=0; i<size; i++) {
+    vec[i] = bigendian_ ? BigINT16(buff[i]) : LittleINT16(buff[i]);
+  }
+
+  delete[] buff;
+}
+
+uint16 RawIO :: ReadUShort() throw(IOException)
+{
+  CHECK_READ();
+  uint32 buff;
+
+  try{
+    Read(&buff, sizeof(uint32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while reading an unsigned short");
+    throw ex;
+  }
+
+  buff = bigendian_ ? BigUINT32(buff) : LittleUINT32(buff);
+
+  return((uint16) buff);
+}
+
+
+void RawIO :: ReadUShortVector(std::vector<uint16>& vec) throw(IOException)
+{
+  CHECK_READ();
+  int32 size = ReadInt();
+  uint16 *buff= new uint16[size];
+  uint16 dummy;
+
+  try{
+    Read(buff, sizeof(uint16)*size);
+    // make sure the 4 byte padding is right
+    if((size % 2) == 1)
+      Read(&dummy, sizeof(uint16));
+  }
+  catch(IOException& ex) {
+    delete[] buff;
+    ex.SetDescription("An Error occured while reading an unsigned integer vector");
+    throw ex;
+  }
+
+  vec.resize(size);
+  for(int32 i=0; i<size; i++) {
+    vec[i] = bigendian_ ? BigINT16(buff[i]) : LittleINT16(buff[i]);
+  }
+
+  delete[] buff;
+}
+
+int32 RawIO :: ReadInt() throw(IOException)
 {
   CHECK_READ();
   int32 buff;
@@ -173,10 +293,10 @@ int32 RawIO :: readInt() throw(IOException)
 }
 
 
-void RawIO :: readIntVector(std::vector<int32>& vec) throw(IOException)
+void RawIO :: ReadIntVector(std::vector<int32>& vec) throw(IOException)
 {
   CHECK_READ();
-  int32 size = readInt();
+  int32 size = ReadInt();
   int32 *buff= new int32[size];
 
   try{
@@ -184,7 +304,7 @@ void RawIO :: readIntVector(std::vector<int32>& vec) throw(IOException)
   }
   catch(IOException& ex) {
     delete[] buff;
-    ex.SetDescription("An Error occured while reading an integer array");
+    ex.SetDescription("An Error occured while reading an integer vector");
     throw ex;
   }
 
@@ -196,7 +316,7 @@ void RawIO :: readIntVector(std::vector<int32>& vec) throw(IOException)
   delete[] buff;
 }
 
-uint32 RawIO :: readUInt() throw(IOException)
+uint32 RawIO :: ReadUInt() throw(IOException)
 {
   CHECK_READ();
   uint32 buff;
@@ -215,10 +335,10 @@ uint32 RawIO :: readUInt() throw(IOException)
 }
 
 
-void RawIO :: readUIntVector(std::vector<uint32>& vec) throw(IOException)
+void RawIO :: ReadUIntVector(std::vector<uint32>& vec) throw(IOException)
 {
   CHECK_READ();
-  int32 size = readInt();
+  int32 size = ReadInt();
   uint32 *buff= new uint32[size];
 
   try{
@@ -226,7 +346,7 @@ void RawIO :: readUIntVector(std::vector<uint32>& vec) throw(IOException)
   }
   catch(IOException& ex) {
     delete[] buff;
-    ex.SetDescription("An Error occured while reading an integer array");
+    ex.SetDescription("An Error occured while reading an integer vector");
     throw ex;
   }
 
@@ -238,34 +358,33 @@ void RawIO :: readUIntVector(std::vector<uint32>& vec) throw(IOException)
   delete[] buff;
 }
 
-
-float32 RawIO :: readFloat() throw(IOException)
+real32 RawIO :: ReadFloat() throw(IOException)
 {
   CHECK_READ();
-  float32 buff;
+  real32 buff;
 
   try{
-    Read(&buff, sizeof(float32));
+    Read(&buff, sizeof(real32));
   }
   catch(IOException& ex) {
     ex.SetDescription("An Error occured while reading a Float");
     throw ex;
   }
 
-  buff = bigendian_ ? BigFLOAT32(buff) : LittleFLOAT32(buff);
+  buff = bigendian_ ? BigREAL32(buff) : LittleREAL32(buff);
 
   return(buff);
 }
 
 
-void RawIO :: readFloatVector(std::vector<float32>& vec) throw(IOException)
+void RawIO :: ReadFloatVector(std::vector<real32>& vec) throw(IOException)
 {
   CHECK_READ();
-  int32 size = readInt();
-  float32 *buff= new float32[size];
+  int32 size = ReadInt();
+  real32 *buff= new real32[size];
 
   try{
-    Read(buff, sizeof(float32)*size);
+    Read(buff, sizeof(real32)*size);
   }
   catch(IOException& ex) {
     delete[] buff;
@@ -275,39 +394,39 @@ void RawIO :: readFloatVector(std::vector<float32>& vec) throw(IOException)
 
   vec.resize(size);
   for(int32 i=0; i<size; i++) {
-    vec[i] = bigendian_ ? BigFLOAT32(buff[i]) : LittleFLOAT32(buff[i]);
+    vec[i] = bigendian_ ? BigREAL32(buff[i]) : LittleREAL32(buff[i]);
   }
 
   delete[] buff;
 }
 
-float64 RawIO :: readDouble() throw(IOException)
+real64 RawIO :: ReadDouble() throw(IOException)
 {
   CHECK_READ();
-  float64 buff;
+  real64 buff;
 
   try{
-    Read(&buff, sizeof(float64));
+    Read(&buff, sizeof(real64));
   }
   catch(IOException& ex) {
     ex.SetDescription("An Error occured while reading a Double");
     throw ex;
   }
 
-  buff = bigendian_ ? BigFLOAT64(buff) : LittleFLOAT64(buff);
+  buff = bigendian_ ? BigREAL64(buff) : LittleREAL64(buff);
 
   return(buff);
 }
 
 
-void RawIO :: readDoubleVector(std::vector<float64>& vec) throw(IOException)
+void RawIO :: ReadDoubleVector(std::vector<real64>& vec) throw(IOException)
 {
   CHECK_READ();
-  int32 size = readInt();
-  float64 *buff= new float64[size];
+  int32 size = ReadInt();
+  real64 *buff= new real64[size];
 
   try{
-    Read(buff, sizeof(float64)*size);
+    Read(buff, sizeof(real64)*size);
   }
   catch(IOException& ex) {
     delete[] buff;
@@ -317,13 +436,13 @@ void RawIO :: readDoubleVector(std::vector<float64>& vec) throw(IOException)
 
   vec.resize(size);
   for(int32 i=0; i<size; i++) {
-    vec[i] = bigendian_ ? BigFLOAT64(buff[i]) : LittleFLOAT64(buff[i]);
+    vec[i] = bigendian_ ? BigREAL64(buff[i]) : LittleREAL64(buff[i]);
   }
 
   delete[] buff;
 }
 
-void RawIO :: writeMsg(const std::string& s) throw(IOException)
+void RawIO :: WriteMsg(const std::string& s) throw(IOException)
 {
   CHECK_WRITE();
   int32 length = s.length();
@@ -343,9 +462,11 @@ void RawIO :: writeMsg(const std::string& s) throw(IOException)
   memset(msg, 0, bufsize);
   memcpy(msg, s.c_str(), length);
 
+  /*
   std::cout << "length: " << length << "\n";
   std::cout << "pad: " << pad << "\n";
   std::cout << "buf_size: " << bufsize << "\n";
+  */
 
   try{
     Write(msg, bufsize);
@@ -358,7 +479,166 @@ void RawIO :: writeMsg(const std::string& s) throw(IOException)
   delete[] msg;
 }
 
-void RawIO :: writeInt(const int32 buff) throw(IOException)
+void RawIO :: WriteShort(const int16 buff) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 out = bigendian_ ? BigINT32((int32)buff) : LittleINT32((int32)buff);
+  try{
+    Write(&out, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while writing a short");
+    throw ex;
+  }
+}
+
+
+void RawIO :: WriteShortArray(const int16 *buff , const int32 size) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+  int16 dummy = 0;
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of short array");
+    throw ex;
+  }
+
+  int16 *array = new int16[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigINT16(buff[i]) : LittleINT16(buff[i]);
+
+  try{
+    Write(array, sizeof(int16)*size);
+    if((size % 2) == 1)
+      Write(&dummy, sizeof(int16));
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing an integer array");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: WriteShortVector(const std::vector<int16>& vec) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 size = vec.size();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+  int16 dummy = 0;
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of short vector");
+    throw ex;
+  }
+
+  int16 *array = new int16[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigINT16(vec[i]) : LittleINT16(vec[i]);
+
+  try{
+    Write(array, sizeof(int16)*size);
+    if((size % 2) == 1)
+      Write(&dummy, sizeof(int16));
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing a short vector");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: WriteUShort(const uint16 buff) throw(IOException)
+{
+  CHECK_WRITE();
+  uint32 out = bigendian_ ? BigUINT32((int32)buff) : LittleUINT16((int32)buff);
+
+  try{
+    Write(&out, sizeof(uint32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while writing an unsigned short");
+    throw ex;
+  }
+}
+
+
+void RawIO :: WriteUShortArray(const uint16 *buff , const int32 size) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+  uint16 dummy = 0;
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of unsigned short array");
+    throw ex;
+  }
+
+  uint16 *array = new uint16[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigUINT16(buff[i]) : LittleUINT16(buff[i]);
+
+  try{
+    Write(array, sizeof(uint16)*size);
+    if((size % 2) == 1)
+      Write(&dummy, sizeof(uint16));
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing an unsigned short array");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: WriteUShortVector(const std::vector<uint16>& vec) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 size = vec.size();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+  uint16 dummy = 0;
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of unsigned short vector");
+    throw ex;
+  }
+
+  uint16 *array = new uint16[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigUINT16(vec[i]) : LittleUINT16(vec[i]);
+
+  try{
+    Write(array, sizeof(uint16)*size);
+    if((size % 2) == 1)
+      Write(&dummy, sizeof(uint16));
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing an unsigned short vector");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: WriteInt(const int32 buff) throw(IOException)
 {
   CHECK_WRITE();
   int32 out = bigendian_ ? BigINT32(buff) : LittleINT32(buff);
@@ -372,7 +652,7 @@ void RawIO :: writeInt(const int32 buff) throw(IOException)
 }
 
 
-void RawIO :: writeIntArray(const int32 *buff , const int32 size) throw(IOException)
+void RawIO :: WriteIntArray(const int32 *buff , const int32 size) throw(IOException)
 {
   CHECK_WRITE();
   int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
@@ -401,7 +681,7 @@ void RawIO :: writeIntArray(const int32 *buff , const int32 size) throw(IOExcept
   delete[] array;
 }
 
-void RawIO :: writeIntVector(const std::vector<int32>& vec) throw(IOException)
+void RawIO :: WriteIntVector(const std::vector<int32>& vec) throw(IOException)
 {
   CHECK_WRITE();
   int32 size = vec.size();
@@ -431,7 +711,7 @@ void RawIO :: writeIntVector(const std::vector<int32>& vec) throw(IOException)
   delete[] array;
 }
 
-void RawIO :: writeUInt(const uint32 buff) throw(IOException)
+void RawIO :: WriteUInt(const uint32 buff) throw(IOException)
 {
   CHECK_WRITE();
   uint32 out = bigendian_ ? BigUINT32(buff) : LittleUINT32(buff);
@@ -446,7 +726,7 @@ void RawIO :: writeUInt(const uint32 buff) throw(IOException)
 }
 
 
-void RawIO :: writeUIntArray(const uint32 *buff , const int32 size) throw(IOException)
+void RawIO :: WriteUIntArray(const uint32 *buff , const int32 size) throw(IOException)
 {
   CHECK_WRITE();
   int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
@@ -475,7 +755,7 @@ void RawIO :: writeUIntArray(const uint32 *buff , const int32 size) throw(IOExce
   delete[] array;
 }
 
-void RawIO :: writeUIntVector(const std::vector<uint32>& vec) throw(IOException)
+void RawIO :: WriteUIntVector(const std::vector<uint32>& vec) throw(IOException)
 {
   CHECK_WRITE();
   int32 size = vec.size();
@@ -505,14 +785,13 @@ void RawIO :: writeUIntVector(const std::vector<uint32>& vec) throw(IOException)
   delete[] array;
 }
 
-
-void RawIO :: writeFloat(const float32 buff) throw(IOException)
+void RawIO :: WriteFloat(const real32 buff) throw(IOException)
 {
   CHECK_WRITE();
-  float32 out = bigendian_ ? BigFLOAT32(buff) : LittleFLOAT32(buff);
+  real32 out = bigendian_ ? BigREAL32(buff) : LittleREAL32(buff);
 
   try{
-    Write(&out, sizeof(float32));
+    Write(&out, sizeof(real32));
   }
   catch(IOException& ex) {
     ex.SetDescription("An Error occured while writing a float");
@@ -521,7 +800,7 @@ void RawIO :: writeFloat(const float32 buff) throw(IOException)
 }
 
 
-void RawIO :: writeFloatArray(const float32 *buff , const int32 size) throw(IOException)
+void RawIO :: WriteFloatArray(const real32 *buff , const int32 size) throw(IOException)
 {
   CHECK_WRITE();
   int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
@@ -534,12 +813,12 @@ void RawIO :: writeFloatArray(const float32 *buff , const int32 size) throw(IOEx
     throw ex;
   }
 
-  float32 *array = new float32[size];
+  real32 *array = new real32[size];
   for(int32 i=0; i<size; i++)
-     array[i] = bigendian_ ? BigFLOAT32(buff[i]) : LittleFLOAT32(buff[i]);
+     array[i] = bigendian_ ? BigREAL32(buff[i]) : LittleREAL32(buff[i]);
 
   try{
-    Write(array, sizeof(float32)*size);
+    Write(array, sizeof(real32)*size);
   }
   catch(IOException& ex) {
     delete[] array;
@@ -550,7 +829,7 @@ void RawIO :: writeFloatArray(const float32 *buff , const int32 size) throw(IOEx
   delete[] array;
 }
 
-void RawIO :: writeFloatVector(const std::vector<float32>& vec) throw(IOException)
+void RawIO :: WriteFloatVector(const std::vector<real32>& vec) throw(IOException)
 {
   CHECK_WRITE();
   int32 size = vec.size();
@@ -564,12 +843,12 @@ void RawIO :: writeFloatVector(const std::vector<float32>& vec) throw(IOExceptio
     throw ex;
   }
 
-  float32 *array = new float32[size];
+  real32 *array = new real32[size];
   for(int32 i=0; i<size; i++)
-     array[i] = bigendian_ ? BigFLOAT32(vec[i]) : LittleFLOAT32(vec[i]);
+     array[i] = bigendian_ ? BigREAL32(vec[i]) : LittleREAL32(vec[i]);
 
   try{
-    Write(array, sizeof(float32)*size);
+    Write(array, sizeof(real32)*size);
   }
   catch(IOException& ex) {
     delete[] array;
@@ -580,13 +859,13 @@ void RawIO :: writeFloatVector(const std::vector<float32>& vec) throw(IOExceptio
   delete[] array;
 }
 
-void RawIO :: writeDouble(const float64 buff) throw(IOException)
+void RawIO :: WriteDouble(const real64 buff) throw(IOException)
 {
   CHECK_WRITE();
-  float64 out = bigendian_ ? BigFLOAT64(buff) : LittleFLOAT64(buff);
+  real64 out = bigendian_ ? BigREAL64(buff) : LittleREAL64(buff);
 
   try{
-    Write(&out, sizeof(float64));
+    Write(&out, sizeof(real64));
   }
   catch(IOException& ex) {
     ex.SetDescription("An Error occured while writing a double");
@@ -595,7 +874,7 @@ void RawIO :: writeDouble(const float64 buff) throw(IOException)
 }
 
 
-void RawIO :: writeDoubleArray(const float64 *buff , const int32 size) throw(IOException)
+void RawIO :: WriteDoubleArray(const real64 *buff , const int32 size) throw(IOException)
 {
   CHECK_WRITE();
   int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
@@ -608,12 +887,12 @@ void RawIO :: writeDoubleArray(const float64 *buff , const int32 size) throw(IOE
     throw ex;
   }
 
-  float64 *array = new float64[size];
+  real64 *array = new real64[size];
   for(int32 i=0; i<size; i++)
-     array[i] = bigendian_ ? BigFLOAT64(buff[i]) : LittleFLOAT64(buff[i]);
+     array[i] = bigendian_ ? BigREAL64(buff[i]) : LittleREAL64(buff[i]);
 
   try{
-    Write(array, sizeof(float64)*size);
+    Write(array, sizeof(real64)*size);
   }
   catch(IOException& ex) {
     delete[] array;
@@ -624,7 +903,7 @@ void RawIO :: writeDoubleArray(const float64 *buff , const int32 size) throw(IOE
   delete[] array;
 }
 
-void RawIO :: writeDoubleVector(const std::vector<float64>& vec) throw(IOException)
+void RawIO :: WriteDoubleVector(const std::vector<real64>& vec) throw(IOException)
 {
   CHECK_WRITE();
   int32 size = vec.size();
@@ -638,12 +917,12 @@ void RawIO :: writeDoubleVector(const std::vector<float64>& vec) throw(IOExcepti
     throw ex;
   }
 
-  float64 *array = new float64[size];
+  real64 *array = new real64[size];
   for(int32 i=0; i<size; i++)
-     array[i] = bigendian_ ? BigFLOAT64(vec[i]) : LittleFLOAT64(vec[i]);
+     array[i] = bigendian_ ? BigREAL64(vec[i]) : LittleREAL64(vec[i]);
 
   try{
-    Write(array, sizeof(float64)*size);
+    Write(array, sizeof(real64)*size);
   }
   catch(IOException& ex) {
     delete[] array;

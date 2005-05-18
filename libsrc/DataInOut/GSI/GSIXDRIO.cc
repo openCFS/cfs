@@ -1,3 +1,24 @@
+#ifdef USE_RCSID
+static const char RCSid_GSIXDRIO[] = "$Id$";
+#endif
+
+/*----------------------------------------------------------------------
+|
+|
+| $Log$
+| Revision 1.4  2005/05/18 19:26:03  strieben
+| Upgraded GSI library to newest available version.
+|
+| Revision 1.2  2004/09/01 15:24:58  simon
+| Added support for writing int16 and uint16
+|
+| Revision 1.1.1.1  2004/08/31 15:53:00  simon
+| Initial GSI import
+|
+|
++---------------------------------------------------------------------*/
+
+
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -45,6 +66,7 @@ RawIO(file_read, file_write, bigendian)
   */
 }
 
+#ifndef WIN32
 XDRIO::XDRIO(Socket *sock, int timeout, bool bigendian) :
 RawIO(sock, timeout, bigendian)
 {
@@ -70,6 +92,7 @@ RawIO(sock, timeout, bigendian)
 
   std::cout << "XDRIO timeout " << timeout_ << std::endl;
 }
+#endif
 
 /*
 int XDRIO::genericRead(void* buf, int size)
@@ -233,95 +256,141 @@ int XDRIO::genericWriteInt(int val)
 }
 */
 
-void XDRIO :: readMsg(std::string& s) throw(IOException)
+void XDRIO :: ReadMsg(std::string& s) throw(IOException)
 {
-  RawIO::readInt();
-  RawIO::readMsg(s);
+  RawIO::ReadInt();
+  RawIO::ReadMsg(s);
 }
 
-void XDRIO :: readIntVector(std::vector<int32>& vec) throw(IOException)
+void XDRIO :: ReadShortVector(std::vector<int16>& vec) throw(IOException)
 {
-  RawIO::readInt();
-  RawIO::readIntVector(vec);
+  RawIO::ReadInt();
+  RawIO::ReadShortVector(vec);
 }
 
-void XDRIO :: readUIntVector(std::vector<uint32>& vec) throw(IOException)
+void XDRIO :: ReadUShortVector(std::vector<uint16>& vec) throw(IOException)
 {
-  RawIO::readInt();
-  RawIO::readUIntVector(vec);
+  RawIO::ReadInt();
+  RawIO::ReadUShortVector(vec);
+}
+
+void XDRIO :: ReadIntVector(std::vector<int32>& vec) throw(IOException)
+{
+  RawIO::ReadInt();
+  RawIO::ReadIntVector(vec);
+}
+
+void XDRIO :: ReadUIntVector(std::vector<uint32>& vec) throw(IOException)
+{
+  RawIO::ReadInt();
+  RawIO::ReadUIntVector(vec);
+}
+
+void XDRIO :: ReadFloatVector(std::vector<real32>& vec) throw(IOException)
+{
+  RawIO::ReadInt();
+  RawIO::ReadFloatVector(vec);
 }
 
 
-void XDRIO :: readFloatVector(std::vector<float32>& vec) throw(IOException)
+void XDRIO :: ReadDoubleVector(std::vector<real64>& vec) throw(IOException)
 {
-  RawIO::readInt();
-  RawIO::readFloatVector(vec);
+  RawIO::ReadInt();
+  RawIO::ReadDoubleVector(vec);
 }
 
-
-void XDRIO :: readDoubleVector(std::vector<float64>& vec) throw(IOException)
-{
-  RawIO::readInt();
-  RawIO::readDoubleVector(vec);
-}
-
-void XDRIO :: writeMsg(const std::string& s) throw(IOException)
+void XDRIO :: WriteMsg(const std::string& s) throw(IOException)
 {
   int32 length = s.length();
   int32 pad = 4 - (length % 4);
   int32 bufsize = (pad == 4) ? length : length + pad;
 
-  RawIO::writeInt(bufsize+4);
-  RawIO::writeMsg(s);
+  RawIO::WriteInt(bufsize+4);
+  RawIO::WriteMsg(s);
 }
 
-void XDRIO :: writeIntArray(const int32 *buff , const int32 size) throw(IOException)
+void XDRIO :: WriteShortArray(const int16 *buff , const int32 size) throw(IOException)
 {
-  RawIO::writeInt(size*sizeof(int32)+4);
-  RawIO::writeIntArray(buff, size);
+  int32 numitems = size;
+  numitems += (size % 2) == 1 ? 1 : 0;
+
+  RawIO::WriteInt(numitems*sizeof(int16)+4);
+  RawIO::WriteShortArray(buff, size);
 }
 
-void XDRIO :: writeIntVector(const std::vector<int32>& vec) throw(IOException)
+void XDRIO :: WriteShortVector(const std::vector<int16>& vec) throw(IOException)
 {
-  RawIO::writeInt(vec.size()*sizeof(int32)+4);
-  RawIO::writeIntVector(vec);
+  int32 numitems = vec.size();
+  numitems += (vec.size() % 2) == 1 ? 1 : 0;
+
+  RawIO::WriteInt(numitems*sizeof(int16)+4);
+  RawIO::WriteShortVector(vec);
 }
 
-void XDRIO :: writeUIntArray(const uint32 *buff , const int32 size) throw(IOException)
+void XDRIO :: WriteUShortArray(const uint16 *buff , const int32 size) throw(IOException)
 {
-  RawIO::writeInt(size*sizeof(uint32)+4);
-  RawIO::writeUIntArray(buff, size);
+  int32 numitems = size;
+  numitems += (size % 2) == 1 ? 1 : 0;
+
+  RawIO::WriteInt(numitems*sizeof(uint16)+4);
+  RawIO::WriteUShortArray(buff, size);
 }
 
-void XDRIO :: writeUIntVector(const std::vector<uint32>& vec) throw(IOException)
+void XDRIO :: WriteUShortVector(const std::vector<uint16>& vec) throw(IOException)
 {
-  RawIO::writeInt(vec.size()*sizeof(uint32)+4);
-  RawIO::writeUIntVector(vec);
+  int32 numitems = vec.size();
+  numitems += (vec.size() % 2) == 1 ? 1 : 0;
+
+  RawIO::WriteInt(numitems*sizeof(int16)+4);
+  RawIO::WriteUShortVector(vec);
 }
 
-
-void XDRIO :: writeFloatArray(const float32 *buff , const int32 size) throw(IOException)
+void XDRIO :: WriteIntArray(const int32 *buff , const int32 size) throw(IOException)
 {
-  RawIO::writeInt(size*sizeof(float32)+4);
-  RawIO::writeFloatArray(buff, size);
+  RawIO::WriteInt(size*sizeof(int32)+4);
+  RawIO::WriteIntArray(buff, size);
 }
 
-void XDRIO :: writeFloatVector(const std::vector<float32>& vec) throw(IOException)
+void XDRIO :: WriteIntVector(const std::vector<int32>& vec) throw(IOException)
 {
-  RawIO::writeInt(vec.size()*sizeof(float32)+4);
-  RawIO::writeFloatVector(vec);
+  RawIO::WriteInt(vec.size()*sizeof(int32)+4);
+  RawIO::WriteIntVector(vec);
 }
 
-void XDRIO :: writeDoubleArray(const float64 *buff , const int32 size) throw(IOException)
+void XDRIO :: WriteUIntArray(const uint32 *buff , const int32 size) throw(IOException)
 {
-  RawIO::writeInt(size*sizeof(float64)+4);
-  RawIO::writeDoubleArray(buff, size);
+  RawIO::WriteInt(size*sizeof(uint32)+4);
+  RawIO::WriteUIntArray(buff, size);
 }
 
-void XDRIO :: writeDoubleVector(const std::vector<float64>& vec) throw(IOException)
+void XDRIO :: WriteUIntVector(const std::vector<uint32>& vec) throw(IOException)
 {
-  RawIO::writeInt(vec.size()*sizeof(float64)+4);
-  RawIO::writeDoubleVector(vec);
+  RawIO::WriteInt(vec.size()*sizeof(uint32)+4);
+  RawIO::WriteUIntVector(vec);
+}
+
+void XDRIO :: WriteFloatArray(const real32 *buff , const int32 size) throw(IOException)
+{
+  RawIO::WriteInt(size*sizeof(real32)+4);
+  RawIO::WriteFloatArray(buff, size);
+}
+
+void XDRIO :: WriteFloatVector(const std::vector<real32>& vec) throw(IOException)
+{
+  RawIO::WriteInt(vec.size()*sizeof(real32)+4);
+  RawIO::WriteFloatVector(vec);
+}
+
+void XDRIO :: WriteDoubleArray(const real64 *buff , const int32 size) throw(IOException)
+{
+  RawIO::WriteInt(size*sizeof(real64)+4);
+  RawIO::WriteDoubleArray(buff, size);
+}
+
+void XDRIO :: WriteDoubleVector(const std::vector<real64>& vec) throw(IOException)
+{
+  RawIO::WriteInt(vec.size()*sizeof(real64)+4);
+  RawIO::WriteDoubleVector(vec);
 }
 
 }

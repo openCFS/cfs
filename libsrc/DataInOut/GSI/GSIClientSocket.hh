@@ -1,4 +1,8 @@
-// Definition of the GSI::ClientSocket class
+/*----------------------------------------------------------------------
+|
+| $Id$
+|
++---------------------------------------------------------------------*/
 
 #ifndef GSI_CLIENTSOCKET
 #define GSI_CLIENTSOCKET
