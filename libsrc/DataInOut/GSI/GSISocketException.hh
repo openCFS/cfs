@@ -1,18 +1,23 @@
-// SocketException class
+// GSI::SocketException class
 
 
-#ifndef GSISocketException_class
-#define GSISocketException_class
+#ifndef GSI_SOCKETEXCEPTION
+#define GSI_SOCKETEXCEPTION
 
 #include <string>
 
 #include "GSIException.hh"
 
-class GSISocketException : public GSIException
+namespace GridlibSocketInterface
+{
+
+class SocketException : public Exception
 {
  public:
-  GSISocketException ( std::string s ) : GSIException(s) {};
-  ~GSISocketException (){};
+  SocketException ( std::string s ) : Exception(s) {};
+  ~SocketException (){};
 };
+ 
+}
 
-#endif
+#endif //GSI_SOCKETEXCEPTION

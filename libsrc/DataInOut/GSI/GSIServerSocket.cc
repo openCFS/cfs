@@ -1,59 +1,62 @@
-// Implementation of the GSIServerSocket class
+// Implementation of the GSI::ServerSocket class
 
 #include "GSIServerSocket.hh"
-#include "GSISocketException.hh"
 
-
-GSIServerSocket::GSIServerSocket ( int port, int timeout )
-  : GSISocket(timeout)
+namespace GridlibSocketInterface
 {
-  if ( ! GSISocket::create() )
+
+ServerSocket::ServerSocket ( int32 port, int32 timeout )
+  : Socket(timeout)
+{
+  if ( ! Socket::create() )
     {
-         GSISocket::cleanup();
-         //      throw GSISocketException ( "Could not create server socket." );
+         Socket::cleanup();
+         //      throw SocketException ( "Could not create server socket." );
     }
 
-  if ( ! GSISocket::bind ( port ) )
+  if ( ! Socket::bind ( port ) )
     {
-         GSISocket::cleanup();
-         //      throw GSISocketException ( "Could not bind to port." );
+         Socket::cleanup();
+         //      throw SocketException ( "Could not bind to port." );
     }
 
-  if ( ! GSISocket::listen() )
+  if ( ! Socket::listen() )
     {
-        GSISocket::cleanup();
-        //      throw GSISocketException ( "Could not listen to socket." );
+        Socket::cleanup();
+        //      throw SocketException ( "Could not listen to socket." );
     }
 
 }
 
-GSIServerSocket::~GSIServerSocket()
+ServerSocket::~ServerSocket()
 {
 }
 
 
-int GSIServerSocket::accept ( GSIServerSocket& sock, int single ) throw (GSISocketException)
+int32 ServerSocket::accept ( ServerSocket& sock, int32 single ) throw (SocketException)
 {
-  int ret;
+  int32 ret;
   
-  if ( (ret = GSISocket::accept ( sock )) < 0 )
+  if ( (ret = Socket::accept ( sock )) < 0 )
     {
-      throw GSISocketException ( "Could not accept socket." );
+      throw SocketException ( "Could not accept socket." );
     }
 
   if (single) 
   {
-      GSISocket::shutdownServer();
+      Socket::shutdownServer();
   }
   
   return ret;
 }
 /*
-void GSIServerSocket::accept ( GSIServerSocket& sock ) throw (GSISocketException) 
+void ServerSocket::accept ( ServerSocket& sock ) throw (SocketException) 
 {
-  if ( ! GSISocket::accept ( sock ) )
+  if ( ! Socket::accept ( sock ) )
   {
-      throw GSISocketException ( "Could not accept socket." );
+      throw SocketException ( "Could not accept socket." );
   }
 }
 */
+ 
+}

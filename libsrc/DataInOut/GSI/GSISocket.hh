@@ -1,35 +1,44 @@
-// Definition of the GSISocket class
+// Definition of the GSI::Socket class
 
-#ifndef GSISocket_class
-#define GSISocket_class
+#ifndef GSI_SOCKET
+#define GSI_SOCKET
 
-
+/* According to earlier standards */
+#include <sys/time.h>
+#include <sys/select.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <string>
-#include <arpa/inet.h>
 
-const int MAXHOSTNAME = 200;
-const int MAXCONNECTIONS = 1;
-const int MAXRECV = 500;
+#include "GSITypeDefs.hh"
 
-class GSISocket
+namespace GridlibSocketInterface
+{
+
+const int32 MAXHOSTNAME = 200;
+const int32 MAXCONNECTIONS = 1;
+const int32 MAXRECV = 500;
+
+class Socket
 {
  public:
-  GSISocket(int timeout=-1);
-  virtual ~GSISocket();
+  Socket(int32 timeout=-1);
+  virtual ~Socket();
 
   // Server initialization
   bool create();
-  bool bind ( const int port );
+  bool bind ( const int32 port );
   bool listen() const;
-  int accept ( GSISocket& );
+  int32 accept ( Socket& );
 
   // Client initialization
-  bool connect ( const std::string& host, const int port );
+  bool connect ( const std::string& host, const int32 port );
 
   FILE* getReadHandle();
   FILE* getWriteHandle();
@@ -38,12 +47,12 @@ class GSISocket
 
   bool is_valid() const { return m_sock != -1; }
 
-  int read(void* buf, int nbytes, int timeout);
-  int write(void* buf, int nbytes, int timeout);
-  
+  int32 read(void* buf, int32 nbytes, int32 timeout);
+  int32 write(void* buf, int32 nbytes, int32 timeout);
+
  private:
 
-  int m_sock;
+  int32 m_sock;
   sockaddr_in m_addr;
   FILE* file_read;
   FILE* file_write;
@@ -51,11 +60,12 @@ class GSISocket
  protected:
   void cleanup();
   void shutdownServer();
-  int mayDoIO(int type, int timeout);
-  FILE* sock_to_file(int sock, const char *mode);
+  int32 mayDoIO(int32 type, int32 timeout);
+  FILE* sock_to_file(int32 sock, const int8 *mode);
 
-  int timeout_;
+  int32 timeout_;
 };
+ 
+}
 
-
-#endif
+#endif //GSI_SOCKET

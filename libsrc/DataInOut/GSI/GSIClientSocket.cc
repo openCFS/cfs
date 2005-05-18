@@ -1,29 +1,31 @@
-// Implementation of the GSIClientSocket class
+// Implementation of the GSI::ClientSocket class
 
 #include <iostream>
 
 #include "GSIClientSocket.hh"
-#include "GSISocketException.hh"
 
+namespace GridlibSocketInterface
+{
 
-GSIClientSocket::GSIClientSocket ( const std::string& host, const int port )
+ClientSocket::ClientSocket ( const std::string& host, const int32 port )
 {
   
-  if ( ! GSISocket::create() )
+  if ( ! Socket::create() )
     {
-        GSISocket::cleanup();
-        
-        //    throw GSISocketException ( "Could not create client socket." );
+        Socket::cleanup();
+
+        //    throw SocketException ( "Could not create client socket." );
     }
 
-  if ( ! GSISocket::connect ( host, port ) )
+  if ( ! Socket::connect ( host, port ) )
     {
-        //      throw GSISocketException ( "Could not bind to port." );
+        //      throw SocketException ( "Could not bind to port." );
 
         std::cout << "Wixenkacke! Connect geht nicht!";
         
-        GSISocket::cleanup();
+        Socket::cleanup();
     }
 
 }
-
+ 
+}

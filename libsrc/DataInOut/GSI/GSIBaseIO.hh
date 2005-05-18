@@ -1,7 +1,7 @@
-// Definition of the CFS_BaseIO class
+// Definition of the GSI::BaseIO class
 
-#ifndef CFS_BaseIO_class
-#define CFS_BaseIO_class
+#ifndef GSI_BASEIO
+#define GSI_BASEIO
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -15,134 +15,144 @@
 #include <string>
 #include <vector>
 
+#include "GSITypeDefs.hh"
 #include "GSIIOException.hh"
 #include "GSISocket.hh"
 
-class GSIBaseIO
+namespace GridlibSocketInterface
+{
+
+class BaseIO
 {
  public:
 
   //! Constructor for file IO
-  GSIBaseIO(FILE* fr, FILE* fw) : file_read( fr ), file_write( fw ), sock_(NULL), timeout_(-1) {};
+  BaseIO(FILE* fr, FILE* fw) : file_read( fr ), file_write( fw ), sock_(NULL), timeout_(-1) {};
   
   //! Constructor for socket IO
-  GSIBaseIO(GSISocket *sock, int timeout = -1) : file_read( NULL ), file_write( NULL ), sock_(sock), timeout_(timeout) {};
+  BaseIO(Socket *sock, int32 timeout = -1) : file_read( NULL ), file_write( NULL ), sock_(sock), timeout_(timeout) {};
 
   //!
-  virtual ~GSIBaseIO() {};
+  virtual ~BaseIO() {};
+
+  virtual int32 EOFRead() throw(IOException) = 0;
 
   // the Send Message function
-  virtual void writeMsg(const std::string& s) throw(GSIIOException) = 0;
+  virtual void writeMsg(const std::string& s) throw(IOException) = 0;
 
   //!the function to recieve the Message; Returns a pointer to the string
-  virtual void readMsg(std::string& s) throw(GSIIOException) = 0;
+  virtual void readMsg(std::string& s) throw(IOException) = 0;
 
   //!the function to recieve integers
-  virtual int readInt() throw(GSIIOException) = 0;
+  virtual int32 readInt() throw(IOException) = 0;
   
-  virtual void readIntVector(std::vector<int>& vec) throw(GSIIOException) = 0; 
+  virtual void readIntVector(std::vector<int32>& vec) throw(IOException) = 0;
 
-  virtual u_int readUInt() throw(GSIIOException) = 0;
+  virtual uint32 readUInt() throw(IOException) = 0;
   
-  virtual void readUIntVector(std::vector<u_int>& vec) throw(GSIIOException) = 0; 
+  virtual void readUIntVector(std::vector<uint32>& vec) throw(IOException) = 0;
 
-  virtual float readFloat() throw(GSIIOException) = 0;
+  virtual float32 readFloat() throw(IOException) = 0;
   
-  virtual void readFloatVector(std::vector<float>& vec) throw(GSIIOException) = 0; 
+  virtual void readFloatVector(std::vector<float32>& vec) throw(IOException) = 0;
 
-  virtual double readDouble() throw(GSIIOException) = 0;
-  
-  virtual void readDoubleVector(std::vector<double>& vec) throw(GSIIOException) = 0; 
+  virtual float64 readDouble() throw(IOException) = 0;
+
+  virtual void readDoubleVector(std::vector<float64>& vec) throw(IOException) = 0;
 
   //!the function to recieve the vector;
   //  virtual data readVector() = 0;
 
   //!the function to Send integers
-  virtual void  writeInt(const int buff) throw(GSIIOException) = 0;
+  virtual void  writeInt(const int32 buff) throw(IOException) = 0;
+
+  virtual void writeIntArray(const int32 *array, const int32 size) throw(IOException) = 0;
+
+  virtual void writeIntVector(const std::vector<int32>& vec) throw(IOException) = 0;
+
+  virtual void  writeUInt(const uint32 buff) throw(IOException) = 0;
+
+  virtual void writeUIntArray(const uint32 *array, const int32 size) throw(IOException) = 0;
+
+  virtual void writeUIntVector(const std::vector<uint32>& vec) throw(IOException) = 0;
+
+
+  virtual void  writeFloat(const float32 buff) throw(IOException) = 0;
+
+  virtual void writeFloatArray(const float32 *array, const int32 size) throw(IOException) = 0;
+
+  virtual void writeFloatVector(const std::vector<float32>& vec) throw(IOException) = 0;
+
+  virtual void  writeDouble(const float64 buff) throw(IOException) = 0;
   
-  virtual void writeIntArray(const int *array, const int size) throw(GSIIOException) = 0;
-
-  virtual void writeIntVector(const std::vector<int>& vec) throw(GSIIOException) = 0;
-
-  virtual void  writeUInt(const u_int buff) throw(GSIIOException) = 0;
+  virtual void writeDoubleArray(const float64 *array, const int32 size) throw(IOException) = 0;
   
-  virtual void writeUIntArray(const u_int *array, const int size) throw(GSIIOException) = 0;
+  virtual void writeDoubleVector(const std::vector<float64>& vec) throw(IOException) = 0;
 
-  virtual void writeUIntVector(const std::vector<u_int>& vec) throw(GSIIOException) = 0;
-
-
-  virtual void  writeFloat(const float buff) throw(GSIIOException) = 0;
-  
-  virtual void writeFloatArray(const float *array, const int size) throw(GSIIOException) = 0;
-
-  virtual void writeFloatVector(const std::vector<float>& vec) throw(GSIIOException) = 0;
-
-  virtual void  writeDouble(const double buff) throw(GSIIOException) = 0;
-  
-  virtual void writeDoubleArray(const double *array, const int size) throw(GSIIOException) = 0;
-  
-  virtual void writeDoubleVector(const std::vector<double>& vec) throw(GSIIOException) = 0;
-
-  virtual int ioOK() {return io_ok;};
+  virtual int32 ioOK() {return io_ok;};
   //!the function to Send the vector;
   //  virtual void writeVector(data outgoing_xdr_struct) = 0;
+  virtual void Write(const void* data, int32 size) throw(IOException) = 0;
+  virtual void Read(void* data, int32 size) throw(IOException) = 0;
 
  protected:
 
   FILE* file_read;
   FILE* file_write;
 
-  int desc_read;
-  int desc_write;
+  int32 desc_read;
+  int32 desc_write;
 
-  int timeout_;
-  int io_ok;
+  int32 timeout_;
+  int32 io_ok;
 
-  GSISocket* sock_;
+  Socket* sock_;
 
-  //  virtual bool mayRead() throw(GSIIOException) = 0;
-  //  virtual bool mayWrite() throw(GSIIOException) = 0;
+  //  virtual bool mayRead() throw(IOException) = 0;
+  //  virtual bool mayWrite() throw(IOException) = 0;
 
-  void is_valid() throw(GSIIOException)
+  void is_valid() throw(IOException)
   {
     if(sock_ == NULL)
-    {    
+    {
       if((file_read == NULL) && (file_write == NULL))
-        throw GSIIOException("Read/Write Streams not valid!");
+        throw IOException("Read/Write Streams not valid!");
     }
     else
     {
       if(!sock_->is_valid())
-        throw GSIIOException("CFSSocket not valid!");
+        throw IOException("Socket not valid!");
     }
-    
+
   }
-  
+
 };
 
-GSIBaseIO& operator << (GSIBaseIO& io, const std::string& s ) throw(GSIIOException);
-GSIBaseIO& operator >> (GSIBaseIO& io, std::string& s) throw(GSIIOException);
+BaseIO& operator << (BaseIO& io, const std::string& s ) throw(IOException);
+BaseIO& operator >> (BaseIO& io, std::string& s) throw(IOException);
 
-GSIBaseIO& operator << (GSIBaseIO& io, const int &i ) throw(GSIIOException);
-GSIBaseIO& operator >> (GSIBaseIO& io, int& i) throw(GSIIOException);
+BaseIO& operator << (BaseIO& io, const int32 &i ) throw(IOException);
+BaseIO& operator >> (BaseIO& io, int32& i) throw(IOException);
 
-GSIBaseIO& operator << (GSIBaseIO& io, const float &f ) throw(GSIIOException);
-GSIBaseIO& operator >> (GSIBaseIO& io, float& f) throw(GSIIOException);
+BaseIO& operator << (BaseIO& io, const float32 &f ) throw(IOException);
+BaseIO& operator >> (BaseIO& io, float32& f) throw(IOException);
 
-GSIBaseIO& operator << (GSIBaseIO& io, const double &d ) throw(GSIIOException);
-GSIBaseIO& operator >> (GSIBaseIO& io, double& d) throw(GSIIOException);
+BaseIO& operator << (BaseIO& io, const float64 &d ) throw(IOException);
+BaseIO& operator >> (BaseIO& io, float64& d) throw(IOException);
 
-GSIBaseIO& operator << (GSIBaseIO& io, const std::vector<int> &iv ) throw(GSIIOException);
-GSIBaseIO& operator >> (GSIBaseIO& io, std::vector<int>& iv) throw(GSIIOException);
+BaseIO& operator << (BaseIO& io, const std::vector<int32> &iv ) throw(IOException);
+BaseIO& operator >> (BaseIO& io, std::vector<int32>& iv) throw(IOException);
 
-GSIBaseIO& operator << (GSIBaseIO& io, const std::vector<u_int> &uiv ) throw(GSIIOException);
-GSIBaseIO& operator >> (GSIBaseIO& io, std::vector<u_int>& uiv) throw(GSIIOException);
+BaseIO& operator << (BaseIO& io, const std::vector<uint32> &uiv ) throw(IOException);
+BaseIO& operator >> (BaseIO& io, std::vector<uint32>& uiv) throw(IOException);
 
-GSIBaseIO& operator << (GSIBaseIO& io, const std::vector<float> &fv ) throw(GSIIOException);
-GSIBaseIO& operator >> (GSIBaseIO& io, std::vector<float>& fv) throw(GSIIOException);
+BaseIO& operator << (BaseIO& io, const std::vector<float32> &fv ) throw(IOException);
+BaseIO& operator >> (BaseIO& io, std::vector<float32>& fv) throw(IOException);
 
-GSIBaseIO& operator << (GSIBaseIO& io, const std::vector<double> &dv ) throw(GSIIOException);
-GSIBaseIO& operator >> (GSIBaseIO& io, std::vector<double>& dv) throw(GSIIOException);
+BaseIO& operator << (BaseIO& io, const std::vector<float64> &dv ) throw(IOException);
+BaseIO& operator >> (BaseIO& io, std::vector<float64>& dv) throw(IOException);
+
+}
 
 
-#endif
+#endif //GSI_BASEIO

@@ -1,18 +1,22 @@
-// Definition of the GSIClientSocket class
+// Definition of the GSI::ClientSocket class
 
-#ifndef GSIClientSocket_class
-#define GSIClientSocket_class
+#ifndef GSI_CLIENTSOCKET
+#define GSI_CLIENTSOCKET
 
 #include "GSISocket.hh"
+#include "GSITypeDefs.hh"
 
+namespace GridlibSocketInterface
+{
 
-class GSIClientSocket : public GSISocket
+class ClientSocket : public Socket
 {
  public:
 
-  GSIClientSocket ( const std::string& host, const int port );
-  virtual ~GSIClientSocket(){};
+  ClientSocket ( const std::string& host, const int32 port );
+  virtual ~ClientSocket(){};
 };
+ 
+}
 
-
-#endif
+#endif //GSI_CLIENTSOCKET

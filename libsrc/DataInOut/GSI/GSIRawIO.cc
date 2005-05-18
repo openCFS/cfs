@@ -3,352 +3,691 @@
 #include <iostream>
 
 #include "GSIRawIO.hh"
-#include "GSIIOException.hh"
+#include "GSIEndianConverter.hh"
 
-GSIRawIO::GSIRawIO(FILE *file_read, FILE *file_write) : GSIBaseIO(file_read, file_write)
+namespace GridlibSocketInterface
 {
+
+#define CHECK_READ() if(file_read == NULL) throw IOException("Attempt to access NULL file_read")
+#define CHECK_WRITE() if(file_write == NULL) throw IOException("Attempt to access NULL file_write")
+
+RawIO::RawIO(FILE *file_read, FILE *file_write, bool bigendian) :
+BaseIO(file_read, file_write),
+bigendian_(bigendian)
+{
+  InitEndian();
 }
 
-void GSIRawIO :: readMsg(std::string& s) throw(GSIIOException)
+RawIO::RawIO(Socket *sock, int32 timeout, bool bigendian) :
+BaseIO(sock, timeout),
+bigendian_(bigendian)
 {
-  int length;
-  fread(&length, sizeof(int), 1, file_read);
-
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while reading the message length" );
-  }
-
-  char* Msg=(char*)malloc(length+1);
-  memset( Msg, 0, length+1);
-	     	      
-  fread(Msg, length, 1, file_read);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while reading the actual message" );
-  }
-
-  s = Msg;
-  free(Msg);
+  InitEndian();
 }
 
-int GSIRawIO :: readInt() throw(GSIIOException)
+
+int32 RawIO :: TellRead() throw(IOException)
 {
-  int buff;
+  CHECK_READ();
+  int32 ret;
 
-  int n = fread(&buff, sizeof(int), 1, file_read);
-  //  std::cout << "int #: " << n << "\n";
-
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while reading an Integer" );
+  ret = ftell(file_read);
+  if(ret == -1)
+  {
+    IOException ex("Error when calling ftell(file_read)");
+    ex.SetErrno(errno);
+    throw ex;
   }
+}
+
+int32 RawIO :: TellWrite() throw(IOException)
+{
+  CHECK_WRITE();
+
+  int32 ret;
+  ret = ftell(file_write);
+  if(ret == -1)
+  {
+    IOException ex("Error when calling ftell(file_write)");
+    ex.SetErrno(errno);
+    throw ex;
+  }
+}
+
+int32 RawIO :: SeekRead(int32 offset, SeekPos whence) throw(IOException)
+{
+  CHECK_READ();
+  int32 w;
+  int32 ret;
+
+  switch(whence)
+  {
+    case SET:
+      w = SEEK_SET;
+      break;
+    case CUR:
+      w = SEEK_CUR;
+      break;
+    case END:
+      w = SEEK_END;
+      break;
+    default:
+      w = SEEK_SET;
+      break;
+  }
+
+  ret = fseek(file_read, offset, w);
+  if(ret == -1)
+  {
+    IOException ex("Error when calling fseek(file_read)");
+    ex.SetErrno(errno);
+    throw ex;
+  }
+}
+
+int32 RawIO :: SeekWrite(int32 offset, SeekPos whence) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 w;
+  int32 ret;
+
+  switch(whence)
+  {
+    case SET:
+      w = SEEK_SET;
+      break;
+    case CUR:
+      w = SEEK_CUR;
+      break;
+    case END:
+      w = SEEK_END;
+      break;
+    default:
+      w = SEEK_SET;
+      break;
+  }
+
+  ret = fseek(file_write, offset, w);
+  if(ret == -1)
+  {
+    IOException ex("Error when calling fseek(file_write)");
+    ex.SetErrno(errno);
+    throw ex;
+  }
+}
+
+int32 RawIO :: EOFRead() throw(IOException)
+{
+  CHECK_READ();
+
+  int32 ret;
+  ret = feof(file_read);
+  if(ret == -1)
+  {
+    IOException ex("Error when calling feof(file_read)");
+    ex.SetErrno(errno);
+    throw ex;
+  }
+}
+
+void RawIO :: readMsg(std::string& s) throw(IOException)
+{
+  CHECK_READ();
+  int32 length = readInt();
+  int32 pad = 4 - (length % 4);
+  int32 bufsize = (pad == 4) ? length : length + pad;
+
+  char* msg= new char[bufsize+1];
+  memset(msg, 0, bufsize+1);
+
+  try{
+    Read(msg, bufsize);
+  }
+  catch(IOException& ex) {
+    delete[] msg;
+    ex.SetDescription("An Error occured while reading the actual message");
+    throw ex;
+  }
+
+  msg[length] = 0;
+  s = msg;
+  delete[] msg;
+}
+
+int32 RawIO :: readInt() throw(IOException)
+{
+  CHECK_READ();
+  int32 buff;
+
+  try{
+    Read(&buff, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while reading an Integer");
+    throw ex;
+  }
+
+  buff = bigendian_ ? BigINT32(buff) : LittleINT32(buff);
 
   return(buff);
 }
 
 
-void GSIRawIO :: readIntVector(std::vector<int>& vec) throw(GSIIOException)
+void RawIO :: readIntVector(std::vector<int32>& vec) throw(IOException)
 {
-  int size = readInt();
-  int *buff= new int[size];
-  
-  vec.resize(size);
+  CHECK_READ();
+  int32 size = readInt();
+  int32 *buff= new int32[size];
 
-  fread(buff, sizeof(int)*size, 1, file_read);
-
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while reading an integer array" );
+  try{
+    Read(buff, sizeof(int32)*size);
+  }
+  catch(IOException& ex) {
+    delete[] buff;
+    ex.SetDescription("An Error occured while reading an integer array");
+    throw ex;
   }
 
-  for(int i=0; i<size; i++) {
-    vec[i] = buff[i];
+  vec.resize(size);
+  for(int32 i=0; i<size; i++) {
+    vec[i] = bigendian_ ? BigINT32(buff[i]) : LittleINT32(buff[i]);
   }
 
   delete[] buff;
 }
 
-u_int GSIRawIO :: readUInt() throw(GSIIOException)
+uint32 RawIO :: readUInt() throw(IOException)
 {
-  u_int buff;
+  CHECK_READ();
+  uint32 buff;
 
-  fread(&buff, sizeof(u_int), 1, file_read);
-
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while reading an Integer" );
+  try{
+    Read(&buff, sizeof(uint32));
   }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while reading an Integer");
+    throw ex;
+  }
+
+  buff = bigendian_ ? BigUINT32(buff) : LittleUINT32(buff);
 
   return(buff);
 }
 
 
-void GSIRawIO :: readUIntVector(std::vector<u_int>& vec) throw(GSIIOException)
+void RawIO :: readUIntVector(std::vector<uint32>& vec) throw(IOException)
 {
-  int size = readInt();
-  u_int *buff= new u_int[size];
-  
-  vec.resize(size);
+  CHECK_READ();
+  int32 size = readInt();
+  uint32 *buff= new uint32[size];
 
-  fread(buff, sizeof(u_int)*size, 1, file_read);
-
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while reading an integer array" );
+  try{
+    Read(buff, sizeof(uint32)*size);
+  }
+  catch(IOException& ex) {
+    delete[] buff;
+    ex.SetDescription("An Error occured while reading an integer array");
+    throw ex;
   }
 
-  for(int i=0; i<size; i++) {
-    vec[i] = buff[i];
+  vec.resize(size);
+  for(int32 i=0; i<size; i++) {
+    vec[i] = bigendian_ ? BigINT32(buff[i]) : LittleINT32(buff[i]);
   }
 
   delete[] buff;
 }
 
 
-float GSIRawIO :: readFloat() throw(GSIIOException)
+float32 RawIO :: readFloat() throw(IOException)
 {
-  float buff;
+  CHECK_READ();
+  float32 buff;
 
-  fread(&buff, sizeof(float), 1, file_read);
-
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while reading a Float" );
+  try{
+    Read(&buff, sizeof(float32));
   }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while reading a Float");
+    throw ex;
+  }
+
+  buff = bigendian_ ? BigFLOAT32(buff) : LittleFLOAT32(buff);
 
   return(buff);
 }
 
 
-void GSIRawIO :: readFloatVector(std::vector<float>& vec) throw(GSIIOException)
+void RawIO :: readFloatVector(std::vector<float32>& vec) throw(IOException)
 {
-  int size = readInt();
-  float *buff= new float[size];
-  
-  vec.resize(size);
+  CHECK_READ();
+  int32 size = readInt();
+  float32 *buff= new float32[size];
 
-  fread(buff, sizeof(float)*size, 1, file_read);
-
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while reading a float array" );
+  try{
+    Read(buff, sizeof(float32)*size);
+  }
+  catch(IOException& ex) {
+    delete[] buff;
+    ex.SetDescription("An Error occured while reading a float array");
+    throw ex;
   }
 
-  for(int i=0; i<size; i++) {
-    vec[i] = buff[i];
+  vec.resize(size);
+  for(int32 i=0; i<size; i++) {
+    vec[i] = bigendian_ ? BigFLOAT32(buff[i]) : LittleFLOAT32(buff[i]);
   }
 
   delete[] buff;
 }
 
-double GSIRawIO :: readDouble() throw(GSIIOException)
+float64 RawIO :: readDouble() throw(IOException)
 {
-  double buff;
+  CHECK_READ();
+  float64 buff;
 
-  fread(&buff, sizeof(double), 1, file_read);
-
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while reading a Double" );
+  try{
+    Read(&buff, sizeof(float64));
   }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while reading a Double");
+    throw ex;
+  }
+
+  buff = bigendian_ ? BigFLOAT64(buff) : LittleFLOAT64(buff);
 
   return(buff);
 }
 
 
-void GSIRawIO :: readDoubleVector(std::vector<double>& vec) throw(GSIIOException)
+void RawIO :: readDoubleVector(std::vector<float64>& vec) throw(IOException)
 {
-  int size = readInt();
-  double *buff= new double[size];
-  
+  CHECK_READ();
+  int32 size = readInt();
+  float64 *buff= new float64[size];
+
+  try{
+    Read(buff, sizeof(float64)*size);
+  }
+  catch(IOException& ex) {
+    delete[] buff;
+    ex.SetDescription("An Error occured while reading a double array");
+    throw ex;
+  }
+
   vec.resize(size);
-
-  fread(buff, sizeof(double)*size, 1, file_read);
-
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while reading a double array" );
-  }
-
-  for(int i=0; i<size; i++) {
-    vec[i] = buff[i];
+  for(int32 i=0; i<size; i++) {
+    vec[i] = bigendian_ ? BigFLOAT64(buff[i]) : LittleFLOAT64(buff[i]);
   }
 
   delete[] buff;
 }
 
-void GSIRawIO :: writeMsg(const std::string& s) throw(GSIIOException)
+void RawIO :: writeMsg(const std::string& s) throw(IOException)
 {
-  int length = s.size();
-  fwrite(&length, sizeof(int), 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while writing the message length" );
+  CHECK_WRITE();
+  int32 length = s.length();
+  int32 l = bigendian_ ? BigINT32(length) : LittleINT32(length);
+  int32 pad = 4 - (length % 4);
+  int32 bufsize = (pad == 4) ? length : length + pad;
+
+  try{
+    Write(&l, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while writing the message length");
+    throw ex;
   }
 
-  fwrite(s.c_str(), length, 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while writing the actual message" );
+  char* msg= new char[bufsize];
+  memset(msg, 0, bufsize);
+  memcpy(msg, s.c_str(), length);
+
+  std::cout << "length: " << length << "\n";
+  std::cout << "pad: " << pad << "\n";
+  std::cout << "buf_size: " << bufsize << "\n";
+
+  try{
+    Write(msg, bufsize);
+  }
+  catch(IOException& ex) {
+    delete[] msg;
+    ex.SetDescription("An Error occured while writing the actual message");
+    throw ex;
+  }
+  delete[] msg;
+}
+
+void RawIO :: writeInt(const int32 buff) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 out = bigendian_ ? BigINT32(buff) : LittleINT32(buff);
+  try{
+    Write(&out, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while writing an integer");
+    throw ex;
+  }
+}
+
+
+void RawIO :: writeIntArray(const int32 *buff , const int32 size) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of integer array");
+    throw ex;
+  }
+
+  int32 *array = new int32[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigINT32(buff[i]) : LittleINT32(buff[i]);
+
+  try{
+    Write(array, sizeof(int32)*size);
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing an integer array");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: writeIntVector(const std::vector<int32>& vec) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 size = vec.size();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of integer vector");
+    throw ex;
+  }
+
+  int32 *array = new int32[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigINT32(vec[i]) : LittleINT32(vec[i]);
+
+  try{
+    Write(array, sizeof(int32)*size);
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing an integer vector");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: writeUInt(const uint32 buff) throw(IOException)
+{
+  CHECK_WRITE();
+  uint32 out = bigendian_ ? BigUINT32(buff) : LittleUINT32(buff);
+
+  try{
+    Write(&out, sizeof(uint32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while writing an uint");
+    throw ex;
+  }
+}
+
+
+void RawIO :: writeUIntArray(const uint32 *buff , const int32 size) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of uint array");
+    throw ex;
+  }
+
+  uint32 *array = new uint32[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigUINT32(buff[i]) : LittleUINT32(buff[i]);
+
+  try{
+    Write(array, sizeof(uint32)*size);
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing an uint array");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: writeUIntVector(const std::vector<uint32>& vec) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 size = vec.size();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of uint vector");
+    throw ex;
+  }
+
+  uint32 *array = new uint32[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigUINT32(vec[i]) : LittleUINT32(vec[i]);
+
+  try{
+    Write(array, sizeof(uint32)*size);
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing an uint vector");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+
+void RawIO :: writeFloat(const float32 buff) throw(IOException)
+{
+  CHECK_WRITE();
+  float32 out = bigendian_ ? BigFLOAT32(buff) : LittleFLOAT32(buff);
+
+  try{
+    Write(&out, sizeof(float32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while writing a float");
+    throw ex;
+  }
+}
+
+
+void RawIO :: writeFloatArray(const float32 *buff , const int32 size) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of float array");
+    throw ex;
+  }
+
+  float32 *array = new float32[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigFLOAT32(buff[i]) : LittleFLOAT32(buff[i]);
+
+  try{
+    Write(array, sizeof(float32)*size);
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing a float array");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: writeFloatVector(const std::vector<float32>& vec) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 size = vec.size();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of float vector");
+    throw ex;
+  }
+
+  float32 *array = new float32[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigFLOAT32(vec[i]) : LittleFLOAT32(vec[i]);
+
+  try{
+    Write(array, sizeof(float32)*size);
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing a float vector");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: writeDouble(const float64 buff) throw(IOException)
+{
+  CHECK_WRITE();
+  float64 out = bigendian_ ? BigFLOAT64(buff) : LittleFLOAT64(buff);
+
+  try{
+    Write(&out, sizeof(float64));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("An Error occured while writing a double");
+    throw ex;
+  }
+}
+
+
+void RawIO :: writeDoubleArray(const float64 *buff , const int32 size) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of float array");
+    throw ex;
+  }
+
+  float64 *array = new float64[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigFLOAT64(buff[i]) : LittleFLOAT64(buff[i]);
+
+  try{
+    Write(array, sizeof(float64)*size);
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing a double array");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: writeDoubleVector(const std::vector<float64>& vec) throw(IOException)
+{
+  CHECK_WRITE();
+  int32 size = vec.size();
+  int32 s = bigendian_ ? BigINT32(size) : LittleINT32(size);
+
+  try{
+    Write(&s, sizeof(int32));
+  }
+  catch(IOException& ex) {
+    ex.SetDescription("Error while writing the length of double vector");
+    throw ex;
+  }
+
+  float64 *array = new float64[size];
+  for(int32 i=0; i<size; i++)
+     array[i] = bigendian_ ? BigFLOAT64(vec[i]) : LittleFLOAT64(vec[i]);
+
+  try{
+    Write(array, sizeof(float64)*size);
+  }
+  catch(IOException& ex) {
+    delete[] array;
+    ex.SetDescription("An Error occured while writing a double vector");
+    throw ex;
+  }
+
+  delete[] array;
+}
+
+void RawIO :: Write(const void* data, int32 size) throw(IOException)
+{
+  CHECK_WRITE();
+  fwrite(data, size, 1, file_write);
+  if(ferror(file_write)) {
+    throw IOException ( "Error while writing to file_write" );
   }
   if(fflush(file_write) != 0) {
-    throw GSIIOException ( "An Error occured while flushing the message" );
+    throw IOException ( "Error while flushing file_write" );
   }
 }
 
-void GSIRawIO :: writeInt(const int buff) throw(GSIIOException)
+void RawIO :: Read(void* data, int32 size) throw(IOException)
 {
-  fwrite(&buff, sizeof(int), 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while writing an integer" );
-  }
-  if(fflush(file_write) != 0) {
-    throw GSIIOException ( "An Error occured while flushing an integer" );
+  CHECK_READ();
+  fread(data, size, 1, file_read);
+  if(ferror(file_read) || feof(file_read)) {
+    throw IOException ( "Error while reading from file_read" );
   }
 }
 
-
-void GSIRawIO :: writeIntArray(const int *buff , const int size) throw(GSIIOException)
+/*
+int32 main(int32 argc, char** argv)
 {
-  int s = size;
-  fwrite(&s, sizeof(int), 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "Error while writing the length of integer array" );
-  }  
-  fwrite(buff, sizeof(int)*size, 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while writing an integer array" );
-  }
-  if(fflush(file_write) != 0) {
-    throw GSIIOException ( "An Error occured while flushing an integer array" );
-  }
+	FILE* out = fopen("test.out", "wb");
+	FILE* in = fopen("test.in", "rb");
+	RawIO *io = new RawIO(in, out, false);
+	(*io) << "Test message";
+	delete io;
+	fclose(in);
+	fclose(out);
+
+	return 0;
 }
+*/
 
-void GSIRawIO :: writeIntVector(const std::vector<int>& vec) throw(GSIIOException)
-{
-  int size = vec.size();
-  int *buff = new int[size];
-
-  for(int i=0; i<size; i++) {
-    buff[i] = vec[i];
-  }
-  
-  writeIntArray(buff, size);
-
-  delete[] buff;
-}
-
-void GSIRawIO :: writeUInt(const u_int buff) throw(GSIIOException)
-{
-  fwrite(&buff, sizeof(u_int), 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while writing an integer" );
-  }
-  if(fflush(file_write) != 0) {
-    throw GSIIOException ( "An Error occured while flushing an integer" );
-  }
-}
-
-
-void GSIRawIO :: writeUIntArray(const u_int *buff , const int size) throw(GSIIOException)
-{
-  int s = size;
-  fwrite(&s, sizeof(int), 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "Error while writing the length of u_int array" );
-  }  
-  fwrite(buff, sizeof(u_int)*size, 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while writing an u_int array" );
-  }
-  if(fflush(file_write) != 0) {
-    throw GSIIOException ( "An Error occured while flushing an u_int array" );
-  }
-}
-
-void GSIRawIO :: writeUIntVector(const std::vector<u_int>& vec) throw(GSIIOException)
-{
-  int size = vec.size();
-  u_int *buff = new u_int[size];
-
-  for(int i=0; i<size; i++) {
-    buff[i] = vec[i];
-  }
-  
-  writeUIntArray(buff, size);
-
-  delete[] buff;
-}
-
-
-void GSIRawIO :: writeFloat(const float buff) throw(GSIIOException)
-{
-  fwrite(&buff, sizeof(float), 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while writing a Float" );
-  }
-  if(fflush(file_write) != 0) {
-    throw GSIIOException ( "An Error occured while flushing a Float" );
-  }
-}
-
-void GSIRawIO :: writeFloatVector(const std::vector<float>& vec) throw(GSIIOException)
-{
-  int size = vec.size();
-  float *buff = new float[size];
-
-  for(int i=0; i<size; i++) {
-    buff[i] = vec[i];
-  }
-  
-  writeFloatArray(buff, size);
-
-  delete[] buff;
-}
-
-void GSIRawIO :: writeFloatArray(const float *buff , const int size) throw(GSIIOException)
-{
-  int s = size;
-  fwrite(&s, sizeof(int), 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "Error while writing the length of Float array" );
-  }
-  fwrite(buff, sizeof(float)*size, 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while writing a Float array" );
-  }
-  if(fflush(file_write) != 0) {
-    throw GSIIOException ( "An Error occured while flushing a Float array" );
-  }
-}
-
-void GSIRawIO :: writeDouble(const double buff) throw(GSIIOException)
-{
-  fwrite(&buff, sizeof(double), 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while writing a Double" );
-  }
-  if(fflush(file_write) != 0) {
-    throw GSIIOException ( "An Error occured while flushing a double" );
-  }
-}
-
-
-void GSIRawIO :: writeDoubleArray(const double *buff , const int size) throw(GSIIOException)
-{
-  int s = size;
-  fwrite(&s, sizeof(int), 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "Error while writing the length of integer array" );
-  }
-  fwrite(buff, sizeof(double)*size, 1, file_write);
-  if(ferror(file_read)) {
-    throw GSIIOException ( "An Error occured while writing a double array" );
-  }
-  if(fflush(file_write) != 0) {
-    throw GSIIOException ( "An Error occured while flushing a double array" );
-  }
-}
-
-void GSIRawIO :: writeDoubleVector(const std::vector<double>& vec) throw(GSIIOException)
-{
-  int size = vec.size();
-  double *buff = new double[size];
-
-  for(int i=0; i<size; i++) {
-    buff[i] = vec[i];
-  }
-  
-  writeDoubleArray(buff, size);
-
-  delete[] buff;
 }
