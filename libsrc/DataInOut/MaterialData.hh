@@ -36,9 +36,16 @@ private:
   Double LameLambda;
   Double LameMu;
   Double permMx, permMy, permMz;   // permanent magnetization
+
   Double Esat;  //electric field intensity value for satuaration
   Double Psat;  //electric polarization value for satuaration
+  Double aJiles_;
+  Double alphaJiles_;
+  Double kJiles_;
+  Double cJiles_;
   Integer dirPol; //direction of polarization
+  std::string hystType_;
+
   Integer scaledMatDat;
   char * name; 
   //char name[stringLength]; 
@@ -120,6 +127,21 @@ public:
 
   /// set direction of electric polarization
   void SetDirPol(Integer& val) {dirPol = val;};
+
+  /// set type of hysteresis
+  void SetHysteresisType(std::string& atype) {hystType_ = atype;};
+
+  /// 
+  void SetJiles_a(Double& val) {aJiles_ = val;};
+
+  /// 
+  void SetJiles_alpha(Double& val) {alphaJiles_ = val;};
+
+  /// 
+  void SetJiles_k(Double& val) {kJiles_ = val;};
+
+  /// 
+  void SetJiles_c(Double& val) {cJiles_ = val;};
 
   /// set values of permanent magnetization
   void SetPermMag(const Double& mX, const Double& mY, const Double& mZ)
@@ -253,6 +275,21 @@ public:
 
   /// get direction of polarization
   Integer GetDirPol() const {return dirPol;};
+
+  /// get hysteresis type
+  std::string GetHysteresisType() const {return hystType_;};
+
+  /// 
+  Double GetJiles_a() const {return aJiles_;};
+
+  /// 
+  Double GetJiles_alpha() const {return alphaJiles_;};
+
+  /// 
+  Double GetJiles_k() const {return kJiles_;};
+
+  /// 
+  Double GetJiles_c() const {return cJiles_;};
 
   /// get conductivity
 //  Double GetConductivity() const {return conductivity; };

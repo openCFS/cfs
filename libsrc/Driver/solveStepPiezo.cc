@@ -5,6 +5,7 @@
 #include "solveStepPiezo.hh"
 #include "Forms/forms_header.hh"
 #include "Utils/preisach.hh"
+#include "Utils/jiles.hh"
 #include "assemble.hh"
 
 #include "Utils/nodestoresol.hh"
@@ -63,18 +64,35 @@ void SolveStepPiezo:: PreStepTrans(const Integer kstep, const Double asteptime,
 	Double Esat, Psat;
 	Double Ec = 0; //currently not used
 	Integer dir, numSDElems;
-	Esat = materialData_[iSD].GetEsat();
-	Psat = materialData_[iSD].GetPsat();
-	dir  = materialData_[iSD].GetDirPol();
-	isVirgin = TRUE; 
 
 	ptgrid_->GetElemSD(elemssd,subdoms_[iSD],actlevel_);
 	numSDElems = elemssd.GetSize(); 
-	hyst_[iSD] = new Preisach(numSDElems, Esat, Psat, Ec, isVirgin);
+
+	std::string hystType = materialData_[iSD].GetHysteresisType();
+	if ( hystType == "preisach" ) {
+	  Esat = materialData_[iSD].GetEsat();
+	  Psat = materialData_[iSD].GetPsat();
+	  dir  = materialData_[iSD].GetDirPol();
+	  isVirgin = TRUE; 
+
+	  hyst_[iSD] = new Preisach(numSDElems, Esat, Psat, Ec, isVirgin);
+	}
+	else if (hystType == "jiles") {
+	  Double a, alpha, k, c;
+	  a     =  materialData_[iSD].GetJiles_a();
+	  alpha =  materialData_[iSD].GetJiles_alpha();
+	  k     =  materialData_[iSD].GetJiles_k();
+	  c     =  materialData_[iSD].GetJiles_c();
+	  Psat = materialData_[iSD].GetPsat();
+
+	  hyst_[iSD] = new Jiles(numSDElems, Psat, a, alpha, k, c);
+	  hyst_[iSD]->SetTimeStepVal(TS_alg_->GetTimeStep());
+	}
       }
       doInit_ = FALSE;
     }
     else {
+      //   std::cout << "Do Update in PreStep" << std::endl;
       DoUpdateHyst();
     }
   }
@@ -127,7 +145,7 @@ void SolveStepPiezo::StepTransNonLinEpsDiff(const Integer kstep, const Double as
   oldSol.Init(0);
   newSol.Init(0);
   
-  //save solution opf previous time step  
+  //save solution of previous time step  
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   solhelp->GetAlgSysVector(solPrev);
 
@@ -258,18 +276,20 @@ void SolveStepPiezo::StepTransNonLinEpsDiff(const Integer kstep, const Double as
     // boolean variable, holds condition if another iteration step
     //   is necessary
     performOneMoreStep =  ( (incrementalErr > incStopCrit_) || (residualNorm > residualStopCrit_) )
-			    && (residualNorm > 1e-14) ;
-    
+      && (residualNorm > 1e-14 || iterationCounter == 1 ) ;
+			      
   } while ( performOneMoreStep && iterationCounter < nonLinMaxIter_ );  
 
   if ( iterationCounter >=  nonLinMaxIter_) {
     Error(" Number of nonlinear iterations too larger");
   }
   
+  //  std::cout << "Do Update after Sol" << std::endl;
+  DoUpdateHyst();
 }
 
 
-void SolveStepPiezo::DoUpdateHyst() {
+  void SolveStepPiezo::DoUpdateHyst() {
   
   ENTER_FCN( "SolveStepPiezo::DoUpdateHyst" );
 
@@ -303,6 +323,7 @@ void SolveStepPiezo::DoUpdateHyst() {
 	//get correct component of electric field for scalar Preisach model
 	//and invoke the update MinMaxList method
 	Ecomp = Efield[comp]; 
+	//	pdeElem = 0;
 	hyst_[isd]->updateMinMaxList(Ecomp, pdeElem);
 
 	Pval = hyst_[isd]->computeValue(Ecomp,pdeElem);
@@ -356,6 +377,7 @@ void SolveStepPiezo::ComputeDiffEpsilon() {
       Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
 
       //compute polarization
+      //      pdeElem = 0;
       Pval = hyst_[actSD]->computeValue(Ecomp,pdeElem);
 
       //      Pval = Ecomp*2e-7;

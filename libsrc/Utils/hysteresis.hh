@@ -27,6 +27,11 @@ public:
     Error("updateMinMaxList not implemented in base-Class");
   };
 
+  //! 
+  virtual void SetTimeStepVal(Double dt) 
+  {
+    Error("SetTimeStepVal not implemented in base-Class");
+  };
 
 protected:
 

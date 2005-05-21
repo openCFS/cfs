@@ -196,8 +196,11 @@ namespace CoupledField
       material->DefFull3dMatrix(); // declare matrix with 9x9 entries
 
     char nonLin[bufLength] = "no";
+    std::string hystType = "no"; //char hystType[bufLength] = "no";
+    char htype[bufLength];
     ReadLine(fin,buffer);
-    SSCANF(buffer,"%*d%*s%s%s", materialName, nonLin);  
+    SSCANF(buffer,"%*d%*s%s%s%s", materialName, nonLin, htype);
+    hystType = htype;  
 
     material -> SetName(materialName);
 
@@ -316,17 +319,28 @@ namespace CoupledField
     }
     delete strPtr;
 
-    if ( strcmp(nonLin,"hysteresis") == 0 ) {
+    if ( strcmp(nonLin,"hysteresis:") == 0 ) {
       Double Esat, Psat;
+      Double aJiles, alphaJiles, kJiles, cJiles;
       Integer dirPol;
       ReadLine(fin,buffer);
       strPtr = new std::istringstream(buffer);
       *strPtr >>  Esat >> Psat >> dirPol;
+
       if (strPtr->fail()) {
 	std::cout << "*** The materialfile is corrupt (hysteresis)! ***  Material: "
 		  << materialName << std::endl;
 	Error("");
       }
+
+      delete strPtr;
+      ReadLine(fin,buffer);
+      strPtr = new std::istringstream(buffer);
+
+      if (hystType == "jiles") {
+	*strPtr >> aJiles >> alphaJiles >> kJiles >> cJiles;
+      }
+
 
       //check for correct direction
       std::string probGeo;
@@ -337,9 +351,19 @@ namespace CoupledField
 	}
       }
 
-      material -> SetEsat(Esat);
+      if (hystType == "preisach") {
+	material -> SetEsat(Esat);
+      }
+      else if ( hystType == "jiles" ) {
+	material -> SetJiles_a(aJiles);
+	material -> SetJiles_alpha(alphaJiles);
+	material -> SetJiles_k(kJiles);
+	material -> SetJiles_c(cJiles);
+      }
+
       material -> SetPsat(Psat);
       material -> SetDirPol(dirPol);
+      material -> SetHysteresisType(hystType);
 
       delete strPtr;	
     }

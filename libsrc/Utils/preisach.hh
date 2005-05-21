@@ -23,6 +23,9 @@ public:
   //!
   void updateMinMaxList(Double newX, Integer idxElem);
 
+  void SetTimeStepVal(Double dt) 
+  {;};
+
   //!
   void wipout(Integer idx);
 
