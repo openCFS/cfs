@@ -2,7 +2,6 @@
 #define FILE_WRITERESULTS_2002
 
 #include "Domain/grid.hh"
-#include "Domain/bcs.hh"
 #include "Utils/nodestoresol.hh"
 #include "Utils/elemstoresol.hh"
 #include "Utils/StdVector.hh"
@@ -22,7 +21,7 @@ namespace CoupledField {
 
   public:
     //! Constructor
-    WriteResults(const Char * const filename, FileType * const aInFile=NULL);
+    WriteResults(const Char * const filename);
 
     //! initialization with grid
     //! \param ptgrid pointer to grid object
@@ -31,11 +30,8 @@ namespace CoupledField {
     //! Default destructor
     virtual ~WriteResults();
 
-    //! write information about grid on level i in file
-    /*!
-      \param level in: level of grid
-    */
-    virtual void WriteGrid(const Integer level)=0;
+    //! write information about grid  in file
+    virtual void WriteGrid()=0;
  
     // *************************
     //     TRANSIENT SECTION
@@ -126,10 +122,9 @@ namespace CoupledField {
 
     //! writes a matrix of the form ptCoordX ptCoorY ptCoordZ SolDof1 SolDof2 ...
     /*!
-      \param sol solution
       \param nrDofs nr of degrees of freedom in solution
     */
-    void WriteSolMatrix(Grid * ptgrid, const Integer level,
+    void WriteSolMatrix(Grid * ptgrid,
 			const Vector<Double> sol, 
 			const std::string matFileName, const Integer nrDofs=1);
 
@@ -167,9 +162,6 @@ namespace CoupledField {
 
     //! indicator: format of output: ascii or binary
     Boolean ascii_;
-
-    //! Ptr to input file, needed for reading the save nodes
-    FileType * pt2Inputfile_;
 
     //! intialize the management of history files
     virtual void InitHistoryFiles();
