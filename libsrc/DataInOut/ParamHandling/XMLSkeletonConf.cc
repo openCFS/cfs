@@ -8,7 +8,6 @@
 #include "Utils/tools.hh"
 #include "General/environment.hh"
 #include "DataInOut/AnsysFile/ansysfile.hh"
-#include "Domain/bcs.hh"
 #include "Domain/GridCFS/grid_cfs.hh"
 #include "Elements/elements_header.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
@@ -178,26 +177,27 @@ namespace CoupledField {
     skelfile_->clear();
     skelfile_->open( xmlFile.c_str(), std::ios_base::app );
 
-    StdVector<std::string> sd;
-    Integer dim = meshfile_-> ReadDim();
+    StdVector<std::string> regionNames;
+    
+    Integer dim=meshfile_->GetDim();
+
     if (dim == 3)
       {
         //subdomains consists of 3d elements
-        if (meshfile_->GetNum3DElems() == 0)
+        if (meshfile_->GetNumElems(3) == 0)
           Error( "3D-Problem specified, but no 3D-Elements in mesh-File",
 		 __FILE__,__LINE__);
 
-        meshfile_->ReadEl3dConf(sd);
+        meshfile_->GetRegionNamesOfDim(regionNames, 3);
       }
 
     else if (dim == 2)
       {
         //subdomains consists of 2d elements
-        if (meshfile_->GetNum2DElems() == 0)
+        if (meshfile_->GetNumElems(2) == 0)
           Error( "2D-Problem specified, but no 2D-Elements in mesh-File",
 		 __FILE__,__LINE__);
-
-        meshfile_->ReadEl2dConf(sd);
+        meshfile_->GetRegionNamesOfDim(regionNames, 2);
       }
     else
       Error("Dimension of Problem not supported",__FILE__,__LINE__);
@@ -206,8 +206,8 @@ namespace CoupledField {
     (*skelfile_) << "   <domain>" << myEndl;
     (*skelfile_) << "      <!-- LIST OF SUBDOMAINS -->"<< std::endl;
 
-    for (Integer i=0; i<sd.GetSize(); i++)
-      (*skelfile_) << "      <region name=\"" << sd[i]
+    for (Integer i=0; i<regionNames.GetSize(); i++)
+      (*skelfile_) << "      <region name=\"" << regionNames[i]
 		   << "\" material=\"XXX\"/>" << std::endl;
 
     (*skelfile_) << std::endl;
@@ -226,59 +226,46 @@ namespace CoupledField {
   {
     ENTER_FCN("SkeletonConf::WriteLists");
 
-    StdVector<std::string> sd;
-    sd.Clear();
-    Integer dim = meshfile_-> ReadDim();
+    StdVector<std::string> nodeNames, surfRegionNames;
+    Integer dim = meshfile_-> GetDim();
 
    
 
 
     //check for node-list
-    if (meshfile_->GetNumBCs() != 0)
+    if (meshfile_->GetNumNamedNodes() != 0)
       {
-        sd.Clear();
-        meshfile_->ReadBCsConf(sd);
+        meshfile_->GetNodeNames(nodeNames);
 
-        if (sd.GetSize())
-          (*skelfile_) << "      <!-- LIST OF NODES FOR BCs  --> " << myendl;
+        if (nodeNames.GetSize())
+          (*skelfile_) << "      <!-- LIST OF NODES --> " << myendl;
         
-        for (Integer i=0; i<sd.GetSize(); i++)
-          (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
+        for (Integer i=0; i<nodeNames.GetSize(); i++)
+          (*skelfile_) << "      <nodes name=\"" << nodeNames[i] 
+		       << "\"/>" << myendl;
         (*skelfile_) << myendl;
       }
 
 
-    if (meshfile_->GetNumSaveNodes() )
-      {
-        sd.Clear();
-        meshfile_->ReadLevelOfSaveNodes(sd);
-        if (sd.GetSize())
-          (*skelfile_) << "      <!-- LIST OF SAVE NODES --> " << std::endl;
-
-        for (Integer i=0; i<sd.GetSize(); i++)
-          (*skelfile_) << "      <nodes name=\"" << sd[i] << "\"/>" << myendl;
-      }
-
     // Print surface elements
-    sd.Clear();
     if (dim == 3){
 
       //check for 2D-interface elements
-      if (meshfile_->GetNum2DElems() != 0)
-	meshfile_->ReadEl2dConf(sd);
-    
+      if (meshfile_->GetNumElems(2) != 0)
+	meshfile_->GetRegionNamesOfDim(surfRegionNames, 2);
+   
     } else if (dim == 2) {
     
       //check for 1D-interface elements
-      if (meshfile_->GetNum1DElems() != 0) {
-	meshfile_->ReadEl1dConf(sd);
-      }
+      if (meshfile_->GetNumElems(1) != 0)
+	meshfile_->GetRegionNamesOfDim(surfRegionNames, 1);
     }
-    if (sd.GetSize()) {
-      (*skelfile_) << "      <!--  LIST OF FACES -->" << std::endl;
+    if (surfRegionNames.GetSize()) {
+      (*skelfile_) << "      <!--  LIST OF SURFACE ELEMENTS -->" << std::endl;
       
-      for (Integer i=0; i<sd.GetSize(); i++)
-        (*skelfile_) << "      <elements name=\"" << sd[i] << "\"/>" << myendl;
+      for (Integer i=0; i<surfRegionNames.GetSize(); i++)
+        (*skelfile_) << "      <elements name=\"" << surfRegionNames[i] 
+		     << "\"/>" << myendl;
       (*skelfile_) << myendl;
     }
   }
