@@ -29,7 +29,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Boolean reset);
+                               const Boolean reset);
 
     //! base method for solving one static step 
     /*!
@@ -38,7 +38,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
-				 const Boolean reset);
+                                 const Boolean reset);
 
     //! solves for one nonlinear static step 
     /*!
@@ -47,7 +47,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
-				  const Boolean reset);
+                                  const Boolean reset);
 
     //! solves for one nonlinear static step 
     /*!
@@ -56,7 +56,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepStaticNonLinEpsDiff(const Integer kstep, const Double asteptime,
-					 const Boolean reset);
+                                         const Boolean reset);
 
     //! routine for acttions after the SolveStep-method
     /*!
@@ -73,7 +73,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			      const Boolean reset)
+                              const Boolean reset)
     {PreStepStatic(kstep,asteptime,reset);};
 
     //! base method for solving one transient step 
@@ -83,7 +83,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-				const Boolean reset)
+                                const Boolean reset)
     {SolveStepStatic(kstep,asteptime,reset);};
 
     //! solves for one linear transient step 
@@ -93,7 +93,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepTransLin(const Integer kstep, const Double asteptime,
-			      const Boolean reset)
+                              const Boolean reset)
     {StepStaticLin(kstep,asteptime,reset);};
 
     //! routine for actions after the SolveStep-method

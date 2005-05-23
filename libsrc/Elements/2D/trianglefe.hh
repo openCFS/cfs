@@ -40,9 +40,9 @@ namespace CoupledField
       \param volIntPoint (output) Corresponding volume integration point
     */
     void GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-				   const StdVector<Integer> & volConnect,
-				   const Vector<Double> & surfIntPoint,
-				   Vector<Double> & volIntPoint);
+                                   const StdVector<Integer> & volConnect,
+                                   const Vector<Double> & surfIntPoint,
+                                   Vector<Double> & volIntPoint);
   protected:
 
     //! Set integration points

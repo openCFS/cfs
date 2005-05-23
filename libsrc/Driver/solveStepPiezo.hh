@@ -39,7 +39,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-			        const Boolean reset);
+                                const Boolean reset);
 
     //! solves for one nonlinear transient step (with hysteresis) 
     /*!

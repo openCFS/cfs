@@ -92,13 +92,13 @@ namespace CoupledField
 
     //! Get list of nodes by their name
     void GetNodesByName( StdVector<Integer> & nodeList,
-			 const std::string & name ) {
+                         const std::string & name ) {
       ptGridCFS->GetNodesByName(nodeList, name); 
     }
 
     //! Get list of nodes contained in a region
     void GetNodesByRegion( StdVector<Integer> & nodeList,
-			   const RegionIdType regionId ) {
+                           const RegionIdType regionId ) {
       ptGridCFS->GetNodesByRegion(nodeList,regionId);
     }
     
@@ -106,7 +106,7 @@ namespace CoupledField
     //! \param rfPoint (output) coordinates of point 2D
     //! \param inode (input) node number
     void GetNodeCoordinate( Point<DIM> & rfPoint,
-			    const Integer inode ) {
+                            const Integer inode ) {
       ptGridCFS->GetNodeCoordinate(rfPoint, inode);
     }
     //@}
@@ -118,49 +118,49 @@ namespace CoupledField
   
     //! Get list of volume elements
     void GetVolElems( StdVector<Elem*> & elems, 
-		      const RegionIdType regionId ) {
+                      const RegionIdType regionId ) {
       ptGridCFS->GetVolElems(elems, regionId);
     }
   
     //! Get list of surface elements
     void GetSurfElems( StdVector<SurfElem*> & surfElems, 
-		       const RegionIdType regionId ) {
+                       const RegionIdType regionId ) {
       ptGridCFS->GetSurfElems(surfElems, regionId); 
     }
 
     //! Get list of elements by their names
     void GetElemsByName( StdVector<Elem*> & elems,
-			 const std::string & elemsName ) {
+                         const std::string & elemsName ) {
       ptGridCFS->GetElemsByName(elems, elemsName);
     }
   
     //! Get node numbers of given element
     void GetElemNodes( StdVector<Integer> & connect, 
-		       const Integer iElem ) {
+                       const Integer iElem ) {
       ptGridCFS->GetElemNodes(connect, iElem);
     }
   
     //! Get coordinates of element nodes
     void GetElemNodesCoord( Matrix<Double> & coordMat,  
-			    const StdVector<Integer> & connect ) {
+                            const StdVector<Integer> & connect ) {
       ptGridCFS->GetElemNodesCoord(coordMat, connect);
     }
   
     //! Get elements associated with given nodes
     void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
-			      const StdVector<Integer> & nodeList,
-			      const StdVector<RegionIdType> 
-			      & regionIds ) {
+                              const StdVector<Integer> & nodeList,
+                              const StdVector<RegionIdType> 
+                              & regionIds ) {
       ptGridCFS->GetElemsNextToNodes(elemList, nodeList, regionIds);
     }
 
     //! Get volume elements lying next to given surface elements
     void GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
-				const StdVector<Elem*> & surfElems,
-				const StdVector<RegionIdType> 
-				& neighRegions ) {
+                                const StdVector<Elem*> & surfElems,
+                                const StdVector<RegionIdType> 
+                                & neighRegions ) {
       ptGridCFS->GetElemsNextToSurface(neighbours, surfElems, 
-				       neighRegions );
+                                       neighRegions );
     }
     
     //@}
@@ -200,7 +200,7 @@ namespace CoupledField
 
     //! Returns node numbers of a list of Elements
     void GetNodesOfElemList( StdVector<Integer> & nodeList,
-			     const StdVector<Elem*> & elemList ) {
+                             const StdVector<Elem*> & elemList ) {
       ptGridCFS->GetNodesOfElemList(nodeList, elemList);
     }
     

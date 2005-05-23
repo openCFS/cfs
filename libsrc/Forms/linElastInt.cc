@@ -35,63 +35,63 @@ namespace CoupledField
 
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++)
-	bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
+        bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
 
     switch(spaceDim)
       {
       case 2:
-	j = 1;
-	k = 0;
-	
-	for (actNode = 0; actNode < nrNodes; actNode++)
-	  {
-	    bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
-	    bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
-	  }
+        j = 1;
+        k = 0;
+        
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+            bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
+          }
 
-	if (isaxi_)
-	  {
-	    Integer idxtheta = getDimD();
-	    Vector<Double> ShpFncAtIp;
-	    Vector<Double> CoordAtIP;
+        if (isaxi_)
+          {
+            Integer idxtheta = getDimD();
+            Vector<Double> ShpFncAtIp;
+            Vector<Double> CoordAtIP;
 
-	    if (isSetIntPoint_) 
-	      ptelem->GetShFnc(ShpFncAtIp,intPoint_);
-	    else
-	      ptelem->GetShFncAtIp(ShpFncAtIp,ip);
+            if (isSetIntPoint_) 
+              ptelem->GetShFnc(ShpFncAtIp,intPoint_);
+            else
+              ptelem->GetShFncAtIp(ShpFncAtIp,ip);
 
-	    CoordAtIP = ptCoord * ShpFncAtIp;
+            CoordAtIP = ptCoord * ShpFncAtIp;
 
-	    for (actNode = 0; actNode < nrNodes; actNode++)	     
-	      bMat[idxtheta-1][actNode * spaceDim] =
+            for (actNode = 0; actNode < nrNodes; actNode++)          
+              bMat[idxtheta-1][actNode * spaceDim] =
                 ShpFncAtIp[actNode] / CoordAtIP[0];
-	  }
+          }
 
-	break;
+        break;
 
 
       case 3:
-	Integer actDim=spaceDim;
-	for (actNode = 0; actNode < nrNodes; actNode++)
-	  {
-	    bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
-	    bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
-	  }
+        Integer actDim=spaceDim;
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
+            bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
+          }
 
-	actDim++;
-	for (actNode = 0; actNode < nrNodes; actNode++)
-	  {
-	    bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
-	    bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
-	  }
+        actDim++;
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
+            bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
+          }
 
-	actDim++;
-	for (actNode = 0; actNode < nrNodes; actNode++)
-	  {
-	    bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
-	    bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];
-	  }
-	break;
+        actDim++;
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
+            bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+          }
+        break;
       }
 
     isSetIntPoint_ = FALSE;
@@ -111,31 +111,31 @@ namespace CoupledField
     Integer i,j;
 
     switch(actOrientation)
-      {	
+      { 
       case xy: 
-	{
-	  rowPtr = rowPtrXY;
-	  break;
-	}
+        {
+          rowPtr = rowPtrXY;
+          break;
+        }
       case xz: 
-	{
-	  rowPtr = rowPtrXZ;
-	  break;
-	}
+        {
+          rowPtr = rowPtrXZ;
+          break;
+        }
 
       case yz: 
-	{
-	  rowPtr = rowPtrYZ;    
-	  break;
-	}
+        {
+          rowPtr = rowPtrYZ;    
+          break;
+        }
       }    
-	
+        
     Matrix<Double> const & matMatrix =  *(ptMaterial->GetMatrix());
     dMat.Resize(nrElemsAxi);
 
     for (i=0; i<nrElemsAxi; i++)
       for (j=0; j<nrElemsAxi; j++)
-	dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];
+        dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];
 
   }
 
@@ -155,32 +155,32 @@ namespace CoupledField
     Integer i,j;
 
     switch(actOrientation)
-      {	
+      { 
       case xy: 
-	{
-	  rowPtr = rowPtrXY;
-	  break;
-	}
+        {
+          rowPtr = rowPtrXY;
+          break;
+        }
       case xz: 
-	{
-	  rowPtr = rowPtrXZ;
-	  break;
-	}
+        {
+          rowPtr = rowPtrXZ;
+          break;
+        }
 
       case yz: 
-	{
-	  rowPtr = rowPtrYZ;    
-	  break;
-	}
+        {
+          rowPtr = rowPtrYZ;    
+          break;
+        }
       }    
-	
+        
     Matrix<Double> const  & matMatrix = *( ptMaterial->GetMatrix());
     
     dMat.Resize(nrElems2d);
 
     for (i=0; i<nrElems2d; i++)
       for (j=0; j<nrElems2d; j++)
-	dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];	
+        dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];       
   }
 
 
@@ -197,7 +197,7 @@ namespace CoupledField
 
     for (Integer i=0; i<nrElems3d; i++)
       for (Integer j=0; j<nrElems3d; j++)
-	dMat[i][j] = matMatrix[i][j];	
+        dMat[i][j] = matMatrix[i][j];   
   }
 
   

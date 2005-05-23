@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------
-|
-| $Id$
-|
-+---------------------------------------------------------------------*/
+  |
+  | $Id$
+  |
+  +---------------------------------------------------------------------*/
 
 
 #ifndef GSI_SOCKETEXCEPTION
@@ -15,12 +15,12 @@
 namespace GridlibSocketInterface
 {
 
-class SocketException : public Exception
-{
- public:
-  SocketException ( std::string s ) : Exception(s) {};
-  ~SocketException (){};
-};
+  class SocketException : public Exception
+  {
+  public:
+    SocketException ( std::string s ) : Exception(s) {};
+    ~SocketException (){};
+  };
  
 }
 

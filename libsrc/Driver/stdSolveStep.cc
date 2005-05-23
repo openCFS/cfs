@@ -58,7 +58,7 @@ namespace CoupledField {
 
     pdeId1_ = NO_PDE_ID;
     pdeId2_ = NO_PDE_ID;
-}
+  }
 
   
   // ======================================================
@@ -208,7 +208,7 @@ namespace CoupledField {
            || PDE_.geoUpdate_ == TRUE ) {
         job = 1;
         PDE_.assemble_->AssembleMatrices();
-	PDE_.assemble_->AssembleSprings(PDE_.lasttimecalc_);
+        PDE_.assemble_->AssembleSprings(PDE_.lasttimecalc_);
         PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);
       }  
     }
@@ -235,7 +235,7 @@ namespace CoupledField {
         }
         job = 1;
         PDE_.assemble_->AssembleMatrices();
-	PDE_.assemble_->AssembleSprings( PDE_.lasttimecalc_);
+        PDE_.assemble_->AssembleSprings( PDE_.lasttimecalc_);
         PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);      
       }
     }
@@ -276,8 +276,8 @@ namespace CoupledField {
         relaxVal = 1.0;
         if (PDE_.iterCoupledCounter_ == 1) {
           (*error) << "Mechanic-Acoustic-Coupling with Norm > 1 should have "
-		   << "just a forward coupling from Mechanic to Acoustic";
-	  Error( __FILE__, __LINE__ );
+                   << "just a forward coupling from Mechanic to Acoustic";
+          Error( __FILE__, __LINE__ );
         }
       }
 
@@ -330,8 +330,8 @@ namespace CoupledField {
   // ======================================================
 
   void StdSolveStep::PreStepHarmonic( const Integer freqStep,
-                                 const Double frequency,
-                                 const Boolean reset ) {
+                                      const Double frequency,
+                                      const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::PreStepHarmonic" );
 
@@ -348,8 +348,8 @@ namespace CoupledField {
 
 
   void StdSolveStep::SolveStepHarmonic( const Integer freqStep,
-                                   const Double frequency,
-                                   const Boolean reset ) {
+                                        const Double frequency,
+                                        const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::SolveStepHarmonic" );
 
@@ -363,8 +363,8 @@ namespace CoupledField {
 
 
   void StdSolveStep::StepHarmonicLin( const Integer freqStep,
-                                 const Double frequency, 
-                                 const Boolean reset ) {
+                                      const Double frequency, 
+                                      const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::StepHarmonicLin" );
 
@@ -457,7 +457,7 @@ namespace CoupledField {
 
 
   Double StdSolveStep::LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
-			     Double& etaLineSearch, Boolean trans)
+                                  Double& etaLineSearch, Boolean trans)
   {
     ENTER_FCN( "StdSolveStep::LineSearch" );
 
@@ -469,41 +469,41 @@ namespace CoupledField {
   
     for(Integer i=0; i<nrEtas; i++)
       {
-	actSol = solIncrement * eta[i];
-	actSol += solOld;
+        actSol = solIncrement * eta[i];
+        actSol += solOld;
 
-	sol_->SetAlgSysVector(actSol);
-	//StoreVecToSolArray(actSol);
+        sol_->SetAlgSysVector(actSol);
+        //StoreVecToSolArray(actSol);
 
-	// recalculate RHS with new values to get new residual (f^(k+1))========
-	algsys_->InitRHS(RhsLinVal_.GetPointer());
+        // recalculate RHS with new values to get new residual (f^(k+1))========
+        algsys_->InitRHS(RhsLinVal_.GetPointer());
 
-	if(trans) {
-	  assemble_->AssembleNLRHS( lasttimecalc_);
-	  TS_alg_->UpdateRHS(actSol);
-	}
-	else {
-	  assemble_->AssembleNLRHS();
-	}
+        if(trans) {
+          assemble_->AssembleNLRHS( lasttimecalc_);
+          TS_alg_->UpdateRHS(actSol);
+        }
+        else {
+          assemble_->AssembleNLRHS();
+        }
 
 
-	// =====================================================================
-	// calculation of error norms
-	// =====================================================================
-	Vector<Double> actRHS;
-	Double *rhsPtr;
-	algsys_->GetRHSVal( rhsPtr );
-	StoreAlgsysToVec(actRHS, rhsPtr );
+        // =====================================================================
+        // calculation of error norms
+        // =====================================================================
+        Vector<Double> actRHS;
+        Double *rhsPtr;
+        algsys_->GetRHSVal( rhsPtr );
+        StoreAlgsysToVec(actRHS, rhsPtr );
 
-	// calculation of residual error =======================================
-	Double residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+        // calculation of residual error =======================================
+        Double residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
 
-	//	std::cout << "LineSearch: eta=" << eta[i] << "  res=" << residualL2Norm << std::endl;
-	if (residualL2Norm < residualL2NormOpt)
-	  {
-	    residualL2NormOpt = residualL2Norm;
-	    etaOpt = eta[i];
-	  }
+        //      std::cout << "LineSearch: eta=" << eta[i] << "  res=" << residualL2Norm << std::endl;
+        if (residualL2Norm < residualL2NormOpt)
+          {
+            residualL2NormOpt = residualL2Norm;
+            etaOpt = eta[i];
+          }
       }
 
     etaLineSearch = etaOpt;
@@ -532,19 +532,19 @@ namespace CoupledField {
   
 
   void StdSolveStep::WriteClaNlNorms(const Integer iterationCounter, 
-				      const Double residualL2Norm, 
-				      const Double extForcesL2Norm,
-				      const Double residualErr, 
-				      const Double solIncrL2Norm, 
-				      const Double actSolL2Norm, 
-				      const Double incrementalErr)
+                                     const Double residualL2Norm, 
+                                     const Double extForcesL2Norm,
+                                     const Double residualErr, 
+                                     const Double solIncrL2Norm, 
+                                     const Double actSolL2Norm, 
+                                     const Double incrementalErr)
   {
     ENTER_FCN( "StdSolveStep::WriteClaNlNorms" );
   
     *cla << std::endl << " ======================================================= " 
-	 << std::endl
-	 << " NONLINEAR ITERATION " << iterationCounter << std::endl
-	 << " ======================================================= " << std::endl;
+         << std::endl
+         << " NONLINEAR ITERATION " << iterationCounter << std::endl
+         << " ======================================================= " << std::endl;
     *cla << " === Residual norm:          " << residualL2Norm << std::endl;
     *cla << "     Norm of ext. forces:    " << extForcesL2Norm << std::endl;
     *cla << "     Residual error          " << residualErr << std::endl;
@@ -563,29 +563,29 @@ namespace CoupledField {
 
   void StdSolveStep::SetBCs(const Double time )
   {
-   PDE_.SetBCs(time);
+    PDE_.SetBCs(time);
   }
 
   void StdSolveStep::GetElemCoords(const StdVector< Integer > connect,
-					   Matrix< Double > &coordMat)
+                                   Matrix< Double > &coordMat)
   {
     PDE_.GetElemCoords(connect, coordMat);
   }
 
   void StdSolveStep::GetSolVecOfElement(Vector<Double>& sol, 
-					 StdVector<Integer>& connect_PDE)
+                                        StdVector<Integer>& connect_PDE)
   {
     PDE_.GetSolVecOfElement(sol, connect_PDE);
   }
 
   void StdSolveStep::GetDerivSolVecOfElement(Vector<Double>& sol, 
-						     StdVector<Integer>& connect_PDE)
+                                             StdVector<Integer>& connect_PDE)
   {
     PDE_.GetDerivSolVecOfElement(sol, connect_PDE);
   }
 
   void StdSolveStep::GetDeriv2SolVecOfElement(Vector<Double>& sol, 
-						      StdVector<Integer>& connect_PDE)
+                                              StdVector<Integer>& connect_PDE)
   {
     PDE_.GetDeriv2SolVecOfElement(sol, connect_PDE);
   }

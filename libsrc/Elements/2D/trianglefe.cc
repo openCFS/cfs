@@ -11,280 +11,280 @@
 namespace CoupledField
 {
 
-TriangleFE::TriangleFE()
-{
-  ENTER_FCN( "TriangleFE::TriangleFE" );
+  TriangleFE::TriangleFE()
+  {
+    ENTER_FCN( "TriangleFE::TriangleFE" );
   
-  Dim_ = 2;
-  NumEdges_   = 3;
-  NumFaces_   = 1;
-  NumCorners_ = 3;
-  numChilds_  = 4;
-  MidPoint_ = 1./3, 1./3;
+    Dim_ = 2;
+    NumEdges_   = 3;
+    NumFaces_   = 1;
+    NumCorners_ = 3;
+    numChilds_  = 4;
+    MidPoint_ = 1./3, 1./3;
 
-  std::string integtype;
-  params->Get( "type", integtype, "integRules", "triangle" );
+    std::string integtype;
+    params->Get( "type", integtype, "integRules", "triangle" );
 
-  IntegType=String2EnumIntegrationType(integtype.c_str());
+    IntegType=String2EnumIntegrationType(integtype.c_str());
 
-}
+  }
 
-TriangleFE :: ~TriangleFE()
-{
-  ENTER_FCN( "TriangleFE::~TriangleFE" );
-}
+  TriangleFE :: ~TriangleFE()
+  {
+    ENTER_FCN( "TriangleFE::~TriangleFE" );
+  }
 
 
-void TriangleFE::SetIntPoints()
-{
-  ENTER_IFCN( "TriangleFE::SetIntPoints" );
+  void TriangleFE::SetIntPoints()
+  {
+    ENTER_IFCN( "TriangleFE::SetIntPoints" );
  
- switch(IntegType)
-    {
+    switch(IntegType)
+      {
 
-    case GaussOrder1:
+      case GaussOrder1:
 
-      NumIntPoints_ = 1;
-      DegreeInteg_  = 1;
-
-      
-      if ( !IntPoints_)
-	IntPoints_ = new Vector<Double>[NumIntPoints_];
-      
-      IntWeights_.Resize(NumIntPoints_);
-      
-      for(Integer i=0; i<NumIntPoints_; i++)
-	IntPoints_[i].Resize(Dim_);
-      
-      IntPoints_[0][0] = 1./3;
-      IntPoints_[0][1] = 1./3;
-
-      IntWeights_[0]= 0.5 ;
-      break;
-
-    case GaussOrder2:
-
-      NumIntPoints_=3;
-      DegreeInteg_=2;
+        NumIntPoints_ = 1;
+        DegreeInteg_  = 1;
 
       
-      if ( !IntPoints_)
-	IntPoints_ = new Vector<Double>[NumIntPoints_];
-
-      IntWeights_.Resize(NumIntPoints_);
-
-      for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].Resize(Dim_);
+        if ( !IntPoints_)
+          IntPoints_ = new Vector<Double>[NumIntPoints_];
       
-      IntPoints_[0][0] = 0.166666666666667;
-      IntPoints_[1][0] = 0.666666666666667; 
-      IntPoints_[2][0] = 0.166666666666667;
-      IntPoints_[0][1] = 0.166666666666667;
-      IntPoints_[1][1] = 0.166666666666667;
-      IntPoints_[2][1] = 0.666666666666667;
+        IntWeights_.Resize(NumIntPoints_);
+      
+        for(Integer i=0; i<NumIntPoints_; i++)
+          IntPoints_[i].Resize(Dim_);
+      
+        IntPoints_[0][0] = 1./3;
+        IntPoints_[0][1] = 1./3;
 
-      IntWeights_[0]= 0.166666666666667 ;
-      IntWeights_[1]= 0.166666666666667 ;
-      IntWeights_[2]= 0.166666666666667 ;
+        IntWeights_[0]= 0.5 ;
+        break;
 
-      break;
+      case GaussOrder2:
 
-    case GaussOrder3:
-
-      NumIntPoints_ = 4;
-      DegreeInteg_  = 3;
+        NumIntPoints_=3;
+        DegreeInteg_=2;
 
       
-      if ( !IntPoints_)
-	IntPoints_ = new Vector<Double>[NumIntPoints_];
+        if ( !IntPoints_)
+          IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-      IntWeights_.Resize(NumIntPoints_);
+        IntWeights_.Resize(NumIntPoints_);
 
-      for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].Resize(Dim_);
-      IntPoints_[0][0] = 1.0/3.0;
-      IntPoints_[1][0] = 3.0/5.0;
-      IntPoints_[2][0] = 1.0/5.0;
-      IntPoints_[3][0] = 1.0/5.0;
-      IntPoints_[0][1] = 1.0/3.0;
-      IntPoints_[1][1] = 1.0/5.0;
-      IntPoints_[2][1] = 3.0/5.0;
-      IntPoints_[3][1] = 1.0/5.0;
+        for(Integer i=0; i<NumIntPoints_; i++)
+          IntPoints_[i].Resize(Dim_);
+      
+        IntPoints_[0][0] = 0.166666666666667;
+        IntPoints_[1][0] = 0.666666666666667; 
+        IntPoints_[2][0] = 0.166666666666667;
+        IntPoints_[0][1] = 0.166666666666667;
+        IntPoints_[1][1] = 0.166666666666667;
+        IntPoints_[2][1] = 0.666666666666667;
+
+        IntWeights_[0]= 0.166666666666667 ;
+        IntWeights_[1]= 0.166666666666667 ;
+        IntWeights_[2]= 0.166666666666667 ;
+
+        break;
+
+      case GaussOrder3:
+
+        NumIntPoints_ = 4;
+        DegreeInteg_  = 3;
+
+      
+        if ( !IntPoints_)
+          IntPoints_ = new Vector<Double>[NumIntPoints_];
+
+        IntWeights_.Resize(NumIntPoints_);
+
+        for(Integer i=0; i<NumIntPoints_; i++)
+          IntPoints_[i].Resize(Dim_);
+        IntPoints_[0][0] = 1.0/3.0;
+        IntPoints_[1][0] = 3.0/5.0;
+        IntPoints_[2][0] = 1.0/5.0;
+        IntPoints_[3][0] = 1.0/5.0;
+        IntPoints_[0][1] = 1.0/3.0;
+        IntPoints_[1][1] = 1.0/5.0;
+        IntPoints_[2][1] = 3.0/5.0;
+        IntPoints_[3][1] = 1.0/5.0;
       
      
-      IntWeights_[0]=-2.8125e-01;
-      IntWeights_[1]=2.60416666666667e-01;
-      IntWeights_[2]=2.60416666666667e-01;
-      IntWeights_[3]=2.60416666666667e-01;
+        IntWeights_[0]=-2.8125e-01;
+        IntWeights_[1]=2.60416666666667e-01;
+        IntWeights_[2]=2.60416666666667e-01;
+        IntWeights_[3]=2.60416666666667e-01;
 
-      IntWeights_[0]=-0.5625;
-      IntWeights_[1]=0.520833333333333;
-      IntWeights_[2]=0.520833333333333;
-      IntWeights_[3]=0.520833333333333;
+        IntWeights_[0]=-0.5625;
+        IntWeights_[1]=0.520833333333333;
+        IntWeights_[2]=0.520833333333333;
+        IntWeights_[3]=0.520833333333333;
 
-      break;
+        break;
 
-   case GaussOrder4:
+      case GaussOrder4:
 
-// D. A. Dunavant: High Degree Efficient Symmetrical ...
-// Int. J. Numer. Methods in Eng.  Vol 21  S. 1129-1148   1985
-// (c) Kaskade
+        // D. A. Dunavant: High Degree Efficient Symmetrical ...
+        // Int. J. Numer. Methods in Eng.  Vol 21  S. 1129-1148   1985
+        // (c) Kaskade
 
-     NumIntPoints_ = 6;
-     DegreeInteg_  = 4;
+        NumIntPoints_ = 6;
+        DegreeInteg_  = 4;
 
       
-      if ( !IntPoints_)
-	IntPoints_ = new Vector<Double>[NumIntPoints_];
+        if ( !IntPoints_)
+          IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-      IntWeights_.Resize(NumIntPoints_);
+        IntWeights_.Resize(NumIntPoints_);
 
-      for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].Resize(Dim_);
+        for(Integer i=0; i<NumIntPoints_; i++)
+          IntPoints_[i].Resize(Dim_);
 
-      IntPoints_[0][0] = 4.45948490915965e-01;
-      IntPoints_[1][0] = 1.08103018168070e-01 ;
-      IntPoints_[2][0] = 4.45948490915965e-01;
-      IntPoints_[3][0] = 9.15762135097710e-02; 
-      IntPoints_[4][0] = 8.16847572980459e-01; 
-      IntPoints_[5][0] = 9.15762135097710e-02;  
+        IntPoints_[0][0] = 4.45948490915965e-01;
+        IntPoints_[1][0] = 1.08103018168070e-01 ;
+        IntPoints_[2][0] = 4.45948490915965e-01;
+        IntPoints_[3][0] = 9.15762135097710e-02; 
+        IntPoints_[4][0] = 8.16847572980459e-01; 
+        IntPoints_[5][0] = 9.15762135097710e-02;  
 
-      IntPoints_[0][1] = 4.45948490915965e-01;
-      IntPoints_[1][1] = 4.45948490915965e-01;
-      IntPoints_[2][1] = 1.08103018168070e-01;
-      IntPoints_[3][1] = 9.15762135097710e-02; 
-      IntPoints_[4][1] = 9.15762135097710e-02; 
-      IntPoints_[5][1] = 8.16847572980459e-01;  
+        IntPoints_[0][1] = 4.45948490915965e-01;
+        IntPoints_[1][1] = 4.45948490915965e-01;
+        IntPoints_[2][1] = 1.08103018168070e-01;
+        IntPoints_[3][1] = 9.15762135097710e-02; 
+        IntPoints_[4][1] = 9.15762135097710e-02; 
+        IntPoints_[5][1] = 8.16847572980459e-01;  
 
-      IntWeights_[0]= 1.116907948390055e-01*2;
-      IntWeights_[1]= 1.116907948390055e-01*2;
-      IntWeights_[2]= 1.116907948390055e-01*2;
-      IntWeights_[3]= 5.497587182766100e-02*2;
-      IntWeights_[4]= 5.497587182766100e-02*2; 
-      IntWeights_[5]= 5.497587182766100e-02*2; 
+        IntWeights_[0]= 1.116907948390055e-01*2;
+        IntWeights_[1]= 1.116907948390055e-01*2;
+        IntWeights_[2]= 1.116907948390055e-01*2;
+        IntWeights_[3]= 5.497587182766100e-02*2;
+        IntWeights_[4]= 5.497587182766100e-02*2; 
+        IntWeights_[5]= 5.497587182766100e-02*2; 
  
-      break;
+        break;
 
-   case GaussOrder5:
+      case GaussOrder5:
  
-// D. A. Dunavant: High Degree Efficient Symmetrical ...
-// Int. J. Numer. Methods in Eng.  Vol 21  S. 1129-1148   1985
-// (c) Kaskade
+        // D. A. Dunavant: High Degree Efficient Symmetrical ...
+        // Int. J. Numer. Methods in Eng.  Vol 21  S. 1129-1148   1985
+        // (c) Kaskade
  
-      NumIntPoints_ = 7;
-      DegreeInteg_  = 5;
+        NumIntPoints_ = 7;
+        DegreeInteg_  = 5;
       
-      if ( !IntPoints_)
-	IntPoints_ = new Vector<Double>[NumIntPoints_];
+        if ( !IntPoints_)
+          IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-      IntWeights_.Resize(NumIntPoints_);
+        IntWeights_.Resize(NumIntPoints_);
 
-      for(Integer i=0; i<NumIntPoints_; i++)
-	  IntPoints_[i].Resize(Dim_);      
+        for(Integer i=0; i<NumIntPoints_; i++)
+          IntPoints_[i].Resize(Dim_);      
  
-      IntPoints_[0][0] = 3.333333333333333e-01;
-      IntPoints_[1][0] = 4.701420641051151e-01;
-      IntPoints_[2][0] = 5.971587178976981e-02;
-      IntPoints_[3][0] = 4.701420641051151e-01;
-      IntPoints_[4][0] = 1.012865073234563e-01;
-      IntPoints_[5][0] = 7.974269853530872e-01;
-      IntPoints_[6][0] = 1.012865073234563e-01;      
+        IntPoints_[0][0] = 3.333333333333333e-01;
+        IntPoints_[1][0] = 4.701420641051151e-01;
+        IntPoints_[2][0] = 5.971587178976981e-02;
+        IntPoints_[3][0] = 4.701420641051151e-01;
+        IntPoints_[4][0] = 1.012865073234563e-01;
+        IntPoints_[5][0] = 7.974269853530872e-01;
+        IntPoints_[6][0] = 1.012865073234563e-01;      
  
 
-      IntPoints_[0][1] = 3.333333333333333e-01;
-      IntPoints_[1][1] = 4.701420641051151e-01;
-      IntPoints_[2][1] = 4.701420641051151e-01;
-      IntPoints_[3][1] = 5.971587178976981e-02;
-      IntPoints_[4][1] = 1.012865073234563e-01;
-      IntPoints_[5][1] = 1.012865073234563e-01;
-      IntPoints_[6][1] = 7.974269853530872e-01;
+        IntPoints_[0][1] = 3.333333333333333e-01;
+        IntPoints_[1][1] = 4.701420641051151e-01;
+        IntPoints_[2][1] = 4.701420641051151e-01;
+        IntPoints_[3][1] = 5.971587178976981e-02;
+        IntPoints_[4][1] = 1.012865073234563e-01;
+        IntPoints_[5][1] = 1.012865073234563e-01;
+        IntPoints_[6][1] = 7.974269853530872e-01;
  
-      IntWeights_[0]= 0.2250300003;
-      IntWeights_[1]= 0.132394152788506;
-      IntWeights_[2]= 0.132394152788506;
-      IntWeights_[3]= 0.132394152788506 ;
-      IntWeights_[4]= 0.125939180544827;
-      IntWeights_[5]=  0.125939180544827;
-      IntWeights_[6]=  0.125939180544827; 
+        IntWeights_[0]= 0.2250300003;
+        IntWeights_[1]= 0.132394152788506;
+        IntWeights_[2]= 0.132394152788506;
+        IntWeights_[3]= 0.132394152788506 ;
+        IntWeights_[4]= 0.125939180544827;
+        IntWeights_[5]=  0.125939180544827;
+        IntWeights_[6]=  0.125939180544827; 
 
-      break;
+        break;
  
-    default:
-      std::cerr << "Integration type " << IntegType
-           << " is not implemented \n" << std::endl; exit(-1);
-    }
+      default:
+        std::cerr << "Integration type " << IntegType
+                  << " is not implemented \n" << std::endl; exit(-1);
+      }
 
-}
+  }
 
 
-void TriangleFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-					    const StdVector<Integer> & volConnect,
-					    const Vector<Double> & surfIntPoint,
-					    Vector<Double> & volIntPoint)
-{
-  ENTER_IFCN( "TriangleFE::GetLocalIntPoints4Surface" );
+  void TriangleFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
+                                             const StdVector<Integer> & volConnect,
+                                             const Vector<Double> & surfIntPoint,
+                                             Vector<Double> & volIntPoint)
+  {
+    ENTER_IFCN( "TriangleFE::GetLocalIntPoints4Surface" );
   
-  // Try to find out, which vertices are in common with
-  // the surface element. Then calculate the product of both
-  // and compare them
-  //
-  //            
-  //            
-  // 3 +        
-  //   |\         eta
-  //   | \       ^        REFERENCE VOLUME ELEMENT
-  //   |  \      | 
-  // 1 +---+ 2   +--> xi
+    // Try to find out, which vertices are in common with
+    // the surface element. Then calculate the product of both
+    // and compare them
+    //
+    //            
+    //            
+    // 3 +        
+    //   |\         eta
+    //   | \       ^        REFERENCE VOLUME ELEMENT
+    //   |  \      | 
+    // 1 +---+ 2   +--> xi
 
 
 
-  // NOTE: Since the line element is defined in the range [-1;+1]
-  // we have to calculate (1+surfCoord)/2 in order to get the right
-  // position on the triangular element
+    // NOTE: Since the line element is defined in the range [-1;+1]
+    // we have to calculate (1+surfCoord)/2 in order to get the right
+    // position on the triangular element
 
-  StdVector<Integer> commonIndex(2);
-  Integer found = 0;
-  Integer indexProduct = 0;
-  std::string errMsg;
+    StdVector<Integer> commonIndex(2);
+    Integer found = 0;
+    Integer indexProduct = 0;
+    std::string errMsg;
   
-  volIntPoint.Resize(2);
+    volIntPoint.Resize(2);
   
-  // loop over surface connect
-  for (Integer iSurf=0; iSurf<2; iSurf++)
-    // loop over volume connect
-    for (Integer iVol=0; iVol<3; iVol++)
-      if (surfConnect[iSurf] == volConnect[iVol])
-	{
-	  commonIndex[found++] = iVol+1;
-	}
+    // loop over surface connect
+    for (Integer iSurf=0; iSurf<2; iSurf++)
+      // loop over volume connect
+      for (Integer iVol=0; iVol<3; iVol++)
+        if (surfConnect[iSurf] == volConnect[iVol])
+          {
+            commonIndex[found++] = iVol+1;
+          }
 
-  indexProduct= commonIndex[0] * commonIndex[1];
-  switch(indexProduct)
-    {
-    case 2:
-      // Edge[1,2] is common
-      volIntPoint[0] = 0.5 + (surfIntPoint[0] / 2.0);
-      volIntPoint[1] = 0.0;
-      break;
+    indexProduct= commonIndex[0] * commonIndex[1];
+    switch(indexProduct)
+      {
+      case 2:
+        // Edge[1,2] is common
+        volIntPoint[0] = 0.5 + (surfIntPoint[0] / 2.0);
+        volIntPoint[1] = 0.0;
+        break;
 
-    case 3:
-      // Edge[1,3] is common
-      volIntPoint[0] = 0.0;
-      volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
-      break;
+      case 3:
+        // Edge[1,3] is common
+        volIntPoint[0] = 0.0;
+        volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+        break;
 
-    case 4:
-      // Edge[2,3] is common
-      volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
-      volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
-      break;
+      case 4:
+        // Edge[2,3] is common
+        volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
+        volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+        break;
 
-    default:
-      errMsg = "TriangleFE::GetLocalIntPoints4Surface: surface and volume element ";
-      errMsg = "have not two nodes in common. Check your .mesh-file.";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
-    }
-}
+      default:
+        errMsg = "TriangleFE::GetLocalIntPoints4Surface: surface and volume element ";
+        errMsg = "have not two nodes in common. Check your .mesh-file.";
+        Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+  }
 
 
 } // end of namespace

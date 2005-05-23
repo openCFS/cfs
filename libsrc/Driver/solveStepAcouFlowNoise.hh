@@ -28,7 +28,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     void SolveStepTrans(const Integer kstep, const Double steptime, 
-			const Boolean reset);
+                        const Boolean reset);
 
   private:
 

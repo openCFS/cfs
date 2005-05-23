@@ -28,7 +28,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Boolean reset);
+                               const Boolean reset);
 
     //! solves for one nonlinear static step 
     /*!
@@ -37,9 +37,9 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
-				  const Boolean reset);
+                                  const Boolean reset);
 
-     //! routine for acttions after the SolveStep-method
+    //! routine for acttions after the SolveStep-method
     /*!
       \param kstep time step counter
       \param asteptime current time
@@ -47,7 +47,7 @@ namespace CoupledField
     virtual void PostStepStatic(const Integer kstep, const Double asteptime);
 
 
-   //----------------------- TRANSIENT---------------------------------------  
+    //----------------------- TRANSIENT---------------------------------------  
     //! base method for solving one transient step 
     /*!
       \param kstep time step counter
@@ -55,7 +55,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepTrans(const Integer kstep, const Double steptime, 
-				const Boolean updatesysmat)
+                                const Boolean updatesysmat)
     {SolveStepStatic(kstep,steptime,updatesysmat);};
 
     //! routine for initilizations befor execution the SolveStep-method
@@ -65,7 +65,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			      const Boolean reset)
+                              const Boolean reset)
     {PreStepStatic(kstep,asteptime,reset);};
   
     //! routine for actions after the SolveStep-method
@@ -83,7 +83,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
-				 const Boolean reset)
+                                 const Boolean reset)
     {StepStaticNonLin(kstep,asteptime,reset);};
 
 

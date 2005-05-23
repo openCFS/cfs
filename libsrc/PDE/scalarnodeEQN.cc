@@ -102,8 +102,8 @@ namespace CoupledField {
                  << "boundary nodes for this PDE!\n Please check, if this "
                  << "node is defined in more than one level of boundary "
                  << "nodes!";
-	Warning( __FILE__, __LINE__ );
-	multipleBCs++;
+        Warning( __FILE__, __LINE__ );
+        multipleBCs++;
       }
       else {
         pdeNode2EQN_[mesh2PDENode_[homoDirichletNodes_[i]-1]-1] = 0;

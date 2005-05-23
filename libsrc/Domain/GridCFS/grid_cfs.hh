@@ -119,7 +119,7 @@ namespace CoupledField
     //! \param nodeList (out) list with node numbers
     //! \param name (in) name of nodes
     void GetNodesByName( StdVector<Integer> & nodeList,
-			 const std::string & name );
+                         const std::string & name );
 
     //! Get list of nodes contained in a region
 
@@ -128,13 +128,13 @@ namespace CoupledField
     //! \param nodeList (out) list with node numbers
     //! \param regionId (in) region identifier
     void GetNodesByRegion( StdVector<Integer> & nodeList,
-			   const RegionIdType regionId );
+                           const RegionIdType regionId );
     
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 2D
     //! \param inode (in) node number
     void GetNodeCoordinate( Point<DIM> & rfPoint,
-			    const Integer inode );
+                            const Integer inode );
   
     //@}
 
@@ -149,7 +149,7 @@ namespace CoupledField
     //! \param elems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
     void GetVolElems( StdVector<Elem*> & elems, 
-		      const RegionIdType regionId );
+                      const RegionIdType regionId );
 
     //! Get list of surface elements
   
@@ -157,11 +157,11 @@ namespace CoupledField
     //! \param elems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
     void GetSurfElems( StdVector<SurfElem*> & elems, 
-		       const RegionIdType regionId );
+                       const RegionIdType regionId );
 
     //! Get list
     void GetElemsByName( StdVector<Elem*> & elems,
-			 const std::string & elemsName );
+                         const std::string & elemsName );
 
     //! Get node numbers of given element
   
@@ -169,7 +169,7 @@ namespace CoupledField
     //! \param connect (out) contains global node numbers
     //! \param iElem (in) element number
     void GetElemNodes( StdVector<Integer> & connect, 
-		       const Integer iElem );
+                       const Integer iElem );
 
 
     //! Get coordinates of element nodes
@@ -179,7 +179,7 @@ namespace CoupledField
     //!                         (spaceDim \f$\times\f$ nrNodes);
     //! \param connect (in) global node numbers of element
     void GetElemNodesCoord( Matrix<Double> & coordMat,  
-			    const StdVector<Integer> & connect );
+                            const StdVector<Integer> & connect );
   
     //! Get elements associated with given nodes
 
@@ -192,9 +192,9 @@ namespace CoupledField
     //! \param regionIds (in) identifiers for the regions, where the 
     //!                          neihgbouring elements are searched in
     void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
-			      const StdVector<Integer> & nodeList,
-			      const StdVector<RegionIdType> 
-			      & regionIds );
+                              const StdVector<Integer> & nodeList,
+                              const StdVector<RegionIdType> 
+                              & regionIds );
 
     //! Get volume elements lying next to given surface elements
   
@@ -216,9 +216,9 @@ namespace CoupledField
     //! i-th entry in the surfElems-vector corresponds to the i-th
     //! entry in the volElems-vector
     void GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
-				const StdVector<Elem*> & surfElems,
-				const StdVector<RegionIdType> 
-				&neighRegions );
+                                const StdVector<Elem*> & surfElems,
+                                const StdVector<RegionIdType> 
+                                &neighRegions );
     
     //@}
     
@@ -270,7 +270,7 @@ namespace CoupledField
     //! \param nodeList (out) list of unique node numbers in elemList
     //! \param elemList (in) list of elements
     void GetNodesOfElemList( StdVector<Integer> & nodeList,
-			     const StdVector<Elem*> & elemList );
+                             const StdVector<Elem*> & elemList );
     
 
     //! Returns the names of all regions

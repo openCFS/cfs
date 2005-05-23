@@ -16,7 +16,7 @@ namespace CoupledField {
     // A nicety that you can omit if five-figure accuracy is good enough.
     Double x,y,tmp,ser;
     static Double cof[6]={76.18009172947146,-86.50532032941677, 24.01409824083091,
-			  -1.231739572450155, 0.1208650973866179e-2,-0.5395239384953e-5};
+                          -1.231739572450155, 0.1208650973866179e-2,-0.5395239384953e-5};
     y=xx;
     x=xx;
     tmp=x+5.5;
@@ -53,7 +53,7 @@ namespace CoupledField {
     a2 = 0.0;
     for (i=0; i<ndim; ++i)
       for (j=0; j<i-1; ++j)
-	a2 += mat[i][j] * mat[i][j];
+        a2 += mat[i][j] * mat[i][j];
     a2 *= 2.0;
    
     n = (Double)ndim;
@@ -65,11 +65,11 @@ namespace CoupledField {
    
     for (k=1; k<kmax; ++k)
       {
-	givensRotation(ndim, mat);
-	terminationCriterion(ndim, mat, a2, eps2, &l_conv);
+        givensRotation(ndim, mat);
+        terminationCriterion(ndim, mat, a2, eps2, &l_conv);
 
-	if (l_conv==1)
-	  break;
+        if (l_conv==1)
+          break;
       }
     if (l_conv==0) 
       std::cout<<"\n Note: The Jacobi method did not converge!.\n";
@@ -92,17 +92,17 @@ namespace CoupledField {
     max_a2 = 0.0;
     for (i=0; i<ndim; ++i)
       {
-	for (j=0; j<=i-1; ++j)
-	  {
-	    a2 = mat[i][j];
-	    a2 = a2 * a2;
-	    if (a2 > max_a2)
-	      {
-		p = i; 
-		q = j;
-		max_a2 = a2;
-	      }
-	  }
+        for (j=0; j<=i-1; ++j)
+          {
+            a2 = mat[i][j];
+            a2 = a2 * a2;
+            if (a2 > max_a2)
+              {
+                p = i; 
+                q = j;
+                max_a2 = a2;
+              }
+          }
       }
    
     z = 0.5 * (mat[q][q] - mat[p][p]) / mat[p][q];
@@ -115,21 +115,21 @@ namespace CoupledField {
    
     for (i=0; i<ndim; ++i)
       for (j=0; j<ndim; ++j)
-	b[i][j] = mat[i][j];
+        b[i][j] = mat[i][j];
   
     b[p][p] = mat[p][p] - t * mat[p][q];
     b[q][q] = mat[q][q] + t * mat[p][q];
     b[p][q] = b[q][p] = 0.0;
     for (j=0; j<ndim; ++j)
       if ((j!=p) && (j!=q))
-	{
-	  b[p][j] = b[j][p] = mat[p][j] - s * (mat[q][j] + u*mat[p][j]);
-	  b[q][j] = b[j][q] = mat[q][j] + s * (mat[p][j] - u*mat[q][j]);
-	}
+        {
+          b[p][j] = b[j][p] = mat[p][j] - s * (mat[q][j] + u*mat[p][j]);
+          b[q][j] = b[j][q] = mat[q][j] + s * (mat[p][j] - u*mat[q][j]);
+        }
   
     for (i=0; i<ndim; ++i)
       for (j=0; j<ndim; ++j){
-	mat[i][j] = b[i][j];
+        mat[i][j] = b[i][j];
 
 
       }
@@ -165,7 +165,7 @@ namespace CoupledField {
     a_nd2 = 0.0;
     for (i=0; i<ndim; ++i)
       for (j=0; j<i-1; ++j)
-	a_nd2 += mat[i][j] * mat[i][j];
+        a_nd2 += mat[i][j] * mat[i][j];
     a_nd2 *= 2.0;
   
     if (a_nd2/a2 < eps2) *l_conv = 1;
@@ -184,25 +184,25 @@ namespace CoupledField {
  
     if (l_sort == 0)
       {
-	for (k=0; k<ndim-1; ++k)
-	  for (i=k+1; i<ndim; ++i)
-	    if (d[i] > d[k])
-	      {
-		dv = d[k];
-		d[k] = d[i];
-		d[i] = dv;
-	      }
+        for (k=0; k<ndim-1; ++k)
+          for (i=k+1; i<ndim; ++i)
+            if (d[i] > d[k])
+              {
+                dv = d[k];
+                d[k] = d[i];
+                d[i] = dv;
+              }
       }
     if (l_sort == 1)
       {
-	for (k=0; k<ndim-1; ++k)
-	  for (i=k+1; i<ndim; ++i)
-	    if (d[i] < d[k])
-	      {
-		dv = d[k];
-		d[k] = d[i];
-		d[i] = dv;
-	      }
+        for (k=0; k<ndim-1; ++k)
+          for (i=k+1; i<ndim; ++i)
+            if (d[i] < d[k])
+              {
+                dv = d[k];
+                d[k] = d[i];
+                d[i] = dv;
+              }
       }
   }
 

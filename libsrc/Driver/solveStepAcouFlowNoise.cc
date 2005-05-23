@@ -20,8 +20,8 @@ namespace CoupledField {
   // ======================================================
 
   void SolveStepAcouFlowNoise::SolveStepTrans(const Integer kstep, 
-					      const Double asteptime, 
-					      const Boolean reset)
+                                              const Double asteptime, 
+                                              const Boolean reset)
   {
     ENTER_FCN( "SolveStepAcouFlowNoise::SolveStepTrans" );
 
@@ -48,7 +48,7 @@ namespace CoupledField {
         algsys_->InitRHS();
         assemble_->AssembleSrcRHS(lasttimecalc_);
 
-	PDE_.ComputeRHS(lasttimecalc_);
+        PDE_.ComputeRHS(lasttimecalc_);
         TS_alg_->UpdateRHS();
       }
     else if (reset)
@@ -68,7 +68,7 @@ namespace CoupledField {
         job    = 3;
         algsys_->InitRHS();
         assemble_->AssembleSrcRHS(lasttimecalc_);
-	PDE_.ComputeRHS(lasttimecalc_);
+        PDE_.ComputeRHS(lasttimecalc_);
         TS_alg_->UpdateRHS();
       };
 

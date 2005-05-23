@@ -32,7 +32,7 @@ namespace CoupledField {
   }
 
   MassInt::MassInt(const Double aDensity,  const Integer nrDofsPerNode, Integer dofzero,
-		   Boolean axi)
+                   Boolean axi)
     : BaseForm(), 
       density_(aDensity), 
       nrDofsPerNode_(nrDofsPerNode)
@@ -51,7 +51,7 @@ namespace CoupledField {
   }
 
   void MassInt::CalcElementMatrix(Matrix<Double> & ptCoord,
-				  Matrix<Double> & elemMat)
+                                  Matrix<Double> & elemMat)
   {
     ENTER_FCN( "MassInt::CalcElemMatrix" );
   
@@ -74,18 +74,18 @@ namespace CoupledField {
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
-	
+        
       ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
-	
+        
       partElemMat.DyadicMult(shapeFncAtIp);
-	
+        
       if (isaxi_) {
-	CoordAtIP = ptCoord * shapeFncAtIp;
-	partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor_* jacDet * CoordAtIP[0];
+        CoordAtIP = ptCoord * shapeFncAtIp;
+        partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor_* jacDet * CoordAtIP[0];
       }
       else 
-	partElemMat *= intWeights[actIntPt-1] * density_ * factor_ * jacDet;
-	
+        partElemMat *= intWeights[actIntPt-1] * density_ * factor_ * jacDet;
+        
       elemMat += partElemMat;
     }
   
@@ -97,7 +97,7 @@ namespace CoupledField {
     
     else if (nrDofsPerNode_ > 1 && dofzero_ == 0 ) {
       Matrix <Double> multDofMass;
-      MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);	
+      MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);       
       elemMat = multDofMass;
     }
 
@@ -110,7 +110,7 @@ namespace CoupledField {
 
 
   void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 
-			     const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
+                             const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
   {
     ENTER_FCN( "MassInt::MassMultiDof" );
     
@@ -123,8 +123,8 @@ namespace CoupledField {
     
     for (i=0; i < singleDofSize; i++)
       for (j=0; j < singleDofSize; j++)
-	for (actDof=0; actDof < nrDofs; actDof++)
-	  massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = massMatSingleDof[i][j]; 
+        for (actDof=0; actDof < nrDofs; actDof++)
+          massMultDof[i*nrDofs + actDof][j*nrDofs + actDof] = massMatSingleDof[i][j]; 
   }
 
 
@@ -142,12 +142,12 @@ namespace CoupledField {
     
     for (i=0; i < singleDofSize; i++)
       for (j=0; j < singleDofSize; j++)
-	for (actDof=0; actDof < nrDofsPerNode_ ; actDof++)
-	  {
-	    if (actDof+1 != dofzero_)
-	      massMultDofZero[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = 
-		massMatSingleDof[i][j]; 
-	  }
+        for (actDof=0; actDof < nrDofsPerNode_ ; actDof++)
+          {
+            if (actDof+1 != dofzero_)
+              massMultDofZero[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = 
+                massMatSingleDof[i][j]; 
+          }
   }
 
 } // end namespace CoupledField

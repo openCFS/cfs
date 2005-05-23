@@ -49,10 +49,10 @@ namespace CoupledField
     }
     else
       {
-	std::string errmsg = "Subtype '" + subType_;
-	errmsg += "' of PDE '" + pdename_ + "' does not fit to problem ";
-	errmsg += "geometry '" + probGeo + "'\n";
-	Info->Error( errmsg, __FILE__, __LINE__ );
+        std::string errmsg = "Subtype '" + subType_;
+        errmsg += "' of PDE '" + pdename_ + "' does not fit to problem ";
+        errmsg += "geometry '" + probGeo + "'\n";
+        Info->Error( errmsg, __FILE__, __LINE__ );
       }
 
     // =====================================================================
@@ -82,22 +82,22 @@ namespace CoupledField
 
     for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
-	// ==============  add stiffness ===========================================
+        // ==============  add stiffness ===========================================
 
-	MaterialData actSDMat(materialData_[actSD]);
+        MaterialData actSDMat(materialData_[actSD]);
 
-	// ==============  add "standard" stiffness ===============================
-	BaseForm * bilinearStiff;
-	if (subType_ == "planeStrain")
-	  bilinearStiff = new smoothPlainStrainInt(actSDMat);
-	else if (subType_ == "3d")
-	  bilinearStiff = new smooth3DInt(actSDMat);
-	else if (subType_ == "axi")
-	  bilinearStiff = new SmoothAxiInt(actSDMat);
-	else 
-	  Error("Unknown subtype in smooth PDE! ",__FILE__,__LINE__);
+        // ==============  add "standard" stiffness ===============================
+        BaseForm * bilinearStiff;
+        if (subType_ == "planeStrain")
+          bilinearStiff = new smoothPlainStrainInt(actSDMat);
+        else if (subType_ == "3d")
+          bilinearStiff = new smooth3DInt(actSDMat);
+        else if (subType_ == "axi")
+          bilinearStiff = new SmoothAxiInt(actSDMat);
+        else 
+          Error("Unknown subtype in smooth PDE! ",__FILE__,__LINE__);
 
-	assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS, nonLin);
+        assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS, nonLin);
       }
   }
 
@@ -120,22 +120,22 @@ namespace CoupledField
     // input couplings
     for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
       {
-	// check for input mechanic displacement
-	if (ptCoupling_->GetInputQuantity(i) == MECH_DISPLACEMENT)
-	  {
-	    numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputNumNodes(i));
-	  }
+        // check for input mechanic displacement
+        if (ptCoupling_->GetInputQuantity(i) == MECH_DISPLACEMENT)
+          {
+            numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputNumNodes(i));
+          }
 
       }
 
     // output couplings
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
       {
-	// check for output displacement
-	if (ptCoupling_->GetOutputQuantity(i) == SMOOTH_DISPLACEMENT)
-	  {
-	    ptCoupling_->CreateCouplingVector(i,isComplex_); 
-	  }
+        // check for output displacement
+        if (ptCoupling_->GetOutputQuantity(i) == SMOOTH_DISPLACEMENT)
+          {
+            ptCoupling_->CreateCouplingVector(i,isComplex_); 
+          }
       }
 
     // now overwrite number of Dirichlet BCs due to coupling 
@@ -155,34 +155,34 @@ namespace CoupledField
     // loop over all output coupling quantities
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
       {
-	quantity = ptCoupling_->GetOutputQuantity(i);
+        quantity = ptCoupling_->GetOutputQuantity(i);
 
-	switch(ptCoupling_->GetOutputType(i))
-	  {
+        switch(ptCoupling_->GetOutputType(i))
+          {
 
-	  case NODE:
+          case NODE:
           
-	    ptCoupling_->GetOutputNodes(i, couplingnodes);
-	    ptCoupling_->GetOutputValues(i, values);
+            ptCoupling_->GetOutputNodes(i, couplingnodes);
+            ptCoupling_->GetOutputValues(i, values);
 
-	    if (quantity == SMOOTH_DISPLACEMENT)
-	      {
-		sol_->NodeSolutionToCoupling(*values,*couplingnodes);
-	      }
+            if (quantity == SMOOTH_DISPLACEMENT)
+              {
+                sol_->NodeSolutionToCoupling(*values,*couplingnodes);
+              }
           
-	    break;
+            break;
 
-	  case ELEM:
-	    Error("No Element coupling output", __FILE__,__LINE__);
-	  }
+          case ELEM:
+            Error("No Element coupling output", __FILE__,__LINE__);
+          }
 
       }
   }
 
   void SmoothPDE::WriteResultsInFile(const Integer kstep,
-				     const Double asteptime,
-				     Integer stepOffset,
-				     Double timeOffset)
+                                     const Double asteptime,
+                                     Integer stepOffset,
+                                     Double timeOffset)
   {
     ENTER_FCN( "SmoothPDE::WriteResultsInFile" );
   
@@ -192,15 +192,15 @@ namespace CoupledField
     Double actTime = lasttimecalc_ + timeOffset;
 
     if (analysistype_ == STATIC ||
-	analysistype_ == HARMONIC) {
+        analysistype_ == HARMONIC) {
       if (saveSol_) {
-	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-	outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+        solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+        outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
       }
     }
     else
       Error("SmoothPDE: Only static and transient results can be written out",
-	    __FILE__, __LINE__);
+            __FILE__, __LINE__);
   }
 
 
@@ -215,21 +215,21 @@ namespace CoupledField
       nrActDof = 1;
     else 
       if (dofStartString == "uy")
-	nrActDof = 2;
+        nrActDof = 2;
       else
-	if (dofspernode_ == 3)
-	  if (dofStartString == "uz")
-	    nrActDof = 3;
-	  else
-	    {
-	      Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
-	      std::cerr << dofStartString << std::endl;
-	    }
-	else
-	  {
-	    std::cerr << dofStartString << std::endl;
-	    Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
-	  }
+        if (dofspernode_ == 3)
+          if (dofStartString == "uz")
+            nrActDof = 3;
+          else
+            {
+              Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
+              std::cerr << dofStartString << std::endl;
+            }
+        else
+          {
+            std::cerr << dofStartString << std::endl;
+            Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
+          }
   
     return nrActDof;
   }
@@ -243,12 +243,12 @@ namespace CoupledField
       return 1;
     else
       if (dofString == "uy")
-	return 2;
+        return 2;
       else
-	if (dofString == "uz")
-	  return 3;
-	else
-	  Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
+        if (dofString == "uz")
+          return 3;
+        else
+          Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
   }
   
 

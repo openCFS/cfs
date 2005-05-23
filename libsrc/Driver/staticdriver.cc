@@ -14,12 +14,12 @@ namespace CoupledField {
   //   Constructor
   // ***************
   StaticDriver::StaticDriver(Domain * adomain, 
-			     Integer stepOffset,
-			     Double timeOffset,
-			     std::string driverTag,
-			     Boolean isPartOfSequence) 
+                             Integer stepOffset,
+                             Double timeOffset,
+                             std::string driverTag,
+                             Boolean isPartOfSequence) 
     : SingleDriver(adomain, stepOffset, timeOffset, 
-		   driverTag, isPartOfSequence) {
+                   driverTag, isPartOfSequence) {
     ENTER_FCN( "StaticDriver::StaticDriver" );
 
   }
@@ -61,7 +61,7 @@ namespace CoupledField {
     // if multiSequence is performed, the ms-driver
     // writes out the grid one time
     if (! isPartOfSequence_)
-	ptdomain_->PrintGrid();
+      ptdomain_->PrintGrid();
       
     ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
   }

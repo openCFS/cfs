@@ -3,24 +3,24 @@
 namespace CoupledField
 {
 
-BaseOperator::BaseOperator(Grid * ptGrid, StdPDE * ptPDE, 
-			   NodeEQN * ptEQN, 
-			   Boolean isaxi)
-  : isaxi_(isaxi)
-{
-  ENTER_FCN( "BaseOperator::BaseOperator" );
+  BaseOperator::BaseOperator(Grid * ptGrid, StdPDE * ptPDE, 
+                             NodeEQN * ptEQN, 
+                             Boolean isaxi)
+    : isaxi_(isaxi)
+  {
+    ENTER_FCN( "BaseOperator::BaseOperator" );
 
-  this->ptGrid_ = ptGrid;
-  this->ptPDE_ = ptPDE;
-  this->ptEQN_ = ptEQN;
-}
+    this->ptGrid_ = ptGrid;
+    this->ptPDE_ = ptPDE;
+    this->ptEQN_ = ptEQN;
+  }
 
 
-BaseOperator::~BaseOperator()
-{
-  ENTER_FCN( "BaseOperator::BaseOperator" );
+  BaseOperator::~BaseOperator()
+  {
+    ENTER_FCN( "BaseOperator::BaseOperator" );
 
-  ;
-}
+    ;
+  }
 
 } // end of namespace

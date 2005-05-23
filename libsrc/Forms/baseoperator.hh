@@ -11,29 +11,29 @@ namespace CoupledField
   class Grid;
   class StdPDE;
 
- //! Base class for operators working on elements
+  //! Base class for operators working on elements
   /*! Class BaseOperator is base class from which different kinds of operators are derived
    */
-class BaseOperator
-{
-public:
+  class BaseOperator
+  {
+  public:
 
-   //! Constructor
-  BaseOperator(Grid * ptGrid, 
-	       StdPDE * ptPDE,  
-	       NodeEQN * ptEQN, 
-	       Boolean isaxi=FALSE);
+    //! Constructor
+    BaseOperator(Grid * ptGrid, 
+                 StdPDE * ptPDE,  
+                 NodeEQN * ptEQN, 
+                 Boolean isaxi=FALSE);
   
-  //! Destructor
-  virtual ~BaseOperator() = 0;
+    //! Destructor
+    virtual ~BaseOperator() = 0;
 
-protected:
+  protected:
 
-  Grid * ptGrid_;     //!< pointer to grid
-  StdPDE * ptPDE_;   //!< pointer to PDE
-  NodeEQN * ptEQN_;   //!< pointer to Equation object
-  Boolean isaxi_;
-};
+    Grid * ptGrid_;     //!< pointer to grid
+    StdPDE * ptPDE_;   //!< pointer to PDE
+    NodeEQN * ptEQN_;   //!< pointer to Equation object
+    Boolean isaxi_;
+  };
 
 } // end of namespace
 

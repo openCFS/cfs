@@ -20,10 +20,10 @@ namespace CoupledField {
     //! \param driverTag tag for current driver section
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     SingleDriver(Domain * adomain, 
-		 Integer stepOffset = 0, 
-		 Double timeOffset = 0.0, 
-		 std::string driverTag ="anyTag",
-		 Boolean isPartOfSequence = FALSE);
+                 Integer stepOffset = 0, 
+                 Double timeOffset = 0.0, 
+                 std::string driverTag ="anyTag",
+                 Boolean isPartOfSequence = FALSE);
     
     //! Default destructor
     virtual ~SingleDriver();
@@ -39,7 +39,7 @@ namespace CoupledField {
     //! \param matrixtype type of matrix
     virtual void SetupMatricesPDE(Integer pdenumber, const Integer matrixtype){
       Error( "SetupMatricesPDE must be implemented by derived class!",
-	     __FILE__, __LINE__ );
+             __FILE__, __LINE__ );
     };
   
     //! return the actual frequency within a harmonic analysis

@@ -78,7 +78,7 @@ namespace CoupledField {
     //! \param regionNames (output) vector containing names of regions
     //! \param dim (input) dimension of the region (1,2, or 3)
     void GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-			      const Integer dim );
+                              const Integer dim );
    
 
     //! Get vector with all names of named nodes
@@ -123,7 +123,7 @@ namespace CoupledField {
     //!                          nodes corresponding to the outer index in the
     //!                          nodes vector
     void GetNodesOfRegions( StdVector<StdVector<Integer> > &nodes,
-			    const StdVector<RegionIdType> & regionId );
+                            const StdVector<RegionIdType> & regionId );
     
     //! Read all elements of given dimension
 
@@ -139,8 +139,8 @@ namespace CoupledField {
     //!                          the elems vector
     //! \param dim (input) dimension of the elements to be read (1,2 or 3)
     void GetElements( StdVector< StdVector<Elem*> > & elems, 
-		      StdVector<RegionIdType> & regionId,
-		      const Integer dim );
+                      StdVector<RegionIdType> & regionId,
+                      const Integer dim );
   
     //! Read all named nodes
     
@@ -151,7 +151,7 @@ namespace CoupledField {
     //! \param nodeNames (output) vector containing the corresponding
     //!                           node names 
     void GetNamedNodes( StdVector<StdVector<Integer> > & nodes,
-			StdVector<std::string> & nodeNames );
+                        StdVector<std::string> & nodeNames );
     
     //! Read all named elements
 
@@ -162,7 +162,7 @@ namespace CoupledField {
     //! \param elemNames (output) vector containing the corresponding
     //!                           element names 
     void GetNamedElems( StdVector<StdVector<Integer> > & elems,
-			StdVector<std::string> & elemNames );
+                        StdVector<std::string> & elemNames );
     //@}
 
 
@@ -230,7 +230,7 @@ namespace CoupledField {
     //! \param regionName (input) name of region 
     //! \param dim (input) dimension of the elements (1, 2 or 3)
     RegionIdType ObtainRegionId( const std::string & regionName,
-				 const Integer dim );
+                                 const Integer dim );
 
     
     //! Transform type of elem in pointer to base class BaseFE

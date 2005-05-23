@@ -68,7 +68,7 @@ namespace CoupledField
 
     //! Returns the number of nodes contained in given region
     virtual Integer GetNumNodes( const StdVector<RegionIdType> 
-				 & regions ) = 0;
+                                 & regions ) = 0;
 
     //! Returns the number of nodes in the given nodelist
     virtual Integer GetNumNodes( const std::string & nodesName ) = 0;
@@ -87,7 +87,7 @@ namespace CoupledField
     //! regions.
     //! \param regions (in) contains the regionIds of 
     virtual Integer GetNumElems( const StdVector<RegionIdType> 
-				 & regions ) = 0;
+                                 & regions ) = 0;
   
     //! Get vector with all volume region identifiers
 
@@ -102,7 +102,7 @@ namespace CoupledField
     //! current mesh.
     //! \param surfRegions (out) vector with volume region identifiers
     virtual void GetSurfRegionIds( StdVector<RegionIdType> 
-				   & surfRegions ) = 0;
+                                   & surfRegions ) = 0;
 
     //@}
 
@@ -120,7 +120,7 @@ namespace CoupledField
     //! \param nodeList (out) list with node numbers
     //! \param name (in) name of nodes
     virtual void GetNodesByName( StdVector<Integer> & nodeList,
-				 const std::string & name ) = 0;
+                                 const std::string & name ) = 0;
 
     //! Get list of nodes contained in a region
 
@@ -129,20 +129,20 @@ namespace CoupledField
     //! \param nodeList (out) list with node numbers
     //! \param regionId (in) region identifier
     virtual void GetNodesByRegion( StdVector<Integer> & nodeList,
-				   const RegionIdType regionId ) = 0;
+                                   const RegionIdType regionId ) = 0;
     
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 2D
     //! \param inode (in) node number
     virtual void GetNodeCoordinate( Point<2> & rfPoint,
-				    const Integer inode )
+                                    const Integer inode )
     { Error( "Not implemented", __FILE__, __LINE__ ); }  
 
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 3D
     //! \param inode (in) node number
     virtual void GetNodeCoordinate( Point<3> & rfPoint,
-				    const Integer inode )
+                                    const Integer inode )
     { Error( "Not implemented", __FILE__, __LINE__ ); }  
   
     //@}
@@ -158,7 +158,7 @@ namespace CoupledField
     //! \param elems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
     virtual void GetVolElems( StdVector<Elem*> & elems, 
-			      const RegionIdType regionId ) = 0;
+                              const RegionIdType regionId ) = 0;
 
     //! Get list of surface elements
   
@@ -166,11 +166,11 @@ namespace CoupledField
     //! \param surfElems (out) vector with elements for given regionId
     //! \param regionId (in) region identifier
     virtual void GetSurfElems( StdVector<SurfElem*> & surfElems, 
-			       const RegionIdType regionId ) = 0;
+                               const RegionIdType regionId ) = 0;
     
     //! Get list of elements by their name
     virtual void GetElemsByName( StdVector<Elem*> & elems,
-				 const std::string & elemsName ) = 0;
+                                 const std::string & elemsName ) = 0;
 
     //! Get node numbers of given element
   
@@ -178,7 +178,7 @@ namespace CoupledField
     //! \param connect (out) contains global node numbers
     //! \param iElem (in) element number
     virtual void GetElemNodes( StdVector<Integer> & connect, 
-			       const Integer iElem ) = 0;
+                               const Integer iElem ) = 0;
 
 
     //! Get coordinates of element nodes
@@ -188,7 +188,7 @@ namespace CoupledField
     //!                         (spaceDim \f$\times\f$ nrNodes);
     //! \param connect (in) global node numbers of element
     virtual void GetElemNodesCoord( Matrix<Double> & coordMat,  
-				    const StdVector<Integer> & connect ) = 0;
+                                    const StdVector<Integer> & connect ) = 0;
   
     //! Get elements associated with given nodes
 
@@ -201,9 +201,9 @@ namespace CoupledField
     //! \param regionIds (in) identifiers for the regions, where the 
     //!                       neihgbouring elements are searched in
     virtual void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
-				      const StdVector<Integer> & nodeList,
-				      const StdVector<RegionIdType> 
-				      & regionIds ) = 0;
+                                      const StdVector<Integer> & nodeList,
+                                      const StdVector<RegionIdType> 
+                                      & regionIds ) = 0;
 
     //! Get volume elements lying next to given surface elements
   
@@ -221,9 +221,9 @@ namespace CoupledField
     //! i-th entry in the surfElems-vector corresponds to the i-th
     //! entry in the volElems-vector
     virtual void GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
-					const StdVector<Elem*> & surfElems,
-					const StdVector<RegionIdType> 
-					&neighRegions ) = 0;
+                                        const StdVector<Elem*> & surfElems,
+                                        const StdVector<RegionIdType> 
+                                        &neighRegions ) = 0;
     
     //@}
 
@@ -273,15 +273,15 @@ namespace CoupledField
     //! \param sol (out) contains the solution on the new grid (fine grid)
     //! \param alevel (in) index in multilevel hierarchy
     virtual void ProlongSol( const Vector<Double> sol_coarse, 
-			     Vector<Double> & sol,
-			     const Integer alevel )
+                             Vector<Double> & sol,
+                             const Integer alevel )
     { Error( "Not implemented", __FILE__, __LINE__); }
 
     //! Do refinement of elements, which we mark through function 
     //! SetRefinementFlag
     virtual void Refine(const Integer numLoops = 1)
     { Error( "This fnc is valid only for adaptgrid. Change your config-file",
-	     __FILE__ ,__LINE__); }
+             __FILE__ ,__LINE__); }
 
     //! Do uniform refinement of elements, which we mark through function 
     //! 'SetRefinementFlag'
@@ -297,7 +297,7 @@ namespace CoupledField
     //! \param noOfElem (in) element level
     //! \param color (in) subdomain
     virtual  StdVector<Elem*> *GetNeighboursOfElem(const Integer noOfElem, 
-						   std::string color)
+                                                   std::string color)
     { 
       Error(" Not implemented",__FILE__,__LINE__);
       StdVector<Elem*> *dummy;
@@ -308,7 +308,7 @@ namespace CoupledField
     //! \param noOfNode (in) global number of node
     //! \param neighbours (out) list with neighbors
     virtual void GetNeighboursOfNode(const Integer noOfNode,
-				     StdVector<Elem*> * neighbours)
+                                     StdVector<Elem*> * neighbours)
     { Error(" Not implemented",__FILE__,__LINE__);}
     //@}
 
@@ -327,12 +327,12 @@ namespace CoupledField
 
     //! Returns for a list of region identifiers the associated names
     void RegionIdToName( StdVector<std::string> & regionNames,
-			 const StdVector<RegionIdType> & regionId );
+                         const StdVector<RegionIdType> & regionId );
   
     //! Returns for a list of region names  the associated identifiers
     void RegionNameToId( StdVector<RegionIdType> & regionIds,
-			 const StdVector<std::string> 
-			 & regionName );
+                         const StdVector<std::string> 
+                         & regionName );
   
     //! Returns node numbers of a list of Elements
 
@@ -341,7 +341,7 @@ namespace CoupledField
     //! \param nodeList (out) list of unique node numbers in elemList
     //! \param elemList (in) list of elements
     virtual void GetNodesOfElemList( StdVector<Integer> & nodeList,
-				     const StdVector<Elem*> & elemList ) = 0;
+                                     const StdVector<Elem*> & elemList ) = 0;
   
     //! Resets the integration type of all known elements
     //! \deprecated Does anyone need this function?
@@ -358,7 +358,7 @@ namespace CoupledField
     //! that one can access directly the elements of the vector by using a
     //! RegionId and get the according entry of the vector.
     virtual void GetAllRegionNames( StdVector<std::string> 
-				    & regionNames ) = 0;
+                                    & regionNames ) = 0;
 
     //! Pointer to mesh input file
     FileType * ptFileType; 

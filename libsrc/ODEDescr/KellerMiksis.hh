@@ -24,13 +24,13 @@ namespace CoupledField{
     //! \param polytrop   Polytropic index
     //! \param viscosity  Viscosity of fluid
     KellerMiksis(Double  RadiusInit, 
-		 Double  density,
-		 Double  sonicVel,
-		 Double  pStatic,
-		 Double  pVapour,
-		 Double  surfacTen,
-		 Double  polytrop,
-		 Double  viscosity); 
+                 Double  density,
+                 Double  sonicVel,
+                 Double  pStatic,
+                 Double  pVapour,
+                 Double  surfacTen,
+                 Double  polytrop,
+                 Double  viscosity); 
      
     //! Default Destructor
     virtual ~KellerMiksis() {
@@ -42,8 +42,8 @@ namespace CoupledField{
     //! \param y      cointains starting values
     //! \param dydt   contains on return the resulting rhs
     void CompDeriv(const Double &t,
-		    const StdVector<Double> &y,
-		    StdVector<Double> &dydt);
+                   const StdVector<Double> &y,
+                   StdVector<Double> &dydt);
 
     Double GetP (){
       ENTER_IFCN( "KellerMiksis::GetP" );      

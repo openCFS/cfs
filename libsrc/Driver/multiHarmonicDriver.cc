@@ -36,13 +36,13 @@ namespace CoupledField
   // constructor
   // opens datafiles: measuredData.dat for input, imedCurve.dat and piezoLog.dat for output
 
-MultiHarmonicDriver::MultiHarmonicDriver(Domain * adomain,
-				   Integer stepOffset,
-				   Double timeOffset,
-				   std::string driverTag,
-				   Boolean isPartOfSequence)
-:SingleDriver(adomain, stepOffset, timeOffset, 
-		  driverTag, isPartOfSequence){
+  MultiHarmonicDriver::MultiHarmonicDriver(Domain * adomain,
+                                           Integer stepOffset,
+                                           Double timeOffset,
+                                           std::string driverTag,
+                                           Boolean isPartOfSequence)
+    :SingleDriver(adomain, stepOffset, timeOffset, 
+                  driverTag, isPartOfSequence){
 
     ENTER_FCN( "multiharmonic::multiharmonic" );
 
@@ -72,8 +72,8 @@ MultiHarmonicDriver::MultiHarmonicDriver(Domain * adomain,
 
     if (!allMeasuredData)
       {
-	std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
-	exit(1);
+        std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
+        exit(1);
       }
 
     std::cout<<"\n Opens impedCurve.dat and piezoLog.dat ... "<<std::endl;
@@ -84,7 +84,7 @@ MultiHarmonicDriver::MultiHarmonicDriver(Domain * adomain,
 
     if (!impedCurve)
       {
-	std::cerr << "\n ImpedanceCurve.dat could not be initialized" << std::endl;
+        std::cerr << "\n ImpedanceCurve.dat could not be initialized" << std::endl;
       }
 
     std::string filenameLog= "piezoLog.dat";
@@ -93,7 +93,7 @@ MultiHarmonicDriver::MultiHarmonicDriver(Domain * adomain,
     
     if (!piezoLog)
       {
-	std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
+        std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
       }
 
     std::string filenameParLog= "parLog.dat";
@@ -101,14 +101,14 @@ MultiHarmonicDriver::MultiHarmonicDriver(Domain * adomain,
 
     if (!parLog)
       {
-	std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
+        std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
       }
 
   } // end of constructor
 
   // destructor
   
-MultiHarmonicDriver::~MultiHarmonicDriver(){
+  MultiHarmonicDriver::~MultiHarmonicDriver(){
     ENTER_FCN( "MultiHarmonicDriver::~MultiHarmonicDriver" );
     allMeasuredData->close();
     impedCurve->close();
@@ -116,7 +116,7 @@ MultiHarmonicDriver::~MultiHarmonicDriver(){
     parLog->close();
   }
 
-void MultiHarmonicDriver::SolveProblem() {
+  void MultiHarmonicDriver::SolveProblem() {
     ENTER_FCN( "MultiHarmonicDriver::SolveProblem" );
 
 
@@ -125,42 +125,42 @@ void MultiHarmonicDriver::SolveProblem() {
     if (! isPartOfSequence_)
       ptdomain_->PrintGrid();
 
-  // if driver is not part of multiSequence Driver, get list
-  // of pdes which have to be solved and intialize them
-  if (isPartOfSequence_ == FALSE){     
-    GetMyPDEs();
-    Info->StartProgress ("Starting to solve problem", FALSE);
-  }
+    // if driver is not part of multiSequence Driver, get list
+    // of pdes which have to be solved and intialize them
+    if (isPartOfSequence_ == FALSE){     
+      GetMyPDEs();
+      Info->StartProgress ("Starting to solve problem", FALSE);
+    }
   
-  ptPDE_->WriteGeneralPDEdefines();
+    ptPDE_->WriteGeneralPDEdefines();
       
-  Integer fstep;
-  Double actFreq  = startFreq_;
-  Double freqIncr = (stopFreq_ - startFreq_) / numFreq_;
-  std::string errMsg;
+    Integer fstep;
+    Double actFreq  = startFreq_;
+    Double freqIncr = (stopFreq_ - startFreq_) / numFreq_;
+    std::string errMsg;
   
-  // branch for single PDE
-  for (fstep = 1; fstep <= numFreq_; fstep++) {
-    Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq);
+    // branch for single PDE
+    for (fstep = 1; fstep <= numFreq_; fstep++) {
+      Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq);
     
-    //      std::cout<<"\n multiHarm: 1 " <<std::endl;
-    ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq, reset);
+      //      std::cout<<"\n multiHarm: 1 " <<std::endl;
+      ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq, reset);
     
-    //      std::cout<<"\n multiHarm: 2"  <<std::endl;
-    ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq, reset);
+      //      std::cout<<"\n multiHarm: 2"  <<std::endl;
+      ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq, reset);
     
-    //      std::cout<<"\n multiHarm: 3 " <<std::endl;
-    ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq, reset);
+      //      std::cout<<"\n multiHarm: 3 " <<std::endl;
+      ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq, reset);
     
-    //      std::cout<<"\n multiHarm: nrMultHarms_ =  " <<nrMultHarms_ <<std::endl;
+      //      std::cout<<"\n multiHarm: nrMultHarms_ =  " <<nrMultHarms_ <<std::endl;
     
-    // writing results in output-file
-    ptPDE_->PostProcess();
-    ptPDE_->WriteResultsInFile();
+      // writing results in output-file
+      ptPDE_->PostProcess();
+      ptPDE_->WriteResultsInFile();
     
-    actFreq += freqIncr;
+      actFreq += freqIncr;
+    }
   }
-}
 
 
 

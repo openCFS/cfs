@@ -28,7 +28,7 @@ namespace CoupledField {
   // STATIC SOLVING SECTION
   // ======================================================
   void SolveStepMag :: PreStepStatic(const Integer kstep, const Double asteptime,
-				     const Boolean reset) {
+                                     const Boolean reset) {
     ENTER_FCN( "SolveStepMag::PreStepStatic" );
     if (isIterCoupled_) 
       algsys_->InitSol();
@@ -44,7 +44,7 @@ namespace CoupledField {
 
 
   void SolveStepMag::StepStaticNonLin(const Integer kstep, const Double aTime,
-				      const Boolean reset)
+                                      const Boolean reset)
   {
     ENTER_FCN( "SolveStepMag::SolveStepStaticNonLin" );
 
@@ -63,7 +63,7 @@ namespace CoupledField {
     Double loadFactor = 0;
 
     //    for ( Integer iload=0; iload<5; iload++ ) {
-      //      loadFactor += 0.2;
+    //      loadFactor += 0.2;
 
     for ( Integer iload=0; iload<1; iload++ ) {
       loadFactor += 1;
@@ -75,239 +75,239 @@ namespace CoupledField {
 
       Integer iterationCounter=0;
       do {
-	iterationCounter++;
-	
-	std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop "
-		  << "nr. " << iterationCounter << std::endl;      
-	
+        iterationCounter++;
+        
+        std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop "
+                  << "nr. " << iterationCounter << std::endl;      
+        
 #ifdef DEBUG
-	*debug << std::endl << "=============================================="
-	       << "========\n"
-	       << "Nonlinear Mechanics: Perform internal loop nr. "
-	       << iterationCounter << std::endl;      
+        *debug << std::endl << "=============================================="
+               << "========\n"
+               << "Nonlinear Mechanics: Perform internal loop nr. "
+               << iterationCounter << std::endl;      
 #endif
-	
-	//set linear part of RHS
-	algsys_->InitRHS(RhsLinVal_.GetPointer());
+        
+        //set linear part of RHS
+        algsys_->InitRHS(RhsLinVal_.GetPointer());
 
-	//add nonlinear part to RHS 
-	assemble_->AssembleNLRHS();
+        //add nonlinear part to RHS 
+        assemble_->AssembleNLRHS();
 
-	// setup and solve new system (rhs is already set) =====================
-	assemble_->InitNonLinMatrices();
-	assemble_->AssembleMatrices();
-	
-	algsys_->BuildInDirichlet();
-	
-	if (job == 1) {
-	  algsys_->SetupPrecond(job);
-	  algsys_->SetupSolver(job);
-	}
-	
-	algsys_->Solve();
-	
-	// new solution is only an increment of the full solution =============
-	algsys_->GetSolutionVal( solPtr );
-	StoreAlgsysToVec(solInc, solPtr);
-	
-	Double etaLineSearch=1;
-	Double residualL2Norm;
-	
-	if ( lineSearch_ == "none" ) {
-	  actSol += solInc;
-	}
-	else {
-	  // TRUE is for transient simulation
-	  residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
-	}
-	
-	sol_->SetAlgSysVector(actSol);
-	
-	// recalculate RHS with new values to get new residual (f^(k+1))========
-	algsys_->InitRHS(RhsLinVal_.GetPointer());
-	
-	assemble_->AssembleNLRHS();  // nonlinear part of RHS
-	
-	if ( lineSearch_ == "none" ) {
-	  Vector<Double> actRHS;
-	  Double *rhsPtr;
-	  algsys_->GetRHSVal( rhsPtr );
-	  StoreAlgsysToVec(actRHS, rhsPtr );
-	  residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
-	}
+        // setup and solve new system (rhs is already set) =====================
+        assemble_->InitNonLinMatrices();
+        assemble_->AssembleMatrices();
+        
+        algsys_->BuildInDirichlet();
+        
+        if (job == 1) {
+          algsys_->SetupPrecond(job);
+          algsys_->SetupSolver(job);
+        }
+        
+        algsys_->Solve();
+        
+        // new solution is only an increment of the full solution =============
+        algsys_->GetSolutionVal( solPtr );
+        StoreAlgsysToVec(solInc, solPtr);
+        
+        Double etaLineSearch=1;
+        Double residualL2Norm;
+        
+        if ( lineSearch_ == "none" ) {
+          actSol += solInc;
+        }
+        else {
+          // TRUE is for transient simulation
+          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
+        }
+        
+        sol_->SetAlgSysVector(actSol);
+        
+        // recalculate RHS with new values to get new residual (f^(k+1))========
+        algsys_->InitRHS(RhsLinVal_.GetPointer());
+        
+        assemble_->AssembleNLRHS();  // nonlinear part of RHS
+        
+        if ( lineSearch_ == "none" ) {
+          Vector<Double> actRHS;
+          Double *rhsPtr;
+          algsys_->GetRHSVal( rhsPtr );
+          StoreAlgsysToVec(actRHS, rhsPtr );
+          residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+        }
 
-	// calculation of residual error =======================================
-	Double residualErr;
-	if (RhsLinL2Norm > 1.0)
-	  residualErr = residualL2Norm / RhsLinL2Norm;
-	else
-	  residualErr = residualL2Norm;
-	
-	// calculate incremental error ========================================
-	Double solIncrL2Norm = solInc.NormL2();
-	Double actSolL2Norm  = actSol.NormL2();
-	
-	Double incrementalErr;      
+        // calculation of residual error =======================================
+        Double residualErr;
+        if (RhsLinL2Norm > 1.0)
+          residualErr = residualL2Norm / RhsLinL2Norm;
+        else
+          residualErr = residualL2Norm;
+        
+        // calculate incremental error ========================================
+        Double solIncrL2Norm = solInc.NormL2();
+        Double actSolL2Norm  = actSol.NormL2();
+        
+        Double incrementalErr;      
 
-	if (actSolL2Norm > 1.0)
-	  incrementalErr = solIncrL2Norm / actSolL2Norm;
-	else
-	  incrementalErr = solIncrL2Norm;
-	
-	// =====================================================================
-	// output of norms and data
-	// =====================================================================
-	
-	if ( nonLinLogging_ == TRUE ) {
-	  Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-				incrementalErr, etaLineSearch);
-	}
-	
-	
-	// boolean variable, holds condition if another
-	// iteration step is necessary
-	performOneMoreStep = 
-	  (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-	
-	if (!(performOneMoreStep && iterationCounter < nonLinMaxIter_))
-	  mycout << "incrementalErr " << incrementalErr << myendl 
-		 << "incStopCrit_ " << incStopCrit_ << myendl
-		 << "residualErr " << residualErr  << myendl
-		 << "residualStopCrit_ " << residualStopCrit_ << myendl;
-	
+        if (actSolL2Norm > 1.0)
+          incrementalErr = solIncrL2Norm / actSolL2Norm;
+        else
+          incrementalErr = solIncrL2Norm;
+        
+        // =====================================================================
+        // output of norms and data
+        // =====================================================================
+        
+        if ( nonLinLogging_ == TRUE ) {
+          Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
+                                incrementalErr, etaLineSearch);
+        }
+        
+        
+        // boolean variable, holds condition if another
+        // iteration step is necessary
+        performOneMoreStep = 
+          (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+        
+        if (!(performOneMoreStep && iterationCounter < nonLinMaxIter_))
+          mycout << "incrementalErr " << incrementalErr << myendl 
+                 << "incStopCrit_ " << incStopCrit_ << myendl
+                 << "residualErr " << residualErr  << myendl
+                 << "residualStopCrit_ " << residualStopCrit_ << myendl;
+        
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
       
     }
 
   }
 
-//   void SolveStepMag::StepStaticNonLin(const Integer kstep, const Double aTime,
-//                                  const Boolean reset)
-//   {
-//     ENTER_FCN( "SolveStepMag::SolveStepStaticNonLin" );
+  //   void SolveStepMag::StepStaticNonLin(const Integer kstep, const Double aTime,
+  //                                  const Boolean reset)
+  //   {
+  //     ENTER_FCN( "SolveStepMag::SolveStepStaticNonLin" );
 
-//     const Integer job = 1;
-//     Boolean performOneMoreStep;
-//     Integer iterationCounter=0;
-//     Double *solPtr;
+  //     const Integer job = 1;
+  //     Boolean performOneMoreStep;
+  //     Integer iterationCounter=0;
+  //     Double *solPtr;
   
-//     Vector<Double> solInc(eqnData_->GetNumEQNs());
-//     Vector<Double> actSol(eqnData_->GetNumEQNs());
+  //     Vector<Double> solInc(eqnData_->GetNumEQNs());
+  //     Vector<Double> actSol(eqnData_->GetNumEQNs());
 
-//     sol_->GetAlgSysVector(actSol);
+  //     sol_->GetAlgSysVector(actSol);
 
-//     SetBCs( 0);
+  //     SetBCs( 0);
 
-//     // setup right hand side ==============================================
-//     Double RhsLinL2Norm = SetLinRHS(); 
+  //     // setup right hand side ==============================================
+  //     Double RhsLinL2Norm = SetLinRHS(); 
 
-//     //add nonlinear part to RHS 
-//     assemble_->AssembleNLRHS();
+  //     //add nonlinear part to RHS 
+  //     assemble_->AssembleNLRHS();
 
-//     do {
-//       iterationCounter++;
+  //     do {
+  //       iterationCounter++;
 
-//       std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop "
-//                 << "nr. " << iterationCounter << std::endl;      
+  //       std::cout << std::endl << "Nonlinear Magnetics: Perform internal loop "
+  //                 << "nr. " << iterationCounter << std::endl;      
 
-// #ifdef DEBUG
-//       *debug << std::endl << "=============================================="
-//              << "========\n"
-//              << "Nonlinear Mechanics: Perform internal loop nr. "
-//              << iterationCounter << std::endl;      
-// #endif
+  // #ifdef DEBUG
+  //       *debug << std::endl << "=============================================="
+  //              << "========\n"
+  //              << "Nonlinear Mechanics: Perform internal loop nr. "
+  //              << iterationCounter << std::endl;      
+  // #endif
 
-//       // setup and solve new system (rhs is already set) =====================
-//       assemble_->InitNonLinMatrices();
-//       assemble_->AssembleMatrices();
+  //       // setup and solve new system (rhs is already set) =====================
+  //       assemble_->InitNonLinMatrices();
+  //       assemble_->AssembleMatrices();
       
-//       algsys_->BuildInDirichlet();
+  //       algsys_->BuildInDirichlet();
       
-//       if (job == 1) {
-//         algsys_->SetupPrecond(job);
-//         algsys_->SetupSolver(job);
-//       }
+  //       if (job == 1) {
+  //         algsys_->SetupPrecond(job);
+  //         algsys_->SetupSolver(job);
+  //       }
 
-//       algsys_->Solve();
+  //       algsys_->Solve();
 
-//       // new solution is only an increment of the full solution =============
-//       algsys_->GetSolutionVal( solPtr );
-//       StoreAlgsysToVec(solInc, solPtr);
+  //       // new solution is only an increment of the full solution =============
+  //       algsys_->GetSolutionVal( solPtr );
+  //       StoreAlgsysToVec(solInc, solPtr);
       
-//       Double etaLineSearch=1;
-//       Double residualL2Norm;
+  //       Double etaLineSearch=1;
+  //       Double residualL2Norm;
 
-//       if ( lineSearch_ == "no" ) {
-// 	actSol += solInc;
-//       }
-//       else {
-// 	// TRUE is for transient simulation
-// 	residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
-//       }
+  //       if ( lineSearch_ == "no" ) {
+  //      actSol += solInc;
+  //       }
+  //       else {
+  //      // TRUE is for transient simulation
+  //      residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
+  //       }
 
-//       sol_->SetAlgSysVector(actSol);
+  //       sol_->SetAlgSysVector(actSol);
 
-//       // recalculate RHS with new values to get new residual (f^(k+1))========
-//       algsys_->InitRHS(RhsLinVal_.GetPointer());
+  //       // recalculate RHS with new values to get new residual (f^(k+1))========
+  //       algsys_->InitRHS(RhsLinVal_.GetPointer());
 
-//       assemble_->AssembleNLRHS();  // nonlinear part of RHS
+  //       assemble_->AssembleNLRHS();  // nonlinear part of RHS
 
 
-// //       // calculation of residual error (takes care for Dirichlet BCs========
-// //       Vector<Double> actRHS;
-// //       Double *rhsPtr; 
-// //       algsys_->GetRHSVal( rhsPtr );
-// //       StoreAlgsysToVec(actRHS, rhsPtr );       
+  // //       // calculation of residual error (takes care for Dirichlet BCs========
+  // //       Vector<Double> actRHS;
+  // //       Double *rhsPtr; 
+  // //       algsys_->GetRHSVal( rhsPtr );
+  // //       StoreAlgsysToVec(actRHS, rhsPtr );       
           
 
-// //       residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
+  // //       residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
 
 
-// //       // calculation of residual error =======================================
-//       Double residualErr;
-//       if (RhsLinL2Norm > 1.0)
-//         residualErr = residualL2Norm / RhsLinL2Norm;
-//       else
-//         residualErr = residualL2Norm;
+  // //       // calculation of residual error =======================================
+  //       Double residualErr;
+  //       if (RhsLinL2Norm > 1.0)
+  //         residualErr = residualL2Norm / RhsLinL2Norm;
+  //       else
+  //         residualErr = residualL2Norm;
 
-//       // calculate incremental error ========================================
-//       Double solIncrL2Norm = solInc.NormL2();
-//       Double actSolL2Norm  = actSol.NormL2();
+  //       // calculate incremental error ========================================
+  //       Double solIncrL2Norm = solInc.NormL2();
+  //       Double actSolL2Norm  = actSol.NormL2();
       
-//       Double incrementalErr;      
-//       if (actSolL2Norm > 1.0)
-//         incrementalErr = solIncrL2Norm / actSolL2Norm;
-//       else
-//         incrementalErr = solIncrL2Norm;
+  //       Double incrementalErr;      
+  //       if (actSolL2Norm > 1.0)
+  //         incrementalErr = solIncrL2Norm / actSolL2Norm;
+  //       else
+  //         incrementalErr = solIncrL2Norm;
 
-//       // =====================================================================
-//       // output of norms and data
-//       // =====================================================================
+  //       // =====================================================================
+  //       // output of norms and data
+  //       // =====================================================================
 
-//       if ( nonLinLogging_ == TRUE ) {
-//         Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
-//                               incrementalErr, etaLineSearch);
-//       }
+  //       if ( nonLinLogging_ == TRUE ) {
+  //         Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
+  //                               incrementalErr, etaLineSearch);
+  //       }
       
 
-//       // boolean variable, holds condition if another
-//       // iteration step is necessary
-//       performOneMoreStep = 
-//         (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+  //       // boolean variable, holds condition if another
+  //       // iteration step is necessary
+  //       performOneMoreStep = 
+  //         (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
       
-//       if (!(performOneMoreStep && iterationCounter < nonLinMaxIter_))
-//         mycout << "incrementalErr " << incrementalErr << myendl 
-//                << "incStopCrit_ " << incStopCrit_ << myendl
-//                << "residualErr " << residualErr  << myendl
-//                << "residualStopCrit_ " << residualStopCrit_ << myendl;
+  //       if (!(performOneMoreStep && iterationCounter < nonLinMaxIter_))
+  //         mycout << "incrementalErr " << incrementalErr << myendl 
+  //                << "incStopCrit_ " << incStopCrit_ << myendl
+  //                << "residualErr " << residualErr  << myendl
+  //                << "residualStopCrit_ " << residualStopCrit_ << myendl;
 
-//     } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
+  //     } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
-//   }
+  //   }
 
 
   void SolveStepMag::StepTransNonLin(const Integer kstep, const Double asteptime,
-				     const Boolean reset) {
+                                     const Boolean reset) {
 
     ENTER_FCN( "SolveStepMag::StepTransNonLin" );
 
@@ -412,8 +412,8 @@ namespace CoupledField {
       if ( lineSearch_ != "no" ) {
 
         Vector<Double> actRHS;
-	Double *rhsPtr;
-	algsys_->GetRHSVal( rhsPtr );
+        Double *rhsPtr;
+        algsys_->GetRHSVal( rhsPtr );
         StoreAlgsysToVec( actRHS, rhsPtr );
           
         // ------------------------------------------------------------------

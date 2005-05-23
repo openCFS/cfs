@@ -38,7 +38,7 @@ namespace CoupledField {
   //   Construtor
   // **************
   Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,
-		  TimeFunc * aptTimeFunc) {
+                  TimeFunc * aptTimeFunc) {
 
     ENTER_FCN( "Domain::Domain" );
   
@@ -66,44 +66,44 @@ namespace CoupledField {
     // in the param file
     params->Get( "type", probGeo, "geometry" );
     if ( !(probGeo == "3d"    && dim == 3 ||
-	   probGeo == "axi"   && dim == 2 ||
-	   probGeo == "plane" && dim == 2 ) ) {
+           probGeo == "axi"   && dim == 2 ||
+           probGeo == "plane" && dim == 2 ) ) {
       Info->Error( "Dimensions in parameter file and geometry file do not fit",
-		   __FILE__, __LINE__ );
+                   __FILE__, __LINE__ );
     }
 
     // initialize pointer to grid 
     if (dim==2) {
 
       if (libmesh =="cfsGrid") {
-	ptgrid_=new GridInterfaceCFS<2>(InFile_);
+        ptgrid_=new GridInterfaceCFS<2>(InFile_);
       }
 
 #ifdef ADAPTGRID
       else if (libmesh== "adaptGrid") {
-	ptgrid_=new InterfaceAdaptGrid<2>(InFile_);
+        ptgrid_=new InterfaceAdaptGrid<2>(InFile_);
       }
 #endif
 
       else {
-	std::string errmsg = "Type of mesh_library should be one of ";
-	errmsg += "'cfsgrid' or 'adaptgrid', but is '" + libmesh + "'";
-	Info->Error( errmsg, __FILE__, __LINE__ );
+        std::string errmsg = "Type of mesh_library should be one of ";
+        errmsg += "'cfsgrid' or 'adaptgrid', but is '" + libmesh + "'";
+        Info->Error( errmsg, __FILE__, __LINE__ );
       }
     }
 
     if (dim==3) {
       if (libmesh =="cfsGrid") {
-	ptgrid_=new GridInterfaceCFS<3>(InFile_);
+        ptgrid_=new GridInterfaceCFS<3>(InFile_);
       }
 
 #ifdef ADAPTGRID
       else if (libmesh== "adaptGrid") {
-	ptgrid_=new InterfaceAdaptGrid<3>(InFile_);
+        ptgrid_=new InterfaceAdaptGrid<3>(InFile_);
       }
 #endif
       else {
-	Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
+        Error("Unknown type of mesh_library in conf-file",__FILE__,__LINE__);
       }
     }
     
@@ -144,7 +144,7 @@ namespace CoupledField {
   // **********************
   //   Getter function
   // **********************
- StdPDE * Domain::GetStdPDE(const std::string pdeName)
+  StdPDE * Domain::GetStdPDE(const std::string pdeName)
   {
     ENTER_IFCN( "Domain::GetStdDPE" );
     Boolean pdeFound = FALSE;
@@ -162,21 +162,21 @@ namespace CoupledField {
     for (i=0; i<ptSinglePde_.GetSize(); i++) {
       
       if (ptSinglePde_[i]->GetName() == pdeName) {
-	
-	// check if SinglePDE is not coupled directly
-	it = isDirectCoupled_.find( ptSinglePde_[i] );
-	
-	if ( it == isDirectCoupled_.end() ) {
-	  (*error) << "It was impossible to determine, if the PDE "
-		   << "with the name '" << pdeName << "' is directly "
-		   << "coupled or not";
-	  Error( __FILE__, __LINE__ );
-	}
-	
-	if ( (*it).second == FALSE ) {
-	  pdeFound = TRUE;
-	  break;
-	}
+        
+        // check if SinglePDE is not coupled directly
+        it = isDirectCoupled_.find( ptSinglePde_[i] );
+        
+        if ( it == isDirectCoupled_.end() ) {
+          (*error) << "It was impossible to determine, if the PDE "
+                   << "with the name '" << pdeName << "' is directly "
+                   << "coupled or not";
+          Error( __FILE__, __LINE__ );
+        }
+        
+        if ( (*it).second == FALSE ) {
+          pdeFound = TRUE;
+          break;
+        }
       }
     }
 
@@ -201,8 +201,8 @@ namespace CoupledField {
 
     for (i=0; i<ptSinglePde_.GetSize(); i++) {
       if (ptSinglePde_[i]->GetName() == pdeName) {
-	pdeFound = TRUE;
-	break;
+        pdeFound = TRUE;
+        break;
       }
     }
     
@@ -227,7 +227,7 @@ namespace CoupledField {
 
     // if only one DirectCouplePDE exists
     else if ( numDirectCoupledPde_ == 1 &&
-	      ptIterCoupledPde_ == NULL )
+              ptIterCoupledPde_ == NULL )
       return ptDirectCoupledPde_[0];
 
     // one or more Single/DirectCoupledPDEs
@@ -241,8 +241,8 @@ namespace CoupledField {
   //   Initialization of PDEs
   // **************************
   void Domain::InitPDEs( StdVector<std::string> & pdeNames,
-			 Integer sequenceStep,
-			 StdVector<std::string> tags ) {
+                         Integer sequenceStep,
+                         StdVector<std::string> tags ) {
 
     ENTER_FCN( "Domain::InitPDEs" );
 
@@ -260,12 +260,12 @@ namespace CoupledField {
     std::map<SinglePDE*,Boolean>::iterator it;
 
     for (Integer i=0; i<numSinglePde_; i++) {
-      	it = isDirectCoupled_.find( ptSinglePde_[i] );
-	if ( (*it).second == FALSE) {
-	  //std::cerr << "Domain: Init() of " 
-	  //<< ptSinglePde_[i]->GetName() << std::endl;
-	  ptSinglePde_[i]->Init(sequenceStep,tags[i]);
-	}
+      it = isDirectCoupled_.find( ptSinglePde_[i] );
+      if ( (*it).second == FALSE) {
+        //std::cerr << "Domain: Init() of " 
+        //<< ptSinglePde_[i]->GetName() << std::endl;
+        ptSinglePde_[i]->Init(sequenceStep,tags[i]);
+      }
     }
 
     // initialize direct coupled pde(s)
@@ -316,55 +316,55 @@ namespace CoupledField {
       Info->StartProgress("Creating PDE '" + pdeNames[i] + "'");
 
       if (pdeNames[i] == "electrostatic") 
-	ptSinglePde_[i]=new ElecPDE(ptgrid_,ptTimeFunc_,OutFile_);
+        ptSinglePde_[i]=new ElecPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
       else if (pdeNames[i] == "mechanic")
-	ptSinglePde_[i]=new MechPDE(ptgrid_,ptTimeFunc_,OutFile_);
+        ptSinglePde_[i]=new MechPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
       else if (pdeNames[i] == "acoustic")
-	{
-	  StdVector<std::string> acouSubType;
-	  params->GetList( "subType", acouSubType,"pdeList", "acoustic");
-	  if (acouSubType.GetSize())
-	    ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
-	  else
-	    ptSinglePde_[i]=new AcousticPDE(ptgrid_,ptTimeFunc_,OutFile_);
-	}
+        {
+          StdVector<std::string> acouSubType;
+          params->GetList( "subType", acouSubType,"pdeList", "acoustic");
+          if (acouSubType.GetSize())
+            ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
+          else
+            ptSinglePde_[i]=new AcousticPDE(ptgrid_,ptTimeFunc_,OutFile_);
+        }
       
 
       else if (pdeNames[i] == "smooth")
-	ptSinglePde_[i]=new SmoothPDE(ptgrid_,ptTimeFunc_,OutFile_);
+        ptSinglePde_[i]=new SmoothPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
       else if (pdeNames[i] == "magnetic") 
-	{
-	  if (dim == 2)
-	    ptSinglePde_[i]=new MagPDE(ptgrid_,ptTimeFunc_,OutFile_);
-	  else
-	    Error( "Magnetic field calculation currently only possible in 2D!",
-		   __FILE__, __LINE__);
-	}
+        {
+          if (dim == 2)
+            ptSinglePde_[i]=new MagPDE(ptgrid_,ptTimeFunc_,OutFile_);
+          else
+            Error( "Magnetic field calculation currently only possible in 2D!",
+                   __FILE__, __LINE__);
+        }
 
       else if (pdeNames[i] == "piezo")
-	ptSinglePde_[i]=new PiezoPDE(ptgrid_,ptTimeFunc_,OutFile_);
+        ptSinglePde_[i]=new PiezoPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
       else if (pdeNames[i] == "mpcci")
-	ptSinglePde_[i]=new MpcciPDE(ptgrid_,ptTimeFunc_,OutFile_);
+        ptSinglePde_[i]=new MpcciPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
-//       else if (pdeNames[i] == "acouflownoise")
-//       	ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
+      //       else if (pdeNames[i] == "acouflownoise")
+      //              ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
 
       //      else if (pdeNames[i] == "smoothlaplace") 
-      //	ptSinglePde_[i]=new SmoothLaPlacePDE(ptgrid_,ptTimeFunc_,OutFile_); 
+      //        ptSinglePde_[i]=new SmoothLaPlacePDE(ptgrid_,ptTimeFunc_,OutFile_); 
 
 
       //      else if (pdeNames[i] == "magnetic") 
-      //	if (dim == 3
-      //	ptSinglePde_[i]=new MagEdgePDE(ptgrid_,ptTimeFunc_,OutFile_); 
+      //        if (dim == 3
+      //        ptSinglePde_[i]=new MagEdgePDE(ptgrid_,ptTimeFunc_,OutFile_); 
       else
-	{
-	  std::string msg=pdeNames[i]+" - this type of pdes is unknown";
-	  Error(msg.c_str(),__FILE__,__LINE__);
-	}     
+        {
+          std::string msg=pdeNames[i]+" - this type of pdes is unknown";
+          Error(msg.c_str(),__FILE__,__LINE__);
+        }     
       
       // by default, not single pde is directly coupled
       isDirectCoupled_[ptSinglePde_[i]] = FALSE;
@@ -379,7 +379,7 @@ namespace CoupledField {
     }
 
 
-} // end of InitPDE()
+  } // end of InitPDE()
 
 
   void Domain::CreateIterCoupledPDE(StdVector<std::string> & sequenceTags) {
@@ -411,12 +411,12 @@ namespace CoupledField {
     if (sequenceTags.GetSize() > 1) {
       firstTag = sequenceTags[0];
       for (Integer i=1; i<sequenceTags.GetSize(); i++)
-	if (sequenceTags[i] != firstTag) {
-	  errMsg = "CreateIterCoupledPDE: The tags in the <multiSequence> section ";
-	  errMsg += "are not all the same in each step.\n Coupling is only ";
-	  errMsg += "possible if in each step all the <refTag> are the same!";
-	  Error(errMsg.c_str(), __FILE__, __LINE__ );
-	}
+        if (sequenceTags[i] != firstTag) {
+          errMsg = "CreateIterCoupledPDE: The tags in the <multiSequence> section ";
+          errMsg += "are not all the same in each step.\n Coupling is only ";
+          errMsg += "possible if in each step all the <refTag> are the same!";
+          Error(errMsg.c_str(), __FILE__, __LINE__ );
+        }
     }
 
     params->GetIterCoupledPDEList(iterCoupledPDENames, sequenceTags[0]);
@@ -427,19 +427,19 @@ namespace CoupledField {
     // Now we have to get the according pointers to the PDEs
     for (Integer i=0; i<iterCoupledPDENames.GetSize(); i++)
       for (Integer j=0; j<ptSinglePde_.GetSize(); j++) {
-	  if (iterCoupledPDENames[i] == ptSinglePde_[j]->GetName() )
-	      iterCoupledPDEs.Push_back(ptSinglePde_[j]);
+        if (iterCoupledPDENames[i] == ptSinglePde_[j]->GetName() )
+          iterCoupledPDEs.Push_back(ptSinglePde_[j]);
       }
     
     params->GetList( "method", methods);
     for (Integer i=0; i<methods.GetSize(); i++)
       if (methods[i] != "RHS")
-	{
-	  errMsg  = "Domain::InitCoupledPDE: Methode '";
-	  errMsg += methods[i];
-	  errMsg += "' not implemented for iterative coupling";
-	  Error(errMsg.c_str(), __FILE__, __LINE__);
-	} 
+        {
+          errMsg  = "Domain::InitCoupledPDE: Methode '";
+          errMsg += methods[i];
+          errMsg += "' not implemented for iterative coupling";
+          Error(errMsg.c_str(), __FILE__, __LINE__);
+        } 
     
     
     CoupledPDEDef * CouplingDef = new CoupledPDEDef(ptgrid_);
@@ -451,9 +451,9 @@ namespace CoupledField {
     
     // create new iterative coupeld PDE
     ptIterCoupledPde_ = new IterCoupledPDE(orderedPdes, couplings_,
-				       sequenceTags[0]);
+                                           sequenceTags[0]);
     
-    delete CouplingDef;	
+    delete CouplingDef; 
 
     Info->FinishProgress();
   }
@@ -485,31 +485,31 @@ namespace CoupledField {
       // *** PIEZO Coupling ***
       if ( couplingNames[i] == "piezoDirect" ) {
 
-	pde1 = GetSinglePDE( "mechanic" );
-	pde2 = GetSinglePDE( "electrostatic" );
-	//std::cerr << pde1->GetName() << std::endl;
-	//std::cerr << pde2->GetName() << std::endl;
+        pde1 = GetSinglePDE( "mechanic" );
+        pde2 = GetSinglePDE( "electrostatic" );
+        //std::cerr << pde1->GetName() << std::endl;
+        //std::cerr << pde2->GetName() << std::endl;
 
-	// in the case of piezo coupling, the electrotstatic
-	// entries have to be multiplied by -1
-	dynamic_cast<ElecPDE*>(pde2)->SetPiezoCoupling();
-	
-	coupling = new PiezoCoupling( pde1, pde2 );
-	
-	isDirectCoupled_[pde1] = TRUE;
-	isDirectCoupled_[pde2] = TRUE;
-	
+        // in the case of piezo coupling, the electrotstatic
+        // entries have to be multiplied by -1
+        dynamic_cast<ElecPDE*>(pde2)->SetPiezoCoupling();
+        
+        coupling = new PiezoCoupling( pde1, pde2 );
+        
+        isDirectCoupled_[pde1] = TRUE;
+        isDirectCoupled_[pde2] = TRUE;
+        
       } 
       // *** MECH-ACOU Coupling ****
       else if ( couplingNames[i] == "acouMech" ) {
-	Error( "Direct ACOUSTIC-MECHANIC coupling is not implemented yet",
-	       __FILE__, __LINE__ );
+        Error( "Direct ACOUSTIC-MECHANIC coupling is not implemented yet",
+               __FILE__, __LINE__ );
 
       }
       else {
-	(*error) << "The direct coupling '" << couplingNames[i]
-		 << "' is not implemented!" << std::endl;
-	Error( __FILE__, __LINE__ );
+        (*error) << "The direct coupling '" << couplingNames[i]
+                 << "' is not implemented!" << std::endl;
+        Error( __FILE__, __LINE__ );
       }
 
     }
@@ -531,7 +531,7 @@ namespace CoupledField {
     couplings[0] = coupling;
 
     ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(ptgrid_, OutFile_,
-						       ptTimeFunc_));
+                                                       ptTimeFunc_));
     ptDirectCoupledPde_[0]->SetSinglePDEs( singlePdes );
     ptDirectCoupledPde_[0]->SetCouplings( couplings );
 
@@ -547,7 +547,7 @@ namespace CoupledField {
 
     while (it != isDirectCoupled_.end() ) {
       if ( (*it).second == FALSE )
-	numIterCoupledStdPde_++;
+        numIterCoupledStdPde_++;
       it++;
     }
     
@@ -579,7 +579,7 @@ namespace CoupledField {
   }
 
 
-   void Domain::Update( ) {
+  void Domain::Update( ) {
     ENTER_FCN( "Domain::Update" );
  
     // Init AlgSystem
@@ -593,13 +593,13 @@ namespace CoupledField {
     //set the algebraic systems and read material data
     for (int i=0;i< numSinglePde_;i++)
       {
-	ptSinglePde_[i]->DeleteAlgSys();
-	
-	// the 'Reset' function was never implemented
-	// for a PDE, so what sould the function call
-	// trigger?
-	//ptSinglePde_[i]->Reset();
-	ptSinglePde_[i]->DefineAlgSys(); 
+        ptSinglePde_[i]->DeleteAlgSys();
+        
+        // the 'Reset' function was never implemented
+        // for a PDE, so what sould the function call
+        // trigger?
+        //ptSinglePde_[i]->Reset();
+        ptSinglePde_[i]->DefineAlgSys(); 
       }
   }
 

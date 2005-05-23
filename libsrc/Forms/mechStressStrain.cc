@@ -20,14 +20,14 @@ namespace CoupledField
 
 
 
-   MechStressStrain::MechStressStrain(MaterialData & matData) 
+  MechStressStrain::MechStressStrain(MaterialData & matData) 
     : linElastInt(matData)
   {
     ENTER_FCN( "MechStressStrain::MechStressStrain" );
   }
  
 
-   MechStressStrain::~MechStressStrain()
+  MechStressStrain::~MechStressStrain()
   {
     ENTER_FCN( "MechStressStrain::~MechStressStrain" );
   }

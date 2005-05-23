@@ -34,9 +34,9 @@ namespace CoupledField {
   
     for (Integer i=0; i<historyFiles_.GetSize(); i++) {
       for (Integer j=0; j<historyFiles_[i].GetSize(); j++) {
-	if (historyFiles_[i][j]) {
-	  delete historyFiles_[i][j];
-	}
+        if (historyFiles_[i][j]) {
+          delete historyFiles_[i][j];
+        }
       }
     }
   }
@@ -94,7 +94,7 @@ namespace CoupledField {
     // Make a sanity check
     if ( histQuantities_.GetSize() != 0 || histNodesPerQuant_.GetSize() != 0 ){
       Error( "Repeated call to WriteResults::InitHistoryFiles ?!?!",
-	     __FILE__, __LINE__ );
+             __FILE__, __LINE__ );
     }
 
     // Define some loop counters and auxilliary variables
@@ -119,22 +119,22 @@ namespace CoupledField {
 
       // Determine if current output quantity was already assigned
       for ( j = 0; j < histQuantities_.GetSize(); j++ ) {
-	String2Enum( quantVec[iQuant], solType );
-	if ( histQuantities_[j] == solType ) {
-	  quantityFound = j;
-	  break;
-	}
+        String2Enum( quantVec[iQuant], solType );
+        if ( histQuantities_[j] == solType ) {
+          quantityFound = j;
+          break;
+        }
       }
 
       // The quantity was not yet assigned, so do this now
       // and also make room for storing the curresponding
       // number of history nodes
       if ( quantityFound == -1 ) {
-	String2Enum( quantVec[iQuant], solType );
-	histQuantities_.Push_back(solType);
-	histNodesPerQuant_.Push_back(StdVector<Integer>());
-	histNodeNumIdentCoup.Push_back(StdVector<Integer>());
-	quantityFound = histNodesPerQuant_.GetSize() - 1;
+        String2Enum( quantVec[iQuant], solType );
+        histQuantities_.Push_back(solType);
+        histNodesPerQuant_.Push_back(StdVector<Integer>());
+        histNodeNumIdentCoup.Push_back(StdVector<Integer>());
+        quantityFound = histNodesPerQuant_.GetSize() - 1;
       }
 
       // Whenever an output quantity appears in quantVec it is
@@ -145,12 +145,12 @@ namespace CoupledField {
       ptgrid->GetNodesByName( tempNodes, nodeVec[iQuant] );
       histNodeNumIdentCoup[quantityFound].Push_back(iQuant);
       histNodeNumIdentCoup[quantityFound].
-	Push_back(histNodesPerQuant_[quantityFound].GetSize());
+        Push_back(histNodesPerQuant_[quantityFound].GetSize());
       for ( i = 0; i < tempNodes.GetSize(); i++ ) {
-	histNodesPerQuant_[quantityFound].Push_back(tempNodes[i]);
+        histNodesPerQuant_[quantityFound].Push_back(tempNodes[i]);
       }
       histNodeNumIdentCoup[quantityFound].
-	Push_back(histNodesPerQuant_[quantityFound].GetSize()-1);
+        Push_back(histNodesPerQuant_[quantityFound].GetSize()-1);
     }
 
     // ************************
@@ -179,41 +179,41 @@ namespace CoupledField {
       Enum2String( histQuantities_[iQuant], quantityName );
 
       Info->PrintF( "", "\nHistory nodes for quantity '%s':\n",
-		    quantityName.c_str() );
+                    quantityName.c_str() );
       for ( i = 0; i < histNodeNumIdentCoup[iQuant].GetSize() / 3; i++ ) {
 
-	Info->PrintF( "", " identifier = %s, node(s) =", 
-		      nodeVec[histNodeNumIdentCoup[iQuant][i*3]].c_str() );
+        Info->PrintF( "", " identifier = %s, node(s) =", 
+                      nodeVec[histNodeNumIdentCoup[iQuant][i*3]].c_str() );
 
-	for ( j  = histNodeNumIdentCoup[iQuant][i*3+1];
-	      j <= histNodeNumIdentCoup[iQuant][i*3+2]; j++ ) {
-	  Info->PrintF( "", " %d", histNodesPerQuant_[iQuant][j] );
-	}
-	Info->PrintF( "", "\n" );
+        for ( j  = histNodeNumIdentCoup[iQuant][i*3+1];
+              j <= histNodeNumIdentCoup[iQuant][i*3+2]; j++ ) {
+          Info->PrintF( "", " %d", histNodesPerQuant_[iQuant][j] );
+        }
+        Info->PrintF( "", "\n" );
       }
 
       // For each node there will be one history file
       historyFiles_[iQuant].Resize(histNodesPerQuant_[iQuant].GetSize());
 
       for ( Integer iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
-	    iNode++ ) {
+            iNode++ ) {
 
-	// Create complete filename
-	std::string quantString;
-	Enum2String(histQuantities_[iQuant], quantString);
-	totalName = namePrefix + quantString;
-	totalName += "-node-";
-	totalName += Info->GenStr(histNodesPerQuant_[iQuant][iNode]);
-	totalName += namePostfix;
+        // Create complete filename
+        std::string quantString;
+        Enum2String(histQuantities_[iQuant], quantString);
+        totalName = namePrefix + quantString;
+        totalName += "-node-";
+        totalName += Info->GenStr(histNodesPerQuant_[iQuant][iNode]);
+        totalName += namePostfix;
 
-	// Open output file
-	historyFiles_[iQuant][iNode] = NULL;
-	historyFiles_[iQuant][iNode] = new std::ofstream(totalName.c_str());
-	if ( !historyFiles_[iQuant][iNode] ) {
-	  std::string errMsg = "InitHistory: Cannot open history file '";
-	  errMsg += totalName + "'";
-	  Error (errMsg.c_str(), __FILE__, __LINE__);
-	}
+        // Open output file
+        historyFiles_[iQuant][iNode] = NULL;
+        historyFiles_[iQuant][iNode] = new std::ofstream(totalName.c_str());
+        if ( !historyFiles_[iQuant][iNode] ) {
+          std::string errMsg = "InitHistory: Cannot open history file '";
+          errMsg += totalName + "'";
+          Error (errMsg.c_str(), __FILE__, __LINE__);
+        }
       }
     }
  
@@ -221,9 +221,9 @@ namespace CoupledField {
 
 
   void WriteResults::WriteSolMatrix(Grid * ptgrid, 
-				    const Vector<Double> sol, 
-				    const std::string matFileName,
-				    const Integer nrDofs) {
+                                    const Vector<Double> sol, 
+                                    const std::string matFileName,
+                                    const Integer nrDofs) {
 
     ENTER_FCN( "WriteResults::WriteSolMatrix" );
 
@@ -241,14 +241,14 @@ namespace CoupledField {
       
       // write x,y,z-coordinate
       for (i=0; i<numnodes; i++) {
-	ptgrid->GetNodeCoordinate(point,i);
-	(*matrixOut) << " \t" << point[0] << " \t" << point[1] << " \t"
-		     << 0 << " \t";
+        ptgrid->GetNodeCoordinate(point,i);
+        (*matrixOut) << " \t" << point[0] << " \t" << point[1] << " \t"
+                     << 0 << " \t";
 
-	for (Integer actDof =0; actDof < nrDofs; actDof++) {
-	  (*matrixOut) << sol[i*nrDofs + actDof] << " \t";
-	}
-	(*matrixOut) << std::endl;
+        for (Integer actDof =0; actDof < nrDofs; actDof++) {
+          (*matrixOut) << sol[i*nrDofs + actDof] << " \t";
+        }
+        (*matrixOut) << std::endl;
       }
     }
     else {
@@ -256,22 +256,22 @@ namespace CoupledField {
       
       // write x,y,z-coordinate
       for (i=0; i<numnodes; i++) {
-	ptgrid->GetNodeCoordinate(point,i);
-	(*matrixOut) << " \t" << point[0] << " \t" << point[1] << " \t"
-		     << point[2] << " \t";
+        ptgrid->GetNodeCoordinate(point,i);
+        (*matrixOut) << " \t" << point[0] << " \t" << point[1] << " \t"
+                     << point[2] << " \t";
 
-	for (Integer actDof =0; actDof < nrDofs; actDof++) {
-	  (*matrixOut) << sol[i*nrDofs + actDof] << " \t";
-	}
-	(*matrixOut) << std::endl;
+        for (Integer actDof =0; actDof < nrDofs; actDof++) {
+          (*matrixOut) << sol[i*nrDofs + actDof] << " \t";
+        }
+        (*matrixOut) << std::endl;
       } 
     }
   }
 
 
   void WriteResults::WriteNodeHistoryTransient(const NodeStoreSol<Double>&data,
-					       const Integer step,
-					       const Double time) {
+                                               const Integer step,
+                                               const Double time) {
 
     ENTER_FCN( "WriteResults::WriteNodeHistoryTransient" );
 
@@ -313,9 +313,9 @@ namespace CoupledField {
 
 
   void WriteResults::WriteNodeHistoryHarmonic(const NodeStoreSol<Complex>&data,
-					      const Integer step,
-					      const Double frequency,
-					      const ComplexFormat format) {
+                                              const Integer step,
+                                              const Double frequency,
+                                              const ComplexFormat format) {
     ENTER_FCN( "WriteResults::WriteNodeHistoryHarmonic" );
 
     std::ofstream * myHist;
@@ -335,38 +335,38 @@ namespace CoupledField {
       // Find the related quantity
       iQuant = histQuantities_.Find(solTypes[iSol]);
       if ( iQuant != -1 ) {    
-	// Iterate over all history nodes
-	for ( Integer iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
-	      iNode++ ) {
-	  myHist = historyFiles_[iQuant][iNode];
-	  (*myHist) << std::scientific << frequency;
-	  
-	  // Iterate over all dofs
-	  for ( Integer iDof = 0; iDof < actDof; iDof++ ) {
-	    data.Get( solTypes[iSol], histNodesPerQuant_[iQuant][iNode]-1,
-		      iDof, val );
-	    
-	    if (format == REAL_IMAG)
-	      {
-		val1 = val.real();
-		val2 = val.imag();
-		
-		(*myHist) << "  " << val1 << "  " << val2;
-	      }
-	    else if (format == AMPLITUDE_PHASE) {
-	      val1 = std::abs(val); 
-	      if (abs(val.imag()) > 1e-16) {
-		val2 = std::arg(val)*180/PI;
-	      }
-	      else {
-		val2 = 0;
-	      }
-	      
-	      (*myHist) << "  " << val1 << "  " << val2;
-	    }
-	  }
-	  (*myHist) << std::endl;
-	}
+        // Iterate over all history nodes
+        for ( Integer iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
+              iNode++ ) {
+          myHist = historyFiles_[iQuant][iNode];
+          (*myHist) << std::scientific << frequency;
+          
+          // Iterate over all dofs
+          for ( Integer iDof = 0; iDof < actDof; iDof++ ) {
+            data.Get( solTypes[iSol], histNodesPerQuant_[iQuant][iNode]-1,
+                      iDof, val );
+            
+            if (format == REAL_IMAG)
+              {
+                val1 = val.real();
+                val2 = val.imag();
+                
+                (*myHist) << "  " << val1 << "  " << val2;
+              }
+            else if (format == AMPLITUDE_PHASE) {
+              val1 = std::abs(val); 
+              if (abs(val.imag()) > 1e-16) {
+                val2 = std::arg(val)*180/PI;
+              }
+              else {
+                val2 = 0;
+              }
+              
+              (*myHist) << "  " << val1 << "  " << val2;
+            }
+          }
+          (*myHist) << std::endl;
+        }
       }
     }
     

@@ -28,8 +28,8 @@ namespace CoupledField{
     //! \param vector y cointains starting values
     //! \param vector dydt contains on return the resulting rhs
     virtual void CompDeriv(const Double &t,
-			    const StdVector<Double> &y,
-			    StdVector<Double> &dydt) = 0;
+                           const StdVector<Double> &y,
+                           StdVector<Double> &dydt) = 0;
 
     virtual Double GetP () = 0;
 

@@ -13,49 +13,49 @@
 namespace CoupledField
 {
  
-ElecForceOp::ElecForceOp(Grid * ptGrid,
-			 StdPDE * ptPDE,
-			 NodeEQN * ptEQN,
-			 NodeStoreSol<Double> & sol,
-			 Integer dim,
-			 MaterialData* &matData,
-			 StdVector<RegionIdType> & allSubdoms,
-			 Boolean isaxi) 
-  : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, isaxi)
-{
-  ENTER_FCN( "ElecForceOp::ElecForceOp" );
+  ElecForceOp::ElecForceOp(Grid * ptGrid,
+                           StdPDE * ptPDE,
+                           NodeEQN * ptEQN,
+                           NodeStoreSol<Double> & sol,
+                           Integer dim,
+                           MaterialData* &matData,
+                           StdVector<RegionIdType> & allSubdoms,
+                           Boolean isaxi) 
+    : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, isaxi)
+  {
+    ENTER_FCN( "ElecForceOp::ElecForceOp" );
 
-  gradFieldOp_ = new GradientFieldOp<Double>(ptGrid, ptPDE, ptEQN, 
-				     sol, ELEC_POTENTIAL, isaxi);
-  solType_ = ELEC_FORCE_VWP;
-  sign_    = 1.0;
-}
+    gradFieldOp_ = new GradientFieldOp<Double>(ptGrid, ptPDE, ptEQN, 
+                                               sol, ELEC_POTENTIAL, isaxi);
+    solType_ = ELEC_FORCE_VWP;
+    sign_    = 1.0;
+  }
 
-ElecForceOp::~ElecForceOp()
-{
-  ENTER_FCN( "ElecForceOp::~ElecForceOp" );
+  ElecForceOp::~ElecForceOp()
+  {
+    ENTER_FCN( "ElecForceOp::~ElecForceOp" );
 
-  if (gradFieldOp_) 
-    delete gradFieldOp_;
-}
+    if (gradFieldOp_) 
+      delete gradFieldOp_;
+  }
 
 
-void ElecForceOp::ComputeField(Vector<Double> & Field, const Elem * ptElement,
-			      const Vector<Double> & lCoord)
-{
-  ENTER_FCN( "ElecForceOp::ComputeField" );
+  void ElecForceOp::ComputeField(Vector<Double> & Field, const Elem * ptElement,
+                                 const Vector<Double> & lCoord)
+  {
+    ENTER_FCN( "ElecForceOp::ComputeField" );
 
-  gradFieldOp_->CalcElemGradField(Field, ptElement, lCoord, 1);
+    gradFieldOp_->CalcElemGradField(Field, ptElement, lCoord, 1);
 
-} 
+  } 
 
- Double ElecForceOp::GetMatVal(Integer actSD)
-{
-  ENTER_FCN( "ElecForceOp::GetMatVal" );
+  Double ElecForceOp::GetMatVal(Integer actSD)
+  {
+    ENTER_FCN( "ElecForceOp::GetMatVal" );
 
-  Double epsilon = materialData_[actSD].GetPermittivity(2,2); 
+    Double epsilon = materialData_[actSD].GetPermittivity(2,2); 
 
-  return epsilon;
-} 
+    return epsilon;
+  } 
 
 }// end of namespace CoupledField

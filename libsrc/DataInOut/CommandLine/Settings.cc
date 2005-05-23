@@ -65,20 +65,20 @@
 
 namespace CoupledField {
 
-/**********************************************************/
+  /**********************************************************/
 
-// definition of possible directives
-const char* const SettingDataBase::
-m_directives[SettingDataBase::N_DIRECTIVES] =
-  { SETTING_DB_DIRECTIVE_SECTION_IN,
-    SETTING_DB_DIRECTIVE_SECTION_OUT,
-    SETTING_DB_DIRECTIVE_END };
+  // definition of possible directives
+  const char* const SettingDataBase::
+  m_directives[SettingDataBase::N_DIRECTIVES] =
+    { SETTING_DB_DIRECTIVE_SECTION_IN,
+      SETTING_DB_DIRECTIVE_SECTION_OUT,
+      SETTING_DB_DIRECTIVE_END };
 
-/**********************************************************
- *
- * class Setting
- *
- **********************************************************/
+  /**********************************************************
+   *
+   * class Setting
+   *
+   **********************************************************/
 
   Setting::Setting( const SettingDef& settingdef,
                     bool        verbose     )
@@ -171,7 +171,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
     default :
       break;
     }
-	
+        
     // copy the member variables
     // DO NOT COPY : m_next, m_IDString
     m_nParameters  = setting.m_nParameters;
@@ -180,12 +180,12 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
     m_Attributes   = setting.m_Attributes;
     m_Type         = setting.m_Type;
     m_verbose      = setting.m_verbose;
-	
+        
     // get m_IDString
     delete [] m_IDString;
     m_IDString = NEW char [strlen(setting.m_IDString)+1];
     strcpy( m_IDString, setting.m_IDString );
-	
+        
     // get data
     if( m_nParameters ) {
       switch( m_Type ) {
@@ -216,7 +216,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
         break;
       }
     }
-	
+        
     return *this;
   }
 
@@ -227,7 +227,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
   bool Setting::expandPathString( const int i )
   {
     const char fn[] = "Setting::expandPathString";
-	
+        
     if( getType() != STRING ) {
       cerr << FUNCTION_ERROR(fn) << "setting " << BLACK_(getIDString())
            << " is not of type STRING -> cannot be expanded\n";
@@ -250,7 +250,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
   bool Setting::expandAllPathStrings()
   {
     const char fn[] = "Setting::expandAllPathStrings";
-	
+        
     if( getType() != STRING ) {
       cerr << FUNCTION_ERROR(fn) << "setting " << BLACK_(getIDString())
            << " is not of type STRING -> cannot be expanded\n";
@@ -291,7 +291,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
                                                  bool *const pickySuccess )
   {
     int nStrings = 0;
-	
+        
     // separate the parameters with 0-characters
     nStrings = separateParametersInRawLine( line,       FileName,
                                             LineNumber, pickySuccess );
@@ -303,7 +303,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
         return false;
       }
     }
-	
+        
     return true;
   }
 
@@ -364,11 +364,11 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
                                                   bool *const pickySuccess )
   {
     const char FunctionName[] = "Setting::separateParametersInRawLine";
-	
+        
     int nStrings = 0,
       iread    = 0,
       iwrite   = 0;
-	
+        
     // check IDString and explicit assignment
     while( line[iread] == ' ' )  iread++;  // ignore leading spaces
     if(    line[iread] ==  0  )  return 0; // -> line contains only spaces
@@ -394,11 +394,11 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
       }
     }
     nStrings++;
-	
+        
     // separate the parameters of this setting
     int insideQuoting   = 0,
       insideParameter = 0;
-	
+        
     while( line[iread] != 0 )
       {
         switch( line[iread] ) {
@@ -498,7 +498,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
         if( pickySuccess )  *pickySuccess = false;
         return false;
       }
-	
+        
     // check number of parameters
     if( nParameters < m_minNumParams ) {
       SettingDataBase::printLineError( FunctionName, FileName, LineNumber );
@@ -554,7 +554,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
     case FLAG :
       break;
     }
-	
+        
     // get parameters
     const char *pparam = line;
     for( int i = 0; i < nParameters; i++ ) {
@@ -581,7 +581,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
                 return false;
               }
           break;
-				
+                                
         case INT :
           if( 1 != sscanf(pparam, "%d", &m_int[i]) ) {
             SettingDataBase::printLineError( FunctionName, FileName, LineNumber );
@@ -590,7 +590,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
             return false;
           }
           break;
-				
+                                
         case FLOAT :
           if( 1 != sscanf(pparam, "%f", &m_float[i]) ) {
             SettingDataBase::printLineError( FunctionName, FileName, LineNumber );
@@ -599,7 +599,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
             return false;
           }
           break;
-			
+                        
         case STRING :
           if( NULL == (m_string[i] = NEW char [strlen(pparam)+1]) ) {
             if( pickySuccess )  *pickySuccess = false;
@@ -607,14 +607,14 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
           }
           strcpy( m_string[i], pparam );
           break;
-				
+                                
         case FLAG :
           break;
         }
-		
+                
       m_nParameters++;
     }
-	
+        
     return true;
   }
 
@@ -625,7 +625,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
   bool Setting::expandHomePath( char** path )
   {
     const char fn[] = "Setting::expandHomePath";
-	
+        
     if( *path == NULL || (*path)[0] == 0 ) {
       cerr << FUNCTION_ERROR(fn) << "invalid parameter string\n";
       return false;
@@ -644,7 +644,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
       "deactivated by compiling with NO_HOME_PATH_EXPANSION\n"
       "    cannot expand path " << *path << "\n";
     return false;
-	
+        
 #else
 
     const char *expansion       = NULL;
@@ -702,7 +702,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
 
     delete [] *path;
     *path = fullPath;
-	
+        
     return true;
 
 #endif // NO_HOME_PATH_EXPANSION
@@ -777,10 +777,10 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
   ostream& operator << ( ostream& os, const SettingDef& sd )
   {
     if( sd.m_IDString == NULL )  return os;
-	
+        
     const char* TypeStrings[Setting::STRING+1] =
       { "flag", "boolean", "integer", "float", "string" };
-	
+        
 #ifndef  SUPPRESS_COLORED_OUTPUT
     os << "\033[1m" << sd.m_IDString;
 #else
@@ -805,9 +805,9 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
     }
     os << " " << TypeStrings[sd.m_Type]
        << (sd.m_maxNumParams > 1 || sd.m_maxNumParams < 0 ? "s" : "") << "]\n";
-	
+        
     if( sd.m_HelpString )  cout << "    " << sd.m_HelpString << endl;
-	
+        
     return os;
   }
 
@@ -816,7 +816,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
    * class SettingDataBase
    *
    **********************************************************/
-		
+                
   SettingDataBase::SettingDataBase( const bool verbose )
     : m_verbose(verbose),
       m_Settings(NULL),
@@ -903,7 +903,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
   {
     const char fn[] = "SettingDataBase::mapStringToIndex";
     Setting *setting = getSetting( ID );
-	
+        
     // get pointer to matching setting
     if( setting == NULL ) {
       if( verbose ) {
@@ -948,7 +948,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
       index = -1;
     }
 
-    return index;	
+    return index;       
   }
 
   /**********************************************************
@@ -976,7 +976,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
                                       bool*       const pickySuccess )
   {
     const char FunctionName[] = "SettingDataBase::readSettings";
-	
+        
     // preparations
     // initialize pickySuccess
     if( pickySuccess )  *pickySuccess = true;
@@ -992,7 +992,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
     char *line   = NULL;  // pointer to the line buffer
     int   length = 0,     // length of the read line
       number = 0;     // line number (for error messages)
-	
+        
     // read line after line until file end
     while( 0 <= (length = readLine(file, &line, FileName, ++number)) ) {
       // find matching definition in "settingdef"
@@ -1014,14 +1014,14 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
             delete newSetting;
           }
       }
-    }	
+    }   
 
 
     // clean up
     fclose( file );
     delete [] line;
     m_currentLineLength = 0;
-	
+        
     return true;
   }
 
@@ -1098,11 +1098,11 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
       } else {
         iend = ++istart;
       }
-    }	
-	
+    }   
+        
     delete [] line;
     m_currentLineLength = 0;
-	
+        
     return true;
   }
 
@@ -1149,7 +1149,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
       // copy new restriction name
       memcpy( m_activeSection, section, sizeof(char)*(newLength+1) );
     }
-	
+        
     return true;
   }
 
@@ -1162,7 +1162,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
   {
     bool     result  = true;
     const char FunctionName[] = "SettingDataBase::finalCheck";
-	
+        
     for( int i = 0; settingdef[i].m_IDString; i++ ) {
       // check, if all mandatory settings are present
       if( (settingdef[i].m_Attributes & Setting::MANDATORY) &&
@@ -1173,11 +1173,11 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
         result = false;
       }
     }
-	
+        
     if( false == result ) {
       cerr << "\n try command line option " << BLACK_("\"-help\"\n");
     }
-	
+        
     return result;
   }
 
@@ -1221,7 +1221,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
     char *character      = *line - 1,
       FunctionName[] = "SettingDataBase::readLine";
     bool  insidequoting  = false;
-	
+        
     // read line until comment or line end ...
     do {// if the line buffer is full, try to enlarge it
       if( (int)((LineLength + 1)*sizeof(char)) >= m_currentLineLength ) {
@@ -1254,13 +1254,13 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
     while(    (*character != '#'  || insidequoting) // comment starts
               &&  *character != '\n'                   // line ends
               &&   nchars );                           // file ends
-	
+        
     // ... and search start of the next line
     if( *character == '#' ) {
       do  fread( character, 1, 1, file );
       while( *character != '\n' ); }
     // terminate line
-    *character = 0;	
+    *character = 0;     
 
     // prescan line
     return prescanLine( *line, LineLength, FileName, LineNumber );
@@ -1285,7 +1285,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
     if( length <= 4 )  return length;
 
     const char FunctionName[] = "SettingDataBase::prescanLine";
-	
+        
     int dir   = 0,
       iline = 0;
     // test key ">>" for directives
@@ -1385,12 +1385,12 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
                                                   bool       *const pickySuccess )
   {
     const char FunctionName[] = "SettingDataBase::findMatchingSetting";
-	
+        
     int  istart = 0,
       iend   = 0,
       idef   = 0;
     char ctemp  = 0;
-	
+        
     // seek start of the IDString
     while( line[istart] == ' ' )  istart++;  // skip leading spaces
     if( istart >= linelength-1 )  return -1; // -> line contains only spaces
@@ -1400,7 +1400,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
     // terminate the first string
     ctemp      = line[iend];
     line[iend] = 0;
-	
+        
     // search for a matching setting definition
     for( idef = 0; settingdefs[idef].m_IDString; idef++ ) {
       if(  0 == strcmp(line+istart, settingdefs[idef].m_IDString) ||
@@ -1419,10 +1419,10 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
       if( pickySuccess )  *pickySuccess = false;
       return -1;
     }
-	
+        
     // restore the line
     line[iend] = ctemp;
-	
+        
     return idef;
   }
 
@@ -1441,7 +1441,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
   {
     int jstart =  0;
     const char FunctionName[] = "SettingDataBase::identifySettingInCommandLine";
-	
+        
     if( expectDashesInCommandLine ) {
       if( CommandLine[i][0] == '-' ) {
         jstart = 1;
@@ -1456,7 +1456,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
         return -1;
       }
     }
-	
+        
     return findMatchingSetting( (char*)(CommandLine[i]+jstart),
                                 strlen( CommandLine[i]+jstart ),
                                 settingdef, NULL, -1, quiet,
@@ -1488,7 +1488,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
       iread      = expectDashesInCommandLine ? 1 : 0;
     bool quoting    = false;
     const char FunctionName[] = "SettingDataBase::buildConfigLineFromCommandLine";
-	
+        
     for( int iargument = istart; iargument < iend; iargument++ ) {
       // if the argument string contains a space, it must be quoted in the line
       if( NULL != strchr(CommandLine[iargument]+iread, ' ') )  quoting = true;
@@ -1504,7 +1504,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
             return -1;
           }
         }
-		
+                
       // opening quote, if marked so
       if( quoting )  (*line)[LineLength++] = '"';
       // copy argument
@@ -1516,15 +1516,15 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
       // closing quote, if marked so
       if( quoting )  (*line)[LineLength++] = '"';
       (*line)[LineLength++] = ' ';
-		
+                
       iread = 0;
     }
     // terminate line (in particular if rests of an old,
     // longer line is still present in the buffer)
     (*line)[LineLength++] = 0;
-	
+        
     return LineLength;
-  }			
+  }                     
 
   /**********************************************************
    * Integrates a new setting into the list at m_Settings.
@@ -1589,7 +1589,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
   {
     // allocate memory with enlarged length
     char* newLine = NEW char [m_currentLineLength + SETTING_DB_LINE_GRANULARITY];
-	
+        
     if( newLine == NULL ) {
       cerr << FUNCTION_ERROR("SettingDataBase::enlargeLineBuffer")
            << "could to enlarge line buffer up to "
@@ -1606,7 +1606,7 @@ m_directives[SettingDataBase::N_DIRECTIVES] =
       m_currentLineLength += SETTING_DB_LINE_GRANULARITY;
       delete [] line;
     }
-	
+        
     return newLine;
   }
 

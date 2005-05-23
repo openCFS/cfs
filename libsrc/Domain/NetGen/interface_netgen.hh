@@ -13,7 +13,7 @@
 namespace CoupledField
 {
  
-/// Interface to library NetGen
+  /// Interface to library NetGen
 template<class Dim>
 class InterfaceNetGen: public Grid
 {
@@ -24,17 +24,17 @@ public:
   /// Deconstructor
   virtual ~InterfaceNetGen();
   
-   /// Uniform subdivision of domain
+  /// Uniform subdivision of domain
   virtual void SubdivideUniform(const Integer level);
 
   /// Get coordinates of all nodes which belong to element
   virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem); 
 
-   /// Get coordinates of node with global number inode
-   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint);
+  /// Get coordinates of node with global number inode
+  virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint);
 
-   /// Get connection of element
- virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level);
+  /// Get connection of element
+  virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level);
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel);
@@ -71,7 +71,7 @@ private:
   //!
   Integer dim_;
 
-   //!
+  //!
   void Init();  
 
   //! if we do subdivision, then this variable is TRUE
@@ -81,24 +81,24 @@ private:
   std::vector<BaseElem*> allptElem;
 };
 
-template<class Dim>
-inline InterfaceNetGen<Dim>::InterfaceNetGen(FileType * aptFileType)
-: Grid(aptFileType)
-{
+  template<class Dim>
+  inline InterfaceNetGen<Dim>::InterfaceNetGen(FileType * aptFileType)
+    : Grid(aptFileType)
+  {
 #ifdef TRACE
- (*trace) << "Entering InterfaceNetGen<Dim>::InterfaceNetGen<Dim>" << std::endl;
+    (*trace) << "Entering InterfaceNetGen<Dim>::InterfaceNetGen<Dim>" << std::endl;
 #endif
 
-  ptFileType=aptFileType;
-  DoesGridSubdivide=FALSE;
-  lastlevel_=0; 
+    ptFileType=aptFileType;
+    DoesGridSubdivide=FALSE;
+    lastlevel_=0; 
 
-  Init();
-}
+    Init();
+  }
 
 #if defined(__GNUC__)
-template class InterfaceNetGen<Point3D>;
-template class InterfaceNetGen<Point2D>;
+  template class InterfaceNetGen<Point3D>;
+  template class InterfaceNetGen<Point2D>;
 #endif
 
 } // end of namespace

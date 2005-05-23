@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------
-|
-| $Id$
-|
-+---------------------------------------------------------------------*/
+  |
+  | $Id$
+  |
+  +---------------------------------------------------------------------*/
 
 #ifndef GSI_SERVERSOCKET
 #define GSI_SERVERSOCKET
@@ -14,19 +14,19 @@
 namespace GridlibSocketInterface
 {
 
-class ServerSocket : public Socket
-{
- public:
+  class ServerSocket : public Socket
+  {
+  public:
 
-  ServerSocket ( int32 port, int32 timeout = -1 );
-  ServerSocket ( int32 timeout = -1 )
-    : Socket(timeout) {};
+    ServerSocket ( int32 port, int32 timeout = -1 );
+    ServerSocket ( int32 timeout = -1 )
+      : Socket(timeout) {};
 
-  virtual ~ServerSocket();
+    virtual ~ServerSocket();
 
-  int32 accept ( ServerSocket&, int32 single = 0 ) throw (SocketException);
-  //  void accept ( ServerSocket&) throw (SocketException);
-};
+    int32 accept ( ServerSocket&, int32 single = 0 ) throw (SocketException);
+    //  void accept ( ServerSocket&) throw (SocketException);
+  };
  
 }
 

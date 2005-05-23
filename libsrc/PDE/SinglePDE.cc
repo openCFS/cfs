@@ -117,309 +117,309 @@ namespace CoupledField {
 
 
   void SinglePDE::Init( Integer bcSequenceIndex,
-			std::string  bcSequenceTag) {
-  ENTER_FCN( "SinglePDE::Init()" );
+                        std::string  bcSequenceTag) {
+    ENTER_FCN( "SinglePDE::Init()" );
 
-  bcSequenceIndex_ = bcSequenceIndex;
-  bcSequenceTag_ = bcSequenceTag;
+    bcSequenceIndex_ = bcSequenceIndex;
+    bcSequenceTag_ = bcSequenceTag;
   
-  // =====================================================================
-  // get regions/subdomains for PDE
-  // =====================================================================
-  StdVector<std::string> regionNames;
-  params->GetList( "name", regionNames, pdename_, "region" );
-  ptgrid_->RegionNameToId( subdoms_, regionNames );
-  Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
-		pdename_.c_str());
-  for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
-    Info->PrintF( pdename_, " %s, index %d\n", regionNames[k].c_str(), k );
-  }
-  Info->PrintF( "", "\n" );
-
-  // Generate a fitting algebraic system only if PDE is NOT
-  // direct coupled
-  if ( isDirectCoupled_ == FALSE )
-    {
-    algsys_ = new StandardSystem();
+    // =====================================================================
+    // get regions/subdomains for PDE
+    // =====================================================================
+    StdVector<std::string> regionNames;
+    params->GetList( "name", regionNames, pdename_, "region" );
+    ptgrid_->RegionNameToId( subdoms_, regionNames );
+    Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
+                  pdename_.c_str());
+    for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s, index %d\n", regionNames[k].c_str(), k );
     }
+    Info->PrintF( "", "\n" );
 
-  // Get parameter and report object of OLAS
-  olasParams_ = algsys_->GetOLASParams();
-  olasReport_ = algsys_->GetOLASReport();
+    // Generate a fitting algebraic system only if PDE is NOT
+    // direct coupled
+    if ( isDirectCoupled_ == FALSE )
+      {
+        algsys_ = new StandardSystem();
+      }
 
-  // Determine, if this is a parallel run
-  // and pass this information to OLAS
-  bool parallel = false;
+    // Get parameter and report object of OLAS
+    olasParams_ = algsys_->GetOLASParams();
+    olasReport_ = algsys_->GetOLASReport();
+
+    // Determine, if this is a parallel run
+    // and pass this information to OLAS
+    bool parallel = false;
 
 #ifdef PARALLEL
 
-  // If more than one process is running,
-  // then we consider this a parallel run
-  int commsize;
-  MPI_Comm_size( MPI_COMM_WORLD, &commsize );
-  parallel = ( commsize > 1 );
+    // If more than one process is running,
+    // then we consider this a parallel run
+    int commsize;
+    MPI_Comm_size( MPI_COMM_WORLD, &commsize );
+    parallel = ( commsize > 1 );
 
 #endif
 
-  olasParams_->SetValue( "Parallel", parallel );
+    olasParams_->SetValue( "Parallel", parallel );
 
-  // =====================================================================
-  // Get type of analysis
-  // =====================================================================
+    // =====================================================================
+    // Get type of analysis
+    // =====================================================================
     
-  // Construct vectors for restricted search parameter
-  StdVector<std::string> keyVec;
-  StdVector<std::string> attrVec;
-  StdVector<std::string> valVec;
-  std::string stepString;
-  std::string analysis;
+    // Construct vectors for restricted search parameter
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    std::string stepString;
+    std::string analysis;
 
-  params->Get( "type", analysis, "analysis" );
+    params->Get( "type", analysis, "analysis" );
 
-  AnalysisType analysisHelp;
-  StdVector<std::string> tags, analysisTypes, pdenames;
-  String2Enum(analysis,analysisHelp);
+    AnalysisType analysisHelp;
+    StdVector<std::string> tags, analysisTypes, pdenames;
+    String2Enum(analysis,analysisHelp);
     
-  // stiffness matrix is always needed
-  matrixTypes_.insert(SYSTEM);
+    // stiffness matrix is always needed
+    matrixTypes_.insert(SYSTEM);
 
-  if (analysisHelp == STATIC ||
-      isAlwaysStatic_ == TRUE) {
-    laststepcalc_ = 1;
-    isComplex_ = FALSE;
-    assemble_ = new StaticAssemble(algsys_, ptgrid_);
-    analysistype_ = STATIC;
-    matrixTypes_.insert(STIFFNESS);
-  }
-
-  else if (analysisHelp == TRANSIENT) {
-    isComplex_ = FALSE;
-    assemble_ = new TransientAssemble(algsys_, ptgrid_);
-    analysistype_ = TRANSIENT;
-    laststepcalc_ = 1;
-    matrixTypes_.insert(STIFFNESS);
-    matrixTypes_.insert(MASS);
-  }
-
-  else if ( analysis=="harmonic" || analysis == "paramIdent" ||
-            analysis == "multiHarmonic") {
-    isComplex_ = TRUE;
-    assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
-    analysistype_ = HARMONIC;
-  }
-
-  else if ( analysisHelp == MULTI_SEQUENCE ) {
-
-    stepString = Info->GenStr(bcSequenceIndex_);
-    attrVec = "", "index", "type";
-    valVec = "", stepString, pdename_;
-
-    keyVec = "multiSequence", "step", "pde", "analysis";
-    params->Get(keyVec, attrVec, valVec, analysis);
-
-    String2Enum(analysis, analysistype_);
-
-    if ( analysistype_ == STATIC ) {
-      assemble_ = new StaticAssemble(algsys_, ptgrid_);
-      laststepcalc_ = 1;      
+    if (analysisHelp == STATIC ||
+        isAlwaysStatic_ == TRUE) {
+      laststepcalc_ = 1;
       isComplex_ = FALSE;
+      assemble_ = new StaticAssemble(algsys_, ptgrid_);
+      analysistype_ = STATIC;
       matrixTypes_.insert(STIFFNESS);
     }
-    else if ( analysistype_ == TRANSIENT ) {
+
+    else if (analysisHelp == TRANSIENT) {
       isComplex_ = FALSE;
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
-      laststepcalc_ = 1;      
+      analysistype_ = TRANSIENT;
+      laststepcalc_ = 1;
       matrixTypes_.insert(STIFFNESS);
       matrixTypes_.insert(MASS);
     }
-    else if ( analysis=="harmonic" ) {
+
+    else if ( analysis=="harmonic" || analysis == "paramIdent" ||
+              analysis == "multiHarmonic") {
       isComplex_ = TRUE;
       assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
       analysistype_ = HARMONIC;
     }
+
+    else if ( analysisHelp == MULTI_SEQUENCE ) {
+
+      stepString = Info->GenStr(bcSequenceIndex_);
+      attrVec = "", "index", "type";
+      valVec = "", stepString, pdename_;
+
+      keyVec = "multiSequence", "step", "pde", "analysis";
+      params->Get(keyVec, attrVec, valVec, analysis);
+
+      String2Enum(analysis, analysistype_);
+
+      if ( analysistype_ == STATIC ) {
+        assemble_ = new StaticAssemble(algsys_, ptgrid_);
+        laststepcalc_ = 1;      
+        isComplex_ = FALSE;
+        matrixTypes_.insert(STIFFNESS);
+      }
+      else if ( analysistype_ == TRANSIENT ) {
+        isComplex_ = FALSE;
+        assemble_ = new TransientAssemble(algsys_, ptgrid_);
+        laststepcalc_ = 1;      
+        matrixTypes_.insert(STIFFNESS);
+        matrixTypes_.insert(MASS);
+      }
+      else if ( analysis=="harmonic" ) {
+        isComplex_ = TRUE;
+        assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
+        analysistype_ = HARMONIC;
+      }
+      else {
+        (*error) << "SinglePDE::Init: AnalysisType '" << analysis
+                 << "' is not supported";
+        Error( __FILE__, __LINE__ );
+      }
+    }
     else {
-      (*error) << "SinglePDE::Init: AnalysisType '" << analysis
+      (*error) << "SinglePDE::Init: AnalysisType '" << analysisHelp
                << "' is not supported";
       Error( __FILE__, __LINE__ );
     }
-  }
-  else {
-    (*error) << "SinglePDE::Init: AnalysisType '" << analysisHelp
-             << "' is not supported";
-    Error( __FILE__, __LINE__ );
-  }
     
-  // Determine if solution is of complex type or not
-  if ( analysistype_ == HARMONIC ) {
-    sol_ = new NodeStoreSol<Complex>;
-  }
-  else {
-    sol_ = new NodeStoreSol<Double>;
-  }
-    
-  // =====================================================================
-  // initialize adaptivity
-  // =====================================================================
-  if( params->IsSet( "adaptspace" ) ) {
-    params->Get( "tolerance_space_error", tolSpaceErr_ );
-  }
-  else {
-    tolSpaceErr_ = 0;
-  }
-
-  // =====================================================================
-  // read in boundary conditions
-  // =====================================================================
-  ReadBCs();
-  ReadSpecialBCs();
-  numDirichletBCs_ += GetNumRestraints();
-
-  // =====================================================================
-  // read in NonLinearities
-  // =====================================================================
-  InitNonLin();
-
-  // =====================================================================
-  // initialize EQN-object and Storeresults class
-  // =====================================================================
-
-  // What type of equation numbering does the user want?
-  keyVec = pdename_, "solver", "matrix", "eqnNumbering";
-  std::string typeOfNumbering;
-  params->Get( keyVec, typeOfNumbering );
-
-  // Assemble a system matrix with scalar complex or double entries
-  if ( typeOfNumbering == "scalar" ) {
-    if ( dofspernode_ == 1 ) {
-      eqnData_ = new ScalarNodeEQN( ptgrid_,  subdoms_, dofspernode_ );
+    // Determine if solution is of complex type or not
+    if ( analysistype_ == HARMONIC ) {
+      sol_ = new NodeStoreSol<Complex>;
     }
     else {
-      eqnData_ = new ScalarBlockEQN( ptgrid_, subdoms_, dofspernode_ );
+      sol_ = new NodeStoreSol<Double>;
     }
-    Info->PrintF( pdename_, "Using scalar equation numbering\n" );
-  }
-
-  // Treat all dofs of a node together and assemble a system matrix with
-  // small square matrices as entries
-  else if ( typeOfNumbering == "block" ) {
-    if ( dofspernode_ == 1 ) {
-      Warning("dopspernode = 1, so 'block' numbering identical to 'scalar'");
-      eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_ );
+    
+    // =====================================================================
+    // initialize adaptivity
+    // =====================================================================
+    if( params->IsSet( "adaptspace" ) ) {
+      params->Get( "tolerance_space_error", tolSpaceErr_ );
     }
     else {
-      eqnData_ = new BlockNodeEQN( ptgrid_, subdoms_, dofspernode_ );
-      Info->PrintF( pdename_, "Using block equation numbering\n" );
+      tolSpaceErr_ = 0;
     }
-  }
 
-  // Build in Dirichlet boundary conditions and compute the mapping
-  // which relates nodes/dofs to equation numbers
-  eqnData_->SetHomoDirichletBCs ( bcs_hd_, homDirichDof_  );
-  eqnData_->SetInhomDirichletBCs( bcs_id_, inhomDirichDof_);
-  eqnData_->CalcMapping();
+    // =====================================================================
+    // read in boundary conditions
+    // =====================================================================
+    ReadBCs();
+    ReadSpecialBCs();
+    numDirichletBCs_ += GetNumRestraints();
 
-  // Report results to logfile
-  Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
-		eqnData_->GetNumEQNs() );
+    // =====================================================================
+    // read in NonLinearities
+    // =====================================================================
+    InitNonLin();
+
+    // =====================================================================
+    // initialize EQN-object and Storeresults class
+    // =====================================================================
+
+    // What type of equation numbering does the user want?
+    keyVec = pdename_, "solver", "matrix", "eqnNumbering";
+    std::string typeOfNumbering;
+    params->Get( keyVec, typeOfNumbering );
+
+    // Assemble a system matrix with scalar complex or double entries
+    if ( typeOfNumbering == "scalar" ) {
+      if ( dofspernode_ == 1 ) {
+        eqnData_ = new ScalarNodeEQN( ptgrid_,  subdoms_, dofspernode_ );
+      }
+      else {
+        eqnData_ = new ScalarBlockEQN( ptgrid_, subdoms_, dofspernode_ );
+      }
+      Info->PrintF( pdename_, "Using scalar equation numbering\n" );
+    }
+
+    // Treat all dofs of a node together and assemble a system matrix with
+    // small square matrices as entries
+    else if ( typeOfNumbering == "block" ) {
+      if ( dofspernode_ == 1 ) {
+        Warning("dopspernode = 1, so 'block' numbering identical to 'scalar'");
+        eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_ );
+      }
+      else {
+        eqnData_ = new BlockNodeEQN( ptgrid_, subdoms_, dofspernode_ );
+        Info->PrintF( pdename_, "Using block equation numbering\n" );
+      }
+    }
+
+    // Build in Dirichlet boundary conditions and compute the mapping
+    // which relates nodes/dofs to equation numbers
+    eqnData_->SetHomoDirichletBCs ( bcs_hd_, homDirichDof_  );
+    eqnData_->SetInhomDirichletBCs( bcs_id_, inhomDirichDof_);
+    eqnData_->CalcMapping();
+
+    // Report results to logfile
+    Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
+                  eqnData_->GetNumEQNs() );
 
 #ifdef DEBUG
-  eqnData_->Print(*debug);
+    eqnData_->Print(*debug);
 #endif
 
-  numPDENodes_ = eqnData_->GetNumLocalNodes();
-  numElems_ = eqnData_->GetNumLocalElems();
-  numBuildInDirichletBCs_ = eqnData_->GetNumBuildInDirichletEQNs();
+    numPDENodes_ = eqnData_->GetNumLocalNodes();
+    numElems_ = eqnData_->GetNumLocalElems();
+    numBuildInDirichletBCs_ = eqnData_->GetNumBuildInDirichletEQNs();
     
-  // Initialize Storesolution class
-  sol_->SetNumSolutions(solTypes_.GetSize());
-  sol_->SetNumNodes(numPDENodes_);
-  for (Integer iSol=0; iSol<solTypes_.GetSize(); iSol++) {
-    sol_->SetSolutionType(solTypes_[iSol],iSol);
-    sol_->SetNumDofs(solDofs_[iSol], solTypes_[iSol]);
-  }
-  sol_->SetPtrEQNData(eqnData_, ptgrid_);
-  sol_->Init(); 
+    // Initialize Storesolution class
+    sol_->SetNumSolutions(solTypes_.GetSize());
+    sol_->SetNumNodes(numPDENodes_);
+    for (Integer iSol=0; iSol<solTypes_.GetSize(); iSol++) {
+      sol_->SetSolutionType(solTypes_[iSol],iSol);
+      sol_->SetNumDofs(solDofs_[iSol], solTypes_[iSol]);
+    }
+    sol_->SetPtrEQNData(eqnData_, ptgrid_);
+    sol_->Init(); 
 
 
-  // =====================================================================
-  // initialize assemble object
-  // =====================================================================
-  assemble_->SetPtr2EQNData(eqnData_); 
-  assemble_->SetPtr2TimeFnc(ptTimeFunc_);
+    // =====================================================================
+    // initialize assemble object
+    // =====================================================================
+    assemble_->SetPtr2EQNData(eqnData_); 
+    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
-  if (pdename_ == "piezo" || pdename_ == "mechanic" ) {
-    assemble_->SetGeneralParams(pdename_, dofspernode_, 
-				subdoms_, pressSurf_, bcSequenceTag_);
-  }
-  else {
-    assemble_->SetGeneralParams(pdename_, dofspernode_, 
-				subdoms_, surfdoms_, bcSequenceTag_);
-  }
+    if (pdename_ == "piezo" || pdename_ == "mechanic" ) {
+      assemble_->SetGeneralParams(pdename_, dofspernode_, 
+                                  subdoms_, pressSurf_, bcSequenceTag_);
+    }
+    else {
+      assemble_->SetGeneralParams(pdename_, dofspernode_, 
+                                  subdoms_, surfdoms_, bcSequenceTag_);
+    }
 
-  if (isComplex_) {
-    assemble_->SetMatrixEntryType( OLAS::COMPLEX );
-  }
-  else {
-    assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-    assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
-  }
+    if (isComplex_) {
+      assemble_->SetMatrixEntryType( OLAS::COMPLEX );
+    }
+    else {
+      assemble_->SetMatrixEntryType(OLAS::DOUBLE);
+      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
+    }
 
-  assemble_->SetNumDirichlet(numDirichletBCs_);
+    assemble_->SetNumDirichlet(numDirichletBCs_);
 
-  assemble_->SetPtr2Sol(sol_);
-  if (needsDampingMatrix_) {
-    assemble_->NeedDampingMatrix();
-    matrixTypes_.insert(DAMPING);
-  }
+    assemble_->SetPtr2Sol(sol_);
+    if (needsDampingMatrix_) {
+      assemble_->NeedDampingMatrix();
+      matrixTypes_.insert(DAMPING);
+    }
 
-  // =====================================================================
-  // read in material data
-  // =====================================================================
-  ReadMaterialData();
+    // =====================================================================
+    // read in material data
+    // =====================================================================
+    ReadMaterialData();
 
-  // =====================================================================
-  // define the integrators for PDE
-  // =====================================================================
-  DefineIntegrators();
+    // =====================================================================
+    // define the integrators for PDE
+    // =====================================================================
+    DefineIntegrators();
 
-  // =====================================================================
-  // define which solution types have to be saved
-  // =====================================================================
-  ReadStoreResults();
+    // =====================================================================
+    // define which solution types have to be saved
+    // =====================================================================
+    ReadStoreResults();
 
-  // check, if any output is calculated at all
-  if ( hasOutput_ == FALSE ) {
-    (*warning) << "There was no output specified at all for PDE '"
-	       << pdename_
-	       << "'Please check your .xml-file, if this is really what "
-	       << "you want!";
-    Warning( __FILE__, __LINE__ );
-  }
+    // check, if any output is calculated at all
+    if ( hasOutput_ == FALSE ) {
+      (*warning) << "There was no output specified at all for PDE '"
+                 << pdename_
+                 << "'Please check your .xml-file, if this is really what "
+                 << "you want!";
+      Warning( __FILE__, __LINE__ );
+    }
 
 
-  // =====================================================================
-  // Create time stepping algorithm
-  // =====================================================================
-  if ( analysistype_ == TRANSIENT && 
-       isDirectCoupled_ == FALSE) {
-    InitTimeStepping();
-  }
+    // =====================================================================
+    // Create time stepping algorithm
+    // =====================================================================
+    if ( analysistype_ == TRANSIENT && 
+         isDirectCoupled_ == FALSE) {
+      InitTimeStepping();
+    }
 
-  PreparePDE4Computation();
+    PreparePDE4Computation();
 
-  //! Define step solution driver
-  if ( isDirectCoupled_ == FALSE )
-    DefineSolveStep();
+    //! Define step solution driver
+    if ( isDirectCoupled_ == FALSE )
+      DefineSolveStep();
   
-  // =====================================================================
-  // Set correct parameter for OLAS
-  // =====================================================================
-  std::string amExpert;
-  params->Get( "override", amExpert, "expert" );
-  CFSOLASParams::SetParams( pdename_, params, olasParams_,analysistype_,
-			    (amExpert=="yes"));
+    // =====================================================================
+    // Set correct parameter for OLAS
+    // =====================================================================
+    std::string amExpert;
+    params->Get( "override", amExpert, "expert" );
+    CFSOLASParams::SetParams( pdename_, params, olasParams_,analysistype_,
+                              (amExpert=="yes"));
   
-}
+  }
 
   
   void SinglePDE::SaveSolution() {
@@ -526,16 +526,16 @@ namespace CoupledField {
       
       
       for ( Integer iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-	
+        
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
         if (eqnNr > 0) {
-	  
+          
           // Increment counter for BCs
           if ( analysistype_ == HARMONIC ) {
-	    
+            
             // set real part 
             algsys_->SetDirichlet(j*2+1, pdeId_, eqnNr, val, eqnDof);
-	    
+            
             // set imaginary part 
             algsys_->SetDirichlet(j*2+2, pdeId_, eqnNr, val, eqnDof+1);
           }
@@ -575,11 +575,11 @@ namespace CoupledField {
 
 
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
-	
-	// Sanity check. This should not happen, but might appear
-	// in the case that the same node/dof belongs to a region
-	// with hom. and a region with inhom. Dirichlet BCs. This
-	// problem was already encountered!
+        
+        // Sanity check. This should not happen, but might appear
+        // in the case that the same node/dof belongs to a region
+        // with hom. and a region with inhom. Dirichlet BCs. This
+        // problem was already encountered!
         if (eqnNr == 0) {
 
           std::cout << "Node | dof | eqnNr | eqnDof\n"
@@ -595,11 +595,11 @@ namespace CoupledField {
           Error( __FILE__, __LINE__ );
         }
 
-	//transform Dirichlet boundary conditions for effmass-formulation
-	if (effectiveMass_) {
-	  val = dirVal;
-	  val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
-	}
+        //transform Dirichlet boundary conditions for effmass-formulation
+        if (effectiveMass_) {
+          val = dirVal;
+          val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+        }
 
         if (analysistype_ == HARMONIC) {
           phase = bcs_id_phase_[i];
@@ -615,14 +615,14 @@ namespace CoupledField {
         else {
           algsys_->SetDirichlet(j+1, pdeId_, eqnNr, val, eqnDof);
         }
-	j++;
+        j++;
       }
     }
-}
+  }
 
  
 
-   void SinglePDE::ReadBCs() {
+  void SinglePDE::ReadBCs() {
 
     ENTER_FCN( "SinglePDE::ReadBCs" );
 
@@ -785,25 +785,25 @@ namespace CoupledField {
     return res;
   }
   
-   // ======================================================
+  // ======================================================
   // GET /SET  METHODS
   // ======================================================
 
   //! Activate the direct coupling
   void SinglePDE::SetDirectCoupling (BaseSystem *algsys,
-				     StdSolveStep *solveStep)
+                                     StdSolveStep *solveStep)
   {
     ENTER_FCN( "SinglePDE::SetDirectCoupling" );
     
     if ( algsys_ != NULL ) {
       (*error) << "SinglePDE::SetDirectCoupling: An algebraic system " 
-	       << "was defined already.";
+               << "was defined already.";
       Error (__FILE__, __LINE__);
     }
 
     if ( solveStep_ != NULL ) {
       (*error) << "SinglePDE::SetDirectCoupling: A SolveStep object " 
-	       << "was defined already.";
+               << "was defined already.";
       Error (__FILE__, __LINE__);
     }
     
@@ -840,7 +840,7 @@ namespace CoupledField {
     std::string amExpert;
     params->Get( "override", amExpert, "expert" );
     CFSOLASParams::SetParams( pdename_, params, olasParams_,analysistype_,
-			      (amExpert=="yes"));
+                              (amExpert=="yes"));
 
     // If PDE is not direct coupled then the PDE has to register
     // at the algebraic system and obtain an Id. 
@@ -1077,12 +1077,12 @@ namespace CoupledField {
       Vector<Double> const & help = dynamic_cast<Vector<Double>&>(*val);
 
       switch(ptCoupling_->GetInputType(i)) {
-	
+        
         // -------------------
         // COORDINATE COUPLING
         // -------------------
       case COORD:
-	
+        
         // Set flag that the geometry has changed
         geoUpdate_ = TRUE;
         assemble_->SetNonlinGeo();

@@ -59,19 +59,19 @@ namespace CoupledField
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
     virtual void WriteResultsInFile(const Integer kstep = 0,
-				    const Double asteptime = 0.0,
-				    Integer stepOffset = 0,
-				    Double timeOffset = 0.0);
+                                    const Double asteptime = 0.0,
+                                    Integer stepOffset = 0,
+                                    Double timeOffset = 0.0);
     
     //! computes the electric energy for each subdomain
     void CalcEnergy();
 
     //! callculates nodal forces
     void CalcNodeForce(Vector<Double> & force, 
-		       StdVector<Integer> & nodes, 
-		       StdVector<Elem*> & elems,
-		       StdVector<StdVector<ShortInt> > &isBoundaryNode,
-		       StdVector<StdVector<Integer> > &elemNodeToCouplingNode);
+                       StdVector<Integer> & nodes, 
+                       StdVector<Elem*> & elems,
+                       StdVector<StdVector<ShortInt> > &isBoundaryNode,
+                       StdVector<StdVector<Integer> > &elemNodeToCouplingNode);
 
     //!
     void CalcInterfaceForces(Integer actCoupling);
@@ -105,10 +105,10 @@ namespace CoupledField
 
     /// calculated the electric field at the integration points of the couple element
     void CalcEfieldAtCoupleElemIP(Elem * actVolElem,
-				  Elem * actCoupleElem,
-				  Vector<Double>& coordAtIP, 
-				  StdVector<Integer>& boundNodesOfVolElem,
-				  Vector<Double>& tempE);
+                                  Elem * actCoupleElem,
+                                  Vector<Double>& coordAtIP, 
+                                  StdVector<Integer>& boundNodesOfVolElem,
+                                  Vector<Double>& tempE);
   
 
 

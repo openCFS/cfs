@@ -119,7 +119,7 @@ namespace CoupledField {
         // 2nd row of sub-matrix A(actNode)
         aMat[actInd][1] = xiDx[actNode][1];    // dN/dz
         aMat[actInd][2] = xiDx[actNode][0];    // dN/dy
-	actInd++;
+        actInd++;
       }
     }
 

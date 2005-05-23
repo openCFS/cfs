@@ -26,7 +26,7 @@ namespace CoupledField
 
   PiezoCoupling::~PiezoCoupling() {
     ENTER_FCN( "PiezoCoupling::~PiezoCoupling" )
-  }
+      }
 
   void PiezoCoupling::PostProcess() {
     ENTER_FCN( "PiezoCoupling::PostProcess" );
@@ -44,7 +44,7 @@ namespace CoupledField
     for ( int actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
        
       
-     // ==============  add stiffness ========================================
+      // ==============  add stiffness ========================================
       BaseForm * bilinearStiff = GetStiffIntegrator(&materialData_[actSD]);
       IntegratorDescriptor *actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
       bilinearStiff->SetPiezoMaterialType(realMatParameter);
@@ -55,8 +55,8 @@ namespace CoupledField
 
   }
   BaseForm * PiezoCoupling::GetStiffIntegrator(MaterialData * actSDMat,
-					       Boolean reducedInt,
-					       Boolean isdamping) {
+                                               Boolean reducedInt,
+                                               Boolean isdamping) {
 
     ENTER_FCN( "PiezoCoupling::GetStiffIntegrator" );
 

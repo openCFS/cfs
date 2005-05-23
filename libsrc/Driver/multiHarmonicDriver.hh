@@ -12,49 +12,49 @@ namespace CoupledField
   class MaterialData;
 
   //! multiharmonic analysis
-class MultiHarmonicDriver : public SingleDriver
-{
+  class MultiHarmonicDriver : public SingleDriver
+  {
 
-public:
+  public:
 
-  MultiHarmonicDriver(Domain * adomain,
-		    Integer stepOffset = 0,
-		    Double timeOffset = 0.0,
-		    std::string driverTag = "anyTag",
-		    Boolean isPartOfSequence = FALSE);
+    MultiHarmonicDriver(Domain * adomain,
+                        Integer stepOffset = 0,
+                        Double timeOffset = 0.0,
+                        std::string driverTag = "anyTag",
+                        Boolean isPartOfSequence = FALSE);
 
     //! Destructor
-  virtual ~MultiHarmonicDriver();
+    virtual ~MultiHarmonicDriver();
   
-  std::ifstream * allMeasuredData;
-  std::ofstream * impedCurve;
-  std::ofstream * piezoLog;
-  std::ofstream * parLog;
+    std::ifstream * allMeasuredData;
+    std::ofstream * impedCurve;
+    std::ofstream * piezoLog;
+    std::ofstream * parLog;
   
-  virtual void SolveProblem();
+    virtual void SolveProblem();
 
-protected:
+  protected:
     //! \param parameter - new set of piezoelectric material parameters
-  void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
-  // Domain * ptDomain;
+    void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
+    // Domain * ptDomain;
 
-  SinglePDE * ptMyPDE_;
+    SinglePDE * ptMyPDE_;
 
-  void createMHMassMatrix(Integer N);
+    void createMHMassMatrix(Integer N);
 
-  // pointers to classes involved
-  //  SinglePDE * ptMyPDE_;
-  BaseSystem * ptAlgsys_;
-  Assemble * ptAssemble_;
+    // pointers to classes involved
+    //  SinglePDE * ptMyPDE_;
+    BaseSystem * ptAlgsys_;
+    Assemble * ptAssemble_;
 
 
-private:
+  private:
 
-  Double  startFreq_;
-  Double  stopFreq_;
-  Integer numFreq_;
-  Integer saveType_;
-  Integer nrMultHarms_;
+    Double  startFreq_;
+    Double  stopFreq_;
+    Integer numFreq_;
+    Integer saveType_;
+    Integer nrMultHarms_;
 
 
 

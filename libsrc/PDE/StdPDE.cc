@@ -159,7 +159,7 @@ namespace CoupledField {
           dof = GetBCDof( homDirichDof_[i] );
         }
 
-	ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
+        ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
       
         for (Integer iNode=0; iNode<nodes.GetSize(); iNode++)
           {
@@ -177,9 +177,9 @@ namespace CoupledField {
         if ( dofspernode_ > 1 ) {
           dof = GetBCDof( inhomDirichDof_[i] );
         }
-	
+        
         ptgrid_->GetNodesByName( nodes, bcs_id_[i] );
-	
+        
         for (Integer iNode=0; iNode<nodes.GetSize(); iNode++)
           {
             eqnData_->Node2EQN(nodes[iNode],dof,eqnNr,eqnDof);
@@ -233,19 +233,19 @@ namespace CoupledField {
       delete memento.sol_;
 
     if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
-	// --- Real values --
-	// Set solution
-	memento.sol_ = new Vector<Double>;
-	dynamic_cast<Vector<Double>&>(*(memento.sol_)) =
-	  dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
+      // --- Real values --
+      // Set solution
+      memento.sol_ = new Vector<Double>;
+      dynamic_cast<Vector<Double>&>(*(memento.sol_)) =
+        dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
 
-	if (analysistype_ == TRANSIENT) {
-	  // Set first derivative
-	  memento.solDeriv1_ = getS1();   
-	  
-	  // Set second derivative
-	  memento.solDeriv2_ = getS2();
-	}
+      if (analysistype_ == TRANSIENT) {
+        // Set first derivative
+        memento.solDeriv1_ = getS1();   
+          
+        // Set second derivative
+        memento.solDeriv2_ = getS2();
+      }
     }
     else {
 
@@ -262,7 +262,7 @@ namespace CoupledField {
 
 
   void StdPDE::SetMemento( PDEMemento &memento, std::string transFromTo,
-			   Double frequency) {
+                           Double frequency) {
 
     ENTER_FCN( "StdPDE::SetMemento" );
   
@@ -274,48 +274,48 @@ namespace CoupledField {
     if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
 
       if ( transFromTo == "complexToReal" ) {
-	// --- transform complex values to real one --
-	Vector<Double>& sol = 
-	  dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
-	Vector<Complex>& mementoSol = 
-	  dynamic_cast<Vector<Complex>&>(*(memento.sol_));
+        // --- transform complex values to real one --
+        Vector<Double>& sol = 
+          dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
+        Vector<Complex>& mementoSol = 
+          dynamic_cast<Vector<Complex>&>(*(memento.sol_));
 
-	for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
-	  sol[i] = mementoSol[i].real();
-	}
+        for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
+          sol[i] = mementoSol[i].real();
+        }
 
-	if (analysistype_ == TRANSIENT) {
-	  // Set first and second derivative
-	  memento.solDeriv1_.Resize(mementoSol.GetSize());
-	  memento.solDeriv2_.Resize(mementoSol.GetSize());
+        if (analysistype_ == TRANSIENT) {
+          // Set first and second derivative
+          memento.solDeriv1_.Resize(mementoSol.GetSize());
+          memento.solDeriv2_.Resize(mementoSol.GetSize());
 
-	  Complex val;
-	  for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
-	    val   = mementoSol[i];
-	    memento.solDeriv1_[i] = - 2*PI*frequency * val.imag();
-	    memento.solDeriv2_[i] = 
-	      - 4 * PI * PI * frequency * frequency * val.real();
-	  }
+          Complex val;
+          for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
+            val   = mementoSol[i];
+            memento.solDeriv1_[i] = - 2*PI*frequency * val.imag();
+            memento.solDeriv2_[i] = 
+              - 4 * PI * PI * frequency * frequency * val.real();
+          }
 
-	  TS_alg_->SetDeriv1(memento.solDeriv1_);
-	  TS_alg_->SetDeriv2(memento.solDeriv2_);
+          TS_alg_->SetDeriv1(memento.solDeriv1_);
+          TS_alg_->SetDeriv2(memento.solDeriv2_);
 
-	}
+        }
       }
       else {
 
-	// --- Real values --
-	// Set solution
-	dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).SetAlgSysVector
-	  (dynamic_cast<Vector<Double>&>(*(memento.sol_)));
+        // --- Real values --
+        // Set solution
+        dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).SetAlgSysVector
+          (dynamic_cast<Vector<Double>&>(*(memento.sol_)));
       
-	// if previous step was transient and the current step is also
-	// then give the time derivative to the timestepping algorithm
-	if (analysistype_ == TRANSIENT
-	    && memento.analysisType_ == TRANSIENT) {
-	  TS_alg_->SetDeriv1(memento.solDeriv1_);
-	  TS_alg_->SetDeriv2(memento.solDeriv2_);
-	}
+        // if previous step was transient and the current step is also
+        // then give the time derivative to the timestepping algorithm
+        if (analysistype_ == TRANSIENT
+            && memento.analysisType_ == TRANSIENT) {
+          TS_alg_->SetDeriv1(memento.solDeriv1_);
+          TS_alg_->SetDeriv2(memento.solDeriv2_);
+        }
       }
     }
 
@@ -591,7 +591,7 @@ namespace CoupledField {
   // POSTPROCESSING  
   // ======================================================
   void StdPDE::ComputeVolDefSurf(StdVector<RegionIdType> &surfRegions, 
-				 StdVector<std::string> &strDir) {
+                                 StdVector<std::string> &strDir) {
 
     ENTER_FCN( "StdPDE::ComputeVolDefSurf" );
 
@@ -610,16 +610,16 @@ namespace CoupledField {
     for (Integer actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
       //check for direction
       if ( strDir[actSF] == "ux" ) {
-	dir = 1;
+        dir = 1;
       }
       else if ( strDir[actSF] == "uy" ) {
-	dir = 2;
+        dir = 2;
       }
       else if ( strDir[actSF] == "uz" ) {
-	dir = 3;
+        dir = 3;
       }
       else {
-	Error("ComputeVolDefSurf: dof must be ux,uy or uz!");
+        Error("ComputeVolDefSurf: dof must be ux,uy or uz!");
       }
 
       //we start from zero!
@@ -628,42 +628,42 @@ namespace CoupledField {
       NodeStoreSol<Complex> * solHarmonic;
       NodeStoreSol<Double> * solTransient;
       if (analysistype_ == HARMONIC ) {
-	solHarmonic =  dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-	subDomVolComplex[actSF] = 0;   
+        solHarmonic =  dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+        subDomVolComplex[actSF] = 0;   
       }
       else {
-	solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);;
-	subDomVolReal[actSF] = 0;   
+        solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);;
+        subDomVolReal[actSF] = 0;   
       }
       
       StdVector<SurfElem*> elemssd;
       ptgrid_->GetSurfElems(elemssd,surfRegions[actSF]);
    
       for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
-	BaseFE * ptSurfEl = elemssd[actEl]->ptElem;
-	StdVector<Integer> connecth = elemssd[actEl]->connect;
-	
-	Matrix<Double> ptSurfCoord;
-	GetElemCoords(connecth, ptSurfCoord);
-	
-	//get the deformed solution
-	if (analysistype_ == HARMONIC ) {
-	  Vector<Complex> disp(ptSurfEl->GetNumNodes());
-	  for (Integer lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
-	    solHarmonic->Get(connecth[lnode]-1, dof, disp[lnode]);
-	  }
-	  // extract to volume element
-	  subDomVolComplex[actSF] += 
-	    ComputeVolElem(ptSurfEl,ptSurfCoord,disp); 
-	}
-	else {
-	  Vector<Double> disp(ptSurfEl->GetNumNodes());
-	  for (Integer lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
-	    solTransient->Get(connecth[lnode]-1,dof,disp[lnode]);
-	  }
-	  // extract to volume element
-	  subDomVolReal[actSF] += ComputeVolElem(ptSurfEl,ptSurfCoord,disp); 
-	}
+        BaseFE * ptSurfEl = elemssd[actEl]->ptElem;
+        StdVector<Integer> connecth = elemssd[actEl]->connect;
+        
+        Matrix<Double> ptSurfCoord;
+        GetElemCoords(connecth, ptSurfCoord);
+        
+        //get the deformed solution
+        if (analysistype_ == HARMONIC ) {
+          Vector<Complex> disp(ptSurfEl->GetNumNodes());
+          for (Integer lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
+            solHarmonic->Get(connecth[lnode]-1, dof, disp[lnode]);
+          }
+          // extract to volume element
+          subDomVolComplex[actSF] += 
+            ComputeVolElem(ptSurfEl,ptSurfCoord,disp); 
+        }
+        else {
+          Vector<Double> disp(ptSurfEl->GetNumNodes());
+          for (Integer lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
+            solTransient->Get(connecth[lnode]-1,dof,disp[lnode]);
+          }
+          // extract to volume element
+          subDomVolReal[actSF] += ComputeVolElem(ptSurfEl,ptSurfCoord,disp); 
+        }
       }
     }
 
@@ -679,25 +679,25 @@ namespace CoupledField {
     if ( analysistype_ == HARMONIC ) {
       subDomVolReal.Resize(surfRegions.GetSize());
       for (Integer actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
-	subDomVolReal[actSF] = abs( subDomVolComplex[actSF] );
+        subDomVolReal[actSF] = abs( subDomVolComplex[actSF] );
       }
  
       analysis    = "Frequency:";
       analysisVal = actFrequency_;
       Info->WriteResult(pdename_,  resulttype, regionNames, subDomVolReal, 
-			unit, analysis, analysisVal);
+                        unit, analysis, analysisVal);
     }
     else {
       analysis    = "Time:";
       analysisVal = lasttimecalc_;
       Info->WriteResult(pdename_,  resulttype, regionNames, subDomVolReal, 
-			unit, analysis, analysisVal);
+                        unit, analysis, analysisVal);
     }
   }
 
   
   Double StdPDE::ComputeVolElem(BaseFE * surfEl, Matrix<Double>& surfCoord, 
-				Vector<Double> disp) {
+                                Vector<Double> disp) {
 
     ENTER_FCN( "StdPDE::ComputeVolElem" );
 
@@ -721,7 +721,7 @@ namespace CoupledField {
 
 
   Complex StdPDE::ComputeVolElem(BaseFE * surfEl, Matrix<Double>& surfCoord, 
-				 Vector<Complex> disp) {
+                                 Vector<Complex> disp) {
 
     ENTER_FCN( "StdPDE::ComputeVolElem" );
 

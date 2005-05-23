@@ -7,44 +7,44 @@
 namespace CoupledField
 {
 
-//! Class for saving the internal state of a PDECoupling object
-class CouplingMemento
-{
-public:
+  //! Class for saving the internal state of a PDECoupling object
+  class CouplingMemento
+  {
+  public:
 
-  // friend declarations
-  friend class PDECoupling;
+    // friend declarations
+    friend class PDECoupling;
 
-  //! Constructor
-  CouplingMemento();
+    //! Constructor
+    CouplingMemento();
 
-  //! Copy Constructor
-  CouplingMemento(const CouplingMemento & x)
-  { Error("CouplingMemento: Copy constructor not implemented");}
+    //! Copy Constructor
+    CouplingMemento(const CouplingMemento & x)
+    { Error("CouplingMemento: Copy constructor not implemented");}
 
-  //! Destructor
-  ~CouplingMemento();
+    //! Destructor
+    ~CouplingMemento();
 
-  //! Clear all data
-  void Clear();
+    //! Clear all data
+    void Clear();
   
-  //! Query if information is saved
-  Boolean IsSet() {return isSet_;};
-protected:
+    //! Query if information is saved
+    Boolean IsSet() {return isSet_;};
+  protected:
 
-  //! TRUE, if information is saved
-  Boolean isSet_;
+    //! TRUE, if information is saved
+    Boolean isSet_;
   
-  //! vector containing types of coupling input
-  StdVector<CouplingInputType> inputTypes_;        
+    //! vector containing types of coupling input
+    StdVector<CouplingInputType> inputTypes_;        
 
-  //! vector conatining quantities of coupling input
-  StdVector<SolutionType> inputQuantities_;         
+    //! vector conatining quantities of coupling input
+    StdVector<SolutionType> inputQuantities_;         
 
-  //! vector containing pointer to coupling interfaces  
-  StdVector<PDECoupling::CouplingInterface> inputInterfaces_;  
+    //! vector containing pointer to coupling interfaces  
+    StdVector<PDECoupling::CouplingInterface> inputInterfaces_;  
   
-};
+  };
 
 
 } // end of namespace

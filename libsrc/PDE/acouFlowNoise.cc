@@ -20,8 +20,8 @@
 namespace CoupledField
 {
 
-AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut)
-  :AcousticPDE(aptgrid, aptTimeFunc, aptOut)
+  AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut)
+    :AcousticPDE(aptgrid, aptTimeFunc, aptOut)
   {
     ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
 
@@ -36,14 +36,14 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults 
     StdVector<std::string> regionNames;
     params->GetList( "name", subdoms_, pdename_, "region" );
     params->GetList( "name", regionNames,  "MpCCI-flownoise",
-		     "coupledregion" );
+                     "coupledregion" );
     ptgrid_->RegionNameRoId( couplSubDomId_, regionNames ):
 
-    //check type of flow data
-    if( params->HasValue( "type", "nodalSrc", pdename_, "flowData" ) ) {
-      nodalSrc_ = TRUE;
-      Info->PrintF(pdename_, " Using FlowData as RHS nodal source\n" );
-    }
+      //check type of flow data
+      if( params->HasValue( "type", "nodalSrc", pdename_, "flowData" ) ) {
+        nodalSrc_ = TRUE;
+        Info->PrintF(pdename_, " Using FlowData as RHS nodal source\n" );
+      }
   
     if( params->IsSet( "valRHS","pdeList" ,"acoustic" ) ) {
       plotRHS_ = TRUE;
@@ -67,7 +67,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults 
     if (!Find) 
       {
         std::string msg="Subdom to be coupled is not in list of PDE subdoms.";
-	msg+="Please, check .xml-file";
+        msg+="Please, check .xml-file";
         Error(msg.c_str(),__FILE__,__LINE__);
       }
 
@@ -107,7 +107,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults 
     Integer maxnumelem=ptgrid_->GetNumElems(subdoms_);
 
 
-  double starttime, endtime;
+    double starttime, endtime;
 
     Double val;
     Matrix<Double> ptCoordNodes;
@@ -141,25 +141,25 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults 
 
 #ifdef MpCCI
     std::cout<<"MpCCInodes_: "<< MpCCInodes_ << " dimension: " 
-	     << dim_ << std::endl;
+             << dim_ << std::endl;
     if (nodalSrc_ == TRUE)
       //we get already the integrated acoustic source term
       flowdata_.Resize(1, MpCCInodes_);
     else
       flowdata_.Resize(1+dim_, MpCCInodes_);
 
-      starttime = CCI_Wtime();
+    starttime = CCI_Wtime();
       
 
 
-       ptMpCCIexch_->CouplCompPhase(flowdata_, timestep);
+    ptMpCCIexch_->CouplCompPhase(flowdata_, timestep);
 
 
-      endtime = CCI_Wtime();
+    endtime = CCI_Wtime();
       
 
-      std::cout<<"Transfer of Data CouplCompPhase() for 1 time step took: "
-	       <<(endtime-starttime)<<" seconds"<<std::endl;
+    std::cout<<"Transfer of Data CouplCompPhase() for 1 time step took: "
+             <<(endtime-starttime)<<" seconds"<<std::endl;
 
 
 #else
@@ -200,7 +200,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults 
     // Correct valmult value is -1.0, 
     // if plugging in source (ddTij/dxidxj) directly in weak form then 1.0
 #ifdef MpCCI
-       starttime = CCI_Wtime();
+    starttime = CCI_Wtime();
 #endif 
     if (nodalSrc_ == FALSE) {
       
@@ -224,45 +224,45 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults 
               Matrix<Double> ptCoordNodes;
               ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);        
               linear_load->CalcElemVector4Quad(ptCoordNodes, connecth,
-					       flowdata_, elemvec);
+                                               flowdata_, elemvec);
               elemvec*=valmult;
             
-	      // Ramping before adding elemrhs to global vector 
-	      // to avoid spurious effect at bnd. of fluid dom.
+              // Ramping before adding elemrhs to global vector 
+              // to avoid spurious effect at bnd. of fluid dom.
             
-//               for (ii=0; ii<elsize; ii++)
-//                 {
-//                   if (ptCoordNodes[0][ii]<bndoffsetXmin)
-//                     {
-//                       elemvec[ii]-=elemvec[ii]*
-//                   (ptCoordNodes[0][ii]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
-//                     }
+              //               for (ii=0; ii<elsize; ii++)
+              //                 {
+              //                   if (ptCoordNodes[0][ii]<bndoffsetXmin)
+              //                     {
+              //                       elemvec[ii]-=elemvec[ii]*
+              //                   (ptCoordNodes[0][ii]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
+              //                     }
                 
-//                   else
-//                     if (ptCoordNodes[0][ii]>bndoffsetXmax)
-//                       elemvec[ii]-=elemvec[ii]*
-//                   (ptCoordNodes[0][ii]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
-//                   if (ptCoordNodes[1][ii]<bndoffsetYmin)
-//                     elemvec[ii]-=elemvec[ii]*
-//                   (ptCoordNodes[1][ii]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
-//                   else    
-//                     if (ptCoordNodes[1][ii]>bndoffsetYmax)
-//                       elemvec[ii]-=elemvec[ii]*
-//                   (ptCoordNodes[1][ii]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
-//                 }
+              //                   else
+              //                     if (ptCoordNodes[0][ii]>bndoffsetXmax)
+              //                       elemvec[ii]-=elemvec[ii]*
+              //                   (ptCoordNodes[0][ii]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+              //                   if (ptCoordNodes[1][ii]<bndoffsetYmin)
+              //                     elemvec[ii]-=elemvec[ii]*
+              //                   (ptCoordNodes[1][ii]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
+              //                   else    
+              //                     if (ptCoordNodes[1][ii]>bndoffsetYmax)
+              //                       elemvec[ii]-=elemvec[ii]*
+              //                   (ptCoordNodes[1][ii]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
+              //                 }
             
               //end ramping
             
               // CHANGE connecth
               //Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
               eqnData_->Node2EQN(connecth, connect_PDE);
-	      // for setting with homogeneous rhs       
+              // for setting with homogeneous rhs       
               //linear_load->CalcElemVector(ptCoordNodes, elemvec); 
             
-	      //    std::cout<<"elemvect QUADRUPOLE: "<<elemvec<<std::endl;
+              //    std::cout<<"elemvect QUADRUPOLE: "<<elemvec<<std::endl;
               // Quadrupole activated!!   
               algsys_->SetElementRHS(&elemvec[0], pdeId_, 
-				     connect_PDE.GetPointer(), connect_PDE.GetSize());
+                                     connect_PDE.GetPointer(), connect_PDE.GetSize());
             
               delete linear_load;
             }
@@ -281,31 +281,31 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults 
         Double val = flowdata_[0][idx];
         node = idx + 1;
 
-      // Ramping before adding to RHS vector (NOW IT MAKES ZERO THE RHS ENTRY!)
-      Matrix<Double> ptCoordNodes;
-      connecth.Resize(1);
-      connecth[0] = node;
-      ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);	  
+        // Ramping before adding to RHS vector (NOW IT MAKES ZERO THE RHS ENTRY!)
+        Matrix<Double> ptCoordNodes;
+        connecth.Resize(1);
+        connecth[0] = node;
+        ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);         
 
-      if (ptCoordNodes[0][0]<bndoffsetXmin)
-	//val -= val*(ptCoordNodes[0][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
-	val = 0;
-      else
-	if (ptCoordNodes[0][0]>bndoffsetXmax)
-	//val -= val*(ptCoordNodes[0][0]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+        if (ptCoordNodes[0][0]<bndoffsetXmin)
+          //val -= val*(ptCoordNodes[0][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
           val = 0;
-      if (ptCoordNodes[1][0]<bndoffsetYmin)
-	//val -= val*(ptCoordNodes[1][0]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
-        val = 0;
-      else	
-	if (ptCoordNodes[1][0]>bndoffsetYmax)
-	//val -= val*(ptCoordNodes[1][0]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
-	  val = 0;
-      //end ramping
+        else
+          if (ptCoordNodes[0][0]>bndoffsetXmax)
+            //val -= val*(ptCoordNodes[0][0]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+            val = 0;
+        if (ptCoordNodes[1][0]<bndoffsetYmin)
+          //val -= val*(ptCoordNodes[1][0]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
+          val = 0;
+        else      
+          if (ptCoordNodes[1][0]>bndoffsetYmax)
+            //val -= val*(ptCoordNodes[1][0]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
+            val = 0;
+        //end ramping
 
-      val*=valmult;
+        val*=valmult;
 
-       //add to RHS
+        //add to RHS
         eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
         algsys_->SetNodeRHS(val, pdeId_, eqnNr, eqnDof);      
       }
@@ -313,32 +313,32 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults 
     
     }
 #ifdef MpCCI
-      endtime = CCI_Wtime();
+    endtime = CCI_Wtime();
 #endif    
   
-      if (plotRHS_){
-	///////// For plotting the RHS as solution for analysing it
+    if (plotRHS_){
+      ///////// For plotting the RHS as solution for analysing it
 
-	rhs_.SetNumSolutions(1);
-	rhs_.SetNumNodes(numPDENodes_);
-	rhs_.SetSolutionType(ACOU_RHSVAL);
-	rhs_.SetNumDofs(1);
-	rhs_.SetPtrEQNData(eqnData_, ptgrid_);
-	rhs_.Init(0.0);
-	
-	Double *ptRHS;
-	algsys_->GetRHSVal( ptRHS );
-	rhs_.CopyFromAlgSysDataPointer(ptRHS);
-      }
+      rhs_.SetNumSolutions(1);
+      rhs_.SetNumNodes(numPDENodes_);
+      rhs_.SetSolutionType(ACOU_RHSVAL);
+      rhs_.SetNumDofs(1);
+      rhs_.SetPtrEQNData(eqnData_, ptgrid_);
+      rhs_.Init(0.0);
+        
+      Double *ptRHS;
+      algsys_->GetRHSVal( ptRHS );
+      rhs_.CopyFromAlgSysDataPointer(ptRHS);
+    }
       
   
-      //     timestep=timestep+1;
+    //     timestep=timestep+1;
 
   } 
 
 
   void AcouFlowNoise::ReadFlowData(const Char * aname, Integer timestep,
-				   Matrix<Double> &flowdata_)
+                                   Matrix<Double> &flowdata_)
   {
     ENTER_FCN( "AcouFlowNoise::ReadFlowData" );
 
@@ -427,7 +427,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults 
         testflowf << std::endl;
         //for (j=0; j < maxnumqtts; j++)
         testflowf<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
-	<< " " << flowdata_[0][i];
+        << " " << flowdata_[0][i];
         testflowf << std::endl;
         }
         testflowf.close();*/
@@ -458,25 +458,25 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults 
         sol_der2Array.Init(0.0);
         sol_der2Array.SetAlgSysVector(getS2());
  
-	  std::cout<<"In AcouFlowNoise. Writing solution..."<<std::endl;
+        std::cout<<"In AcouFlowNoise. Writing solution..."<<std::endl;
      
 
-	if (plotRHS_)
-	  {
-	  std::cout<<"In AcouFlowNoise. Writing RHS as solution..."<<std::endl;
-	         outFile_->WriteNodeSolutionTransient(rhs_,laststepcalc_,
-	  					     lasttimecalc_);
-		outFile_->WriteNodeSolutionTransient(rhs_, laststepcalc_, 
-						     lasttimecalc_);
-	  }
-	//	else
-	//  {
-	  std::cout<<"In AcouFlowNoise. Writing solution..."<<std::endl;
-	    solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-	    //  }
+        if (plotRHS_)
+          {
+            std::cout<<"In AcouFlowNoise. Writing RHS as solution..."<<std::endl;
+            outFile_->WriteNodeSolutionTransient(rhs_,laststepcalc_,
+                                                 lasttimecalc_);
+            outFile_->WriteNodeSolutionTransient(rhs_, laststepcalc_, 
+                                                 lasttimecalc_);
+          }
+        //      else
+        //  {
+        std::cout<<"In AcouFlowNoise. Writing solution..."<<std::endl;
+        solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+        //  }
     
         outFile_->WriteNodeSolutionTransient(*solTransient,laststepcalc_,
-					     lasttimecalc_);
+                                             lasttimecalc_);
         outFile_->WriteNodeSolutionTransient(sol_der1Array,
                                              laststepcalc_,lasttimecalc_);
         outFile_->WriteNodeSolutionTransient(sol_der2Array,

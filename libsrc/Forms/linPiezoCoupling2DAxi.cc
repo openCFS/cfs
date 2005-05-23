@@ -12,7 +12,7 @@ namespace CoupledField {
   //   calcAMat
   // ============
   void linPiezoCoupling2DAxi::calcAMat( Matrix<Double> &aMat, Integer ip,
-                                     const Matrix<Double> &ptCoord ) {
+                                        const Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "linPiezoCoupling2DAxi::calcAMat" );
 
@@ -69,7 +69,7 @@ namespace CoupledField {
   //   calcBMat
   // ============
   void linPiezoCoupling2DAxi::calcBMat( Matrix<Double> &bMat, Integer ip,
-                                     const Matrix<Double> &ptCoord ) {
+                                        const Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "linPiezoCoupling2DAxi::calcBMat" );
 

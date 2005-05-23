@@ -49,7 +49,7 @@ namespace CoupledField {
     
     //@{ \name Calculation Methods
 
-     //! Compute the matrix \f$B\f$ of the \f$BDB\f$ operator
+    //! Compute the matrix \f$B\f$ of the \f$BDB\f$ operator
 
     //! The method computes the matrix \f$B\f$ of the \f$BDB\f$ operator
     //! which, in the case of a 3D electrostatic field,
@@ -100,7 +100,7 @@ namespace CoupledField {
       for( Integer actNode = 0; actNode < numNodes; actNode++ ) {
         bMat[0][actNode] = xiDx[actNode][0];
         bMat[1][actNode] = xiDx[actNode][1];
-	bMat[2][actNode] = xiDx[actNode][2];
+        bMat[2][actNode] = xiDx[actNode][2];
       }
     }
     
@@ -122,13 +122,13 @@ namespace CoupledField {
       // is the lower-right sub-diagonal block
       // d[7-9][7-9]
       Integer startRow = 6;
-       Integer startCol = 6;
-       for( Integer i = 0; i < 3; i++ ) {
-	 for ( Integer j = 0; j < 3; j++ ) {
-	   dMat[i][j] = factor_ *
-	     (*matMatrix)[startRow+i][startCol+j];
-	 }
-       }
+      Integer startCol = 6;
+      for( Integer i = 0; i < 3; i++ ) {
+        for ( Integer j = 0; j < 3; j++ ) {
+          dMat[i][j] = factor_ *
+            (*matMatrix)[startRow+i][startCol+j];
+        }
+      }
     }
     
     //! Returns dimension of D matrix

@@ -10,12 +10,12 @@ namespace CoupledField
 
   //! Class we store information about given time function
   /*!
-   This class stores information about given time function. 
-   */
+    This class stores information about given time function. 
+  */
 
-class TimeFunc
+  class TimeFunc
   {
-public:
+  public:
     //! Constructor
     TimeFunc();
 
@@ -38,7 +38,7 @@ public:
       return maxnumTF_;
     }
 
-private:
+  private:
 
     //! read time functions from different dat-file
     void ReadTimeFuncs();
@@ -57,6 +57,6 @@ private:
 
     //!
     Boolean timeFncDatFiles_;
-};
+  };
 } // end of namespace
 #endif

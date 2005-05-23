@@ -34,7 +34,7 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void GetShFnc(Vector<Double> & S, 
-			  const Vector<Double> & LCoord);
+                          const Vector<Double> & LCoord);
 
 
     //! Get local coordinates of element corners 
@@ -53,7 +53,7 @@ namespace CoupledField
       \param ip (input) Integration point
     */
     virtual void GetShFncAtIp(Vector<Double> & S, 
-			      const Integer ip);
+                              const Integer ip);
 
     //! Get global derivatives of all shape fnc at arbitrary local point
     /*! 
@@ -67,8 +67,8 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f]       
     */
     virtual  void GetGlobDerivShFnc(Matrix<Double> & Deriv, 
-				    const Vector<Double> & LCoord,
-				    const Matrix<Double> & CornerCoords);
+                                    const Vector<Double> & LCoord,
+                                    const Matrix<Double> & CornerCoords);
 
 
 
@@ -85,9 +85,9 @@ namespace CoupledField
       \param jacDet jacobian determinant
     */
     virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & deriv, 
-					const Integer ip,
-					const Matrix<Double> & cornerCoords,
-					Double & jacDet);
+                                        const Integer ip,
+                                        const Matrix<Double> & cornerCoords,
+                                        Double & jacDet);
 
 
 
@@ -103,8 +103,8 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f]
     */
     virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
-					const Integer ip,
-					const Matrix<Double> & CornerCoords);
+                                        const Integer ip,
+                                        const Matrix<Double> & CornerCoords);
 
     //! Calculates the Jacobian Matrix at an arbitrary local point
     /*!
@@ -118,8 +118,8 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f] 
     */
     virtual void CalcJacobian(Matrix<Double> & J, 
-			      const Vector<Double> & LCoord, 
-			      const Matrix<Double> & CornerCoords);
+                              const Vector<Double> & LCoord, 
+                              const Matrix<Double> & CornerCoords);
 
     //! Calculates the Jacobian Matrix at integration point ip
     /*!
@@ -133,8 +133,8 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f] 
     */
     virtual void CalcJacobianAtIp(Matrix<Double> & J, 
-				  const Integer ip, 
-				  const Matrix<Double> & CornerCoords);
+                                  const Integer ip, 
+                                  const Matrix<Double> & CornerCoords);
 
     //! Calculates the Inverse Jacobian Matrix at an arbitrary local point
     /*!
@@ -148,8 +148,8 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f] 
     */
     virtual void CalcInvJacobian(Matrix<Double> & JInv,
-				 const Vector<Double> & LCoord,
-				 const Matrix<Double> & CornerCoords);
+                                 const Vector<Double> & LCoord,
+                                 const Matrix<Double> & CornerCoords);
   
     //! Calculates the Inverse Jacobian Matrix at integration point ip
     /*!
@@ -163,8 +163,8 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f] 
     */
     virtual void CalcInvJacobianAtIp(Matrix<Double> & JInv,
-				     const Integer ip,
-				     const Matrix<Double> & CornerCoords);
+                                     const Integer ip,
+                                     const Matrix<Double> & CornerCoords);
 
 
     //! Calculation of Jacobian determinant at arbitrary local point
@@ -175,7 +175,7 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f]
     */
     virtual Double CalcJacobianDet(const Vector<Double> & LCoord,
-				   const Matrix<Double> & CornerCoords);
+                                   const Matrix<Double> & CornerCoords);
 
     //! Calculation of Jacobian determinant at integration point ip
     /*! 
@@ -185,7 +185,7 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f]
     */
     virtual Double CalcJacobianDetAtIp(const Integer ip, 
-				       const Matrix<Double> & CornerCoords);
+                                       const Matrix<Double> & CornerCoords);
 
     //! Calculation the volume (area, length) of an element
     /*! 
@@ -202,7 +202,7 @@ namespace CoupledField
       \param displacement (input) Displacement of the corner points (same ordering as CornerCoords!!)
     */
     virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords,
-				  Matrix<Double> &displacements)
+                                  Matrix<Double> &displacements)
     {
       Error("Not implemented",__FILE__,__LINE__);
       return 0;
@@ -225,12 +225,12 @@ namespace CoupledField
       \param volIntPoint (output) Corresponding volume integration point
     */
     virtual void GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-					   const StdVector<Integer> & volConnect,
-					   const Vector<Double> & surfIntPoint,
-					   Vector<Double> & volIntPoint)
+                                           const StdVector<Integer> & volConnect,
+                                           const Vector<Double> & surfIntPoint,
+                                           Vector<Double> & volIntPoint)
     {
       Error( "BaseFE::GetLocalIntPoints4Surface: Not implemented here", 
-	     __FILE__, __LINE__);}
+             __FILE__, __LINE__);}
 
     //! Return space dimension
     ShortInt GetDim() const {return Dim_;}
@@ -282,8 +282,8 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void GetEdgeGlobalDerivShapeFnc(StdVector<Matrix<Double>* > & deriv, 
-					    const Vector<Double> & LCoord,
-					    const Matrix<Double> & CornerCoords)
+                                            const Vector<Double> & LCoord,
+                                            const Matrix<Double> & CornerCoords)
     { Error("GetEdgeGlobDerivShFnc called for non edge element! ",__FILE__,__LINE__);};
 
 
@@ -300,8 +300,8 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f]
     */
     virtual void GetEdgeGlobDerivShFncAtIp(StdVector< Matrix<Double> *> & deriv, 
-					   const Integer ip,
-					   const Matrix<Double> & cornerCoords);
+                                           const Integer ip,
+                                           const Matrix<Double> & cornerCoords);
   
 
 
@@ -317,8 +317,8 @@ namespace CoupledField
       \param lCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcEdgeShapeFnc(Matrix<Double> & shape, 
-				  const Vector<Double> & LCoord, 
-				  const Matrix<Double> & CornerCoords)
+                                  const Vector<Double> & LCoord, 
+                                  const Matrix<Double> & CornerCoords)
     { Error("CalcEdgeShapeFnc called for non edge element! ",__FILE__,__LINE__);};
   
   
@@ -335,8 +335,8 @@ namespace CoupledField
       \param cornerCoords (input) Coordinates of edge points 
     */
     virtual void CalcEdgeShapeFncAtIp(Matrix<Double> & shape, 
-				      const Integer ip,
-				      const Matrix<Double> & cornerCoords);
+                                      const Integer ip,
+                                      const Matrix<Double> & cornerCoords);
   
 
     //! Get nodes belonging to one edge
@@ -363,8 +363,8 @@ namespace CoupledField
       \param cornerCoords (input) Matrix of corner coordinates
     */
     virtual void GetGlobalEdgeIndicesAtIP( Vector<Double> & globCoord,
-					   Integer ip,
-					   const Matrix<Double> & cornerCoords);
+                                           Integer ip,
+                                           const Matrix<Double> & cornerCoords);
   
 
     //! Set integration type (GaussOrder1, GaussOrder2, ...)
@@ -398,7 +398,7 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcShapeFnc(Vector<Double> & Shape, 
-			      const Vector<Double> & LCoord) = 0;
+                              const Vector<Double> & LCoord) = 0;
   
     //! Calculates the local derivatives of shape functions at an arbitrary local point
     /*!
@@ -409,7 +409,7 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-					const Vector<Double> & LCoord) = 0;
+                                        const Vector<Double> & LCoord) = 0;
 
     //! Set value of shape fnc at integration points
     virtual void SetShapeFncAtIp();

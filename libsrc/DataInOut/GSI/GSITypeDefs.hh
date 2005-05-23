@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------
-|
-| $Id$
-|
-+---------------------------------------------------------------------*/
+  |
+  | $Id$
+  |
+  +---------------------------------------------------------------------*/
 
 #ifndef GSI_TYPEDEFS
 #define GSI_TYPEDEFS
@@ -13,14 +13,14 @@
 namespace GridlibSocketInterface
 {
 
-typedef unsigned char   uint8;
-typedef char            int8;
-typedef unsigned short  uint16;
-typedef short           int16;
-typedef unsigned int    uint32;
-typedef int             int32;
-typedef float           real32;
-typedef double          real64;
+  typedef unsigned char   uint8;
+  typedef char            int8;
+  typedef unsigned short  uint16;
+  typedef short           int16;
+  typedef unsigned int    uint32;
+  typedef int             int32;
+  typedef float           real32;
+  typedef double          real64;
   
 }
 

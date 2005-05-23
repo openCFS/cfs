@@ -30,44 +30,44 @@ namespace CoupledField
 
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++)
-	bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
+        bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
 
     switch(spaceDim)
       {
       case 2:
-	j = 1;
-	k = 0;
-	
-	for (actNode = 0; actNode < nrNodes; actNode++)
-	  {
-	    bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
-	    bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
-	  }
-	break;
+        j = 1;
+        k = 0;
+        
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+            bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
+          }
+        break;
 
 
       case 3:
-	Integer actDim=spaceDim;
-	for (actNode = 0; actNode < nrNodes; actNode++)
-	  {
-	    bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
-	    bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
-	  }
+        Integer actDim=spaceDim;
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
+            bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
+          }
 
-	actDim++;
-	for (actNode = 0; actNode < nrNodes; actNode++)
-	  {
-	    bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
-	    bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
-	  }
+        actDim++;
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
+            bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
+          }
 
-	actDim++;
-	for (actNode = 0; actNode < nrNodes; actNode++)
-	  {
-	    bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
-	    bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];
-	  }
-	break;
+        actDim++;
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
+            bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+          }
+        break;
       }
   }
   
@@ -75,8 +75,8 @@ namespace CoupledField
   
   // calculated the D-matrix for the plain strain state
   void smoothPlainStrainInt::calcDMat(Matrix<Double> & dMat, 
-				      Integer ip, 
-				      Matrix<Double> & ptCoord)
+                                      Integer ip, 
+                                      Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "smoothPlainStrainInt::calcDMat" );
 
@@ -89,25 +89,25 @@ namespace CoupledField
     Integer i,j;
 
     switch(actOrientation_)
-      {	
+      { 
       case xy: 
-	{
-	  rowPtr = rowPtrXY;
-	  break;
-	}
+        {
+          rowPtr = rowPtrXY;
+          break;
+        }
       case xz: 
-	{
-	  rowPtr = rowPtrXZ;
-	  break;
-	}
+        {
+          rowPtr = rowPtrXZ;
+          break;
+        }
 
       case yz: 
-	{
-	  rowPtr = rowPtrYZ;    
-	  break;
-	}
+        {
+          rowPtr = rowPtrYZ;    
+          break;
+        }
       }    
-	
+        
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
     dMat.Resize(nrElems2d);
 
@@ -116,9 +116,9 @@ namespace CoupledField
 
     for (i=0; i<nrElems2d; i++)
       for (j=0; j<nrElems2d; j++)
-	dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1]*jacDetInv;	
+        dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1]*jacDetInv;  
 
-}
+  }
 
 
 
@@ -135,25 +135,25 @@ namespace CoupledField
     Integer * rowPtr;
 
     switch(actOrientation_)
-      {	
+      { 
       case xy: 
-	{
-	  rowPtr = rowPtrXY;
-	  break;
-	}
+        {
+          rowPtr = rowPtrXY;
+          break;
+        }
       case xz: 
-	{
-	  rowPtr = rowPtrXZ;
-	  break;
-	}
+        {
+          rowPtr = rowPtrXZ;
+          break;
+        }
 
       case yz: 
-	{
-	  rowPtr = rowPtrYZ;    
-	  break;
-	}
+        {
+          rowPtr = rowPtrYZ;    
+          break;
+        }
       }    
-	
+        
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
     
     dMat.Resize(nrElemsAxi);
@@ -163,7 +163,7 @@ namespace CoupledField
 
     for (Integer i=0; i<nrElemsAxi; i++)
       for (Integer j=0; j<nrElemsAxi; j++)
-	dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1] * jacDetInv;
+        dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1] * jacDetInv;
   }
 
 
@@ -183,7 +183,7 @@ namespace CoupledField
 
     for (Integer i=0; i<nrElems3d; i++)
       for (Integer j=0; j<nrElems3d; j++)
-	dMat[i][j] = (*matMatrix)[i][j] * jacDetInv;	
+        dMat[i][j] = (*matMatrix)[i][j] * jacDetInv;    
   }
 
 

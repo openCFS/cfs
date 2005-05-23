@@ -11,7 +11,7 @@ namespace CoupledField
   /*! This class is derived from BaseElem. It stores general procedures for
     each type of finite element on lines, such as calculation of Jacobian
     matrix and information about integration points and integration weights.
-   */
+  */
 
   class LineFE : public BaseFE {
 
@@ -48,7 +48,7 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f]
     */
     virtual Double CalcJacobianDet(const Vector<Double> & LCoord,
-				   const Matrix<Double> & CornerCoords);
+                                   const Matrix<Double> & CornerCoords);
 
     //! Calculation of Jacobian determinant at integration point ip
     /*! 
@@ -57,7 +57,7 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f]
     */
     virtual Double CalcJacobianDetAtIp(const Integer ip, 
-				       const Matrix<Double> & CornerCoors);
+                                       const Matrix<Double> & CornerCoors);
 
     //! calculates the Jacobian Matrix at an arbitrary local point
     /*!
@@ -68,8 +68,8 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots  \end{array} \right) \f] 
     */
     virtual void CalcJacobian(Matrix<Double> & J, 
-			      const Vector<Double> & LCoord, 
-			      const Matrix<Double> & CornerCoords);
+                              const Vector<Double> & LCoord, 
+                              const Matrix<Double> & CornerCoords);
   
     //! Calculates the Jacobian Matrix at integration point ip
     /*!
@@ -80,8 +80,8 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f] 
     */
     virtual void CalcJacobianAtIp(Matrix<Double> & J, 
-				  const Integer ip, 
-				  const Matrix<Double> & CornerCoords);
+                                  const Integer ip, 
+                                  const Matrix<Double> & CornerCoords);
 
     //! calculates the Inverse Jacobian Matrix at an arbitrary local point
     /*!
@@ -92,8 +92,8 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f] 
     */
     virtual void CalcInvJacobian(Matrix<Double> & JInv,
-				 const Vector<Double> & LCoord,
-				 const Matrix<Double> & CornerCoords);
+                                 const Vector<Double> & LCoord,
+                                 const Matrix<Double> & CornerCoords);
   
     //! Calculates the Inverse Jacobian Matrix at integration point ip
     /*!
@@ -104,8 +104,8 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots  \end{array} \right) \f] 
     */
     virtual void CalcInvJacobianAtIp(Matrix<Double> & JInv,
-				     const Integer ip,
-				     const Matrix<Double> & CornerCoords);
+                                     const Integer ip,
+                                     const Matrix<Double> & CornerCoords);
   };
 
 }

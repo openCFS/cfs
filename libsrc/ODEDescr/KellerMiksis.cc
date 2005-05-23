@@ -12,13 +12,13 @@ namespace CoupledField
 {
 
   KellerMiksis::KellerMiksis(Double  RadiusInit, 
-			     Double  density,
-			     Double  sonicVel,
-			     Double  pStatic,
-			     Double  pVapour,
-			     Double  surfacTen,
-			     Double  polytrop,
-			     Double  viscosity) {
+                             Double  density,
+                             Double  sonicVel,
+                             Double  pStatic,
+                             Double  pVapour,
+                             Double  surfacTen,
+                             Double  polytrop,
+                             Double  viscosity) {
     ENTER_FCN( "KellerMiksis::KellerMiksis" );
     RadiusInit_ = RadiusInit;
     density_    = density;
@@ -43,8 +43,8 @@ namespace CoupledField
   }
 
   void  KellerMiksis::CompDeriv(const Double &t,
-		  const StdVector<Double> &y,
-		  StdVector<Double> &dydt){
+                                const StdVector<Double> &y,
+                                StdVector<Double> &dydt){
     ENTER_FCN( "KellerMiksis::CompDeriv" );
 
 
@@ -53,7 +53,7 @@ namespace CoupledField
     dydt[1]  = -3.0 / 2.0 * y[1] * y[1] * ( 1.0 - y[1] / ( 3.0 * sonicVel_ ));
 
     dydt[1] += 1.0 / density_ * ( pStatic_ - pVapour_ 
-				  + 2.0 * surfacTen_ / RadiusInit_ )
+                                  + 2.0 * surfacTen_ / RadiusInit_ )
       * std::pow(( RadiusInit_ / y[0] ), ( 3.0 * polytrop_ )) 
       * ( 1.0 + ( 1.0 - 3.0 * polytrop_ ) * y[1] / sonicVel_);
 
@@ -67,7 +67,7 @@ namespace CoupledField
     dydt[1] -= y[0] / ( density_ * sonicVel_ ) * dpdt_;    
 
     dydt[1] = dydt[1] / (( 1.0 - ( y[1] / sonicVel_ )) * y[0]
-			 + 4.0 * viscosity_ / ( density_ * sonicVel_));
+                         + 4.0 * viscosity_ / ( density_ * sonicVel_));
 
  
 

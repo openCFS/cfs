@@ -11,10 +11,10 @@ namespace CoupledField {
   //   SetParams
   // *************
   void CFSOLASParams::SetParams( std::string pdename,
-				 BaseParamHandler *cfs,
-				 OLAS_Params *olas, 
-				 AnalysisType analysisType,
-				 bool overrideExpert ) {
+                                 BaseParamHandler *cfs,
+                                 OLAS_Params *olas, 
+                                 AnalysisType analysisType,
+                                 bool overrideExpert ) {
 
     ENTER_FCN( "CFSOLASParams::SetParams" );
 
@@ -24,10 +24,10 @@ namespace CoupledField {
     cfs->Get( "type", sTypeString, pdename, "solver" );
     if ( sTypeString == "expertsChoice" ) {
       if ( overrideExpert ) {
-	(*error) << "You cannot specify expertsChoice as solver type "
-		 << "and at the same time specify overrideExpert! "
-		 << "This would leave the solver type undefined!";
-	Error( __FILE__, __LINE__ );
+        (*error) << "You cannot specify expertsChoice as solver type "
+                 << "and at the same time specify overrideExpert! "
+                 << "This would leave the solver type undefined!";
+        Error( __FILE__, __LINE__ );
       }
       sTypeString = "no solver";
     }
@@ -45,10 +45,10 @@ namespace CoupledField {
     cfs->Get( "storage", mMatString, pdename, "matrix" );
     if ( mMatString == "expertsChoice" ) {
       if ( overrideExpert ) {
-	(*error) << "You cannot specify expertsChoice as storage type "
-		 << "and at the same time specify overrideExpert! "
-		 << "This would leave the storage type undefined!";
-	Error( __FILE__, __LINE__ );
+        (*error) << "You cannot specify expertsChoice as storage type "
+                 << "and at the same time specify overrideExpert! "
+                 << "This would leave the storage type undefined!";
+        Error( __FILE__, __LINE__ );
       }
       mMatString = "noStorageType";
     }
@@ -74,7 +74,7 @@ namespace CoupledField {
     // Let expert module modify the settings
     if ( !overrideExpert ) {
       CFSOLASParams::Expert( cfs, pdename, sType, pType, mType, eType,
-			     orderType, analysisType );
+                             orderType, analysisType );
     }
 
     // Insert information into OLAS_Params object
@@ -127,7 +127,7 @@ namespace CoupledField {
       }
       cfs->Get( "type", analysis, "analysis" );
       if ( matType[0] == "imagMaterialParameter" &&
-	   analysis != "harmonic" && analysis != "paramIdent" ) {
+           analysis != "harmonic" && analysis != "paramIdent" ) {
         (*error) << "XML-file specifies material parameters with imaginary "
                  << "part for an analysis of type '" << analysis << "'. "
                  << "Complex parameters are currently only implemented for "
@@ -142,9 +142,9 @@ namespace CoupledField {
   //   SetSolverParams
   // *******************
   void CFSOLASParams::SetSolverParams( std::string pdename,
-				       BaseParamHandler *cfs,
-				       OLAS_Params *olas,
-				       SolverType sType ) {
+                                       BaseParamHandler *cfs,
+                                       OLAS_Params *olas,
+                                       SolverType sType ) {
 
     ENTER_FCN( "CFSOLASParams::SetSolverParams" );
 
@@ -157,156 +157,156 @@ namespace CoupledField {
     case CG:
       cfs->GetList( "tol", list, pdename, "cg" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "CG_epsilon", atof(list[0].c_str()) );
+        olas->SetValue( "CG_epsilon", atof(list[0].c_str()) );
       }
       cfs->GetList( "maxIter", list, pdename, "cg" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "CG_maxIter", atoi(list[0].c_str()) );
+        olas->SetValue( "CG_maxIter", atoi(list[0].c_str()) );
       }
       break;
 
     case GMRES:
       cfs->GetList( "tol", list, pdename, "gmres" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "GMRES_epsilon", atof(list[0].c_str()) );
+        olas->SetValue( "GMRES_epsilon", atof(list[0].c_str()) );
       }
       cfs->GetList( "maxIter", list, pdename, "gmres" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "GMRES_maxIter", atoi(list[0].c_str()) );
+        olas->SetValue( "GMRES_maxIter", atoi(list[0].c_str()) );
       }
       cfs->GetList( "maxKrylovDim", list, pdename, "gmres" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "GMRES_maxKrylovDim", atoi(list[0].c_str()) );
+        olas->SetValue( "GMRES_maxKrylovDim", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "gmres" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "GMRES_logging", (list[0] == "yes") );
+        olas->SetValue( "GMRES_logging", (list[0] == "yes") );
       }
       break;
 
     case MINRES:
       cfs->GetList( "tol", list, pdename, "minres" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "MINRES_epsilon", atof(list[0].c_str()) );
+        olas->SetValue( "MINRES_epsilon", atof(list[0].c_str()) );
       }
       cfs->GetList( "maxIter", list, pdename, "minres" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "MINRES_maxIter", atoi(list[0].c_str()) );
+        olas->SetValue( "MINRES_maxIter", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "minres" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "MINRES_logging", (list[0] == "yes") );
+        olas->SetValue( "MINRES_logging", (list[0] == "yes") );
       }
       break;
 
     case HYPRE_PCG:
       cfs->GetList( "tol", list, pdename, "hyprePCG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREPCG_epsilon", atof(list[0].c_str()) );
+        olas->SetValue( "HYPREPCG_epsilon", atof(list[0].c_str()) );
       }
       cfs->GetList( "maxIter", list, pdename, "hyprePCG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREPCG_maxIter", atoi(list[0].c_str()) );
+        olas->SetValue( "HYPREPCG_maxIter", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "hyprePCG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREPCG_logging", atoi(list[0].c_str()) );
+        olas->SetValue( "HYPREPCG_logging", atoi(list[0].c_str()) );
       }
       cfs->GetList( "printLevel", list, pdename, "hyprePCG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREPCG_printLevel", atoi(list[0].c_str()) );
+        olas->SetValue( "HYPREPCG_printLevel", atoi(list[0].c_str()) );
       }
       cfs->GetList( "twoNorm", list, pdename, "hyprePCG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREPCG_twoNorm", (list[0] == "yes") );
+        olas->SetValue( "HYPREPCG_twoNorm", (list[0] == "yes") );
       }
       break;
 
     case HYPRE_GMRES:
       cfs->GetList( "tol", list, pdename, "hypreGMRES" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREGMRES_epsilon", atof(list[0].c_str()) );
+        olas->SetValue( "HYPREGMRES_epsilon", atof(list[0].c_str()) );
       }
       cfs->GetList( "maxIter", list, pdename, "hypreGMRES" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREGMRES_maxIter", atoi(list[0].c_str()) );
+        olas->SetValue( "HYPREGMRES_maxIter", atoi(list[0].c_str()) );
       }
       cfs->GetList( "maxKrylovDim", list, pdename, "hypreGMRES" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREGMRES_maxKrylovDim", atoi(list[0].c_str()) );
+        olas->SetValue( "HYPREGMRES_maxKrylovDim", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "hypreGMRES" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREGMRES_logging", atoi(list[0].c_str()) );
+        olas->SetValue( "HYPREGMRES_logging", atoi(list[0].c_str()) );
       }
       cfs->GetList( "printLevel", list, pdename, "hypreGMRES" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREGMRES_printLevel", atoi(list[0].c_str()) );
+        olas->SetValue( "HYPREGMRES_printLevel", atoi(list[0].c_str()) );
       }
       break;
 
     case HYPRE_BICGSTAB:
       cfs->GetList( "tol", list, pdename, "hypreBICGSTAB" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREBICGSTAB_epsilon", atof(list[0].c_str()) );
+        olas->SetValue( "HYPREBICGSTAB_epsilon", atof(list[0].c_str()) );
       }
       cfs->GetList( "maxIter", list, pdename, "hypreBICGSTAB" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREBICGSTAB_maxIter", atoi(list[0].c_str()) );
+        olas->SetValue( "HYPREBICGSTAB_maxIter", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "hypreBICGSTAB" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREBICGSTAB_logging", atoi(list[0].c_str()) );
+        olas->SetValue( "HYPREBICGSTAB_logging", atoi(list[0].c_str()) );
       }
       cfs->GetList( "printLevel", list, pdename, "hypreBICGSTAB" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "HYPREBICGSTAB_printLevel", atoi(list[0].c_str()) );
+        olas->SetValue( "HYPREBICGSTAB_printLevel", atoi(list[0].c_str()) );
       }
       break;
 
     case LAPACK_LU:
       cfs->GetList( "tryScaling", list, pdename, "lapackLU" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "LAPACKLU_tryScaling", (list[0] == "yes") );
+        olas->SetValue( "LAPACKLU_tryScaling", (list[0] == "yes") );
       }
       cfs->GetList( "refineSol", list, pdename, "lapackLU" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "LAPACKLU_refineSol", (list[0] == "yes") );
+        olas->SetValue( "LAPACKLU_refineSol", (list[0] == "yes") );
       }
       cfs->GetList( "logging", list, pdename, "lapackLU" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "LAPACKLU_logging", (list[0] == "yes") );
+        olas->SetValue( "LAPACKLU_logging", (list[0] == "yes") );
       }
       break;
 
     case LAPACK_LL:
       cfs->GetList( "logging", list, pdename, "lapackLL" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "LAPACKLL_logging", (list[0] == "yes") );
+        olas->SetValue( "LAPACKLL_logging", (list[0] == "yes") );
       }
       break;
 
     case LU_SOLVER:
       cfs->GetList( "logging", list, pdename, "directLU" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "LUSOLVER_logging", (list[0] == "yes") );
+        olas->SetValue( "LUSOLVER_logging", (list[0] == "yes") );
       }
       cfs->GetList( "saveFacFile", list, pdename, "directLU" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "CROUT_saveFacToFile", true );
-	olas->SetValue( "CROUT_facFileName", list[0] );
+        olas->SetValue( "CROUT_saveFacToFile", true );
+        olas->SetValue( "CROUT_facFileName", list[0] );
       }
       break;
 
     case LDL_SOLVER:
       cfs->GetList( "logging", list, pdename, "directLDL" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "LDLSOLVER_logging", (list[0] == "yes") );
+        olas->SetValue( "LDLSOLVER_logging", (list[0] == "yes") );
       }
       cfs->GetList( "saveFacFile", list, pdename, "directLDL" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "LDLSOLVER_saveFacToFile", true );
-	olas->SetValue( "LDLSOLVER_facFileName", list[0] );
+        olas->SetValue( "LDLSOLVER_saveFacToFile", true );
+        olas->SetValue( "LDLSOLVER_facFileName", list[0] );
         cfs->GetList( "savePatternOnly", list, pdename, "directLDL" );
         if( list.GetSize() == 1 ) {
           olas->SetValue( "LDLSOLVER_facPatternOnly", (list[0] == "yes") );
@@ -317,29 +317,29 @@ namespace CoupledField {
     case PARDISO:
       cfs->GetList( "posDef", list, pdename, "pardiso" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "PARDISO_posDef", (list[0] == "yes") );
+        olas->SetValue( "PARDISO_posDef", (list[0] == "yes") );
       }
       cfs->GetList( "hermitean", list, pdename, "pardiso" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "PARDISO_hermitean", (list[0] == "yes") );
+        olas->SetValue( "PARDISO_hermitean", (list[0] == "yes") );
       }
       cfs->GetList( "symStruct", list, pdename, "pardiso" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "PARDISO_symStructure", (list[0] == "yes") );
+        olas->SetValue( "PARDISO_symStructure", (list[0] == "yes") );
       }
       cfs->GetList( "ordering", list, pdename, "pardiso" );
       if( list.GetSize() == 1 ) {
         ReorderingType ordering;
         OLAS::String2Enum( list[0], ordering );
-	olas->SetValue( "PARDISO_ordering", ordering );
+        olas->SetValue( "PARDISO_ordering", ordering );
       }
       cfs->GetList( "logging", list, pdename, "pardiso" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "PARDISO_logging", (list[0] == "yes") );
+        olas->SetValue( "PARDISO_logging", (list[0] == "yes") );
       }
       cfs->GetList( "stats", list, pdename, "pardiso" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "PARDISO_stats", (list[0] == "yes") );
+        olas->SetValue( "PARDISO_stats", (list[0] == "yes") );
       }
       break;
 
@@ -348,7 +348,7 @@ namespace CoupledField {
       // here?
     default:
       Error( "Internal error. Maybe a missing implementation of a case?",
-	     __FILE__, __LINE__ );
+             __FILE__, __LINE__ );
       break;
 
     }
@@ -367,9 +367,9 @@ namespace CoupledField {
   //   SetPrecondParams
   // ********************
   void CFSOLASParams::SetPrecondParams( std::string pdename,
-					BaseParamHandler *cfs,
-					OLAS_Params *olas,
-					PrecondType pType ) {
+                                        BaseParamHandler *cfs,
+                                        OLAS_Params *olas,
+                                        PrecondType pType ) {
 
     ENTER_FCN( "CFSOLASParams::SetPrecondParams" );
 
@@ -390,145 +390,145 @@ namespace CoupledField {
     case HYPRE_ILU:
       cfs->GetList( "level", list, pdename, "hypreILU" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "EUCLID_level",  atoi(list[0].c_str()) );
+        olas->SetValue( "EUCLID_level",  atoi(list[0].c_str()) );
       }
       cfs->GetList( "stats", list, pdename, "hypreILU" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "EUCLID_stats", (list[0] == "yes") );
+        olas->SetValue( "EUCLID_stats", (list[0] == "yes") );
       }
       cfs->GetList( "memory", list, pdename, "hypreILU" );
       if( list.GetSize() == 1 ) {
-	Integer memory = (list[0] == "yes");
-	olas->SetValue( "EUCLID_memory", memory );
+        Integer memory = (list[0] == "yes");
+        olas->SetValue( "EUCLID_memory", memory );
       }
       break;
 
     case HYPRE_SPAI:
       cfs->GetList( "thresh", list, pdename, "hypreSPAI" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "PARASAILS_thresh", atof(list[0].c_str()) );
+        olas->SetValue( "PARASAILS_thresh", atof(list[0].c_str()) );
       }
       cfs->GetList( "levels", list, pdename, "hypreSPAI" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "PARASAILS_levels", atoi(list[0].c_str()) );
+        olas->SetValue( "PARASAILS_levels", atoi(list[0].c_str()) );
       }
       cfs->GetList( "filter", list, pdename, "hypreSPAI" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "PARASAILS_filter", atof(list[0].c_str()) );
+        olas->SetValue( "PARASAILS_filter", atof(list[0].c_str()) );
       }
       cfs->GetList( "symmetry", list, pdename, "hypreSPAI" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "PARASAILS_symmetry", atoi(list[0].c_str()) );
+        olas->SetValue( "PARASAILS_symmetry", atoi(list[0].c_str()) );
       }
       cfs->GetList( "loadBalance", list, pdename, "hypreSPAI" );
       if( list.GetSize() == 1 ) {
-	Integer balance = (list[0] == "yes");
-	olas->SetValue( "PARASAILS_loadBalance", balance );
+        Integer balance = (list[0] == "yes");
+        olas->SetValue( "PARASAILS_loadBalance", balance );
       }
       cfs->GetList( "reuse", list, pdename, "hypreSPAI" );
       if( list.GetSize() == 1 ) {
-	Integer balance = (list[0] == "yes");
-	olas->SetValue( "PARASAILS_reuse", balance );
+        Integer balance = (list[0] == "yes");
+        olas->SetValue( "PARASAILS_reuse", balance );
       }
       break;
 
     case HYPRE_AMG:
       cfs->GetList( "maxLevels", list, pdename, "hypreAMG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "BOOMERAMG_maxLevels", atoi(list[0].c_str()) );
+        olas->SetValue( "BOOMERAMG_maxLevels", atoi(list[0].c_str()) );
       }
       cfs->GetList( "alpha", list, pdename, "hypreAMG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "BOOMERAMG_alpha", atof(list[0].c_str()) );
+        olas->SetValue( "BOOMERAMG_alpha", atof(list[0].c_str()) );
       }
       cfs->GetList( "numSweeps", list, pdename, "hypreAMG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "BOOMERAMG_numSweeps", atoi(list[0].c_str()) );
+        olas->SetValue( "BOOMERAMG_numSweeps", atoi(list[0].c_str()) );
       }
       cfs->GetList( "cycleType", list, pdename, "hypreAMG" );
       if( list.GetSize() == 1 ) {
-	Integer cycleType = list[0] == "W-cycle" ? 2 : 1;
-	olas->SetValue( "BOOMERAMG_cycleType", cycleType );
+        Integer cycleType = list[0] == "W-cycle" ? 2 : 1;
+        olas->SetValue( "BOOMERAMG_cycleType", cycleType );
       }
       break;
 
     case MG:
       cfs->GetList( "maxCoarseDepend", list, pdename, "MG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "AMG_MaxCoarseDependency", atoi(list[0].c_str()) );
+        olas->SetValue( "AMG_MaxCoarseDependency", atoi(list[0].c_str()) );
       }
       cfs->GetList( "minSystemSize", list, pdename, "MG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "AMG_MinSystemSize", atoi(list[0].c_str()) );
+        olas->SetValue( "AMG_MinSystemSize", atoi(list[0].c_str()) );
       }
       cfs->GetList( "numPreSmooth", list, pdename, "MG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "AMG_NumPreSmoothing", atoi(list[0].c_str()) );
+        olas->SetValue( "AMG_NumPreSmoothing", atoi(list[0].c_str()) );
       }
       cfs->GetList( "numPostSmooth", list, pdename, "MG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "AMG_NumPostSmoothing", atoi(list[0].c_str()) );
+        olas->SetValue( "AMG_NumPostSmoothing", atoi(list[0].c_str()) );
       }
       cfs->GetList( "cycleParam", list, pdename, "MG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "AMG_CycleParameter", atoi(list[0].c_str()) );
+        olas->SetValue( "AMG_CycleParameter", atoi(list[0].c_str()) );
       }
       cfs->GetList( "alpha", list, pdename, "MG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "AMG_CoarseningAlpha", atof(list[0].c_str()) );
+        olas->SetValue( "AMG_CoarseningAlpha", atof(list[0].c_str()) );
       }
       cfs->GetList( "strongDiagRatio", list, pdename, "MG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "AMG_StrongDiagRatio", atof(list[0].c_str()) );
+        olas->SetValue( "AMG_StrongDiagRatio", atof(list[0].c_str()) );
       }
       cfs->GetList( "forceFineRatio", list, pdename, "MG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "AMG_ForceFineRatio", atof(list[0].c_str()) );
+        olas->SetValue( "AMG_ForceFineRatio", atof(list[0].c_str()) );
       }
       cfs->GetList( "directSolver", list, pdename, "MG" );
       if( list.GetSize() == 1 ) {
-	if ( list[0] == "lapackLU" ) {
-	  olas->SetValue( "AMG_DirectSolver", LAPACK_LU );
-	}
-	else {
-	  olas->SetValue( "AMG_DirectSolver", NOSOLVER );
-	}
+        if ( list[0] == "lapackLU" ) {
+          olas->SetValue( "AMG_DirectSolver", LAPACK_LU );
+        }
+        else {
+          olas->SetValue( "AMG_DirectSolver", NOSOLVER );
+        }
       }
       cfs->GetList( "logging", list, pdename, "MG" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "AMG_logging", (list[0] == "yes") );
+        olas->SetValue( "AMG_logging", (list[0] == "yes") );
       }
       break;
 
     case ILUK:
       cfs->GetList( "level", list, pdename, "ILUK" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILUK_level", atoi(list[0].c_str()) );
+        olas->SetValue( "ILUK_level", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "ILUK" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILUK_logging", (list[0] == "yes") );
+        olas->SetValue( "ILUK_logging", (list[0] == "yes") );
       }
       cfs->GetList( "saveFacFile", list, pdename, "ILUK" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "CROUT_saveFacToFile", true );
-	olas->SetValue( "CROUT_facFileName", list[0] );
+        olas->SetValue( "CROUT_saveFacToFile", true );
+        olas->SetValue( "CROUT_facFileName", list[0] );
       }
       break;
 
     case ILDLK:
       cfs->GetList( "level", list, pdename, "ILDLK" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILDLPRECOND_level", atoi(list[0].c_str()) );
+        olas->SetValue( "ILDLPRECOND_level", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "ILDLK" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILDLKPRECOND_logging", (list[0] == "yes") );
+        olas->SetValue( "ILDLKPRECOND_logging", (list[0] == "yes") );
       }
       cfs->GetList( "saveFacFile", list, pdename, "ILDLK" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
-	olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
+        olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
+        olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
         cfs->GetList( "savePatternOnly", list, pdename, "ILDLK" );
         if( list.GetSize() == 1 ) {
           olas->SetValue( "ILDLPRECOND_facPatternOnly", (list[0] == "yes") );
@@ -539,20 +539,20 @@ namespace CoupledField {
     case ILDLTP:
       cfs->GetList( "threshold", list, pdename, "ILDLTP" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILDLPRECOND_tau", atof(list[0].c_str()) );
+        olas->SetValue( "ILDLPRECOND_tau", atof(list[0].c_str()) );
       }
       cfs->GetList( "fillVal", list, pdename, "ILDLTP" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILDLPRECOND_fillVal", atoi(list[0].c_str()) );
+        olas->SetValue( "ILDLPRECOND_fillVal", atoi(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "ILDLTP" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILDLTPPRECOND_logging", (list[0] == "yes") );
+        olas->SetValue( "ILDLTPPRECOND_logging", (list[0] == "yes") );
       }
       cfs->GetList( "saveFacFile", list, pdename, "ILDLTP" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
-	olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
+        olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
+        olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
         cfs->GetList( "savePatternOnly", list, pdename, "ILDLTP" );
         if( list.GetSize() == 1 ) {
           olas->SetValue( "ILDLPRECOND_facPatternOnly", (list[0] == "yes") );
@@ -563,16 +563,16 @@ namespace CoupledField {
     case ILDLCN:
       cfs->GetList( "threshold", list, pdename, "ILDLCN" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILDLPRECOND_tau", atof(list[0].c_str()) );
+        olas->SetValue( "ILDLPRECOND_tau", atof(list[0].c_str()) );
       }
       cfs->GetList( "logging", list, pdename, "ILDLCN" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILDLCNPRECOND_logging", (list[0] == "yes") );
+        olas->SetValue( "ILDLCNPRECOND_logging", (list[0] == "yes") );
       }
       cfs->GetList( "saveFacFile", list, pdename, "ILDLCN" );
       if( list.GetSize() == 1 ) {
-	olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
-	olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
+        olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
+        olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
         cfs->GetList( "savePatternOnly", list, pdename, "ILDLCN" );
         if( list.GetSize() == 1 ) {
           olas->SetValue( "ILDLPRECOND_facPatternOnly", (list[0] == "yes") );
@@ -585,7 +585,7 @@ namespace CoupledField {
       // implemented here?
     default:
       Error( "Internal error. Maybe a missing implementation of a case?",
-	     __FILE__, __LINE__ );
+             __FILE__, __LINE__ );
       break;
     }
   }
@@ -595,13 +595,13 @@ namespace CoupledField {
   //   Expert's Choice
   // *******************
   void CFSOLASParams::Expert( BaseParamHandler *cfs,
-			      std::string pdename,
-			      SolverType &sType,
-			      PrecondType &pType,
-			      MatrixStorageType &mType,
-			      MatrixEntryType &eType,
-			      ReorderingType &rType,
-			      AnalysisType analysisType ) {
+                              std::string pdename,
+                              SolverType &sType,
+                              PrecondType &pType,
+                              MatrixStorageType &mType,
+                              MatrixEntryType &eType,
+                              ReorderingType &rType,
+                              AnalysisType analysisType ) {
 
     ENTER_FCN( "CFSOLASParams::Expert" );
 
@@ -632,14 +632,14 @@ namespace CoupledField {
 
     // Hypre solvers only work together with hypre preconditioners
     if ( (sType == HYPRE_PCG || sType == HYPRE_GMRES ||
-	  sType == HYPRE_BICGSTAB)
+          sType == HYPRE_BICGSTAB)
 
-	 && !( pType == NOPRECOND    ||
-	       pType == ID           ||
-	       pType == HYPRE_JACOBI ||
-	       pType == HYPRE_SPAI   ||
-	       pType == HYPRE_ILU    ||
-	       pType == HYPRE_AMG ) ) {
+         && !( pType == NOPRECOND    ||
+               pType == ID           ||
+               pType == HYPRE_JACOBI ||
+               pType == HYPRE_SPAI   ||
+               pType == HYPRE_ILU    ||
+               pType == HYPRE_AMG ) ) {
 
       warn = "Expert: Re-setting preconditioner type to 'ID'";
       Info->Warning( warn );
@@ -653,70 +653,70 @@ namespace CoupledField {
     // Lapack solvers want their own matrix format
     if ( sType == LAPACK_LU ) {
       if ( mType != LAPACK_GBMATRIX ) {
-	if ( mType != NOSTORAGETYPE ) {
-	  warn = "Expert: Re-setting matrix storage type to 'LAPACK_GBMATRIX'";
-	  Info->Warning( warn );
-	}
-	else {
-	  Info->PrintF( pdename,
-			"Expert: Using LAPACK_GBMATRIX as storage type\n" );
-	}
-	mType = LAPACK_GBMATRIX;
+        if ( mType != NOSTORAGETYPE ) {
+          warn = "Expert: Re-setting matrix storage type to 'LAPACK_GBMATRIX'";
+          Info->Warning( warn );
+        }
+        else {
+          Info->PrintF( pdename,
+                        "Expert: Using LAPACK_GBMATRIX as storage type\n" );
+        }
+        mType = LAPACK_GBMATRIX;
       }
     }
 
     // The direct solver LU_SOLVER expects a CRS matrix
     if ( sType == LU_SOLVER ) {
       if ( mType != SPARSE_NONSYM ) {
-	if ( mType != NOSTORAGETYPE ) {
-	  (*warning) << "Expert: Changing matrix storage type from "
-		     << Enum2String( mType ) << " to SPARSE_NONSYM for "
-		     << Enum2String( sType ) << " solver";
-	  Warning( __FILE__, __LINE__ );
-	}
-	else {
-	  Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
-			"type for direct solver\n" );
-	}
-	mType = SPARSE_NONSYM;
+        if ( mType != NOSTORAGETYPE ) {
+          (*warning) << "Expert: Changing matrix storage type from "
+                     << Enum2String( mType ) << " to SPARSE_NONSYM for "
+                     << Enum2String( sType ) << " solver";
+          Warning( __FILE__, __LINE__ );
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
+                        "type for direct solver\n" );
+        }
+        mType = SPARSE_NONSYM;
       }
     }
 
     // The direct solver LDL_SOLVER expects an SCRS matrix
     if ( sType == LDL_SOLVER ) {
       if ( mType != SPARSE_SYM ) {
-	if ( mType != NOSTORAGETYPE ) {
-	  (*warning) << "Expert: Changing matrix storage type from "
-		     << Enum2String( mType ) << " to SPARSE_SYM for "
-		     << Enum2String( sType ) << " solver";
-	  Warning( __FILE__, __LINE__ );
-	}
-	else {
-	  Info->PrintF( pdename, "Expert: Using SPARSE_SYM as storage "
-			"type for directLDL solver\n" );
-	}
-	mType = SPARSE_SYM;
+        if ( mType != NOSTORAGETYPE ) {
+          (*warning) << "Expert: Changing matrix storage type from "
+                     << Enum2String( mType ) << " to SPARSE_SYM for "
+                     << Enum2String( sType ) << " solver";
+          Warning( __FILE__, __LINE__ );
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Using SPARSE_SYM as storage "
+                        "type for directLDL solver\n" );
+        }
+        mType = SPARSE_SYM;
       }
     }
 
     // Hypre solvers want their own matrix format
     if ( sType == HYPRE_PCG || sType == HYPRE_GMRES ||
-	 sType == HYPRE_BICGSTAB ) {
+         sType == HYPRE_BICGSTAB ) {
       if ( mType != HYPRE_MATRIX ) {
-	if ( mType != NOSTORAGETYPE ) {
-	  warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'\n";
-	  Info->Warning( warn );
-	}
-	else {
-	  Info->PrintF( pdename, "Expert: Using HYPRE_MATRIX as storage "
-			"type\n" );
-	}
-	mType = HYPRE_MATRIX;
+        if ( mType != NOSTORAGETYPE ) {
+          warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'\n";
+          Info->Warning( warn );
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Using HYPRE_MATRIX as storage "
+                        "type\n" );
+        }
+        mType = HYPRE_MATRIX;
       }
       if ( eType != DOUBLE ) {
-	warn = "Expert: Re-setting matrix entry type to DOUBLE\n";
-	Info->Warning( warn );
-	eType = DOUBLE;
+        warn = "Expert: Re-setting matrix entry type to DOUBLE\n";
+        Info->Warning( warn );
+        eType = DOUBLE;
       }
     }
 
@@ -731,29 +731,29 @@ namespace CoupledField {
     std::string analysis;
     cfs->Get( "type", analysis, "analysis" );
     if ( analysis == "harmonic"
-	 && eType != COMPLEX ) {
+         && eType != COMPLEX ) {
       eType = COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
-		    "for HARMONIC analysis\n" );
+                    "for HARMONIC analysis\n" );
     }
 
     if ( analysis == "paramIdent" && eType != COMPLEX ) {
       eType = COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
-		    "for parameter identification\n" );
+                    "for parameter identification\n" );
     }
 
     if ( analysis == "multiHarmonic" && eType != COMPLEX ) {
       eType = COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
-		    "for parameter identification\n" );
+                    "for parameter identification\n" );
     }
 
     if ( analysis == "multiSequence" ) {
       if ( analysisType == HARMONIC && eType != COMPLEX ) {
-	eType = COMPLEX;
-	Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type, "
-		      "harmonic part of multi-sequence analysis\n" );
+        eType = COMPLEX;
+        Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type, "
+                      "harmonic part of multi-sequence analysis\n" );
       }
     }
 
@@ -768,27 +768,27 @@ namespace CoupledField {
 #ifdef USE_METIS
     if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
       if ( rType == NOREORDERING ) {
-	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-		      "'METIS'\n" );
-	rType = METIS;
+        Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+                      "'METIS'\n" );
+        rType = METIS;
       }
       else {
-	Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+        Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                       "to METIS\n" );
-	rType = METIS;
+        rType = METIS;
       }
     }
 #else
     if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
       if ( rType == NOREORDERING ) {
-	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-		      "'SLOAN'\n" );
-	rType = SLOAN;
+        Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+                      "'SLOAN'\n" );
+        rType = SLOAN;
       }
       else {
-	Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+        Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                       "to SLOAN\n" );
-	rType = SLOAN;
+        rType = SLOAN;
       }
     }
 #endif
@@ -796,14 +796,14 @@ namespace CoupledField {
     // For the LAPACK solvers use SLOAN re-ordering
     if ( sType == LAPACK_LU || sType == LAPACK_LL ) {
       if ( rType == NOREORDERING ) {
-	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-		      "'SLOAN'\n" );
-	rType = SLOAN;
+        Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+                      "'SLOAN'\n" );
+        rType = SLOAN;
       }
       else {
-	Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+        Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                       "to SLOAN\n" );
-	rType = SLOAN;
+        rType = SLOAN;
       }
     }
 
@@ -822,14 +822,14 @@ namespace CoupledField {
     // For all advanced ILU type preconditioners use SLOAN re-ordering
     if ( pType == ILUK || pType == ILDLK || pType == HYPRE_ILU ) {
       if ( rType == NOREORDERING ) {
-	Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-		      "'SLOAN'\n" );
-	rType = SLOAN;
+        Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+                      "'SLOAN'\n" );
+        rType = SLOAN;
       }
       else {
-	Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+        Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                       "to SLOAN\n" );
-	rType = SLOAN;
+        rType = SLOAN;
       }
     }
 

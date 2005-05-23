@@ -25,20 +25,20 @@ namespace CoupledField
     //! \param sol (input) Pointer to vector containing the electric
     //!                           potential for all nodes of domain
     BaseForceOp(Grid * ptGrid, 
-		StdPDE * ptPDE,
-		NodeEQN * ptEQN,
-		NodeStoreSol<Double> & sol,
-		Integer dim,
-		MaterialData* &matData,
-		StdVector<RegionIdType> & allSubdoms,
-		Boolean isaxi);
+                StdPDE * ptPDE,
+                NodeEQN * ptEQN,
+                NodeStoreSol<Double> & sol,
+                Integer dim,
+                MaterialData* &matData,
+                StdVector<RegionIdType> & allSubdoms,
+                Boolean isaxi);
 
     //! Destructor
     virtual ~BaseForceOp();
 
     //!
     void Setup(StdVector<RegionIdType> & neighRegions, 
-	       StdVector<Integer>& couplingnodes);
+               StdVector<Integer>& couplingnodes);
 
     //!  
     void CalcNodeForce(Vector<Double> & force, Vector<Double> & totalForce );
@@ -52,9 +52,9 @@ namespace CoupledField
     //!                                boundary node, otherwise 0
     //! \param LCoord         (input)  Local coordinates of evaluation point
     virtual void CalcElemElecForce(ElemStoreSol<Double> & F,
-				   const Elem * ptElement,
-				   Double epsilon,
-				   const StdVector<ShortInt> & IsBoundaryNode);
+                                   const Elem * ptElement,
+                                   Double epsilon,
+                                   const StdVector<ShortInt> & IsBoundaryNode);
 
   protected:
   
@@ -70,7 +70,7 @@ namespace CoupledField
 
     //! computes the field quantity
     virtual void ComputeField(Vector<Double> & Field, const Elem * ptElement,
-			      const Vector<Double> & lCoord)=0;
+                              const Vector<Double> & lCoord)=0;
 
     //! coupling nodes
     StdVector<Integer> couplingNodes_;

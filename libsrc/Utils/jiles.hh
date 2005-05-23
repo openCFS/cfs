@@ -8,46 +8,46 @@
 
 namespace CoupledField {
 
-class Jiles : public Hysteresis
-{
-public:
-  Jiles(Integer numElem, Double ysat, Double a, Double alpha, 
-	Double k, Double c);
+  class Jiles : public Hysteresis
+  {
+  public:
+    Jiles(Integer numElem, Double ysat, Double a, Double alpha, 
+          Double k, Double c);
 
-  //!
-  virtual ~Jiles();
+    //!
+    virtual ~Jiles();
 
-  //!
-  Double computeValue(Double xVal, Integer idxElem);
+    //!
+    Double computeValue(Double xVal, Integer idxElem);
 
-  //!
-  void updateMinMaxList(Double newX, Integer idxElem);
+    //!
+    void updateMinMaxList(Double newX, Integer idxElem);
 
-  //! 
-  void SetTimeStepVal(Double dt) 
-  {dt_ = dt; };
+    //! 
+    void SetTimeStepVal(Double dt) 
+    {dt_ = dt; };
 
-protected:
+  protected:
 
-private:
+  private:
 
-  Double Ysaturated_;
-  Double a_;
-  Double alpha_;
-  Double k_;
-  Double c_;
+    Double Ysaturated_;
+    Double a_;
+    Double alpha_;
+    Double k_;
+    Double c_;
 
-  Double dt_;
-  Integer actElem_;
+    Double dt_;
+    Integer actElem_;
 
-  Vector<Double> Xold_;
-  Vector<Double> YirrOld_;
-  Vector<Double> YirrNew_;
-  Vector<Double> YirrPrev_;
+    Vector<Double> Xold_;
+    Vector<Double> YirrOld_;
+    Vector<Double> YirrNew_;
+    Vector<Double> YirrPrev_;
 
-  Double iterMax_;
-  Double err_;
-};
+    Double iterMax_;
+    Double err_;
+  };
 
 
 } //end of namespace

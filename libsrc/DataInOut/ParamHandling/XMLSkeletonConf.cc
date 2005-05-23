@@ -36,10 +36,10 @@ namespace CoupledField {
     testfile >> dummy;
     if ( !dummy.empty() ) {
       std::cerr << std::endl << "  \033[31mError\033[0m: " //<< std::endl 
-		<< "conf-File is not empty: please change the name of your "
-		<< "current conf-file" << std::endl
-		<< "\t \t \t \t before calling cfs with option -skel"
-                  << std::endl<< std::endl ;
+                << "conf-File is not empty: please change the name of your "
+                << "current conf-file" << std::endl
+                << "\t \t \t \t before calling cfs with option -skel"
+                << std::endl<< std::endl ;
       exit(1);
     }
 
@@ -76,7 +76,7 @@ namespace CoupledField {
 
     std::cerr << std::endl;
     std::cerr << "\t Please complete the file before starting the simulation"
-	      << std::endl << std::endl;
+              << std::endl << std::endl;
   }
 
   void SkeletonConf::WriteConf ()
@@ -110,27 +110,27 @@ namespace CoupledField {
 
     (*skelfile_)  << "<?xml version=\"1.0\"?>" << myendl
                   << "<cfsSimulation xmlns=\"http://www.cfs++.org\">"
-		  << myendl << myendl;    
+                  << myendl << myendl;    
 
     (*skelfile_)  << "   <!-- ==============================================="
-		  << "============== -->" << std::endl 
+                  << "============== -->" << std::endl 
                   << "   <!--   SKELETON-CONF-FILE: PLEASE REPLACE ALL \"XXX\""
-		  << " AND FILL OUT!  -->" << std::endl
+                  << " AND FILL OUT!  -->" << std::endl
                   << "   <!-- ==============================================="
-		  << "============== -->" << std::endl
+                  << "============== -->" << std::endl
                   << myendl;
 
     (*skelfile_)  << "   <!--  ANALYSIS (static, transient, harmonic, "
-		  << "multiSequence) -->" << std::endl
+                  << "multiSequence) -->" << std::endl
                   << "   <analysis type=\"XXX\"/>" << std::endl << std::endl;
 
     (*skelfile_)  << "   <!--  DEFINE GEOMETRY TYPE (plane, axi, 3d)-->"
-		  << std::endl
+                  << std::endl
                   << "   <geometry type=\"plane\"/>" << std::endl << std::endl;
 
     (*skelfile_)  << "   <!--  NAME OF MATERIAL FILE -->" << std::endl
                   << "   <materialData file=\"mat.dat\"/>" << std::endl
-		  << std::endl;
+                  << std::endl;
   }
 
 
@@ -186,7 +186,7 @@ namespace CoupledField {
         //subdomains consists of 3d elements
         if (meshfile_->GetNumElems(3) == 0)
           Error( "3D-Problem specified, but no 3D-Elements in mesh-File",
-		 __FILE__,__LINE__);
+                 __FILE__,__LINE__);
 
         meshfile_->GetRegionNamesOfDim(regionNames, 3);
       }
@@ -196,7 +196,7 @@ namespace CoupledField {
         //subdomains consists of 2d elements
         if (meshfile_->GetNumElems(2) == 0)
           Error( "2D-Problem specified, but no 2D-Elements in mesh-File",
-		 __FILE__,__LINE__);
+                 __FILE__,__LINE__);
         meshfile_->GetRegionNamesOfDim(regionNames, 2);
       }
     else
@@ -208,7 +208,7 @@ namespace CoupledField {
 
     for (Integer i=0; i<regionNames.GetSize(); i++)
       (*skelfile_) << "      <region name=\"" << regionNames[i]
-		   << "\" material=\"XXX\"/>" << std::endl;
+                   << "\" material=\"XXX\"/>" << std::endl;
 
     (*skelfile_) << std::endl;
 
@@ -242,7 +242,7 @@ namespace CoupledField {
         
         for (Integer i=0; i<nodeNames.GetSize(); i++)
           (*skelfile_) << "      <nodes name=\"" << nodeNames[i] 
-		       << "\"/>" << myendl;
+                       << "\"/>" << myendl;
         (*skelfile_) << myendl;
       }
 
@@ -252,20 +252,20 @@ namespace CoupledField {
 
       //check for 2D-interface elements
       if (meshfile_->GetNumElems(2) != 0)
-	meshfile_->GetRegionNamesOfDim(surfRegionNames, 2);
+        meshfile_->GetRegionNamesOfDim(surfRegionNames, 2);
    
     } else if (dim == 2) {
     
       //check for 1D-interface elements
       if (meshfile_->GetNumElems(1) != 0)
-	meshfile_->GetRegionNamesOfDim(surfRegionNames, 1);
+        meshfile_->GetRegionNamesOfDim(surfRegionNames, 1);
     }
     if (surfRegionNames.GetSize()) {
       (*skelfile_) << "      <!--  LIST OF SURFACE ELEMENTS -->" << std::endl;
       
       for (Integer i=0; i<surfRegionNames.GetSize(); i++)
         (*skelfile_) << "      <elements name=\"" << surfRegionNames[i] 
-		     << "\"/>" << myendl;
+                     << "\"/>" << myendl;
       (*skelfile_) << myendl;
     }
   }
@@ -284,9 +284,9 @@ namespace CoupledField {
                  << "         <bcsAndLoads>" << std::endl
                  << "            <dirichletHom   name=\"XXX\"/>" << std::endl
                  << "            <dirichletInhom name=\"XXX\" value=\"1\" />"
-		 << std::endl
+                 << std::endl
                  << "            <load           name=\"XXX\" value=\"1\" />"
-		 << std::endl 
+                 << std::endl 
                  << "         </bcsAndLoads>" << std::endl 
                  << myendl
                  << "         <!-- storing of results -->" << std::endl

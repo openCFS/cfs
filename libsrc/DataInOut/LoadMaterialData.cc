@@ -293,8 +293,8 @@ namespace CoupledField
   if (strPtr->fail())
   std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
   splinePtr -> Append(new NonlinSpline(lowerLimit,upperLimit,*coeffPtr));
-  delete strPtr;	  
-  }	
+  delete strPtr;          
+  }     
   material->SetNonLinSpline(splinePtr);
   //  fin.getline(buffer,bufLength,'\n');
 

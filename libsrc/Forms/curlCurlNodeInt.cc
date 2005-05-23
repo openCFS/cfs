@@ -57,24 +57,24 @@ namespace CoupledField
     
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
-	jacDet = 0;
-	
-	ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+        jacDet = 0;
+        
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
 
-	if (isaxi_)
-	  {
-	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-	    CoordAtIP = ptCoord * ShpFncAtIp;
+        if (isaxi_)
+          {
+            ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+            CoordAtIP = ptCoord * ShpFncAtIp;
             for (Integer i=0; i<nrNodes; i++)
-		xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
+              xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
             
             jacDet *= 2 * PI * CoordAtIP[0];
-	}
+          }
   
-	xiDx.Transpose(xiDxTransp);
-	partElemMat = xiDx * xiDxTransp;
-	partElemMat *= intWeights[actIntPt-1] * jacDet * matVal_;
-	elemMat += partElemMat;
+        xiDx.Transpose(xiDxTransp);
+        partElemMat = xiDx * xiDxTransp;
+        partElemMat *= intWeights[actIntPt-1] * jacDet * matVal_;
+        elemMat += partElemMat;
       }
   
   }

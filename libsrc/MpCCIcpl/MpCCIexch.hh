@@ -14,44 +14,44 @@ namespace CoupledField
     This class handles the subroutines calls concerning MpCCI for coupling the fluid and acoustic computations.
   */
 
-class MpCCIexch
-{
-public:
+  class MpCCIexch
+  {
+  public:
 
-  //!
-  MpCCIexch(Grid * aptgrid, Integer nNodesSD);
+    //!
+    MpCCIexch(Grid * aptgrid, Integer nNodesSD);
 
-  //!
-  virtual ~MpCCIexch();
+    //!
+    virtual ~MpCCIexch();
 
-  //! Reorganizing grid info for MpCCi and hand over to MpCCI
-  void PutExchangeGrid2MpCCI(StdVector<std::string> subdoms);
+    //! Reorganizing grid info for MpCCi and hand over to MpCCI
+    void PutExchangeGrid2MpCCI(StdVector<std::string> subdoms);
 
-  //! Performs the coupled computation phase
-  void CouplCompPhase(Matrix<Double> & flowdata, Integer timestep);
+    //! Performs the coupled computation phase
+    void CouplCompPhase(Matrix<Double> & flowdata, Integer timestep);
 
-private:
+  private:
 
-  // pointers to objects
-  Grid * ptgrid_;           //!< pointer to Grid
-  StdVector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
-  ShortInt Dim_;         //!< space dimension of pde  
+    // pointers to objects
+    Grid * ptgrid_;           //!< pointer to Grid
+    StdVector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
+    ShortInt Dim_;         //!< space dimension of pde  
 
-  //!MpCCI
-  Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
-  // Integer MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
-  Integer meshId_;
-  Integer partId_;
-  Integer nNodeIds_;
-  Integer *nodeIds_;
-  Integer GlobalDim_;
-  Integer nElemIds_;
-  Integer *elemIds_;
-  Integer nElemTypes_;
-  Integer *nNodesPerElem_;
-  Integer *elemTypes_;
-  Integer MpCCIprocess_;
-};
+    //!MpCCI
+    Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
+    // Integer MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
+    Integer meshId_;
+    Integer partId_;
+    Integer nNodeIds_;
+    Integer *nodeIds_;
+    Integer GlobalDim_;
+    Integer nElemIds_;
+    Integer *elemIds_;
+    Integer nElemTypes_;
+    Integer *nNodesPerElem_;
+    Integer *elemTypes_;
+    Integer MpCCIprocess_;
+  };
 
 } // end of namespace
 #endif

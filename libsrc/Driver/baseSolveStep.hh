@@ -20,7 +20,7 @@ namespace CoupledField
     virtual ~BaseSolveStep();
 
 
-     //----------------------- STATIC---------------------------------------
+    //----------------------- STATIC---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
     /*!
@@ -29,7 +29,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Boolean reset) = 0;
+                               const Boolean reset) = 0;
     
     //! base method for solving one static step 
     /*!
@@ -38,7 +38,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
-				 const Boolean reset) = 0;
+                                 const Boolean reset) = 0;
 
     //! routine for acttions after the SolveStep-method
     /*!
@@ -57,7 +57,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			      const Boolean reset) = 0;
+                              const Boolean reset) = 0;
 
     //! base method for solving one transient step 
     /*!
@@ -66,7 +66,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-				const Boolean reset) = 0;
+                                const Boolean reset) = 0;
 
     //! routine for actions after the SolveStep-method
     /*!
@@ -74,7 +74,7 @@ namespace CoupledField
       \param asteptime current time
     */  
     virtual void PostStepTrans(const Integer kstep, 
-			       const Double asteptime) = 0;
+                               const Double asteptime) = 0;
     
     //----------------------- HARMONIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
@@ -84,7 +84,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */   
     virtual void PreStepHarmonic(const Integer freqStep, const Double frequency, 
-				 const Boolean reset) = 0;
+                                 const Boolean reset) = 0;
 
     //!  base method for solving one harmonic step 
     /*!
@@ -93,7 +93,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepHarmonic(const Integer freqStep, const Double frequency, 
-				   const Boolean reset) = 0;
+                                   const Boolean reset) = 0;
 
     //!  routine for actions after the SolveStep-method
     /*!
@@ -102,7 +102,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void PostStepHarmonic(const Integer freqStep, const Double frequency, 
-				  const Boolean reset) = 0;
+                                  const Boolean reset) = 0;
 
 
     virtual const StdVector<Double>& GetResultData(std::string resultType)

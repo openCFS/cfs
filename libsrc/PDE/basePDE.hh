@@ -38,7 +38,7 @@ namespace CoupledField
     //! \param bcSequenceId (input) name of the tag for current set of 
     //! boundary condition
     // virtual void Init(Integer sequenceStep = 0,
-    // 		      std::string  bcSequenceTag = "anyTag") 
+    //                std::string  bcSequenceTag = "anyTag") 
     //     {
     //       Error( "Init not implemented here");
     //   }
@@ -70,9 +70,9 @@ namespace CoupledField
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
     virtual void WriteResultsInFile(const Integer kstep = 0,
-				    const Double asteptime = 0.0, 
-				    Integer stepOffset = 0,
-				    Double timeOffset = 0.0) = 0; 
+                                    const Double asteptime = 0.0, 
+                                    Integer stepOffset = 0,
+                                    Double timeOffset = 0.0) = 0; 
     //@}
 
     

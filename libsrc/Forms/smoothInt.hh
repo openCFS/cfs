@@ -27,9 +27,9 @@ protected:
   /// returns B - matrix for BDB
   virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
 
- //  /// orientation of calculation plane in 2D 
-//   //  (especially important for anisotropic simulations)
-//   enum orientation2D {xy, xz, yz};
+  //  /// orientation of calculation plane in 2D 
+  //   //  (especially important for anisotropic simulations)
+  //   enum orientation2D {xy, xz, yz};
 
   orientation2D actOrientation_;
 };
@@ -56,7 +56,7 @@ public:
   
 protected:
   
- /// calculate the data-matrix for 2D plain-strain
+  /// calculate the data-matrix for 2D plain-strain
   virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
 
   /// returns dimension of D matrix
@@ -69,7 +69,7 @@ protected:
 
 
 
-  /// class for calculation of smoothing axisymmetric state
+/// class for calculation of smoothing axisymmetric state
 class SmoothAxiInt : public SmoothInt
 {  
 public:
@@ -86,7 +86,7 @@ public:
   
 protected:
   
- /// calculate the data-matrix for 2D axi
+  /// calculate the data-matrix for 2D axi
   virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
 
   /// returns dimension of D matrix
@@ -99,7 +99,7 @@ protected:
 
 
 
-  /// class for calculation of smoothanical plain strain state
+/// class for calculation of smoothanical plain strain state
 class smooth3DInt : public SmoothInt
 {  
 public:

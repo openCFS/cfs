@@ -23,12 +23,12 @@ namespace CoupledField {
   //   Constructor
   // ***************
   BubbleDriver::BubbleDriver(Domain * adomain, 
-			     Integer stepOffset,
-			     Double timeOffset,
-			     std::string driverTag,
-			     Boolean isPartOfSequence) 
+                             Integer stepOffset,
+                             Double timeOffset,
+                             std::string driverTag,
+                             Boolean isPartOfSequence) 
     : SingleDriver(adomain, stepOffset, timeOffset, 
-		   driverTag, isPartOfSequence) {
+                   driverTag, isPartOfSequence) {
     ENTER_FCN( "BubbleDriver:: BubbleDriver" );
 
     //Pointer to read timefunctions for pressure and its derivative
@@ -62,8 +62,8 @@ namespace CoupledField {
     // this error. But one can never be sure.
     if(isavebegin_ <= 0)
       {
-	Error( "Value of stepsavebegin must be positive and nonzero!",
-	       __FILE__, __LINE__ );
+        Error( "Value of stepsavebegin must be positive and nonzero!",
+               __FILE__, __LINE__ );
       }
    
 
@@ -77,7 +77,7 @@ namespace CoupledField {
     params->GetList( "initRadius", auxVec, "bubbleDynamic" );
     if ( auxVec.GetSize() != 1 ) {
       Error( "Cannot find initRadius! Assuming that section 'bubbleDynamic' "
-	     "is missing in xml-file", __FILE__, __LINE__ );
+             "is missing in xml-file", __FILE__, __LINE__ );
     }
 
     Double initRadius = auxVec[0];
@@ -105,7 +105,7 @@ namespace CoupledField {
     params->GetList( "bubbleType", auxVec2, "bubbleDriver" );
     if ( auxVec2.GetSize() != 1 ) {
       Error( "Cannot find BubbleType! Assuming that section 'bubbleDriver' "
-	     "is missing in xml-file", __FILE__, __LINE__ );
+             "is missing in xml-file", __FILE__, __LINE__ );
     }
     
     String2Enum( auxVec2[0], bubbleDynType_ );
@@ -121,14 +121,14 @@ namespace CoupledField {
     // Choice which bubbledynamical method is used and 
     // creation of pointer to choosen class
     switch(bubbleDynType_){
-      case KELLERMIKSIS:
-	ptBubble_ = new KellerMiksis(initRadius,density, sonicVel, pStatic, 
-				     pVapour, surfaceTension, polytrop, viscosity);
-	break;
-      case GILMORE:
- 	ptBubble_ = new Gilmore(initRadius,density, sonicVel, pStatic, 
-				pVapour, surfaceTension, polytrop, viscosity);
-	break;
+    case KELLERMIKSIS:
+      ptBubble_ = new KellerMiksis(initRadius,density, sonicVel, pStatic, 
+                                   pVapour, surfaceTension, polytrop, viscosity);
+      break;
+    case GILMORE:
+      ptBubble_ = new Gilmore(initRadius,density, sonicVel, pStatic, 
+                              pVapour, surfaceTension, polytrop, viscosity);
+      break;
     default:
       Error("No bubblemethod specified ",__FILE__,__LINE__);
     }
@@ -198,7 +198,7 @@ namespace CoupledField {
   // **********************
   //   Default destructor
   // **********************
-   BubbleDriver::~BubbleDriver() {
+  BubbleDriver::~BubbleDriver() {
     ENTER_FCN( " BubbleDriver::~ BubbleDriver" );
   }
 
@@ -238,7 +238,7 @@ namespace CoupledField {
 
       pressure_ = - pressureAmpl_ * sin( 2 * PI * frequency_ * (steptime+dt));
       dpresdt_  = - pressureAmpl_ * (2 * PI * frequency_ ) * 
-	cos( 2 * PI * frequency_ * (steptime+dt));
+        cos( 2 * PI * frequency_ * (steptime+dt));
 
       // for test of dimensionless
       // Double pressureDimlos;
@@ -273,11 +273,11 @@ namespace CoupledField {
 
 
       ptODESolver_->Solve( steptime, steptime+dt, y_, *ptBubble_, 
-			   dt / 3.0, 0, dt);
+                           dt / 3.0, 0, dt);
 
       //ptODESolver_->Solve( steptime, steptime+dt, yDimlos, *ptBubble_, 
-      //		   dt / 3.0, 0, dt);
-	  
+      //                   dt / 3.0, 0, dt);
+          
       steptime += dt;
 
       // for test of dimensionless
@@ -289,9 +289,9 @@ namespace CoupledField {
 
 
       if (nstep == stepsave && (nstep <= isaveend_)) {
-	fprintf( fp, "%e\t%e\t%16.10e\t%16.10e\n", steptime,
-		 pressure_ ,y_[0],y_[1]);
-	stepsave+=isaveincr_;
+        fprintf( fp, "%e\t%e\t%16.10e\t%16.10e\n", steptime,
+                 pressure_ ,y_[0],y_[1]);
+        stepsave+=isaveincr_;
       }
     }
 

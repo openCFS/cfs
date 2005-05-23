@@ -81,35 +81,35 @@ namespace CoupledField
 
     for(int actNode=0; actNode < nrNodes; actNode++)
       {
-	linBMat.GetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
+        linBMat.GetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
 
-	bMatOneNode *= displDerivTransp;	
+        bMatOneNode *= displDerivTransp;        
 
-	bMat.SetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
+        bMat.SetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
       }
 
 
     if (isaxi_)
       {
-	const Integer spaceDim  = ptelem->GetDim();
+        const Integer spaceDim  = ptelem->GetDim();
 
-	Vector<Double> shpFncAtIp;
-	ptelem->GetShFncAtIp(shpFncAtIp, ip);
+        Vector<Double> shpFncAtIp;
+        ptelem->GetShFncAtIp(shpFncAtIp, ip);
 
-	Vector<Double> coordAtIP;
-	coordAtIP = ptCoord * shpFncAtIp;
+        Vector<Double> coordAtIP;
+        coordAtIP = ptCoord * shpFncAtIp;
 
-	Double  l33=0;  // for l33, see Bathe, page 552
-	for (Integer actPos=0; actPos < shpFncAtIp.GetSize(); actPos++)
-	  l33 += elemDisp_[0][actPos] * shpFncAtIp[actPos] / coordAtIP[0];
-	
-	
-	for (Integer actNode = 0; actNode < nrNodes; actNode++)	     
-	  {	    
-	    //  (N_a/r) * (u_x/r)
-	    bMat[dimD - 1][actNode * spaceDim]     = l33 * shpFncAtIp[actNode] / coordAtIP[0];
-	    bMat[dimD - 1][actNode * spaceDim + 1] = 0;
-	  }
+        Double  l33=0;  // for l33, see Bathe, page 552
+        for (Integer actPos=0; actPos < shpFncAtIp.GetSize(); actPos++)
+          l33 += elemDisp_[0][actPos] * shpFncAtIp[actPos] / coordAtIP[0];
+        
+        
+        for (Integer actNode = 0; actNode < nrNodes; actNode++)      
+          {         
+            //  (N_a/r) * (u_x/r)
+            bMat[dimD - 1][actNode * spaceDim]     = l33 * shpFncAtIp[actNode] / coordAtIP[0];
+            bMat[dimD - 1][actNode * spaceDim + 1] = 0;
+          }
       }
 
   }
@@ -130,23 +130,23 @@ namespace CoupledField
     Integer i,j;
   
     switch(actOrientation)
-      {	
+      { 
       case xy: 
-	{
-	  rowPtr = rowPtrXY;
-	  break;
-	}
+        {
+          rowPtr = rowPtrXY;
+          break;
+        }
       case xz: 
-	{
-	  rowPtr = rowPtrXZ;
-	  break;
-	}
+        {
+          rowPtr = rowPtrXZ;
+          break;
+        }
       
       case yz: 
-	{
-	  rowPtr = rowPtrYZ;    
-	  break;
-	}
+        {
+          rowPtr = rowPtrYZ;    
+          break;
+        }
       }    
   
     Matrix<Double> const & matMatrix =  *(ptMaterial->GetMatrix());
@@ -155,7 +155,7 @@ namespace CoupledField
   
     for (i=0; i<nrElems2d; i++)
       for (j=0; j<nrElems2d; j++)
-	dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];	
+        dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];       
   }
 
 
@@ -202,7 +202,7 @@ namespace CoupledField
 
     for (Integer i=0; i<nrElems3d; i++)
       for (Integer j=0; j<nrElems3d; j++)
-	dMat[i][j] = matMatrix[i][j];	
+        dMat[i][j] = matMatrix[i][j];   
   }
   
 
@@ -301,7 +301,7 @@ namespace CoupledField
   
     for (Integer i=0; i<nrElems3d; i++)
       for (Integer j=0; j<nrElems3d; j++)
-	dMat[i][j] = matMatrix[i][j];	
+        dMat[i][j] = matMatrix[i][j];   
   }
 
 
@@ -361,8 +361,8 @@ namespace CoupledField
     // build symmetrical tensor
     for (Integer i=0; i<piolaStress.GetSize(); i++)
       {
-	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
-	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
+        stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];      
+        stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];      
       }
 
   }
@@ -398,7 +398,7 @@ namespace CoupledField
       dMat = stressTensor;
     else
       for (Integer i=0; i<nrDofs; i++)
-	dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
+        dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
   }
 
 
@@ -429,21 +429,21 @@ namespace CoupledField
 
     for(int actNode=0; actNode < nrNodes; actNode++)
       for(int globPos=0; globPos < nrDofs; globPos++)
-	for(int actDof=0; actDof < nrDofs; actDof++)
-	  bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
+        for(int actDof=0; actDof < nrDofs; actDof++)
+          bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
 
 
     if (isaxi_)
       {
-	const Integer spaceDim = ptelem->GetDim();
-	Vector<Double> shpFncAtIp;
-	Vector<Double> coordAtIP;
-	
-	ptelem->GetShFncAtIp(shpFncAtIp,ip);
-	coordAtIP = ptCoord * shpFncAtIp;
-	
-	for (int actNode = 0; actNode < nrNodes; actNode++)	     
-	  bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
+        const Integer spaceDim = ptelem->GetDim();
+        Vector<Double> shpFncAtIp;
+        Vector<Double> coordAtIP;
+        
+        ptelem->GetShFncAtIp(shpFncAtIp,ip);
+        coordAtIP = ptCoord * shpFncAtIp;
+        
+        for (int actNode = 0; actNode < nrNodes; actNode++)          
+          bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
       }
   }
 
@@ -599,7 +599,7 @@ namespace CoupledField
       dMat = stressTensor;
     else
       for (Integer i=0; i<nrDofs; i++)
-	dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
+        dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
   }
 
 
@@ -625,21 +625,21 @@ namespace CoupledField
 
     for(int actNode=0; actNode < nrNodes; actNode++)
       for(int globPos=0; globPos < nrDofs; globPos++)
-	for(int actDof=0; actDof < nrDofs; actDof++)
-	  bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
+        for(int actDof=0; actDof < nrDofs; actDof++)
+          bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
 
 
     if (isaxi_)
       {
-	const Integer spaceDim = ptelem->GetDim();
-	Vector<Double> shpFncAtIp;
-	Vector<Double> coordAtIP;
-	
-	ptelem->GetShFncAtIp(shpFncAtIp,ip);
-	coordAtIP = ptCoord * shpFncAtIp;
-	
-	for (int actNode = 0; actNode < nrNodes; actNode++)	     
-	  bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
+        const Integer spaceDim = ptelem->GetDim();
+        Vector<Double> shpFncAtIp;
+        Vector<Double> coordAtIP;
+        
+        ptelem->GetShFncAtIp(shpFncAtIp,ip);
+        coordAtIP = ptCoord * shpFncAtIp;
+        
+        for (int actNode = 0; actNode < nrNodes; actNode++)          
+          bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
       }
   }
 
@@ -678,15 +678,15 @@ namespace CoupledField
     // build symmetrical tensor
     for (Integer i=0; i<piolaStress.GetSize(); i++)
       {
-	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
-	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
+        stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];      
+        stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];      
       }
   }
 
 
   // class for regarding 2d prestress in plane strain case
   PreStressIntPlaneStrain::PreStressIntPlaneStrain(BaseFE * aptelem, MaterialData & matData, 
-						   Vector<Double> aPreStressVal)
+                                                   Vector<Double> aPreStressVal)
     : PreStressInt(aptelem, matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressIntPlaneStrain::PreStressIntPlaneStrain" );
@@ -694,7 +694,7 @@ namespace CoupledField
  
   // class for regarding 2d prestress in plane strain case
   PreStressIntPlaneStrain::PreStressIntPlaneStrain(MaterialData & matData, 
-						   Vector<Double> aPreStressVal)
+                                                   Vector<Double> aPreStressVal)
     : PreStressInt(matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressIntPlaneStrain::PreStressIntPlaneStrain" );
@@ -721,28 +721,28 @@ namespace CoupledField
     // build symmetrical tensor
     for (Integer i=0; i<piolaStress.GetSize(); i++)
       {
-	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
-	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
+        stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];      
+        stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];      
       }
   }
 
 
   // class for regarding 2d axi prestress 
   PreStressIntAxi::PreStressIntAxi(BaseFE * aptelem, MaterialData & matData, 
-				   Vector<Double> aPreStressVal)   
+                                   Vector<Double> aPreStressVal)   
     : PreStressInt(aptelem, matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressIntAxi::PreStressIntAxi" );
-   isaxi_ = TRUE;
+    isaxi_ = TRUE;
   }
  
   // class for regarding 2d axi prestress 
   PreStressIntAxi::PreStressIntAxi(MaterialData & matData, 
-				   Vector<Double> aPreStressVal)
+                                   Vector<Double> aPreStressVal)
     : PreStressInt(matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressIntAxi::PreStressIntAxi" );
-   isaxi_ = TRUE;
+    isaxi_ = TRUE;
   }
 
 
@@ -773,8 +773,8 @@ namespace CoupledField
     // build symmetrical tensor
     for (Integer i=0; i<indexSize; i++)
       {
-	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
-	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
+        stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[ indexPiola[i] -1 ];     
+        stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[ indexPiola[i] -1 ];     
       }
 
   }
@@ -822,8 +822,8 @@ namespace CoupledField
     // build symmetrical tensor
     for (Integer i=0; i<piolaStress.GetSize(); i++)
       {
-	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];	
-	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];	
+        stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];      
+        stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];      
       }
 
   }
@@ -911,8 +911,8 @@ namespace CoupledField
     // build symmetrical tensor
     for (Integer i=0; i<indexSize; i++)
       {
-	stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
-	stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[ indexPiola[i] -1 ];	
+        stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[ indexPiola[i] -1 ];     
+        stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[ indexPiola[i] -1 ];     
       }
 
   }

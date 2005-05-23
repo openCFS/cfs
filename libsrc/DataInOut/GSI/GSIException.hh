@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------
-|
-| $Id$
-|
-+---------------------------------------------------------------------*/
+  |
+  | $Id$
+  |
+  +---------------------------------------------------------------------*/
 
 #ifndef GSI_EXCEPTION
 #define GSI_EXCEPTION
@@ -14,19 +14,19 @@
 namespace GridlibSocketInterface
 {
 
-class Exception
-{
- public:
-  Exception ( std::string s) :  m_s(s) { };
-  ~Exception (){};
+  class Exception
+  {
+  public:
+    Exception ( std::string s) :  m_s(s) { };
+    ~Exception (){};
 
-  std::string GetDescription() { return m_s; }
-  void SetDescription(const std::string& descr) { m_s = descr; }
+    std::string GetDescription() { return m_s; }
+    void SetDescription(const std::string& descr) { m_s = descr; }
 
- protected:
+  protected:
 
-  std::string m_s;
-};
+    std::string m_s;
+  };
  
 }
 

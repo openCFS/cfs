@@ -12,9 +12,9 @@ namespace CoupledField
   
 
 
-// =============================================================================
-// base class for nonlinear mechanics
-// =============================================================================
+  // =============================================================================
+  // base class for nonlinear mechanics
+  // =============================================================================
 
   /// base class for calculation of nonlinear elasticity
 class nLinElastInt : public linElastInt
@@ -31,21 +31,21 @@ public:
 
   /// in nonlinear calculations, the actual displacement of the element is needed
   /*!
-  \param disp (input) Matrix with displacement d of all nodes of actual element
-  \f[ \left( \begin{array}{ccc} 
-             d_{x1} &  d_{x2} &  d_{x3} \\
-             d_{y1} &  d_{y2} &  d_{y3} \\
-	     \end{array}\right) \f]	    
+    \param disp (input) Matrix with displacement d of all nodes of actual element
+    \f[ \left( \begin{array}{ccc} 
+    d_{x1} &  d_{x2} &  d_{x3} \\
+    d_{y1} &  d_{y2} &  d_{y3} \\
+    \end{array}\right) \f]         
   */
   void setActElemDispl(Matrix<Double>& disp) {elemDisp_ = disp;};  
 
   /// in nonlinear calculations, the actual displacement of the element is needed
   /*!
-  \param disp (input) Matrix with displacement d of all nodes of actual element
-  \f[ \left( \begin{array}{ccc} 
-             d_{x1} &  d_{x2} &  d_{x3} \\
-             d_{y1} &  d_{y2} &  d_{y3} \\
-	     \end{array}\right) \f]	    
+    \param disp (input) Matrix with displacement d of all nodes of actual element
+    \f[ \left( \begin{array}{ccc} 
+    d_{x1} &  d_{x2} &  d_{x3} \\
+    d_{y1} &  d_{y2} &  d_{y3} \\
+    \end{array}\right) \f]         
   */
   virtual void SetActElemSol(Matrix<Double>& disp) {elemDisp_ = disp;};
 
@@ -69,12 +69,12 @@ protected:
   
  
 
-// =============================================================================
-// 3D nonlinear mechanics
-// =============================================================================
+  // =============================================================================
+  // 3D nonlinear mechanics
+  // =============================================================================
 
 
-/// class for calculation of 3d nonlinear elasticity
+  /// class for calculation of 3d nonlinear elasticity
 // first part: nonlinear B-matrix
 class nLinMech3dInt_BNonLin : public nLinElastInt
 {

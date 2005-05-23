@@ -3,20 +3,24 @@ static const char RCSid_GSIBaseIO[] = "$Id$";
 #endif
 
 /*----------------------------------------------------------------------
-|
-|
-| $Log$
-| Revision 1.3  2005/05/18 19:26:02  strieben
-| Upgraded GSI library to newest available version.
-|
-| Revision 1.2  2004/09/01 15:24:58  simon
-| Added support for writing int16 and uint16
-|
-| Revision 1.1.1.1  2004/08/31 15:53:00  simon
-| Initial GSI import
-|
-|
-+---------------------------------------------------------------------*/
+  |
+  |
+  | $Log$
+  | Revision 1.4  2005/05/23 22:15:31  ahauck
+  | Corrected indentation of all cc/hh-files according to xemacs' 'gnu' style
+  | and according to our coding rules, so all TABs were replaced by spaces.
+  |
+  | Revision 1.3  2005/05/18 19:26:02  strieben
+  | Upgraded GSI library to newest available version.
+  |
+  | Revision 1.2  2004/09/01 15:24:58  simon
+  | Added support for writing int16 and uint16
+  |
+  | Revision 1.1.1.1  2004/08/31 15:53:00  simon
+  | Initial GSI import
+  |
+  |
+  +---------------------------------------------------------------------*/
 
 #include "GSIBaseIO.hh"
 
@@ -24,188 +28,188 @@ namespace GridlibSocketInterface
 {
 
 
-BaseIO& operator << (BaseIO& io, const std::string& s ) throw(IOException)
-{
-  io.WriteMsg(s);
+  BaseIO& operator << (BaseIO& io, const std::string& s ) throw(IOException)
+  {
+    io.WriteMsg(s);
 
-  return io;
-}
+    return io;
+  }
 
 
-BaseIO& operator >> (BaseIO& io, std::string& s ) throw(IOException)
-{
-  io.ReadMsg(s);
+  BaseIO& operator >> (BaseIO& io, std::string& s ) throw(IOException)
+  {
+    io.ReadMsg(s);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const int16 &i ) throw(IOException)
-{
-  io.WriteShort(i);
+  BaseIO& operator << (BaseIO& io, const int16 &i ) throw(IOException)
+  {
+    io.WriteShort(i);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, int16& i) throw(IOException)
-{
-  i = io.ReadShort();
+  BaseIO& operator >> (BaseIO& io, int16& i) throw(IOException)
+  {
+    i = io.ReadShort();
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const uint16 &i ) throw(IOException)
-{
-  io.WriteUShort(i);
+  BaseIO& operator << (BaseIO& io, const uint16 &i ) throw(IOException)
+  {
+    io.WriteUShort(i);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, uint16& i) throw(IOException)
-{
-  i = io.ReadUShort();
+  BaseIO& operator >> (BaseIO& io, uint16& i) throw(IOException)
+  {
+    i = io.ReadUShort();
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const int32 &i ) throw(IOException)
-{
-  io.WriteInt(i);
+  BaseIO& operator << (BaseIO& io, const int32 &i ) throw(IOException)
+  {
+    io.WriteInt(i);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, int32& i) throw(IOException)
-{
-  i = io.ReadInt();
+  BaseIO& operator >> (BaseIO& io, int32& i) throw(IOException)
+  {
+    i = io.ReadInt();
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const uint32 &i ) throw(IOException)
-{
-  io.WriteUInt(i);
+  BaseIO& operator << (BaseIO& io, const uint32 &i ) throw(IOException)
+  {
+    io.WriteUInt(i);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, uint32& i) throw(IOException)
-{
-  i = io.ReadUInt();
+  BaseIO& operator >> (BaseIO& io, uint32& i) throw(IOException)
+  {
+    i = io.ReadUInt();
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const real32 &f ) throw(IOException)
-{
-  io.WriteFloat(f);
+  BaseIO& operator << (BaseIO& io, const real32 &f ) throw(IOException)
+  {
+    io.WriteFloat(f);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, real32& f) throw(IOException)
-{
-  f = io.ReadFloat();
+  BaseIO& operator >> (BaseIO& io, real32& f) throw(IOException)
+  {
+    f = io.ReadFloat();
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const real64 &d ) throw(IOException)
-{
-  io.WriteDouble(d);
+  BaseIO& operator << (BaseIO& io, const real64 &d ) throw(IOException)
+  {
+    io.WriteDouble(d);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, real64& d) throw(IOException)
-{
-  d = io.ReadDouble();
+  BaseIO& operator >> (BaseIO& io, real64& d) throw(IOException)
+  {
+    d = io.ReadDouble();
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const std::vector<int16> &iv ) throw(IOException)
-{
-  io.WriteShortVector(iv);
+  BaseIO& operator << (BaseIO& io, const std::vector<int16> &iv ) throw(IOException)
+  {
+    io.WriteShortVector(iv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, std::vector<int16>& iv) throw(IOException)
-{
-  io.ReadShortVector(iv);
+  BaseIO& operator >> (BaseIO& io, std::vector<int16>& iv) throw(IOException)
+  {
+    io.ReadShortVector(iv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const std::vector<uint16> &iv ) throw(IOException)
-{
-  io.WriteUShortVector(iv);
+  BaseIO& operator << (BaseIO& io, const std::vector<uint16> &iv ) throw(IOException)
+  {
+    io.WriteUShortVector(iv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, std::vector<uint16>& iv) throw(IOException)
-{
-  io.ReadUShortVector(iv);
+  BaseIO& operator >> (BaseIO& io, std::vector<uint16>& iv) throw(IOException)
+  {
+    io.ReadUShortVector(iv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const std::vector<int32> &iv ) throw(IOException)
-{
-  io.WriteIntVector(iv);
+  BaseIO& operator << (BaseIO& io, const std::vector<int32> &iv ) throw(IOException)
+  {
+    io.WriteIntVector(iv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, std::vector<int32>& iv) throw(IOException)
-{
-  io.ReadIntVector(iv);
+  BaseIO& operator >> (BaseIO& io, std::vector<int32>& iv) throw(IOException)
+  {
+    io.ReadIntVector(iv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const std::vector<uint32> &iv ) throw(IOException)
-{
-  io.WriteUIntVector(iv);
+  BaseIO& operator << (BaseIO& io, const std::vector<uint32> &iv ) throw(IOException)
+  {
+    io.WriteUIntVector(iv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, std::vector<uint32>& iv) throw(IOException)
-{
-  io.ReadUIntVector(iv);
+  BaseIO& operator >> (BaseIO& io, std::vector<uint32>& iv) throw(IOException)
+  {
+    io.ReadUIntVector(iv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const std::vector<real32> &fv ) throw(IOException)
-{
-  io.WriteFloatVector(fv);
+  BaseIO& operator << (BaseIO& io, const std::vector<real32> &fv ) throw(IOException)
+  {
+    io.WriteFloatVector(fv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, std::vector<real32>& fv) throw(IOException)
-{
-  io.ReadFloatVector(fv);
+  BaseIO& operator >> (BaseIO& io, std::vector<real32>& fv) throw(IOException)
+  {
+    io.ReadFloatVector(fv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator << (BaseIO& io, const std::vector<real64> &dv ) throw(IOException)
-{
-  io.WriteDoubleVector(dv);
+  BaseIO& operator << (BaseIO& io, const std::vector<real64> &dv ) throw(IOException)
+  {
+    io.WriteDoubleVector(dv);
 
-  return io;
-}
+    return io;
+  }
 
-BaseIO& operator >> (BaseIO& io, std::vector<real64>& dv) throw(IOException)
-{
-  io.ReadDoubleVector(dv);
+  BaseIO& operator >> (BaseIO& io, std::vector<real64>& dv) throw(IOException)
+  {
+    io.ReadDoubleVector(dv);
 
-  return io;
-}
+    return io;
+  }
 
  
 }

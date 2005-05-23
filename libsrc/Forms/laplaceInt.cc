@@ -59,25 +59,25 @@ namespace CoupledField
 
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
-	jacDet = 0;
-	
-	ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+        jacDet = 0;
+        
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
 
-	xiDx.Transpose(xiDxTransp);
+        xiDx.Transpose(xiDxTransp);
 
-	partElemMat = xiDx * xiDxTransp;
-	
-	if (isaxi_)
-	  {
-	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-	    CoordAtIP = ptCoord * ShpFncAtIp;
-	    partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * laplVal_ * CoordAtIP[0];
+        partElemMat = xiDx * xiDxTransp;
+        
+        if (isaxi_)
+          {
+            ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+            CoordAtIP = ptCoord * ShpFncAtIp;
+            partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * laplVal_ * CoordAtIP[0];
 
-	  }
-	else 
-	  partElemMat *= intWeights[actIntPt-1] * jacDet * laplVal_;
+          }
+        else 
+          partElemMat *= intWeights[actIntPt-1] * jacDet * laplVal_;
 
-	elemMat += partElemMat;
+        elemMat += partElemMat;
       }
 
     //    std::cout << "ElemMat:\n" << elemMat << std::endl;

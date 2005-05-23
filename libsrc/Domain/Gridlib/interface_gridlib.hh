@@ -11,7 +11,7 @@
 namespace CoupledField
 {
  
-/// Class for working with grid
+  /// Class for working with grid
 template<class Dim> 
 class InterfaceGridlib: public Grid
 {
@@ -22,23 +22,23 @@ public:
   /// Deconstructor
   virtual ~InterfaceGridlib() { if (ptGoMesh ) delete ptGoMesh ;}
   
-   /// Uniform subdivision of domain
+  /// Uniform subdivision of domain
   virtual void SubdivideUniform(const Integer level);
 
   /// Get coordinates of all nodes which belong to element
   virtual void GetCoordOfNodesElem(const Integer numElem, const Integer numlevel, const Integer numnodes, Dim * ptCoordElem); 
 
-   /// Get coordinates of node with global number inode
-   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint);
+  /// Get coordinates of node with global number inode
+  virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Dim & rfPoint);
 
-   /// Get connection of element
+  /// Get connection of element
   virtual void GetConnection(Integer * result, const Integer level, 
-           const Integer numElem, const Integer numnodesPerElem);
+                             const Integer numElem, const Integer numnodesPerElem);
 
   /// Return maximum number of nodes
   virtual Integer GetMaxnumnodes(const Integer numlevel)
   { 
-     return ptGoMesh->getNumVertices(numlevel);
+    return ptGoMesh->getNumVertices(numlevel);
   }
  
   /// Return maximum number of elements 
@@ -61,7 +61,7 @@ public:
   void Read();
 
   //! Put global numbers of nodes with boundary condition in Vector
-//  void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
+  //  void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
 
   //! Get number of subdomains
   virtual Integer GetNumSubdomains() const
@@ -69,11 +69,11 @@ public:
 
   //! Get pointer to array with nodes, that belongs to subdomain number num
   virtual Integer * GetElemSubdomain(const Integer num, const Integer level) const
-   { Error("Not implemented"); return NULL;}
+  { Error("Not implemented"); return NULL;}
 
   //! Get pointer to array 
-   virtual BaseElem ** getptArrayElem() const 
-    { Error("Not implemented"); return NULL;}
+  virtual BaseElem ** getptArrayElem() const 
+  { Error("Not implemented"); return NULL;}
    
 
 private:
@@ -88,19 +88,19 @@ private:
   Boolean DoesGridSubdivide;
 };
 
-template<class Dim>
-inline InterfaceGridlib<Dim>::InterfaceGridlib(FileType * aptFileType)
-: Grid(aptFileType)
-{
-  ENTER_FCN( "InterfaceGridlib<Dim>::InterfaceCFS<Dim>" )
-  ptFileType=aptFileType;
-  DoesGridSubdivide=FALSE;
-  lastlevel_=0;
-}
+  template<class Dim>
+  inline InterfaceGridlib<Dim>::InterfaceGridlib(FileType * aptFileType)
+    : Grid(aptFileType)
+  {
+    ENTER_FCN( "InterfaceGridlib<Dim>::InterfaceCFS<Dim>" )
+      ptFileType=aptFileType;
+    DoesGridSubdivide=FALSE;
+    lastlevel_=0;
+  }
 
 #ifdef __GNUC__
-template class InterfaceGridlib<Point3D>;
-template class InterfaceGridlib<Point2D>;
+  template class InterfaceGridlib<Point3D>;
+  template class InterfaceGridlib<Point2D>;
 #endif
 
 } // end of namespace

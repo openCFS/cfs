@@ -34,12 +34,12 @@ namespace CoupledField {
     //! \param hMin      Minimal allowed size for time step
     //! \param hMax      Maximal allowed size for time step
     void Solve( const Double tInit,
-		const Double tStop,
-		StdVector<Double> &y,
-		BaseODEProblem &myODE,
-		Double hInit = -1.0,
-		Double hMin = -1.0,
-		Double hMax = -1.0);
+                const Double tStop,
+                StdVector<Double> &y,
+                BaseODEProblem &myODE,
+                Double hInit = -1.0,
+                Double hMin = -1.0,
+                Double hMax = -1.0);
 
   };
 
