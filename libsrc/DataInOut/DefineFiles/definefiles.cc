@@ -128,7 +128,7 @@ namespace CoupledField
   //   Generate output file pointer
   // ================================
   WriteResults*
-  DefineInOutFiles::Create_ptWriteResults(FileType *const aInFile)
+  DefineInOutFiles::Create_ptWriteResults()
   {
     ENTER_FCN( "DefineInOutFiles::Create_ptWriteResults" );
 
@@ -138,18 +138,18 @@ namespace CoupledField
     params->Get( "format", outformat, "output" );
 
     if ( outformat == "gmv" ) {
-      ptWriteResults_= new WriteResultsGMV( simName.c_str(), aInFile );
+      ptWriteResults_= new WriteResultsGMV( simName.c_str() );
     }
     else if ( outformat == "unv" ) 
-      ptWriteResults_= new WriteResultsUnverg( simName.c_str(), aInFile ); 
+      ptWriteResults_= new WriteResultsUnverg( simName.c_str() ); 
 #ifdef GSI
     else if ( outformat == "gsi" ) 
-      ptWriteResults_= new WriteResultsGSI( simName.c_str(), aInFile );
+      ptWriteResults_= new WriteResultsGSI( simName.c_str() );
 #endif
 
 #ifdef USE_DATABASE
     else if (outformat == "database") 
-      ptWriteResults_= new WriteResultsDatabase( simName.c_str(), aInFile );
+      ptWriteResults_= new WriteResultsDatabase( simName.c_str() );
 #endif
     else {
       (*error) << "Output format '" << outformat << "' not recognised";

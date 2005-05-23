@@ -20,9 +20,8 @@ namespace CoupledField {
   // **************
   //  Constructor
   // **************
-  WriteResultsGSI::WriteResultsGSI( const Char * const filename,
-				    FileType * const aInFile )
-    : WriteResults(filename, aInFile) {
+  WriteResultsGSI::WriteResultsGSI( const Char * const filename )
+    : WriteResults(filename) {
 
     ENTER_FCN( "WriteResultsGSI::WriteResultsGSI" );
 
@@ -36,8 +35,6 @@ namespace CoupledField {
   
     io_ = new GridlibSocketInterface::XDRIO(NULL, fp_);
 
-    // Initialize history files
-    InitHistoryFiles();
   }
 
 
@@ -56,7 +53,7 @@ namespace CoupledField {
   // ************
   //  WriteGrid
   // ************
-  void WriteResultsGSI::WriteGrid( const Integer level ) {
+  void WriteResultsGSI::WriteGrid() {
 
     ENTER_FCN( "WriteResultsGSI::WriteGrid" );
 
@@ -78,9 +75,9 @@ namespace CoupledField {
 		  << e.GetErrorString() << std::endl;
       }
       
-      Dataset666(level);
-      Dataset781(level);
-      Dataset780(level); 
+      Dataset666();
+      Dataset781();
+      Dataset780(); 
 
   }
 
@@ -108,6 +105,9 @@ namespace CoupledField {
   void WriteResultsGSI::Init( Grid * aptgrid ) {
     ENTER_FCN( "WriteResultsGSI::Init" );
     ptgrid = aptgrid;
+
+    // Initialize history files
+    InitHistoryFiles();
   }
 
 
@@ -154,7 +154,7 @@ namespace CoupledField {
       return 0;
   }
 
-  void  WriteResultsGSI::Dataset666(const Integer level)
+  void  WriteResultsGSI::Dataset666()
   {
     ENTER_FCN("WriteResultsGSI::Dataset666");
 
@@ -162,8 +162,8 @@ namespace CoupledField {
       Error("ptgrid is not initialized", __FILE__,__LINE__);
 
     Integer dim=ptgrid->GetDim();
-    Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
-    Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
+    Integer maxnumnodes=ptgrid-> GetNumNodes();
+    Integer maxnumelem=ptgrid-> GetNumVolElems();
 
     try 
       {
@@ -180,7 +180,7 @@ namespace CoupledField {
       }
   }
 
-  void  WriteResultsGSI::Dataset781(const Integer level)
+  void  WriteResultsGSI::Dataset781()
   {
     ENTER_FCN("WriteResultsGSI::Dataset781");
 
@@ -189,7 +189,7 @@ namespace CoupledField {
 
     Integer i;
     Integer dim=ptgrid->GetDim();
-    Integer maxnumnodes=ptgrid->GetMaxnumnodes(level);
+    Integer maxnumnodes=ptgrid->GetNumNodes();
 
     try 
       {
@@ -202,7 +202,7 @@ namespace CoupledField {
             for (i=0; i<maxnumnodes; i++)
               {
                 Point<2> Point;
-                ptgrid->GetCoordinateNode(i,level,Point);
+                ptgrid->GetNodeCoordinate(Point,i+1);
               
                 vec[i*3+2] = (float) 0.0;
                 vec[i*3+1] = (float) Point[1];
@@ -215,7 +215,7 @@ namespace CoupledField {
             for (i=0; i<maxnumnodes; i++)
               {
                 Point<3> Point;
-                ptgrid->GetCoordinateNode(i,level,Point);
+                ptgrid->GetNodeCoordinate(Point,i+1);
               
                 vec[i*3+2] = (float) Point[2];
                 vec[i*3+1] = (float) Point[1];
@@ -234,7 +234,7 @@ namespace CoupledField {
       }
   }
 
-  void  WriteResultsGSI::Dataset780(const Integer level)
+  void  WriteResultsGSI::Dataset780()
   {
     ENTER_FCN("WriteResultsGSI::Dataset780");
 
@@ -246,7 +246,7 @@ namespace CoupledField {
   
     Integer elmsgrp;
   
-    StdVector<std::string>* subdoms;
+    StdVector<RegionIdType> subdoms;
     StdVector<Elem*> elemssd;
     StdVector<Integer> connect;
 
@@ -257,10 +257,10 @@ namespace CoupledField {
     Integer i, j, k, l;
 
     elmsgrp=1;
-    subdoms=ptgrid->GetAllSDs();
+    ptgrid->GetVolRegionIds(subdoms);
     k = 0;
     l = 0;
-    maxnumelem=ptgrid->GetMaxnumElem(level);
+    maxnumelem=ptgrid->GetNumVolElems();
 
     try 
       {
@@ -269,9 +269,9 @@ namespace CoupledField {
         connectsizes.resize(maxnumelem);
         subdomains.resize(maxnumelem);
   
-        for (i=0; i<subdoms->GetSize(); i++)
+        for (i=0; i<subdoms.GetSize(); i++)
           {
-            ptgrid->GetElemSD(elemssd,(*subdoms)[i],level);
+            ptgrid->GetVolElems(elemssd,subdoms[i]);
           
             //          (*io_) << (int) elemssd.size();
             for (j=0; j < elemssd.GetSize(); j++)
@@ -569,7 +569,7 @@ namespace CoupledField {
   
     Vector<Double> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numNodes =  ptgrid->GetMaxnumnodes(1);
+    Integer numNodes =  ptgrid->GetNumNodes();
     std::string title;
 
     sol.GetSolutionTypes(solTypes);
@@ -604,10 +604,11 @@ namespace CoupledField {
     Vector<Double> globalSolution;
     StdVector<SolutionType> solTypes;
     std::string title;
-    Integer numElems =  ptgrid->GetMaxnumElem(0);  
+
+    Integer numElems =  ptgrid->GetNumVolElems();  
   
     sol.GetSolutionTypes(solTypes);
-    sol.TransformElemSolution(globalSolution,ptgrid,0);
+    sol.TransformElemSolution(globalSolution,ptgrid);
     title = SolutionTypeToString(solTypes[0]);
     Dataset56_Transient(title, globalSolution, step, 
                         time, numElems, sol.GetDof());
@@ -624,7 +625,7 @@ namespace CoupledField {
   
     Vector<Complex> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numNodes =  ptgrid->GetMaxnumnodes(1);
+    Integer numNodes =  ptgrid->GetNumNodes();
     std::string title;  
     sol.GetSolutionTypes(solTypes);
   
@@ -661,7 +662,7 @@ namespace CoupledField {
     Vector<Complex> globalSolution;
     StdVector<SolutionType> solTypes;
     sol.GetSolutionTypes(solTypes);
-    Integer numNodes =  ptgrid->GetMaxnumnodes(1);  
+    Integer numNodes =  ptgrid->GetNumNodes();  
   
     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
       {

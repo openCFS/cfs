@@ -8,9 +8,8 @@
 namespace CoupledField
 {
 
-WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename,
-					 FileType * const aInFile)
-:WriteResults(filename, aInFile)
+WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename)
+  :WriteResults(filename)
 {
   ENTER_FCN( "WriteResultsUnverg::WriteResultsUnverg" );
 
@@ -18,8 +17,6 @@ WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename,
   output = NULL;
   output=new std::ofstream(name.c_str());
 
-  // Initialize history files
-  InitHistoryFiles();
  }
 
 WriteResultsUnverg ::~WriteResultsUnverg()
@@ -32,21 +29,21 @@ WriteResultsUnverg ::~WriteResultsUnverg()
    }
 }
 
-void WriteResultsUnverg :: WriteGrid(const Integer level)
+void WriteResultsUnverg :: WriteGrid()
 {
   ENTER_FCN( "WriteResultsUnverg::WriteGrid" );
 
      if (!output) 
        Error(" File for output results is not initialized");
 
-     Dataset666(level);
-     Dataset781(level);
-     Dataset780(level);
+     Dataset666();
+     Dataset781();
+     Dataset780();
  
 }
 
 
-void  WriteResultsUnverg::Dataset666(const Integer level)
+void  WriteResultsUnverg::Dataset666()
 {
  //
  if (!ptgrid)
@@ -55,15 +52,15 @@ void  WriteResultsUnverg::Dataset666(const Integer level)
  (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
 
  Integer dim=ptgrid->GetDim();
- Integer maxnumnodes=ptgrid-> GetMaxnumnodes(level);
- Integer maxnumelem=ptgrid-> GetMaxnumElem(level);
+ Integer maxnumnodes=ptgrid->GetNumNodes();
+ Integer maxnumelem=ptgrid->GetNumVolElems();
 
  (*output)<< std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << dim << std::endl << std::setw(10) << maxnumnodes << std::setw(10) << maxnumelem << std::endl;
 
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
-void  WriteResultsUnverg::Dataset781(const Integer level)
+void  WriteResultsUnverg::Dataset781()
 {
   //
  if (!ptgrid)
@@ -72,7 +69,7 @@ void  WriteResultsUnverg::Dataset781(const Integer level)
  (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
  Integer dim=ptgrid->GetDim();
- Integer maxnumnodes=ptgrid->GetMaxnumnodes(level);
+ Integer maxnumnodes=ptgrid->GetNumNodes();
 
  (*output).setf(std::ios::scientific);
  (*output).precision(16);
@@ -86,7 +83,7 @@ void  WriteResultsUnverg::Dataset781(const Integer level)
 	if (dim==2)
 {
  	Point<2> Point;
-        ptgrid->GetCoordinateNode(i,level,Point);
+        ptgrid->GetNodeCoordinate(Point,i+1);
 
         (*output) << "   " << 0.0 ;
          PrintPoint(Point,output);
@@ -95,7 +92,7 @@ void  WriteResultsUnverg::Dataset781(const Integer level)
       else
 {
 	Point<3> Point;
-        ptgrid->GetCoordinateNode(i,level,Point);
+        ptgrid->GetNodeCoordinate(Point,i+1);
 
 	 PrintPoint(Point,output);
          (*output) << std::endl;
@@ -105,7 +102,7 @@ void  WriteResultsUnverg::Dataset781(const Integer level)
  (*output) << std::setw(6) << -1 << std::endl;
 }
 
-void  WriteResultsUnverg::Dataset780(const Integer level)
+void  WriteResultsUnverg::Dataset780()
 {
   //
   if (!ptgrid)
@@ -119,13 +116,13 @@ void  WriteResultsUnverg::Dataset780(const Integer level)
   Integer elmsgrp=1;
   std::string errMsg;
 
-  StdVector<std::string>* subdoms;
-  subdoms=ptgrid->GetAllSDs();
+  StdVector<RegionIdType> subdoms;
+  ptgrid->GetVolRegionIds(subdoms);
   Integer i, j, k;
   k = 0;
-  for (i=0; i<subdoms->GetSize(); i++)
+  for (i=0; i<subdoms.GetSize(); i++)
     {
-      ptgrid->GetElemSD(elemssd,(*subdoms)[i],level);
+      ptgrid->GetVolElems(elemssd,subdoms[i]);
 
       for (j=0; j < elemssd.GetSize(); j++)
 	{  
@@ -431,6 +428,9 @@ void WriteResultsUnverg::NodeElemDataHarmonic(const Integer dataSetNr,
 void  WriteResultsUnverg::Init(Grid * aptgrid)
 {
   ptgrid=aptgrid;
+
+  // Initialize history files
+  InitHistoryFiles();
 }
 
 void  WriteResultsUnverg::WriteNodeSolutionTransient(const NodeStoreSol<Double> & sol, 
@@ -442,7 +442,7 @@ void  WriteResultsUnverg::WriteNodeSolutionTransient(const NodeStoreSol<Double> 
     
   Vector<Double> globalSolution;
   StdVector<SolutionType> solTypes;
-  Integer numNodes =  ptgrid->GetMaxnumnodes(1);
+  Integer numNodes =  ptgrid->GetNumNodes();
   std::string title;
   sol.GetSolutionTypes(solTypes);
 
@@ -465,10 +465,10 @@ void  WriteResultsUnverg::WriteElemSolutionTransient(const ElemStoreSol<Double>&
   Vector<Double> globalSolution;
   StdVector<SolutionType> solTypes;
   std::string title;
-  Integer numElems =  ptgrid->GetMaxnumElem(0);  
+  Integer numElems =  ptgrid->GetNumVolElems();  
   
   sol.GetSolutionTypes(solTypes);
-  sol.TransformElemSolution(globalSolution,ptgrid,0);
+  sol.TransformElemSolution(globalSolution,ptgrid);
   title = SolutionTypeToString(solTypes[0]);
   NodeElemDataTransient(56,title, globalSolution, step, 
 			time, numElems, sol.GetDof());
@@ -479,19 +479,15 @@ void  WriteResultsUnverg::WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> 
 						    const Double frequency, 
 						    const ComplexFormat format)
 {
-
+  
   ENTER_FCN( "WriteResultsUnverg::WriteNodeSolutionHarmonic" );
   
-  
-  Integer i,j;
-  Double help;
- 
   Vector<Complex> globalSolution;
   
   StdVector<SolutionType> solTypes;
   sol.GetSolutionTypes(solTypes);
   
-  Integer numNodes =  ptgrid->GetMaxnumnodes(1);
+  Integer numNodes =  ptgrid->GetNumNodes();
   std::string title;
 
   for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
@@ -514,12 +510,12 @@ void  WriteResultsUnverg::WriteElemSolutionHarmonic(const ElemStoreSol<Complex>&
   ENTER_FCN( "WriteResultsUnverg::WriteElemSolutionHarmonic" );
  Vector<Complex> globalSolution;
   StdVector<SolutionType> solTypes;
-  Integer numElems =  ptgrid->GetMaxnumElem(0);  
+  Integer numElems =  ptgrid->GetNumVolElems();  
 
   std::string title;
 
   sol.GetSolutionTypes(solTypes);
-  sol.TransformElemSolution(globalSolution,ptgrid,0);
+  sol.TransformElemSolution(globalSolution,ptgrid);
   title = SolutionTypeToString(solTypes[0]);  
 
   NodeElemDataHarmonic(55, title, globalSolution, step, frequency, 
