@@ -84,8 +84,7 @@ namespace CoupledField{
 
     //! Set Pointer to nodal equation object
     void SetPtrEQNData(NodeEQN * ptNodeEQN,
-		       Grid * ptGrid,
-		       Integer level);
+		       Grid * ptGrid);
   
     //! Deletes all data and layout information
 
@@ -300,8 +299,7 @@ namespace CoupledField{
 
     //!
     void TransformElemSolution(CFSVector & transformedSolution,
-			       Grid * ptGrid,
-			       const Integer level) const;
+			       Grid * ptGrid) const;
   
 
     //! maps the local element solution to the coupling Elems

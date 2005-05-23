@@ -96,9 +96,7 @@ public:
  
   //! Set Pointer to nodal equation object
   void SetPtrEQNData(NodeEQN * ptNodeEQN,
-		     Grid * ptGrid,
-		     Integer level);
-  
+		     Grid * ptGrid);  
 
   //! Initialization of the StoreSolution-object with 0-element(REQUIRED)
   

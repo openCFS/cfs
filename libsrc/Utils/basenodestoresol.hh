@@ -76,8 +76,7 @@ public:
 
   //! Set Pointer to nodal equation object
   virtual void SetPtrEQNData(NodeEQN * ptNodeEQN,
-			     Grid *ptGrid,
-			     Integer level) = 0;
+			     Grid *ptGrid) = 0;
   
   //! Hard coded query if values are complex
   virtual Boolean IsComplex() = 0;
@@ -433,27 +432,20 @@ protected:
   //! Pointer to grid class
   Grid * ptGrid_;
 
-  //! Hierarchy level
-  Integer level_;
-
   //! Pointer to equation class
   NodeEQN * ptEQN_;
   
-
   //! Number of nodes
   Integer numNodes_;
 
-
   //! Number of different solutions
   Integer numSolutions_;
-
   
   //! Total number of entries
 
   //! Total number of entries
   //! (= numNodes * sumOf(solDofs_[i]))
   Integer length_;
-
 
   //! 
   Integer lengthVector_;
@@ -464,7 +456,6 @@ protected:
   //! Stores mapping SolutionType <-> position
   std::map<SolutionType,Integer> solTypes_;
 
-
   //! Stores offset of soltypes w.r.t. to beginning
 
   //! Stores the relative position of one
@@ -473,13 +464,11 @@ protected:
   //! of all previous results)
   std::map<SolutionType,Integer> solOffset_;
 
-
   //! Stores offset
   Integer eqnOffset_;
 
   //! Contains number of dofs for each quantity
   std::map<SolutionType,Integer> solDofs_;
- 
  
   //! Total number of dofs 
   Integer totalDofs_;
