@@ -219,7 +219,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
 
     if (! isPartOfSequence_)
-      ptdomain_->PrintGrid(level);
+      ptdomain_->PrintGrid();
     if (isPartOfSequence_ == FALSE){     
       GetMyPDEs();
     //! cast pointer to BasePDE * to pointer of SinglePDE *
@@ -323,7 +323,6 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       }
 
 
- //    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
 //     ptAlgsys = ptMyPDE_->getPDE_algsys();                       //Pointer to AlgebraicSystem
 //     Integer numElems = ptMyPDE_->getPDE_numElems();
 //     dofs=ptMyPDE_->getPDE_dofspernode();
@@ -636,7 +635,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       std::cout<<"\n There was no valid NewtonCG method specified - see in your measuredData.dat -file "<<std::endl;
     //    tichonov();
     //  NewtonLandweber();
-    //  createF(ptMaterial, ptBCs, F_hat,FALSE); // calculates only forward problems over all omegas
+    //  createF(ptMaterial, F_hat,FALSE); // calculates only forward problems over all omegas
 
     // xxxxxxxxxxxxxxxxxxxxxxx End of choice xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
 
@@ -874,29 +873,26 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     Integer spacedim = ptMyPDE_->getPDE_spaceDim();
 
-    std::list<Integer> bcs_list;
+    StdVector<Integer> bcs_list;
     std::string BCName="ep-top";
 
-    bcs_list=ptBCs->GetNodesLevel(BCName, 0);
-    std::list<Integer>::const_iterator it;
-    it=bcs_list.begin();
+    
+    ptdomain_->GetGrid()->GetNodesByName(bcs_list,BCName);
     if (spacedim==3){
-      while (it!=bcs_list.end())
+      for (Integer iNode=0; iNode<bcs_list.GetSize(); iNode++ ) 
 	{
 	  //	std::cout<<"\n MECHDISPL "<< mechDisplacement[(*it)*(dof-1)-1]<< " & it " << (*it)*(dof-1)-1 << std::endl;
 	  //meanValueMechDeformation+=std::abs(mechDisplacement[(*it)*(dofs-1)-1]);
-	  meanValueMechDeformation+=mechDisplacement[(*it)*(dof-1)-1].real();
-	  it++;
+	  meanValueMechDeformation+=mechDisplacement[bcs_list[iNode]*(dof-1)-1].real();
 	}
       meanValueMechDeformation=meanValueMechDeformation/(PI*Radius*Radius*mechDisplacement.GetSize()/(dof-1));
     }
 
     else if (spacedim==2){
-      while (it!=bcs_list.end())
+      for (Integer iNode=0; iNode<bcs_list.GetSize(); iNode++ ) 
 	{
 	  //std::cout<<"\n MECHDISPL "<< mechDisplacement[(*it)*(dof-1)-1]<< " & it " << (*it)*(dof-1)-1 << std::endl;
-	  meanValueMechDeformation+=mechDisplacement[(*it)*(dof-1)-1].real();
-	  it++;
+	  meanValueMechDeformation+=mechDisplacement[bcs_list[iNode]*(dof-1)-1].real();
 	}
       meanValueMechDeformation=meanValueMechDeformation/(Radius*mechDisplacement.GetSize()/(dof-1));
     }
@@ -922,12 +918,10 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
   }// end typeOutSolutionOnSreen
 
   void piezoParamIdent::calcInitialResidual(Vector<Complex> & res, Vector<Complex> & y_hat, Vector<Complex> & PHI_p, Integer fstep, Vector<Complex> & solElecPot, Double & meanValueMechDeformation){
-    std::list<Integer> bcs_list;
-    bcs_list=ptBCs->GetNodesLevel("ep-top", 0); // for cube3dharmonic; zero, because level=0
+    StdVector<Integer> bcs_list;
+    ptdomain_->GetGrid()->GetNodesByName(bcs_list,"ep-top"); // for cube3dharmonic; zero, because level=0
     //bcs_list=ptBCs->GetNodesLevel("pot", 0); // for cubexi, zero, because level=0
-    std::list<Integer>::const_iterator it;
-    it=bcs_list.begin();
-    PHI_p[fstep]=solElecPot[*it];
+    PHI_p[fstep]=solElecPot[bcs_list[0]];
     res[fstep]=y_hat[fstep]-PHI_p[fstep];
     res[y_hat.GetSize()+fstep]=meanValueMechDeformation;
     std::cout << "residual ( " << fstep << ")=" << res[fstep].real() << " + " << res[fstep].imag()<<" i " <<std::endl;

@@ -66,7 +66,6 @@ namespace CoupledField
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
-     ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
     ptAlgsys = ptMyPDE_->getPDE_algsys();                       //Pointer to AlgebraicSystem
 
     Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer;
@@ -97,7 +96,7 @@ namespace CoupledField
     }
 
       //  std::cout<<"\n Landweber 4"<<std::endl;
-    createF(ptMaterial, ptBCs, F_hat,FALSE);
+    createF(ptMaterial, F_hat,FALSE);
     act_res = y_hat-F_hat;
     new_res_outer=old_res_outer=a2norm(act_res);
 
@@ -116,7 +115,7 @@ namespace CoupledField
    
 
       // Create the Matrices F, F', F*
-      createF(ptMaterial, ptBCs, F_hat,FALSE);
+      createF(ptMaterial, F_hat,FALSE);
       createJacobiMatrix2(JacobiMatrix);
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
 
@@ -300,7 +299,7 @@ namespace CoupledField
     // parameter=parameter_new;
       
     updateMaterialData(parameter, ptMaterial);
-    createF(ptMaterial, ptBCs, F_hat,FALSE);
+    createF(ptMaterial, F_hat,FALSE);
 
 
     for (Integer i=0;i<y_hat.GetSize();i++)
@@ -344,7 +343,6 @@ void piezoParamIdent::NewtonLandweberC(){
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
     updateMaterialData(parameterC, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
-    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
     ptAlgsys = ptMyPDE_->getPDE_algsys();                       //Pointer to AlgebraicSystem
 
     Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer;
@@ -380,7 +378,7 @@ void piezoParamIdent::NewtonLandweberC(){
     }
 
 
-    createF(ptMaterial, ptBCs, F_hat,TRUE);
+    createF(ptMaterial, F_hat,TRUE);
     act_res = y_hat-F_hat;
     new_res_outer=old_res_outer=a2norm(act_res);
 
@@ -409,7 +407,7 @@ void piezoParamIdent::NewtonLandweberC(){
       updateComplexMaterialData(parameterC, ptMaterial);
 
       // Create the Matrices F, F', F*
-      createF (ptMaterial, ptBCs, F_hat,FALSE);
+      createF (ptMaterial, F_hat,FALSE);
       createJacobiMatrixC(JacobiMatrix);
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
      
@@ -593,7 +591,7 @@ void piezoParamIdent::NewtonLandweberC(){
       
     updateMaterialData(parameter, ptMaterial);
     updateComplexMaterialData(parameterC, ptMaterial);
-    createF(ptMaterial, ptBCs, F_hat,FALSE);
+    createF(ptMaterial, F_hat,FALSE);
 
 
     for (Integer i=0;i<y_hat.GetSize();i++)

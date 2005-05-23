@@ -78,7 +78,7 @@ namespace CoupledField
     //      std::cout<<"\n Nr: "<< nrIterations << ", start next Newton NuMethod?"<<std::endl;
     
       updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
-      createF(ptMaterial, ptBCs, F_hat,FALSE);
+      createF(ptMaterial, F_hat,FALSE);
       act_res = y_hat-F_hat;
 //       std::cout<<"act_res = " <<std::endl;
 //       std::cout<<act_res<<std::endl;
@@ -108,10 +108,10 @@ namespace CoupledField
 
       
       // Create the Matrices F, F', F*
-      createF(ptMaterial, ptBCs, F_hat,FALSE);
+      createF(ptMaterial, F_hat,FALSE);
       //  createJacobiMatrix2(JacobiMatrix);
       //std::cout<<JacobiMatrix<<std::endl;
-      testJacobiMatrix2(F_hat, JacobiMatrix, parameter, ptBCs, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
+      testJacobiMatrix2(F_hat, JacobiMatrix, parameter, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
       //std::cout<<approxJacobiMatrix<<std::endl;
       //std::cout<<JacobiMatrix<<std::endl;
       //      std::cout<<approxJacobiMatrix<<std::endl;
@@ -322,7 +322,7 @@ namespace CoupledField
       // parameter=parameter_new;
       
       updateMaterialData(parameter, ptMaterial);
-      createF(ptMaterial, ptBCs, F_hat,FALSE);
+      createF(ptMaterial, F_hat,FALSE);
 
       for (Integer i=0;i<y_hat.GetSize();i++)
 	act_res[i]=y_hat[i]-F_hat[i];
@@ -350,7 +350,7 @@ namespace CoupledField
 // 	inner_eta=0.99*inner_eta;
 // 	setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
 // 	updateMaterialData(parameter, ptMaterial);
-// 	createF(ptMaterial, ptBCs, F_hat,FALSE);
+// 	createF(ptMaterial, F_hat,FALSE);
 // 	for (Integer i=0;i<y_hat.GetSize();i++)
 // 	  act_res[i]=y_hat[i]-F_hat[i];
 // 	//Norm ersetzt:
@@ -425,7 +425,7 @@ namespace CoupledField
 // 	 //std::cout<<parameter<<std::endl;
 	 	 
 // 	 //updateMaterialData(parameter, ptMaterial);
-// 	 //createF(ptMaterial, ptBCs, F_hat,FALSE);
+// 	 //createF(ptMaterial, F_hat,FALSE);
 	 
 // 	 for (Integer i=0;i<y_hat.GetSize();i++)
 // 	   act_res[i]=y_hat[i]-F_hat[i];
@@ -457,8 +457,6 @@ namespace CoupledField
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
     updateComplexMaterialData(parameterC, ptMaterial);         //Writes initial guesses of parameterC
 
-    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
-
     Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer, eta;
     eta =0.9;
 
@@ -482,7 +480,7 @@ namespace CoupledField
 
 
     //  std::cout<<"\n Landweber 4"<<std::endl;
-    createF(ptMaterial, ptBCs, F_hat,FALSE);
+    createF(ptMaterial, F_hat,FALSE);
     act_res = y_hat-F_hat;
     new_res_outer=old_res_outer=a2norm(act_res);
 
@@ -502,7 +500,7 @@ namespace CoupledField
     z_old.Resize(maxNumberInnerLoops+2,nrMeasuredData);
       
     // Create the Matrices F, F', F*
-    createF(ptMaterial, ptBCs, F_hat,FALSE);
+    createF(ptMaterial, F_hat,FALSE);
     createJacobiMatrixC(JacobiMatrix);
     createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
 
@@ -690,7 +688,7 @@ namespace CoupledField
       
     updateMaterialData(parameter, ptMaterial);
     updateComplexMaterialData(parameterC, ptMaterial);
-    createF(ptMaterial, ptBCs, F_hat,FALSE);
+    createF(ptMaterial, F_hat,FALSE);
 
 
     for (Integer i=0;i<y_hat.GetSize();i++)
@@ -759,7 +757,7 @@ namespace CoupledField
       basC[i]=Complex(1.0,1.0);
     }
 
-    createF(ptMaterial, ptBCs, F_hat,FALSE);
+    createF(ptMaterial, F_hat,FALSE);
     act_res = y_hat-F_hat;
     //    new_res_outer=old_res_outer=a2norm(act_res);
     norm(act_res, new_res_outer, maxres_inner,y_hat);
@@ -783,9 +781,9 @@ namespace CoupledField
     parameter_oldC = parameterC;
       
     // Create the Matrices F, F', F*
-    createF(ptMaterial, ptBCs, F_hat,FALSE);
+    createF(ptMaterial, F_hat,FALSE);
     //    createJacobiMatrixC(JacobiMatrix);
-    testJacobiMatrixC(F_hat, JacobiMatrix, parameter, ptBCs, ptMaterial);
+    testJacobiMatrixC(F_hat, JacobiMatrix, parameter, ptMaterial);
     JacobiMatrix=approxJacobiMatrix;
     
 
@@ -997,7 +995,7 @@ namespace CoupledField
     updateMaterialData(parameter, ptMaterial);
     updateComplexMaterialData(parameterC, ptMaterial);
 
-    createF(ptMaterial, ptBCs, F_hat,FALSE);
+    createF(ptMaterial, F_hat,FALSE);
 
     for (Integer i=0;i<y_hat.GetSize();i++)
       act_res[i]=y_hat[i]-F_hat[i];

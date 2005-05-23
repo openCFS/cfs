@@ -63,8 +63,6 @@ namespace CoupledField
 
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-    ptBCs = ptMyPDE_->getPDE_BCs();
-    
     Vector<Complex> y_hat_F_hat (nrMeasuredData);
     Vector<Complex> JacFS(nrMeasuredData);
     Vector<Complex> linres(nrMeasuredData);
@@ -99,7 +97,7 @@ namespace CoupledField
 
     Vector<Complex> step(actNrParameter);
 
-    createF(ptMaterial, ptBCs, F_hat,TRUE);
+    createF(ptMaterial, F_hat,TRUE);
 
     for (i=0; i<nrMeasuredData;i++)
       y_hat_F_hat[i]=y_hat[i]-F_hat[i];
@@ -117,7 +115,7 @@ namespace CoupledField
       scaling[i]=1.0;
 
       nrNewtonIterations++;
-      createF(ptMaterial, ptBCs, y_hat,FALSE);
+      createF(ptMaterial, y_hat,FALSE);
 
       createJacobiMatrix2(JacobiMatrix);
       std::cout<<"\n Tichonov 1"<<std::endl;
@@ -219,7 +217,7 @@ namespace CoupledField
         std::cout<<"\n"<<std::endl;
 	updateMaterialData(parameter_new,ptMaterial);
 
-	createF(ptMaterial, ptBCs, F_hat,FALSE);
+	createF(ptMaterial, F_hat,FALSE);
 	y_hat_F_hat=y_hat-F_hat;
 	//	misfit = realA2norm(y_hat_F_hat);
 	JacobiMatrix.Mult(step,JacFS);
@@ -246,7 +244,7 @@ namespace CoupledField
 
       updateMaterialData(parameter_new, ptMaterial);
 
-      createF(ptMaterial, ptBCs, F_hat,FALSE);
+      createF(ptMaterial,  F_hat,FALSE);
       y_hat_F_hat=y_hat-F_hat;
       misfit = realA2norm(y_hat_F_hat);
       parameter=parameter_new;

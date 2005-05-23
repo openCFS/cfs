@@ -44,11 +44,11 @@ namespace CoupledField
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
     //! \param F_hat - contains calculated charge, each entry belongs to different frequency 
-    void createF(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Boolean typeOut);
+    void createF(MaterialData * ptMaterial, Vector<Complex> & F_hat, Boolean typeOut);
 
     //! Calculates an approximation of the Jacobi Matrix of parameter to solution operator F 
     //! \param Jacobi Matrix - approximation of F'
-    void createJacobiMatrix(MaterialData * ptMaterial, BCs * ptBCs, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
+    void createJacobiMatrix(MaterialData * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
 			    Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
     void createJacobiMatrix2(Matrix<Complex> & JacobiMatrix);
@@ -165,16 +165,16 @@ namespace CoupledField
 
     //! Tests, if JacobiMatrix is more or less approximated by F(p)-F(p+delta)/delta
     void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-			  BCs * ptBCs,MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
+			  MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
 			  Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
     void testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-			   BCs * ptBCs,MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
+			   MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
 			   Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
 
     void testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-			   BCs * ptBCs,MaterialData * ptMaterial);
+			   MaterialData * ptMaterial);
     // ! The following methods serve for the determination of eigenvalues ...
 
  //    void sort_array(Integer ndim, Integer l_sort, Vector<Double> & d);
@@ -198,11 +198,10 @@ namespace CoupledField
     Integer dofs;
     Integer numNodes;
     BaseSystem * ptAlgsys;
-    BCs * ptBCs;
     Grid * ptGrid;
     NodeEQN * ptNodeEqn;
     Assemble * ptAssemble;
-    StdVector<std::string> subdoms;
+    StdVector<RegionIdType> subdoms;
     BaseNodeStoreSol * sol;
     Domain * ptDomain;
     Double startfreq;
