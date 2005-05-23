@@ -36,7 +36,6 @@ namespace CoupledField
       \param ptEQN (input) Pointer to EQN
       \param potential (input) NodeStoreSol containing nodal potential
       \param solType (input) SolutionType of the potentialField
-      \param level (input) Multigrid level
       \param isaxi (input) Flag for axi-symmetric geomtetry
     */
     GradientFieldOp(Grid * ptGrid,
@@ -44,7 +43,6 @@ namespace CoupledField
 		    NodeEQN * ptEQN,
 		    NodeStoreSol<TYPE> & potential,
 		    const SolutionType solType,
-		    const Integer level,
 		    Boolean isaxi=FALSE);
  
     //! Destructor
@@ -73,7 +71,7 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point
     */
     virtual void CalcSDGradField(CFSVector & elemField,
-				 const StdVector<std::string> & SD,
+				 const StdVector<RegionIdType> & SD,
 				 const Vector<Double> & lCoord,
 				 const Vector<Double> & factors);
                                                        

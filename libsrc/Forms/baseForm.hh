@@ -34,17 +34,17 @@ public:
 
   //! Virtual function, implemented in derived classes
   virtual void CalcComplexElementMatrix(Matrix<Double>& ptCoord,
-										Matrix<Complex> & StiffMat,
-										Double & beta, Double & omega);
-
+                                        Matrix<Complex> & StiffMat,
+                                        Double & beta, Double & omega);
+  
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result)
   {Error("CalcElemVector not implemented!",__FILE__,__LINE__);};
 
   virtual void CalcElemVector4Dip(Matrix<Double>& ptCoord, 
-								  const StdVector<Integer> & connecth, 
-								  Vector<Double> & Result, 
-								  const Vector<Double> gradN_x_P)
+                                  const StdVector<Integer> & connecth, 
+                                  Vector<Double> & Result, 
+                                  const Vector<Double> gradN_x_P)
   { Error(" CalcElemVector4Dip is not implemented for this class",__FILE__,__LINE__);};
 
   /// Calculation of vector of right hand side given from quadrupole contribution

@@ -18,9 +18,8 @@ CurlEdgeOp::CurlEdgeOp(Grid * ptGrid,
 		       StdPDE * ptPDE,
 		       NodeEQN * ptEQN,
 		       NodeStoreSol<Double> & aSol,
-		       const Integer level,
 		       BaseSystem * algsys) 
-  : BaseOperator(ptGrid, ptPDE, ptEQN, level), algsys_(algsys)
+  : BaseOperator(ptGrid, ptPDE, ptEQN), algsys_(algsys)
 {
   ENTER_FCN( "CurlEdgeOp::CurlEdgeOp" );
 
@@ -182,9 +181,8 @@ void CurlEdgeOp::CalcElemMagVec(Vector<Double> & magVecPot,
 CurlNodeOp::CurlNodeOp(Grid * ptGrid, 
 		       StdPDE * ptPDE,
 		       NodeEQN * ptEQN,
-		       NodeStoreSol<Double> & aSol,
-		       const Integer level)
-  : BaseOperator(ptGrid, ptPDE, ptEQN, level, FALSE)
+		       NodeStoreSol<Double> & aSol) 
+  : BaseOperator(ptGrid, ptPDE, ptEQN, FALSE)
 {
   ENTER_FCN( "CurlNodeOp::CurlNodeOp" );
 
@@ -215,7 +213,7 @@ void CurlNodeOp::CalcElemCurlNode(Vector<Double> & B,
       nShFnc = ptElement->ptElem->GetNumNodes();
       
       Matrix<Double> CornerCoords; 
-      ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
+      ptPDE_->GetElemCoords(ptElement->connect, CornerCoords);
       
       Matrix<Double> GlobalGradient;
       

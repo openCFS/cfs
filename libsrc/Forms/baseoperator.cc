@@ -5,7 +5,6 @@ namespace CoupledField
 
 BaseOperator::BaseOperator(Grid * ptGrid, StdPDE * ptPDE, 
 			   NodeEQN * ptEQN, 
-			   const Integer level, 
 			   Boolean isaxi)
   : isaxi_(isaxi)
 {
@@ -13,7 +12,6 @@ BaseOperator::BaseOperator(Grid * ptGrid, StdPDE * ptPDE,
 
   this->ptGrid_ = ptGrid;
   this->ptPDE_ = ptPDE;
-  this->level_ = level;
   this->ptEQN_ = ptEQN;
 }
 

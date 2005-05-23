@@ -27,12 +27,11 @@ namespace CoupledField
     //! \param ptGrid     (input) Pointer to grid
     //! \param magPotential (input) Pointer to vector containing the magnetic
     //!                           potential for all nodes of domain
-    //! \param level      (input) Multigrid level
     MagLorentzForceOp(Grid * ptGrid, 
-		StdPDE * ptPDE,
-		NodeEQN * ptEQN,
-		NodeStoreSol<Double> & magPotential,
-		const Integer level, Boolean isaxi);
+		      StdPDE * ptPDE,
+		      NodeEQN * ptEQN,
+		      NodeStoreSol<Double> & magPotential,
+		      Boolean isaxi);
 
     //! Destructor
     virtual ~MagLorentzForceOp();
@@ -78,16 +77,14 @@ namespace CoupledField
     //! \param ptGrid     (input) Pointer to grid
     //! \param sol        (input) Pointer to vector containing the magnetic
     //!                           vector potential for all nodes of domain
-    //! \param level      (input) Multigrid level
     MagForceOp(Grid * ptGrid, 
-		StdPDE * ptPDE,
-		NodeEQN * ptEQN,
-		NodeStoreSol<Double> & sol,
-		Integer dim,
-		MaterialData* &matData,
-	       StdVector<std::string>& allSubdoms,
-		const Integer level, 
-		Boolean isaxi);
+	       StdPDE * ptPDE,
+	       NodeEQN * ptEQN,
+	       NodeStoreSol<Double> & sol,
+	       Integer dim,
+	       MaterialData* &matData,
+	       StdVector<RegionIdType>& allSubdoms,
+	       Boolean isaxi);
 
     //! Destructor
     virtual ~MagForceOp();
