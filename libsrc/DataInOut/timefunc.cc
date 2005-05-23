@@ -9,11 +9,10 @@
 namespace CoupledField
 {
 
-TimeFunc :: TimeFunc(FileType * aptFileType)
+TimeFunc :: TimeFunc()
 {
   ENTER_FCN( "TimeFunc::TimeFunc" );
 
-  ptFileType = aptFileType;
   maxnumTF_  = 0;
 
   timeFncDatFiles_=FALSE;
