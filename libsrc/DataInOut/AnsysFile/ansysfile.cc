@@ -4,8 +4,6 @@
 #include <stdarg.h>
 
 #include "ansysfile.hh"
-#include "Domain/bcs.hh"
-#include "Domain/GridCFS/grid_cfs.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Utils/StdVector.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
@@ -21,400 +19,294 @@
 namespace CoupledField {
 
 
-  // ***************
-  //   Constructor
-  // ***************
   AnsysFile::AnsysFile( const Char *const afilename ) : FileType(afilename) {
 
     ENTER_FCN( "AnsysFile::AnsysFile" );
 
-    maxNumNodes_   = 0;
-    actMaxElemNum_ = 0;
-
-    std::string myFile = commandLine->GetMeshFile();
-    infile.open( myFile.c_str() );
-
-    if ( !infile.good() ) {
-      (*error) << "AnsysFile::AnsysFile: Failed to open " << myFile;
+    std::string myFile = afilename;
+    inFile_.open( myFile.c_str() );
+    
+    if (!inFile_.good()) {
+      (*error) << "AnsysFile: I am unable to open mesh file '"
+	       << filename << "'.mesh!";
       Error( __FILE__, __LINE__ );
     }
-
-    infile.seekg(0, std::ios::end);
-    pos_end = infile.tellg();
     
-    dim_ = ReadDim();
-
-    // Determine overall number of elements. This is required
-    // for reserving space for a vector that stores pointers
-    // to the elements in ascending order with respect to the
-    // element numbers.
-    maxNumElems_  = 0;
-    maxNumElems_ += GetNum1DElems();
-    maxNumElems_ += GetNum2DElems();
-    maxNumElems_ += GetNum3DElems();
+    inFile_.seekg(0, std::ios::end);
+    pos_end = inFile_.tellg();
+    
+    dim_ = GetDim();
+    elemDimReadIn_.Resize(dim_);
+    elemDimReadIn_.Init(FALSE);
+    maxNumElems_ = GetNumElems();
+    maxNumNodes_ = GetNumNodes();
   }
 
 
-  // **************
-  //   Destructor
-  // **************
   AnsysFile::~AnsysFile() {
     ENTER_FCN( "AnsysFile::~AnsysFile" );
-    infile.close() ;
+    inFile_.close() ;
   }
 
 
-  // *******************************
-  //   ReadCoordinate (2D version)
-  // *******************************
-  void AnsysFile::ReadCoordinate( Point<2> *const NodesCoord,
-                                  const Integer maxnumnodes ) {
-
-    ENTER_FCN( "Ansys::ReadCoordinate 2D" );
-
-    Integer i;
-    std::string::size_type pos=0;
-    getPosLine("[Nodes]", pos);
-    infile.seekg(pos,std::ios::beg);
+  // ======================================================
+  // GENERAL MESH INFORMATION
+  // ======================================================
+  Integer AnsysFile::GetDim() {
+    ENTER_FCN( "AndsysFile::GetDim ");
+    return GetInteger("Dimension");
+  }
   
-    Integer ibuf;
-  
-    for ( i = 0; i < maxnumnodes; i++ ) {
-      infile >> ibuf >> NodesCoord[i][0] >> NodesCoord[i][1] ;
-      infile.ignore(100,'\n');
+  Integer AnsysFile::GetNumNodes(){
+    ENTER_FCN( "AndsysFile::GetNumNodes ");
+    return GetInteger("NumNodes");
+  }
+    
+  Integer AnsysFile::GetNumElems(const Integer dim){
+    ENTER_FCN( "AndsysFile::GetNumElems ");
+    
+    Integer numElems = 0;
+    std::string search;
+    
+
+    // 1.) return number of all elements
+    if ( dim == 0) {
+      if( GetDim() == 3)
+	numElems += GetNumElems(3);
+      numElems += GetNumElems(2);
+      numElems += GetNumElems(1);
+    }  
+    else if ( dim >=1 && dim <= 3 ) {
+      search = "Num" + Info->GenStr(dim) + "DElements";
+      numElems = GetInteger(search);
     }
-  }
-
-
-  // *******************************
-  //   ReadCoordinate (3D version)
-  // *******************************
-  void AnsysFile::ReadCoordinate( Point<3> *const NodesCoord,
-                                  const Integer maxnumnodes ) {
-
-    ENTER_FCN( "Ansys::ReadCoordinate 3D" );
-  
-    Integer i;
-    std::string::size_type pos=0;
-    getPosLine("[Nodes]", pos);
-    infile.seekg(pos,std::ios::beg);
-  
-    Integer ibuf;
-    for ( i = 0; i < maxnumnodes; i++ ) {
-      infile >> ibuf >> NodesCoord[i][0] >> NodesCoord[i][1]
-             >> NodesCoord[i][2];
-      infile.ignore(100,'\n');
+    else {
+      (*error) << "AnsysFile::GetNumElems: Dimension " << dim 
+	       << " is out of range!";
+      Error( __FILE__, __LINE__ );
     }
+    return numElems;
+  }
+  
+  Integer AnsysFile::GetNumRegions(){
+    ENTER_FCN( "AndsysFile::GetNumRegions ");
+    Error( "Not implemented", __FILE__, __LINE__ );
+    return 0;
   }
 
-
-  // ***********
-  //   ReadBCs
-  // ***********
-  void AnsysFile::ReadBCs( std::list<Integer> *bcs,
-                           const StdVector<std::string> levels ) {
-
-    ENTER_FCN( "AnsysFile::ReadBCs" );
+  Integer AnsysFile::GetNumNamedNodes(){
+    ENTER_FCN( "AndsysFile::GetNumNamedNodes");
+    Integer numNamedNodes = 0;
     
-    Integer numbc;
-    ReadMaxnumnodesbc(numbc);
+    numNamedNodes += GetInteger("NumNodeBC");
+    numNamedNodes += GetInteger("NumSaveNodes");
 
-    // Vector which contains Booleans for all boundary nodes for all levels.
-    // It is used to determine, wether a node occurs several times, which
-    // could lead to errors with the number of boundary conditions later on
-    StdVector<StdVector<Integer> > nodesPerLevel;
-    nodesPerLevel.Resize(levels.GetSize());
-    
-
-    std::string::size_type pos=0;
-    std::string::size_type lineEndPos =0;
-    getPosLine("Node BC", pos);
-    infile.seekg(pos,std::ios::beg);
-    
-    std::string str, buf, errMsg;
-
-    Integer nodalnum;
-    Integer i,j;
-    for ( i = 0; i < numbc; i++ ) {
-        
-      // remember current position and get the position of endline
-      pos = infile.tellg();
-      std::getline(infile,buf,'\n');
-      lineEndPos=infile.tellg();
-      infile.seekg(pos,std::ios::beg);
-        
-      // try to read in the data
-      infile >> nodalnum >> str;
-
-      // if read in was successfull, enline position and current
-      // position are the same
-      infile.ignore(100,'\n');
-      pos = infile.tellg();
-      if (pos != lineEndPos) {
-        (*error) << "AnsysFile:ReadBCs: The node list for the boundary "
-                 << "conditions has wrong size or format. Please correct it!";
-        Error( __FILE__, __LINE__ );
-      }
-        
-      Boolean Find=FALSE;
-
-      // Find the associated level
-      for (j=0; j<levels.GetSize(); j++) {
-        if (str==levels[j]) {
-          Find=TRUE;
-          break;
-        }
-      }
-      if (!Find) {
-        (*error) << " The region '" << str << "' for BCs from .mesh file "
-                 << "is not mentioned in xml file. Please, check .xml-file";
-        Error( __FILE__,__LINE__ );
-      }
-        
-      // Check, if node was already read in
-      Boolean onlyNode = TRUE;
-      for (Integer iNode=0; iNode<nodesPerLevel[j].GetSize(); iNode++) 
-        if (nodesPerLevel[j][iNode] == nodalnum) {
-          onlyNode = FALSE;
-          break;
-        }
-
-      if (onlyNode == FALSE) {
-        std::string warnMsg = "ReadBCs: The node with Nr. ";
-        warnMsg += Info->GenStr(nodalnum);
-        warnMsg += " of BC level '";
-        warnMsg += str;
-        warnMsg += "' occured at least two times in the .mesh file.\n";
-        warnMsg += "Please make sure that each node occurs only on time in ";
-        warnMsg += ".mesh file, otherwise some undefined errors may occur!";
-        Warning(warnMsg.c_str(), __FILE__, __LINE__);
-      }
-      else {
-        nodesPerLevel[j].Push_back(nodalnum);
-        bcs[j].push_back(nodalnum);
-      }
-    } 
-
-    if (! IsNextLineEmpty(pos)) {
-      (*warning) << "AnsysFile::ReadBCs: The line after the last BC node "
-                 << "no. " << nodalnum << " in region '" << str
-                 << "' seems to contain nodes too. Please check if the "
-                 << "number of BC nodes specified in the header of the "
-                 << "mesh-file matches the real number of BC  nodes!";
-      Warning( __FILE__, __LINE__ );
-    }
+    return numNamedNodes;
   }
 
-
-  // *****************
-  //   ReadSaveNodes
-  // *****************
-  void AnsysFile::ReadSaveNodes( StdVector<Integer> &saveNodes,
-                                 const std::string level ) {
-
-    ENTER_FCN( "Ansys::ReadSaveNodes" );
-
-    Integer nrSaveNodes;
-    ReadNumSaveNodes(nrSaveNodes);
-    saveNodes.Clear();
-
-    std::string::size_type pos=0;
-    std::string::size_type lineEndPos=0;
-    
-    getPosLine("Save Nodes", pos);
-    infile.seekg(pos,std::ios::beg);
-    
-    std::string str, buf;
-
-    Integer nodalnum;
-    Integer i;
-    for ( i = 0; i < nrSaveNodes; i++ ) {
-
-      // remember current position and get the position of endline
-      pos = infile.tellg();
-      std::getline(infile,buf,'\n');
-      lineEndPos=infile.tellg();
-      infile.seekg(pos,std::ios::beg);
-        
-      // Read in data
-      infile >> nodalnum >> str;
-
-      // if read in was successfull, enline position and current
-      // position are the same
-      infile.ignore(100,'\n');
-      pos = infile.tellg();
-      if (pos != lineEndPos){
-        (*error) << "AnsysFile:ReadSaveNodes: The node list for the "
-                 << "saveNodes has wrong size or format. Please correct it!";
-        Error( __FILE__, __LINE__ );
-      }
-
-      if (str == level) {
-        saveNodes.Push_back(nodalnum);
-      }
-    } 
+  Integer AnsysFile::GetNumNamedElems(){
+    ENTER_FCN( "AndsysFile::GetNumNamedElems");
+    return GetInteger("NumSaveElements");
+  }
+  
  
-    if (saveNodes.GetSize() == 0) {
-      (*error) << " The region '" << str << "' for saveNodes from .mesh file "
-               << "is not mentioned in xml file. Please, check .xml-file. "
-               << "History nodes are written with the command 'wsavnod'.";
-      Error( __FILE__, __LINE__ );
+  // ======================================================
+  // ENTITY NAME ACCESS
+  // ======================================================
+
+  
+  void AnsysFile::GetAllRegionNames( StdVector<std::string> & regionNames ) {
+    ENTER_FCN( "AnsysFile::GetAllRegionNames" );
+    
+    StdVector<std::string>  names;
+    
+    for ( Integer iDim=dim_; iDim>0; iDim-- ) {
+      names.Clear();
+      GetRegionNamesOfDim(names,iDim);
+      for ( Integer iName=0; iName<names.GetSize(); iName++ )
+	regionNames.Push_back(names[iName]);
+
     }
 
-    if (! IsNextLineEmpty(pos)) {
-      (*warning) << "AnsysFile::ReadSaveNodes: The line after the last "
-                 << "save node no. " << nodalnum << " in region '" << str
-                 << "' seems to contain nodes too. Please check if the "
-                 << "number of BC nodes specified in the header of the "
-                 << "mesh-file matches the real number of BC  nodes!";
-      Warning( __FILE__, __LINE__ );
+  }
+    
+    
+  void AnsysFile::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
+				       const Integer dim ) {
+    ENTER_FCN( "AnsysFile::GetRegionNamesOfDim" );
+    
+    regionNames.Clear();
+
+    // Check if elements of desired dimension were read in. If not,
+    // read them in into dummy variables
+    if ( elemDimReadIn_[dim-1] == FALSE ) {
+      StdVector<StdVector<Elem*> > dummyElems;
+      StdVector<RegionIdType> dummyId;
+      GetElements(dummyElems,dummyId,dim);
+    }
+    
+    // Look for region names of desired dimension
+    for ( Integer i=0; i<regionDim_.GetSize(); i++ ) 
+      if ( regionDim_[i] == dim )
+	regionNames.Push_back( regionNames_[i] );
+    
+  }
+
+  void AnsysFile::GetNodeNames( StdVector<std::string> &nodeNames ) {
+
+    ENTER_FCN( "AnsysFile::GetNodeNames" );
+    
+
+    std::string::size_type pos=0;
+    std::string str;
+    Integer nodalnum;
+    Integer i,j;    
+    StdVector<std::string> sections;
+    StdVector<Integer> numNamedNodes;
+    
+    sections = "Node BC", "Save Nodes";
+    numNamedNodes.Resize(2);
+    numNamedNodes[0] = GetInteger("NumNodeBC");
+    numNamedNodes[1] = GetInteger("NumSaveNodes");
+    
+    for ( Integer iSect=0; iSect<sections.GetSize(); iSect++ ) {
+      
+      GetPosLine(sections[iSect], pos);
+      inFile_.seekg(pos,std::ios::beg);
+      
+      
+      for ( i = 0; i < numNamedNodes[iSect]; i++ ) {
+	inFile_ >> nodalnum >> str;
+	inFile_.ignore(100,'\n');
+	
+	Boolean found = FALSE;
+	
+	for ( j = 0; j < nodeNames.GetSize(); j++ ) {
+	  if ( str == nodeNames[j] ) {
+	    found = TRUE;
+	  }
+	}
+	if ( !found ) {
+	  nodeNames.Push_back(str);
+	} 
+      }
+    }
+  }
+  void AnsysFile::GetElemNames( StdVector<std::string> & elemNames ) {
+    ENTER_FCN( "AnsysFile::GetElemNames" );
+
+    Error( "Not implemented", __FILE__, __LINE__ );
+  }
+
+
+  // ======================================================
+  // ENTITY ACCESS
+  // ======================================================
+  
+  void AnsysFile::GetCoordinates( StdVector<Point<2> > & nodeCoords ) {
+    ENTER_FCN( "AnsysFile::GetCoordinates 2D" );
+
+    Integer i, ibuf;
+    std::string::size_type pos=0;
+    
+    Integer numNodes = GetNumNodes();
+    nodeCoords.Resize(numNodes);
+
+
+    GetPosLine("[Nodes]", pos);
+    inFile_.seekg(pos,std::ios::beg);
+  
+    for ( i = 0; i < numNodes; i++ ) {
+      inFile_ >> ibuf >> nodeCoords[i][0] >> nodeCoords[i][1] ;
+      inFile_.ignore(100,'\n');
     }
   }
 
 
-  // ************************
-  //   ReadSaveLevelOfNodes
-  // ************************
-  void AnsysFile::ReadLevelOfSaveNodes( StdVector<std::string> &levels ) {
-
-    ENTER_FCN( "Ansys::ReadLevelOfSaveNodes" );
+  void AnsysFile::GetCoordinates( StdVector<Point<3> > & nodeCoords ) {
+    ENTER_FCN( "AnsysFile::GetCoordinates 3D" );
     
-    Integer nrSaveNodes;
-    ReadNumSaveNodes(nrSaveNodes);
-
+    Integer i, ibuf;
     std::string::size_type pos=0;
-    getPosLine("Save Nodes", pos);
-    infile.seekg(pos,std::ios::beg);
     
-    std::string str;
-
-    Integer nodalnum;
-    Integer i,j;
-    for ( i = 0; i < nrSaveNodes; i++ ) {
-      infile >> nodalnum >> str;
-      infile.ignore(100,'\n');
-
-      Boolean found = FALSE;
-
-      for ( j = 0; j < levels.GetSize(); j++ ) {
-        if ( str == levels[j] ) {
-          found = TRUE;
-        }
-      }
-      if ( !found ) {
-        levels.Push_back(str);
-      }
+    Integer numNodes = GetNumNodes();
+    nodeCoords.Resize(numNodes);
+    
+    
+    GetPosLine("[Nodes]", pos);
+    inFile_.seekg(pos,std::ios::beg);
+    
+    for ( i = 0; i < numNodes; i++ ) {
+      inFile_ >> ibuf >> nodeCoords[i][0] >> nodeCoords[i][1]
+             >> nodeCoords[i][2];
+      inFile_.ignore(100,'\n');
     }
   }
 
+  void AnsysFile::GetNodesOfRegions( StdVector<StdVector<Integer> > &nodes,
+				     const StdVector<RegionIdType> & regionId ) {
 
-  // ***************
-  //   ReadBCsConf
-  // ***************
-  void AnsysFile::ReadBCsConf( StdVector<std::string> &levels ) {
+    ENTER_FCN( "AnsysFile::GetNodesOfRegions" );
 
-    ENTER_FCN( "Ansys::ReadBCsConf" );
+    std::set<Integer>::iterator it;
+    Integer iRegion, index, iNode;
     
-    Integer numbc;
-    ReadMaxnumnodesbc(numbc);
-
-    std::string::size_type pos=0;
-    getPosLine("Node BC", pos);
-    infile.seekg(pos,std::ios::beg);
     
-    std::string str;
+    nodes.Resize(regionId.GetSize());
 
-    Integer nodalnum;
-    Integer i,j;
-    for ( i = 0; i < numbc; i++ ) {
+    for ( iRegion = 0; iRegion < regionId.GetSize(); iRegion++ ) {
+      
+      iNode = 0;
+      index = regionId[iRegion];
+      nodes[iRegion].Resize(regionNodes_[index].size());
 
-      infile >> nodalnum >> str;
-      infile.ignore(100,'\n');
+      for ( it = regionNodes_[index].begin(); it != regionNodes_[index].end();
+            it++, iNode++ ) {
+        nodes[iRegion][iNode] = *it;
+      }
         
-      if ( i == 0 ) {
-        levels.Push_back(str);
-      }
-      else {
-        Integer find = 0;
-        for (j=0; j<levels.GetSize(); j++)
-          if (str == levels[j]) find = 1;
-        if (!find) levels.Push_back(str);         
-      }
-    } 
-  }
-
-
-  // **********
-  //   ReadEl
-  // **********
-  void AnsysFile::ReadEl( StdVector<Elem*> *allElems, 
-                          StdVector<Elem*> &orderedElems,
-                          const StdVector<std::string> sd ) {
-
-    ENTER_FCN( "AnsysFile::ReadEl" );
-
-    switch( dim_ ) {
-    case 2:
-      ReadElementInfoFromMeshFile( "2D", allElems, orderedElems, sd );
-      break;
-    case 3:
-      ReadElementInfoFromMeshFile( "3D", allElems, orderedElems, sd );
-      break;
     }
+    
+    
   }
+    
 
-
-  // *******************************
-  //   ReadElementInfoFromMeshFile
-  // *******************************
-  void AnsysFile::
-  ReadElementInfoFromMeshFile( std::string elemType,
-                               StdVector<Elem*> *elemVec, 
-                               StdVector<Elem*> &elemVecSeq,
-                               const StdVector<std::string> sd ) {
-
-    ENTER_FCN( "AnsysFile::ReadElementInfoFromMeshFile" );
-
-    // Check that task specifier is correct
-    if ( elemType != "1D" && elemType != "2D" && elemType != "3D" ) {
-      (*error) << "AnsysFile::ReadElementInfoFromMeshFile: Task specifier "
-               << "is '" << elemType << "', but should be one of '1D', '2D' "
-               << "or '3D'";
+  void AnsysFile::GetElements( StdVector< StdVector<Elem*> > & elems, 
+			       StdVector<RegionIdType> & regionIds,
+			       const Integer dim ) {
+    ENTER_FCN( "AnsysFile::GetElements" );
+    
+    // Check that dimension is correct
+    if ( dim < 1 || dim > 3 ) {
+      (*error) << "AnsysFile::ReadElements: The dimension of elements to "
+	       << "be read in was specified with " << dim << ", but is only "
+	       << "allowed to have a value between 1 and 3!";
       Error( __FILE__, __LINE__ );
     }
-
+    
     // Check that pointers to base elements are initialised
-    Boolean baseElemInit = TRUE;
-    if ( (elemType == "1D" && ( !ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 ||
-                                !ptWedge1 || !ptWedge2 ) ) ||
-         (elemType == "2D" && ( !ptQ1 || !ptQ2 || !ptTr1 || !ptTr2 ) ) ||
-         (elemType == "3D" && ( !ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 ||
-                                !ptWedge1 || !ptWedge2 ) ) ) {
-      (*error) << "Pointers to " << elemType << " base elements are not "
+    if ( (dim == 1 && ( !ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 ||
+			!ptWedge1 || !ptWedge2 ) ) ||
+	 (dim == 2 && ( !ptQ1 || !ptQ2 || !ptTr1 || !ptTr2 ) ) ||
+	 (dim == 3 && ( !ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 ||
+			!ptWedge1 || !ptWedge2 ) ) ) {
+      (*error) << "Pointers to " << dim << "D base elements are not "
                << "completely initialized";
-        Error( __FILE__, __LINE__ );
+      Error( __FILE__, __LINE__ );
     }
-
+    
     // This string is used for assembling keywords that contain the
     // task specifier elemType
     std::string searchString;
 
     // Determine the number of elements of respective dimension from
     // the header of the mesh-file
-    Integer numElems;
-    searchString = "Num" + elemType + "Elements";
-    ReadMaxnumelem( numElems, searchString );
+    Integer numElems = GetNumElems(dim);
 
     // If there are no elements, we assume that this is fine an
     // simply return
     if ( numElems <= 0 ) {
       return;
-    }
-
-    // Check whether for the vector containing all elements (independent of
-    // dimension) space has already been reserved
-    if ( elemVecSeq.Capacity() < maxNumElems_ ) {
-      elemVecSeq.Resize( maxNumElems_ );
     }
 
     // We need some strings for navigating the mesh-file
@@ -424,124 +316,254 @@ namespace CoupledField {
 
     // Position ourselves in the correct setion
     searchString.clear();
-    searchString = elemType + " Elements";
-    getPosLine( searchString, pos );
-    infile.seekg( pos, std::ios::beg );
+    searchString = Info->GenStr(dim) + "D Elements";
+    GetPosLine( searchString, pos );
+    inFile_.seekg( pos, std::ios::beg );
 
     // Some additional variables
-    Integer i, j, k, eNum, eType, eNodes;
-    std::string region;
+    Integer i, k, eNum, eType, eNodes;
+    std::string region, lastRegion;
+    RegionIdType regionId = NO_REGION_ID;
+    Integer regionIndex = 0;
     Elem *el = NULL;
+    
 
     // Loop over all elements
     for ( i = 0; i < numElems; i++ ) {
 
       // Remember current position and get the position of endline
-      pos = infile.tellg();
-      std::getline( infile, buf, '\n' );
-      lineEndPos = infile.tellg();
-      infile.seekg( pos, std::ios::beg );
+      pos = inFile_.tellg();
+      std::getline( inFile_, buf, '\n' );
+      lineEndPos = inFile_.tellg();
+      inFile_.seekg( pos, std::ios::beg );
 
       // try to read data
-      infile >> eNum >> eType >> eNodes >> region;       
+      inFile_ >> eNum >> eType >> eNodes >> region;       
 
       // if read in was successfull, enline position and current
       // position are the same
-      infile.ignore( 100, '\n' );
-      pos = infile.tellg();
+      inFile_.ignore( 100, '\n' );
+      pos = inFile_.tellg();
       if ( pos != lineEndPos ) {
         (*error) << "An error occured while reading the " << i << "-th "
-                 << elemType << " element";
+                 << dim << "D element";
         Error( __FILE__, __LINE__ );
       }
 
       // Check number of element
-      if ( eNum > actMaxElemNum_ ) {
+      if ( eNum > maxNumElems_ ) {
         (*error) << "Current element number = " << eNum << " > "
-                 << actMaxElemNum_ << " = actMaxElemNum_. Something might "
+                 << maxNumElems_ << " = actMaxElemNum_. Something might "
                  << "have gone wrong in the meshing process.";
         Error( __FILE__, __LINE__ );
+      }
+
+      // Check if previous element had the same id. 
+      // If not, obtain new region identifier
+      if( lastRegion != region ) {
+	lastRegion = region;
+	regionId = ObtainRegionId(region, dim);
+	
+	// Check if region of this type already exists, and if not
+	// add new vector
+	regionIndex = regionIds.Find(regionId);
+	if ( regionIndex == -1 ) {
+	  regionIds.Push_back(regionId);
+	  elems.Push_back( StdVector<Elem*>() );
+          regionNodes_.Push_back(std::set<Integer>());
+	  regionIndex = regionIds.GetSize() - 1;
+	}
       }
 
       // Generate new element and insert basic information
       el = new Elem();
       el->elemNum = eNum;
       el->ptElem  = Type2ptElem( eType );
-      el->namesd  = region;
       el->connect.Resize( eNodes );
+      el->regionId = regionId;
 
-      // Read node numbers and insert them into the element
+      // Read node numbers and insert them into the element and
+      // into the vector with all node-numbers per region
       for ( k = 0; k < eNodes; k++ ) {
-        infile >> el->connect[k];
+        inFile_ >> el->connect[k];
+        regionNodes_[regionId].insert(el->connect[k]);
       }
 
       // Proceed in mesh-file
-      infile.ignore( 100, '\n' );
-      pos = infile.tellg();
+      inFile_.ignore( 100, '\n' );
+      pos = inFile_.tellg();
 
-      // Insert new element into pointer vectors
-      elemVecSeq[eNum-1] = el;
-        
-      Boolean Find = FALSE;
-      for ( j = 0; j < sd.GetSize(); j++ ) {
-        if ( region == sd[j] ) {
-          elemVec[j].Push_back( el );
-          Find = TRUE;
-        }
-      }
-      if ( Find == FALSE ) {
-        (*error) << elemType << " element " << eNum << " belongs to the "
-                 << "region '" << region << "'. However, that regions is "
-                 << "not mentioned in the xml-file.";
-        Error( __FILE__, __LINE__ );
-      }
+      elems[regionIndex].Push_back( el );
     }
 
     // Check that there are no more elements
     if ( !IsNextLineEmpty(pos) ) {
-      (*warning) << "AnsysFile::ReadElementInfoFromMeshFile: "
-                 << "The line after the last " << elemType
-                 << " element no. " << eNum << " in region '" << region
+      (*warning) << "AnsysFile::ReadElements: "
+                 << "The line after the last " << dim
+                 << "D element no. " << eNum << " in region '" << region
                  << "' seems to contain elements too. Please check if the "
-                 << "number of " << elemType << " elements specified in "
+                 << "number of " << dim << "D elements specified in "
                  << "the header of the mesh-file matches the real number of "
-                 << elemType << " elements!";
+                 << dim << "D elements!";
       Warning( __FILE__, __LINE__ );
     }
+
+    // Set flag which indicates, that elements of given dimension
+    // were read in
+    elemDimReadIn_[dim-1] = TRUE;
   }
 
 
-  // ************
-  //   ReadEl1D
-  // ************
-  void AnsysFile::ReadEl1d( StdVector<Elem*> *allElems, 
-                            StdVector<Elem*> &orderedElems,
-                            const StdVector<std::string> sd ) {
-    ENTER_FCN( "AnsysFile::ReadEl1D" );
-    ReadElementInfoFromMeshFile( "1D", allElems, orderedElems, sd );
+ 
+  void AnsysFile::GetNamedNodes( StdVector<StdVector<Integer> > & nodes,
+				 StdVector<std::string> & nodeNames ) {
+
+    ENTER_FCN( "AnsysFile::GetNamedNodes" );
+    
+
+
+    std::string::size_type pos=0;
+    std::string::size_type lineEndPos =0;
+    std::string lastName = "";
+    Integer lastIndex = 0;
+    std::string str, buf, errMsg;
+    Integer nodalnum;
+    Integer i;
+
+    StdVector<std::string> sections;
+    StdVector<Integer> numNamedNodes;
+    sections = "Node BC", "Save Nodes";
+    numNamedNodes.Resize(2);
+    numNamedNodes[0] = GetInteger("NumNodeBC");
+    numNamedNodes[1] = GetInteger("NumSaveNodes");
+
+
+    for ( Integer iSect=0; iSect<sections.GetSize(); iSect++) {
+
+      GetPosLine(sections[iSect], pos);
+      inFile_.seekg(pos,std::ios::beg);
+
+      for ( i = 0; i < numNamedNodes[iSect]; i++ ) {
+        
+	// remember current position and get the position of endline
+	pos = inFile_.tellg();
+	std::getline(inFile_,buf,'\n');
+	lineEndPos=inFile_.tellg();
+	inFile_.seekg(pos,std::ios::beg);
+        
+	// try to read in the data
+	inFile_ >> nodalnum >> str;
+	
+	// if read in was successfull, enline position and current
+	// position are the same
+	inFile_.ignore(100,'\n');
+	pos = inFile_.tellg();
+	if (pos != lineEndPos) {
+	  (*error) << "AnsysFile:GetNamedNodes: The node list for the boundary "
+		   << "conditions has wrong size or format. Please correct it!";
+	  Error( __FILE__, __LINE__ );
+	}
+        
+	// get according vector index
+	if (str != lastName) {
+	  lastName = str;
+	  
+	  // find the associated level
+	  lastIndex = nodeNames.Find(str);
+	  
+	  if( lastIndex == -1 ) {
+	    nodeNames.Push_back(str);
+	    nodes.Push_back( StdVector<Integer>() );
+	    lastIndex = nodes.GetSize()-1; 
+	  }
+	}
+	
+	nodes[lastIndex].Push_back(nodalnum);
+      } 
+      
+      if (! IsNextLineEmpty(pos)) {
+	(*warning) << "AnsysFile::GetNamedNodes: The line after the last BC"
+		   << "node "
+		   << "no. " << nodalnum << " in region '" << str
+		   << "' seems to contain nodes too. Please check if the "
+		   << "number of named nodes specified in the header of the "
+		   << "mesh-file matches the real number of BC  nodes!";
+	Warning( __FILE__, __LINE__ );
+      } // end if 
+    } // end for
   }
 
 
-  // ************
-  //   ReadEl2D
-  // ************
-  void AnsysFile::ReadEl2d( StdVector<Elem*> *allElems, 
-                            StdVector<Elem*> &orderedElems,
-                            const StdVector<std::string> sd ) {
-    ENTER_FCN( "AnsysFile::ReadEl2D" );
-    ReadElementInfoFromMeshFile( "2D", allElems, orderedElems, sd );
-  }
+  void AnsysFile::GetNamedElems( StdVector<StdVector<Integer> > & elems,
+				 StdVector<std::string> & elemNames ) {
+    ENTER_FCN( "AnsysFile::GetNamedElems" );
+    
+    std::string::size_type pos=0;
+    std::string::size_type lineEndPos =0;
+    std::string lastName = "";
+    Integer lastIndex = 0;
+    std::string str, buf, errMsg;
+    Integer elemNum;
+    Integer i;
 
+    Integer numNamedElems = GetInteger("NumSaveElems");
 
-  // ************
-  //   ReadEl3D
-  // ************
-  void AnsysFile::ReadEl3d( StdVector<Elem*> *allElems, 
-                            StdVector<Elem*> &orderedElems,
-                            const StdVector<std::string> sd ) {
-    ENTER_FCN( "AnsysFile::ReadEl3d" );
-    ReadElementInfoFromMeshFile( "3D", allElems, orderedElems, sd );
+    GetPosLine("Save Elements", pos);
+    inFile_.seekg(pos,std::ios::beg);
+    
+    for ( i = 0; i < numNamedElems; i++ ) {
+      
+      // remember current position and get the position of endline
+      pos = inFile_.tellg();
+      std::getline(inFile_,buf,'\n');
+      lineEndPos=inFile_.tellg();
+      inFile_.seekg(pos,std::ios::beg);
+      
+      // try to read in the data
+      inFile_ >> elemNum >> str;
+      
+      // if read in was successfull, enline position and current
+      // position are the same
+      inFile_.ignore(100,'\n');
+      pos = inFile_.tellg();
+      if (pos != lineEndPos) {
+	(*error) << "AnsysFile:ReadNamedElems: The node list for the "
+		 << "boundary "
+		 << "conditions has wrong size or format. Please correct it!";
+	Error( __FILE__, __LINE__ );
+      }
+      
+      // get according vector index
+      if (str != lastName) {
+	lastName = str;
+	
+	// find the associated level
+	lastIndex = elemNames.Find(str);
+	
+	if( lastIndex == -1 ) {
+	  elemNames.Push_back(str);
+	  elems.Push_back( StdVector<Integer>() );
+	  lastIndex = elems.GetSize()-1; 
+	}
+      }
+      
+      elems[lastIndex].Push_back(elemNum);
+    } 
+    
+      if (! IsNextLineEmpty(pos)) {
+	(*warning) << "AnsysFile::ReadNamedEles: The line after the last "
+		   << "named element "
+		   << "no. " << elemNum << " in region '" << str
+		   << "' seems to contain nodes too. Please check if the "
+		   << "number of BC nodes specified in the header of the "
+		   << "mesh-file matches the real number of named elems!";
+	Warning( __FILE__, __LINE__ );
+      } // end if 
+      
+    Error( "Not implemented", __FILE__, __LINE__);
   }
+  
+ 
 
 
   // =========================================================================
@@ -550,65 +572,85 @@ namespace CoupledField {
 
 
   // **************
-  //   getPosLine
+  //   GetPosLine
   // **************
-  void AnsysFile::getPosLine( const std::string seekexp,
+  void AnsysFile::GetPosLine( const std::string seekexp,
                               std::string::size_type &pos ) {
 
-    ENTER_IFCN( "AnsysFile::getPosLine" );
-    infile.seekg(pos, std::ios::beg);
+    ENTER_IFCN( "AnsysFile::GetPosLine" );
+    inFile_.seekg(pos, std::ios::beg);
     std::string buf;
     pos=std::string::npos;
+    Boolean found = FALSE;
     
     std::string::size_type hpos;
     
-    while (pos == std::string::npos && !infile.eof()) {
-      hpos=infile.tellg();
-      std::getline(infile, buf, '\n');
+    while (found == FALSE && !inFile_.eof()) {
+      hpos=inFile_.tellg();
+      std::getline(inFile_, buf, '\n');
       pos=buf.find(seekexp);
+
+      if ( pos != std::string::npos) {
+        found = TRUE;
+      }
     }
 
-    pos=infile.tellg();
+    pos=inFile_.tellg();
 
-    if (pos>=pos_end) {
+    if (pos>=pos_end && found == FALSE) {
       (*error) << "Cannot find string: " << seekexp << " in your mesh-file.";
       Error( __FILE__, __LINE__ );
     }
 
     // check, if there are comments lines
     do {
-      std::getline(infile, buf, '\n');
-      if (buf[0] =='#') pos=infile.tellg();
+      std::getline(inFile_, buf, '\n');
+      if (buf[0] =='#') pos=inFile_.tellg();
     }
     while (buf[0] == '#'); 
-  }
+    
+    // reset file pointer
+    inFile_.seekg(0, std::ios::beg);
+  } 
 
 
   // ***************
-  //   getPosition
+  //   GetPosition
   // ***************
-  void AnsysFile::getPosition( const std::string seekexp,
+  void AnsysFile::GetPosition( const std::string seekexp,
                                std::string::size_type &pos ) {
 
-    ENTER_IFCN( "AnsysFile::getPosition" );
+    ENTER_IFCN( "AnsysFile::GetPosition" );
 
-    infile.seekg(pos, std::ios::beg);
+    inFile_.seekg(pos, std::ios::beg);
     std::string buf;
     pos=std::string::npos;
-    
+    Boolean found = FALSE;
     std::string::size_type hpos;
 
-    while (pos == std::string::npos && !infile.eof()) {
-      hpos=infile.tellg();
-      std::getline(infile, buf, '\n');
+    while ( found == FALSE && !inFile_.eof() ) {
+      hpos=inFile_.tellg();
+      std::getline(inFile_, buf, '\n');
+      
       pos=buf.find(seekexp);
+
+
+      if ( pos != std::string::npos ) {
+        found = TRUE;
+      }
     }
+
+
     pos+=hpos+seekexp.length();
 
-    if (pos>=pos_end) {
+    if ( pos>=pos_end && found == FALSE ) {
       (*error) << "Cannot find string: " << seekexp << " in your mesh-file.";
       Error( __FILE__, __LINE__ );
     }
+
+    // set file pointer to beginning
+    inFile_.seekg(0, std::ios::beg);
+   
   }
 
 
@@ -624,21 +666,21 @@ namespace CoupledField {
     Integer val;
     std::string buf;
 
-    getPosition(seekexp, pos);
-    infile.seekg(pos,std::ios::beg);
+    GetPosition(seekexp, pos);
+    inFile_.seekg(pos,std::ios::beg);
 
     // remember current position and get the position of endline
-    std::getline(infile,buf,'\n');
-    lineEndPos=infile.tellg();
-    infile.seekg(pos,std::ios::beg);
+    std::getline(inFile_,buf,'\n');
+    lineEndPos=inFile_.tellg();
+    inFile_.seekg(pos,std::ios::beg);
   
     // try to read data
-    infile >> val;
+    inFile_ >> val;
   
     // if read in was successfull, endline position and current
     // position are the same
-    infile.ignore(100,'\n');
-    pos = infile.tellg();
+    inFile_.ignore(100,'\n');
+    pos = inFile_.tellg();
     if ( pos != lineEndPos ) {
       (*error) << "AnsysFile::GetInteger: The value for '" << seekexp
                << "' could not be read. Please check your mesh-file";
@@ -657,8 +699,10 @@ namespace CoupledField {
 
     std::string buf = "------";
   
-    infile.seekg(actPos,std::ios::beg);  
-    std::getline(infile,buf,'\n');
+    inFile_.seekg(actPos,std::ios::beg);  
+    std::getline(inFile_,buf,'\n');
+    inFile_.seekg(actPos,std::ios::beg);  
+ 
     Boolean retVal;
     if ( buf == "" ) {
       retVal = TRUE;
@@ -669,7 +713,25 @@ namespace CoupledField {
     return retVal;
   }
 
+  // *******************
+  //   ObtainRegionId
+  // *******************
+  
+  RegionIdType AnsysFile::ObtainRegionId( const std::string & regionName, 
+					  const Integer dim ) {
+    ENTER_FCN( "AnsysFile::ObtainRegionId" );
 
+    Integer index = regionNames_.Find(regionName);
+    if( index == -1 ) {
+      regionNames_.Push_back(regionName);
+      regionDim_.Push_back(dim);
+      index = regionNames_.GetSize() - 1;
+    }
+    
+    // remember, of what dimension this region is
+    return index;
+      
+  }
   // =========================================================================
   // MISCELLANEOUS METHODS
   // =========================================================================
@@ -734,184 +796,7 @@ namespace CoupledField {
     return retVal;
   }
 
-
-  // ****************
-  //   ReadEl3dConf
-  // ****************
-  void AnsysFile::ReadEl3dConf( StdVector<std::string> &sd ) {
-
-    ENTER_FCN( "AnsysFile::ReadEl3dConf" );
-
-    sd.Clear();
-    Integer maxnelems;
-    ReadMaxnumelem(maxnelems,"Num3DElements");
-
-    std::string::size_type pos=0;
-    getPosLine("3D Elements", pos);
-    infile.seekg(pos,std::ios::beg);
-
-    if (!ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 || !ptWedge1)
-      Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
-
-    Integer i, ii, j, inum, itype, innodes;
-    std::string namesd;
-
-    for (i=0; i<maxnelems; i++)
-      {
-        Elem * el=new Elem();
-        infile >> inum >> itype >> innodes >> namesd;
-        infile.ignore(100,'\n');
-
-        el->elemNum=inum;
-        if (inum > actMaxElemNum_) {
-          (*error) << "The current element number is higher than the "
-                   << "maximum number of elements in your .mesh-file. "
-                   << "Something might have gone wrong in the meshing "
-                   << "process.";
-          Error(  __FILE__, __LINE__ );
-        }
-        el->ptElem=Type2ptElem(itype);
-        el->namesd = namesd;
-        el->connect.Resize(innodes);
-        for (ii=0; ii<innodes; ii++)
-          infile >> el->connect[ii];
-
-        infile.ignore(100,'\n');
-        if (i==0) 
-          sd.Push_back(namesd);
-        else
-          {
-            Integer find = 0;
-            for (j=0; j<sd.GetSize(); j++)
-              if (namesd == sd[j]) find = 1;
-
-            if (!find) sd.Push_back(namesd);
-              
-          }
-      }
-
-  }
-
-
-  // ****************
-  //   ReadEl2dConf
-  // ****************
-  void AnsysFile::ReadEl2dConf( StdVector<std::string> &sd ) {
-
-    ENTER_FCN( "AnsysFile::ReadEl2dConf" );
-
-    sd.Clear();
-    Integer maxnelems;
-    ReadMaxnumelem(maxnelems,"Num2DElements");
-
-    std::string::size_type pos=0;
-    getPosLine("2D Elements", pos);
-    infile.seekg(pos,std::ios::beg);
-
-    if (!ptQ1 || !ptQ2 || !ptTr1 || !ptTr2)
-      Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
-
-    Integer i, ii, j, inum, itype, innodes;
-    std::string namesd;
-
-    for (i=0; i<maxnelems; i++)
-      {
-        Elem * el=new Elem();
-        infile >> inum >> itype >> innodes >> namesd;
-        infile.ignore(100,'\n');
-
-        el->elemNum=inum;
-        if (inum > actMaxElemNum_) {
-          (*error) << "The current element number is higher than the "
-                   << "maximum number of elements in your .mesh-file. "
-                   << "Something might have gone wrong in the meshing "
-                   << "process.";
-          Error(  __FILE__, __LINE__ );
-        }
-        el->ptElem=Type2ptElem(itype);
-        el->namesd = namesd;
-        el->connect.Resize(innodes);
-        for (ii=0; ii<innodes; ii++)
-          infile >> el->connect[ii];
-
-        infile.ignore(100,'\n');
-        //      allelems.Push_back(el);
-        if (i==0) 
-          sd.Push_back(namesd);
-        else
-          {
-            Integer find = 0;
-            for (j=0; j<sd.GetSize(); j++)
-              if (namesd == sd[j]) find = 1;
-
-            if (!find) sd.Push_back(namesd);
-              
-          }
-      }
-
-  }
-
-
-  // ****************
-  //   ReadEl1dConf
-  // ****************
-  void AnsysFile::ReadEl1dConf( StdVector<std::string> &sd ) {
-
-    ENTER_FCN( "AnsysFile::ReadEl1dConf" );
-
-    sd.Clear();
-    Integer maxnelems;
-    ReadMaxnumelem(maxnelems,"Num1DElements");
-
-    std::string::size_type pos=0;
-    getPosLine("1D Elements", pos);
-    infile.seekg(pos,std::ios::beg);
-
-    if (!ptL1 || !ptL2)
-      Error(" Pointers to BaseElem is not initialized",__FILE__,__LINE__);
-
-    Integer i, ii, j, inum, itype, innodes;
-    std::string namesd;
-
-    for (i=0; i<maxnelems; i++)
-      {
-        Elem * el=new Elem();
-        infile >> inum >> itype >> innodes >> namesd;
-        infile.ignore(100,'\n');
-
-        el->elemNum=inum;
-        if (inum > actMaxElemNum_) {
-          (*error) << "The current element number is higher than the "
-                   << "maximum number of elements in your .mesh-file. "
-                   << "Something might have gone wrong in the meshing "
-                   << "process.";
-          Error(  __FILE__, __LINE__ );
-        }
-        el->ptElem=Type2ptElem(itype);
-        el->namesd = namesd;
-        el->connect.Resize(innodes);
-        for (ii=0; ii<innodes; ii++)
-          infile >> el->connect[ii];
-
-        infile.ignore(100,'\n');
-        //      allelems.Push_back(el);
-        if (i==0) 
-          sd.Push_back(namesd);
-        else
-          {
-            Integer find = 0;
-            for (j=0; j<sd.GetSize(); j++)
-              if (namesd == sd[j]) find = 1;
-
-            if (!find) sd.Push_back(namesd);
-              
-          }
-      }
-
-  }
-
-
-
+ 
   // =========================================================================
   // The following methods are concerned with grid adaptation
   // =========================================================================
@@ -930,8 +815,8 @@ namespace CoupledField {
     ReadMaxnumnodesbc(numbc);
 
     std::string::size_type pos=0;
-    getPosLine("Node BC", pos);
-    infile.seekg(pos,std::ios::beg);
+    GetPosLine("Node BC", pos);
+    inFile_.seekg(pos,std::ios::beg);
     
     std::string str;
   
@@ -939,8 +824,8 @@ namespace CoupledField {
     Integer i,j;
     for (i=0; i < numbc; i++)
       {
-        infile >> nodalnum >> str;
-        infile.ignore(100,'\n');
+        inFile_ >> nodalnum >> str;
+        inFile_.ignore(100,'\n');
         
         Boolean Find=FALSE;
         for (j=0; j<levelsGetSize(); j++) {
@@ -989,8 +874,8 @@ namespace CoupledField {
       {
         std::string::size_type pos=0;
 
-        getPosLine("2D Elements", pos);
-        infile.seekg(pos,std::ios::beg);
+        GetPosLine("2D Elements", pos);
+        inFile_.seekg(pos,std::ios::beg);
 
         Integer i, ii, ibuf, itype, innodes;
         std::string namesd;
@@ -999,11 +884,11 @@ namespace CoupledField {
         elems.resize(maxnelems);
         for (i=0; i<maxnelems; i++)
           {
-            infile >> ibuf >> itype >> innodes >> namesd;
-            infile.ignore(100,'\n');
+            inFile_ >> ibuf >> itype >> innodes >> namesd;
+            inFile_.ignore(100,'\n');
 
             for (ii=0; ii<innodes; ii++)
-              infile >> connect[ii];
+              inFile_ >> connect[ii];
 
             grd::Triangle * tmpTri;
             grd::Quadrangle * tmpQuad;
@@ -1039,7 +924,7 @@ namespace CoupledField {
                            << "implemented yet";
                   Error( __FILE__, __LINE__ );
                 }
-            infile.ignore(100,'\n'); 
+            inFile_.ignore(100,'\n'); 
           } 
       } // end of if
   }
@@ -1057,8 +942,8 @@ namespace CoupledField {
       {
         std::string::size_type pos=0;
 
-        getPosLine("3D Elements", pos);
-        infile.seekg(pos,std::ios::beg);
+        GetPosLine("3D Elements", pos);
+        inFile_.seekg(pos,std::ios::beg);
 
         Integer i, ii, ibuf, itype, innodes;
         std::string namesd;
@@ -1067,11 +952,11 @@ namespace CoupledField {
         elems.resize(maxnelems);
         for (i=0; i<maxnelems; i++)
           {
-            infile >> ibuf >> itype >> innodes >> namesd;
-            infile.ignore(100,'\n');
+            inFile_ >> ibuf >> itype >> innodes >> namesd;
+            inFile_.ignore(100,'\n');
 
             for (ii=0; ii<innodes; ii++)
-              infile >> connect[ii];
+              inFile_ >> connect[ii];
 
             grd::Tetrahedron * tmpTetra;
             grd::Hexahedron * tmpHexa;
@@ -1115,7 +1000,7 @@ namespace CoupledField {
                   Error( __FILE__, __LINE__ );
                 }
               }
-            infile.ignore(100,'\n'); 
+            inFile_.ignore(100,'\n'); 
           }
 
       } // end of if
