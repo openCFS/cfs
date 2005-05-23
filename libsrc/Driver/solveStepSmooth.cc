@@ -22,7 +22,7 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
   void SolveStepSmooth::PreStepStatic(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset)
+				      const Boolean reset)
   {
     ENTER_FCN( "SolveStepSmooth::PreStepStatic" );
 
@@ -34,17 +34,17 @@ namespace CoupledField {
   }
 
   void SolveStepSmooth::StepStaticNonLin(const Integer kstep, const Double aTime,
-				   const Integer level, const Boolean reset)
+					 const Boolean reset)
   {
     ENTER_FCN( "SolveStepSmooth::StepStaticNonLin" );
 
     Integer job = 1;
     Double * ptsol;
 
-    assemble_->AssembleMatrices(level);
-    assemble_->AssembleSrcRHS(level);
+    assemble_->AssembleMatrices();
+    assemble_->AssembleSrcRHS();
   
-    SetBCs(level,0);
+    SetBCs(0);
 
     algsys_->BuildInDirichlet();
     if (job == 1) {
@@ -61,8 +61,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepSmooth:: PostStepStatic(const Integer kstep, const Double asteptime,
-				  const Integer level)
+  void SolveStepSmooth:: PostStepStatic(const Integer kstep, const Double asteptime)
   {
     ENTER_FCN( "SolveStepSmooth::PostStepStatic" );
   

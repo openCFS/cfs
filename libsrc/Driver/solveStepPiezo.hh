@@ -27,31 +27,28 @@ namespace CoupledField
     /*!
       \param kstep time step counter
       \param asteptime current time
-      \param level level of grid
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			      const Integer level, const Boolean reset);
+                              const Boolean reset);
 
     //! base method for solving one transient step 
     /*!
       \param kstep time step counter
       \param asteptime current time
-      \param level level of grid
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset);
+			        const Boolean reset);
 
     //! solves for one nonlinear transient step (with hysteresis) 
     /*!
       \param kstep time step counter
       \param asteptime current time
-      \param level level of grid
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepTransNonLinEpsDiff(const Integer kstep, const Double asteptime,
-					const Integer level, const Boolean reset);
+                                        const Boolean reset);
 
     //! update the hysteresis values
     void DoUpdateHyst();

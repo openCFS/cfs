@@ -28,22 +28,20 @@ namespace CoupledField
     /*!
       \param kstep time step counter
       \param asteptime current time
-      \param level level of grid
       \param reset TRUE: perfrom new assembly, etc
     */
     void SolveStepTrans(const Integer kstep, const Double asteptime,
-			const Integer level, const Boolean reset) ;
+			const Boolean reset) ;
 
 
     //! solves for one nonlinear transient step 
     /*!
       \param kstep time step counter
       \param asteptime current time
-      \param level level of grid
       \param reset TRUE: perfrom new assembly, etc
     */   
     void StepTransBubble(const Integer kstep, const Double asteptime,
-			 const Integer level, const Boolean reset);
+			 const Boolean reset);
 
     //!
     void ComputeBubbleRHS();

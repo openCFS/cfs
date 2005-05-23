@@ -31,7 +31,7 @@ namespace CoupledField {
   // ======================================================
 
 void SolveStepPiezo:: PreStepTrans(const Integer kstep, const Double asteptime,
-				   const Integer level, const Boolean reset)
+				   const Boolean reset)
 {
   ENTER_FCN( "SolveStepPiezo::PreStepStatic" );
 
@@ -65,7 +65,7 @@ void SolveStepPiezo:: PreStepTrans(const Integer kstep, const Double asteptime,
 	Double Ec = 0; //currently not used
 	Integer dir, numSDElems;
 
-	ptgrid_->GetElemSD(elemssd,subdoms_[iSD],actlevel_);
+	ptgrid_->GetVolElems(elemssd,subdoms_[iSD]);
 	numSDElems = elemssd.GetSize(); 
 
 	std::string hystType = materialData_[iSD].GetHysteresisType();
@@ -103,7 +103,7 @@ void SolveStepPiezo:: PreStepTrans(const Integer kstep, const Double asteptime,
 // time is used for a series of static calculations
 // don't get confused with REAL transient simulations!
 void SolveStepPiezo::SolveStepTrans(const Integer kstep, const Double asteptime,
-				    const Integer level, const Boolean reset) {
+                                    const Boolean reset) {
 
   ENTER_FCN( "SolveStepPiezo::SolveStepTrans" );
   
@@ -111,17 +111,17 @@ void SolveStepPiezo::SolveStepTrans(const Integer kstep, const Double asteptime,
   laststepcalc_ = kstep;
   
   if (isHyst_) {
-    StepTransNonLinEpsDiff(kstep,asteptime,level,reset);
+    StepTransNonLinEpsDiff(kstep,asteptime,reset);
   }
   else {
-    StepTransLin(kstep,asteptime,level,reset);
+    StepTransLin(kstep,asteptime,reset);
   }
 
 }
 
 
 void SolveStepPiezo::StepTransNonLinEpsDiff(const Integer kstep, const Double asteptime,
-					    const Integer level, const Boolean reset) {
+                                            const Boolean reset) {
 
   ENTER_FCN( "SolveStepPiezo::StepTransNonLinEpsDiff" );
 
@@ -158,7 +158,7 @@ void SolveStepPiezo::StepTransNonLinEpsDiff(const Integer kstep, const Double as
   algsys_->InitRHS();
 
   //set BCs
-  SetBCs(level, lasttimecalc_);
+  SetBCs(lasttimecalc_);
 
   // stores this as linear part of RHS
   algsys_->GetRHSVal( actRHS );
@@ -209,7 +209,7 @@ void SolveStepPiezo::StepTransNonLinEpsDiff(const Integer kstep, const Double as
     assemble_->SetReassemble();   
 
     assemble_->SetMaterialArray( &epsDiff_ ); 
-    assemble_->AssembleMatrices(level);
+    assemble_->AssembleMatrices();
 
     algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
@@ -297,7 +297,7 @@ void SolveStepPiezo::StepTransNonLinEpsDiff(const Integer kstep, const Double as
 
   GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
 								  *solhelp, ELEC_POTENTIAL, 
-								  actlevel_, isaxi_);
+                                                                  isaxi_);
 
   Vector<Double> LCoord, Efield;
   StdVector<Elem*> elemssd;
@@ -308,7 +308,7 @@ void SolveStepPiezo::StepTransNonLinEpsDiff(const Integer kstep, const Double as
   // loop over all subdomains
   for (Integer isd=0; isd<subdoms_.GetSize(); isd++) {
     // get vector of Elem of subdomain with color: subdoms[isd]
-    ptgrid_->GetElemSD(elemssd,subdoms_[isd],actlevel_);
+    ptgrid_->GetVolElems(elemssd,subdoms_[isd]);
       
     //get direction of polarization
     comp = materialData_[isd].GetDirPol() - 1;
@@ -351,7 +351,7 @@ void SolveStepPiezo::ComputeDiffEpsilon() {
 
   GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
 								  *solhelp, ELEC_POTENTIAL, 
-								  actlevel_, isaxi_);
+								  isaxi_);
 
   Vector<Double> LCoord, Efield;
   Double Ecomp, Pval, Dval, dE, dD, eps;
@@ -362,7 +362,7 @@ void SolveStepPiezo::ComputeDiffEpsilon() {
   
   for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
     StdVector<Elem*> elemssd;
-    ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+    ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
     
     //get direction of polarization
     comp =  materialData_[actSD].GetDirPol() - 1;

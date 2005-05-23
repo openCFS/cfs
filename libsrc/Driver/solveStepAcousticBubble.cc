@@ -41,20 +41,20 @@ SolveStepAcousticBubble::~SolveStepAcousticBubble() {
 
 
 void SolveStepAcousticBubble::SolveStepTrans( const Integer kstep, const Double asteptime, 
-					      const Integer level, const Boolean reset ) {
+					      const Boolean reset ) {
 
   ENTER_FCN( "SolveStepAcousticBubble::SolveStepTrans" );
 
   lasttimecalc_ = asteptime;
   laststepcalc_ = kstep;
 
-  StepTransBubble(kstep, asteptime, level, reset);
+  StepTransBubble(kstep, asteptime, reset);
 
 }
 
 
 void SolveStepAcousticBubble::StepTransBubble(const Integer kstep, const Double asteptime,
-					      const Integer level, const Boolean reset) {
+					      const Boolean reset) {
 
   ENTER_FCN( "SolveStepAcousticBubble::StepTransBubble" );
 
@@ -79,7 +79,7 @@ void SolveStepAcousticBubble::StepTransBubble(const Integer kstep, const Double 
 
   if (laststepcalc_ == 1) {
     job = 1;
-    assemble_->AssembleMatrices(level);
+    assemble_->AssembleMatrices();
     algsys_->ConstructEffectiveMatrix(matrix_factor_);
   }  
 
@@ -140,14 +140,14 @@ void SolveStepAcousticBubble::StepTransBubble(const Integer kstep, const Double 
     nlRhsOld = nlRhsNew;
 
     //account for source terms RHS
-    assemble_->AssembleSrcRHS(level,lasttimecalc_);
+    assemble_->AssembleSrcRHS(lasttimecalc_);
     
     
     //acoust for time stepping
     TS_alg_->UpdateRHS();
     
     
-    SetBCs(level,lasttimecalc_);
+    SetBCs(lasttimecalc_);
 
     if ( iterationCounter>1 ) 
       job = 3;
@@ -209,7 +209,7 @@ void SolveStepAcousticBubble::StepTransBubble(const Integer kstep, const Double 
     
     for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
       StdVector<Elem*> elemssd;
-      ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+      ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
       
       for (Integer j=0; j < elemssd.GetSize(); j++) {
 	
@@ -438,7 +438,7 @@ void SolveStepAcousticBubble::ComputeBubbleRHS(){
   Integer numEl = 0;
   for (Integer actDom=0; actDom <  subdoms_.GetSize(); actDom++) {      
     StdVector<Elem*> elemssd;
-    ptgrid_->GetElemSD(elemssd, subdoms_[actDom], actlevel_);
+    ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
     
     
     for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++)    {              
@@ -446,7 +446,7 @@ void SolveStepAcousticBubble::ComputeBubbleRHS(){
       StdVector<Integer> connecth = elemssd[actEl]->connect;
 
       Matrix<Double> ptCoord;
-      GetElemCoords(connecth, ptCoord, actlevel_);
+      GetElemCoords(connecth, ptCoord);
         
       Double beta2 = 1;
                 

@@ -19,13 +19,12 @@ namespace CoupledField {
   // ======================================================
 
   void SolveStepMpCCI:: PreStepStatic(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset)
+				      const Boolean reset)
   {
     ENTER_FCN( "SolveStepMpCCI::PreStepStatic" );
   }
   
-  void SolveStepMpCCI::PostStepStatic(const Integer kstep, const Double asteptime,
-				const Integer level)
+  void SolveStepMpCCI::PostStepStatic(const Integer kstep, const Double asteptime)
   {
     ENTER_FCN( "SolveStepMpCCI::PostStepStatic" );
     
@@ -38,8 +37,7 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepMpCCI::PostStepTrans(const Integer kstep, const Double asteptime,
-			       const Integer level)
+  void SolveStepMpCCI::PostStepTrans(const Integer kstep, const Double asteptime)
   { 
     ENTER_FCN( "SolveStepMpCCI::PostStepTrans");
   }

@@ -30,7 +30,7 @@ namespace CoupledField {
   // ======================================================
 
 void SolveStepElec:: PreStepStatic(const Integer kstep, const Double asteptime,
-			     const Integer level, const Boolean reset)
+				   const Boolean reset)
 {
   ENTER_FCN( "SolveStepElec::PreStepStatic" );
 
@@ -82,7 +82,7 @@ void SolveStepElec:: PreStepStatic(const Integer kstep, const Double asteptime,
 // time is used for a series of static calculations
 // don't get confused with REAL transient simulations!
 void SolveStepElec::SolveStepStatic(const Integer kstep, const Double asteptime,
-				    const Integer level, const Boolean reset) {
+				    const Boolean reset) {
 
   ENTER_FCN( "SolveStepElec::SolveStepStatic" );
   
@@ -92,17 +92,17 @@ void SolveStepElec::SolveStepStatic(const Integer kstep, const Double asteptime,
   Boolean nonLin = FALSE;
   //  Boolean nonLin = TRUE;
   if (nonLin) {
-    StepStaticNonLinEpsDiff(kstep,asteptime,level,reset);
+    StepStaticNonLinEpsDiff(kstep,asteptime,reset);
   }
   else {
-    StepStaticLin(kstep,asteptime,level,reset);
+    StepStaticLin(kstep,asteptime,reset);
   }
 
 }
 
 
 void SolveStepElec::StepStaticNonLinEpsDiff(const Integer kstep, const Double asteptime,
-					    const Integer level, const Boolean reset) {
+					    const Boolean reset) {
 
   ENTER_FCN( "SolveStepElec::StepStaticNonLin" );
 
@@ -139,7 +139,7 @@ void SolveStepElec::StepStaticNonLinEpsDiff(const Integer kstep, const Double as
   algsys_->InitRHS();
 
   //set BCs
-  SetBCs(level, lasttimecalc_);
+  SetBCs(lasttimecalc_);
 
   //compute constant part of RHS (div D(t) )
   // ComputeConstPartRHS();
@@ -189,7 +189,7 @@ void SolveStepElec::StepStaticNonLinEpsDiff(const Integer kstep, const Double as
     assemble_->SetReassemble();   
 
     assemble_->SetMaterialArray( &epsDiff_ ); 
-    assemble_->AssembleMatrices(level);
+    assemble_->AssembleMatrices();
 
     algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
@@ -275,8 +275,7 @@ void SolveStepElec::StepStaticNonLinEpsDiff(const Integer kstep, const Double as
 }
 
 
-void SolveStepElec::PostStepStatic(const Integer kstep, const Double asteptime,
-			     const Integer level)
+void SolveStepElec::PostStepStatic(const Integer kstep, const Double asteptime)
 {
   ENTER_FCN( "SolveStepElec::PostStepStatic" );
 
@@ -304,7 +303,7 @@ void SolveStepElec::PostStepStatic(const Integer kstep, const Double asteptime,
       //       for (i=0; i<sol_.size(); i++)
       // 	solVec[i]=sol_[0][i];
 
-      ptError_->CalcErrorMap(solVec,subdoms_,ptgrid_,errorMap_,totalErr,level);
+      ptError_->CalcErrorMap(solVec,subdoms_,ptgrid_,errorMap_,totalErr);
       
       std::cout << " total error of calculation:: " << totalErr << std::endl;
       *data << errorMap_ << std::endl;
@@ -324,7 +323,7 @@ void SolveStepElec::AddPolarizationToRHS() {
 
   GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
 								  *solhelp, ELEC_POTENTIAL, 
-								  actlevel_, isaxi_);
+								  isaxi_);
 
   Vector<Double> LCoord, Efield;
   Double Ecomp, Pval, PvalReduced;
@@ -340,7 +339,7 @@ void SolveStepElec::AddPolarizationToRHS() {
 
   for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
     StdVector<Elem*> elemssd;
-    ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+    ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
     
     for (Integer iel=0; iel < elemssd.GetSize(); iel++) {
 
@@ -361,7 +360,7 @@ void SolveStepElec::AddPolarizationToRHS() {
 
       ptElem  = elemssd[iel]->ptElem;
       connect = elemssd[iel]->connect;
-      GetElemCoords(connect, ptCoord, actlevel_);
+      GetElemCoords(connect, ptCoord);
       
       rhsInt->SetElemPtr(ptElem);
       rhsInt->SetFactor(PvalReduced);
@@ -388,7 +387,7 @@ void SolveStepElec::DoUpdateHyst() {
 
   GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
 								  *solhelp, ELEC_POTENTIAL, 
-								  actlevel_, isaxi_);
+								  isaxi_);
 
   Vector<Double> LCoord, Efield;
   StdVector<Elem*> elemssd;
@@ -399,7 +398,7 @@ void SolveStepElec::DoUpdateHyst() {
   // loop over all subdomains
   for (Integer isd=0; isd<subdoms_.GetSize(); isd++) {
     // get vector of Elem of subdomain with color: subdoms[isd]
-    ptgrid_->GetElemSD(elemssd,subdoms_[isd],actlevel_);
+    ptgrid_->GetVolElems(elemssd,subdoms_[isd]);
       
     // loop over elements of subdomain
       for (Integer iel=0; iel< elemssd.GetSize(); iel++)	{
@@ -437,7 +436,7 @@ void SolveStepElec::ComputeConstPartRHS() {
 
   GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
 								  *solhelp, ELEC_POTENTIAL, 
-								  actlevel_, isaxi_);
+								  isaxi_);
 
   Vector<Double> LCoord, Efield;
   Double Ecomp, Pval, Dval;
@@ -453,7 +452,7 @@ void SolveStepElec::ComputeConstPartRHS() {
 
   for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
     StdVector<Elem*> elemssd;
-    ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+    ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
     
     for (Integer iel=0; iel < elemssd.GetSize(); iel++) {
 
@@ -480,7 +479,7 @@ void SolveStepElec::ComputeConstPartRHS() {
       }
       ptElem  = elemssd[iel]->ptElem;
       connect = elemssd[iel]->connect;
-      GetElemCoords(connect, ptCoord, actlevel_);
+      GetElemCoords(connect, ptCoord);
       
       rhsInt->SetElemPtr(ptElem);
       rhsInt->SetSrcVec(Dfield);
@@ -507,7 +506,7 @@ void SolveStepElec::ComputeDiffEpsilon() {
 
   GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
 								  *solhelp, ELEC_POTENTIAL, 
-								  actlevel_, isaxi_);
+								  isaxi_);
 
   Vector<Double> LCoord, Efield;
   Double Ecomp, Pval, Dval, dE, dD, eps;
@@ -518,7 +517,7 @@ void SolveStepElec::ComputeDiffEpsilon() {
   
   for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
     StdVector<Elem*> elemssd;
-    ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+    ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
     
     for (Integer iel=0; iel < elemssd.GetSize(); iel++) {
 
@@ -560,7 +559,7 @@ void SolveStepElec::ComputeDiffEpsilon() {
 
 
 void SolveStepElec::StepStaticNonLin(const Integer kstep, const Double asteptime,
-				     const Integer level, const Boolean reset) {
+				     const Boolean reset) {
 
   ENTER_FCN( "SolveStepElec::StepStaticNonLin" );
 
@@ -579,7 +578,7 @@ void SolveStepElec::StepStaticNonLin(const Integer kstep, const Double asteptime
   
 //   // if first time step, setup system matrix
 //   if (laststepcalc_ == 1) {
-//     assemble_->AssembleMatrices(level);
+//     assemble_->AssembleMatrices();
 //     algsys_->ConstructEffectiveMatrix(matrix_factor_);
     
 //     //set job to 1: build in dirichlet BCs and compute preconditioner
@@ -590,7 +589,7 @@ void SolveStepElec::StepStaticNonLin(const Integer kstep, const Double asteptime
 
 //   // set BCs, if effective mass matrix formulation, values of BCs depend on 
 //   //  predictors, so predictors have to be computed beforehand
-//   SetBCs(level, lasttimecalc_);
+//   SetBCs(lasttimecalc_);
 
 //   // set old solution  
 //   newSol = solhelp->GetAlgSysVector();

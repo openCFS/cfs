@@ -27,7 +27,7 @@ namespace CoupledField {
   // ======================================================
 
   void SolveStepMech:: PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset)
+				     const Boolean reset)
   {
     ENTER_FCN( "SolveStepMech::PreStepStatic" );
 
@@ -44,7 +44,7 @@ namespace CoupledField {
 
 
 //   void SolveStepMech::StepStaticLin( const Integer kstep, const Double aTime,
-//                                const Integer level, const Boolean reset ) {
+//                                 const Boolean reset ) {
 
 //     ENTER_FCN( "SolveStepMech::StepStaticLin" );
 
@@ -59,15 +59,15 @@ namespace CoupledField {
 //     // the preconditioner has to be recalculated
 
 //     if ( geoUpdate_ == TRUE ||  firstTimeStepStatic_ == TRUE) {
-//       assemble_->AssembleMatrices(level);
-//       assemble_->AssembleSprings(level, lasttimecalc_);
+//       assemble_->AssembleMatrices();
+//       assemble_->AssembleSprings(lasttimecalc_);
 //       job = 1; // calc new preconditioner
 //     }
   
 //     // The RHS-sources have to be reassembled each time
-//     assemble_->AssembleSrcRHS(level, aTime);
+//     assemble_->AssembleSrcRHS(aTime);
 
-//     SetBCs(level, aTime);
+//     SetBCs(aTime);
 
 //     // Incorporate Boundary conitions and
 //     // recalc the prconditioner eventually
@@ -87,7 +87,7 @@ namespace CoupledField {
 
 
   void SolveStepMech::StepStaticNonLin(const Integer kstep, const Double aTime,
-				 const Integer level, const Boolean reset)
+				       const Boolean reset)
   {
     ENTER_FCN( "SolveStepMech::SolveStepStaticNonLin" );
 
@@ -101,13 +101,13 @@ namespace CoupledField {
      Vector<Double> solIncrement;
     solIncrement.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
 
-    PDE_.SetBCs(level, 0);
+    PDE_.SetBCs(0);
 
     // store linear part of RHS
     Double loadFactor = 1.0;
-    Double extForcesL2Norm = SetLinRHS(level,loadFactor); 
+    Double extForcesL2Norm = SetLinRHS(loadFactor); 
 
-    assemble_->AssembleNLRHS(level);
+    assemble_->AssembleNLRHS();
 
    std::cout << "In SolveStepStaticNonLin" << std::endl;
     do
@@ -128,7 +128,7 @@ namespace CoupledField {
 
 	// setup and solve new system (rhs is already set) =====================
 	assemble_->InitNonLinMatrices();
-	assemble_->AssembleMatrices(level);
+	assemble_->AssembleMatrices();
       
 	algsys_->BuildInDirichlet();
 
@@ -151,14 +151,14 @@ namespace CoupledField {
 	  actSol += solIncrement;
 	else
 	  // TRUE is for transient simulation
-	  residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch, level);
+	  residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch);
       
 	sol_->SetAlgSysVector(actSol);
 
 	// recalculate RHS with new values to get new residual (f^(k+1))========
 	algsys_->InitRHS(RhsLinVal_.GetPointer());
 
-	assemble_->AssembleNLRHS(level);  // inner forces due to nonlin formulation
+	assemble_->AssembleNLRHS();  // inner forces due to nonlin formulation
 
 
 	// =====================================================================
@@ -224,8 +224,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMech :: PostStepStatic(const Integer kstep, const Double asteptime,
-				 const Integer level)
+  void SolveStepMech :: PostStepStatic(const Integer kstep, const Double asteptime)
   {
     ENTER_FCN( "SolveStepMech::PostStepStatic" );
 
@@ -241,7 +240,7 @@ namespace CoupledField {
   // ======================================================
 
 //   void SolveStepMech::PreStepTrans( const Integer kstep, const Double asteptime,
-//                               const Integer level, const Boolean reset ) {
+//                                      const Boolean reset ) {
 
 //     ENTER_FCN( "SolveStepMech::PreStepTrans" );
 
@@ -261,7 +260,7 @@ namespace CoupledField {
 
 
 //   void SolveStepMech::SolveStepTrans( const Integer kstep, const Double asteptime, 
-//                                 const Integer level, const Boolean reset ) {
+//                                       const Boolean reset ) {
 
 //     ENTER_FCN( "SolveStepMech::SolveStepTrans" );
 
@@ -276,10 +275,10 @@ namespace CoupledField {
 //     }
 
 //     if (nonLin_) {
-//       StepTransNonLin(kstep, asteptime, level, reset);
+//       StepTransNonLin(kstep, asteptime, reset);
 //     }
 //     else {
-//       StepTransLin(kstep, asteptime, level, reset);
+//       StepTransLin(kstep, asteptime, reset);
 //     }
 //   }
 
@@ -287,7 +286,7 @@ namespace CoupledField {
   //! \todo delete job parameter or replace it by a 
   //! meaningfull attribute
 //   void SolveStepMech::StepTransLin( const Integer kstep, const Double asteptime,
-//                               const Integer level, const Boolean reset ) {
+//                                      const Boolean reset ) {
 
 //     ENTER_FCN( "SolveStepMech::StepTransLin" );
 
@@ -296,7 +295,7 @@ namespace CoupledField {
 //     lasttimecalc_= asteptime;
 
 //     //account for RHS
-//     assemble_->AssembleSrcRHS(level,lasttimecalc_);
+//     assemble_->AssembleSrcRHS(lasttimecalc_);
 
 //     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
@@ -312,8 +311,8 @@ namespace CoupledField {
 //       if ( isIterCoupled_ == FALSE || *iterCoupledCounter_ == 0 
 //            || geoUpdate_ == TRUE ) {
 //         job = 1;
-//         assemble_->AssembleMatrices(level);
-//         assemble_->AssembleSprings(level, lasttimecalc_);
+//         assemble_->AssembleMatrices();
+//         assemble_->AssembleSprings( lasttimecalc_);
 //         algsys_->ConstructEffectiveMatrix(matrix_factor_);
 //       }  
 //     }
@@ -326,7 +325,7 @@ namespace CoupledField {
 //       if (dampingType_) {
 // 	algsys_->InitMatrix(DAMPING);
 //       }
-//       assemble_->AssembleSprings(level, lasttimecalc_);
+//       assemble_->AssembleSprings( lasttimecalc_);
 //       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 //     }
 //     else {
@@ -339,8 +338,8 @@ namespace CoupledField {
 //                  "working together" );
 //         }
 //         job = 1;
-//         assemble_->AssembleMatrices(level);
-//         assemble_->AssembleSprings(level, lasttimecalc_);
+//         assemble_->AssembleMatrices();
+//         assemble_->AssembleSprings( lasttimecalc_);
 //         algsys_->ConstructEffectiveMatrix(matrix_factor_);      
 //       }
 //     }
@@ -355,7 +354,7 @@ namespace CoupledField {
 
 //     TS_alg_->UpdateRHS();
 
-//     PDE_.SetBCs( level, lasttimecalc_);
+//     PDE_.SetBCs( lasttimecalc_);
 //     algsys_->BuildInDirichlet();
 
 //     if ( job == 1 ) {
@@ -398,7 +397,7 @@ namespace CoupledField {
 
 
 //   void SolveStepMech::PostStepTrans( const Integer kstep, const Double asteptime,
-//                                const Integer level ) {
+//                                    ) {
 
 //     ENTER_FCN( "SolveStepMech::PostStepTrans" );
 
@@ -425,7 +424,7 @@ namespace CoupledField {
 
 
   void SolveStepMech::StepTransNonLin(const Integer kstep, const Double asteptime,
-				const Integer level, const Boolean reset)
+				      const Boolean reset)
   {
     ENTER_FCN( "SolveStepMech::StepTransNonLin" );
 
@@ -453,7 +452,7 @@ namespace CoupledField {
 
     //! store linear part of RHS
     Double loadFactor = 1.0;
-    Double extForcesL2Norm = SetLinRHS(level, loadFactor);
+    Double extForcesL2Norm = SetLinRHS(loadFactor);
 
     timeStepCounter++;
 
@@ -461,7 +460,7 @@ namespace CoupledField {
     TS_alg_->UpdateRHS(actSol);
 
     //! account for Dirichlet BCs
-    SetBCs(level, lasttimecalc_);
+    SetBCs(lasttimecalc_);
 
   
     do
@@ -479,11 +478,11 @@ namespace CoupledField {
 
 	// setup and solve new system (rhs is already set) =====================
 	assemble_->InitNonLinMatrices();
-	assemble_->AssembleMatrices(level);
+	assemble_->AssembleMatrices();
 	algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
 	TS_alg_->UpdateRHS(actSol);
-	SetBCs(level, lasttimecalc_);
+	SetBCs(lasttimecalc_);
 
 	algsys_->BuildInDirichlet();
 
@@ -505,14 +504,14 @@ namespace CoupledField {
 	  actSol += solIncrement;
 	else
 	  // TRUE is for transient simulation
-	  residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch, level, TRUE);
+	  residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch, TRUE);
 
 	sol_->SetAlgSysVector(actSol);
 
 	// recalculate RHS with new values to get new residual (f^(k+1))========
 	algsys_->InitRHS();
-	assemble_->AssembleSrcRHS(level,lasttimecalc_); 
-	assemble_->AssembleNLRHS(level, lasttimecalc_);  // inner forces due to nonlin formulation
+	assemble_->AssembleSrcRHS(lasttimecalc_); 
+	assemble_->AssembleNLRHS(lasttimecalc_);  // inner forces due to nonlin formulation
 	TS_alg_->UpdateRHS(actSol);
 
 

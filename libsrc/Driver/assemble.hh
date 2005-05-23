@@ -4,7 +4,7 @@
 /**************************************************************************/
 /* File:   analysis.hh                                                    */
 /* Author: Fred Hofer                                                     */
-/* Date:   24. Nov. 2003                                                  */
+/* Date:   24. Nov. 2003                                                 */
 /*                                                                        */
 /* Handles the assembling of the various integrators to the appropriate   */
 /* matrices and initiates the basic analysis "stepping"                   */
@@ -16,7 +16,6 @@
 #include "DataInOut/timefunc.hh"
 #include "Utils/nodestoresol.hh"
 #include "Utils/elemstoresol.hh"
-#include "Domain/bcs.hh"
 #include "PDE/nodeEQN.hh"
 
 #include "olas.hh"
@@ -152,62 +151,58 @@ namespace CoupledField
     
     /// adds integrators to the pde
     virtual void AddIntegrator(BaseForm * integrator,
-                               const std::string & subdomain,
+                               const RegionIdType  subdomain,
                                const FEMatrixType destinationMatrix,
                                const Integer nonLin)=0;
 
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr,
-                               const std::string & subdomain)=0;
+                               const RegionIdType subdomain)=0;
 
     /// adds surface integrators to the pde
     virtual void AddSurfIntegrator(BaseForm * integrator,
-                                   const std::string & subdomain,
+                                   const RegionIdType subdomain,
                                    const FEMatrixType destinationMatrix,
                                    const Integer nonLin)=0;
 
     //! specify type of system matrix for AlgebraicSystem
-    /*! \param level (input) level of Grid     */
-    virtual void AssembleMatrices(const Integer level);
+    virtual void AssembleMatrices();
     
 
     /// setup source term
-    void AssembleSrcRHS(const Integer level, const Double time=0);
+    void AssembleSrcRHS(const Double time=0.0);
     
 
     /// assemble integral sources
-    void AssembleRHSIntegralSources(const Integer level, const Double time=0);
+    void AssembleRHSIntegralSources(const Double time = 0.0);
 
 
     /// assembling nodal sources
-    void AssembleRHSNodalSources(const Integer level, const Double time=0);
+    void AssembleRHSNodalSources(const Double time = 0.0);
     
 
     ///  assemble a nonlinear RHS part
-    void AssembleNLRHS(const Integer level, const Double time=0);
+    void AssembleNLRHS(const Double time = 0.0);
 
     ///  assemble a spring into the system matrix
-    void AssembleSprings(const Integer level, const Double time=0);
+    void AssembleSprings(const Double time = 0.0);
 
     //! computes the coordinates of an element including the delta
     /*!
       \param connect (input) global node numbers of element
       \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times\f$ spaceDim);
-      \param level (input) index for multilevel hierarchy
     */
     void GetElemCoords(const StdVector<Integer> connect, 
-                       Matrix<Double> &coordMat, const Integer level); 
+                       Matrix<Double> &coordMat); 
 
 
 
     //! set boundary condition
     /*!
-      \param level level of grid
       \param update indicator: do we update boundary condition in algebraic system or set new
       \param atimestep time step of calculation
     */
-    virtual void SetBCs(const Integer level, const Integer update, 
-                        const Double atimestep){};
+    virtual void SetBCs(const Integer update, const Double atimestep){};
 
 
 
@@ -236,8 +231,8 @@ namespace CoupledField
     /// parameters set by PDE
     void SetGeneralParams(const std::string & pdename, 
                           const Integer dofsPerNode,
-                          const StdVector<std::string> subdoms,
-                          const StdVector<std::string> surfdoms,
+                          const StdVector<RegionIdType> & subdoms,
+                          const StdVector<RegionIdType> & surfdoms,
                           const std::string bcSequenceId);
     
     
@@ -246,25 +241,25 @@ namespace CoupledField
     {numDirichletBCs_ = numDirichlet;};
 
     /// define RHS integrators
-    void AddRhsIntegrator(BaseForm * integrator, const std::string & subDomName, 
+    void AddRhsIntegrator(BaseForm * integrator, const RegionIdType regionId, 
                           const Integer nonLin=FALSE);
 
     /// define RHS integrators (static and transient case)
-    void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName,                       
+    void AddRhsSrcIntegrator(BaseForm * integrator, const RegionIdType regionId,                       
                              const std::string fncname="---not-defined--",
                              const Integer nonLin=FALSE);
 
     /// define RHS surface integrators (static and transient case)
-    void AddRhsSrcSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+    void AddRhsSrcSurfIntegrator(BaseForm * integrator, const RegionIdType regionId,
                              const std::string fncname="---not-defined--",
                              const Integer nonLin=FALSE);
 
     /// define RHS integrators (harmonic case)
-    void AddRhsSrcIntegrator(BaseForm * integrator, const std::string & subDomName,
+    void AddRhsSrcIntegrator(BaseForm * integrator, const RegionIdType regionId,
                              const Double phaseval, const Integer nonLin=FALSE);
 
      /// define RHS surface integrators (harmonic case)
-    void AddRhsSrcSurfIntegrator(BaseForm * integrator, const std::string & subDomName,
+    void AddRhsSrcSurfIntegrator(BaseForm * integrator, const RegionIdType regionId,
                              const Double phaseval, const Integer nonLin=FALSE);  
 
     /// set ptr to time function
@@ -337,19 +332,11 @@ namespace CoupledField
     //! set information for algebraic system about PDE. set matrix factors
     virtual void SetMatrixFactors()=0;
 
-
-    /// set actual calculation level
-    void SetLevel(Integer alevel){actlevel_ = alevel;};
-
     void SetMaterialPointer(MaterialData * ptMat){ptMaterial_ = ptMat;};    
 
     void SetAlternatingMaterial(Boolean boolVar){alternateMaterialData_=boolVar;};
 
     
-    /// sets the pointer to the BCs
-    void SetPtrBCs(BCs* aptBCs) { ptBCs_ = aptBCs;}      
-
-
     /// require damping matrix
     void NeedDampingMatrix(){dampingMatrix_ = TRUE;};
     
@@ -414,8 +401,8 @@ namespace CoupledField
     std::string pdename_;                //!< name of calling pde
     std::string bcSequenceTag_;          //!< name of tag for loads/boundary condition
   
-    StdVector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
-    StdVector<std::string> surfdoms_; //!< surface-domain-levels belongig to PDE
+    StdVector<RegionIdType> subdoms_;  //!< subdomain-levels belongig to PDE
+    StdVector<RegionIdType> surfdoms_; //!< surface-domain-levels belongig to PDE
 
     StdVector<std::string> loadDom_;  //!< load subdomains
     StdVector<std::string> loadDof_;  //!< dofs of loads
@@ -436,10 +423,6 @@ namespace CoupledField
          
     TimeFunc * ptTimeFunc_;             //!< ptr to time function
     
-    BCs *ptBCs_;                       //!< pointer to Boundary Condition  Object
-
-    Integer actlevel_;                 //!< actual level of calculation
-
     MaterialData * ptMaterial_;              //!< pointer to material
     
     
@@ -498,10 +481,10 @@ namespace CoupledField
 
   protected:
     //! calculates the index of the subdoman with name "subDomName" in the subdomain-list
-    Integer SubDomIndex(const std::string & subDomName);
+    Integer SubDomIndex(const RegionIdType subDomName);
 
     //! calculates the index of the surfdoman with name "surfDomName" in the surface-domain-list
-    Integer SurfDomIndex(const std::string & surfDomName);
+    Integer SurfDomIndex(const RegionIdType surfDomName);
 
     //! transform element matrix to account for harmonic analysis
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
@@ -554,14 +537,14 @@ namespace CoupledField
     //! set information for algebraic system about PDE. set matrix factors
     virtual void SetMatrixFactors(){};
 
-    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+    virtual void AddIntegrator(BaseForm * integrator, const RegionIdType subdomain,
                                const FEMatrixType destinationMatrix, const Integer nonLin);
 
     /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const RegionIdType subdomain);
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+    virtual void AddSurfIntegrator(BaseForm * integrator, const RegionIdType subdomain,
                                    const FEMatrixType destinationMatrix, const Integer nonLin);
 
   };
@@ -584,14 +567,14 @@ namespace CoupledField
     virtual void SetMatrixFactors(){};  
     
     /// adds integrators to the pde
-    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+    virtual void AddIntegrator(BaseForm * integrator, const RegionIdType subdomain,
                                const FEMatrixType destinationMatrix, const Integer nonLin);
 
     /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const RegionIdType subdomain);
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+    virtual void AddSurfIntegrator(BaseForm * integrator, const RegionIdType subdomain,
                                    const FEMatrixType destinationMatrix, const Integer nonLin);
 
   };
@@ -623,14 +606,14 @@ namespace CoupledField
                                           Vector<Double> origVec,
                                           const Double valPhase);
 
-    virtual void AddIntegrator(BaseForm * integrator, const std::string & subdomain,
+    virtual void AddIntegrator(BaseForm * integrator, const RegionIdType subdomain,
                                const FEMatrixType destinationMatrix, const Integer nonLin);
 
     /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const std::string & subdomain);
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const RegionIdType subdomain);
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const std::string & subdomain,
+    virtual void AddSurfIntegrator(BaseForm * integrator, const RegionIdType subdomain,
                                    const FEMatrixType destinationMatrix, const Integer nonLin);
 
 
