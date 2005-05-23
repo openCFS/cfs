@@ -230,7 +230,6 @@ libsrc/Driver/solveStepAcousticBubble.cc svneol=native#text/plain
 libsrc/Driver/solveStepAcousticBubble.hh svneol=native#text/plain
 libsrc/Driver/solveStepElec.cc svneol=native#text/plain
 libsrc/Driver/solveStepElec.hh svneol=native#text/plain
-libsrc/Driver/solveStepIter.hh svneol=native#text/plain
 libsrc/Driver/solveStepMag.cc svneol=native#text/plain
 libsrc/Driver/solveStepMag.hh svneol=native#text/plain
 libsrc/Driver/solveStepMech.cc svneol=native#text/plain
