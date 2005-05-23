@@ -22,13 +22,10 @@ public:
   //!  Constructor. here we read integration parameters
   /*!
     \param aGrid pointer to grid
-    \param aBCs pointer to Boundary condition object
-    \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  MechPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile,
-	  WriteResults *aOutFile );
+  MechPDE(Grid *aGrid, TimeFunc *aTimeFunc, WriteResults *aOutFile );
 
   //!  Deconstructor
   virtual ~MechPDE();
@@ -38,7 +35,7 @@ public:
 
 
   //! define all (bilinearform) integrators needed for this pde
-  virtual void DefineIntegrators(const Integer level);
+  virtual void DefineIntegrators( );
 
 
   //! define the SoltionStep-Driver
@@ -68,7 +65,7 @@ public:
 
 
   /// setup source term
-  void SetupRHS(const Integer level);
+  void SetupRHS( );
   
 
   // ======================================================
@@ -84,7 +81,7 @@ public:
 				  Double timeOffset = 0.0);
 
   //! do PostProcessing step
-  virtual void PostProcess(const Integer level);
+  virtual void PostProcess( );
 
 protected:
 
@@ -138,25 +135,25 @@ private:
   // Vector<Double>& forceOnElem);
   
   /// calc rhs coupling to acoustic pde
-  void CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems, 
-			       StdVector<Integer>& couplingNodes,
-			       StdVector<MaterialData*>* materials,
-			       Vector<Double> & forceOnElem,
-			       Integer couplingdof,
-			       StdVector<Elem*> * neighbours);
+  void CalcAcousticCouplingRHS( StdVector<Elem*> * couplingElems, 
+                                StdVector<MaterialData*> & materials, 
+                                StdVector<Integer>& couplingNodes,
+                                Vector<Double> & forceOnElem,
+                                Integer couplingdof );
+			       
   
 
   /// does a line search and returns the optimal residual norm
   Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
-		    Double& etaLineSearch, Integer level, Boolean trans=FALSE);
+		    Double& etaLineSearch, Boolean trans=FALSE);
 
 
   /// Write nonlin iteration norms to the cla-file
-  void WriteClaNlNorms(const Integer iterationCounter,
-		       const Double residualL2Norm,
-		       const Double extForcesL2Norm, const Double residualErr, 
-		       const Double solIncrL2Norm, const Double actSolL2Norm, 
-		       const Double incrementalErr);
+  void WriteClaNlNorms( const Integer iterationCounter,
+                        const Double residualL2Norm,
+                        const Double extForcesL2Norm, const Double residualErr, 
+                        const Double solIncrL2Norm, const Double actSolL2Norm, 
+                        const Double incrementalErr );
   
 
   //! read in the domains with prestressing
@@ -182,7 +179,7 @@ private:
 
 
   //!
-  StdVector<std::string> preStressDomain_;
+  StdVector<RegionIdType> preStressDomain_;
   StdVector<Double> preStressValX_; //! orientation in x
   StdVector<Double> preStressValY_; //! orientation in y
   StdVector<Double> preStressValZ_; //! orientation in z
@@ -205,9 +202,9 @@ private:
 
   //postprocessing
   ElemStoreSol<Double> Stress_;  //!< conatins magnetic field
-  StdVector<std::string> calcStress_;  //!< contains the subdomains, on which the stress is computed
+  StdVector<RegionIdType> calcStress_;  //!< contains the subdomains, on which the stress is computed
 
-  StdVector<std::string> calcEnergy_;  //!< contains the subdomains, on which the energy is computed
+  StdVector<RegionIdType> calcEnergy_;  //!< contains the subdomains, on which the energy is computed
 
   //! contains mechanic velocity
   NodeStoreSol<Double> solDeriv1_;
