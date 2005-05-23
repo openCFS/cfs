@@ -1,10 +1,8 @@
 #ifndef FILE_FILETYPE_2001
 #define FILE_FILETYPE_2001
 
-#include <list>
 #include <string>
 
-#include "Utils/vector.hh"
 #include "Utils/StdVector.hh"
 
 #ifdef ADAPTGRID
@@ -14,206 +12,174 @@
 namespace CoupledField
 {
 
-struct Elem;
+  // Forward class declaration
+  struct Elem;
 
-  //! base class for reading initial data
-  /*! 
-    Base class for reading mesh-data. Functions of the class are virtual in order to handle the different types of input files.
-  */
+  //! Abstract class for reading in mesh data
+
+  //! This class defines an abstract interface for accessing 
+  //! files containing geometric mesh information. 
+  //!
+  //! \note All mesh and geometric entities are counted one-based,
+  //! whereas the acces to the C++ built in datatypes is zero-based!
+  
 class FileType
 {
 
 public:
 
-  //! constructor with name of mesh-file
+  // =========================================================================
+  // CONSTRUCTION AND INTIIALIZATION
+  // =========================================================================
+  //@{ \name Constructor / Initialization
+  
+
+  //! Constructor with name of mesh-file
   FileType(const Char * const afilename);
 
-  //! deconstructor
+  //! Destructor
   virtual ~FileType();
 
-  //! read maximum number of nodes in the mesh
-  /*!
-	\param maxnumnodes maximum number of nodes
-  */
-  virtual void ReadMaxnumnodes(Integer & maxnumnodes)=0;  
-
-  //! read coordinates of nodes of 3d-mesh 
-  /*!
-	\param coordinates_node returned pointer to array with data
-	\param maxnumnodes should be provided number of nodes in mesh
-   */
-  virtual void ReadCoordinate(Point<3> * const coordinates_node,                                                     const Integer maxnumnodes)=0;
-
-  //! read coordinates of nodes of 2d-mesh
-  /*!
-        \param coordinates_node returned pointer to array with data
-        \param maxnumnodes should be provided number of nodes in mesh
-   */
-  virtual void ReadCoordinate(Point<2> * const coordinates_node,
-			      const Integer maxnumnodes)=0;
-
-  //! read boundary conditions
-  /*!
-	\param bcs  out: returned pointer to list with global number of nodes to which boundary conditions are applied. 
-	\param colors in: vector with colors of nodes, which are requested
-  */
-  virtual void ReadBCs(std::list<Integer> * bcs, StdVector<std::string> colors)=0;  
-
-  //! read information about elements of the mesh
-  /*!
-	\param elems out: pointer to vector with elements for each subdomain
-	\param orderedElems out: vector with pointers to elements, ordered
-	by element numbers
-	\param sd vector with color of subdomains, for which elements are read
-  */
-  virtual void ReadEl(StdVector<Elem*> * elems, 
-		      StdVector<Elem*> & orderedElems,
-		      const StdVector<std::string> sd)
-  { Error(" not implemented",__FILE__,__LINE__);}
+  //@}
   
-  //! read 1D element. we call it directly when we set BCs
-  /*!
-    \param allelems out: pointer to vector with 1D-elements
-    \param orderedElems out: vector with pointers to elements, ordered
-    by element numbers
-    \param sd color of subdomains, for which elements are read
-  */
-  virtual void ReadEl1d(StdVector<Elem*> * allelems,
-			StdVector<Elem*> & orderedElems,
-			const StdVector<std::string> sd)
-  { Error(" not implemented",__FILE__,__LINE__);}  
-  
- //! read 2d - elements from the mesh-file
-    /*!
-   \param allelems out: pointer to vector with 3D-elements
-   \param orderedElems out: vector with pointers to elements, ordered
-   by element numbers
-   \param sd color of subdomains, for which elements are read
-  */
-  virtual void ReadEl2d(StdVector<Elem*> * allelems, 
-			StdVector<Elem*> & orderedElems,
-			const StdVector<std::string> sd)
-  { Error(" not implemented",__FILE__,__LINE__);}  
-  
-  //! read 3d - elements from the mesh-file
-  /*!
-    \param allelems out: pointer to vector with 3D-elements
-    \param orderedElems out: vector with pointers to elements, ordered
-    by element numbers
-    \param sd color of subdomains, for which elements are read
-  */
-  virtual void ReadEl3d(StdVector<Elem*> * allelems, 
-			StdVector<Elem*> & orderedElems,
-			const StdVector<std::string> sd)
-  { Error(" not implemented",__FILE__,__LINE__);} 
-  
-  //! read 3d -elements from the mesh-file and extractes the data for the conf-file
-  /*!
-    \param sd color of subdomains, for which elements are read
-  */
-  virtual void ReadEl3dConf(StdVector<std::string> &sd)
-  { Error(" not implemented",__FILE__,__LINE__);} 
-  
-  //! read 2d -elements from the mesh-file and extractes the data for the conf-file
-   /*!
-   \param sd color of subdomains, for which elements are read
-  */
-   virtual void ReadEl2dConf(StdVector<std::string> &sd)
-  { Error(" not implemented",__FILE__,__LINE__);} 
+  // =========================================================================
+  // GENERAL MESH INFORMATION
+  // =========================================================================
+  //@{ \name General Mesh Information
 
-   //! read 1d -elements from the mesh-file and extractes the data for the conf-file
-   /*!
-   \param sd color of subdomains, for which elements are read
-  */
-   virtual void ReadEl1dConf(StdVector<std::string> &sd)
-  { Error(" not implemented",__FILE__,__LINE__);} 
+  //! Get dimension of the mesh
+  virtual Integer GetDim() = 0;
 
-  //! read BCs from the mesh-file and extractes the data for the conf-file
-   /*!
-   \param sd color of subdomains, for which elements are read
-  */
-  virtual void ReadBCsConf(StdVector<std::string> &sd)
-  { Error(" not implemented",__FILE__,__LINE__);} 
-
-#ifdef ADAPTGRID
-  //! read the mesh from mesh-file for Grid_RG
-  /*!
-	\param elems out: vector with elements
-	\param vertex out: vector with vertices
-	\param sd in: vector with color of subdomains which is put in Grid_RG
-  */
-  virtual void ReadGrid_RG(StdVector<grd::Element*> & elems, StdVector<grd::Vertex*> * vertex, const StdVector<std::string> sd)
-   { Error(" not implemented",__FILE__,__LINE__);}
-
-  //! read the mesh from mesh-file for Grid_RG
-  /*!
-        \param elems out: vector with elements
-        \param vertex out: vector with vertices
-        \param sd in: vector with color of subdomains which is put in Grid_RG
-  */
-  virtual void ReadBCs_GridRG(StdVector<Integer> & idBCs,StdVector<Integer> &colorBCs)
-   { Error(" not implemented",__FILE__,__LINE__);}
-#endif
+  //! Get total number of nodes in mesh
+  virtual Integer GetNumNodes() = 0;
  
-  //! return dimension of the mesh
-  virtual Integer ReadDim()
-  {
-    Error(" not implemented",__FILE__,__LINE__);
-    return 0;
-  } 
+  //! Get total number of elements in mesh
+  virtual Integer GetNumElems( const Integer dim = 0 ) = 0;
 
-  //! returns the number of 3D elements
-  virtual Integer GetNum3DElems()
-  {
-    Error(" not implemented",__FILE__,__LINE__);
-    return 0;
-  } 
+  //! Get total number of regions
+  virtual Integer GetNumRegions() = 0;
 
-  //! returns the number of 2D elements
-  virtual Integer GetNum2DElems()
-  {
-    Error(" not implemented",__FILE__,__LINE__);
-    return 0;
-  } 
+  //! Get total number of named nodes
+  virtual Integer GetNumNamedNodes() = 0;
 
-  //! returns the number of 1D elements
-  virtual Integer GetNum1DElems()
-  {
-    Error(" not implemented",__FILE__,__LINE__);
-    return 0;
-  } 
+  //! Get total number of named elements
+  virtual Integer GetNumNamedElems() = 0;
 
-  //! retuns the number of specified boundary conditions
-  virtual Integer GetNumBCs()
-  {
-    Error(" not implemented",__FILE__,__LINE__);
-    return 0;
-  } 
-
-  //! retuns the number of specified boundary conditions
-  virtual Integer GetNumSaveNodes()
-  {
-    Error(" not implemented",__FILE__,__LINE__);
-    return 0;
-  } 
-
- //! read the save nodes
-  /*!
-        \param saveNodes out: vector with global number of nodes
-        \param level in: name of nodes
-  */
-  virtual void ReadSaveNodes(StdVector<Integer> & saveNodes , const std::string level)=0;
-  //{ Error(" not implemented",__FILE__,__LINE__);};
+  //@}
   
-  //! read only levels (names) of save nodes
-  /*! \param levels out: list with names of save node levels  */
-  virtual void ReadLevelOfSaveNodes(StdVector<std::string>& levels)
-  { Error(" not implemented",__FILE__,__LINE__);} 
+  // =========================================================================
+  // ENTITY NAME ACCESS
+  // =========================================================================
+  //@{ \name Entity Name Access
   
+  //! Get vector with all region names in mesh
+ 
+  //! Returns a vector with the names of regions in the mesh of all
+  //! dimensions.
+  //! \param regionNames (output) vector containing names of regions
+  //! \note Since the RegionIdType is guaranteed to be defined by
+  //! a number type (Integer, UInt), the regionId of an element can
+  //! be directly used as index to the regionNames-vector
+  virtual void GetAllRegionNames( StdVector<std::string> & regionNames ) = 0;
 
+  
+  //! Get vector with region names of given dimension
+
+  //! Returns a vector with the names of regions of a given dimension.
+  //! This makes it possible to get for example all names of 
+  //! 3D, 2D or 1D elements.
+  //! \param regionNames (output) vector containing names of regions
+  //! \param dim (input) dimension of the region (1,2, or 3)
+  virtual void GetRegionNamesOfDim( StdVector<std::string> & regionNames,
+				    const Integer dim ) = 0;
+
+  //! Get vector with all names of named nodes
+
+  //! Returns a vector which contains all names of named nodes.
+  //! \param nodeNames (output) vector with names of named nodes
+  virtual void GetNodeNames( StdVector<std::string> & nodeNames ) = 0;
+  
+  //! Get vector with all names of named elements
+
+  //! Returns a vector which contains all names of named elements.
+  //! \param elemNames (output) vector with names of named elements
+  virtual void GetElemNames( StdVector<std::string> & elemNames ) = 0;
+
+  //@}
+
+  // =========================================================================
+  // ENTITY ACCESS
+  // =========================================================================
+  //@{ \name Entity Access
+
+  //! Get all nodal coordinates from 3D grid
+
+  //! This method reads all nodal coordinates into a vector of 3D-Points.
+  //! \param nodeCoords (output) vector containing nodal coordinates
+  virtual void GetCoordinates( StdVector<Point<3> > & nodeCoords ) = 0;
+
+  //! Get all nodal coordinates from 2D grid
+
+  //! This method reads all nodal coordinates into a vector of 2D-Points.
+  //! \param nodeCoords (output) vector containing nodal coordinates
+  virtual void GetCoordinates( StdVector<Point<2> > & nodeCoords ) = 0;
+
+  //! Get vector of nodes for each region
+
+  //! This method reads the node numbers of each region into a 
+  //! separate vector. 
+  //! \param nodes (output) vector containing the node numbers for each
+  //!                       region. The access is like \c elems 
+  //!                       \c [regionNr] \c [nodeNr]
+  //! \param regionId (output) vector containing the region Ids of the
+  //!                          nodes corresponding to the outer index in the
+  //!                          nodes vector
+  virtual void GetNodesOfRegions( StdVector<StdVector<Integer> > &nodes,
+				  const StdVector<RegionIdType>  
+				  & regionId ) = 0;
+  
+  //! Read all elements of given dimension
+
+  //! This method reads all elements of a given dimension (1D, 2D or 3D).
+  //! The output is a vector of vectors, where the outer index corresponds
+  //! to the different regions and the inner one to the different elements
+  //! per region.
+  //! \param elems (output) vector containing vectors of pointers to elements
+  //!                       per region. The access is like \c elems 
+  //!                       \c [regionNr] \c [elemeNr]
+  //! \param regionId (output) vector containing the region Ids of the
+  //!                          elements corresponding to the outer index in 
+  //!                          the elems vector
+  //! \param dim (input) dimension of the elements to be read (1,2 or 3)
+  virtual void GetElements( StdVector< StdVector<Elem*> > & elems, 
+			    StdVector<RegionIdType> & regionId,
+			    const Integer dim ) = 0;
+  
+  //! Read all named nodes
+
+  //! This method reads in all named nodes with their according names.
+  //! \param nodes (output) vector containing node numbers for each region.
+  //!                       The access is like \c nodes \c [nameNr] 
+  //!                       \c [nodeNr]
+  //! \param nodeNames (output) vector containing the corresponding
+  //!                           node names 
+  virtual void GetNamedNodes( StdVector<StdVector<Integer> > & nodes,
+			       StdVector<std::string> & nodeNames ) = 0;
+  //! Read all named elements
+
+  //! This method reads in all named elements with their according names.
+  //! \param elems (output) vector containing node numbers for each region.
+  //!                       The access is like \c elems \c [nameNr] 
+  //!                       \c [elemNr]
+  //! \param elemNames (output) vector containing the corresponding
+  //!                           element names 
+  virtual void GetNamedElems( StdVector<StdVector<Integer> > & elems,
+			      StdVector<std::string> & elemNames ) = 0;
+  //@}
+			       
 protected:
 
-  //! name of input file
+  //! Name of input file
   Char * filename;
 
 };

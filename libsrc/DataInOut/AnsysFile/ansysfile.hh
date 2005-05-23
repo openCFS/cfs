@@ -2,307 +2,279 @@
 #define FILE_ANSYSFILE_2002
 
 #include "DataInOut/filetype.hh"
+
+#include <set>
 #include "Domain/grid.hh"
 
 namespace CoupledField {
 
-  //! base class for reading initial data
+  //! Class for reading in a mesh created by the ANSYS mkmesh-extension.
 
   //! Class, that is derived from class FileType for reading mesh-input data,
-  //! which is produced by Ansys interface. 
+  //! which is produced by Ansys mkmesh-interface. 
   class AnsysFile: virtual public FileType {
 
   public:
 
-    // ========================================================================
-    // CONSTRUCTION, DESTRUCTION & SETUP
-    // ========================================================================
-
-    //@{
-    //! \name Construction, Destruction and Setup
-
-    //! Constructor (requiring name of the mesh-file)
+    // =======================================================================
+    // CONSTRUCTION AND INTIIALIZATION
+    // =======================================================================
+    //@{ \name Constructor / Initialization
+    
+    //! Constructor with name of mesh-file
     AnsysFile(const Char * const afilename);
-
+    
     //! Destructor
     virtual ~AnsysFile();
 
     //@}
+  
+    // =======================================================================
+    // GENERAL MESH INFORMATION
+    // =======================================================================
+    //@{ \name General Mesh Information
 
-    // ========================================================================
-    // QUERY METHODS
-    // ========================================================================
+    //! Return dimension of the mesh
+    Integer GetDim();
+    
+    //! Get total number of nodes in mesh
+    Integer GetNumNodes();
+    
+    //! Get total number of elements in mesh
+    Integer GetNumElems( const Integer dim = 0 );
+    
+    //! Get total number of regions
+    Integer GetNumRegions();
 
-    //@{
-    //! \name Query methods
+    //! Get total number of named nodes
+    Integer GetNumNamedNodes();
 
-    //! return dimension of the mesh
-    Integer ReadDim() {
-      ENTER_FCN( "AnsysFile::ReadDim" );
-      return GetInteger("Dimension");
-    }
+    //! Get total number of named elements
+    Integer GetNumNamedElems();
 
-    //! returns the number of 3D elements
-    Integer GetNum3DElems() {
-      ENTER_FCN( "AnsysFile::GetNum3DElems" );
-      return GetInteger("Num3DElements");
-    }
+    //@}
+  
+    // =======================================================================
+    // ENTITY NAME ACCESS
+    // =======================================================================
+    //@{ \name Entity Name Access
+  
+    //! Get vector with all region names in mesh
+    
+    //! Returns a vector with the names of regions in the mesh of all
+    //! dimensions.
+    //! \param regionNames (output) vector containing names of regions
+    //! \note Since the RegionIdType is guaranteed to be defined by
+    //! a number type (Integer, UInt), the regionId of an element can
+    //! be directly used as index to the regions-vector
+    void GetAllRegionNames( StdVector<std::string> & regionNames );
+    
+    
+    //! Get vector with region names of given dimension
+    
+    //! Returns a vector with the names of regions of a given dimension.
+    //! This makes it possible to get for example all names of 
+    //! 3D, 2D or 1D elements
+    //! \param regionNames (output) vector containing names of regions
+    //! \param dim (input) dimension of the region (1,2, or 3)
+    void GetRegionNamesOfDim( StdVector<std::string> & regionNames,
+			      const Integer dim );
+   
 
-    //! returns the number of 2D elements
-    Integer GetNum2DElems() {
-      ENTER_FCN( "AnsysFile::GetNum2DElems" );
-      return GetInteger("Num2DElements");
-    }
+    //! Get vector with all names of named nodes
 
-    //! returns the number of 1D elements
-    Integer GetNum1DElems()  {
-      ENTER_FCN( "AnsysFile::GetNum1DElems" );
-      return GetInteger("Num1DElements");
-    }
+    //! Returns a vector which contains all names of named nodes.
+    //! \param nodeNames (output) vector with names of named nodes
+    void GetNodeNames( StdVector<std::string> & nodeNames );
+  
+    //! Get vector with all names of named elements
 
-    //! retuns the number of specified boundary conditions
-    Integer GetNumBCs() {
-      ENTER_FCN( "AnsysFile::GetNumBCs" );
-      return  GetInteger("NumNodeBC");
-    }
-
-    //! retuns the number of specified boundary conditions
-    Integer GetNumSaveNodes() {
-      ENTER_FCN( "AnsysFile::GetNumSaveNodes" );
-      Integer nrSaveNodes;
-      ReadNumSaveNodes(nrSaveNodes);
-      return nrSaveNodes;
-    }
+    //! Returns a vector which contains all names of named elements.
+    //! \param elemNames (output) vector with names of named elements
+    void GetElemNames( StdVector<std::string> & elemNames );
 
     //@}
 
-    // ========================================================================
-    // READER METHODS
-    // ========================================================================
+    // =======================================================================
+    // ENTITY ACCESS
+    // =======================================================================
+    //@{ \name Entity Access
+    
+    //! Get all nodal coordinates from 3D grid
+    
+    //! This method reads all nodal coordinates into a vector of 3D-Points.
+    //! \param nodeCoords (output) vector containing nodal coordinates
+    void GetCoordinates( StdVector<Point<3> > & nodeCoords );
+    
+    //! Get all nodal coordinates from 2D grid
+    
+    //! This method reads all nodal coordinates into a vector of 2D-Points.
+    //! \param nodeCoords (output) vector containing nodal coordinates
+    void GetCoordinates( StdVector<Point<2> > & nodeCoords );
 
-    //@{
-    //! \name Reader Methods
+    //! Get vector of nodes for each region
 
-    //! read maximum number of nodes in the mesh
-    //! \param maxnumnodes maximum number of nodes
-    virtual void ReadMaxnumnodes( Integer &maxNumNodes ) {
-      ENTER_FCN( "Ansys::ReadMaxnumnodes" );
-      maxNumNodes_ = GetInteger("NumNodes");
-      maxNumNodes  = maxNumNodes_;
-    }
+    //! This method reads the node numbers of each region into a 
+    //! separate vector. 
+    //! \param nodes (output) vector containing the node numbers for each
+    //!                       region. The access is like \c elems 
+    //!                       \c [regionNr] \c [nodeNr]
+    //! \param regionId (output) vector containing the region Ids of the
+    //!                          nodes corresponding to the outer index in the
+    //!                          nodes vector
+    void GetNodesOfRegions( StdVector<StdVector<Integer> > &nodes,
+			    const StdVector<RegionIdType> & regionId );
+    
+    //! Read all elements of given dimension
 
-
-    //! Read number of save nodes in the mesh
-    //! \param nrNodes number of save nodes
-    virtual void ReadNumSaveNodes( Integer &nrSaveNodes ) {
-      ENTER_FCN( "AnsysFile::ReadNumSaveNodes" );
-      nrSaveNodes = GetInteger("NumSaveNodes" );
-    }
-
+    //! This method reads all elements of a given dimension (1D, 2D or 3D).
+    //! The output is a vector of vectors, where the outer index corresponds
+    //! to the different regions and the inner one to the different elements
+    //! per region.
+    //! \param elems (output) vector containing vectors of pointers to elements
+    //!                       per region. The access is like \c elems 
+    //!                       \c [regionNr] \c [elemeNr]
+    //! \param regionId (output) vector containing the region Ids of the
+    //!                          elements corresponding to the outer index in 
+    //!                          the elems vector
+    //! \param dim (input) dimension of the elements to be read (1,2 or 3)
+    void GetElements( StdVector< StdVector<Elem*> > & elems, 
+		      StdVector<RegionIdType> & regionId,
+		      const Integer dim );
   
-    //! read coordinates of nodes of 3d-mesh 
-    /*!
-      \param coordinates_node returned pointer to array with data
-      \param maxnumnodes should be provided number of nodes in mesh
-    */
-    virtual void ReadCoordinate(Point<3> * const coordinates_node,
-                                const Integer maxnumnodes);
+    //! Read all named nodes
+    
+    //! This method reads in all named nodes with their according names.
+    //! \param nodes (output) vector containing node numbers for each region.
+    //!                       The access is like \c nodes \c [nameNr] 
+    //!                       \c [nodeNr]
+    //! \param nodeNames (output) vector containing the corresponding
+    //!                           node names 
+    void GetNamedNodes( StdVector<StdVector<Integer> > & nodes,
+			StdVector<std::string> & nodeNames );
+    
+    //! Read all named elements
 
-    //! read coordinates of nodes of 2d-mesh
-    /*!
-      \param coordinates_node returned pointer to array with data
-      \param maxnumnodes should be provided number of nodes in mesh
-    */
-    virtual void ReadCoordinate(Point<2> * const coordinates_node,
-                                const Integer maxnumnodes);
-
-    //! read information about elements of the mesh
-    /*!
-      \param elems out: pointer to vector with elements for each subdomain
-      \param orderedElems out: vector with pointers to elements, ordered
-      by element numbers
-      \param sd vector with color of subdomains, for which elements are read
-    */
-    void ReadEl(StdVector<Elem*> * elems, 
-                StdVector<Elem*> & orderedElems,
-                const StdVector<std::string> sd); 
-  
-    //! read 1D-elements. we cause it directly when we set BCs
-    /*!
-      \param allelems out: pointer to vector with 1D-elements
-      \param orderedElems out: vector with pointers to elements, ordered
-      by element numbers
-      \param sd color of subdomains, for which elements are read
-    */
-    void ReadEl1d(StdVector<Elem*> * allelems, 
-                  StdVector<Elem*> & orderedElems,
-                  const StdVector<std::string> sd);
-
-    //! read 2d - elements from the mesh-file
-    /*!
-      \param allelems out: pointer to vector with 2D-elements
-      \param orderedElems out: vector with pointers to elements, ordered
-      by element numbers
-      \param sd color of subdomains, for which elements are read
-    */
-    void ReadEl2d(StdVector<Elem*> * allelems, 
-                  StdVector<Elem*> & orderedElems,
-                  const StdVector<std::string> sd);
-
-    //! Read 3D elements from the mesh-file
-    //! \param allelems     out: pointer to vector with 3D-elements
-    //! \param orderedElems out: vector with pointers to elements, ordered
-    //!                          by element numbers
-    //! \param sd subdomains specifiers (regions) for which elements are read
-    void ReadEl3d( StdVector<Elem*> *allelems, 
-                   StdVector<Elem*> &orderedElems,
-                   const StdVector<std::string> sd );
-  
-    //! read 3d -elements from the mesh-file and extractes the data for the conf-file
-    //! \param sd color of subdomains, for which elements are read
-    void ReadEl3dConf(StdVector<std::string> &sd);
-
-    //! read 2d -elements from the mesh-file and extractes the data for the conf-file
-    /*!
-      \param sd color of subdomains, for which elements are read
-    */
-    void ReadEl2dConf(StdVector<std::string> &sd);
-
-    //! read 1d -elements from the mesh-file and extractes the data for the conf-file
-    /*!
-      \param sd color of subdomains, for which elements are read
-    */
-    void ReadEl1dConf(StdVector<std::string> &sd);
-
-    //! read BCs from the mesh-file and extractes the data for the conf-file
-    /*!
-      \param sd color of subdomains, for which elements are read
-    */
-    void ReadBCsConf(StdVector<std::string> &sd);
-
-
-    //! read the mesh from mesh-file for Grid_RG
-    //! \param bcs out: vector with global number of nodes which are applied
-    //!                 to boundary condition
-    //! \param levels in: vector with color of nodes
-    void ReadBCs(std::list<Integer> *bcs, const StdVector<std::string> levels);
-
-    //! read the save nodes
-    /*!
-      \param saveNodes out: vector with global number of nodes
-      \param level in: name of nodes
-    */
-    virtual void ReadSaveNodes( StdVector<Integer> & saveNodes,
-                                const std::string level );
-  
-    //! read only levels (names) of save nodes
-    //! \param levels out: list with names of save node levels
-    void ReadLevelOfSaveNodes(StdVector<std::string>& levels);
-
+    //! This method reads in all named elements with their according names.
+    //! \param elems (output) vector containing node numbers for each region.
+    //!                       The access is like \c elems \c [nameNr] 
+    //!                       \c [elemNr]
+    //! \param elemNames (output) vector containing the corresponding
+    //!                           element names 
+    void GetNamedElems( StdVector<StdVector<Integer> > & elems,
+			StdVector<std::string> & elemNames );
     //@}
+
 
 #ifdef ADAPTGRID
-    //! read the mesh from mesh-file for Grid_RG
-    /*!
-      \param elems out: vector with elements
-      \param vertex out: vector with vertices
-      \param sd in: vector with color of subdomains which is put in Grid_RG
-    */
+    //! Read the mesh from mesh-file for Grid_RG
+    //! \param elems out: vector with elements
+    //! \param vertex out: vector with vertices
+    //! \param sd in: vector with color of subdomains which is put in Grid_RG
     void ReadGrid_RG( StdVector<grd::Element*> & elems,
                       StdVector<grd::Vertex*> * vertex,
                       const StdVector<std::string> sd );
 
-    //! read the mesh from mesh-file for Grid_RG
-    /*!
-      \param elems out: vector with elements
-      \param vertex out: vector with vertices
-      \param sd in: vector with color of subdomains which is put in Grid_RG
-    */
+    //! Read the mesh from mesh-file for Grid_RG
+    //! \param elems out: vector with elements
+    //! \param vertex out: vector with vertices
+    //! \param sd in: vector with color of subdomains which is put in Grid_RG
     void ReadBCs_GridRG( StdVector<Integer> &idBCs,
                          StdVector<Integer> &colorBCs );
 #endif
 
-
-  private:
-
-    //! This is the main method for reading element information from the file
-
-    //! This is the main method for reading element information from the
-    //! mesh-file. It is implemented in such a fashion that it can read 1D,
-    //! 2D and 3D elements. The element type to be read is steered by the
-    //! elemType input parameter.
-    //! \note This method is called with the respective parameter by the
-    //! ReadEl1d(), ReadEl2d() and ReadEl3d() methods. The questions is,
-    //! wether these methods are really necessary after all.
-    //! \param elemType   in: either '1D', '2D' or '3D'; specifies type of
-    //!                        elements to be read
-    //! \param elemVec    out: pointer to vector with pointers to the elements
-    //! \param elemVecSeq out: vector with pointers to elements, ordered
-    //!                          by element numbers
-    //! \param sd subdomains specifiers (regions) for which elements are read
-    void ReadElementInfoFromMeshFile( std::string elemType,
-                                      StdVector<Elem*> *elemVec, 
-                                      StdVector<Elem*> &elemVecSeq,
-                                      const StdVector<std::string> sd );
-
-    // ========================================================================
-    // AUXILLIARY METHODS & ATTRIBUTES
-    // ========================================================================
+  protected:
+    
+    // =======================================================================
+    // AUXILLIARY METHODS
+    // =======================================================================
 
     //@{
-    //! \name Auxilliary methods & attributes for navigation in file
+    //! \name Auxilliary Methods
 
-    //! get a single integer in a save way
-    Integer GetInteger(std::string seekexp);
+    //! Returns a single integer next to a string
 
-    //! tests the next line for emptyness
-    //! \param actPos last position of file pointer before next line
-    Boolean IsNextLineEmpty(std::string::size_type actPos);
+    //! This method searches in the mesh file for the expression \a seekexp
+    //! and returns the number right next to it as integer value
+    //! \param seekexp (input) expression next to a integer value in the mesh
+    Integer GetInteger(const std::string seekexp);
+
+    //! Test the next line, if it is empty
+
+    //! This method looks in the mesh file, if the following line to a given
+    //! position is empty,
+    //! \param actPos (input) last position of file pointer before next line
+    Boolean IsNextLineEmpty(const std::string::size_type actPos);
   
-    //! get position after line with seekexp and comments lines
-    void getPosLine(const std::string seekexp, std::string::size_type & pos);
 
-    //! get position in line
-    void getPosition(const std::string seekexp, std::string::size_type & pos);
+    //! Returns the position of a new line right after a given expression
 
-    //! ifstream of input mesh-file
-    std::ifstream infile;
+    //! This method returns the position  after line with \a seekexp and 
+    //! comments lines
+    //! \param seekexp (input) string which is searched for
+    //! \param pos (output) positition of the beginning of a the line next
+    //!                     to the one containing \a seekexp
+    void GetPosLine(const std::string seekexp, std::string::size_type & pos);
 
-    //! end position in input mesh-file
-    std::string::size_type pos_end;
+    //! Returns the position immediately after a given expression
 
+    //! This method returns the position immediately after a given expression.
+    //! \param seekexp (input) expression which is looked for
+    //! \param pos (output) position right after \a seekexp
+    void GetPosition(const std::string seekexp, std::string::size_type & pos);
+
+    //! Returns a region identifier for a given region
+
+    //! This method takes the name of a region and its dimension and returns
+    //! the according identifier. 
+    //! \param regionName (input) name of region 
+    //! \param dim (input) dimension of the elements (1, 2 or 3)
+    RegionIdType ObtainRegionId( const std::string & regionName,
+				 const Integer dim );
+
+    
+    //! Transform type of elem in pointer to base class BaseFE
+
+    //! This method maps the type number of an element - as given in the 
+    //! mesh file - to a pointer to a reference finite element.
+    //! \param itype (input) element type number as read in from the mesh
+    BaseFE * Type2ptElem(const Integer itype);
     //@}
 
-    //! Read number of nodes for boundary condition
+    // =======================================================================
+    // CLASS ATTRIBUTES
+    // =======================================================================
+    //@{
+    //! \name Attributes
 
-    //! Read number of nodes for boundary condition from INFO section of
-    //! the mesh-file
-    void ReadMaxnumnodesbc( Integer &nbc ) {
-      ENTER_FCN( "AnsysFile::ReadMaxnumnodesbc" );
-      nbc = GetInteger("NumNodeBC");
-    }
-
-    //!  read maximum number of elements from INFO section of the mesh-file
-    void ReadMaxnumelem( Integer &nelem, const std::string keyword ) {
-      ENTER_FCN( "AnsysFile::ReadMaxnumelem" );
-      nelem = GetInteger(keyword);
-      actMaxElemNum_ += nelem;
-    }
-
-    //! dimension of problem
+    //! Dimension of the mesh
     Integer dim_;
 
-    //! number of elems
+    //! Total number of elements
     Integer maxNumElems_;
 
-    //! maximum number of elements read in so far
-    Integer actMaxElemNum_;
-
-    //! number of nodes
+    //! Total number of nodes
     Integer maxNumNodes_;
+    
+    //! Vector containing all region names of mesh
+    StdVector<std::string> regionNames_;
+    
+    //! Vector containgin dimension of corresponding \a regionNames_
+    StdVector<Integer> regionDim_;
+    
+    //! Array indicating if elems of given dimension were read in
+    StdVector<Boolean> elemDimReadIn_;
 
-    //! transform type of elem in pointer to base class BaseFE
-    BaseFE * Type2ptElem(const Integer itype);
+    //! Vectpr with nodal numbers for each region
+    StdVector<std::set<Integer> > regionNodes_;
+    
+    //! Pointer to input file
+    std::ifstream inFile_;
+
+    //! End position in input mesh-file
+    std::string::size_type pos_end;
+    
+    //@}
 
 #ifdef ADAPTGRID
     //! read 2d elements from the input mesh-file for the Grid_RG 
