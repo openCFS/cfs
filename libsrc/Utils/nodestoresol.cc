@@ -82,13 +82,11 @@ void NodeStoreSol<TYPE>::Init()
 
 template<class TYPE>
 void NodeStoreSol<TYPE>::SetPtrEQNData(NodeEQN * ptNodeEQN,
-				       Grid * ptGrid,
-				       Integer level)
+				       Grid * ptGrid)
 {
   ENTER_FCN( "NodeStoreSol::SetPtrEQNData" );
   ptEQN_ = ptNodeEQN;
   ptGrid_ = ptGrid;
-  level_ = level;
   
 }
 
@@ -298,7 +296,7 @@ void NodeStoreSol<TYPE>::GetGlobalSolVector(const SolutionType type,
   Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
 
   Integer eqnNr, eqnDof, dofsPerEQN;
-  Integer globNumNodes = ptGrid_->GetMaxnumnodes(level_);
+  Integer globNumNodes = ptGrid_->GetNumNodes();
 
   temp.Resize(globNumNodes *dof);
   dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
@@ -383,7 +381,7 @@ void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const SolutionType type,
   Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
   
   Integer eqnNr, eqnDof, dofsPerEQN;
-  Integer globNumNodes = ptGrid_->GetMaxnumnodes(level_);
+  Integer globNumNodes = ptGrid_->GetNumNodes();
   
   temp.Resize(globNumNodes);
   dofsPerEQN = ptEQN_->GetNumDofsPerEQN();

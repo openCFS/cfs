@@ -180,7 +180,7 @@ namespace CoupledField {
   // calculation area or volume of element
   struct Elem;
   class Grid;
-  Double CalcArea(Elem * ptElem, Grid * ptgrid, const Integer level);
+  Double CalcArea(Elem * ptElem, Grid * ptgrid);
 
   // define number of refinement for the element
   Integer defineRefinements(const Double tolElem, const Double tolTotal,

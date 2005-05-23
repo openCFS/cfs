@@ -53,13 +53,11 @@ ElemStoreSol<TYPE>::~ElemStoreSol()
 
 template<class TYPE>
 void ElemStoreSol<TYPE>::SetPtrEQNData(NodeEQN * ptNodeEQN,
-				       Grid * ptGrid,
-				       Integer level)
+				       Grid * ptGrid)
 {
   ENTER_FCN( "ElemStoreSol::SetPtrEQNData ");
   ptEQN_ = ptNodeEQN; 
   ptGrid_ = ptGrid;
-  level_ = level;
 }
 
 
@@ -261,7 +259,7 @@ void ElemStoreSol<TYPE>::GetGlobalSolVector(const SolutionType solType, CFSVecto
 #endif
   
   Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
-  temp.Resize(ptGrid_->GetMaxnumElem(level_)*totalDofs_);
+  temp.Resize(ptGrid_->GetNumVolElems()*totalDofs_);
 
   // Loop over all PDE elements
   for (Integer iElem=1; iElem<numElems_+1; iElem++)
@@ -359,8 +357,7 @@ void ElemStoreSol<TYPE>::Add(const SolutionType type, const Integer elemNr, cons
 
 template<class TYPE>
 void ElemStoreSol<TYPE>::TransformElemSolution(CFSVector & transformedSolution,
-					   Grid * ptGrid,
-					   const Integer level) const
+					   Grid * ptGrid) const
 {
   ENTER_FCN("ElemStoreSol::TransformElemSolution");
 #ifdef CHECK_INITIALIZED
@@ -368,7 +365,7 @@ void ElemStoreSol<TYPE>::TransformElemSolution(CFSVector & transformedSolution,
 #endif
   
   Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(transformedSolution);
-  temp.Resize(ptGrid->GetMaxnumElem(level)*totalDofs_);
+  temp.Resize(ptGrid->GetNumVolElems()*totalDofs_);
 
   // Loop over all PDE elements
   for (Integer iElem=1; iElem<numElems_+1; iElem++)
