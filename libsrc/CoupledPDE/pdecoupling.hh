@@ -15,14 +15,15 @@ namespace CoupledField
 class StdPDE;
 class Grid;
 class Elem;
-class BCs;
 class CouplingMemento;
 template<class TYPE> class Vector;
 template<class TYPE> class Matrix;
 
-  //! This class holds information about Coupling terms, such as coupling quantity, values coupling nodes/elements ...
-  /*! This class holds information about Coupling terms, such as coupling quantity, values coupling nodes/elements ...
-   */
+  //! This class holds information about Coupling terms, such as coupling quantity, 
+  //! values coupling nodes/elements ...
+
+  //! This class holds information about Coupling terms, such as coupling quantity, 
+  //! values coupling nodes/elements ...
 class PDECoupling
 {
 
@@ -51,30 +52,22 @@ class PDECoupling
     //! type of coupling region (defined in 'environment.hh')
     CouplingRegionType regionType;        
 
-    //! multigrid level
-    Integer level;                        
-
     //! vector of coupling nodes 
     StdVector<Integer> nodes;           
 
     //! vector of coupling elements
     StdVector<Elem*> elements;          
 
-    //! vector of neighbour elements
-    StdVector<Elem*> neighbours;     
-    
     //! vector containing neighbouring region of interface
     //! w.r.t. pde which calculates the values for the coupling
     StdVector<std::string> neighInputRegions; 
     
-    //! vector of neighbour elements of "opposite" PDE 
-    StdVector<Elem*> oppositePdeNeighbours;
-
     //! vector of materials at coupling interface
     StdVector<MaterialData*> materials; 
 
-    //! vector of materials at coupling interface of "opposite" PDE
-    StdVector<MaterialData*> oppositePdeMaterials; 
+    //! vector with materials for opposite PDE
+    //! ( = pde, which uses this interface as input )
+    StdVector<MaterialData*>  oppositePdeMaterials;         
 
     //! array containing coupling values
     CFSVector * values;
@@ -101,7 +94,7 @@ class PDECoupling
 public:
   
   //! constructor
-  PDECoupling(Grid * aptgrid, BCs * aptBCs);
+  PDECoupling( Grid * aptgrid );
 
   //! destructor
   virtual ~PDECoupling();
@@ -120,7 +113,6 @@ public:
     \param Quantity (input) name of input coupling quantity
     \param interfaceNames (input) names of input coupling interfaces
     \param RegionType (input) type of input coupling interfaces
-    \param level (input) hierarchy level
     \param epsilon (input) tolerance for quantity
     \param normtype (input) normtype of epsilon
     \param Couplings (input) vector with all Couplingobjects of coupledpde
@@ -129,7 +121,6 @@ public:
 			StdVector<std::string> &interfaceNames,
 			CouplingRegionType regionType, 
 			StdVector<std::string> & neighRegions,
-			Integer level,
 			Double epsilon,
 			NormType normtype,
 			StdVector<PDECoupling*> & couplings);
@@ -186,11 +177,7 @@ public:
   virtual CouplingRegionType GetInputRegionType(Integer i)
   { return inputInterfaces_[i]->regionType; }
 
-  //! get input coupling multigrid level
-  virtual Integer GetInputRegionLevel(Integer i)
-  { return inputInterfaces_[i]->level; }
-
- //! get input coupling region nodes
+  //! get input coupling region nodes
   virtual void GetInputNodes(Integer i, StdVector<Integer>* &nodes)
   { nodes  = &(inputInterfaces_[i]->nodes);}
 
@@ -198,17 +185,9 @@ public:
   virtual void GetInputElements(Integer i, StdVector<Elem *>*  &elements)
   { elements = &(inputInterfaces_[i]->elements);}
 
-  //! get input neighbour elements
-  virtual void GetInputNeighbourElems(Integer i, StdVector<Elem *>*  &elements)
-  { elements = &(inputInterfaces_[i]->neighbours);}
-
   //! get input neighbour region
   virtual void GetInputNeighbourRegion(Integer i, StdVector<std::string>* &regions)
   { regions = &(inputInterfaces_[i]->neighInputRegions);}
-  
-  //! get input coupling region material
-  virtual void GetOppositeMaterials(Integer i, StdVector<MaterialData *>*  &mat)
-  { mat = &(outputInterfaces_[i]->oppositePdeMaterials);}
 
   //! get input coupling values
   virtual void GetInputValues(Integer i, CFSVector* &values)
@@ -256,10 +235,6 @@ public:
   virtual CouplingRegionType GetOutputRegionType(Integer i)
   { return outputInterfaces_[i]->regionType; }
  
-  //! get output coupling multigrid level
-  virtual Integer GetOutputRegionLevel(Integer i)
-  { return outputInterfaces_[i]->level; }
-  
   //! get output coupling region nodes
   virtual void GetOutputNodes(Integer i, StdVector<Integer>* &nodes)
   { nodes  = &(outputInterfaces_[i]->nodes);}
@@ -269,16 +244,20 @@ public:
   { elements = &(outputInterfaces_[i]->elements);}
   
   //! get output neighbour elements
-  virtual void GetOutputNeighbourElems(Integer i, StdVector<Elem *>*  &elements)
-  { elements = &(outputInterfaces_[i]->neighbours);}
+  //virtual void GetOutputNeighbourElems(Integer i, StdVector<Elem *>*  &elements)
+  //{ elements = &(outputInterfaces_[i]->neighbours);}
   
   //! get output neighbour region
-  virtual void GetOutputNeighbourRegion(Integer i, StdVector<std::string>* &regions)
-  { regions = &(outputInterfaces_[i]->neighInputRegions);}
+  //virtual void GetOutputNeighbourRegion(Integer i, StdVector<std::string>* &regions)
+  //{ regions = &(outputInterfaces_[i]->neighInputRegions);}
     
   //! get output coupling region materials
-  virtual void GetOwnMaterials(Integer i, StdVector<MaterialData *>* &mat)
+  virtual void GetMaterials(Integer i, StdVector<MaterialData *>* &mat)
   { mat = &(outputInterfaces_[i]->materials);} 
+  
+  //! get output coupling region materials of opposite pde
+  virtual void GetOppositeMaterials(Integer i, StdVector<MaterialData *>* &mat)
+  { mat = &(outputInterfaces_[i]->oppositePdeMaterials);}
 
   //! get output coupling values
   virtual void GetOutputValues(Integer i, CFSVector* &values)
@@ -340,20 +319,17 @@ protected:
     \param Quantity (input) name of output coupling quantity
     \param region (input) name of output coupling region
     \param RegionType (input) type of input coupling region
-    \param level (input) multigrid level
   */
   virtual CouplingInterface* AddOutput(CouplingOutputType outputType, 
 				       SolutionType quantity, 
 				       StdVector<std::string> & region,
-				       CouplingRegionType regionType,
-				       Integer level);
-
+				       CouplingRegionType regionType);
+				      
   //! maps input coupling types to output coupling types
   virtual CouplingOutputType Input2OutputType(CouplingInputType inputType);
 
   StdPDE * myPDE_;                                  //!< pointer to PDE
   Grid * ptGrid_;                                    //!< pointer to grid
-  BCs * ptBCs_;                                      //!< pointer to BCs
 
 
   // Coupling Output parameters

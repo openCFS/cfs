@@ -4,7 +4,6 @@
 #include "PDE/StdPDE.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
-#include "Domain/bcs.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include <list>
 
@@ -16,7 +15,6 @@ namespace CoupledField
 PDECoupling::CouplingInterface::CouplingInterface()
 {
   
-  level = 0;
   dof = 0;
   numNodes = 0;    
   numElems = 0;
@@ -26,12 +24,8 @@ PDECoupling::CouplingInterface::CouplingInterface()
   regions.Clear();
   nodes.Clear();
   elements.Clear();
-  neighbours.Clear();
   neighInputRegions.Clear();
-  oppositePdeNeighbours.Clear();
   materials.Clear();
-  oppositePdeMaterials.Clear();
-  
   }
 
 PDECoupling::CouplingInterface &
@@ -39,14 +33,10 @@ PDECoupling::CouplingInterface::operator= (const CouplingInterface & x)
 {
   regions = x.regions;
   regionType = x.regionType;
-  level = x.level;
   nodes = x.nodes;
   elements = x.elements;
-  neighbours = x.neighbours;
   neighInputRegions = x.neighInputRegions;
-  oppositePdeNeighbours = x.oppositePdeNeighbours;
   materials = x.materials;
-  oppositePdeMaterials = x.oppositePdeMaterials;
 
   if (x.values != NULL) {
     if (x.values->IsComplex()) {
@@ -84,12 +74,11 @@ PDECoupling::CouplingInterface::~CouplingInterface()
 }
 
 
-PDECoupling::PDECoupling(Grid * aptgrid, BCs * aptBCs)
+PDECoupling::PDECoupling(Grid * aptgrid)
 {
   ENTER_FCN("PDECoupling::PDECoupling")
   
   ptGrid_ = aptgrid;
-  ptBCs_ = aptBCs;
   
   defaultEpsilon = 1e-5;
   defaultNormType = L2REL;
@@ -130,7 +119,6 @@ void PDECoupling::AddInput(SolutionType quantity,
 			   StdVector<std::string> &region, 
 			   CouplingRegionType regionType,
 			   StdVector<std::string> &neighRegions,
-			   Integer level,
 			   Double epsilon,
 			   NormType normtype,
 			   StdVector<PDECoupling*> & couplings)
@@ -164,7 +152,7 @@ void PDECoupling::AddInput(SolutionType quantity,
   while (myInterface == 0 && i<couplings.GetSize())
     {
       myInterface = couplings[i++]->AddOutput(myOutputType, quantity, 
-					      region, regionType, level);
+					      region, regionType);
     }
   
   // If no pde has the specified quantity as output
@@ -234,7 +222,8 @@ void PDECoupling::AddInput(SolutionType quantity,
   }
   myInterface->neighInputRegions = neighRegions;
   
-  if (myInterface->elements.GetSize() != 0)
+  if (myInterface->elements.GetSize() != 0
+      || myInterface->regionType == SURFACE)
     {
       // Set the material of the interface.
       // Since the Inputcoupling values are computed by another PDE
@@ -243,48 +232,49 @@ void PDECoupling::AddInput(SolutionType quantity,
       
       // 1. Step: get the neighbouring elements 
       
-      const StdVector<Elem*> * interfaceElems = &(myInterface->elements);
-      //StdVector<Elem*>  actSubdomain;
-      //StdVector<Elem*> possibleNeighbours;
-      
+      StdVector<Elem*> & interfaceElems = myInterface->elements;
+      StdVector<Elem*>  actSubdomain;
+      StdVector<Elem*> possibleNeighbours, neighbours;
+    
       
       
       // for (Integer iSd=0; iSd < myPDE_->subdoms_.GetSize(); iSd++)
 // 	{GetVolNeighboursForSurf
-// 	  ptGrid_->GetElemSD(actSubdomain, myPDE_->subdoms_[iSd], level);
+// 	  ptGrid_->GetElemSD(actSubdomain, myPDE_->subdoms_[iSd]);
 // 	  for (Integer j=0; j<actSubdomain.GetSize(); j++)
 // 	    possibleNeighbours.Push_back(actSubdomain[j]);
 // 	}
       
-      ptGrid_->GetVolNeighboursForSurf(*interfaceElems,  myPDE_->subdoms_, 
-				       myInterface->neighbours, level);
-      if (!myInterface->neighbours.GetSize())
-	Error("No neighbours for element coupling found!",  __FILE__,__LINE__);
+     //  ptGrid_->GetElemsNextToSurface( myInterface->neighbours, *interfaceElems,
+// 				      myPDE_->subdoms_ );
+
+//       if (!myInterface->neighbours.GetSize())
+// 	Error("No neighbours for element coupling found!",  __FILE__,__LINE__);
       
       
       
       
-      // 2. Step: For each interface element, set the
-      //          material parameter according to its neighbour
+//       // 2. Step: For each interface element, set the
+//       //          material parameter according to its neighbour
       
-      for (Integer i=0; i<myInterface->neighbours.GetSize(); i++)
-	{
-	  Boolean subdomFound = FALSE;
-	  Integer subDomNr = 0;
+//       for (Integer i=0; i<myInterface->neighbours.GetSize(); i++)
+// 	{
+// 	  Boolean subdomFound = FALSE;
+// 	  Integer subDomNr = 0;
 	  
-	  for (subDomNr=0; subDomNr<myPDE_->subdoms_.GetSize(); subDomNr++)
-	    if (myPDE_->subdoms_[subDomNr] == myInterface->neighbours[i]->namesd)
-	      {
-		subdomFound = TRUE;
-		break;
-	      }
+// 	  for (subDomNr=0; subDomNr<myPDE_->subdoms_.GetSize(); subDomNr++)
+// 	    if (myPDE_->subdoms_[subDomNr] == myInterface->neighbours[i]->regionId)
+// 	      {
+// 		subdomFound = TRUE;
+// 		break;
+// 	      }
 	  
 	  
-	  if (subdomFound == FALSE)
-	    Error("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
+// 	  if (subdomFound == FALSE)
+// 	    Error("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
 	  
-	  myInterface->materials[i] = &(myPDE_->materialData_[subDomNr]);	    
-	}
+// 	  myInterface->materials[i] = &(myPDE_->materialData_[subDomNr]);	    
+// 	}
       
       
       
@@ -294,38 +284,65 @@ void PDECoupling::AddInput(SolutionType quantity,
       
       
 //       for (Integer iSd=0; iSd < oppositePDE->subdoms_.GetSize(); iSd++)
-// 	{
-// 	  ptGrid_->GetElemSD(actSubdomain, oppositePDE->subdoms_[iSd], level);
-// 	  for (Integer j=0; j<actSubdomain.GetSize(); j++)
-// 	    possibleNeighbours.Push_back(actSubdomain[j]);
-// 	}
+//         {
+//           ptGrid_->GetVolElems(actSubdomain, oppositePDE->subdoms_[iSd]);
+//  	  for (Integer j=0; j<actSubdomain.GetSize(); j++)
+//  	    possibleNeighbours.Push_back(actSubdomain[j]);
+//  	}
       
-      ptGrid_->GetVolNeighboursForSurf(*interfaceElems, oppositePDE->subdoms_, 
-				       myInterface->oppositePdeNeighbours, level);
-      if (!myInterface->oppositePdeNeighbours.GetSize())
-	Error("No opposite neighbours for element coupling found!",  __FILE__,__LINE__);
+//       ptGrid_->GetElemsNextToSurface( neighbours,
+//                                       *interfaceElems,
+//                                       oppositePDE->subdoms_ );
       
-      for (Integer i=0; i<myInterface->oppositePdeNeighbours.GetSize(); i++)
-	{
-	  Boolean subdomFound = FALSE;
-	  Integer subDomNr = 0;
-	  
-	  for (subDomNr=0; subDomNr<oppositePDE->subdoms_.GetSize(); subDomNr++)
-	    if (oppositePDE->subdoms_[subDomNr] == myInterface->oppositePdeNeighbours[i]->namesd)
-	      {
-		subdomFound = TRUE;
-		break;
-	      }
-	  
-	  
-	  
-	  if (subdomFound == FALSE)
-	    Error("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
-	  
-	  myInterface->oppositePdeMaterials[i] = &(oppositePDE->materialData_[subDomNr]);
-	}
+//        if (!neighbours.GetSize())
+//  	Error("No opposite neighbours for element coupling found!",  __FILE__,__LINE__);
       
-      } // end if
+//       for (Integer i=0; i<neighbours.GetSize(); i++)
+//         {
+//           Boolean subdomFound = FALSE;
+//           Integer subDomNr = 0;
+          
+//           for (subDomNr=0; subDomNr<oppositePDE->subdoms_.GetSize(); subDomNr++)
+//             if (oppositePDE->subdoms_[subDomNr] == neighbours[i]->regionId)
+//               {
+//                 subdomFound = TRUE;
+//                 break;
+//               }
+	  	  
+	  
+//  	  if (subdomFound == FALSE)
+//  	    Error("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
+	  
+//  	  myInterface->oppositePdeMaterials[i] = &(oppositePDE->materialData_[subDomNr]);
+//  	}
+      
+      Integer index = -1;
+      myInterface->oppositePdeMaterials.Resize(interfaceElems.GetSize());
+
+      for ( Integer iElem = 0; iElem < interfaceElems.GetSize(); iElem++ ) {
+        
+        SurfElem const & myElem = 
+          dynamic_cast<SurfElem &>(*interfaceElems[iElem]);
+
+        index = myPDE_->subdoms_.Find(myElem.ptVolElem1->regionId);
+
+        if ( index == -1 ) {
+          index = myPDE_->subdoms_.Find(myElem.ptVolElem2->regionId);
+        }
+        
+        if ( index == -1 ) {
+          (*error) << "PDECoupling::AddOutput: For Surface element Nr. " 
+
+                   << myElem.elemNum << " I found no according region in PDE '"
+                   << myPDE_->GetName() << "'!";
+          Error( __FILE__, __LINE__ );
+        }
+        myInterface->oppositePdeMaterials[iElem] = 
+          &(myPDE_->materialData_[index]);
+        
+      }
+      
+    } // end if
   
   inputInterfaces_[myNum] = myInterface;
   
@@ -335,8 +352,7 @@ void PDECoupling::AddInput(SolutionType quantity,
 PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType outputType, 
 						       SolutionType quantity, 
 						       StdVector<std::string> & regions,
-						       CouplingRegionType regionType,
-						       Integer level)
+						       CouplingRegionType regionType)
 {
   ENTER_FCN("PDECoupling::AddOutput");
   
@@ -359,15 +375,17 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
   CouplingInterface *myInterface = new CouplingInterface;  
   myInterface->regions = regions;
   myInterface->regionType = regionType;
-  myInterface->level = level;
 
-  std::list<Integer> nodesConverted;
+  StdVector<Integer> nodesConverted;
   StdVector<Elem*> SD;
-  std::list<Integer>::iterator it;
+  StdVector<SurfElem*> surfElems;
+  StdVector<Integer> nodes;
   Integer inode = 0;
   Integer numNodes = 0;
   StdVector<Elem*> auxElems;
   std::string errMsg;
+  RegionIdType regionId;
+  StdVector<RegionIdType> regionIdVec;
   
   // Get Elements/nodes of coupling region
   SD.Clear();
@@ -375,15 +393,19 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
     {
     case REGION:
 
+      ptGrid_->RegionNameToId( regionIdVec, regions );
+      numNodes = ptGrid_->GetNumNodes( regionIdVec );
+      myInterface->nodes.Reserve(numNodes);
+      
+                                      
       for (Integer iSD=0; iSD<regions.GetSize(); iSD++)
 	{
-	  ptGrid_->GetElemSD(auxElems, regions[iSD], level);
-	  for (Integer iElem=0; iElem<auxElems.GetSize(); iElem++)
-	    SD.Push_back(auxElems[iElem]);
+          ptGrid_->GetNodesByRegion(nodes, regionIdVec[iSD]);
+          for (Integer iNode=0; iNode<nodes.GetSize(); iNode++) {
+            myInterface->nodes.Push_back(nodes[iNode]);
+          }
 	}
 
-
-      ptGrid_->CalcNumberOfNodesInPatch(SD, myInterface->nodes);
       myInterface->numNodes = myInterface->nodes.GetSize();
 
       // Check if any nodes at all were found
@@ -414,7 +436,7 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
 
       // count complete number of nodes
       for (Integer i=0; i<regions.GetSize(); i++)
-	numNodes+= ptBCs_->GetNumNodesLevel(regions[i], level);
+	numNodes+= ptGrid_->GetNumNodes(regions[i]);
 
       myInterface->nodes.Resize(numNodes);
       
@@ -423,12 +445,10 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
       // get for each nodeslist all nodes
       for (Integer i=0; i<regions.GetSize(); i++)
 	{
-	  nodesConverted = ptBCs_->GetNodesLevel(regions[i], level);
+	  ptGrid_->GetNodesByName(nodesConverted, regions[i]);
 	  
-	  it = nodesConverted.begin();
-	  
-	  for (it=nodesConverted.begin(); it != nodesConverted.end(); it++, inode++)
-	    myInterface->nodes[inode] = *it;
+	  for ( Integer k=0; k< nodesConverted.GetSize(); k++, inode++)
+	    myInterface->nodes[inode] = nodesConverted[k];
 	}
 
       myInterface->numNodes = myInterface->nodes.GetSize();
@@ -451,24 +471,31 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
 
     case SURFACE:
 
+      ptGrid_->RegionNameToId( regionIdVec, regions );
+      numNodes = ptGrid_->GetNumNodes( regionIdVec );
+      myInterface->nodes.Reserve(numNodes);
 
-      for (Integer iSD=0; iSD<regions.GetSize(); iSD++)
-	{
-	  if (ptGrid_->GetDim() == 2)
-	    auxElems = ptBCs_->getEdgesBC(regions[iSD], level);
-	  else
-	    auxElems = ptBCs_->getFacesBC(regions[iSD], level);
-	  for (Integer iElem=0; iElem<auxElems.GetSize(); iElem++)
-	    SD.Push_back(auxElems[iElem]);
-	}
+      for (Integer iSD=0; iSD<regions.GetSize(); iSD++) {
 
+        // first get the surface elements
+        ptGrid_->GetSurfElems( surfElems, regionIdVec[iSD] );
+        for (Integer iElem=0; iElem<surfElems.GetSize(); iElem++)
+          SD.Push_back(surfElems[iElem]);
+        
+        // then get the according coupling nodes
+        ptGrid_->GetNodesByRegion(nodes, regionIdVec[iSD]);
+        
+        for (Integer iNode=0; iNode<nodes.GetSize(); iNode++) {
+          myInterface->nodes.Push_back(nodes[iNode]);
+        }
+        
+      }
+      
       
       // Get the nodes from BCs
-      //myInterface->elements = ptBCs_->getEdgesBC(region, level);
+      //myInterface->elements = ptBCs_->getEdgesBC(region);
       myInterface->elements = SD;
-
-      // Get the nodes contained in the list of elements
-      ptGrid_ -> CalcNumberOfNodesInPatch(myInterface->elements, myInterface->nodes);
+      
 
       myInterface->numNodes = myInterface->nodes.GetSize();
 
@@ -489,7 +516,6 @@ PDECoupling::CouplingInterface* PDECoupling::AddOutput(CouplingOutputType output
       
       myInterface->numElems = myInterface->elements.GetSize();
       myInterface->materials.Resize(myInterface->elements.GetSize());
-      myInterface->oppositePdeMaterials.Resize(myInterface->elements.GetSize());
 	    
 
       break;
@@ -673,9 +699,6 @@ void PDECoupling::SetMemento(CouplingMemento & memento) {
 	  
 	  (memento.inputInterfaces_[iMem].elements  == 
 	   inputInterfaces_[iOwn]->elements) &&
-	  
-	  (memento.inputInterfaces_[iMem].neighbours  == 
-	   inputInterfaces_[iOwn]->neighbours) &&
 	  
 	  (memento.inputInterfaces_[iMem].dof  == 
 	   inputInterfaces_[iOwn]->dof) &&
