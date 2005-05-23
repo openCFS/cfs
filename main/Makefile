@@ -36,7 +36,7 @@ SUBLIBDIR = Driver PDE CoupledPDE \
             DataInOut/DefineFiles \
             DataInOut/ParamHandling \
             DataInOut/Unverg DataInOut/GMV \
-            DataInOut/DatFile DataInOut/AnsysFile DataInOut\
+            DataInOut/AnsysFile DataInOut\
             DataInOut/Database\
             DataInOut/CommandLine\
             Utils Matrix General ODESolve ODEDescr \
@@ -44,6 +44,7 @@ SUBLIBDIR = Driver PDE CoupledPDE \
             $(EXTRA_MODULES)
 
 PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
+TAGSPATH = $(addsuffix /*.??,$(PATHSUBLIBDIR))
 
 # -----------------------------------------------------------------------------
 # MYLIBRARIES
@@ -92,7 +93,7 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 $(program):: $(src:.cc=.o) $(mylibrary)
 	$(LINK) $(LFLAGS_EXE) -o $@ $(src:.cc=.o) -L$(LIB_DIR) \
 	$(LFLAGS_MACHINE) $(addprefix -l, $(mylibrary)) \
-	$(LFLAGS_GLOBAL) $(syslib)
+	$(LFLAGS_GLOBAL) $(syslib) 
 
 # -----------------------------------------------------------------------------
 # MODULE TARGETS
@@ -325,5 +326,8 @@ clean-depend:
                      then $(MAKE) $@;\
                      else echo "WARNING:" $$n " doesn't exist";\
         fi); done
+
+tags:
+	etags --declarations --members --ignore-indentation  -o ../libsrc/TAGS $(TAGSPATH)
 
 # DO NOT DELETE THIS LINE -- make depend depends on it
