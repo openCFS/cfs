@@ -26,7 +26,7 @@ SolveStepAcoustic::~SolveStepAcoustic() {
 // ======================================================
 
 void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double asteptime,
-					const Integer level, const Boolean reset) {
+					const Boolean reset) {
 
   ENTER_FCN( "SolveStepAcoustic::StepTransNonLin" );
 
@@ -46,7 +46,7 @@ void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double astept
   
   // if first time step, setup system matrix
   if (laststepcalc_ == 1) {
-	assemble_->AssembleMatrices(level);
+	assemble_->AssembleMatrices();
 	algsys_->ConstructEffectiveMatrix(matrix_factor_);
                
 	//set job to 1: build in dirichlet BCs and compute preconditioner
@@ -60,7 +60,7 @@ void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double astept
 
   // set BCs, if effective mass matrix formulation, values of BCs depend on 
   //  predictors, so predictors have to be computed beforehand
-  SetBCs(level, lasttimecalc_);
+  SetBCs(lasttimecalc_);
 
   // set old solution  
   newSol = solhelp->GetAlgSysVector();
@@ -176,7 +176,7 @@ void SolveStepAcoustic::AddNonLinRHS() {
   for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
 
 	StdVector<Elem*> elemssd;
-	ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+	ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
         
 	// get material data
 	density         = materialData_[actSD].GetDensity();
@@ -205,7 +205,7 @@ void SolveStepAcoustic::AddNonLinRHS() {
 
 	  ptElem  = elemssd[j]->ptElem;
 	  connect = elemssd[j]->connect;
- 	  GetElemCoords(connect, ptCoord, actlevel_);
+ 	  GetElemCoords(connect, ptCoord);
 
 	  GetSolVecOfElement(sol, connect);
 	  GetDerivSolVecOfElement(solderiv1, connect);

@@ -77,7 +77,6 @@ void TransientDriver::SolveProblem()
 {
   ENTER_FCN( "TransientDriver::SolveProblem" );
   
-  Integer level     = 0;
   Double  steptime  = firstdt_;
   Integer stepsave  = isavebegin_;
   
@@ -100,7 +99,7 @@ void TransientDriver::SolveProblem()
   // if multiSequence is performed, the ms-driver
   // writes out the grid one time
   if (! isPartOfSequence_)
-    ptdomain_->PrintGrid(level);
+    ptdomain_->PrintGrid();
   
   ptPDE_->WriteGeneralPDEdefines();
   
@@ -124,13 +123,13 @@ void TransientDriver::SolveProblem()
       }
     }
     
-    ptPDE_->GetSolveStep()->PreStepTrans(nstep, steptime, level, updatesysmat);
-    ptPDE_->GetSolveStep()->SolveStepTrans(nstep, steptime, level, updatesysmat);
-    ptPDE_->GetSolveStep()->PostStepTrans(nstep,steptime,level);
+    ptPDE_->GetSolveStep()->PreStepTrans(nstep, steptime, updatesysmat);
+    ptPDE_->GetSolveStep()->SolveStepTrans(nstep, steptime, updatesysmat);
+    ptPDE_->GetSolveStep()->PostStepTrans(nstep,steptime);
     
     // writing results in output-file
     if (nstep == stepsave && (nstep <= isaveend_)) { 
-      ptPDE_->PostProcess(level);
+      ptPDE_->PostProcess();
       ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
       stepsave+=isaveincr_;
     }

@@ -55,7 +55,6 @@ namespace CoupledField {
     // Vector of memento objects, which save the internal state
     // of a PDE
     StdVector<PDEMemento> memento;
-    Integer level = 0;
     Integer nextStep = 0;
     Double nextTime = 0.0;
     Integer actNumSteps;
@@ -66,7 +65,7 @@ namespace CoupledField {
     Integer iPDE, kPDE;
 
     // Print out the grid
-    ptdomain_->PrintGrid(level);
+    ptdomain_->PrintGrid();
 
     Info->StartProgress("Starting to solve problem",FALSE);
 

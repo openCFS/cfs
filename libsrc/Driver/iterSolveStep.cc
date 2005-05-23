@@ -11,9 +11,8 @@ namespace CoupledField
   IterSolveStep::IterSolveStep(IterCoupledPDE &apde) 
     : BaseSolveStep(),
       rPDE_(apde),
-      rCouplings_(apde.Couplings_),
-      actlevel_(apde.actlevel_){
-
+      rCouplings_(apde.Couplings_)
+  {
     ENTER_FCN( "IterSolveStep::IterSolveStep" );
     
 
@@ -29,7 +28,6 @@ namespace CoupledField
   //----------------------- STATIC---------------------------------------
 
   void IterSolveStep::SolveStepStatic(const Integer kstep, const Double aTime,
-				       const Integer level,
 				       const Boolean updatesysmat ) {
 
     ENTER_FCN ( "IterSolveStep::SolveStepStatic" );
@@ -62,10 +60,10 @@ namespace CoupledField
 	    // Only solve current PDE, if the corresponding
 	    // flag in 'solvePDE_' is set to TRUE
 	    if (rPDE_.solvePDE_[i] == TRUE) {
-	      rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,actlevel_,updatesysmat);
+	      rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,updatesysmat);
 	      rPDE_.PDEs_[i]->CalcInputCoupling();
-	      rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,actlevel_,updatesysmat);
-	      rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic(kstep,aTime,actlevel_);
+	      rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,updatesysmat);
+	      rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic(kstep,aTime);
 	      rPDE_.PDEs_[i]->CalcOutputCoupling();
 	      
 	      // Calculate Norms
@@ -103,13 +101,13 @@ namespace CoupledField
 
     // now we are converged and can compute any postprocessing-quantities
     for (Integer i=0; i<rPDE_.PDEs_.GetSize(); i++)
-      rPDE_.PDEs_[i]->PostProcess(actlevel_);
+      rPDE_.PDEs_[i]->PostProcess();
 
   }
 
 
   //----------------------- TRANSIENT---------------------------------------
-  void IterSolveStep::SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
+  void IterSolveStep::SolveStepTrans(const Integer kstep, const Double asteptime, 
 				      const Boolean updatesysmat)
   {
     ENTER_FCN( "IterSolveStep::SolveStepTrans" );
@@ -147,10 +145,10 @@ namespace CoupledField
 	    // flag in 'solvePDE_' is set to TRUE
 	    if (rPDE_.solvePDE_[i] == TRUE) {
 	      
-	      rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans(kstep, steptime, level, updatesysmat);
+	      rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans(kstep, steptime, updatesysmat);
 	      rPDE_.PDEs_[i]->CalcInputCoupling();
-	      rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(kstep, steptime, level, updatesysmat);
-	      rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans(kstep, steptime, level);
+	      rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(kstep, steptime, updatesysmat);
+	      rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans(kstep, steptime);
 	      rPDE_.PDEs_[i]->CalcOutputCoupling();
 	      
 	      // Calculate Norms
@@ -185,7 +183,7 @@ namespace CoupledField
   
   //----------------------- HARMONIC---------------------------------------
   void IterSolveStep::SolveStepHarmonic(const Integer freqStep, const Double frequency, 
-					Integer level, const Boolean reset) {
+					const Boolean reset) {
 
     ENTER_FCN( "IterSolveStep::SolveStepHarmonic" );
 

@@ -68,8 +68,7 @@ void BaseDriver :: PrintSeqMeshes()
      ptMeshes_->OpenFile(nummeshes_);
    }
 
-   Integer level=0;
-   ptMeshes_->WriteGrid(level);
+   ptMeshes_->WriteGrid(     );
 
    nummeshes_++;
 }

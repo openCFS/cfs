@@ -61,11 +61,10 @@ void HarmonicDriver :: SolveProblem()
 {
   ENTER_FCN( " HarmonicDriver::SolveProblem" );
 
-  Integer level=0;
   Boolean reset = TRUE;
   
   if (! isPartOfSequence_)
-  ptdomain_->PrintGrid(level);
+  ptdomain_->PrintGrid();
 
   // if driver is not part of multiSequence Driver, get list
   // of pdes which have to be solved and intialize them
@@ -95,12 +94,12 @@ void HarmonicDriver :: SolveProblem()
 
   for (fstep = 1; fstep <= numFreq_; fstep++) {
     Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq_);    
-    ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq_, level, reset);
-    ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq_, level, reset);
-    ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq_, level, reset);
+    ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq_, reset);
+    ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq_, reset);
+    ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq_, reset);
     
     // writing results in output-file
-    ptPDE_->PostProcess(level);
+    ptPDE_->PostProcess();
     ptPDE_->WriteResultsInFile();
     
     actFreq_ += freqIncr;

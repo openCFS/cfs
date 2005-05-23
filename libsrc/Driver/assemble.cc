@@ -21,7 +21,6 @@ namespace CoupledField {
      dampingMatrix_(FALSE),
      massMatrix_(FALSE),
      convectionMatrix_(FALSE),
-     actlevel_(0),
      integrators_(0),
      rhsIntegrators_(0),
      rhsSrcIntegrators_(0),
@@ -107,44 +106,44 @@ namespace CoupledField {
   }
 
 
-  Integer Assemble::SubDomIndex(const std::string & subDomName)
+  Integer Assemble::SubDomIndex(const RegionIdType subDomId)
   {
     ENTER_FCN( "Assemble::SubDomIndex" );
 
     for (int i=0; i < subdoms_.GetSize();i++)
       {
-        if (subDomName == subdoms_[i]) return i;
+        if (subDomId == subdoms_[i]) return i;
       }
   
     std::string errOut;
-    errOut = "SubDomain " + subDomName + " not defined!";
+    errOut = "SubDomain " + ptgrid_->RegionIdToName(subDomId) + " not defined!";
     Info->Error(errOut, __FILE__, __LINE__);
 
     return 0;
   }
   
-  Integer Assemble::SurfDomIndex(const std::string & surfDomName)
+  Integer Assemble::SurfDomIndex(const RegionIdType surfDomId)
   {
     ENTER_FCN( "Assemble::SurfDomIndex" );
 
     for (int i=0; i < surfdoms_.GetSize();i++)
-      if (surfDomName == surfdoms_[i])
+      if (surfDomId == surfdoms_[i])
         return i;
     
   
     std::string errOut;
-    errOut = "Surface-Domain " + surfDomName + " not defined!";
+    errOut = "Surface-Domain " + ptgrid_->RegionIdToName(surfDomId) + " not defined!";
     Info->Error(errOut, __FILE__, __LINE__);
     return -1;
   }
 
 
   void Assemble::GetElemCoords(const StdVector<Integer> connect, 
-                               Matrix<Double> &coordMat, const Integer level)
+                               Matrix<Double> &coordMat)
   {
     ENTER_FCN( "Assemble:GetElemCoords" );
     
-    ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
+    ptgrid_->GetElemNodesCoord( coordMat, connect);
   
     if (nonLinGeo)
       {
@@ -165,7 +164,7 @@ namespace CoupledField {
 
   
   // do the basic assembling stuff
-  void Assemble::AssembleMatrices(const Integer level)
+  void Assemble::AssembleMatrices()
   {
 
     ENTER_FCN( "Assemble:AssembleMatrices" );
@@ -181,7 +180,7 @@ namespace CoupledField {
     for (Integer actDom=0; actDom < subdoms_.GetSize(); actDom++) {     
       StdVector<Elem*> elemssd;
 
-      ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
+      ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
 
       for(Integer actInteg=0; actInteg < integrators_[actDom]->GetSize(); actInteg++) {
         IntegratorDescriptor * actDescriptor = (*integrators_[actDom])[actInteg];
@@ -256,7 +255,7 @@ namespace CoupledField {
             StdVector<Integer> connecth = elemssd[actEl]->connect;
                              
             Matrix<Double> ptCoord;
-            GetElemCoords(connecth, ptCoord, level);
+            GetElemCoords(connecth, ptCoord);
                     
             // map connect to PDE node numbers
             StdVector<Integer> connect_PDE1, connect_PDE2;
@@ -356,15 +355,15 @@ namespace CoupledField {
 
       //check is necessary, because the surface-integrator could also be a RHS-Src integrator
       if (surfintegrators_[actDom]->GetSize()) {        
-        StdVector<Elem*> elemssd;
-        elemssd=ptBCs_->getFacesBC(surfdoms_[actDom],level);
+        StdVector<SurfElem*> elemssd;
+	ptgrid_->GetSurfElems(elemssd, surfdoms_[actDom]);
           
         for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
           BaseFE * ptEl = elemssd[actEl]->ptElem;
           StdVector<Integer> connecth = elemssd[actEl]->connect;
 
           Matrix<Double> ptCoord;
-          GetElemCoords(connecth, ptCoord, level);
+          GetElemCoords(connecth, ptCoord);
 
           // map connect to PDE node numbers
           StdVector<Integer> connect_PDE1, connect_PDE2;
@@ -442,16 +441,16 @@ namespace CoupledField {
 
 
   // do the basic assembling stuff
-  void Assemble::AssembleSrcRHS(const Integer level, const Double time)
+  void Assemble::AssembleSrcRHS(const Double time)
   {
     ENTER_FCN( "Assemble:AssembleSrcRHS" );
-    AssembleRHSNodalSources(level, time);
-    AssembleRHSIntegralSources(level, time);
+    AssembleRHSNodalSources(time);
+    AssembleRHSIntegralSources(time);
   }
 
 
   // do the basic assembling stuff
-  void Assemble::AssembleRHSIntegralSources(const Integer level,const Double time)
+  void Assemble::AssembleRHSIntegralSources(const Double time)
   {
     ENTER_FCN( "Assemble:AssembleRHSIntegralSources" );
 
@@ -463,7 +462,7 @@ namespace CoupledField {
         if (rhsSrcIntegrators_[actDom]->GetSize())
           {
             StdVector<Elem*> elemssd;
-            ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
+            ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
             
             Double val_tfunc = 1.0;
             Double valPhase = 0.0;
@@ -480,7 +479,7 @@ namespace CoupledField {
                 StdVector<Integer> connecth = elemssd[actEl]->connect;
                 
                 Matrix<Double> ptCoord;
-                GetElemCoords(connecth, ptCoord, level);
+                GetElemCoords(connecth, ptCoord);
             
                 // map connect to PDE node numbers
                 StdVector<Integer> connect_PDE;
@@ -513,8 +512,8 @@ namespace CoupledField {
       { 
         if (rhsSrcSurfIntegrators_[actSurf]->GetSize())
           {
-            StdVector<Elem*> elemssd;
-            elemssd=ptBCs_->getFacesBC(surfdoms_[actSurf],level);
+            StdVector<SurfElem*> elemssd;
+            ptgrid_->GetSurfElems(elemssd, surfdoms_[actSurf]);
             
             Double val_tfunc = 1.0;
             Double valPhase = 0.0;
@@ -531,7 +530,7 @@ namespace CoupledField {
                 StdVector<Integer> connecth = elemssd[actEl]->connect;
                 
                 Matrix<Double> ptCoord;
-                GetElemCoords(connecth, ptCoord, level);
+                GetElemCoords(connecth, ptCoord);
             
                 // map connect to PDE node numbers
                 StdVector<Integer> connect_PDE;
@@ -564,7 +563,7 @@ namespace CoupledField {
 
 
   // do the basic assembling stuff
-  void Assemble::AssembleRHSNodalSources(const Integer level, const Double time)
+  void Assemble::AssembleRHSNodalSources(const Double time)
   {
     ENTER_FCN( "Assemble:AssembleRHSNodalSources" );
     
@@ -578,9 +577,8 @@ namespace CoupledField {
         if (dofsPerNode_ != 1)
           dof = GetBCDof( loadDof_[actDom] );   
 
-        std::list<Integer> nodes;
-        nodes = ptBCs_->GetNodesLevel(loadDom_[actDom], level);
-        
+        StdVector<Integer> nodes;
+	ptgrid_->GetNodesByName( nodes,loadDom_[actDom]);
         Double val = loadVals_[actDom];
 
         Double val_tfunc = 1.0;
@@ -588,9 +586,9 @@ namespace CoupledField {
           val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_loads_[actDom]);
 
 
-        for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+        for ( Integer i=0;  i<nodes.GetSize(); i++)
           {
-            Integer node = *p;
+            Integer node = nodes[i];
             
             val = loadVals_[actDom] * val_tfunc;
 
@@ -607,7 +605,7 @@ namespace CoupledField {
 
 
   // do the basic assembling stuff
-  void Assemble::AssembleNLRHS(const Integer level, const Double time)
+  void Assemble::AssembleNLRHS(const Double time)
   {
     ENTER_FCN( "Assemble:AssembleNLRHS" );
 
@@ -619,7 +617,7 @@ namespace CoupledField {
       { 
         if (rhsIntegrators_[actDom]->GetSize())
           {
-            ptgrid_->GetElemSD(elemssd, subdoms_[actDom], level);
+            ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
         
             for (int actEl=0; actEl< elemssd.GetSize(); actEl++)
               {
@@ -628,7 +626,7 @@ namespace CoupledField {
 
 
                 Matrix<Double> ptCoord;
-                GetElemCoords(connecth, ptCoord, level);
+                GetElemCoords(connecth, ptCoord);
 
 
                 // map connect to PDE node numbers
@@ -665,7 +663,7 @@ namespace CoupledField {
   
 
   // do the basic assembling stuff
-  void Assemble::AssembleSprings(const Integer level, const Double time)
+  void Assemble::AssembleSprings(const Double time)
   {
     ENTER_FCN( "Assemble::AssembleSprings" );
     
@@ -679,8 +677,8 @@ namespace CoupledField {
         if (dofsPerNode_ != 1)
           dof = GetBCDof( springDof_[actDom] );   
 
-        std::list<Integer> nodes;
-        nodes = ptBCs_->GetNodesLevel(springDom_[actDom], level);
+        StdVector<Integer> nodes;
+        ptgrid_->GetNodesByName(nodes, springDom_[actDom]);
         
         Double massValue_ = springMassVals_[actDom];
         Double dampingValue_ = springDampVals_[actDom];
@@ -691,9 +689,9 @@ namespace CoupledField {
           val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_springs_[actDom]);
 
 
-        for (std::list<Integer>::const_iterator p=nodes.begin(); p!=nodes.end(); p++)
+        for ( Integer i=0; i < nodes.GetSize(); i++ )
           {
-            Integer node = *p;
+            Integer node = nodes[i];
             
             massValue_ = springMassVals_[actDom]  * val_tfunc;
             dampingValue_ = springDampVals_[actDom]  * val_tfunc;
@@ -862,8 +860,8 @@ namespace CoupledField {
 
   void Assemble::SetGeneralParams(const std::string & pdename, 
                                   const Integer dofsPerNode,
-				  const StdVector<std::string> subdoms,
-                                  const StdVector<std::string> surfdoms,
+				  const StdVector<RegionIdType> & subdoms,
+                                  const StdVector<RegionIdType> & surfdoms,
                                   const std::string bcSequenceTag)
   {
     ENTER_FCN( "Assemble::SetGeneralParams" );
@@ -1103,7 +1101,7 @@ namespace CoupledField {
     for (nsub=0; nsub<subdoms_.GetSize(); nsub++)
       {
         StdVector<Elem*> elemssd;
-        ptgrid_->GetElemSD(elemssd,subdoms_[nsub],actlevel_);
+        ptgrid_->GetVolElems(elemssd,subdoms_[nsub]);
 
         for (iel=0; iel < elemssd.GetSize(); iel++)
           {  
@@ -1186,64 +1184,64 @@ namespace CoupledField {
 
   // define integrators
   void Assemble::AddRhsIntegrator(BaseForm * integrator,
-                                  const std::string & subDomName, 
+                                  const RegionIdType  regionId, 
                                   const Integer nonLin)
   {
     ENTER_FCN( "Assemble::AddRhsIntegrator" );
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
+    rhsIntegrators_[SubDomIndex(regionId)]->Push_back(actRhsID);
   }
 
 
   //needed for static and transient analysis
   void Assemble::AddRhsSrcIntegrator(BaseForm * integrator,
-                                     const std::string & subDomName, 
+                                     const RegionIdType regionId, 
                                      const std::string fncname,
                                      const Integer nonLin)
   {
     ENTER_FCN( "Assemble::AddRhsSrcIntegrator" );
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsSrcIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
-    fncname_rhs_[SubDomIndex(subDomName)] = fncname;
+    rhsSrcIntegrators_[SubDomIndex(regionId)]->Push_back(actRhsID);
+    fncname_rhs_[SubDomIndex(regionId)] = fncname;
   }
 
   //needed for harmonic analysis
   void Assemble::AddRhsSrcIntegrator(BaseForm * integrator,
-                                     const std::string & subDomName, 
+                                     const RegionIdType regionId, 
                                      const Double phaseval,
                                      const Integer nonLin)
   {
     ENTER_FCN( "Assemble::AddRhsSrcIntegrator" );
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsSrcIntegrators_[SubDomIndex(subDomName)]->Push_back(actRhsID);
-    rhsSrcPhase_[SubDomIndex(subDomName)] = phaseval;
+    rhsSrcIntegrators_[SubDomIndex(regionId)]->Push_back(actRhsID);
+    rhsSrcPhase_[SubDomIndex(regionId)] = phaseval;
   }
 
 
   //needed for static and transient analysis
   void Assemble::AddRhsSrcSurfIntegrator(BaseForm * integrator,
-                                         const std::string & subDomName, 
+                                         const RegionIdType regionId,
                                          const std::string fncname,
                                          const Integer nonLin)
   {
     ENTER_FCN( "Assemble::AddRhsSrcSurfIntegrator" );
     
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsSrcSurfIntegrators_[SurfDomIndex(subDomName)]->Push_back(actRhsID);
-    fncname_rhsSurf_[SurfDomIndex(subDomName)] = fncname;
+    rhsSrcSurfIntegrators_[SurfDomIndex(regionId)]->Push_back(actRhsID);
+    fncname_rhsSurf_[SurfDomIndex(regionId)] = fncname;
   }
 
   //needed for harmonic analysis
   void Assemble::AddRhsSrcSurfIntegrator(BaseForm * integrator,
-                                         const std::string & subDomName, 
+                                         const RegionIdType regionId, 
                                          const Double phaseval,
                                          const Integer nonLin)
   {
     ENTER_FCN( "Assemble::AddRhsSrcSurfIntegrator" );
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
-    rhsSrcSurfIntegrators_[SurfDomIndex(subDomName)]->Push_back(actRhsID);
+    rhsSrcSurfIntegrators_[SurfDomIndex(regionId)]->Push_back(actRhsID);
     rhsSrcSurfPhase_.Resize(1);
-    rhsSrcSurfPhase_[SurfDomIndex(subDomName)] = phaseval;
+    rhsSrcSurfPhase_[SurfDomIndex(regionId)] = phaseval;
   }
 
 
@@ -1262,7 +1260,7 @@ namespace CoupledField {
 
   // define integrators
   void StaticAssemble::AddIntegrator( BaseForm *integrator,
-                                      const std::string & subDomName,
+                                      const RegionIdType regionId,
                                       const FEMatrixType destinationMatrix,
                                       const Integer nonLin ) {
 
@@ -1278,13 +1276,13 @@ namespace CoupledField {
 
     IntegratorDescriptor *actID = new IntegratorDescriptor(integrator,
                                                            actMatType, nonLin);
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+    integrators_[SubDomIndex(regionId)]->Push_back(actID);
   }
 
 
   // define integrators
   void StaticAssemble::AddSurfIntegrator( BaseForm *integrator,
-                                          const std::string &subDomName,
+                                          const RegionIdType regionId,
                                           const FEMatrixType destinationMatrix,
                                           const Integer nonLin ) {
 
@@ -1301,12 +1299,12 @@ namespace CoupledField {
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
                                                             actMatType,
                                                             nonLin);
-    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
+    surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
   }
 
   // define integrators
   void StaticAssemble::AddIntegrator(IntegratorDescriptor * actID,
-                                     const std::string & subDomName) {
+                                     const RegionIdType regionId) {
 
     ENTER_FCN( "StaticAssemble::AddIntegrator" );
 
@@ -1316,7 +1314,7 @@ namespace CoupledField {
     if (actID->DestMat() !=  SYSTEM)
       return;
 
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+    integrators_[SubDomIndex(regionId)]->Push_back(actID);
   }
     
 
@@ -1337,7 +1335,7 @@ namespace CoupledField {
 
   // define integrators
   void TransientAssemble::AddIntegrator( BaseForm * integrator,
-                                         const std::string & subDomName,
+                                         const RegionIdType  regionId,
                                          const FEMatrixType destinationMatrix,
                                          const Integer nonLin ) {
 
@@ -1348,13 +1346,13 @@ namespace CoupledField {
                    "directly", __FILE__, __LINE__ );
     
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+    integrators_[SubDomIndex(regionId)]->Push_back(actID);
   }
 
 
   // define integrators
   void TransientAssemble::AddSurfIntegrator(BaseForm * integrator,
-                                            const std::string & subDomName,
+                                            const RegionIdType regionId,
                                             const FEMatrixType destinationMatrix, const Integer nonLin)
   {
     ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
@@ -1362,19 +1360,19 @@ namespace CoupledField {
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
+    surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
   }
 
 
   // define integrators
   void TransientAssemble::AddIntegrator( IntegratorDescriptor * actID,
-                                         const std::string & subDomName ) {
+                                         const RegionIdType regionId ) {
     ENTER_FCN( "TransientAssemble::AddIntegrator" );
 
     if (actID->DestMat() == SYSTEM)
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
 
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+    integrators_[SubDomIndex(regionId)]->Push_back(actID);
   }
 
 
@@ -1491,7 +1489,7 @@ namespace CoupledField {
 
   // define integrators
   void HarmonicAssemble::AddIntegrator(BaseForm * integrator,
-                                       const std::string & subDomName,
+                                       const RegionIdType regionId,
                                        const FEMatrixType destinationMatrix,
                                        const Integer nonLin) {
 
@@ -1513,13 +1511,13 @@ namespace CoupledField {
                                                             matType, nonLin);
     actID->SetOrigMatrixType(actMatType);
 
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+    integrators_[SubDomIndex(regionId)]->Push_back(actID);
 
   }
 
   // define integrators
   void HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator,
-                                           const std::string & subDomName,
+                                           const RegionIdType regionId,
                                            const FEMatrixType destinationMatrix,
                                            const Integer nonLin)
   {
@@ -1540,12 +1538,12 @@ namespace CoupledField {
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, matType, nonLin);
     actID->SetOrigMatrixType(actMatType);
 
-    surfintegrators_[SurfDomIndex(subDomName)]->Push_back(actID);
+    surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
   }
 
   // define integrators
   void HarmonicAssemble::AddIntegrator(IntegratorDescriptor * actID,
-                                       const std::string & subDomName)
+                                       const RegionIdType regionId)
   {
     ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
 
@@ -1559,7 +1557,7 @@ namespace CoupledField {
         Error(error_msg.c_str());
       }
 
-    integrators_[SubDomIndex(subDomName)]->Push_back(actID);
+    integrators_[SubDomIndex(regionId)]->Push_back(actID);
   }
 
 

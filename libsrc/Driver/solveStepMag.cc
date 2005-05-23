@@ -28,7 +28,7 @@ namespace CoupledField {
   // STATIC SOLVING SECTION
   // ======================================================
   void SolveStepMag :: PreStepStatic(const Integer kstep, const Double asteptime,
-				     const Integer level, const Boolean reset) {
+				     const Boolean reset) {
     ENTER_FCN( "SolveStepMag::PreStepStatic" );
     if (isIterCoupled_) 
       algsys_->InitSol();
@@ -36,7 +36,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMag::PostStepStatic(const Integer level) {
+  void SolveStepMag::PostStepStatic() {
     ENTER_FCN( "SolveStepMag::PostStepStatic" );
     if (isIterCoupled_) 
       (*iterCoupledCounter_)++;
@@ -44,7 +44,7 @@ namespace CoupledField {
 
 
   void SolveStepMag::StepStaticNonLin(const Integer kstep, const Double aTime,
-                                const Integer level, const Boolean reset)
+				      const Boolean reset)
   {
     ENTER_FCN( "SolveStepMag::SolveStepStaticNonLin" );
 
@@ -57,7 +57,7 @@ namespace CoupledField {
 
     sol_->GetAlgSysVector(actSol);
 
-    SetBCs(level, 0);
+    SetBCs(0);
 
     //perform the load-steps
     Double loadFactor = 0;
@@ -71,7 +71,7 @@ namespace CoupledField {
       //      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
 
       // setup right hand side ==============================================
-      Double RhsLinL2Norm = SetLinRHS(level,loadFactor); 
+      Double RhsLinL2Norm = SetLinRHS(loadFactor); 
 
       Integer iterationCounter=0;
       do {
@@ -91,11 +91,11 @@ namespace CoupledField {
 	algsys_->InitRHS(RhsLinVal_.GetPointer());
 
 	//add nonlinear part to RHS 
-	assemble_->AssembleNLRHS(level);
+	assemble_->AssembleNLRHS();
 
 	// setup and solve new system (rhs is already set) =====================
 	assemble_->InitNonLinMatrices();
-	assemble_->AssembleMatrices(level);
+	assemble_->AssembleMatrices();
 	
 	algsys_->BuildInDirichlet();
 	
@@ -118,7 +118,7 @@ namespace CoupledField {
 	}
 	else {
 	  // TRUE is for transient simulation
-	  residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level);
+	  residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
 	}
 	
 	sol_->SetAlgSysVector(actSol);
@@ -126,7 +126,7 @@ namespace CoupledField {
 	// recalculate RHS with new values to get new residual (f^(k+1))========
 	algsys_->InitRHS(RhsLinVal_.GetPointer());
 	
-	assemble_->AssembleNLRHS(level);  // nonlinear part of RHS
+	assemble_->AssembleNLRHS();  // nonlinear part of RHS
 	
 	if ( lineSearch_ == "none" ) {
 	  Vector<Double> actRHS;
@@ -182,7 +182,7 @@ namespace CoupledField {
   }
 
 //   void SolveStepMag::StepStaticNonLin(const Integer kstep, const Double aTime,
-//                                 const Integer level, const Boolean reset)
+//                                  const Boolean reset)
 //   {
 //     ENTER_FCN( "SolveStepMag::SolveStepStaticNonLin" );
 
@@ -196,13 +196,13 @@ namespace CoupledField {
 
 //     sol_->GetAlgSysVector(actSol);
 
-//     SetBCs(level, 0);
+//     SetBCs( 0);
 
 //     // setup right hand side ==============================================
-//     Double RhsLinL2Norm = SetLinRHS(level); 
+//     Double RhsLinL2Norm = SetLinRHS(); 
 
 //     //add nonlinear part to RHS 
-//     assemble_->AssembleNLRHS(level);
+//     assemble_->AssembleNLRHS();
 
 //     do {
 //       iterationCounter++;
@@ -219,7 +219,7 @@ namespace CoupledField {
 
 //       // setup and solve new system (rhs is already set) =====================
 //       assemble_->InitNonLinMatrices();
-//       assemble_->AssembleMatrices(level);
+//       assemble_->AssembleMatrices();
       
 //       algsys_->BuildInDirichlet();
       
@@ -242,7 +242,7 @@ namespace CoupledField {
 //       }
 //       else {
 // 	// TRUE is for transient simulation
-// 	residualL2Norm = LineSearch(solInc, actSol, etaLineSearch, level);
+// 	residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
 //       }
 
 //       sol_->SetAlgSysVector(actSol);
@@ -250,7 +250,7 @@ namespace CoupledField {
 //       // recalculate RHS with new values to get new residual (f^(k+1))========
 //       algsys_->InitRHS(RhsLinVal_.GetPointer());
 
-//       assemble_->AssembleNLRHS(level);  // nonlinear part of RHS
+//       assemble_->AssembleNLRHS();  // nonlinear part of RHS
 
 
 // //       // calculation of residual error (takes care for Dirichlet BCs========
@@ -307,7 +307,7 @@ namespace CoupledField {
 
 
   void SolveStepMag::StepTransNonLin(const Integer kstep, const Double asteptime,
-                               const Integer level, const Boolean reset) {
+				     const Boolean reset) {
 
     ENTER_FCN( "SolveStepMag::StepTransNonLin" );
 
@@ -340,10 +340,10 @@ namespace CoupledField {
 
     //now set up RHS: all linear source terms
     Double loadFactor = 1.0;
-    Double RhsLinL2Norm = SetLinRHS(level, loadFactor); 
+    Double RhsLinL2Norm = SetLinRHS( loadFactor); 
 
     // inner forces due to nonlin formulation
-    assemble_->AssembleNLRHS(level, lasttimecalc_);  
+    assemble_->AssembleNLRHS(lasttimecalc_);  
 
     //Update RHS (mass matrix on right hand side)
     TS_alg_->UpdateRHS(solhelp->GetAlgSysVector());
@@ -365,10 +365,10 @@ namespace CoupledField {
 
       // setup and solve new system (rhs is already set) ====================
       assemble_->InitNonLinMatrices();
-      assemble_->AssembleMatrices(level);
+      assemble_->AssembleMatrices();
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
-      SetBCs(level, lasttimecalc_);
+      SetBCs(lasttimecalc_);
 
       algsys_->BuildInDirichlet();
 
@@ -403,8 +403,7 @@ namespace CoupledField {
       TS_alg_->UpdateRHS(actSol);
 
       // inner forces due to nonlin formulation
-      assemble_->AssembleNLRHS(level, lasttimecalc_);
- 
+      assemble_->AssembleNLRHS(lasttimecalc_);
 
       // ====================================================================
       // calculation of error norms

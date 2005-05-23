@@ -120,11 +120,10 @@ void MultiHarmonicDriver::SolveProblem() {
     ENTER_FCN( "MultiHarmonicDriver::SolveProblem" );
 
 
-    Integer level=0;
-  Boolean reset = TRUE;
-  
-  if (! isPartOfSequence_)
-  ptdomain_->PrintGrid(level);
+    Boolean reset = TRUE;
+    
+    if (! isPartOfSequence_)
+      ptdomain_->PrintGrid();
 
   // if driver is not part of multiSequence Driver, get list
   // of pdes which have to be solved and intialize them
@@ -145,18 +144,18 @@ void MultiHarmonicDriver::SolveProblem() {
     Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq);
     
     //      std::cout<<"\n multiHarm: 1 " <<std::endl;
-    ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq, level, reset);
+    ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq, reset);
     
     //      std::cout<<"\n multiHarm: 2"  <<std::endl;
-    ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq, level, reset);
+    ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq, reset);
     
     //      std::cout<<"\n multiHarm: 3 " <<std::endl;
-    ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq, level, reset);
+    ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq, reset);
     
     //      std::cout<<"\n multiHarm: nrMultHarms_ =  " <<nrMultHarms_ <<std::endl;
     
     // writing results in output-file
-    ptPDE_->PostProcess(level);
+    ptPDE_->PostProcess();
     ptPDE_->WriteResultsInFile();
     
     actFreq += freqIncr;

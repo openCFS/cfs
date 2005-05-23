@@ -25,10 +25,9 @@ namespace CoupledField
     /*!
       \param kstep time step counter
       \param steptime current time
-      \param level level of grid
       \param reset TRUE: perfrom new assembly, etc
     */
-    void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
+    void SolveStepTrans(const Integer kstep, const Double steptime, 
 			const Boolean reset);
 
   private:

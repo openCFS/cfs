@@ -24,29 +24,26 @@ namespace CoupledField
     /*!
       \param kstep time step counter
       \param asteptime current time
-      \param level level of grid
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Integer level, const Boolean reset);
+			       const Boolean reset);
 
     //! solves for one linear static step 
     /*!
       \param kstep time step counter
       \param asteptime current time
-      \param level level of grid
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepStaticNonLin(const Integer kstep, const Double aTime,
-				  const Integer level, const Boolean reset);
+				  const Boolean reset);
     
     //! routine for acttions after the SolveStep-method
     /*!
       \param kstep time step counter
       \param asteptime current time
-      \param level level of grid
     */  
-    virtual void PostStepStatic(const Integer level);
+    virtual void PostStepStatic();
 
 
     //----------------------- TRANSIENT---------------------------------------
@@ -54,11 +51,10 @@ namespace CoupledField
     /*!
       \param kstep time step counter
       \param asteptime current time
-      \param level level of grid
       \param reset TRUE: perfrom new assembly, etc
     */
     void StepTransNonLin(const Integer kstep, const Double asteptime,
-			 const Integer level, const Boolean reset);
+			 const Boolean reset);
 
 
   private:
