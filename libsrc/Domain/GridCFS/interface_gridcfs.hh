@@ -6,118 +6,227 @@
 
 namespace CoupledField
 {
+
+  // Forward class declaration
+  class FileType;
+
+
+  //! Class for making an interface from base class grid to CFS grid
+
+  //! This class serves as a adapter between the base class Grid and
+  //! the implementation GridCFS
+  template<Integer DIM> 
+  class GridInterfaceCFS: public Grid
+  {
+  public:
+    //! Constructor with parameter 
+    GridInterfaceCFS(FileType * const aptFileType);
+
+    //! Destructor
+    virtual ~GridInterfaceCFS() { if (ptGridCFS) delete ptGridCFS;}
+  
+    //! Read in Mesh data
+    void Read() {
+      ptGridCFS->Read();
+
+      // Transfer region Names to base class
+      ptGridCFS->GetAllRegionNames(regionNames_);
+    }
+
+
+    // ======================================================
+    // GENERAL GRID INFORMATION
+    // ======================================================
+    //@{ \name General Grid Information
+
+    //! Return dimension of mesh
+    Integer GetDim() {
+      return ptGridCFS->GetDim(); 
+    }
+  
+    //! Return maximum number of nodes
+    Integer GetNumNodes() {
+      return ptGridCFS->GetNumNodes(); 
+    }
+  
+    //! Returns the number of nodes contained in given region
+    Integer GetNumNodes( const StdVector<RegionIdType> & regions ) {
+      return ptGridCFS->GetNumNodes(regions); 
+    }
+  
+    //! Returns the number of nodes in the given nodelist
+    Integer GetNumNodes( const std::string & nodesName ) {
+      return ptGridCFS->GetNumNodes(nodesName);
+    }
+
+    //! Return maximum number of volume elements 
+    Integer GetNumVolElems() {
+      return ptGridCFS->GetNumVolElems(); 
+    }
+    //! Return maximum number of surface elements 
+    Integer GetNumSurfElems() {
+      return ptGridCFS->GetNumSurfElems(); 
+    }
+  
+    //! Returns number of element contained in given regions
+    Integer GetNumElems( const StdVector<RegionIdType> & regions ) {
+      return ptGridCFS->GetNumElems(regions);
+    }
+  
+    //! Get vector with all volume region identifiers
+    void GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
+      ptGridCFS->GetVolRegionIds(volRegions); 
+    }
+  
+    //! Get vector with all surface region identifiers
+    void GetSurfRegionIds( StdVector<RegionIdType> & surfRegions ) {
+      ptGridCFS->GetSurfRegionIds(surfRegions);
+    }
+    //@}
+
+
+    // ======================================================
+    // NODE ACCESS FUNCTIONS
+    // ======================================================
+    //@{ \name Node Access Functions
+
+    //! Get list of nodes by their name
+    void GetNodesByName( StdVector<Integer> & nodeList,
+			 const std::string & name ) {
+      ptGridCFS->GetNodesByName(nodeList, name); 
+    }
+
+    //! Get list of nodes contained in a region
+    void GetNodesByRegion( StdVector<Integer> & nodeList,
+			   const RegionIdType regionId ) {
+      ptGridCFS->GetNodesByRegion(nodeList,regionId);
+    }
+    
+    //! Get coordinates of node with global number inode
+    //! \param rfPoint (output) coordinates of point 2D
+    //! \param inode (input) node number
+    void GetNodeCoordinate( Point<DIM> & rfPoint,
+			    const Integer inode ) {
+      ptGridCFS->GetNodeCoordinate(rfPoint, inode);
+    }
+    //@}
+  
+    // ======================================================
+    // ELEMENT ACCESS FUNCTIONS
+    // ======================================================
+    //@{ \name Element Access Functions
+  
+    //! Get list of volume elements
+    void GetVolElems( StdVector<Elem*> & elems, 
+		      const RegionIdType regionId ) {
+      ptGridCFS->GetVolElems(elems, regionId);
+    }
+  
+    //! Get list of surface elements
+    void GetSurfElems( StdVector<SurfElem*> & surfElems, 
+		       const RegionIdType regionId ) {
+      ptGridCFS->GetSurfElems(surfElems, regionId); 
+    }
+
+    //! Get list of elements by their names
+    void GetElemsByName( StdVector<Elem*> & elems,
+			 const std::string & elemsName ) {
+      ptGridCFS->GetElemsByName(elems, elemsName);
+    }
+  
+    //! Get node numbers of given element
+    void GetElemNodes( StdVector<Integer> & connect, 
+		       const Integer iElem ) {
+      ptGridCFS->GetElemNodes(connect, iElem);
+    }
+  
+    //! Get coordinates of element nodes
+    void GetElemNodesCoord( Matrix<Double> & coordMat,  
+			    const StdVector<Integer> & connect ) {
+      ptGridCFS->GetElemNodesCoord(coordMat, connect);
+    }
+  
+    //! Get elements associated with given nodes
+    void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
+			      const StdVector<Integer> & nodeList,
+			      const StdVector<RegionIdType> 
+			      & regionIds ) {
+      ptGridCFS->GetElemsNextToNodes(elemList, nodeList, regionIds);
+    }
+
+    //! Get volume elements lying next to given surface elements
+    void GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
+				const StdVector<Elem*> & surfElems,
+				const StdVector<RegionIdType> 
+				& neighRegions ) {
+      ptGridCFS->GetElemsNextToSurface(neighbours, surfElems, 
+				       neighRegions );
+    }
+    
+    //@}
+
+    // =======================================================================
+    // GEOMETRY CALCULATION
+    // =======================================================================
+    //@{ \name Geometry Calculation
+    
+    //! Calculates area of a element
+    Double CalcElemArea( const Elem* elem ) {
+      return ptGridCFS->CalcElemArea(elem);
+    }
+    
+    //! Returns surface element normal without defined orientation
+
+    void CalcSurfNormal( Vector<Double> & n, 
+                         const Elem & surfElem ) {
+      ptGridCFS->CalcSurfNormal(n, surfElem);
+    }
+    
+    //! Returns surface element normal with defined orientation
+    
+    void CalcSurfNormalOutOfVol( Vector<Double> & n,
+                                 const Elem & surfElem,
+                                 const Elem & volElem ) {
+      ptGridCFS->CalcSurfNormalOutOfVol(n, surfElem, volElem);
+    }
+    //@}
+    
+
+    // ======================================================
+    // MISCELLANEOUS
+    // ======================================================
+    //@{ \name Miscellaneous  
  
-class FileType;
 
-/// Class for working with grid
-template<Integer dim> 
-class GridInterfaceCFS: public Grid
-{
-public:
-  /// Constructor with parameter - pointer to FileType for reading initial grid
-  GridInterfaceCFS(FileType * const aptFileType);
-
-  /// Deconstructor
-  virtual ~GridInterfaceCFS() { if (ptGridCFS) delete ptGridCFS;}
+    //! Returns node numbers of a list of Elements
+    void GetNodesOfElemList( StdVector<Integer> & nodeList,
+			     const StdVector<Elem*> & elemList ) {
+      ptGridCFS->GetNodesOfElemList(nodeList, elemList);
+    }
+    
   
-  //! Read of mesh 
-  virtual void Read() 
-  { ptGridCFS->Read();}
+  protected:
 
-   /// Get connection of element
-   virtual void GetConnection(StdVector<Integer> & connect, const Integer iElem, const Integer level)
-    { ptGridCFS->GetConnection(connect,iElem, level);}
+    void GetAllRegionNames( StdVector<std::string> & regionNames ) {
+      ptGridCFS->GetAllRegionNames(regionNames);
+    }
 
-   /// Get coordinates of node with global number inode
-   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point<dim> & rfPoint) {ptGridCFS->GetCoordinateNode(inode,numlevel,rfPoint);}
+  private:
+    GridCFS<DIM> * ptGridCFS;
+    ///
+  };
 
-  /// Return maximum number of nodes
-  virtual Integer GetMaxnumnodes(const Integer numlevel)
-  { return ptGridCFS->GetMaxnumnodes(numlevel); }
-
-  //! Return maximum number of elements 
-  virtual Integer GetMaxnumElem(const Integer numlevel)
-  { return ptGridCFS->GetMaxnumElem(numlevel);}
-
-  //! Return maximum number of elements in subdomains
-  virtual Integer GetMaxnumElem(const Integer numlevel, const StdVector<std::string> & subdoms)
-  { return ptGridCFS->GetMaxnumElem(numlevel,subdoms);}
-
-  /// return dimension of mesh
-  virtual Integer GetDim(){ return ptGridCFS->GetDim();}
-
-  //!
-  void GetElemSD(StdVector<Elem*> & els, const std::string sd, const Integer level)
-  { ptGridCFS->GetElemSD(els,sd,level);}
-
-  //!
-  StdVector<std::string>* GetAllSDs(){ return ptGridCFS->GetAllSDs();}
-
-  //!
-  virtual void GetCoordNodesElem(const StdVector<Integer> connect, Point<dim> * ptCoord, const Integer level)
-  { ptGridCFS->GetCoordNodesElem(connect, ptCoord, level);}
-
-  //! gets the coordinates of the element nodes
-  virtual void GetCoordNodesElemMat(const StdVector<Integer> connect, Matrix<Double>& coordMat, const Integer level)
-  { ptGridCFS->GetCoordNodesElemMat(connect, coordMat, level);}  
-
-     //! return vector of element-neighbors for the element with number noOfElem
-  virtual  StdVector<Elem*> *  GetNeighboursOfElem(const Integer noOfElem, std::string color)
-  { return ptGridCFS->GetptNeighboursOfElem(noOfElem,color);}
-
-  //! return vector of element-neighbors for the node with number noOfNode
-  virtual void GetNeighboursOfNode(const Integer noOfNode, StdVector<Elem*> * neighbours)
-  { ptGridCFS->GetNeighboursOfNode(noOfNode,neighbours);}
- 
-  //! in this function we calculate area of element
-  virtual Double CalcAreaElem(const Elem* elem)
-  { 
-    return ptGridCFS->CalcAreaElem(elem);
-  }  
-  
-  //!
-  virtual void GetInterfaceNeighbours(StdVector<Integer> & interfaceNodes, 
-				      StdVector<std::string> & subdoms, 
-				      StdVector<Elem*> & neighbours, 
-				      Integer level)
-  {  ptGridCFS->GetInterfaceNeighbours(interfaceNodes, subdoms, neighbours, level);}
-  
-  //!
-  virtual void GetVolNeighboursForSurf(const StdVector<Elem*> & surfElems,
-				       const StdVector<std::string> & neighRegions,
-				       StdVector<Elem*> & volElems,
-				       const Integer level)
-  { ptGridCFS->GetVolNeighboursForSurf(surfElems, neighRegions, volElems,level);}
-
-  
-  //!
-  virtual void CalcNumberOfNodesInPatch(const StdVector<Elem*> & patch, StdVector<Integer>& map) 
-  { ptGridCFS->CalcNumberOfNodesInPatch(patch,map);}
-
-protected:
-  //!
-  void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, 
-				     StdVector<StdVector<Elem*> > &nodeNeighbors, 
-				     StdVector<Integer> & map)
-  { ptGridCFS->FormNeighbors4NodesOfElements(elems, nodeNeighbors,  map);}
-
-private:
-  GridCFS<dim> * ptGridCFS;
-  ///
-};
-
-template<Integer dim>
-inline GridInterfaceCFS<dim>::GridInterfaceCFS(FileType * aptFileType)
-: Grid(aptFileType)
-{
-  ENTER_FCN( "GridInterfaceCFS<Dim>::GridInterfaceCFS<Dim>" );
- lastlevel_=0;
-   ptGridCFS=new GridCFS<dim>(ptFileType); 
-}
+  template<Integer DIM>
+  inline GridInterfaceCFS<DIM>::GridInterfaceCFS(FileType * aptFileType)
+    : Grid(aptFileType)
+  {
+    ENTER_FCN( "GridInterfaceCFS<Dim>::GridInterfaceCFS<Dim>" );
+    ptGridCFS=new GridCFS<DIM>(ptFileType); 
+  }
 
 #if defined(__GNUC__) || defined(__sgi)
-template class GridInterfaceCFS<3>;
-template class GridInterfaceCFS<2>;
+  template class GridInterfaceCFS<3>;
+  template class GridInterfaceCFS<2>;
 #endif
 
 } // end of namespace

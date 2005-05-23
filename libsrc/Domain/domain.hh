@@ -17,7 +17,6 @@ namespace CoupledField
   class PDECoupling;
   class DirectCoupledPDE;
   class Grid;
-  class BCs;
   class FileType;
   class WriteResults;
 
@@ -44,10 +43,7 @@ namespace CoupledField
     virtual ~Domain();
     
     //! Trigger output of the grid
-    /*!
-      \param level index into grid hierarchy
-    */
-    void PrintGrid(const Integer level);
+    void PrintGrid( );
     
     
     // ======================================================
@@ -69,16 +65,10 @@ namespace CoupledField
     void ResetPDEs();
 
     //! Update algebraic system and bcs after refinement of the mesh
-    /*!
-      \param level index into hierarchy (multilevel methods)
-    */
-    void Update(const Integer level);
+    void Update( );
 
     //! Update algebraic system in case of new mesh
-    /*!
-      \param level index into hierarchy (multilevel methods)
-    */
-    void UpdateAlgSys(const Integer level);
+    void UpdateAlgSys( );
 
     //@}
 
@@ -109,9 +99,6 @@ namespace CoupledField
     //! Get pointer to output-file
     WriteResults * GetOutFile(){ return OutFile_;}
 
-    //! Get pointer to boundary condition
-    BCs * GetBCs(){ return ptBCs_;}
-  
     //! Get pointer to grid object
     Grid * GetGrid(){ return ptgrid_;}
 
@@ -155,9 +142,6 @@ namespace CoupledField
     // DATA SECTION
     // ======================================================
   
-    //! Number of hierarchy levels
-    Integer numlevel_; 
-
     //@{
     //! \name Data about (coupled) PDEs
 
@@ -200,9 +184,6 @@ namespace CoupledField
 
     //! Pointer to grid object
     Grid * ptgrid_;
-
-    //! Pointer to object storing boundary conditions
-    BCs * ptBCs_;   
 
     //! Pointer to object handling time functions
     TimeFunc * ptTimeFunc_;
