@@ -35,7 +35,6 @@ private:
   // pointers to objects
   Grid * ptgrid_;           //!< pointer to Grid
   StdVector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
-  Integer actlevel_; //! actual level
   ShortInt Dim_;         //!< space dimension of pde  
 
   //!MpCCI
