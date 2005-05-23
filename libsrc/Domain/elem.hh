@@ -7,43 +7,86 @@
 namespace CoupledField
 {
 
-  //! class we store description of element
+  //! Class for description of a volume finite element
+
+  //! This class describes a volume finite element, where volume means the 
+  //! highest dimensional element entities in the current mesh.
+  //! It has to be very lightweight, since this object is created many times.
+  //! It relates the geometric information of an element (node numbers)
+  //! with the mathematical / computational one (reference finite element).
+  //! The finite element is described by:
+  //! - corner node numbers
+  //! - pointer to reference finite element
+  //! - element number
+  //! - element subdomain identifier
+  //! - refinement flag / number
+  
+
 struct Elem
 {
 public:
  
+  //! Dummy constructor
+  Elem() {;}
+
+  //! Dummy destructor
+  virtual ~Elem() {;}
+
+  // ======================================================
+  // GEOMETRICAL INFORMATION
+  // ======================================================
+
+  //@{ \name Geometrical Information
   //! global element number
   Integer elemNum; 
-  
-  //! pointer to BaseElem. FE-characteristics of element
-  BaseFE * ptElem;
-  
-  //! connection array
+
+  //! identifier for region
+  Integer regionId;
+
+  //! array with node numbers
   StdVector<Integer> connect;
   
-  //! name of subdomain, to which this element is belogned
-  std::string namesd;
-
   //! flag for refinement
   Boolean refinementFlag; 
-
+  
   //! number of refinement for the element
   Integer refinementNumber; 
+  
+  //@}
 
+  // ======================================================
+  // COMPUTATIONAl INFORMATION
+  // ======================================================  
+  
+  //@{ \name Computational Information
+
+  //! pointer to reference element representation
+  BaseFE * ptElem;
+  //@}
+
+  // ======================================================
+  // HELPER METHODS
+  // ======================================================
+  //@{ \name Helper Methods
+  
   //! overloading operator =
   Elem & operator=(const Elem& t);
 
   //! calculation of diameter of element
   Double diameter(const Point<2> * const ptArrayOfNodes);
- 
+  //@}
 };
+
+
 
 inline Elem & Elem::operator=(const Elem& t) 
 {
   if (this!=&t) {
     ptElem=t.ptElem;
     connect=t.connect;
-    namesd=t.namesd;
+    regionId=t.regionId;
+    refinementFlag=t.refinementFlag;
+    refinementNumber=t.refinementNumber;
   }
   return *this;
 }
