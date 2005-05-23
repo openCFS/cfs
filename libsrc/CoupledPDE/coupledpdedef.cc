@@ -1,6 +1,5 @@
 #include "coupledpdedef.hh"
 #include "Domain/grid.hh"
-#include "Domain/bcs.hh"
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
@@ -8,12 +7,11 @@ namespace CoupledField
 {
 
 
-CoupledPDEDef::CoupledPDEDef(Grid * aptGrid, BCs * aptBCs)
+CoupledPDEDef::CoupledPDEDef(Grid * aptGrid)
 {
   ENTER_FCN( "CoupledPDEDef::CoupledPDEDef" );
 
   ptGrid_ = aptGrid;
-  ptBCs_ = aptBCs;
 
   // Define Ordering of PDEs
   // Here the hardcoded information from coupledPDE.conf is
@@ -102,7 +100,7 @@ void CoupledPDEDef::CreateCoupling(StdVector<StdPDE*> & OrderedPDEs,
       MyCoupledPDE->GetCouplingType(OrderedPDEs[i]->GetName(), InputType);
       MyCoupledPDE->GetCouplingQuantity(OrderedPDEs[i]->GetName(), InputQuantity);
       MyCoupledPDE->GetCouplingOptionality(OrderedPDEs[i]->GetName(), inputOptionality);
-      Couplings[i] = new PDECoupling(ptGrid_, ptBCs_);
+      Couplings[i] = new PDECoupling(ptGrid_);
       Couplings[i]->SetPDE(OrderedPDEs[i]);
 
       // add all coupling terms of PDE

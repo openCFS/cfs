@@ -16,6 +16,8 @@ namespace CoupledField
     
     pde1_ = pde1;
     pde2_ = pde2;
+
+    ptGrid_ = pde1_->ptgrid_;
   }
 
   
@@ -33,14 +35,17 @@ namespace CoupledField
     
     bcSequenceTag_ = bcSequenceTag;
     bcSequenceIndex_ = bcSequenceStep;
-
+    
     
     // get subdomains of coupling object
-    StdVector<std::string> keyVec, attrVec, valVec;
+    StdVector<std::string> keyVec, attrVec, valVec, regionNames;
+
+    
     keyVec = "couplingList", "direct", couplingName_, "coupling", "name";
     attrVec = "tag", "", "", "";
-    valVec = bcSequenceTag, "", "", "";
-    params->GetList( keyVec, attrVec, valVec, subdoms_ );
+    valVec = bcSequenceTag, "", "", ""; 
+    params->GetList( keyVec, attrVec, valVec, regionNames );
+    ptGrid_->RegionNameToId( subdoms_, regionNames );
  
     //std::cerr << "Name of pde1 = " << pde1_->GetName() 
     //<< std::endl;
@@ -49,7 +54,6 @@ namespace CoupledField
     // Get type of analysis and create according 
     // assemble object
     // -> copy simply from first pde
-    Grid *ptGrid = (*pde1_).ptgrid_;
     std::string help;
     Enum2String((*pde1_).analysistype_ , help);
     //std::cerr << "Analysis of PDE is " 
@@ -57,13 +61,13 @@ namespace CoupledField
     switch ( (*pde1_).analysistype_ ) {
 
     case STATIC:
-      assemble_ = new StaticAssemble(algsys_, ptGrid);
+      assemble_ = new StaticAssemble(algsys_, ptGrid_);
       break;
     case TRANSIENT:
-      assemble_ = new TransientAssemble(algsys_, ptGrid);
+      assemble_ = new TransientAssemble(algsys_, ptGrid_);
       break;
     case HARMONIC:
-      assemble_ = new HarmonicAssemble(algsys_, ptGrid);
+      assemble_ = new HarmonicAssemble(algsys_, ptGrid_);
       break;
     default:
       Error (" analysistype was not found" , __FILE__, __LINE__ );
@@ -73,7 +77,7 @@ namespace CoupledField
     // HARD CODED
     //
     //std::cerr << "couplingName = " << couplingName_ << std::endl;
-    StdVector<std::string> surfdoms;
+    StdVector<RegionIdType> surfdoms;
     assemble_->SetGeneralParams(couplingName_, 1, subdoms_,
 				surfdoms, bcSequenceTag );
 				
@@ -116,10 +120,11 @@ namespace CoupledField
   
     // Get list of subdomains and materials
     StdVector< std::string > subdomName;
+    StdVector< RegionIdType> subdomId;
     StdVector< std::string > subdomMaterial;
     params->GetList( "name", subdomName, "domain", "region" );
     params->GetList( "material", subdomMaterial, "domain", "region" );
-  
+    ptGrid_->RegionNameToId( subdomId, subdomName );
         
     // Query name of file with material data
     params->Get( "file", matFileName, "materialData" );
@@ -131,7 +136,7 @@ namespace CoupledField
     // from data file
     for( Integer i = 0; i < subdoms_.GetSize(); i++ ) {
       for( Integer k = 0; k <= subdomName.GetSize(); k++ ) {
-	if( subdoms_[i] == subdomName[k] ){
+	if( subdoms_[i] == subdomId[k] ){
 	  loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
 					materialClass_ );
 	  break;
@@ -148,23 +153,20 @@ namespace CoupledField
     assemble_->SetupMatrixGraph();
   }
 
-  void BasePairCoupling::AssembleMatrices(const Integer level) {
-    assemble_->AssembleMatrices(level);
+  void BasePairCoupling::AssembleMatrices() {
+    assemble_->AssembleMatrices();
   }
     
-  void BasePairCoupling::AssembleSrcRHS(const Integer level, 
-					const Double time) {
-    assemble_->AssembleSrcRHS(level, time);
+  void BasePairCoupling::AssembleSrcRHS(const Double time) {
+    assemble_->AssembleSrcRHS(time);
   }
   
-  void BasePairCoupling::AssembleNLRHS(const Integer level, 
-				       const Double time) {
-    assemble_->AssembleNLRHS(level, time);
+  void BasePairCoupling::AssembleNLRHS(const Double time) {
+    assemble_->AssembleNLRHS(time);
  }
 
-  void BasePairCoupling::AssembleSprings(const Integer level, 
-					 const Double time) {
-    assemble_->AssembleSprings(level, time);
+  void BasePairCoupling::AssembleSprings(const Double time) {
+    assemble_->AssembleSprings(time);
  }
 
 

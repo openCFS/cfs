@@ -14,7 +14,6 @@ namespace CoupledField
 
 class Definition;
 class Grid;
-class BCs;
 
 
 //! Class for composing coupled PDEs out of single field PDEs
@@ -25,7 +24,7 @@ class CoupledPDEDef
 public:
   
   //! Constructor
-  CoupledPDEDef(Grid * aptGrid, BCs * aptBCs);
+  CoupledPDEDef(Grid * aptGrid);
 
   //! Destructor
   virtual ~CoupledPDEDef();
@@ -47,7 +46,6 @@ protected:
   virtual void DefineOrdering();
 
   Grid * ptGrid_;                        //!< pointer to grid
-  BCs * ptBCs_;                          //!< pointer to BC object
   StdVector<Definition*> CoupledPDEs_; //!< vector with coupling definitons
 
 private:

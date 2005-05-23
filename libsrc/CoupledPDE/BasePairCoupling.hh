@@ -58,17 +58,16 @@ namespace CoupledField
     void SetupMatrixGraph();
 
     //! specify type of system matrix for AlgebraicSystem
-    /*! \param level (input) level of Grid     */
-    void AssembleMatrices(const Integer level);
+    void AssembleMatrices();
     
     //! setup source term
-    void AssembleSrcRHS(const Integer level, const Double time=0);
+    void AssembleSrcRHS(const Double time = 0.0);
     
     //!  assemble a nonlinear RHS part
-    void AssembleNLRHS(const Integer level, const Double time=0);
+    void AssembleNLRHS(const Double time = 0.0);
 
     //!  assemble a spring into the system matrix
-    void AssembleSprings(const Integer level, const Double time=0);
+    void AssembleSprings(const Double time = 0.0);
 
   protected:
 
@@ -125,7 +124,7 @@ namespace CoupledField
     
 
     //! Subdomains of the coupling object
-    StdVector<std::string> subdoms_;
+    StdVector<RegionIdType> subdoms_;
     
     //! Name of coupling
     std::string couplingName_;
@@ -140,7 +139,7 @@ namespace CoupledField
     Assemble * assemble_;
 
     //! Pointer to grid object
-    Grid * grid_;
+    Grid * ptGrid_;
 
     //! Pointer to algebraic system
     BaseSystem * algsys_;
