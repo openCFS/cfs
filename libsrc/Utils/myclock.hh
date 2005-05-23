@@ -1,7 +1,10 @@
 #ifndef CLOCK_2001
 #define CLOCK_2001
 
+#include <string>
+#include <fstream>
 #include "General/environment.hh"
+
 
 namespace CoupledField 
 {
