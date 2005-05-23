@@ -33,14 +33,12 @@ namespace CoupledField {
       \param ptGrid (input) Pointer to grid
       \param ptPDE (input) Pointer to PDE
       \param ptEQN (input) Pointer to EQN
-      \param level (input) Multigrid level
       \param isaxi (input) Flag for axi-symmetric geomtetry
     
     */
     ElecChargeOp(Grid * ptGrid,
 		 StdPDE * ptPDE,
 		 NodeEQN * ptEQN,
-		 const Integer level,
 		 Boolean isaxi=FALSE);
 
     //! Destructor

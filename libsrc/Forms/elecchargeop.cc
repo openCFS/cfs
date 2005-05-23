@@ -11,9 +11,8 @@ namespace CoupledField
   ElecChargeOp::ElecChargeOp(Grid * ptGrid,
 			     StdPDE * ptPDE,
 			     NodeEQN * ptEQN,
-			     const Integer level,
 			     Boolean isaxi)
-    : BaseOperator(ptGrid, ptPDE, ptEQN, level, isaxi)
+    : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
   {
     ENTER_FCN( "ElecChargeOp::ElecChargeOp" );
 
@@ -48,7 +47,7 @@ namespace CoupledField
     nrNodes = ptElemFE->GetNumNodes();
     const Vector<Double> & intWeights = ptElemFE->GetIntWeights();   
   
-    ptPDE_->GetElemCoords(ptElement->connect, coordMat, level_);
+    ptPDE_->GetElemCoords(ptElement->connect, coordMat);
   
     // loop over all integration points
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -110,7 +109,7 @@ namespace CoupledField
     nrNodes = ptElemFE->GetNumNodes();
     const Vector<Double> & intWeights = ptElemFE->GetIntWeights();   
   
-    ptPDE_->GetElemCoords(ptElement->connect, coordMat, level_);
+    ptPDE_->GetElemCoords(ptElement->connect, coordMat);
   
     // loop over all integration points
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -162,7 +161,7 @@ namespace CoupledField
 	nrNodes = ptElem->GetNumNodes();
 	const Vector<Double> & intWeights = ptElem->GetIntWeights();   
       
-	ptPDE_->GetElemCoords(surfElems[iElem]->connect, coordMat, level_);
+	ptPDE_->GetElemCoords(surfElems[iElem]->connect, coordMat);
 	ptElem->GetShFnc(shFnc, lCoord);
 	if (charges.IsComplex()){
 	  for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)

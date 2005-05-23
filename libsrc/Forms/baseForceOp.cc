@@ -19,10 +19,9 @@ BaseForceOp::BaseForceOp(Grid * ptGrid,
 			 NodeStoreSol<Double> & sol,
 			 Integer dim,
 			 MaterialData* &matData,
-			 StdVector<std::string>& allSubdoms,
-			 Integer level,
+			 StdVector<RegionIdType> & allSubdoms,
 			 Boolean isaxi) 
-  : BaseOperator(ptGrid, ptPDE, ptEQN, level, isaxi)
+  : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
 {
   ENTER_FCN( "BaseForceOp::BaseForceOp" );
 
@@ -39,7 +38,7 @@ BaseForceOp::~BaseForceOp()
 }
 
 
-void BaseForceOp::Setup(StdVector<std::string>& neighRegions, 
+void BaseForceOp::Setup(StdVector<RegionIdType>& neighRegions, 
 			StdVector<Integer>& couplingnodes)
 {
   ENTER_FCN( "BaseForceOp::Setup" );
@@ -48,8 +47,8 @@ void BaseForceOp::Setup(StdVector<std::string>& neighRegions,
   neighRegions_  = neighRegions;
 
   //get the interface elements to the coupling nodes
-  ptGrid_->GetInterfaceNeighbours(couplingnodes, neighRegions, 
-				  interfaceElems_, level_);
+  ptGrid_->GetElemsNextToNodes(interfaceElems_, couplingnodes, 
+			       neighRegions );
 
   //get memory
   isBoundaryNode_.Resize(interfaceElems_.GetSize());
@@ -90,7 +89,7 @@ void BaseForceOp::CalcNodeForce(Vector<Double> & force, Vector<Double> & totalFo
       Double matVal;
       
       for (Integer i=0; i<PDEsubdoms_.GetSize(); i++)	{
-	if (interfaceElems_[ielem]->namesd == PDEsubdoms_[i]) {
+	if (interfaceElems_[ielem]->regionId == PDEsubdoms_[i]) {
 	  matVal = GetMatVal(i); 
 	}
       }
@@ -140,7 +139,7 @@ void BaseForceOp::CalcElemElecForce(ElemStoreSol<Double> & F,
   Ip = ptElement->ptElem->GetIntPoints();
  
   // Get element coordinates for calculation of J
-  ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
+  ptPDE_->GetElemCoords(ptElement->connect, CornerCoords);
   
   F.SetNumSolutions(1);
   F.SetNumElems(IsBoundaryNode.GetSize());
@@ -237,7 +236,7 @@ void BaseForceOp::CalcElemElecForce(ElemStoreSol<Double> & F,
 //   NumIntPoints = ptElement->ptElem->GetNumIntPoints();
 //   Ip = ptElement->ptElem->GetIntPoints();
  
-//   ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
+//   ptPDE_->GetElemCoords(ptElement->connect, CornerCoords);
   
 //   F.Resize(Dim);
 //   F.Init();

@@ -20,9 +20,8 @@ GradientFieldOp<TYPE>::GradientFieldOp(Grid * ptGrid,
 				 NodeEQN * ptEQN,
 				 NodeStoreSol<TYPE> & potential,
 				 const SolutionType solType,
-				 const Integer level,
 				 Boolean isaxi)
-  : BaseOperator(ptGrid, ptPDE, ptEQN, level, isaxi)
+  : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
 {
   ENTER_FCN( "GradientFieldOp::GradientFieldOp" );  
   this->potential_ = &potential;
@@ -60,7 +59,7 @@ void GradientFieldOp<TYPE>::CalcElemGradField(CFSVector & elemField,
   const StdVector<Integer> & connect = ptElement->connect;
   
   Matrix<Double> CornerCoords; 
-  ptPDE_->GetElemCoords(connect, CornerCoords, level_);
+  ptPDE_->GetElemCoords(connect, CornerCoords);
 
    Matrix<Double> GlobalGradient;
 
@@ -86,7 +85,7 @@ void GradientFieldOp<TYPE>::CalcElemGradField(CFSVector & elemField,
 
 template<class TYPE>
 void GradientFieldOp<TYPE>::CalcSDGradField(CFSVector & elemField,
-				      const StdVector<std::string> & SD, 
+				      const StdVector<RegionIdType> & SD, 
 				      const Vector<Double> & lCoord,
 				      const Vector<Double> & factors)
 {
@@ -101,7 +100,7 @@ void GradientFieldOp<TYPE>::CalcSDGradField(CFSVector & elemField,
   StdVector<Elem *> subDomain;
   Double potEntry;
   Integer maxelem;
-  maxelem = ptGrid_->GetMaxnumElem(level_, SD);
+  maxelem = ptGrid_->GetNumElems(SD);
   dim = ptGrid_->GetDim();
 
   elemField.Resize(maxelem * dim);
@@ -112,14 +111,14 @@ void GradientFieldOp<TYPE>::CalcSDGradField(CFSVector & elemField,
   // Iterate over all subdomains
   for( Integer iSD=0; iSD<SD.GetSize(); iSD++)
     {
-      ptGrid_->GetElemSD(subDomain,SD[iSD],level_);
+      ptGrid_->GetVolElems(subDomain,SD[iSD]);
 
       // Iterate over whole SubDomain
       for( Integer k=0; k<subDomain.GetSize(); k++) 
 	{
 	  nShFnc = subDomain[k]->ptElem->GetNumNodes();
 	  
-	  ptPDE_->GetElemCoords( subDomain[k]->connect, cornerCoords, level_ );
+	  ptPDE_->GetElemCoords( subDomain[k]->connect, cornerCoords );
 	  
 	  subDomain[k]->ptElem->GetGlobDerivShFnc(globalGradient, lCoord, cornerCoords);
 	  

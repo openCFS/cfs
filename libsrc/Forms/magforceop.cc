@@ -14,13 +14,12 @@ MagLorentzForceOp::MagLorentzForceOp(Grid * ptGrid,
 			 StdPDE * ptPDE,
 			 NodeEQN * ptEQN,
 			 NodeStoreSol<Double> & magPotential,
-			 Integer level,
 			 Boolean isaxi) 
-  : BaseOperator(ptGrid, ptPDE, ptEQN, level, isaxi)
+  : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
 {
   ENTER_FCN( "MagLorentzForceOp::MagLorentzForceOp" );
 
-  curlFieldOp_ = new  CurlNodeOp(ptGrid, ptPDE, ptEQN,magPotential,level);
+  curlFieldOp_ = new  CurlNodeOp(ptGrid, ptPDE, ptEQN,magPotential);
   curlFieldOp_->Set2DType(isaxi);
   if ( ptGrid->GetDim() != 2 )
     Error("Currently MagLorentzForceOp just working for 2D problems");
@@ -59,7 +58,7 @@ void MagLorentzForceOp::CalcElemMagLorentzForce(Matrix<Double>& F,
   F.Init(0);
 
   // Get element coordinates
-  ptPDE_->GetElemCoords(ptElement->connect, CornerCoords, level_);
+  ptPDE_->GetElemCoords(ptElement->connect, CornerCoords);
 
   //just for testing with CAPA
 //   Vector<Double> LCoord;
@@ -138,14 +137,13 @@ MagForceOp::MagForceOp(Grid * ptGrid,
 			 NodeStoreSol<Double> & sol,
 			 Integer dim,
 			 MaterialData* &matData,
-			 StdVector<std::string>& allSubdoms,
-			 Integer level,
+			 StdVector<RegionIdType>& allSubdoms,
 			 Boolean isaxi) 
-  : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, level, isaxi)
+  : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, isaxi)
 {
   ENTER_FCN( "MagForceOp::MagForceOp" );
 
-  curlFieldOp_ = new CurlNodeOp(ptGrid, ptPDE, ptEQN, sol, level);
+  curlFieldOp_ = new CurlNodeOp(ptGrid, ptPDE, ptEQN, sol);
   curlFieldOp_->Set2DType(isaxi);
 
   solType_ = MAG_FORCE_VWP;

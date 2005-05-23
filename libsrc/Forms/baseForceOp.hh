@@ -24,22 +24,20 @@ namespace CoupledField
     //! \param ptGrid     (input) Pointer to grid
     //! \param sol (input) Pointer to vector containing the electric
     //!                           potential for all nodes of domain
-    //! \param level      (input) Multigrid level
     BaseForceOp(Grid * ptGrid, 
 		StdPDE * ptPDE,
 		NodeEQN * ptEQN,
 		NodeStoreSol<Double> & sol,
 		Integer dim,
 		MaterialData* &matData,
-		StdVector<std::string>& allSubdoms,
-		const Integer level, 
+		StdVector<RegionIdType> & allSubdoms,
 		Boolean isaxi);
 
     //! Destructor
     virtual ~BaseForceOp();
 
     //!
-    void Setup(StdVector<std::string>& neighRegions, 
+    void Setup(StdVector<RegionIdType> & neighRegions, 
 	       StdVector<Integer>& couplingnodes);
 
     //!  
@@ -78,7 +76,7 @@ namespace CoupledField
     StdVector<Integer> couplingNodes_;
 
     //!neighbor-regions
-    StdVector<std::string> neighRegions_;
+    StdVector<RegionIdType> neighRegions_;
 
     //! interface elements
     StdVector<Elem*> interfaceElems_;
@@ -96,7 +94,7 @@ namespace CoupledField
     MaterialData* materialData_;
 
     //! all subdomains belonging to the PDE
-    StdVector<std::string> PDEsubdoms_;
+    StdVector<RegionIdType> PDEsubdoms_;
 
     //! solution type;
     SolutionType solType_;

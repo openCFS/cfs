@@ -26,14 +26,12 @@ namespace CoupledField
     /*!
       \param ptGrid (input) Pointer to grid
       \param EPotential (input) Pointer to vector containing the electric potential for all nodes of domain
-      \param level (input) Multigrid level
       \param algsys (input) pointer to algebraic system
     */
     CurlEdgeOp(Grid * ptGrid,
 	       StdPDE * ptPDE,
 	       NodeEQN * ptEQN,
 	       NodeStoreSol<Double> & sol,
-	       const Integer level,
 	       BaseSystem * algsys);
 
     //! Destructor
@@ -74,8 +72,7 @@ namespace CoupledField
     CurlNodeOp(Grid * ptGrid,
 	       StdPDE * ptPDE,
 	       NodeEQN * ptEQN,
-	       NodeStoreSol<Double> & sol,
-	       const Integer level);
+	       NodeStoreSol<Double> & sol);
 
     //! Destructor
     virtual ~CurlNodeOp();

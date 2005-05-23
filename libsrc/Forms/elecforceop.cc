@@ -19,15 +19,14 @@ ElecForceOp::ElecForceOp(Grid * ptGrid,
 			 NodeStoreSol<Double> & sol,
 			 Integer dim,
 			 MaterialData* &matData,
-			 StdVector<std::string>& allSubdoms,
-			 Integer level,
+			 StdVector<RegionIdType> & allSubdoms,
 			 Boolean isaxi) 
-  : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, level, isaxi)
+  : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, isaxi)
 {
   ENTER_FCN( "ElecForceOp::ElecForceOp" );
 
   gradFieldOp_ = new GradientFieldOp<Double>(ptGrid, ptPDE, ptEQN, 
-				     sol, ELEC_POTENTIAL, level, isaxi);
+				     sol, ELEC_POTENTIAL, isaxi);
   solType_ = ELEC_FORCE_VWP;
   sign_    = 1.0;
 }

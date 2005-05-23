@@ -32,15 +32,13 @@ namespace CoupledField
     //! \param ptGrid     (input) Pointer to grid
     //! \param EPotential (input) Pointer to vector containing the electric
     //!                           potential for all nodes of domain
-    //! \param level      (input) Multigrid level
     ElecForceOp(Grid * ptGrid, 
 		StdPDE * ptPDE,
 		NodeEQN * ptEQN,
 		NodeStoreSol<Double> & EPotential,
 		Integer dim,
 		MaterialData* &matData,
-		StdVector<std::string>& allSubdoms,
-		const Integer level, 
+		StdVector<RegionIdType> & allSubdoms,
 		Boolean isaxi);
 
     //! Destructor

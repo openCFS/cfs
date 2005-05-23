@@ -22,7 +22,6 @@ public:
   BaseOperator(Grid * ptGrid, 
 	       StdPDE * ptPDE,  
 	       NodeEQN * ptEQN, 
-	       const Integer level,
 	       Boolean isaxi=FALSE);
   
   //! Destructor
@@ -33,7 +32,6 @@ protected:
   Grid * ptGrid_;     //!< pointer to grid
   StdPDE * ptPDE_;   //!< pointer to PDE
   NodeEQN * ptEQN_;   //!< pointer to Equation object
-  Integer level_;     //!< current level 
   Boolean isaxi_;
 };
 
