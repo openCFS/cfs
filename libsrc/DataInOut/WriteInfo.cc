@@ -337,7 +337,7 @@ namespace CoupledField
              << myEndl;
 
     // Basic coil info
-    *cfsInfo << "Coil domain: "              << coil.coilName_  << std::endl;
+    *cfsInfo << "Coil domain: "              << coil.coilRegionName_  << std::endl;
     *cfsInfo << "Coil type: "                << coil.coilTypeS_ << std::endl;
     *cfsInfo << "Cross-Section of winding: " << coil.windingCrossSection_
              << std::endl;
