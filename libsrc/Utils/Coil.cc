@@ -1,7 +1,9 @@
 #include "Coil.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/WriteInfo.hh"
+#include "Domain/grid.hh"
 #include <fstream>
+
 
 
 namespace CoupledField {
@@ -37,11 +39,13 @@ namespace CoupledField {
   // -----------------------
   //   Allowed Constructor
   // -----------------------
-  Coil::Coil( std::string coilName, std::string pdeName ) {
+  Coil::Coil( RegionIdType coilRegionId, 
+	      std::string pdeName, 
+	      Grid * ptGrid ) {
     ENTER_FCN( "Coil::Coil" );
 
     // We already know our name
-    coilName_ = coilName;
+    coilRegionId_ = coilRegionId;
 
     // Set all attributes to default values
     windingCrossSection_ = 0;
@@ -65,7 +69,8 @@ namespace CoupledField {
     // **************************
     //   Determine type of coil
     // **************************
-    params->GetCoilType( coilTypeS_, coilName_, pdeName );
+    coilRegionName_ = ptGrid->RegionIdToName(coilRegionId_);
+    params->GetCoilType( coilTypeS_, coilRegionName_, pdeName );
 
     if ( coilTypeS_ == "measurementCoil2d" ) {
       coilType_ = MEASUREMENT2D;
@@ -96,7 +101,7 @@ namespace CoupledField {
     if ( coilType_ == MEASUREMENT2D ) {
 
       attrVec = "", "", "name";
-      valVec  = "", "", coilName_;
+      valVec  = "", "", coilRegionName_;
 
       keyVec  = pdeName, "coils", "measurementCoil2d", "windingCrossSection";
       params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
@@ -117,7 +122,7 @@ namespace CoupledField {
     if ( coilType_ == MEASUREMENT3D ) {
 
       attrVec = "", "", "name";
-      valVec  = "", "", coilName_;
+      valVec  = "", "", coilRegionName_;
 
       keyVec  = pdeName, "coils", "measurementCoil3d", "windingCrossSection";
       params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
@@ -135,7 +140,7 @@ namespace CoupledField {
     else if ( coilType_ == VOLTAGE2D ) {
 
       attrVec = "", "", "name";
-      valVec  = "", "", coilName_;
+      valVec  = "", "", coilRegionName_;
 
       keyVec  = pdeName, "coils", "voltageCoil2d", "windingCrossSection";
       params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
@@ -162,7 +167,7 @@ namespace CoupledField {
     else if ( coilType_ == VOLTAGE3D ) {
 
       attrVec = "", "", "name";
-      valVec  = "", "", coilName_;
+      valVec  = "", "", coilRegionName_;
 
       keyVec  = pdeName, "coils", "voltageCoil3d", "windingCrossSection";
       params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
@@ -186,7 +191,7 @@ namespace CoupledField {
     else if ( coilType_ == CURRENT2D ) {
 
       attrVec = "", "", "name";
-      valVec  = "", "", coilName_;
+      valVec  = "", "", coilRegionName_;
 
       keyVec  = pdeName, "coils", "currentCoil2d", "windingCrossSection";
       params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
@@ -210,7 +215,7 @@ namespace CoupledField {
     else if ( coilType_ == CURRENT3D ) {
 
       attrVec = "", "", "name";
-      valVec  = "", "", coilName_;
+      valVec  = "", "", coilRegionName_;
 
       keyVec  = pdeName, "coils", "currentCoil3d", "windingCrossSection";
       params->Get( keyVec, attrVec, valVec, windingCrossSection_ );
@@ -267,7 +272,7 @@ namespace CoupledField {
       // Check for currentFlow specification
       keyVec  = pdeName, "coils", "currentCoil3d", "currentFlow";
       attrVec = "", "", "name";
-      valVec  = "", "", coilName_;
+      valVec  = "", "", coilRegionName_;
       params->GetList( keyVec, attrVec, valVec, aux );
 
       if ( aux.GetSize() == 1 ) {
@@ -286,7 +291,7 @@ namespace CoupledField {
       }
       else if ( aux.GetSize() > 1 ) {
 	Info->Error( "More than 1 currentFlow specification for coil " +
-		     coilName_, __FILE__, __LINE__ );
+		     coilRegionName_, __FILE__, __LINE__ );
       }
 
       // Check for rotational specification

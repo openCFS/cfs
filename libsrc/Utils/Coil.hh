@@ -1,11 +1,13 @@
 #ifndef COIL_FILE_HH
 #define COIL_FILE_HH
 
-#include <string>
 #include "General/environment.hh"
 
 
 namespace CoupledField {
+
+  // Forward class definition
+  class Grid;
 
   //! Class for describing coils
 
@@ -22,13 +24,14 @@ namespace CoupledField {
     //! Constructor for coils
 
     //! This is the only allowed constructor for the Coil class. It expects
-    //! as first input argument the name of a coil. As second input argument
+    //! as first input argument the region identifier of the coil. 
+    //! As second input argument
     //! it expects the name of the PDE in whose definition the coil appears.
     //! The constructor will use these two symbolic names to query the XML
     //! parameter handling object for the coil's parameters.
     //! If the coil is a measurement coil it will also, if desired, open the
     //! files for storing the current/voltages and the inductivity.
-    Coil( std::string coilName, std::string pdeName );
+    Coil( RegionIdType coilRegionId, std::string pdeName, Grid * ptGrid);
 
     //! Default desctructor
 
@@ -51,7 +54,10 @@ namespace CoupledField {
     std::string coilTypeS_;
 
     //! Symbolic name for the coil this object describes
-    std::string coilName_;
+    RegionIdType coilRegionId_;
+
+    //! Name of the region describing the coil
+    std::string coilRegionName_;
 
     //! Area of cross section of a single coil winding
     Double windingCrossSection_;
