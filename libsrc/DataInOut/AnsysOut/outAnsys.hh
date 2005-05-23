@@ -25,10 +25,7 @@ public:
   virtual void Init(Grid * aptgrid);
 
   //! write information about grid with level in file
-  /*!
-    \param level level of the grid
-  */
-  virtual void WriteGrid(const Integer level);
+  virtual void WriteGrid();
 
   //! write information about the solution
   /*!
@@ -93,10 +90,10 @@ private:
   void OpenFileRes(const std::string title);
 
   //! write number of nodes and coordinates of them
-  void WriteNodes(const Integer level);
+  void WriteNodes();
 
   //! write cell description 
-  void WriteCells(const Integer level); 
+  void WriteCells(); 
 
   //! write variable information
   /*!
