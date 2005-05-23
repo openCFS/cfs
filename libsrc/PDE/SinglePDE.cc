@@ -30,9 +30,8 @@
 namespace CoupledField {
 
 
-  SinglePDE::SinglePDE( Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
-                        WriteResults * aOutFile, TimeFunc *aptTimeFunc )
-    :  StdPDE(aptgrid, aptBCs, aInFile, aOutFile, aptTimeFunc) {
+  SinglePDE::SinglePDE( Grid *aptgrid, WriteResults * aOutFile, TimeFunc *aptTimeFunc )
+    :  StdPDE(aptgrid, aOutFile, aptTimeFunc) {
   
     ENTER_FCN( "BasePDE::BasePDE" );
   
@@ -51,7 +50,6 @@ namespace CoupledField {
     // =====================================================================
     // set analysis parameters
     // =====================================================================
-    actlevel_ = 0;
     actFrequency_ = 0;
     complexFormat_ = AMPLITUDE_PHASE; // or REAL_IMAG
     couplingBCsCounter_ = 0;
@@ -68,7 +66,6 @@ namespace CoupledField {
     eps_         = 1.0e-8;
     dampiter_    = 1.0;
     maxnumiter_  = 500;
-    numeqcoarse_ = 200;
     coarsealpha_ = 0.1; // in acousticPDE.cc set to 0.01
   
     // savederiv1_ = FALSE;
@@ -129,11 +126,13 @@ namespace CoupledField {
   // =====================================================================
   // get regions/subdomains for PDE
   // =====================================================================
-  params->GetList( "name", subdoms_, pdename_, "region" );
+  StdVector<std::string> regionNames;
+  params->GetList( "name", regionNames, pdename_, "region" );
+  ptgrid_->RegionNameToId( subdoms_, regionNames );
   Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
 		pdename_.c_str());
-  for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) {
-    Info->PrintF( pdename_, " %s, index %d\n", subdoms_[k].c_str(), k );
+  for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+    Info->PrintF( pdename_, " %s, index %d\n", regionNames[k].c_str(), k );
   }
   Info->PrintF( "", "\n" );
 
@@ -141,7 +140,6 @@ namespace CoupledField {
   // direct coupled
   if ( isDirectCoupled_ == FALSE )
     {
-      //std::cerr << pdename_ << "::Init: Creating Standardsystem" << std::endl;
     algsys_ = new StandardSystem();
     }
 
@@ -274,7 +272,7 @@ namespace CoupledField {
   // =====================================================================
   ReadBCs();
   ReadSpecialBCs();
-  numDirichletBCs_ += GetNumRestraints(actlevel_);
+  numDirichletBCs_ += GetNumRestraints();
 
   // =====================================================================
   // read in NonLinearities
@@ -293,12 +291,10 @@ namespace CoupledField {
   // Assemble a system matrix with scalar complex or double entries
   if ( typeOfNumbering == "scalar" ) {
     if ( dofspernode_ == 1 ) {
-      eqnData_ = new ScalarNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
-				    dofspernode_ );
+      eqnData_ = new ScalarNodeEQN( ptgrid_,  subdoms_, dofspernode_ );
     }
     else {
-      eqnData_ = new ScalarBlockEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
-				     dofspernode_ );
+      eqnData_ = new ScalarBlockEQN( ptgrid_, subdoms_, dofspernode_ );
     }
     Info->PrintF( pdename_, "Using scalar equation numbering\n" );
   }
@@ -308,12 +304,10 @@ namespace CoupledField {
   else if ( typeOfNumbering == "block" ) {
     if ( dofspernode_ == 1 ) {
       Warning("dopspernode = 1, so 'block' numbering identical to 'scalar'");
-      eqnData_ = new ScalarNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
-				    dofspernode_ );
+      eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_ );
     }
     else {
-      eqnData_ = new BlockNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_,
-				   dofspernode_ );
+      eqnData_ = new BlockNodeEQN( ptgrid_, subdoms_, dofspernode_ );
       Info->PrintF( pdename_, "Using block equation numbering\n" );
     }
   }
@@ -343,7 +337,7 @@ namespace CoupledField {
     sol_->SetSolutionType(solTypes_[iSol],iSol);
     sol_->SetNumDofs(solDofs_[iSol], solTypes_[iSol]);
   }
-  sol_->SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+  sol_->SetPtrEQNData(eqnData_, ptgrid_);
   sol_->Init(); 
 
 
@@ -372,7 +366,6 @@ namespace CoupledField {
 
   assemble_->SetNumDirichlet(numDirichletBCs_);
 
-  assemble_->SetPtrBCs(ptBCs_);
   assemble_->SetPtr2Sol(sol_);
   if (needsDampingMatrix_) {
     assemble_->NeedDampingMatrix();
@@ -387,7 +380,7 @@ namespace CoupledField {
   // =====================================================================
   // define the integrators for PDE
   // =====================================================================
-  DefineIntegrators(actlevel_);
+  DefineIntegrators();
 
   // =====================================================================
   // define which solution types have to be saved
@@ -497,27 +490,27 @@ namespace CoupledField {
     }
   }
 
-  void SinglePDE::SetBCs( const Integer level,  const Double time ) {
-
+  void SinglePDE::SetBCs( const Double time ) {
+    
     ENTER_FCN( "SinglePDE::SetBCs" );
-
-    Integer node, dof;
+    
+    Integer dof;
     Double val, val_tfunc;
-
-    std::list<Integer> nodes;
+    
+    StdVector<Integer> nodes;
 
     Integer i;
     Integer j;
     Integer eqnNr, eqnDof;
-
+    
     if (isIterCoupled_) {
       j = couplingBCsCounter_;
     }
     else {
       j=0;
     }
-
-
+    
+    
     // ---------------------------
     // HOMOGENEOUS DIRICHLET BC
     // ---------------------------
@@ -528,20 +521,21 @@ namespace CoupledField {
         std::string doftype = bcs_hd_[i];
         dof = GetBCDof(homDirichDof_[i]);
       }
-
-      nodes = ptBCs_->GetNodesLevel(bcs_hd_[i]);
-      std::list<Integer>::const_iterator p;
-      for ( p = nodes.begin(); p != nodes.end(); p++ ) {
-        node = *p;
-        eqnData_->Node2EQN(node, dof, eqnNr, eqnDof);
+      
+      ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
+      
+      
+      for ( Integer iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+	
+        eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
         if (eqnNr > 0) {
-
+	  
           // Increment counter for BCs
           if ( analysistype_ == HARMONIC ) {
-
+	    
             // set real part 
             algsys_->SetDirichlet(j*2+1, pdeId_, eqnNr, val, eqnDof);
-
+	    
             // set imaginary part 
             algsys_->SetDirichlet(j*2+2, pdeId_, eqnNr, val, eqnDof+1);
           }
@@ -553,11 +547,11 @@ namespace CoupledField {
       }
     }
 
-
+    
     // ---------------------------
     // INHOMOGENEOUS DIRICHLET BC
     // ---------------------------
-
+    
     Double phase = 0.0;
     Double dirVal;
     for ( i = 0; i < bcs_id_.GetSize(); i++ ) {
@@ -566,9 +560,9 @@ namespace CoupledField {
         std::string doftype = bcs_id_[i]; 
         dof = GetBCDof(inhomDirichDof_[i]);
       }
-
-      nodes = ptBCs_->GetNodesLevel(bcs_id_[i]); 
-
+      
+      ptgrid_->GetNodesByName( nodes, bcs_id_[i] ); 
+      
       //get the correct time function value
       val_tfunc = 1.0;
       if (ptTimeFunc_->GetmaxTimeFnc() > 0 && analysistype_ != HARMONIC) {
@@ -577,19 +571,19 @@ namespace CoupledField {
       
       val    =  val_id_[i] * val_tfunc;
       dirVal = val;
-      std::list<Integer>::const_iterator p;
-      for ( p = nodes.begin(); p != nodes.end(); p++, j++ ) {
-        node = *p;
-        eqnData_->Node2EQN(node, dof, eqnNr, eqnDof);
+      for ( Integer iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 
-        // Sanity check. This should not happen, but might appear
-        // in the case that the same node/dof belongs to a region
-        // with hom. and a region with inhom. Dirichlet BCs. This
-        // problem was already encountered!
+
+        eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
+	
+	// Sanity check. This should not happen, but might appear
+	// in the case that the same node/dof belongs to a region
+	// with hom. and a region with inhom. Dirichlet BCs. This
+	// problem was already encountered!
         if (eqnNr == 0) {
 
           std::cout << "Node | dof | eqnNr | eqnDof\n"
-                    << node  << " | "
+                    << nodes[iNode]  << " | "
                     << dof   << " | "
                     << eqnNr << " | "
                     << eqnDof << std::endl;
@@ -619,13 +613,12 @@ namespace CoupledField {
                                 eqnDof+1);
         }
         else {
-	  //std::cerr << pdename_ << ": Setting eqnNr." << eqnNr << " to value " 
-	  //	    << val << std::endl;
           algsys_->SetDirichlet(j+1, pdeId_, eqnNr, val, eqnDof);
         }
+	j++;
       }
     }
-  }
+}
 
  
 
@@ -722,9 +715,13 @@ namespace CoupledField {
     // Get list of subdomains and materials
     StdVector< std::string > subdomName;
     StdVector< std::string > subdomMaterial;
+    StdVector< RegionIdType > subdomId;
     params->GetList( "name", subdomName, "domain", "region" );
     params->GetList( "material", subdomMaterial, "domain", "region" );
   
+    // Convert region names to Ids
+    ptgrid_->RegionNameToId( subdomId, subdomName );
+
     params->Get("format", outformat, "output");
 
     if (outformat!="database") {
@@ -737,8 +734,8 @@ namespace CoupledField {
       // Load material data for subdomains on which this PDE lives
       // from data file
       for( Integer i = 0; i < subdoms_.GetSize(); i++ ) {
-        for( Integer k = 0; k <= subdomName.GetSize(); k++ ) {
-          if( subdoms_[i] == subdomName[k] ){
+        for( Integer k = 0; k <= subdomId.GetSize(); k++ ) {
+          if( subdoms_[i] == subdomId[k] ){
             loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
                                           pdematerialclass_ );
             break;
@@ -770,7 +767,7 @@ namespace CoupledField {
   }
 
 
-  Integer SinglePDE::GetNumRestraints( const Integer level ) {
+  Integer SinglePDE::GetNumRestraints() {
     
     ENTER_FCN( "SinglePDE::GetNumRestraints" );
     
@@ -778,11 +775,11 @@ namespace CoupledField {
     Integer i;
     
     for ( i = 0; i < bcs_hd_.GetSize(); i++ ) {
-      res+=ptBCs_->GetNumNodesLevel(bcs_hd_[i]);
+      res+=ptgrid_->GetNumNodes(bcs_hd_[i]);
     }
     
     for (i=0; i<bcs_id_.GetSize(); i++) {
-      res+=ptBCs_->GetNumNodesLevel(bcs_id_[i]);
+      res+=ptgrid_->GetNumNodes(bcs_id_[i]);
     }
     
     return res;
@@ -907,20 +904,20 @@ namespace CoupledField {
   // METHODS FOR ASSEMBLING
   // ======================================================
   
-  void  SinglePDE::AssembleMatrices(const Integer level) {
-    assemble_->AssembleMatrices(level);
+  void  SinglePDE::AssembleMatrices() {
+    assemble_->AssembleMatrices();
   }
   
-  void  SinglePDE::AssembleSrcRHS(const Integer level, const Double time) {
-    assemble_->AssembleSrcRHS(level, time);
+  void  SinglePDE::AssembleSrcRHS(const Double time) {
+    assemble_->AssembleSrcRHS(time);
   }
   
-  void SinglePDE::AssembleNLRHS(const Integer level, const Double time) {
-    assemble_->AssembleNLRHS(level, time);
+  void SinglePDE::AssembleNLRHS(const Double time) {
+    assemble_->AssembleNLRHS(time);
   }
   
-  void  SinglePDE::AssembleSprings(const Integer level, const Double time) {
-    assemble_->AssembleSprings(level, time);
+  void  SinglePDE::AssembleSprings(const Double time) {
+    assemble_->AssembleSprings(time);
   }
   
   void  SinglePDE::InitNonLinMatrices() {
@@ -938,7 +935,7 @@ namespace CoupledField {
   // ======================================================
 
 #ifdef ADAPTGRID
-  void SinglePDE::RefineMesh( const Integer level ) {
+  void SinglePDE::RefineMesh( const Integer level) {
 
     ENTER_FCN( "SinglePDE::RefineMesh" );
   

@@ -3,7 +3,6 @@
 
 #include "General/environment.hh"
 #include "Domain/grid.hh"
-#include "Domain/bcs.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField
@@ -17,9 +16,7 @@ public:
 
   //! Constructor
   BaseEQN(Grid * aptGrid,
-	  BCs * aptBCs,
-	  StdVector<std::string>& asubdoms, 
-	  Integer actlevel, 
+	  StdVector<RegionIdType>& asubdoms, 
 	  Integer dofsPerNode);
 
   //! Destructor
@@ -124,12 +121,6 @@ protected:
   //! Pointer to Grid
   Grid * ptGrid_;  
 
-  //! Pointer to BCs
-  BCs * ptBCs_;
-
-  //! Current refinement level (adaptivity)
-  Integer actlevel_;
-
   //! Number of nodes in PDE
   Integer numPDENodes_;
 
@@ -159,7 +150,7 @@ protected:
 
    //! Vector containing subdomain names
   //! of according PDE
-  StdVector<std::string> subdoms_;  
+  StdVector<RegionIdType> subdoms_;  
 
   //! Vector with indices of nodes with hom. Dirichlet boundary conditions
   StdVector<Integer> homoDirichletNodes_;

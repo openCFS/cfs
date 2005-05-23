@@ -64,7 +64,7 @@ namespace CoupledField
     //! \name Methods performing post-processing
 
     //! Do Postprocessing as descriped in conf file
-    virtual void PostProcess(const Integer level) = 0;
+    virtual void PostProcess() = 0;
 
     //! write results in file
     //! \param stepOffset offset for starting (time)step

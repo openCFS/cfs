@@ -26,8 +26,7 @@ class AcouFlowNoise: public AcousticPDE
 public:
 
   //!
-  AcouFlowNoise(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, 
-		  FileType *aptFileType, WriteResults *aptOut);
+  AcouFlowNoise(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut);
 
   //!
   virtual ~AcouFlowNoise();
@@ -55,7 +54,7 @@ private:
   //Flow Data
   Matrix<Double> flowdata_;
   //!< name of subdomain to be coupled with MpCCI
-  StdVector<std::string> couplSubDomName_; 
+  StdVector<RegionIdType> couplSubDomId_; 
 
   //!type of FlowData
   Boolean nodalSrc_;

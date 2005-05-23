@@ -21,875 +21,921 @@
 
 namespace CoupledField {
 
-// =====================================================================
-// set solution information
-// =====================================================================
-AcousticPDE::AcousticPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
-						 FileType *aptFileType, WriteResults *aptOut)
-  :SinglePDE(aptgrid,aptbcs,aptFileType,aptOut,aptTimeFunc) {
+  // =========================================================================
+  // set solution information
+  // =========================================================================
+  AcousticPDE::AcousticPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, 
+                           WriteResults *aptOut)
+    :SinglePDE(aptgrid,aptOut,aptTimeFunc) {
 
-  ENTER_FCN( "AcousticPDE::AcousticPDE" );
+    ENTER_FCN( "AcousticPDE::AcousticPDE" );
 
-  dofspernode_ = 1;
-  solDofs_ = 1;
-  pdename_          = "acoustic";
-  pdematerialclass_ = "fluid";
-  laststepcalc_ = 0;
+    dofspernode_ = 1;
+    solDofs_ = 1;
+    pdename_          = "acoustic";
+    pdematerialclass_ = "fluid";
+    laststepcalc_ = 0;
 
-  coarsealpha_ = 0.01; // solver parameter, see basePDE.cc
+    coarsealpha_ = 0.01; // solver parameter, see basePDE.cc
 
-  // PDE formulation either in acoustic potential or pressure
-  std::string str;
-  params->Get( "formulation", str, "pdeList", pdename_ );
-  String2Enum( str, formulation_ );
-  str = "Using * " + str + " as state variable in formulation of PDE\n";
-  Info->PrintF( pdename_, str.c_str() );
+    // PDE formulation either in acoustic potential or pressure
+    std::string str;
+    params->Get( "formulation", str, "pdeList", pdename_ );
+    String2Enum( str, formulation_ );
+    str = "Using * " + str + " as state variable in formulation of PDE\n";
+    Info->PrintF( pdename_, str.c_str() );
 
-  // class NodeStoreSol will be initialized with acoustic potential
-  solTypes_ = ACOU_POTENTIAL;
+    // class NodeStoreSol will be initialized with acoustic potential
+    solTypes_ = ACOU_POTENTIAL;
 
-  // timestepping formulation
-  params->Get( "timeSteppingFormulation", str, "pdeList", pdename_ );
-  if ( str == "effMassMatrix" ) {
-	effectiveMass_ = TRUE;
-	Info->PrintF( pdename_, "      * effective mass matrix timestepping\n");
-  } 
-  else {
-	effectiveMass_ = FALSE;
-	Info->PrintF( pdename_, "      * effective stiffness matrix timestepping\n");
-  }
-
-  // axisymmetric setup    
-  isaxi_ = params->HasValue( "type", "axi", "geometry" );
-
-  // *********************************************
-  //   Check what type of damping should be used
-  // *********************************************
-
-  StdVector<std::string> strVec;
-  params->GetList( "type", strVec, pdename_, "damping");
-
-  dampingType_ = NONE;
-  Boolean sorted = TRUE;
-  if ( strVec.IsEmpty() )
-	Info->PrintF( pdename_, "No information specifying damping detected!\n" );
-  else {
-    dampingList_.Resize(strVec.GetSize());
-    
-    for ( Integer k = 0; k < strVec.GetSize(); k++) {
-      
-      if (strVec[k] == "rayleigh") {
-	dampingList_[k] = RAYLEIGH;
-	Info->PrintF( pdename_, "      * RAYLEIGH damping for region: %d\n", k );
-      }
-      else if (strVec[k] == "thermoViscous") {
-	dampingList_[k] = THERMOVISCOUS;
-	Info->PrintF( pdename_, "      * THERMOVISCOUS damping for region: %d\n", k );
-      }
-      else if (strVec[k] == "fractional") {
-	dampingList_[k] = FRACTIONAL;
-	Info->PrintF( pdename_, "      * FRACTIONAL damping for region: %d\n", k );
-      }
-      else if (strVec[k] == "no") {
-	dampingList_[k] = NONE;
-	Info->PrintF( pdename_, "      * NO damping at all for region: %d\n", k );
-      }
-      if ( k > 1 )
-	if ( dampingList_[k] != dampingList_[k-1] )
-	  sorted = FALSE;
-    }
-    if ( sorted == FALSE )
-      Error("Specify same type of damping for all regions!",__FILE__,__LINE__);
+    // timestepping formulation
+    params->Get( "timeSteppingFormulation", str, "pdeList", pdename_ );
+    if ( str == "effMassMatrix" ) {
+      effectiveMass_ = TRUE;
+      Info->PrintF( pdename_, 
+                    "      * effective mass matrix timestepping\n");
+    } 
     else {
-      dampingType_ = dampingList_[0];
+      effectiveMass_ = FALSE;
+      Info->PrintF( pdename_, 
+                    "      * effective stiffness matrix timestepping\n");
+    }
+
+    // axisymmetric setup    
+    isaxi_ = params->HasValue( "type", "axi", "geometry" );
+
+    // *********************************************
+    //   Check what type of damping should be used
+    // *********************************************
+
+    StdVector<std::string> strVec;
+    params->GetList( "type", strVec, pdename_, "damping");
+
+    dampingType_ = NONE;
+    Boolean sorted = TRUE;
+    if ( strVec.IsEmpty() )
+      Info->PrintF( pdename_, 
+                    "No information specifying damping detected!\n" );
+    else {
+      dampingList_.Resize(strVec.GetSize());
+    
+      for ( Integer k = 0; k < strVec.GetSize(); k++) {
       
-      // get additional information for fractional damping model
-      if ( dampingType_ == FRACTIONAL ) {
+        if (strVec[k] == "rayleigh") {
+          dampingList_[k] = RAYLEIGH;
+          Info->PrintF( pdename_, 
+                        "      * RAYLEIGH damping for region: %d\n", k );
+        }
+        else if (strVec[k] == "thermoViscous") {
+          dampingList_[k] = THERMOVISCOUS;
+          Info->PrintF( pdename_, 
+                        "      * THERMOVISCOUS damping for region: %d\n", k );
+        }
+        else if (strVec[k] == "fractional") {
+          dampingList_[k] = FRACTIONAL;
+          Info->PrintF( pdename_, 
+                        "      * FRACTIONAL damping for region: %d\n", k );
+        }
+        else if (strVec[k] == "no") {
+          dampingList_[k] = NONE;
+          Info->PrintF( pdename_, 
+                        "      * NO damping at all for region: %d\n", k );
+        }
+        if ( k > 1 )
+          if ( dampingList_[k] != dampingList_[k-1] )
+            sorted = FALSE;
+      }
+      if ( sorted == FALSE )
+        Error("Specify same type of damping for all regions!",
+              __FILE__,__LINE__);
+      else {
+        dampingType_ = dampingList_[0];
+      
+        // get additional information for fractional damping model
+        if ( dampingType_ == FRACTIONAL ) {
 	
-	StdVector<std::string> fracAlgList_;
-	params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
-	StdVector<Integer> fracMemoryList_;
-	params->GetList( "fracMemory", fracMemoryList_, pdename_, "damping" );
-	StdVector<std::string> interpolationList_;
-	params->GetList( "interpolation", interpolationList_, pdename_, "damping" );
+          StdVector<std::string> fracAlgList_;
+          params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
+          StdVector<Integer> fracMemoryList_;
+          params->GetList( "fracMemory", fracMemoryList_, pdename_, 
+                           "damping" );
+          StdVector<std::string> interpolationList_;
+          params->GetList( "interpolation", interpolationList_, 
+                           pdename_, "damping" );
 	
-	if( fracAlgList_.IsEmpty()||fracMemoryList_.IsEmpty()||interpolationList_.IsEmpty() )
-	  Error("Specify attributes fracAlg, fracMemory and interpolation!",__FILE__,__LINE__);
-	// up to now take values from first subdomain
-	else {
-	  if ( fracAlgList_[0] == "gl" )
-	    Info->PrintF( pdename_, "         with Gruenwald-Letnikov algorithm,\n");
-	  else if (fracAlgList_[0] == "blank")
-	    Info->PrintF( pdename_, "         with Blanks algorithm,\n");
+          if( fracAlgList_.IsEmpty()
+              || fracMemoryList_.IsEmpty() 
+              || interpolationList_.IsEmpty() ) {
+            (*error) << "Specify attributes fracAlg, fracMemory " 
+                     << "and interpolation!";
+            Error( __FILE__, __LINE__ ); 
+          }
+          // up to now take values from first subdomain
+          else {
+            if ( fracAlgList_[0] == "gl" )
+              Info->PrintF( pdename_, 
+                            "         with Gruenwald-Letnikov algorithm,\n");
+            else if (fracAlgList_[0] == "blank")
+              Info->PrintF( pdename_, 
+                            "         with Blanks algorithm,\n");
 	  
-	  fracMemory_ = fracMemoryList_[0];
-	  Info->PrintF( pdename_, "         memory size is: %d,\n", fracMemory_);
+            fracMemory_ = fracMemoryList_[0];
+            Info->PrintF( pdename_, 
+                          "         memory size is: %d,\n", fracMemory_);
 	  
-	  if ( interpolationList_[0] == "lin1pt")
-	    inType_ = LIN1PT;
-	  else
-	    inType_ = NOTUSED;
-	  Info->PrintF( pdename_, "         %s interpolation of past values\n\n"
-			, interpolationList_[0].c_str() );
-	}
-	// modify dampingList, so that fracAlg is included
-	for ( Integer k = 0; k < strVec.GetSize(); k++) {
-	  if ( fracAlgList_[k] == "gl" )
-	    dampingList_[k] = FRACTIONAL_GL;
-	  else if (fracAlgList_[k] == "blank")
-	    dampingList_[k] = FRACTIONAL_BLANK;
-	}
+            if ( interpolationList_[0] == "lin1pt")
+              inType_ = LIN1PT;
+            else
+              inType_ = NOTUSED;
+            Info->PrintF( pdename_, 
+                          "         %s interpolation of past values\n\n"
+                          , interpolationList_[0].c_str() );
+          }
+          // modify dampingList, so that fracAlg is included
+          for ( Integer k = 0; k < strVec.GetSize(); k++) {
+            if ( fracAlgList_[k] == "gl" )
+              dampingList_[k] = FRACTIONAL_GL;
+            else if (fracAlgList_[k] == "blank")
+              dampingList_[k] = FRACTIONAL_BLANK;
+          }
+        }
+      }
+    }
+    // *************************************************************
+    //   Check what type of nonlinear PDE formulation should be used
+    // *************************************************************
+
+    nonLin_ = FALSE; //declaration in basePDE.hh
+    params->GetList( "nonLinear", strVec, pdename_, "region" );
+    nonLinPDEName_.Resize(strVec.GetSize());
+
+    for ( Integer k = 0; k < strVec.GetSize(); k++ ) {
+
+      if ( strVec[k] == "no" )
+        ;
+      else if ( strVec[k] == "westervelt" ) {
+        nonLin_ = TRUE;
+        nonLinPDEName_[k] = WESTERVELT;
+        Info->PrintF( pdename_, "      * Westervelt equation for region: %d\n", k );
+        if ( solTypes_ == ACOU_POTENTIAL )
+          Error("Acoustic potential formulation not supported for Westervelt equation!"
+                ,__FILE__,__LINE__);
+      }
+      else if ( strVec[k] == "kuznetsov" ) {
+        nonLin_ = TRUE;
+        nonLinPDEName_[k] = KUZNETSOV;
+        Info->PrintF( pdename_, "      * Kuznetsov equation for region: %d\n", k );
+        if ( solTypes_ == ACOU_PRESSURE )
+          Error("Acoustic pressure formulation not supported for Kuznetsov equation!"
+                ,__FILE__,__LINE__);
+      }
+    }
+
+
+    // **************************************************
+    //   Check what type of bubble model should be used
+    // **************************************************
+    StdVector<std::string> auxVec;
+    params->GetList( "bubbleType", auxVec, "acoustic", "bubbles" );
+    if ( auxVec.GetSize() == 1 ) {
+      String2Enum( auxVec[0], bubbleDynType_ );
+
+      //Set bubbledensity
+      params->Get( "bubbleNumDensity", bubbleDensity_, "acoustic", "bubbles" );
+    }
+    else if ( auxVec.GetSize() > 1 ) {
+      Error( "Specification of bubble type not unique in xml-file", __FILE__,
+             __LINE__ );
+    }
+    else {
+      bubbleDynType_ = NOBUBBLETYPE;
+    }
+  
+
+    if( nonLin_ || bubbleDynType_ != NOBUBBLETYPE ) {
+      // solution method
+      params->Get("method", nonLinMethod_, pdename_, "nonLinear" );
+      // perform logging?
+      nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
+      // type of line search
+      params->Get("type", lineSearch_, pdename_, "lineSearch" );
+      // incremental stopping criterion
+      params->Get("incStopCrit", incStopCrit_, pdename_, "nonLinear" );
+      // residual stopping criterion
+      params->Get("resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
+      // maximal number of NL-iterations
+      params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
+    }
+
+    // ***************************************************************
+    //   If no other damping type is specified and we have absorbing
+    //   boundary conditions, then use ABCDAMP
+    // ***************************************************************
+    absorbingBCs_ = FALSE;
+    params->GetList( "name", auxVec, pdename_, "absorbingBCs" );
+    ptgrid_->RegionNameToId( absBCs_, auxVec );
+
+    if ( absBCs_.GetSize() ) {
+      absorbingBCs_ = TRUE;
+      Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
+      surfdoms_ = absBCs_;
+    }
+
+    needsDampingMatrix_ = FALSE;
+    // two matrices formulation
+    if ( absorbingBCs_ == TRUE 
+         || (dampingType_ != NONE && dampingType_ != FRACTIONAL) )
+      needsDampingMatrix_ = TRUE;
+    // conservative formulation
+    //if ( absorbingBCs_ == TRUE || dampingType_ != NONE )
+    //  needsDampingMatrix_ = TRUE;
+  }
+
+
+  void AcousticPDE::DefineIntegrators() {
+
+    ENTER_FCN( "AcousticPDE::DefineIntegerators" );
+
+    Boolean nonLin = FALSE;
+    Double density, compressibility, c0, alpha, beta, BoverA;
+    Double coeffmass, coeffdamp;
+
+    for (Integer actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
+
+      density         = materialData_[actSD].GetDensity();
+      compressibility = materialData_[actSD].GetCompressibility();
+      c0 = sqrt(compressibility/density);
+
+      alpha  = materialData_[actSD].GetDampingAlfa();
+      beta   = materialData_[actSD].GetDampingBeta();
+      BoverA = materialData_[actSD].GetBoverA();
+
+      // **********************************************************************
+      //   Linear wave equation
+      // **********************************************************************
+
+      // stiffness integrator
+      BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);        
+      IntegratorDescriptor * stiffIntDescr = 
+        new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+      assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
+
+      // mass integrator
+      coeffmass = density / (c0*c0);
+      BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
+      IntegratorDescriptor * massIntDescr = 
+        new IntegratorDescriptor(bilinearMass, MASS);
+      assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]);
+
+      // **********************************************************************
+      //   Additional terms for damping
+      // **********************************************************************
+
+      if ( !dampingList_.IsEmpty() ) {
+
+        if (dampingList_[actSD] == RAYLEIGH) {
+          // This works even after assemble_->AddIntegrator() is executed
+          //   because of the pointers...
+
+          // stiffness part
+          stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
+	
+          // mass part
+          massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
+        }
+          
+        else if ( dampingList_[actSD] == THERMOVISCOUS ) {
+          coeffdamp  =  density * 2.0 * alpha * c0;
+          BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
+          IntegratorDescriptor * dampIntDescr = 
+            new IntegratorDescriptor(bilinearStiff, DAMPING);
+                
+          assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+        }
+
+        else if ( dampingList_[actSD] == FRACTIONAL_GL ) {
+          coeffdamp = - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
+          BaseForm * bilinearDamp  = new MassInt(coeffdamp, dofspernode_, isaxi_);
+          bilinearDamp->SetFracDamping();
+          // conservative formulation
+          // adapt NewmarkFracDamp::Init and BasePDE::GetFracDampMatrixCoeff
+          // IntegratorDescriptor * dampIntDescr = 
+          //new IntegratorDescriptor(bilinearDamp, DAMPING);
+
+          // two matrices formulation
+          IntegratorDescriptor * dampIntDescr = 
+            new IntegratorDescriptor(bilinearDamp, STIFFNESS);
+
+          assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+        }
+
+        else if  ( dampingList_[actSD] == FRACTIONAL_BLANK ) {
+          coeffdamp =  - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
+          // prefactor of blank alg
+          coeffdamp *= exp(-gammaln(1.0- (beta- 1.0)) ); 
+          // weight factor of index 0
+          coeffdamp *= 1.0/(1.0- (beta- 1.0));           
+          BaseForm * bilinearDamp  = 
+            new MassInt(coeffdamp, dofspernode_, isaxi_);
+          bilinearDamp->SetFracDamping();
+          // conservative formulation
+          // adapt NewmarkFracDamp::Init and BasePDE::GetFracDampMatrixCoeff              
+          // IntegratorDescriptor * dampIntDescr = 
+          //new IntegratorDescriptor(bilinearDamp, DAMPING);
+
+          // two matrices formulation
+          IntegratorDescriptor * dampIntDescr = 
+            new IntegratorDescriptor(bilinearDamp, STIFFNESS);
+
+          assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+        }
+      }
+
+    }
+
+    // **********************************************************************
+    //   surface-integration: Absorbing boundaries
+    // **********************************************************************
+
+    if ( absorbingBCs_ == TRUE && analysistype_ != HARMONIC ) {
+      for (Integer actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
+        //currently hard-coded!!
+        Double density = materialData_[0].GetDensity();
+        Double compressibility = materialData_[0].GetCompressibility();
+        Double coeffdamp = density/((sqrt(compressibility/density)));
+        
+        BaseForm * bilinear_damp = 
+          new MassInt(coeffdamp,dofspernode_, isaxi_);
+        assemble_->AddSurfIntegrator(bilinear_damp,  absBCs_[actSD],
+                                     DAMPING, nonLin);
+      }
+    }
+
+  
+  }
+
+  void AcousticPDE::DefineSolveStep()
+  {
+    ENTER_FCN( "AcousticPDE::DefineSolveStep" );
+
+    if( bubbleDynType_ != NOBUBBLETYPE ) {
+      solveStep_ = new SolveStepAcousticBubble(*this, bubbleDynType_);
+    }
+    else {
+      solveStep_ = new SolveStepAcoustic(*this);
+    }
+
+  }
+
+
+
+  // ======================================================
+  // TIME STEPPING SECTION
+  // ======================================================
+
+  void AcousticPDE::InitTimeStepping() {
+    ENTER_FCN( "AcousticPDE::InitTimeStepping" );
+
+    if ( dampingType_!=FRACTIONAL ) {
+      // this includes rayleigh and thermoviscous damping
+      if ( effectiveMass_ == FALSE ) {
+        TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
+      }
+      else {
+        TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, needsDampingMatrix_);
+      }
+    }
+    else {
+      if ( effectiveMass_ == FALSE )
+        TS_alg_ = new NewmarkFracDamp(pdename_, pdeId_, algsys_, eqnData_, 
+                                      ptgrid_, this, subdoms_, dampingList_, 
+                                      fracMemory_, inType_, isaxi_);
+      else
+        Error("This needs to be implemented!",__FILE__,__LINE__);
+    }
+  
+    // Needed for fractional damping model, see Assemble::AssembleMatrices
+    assemble_->SetPDEPointer(this);
+
+    // Needed for nonlinear wave equation, get memory for linear part of RHS
+    if ( nonLin_ )
+      RhsLinVal_.Resize(numPDENodes_);
+
+  }
+
+
+
+  // ======================================================
+  // COUPLING SECTION
+  // ======================================================
+
+  void AcousticPDE::InitCoupling(PDECoupling * Coupling) {
+    
+    ENTER_FCN( "AcousticPDE::InitCoupling" );
+    
+    isIterCoupled_ = TRUE;
+    ptCoupling_   = Coupling;
+    
+    // Intialize the memory of the coupling values
+    for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
+      if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE)    {
+        ptCoupling_->CreateCouplingVector(i,isComplex_);
+	
+        //now since we need a incremental formulation, initialize some necessary vectors
+        isIncrFormulation_ = TRUE;
+        solIncr_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
+        actSol_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
+        solIncr_.Init(0);
+        actSol_.Init(0);
       }
     }
   }
-  // *************************************************************
-  //   Check what type of nonlinear PDE formulation should be used
-  // *************************************************************
-
-  nonLin_ = FALSE; //declaration in basePDE.hh
-  params->GetList( "nonLinear", strVec, pdename_, "region" );
-  nonLinPDEName_.Resize(strVec.GetSize());
-
-  for ( Integer k = 0; k < strVec.GetSize(); k++ ) {
-
-	if ( strVec[k] == "no" )
-	  ;
-	else if ( strVec[k] == "westervelt" ) {
-	  nonLin_ = TRUE;
-	  nonLinPDEName_[k] = WESTERVELT;
-	  Info->PrintF( pdename_, "      * Westervelt equation for region: %d\n", k );
-	  if ( solTypes_ == ACOU_POTENTIAL )
-		Error("Acoustic potential formulation not supported for Westervelt equation!"
-			  ,__FILE__,__LINE__);
-	}
-	else if ( strVec[k] == "kuznetsov" ) {
-	  nonLin_ = TRUE;
-	  nonLinPDEName_[k] = KUZNETSOV;
-	  Info->PrintF( pdename_, "      * Kuznetsov equation for region: %d\n", k );
-	  if ( solTypes_ == ACOU_PRESSURE )
-		Error("Acoustic pressure formulation not supported for Kuznetsov equation!"
-			  ,__FILE__,__LINE__);
-	}
-  }
-
-
-  // **************************************************
-  //   Check what type of bubble model should be used
-  // **************************************************
-  StdVector<std::string> auxVec;
-  params->GetList( "bubbleType", auxVec, "acoustic", "bubbles" );
-  if ( auxVec.GetSize() == 1 ) {
-    String2Enum( auxVec[0], bubbleDynType_ );
-
-    //Set bubbledensity
-    params->Get( "bubbleNumDensity", bubbleDensity_, "acoustic", "bubbles" );
-  }
-  else if ( auxVec.GetSize() > 1 ) {
-    Error( "Specification of bubble type not unique in xml-file", __FILE__,
-	   __LINE__ );
-  }
-  else {
-    bubbleDynType_ = NOBUBBLETYPE;
-  }
   
 
-  if( nonLin_ || bubbleDynType_ != NOBUBBLETYPE ) {
-	// solution method
-	params->Get("method", nonLinMethod_, pdename_, "nonLinear" );
-	// perform logging?
-	nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
-	// type of line search
-	params->Get("type", lineSearch_, pdename_, "lineSearch" );
-	// incremental stopping criterion
-	params->Get("incStopCrit", incStopCrit_, pdename_, "nonLinear" );
-	// residual stopping criterion
-	params->Get("resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
-	// maximal number of NL-iterations
-	params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
-  }
+  void AcousticPDE::CalcOutputCoupling() {
 
-  // ***************************************************************
-  //   If no other damping type is specified and we have absorbing
-  //   boundary conditions, then use ABCDAMP
-  // ***************************************************************
-  absorbingBCs_ = FALSE;
-  params->GetList( "name", absBCs_, pdename_, "absorbingBCs" );
-  if ( absBCs_.GetSize() ) {
-	absorbingBCs_ = TRUE;
-	Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
-	surfdoms_ = absBCs_;
-  }
+    ENTER_FCN( "AcousticPDE::CalcOutputCoupling" );
 
-  needsDampingMatrix_ = FALSE;
-  // two matrices formulation
-  if ( absorbingBCs_ == TRUE || (dampingType_ != NONE  && dampingType_ != FRACTIONAL) )
-	needsDampingMatrix_ = TRUE;
-  // conservative formulation
-  //if ( absorbingBCs_ == TRUE || dampingType_ != NONE )
-  //  needsDampingMatrix_ = TRUE;
-}
+    Integer dof;
+    SolutionType quantity;
+    StdVector<Elem*> * couplingElems = NULL;
+    StdVector<Integer> * couplingNodes = NULL;
+    CFSVector * temp_values = NULL;
+  
+    // loop over all output coupling quantities
+    for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
+      quantity = ptCoupling_->GetOutputQuantity(i);
+      ptCoupling_->GetOutputValues(i, temp_values);
 
+      // hard coded cast, since coupling is only possible with
+      // real valued entries
+      Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
 
-void AcousticPDE::DefineIntegrators(const Integer level) {
+      switch(ptCoupling_->GetOutputType(i)) {
 
-  ENTER_FCN( "AcousticPDE::DefineIntegerators" );
-
-  Boolean nonLin = FALSE;
-  Double density, compressibility, c0, alpha, beta, BoverA;
-  Double coeffmass, coeffdamp;
-
-  for (Integer actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
-
-	density         = materialData_[actSD].GetDensity();
-	compressibility = materialData_[actSD].GetCompressibility();
-	c0 = sqrt(compressibility/density);
-
-	alpha  = materialData_[actSD].GetDampingAlfa();
-	beta   = materialData_[actSD].GetDampingBeta();
-	BoverA = materialData_[actSD].GetBoverA();
-
-	// **********************************************************************
-	//   Linear wave equation
-	// **********************************************************************
-
-	// stiffness integrator
-	BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);        
-	IntegratorDescriptor * stiffIntDescr = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
-	assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
-
-	// mass integrator
-	coeffmass = density / (c0*c0);
-	BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
-	IntegratorDescriptor * massIntDescr = new IntegratorDescriptor(bilinearMass, MASS);
-	assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]);
-
-	// **********************************************************************
-	//   Additional terms for damping
-	// **********************************************************************
-
-	if ( !dampingList_.IsEmpty() ) {
-
-	  if (dampingList_[actSD] == RAYLEIGH) {
-		// This works even after assemble_->AddIntegrator() is executed
-		//   because of the pointers...
-
-		// stiffness part
-		stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
-	
-		// mass part
-		massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
-	  }
+      case NODE:
+        if (quantity == ACOU_FORCE) {
+          ptCoupling_->GetOutputElements(i, couplingElems);
+          ptCoupling_->GetOutputNodes(i, couplingNodes);
+          dof = ptCoupling_->GetOutputDof(i);
           
-	  else if ( dampingList_[actSD] == THERMOVISCOUS ) {
-		coeffdamp  =  density * 2.0 * alpha * c0;
-		BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
-		IntegratorDescriptor * dampIntDescr = new IntegratorDescriptor(bilinearStiff, DAMPING);
-                
-		assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
-	  }
 
-	  else if ( dampingList_[actSD] == FRACTIONAL_GL ) {
-		coeffdamp = - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
-		BaseForm * bilinearDamp  = new MassInt(coeffdamp, dofspernode_, isaxi_);
-		bilinearDamp->SetFracDamping();
-		// conservative formulation
-		// adapt NewmarkFracDamp::Init and BasePDE::GetFracDampMatrixCoeff
-		// IntegratorDescriptor * dampIntDescr = new IntegratorDescriptor(bilinearDamp, DAMPING);
+          CalcMechCouplingRHS(couplingElems, *couplingNodes,
+                              *values, dof);                              
+        }
+        break;
 
-		// two matrices formulation
-		IntegratorDescriptor * dampIntDescr = new IntegratorDescriptor(bilinearDamp, STIFFNESS);
-
-		assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
-	  }
-
-	  else if  ( dampingList_[actSD] == FRACTIONAL_BLANK ) {
-		coeffdamp =  - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
-		coeffdamp *= exp(-gammaln(1.0- (beta- 1.0)) ); // prefactor of blank alg
-		coeffdamp *= 1.0/(1.0- (beta- 1.0));           // weight factor of index 0
-		BaseForm * bilinearDamp  = new MassInt(coeffdamp, dofspernode_, isaxi_);
-		bilinearDamp->SetFracDamping();
-		// conservative formulation
-		// adapt NewmarkFracDamp::Init and BasePDE::GetFracDampMatrixCoeff              
-		// IntegratorDescriptor * dampIntDescr = new IntegratorDescriptor(bilinearDamp, DAMPING);
-
-		// two matrices formulation
-		IntegratorDescriptor * dampIntDescr = new IntegratorDescriptor(bilinearDamp, STIFFNESS);
-
-		assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
-	  }
-	}
-
+      case ELEM:
+        Error("No Element coupling output", __FILE__,__LINE__);
+      }
+    }
   }
 
-  // **********************************************************************
-  //   surface-integration: Absorbing boundaries
-  // **********************************************************************
 
-  if ( absorbingBCs_ == TRUE && analysistype_ != HARMONIC ) {
-	for (Integer actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
-	  //currently hard-coded!!
-	  Double density = materialData_[0].GetDensity();
-	  Double compressibility = materialData_[0].GetCompressibility();
-	  Double coeffdamp = density/((sqrt(compressibility/density)));
-        
-	  BaseForm * bilinear_damp = new MassInt(coeffdamp,dofspernode_, isaxi_);
-	  assemble_->AddSurfIntegrator(bilinear_damp,  absBCs_[actSD],
-								   DAMPING, nonLin);
-	}
-  }
-
-  
-}
-
-void AcousticPDE::DefineSolveStep()
-{
-  ENTER_FCN( "AcousticPDE::DefineSolveStep" );
-
-  if( bubbleDynType_ != NOBUBBLETYPE ) {
-    solveStep_ = new SolveStepAcousticBubble(*this, bubbleDynType_);
-  }
-  else {
-    solveStep_ = new SolveStepAcoustic(*this);
-  }
-
-}
-
-
-
-// ======================================================
-// TIME STEPPING SECTION
-// ======================================================
-
-void AcousticPDE::InitTimeStepping() {
-  ENTER_FCN( "AcousticPDE::InitTimeStepping" );
-
-  if ( dampingType_!=FRACTIONAL ) {
-	// this includes rayleigh and thermoviscous damping
-	if ( effectiveMass_ == FALSE ) {
-	  TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
-	}
-	else {
-	  TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, needsDampingMatrix_);
-	}
-  }
-  else {
-	if ( effectiveMass_ == FALSE )
-	  TS_alg_ = new NewmarkFracDamp(pdename_, pdeId_, algsys_, eqnData_, 
-					ptgrid_, this, subdoms_, dampingList_, 
-					fracMemory_, inType_, isaxi_);
-	else
-	  Error("This needs to be implemented!",__FILE__,__LINE__);
-  }
-  
-  // Needed for fractional damping model, see Assemble::AssembleMatrices
-  assemble_->SetPDEPointer(this);
-
-  // Needed for nonlinear wave equation, get memory for linear part of RHS
-  if ( nonLin_ )
-	RhsLinVal_.Resize(numPDENodes_);
-
-}
-
-
-
-// ======================================================
-// COUPLING SECTION
-// ======================================================
-
-void AcousticPDE::InitCoupling(PDECoupling * Coupling) {
+  void AcousticPDE::
+  CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
+                       StdVector<Integer> & couplingNodes,
+                       Vector<Double>& elemCouplingSols,
+                       Integer couplingdof ) {
     
-  ENTER_FCN( "AcousticPDE::InitCoupling" );
+    ENTER_FCN( "AcousticPDE::CalcMechCouplingRHS" );
     
-  isIterCoupled_ = TRUE;
-  ptCoupling_   = Coupling;
+    Double density = 0.0;
+    Double sign = 0.0;
+    Integer matIndex = -1;
+    Elem * ptVolElem = NULL;
+    Matrix<Double> ptCoord, elemMat;
+    Vector<Double> sol, forceOnElem, normal;
     
-  // Intialize the memory of the coupling values
-  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
-	if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE)    {
-	  ptCoupling_->CreateCouplingVector(i,isComplex_);
-	
-	  //now since we need a incremental formulation, initialize some necessary vectors
-	  isIncrFormulation_ = TRUE;
-	  solIncr_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
-	  actSol_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
-	  solIncr_.Init(0);
-	  actSol_.Init(0);
-	}
-  }
-}
-  
-
-void AcousticPDE::CalcOutputCoupling() {
-
-  ENTER_FCN( "AcousticPDE::CalcOutputCoupling" );
-
-  Integer dof;
-  SolutionType quantity;
-  StdVector<Elem*> * couplingElems = NULL;
-  StdVector<Elem*> * interfaceVolElems = NULL;
-  StdVector<Integer> * couplingNodes = NULL;
-  StdVector<MaterialData*> * couplingMaterials = NULL;
-  CFSVector * temp_values = NULL;
-  
-  // loop over all output coupling quantities
-  for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
-	quantity = ptCoupling_->GetOutputQuantity(i);
-	ptCoupling_->GetOutputValues(i, temp_values);
+    elemCouplingSols.Init(0.0);
+    
+    for (Integer actElem=0; actElem<couplingElems->GetSize(); actElem++) {
       
-	Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
-
-	switch(ptCoupling_->GetOutputType(i)) {
-
-	case NODE:
-	  if (quantity == ACOU_FORCE) {
-		ptCoupling_->GetOutputElements(i, couplingElems);
-		ptCoupling_->GetOutputNodes(i, couplingNodes);
-		ptCoupling_->GetOwnMaterials(i, couplingMaterials);
-		ptCoupling_->GetInputNeighbourElems(i, interfaceVolElems);
-		dof = ptCoupling_->GetOutputDof(i);
-            
-		CalcMechCouplingRHS(couplingElems, *couplingNodes,
-							couplingMaterials, *values, dof,
-							interfaceVolElems);
-	  }
-	  break;
-
-	case ELEM:
-	  Error("No Element coupling output", __FILE__,__LINE__);
-	}
-  }
-}
-
-
-void AcousticPDE::CalcMechCouplingRHS(StdVector<Elem*> * couplingElems, 
-									  StdVector<Integer> & couplingNodes,
-									  StdVector<MaterialData*> * couplingMaterials,
-									  Vector<Double>& elemCouplingSols,
-									  Integer couplingdof,
-									  StdVector<Elem*> * interfaceVolElems)
-{
-  ENTER_FCN( "AcousticPDE::CalcMechCouplingRHS" );
-
-  Double density=0;
-   
-  elemCouplingSols.Init(0.0);
-
-  for (Integer actElem=0; actElem<couplingElems->GetSize(); actElem++) {
-	Elem * actCoupleElem = (*couplingElems)[actElem];
-	BaseFE * ptElem          = actCoupleElem->ptElem;
-
-	StdVector<Integer> connecth = actCoupleElem->connect;
-
-	Matrix<Double> ptCoord; 
-	GetElemCoords(connecth, ptCoord, actlevel_);
-
-	Boolean found = FALSE;
+      // Perform cast from volume element to surface element, since
+      // mech-acou coupling makes only sense on surface elements
+      SurfElem * actCoupleElem = 
+        dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
       
-	// get correct density belonging to the neighbouring element
-	// of the interface
-	for (Integer actSD = 0; actSD < subdoms_.GetSize(); actSD++)    {  
-	  if ((*interfaceVolElems)[actElem]->namesd ==  subdoms_[actSD]) {
-		density = materialData_[actSD].GetDensity();
-		found = TRUE;
-	  }
-	}
+      BaseFE * ptElem = actCoupleElem->ptElem;
+      StdVector<Integer> & connecth = actCoupleElem->connect;
+      GetElemCoords(connecth, ptCoord);
       
-	if (found ==FALSE) {
-	  std::string msg = "Cannot find correct density to compute acoustic ";
-	  msg += "pressure forces! Using density of acoustic subdomain 1";
-	  Info->Warning( msg );
-	  density = materialData_[0].GetDensity();
-	}
+      // Try to find according region for first neighbouring volume
+      // element of the surface element
+      matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
+      
+      // If first volume element does not belong to acoustic PDE, try the
+      // second one
+      if ( matIndex == -1 ) {
+        matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
+        ptVolElem = actCoupleElem->ptVolElem2;
+        sign = actCoupleElem->normalSign;
+      } else {
+        ptVolElem = actCoupleElem->ptVolElem1;
+        sign = -1.0 * actCoupleElem->normalSign;
+      }
+      
+      if ( matIndex == -1) {
+        (*error) << "AcousticPDE::CalcMechCouplingRHS: The two volume "
+                 << "element neighbours of surface element Nr. "
+                 << actCoupleElem->elemNum << " do not belong to my regions!";
+        Error( __FILE__, __LINE__ );
+      }
+      
+      // Assign correct density
+      density = materialData_[matIndex].GetDensity();
+      
+      
+      
+      BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
+      bilinear_mass->CalcElementMatrix(ptCoord, elemMat);
+      delete bilinear_mass;     
+      
+      GetDerivSolVecOfElement(sol, connecth);
+      
+      forceOnElem = elemMat * sol;
+      
+      // force has to be added on RHS with negative sign
+      forceOnElem *= - 1.0;
+      
+      // the normal vector points outwards of the MECHANICAL domain
+      // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
+      // ptgrid_->CalcSurfNormalOutOfVol(n, *actCoupleElem, 
+      // *(*interfaceVolElems)[actElem]); 
+      ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
+      normal *= sign;
+
+      for (Integer actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
+        Integer nodePos = 0;
           
-	BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
-	Matrix<Double> elemmat;
-	bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
-	delete bilinear_mass;     
-	Vector<Double> sol;
-	GetDerivSolVecOfElement(sol, connecth);
-      
-	Vector<Double> forceOnElem = elemmat * sol;
-	// force has to be added on RHS with negative sign
-	forceOnElem *= -1;
-
-	// the normal vector points outwards of the MECHANICAL domain
-	// (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
-	Vector<Double> n;
-
-	// points outward own domain
-	ptgrid_->CalcSurfNormalOutOfVol(n, *actCoupleElem, *(*interfaceVolElems)[actElem]); 
-	n *=-1;
-	//std::cerr << "acoustic Normal =\n" << n << std::endl;
-
-	for (Integer actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
-	  Integer nodePos = 0;
+        while(connecth[actNode] != couplingNodes[nodePos] &&
+              nodePos < couplingNodes.GetSize()) {
+          nodePos++;
+        }
           
-	  while(connecth[actNode] != couplingNodes[nodePos] &&
-			nodePos < couplingNodes.GetSize()) {
-		nodePos++;
-	  }
-          
-	  for (Integer actDof=0; actDof < couplingdof ; actDof++) {
-		elemCouplingSols[nodePos*couplingdof +actDof] += 
-		  forceOnElem[actNode] * n[actDof];
-		//std::cerr << "acouforceonElem +=" << forceOnElem[actNode] * n[actDof] << std::endl;
-	  }
-	}
+        for (Integer actDof=0; actDof < couplingdof ; actDof++) {
+          elemCouplingSols[nodePos*couplingdof +actDof] += 
+            forceOnElem[actNode] * normal[actDof];
+        }
+      }
+    }
   }
-}
 
 
-Boolean AcousticPDE::HasOutput(SolutionType output) {
-  ENTER_FCN( "AcousticPDE::HasOutput" );
-  if (output == ACOU_FORCE) {
-	return TRUE;
+  Boolean AcousticPDE::HasOutput(SolutionType output) {
+    ENTER_FCN( "AcousticPDE::HasOutput" );
+    if (output == ACOU_FORCE) {
+      return TRUE;
+    }
+    return FALSE;
   }
-  return FALSE;
-}
 
 
-// ======================================================
-// POSTPROCESSING SECTION
-// ======================================================
+  // ======================================================
+  // POSTPROCESSING SECTION
+  // ======================================================
 
-void AcousticPDE::WriteResultsInFile(const Integer kstep,
-				     const Double asteptime,
-				     Integer stepOffset,
-				     Double timeOffset) {
-  ENTER_FCN( "AcousticPDE::WriteResultsInFile" );
+  void AcousticPDE::WriteResultsInFile(const Integer kstep,
+                                       const Double asteptime,
+                                       Integer stepOffset,
+                                       Double timeOffset) {
+    ENTER_FCN( "AcousticPDE::WriteResultsInFile" );
 
 #ifdef PARALLEL //only one thread should write the output
-  int commrank;
-  MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
-  if (!commrank) {
+    int commrank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
+    if (!commrank) {
 #endif
-	NodeStoreSol<Double> solIm_mesh;
-	NodeStoreSol<Double> * solTransient;
-	NodeStoreSol<Complex> * solHarmonic;
+      NodeStoreSol<Double> solIm_mesh;
+      NodeStoreSol<Double> * solTransient;
+      NodeStoreSol<Complex> * solHarmonic;
        
-	Double actTime = lasttimecalc_ + timeOffset;
-	Integer actStep = laststepcalc_ + stepOffset;
+      Double actTime = lasttimecalc_ + timeOffset;
+      Integer actStep = laststepcalc_ + stepOffset;
       
-	if (analysistype_==HARMONIC) {
-	  solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+      if (analysistype_==HARMONIC) {
+        solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
-	  if (saveSol_)
-	    outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
-						actFrequency_, complexFormat_);
-	  if (saveSolHist_)
-	    outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
-					       actFrequency_, complexFormat_);
-	}
-	else {  
-	  solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+        if (saveSol_)
+          outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
+                                              actFrequency_, complexFormat_);
+        if (saveSolHist_)
+          outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
+                                             actFrequency_, complexFormat_);
+      }
+      else {  
+        solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-	  if (saveSol_){
-		outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
-          }
-	  if (saveSolHist_){
-	    outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
-	  }
+        if (saveSol_){
+          outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+        }
+        if (saveSolHist_){
+          outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
+        }
         
-	  if (saveDeriv1_) {
-		solDeriv1_.SetAlgSysVector(getS1()); 
-		outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
-	  }
+        if (saveDeriv1_) {
+          solDeriv1_.SetAlgSysVector(getS1()); 
+          outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
+        }
         
-	  if (saveDeriv1Hist_) {
-	    solDeriv1_.SetAlgSysVector(getS1()); 
-	    outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
-	  }
+        if (saveDeriv1Hist_) {
+          solDeriv1_.SetAlgSysVector(getS1()); 
+          outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
+        }
 
-	  if (saveDeriv2_) {
-		solDeriv2_.SetAlgSysVector(getS2());
-		outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
-          }
-	  if (saveDeriv2Hist_){
-	    solDeriv2_.SetAlgSysVector(getS2());
-	    outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
-	  }
- 	  if (saveRHSval_){
-	    outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
-	  }
- 	  if (saveRHSvalHist_){
-	    outFile_->WriteNodeHistoryTransient(rhs_, actStep, actTime); 
-	  }
-	}
+        if (saveDeriv2_) {
+          solDeriv2_.SetAlgSysVector(getS2());
+          outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
+        }
+        if (saveDeriv2Hist_){
+          solDeriv2_.SetAlgSysVector(getS2());
+          outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
+        }
+        if (saveRHSval_){
+          outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
+        }
+        if (saveRHSvalHist_){
+          outFile_->WriteNodeHistoryTransient(rhs_, actStep, actTime); 
+        }
+      }
 
-        // ------- for bubble results ----------------------
-	if(bubbleDynType_ != NOBUBBLETYPE &&
-	   (saveSol_ == TRUE || saveDeriv1_ == TRUE || saveDeriv2_ == TRUE)) {
+      // ------- for bubble results ----------------------
+      if(bubbleDynType_ != NOBUBBLETYPE &&
+         (saveSol_ == TRUE || saveDeriv1_ == TRUE || saveDeriv2_ == TRUE)) {
 
-	  StdVector<Double> radius   = solveStep_->GetResultData("bubbleRadius");
-	  StdVector<Double> velocity = solveStep_->GetResultData("bubbleVelocity");
+        StdVector<Double> radius   = solveStep_->GetResultData("bubbleRadius");
+        StdVector<Double> velocity = solveStep_->GetResultData("bubbleVelocity");
 
-	  ElemStoreSol<Double> bubbleResult;
+        ElemStoreSol<Double> bubbleResult;
     
-	  // Resize solution arrays
-	  bubbleResult.SetNumSolutions(1);
-	  bubbleResult.SetSolutionType(ELEC_FIELD_INTENSITY);
-	  bubbleResult.SetNumElems(numElems_);
+        // Resize solution arrays
+        bubbleResult.SetNumSolutions(1);
+        bubbleResult.SetSolutionType(ELEC_FIELD_INTENSITY);
+        bubbleResult.SetNumElems(numElems_);
 	  
-	  // dimension hard coded for .unv file!
-	  bubbleResult.SetNumDofs(3);  
-	  bubbleResult.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
-	  bubbleResult.Init();
+        // dimension hard coded for .unv file!
+        bubbleResult.SetNumDofs(3);  
+        bubbleResult.SetPtrEQNData(eqnData_, ptgrid_);
+        bubbleResult.Init();
 	  
-	  Integer numEl = 0;
-	  for (Integer el=0; el<numElems_; el++) {
-	    Vector<Double> result(3);
+        for (Integer el=0; el<numElems_; el++) {
+          Vector<Double> result(3);
 	    
-	    result[0] = radius[el];
-	    result[1] = velocity[el];
-	    result[2] = (4.0/3.0)*PI*bubbleDensity_*radius[el]*radius[el]*radius[el];
-	    //	    if (el == 90)
-	    //std::cerr << actTime << "   " << el << "   " << result[0] << "   " 
-	    // result[1] << "     " << result[2] << std::endl;
+          result[0] = radius[el];
+          result[1] = velocity[el];
+          result[2] = (4.0/3.0)*PI*bubbleDensity_*radius[el]*radius[el]*radius[el];
+          //	    if (el == 90)
+          //std::cerr << actTime << "   " << el << "   " << result[0] << "   " 
+          // result[1] << "     " << result[2] << std::endl;
 	    
-	    bubbleResult.SetElemResult(el,result);
-	  }
+          bubbleResult.SetElemResult(el,result);
+        }
 	  
-	  outFile_->WriteElemSolutionTransient(bubbleResult, actStep, actTime);
-	}
+        outFile_->WriteElemSolutionTransient(bubbleResult, actStep, actTime);
+      }
 
 #ifdef PARALLEL
-  }//!commrank
+    }//!commrank
 #endif
-}
-
-
-// ***********************************************************************
-//   Obtain information on desired output quantities from parameter file
-// ***********************************************************************
-void AcousticPDE::ReadStoreResults() {  
-  ENTER_FCN( "AcousticPDE::ReadStoreResults" );
-    
-  // Construct vectors for restricted parameter search
-  StdVector<std::string> keyVec;
-  StdVector<std::string> attrVec;
-  StdVector<std::string> valVec;
-  std::string quantity;
-    
-  // *****************************
-  // Determine nodal results
-  // ***************************** 
-  StdVector<std::string> nodeValues;
-  keyVec  = pdename_, "storeResults", "nodeResults", "region";
-  attrVec = "", "", "type";  
-
-  if ( formulation_ == ACOU_POTENTIAL ) {
-	// --- pressure ---
-	Enum2String(ACOU_PRESSURE, quantity);
-	valVec = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, nodeValues);
-	if (nodeValues.GetSize() > 0) {
-	  Error("It makes no sense to have a PDE in acoustic potential and retrieve \n \
-node results in pressure. Try element results!", __FILE__,__LINE__);
-	}
-
-	// --- acoustic potential ---
-	Enum2String(ACOU_POTENTIAL, quantity);
-	valVec = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, nodeValues);
-	if (nodeValues.GetSize() > 0) {
-	  saveSol_ = TRUE;
-	  hasOutput_ = TRUE;
-	}
-
-	// --- acoustic potential ---
-	Enum2String(ACOU_RHSVAL, quantity);
-	valVec = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, nodeValues);
-	if (nodeValues.GetSize() > 0) {
-	  saveRHSval_ = TRUE;
-	  hasOutput_ = TRUE;
-	}
-
-	// --- acoustic potential, 1. Deriv ---
-	Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
-	valVec = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, nodeValues);
-	if (nodeValues.GetSize() > 0) {
-	  saveDeriv1_ = TRUE;
-	  hasOutput_ = TRUE;
-	  // intialize corresponding storesolution object
-	  solDeriv1_.SetNumSolutions(1);
-	  solDeriv1_.SetNumNodes(numPDENodes_);
-	  solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
-	  solDeriv1_.SetNumDofs(1);
-	  solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_); 
-	  solDeriv1_.Init(0);
-	}
-
-	// --- acoustic potential, 2. Deriv ---
-	Enum2String(ACOU_POTENTIAL_DERIV_2, quantity);
-	valVec = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, nodeValues);
-	if (nodeValues.GetSize() > 0) {
-	  saveDeriv2_ = TRUE;
-	  hasOutput_ = TRUE;
-	  // intialize corresponding storesolution object
-	  solDeriv2_.SetNumSolutions(1);
-	  solDeriv2_.SetNumNodes(numPDENodes_);
-	  solDeriv2_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
-	  solDeriv2_.SetNumDofs(1);
-	  solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_); 
-	  solDeriv2_.Init(0);
-	}
   }
-  else if ( formulation_ == ACOU_PRESSURE ) {
-	// --- acoustic potential ---
-	Enum2String(ACOU_POTENTIAL, quantity);
-	valVec = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, nodeValues);
-	if (nodeValues.GetSize() > 0) {
-	  Error("It makes no sense to have a PDE in pressure and retrieve \n \
+
+
+  // ***********************************************************************
+  //   Obtain information on desired output quantities from parameter file
+  // ***********************************************************************
+  void AcousticPDE::ReadStoreResults() {  
+    ENTER_FCN( "AcousticPDE::ReadStoreResults" );
+    
+    // Construct vectors for restricted parameter search
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    std::string quantity;
+    
+    // *****************************
+    // Determine nodal results
+    // ***************************** 
+    StdVector<std::string> nodeValues;
+    keyVec  = pdename_, "storeResults", "nodeResults", "region";
+    attrVec = "", "", "type";  
+
+    if ( formulation_ == ACOU_POTENTIAL ) {
+      // --- pressure ---
+      Enum2String(ACOU_PRESSURE, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0) {
+        (*error) << "It makes no sense to have a PDE in acoustic potential "
+                 << "and retrieve \n node results in pressure. "
+                 << "Try element results!";
+          Error( __FILE__, __LINE__ );
+      }
+
+      // --- acoustic potential ---
+      Enum2String(ACOU_POTENTIAL, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0) {
+        saveSol_ = TRUE;
+        hasOutput_ = TRUE;
+      }
+
+      // --- acoustic potential ---
+      Enum2String(ACOU_RHSVAL, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0) {
+        saveRHSval_ = TRUE;
+        hasOutput_ = TRUE;
+      }
+
+      // --- acoustic potential, 1. Deriv ---
+      Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0) {
+        saveDeriv1_ = TRUE;
+        hasOutput_ = TRUE;
+        // intialize corresponding storesolution object
+        solDeriv1_.SetNumSolutions(1);
+        solDeriv1_.SetNumNodes(numPDENodes_);
+        solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
+        solDeriv1_.SetNumDofs(1);
+        solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_); 
+        solDeriv1_.Init(0);
+      }
+
+      // --- acoustic potential, 2. Deriv ---
+      Enum2String(ACOU_POTENTIAL_DERIV_2, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0) {
+        saveDeriv2_ = TRUE;
+        hasOutput_ = TRUE;
+        // intialize corresponding storesolution object
+        solDeriv2_.SetNumSolutions(1);
+        solDeriv2_.SetNumNodes(numPDENodes_);
+        solDeriv2_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
+        solDeriv2_.SetNumDofs(1);
+        solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_); 
+        solDeriv2_.Init(0);
+      }
+    }
+    else if ( formulation_ == ACOU_PRESSURE ) {
+      // --- acoustic potential ---
+      Enum2String(ACOU_POTENTIAL, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0) {
+        Error("It makes no sense to have a PDE in pressure and retrieve \n \
 node results in acoustic potential.", __FILE__,__LINE__);
-	}
+      }
 
-	// --- pressure ---
-	Enum2String(ACOU_PRESSURE, quantity);
-	valVec = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, nodeValues);
-	if (nodeValues.GetSize() > 0) {
-	  std::string warnMsg;
-      warnMsg = "Due to the restrictions in the .unv file format, the ";
-      warnMsg += "acoustic pressure is written as acoustic (fluid) potential!";
-      Warning(warnMsg.c_str(), __FILE__, __LINE__);
+      // --- pressure ---
+      Enum2String(ACOU_PRESSURE, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0) {
+        std::string warnMsg;
+        warnMsg = "Due to the restrictions in the .unv file format, the ";
+        warnMsg += "acoustic pressure is written as acoustic (fluid) ";
+        warnMsg += "potential!";
+        Warning(warnMsg.c_str(), __FILE__, __LINE__);
 
-	  sol_->SetSolutionType(ACOU_PRESSURE);
-	  sol_->SetNumDofs(1);
-	  sol_->Init();
-	  saveSol_ = TRUE;
-	  hasOutput_ = TRUE;
-	}
-  }
+        sol_->SetSolutionType(ACOU_PRESSURE);
+        sol_->SetNumDofs(1);
+        sol_->Init();
+        saveSol_ = TRUE;
+        hasOutput_ = TRUE;
+      }
+    }
     
     
-  // *****************************
-  // Determine element results
-  // *****************************
-  StdVector<std::string> elementValues;
-  keyVec  = pdename_, "storeResults", "elementResults", "region";
+    // *****************************
+    // Determine element results
+    // *****************************
+    StdVector<std::string> elementValues;
+    keyVec  = pdename_, "storeResults", "elementResults", "region";
     
-  // --- much to do here ---
+    // --- much to do here ---
 
-  // *****************************
-  // Determine nodal history
-  // *****************************
-  StdVector<std::string> saveNodeHist; 
-  keyVec  = pdename_, "storeResults", "nodeHistory", "saveNodes";
-  attrVec = "", "", "type";
+    // *****************************
+    // Determine nodal history
+    // *****************************
+    StdVector<std::string> saveNodeHist; 
+    keyVec  = pdename_, "storeResults", "nodeHistory", "saveNodes";
+    attrVec = "", "", "type";
 
-  if ( formulation_ == ACOU_POTENTIAL ) {
-	// pressure
-	Enum2String(ACOU_PRESSURE, quantity);
-	valVec = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, saveNodeHist);
-	if (saveNodeHist.GetSize() > 0) {
-	  Error("It makes no sense to have a PDE in acoustic potential and retrieve \n \
-history node results in pressure.", __FILE__,__LINE__);
-	}
+    if ( formulation_ == ACOU_POTENTIAL ) {
+      // pressure
+      Enum2String(ACOU_PRESSURE, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveNodeHist);
+      if (saveNodeHist.GetSize() > 0) {
+        (*error) <<  "It makes no sense to have a PDE in acoustic potential "
+                 << " and retrieve \n history node results in pressure.";
+        Error( __FILE__, __LINE__ );
+      }
 
-	// --- acoustic potential  ---
-	Enum2String(ACOU_POTENTIAL, quantity);
-	valVec  = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+      // --- acoustic potential  ---
+      Enum2String(ACOU_POTENTIAL, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
-	if (saveNodeHist.GetSize() > 0) {
-	  saveSolHist_ = TRUE;
-	  hasOutput_ = TRUE;
-	  Info->PrintF( pdename_, "Saving acouPotential for Nodes:\n" );
-	  for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-		Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
-	  }
+      if (saveNodeHist.GetSize() > 0) {
+        saveSolHist_ = TRUE;
+        hasOutput_ = TRUE;
+        Info->PrintF( pdename_, "Saving acouPotential for Nodes:\n" );
+        for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
+        }
 
-	}
+      }
 
-	// --- acoustic RHS ---
-	Enum2String(ACOU_RHSVAL, quantity);
-	valVec  = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+      // --- acoustic RHS ---
+      Enum2String(ACOU_RHSVAL, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
-	if (saveNodeHist.GetSize() > 0) {
-	  saveRHSvalHist_ = TRUE;
-	  hasOutput_ = TRUE;
-	  Info->PrintF( pdename_, "Saving acouRHSval for Nodes:\n" );
-	  for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-		Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
-	  }
+      if (saveNodeHist.GetSize() > 0) {
+        saveRHSvalHist_ = TRUE;
+        hasOutput_ = TRUE;
+        Info->PrintF( pdename_, "Saving acouRHSval for Nodes:\n" );
+        for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
+        }
 
-	}
+      }
 
-	// --- acoustic potential, 1. Deriv ---
-	Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
-	valVec  = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+      // --- acoustic potential, 1. Deriv ---
+      Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
-	if (saveNodeHist.GetSize() > 0) {
-	  saveDeriv1Hist_ = TRUE;
-	  hasOutput_ = TRUE;
-	  Info->PrintF( pdename_, "Saving acouPotentialD1 for Nodes:\n" );
-	  for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-		Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
-	  }
-	  solDeriv1_.SetNumSolutions(1);
-	  solDeriv1_.SetNumNodes(numPDENodes_);
-	  solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
-	  solDeriv1_.SetNumDofs(1);
-	  solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_); 
-	  solDeriv1_.Init(0);
-	}
+      if (saveNodeHist.GetSize() > 0) {
+        saveDeriv1Hist_ = TRUE;
+        hasOutput_ = TRUE;
+        Info->PrintF( pdename_, "Saving acouPotentialD1 for Nodes:\n" );
+        for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
+        }
+        solDeriv1_.SetNumSolutions(1);
+        solDeriv1_.SetNumNodes(numPDENodes_);
+        solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
+        solDeriv1_.SetNumDofs(1);
+        solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_); 
+        solDeriv1_.Init(0);
+      }
 
-	// --- acoustic potential, 2. Deriv ---
-	Enum2String(ACOU_POTENTIAL_DERIV_2, quantity);
-	valVec  = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+      // --- acoustic potential, 2. Deriv ---
+      Enum2String(ACOU_POTENTIAL_DERIV_2, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
-	if (saveNodeHist.GetSize() > 0) {
-	  saveDeriv2Hist_ = TRUE;
-	  hasOutput_ = TRUE;
-	  Info->PrintF( pdename_, "Saving acouPotetentialD2 for Nodes:\n" );
-	  for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-		Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
-	  }
-	  solDeriv2_.SetNumSolutions(1);
-	  solDeriv2_.SetNumNodes(numPDENodes_);
-	  solDeriv2_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
-	  solDeriv2_.SetNumDofs(1);
-	  solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_); 
-	  solDeriv2_.Init(0);
-	}
-  }
+      if (saveNodeHist.GetSize() > 0) {
+        saveDeriv2Hist_ = TRUE;
+        hasOutput_ = TRUE;
+        Info->PrintF( pdename_, "Saving acouPotetentialD2 for Nodes:\n" );
+        for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
+        }
+        solDeriv2_.SetNumSolutions(1);
+        solDeriv2_.SetNumNodes(numPDENodes_);
+        solDeriv2_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
+        solDeriv2_.SetNumDofs(1);
+        solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_); 
+        solDeriv2_.Init(0);
+      }
+    }
 
-  else if ( formulation_ == ACOU_PRESSURE ) {
-	// --- acoustic potential ---
-	Enum2String(ACOU_POTENTIAL, quantity);
-	valVec = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, nodeValues);
-	if (nodeValues.GetSize() > 0) {
-	  Error("It makes no sense to have a PDE in pressure and retrieve \n \
+    else if ( formulation_ == ACOU_PRESSURE ) {
+      // --- acoustic potential ---
+      Enum2String(ACOU_POTENTIAL, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0) {
+        Error("It makes no sense to have a PDE in pressure and retrieve \n \
 results in acoustic potential.", __FILE__,__LINE__);
-	}
+      }
 
-	// --- pressure ---
-	Enum2String(ACOU_PRESSURE, quantity);
-	valVec  = "", "", quantity;
-	params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+      // --- pressure ---
+      Enum2String(ACOU_PRESSURE, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
-	if (saveNodeHist.GetSize() > 0) {
-	  sol_->SetSolutionType(ACOU_PRESSURE);
-	  sol_->SetNumDofs(1);
-	  sol_->Init();
-	  saveSolHist_ = TRUE;
-	  hasOutput_ = TRUE;
-	  Info->PrintF( pdename_, "Saving acouPotential for Nodes:\n" );
-	  for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
-		Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
-	  }
-	}
+      if (saveNodeHist.GetSize() > 0) {
+        sol_->SetSolutionType(ACOU_PRESSURE);
+        sol_->SetNumDofs(1);
+        sol_->Init();
+        saveSolHist_ = TRUE;
+        hasOutput_ = TRUE;
+        Info->PrintF( pdename_, "Saving acouPotential for Nodes:\n" );
+        for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
+        }
+      }
+    }
   }
-}
 
 
 } // end of namespace

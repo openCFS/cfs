@@ -9,11 +9,9 @@ namespace CoupledField {
   //   Constructor
   // ===============
   ScalarNodeEQN::ScalarNodeEQN(Grid * aptGrid, 
-                               BCs * aptBCs,
-                               StdVector<std::string>& asubdoms, 
-                               Integer actlevel, 
+                               StdVector<RegionIdType> & asubdoms, 
                                Integer dofsPerNode)
-    : NodeEQN(aptGrid, aptBCs, asubdoms, actlevel, dofsPerNode) {
+    : NodeEQN(aptGrid, asubdoms, dofsPerNode) {
 
     ENTER_FCN( "NodeEQN::NodeEQN" );
   

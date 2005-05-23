@@ -18,9 +18,8 @@ namespace CoupledField {
   // **************
   //  Constructor
   // **************
-  MagPDE::MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
-                 FileType *aptFileType, WriteResults *aptOut)
-    :SinglePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc) {
+  MagPDE::MagPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut)
+    :SinglePDE(aptgrid, aptOut, aptTimeFunc) {
 
     ENTER_FCN( "MagPDE::MagPDE" );
 
@@ -88,6 +87,8 @@ namespace CoupledField {
     // ------------------------------------
     //   Get information on non-linearity
     // ------------------------------------
+    StdVector<std::string> regionNames;
+
     nonLin_ = FALSE;
     params->GetList( "nonLinear", nonLinType_, pdename_, "region" );
     
@@ -124,7 +125,7 @@ namespace CoupledField {
   // *****************************
   //   Definition of Integrators
   // *****************************
-  void MagPDE::DefineIntegrators(const Integer level) {
+  void MagPDE::DefineIntegrators() {
 
     ENTER_FCN( "MagPDE::DefineIntegerators" );
 
@@ -136,7 +137,8 @@ namespace CoupledField {
       materialData_[actSD].GetPermeability(2,2,reluctivity);
 
       if ( reluctivity == 0 ) {
-        Info->Error( "Region '" + subdoms_[actSD] + "' has zero" +
+        Info->Error( "Region '" + ptgrid_->RegionIdToName(subdoms_[actSD]) 
+                     + "' has zero" +
                      " permeability!", __FILE__, __LINE__ );
       }
       
@@ -146,8 +148,8 @@ namespace CoupledField {
 
         //read in the BH-curve data and compute the approximation
         std::string nlfnc = materialData_[actSD].GetBHCurveFileName();
-	ApproxData *nlinFnc = new SmoothSpline(nlfnc);
-	//ApproxData *nlinFnc = new LinInterpolate(nlfnc);
+        ApproxData *nlinFnc = new SmoothSpline(nlfnc);
+        //ApproxData *nlinFnc = new LinInterpolate(nlfnc);
         nlinFnc->CalcBestParameter();
         nlinFnc->CalcApproximation();
 
@@ -182,7 +184,7 @@ namespace CoupledField {
 
       // If this subdomain is a coil we have to do special things
       for ( Integer coil = 0; coil < coilDef_.GetSize(); coil++ ) {
-        if ( subdoms_[actSD] == coilName_[coil] ) {
+        if ( subdoms_[actSD] == coilRegionId_[coil] ) {
           Double factor = coilDef_[coil]->value_ /
             coilDef_[coil]->windingCrossSection_;
           BaseForm *coilSource = new VolumeSrcInt( factor, isaxi_ );      
@@ -199,7 +201,7 @@ namespace CoupledField {
 
           if ( dim_  == 3 ) {
             Error( "Permanent magnets not implemented for 3D computation" );
-	  }
+          }
 
           //change direction of magnetization, so that we can use the
           //standard GlobalDerivatives and obtain: (curl w) . M
@@ -252,8 +254,8 @@ namespace CoupledField {
   // ======================================================
 
   void MagPDE::WriteResultsInFile(const Integer kstep,
-				  const Double asteptime,
-				  Integer stepOffset,
+                                  const Double asteptime,
+                                  Integer stepOffset,
                                   Double timeOffset) {
 
     ENTER_FCN( "MagPDE::WriteResultsInFile" );
@@ -313,7 +315,7 @@ namespace CoupledField {
   // ***************
   //   PostProcess
   // ***************
-  void MagPDE::PostProcess(const Integer level) {
+  void MagPDE::PostProcess() {
 
     ENTER_FCN( "MagPDE::PostProcess" );
 
@@ -325,7 +327,7 @@ namespace CoupledField {
     if (calcBfield_.GetSize() !=0 ) {
 
       CurlNodeOp * FieldOp = new CurlNodeOp(ptgrid_, this, eqnData_,
-                                            *solhelp, level);
+                                            *solhelp);
       FieldOp->Set2DType(isaxi_);
  
       // ------ Calculation of the electric field ------
@@ -345,14 +347,14 @@ namespace CoupledField {
       B_.SetSolutionType(MAG_FLUX_DENSITY);
       B_.SetNumElems(numElems_);
       B_.SetNumDofs(dim_);
-      B_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+      B_.SetPtrEQNData(eqnData_, ptgrid_);
       B_.Init(0);
       
       // loop over all subdomains
       for (Integer isd=0; isd<calcBfield_.GetSize(); isd++) {
 
         // get vector of Elem of subdomain with color: subdoms[isd]
-        ptgrid_->GetElemSD(elemssd,calcBfield_[isd],level);
+        ptgrid_->GetVolElems(elemssd,calcBfield_[isd]);
           
         // loop over elements of subdomain
         for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
@@ -392,14 +394,14 @@ namespace CoupledField {
 
       // dimension hard coded for .unv file!
       Jeddy_.SetNumDofs(3);  
-      Jeddy_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+      Jeddy_.SetPtrEQNData(eqnData_, ptgrid_);
       Jeddy_.Init(0);
 
       // loop over all subdomains
       for (Integer actSD=0; actSD<calcEddy_.GetSize(); actSD++) {
 
         // get vector of Elem of subdomain with color: subdoms[isd]
-        ptgrid_->GetElemSD(elemssd,calcEddy_[actSD],level);
+        ptgrid_->GetVolElems( elemssd, calcEddy_[actSD] );
           
         // Get the right material parameter for actual subdomain
         for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++)
@@ -467,7 +469,7 @@ namespace CoupledField {
       Double eps33 = materialData_[i].GetPermittivity(2,2);
 
       StdVector<Elem*> elemssd;
-      ptgrid_->GetElemSD(elemssd,calcEnergy_[i],actlevel_);
+      ptgrid_->GetVolElems( elemssd,calcEnergy_[i] );
 
       energy[i] = 0;
       for (j=0; j < elemssd.GetSize(); j++) {
@@ -476,7 +478,7 @@ namespace CoupledField {
         BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
 
         connecth=elemssd[j]->connect;
-        GetElemCoords(connecth, ptCoord, actlevel_);
+        GetElemCoords(connecth, ptCoord);
         bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
         //        EqnData_->Mesh2Eqn(Eqns,connecth);
@@ -508,8 +510,10 @@ namespace CoupledField {
       analysisVal = lasttimecalc_;
     }
 
-    Info->WriteResult(pdename_,  resulttype, calcEnergy_, energy, unit,
-		      analysis, analysisVal);
+    StdVector<std::string> regionNames;
+    ptgrid_->RegionIdToName( regionNames, calcEnergy_ );
+    Info->WriteResult(pdename_,  resulttype, regionNames, energy, unit,
+                      analysis, analysisVal);
   }
 
   // *************
@@ -525,11 +529,11 @@ namespace CoupledField {
     for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
 
       for (Integer dom=0; dom<coilDef_.GetSize(); dom++) {
-        if (subdoms_[actSD] == coilName_[dom]) {
+        if (subdoms_[actSD] == coilRegionId_[dom]) {
            
           StdVector<Elem*> elemssd;             
           // get vector of Elem of subdomain with color: subdoms[isd]
-          ptgrid_->GetElemSD(elemssd,subdoms_[actSD],actlevel_);
+          ptgrid_->GetVolElems( elemssd,subdoms_[actSD] );
             
 
           // loop over elements of subdomain        
@@ -544,7 +548,7 @@ namespace CoupledField {
             connect = elemssd[actEl]->connect;
 
             Matrix<Double> ptCoord;
-            GetElemCoords(connect, ptCoord, actlevel_);
+            GetElemCoords(connect, ptCoord);
 
             Vector<Double> magVecDeriv1Elem;
             GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
@@ -635,16 +639,17 @@ namespace CoupledField {
     StdVector<std::string> valVec;
 
     // Get list of coils for magnetic PDE
-    params->GetCoilList( coilName_, pdename_, bcSequenceTag_);
+    params->GetCoilList( coilNamesAux, pdename_, bcSequenceTag_);
+    ptgrid_->RegionNameToId( coilRegionId_, coilNamesAux );
 
     // Now get description of each coil and generate corresponding
     // coil object
-    UInt nrCoils = coilName_.GetSize();
+    UInt nrCoils = coilRegionId_.GetSize();
     if ( nrCoils > 0 ) {
       Info->PrintF( pdename_, "Using the following coils:\n" );
       coilDef_.Reserve( nrCoils );
       for ( UInt k = 0; k < nrCoils; k++ ) {
-        coilDef_.Push_back( new Coil( coilName_[k], pdename_ ) );
+        coilDef_.Push_back( new Coil( coilRegionId_[k], pdename_, ptgrid_) );
         Info->PrintCoil( *coilDef_[k], analysistype_ );
       }
     }
@@ -664,12 +669,14 @@ namespace CoupledField {
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
+    StdVector<std::string> regionNames;
 
     keyVec = pdename_, "magnets", "magnet", "name";
     attrVec = "", "", "tag";
     valVec  = "", "", bcSequenceTag_;
 
-    params->GetList(keyVec, attrVec, valVec, magnetsDomain_);
+    params->GetList(keyVec, attrVec, valVec, regionNames);
+    ptgrid_->RegionNameToId(magnetsDomain_, regionNames);
 
     if ( magnetsDomain_.GetSize() > 0 ) {
 
@@ -688,7 +695,7 @@ namespace CoupledField {
       for ( UInt k = 0; k < magnetsDomain_.GetSize(); k++ ) {
 
         // ... read direction of magnetisation
-        valVec = "", "", magnetsDomain_[k];
+        valVec = "", "", regionNames[k];
 
         keyVec  = pdename_, "magnets", "magnet", "orientX";
         params->Get( keyVec, attrVec, valVec, tmpDir);
@@ -703,7 +710,7 @@ namespace CoupledField {
         magnetsOriZ_.Push_back( tmpDir );
 
         // ... report name to logfile
-        Info->PrintF( pdename_, " %s\n", magnetsDomain_[k].c_str());
+        Info->PrintF( pdename_, " %s\n", regionNames[k].c_str());
       }
 
       Info->PrintF( "", "\n" );
@@ -722,6 +729,8 @@ namespace CoupledField {
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
+    StdVector<std::string> regionNames;
+    StdVector<RegionIdType> regionIds;
     std::string quantity;
 
     // *****************************
@@ -747,43 +756,43 @@ namespace CoupledField {
     if ( calcForceVWP_.GetSize() > 0 ) {
 
       Integer numNodes = 0;
+
       // count complete number of nodes
       for ( Integer i=0; i<calcForceVWP_.GetSize(); i++ ) {
-	numNodes+= ptBCs_->GetNumNodesLevel(calcForceVWP_[i], actlevel_);
+        numNodes+= ptgrid_->GetNumNodes(calcForceVWP_[i]);
 
-      ForceNodes_.Resize(numNodes);
+        ForceNodes_.Resize(numNodes);
       
-      Integer inode =0;
-      std::list<Integer> nodesConverted;
-      std::list<Integer>::iterator it;
+        Integer inode =0;
+        StdVector<Integer> nodesConverted;
+        std::list<Integer>::iterator it;
 
-      // get for each nodeslist all nodes
-      for (Integer i=0; i<calcForceVWP_.GetSize(); i++)
-	{
-	  nodesConverted = ptBCs_->GetNodesLevel(calcForceVWP_[i], actlevel_);
-	  
-	  it = nodesConverted.begin();
-	  
-	  for (it=nodesConverted.begin(); it != nodesConverted.end(); it++, inode++)
-	    ForceNodes_[inode] = *it;
-	}
+        // get for each nodeslist all nodes
+        for (Integer i=0; i<calcForceVWP_.GetSize(); i++)
+          {
+            ptgrid_->GetNodesByName( nodesConverted, calcForceVWP_[i]);
+          
+            for ( Integer j=0; j<nodesConverted.GetSize(); j++, inode++)
+              ForceNodes_[inode] = nodesConverted[j];
+          }
 
       }
       //      std::cout << "ForceNodes:\n" << ForceNodes_ << std::endl;
 
       //initialize the force operator
       NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
-      ForceOpVWP_ = new  MagForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, materialData_,
-				    subdoms_, actlevel_, isaxi_);
-      StdVector<std::string> regions;
+      ForceOpVWP_ = new  MagForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, 
+                                    materialData_, subdoms_,  isaxi_);
+      
       keyVec  = pdename_, "storeResults", "nodeResults", "region";
       attrVec = "", "", "type";
       valVec = "", "", quantity;
-      params->GetList( keyVec, attrVec, valVec, regions);
-
-      //      regions[0] = "outfieldE";
-      ForceOpVWP_->Setup(regions, ForceNodes_);
+      params->GetList( keyVec, attrVec, valVec, regionNames);
+      ptgrid_->RegionNameToId( regionIds, regionNames ); 
+      
+      ForceOpVWP_->Setup( regionIds, ForceNodes_);
     }
+   
 
     // *****************************
     // Determine element results
@@ -795,10 +804,11 @@ namespace CoupledField {
     // --- Magnetic Flux Density ---
     Enum2String(MAG_FLUX_DENSITY, quantity);
     valVec  = "", "", quantity;
-    params->GetList( keyVec, attrVec, valVec, calcBfield_ );
+    params->GetList( keyVec, attrVec, valVec, regionNames );
+    ptgrid_->RegionNameToId( calcBfield_, regionNames );
     
     // If the symbolic name is "all" compute magnetic Fieldfor all regions
-    if ( calcBfield_.GetSize() == 1 && calcBfield_[0] == "all" ) {
+    if ( calcBfield_.GetSize() == 1 && calcBfield_[0] == ALL_REGIONS ) {
       calcBfield_ = subdoms_;
     }
     
@@ -807,8 +817,8 @@ namespace CoupledField {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
                     "Computing magFluxDensity for regions:\n" );
-      for ( Integer k = 0; k < calcBfield_.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s\n", calcBfield_[k].c_str() );
+      for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+        Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
       Info->PrintF( "", "\n" );
     }
@@ -816,10 +826,11 @@ namespace CoupledField {
     // --- Magnetic Energy ---
     Enum2String(MAG_ENERGY, quantity);
     valVec  = "", "", quantity;
-    params->GetList( keyVec, attrVec, valVec, calcEnergy_ );
+    params->GetList( keyVec, attrVec, valVec, regionNames );
+    ptgrid_->RegionNameToId( calcEnergy_, regionNames );
     
     // If the symbolic name is "all" compute magnetic Fieldfor all regions
-    if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == "all" ) {
+    if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == ALL_REGIONS ) {
       calcEnergy_ = subdoms_;
     }
     
@@ -828,8 +839,8 @@ namespace CoupledField {
       hasOutput_ = TRUE;    
       Info->PrintF( pdename_,
                     "Computing magEnergy for regions:\n" );
-      for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s\n", calcEnergy_[k].c_str() );
+      for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+        Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
       Info->PrintF( "", "\n" );
     }
@@ -837,10 +848,11 @@ namespace CoupledField {
     // --- Magnetic Eddy Current ---
     Enum2String(MAG_EDDY_CURRENT, quantity);
     valVec  = "", "", quantity;
-    params->GetList( keyVec, attrVec, valVec, calcEddy_ );
+    params->GetList( keyVec, attrVec, valVec, regionNames );
+    ptgrid_->RegionNameToId( calcEddy_, regionNames );
     
     // If the symbolic name is "all" compute magnetic Fieldfor all regions
-    if ( calcEddy_.GetSize() == 1 && calcEddy_[0] == "all" ) {
+    if ( calcEddy_.GetSize() == 1 && calcEddy_[0] == ALL_REGIONS ) {
       calcEddy_ = subdoms_;
     }
     
@@ -849,8 +861,8 @@ namespace CoupledField {
       hasOutput_ =TRUE;
       Info->PrintF( pdename_,
                     "Computing magEddyCurrent for regions:\n" );
-      for ( Integer k = 0; k < calcEddy_.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s\n", calcEddy_[k].c_str() );
+      for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+        Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
       Info->PrintF( "", "\n" );
     }
@@ -924,12 +936,13 @@ namespace CoupledField {
 
         //get the element-node to coupling node matching
         StdVector<std::string> couplRegions;
+        StdVector<RegionIdType> regionIds;
         ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
+        ptgrid_->RegionNameToId( regionIds, couplRegions );
 
         //Get total number of coupling elements
-        Integer totalCouplingElems = ptgrid_->GetMaxnumElem( actlevel_,
-                                                             couplRegions );
-
+        Integer totalCouplingElems = ptgrid_->GetNumElems( regionIds );
+        
         elemNodeToCouplingNode_tmp.Clear();
         elemNodeToCouplingNode_tmp.Resize(totalCouplingElems);
 
@@ -938,7 +951,7 @@ namespace CoupledField {
 
           // find subdomain index
           Integer SDidx=-1; for (Integer sd=0; sd<subdoms_.GetSize(); sd++) {
-            if (couplRegions[reg] == subdoms_[sd]) {
+            if (regionIds[reg] == subdoms_[sd]) {
               SDidx = sd;
               break;
             }
@@ -951,15 +964,15 @@ namespace CoupledField {
           }
 
           StdVector<Elem*> elemssd;
-          ptgrid_->GetElemSD(elemssd, subdoms_[SDidx], actlevel_);
+          ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);
 
-          StdVector<Integer> * couplingnodes;
+          StdVector<Integer> * couplingnodes = NULL;
           ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
-          if (couplingnodes == 0)
+          if (couplingnodes == NULL)
             Error("magnetics: Couplingnodes = 0!!!!");
 
           for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
-            StdVector<Integer> connecth = elemssd[actEl]->connect;
+            StdVector<Integer> & connecth = elemssd[actEl]->connect;
             elemNodeToCouplingNode_tmp[offset+actEl].Resize(connecth.GetSize());
 
             for ( Integer ielemnode = 0; ielemnode < connecth.GetSize();
@@ -1032,13 +1045,12 @@ namespace CoupledField {
 
     //get the coupling regions
     StdVector<std::string> couplRegions;
+    StdVector<RegionIdType> regionIds;
     ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
-  
+    ptgrid_->RegionNameToId( regionIds, couplRegions );
     MagLorentzForceOp *ForceOp; 
 
-    ForceOp  = new MagLorentzForceOp( ptgrid_, this,
-                                                        eqnData_, *solhelp,
-                                                        actlevel_, isaxi_ );
+    ForceOp  = new MagLorentzForceOp( ptgrid_, this, eqnData_, *solhelp, isaxi_ );
 
     force.Init(0.0);
 
@@ -1049,7 +1061,7 @@ namespace CoupledField {
 
       //find subdomain index
       Integer SDidx=-1; for (Integer sd=0; sd<subdoms_.GetSize(); sd++) {
-        if (couplRegions[reg] == subdoms_[sd]) {
+        if (regionIds[reg] == subdoms_[sd]) {
           SDidx = sd;
           break;
         }
@@ -1059,7 +1071,7 @@ namespace CoupledField {
       materialData_[SDidx].GetConductivity(2,2,conductivity);      
       
       StdVector<Elem*> elemssd;
-      ptgrid_->GetElemSD(elemssd, subdoms_[SDidx], actlevel_);
+      ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);
   
       for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
         StdVector<Integer> connecth = elemssd[actEl]->connect;
