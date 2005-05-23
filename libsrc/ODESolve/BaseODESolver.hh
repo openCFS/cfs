@@ -40,12 +40,12 @@ namespace CoupledField {
     //! \param hMin      Minimal allowed size for time step
     //! \param hMax      Maximal allowed size for time step
     virtual void Solve( const Double tInit,
-			const Double tStop,
-			StdVector<Double> &y,
-			BaseODEProblem &myODE,
-			Double hInit = -1.0,
-			Double hMin = -1.0,
-			Double hMax = -1.0) = 0;
+                        const Double tStop,
+                        StdVector<Double> &y,
+                        BaseODEProblem &myODE,
+                        Double hInit = -1.0,
+                        Double hMin = -1.0,
+                        Double hMax = -1.0) = 0;
 
     //! Query status information on last solve
     //! \param success     Was the last solve successful?

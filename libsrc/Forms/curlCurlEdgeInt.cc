@@ -6,81 +6,81 @@
 namespace CoupledField
 {
 
-CurlCurlEdgeInt::CurlCurlEdgeInt(BaseFE * aptelem, Double aVal)
-  : BaseForm(aptelem), reluctivity_ (aVal)
-{
-  ENTER_FCN( "CurlCurlEdgeInt::CurlCurlEdgeInt" );
-}
+  CurlCurlEdgeInt::CurlCurlEdgeInt(BaseFE * aptelem, Double aVal)
+    : BaseForm(aptelem), reluctivity_ (aVal)
+  {
+    ENTER_FCN( "CurlCurlEdgeInt::CurlCurlEdgeInt" );
+  }
 
 
  
-CurlCurlEdgeInt::~CurlCurlEdgeInt()
-{
-  ENTER_FCN( "CurlCurlEdgeInt::~CurlCurlEdgeInt" );
-}
+  CurlCurlEdgeInt::~CurlCurlEdgeInt()
+  {
+    ENTER_FCN( "CurlCurlEdgeInt::~CurlCurlEdgeInt" );
+  }
 
 
 
-void CurlCurlEdgeInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
-{
-  ENTER_FCN( "CurlCurlEdgeInt::CalcElementMatrix" );
+  void CurlCurlEdgeInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
+  {
+    ENTER_FCN( "CurlCurlEdgeInt::CalcElementMatrix" );
   
-  const Integer nrIntPts= ptelem->GetNumIntPoints();
-  const Integer nrEdges = ptelem->GetNumEdges();
-  const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-  Double jacDet;  
-  
-  
-  // derivation of shape functions after global coordinates 
-  StdVector< Matrix<Double>* > xiDx;
-  xiDx.Resize(nrEdges);
-  for (Integer i=0; i<nrEdges; i++)
-    xiDx[i] = new Matrix<Double>;
-  
-  Matrix<Double> curl;
-  Matrix<Double> curlTransp;
-  Matrix<Double> partElemMat;
+    const Integer nrIntPts= ptelem->GetNumIntPoints();
+    const Integer nrEdges = ptelem->GetNumEdges();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    Double jacDet;  
   
   
+    // derivation of shape functions after global coordinates 
+    StdVector< Matrix<Double>* > xiDx;
+    xiDx.Resize(nrEdges);
+    for (Integer i=0; i<nrEdges; i++)
+      xiDx[i] = new Matrix<Double>;
+  
+    Matrix<Double> curl;
+    Matrix<Double> curlTransp;
+    Matrix<Double> partElemMat;
   
   
-  // set matrix to desired size and set all elements to zero
-  elemMat.Resize(nrEdges); 
-  elemMat.Init();
   
   
-  for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-    {
-      // calc glob derivs of shape functions and jacobian determinante
-      ptelem->GetEdgeGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord);
+    // set matrix to desired size and set all elements to zero
+    elemMat.Resize(nrEdges); 
+    elemMat.Init();
+  
+  
+    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+      {
+        // calc glob derivs of shape functions and jacobian determinante
+        ptelem->GetEdgeGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord);
       
-      CalcEdgeCurl(curl, xiDx);
+        CalcEdgeCurl(curl, xiDx);
       
-      curl.Transpose(curlTransp);
+        curl.Transpose(curlTransp);
       
-      partElemMat = curlTransp * curl;
+        partElemMat = curlTransp * curl;
       
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
       
-      partElemMat *= intWeights[actIntPt-1] * jacDet * reluctivity_;
+        partElemMat *= intWeights[actIntPt-1] * jacDet * reluctivity_;
       
-      elemMat += partElemMat;
-    }
+        elemMat += partElemMat;
+      }
   
   
 #ifdef DEBUG 
-// 	(*debug) << "CurlCurlEdgeInt: ElemMat " << std::endl
-// 		 << elemMat << std::endl
-// 		 << "\n reluctivity " << reluctivity_ << std::endl;
+    //      (*debug) << "CurlCurlEdgeInt: ElemMat " << std::endl
+    //               << elemMat << std::endl
+    //               << "\n reluctivity " << reluctivity_ << std::endl;
 #endif
 
-}
+  }
 
 
-// calculates the curl, if the global derivates are already given in shapeDeriv
-void CurlCurlEdgeInt::CalcEdgeCurl(Matrix<Double>& curl, 
-				   const StdVector<Matrix<Double>*>& shapeDeriv)
-{
+  // calculates the curl, if the global derivates are already given in shapeDeriv
+  void CurlCurlEdgeInt::CalcEdgeCurl(Matrix<Double>& curl, 
+                                     const StdVector<Matrix<Double>*>& shapeDeriv)
+  {
     Integer nrEdges = shapeDeriv.GetSize();
     Integer dim = shapeDeriv[0]->GetSizeRow();
     
@@ -88,17 +88,17 @@ void CurlCurlEdgeInt::CalcEdgeCurl(Matrix<Double>& curl,
     
     for (Integer actEdge=0; actEdge < nrEdges; actEdge++)
       for (Integer actDim=0; actDim < dim; actDim++)
-	curl[actDim][actEdge] = 
-	  (*shapeDeriv[actEdge])[(actDim+2)%dim][(actDim+1)%dim] -
-	  (*shapeDeriv[actEdge])[(actDim+1)%dim][(actDim+2)%dim];
+        curl[actDim][actEdge] = 
+          (*shapeDeriv[actEdge])[(actDim+2)%dim][(actDim+1)%dim] -
+          (*shapeDeriv[actEdge])[(actDim+1)%dim][(actDim+2)%dim];
     
   }
   
 
-void CurlCurlEdgeInt::Print(std::ostream * out, const Matrix<Double> Result) const
-{
-  ENTER_FCN( "CurlCurlEdgeInt::Print" );
-  (*out)<< "CurlCurlEdge stiffness matrix:" << std::endl << Result;
+  void CurlCurlEdgeInt::Print(std::ostream * out, const Matrix<Double> Result) const
+  {
+    ENTER_FCN( "CurlCurlEdgeInt::Print" );
+    (*out)<< "CurlCurlEdge stiffness matrix:" << std::endl << Result;
   }
 
 } // end namespace CoupledField

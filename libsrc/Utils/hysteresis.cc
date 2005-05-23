@@ -7,17 +7,17 @@
 namespace CoupledField
 { 
 
-Hysteresis :: Hysteresis(Integer numElem)
-{
-  ENTER_FCN("Hysteresis::Hysteresis" );
+  Hysteresis :: Hysteresis(Integer numElem)
+  {
+    ENTER_FCN("Hysteresis::Hysteresis" );
 
-  numElements_ = numElem;
+    numElements_ = numElem;
 
-}
+  }
 
-Hysteresis :: ~Hysteresis()
-{
-}
+  Hysteresis :: ~Hysteresis()
+  {
+  }
 
 
 }

@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------
-|
-| $Id$
-|
-+---------------------------------------------------------------------*/
+  |
+  | $Id$
+  |
+  +---------------------------------------------------------------------*/
 
 #ifndef GSI_CLIENTSOCKET
 #define GSI_CLIENTSOCKET
@@ -13,13 +13,13 @@
 namespace GridlibSocketInterface
 {
 
-class ClientSocket : public Socket
-{
- public:
+  class ClientSocket : public Socket
+  {
+  public:
 
-  ClientSocket ( const std::string& host, const int32 port );
-  virtual ~ClientSocket(){};
-};
+    ClientSocket ( const std::string& host, const int32 port );
+    virtual ~ClientSocket(){};
+  };
  
 }
 

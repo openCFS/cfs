@@ -120,8 +120,8 @@ namespace CoupledField {
     //! \param memento (input) Previously saved state of the PDE
     //! \param frequency   (input) : frequency of previous sequence
     virtual void SetMemento(PDEMemento & memento, std::string transFromTo,
-			    Double frequency);
-		   
+                            Double frequency);
+                   
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
     

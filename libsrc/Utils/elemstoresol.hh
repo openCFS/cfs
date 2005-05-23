@@ -7,40 +7,40 @@
 
 namespace CoupledField{
 
-//! This class is the new interface for handling solutions of PDEs
+  //! This class is the new interface for handling solutions of PDEs
 
-//! This class is the new interface for handling the 
-//! (multidimensional) solutions of PDEs (instead of 
-//! old Array-class).
-//!
-//! In principle this class is only a wrapper around
-//! a CFSVector class. Additionally it contains
-//! informations about the information stored in it and
-//! it can selectively be accessed, set and read.
-//!
-//! A StoreSolution example for the Piezoelectric PDE would look
-//! like this:
-//! \f[ \left( \begin{array}{c} disp_x^1 \\ disp_y^1 \\  disp_z^1 \\  
-//! V_{elec}^1 \\ disp_x^2 \\ disp_y^2 \\  disp_z^2 \\ V_{elec}^2 \\ \cdots
-//! \end{array} \right) \f]
-//! Here the first three entries are the displacements for the first node,
-//! afterwards follows the electric Potential of it. This repeats for each
-//! node, so this is basically the layout of the solution vector as it is
-//! delivererd by the algebraic system. <br>
-//! The defining code for the above example would look like this:
-//! \verbatim
-//! mySol.SetNumSolutions(2); 
-//! mySol.SetSolutionType(MECH_DISPLACEMENT,0);
-//! mySol.SetSolutionType(ELEC_POTENTIAL,1);
-//! mySol.SetNumDofs(dof,MECH_DISPLACEMENT);
-//! mySol.SetNumDofs(1,ELEC_POTENTIAL);
-//! mySol.SetNumNodes(numNodes);
-//! mySol.Init(0.0) 
-//! \endverbatim
-//! \note An object of the StoreSolution can only used after the Init()-
-//! routine was called, otherwise an error is reported!
-//! \note Although the names of some methods refer to nodes, this class 
-//! also can handle element solutions.
+  //! This class is the new interface for handling the 
+  //! (multidimensional) solutions of PDEs (instead of 
+  //! old Array-class).
+  //!
+  //! In principle this class is only a wrapper around
+  //! a CFSVector class. Additionally it contains
+  //! informations about the information stored in it and
+  //! it can selectively be accessed, set and read.
+  //!
+  //! A StoreSolution example for the Piezoelectric PDE would look
+  //! like this:
+  //! \f[ \left( \begin{array}{c} disp_x^1 \\ disp_y^1 \\  disp_z^1 \\  
+  //! V_{elec}^1 \\ disp_x^2 \\ disp_y^2 \\  disp_z^2 \\ V_{elec}^2 \\ \cdots
+  //! \end{array} \right) \f]
+  //! Here the first three entries are the displacements for the first node,
+  //! afterwards follows the electric Potential of it. This repeats for each
+  //! node, so this is basically the layout of the solution vector as it is
+  //! delivererd by the algebraic system. <br>
+  //! The defining code for the above example would look like this:
+  //! \verbatim
+  //! mySol.SetNumSolutions(2); 
+  //! mySol.SetSolutionType(MECH_DISPLACEMENT,0);
+  //! mySol.SetSolutionType(ELEC_POTENTIAL,1);
+  //! mySol.SetNumDofs(dof,MECH_DISPLACEMENT);
+  //! mySol.SetNumDofs(1,ELEC_POTENTIAL);
+  //! mySol.SetNumNodes(numNodes);
+  //! mySol.Init(0.0) 
+  //! \endverbatim
+  //! \note An object of the StoreSolution can only used after the Init()-
+  //! routine was called, otherwise an error is reported!
+  //! \note Although the names of some methods refer to nodes, this class 
+  //! also can handle element solutions.
   template<class TYPE>
   class ElemStoreSol : public BaseElemStoreSol{
   public:
@@ -58,9 +58,9 @@ namespace CoupledField{
     //! \note By calling this constructor, one gets an iniaialized
     //! object, ready to use
     ElemStoreSol(const Integer numElems, 
-		 const StdVector<SolutionType> solTypes, 
-		 const StdVector<Integer> solDofs);
-		 
+                 const StdVector<SolutionType> solTypes, 
+                 const StdVector<Integer> solDofs);
+                 
 
     //! Constructor with given layout for ONE solutiontype
     /*!
@@ -71,8 +71,8 @@ namespace CoupledField{
     //! \note By calling this constructor, one gets an iniaialized
     //! object, ready to use
     ElemStoreSol(const Integer numElems,
-		 const SolutionType solType,
-		 const Integer numDofs);
+                 const SolutionType solType,
+                 const Integer numDofs);
     
 
     //! Copy Constructor
@@ -84,7 +84,7 @@ namespace CoupledField{
 
     //! Set Pointer to nodal equation object
     void SetPtrEQNData(NodeEQN * ptNodeEQN,
-		       Grid * ptGrid);
+                       Grid * ptGrid);
   
     //! Deletes all data and layout information
 
@@ -143,7 +143,7 @@ namespace CoupledField{
     */
     //! \note All entries of this object are deleted afterwards
     void SetSolutionType(const SolutionType solTypes, 
-			 const Integer numSolution = 0);
+                         const Integer numSolution = 0);
 
 
     //! Set the number of dofs for one solution type
@@ -157,7 +157,7 @@ namespace CoupledField{
     */
     //! \note All entries of this object are deleted afterwards
     void SetNumDofs(const Integer dof, 
-		    const SolutionType solType = NO_SOLUTION_TYPE);
+                    const SolutionType solType = NO_SOLUTION_TYPE);
 
 
     //! Get list of stored solution types
@@ -175,7 +175,7 @@ namespace CoupledField{
     //! \note This method may only be called if object contains only
     //! one type of solution.
     TYPE& operator()(const Integer elemNr, 
-		     const Integer dof);
+                     const Integer dof);
 
 
     //! Access operator for element result of given dof
@@ -186,7 +186,7 @@ namespace CoupledField{
     //! \note This method may only be called if object contains only
     //! one type of solution.
     TYPE operator()(const Integer elemNr, 
-		    const Integer dof) const;
+                    const Integer dof) const;
 
     //! Get vectot with one type of solution. The length
     //! of the vector will be (numer of elems in mesh *
@@ -197,7 +197,7 @@ namespace CoupledField{
       \param (output) Vector with given solution type)
     */
     void GetGlobalSolVector(const SolutionType solType, 
-			    CFSVector & val) const;
+                            CFSVector & val) const;
 
   
     //! Set all solution types for one elem
@@ -206,7 +206,7 @@ namespace CoupledField{
       \param val (input) Vector containing nodal results
     */
     void SetElemResult(const Integer elemNr,
-		       const CFSVector &val);
+                       const CFSVector &val);
   
   
     //! Get all solution types for one elem
@@ -215,7 +215,7 @@ namespace CoupledField{
       \param val (output) Vector containing nodal results
     */
     void GetElemResult(const Integer elemNr,
-		       CFSVector & val) const;
+                       CFSVector & val) const;
   
   
     //! Get vector of one solution type for all elems of one given dof
@@ -225,8 +225,8 @@ namespace CoupledField{
       \param val (output) Vector containing rsults
     */
     void GetGlobalSolVectorSingleDof(const SolutionType solType,
-				     const Integer dof,
-				     CFSVector & val) const;
+                                     const Integer dof,
+                                     CFSVector & val) const;
   
   
     //! Get solution vector for all elems of one given dof
@@ -237,7 +237,7 @@ namespace CoupledField{
     //! \note This method may only be called if object contains only
     //! one type of solution.
     void GetGlobalSolVectorSingleDof(const Integer dof,
-				     CFSVector & val) const;
+                                     CFSVector & val) const;
 
     //! Get single result of given elem for given dof
     /*!
@@ -248,8 +248,8 @@ namespace CoupledField{
     //! \note This method may only be called if object contains only
     //! one type of solution.
     void Get(const Integer elemNr, 
-	     const Integer dof,
-	     TYPE & val) const;
+             const Integer dof,
+             TYPE & val) const;
   
 
     //! Get single result of given solution type, elem and dof
@@ -261,35 +261,35 @@ namespace CoupledField{
     */
   
     void Get(const SolutionType solType, 
-	     const Integer elemNr,
-	     const Integer dof, 
-	     TYPE & val) const;
+             const Integer elemNr,
+             const Integer dof, 
+             TYPE & val) const;
 
 
     //! Set a single entry of a given solution type and a given dof
-      /*!
-	\param solType (input) Solution type (ref. enum SolutionType)
-	\param elemNr (input) (Global) Elem number of result
-	\param dof (input) Dof of result
-	\param val (input)  Result of elem elemNr for given solType and dof
-      */  
-      void Set(const SolutionType solType, 
-	       const Integer elemNr,
-	       const Integer dof, 
-	       const TYPE val);
+    /*!
+      \param solType (input) Solution type (ref. enum SolutionType)
+      \param elemNr (input) (Global) Elem number of result
+      \param dof (input) Dof of result
+      \param val (input)  Result of elem elemNr for given solType and dof
+    */  
+    void Set(const SolutionType solType, 
+             const Integer elemNr,
+             const Integer dof, 
+             const TYPE val);
  
 
-      //! Add value to a single entry of a given solution type and a given dof
-      /*!
-	\param solType (input) Solution type (ref. enum SolutionType)
-	\param elemNr (input) (Global) Elem number of result
-	\param dof (input) Dof of result
-	\param val (input)  Result of elem elemNr for given solType and dof
-      */   
-      void Add(const SolutionType solType, 
-	       const Integer elemNr,
-	       const Integer dof, 
-	       const TYPE val) const;
+    //! Add value to a single entry of a given solution type and a given dof
+    /*!
+      \param solType (input) Solution type (ref. enum SolutionType)
+      \param elemNr (input) (Global) Elem number of result
+      \param dof (input) Dof of result
+      \param val (input)  Result of elem elemNr for given solType and dof
+    */   
+    void Add(const SolutionType solType, 
+             const Integer elemNr,
+             const Integer dof, 
+             const TYPE val) const;
 
 
     /////////////////////////////////////////
@@ -299,13 +299,13 @@ namespace CoupledField{
 
     //!
     void TransformElemSolution(CFSVector & transformedSolution,
-			       Grid * ptGrid) const;
+                               Grid * ptGrid) const;
   
 
     //! maps the local element solution to the coupling Elems
     void ElemSolutionToCoupling(CFSVector & couplingSol,
-				const StdVector<Elem*>& elements,
-				const CFSVector & elemSol) const;
+                                const StdVector<Elem*>& elements,
+                                const CFSVector & elemSol) const;
   
 
     ///////////////
@@ -326,7 +326,7 @@ namespace CoupledField{
     //! contains the solution itself
     Vector<TYPE> data_;
     
-};
+  };
 
  
   // ======================================================

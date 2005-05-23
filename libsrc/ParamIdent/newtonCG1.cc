@@ -107,117 +107,117 @@ namespace CoupledField
 
     
     // NEWTON ITERATION -- outer Loop!!
-     while(nrNewtonIterations<maxNumberNewtonLoops){ // Newton
-       *piezoLog << "\n Newton-Iteration: " << nrNewtonIterations <<std::endl;
-       *piezoLog <<"------------------------"<<std::endl;
+    while(nrNewtonIterations<maxNumberNewtonLoops){ // Newton
+      *piezoLog << "\n Newton-Iteration: " << nrNewtonIterations <<std::endl;
+      *piezoLog <<"------------------------"<<std::endl;
     
-       nrNewtonIterations++;
+      nrNewtonIterations++;
 
-       step.Resize(actNrParameter);
+      step.Resize(actNrParameter);
 
-       updateMaterialData(parameter, ptMaterial);
+      updateMaterialData(parameter, ptMaterial);
 
-       createF(ptMaterial, ptBCs, F_hat,FALSE);
+      createF(ptMaterial, ptBCs, F_hat,FALSE);
 
-       res=y_hat-F_hat;
-       Res_inner=res;
+      res=y_hat-F_hat;
+      Res_inner=res;
 
-       for(Integer i=0;i<actNrParameter;i++){
-	 bas[i]= basC[i].real();
-	}
+      for(Integer i=0;i<actNrParameter;i++){
+        bas[i]= basC[i].real();
+      }
        
       // Create the matrices ...
-       createJacobiMatrix2(JacobiMatrix);
+      createJacobiMatrix2(JacobiMatrix);
 
-       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
+      createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
   
-       for (Integer i=0;i<parameter.GetSize();i++){
-	 scaling[i]=1.0;
-       }
+      for (Integer i=0;i<parameter.GetSize();i++){
+        scaling[i]=1.0;
+      }
 
-       adjJacobiMatrix.Mult(res, res_NE);
+      adjJacobiMatrix.Mult(res, res_NE);
 
- //       for (Integer i=0;i<actNrParameter;i++){
-//  	res_NE[i]=(1.0/scaling[whichParToUpInd[i]]*scaling[whichParToUpInd[i]])*res_NE[i];
-//  	res_NE_rescaled[i]=scaling[whichParToUpInd[i]]*res_NE[i];
-//        }
+      //       for (Integer i=0;i<actNrParameter;i++){
+      //      res_NE[i]=(1.0/scaling[whichParToUpInd[i]]*scaling[whichParToUpInd[i]])*res_NE[i];
+      //      res_NE_rescaled[i]=scaling[whichParToUpInd[i]]*res_NE[i];
+      //        }
 
-       basC = res_NE;
+      basC = res_NE;
 
       // ----- INNER LOOP --- CG-ITERATION ---
-       Integer nrCGIter=0;
+      Integer nrCGIter=0;
 
-       res_outer_old=res_outer;
-       res_inner=res_outer;
+      res_outer_old=res_outer;
+      res_inner=res_outer;
       
-       while(nrCGIter<maxNumberInnerLoops){ // CG
-	 nrCGIter++;
+      while(nrCGIter<maxNumberInnerLoops){ // CG
+        nrCGIter++;
 
-	 JacobiMatrix.Mult(basC,basbar);
+        JacobiMatrix.Mult(basC,basbar);
 
-	 norm_bas_bar = POW(a2norm(basbar),2);
+        norm_bas_bar = POW(a2norm(basbar),2);
 
-	 norm_resNE = POW(a2norm(res_NE),2);
+        norm_resNE = POW(a2norm(res_NE),2);
 
-	 res_inner_old=res_inner;
+        res_inner_old=res_inner;
 
-	 norm_resNEOld = norm_resNE;
+        norm_resNEOld = norm_resNE;
 
-	 alpha=norm_resNE / norm_bas_bar;
-	
-	 //	 std::cout<<"\n alpha = " << alpha << ",\t || normresNEold || = " << norm_resNEOld <<
-	 // ",\t ||bas_bar|| = " << norm_bas_bar << std::endl;
-
-
-	//	std::cout<<"\nstep = step + alpha *bas: "<<std::endl;
-	for (Integer i=0;i<actNrParameter;i++){
-	  step[i]+=Complex(alpha,alpha)*basC[i];
-	}
-	std::cout<<"\n basC:"<<std::endl;
-	std::cout<<basC<<std::endl;
-
-	//	std::cout<<"\n\nres = res - alpha*bas_bar: "<<std::endl;
-	for (Integer i=0;i<nrMeasuredData;i++){
-	  Res_inner[i]=Res_inner[i]-Complex(alpha,alpha)*basbar[i];
-	}
-
-	norm(Res_inner,res_inner,max_res_inner,y_hat);
-
-	adjJacobiMatrix.Mult(res,res_NE);
-
-	norm_resNE=POW(a2norm(res_NE),2);
-
-	beta = norm_resNE/norm_resNEOld;
-
-	std::cout<<"\n beta = " << beta << std::endl;
+        alpha=norm_resNE / norm_bas_bar;
+        
+        //      std::cout<<"\n alpha = " << alpha << ",\t || normresNEold || = " << norm_resNEOld <<
+        // ",\t ||bas_bar|| = " << norm_bas_bar << std::endl;
 
 
-	//	std::cout<<"\nbas = resNE + beta * bas: "<<std::endl;	
-	for(Integer i=0;i<actNrParameter;i++){
-	  basC[i]= res_NE[i]+beta*basC[i];
-	}
+        //      std::cout<<"\nstep = step + alpha *bas: "<<std::endl;
+        for (Integer i=0;i<actNrParameter;i++){
+          step[i]+=Complex(alpha,alpha)*basC[i];
+        }
+        std::cout<<"\n basC:"<<std::endl;
+        std::cout<<basC<<std::endl;
 
-	JacobiMatrix.Mult(step,JacFs);
+        //      std::cout<<"\n\nres = res - alpha*bas_bar: "<<std::endl;
+        for (Integer i=0;i<nrMeasuredData;i++){
+          Res_inner[i]=Res_inner[i]-Complex(alpha,alpha)*basbar[i];
+        }
 
-	res_JacFs = res-JacFs;
+        norm(Res_inner,res_inner,max_res_inner,y_hat);
 
-	std::cout<<res_JacFs<<std::endl;
+        adjJacobiMatrix.Mult(res,res_NE);
 
-       	norm(res_JacFs, lin_res, lin_res_max ,y_hat);
+        norm_resNE=POW(a2norm(res_NE),2);
 
-	std::cout<<"\n CG-Iter: " << nrCGIter << " || res_JacFs || = " << lin_res_max << ", max_res_outer = " << max_res_outer << std::endl;
+        beta = norm_resNE/norm_resNEOld;
 
-       *piezoLog<<"\n CG-Iter: " << nrCGIter << " || res_JacFs || = " << lin_res_max << ", Res_outer = " << res_outer << std::endl;
+        std::cout<<"\n beta = " << beta << std::endl;
 
-	eta=1.0;
-	if (lin_res_max <= 0.1*max_res_outer){
-	  *piezoLog<<"\n Terminated CG-Iteration after " << nrCGIter << " steps with res_JacFs = " << lin_res << std::endl;
-	  std::cout<<"\n Terminated CG-Iteration after " << nrCGIter << " steps with res_JacFs = " << lin_res << std::endl;
-	  getchar();
-	  break;
-	}
-	
-       }// end while CG
+
+        //      std::cout<<"\nbas = resNE + beta * bas: "<<std::endl;   
+        for(Integer i=0;i<actNrParameter;i++){
+          basC[i]= res_NE[i]+beta*basC[i];
+        }
+
+        JacobiMatrix.Mult(step,JacFs);
+
+        res_JacFs = res-JacFs;
+
+        std::cout<<res_JacFs<<std::endl;
+
+        norm(res_JacFs, lin_res, lin_res_max ,y_hat);
+
+        std::cout<<"\n CG-Iter: " << nrCGIter << " || res_JacFs || = " << lin_res_max << ", max_res_outer = " << max_res_outer << std::endl;
+
+        *piezoLog<<"\n CG-Iter: " << nrCGIter << " || res_JacFs || = " << lin_res_max << ", Res_outer = " << res_outer << std::endl;
+
+        eta=1.0;
+        if (lin_res_max <= 0.1*max_res_outer){
+          *piezoLog<<"\n Terminated CG-Iteration after " << nrCGIter << " steps with res_JacFs = " << lin_res << std::endl;
+          std::cout<<"\n Terminated CG-Iteration after " << nrCGIter << " steps with res_JacFs = " << lin_res << std::endl;
+          getchar();
+          break;
+        }
+        
+      }// end while CG
 
       parameter_new=parameter; 
      
@@ -236,7 +236,7 @@ namespace CoupledField
 
       //      parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33      
       for (Integer i=0;i<actNrParameter;i++)
-	stepR[i]=step[i].real();
+        stepR[i]=step[i].real();
       std::cout<<step<<std::endl;
 
       setNewParameterSet(parameter, parameter_new, scaling,theta,stepR,whichParameterToUpdate);
@@ -255,90 +255,90 @@ namespace CoupledField
       *parLog <<nrNewtonIterations <<"  "<< parameter[1]<<"  " <<parameter[7]<<"   " <<parameter[9]<<std::endl;
 
       if(max_res_outer<=5.e-05)
-	getchar();
+        getchar();
 
       if (res_outer>=res_outer_old){
-	*piezoLog<<"\n Newton Iteration terminated after "<< nrNewtonIterations << " steps with res = " << res_outer << std::endl;
-	std::cout<<"\n Newton Iteration terminated after "<< nrNewtonIterations << " steps with res = " << res_outer << std::endl;
-	//	getchar();
-	//break;
-	//	std::cout<<parameter<<std::endl;
-	//getchar();
+        *piezoLog<<"\n Newton Iteration terminated after "<< nrNewtonIterations << " steps with res = " << res_outer << std::endl;
+        std::cout<<"\n Newton Iteration terminated after "<< nrNewtonIterations << " steps with res = " << res_outer << std::endl;
+        //      getchar();
+        //break;
+        //      std::cout<<parameter<<std::endl;
+        //getchar();
       }
    
-      //	backtracking(eta, theta, s, a, a_lin_new);
+      //        backtracking(eta, theta, s, a, a_lin_new);
 
       backtrackIterator=0;
 
       while ((res_outer>POW((1.0-t*(1.0-eta)),2)*res_outer_old) && backtrackIterator<0){ // Liniensuche
-	//	std::cout<<"\n backtracking ... "<< backtrackIterator<< std::endl;
-	backtrackIterator++;
+        //      std::cout<<"\n backtracking ... "<< backtrackIterator<< std::endl;
+        backtrackIterator++;
 
-	b=0.0;
-	for(Integer i=0;i<nrMeasuredData;i++)
-	  b+= 2.0*(res[i]*(res_JacFs[i]-res[i])).real();
+        b=0.0;
+        for(Integer i=0;i<nrMeasuredData;i++)
+          b+= 2.0*(res[i]*(res_JacFs[i]-res[i])).real();
 
-	// choose theta:
-	aa=res_outer_old;
+        // choose theta:
+        aa=res_outer_old;
 
-	c=res_outer-b-res_outer_old;
+        c=res_outer-b-res_outer_old;
 
-	if (c==0.0){
-	  if(b<=0.0)
-	    theta=theta_max;
-	  else 
-	    theta=theta_min;
-	}
-	else if (c>0.0){
-	  if (b<-2*c*theta_max)
-	    theta = theta_max;
-	  else if (b>-2*c*theta_min)
-	    theta=theta_min;
-	  else
-	    theta=-b/(2*c);
-	}
-	else{
-	  if (b<-2*c*theta_min)
-	    theta=theta_max;
-	  else if (b>-2*c*theta_max)
-	    theta=theta_min;
-	  else
-	    {
-	      if ((aa+b*theta_min+c*theta_min*theta_min)>=(aa+b*theta_max+c*theta_max*theta_max))
-		theta=theta_max;
-	      else theta=theta_min;
-	    }
-	} // end else if c>0
-	//	theta = 0.35;
+        if (c==0.0){
+          if(b<=0.0)
+            theta=theta_max;
+          else 
+            theta=theta_min;
+        }
+        else if (c>0.0){
+          if (b<-2*c*theta_max)
+            theta = theta_max;
+          else if (b>-2*c*theta_min)
+            theta=theta_min;
+          else
+            theta=-b/(2*c);
+        }
+        else{
+          if (b<-2*c*theta_min)
+            theta=theta_max;
+          else if (b>-2*c*theta_max)
+            theta=theta_min;
+          else
+            {
+              if ((aa+b*theta_min+c*theta_min*theta_min)>=(aa+b*theta_max+c*theta_max*theta_max))
+                theta=theta_max;
+              else theta=theta_min;
+            }
+        } // end else if c>0
+        //      theta = 0.35;
 
-	*piezoLog<<"\t Choice of theta = " << theta<<std::endl;
+        *piezoLog<<"\t Choice of theta = " << theta<<std::endl;
 
-	// for (Integer i=0;i<actNrParameter;i++)
-// 	  step[i]=theta*step[i];
+        // for (Integer i=0;i<actNrParameter;i++)
+        //        step[i]=theta*step[i];
 
-	for (Integer i=0;i<actNrParameter;i++)
-	  stepR[i]=theta*stepR[i];
+        for (Integer i=0;i<actNrParameter;i++)
+          stepR[i]=theta*stepR[i];
 
-	setNewParameterSet(parameter, parameter_new, scaling,theta,stepR,whichParameterToUpdate);
+        setNewParameterSet(parameter, parameter_new, scaling,theta,stepR,whichParameterToUpdate);
 
-	for(Integer i=0;i<nrParameter;i++)
-	  std::cout<<"paramter_new["<<i<<"]= " << parameter_new[i]<<" + " << parameter_newC[i]<<std::endl;
+        for(Integer i=0;i<nrParameter;i++)
+          std::cout<<"paramter_new["<<i<<"]= " << parameter_new[i]<<" + " << parameter_newC[i]<<std::endl;
 
-	//	b = theta*b;
-	eta = 1- theta*(1-eta);
+        //      b = theta*b;
+        eta = 1- theta*(1-eta);
 
-	updateMaterialData(parameter_new,ptMaterial);
+        updateMaterialData(parameter_new,ptMaterial);
 
-	createF(ptMaterial, ptBCs, F_hat,FALSE);
+        createF(ptMaterial, ptBCs, F_hat,FALSE);
 
-	res=y_hat-F_hat;
+        res=y_hat-F_hat;
 
-	norm(res,res_outer,max_res_outer,y_hat);
+        norm(res,res_outer,max_res_outer,y_hat);
 
-	std::cout<<"\n New res_outer = " << res_outer <<std::endl;
-	//	getchar();
+        std::cout<<"\n New res_outer = " << res_outer <<std::endl;
+        //      getchar();
 
-	//	*piezoLog << "\t aval_new after Linesearch " << aval_new <<std::endl;
+        //      *piezoLog << "\t aval_new after Linesearch " << aval_new <<std::endl;
 
       }// end linesearch ...
 
@@ -348,17 +348,17 @@ namespace CoupledField
       // std::cout<<"\n eta_new =  " << eta_new << std::endl;
       Double gammaEtaAl = gamma*POW(eta,al);
       if (gammaEtaAl > 0.1) // safeguard choice 2, see Pernice, Walker
-	if (gammaEtaAl>eta)
-	  eta_new=gammaEtaAl;
+        if (gammaEtaAl>eta)
+          eta_new=gammaEtaAl;
 
       if(eta_new<=2*(tau*delta)/sqrt(res_outer)); // final safeguard
       eta_new=0.8*(tau*delta)/sqrt(res_outer);
       //end choose eta
 
       if (eta_new>eta_max)
-	eta=eta_max;
+        eta=eta_max;
       else
-	eta=eta_new;
+        eta=eta_new;
 
       //    std::cout<< "\n\n *** Choice of eta = " << eta<<std::endl; 
       //      *piezoLog<<"\t Choice of eta = " << eta<<std::endl;
@@ -381,7 +381,7 @@ namespace CoupledField
     //    *piezoLog <<"MaxResiduum: " << max_res_outer <<", weighted norm = " <<aval_new<< std::endl;
     finalnorm=max_res_outer;
 
- }// end NewtonCG 4
+  }// end NewtonCG 4
   
 
   // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

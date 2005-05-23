@@ -83,7 +83,7 @@ namespace CoupledField {
     // #ifdef CHECK_INITIALIZED
     //   if (size_ == 0) 
     //     Warning("Don't use Init() to undefined vector", 
-    // 	    __FILE__, __LINE__);
+    //      __FILE__, __LINE__);
     // #endif
   
     for (Integer i=0; i<size_; i++) 
@@ -148,7 +148,7 @@ namespace CoupledField {
 
 
     if (size_ != vec.size_)
-      {	
+      { 
         if (data_)
           delete [] data_;
       
@@ -169,7 +169,7 @@ namespace CoupledField {
     ENTER_IFCN( "StdVector::operator=(const std::vector)" );
 
     if (size_ != vec.size())
-      {	
+      { 
         if (data_)
           delete [] data_;
       

@@ -25,7 +25,7 @@ namespace CoupledField
     
     //! Initialization method
     virtual void Init(Integer sequenceStep = 0,
-		      std::string  bcSequenceTag = "anyTag");
+                      std::string  bcSequenceTag = "anyTag");
 
     //! Trigger calculation of postprocessing results
     virtual void PostProcess() = 0;

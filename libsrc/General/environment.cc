@@ -87,7 +87,7 @@ namespace CoupledField {
       out = BUBBLEDYNAMIC;
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
-	       << "'AnalysisType'!";
+               << "'AnalysisType'!";
       Error( __FILE__, __LINE__ );
     } 
   }
@@ -118,7 +118,7 @@ namespace CoupledField {
   // CouplingInputType
   template<>
   void String2Enum<CouplingInputType>( const std::string &in, 
-				       CouplingInputType &out ) {
+                                       CouplingInputType &out ) {
 
     if (in == "Coordinate-Displacement")
       out = COORD;
@@ -130,7 +130,7 @@ namespace CoupledField {
       out = MAT;
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
-	       << "'CouplingInputType'!";
+               << "'CouplingInputType'!";
       Error( __FILE__, __LINE__);
     }
   }
@@ -155,14 +155,14 @@ namespace CoupledField {
       break;
     default:  
       Error("No conversion found for your 'CouplingInputType'",
-	    __FILE__, __LINE__);
+            __FILE__, __LINE__);
     }
   }
 
   // BubbleDynType
   template<>
   void String2Enum<BubbleDynType>( const std::string &in, 
-				   BubbleDynType &out ) {
+                                   BubbleDynType &out ) {
 
     if ( in == "KellerMiksis" )
       out = KELLERMIKSIS;
@@ -170,14 +170,14 @@ namespace CoupledField {
       out = GILMORE;
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
-	       << "'BubbleDynType'!";
+               << "'BubbleDynType'!";
       Error( __FILE__, __LINE__);
     }
   }
 
   template<> 
   void Enum2String<BubbleDynType>( const BubbleDynType &in, 
-				   std::string &out ) {
+                                   std::string &out ) {
     switch(in) {
 
     case KELLERMIKSIS:
@@ -186,9 +186,9 @@ namespace CoupledField {
     case GILMORE:
       out = "Gilmore";
       break;
-    default:	
+    default:    
       Error( "No conversion found for your 'BubbleDynType'",
-	     __FILE__, __LINE__ );
+             __FILE__, __LINE__ );
     }
   }
 
@@ -203,7 +203,7 @@ namespace CoupledField {
       out = ELEM;
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
-	       <<"'CouplingOutputType'!";
+               <<"'CouplingOutputType'!";
       Error( __FILE__, __LINE__ );
     }
   }
@@ -221,7 +221,7 @@ namespace CoupledField {
       break;
     default:  
       Error("No conversion found for your 'CouplingOutputType'",
-	    __FILE__, __LINE__ );
+            __FILE__, __LINE__ );
     }
   }
   
@@ -237,7 +237,7 @@ namespace CoupledField {
       out = SURFACE;
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
-	       << "'CouplingRegionType'!";
+               << "'CouplingRegionType'!";
       Error( __FILE__, __LINE__ );
     }
   }
@@ -259,7 +259,7 @@ namespace CoupledField {
       break;
     default:  
       Error( "No conversion found for your 'CouplingRegionType'",
-	     __FILE__, __LINE__ );
+             __FILE__, __LINE__ );
     }
   }
 
@@ -275,7 +275,7 @@ namespace CoupledField {
       out = L2ABS;
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
-	       << "'NormType'!";
+               << "'NormType'!";
       Error( __FILE__, __LINE__ );
     }
   }
@@ -373,7 +373,7 @@ namespace CoupledField {
 
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
-	       << "'SolutionType'!";
+               << "'SolutionType'!";
       Error( __FILE__, __LINE__ );
     }
   }
@@ -383,108 +383,108 @@ namespace CoupledField {
   { 
 
     switch (in)
-    {
-      //mechanics
-    case MECH_DISPLACEMENT:
-      out = "mechDisplacement";
-      break;
-    case MECH_ACCELERATION:
-      out = "mechAcceleration";
-      break;
-    case MECH_VELOCITY:
-      out = "mechVelocity";
-      break;
-    case MECH_FORCE:
-      out = "mechForce";
-      break;
-    case MECH_STRESS:
-      out = "mechStress";
-      break;
-    case MECH_STRAIN:
-      out = "mechStrain";
-      break;
+      {
+        //mechanics
+      case MECH_DISPLACEMENT:
+        out = "mechDisplacement";
+        break;
+      case MECH_ACCELERATION:
+        out = "mechAcceleration";
+        break;
+      case MECH_VELOCITY:
+        out = "mechVelocity";
+        break;
+      case MECH_FORCE:
+        out = "mechForce";
+        break;
+      case MECH_STRESS:
+        out = "mechStress";
+        break;
+      case MECH_STRAIN:
+        out = "mechStrain";
+        break;
 
-    case MECH_ENERGY:
-      out = "mechEnergy";
-      break;
+      case MECH_ENERGY:
+        out = "mechEnergy";
+        break;
 
-      //electrostatics
-    case ELEC_POTENTIAL:
-      out = "elecPotential";
-      break;
-    case ELEC_FIELD_INTENSITY:
-      out = "elecFieldIntensity";
-      break;
-    case ELEC_FORCE_VWP: 
-      out = "elecForceVWP";
-      break;
-    case ELEC_INTERFACE_FORCE:
-      out = "elecInterfaceForce";
-      break; 
-    case ELEC_CHARGE:
-      out = "elecCharge";
-      break;
-    case ELEC_FLUX_DENSITY:
-      out = "elecFluxDensity";
-      break; 
-    case ELEC_ENERGY:
-      out = "elecEnergy";
-      break;
+        //electrostatics
+      case ELEC_POTENTIAL:
+        out = "elecPotential";
+        break;
+      case ELEC_FIELD_INTENSITY:
+        out = "elecFieldIntensity";
+        break;
+      case ELEC_FORCE_VWP: 
+        out = "elecForceVWP";
+        break;
+      case ELEC_INTERFACE_FORCE:
+        out = "elecInterfaceForce";
+        break; 
+      case ELEC_CHARGE:
+        out = "elecCharge";
+        break;
+      case ELEC_FLUX_DENSITY:
+        out = "elecFluxDensity";
+        break; 
+      case ELEC_ENERGY:
+        out = "elecEnergy";
+        break;
       
-    //smoothing PDE  
-    case SMOOTH_DISPLACEMENT:
-      out = "smoothDisplacement";
-      break;
+        //smoothing PDE  
+      case SMOOTH_DISPLACEMENT:
+        out = "smoothDisplacement";
+        break;
       
-      //acoustics
-    case ACOU_POTENTIAL:
-      out = "acouPotential";
-      break;
-    case ACOU_PRESSURE:
-      out = "acouPressure";
-      break;
-    case ACOU_FORCE:
-      out = "acouForce";
-      break;
-    case ACOU_POTENTIAL_DERIV_1:
-      out = "acouPotentialD1";
-      break;
-    case ACOU_POTENTIAL_DERIV_2:
-      out = "acouPotentialD2";
-      break;
-    case ACOU_RHSVAL:
-      out = "acouRHSval";
-      break;
+        //acoustics
+      case ACOU_POTENTIAL:
+        out = "acouPotential";
+        break;
+      case ACOU_PRESSURE:
+        out = "acouPressure";
+        break;
+      case ACOU_FORCE:
+        out = "acouForce";
+        break;
+      case ACOU_POTENTIAL_DERIV_1:
+        out = "acouPotentialD1";
+        break;
+      case ACOU_POTENTIAL_DERIV_2:
+        out = "acouPotentialD2";
+        break;
+      case ACOU_RHSVAL:
+        out = "acouRHSval";
+        break;
  
-      //magnetics  
-    case MAG_POTENTIAL:
-      out = "magPotential";
-      break;
-    case MAG_FLUX_DENSITY:
-      out = "magFluxDensity";
-      break;
-    case MAG_EDDY_CURRENT:
-      out = "magEddyCurrent";
-      break;
-    case MAG_FORCE_VWP:
-      out = "magForceVWP";
-      break;
-    case MAG_FORCE_LORENTZ:
-      out = "magForceLorentz";
-      break;
-    case MAG_ENERGY:
-      out = "magEnergy";
-      break;
-    //mpcci PDE  
-    case FLUID_FORCE:
-      out = "fluidForce";
-      break;
+        //magnetics  
+      case MAG_POTENTIAL:
+        out = "magPotential";
+        break;
+      case MAG_FLUX_DENSITY:
+        out = "magFluxDensity";
+        break;
+      case MAG_EDDY_CURRENT:
+        out = "magEddyCurrent";
+        break;
+      case MAG_FORCE_VWP:
+        out = "magForceVWP";
+        break;
+      case MAG_FORCE_LORENTZ:
+        out = "magForceLorentz";
+        break;
+      case MAG_ENERGY:
+        out = "magEnergy";
+        break;
+        //mpcci PDE  
+      case FLUID_FORCE:
+        out = "fluidForce";
+        break;
       
-    default:
-      (*error) << "Wrong type of solution or 'SolutionType2String' not "
-	       << "implemented for this type of solution";
-      Error( __FILE__, __LINE__);
-    }
+      default:
+        (*error) << "Wrong type of solution or 'SolutionType2String' not "
+                 << "implemented for this type of solution";
+        Error( __FILE__, __LINE__);
+      }
   } 
 
   // EQNType

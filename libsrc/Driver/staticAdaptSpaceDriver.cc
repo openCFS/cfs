@@ -12,80 +12,80 @@
 namespace CoupledField
 {
 
-StaticAdaptSpaceDriver :: StaticAdaptSpaceDriver(Domain * adomain)
-  : StaticDriver(adomain)
-{
-  ENTER_FCN( "StaticAdaptSpaceDriver::StaticDriver" );
+  StaticAdaptSpaceDriver :: StaticAdaptSpaceDriver(Domain * adomain)
+    : StaticDriver(adomain)
+  {
+    ENTER_FCN( "StaticAdaptSpaceDriver::StaticDriver" );
   
-  flags->adaptSpace_ = TRUE;
+    flags->adaptSpace_ = TRUE;
 
-}
+  }
 
-StaticAdaptSpaceDriver :: ~StaticAdaptSpaceDriver()
-{
-  ENTER_FCN( "StaticAdaptSpaceDriver::~StaticAdaptSpaceDriver" );
+  StaticAdaptSpaceDriver :: ~StaticAdaptSpaceDriver()
+  {
+    ENTER_FCN( "StaticAdaptSpaceDriver::~StaticAdaptSpaceDriver" );
 
-}
+  }
 
-void StaticAdaptSpaceDriver :: SolveProblem()
-{
-  ENTER_FCN( "StaticAdaptSpaceDriver::SolveProblem" );
+  void StaticAdaptSpaceDriver :: SolveProblem()
+  {
+    ENTER_FCN( "StaticAdaptSpaceDriver::SolveProblem" );
 
-  Integer level=0;
-  Integer pdenumber  = 0;
-  Integer numrepeat = 0;
+    Integer level=0;
+    Integer pdenumber  = 0;
+    Integer numrepeat = 0;
 
-  Integer maxnumrepeat;
-  if (!conf->ifget("maxnumrepeat",maxnumrepeat,"SpaceAdaptivity"))
-    maxnumrepeat=10;
+    Integer maxnumrepeat;
+    if (!conf->ifget("maxnumrepeat",maxnumrepeat,"SpaceAdaptivity"))
+      maxnumrepeat=10;
 
-  // print all stages of mesh 
-  Boolean meshesInfo=printMeshesOrNot();
+    // print all stages of mesh 
+    Boolean meshesInfo=printMeshesOrNot();
   
-  if (meshesInfo)
-    { // print info about mesh in mesh-info-file
-      ptMeshes_->Init(ptdomain_->GetGrid());
-      PrintSeqMeshes();
-    }
+    if (meshesInfo)
+      { // print info about mesh in mesh-info-file
+        ptMeshes_->Init(ptdomain_->GetGrid());
+        PrintSeqMeshes();
+      }
    
-  if (ptdomain_->GetNumPDE() <= 1) 
-    {
-      BasePDE * ptPDE =  ptdomain_->GetPDE(pdenumber);
-      ptPDE->SolveStepStatic(level);   
+    if (ptdomain_->GetNumPDE() <= 1) 
+      {
+        BasePDE * ptPDE =  ptdomain_->GetPDE(pdenumber);
+        ptPDE->SolveStepStatic(level);   
 
-      while(ptPDE->TestError(level) && numrepeat<maxnumrepeat)
-	{
-	  ptPDE->RefineMesh();
+        while(ptPDE->TestError(level) && numrepeat<maxnumrepeat)
+          {
+            ptPDE->RefineMesh();
 
-	  level++; // new level of grid
+            level++; // new level of grid
 
-	  if (meshesInfo)
-	    {
-	      ptMeshes_->Init(ptdomain_->GetGrid());
-	      ptPDE->WriteErrorInfo(ptMeshes_); // info for old mesh
-	      PrintSeqMeshes(); // print new mesh
-	    }
+            if (meshesInfo)
+              {
+                ptMeshes_->Init(ptdomain_->GetGrid());
+                ptPDE->WriteErrorInfo(ptMeshes_); // info for old mesh
+                PrintSeqMeshes(); // print new mesh
+              }
 
-	  ptdomain_->Update(level);
+            ptdomain_->Update(level);
 
-	  ptPDE->SolveStepStatic(level);
+            ptPDE->SolveStepStatic(level);
 
-	  numrepeat++;
-	}
+            numrepeat++;
+          }
 
-      ptPDE->PostProcess(level);
-      ptdomain_->PrintGrid(level);
-      ptPDE->WriteResultsInFile();
-    }
- else
-   {
-     Error("Adaptivity for Coupled Field Problem is not implemented",__FILE__,__LINE__);
+        ptPDE->PostProcess(level);
+        ptdomain_->PrintGrid(level);
+        ptPDE->WriteResultsInFile();
+      }
+    else
+      {
+        Error("Adaptivity for Coupled Field Problem is not implemented",__FILE__,__LINE__);
      
-     //     ptdomain_->GetCoupledPDE()->SolveStepStatic(level);
-     //  ptdomain_->PrintGrid(level);
-     // ptdomain_->GetCoupledPDE()->WriteResultsInFile();
-   }
+        //     ptdomain_->GetCoupledPDE()->SolveStepStatic(level);
+        //  ptdomain_->PrintGrid(level);
+        // ptdomain_->GetCoupledPDE()->WriteResultsInFile();
+      }
  
-}
+  }
 
 }

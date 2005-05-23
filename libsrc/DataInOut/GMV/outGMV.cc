@@ -14,41 +14,41 @@ namespace CoupledField {
 
 
   //*****************
-  //   Constructor
-  //*****************
-  WriteResultsGMV::WriteResultsGMV( const Char *const filename)
-    : WriteResults(filename) {
+//   Constructor
+//*****************
+WriteResultsGMV::WriteResultsGMV( const Char *const filename)
+  : WriteResults(filename) {
 
-    ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
+  ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
 
-    Integer nameLength = std::strlen(filename);
-    namedir_ = new Char[ nameLength + 4 + 1 ];
-    std::strcpy( namedir_, filename );
-    std::strcat( namedir_, "_gmv" );
+  Integer nameLength = std::strlen(filename);
+  namedir_ = new Char[ nameLength + 4 + 1 ];
+  std::strcpy( namedir_, filename );
+  std::strcat( namedir_, "_gmv" );
 
-    Char *command = new Char[ nameLength + 4 + 9 + 1 ];
-    std::sprintf( command, "mkdir -p %s", namedir_ );
-    std::system( command );
-    delete[] command;
+  Char *command = new Char[ nameLength + 4 + 9 + 1 ];
+  std::sprintf( command, "mkdir -p %s", namedir_ );
+  std::system( command );
+  delete[] command;
 
-    currStep_ = -1;
-    lastStep_ = -1;
-    lastTime_ = 0.0;
-    currTime_ = 0.0;
+  currStep_ = -1;
+  lastStep_ = -1;
+  lastTime_ = 0.0;
+  currTime_ = 0.0;
 
-    firstGridWritten_ = FALSE;
-    output = NULL;
-    ptgrid = NULL;
+  firstGridWritten_ = FALSE;
+  output = NULL;
+  ptgrid = NULL;
 
-    ascii_ = TRUE;
-    fixedgrid_ = TRUE;
+  ascii_ = TRUE;
+  fixedgrid_ = TRUE;
 
-    // Output format can be either ascii (default) or binary
-    ascii_ = !params->IsSet( "binaryFormat", "gmv" );
+  // Output format can be either ascii (default) or binary
+  ascii_ = !params->IsSet( "binaryFormat", "gmv" );
  
-    // Does the grid change over time, or can we use a fixed grid
-    fixedgrid_ = params->IsSet( "fixedGrid", "gmv" );
-  }
+  // Does the grid change over time, or can we use a fixed grid
+  fixedgrid_ = params->IsSet( "fixedGrid", "gmv" );
+}
 
 
   // **********************

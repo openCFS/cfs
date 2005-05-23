@@ -28,7 +28,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */   
     void StepTransNonLin(const Integer kstep, const Double asteptime,
-			 const Boolean reset);
+                         const Boolean reset);
 
     //! compute nonlinear part of RHS
     void AddNonLinRHS();

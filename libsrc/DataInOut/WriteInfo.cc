@@ -88,7 +88,7 @@ namespace CoupledField
            << "|                                                           "
            << "          |\n"
            << "|  Version:  " << version << std::setw(70-11-version.length())
-	   << "|\n"
+           << "|\n"
            << "|  Compiled: " << compileDate
            << "                                              |\n"
            << "|                                                           "

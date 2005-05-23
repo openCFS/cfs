@@ -29,10 +29,10 @@ namespace CoupledField
       \param algsys (input) pointer to algebraic system
     */
     CurlEdgeOp(Grid * ptGrid,
-	       StdPDE * ptPDE,
-	       NodeEQN * ptEQN,
-	       NodeStoreSol<Double> & sol,
-	       BaseSystem * algsys);
+               StdPDE * ptPDE,
+               NodeEQN * ptEQN,
+               NodeStoreSol<Double> & sol,
+               BaseSystem * algsys);
 
     //! Destructor
     virtual ~CurlEdgeOp();
@@ -44,13 +44,13 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evaluation point
     */
     virtual void CalcElemCurlEdge(Vector<Double> & E,
-				  const Elem * ptElement,
-				  const Vector<Double> & LCoord);
+                                  const Elem * ptElement,
+                                  const Vector<Double> & LCoord);
   
 
     void CalcElemMagVec(Vector<Double> & magVecPot, 
-			const Elem * ptElement,
-			const Vector<Double> & LCoord);
+                        const Elem * ptElement,
+                        const Vector<Double> & LCoord);
   
   protected:
   
@@ -70,9 +70,9 @@ namespace CoupledField
 
     //! Constructor
     CurlNodeOp(Grid * ptGrid,
-	       StdPDE * ptPDE,
-	       NodeEQN * ptEQN,
-	       NodeStoreSol<Double> & sol);
+               StdPDE * ptPDE,
+               NodeEQN * ptEQN,
+               NodeStoreSol<Double> & sol);
 
     //! Destructor
     virtual ~CurlNodeOp();
@@ -86,12 +86,12 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evaluation point
     */
     virtual void CalcElemCurlNode(Vector<Double> & E,
-				  const Elem * ptElement,
-				  const Vector<Double> & LCoord);
+                                  const Elem * ptElement,
+                                  const Vector<Double> & LCoord);
 
     void CalcElemMagVec(Vector<Double> & magVecPot, 
-			const Elem * ptElement,
-			const Vector<Double> & LCoord)
+                        const Elem * ptElement,
+                        const Vector<Double> & LCoord)
     {Error("CalcElemMagVec not implemented",__FILE__,__LINE__);};
   
   protected:

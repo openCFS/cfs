@@ -28,7 +28,7 @@ namespace CoupledField
   //----------------------- STATIC---------------------------------------
 
   void IterSolveStep::SolveStepStatic(const Integer kstep, const Double aTime,
-				       const Boolean updatesysmat ) {
+                                      const Boolean updatesysmat ) {
 
     ENTER_FCN ( "IterSolveStep::SolveStepStatic" );
   
@@ -41,62 +41,62 @@ namespace CoupledField
 
     while (iter < rPDE_.maxiter_ &&  (! normsReached))
       {
-	if (rPDE_.nonLinLogging_)
-	  {
-	Info->PrintF(rPDE_.pdename_,"\n"); 
-	Info->PrintF(rPDE_.pdename_, " COUPLED ITERATION %i =================================\n", 
-		     iter+1);
-	  }
-	
-	counter = 0;
-	normsReached = TRUE;
+        if (rPDE_.nonLinLogging_)
+          {
+            Info->PrintF(rPDE_.pdename_,"\n"); 
+            Info->PrintF(rPDE_.pdename_, " COUPLED ITERATION %i =================================\n", 
+                         iter+1);
+          }
+        
+        counter = 0;
+        normsReached = TRUE;
       
-	for (Integer i=0; i<rPDE_.PDEs_.GetSize(); i++)
-	  {
-	    if (rPDE_.nonLinLogging_)
-	    Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
-			 (rPDE_.PDEs_[i]->GetName()).c_str());
+        for (Integer i=0; i<rPDE_.PDEs_.GetSize(); i++)
+          {
+            if (rPDE_.nonLinLogging_)
+              Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
+                           (rPDE_.PDEs_[i]->GetName()).c_str());
 
-	    // Only solve current PDE, if the corresponding
-	    // flag in 'solvePDE_' is set to TRUE
-	    if (rPDE_.solvePDE_[i] == TRUE) {
-	      rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,updatesysmat);
-	      rPDE_.PDEs_[i]->CalcInputCoupling();
-	      rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,updatesysmat);
-	      rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic(kstep,aTime);
-	      rPDE_.PDEs_[i]->CalcOutputCoupling();
-	      
-	      // Calculate Norms
-	      for (Integer k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
-		{
-		  rCouplings_[i]->GetOutputValues(k, val);
-		  rCouplings_[i]->GetOutputOldValues(k, oldVal);
-		  rPDE_.norms_[counter] = CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
+            // Only solve current PDE, if the corresponding
+            // flag in 'solvePDE_' is set to TRUE
+            if (rPDE_.solvePDE_[i] == TRUE) {
+              rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,updatesysmat);
+              rPDE_.PDEs_[i]->CalcInputCoupling();
+              rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,updatesysmat);
+              rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic(kstep,aTime);
+              rPDE_.PDEs_[i]->CalcOutputCoupling();
+              
+              // Calculate Norms
+              for (Integer k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
+                {
+                  rCouplings_[i]->GetOutputValues(k, val);
+                  rCouplings_[i]->GetOutputOldValues(k, oldVal);
+                  rPDE_.norms_[counter] = CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
-		  if (rPDE_.nonLinLogging_)
-		    {
-		      Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
-		      Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-				   (rCouplings_[i]->GetPDEName()).c_str(),
-				   quantityConv.c_str(), rPDE_.norms_[counter]);
-		    }
-		  
-		  if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k) && 
-		      rCouplings_[i]->GetOutputNormType(k) != NO_NORM)
-		    normsReached = FALSE;
-		
-		  //copy values of new solution to old one
-		  *oldVal = *val;
+                  if (rPDE_.nonLinLogging_)
+                    {
+                      Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
+                      Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
+                                   (rCouplings_[i]->GetPDEName()).c_str(),
+                                   quantityConv.c_str(), rPDE_.norms_[counter]);
+                    }
+                  
+                  if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k) && 
+                      rCouplings_[i]->GetOutputNormType(k) != NO_NORM)
+                    normsReached = FALSE;
+                
+                  //copy values of new solution to old one
+                  *oldVal = *val;
 
-		} // end of if 
-		counter++;	      
-	      }
-	  }
+                } // end of if 
+              counter++;            
+            }
+          }
 
-	iter++;
-	
-	if(rPDE_.nonLinLogging_)
-	Info->PrintF(rPDE_.pdename_, "\n"); 
+        iter++;
+        
+        if(rPDE_.nonLinLogging_)
+          Info->PrintF(rPDE_.pdename_, "\n"); 
       }
 
     // now we are converged and can compute any postprocessing-quantities
@@ -108,7 +108,7 @@ namespace CoupledField
 
   //----------------------- TRANSIENT---------------------------------------
   void IterSolveStep::SolveStepTrans(const Integer kstep, const Double asteptime, 
-				      const Boolean updatesysmat)
+                                     const Boolean updatesysmat)
   {
     ENTER_FCN( "IterSolveStep::SolveStepTrans" );
 
@@ -125,115 +125,115 @@ namespace CoupledField
 
     while (iter < rPDE_.maxiter_ &&  (! normsReached))
       {
-	if (rPDE_.nonLinLogging_)
-	  {
-	    Info->PrintF(rPDE_.pdename_,"\n"); 
-	    Info->PrintF(rPDE_.pdename_, " COUPLED ITERATION %i =================================\n", 
-			 iter+1);
-	  }
+        if (rPDE_.nonLinLogging_)
+          {
+            Info->PrintF(rPDE_.pdename_,"\n"); 
+            Info->PrintF(rPDE_.pdename_, " COUPLED ITERATION %i =================================\n", 
+                         iter+1);
+          }
 
-	Integer counter = 0;
-	normsReached = TRUE;
+        Integer counter = 0;
+        normsReached = TRUE;
       
-	for (Integer i=0; i<rPDE_.PDEs_.GetSize(); i++)
-	  {
-	    if (rPDE_.nonLinLogging_)
-	      Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
-			   (rPDE_.PDEs_[i]->GetName()).c_str());
+        for (Integer i=0; i<rPDE_.PDEs_.GetSize(); i++)
+          {
+            if (rPDE_.nonLinLogging_)
+              Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
+                           (rPDE_.PDEs_[i]->GetName()).c_str());
 
-	    // Only solve current PDE, if the corresponding
-	    // flag in 'solvePDE_' is set to TRUE
-	    if (rPDE_.solvePDE_[i] == TRUE) {
-	      
-	      rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans(kstep, steptime, updatesysmat);
-	      rPDE_.PDEs_[i]->CalcInputCoupling();
-	      rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(kstep, steptime, updatesysmat);
-	      rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans(kstep, steptime);
-	      rPDE_.PDEs_[i]->CalcOutputCoupling();
-	      
-	      // Calculate Norms
-	      for (Integer k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
-		{
-		  CFSVector *val, *oldVal;
-		  rCouplings_[i]->GetOutputValues(k, val);
-		  rCouplings_[i]->GetOutputOldValues(k, oldVal);
-		  rPDE_.norms_[counter] = CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
+            // Only solve current PDE, if the corresponding
+            // flag in 'solvePDE_' is set to TRUE
+            if (rPDE_.solvePDE_[i] == TRUE) {
+              
+              rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans(kstep, steptime, updatesysmat);
+              rPDE_.PDEs_[i]->CalcInputCoupling();
+              rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(kstep, steptime, updatesysmat);
+              rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans(kstep, steptime);
+              rPDE_.PDEs_[i]->CalcOutputCoupling();
+              
+              // Calculate Norms
+              for (Integer k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
+                {
+                  CFSVector *val, *oldVal;
+                  rCouplings_[i]->GetOutputValues(k, val);
+                  rCouplings_[i]->GetOutputOldValues(k, oldVal);
+                  rPDE_.norms_[counter] = CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
-		  if (rPDE_.nonLinLogging_)
-		    {
-		      Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
-		      Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-				   (rCouplings_[i]->GetPDEName()).c_str(),
-				   quantityConv.c_str(), rPDE_.norms_[counter]);
-		    }
-		  if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
-		    normsReached = FALSE;
-		  
-		  *oldVal = *val;
-		} // end if
-	      counter++;	      
-	      }
-	  }
+                  if (rPDE_.nonLinLogging_)
+                    {
+                      Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
+                      Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
+                                   (rCouplings_[i]->GetPDEName()).c_str(),
+                                   quantityConv.c_str(), rPDE_.norms_[counter]);
+                    }
+                  if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
+                    normsReached = FALSE;
+                  
+                  *oldVal = *val;
+                } // end if
+              counter++;              
+            }
+          }
 
-	iter++;
-	if (rPDE_.nonLinLogging_)
-	  Info->PrintF(rPDE_.pdename_, "\n"); 
+        iter++;
+        if (rPDE_.nonLinLogging_)
+          Info->PrintF(rPDE_.pdename_, "\n"); 
       }
   } 
   
   //----------------------- HARMONIC---------------------------------------
   void IterSolveStep::SolveStepHarmonic(const Integer freqStep, const Double frequency, 
-					const Boolean reset) {
+                                        const Boolean reset) {
 
     ENTER_FCN( "IterSolveStep::SolveStepHarmonic" );
 
     Error( "Harmonic iterative coupling is not yet implemented", 
-	   __FILE__, __LINE__);
+           __FILE__, __LINE__);
   }
 
 
 
   Double IterSolveStep::CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval)
-{
-  ENTER_FCN( "IterSolveStep::CalcNorm" );
+  {
+    ENTER_FCN( "IterSolveStep::CalcNorm" );
 
-  // ATTENTION: Currently only working with Double-values
-  // will be changed as soon as dynamic type information
-  // is available
+    // ATTENTION: Currently only working with Double-values
+    // will be changed as soon as dynamic type information
+    // is available
 
-  Vector<Double> delta;
+    Vector<Double> delta;
  
-  Double norm, valNorm2;
+    Double norm, valNorm2;
   
 
-  Vector<Double> & val_vec =\
-    dynamic_cast<Vector<Double>& >(val);
+    Vector<Double> & val_vec =\
+      dynamic_cast<Vector<Double>& >(val);
 
-  Vector<Double> & oldval_vec =\
-    dynamic_cast<Vector<Double>& >(oldval);
+    Vector<Double> & oldval_vec =\
+      dynamic_cast<Vector<Double>& >(oldval);
   
-  delta = val_vec - oldval_vec;
+    delta = val_vec - oldval_vec;
 
-  switch (normtype)
-    {
-    case NO_NORM:
-      return 0;
-      break;
+    switch (normtype)
+      {
+      case NO_NORM:
+        return 0;
+        break;
       
-    case L2ABS:
-      norm = delta.NormL2();
-      break;
+      case L2ABS:
+        norm = delta.NormL2();
+        break;
 
-    case L2REL:
-      valNorm2 =  val_vec.NormL2();
-      if (valNorm2 > 0)
-	norm = delta.NormL2() / valNorm2;
-      else
-	norm = delta.NormL2();
+      case L2REL:
+        valNorm2 =  val_vec.NormL2();
+        if (valNorm2 > 0)
+          norm = delta.NormL2() / valNorm2;
+        else
+          norm = delta.NormL2();
 
-      break;
-    }
+        break;
+      }
 
-  return norm;
-}
-  } // end of namespace
+    return norm;
+  }
+} // end of namespace

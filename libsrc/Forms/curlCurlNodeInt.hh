@@ -11,10 +11,10 @@ class CurlCurlNode2DInt : public BaseForm
 {
 public:
   /// Constructor
- CurlCurlNode2DInt(BaseFE * aptelem, Double laplVal, Boolean axi=FALSE);
+  CurlCurlNode2DInt(BaseFE * aptelem, Double laplVal, Boolean axi=FALSE);
 
   /// Constructor
- CurlCurlNode2DInt(Double laplVal, Boolean axi=FALSE);
+  CurlCurlNode2DInt(Double laplVal, Boolean axi=FALSE);
 
   /// 
   virtual ~ CurlCurlNode2DInt();

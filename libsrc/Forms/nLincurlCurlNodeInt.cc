@@ -62,63 +62,63 @@ namespace CoupledField
 
     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
-	jacDet = 0;
-	
-	ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+        jacDet = 0;
+        
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
 
-	if (isaxi_)
-	  {
-	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-	    CoordAtIP = ptCoord * ShpFncAtIp;
+        if (isaxi_)
+          {
+            ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+            CoordAtIP = ptCoord * ShpFncAtIp;
             for (Integer i=0; i<nrNodes; i++)
-		xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
+              xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
             
             jacDet *= 2 * PI * CoordAtIP[0];
-	}
+          }
   
-	xiDx.Transpose(xiDxTransp);
-	partElemMat = xiDx * xiDxTransp;
+        xiDx.Transpose(xiDxTransp);
+        partElemMat = xiDx * xiDxTransp;
 
-	//compute value for nonlinear reluctivity
-	Vector<Double> B(2);
-	Integer dim = 2;
-	for( Integer i=0; i<dim; i++ )
-	  for( Integer j=0; j<nrNodes; j++ )
-	    B[i] += xiDx[j][i] * magPot_[j];
+        //compute value for nonlinear reluctivity
+        Vector<Double> B(2);
+        Integer dim = 2;
+        for( Integer i=0; i<dim; i++ )
+          for( Integer j=0; j<nrNodes; j++ )
+            B[i] += xiDx[j][i] * magPot_[j];
 
-	Double Babs = B.NormL2();
+        Double Babs = B.NormL2();
 
-	if (Babs ==0) 
-	  reluctivity = startmatVal_;
-	else {
-	  Hfield      = nlinFnc_->EvaluateFuncInv(Babs);
-	  reluctivity = Hfield / Babs;
-	}
+        if (Babs ==0) 
+          reluctivity = startmatVal_;
+        else {
+          Hfield      = nlinFnc_->EvaluateFuncInv(Babs);
+          reluctivity = Hfield / Babs;
+        }
 
-	partElemMat *= reluctivity;
-	
-	if (nonLinType_ == NEWTON) {
-	  if (Babs ==0) 
-	    derivReluctivity = 0;
-	  else {	  
-	    //Newton method
-	    Vector<Double> eB(2); eB = B * 1/Babs;
-	    dHfield = nlinFnc_->EvaluatePrimeInv(Babs);
-	    derivReluctivity = (dHfield*Babs - Hfield) / (Babs*Babs);
-	    for (Integer p=0;  p<nrNodes; p++)
-	      for (Integer q=0; q<nrNodes; q++) {		
-		partElemMat[p][q] +=  derivReluctivity * 
-		  (eB[0]*eB[0]*xiDx[p][1]*xiDx[q][1] +
-		   eB[1]*eB[1]*xiDx[p][0]*xiDx[q][0] -
-		   eB[0]*eB[1]*xiDx[p][1]*xiDx[q][0] -
-		   eB[1]*eB[0]*xiDx[p][0]*xiDx[q][1] );
-	      }
-	  }
-	}
-	
+        partElemMat *= reluctivity;
+        
+        if (nonLinType_ == NEWTON) {
+          if (Babs ==0) 
+            derivReluctivity = 0;
+          else {          
+            //Newton method
+            Vector<Double> eB(2); eB = B * 1/Babs;
+            dHfield = nlinFnc_->EvaluatePrimeInv(Babs);
+            derivReluctivity = (dHfield*Babs - Hfield) / (Babs*Babs);
+            for (Integer p=0;  p<nrNodes; p++)
+              for (Integer q=0; q<nrNodes; q++) {               
+                partElemMat[p][q] +=  derivReluctivity * 
+                  (eB[0]*eB[0]*xiDx[p][1]*xiDx[q][1] +
+                   eB[1]*eB[1]*xiDx[p][0]*xiDx[q][0] -
+                   eB[0]*eB[1]*xiDx[p][1]*xiDx[q][0] -
+                   eB[1]*eB[0]*xiDx[p][0]*xiDx[q][1] );
+              }
+          }
+        }
+        
     
-	partElemMat *= intWeights[actIntPt-1] * jacDet;
-	elemMat += partElemMat;
+        partElemMat *= intWeights[actIntPt-1] * jacDet;
+        elemMat += partElemMat;
       }
   }
 

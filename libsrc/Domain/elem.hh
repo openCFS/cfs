@@ -22,86 +22,86 @@ namespace CoupledField
   //! - refinement flag / number
   
 
-struct Elem
-{
-public:
+  struct Elem
+  {
+  public:
  
-  //! Dummy constructor
-  Elem() {;}
+    //! Dummy constructor
+    Elem() {;}
 
-  //! Dummy destructor
-  virtual ~Elem() {;}
+    //! Dummy destructor
+    virtual ~Elem() {;}
 
-  // ======================================================
-  // GEOMETRICAL INFORMATION
-  // ======================================================
+    // ======================================================
+    // GEOMETRICAL INFORMATION
+    // ======================================================
 
-  //@{ \name Geometrical Information
-  //! global element number
-  Integer elemNum; 
+    //@{ \name Geometrical Information
+    //! global element number
+    Integer elemNum; 
 
-  //! identifier for region
-  Integer regionId;
+    //! identifier for region
+    Integer regionId;
 
-  //! array with node numbers
-  StdVector<Integer> connect;
+    //! array with node numbers
+    StdVector<Integer> connect;
   
-  //! flag for refinement
-  Boolean refinementFlag; 
+    //! flag for refinement
+    Boolean refinementFlag; 
   
-  //! number of refinement for the element
-  Integer refinementNumber; 
+    //! number of refinement for the element
+    Integer refinementNumber; 
   
-  //@}
+    //@}
 
-  // ======================================================
-  // COMPUTATIONAl INFORMATION
-  // ======================================================  
+    // ======================================================
+    // COMPUTATIONAl INFORMATION
+    // ======================================================  
   
-  //@{ \name Computational Information
+    //@{ \name Computational Information
 
-  //! pointer to reference element representation
-  BaseFE * ptElem;
-  //@}
+    //! pointer to reference element representation
+    BaseFE * ptElem;
+    //@}
 
-  // ======================================================
-  // HELPER METHODS
-  // ======================================================
-  //@{ \name Helper Methods
+    // ======================================================
+    // HELPER METHODS
+    // ======================================================
+    //@{ \name Helper Methods
   
-  //! overloading operator =
-  Elem & operator=(const Elem& t);
+    //! overloading operator =
+    Elem & operator=(const Elem& t);
 
-  //! calculation of diameter of element
-  Double diameter(const Point<2> * const ptArrayOfNodes);
-  //@}
-};
+    //! calculation of diameter of element
+    Double diameter(const Point<2> * const ptArrayOfNodes);
+    //@}
+  };
 
 
 
-inline Elem & Elem::operator=(const Elem& t) 
-{
-  if (this!=&t) {
-    ptElem=t.ptElem;
-    connect=t.connect;
-    regionId=t.regionId;
-    refinementFlag=t.refinementFlag;
-    refinementNumber=t.refinementNumber;
+  inline Elem & Elem::operator=(const Elem& t) 
+  {
+    if (this!=&t) {
+      ptElem=t.ptElem;
+      connect=t.connect;
+      regionId=t.regionId;
+      refinementFlag=t.refinementFlag;
+      refinementNumber=t.refinementNumber;
+    }
+    return *this;
   }
-  return *this;
-}
 
-inline Double Elem::diameter(const Point<2> * const ptArrayOfNodes)
-{
-  if (connect.GetSize()==1)
-    Error("This function is not valid for this dimension",__FILE__,__LINE__);
+  inline Double Elem::diameter(const Point<2> * const ptArrayOfNodes)
+  {
+    if (connect.GetSize()==1)
+      Error("This function is not valid for this dimension",__FILE__,__LINE__);
   
-  Point<2> a=ptArrayOfNodes[connect[1]];
-  Point<2> b=ptArrayOfNodes[connect[2]];
-  Point<2> c=ptArrayOfNodes[connect[3]];
+    Point<2> a=ptArrayOfNodes[connect[1]];
+    Point<2> b=ptArrayOfNodes[connect[2]];
+    Point<2> c=ptArrayOfNodes[connect[3]];
 
-  return std::max(dist(a,b),dist(b,c));
-}
+    return std::max(dist(a,b),dist(b,c));
+  }
 
 } // end of namespace
 #endif

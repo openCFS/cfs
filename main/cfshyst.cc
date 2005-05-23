@@ -55,39 +55,39 @@ int main(int argc, char *argv[]) {
   Vector<Double> valTF(500); 
 
   Integer idx =0;
-  while(pos <= pos_end) {	  
+  while(pos <= pos_end) {         
     buf = "";
     std::getline(timefile,buf,'\n');
     line_end_pos = timefile.tellg();
     
     // big choice of signs for comment's
     if (buf.length() != 0 &&
-	buf[0] != '#' &&
-	buf[0] != '%' && 
-	buf[0] != '!') 
+        buf[0] != '#' &&
+        buf[0] != '%' && 
+        buf[0] != '!') 
       {
-	timefile.seekg(- buf.size() - 1,std::ios::cur); // rewind
-	
-	timefile >> timeT >> valT ;		     
-	
-	valTF[idx] = valT;
-	timeTF[idx] = timeT;
-	idx++;
-	timefile.ignore(100,'\n');
-	  
+        timefile.seekg(- buf.size() - 1,std::ios::cur); // rewind
+        
+        timefile >> timeT >> valT ;                  
+        
+        valTF[idx] = valT;
+        timeTF[idx] = timeT;
+        idx++;
+        timefile.ignore(100,'\n');
+          
       }
       
     pos = timefile.tellg();  // and, where we are ?    
     
     if( pos != line_end_pos)
-      std::cerr << "Wrong format of input file" << std::endl;	  
+      std::cerr << "Wrong format of input file" << std::endl;     
   }
   
   timefile.close();
 
   Integer actsize = idx;
-//   for (Integer i=0; i<actsize; i++) 
-//     std::cout << timeTF[i] << " " << valTF[i] << std::endl;
+  //   for (Integer i=0; i<actsize; i++) 
+  //     std::cout << timeTF[i] << " " << valTF[i] << std::endl;
 
   std::vector<Integer> test;
 

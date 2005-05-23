@@ -39,11 +39,11 @@ namespace CoupledField
       \param isaxi (input) Flag for axi-symmetric geomtetry
     */
     GradientFieldOp(Grid * ptGrid,
-		    StdPDE * ptPDE,
-		    NodeEQN * ptEQN,
-		    NodeStoreSol<TYPE> & potential,
-		    const SolutionType solType,
-		    Boolean isaxi=FALSE);
+                    StdPDE * ptPDE,
+                    NodeEQN * ptEQN,
+                    NodeStoreSol<TYPE> & potential,
+                    const SolutionType solType,
+                    Boolean isaxi=FALSE);
  
     //! Destructor
     virtual ~GradientFieldOp();
@@ -56,9 +56,9 @@ namespace CoupledField
       \param factor (input) Scaling factor (e.g. permittivity for E-Field)
     */
     virtual void CalcElemGradField(CFSVector & elemField,
-				   const Elem * ptElement,
-				   const Vector<Double> & LCoord,
-				   const Double factor);
+                                   const Elem * ptElement,
+                                   const Vector<Double> & LCoord,
+                                   const Double factor);
   
 
     //! Calculate electric field for list of subdomains
@@ -71,9 +71,9 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point
     */
     virtual void CalcSDGradField(CFSVector & elemField,
-				 const StdVector<RegionIdType> & SD,
-				 const Vector<Double> & lCoord,
-				 const Vector<Double> & factors);
+                                 const StdVector<RegionIdType> & SD,
+                                 const Vector<Double> & lCoord,
+                                 const Vector<Double> & factors);
                                                        
 
   protected:

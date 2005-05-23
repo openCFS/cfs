@@ -65,7 +65,7 @@ namespace CoupledField {
 
 
   void Assemble::SetPDEId( const PdeIdType id1,
-			   const PdeIdType id2 )
+                           const PdeIdType id2 )
   {
     ENTER_FCN( "Assemble::SetPdeId" );
     
@@ -84,7 +84,7 @@ namespace CoupledField {
   }
 
   void Assemble::SetPtr2EQNData(NodeEQN * aPtNodeEQN1,
-				NodeEQN * aPtNodeEQN2)
+                                NodeEQN * aPtNodeEQN2)
   {
     ENTER_FCN( "Assemble::SetPtr2EQNData" );
 
@@ -185,7 +185,7 @@ namespace CoupledField {
       for(Integer actInteg=0; actInteg < integrators_[actDom]->GetSize(); actInteg++) {
         IntegratorDescriptor * actDescriptor = (*integrators_[actDom])[actInteg];
 
-	actDescriptor->GetIntegrator()->SetSubdomain(actDom);
+        actDescriptor->GetIntegrator()->SetSubdomain(actDom);
 
         if (alternateMaterialData_ == TRUE)
           actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_);
@@ -205,10 +205,10 @@ namespace CoupledField {
             actDescriptor->GetIntegrator()->SetFactor(damp);
           }
 
-	  dampTransform = 1.0;
-	  if ( ( actDescriptor->GetIntegrator()->IsRaylDamping() 
-		 || actDescriptor->GetSecondaryMat() != NOTYPE ) 
-	       && startFreq_ > 0 ) {
+          dampTransform = 1.0;
+          if ( ( actDescriptor->GetIntegrator()->IsRaylDamping() 
+                 || actDescriptor->GetSecondaryMat() != NOTYPE ) 
+               && startFreq_ > 0 ) {
 
             // Obtain frequency value to which the damping parameters
             // in the material file do belong
@@ -223,33 +223,33 @@ namespace CoupledField {
             }
 
             // get multiplicative pre factor depending on frequency
-	    if ( matDataFreq > 0 && actFreq_ > 0 ) {
-	      FEMatrixType destMat =
+            if ( matDataFreq > 0 && actFreq_ > 0 ) {
+              FEMatrixType destMat =
                 actDescriptor->GetIntegrator()->GetBaseType();
 
-	      if ( destMat == STIFFNESS ) {
-		dampTransform = matDataFreq / actFreq_;
+              if ( destMat == STIFFNESS ) {
+                dampTransform = matDataFreq / actFreq_;
                 Info->PrintF( "", " dampTransform (stiffness matrix) = %e\n",
                               dampTransform );
-	      }
-	      else if ( destMat == MASS ) {
-		dampTransform = actFreq_ / matDataFreq;
+              }
+              else if ( destMat == MASS ) {
+                dampTransform = actFreq_ / matDataFreq;
                 Info->PrintF( "", " dampTransform (mass matrix) = %e\n",
                               dampTransform );
-	      }
-	    }
+              }
+            }
 
-	    if ( actDescriptor->GetIntegrator()->IsRaylDamping() ) {
-	      actDescriptor->GetIntegrator()->SetFactor(dampTransform);
-	    }
+            if ( actDescriptor->GetIntegrator()->IsRaylDamping() ) {
+              actDescriptor->GetIntegrator()->SetFactor(dampTransform);
+            }
           }
-	  
+          
 
-	  //put pointer to array containing the material parameter for each element
-	  actDescriptor->GetIntegrator()->SetMaterialArray(matArray_);
+          //put pointer to array containing the material parameter for each element
+          actDescriptor->GetIntegrator()->SetMaterialArray(matArray_);
 
           for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
-	    actDescriptor->GetIntegrator()->SetElemNr(actEl);
+            actDescriptor->GetIntegrator()->SetElemNr(actEl);
 
             BaseFE * ptEl = elemssd[actEl]->ptElem;
             StdVector<Integer> connecth = elemssd[actEl]->connect;
@@ -290,17 +290,17 @@ namespace CoupledField {
               TransformMatrix2Harmonic(harmonicVec,elemmat, actDescriptor->GetOrigMatrixType(),
                                        actDescriptor->GetPiezoMaterialType());
          
-	      algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
-					 pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
-					 pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
+              algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
+                                         pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
+                                         pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
 
             }
             else {
 
-	      algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
-					 pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(), 
-					 pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
-	    }
+              algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
+                                         pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(), 
+                                         pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
+            }
 #ifdef DEBUG
             // output matrices
             if (destMat == STIFFNESS)
@@ -320,20 +320,20 @@ namespace CoupledField {
             }
 #endif
             if (actDescriptor->GetSecondaryMat() != NOTYPE) {
-	      Double damp = dampTransform * actDescriptor->GetSecMatFac();
+              Double damp = dampTransform * actDescriptor->GetSecMatFac();
               elemmat *= damp;
               if (analysisType_ == HARMONIC) {
                 TransformMatrix2Harmonic(harmonicVec,elemmat,actDescriptor->GetOrigSecMatrixType(),
                                          actDescriptor->GetPiezoMaterialType());
-	
-		algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
-					   pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(), 
-					   pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
+        
+                algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
+                                           pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(), 
+                                           pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
               }
               else
-		algsys_->SetElementMatrix(  actDescriptor->GetSecondaryMat(), elemmat.GetDataPointer(), 
-					    pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(), 
-					    pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize());
+                algsys_->SetElementMatrix(  actDescriptor->GetSecondaryMat(), elemmat.GetDataPointer(), 
+                                            pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(), 
+                                            pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize());
             }
                   
           } //over all elements of subdomain            
@@ -356,7 +356,7 @@ namespace CoupledField {
       //check is necessary, because the surface-integrator could also be a RHS-Src integrator
       if (surfintegrators_[actDom]->GetSize()) {        
         StdVector<SurfElem*> elemssd;
-	ptgrid_->GetSurfElems(elemssd, surfdoms_[actDom]);
+        ptgrid_->GetSurfElems(elemssd, surfdoms_[actDom]);
           
         for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
           BaseFE * ptEl = elemssd[actEl]->ptElem;
@@ -368,8 +368,8 @@ namespace CoupledField {
           // map connect to PDE node numbers
           StdVector<Integer> connect_PDE1, connect_PDE2;
           ptEQN1_->Node2EQN(connecth, connect_PDE1);
-	  ptEQN2_->Node2EQN(connecth, connect_PDE2);
-	  
+          ptEQN2_->Node2EQN(connecth, connect_PDE2);
+          
               
           Matrix<Double> elSol;
               
@@ -403,15 +403,15 @@ namespace CoupledField {
               if (analysisType_ == HARMONIC) {
                 TransformMatrix2Harmonic(harmonicVec,elemmat, actDescriptor->GetOrigMatrixType(),
                                          actDescriptor->GetPiezoMaterialType());
-		
-		algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
-					   pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
-					   pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize());
+                
+                algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
+                                           pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
+                                           pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize());
               }
               else
-		algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
-					   pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
-					   pdeId2_, connect_PDE1.GetPointer(), connect_PDE1.GetSize() );
+                algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
+                                           pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
+                                           pdeId2_, connect_PDE1.GetPointer(), connect_PDE1.GetSize() );
 
                         
               if (actDescriptor->GetSecondaryMat()  != NOTYPE ) {
@@ -419,15 +419,15 @@ namespace CoupledField {
                 if (analysisType_ == HARMONIC) {
                   TransformMatrix2Harmonic(harmonicVec,elemmat,actDescriptor->GetOrigSecMatrixType(),
                                            actDescriptor->GetPiezoMaterialType());
-		  
-		  algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
-					     pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
-					     pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
+                  
+                  algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
+                                             pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
+                                             pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
                 }
                 else
-		  algsys_->SetElementMatrix(  actDescriptor->GetSecondaryMat(), elemmat.GetDataPointer(), 
-					      pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
-					      pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
+                  algsys_->SetElementMatrix(  actDescriptor->GetSecondaryMat(), elemmat.GetDataPointer(), 
+                                              pdeId1_, connect_PDE1.GetPointer(), connect_PDE1.GetSize(),
+                                              pdeId2_, connect_PDE2.GetPointer(), connect_PDE2.GetSize() );
               }
             }           
           }
@@ -435,9 +435,9 @@ namespace CoupledField {
       } // check for surface integrator
     } // subdomains
      
-  firstTime_ = FALSE;
+    firstTime_ = FALSE;
 
-}
+  }
 
 
   // do the basic assembling stuff
@@ -578,7 +578,7 @@ namespace CoupledField {
           dof = GetBCDof( loadDof_[actDom] );   
 
         StdVector<Integer> nodes;
-	ptgrid_->GetNodesByName( nodes,loadDom_[actDom]);
+        ptgrid_->GetNodesByName( nodes,loadDom_[actDom]);
         Double val = loadVals_[actDom];
 
         Double val_tfunc = 1.0;
@@ -699,38 +699,38 @@ namespace CoupledField {
 
             ptEQN1_->Node2EQN(node,dof,eqnNr,eqnDof);
 
-	    if (analysisType_==TRANSIENT)
-	      {
-		if (abs(massValue_)>1e-30) 
-		  {
-		    Info->PrintF ("",  "Adding a value to the mass matrix\n");
-		    algsys_->AddToDiagMatrixEntry(MASS, pdeId1_, eqnNr, eqnDof, &massValue_ );
-		  }
-		if (abs(dampingValue_)>1e-30) 
-		  {
-		    if (!dampingMatrix_)
-		      Error("The damping value of a spring can only be added to the damping matrix when there exist one! ",__FILE__,__LINE__);
+            if (analysisType_==TRANSIENT)
+              {
+                if (abs(massValue_)>1e-30) 
+                  {
+                    Info->PrintF ("",  "Adding a value to the mass matrix\n");
+                    algsys_->AddToDiagMatrixEntry(MASS, pdeId1_, eqnNr, eqnDof, &massValue_ );
+                  }
+                if (abs(dampingValue_)>1e-30) 
+                  {
+                    if (!dampingMatrix_)
+                      Error("The damping value of a spring can only be added to the damping matrix when there exist one! ",__FILE__,__LINE__);
 
-		    Info->PrintF ("", "Adding a value to the damping matrix");
-		    algsys_->AddToDiagMatrixEntry(DAMPING, pdeId1_, eqnNr, eqnDof, &dampingValue_ );
-		  }
-		if (abs(stiffnessValue_)>1e-30) 
-		  {
-		    Info->PrintF ("", "Adding a value to the stiffness matrix");
-		    algsys_->AddToDiagMatrixEntry(STIFFNESS, pdeId1_, eqnNr, eqnDof, &stiffnessValue_ );
-		  }
-	      }
+                    Info->PrintF ("", "Adding a value to the damping matrix");
+                    algsys_->AddToDiagMatrixEntry(DAMPING, pdeId1_, eqnNr, eqnDof, &dampingValue_ );
+                  }
+                if (abs(stiffnessValue_)>1e-30) 
+                  {
+                    Info->PrintF ("", "Adding a value to the stiffness matrix");
+                    algsys_->AddToDiagMatrixEntry(STIFFNESS, pdeId1_, eqnNr, eqnDof, &stiffnessValue_ );
+                  }
+              }
 
-	    else if(analysisType_==STATIC)
-	      {
-		if (abs(stiffnessValue_)>1e-30)
-		  {
-		    Info->PrintF ("", "Adding a value to the stiffness matrix");
-		    algsys_->AddToDiagMatrixEntry(SYSTEM, pdeId1_, eqnNr, eqnDof, &stiffnessValue_ );
-		  }
-		if (abs(dampingValue_)>1e-30 || abs(massValue_)>1e-30 ) 
-		  Error("The damping and mass value of a spring will not considered in an static analysis! ",__FILE__,__LINE__);
-	      }
+            else if(analysisType_==STATIC)
+              {
+                if (abs(stiffnessValue_)>1e-30)
+                  {
+                    Info->PrintF ("", "Adding a value to the stiffness matrix");
+                    algsys_->AddToDiagMatrixEntry(SYSTEM, pdeId1_, eqnNr, eqnDof, &stiffnessValue_ );
+                  }
+                if (abs(dampingValue_)>1e-30 || abs(massValue_)>1e-30 ) 
+                  Error("The damping and mass value of a spring will not considered in an static analysis! ",__FILE__,__LINE__);
+              }
           }
       }
   }
@@ -759,28 +759,28 @@ namespace CoupledField {
 
 
 
-//   void Assemble::InitMatrices()
-//   {
-//     ENTER_FCN( "Assemble::InitMatrices" );
+  //   void Assemble::InitMatrices()
+  //   {
+  //     ENTER_FCN( "Assemble::InitMatrices" );
 
-//     //set firstTime_ to TRUE, so that assembling of element matrices will be preformed
-//     firstTime_ = TRUE;
+  //     //set firstTime_ to TRUE, so that assembling of element matrices will be preformed
+  //     firstTime_ = TRUE;
 
-//     // Initialize matrices in order to get BCs correct
-//     algsys_->InitMatrix(SYSTEM);
+  //     // Initialize matrices in order to get BCs correct
+  //     algsys_->InitMatrix(SYSTEM);
 
-//     if (stiffnessMatrix_)
-//       algsys_->InitMatrix(STIFFNESS);
+  //     if (stiffnessMatrix_)
+  //       algsys_->InitMatrix(STIFFNESS);
     
-//     if (dampingMatrix_)
-//       algsys_->InitMatrix(DAMPING);
+  //     if (dampingMatrix_)
+  //       algsys_->InitMatrix(DAMPING);
 
-//     if (convectionMatrix_)
-//       algsys_->InitMatrix(CONVECTION);
+  //     if (convectionMatrix_)
+  //       algsys_->InitMatrix(CONVECTION);
     
-//     if (massMatrix_)
-//       algsys_->InitMatrix(MASS); 
-//   }
+  //     if (massMatrix_)
+  //       algsys_->InitMatrix(MASS); 
+  //   }
  
 
 
@@ -817,50 +817,50 @@ namespace CoupledField {
 
  
 
- //  void Assemble::CreateMatrices()
-//   {
-//     ENTER_FCN( "Assemble::CreateMatrices" );
-//     const Integer numconstraints = 0;  // currently not handled
+  //  void Assemble::CreateMatrices()
+  //   {
+  //     ENTER_FCN( "Assemble::CreateMatrices" );
+  //     const Integer numconstraints = 0;  // currently not handled
     
-//     const Integer dofsPerEQN = ptEQN1_->GetNumDofsPerEQN();
+  //     const Integer dofsPerEQN = ptEQN1_->GetNumDofsPerEQN();
 
-//     FEMatrixType matrixsystype[5];
-//     matrixsystype[0] = OLAS::NOTYPE;
-//     matrixsystype[1] = OLAS::NOTYPE;
-//     matrixsystype[2] = OLAS::NOTYPE;
-//     matrixsystype[3] = OLAS::NOTYPE;
-//     matrixsystype[4] = OLAS::NOTYPE;
+  //     FEMatrixType matrixsystype[5];
+  //     matrixsystype[0] = OLAS::NOTYPE;
+  //     matrixsystype[1] = OLAS::NOTYPE;
+  //     matrixsystype[2] = OLAS::NOTYPE;
+  //     matrixsystype[3] = OLAS::NOTYPE;
+  //     matrixsystype[4] = OLAS::NOTYPE;
     
-//     matrixsystype[0] = SYSTEM;      // memory for the system matrix
-//     if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
-//     if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
-//     if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
-//     if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
+  //     matrixsystype[0] = SYSTEM;      // memory for the system matrix
+  //     if (stiffnessMatrix_  == 1) matrixsystype[1] = STIFFNESS;   // memory for the stiffness matrix
+  //     if (dampingMatrix_    == 1) matrixsystype[2] = DAMPING;     // memory for the damping matrix
+  //     if (convectionMatrix_ == 1) matrixsystype[3] = CONVECTION;  // memory for the convection matrix
+  //     if (massMatrix_       == 1) matrixsystype[4] = MASS;        // memory for the mass matrix
     
-//     Integer numBuildInDirichletEQNs_ = ptEQN1_->GetNumBuildInDirichletEQNs();
-//     Integer numDir = numDirichletBCs_ - numBuildInDirichletEQNs_;
-//     //std::cerr << "number of Dirichlet to set by AlgSYS: " << numDir << std::endl;
-//     //put to algebraic system
+  //     Integer numBuildInDirichletEQNs_ = ptEQN1_->GetNumBuildInDirichletEQNs();
+  //     Integer numDir = numDirichletBCs_ - numBuildInDirichletEQNs_;
+  //     //std::cerr << "number of Dirichlet to set by AlgSYS: " << numDir << std::endl;
+  //     //put to algebraic system
     
-//     olasParams_->SetValue( "FEMatrixType1", matrixsystype[0] );
-//     olasParams_->SetValue( "FEMatrixType2", matrixsystype[1] );
-//     olasParams_->SetValue( "FEMatrixType3", matrixsystype[2] );
-//     olasParams_->SetValue( "FEMatrixType4", matrixsystype[3] );
-//     olasParams_->SetValue( "FEMatrixType5", matrixsystype[4] );
-//     olasParams_->SetValue( "NumDof", dofsPerEQN);
-//     olasParams_->SetValue( "NumDirichletBCs", numDir);
-//     olasParams_->SetValue( "NumConstraints", numconstraints );
-//     olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
+  //     olasParams_->SetValue( "FEMatrixType1", matrixsystype[0] );
+  //     olasParams_->SetValue( "FEMatrixType2", matrixsystype[1] );
+  //     olasParams_->SetValue( "FEMatrixType3", matrixsystype[2] );
+  //     olasParams_->SetValue( "FEMatrixType4", matrixsystype[3] );
+  //     olasParams_->SetValue( "FEMatrixType5", matrixsystype[4] );
+  //     olasParams_->SetValue( "NumDof", dofsPerEQN);
+  //     olasParams_->SetValue( "NumDirichletBCs", numDir);
+  //     olasParams_->SetValue( "NumConstraints", numconstraints );
+  //     olasParams_->SetValue( "AuxiliaryMatrix", FALSE);
 
-//     // Create linear system
-//     algsys_->CreateLinSys();
+  //     // Create linear system
+  //     algsys_->CreateLinSys();
     
-//   }
+  //   }
   
 
   void Assemble::SetGeneralParams(const std::string & pdename, 
                                   const Integer dofsPerNode,
-				  const StdVector<RegionIdType> & subdoms,
+                                  const StdVector<RegionIdType> & subdoms,
                                   const StdVector<RegionIdType> & surfdoms,
                                   const std::string bcSequenceTag)
   {
@@ -1110,14 +1110,14 @@ namespace CoupledField {
             ptEQN1_->Node2EQN(connecth, connect_PDE1);
             ptEQN2_->Node2EQN(connecth, connect_PDE2);
 
-	    //std::cerr << "SetElelemtPos" << std::endl << "----------" << std::endl;
+            //std::cerr << "SetElelemtPos" << std::endl << "----------" << std::endl;
             //std::cerr << "connect: " << std::endl << connecth << std::endl;
             //std::cerr << "connect_PDE " << std::endl;
             //std::cerr << connect_PDE << std::endl << std::endl;
 
-	    algsys_->SetElementPos( pdeId1_, connect_PDE1.GetPointer(),connect_PDE1.GetSize(), 
-				    pdeId2_, connect_PDE2.GetPointer(),connect_PDE2.GetSize() );
-	  }
+            algsys_->SetElementPos( pdeId1_, connect_PDE1.GetPointer(),connect_PDE1.GetSize(), 
+                                    pdeId2_, connect_PDE2.GetPointer(),connect_PDE2.GetSize() );
+          }
       }
 
     // finish assembling procedure
@@ -1579,12 +1579,12 @@ namespace CoupledField {
 
       if (matrixType == STIFFNESS) {
 
-	// std::cout<<"real_stiff - actfreq: "<< actFreq_<<std::endl;
-	for (Integer row=0; row<numRow; row++)
-	  for (Integer col=0; col<numCol; col++) {
-	    harmMat[k] = origMat[row][col];
-	    k++;
-	  }
+        // std::cout<<"real_stiff - actfreq: "<< actFreq_<<std::endl;
+        for (Integer row=0; row<numRow; row++)
+          for (Integer col=0; col<numCol; col++) {
+            harmMat[k] = origMat[row][col];
+            k++;
+          }
       }
     
       else if (matrixType == MASS)

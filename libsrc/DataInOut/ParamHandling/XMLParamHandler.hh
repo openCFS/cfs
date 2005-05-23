@@ -69,36 +69,36 @@ namespace CoupledField {
     //! \name Simple query methods without side constraints
 
     void Get( const std::string key, std::string &value,
-	      const std::string section="",
-	      const std::string subsection="" );
+              const std::string section="",
+              const std::string subsection="" );
 
     void Get( const std::string key, Integer &value,
-	      const std::string section="", const std::string subsection="" );
+              const std::string section="", const std::string subsection="" );
 
     void Get( const std::string key, Double &value,
-	      const std::string section="", const std::string subsection="" );
+              const std::string section="", const std::string subsection="" );
 
     void GetList( const std::string key,
-		  StdVector<std::string> &list,
-		  const std::string section = "",
-		  const std::string subsection = "" );
+                  StdVector<std::string> &list,
+                  const std::string section = "",
+                  const std::string subsection = "" );
 
     void GetList( const std::string key, StdVector<Double> &list,
-		  const std::string section = "",
-		  const std::string subsection = "" );
+                  const std::string section = "",
+                  const std::string subsection = "" );
 
     void GetList( const std::string key, StdVector<Integer> &list,
-		  const std::string section = "",
-		  const std::string subsection = "" );
+                  const std::string section = "",
+                  const std::string subsection = "" );
 
     void Get( const StdVector<std::string> &keyVec,
-	      std::string &value );
+              std::string &value );
 
     void Get( const StdVector<std::string> &keyVec,
-	      Double &value );
+              Double &value );
 
     void Get( const StdVector<std::string> &keyVec,
-	      Integer &value );
+              Integer &value );
     //@}
 
 
@@ -174,39 +174,39 @@ namespace CoupledField {
 
     //! Perform search and return values of matches as strings.
     void GetList( const StdVector<std::string> &keyVec,
-		  const StdVector<std::string> &attrVec,
-		  const StdVector<std::string> &valVec,
-		  StdVector<std::string> &list );
+                  const StdVector<std::string> &attrVec,
+                  const StdVector<std::string> &valVec,
+                  StdVector<std::string> &list );
 
     //! Perform search and return values of matches as Doubles.
     void GetList( const StdVector<std::string> &keyVec,
-		  const StdVector<std::string> &attrVec,
-		  const StdVector<std::string> &valVec,
-		  StdVector<Double> &list );
+                  const StdVector<std::string> &attrVec,
+                  const StdVector<std::string> &valVec,
+                  StdVector<Double> &list );
 
     //! Perform search and return values of matches as Integers.
     void GetList( const StdVector<std::string> &keyVec,
-		  const StdVector<std::string> &attrVec,
-		  const StdVector<std::string> &valVec,
-		  StdVector<Integer> &list );
+                  const StdVector<std::string> &attrVec,
+                  const StdVector<std::string> &valVec,
+                  StdVector<Integer> &list );
 
     //! Search for a unique match and return value as string.
     void Get( const StdVector<std::string> &keyVec,
-	      const StdVector<std::string> &attrVec,
-	      const StdVector<std::string> &valVec,
-	      std::string &value );
+              const StdVector<std::string> &attrVec,
+              const StdVector<std::string> &valVec,
+              std::string &value );
 
     //! Search for a unique match and return value as Double.
     void Get( const StdVector<std::string> &keyVec,
-	      const StdVector<std::string> &attrVec,
-	      const StdVector<std::string> &valVec,
-	      Double &value );
+              const StdVector<std::string> &attrVec,
+              const StdVector<std::string> &valVec,
+              Double &value );
 
     //! Search for a unique match and return value as Integer.
     void Get( const StdVector<std::string> &keyVec,
-	      const StdVector<std::string> &attrVec,
-	      const StdVector<std::string> &valVec,
-	      Integer &value );
+              const StdVector<std::string> &attrVec,
+              const StdVector<std::string> &valVec,
+              Integer &value );
     //@}
 
 
@@ -219,26 +219,26 @@ namespace CoupledField {
     void GetPDEList( StdVector<std::string> &list );
 
     void GetIterCoupledPDEList( StdVector<std::string> &list,
-				const std::string sequenceTag = "");
+                                const std::string sequenceTag = "");
     
     void GetDirectCouplingList( StdVector<std::string> &list,
-				const std::string sequenceTag = "");   
+                                const std::string sequenceTag = "");   
 
     void GetCoilList( StdVector<std::string> &list,
-		      const std::string pde = "" ,
-		      const std::string sequenceTag = "");
+                      const std::string pde = "" ,
+                      const std::string sequenceTag = "");
 
     void GetCoilType( std::string &coilType, const std::string coilName,
-		      const std::string pde ="" );
+                      const std::string pde ="" );
 
     Boolean IsSet( const std::string key,
-		   const std::string section = "",
-		   const std::string subsection = "" );
+                   const std::string section = "",
+                   const std::string subsection = "" );
 
     Boolean HasValue( const std::string key,
-		      const std::string value,
-		      const std::string section = "",
-		      const std::string subsection = "" );
+                      const std::string value,
+                      const std::string section = "",
+                      const std::string subsection = "" );
     //@}
 
   private:
@@ -258,7 +258,7 @@ namespace CoupledField {
     //! element of the DOM tree representing the contents of the XML file
     //! is returned.
     xercesc::DOMElement* ParseFile( xercesc::XercesDOMParser **parser,
-				    const char *xmlFile );
+                                    const char *xmlFile );
 
     //! Print search parameters to an output stream
 
@@ -267,9 +267,9 @@ namespace CoupledField {
     //! currently uses the classical C routine fprintf to generate formatted
     //! output.
     void PrintSearchParams( const StdVector<std::string> &key,
-			    const StdVector<std::string> &attrib,
-			    const StdVector<std::string> &value,
-			    FILE *myStream );
+                            const StdVector<std::string> &attrib,
+                            const StdVector<std::string> &value,
+                            FILE *myStream );
 
     //! Auxilliary routine for generating vectors with search parameters
 
@@ -278,11 +278,11 @@ namespace CoupledField {
     //! 'subsection' arguments corresponding keyVec, attrVec and valVec
     //! vectors
     void GenerateSearchParams( const std::string key,
-			       const std::string section,
-			       const std::string subsection,
-			       StdVector<std::string> &keyVec,
-			       StdVector<std::string> &attrVec,
-			       StdVector<std::string> &valVec );
+                               const std::string section,
+                               const std::string subsection,
+                               StdVector<std::string> &keyVec,
+                               StdVector<std::string> &attrVec,
+                               StdVector<std::string> &valVec );
 
 
     // ***********************************************************************
@@ -300,9 +300,9 @@ namespace CoupledField {
     //! tree containing the default parameters by calling CheckForDefault.
     //! If this, too, fails, the method will call the NoMatchErrorReporter.
     void NoMatchHandler( const StdVector<std::string> &keyVec,
-			 const StdVector<std::string> &attrVec,
-			 const StdVector<std::string> &valVec,
-			 std::string &defaultValue );
+                         const StdVector<std::string> &attrVec,
+                         const StdVector<std::string> &valVec,
+                         std::string &defaultValue );
 
     //! Error handler in case we have no unique match
 
@@ -311,9 +311,9 @@ namespace CoupledField {
     //! not unique. The error handler will issue a corresponding error message
     //! and terminate programm execution.
     void MultipleMatchHandler( const StdVector<std::string> &keyVec,
-			       const StdVector<std::string> &attrVec,
-			       const StdVector<std::string> &valVec,
-			       const unsigned int nmatches );
+                               const StdVector<std::string> &attrVec,
+                               const StdVector<std::string> &valVec,
+                               const unsigned int nmatches );
 
     //! Error reporter for the case that we have no match at all
 
@@ -322,8 +322,8 @@ namespace CoupledField {
     //! corresponding error message and sends this to the error method of
     //! the WriteInfo class.
     void NoMatchErrorReporter( const StdVector<std::string> &keyVec,
-			       const StdVector<std::string> &attrVec,
-			       const StdVector<std::string> &valVec );
+                               const StdVector<std::string> &attrVec,
+                               const StdVector<std::string> &valVec );
 
     //! Determine default value for a parameter
 
@@ -334,9 +334,9 @@ namespace CoupledField {
     //! parameter specified, then the method will return FALSE and
     //! defaultValue will be set to the empty string.
     Boolean CheckForDefault(  const StdVector<std::string> &keyVec,
-			      const StdVector<std::string> &attrVec,
-			      const StdVector<std::string> &valVec,
-			      std::string &defaultValue );
+                              const StdVector<std::string> &attrVec,
+                              const StdVector<std::string> &valVec,
+                              std::string &defaultValue );
 
     //@}
 
@@ -471,10 +471,10 @@ namespace CoupledField {
     //! \param curdepth Current level in the recurive search
     StdVector<xercesc::DOMElement *>*
     FindMatchingElements( StdVector<std::string> &keys,
-			  StdVector<std::string> &attribs,
-			  StdVector<std::string> &aValues,
-			  xercesc::DOMElement *treetop,
-			  unsigned int curdepth );
+                          StdVector<std::string> &attribs,
+                          StdVector<std::string> &aValues,
+                          xercesc::DOMElement *treetop,
+                          unsigned int curdepth );
 
     //! Find all attributes matching keys and side-constraints
 
@@ -492,10 +492,10 @@ namespace CoupledField {
     //! \param treetop  Root node of the subtree in which to search
     StdVector<xercesc::DOMAttr *>*
     FindMatchingAttributes( std::string attr_key,
-			    StdVector<std::string> &keys,
-			    StdVector<std::string> &attribs,
-			    StdVector<std::string> &aValues,
-			    xercesc::DOMElement *treetop );
+                            StdVector<std::string> &keys,
+                            StdVector<std::string> &attribs,
+                            StdVector<std::string> &aValues,
+                            xercesc::DOMElement *treetop );
 
     //! Find values of all elements and attributes matching search criteria
 
@@ -513,10 +513,10 @@ namespace CoupledField {
     //! \param list     Vector containing the found values
     //! \param treeTop  Root node of the subtree in which to search
     void FindAllMatches( const StdVector<std::string> &key,
-			 const StdVector<std::string> &attrib,
-			 const StdVector<std::string> &aValue,
-			 StdVector<std::string> &list,
-			 xercesc::DOMElement *treeTop );
+                         const StdVector<std::string> &attrib,
+                         const StdVector<std::string> &aValue,
+                         StdVector<std::string> &list,
+                         xercesc::DOMElement *treeTop );
 
 
     // Central auxilliary search method for get functions
@@ -566,8 +566,8 @@ namespace CoupledField {
     //! \param keyword  Name of element's attribute
     //! \param attrVal  Value of element's attribute
     Boolean GetElementAttribute( xercesc::DOMElement* element,
-				 const std::string keyword,
-				 std::string &attrVal );
+                                 const std::string keyword,
+                                 std::string &attrVal );
 
     //! Test value of an attribute
 
@@ -587,9 +587,9 @@ namespace CoupledField {
     //!       value, but instead call MatchesTag to determine, whether this
     //!       is a matching element.
     bool AttribHasValue( xercesc::DOMElement* elem,
-			 const std::string attribute,
-			 const std::string value,
-			 bool failIfNoAttrib = true );
+                         const std::string attribute,
+                         const std::string value,
+                         bool failIfNoAttrib = true );
 
     //! Test whether a refTag is contained in a tag
 

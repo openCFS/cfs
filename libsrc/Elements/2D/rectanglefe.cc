@@ -11,280 +11,280 @@
 namespace CoupledField
 {
 
-RectangleFE::RectangleFE()
-{
-  ENTER_FCN( "RectangleFE::RectangleFE" );
+  RectangleFE::RectangleFE()
+  {
+    ENTER_FCN( "RectangleFE::RectangleFE" );
   
-  Dim_ = 2;
-  NumEdges_ = 4;
-  NumFaces_ = 1;
-  NumCorners_ = 4;
-  numChilds_ = 4;
-  MidPoint_ = 0.0, 0.0;
+    Dim_ = 2;
+    NumEdges_ = 4;
+    NumFaces_ = 1;
+    NumCorners_ = 4;
+    numChilds_ = 4;
+    MidPoint_ = 0.0, 0.0;
   
 
-  std::string integtype;
-  params->Get( "type", integtype, "integRules", "rectangle" );
+    std::string integtype;
+    params->Get( "type", integtype, "integRules", "rectangle" );
 
-  IntegType=String2EnumIntegrationType(integtype.c_str());
+    IntegType=String2EnumIntegrationType(integtype.c_str());
 
-}
+  }
 
-RectangleFE :: ~RectangleFE()
-{
-  ENTER_FCN( "RectangleFE::~RectangleFE" );
-}
+  RectangleFE :: ~RectangleFE()
+  {
+    ENTER_FCN( "RectangleFE::~RectangleFE" );
+  }
 
 
-void RectangleFE:: SetIntPoints()
-{
-  ENTER_IFCN( "RectangleFE::SetIntPoints" );
+  void RectangleFE:: SetIntPoints()
+  {
+    ENTER_IFCN( "RectangleFE::SetIntPoints" );
 
-  switch(IntegType) 
-    {
-    case GaussOrder1:
+    switch(IntegType) 
+      {
+      case GaussOrder1:
       
-      NumIntPoints_ = 1;
-      DegreeInteg_  = 1;
+        NumIntPoints_ = 1;
+        DegreeInteg_  = 1;
       
       
-      if ( !IntPoints_)
-	IntPoints_ = new Vector<Double>[NumIntPoints_];
+        if ( !IntPoints_)
+          IntPoints_ = new Vector<Double>[NumIntPoints_];
       
-      IntWeights_.Resize(NumIntPoints_);
+        IntWeights_.Resize(NumIntPoints_);
       
-      for(Integer i=0; i<NumIntPoints_; i++)
-	{
-	  IntWeights_[i]=1;
-	  IntPoints_[i].Resize(Dim_);
-	}
+        for(Integer i=0; i<NumIntPoints_; i++)
+          {
+            IntWeights_[i]=1;
+            IntPoints_[i].Resize(Dim_);
+          }
       
-      IntPoints_[0][0] = 0;
-      IntPoints_[0][1] = 0;
-      break;
+        IntPoints_[0][0] = 0;
+        IntPoints_[0][1] = 0;
+        break;
       
-    case GaussOrder2:
+      case GaussOrder2:
 
-      NumIntPoints_=4;
-      DegreeInteg_=2;
+        NumIntPoints_=4;
+        DegreeInteg_=2;
 
       
-      if ( !IntPoints_)
-	IntPoints_ = new Vector<Double>[NumIntPoints_];
+        if ( !IntPoints_)
+          IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-      IntWeights_.Resize(NumIntPoints_);
+        IntWeights_.Resize(NumIntPoints_);
 
-      for(Integer i=0; i<NumIntPoints_; i++)
-	{	  
-	  IntWeights_[i]=1;
-	  IntPoints_[i].Resize(Dim_);
-	}
+        for(Integer i=0; i<NumIntPoints_; i++)
+          {         
+            IntWeights_[i]=1;
+            IntPoints_[i].Resize(Dim_);
+          }
       
-      IntPoints_[0][0] = -0.57735026919;
-      IntPoints_[1][0] =  0.57735026919;
-      IntPoints_[2][0] =  0.57735026919;
-      IntPoints_[3][0] = -0.57735026919;
+        IntPoints_[0][0] = -0.57735026919;
+        IntPoints_[1][0] =  0.57735026919;
+        IntPoints_[2][0] =  0.57735026919;
+        IntPoints_[3][0] = -0.57735026919;
 
-      IntPoints_[0][1] = -0.57735026919;
-      IntPoints_[1][1] = -0.57735026919;
-      IntPoints_[2][1] =  0.57735026919;
-      IntPoints_[3][1] =  0.57735026919;
-      break;
+        IntPoints_[0][1] = -0.57735026919;
+        IntPoints_[1][1] = -0.57735026919;
+        IntPoints_[2][1] =  0.57735026919;
+        IntPoints_[3][1] =  0.57735026919;
+        break;
 
 
-    case GaussOrder5:
+      case GaussOrder5:
 
-      NumIntPoints_=9;
-      DegreeInteg_=5;
+        NumIntPoints_=9;
+        DegreeInteg_=5;
 
-      if( !IntPoints_)
-	IntPoints_ = new Vector<Double>[NumIntPoints_];
+        if( !IntPoints_)
+          IntPoints_ = new Vector<Double>[NumIntPoints_];
       
-      for(Integer i=0; i<NumIntPoints_; i++)
-	IntPoints_[i].Resize(Dim_);
+        for(Integer i=0; i<NumIntPoints_; i++)
+          IntPoints_[i].Resize(Dim_);
 
-      IntWeights_.Resize(NumIntPoints_);
+        IntWeights_.Resize(NumIntPoints_);
 
-      IntPoints_[0][0] = -0.774596669241483;
-      IntPoints_[1][0] =  0.0;
-      IntPoints_[2][0] =  0.774596669241483;
-      IntPoints_[3][0] = -0.774596669241483;
-      IntPoints_[4][0] = 0.0;
-      IntPoints_[5][0] =  0.774596669241483;
-      IntPoints_[6][0] = -0.774596669241483;
-      IntPoints_[7][0] = 0.0;
-      IntPoints_[8][0] =  0.774596669241483; 
+        IntPoints_[0][0] = -0.774596669241483;
+        IntPoints_[1][0] =  0.0;
+        IntPoints_[2][0] =  0.774596669241483;
+        IntPoints_[3][0] = -0.774596669241483;
+        IntPoints_[4][0] = 0.0;
+        IntPoints_[5][0] =  0.774596669241483;
+        IntPoints_[6][0] = -0.774596669241483;
+        IntPoints_[7][0] = 0.0;
+        IntPoints_[8][0] =  0.774596669241483; 
 
-      IntPoints_[0][1] = -0.774596669241483;
-      IntPoints_[1][1] = -0.774596669241483;
-      IntPoints_[2][1] = -0.774596669241483;
-      IntPoints_[3][1] = 0.0;
-      IntPoints_[4][1] = 0.0;
-      IntPoints_[5][1] = 0.0;
-      IntPoints_[6][1] =  0.774596669241483;
-      IntPoints_[7][1] =  0.774596669241483;
-      IntPoints_[8][1] =  0.774596669241483;
+        IntPoints_[0][1] = -0.774596669241483;
+        IntPoints_[1][1] = -0.774596669241483;
+        IntPoints_[2][1] = -0.774596669241483;
+        IntPoints_[3][1] = 0.0;
+        IntPoints_[4][1] = 0.0;
+        IntPoints_[5][1] = 0.0;
+        IntPoints_[6][1] =  0.774596669241483;
+        IntPoints_[7][1] =  0.774596669241483;
+        IntPoints_[8][1] =  0.774596669241483;
 
-      IntWeights_[0]= 0.308642;
-      IntWeights_[1]= 0.493827;
-      IntWeights_[2]= 0.308642;
-      IntWeights_[3]= 0.493827;
-      IntWeights_[4]= 0.790123; 
-      IntWeights_[5]= 0.493827; 
-      IntWeights_[6]= 0.308642; 
-      IntWeights_[7]= 0.493827; 
-      IntWeights_[8]= 0.308642; 
+        IntWeights_[0]= 0.308642;
+        IntWeights_[1]= 0.493827;
+        IntWeights_[2]= 0.308642;
+        IntWeights_[3]= 0.493827;
+        IntWeights_[4]= 0.790123; 
+        IntWeights_[5]= 0.493827; 
+        IntWeights_[6]= 0.308642; 
+        IntWeights_[7]= 0.493827; 
+        IntWeights_[8]= 0.308642; 
 
-      break;
+        break;
 
-    case GaussOrder7:
+      case GaussOrder7:
 
-      Error("Type of integration Gauss with order 7 is incorrect", __FILE__, __LINE__);
-      NumIntPoints_=16;
-      DegreeInteg_=7;
-      if ( !IntPoints_) 
-	IntPoints_ = new Vector<Double>[NumIntPoints_];
+        Error("Type of integration Gauss with order 7 is incorrect", __FILE__, __LINE__);
+        NumIntPoints_=16;
+        DegreeInteg_=7;
+        if ( !IntPoints_) 
+          IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-      for(Integer i=0; i<NumIntPoints_; i++)
-	IntPoints_[i].Resize(Dim_);
+        for(Integer i=0; i<NumIntPoints_; i++)
+          IntPoints_[i].Resize(Dim_);
       
-      IntPoints_[0][0] = -0.861136311594053;
-      IntPoints_[1][0] =  -0.339981043584856;
-      IntPoints_[2][0] =  0.339981043584856;
-      IntPoints_[3][0] = 0.861136311594053;
-      IntPoints_[4][0] = -0.861136311594053;
-      IntPoints_[5][0] = -0.339981043584856;
-      IntPoints_[6][0] =   0.339981043584856;
-      IntPoints_[7][0] =  0.861136311594053;
-      IntPoints_[8][0] =  -0.861136311594053;
-      IntPoints_[9][0] =  -0.339981043584856;
-      IntPoints_[10][0] =  0.339981043584856;
-      IntPoints_[11][0] =  0.861136311594053;
-      IntPoints_[12][0] =  -0.861136311594053;
-      IntPoints_[13][0] =  -0.339981043584856;
-      IntPoints_[14][0] =  0.339981043584856;
-      IntPoints_[15][0] =  0.861136311594053;
+        IntPoints_[0][0] = -0.861136311594053;
+        IntPoints_[1][0] =  -0.339981043584856;
+        IntPoints_[2][0] =  0.339981043584856;
+        IntPoints_[3][0] = 0.861136311594053;
+        IntPoints_[4][0] = -0.861136311594053;
+        IntPoints_[5][0] = -0.339981043584856;
+        IntPoints_[6][0] =   0.339981043584856;
+        IntPoints_[7][0] =  0.861136311594053;
+        IntPoints_[8][0] =  -0.861136311594053;
+        IntPoints_[9][0] =  -0.339981043584856;
+        IntPoints_[10][0] =  0.339981043584856;
+        IntPoints_[11][0] =  0.861136311594053;
+        IntPoints_[12][0] =  -0.861136311594053;
+        IntPoints_[13][0] =  -0.339981043584856;
+        IntPoints_[14][0] =  0.339981043584856;
+        IntPoints_[15][0] =  0.861136311594053;
 
 
-      IntPoints_[0][1] =  -0.861136311594053;
-      IntPoints_[1][1] =   -0.861136311594053;
-      IntPoints_[2][1] =  -0.861136311594053;
-      IntPoints_[3][1] =  -0.861136311594053;
-      IntPoints_[4][1] =  -0.339981043584856;
-      IntPoints_[5][1] =  -0.339981043584856;
-      IntPoints_[6][1] =  -0.339981043584856;
-      IntPoints_[7][1] =  -0.339981043584856;
-      IntPoints_[8][1] =  0.339981043584856;
-      IntPoints_[9][1] =  0.339981043584856;
-      IntPoints_[10][1] =  0.339981043584856;
-      IntPoints_[11][1] =  0.339981043584856;
-      IntPoints_[12][1] =  0.861136311594053;
-      IntPoints_[13][1] =  0.861136311594053;
-      IntPoints_[14][1] =  0.861136311594053;
-      IntPoints_[15][1] =  0.861136311594053;
+        IntPoints_[0][1] =  -0.861136311594053;
+        IntPoints_[1][1] =   -0.861136311594053;
+        IntPoints_[2][1] =  -0.861136311594053;
+        IntPoints_[3][1] =  -0.861136311594053;
+        IntPoints_[4][1] =  -0.339981043584856;
+        IntPoints_[5][1] =  -0.339981043584856;
+        IntPoints_[6][1] =  -0.339981043584856;
+        IntPoints_[7][1] =  -0.339981043584856;
+        IntPoints_[8][1] =  0.339981043584856;
+        IntPoints_[9][1] =  0.339981043584856;
+        IntPoints_[10][1] =  0.339981043584856;
+        IntPoints_[11][1] =  0.339981043584856;
+        IntPoints_[12][1] =  0.861136311594053;
+        IntPoints_[13][1] =  0.861136311594053;
+        IntPoints_[14][1] =  0.861136311594053;
+        IntPoints_[15][1] =  0.861136311594053;
 
-      IntWeights_[0]= 0.121003;
-      IntWeights_[1]= 0.226852;
-      IntWeights_[2]= - 0.226852;
-      IntWeights_[3]= - 0.121003;
-      IntWeights_[4]= 0.226852;
-      IntWeights_[5]= 0.425293;
-      IntWeights_[6]= -0.425293;
-      IntWeights_[7]= -0.226852;
-      IntWeights_[8]= -0.226852;
-      IntWeights_[9]= -0.425293;
-      IntWeights_[10]= 0.425293;
-      IntWeights_[11]= 0.226852;
-      IntWeights_[12]= -0.121003;
-      IntWeights_[13]= -0.226852;
-      IntWeights_[14]= 0.226852;
-      IntWeights_[15]= 0.121003;
+        IntWeights_[0]= 0.121003;
+        IntWeights_[1]= 0.226852;
+        IntWeights_[2]= - 0.226852;
+        IntWeights_[3]= - 0.121003;
+        IntWeights_[4]= 0.226852;
+        IntWeights_[5]= 0.425293;
+        IntWeights_[6]= -0.425293;
+        IntWeights_[7]= -0.226852;
+        IntWeights_[8]= -0.226852;
+        IntWeights_[9]= -0.425293;
+        IntWeights_[10]= 0.425293;
+        IntWeights_[11]= 0.226852;
+        IntWeights_[12]= -0.121003;
+        IntWeights_[13]= -0.226852;
+        IntWeights_[14]= 0.226852;
+        IntWeights_[15]= 0.121003;
 
-      break;
+        break;
  
-    default:
-      std::cerr << "Integration type " << IntegType 
-	   << " is not implemented\n" << std::endl; 
-      exit (-1);
-    }
-}
+      default:
+        std::cerr << "Integration type " << IntegType 
+                  << " is not implemented\n" << std::endl; 
+        exit (-1);
+      }
+  }
 
 
-Double RectangleFE::CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Matrix<Double> &displacements)
-{
-  ENTER_FCN( "RectangleFE::CalcDistortion" );
-  Error("RectangleFE::CalcDistortion: Not implemented", __FILE__, __LINE__);
-}
+  Double RectangleFE::CalcDistortion(Matrix<Double> &cornerCoords, Vector<Double> &size, Matrix<Double> &displacements)
+  {
+    ENTER_FCN( "RectangleFE::CalcDistortion" );
+    Error("RectangleFE::CalcDistortion: Not implemented", __FILE__, __LINE__);
+  }
 
-void RectangleFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-					const StdVector<Integer> & volConnect,
-					const Vector<Double> & surfIntPoint,
-					Vector<Double> & volIntPoint)
-{
-  ENTER_IFCN( "RectangleFE::GetLocalIntPoints4Surface" );
+  void RectangleFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
+                                              const StdVector<Integer> & volConnect,
+                                              const Vector<Double> & surfIntPoint,
+                                              Vector<Double> & volIntPoint)
+  {
+    ENTER_IFCN( "RectangleFE::GetLocalIntPoints4Surface" );
   
-  // Try to find out, which vertices are in common with
-  // the surface element. Then calculate the product of both
-  // and compare them
-  //
-  //      eta
-  //       ^
-  // 4 +---|---+ 3    
-  //   |   |   |      
-  //   |   0---|-> xi     REFERENCE VOLUME ELEMENT
-  //   |       |
-  // 1 +-------+ 2
+    // Try to find out, which vertices are in common with
+    // the surface element. Then calculate the product of both
+    // and compare them
+    //
+    //      eta
+    //       ^
+    // 4 +---|---+ 3    
+    //   |   |   |      
+    //   |   0---|-> xi     REFERENCE VOLUME ELEMENT
+    //   |       |
+    // 1 +-------+ 2
 
 
 
-  StdVector<Integer> commonIndex(2);
-  Integer found = 0;
-  Integer indexProduct = 0;
-  std::string errMsg;
+    StdVector<Integer> commonIndex(2);
+    Integer found = 0;
+    Integer indexProduct = 0;
+    std::string errMsg;
   
-  volIntPoint.Resize(2);
+    volIntPoint.Resize(2);
   
-  // loop over surface connect
-  for (Integer iSurf=0; iSurf<2; iSurf++)
-    // loop over volume connect
-    for (Integer iVol=0; iVol<4; iVol++)
-      if (surfConnect[iSurf] == volConnect[iVol])
-	{
-	  commonIndex[found++] = iVol+1;
-	}
+    // loop over surface connect
+    for (Integer iSurf=0; iSurf<2; iSurf++)
+      // loop over volume connect
+      for (Integer iVol=0; iVol<4; iVol++)
+        if (surfConnect[iSurf] == volConnect[iVol])
+          {
+            commonIndex[found++] = iVol+1;
+          }
 
-  indexProduct= commonIndex[0] * commonIndex[1];
-  switch(indexProduct)
-    {
-    case 2:
-      // Edge[1,2] is common
-      volIntPoint[0] = surfIntPoint[0];
-      volIntPoint[1] = -1.0;
-      break;
+    indexProduct= commonIndex[0] * commonIndex[1];
+    switch(indexProduct)
+      {
+      case 2:
+        // Edge[1,2] is common
+        volIntPoint[0] = surfIntPoint[0];
+        volIntPoint[1] = -1.0;
+        break;
 
-    case 12:
-      // Edge[4,3] is common
-      volIntPoint[0] = surfIntPoint[0];
-      volIntPoint[1] = 1.0;
-      break;
+      case 12:
+        // Edge[4,3] is common
+        volIntPoint[0] = surfIntPoint[0];
+        volIntPoint[1] = 1.0;
+        break;
 
-    case 4:
-      // Edge[1,4] is common
-      volIntPoint[0] = -1.0;
-      volIntPoint[1] = surfIntPoint[0];
-      break;
+      case 4:
+        // Edge[1,4] is common
+        volIntPoint[0] = -1.0;
+        volIntPoint[1] = surfIntPoint[0];
+        break;
 
-    case 6:
-      // Edge[2,3] is common
-      volIntPoint[0] = 1.0;
-      volIntPoint[1] = surfIntPoint[0];
-      break;
+      case 6:
+        // Edge[2,3] is common
+        volIntPoint[0] = 1.0;
+        volIntPoint[1] = surfIntPoint[0];
+        break;
 
-    default:
-      errMsg = "RectangleFE::GetLocalIntPoints4Surface: surface and volume element ";
-      errMsg = "have not two nodes in common. Check your .mesh-file.";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
-    }
-}
+      default:
+        errMsg = "RectangleFE::GetLocalIntPoints4Surface: surface and volume element ";
+        errMsg = "have not two nodes in common. Check your .mesh-file.";
+        Error(errMsg.c_str(), __FILE__, __LINE__);
+      }
+  }
 
 } // end of namespace

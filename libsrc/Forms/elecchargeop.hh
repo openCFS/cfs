@@ -37,9 +37,9 @@ namespace CoupledField {
     
     */
     ElecChargeOp(Grid * ptGrid,
-		 StdPDE * ptPDE,
-		 NodeEQN * ptEQN,
-		 Boolean isaxi=FALSE);
+                 StdPDE * ptPDE,
+                 NodeEQN * ptEQN,
+                 Boolean isaxi=FALSE);
 
     //! Destructor
     virtual ~ElecChargeOp();
@@ -52,14 +52,14 @@ namespace CoupledField {
       \param eFluxDensity (input) Normal component of Flux density in lCoord
     */
     virtual void CalcElemCharge(Double & charge,
-				const Elem * ptElement,
-				const Vector<Double> & lCoord,
-				const Double & eNormalFluxDensity);
+                                const Elem * ptElement,
+                                const Vector<Double> & lCoord,
+                                const Double & eNormalFluxDensity);
  
     virtual void CalcElemCharge(Complex & charge,
-				const Elem * ptElement,
-				const Vector<Double> & lCoord,
-				const Complex & eNormalFluxDensity);
+                                const Elem * ptElement,
+                                const Vector<Double> & lCoord,
+                                const Complex & eNormalFluxDensity);
   
 
     //! Calculate charges for whole surface
@@ -71,9 +71,9 @@ namespace CoupledField {
       Flux density in lCoord
     */
     virtual void CalcElemCharges(CFSVector & charges,
-				 const StdVector<Elem*> & surfElems,
-				 const Vector<Double> & lCoord,
-				 const CFSVector & eNormalFluxDensity);
+                                 const StdVector<Elem*> & surfElems,
+                                 const Vector<Double> & lCoord,
+                                 const CFSVector & eNormalFluxDensity);
   protected:
   
   };

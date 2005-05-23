@@ -14,7 +14,7 @@ namespace CoupledField
 {
 
   MagEdgePDE::MagEdgePDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
-			 WriteResults *aptOut)
+                         WriteResults *aptOut)
     :BasePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc)
   {
 #ifdef TRACE
@@ -143,10 +143,10 @@ namespace CoupledField
     //account for real and imaginray part
     if (analysistype_ == HARMONIC)
       algsys_->CreateMatrix(matrixsystype, matrixclass, graphtype, dofsperedge_,  numEdgedir_*2,
-			    numconstraints);
+                            numconstraints);
     else
       algsys_->CreateMatrix(matrixsystype, matrixclass, graphtype, dofsperedge_,  numEdgedir_,
-			    numconstraints);
+                            numconstraints);
 
 
     //create solver and preconditioner
@@ -159,8 +159,8 @@ namespace CoupledField
 
     for (Integer i=0;i<5;i++)
       {
-	if (matrixsystype[i] !=0)
-	  algsys_->InitMatrix(i+1);
+        if (matrixsystype[i] !=0)
+          algsys_->InitMatrix(i+1);
       }
 
   }
@@ -205,7 +205,7 @@ namespace CoupledField
 
     // save solution
     for(Integer i=0; i < size_; i++)
-	solRe_[i] = ptsol[i];
+      solRe_[i] = ptsol[i];
 
 
 #ifdef DEBUG
@@ -259,8 +259,8 @@ namespace CoupledField
     // save solution
     for(Integer i=0; i < size_; i++)
       {
-	solRe_[i] = ptsol[2*i];
-	solIm_[i] = ptsol[2*i+1];
+        solRe_[i] = ptsol[2*i];
+        solIm_[i] = ptsol[2*i+1];
       }
   
 
@@ -313,118 +313,118 @@ namespace CoupledField
         Double pemeability; 
         materialData_[i].GetPermeability(2,2,permeability);
         reluctivity  = 1.0/permeability;
-//	reluctivity  = 1.0/materialData_[i].GetPermiability();
-	Double conductivity; 
+        //      reluctivity  = 1.0/materialData_[i].GetPermiability();
+        Double conductivity; 
         materialData_[i].GetConductivity(2,2,conductivity);
 
-	//if STATIC, set conductivity to zero
-	if (analysistype_==STATIC) conductivity = 0.0;
+        //if STATIC, set conductivity to zero
+        if (analysistype_==STATIC) conductivity = 0.0;
 
-	// small conductivity is needed for regularization
-	harmfactor = 1.0;
-	if (conductivity <= 0 || analysistype_==STATIC)
-	  {
-	    conductivity = reluctivity * relaxFac;
-	    //if conductivity = 0.0, then we have in the harmonic case no mass matrix;
-	    //computed mass matrix is just used for for regulraization of stiffness matrix
-	    harmfactor = 0.0;
-	  }
-	
+        // small conductivity is needed for regularization
+        harmfactor = 1.0;
+        if (conductivity <= 0 || analysistype_==STATIC)
+          {
+            conductivity = reluctivity * relaxFac;
+            //if conductivity = 0.0, then we have in the harmonic case no mass matrix;
+            //computed mass matrix is just used for for regulraization of stiffness matrix
+            harmfactor = 0.0;
+          }
+        
 
-	std::vector<Elem*> elemssd;
+        std::vector<Elem*> elemssd;
    
-	ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
+        ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
-	for (j=0; j < elemssd.size(); j++)
-	  {  
-	    ptElem=elemssd[j]->ptElem;
+        for (j=0; j < elemssd.size(); j++)
+          {  
+            ptElem=elemssd[j]->ptElem;
 
-	    BaseForm * bilinear_stiff = new CurlCurlEdgeInt(ptElem, reluctivity);
-	    BaseForm * bilinear_mass  = new MassEdgeInt(ptElem, conductivity);
-	    BaseForm * lapl           = new LaplaceInt(ptElem, reluctivity, isaxi_);
+            BaseForm * bilinear_stiff = new CurlCurlEdgeInt(ptElem, reluctivity);
+            BaseForm * bilinear_mass  = new MassEdgeInt(ptElem, conductivity);
+            BaseForm * lapl           = new LaplaceInt(ptElem, reluctivity, isaxi_);
 
-	    connecth=elemssd[j]->connect;
-	  
-	    GetElemCoords(connecth, ptCoord, level);
+            connecth=elemssd[j]->connect;
+          
+            GetElemCoords(connecth, ptCoord, level);
 
-	    // CHANGE connecth
-	    Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
+            // CHANGE connecth
+            Mesh2PDENode(connect_PDE, connecth, mesh2PDENode_);
 
-	    //get the edge numbers and their signs
-	    GetEdgeNumber(connect_PDE.get(), epos, esign, ptElem);
+            //get the edge numbers and their signs
+            GetEdgeNumber(connect_PDE.get(), epos, esign, ptElem);
 
-	    // stiffness part
-	    bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-	  
-	    CorrectEdgeDir(elemmat, esign);
-	  
+            // stiffness part
+            bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+          
+            CorrectEdgeDir(elemmat, esign);
+          
 
-	    if(analysistype_==TRANSIENT || analysistype_==STATIC)
-	      algsys_->SetElementMatrix(elemmat.getinarray(), &epos[0], epos.size(),SYSTEM);
+            if(analysistype_==TRANSIENT || analysistype_==STATIC)
+              algsys_->SetElementMatrix(elemmat.getinarray(), &epos[0], epos.size(),SYSTEM);
 
-	    // store stiffness matrix to special vector needed by algebraic system
-	    // for harmonic analysis
-	    Integer k=0;
-	    
-	    if(analysistype_==HARMONIC)
-	      {
-		for(Integer iii=0; iii<elemmat.size_row(); iii++)
-		  for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
-		    {    
-		      harmVec[k] = elemmat[iii][jjj];
-		      k++;
-		    }
-	      }
-	  
+            // store stiffness matrix to special vector needed by algebraic system
+            // for harmonic analysis
+            Integer k=0;
+            
+            if(analysistype_==HARMONIC)
+              {
+                for(Integer iii=0; iii<elemmat.size_row(); iii++)
+                  for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
+                    {    
+                      harmVec[k] = elemmat[iii][jjj];
+                      k++;
+                    }
+              }
+          
 
-	    // mass part
-	    bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
-	  
-	    CorrectEdgeDir(elemmat, esign);
-
-
-	    if(analysistype_==TRANSIENT || analysistype_==STATIC)
-	      algsys_->SetElementMatrix(elemmat.getinarray(), &epos[0], epos.size(),SYSTEM);
+            // mass part
+            bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+          
+            CorrectEdgeDir(elemmat, esign);
 
 
+            if(analysistype_==TRANSIENT || analysistype_==STATIC)
+              algsys_->SetElementMatrix(elemmat.getinarray(), &epos[0], epos.size(),SYSTEM);
 
-	    //auxilary matrix
-	    lapl->CalcElementMatrix(ptCoord, elemmat_aux);
 
 
-	    algsys_->SetAuxElementMatrix(elemmat_aux.getinarray(), 
-					 connect_PDE.get(), connecth.size());
-	  
-	    // store mass matrix to special vector needed by algebraic system
-	    // for harmonic analysis
-	    
-	    
-	    if(analysistype_==HARMONIC)
-	      {
-		Integer kkk=0;
-		Double regularizationFactor = reluctivity / conductivity *  relaxFac;
-		
-		if (k!=elemmat.size_row()*elemmat.size_col())
-		  Error("k is wrong!!!!!!!!!!!!!!!!!!!!!",__FILE__,__LINE__);
+            //auxilary matrix
+            lapl->CalcElementMatrix(ptCoord, elemmat_aux);
 
-		for(Integer iii=0; iii<elemmat.size_row(); iii++)
-		  for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
-		    {    
-		      harmVec[k] = elemmat[iii][jjj] * 2 * PI * freq_ * harmfactor;
-		      // regularization of element stiffness matrix
-		      harmVec[kkk] += elemmat[iii][jjj] * regularizationFactor;
 
-		      // k initially  set in for loop above!!
-		      k++;
-		      kkk++;
-		    }
-		algsys_->SetElementMatrix(&harmVec[0], &epos[0], epos.size(),SYSTEM);
-	      }
+            algsys_->SetAuxElementMatrix(elemmat_aux.getinarray(), 
+                                         connect_PDE.get(), connecth.size());
+          
+            // store mass matrix to special vector needed by algebraic system
+            // for harmonic analysis
+            
+            
+            if(analysistype_==HARMONIC)
+              {
+                Integer kkk=0;
+                Double regularizationFactor = reluctivity / conductivity *  relaxFac;
+                
+                if (k!=elemmat.size_row()*elemmat.size_col())
+                  Error("k is wrong!!!!!!!!!!!!!!!!!!!!!",__FILE__,__LINE__);
 
-	    delete bilinear_stiff;
-	    delete bilinear_mass;
-	    delete lapl;
-	  } 
+                for(Integer iii=0; iii<elemmat.size_row(); iii++)
+                  for(Integer jjj=0; jjj < elemmat.size_row(); jjj++)
+                    {    
+                      harmVec[k] = elemmat[iii][jjj] * 2 * PI * freq_ * harmfactor;
+                      // regularization of element stiffness matrix
+                      harmVec[kkk] += elemmat[iii][jjj] * regularizationFactor;
+
+                      // k initially  set in for loop above!!
+                      k++;
+                      kkk++;
+                    }
+                algsys_->SetElementMatrix(&harmVec[0], &epos[0], epos.size(),SYSTEM);
+              }
+
+            delete bilinear_stiff;
+            delete bilinear_mass;
+            delete lapl;
+          } 
       }
   }
 
@@ -453,63 +453,63 @@ namespace CoupledField
 
     if (OutFile_->IsGMV())
       {
-	Error("GMV Currently not supported",__FILE__,__LINE__);
-	//	OutFile_->WriteSolution(solRe_, step, time, "magnetic vector potential");
+        Error("GMV Currently not supported",__FILE__,__LINE__);
+        //      OutFile_->WriteSolution(solRe_, step, time, "magnetic vector potential");
       
-	// Write Out Vector Data
-// 	for (ShortInt i=0; i<ptgrid_->GetDim(); i++) 
-// 	  {
-// 	    std::ostringstream b_fieldname;
-// 	    b_fieldname << "Bfield " << i;
-// 	    OutFile_->WriteDataOnCell(bFieldRe_[i], step, time, b_fieldname.str());
-// 	  }
+        // Write Out Vector Data
+        //      for (ShortInt i=0; i<ptgrid_->GetDim(); i++) 
+        //        {
+        //          std::ostringstream b_fieldname;
+        //          b_fieldname << "Bfield " << i;
+        //          OutFile_->WriteDataOnCell(bFieldRe_[i], step, time, b_fieldname.str());
+        //        }
       }
     else
       {
-	const Integer dim = 3;
+        const Integer dim = 3;
 
-	// write magnetic flux      
-	std::string fieldname = "mag. flux density";
-	Array<Double> outMat(dim, NumElems_);
+        // write magnetic flux      
+        std::string fieldname = "mag. flux density";
+        Array<Double> outMat(dim, NumElems_);
       
-	if (analysistype_==HARMONIC)
-	  {
-	    for (Integer i=0; i<ptgrid_->GetDim(); i++) 
-	      for (Integer j=0; j < NumElems_; j++)
-		// calc abs value of complex magnetic field
-		// outMat[i][j] = sqrt(bFieldRe_[i][j]*bFieldRe_[i][j] + bFieldIm[i][j]*bFieldIm[i][j]);	  
-		// write just real part of solution 
-		  outMat[i][j] = bFieldRe_[i][j];
+        if (analysistype_==HARMONIC)
+          {
+            for (Integer i=0; i<ptgrid_->GetDim(); i++) 
+              for (Integer j=0; j < NumElems_; j++)
+                // calc abs value of complex magnetic field
+                // outMat[i][j] = sqrt(bFieldRe_[i][j]*bFieldRe_[i][j] + bFieldIm[i][j]*bFieldIm[i][j]);          
+                // write just real part of solution 
+                outMat[i][j] = bFieldRe_[i][j];
 
-	    OutFile_->WriteElemSolution(outMat, step, time, fieldname);
-	  
-	  
-	    // write magnetic vector potential 
-	    // fieldname = "eddy current";
-	    for (Integer i=0; i<ptgrid_->GetDim(); i++) 
-	      for (Integer j=0; j < NumElems_; j++)
-		// write just real part of "eddy current" 
-		outMat[i][j] = - 2 * PI * freq_ * magVecPotIm_[i][j];	  
-	  
-	    //    OutFile_->WriteDataOnCell(outMat, step+1, time, fieldname);
-	  }
-	else
-	  {
-	    for (Integer i=0; i<ptgrid_->GetDim(); i++) 
-	      for (Integer j=0; j < NumElems_; j++)
-		outMat[i][j] = bFieldRe_[i][j];	  
+            OutFile_->WriteElemSolution(outMat, step, time, fieldname);
+          
+          
+            // write magnetic vector potential 
+            // fieldname = "eddy current";
+            for (Integer i=0; i<ptgrid_->GetDim(); i++) 
+              for (Integer j=0; j < NumElems_; j++)
+                // write just real part of "eddy current" 
+                outMat[i][j] = - 2 * PI * freq_ * magVecPotIm_[i][j];     
+          
+            //    OutFile_->WriteDataOnCell(outMat, step+1, time, fieldname);
+          }
+        else
+          {
+            for (Integer i=0; i<ptgrid_->GetDim(); i++) 
+              for (Integer j=0; j < NumElems_; j++)
+                outMat[i][j] = bFieldRe_[i][j];   
 
-	    OutFile_->WriteElemSolution(outMat, step, time, fieldname);
+            OutFile_->WriteElemSolution(outMat, step, time, fieldname);
 
       
-	    // write magnetic vector potential 
-	    // fieldname = "eddy current";
-	    for (Integer i=0; i<ptgrid_->GetDim(); i++) 
-	      for (Integer j=0; j < NumElems_; j++)
-		outMat[i][j] = magVecPotRe_[i][j];	  
+            // write magnetic vector potential 
+            // fieldname = "eddy current";
+            for (Integer i=0; i<ptgrid_->GetDim(); i++) 
+              for (Integer j=0; j < NumElems_; j++)
+                outMat[i][j] = magVecPotRe_[i][j];        
 
-	    //    OutFile_->WriteElemSolution(outMat, step+1, time, fieldname);
-	  }
+            //    OutFile_->WriteElemSolution(outMat, step+1, time, fieldname);
+          }
   
       }
   }
@@ -533,8 +533,8 @@ namespace CoupledField
 
     if (analysistype_ == HARMONIC)
       {
-	solIm_.Resize(size_);
-	solIm_.Init(0);
+        solIm_.Resize(size_);
+        solIm_.Init(0);
       }
   
     //curently hard coded for tets
@@ -549,30 +549,30 @@ namespace CoupledField
 
     for (nsub=0; nsub<subdoms_.size(); nsub++)
       {
-	std::vector<Elem*> elemssd;
-	ptgrid_->GetElemSD(elemssd,subdoms_[nsub],actlevel_);
+        std::vector<Elem*> elemssd;
+        ptgrid_->GetElemSD(elemssd,subdoms_[nsub],actlevel_);
 
-	for (iel=0; iel < elemssd.size(); iel++)
-	  {  
-	    ptElem=elemssd[iel]->ptElem;
-	  
-	    //Map Mesh Node numbers to PDE node numbers
-	    Mesh2PDENode(connecth,elemssd[iel]->connect,mesh2PDENode_);
-	    fe_type = ptElem->feType();
-	    if (fe_type != TET)	
-	      Error("Currently just TETs supported for MagEdgePDE",__FILE__,__LINE__);
-	  
-	    pos = connecth.get();
+        for (iel=0; iel < elemssd.size(); iel++)
+          {  
+            ptElem=elemssd[iel]->ptElem;
+          
+            //Map Mesh Node numbers to PDE node numbers
+            Mesh2PDENode(connecth,elemssd[iel]->connect,mesh2PDENode_);
+            fe_type = ptElem->feType();
+            if (fe_type != TET) 
+              Error("Currently just TETs supported for MagEdgePDE",__FILE__,__LINE__);
+          
+            pos = connecth.get();
 
-	    ptElem->GetGlobalEdgeIndices(epos, pos, algsys_);
-	  
+            ptElem->GetGlobalEdgeIndices(epos, pos, algsys_);
+          
 
-	    //take the absolute value
-	    for (Integer j=0; j<elemsize_edge; j++)
-	      epos[j] = abs(epos[j]);
+            //take the absolute value
+            for (Integer j=0; j<elemsize_edge; j++)
+              epos[j] = abs(epos[j]);
 
-	    algsys_->SetElementPosEdge(&epos[0],elemsize_edge,fe_type);
-	  }
+            algsys_->SetElementPosEdge(&epos[0],elemsize_edge,fe_type);
+          }
       }
 
   }
@@ -602,56 +602,56 @@ namespace CoupledField
     if (conf->ifgetliststr("SurfeDirichlet", surfDirichlet, "magnetic"))
     
       if (surfDirichlet.size())
-	{
-	  SurfD = ptBCs_->getFacesBC(surfDirichlet[0],actlevel_);
-	  //    else
-	  //	Error("No Surfaces specified as Dirichlet Boundaries",__FILE__,__LINE__);
-	  //  else
-	  //    Error("No Surfaces specified as Dirichlet Boundaries",__FILE__,__LINE__);
+        {
+          SurfD = ptBCs_->getFacesBC(surfDirichlet[0],actlevel_);
+          //    else
+          //    Error("No Surfaces specified as Dirichlet Boundaries",__FILE__,__LINE__);
+          //  else
+          //    Error("No Surfaces specified as Dirichlet Boundaries",__FILE__,__LINE__);
 
-	  //hard coded: surface elements of tets are triangles
-	  Integer surfelemdim = 3;
-	  Vector<Integer> connecth;
-	  Integer * pos;
-	
-	  for (Integer iel=0; iel< SurfD.size(); iel++)
-	    {
-	      ptElem=SurfD[iel]->ptElem;
-	    
-	      //Map Mesh Node numbers to PDE node numbers
-	      Mesh2PDENode(connecth,SurfD[iel]->connect,mesh2PDENode_);
-	      pos = connecth.get();
-	    
-	      epos[0] = algsys_->GetNode2Edge(pos[1], pos[0]);
-	      epos[1] = algsys_->GetNode2Edge(pos[2], pos[0]);
-	      epos[2] = algsys_->GetNode2Edge(pos[2], pos[1]);
+          //hard coded: surface elements of tets are triangles
+          Integer surfelemdim = 3;
+          Vector<Integer> connecth;
+          Integer * pos;
+        
+          for (Integer iel=0; iel< SurfD.size(); iel++)
+            {
+              ptElem=SurfD[iel]->ptElem;
+            
+              //Map Mesh Node numbers to PDE node numbers
+              Mesh2PDENode(connecth,SurfD[iel]->connect,mesh2PDENode_);
+              pos = connecth.get();
+            
+              epos[0] = algsys_->GetNode2Edge(pos[1], pos[0]);
+              epos[1] = algsys_->GetNode2Edge(pos[2], pos[0]);
+              epos[2] = algsys_->GetNode2Edge(pos[2], pos[1]);
 
-	      for (j=0; j<surfelemdim; j++)
-		dnode[abs(epos[j])-1] = abs(epos[j]);
-	    
-	    }
-	
-	  numEdgedir_=0;
-	  for (i=0; i<size_; i++)
-	    {
-	      if (dnode[i] != 0)
-		numEdgedir_++;
-	    }
-	
-	  EdgeDir_ = new Integer[numEdgedir_];
-	
-	  k=0;
-	  for (i=0; i<size_; i++)
-	    {
-	      if (dnode[i])
-		{
-		  EdgeDir_[k] = dnode[i];
-		  k++;
-		}
-	    }
-	}
+              for (j=0; j<surfelemdim; j++)
+                dnode[abs(epos[j])-1] = abs(epos[j]);
+            
+            }
+        
+          numEdgedir_=0;
+          for (i=0; i<size_; i++)
+            {
+              if (dnode[i] != 0)
+                numEdgedir_++;
+            }
+        
+          EdgeDir_ = new Integer[numEdgedir_];
+        
+          k=0;
+          for (i=0; i<size_; i++)
+            {
+              if (dnode[i])
+                {
+                  EdgeDir_[k] = dnode[i];
+                  k++;
+                }
+            }
+        }
       else
-	numEdgedir_=0;
+        numEdgedir_=0;
 
 
     delete [] dnode;
@@ -674,19 +674,19 @@ namespace CoupledField
 
     for (Integer i=0; i<numEdgedir_; i++)
       {  
-	edge = EdgeDir_[i];
-	val=0; 
-	if (analysistype_==STATIC)
-	  algsys_->SetDirichlet(i+1, edge, val, dofsperedge_, SYSTEM);
-	else if (analysistype_==HARMONIC)
-	  {
-	    // set real part 
-	    algsys_->SetDirichlet(i*2+1, edge, val, dofsperedge_,SYSTEM);
-	    // set imag part 
-	    algsys_->SetDirichlet(i*2+2, edge, val, dofsperedge_+1, SYSTEM);	    
-	  }
-	else if (analysistype_==TRANSIENT)
-	  Error("BCs for transient not yet implemented!!",__FILE__,__LINE__);
+        edge = EdgeDir_[i];
+        val=0; 
+        if (analysistype_==STATIC)
+          algsys_->SetDirichlet(i+1, edge, val, dofsperedge_, SYSTEM);
+        else if (analysistype_==HARMONIC)
+          {
+            // set real part 
+            algsys_->SetDirichlet(i*2+1, edge, val, dofsperedge_,SYSTEM);
+            // set imag part 
+            algsys_->SetDirichlet(i*2+2, edge, val, dofsperedge_+1, SYSTEM);        
+          }
+        else if (analysistype_==TRANSIENT)
+          Error("BCs for transient not yet implemented!!",__FILE__,__LINE__);
       }
 
 #ifdef TRACE
@@ -695,7 +695,7 @@ namespace CoupledField
   }
 
   void MagEdgePDE::GetEdgeNumber(Integer *pos, std::vector<Integer>& epos, 
-				 std::vector<Integer>& esign, BaseFE * ptElem)
+                                 std::vector<Integer>& esign, BaseFE * ptElem)
   {
 #ifdef TRACE
     (*trace) << "entering MagEdgePDE::GetEdgeNumber" << std::endl;
@@ -706,8 +706,8 @@ namespace CoupledField
     Integer elemsize_edge = 6;
     for (Integer j=0; j<elemsize_edge; j++)
       {
-	esign[j] = epos[j]/abs(epos[j]);
-	epos[j]  = abs(epos[j]);
+        esign[j] = epos[j]/abs(epos[j]);
+        epos[j]  = abs(epos[j]);
       }
   }
 
@@ -742,59 +742,59 @@ namespace CoupledField
 
     for (Integer actCoil=0; actCoil < coilDomain_.size(); actCoil++)
       for (i=0; i<subdoms_.size(); i++)
-	if (coilDomain_[actCoil] == subdoms_[i])
-	  {	  
-	    std::vector<Elem*> elemssd;
+        if (coilDomain_[actCoil] == subdoms_[i])
+          {       
+            std::vector<Elem*> elemssd;
    
-	    ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
+            ptgrid_->GetElemSD(elemssd,subdoms_[i],level);
 
-	    const Double  currentDens   = coilDef_[actCoil].current / coilDef_[actCoil].coilArea;
-	    const Integer currDirection = coilDef_[actCoil].iDir;
-	    const Double  currPhase     = coilDef_[actCoil].currentPhase;
+            const Double  currentDens   = coilDef_[actCoil].current / coilDef_[actCoil].coilArea;
+            const Integer currDirection = coilDef_[actCoil].iDir;
+            const Double  currPhase     = coilDef_[actCoil].currentPhase;
 
-	    std::vector<Double> * coilMidPt = &coilDef_[actCoil].coilMidPt;
+            std::vector<Double> * coilMidPt = &coilDef_[actCoil].coilMidPt;
 
 
-	    for (j=0; j < elemssd.size(); j++)
-	      {  
-		ptElem=elemssd[j]->ptElem;
-	      
-		BaseForm * rhsSource = new LinearEdgeInt(ptElem, currentDens, 
-							 currDirection, coilMidPt);
-	      
-		connecth=elemssd[j]->connect;
-	      
-		GetElemCoords(connecth, ptCoord, level);
-	      
-		// CHANGE connecth
-		Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
-	      
-		//get the edge numbers and their signs
-		GetEdgeNumber(connect_PDE.get(), epos, esign, ptElem);
-	      
-	      
-		// stiffness part
-		rhsSource->CalcElemVector(ptCoord, elemVec);
-	      
-		// correct sign of entries in elemVec due to orientation of edge
-		for(Integer ii=0; ii<elemVec.size(); ii++)
-		  elemVec[ii] *= esign[ii];
-	      
-		if (analysistype_==STATIC)
-		  algsys_->SetElementRHS(&elemVec[0], &epos[0], epos.size());
+            for (j=0; j < elemssd.size(); j++)
+              {  
+                ptElem=elemssd[j]->ptElem;
+              
+                BaseForm * rhsSource = new LinearEdgeInt(ptElem, currentDens, 
+                                                         currDirection, coilMidPt);
+              
+                connecth=elemssd[j]->connect;
+              
+                GetElemCoords(connecth, ptCoord, level);
+              
+                // CHANGE connecth
+                Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
+              
+                //get the edge numbers and their signs
+                GetEdgeNumber(connect_PDE.get(), epos, esign, ptElem);
+              
+              
+                // stiffness part
+                rhsSource->CalcElemVector(ptCoord, elemVec);
+              
+                // correct sign of entries in elemVec due to orientation of edge
+                for(Integer ii=0; ii<elemVec.size(); ii++)
+                  elemVec[ii] *= esign[ii];
+              
+                if (analysistype_==STATIC)
+                  algsys_->SetElementRHS(&elemVec[0], &epos[0], epos.size());
 
-		else if (analysistype_==HARMONIC)
-		  {
-		    for(Integer ii=0; ii<elemVec.size(); ii++)
-		      {
-			elemVecHarm[ii] = elemVec[ii] * cos(currPhase);
-			elemVecHarm[ii+elemsize_edge] = elemVec[ii] * sin(currPhase);
-		      }
-		    algsys_->SetElementRHS(&elemVecHarm[0], &epos[0], epos.size());
-		  }
-		delete rhsSource;
-	      }
-	  }
+                else if (analysistype_==HARMONIC)
+                  {
+                    for(Integer ii=0; ii<elemVec.size(); ii++)
+                      {
+                        elemVecHarm[ii] = elemVec[ii] * cos(currPhase);
+                        elemVecHarm[ii+elemsize_edge] = elemVec[ii] * sin(currPhase);
+                      }
+                    algsys_->SetElementRHS(&elemVecHarm[0], &epos[0], epos.size());
+                  }
+                delete rhsSource;
+              }
+          }
   }
 
 
@@ -829,17 +829,17 @@ namespace CoupledField
 
     if (analysistype_==HARMONIC)
       {  
-	magFieldIm = new CurlEdgeOp(ptgrid_, this, &mesh2PDENode_, &solIm_, level, algsys_); 
+        magFieldIm = new CurlEdgeOp(ptgrid_, this, &mesh2PDENode_, &solIm_, level, algsys_); 
 
-	bFieldIm_ = new Vector<Double>[dim];
-	// Resize solution arrays
-	for( Integer i=0; i<dim; i++)
-	  bFieldIm_[i].Resize(NumElems_);  
+        bFieldIm_ = new Vector<Double>[dim];
+        // Resize solution arrays
+        for( Integer i=0; i<dim; i++)
+          bFieldIm_[i].Resize(NumElems_);  
 
-	magVecPotIm_ = new Vector<Double>[dim];
-	// Resize solution arrays
-	for( Integer i=0; i<dim; i++)
-	  magVecPotIm_[i].Resize(NumElems_);
+        magVecPotIm_ = new Vector<Double>[dim];
+        // Resize solution arrays
+        for( Integer i=0; i<dim; i++)
+          magVecPotIm_[i].Resize(NumElems_);
       }
 
 
@@ -848,35 +848,35 @@ namespace CoupledField
     // loop over all subdomains
     for (Integer isd=0; isd<subdoms_.size(); isd++)
       {
-	// get vector of Elem of subdomain with color: subdoms[isd]
-	ptgrid_->GetElemSD(elemssd, subdoms_[isd], level);
+        // get vector of Elem of subdomain with color: subdoms[isd]
+        ptgrid_->GetElemSD(elemssd, subdoms_[isd], level);
       
-	// loop over elements of subdomain
-	for (Integer iel=0; iel< elemssd.size(); iel++)
-	  {
-	    magFieldRe->CalcElemCurlEdge(elemMagField, elemssd[iel], lCoord);
-	    magFieldRe->CalcElemMagVec(elemMagVecPot, elemssd[iel], lCoord);
+        // loop over elements of subdomain
+        for (Integer iel=0; iel< elemssd.size(); iel++)
+          {
+            magFieldRe->CalcElemCurlEdge(elemMagField, elemssd[iel], lCoord);
+            magFieldRe->CalcElemMagVec(elemMagVecPot, elemssd[iel], lCoord);
 
-	    for (Integer k=0; k<dim; k++)
-	      {
-		bFieldRe_[k][actEl]    = elemMagField[k];
-		magVecPotRe_[k][actEl] = elemMagVecPot[k];
-	      }
+            for (Integer k=0; k<dim; k++)
+              {
+                bFieldRe_[k][actEl]    = elemMagField[k];
+                magVecPotRe_[k][actEl] = elemMagVecPot[k];
+              }
 
-	    if (analysistype_==HARMONIC)
-	      {
-		magFieldIm->CalcElemCurlEdge(elemMagField, elemssd[iel], lCoord);
-		magFieldIm->CalcElemMagVec(elemMagVecPot, elemssd[iel], lCoord);
-	      
-		for (Integer k=0; k<dim; k++)
-		  {
-		    bFieldIm_[k][actEl]    = elemMagField[k];
-		    magVecPotIm_[k][actEl] = elemMagVecPot[k];
-		  }
-	      }
+            if (analysistype_==HARMONIC)
+              {
+                magFieldIm->CalcElemCurlEdge(elemMagField, elemssd[iel], lCoord);
+                magFieldIm->CalcElemMagVec(elemMagVecPot, elemssd[iel], lCoord);
+              
+                for (Integer k=0; k<dim; k++)
+                  {
+                    bFieldIm_[k][actEl]    = elemMagField[k];
+                    magVecPotIm_[k][actEl] = elemMagVecPot[k];
+                  }
+              }
   
-	    actEl++;
-	  }
+            actEl++;
+          }
       }
 
     delete magFieldRe;
@@ -899,40 +899,40 @@ namespace CoupledField
 
     if (nrCoils)
       {
-	coilDef_.resize(nrCoils);
-	
+        coilDef_.resize(nrCoils);
+        
   
-	for (Integer i=0; i < nrCoils; i++)
-	  {
-	    conf->get("iDir_"+coilDomain_[i], coilDef_[i].iDir,pdename_);
-	    conf->get("current_"+coilDomain_[i] ,coilDef_[i].current, pdename_);
+        for (Integer i=0; i < nrCoils; i++)
+          {
+            conf->get("iDir_"+coilDomain_[i], coilDef_[i].iDir,pdename_);
+            conf->get("current_"+coilDomain_[i] ,coilDef_[i].current, pdename_);
 
-	    conf->get("coilArea_"+coilDomain_[i], coilDef_[i].coilArea, pdename_);
-	    // if a vector is given for the flow direction of the current
-	    if (coilDef_[i].iDir > 3)
-	      conf->getlist("coilMidPoint_"+coilDomain_[i], coilDef_[i].coilMidPt, pdename_);
-	    if (analysistype_==HARMONIC)
-	      {
-		conf->get("currentPhase_"+coilDomain_[i], coilDef_[i].currentPhase, pdename_);
-		coilDef_[i].currentPhase *= PI / 180;
-	      }
+            conf->get("coilArea_"+coilDomain_[i], coilDef_[i].coilArea, pdename_);
+            // if a vector is given for the flow direction of the current
+            if (coilDef_[i].iDir > 3)
+              conf->getlist("coilMidPoint_"+coilDomain_[i], coilDef_[i].coilMidPt, pdename_);
+            if (analysistype_==HARMONIC)
+              {
+                conf->get("currentPhase_"+coilDomain_[i], coilDef_[i].currentPhase, pdename_);
+                coilDef_[i].currentPhase *= PI / 180;
+              }
 
 
-// 	    conf->get("iDir", coilDef_[i].iDir, coilDomain_[i], pdename_);
-// 	    conf->get("current", coilDef_[i].current, coilDomain_[i], pdename_);
-// 	    conf->get("coilArea", coilDef_[i].coilArea, coilDomain_[i], pdename_);
-// 	    // if a vector is given for the flow direction of the current
-// 	    if (coilDef_[i].iDir > 3)
-// 	      conf->getlist("coilMidPoint", coilDef_[i].coilMidPt, coilDomain_[i], pdename_);
-// 	    if (analysistype_==HARMONIC)
-// 	      {
-// 		conf->get("currentPhase", coilDef_[i].currentPhase, coilDomain_[i], pdename_);
-// 		coilDef_[i].currentPhase *= PI / 180;
-// 	      }
-	  
+            //          conf->get("iDir", coilDef_[i].iDir, coilDomain_[i], pdename_);
+            //          conf->get("current", coilDef_[i].current, coilDomain_[i], pdename_);
+            //          conf->get("coilArea", coilDef_[i].coilArea, coilDomain_[i], pdename_);
+            //          // if a vector is given for the flow direction of the current
+            //          if (coilDef_[i].iDir > 3)
+            //            conf->getlist("coilMidPoint", coilDef_[i].coilMidPt, coilDomain_[i], pdename_);
+            //          if (analysistype_==HARMONIC)
+            //            {
+            //              conf->get("currentPhase", coilDef_[i].currentPhase, coilDomain_[i], pdename_);
+            //              coilDef_[i].currentPhase *= PI / 180;
+            //            }
+          
 
-	    Info->PrintCoil(coilDomain_[i], coilDef_[i], analysistype_);
-	  }
+            Info->PrintCoil(coilDomain_[i], coilDef_[i], analysistype_);
+          }
       }  
   }
 
@@ -947,7 +947,7 @@ namespace CoupledField
     // correct sign of entries in elemmat due to orientation of edge
     for(Integer ii=0; ii<elemmat.getSize(); ii++)
       for(Integer jj=0; jj<elemmat.getSize(); jj++)
-	elemmat[ii][jj] *= esign[ii] * esign[jj];
+        elemmat[ii][jj] *= esign[ii] * esign[jj];
   }
 
 

@@ -42,7 +42,7 @@ namespace CoupledField
 
     /// scaling with 1e-10 stiffness and 1e10 electrical part of material data
     int scaleMatDat;
-	
+        
     // read nonlinear magnetic record
     // void ReadMagNonLin(std::ifstream & fin, MaterialData * material);
 

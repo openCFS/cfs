@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------
-|
-| $Id$
-|
-+---------------------------------------------------------------------*/
+  |
+  | $Id$
+  |
+  +---------------------------------------------------------------------*/
 
 
 #ifndef GSI_IOEXCEPTION
@@ -16,19 +16,19 @@
 namespace GridlibSocketInterface
 {
 
-class IOException : public Exception
-{
- public:
-  IOException ( std::string s ) : Exception(s) {};
-  ~IOException (){};
+  class IOException : public Exception
+  {
+  public:
+    IOException ( std::string s ) : Exception(s) {};
+    ~IOException (){};
 
-  int32 GetErrno() { return errno_; }
-  void SetErrno(int32 err) { errno_ = err; }
-  std::string GetErrorString();
+    int32 GetErrno() { return errno_; }
+    void SetErrno(int32 err) { errno_ = err; }
+    std::string GetErrorString();
 
- private:
-   int32 errno_;
-};
+  private:
+    int32 errno_;
+  };
  
 }
 

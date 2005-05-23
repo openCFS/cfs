@@ -14,205 +14,205 @@ namespace CoupledField
     It is used for solving mechanic equation on one time step.  
   */
 
-class MechPDE: public SinglePDE
-{
+  class MechPDE: public SinglePDE
+  {
 
-public:
+  public:
 
-  //!  Constructor. here we read integration parameters
-  /*!
-    \param aGrid pointer to grid
-    \param aOutFile  pointer to class WriteResults. output data.
-    \param aTimeFunc pointer to class TimeFunc
-  */
-  MechPDE(Grid *aGrid, TimeFunc *aTimeFunc, WriteResults *aOutFile );
+    //!  Constructor. here we read integration parameters
+    /*!
+      \param aGrid pointer to grid
+      \param aOutFile  pointer to class WriteResults. output data.
+      \param aTimeFunc pointer to class TimeFunc
+    */
+    MechPDE(Grid *aGrid, TimeFunc *aTimeFunc, WriteResults *aOutFile );
 
-  //!  Deconstructor
-  virtual ~MechPDE();
+    //!  Deconstructor
+    virtual ~MechPDE();
 
-  //! Initialize NonLinearities
-  virtual void InitNonLin();
-
-
-  //! define all (bilinearform) integrators needed for this pde
-  virtual void DefineIntegrators( );
+    //! Initialize NonLinearities
+    virtual void InitNonLin();
 
 
-  //! define the SoltionStep-Driver
-  virtual void DefineSolveStep();
-
-  /// reads the directions (e.g. for prestress) from the config-file
-  void GetDirection(Directions& dir, const std::string keyword);
+    //! define all (bilinearform) integrators needed for this pde
+    virtual void DefineIntegrators( );
 
 
-  /// returns a stiffness integrator appropriate to the actual problem (e.g.3D)
-  BaseForm * GetStiffIntegrator(MaterialData& actSDMat,
-				Boolean reducedInt=FALSE);
+    //! define the SoltionStep-Driver
+    virtual void DefineSolveStep();
+
+    /// reads the directions (e.g. for prestress) from the config-file
+    void GetDirection(Directions& dir, const std::string keyword);
+
+
+    /// returns a stiffness integrator appropriate to the actual problem (e.g.3D)
+    BaseForm * GetStiffIntegrator(MaterialData& actSDMat,
+                                  Boolean reducedInt=FALSE);
   
 
-  // ======================================================
-  // COUPLING SECTION
-  // ======================================================
+    // ======================================================
+    // COUPLING SECTION
+    // ======================================================
   
-  //! initalize PDE coupling
-  virtual void InitCoupling(PDECoupling * Coupling);
+    //! initalize PDE coupling
+    virtual void InitCoupling(PDECoupling * Coupling);
 
-  //! calculate coupling terms
-  virtual void CalcOutputCoupling();
+    //! calculate coupling terms
+    virtual void CalcOutputCoupling();
   
-  //! returns if PDE can compute the quantity
-  virtual Boolean HasOutput(SolutionType output);
+    //! returns if PDE can compute the quantity
+    virtual Boolean HasOutput(SolutionType output);
 
 
-  /// setup source term
-  void SetupRHS( );
-  
-
-  // ======================================================
-  // POSTPROC SECTION
-  // ======================================================
-
-  //! write results in file
-  //! \param stepOffset offset for starting (time)step
-  //! \param timeOffset offset for starting time  
-  virtual void WriteResultsInFile(const Integer kstep = 0,
-				  const Double asteptime = 0.0,
-				  Integer stepOffset = 0,
-				  Double timeOffset = 0.0);
-
-  //! do PostProcessing step
-  virtual void PostProcess( );
-
-protected:
-
-  
-  Integer size_;        //!< total number of unknowns (equations)
-
-  //computes mechanical deformation energy
-  void CalcEnergy();
-
-  //! Obtain information on desired output quantities from parameter file
-  
-  //! This method is used to query the parameter handling object for the
-  //! desired output quantities and translate their literal description into
-  //! the internal format by setting the corresponding class attributes.
-  //! The output quantities currently supported by the mechanics PDE are
-  //! given in the following table. Here 'Keyword' and 'Result Type' refer
-  //! to the XML parameter file, while 'Class Attribute' refers to the
-  //! internal attribute of the MechPDE class that is set, if the keyword
-  //! is specified.\n\n
-  //! <table border="1">
-  //!   <tr>
-  //!     <td><b>Keyword</b></td>
-  //!     <td><b>Result Type</b></td>
-  //!     <td><b>Class Attribute</b></td>
-  //!   </tr>
-  //!   <tr>
-  //!     <td>displacement</td>
-  //!     <td>nodeResults</td>
-  //!     <td>savesol_</td>
-  //!   </tr>
-  //!   <tr>
-  //!     <td>velocity</td>
-  //!     <td>nodeResults</td>
-  //!     <td>savederiv_</td>
-  //!   </tr>
-  //!   <tr>
-  //!     <td>acceleration</td>
-  //!     <td>nodeResults</td>
-  //!     <td>savederiv2_</td>
-  //!   </tr>
-  //! </table>
-  void ReadStoreResults();
-  
-  //! Init the time stepping
-  void InitTimeStepping();
-
-private:
-
-  // calc rhs coupling to acoustic pde
-  // void CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
-  // Vector<Double>& forceOnElem);
-  
-  /// calc rhs coupling to acoustic pde
-  void CalcAcousticCouplingRHS( StdVector<Elem*> * couplingElems, 
-                                StdVector<MaterialData*> & materials, 
-                                StdVector<Integer>& couplingNodes,
-                                Vector<Double> & forceOnElem,
-                                Integer couplingdof );
-			       
+    /// setup source term
+    void SetupRHS( );
   
 
-  /// does a line search and returns the optimal residual norm
-  Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
-		    Double& etaLineSearch, Boolean trans=FALSE);
+    // ======================================================
+    // POSTPROC SECTION
+    // ======================================================
 
+    //! write results in file
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time  
+    virtual void WriteResultsInFile(const Integer kstep = 0,
+                                    const Double asteptime = 0.0,
+                                    Integer stepOffset = 0,
+                                    Double timeOffset = 0.0);
 
-  /// Write nonlin iteration norms to the cla-file
-  void WriteClaNlNorms( const Integer iterationCounter,
-                        const Double residualL2Norm,
-                        const Double extForcesL2Norm, const Double residualErr, 
-                        const Double solIncrL2Norm, const Double actSolL2Norm, 
-                        const Double incrementalErr );
+    //! do PostProcessing step
+    virtual void PostProcess( );
+
+  protected:
+
+  
+    Integer size_;        //!< total number of unknowns (equations)
+
+    //computes mechanical deformation energy
+    void CalcEnergy();
+
+    //! Obtain information on desired output quantities from parameter file
+  
+    //! This method is used to query the parameter handling object for the
+    //! desired output quantities and translate their literal description into
+    //! the internal format by setting the corresponding class attributes.
+    //! The output quantities currently supported by the mechanics PDE are
+    //! given in the following table. Here 'Keyword' and 'Result Type' refer
+    //! to the XML parameter file, while 'Class Attribute' refers to the
+    //! internal attribute of the MechPDE class that is set, if the keyword
+    //! is specified.\n\n
+    //! <table border="1">
+    //!   <tr>
+    //!     <td><b>Keyword</b></td>
+    //!     <td><b>Result Type</b></td>
+    //!     <td><b>Class Attribute</b></td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>displacement</td>
+    //!     <td>nodeResults</td>
+    //!     <td>savesol_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>velocity</td>
+    //!     <td>nodeResults</td>
+    //!     <td>savederiv_</td>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>acceleration</td>
+    //!     <td>nodeResults</td>
+    //!     <td>savederiv2_</td>
+    //!   </tr>
+    //! </table>
+    void ReadStoreResults();
+  
+    //! Init the time stepping
+    void InitTimeStepping();
+
+  private:
+
+    // calc rhs coupling to acoustic pde
+    // void CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems,
+    // Vector<Double>& forceOnElem);
+  
+    /// calc rhs coupling to acoustic pde
+    void CalcAcousticCouplingRHS( StdVector<Elem*> * couplingElems, 
+                                  StdVector<MaterialData*> & materials, 
+                                  StdVector<Integer>& couplingNodes,
+                                  Vector<Double> & forceOnElem,
+                                  Integer couplingdof );
+                               
   
 
-  //! read in the domains with prestressing
-  void ReadPreStressing();
+    /// does a line search and returns the optimal residual norm
+    Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
+                      Double& etaLineSearch, Boolean trans=FALSE);
 
-  /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
-  void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
-		      MaterialData& mat);
 
-  Integer GetNrBCDof (const std::string & dofStartString);
-
-  /// stores an algsys_ vector into a StdVector and returns that L2-norm
-  void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
-
-  /// returns that L2-norm of an algsys vector
-  Double AlgsysL2Norm(Double * pt);
+    /// Write nonlin iteration norms to the cla-file
+    void WriteClaNlNorms( const Integer iterationCounter,
+                          const Double residualL2Norm,
+                          const Double extForcesL2Norm, const Double residualErr, 
+                          const Double solIncrL2Norm, const Double actSolL2Norm, 
+                          const Double incrementalErr );
   
-  /// flag for reduced Integration for each subdomain
-  StdVector<std::string> reducedIntegration_;
 
-  /// returns the solution matrix belonging to all nodes of the actual element
-  void GetSolOfElement( Matrix<Double>& elDisp, StdVector<Integer>& connect_PDE);
+    //! read in the domains with prestressing
+    void ReadPreStressing();
 
+    /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
+    void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
+                        MaterialData& mat);
 
-  //!
-  StdVector<RegionIdType> preStressDomain_;
-  StdVector<Double> preStressValX_; //! orientation in x
-  StdVector<Double> preStressValY_; //! orientation in y
-  StdVector<Double> preStressValZ_; //! orientation in z
+    Integer GetNrBCDof (const std::string & dofStartString);
 
+    /// stores an algsys_ vector into a StdVector and returns that L2-norm
+    void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
 
-  /// value of prestress
-  Double preStressVal_;
-
-  /// direction of prestress
-  Directions preStressDir_;
+    /// returns that L2-norm of an algsys vector
+    Double AlgsysL2Norm(Double * pt);
   
-  /// material data for reduced integration
-  MaterialData * lambdaMat;
+    /// flag for reduced Integration for each subdomain
+    StdVector<std::string> reducedIntegration_;
 
-  /// material data for reduced integration
-  MaterialData * mueMat;
+    /// returns the solution matrix belonging to all nodes of the actual element
+    void GetSolOfElement( Matrix<Double>& elDisp, StdVector<Integer>& connect_PDE);
 
-  /// external forces (for nonlin simulations)
-  Vector<Double> extForces_;
 
-  //postprocessing
-  ElemStoreSol<Double> Stress_;  //!< conatins magnetic field
-  StdVector<RegionIdType> calcStress_;  //!< contains the subdomains, on which the stress is computed
+    //!
+    StdVector<RegionIdType> preStressDomain_;
+    StdVector<Double> preStressValX_; //! orientation in x
+    StdVector<Double> preStressValY_; //! orientation in y
+    StdVector<Double> preStressValZ_; //! orientation in z
 
-  StdVector<RegionIdType> calcEnergy_;  //!< contains the subdomains, on which the energy is computed
 
-  //! contains mechanic velocity
-  NodeStoreSol<Double> solDeriv1_;
+    /// value of prestress
+    Double preStressVal_;
+
+    /// direction of prestress
+    Directions preStressDir_;
   
-  //! contains mechanic acceleration
-  NodeStoreSol<Double> solDeriv2_;
+    /// material data for reduced integration
+    MaterialData * lambdaMat;
 
-};
+    /// material data for reduced integration
+    MaterialData * mueMat;
+
+    /// external forces (for nonlin simulations)
+    Vector<Double> extForces_;
+
+    //postprocessing
+    ElemStoreSol<Double> Stress_;  //!< conatins magnetic field
+    StdVector<RegionIdType> calcStress_;  //!< contains the subdomains, on which the stress is computed
+
+    StdVector<RegionIdType> calcEnergy_;  //!< contains the subdomains, on which the energy is computed
+
+    //! contains mechanic velocity
+    NodeStoreSol<Double> solDeriv1_;
+  
+    //! contains mechanic acceleration
+    NodeStoreSol<Double> solDeriv2_;
+
+  };
 
 } // end of namespace
 #endif

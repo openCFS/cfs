@@ -48,8 +48,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual void Get( const std::string key, std::string &value,
-		      const std::string section="",
-		      const std::string subsection="" ) = 0;
+                      const std::string section="",
+                      const std::string subsection="" ) = 0;
 
     //! Get int-value for a keyword
 
@@ -63,8 +63,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual void Get( const std::string key, Integer &value,
-		      const std::string section="",
-		      const std::string subsection="" ) = 0;
+                      const std::string section="",
+                      const std::string subsection="" ) = 0;
 
     //! Get double-value for a keyword
 
@@ -78,8 +78,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual void Get( const std::string key, Double &value,
-		      const std::string section="",
-		      const std::string subsection="" ) = 0;
+                      const std::string section="",
+                      const std::string subsection="" ) = 0;
 
     //! Get a list of strings matching a keyword
 
@@ -97,9 +97,9 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual void GetList( const std::string key,
-			  StdVector<std::string> &list,
-			  const std::string section = "",
-			  const std::string subsection = "" ) = 0;
+                          StdVector<std::string> &list,
+                          const std::string section = "",
+                          const std::string subsection = "" ) = 0;
 
     //! Get a list of Doubles matching a keyword
 
@@ -117,8 +117,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual void GetList( const std::string key, StdVector<Double> &list,
-			  const std::string section = "",
-			  const std::string subsection = "" ) = 0;
+                          const std::string section = "",
+                          const std::string subsection = "" ) = 0;
 
     //! Get a list of Integers matching a keyword
 
@@ -136,8 +136,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual void GetList( const std::string key, StdVector<Integer> &list,
-			  const std::string section = "",
-			  const std::string subsection = "" ) = 0;
+                          const std::string section = "",
+                          const std::string subsection = "" ) = 0;
 
     //! Search for a unique match and return value as string.
 
@@ -148,7 +148,7 @@ namespace CoupledField
     //!                           desired parameter
     //! \param value      (output) value of desired parameter
     virtual void Get( const StdVector<std::string> &keyVec,
-		      std::string &value ) = 0;
+                      std::string &value ) = 0;
 
     //! Search for a unique match and return value as Double.
 
@@ -159,7 +159,7 @@ namespace CoupledField
     //!                           desired parameter
     //! \param value      (output) value of desired parameter
     virtual void Get( const StdVector<std::string> &keyVec,
-		      Double &value ) = 0;
+                      Double &value ) = 0;
 
     //! Search for a unique match and return value as Integer.
 
@@ -170,7 +170,7 @@ namespace CoupledField
     //!                           desired parameter
     //! \param value      (output) value of desired parameter
     virtual void Get( const StdVector<std::string> &keyVec,
-		      Integer &value ) = 0;
+                      Integer &value ) = 0;
     //@}
 
 
@@ -246,39 +246,39 @@ namespace CoupledField
 
     //! Perform search and return values of matches as strings.
     virtual void GetList( const StdVector<std::string> &keyVec,
-			  const StdVector<std::string> &attrVec,
-			  const StdVector<std::string> &valVec,
-			  StdVector<std::string> &list ) = 0;
+                          const StdVector<std::string> &attrVec,
+                          const StdVector<std::string> &valVec,
+                          StdVector<std::string> &list ) = 0;
 
     //! Perform search and return values of matches as Doubles.
     virtual void GetList( const StdVector<std::string> &keyVec,
-			  const StdVector<std::string> &attrVec,
-			  const StdVector<std::string> &valVec,
-			  StdVector<Double> &list ) = 0;
+                          const StdVector<std::string> &attrVec,
+                          const StdVector<std::string> &valVec,
+                          StdVector<Double> &list ) = 0;
 
     //! Perform search and return values of matches as Integers.
     virtual void GetList( const StdVector<std::string> &keyVec,
-			  const StdVector<std::string> &attrVec,
-			  const StdVector<std::string> &valVec,
-			  StdVector<Integer> &list ) = 0;
+                          const StdVector<std::string> &attrVec,
+                          const StdVector<std::string> &valVec,
+                          StdVector<Integer> &list ) = 0;
 
     //! Search for a unique match and return value as string.
     virtual void Get( const StdVector<std::string> &keyVec,
-		      const StdVector<std::string> &attrVec,
-		      const StdVector<std::string> &valVec,
-		      std::string &value ) = 0;
+                      const StdVector<std::string> &attrVec,
+                      const StdVector<std::string> &valVec,
+                      std::string &value ) = 0;
 
     //! Search for a unique match and return value as Double.
     virtual void Get( const StdVector<std::string> &keyVec,
-		      const StdVector<std::string> &attrVec,
-		      const StdVector<std::string> &valVec,
-		      Double &value ) = 0;
+                      const StdVector<std::string> &attrVec,
+                      const StdVector<std::string> &valVec,
+                      Double &value ) = 0;
 
     //! Search for a unique match and return value as Integer.
     virtual void Get( const StdVector<std::string> &keyVec,
-		      const StdVector<std::string> &attrVec,
-		      const StdVector<std::string> &valVec,
-		      Integer &value ) = 0;
+                      const StdVector<std::string> &attrVec,
+                      const StdVector<std::string> &valVec,
+                      Integer &value ) = 0;
     //@}
 
 
@@ -305,7 +305,7 @@ namespace CoupledField
     //! \param list        List with name of all iterative coupling pdes
     //! \param sequenceTag Symbolic tag for multi-sequence analysis (optional)
     virtual void GetIterCoupledPDEList( StdVector<std::string> &list,
-					const std::string sequenceTag = "")= 0;
+                                        const std::string sequenceTag = "")= 0;
 
     //! Obtain list with names of pairwise direct couplings
 
@@ -314,7 +314,7 @@ namespace CoupledField
     //! \param list        List with names of all pairwise direct couplings
     //! \param sequenceTag Symbolic tag for multi-sequence analysis (optional)
     virtual void GetDirectCouplingList( StdVector<std::string> &list,
-					const std::string sequenceTag = "")= 0;
+                                        const std::string sequenceTag = "")= 0;
     
     //! Obtain list of coils defined in parameter file
 
@@ -326,8 +326,8 @@ namespace CoupledField
     //! with the additional sequenceTag it can be restricted to a certain step
     //! in a multiSequence.
     virtual void GetCoilList( StdVector<std::string> &list,
-			      const std::string pde ="",
-			      const std::string sequenceTag = "") = 0;
+                              const std::string pde ="",
+                              const std::string sequenceTag = "") = 0;
 
     //! Obtain the type of a certain coils
 
@@ -336,8 +336,8 @@ namespace CoupledField
     //! By specifying the optional pde input parameter the search can be
     //! restricted to a certain PDE entry in the pdeList section.
     virtual void GetCoilType( std::string &coilType,
-			      const std::string coilName,
-			      const std::string pde ="" ) = 0;
+                              const std::string coilName,
+                              const std::string pde ="" ) = 0;
 
     //! Query the on/off status of a flag/switch
 
@@ -353,8 +353,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual Boolean IsSet( const std::string key,
-			   const std::string section = "",
-			   const std::string subsection = "" ) = 0;
+                           const std::string section = "",
+                           const std::string subsection = "" ) = 0;
 
     //! Query whether a parameter has a certain value
 
@@ -373,9 +373,9 @@ namespace CoupledField
     //! \param value      String against which to test value of parameter
     //!                   (optional)
     virtual Boolean HasValue( const std::string key,
-			      const std::string value,
-			      const std::string section = "",
-			      const std::string subsection = "" ) = 0;
+                              const std::string value,
+                              const std::string section = "",
+                              const std::string subsection = "" ) = 0;
   };
 
 }

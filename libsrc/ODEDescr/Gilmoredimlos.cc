@@ -12,13 +12,13 @@ namespace CoupledField
 {
 
   Gilmore::Gilmore(Double  RadiusInit, 
-		   Double  density,
-		   Double  sonicVel,
-		   Double  pStatic,
-		   Double  pVapour,
-		   Double  surfacTen,
-		   Double  polytrop,
-		   Double  viscosity) {
+                   Double  density,
+                   Double  sonicVel,
+                   Double  pStatic,
+                   Double  pVapour,
+                   Double  surfacTen,
+                   Double  polytrop,
+                   Double  viscosity) {
     ENTER_FCN( "Gilmore::Gilmore" );
     RadiusInit_ = RadiusInit;
     density_    = density;
@@ -41,7 +41,7 @@ namespace CoupledField
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //Compute dimensionless constants need in CompDeriv
-    D_	= 2 * surfacTen_ / (RadiusInit_ * pStatic_);
+    D_  = 2 * surfacTen_ / (RadiusInit_ * pStatic_);
     v_  = sonicVel_ / (sqrt( pStatic_ / density ));
     mu_ = viscosity_ / ( pStatic_ * RadiusInit_) * sqrt( pStatic_ / density_); 
     a_  = A_ / pStatic_;
@@ -52,8 +52,8 @@ namespace CoupledField
 
 
   void  Gilmore::CompDeriv(const Double &t,
-			   const StdVector<Double> &y,
-			   StdVector<Double> &dydt){
+                           const StdVector<Double> &y,
+                           StdVector<Double> &dydt){
     ENTER_FCN( "Gilmore::CompDeriv" );
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -133,8 +133,8 @@ namespace CoupledField
 
     temp5   = ( 1.0 - (dxdtau / sonicVelMix)) * 
       ( x + std::pow( a_ , ( 1.0 / n_ )) * 4 * mu_ / sonicVelMix 
-	* std::pow( (pR + b_) , ((- 1.0) / n_ )));
-					       
+        * std::pow( (pR + b_) , ((- 1.0) / n_ )));
+                                               
     dydt[1] = dydt[1] / temp5;
 
 

@@ -22,10 +22,10 @@ namespace CoupledField
     //! \param driverTag tag for current driver
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     piezoParamIdent(Domain * adomain,
-		    Integer stepOffset = 0,
-		    Double timeOffset = 0.0,
-		    std::string driverTag = "anyTag",
-		    Boolean isPartOfSequence = FALSE);
+                    Integer stepOffset = 0,
+                    Double timeOffset = 0.0,
+                    std::string driverTag = "anyTag",
+                    Boolean isPartOfSequence = FALSE);
 
     //! Destructor
     ~piezoParamIdent();
@@ -49,7 +49,7 @@ namespace CoupledField
     //! Calculates an approximation of the Jacobi Matrix of parameter to solution operator F 
     //! \param Jacobi Matrix - approximation of F'
     void createJacobiMatrix(MaterialData * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
-			    Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
+                            Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
     void createJacobiMatrix2(Matrix<Complex> & JacobiMatrix);
     void createJacobiMatrixC(Matrix<Complex> & JacobiMatrix);
@@ -60,7 +60,7 @@ namespace CoupledField
     //! Method which reads Data from file measuredData.dat. The file contains measurements of amplitude, frequency, further 
     //according information concerning the piezhoelectric body (radius, thickness, ...)
     void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, 
-			  Double & voltage, Integer & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
+                          Double & voltage, Integer & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
 
     //! updates the piezoMatrix in MaterialData parameter = \f$(c_11, c_33, c_12, c_13, c_44, e_15, e_31, e_33, eps_11, eps_33)$\f
     //! \param parameter - new set of piezoelectric material parameters
@@ -70,7 +70,7 @@ namespace CoupledField
 
     //! overwrites values in paramter_new with paramter+step if whichParamterToUpdate ==1
     void setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,
-			    Vector<Double> & step, Vector<Integer> & whichParameterToUpdate);
+                            Vector<Double> & step, Vector<Integer> & whichParameterToUpdate);
 
     //! Calculates the impedance curve of piezo-simulation, writes results to file imped.dat
     void calcAbsImped(Complex & charge, Double & freq, Integer & fstep, Boolean typeOut);
@@ -87,10 +87,10 @@ namespace CoupledField
     void typeOutSolutionOnScreen(Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
     void calcInitialResidual(Vector<Complex> & res, Vector<Complex> & y_hat, Vector<Complex> & PHI_p, Integer fstep,
-			     Vector<Complex> & solElecPot, Double & meanValueMechDeformation);
+                             Vector<Complex> & solElecPot, Double & meanValueMechDeformation);
 
     void measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, 
-					     Double & meanValueMechDeformation, int dof);
+                                             Double & meanValueMechDeformation, int dof);
    
     void calcNorm2Resid(Vector<Complex> &res, Double & anorm, Integer nrMeasuredData);
 
@@ -135,7 +135,7 @@ namespace CoupledField
 
     //! calculates charges out of measurements of |Z|, phase and voltage for different frequencies
     void calc_measuredCharge(Vector<Double> freqs, Vector<Double> & absZ,
-			     Vector<Double> & phi, Vector<Complex> & y_hat);
+                             Vector<Double> & phi, Vector<Complex> & y_hat);
     
     //! calculates Euclidian vector norm
     Double a2norm(Vector<Double> &vec);
@@ -161,26 +161,26 @@ namespace CoupledField
     void calcSyntheticData(Vector<Complex> & y_hat);
 
     void createMaterialTensorMatrices(Vector<Double> & parameter, Matrix<Double> & couplingMatrix,
-				      Matrix<Double> & dielectricMatrix, Integer spaceDim);
+                                      Matrix<Double> & dielectricMatrix, Integer spaceDim);
 
     //! Tests, if JacobiMatrix is more or less approximated by F(p)-F(p+delta)/delta
     void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-			  MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
-			  Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
+                          MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
+                          Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
     void testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-			   MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
-			   Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
+                           MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
+                           Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
 
     void testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-			   MaterialData * ptMaterial);
+                           MaterialData * ptMaterial);
     // ! The following methods serve for the determination of eigenvalues ...
 
- //    void sort_array(Integer ndim, Integer l_sort, Vector<Double> & d);
-//     void test_termination(Integer ndim, Matrix<Double> & a, Double a2, Double eps2, Integer *l_conv);
-//     void givens_rotation(Integer ndim, Matrix<Double> & a);
-//     void jacobi(Matrix<Double>& a, Double eps, Integer l_sort, Integer l_print, Vector<Double> & d);
+    //    void sort_array(Integer ndim, Integer l_sort, Vector<Double> & d);
+    //     void test_termination(Integer ndim, Matrix<Double> & a, Double a2, Double eps2, Integer *l_conv);
+    //     void givens_rotation(Integer ndim, Matrix<Double> & a);
+    //     void jacobi(Matrix<Double>& a, Double eps, Integer l_sort, Integer l_print, Vector<Double> & d);
 
     Integer CalcImpedanceCurve;
     Integer whichNewtonCG;

@@ -37,7 +37,7 @@ namespace CoupledField
       \param aptTimeFunc (input) time function data base
     */
     Domain(FileType * const aptFileType, WriteResults * ptOut, 
-	   TimeFunc * aptTimeFunc);
+           TimeFunc * aptTimeFunc);
     
     //! Destructor
     virtual ~Domain();
@@ -58,8 +58,8 @@ namespace CoupledField
     //! \param sequenceStep step index in MultiSequenceSimulation
     //! \param tags tags for each PDE 
     void InitPDEs(StdVector<std::string> &pdeNames,
-		  Integer sequenceStep,
-		  StdVector<std::string> tags);
+                  Integer sequenceStep,
+                  StdVector<std::string> tags);
 
     //! Delete pointer to PDEs and create them new
     void ResetPDEs();

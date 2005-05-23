@@ -165,9 +165,9 @@ int main( int argc, const char **argv ) {
   // Generate parameter handler and pass address to global pointer
   std::string xmlFile = commandLine->GetParamFile();
 #ifdef USE_XERCES
-    params = new XMLParamHandler( xmlFile.c_str() );
+  params = new XMLParamHandler( xmlFile.c_str() );
 #else
-    params = new PlainXMLParamHandler( xmlFile.c_str() );
+  params = new PlainXMLParamHandler( xmlFile.c_str() );
 #endif
 
 
@@ -237,53 +237,53 @@ int main( int argc, const char **argv ) {
   // Generate driver
   switch( analysisType ) {
 
-    case STATIC:
+  case STATIC:
 
-      // with adaptivity
-      if ( adaptspace ) {
+    // with adaptivity
+    if ( adaptspace ) {
 #ifdef ADAPTGRID
-	ptdriver = new StaticAdaptSpaceDriver(domain);
+      ptdriver = new StaticAdaptSpaceDriver(domain);
 #else
-	std::string errmsg;
-	errmsg  = "Your version of cfs does not support adaptivity! ";
-	errmsg += "Recompile with Adaptivity = yes";
-	Info->Error( errmsg, __FILE__, __LINE__ );
+      std::string errmsg;
+      errmsg  = "Your version of cfs does not support adaptivity! ";
+      errmsg += "Recompile with Adaptivity = yes";
+      Info->Error( errmsg, __FILE__, __LINE__ );
 #endif
-      }
-
-      // without adaptivity
-      else {
-	ptdriver = new StaticDriver( &domain );
-      }
-      break;
-
-    case TRANSIENT:
-      ptdriver = new TransientDriver( &domain );
-      break;
-
-    case HARMONIC:
-      // calls Driver for parameter identification, using harmonic analysis
-      if ( analysis == "paramIdent" ) {
-	ptdriver = new piezoParamIdent( &domain );
-      }
-      else if ( analysis == "multiHarmonic" )
-  	ptdriver = new MultiHarmonicDriver( &domain );
-      else
-	ptdriver = new HarmonicDriver( &domain );
-      break;
-
-    case MULTI_SEQUENCE:
-      ptdriver = new MultiSequenceDriver( &domain );
-      break;
-
-    case BUBBLEDYNAMIC:
-      ptdriver = new BubbleDriver( &domain );
-      break;
-
-    default:
-      (*error) << "Driver '" << analysis << "' not supported!";
-      Error( __FILE__, __LINE__ );
     }
+
+    // without adaptivity
+    else {
+      ptdriver = new StaticDriver( &domain );
+    }
+    break;
+
+  case TRANSIENT:
+    ptdriver = new TransientDriver( &domain );
+    break;
+
+  case HARMONIC:
+    // calls Driver for parameter identification, using harmonic analysis
+    if ( analysis == "paramIdent" ) {
+      ptdriver = new piezoParamIdent( &domain );
+    }
+    else if ( analysis == "multiHarmonic" )
+      ptdriver = new MultiHarmonicDriver( &domain );
+    else
+      ptdriver = new HarmonicDriver( &domain );
+    break;
+
+  case MULTI_SEQUENCE:
+    ptdriver = new MultiSequenceDriver( &domain );
+    break;
+
+  case BUBBLEDYNAMIC:
+    ptdriver = new BubbleDriver( &domain );
+    break;
+
+  default:
+    (*error) << "Driver '" << analysis << "' not supported!";
+    Error( __FILE__, __LINE__ );
+  }
 
   Info->FinishProgress();
 

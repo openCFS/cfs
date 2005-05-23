@@ -26,11 +26,11 @@ namespace CoupledField
 
     pde1_ = NULL;
     pde2_ = NULL;
-	       
+               
   }
 
   void BasePairCoupling::Init(Integer bcSequenceStep,
-			      std::string  bcSequenceTag) {
+                              std::string  bcSequenceTag) {
     ENTER_FCN( "BasePairCoupling::Init" );
     
     bcSequenceTag_ = bcSequenceTag;
@@ -79,8 +79,8 @@ namespace CoupledField
     //std::cerr << "couplingName = " << couplingName_ << std::endl;
     StdVector<RegionIdType> surfdoms;
     assemble_->SetGeneralParams(couplingName_, 1, subdoms_,
-				surfdoms, bcSequenceTag );
-				
+                                surfdoms, bcSequenceTag );
+                                
 
     // set PDE Ids to assemble object
     PdeIdType id1 = (*pde1_).pdeId_;
@@ -136,11 +136,11 @@ namespace CoupledField
     // from data file
     for( Integer i = 0; i < subdoms_.GetSize(); i++ ) {
       for( Integer k = 0; k <= subdomName.GetSize(); k++ ) {
-	if( subdoms_[i] == subdomId[k] ){
-	  loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
-					materialClass_ );
-	  break;
-	}
+        if( subdoms_[i] == subdomId[k] ){
+          loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
+                                        materialClass_ );
+          break;
+        }
       }
     }
   }
@@ -163,11 +163,11 @@ namespace CoupledField
   
   void BasePairCoupling::AssembleNLRHS(const Double time) {
     assemble_->AssembleNLRHS(time);
- }
+  }
 
   void BasePairCoupling::AssembleSprings(const Double time) {
     assemble_->AssembleSprings(time);
- }
+  }
 
 
 

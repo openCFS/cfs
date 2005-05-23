@@ -50,8 +50,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     void Get( const std::string key, std::string &value,
-		      const std::string section="",
-		      const std::string subsection="" ); 
+              const std::string section="",
+              const std::string subsection="" ); 
 
     //! Get int-value for a keyword
 
@@ -65,8 +65,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     void Get( const std::string key, Integer &value,
-	      const std::string section="",
-	      const std::string subsection="" );
+              const std::string section="",
+              const std::string subsection="" );
 
     //! Get double-value for a keyword
 
@@ -80,8 +80,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     void Get( const std::string key, Double &value,
-	      const std::string section="",
-	      const std::string subsection="" );
+              const std::string section="",
+              const std::string subsection="" );
 
     //! Get string-value for a element with certain attribute
 
@@ -102,12 +102,12 @@ namespace CoupledField
     //! \param subsection   Name of a subsection in which to look for keyword
     //!                     (optional)
     void CGet( const std::string key,
-	       std::string &value,
-	       const std::string attribute,
-	       const std::string aValue,
-	       Integer applyToElem,
-	       const std::string section,
-	       const std::string subsection );
+               std::string &value,
+               const std::string attribute,
+               const std::string aValue,
+               Integer applyToElem,
+               const std::string section,
+               const std::string subsection );
 
     //! Get Double-value for a element with certain attribute
 
@@ -128,12 +128,12 @@ namespace CoupledField
     //! \param subsection   Name of a subsection in which to look for keyword
     //!                     (optional)
     void CGet( const std::string key,
-	       Double &value,
-	       const std::string attribute,
-	       const std::string aValue,
-	       Integer applyToElem,
-	       const std::string section,
-	       const std::string subsection ) ;
+               Double &value,
+               const std::string attribute,
+               const std::string aValue,
+               Integer applyToElem,
+               const std::string section,
+               const std::string subsection ) ;
 
     //! Get Integer-value for a element with certain attribute
 
@@ -153,12 +153,12 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     void CGet( const std::string key,
-	       Integer &value,
-	       const std::string attribute,
-	       const std::string aValue,
-	       Integer applyToElem,
-	       const std::string section,
-	       const std::string subsection ) ;
+               Integer &value,
+               const std::string attribute,
+               const std::string aValue,
+               Integer applyToElem,
+               const std::string section,
+               const std::string subsection ) ;
 
     //! Get a list of strings matching a keyword
 
@@ -176,9 +176,9 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     void GetList( const std::string key,
-		  StdVector<std::string> &list,
-		  const std::string section = "",
-		  const std::string subsection = "" );
+                  StdVector<std::string> &list,
+                  const std::string section = "",
+                  const std::string subsection = "" );
 
     
     //! Get a list of Doubles matching a keyword
@@ -197,11 +197,11 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     void GetList( const std::string key,
-		  StdVector<Double> &list,
-		  const std::string section = "",
-		  const std::string subsection = "" );
+                  StdVector<Double> &list,
+                  const std::string section = "",
+                  const std::string subsection = "" );
 
-   //! Get a list of strings for keyword and elements with certain attribute
+    //! Get a list of strings for keyword and elements with certain attribute
 
     //! The method will try to find the specified keyword in the parameter
     //! tree. Once found, it tests, whether the corresponding elements have
@@ -225,12 +225,12 @@ namespace CoupledField
     //! \param subsection   Name of a subsection in which to look for keyword
     //!                     (optional)
     void CGetList( const std::string key,
-		   StdVector<std::string> &list,
-		   const std::string attribute,
-		   const std::string value,
-		   Integer applyToElem,
-		   const std::string section,
-		   const std::string subsection );
+                   StdVector<std::string> &list,
+                   const std::string attribute,
+                   const std::string value,
+                   Integer applyToElem,
+                   const std::string section,
+                   const std::string subsection );
 
     //! Obtain list of PDEs defined in parameter file
 
@@ -249,8 +249,8 @@ namespace CoupledField
     //! with the additional sequenceTag it can be restricted to a certain step
     //! in a multiSequence.
     void GetCoilList( StdVector<std::string> &list,
-		      const std::string pde ="",
-		      const std::string sequenceTag = "");
+                      const std::string pde ="",
+                      const std::string sequenceTag = "");
 
     //! Obtain the type of a certain coils
 
@@ -259,8 +259,8 @@ namespace CoupledField
     //! By specifying the optional pde input parameter the search can be
     //! restricted to a certain PDE entry in the pdeList section.
     void GetCoilType( std::string &coilType,
-		      const std::string coilName,
-		      const std::string pde ="" );
+                      const std::string coilName,
+                      const std::string pde ="" );
     
 
     //! Obtain list of iterative coupled PDEs defined in parameter file
@@ -269,7 +269,7 @@ namespace CoupledField
     //! which are iterative coupled. 
     //! \param list          List with name of all iterative coupling pdes
     void GetIterCoupledPDEList( StdVector<std::string> &list,
-					const std::string sequenceTag = "");
+                                const std::string sequenceTag = "");
 
     //! Obtain list with names of pairwise direct couplings
 
@@ -278,8 +278,8 @@ namespace CoupledField
     //! \param list        List with names of all pairwise direct couplings
     //! \param sequenceTag Symbolic tag for multi-sequence analysis (optional)
     void GetDirectCouplingList( StdVector<std::string> &list,
-				const std::string sequenceTag = "");
-					
+                                const std::string sequenceTag = "");
+                                        
     //! Query the on/off status of a flag/switch
 
     //! The method will search the parameter tree for the parameter matching
@@ -294,8 +294,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     Boolean IsSet( const std::string key,
-		   const std::string section = "",
-		   const std::string subsection = "" );
+                   const std::string section = "",
+                   const std::string subsection = "" );
 
     //! Query whether a parameter has a certain value
 
@@ -314,64 +314,64 @@ namespace CoupledField
     //! \param value      String against which to test value of parameter
     //!                   (optional)
     Boolean HasValue( const std::string key, const std::string value,
-		      const std::string section = "",
-		      const std::string subsection = "" );
+                      const std::string section = "",
+                      const std::string subsection = "" );
 
-void GetList (const StdVector< std::string > &keyVec,
-		  const StdVector< std::string > &attrVec, 
-		  const StdVector< std::string > &valVec, 
-		  StdVector< std::string > &list);
+    void GetList (const StdVector< std::string > &keyVec,
+                  const StdVector< std::string > &attrVec, 
+                  const StdVector< std::string > &valVec, 
+                  StdVector< std::string > &list);
     
     
 
-void 	GetList (const StdVector< std::string > &keyVec,
-		 const StdVector< std::string > &attrVec,
-		 const StdVector< std::string > &valVec,
-		 StdVector< Double > &list);
+    void    GetList (const StdVector< std::string > &keyVec,
+                     const StdVector< std::string > &attrVec,
+                     const StdVector< std::string > &valVec,
+                     StdVector< Double > &list);
     
 
-void 	GetList (const StdVector< std::string > &keyVec,
-		 const StdVector< std::string > &attrVec,
-		 const StdVector< std::string > &valVec,
-		 StdVector< Integer > &list);
+    void    GetList (const StdVector< std::string > &keyVec,
+                     const StdVector< std::string > &attrVec,
+                     const StdVector< std::string > &valVec,
+                     StdVector< Integer > &list);
     
 
-void 	Get (const StdVector< std::string > &keyVec,
-	     const StdVector< std::string > &attrVec,
-	     const StdVector< std::string > &valVec,
-	     std::string &value);
+    void    Get (const StdVector< std::string > &keyVec,
+                 const StdVector< std::string > &attrVec,
+                 const StdVector< std::string > &valVec,
+                 std::string &value);
     
 
-void 	Get (const StdVector< std::string > &keyVec,
-	     const StdVector< std::string > &attrVec,
-	     const StdVector< std::string > &valVec,
-	     Double &value);
+    void    Get (const StdVector< std::string > &keyVec,
+                 const StdVector< std::string > &attrVec,
+                 const StdVector< std::string > &valVec,
+                 Double &value);
     
 
-void 	Get (const StdVector< std::string > &keyVec,
-	     const StdVector< std::string > &attrVec,
-	     const StdVector< std::string > &valVec,
-	     Integer &value);
-    
-
-
-void GetList( const std::string key, StdVector<Integer> &list,
-	      const std::string section = "",
-	      const std::string subsection = "" );
-    
-
-void Get( const StdVector<std::string> &keyVec,
-	  std::string &value ) ;
+    void    Get (const StdVector< std::string > &keyVec,
+                 const StdVector< std::string > &attrVec,
+                 const StdVector< std::string > &valVec,
+                 Integer &value);
     
 
 
-void Get( const StdVector<std::string> &keyVec,
-	  Double &value );
+    void GetList( const std::string key, StdVector<Integer> &list,
+                  const std::string section = "",
+                  const std::string subsection = "" );
+    
+
+    void Get( const StdVector<std::string> &keyVec,
+              std::string &value ) ;
     
 
 
-void Get( const StdVector<std::string> &keyVec,
-	  Integer &value );
+    void Get( const StdVector<std::string> &keyVec,
+              Double &value );
+    
+
+
+    void Get( const StdVector<std::string> &keyVec,
+              Integer &value );
     
  
 
@@ -410,8 +410,8 @@ void Get( const StdVector<std::string> &keyVec,
     //! returned, otherwise, std::string::npos will be returned. By default,
     //! we start the search from the begining of the file.
     sType getposElem( const std::string keyword,
-				       const sType
-				       startpos = 0 );
+                      const sType
+                      startpos = 0 );
 
     //! Auxillary method.
 
@@ -425,52 +425,52 @@ void Get( const StdVector<std::string> &keyVec,
     //! To find the final and the initial positions for required elements
     //! with keys: section, subsection, etc.
     void FindPosElems( StdVector<std::string> keys, int level,
-		       StdVector<sType> & s_elems,
-		       StdVector<sType> & e_elems,
-		       StdVector<sType> s_section,
-		       StdVector<sType> e_section);
+                       StdVector<sType> & s_elems,
+                       StdVector<sType> & e_elems,
+                       StdVector<sType> s_section,
+                       StdVector<sType> e_section);
     
     //! To find the final and the initial positions for required elements
     //! with keys: section, subsection, etc., where the last key is an
     //! attribute.
     void FindPosAttrs( StdVector<std::string> keys, int level,
-		       StdVector<sType> & s_elems,
-		       StdVector<sType> & e_elems,
-		       StdVector<sType> s_section,
-		       StdVector<sType> e_section);
+                       StdVector<sType> & s_elems,
+                       StdVector<sType> & e_elems,
+                       StdVector<sType> s_section,
+                       StdVector<sType> e_section);
 
     //! To find the final and initial positions of required elements with the
     //! key
     void getElems( const std::string key,
-		   StdVector<sType> & s_elems,
-		   StdVector<sType> & e_elems,
-		   StdVector<sType> s_section,
-		   StdVector<sType> e_section,
-		   sType start=0,
-		   const int type = 1 );
+                   StdVector<sType> & s_elems,
+                   StdVector<sType> & e_elems,
+                   StdVector<sType> s_section,
+                   StdVector<sType> e_section,
+                   sType start=0,
+                   const int type = 1 );
 
     //! To find the final and initial positions of required elements with the
     //! key
     void getAttr(const std::string attr,
-		 const std::string element,
-		 StdVector<sType> & s_elems,
-		 StdVector<sType> & e_elems,
-		 StdVector<sType> s_section,
-		 StdVector<sType> e_section,
-		 sType start=0);
+                 const std::string element,
+                 StdVector<sType> & s_elems,
+                 StdVector<sType> & e_elems,
+                 StdVector<sType> s_section,
+                 StdVector<sType> e_section,
+                 sType start=0);
     
     //! Find position of the input keyword key in the file
     sType findPos( const std::string key, sType start );
 
     //! Read values of an element
     void ReadValuesElem( StdVector<std::string> & list,
-			 StdVector<sType> s_elems,
-			 StdVector<sType> e_elems );
+                         StdVector<sType> s_elems,
+                         StdVector<sType> e_elems );
     
     //! Read attributes of an element
     void ReadAttrsElem( StdVector<std::string> & list,
-			StdVector<sType> s_elems,
-			StdVector<sType> e_elems );
+                        StdVector<sType> s_elems,
+                        StdVector<sType> e_elems );
 
     //! Read the position of the end of an element
     sType findEndPosElementType2( sType start );

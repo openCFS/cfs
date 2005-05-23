@@ -8,52 +8,52 @@
 
 namespace CoupledField {
 
-class Preisach : public Hysteresis
-{
-public:
-  Preisach(Integer numElem, Double xSat, Double ysat, Double xRem,
-	   Boolean isVirgin);
+  class Preisach : public Hysteresis
+  {
+  public:
+    Preisach(Integer numElem, Double xSat, Double ysat, Double xRem,
+             Boolean isVirgin);
 
-  //!
-  virtual ~Preisach();
+    //!
+    virtual ~Preisach();
 
-  //!
-  Double computeValue(Double xVal, Integer idxElem);
+    //!
+    Double computeValue(Double xVal, Integer idxElem);
 
-  //!
-  void updateMinMaxList(Double newX, Integer idxElem);
+    //!
+    void updateMinMaxList(Double newX, Integer idxElem);
 
-  void SetTimeStepVal(Double dt) 
-  {;};
+    void SetTimeStepVal(Double dt) 
+    {;};
 
-  //!
-  void wipout(Integer idx);
+    //!
+    void wipout(Integer idx);
 
-  //!
-  Double everett(Double x1, Double x2);
+    //!
+    Double everett(Double x1, Double x2);
 
-  //!
-  Double normalizeInput(Double xInput);
+    //!
+    Double normalizeInput(Double xInput);
 
-protected:
+  protected:
 
-private:
+  private:
 
-  Double Xsaturated_;
-  Double YSaturated_;
-  Double YRemnant_;
+    Double Xsaturated_;
+    Double YSaturated_;
+    Double YRemnant_;
 
-  Boolean isVirgin_;
-  Integer actElem_;
+    Boolean isVirgin_;
+    Integer actElem_;
 
-  Vector<Double> lastVal_;
-  Vector<Double> preisachSum_;
+    Vector<Double> lastVal_;
+    Vector<Double> preisachSum_;
 
-  std::vector<Integer> *isMinMax_;
-  std::vector<Double>  *extremaList_;
+    std::vector<Integer> *isMinMax_;
+    std::vector<Double>  *extremaList_;
 
 
-};
+  };
 
 
 } //end of namespace

@@ -28,7 +28,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Boolean reset);
+                               const Boolean reset);
 
     //! routine for acttions after the SolveStep-method
     /*!
@@ -36,7 +36,7 @@ namespace CoupledField
       \param asteptime current time
     */  
     virtual void PostStepStatic(const Integer kstep, const Double asteptime);
-				
+                                
 
     //! solves for one linear static step 
     /*!
@@ -45,7 +45,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepStaticLin(const Integer kstep, const Double asteptime,
-			       const Boolean reset)
+                               const Boolean reset)
     { ENTER_FCN( "SolveStepMpCCI::StepStaticLin");};
 
 
@@ -57,7 +57,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			      const Boolean reset)
+                              const Boolean reset)
     { ENTER_FCN( "SolveStepMpCCI::PreStepTrans");};
     
     //! base method for solving one transient step 
@@ -67,7 +67,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-				const Boolean reset)
+                                const Boolean reset)
     { ENTER_FCN( "SolveStepMpCCI::SolveStepTrans"); };
 
     //! solves for one linear transient step 
@@ -77,7 +77,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepTransLin(const Integer kstep, const Double asteptime,
-			      const Boolean reset)
+                              const Boolean reset)
     { ENTER_FCN( "SolveStepMpCCI::StepTransLin");};
 
     //! routine for actions after the SolveStep-method

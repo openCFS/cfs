@@ -52,7 +52,7 @@ namespace CoupledField {
     
     //@{ \name Calculation Methods
 
-     //! Compute the matrix \f$B\f$ of the \f$BDB\f$ operator
+    //! Compute the matrix \f$B\f$ of the \f$BDB\f$ operator
 
     //! The method computes the matrix \f$B\f$ of the \f$BDB\f$ operator
     //! which, in the case of a 2D electrostatic field,
@@ -102,7 +102,7 @@ namespace CoupledField {
       // second z.
       for( Integer actNode = 0; actNode < numNodes; actNode++ ) {
         bMat[0][actNode] = xiDx[actNode][0];
-	bMat[1][actNode] = xiDx[actNode][1];
+        bMat[1][actNode] = xiDx[actNode][1];
       }
     }
     
@@ -132,10 +132,10 @@ namespace CoupledField {
       Integer startRow = 7;
       Integer startCol = 7;
       for( Integer i = 0; i < 2; i++ ) {
-	for ( Integer j = 0; j < 2; j++ ) {
-	  dMat[i][j] = factor_ *
-	    (*matMatrix)[startRow+i][startCol+j];
-	}
+        for ( Integer j = 0; j < 2; j++ ) {
+          dMat[i][j] = factor_ *
+            (*matMatrix)[startRow+i][startCol+j];
+        }
       }
     }
     

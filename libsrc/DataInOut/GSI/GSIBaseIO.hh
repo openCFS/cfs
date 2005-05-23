@@ -1,8 +1,8 @@
 /*----------------------------------------------------------------------
-|
-| $Id$
-|
-+---------------------------------------------------------------------*/
+  |
+  | $Id$
+  |
+  +---------------------------------------------------------------------*/
 
 #ifndef GSI_BASEIO
 #define GSI_BASEIO
@@ -120,19 +120,19 @@ namespace GridlibSocketInterface
     void is_valid() throw(IOException)
     {
       if(sock_ == NULL)
-      {
+        {
           if((file_read == NULL) && (file_write == NULL))
             throw IOException("Read/Write Streams not valid!");
-      }
+        }
       else
-      {
+        {
 #ifndef WIN32
           if(!sock_->is_valid())
             throw IOException("Socket not valid!");
 #else
-	  return;
+          return;
 #endif
-      }
+        }
       
     }
   };

@@ -28,10 +28,10 @@ namespace CoupledField
     //! \param magPotential (input) Pointer to vector containing the magnetic
     //!                           potential for all nodes of domain
     MagLorentzForceOp(Grid * ptGrid, 
-		      StdPDE * ptPDE,
-		      NodeEQN * ptEQN,
-		      NodeStoreSol<Double> & magPotential,
-		      Boolean isaxi);
+                      StdPDE * ptPDE,
+                      NodeEQN * ptEQN,
+                      NodeStoreSol<Double> & magPotential,
+                      Boolean isaxi);
 
     //! Destructor
     virtual ~MagLorentzForceOp();
@@ -41,8 +41,8 @@ namespace CoupledField
     //! \param Jeddy          (input) eddy current density at finite element nodes
     //! \param ptElem         (input)  Pointer to element
     virtual void CalcElemMagLorentzForce(Matrix<Double>& F,
-					 Vector<Double>& Jeddy,
-					 const Elem * ptElement);
+                                         Vector<Double>& Jeddy,
+                                         const Elem * ptElement);
 
 
   protected:
@@ -78,13 +78,13 @@ namespace CoupledField
     //! \param sol        (input) Pointer to vector containing the magnetic
     //!                           vector potential for all nodes of domain
     MagForceOp(Grid * ptGrid, 
-	       StdPDE * ptPDE,
-	       NodeEQN * ptEQN,
-	       NodeStoreSol<Double> & sol,
-	       Integer dim,
-	       MaterialData* &matData,
-	       StdVector<RegionIdType>& allSubdoms,
-	       Boolean isaxi);
+               StdPDE * ptPDE,
+               NodeEQN * ptEQN,
+               NodeStoreSol<Double> & sol,
+               Integer dim,
+               MaterialData* &matData,
+               StdVector<RegionIdType>& allSubdoms,
+               Boolean isaxi);
 
     //! Destructor
     virtual ~MagForceOp();
@@ -97,7 +97,7 @@ namespace CoupledField
 
     //! computes the field quantity
     virtual void ComputeField(Vector<Double> & Field, const Elem * ptElement,
-			      const Vector<Double> & lCoord);
+                              const Vector<Double> & lCoord);
 
     //! I'm a class attribute (please add documentation for me)
     CurlNodeOp * curlFieldOp_;

@@ -12,13 +12,13 @@ namespace CoupledField
 {
 
   Gilmore::Gilmore(Double  RadiusInit, 
-		   Double  density,
-		   Double  sonicVel,
-		   Double  pStatic,
-		   Double  pVapour,
-		   Double  surfacTen,
-		   Double  polytrop,
-		   Double  viscosity) {
+                   Double  density,
+                   Double  sonicVel,
+                   Double  pStatic,
+                   Double  pVapour,
+                   Double  surfacTen,
+                   Double  polytrop,
+                   Double  viscosity) {
     ENTER_FCN( "Gilmore::Gilmore" );
     RadiusInit_ = RadiusInit;
     density_    = density;
@@ -60,8 +60,8 @@ namespace CoupledField
   }
 
   void  Gilmore::CompDeriv(const Double &t,
-			   const StdVector<Double> &y,
-			   StdVector<Double> &dydt){
+                           const StdVector<Double> &y,
+                           StdVector<Double> &dydt){
     ENTER_FCN( "Gilmore::CompDeriv" );
 
     Double temp1, temp2, temp3, temp4, temp5;
@@ -117,35 +117,35 @@ namespace CoupledField
     dydt[1] *= ( 1.0 - (y[1] / sonicVelMix_) ) * y[0] /sonicVelMix_;
    
     dydt[1] -= 3.0 / 2.0 * y[1] * y[1] * ( 1.0 - (y[1] 
-					   / ( 3.0 * sonicVelMix_ )));
+                                                  / ( 3.0 * sonicVelMix_ )));
     
     dydt[1] += ( 1.0 + y[1] / sonicVelMix_ ) * H_;
 
    
 
     temp5   =  (( 1.0 - ( y[1] / sonicVelMix_ )) * y[0] 
-			 * ( 1.0 + (4.0 * viscosity_ / ( sonicVelMix_ * y[0])
-				    * std::pow( temp1 , ((- 1.0) / n_ )) 
-				    * std::pow( A_ , ( 1.0 / n_ )) / density_)));
+                * ( 1.0 + (4.0 * viscosity_ / ( sonicVelMix_ * y[0])
+                           * std::pow( temp1 , ((- 1.0) / n_ )) 
+                           * std::pow( A_ , ( 1.0 / n_ )) / density_)));
 
  
 
     //    dydt[1] = dydt[1] / (( 1.0 - ( y[1] / sonicVelMix_ )) * y[0] 
-    //		 * ( 1.0 + (4.0 * viscosity_ / ( sonicVelMix_ * y[0])
-    //			    * std::pow( temp1 , ((- 1.0) / n_ )) 
-    //			    * std::pow( A_ , ( 1.0 / n_ )) / density_)));
+    //           * ( 1.0 + (4.0 * viscosity_ / ( sonicVelMix_ * y[0])
+    //                      * std::pow( temp1 , ((- 1.0) / n_ )) 
+    //                      * std::pow( A_ , ( 1.0 / n_ )) / density_)));
 
     if (abs(temp1) <= 1e-15){
       std::cerr<< "temp1: " << temp1 << std::endl;
-	Error("Nenner zu klein",__FILE__,__LINE__);
+      Error("Nenner zu klein",__FILE__,__LINE__);
     }
     if (abs(temp41) <= 1e-15){
       std::cerr<< "temp41: " << temp41 << std::endl;
-	Error("Nenner zu klein",__FILE__,__LINE__);
+      Error("Nenner zu klein",__FILE__,__LINE__);
     }
     if (abs(temp5) <= 1e-15){
       std::cerr<< "tmp5: " << temp5 << std::endl;
-	Error("Nenner zu klein",__FILE__,__LINE__);
+      Error("Nenner zu klein",__FILE__,__LINE__);
     }
     dydt[1] = dydt[1] / temp5;
 

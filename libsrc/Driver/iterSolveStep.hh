@@ -33,7 +33,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Boolean reset)  {;};
+                               const Boolean reset)  {;};
  
     //! base method for solving one static step 
     /*!
@@ -42,7 +42,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
-				 const Boolean reset);
+                                 const Boolean reset);
 
     //! routine for acttions after the SolveStep-method
     /*!
@@ -50,7 +50,7 @@ namespace CoupledField
       \param asteptime current time
     */  
     virtual void PostStepStatic(const Integer kstep, 
-				const Double asteptime) {;};
+                                const Double asteptime) {;};
 
 
 
@@ -63,7 +63,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			      const Boolean reset) {;};
+                              const Boolean reset) {;};
 
 
     //! base method for solving one transient step 
@@ -73,7 +73,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-				const Boolean updatesysmat);
+                                const Boolean updatesysmat);
     
     //! routine for actions after the SolveStep-method
     /*!
@@ -81,7 +81,7 @@ namespace CoupledField
       \param asteptime current time
     */  
     virtual void PostStepTrans(const Integer kstep, 
-			       const Double asteptime) {;};
+                               const Double asteptime) {;};
 
     //----------------------- HARMONIC---------------------------------------
     
@@ -92,7 +92,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */   
     virtual void PreStepHarmonic(const Integer freqStep, const Double frequency, 
-				 const Boolean reset) {;};
+                                 const Boolean reset) {;};
 
 
     //!  base method for solving one harmonic step 
@@ -102,7 +102,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepHarmonic(const Integer freqStep, const Double frequency, 
-				   const Boolean reset);
+                                   const Boolean reset);
 
 
     //!  routine for actions after the SolveStep-method
@@ -112,7 +112,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void PostStepHarmonic(const Integer freqStep, const Double frequency, 
-				  const Boolean reset) {;};
+                                  const Boolean reset) {;};
 
 
 

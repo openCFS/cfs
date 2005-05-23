@@ -127,18 +127,18 @@ namespace CoupledField
       // look in volume regions
       index = volRegionIds_.Find(regions[i]);
       if ( index != -1 ) {
-	numNodes += volElemNodes_[index].GetSize();
+        numNodes += volElemNodes_[index].GetSize();
       } else {
-	
-	// look in surface regions
-	index = surfRegionIds_.Find(regions[i]);
-	if ( index != -1 ) {
-	  numNodes += surfElemNodes_[index].GetSize();
-	} else {
-	  (*error) << "GridCFS: The region with id '" << regions[i]
-		   << "' was not found in the grid!";
-	  Error( __FILE__, __LINE__ );
-	}
+        
+        // look in surface regions
+        index = surfRegionIds_.Find(regions[i]);
+        if ( index != -1 ) {
+          numNodes += surfElemNodes_[index].GetSize();
+        } else {
+          (*error) << "GridCFS: The region with id '" << regions[i]
+                   << "' was not found in the grid!";
+          Error( __FILE__, __LINE__ );
+        }
       }
     }
     
@@ -157,7 +157,7 @@ namespace CoupledField
       numNodes = namedNodes_[index].GetSize();
     } else {
       (*error) << "GridCFS: The Nodes with name '" << nodesName
-	       << "' were not found in the grid!";
+               << "' were not found in the grid!";
       Error( __FILE__, __LINE__ );
     }
 
@@ -203,18 +203,18 @@ namespace CoupledField
       // look in volume regions
       index = volRegionIds_.Find(regions[i]);
       if ( index != -1 ) {
-	numElems += volElems_[index].GetSize();
+        numElems += volElems_[index].GetSize();
       } else {
-	
-	// look in surface regions
-	index = surfRegionIds_.Find(regions[i]);
-	if ( index != -1 ) {
-	  numElems += surfElems_[index].GetSize();
-	} else {
-	  (*error) << "GridCFS: The region with id '" << regions[i]
-		   << "' was not found in the grid!";
-	  Error( __FILE__, __LINE__ );
-	}
+        
+        // look in surface regions
+        index = surfRegionIds_.Find(regions[i]);
+        if ( index != -1 ) {
+          numElems += surfElems_[index].GetSize();
+        } else {
+          (*error) << "GridCFS: The region with id '" << regions[i]
+                   << "' was not found in the grid!";
+          Error( __FILE__, __LINE__ );
+        }
       }
     }
     
@@ -242,7 +242,7 @@ namespace CoupledField
   // ======================================================
   template<Integer DIM>
   void GridCFS<DIM>::GetNodesByName( StdVector<Integer> & nodeList,
-				     const std::string & name ) {
+                                     const std::string & name ) {
     ENTER_FCN( "GridCFS::GetNodesByName" );
 
     Integer index = namedNodeNames_.Find(name);
@@ -250,7 +250,7 @@ namespace CoupledField
       nodeList = namedNodes_[index];
     } else {
       (*error) << "GridCFS: There are no nodes with name'" << name
-	       << "' in the grid!";
+               << "' in the grid!";
       Error( __FILE__, __LINE__ );
     }
     
@@ -258,7 +258,7 @@ namespace CoupledField
   
   template<Integer DIM>
   void GridCFS<DIM>::GetNodesByRegion( StdVector<Integer> & nodeList,
-				       const RegionIdType regionId ) {
+                                       const RegionIdType regionId ) {
     ENTER_FCN( "GridCFS::GetNodesByRegion" );
 
     Integer index = 0;
@@ -272,11 +272,11 @@ namespace CoupledField
       // look in surface regions
       index = surfRegionIds_.Find(regionId);
       if ( index != -1 ) {
-	nodeList  = surfElemNodes_[index];
+        nodeList  = surfElemNodes_[index];
       } else {
-	(*error) << "GridCFS: The region with id '" << regionId
-		 << "' was not found in the grid!";
-	Error( __FILE__, __LINE__ );
+        (*error) << "GridCFS: The region with id '" << regionId
+                 << "' was not found in the grid!";
+        Error( __FILE__, __LINE__ );
       }
     }
     
@@ -284,13 +284,13 @@ namespace CoupledField
   
   template<Integer DIM>
   void GridCFS<DIM>::GetNodeCoordinate( Point<DIM> & rfPoint,
-					const Integer inode ) {
+                                        const Integer inode ) {
     ENTER_FCN( "GridCFS::GetNodeCoordinate" );
     
     if ( inode > numNodes_ || inode < 0 ) {
       (*error) << "GridCFS: There are only " << numNodes_
-	       << " nodes in the grid. You requested coordinates for "
-	       << "node number " << inode <<". Go check your mesh file!";
+               << " nodes in the grid. You requested coordinates for "
+               << "node number " << inode <<". Go check your mesh file!";
       Error( __FILE__, __LINE__ );
     }
     
@@ -302,50 +302,50 @@ namespace CoupledField
   // ======================================================
   template<Integer DIM>
   void GridCFS<DIM>::GetVolElems( StdVector<Elem*> & elems, 
-				  const RegionIdType regionId ) {
+                                  const RegionIdType regionId ) {
     ENTER_FCN( "GridCFS::GetVolElems" );
     
     Integer index = volRegionIds_.Find(regionId);
     if ( index != -1 ) {
       elems = volElems_[index];
-    } else {	
+    } else {    
       (*error) << "GridCFS: The volume region with id '" << regionId
-	       << "' was not found in the grid!";
+               << "' was not found in the grid!";
       Error( __FILE__, __LINE__ );
     }
   }
   
   template<Integer DIM>
   void GridCFS<DIM>::GetSurfElems( StdVector<SurfElem*> & elems, 
-				   const RegionIdType regionId ) {
+                                   const RegionIdType regionId ) {
     ENTER_FCN( "GridCFS::GetSurfElems" );
     
     Integer index = surfRegionIds_.Find(regionId);
     if ( index != -1 ) {
       elems = surfElems_[index];
-    } else {	
+    } else {    
       (*error) << "GridCFS: The surface region with id '" << regionId
-	       << "' was not found in the grid!";
+               << "' was not found in the grid!";
       Error( __FILE__, __LINE__ );
     }
   }
 
   template<Integer DIM>
   void GridCFS<DIM>::GetElemsByName( StdVector<Elem*> & elems,
-				     const std::string & elemsName ) {
+                                     const std::string & elemsName ) {
     ENTER_FCN( "GridCFS::GetElemsByName" );
     Error( "Not implemented", __FILE__, __LINE__ );
   }
 
   template<Integer DIM>
   void GridCFS<DIM>::GetElemNodes( StdVector<Integer> & connect, 
-				   const Integer iElem ) {
+                                   const Integer iElem ) {
     ENTER_FCN( "GridCFS::GetElemNodes" );
     
     if ( iElem > numElems_ || iElem < 0) {  
       (*error) << "GridCFS: There are only " << numElems_ 
-	       << " elements in the grid! You requested element number " 
-	       << iElem << ". Go check your mesh file!";
+               << " elements in the grid! You requested element number " 
+               << iElem << ". Go check your mesh file!";
       Error( __FILE__, __LINE__ );
     }
     
@@ -355,20 +355,20 @@ namespace CoupledField
 
   template<Integer DIM>
   void GridCFS<DIM>::GetElemNodesCoord( Matrix<Double> & coordMat,  
-					const StdVector<Integer> & connect ) {
+                                        const StdVector<Integer> & connect ) {
     ENTER_FCN( "GridCFS::GetElemNodesCoord" );
 
     coordMat.Resize(dim_, connect.GetSize());
     for (Integer k=0; k < connect.GetSize(); k++)    
       for (Integer actDim=0; actDim < dim_; actDim++)
-	coordMat[actDim][k] = coords_[connect[k]-1][actDim];
+        coordMat[actDim][k] = coords_[connect[k]-1][actDim];
   }
   
   template<Integer DIM>
   void GridCFS<DIM>::GetElemsNextToNodes( StdVector<Elem*> & elemList, 
-					  const StdVector<Integer> & nodeList,
-					  const StdVector<RegionIdType> 
-					  & regionIds ) {
+                                          const StdVector<Integer> & nodeList,
+                                          const StdVector<RegionIdType> 
+                                          & regionIds ) {
     ENTER_FCN( "GridCFS::GetElemsNextToNodes" );
     Boolean belongs2Interface;
 
@@ -390,37 +390,37 @@ namespace CoupledField
         // Get element of given region
         StdVector<Elem*> const & elems = volElems_[index];
         
-   	// loop over all elements in subdomain
-   	for (Integer iNS=0; iNS < elems.GetSize(); iNS++)
-   	  {
-   	    Elem *aux = elems[iNS];
-   	    StdVector<Integer>  const & aux_connect = aux->connect;
+        // loop over all elements in subdomain
+        for (Integer iNS=0; iNS < elems.GetSize(); iNS++)
+          {
+            Elem *aux = elems[iNS];
+            StdVector<Integer>  const & aux_connect = aux->connect;
         
-   	    belongs2Interface = false;
+            belongs2Interface = false;
         
-   	    // check if any node is common in Interface
-   	    for (Integer inode=0; inode<aux_connect.GetSize(); inode++) {
+            // check if any node is common in Interface
+            for (Integer inode=0; inode<aux_connect.GetSize(); inode++) {
 
-   	      for (Integer nnode=0; nnode<nodeList.GetSize(); nnode++) {
+              for (Integer nnode=0; nnode<nodeList.GetSize(); nnode++) {
 
-   		if (nodeList[nnode] == aux_connect[inode]) {
-   		  belongs2Interface = true;
-   		  break;
-   		}
-   	      }
-   	    }
+                if (nodeList[nnode] == aux_connect[inode]) {
+                  belongs2Interface = true;
+                  break;
+                }
+              }
+            }
         
-   	    if (belongs2Interface)
-   	      elemList.Push_back(elems[iNS]);
-   	  }
+            if (belongs2Interface)
+              elemList.Push_back(elems[iNS]);
+          }
       }
   }
   
   template<Integer DIM>
   void GridCFS<DIM>::GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
-					    const StdVector<Elem*> & surfElems,
-					    const StdVector<RegionIdType> 
-					    &neighRegions ) {
+                                            const StdVector<Elem*> & surfElems,
+                                            const StdVector<RegionIdType> 
+                                            &neighRegions ) {
     ENTER_FCN( "GridCFS::GetElemsNextToSurface" );
     Error( "Not implemented", __FILE__, __LINE__ );
   }
@@ -433,7 +433,7 @@ namespace CoupledField
   // ======================================================
   template<Integer DIM>
   void GridCFS<DIM>::GetNodesOfElemList( StdVector<Integer> & nodeList,
-					 const StdVector<Elem*> & elemList ) {
+                                         const StdVector<Elem*> & elemList ) {
     ENTER_FCN( "GridCFS::GetNodesOfElemList" );
 
     std::set<Integer> elemNodes;
@@ -632,7 +632,7 @@ namespace CoupledField
     Matrix<Double>  ptCoord;
 
     GetElemNodesCoord(ptCoord, surfElem.connect);
-      Integer surfCorners = surfElem.ptElem->GetNumCorners();
+    Integer surfCorners = surfElem.ptElem->GetNumCorners();
  
     // Check for dimension:
     if (surfElem.ptElem->GetDim() == 1) {
@@ -672,8 +672,8 @@ namespace CoupledField
 
   template<Integer DIM>
   void GridCFS<DIM>::CalcSurfNormalOutOfVol(Vector<Double> & n,
-                                                  const Elem & surfElem,
-                                                  const Elem & volElem)
+                                            const Elem & surfElem,
+                                            const Elem & volElem)
   {
     ENTER_IFCN( "GridCFS::CalcSurfNormalOutOfVol" );
 
@@ -773,7 +773,7 @@ namespace CoupledField
 #ifdef ADAPTGRID
   template<Integer DIM>
   void GridCFS<DIM>::putNodesFromGrid_RG(grd::MultilevelGrid * grid,
-					 const Integer level)
+                                         const Integer level)
   {
     ENTER_FCN( "GridCFS::putNodesFromGrid_RG" );
 
@@ -786,25 +786,25 @@ namespace CoupledField
     Double * ps;
     Integer ilev, i=0;
     std::cout << "\t\033[32m no. of vertices: \033[0m "
-	      << (*grid).getNoOfVertices() << std::endl;
+              << (*grid).getNoOfVertices() << std::endl;
 
     Integer topLevel = grid->getTopLevel();
     for (ilev=0; ilev<=topLevel; ilev++) {
       std::list<grd::Vertex*>*le=(*grid).getGridLevel(ilev)->getVertexList();
       for (VerI p=le->begin(); p!=le->end(); ++p) {
-	Integer index = (*p)->getId();
-	index--;
-	if (index >= maxnumnodes) {
-	  std::cerr << " ERROR: catastrophic error, index overflow\n "
-		    << " The index: " << index << "  the maxnumnodes: "
-		    << maxnumnodes << '\n';
-	}
-	ps=(*p)->getPosition();
-	ptCoordinate_[index][0]=ps[0];
-	ptCoordinate_[index][1]=ps[1];
-	if (dim==3)
-	  ptCoordinate_[index][2]=ps[2];
-	i++;
+        Integer index = (*p)->getId();
+        index--;
+        if (index >= maxnumnodes) {
+          std::cerr << " ERROR: catastrophic error, index overflow\n "
+                    << " The index: " << index << "  the maxnumnodes: "
+                    << maxnumnodes << '\n';
+        }
+        ps=(*p)->getPosition();
+        ptCoordinate_[index][0]=ps[0];
+        ptCoordinate_[index][1]=ps[1];
+        if (dim==3)
+          ptCoordinate_[index][2]=ps[2];
+        i++;
       }
     }
   } // end of function putNodesFromGrid_RG
@@ -812,7 +812,7 @@ namespace CoupledField
 
   template<>
   void GridCFS<2>::putElemsFromGrid_RG(grd::MultilevelGrid * grid,
-				       const Integer level)
+                                       const Integer level)
   {
     ENTER_FCN( "GridCFS::putElemsFromGrid_RG" );
 
@@ -827,8 +827,8 @@ namespace CoupledField
     // Element Map
     if (!elemMap_.empty()) {
       for (i = 0; i < elemMap_.GetSize(); i++) {
-	ElementMap* tmp = elemMap_[i];
-	delete tmp;
+        ElementMap* tmp = elemMap_[i];
+        delete tmp;
       }
       elemMap_.Clear();
     } 
@@ -836,120 +836,120 @@ namespace CoupledField
     Integer noOfLevels=grid->getNoOfLevels();
     for (j=0; j< noOfLevels; j++)
       {
-	lt=grid->getGridLevel(j)->getElementList();
-	type=0;
+        lt=grid->getGridLevel(j)->getElementList();
+        type=0;
 
-	while(lt[type]) {
-	  for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p)
-	    {
-	      if ((*p)->isRegular())
-		{
-		  Elem * el=new Elem();
-		  // Element maping
-		  ElementMap* tmpMap = new ElementMap;
-	     
-		  Integer nnodes=(*p)->getNoOfVertices();
-		  Integer etype = (*p)->type();
-	     
-		  switch(etype)
-		    {
-		    case GRD_TRIANGLE:
-		      el->ptElem=ptTr1;
-		      break;
-		    case GRD_QUADRANGLE:
-		      el->ptElem=ptQ;
-		      break;
-		    default:
-		      Error("Unknown type of element in GridRG", __FILE__,
-			    __LINE__);
-		      break;
-		    }
-	     
-		  (*el).connect.Resize(nnodes);
-	     
-		  for (i=0; i<nnodes; i++)
-		    {   
-		      (*el).connect[i]=((*p)->getVertex(i))->getId();    
-		    }
-	     
-		  Integer sd=(*p)->getValue();
-		  if (sd >= sd_.GetSize()) {
-		    Error(" Value in element from Grid_RG is incorrect",
-			  __FILE__,__LINE__);
-		  }
-		  (*el).namesd=sd_[sd];
+        while(lt[type]) {
+          for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p)
+            {
+              if ((*p)->isRegular())
+                {
+                  Elem * el=new Elem();
+                  // Element maping
+                  ElementMap* tmpMap = new ElementMap;
+             
+                  Integer nnodes=(*p)->getNoOfVertices();
+                  Integer etype = (*p)->type();
+             
+                  switch(etype)
+                    {
+                    case GRD_TRIANGLE:
+                      el->ptElem=ptTr1;
+                      break;
+                    case GRD_QUADRANGLE:
+                      el->ptElem=ptQ;
+                      break;
+                    default:
+                      Error("Unknown type of element in GridRG", __FILE__,
+                            __LINE__);
+                      break;
+                    }
+             
+                  (*el).connect.Resize(nnodes);
+             
+                  for (i=0; i<nnodes; i++)
+                    {   
+                      (*el).connect[i]=((*p)->getVertex(i))->getId();    
+                    }
+             
+                  Integer sd=(*p)->getValue();
+                  if (sd >= sd_.GetSize()) {
+                    Error(" Value in element from Grid_RG is incorrect",
+                          __FILE__,__LINE__);
+                  }
+                  (*el).namesd=sd_[sd];
 
-		  elems_[sd].Push_back(el);
-	     
-		  // put info in elemMap
-		  Integer position = elems_[sd].GetSize()-1;
-		  tmpMap->map.Resize(1);
-		  tmpMap->map[0] = position;
-		  tmpMap->sd = sd;
-		  elemMap_.Push_back(tmpMap);
-	     
-		} // if isRegular
-	      else if ((*p)->isIrregular()) {
-		ElementMap* tmpMap = new ElementMap;
-		tmpMap->sd = (*p)->getValue();
-		grd::ConformingClosure closure;
-		typedef grd::ConformingClosure::triangleIterator TriI;
-		typedef grd::ConformingClosure::quadrangleIterator QuadI;
-		(*p)->close(closure);
-	   
-		// Process closing triangles
-		for (TriI tri = closure.beginTriangle();
-		     tri != closure.endTriangle(); ++tri) {
-		  Elem * el=new Elem();
-		  Integer nnodes=(*tri)->getNoOfVertices();
-		  el->ptElem=ptTr1;
-		  (*el).connect.Resize(nnodes);
-		  for (i=0; i<nnodes; i++)
-		    {
-		      (*el).connect[i]=((*tri)->getVertex(i))->getId();
-		    }
-		  Integer sd=(*tri)->getValue();
-		  if (sd >= sd_.GetSize()) {
-		    Error(" Value in element from Grid_RG is incorrect",
-			  __FILE__,__LINE__);
-		  }
-		  (*el).namesd=sd_[sd];
-		  elems_[sd].Push_back(el);
-	     
-		  // maping
-		  Integer position = elems_[sd].GetSize()-1;
-		  tmpMap->map.Push_back(position);
-		} // for tri
-	   
-		// Process now the quads
-		for (QuadI quad = closure.beginQuadrangle();
-		     quad != closure.endQuadrangle(); ++quad) {
-		  Elem * el=new Elem();
-		  Integer nnodes=(*quad)->getNoOfVertices();
-		  el->ptElem=ptQ;
-		  (*el).connect.Resize(nnodes);
-		  for (i=0; i<nnodes; i++)
-		    {
-		      (*el).connect[i]=((*quad)->getVertex(i))->getId();
-		    }
-		  Integer sd=(*quad)->getValue();
-		  if (sd >= sd_.GetSize()) {
-		    Error(" Value in element from Grid_RG is incorrect",
-			  __FILE__,__LINE__);
-		  }
-		  (*el).namesd=sd_[sd];
-		  elems_[sd].Push_back(el);
+                  elems_[sd].Push_back(el);
+             
+                  // put info in elemMap
+                  Integer position = elems_[sd].GetSize()-1;
+                  tmpMap->map.Resize(1);
+                  tmpMap->map[0] = position;
+                  tmpMap->sd = sd;
+                  elemMap_.Push_back(tmpMap);
+             
+                } // if isRegular
+              else if ((*p)->isIrregular()) {
+                ElementMap* tmpMap = new ElementMap;
+                tmpMap->sd = (*p)->getValue();
+                grd::ConformingClosure closure;
+                typedef grd::ConformingClosure::triangleIterator TriI;
+                typedef grd::ConformingClosure::quadrangleIterator QuadI;
+                (*p)->close(closure);
+           
+                // Process closing triangles
+                for (TriI tri = closure.beginTriangle();
+                     tri != closure.endTriangle(); ++tri) {
+                  Elem * el=new Elem();
+                  Integer nnodes=(*tri)->getNoOfVertices();
+                  el->ptElem=ptTr1;
+                  (*el).connect.Resize(nnodes);
+                  for (i=0; i<nnodes; i++)
+                    {
+                      (*el).connect[i]=((*tri)->getVertex(i))->getId();
+                    }
+                  Integer sd=(*tri)->getValue();
+                  if (sd >= sd_.GetSize()) {
+                    Error(" Value in element from Grid_RG is incorrect",
+                          __FILE__,__LINE__);
+                  }
+                  (*el).namesd=sd_[sd];
+                  elems_[sd].Push_back(el);
+             
+                  // maping
+                  Integer position = elems_[sd].GetSize()-1;
+                  tmpMap->map.Push_back(position);
+                } // for tri
+           
+                // Process now the quads
+                for (QuadI quad = closure.beginQuadrangle();
+                     quad != closure.endQuadrangle(); ++quad) {
+                  Elem * el=new Elem();
+                  Integer nnodes=(*quad)->getNoOfVertices();
+                  el->ptElem=ptQ;
+                  (*el).connect.Resize(nnodes);
+                  for (i=0; i<nnodes; i++)
+                    {
+                      (*el).connect[i]=((*quad)->getVertex(i))->getId();
+                    }
+                  Integer sd=(*quad)->getValue();
+                  if (sd >= sd_.GetSize()) {
+                    Error(" Value in element from Grid_RG is incorrect",
+                          __FILE__,__LINE__);
+                  }
+                  (*el).namesd=sd_[sd];
+                  elems_[sd].Push_back(el);
 
-		  // maping
-		  Integer position = elems_[sd].GetSize() - 1;
-		  tmpMap->map.Push_back(position);
-		} // for quad
-		// update element map list
-		elemMap_.Push_back(tmpMap);
-	      } // else if isIrregular
-	    } // for element
-	  type++;
-	} // end while(); list of elements types
+                  // maping
+                  Integer position = elems_[sd].GetSize() - 1;
+                  tmpMap->map.Push_back(position);
+                } // for quad
+                // update element map list
+                elemMap_.Push_back(tmpMap);
+              } // else if isIrregular
+            } // for element
+          type++;
+        } // end while(); list of elements types
       } // for level
  
     // Info->PrintF("Total number of elements (only for first subdomain): %i", elems_[0].GetSize());
@@ -961,7 +961,7 @@ namespace CoupledField
 
   template<>
   void GridCFS<3>::putElemsFromGrid_RG(grd::MultilevelGrid * grid,
-				       const Integer level)
+                                       const Integer level)
   {
     ENTER_FCN( "GridCFS::putElemsNodesFromGrid_RG" );
 
@@ -979,14 +979,14 @@ namespace CoupledField
     tets.Resize(4);
     for (i = 0; i < 4; i++)
       {
-	tets[i] = new grd::Tetrahedron;
+        tets[i] = new grd::Tetrahedron;
       }
 
     // Element Map
     if (!elemMap_.empty()) {
       for (i = 0; i < elemMap_.GetSize(); i++) {
-	ElementMap* tmp = elemMap_[i];
-	delete tmp;
+        ElementMap* tmp = elemMap_[i];
+        delete tmp;
       }
       elemMap_.Clear();
     } 
@@ -995,140 +995,140 @@ namespace CoupledField
     Integer noOfLevels=grid->getNoOfLevels();
     for (j=0; j< noOfLevels; j++)
       {
-	lt=grid->getGridLevel(j)->getElementList();
-	type=2; // take only volume elementes
+        lt=grid->getGridLevel(j)->getElementList();
+        type=2; // take only volume elementes
 
-	while(lt[type])
-	  {
-	    for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p)
-	      {
-		if ((*p)->isRegular())
-		  {
-		    Elem * el=new Elem();
-		    // Element maping
-		    ElementMap* tmpMap = new ElementMap;
+        while(lt[type])
+          {
+            for ( p=lt[type]->begin() ; p!= lt[type]->end(); ++p)
+              {
+                if ((*p)->isRegular())
+                  {
+                    Elem * el=new Elem();
+                    // Element maping
+                    ElementMap* tmpMap = new ElementMap;
 
-		    Integer nnodes=(*p)->getNoOfVertices();
-		    Integer etype = (*p)->type();
+                    Integer nnodes=(*p)->getNoOfVertices();
+                    Integer etype = (*p)->type();
 
-		    Integer sd,position,nnds;
+                    Integer sd,position,nnds;
 
-		    switch(etype)
-		      {
-		      case GRD_TRIANGLE:
-			break;
-		      case GRD_QUADRANGLE:
-			break;
-		      case GRD_TETRAHEDRON:
-			el->ptElem=ptTet;
-			(*el).connect.Resize(nnodes);
+                    switch(etype)
+                      {
+                      case GRD_TRIANGLE:
+                        break;
+                      case GRD_QUADRANGLE:
+                        break;
+                      case GRD_TETRAHEDRON:
+                        el->ptElem=ptTet;
+                        (*el).connect.Resize(nnodes);
 
-			for (i=0; i<nnodes; i++) {
-			  (*el).connect[i]=((*p)->getVertex(i))->getId();
-			}
+                        for (i=0; i<nnodes; i++) {
+                          (*el).connect[i]=((*p)->getVertex(i))->getId();
+                        }
 
-			sd=(*p)->getValue();
+                        sd=(*p)->getValue();
 
-			if (sd >= sd_.GetSize())
-			  Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+                        if (sd >= sd_.GetSize())
+                          Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
 
-			(*el).namesd=sd_[sd];
+                        (*el).namesd=sd_[sd];
 
-			elems_[sd].Push_back(el);
+                        elems_[sd].Push_back(el);
 
-			// put info in elemMap
-			position = elems_[sd].GetSize()-1;
-			tmpMap->map.Resize(1);
-			tmpMap->map[0] = position;
-			tmpMap->sd = sd;
+                        // put info in elemMap
+                        position = elems_[sd].GetSize()-1;
+                        tmpMap->map.Resize(1);
+                        tmpMap->map[0] = position;
+                        tmpMap->sd = sd;
 
-			elemMap_.Push_back(tmpMap);
-			break;
-		      case GRD_OCTAHEDRON:
-			(*p)->getTetras(tets);
-			Elem * elT[4];
+                        elemMap_.Push_back(tmpMap);
+                        break;
+                      case GRD_OCTAHEDRON:
+                        (*p)->getTetras(tets);
+                        Elem * elT[4];
 
-			Integer it;
-			nnds=4;
+                        Integer it;
+                        nnds=4;
 
-			// loop over tetrahedrals of octahedron
-			for (it=0; it<4; it++)
-			  {
-			    elT[it]=new Elem();
-			    elT[it]->ptElem=ptTet;
-			    elT[it]->connect.Resize(nnds);
-			    // copy of connection array
-			    for (i=0; i<nnds; i++)
-			      {
-				elT[it]->connect[i]=(tets[it]->getVertex(i))->getId();
-			      }
+                        // loop over tetrahedrals of octahedron
+                        for (it=0; it<4; it++)
+                          {
+                            elT[it]=new Elem();
+                            elT[it]->ptElem=ptTet;
+                            elT[it]->connect.Resize(nnds);
+                            // copy of connection array
+                            for (i=0; i<nnds; i++)
+                              {
+                                elT[it]->connect[i]=(tets[it]->getVertex(i))->getId();
+                              }
 
-			    sd=(*p)->getValue();
+                            sd=(*p)->getValue();
 
-			    if (sd >= sd_.GetSize()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
-			    elT[it]->namesd=sd_[sd];
+                            if (sd >= sd_.GetSize()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+                            elT[it]->namesd=sd_[sd];
 
-			    elems_[sd].Push_back(elT[it]);
-			    // mapping
-			    Integer position = elems_[sd].GetSize()-1;
-			    tmpMap->map.Push_back(position);
-			    tmpMap->sd=sd;
-			  } // end: loop over tetrahedrals of octahedron
+                            elems_[sd].Push_back(elT[it]);
+                            // mapping
+                            Integer position = elems_[sd].GetSize()-1;
+                            tmpMap->map.Push_back(position);
+                            tmpMap->sd=sd;
+                          } // end: loop over tetrahedrals of octahedron
 
-			// update element map list
-			elemMap_.Push_back(tmpMap);
-			break;
-		      case GRD_HEXAHEDRON:
-			el->ptElem=ptHexa;
-			break;
-		      default:
-			Error("Unknown type of element in GridRG", __FILE__,__LINE__);
-			break;
-		      } // end of switch
-		  }
-		else if ((*p)->isIrregular()) {
-		  ElementMap* tmpMap = new ElementMap;
-		  tmpMap->sd = (*p)->getValue();
-		  grd::ConformingClosure closure;
-		  typedef grd::ConformingClosure::tetrahedronIterator TetI;
-		  (*p)->close(closure);
+                        // update element map list
+                        elemMap_.Push_back(tmpMap);
+                        break;
+                      case GRD_HEXAHEDRON:
+                        el->ptElem=ptHexa;
+                        break;
+                      default:
+                        Error("Unknown type of element in GridRG", __FILE__,__LINE__);
+                        break;
+                      } // end of switch
+                  }
+                else if ((*p)->isIrregular()) {
+                  ElementMap* tmpMap = new ElementMap;
+                  tmpMap->sd = (*p)->getValue();
+                  grd::ConformingClosure closure;
+                  typedef grd::ConformingClosure::tetrahedronIterator TetI;
+                  (*p)->close(closure);
        
-		  // Process closing tetrahedrons
-		  for (TetI tet = closure.beginTetrahedron(); tet != closure.endTetrahedron(); ++tet)
-		    {
-		      Elem * el=new Elem();
-		      Integer nnodes=(*tet)->getNoOfVertices();
-		      el->ptElem=ptTet;
-		      (*el).connect.Resize(nnodes);
-		      for (i=0; i<nnodes; i++)
-			{
-			  (*el).connect[i]=((*tet)->getVertex(i))->getId();
-			}
-		      Integer sd=(*tet)->getValue();
-		      if (sd >= sd_.GetSize()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
-		      (*el).namesd=sd_[sd];
-		      elems_[sd].Push_back(el);
+                  // Process closing tetrahedrons
+                  for (TetI tet = closure.beginTetrahedron(); tet != closure.endTetrahedron(); ++tet)
+                    {
+                      Elem * el=new Elem();
+                      Integer nnodes=(*tet)->getNoOfVertices();
+                      el->ptElem=ptTet;
+                      (*el).connect.Resize(nnodes);
+                      for (i=0; i<nnodes; i++)
+                        {
+                          (*el).connect[i]=((*tet)->getVertex(i))->getId();
+                        }
+                      Integer sd=(*tet)->getValue();
+                      if (sd >= sd_.GetSize()) Error(" Value in element from Grid_RG is incorrect",__FILE__,__LINE__);
+                      (*el).namesd=sd_[sd];
+                      elems_[sd].Push_back(el);
 
-		      // maping
-		      Integer position = elems_[sd].GetSize()-1;
-		      tmpMap->map.Push_back(position);
-		    } // for tet
-		  // update element map list
-		  elemMap_.Push_back(tmpMap);
-		} // else if isIrregular
-	      } // for element
-	    type++;
-	  } // end while(); list of elements types
+                      // maping
+                      Integer position = elems_[sd].GetSize()-1;
+                      tmpMap->map.Push_back(position);
+                    } // for tet
+                  // update element map list
+                  elemMap_.Push_back(tmpMap);
+                } // else if isIrregular
+              } // for element
+            type++;
+          } // end while(); list of elements types
       } // for level
 
     // clean buffer of tets
     if (!tets.empty()) 
       {
-	for (i = 0; i < 4; i++)
-	  {
-	    delete tets[i];
-	  }
-	tets.Clear();
+        for (i = 0; i < 4; i++)
+          {
+            delete tets[i];
+          }
+        tets.Clear();
       }
 
 
@@ -1152,53 +1152,53 @@ namespace CoupledField
     Integer k;
     for (Integer j = 0; j < noOfLevels; j++)
       {
-	grd::GridLevel* gridlv = grid.getGridLevel(j);
-	list<grd::Element*>** lt = gridlv->getElementList();
-	Integer type;
-	if (dim==3) type=2;
-	else type=0;
-	while (lt[type])
-	  {
-	    for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
-	      {
-		if (!(*p)->isRefined())
-		  {
-		    Integer  sde = (*p)->getValue();
-		    Integer flag = 0;
-		    ElementMap* map = elemMap_[counter];
-		     
-		    Integer sdm = map->sd;
-		    if (sde != sdm) 
-		      Error("Wrong number of subdomain",__FILE__,__LINE__);
-		     
-		    for (i = 0; i < map->map.GetSize(); i++)
-		      {
-			Integer elmId = map->map[i];
-			flag = elems_[sdm][elmId]->refinementFlag;
-			Integer numRefs=elems_[sdm][elmId]->refinementNumber;
-			if (flag == 1) 
-			  {
-			    
-			    (*p)->markForRefinement(numRefs-1);
-		    
-			    break;
-			  }
+        grd::GridLevel* gridlv = grid.getGridLevel(j);
+        list<grd::Element*>** lt = gridlv->getElementList();
+        Integer type;
+        if (dim==3) type=2;
+        else type=0;
+        while (lt[type])
+          {
+            for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
+              {
+                if (!(*p)->isRefined())
+                  {
+                    Integer  sde = (*p)->getValue();
+                    Integer flag = 0;
+                    ElementMap* map = elemMap_[counter];
+                     
+                    Integer sdm = map->sd;
+                    if (sde != sdm) 
+                      Error("Wrong number of subdomain",__FILE__,__LINE__);
+                     
+                    for (i = 0; i < map->map.GetSize(); i++)
+                      {
+                        Integer elmId = map->map[i];
+                        flag = elems_[sdm][elmId]->refinementFlag;
+                        Integer numRefs=elems_[sdm][elmId]->refinementNumber;
+                        if (flag == 1) 
+                          {
+                            
+                            (*p)->markForRefinement(numRefs-1);
+                    
+                            break;
+                          }
 
-			if (flag == -1)
-			  {
-			    (*p)->markForCoarsening();
-			    break;
-			  }
-			 
-		      }
-		     
-		    // update counter
-		    counter++;
-		  }
-	      } // for loop elems
-	    // next element type
-	    type++;
-	  } // type loop
+                        if (flag == -1)
+                          {
+                            (*p)->markForCoarsening();
+                            break;
+                          }
+                         
+                      }
+                     
+                    // update counter
+                    counter++;
+                  }
+              } // for loop elems
+            // next element type
+            type++;
+          } // type loop
       } // level loop
 
     grid.refine();      
@@ -1224,20 +1224,20 @@ namespace CoupledField
     else type=0;
     while (lt[type])
       {
-	for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
-	  {
-	    if (!(*p)->isRefined())
-	      {
-		Integer  sde = (*p)->getValue();
-		grd::Element *parent = (*p)->getParent();
-		 
-		Integer numRefs = parent->getNumOfRefinements(); 
-		if (numRefs)
-		  (*p)->markForRefinement(numRefs-1);
-	      } 
-	  } // for loop elems
-	// next element type
-	type++;
+        for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p)
+          {
+            if (!(*p)->isRefined())
+              {
+                Integer  sde = (*p)->getValue();
+                grd::Element *parent = (*p)->getParent();
+                 
+                Integer numRefs = parent->getNumOfRefinements(); 
+                if (numRefs)
+                  (*p)->markForRefinement(numRefs-1);
+              } 
+          } // for loop elems
+        // next element type
+        type++;
       } // type loop
     grid.refine();     
   }
@@ -1256,14 +1256,14 @@ namespace CoupledField
       list<grd::Element*>** lt = gridlv->getElementList();
       Integer type = 0;
       if (dim == 3)
-	type = 2;
+        type = 2;
       while (lt[type]) {
-	for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p) {
-	  if (!(*p)->isRefined())
-	    (*p)->markForRefinement();
-	} // for loop elems
-	// next element type
-	type++;
+        for (ElmI p = lt[type]->begin(); p != lt[type]->end(); ++p) {
+          if (!(*p)->isRefined())
+            (*p)->markForRefinement();
+        } // for loop elems
+        // next element type
+        type++;
       } // type loop
     } // level loop
 
@@ -1276,7 +1276,7 @@ namespace CoupledField
     Integer i,j;
     for (i=0; i<sd_.GetSize(); i++) {
       for (j=0; j<elems_[i].GetSize(); j++) {
-	elems_[i][j]->refinementFlag=TRUE;
+        elems_[i][j]->refinementFlag=TRUE;
       }
     }
   }
@@ -1309,11 +1309,11 @@ namespace CoupledField
   //     // first main loop: form list with element-neighbors for each node
   //     for (i = 0; i < sd_.GetSize(); i++) {
   //       for (j = 0; j < elems_[i].GetSize(); j++) {
-  // 	Integer noOfVertices = elems_[i][j]->connect.GetSize();
-  // 	for (k = 0; k < noOfVertices; k++) {
-  // 	  Integer id = elems_[i][j]->connect[k];
-  // 	  vtNeighbors_[id-1].Push_back(elems_[i][j]);
-  // 	} // for loop over vertices, index k
+  //    Integer noOfVertices = elems_[i][j]->connect.GetSize();
+  //    for (k = 0; k < noOfVertices; k++) {
+  //      Integer id = elems_[i][j]->connect[k];
+  //      vtNeighbors_[id-1].Push_back(elems_[i][j]);
+  //    } // for loop over vertices, index k
   //       } // for loop over elements of the subdomain i, index j
   //     } // for loop over sd, index i
 
@@ -1330,38 +1330,38 @@ namespace CoupledField
   //     // second main loop: form list with element-neighbors for each element
   //     for (i = 0; i < sd_.GetSize(); i++) {   // do loop over subdomains
   //       for (j = 0; j < elems_[i].GetSize(); j++) {   // do loop over elements of subdomain
-  // 	Integer noOfVertices = elems_[i][j]->connect.GetSize(); 
-  // 	for (k = 0; k < noOfVertices; k++) {   // do loop over vertices of elements of the subdomain
-  // 	  Integer id = elems_[i][j]->connect[k]; 
-  // 	  for (n= 0; n < vtNeighbors_[id-1].GetSize(); n++) {  // do loop over list of neighbors for node
-  // 	    Elem* ptel = vtNeighbors_[id-1][n];           
+  //    Integer noOfVertices = elems_[i][j]->connect.GetSize(); 
+  //    for (k = 0; k < noOfVertices; k++) {   // do loop over vertices of elements of the subdomain
+  //      Integer id = elems_[i][j]->connect[k]; 
+  //      for (n= 0; n < vtNeighbors_[id-1].GetSize(); n++) {  // do loop over list of neighbors for node
+  //        Elem* ptel = vtNeighbors_[id-1][n];           
 
-  // 	    if (ptel != elems_[i][j]) {           // check that this element is not the same element for which we are looking for neighbors
-  // 	      Boolean flag = false;
-  // 	      for (m = 0; m < (*elNeighbors_[i])[j].GetSize(); m++) { // check that this element is new in list of neighbors
-  // 		Elem* ptel_tmp = (*elNeighbors_[i])[j][m];
-  // 		if (ptel_tmp == ptel)
-  // 		  flag = true;
-  // 	      } // for loop over neighbors, index m
-  // 	      if (!flag)
-  // 		(*elNeighbors_[i])[j].Push_back(ptel);
+  //        if (ptel != elems_[i][j]) {           // check that this element is not the same element for which we are looking for neighbors
+  //          Boolean flag = false;
+  //          for (m = 0; m < (*elNeighbors_[i])[j].GetSize(); m++) { // check that this element is new in list of neighbors
+  //            Elem* ptel_tmp = (*elNeighbors_[i])[j][m];
+  //            if (ptel_tmp == ptel)
+  //              flag = true;
+  //          } // for loop over neighbors, index m
+  //          if (!flag)
+  //            (*elNeighbors_[i])[j].Push_back(ptel);
 
-  // 	    } // if (ptle != elem)
-  // 	  } // for loop over vtNeighbors, index n
-  // 	} // for loop over vertices, index k
+  //        } // if (ptle != elem)
+  //      } // for loop over vtNeighbors, index n
+  //    } // for loop over vertices, index k
   //       } // for loop over elements of the subdomain, index j
   //     } // for loop over sd, index i
 
   //     //check of element-neighbors
   //     //   for (i=0; i<sd_.GetSize(); i++) {
   //     //       for (j = 0; j < elems_[i].GetSize(); j++) {  
-  //     // 	cout << " element: " << j << " with connect " << elems_[i][j]->connect << endl;	
+  //     //     cout << " element: " << j << " with connect " << elems_[i][j]->connect << endl; 
 
-  //     // 	for (m = 0; m < (*elNeighbors_[i])[j].GetSize(); m++) { // loop over neigbors for elem j
-  //     // 	  cout << " neighbors: " << m << endl;   
-  //     // 	  Elem * ptElm=(*elNeighbors_[i])[j][m];
-  //     // 	  cout << ptElm->connect;
-  //     // 	}
+  //     //     for (m = 0; m < (*elNeighbors_[i])[j].GetSize(); m++) { // loop over neigbors for elem j
+  //     //       cout << " neighbors: " << m << endl;   
+  //     //       Elem * ptElm=(*elNeighbors_[i])[j][m];
+  //     //       cout << ptElm->connect;
+  //     //     }
   //     //       }
   //     //   }
 
@@ -1390,8 +1390,8 @@ namespace CoupledField
 
   //   template<Integer DIM>
   //   void GridCFS<DIM>::FormNeighbors4NodesOfElements(const StdVector<Elem*>& elems, 
-  // 						   StdVector<StdVector<Elem*> > &nodeNeighbors, 
-  // 						   StdVector<Integer> & map)
+  //                                               StdVector<StdVector<Elem*> > &nodeNeighbors, 
+  //                                               StdVector<Integer> & map)
   //   {
   //     ENTER_FCN( "GridCFS::FormNeighbors4NodeOfElements" );
 
@@ -1407,16 +1407,16 @@ namespace CoupledField
   //     for (iel = 0; iel < elems.GetSize(); iel++) {
   //       Integer noOfVertices = elems[iel]->connect.GetSize();
   //       for (k = 0; k < noOfVertices; k++) {
-  // 	Integer id = elems[iel]->connect[k];
-  // 	Integer imp;
-  // 	for (imp=0;imp<map.GetSize();imp++) 
-  // 	  {
-  // 	    if (id==map[imp]) 
-  // 	      {
-  // 		break;
-  // 	      }	    
-  // 	  }	
-  // 	nodeNeighbors[imp].Push_back(elems[iel]);
+  //    Integer id = elems[iel]->connect[k];
+  //    Integer imp;
+  //    for (imp=0;imp<map.GetSize();imp++) 
+  //      {
+  //        if (id==map[imp]) 
+  //          {
+  //            break;
+  //          }     
+  //      }     
+  //    nodeNeighbors[imp].Push_back(elems[iel]);
   //       } // for loop over vertices, index k
   //     } // for loop over elements iel
 
@@ -1427,8 +1427,8 @@ namespace CoupledField
 
   //  template<Integer DIM> void
   //   GridCFS<DIM>::DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, 
-  // 				      const StdVector<Elem*>&elems, 
-  // 				      StdVector<Elem*> & belongingSE)
+  //                                  const StdVector<Elem*>&elems, 
+  //                                  StdVector<Elem*> & belongingSE)
   //   {
   //     ENTER_FCN( "GridCFS:DefineBelonging4Elems" );
 
@@ -1445,50 +1445,50 @@ namespace CoupledField
   //     for (ise=0; ise<noOfSurfElems; ise++) 
   //       { // loop over surface elements
       
-  // 	Boolean FoundNd=FALSE;
-  // 	Elem * ptAuxElem;
+  //    Boolean FoundNd=FALSE;
+  //    Elem * ptAuxElem;
       
-  // 	StdVector<Integer> &connectSE=elemsSurf[ise]->connect;
+  //    StdVector<Integer> &connectSE=elemsSurf[ise]->connect;
       
-  // 	// get list of neighbors for first node of the surface element
-  // 	Integer imp;   // get local number for this node
-  // 	for (imp=0; imp<map.GetSize(); imp++)
-  // 	  if (connectSE[0]==map[imp]) 
-  // 	    break;
+  //    // get list of neighbors for first node of the surface element
+  //    Integer imp;   // get local number for this node
+  //    for (imp=0; imp<map.GetSize(); imp++)
+  //      if (connectSE[0]==map[imp]) 
+  //        break;
       
     
-  // 	StdVector<Elem*> &listNeigh4Elem=listNeighbors[imp];
+  //    StdVector<Elem*> &listNeigh4Elem=listNeighbors[imp];
       
-  // 	// loop over list of neighbors
-  // 	Integer ine;
-  // 	for (ine=0;ine<listNeigh4Elem.GetSize();ine++)
-  // 	  {
-  // 	    ptAuxElem=listNeigh4Elem[ine];
-	  
-  // 	    // check is there other vertices of element
-  // 	    // loop over other nodes of surf element
-  // 	    for (je=1;je<connectSE.GetSize();je++) {
-  // 	      Integer verSE=connectSE[je];
-	    
-  // 	      //loop over vertices of the element
-  // 	      FoundNd=FALSE;
-  // 	      StdVector<Integer> &vertices=ptAuxElem->connect;
-  // 	      Integer ivt;
-  // 	      for(ivt=0;ivt<vertices.GetSize();ivt++) {
-  // 		if (verSE==vertices[ivt]) {
-  // 		  FoundNd=TRUE;
-  // 		  break;
-  // 		}
-  // 	      } // end of loop over vertices of neigh-element
-	    
-  // 	      if (!FoundNd) break;
-  // 	    } // end of loop over nodes of surf element
-	  
-  // 	    if (FoundNd) {
-  // 	      belongingSE[ise]=ptAuxElem;
-  // 	      break;
-  // 	    }
-  // 	  } // end loop over neighbors 
+  //    // loop over list of neighbors
+  //    Integer ine;
+  //    for (ine=0;ine<listNeigh4Elem.GetSize();ine++)
+  //      {
+  //        ptAuxElem=listNeigh4Elem[ine];
+          
+  //        // check is there other vertices of element
+  //        // loop over other nodes of surf element
+  //        for (je=1;je<connectSE.GetSize();je++) {
+  //          Integer verSE=connectSE[je];
+            
+  //          //loop over vertices of the element
+  //          FoundNd=FALSE;
+  //          StdVector<Integer> &vertices=ptAuxElem->connect;
+  //          Integer ivt;
+  //          for(ivt=0;ivt<vertices.GetSize();ivt++) {
+  //            if (verSE==vertices[ivt]) {
+  //              FoundNd=TRUE;
+  //              break;
+  //            }
+  //          } // end of loop over vertices of neigh-element
+            
+  //          if (!FoundNd) break;
+  //        } // end of loop over nodes of surf element
+          
+  //        if (FoundNd) {
+  //          belongingSE[ise]=ptAuxElem;
+  //          break;
+  //        }
+  //      } // end loop over neighbors 
       
   //       } // loop over Surf element 
   //   }
@@ -1500,9 +1500,9 @@ namespace CoupledField
 
   //   template<Integer DIM> void
   //   GridCFS<DIM>::GetVolNeighboursForSurf(const StdVector<Elem*> & surfElems,
-  // 					const StdVector<std::string> & neighRegions,
-  // 					StdVector<Elem*> & volElems,
-  // 					const Integer level)
+  //                                    const StdVector<std::string> & neighRegions,
+  //                                    StdVector<Elem*> & volElems,
+  //                                    const Integer level)
   //   {
   //     ENTER_FCN( "GridCFS::GetVolNeighboursForSurf" );
 
@@ -1520,9 +1520,9 @@ namespace CoupledField
   //     // the volume elems are picked
   //     for (Integer iSD=0; iSD<neighRegions.GetSize(); iSD++)
   //       {
-  // 	GetElemSD(auxElems, neighRegions[iSD], level);
-  // 	for (Integer iEl=0; iEl<auxElems.GetSize(); iEl++)
-  // 	  neighElems.Push_back(auxElems[iEl]);
+  //    GetElemSD(auxElems, neighRegions[iSD], level);
+  //    for (Integer iEl=0; iEl<auxElems.GetSize(); iEl++)
+  //      neighElems.Push_back(auxElems[iEl]);
   //       }
 
   //     // create a list of elements in 'neighRegion', which have at least
@@ -1531,69 +1531,69 @@ namespace CoupledField
   //     Integer ise,je;
   //     for (ise=0; ise<noOfSurfElems; ise++) 
   //       { // loop over surface elements
-	
-  // 	Boolean FoundNd=FALSE;
-  // 	Elem * ptAuxElem;
-	
-  // 	StdVector<Integer> &connectSE=surfElems[ise]->connect;
-	
-  // 	// get list of neighbors for first node of the surface element
-  // 	Integer imp;   // get local number for this node
-  // 	for (imp=0; imp<map.GetSize(); imp++)
-  // 	  if (connectSE[0]==map[imp]) 
-  // 	    break;
-	
-	
-  // 	StdVector<Elem*> &listNeigh4Elem=listNeighbors[imp];
-	
-  // 	// loop over list of neighbors
-  // 	Integer ine;
-  // 	for (ine=0;ine<listNeigh4Elem.GetSize();ine++)
-  // 	  {
-  // 	    ptAuxElem=listNeigh4Elem[ine];
-	    
-  // 	    // check are there other vertices of element
-  // 	    // loop over other nodes of surf element
-  // 	    for (je=1;je<connectSE.GetSize();je++) {
-  // 	      Integer verSE=connectSE[je];
-	      
-  // 	      //loop over vertices of the element
-  // 	      FoundNd=FALSE;
-  // 	      StdVector<Integer> &vertices=ptAuxElem->connect;
-  // 	      Integer ivt;
-  // 	      for(ivt=0;ivt<vertices.GetSize();ivt++) {
-  // 		if (verSE==vertices[ivt]) {
-  // 		  FoundNd=TRUE;
-  // 		  break;
-  // 		}
-  // 	      } // end of loop over vertices of neigh-element
-	      
-  // 	      if (!FoundNd) break;
-  // 	    } // end of loop over nodes of surf element
-	    
-  // 	    if (FoundNd) {
-  // 	      volElems[ise]=ptAuxElem;
-  // 	      break;
-  // 	    }
-  // 	  } // end loop over all elements in neighbouring region
-  // 	if (!FoundNd)
-  // 	  {
-  // 	    errMsg  = "GridCFS::GetVolNeighboursForSurf: For the surface element with Nr. ";
-  // 	    errMsg += Info->GenStr(surfElems[ise]->elemNum);
-  // 	    errMsg += " an according volume element was not ";
-  // 	    errMsg += "found in the regions '";
-  // 	    for (Integer j=0; j<neighRegions.GetSize()-1; j++) 
-  // 	      errMsg += neighRegions[j] + "', '";
-  // 	    errMsg += neighRegions[neighRegions.GetSize()-1] + "'.\n";
-  // 	    errMsg += "Please make sure, that for each ";
-  // 	    errMsg += "surface element there is exactly ONE volume element ";
-  // 	    errMsg += "in the speciefied neighbouring region.";
-	    
-	    
-  // 	    Error(errMsg.c_str(), __FILE__, __LINE__);
-  // 	  }
-	
-	
+        
+  //    Boolean FoundNd=FALSE;
+  //    Elem * ptAuxElem;
+        
+  //    StdVector<Integer> &connectSE=surfElems[ise]->connect;
+        
+  //    // get list of neighbors for first node of the surface element
+  //    Integer imp;   // get local number for this node
+  //    for (imp=0; imp<map.GetSize(); imp++)
+  //      if (connectSE[0]==map[imp]) 
+  //        break;
+        
+        
+  //    StdVector<Elem*> &listNeigh4Elem=listNeighbors[imp];
+        
+  //    // loop over list of neighbors
+  //    Integer ine;
+  //    for (ine=0;ine<listNeigh4Elem.GetSize();ine++)
+  //      {
+  //        ptAuxElem=listNeigh4Elem[ine];
+            
+  //        // check are there other vertices of element
+  //        // loop over other nodes of surf element
+  //        for (je=1;je<connectSE.GetSize();je++) {
+  //          Integer verSE=connectSE[je];
+              
+  //          //loop over vertices of the element
+  //          FoundNd=FALSE;
+  //          StdVector<Integer> &vertices=ptAuxElem->connect;
+  //          Integer ivt;
+  //          for(ivt=0;ivt<vertices.GetSize();ivt++) {
+  //            if (verSE==vertices[ivt]) {
+  //              FoundNd=TRUE;
+  //              break;
+  //            }
+  //          } // end of loop over vertices of neigh-element
+              
+  //          if (!FoundNd) break;
+  //        } // end of loop over nodes of surf element
+            
+  //        if (FoundNd) {
+  //          volElems[ise]=ptAuxElem;
+  //          break;
+  //        }
+  //      } // end loop over all elements in neighbouring region
+  //    if (!FoundNd)
+  //      {
+  //        errMsg  = "GridCFS::GetVolNeighboursForSurf: For the surface element with Nr. ";
+  //        errMsg += Info->GenStr(surfElems[ise]->elemNum);
+  //        errMsg += " an according volume element was not ";
+  //        errMsg += "found in the regions '";
+  //        for (Integer j=0; j<neighRegions.GetSize()-1; j++) 
+  //          errMsg += neighRegions[j] + "', '";
+  //        errMsg += neighRegions[neighRegions.GetSize()-1] + "'.\n";
+  //        errMsg += "Please make sure, that for each ";
+  //        errMsg += "surface element there is exactly ONE volume element ";
+  //        errMsg += "in the speciefied neighbouring region.";
+            
+            
+  //        Error(errMsg.c_str(), __FILE__, __LINE__);
+  //      }
+        
+        
   //       } // loop over all Surface elements 
   //   }
   

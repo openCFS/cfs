@@ -44,8 +44,8 @@ namespace CoupledField {
       \param time time of calculation
     */
     virtual void WriteNodeSolutionTransient(const NodeStoreSol<Double>& data, 
-					    const Integer step, 
-					    const Double time) = 0;
+                                            const Integer step, 
+                                            const Double time) = 0;
 
     //! write element solution vector (transient/static)
     /*!
@@ -54,8 +54,8 @@ namespace CoupledField {
       \param time time of calculation
     */
     virtual void WriteElemSolutionTransient(const ElemStoreSol<Double>& data, 
-					    const Integer step, 
-					    const Double time) = 0;
+                                            const Integer step, 
+                                            const Double time) = 0;
 
     //! write node history vector (transient/static)
     /*!
@@ -64,8 +64,8 @@ namespace CoupledField {
       \param time time of calculation
     */
     virtual void WriteNodeHistoryTransient(const NodeStoreSol<Double>& data, 
-					   const Integer step, 
-					   const Double time);
+                                           const Integer step, 
+                                           const Double time);
   
 
     // *************************
@@ -78,12 +78,12 @@ namespace CoupledField {
       \param step step of calculation
       \param frequency frequency of exciting function
       \param format format for writing complex solution
-             (real-imag/amplitude-phase)
+      (real-imag/amplitude-phase)
     */
     virtual void WriteNodeSolutionHarmonic(const NodeStoreSol<Complex>& data, 
-					   const Integer step,
-					   const Double frequency,
-					   const ComplexFormat format) = 0;
+                                           const Integer step,
+                                           const Double frequency,
+                                           const ComplexFormat format) = 0;
 
     //! write element solution vector (harmonic)
     /*!
@@ -92,12 +92,12 @@ namespace CoupledField {
       \param frequency frequency of exciting function
       \param frequencyStep step of calculation
       \param format format for writing complex solution
-             (real-imag/amplitude-phase)
+      (real-imag/amplitude-phase)
     */
     virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data, 
-					   const Integer step,
-					   const Double frequency,
-					   const ComplexFormat format) = 0;
+                                           const Integer step,
+                                           const Double frequency,
+                                           const ComplexFormat format) = 0;
 
     //! write nodal history vector (harmonic)
     /*!
@@ -106,12 +106,12 @@ namespace CoupledField {
       \param frequency frequency of exciting function
       \param frequencyStep step of calculation
       \param format format for writing complex solution
-             (real-imag/amplitude-phase)
+      (real-imag/amplitude-phase)
     */
     void WriteNodeHistoryHarmonic(const NodeStoreSol<Complex>& data, 
-				  const Integer step,
-				  const Double frequency,
-				  const ComplexFormat format);
+                                  const Integer step,
+                                  const Double frequency,
+                                  const ComplexFormat format);
 
     //! to open new file for printing results only for GMV
 
@@ -125,8 +125,8 @@ namespace CoupledField {
       \param nrDofs nr of degrees of freedom in solution
     */
     void WriteSolMatrix(Grid * ptgrid,
-			const Vector<Double> sol, 
-			const std::string matFileName, const Integer nrDofs=1);
+                        const Vector<Double> sol, 
+                        const std::string matFileName, const Integer nrDofs=1);
 
 
   protected:

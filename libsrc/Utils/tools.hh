@@ -27,7 +27,7 @@ namespace CoupledField {
   //!                 error occured. The __LINE__ macro should be inserted in
   //!                 the call. The argument is optional.
   void Error( const Char * Text, const Char * const filename = NULL,
-	      const Integer numline = 0 );
+              const Integer numline = 0 );
 
 
   //! Function for issuing an error message and terminating program execution.
@@ -65,7 +65,7 @@ namespace CoupledField {
   //!                 problem occured. The __LINE__ macro should be inserted in
   //!                 the call. The argument is optional.
   void Warning( const Char* Text, const Char* const filename = NULL,
-		const Integer numline = 0 );
+                const Integer numline = 0 );
 
 
   //! Function for issuing an warning message, will not terminate the program
@@ -101,7 +101,7 @@ namespace CoupledField {
   //! \param strVec    (output) vector of the single substrings
   //! \param delimiter (input)  character used as delimiter
   void SplitStringList( std::string list, StdVector<std::string> &strVec,
-			Char delimiter = ',' );
+                        Char delimiter = ',' );
 
 
   //! Reader of Fnc from conf-file
@@ -184,7 +184,7 @@ namespace CoupledField {
 
   // define number of refinement for the element
   Integer defineRefinements(const Double tolElem, const Double tolTotal,
-			    const Integer noOfChilds);
+                            const Integer noOfChilds);
 
   //! calculate the normal to line with following orientation: a-->b
   /*!
@@ -206,7 +206,7 @@ namespace CoupledField {
     \param a,b,c vertices of element
   */
   void calcNormal2Surface(Vector<Double> & normal,Point<3> a,Point<3> b,
-			  Point<3> c);
+                          Point<3> c);
 
 
   //! calculate normal to surface element using matrix parameter

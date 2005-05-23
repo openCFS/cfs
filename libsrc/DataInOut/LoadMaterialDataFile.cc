@@ -55,7 +55,7 @@ namespace CoupledField
 
 #ifdef DEBUG
     (*debug) << std::endl << "*** Load material data of " << matName 
-	     << " from type " << matType << " from file " << filename
+             << " from type " << matType << " from file " << filename
              << std::endl;
 #endif
 
@@ -124,7 +124,7 @@ namespace CoupledField
       fin.getline( buffer, bufLength, '\n' );
       if ( strchr(buffer,'#') == NULL ) {
         found = 1;
-	if ( fin.eof() ) {
+        if ( fin.eof() ) {
           buffer = NULL;
           //std::cout << std::endl << " ReadLine: Unexpected end of file! "
           // << std::endl;
@@ -167,7 +167,7 @@ namespace CoupledField
       }
     }
 
-    if (!found) {	
+    if (!found) {       
       errMsg  = "FindMat: Material '";
       errMsg += matName;
       errMsg += "' not found in file '";
@@ -222,7 +222,7 @@ namespace CoupledField
         else if (matC==TRUE)
           material -> SetPiezoMatrixDataC(i-1, j-1, helpval);
       }
-      delete strPtr;	
+      delete strPtr;    
     }
 
     // read piezoelectric coupling terms
@@ -250,32 +250,32 @@ namespace CoupledField
           material -> SetPiezoMatrixDataC(j-1,i+6-1, helpval);
         }
       }
-      delete strPtr;	
+      delete strPtr;    
     }
 
     // read dielectric terms
     for (i=1; i<=3; i++)
       {
-	ReadLine(fin,buffer);
-	strPtr = new std::istringstream(buffer);
+        ReadLine(fin,buffer);
+        strPtr = new std::istringstream(buffer);
       
-	for (j=1 ; j<=3; j++)
-	  {
-	    *strPtr >> helpval;
-	    if (strPtr->fail())
-	      std::cout << "*** The materialfile is corrupt! ***  Material: "
+        for (j=1 ; j<=3; j++)
+          {
+            *strPtr >> helpval;
+            if (strPtr->fail())
+              std::cout << "*** The materialfile is corrupt! ***  Material: "
                         << materialName << std::endl;
 
-	    if (matC==FALSE){
-	    //	    material -> SetPiezoMatrixData(i+6-1,j+6-1, helpval);
-	    // indizes of Matrix<Double> start at 0 !!!!!!!!!!!!!!!!!
-	      material -> SetPiezoMatrixData(i+6-1,j+6-1, helpval);
-	    }
-	    else if (matC==TRUE){
-	      material -> SetPiezoMatrixDataC(i+6-1,j+6-1, helpval);
-	    }
-	  }
-	delete strPtr;	
+            if (matC==FALSE){
+              //      material -> SetPiezoMatrixData(i+6-1,j+6-1, helpval);
+              // indizes of Matrix<Double> start at 0 !!!!!!!!!!!!!!!!!
+              material -> SetPiezoMatrixData(i+6-1,j+6-1, helpval);
+            }
+            else if (matC==TRUE){
+              material -> SetPiezoMatrixDataC(i+6-1,j+6-1, helpval);
+            }
+          }
+        delete strPtr;  
       }
 
     // Rotation of the MaterialMatrices corresponding to the polarisation of the piezoelectric body
@@ -288,12 +288,12 @@ namespace CoupledField
  
     if( params->HasValue( "y", "1", "piezo", "polingDirection" ) ){
       if (params->HasValue("subtype", "axi", "piezo") ){
-	std::cout<< "\n Be aware, that you are treating an axisymmetric "
+        std::cout<< "\n Be aware, that you are treating an axisymmetric "
                  << "piezoelectric body, which does not have any y-direction."
                  << "\n Please check your xml-file. \n Press Ctrl+C to stop "
                  << "calculation, any other key to continue."
                  << std::endl;
-	getchar();
+        getchar();
       }
       a2 = 1;
     }
@@ -328,9 +328,9 @@ namespace CoupledField
       *strPtr >>  Esat >> Psat >> dirPol;
 
       if (strPtr->fail()) {
-	std::cout << "*** The materialfile is corrupt (hysteresis)! ***  Material: "
-		  << materialName << std::endl;
-	Error("");
+        std::cout << "*** The materialfile is corrupt (hysteresis)! ***  Material: "
+                  << materialName << std::endl;
+        Error("");
       }
 
       delete strPtr;
@@ -338,7 +338,7 @@ namespace CoupledField
       strPtr = new std::istringstream(buffer);
 
       if (hystType == "jiles") {
-	*strPtr >> aJiles >> alphaJiles >> kJiles >> cJiles;
+        *strPtr >> aJiles >> alphaJiles >> kJiles >> cJiles;
       }
 
 
@@ -346,26 +346,26 @@ namespace CoupledField
       std::string probGeo;
       params->Get( "type", probGeo, "geometry" );
       if ( (probGeo == "axi") || ( probGeo == "plane") ) {
-	if (dirPol == 3) {
-	  dirPol = 2;
-	}
+        if (dirPol == 3) {
+          dirPol = 2;
+        }
       }
 
       if (hystType == "preisach") {
-	material -> SetEsat(Esat);
+        material -> SetEsat(Esat);
       }
       else if ( hystType == "jiles" ) {
-	material -> SetJiles_a(aJiles);
-	material -> SetJiles_alpha(alphaJiles);
-	material -> SetJiles_k(kJiles);
-	material -> SetJiles_c(cJiles);
+        material -> SetJiles_a(aJiles);
+        material -> SetJiles_alpha(alphaJiles);
+        material -> SetJiles_k(kJiles);
+        material -> SetJiles_c(cJiles);
       }
 
       material -> SetPsat(Psat);
       material -> SetDirPol(dirPol);
       material -> SetHysteresisType(hystType);
 
-      delete strPtr;	
+      delete strPtr;    
     }
 
 
@@ -465,7 +465,7 @@ namespace CoupledField
 
 
   void LoadMaterialDataFile::ReadMagnetic( std::ifstream &fin,
-					   MaterialData *material ) {
+                                           MaterialData *material ) {
 
     ENTER_FCN( "LoadMaterialDataFile::ReadMagnetic" );
 
@@ -482,7 +482,7 @@ namespace CoupledField
     Integer numRead = SSCANF( buffer, "%*d%*s%s%s%s", materialName, aux1,aux2);
     if ( numRead > 1 ) {
       if ( strcmp(aux1,"bhapprox:") == 0 ) {
-	material->SetBHCurveFileName( aux2 );
+        material->SetBHCurveFileName( aux2 );
       }
     }
 
@@ -494,17 +494,17 @@ namespace CoupledField
     *strPtr >> conductivity >> permeability >> mX >> mY >> mZ;
     if (strPtr->fail()) {
       (*error) << "LoadMaterialDataFile::ReadMagnetic: The materialfile is "
-	       << "corrupt!\n";
+               << "corrupt!\n";
       Error( __FILE__, __LINE__ );
     }
     
     delete strPtr;
    
     for (int i=0; i<3; i++)
-    { 
-      material->SetPermeability(i,i,permeability);
-      material->SetConductivity(i,i,conductivity);
-    }
+      { 
+        material->SetPermeability(i,i,permeability);
+        material->SetConductivity(i,i,conductivity);
+      }
     material->SetPermMag(mX, mY, mZ);
 
     Info->PrintMagMat(*material);
@@ -786,8 +786,8 @@ namespace CoupledField
   if (strPtr->fail())
   std::cout << "*** The materialfile is corrupt! ***  Material: " << materialName << std::endl;
   splinePtr -> Append(new NonlinSpline(lowerLimit,upperLimit,*coeffPtr));
-  delete strPtr;	  
-  }	
+  delete strPtr;          
+  }     
   material->SetNonLinSpline(splinePtr);
   //  fin.getline(buffer,bufLength,'\n');
 

@@ -9,98 +9,98 @@
 
 namespace CoupledField {
 
-//! class for time stepping of hyperbolic PDE: method is NewmarkFracDamp
+  //! class for time stepping of hyperbolic PDE: method is NewmarkFracDamp
 
-class NewmarkFracDamp: public TimeStepping
-{
-public:
-  //! constructor
-  /*!
-    \param apdename name of PDE
-    \param algebraicsystem pointer to algebraic system used by PDE
-	\param ptEQN
-	\param aptgrid
-	\param aptStdPDE pointer of class from which NewmarkFracDamp is initiated
-	\param asubdomainList list of subdomains
-	\param adampingList list damping description for subdomains
-	\param afracMemory number of stored function values
-	\param ainType descriptor for interpolation of past function values
-	\param isaxi axisymmetric setup
-  */
-  NewmarkFracDamp (std::string apdename, const PdeIdType apdeId,
-		   BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
-		   Grid * aptgrid, StdPDE * aptStdPDE, 
-		   StdVector<RegionIdType> asubdomainList,
-		   StdVector<DampingType> adampingList,
-		   Integer afracMemory, InterpolType ainType, Boolean isaxi);
+  class NewmarkFracDamp: public TimeStepping
+  {
+  public:
+    //! constructor
+    /*!
+      \param apdename name of PDE
+      \param algebraicsystem pointer to algebraic system used by PDE
+      \param ptEQN
+      \param aptgrid
+      \param aptStdPDE pointer of class from which NewmarkFracDamp is initiated
+      \param asubdomainList list of subdomains
+      \param adampingList list damping description for subdomains
+      \param afracMemory number of stored function values
+      \param ainType descriptor for interpolation of past function values
+      \param isaxi axisymmetric setup
+    */
+    NewmarkFracDamp (std::string apdename, const PdeIdType apdeId,
+                     BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
+                     Grid * aptgrid, StdPDE * aptStdPDE, 
+                     StdVector<RegionIdType> asubdomainList,
+                     StdVector<DampingType> adampingList,
+                     Integer afracMemory, InterpolType ainType, Boolean isaxi);
   
-  //! deconstructor
-  virtual ~NewmarkFracDamp();
+    //! deconstructor
+    virtual ~NewmarkFracDamp();
   
-  //! initilization
-  virtual void Init(Double * matrix_factors, Double dt);
+    //! initilization
+    virtual void Init(Double * matrix_factors, Double dt);
 
-  //! perform predictor step
-  virtual void Predictor(Vector<Double>& solold);
+    //! perform predictor step
+    virtual void Predictor(Vector<Double>& solold);
 
-  //! perform corrector step
-  virtual void Corrector(Vector<Double>& solnew);
+    //! perform corrector step
+    virtual void Corrector(Vector<Double>& solnew);
 
-  //! perform an update to RHS
-  virtual void UpdateRHS();
+    //! perform an update to RHS
+    virtual void UpdateRHS();
 
-  //! compute parameters for multiplication
-  void CalcParameters(Double dt);
+    //! compute parameters for multiplication
+    void CalcParameters(Double dt);
 
-  //! get beta coefficient from Newmark time stepping scheme
-  Double GetNewmarkBeta()
-  { return beta_;};
+    //! get beta coefficient from Newmark time stepping scheme
+    Double GetNewmarkBeta()
+    { return beta_;};
 
-private:
+  private:
 
-  //! get element solution, needed for assembling RHS in fractional damping model
-  void GetElemSolution (const Vector<Double>& sol, 
-						Vector<Double>& elemsol, 
-						const StdVector<Integer> & connectPDE);
+    //! get element solution, needed for assembling RHS in fractional damping model
+    void GetElemSolution (const Vector<Double>& sol, 
+                          Vector<Double>& elemsol, 
+                          const StdVector<Integer> & connectPDE);
 
-  //! compute Weights for Gruenwald-Letnikov formula
-  void GLWeights(Integer memory, Double y);
+    //! compute Weights for Gruenwald-Letnikov formula
+    void GLWeights(Integer memory, Double y);
 
-  //! compute Weights for Luise Blanks frac diff spline collocation formula
-  void BlankWeights(Integer memory, Double y, Boolean full);
+    //! compute Weights for Luise Blanks frac diff spline collocation formula
+    void BlankWeights(Integer memory, Double y, Boolean full);
 
-  //! print solMemoryVal_ in .info file
-  void PrintSolMemoryVal();
+    //! print solMemoryVal_ in .info file
+    void PrintSolMemoryVal();
 
-  std::string pdename_;
-  PdeIdType pdeId_;
+    std::string pdename_;
+    PdeIdType pdeId_;
 
-  Double alpha_, gamma_, beta_;     //!< integration parameters
-  Double a0_,a1_,a2_,a3_,a4_;       //!< coefficients from NewmarkFracDamp method
+    Double alpha_, gamma_, beta_;     //!< integration parameters
+    Double a0_,a1_,a2_,a3_,a4_;       //!< coefficients from NewmarkFracDamp method
 
-  Vector<Double> solpred_, solderiv1pred_; //!< predictors
-  Grid * ptgrid_;
-  StdPDE * ptStdPDE_;
+    Vector<Double> solpred_, solderiv1pred_; //!< predictors
+    Grid * ptgrid_;
+    StdPDE * ptStdPDE_;
 
-  Integer laststepcalc_;  //!< last calculated time step
-  Integer calclimit_;     //!< number of timesteps with which frac deriv is calculated
+    Integer laststepcalc_;  //!< last calculated time step
+    Integer calclimit_;     //!< number of timesteps with which frac deriv is calculated
 
-  //DampingType dampType_; //!< describes used damping model for whole domain
-  StdVector<DampingType> dampingList_; //!< damping type for all regions
-  StdVector<RegionIdType> subdoms_;     //!< all names of subdomains
+    //DampingType dampType_; //!< describes used damping model for whole domain
+    StdVector<DampingType> dampingList_; //!< damping type for all regions
+    StdVector<RegionIdType> subdoms_;     //!< all names of subdomains
 
-  // For fractional damping model
-  std::vector<Double> coeff_; //!< weights of BDF formula
-  Integer fracMemory_;        //!< number of stored solution values
-  Vector<Double> *solMemory_; //!< storing of solution values
-  std::vector<InterpolType> solMemoryVal_; //!< describes storing in solmemory_
-  InterpolType inType_;       //!< type of interpolation of solution values used
+    // For fractional damping model
+    std::vector<Double> coeff_; //!< weights of BDF formula
+    Integer fracMemory_;        //!< number of stored solution values
+    Vector<Double> *solMemory_; //!< storing of solution values
+    std::vector<InterpolType> solMemoryVal_; //!< describes storing in solmemory_
+    InterpolType inType_;       //!< type of interpolation of solution values used
 
 
-  //
-  Boolean isaxi_;
+    //
+    Boolean isaxi_;
   
-};
+  };
 
 } // end of namespace
 

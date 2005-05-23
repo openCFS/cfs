@@ -31,7 +31,7 @@ namespace CoupledField
     //! to no.
     static void SetParams( std::string pdename, BaseParamHandler *cfs,
                            OLAS_Params *olas, AnalysisType analysistype,
-			   bool overrideExpert = false );
+                           bool overrideExpert = false );
 
   private:
 
@@ -74,7 +74,7 @@ namespace CoupledField
                         std::string pdename, SolverType &sType,
                         PrecondType &pType, MatrixStorageType &mType,
                         MatrixEntryType &eType, ReorderingType &rType,
-			AnalysisType analysisType );
+                        AnalysisType analysisType );
 
   };
 

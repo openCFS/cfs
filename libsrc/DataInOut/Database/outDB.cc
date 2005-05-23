@@ -5,7 +5,7 @@ namespace CoupledField
 {
 
   WriteResultsDatabase::WriteResultsDatabase(const Char * const filename)
-					     
+                                             
     :WriteResults(filename) {
     ENTER_FCN( "WriteResultsDatabase::WriteResultsDatabase" );
   }
@@ -35,7 +35,7 @@ namespace CoupledField
     params->Get("password", passwd, "database");
 
     Db_.Connect (hostName, port, userName,
-		 passwd, databaseName);
+                 passwd, databaseName);
 
     WriteBasisData();
   }
@@ -94,28 +94,28 @@ namespace CoupledField
     Db_.SetMultipleTuple(maxnumnodes);
     for (Integer i=0; i<maxnumnodes; i++)
       {
-	d.Clear();
-	d.SetTableName("Node_coordinates");
-	d.Set("node_label",(i+1));
-	if (dim==2)
-	  {
-	    Point<2> Point;
-	    ptgrid->GetNodeCoordinate(Point,i);
-	    d.Set("x_coord","0");
-	    d.Set("y_coord",Point[0]);
-	    d.Set("z_coord",Point[1]);
-	    d.Set("node_idx",idx);
-	  }
-	if (dim==3)
-	  {
-	    Point<3> Point;
-	    ptgrid->GetNodeCoordinate(Point,i);
-	    d.Set("x_coord",Point[0]);
-	    d.Set("y_coord",Point[1]);
-	    d.Set("z_coord",Point[2]);
-	    d.Set("node_idx",idx);
-	  }
-	Db_.Insert(d);
+        d.Clear();
+        d.SetTableName("Node_coordinates");
+        d.Set("node_label",(i+1));
+        if (dim==2)
+          {
+            Point<2> Point;
+            ptgrid->GetNodeCoordinate(Point,i);
+            d.Set("x_coord","0");
+            d.Set("y_coord",Point[0]);
+            d.Set("z_coord",Point[1]);
+            d.Set("node_idx",idx);
+          }
+        if (dim==3)
+          {
+            Point<3> Point;
+            ptgrid->GetNodeCoordinate(Point,i);
+            d.Set("x_coord",Point[0]);
+            d.Set("y_coord",Point[1]);
+            d.Set("z_coord",Point[2]);
+            d.Set("node_idx",idx);
+          }
+        Db_.Insert(d);
       }
     Db_.Unlock();
   }
@@ -140,99 +140,99 @@ namespace CoupledField
     Integer elemlabel, elemtypegeo, elemtypephys, subtype, elemgrpno, nofnodes;
     for (i=0; i<subdoms.GetSize(); i++)
       {
-	ptgrid->GetVolElems(elemssd,subdoms[i]);
+        ptgrid->GetVolElems(elemssd,subdoms[i]);
 
-	for (j=0; j < elemssd.GetSize(); j++)
-	  {  
-	    k++; 
-	    connect=elemssd[j]->connect;
+        for (j=0; j < elemssd.GetSize(); j++)
+          {  
+            k++; 
+            connect=elemssd[j]->connect;
 
-	    elemlabel = elemssd[j]->elemNum;
+            elemlabel = elemssd[j]->elemNum;
 
-	    if (dim==2)
-	      {     
-		switch(connect.GetSize())
-		  {
-		  case 3: elemtypegeo = 91; break;
-		  case 4: elemtypegeo = 94; break;
-		  case 6: elemtypegeo = 92; break;
-		  case 8: elemtypegeo = 95; break;
-		  default: Error("Please, put element type according to unverg-format for this number of nodes per element", 
-				 __FILE__,__LINE__);
-		  }
+            if (dim==2)
+              {     
+                switch(connect.GetSize())
+                  {
+                  case 3: elemtypegeo = 91; break;
+                  case 4: elemtypegeo = 94; break;
+                  case 6: elemtypegeo = 92; break;
+                  case 8: elemtypegeo = 95; break;
+                  default: Error("Please, put element type according to unverg-format for this number of nodes per element", 
+                                 __FILE__,__LINE__);
+                  }
 
-		elemtypephys = 2;
-		subtype      = 2;
-		elemgrpno    = elmsgrp;
-		nofnodes     = connect.GetSize();
-	      }
+                elemtypephys = 2;
+                subtype      = 2;
+                elemgrpno    = elmsgrp;
+                nofnodes     = connect.GetSize();
+              }
 
-	    else
-	      {
-		switch(connect.GetSize())
-		  {
-		  case 4: elemtypegeo = 111; break;
-		  case 6: elemtypegeo = 112; break;
-		  case 8: elemtypegeo = 115; break;
-		  case 15: elemtypegeo = 113; break;
-		  case 20: elemtypegeo = 116; break;
-		  default: Error("Please, put element type according to unverg-format for this number of nodes per element", 
-				 __FILE__,__LINE__);
-		  }
+            else
+              {
+                switch(connect.GetSize())
+                  {
+                  case 4: elemtypegeo = 111; break;
+                  case 6: elemtypegeo = 112; break;
+                  case 8: elemtypegeo = 115; break;
+                  case 15: elemtypegeo = 113; break;
+                  case 20: elemtypegeo = 116; break;
+                  default: Error("Please, put element type according to unverg-format for this number of nodes per element", 
+                                 __FILE__,__LINE__);
+                  }
               
-		elemtypephys = 11;
-		subtype      = 1;
-		elemgrpno    = elmsgrp;
-		nofnodes     = connect.GetSize();
+                elemtypephys = 11;
+                subtype      = 1;
+                elemgrpno    = elmsgrp;
+                nofnodes     = connect.GetSize();
 
-	      }
+              }
 
-	    dbLineData d("Element");
-	    d.Set("idx","0");
-	    d.Set("elem_label",elemlabel);
-	    d.Set("elem_type_geo",elemtypegeo);
-	    d.Set("subtype",subtype);
-	    d.Set("elem_grp_no",elemgrpno);
-	    d.Set("result_idx",ResultIdx_); 
-	    unsigned long int idx = Db_.InsertAndGetIndex(d);
+            dbLineData d("Element");
+            d.Set("idx","0");
+            d.Set("elem_label",elemlabel);
+            d.Set("elem_type_geo",elemtypegeo);
+            d.Set("subtype",subtype);
+            d.Set("elem_grp_no",elemgrpno);
+            d.Set("result_idx",ResultIdx_); 
+            unsigned long int idx = Db_.InsertAndGetIndex(d);
 
-	    Db_.Lock("Element_nodes");        
-	    if (dim == 2 && (connect.GetSize() == 6 || connect.GetSize() == 8))
-	      {
-		//quadratic elements
-		Integer offset = Integer(connect.GetSize()/2);
-		Db_.SetMultipleTuple(2*offset);
-		for (Integer ii=0; ii < offset; ii++)
-		  {
-		    d.Clear(); d.SetTableName("Element_nodes");
-		    d.Set("element_idx",idx);
-		    d.Set("node",connect[ii]);
-		    d.Set("localidx",ii*2);
-		    Db_.Insert(d);
-		    d.Clear(); d.SetTableName("Element_nodes");
-		    d.Set("element_idx",idx);
-		    d.Set("node",connect[ii+offset]);
-		    d.Set("localidx",ii*2+1);
-		    Db_.Insert(d);
-		  }
+            Db_.Lock("Element_nodes");        
+            if (dim == 2 && (connect.GetSize() == 6 || connect.GetSize() == 8))
+              {
+                //quadratic elements
+                Integer offset = Integer(connect.GetSize()/2);
+                Db_.SetMultipleTuple(2*offset);
+                for (Integer ii=0; ii < offset; ii++)
+                  {
+                    d.Clear(); d.SetTableName("Element_nodes");
+                    d.Set("element_idx",idx);
+                    d.Set("node",connect[ii]);
+                    d.Set("localidx",ii*2);
+                    Db_.Insert(d);
+                    d.Clear(); d.SetTableName("Element_nodes");
+                    d.Set("element_idx",idx);
+                    d.Set("node",connect[ii+offset]);
+                    d.Set("localidx",ii*2+1);
+                    Db_.Insert(d);
+                  }
 
-	      }
-	    else
-	      {
-		Db_.SetMultipleTuple(connect.GetSize());
-		for (Integer ii=0; ii < connect.GetSize(); ii++) 
-		  { 
-		    d.Clear(); d.SetTableName("Element_nodes"); 
-		    d.Set("element_idx",idx);
-		    d.Set("node",connect[ii]);
-		    d.Set("localidx",ii);
-		    Db_.Insert(d);
-		  }
-	      }
-	    Db_.Unlock();
+              }
+            else
+              {
+                Db_.SetMultipleTuple(connect.GetSize());
+                for (Integer ii=0; ii < connect.GetSize(); ii++) 
+                  { 
+                    d.Clear(); d.SetTableName("Element_nodes"); 
+                    d.Set("element_idx",idx);
+                    d.Set("node",connect[ii]);
+                    d.Set("localidx",ii);
+                    Db_.Insert(d);
+                  }
+              }
+            Db_.Unlock();
 
-	  } // over elements of group
-	elmsgrp++;
+          } // over elements of group
+        elmsgrp++;
       } // over groups
   
   
@@ -240,11 +240,11 @@ namespace CoupledField
 
 
   void WriteResultsDatabase::WriteNodalResult(const std::string & title, 
-					      const Vector<Double> & x, 
-					      const Integer step, 
-					      const Double time, 
-					      const Integer nrNodes,
-					      const Integer nrDofs)
+                                              const Vector<Double> & x, 
+                                              const Integer step, 
+                                              const Double time, 
+                                              const Integer nrNodes,
+                                              const Integer nrDofs)
   {
     ENTER_FCN("WriteResultsDatabase::WriteNodalResult");
     if (!ptgrid)
@@ -258,12 +258,12 @@ namespace CoupledField
     Integer transIdx=0,normIdx=0,freqIdx=0,Idx=0;
     if (1)                // Transient analysis
       {
-	d.SetTableName("Nodal_result_trans");
-	d.Set("idx","0"); 
-	d.Set("result_type",title); 
-	d.Set("time_step",step); 
-	d.Set("time_value",time);
-	transIdx = Db_.InsertAndGetIndex(d);
+        d.SetTableName("Nodal_result_trans");
+        d.Set("idx","0"); 
+        d.Set("result_type",title); 
+        d.Set("time_step",step); 
+        d.Set("time_value",time);
+        transIdx = Db_.InsertAndGetIndex(d);
       }
 
     d.Clear(); d.SetTableName("Nodal_result");
@@ -289,22 +289,22 @@ namespace CoupledField
     for (i=0; i<n;i++)
       {
 
-	for (j=0; j<nrDofs; j++)
-	  {
-	    d.Clear(); d.SetTableName("Nodal_result_value");
-	    d.Set("nodal_result_idx", Idx);
-	    d.Set("result", x[i*nrDofs+j]);
-	    d.Set("node_no", (i+1));
-	    d.Set("dof", (j+1));
-	    Db_.Insert(d);
-	  }
+        for (j=0; j<nrDofs; j++)
+          {
+            d.Clear(); d.SetTableName("Nodal_result_value");
+            d.Set("nodal_result_idx", Idx);
+            d.Set("result", x[i*nrDofs+j]);
+            d.Set("node_no", (i+1));
+            d.Set("dof", (j+1));
+            Db_.Insert(d);
+          }
       }
     Db_.Unlock();
   }
 
   void WriteResultsDatabase::WriteNodeSolutionTransient (const NodeStoreSol<Double>&sol, 
-							 const Integer step, 
-							 const Double time)
+                                                         const Integer step, 
+                                                         const Double time)
   {
     ENTER_FCN("WriteResultsDatabase::WriteNodeSolutionTransient");
 
@@ -345,10 +345,10 @@ namespace CoupledField
 
     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
       {
-	sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
-	title = SolutionTypeToString(solTypes[iSol]);
-	WriteNodalResult(title, globalSolution, step, time,
-			 numNodes,sol.GetDof(solTypes[iSol]));
+        sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
+        title = SolutionTypeToString(solTypes[iSol]);
+        WriteNodalResult(title, globalSolution, step, time,
+                         numNodes,sol.GetDof(solTypes[iSol]));
       }
 
   }
@@ -402,8 +402,8 @@ namespace CoupledField
     }*/
 
   void WriteResultsDatabase::WriteElemSolutionTransient (const ElemStoreSol<Double>&sol, 
-							 const Integer step, 
-							 const Double time)
+                                                         const Integer step, 
+                                                         const Double time)
   {
     ENTER_FCN("WriteResultsDatabase::WriteElemSolution");
     Vector<Double> globalSolution;
@@ -428,15 +428,15 @@ namespace CoupledField
     istr.open(filename.c_str(),std::ios_base::in);
     if (!istr)
       {
-	Warning ("Cannot open ConfigFile for reading",__FILE__,__LINE__);
-	return;
+        Warning ("Cannot open ConfigFile for reading",__FILE__,__LINE__);
+        return;
       }  
     std::stringstream configstream;
     char ch;
     while (!istr.eof())
       {
-	istr.get(ch);
-	configstream << ch;
+        istr.get(ch);
+        configstream << ch;
       }
     istr.close();
 
@@ -444,13 +444,13 @@ namespace CoupledField
     unsigned long int seconds;
     if (stat(filename.c_str(),&fileinfo)==0)
       {
-	seconds = (unsigned long int) fileinfo.st_mtime;
+        seconds = (unsigned long int) fileinfo.st_mtime;
       }
     else
       {
-	time_t tm;
-	time (&tm);
-	seconds = (unsigned long int) tm;
+        time_t tm;
+        time (&tm);
+        seconds = (unsigned long int) tm;
       }
 
     // Check if file is already in database
@@ -458,26 +458,26 @@ namespace CoupledField
     wherestr<<"(filename='"<<filename;
     wherestr<<"') AND (date_modified=FROM_UNIXTIME("<<seconds<<"))";
     Db_.SelectFrom("idx,filename,date_modified,no_references",
-		   "InputParam",wherestr.str());
+                   "InputParam",wherestr.str());
     dbMatrix mat;
     Db_.FetchFields(mat);
     if (mat.getNoOfRow()==1)
       {
-	int ref; 
-	dbColumn *nOfRef;
-	nOfRef = mat["no_references"];
-	nOfRef->get(ref,0);
-	std::stringstream Set;
-	Set<<"no_references="<<(ref+1);
-	int idx;
-	dbColumn *pIdx;
-	pIdx = mat["idx"];
-	pIdx->get(idx,0);
-	std::stringstream Where;
-	Where<<"idx="<<idx;
-	Db_.Update("InputParam",Set.str(),Where.str());
-	InputParamIdx_ = idx;
-	return;
+        int ref; 
+        dbColumn *nOfRef;
+        nOfRef = mat["no_references"];
+        nOfRef->get(ref,0);
+        std::stringstream Set;
+        Set<<"no_references="<<(ref+1);
+        int idx;
+        dbColumn *pIdx;
+        pIdx = mat["idx"];
+        pIdx->get(idx,0);
+        std::stringstream Where;
+        Where<<"idx="<<idx;
+        Db_.Update("InputParam",Set.str(),Where.str());
+        InputParamIdx_ = idx;
+        return;
       }
     else if (mat.getNoOfRow()>1)
       Warning("Input file exists more than once in database...");
@@ -496,11 +496,11 @@ namespace CoupledField
   }
 
   void WriteResultsDatabase::WriteElementResult(const std::string &title, 
-						const Vector<Double> & x, 
-						const Integer step, 
-						const Double time, 
-						const Integer nrElems,
-						const Integer nrDofs)
+                                                const Vector<Double> & x, 
+                                                const Integer step, 
+                                                const Double time, 
+                                                const Integer nrElems,
+                                                const Integer nrDofs)
   {
     ENTER_FCN("WriteResultsDatabase::WriteElementResult");
     if (!ptgrid)
@@ -514,13 +514,13 @@ namespace CoupledField
     Integer transProbIdx=0,normProbIdx=0,freqProbIdx=0, transParamIdx=0,normParamIdx=0,freqParamIdx=0, Idx=0;
     if (1)                // Transient analysis
       {
-	d.Clear(); 
-	d.SetTableName("Element_result_trans");
-	d.Set("idx","0"); 
-	d.Set("result_type",title); 
-	d.Set("time_step", time); 
-	d.Set("time_value",time);
-	transProbIdx = Db_.InsertAndGetIndex(d);
+        d.Clear(); 
+        d.SetTableName("Element_result_trans");
+        d.Set("idx","0"); 
+        d.Set("result_type",title); 
+        d.Set("time_step", time); 
+        d.Set("time_value",time);
+        transProbIdx = Db_.InsertAndGetIndex(d);
       }
 
     d.Clear(); 
@@ -548,16 +548,16 @@ namespace CoupledField
     Db_.SetMultipleTuple(n*nrDofs);
     for (i=0; i<n;i++)
       {
-	d.SetTableName("Element_result_value");
-	for (j=0; j<nrDofs; j++)
-	  {
-	    d.Clear();
-	    d.Set("element_result_idx",Idx);
-	    d.Set("result", x[i*nrDofs+j]);
-	    d.Set("elem_no", (i+1));
-	    d.Set("dof", (j+1));
-	    Db_.Insert(d);
-	  }
+        d.SetTableName("Element_result_value");
+        for (j=0; j<nrDofs; j++)
+          {
+            d.Clear();
+            d.Set("element_result_idx",Idx);
+            d.Set("result", x[i*nrDofs+j]);
+            d.Set("elem_no", (i+1));
+            d.Set("dof", (j+1));
+            Db_.Insert(d);
+          }
       }
     Db_.Unlock();
   }
@@ -568,7 +568,7 @@ namespace CoupledField
     ENTER_FCN( "WriteResultsDatabase::InitHistoryFiles" );
 
     (*warning) << "Writing a history is not implemented for "
-	       << "WriteResultsDatabase";
+               << "WriteResultsDatabase";
     Warning( __FILE__, __LINE__ );
   }
 
@@ -581,79 +581,79 @@ namespace CoupledField
     switch (type)
       {
       case MECH_DISPLACEMENT:
-	return "displacement";
-	break;
+        return "displacement";
+        break;
       case MECH_ACCELERATION:
-	return "acceleration";
-	break;
+        return "acceleration";
+        break;
       case MECH_VELOCITY:
-	return "velocity";
-	break;
+        return "velocity";
+        break;
       case MECH_FORCE:
-	break;
+        break;
       case MECH_STRESS:
-	return "stress";
-	break;
+        return "stress";
+        break;
       case MECH_STRAIN:
-	Error("Not implemented", __FILE__, __LINE__);
-	break;
+        Error("Not implemented", __FILE__, __LINE__);
+        break;
       case ELEC_POTENTIAL:
-	return "electric potential";
-	break;
+        return "electric potential";
+        break;
       case ELEC_FIELD_INTENSITY:
-	return "electric field";
-	break;
+        return "electric field";
+        break;
       case ELEC_FORCE_VWP: 
-	Error("Not implemented", __FILE__, __LINE__);
-	break;
+        Error("Not implemented", __FILE__, __LINE__);
+        break;
       case ELEC_INTERFACE_FORCE:
-	Error("Not implemented", __FILE__, __LINE__);
-	break; 
+        Error("Not implemented", __FILE__, __LINE__);
+        break; 
       case ELEC_CHARGE:
-	return "electric charge";
-	break;
+        return "electric charge";
+        break;
       case ELEC_FLUX_DENSITY:
-	Error("Not implemented", __FILE__, __LINE__);
-	break; 
+        Error("Not implemented", __FILE__, __LINE__);
+        break; 
       case ELEC_ENERGY:
-	Error("Not implemented", __FILE__, __LINE__);
+        Error("Not implemented", __FILE__, __LINE__);
       case SMOOTH_DISPLACEMENT:
-	return "displacement";
-	break;
+        return "displacement";
+        break;
       case ACOU_POTENTIAL:
-	return "fluid potential";
-	break;
+        return "fluid potential";
+        break;
       case ACOU_FORCE:
-	Error("Not implemented", __FILE__, __LINE__);
-	break;
+        Error("Not implemented", __FILE__, __LINE__);
+        break;
       case ACOU_POTENTIAL_DERIV_1:
-	return "fluid potential, 1st deriv.";
-	break;
+        return "fluid potential, 1st deriv.";
+        break;
       case ACOU_POTENTIAL_DERIV_2:
-	return "fluid potential, 2nd deriv.";
-	break;
+        return "fluid potential, 2nd deriv.";
+        break;
       case MAG_POTENTIAL:
-	return "mag. vector potential";
-	break;
+        return "mag. vector potential";
+        break;
       case MAG_FLUX_DENSITY:
-	return "mag. flux density";
-	break;
+        return "mag. flux density";
+        break;
       case MAG_EDDY_CURRENT:
-	return "eddy current";
-	break;
+        return "eddy current";
+        break;
       case MAG_FORCE_VWP:
-	Error("Not implemented", __FILE__, __LINE__);
-	break;
+        Error("Not implemented", __FILE__, __LINE__);
+        break;
       case MAG_FORCE_LORENTZ:
-	Error("Not implemented", __FILE__, __LINE__);
-	break;
+        Error("Not implemented", __FILE__, __LINE__);
+        break;
       case MAG_ENERGY:
-	Error("Not implemented", __FILE__, __LINE__);
-	break;
+        Error("Not implemented", __FILE__, __LINE__);
+        break;
       default:
-	(*error) << "Wrong type of solution or 'SolutionType2String' not "
-		 << "implemented for this type of solution";
-	Error( __FILE__, __LINE__ );
+        (*error) << "Wrong type of solution or 'SolutionType2String' not "
+                 << "implemented for this type of solution";
+        Error( __FILE__, __LINE__ );
       }
   }
 

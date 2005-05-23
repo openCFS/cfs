@@ -21,67 +21,67 @@ namespace CoupledField
     the solution.
   */
 
-class AcouFlowNoise: public AcousticPDE
-{
-public:
+  class AcouFlowNoise: public AcousticPDE
+  {
+  public:
 
-  //!
-  AcouFlowNoise(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut);
+    //!
+    AcouFlowNoise(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut);
 
-  //!
-  virtual ~AcouFlowNoise();
+    //!
+    virtual ~AcouFlowNoise();
 
-  //! define the SoltionStep-Driver
-  virtual void DefineSolveStep();
+    //! define the SoltionStep-Driver
+    virtual void DefineSolveStep();
 
-  //!
-  void ComputeRHS(const Double atime);
+    //!
+    void ComputeRHS(const Double atime);
 
-  //! Reads at every time the flowdatafile from the Fluid's Computation
-  void ReadFlowData(const char * aname, const Integer timestep,
-		    Matrix<Double> &nodedata );
+    //! Reads at every time the flowdatafile from the Fluid's Computation
+    void ReadFlowData(const char * aname, const Integer timestep,
+                      Matrix<Double> &nodedata );
 
-  //!
-   void WriteResultsInFile();
-
-
-private:
+    //!
+    void WriteResultsInFile();
 
 
-  Integer arg_rhs_; //!< function for RHS
+  private:
 
 
-  //Flow Data
-  Matrix<Double> flowdata_;
-  //!< name of subdomain to be coupled with MpCCI
-  StdVector<RegionIdType> couplSubDomId_; 
-
-  //!type of FlowData
-  Boolean nodalSrc_;
+    Integer arg_rhs_; //!< function for RHS
 
 
-  //  BaseNodeStoreSol * rhs_;        //!< For eventual saving of rhs as sol
+    //Flow Data
+    Matrix<Double> flowdata_;
+    //!< name of subdomain to be coupled with MpCCI
+    StdVector<RegionIdType> couplSubDomId_; 
+
+    //!type of FlowData
+    Boolean nodalSrc_;
+
+
+    //  BaseNodeStoreSol * rhs_;        //!< For eventual saving of rhs as sol
     
-  //!MpCCI
+    //!MpCCI
 #ifdef MpCCI
-  StdVector<Integer> mapSD_;
-  MpCCIexch * ptMpCCIexch_;
-  Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
-  Integer MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
-  Integer meshId_;
-  Integer partId_;
-  Integer nNodeIds_;
-  Integer *nodeIds_;
-  Integer GlobalDim_;
-  Integer nElemIds_;
-  Integer *elemIds_;
-  Integer nElemTypes_;
-  Integer *nNodesPerElem_;
-  Integer *elemTypes_;
-  Integer MpCCIprocess_;
+    StdVector<Integer> mapSD_;
+    MpCCIexch * ptMpCCIexch_;
+    Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
+    Integer MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
+    Integer meshId_;
+    Integer partId_;
+    Integer nNodeIds_;
+    Integer *nodeIds_;
+    Integer GlobalDim_;
+    Integer nElemIds_;
+    Integer *elemIds_;
+    Integer nElemTypes_;
+    Integer *nNodesPerElem_;
+    Integer *elemTypes_;
+    Integer MpCCIprocess_;
 #endif
 
-};
+  };
 
 } // end of namespace
 #endif

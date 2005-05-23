@@ -11,111 +11,111 @@ namespace CoupledField {
   //! Class for acoustic equation (no adaptivity)
   /*! 
     This class is derived from class SinglePDE.
-	It is used for solving acoustic equation on one time step.  
+    It is used for solving acoustic equation on one time step.  
   */
 
-class AcousticPDE: public SinglePDE
-{
+  class AcousticPDE: public SinglePDE
+  {
 
-public:
+  public:
 
-  //!  Constructor. here we read integration parameters
-  /*!
-    \param aGrid pointer to grid
-    \param aOutFile  pointer to class WriteResults. output data.
-    \param aTimeFunc pointer to class TimeFunc
-  */
-  AcousticPDE(Grid *aGrid, TimeFunc *aTimeFunc, WriteResults *aOutFile );
+    //!  Constructor. here we read integration parameters
+    /*!
+      \param aGrid pointer to grid
+      \param aOutFile  pointer to class WriteResults. output data.
+      \param aTimeFunc pointer to class TimeFunc
+    */
+    AcousticPDE(Grid *aGrid, TimeFunc *aTimeFunc, WriteResults *aOutFile );
 
-  //!  Deconstructor
-  virtual ~AcousticPDE() {;};
+    //!  Deconstructor
+    virtual ~AcousticPDE() {;};
 
 
-  //! define all (bilinearform) integrators needed for this pde
-  virtual void DefineIntegrators();
+    //! define all (bilinearform) integrators needed for this pde
+    virtual void DefineIntegrators();
   
-  //! define the SoltionStep-Driver
-  virtual void DefineSolveStep();
+    //! define the SoltionStep-Driver
+    virtual void DefineSolveStep();
 
-  //! perform postprocessing on data
-  void PostProcess() {;};
+    //! perform postprocessing on data
+    void PostProcess() {;};
 
-  //! write results in file
-  //! \param stepOffset offset for starting (time)step
-  //! \param timeOffset offset for starting time  
-  virtual void WriteResultsInFile(const Integer kstep = 0,
-				  const Double asteptime = 0.0,
-				  Integer stepOffset = 0,
-				  Double timeOffset = 0.0);
+    //! write results in file
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time  
+    virtual void WriteResultsInFile(const Integer kstep = 0,
+                                    const Double asteptime = 0.0,
+                                    Integer stepOffset = 0,
+                                    Double timeOffset = 0.0);
 
-  //! return size of solution
-  virtual Integer getSize() const 
-  { return size_;}
+    //! return size of solution
+    virtual Integer getSize() const 
+    { return size_;}
 
 #ifdef ADAPTGRID
-  //! test error of computation
-  virtual Boolean TestError(const Integer level);
+    //! test error of computation
+    virtual Boolean TestError(const Integer level);
 #endif
 
 
-  // ======================================================
-  // COUPLING SECTION
-  // ======================================================
+    // ======================================================
+    // COUPLING SECTION
+    // ======================================================
   
-  //! initalize PDE coupling
-  void InitCoupling(PDECoupling * Coupling);;
+    //! initalize PDE coupling
+    void InitCoupling(PDECoupling * Coupling);;
   
-  //! calculate coupling terms
-  void CalcOutputCoupling();
+    //! calculate coupling terms
+    void CalcOutputCoupling();
 
-  //! returns if PDE can compute the quantity
-  virtual Boolean HasOutput(SolutionType output);
+    //! returns if PDE can compute the quantity
+    virtual Boolean HasOutput(SolutionType output);
   
-  //! calculate the vector of coupling forces to the mechanical PDE
-  void CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
-                            StdVector<Integer> & couplingNodes,
-                            Vector<Double>& elemCouplingSols,
-                            Integer couplingdof );
+    //! calculate the vector of coupling forces to the mechanical PDE
+    void CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
+                              StdVector<Integer> & couplingNodes,
+                              Vector<Double>& elemCouplingSols,
+                              Integer couplingdof );
   
   
 
 
-protected:
+  protected:
 
-  //! Init the time stepping
-  void InitTimeStepping();
+    //! Init the time stepping
+    void InitTimeStepping();
 
-  Integer size_;                         //!< total number of unknowns (equations)
-  SolutionType formulation_;             //!< variable in which PDE is formulated
+    Integer size_;                         //!< total number of unknowns (equations)
+    SolutionType formulation_;             //!< variable in which PDE is formulated
 
-  StdVector<DampingType> dampingList_;   //!< list of damping types for all regions
+    StdVector<DampingType> dampingList_;   //!< list of damping types for all regions
 
-  StdVector<RegionIdType> absBCs_;        //!< list of boundaries( for absorbing BCs)
-  Boolean absorbingBCs_;                 //!< switch for absorbing boundary conditions
+    StdVector<RegionIdType> absBCs_;        //!< list of boundaries( for absorbing BCs)
+    Boolean absorbingBCs_;                 //!< switch for absorbing boundary conditions
 
-  // for fractional damping model
-  Integer fracMemory_;                   //!< number of old time steps to be saved
-  InterpolType inType_;                  //!< type of interpolation
+    // for fractional damping model
+    Integer fracMemory_;                   //!< number of old time steps to be saved
+    InterpolType inType_;                  //!< type of interpolation
 
-  // solving of nonlinear acoustics
-  NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
-  Vector<Double> RhsLinVal_;
+    // solving of nonlinear acoustics
+    NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
+    Vector<Double> RhsLinVal_;
 
-  // Postprocessing results
-  NodeStoreSol<Double> solDeriv1_;       //!< contains 1st derivative of solution
-  NodeStoreSol<Double> solDeriv2_;       //!< contains 2nd derivative of solution
-  NodeStoreSol<Double> rhs_;       //!< contains 2nd derivative of solution
+    // Postprocessing results
+    NodeStoreSol<Double> solDeriv1_;       //!< contains 1st derivative of solution
+    NodeStoreSol<Double> solDeriv2_;       //!< contains 2nd derivative of solution
+    NodeStoreSol<Double> rhs_;       //!< contains 2nd derivative of solution
 
-  //! Attribute describing model for bubble dynamics
-  BubbleDynType bubbleDynType_;
+    //! Attribute describing model for bubble dynamics
+    BubbleDynType bubbleDynType_;
 
-  //! bubbledensity
-  Double bubbleDensity_;
+    //! bubbledensity
+    Double bubbleDensity_;
 
-  Boolean plotRHS_; //!< Flag for saving of rhs for output
+    Boolean plotRHS_; //!< Flag for saving of rhs for output
 
 
-private:
+  private:
 
     //! Obtain information on desired output quantities from parameter file
 
@@ -130,7 +130,7 @@ private:
     //! \todo Specification of ReadStoreResults for AcousticPDE!!!
     void ReadStoreResults();
 
-};
+  };
 
 } // end of namespace
 #endif

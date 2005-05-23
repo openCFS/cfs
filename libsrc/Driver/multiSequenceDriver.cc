@@ -73,37 +73,37 @@ namespace CoupledField {
     for (Integer iStep=0; iStep<numSteps_; iStep++) {
       
       Info->WriteMultiSequenceStep(iStep+1, 
-				   analysisPerStep_[iStep][0]);
+                                   analysisPerStep_[iStep][0]);
 
       // Since per time step only one type of 
       // analysis is allowed, we simple access
       // the first entry fo analysisPerStep_
       if (analysisPerStep_[iStep][0] == STATIC) {
-	actDriver = new StaticDriver(ptdomain_, actStep_, actTime_,
-				     tagsPerStep_[iStep][0], TRUE);
-	nextStep = actStep_ + 1;
+        actDriver = new StaticDriver(ptdomain_, actStep_, actTime_,
+                                     tagsPerStep_[iStep][0], TRUE);
+        nextStep = actStep_ + 1;
       }
       else if (analysisPerStep_[iStep][0] == TRANSIENT) {      
-	actDriver = new TransientDriver(ptdomain_, actStep_, actTime_, 
-					tagsPerStep_[iStep][0],TRUE);
+        actDriver = new TransientDriver(ptdomain_, actStep_, actTime_, 
+                                        tagsPerStep_[iStep][0],TRUE);
 
-	// the time step and the current time have to adapted 
-	// after solving the first multiSequence step
-	attrVec = "tag";
-	valVec = tagsPerStep_[iStep][0];
+        // the time step and the current time have to adapted 
+        // after solving the first multiSequence step
+        attrVec = "tag";
+        valVec = tagsPerStep_[iStep][0];
 
-	keyVec = "transient", "numSteps"; 
-	params->Get(keyVec, attrVec, valVec, actNumSteps);
-	  
-	keyVec = "transient", "firstDt"; 
-	params->Get(keyVec, attrVec, valVec, actDt);
-	
-	nextStep = actStep_ + actNumSteps;
-	nextTime = actTime_ + actNumSteps * actDt;
+        keyVec = "transient", "numSteps"; 
+        params->Get(keyVec, attrVec, valVec, actNumSteps);
+          
+        keyVec = "transient", "firstDt"; 
+        params->Get(keyVec, attrVec, valVec, actDt);
+        
+        nextStep = actStep_ + actNumSteps;
+        nextTime = actTime_ + actNumSteps * actDt;
       }
       else if (analysisPerStep_[iStep][0] == HARMONIC) {
-	actDriver = new HarmonicDriver(ptdomain_, actStep_, actTime_,
-				       tagsPerStep_[iStep][0], TRUE);
+        actDriver = new HarmonicDriver(ptdomain_, actStep_, actTime_,
+                                       tagsPerStep_[iStep][0], TRUE);
       }
       
       // Initialize all PDEs
@@ -114,24 +114,24 @@ namespace CoupledField {
       ptPDEs.Clear();
       ptPDEs.Resize(pdesPerStep_[iStep].GetSize());
       for (iPDE=0; iPDE<pdesPerStep_[iStep].GetSize(); iPDE++)
-	ptPDEs[iPDE]=ptdomain_->GetStdPDE(pdesPerStep_[iStep][iPDE]);
+        ptPDEs[iPDE]=ptdomain_->GetStdPDE(pdesPerStep_[iStep][iPDE]);
 
 
 
       // After the first run, initialize this PDE
       // with the solution of the previous run
       if (iStep > 0) {
-	std::string transFromTo = "standard";
-	//check, if hamonic analysis is followed by transient one
-	if ( analysisPerStep_[iStep-1][0] == HARMONIC && 
-	     analysisPerStep_[iStep][0] == TRANSIENT) {
-	  transFromTo = "complexToReal";
-	}
-	for (Integer i=0; i<pdesPerStep_[iStep].GetSize(); i++) {
-	  if (memento[i].IsSet()) {
-	    ptPDEs[i]->SetMemento( memento[i], transFromTo, actFrequency );
-	  }
-	}
+        std::string transFromTo = "standard";
+        //check, if hamonic analysis is followed by transient one
+        if ( analysisPerStep_[iStep-1][0] == HARMONIC && 
+             analysisPerStep_[iStep][0] == TRANSIENT) {
+          transFromTo = "complexToReal";
+        }
+        for (Integer i=0; i<pdesPerStep_[iStep].GetSize(); i++) {
+          if (memento[i].IsSet()) {
+            ptPDEs[i]->SetMemento( memento[i], transFromTo, actFrequency );
+          }
+        }
       }
       
       // Solve Problem
@@ -139,33 +139,33 @@ namespace CoupledField {
 
       //if harmonic analysis, save the used frequencies
       if ( analysisPerStep_[iStep][0] == HARMONIC ) {
-	actFrequency = actDriver->GetActFrequency();
+        actFrequency = actDriver->GetActFrequency();
       }
       else {
-	actFrequency = 0;
+        actFrequency = 0;
       }
 
 
       // Get solution for next step and delete
       // all PDEs
       if (iStep < numSteps_-1) {
-	memento.Resize(pdesPerStep_[iStep+1].GetSize());
+        memento.Resize(pdesPerStep_[iStep+1].GetSize());
 
 
-	// Iterate over all PDEs in the next step
-	for (iPDE=0; iPDE<pdesPerStep_[iStep+1].GetSize(); iPDE++) {
-	  // Iterate over all PDEs in the current step
-	  for(kPDE=0; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++) {
-	    // If both match, then save the result of this step
-	    // for the next step
-	    if (pdesPerStep_[iStep+1][iPDE] == pdesPerStep_[iStep][kPDE])
-	      //dynamic_cast<const NodeStoreSol<Double>& >
-	      ptPDEs[kPDE]->GetMemento(memento[iPDE]);
-	  }
-	}
-	
-	// delete PDEs
-	ptdomain_->ResetPDEs();
+        // Iterate over all PDEs in the next step
+        for (iPDE=0; iPDE<pdesPerStep_[iStep+1].GetSize(); iPDE++) {
+          // Iterate over all PDEs in the current step
+          for(kPDE=0; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++) {
+            // If both match, then save the result of this step
+            // for the next step
+            if (pdesPerStep_[iStep+1][iPDE] == pdesPerStep_[iStep][kPDE])
+              //dynamic_cast<const NodeStoreSol<Double>& >
+              ptPDEs[kPDE]->GetMemento(memento[iPDE]);
+          }
+        }
+        
+        // delete PDEs
+        ptdomain_->ResetPDEs();
       }
 
 
@@ -196,10 +196,10 @@ namespace CoupledField {
     Integer currStep = 0;
     for (Integer iStep=1; iStep<=steps.GetSize(); iStep++) {
       for (Integer j=0; j<steps.GetSize(); j++) {
-	if (steps[j] == iStep) {
-	  currStep++;
-	  break;
-	}
+        if (steps[j] == iStep) {
+          currStep++;
+          break;
+        }
       }
     }
     
@@ -257,18 +257,18 @@ namespace CoupledField {
       // Add pdes, tags, and analysistypes of the current step
       // in the same order as defined by Domain
       for (Integer iPDE=0; iPDE<pdesAux.GetSize(); iPDE++) {
-	pdesPerStep_[iStep].Push_back(pdesAux[iPDE]);
-	String2Enum(analysisAux[iPDE], analysisType);
-	
-	tagsPerStep_[iStep].Push_back(tagsAux[iPDE]);
-	analysisPerStep_[iStep].Push_back(analysisType);
+        pdesPerStep_[iStep].Push_back(pdesAux[iPDE]);
+        String2Enum(analysisAux[iPDE], analysisType);
+        
+        tagsPerStep_[iStep].Push_back(tagsAux[iPDE]);
+        analysisPerStep_[iStep].Push_back(analysisType);
       }
       
     }
     
       
       
-      // 5.) Perform final consistency checks
+    // 5.) Perform final consistency checks
     
     // iterate over all steps
     Boolean pdeFound = FALSE;
@@ -287,129 +287,129 @@ namespace CoupledField {
       // iterate over all pdes in current step
       for (Integer iPDE=0; iPDE<pdesPerStep_[iStep].GetSize(); iPDE++) {
 
-	// ********************************
-	// Check if specified PDE types are 
-	// defined in the 'pdeList' and 
-	// occur only one time
-	// ********************************
-	StdVector<std::string> pdeNames;
-	params->GetPDEList( pdeNames );
-	pdeFound = FALSE;
-	for (Integer kPDE=0; kPDE<pdeNames.GetSize(); kPDE++)
-	  if (pdesPerStep_[iStep][iPDE] == pdeNames[kPDE])
-	    pdeFound = TRUE;
+        // ********************************
+        // Check if specified PDE types are 
+        // defined in the 'pdeList' and 
+        // occur only one time
+        // ********************************
+        StdVector<std::string> pdeNames;
+        params->GetPDEList( pdeNames );
+        pdeFound = FALSE;
+        for (Integer kPDE=0; kPDE<pdeNames.GetSize(); kPDE++)
+          if (pdesPerStep_[iStep][iPDE] == pdeNames[kPDE])
+            pdeFound = TRUE;
 
-	if (!pdeFound) {
-	  errMsg = "MultiSequenceDriver::Init(): The PDE '";
-	  errMsg += pdesPerStep_[iStep][iPDE];
-	  errMsg += "' is not mentioned in the 'pdeList'!";
-	  Error(errMsg.c_str(), __FILE__, __LINE__);
-	}
+        if (!pdeFound) {
+          errMsg = "MultiSequenceDriver::Init(): The PDE '";
+          errMsg += pdesPerStep_[iStep][iPDE];
+          errMsg += "' is not mentioned in the 'pdeList'!";
+          Error(errMsg.c_str(), __FILE__, __LINE__);
+        }
 
-	// ************************************************
-	// Check if the specified tags per pde and per step
-	// occur in the 'bcsAndLoads'-section
-	// ************************************************
+        // ************************************************
+        // Check if the specified tags per pde and per step
+        // occur in the 'bcsAndLoads'-section
+        // ************************************************
 
-	//get tags for current pde
-	keyVec = "pdeList", pdesPerStep_[iStep][iPDE], "bcsAndLoads", "tag";
-	attrVec = "", "", "";
-	valVec = "", "", "";
-// 	std::cerr << "pdesPerStep_[iStep][iPDE] = " << pdesPerStep_[iStep][iPDE]->GetName() << std::endl;
-	params->GetList(keyVec, attrVec, valVec, tagsAux);
+        //get tags for current pde
+        keyVec = "pdeList", pdesPerStep_[iStep][iPDE], "bcsAndLoads", "tag";
+        attrVec = "", "", "";
+        valVec = "", "", "";
+        //      std::cerr << "pdesPerStep_[iStep][iPDE] = " << pdesPerStep_[iStep][iPDE]->GetName() << std::endl;
+        params->GetList(keyVec, attrVec, valVec, tagsAux);
 
-	tagFound = FALSE;
-	
-	// Iterate over all 'bcsAndLoads' occurences for this PDE
-	for (Integer iTag=0; iTag<tagsAux.GetSize(); iTag++) {
+        tagFound = FALSE;
+        
+        // Iterate over all 'bcsAndLoads' occurences for this PDE
+        for (Integer iTag=0; iTag<tagsAux.GetSize(); iTag++) {
 
-	  // split the tag-string into a vector of 
-	  // seperate tags	
-	  SplitStringList(tagsAux[iTag], tagsLocal);
-	  
-	  // Iterate over all tags in one special 'bcsAndLoads' occurence
-	  for (Integer iTagLocal=0; iTagLocal<tagsLocal.GetSize(); iTagLocal++)
-	    if (tagsPerStep_[iStep][iPDE] == tagsLocal[iTagLocal]
- 		|| tagsLocal[iTagLocal] == "anyTag" ) {
-	    tagFound = TRUE;
-	    break;
-	    }
-	}
-	
-	if (!tagFound) {
-	  errMsg  = "MultiSequenceDriver::Init(): The tag '";
-	  errMsg += tagsPerStep_[iStep][iPDE];
-	  errMsg += "' was not found in PDE '";
-	  errMsg += pdesPerStep_[iStep][iPDE];
-	  errMsg += "'!";
-	  Error(errMsg.c_str(), __FILE__, __LINE__);
-	}
-	  
-	// ************************************************
-	// Check if one PDE occured more than 
-	// one time per step and if for each step
-	// only one type of analysistype occured
-	// ************************************************
-	for (Integer kPDE=iPDE+1; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++) {
-	  if (pdesPerStep_[iStep][iPDE] == pdesPerStep_[iStep][kPDE]) {
-	    errMsg  = "MultiSequenceDriver::Init(): The PDE '";
-	    errMsg += pdesPerStep_[iStep][kPDE];
-	    errMsg += "' occured more than one time in step ";
-	    errMsg += Info->GenStr(iStep+1);
-	    Error(errMsg.c_str(), __FILE__, __LINE__); 
-	  }
-	  if (analysisPerStep_[iStep][iPDE] != analysisPerStep_[iStep][kPDE]) {
-	    errMsg  = "MultiSequenceDriver::Init(): There were different "; 
-	    errMsg += "analysisypes defined for multi-Sequence step ";
-	    errMsg += Info->GenStr(iStep+1);
-	    errMsg += ". Please correct parameter file!";
-	    Error(errMsg.c_str(), __FILE__, __LINE__); 
+          // split the tag-string into a vector of 
+          // seperate tags      
+          SplitStringList(tagsAux[iTag], tagsLocal);
+          
+          // Iterate over all tags in one special 'bcsAndLoads' occurence
+          for (Integer iTagLocal=0; iTagLocal<tagsLocal.GetSize(); iTagLocal++)
+            if (tagsPerStep_[iStep][iPDE] == tagsLocal[iTagLocal]
+                || tagsLocal[iTagLocal] == "anyTag" ) {
+              tagFound = TRUE;
+              break;
+            }
+        }
+        
+        if (!tagFound) {
+          errMsg  = "MultiSequenceDriver::Init(): The tag '";
+          errMsg += tagsPerStep_[iStep][iPDE];
+          errMsg += "' was not found in PDE '";
+          errMsg += pdesPerStep_[iStep][iPDE];
+          errMsg += "'!";
+          Error(errMsg.c_str(), __FILE__, __LINE__);
+        }
+          
+        // ************************************************
+        // Check if one PDE occured more than 
+        // one time per step and if for each step
+        // only one type of analysistype occured
+        // ************************************************
+        for (Integer kPDE=iPDE+1; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++) {
+          if (pdesPerStep_[iStep][iPDE] == pdesPerStep_[iStep][kPDE]) {
+            errMsg  = "MultiSequenceDriver::Init(): The PDE '";
+            errMsg += pdesPerStep_[iStep][kPDE];
+            errMsg += "' occured more than one time in step ";
+            errMsg += Info->GenStr(iStep+1);
+            Error(errMsg.c_str(), __FILE__, __LINE__); 
+          }
+          if (analysisPerStep_[iStep][iPDE] != analysisPerStep_[iStep][kPDE]) {
+            errMsg  = "MultiSequenceDriver::Init(): There were different "; 
+            errMsg += "analysisypes defined for multi-Sequence step ";
+            errMsg += Info->GenStr(iStep+1);
+            errMsg += ". Please correct parameter file!";
+            Error(errMsg.c_str(), __FILE__, __LINE__); 
 
-	  }
-	}
-	
-	// ************************************************
-	// Check if each tag for analysistype matches an according
-	// section (like e.g. <transient tag="myTag">	
-	// ************************************************
-	std::string analysis;
-	
-	// for static analysis we have no special section
-	// to specify
-	if (analysisPerStep_[iStep][iPDE] != STATIC) {
+          }
+        }
+        
+        // ************************************************
+        // Check if each tag for analysistype matches an according
+        // section (like e.g. <transient tag="myTag">   
+        // ************************************************
+        std::string analysis;
+        
+        // for static analysis we have no special section
+        // to specify
+        if (analysisPerStep_[iStep][iPDE] != STATIC) {
 
-	  Enum2String(analysisPerStep_[iStep][iPDE], analysis);
+          Enum2String(analysisPerStep_[iStep][iPDE], analysis);
 
-	  keyVec = analysis, "tag";
-	  attrVec = "";
-	  valVec = "";
-	  params->GetList(keyVec, attrVec, valVec, tagStrings);
+          keyVec = analysis, "tag";
+          attrVec = "";
+          valVec = "";
+          params->GetList(keyVec, attrVec, valVec, tagStrings);
 
-	  tagFound = FALSE;	  
-	  for (Integer l=0; l<tagStrings.GetSize(); l++) {
-	    SplitStringList(tagStrings[l], tagsAux);
-	    for (Integer iTag=0; iTag<tagsAux.GetSize(); iTag++) 
-	      // 	    if (tagsAux[iTag] == "anyTag" ||
-	      // 		tagsAux[iTag] == tagsPerStep_[iStep][iPDE]) {
-	      if (tagsAux[iTag] == tagsPerStep_[iStep][iPDE] ||
-		  tagsAux[iTag] == "anyTag") {
-		tagFound = TRUE;
-		break;
-	      }
-	  }
-	  
-	  if (! tagFound) {
-	    errMsg  = "MultiSequenceDriver::Init(): The section for ";
-	    errMsg += "analysistype '";
-	    errMsg += analysis;
-	    errMsg += "' with the tag '";
-	    errMsg += tagsPerStep_[iStep][iPDE];
-	    errMsg += "' was not found in step ";
-	    errMsg += Info->GenStr(iStep+1);
-	    Error(errMsg.c_str(), __FILE__, __LINE__);
-	  }
-	  
-	}
+          tagFound = FALSE;       
+          for (Integer l=0; l<tagStrings.GetSize(); l++) {
+            SplitStringList(tagStrings[l], tagsAux);
+            for (Integer iTag=0; iTag<tagsAux.GetSize(); iTag++) 
+              //            if (tagsAux[iTag] == "anyTag" ||
+              //                tagsAux[iTag] == tagsPerStep_[iStep][iPDE]) {
+              if (tagsAux[iTag] == tagsPerStep_[iStep][iPDE] ||
+                  tagsAux[iTag] == "anyTag") {
+                tagFound = TRUE;
+                break;
+              }
+          }
+          
+          if (! tagFound) {
+            errMsg  = "MultiSequenceDriver::Init(): The section for ";
+            errMsg += "analysistype '";
+            errMsg += analysis;
+            errMsg += "' with the tag '";
+            errMsg += tagsPerStep_[iStep][iPDE];
+            errMsg += "' was not found in step ";
+            errMsg += Info->GenStr(iStep+1);
+            Error(errMsg.c_str(), __FILE__, __LINE__);
+          }
+          
+        }
       } // iPDE
     } // iStep
   } 

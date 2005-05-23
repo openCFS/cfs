@@ -208,9 +208,9 @@ namespace CoupledField {
 
     // Tell what we found
     if ( beVerbose_ == true ) {
-        std::string msg = "Get: Value for parameter '" + key;
-        msg += "' is '" + match + "'";
-        Info->Warning( msg );
+      std::string msg = "Get: Value for parameter '" + key;
+      msg += "' is '" + match + "'";
+      Info->Warning( msg );
     }
 
   }
@@ -786,8 +786,8 @@ namespace CoupledField {
   //   Return a list of the defined coils
   // ======================================
   void XMLParamHandler::GetCoilList( StdVector<std::string> &list,
-				     const std::string pde,
-				     const std::string sequenceTag ) {
+                                     const std::string pde,
+                                     const std::string sequenceTag ) {
 
     ENTER_FCN( "XMLParamHandler::GetCoilList" );
 
@@ -797,7 +797,7 @@ namespace CoupledField {
       if ( beVerbose_ == true ) {
         (*warning) << "Warning input vector was not empty! "
                    << "Contents have been erased!";
-	Warning( __FILE__, __LINE__ );
+        Warning( __FILE__, __LINE__ );
       }
       list.Clear();
     }

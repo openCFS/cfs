@@ -113,7 +113,7 @@ namespace CoupledField {
       
         // get additional information for fractional damping model
         if ( dampingType_ == FRACTIONAL ) {
-	
+        
           StdVector<std::string> fracAlgList_;
           params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
           StdVector<Integer> fracMemoryList_;
@@ -122,7 +122,7 @@ namespace CoupledField {
           StdVector<std::string> interpolationList_;
           params->GetList( "interpolation", interpolationList_, 
                            pdename_, "damping" );
-	
+        
           if( fracAlgList_.IsEmpty()
               || fracMemoryList_.IsEmpty() 
               || interpolationList_.IsEmpty() ) {
@@ -138,11 +138,11 @@ namespace CoupledField {
             else if (fracAlgList_[0] == "blank")
               Info->PrintF( pdename_, 
                             "         with Blanks algorithm,\n");
-	  
+          
             fracMemory_ = fracMemoryList_[0];
             Info->PrintF( pdename_, 
                           "         memory size is: %d,\n", fracMemory_);
-	  
+          
             if ( interpolationList_[0] == "lin1pt")
               inType_ = LIN1PT;
             else
@@ -299,7 +299,7 @@ namespace CoupledField {
 
           // stiffness part
           stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
-	
+        
           // mass part
           massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
         }
@@ -440,7 +440,7 @@ namespace CoupledField {
     for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
       if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE)    {
         ptCoupling_->CreateCouplingVector(i,isComplex_);
-	
+        
         //now since we need a incremental formulation, initialize some necessary vectors
         isIncrFormulation_ = TRUE;
         solIncr_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
@@ -672,25 +672,25 @@ namespace CoupledField {
         bubbleResult.SetNumSolutions(1);
         bubbleResult.SetSolutionType(ELEC_FIELD_INTENSITY);
         bubbleResult.SetNumElems(numElems_);
-	  
+          
         // dimension hard coded for .unv file!
         bubbleResult.SetNumDofs(3);  
         bubbleResult.SetPtrEQNData(eqnData_, ptgrid_);
         bubbleResult.Init();
-	  
+          
         for (Integer el=0; el<numElems_; el++) {
           Vector<Double> result(3);
-	    
+            
           result[0] = radius[el];
           result[1] = velocity[el];
           result[2] = (4.0/3.0)*PI*bubbleDensity_*radius[el]*radius[el]*radius[el];
-          //	    if (el == 90)
+          //        if (el == 90)
           //std::cerr << actTime << "   " << el << "   " << result[0] << "   " 
           // result[1] << "     " << result[2] << std::endl;
-	    
+            
           bubbleResult.SetElemResult(el,result);
         }
-	  
+          
         outFile_->WriteElemSolutionTransient(bubbleResult, actStep, actTime);
       }
 
@@ -728,7 +728,7 @@ namespace CoupledField {
         (*error) << "It makes no sense to have a PDE in acoustic potential "
                  << "and retrieve \n node results in pressure. "
                  << "Try element results!";
-          Error( __FILE__, __LINE__ );
+        Error( __FILE__, __LINE__ );
       }
 
       // --- acoustic potential ---

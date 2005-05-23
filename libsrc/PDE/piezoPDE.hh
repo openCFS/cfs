@@ -41,7 +41,7 @@ namespace CoupledField
 
     /// returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
     BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE, 
-				  Boolean isdamping=FALSE);
+                                  Boolean isdamping=FALSE);
 
     //! do PostProcessing step
     virtual void PostProcess( );
@@ -50,9 +50,9 @@ namespace CoupledField
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
     virtual void WriteResultsInFile(const Integer kstep = 0,
-				    const Double asteptime = 0.0,
-				    Integer stepOffset = 0,
-				    Double timeOffset = 0.0);
+                                    const Double asteptime = 0.0,
+                                    Integer stepOffset = 0,
+                                    Double timeOffset = 0.0);
 
     
     // ======================================================
@@ -70,10 +70,10 @@ namespace CoupledField
     //! returns if PDE can compute the quantity
     Boolean HasOutput(SolutionType output)
     { Error ( "Coupling not implemented" );
-        return FALSE;}
+    return FALSE;}
   
 
-   ElemStoreSol<Complex>  GetComplexValuedCharge(){return chargesComplex_;};
+    ElemStoreSol<Complex>  GetComplexValuedCharge(){return chargesComplex_;};
     
   protected:
   
@@ -116,7 +116,7 @@ namespace CoupledField
     //! </table>
     void ReadStoreResults();
 
- //! Init the time stepping
+    //! Init the time stepping
     void InitTimeStepping();
 
 

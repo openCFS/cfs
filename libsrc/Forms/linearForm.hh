@@ -8,7 +8,7 @@
 namespace CoupledField
 {
 
-/// base class class for calculation right hand side
+  /// base class class for calculation right hand side
 class LinearForm : public BaseForm
 {
 public:
@@ -29,18 +29,18 @@ public:
 
 
 
-// =============================================================================
-// edge integration
-// =============================================================================
+  // =============================================================================
+  // edge integration
+  // =============================================================================
 
 
-/// class for calculation of right hand side of edge elements
+  /// class for calculation of right hand side of edge elements
 class LinearEdgeInt : public LinearForm
 {
 public:
   ///
   LinearEdgeInt(BaseFE * aptelem, Double val, Integer direction, 
-		Vector<Double> * coilMidPoint = NULL);
+                Vector<Double> * coilMidPoint = NULL);
 
   ///
   virtual ~LinearEdgeInt();
@@ -128,13 +128,13 @@ class nLinMagNode2D_linFormInt : public LinearForm
 {
 public:
   /// constructor
-   nLinMagNode2D_linFormInt(BaseFE * aptelem, MaterialData & matData, Boolean axi=FALSE);
+  nLinMagNode2D_linFormInt(BaseFE * aptelem, MaterialData & matData, Boolean axi=FALSE);
 
   /// constructor
-   nLinMagNode2D_linFormInt(ApproxData *nlinFnc, Double startVal, Boolean axi=FALSE);
+  nLinMagNode2D_linFormInt(ApproxData *nlinFnc, Double startVal, Boolean axi=FALSE);
 
   /// constructor for linear subdomain
-   nLinMagNode2D_linFormInt(Double startVal, Boolean axi=FALSE);
+  nLinMagNode2D_linFormInt(Double startVal, Boolean axi=FALSE);
 
   /// destructor
   virtual ~ nLinMagNode2D_linFormInt();
@@ -142,7 +142,7 @@ public:
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
 
- /// in nonlinear calculations, the actual magnetic vector potential of the element is needed
+  /// in nonlinear calculations, the actual magnetic vector potential of the element is needed
   virtual void SetActElemSol(Matrix<Double>& magPot) 
   { magPotinMatrix_ = magPot; magPot.ConvertToVec_AppendRows(magPot_);};
   
@@ -178,24 +178,24 @@ public:
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
 
- /// in nonlinear calculations, the actual displacement of the element is needed
+  /// in nonlinear calculations, the actual displacement of the element is needed
   /*!
-  \param disp (input) Matrix with displacement d of all nodes of actual element
-  \f[ \left( \begin{array}{ccc} 
-             d_{x1} &  d_{x2} &  d_{x3} \\
-             d_{y1} &  d_{y2} &  d_{y3} \\
-	     \end{array}\right) \f]	    
+    \param disp (input) Matrix with displacement d of all nodes of actual element
+    \f[ \left( \begin{array}{ccc} 
+    d_{x1} &  d_{x2} &  d_{x3} \\
+    d_{y1} &  d_{y2} &  d_{y3} \\
+    \end{array}\right) \f]         
   */
   void setActElemDispl(Matrix<Double>& disp) {elemDisp_ = disp;};  
 
 
   /// in nonlinear calculations, the actual displacement of the element is needed
   /*!
-  \param disp (input) Matrix with displacement d of all nodes of actual element
-  \f[ \left( \begin{array}{ccc} 
-             d_{x1} &  d_{x2} &  d_{x3} \\
-             d_{y1} &  d_{y2} &  d_{y3} \\
-	     \end{array}\right) \f]	    
+    \param disp (input) Matrix with displacement d of all nodes of actual element
+    \f[ \left( \begin{array}{ccc} 
+    d_{x1} &  d_{x2} &  d_{x3} \\
+    d_{y1} &  d_{y2} &  d_{y3} \\
+    \end{array}\right) \f]         
   */
   virtual void SetActElemSol(Matrix<Double>& disp) {elemDisp_ = disp;};
  
@@ -217,9 +217,9 @@ class PreStressLinFormInt : public nLinMech_linFormInt
 public:
   /// constructor
   PreStressLinFormInt(BaseFE * aptelem, 
-		      MaterialData & matData, 
-		      Double aPreStressVal, 
-		      Directions stressDir);
+                      MaterialData & matData, 
+                      Double aPreStressVal, 
+                      Directions stressDir);
   
 
   /// destructor
@@ -227,7 +227,7 @@ public:
 
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, 
-			      Vector<Double> & result);
+                              Vector<Double> & result);
 
 private: 
   ///
@@ -249,7 +249,7 @@ public:
 
   /// Calculation of vector of right hand side 
   virtual void CalcElemVector(Matrix<Double>& ptCoord, 
-			      Vector<Double> & elemVec);
+                              Vector<Double> & elemVec);
 
   virtual void SetMultiplier(Double mult){multiplier_ = mult;};
   
@@ -278,21 +278,21 @@ public:
 
   /// Calculation of vector of right hand side for the surface elements on the obstacle (dipole)
   void CalcElemVector4Dip(Matrix<Double>& ptCoord, 
-			  const StdVector<Integer> & connecth, 
-			  Vector<Double> & Result, 
-			  const Vector<Double> gradN_x_P);
+                          const StdVector<Integer> & connecth, 
+                          Vector<Double> & Result, 
+                          const Vector<Double> gradN_x_P);
 
   /// Calculation of vector of right hand side given from quadrupole contribution
   void CalcElemVector4Quad(Matrix<Double>& ptCoord, 
-			   const StdVector<Integer> & connecth,
-			   const Matrix<Double> & FlowData, 
-			   Vector<Double> & Result);
+                           const StdVector<Integer> & connecth,
+                           const Matrix<Double> & FlowData, 
+                           Vector<Double> & Result);
 
   /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)
   void GetQttiesOfElement(Matrix<Double>& elVec, 
-			  const Matrix<Double>& FlowData,
-			  const StdVector<Integer>& connecth, 
-			  Integer matrixRow);
+                          const Matrix<Double>& FlowData,
+                          const StdVector<Integer>& connecth, 
+                          Integer matrixRow);
   
 private:
 
@@ -409,9 +409,9 @@ public:
     \param elemVec (output) vector with result
   */
   void CalcElemVectorRHSForSPR(Matrix<Double>& ptCoord,
-			  Vector<Double> & fncNodesElem,
-			  const Integer aComponent,
-			  Vector<Double> & elemVec);
+                               Vector<Double> & fncNodesElem,
+                               const Integer aComponent,
+                               Vector<Double> & elemVec);
 
 private:
  

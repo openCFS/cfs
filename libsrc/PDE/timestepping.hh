@@ -9,89 +9,89 @@
 namespace CoupledField {
 
 
-// forward class declaration
-class BaseSystem;
+  // forward class declaration
+  class BaseSystem;
 
-//! a base class for time stepping
+  //! a base class for time stepping
 
-class TimeStepping
-{
-public:
-  //! constructor
-  /*!
-    \param apdename name of PDE
-    \param algebraicsystem pointer to algebraic system used by PDE
-  */
-  TimeStepping(std::string apdename, BaseSystem * algebraicsystem,
-			   NodeEQN * ptEQN);
+  class TimeStepping
+  {
+  public:
+    //! constructor
+    /*!
+      \param apdename name of PDE
+      \param algebraicsystem pointer to algebraic system used by PDE
+    */
+    TimeStepping(std::string apdename, BaseSystem * algebraicsystem,
+                 NodeEQN * ptEQN);
 
-   //! deconstructor
-  virtual ~TimeStepping();
+    //! deconstructor
+    virtual ~TimeStepping();
   
-  //! initilization
-  virtual void Init(Double * matrix_factors, Double dt)=0;
+    //! initilization
+    virtual void Init(Double * matrix_factors, Double dt)=0;
 
-  //! perform predictor step
-  virtual void Predictor(Vector<Double>& solold)=0;
+    //! perform predictor step
+    virtual void Predictor(Vector<Double>& solold)=0;
   
-  //! perform corrector step
-  virtual void Corrector(Vector<Double>& solnew)=0;
+    //! perform corrector step
+    virtual void Corrector(Vector<Double>& solnew)=0;
   
-  //! perform an update to RHS
-  virtual void UpdateRHS()=0;
+    //! perform an update to RHS
+    virtual void UpdateRHS()=0;
 
-  //! perform an update to RHS with actual solution (for nonlin calculation)
-  virtual void UpdateRHS(Vector<Double>& actSol)
-  {Error("Error not implemented!",__FILE__,__LINE__);};
+    //! perform an update to RHS with actual solution (for nonlin calculation)
+    virtual void UpdateRHS(Vector<Double>& actSol)
+    {Error("Error not implemented!",__FILE__,__LINE__);};
 
-  //! set vector with first derivative
-  virtual void SetDeriv1(const Vector<Double> & deriv1)
-  {solderiv1_ = deriv1;}
+    //! set vector with first derivative
+    virtual void SetDeriv1(const Vector<Double> & deriv1)
+    {solderiv1_ = deriv1;}
   
-  //! set vector with second derivative
-  virtual void SetDeriv2(const Vector<Double> & deriv2)
-  {solderiv2_ = deriv2;}
+    //! set vector with second derivative
+    virtual void SetDeriv2(const Vector<Double> & deriv2)
+    {solderiv2_ = deriv2;}
 
-  //!  return pointer to vector with first derivative of solution
-  virtual const Vector<Double>& GetDeriv1() const { return solderiv1_;}
+    //!  return pointer to vector with first derivative of solution
+    virtual const Vector<Double>& GetDeriv1() const { return solderiv1_;}
   
-  //! return pointer to vector with second derivative of solution
-  virtual const Vector<Double>& GetDeriv2() const { return solderiv2_;}
+    //! return pointer to vector with second derivative of solution
+    virtual const Vector<Double>& GetDeriv2() const { return solderiv2_;}
 
-  NodeEQN * getNodeEQN(){return ptEQN_;};
+    NodeEQN * getNodeEQN(){return ptEQN_;};
 
-  //! set the time step
-  void SetTimeStep(Double dt) 
-  { dt_ = dt;};
+    //! set the time step
+    void SetTimeStep(Double dt) 
+    { dt_ = dt;};
 
-  //! get the time step size
-  Double GetTimeStep() 
-  { return dt_;};
+    //! get the time step size
+    Double GetTimeStep() 
+    { return dt_;};
 
-  //! get beta coefficient from Newmark time stepping scheme
-  virtual Double GetNewmarkBeta()
-  {;};
+    //! get beta coefficient from Newmark time stepping scheme
+    virtual Double GetNewmarkBeta()
+    {;};
 
- //! Dirichlet boundary condition has to be adapted
-  virtual Double DirichletBC4EffMassMatrix(Double val, Integer eq) {
-    Error("DirichletBC4EffMassMatrix not implemented");
-  }
+    //! Dirichlet boundary condition has to be adapted
+    virtual Double DirichletBC4EffMassMatrix(Double val, Integer eq) {
+      Error("DirichletBC4EffMassMatrix not implemented");
+    }
 
-protected:
+  protected:
 
-  std::string pdename_;  //<! name of PDE
-  BaseSystem * algsys_;  //<! pointer to algebraic system
-  NodeEQN * ptEQN_;      //<! pointer to eqn-object
+    std::string pdename_;  //<! name of PDE
+    BaseSystem * algsys_;  //<! pointer to algebraic system
+    NodeEQN * ptEQN_;      //<! pointer to eqn-object
 
-  Double dt_;            //<! time step size
+    Double dt_;            //<! time step size
 
-  Vector<Double> solderiv1_, solderiv2_;
+    Vector<Double> solderiv1_, solderiv2_;
 
-private:
+  private:
    
 
 
-};
+  };
 
 } // end of namespace
 

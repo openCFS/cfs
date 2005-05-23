@@ -59,13 +59,13 @@ namespace CoupledField
   //constructor
   // opens datafiles: measuredData.dat for input, imedCurve.dat and piezoLog.dat for output
 
-piezoParamIdent :: piezoParamIdent(Domain * adomain,
-				   Integer stepOffset,
-				   Double timeOffset,
-				   std::string driverTag,
-				   Boolean isPartOfSequence)
-:SingleDriver(adomain, stepOffset, timeOffset, 
-		  driverTag, isPartOfSequence){
+  piezoParamIdent :: piezoParamIdent(Domain * adomain,
+                                     Integer stepOffset,
+                                     Double timeOffset,
+                                     std::string driverTag,
+                                     Boolean isPartOfSequence)
+    :SingleDriver(adomain, stepOffset, timeOffset, 
+                  driverTag, isPartOfSequence){
 
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
 
@@ -77,8 +77,8 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     if (!allMeasuredData)
       {
-	std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
-	//	exit(1);
+        std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
+        //      exit(1);
       }
 
     std::cout<<"\n Opens impedCurve.dat and piezoLog.dat ... "<<std::endl;
@@ -89,7 +89,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     if (!impedCurve)
       {
-	std::cerr << "\n ImpedanceCurve.dat could not be initialized" << std::endl;
+        std::cerr << "\n ImpedanceCurve.dat could not be initialized" << std::endl;
       }
 
     std::string filenameLog= "piezoLog.dat";
@@ -98,7 +98,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     if (!piezoLog)
       {
-	std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
+        std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
       }
 
     std::string filenameParLog= "parLog.dat";
@@ -107,7 +107,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     if (!parLog)
       {
-	std::cerr << "\n parLog.dat could not be initialized" << std::endl;
+        std::cerr << "\n parLog.dat could not be initialized" << std::endl;
       }
 
     std::string filenameParFinal= "parFinal.dat";
@@ -116,7 +116,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     if (!parFinal)
       {
-	std::cerr << "\n parFinal.dat could not be initialized" << std::endl;
+        std::cerr << "\n parFinal.dat could not be initialized" << std::endl;
       }
 
     // in future, several parameters wwill be taken from the xml - file ...
@@ -171,22 +171,22 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     Integer highestAssumableNrOfMeasData=25;
     nrParameter = 10;
 
-     parameter.Resize(nrParameter);
-     parameterC.Resize(nrParameter);
-     whichParameterToUpdate.Resize(nrParameter);
+    parameter.Resize(nrParameter);
+    parameterC.Resize(nrParameter);
+    whichParameterToUpdate.Resize(nrParameter);
 
-     whichParameterToUpdateC.Resize(nrParameter);
+    whichParameterToUpdateC.Resize(nrParameter);
 
-     whichParameterToUpdateRC.Resize(1);
+    whichParameterToUpdateRC.Resize(1);
 
-     //     parameterIncrement.Resize(nrParameter);
-     //parameterIncrement = parameter;
-     omegas.Resize(highestAssumableNrOfMeasData);
-     freqs.Resize(highestAssumableNrOfMeasData);
-     real.Resize(highestAssumableNrOfMeasData);
-     imag.Resize(highestAssumableNrOfMeasData);
-     amplitude_phase.Resize(highestAssumableNrOfMeasData);
-     F_hat.Resize(highestAssumableNrOfMeasData);
+    //     parameterIncrement.Resize(nrParameter);
+    //parameterIncrement = parameter;
+    omegas.Resize(highestAssumableNrOfMeasData);
+    freqs.Resize(highestAssumableNrOfMeasData);
+    real.Resize(highestAssumableNrOfMeasData);
+    imag.Resize(highestAssumableNrOfMeasData);
+    amplitude_phase.Resize(highestAssumableNrOfMeasData);
+    F_hat.Resize(highestAssumableNrOfMeasData);
 
     //    Double pi = 3.14159265358979;
     Double tau=1.5;
@@ -222,7 +222,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       ptdomain_->PrintGrid();
     if (isPartOfSequence_ == FALSE){     
       GetMyPDEs();
-    //! cast pointer to BasePDE * to pointer of SinglePDE *
+      //! cast pointer to BasePDE * to pointer of SinglePDE *
       ptMyPDE_ = dynamic_cast<SinglePDE*>(ptPDE_);
       Info->StartProgress ("Starting to solve problem", FALSE);
     }
@@ -235,11 +235,11 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     // how many parameters are there actually to set?
     for (Integer i=0;i<whichParameterToUpdate.GetSize();i++)
       if (whichParameterToUpdate[i]==1)
-	actNrParameter++;
+        actNrParameter++;
 
-     for (Integer i=0;i<whichParameterToUpdateC.GetSize();i++)
-       if (whichParameterToUpdateC[i]==1)
- 	actNrParameterC++;
+    for (Integer i=0;i<whichParameterToUpdateC.GetSize();i++)
+      if (whichParameterToUpdateC[i]==1)
+        actNrParameterC++;
    
     whichParToUpInd.Resize(actNrParameter);
     if (whichNewtonCG==4||whichNewtonCG==6||whichNewtonCG==8)
@@ -248,21 +248,21 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     Integer intTemp=0;
 
     for (Integer i=0;i<whichParameterToUpdate.GetSize();i++)
-      if (whichParameterToUpdate[i]==1){	
-	  whichParToUpInd[intTemp]=i;
-	  intTemp++;
+      if (whichParameterToUpdate[i]==1){        
+        whichParToUpInd[intTemp]=i;
+        intTemp++;
       }
 
 
     intTemp=0;
     for (Integer i=0;i<whichParameterToUpdateC.GetSize();i++)
       if (whichParameterToUpdateC[i]==1) {
-	  whichParToUpIndC[intTemp]=i;
-	  intTemp++;
+        whichParToUpIndC[intTemp]=i;
+        intTemp++;
       }
 
-     whichParameterToUpdateRC=whichParameterToUpdate;
-     whichParameterToUpdateRC.InsertVector(whichParameterToUpdateC,10);
+    whichParameterToUpdateRC=whichParameterToUpdate;
+    whichParameterToUpdateRC.InsertVector(whichParameterToUpdateC,10);
 
 
     // ************************************************************************
@@ -281,15 +281,15 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     //Alternate Materialparameter by x percent
     if (FALSE)
       for (Integer i=0;i<nrParameter;i++){
-	if(i!=2)
-	  if (i==1||i==7||i==9)
-	    parameter[i]=parameter[i]-0.15*parameter[i];
-	// 	  else if (i==0||i==5||i==6)
-	//  parameter[i]=parameter[i]-0.05*parameter[i];	     
-	//	if (i==1)
-	// parameter[i]=parameter[i]+0.1*parameter[i];
-	//	if (i==0)
-	  //parameter[i]=parameter[i]+0.1*parameter[i];	  
+        if(i!=2)
+          if (i==1||i==7||i==9)
+            parameter[i]=parameter[i]-0.15*parameter[i];
+        //        else if (i==0||i==5||i==6)
+        //  parameter[i]=parameter[i]-0.05*parameter[i];             
+        //      if (i==1)
+        // parameter[i]=parameter[i]+0.1*parameter[i];
+        //      if (i==0)
+        //parameter[i]=parameter[i]+0.1*parameter[i];   
       }
 
     if (FALSE){
@@ -303,7 +303,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       parameter[7]=16.008769;
       parameter[8]=9.479219002e-09;
       parameter[9]=8.098761552e-09;
-  }
+    }
     
 
     updateMaterialData(parameter,ptMaterial);
@@ -318,15 +318,15 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     for(Integer i=0;i<9;i++)
       for(Integer j=0;j<9;j++){
-	matMatStart[i][j]=(*matMat)[i][j];
-	matMatCStart[i][j]=(*matMatC)[i][j];
+        matMatStart[i][j]=(*matMat)[i][j];
+        matMatCStart[i][j]=(*matMatC)[i][j];
       }
 
 
-//     ptAlgsys = ptMyPDE_->getPDE_algsys();                       //Pointer to AlgebraicSystem
-//     Integer numElems = ptMyPDE_->getPDE_numElems();
-//     dofs=ptMyPDE_->getPDE_dofspernode();
-//     numNodes= ptMyPDE_->getPDE_numPDENodes();
+    //     ptAlgsys = ptMyPDE_->getPDE_algsys();                       //Pointer to AlgebraicSystem
+    //     Integer numElems = ptMyPDE_->getPDE_numElems();
+    //     dofs=ptMyPDE_->getPDE_dofspernode();
+    //     numNodes= ptMyPDE_->getPDE_numPDENodes();
 
     //xxxxxxxxxxxxxxxx Initialize and resize all matrices and vectors involved xxxxxxxxxx
 
@@ -354,10 +354,10 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     // parameterC[i]=0.0;
     //    parameterC[7]=1.0;
 
-//     updateMaterialData(parameter, ptMaterial);
-//     updateComplexMaterialData(parameterC, ptMaterial);
+    //     updateMaterialData(parameter, ptMaterial);
+    //     updateComplexMaterialData(parameterC, ptMaterial);
 
-    //	ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial); // deletes all Integrators and creates new ones with Material in ptMaterial
+    //  ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial); // deletes all Integrators and creates new ones with Material in ptMaterial
 
 
     // ~~~~~~~~~~~~~ modificate the algorithm ~~~~~~~~~~~~~~~
@@ -378,7 +378,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       scaling.Resize(nrParameter);
       F_hat.Resize(nrMeasuredData);
       overall_res0.Resize(nrMeasuredData);      //    nrMeasuredData=1.0/2.0*nrMeasuredData;
-          std::cout<<"\n NRMEASURED DATA = " <<nrMeasuredData<<std::endl;
+      std::cout<<"\n NRMEASURED DATA = " <<nrMeasuredData<<std::endl;
     }
 
     // <<<<<<<<<<<<<< for a hopefully nice imped curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -392,8 +392,8 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       startFreqTemp=startfreq;
       Double freqincr=(stopfreq-startfreq)/nrfreq;
       for(Integer i=0;i<nrfreq;i++){
-	startFreqTemp+=freqincr;
-	freqs[i]=startFreqTemp;
+        startFreqTemp+=freqincr;
+        freqs[i]=startFreqTemp;
       }
       calcImpedanceCurve();
       freqs = freqsTemp;
@@ -409,13 +409,13 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
     // Which data for the right had side of F(p)=y_hat should be taken? ... either .. or ... !!!!
     
-      calc_measuredCharge(freqs, real, imag, y_hat); // out of measurements, values are taken from measuredData.dat
-      // calcSyntheticData(y_hat); // Generates synthetic data, i.e. one forward simulation will be performed.
+    calc_measuredCharge(freqs, real, imag, y_hat); // out of measurements, values are taken from measuredData.dat
+    // calcSyntheticData(y_hat); // Generates synthetic data, i.e. one forward simulation will be performed.
 
-      //     std::cout<<"\n Measured Data - Set: "<<std::endl;
-//     for(int i=0;i<y_hat.GetSize();i++)
-//       std::cout<<"y("<<i<<")= "<< y_hat[i]<<"; ";
-//     std::cout<<"\n"<<std::endl;
+    //     std::cout<<"\n Measured Data - Set: "<<std::endl;
+    //     for(int i=0;i<y_hat.GetSize();i++)
+    //       std::cout<<"y("<<i<<")= "<< y_hat[i]<<"; ";
+    //     std::cout<<"\n"<<std::endl;
 
     // some values for typical mechanical displacements:
     if (considerMechDeformation==TRUE){
@@ -424,32 +424,32 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
 
       if (spacedim==2){
 
-	y_hat[11]=Complex(-4.475871e-11,0); 
-	y_hat[12]=Complex(-5.002088e-11,0); 
-	y_hat[13]=Complex(-5.879827e-11,0); 
-	y_hat[14]=Complex(-7.289186e-11,0); 
-	y_hat[15]=Complex(-1.067941e-10,0); 
-	y_hat[16]=Complex(-2.390268e-10,0);
-	y_hat[17]=Complex(-1.460878e-09,0); 
-	y_hat[18]=Complex(-1.946208e-10,0); 
-	y_hat[19]=Complex(-6.589395e-1,0);
-	y_hat[20]=Complex(-5.830401e-11,0); 
-	y_hat[21]=Complex(-4.383149e-11,0); 
+        y_hat[11]=Complex(-4.475871e-11,0); 
+        y_hat[12]=Complex(-5.002088e-11,0); 
+        y_hat[13]=Complex(-5.879827e-11,0); 
+        y_hat[14]=Complex(-7.289186e-11,0); 
+        y_hat[15]=Complex(-1.067941e-10,0); 
+        y_hat[16]=Complex(-2.390268e-10,0);
+        y_hat[17]=Complex(-1.460878e-09,0); 
+        y_hat[18]=Complex(-1.946208e-10,0); 
+        y_hat[19]=Complex(-6.589395e-1,0);
+        y_hat[20]=Complex(-5.830401e-11,0); 
+        y_hat[21]=Complex(-4.383149e-11,0); 
 
       }
 
       else if (spacedim==3){
-	y_hat[11]=Complex(3.875446e-07,0.000000e+00);
-	y_hat[12]=Complex(4.739544e-07,0.000000e+00); 
-	y_hat[13]=Complex(3.883185e-07,0.000000e+00); 
-	y_hat[14]=Complex(4.742736e-07,0.000000e+00); 
-	y_hat[15]=Complex(3.886104e-07,0.000000e+00); 
-	y_hat[16]=Complex(4.753440e-07,0.000000e+00); 
-	y_hat[17]=Complex(3.892408e-07,0.000000e+00); 
-	y_hat[18]=Complex(4.765859e-07,0.000000e+00); 
-	y_hat[19]=Complex(3.906905e-07,0.000000e+00); 
-	y_hat[20]=Complex(4.785139e-07,0.000000e+00); 
-	y_hat[21]=Complex(3.923972e-07,0.000000e+00);
+        y_hat[11]=Complex(3.875446e-07,0.000000e+00);
+        y_hat[12]=Complex(4.739544e-07,0.000000e+00); 
+        y_hat[13]=Complex(3.883185e-07,0.000000e+00); 
+        y_hat[14]=Complex(4.742736e-07,0.000000e+00); 
+        y_hat[15]=Complex(3.886104e-07,0.000000e+00); 
+        y_hat[16]=Complex(4.753440e-07,0.000000e+00); 
+        y_hat[17]=Complex(3.892408e-07,0.000000e+00); 
+        y_hat[18]=Complex(4.765859e-07,0.000000e+00); 
+        y_hat[19]=Complex(3.906905e-07,0.000000e+00); 
+        y_hat[20]=Complex(4.785139e-07,0.000000e+00); 
+        y_hat[21]=Complex(3.923972e-07,0.000000e+00);
       }
 
     }
@@ -471,8 +471,8 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     matMat = ptMaterial->GetMatrix();
     matMatC = ptMaterial->GetMatrixC();
 
-//     std::cout<<"We start the calculation with the following material!"<<std::endl;
-//     std::cout<<*matMat<<std::endl;
+    //     std::cout<<"We start the calculation with the following material!"<<std::endl;
+    //     std::cout<<*matMat<<std::endl;
     //    std::cout<<matMatC<<std::endl;
 
     scaling[0]=1.0/((*matMat)[0][0]); 
@@ -516,118 +516,118 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     if (whichNewtonCG==3){
       Integer nNewtonCG =0;
       //    while (nNewtonCG<100){
-	 c33history[nNewtonCG] = parameter[1];
-	 e33history[nNewtonCG] = parameter[7];
-	 eps33history[nNewtonCG] = parameter[8];
-	 std::cout<<"\n Nr: "<< nNewtonCG << ", start next NewtonCG Iteration?"<<std::endl;
-	 //arLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " <<e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG]<<std::endl;
-         NewtonCG3();
-	 nNewtonCG++;
-	 //  }
+      c33history[nNewtonCG] = parameter[1];
+      e33history[nNewtonCG] = parameter[7];
+      eps33history[nNewtonCG] = parameter[8];
+      std::cout<<"\n Nr: "<< nNewtonCG << ", start next NewtonCG Iteration?"<<std::endl;
+      //arLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " <<e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG]<<std::endl;
+      NewtonCG3();
+      nNewtonCG++;
+      //  }
     }
     else if (whichNewtonCG==4){
       Integer nNewtonCG =0;
       while (nNewtonCG<200){
-	c33history[nNewtonCG] = parameter[1];
- 	e33history[nNewtonCG] = parameter[7];
- 	eps33history[nNewtonCG] = parameter[9];
-	c33historyC[nNewtonCG] = parameterC[1];
-	e33historyC[nNewtonCG] = parameterC[7];
-	eps33historyC[nNewtonCG] = parameterC[9];
-	 std::cout<<"\n Nr: "<< nNewtonCG << ", start next NewtonCG Iteration?"<<std::endl;
-	//	getchar();
-	  *parLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " << 
-	    e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG] 
-		<<"  "<< c33historyC[nNewtonCG]<<"  " <<
-	  e33historyC[nNewtonCG]<<"   " <<eps33historyC[nNewtonCG]<<std::endl;
+        c33history[nNewtonCG] = parameter[1];
+        e33history[nNewtonCG] = parameter[7];
+        eps33history[nNewtonCG] = parameter[9];
+        c33historyC[nNewtonCG] = parameterC[1];
+        e33historyC[nNewtonCG] = parameterC[7];
+        eps33historyC[nNewtonCG] = parameterC[9];
+        std::cout<<"\n Nr: "<< nNewtonCG << ", start next NewtonCG Iteration?"<<std::endl;
+        //      getchar();
+        *parLog <<nNewtonCG <<"  "<< c33history[nNewtonCG]<<"  " << 
+          e33history[nNewtonCG]<<"   " <<eps33history[nNewtonCG] 
+                <<"  "<< c33historyC[nNewtonCG]<<"  " <<
+          e33historyC[nNewtonCG]<<"   " <<eps33historyC[nNewtonCG]<<std::endl;
 
-         NewtonCG4();
-	 nNewtonCG++;
+        NewtonCG4();
+        nNewtonCG++;
       }
     }
     else if (whichNewtonCG==5){
       Integer nrNewtonLandweber=0;
       while (nrNewtonLandweber<maxNumberNewtonLoops){
-	std::cout<<"\n Nr: "<< nrNewtonLandweber << ", start next Newton Landweber?"<<std::endl;
-	c33history[nrNewtonLandweber] = parameter[1];
-	e33history[nrNewtonLandweber] = parameter[7];
-	eps33history[nrNewtonLandweber] = parameter[9];
-	//getchar();
-	*parLog <<nrNewtonLandweber <<"  "<< c33history[nrNewtonLandweber]<<"  " <<e33history[nrNewtonLandweber]<<"   " <<eps33history[nrNewtonLandweber]<<std::endl;
-	NewtonLandweber();
-	nrNewtonLandweber++;
+        std::cout<<"\n Nr: "<< nrNewtonLandweber << ", start next Newton Landweber?"<<std::endl;
+        c33history[nrNewtonLandweber] = parameter[1];
+        e33history[nrNewtonLandweber] = parameter[7];
+        eps33history[nrNewtonLandweber] = parameter[9];
+        //getchar();
+        *parLog <<nrNewtonLandweber <<"  "<< c33history[nrNewtonLandweber]<<"  " <<e33history[nrNewtonLandweber]<<"   " <<eps33history[nrNewtonLandweber]<<std::endl;
+        NewtonLandweber();
+        nrNewtonLandweber++;
 
+      }
     }
-  }
 
     else if (whichNewtonCG==6){
       Integer nrNewtonLandweber=0;
       while (nrNewtonLandweber<maxNumberNewtonLoops){
-	std::cout<<"\n Nr: "<< nrNewtonLandweber << ", start next Newton Landweber?"<<std::endl;
- 	c33history[nrNewtonLandweber] = parameter[1];
- 	e33history[nrNewtonLandweber] = parameter[7];
- 	eps33history[nrNewtonLandweber] = parameter[9];
- 	c33historyC[nrNewtonLandweber] = parameterC[1];
- 	e33historyC[nrNewtonLandweber] = parameterC[7];
- 	eps33historyC[nrNewtonLandweber] = parameterC[9];
-// 	//getchar();
- 	*parLog <<nrNewtonLandweber <<"  "<< c33history[nrNewtonLandweber]<<"  " <<
-	  e33history[nrNewtonLandweber]<<"   " <<eps33history[nrNewtonLandweber] 
-		<<"  "<< c33historyC[nrNewtonLandweber]<<"  " <<
-	  e33historyC[nrNewtonLandweber]<<"   " <<eps33historyC[nrNewtonLandweber]<<std::endl;
-	NewtonLandweberC();
-	nrNewtonLandweber++;
+        std::cout<<"\n Nr: "<< nrNewtonLandweber << ", start next Newton Landweber?"<<std::endl;
+        c33history[nrNewtonLandweber] = parameter[1];
+        e33history[nrNewtonLandweber] = parameter[7];
+        eps33history[nrNewtonLandweber] = parameter[9];
+        c33historyC[nrNewtonLandweber] = parameterC[1];
+        e33historyC[nrNewtonLandweber] = parameterC[7];
+        eps33historyC[nrNewtonLandweber] = parameterC[9];
+        //      //getchar();
+        *parLog <<nrNewtonLandweber <<"  "<< c33history[nrNewtonLandweber]<<"  " <<
+          e33history[nrNewtonLandweber]<<"   " <<eps33history[nrNewtonLandweber] 
+                <<"  "<< c33historyC[nrNewtonLandweber]<<"  " <<
+          e33historyC[nrNewtonLandweber]<<"   " <<eps33historyC[nrNewtonLandweber]<<std::endl;
+        NewtonLandweberC();
+        nrNewtonLandweber++;
 
+      }
     }
-  }
 
     else if (whichNewtonCG==7){
       Integer nrNuMethods=0;
       newtonCounter=0;
       inner_eta=1.0;
       while (nrNuMethods<maxNumberNewtonLoops){
-	      //      while (nrNuMethods<2){
-	//	std::cout<<"\n Nr: "<< nrNuMethods << ", start next Newton NuMethod?"<<std::endl;
-// 	c33history[nrNuMethods] = parameter[1];
-// 	e33history[nrNuMethods] = parameter[7];
-// 	eps33history[nrNuMethods] = parameter[9];
-// 	//getchar();
-// 	*parLog <<nrNuMethods <<"  "<< c33history[nrNuMethods]<<"  " <<e33history[nrNuMethods]<<"   " <<eps33history[nrNuMethods]<<std::endl;
-	nuMethods();
-	nrNuMethods++;
+        //      while (nrNuMethods<2){
+        //      std::cout<<"\n Nr: "<< nrNuMethods << ", start next Newton NuMethod?"<<std::endl;
+        //      c33history[nrNuMethods] = parameter[1];
+        //      e33history[nrNuMethods] = parameter[7];
+        //      eps33history[nrNuMethods] = parameter[9];
+        //      //getchar();
+        //      *parLog <<nrNuMethods <<"  "<< c33history[nrNuMethods]<<"  " <<e33history[nrNuMethods]<<"   " <<eps33history[nrNuMethods]<<std::endl;
+        nuMethods();
+        nrNuMethods++;
 
-	for (Integer i=0; i<parameter.GetSize(); i++)
-	  *parFinal<<parameter[i]<<", ";
-	*parFinal<<"/"<<std::endl;
-	newtonCounter++;
+        for (Integer i=0; i<parameter.GetSize(); i++)
+          *parFinal<<parameter[i]<<", ";
+        *parFinal<<"/"<<std::endl;
+        newtonCounter++;
+      }
     }
-  }
 
     else if (whichNewtonCG==8){
       Integer nrNuMethodsC=0;
       newtonCounter=0;
       inner_eta=1.0;
       while (nrNuMethodsC<maxNumberNewtonLoops){
-// 	std::cout<<"\n Nr: "<< nrNuMethodsC << ", start next Newton NuMethodC2 ?"<<std::endl;
-// 	c33history[nrNuMethodsC] = parameterC[1];
-// 	e33history[nrNuMethodsC] = parameterC[7];
-// 	eps33history[nrNuMethodsC] = parameterC[9];
+        //      std::cout<<"\n Nr: "<< nrNuMethodsC << ", start next Newton NuMethodC2 ?"<<std::endl;
+        //      c33history[nrNuMethodsC] = parameterC[1];
+        //      e33history[nrNuMethodsC] = parameterC[7];
+        //      eps33history[nrNuMethodsC] = parameterC[9];
 
-	nuMethodsC2();
-	*parLog <<nrNuMethodsC <<"  "<< parameter[1]<<"  " <<parameter[7]<<"   " <<parameter[9]<<"  "<<
-	  c33history[nrNuMethodsC]<<"  " <<e33history[nrNuMethodsC]<<"   " <<eps33history[nrNuMethodsC]<<std::endl;
-	for (Integer i=0; i<parameter.GetSize(); i++)
-	  *parFinal<<parameter[i]<<", ";
-	*parFinal<<"/"<<std::endl;
-	for (Integer i=0; i<parameterC.GetSize(); i++)
-	  *parFinal<<parameterC[i]<<", ";
-	*parFinal<<"/"<<std::endl;
+        nuMethodsC2();
+        *parLog <<nrNuMethodsC <<"  "<< parameter[1]<<"  " <<parameter[7]<<"   " <<parameter[9]<<"  "<<
+          c33history[nrNuMethodsC]<<"  " <<e33history[nrNuMethodsC]<<"   " <<eps33history[nrNuMethodsC]<<std::endl;
+        for (Integer i=0; i<parameter.GetSize(); i++)
+          *parFinal<<parameter[i]<<", ";
+        *parFinal<<"/"<<std::endl;
+        for (Integer i=0; i<parameterC.GetSize(); i++)
+          *parFinal<<parameterC[i]<<", ";
+        *parFinal<<"/"<<std::endl;
 
-	nrNuMethodsC++;
-	newtonCounter++;
+        nrNuMethodsC++;
+        newtonCounter++;
 
+      }
     }
-  }
 
     else if (whichNewtonCG==9)
       tichonov();
@@ -644,8 +644,8 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       
       *parFinal<<"4) "<<std::endl;
       for (int i=0;i<parameter.GetSize();i++){
-	std::cout<<"par[" << i<<"]="<< parameter[i]<<" + " << parameterC[i]<<"i"<<std::endl;
-      *parFinal<<parameter[i]<<", ";
+        std::cout<<"par[" << i<<"]="<< parameter[i]<<" + " << parameterC[i]<<"i"<<std::endl;
+        *parFinal<<parameter[i]<<", ";
       }
       *parFinal<<"/"<<std::endl;
     }
@@ -653,7 +653,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     //    std::cout<<matMatStart<<std::endl;
     //std::cout<<matMatCStart<<std::endl;
 
-// <<<<<<<<<<<<<< for a hopefully nice imped curve after identification !! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // <<<<<<<<<<<<<< for a hopefully nice imped curve after identification !! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
      
     if (CalcImpedanceCurve == TRUE && maxNumberNewtonLoops!=0){
@@ -661,8 +661,8 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       freqs.Resize(nrfreq);
       Double freqincr=(stopfreq-startfreq)/nrfreq;
       for(Integer i=0;i<nrfreq;i++){
-	startfreq+=freqincr;
-	freqs[i]=startfreq;
+        startfreq+=freqincr;
+        freqs[i]=startfreq;
       }
       calcImpedanceCurve();
       std::cout<<"\n Press any key to continue ... "<<std::endl;
@@ -688,63 +688,63 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     //    imped = std::abs(voltage/(charge*2.0*PI*freq*im)); phase = -90 - 180.0/PI*(std::arg(charge));
     // This line makes sense in this routine!
 
-        imped = std::abs(voltage/(charge*2.0*PI*freq*im));
-	phase = 180/PI*(std::arg(impedC));
+    imped = std::abs(voltage/(charge*2.0*PI*freq*im));
+    phase = 180/PI*(std::arg(impedC));
 
-	if(typeOut==TRUE){
-	  std::cout<<std::setprecision(10);
-	  //	std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
-	  std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
-	  *impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
-	}
+    if(typeOut==TRUE){
+      std::cout<<std::setprecision(10);
+      //    std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
+      std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
+      *impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
+    }
 
 
 
   }  // end calcAbsImped 
 
-   void piezoParamIdent::norm(Vector<Complex> &  vec, Double & norm, Double & norm2,Vector<Complex> & q_meas){
-     ENTER_FCN("piezoParamIdent::norm");
+  void piezoParamIdent::norm(Vector<Complex> &  vec, Double & norm, Double & norm2,Vector<Complex> & q_meas){
+    ENTER_FCN("piezoParamIdent::norm");
 
-     Vector<Complex> y_comp(nrParameter);
-     Vector<Complex> y_temp(nrParameter);
+    Vector<Complex> y_comp(nrParameter);
+    Vector<Complex> y_temp(nrParameter);
 
-     switch (whichNorm){
+    switch (whichNorm){
 
-     case 1:
-       norm = a2norm(vec);
-       //       std::cout<<"\n l2-Norm = "<<norm<<std::endl;
-       break;
-     case 2:
-       maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
-       //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
-       break;
-     case 3:
-       maxAndEuclNorm(vec,norm,norm2);
-       //       std::cout<<"\n max-Norm = "<<norm<<std::endl;
-       break;
-     case 4:
-       //       std::cout<<"\n weighted - logarithmic Norm will be determined ..."<< std::endl;
-       for(Integer i=0;i<nrParameter;i++){
-	 y_comp[i]=q_meas[i] - vec[i];
-	 y_comp[i]=std::log(y_comp[i]);
-	 y_temp[i]=std::log(q_meas[i]);
-	 vec[i]= std::abs(y_comp[i]-y_temp[i]);
-       }
-       //       norm=std::sqrt(a2norm(vec));
-       maxAndWeightedResNorm(vec,norm2,norm,y_temp);
-       // std::cout<<"\n weighted - logarithmic Norm = "<< norm <<std::endl;
-       break;
+    case 1:
+      norm = a2norm(vec);
+      //       std::cout<<"\n l2-Norm = "<<norm<<std::endl;
+      break;
+    case 2:
+      maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
+      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
+      break;
+    case 3:
+      maxAndEuclNorm(vec,norm,norm2);
+      //       std::cout<<"\n max-Norm = "<<norm<<std::endl;
+      break;
+    case 4:
+      //       std::cout<<"\n weighted - logarithmic Norm will be determined ..."<< std::endl;
+      for(Integer i=0;i<nrParameter;i++){
+        y_comp[i]=q_meas[i] - vec[i];
+        y_comp[i]=std::log(y_comp[i]);
+        y_temp[i]=std::log(q_meas[i]);
+        vec[i]= std::abs(y_comp[i]-y_temp[i]);
+      }
+      //       norm=std::sqrt(a2norm(vec));
+      maxAndWeightedResNorm(vec,norm2,norm,y_temp);
+      // std::cout<<"\n weighted - logarithmic Norm = "<< norm <<std::endl;
+      break;
 
-     case 5:
-       maxAndWeightedResNorm(vec,norm2,norm, q_meas);  // for complex valued problem
-       //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
-       break;
+    case 5:
+      maxAndWeightedResNorm(vec,norm2,norm, q_meas);  // for complex valued problem
+      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
+      break;
 
-     default:
-       norm=a2norm(vec);
+    default:
+      norm=a2norm(vec);
 
-     }
-   } // end norm
+    }
+  } // end norm
   
   
 
@@ -754,7 +754,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     Double norm=0.0;
     for (Integer i=0;i<mat.GetSizeRow();i++)
       for (Integer j=0;j<mat.GetSizeCol();j++)
-	norm+=std::abs(mat[i][j])*std::abs(mat[i][j]);
+        norm+=std::abs(mat[i][j])*std::abs(mat[i][j]);
     norm=sqrt(norm);
     return norm;
 
@@ -770,7 +770,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       maxNormTemp=std::abs(vec[i]);
       euclNorm += maxNormTemp*maxNormTemp;
       if (maxNormTemp>maxNorm)
-	maxNorm=maxNormTemp;
+        maxNorm=maxNormTemp;
     }
     //    euclNorm=std::sqrt(euclNorm);
 
@@ -798,16 +798,16 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       maxNormTemp=std::abs(vec[i]);
       Denominator = std::abs(q_meas[i])*std::abs(q_meas[i]);
       if (whichNorm==2){
-	//	wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real(); // this is a good running version!
-	wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-	//std::cout<<"\n WeightedResNorm = " << std::abs(vec[i])*std::abs(vec[i])<< std::endl;
-	//	std::cout<<wNorm<<std::endl;
+        //      wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real(); // this is a good running version!
+        wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        //std::cout<<"\n WeightedResNorm = " << std::abs(vec[i])*std::abs(vec[i])<< std::endl;
+        //      std::cout<<wNorm<<std::endl;
       }
       else if (whichNorm==5)
-	wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
 
       if (maxNormTemp>maxNorm)
-	maxNorm=maxNormTemp;
+        maxNorm=maxNormTemp;
     }
 
     //wNorm=std::sqrt(wNorm);
@@ -823,7 +823,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     }
   } // end calcNorm2Resid
 
- Double piezoParamIdent::norm2Real(Vector<Complex> &vec){
+  Double piezoParamIdent::norm2Real(Vector<Complex> &vec){
     ENTER_FCN("piezoParamIdent::realA2norm");
     Double result=0.0; 
     //      Double real_result;
@@ -880,20 +880,20 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     ptdomain_->GetGrid()->GetNodesByName(bcs_list,BCName);
     if (spacedim==3){
       for (Integer iNode=0; iNode<bcs_list.GetSize(); iNode++ ) 
-	{
-	  //	std::cout<<"\n MECHDISPL "<< mechDisplacement[(*it)*(dof-1)-1]<< " & it " << (*it)*(dof-1)-1 << std::endl;
-	  //meanValueMechDeformation+=std::abs(mechDisplacement[(*it)*(dofs-1)-1]);
-	  meanValueMechDeformation+=mechDisplacement[bcs_list[iNode]*(dof-1)-1].real();
-	}
+        {
+          //    std::cout<<"\n MECHDISPL "<< mechDisplacement[(*it)*(dof-1)-1]<< " & it " << (*it)*(dof-1)-1 << std::endl;
+          //meanValueMechDeformation+=std::abs(mechDisplacement[(*it)*(dofs-1)-1]);
+          meanValueMechDeformation+=mechDisplacement[bcs_list[iNode]*(dof-1)-1].real();
+        }
       meanValueMechDeformation=meanValueMechDeformation/(PI*Radius*Radius*mechDisplacement.GetSize()/(dof-1));
     }
 
     else if (spacedim==2){
       for (Integer iNode=0; iNode<bcs_list.GetSize(); iNode++ ) 
-	{
-	  //std::cout<<"\n MECHDISPL "<< mechDisplacement[(*it)*(dof-1)-1]<< " & it " << (*it)*(dof-1)-1 << std::endl;
-	  meanValueMechDeformation+=mechDisplacement[bcs_list[iNode]*(dof-1)-1].real();
-	}
+        {
+          //std::cout<<"\n MECHDISPL "<< mechDisplacement[(*it)*(dof-1)-1]<< " & it " << (*it)*(dof-1)-1 << std::endl;
+          meanValueMechDeformation+=mechDisplacement[bcs_list[iNode]*(dof-1)-1].real();
+        }
       meanValueMechDeformation=meanValueMechDeformation/(Radius*mechDisplacement.GetSize()/(dof-1));
     }
   } // end measureMechDeformationInZDirection
@@ -907,7 +907,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
       //      sol_real=solElecPot[i].real();
       //      sol_imag=solElecPot[i].imag();
       //   std::cout << "solElecPot("<< i<< ")=" << sol_real << " + " << sol_imag <<" i " <<std::endl;
-            std::cout<<"ElecPot: Amplitude ("<< i <<") = "<< std::abs(solElecPot[i])<< ";  Phase ("<< i <<") = "<< std::arg(solElecPot[i])*180/PI<<std::endl;
+      std::cout<<"ElecPot: Amplitude ("<< i <<") = "<< std::abs(solElecPot[i])<< ";  Phase ("<< i <<") = "<< std::arg(solElecPot[i])*180/PI<<std::endl;
     }
     for(int i=0;i<solMechDispl.GetSize();i++){
       sol_real=solMechDispl[i].real();
@@ -932,8 +932,8 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     ENTER_FCN("piezoParamIdent::createMaterialTensorMatrices");
     if (spaceDim==2){ // the rotational symmetric case;  couplingMatrix = e
       couplingMatrix[1][0] = couplingMatrix[1][3] = parameter[6]; //e_31
-      couplingMatrix[1][1] = parameter[7];	// e_33
-      couplingMatrix[0][2] = parameter[5];	//e_15
+      couplingMatrix[1][1] = parameter[7];      // e_33
+      couplingMatrix[0][2] = parameter[5];      //e_15
       dielectricMatrix[0][0] = parameter[8]; // \eps_11
       dielectricMatrix[1][1] = parameter[9]; // \eps_33
     }
@@ -953,281 +953,281 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     Integer i=0, j=0, k=0;
     while(allMeasuredData->getline(mDataRow, 265)){
       if (mDataRow[0]=='1')
-	{i=2;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  if(mDataRow[i]!=','){
-	    helpChar[k]=mDataRow[i];
-	    k++; i++;
-	  }
-	  else{
-	    freqs[j]=atof(helpChar);
-	    for(int l=0;l<=k;l++)
-	      helpChar[l]=0;
-	    j++; i++; k=0;
-	  }
-	}
-	nrMeasuredData = j;
-	//	  std::cout<<"Nr_of_measured_Data in readMeasuredData = "<< nrMeasuredData<<std::endl;
-	}
+        {i=2;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            freqs[j]=atof(helpChar);
+            for(int l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
+        nrMeasuredData = j;
+        //        std::cout<<"Nr_of_measured_Data in readMeasuredData = "<< nrMeasuredData<<std::endl;
+        }
       else if (mDataRow[0]=='2'){
-	i=2;j=0;k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  if(mDataRow[i]!=','){
-	    helpChar[k]=mDataRow[i];
-	    k++; i++;
-	  }
-	  else{
-	    real[j]=atof(helpChar);
-	    for(int l=0;l<=k;l++)
-	      helpChar[l]=0;
-	    j++; i++; k=0;
-	  }
-	}
+        i=2;j=0;k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            real[j]=atof(helpChar);
+            for(int l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
       }
       else if (mDataRow[0]=='3'){
-	i=2; k=0; j=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  if(mDataRow[i]!=','){
-	    helpChar[k]=mDataRow[i];
-	    k++; i++;
-	  }
-	  else{
-	    imag[j]=atof(helpChar);
-	    for(int l=0;l<=k;l++)
-	      helpChar[l]=0;
-	    j++; i++; k=0;
-	  }
-	}
+        i=2; k=0; j=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            imag[j]=atof(helpChar);
+            for(int l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
       }
       else if (mDataRow[0]=='4'){
-	i=2; k=0; j=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  if(mDataRow[i]!=','){
-	    helpChar[k]=mDataRow[i];
-	    k++; i++;
-	  }
-	  else{
-	    parameter[j]=atof(helpChar);
-	    for(int l=0;l<=k;l++)
-	      helpChar[l]=0;
-	    j++; i++; k=0;
-	  }
-	}
+        i=2; k=0; j=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            parameter[j]=atof(helpChar);
+            for(int l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
       }
       else if (mDataRow[0]=='i'){
-	i=2; k=0; j=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  if(mDataRow[i]!=','){
-	    helpChar[k]=mDataRow[i];
-	    k++; i++;
-	  }
-	  else{
-	    parameterC[j]=atof(helpChar);
-	    for(int l=0;l<=k;l++)
-	      helpChar[l]=0;
-	    j++; i++; k=0;
-	  }
-	}
+        i=2; k=0; j=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            parameterC[j]=atof(helpChar);
+            for(int l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
       }
       else if (mDataRow[0]=='P'){
-	i=2; k=0; j=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  if(mDataRow[i]!=','){
-	    helpChar[k]=mDataRow[i];
-	    k++; i++;
-	  }
-	  else{
-	     whichParameterToUpdate[j]=atoi(helpChar);
-	    for(int l=0;l<=k;l++)
-	      helpChar[l]=0;
-	    j++; i++; k=0;
-	  }
-	}
+        i=2; k=0; j=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            whichParameterToUpdate[j]=atoi(helpChar);
+            for(int l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
       }
       else if (mDataRow[0]=='Q'){
-	i=2; k=0; j=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  if(mDataRow[i]!=','){
-	    helpChar[k]=mDataRow[i];
-	    k++; i++;
-	  }
-	  else{
-	     whichParameterToUpdateC[j]=atoi(helpChar);
-	    for(int l=0;l<=k;l++)
-	      helpChar[l]=0;
-	    j++; i++; k=0;
-	  }
-	}
+        i=2; k=0; j=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            whichParameterToUpdateC[j]=atoi(helpChar);
+            for(int l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
       }
       else if (mDataRow[0]=='5'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	voltage=atof(helpChar);
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        voltage=atof(helpChar);
+        for (int l=0;l<=k;l++)
+          helpChar[l]=0;
       }
       else if (mDataRow[0]=='6'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	thickness=atof(helpChar);
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        thickness=atof(helpChar);
+        for (int l=0;l<=k;l++)
+          helpChar[l]=0;
       }
       else if (mDataRow[0]=='I'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	CalcImpedanceCurve=atoi(helpChar);
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        CalcImpedanceCurve=atoi(helpChar);
+        for (int l=0;l<=k;l++)
+          helpChar[l]=0;
       }
       // else if (mDataRow[0]=='S'){
-// 	i=2; k=0;
-// 	while(mDataRow){
-// 	  if (mDataRow[i]=='/')
-// 	    break;
-// 	  helpChar[k]=mDataRow[i];
-// 	  k++; i++;
-// 	}
-// 	nrfreq=atoi(helpChar);
-// 	for (int l=0;l<=k;l++)
-// 	  helpChar[l]=0;
-//       }
-     //  else if (mDataRow[0]=='L'){
-// 	i=2; k=0;
-// 	while(mDataRow){
-// 	  if (mDataRow[i]=='/')
-// 	    break;
-// 	  helpChar[k]=mDataRow[i];
-// 	  k++; i++;
-// 	}
-// 	startfreq=atof(helpChar);
-// 	for (int l=0;l<=k;l++)
-// 	  helpChar[l]=0;
-//       }
-//       else if (mDataRow[0]=='R'){
-// 	i=2; k=0;
-// 	while(mDataRow){
-// 	  if (mDataRow[i]=='/')
-// 	    break;
-// 	  helpChar[k]=mDataRow[i];
-// 	  k++; i++;
-// 	}
-// 	stopfreq=atof(helpChar);
-// 	for (int l=0;l<=k;l++)
-// 	  helpChar[l]=0;
-//       }
-//       else if (mDataRow[0]=='C'){
-// 	i=2; k=0;
-// 	while(mDataRow){
-// 	  if (mDataRow[i]=='/')
-// 	    break;
-// 	  helpChar[k]=mDataRow[i];
-// 	  k++; i++;
-// 	}
-// 	maxNumberInnerLoops=atoi(helpChar); 
-// 	for (int l=0;l<=k;l++)
-// 	  helpChar[l]=0;
-//       }
-//       else if (mDataRow[0]=='O'){
-// 	i=2; k=0;
-// 	while(mDataRow){
-// 	  if (mDataRow[i]=='/')
-// 	    break;
-// 	  helpChar[k]=mDataRow[i];
-// 	  k++; i++;
-// 	}
-// 	maxNumberNewtonLoops=atoi(helpChar); 
-// 	for (int l=0;l<=k;l++)
-// 	  helpChar[l]=0;
-//       }
+      //      i=2; k=0;
+      //      while(mDataRow){
+      //        if (mDataRow[i]=='/')
+      //          break;
+      //        helpChar[k]=mDataRow[i];
+      //        k++; i++;
+      //      }
+      //      nrfreq=atoi(helpChar);
+      //      for (int l=0;l<=k;l++)
+      //        helpChar[l]=0;
+      //       }
+      //  else if (mDataRow[0]=='L'){
+      //      i=2; k=0;
+      //      while(mDataRow){
+      //        if (mDataRow[i]=='/')
+      //          break;
+      //        helpChar[k]=mDataRow[i];
+      //        k++; i++;
+      //      }
+      //      startfreq=atof(helpChar);
+      //      for (int l=0;l<=k;l++)
+      //        helpChar[l]=0;
+      //       }
+      //       else if (mDataRow[0]=='R'){
+      //      i=2; k=0;
+      //      while(mDataRow){
+      //        if (mDataRow[i]=='/')
+      //          break;
+      //        helpChar[k]=mDataRow[i];
+      //        k++; i++;
+      //      }
+      //      stopfreq=atof(helpChar);
+      //      for (int l=0;l<=k;l++)
+      //        helpChar[l]=0;
+      //       }
+      //       else if (mDataRow[0]=='C'){
+      //      i=2; k=0;
+      //      while(mDataRow){
+      //        if (mDataRow[i]=='/')
+      //          break;
+      //        helpChar[k]=mDataRow[i];
+      //        k++; i++;
+      //      }
+      //      maxNumberInnerLoops=atoi(helpChar); 
+      //      for (int l=0;l<=k;l++)
+      //        helpChar[l]=0;
+      //       }
+      //       else if (mDataRow[0]=='O'){
+      //      i=2; k=0;
+      //      while(mDataRow){
+      //        if (mDataRow[i]=='/')
+      //          break;
+      //        helpChar[k]=mDataRow[i];
+      //        k++; i++;
+      //      }
+      //      maxNumberNewtonLoops=atoi(helpChar); 
+      //      for (int l=0;l<=k;l++)
+      //        helpChar[l]=0;
+      //       }
       else if (mDataRow[0]=='M'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	whichNewtonCG=atoi(helpChar); 
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        whichNewtonCG=atoi(helpChar); 
+        for (int l=0;l<=k;l++)
+          helpChar[l]=0;
       }
       else if (mDataRow[0]=='N'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	whichNorm=atoi(helpChar); 
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        whichNorm=atoi(helpChar); 
+        for (int l=0;l<=k;l++)
+          helpChar[l]=0;
       }
       else if (mDataRow[0]=='r'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	relaxParameter=atof(helpChar); 
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        relaxParameter=atof(helpChar); 
+        for (int l=0;l<=k;l++)
+          helpChar[l]=0;
       }
       else if (mDataRow[0]=='7'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	radius=atof(helpChar);	
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        radius=atof(helpChar);  
+        for (int l=0;l<=k;l++)
+          helpChar[l]=0;
       }
       else if (mDataRow[0]=='8'){
-	i=2; k=0;
-	while(mDataRow){
-	  if (mDataRow[i]=='/')
-	    break;
-	  helpChar[k]=mDataRow[i];
-	  k++; i++;
-	}
-	delta=atof(helpChar); // delta - Fehlerniveau
-	for (int l=0;l<=k;l++)
-	  helpChar[l]=0;
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        delta=atof(helpChar); // delta - Fehlerniveau
+        for (int l=0;l<=k;l++)
+          helpChar[l]=0;
       }
     }
   } // end read MeasuredData
@@ -1236,11 +1236,11 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
   void piezoParamIdent::updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial){
     ENTER_FCN("piezoParamIdent::updateMaterialData");    
     // std::cout<<"updateMaterialData"<<std::endl;
-      // std::cout<<parameter<<std::endl;
+    // std::cout<<parameter<<std::endl;
 
     for(Integer i=0;i<9;i++)
-       for(Integer j=0;j<9;j++)
-	 ptMaterial->SetPiezoMatrixData(i,j,0.0);
+      for(Integer j=0;j<9;j++)
+        ptMaterial->SetPiezoMatrixData(i,j,0.0);
 
     ptMaterial->SetPiezoMatrixData(0,0, parameter[0]);
     ptMaterial->SetPiezoMatrixData(1,1, parameter[0]);
@@ -1254,7 +1254,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     ptMaterial->SetPiezoMatrixData(3,3, parameter[4]);
     ptMaterial->SetPiezoMatrixData(4,4, parameter[4]);
     // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
-     ptMaterial->SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
+    ptMaterial->SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
     ptMaterial->SetPiezoMatrixData(6,4, parameter[5]);
     ptMaterial->SetPiezoMatrixData(7,3, parameter[5]);
     ptMaterial->SetPiezoMatrixData(4,6, parameter[5]);
@@ -1295,7 +1295,7 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
    
   } // end updateMaterialData
 
- void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC, MaterialData * ptMaterial){
+  void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC, MaterialData * ptMaterial){
     ENTER_FCN("piezoParamIdent::updateComplexMaterialData");    
     //    std::cout<<"updateComplexMaterialData"<<std::endl;
 
@@ -1336,9 +1336,9 @@ piezoParamIdent :: piezoParamIdent(Domain * adomain,
     for (Integer i=0;i<nrParameter;i++){
       //      std::cout<<"\n setNewParameterSet " << whichParameterToUpdate[i]<<", ";
       if (whichParameterToUpdate[i]==1){
-	par_new[i]=par[i]+(1.0/scaling[i])*theta*uStep[helpInd];
-	//	std::cout<<"\n parNew = " << par_new[i]<<", step = " << uStep[helpInd] << std::endl;
-	helpInd++;
+        par_new[i]=par[i]+(1.0/scaling[i])*theta*uStep[helpInd];
+        //      std::cout<<"\n parNew = " << par_new[i]<<", step = " << uStep[helpInd] << std::endl;
+        helpInd++;
       }
     }
     std::cout<<"\n-----------------------------"<<std::endl;

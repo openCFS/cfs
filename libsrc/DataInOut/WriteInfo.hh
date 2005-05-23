@@ -80,37 +80,37 @@ namespace CoupledField
 
     /// prints the process of a nonlinear iteration
     void WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter,    
-			 const Double residualErr, const Double incrementalErr, double etaLineSearch=0);
+                         const Double residualErr, const Double incrementalErr, double etaLineSearch=0);
 
     /// prints the process of a mulitSequence Analysis
     void WriteMultiSequenceStep(const Integer sequenceStep, 
-				const AnalysisType analysis);
+                                const AnalysisType analysis);
 
     /// prints the process of a transient analysis
     void WriteTimeStep(const std::string& pdeName, const Integer timeStep,    
-		       const Double time);
+                       const Double time);
 
     /// prints the process of a harmonic analysis
     void WriteHarmonicStep(const std::string& pdeName, const Integer freqStep,    
-			   const Double frequency);
+                           const Double frequency);
 
     /// writes domain and dof of homogenous boundary conditions
     void WriteHomBC(const std::string& pdeName, 
-		    const std::string& subDom, Integer dof=0);
+                    const std::string& subDom, Integer dof=0);
 
     /// writes domain and dof of inhomogenous boundary conditions
     void WriteInHomBC(const std::string& pdeName,const std::string& subDom, 
-		      const Double& val, const std::string & fnc, const Integer& dof);
+                      const Double& val, const std::string & fnc, const Integer& dof);
 
     /// writes domain, value and dof of a load conditon
     void WriteLoad(const std::string& pdeName, const std::string& subDom, 
-		   Double value, const std::string & fnc, Integer dof=0);
+                   Double value, const std::string & fnc, Integer dof=0);
     
 
     /// write Result values
     void WriteResult(std::string pdename, std::string resulttype, StdVector<std::string> subdoms,
-		     Vector<Double> results, std::string unit, std::string analysis,
-		     Double analysisVal);
+                     Vector<Double> results, std::string unit, std::string analysis,
+                     Double analysisVal);
 
     /// just prints a vector
     void PrintVec(Vector<Double>& vec);
@@ -132,7 +132,7 @@ namespace CoupledField
 
     /// prints warning to info-file and std::cerr
     void Warning(const std::string & text, const Char * const filename=NULL,
-		 const Integer numline=0);
+                 const Integer numline=0);
     
     /// prints error to both std::out and info-file
     void Error(const std::string & text, const Char * const filename=NULL,

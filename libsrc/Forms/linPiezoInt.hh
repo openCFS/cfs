@@ -42,7 +42,7 @@ namespace CoupledField
       ENTER_FCN( "linPiezoInt::linPiezoInt" );
       isDamping_  = FALSE;
       factorDamp_ = 1.0;
-      }
+    }
   
     //! Constructor
     linPiezoInt(MaterialData & matData)
@@ -62,26 +62,26 @@ namespace CoupledField
     /// calculates mechanical stresses (vector notation), overloaded for real and complexvalued stresses
     virtual void CalcStressVec(Vector<Double>& StressVec, Integer ip, Matrix<Double> & ptCoord);  
     virtual void CalcStressVec(Vector<Double>& StressVec, Integer ip, Matrix<Double> & ptCoord,
-			       Integer comp, Double Dval); 
+                               Integer comp, Double Dval); 
     virtual void CalcStressVec(Vector<Complex>& StressVec, Integer ip, Matrix<Double> & ptCoord);  
 
-//     virtual void SetActElemSol(Matrix<Double>& disp) {
-//       ENTER_FCN( "linPiezoInt::SetActElemSol 1" );
-//       elemSol_ = disp;};
+    //     virtual void SetActElemSol(Matrix<Double>& disp) {
+    //       ENTER_FCN( "linPiezoInt::SetActElemSol 1" );
+    //       elemSol_ = disp;};
 
-//     virtual void SetActElemSol(CFSMatrix& disp) {
-//         ENTER_FCN( "linPiezoInt::SetActElemSol 2" );
-//         Matrix<Double> & helpSol = dynamic_cast <Matrix<Double>&> (disp);
-//         elemSol_ = helpSol;};
+    //     virtual void SetActElemSol(CFSMatrix& disp) {
+    //         ENTER_FCN( "linPiezoInt::SetActElemSol 2" );
+    //         Matrix<Double> & helpSol = dynamic_cast <Matrix<Double>&> (disp);
+    //         elemSol_ = helpSol;};
 
     virtual void SetActElemSol(CFSMatrix& disp){
       ENTER_FCN("linPiezoInt::SetActElemSol 3");
       
       if(disp.IsComplex())
-	//        Matrix<Complex> & elemSolComplex_ = dynamic_cast <Matrix<Complex>&> (disp);
+        //        Matrix<Complex> & elemSolComplex_ = dynamic_cast <Matrix<Complex>&> (disp);
         elemSol_ = new Matrix<Complex> (dynamic_cast<Matrix<Complex>&> (disp));
       else
-	elemSol_ = new Matrix<Double> (dynamic_cast<Matrix<Double>&>(disp));
+        elemSol_ = new Matrix<Double> (dynamic_cast<Matrix<Double>&>(disp));
       //     Matrix<Double> & elemSol_ = dynamic_cast <Matrix<Double>&> (disp);
 
 
@@ -90,9 +90,9 @@ namespace CoupledField
     //! set multiplicative factor for matrix
     virtual void SetFactor(Double factor) 
     { if (factor <= 0) {
-	Error("Additional damping factor cannot be zero");
-      }
-      factorDamp_ = factor;
+      Error("Additional damping factor cannot be zero");
+    }
+    factorDamp_ = factor;
     };
 
   protected:
@@ -127,7 +127,7 @@ namespace CoupledField
     //! of the element. These partial matrices are appended one after another
     //! in a row-wise fashion to form the return matrix bMat.
     void calcBMat(Matrix<Double> & bMat, Integer ip,
-		  Matrix<Double> & ptCoord);
+                  Matrix<Double> & ptCoord);
 
 
     /// calculates the material data for the axisymmetric case
@@ -245,7 +245,7 @@ namespace CoupledField
 
     //! Constructor
     piezoAxiInt(MaterialData & matData, Boolean isdamping=FALSE)
-     : linPiezoInt(matData)
+      : linPiezoInt(matData)
     {
       ENTER_FCN( "piezoAxiInt::piezoAxiInt" );
       isDamping_ = isdamping;
@@ -288,9 +288,9 @@ namespace CoupledField
     
     //!
     virtual void calcBMat(Matrix<Double> & bMat, Integer ip,
-			  Matrix<Double> & ptCoord);
-	
-    //!	  
+                          Matrix<Double> & ptCoord);
+        
+    //!   
     void  calcDMat(Matrix<Double> & dMat);
 
     //!
@@ -319,7 +319,7 @@ namespace CoupledField
   
     //! Constructor
     piezoPlainStrainInt(MaterialData & matData, Boolean isdamping=FALSE)
-     : linPiezoInt(matData)
+      : linPiezoInt(matData)
     {
       ENTER_FCN( "piezoPlainStrainInt::piezoPlainStrainInt" );
       isDamping_=isdamping;
@@ -360,7 +360,7 @@ namespace CoupledField
     
     //!
     void calcBMat(Matrix<Double> & bMat, Integer ip,
-		  Matrix<Double> & ptCoord);
+                  Matrix<Double> & ptCoord);
  
     //!
     void calcDMat(Matrix<Double> & dMat);

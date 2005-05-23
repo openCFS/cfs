@@ -17,74 +17,74 @@
 namespace CoupledField
 {
 
-class dbMatrix
-{
-public:
-  //! Default destructor, frees table
-  ~dbMatrix();
+  class dbMatrix
+  {
+  public:
+    //! Default destructor, frees table
+    ~dbMatrix();
 
-  //! Appends one column for integer values
-  /*!
-    \param colname Name of column
-  */
-  void appendIntColumn(std::string colname);
+    //! Appends one column for integer values
+    /*!
+      \param colname Name of column
+    */
+    void appendIntColumn(std::string colname);
 
-  //! Appends one column for double values
-  /*!
-    \param colname Name of column
-  */
-  void appendDoubleColumn(std::string colname);
+    //! Appends one column for double values
+    /*!
+      \param colname Name of column
+    */
+    void appendDoubleColumn(std::string colname);
 
-  //! Appends one column for string values
-  /*!
-    \param colname Name of column
-  */
-  void appendStringColumn(std::string colname);
+    //! Appends one column for string values
+    /*!
+      \param colname Name of column
+    */
+    void appendStringColumn(std::string colname);
 
-  //! Returns column of table with given column name
-  /*!
-    \param colname column name
-  */
-  dbColumn *operator[] (std::string colname) ;
+    //! Returns column of table with given column name
+    /*!
+      \param colname column name
+    */
+    dbColumn *operator[] (std::string colname) ;
 
-  //! Returns i-th column of table
-  /*!
-    \param i i-th column
-  */
-  dbColumn *operator[] (const int i) ;
+    //! Returns i-th column of table
+    /*!
+      \param i i-th column
+    */
+    dbColumn *operator[] (const int i) ;
 
-  //! Returns type of i-th column
-  /*!
-    \param i i-th column
-  */
-  int getFieldType (int i);
+    //! Returns type of i-th column
+    /*!
+      \param i i-th column
+    */
+    int getFieldType (int i);
 
-  //! Returns name of i-th column
-  /*!
-    \param i i-th column
-  */
-  std::string getFieldName (int i);
+    //! Returns name of i-th column
+    /*!
+      \param i i-th column
+    */
+    std::string getFieldName (int i);
 
-  //! Get number of columns
-  int getNoOfColumn();
+    //! Get number of columns
+    int getNoOfColumn();
 
-  //! Get number of rows
-  int getNoOfRow();
+    //! Get number of rows
+    int getNoOfRow();
 
-  //! print matrix in debug file (only #ifdef DEBUG)
-  void printMatrixDebug();
+    //! print matrix in debug file (only #ifdef DEBUG)
+    void printMatrixDebug();
   
 
-private:
-  //! Representation of table from database
-  std::vector <dbColumn*> table;
+  private:
+    //! Representation of table from database
+    std::vector <dbColumn*> table;
 
-  //! Names of columns
-  std::vector <std::string> field_name;
+    //! Names of columns
+    std::vector <std::string> field_name;
 
-  //! Data type of columns
-  std::vector <int> field_type;
-};
+    //! Data type of columns
+    std::vector <int> field_type;
+  };
 
 } // End of namespace
 

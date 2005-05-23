@@ -10,8 +10,8 @@ namespace CoupledField {
   //   Constructor
   // ***************
   BaseEQN::BaseEQN( Grid * aptGrid, 
-		    StdVector<RegionIdType>& asubdoms, 
-		    Integer dofsPerNode ) {
+                    StdVector<RegionIdType>& asubdoms, 
+                    Integer dofsPerNode ) {
 
     ENTER_FCN( "BaseEQN::BaseEQN" );
 
@@ -37,7 +37,7 @@ namespace CoupledField {
   //   SetHomDirichletBCs
   // ***********************
   void BaseEQN::SetHomoDirichletBCs( const StdVector<std::string> &nodeLevel,
-				     const StdVector<std::string> &dofs ) {
+                                     const StdVector<std::string> &dofs ) {
 
     ENTER_FCN( "BaseEQN::SetHomoDirichletBCs" );
 
@@ -49,10 +49,10 @@ namespace CoupledField {
       ptGrid_->GetNodesByName( tempNodeList, nodeLevel[i]);
       
       for ( Integer iNode = 0; iNode < tempNodeList.GetSize(); iNode++ ) {
-	homoDirichletNodes_.Push_back(tempNodeList[iNode]);
-	if (dofsPerNode_ > 1) {
-	  homoDirichletDofs_.Push_back(GetBCDof(dofs[i]));
-	}
+        homoDirichletNodes_.Push_back(tempNodeList[iNode]);
+        if (dofsPerNode_ > 1) {
+          homoDirichletDofs_.Push_back(GetBCDof(dofs[i]));
+        }
       } 
     }
   }
@@ -62,7 +62,7 @@ namespace CoupledField {
   //   SetInhomDirichletBCs
   // ************************
   void BaseEQN::SetInhomDirichletBCs( const StdVector<std::string> &nodeLevel,
-				      const StdVector<std::string> &dofs ) {
+                                      const StdVector<std::string> &dofs ) {
 
     ENTER_FCN( "BaseEQN::SetInhomDirichletBCs" );
 
@@ -74,14 +74,14 @@ namespace CoupledField {
 
       for ( Integer i = 0; i < nodeLevel.GetSize(); i++ ) {
       
-	 ptGrid_->GetNodesByName( tempNodeList, nodeLevel[i] );
+        ptGrid_->GetNodesByName( tempNodeList, nodeLevel[i] );
       
-	for ( Integer iNode =0; iNode < tempNodeList.GetSize(); iNode++ ) {
-	  inhomDirichletNodes_.Push_back(tempNodeList[iNode]);
-	  if (dofsPerNode_ > 1) {
-	    inhomDirichletDofs_.Push_back(GetBCDof(dofs[i]));
-	  }
-	} 
+        for ( Integer iNode =0; iNode < tempNodeList.GetSize(); iNode++ ) {
+          inhomDirichletNodes_.Push_back(tempNodeList[iNode]);
+          if (dofsPerNode_ > 1) {
+            inhomDirichletDofs_.Push_back(GetBCDof(dofs[i]));
+          }
+        } 
       }
     }
   }
@@ -91,8 +91,8 @@ namespace CoupledField {
   //   SetConstraints
   // ******************
   void BaseEQN::SetConstraints( const StdVector<Integer> &slaveNodeNrs,
-				const StdVector<Integer> &masterNodeNrs,
-				const StdVector<std::string> &dofs ) {
+                                const StdVector<Integer> &masterNodeNrs,
+                                const StdVector<std::string> &dofs ) {
 
     ENTER_FCN( "BaseEQN::SetConstraints" );
 
@@ -103,7 +103,7 @@ namespace CoupledField {
       constraintDofs_.Resize(dofs.GetSize());
 
       for ( Integer i = 0; i < dofs.GetSize(); i++ ) {
-	constraintDofs_[i] = GetBCDof(dofs[i]);
+        constraintDofs_[i] = GetBCDof(dofs[i]);
       }
     }
   }
@@ -137,7 +137,7 @@ namespace CoupledField {
       // According to the Schema definition of the parameter file this cannot
       // happen. Did the parser not perform validation?
       (*error) << "Direction should be one of ux, uy, uz and not "
-	       << dofString;
+               << dofString;
       Error( __FILE__, __LINE__ );
     }
 

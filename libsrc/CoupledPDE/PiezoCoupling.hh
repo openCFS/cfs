@@ -40,8 +40,8 @@ namespace CoupledField
     
     //! Get correct stiffness integrator
     BaseForm * GetStiffIntegrator( MaterialData * actSDMat,
-				   Boolean reducedInt = FALSE ,
-				   Boolean isdamping = FALSE );
+                                   Boolean reducedInt = FALSE ,
+                                   Boolean isdamping = FALSE );
 
   private:
 

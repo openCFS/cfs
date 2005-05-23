@@ -251,16 +251,16 @@ namespace CoupledField
 
     /// define RHS surface integrators (static and transient case)
     void AddRhsSrcSurfIntegrator(BaseForm * integrator, const RegionIdType regionId,
-                             const std::string fncname="---not-defined--",
-                             const Integer nonLin=FALSE);
+                                 const std::string fncname="---not-defined--",
+                                 const Integer nonLin=FALSE);
 
     /// define RHS integrators (harmonic case)
     void AddRhsSrcIntegrator(BaseForm * integrator, const RegionIdType regionId,
                              const Double phaseval, const Integer nonLin=FALSE);
 
-     /// define RHS surface integrators (harmonic case)
+    /// define RHS surface integrators (harmonic case)
     void AddRhsSrcSurfIntegrator(BaseForm * integrator, const RegionIdType regionId,
-                             const Double phaseval, const Integer nonLin=FALSE);  
+                                 const Double phaseval, const Integer nonLin=FALSE);  
 
     /// set ptr to time function
     void SetPtr2TimeFnc(TimeFunc * aPtTimeFunc)
@@ -268,13 +268,13 @@ namespace CoupledField
 
     // set ptr to equation data
     void SetPtr2EQNData(NodeEQN * aPtNodeEQN1,
-			NodeEQN * aPtNodeEQN1 = NULL );
+                        NodeEQN * aPtNodeEQN1 = NULL );
 
     //! set the identification tag of the pde
     //! \param id1 identification tag for PDE 1
     //! \param id2 identification tag for PDE 2 (only in coupled case)
     void SetPDEId( const PdeIdType id1,
-		   const PdeIdType id2 = NO_PDE_ID );
+                   const PdeIdType id2 = NO_PDE_ID );
 
   
 
@@ -352,9 +352,9 @@ namespace CoupledField
     //! sets the actual frequency (just needed for harmonic analysis)
     virtual void SetFrequency(Double actFreq) {;};
 
-        //! transform element matrix to account for spezial RHS during parameter Identification process
+    //! transform element matrix to account for spezial RHS during parameter Identification process
     virtual void TransformMatrix2HarmonicRHS_for_paramIdent(Vector<Double>& harmMat,
-                                          Matrix<Double> origMat) {;};
+                                                            Matrix<Double> origMat) {;};
 
     //sets all finite elements to reduced integration
     void SetFE2ReducedInt();
@@ -480,16 +480,21 @@ namespace CoupledField
     { matArray_ = matOfElements;};
 
   protected:
-    //! calculates the index of the subdoman with name "subDomName" in the subdomain-list
+    //! calculates the index of the subdoman 
+    //! with name "subDomName" in the subdomain-list
     Integer SubDomIndex(const RegionIdType subDomName);
 
-    //! calculates the index of the surfdoman with name "surfDomName" in the surface-domain-list
+    //! calculates the index of the surfdoman 
+    //! with name "surfDomName" in the surface-domain-list
     Integer SurfDomIndex(const RegionIdType surfDomName);
 
     //! transform element matrix to account for harmonic analysis
-    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
-                                          Matrix<Double> origMat,
-                                          const FEMatrixType matrixType,const piezoMaterialType piezoMatType) {;};
+    virtual 
+    void TransformMatrix2Harmonic(Vector<Double>& harmMat,
+                                  Matrix<Double> origMat,
+                                  const FEMatrixType matrixType,
+                                  const piezoMaterialType piezoMatType)
+    {;};
 
     //! transform element vector to account for harmonic analysis
     virtual void TransformVector2Harmonic(Vector<Double>& harmMat,
@@ -537,15 +542,20 @@ namespace CoupledField
     //! set information for algebraic system about PDE. set matrix factors
     virtual void SetMatrixFactors(){};
 
-    virtual void AddIntegrator(BaseForm * integrator, const RegionIdType subdomain,
-                               const FEMatrixType destinationMatrix, const Integer nonLin);
+    virtual void AddIntegrator(BaseForm * integrator, 
+                               const RegionIdType subdomain,
+                               const FEMatrixType destinationMatrix, 
+                               const Integer nonLin);
 
     /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const RegionIdType subdomain);
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
+                               const RegionIdType subdomain);
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const RegionIdType subdomain,
-                                   const FEMatrixType destinationMatrix, const Integer nonLin);
+    virtual void AddSurfIntegrator(BaseForm * integrator, 
+                                   const RegionIdType subdomain,
+                                   const FEMatrixType destinationMatrix, 
+                                   const Integer nonLin);
 
   };
 
@@ -567,15 +577,20 @@ namespace CoupledField
     virtual void SetMatrixFactors(){};  
     
     /// adds integrators to the pde
-    virtual void AddIntegrator(BaseForm * integrator, const RegionIdType subdomain,
-                               const FEMatrixType destinationMatrix, const Integer nonLin);
+    virtual void AddIntegrator(BaseForm * integrator, 
+                               const RegionIdType subdomain,
+                               const FEMatrixType destinationMatrix, 
+                               const Integer nonLin);
 
     /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const RegionIdType subdomain);
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
+                               const RegionIdType subdomain);
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const RegionIdType subdomain,
-                                   const FEMatrixType destinationMatrix, const Integer nonLin);
+    virtual void AddSurfIntegrator(BaseForm * integrator, 
+                                   const RegionIdType subdomain,
+                                   const FEMatrixType destinationMatrix, 
+                                   const Integer nonLin);
 
   };
 
@@ -599,22 +614,29 @@ namespace CoupledField
     //! transform element matrix to account for harmonic analysis
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
                                           Matrix<Double> origMat,
-                                          const FEMatrixType matrixType,const piezoMaterialType piezoMatType);
+                                          const FEMatrixType matrixType,
+                                          const piezoMaterialType 
+                                          piezoMatType);
 
     //! transform element vector to account for harmonic analysis
     virtual void TransformVector2Harmonic(Vector<Double>& harmMat, 
                                           Vector<Double> origVec,
                                           const Double valPhase);
 
-    virtual void AddIntegrator(BaseForm * integrator, const RegionIdType subdomain,
-                               const FEMatrixType destinationMatrix, const Integer nonLin);
+    virtual void AddIntegrator(BaseForm * integrator, 
+                               const RegionIdType subdomain,
+                               const FEMatrixType destinationMatrix, 
+                               const Integer nonLin);
 
     /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr, const RegionIdType subdomain);
+    virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
+                               const RegionIdType subdomain);
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, const RegionIdType subdomain,
-                                   const FEMatrixType destinationMatrix, const Integer nonLin);
+    virtual void AddSurfIntegrator(BaseForm * integrator, 
+                                   const RegionIdType subdomain,
+                                   const FEMatrixType destinationMatrix, 
+                                   const Integer nonLin);
 
 
   };

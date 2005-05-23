@@ -33,7 +33,7 @@ namespace CoupledField
     virtual ~MpcciPDE(){};
 
     virtual void Init(Integer sequenceStep = 0,
-		      std::string  bcSequenceTag = "anyTag");
+                      std::string  bcSequenceTag = "anyTag");
 
 
     virtual void PreparePDE4Computation();
@@ -71,9 +71,9 @@ namespace CoupledField
     //! \param timeOffset offset for starting time  
 
     virtual void WriteResultsInFile(const Integer kstep = 0,
-				    const Double asteptime = 0.0,
-				    Integer stepOffset = 0,
-				    Double timeOffset = 0.0);
+                                    const Double asteptime = 0.0,
+                                    Integer stepOffset = 0,
+                                    Double timeOffset = 0.0);
     
 
     // ======================================================
@@ -109,7 +109,7 @@ namespace CoupledField
 
   private:
     //!MpCCI
-   StdVector<Integer> mapSD_;
+    StdVector<Integer> mapSD_;
 #ifdef MpCCI
     MpCCIexch * ptMpCCIexch_;
 #endif

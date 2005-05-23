@@ -58,26 +58,26 @@ namespace CoupledField {
     ENTER_FCN( "WriteResultsGSI::WriteGrid" );
 
 
-      if ( !io_ ) {
-	Error( "File for output results is not initialized" );
-      }
+    if ( !io_ ) {
+      Error( "File for output results is not initialized" );
+    }
 
-      try {
+    try {
   
-	// This is the number of timesteps/frequency steps 
-	// at the moment this is one for test purposes
-	(*io_) << (int) 1;
-	(*io_) << "---- BEGIN GRID ----";
-	//          (*io_) << (int) 1;
-      }
-      catch (GridlibSocketInterface::IOException& e) {
-	std::cerr << "Exception in WriteResultsGSI::WriteGrid" << std::endl
-		  << e.GetErrorString() << std::endl;
-      }
+      // This is the number of timesteps/frequency steps 
+      // at the moment this is one for test purposes
+      (*io_) << (int) 1;
+      (*io_) << "---- BEGIN GRID ----";
+      //          (*io_) << (int) 1;
+    }
+    catch (GridlibSocketInterface::IOException& e) {
+      std::cerr << "Exception in WriteResultsGSI::WriteGrid" << std::endl
+                << e.GetErrorString() << std::endl;
+    }
       
-      Dataset666();
-      Dataset781();
-      Dataset780(); 
+    Dataset666();
+    Dataset781();
+    Dataset780(); 
 
   }
 
@@ -94,7 +94,7 @@ namespace CoupledField {
     }
     catch ( GridlibSocketInterface::IOException& e ) {
       std::cerr << "Exception in WriteResultsGSI::WriteMsg" << std::endl
-		<< e.GetErrorString() << std::endl;
+                << e.GetErrorString() << std::endl;
     }
   }
 
@@ -170,8 +170,8 @@ namespace CoupledField {
         (*io_) << "---- DS666 ----";
         (*io_) << (int) dim << (int) maxnumnodes << (int) maxnumelem;
 
-	//        std::cerr << "---- DS666 ---- writing dim " << dim << " maxnumnodes "
-	//                  <<  maxnumnodes << " maxnumelem " << maxnumelem << std::endl;
+        //        std::cerr << "---- DS666 ---- writing dim " << dim << " maxnumnodes "
+        //                  <<  maxnumnodes << " maxnumelem " << maxnumelem << std::endl;
       }
     catch (GridlibSocketInterface::IOException& e)
       {
@@ -224,8 +224,8 @@ namespace CoupledField {
           }
       
         io_->WriteFloatArray(vec, maxnumnodes*3);
-	//        std::cerr << "---- DS781 ---- writing maxnumnodes*3 floats "
-	//                  << (maxnumnodes*3) << std::endl;
+        //        std::cerr << "---- DS781 ---- writing maxnumnodes*3 floats "
+        //                  << (maxnumnodes*3) << std::endl;
       }
     catch (GridlibSocketInterface::IOException& e)
       {
@@ -321,8 +321,8 @@ namespace CoupledField {
         (*io_) << indexe;
 
 
-	//        std::cerr << "---- DS780 ---- subdoms " << (int) subdoms->GetSize()
-	//                  << std::endl;
+        //        std::cerr << "---- DS780 ---- subdoms " << (int) subdoms->GetSize()
+        //                  << std::endl;
       }
     catch (GridlibSocketInterface::IOException& e) 
       {

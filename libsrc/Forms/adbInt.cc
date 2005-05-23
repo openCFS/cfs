@@ -63,15 +63,15 @@ namespace CoupledField {
       //       represented by the first co-ordinate, thus
       //       2 pi r = "2 pi x"
       if ( isaxi_ ) {
-	Vector<Double> ShpFncAtIp;
+        Vector<Double> ShpFncAtIp;
         ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
-      	Double aux = 0.0;
-	
-	for ( Integer i = 0; i < nrNodes; i++ ) {
-	  aux += ptCoord[0][i] * ShpFncAtIp[i];
-	}
-	
-	jacDet *= 2.0 * PI * aux;
+        Double aux = 0.0;
+        
+        for ( Integer i = 0; i < nrNodes; i++ ) {
+          aux += ptCoord[0][i] * ShpFncAtIp[i];
+        }
+        
+        jacDet *= 2.0 * PI * aux;
       }
 
       // Compute the matrix product D * B and store as intermediate matrix

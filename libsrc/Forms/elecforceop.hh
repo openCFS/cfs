@@ -33,13 +33,13 @@ namespace CoupledField
     //! \param EPotential (input) Pointer to vector containing the electric
     //!                           potential for all nodes of domain
     ElecForceOp(Grid * ptGrid, 
-		StdPDE * ptPDE,
-		NodeEQN * ptEQN,
-		NodeStoreSol<Double> & EPotential,
-		Integer dim,
-		MaterialData* &matData,
-		StdVector<RegionIdType> & allSubdoms,
-		Boolean isaxi);
+                StdPDE * ptPDE,
+                NodeEQN * ptEQN,
+                NodeStoreSol<Double> & EPotential,
+                Integer dim,
+                MaterialData* &matData,
+                StdVector<RegionIdType> & allSubdoms,
+                Boolean isaxi);
 
     //! Destructor
     virtual ~ElecForceOp();
@@ -52,7 +52,7 @@ namespace CoupledField
 
     //! computes the field quantity
     virtual void ComputeField(Vector<Double> & Field, const Elem * ptElement,
-			      const Vector<Double> & lCoord);
+                              const Vector<Double> & lCoord);
 
     //! I'm a class attribute (please add documentation for me)
     GradientFieldOp<Double> * gradFieldOp_;

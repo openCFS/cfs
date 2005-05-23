@@ -16,7 +16,7 @@ namespace CoupledField {
   //   Issue Error Message
   // =======================
   void Error( const Char * Text, const Char * const filename,
-	      const Integer numline ) {
+              const Integer numline ) {
     Info->Error( Text, filename, numline );
   }
 
@@ -43,7 +43,7 @@ namespace CoupledField {
   //   Issue Warning Message
   // =========================
   void Warning( const Char *Text, const Char * const filename,
-		const Integer numline ) {
+                const Integer numline ) {
     Info->Warning( Text, filename, numline );
     //std::cerr << "\033[31mWARNING:\033[0m " << Text;
   }
@@ -71,7 +71,7 @@ namespace CoupledField {
   //   Split a string into a list of strings
   // =========================================
   void SplitStringList( std::string list, StdVector<std::string> &strVec,
-			Char delimiter ) {
+                        Char delimiter ) {
 
     Integer lastDelim = 0;
     strVec.Clear();
@@ -86,15 +86,15 @@ namespace CoupledField {
     // get the n-1 entries of the list
     for ( i = 0; i < list.length(); i++ ) {
       if ( list[i] == delimiter ) {
-	strVec.Push_back( std::string( list, lastDelim, i-lastDelim ));
-	i++;
+        strVec.Push_back( std::string( list, lastDelim, i-lastDelim ));
+        i++;
 
-	// ignore next spaces
-	while ( i < list.length() && list[i] == ' ' ) {
-	  i++;
-	}
+        // ignore next spaces
+        while ( i < list.length() && list[i] == ' ' ) {
+          i++;
+        }
 
-	lastDelim = i;
+        lastDelim = i;
       }
     }
 
@@ -113,7 +113,7 @@ namespace CoupledField {
   Point<dim> & Point<dim>::operator+(const Point<dim>&t) {
     Integer i;
     for (i=0; i<dim; i++)
-      p[i]+=t.p[i];	
+      p[i]+=t.p[i];     
     return *this;
   }
 
@@ -142,7 +142,7 @@ namespace CoupledField {
   Point<dim> & Point<dim>::operator-(const Point<dim>&t) {
     Integer i;
     for (i=0; i<dim; i++)
-      p[i]-=t.p[i];	
+      p[i]-=t.p[i];     
     return *this;
   }
 
@@ -207,7 +207,7 @@ namespace CoupledField {
 
   /// a-->b-->c. no fix orientation.
   void calcNormal2Surface(Vector<Double> & normal,Point<3> a,Point<3> b,
-			  Point<3> c) {
+                          Point<3> c) {
     Point<3> t,s;
     Double L2_normal; 
     s=(a-b);
@@ -251,7 +251,7 @@ namespace CoupledField {
   }
 
   Integer defineRefinements(const Double tolElem, const Double tolTotal,
-			    const Integer noOfChilds){
+                            const Integer noOfChilds){
     Double tmp = log( tolElem/tolTotal ) / log( (Double) noOfChilds );
     return (Integer)tmp + 1;
   }
@@ -277,7 +277,7 @@ namespace CoupledField {
   }
 
 
-// explicit template instantiation for SGI compiler
+  // explicit template instantiation for SGI compiler
 #ifdef __sgi
 #pragma instantiate Point<2>
 #pragma instantiate Point<3>

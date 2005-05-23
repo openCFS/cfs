@@ -12,12 +12,12 @@
 namespace CoupledField
 {
   void ODESolver_ExplEuler::Solve( const Double tInit,
-				   const Double tStop,
-				   StdVector<Double> &yInitOut,
-				   BaseODEProblem &myODE,
-				   Double hInit,
-				   Double hMin,
-				   Double hMax ){
+                                   const Double tStop,
+                                   StdVector<Double> &yInitOut,
+                                   BaseODEProblem &myODE,
+                                   Double hInit,
+                                   Double hMin,
+                                   Double hMax ){
 
     Integer i;
 
@@ -36,43 +36,43 @@ namespace CoupledField
     }
 
     while (t <= tStop){ 
-	 
+         
 
       if (t == tStop){
-	for (i=0; i<nvar; i++){
-	  yInitOut[i] = y[i];
-	  successLastSolve_ = true;
-	  }
-	return;      // Normal exit	  
+        for (i=0; i<nvar; i++){
+          yInitOut[i] = y[i];
+          successLastSolve_ = true;
+        }
+        return;      // Normal exit       
       }
       else{
-	  if (t + h > tStop){
-	  h = tStop - t;
-	  }
+        if (t + h > tStop){
+          h = tStop - t;
+        }
 
-	if (std::abs(h) <= hMin){
-	  Error("Step size too small",__FILE__,__LINE__);
-	  successLastSolve_ = false;
-	}
+        if (std::abs(h) <= hMin){
+          Error("Step size too small",__FILE__,__LINE__);
+          successLastSolve_ = false;
+        }
 
-	myODE.CompDeriv(t,y,dydt);
+        myODE.CompDeriv(t,y,dydt);
 
-	for ( i = 0; i < nvar; i++ ){
-	  y[i] += dydt[i] * h; 
-	}
+        for ( i = 0; i < nvar; i++ ){
+          y[i] += dydt[i] * h; 
+        }
 
-	t += h;
+        t += h;
 
-	++numStepsLastSolve_;
+        ++numStepsLastSolve_;
       }
-	
+        
 
     }
  
     Error( "t>tStop", __FILE__, __LINE__ );
     successLastSolve_ = false;
   }
-	    
+            
 
 } // end of namespace
 

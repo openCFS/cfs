@@ -37,7 +37,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepStatic(const Integer kstep, const Double asteptime,
-			       const Boolean reset){;}
+                               const Boolean reset){;}
  
     //! base method for solving one static step 
     /*!
@@ -46,7 +46,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
-				 const Boolean reset);
+                                 const Boolean reset);
 
     //! solves for one linear static step 
     /*!
@@ -55,7 +55,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepStaticLin(const Integer kstep, const Double asteptime,
-			       const Boolean reset);
+                               const Boolean reset);
 
     //! solves for one nonlinear static step 
     /*!
@@ -64,7 +64,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
-				  const Boolean reset)
+                                  const Boolean reset)
     {Error("StepStaticNonLin not implemented!",__FILE__,__LINE__);};
 
     //! routine for acttions after the SolveStep-method
@@ -84,7 +84,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepTrans(const Integer kstep, const Double asteptime,
-			      const Boolean reset);
+                              const Boolean reset);
 
     //! base method for solving one transient step 
     /*!
@@ -93,7 +93,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
-				const Boolean updatesysmat);
+                                const Boolean updatesysmat);
 
     //! solves for one linear transient step 
     /*!
@@ -102,7 +102,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepTransLin(const Integer kstep, const Double asteptime,
-			      const Boolean updatesysmat);
+                              const Boolean updatesysmat);
 
     //! solves for one nonlinear transient step 
     /*!
@@ -111,7 +111,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
-				 const Boolean updatesysmat)
+                                 const Boolean updatesysmat)
     {Error("Nonlinear Transient Step not implemented!",__FILE__,__LINE__);};
 
     //! routine for actions after the SolveStep-method
@@ -129,7 +129,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */   
     virtual void PreStepHarmonic(const Integer freqStep, const Double frequency, 
-				 const Boolean reset);
+                                 const Boolean reset);
 
     //!  base method for solving one harmonic step 
     /*!
@@ -138,7 +138,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepHarmonic(const Integer freqStep, const Double frequency, 
-				   const Boolean reset);
+                                   const Boolean reset);
 
     //! solves for one linear frequency step 
     /*!
@@ -147,7 +147,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepHarmonicLin(const Integer freqStep, const Double frequency, 
-				 const Boolean reset);
+                                 const Boolean reset);
 
     //! solves for one nonlinear frequency step 
     /*!
@@ -156,7 +156,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void StepHarmonicNonLin(const Integer freqStep, const Double frequency, 
-				    const Boolean reset)
+                                    const Boolean reset)
     {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
 
 
@@ -167,7 +167,7 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void PostStepHarmonic(const Integer freqStep, const Double frequency, 
-				  const Boolean reset) {;};
+                                  const Boolean reset) {;};
 
 
     //!
@@ -183,7 +183,7 @@ namespace CoupledField
 
     //! does a line search and returns the optimal residual norm
     Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
-		      Double& etaLineSearch, Boolean trans=FALSE);
+                      Double& etaLineSearch, Boolean trans=FALSE);
 
     //! calculates L2-norm of RHS regarding entries due to penalty formulation
     Double RhsL2Norm(Vector<Double>& stdVec);
@@ -196,10 +196,10 @@ namespace CoupledField
 
     //! Write nonlin iteration norms to info-file
     void WriteClaNlNorms(const Integer iterationCounter,
-			 const Double residualL2Norm,
-			 const Double extForcesL2Norm, const Double residualErr, 
-			 const Double solIncrL2Norm, const Double actSolL2Norm, 
-			 const Double incrementalErr);
+                         const Double residualL2Norm,
+                         const Double extForcesL2Norm, const Double residualErr, 
+                         const Double solIncrL2Norm, const Double actSolL2Norm, 
+                         const Double incrementalErr);
 
     //! returns the hysteresis operator
     Hysteresis * GetHystOperator(Integer iSD) {
@@ -220,7 +220,7 @@ namespace CoupledField
 
     //! fetches coordinates to element nodes
     void GetElemCoords(const StdVector< Integer > connect,
-		       Matrix< Double > &coordMat );
+                       Matrix< Double > &coordMat );
 
     //! returns the vector of the solution belonging to all nodes of the actual element
     void GetSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);

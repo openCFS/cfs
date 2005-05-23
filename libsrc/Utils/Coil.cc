@@ -40,8 +40,8 @@ namespace CoupledField {
   //   Allowed Constructor
   // -----------------------
   Coil::Coil( RegionIdType coilRegionId, 
-	      std::string pdeName, 
-	      Grid * ptGrid ) {
+              std::string pdeName, 
+              Grid * ptGrid ) {
     ENTER_FCN( "Coil::Coil" );
 
     // We already know our name
@@ -92,7 +92,7 @@ namespace CoupledField {
     }
     else {
       Info->Error( "Encountered unsupported type of coil: " + coilTypeS_,
-		   __FILE__, __LINE__ );
+                   __FILE__, __LINE__ );
     }
 
     // *******************************************
@@ -238,28 +238,28 @@ namespace CoupledField {
       // Open file stream for storing inductivity
       if ( saveFileL_ != "none" ) {
 
-	std::string msg = " Inductivity is stored in: " + saveFileL_ + '\n';
-	Info->PrintF( pdeName, "%s", msg.c_str() );
+        std::string msg = " Inductivity is stored in: " + saveFileL_ + '\n';
+        Info->PrintF( pdeName, "%s", msg.c_str() );
 
-	fileL_ = new std::ofstream( saveFileL_.c_str() );
+        fileL_ = new std::ofstream( saveFileL_.c_str() );
 
-	if ( fileL_ == NULL ) {
-	  Info->Error( "Could not open " + saveFileL_, __FILE__, __LINE__ );
-	}
+        if ( fileL_ == NULL ) {
+          Info->Error( "Could not open " + saveFileL_, __FILE__, __LINE__ );
+        }
       }
 
       // Open file stream for storing current/voltages
       if ( saveFileL_ != "none" ) {
 
-	std::string msg = " Currents/voltages are stored in: "
-	  + saveFileU_ + '\n';
-	Info->PrintF( pdeName, "%s", msg.c_str() );
+        std::string msg = " Currents/voltages are stored in: "
+          + saveFileU_ + '\n';
+        Info->PrintF( pdeName, "%s", msg.c_str() );
 
-	fileL_ = new std::ofstream( saveFileU_.c_str() );
+        fileL_ = new std::ofstream( saveFileU_.c_str() );
 
-	if ( fileL_ == NULL ) {
-	  Info->Error( "Could not open " + saveFileU_, __FILE__, __LINE__ );
-	}
+        if ( fileL_ == NULL ) {
+          Info->Error( "Could not open " + saveFileU_, __FILE__, __LINE__ );
+        }
       }
     }
 
@@ -276,45 +276,45 @@ namespace CoupledField {
       params->GetList( keyVec, attrVec, valVec, aux );
 
       if ( aux.GetSize() == 1 ) {
-	if ( aux[0] == "xDir" ) {
-	  flowDir_ = XDIR;
-	}
-	else if ( aux[0] == "yDir" ) {
-	  flowDir_ = YDIR;
-	}
-	else if ( aux[0] == "zDir" ) {
-	  flowDir_ = ZDIR;
-	}
-	else {
-	  Info->Error( "Unknown currentFlow " + aux[0], __FILE__, __LINE__ );
-	}
+        if ( aux[0] == "xDir" ) {
+          flowDir_ = XDIR;
+        }
+        else if ( aux[0] == "yDir" ) {
+          flowDir_ = YDIR;
+        }
+        else if ( aux[0] == "zDir" ) {
+          flowDir_ = ZDIR;
+        }
+        else {
+          Info->Error( "Unknown currentFlow " + aux[0], __FILE__, __LINE__ );
+        }
       }
       else if ( aux.GetSize() > 1 ) {
-	Info->Error( "More than 1 currentFlow specification for coil " +
-		     coilRegionName_, __FILE__, __LINE__ );
+        Info->Error( "More than 1 currentFlow specification for coil " +
+                     coilRegionName_, __FILE__, __LINE__ );
       }
 
       // Check for rotational specification
       else {
-	isRotational_ = true;
+        isRotational_ = true;
 
-	keyVec  = pdeName, "coils", "currentCoil3d", "midPointX";
-	params->Get( keyVec, attrVec, valVec, midX_ );
+        keyVec  = pdeName, "coils", "currentCoil3d", "midPointX";
+        params->Get( keyVec, attrVec, valVec, midX_ );
 
-	keyVec  = pdeName, "coils", "currentCoil3d", "midPointY";
-	params->Get( keyVec, attrVec, valVec, midY_ );
+        keyVec  = pdeName, "coils", "currentCoil3d", "midPointY";
+        params->Get( keyVec, attrVec, valVec, midY_ );
 
-	keyVec  = pdeName, "coils", "currentCoil3d", "midPointZ";
-	params->Get( keyVec, attrVec, valVec, midZ_ );
+        keyVec  = pdeName, "coils", "currentCoil3d", "midPointZ";
+        params->Get( keyVec, attrVec, valVec, midZ_ );
 
-	keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisX";
-	params->Get( keyVec, attrVec, valVec, rotAxisX_ );
+        keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisX";
+        params->Get( keyVec, attrVec, valVec, rotAxisX_ );
 
-	keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisY";
-	params->Get( keyVec, attrVec, valVec, rotAxisY_ );
+        keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisY";
+        params->Get( keyVec, attrVec, valVec, rotAxisY_ );
 
-	keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisZ";
-	params->Get( keyVec, attrVec, valVec, rotAxisZ_ );
+        keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisZ";
+        params->Get( keyVec, attrVec, valVec, rotAxisZ_ );
       }
 
     }
