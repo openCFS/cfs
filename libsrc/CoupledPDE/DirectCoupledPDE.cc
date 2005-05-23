@@ -15,11 +15,10 @@
 namespace CoupledField{
 
 
-DirectCoupledPDE::DirectCoupledPDE(Grid *aptgrid, BCs *aptBCs, 
-				   FileType *aInFile, 
+DirectCoupledPDE::DirectCoupledPDE(Grid *aptgrid,  
 				   WriteResults *aOutFile, 
 				   TimeFunc *aTimeFunc)
-  : StdPDE(aptgrid, aptBCs, aInFile, aOutFile, aTimeFunc)
+  : StdPDE(aptgrid, aOutFile, aTimeFunc)
 {
   ENTER_FCN( "DirectCoupledPDE::DirectCoupledPDE" );
 
@@ -115,12 +114,11 @@ void DirectCoupledPDE::WriteGeneralPDEdefines()
   ENTER_FCN( "DirectCoupledPDE::WriteGeneralPDEdefines" );
 }
 
-void DirectCoupledPDE::SetBCs(const Integer level, 
-			      const Double atimestep)
+void DirectCoupledPDE::SetBCs(const Double atimestep)
 {
   ENTER_FCN( "DirectCoupledPDE::SetBCs" );
   for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
-    singlePDEs_[i]->SetBCs( level, atimestep );
+    singlePDEs_[i]->SetBCs( atimestep );
 }
 
 
@@ -206,12 +204,12 @@ void DirectCoupledPDE::DefineAlgSys()
 }
 
 
-Integer DirectCoupledPDE::GetNumRestraints(const Integer level) {
+Integer DirectCoupledPDE::GetNumRestraints() {
   ENTER_FCN( "DirectCoupledPDE::GetNumRestraints" );
 
   Integer totalNumRestraints = 0;
   for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
-    totalNumRestraints += singlePDEs_[i]->GetNumRestraints(level);
+    totalNumRestraints += singlePDEs_[i]->GetNumRestraints();
   
   return totalNumRestraints;
 }
@@ -244,12 +242,12 @@ void DirectCoupledPDE::SaveSolution() {
 // POSTPROC SECTION
 // ======================================================
 
-void DirectCoupledPDE::PostProcess(const Integer level)
+void DirectCoupledPDE::PostProcess()
 {
   ENTER_FCN( "DirectCoupledPDE::PostProcess" );
   
   for (Integer i=0; i<singlePDEs_.GetSize(); i++) {
-    singlePDEs_[i]->PostProcess( level );
+    singlePDEs_[i]->PostProcess();
   }
 }
 
@@ -301,14 +299,14 @@ void DirectCoupledPDE::CalcOutputCoupling()
 // ======================================================
 
 
-void DirectCoupledPDE::AssembleMatrices(const Integer level) {
+void DirectCoupledPDE::AssembleMatrices() {
 
   // Assembly of diagonal-matrices
   for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
     {
       //std::cerr << "Assembling Matrices for PDE " 
       //<< singlePDEs_[i]->GetName() << std::endl;
-      singlePDEs_[i]->AssembleMatrices( level );
+      singlePDEs_[i]->AssembleMatrices();
     }
 
   // Assembly of off-diagonal entries (coupling objcts)
@@ -316,35 +314,35 @@ void DirectCoupledPDE::AssembleMatrices(const Integer level) {
     {
       //      std::cerr << "Assembling Matrices for Coupling " 
       //<< couplings_[i]->GetName() << std::endl;
-      couplings_[i]->AssembleMatrices( level );
+      couplings_[i]->AssembleMatrices();
     }
 }
 
-void DirectCoupledPDE::AssembleSrcRHS(const Integer level, const Double time) {
+void DirectCoupledPDE::AssembleSrcRHS(const Double time) {
   ENTER_FCN( "DirectCoupledPDE::AssembleSrcRHS" );
 
   for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
     {
-      singlePDEs_[i]->AssembleSrcRHS( level, time );
+      singlePDEs_[i]->AssembleSrcRHS( time );
     }
   
 }
 
-void DirectCoupledPDE::AssembleNLRHS(const Integer level, const Double time) {
+void DirectCoupledPDE::AssembleNLRHS(const Double time) {
   ENTER_FCN( "DirectCoupledPDE::AssembleNLRHS" );
 
   for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
     {
-      singlePDEs_[i]->AssembleNLRHS( level, time );
+      singlePDEs_[i]->AssembleNLRHS( time );
     }
 }
 
-void DirectCoupledPDE::AssembleSprings(const Integer level, const Double time) {
+void DirectCoupledPDE::AssembleSprings( const Double time) {
   ENTER_FCN( "DirectCoupledPDE::AssembleSprings" );
 
   for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
     {
-      singlePDEs_[i]->AssembleSprings( level, time );
+      singlePDEs_[i]->AssembleSprings(time );
     }
 }
 

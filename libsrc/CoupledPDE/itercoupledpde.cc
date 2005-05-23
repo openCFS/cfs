@@ -20,7 +20,6 @@ namespace CoupledField
     PDEs_       = PDEs;
     Couplings_  = Couplings;
     
-    actlevel_ = 0;
     NumPDEs_ = PDEs.GetSize();
     sequenceTag_ = sequenceTag;
     solveStep_ = NULL;
@@ -92,7 +91,7 @@ namespace CoupledField
 
 
 
-  void IterCoupledPDE::InitCoupling(Integer level) {
+  void IterCoupledPDE::InitCoupling() {
 
     ENTER_FCN ("IterSolveStep::InitCoupling" );
   
@@ -271,7 +270,7 @@ namespace CoupledField
 	// register the interface at the according coupling-object
 	Couplings_[iPDE]->AddInput(quantityAux, 
 				   interfaceNamesSorted[iQuant],
-				   regionTypeAux, neighbourRegions, level, 
+				   regionTypeAux, neighbourRegions, 
 				   epsilon, normTypeAux, Couplings_);
 	norms_.Push_back(1.0);
       }
@@ -318,7 +317,6 @@ namespace CoupledField
 
 
   // void IterCoupledPDE::SolveStepStatic(const Integer kstep, const Double aTime,
-// 				       const Integer level,
 // 				       const Boolean updatesysmat ) {
 
 //     ENTER_FCN ( "entering  IterCoupledPDE::SolveStepStatic" );
@@ -351,10 +349,10 @@ namespace CoupledField
 // 	    // Only solve current PDE, if the corresponding
 // 	    // flag in 'solvePDE_' is set to TRUE
 // 	    if (solvePDE_[i] == TRUE) {
-// 	      PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,actlevel_,updatesysmat);
+// 	      PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,updatesysmat);
 // 	      PDEs_[i]->CalcInputCoupling();
-// 	      PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,actlevel_,updatesysmat);
-// 	      PDEs_[i]->GetSolveStep()->PostStepStatic(kstep,aTime,actlevel_);
+// 	      PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,updatesysmat);
+// 	      PDEs_[i]->GetSolveStep()->PostStepStatic(kstep,aTime);
 // 	      PDEs_[i]->CalcOutputCoupling();
 	      
 // 	      // Calculate Norms
@@ -665,12 +663,12 @@ BaseSolveStep * IterCoupledPDE::GetSolveStep() {
 // ======================================================
 
 // Do Postprocessing as descriped in conf file
-void IterCoupledPDE::PostProcess(const Integer level) 
+void IterCoupledPDE::PostProcess() 
 {
   ENTER_FCN( "IterCoupledPDE::PostProcess" );
 
     for (Integer i=0; i<PDEs_.GetSize(); i++)
-      PDEs_[i]->PostProcess(level);
+      PDEs_[i]->PostProcess();
 }
 
 

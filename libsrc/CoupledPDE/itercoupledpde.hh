@@ -31,7 +31,7 @@ namespace CoupledField
   ~IterCoupledPDE();
 
   //! calculates coupling interfaces
-  void InitCoupling(Integer level);
+  void InitCoupling();
   
   //! write general defines (BCs, loads, etc.) to info-file
   void WriteGeneralPDEdefines();
@@ -51,11 +51,11 @@ namespace CoupledField
   void DefineSolvingPDEs(StdVector<StdPDE*> & pdes);
 
   //! Solve static step
-  //void SolveStepStatic(const Integer kstep, const Double asteptime, const Integer level, 
+  //void SolveStepStatic(const Integer kstep, const Double asteptime, 
   //	       const Boolean updatesysmat);
   
   //! solve transient step
-  //void SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
+  //void SolveStepTrans(const Integer kstep, const Double asteptime,
   //		      const Boolean updatesysmat);
   
   //! write results in file
@@ -69,7 +69,7 @@ namespace CoupledField
   void SetTimeStep(const Double dt);
 
   //! Do Postprocessing as descriped in conf file
-  void PostProcess(const Integer level);
+  void PostProcess();
   
 protected:
 
@@ -94,7 +94,6 @@ protected:
   StdVector<StdPDE *> PDEs_;         //!< list of belonging PDEs
   StdVector<PDECoupling*> Couplings_; //!< vector of coupling objects
   Integer NumPDEs_;                   //!< number of PDEs 
-  Integer actlevel_;                  //!< current level (for multigrid)
   std::string sequenceTag_;           //!< tag for current multisequence step
   
   // 

@@ -24,13 +24,10 @@ public:
   //! Constructor
   /*!
     \param aptgrid pointer to grid
-    \param aptBCs pointer to boundary condition object
-    \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  DirectCoupledPDE(Grid *aptgrid, BCs *aptBCs, 
-		   FileType *aInFile, 
+  DirectCoupledPDE(Grid *aptgrid, 
 		   WriteResults *aOutFile, 
 		   TimeFunc *aTimeFunc);
     
@@ -52,16 +49,14 @@ public:
 
   
   //! set boundary condition
-  //! \param level             level of grid
   //! \param atimestep         time step of claculation
-  void SetBCs(const Integer level, 
-	      const Double atimestep);
+  void SetBCs(const Double atimestep);
 
   //! define algebraic system 
   void DefineAlgSys();
 
   //! return number of restraints
-  Integer GetNumRestraints(const Integer level=-1);
+  Integer GetNumRestraints();
   
   //! Get types of needed matrices (sysmtem, stiffness,..)
   void GetMatrixTypes( std::set<FEMatrixType> &matTypes);
@@ -77,7 +72,7 @@ public:
   //! \name Methods performing post-processing
   
   //! Do Postprocessing as descriped in conf file
-  void PostProcess(const Integer level);
+  void PostProcess();
   
   //! write results in file
   //! \param stepOffset offset for starting (time)step
@@ -112,17 +107,16 @@ public:
   // ======================================================
   
   //! specify type of system matrix for AlgebraicSystem
-  /*! \param level (input) level of Grid     */
-  void AssembleMatrices(const Integer level);
+  void AssembleMatrices();
   
   //! setup source term
-  void AssembleSrcRHS(const Integer level, const Double time=0);
+  void AssembleSrcRHS(const Double time=0);
   
   //!  assemble a nonlinear RHS part
-  void AssembleNLRHS(const Integer level, const Double time=0);
+  void AssembleNLRHS(const Double time=0);
   
   //!  assemble a spring into the system matrix
-  void AssembleSprings(const Integer level, const Double time=0);
+  void AssembleSprings(const Double time=0);
   
   //! Initialize all matrices with nonlinear behavior
   void InitNonLinMatrices();
