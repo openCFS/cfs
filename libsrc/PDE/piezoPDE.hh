@@ -3,7 +3,6 @@
 
 
 #include "SinglePDE.hh"
-
 #include "Driver/stdSolveStep.hh"
 
  
@@ -26,30 +25,26 @@ namespace CoupledField
     //! The following default values are used: incStopCrit = 1e-2,
     //! residualStopCrit = 1e-3.
     //! \param aGrid pointer to grid object
-    //! \param aBCs pointer to object describing boundary conditions
     //! \param aTimeFunc pointer to object of class TimeFunc
-    //! \param aInFile pointer to object of class FileType; contains input
-    //!        data.
     //! \param aOutFile pointer to object of class WriteResults; needed for
     //!        outputting data
-    PiezoPDE( Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile,
-	      WriteResults *aOutFile );
+    PiezoPDE( Grid *aGrid, TimeFunc *aTimeFunc, WriteResults *aOutFile );
 
     //!  Destructor
     virtual ~PiezoPDE() {};
 
     //! define all (bilinearform) integrators needed for this pde
-    virtual void DefineIntegrators(const Integer level);
+    virtual void DefineIntegrators( );
 
     //! define the SoltionStep-Driver
-    virtual void DefineSolveStep();
+    virtual void DefineSolveStep( );
 
     /// returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
     BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE, 
 				  Boolean isdamping=FALSE);
 
     //! do PostProcessing step
-    virtual void PostProcess(const Integer level);
+    virtual void PostProcess( );
 
     //! write results in file
     //! \param stepOffset offset for starting (time)step
@@ -74,7 +69,8 @@ namespace CoupledField
 
     //! returns if PDE can compute the quantity
     Boolean HasOutput(SolutionType output)
-    { Error ("Coupling not implemented" );}
+    { Error ( "Coupling not implemented" );
+        return FALSE;}
   
 
    ElemStoreSol<Complex>  GetComplexValuedCharge(){return chargesComplex_;};
@@ -127,22 +123,22 @@ namespace CoupledField
   private:
 
     //postprocessing
-    StdVector<std::string> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
+    StdVector<RegionIdType> calcEfield_;  //!< contains the subdomains, on which the electric field is computed
     ElemStoreSol<Double> Efield_;  //!< conatins electric field
     ElemStoreSol<Complex> EfieldComplex_;
 
 
-    StdVector<std::string> calcStress_;  //!< contains the subdomains, on which the stress is computed
+    StdVector<RegionIdType> calcStress_;  //!< contains the subdomains, on which the stress is computed
     ElemStoreSol<Double> stress_;  //!< conatins mechanical stresses
     ElemStoreSol<Complex> stressComplex_;  //!< conatins mechanical stresses
 
     ElemStoreSol<Double> charges_;
     ElemStoreSol<Complex> chargesComplex_;
-    StdVector<std::string> chargeNeighborRegion_;
-    StdVector<std::string> calcCharge_;
+    StdVector<RegionIdType> chargeNeighborRegion_;
+    StdVector<RegionIdType> calcCharge_;
 
     //!
-    StdVector<std::string> volAboveDefSurfRegions_;
+    StdVector<RegionIdType> volAboveDefSurfRegions_;
     StdVector<std::string> volAboveDefSurfDir_;
 
     //    piezoMaterialType piezoMaterialType_; 
