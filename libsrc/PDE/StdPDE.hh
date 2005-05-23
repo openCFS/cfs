@@ -80,16 +80,16 @@ namespace CoupledField {
     // ======================================================
     
     //! compute volume above a deformed surface
-    virtual void ComputeVolDefSurf(StdVector<std::string> surfRegions, 
-				   StdVector<std::string> strDir);
+    virtual void ComputeVolDefSurf(StdVector<RegionIdType> &surfRegions, 
+                                   StdVector<std::string> &strDir);
     
     //!
     virtual Double ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
-				  Vector<Double> disp);
+                                  Vector<Double> disp);
     
     //!
     virtual Complex ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
-				Vector<Complex> disp);
+                                   Vector<Complex> disp);
   
     // ======================================================
     // GET/SET METHODS
@@ -126,7 +126,7 @@ namespace CoupledField {
     BaseSolveStep * GetSolveStep();
     
     //! return number of restraints
-    virtual Integer GetNumRestraints(const Integer level=-1) = 0;
+    virtual Integer GetNumRestraints( ) = 0;
 
     //! Get number of time step
     virtual Integer GetTimeStepCounter()
@@ -136,7 +136,7 @@ namespace CoupledField {
     virtual void GetMatrixTypes( std::set<FEMatrixType> &matTypes) = 0;
 
     //! return pointer to vector with subdomains, on which we calculate the PDE
-    virtual StdVector<std::string> * getSDsPDE()
+    virtual StdVector<RegionIdType> * getSDsPDE()
     { return &subdoms_;}
   
     //! returns if PDE can compute the quantity
@@ -171,20 +171,16 @@ namespace CoupledField {
     //! \param connect (input) global node numbers of element
     //! \param ptCoord (output) coordinates of the element nodes
     //!                (nrNodes \f$\times\f$ spaceDim);
-    //! \param level (input) index for multilevel hierarchy
     virtual void GetElemCoords(const StdVector< Integer > connect,
-                               Matrix< Double > &coordMat,
-                               const Integer level);
+                               Matrix< Double > &coordMat );
   
     //!
     //! \todo What is the purpose of this function?
     virtual void ComputeRHS(const Double atime) {;};
   
     //! set boundary condition
-    //! \param level             level of grid
     //! \param atimestep         time step of claculation
-    virtual  void SetBCs(const Integer level, 
-                         const Double atimestep) = 0;
+    virtual  void SetBCs( const Double atimestep ) = 0;
   
   
     //! set time step
@@ -198,17 +194,16 @@ namespace CoupledField {
     // ======================================================
 
     //! specify type of system matrix for AlgebraicSystem
-    /*! \param level (input) level of Grid     */
-    virtual void AssembleMatrices(const Integer level) = 0;
+    virtual void AssembleMatrices( ) = 0;
     
     //! setup source term
-    virtual void AssembleSrcRHS(const Integer level, const Double time=0) = 0;
+    virtual void AssembleSrcRHS( const Double time = 0.0 ) = 0;
     
     //!  assemble a nonlinear RHS part
-    virtual void AssembleNLRHS(const Integer level, const Double time=0) = 0;
+    virtual void AssembleNLRHS( const Double time = 0.0) = 0;
 
     //!  assemble a spring into the system matrix
-    virtual void AssembleSprings(const Integer level, const Double time=0) = 0;
+    virtual void AssembleSprings( const Double time = 0.0) = 0;
 
     //! Initialize all matrices with nonlinear behavior
     virtual void InitNonLinMatrices() = 0;
@@ -230,8 +225,6 @@ namespace CoupledField {
     
     BaseNodeStoreSol * getPDESolution() {return sol_;};
     
-    BCs * getPDE_BCs() {return ptBCs_;};
-  
     BaseSystem * getPDE_algsys(){return algsys_;};
   
     Integer getPDE_numElems(){return numElems_;};
@@ -248,7 +241,7 @@ namespace CoupledField {
   
     Assemble * getPDE_assemble(){return assemble_;}
   
-    StdVector<std::string> getPDE_subdoms(){return subdoms_;}
+    StdVector<RegionIdType> getPDE_subdoms(){return subdoms_;}
    
     Vector<Complex> getPDE_complexValuedCharge()
     {return complexValuedCharge_;};
@@ -272,13 +265,10 @@ namespace CoupledField {
     //! Constructor
     /*!
       \param aptgrid pointer to grid
-      \param aptBCs pointer to boundary condition object
-      \param aInFile pointer to class FileType. input data.
       \param aOutFile  pointer to class WriteResults. output data.
       \param aTimeFunc pointer to class TimeFunc
     */
-    StdPDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
-           WriteResults *aOutFile, TimeFunc *aTimeFunc);
+    StdPDE(Grid *aptgrid, WriteResults *aOutFile, TimeFunc *aTimeFunc);
   
     //! private copy constructor
     StdPDE & operator= (const StdPDE & myPDE) {
@@ -328,19 +318,17 @@ namespace CoupledField {
     Grid * ptgrid_;        //!< pointer to grid object
 
     //! subdomain-levels belonging to PDE
-    StdVector<std::string> subdoms_;
+    StdVector<RegionIdType> subdoms_;
   
     //! surface-domain-levels belongig to PDE
-    StdVector<std::string> surfdoms_;
+    StdVector<RegionIdType> surfdoms_;
   
-    StdVector<std::string> pressSurf_;  //!< surface of pressure loads
+    StdVector<RegionIdType> pressSurf_;  //!< surface of pressure loads
     StdVector<Double>      pressVals_;  //!< values of the pressure loads
     StdVector<Double>      pressPhase_;  //!< phase of the pressure loads 
     //!(in case of harmonic analysis)
     StdVector<std::string> pressFnc_;   //!< function names of pressure loads
 
-    //! pointer to boundary condition object
-    BCs *ptBCs_;
     //@}
 
   
@@ -494,7 +482,6 @@ namespace CoupledField {
     //@}
 
 
-    FileType * inFile_;       //!< pointer to input file
     WriteResults * outFile_;  //!< pointer to output file
 
 
@@ -529,9 +516,6 @@ namespace CoupledField {
     //! set defining which type of matrices (stiffness, mass,...) is used
     std::set<FEMatrixType> matrixTypes_;
 
-    //! actual level (actual = current?)
-    Integer actlevel_;
-
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;
     
@@ -546,7 +530,7 @@ namespace CoupledField {
     OLAS_Report * olasReport_; //! pointer to report object of OLAS
     //@}
 
-}; // class StdPDE
+  }; // class StdPDE
 
 } // end of namespace
 

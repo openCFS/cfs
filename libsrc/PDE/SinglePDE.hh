@@ -137,17 +137,15 @@ public:
   virtual std::string GetSubType() {return subType_;}
 
   //! return number of restraints
-  Integer GetNumRestraints(const Integer level=-1);
+  Integer GetNumRestraints( );
  
   //! Get types of needed matrices (sysmtem, stiffness,..)
   void GetMatrixTypes( std::set<FEMatrixType> &matTypes)
   { matTypes = matrixTypes_;}
 
   //! set boundary condition
-  //! \param level             level of grid
   //! \param atimestep         time step of claculation
-  void SetBCs(const Integer level, 
-	      const Double atimestep);
+  void SetBCs(const Double atimestep);
   
   //! write general defines (BCs, loads, etc.) to info-file
   void WriteGeneralPDEdefines();
@@ -157,17 +155,16 @@ public:
   // ======================================================
   
   //! specify type of system matrix for AlgebraicSystem
-  /*! \param level (input) level of Grid     */
-  void AssembleMatrices(const Integer level);
+  void AssembleMatrices( );
   
   //! setup source term
-  void AssembleSrcRHS(const Integer level, const Double time=0);
+  void AssembleSrcRHS( const Double time = 0.0 );
   
   //!  assemble a nonlinear RHS part
-  void AssembleNLRHS(const Integer level, const Double time=0);
+  void AssembleNLRHS( const Double time = 0.0 );
   
   //!  assemble a spring into the system matrix
-  void AssembleSprings(const Integer level, const Double time=0);
+  void AssembleSprings( const Double time = 0.0 );
   
   //! Initialize all matrices with nonlinear behavior
   void InitNonLinMatrices();
@@ -181,14 +178,10 @@ protected:
   //! Constructor
   /*!
     \param aptgrid pointer to grid
-    \param aptBCs pointer to boundary condition object
-    \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
   SinglePDE(Grid *aptgrid, 
-	    BCs *aptBCs, 
-	    FileType *aInFile,
 	    WriteResults *aOutFile, 
 	    TimeFunc *aTimeFunc);
 
@@ -208,7 +201,7 @@ protected:
 
 
   //! define all (bilinearform) integrators needed for this pde
-  virtual void DefineIntegrators(const Integer level)=0;
+  virtual void DefineIntegrators( )=0;
 
   //! read material data
   virtual void ReadMaterialData();
@@ -311,8 +304,7 @@ protected:
   //@{
   //! \name Attributes connected to parameters for solver
   Integer maxnumiter_;       //!< maximum of iterations (for iterative solver)
-  Integer numeqcoarse_;      //!< number of unknowns on coarse level(just for AMG)
-  Double  eps_;              //!< accuracy
+  Double eps_;               //!< accuracy
   Double dampiter_;          //!< damping parameter within iterative solution
   Double coarsealpha_;       //!< coarsening factor (just for AMG)
 

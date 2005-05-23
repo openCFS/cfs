@@ -17,9 +17,7 @@ public:
   
   //! Constructor
   NodeEQN(Grid * aptGrid, 
-	  BCs * aptBCs,
-	  StdVector<std::string>& asubdoms, 
-	  Integer actlevel, 
+	  StdVector<RegionIdType>& asubdoms, 
 	  Integer dofsPerNode);
   
   //! Destructor

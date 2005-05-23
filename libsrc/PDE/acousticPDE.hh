@@ -22,26 +22,23 @@ public:
   //!  Constructor. here we read integration parameters
   /*!
     \param aGrid pointer to grid
-    \param aBCs pointer to Boundary condition object
-    \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  AcousticPDE(Grid *aGrid, BCs *aBCs, TimeFunc *aTimeFunc, FileType *aInFile,
-			  WriteResults *aOutFile );
+  AcousticPDE(Grid *aGrid, TimeFunc *aTimeFunc, WriteResults *aOutFile );
 
   //!  Deconstructor
   virtual ~AcousticPDE() {;};
 
 
   //! define all (bilinearform) integrators needed for this pde
-  virtual void DefineIntegrators(const Integer level);
+  virtual void DefineIntegrators();
   
   //! define the SoltionStep-Driver
   virtual void DefineSolveStep();
 
   //! perform postprocessing on data
-  void PostProcess(Integer level) {;};
+  void PostProcess() {;};
 
   //! write results in file
   //! \param stepOffset offset for starting (time)step
@@ -75,12 +72,11 @@ public:
   virtual Boolean HasOutput(SolutionType output);
   
   //! calculate the vector of coupling forces to the mechanical PDE
-  void CalcMechCouplingRHS(StdVector<Elem*> * couplingElems, 
-			   StdVector<Integer> & couplingNodes,
-			   StdVector<MaterialData*> * couplingMaterials,
-			   Vector<Double>& elemCouplingSols,
-			   Integer couplingdof,
-			   StdVector<Elem*> * neighbours);
+  void CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
+                            StdVector<Integer> & couplingNodes,
+                            Vector<Double>& elemCouplingSols,
+                            Integer couplingdof );
+  
   
 
 
@@ -94,7 +90,7 @@ protected:
 
   StdVector<DampingType> dampingList_;   //!< list of damping types for all regions
 
-  StdVector<std::string> absBCs_;        //!< list of boundaries( for absorbing BCs)
+  StdVector<RegionIdType> absBCs_;        //!< list of boundaries( for absorbing BCs)
   Boolean absorbingBCs_;                 //!< switch for absorbing boundary conditions
 
   // for fractional damping model

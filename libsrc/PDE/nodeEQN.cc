@@ -6,11 +6,9 @@ namespace CoupledField
 {
   
 NodeEQN::NodeEQN(Grid * aptGrid, 
-		 BCs * aptBCs,
-		 StdVector<std::string>& asubdoms, 
-		 Integer actlevel, 
+		 StdVector<RegionIdType>& asubdoms, 
 		 Integer dofsPerNode)
-  : BaseEQN(aptGrid, aptBCs, asubdoms, actlevel, dofsPerNode)
+  : BaseEQN(aptGrid, asubdoms, dofsPerNode)
 {
   ENTER_FCN( "NodeEQN::NodeEQN" );
 
@@ -56,13 +54,13 @@ void NodeEQN::CalcLocalGlobalMapping(StdVector<Integer> & mesh2PDENode,
 {
   ENTER_FCN( "NodeEQN::CalcLocalGlobalMapping" );
   
-  mesh2PDENode.Resize(ptGrid_->GetMaxnumnodes(actlevel_));
+  mesh2PDENode.Resize(ptGrid_->GetNumNodes());
   mesh2PDENode.Init(-1);
   pde2MeshNode.Clear();
 
-  mesh2PDEElem.Resize(ptGrid_->GetMaxnumElem(actlevel_));
+  mesh2PDEElem.Resize(ptGrid_->GetNumVolElems());
   mesh2PDEElem.Init(-1);
-  pde2MeshElem.Resize(ptGrid_->GetMaxnumElem(actlevel_,subdoms_));
+  pde2MeshElem.Resize(ptGrid_->GetNumElems(subdoms_));
   pde2MeshElem.Init(-1);
   //std::cerr << "After init of pde2MeshElem" << std::endl;
   //std::cerr << "Size of pde2MeshEl
@@ -75,7 +73,7 @@ void NodeEQN::CalcLocalGlobalMapping(StdVector<Integer> & mesh2PDENode,
   // iterate over all subdomains
   for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++)
     {
-      ptGrid_->GetElemSD(subdom,subdoms_[iSD],actlevel_); 
+      ptGrid_->GetVolElems(subdom,subdoms_[iSD]); 
 
       // iterate over all elems in subdomain
       for (Integer iElem=0; iElem<subdom.GetSize(); iElem++)

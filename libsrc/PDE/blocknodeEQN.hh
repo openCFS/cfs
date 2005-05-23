@@ -15,9 +15,7 @@ public:
   
   //! Constructor
   BlockNodeEQN(Grid * aptgrid, 
-	       BCs * aptBCs,
-	       StdVector<std::string>& asubdoms, 
-	       Integer actlevel, 
+	       StdVector<RegionIdType> & asubdoms, 
 	       Integer dofsPerNode);
   
   //! Destructor

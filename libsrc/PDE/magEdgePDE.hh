@@ -19,13 +19,12 @@ public:
   /*!
     \param 
     \param aGrid pointer to grid
-    \param aBCs pointer to Boundary condition object
     \param aGrid pointer to class Grid
-    \param aInFile pointer to class FileType. input data.
     \param aOutFile  pointer to class WriteResults. output data.
     \param aTimeFunc pointer to class TimeFunc
   */
-  MagEdgePDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, WriteResults *aptOut);
+  MagEdgePDE(Grid * aptgrid, TimeFunc *aptTimeFunc, 
+	     WriteResults *aptOut);
 
   //! Deconstructor
   virtual ~MagEdgePDE();
@@ -62,10 +61,7 @@ public:
 		     std::vector<Integer>& esign, BaseFE * ptElem);
 
   //! setup element matrices for AlgebraicSystem for assembling procedure
-  /*!
-    \param level level of grid
-   */
-  void SetupMatrices(const Integer level=0);
+  void SetupMatrices( );
   
   //! set boundary condition
   /*!
@@ -77,7 +73,6 @@ public:
 
   //! solve one step for static problem 
   /*!
-    \param ptBCs pointer to class with data about boundary condition
     \param level level of grid
   */
   virtual void SolveStepStatic(const Integer level, const Double aTime=0);

@@ -7,8 +7,7 @@
 namespace CoupledField {
 
 
-  StdPDE::StdPDE(Grid *aptgrid, BCs *aptBCs, FileType *aInFile,
-                 WriteResults *aOutFile, TimeFunc *aTimeFunc)
+  StdPDE::StdPDE(Grid *aptgrid, WriteResults *aOutFile, TimeFunc *aTimeFunc)
     : BasePDE(),
       nonLin_(FALSE),
       incStopCrit_(1e-2), 
@@ -35,11 +34,9 @@ namespace CoupledField {
     // =====================================================================
     // set file pointers
     // =====================================================================
-    inFile_     = aInFile;
     outFile_    = aOutFile;
     ptTimeFunc_ = aTimeFunc;
     ptgrid_     = aptgrid;
-    ptBCs_      = aptBCs;
     assemble_   = NULL;
     algsys_     = NULL;
     eqnData_    = NULL;
@@ -47,7 +44,6 @@ namespace CoupledField {
     // =====================================================================
     // set analysis parameters
     // =====================================================================
-    actlevel_ = 0;
     actFrequency_ = 0;
     lasttimecalc_ = 0.0;
     couplingBCsCounter_ = 0;
@@ -124,13 +120,12 @@ namespace CoupledField {
   // ======================================================
 
   void StdPDE::GetElemCoords( const StdVector<Integer> connect, 
-                              Matrix<Double> &coordMat, 
-                              const Integer level ) {
+                              Matrix<Double> &coordMat ) {
 
     ENTER_FCN( "StdPDE::GetElemCoords" );
 
     Integer pdeNode;
-    ptgrid_->GetCoordNodesElemMat(connect, coordMat, level);
+    ptgrid_->GetElemNodesCoord(coordMat, connect);
   
     if (deltCoords_.GetSizeRow() != 0 && geoUpdate_ == TRUE) {
       for (Integer i=0; i<coordMat.GetSizeRow(); i++) {
@@ -148,9 +143,9 @@ namespace CoupledField {
   {
     ENTER_FCN( "StdSolveStep::RhsL2Norm" );
 
-    Integer node, dof, eqnNr, eqnDof;
+    Integer dof, eqnNr, eqnDof;
   
-    std::list<Integer> nodes;
+    StdVector<Integer> nodes;
   
     Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
 
@@ -164,13 +159,11 @@ namespace CoupledField {
           dof = GetBCDof( homDirichDof_[i] );
         }
 
-        nodes=ptBCs_->GetNodesLevel(bcs_hd_[i]);
+	ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
       
-        for (std::list<Integer>::const_iterator p=nodes.begin(); 
-	     p!=nodes.end(); p++)
+        for (Integer iNode=0; iNode<nodes.GetSize(); iNode++)
           {
-            node=*p;
-            eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+            eqnData_->Node2EQN(nodes[iNode],dof,eqnNr,eqnDof);
             if (eqnNr != 0){
               actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0.0;
             }
@@ -185,13 +178,11 @@ namespace CoupledField {
           dof = GetBCDof( inhomDirichDof_[i] );
         }
 	
-        nodes=ptBCs_->GetNodesLevel(bcs_id_[i]);
+        ptgrid_->GetNodesByName( nodes, bcs_id_[i] );
 	
-        for (std::list<Integer>::const_iterator p=nodes.begin(); 
-	     p!=nodes.end(); p++)
+        for (Integer iNode=0; iNode<nodes.GetSize(); iNode++)
           {
-            node=*p;
-            eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+            eqnData_->Node2EQN(nodes[iNode],dof,eqnNr,eqnDof);
             if (eqnNr != 0){
               actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0.0;
             }
@@ -599,8 +590,8 @@ namespace CoupledField {
   // ======================================================
   // POSTPROCESSING  
   // ======================================================
-  void StdPDE::ComputeVolDefSurf(StdVector<std::string> surfRegions, 
-				 StdVector<std::string> strDir) {
+  void StdPDE::ComputeVolDefSurf(StdVector<RegionIdType> &surfRegions, 
+				 StdVector<std::string> &strDir) {
 
     ENTER_FCN( "StdPDE::ComputeVolDefSurf" );
 
@@ -645,15 +636,15 @@ namespace CoupledField {
 	subDomVolReal[actSF] = 0;   
       }
       
-      StdVector<Elem*> elemssd;
-      elemssd=ptBCs_->getFacesBC(surfRegions[actSF],actlevel_);
+      StdVector<SurfElem*> elemssd;
+      ptgrid_->GetSurfElems(elemssd,surfRegions[actSF]);
    
       for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
 	BaseFE * ptSurfEl = elemssd[actEl]->ptElem;
 	StdVector<Integer> connecth = elemssd[actEl]->connect;
 	
 	Matrix<Double> ptSurfCoord;
-	GetElemCoords(connecth, ptSurfCoord, actlevel_);
+	GetElemCoords(connecth, ptSurfCoord);
 	
 	//get the deformed solution
 	if (analysistype_ == HARMONIC ) {
@@ -681,6 +672,10 @@ namespace CoupledField {
     std::string analysis;
     Double analysisVal;
 
+    // convert region Ids to names
+    StdVector<std::string> regionNames;
+    ptgrid_->RegionIdToName( regionNames, surfRegions );
+    
     if ( analysistype_ == HARMONIC ) {
       subDomVolReal.Resize(surfRegions.GetSize());
       for (Integer actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
@@ -689,13 +684,13 @@ namespace CoupledField {
  
       analysis    = "Frequency:";
       analysisVal = actFrequency_;
-      Info->WriteResult(pdename_,  resulttype, surfRegions, subDomVolReal, 
+      Info->WriteResult(pdename_,  resulttype, regionNames, subDomVolReal, 
 			unit, analysis, analysisVal);
     }
     else {
       analysis    = "Time:";
       analysisVal = lasttimecalc_;
-      Info->WriteResult(pdename_,  resulttype, surfRegions, subDomVolReal, 
+      Info->WriteResult(pdename_,  resulttype, regionNames, subDomVolReal, 
 			unit, analysis, analysisVal);
     }
   }

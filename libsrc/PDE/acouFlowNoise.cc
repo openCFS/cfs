@@ -6,11 +6,10 @@
 #include <stdio.h>
 
 #include "acouFlowNoise.hh"
-#include <Domain/bcs.hh>
-#include <DataInOut/Unverg/outUnverg.hh>
-#include <DataInOut/GMV/outGMV.hh>
-#include <Forms/forms_header.hh>
-#include <MpCCIcpl/MpCCIexch.hh>
+#include "DataInOut/Unverg/outUnverg.hh"
+#include "DataInOut/GMV/outGMV.hh"
+#include "Forms/forms_header.hh"
+#include "MpCCIcpl/MpCCIexch.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "Driver/solveStepAcouFlowNoise.hh"
 
@@ -21,10 +20,8 @@
 namespace CoupledField
 {
 
-AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
-			     FileType *aptFileType, WriteResults *aptOut)
-    :AcousticPDE(aptgrid, aptbcs, aptTimeFunc, aptFileType, 
-                 aptOut)
+AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut)
+  :AcousticPDE(aptgrid, aptTimeFunc, aptOut)
   {
     ENTER_FCN( "AcouFlowNoise::AcouFlowNoise" );
 
@@ -36,10 +33,11 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 
 #ifdef MpCCI
     StdVector<Elem*> elemssd;
-
+    StdVector<std::string> regionNames;
     params->GetList( "name", subdoms_, pdename_, "region" );
-    params->GetList( "name", couplSubDomName_, "MpCCI-flownoise",
+    params->GetList( "name", regionNames,  "MpCCI-flownoise",
 		     "coupledregion" );
+    ptgrid_->RegionNameRoId( couplSubDomId_, regionNames ):
 
     //check type of flow data
     if( params->HasValue( "type", "nodalSrc", pdename_, "flowData" ) ) {
@@ -59,7 +57,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
           {
             if (couplSubDomName_[j] == subdoms_[i])
               {
-                ptgrid_->GetElemSD(elemssd,couplSubDomName_[j],actlevel_);
+                ptgrid_->GetElemSD(elemssd,couplSubDomName_[j]);
                 ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
                 ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
                 Find=TRUE;
@@ -105,10 +103,8 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 
     Integer i;
 
-    Integer level=0;
-
     // get maximum number of elements from grid
-    Integer maxnumelem=ptgrid_->GetMaxnumElem(level,subdoms_);
+    Integer maxnumelem=ptgrid_->GetNumElems(subdoms_);
 
 
   double starttime, endtime;
@@ -210,9 +206,9 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
       
       valmult=-1.0;
       
-      for (i=0; i<couplSubDomName_.GetSize(); i++)
+      for (i=0; i<couplSubDomId_.GetSize(); i++)
         {
-          ptgrid_->GetElemSD(elemssd,couplSubDomName_[i],level);
+          ptgrid_->GetVolElems(elemssd,couplSubDomId_[i]);
         
           for (j=0; j< elemssd.GetSize(); j++)
             {
@@ -226,7 +222,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
                 connecth[ii]=(elemssd[j]->connect)[ii];
             
               Matrix<Double> ptCoordNodes;
-              ptgrid_->GetCoordNodesElemMat(connecth,  ptCoordNodes, level);        
+              ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);        
               linear_load->CalcElemVector4Quad(ptCoordNodes, connecth,
 					       flowdata_, elemvec);
               elemvec*=valmult;
@@ -289,7 +285,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
       Matrix<Double> ptCoordNodes;
       connecth.Resize(1);
       connecth[0] = node;
-      ptgrid_->GetCoordNodesElemMat(connecth,  ptCoordNodes, level);	  
+      ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);	  
 
       if (ptCoordNodes[0][0]<bndoffsetXmin)
 	//val -= val*(ptCoordNodes[0][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
@@ -327,7 +323,7 @@ AcouFlowNoise::AcouFlowNoise(Grid *aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
 	rhs_.SetNumNodes(numPDENodes_);
 	rhs_.SetSolutionType(ACOU_RHSVAL);
 	rhs_.SetNumDofs(1);
-	rhs_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+	rhs_.SetPtrEQNData(eqnData_, ptgrid_);
 	rhs_.Init(0.0);
 	
 	Double *ptRHS;

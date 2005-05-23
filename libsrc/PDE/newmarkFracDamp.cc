@@ -18,7 +18,7 @@ NewmarkFracDamp::NewmarkFracDamp(std::string apdename,
 				 BaseSystem * algebraicsystem,
 				 NodeEQN * ptEQN, Grid * aptgrid,
 				 StdPDE * aptStdPDE,
-				 StdVector<std::string> asubdomainList,
+				 StdVector<RegionIdType> asubdomainList,
 				 StdVector<DampingType> adampingList, 
 				 Integer afracMemory, 
 				 InterpolType ainType, Boolean isaxi)
@@ -171,7 +171,7 @@ void NewmarkFracDamp::UpdateRHS()
 
 	// get elements belonging to actual subdomain	
 	StdVector<Elem*> elemssd;
-	ptgrid_->GetElemSD(elemssd,subdoms_[actSD],level);
+	ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
 	
 	for (Integer el=0; el < elemssd.GetSize(); el++) {
 	  // pointer to element
@@ -179,7 +179,7 @@ void NewmarkFracDamp::UpdateRHS()
 	  BaseForm * bilinear_mass = new MassInt(ptElem, factor, isaxi_);
 	  
 	  connecth=elemssd[el]->connect;
-	  ptgrid_->GetCoordNodesElemMat(connecth, ptCoord, level);
+	  ptgrid_->GetElemNodesCoord(ptCoord,connecth);
 	  
 	  bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
 	  

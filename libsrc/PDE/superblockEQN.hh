@@ -18,9 +18,7 @@ public:
   
   //! Constructor
   SuperBlockEQN(Grid * aptGrid, 
-		BCs * aptBCs,
-		StdVector<std::string>& asubdoms, 
-		Integer actlevel, 
+		StdVector<RegionIdType> & asubdoms, 
 		Integer dofsPerNode);
   
   virtual ~SuperBlockEQN();

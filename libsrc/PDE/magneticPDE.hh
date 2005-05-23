@@ -1,4 +1,3 @@
-
 #ifndef FILE_MAGNETICPDE
 #define FILE_MAGNETICPDE
 
@@ -16,184 +15,206 @@ namespace CoupledField
     This class is derived from class BasePDE. 
   */
 
-class MagPDE : public SinglePDE
-{
-public:
+  class MagPDE : public SinglePDE
+  {
+  public:
 
-  MagPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
-	 FileType *aptFileType, WriteResults *aptOut);
+    MagPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut);
 
-  //! Default Destructor
+    //! Default Destructor
 
-  //! The default destructor is responsible for freeing the Coil objects
-  //! the ReadCoils() method brought into being.
-  ~MagPDE();
-
-
-  //! Initialize NonLinearities
-  virtual void InitNonLin();
-
-  //! read special boundary conditions (coils, magnets)
-  virtual void ReadSpecialBCs();
-
-  //! define all (bilinearform) integrators needed for this pde
-  virtual void DefineIntegrators(const Integer level);
-
-  //! define the SoltionStep-Driver
-  virtual void DefineSolveStep();
-
-   //! return size of solution
-  virtual Integer getSize() const 
-  { return numPDENodes_*dofspernode_;}
+    //! The default destructor is responsible for freeing the Coil objects
+    //! the ReadCoils() method brought into being.
+    ~MagPDE();
 
 
-// ======================================================
-// POSTPROCESSING SECTION
-// ======================================================
+    //! Initialize NonLinearities
+    virtual void InitNonLin();
 
-  //! do PostProcessing step
-  virtual void PostProcess(const Integer level);
+    //! read special boundary conditions (coils, magnets)
+    virtual void ReadSpecialBCs();
 
-  //! write results in file
-  //! \param stepOffset offset for starting (time)step
-  //! \param timeOffset offset for starting time  
-  virtual void WriteResultsInFile(const Integer kstep = 0,
-				  const Double asteptime = 0.0,
-				  Integer stepOffset = 0,
-				  Double timeOffset = 0.0);
+    //! define all (bilinearform) integrators needed for this pde
+    virtual void DefineIntegrators();
+
+    //! define the SoltionStep-Driver
+    virtual void DefineSolveStep();
+
+    //! return size of solution
+    virtual Integer getSize() const 
+    { return numPDENodes_*dofspernode_;}
+
+
+    // ======================================================
+    // POSTPROCESSING SECTION
+    // ======================================================
+
+    //! do PostProcessing step
+    virtual void PostProcess();
+
+    //! write results in file
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time  
+    virtual void WriteResultsInFile(const Integer kstep = 0,
+                                    const Double asteptime = 0.0,
+                                    Integer stepOffset = 0,
+                                    Double timeOffset = 0.0);
+    
+    //! computes the electric energy for each subdomain
+    void CalcEnergy();
+
+
+    //! calculates nodal forces
+    void CalcNodeForce(ElemStoreSol<Double> & force, 
+                       StdVector<Integer> & nodes, 
+                       StdVector<Elem*> & elems,
+                       StdVector<StdVector<ShortInt> > & isBoundaryNode,
+                       StdVector<StdVector<Integer> > &elemNodeToCouplingNode)
+    {Error("CalcNodeForce not implemented",__FILE__,__LINE__);}
+
+
+
+    // ======================================================
+    // COUPLING SECTION
+    // ======================================================
+
+
+    //! initalize PDE coupling
+    virtual void InitCoupling(PDECoupling * Coupling);
   
-  //! computes the electric energy for each subdomain
-  void CalcEnergy();
+    //! calculate coupling terms
+    virtual void CalcOutputCoupling();
+
+    //! returns if PDE can compute the quantity
+    virtual Boolean HasOutput(SolutionType output);
+
+    //! computation of Lorentz force
+    void CalcNodeForceLorentz(Vector<Double> & force, 
+                              StdVector<StdVector<Integer> > & 
+                              elemNodeToCouplingNode,
+                              Integer actCoupling, 
+                              Integer numCouplingNodes);
 
 
-  //! calculates nodal forces
-  void CalcNodeForce(ElemStoreSol<Double> & force, 
-		     StdVector<Integer> & nodes, 
-		     StdVector<Elem*> & elems,
-		     StdVector<StdVector<ShortInt> > & isBoundaryNode,
-		     StdVector<StdVector<Integer> > & elemNodeToCouplingNode)
-  {Error("CalcNodeForce not implemented",__FILE__,__LINE__);}
+  protected:
 
+    //! Query parameter object for information on coils
+    void ReadCoils();
+    
+    //! Query parameter object for information on permanent magnets
+    void ReadMagnets();
 
+    //! Init the time stepping
+    virtual void InitTimeStepping();
 
-// ======================================================
-// COUPLING SECTION
-// ======================================================
-
-
-  //! initalize PDE coupling
-  virtual void InitCoupling(PDECoupling * Coupling);
+    //!
+    void ComputeUI(Vector<Double>& uiSD);
   
-  //! calculate coupling terms
-  virtual void CalcOutputCoupling();
+    void WriteUI2File(Vector<Double>& uiSD);
 
-  //! returns if PDE can compute the quantity
-  virtual Boolean HasOutput(SolutionType output);
+    //! contains first derivative of magnetic vector potential
+    NodeStoreSol<Double> solDeriv1_;
 
-  //! computation of Lorentz force
-  void CalcNodeForceLorentz(Vector<Double> & force, 
-			    StdVector<StdVector<Integer> > & elemNodeToCouplingNode,
-			    Integer actCoupling, Integer numCouplingNodes);
+    //!
+    Vector<Double> RhsLinVal_;
 
-
-protected:
-
-  //! Query parameter object for information on coils
-  void ReadCoils();
-
-  //! Query parameter object for information on permanent magnets
-  void ReadMagnets();
-
-  //! Init the time stepping
-  virtual void InitTimeStepping();
-
-  //!
-  void ComputeUI(Vector<Double>& uiSD);
+    ElemStoreSol<Double> B_;  //!< conatins magnetic field
+    ElemStoreSol<Double> Jeddy_;  //!< conatins eddy currents field
   
-  void WriteUI2File(Vector<Double>& uiSD);
+    // ---- Electric Force variables ---
+    //!  stores Magnetic force of each element
+    ElemStoreSol<Double> Force_;        
 
-  //! contains first derivative of magnetic vector potential
-  NodeStoreSol<Double> solDeriv1_;
+    //! vector of vectors conaining Elements with acting force
+    StdVector<StdVector<Elem*> > F_Interface_; //!<
 
-  //!
-  Vector<Double> RhsLinVal_;
+    //! vector containing flag array for element boundary nodes
+    StdVector<StdVector<StdVector<ShortInt> > > isBoundaryNode_; 
 
-  ElemStoreSol<Double> B_;  //!< conatins magnetic field
-  ElemStoreSol<Double> Jeddy_;  //!< conatins eddy currents field
-  
-  // ---- Electric Force variables ---
-  ElemStoreSol<Double> Force_;        //!< stores Magnetic force of each element
-  StdVector<StdVector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
-  StdVector<StdVector<StdVector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
-  StdVector<StdVector<StdVector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
-  StdVector<StdVector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
+    //! assigns each coupling element node the according Coupling Node number
+    StdVector<StdVector<StdVector<Integer> > > elemNodeToCouplingNode_; 
 
-  // ==========================================================================
-  //   COILS
-  // ==========================================================================
+    //! contains number of surface nodes per element
+    StdVector<StdVector<Integer> > numBoundaryNodes_;               
 
-  //@{ \name Attributes related to coils
+    // =======================================================================
+    //   COILS
+    // =======================================================================
+    
+    //@{ \name Attributes related to coils
+    
+    //! Names of coils resp. their subdomains
+    StdVector<RegionIdType> coilRegionId_;  
+    
+    //! Parameters of the individual coils;
+    StdVector<Coil*> coilDef_;
+    
+    //@}
 
-  //! Names of coils resp. their subdomains
-  StdVector<std::string> coilName_;  
+    // =======================================================================
+    //   PERMANENT MAGNETS
+    // =======================================================================
+    
+    //@{ \name Attributes related to permanent magnets
+    
+    //! Subdomains containing permanent magnets
+    StdVector <RegionIdType> magnetsDomain_;
+    
+    //! x-component of direction of magnetisation for each magnet
+    
+    //! x-component of direction of magnetisation for each magnet
+    //! \todo As suggested by Fred Hofer, the direction of magnetisation of a
+    //! permanent magnet must now be specified in the XML parameter file and
+    //! no longer in the material data file. While magneticPDE already reads
+    //! these data, they are not yet used in the simulation.
+    StdVector<Double> magnetsOriX_;
+    
+    //! y-component of direction of magnetisation for each magnet
+    StdVector<Double> magnetsOriY_;
 
-  //! Parameters of the individual coils;
-  StdVector<Coil*> coilDef_;
+    //! z-component of direction of magnetisation for each magnet
+    StdVector<Double> magnetsOriZ_;
 
-  //@}
+    //@}
 
-  // ==========================================================================
-  //   PERMANENT MAGNETS
-  // ==========================================================================
+    //postprocessing
+    //! contains the subdomains, on which the magnetic field is computed
+    StdVector<RegionIdType> calcBfield_;  
+    
+    //! contains the subdomains, on which the magnetic energy is computed
+    StdVector<RegionIdType> calcEnergy_;  
 
-  //@{ \name Attributes related to permanent magnets
+    //! contains the subdomains, on which the eddy currents are computed
+    StdVector<RegionIdType> calcEddy_;  
 
-  //! Subdomains containing permanent magnets
-  StdVector <std::string> magnetsDomain_;
+    //! contains the name of the nodes, where the force is computed via VWP
+    StdVector<std::string> calcForceVWP_;  
 
-  //! x-component of direction of magnetisation for each magnet
+    //! nodes, for wich the force has to be computed
+    StdVector<Integer> ForceNodes_;           
 
-  //! x-component of direction of magnetisation for each magnet
-  //! \todo As suggested by Fred Hofer, the direction of magnetisation of a
-  //! permanent magnet must now be specified in the XML parameter file and
-  //! no longer in the material data file. While magneticPDE already reads
-  //! these data, they are not yet used in the simulation.
-  StdVector<Double> magnetsOriX_;
+    //! force operator (for coupling as well as postprocessing)
+    MagForceOp* ForceOpVWP_;
 
-  //! y-component of direction of magnetisation for each magnet
-  StdVector<Double> magnetsOriY_;
+    //! file for informational output of coils
+    std::ofstream * UIfile_; 
 
-  //! z-component of direction of magnetisation for each magnet
-  StdVector<Double> magnetsOriZ_;
-
-  //@}
-
-  //postprocessing
-  StdVector<std::string> calcBfield_;  //!< contains the subdomains, on which the magnetic field is computed
-  StdVector<std::string> calcEnergy_;  //!< contains the subdomains, on which the magnetic energy is computed
-  StdVector<std::string> calcEddy_;  //!< contains the subdomains, on which the eddy currents are computed
-  StdVector<std::string> calcForceVWP_;  //!< contains the subdomains, on which the force is computed via VWP
-  StdVector<Integer> ForceNodes_;           //! nodes, for wich the force has to be computed
-
-  //! force operator (for coupling as well as postprocessing)
-  MagForceOp* ForceOpVWP_;
-
-  std::ofstream * UIfile_; //!< file for informational output
-  std::string UIfilename_;      //!< name of file for saving current/voltage values
+    //! name of file for saving current/voltage values
+    std::string UIfilename_;
    
   private:
 
-  //! List of regions with non-linearity
-  StdVector<std::string> nonLinType_;
+    //! List of regions with non-linearity
+    StdVector<std::string> nonLinType_;
 
     //! Obtain information on desired output quantities from parameter file
 
     //! This method is used to query the parameter handling object for the
     //! desired output quantities and translate their literal description into
     //! the internal format by setting the corresponding class attributes.
-    //! The output quantities currently supported by the electrostatics PDE are
-    //! given in the following table. Here 'Keyword' and 'Result Type' refer
-    //! to the XML parameter file, while 'Class Attribute' refers to the
+    //! The output quantities currently supported by the electrostatics PDE 
+    //! are given in the following table. Here 'Keyword' and 'Result Type' 
+    //! refer to the XML parameter file, while 'Class Attribute' refers to the
     //! internal attribute of the MagPDE class that is set, if the keyword
     //! is specified.\n\n
     //! <table border="1">
@@ -241,8 +262,8 @@ protected:
     //!   </tr>
     //! </table>
     void ReadStoreResults();
-
-};
+    
+  };
 
 } // end of namespace
 #endif

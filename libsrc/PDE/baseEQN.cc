@@ -10,17 +10,13 @@ namespace CoupledField {
   //   Constructor
   // ***************
   BaseEQN::BaseEQN( Grid * aptGrid, 
-		    BCs * aptBCs,
-		    StdVector<std::string>& asubdoms, 
-		    Integer actlevel, 
+		    StdVector<RegionIdType>& asubdoms, 
 		    Integer dofsPerNode ) {
 
     ENTER_FCN( "BaseEQN::BaseEQN" );
 
     ptGrid_   = aptGrid;
-    ptBCs_    = aptBCs;
     subdoms_  = asubdoms;
-    actlevel_ = actlevel;
     dofsPerNode_ = dofsPerNode;
 
     isInitialized_ = FALSE;
@@ -45,17 +41,15 @@ namespace CoupledField {
 
     ENTER_FCN( "BaseEQN::SetHomoDirichletBCs" );
 
-    std::list<Integer> tempNodeList;
+    StdVector<Integer> tempNodeList;
     homoDirichletNodes_.Clear();
 
     for ( Integer i = 0; i < nodeLevel.GetSize(); i++ ) {
       
-      tempNodeList = ptBCs_->GetNodesLevel(nodeLevel[i]);
+      ptGrid_->GetNodesByName( tempNodeList, nodeLevel[i]);
       
-      std::list<Integer>::iterator it;
-      
-      for ( it = tempNodeList.begin(); it != tempNodeList.end(); it++ ) {
-	homoDirichletNodes_.Push_back(*it);
+      for ( Integer iNode = 0; iNode < tempNodeList.GetSize(); iNode++ ) {
+	homoDirichletNodes_.Push_back(tempNodeList[iNode]);
 	if (dofsPerNode_ > 1) {
 	  homoDirichletDofs_.Push_back(GetBCDof(dofs[i]));
 	}
@@ -75,16 +69,15 @@ namespace CoupledField {
     // Only do this, if we have to sort the equation numbers
     // with the inhom. Dirichlet part on the top
     if ( sortEQNs_ == TRUE ) {
-      std::list<Integer> tempNodeList;
+      StdVector<Integer> tempNodeList;
       inhomDirichletNodes_.Clear();
 
       for ( Integer i = 0; i < nodeLevel.GetSize(); i++ ) {
       
-	tempNodeList = ptBCs_->GetNodesLevel(nodeLevel[i]);
-	std::list<Integer>::iterator it;
+	 ptGrid_->GetNodesByName( tempNodeList, nodeLevel[i] );
       
-	for ( it = tempNodeList.begin(); it != tempNodeList.end(); it++ ) {
-	  inhomDirichletNodes_.Push_back(*it);
+	for ( Integer iNode =0; iNode < tempNodeList.GetSize(); iNode++ ) {
+	  inhomDirichletNodes_.Push_back(tempNodeList[iNode]);
 	  if (dofsPerNode_ > 1) {
 	    inhomDirichletDofs_.Push_back(GetBCDof(dofs[i]));
 	  }

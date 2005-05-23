@@ -24,14 +24,10 @@ namespace CoupledField
     /*!
       \param 
       \param aGrid pointer to grid
-      \param aBCs pointer to Boundary condition object
-      \param aGrid pointer to class Grid
-      \param aInFile pointer to class FileType. input data.
       \param aOutFile  pointer to class WriteResults. output data.
       \param aTimeFunc pointer to class TimeFunc
     */
-    MpcciPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
-	    FileType *aptFileType, WriteResults *aptOut);
+    MpcciPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut);
 
     //! Deconstructor
     virtual ~MpcciPDE(){};
@@ -43,7 +39,7 @@ namespace CoupledField
     virtual void PreparePDE4Computation();
 
     //! define all (bilinearform) integrators needed for this pde
-    virtual void DefineIntegrators(const Integer level);
+    virtual void DefineIntegrators();
 
     //! define the SoltionStep-Driver
     virtual void DefineSolveStep();
@@ -65,7 +61,7 @@ namespace CoupledField
     // ======================================================
 
     //! do PostProcessing step
-    virtual void PostProcess(const Integer level);
+    virtual void PostProcess();
 
     virtual void WriteGeneralPDEdefines()
     { ENTER_FCN( "MpcciPDE::WriteGeneralPDEdefines");};

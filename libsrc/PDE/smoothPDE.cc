@@ -15,9 +15,8 @@
 namespace CoupledField
 {
 
-  SmoothPDE::SmoothPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
-		       FileType *aptFileType, WriteResults *aptOut )
-    :SinglePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc)
+  SmoothPDE::SmoothPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut )
+    :SinglePDE(aptgrid, aptOut, aptTimeFunc)
   {
     ENTER_FCN( "SmoothPDE::SmoothPDE" );
   
@@ -70,7 +69,7 @@ namespace CoupledField
   }
 
 
-  void SmoothPDE::DefineIntegrators(const Integer level)
+  void SmoothPDE::DefineIntegrators()
   {
     ENTER_FCN( "SmoothPDE::DefineIntegerators" );
 

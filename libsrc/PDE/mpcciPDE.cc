@@ -18,9 +18,8 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  MpcciPDE::MpcciPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
-		   FileType *aptFileType, WriteResults *aptOut)
-    :SinglePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc) 
+  MpcciPDE::MpcciPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut)
+    :SinglePDE(aptgrid, aptOut, aptTimeFunc) 
 {
 
     ENTER_FCN( "MpcciPDE::MpcciPDE" );
@@ -44,18 +43,20 @@ void MpcciPDE::Init(Integer bcSequenceIndex, std::string  bcSequenceTag)
 
   bcSequenceIndex_ = bcSequenceIndex;
   bcSequenceTag_ = bcSequenceTag;
+  StdVector<std::string> regionNames;
 
   // =====================================================================
   // get regions/subdomains for PDE
   // =====================================================================
-  params->GetList( "name", subdoms_, pdename_, "region" );
+  params->GetList( "name", regionNames, pdename_, "region" );
+  ptgrid_->RegionNameToId( subdoms_, regionNames );
   Info->PrintF( pdename_, " %s lives on regions:\n", pdename_.c_str());
-  for ( Integer k = 0; k < subdoms_.GetSize(); k++ ) 
+  for ( Integer k = 0; k < regionNames.GetSize(); k++ ) 
     {
-      Info->PrintF( pdename_, " %s\n", subdoms_[k].c_str() );
+      Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
     }
  
-  eqnData_ = new ScalarNodeEQN( ptgrid_, ptBCs_, subdoms_, actlevel_, dofspernode_ );
+  eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_ );
   eqnData_->CalcMpcciMapping();
   numPDENodes_ = eqnData_->GetNumLocalNodes();
   numElems_ = eqnData_->GetNumLocalElems();
@@ -82,7 +83,7 @@ void MpcciPDE::PreparePDE4Computation()
 //     }
 //   else
 //     {
-//       ptgrid_->GetElemSD(elemssd,subdoms_[0],actlevel_);
+//       ptgrid_->GetElemSD(elemssd,subdoms_[0]);
 //       ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
 
 //       MpCCInodes_= mapSD_.GetSize();
@@ -95,7 +96,7 @@ void MpcciPDE::PreparePDE4Computation()
 }
 
 
-void MpcciPDE::DefineIntegrators(const Integer level)
+void MpcciPDE::DefineIntegrators()
 {
   ENTER_FCN( "MpcciPDE::DefineIntegerators" );
 }
@@ -121,7 +122,7 @@ void MpcciPDE::WriteResultsInFile(const Integer kstep,
   ENTER_FCN( "MpcciPDE::WriteResultsInFile" );
 }
 
-void MpcciPDE::PostProcess(const Integer level)
+void MpcciPDE::PostProcess()
 {
   ENTER_FCN( "MpcciPDE::PostProcess" );
 }

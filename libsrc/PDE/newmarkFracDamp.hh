@@ -30,7 +30,7 @@ public:
   NewmarkFracDamp (std::string apdename, const PdeIdType apdeId,
 		   BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
 		   Grid * aptgrid, StdPDE * aptStdPDE, 
-		   StdVector<std::string> asubdomainList,
+		   StdVector<RegionIdType> asubdomainList,
 		   StdVector<DampingType> adampingList,
 		   Integer afracMemory, InterpolType ainType, Boolean isaxi);
   
@@ -87,7 +87,7 @@ private:
 
   //DampingType dampType_; //!< describes used damping model for whole domain
   StdVector<DampingType> dampingList_; //!< damping type for all regions
-  StdVector<std::string> subdoms_;     //!< all names of subdomains
+  StdVector<RegionIdType> subdoms_;     //!< all names of subdomains
 
   // For fractional damping model
   std::vector<Double> coeff_; //!< weights of BDF formula
