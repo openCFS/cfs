@@ -1,8 +1,9 @@
 #ifndef FILE_TIMEFUNC_2001
 #define FILE_TIMEFUNC_2001
 
-#include "filetype.hh"
 #include <list>
+#include "General/environment.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField
 {
@@ -16,7 +17,7 @@ class TimeFunc
   {
 public:
     //! Constructor
-    TimeFunc(FileType *);
+    TimeFunc();
 
     //! Deconstructor
     ~TimeFunc();
@@ -38,9 +39,6 @@ public:
     }
 
 private:
-
-    //! pointer to input file. needed only for <em>datfile</em>
-    FileType * ptFileType;
 
     //! read time functions from different dat-file
     void ReadTimeFuncs();
