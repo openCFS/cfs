@@ -37,6 +37,12 @@ namespace CoupledField
 #define FALSE 0
 #define TRUE 1
 
+
+  // Type definitions for regions
+  typedef int RegionIdType;
+#define NO_REGION_ID 0
+#define ALL_REGIONS -1
+
 #define myEndl std::endl
 #define myCout std::cout
 
