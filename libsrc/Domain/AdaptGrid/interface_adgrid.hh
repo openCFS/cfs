@@ -6,7 +6,6 @@
 
 #include <Domain/GridCFS/grid_cfs.hh>
 
-#include <Domain/bcs.hh>
 
 // from Adapt Grid
 #ifdef ADAPTGRID
@@ -110,8 +109,6 @@ public:
   { ptgridcfs_->CalcNumberOfNodesInPatch(patch,map);}
 
 private:
-
-  BCs * ptBCs;
 
   //! 
   FileType * ptFileType;

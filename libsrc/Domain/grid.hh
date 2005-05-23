@@ -1,273 +1,375 @@
 #ifndef FILE_SCFE_GRID_2001
 #define FILE_SCFE_GRID_2001
 
-#include <DataInOut/filetype.hh>
-#include "elem.hh"
+#include <list>
+
+#include "Domain/elem.hh"
+#include "Domain/surfElem.hh"
 
 namespace CoupledField
 {
 
-//! Class for working with grid
-class Grid
-{
-public:
-  //! Constructor 
-  /*!
-    \param aptFileType pointer to FileType for reading initial grid
-  */
-  Grid(FileType * aptFileType); 
+  // Forward class declarations
+  class FileType;
 
-  //! Deconstructor
-  virtual ~Grid();
+  //! Class representing geometrical entities (elements, nodes, ...) of a
+  //! FE simulation.
 
-  //! reads the grid from input file
-  virtual void Read()=0;
-
-   //! Get connection of element
-  /*!
-    \param connect (output) contains global node numbers
-    \param iElem (input) element level
-    \param level (input) index for multilevel hierarchy
-  */
-   virtual void GetConnection(StdVector<Integer> & connect, const Integer iElem, const Integer level)=0;
-
-   //! Get coordinates of node with global number inode
-  /*!
-    \param inode (input) node number
-    \param numlevel (input) index for multilevel hierarchy
-    \param rfPoint (output) coordinates of point 2D
-  */
-   virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point<2> & rfPoint)
-  { Error(" Not implemented",__FILE__,__LINE__);}
-
-  //! gets coordinate of specified node
-  /*!
-    \param inode (input) node number
-    \param numlevel (input) index for multilevel hierarchy
-    \param rfPoint (output) coordinates of point 3D
-  */
-  virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point<3> & rfPoint)
-  { Error(" Not implemented",__FILE__,__LINE__);}
-
-  //! Return maximum number of nodes
-  /*!
-    \param numlevel (input) index for multilevel hierarchy
-  */
-  virtual Integer GetMaxnumnodes(const Integer numlevel)=0;
-  
-  //! Return maximum number of elements 
-  /*!
-    \param numlevel (input) index for multilevel hierarchy
-  */
-  virtual Integer GetMaxnumElem(const Integer numlevel)=0;
-
-  //! Return maximum number of elements, which belong to subdoms
-  /*!
-    \param numlevel (input) index for multilevel hierarchy
-    \param subdoms (input) contains the names of the subdomains
-  */
-  virtual Integer GetMaxnumElem(const Integer numlevel, const StdVector<std::string> & subdoms)
-  { 
-    Error(" Not implemented",__FILE__,__LINE__);
-    return Dint;
-  }  
-
-  //! Get last level of grid
-  virtual Integer GetLastLevel() const { return lastlevel_;} 
-
-  //! return dimension of mesh
-  virtual Integer GetDim()=0;
-  
- //! prolongation of solution
-  /*!
-    \param sol_coarse (input) solution on coarse grid
-    \param sol (output) contains the solution on the new grid (fine grid)
-    \param alevel (input) index in multilevel hierarchy
-  */
-  virtual void ProlongSol(const Vector<Double> sol_coarse, Vector<Double> &sol, const Integer alevel)
-  { Error(" Not implemented",__FILE__,__LINE__);}
-
-  //! update nodes for boundary conditions
-  /*!
-    \param bcs list of boundary nodes
-  */
-  virtual void UpdateBCs(std::list<Integer> * bcs)
-  { Error(" Not implemented",__FILE__,__LINE__);}
-
-  //! return vector of element-neighbors for the element with number noOfElem
-  /*!
-    \param noOfElem (input) element level
-    \param color (input) subdomain
-  */ 
-  virtual  StdVector<Elem*> *GetNeighboursOfElem(const Integer noOfElem, std::string color)
-  { 
-    Error(" Not implemented",__FILE__,__LINE__);
-    return Evec;
-  }
-
-  //! return vector of element-neighbors for the node with number noOfNode
-  /*!
-    \param noOfNode (input) global number of node
-    \param neighbours (output) list with neighbors
-    \param subdomains (input) list of subdomains, on which neighbors are searched
-  */
-  virtual void GetNeighboursOfNode(const Integer noOfNode,
-				   StdVector<Elem*> * neighbours)
-  { Error(" Not implemented",__FILE__,__LINE__);}
-
-  //! Do refinement of elements, which we mark through function SetRefinementFlag
-  virtual void Refine(const Integer numLoops = 1)
-  { Error(" This fnc is valid only for adaptgrid. Change your config-file",__FILE__,__LINE__);}
-
-  //! Do uniform refinement of elements, which we mark through function SetRefinementFlag
-  virtual void RefineUniform()
-  { Error(" Not implemented",__FILE__,__LINE__);}
-
-  //! restore initial coarse mesh
-//  virtual void ResetToCoarseGrid()
-//  { Error(" Not implemented",__FILE__,__LINE__);}
-
+  //! This class represents an abstract interface to the geometrical entities 
+  //! (elements, nodes, ...) in a FE simulation.
+  //! It allows access to elements, nodes and coordinates.
+  //! The underlying structure is hidden by the according interface classes.
   //!
-  /*!
-    \param els (output)
-    \param sd (input) contains the name of the subdomain
-    \param level (input) index for multilevel hierarchy
-  */
-  virtual void GetElemSD(StdVector<Elem*> & els, const std::string sd, const Integer level)
-   { Error(" Not implemented",__FILE__,__LINE__);}
+  //! \note Some General Remarks:
+  //! - Node and element numbers are always counted one-based
+  //! - The Type \c regionIdType is guraranteed to be of a countable type,
+  //! e.g. \c Integer or \c short \c int. Therefore it is always zero-based
+  //! and can be directly used as a index for vectors / arrays.
+  //! - The region identifiers are used for surface AND volume elements
 
-  //!
-  virtual StdVector<std::string>* GetAllSDs()
-  { 
-    Error("Not implemented",__FILE__,__LINE__);
-    return Dstr;
-  }
+  class Grid {
 
-  //! gets the coordinates of the element nodes
-  /*!
-    \param connect (input) global node numbers of element
-    \param ptCoord (output) coordinates of the element nodes
-    \param level (input) index for multilevel hierarchy
-  */
-  virtual void GetCoordNodesElem(const StdVector<Integer> connect, 
-				 Point<2> * ptCoord, 
-				 const Integer level)
-  { Error(" Not implemented",__FILE__,__LINE__);}
+  public:
 
-  //! gets a matrix of the coordinates of the element nodes
-  /*!
-    \param connect (input) global node numbers of element
-    \param ptCoord (output) coordinates of the element nodes (spaceDim \f$\times\f$ nrNodes);
-    \param level (input) index for multilevel hierarchy
-  */
-  virtual void GetCoordNodesElemMat(const StdVector<Integer> connect, 
-				    Matrix<Double>& coordMat, 
-				    const Integer level)
-  { Error(" Not implemented",__FILE__,__LINE__);}
-
-  //! gets the coordinates of the element nodes
-  /*!
-    \param connect (input) global node numbers of element
-    \param ptCoord (output) coordinates of the element nodes
-    \param level (input) index for multilevel hierarchy
-  */
-  virtual void GetCoordNodesElem(const StdVector<Integer> connect, Point<3> * ptCoord, const Integer level)
-  { Error(" Not implemented",__FILE__,__LINE__);}
-
-  //! in this function we calculate area of element
-  /*!
-    \param elem (input) element object
-  */
-  virtual Double CalcAreaElem(const Elem* elem)
-  { 
-    Error(" Not implemented",__FILE__,__LINE__);
-    return Ddummy;
-  }
-
-  //! Calculates the surface normal pointing OUT OF the neighbouring
-  //! volume element
-  //! \param n (output) Normal vector
-  //! \param surfElem (input) Surface element
-  //! \param surfElem (input) Surface element
-  void CalcSurfNormalOutOfVol(Vector<Double> & n,
-			      const Elem & surfElem,
-			      const Elem & volElem);
+    // =======================================================================
+    // CONSTRUCTION AND INTIIALIZATION
+    // =======================================================================
+    //@{ \name Constructor / Initialization
   
-  //! form list with interface-elements neighbours
-  //! NOTE: an element is considered as neighbour, if both have 
-  //! AT LEAST one common node
-  /*!
-    \param interfaceNodes (input) Nodes defining the interface between two domains
-    \param subdoms (input) Subdomain adjacent to interface
-    \param neighbours (output) Elements neighbouring (= have min. 1 node in common) to interface
-    \param level (input) Refinement level
-  */
-  virtual void GetInterfaceNeighbours(StdVector<Integer> & interfaceNodes, 
-				      StdVector<std::string> & subdoms, 
-				      StdVector<Elem*> & neighbours,
-				      Integer level) = 0;
+    //! Constructor 
+
+    //! Standard Constructor 
+    //! \param aptFileType pointer to FileType for reading initial grid
+    Grid(FileType * aptFileType); 
   
+    //! Destructor
+    virtual ~Grid();
 
-  //! Find volume elems next to surface elems
+    //! Reads the grid from input file
+    virtual void Read()=0;
 
-  //! Get to a list of surface elements the neighbouring volume elements
-  //! lying in one of the given regions.
-  /*!
-    \param surfElems (input) Vector of surface elems
-    \param neighRegions (input) Region names, where the volume elems must lie
-    \param volElems (output) Vector of surface elems.
-    \param level (input) Refinement level
-  */
-  //!\note If not all surface elems were assigned to EXACT ONE volume
-  //! element, an error is thrown. If the search was successfull, the
-  //! i-the entry in the surfElems-vector corresponds to the i-th
-  //! entry in the volElems-vector
-  virtual void GetVolNeighboursForSurf(const StdVector<Elem*> & surfElems,
-				       const StdVector<std::string> & neighRegions,
-				       StdVector<Elem*> & volElems,
-				       const Integer level) = 0;
+    //@}
+
+    // =======================================================================
+    // GENERAL GRID INFORMATION
+    // =======================================================================
+    //@{ \name General Grid Information
+
+    //! Return dimension of mesh
+
+    //! Returns the geometrical dimension of the mesh. Currently only
+    //! two- and three-dimensional meshes are supported.
+    virtual Integer GetDim() = 0;  
+
+    //! Return maximum number of nodes
+  
+    //! Returns the maximum node number in the finite element grid.
+    virtual Integer GetNumNodes() = 0;
+
+    //! Returns the number of nodes contained in given region
+    virtual Integer GetNumNodes( const StdVector<RegionIdType> 
+				 & regions ) = 0;
+
+    //! Returns the number of nodes in the given nodelist
+    virtual Integer GetNumNodes( const std::string & nodesName ) = 0;
+
+    //! Return maximum number of elements 
+  
+    //! Returns the total number of volume elements in the finite element grid
+    virtual Integer GetNumVolElems() = 0;
+  
+    //! Returns the total number of surface elements in the grid 
+    virtual Integer GetNumSurfElems() = 0;
+
+    //! Returns number of element contained in one region
+
+    //! Returns the number of element, which belong to a list of given
+    //! regions.
+    //! \param regions (in) contains the regionIds of 
+    virtual Integer GetNumElems( const StdVector<RegionIdType> 
+				 & regions ) = 0;
+  
+    //! Get vector with all volume region identifiers
+
+    //! Return a vector with names of all volume region identifiers in the
+    //! current mesh.
+    //! \param volRegions (out) vector with volume region identifiers
+    virtual void GetVolRegionIds( StdVector<RegionIdType> & volRegions ) = 0;
+  
+    //! Get vector with all surface region identifiers
+
+    //! Return a vector with names of all surface region identifiers in the
+    //! current mesh.
+    //! \param surfRegions (out) vector with volume region identifiers
+    virtual void GetSurfRegionIds( StdVector<RegionIdType> 
+				   & surfRegions ) = 0;
+
+    //@}
+
+
+    // =======================================================================
+    // NODE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Node Access Functions
+
+    //! Get list of nodes by their name
+
+    //! Returns a list of nodes, which are defined by a name.
+    //! These names can specify e.g. boundary nodes or nodes for
+    //! saving results.
+    //! \param nodeList (out) list with node numbers
+    //! \param name (in) name of nodes
+    virtual void GetNodesByName( StdVector<Integer> & nodeList,
+				 const std::string & name ) = 0;
+
+    //! Get list of nodes contained in a region
+
+    //! Returns a list of all nodes, which are contained in a 
+    //! volume- or surface-region.
+    //! \param nodeList (out) list with node numbers
+    //! \param regionId (in) region identifier
+    virtual void GetNodesByRegion( StdVector<Integer> & nodeList,
+				   const RegionIdType regionId ) = 0;
     
+    //! Get coordinates of node with global number inode
+    //! \param rfPoint (out) coordinates of point 2D
+    //! \param inode (in) node number
+    virtual void GetNodeCoordinate( Point<2> & rfPoint,
+				    const Integer inode )
+    { Error( "Not implemented", __FILE__, __LINE__ ); }  
+
+    //! Get coordinates of node with global number inode
+    //! \param rfPoint (out) coordinates of point 3D
+    //! \param inode (in) node number
+    virtual void GetNodeCoordinate( Point<3> & rfPoint,
+				    const Integer inode )
+    { Error( "Not implemented", __FILE__, __LINE__ ); }  
   
-   //! calculate number of nodes in patch of elements
-  /*!
-    \param patch (input)
-    \param map (output)
-  */
-  virtual void CalcNumberOfNodesInPatch(const StdVector<Elem*> & patch, 
-					StdVector<Integer> & map) = 0;
+    //@}
 
+    // =======================================================================
+    // ELEMENT ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Element Access Functions
 
-  /// resets the integration type of all known elements
-  void SetIntTypeAllElems(IntegrationType aIntType);
+    //! Get list of volume elements
+
+    //! Returns all elements for a given volume region.
+    //! \param elems (out) vector with elements for given regionId
+    //! \param regionId (in) region identifier
+    virtual void GetVolElems( StdVector<Elem*> & elems, 
+			      const RegionIdType regionId ) = 0;
+
+    //! Get list of surface elements
   
-  StdVector<std::string>& GetListSubDomains()
-  { return listSD_;}
+    //! Returns all elements for a given surface region 
+    //! \param surfElems (out) vector with elements for given regionId
+    //! \param regionId (in) region identifier
+    virtual void GetSurfElems( StdVector<SurfElem*> & surfElems, 
+			       const RegionIdType regionId ) = 0;
+    
+    //! Get list of elements by their name
+    virtual void GetElemsByName( StdVector<Elem*> & elems,
+				 const std::string & elemsName ) = 0;
+
+    //! Get node numbers of given element
+  
+    //! Returns the node numbers of a  given element.
+    //! \param connect (out) contains global node numbers
+    //! \param iElem (in) element number
+    virtual void GetElemNodes( StdVector<Integer> & connect, 
+			       const Integer iElem ) = 0;
+
+
+    //! Get coordinates of element nodes
+
+    //! Returns the coordinates of all nodes of one element.
+    //! \param coordMat (out) coordinates of the element nodes 
+    //!                         (spaceDim \f$\times\f$ nrNodes);
+    //! \param connect (in) global node numbers of element
+    virtual void GetElemNodesCoord( Matrix<Double> & coordMat,  
+				    const StdVector<Integer> & connect ) = 0;
+  
+    //! Get elements associated with given nodes
+
+    //! Returns a list of elements, which have one or more of the given
+    //! common. The elements are taken out of a given list of regions.
+    //! \param elemList (out) elements which have one or more nodes 
+    //!                          of nodeList
+    //! \param nodeList (in) list of nodes for which neighbouring elements
+    //!                      are needed
+    //! \param regionIds (in) identifiers for the regions, where the 
+    //!                       neihgbouring elements are searched in
+    virtual void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
+				      const StdVector<Integer> & nodeList,
+				      const StdVector<RegionIdType> 
+				      & regionIds ) = 0;
+
+    //! Get volume elements lying next to given surface elements
+  
+    //! Returns for a given list of surface elements those (volume) elements, 
+    //! which are neighbouring / have a face in common and are within a given 
+    //! listof regions. This can be used to determine interfaces.
+    //! \note A surface element is considered to be a neighbour of a volume
+    //! element only, if all nodes of the surface element are common with 
+    //! a volume element
+    //! \param neighbours (out) vector of neighbouring elements
+    //! \param surfElems (in) vector of surface elements
+    //! \param neighRegions (in) region ids, where the volume elems must lie
+    //! \note If not each surface element was assigned to EXACTLY ONE volume
+    //! element, an error is thrown. If the search was successfull, the
+    //! i-th entry in the surfElems-vector corresponds to the i-th
+    //! entry in the volElems-vector
+    virtual void GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
+					const StdVector<Elem*> & surfElems,
+					const StdVector<RegionIdType> 
+					&neighRegions ) = 0;
+    
+    //@}
+
+    // =======================================================================
+    // GEOMETRY CALCULATION
+    // =======================================================================
+    //@{ \name Geometry Calculation
+
+    //! Calculates area of a element
+
+    //! Calculates the are of an element
+    //! \param elem (in) element object
+    virtual Double CalcElemArea( const Elem* elem ) = 0;
+
+    //! Returns surface element normal without defined orientation
+
+    //! This method calculates the normal of an surface element. The direction
+    //! is unspecified and dependend on the order or nodes of the element.
+    //! However, each surface element stores a flag \a normalSign, which 
+    //! indicates the direction of the resulting normal w.r.t. its first
+    //! volume element pointer.
+    //! \param n (out) vector containing surface normal
+    //! \param surfElem (in) reference to surface element
+    virtual void CalcSurfNormal( Vector<Double> & n, 
+                                 const Elem & surfElem ) = 0;
+
+    //! Returns surface element normal with defined orientation
+
+    //! Calculates the surface normal pointing OUT OF the neighbouring
+    //! volume element
+    //! \param n (out) normal vector
+    //! \param surfElem (in) surface element
+    //! \param volElem (in) volume element
+    virtual void CalcSurfNormalOutOfVol( Vector<Double> & n,
+                                         const Elem & surfElem,
+                                         const Elem & volElem ) = 0;
+    //@}
+
+
+    // =======================================================================
+    // ADAPTIVITY SECTION
+    // =======================================================================
+    //@{ \name Mesh Adaptivity
+
+    //! Prolongation of solution
+    //! \param sol_coarse (in) solution on coarse grid
+    //! \param sol (out) contains the solution on the new grid (fine grid)
+    //! \param alevel (in) index in multilevel hierarchy
+    virtual void ProlongSol( const Vector<Double> sol_coarse, 
+			     Vector<Double> & sol,
+			     const Integer alevel )
+    { Error( "Not implemented", __FILE__, __LINE__); }
+
+    //! Do refinement of elements, which we mark through function 
+    //! SetRefinementFlag
+    virtual void Refine(const Integer numLoops = 1)
+    { Error( "This fnc is valid only for adaptgrid. Change your config-file",
+	     __FILE__ ,__LINE__); }
+
+    //! Do uniform refinement of elements, which we mark through function 
+    //! 'SetRefinementFlag'
+    virtual void RefineUniform()
+    { Error( "Not implemented", __FILE__, __LINE__); }
+
+    //! Update nodes for boundary conditions
+    //! \param bcs list of boundary nodes
+    virtual void UpdateBCs(std::list<Integer> * bcs)
+    { Error( "Not implemented", __FILE__, __LINE__); }
+  
+    //! Return vector of element-neighbors for the element with number noOfElem
+    //! \param noOfElem (in) element level
+    //! \param color (in) subdomain
+    virtual  StdVector<Elem*> *GetNeighboursOfElem(const Integer noOfElem, 
+						   std::string color)
+    { 
+      Error(" Not implemented",__FILE__,__LINE__);
+      StdVector<Elem*> *dummy;
+      return dummy;
+    }
+  
+    //! Return vector of element-neighbors for the node with number noOfNode
+    //! \param noOfNode (in) global number of node
+    //! \param neighbours (out) list with neighbors
+    virtual void GetNeighboursOfNode(const Integer noOfNode,
+				     StdVector<Elem*> * neighbours)
+    { Error(" Not implemented",__FILE__,__LINE__);}
+    //@}
+
+
+    // =======================================================================
+    // MISCELLANEOUS
+    // =======================================================================
+    //@{ \name Miscellaneous  
+ 
+
+    //! Returns for a given region identifier the associated name
+    std::string RegionIdToName( const RegionIdType regionId );
+
+    //! Returns for a given region name the associated identifier
+    RegionIdType RegionNameToId( const std::string & regionName );
+
+    //! Returns for a list of region identifiers the associated names
+    void RegionIdToName( StdVector<std::string> & regionNames,
+			 const StdVector<RegionIdType> & regionId );
+  
+    //! Returns for a list of region names  the associated identifiers
+    void RegionNameToId( StdVector<RegionIdType> & regionIds,
+			 const StdVector<std::string> 
+			 & regionName );
+  
+    //! Returns node numbers of a list of Elements
+
+    //! This method returns the unique node numbers of
+    //! a list of given elements. Ther are no duplicate entries.
+    //! \param nodeList (out) list of unique node numbers in elemList
+    //! \param elemList (in) list of elements
+    virtual void GetNodesOfElemList( StdVector<Integer> & nodeList,
+				     const StdVector<Elem*> & elemList ) = 0;
+  
+    //! Resets the integration type of all known elements
+    //! \deprecated Does anyone need this function?
+    void SetIntTypeAllElems( IntegrationType aIntType );
+
+    //@}
   
   
-protected:
+  protected:
 
-  FileType * ptFileType;   //!< pointer to input file
-  Integer lastlevel_;      //!< last level in multilevel hierarchy
-  StdVector<std::string> listSD_; //!< list of names of subdomains
+    //! Get vector containing all region names
 
-  // dummies just for sun compiler
-  Integer Dint;
-  Double Ddummy;
-  StdVector<Elem*> *Evec;
-  StdVector<std::string>* Dstr;
+    //! Get a vecor which contains all region nodes. The order is in that way,
+    //! that one can access directly the elements of the vector by using a
+    //! RegionId and get the according entry of the vector.
+    virtual void GetAllRegionNames( StdVector<std::string> 
+				    & regionNames ) = 0;
 
-  //! Auxiliary function: procedure for forming list with element-neighbors for nodes of patch of element
-  /*!
-    \param elems (input)
-    \param nodeNeighbors (output)
-    \param map (input)
-  */
-  virtual void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, 
-					     StdVector<StdVector<Elem*> > &nodeNeighbors, 
-					     StdVector<Integer> & map) = 0;
-private:
-  ///
-};
+    //! Pointer to mesh input file
+    FileType * ptFileType; 
+  
+    //! List of region identifiers
+    StdVector<std::string> regionNames_;
+  
+
+  private:
+    ///
+  };
 
 } // end of namespace
 #endif // FILE_GRID

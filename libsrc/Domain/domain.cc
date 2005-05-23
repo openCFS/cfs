@@ -2,7 +2,6 @@
 
 #include "General/environment.hh"
 #include "Domain/grid.hh"
-#include "Domain/bcs.hh"
 #include "Domain/GridCFS/interface_gridcfs.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
@@ -45,7 +44,6 @@ namespace CoupledField {
   
 
     // initialize data
-    numlevel_ = 0;
     numSinglePde_ = 0;
     numDirectCoupledPde_ = 0;
     numIterCoupledStdPde_;
@@ -60,7 +58,7 @@ namespace CoupledField {
     std::string libmesh;
     params->Get( "meshLibrary", libmesh, "input" );
 
-    Integer dim=InFile_->ReadDim();
+    Integer dim=InFile_->GetDim();
 
     std::string probGeo;
 
@@ -117,12 +115,6 @@ namespace CoupledField {
     Info->FinishProgress();
     
  
-    // allocate an object with an information about boundary condition
-    ptBCs_=new BCs(InFile_);
-
-    //read restraints information
-    ptBCs_->ReadBCs();
-
   }
 
 
@@ -133,7 +125,6 @@ namespace CoupledField {
     ENTER_FCN( "Domain::~Domain" );
 
     delete ptgrid_;
-    delete ptBCs_;
     delete ptIterCoupledPde_;
 
     // When the StdVector ptpde_ is destroyed, only the pointers to the PDEs,
@@ -293,7 +284,7 @@ namespace CoupledField {
     // Initialize coupledPDE
     if (ptIterCoupledPde_ != NULL) {
       Info->StartProgress("Initializing iterative coupling");
-      ptIterCoupledPde_->InitCoupling(numlevel_);
+      ptIterCoupledPde_->InitCoupling( );
       Info->FinishProgress();
     }
 
@@ -319,56 +310,56 @@ namespace CoupledField {
 
 
     // Read dimension from mesh file and perform a consistency check
-    Integer dim = InFile_->ReadDim();
+    Integer dim = InFile_->GetDim();
 
     for (Integer i=0;i< pdeNames.GetSize();i++) {
       Info->StartProgress("Creating PDE '" + pdeNames[i] + "'");
 
       if (pdeNames[i] == "electrostatic") 
-	ptSinglePde_[i]=new ElecPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	ptSinglePde_[i]=new ElecPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
       else if (pdeNames[i] == "mechanic")
-	ptSinglePde_[i]=new MechPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	ptSinglePde_[i]=new MechPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
       else if (pdeNames[i] == "acoustic")
 	{
 	  StdVector<std::string> acouSubType;
 	  params->GetList( "subType", acouSubType,"pdeList", "acoustic");
 	  if (acouSubType.GetSize())
-	    ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	    ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
 	  else
-	    ptSinglePde_[i]=new AcousticPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	    ptSinglePde_[i]=new AcousticPDE(ptgrid_,ptTimeFunc_,OutFile_);
 	}
       
 
       else if (pdeNames[i] == "smooth")
-	ptSinglePde_[i]=new SmoothPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	ptSinglePde_[i]=new SmoothPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
       else if (pdeNames[i] == "magnetic") 
 	{
 	  if (dim == 2)
-	    ptSinglePde_[i]=new MagPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	    ptSinglePde_[i]=new MagPDE(ptgrid_,ptTimeFunc_,OutFile_);
 	  else
 	    Error( "Magnetic field calculation currently only possible in 2D!",
 		   __FILE__, __LINE__);
 	}
 
       else if (pdeNames[i] == "piezo")
-	ptSinglePde_[i]=new PiezoPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	ptSinglePde_[i]=new PiezoPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
       else if (pdeNames[i] == "mpcci")
-	ptSinglePde_[i]=new MpcciPDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+	ptSinglePde_[i]=new MpcciPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
 //       else if (pdeNames[i] == "acouflownoise")
-//       	ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_);
+//       	ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
 
       //      else if (pdeNames[i] == "smoothlaplace") 
-      //	ptSinglePde_[i]=new SmoothLaPlacePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
+      //	ptSinglePde_[i]=new SmoothLaPlacePDE(ptgrid_,ptTimeFunc_,OutFile_); 
 
 
       //      else if (pdeNames[i] == "magnetic") 
       //	if (dim == 3
-      //	ptSinglePde_[i]=new MagEdgePDE(ptgrid_,ptBCs_,ptTimeFunc_,InFile_,OutFile_); 
+      //	ptSinglePde_[i]=new MagEdgePDE(ptgrid_,ptTimeFunc_,OutFile_); 
       else
 	{
 	  std::string msg=pdeNames[i]+" - this type of pdes is unknown";
@@ -451,7 +442,7 @@ namespace CoupledField {
 	} 
     
     
-    CoupledPDEDef * CouplingDef = new CoupledPDEDef(ptgrid_, ptBCs_);
+    CoupledPDEDef * CouplingDef = new CoupledPDEDef(ptgrid_);
 
     // create coupling objects 
 
@@ -539,8 +530,8 @@ namespace CoupledField {
     singlePdes[1] = pde2;
     couplings[0] = coupling;
 
-    ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(ptgrid_,ptBCs_,
-						       InFile_,OutFile_, ptTimeFunc_));
+    ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(ptgrid_, OutFile_,
+						       ptTimeFunc_));
     ptDirectCoupledPde_[0]->SetSinglePDEs( singlePdes );
     ptDirectCoupledPde_[0]->SetCouplings( couplings );
 
@@ -581,28 +572,24 @@ namespace CoupledField {
   }
 
 
-  void Domain::PrintGrid(const Integer level) {
+  void Domain::PrintGrid( ) {
     ENTER_FCN( "Domain::PrintGrid" );
     OutFile_->Init(ptgrid_);
-    OutFile_->WriteGrid(level);
+    OutFile_->WriteGrid( );
   }
 
 
-   void Domain::Update(const Integer level) {
+   void Domain::Update( ) {
     ENTER_FCN( "Domain::Update" );
  
-    ptBCs_->Update(ptgrid_);
-
     // Init AlgSystem
-    UpdateAlgSys(level);
+    UpdateAlgSys();
   }
 
 
-  void Domain::UpdateAlgSys(const Integer level) {
+  void Domain::UpdateAlgSys( ) {
     ENTER_FCN( "Domain::UpdateAlgSys"  );
 
-    numlevel_ ++;
- 
     //set the algebraic systems and read material data
     for (int i=0;i< numSinglePde_;i++)
       {
