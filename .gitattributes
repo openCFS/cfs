@@ -199,6 +199,7 @@ libsrc/Domain/domain.hh svneol=native#text/plain
 libsrc/Domain/elem.hh svneol=native#text/plain
 libsrc/Domain/grid.cc svneol=native#text/plain
 libsrc/Domain/grid.hh svneol=native#text/plain
+libsrc/Domain/surfElem.hh svneol=native#text/plain
 libsrc/Driver/Makefile -text
 libsrc/Driver/assemble.cc svneol=native#text/plain
 libsrc/Driver/assemble.hh svneol=native#text/plain
