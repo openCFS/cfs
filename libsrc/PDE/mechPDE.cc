@@ -13,9 +13,8 @@
 namespace CoupledField
 {
 
-  MechPDE::MechPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc, FileType *aptFileType, 
-                   WriteResults *aptOut)
-    :SinglePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc), 
+  MechPDE::MechPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut)
+    :SinglePDE(aptgrid, aptOut, aptTimeFunc), 
      lambdaMat(NULL),
      mueMat(NULL),
      preStressVal_(0.0)
@@ -90,10 +89,13 @@ namespace CoupledField
     // *********************************
 
     //check for pressure loads
-    params->GetList( "name"    , pressSurf_ , pdename_, "pressure" );
+    StdVector<std::string> regionNames;
+
+    params->GetList( "name"    , regionNames , pdename_, "pressure" );
     params->GetList( "value"   , pressVals_ , pdename_, "pressure" );
     params->GetList( "dynamics", pressFnc_  , pdename_, "pressure" );
     
+    ptgrid_->RegionNameToId( pressSurf_, regionNames );
     // Check consistency
     if ( pressSurf_.GetSize() != pressVals_.GetSize() )
       {
@@ -208,7 +210,7 @@ namespace CoupledField
   }
   
 
-  void MechPDE::DefineIntegrators(const Integer level)
+  void MechPDE::DefineIntegrators()
   {
     ENTER_FCN( "MechPDE::DefineIntegerators" );
 
@@ -541,10 +543,9 @@ namespace CoupledField
     SolutionType quantity;
     StdVector<Integer> * couplingnodes = NULL;
     StdVector<Elem*> * couplingElems = NULL;
-    StdVector<Elem*> * neighbours = NULL;
-    StdVector<MaterialData*> * couplingMaterials = NULL;
     CFSVector * temp_values = NULL;
     Vector<Double> * values;
+    StdVector<MaterialData*> * materials = NULL;
     StdVector<std::string> outputRegions;
   
 
@@ -572,28 +573,13 @@ namespace CoupledField
               {
                 ptCoupling_->GetOutputNodes(i, couplingnodes);
                 ptCoupling_->GetOutputElements(i, couplingElems);
-
-                ptCoupling_->GetOwnMaterials(i, couplingMaterials);
-                ptCoupling_->GetOutputNeighbourElems(i, neighbours);
+                ptCoupling_->GetOppositeMaterials(i, materials);
                 dof = ptCoupling_->GetOutputDof(i);
 
-                if (!neighbours->GetSize())
-                  {
-                    std::string errMsg = "In mechanic PDE: No neighbour elements ";
-                    errMsg += "for acoustic-coupling at output interface ";
-                    ptCoupling_->GetOutputRegions(i, outputRegions);
-                    for (Integer i=0; i<outputRegions.GetSize()-1; i++)
-                      {
-                        errMsg += outputRegions[i];
-                        errMsg += ", ";
-                      }
-                    errMsg += outputRegions[outputRegions.GetSize()-1];
-                    Error(errMsg.c_str(),  __FILE__,__LINE__);  
-                  }
-          
-              
-                CalcAcousticCouplingRHS(couplingElems, *couplingnodes, 
-                                        couplingMaterials, *values, dof, neighbours);           
+                CalcAcousticCouplingRHS(couplingElems, 
+                                        *materials,
+                                        *couplingnodes, 
+                                        *values, dof);           
               } 
             break;
 
@@ -604,56 +590,82 @@ namespace CoupledField
   }
 
 
-  void MechPDE::CalcAcousticCouplingRHS(StdVector<Elem*> * couplingElems, 
-                                        StdVector<Integer>& couplingNodes,
-                                        StdVector<MaterialData*>* couplingMaterials,
-                                        Vector<Double> & elemCouplingSols,
-                                        Integer couplingdofM,
-                                        StdVector<Elem*> * neighbours)
+  void MechPDE::CalcAcousticCouplingRHS( StdVector<Elem*> * couplingElems, 
+                                         StdVector<MaterialData*> & materials,
+                                         StdVector<Integer>& couplingNodes,
+                                         Vector<Double> & elemCouplingSols,
+                                         Integer couplingdof )
   {
     ENTER_FCN( "MechPDE::CalcAcousticCouplingRHS" );
 
-
-    Double density = 0;
+    Matrix<Double> ptCoord, elemMat;
+    Vector<Double> normal, sol, forceOnElem, nSol;
+    Elem * ptVolElem;
+    Double sign = 0.0;
+    Double density = 0.0;
+    Integer matIndex = -1;
 
     elemCouplingSols.Init(0.0);
   
     for (Integer actElem=0; actElem<couplingElems->GetSize(); actElem++)
       {
-        BaseFE * ptElem = (*couplingElems)[actElem]->ptElem;
-        StdVector<Integer> connecth = (*couplingElems)[actElem]->connect;
+        // Perform cast from volume element to surface element, since
+        // mech-acou coupling makes only sense on surface elements
+        SurfElem * actCoupleElem = 
+          dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
+        
+
+        BaseFE * ptElem = actCoupleElem->ptElem;
+        StdVector<Integer> & connecth = (*couplingElems)[actElem]->connect;
+        GetElemCoords(connecth, ptCoord);
       
-        Matrix<Double> ptCoord; 
-        GetElemCoords(connecth, ptCoord, actlevel_);
+        // Try to find according region for first neighbouring volume
+        // element of the surface element
+        matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
+        
+        // If first volume element does not belong to acoustic PDE, try the
+        // second one
+        if ( matIndex == -1 ) {
+          matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
+          ptVolElem = actCoupleElem->ptVolElem2;
+          sign = -1.0 * actCoupleElem->normalSign;
+        } else {
+          ptVolElem = actCoupleElem->ptVolElem1;
+          sign = 1.0 * actCoupleElem->normalSign;
+        }
+        
+        if ( matIndex == -1) {
+          (*error) << "MechPDE::CalcAcousticCouplingRHS: The two volume "
+                   << "element neighbours of surface element Nr. "
+                   << actCoupleElem->elemNum << " do not belong to my regions!";
+          Error( __FILE__, __LINE__ );
+        }
       
+        // Assign correct density
+        density = materials[actElem]->GetDensity();
+        
         // get correct density belonging to the the neighbouring element
         // in the fluid subdomain
-        density = (*couplingMaterials)[actElem]->GetDensity();
+        //density = (*couplingMaterials)[actElem]->GetDensity();
       
         BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
         Matrix<Double> elemmat;
         bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
         delete bilinear_mass;       
 
-        Vector<Double> sol;
+        
         GetDerivSolVecOfElement(sol, connecth);
-      
-        Vector<Double> nSol(connecth.GetSize());   // solution in normal direction
-        nSol.Init();
-      
+        nSol.Resize(connecth.GetSize());   // solution in normal direction
 
         // the normal vector points outwards of the mechanical domain
         // (see. Kaltenbacher, "Num. Sim. of Mech. Act. & Sens." chapter 8.2)
-        Vector<Double> n;
-        ptgrid_->CalcSurfNormalOutOfVol(n, *(*couplingElems)[actElem], *(*neighbours)[actElem]); 
-        n*=-1;
-        //std::cerr << "mechNormal =\n" << n << std::endl;
-      
+        ptgrid_->CalcSurfNormal( normal, *actCoupleElem );
+        normal *= sign;
       
 
         for (Integer actNode=0; actNode < connecth.GetSize(); actNode++)
           for (Integer actDof=0; actDof<dofspernode_; actDof++)
-            nSol[actNode] += sol[actDof + actNode*dofspernode_] * n[actDof];
+            nSol[actNode] += sol[actDof + actNode*dofspernode_] * normal[actDof];
 
 
         Vector<Double> forceOnElem = elemmat * nSol;  
@@ -665,8 +677,6 @@ namespace CoupledField
             while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.GetSize()) 
               nodePos++;
             elemCouplingSols[nodePos] += forceOnElem[actNode];
-            //std::cerr << "forceonElem += " << forceOnElem[actNode] << std::endl;
-          
           }      
       }
   } 
@@ -785,6 +795,7 @@ namespace CoupledField
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
+    StdVector<std::string> regionNames;
     std::string quantity;
   
     // *****************************
@@ -817,7 +828,7 @@ namespace CoupledField
       solDeriv1_.SetNumNodes(numPDENodes_);
       solDeriv1_.SetSolutionType(MECH_VELOCITY);
       solDeriv1_.SetNumDofs(dim_);
-      solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_); 
+      solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_); 
       solDeriv1_.Init();
     }
 
@@ -834,7 +845,7 @@ namespace CoupledField
       solDeriv2_.SetNumNodes(numPDENodes_);
       solDeriv2_.SetSolutionType(MECH_ACCELERATION);
       solDeriv2_.SetNumDofs(dim_);
-      solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+      solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_);
       solDeriv2_.Init();
     }
 
@@ -848,10 +859,11 @@ namespace CoupledField
     // --- Mechanic Stress ---
     Enum2String(MECH_STRESS, quantity);
     valVec  = "", "", quantity;
-    params->GetList( keyVec, attrVec, valVec, calcStress_ );
-
+    params->GetList( keyVec, attrVec, valVec, regionNames );
+    ptgrid_->RegionNameToId( calcStress_, regionNames );
+    
     // If the symbolic name is "all" compute electric field for all regions
-    if ( calcStress_.GetSize() == 1 && calcStress_[0] == "all" ) {
+    if ( calcStress_.GetSize() == 1 && calcStress_[0] == ALL_REGIONS ) {
       calcStress_ = subdoms_;
     }
 
@@ -860,18 +872,19 @@ namespace CoupledField
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
                     " Computing mechanical stress for regions:\n");
-      for ( Integer k = 0; k < calcStress_.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s\n", calcStress_[k].c_str() );
+      for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+        Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
     }
 
     // --- Mechanic Energy ---
     Enum2String(MECH_ENERGY, quantity);
     valVec  = "", "", quantity;
-    params->GetList( keyVec, attrVec, valVec, calcEnergy_ );
+    params->GetList( keyVec, attrVec, valVec, regionNames);
+    ptgrid_->RegionNameToId( calcEnergy_, regionNames );
 
     // If the symbolic name is "all" compute electric field for all regions
-    if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == "all" ) {
+    if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == ALL_REGIONS ) {
       calcEnergy_ = subdoms_;
     }
 
@@ -880,8 +893,8 @@ namespace CoupledField
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
                     " Computing mechanical Energy for regions:\n");
-      for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
-        Info->PrintF( pdename_, " %s\n", calcEnergy_[k].c_str() );
+      for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+        Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
     }
 
@@ -956,7 +969,7 @@ namespace CoupledField
   //   PostProcess
   // ************************************************************
 
-  void MechPDE::PostProcess(const Integer level) {
+  void MechPDE::PostProcess() {
 
     ENTER_FCN( "MechPDE::PostProcess" );
 
@@ -991,7 +1004,7 @@ namespace CoupledField
       Stress_.SetSolutionType(MECH_STRESS);
       Stress_.SetNumElems(numElems_);
       Stress_.SetNumDofs(6);
-      Stress_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+      Stress_.SetPtrEQNData(eqnData_, ptgrid_);
       Stress_.Init(0);
       
       Vector<Double> elemStress, sortedStress;
@@ -1018,7 +1031,7 @@ namespace CoupledField
         
         // get vector of Elements of subdomains
         StdVector<Elem*> elemssd;     
-        ptgrid_->GetElemSD(elemssd,subdoms_[isd],level);
+        ptgrid_->GetVolElems( elemssd,subdoms_[isd] );
         
         // loop over elements of subdomain
         for (Integer iel=0; iel< elemssd.GetSize(); iel++) {
@@ -1036,7 +1049,7 @@ namespace CoupledField
           
           //get coordinates of element
           Matrix<Double> ptCoord;
-          GetElemCoords(connecth, ptCoord, level);
+          GetElemCoords(connecth, ptCoord);
           
           Vector<Double> actStress;     
           
@@ -1064,12 +1077,14 @@ namespace CoupledField
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
+    StdVector<std::string> regionNames;
 
     keyVec = pdename_, "preStressing", "preStress", "name";
     attrVec = "", "", "tag";
     valVec  = "", "", bcSequenceTag_;
 
-    params->GetList(keyVec, attrVec, valVec, preStressDomain_);
+    params->GetList(keyVec, attrVec, valVec, regionNames );
+    ptgrid_->RegionNameToId( preStressDomain_, regionNames );
 
     if ( preStressDomain_.GetSize() > 0 ) {
 
@@ -1088,7 +1103,7 @@ namespace CoupledField
       for ( UInt k = 0; k < preStressDomain_.GetSize(); k++ ) {
 
         // ... read direction of magnetisation
-        valVec = "", "", preStressDomain_[k];
+        valVec = "", "", regionNames[k];
 
         keyVec  = pdename_, "preStressing", "preStress", "orientX";
         params->Get( keyVec, attrVec, valVec, tmpDir);
@@ -1103,7 +1118,7 @@ namespace CoupledField
         preStressValZ_.Push_back( tmpDir );
 
         // ... report name to logfile
-        Info->PrintF( pdename_, "%s\n", preStressDomain_[k].c_str());
+        Info->PrintF( pdename_, "%s\n", regionNames[k].c_str());
       }
     }
   }
@@ -1127,7 +1142,7 @@ namespace CoupledField
     for (i=0; i<subdoms_.GetSize(); i++) {
     
       StdVector<Elem*> elemssd;
-      ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
+      ptgrid_->GetVolElems( elemssd,subdoms_[i] );
 
       //get material
       MaterialData actSDMat(materialData_[i]);
@@ -1138,7 +1153,7 @@ namespace CoupledField
         BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat);
 
         connecth=elemssd[j]->connect;
-        GetElemCoords(connecth, ptCoord, actlevel_);
+        GetElemCoords(connecth, ptCoord);
         bilinear_stiff->SetElemPtr(ptElem);
         bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
@@ -1168,7 +1183,9 @@ namespace CoupledField
       analysisVal = lasttimecalc_;
     }
     
-    Info->WriteResult(pdename_,  resulttype, subdoms_, energy, unit,
+    StdVector<std::string> regionNames;
+    ptgrid_->RegionIdToName( regionNames, subdoms_ );
+    Info->WriteResult(pdename_,  resulttype, regionNames, energy, unit,
                       analysis, analysisVal);
 
     StdVector<std::string> suball(1);
