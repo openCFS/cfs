@@ -29,9 +29,8 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  ElecPDE::ElecPDE(Grid * aptgrid, BCs *aptbcs, TimeFunc *aptTimeFunc,
-		   FileType *aptFileType, WriteResults *aptOut)
-    :SinglePDE(aptgrid, aptbcs, aptFileType, aptOut, aptTimeFunc) {
+  ElecPDE::ElecPDE(Grid * aptgrid,  TimeFunc *aptTimeFunc, WriteResults *aptOut)
+    :SinglePDE(aptgrid, aptOut, aptTimeFunc) {
 
     ENTER_FCN( "ElecPDE::ElecPDE" );
 
@@ -59,7 +58,7 @@ namespace CoupledField {
   
 
 
-void ElecPDE::DefineIntegrators(const Integer level)
+void ElecPDE::DefineIntegrators()
 {
   ENTER_FCN( "ElecPDE::DefineIntegerators" );
 
@@ -74,9 +73,6 @@ void ElecPDE::DefineIntegrators(const Integer level)
   
   for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
     {
-      //reads eps33 (matrix notation starts with 0)
-      Double eps33 = materialData_[actSD].GetPermittivity(2,2);
-      
       if (dim_ == 3) {
 	form = new linElecInt3D( materialData_[actSD] );
 	form->SetFactor( factor );
@@ -85,8 +81,6 @@ void ElecPDE::DefineIntegrators(const Integer level)
 	form = new linElecInt2D( materialData_[actSD], isaxi_ );
 	form->SetFactor( factor );
       }
-	//form = new LaplaceInt( eps33*factor, isaxi_ );
-      
       
       assemble_->AddIntegrator(form, subdoms_[actSD], SYSTEM, nonLin_);
     } // for
@@ -144,32 +138,36 @@ void ElecPDE::WriteResultsInFile(const Integer kstep,
 	}
       
       if (calcCharges_.GetSize() !=0 )
-	outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
+	{
+	  outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
+	}
+#ifdef ADAPTGRID
+
       
 
-//       if (flags->CalcErrorMap_ )
-// 	{
+       if (flags->CalcErrorMap_ )
+ 	{
 
-// 	std::cout << "Do write" << std::endl;
+ 	std::cout << "Do write" << std::endl;
 
-// 	  // this is only a temporar solution
-// 	  error.SetNumSolutions(1);
-// 	  error.SetNumElems(errorMap_.GetSize());
-// 	  error.SetSolutionType(NO_SOLUTION_TYPE);
-// 	  error.SetNumDofs(dofspernode_);
-// 	  error.Init(0);
+ 	  // this is only a temporar solution
+ 	  error.SetNumSolutions(1);
+ 	  error.SetNumElems(errorMap_.GetSize());
+ 	  error.SetSolutionType(NO_SOLUTION_TYPE);
+ 	  error.SetNumDofs(dofspernode_);
+ 	  error.Init(0);
       
-// 	  Error("Not implemented. Talk to Andreas and Elena", __FILE__, __LINE__);
+ 	  //Error.SetAlgSysVector(errorMap_);
 	  
-// 	  //Error.SetAlgSysVector(errorMap_);
-	  
-// 	  // ATTENTION!!
-// 	  // up to now now transformation of the Error performed,
-// 	  // since the calculation of the error is done on the global element numeration
-// 	  //Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_,actlevel_);
-// 	  //OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
-// 	  outFile_->WriteElemSolutionTransient(error_Mesh, actStep, actTime); 
-// 	}
+	  // ATTENTION!!
+	  // up to now now transformation of the Error performed,
+	  // since the calculation of the error is done on the global element numeration
+	  //Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_);
+	  //OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
+	  outFile_->WriteElemSolutionTransient(error_Mesh, actStep, actTime); 
+	}
+#endif
+
       
 
       if (calcEnergy_.GetSize() !=0 ) {
@@ -235,7 +233,7 @@ void ElecPDE::WriteResultsInFile(const Integer kstep,
 
 }
 
-void ElecPDE::PostProcess(const Integer level)
+void ElecPDE::PostProcess()
 {
   ENTER_FCN( "ElecPDE::PostProcess" );
 
@@ -258,12 +256,12 @@ void ElecPDE::CalcElectricField()
   NodeStoreSol<Double> & solhelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
   //  GradientFieldOp * FieldOp = new GradientFieldOp(ptgrid_, this, eqnData_,
   //					  solhelp, ELEC_POTENTIAL,
-  //					  actlevel_, isaxi_);
+  //					  isaxi_);
 
 
-  GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, this, eqnData_,
-      						      solhelp, ELEC_POTENTIAL,
-      						      actlevel_, isaxi_);
+  GradientFieldOp<Double> * FieldOp = 
+    new GradientFieldOp<Double>(ptgrid_, this, eqnData_, solhelp, 
+				ELEC_POTENTIAL, isaxi_);
   
   Vector<Double> LCoord;
   
@@ -283,7 +281,7 @@ void ElecPDE::CalcElectricField()
       // LCoord[0] = 0;
       // LCoord[1] = 0;
       // get vector of Elem of subdomain with color: subdoms[isd]
-      ptgrid_->GetElemSD(elemssd,calcEfield_[isd],actlevel_);
+      ptgrid_->GetVolElems( elemssd, calcEfield_[isd] );
       
       // loop over elements of subdomain
       for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
@@ -302,19 +300,19 @@ void ElecPDE::CalcCharges()
   ENTER_FCN( "ElecPDE::CalcCharges" );
 
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-  StdVector<Elem*> surfElems, volElems;
+  StdVector<SurfElem*> surfElems;
 
   Vector<Double> lCoordSurf, lCoordVol, elemDField, normal;
-  BaseFE * ptSurfElem, * ptVolElem;
+  Elem * ptVolElem;
+  BaseFE * ptSurfElemFE, * ptVolElemFE;
   Double permittivity = 0.0;
   Double elemNormalD = 0.0;
   Double charge = 0.0;
   Double sumOfCharges = 0.0;
   Integer pdeElemNum = 0;
+  Double normSign = 0;
  
  
-
-  
   // Create vector with interpolation coordinate.
   // For simplicity we only evaluate the integral
   // in coordinate origin
@@ -323,71 +321,74 @@ void ElecPDE::CalcCharges()
   
   // Create operator for electric flux density and charge calculation
   GradientFieldOp<Double> * dFieldOp = new GradientFieldOp<Double>(ptgrid_, this, eqnData_, *solhelp,
-				 ELEC_POTENTIAL, actlevel_, isaxi_);
-  ElecChargeOp * chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, actlevel_, isaxi_);
+				 ELEC_POTENTIAL, isaxi_);
+
+  ElecChargeOp * chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, isaxi_);
   
   // loop over all subdomains
   for (Integer iSD=0; iSD<calcCharges_.GetSize(); iSD++){
     
     // get surface and acoording volume elements
-    if (dim_ == 3)
-      surfElems = ptBCs_->getFacesBC(calcCharges_[iSD], actlevel_);
-    else if (dim_ == 2)
-      surfElems = ptBCs_->getEdgesBC(calcCharges_[iSD], actlevel_);
-    
-    // get neighbouring volume elements of
-    // surface elements
-    ptgrid_->GetVolNeighboursForSurf(surfElems,chargeNeighborRegion_,
-				     volElems, actlevel_);
+    ptgrid_->GetSurfElems( surfElems, calcCharges_[iSD] );
     
     // loop over all surface elements
     for (Integer iElem=0; iElem<surfElems.GetSize(); iElem++)
       {
 	
-	ptSurfElem = surfElems[iElem]->ptElem;
-	ptVolElem = volElems[iElem]->ptElem;
+        // Determine, which volume element is the right neighbour for the 
+        // calculation
+        if ( chargeNeighborRegion_.
+             Find(surfElems[iElem]->ptVolElem1->regionId) != -1 ) {
+          ptVolElem = surfElems[iElem]->ptVolElem1;
+          normSign = -1.0;
+        } else {
+          ptVolElem = surfElems[iElem]->ptVolElem2;
+          normSign = 1.0;
+        }
+
+        normSign *= (double) surfElems[iElem]->normalSign;
+
+        ptSurfElemFE = surfElems[iElem]->ptElem; 
+        ptVolElemFE = ptVolElem->ptElem;
+        
 	const StdVector<Integer> & surfConnect = surfElems[iElem]->connect;
-	const StdVector<Integer> & volConnect = volElems[iElem]->connect;
+	const StdVector<Integer> & volConnect = ptVolElem->connect;
 	
 	// calculate volume integration coordinates from
 	// surfe integration coordinat for evalauting the 
 	// electric flux density on the surface of the volume
 	// element
-	ptSurfElem->GetCoordMidPoint(lCoordSurf);
-	ptVolElem->GetLocalIntPoints4Surface(surfConnect, volConnect,
-					     lCoordSurf, lCoordVol);
+	ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
+	ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
+                                               lCoordSurf, lCoordVol);
 
 
-	//std::cerr << "Volume coordinates are:\n" << lCoordVol << std::endl;
 	// Get the right material parameter for actual volume element
 	for (Integer i=0; i<subdoms_.GetSize(); i++)
 	  {
-	    if (subdoms_[i] == volElems[iElem]->namesd)
+	    if (subdoms_[i] == ptVolElem->regionId)
 	      permittivity  = materialData_[i].GetPermittivity(2,2);
 	  }
 	
 	// Calc electric flux density
-	dFieldOp->CalcElemGradField(elemDField, volElems[iElem], 
+	dFieldOp->CalcElemGradField(elemDField, ptVolElem, 
 				    lCoordVol,permittivity);
 	
 	// Calc global normal
-	ptgrid_->CalcSurfNormalOutOfVol(normal, *surfElems[iElem], 
-					*volElems[iElem]);
-	normal *= -1;
-	//std::cerr << "new normal =\n " << normal << std::endl << std::endl;
-	// Calc normal flux density component
-	Vector<Double> elemNoralD;
+	ptgrid_->CalcSurfNormal(normal, *surfElems[iElem]);
+
+	normal *= normSign;
 
 	// Since the routine CalcLinNormal always computes a normal
 	// which points in the OPPOSITE direction of the volume elment,
 	// we have to multiply the normal with -1 to get the correct sign for
 	// the charges
 	elemNormalD =  normal * elemDField;
-	
+
 	chargeOp->CalcElemCharge(charge, surfElems[iElem], 
 				 lCoordSurf, elemNormalD);
 
-	pdeElemNum = eqnData_->Mesh2PDEElem(volElems[iElem]->elemNum);
+	pdeElemNum = eqnData_->Mesh2PDEElem(ptVolElem->elemNum);
 	
 	// Create temporar vector, since SetElemResult only
 	// can handle these
@@ -417,10 +418,7 @@ void ElecPDE::CalcNodeForce(Vector<Double> & force,
 {
   ENTER_FCN( "ElecPDE::CalcNodeForce" );
 
-  NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
-
-  
-  ElecForceOp * ForceOp; // = new ElecForceOp(ptgrid_, this, eqnData_, *solhelp, actlevel_, isaxi_);
+  ElecForceOp * ForceOp; // = new ElecForceOp(ptgrid_, this, eqnData_, *solhelp, isaxi_);
    
   ElemStoreSol<Double> force_temp;
   
@@ -433,7 +431,7 @@ void ElecPDE::CalcNodeForce(Vector<Double> & force,
       
       for (Integer i=0; i<subdoms_.GetSize(); i++)
 	{
-	  if (elems[ielem]->namesd == subdoms_[i]) 
+	  if (elems[ielem]->regionId == subdoms_[i]) 
 	  epsilon = materialData_[i].GetPermittivity(2,2); 
 	}
       
@@ -495,7 +493,7 @@ void ElecPDE::CalcEnergy()
       Double eps33 = materialData_[i].GetPermittivity(2,2);
 
       StdVector<Elem*> elemssd;
-      ptgrid_->GetElemSD(elemssd,subdoms_[i],actlevel_);
+      ptgrid_->GetVolElems( elemssd,subdoms_[i] );
 
       energy[i] = 0;
       for (j=0; j < elemssd.GetSize(); j++)
@@ -504,7 +502,7 @@ void ElecPDE::CalcEnergy()
 	  BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
 
 	  connecth=elemssd[j]->connect;
-	  GetElemCoords(connecth, ptCoord, actlevel_);
+	  GetElemCoords(connecth, ptCoord);
 	  bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
 	  // Mape Mesh to PDE node numbers
@@ -540,7 +538,10 @@ void ElecPDE::CalcEnergy()
     analysisVal = lasttimecalc_;
   }
 
-  Info->WriteResult(pdename_,  resulttype, subdoms_, energy, unit,
+  StdVector<std::string> subdomNames;
+  ptgrid_->RegionIdToName( subdomNames, subdoms_ );
+
+  Info->WriteResult(pdename_,  resulttype, subdomNames, energy, unit,
 		    analysis, analysisVal);
 
 
@@ -593,7 +594,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
       if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP) {
 	NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
 	ForceOp_ = new  ElecForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, materialData_,
-				    subdoms_, actlevel_, isaxi_);
+				    subdoms_, isaxi_);
 	ForceOp_->Setup(subdoms_, *couplingnodes);
       }
       
@@ -647,7 +648,7 @@ void ElecPDE::InitCoupling(PDECoupling * Coupling)
 // 	    ptCoupling_->GetOutputNeighbourRegion(actCoupling, neighRegions);
 // 	    //	    ptgrid_->GetInterfaceNeighbours(*couplingnodes, *neighRegions, 
 // 	    ptgrid_->GetInterfaceNeighbours(*couplingnodes, subdoms_, 
-// 					    interface_tmp, actlevel_);
+// 					    interface_tmp);
 // 	  }
 // 	  else if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE)
 // 	    {
@@ -798,160 +799,166 @@ void ElecPDE::CalcInterfaceForces(Integer actCoupling)
 {
   ENTER_FCN( "ElecPDE::CalcInterfaceForces" );
 
-  StdVector<Integer> *      couplingNodes          = NULL;
-  CFSVector  *              elemCouplingSolsTemp   = NULL;
-  StdVector<Elem*> *        couplingElems          = NULL;
-  StdVector<Elem*> *        outerInterfaceVolElems = NULL;
-  StdVector<Elem*> *        innerInterfaceVolElems = NULL;
-  StdVector<MaterialData*>* innerCouplingMaterials = NULL;
-  StdVector<MaterialData*>* outerCouplingMaterials = NULL;
+  (*error) << "The Interface-Coupling is not supprted "
+           << "anymore, however I was not too brave and "
+           << "did not dare to erase Fred's code ...";
+  Error( __FILE__, __LINE__ );
 
-  ptCoupling_->GetOutputNodes    (actCoupling, couplingNodes);
-  ptCoupling_->GetOutputValues   (actCoupling, elemCouplingSolsTemp);
-  ptCoupling_->GetOutputElements (actCoupling, couplingElems);
-  ptCoupling_->GetOwnMaterials   (actCoupling, innerCouplingMaterials);
-  ptCoupling_->GetOppositeMaterials (actCoupling, outerCouplingMaterials);
-  ptCoupling_->GetOutputNeighbourElems(actCoupling, innerInterfaceVolElems);
-  ptCoupling_->GetInputNeighbourElems (actCoupling, outerInterfaceVolElems);
+
+//   StdVector<Integer> *      couplingNodes          = NULL;
+//   CFSVector  *              elemCouplingSolsTemp   = NULL;
+//   StdVector<Elem*> *        couplingElems          = NULL;
+//   StdVector<Elem*> *        outerInterfaceVolElems = NULL;
+//   StdVector<Elem*> *        innerInterfaceVolElems = NULL;
+//   StdVector<MaterialData*>* innerCouplingMaterials = NULL;
+//   StdVector<MaterialData*>* outerCouplingMaterials = NULL;
+
+//   ptCoupling_->GetOutputNodes    (actCoupling, couplingNodes);
+//   ptCoupling_->GetOutputValues   (actCoupling, elemCouplingSolsTemp);
+//   ptCoupling_->GetOutputElements (actCoupling, couplingElems);
+//   ptCoupling_->GetOwnMaterials   (actCoupling, innerCouplingMaterials);
+//   ptCoupling_->GetOppositeMaterials (actCoupling, outerCouplingMaterials);
+//   ptCoupling_->GetOutputNeighbourElems(actCoupling, innerInterfaceVolElems);
+//   ptCoupling_->GetInputNeighbourElems (actCoupling, outerInterfaceVolElems);
  
-  Integer couplingDof = ptCoupling_->GetOutputDof(actCoupling);
+//   Integer couplingDof = ptCoupling_->GetOutputDof(actCoupling);
 
-  Vector<Double> * elemCouplingSols = dynamic_cast<Vector<Double> *>(elemCouplingSolsTemp);
+//   Vector<Double> * elemCouplingSols = dynamic_cast<Vector<Double> *>(elemCouplingSolsTemp);
    
-  elemCouplingSols->Init(0.0);
+//   elemCouplingSols->Init(0.0);
 
-  Vector<Double> xPosCoupleNode(couplingNodes->GetSize());
+//   Vector<Double> xPosCoupleNode(couplingNodes->GetSize());
   
 
-  for (Integer actElem=0; actElem < couplingElems->GetSize(); actElem++)
-    {
-      Elem * actCoupleElem     = (*couplingElems)[actElem];
-      Elem * actVolElem        = (*innerInterfaceVolElems)[actElem];
-      // BaseFE * ptVolElem       = actVolElem->ptElem;
-      BaseFE * ptCoupleElem    = actCoupleElem->ptElem;
+//   for (Integer actElem=0; actElem < couplingElems->GetSize(); actElem++)
+//     {
+//       Elem * actCoupleElem     = (*couplingElems)[actElem];
+//       Elem * actVolElem        = (*innerInterfaceVolElems)[actElem];
+//       // BaseFE * ptVolElem       = actVolElem->ptElem;
+//       BaseFE * ptCoupleElem    = actCoupleElem->ptElem;
 
-      const Vector<Double> & intWeights = ptCoupleElem->GetIntWeights();  
+//       const Vector<Double> & intWeights = ptCoupleElem->GetIntWeights();  
       
 
-      StdVector<Integer> connecth = actCoupleElem->connect;
-      const Integer spaceDim   = 2;
+//       StdVector<Integer> connecth = actCoupleElem->connect;
+//       const Integer spaceDim   = 2;
       
-      if (ptCoupleElem->GetDim() == 3)
-	Error("CalcInterfaceForces only implemented for 2D!", __FILE__, __LINE__);
+//       if (ptCoupleElem->GetDim() == 3)
+// 	Error("CalcInterfaceForces only implemented for 2D!", __FILE__, __LINE__);
 
 
-      Matrix<Double> ptCoord; 
-      //StdVector<Integer> connect_PDE;
+//       Matrix<Double> ptCoord; 
+//       //StdVector<Integer> connect_PDE;
 
-      GetElemCoords(connecth, ptCoord, actlevel_);
-
-
-
-      // get correct permittivity belonging to the neighbouring element of the interface
-      Double eps1 = (*innerCouplingMaterials)[actElem]->GetPermittivity(2,2);
-      Double eps2 = (*outerCouplingMaterials)[actElem]->GetPermittivity(2,2);
-
-
-      // the normal vector points outwards of the MECHANICAL domain
-      // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
-      Vector<Double> n;
-
-
-      // Note: The following line has to be replaced by a call to 
-      ptgrid_->CalcSurfNormalOutOfVol(n, *actCoupleElem, *(*innerInterfaceVolElems)[actElem]); 
-      //CalcLineNormalVec(n, *actCoupleElem, *(*innerInterfaceVolElems)[actElem]); // points outward own domain
+//       GetElemCoords(connecth, ptCoord);
 
 
 
-      StdVector<Integer> boundNodesOfVolElem;
+//       // get correct permittivity belonging to the neighbouring element of the interface
+//       Double eps1 = (*innerCouplingMaterials)[actElem]->GetPermittivity(2,2);
+//       Double eps2 = (*outerCouplingMaterials)[actElem]->GetPermittivity(2,2);
+
+
+//       // the normal vector points outwards of the MECHANICAL domain
+//       // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
+//       Vector<Double> n;
+
+
+//       // Note: The following line has to be replaced by a call to 
+//       ptgrid_->CalcSurfNormalOutOfVol(n, *actCoupleElem, *(*innerInterfaceVolElems)[actElem]); 
+//       //CalcLineNormalVec(n, *actCoupleElem, *(*innerInterfaceVolElems)[actElem]); // points outward own domain
+
+
+
+//       StdVector<Integer> boundNodesOfVolElem;
   
-      // Integer ptCount = 0;
-      for (Integer nNode=0; nNode < isBoundaryNode_[actCoupling][actElem].GetSize(); nNode++)
-	if (isBoundaryNode_[actCoupling][actElem][nNode] == 1)
-	  boundNodesOfVolElem.Push_back(nNode);
+//       // Integer ptCount = 0;
+//       for (Integer nNode=0; nNode < isBoundaryNode_[actCoupling][actElem].GetSize(); nNode++)
+// 	if (isBoundaryNode_[actCoupling][actElem][nNode] == 1)
+// 	  boundNodesOfVolElem.Push_back(nNode);
 
-      if (boundNodesOfVolElem.GetSize() != 2)
-	Error("In CalcInterfaceForces boundary nodes != 2!", __FILE__, __LINE__);
+//       if (boundNodesOfVolElem.GetSize() != 2)
+// 	Error("In CalcInterfaceForces boundary nodes != 2!", __FILE__, __LINE__);
       
 
 
-      // "interfaceForceVec" holds the absolute value of the forces on every node of an interface vector.
-      // To establish the final force vectors, every force in every node has to be multiplied by
-      // the normal vector of the interface element
-      Vector<Double> interfaceForceOnNodes(connecth.GetSize());   // is automatically initialized by 0
+//       // "interfaceForceVec" holds the absolute value of the forces on every node of an interface vector.
+//       // To establish the final force vectors, every force in every node has to be multiplied by
+//       // the normal vector of the interface element
+//       Vector<Double> interfaceForceOnNodes(connecth.GetSize());   // is automatically initialized by 0
       
 
-      for (Integer actIP=1; actIP <= ptCoupleElem->GetNumIntPoints(); actIP++)
-	{
-	  Vector<Double> shapeFncAtIP;
-	  Vector<Double> coordAtIP;
-	  ptCoupleElem->GetShFncAtIp(shapeFncAtIP, actIP);
-	  coordAtIP = ptCoord * shapeFncAtIP;
-	  double jacDet = ptCoupleElem->CalcJacobianDetAtIp(actIP, ptCoord);
+//       for (Integer actIP=1; actIP <= ptCoupleElem->GetNumIntPoints(); actIP++)
+// 	{
+// 	  Vector<Double> shapeFncAtIP;
+// 	  Vector<Double> coordAtIP;
+// 	  ptCoupleElem->GetShFncAtIp(shapeFncAtIP, actIP);
+// 	  coordAtIP = ptCoord * shapeFncAtIP;
+// 	  double jacDet = ptCoupleElem->CalcJacobianDetAtIp(actIP, ptCoord);
 	  
 
-	  Vector<Double> tempE;       // value of a field at lCoord
-	  CalcEfieldAtCoupleElemIP(actVolElem, actCoupleElem, coordAtIP, boundNodesOfVolElem, tempE);
+// 	  Vector<Double> tempE;       // value of a field at lCoord
+// 	  CalcEfieldAtCoupleElemIP(actVolElem, actCoupleElem, coordAtIP, boundNodesOfVolElem, tempE);
 
 
-	  Double abs_E_normal = 0;
+// 	  Double abs_E_normal = 0;
 	  
-	  for (Integer actSpaceDim=0; actSpaceDim < spaceDim; actSpaceDim++)
-	    abs_E_normal += tempE[actSpaceDim] * n[actSpaceDim];
+// 	  for (Integer actSpaceDim=0; actSpaceDim < spaceDim; actSpaceDim++)
+// 	    abs_E_normal += tempE[actSpaceDim] * n[actSpaceDim];
 	  
-	  Vector<Double> E_tangential(tempE);
-	  E_tangential -= n * abs_E_normal;
-	  Double abs_E_tangential = E_tangential.NormL2();
+// 	  Vector<Double> E_tangential(tempE);
+// 	  E_tangential -= n * abs_E_normal;
+// 	  Double abs_E_tangential = E_tangential.NormL2();
 	  
-	  // D is calculated in region 1 (D = E_1 * eps1), see Kaltenbacher: "Num. Sim ... " p. 136
-	  Double interfaceForce = sqr(abs_E_normal * eps1 ) / 2 * (1/eps2 - 1/eps1) 
-	    + sqr(abs_E_tangential) * (eps1 - eps2) / 2;
+// 	  // D is calculated in region 1 (D = E_1 * eps1), see Kaltenbacher: "Num. Sim ... " p. 136
+// 	  Double interfaceForce = sqr(abs_E_normal * eps1 ) / 2 * (1/eps2 - 1/eps1) 
+// 	    + sqr(abs_E_tangential) * (eps1 - eps2) / 2;
 
- 	  if (isaxi_)
-	    jacDet *= 2 * PI * coordAtIP[0];
+//  	  if (isaxi_)
+// 	    jacDet *= 2 * PI * coordAtIP[0];
 
 
-	  Vector<Double> partInterfaceForceOnNodes;   
-	  partInterfaceForceOnNodes =  shapeFncAtIP;
-	  partInterfaceForceOnNodes *= interfaceForce * jacDet * intWeights[actIP-1];
+// 	  Vector<Double> partInterfaceForceOnNodes;   
+// 	  partInterfaceForceOnNodes =  shapeFncAtIP;
+// 	  partInterfaceForceOnNodes *= interfaceForce * jacDet * intWeights[actIP-1];
 
-	  interfaceForceOnNodes += partInterfaceForceOnNodes;  // force on every node! It is now vector yet!!	  
-	}
+// 	  interfaceForceOnNodes += partInterfaceForceOnNodes;  // force on every node! It is now vector yet!!	  
+// 	}
 
 
       
 
 
-      // copy result into final solution vector
-      for (Integer actNode=0; actNode < ptCoord.GetSizeRow(); actNode++)
-	{
-	  Integer nodePos = 0;
+//       // copy result into final solution vector
+//       for (Integer actNode=0; actNode < ptCoord.GetSizeRow(); actNode++)
+// 	{
+// 	  Integer nodePos = 0;
 	  
-	  while(connecth[actNode] != (*couplingNodes)[nodePos] && 
-		nodePos < couplingNodes->GetSize()) 
-	    nodePos++;
+// 	  while(connecth[actNode] != (*couplingNodes)[nodePos] && 
+// 		nodePos < couplingNodes->GetSize()) 
+// 	    nodePos++;
 	  
-	  for (Integer actDof=0; actDof < couplingDof ; actDof++)
-	    (*elemCouplingSols)[nodePos*couplingDof+actDof]  += 
-	      interfaceForceOnNodes[actNode] * n[actDof];
+// 	  for (Integer actDof=0; actDof < couplingDof ; actDof++)
+// 	    (*elemCouplingSols)[nodePos*couplingDof+actDof]  += 
+// 	      interfaceForceOnNodes[actNode] * n[actDof];
 
-	  xPosCoupleNode[nodePos] = ptCoord[0][actNode];
-	}
-    }
+// 	  xPosCoupleNode[nodePos] = ptCoord[0][actNode];
+// 	}
+//     }
 
-  Vector<Double> sum;
-  sum.Resize(dim_);
+//   Vector<Double> sum;
+//   sum.Resize(dim_);
   
-  Integer k = 0;
-  for (Integer i=0; i<elemCouplingSols->GetSize(); i++)
-    for (Integer dim=0; dim<dim_; dim++)
-      {
-	sum[dim] += (*elemCouplingSols)[k];
-	k++;
-      }
+//   Integer k = 0;
+//   for (Integer i=0; i<elemCouplingSols->GetSize(); i++)
+//     for (Integer dim=0; dim<dim_; dim++)
+//       {
+// 	sum[dim] += (*elemCouplingSols)[k];
+// 	k++;
+//       }
 
-  Info->PrintF(pdename_, "Sum of electrostatic force (Interface):\n");
-  Info->PrintVec(sum); 
+//   Info->PrintF(pdename_, "Sum of electrostatic force (Interface):\n");
+//   Info->PrintVec(sum); 
 
 }
 
@@ -1001,7 +1008,7 @@ void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
   NodeStoreSol<Double> *solTemp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
   GradientFieldOp<Double> * elecFieldOp = new  GradientFieldOp<Double>(ptgrid_, this, eqnData_, *solTemp, ELEC_POTENTIAL,
-			      actlevel_, isaxi_);
+			      isaxi_);
 
 
   elecFieldOp->CalcElemGradField(tempE, actVolElem, lCoord, 1);
@@ -1020,6 +1027,7 @@ void ElecPDE::ReadStoreResults() {
   StdVector<std::string> keyVec;
   StdVector<std::string> attrVec;
   StdVector<std::string> valVec;
+  StdVector<std::string> regionNames;
   std::string quantity;
 
   // *****************************
@@ -1047,64 +1055,70 @@ void ElecPDE::ReadStoreResults() {
   // --- Electric Field Intensity ---
   Enum2String(ELEC_FIELD_INTENSITY, quantity);
   valVec  = "", "", quantity;
-  params->GetList( keyVec, attrVec, valVec, calcEfield_ );
+  params->GetList( keyVec, attrVec, valVec, regionNames );
+  ptgrid_->RegionNameToId( calcEfield_, regionNames );
 
   // If the the symbolic name is "all" compute electric field for all regions
-  if ( calcEfield_.GetSize() == 1 && calcEfield_[0] == "all" ) {
+  if ( calcEfield_.GetSize() == 1 && calcEfield_[0] == ALL_REGIONS ) {
     calcEfield_ = subdoms_;
   }
 
   if ( calcEfield_.GetSize() > 0 ) {
    	hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Computing electric field for regions:\n" );
-    for ( Integer k = 0; k < calcEfield_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", calcEfield_[k].c_str() );
+    for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
     }
     E_.SetNumSolutions(1);
     E_.SetSolutionType(ELEC_FIELD_INTENSITY);
     E_.SetNumElems(numElems_);
     E_.SetNumDofs(dim_);
-    E_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+    E_.SetPtrEQNData(eqnData_, ptgrid_);
     E_.Init(); 
   }
 
   // --- Electric Energy ---
   Enum2String(ELEC_ENERGY, quantity);
   valVec  = "", "", quantity;
-  params->GetList( keyVec, attrVec, valVec, calcEnergy_ );
+  params->GetList( keyVec, attrVec, valVec, regionNames );
+  ptgrid_->RegionNameToId( calcEnergy_, regionNames );
 
   // If the the symbolic name is "all" compute energy for all regions
-  if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == "all" ) {
+  if ( calcEnergy_.GetSize() == 1 && calcEnergy_[0] == ALL_REGIONS ) {
     calcEnergy_ = subdoms_;
   }
 
   if ( calcEnergy_.GetSize() > 0 ) {
-   	hasOutput_ = TRUE;
+    hasOutput_ = TRUE;
     Info->PrintF( pdename_, " Computing energy for regions:\n" );
-    for ( Integer k = 0; k < calcEnergy_.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s", calcEnergy_[k].c_str() );
+    for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+      Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
     }
   }
-
+  
   // --- Electric Charges ---
   //check for charge computation
-  params->GetList( "region", chargeNeighborRegion_, pdename_, "charge" );
-  params->GetList( "element", calcCharges_, pdename_, "charge" );
+  StdVector<std::string> temp;
+  params->GetList( "region", regionNames, pdename_, "charge" );
+  params->GetList( "element", temp, pdename_, "charge" );
+
+  ptgrid_->RegionNameToId( chargeNeighborRegion_, regionNames );
+  ptgrid_->RegionNameToId( calcCharges_, temp );
 
   if (calcCharges_.GetSize() > 0)
     {
    	hasOutput_ = TRUE;
      Info->PrintF( pdename_,
 		   " Computing electric charges for regions:\n");
-     for ( Integer k = 0; k < calcCharges_.GetSize(); k++ ) {
-       Info->PrintF( pdename_, " %s", calcCharges_[k].c_str() );
-    } 
+     for ( Integer k = 0; k < temp.GetSize(); k++ ) {
+       Info->PrintF( pdename_, " %s\n", temp[k].c_str() );
+     } 
     // Resize solution arrays
     charges_.SetNumSolutions(1);
     charges_.SetSolutionType(ELEC_CHARGE);
     charges_.SetNumElems(numElems_);
     charges_.SetNumDofs(1);
-    charges_.SetPtrEQNData(eqnData_, ptgrid_, actlevel_);
+    charges_.SetPtrEQNData(eqnData_, ptgrid_);
     charges_.Init(0);
     } 
   
