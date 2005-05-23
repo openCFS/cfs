@@ -1,29 +1,20 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <time.h>
-#include <iomanip>
-#include <stdarg.h>
-#include <list>
-#include <vector>
-
-#ifdef PARALLEL
-#include <mpi.h>
-#endif
-
 #include "Utils/myclock.hh"
-#include "Utils/tracing.hh"
-
 #include "DataInOut/DefineFiles/definefiles.hh"
 #include "DataInOut/timefunc.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
-#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/CommandLine/CommandLineHandlerSetting.hh"
+#include "Driver/driver_header.hh"
+#include "Domain/domain.hh"
+#include "DataInOut/ParamHandling/SkeletonConf.hh"
+#include "Utils/tracing.hh"
 
-#include "ParamIdent/piezoParamIdent.hh"
+
+#ifdef PARALLEL
+#include <mpi.h>
+#endif
 
 #ifdef MpCCI
 #include <cci.h>
@@ -33,11 +24,6 @@
 #include "Domain/Gridlib/interface_gridlib.hh"
 #endif
 
-#include "Driver/driver_header.hh"
-#include "Domain/domain.hh"
-#include "DataInOut/ParamHandling/SkeletonConf.hh"
-#include "Domain/GridCFS/interface_gridcfs.hh"
-#include "General/environment.hh"
 
 #ifdef NETGEN
 #include "Domain/NetGen/interface_netgen.hh"
@@ -204,7 +190,7 @@ int main( int argc, const char **argv ) {
   FileHandler.OpenFile( OLAS_FILE );
 
   // Generate Write results object
-  WriteResults *ptOut = FileHandler.Create_ptWriteResults( ptInputfile );
+  WriteResults *ptOut = FileHandler.Create_ptWriteResults();
 
   Info->FinishProgress();
 
@@ -212,7 +198,7 @@ int main( int argc, const char **argv ) {
   // =========================================================================
   // GENERATION OF DOMAIN OBJECT
   // =========================================================================
-  TimeFunc myTimeFunc( ptInputfile );
+  TimeFunc myTimeFunc;
   Domain domain( ptInputfile, ptOut, &myTimeFunc );
 
 
@@ -222,7 +208,7 @@ int main( int argc, const char **argv ) {
   if ( commandLine->GetPrintGrid() == TRUE ) {
     STDOUT << "Printing grid to file " <<  commandLine->GetSimName()
            << ".unv" << myEndl << myEndl;
-    domain.PrintGrid(0);
+    domain.PrintGrid();
     exit(0);
   }
 
