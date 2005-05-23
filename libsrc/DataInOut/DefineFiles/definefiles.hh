@@ -36,7 +36,7 @@ namespace CoupledField
 
     //! create a pointer to a class for writing output-results, a derived class
     //! of the WriteResults according to the specification of the conf-file.
-    WriteResults* Create_ptWriteResults( FileType * const aInFile );
+    WriteResults* Create_ptWriteResults();
 
   private:
 

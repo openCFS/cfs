@@ -1,7 +1,8 @@
 #ifndef FILE_DATABASE
 #define FILE_DATABASE
 
-#include <mysql/mysql.h>
+//#include <mysql/mysql.h>
+#include "mysql.h"
 #include "DataInOut/writeresults.hh"
 #include "DataInOut/Database/dbMatrix.hh"
 #include "DataInOut/Database/dbLineData.hh"

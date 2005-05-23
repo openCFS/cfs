@@ -22,7 +22,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    WriteResultsGSI( const Char *const filename, FileType *const aInFile=NULL);
+    WriteResultsGSI( const Char *const filename );
 
     //! Deconstructor
     virtual ~WriteResultsGSI();
@@ -33,11 +33,8 @@ namespace CoupledField
     */
     virtual void Init(Grid * aptgrid);
 
-    //! write information about grid with level in file
-    /*!
-      \param level level of the grid
-    */
-    virtual void WriteGrid(const Integer level);
+    //! write information about grid in file
+    virtual void WriteGrid();
 
     //! write node solution vector
     /*!
@@ -101,22 +98,13 @@ namespace CoupledField
     Integer maxnumnodes_;
 
     //! dataset 666. 
-    /*!
-      \param level level of the Grid
-    */
-    void Dataset666(const Integer level);
+    void Dataset666();
 
     //! dataset 781
-    /*!
-      \param level level of the Grid
-    */
-    void Dataset781(const Integer level);   
+    void Dataset781();   
 
     //! dataset 780
-    /*!
-      \param level level of the Grid
-    */
-    void Dataset780(const Integer level);
+    void Dataset780();
 
     //! for printing nodal results of simulation (static/transient)
     /*!

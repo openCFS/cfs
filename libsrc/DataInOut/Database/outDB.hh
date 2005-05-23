@@ -23,7 +23,7 @@ class WriteResultsDatabase: virtual public WriteResults
 
 public:
 //! Default constructor
-WriteResultsDatabase(const Char * const filename, FileType * const aInFile=NULL);
+WriteResultsDatabase(const Char * const filename);
 
 //! Destructor 
 ~WriteResultsDatabase();
@@ -35,10 +35,7 @@ virtual void Init (Grid *aptgrid);
 void WriteBasisData();
 
 //! write information about grid on level i in database
-/*!
-  param level Level of the grid
-*/
-virtual void WriteGrid (const Integer level);
+virtual void WriteGrid ();
 
 //! write nodal solution vector
 /*!
@@ -125,16 +122,10 @@ void InitHistoryFiles();
 std::string SolutionTypeToString(const SolutionType type) const;
 
 //! Save information of finite/boundary elements
-/*!
-  param level Level of the grid
-*/
-long int WriteElementNodes(const Integer level);
+long int WriteElementNodes();
 
 //! Save coordinates of the used grid
-/*!
-  param level Level of the grid
-*/
-long int WriteNodeCoordinates(const Integer level);
+long int WriteNodeCoordinates();
 
 //! Save nodal results
 /*!

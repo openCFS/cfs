@@ -13,8 +13,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    WriteResultsGMV(const Char * const filename,
-                    FileType * const aInFile=NULL);
+    WriteResultsGMV(const Char * const filename);
   
     //! Deconstructor
     virtual ~WriteResultsGMV();
@@ -23,11 +22,8 @@ namespace CoupledField
     //! \param ptgrid pointer to grid object
     virtual void Init(Grid * aptgrid);
   
-    //! write information about grid with level in file
-    /*!
-      \param level level of the grid
-    */
-    virtual void WriteGrid(const Integer level);
+    //! write grid definition in file
+    virtual void WriteGrid();
 
 
     //! write element solution vector
@@ -125,13 +121,13 @@ namespace CoupledField
     std::string nameGridFile_;
 
     //! write number of nodes and coordinates of them
-    void WriteNodes(const Integer level);
+    void WriteNodes();
 
     //! write cell description 
-    void WriteCells(const Integer level); 
+    void WriteCells(); 
 
     //! write cell materials
-    void WriteMaterials(const Integer level);
+    void WriteMaterials();
 
     //! write variable information
     /*!

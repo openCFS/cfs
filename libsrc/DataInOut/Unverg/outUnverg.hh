@@ -14,8 +14,7 @@ class WriteResultsUnverg: virtual public WriteResults
 
 public:
   //! constructor with name of a file for results
-  WriteResultsUnverg(const Char * const filename, 
-		     FileType * const aInFile=NULL); 
+  WriteResultsUnverg(const Char * const filename);
 
   //! deconstructor
   virtual ~WriteResultsUnverg();
@@ -24,11 +23,8 @@ public:
   //! \param ptgrid pointer to grid object
   virtual void Init(Grid * aptgrid);
 
-  //! write information about grid on level i in file
-   /*!
-    \param level in: level of grid
-  */
-  virtual void WriteGrid(const Integer level);
+  //! write information about grid  in file
+  virtual void WriteGrid();
 
   //! write element solution vector
   /*!
@@ -79,22 +75,13 @@ private:
   std::ofstream * output;
 
   //! dataset 666. 
-  /*!
-    \param level level of the Grid
-  */
-  void Dataset666(const Integer level);
+  void Dataset666();
 
   //! dataset 781
-  /*!
-    \param level level of the Grid
-  */
-  void Dataset781(const Integer level);   
+  void Dataset781();   
 
   //! dataset 780
-  /*!
-     \param level level of the Grid
-  */
-  void Dataset780(const Integer level);
+  void Dataset780();
 
   //! for printing nodal results of simulation (static/transient)
   /*!

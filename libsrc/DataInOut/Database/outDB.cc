@@ -4,11 +4,10 @@
 namespace CoupledField
 {
 
-  WriteResultsDatabase::WriteResultsDatabase(const Char * const filename, 
-					     FileType * const aInFile)
-    :WriteResults(filename, aInFile) {
+  WriteResultsDatabase::WriteResultsDatabase(const Char * const filename)
+					     
+    :WriteResults(filename) {
     ENTER_FCN( "WriteResultsDatabase::WriteResultsDatabase" );
-    InitHistoryFiles();
   }
 
   WriteResultsDatabase::~WriteResultsDatabase()
@@ -20,6 +19,9 @@ namespace CoupledField
   void WriteResultsDatabase::Init (Grid *aptgrid)
   {
     ENTER_FCN("WriteResultsDatabase::Init");
+   
+    InitHistoryFiles();
+    
     std::string hostName, userName, passwd, databaseName;
     Integer port;
 
@@ -58,7 +60,7 @@ namespace CoupledField
     CalculationIdx_ = Db_.InsertAndGetIndex(d);
   }
 
-  void WriteResultsDatabase::WriteGrid (const Integer level)
+  void WriteResultsDatabase::WriteGrid ()
   {
     ENTER_FCN("WriteResultsDatabase::WriteGrid");
 
@@ -69,19 +71,19 @@ namespace CoupledField
     d.Set("idx","0");
     d.Set("calculation_idx",CalculationIdx_);
     ResultIdx_ = Db_.InsertAndGetIndex(d);
-    WriteNodeCoordinates(level);
-    WriteElementNodes(level);
+    WriteNodeCoordinates();
+    WriteElementNodes();
 
   }
 
-  long int WriteResultsDatabase::WriteNodeCoordinates(const Integer level)
+  long int WriteResultsDatabase::WriteNodeCoordinates()
   {
     ENTER_FCN("WriteResultsDatabase::WriteNodeCoordinates");
     if (!ptgrid)
       Error("ptgrid is not initialized", __FILE__,__LINE__);
  
     Integer dim     = ptgrid->GetDim();
-    Integer maxnumnodes = ptgrid->GetMaxnumnodes(level);  
+    Integer maxnumnodes = ptgrid->GetNumNodes();  
 
     dbLineData d("Node");
     d.Set("idx","0");
@@ -98,7 +100,7 @@ namespace CoupledField
 	if (dim==2)
 	  {
 	    Point<2> Point;
-	    ptgrid->GetCoordinateNode(i,level,Point);
+	    ptgrid->GetNodeCoordinate(Point,i);
 	    d.Set("x_coord","0");
 	    d.Set("y_coord",Point[0]);
 	    d.Set("z_coord",Point[1]);
@@ -107,7 +109,7 @@ namespace CoupledField
 	if (dim==3)
 	  {
 	    Point<3> Point;
-	    ptgrid->GetCoordinateNode(i,level,Point);
+	    ptgrid->GetNodeCoordinate(Point,i);
 	    d.Set("x_coord",Point[0]);
 	    d.Set("y_coord",Point[1]);
 	    d.Set("z_coord",Point[2]);
@@ -119,7 +121,7 @@ namespace CoupledField
   }
 
 
-  long int WriteResultsDatabase::WriteElementNodes(const Integer level)
+  long int WriteResultsDatabase::WriteElementNodes()
   {
     ENTER_FCN("WriteResultsDatabase::WriteElementNodes");
     if (!ptgrid)
@@ -131,14 +133,14 @@ namespace CoupledField
     StdVector<Elem*> elemssd;
     Integer elmsgrp=1;
 
-    StdVector<std::string>* subdoms;
-    subdoms=ptgrid->GetAllSDs();
+    StdVector<RegionIdType> subdoms;
+    ptgrid->GetVolRegionIds(subdoms);
     Integer i, j, k;
     k = 0;
     Integer elemlabel, elemtypegeo, elemtypephys, subtype, elemgrpno, nofnodes;
-    for (i=0; i<subdoms->GetSize(); i++)
+    for (i=0; i<subdoms.GetSize(); i++)
       {
-	ptgrid->GetElemSD(elemssd,(*subdoms)[i],level);
+	ptgrid->GetVolElems(elemssd,subdoms[i]);
 
 	for (j=0; j < elemssd.GetSize(); j++)
 	  {  
@@ -339,7 +341,7 @@ namespace CoupledField
     StdVector<SolutionType> solTypes;
     sol.GetSolutionTypes(solTypes);
     std::string title;
-    Integer numNodes =  ptgrid->GetMaxnumnodes(1);
+    Integer numNodes =  ptgrid->GetNumNodes();
 
     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
       {
@@ -407,10 +409,10 @@ namespace CoupledField
     Vector<Double> globalSolution;
     StdVector<SolutionType> solTypes;
     std::string title;
-    Integer numElems =  ptgrid->GetMaxnumElem(0);  
+    Integer numElems =  ptgrid->GetNumVolElems();  
   
     sol.GetSolutionTypes(solTypes);
-    sol.TransformElemSolution(globalSolution,ptgrid,0);
+    sol.TransformElemSolution(globalSolution,ptgrid);
     title = SolutionTypeToString(solTypes[0]);
     WriteElementResult(title, globalSolution, step, time,numElems, sol.GetDof());
   }

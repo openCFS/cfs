@@ -16,9 +16,8 @@ namespace CoupledField {
   //*****************
   //   Constructor
   //*****************
-  WriteResultsGMV::WriteResultsGMV( const Char *const filename, 
-                                    FileType *const aInFile )
-    : WriteResults(filename,aInFile) {
+  WriteResultsGMV::WriteResultsGMV( const Char *const filename)
+    : WriteResults(filename) {
 
     ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
 
@@ -49,10 +48,6 @@ namespace CoupledField {
  
     // Does the grid change over time, or can we use a fixed grid
     fixedgrid_ = params->IsSet( "fixedGrid", "gmv" );
-
-    // Initialize history files
-    InitHistoryFiles();
-
   }
 
 
@@ -89,15 +84,13 @@ namespace CoupledField {
   // **************
   //   WriteNodes
   // **************
-  void WriteResultsGMV::WriteNodes(const Integer alevel) {
-
-    Integer level = alevel;
+  void WriteResultsGMV::WriteNodes() {
 
     // write keyword
     (*output) << "nodev   ";
 
     //get and write number of nodes on the level
-    Integer numnodes=ptgrid->GetMaxnumnodes(level);
+    Integer numnodes=ptgrid->GetNumNodes();
     if (ascii_)
       (*output) << numnodes << std::endl;
     else
@@ -113,9 +106,9 @@ namespace CoupledField {
       Point<2> point;
 
       // write x,y,z-coordinate
-      for ( i = 0; i < numnodes; i++ ) {
+      for ( i = 1; i <= numnodes; i++ ) {
 
-        ptgrid->GetCoordinateNode(i,level,point);
+        ptgrid->GetNodeCoordinate(point,i);
 
         if (ascii_) {
           (*output) << " " << point[0] << " " << point[1] << " "
@@ -134,9 +127,9 @@ namespace CoupledField {
       Point<3> point;
 
       // write x,y,z-coordinate
-      for ( i = 0; i < numnodes; i++ ) {
+      for ( i = 1; i <= numnodes; i++ ) {
 
-        ptgrid->GetCoordinateNode(i,level,point);
+        ptgrid->GetNodeCoordinate(point,i);
         
         if (ascii_) {
           (*output) << " " << point[0] << " " << point[1] << " "
@@ -155,11 +148,9 @@ namespace CoupledField {
   // **************
   //   WriteCells
   // **************
-  void WriteResultsGMV::WriteCells( const Integer alevel ) {
+  void WriteResultsGMV::WriteCells() {
 
     ENTER_FCN( "WriteResultsGMV::WriteCells" );
-
-    Integer level=alevel;
 
     // write keyword
     (*output) << "cells   ";
@@ -170,7 +161,7 @@ namespace CoupledField {
 
     // read information about number of elements 
     Integer numelem; 
-    numelem=ptgrid->GetMaxnumElem(level);
+    numelem=ptgrid->GetNumVolElems();
 
     if (ascii_)
       (*output) << numelem << std::endl;
@@ -184,7 +175,7 @@ namespace CoupledField {
     Integer i;
     for ( i = 0; i < numelem; i++ ) {
 
-      ptgrid->GetConnection(connect, i+1, level);
+      ptgrid->GetElemNodes(connect, i+1);
 
       if ( dim == 2 ) {
         switch ( connect.GetSize() ) {
@@ -335,42 +326,43 @@ namespace CoupledField {
   // ******************
   //   WriteMaterials
   // ******************
-  void WriteResultsGMV::WriteMaterials(const Integer level) {
+  void WriteResultsGMV::WriteMaterials() {
 
     StdVector<Integer> regionID;
-    StdVector<std::string> *subdoms;
+    StdVector<RegionIdType> subdoms;
     StdVector<Elem*> elemSD;
+    std::string regionName;
     Integer aux;
     Char * str = NULL;
     if (! ascii_)
       str =new Char[8];
       
-    subdoms=ptgrid->GetAllSDs();
+    ptgrid->GetVolRegionIds(subdoms);
 
-    regionID.Resize(ptgrid->GetMaxnumElem(level));
+    regionID.Resize(ptgrid->GetNumVolElems());
 
     if (ascii_)
-      (*output) << "material " << (*subdoms).GetSize() << " 0" << std::endl;
+      (*output) << "material " << subdoms.GetSize() << " 0" << std::endl;
     else {
       (*output) << "material";
-      aux = (*subdoms).GetSize();
+      aux = subdoms.GetSize();
       output->write((char*)&aux,sizeof(Integer));
       aux = 0;
       output->write((char*)&aux,sizeof(Integer));
     }
   
     // loop over all subdomains
-    for (Integer iSD=0; iSD<(*subdoms).GetSize(); iSD++) {
-
+    for (Integer iSD=0; iSD<subdoms.GetSize(); iSD++) {
+      regionName = ptgrid->RegionIdToName( subdoms[iSD] );
       if (ascii_)
-        (*output) << (*subdoms)[iSD] << std::endl;
+        (*output) << regionName << std::endl;
       else {
-        to8Char((*subdoms)[iSD],str);
+        to8Char(regionName,str);
         (*output) << str;
       }
       
 
-      ptgrid->GetElemSD(elemSD,(*subdoms)[iSD],level);
+      ptgrid->GetVolElems(elemSD,subdoms[iSD]);
 
       // loop over all elemtns
       for (Integer iElem=0; iElem<elemSD.GetSize(); iElem++) 
@@ -616,7 +608,7 @@ namespace CoupledField {
 
 
 
-  void WriteResultsGMV::WriteGrid(const Integer level)
+  void WriteResultsGMV::WriteGrid()
   {
 
     // ---------------------------
@@ -630,9 +622,9 @@ namespace CoupledField {
         OpenFile(0);
       }
 
-      WriteNodes(level);
-      WriteCells(level);
-      WriteMaterials(level);
+      WriteNodes();
+      WriteCells();
+      WriteMaterials();
       if (ascii_)
         (*output) << "\nendgmv";
       else 
@@ -648,9 +640,9 @@ namespace CoupledField {
     if (fixedgrid_ == TRUE &&
         firstGridWritten_ == FALSE) {
       OpenFile(-1);
-      WriteNodes(level);
-      WriteCells(level);
-      WriteMaterials(level);
+      WriteNodes();
+      WriteCells();
+      WriteMaterials();
       if (ascii_)
         (*output) << "\nendgmv";
       else 
@@ -688,9 +680,9 @@ namespace CoupledField {
         else 
           (*output) << "materialfromfile\"" << nameGridFile_ <<"\"";
       } else {
-        WriteNodes(level);
-        WriteCells(level);
-        WriteMaterials(level);
+        WriteNodes();
+        WriteCells();
+        WriteMaterials();
       }
       if (ascii_)
         (*output) << std::endl << "variable" << std::endl;
@@ -717,7 +709,7 @@ namespace CoupledField {
   
     currTime_ = time;
     currStep_ = step;
-    WriteGrid(ptgrid->GetLastLevel());  
+    WriteGrid();  
 
     Integer type=1; // 0 - for cell 
     // 1 - for node
@@ -777,7 +769,7 @@ namespace CoupledField {
     Vector<Double> solhelp;
     StdVector<SolutionType> solType;
 
-    WriteGrid(ptgrid->GetLastLevel()); 
+    WriteGrid(); 
     data.GetSolutionTypes(solType);
 
     // GMV can not visualize tensor data
@@ -822,7 +814,7 @@ namespace CoupledField {
   
     currTime_ = frequency;
     currStep_ = step;
-    WriteGrid(ptgrid->GetLastLevel());  
+    WriteGrid();  
   
     Integer type=1; // 0 - for cell 
     // 1 - for node
@@ -884,7 +876,7 @@ namespace CoupledField {
     Vector<Complex> solhelp;
     StdVector<SolutionType> solType;
  
-    WriteGrid(ptgrid->GetLastLevel()); 
+    WriteGrid(); 
     sol.GetSolutionTypes(solType);
 
     // GMV can not visualize tensor data
@@ -999,6 +991,10 @@ namespace CoupledField {
   // ********
   void WriteResultsGMV::Init( Grid *aptgrid ) {
     ptgrid = aptgrid;
+
+    // Initialize history files
+    InitHistoryFiles();
+
   }
 
   void WriteResultsGMV::to8Char(const std::string name, char * result)
