@@ -808,6 +808,14 @@ directSolver & noSolver $|$ lapackLU &
 Selects the direct solver that will be used to solve the system on the coarsest
 level. In the case that \xml{noSolver} is chosen the smoother will be used to
 solve the problem.\\
+%
+%
+\noalign{\smallskip}\hline\noalign{\smallskip}
+%
+%
+logging      & yes, no & if set to \xml{yes}, the preconditioner will be
+                         verbose, i.e. it will write information on its
+                         setup and application to the standard logfile.\\
 \noalign{\smallskip}\hline
 \end{longtable}
 \end{center}
