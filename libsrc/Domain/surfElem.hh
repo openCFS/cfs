@@ -11,7 +11,7 @@ namespace CoupledField
   //! This class describes a surface finite element, which means that its
   //! dimension is one smaller than the highest dimensional objects in the grid.
   //! A surface element has all the properties of a volume element (geometric 
-  //! and computational ones), which means that it has a element number, a 
+  //! and computational ones), which means that it has an element number, a 
   //! region identifier, a reference finite element for computation and
   //! all other properties of a volume element.
   //!
@@ -25,7 +25,7 @@ namespace CoupledField
   //! calculating the (degenerated) cross-procduct of two vectors lying in 
   //! the surface ( = connecting corner points). However, the sign of the 
   //! resulting vector will be dependend on the ordering of the connectivity
-  //! of the element. Therefore the flag \a normalSign indicates the a factor
+  //! of the element. Therefore the flag \a normalSign defines a factor
   //! (either 1 or -1) by which the resulting vector has to be multiplied, to
   //! point in the direction of the first volume element.
   //! 
@@ -64,7 +64,7 @@ namespace CoupledField
     // ======================================================
     //@{ \name Geometrical Information
     
-    //! Vector with pointerts to neighbouring elements
+    //! Pointer to first volume element
     Elem * ptVolElem1;
     
     //! Pointer to second volume element
