@@ -192,8 +192,6 @@ libsrc/Domain/NetGen/Makefile -text
 libsrc/Domain/NetGen/interface_netgen.cc svneol=native#text/plain
 libsrc/Domain/NetGen/interface_netgen.hh svneol=native#text/plain
 libsrc/Domain/NetGen/nginterface.h svneol=native#text/plain
-libsrc/Domain/bcs.cc svneol=native#text/plain
-libsrc/Domain/bcs.hh svneol=native#text/plain
 libsrc/Domain/domain.cc svneol=native#text/plain
 libsrc/Domain/domain.hh svneol=native#text/plain
 libsrc/Domain/elem.hh svneol=native#text/plain
