@@ -21,6 +21,7 @@
   <!-- instance document -->
   <xsd:complexType name="DT_BasicDirectCoupling" abstract="true"/>
 
+
   <!-- ******************************************************************** -->
   <!--   Definition of basic direct coupling element -->
   <!-- ******************************************************************** -->
@@ -40,12 +41,12 @@
       <xsd:complexContent>
         <xsd:extension base="DT_BasicCoupling">
           <xsd:sequence>
-            <xsd:element ref="PDEBasicDirectCoupling"  minOccurs="0"
-             maxOccurs="unbounded"/>
+            <xsd:element ref="PDEBasicDirectCoupling" minOccurs="0"
+                 maxOccurs="unbounded"/>
           </xsd:sequence>
         </xsd:extension>
       </xsd:complexContent>
-    </xsd:complexType>   
+    </xsd:complexType>
   </xsd:element>
 
   
@@ -69,8 +70,7 @@
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
-                <xsd:attribute name="name" type="xsd:token"
-                use="required"/>
+                <xsd:attribute name="name" type="xsd:token" use="required"/>
               </xsd:complexType>
             </xsd:element>
           </xsd:sequence>
