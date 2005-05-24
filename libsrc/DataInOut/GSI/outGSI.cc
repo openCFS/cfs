@@ -33,7 +33,7 @@ namespace CoupledField {
   
     fp_ = fopen(myfilename.c_str(), "wb");
   
-    io_ = new GridlibSocketInterface::XDRIO(NULL, fp_);
+    io_ = new GridlibSocketInterface::RawIO(NULL, fp_, true);
 
   }
 
@@ -525,7 +525,11 @@ namespace CoupledField {
     else if (format == AMPLITUDE_PHASE) 
       {
         id = "---- DS56 HARMONIC AP ----";
-        
+        std::cout << title << std::endl;
+        std::cout << x.GetSize() << std::endl;
+        std::cout << nrDofs << std::endl;
+        std::cout << numElems << std::endl;
+       
         for (i=0; i<n; i++)
           {
             for (j=0; j<nrDofs; j++)
@@ -625,7 +629,7 @@ namespace CoupledField {
   
     Vector<Complex> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numNodes =  ptgrid->GetNumNodes();
+    Integer numNodes =  ptgrid->GetNumNodes();  
     std::string title;  
     sol.GetSolutionTypes(solTypes);
   
@@ -662,14 +666,14 @@ namespace CoupledField {
     Vector<Complex> globalSolution;
     StdVector<SolutionType> solTypes;
     sol.GetSolutionTypes(solTypes);
-    Integer numNodes =  ptgrid->GetNumNodes();  
+    Integer numElems =  ptgrid->GetNumVolElems(); 
   
     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
       {
         sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
         title = SolutionTypeToString(solTypes[iSol]);
         Dataset56_Harmonic(title, globalSolution, step, frequency, 
-                           format, numNodes ,sol.GetDof(solTypes[iSol]));
+                           format, numElems ,sol.GetDof(solTypes[iSol]));
       }
   
   }
