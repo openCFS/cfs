@@ -35,10 +35,12 @@ SUBLIBDIR = Driver PDE CoupledPDE \
             Domain/GridCFS Domain \
             DataInOut/DefineFiles \
             DataInOut/ParamHandling \
-            DataInOut/Unverg DataInOut/GMV \
-            DataInOut/AnsysFile DataInOut\
+            DataInOut/CommandLine \
+            DataInOut/Unverg \
+            DataInOut/GMV \
+            DataInOut/AnsysFile \
+            DataInOut \
             DataInOut/Database\
-            DataInOut/CommandLine\
             Utils Matrix General ODESolve ODEDescr \
 	    ParamIdent\
             $(EXTRA_MODULES)
