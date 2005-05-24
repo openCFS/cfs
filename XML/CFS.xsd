@@ -64,8 +64,7 @@
       <xsd:element name="output" type="DT_Output" minOccurs="0"/>
 
       <!-- Extra information for output format (optional) -->
-      <xsd:element ref="OutputBasic" minOccurs="0" 
-                   maxOccurs="unbounded"/>    
+      <xsd:element ref="OutputBasic" minOccurs="0" maxOccurs="unbounded"/>    
 
       <!-- Name of file containing material data (optional) -->
       <xsd:element name="materialData" type="DT_MatFile" minOccurs="0"/>
