@@ -63,7 +63,6 @@ auxiliary/mysql/getelementresult.sql -text
 auxiliary/mysql/getelements.sql -text
 auxiliary/mysql/getnodalresult.sql -text
 auxiliary/mysql/getresultidx.sql -text
-/libgoal -text
 libsrc/AlgebraicSystem/README -text
 libsrc/CoupledPDE/BasePairCoupling.cc svneol=native#text/plain
 libsrc/CoupledPDE/BasePairCoupling.hh svneol=native#text/plain
