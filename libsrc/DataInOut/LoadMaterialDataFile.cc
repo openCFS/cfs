@@ -199,8 +199,9 @@ namespace CoupledField
     std::string hystType = "no"; //char hystType[bufLength] = "no";
     char htype[bufLength];
     ReadLine(fin,buffer);
-    SSCANF(buffer,"%*d%*s%s%s%s", materialName, nonLin, htype);
-    hystType = htype;  
+    if ( SSCANF(buffer,"%*d%*s%s%s%s", materialName, nonLin, htype) == 3 ) {
+      hystType = htype;
+    }
 
     material -> SetName(materialName);
 
