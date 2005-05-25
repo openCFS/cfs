@@ -47,13 +47,12 @@ ARFLAGS = r
 # STANDARD .... the rest
 # -----------------------------------------------------------------------------
 
-# MODDEBUG = -DDEBUG_XMLPARAMHANDLER
+# MODEDEBUG = -DDEBUG_XMLPARAMHANDLER
 MODEDEBUG =
-DEBUG    = -Wno-long-long -Wno-comment -DTRACE=10 -ggdb -pg \
+DEBUG    = -Wno-long-long -Wno-comment -DTRACE -ggdb -pg \
            -DCHECK_INDEX -DCHECK_INITIALIZED -DDEBUG -DMEMTRACE 
 
-#STANDARD = -ansi -Wall -pedantic
-STANDARD = 
+STANDARD = -ansi -Wall -pedantic
 
 CFLAG_EXE      =
 CFLAGS_MACHINE = $(STANDARD) $(DEBUG) $(MODEDEBUG)
