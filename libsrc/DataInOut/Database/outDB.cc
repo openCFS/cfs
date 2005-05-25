@@ -25,7 +25,7 @@ namespace CoupledField
     std::string hostName, userName, passwd, databaseName;
     Integer port;
 
-    ptgrid = aptgrid;
+    ptGrid_ = aptgrid;
 
     // get connection parameters
     params->Get("hostName", hostName, "database");
@@ -45,10 +45,10 @@ namespace CoupledField
     ENTER_FCN("WriteResultsDatabase::WriteBasisData");
     WriteConfFile();              // save .conf-file in database
 
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
-    Integer dim         = ptgrid->GetDim();
+    Integer dim         = ptGrid_->GetDim();
 
     dbLineData d("Calculation");
     d.Set("idx","0");
@@ -79,11 +79,11 @@ namespace CoupledField
   long int WriteResultsDatabase::WriteNodeCoordinates()
   {
     ENTER_FCN("WriteResultsDatabase::WriteNodeCoordinates");
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
  
-    Integer dim     = ptgrid->GetDim();
-    Integer maxnumnodes = ptgrid->GetNumNodes();  
+    Integer dim     = ptGrid_->GetDim();
+    Integer maxnumnodes = ptGrid_->GetNumNodes();  
 
     dbLineData d("Node");
     d.Set("idx","0");
@@ -100,7 +100,7 @@ namespace CoupledField
         if (dim==2)
           {
             Point<2> Point;
-            ptgrid->GetNodeCoordinate(Point,i);
+            ptGrid_->GetNodeCoordinate(Point,i);
             d.Set("x_coord","0");
             d.Set("y_coord",Point[0]);
             d.Set("z_coord",Point[1]);
@@ -109,7 +109,7 @@ namespace CoupledField
         if (dim==3)
           {
             Point<3> Point;
-            ptgrid->GetNodeCoordinate(Point,i);
+            ptGrid_->GetNodeCoordinate(Point,i);
             d.Set("x_coord",Point[0]);
             d.Set("y_coord",Point[1]);
             d.Set("z_coord",Point[2]);
@@ -124,23 +124,23 @@ namespace CoupledField
   long int WriteResultsDatabase::WriteElementNodes()
   {
     ENTER_FCN("WriteResultsDatabase::WriteElementNodes");
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
-    Integer dim = ptgrid->GetDim();
+    Integer dim = ptGrid_->GetDim();
 
     StdVector<Integer> connect;
     StdVector<Elem*> elemssd;
     Integer elmsgrp=1;
 
     StdVector<RegionIdType> subdoms;
-    ptgrid->GetVolRegionIds(subdoms);
+    ptGrid_->GetVolRegionIds(subdoms);
     Integer i, j, k;
     k = 0;
     Integer elemlabel, elemtypegeo, elemtypephys, subtype, elemgrpno, nofnodes;
     for (i=0; i<subdoms.GetSize(); i++)
       {
-        ptgrid->GetVolElems(elemssd,subdoms[i]);
+        ptGrid_->GetVolElems(elemssd,subdoms[i]);
 
         for (j=0; j < elemssd.GetSize(); j++)
           {  
@@ -247,8 +247,8 @@ namespace CoupledField
                                               const Integer nrDofs)
   {
     ENTER_FCN("WriteResultsDatabase::WriteNodalResult");
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
     Integer valsPerNode = 1;
     if (nrDofs > 1)
@@ -341,7 +341,7 @@ namespace CoupledField
     StdVector<SolutionType> solTypes;
     sol.GetSolutionTypes(solTypes);
     std::string title;
-    Integer numNodes =  ptgrid->GetNumNodes();
+    Integer numNodes =  ptGrid_->GetNumNodes();
 
     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
       {
@@ -409,10 +409,10 @@ namespace CoupledField
     Vector<Double> globalSolution;
     StdVector<SolutionType> solTypes;
     std::string title;
-    Integer numElems =  ptgrid->GetNumVolElems();  
+    Integer numElems =  ptGrid_->GetNumVolElems();  
   
     sol.GetSolutionTypes(solTypes);
-    sol.TransformElemSolution(globalSolution,ptgrid);
+    sol.TransformElemSolution(globalSolution,ptGrid_);
     title = SolutionTypeToString(solTypes[0]);
     WriteElementResult(title, globalSolution, step, time,numElems, sol.GetDof());
   }
@@ -503,8 +503,8 @@ namespace CoupledField
                                                 const Integer nrDofs)
   {
     ENTER_FCN("WriteResultsDatabase::WriteElementResult");
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
     Integer valsPerNode = 1;
     if (nrDofs > 1)

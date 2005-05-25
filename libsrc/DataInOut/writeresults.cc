@@ -22,6 +22,7 @@ namespace CoupledField {
     namefile_ = filename;
     NeedHistory_ = FALSE;
     ascii_=TRUE;
+    ptGrid_ = NULL;
     
   }
 
@@ -142,7 +143,8 @@ namespace CoupledField {
       // nodes to the histNodesPerQuant_ vector and the indices of
       // the identifier and node numbers to histNodeNumIdentCoup
       StdVector<Integer> tempNodes;
-      ptgrid->GetNodesByName( tempNodes, nodeVec[iQuant] );
+      
+      ptGrid_->GetNodesByName( tempNodes, nodeVec[iQuant] );
       histNodeNumIdentCoup[quantityFound].Push_back(iQuant);
       histNodeNumIdentCoup[quantityFound].
         Push_back(histNodesPerQuant_[quantityFound].GetSize());

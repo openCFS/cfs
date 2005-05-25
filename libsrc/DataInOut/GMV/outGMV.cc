@@ -22,8 +22,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
 
   Integer nameLength = std::strlen(filename);
-  namedir_ = new Char[ nameLength + 4 + 1 ];
-  std::strcpy( namedir_, filename );
+  namedir_ = new Char[ nameLength + 4 + 1 ]; std::strcpy( namedir_, filename );
   std::strcat( namedir_, "_gmv" );
 
   Char *command = new Char[ nameLength + 4 + 9 + 1 ];
@@ -38,7 +37,6 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
   firstGridWritten_ = FALSE;
   output = NULL;
-  ptgrid = NULL;
 
   ascii_ = TRUE;
   fixedgrid_ = TRUE;
@@ -90,13 +88,13 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     (*output) << "nodev   ";
 
     //get and write number of nodes on the level
-    Integer numnodes=ptgrid->GetNumNodes();
+    Integer numnodes=ptGrid_->GetNumNodes();
     if (ascii_)
       (*output) << numnodes << std::endl;
     else
       output->write((char*)&numnodes,sizeof(Integer));
 
-    Integer dim=ptgrid->GetDim();
+    Integer dim=ptGrid_->GetDim();
 
     //get and write coodinates of nodes
     Integer i;
@@ -108,7 +106,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       // write x,y,z-coordinate
       for ( i = 1; i <= numnodes; i++ ) {
 
-        ptgrid->GetNodeCoordinate(point,i);
+        ptGrid_->GetNodeCoordinate(point,i);
 
         if (ascii_) {
           (*output) << " " << point[0] << " " << point[1] << " "
@@ -129,7 +127,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       // write x,y,z-coordinate
       for ( i = 1; i <= numnodes; i++ ) {
 
-        ptgrid->GetNodeCoordinate(point,i);
+        ptGrid_->GetNodeCoordinate(point,i);
         
         if (ascii_) {
           (*output) << " " << point[0] << " " << point[1] << " "
@@ -155,13 +153,13 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     // write keyword
     (*output) << "cells   ";
 
-    if (!ptgrid) {
-      Error( "ptgrid is not initialized", __FILE__, __LINE__ );
+    if (!ptGrid_) {
+      Error( "ptGrid_ is not initialized", __FILE__, __LINE__ );
     }
 
     // read information about number of elements 
     Integer numelem; 
-    numelem=ptgrid->GetNumVolElems();
+    numelem=ptGrid_->GetNumVolElems();
 
     if (ascii_)
       (*output) << numelem << std::endl;
@@ -170,12 +168,12 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
     StdVector<Integer> connect;
 
-    Integer dim=ptgrid->GetDim();
+    Integer dim=ptGrid_->GetDim();
   
     Integer i;
     for ( i = 0; i < numelem; i++ ) {
 
-      ptgrid->GetElemNodes(connect, i+1);
+      ptGrid_->GetElemNodes(connect, i+1);
 
       if ( dim == 2 ) {
         switch ( connect.GetSize() ) {
@@ -337,9 +335,9 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     if (! ascii_)
       str =new Char[8];
       
-    ptgrid->GetVolRegionIds(subdoms);
+    ptGrid_->GetVolRegionIds(subdoms);
 
-    regionID.Resize(ptgrid->GetNumVolElems());
+    regionID.Resize(ptGrid_->GetNumVolElems());
 
     if (ascii_)
       (*output) << "material " << subdoms.GetSize() << " 0" << std::endl;
@@ -353,7 +351,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   
     // loop over all subdomains
     for (Integer iSD=0; iSD<subdoms.GetSize(); iSD++) {
-      regionName = ptgrid->RegionIdToName( subdoms[iSD] );
+      regionName = ptGrid_->RegionIdToName( subdoms[iSD] );
       if (ascii_)
         (*output) << regionName << std::endl;
       else {
@@ -362,7 +360,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       }
       
 
-      ptgrid->GetVolElems(elemSD,subdoms[iSD]);
+      ptGrid_->GetVolElems(elemSD,subdoms[iSD]);
 
       // loop over all elemtns
       for (Integer iElem=0; iElem<elemSD.GetSize(); iElem++) 
@@ -990,7 +988,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   //   Init
   // ********
   void WriteResultsGMV::Init( Grid *aptgrid ) {
-    ptgrid = aptgrid;
+
+    ptGrid_ = aptgrid;
 
     // Initialize history files
     InitHistoryFiles();

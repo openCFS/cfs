@@ -105,9 +105,6 @@ namespace CoupledField
     // previous time 
     Double lastTime_;
 
-    //! pointer to Grid
-    Grid * ptgrid;
-
     //! indicator of type for data
     Boolean ascii_;
 
