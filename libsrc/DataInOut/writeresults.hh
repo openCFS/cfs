@@ -141,7 +141,7 @@ namespace CoupledField {
     std::string namefile_;
 
     //! pointer to Grid
-    Grid * ptgrid;
+    Grid * ptGrid_;
 
     // ************************************
     //  Section dealing with history files 

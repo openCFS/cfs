@@ -104,7 +104,7 @@ namespace CoupledField {
   // ********
   void WriteResultsGSI::Init( Grid * aptgrid ) {
     ENTER_FCN( "WriteResultsGSI::Init" );
-    ptgrid = aptgrid;
+    ptGrid_ = aptgrid;
 
     // Initialize history files
     InitHistoryFiles();
@@ -158,12 +158,12 @@ namespace CoupledField {
   {
     ENTER_FCN("WriteResultsGSI::Dataset666");
 
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
-    Integer dim=ptgrid->GetDim();
-    Integer maxnumnodes=ptgrid-> GetNumNodes();
-    Integer maxnumelem=ptgrid-> GetNumVolElems();
+    Integer dim=ptGrid_->GetDim();
+    Integer maxnumnodes=ptGrid_-> GetNumNodes();
+    Integer maxnumelem=ptGrid_-> GetNumVolElems();
 
     try 
       {
@@ -184,12 +184,12 @@ namespace CoupledField {
   {
     ENTER_FCN("WriteResultsGSI::Dataset781");
 
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
     Integer i;
-    Integer dim=ptgrid->GetDim();
-    Integer maxnumnodes=ptgrid->GetNumNodes();
+    Integer dim=ptGrid_->GetDim();
+    Integer maxnumnodes=ptGrid_->GetNumNodes();
 
     try 
       {
@@ -202,7 +202,7 @@ namespace CoupledField {
             for (i=0; i<maxnumnodes; i++)
               {
                 Point<2> Point;
-                ptgrid->GetNodeCoordinate(Point,i+1);
+                ptGrid_->GetNodeCoordinate(Point,i+1);
               
                 vec[i*3+2] = (float) 0.0;
                 vec[i*3+1] = (float) Point[1];
@@ -215,7 +215,7 @@ namespace CoupledField {
             for (i=0; i<maxnumnodes; i++)
               {
                 Point<3> Point;
-                ptgrid->GetNodeCoordinate(Point,i+1);
+                ptGrid_->GetNodeCoordinate(Point,i+1);
               
                 vec[i*3+2] = (float) Point[2];
                 vec[i*3+1] = (float) Point[1];
@@ -238,11 +238,11 @@ namespace CoupledField {
   {
     ENTER_FCN("WriteResultsGSI::Dataset780");
 
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
   
     Integer maxnumelem;
-    Integer dim=ptgrid->GetDim();
+    Integer dim=ptGrid_->GetDim();
   
     Integer elmsgrp;
   
@@ -257,10 +257,10 @@ namespace CoupledField {
     Integer i, j, k, l;
 
     elmsgrp=1;
-    ptgrid->GetVolRegionIds(subdoms);
+    ptGrid_->GetVolRegionIds(subdoms);
     k = 0;
     l = 0;
-    maxnumelem=ptgrid->GetNumVolElems();
+    maxnumelem=ptGrid_->GetNumVolElems();
 
     try 
       {
@@ -271,7 +271,7 @@ namespace CoupledField {
   
         for (i=0; i<subdoms.GetSize(); i++)
           {
-            ptgrid->GetVolElems(elemssd,subdoms[i]);
+            ptGrid_->GetVolElems(elemssd,subdoms[i]);
           
             //          (*io_) << (int) elemssd.size();
             for (j=0; j < elemssd.GetSize(); j++)
@@ -344,8 +344,8 @@ namespace CoupledField {
   {
     ENTER_FCN("WriteResultsGSI::Dataset55_Transient");
 
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
     Integer i,j,n;
     std::vector<float> vec;
@@ -385,8 +385,8 @@ namespace CoupledField {
                                            const Integer nrNodes,
                                            const Integer nrDofs)
   {
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
   
     Integer i,j,n;
     n=nrNodes;
@@ -464,8 +464,8 @@ namespace CoupledField {
     n = x.GetSize();
     vec.resize(n);
 
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
     try {
       (*io_) << "---- DS56 TRANSIENT ----";
@@ -498,8 +498,8 @@ namespace CoupledField {
                                            const Integer numElems,
                                            const Integer nrDofs)
   {
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
   
     Integer i,j,n;
     n=numElems;
@@ -573,7 +573,7 @@ namespace CoupledField {
   
     Vector<Double> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numNodes =  ptgrid->GetNumNodes();
+    Integer numNodes =  ptGrid_->GetNumNodes();
     std::string title;
 
     sol.GetSolutionTypes(solTypes);
@@ -609,10 +609,10 @@ namespace CoupledField {
     StdVector<SolutionType> solTypes;
     std::string title;
 
-    Integer numElems =  ptgrid->GetNumVolElems();  
+    Integer numElems =  ptGrid_->GetNumVolElems();  
   
     sol.GetSolutionTypes(solTypes);
-    sol.TransformElemSolution(globalSolution,ptgrid);
+    sol.TransformElemSolution(globalSolution,ptGrid_);
     title = SolutionTypeToString(solTypes[0]);
     Dataset56_Transient(title, globalSolution, step, 
                         time, numElems, sol.GetDof());
@@ -629,7 +629,7 @@ namespace CoupledField {
   
     Vector<Complex> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numNodes =  ptgrid->GetNumNodes();  
+    Integer numNodes =  ptGrid_->GetNumNodes();
     std::string title;  
     sol.GetSolutionTypes(solTypes);
   
@@ -666,7 +666,7 @@ namespace CoupledField {
     Vector<Complex> globalSolution;
     StdVector<SolutionType> solTypes;
     sol.GetSolutionTypes(solTypes);
-    Integer numElems =  ptgrid->GetNumVolElems(); 
+    Integer numElems =  ptGrid_->GetNumVolElems(); 
   
     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
       {

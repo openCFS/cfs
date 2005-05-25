@@ -46,14 +46,14 @@ namespace CoupledField
   void  WriteResultsUnverg::Dataset666()
   {
     //
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
     (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
 
-    Integer dim=ptgrid->GetDim();
-    Integer maxnumnodes=ptgrid->GetNumNodes();
-    Integer maxnumelem=ptgrid->GetNumVolElems();
+    Integer dim=ptGrid_->GetDim();
+    Integer maxnumnodes=ptGrid_->GetNumNodes();
+    Integer maxnumelem=ptGrid_->GetNumVolElems();
 
     (*output)<< std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << dim << std::endl << std::setw(10) << maxnumnodes << std::setw(10) << maxnumelem << std::endl;
 
@@ -63,13 +63,13 @@ namespace CoupledField
   void  WriteResultsUnverg::Dataset781()
   {
     //
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
     (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
-    Integer dim=ptgrid->GetDim();
-    Integer maxnumnodes=ptgrid->GetNumNodes();
+    Integer dim=ptGrid_->GetDim();
+    Integer maxnumnodes=ptGrid_->GetNumNodes();
 
     (*output).setf(std::ios::scientific);
     (*output).precision(16);
@@ -83,7 +83,7 @@ namespace CoupledField
         if (dim==2)
           {
             Point<2> Point;
-            ptgrid->GetNodeCoordinate(Point,i+1);
+            ptGrid_->GetNodeCoordinate(Point,i+1);
 
             (*output) << "   " << 0.0 ;
             PrintPoint(Point,output);
@@ -92,7 +92,7 @@ namespace CoupledField
         else
           {
             Point<3> Point;
-            ptgrid->GetNodeCoordinate(Point,i+1);
+            ptGrid_->GetNodeCoordinate(Point,i+1);
 
             PrintPoint(Point,output);
             (*output) << std::endl;
@@ -105,11 +105,11 @@ namespace CoupledField
   void  WriteResultsUnverg::Dataset780()
   {
     //
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
     (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
-    Integer dim=ptgrid->GetDim();
+    Integer dim=ptGrid_->GetDim();
 
     StdVector<Integer> connect;
     StdVector<Elem*> elemssd;
@@ -117,12 +117,12 @@ namespace CoupledField
     std::string errMsg;
 
     StdVector<RegionIdType> subdoms;
-    ptgrid->GetVolRegionIds(subdoms);
+    ptGrid_->GetVolRegionIds(subdoms);
     Integer i, j, k;
     k = 0;
     for (i=0; i<subdoms.GetSize(); i++)
       {
-        ptgrid->GetVolElems(elemssd,subdoms[i]);
+        ptGrid_->GetVolElems(elemssd,subdoms[i]);
 
         for (j=0; j < elemssd.GetSize(); j++)
           {  
@@ -201,8 +201,8 @@ namespace CoupledField
                                                   const Integer nrDofs)
   {
     //
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
     (*output) << std::setw(6) << -1 << std::endl 
               << std::setw(6) << dataSetNr << std::endl;
@@ -284,8 +284,8 @@ namespace CoupledField
   {
   
     Integer dataCharact = 1;
-    if (!ptgrid)
-      Error("ptgrid is not initialized", __FILE__,__LINE__);
+    if (!ptGrid_)
+      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
   
     (*output) << std::setw(6) << -1 << std::endl 
               << std::setw(6) << dataSetNr << std::endl;
@@ -427,7 +427,7 @@ namespace CoupledField
 
   void  WriteResultsUnverg::Init(Grid * aptgrid)
   {
-    ptgrid=aptgrid;
+    ptGrid_=aptgrid;
 
     // Initialize history files
     InitHistoryFiles();
@@ -442,7 +442,7 @@ namespace CoupledField
     
     Vector<Double> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numNodes =  ptgrid->GetNumNodes();
+    Integer numNodes =  ptGrid_->GetNumNodes();
     std::string title;
     sol.GetSolutionTypes(solTypes);
 
@@ -465,10 +465,10 @@ namespace CoupledField
     Vector<Double> globalSolution;
     StdVector<SolutionType> solTypes;
     std::string title;
-    Integer numElems =  ptgrid->GetNumVolElems();  
+    Integer numElems =  ptGrid_->GetNumVolElems();  
   
     sol.GetSolutionTypes(solTypes);
-    sol.TransformElemSolution(globalSolution,ptgrid);
+    sol.TransformElemSolution(globalSolution,ptGrid_);
     title = SolutionTypeToString(solTypes[0]);
     NodeElemDataTransient(56,title, globalSolution, step, 
                           time, numElems, sol.GetDof());
@@ -487,7 +487,7 @@ namespace CoupledField
     StdVector<SolutionType> solTypes;
     sol.GetSolutionTypes(solTypes);
   
-    Integer numNodes =  ptgrid->GetNumNodes();
+    Integer numNodes =  ptGrid_->GetNumNodes();
     std::string title;
 
     for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
@@ -510,12 +510,12 @@ namespace CoupledField
     ENTER_FCN( "WriteResultsUnverg::WriteElemSolutionHarmonic" );
     Vector<Complex> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numElems =  ptgrid->GetNumVolElems();  
+    Integer numElems =  ptGrid_->GetNumVolElems();  
 
     std::string title;
 
     sol.GetSolutionTypes(solTypes);
-    sol.TransformElemSolution(globalSolution,ptgrid);
+    sol.TransformElemSolution(globalSolution,ptGrid_);
     title = SolutionTypeToString(solTypes[0]);  
 
     NodeElemDataHarmonic(55, title, globalSolution, step, frequency, 
