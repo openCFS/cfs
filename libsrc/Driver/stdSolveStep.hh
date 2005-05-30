@@ -1,6 +1,8 @@
 #ifndef FILE_STDSOLVESTEP
 #define FILE_STDSOLVESTEP
 
+#include <map>
+
 #include "baseSolveStep.hh"
 #include "Utils/vector.hh"
 #include "Utils/hysteresis.hh"
@@ -36,7 +38,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */  
-    virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+    virtual void PreStepStatic(const UInt kstep, const Double asteptime,
                                const Boolean reset){;}
  
     //! base method for solving one static step 
@@ -45,7 +47,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
+    virtual void SolveStepStatic(const UInt kstep, const Double asteptime,
                                  const Boolean reset);
 
     //! solves for one linear static step 
@@ -54,7 +56,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepStaticLin(const Integer kstep, const Double asteptime,
+    virtual void StepStaticLin(const UInt kstep, const Double asteptime,
                                const Boolean reset);
 
     //! solves for one nonlinear static step 
@@ -63,7 +65,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
+    virtual void StepStaticNonLin(const UInt kstep, const Double asteptime,
                                   const Boolean reset)
     {Error("StepStaticNonLin not implemented!",__FILE__,__LINE__);};
 
@@ -72,7 +74,7 @@ namespace CoupledField
       \param kstep time step counter
       \param asteptime current time
     */  
-    virtual void PostStepStatic(const Integer kstep, const Double asteptime) {;};
+    virtual void PostStepStatic(const UInt kstep, const Double asteptime) {;};
 
 
 
@@ -83,7 +85,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */  
-    virtual void PreStepTrans(const Integer kstep, const Double asteptime,
+    virtual void PreStepTrans(const UInt kstep, const Double asteptime,
                               const Boolean reset);
 
     //! base method for solving one transient step 
@@ -92,7 +94,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
+    virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
                                 const Boolean updatesysmat);
 
     //! solves for one linear transient step 
@@ -101,7 +103,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepTransLin(const Integer kstep, const Double asteptime,
+    virtual void StepTransLin(const UInt kstep, const Double asteptime,
                               const Boolean updatesysmat);
 
     //! solves for one nonlinear transient step 
@@ -110,7 +112,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepTransNonLin(const Integer kstep, const Double asteptime,
+    virtual void StepTransNonLin(const UInt kstep, const Double asteptime,
                                  const Boolean updatesysmat)
     {Error("Nonlinear Transient Step not implemented!",__FILE__,__LINE__);};
 
@@ -119,7 +121,7 @@ namespace CoupledField
       \param kstep time step counter
       \param asteptime current time
     */  
-    virtual void PostStepTrans(const Integer kstep, const Double asteptime);
+    virtual void PostStepTrans(const UInt kstep, const Double asteptime);
 
     //----------------------- HARMONIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
@@ -128,7 +130,7 @@ namespace CoupledField
       \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */   
-    virtual void PreStepHarmonic(const Integer freqStep, const Double frequency, 
+    virtual void PreStepHarmonic(const UInt freqStep, const Double frequency, 
                                  const Boolean reset);
 
     //!  base method for solving one harmonic step 
@@ -137,7 +139,7 @@ namespace CoupledField
       \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void SolveStepHarmonic(const Integer freqStep, const Double frequency, 
+    virtual void SolveStepHarmonic(const UInt freqStep, const Double frequency, 
                                    const Boolean reset);
 
     //! solves for one linear frequency step 
@@ -146,7 +148,7 @@ namespace CoupledField
       \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepHarmonicLin(const Integer freqStep, const Double frequency, 
+    virtual void StepHarmonicLin(const UInt freqStep, const Double frequency, 
                                  const Boolean reset);
 
     //! solves for one nonlinear frequency step 
@@ -155,7 +157,7 @@ namespace CoupledField
       \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepHarmonicNonLin(const Integer freqStep, const Double frequency, 
+    virtual void StepHarmonicNonLin(const UInt freqStep, const Double frequency, 
                                     const Boolean reset)
     {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
 
@@ -166,14 +168,17 @@ namespace CoupledField
       \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void PostStepHarmonic(const Integer freqStep, const Double frequency, 
+    virtual void PostStepHarmonic(const UInt freqStep, const Double frequency, 
                                   const Boolean reset) {;};
 
 
     //!
-    virtual void WriteResults(Integer actStep, Double actTime) {;};
+    virtual void WriteResults(UInt actStep, Double actTime) {;};
 
     //----------------------- helpfull methods--------------------------------------
+
+    //! Set the current time step
+    void SetTimeStep( Double dt );
 
     //! computes linear part of RHS
     Double SetLinRHS(Double loadFactor);
@@ -195,14 +200,14 @@ namespace CoupledField
     void SetPDEId( const PdeIdType pdeId );
 
     //! Write nonlin iteration norms to info-file
-    void WriteClaNlNorms(const Integer iterationCounter,
+    void WriteClaNlNorms(const UInt iterationCounter,
                          const Double residualL2Norm,
                          const Double extForcesL2Norm, const Double residualErr, 
                          const Double solIncrL2Norm, const Double actSolL2Norm, 
                          const Double incrementalErr);
 
     //! returns the hysteresis operator
-    Hysteresis * GetHystOperator(Integer iSD) {
+    Hysteresis * GetHystOperator(UInt iSD) {
       return hyst_[iSD];
     };
 
@@ -219,26 +224,26 @@ namespace CoupledField
 
 
     //! fetches coordinates to element nodes
-    void GetElemCoords(const StdVector< Integer > connect,
+    void GetElemCoords(const StdVector< UInt > connect,
                        Matrix< Double > &coordMat );
 
     //! returns the vector of the solution belonging to all nodes of the actual element
-    void GetSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
+    void GetSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
 
     //! returns the vector of time derivative of the solution belonging to all nodes 
     //!  of the actual element
-    void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
+    void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
 
     //! returns the vector of 2nd time derivative of the solution belonging to all nodes 
     //! of the actual element
-    void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<Integer>& connect_PDE);
+    void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
 
     //-------------------------------- Pointers to (Copies of) StdPDE -------------------
 
     StdPDE& PDE_;                   //!< reference to PDE
     std::string pdename_;            //!< name of PDE 
-    Integer numPDENodes_;            //!< number of nodes belonging to the PDE
-    Integer numPDEElems_;            //!< number of elements belonging to PDE
+    UInt numPDENodes_;            //!< number of nodes belonging to the PDE
+    UInt numPDEElems_;            //!< number of elements belonging to PDE
     Boolean isaxi_;                  //!< TRUE: axisymmetric problem
     StdVector<RegionIdType> subdoms_;//!< subdomain-levels belonging to PDE
     MaterialData * materialData_;    //!< pointer to material data of PDE
@@ -248,17 +253,18 @@ namespace CoupledField
     NodeEQN * eqnData_;              //!< pointer to equation object
     Assemble * assemble_;            //!< pointer to assemble object  
 
-
-    Double * matrix_factor_;       //!< factors for compution effective system matrix
+    //! factors for computingn effective system matrix
+    std::map<FEMatrixType,Double> matrix_factor_;   
+    
     TimeStepping * TS_alg_;        //!< pointer to time-stepping object
     Double lasttimecalc_;          //!< last time on which we have calculated solution
-    Integer laststepcalc_;         //!< Number of last timestep on which we have calculated 
+    UInt laststepcalc_;         //!< Number of last timestep on which we have calculated 
                                    //!< our solution
     Boolean recalc_;               //!< flag indicating reassembling of system matrix
 
     Boolean isIterCoupled_;         //!< TRUE, if PDE is coupled to other ones iteratively
     Boolean firstTimeStepStatic_;  //!< needed for coupled, iterative methods
-    Integer* iterCoupledCounter_;  //!< iteration counter for coupled PDE solution process
+    UInt* iterCoupledCounter_;  //!< iteration counter for coupled PDE solution process
 
     std::string lineSearch_;   //!< switch for lineSearch
     Boolean nonLin_;           //!< flag for nonlinear calculations
@@ -266,7 +272,7 @@ namespace CoupledField
     Boolean geoUpdate_;        //!< flag for geometric update
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
-    Integer nonLinMaxIter_;    //!< maximal number of NL-iterations
+    UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     Boolean nonLinLogging_;    //!< log progress of non-linear iterations
     StdVector<NonLinPDE> nonLinPDEName_;//!< some PDEs carry a name (->acoustics!)

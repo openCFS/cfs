@@ -29,7 +29,6 @@ namespace CoupledField {
     eqnData_      = PDE_.eqnData_;
     assemble_     = PDE_.assemble_;
 
-    matrix_factor_ = PDE_.matrix_factor_;
     lasttimecalc_  = PDE_.lasttimecalc_;
     laststepcalc_  = PDE_.laststepcalc_;
     TS_alg_        = PDE_.TS_alg_;
@@ -51,8 +50,6 @@ namespace CoupledField {
     iterCoupledCounter_ = &PDE_.iterCoupledCounter_;
 
     dampingType_        = PDE_.dampingType_;
-    solIncr_            = PDE_.solIncr_;
-    actSol_             = PDE_.actSol_;
     isIncrFormulation_  = PDE_.isIncrFormulation_;
 
 
@@ -67,7 +64,7 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void StdSolveStep::SolveStepStatic(const Integer kstep, const Double asteptime,
+  void StdSolveStep::SolveStepStatic(const UInt kstep, const Double asteptime,
                                      const Boolean reset) {
 
     ENTER_FCN( "StdSolveStep::SolveStepStatic" );
@@ -84,13 +81,14 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepStaticLin( const Integer kstep, const Double aTime,
+  void StdSolveStep::StepStaticLin( const UInt kstep, const Double aTime,
                                     const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::StepStaticLin" );
 
     Integer job = 3; // only update BCs
-    Double * ptsol;
+    Double * ptSol;
+    UInt size = 0;
     PDE_.lasttimecalc_ = aTime; // for correct output in unv-file
 
 
@@ -110,19 +108,19 @@ namespace CoupledField {
 
     PDE_.SetBCs(aTime);
 
+
     // Incorporate Boundary conitions and
     // recalc the prconditioner eventually
     PDE_.algsys_->BuildInDirichlet();
-    PDE_.algsys_->SetupPrecond( job );
-    PDE_.algsys_->SetupSolver( job );
+    PDE_.algsys_->SetupPrecond();
+    PDE_.algsys_->SetupSolver( );
 
     // Solve problem
     PDE_.algsys_->Solve();
 
     // Get the solution and store it
-    //ptsol = PDE_.algsys_->GetSolutionVal();
-    //PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
-    PDE_.SaveSolution();
+    size = PDE_.algsys_->GetSolutionVal(ptSol);
+    PDE_.SaveSolution(ptSol,size);
 
     PDE_.firstTimeStepStatic_ = FALSE;
   }
@@ -132,7 +130,7 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void StdSolveStep::PreStepTrans( const Integer kstep, const Double asteptime,
+  void StdSolveStep::PreStepTrans( const UInt kstep, const Double asteptime,
                                    const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::PreStepTrans" );
@@ -153,7 +151,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepTrans( const Integer kstep, const Double asteptime, 
+  void StdSolveStep::SolveStepTrans( const UInt kstep, const Double asteptime, 
                                      const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::SolveStepTrans" );
@@ -179,7 +177,7 @@ namespace CoupledField {
 
   //! \todo delete job parameter or replace it by a 
   //! meaningfull attribute
-  void StdSolveStep::StepTransLin( const Integer kstep, const Double asteptime,
+  void StdSolveStep::StepTransLin( const UInt kstep, const Double asteptime,
                                    const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::StepTransLin" );
@@ -189,15 +187,15 @@ namespace CoupledField {
 
     Double * ptsol;
     Integer job;
+    UInt length = 0;
 
     //account for RHS
     PDE_.assemble_->AssembleSrcRHS(PDE_.lasttimecalc_);
 
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(PDE_.sol_);
-
     if ( PDE_.isIterCoupled_ == FALSE || PDE_.iterCoupledCounter_ == 0 ) {        
-      Vector<Double> & solvector= solhelp->GetAlgSysVector();
-      PDE_.TS_alg_->Predictor(solvector);
+      Vector<Double> & solHelp = 
+        dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+      PDE_.TS_alg_->Predictor(solHelp);
     }
 
     if ( PDE_.laststepcalc_ == 1 ) {
@@ -207,9 +205,9 @@ namespace CoupledField {
       if ( PDE_.isIterCoupled_ == FALSE || PDE_.iterCoupledCounter_ == 0 
            || PDE_.geoUpdate_ == TRUE ) {
         job = 1;
-        PDE_.assemble_->AssembleMatrices();
-        PDE_.assemble_->AssembleSprings(PDE_.lasttimecalc_);
-        PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);
+        PDE_.AssembleMatrices();
+        PDE_.AssembleSprings(PDE_.lasttimecalc_);
+        PDE_.algsys_->ConstructEffectiveMatrix(matrix_factor_);
       }  
     }
     else if (reset) {
@@ -221,8 +219,8 @@ namespace CoupledField {
       if (PDE_.dampingType_) {
         PDE_.algsys_->InitMatrix(DAMPING);
       }
-      PDE_.assemble_->AssembleSprings( PDE_.lasttimecalc_);
-      PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);
+      PDE_.AssembleSprings( PDE_.lasttimecalc_);
+      PDE_.algsys_->ConstructEffectiveMatrix(matrix_factor_);
     }
     else {
       job = 3;
@@ -234,9 +232,9 @@ namespace CoupledField {
                  "working together" );
         }
         job = 1;
-        PDE_.assemble_->AssembleMatrices();
-        PDE_.assemble_->AssembleSprings( PDE_.lasttimecalc_);
-        PDE_.algsys_->ConstructEffectiveMatrix(PDE_.matrix_factor_);      
+        PDE_.AssembleMatrices();
+        PDE_.AssembleSprings( PDE_.lasttimecalc_);
+        PDE_.algsys_->ConstructEffectiveMatrix(matrix_factor_);      
       }
     }
 
@@ -254,15 +252,14 @@ namespace CoupledField {
     PDE_.algsys_->BuildInDirichlet();
 
     if ( job == 1 ) {
-      PDE_.algsys_->SetupPrecond( job );
-      PDE_.algsys_->SetupSolver( job );
+      PDE_.algsys_->SetupPrecond( );
+      PDE_.algsys_->SetupSolver( );
     }
 
     PDE_.algsys_->Solve();
 
     if ( PDE_.isIncrFormulation_ ) {
 
-      PDE_.algsys_->GetSolutionVal( ptsol );
       //what a heuristic!!!!!
       Double relaxVal = 0.5;
 
@@ -281,45 +278,53 @@ namespace CoupledField {
         }
       }
 
-      PDE_.StoreAlgsysToVec(PDE_.solIncr_, ptsol);
-      if (PDE_.iterCoupledCounter_ == 0)
-        PDE_.actSol_ = PDE_.solIncr_*relaxVal;
-      else 
-        PDE_.actSol_ += PDE_.solIncr_*relaxVal;
+      length = algsys_->GetSolutionVal(ptsol);
+      solIncr_.Replace(length, ptsol, FALSE);
 
-      PDE_.sol_->SetAlgSysVector(PDE_.actSol_);
-      // *** END OF HACK *** END OF HACK ***
+      if (PDE_.iterCoupledCounter_ == 0) {
+        actSol_ = solIncr_ * relaxVal;
+      } else {
+        actSol_ += solIncr_ * relaxVal;
+      }
+
+      PDE_.SaveSolution(actSol_.GetPointer(), length);
     }
     else 
-      //PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
-      PDE_.SaveSolution();
-      
+      {
+        //PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
+        length = algsys_->GetSolutionVal(ptsol);
+        PDE_.SaveSolution(ptsol,length);
+      }
+    
 
-    Vector<Double> & solvector =\
-      dynamic_cast<NodeStoreSol<Double>*>(PDE_.sol_)->GetAlgSysVector();
+    
+    if (!PDE_.isIterCoupled_) {
+      Vector<Double> & solHelp = 
+        dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+       PDE_.TS_alg_->Corrector(solHelp);
+    }
+    
+    // if (!PDE_.isIterCoupled_) {
+//       std::cerr << "Doing Corrector step of PDE " << PDE_.GetName() << std::endl;
+//       length = algsys_->GetSolutionVal(ptsol);
+//       solVec.Replace( length, ptsol, FALSE );
+//       PDE_.TS_alg_->Corrector(solVec);
+//     }
+    
 
-    if (!PDE_.isIterCoupled_)
-      PDE_.TS_alg_->Corrector(solvector);
+     
   }
 
 
-  void StdSolveStep::PostStepTrans( const Integer kstep, const Double asteptime ) {
+  void StdSolveStep::PostStepTrans( const UInt kstep, const Double asteptime ) {
 
     ENTER_FCN( "StdSolveStep::PostStepTrans" );
-
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(PDE_.sol_);
-    
+         
     if ( PDE_.isIterCoupled_ ) {
-
-      //save solution
-      Vector<Double> & solvector= solhelp->GetAlgSysVector();
-
-      //perform corrector step
-      PDE_.TS_alg_->Corrector(solvector); 
-    }
-  
-    if (PDE_.isIterCoupled_) {
       PDE_.iterCoupledCounter_++;
+      Vector<Double> & solHelp = 
+        dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+      PDE_.TS_alg_->Corrector(solHelp);
     }
   }
 
@@ -329,7 +334,7 @@ namespace CoupledField {
   // Solve Step Harmonic  SECTION  
   // ======================================================
 
-  void StdSolveStep::PreStepHarmonic( const Integer freqStep,
+  void StdSolveStep::PreStepHarmonic( const UInt freqStep,
                                       const Double frequency,
                                       const Boolean reset ) {
 
@@ -347,7 +352,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::SolveStepHarmonic( const Integer freqStep,
+  void StdSolveStep::SolveStepHarmonic( const UInt freqStep,
                                         const Double frequency,
                                         const Boolean reset ) {
 
@@ -362,14 +367,15 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::StepHarmonicLin( const Integer freqStep,
+  void StdSolveStep::StepHarmonicLin( const UInt freqStep,
                                       const Double frequency, 
                                       const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::StepHarmonicLin" );
 
     Integer job;
-    Double * ptsol;
+    Complex * ptSol = NULL;
+    UInt length = 0;
 
     if ( reset ) {
       PDE_.assemble_->AssembleMatrices( );
@@ -394,15 +400,14 @@ namespace CoupledField {
     PDE_.algsys_->BuildInDirichlet();
  
     if (job == 1) {
-      PDE_.algsys_->SetupPrecond( job );
-      PDE_.algsys_->SetupSolver( job );
+      PDE_.algsys_->SetupPrecond();
+      PDE_.algsys_->SetupSolver();
     }
 
     PDE_.algsys_->Solve();
 
-    //ptsol = PDE_.algsys_->GetSolutionVal();
-    //PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
-    PDE_.SaveSolution();
+    length =  PDE_.algsys_->GetSolutionVal(ptSol);
+    PDE_.SaveSolution(ptSol,length);
   }
 
 
@@ -445,16 +450,24 @@ namespace CoupledField {
 
     ENTER_FCN( "StdSolveStep::StoreAlgsysToVec" );
 
-    //const Integer numElems = numPDENodes_ * dofspernode_;
-    Integer numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
+    //const UInt numElems = numPDENodes_ * dofspernode_;
+    UInt numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
     vec.Resize(numElems);
       
-    for (Integer i=0; i<numElems; i++) {
+    for (UInt i=0; i<numElems; i++) {
       vec[i] = pt[i];
     }
   }
 
 
+  void StdSolveStep::SetTimeStep( Double dt ) {
+    ENTER_FCN( "StdSolveStep::SetTimeStep") ;
+
+    // Check if timestepping is eneabled
+    if ( TS_alg_ != NULL )
+      TS_alg_->Init( matrix_factor_, dt );
+  }
+  
 
   Double StdSolveStep::LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
                                   Double& etaLineSearch, Boolean trans)
@@ -462,12 +475,12 @@ namespace CoupledField {
     ENTER_FCN( "StdSolveStep::LineSearch" );
 
     Vector<Double> solOld(actSol);
-    const Integer nrEtas = 5;
+    const UInt nrEtas = 5;
     const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
     Double etaOpt;
     Double residualL2NormOpt = 1e15;
   
-    for(Integer i=0; i<nrEtas; i++)
+    for(UInt i=0; i<nrEtas; i++)
       {
         actSol = solIncrement * eta[i];
         actSol += solOld;
@@ -520,18 +533,18 @@ namespace CoupledField {
   {
     ENTER_FCN( "StdSolveStep::AlgsysL2Norm" );
 
-    //const Integer numElems = numPDENodes_ * dofspernode_;
-    Integer numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
+    //const UInt numElems = numPDENodes_ * dofspernode_;
+    UInt numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
     Double quadSum = 0;
   
-    for (Integer i=0; i<numElems; i++)   
+    for (UInt i=0; i<numElems; i++)   
       quadSum += pt[i]*pt[i];
 
     return sqrt(quadSum);
   }
   
 
-  void StdSolveStep::WriteClaNlNorms(const Integer iterationCounter, 
+  void StdSolveStep::WriteClaNlNorms(const UInt iterationCounter, 
                                      const Double residualL2Norm, 
                                      const Double extForcesL2Norm,
                                      const Double residualErr, 
@@ -566,26 +579,26 @@ namespace CoupledField {
     PDE_.SetBCs(time);
   }
 
-  void StdSolveStep::GetElemCoords(const StdVector< Integer > connect,
+  void StdSolveStep::GetElemCoords(const StdVector< UInt > connect,
                                    Matrix< Double > &coordMat)
   {
     PDE_.GetElemCoords(connect, coordMat);
   }
 
   void StdSolveStep::GetSolVecOfElement(Vector<Double>& sol, 
-                                        StdVector<Integer>& connect_PDE)
+                                        StdVector<UInt>& connect_PDE)
   {
     PDE_.GetSolVecOfElement(sol, connect_PDE);
   }
 
   void StdSolveStep::GetDerivSolVecOfElement(Vector<Double>& sol, 
-                                             StdVector<Integer>& connect_PDE)
+                                             StdVector<UInt>& connect_PDE)
   {
     PDE_.GetDerivSolVecOfElement(sol, connect_PDE);
   }
 
   void StdSolveStep::GetDeriv2SolVecOfElement(Vector<Double>& sol, 
-                                              StdVector<Integer>& connect_PDE)
+                                              StdVector<UInt>& connect_PDE)
   {
     PDE_.GetDeriv2SolVecOfElement(sol, connect_PDE);
   }
