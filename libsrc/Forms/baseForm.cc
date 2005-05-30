@@ -7,8 +7,8 @@ namespace CoupledField
 {
 
   BaseForm::BaseForm(BaseFE * aptelem, MaterialData & matData)
-    :ptMaterial(&matData), ptelem(aptelem), isaxi_(FALSE), dofzero_(0), 
-     isFracDamping_(FALSE), isRaylDamping_(FALSE)
+    : ptelem(aptelem), ptMaterial(&matData), isaxi_(FALSE),
+      isFracDamping_(FALSE), isRaylDamping_(FALSE), dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
@@ -19,7 +19,8 @@ namespace CoupledField
   }
 
   BaseForm::BaseForm(MaterialData & matData)
-    :isaxi_(FALSE), dofzero_(0), isFracDamping_(FALSE), isRaylDamping_(FALSE)
+    :isaxi_(FALSE), isFracDamping_(FALSE), isRaylDamping_(FALSE), 
+     dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
@@ -31,8 +32,8 @@ namespace CoupledField
   }
 
   BaseForm::BaseForm(BaseFE * aptelem)
-    :ptelem(aptelem), isaxi_(FALSE),  dofzero_(0), isFracDamping_(FALSE), 
-     isRaylDamping_(FALSE)
+    : ptelem(aptelem), isaxi_(FALSE), isFracDamping_(FALSE), 
+      isRaylDamping_(FALSE), dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
@@ -43,7 +44,8 @@ namespace CoupledField
   }
  
   BaseForm::BaseForm()
-    : isaxi_(FALSE),  dofzero_(0), isFracDamping_(FALSE), isRaylDamping_(FALSE)
+    : isaxi_(FALSE), isFracDamping_(FALSE), 
+      isRaylDamping_(FALSE), dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
@@ -84,5 +86,42 @@ namespace CoupledField
   }
 
 
+  // ------------- SURFACE BILINEAR FORMS -------------
 
+  SurfForm::SurfForm() {
+    ENTER_FCN( "SurfForm::SurfForm" );
+  }
+
+
+  SurfForm::~SurfForm() {
+    ENTER_FCN( "SurfForm::~SurfForm" );
+  }
+  
+  void SurfForm::SetSurfElem( SurfElem * ptSurfElem) {
+    actElem_ = ptSurfElem;
+  }
+  
+  void SurfForm::SetFirstVoluNormal( Vector<Double> & n ) {
+    normal_ = n;
+  }
+
+  void SurfForm::SetFirstVoluInfo( const std::string & name,
+                                   const StdVector<RegionIdType> & regionIds,
+                                   const MaterialData* materials ) {
+    
+    firstPDEName_ = name;
+    firstRegionIds_ = regionIds;
+    firstMaterials_ = materials;
+  }
+
+  void SurfForm::SetSecondVoluInfo( const std::string & name,
+                                    const StdVector<RegionIdType> & regionIds,
+                                    const MaterialData* materials ) {
+    
+    secondPDEName_ = name;
+    secondRegionIds_ = regionIds;
+    secondMaterials_ = materials;
+  }
+  
+  
 }
