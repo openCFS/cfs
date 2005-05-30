@@ -27,27 +27,31 @@ namespace CoupledField {
       \param ainType descriptor for interpolation of past function values
       \param isaxi axisymmetric setup
     */
-    NewmarkFracDamp (std::string apdename, const PdeIdType apdeId,
-                     BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
+    NewmarkFracDamp( BaseSystem * algebraicsystem,
+                     UInt rhsSize,
+                     const PdeIdType apdeId,
+                     NodeEQN * ptEQN, 
                      Grid * aptgrid, StdPDE * aptStdPDE, 
                      StdVector<RegionIdType> asubdomainList,
                      StdVector<DampingType> adampingList,
-                     Integer afracMemory, InterpolType ainType, Boolean isaxi);
+                     UInt afracMemory, InterpolType ainType, 
+                     Boolean isaxi );
   
     //! deconstructor
     virtual ~NewmarkFracDamp();
   
     //! initilization
-    virtual void Init(Double * matrix_factors, Double dt);
-
+    void Init( std::map<FEMatrixType,Double> & matrix_factors, 
+               Double dt );
+    
     //! perform predictor step
-    virtual void Predictor(Vector<Double>& solold);
+    void Predictor(Vector<Double>& solold);
 
     //! perform corrector step
-    virtual void Corrector(Vector<Double>& solnew);
+    void Corrector(Vector<Double>& solnew);
 
     //! perform an update to RHS
-    virtual void UpdateRHS();
+    void UpdateRHS();
 
     //! compute parameters for multiplication
     void CalcParameters(Double dt);
@@ -58,48 +62,87 @@ namespace CoupledField {
 
   private:
 
-    //! get element solution, needed for assembling RHS in fractional damping model
+    //! get element solution, for assembling RHS in fractional damping model
     void GetElemSolution (const Vector<Double>& sol, 
                           Vector<Double>& elemsol, 
                           const StdVector<Integer> & connectPDE);
 
     //! compute Weights for Gruenwald-Letnikov formula
-    void GLWeights(Integer memory, Double y);
+    void GLWeights(UInt memory, Double y);
 
     //! compute Weights for Luise Blanks frac diff spline collocation formula
-    void BlankWeights(Integer memory, Double y, Boolean full);
+    void BlankWeights(UInt memory, Double y, Boolean full);
 
     //! print solMemoryVal_ in .info file
     void PrintSolMemoryVal();
 
+    //! name of the pde
     std::string pdename_;
+
+    //! algsys identifier of the pde
     PdeIdType pdeId_;
 
-    Double alpha_, gamma_, beta_;     //!< integration parameters
-    Double a0_,a1_,a2_,a3_,a4_;       //!< coefficients from NewmarkFracDamp method
+    //@{
+    //! integration parameters
+    Double alpha_, gamma_, beta_;
+    //@}
 
-    Vector<Double> solpred_, solderiv1pred_; //!< predictors
+    //@{
+    //! coefficients from NewmarkFracDamp method
+    Double a0_,a1_,a2_,a3_,a4_;
+    //@}
+    
+    //! predictor for nodal solution
+    Vector<Double> solpred_;
+
+    //!predictor for derivative of solution
+    Vector<Double>  solderiv1pred_;
+
+    //! pointer to grid
     Grid * ptgrid_;
+    
+    //! pointer to pde
     StdPDE * ptStdPDE_;
 
-    Integer laststepcalc_;  //!< last calculated time step
-    Integer calclimit_;     //!< number of timesteps with which frac deriv is calculated
+    //! pointer to equation object
+    NodeEQN * ptEQN_;
 
-    //DampingType dampType_; //!< describes used damping model for whole domain
-    StdVector<DampingType> dampingList_; //!< damping type for all regions
-    StdVector<RegionIdType> subdoms_;     //!< all names of subdomains
+    //! last calculated time step
+    UInt laststepcalc_;
+   
+    //! number of timesteps with which frac deriv is calculated
+    UInt calclimit_;
 
-    // For fractional damping model
-    std::vector<Double> coeff_; //!< weights of BDF formula
-    Integer fracMemory_;        //!< number of stored solution values
-    Vector<Double> *solMemory_; //!< storing of solution values
-    std::vector<InterpolType> solMemoryVal_; //!< describes storing in solmemory_
-    InterpolType inType_;       //!< type of interpolation of solution values used
+    //! describes used damping model for whole domain
+    //DampingType dampType_; 
 
+    //! damping type for all regions
+    StdVector<DampingType> dampingList_;
 
-    //
+    //! all names of subdomains
+    StdVector<RegionIdType> subdoms_;
+
+    //! flag indicating axisymmetric model
     Boolean isaxi_;
-  
+
+    //@{ \name Fractional Damping Model
+
+    //! weights of BDF formula
+    std::vector<Double> coeff_;
+
+    //! number of stored solution values
+    UInt fracMemory_;
+
+    //! storing of solution values
+    Vector<Double> *solMemory_; 
+
+    //! describes storing in solmemory_
+    std::vector<InterpolType> solMemoryVal_; 
+
+    //! type of interpolation of solution values used
+    InterpolType inType_;
+    //@}
+
   };
 
 } // end of namespace

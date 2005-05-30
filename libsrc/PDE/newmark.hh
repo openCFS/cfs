@@ -13,48 +13,55 @@ namespace CoupledField
   {
   public:
     //! constructor
-    /*!
-      \param apdename name of PDE
-      \param algebraicsystem pointer to algebraic system used by PDE
-      \param dofspernode number of degree of freedom per node
-      \param numnode number of nodes in PDE
-      \param damp type of damping
-    */
-    Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN,
-            Boolean damp);
+    //! \param algebraicsystem pointer to algebraic system 
+    //! \param rhsSIze total number of entries in the rhs vector
+    Newmark( BaseSystem * algebraicsystem, UInt rhsSize );
 
-    //! deconstructor
+    //! destructor
     virtual ~Newmark();
   
     //! initilization
-    virtual void Init(Double * matrix_factors, Double dt);
+    void Init( std::map<FEMatrixType,Double> & matrix_factors,
+               Double dt );
 
     //! perform predictor step
-    virtual void Predictor(Vector<Double>& solold);
+    void Predictor(Vector<Double>& solold);
 
     //! perform corrector step
-    virtual void Corrector(Vector<Double>& solnew);
+    void Corrector(Vector<Double>& solnew);
 
     //! perform an update to RHS
-    virtual void UpdateRHS();
+    void UpdateRHS();
 
     //! perform an update to RHS with actual solution (for nonlin calculation)
     virtual void UpdateRHS(Vector<Double>& actSol);  
 
+
+
+  private:
+
     //! compute parameters for multiplication
     void CalcParameters(Double dt);
 
-  private:
-   
-    Double alpha_, gamma_, beta_;  //<! integration parameters
-    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; //<! coefficients from Newmark method
+    //@{
+    //! integration parameters
+    Double alpha_, gamma_, beta_;  
+    //@}
 
+    //@{
+    //! coefficients from Newmark method
+    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
+    //@}
+
+    //! flag indicating if damping matrix is needed
     Boolean damping_;
 
-    Vector<Double> solpred_, solderiv1pred_;
+    //! predictor for nodal solution
+    Vector<Double> solpred_;
+
+    //! predictor for derivative of solution
+    Vector<Double> solderiv1pred_;
   };
-
-
 
 
 
@@ -63,33 +70,26 @@ namespace CoupledField
   {
   public:
     //! constructor
-    /*!
-      \param apdename name of PDE
-      \param algebraicsystem pointer to algebraic system used by PDE
-      \param dofspernode number of degree of freedom per node
-      \param numnode number of nodes in PDE
-      \param damp type of damping
-    */
-    NewmarkEffMass(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
-                   Boolean damp);
+    //! constructor
+    //! \param algebraicsystem pointer to algebraic system 
+    //! \param rhsSIze total number of entries in the rhs vector
+    NewmarkEffMass( BaseSystem * algebraicsystem, UInt rhsSize );
 
-    //! deconstructor
+    //! destructor
     virtual ~NewmarkEffMass();
   
     //! initilization
-    virtual void Init(Double * matrix_factors, Double dt);
-
+    void Init( std::map<FEMatrixType,Double> & matrix_factors, 
+               Double dt );
+    
     //! perform predictor step
-    virtual void Predictor(Vector<Double>& solold);
+    void Predictor(Vector<Double>& solold);
 
     //! perform corrector step
-    virtual void Corrector(Vector<Double>& solnew);
+    void Corrector(Vector<Double>& solnew);
 
     //! perform an update to RHS
-    virtual void UpdateRHS();
-
-    //! compute parameters for multiplication
-    void CalcParameters(Double dt);
+    void UpdateRHS();
 
     //! Dirichlet boundary condition has to be adapted
     Double DirichletBC4EffMassMatrix(Double val, Integer eq);
@@ -100,15 +100,37 @@ namespace CoupledField
   
 
   private:
+
+    //! compute parameters for multiplication
+    void CalcParameters(Double dt);
    
-    Double dt_; //<! time step
-    Double alpha_, gamma_, beta_;  //<! integration parameters
-    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; //<! coefficients from Newmark method
+    //! time step
+    Double dt_; 
 
+    //@{
+    //! integration parameters
+    Double alpha_, gamma_, beta_;
+    //@}
+    
+    //@{
+    //! coefficients from Newmark method
+    Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; 
+    //@}
+
+    //! flag indicating if damping matrix is needed
     Boolean damping_;
+    
+    //! nodal solution
+    Vector<Double> sol_;
+    
+    //! predictor for nodal solution
+    Vector<Double> solpred_;
+    
+    //! predictor for derivative of solution
+    Vector<Double> solderiv1pred_;
+  
 
-    Vector<Double> sol_, solpred_, solderiv1pred_;
-  };
+};
 
 
 

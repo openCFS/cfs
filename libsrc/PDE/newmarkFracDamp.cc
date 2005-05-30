@@ -13,23 +13,24 @@
 
 namespace CoupledField {
 
-  NewmarkFracDamp::NewmarkFracDamp(std::string apdename,
-                                   const PdeIdType apdeId,
-                                   BaseSystem * algebraicsystem,
-                                   NodeEQN * ptEQN, Grid * aptgrid,
-                                   StdPDE * aptStdPDE,
-                                   StdVector<RegionIdType> asubdomainList,
-                                   StdVector<DampingType> adampingList, 
-                                   Integer afracMemory, 
-                                   InterpolType ainType, Boolean isaxi)
-    :TimeStepping(apdename, algebraicsystem, ptEQN)
+  NewmarkFracDamp::NewmarkFracDamp( BaseSystem * algebraicsystem,
+                                    UInt rhsSize, 
+                                    const PdeIdType apdeId,
+                                    NodeEQN * ptEQN, Grid * aptgrid,
+                                    StdPDE * aptStdPDE,
+                                    StdVector<RegionIdType> asubdomainList,
+                                    StdVector<DampingType> adampingList, 
+                                    UInt afracMemory, 
+                                    InterpolType ainType, Boolean isaxi)
+    :TimeStepping( algebraicsystem, rhsSize )
   {
     ENTER_FCN( "NewmarkFracDamp::NewmarkFracDamp" );
   
-    pdename_     = apdename;
+    pdename_     = aptStdPDE->GetName();
     pdeId_       = apdeId;
     ptgrid_      = aptgrid;
     ptStdPDE_   =  aptStdPDE;
+    ptEQN_ = ptEQN;
 
     subdoms_     = asubdomainList;
     dampingList_ = adampingList;
@@ -45,31 +46,30 @@ namespace CoupledField {
     std::string analysis;
     params->Get( "type", analysis, "analysis" );
     if(analysis != "paramIdent")
-      Info->PrintF( pdename_,"Newmark: Using defaults for alpha, beta and gamma!\n" );
+      Info->PrintF( pdename_,
+                    "Newmark: Using defaults for alpha, beta and gamma!\n" );
 
-
-    Integer numEQNs = ptEQN_->GetNumEQNs();
-    Integer dofs = ptEQN_->GetNumDofsPerEQN();
 
     // get the memory
-    solderiv1_.Resize(numEQNs * dofs);  
+    solderiv1_.Resize(rhsSize_);  
     solderiv1_.Init();
-    solderiv2_.Resize(numEQNs * dofs);  
+    solderiv2_.Resize(rhsSize_);  
     solderiv2_.Init();
   
 
-    solpred_.Resize(numEQNs * dofs); 
+    solpred_.Resize(rhsSize_); 
     solpred_.Init();
-    solderiv1pred_.Resize(numEQNs * dofs); 
+    solderiv1pred_.Resize(rhsSize_); 
     solderiv1pred_.Init();
   
     if ( fracMemory_ <= 1 )
-      Error("Attenuation model needs frac_memory larger than 1",__FILE__,__LINE__);
+      Error("Attenuation model needs frac_memory larger than 1",
+            __FILE__,__LINE__);
     else {
       // get the memory
       solMemory_ = new Vector<Double>[fracMemory_];
-      for (Integer i=0; i<fracMemory_; i++) {
-        solMemory_[i].Resize(numEQNs * dofs);  
+      for (UInt i=0; i<fracMemory_; i++) {
+        solMemory_[i].Resize(rhsSize_);  
         solMemory_[i].Init();
       }
     }
@@ -82,18 +82,19 @@ namespace CoupledField {
 
   }
 
-  void NewmarkFracDamp::Init(Double * matrix_factors, Double dt)
+  void NewmarkFracDamp::Init( std::map<FEMatrixType,Double> & matrix_factors,
+                              Double dt ) 
   {
     ENTER_FCN( "NewmarkFracDamp::Init" );
 
     dt_ = dt;
     CalcParameters(dt_);
 
-    matrix_factors[0] = 1.0;       // factor for stiffness matrix
-    matrix_factors[1] = 0.0;       // factor for damping matrix
-    //  matrix_factors[1] = 1.0*a2_;
-    matrix_factors[2] = 0.0;       // factor for convection matrix
-    matrix_factors[3] = 1.0*a2_;   // factor for mass matrix
+    matrix_factors[STIFFNESS] = 1.0;
+    matrix_factors[DAMPING] = 0.0;
+    //  matrix_factors[DAMPING] = 1.0*a2_;
+    matrix_factors[CONVECTION] = 0.0;
+    matrix_factors[MASS] = 1.0*a2_;
 
   }
 
@@ -127,10 +128,10 @@ namespace CoupledField {
     Matrix<Double> elemmat;         // element matrix
     Matrix<Double> ptCoord;
     BaseFE         * ptElem;
-    StdVector<Integer> connecth;
+    StdVector<UInt> connecth;
     Vector<Double> rhsAssemble, rhsvec, elemsol; 
   
-    Integer level = 0, noInt;
+    UInt noInt;
   
     Double density, compressibility, c0, alpha0, y, factor;
 
@@ -138,8 +139,10 @@ namespace CoupledField {
     mymaterialData = ptStdPDE_->getPDEMaterialData();
 
     if ( dampingList_.GetSize() != subdoms_.GetSize() )
-      Error("Mismatch between dampingList_ and subdoms_!", __FILE__, __LINE__);  
-    for ( Integer actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
+      Error("Mismatch between dampingList_ and subdoms_!", 
+            __FILE__, __LINE__);  
+    
+    for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
 
       density         = mymaterialData[actSD].GetDensity();
       compressibility = mymaterialData[actSD].GetCompressibility();
@@ -166,14 +169,15 @@ namespace CoupledField {
 
       //      // output coeff_
       //      std::cerr << "Weight factors of BDF are:" << std::endl;
-      //      for (Integer k=0; k<coeff_.size(); k++)
-      //        std::cerr << "          w(" << k << ") = " << coeff_[k] << std::endl;
+      //      for (UInt k=0; k<coeff_.size(); k++)
+      //        std::cerr << "          w(" << k << ") = " 
+      //                  << coeff_[k] << std::endl;
 
       // get elements belonging to actual subdomain   
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
         
-      for (Integer el=0; el < elemssd.GetSize(); el++) {
+      for (UInt el=0; el < elemssd.GetSize(); el++) {
         // pointer to element
         ptElem=elemssd[el]->ptElem;
         BaseForm * bilinear_mass = new MassInt(ptElem, factor, isaxi_);
@@ -189,14 +193,15 @@ namespace CoupledField {
 
 #ifdef DEBUG
         // output matrix with which BDF is computed
-        (*debug) << "Mass Matrix, damping part RHS, of Element " << el << std::endl;
+        (*debug) << "Mass Matrix, damping part RHS, of Element " 
+                 << el << std::endl;
         (*debug) << elemmat << std::endl;
 #endif
         // compute BDF
         GetElemSolution(solpred_, elemsol, connect_PDE);
         rhsvec = -elemsol * coeff_[0];
         noInt = 0; // counts how many values have allready been interpolated
-        for (Integer i=1; i<=calclimit_; i++) {
+        for (UInt i=1; i<=calclimit_; i++) {
 
           if ( solMemoryVal_[i-1] == TRUEVAL ) {
             GetElemSolution(solMemory_[i-1-noInt], elemsol, connect_PDE);
@@ -218,7 +223,8 @@ namespace CoupledField {
 #endif
           
         //assemble to RHS
-        algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, connect_PDE.GetPointer(),
+        algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, 
+                               connect_PDE.GetPointer(),
                                connect_PDE.GetSize());
           
         delete bilinear_mass;   
@@ -238,11 +244,12 @@ namespace CoupledField {
     solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
 
     // store function values, reverse storing!!!!
-    // solMemory_[0]=p_n, solMemory_[1]=p_(n-1)...solMemory_[fracMemory_ - 1]=p_(n-fracMemory_+1)
+    // solMemory_[0]=p_n, solMemory_[1]=p_(n-1)...
+    // solMemory_[fracMemory_ - 1]=p_(n-fracMemory_+1)
     // no interpolation
     if (inType_ == NOTUSED) {
 
-      for ( Integer i=fracMemory_-1; i>=1; i-- ) {
+      for ( UInt i=fracMemory_-1; i>=1; i-- ) {
         solMemory_[i] = solMemory_[i-1];
       }
       solMemory_[0] = solnew - solpred_;
@@ -257,22 +264,25 @@ namespace CoupledField {
     else if (inType_ == LIN1PT) {
 
       if (laststepcalc_ <= fracMemory_) {
-        for (Integer i=fracMemory_-1; i>=1; i--)
+        for (UInt i=fracMemory_-1; i>=1; i--)
           solMemory_[i] = solMemory_[i-1];
 
         solMemoryVal_.insert( solMemoryVal_.begin(),TRUEVAL);
       }
-      else if ( (laststepcalc_ > fracMemory_) && (laststepcalc_ < 2*fracMemory_) ) {
-        for (Integer i=(2*fracMemory_-laststepcalc_-1); i>=1; i--)
+      else if ( (laststepcalc_ > fracMemory_) 
+                && (laststepcalc_ < 2*fracMemory_) ) {
+        for (UInt i=(2*fracMemory_-laststepcalc_-1); i>=1; i--)
           solMemory_[i] = solMemory_[i-1];
                 
         solMemoryVal_[0] = TRUEVAL;
-        solMemoryVal_.insert( (solMemoryVal_.begin()+2*fracMemory_-laststepcalc_),LIN1PT);
-        //Info->PrintF(pdename_, "Middle section, timestep: %d\n",laststepcalc_ );
+        solMemoryVal_.insert( (solMemoryVal_.begin()
+                               + 2*fracMemory_-laststepcalc_),LIN1PT);
+        //Info->PrintF(pdename_, 
+        //             "Middle section, timestep: %d\n",laststepcalc_ );
       }
       else if (laststepcalc_ >= 2*fracMemory_ ) {
         if ( (laststepcalc_%2)==0 ) {
-          for (Integer i=fracMemory_-1; i>=1; i--)
+          for (UInt i=fracMemory_-1; i>=1; i--)
             solMemory_[i] = solMemory_[i-1];
 
           solMemoryVal_.pop_back();
@@ -303,18 +313,19 @@ namespace CoupledField {
   }
 
 
-  void NewmarkFracDamp::GetElemSolution ( const Vector<Double>& sol, 
-                                          Vector<Double>& elemsol,
-                                          const StdVector<Integer> & connectPDE )
+  void NewmarkFracDamp::
+  GetElemSolution ( const Vector<Double>& sol, 
+                    Vector<Double>& elemsol,
+                    const StdVector<Integer> & connectPDE )
   {
     ENTER_FCN( "NewmarkFracDamp::GetElemSolution" );
    
     elemsol.Resize(connectPDE.GetSize());
-    for (Integer eqn=0; eqn<connectPDE.GetSize(); eqn++) 
+    for (UInt eqn=0; eqn<connectPDE.GetSize(); eqn++) 
       elemsol[eqn] = sol[connectPDE[eqn]-1];
   }
 
-  void NewmarkFracDamp::GLWeights(Integer memory, Double y )
+  void NewmarkFracDamp::GLWeights(UInt memory, Double y )
   {
     ENTER_FCN( "NewmarkFracDamp::GLWeights" );
    
@@ -323,12 +334,12 @@ namespace CoupledField {
    
     coeff_[0] = 1.0; // Index 0
 
-    for (Integer i=1; i <= memory; i++) // Index 1 .. memory
+    for (UInt i=1; i <= memory; i++) // Index 1 .. memory
       coeff_[i] = coeff_[i-1] * ((i-1) - (y-1))/i;
   }
 
 
-  void NewmarkFracDamp::BlankWeights(Integer memory, Double y, Boolean full)
+  void NewmarkFracDamp::BlankWeights(UInt memory, Double y, Boolean full)
   {
     ENTER_FCN( "NewmarkFracDamp::BlankWeights" );
  
@@ -341,16 +352,21 @@ namespace CoupledField {
     coeff_[0] = 1.0/ pot; // Index 0
  
     if (full) {
-      for (Integer i=1; i<memory; i++) // Index 1 .. (memory-1)
-        coeff_[i]= ( exp(pot* log(i-1))- 2* exp(pot* log(i))+ exp(pot* log(i+1)) )
+      for (UInt i=1; i<memory; i++) // Index 1 .. (memory-1)
+        coeff_[i]= ( exp(pot* log(i-1))
+                     - 2* exp(pot* log(i))
+                     + exp(pot* log(i+1)) )
           / pot;
       // Index memory
       coeff_[memory]= exp(-(y-1.0)*log(fracMemory_))+ 
-        ( exp(pot* log(fracMemory_ -1))- exp(pot* log(fracMemory_)) ) / pot;
+        ( exp(pot* log(fracMemory_ -1))
+          - exp(pot* log(fracMemory_)) ) / pot;
     }
     else {
-      for (Integer i=1; i<=memory; i++) // Index 1 .. memory
-        coeff_[i]= ( exp(pot* log(i-1))- 2* exp(pot* log(i))+ exp(pot* log(i+1)) )
+      for (UInt i=1; i<=memory; i++) // Index 1 .. memory
+        coeff_[i]= ( exp(pot* log(i-1))
+                     - 2* exp(pot* log(i))
+                     + exp(pot* log(i+1)) )
           / pot;
     }
   }
@@ -360,7 +376,7 @@ namespace CoupledField {
     ENTER_FCN( "NewmarkFracDamp::PrintSolMemoryVal" );
 
     std::string msg="solMemory_ is:";
-    for (Integer i=0; i<solMemoryVal_.size(); i++) {
+    for (UInt i=0; i<solMemoryVal_.size(); i++) {
       if ( solMemoryVal_[i] == NOTUSED )
         msg += " N";
       else if ( solMemoryVal_[i] == TRUEVAL )
