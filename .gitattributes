@@ -300,6 +300,8 @@ libsrc/Estimator/Makefile -text
 libsrc/Estimator/spaceerror.cc svneol=native#text/plain
 libsrc/Estimator/spaceerror.hh svneol=native#text/plain
 libsrc/Forms/Makefile -text
+libsrc/Forms/abcInt.cc svneol=native#text/plain
+libsrc/Forms/abcInt.hh svneol=native#text/plain
 libsrc/Forms/adbInt.cc svneol=native#text/plain
 libsrc/Forms/adbInt.hh svneol=native#text/plain
 libsrc/Forms/baseForceOp.cc svneol=native#text/plain
