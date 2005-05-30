@@ -51,8 +51,8 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::nuMethod()");
     //    std::cout<<"\n Entering piezoParamIdent::nuMethod()"<<std::endl;
 
-    Integer nrIterations=0;
-    Integer nNuMethods=0;
+    UInt nrIterations=0;
+    UInt nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
@@ -77,9 +77,16 @@ namespace CoupledField
     //  while (nrIterations<maxNumberNewtonLoops){
     //      std::cout<<"\n Nr: "<< nrIterations << ", start next Newton NuMethod?"<<std::endl;
     
-    updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
-    createF(ptMaterial, F_hat,FALSE);
-    act_res = y_hat-F_hat;
+
+      updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
+      createF(ptMaterial, F_hat,FALSE);
+      act_res = y_hat-F_hat;
+      std::cout<<"act_res = " <<std::endl;
+//       std::cout<<act_res<<std::endl;
+      std::cout<<y_hat<<std::endl;
+      std::cout<<F_hat<<std::endl;
+      //   getchar();
+
     //       std::cout<<"act_res = " <<std::endl;
     //       std::cout<<act_res<<std::endl;
     //       std::cout<<y_hat<<std::endl;
@@ -92,7 +99,7 @@ namespace CoupledField
 
     *parLog<< new_res_outer; 
 
-    for (Integer i=0;i<nrParameter;i++)
+    for (UInt i=0;i<nrParameter;i++)
       if (whichParameterToUpdate[i]==1)
         *parLog<<"  "<< parameter[i]/parameterIncrement[i];
     *parLog<<"  " << newtonCounter;
@@ -108,7 +115,7 @@ namespace CoupledField
 
       
     // Create the Matrices F, F', F*
-    createF(ptMaterial, F_hat,FALSE);
+    //    createF(ptMaterial, F_hat,FALSE);
     //  createJacobiMatrix2(JacobiMatrix);
     //std::cout<<JacobiMatrix<<std::endl;
     testJacobiMatrix2(F_hat, JacobiMatrix, parameter, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
@@ -118,8 +125,8 @@ namespace CoupledField
     JacobiMatrix=approxJacobiMatrix;
       
 
-    for (Integer i=0;i<nrMeasuredData;i++)
-      for (Integer j=0;j<nrMeasuredData;j++)
+    for (UInt i=0;i<nrMeasuredData;i++)
+      for (UInt j=0;j<nrMeasuredData;j++)
         if (i==j)
           ImgSpaceScalingMat[i][j] = 1.0/std::log(real[i]);
     //            ImgSpaceScalingMat[i][j] = Complex(1.0/real[i],1.0/imag[i]);
@@ -148,13 +155,13 @@ namespace CoupledField
     //       adjJacobiMatrix.Mult(act_res, y_hat_F_hatNE);
     //       std::cout<<JacobiMatrixNE<<std::endl;
       
-    //   for (Integer i=0;i<JacobiMatrixNE.GetSizeRow();i++)
-    //      for (Integer j=0;j<JacobiMatrixNE.GetSizeCol();j++){
+    //   for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
+    //      for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
     //        JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
     //        JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
     //      }
-    //       for (Integer i=0;i<JacobiMatrix.GetSizeRow();i++)
-    //      for (Integer j=0;j<JacobiMatrix.GetSizeCol();j++)
+    //       for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
+    //      for (UInt j=0;j<JacobiMatrix.GetSizeCol();j++)
     //        JacobiMatrixR[i][j]=JacobiMatrix[i][j].real();
     //       std::cout<<"JacobiMatrixR"<<std::endl;
     //       std::cout<<JacobiMatrixR<<std::endl;
@@ -166,7 +173,7 @@ namespace CoupledField
     //        std::cout<<eigenvalues<<std::endl;
     //       getchar();
 
-    //      for(Integer i=0;i<eigenvalues.GetSize();i++)
+    //      for(UInt i=0;i<eigenvalues.GetSize();i++)
     // std::cout <<" eig ("<<i<<") = "<< eigenvalues[i] << ", "<<std::endl; 
     
     // TEST MAT_MULT 
@@ -200,7 +207,7 @@ namespace CoupledField
       //      JacobiMatrix.Mult(s,JacFs);
         
       //      // F'sk - (y_hat-F_hat)
-      //      for (Integer i=0;i<nrMeasuredData;i++){
+      //      for (UInt i=0;i<nrMeasuredData;i++){
       //        act_res[i]=y_hat[i]-F_hat[i];
       //        JacFs_res[i]=JacFs[i]-act_res[i];
       //      }
@@ -219,7 +226,7 @@ namespace CoupledField
         ((nNuMethods+2*nu-1)*(2*nNuMethods+4*nu-1)*(2*nNuMethods+2*nu-3));
       omega = 4*((2*nNuMethods + 2*nu -1)*(nNuMethods+nu-1))/((nNuMethods+2*nu-1)*(2*nNuMethods+4*nu-1));
 
-      for(Integer i=0;i<nrMeasuredData;i++){
+      for(UInt i=0;i<nrMeasuredData;i++){
         if (nNuMethods>1){
           z[i]=z[i]+relax*(eta_acc*(z[i]-z_old[nNuMethods-2][i])+omega*(act_res[i]-JacFs[i]));
         }
@@ -234,13 +241,14 @@ namespace CoupledField
       //      std::cout<<s<<std::endl;
          
          
-      for(Integer i=0;i<nrMeasuredData;i++)
+      for(UInt i=0;i<nrMeasuredData;i++)
         z_old[nNuMethods][i]=z[i];
+
      
       JacobiMatrix.Mult(s,JacFs);
         
       //F'(p^k)(s^k)-(y-F(p^k))
-      for (Integer i=0;i<nrMeasuredData;i++){
+      for (UInt i=0;i<nrMeasuredData;i++){
         act_res[i]=y_hat[i]-F_hat[i];
         JacFs_res[i]=JacFs[i]-act_res[i];
       }
@@ -265,10 +273,6 @@ namespace CoupledField
 
 
     nNuMethods=0;
-
-
-    Double old_resid2=old_res_outer;
-    Double new_resid2=new_res_outer;
 
 
     Matrix<Double> *matMat = ptMaterial->GetMatrix();
@@ -299,7 +303,7 @@ namespace CoupledField
     //              theta=1.0;
     //        }
     //        else
-    for (Integer i=0;i<actNrParameter;i++)
+    for (UInt i=0;i<actNrParameter;i++)
       stepR[i]=s[i].real();
     //      stepR[7]=s[0].real();
     //stepR[8]=s[1].real();       
@@ -313,7 +317,7 @@ namespace CoupledField
       setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
 
       // if no backtracking is specified, please include the following lines!
-      for (Integer i=0;i<nrParameter;i++){
+      for (UInt i=0;i<nrParameter;i++){
         //      parameter_new[i]=scaling[i]*parameter[i];
         //      parameter_new[i]+=s[i].real();
         //      parameter[i]=1/scaling[i]*parameter_new[i];
@@ -324,7 +328,7 @@ namespace CoupledField
       updateMaterialData(parameter, ptMaterial);
       createF(ptMaterial, F_hat,FALSE);
 
-      for (Integer i=0;i<y_hat.GetSize();i++)
+      for (UInt i=0;i<y_hat.GetSize();i++)
         act_res[i]=y_hat[i]-F_hat[i];
       //Norm ersetzt:
       //      std::cout<<act_res<<std::endl;
@@ -334,7 +338,7 @@ namespace CoupledField
       //getchar();
       
       //  *parLog<< new_res_outer; 
-      //       for (Integer i=0;i<nrParameter;i++)
+      //       for (UInt i=0;i<nrParameter;i++)
       //      if (whichParameterToUpdate[i]==1)
       //        *parLog<<"  "<< parameter[i]/parameterIncrement[i];
       //       *parLog<<std::endl;
@@ -351,7 +355,7 @@ namespace CoupledField
       //      setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
       //      updateMaterialData(parameter, ptMaterial);
       //      createF(ptMaterial, F_hat,FALSE);
-      //      for (Integer i=0;i<y_hat.GetSize();i++)
+      //      for (UInt i=0;i<y_hat.GetSize();i++)
       //        act_res[i]=y_hat[i]-F_hat[i];
       //      //Norm ersetzt:
       //      norm(act_res,new_res_outer,maxres_inner,y_hat);
@@ -364,18 +368,18 @@ namespace CoupledField
       //       }
 
       theta = 1.0;
-      Double t=1.0e-04;
-      Double theta_min=0.1;
-      Double theta_max=0.5;
+//       Double t=1.0e-04;
+//       Double theta_min=0.1;
+//       Double theta_max=0.5;
       eta=1.15;
-      Integer Backtrackiterator;
+      //      UInt Backtrackiterator;
 
       //        while(new_res_outer >(1-t*(1-eta)*old_res_outer)&& Backtrackiterator<5){
       //       Backtrackiterator++;
 
       //       Double b,c;
       //       b=0.0; c=0.0;
-      //       for(Integer i=0;i<nrMeasuredData;i++)
+      //       for(UInt i=0;i<nrMeasuredData;i++)
       //         b+= 2.0*(act_res[i]*(JacFs_res[i]-act_res[i])).real();
 
 
@@ -417,7 +421,7 @@ namespace CoupledField
       //      //      theta = 0.35;
       //       std::cout<<"\n choice of theta = " << theta <<std::endl;
 
-      //       for (Integer i=0;i<stepR.GetSize();i++)
+      //       for (UInt i=0;i<stepR.GetSize();i++)
       //         stepR[i]=theta*stepR[i];
       //       Double theta_temp=1.0;
       //       //      parameter=parameter_old;
@@ -427,7 +431,7 @@ namespace CoupledField
       //       //updateMaterialData(parameter, ptMaterial);
       //       //createF(ptMaterial, F_hat,FALSE);
          
-      //       for (Integer i=0;i<y_hat.GetSize();i++)
+      //       for (UInt i=0;i<y_hat.GetSize();i++)
       //         act_res[i]=y_hat[i]-F_hat[i];
       //       //Norm ersetzt:
       //       norm(act_res,new_res_outer,maxres_inner,y_hat);
@@ -449,8 +453,8 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::nuMethods(C)");
     std::cout<<"\n Entering piezoParamIdent::nuMethodsC()"<<std::endl;
 
-    Integer nrIterations=0;
-    Integer nNuMethods=0;
+    UInt nrIterations=0;
+    UInt nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
@@ -473,7 +477,7 @@ namespace CoupledField
     basC.Resize(actNrParameter+actNrParameterC);
 
 
-    for (Integer i=0;i<actNrParameter+actNrParameterC;i++){
+    for (UInt i=0;i<actNrParameter+actNrParameterC;i++){
       bas[i]=1.0;
       basC[i]=Complex(1.0,1.0);
     }
@@ -488,7 +492,7 @@ namespace CoupledField
     //      getchar();
     //   while (new_res_outer<=old_res_outer && nrIterations<maxNumberNewtonLoops) {
     
-    for (Integer i=0;i<parameter.GetSize();i++){
+    for (UInt i=0;i<parameter.GetSize();i++){
       scaling[i]=1.0;
       scalingC[i]=1.0;
     }
@@ -514,13 +518,13 @@ namespace CoupledField
     //       adjJacobiMatrix.Mult(act_res, y_hat_F_hatNE);
     //       std::cout<<JacobiMatrixNE<<std::endl;
       
-    for (Integer i=0;i<JacobiMatrixNE.GetSizeRow();i++)
-      for (Integer j=0;j<JacobiMatrixNE.GetSizeCol();j++){
+    for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
+      for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
         JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
         JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
       }
-    //       for (Integer i=0;i<JacobiMatrix.GetSizeRow();i++)
-    //      for (Integer j=0;j<JacobiMatrix.GetSizeCol();j++)
+    //       for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
+    //      for (UInt j=0;j<JacobiMatrix.GetSizeCol();j++)
     //        JacobiMatrixR[i][j]=JacobiMatrix[i][j].real();
     //       std::cout<<"JacobiMatrixR"<<std::endl;
     //       std::cout<<JacobiMatrixR<<std::endl;
@@ -567,7 +571,7 @@ namespace CoupledField
       JacobiMatrix.Mult(s,JacFs);
         
       // F'sk - (y_hat-F_hat)
-      for (Integer i=0;i<nrMeasuredData;i++){
+      for (UInt i=0;i<nrMeasuredData;i++){
         act_res[i]=y_hat[i]-F_hat[i];
         JacFs_res[i]=JacFs[i]-act_res[i];
       }
@@ -579,7 +583,7 @@ namespace CoupledField
         ((nNuMethods+2*nu-1)*(2*nNuMethods+4*nu-1)*(2*nNuMethods+2*nu-3));
       omega = 4*((2*nNuMethods + 2*nu -1)*(nNuMethods+nu-1))/((nNuMethods+2*nu-1)*(2*nNuMethods+4*nu-1));
 
-      for(Integer i=0;i<nrMeasuredData;i++){
+      for(UInt i=0;i<nrMeasuredData;i++){
         if (nNuMethods>1){
           z[i]=z[i]+5.0*(eta_acc*(z[i]-z_old[nNuMethods-2][i])+omega*(act_res[i]-JacFs[i]));
           //         z[i]=z[i]+10.0*(Complex(eta_acc,eta_acc)*(z[i]-z_old[nNuMethods-2][i])+Complex(omega,omega)*(act_res[i]-JacFs[i]));
@@ -596,18 +600,18 @@ namespace CoupledField
       //  std::cout<<s<<std::endl;
          
          
-      for(Integer i=0;i<nrMeasuredData;i++)
+      for(UInt i=0;i<nrMeasuredData;i++)
         z_old[nNuMethods][i]=z[i];
      
       JacobiMatrix.Mult(s,JacFs);
         
       //F'(p^k)(s^k)-(y-F(p^k))
-      for (Integer i=0;i<nrMeasuredData;i++){
+      for (UInt i=0;i<nrMeasuredData;i++){
         act_res[i]=y_hat[i]-F_hat[i];
         JacFs_res[i]=JacFs[i]-act_res[i];
       }
 
-      //        for (Integer i=0;i<nrMeasuredData;i++)
+      //        for (UInt i=0;i<nrMeasuredData;i++)
       //act_res[i]-=JacFs[i];
         
       new_res_inner=a2norm(JacFs_res);
@@ -629,9 +633,6 @@ namespace CoupledField
 
     nNuMethods=0;
 
-
-    Double old_resid2=old_res_outer;
-    Double new_resid2=new_res_outer;
 
     // backtracking(et , theta, s, old_resid2, new_resid2); 
 
@@ -666,10 +667,10 @@ namespace CoupledField
     scalingC[8]=1.0/((*matMatC)[6][6]); 
     scalingC[9]=mult/((*matMatC)[8][8]);
 
-    for (Integer i=0;i<actNrParameter;i++)
+    for (UInt i=0;i<actNrParameter;i++)
       stepR[i]=s[i].real();
 
-    for (Integer i=actNrParameter;i<actNrParameter+actNrParameterC;i++)
+    for (UInt i=actNrParameter;i<actNrParameter+actNrParameterC;i++)
       stepC[i-actNrParameter]=-s[i].imag();
     
     //    parameter_new=parameter;
@@ -678,7 +679,7 @@ namespace CoupledField
     setNewParameterSet(parameterC, parameterC, scalingC, theta, stepC, whichParameterToUpdateC);
 
     // if no backtracking is specified, please include the following lines!
-    for (Integer i=0;i<nrParameter;i++){
+    for (UInt i=0;i<nrParameter;i++){
       //        parameter_new[i]=scaling[i]*parameter[i];
       //        parameter_new[i]+=s[i].real();
       //        parameter[i]=1/scaling[i]*parameter_new[i];
@@ -691,7 +692,7 @@ namespace CoupledField
     createF(ptMaterial, F_hat,FALSE);
 
 
-    for (Integer i=0;i<y_hat.GetSize();i++)
+    for (UInt i=0;i<y_hat.GetSize();i++)
       act_res[i]=y_hat[i]-F_hat[i];
     new_res_outer=(a2norm(act_res));
     std::cout<<"\n new_res_outer = " << new_res_outer <<std::endl;
@@ -727,8 +728,8 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::nuMethodsC2");
     std::cout<<"\n MUMETHODS C 2 "<<std::endl;
 
-    Integer nrIterations=0;
-    Integer nNuMethods=0;
+    UInt nrIterations=0;
+    UInt nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
@@ -752,7 +753,7 @@ namespace CoupledField
     bas.Resize(actNrParameter+actNrParameterC);
     basC.Resize(actNrParameter+actNrParameterC);
 
-    for (Integer i=0;i<actNrParameter+actNrParameterC;i++){
+    for (UInt i=0;i<actNrParameter+actNrParameterC;i++){
       bas[i]=1.0;
       basC[i]=Complex(1.0,1.0);
     }
@@ -767,7 +768,7 @@ namespace CoupledField
     //      getchar();
     //   while (new_res_outer<=old_res_outer && nrIterations<maxNumberNewtonLoops) {
     
-    //  for (Integer i=0;i<parameter.GetSize();i++){
+    //  for (UInt i=0;i<parameter.GetSize();i++){
     //       scaling[i]=1.0;
     //       scalingC[i]=1.0;
     //     }
@@ -787,8 +788,8 @@ namespace CoupledField
     JacobiMatrix=approxJacobiMatrix;
     
 
-    for (Integer i=0; i<nrMeasuredData;i++)
-      for (Integer j=0; j<nrMeasuredData;j++)
+    for (UInt i=0; i<nrMeasuredData;i++)
+      for (UInt j=0; j<nrMeasuredData;j++)
         if(i==j)
           ImgSpaceScalingMat[i][j]=1.0/std::log(real[i]);
     
@@ -812,13 +813,13 @@ namespace CoupledField
     //       adjJacobiMatrix.Mult(act_res, y_hat_F_hatNE);
     //       std::cout<<JacobiMatrixNE<<std::endl;
     
-    //   for (Integer i=0;i<JacobiMatrixNE.GetSizeRow();i++)
-    //       for (Integer j=0;j<JacobiMatrixNE.GetSizeCol();j++){
+    //   for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
+    //       for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
     //      JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
     //      JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
     //      }
-    //       for (Integer i=0;i<JacobiMatrix.GetSizeRow();i++)
-    //      for (Integer j=0;j<JacobiMatrix.GetSizeCol();j++)
+    //       for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
+    //      for (UInt j=0;j<JacobiMatrix.GetSizeCol();j++)
     //        JacobiMatrixR[i][j]=JacobiMatrix[i][j].real();
     //       std::cout<<"JacobiMatrixR"<<std::endl;
     //       std::cout<<JacobiMatrixR<<std::endl;
@@ -866,7 +867,7 @@ namespace CoupledField
       JacobiMatrix.Mult(s,JacFs);
         
       //       // F'sk - (y_hat-F_hat)
-      //        for (Integer i=0;i<nrMeasuredData;i++){
+      //        for (UInt i=0;i<nrMeasuredData;i++){
       //      act_res[i]=y_hat[i]-F_hat[i];
       //      JacFs_res[i]=JacFs[i]-act_res[i];
       //        }
@@ -878,7 +879,7 @@ namespace CoupledField
         ((nNuMethods+2*nu-1)*(2*nNuMethods+4*nu-1)*(2*nNuMethods+2*nu-3));
       omega = 4*((2*nNuMethods + 2*nu -1)*(nNuMethods+nu-1))/((nNuMethods+2*nu-1)*(2*nNuMethods+4*nu-1));
       
-      for(Integer i=0;i<nrMeasuredData;i++){
+      for(UInt i=0;i<nrMeasuredData;i++){
         if (nNuMethods>1){
           z[i]=z[i]+relax*(eta_acc*(z[i]-z_old[nNuMethods-2][i])+omega*(act_res[i]-JacFs[i]));
         }
@@ -893,18 +894,18 @@ namespace CoupledField
       //        std::cout<<s<<std::endl;
       
          
-      for(Integer i=0;i<nrMeasuredData;i++)
+      for(UInt i=0;i<nrMeasuredData;i++)
         z_old[nNuMethods][i]=z[i];     
          
       JacobiMatrix.Mult(s,JacFs);
         
       //F'(p^k)(s^k)-(y-F(p^k))
-      for (Integer i=0;i<nrMeasuredData;i++){
+      for (UInt i=0;i<nrMeasuredData;i++){
         act_res[i]=y_hat[i]-F_hat[i];
         JacFs_res[i]=JacFs[i]-act_res[i];
       }
 
-      //        for (Integer i=0;i<nrMeasuredData;i++)
+      //        for (UInt i=0;i<nrMeasuredData;i++)
       //act_res[i]-=JacFs[i];
       norm(JacFs_res, new_res_inner, max_res_inner,y_hat);
       //     new_res_inner=a2norm(JacFs_res);
@@ -926,8 +927,8 @@ namespace CoupledField
 
     nNuMethods=0;
 
-    Double old_resid2=old_res_outer;
-    Double new_resid2=new_res_outer;
+//     Double old_resid2=old_res_outer;
+//     Double new_resid2=new_res_outer;
 
     // backtracking(et , theta, s, old_resid2, new_resid2); 
 
@@ -962,10 +963,10 @@ namespace CoupledField
     scalingC[8]=1.0/((*matMatC)[6][6]); 
     scalingC[9]=mult/((*matMatC)[8][8]);
 
-    for (Integer i=0;i<actNrParameter;i++)
+    for (UInt i=0;i<actNrParameter;i++)
       stepR[i]=s[i].real();
 
-    for (Integer i=actNrParameter;i<actNrParameter+actNrParameterC;i++)
+    for (UInt i=actNrParameter;i<actNrParameter+actNrParameterC;i++)
       //  stepC[i-actNrParameter]=s[i].real();
       stepC[i-actNrParameter]=s[i].imag();
 
@@ -984,7 +985,7 @@ namespace CoupledField
     setNewParameterSet(parameterC, parameterC, scalingC, thetaC, stepC, whichParameterToUpdateC);
 
     // if no backtracking is specified, please include the following lines!
-    for (Integer i=0;i<nrParameter;i++){
+    for (UInt i=0;i<nrParameter;i++){
       //        parameter_new[i]=scaling[i]*parameter[i];
       //        parameter_new[i]+=s[i].real();
       //        parameter[i]=1/scaling[i]*parameter_new[i];
@@ -997,7 +998,7 @@ namespace CoupledField
 
     createF(ptMaterial, F_hat,FALSE);
 
-    for (Integer i=0;i<y_hat.GetSize();i++)
+    for (UInt i=0;i<y_hat.GetSize();i++)
       act_res[i]=y_hat[i]-F_hat[i];
    
     norm(act_res, new_res_outer, max_res_inner,y_hat);
