@@ -29,7 +29,7 @@ namespace CoupledField
                
   }
 
-  void BasePairCoupling::Init(Integer bcSequenceStep,
+  void BasePairCoupling::Init(UInt bcSequenceStep,
                               std::string  bcSequenceTag) {
     ENTER_FCN( "BasePairCoupling::Init" );
     
@@ -38,15 +38,46 @@ namespace CoupledField
     
     
     // get subdomains of coupling object
-    StdVector<std::string> keyVec, attrVec, valVec, regionNames;
-
+    StdVector<std::string> keyVec, attrVec, valVec, regionNames, regionTypes;
+    StdVector<RegionIdType> regionIds;
     
-    keyVec = "couplingList", "direct", couplingName_, "coupling", "name";
+    // we are looking in coupling section of current tag
     attrVec = "tag", "", "", "";
     valVec = bcSequenceTag, "", "", ""; 
+    
+    // get coupling region names
+    keyVec = "couplingList", "direct", couplingName_, "coupling", "name";
     params->GetList( keyVec, attrVec, valVec, regionNames );
-    ptGrid_->RegionNameToId( subdoms_, regionNames );
+    ptGrid_->RegionNameToId( regionIds, regionNames );
+
+    // get coupling region types
+    keyVec = "couplingList", "direct", couplingName_, "coupling", "type";
+    params->GetList( keyVec, attrVec, valVec, regionTypes );
  
+    // check if there are as many region types as region names
+    if ( regionIds.GetSize() != regionTypes.GetSize() ) {
+      (*error) << "BasePairCoupling::Init: There have to be as many region "
+               << "types as region Names for the" << couplingName_ 
+               << "-Coupling!\nPlease Check your input file!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    for ( UInt i=0; i < regionIds.GetSize(); i++ ) {
+     
+      if ( regionTypes[i] == "region" )
+        subdoms_.Push_back( regionIds[i] );
+      else if ( regionTypes[i] == "interface" ) 
+        surfRegions_.Push_back( regionIds[i] );
+      else {
+        (*error) << "BasePairCoupling::Init: The region type '" 
+                 << regionTypes[i] << "' is not known for direct coupling '"
+                 << couplingName_ << "'! Please check your input file!";
+        Error( __FILE__, __LINE__ );
+      }
+    }
+//     std::cerr << "BasePairCoupling: My subdoms are:\n" << subdoms_ << std::endl;
+//     std::cerr << "BasePairCoupling: My surfRegions are:\n" << surfRegions_ << std::endl;
+
     //std::cerr << "Name of pde1 = " << pde1_->GetName() 
     //<< std::endl;
     
@@ -74,12 +105,9 @@ namespace CoupledField
       break;
     }
 
-    // HARD CODED
-    //
-    //std::cerr << "couplingName = " << couplingName_ << std::endl;
-    StdVector<RegionIdType> surfdoms;
+    // Set general parameter of assemble class
     assemble_->SetGeneralParams(couplingName_, 1, subdoms_,
-                                surfdoms, bcSequenceTag );
+                                surfRegions_, bcSequenceTag );
                                 
 
     // set PDE Ids to assemble object
@@ -134,8 +162,8 @@ namespace CoupledField
     
     // Load material data for subdomains on which this PDE lives
     // from data file
-    for( Integer i = 0; i < subdoms_.GetSize(); i++ ) {
-      for( Integer k = 0; k <= subdomName.GetSize(); k++ ) {
+    for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+      for( UInt k = 0; k <= subdomName.GetSize(); k++ ) {
         if( subdoms_[i] == subdomId[k] ){
           loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
                                         materialClass_ );
