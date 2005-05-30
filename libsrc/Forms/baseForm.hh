@@ -4,6 +4,7 @@
 #include "Utils/StdVector.hh"
 #include "Utils/vector.hh"
 #include "Elements/basefe.hh"
+#include "Domain/surfElem.hh"
 #include "DataInOut/MaterialData.hh"
 
 namespace CoupledField
@@ -42,14 +43,14 @@ namespace CoupledField
     {Error("CalcElemVector not implemented!",__FILE__,__LINE__);};
 
     virtual void CalcElemVector4Dip(Matrix<Double>& ptCoord, 
-                                    const StdVector<Integer> & connecth, 
+                                    const StdVector<UInt> & connecth, 
                                     Vector<Double> & Result, 
                                     const Vector<Double> gradN_x_P)
     { Error(" CalcElemVector4Dip is not implemented for this class",__FILE__,__LINE__);};
 
     /// Calculation of vector of right hand side given from quadrupole contribution
     virtual void CalcElemVector4Quad(Matrix<Double>& ptCoord,
-                                     const StdVector<Integer> & connecth,
+                                     const StdVector<UInt> & connecth,
                                      const Matrix<Double> & FlowData, 
                                      Vector<Double> & Result)
     { Error(" CalcElemVector4Quad is not implemented for this class",__FILE__,__LINE__);};
@@ -57,8 +58,8 @@ namespace CoupledField
     /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)
     virtual void GetQttiesOfElement(Matrix<Double>& elVec,
                                     const Matrix<Double>& FlowData,
-                                    const StdVector<Integer>& connecth, 
-                                    Integer matrixRow)
+                                    const StdVector<UInt>& connecth, 
+                                    UInt matrixRow)
     { Error(" GetQttiesOfElement is not implemented for this class",__FILE__,__LINE__);};
 
     //! Prints the bilinear form
@@ -137,7 +138,7 @@ namespace CoupledField
     { intPoint_ = point; isSetIntPoint_ = TRUE;};
 
     //!
-    void SetDofZero(Integer posdof)
+    void SetDofZero(UInt posdof)
     {dofzero_ = posdof; };
 
     //!
@@ -149,19 +150,24 @@ namespace CoupledField
     { materialArray_ = mat; };
 
     //!
-    void SetSubdomain(Integer sd)
+    void SetSubdomain(UInt sd)
     {actSD_ = sd; };
 
     //!
-    void SetElemNr(Integer nr)
+    void SetElemNr(UInt nr)
     {actElemNr_ = nr; };
 
   protected:
 
 
-    BaseFE  * ptelem;   //!< pointer to base element
-    MaterialData * ptMaterial ;   //!< pointer to material data
-    Boolean isaxi_;  //!< true for axisymmetric setup
+    //! pointer to reference element
+    BaseFE  * ptelem;   
+    
+    //! pointer to material data
+    MaterialData * ptMaterial ;
+
+    //! true for axisymmetric setup
+    Boolean isaxi_;
 
     //
     Vector<Double> intPoint_;
@@ -172,15 +178,76 @@ namespace CoupledField
 
     Boolean isFracDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor
     Boolean isRaylDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor
-    Integer dofzero_;   //!< for multidof-handling, where one dof is zero (e.g. piezoelectric PDE)
+    UInt dofzero_;   //!< for multidof-handling, where one dof is zero (e.g. piezoelectric PDE)
 
     FEMatrixType baseType_;  // base type: STIFFNESS, DAMPING, MASS
 
     Matrix<Double>* materialArray_;
 
-    Integer actSD_;
-    Integer actElemNr_;
+    UInt actSD_;
+    UInt actElemNr_;
 
+  };
+
+
+  //! Base class for surface integrators
+
+  //! This class defines an abstract interface for all kinds of surface
+  //! inetgrators. Since surface elements have no own material, they need
+  //! information about ther one or two volume neighbours and their materials.
+  //! Additionally, often the normal of the surface element is needed in order
+  //! to computa a surface integral.
+  class SurfForm : public BaseForm {
+
+  public: 
+    
+    //! standard constructor
+    SurfForm();
+
+    //! standard destructor
+    virtual ~SurfForm();
+    
+    //! Set pointer to surface element
+    void SetSurfElem( SurfElem * ptSurfElem);
+
+    //! Set normal pointing out of first volume element
+    void SetFirstVoluNormal( Vector<Double> & n );
+
+    //! Set information of first interface side
+    void SetFirstVoluInfo( const std::string & name,
+                           const StdVector<RegionIdType> & regionIds,
+                           const MaterialData* materials );
+
+    //! Set information for second interface side
+    void SetSecondVoluInfo( const std::string & name,
+                            const StdVector<RegionIdType> & regionIds,
+                            const MaterialData* materials );
+  protected:
+
+    //! Current surface element
+    SurfElem * actElem_;
+
+    //! Normal pointing out of first volume element
+    Vector<Double> normal_;
+
+    //! Name of PDE on first interface side
+    std::string firstPDEName_;
+
+    //! Name of PDE on second interface side
+    std::string secondPDEName_;
+
+    //! Region Ids on first interface side
+    StdVector<RegionIdType> firstRegionIds_;
+
+    //! Region ids on second interface side
+    StdVector<RegionIdType> secondRegionIds_;
+
+    //! Materials on first interface side
+    const MaterialData * firstMaterials_;
+
+    //! Materials on second interface side
+    const MaterialData * secondMaterials_;
+ 
   };
 
 } //end namespace
