@@ -107,16 +107,15 @@ namespace CoupledField {
 
 
     delete assemble_;
-  
     delete sol_;
-
+    delete solVec_;
     delete eqnData_;
     delete TS_alg_;
     delete[] materialData_;
   }
 
 
-  void SinglePDE::Init( Integer bcSequenceIndex,
+  void SinglePDE::Init( UInt bcSequenceIndex,
                         std::string  bcSequenceTag) {
     ENTER_FCN( "SinglePDE::Init()" );
 
@@ -131,7 +130,7 @@ namespace CoupledField {
     ptgrid_->RegionNameToId( subdoms_, regionNames );
     Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
                   pdename_.c_str());
-    for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+    for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
       Info->PrintF( pdename_, " %s, index %d\n", regionNames[k].c_str(), k );
     }
     Info->PrintF( "", "\n" );
@@ -252,9 +251,11 @@ namespace CoupledField {
     // Determine if solution is of complex type or not
     if ( analysistype_ == HARMONIC ) {
       sol_ = new NodeStoreSol<Complex>;
+      solVec_ = new Vector<Complex>;
     }
     else {
       sol_ = new NodeStoreSol<Double>;
+      solVec_ = new Vector<Double>;
     }
     
     // =====================================================================
@@ -272,7 +273,6 @@ namespace CoupledField {
     // =====================================================================
     ReadBCs();
     ReadSpecialBCs();
-    numDirichletBCs_ += GetNumRestraints();
 
     // =====================================================================
     // read in NonLinearities
@@ -333,12 +333,15 @@ namespace CoupledField {
     // Initialize Storesolution class
     sol_->SetNumSolutions(solTypes_.GetSize());
     sol_->SetNumNodes(numPDENodes_);
-    for (Integer iSol=0; iSol<solTypes_.GetSize(); iSol++) {
+    for (UInt iSol=0; iSol<solTypes_.GetSize(); iSol++) {
       sol_->SetSolutionType(solTypes_[iSol],iSol);
       sol_->SetNumDofs(solDofs_[iSol], solTypes_[iSol]);
     }
     sol_->SetPtrEQNData(eqnData_, ptgrid_);
     sol_->Init(); 
+
+    solVec_->Resize( eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN() );
+    
 
 
     // =====================================================================
@@ -364,13 +367,10 @@ namespace CoupledField {
       assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
     }
 
-    assemble_->SetNumDirichlet(numDirichletBCs_);
-
     assemble_->SetPtr2Sol(sol_);
-    if (needsDampingMatrix_) {
-      assemble_->NeedDampingMatrix();
+
+    if ( dampingType_ != NONE )
       matrixTypes_.insert(DAMPING);
-    }
 
     // =====================================================================
     // read in material data
@@ -422,21 +422,33 @@ namespace CoupledField {
   }
 
   
-  void SinglePDE::SaveSolution() {
-    ENTER_FCN( "SinglePDE::SaveSolution" );
+  void SinglePDE::SaveSolution( const Double * ptSol, UInt size ) {
+    ENTER_FCN( "SinglePDE::SaveSolutionPointer" );
 
-    // We have to differ between real-valued
-    // and complex valued-entries
-    if ( isComplex_ == FALSE ) {
-      Double *solPtr = NULL; 
-      Integer size = algsys_->GetSolutionVal( solPtr, pdeId_ );    
-      sol_->SetAlgSysDataPointer( size, solPtr );
-    } else {
-      Complex *solPtr = NULL; 
-      Integer size = algsys_->GetSolutionVal( solPtr, pdeId_ );    
-      sol_->SetAlgSysDataPointer( size, solPtr );
+    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
+
+    solHelp.Resize(size);
+
+    for ( UInt i = 0; i < size; i++ ) {
+      solHelp[i] = ptSol[i];
     }
-      
+
+    sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+            
+  }
+
+  void SinglePDE::SaveSolution( const Complex * ptSol, UInt size ) {
+    ENTER_FCN( "SinglePDE::SaveSolutionPointer" );
+
+    Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
+
+    solHelp.Resize(size);
+
+    for ( UInt i = 0; i < size; i++ ) {
+      solHelp[i] = ptSol[i];
+    }
+
+    sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
             
   }
 
@@ -446,8 +458,8 @@ namespace CoupledField {
     ENTER_FCN( "SinglePDE::WriteGeneralPDEdefines" );
     
     //BC-section
-    for (Integer i=0; i< bcs_hd_.GetSize(); i++) {
-      Integer dof;
+    for (UInt i=0; i< bcs_hd_.GetSize(); i++) {
+      UInt dof;
       std::string doftype = bcs_hd_[i];
       if (dofspernode_ > 1) 
         dof = GetBCDof(homDirichDof_[i]);
@@ -457,8 +469,8 @@ namespace CoupledField {
       Info->WriteHomBC(pdename_, bcs_hd_[i], dof);      
     }
     
-    for (Integer i=0; i< bcs_id_.GetSize(); i++) {
-      Integer dof;
+    for (UInt i=0; i< bcs_id_.GetSize(); i++) {
+      UInt dof;
       std::string doftype = bcs_id_[i];
       if (dofspernode_ > 1) {
         dof = GetBCDof(inhomDirichDof_[i]);
@@ -477,8 +489,8 @@ namespace CoupledField {
     StdVector<Double> loadVals = GetLoadVals();
     StdVector<std::string> loadfncs = GetLoadFncs();
 
-    for( int i = 0; i < loadDom.GetSize(); i++ ) {
-      Integer dof;
+    for( UInt i = 0; i < loadDom.GetSize(); i++ ) {
+      UInt dof;
       std::string doftype = loadDom[i];
       if (dofspernode_ > 1) {
         dof = GetBCDof(loadDof[i]);
@@ -494,14 +506,15 @@ namespace CoupledField {
     
     ENTER_FCN( "SinglePDE::SetBCs" );
     
-    Integer dof;
+    UInt dof;
     Double val, val_tfunc;
     
-    StdVector<Integer> nodes;
+    StdVector<UInt> nodes;
 
-    Integer i;
-    Integer j;
-    Integer eqnNr, eqnDof;
+    UInt i;
+    UInt j;
+    Integer eqnNr; 
+    UInt eqnDof;
     
     if (isIterCoupled_) {
       j = couplingBCsCounter_;
@@ -525,7 +538,7 @@ namespace CoupledField {
       ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
       
       
-      for ( Integer iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+      for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
         
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
         if (eqnNr > 0) {
@@ -571,7 +584,7 @@ namespace CoupledField {
       
       val    =  val_id_[i] * val_tfunc;
       dirVal = val;
-      for ( Integer iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+      for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 
 
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
@@ -667,7 +680,7 @@ namespace CoupledField {
     }
 
     // We need not have as many function/filenames as boundary conditions!
-    for ( Integer k = fncnames_id_.GetSize(); k < bcs_id_.GetSize(); k++ ) {
+    for ( UInt k = fncnames_id_.GetSize(); k < bcs_id_.GetSize(); k++ ) {
       fncnames_id_.Push_back( "none" );
     }
     if (dofspernode_ > 1) {
@@ -696,6 +709,15 @@ namespace CoupledField {
         Info->Error( errmsg, __FILE__, __LINE__ );
       }
     }
+
+    // Calculate correct number of boundary conditions
+    for ( UInt i = 0; i < bcs_hd_.GetSize(); i++ ) {
+      numDirichletBCs_ += ptgrid_->GetNumNodes(bcs_hd_[i]);
+    }
+    
+    for ( UInt i = 0; i < bcs_id_.GetSize(); i++) {
+      numDirichletBCs_ += ptgrid_->GetNumNodes(bcs_id_[i]);
+    }
   }
 
 
@@ -718,7 +740,7 @@ namespace CoupledField {
     StdVector< RegionIdType > subdomId;
     params->GetList( "name", subdomName, "domain", "region" );
     params->GetList( "material", subdomMaterial, "domain", "region" );
-  
+    
     // Convert region names to Ids
     ptgrid_->RegionNameToId( subdomId, subdomName );
 
@@ -733,8 +755,8 @@ namespace CoupledField {
       
       // Load material data for subdomains on which this PDE lives
       // from data file
-      for( Integer i = 0; i < subdoms_.GetSize(); i++ ) {
-        for( Integer k = 0; k <= subdomId.GetSize(); k++ ) {
+      for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+        for( UInt k = 0; k <= subdomId.GetSize(); k++ ) {
           if( subdoms_[i] == subdomId[k] ){
             loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
                                           pdematerialclass_ );
@@ -750,8 +772,8 @@ namespace CoupledField {
     
       // Load material data for subdomains on which this PDE lives
       // from data file
-      for( Integer i = 0; i < subdoms_.GetSize(); i++ ) {
-        for( Integer k = 0; k <= subdomName.GetSize(); k++ ) {
+      for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+        for( UInt k = 0; k <= subdomName.GetSize(); k++ ) {
           if( subdoms_[i] == subdomName[k] ) {
             loadMaterialDB.GetMaterial( materialData_[i], subdomMaterial[k],
                                         pdematerialclass_ );
@@ -767,22 +789,11 @@ namespace CoupledField {
   }
 
 
-  Integer SinglePDE::GetNumRestraints() {
+  UInt SinglePDE::GetNumRestraints() {
     
     ENTER_FCN( "SinglePDE::GetNumRestraints" );
     
-    Integer res = 0;
-    Integer i;
-    
-    for ( i = 0; i < bcs_hd_.GetSize(); i++ ) {
-      res+=ptgrid_->GetNumNodes(bcs_hd_[i]);
-    }
-    
-    for (i=0; i<bcs_id_.GetSize(); i++) {
-      res+=ptgrid_->GetNumNodes(bcs_id_[i]);
-    }
-    
-    return res;
+    return numDirichletBCs_;
   }
   
   // ======================================================
@@ -874,9 +885,9 @@ namespace CoupledField {
     // and constraints to the algebraic system
     algsys_->SetBlockSize( pdeId_, eqnData_->GetNumDofsPerEQN() );
     
-    Integer numDir = GetNumRestraints() - numBuildInDirichletBCs_;
+    UInt numDir = GetNumRestraints() - numBuildInDirichletBCs_;
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
-    
+
     if (matrixTypes_.find(SYSTEM) != matrixTypes_.end())
       algsys_->SetFEMatrixType( pdeId_, SYSTEM );
     
@@ -1056,17 +1067,18 @@ namespace CoupledField {
     ENTER_FCN( "SinglePDE::CalcInputCoupling" );
 
     std::string errMsg;
-    StdVector<Integer> * nodes;
+    StdVector<UInt> * nodes;
     CFSVector * val;
-    Integer pdeNode, eqnNr,eqnDof;
-    Integer couplingDof;
+    UInt pdeNode, eqnDof;
+    Integer eqnNr;
+    UInt couplingDof;
     Boolean clearCoords = TRUE;
 
     // Reset counter for boundary conditions
     couplingBCsCounter_ = 0;
   
     // Outer loop over all INPUT coupling terms
-    for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
+    for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
 
       //    ptCoupling_ = &ptCoupling_[i];
       ptCoupling_->GetInputValues(i, val);
@@ -1099,16 +1111,10 @@ namespace CoupledField {
         // set ptr of deltCoords to assembly-object
         assemble_->SetPtrDeltaCoordinates(&deltCoords_);
           
-        for (Integer j=0; j<nodes->GetSize(); j++)
-          for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++) {
+        for (UInt j=0; j<nodes->GetSize(); j++)
+          for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++) {
             pdeNode = eqnData_->Mesh2PDENode((*nodes)[j]);
-            if (pdeNode==-1) {
-              errMsg =  pdename_;
-              errMsg += "PDE: Coupling node Nr. ";
-              errMsg += Info->GenStr((*nodes)[j]);
-              errMsg += " is not in contained in list of my subdomains!";
-              Error(errMsg.c_str(), __FILE__, __LINE__);
-            }
+
             deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
 
           }
@@ -1120,9 +1126,9 @@ namespace CoupledField {
       case RHS:
         ptCoupling_->GetInputNodes(i, nodes);
           
-        //for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
-        for ( Integer dof = 0; dof < couplingDof; dof++ ) {
-          for ( Integer j = 0; j < nodes->GetSize(); j++ ) {
+        //for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
+        for ( UInt dof = 0; dof < couplingDof; dof++ ) {
+          for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
             eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
             if ( eqnNr != 0 ) {
               algsys_->SetNodeRHS(help[dof+couplingDof*j], pdeId_, eqnNr, eqnDof);
@@ -1141,8 +1147,8 @@ namespace CoupledField {
 
         ptCoupling_->GetInputNodes(i, nodes);
 
-        for ( Integer dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
-          for ( Integer j = 0; j < nodes->GetSize();
+        for ( UInt dof = 0; dof < ptCoupling_->GetInputDof(i); dof++ ) {
+          for ( UInt j = 0; j < nodes->GetSize();
                 j++, couplingBCsCounter_++) {
 
             eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);

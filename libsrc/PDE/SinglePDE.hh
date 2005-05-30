@@ -34,7 +34,7 @@ namespace CoupledField
  
 
  
-    void Init(Integer sequenceStep = 0,
+    void Init(UInt sequenceStep = 0,
               std::string  bcSequenceTag = "anyTag");
   
     // ---------------------- ***** --------------------------------
@@ -137,7 +137,7 @@ namespace CoupledField
     virtual std::string GetSubType() {return subType_;}
 
     //! return number of restraints
-    Integer GetNumRestraints( );
+    UInt GetNumRestraints( );
  
     //! Get types of needed matrices (sysmtem, stiffness,..)
     void GetMatrixTypes( std::set<FEMatrixType> &matTypes)
@@ -187,6 +187,10 @@ namespace CoupledField
 
     //! private copy constructor
     SinglePDE & operator= (const StdPDE & myPDE) {
+      Error( "Not implemented", __FILE__, __LINE__ );
+      
+      // For compiler
+      return *this;
       ;}
 
     // ======================================================
@@ -216,20 +220,20 @@ namespace CoupledField
     //! Initialize NonLinearities
     virtual void InitNonLin(){};
 
-    //! Init the time stepping
-    virtual void InitTimeStepping()
-    {Error("InitTimeStepping not implemented",__FILE__,__LINE__);};
-
 #ifdef ADAPTGRID  
     //! ----------------- functions for adaptivity
     //! in this fnc we delete old pointer to Error-object & create new one
     void ConstructorError();
 #endif
     
-  
+    //@{
     //! store the new solution returned by the algebraic system
-    void SaveSolution();
-  
+    //! \param ptSol pointer to solution array
+    //! \param size legnth of solution array
+    void SaveSolution( const Double * ptSol, UInt size );
+    void SaveSolution( const Complex * ptSol, UInt size );
+    //@}
+
     // ======================================================
     // DATA SECTION
     // ======================================================
@@ -246,7 +250,7 @@ namespace CoupledField
     StdVector<SolutionType> solTypes_;
 
     //! vector containgin dofs of solutiontypes
-    StdVector<Integer> solDofs_;
+    StdVector<UInt> solDofs_;
 
     //! TRUE, if at least one Result is calculated and written
     Boolean hasOutput_;
@@ -303,7 +307,7 @@ namespace CoupledField
 
     //@{
     //! \name Attributes connected to parameters for solver
-    Integer maxnumiter_;       //!< maximum of iterations (for iterative solver)
+    UInt maxnumiter_;       //!< maximum of iterations (for iterative solver)
     Double eps_;               //!< accuracy
     Double dampiter_;          //!< damping parameter within iterative solution
     Double coarsealpha_;       //!< coarsening factor (just for AMG)

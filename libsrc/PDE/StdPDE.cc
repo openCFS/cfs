@@ -9,22 +9,21 @@ namespace CoupledField {
 
   StdPDE::StdPDE(Grid *aptgrid, WriteResults *aOutFile, TimeFunc *aTimeFunc)
     : BasePDE(),
+      numPDENodes_(0),
+      numElems_(0),
       nonLin_(FALSE),
       incStopCrit_(1e-2), 
       residualStopCrit_(1e-3),
+      materialData_(NULL),
+      TS_alg_(NULL),
+      effectiveMass_(FALSE),
       firstTimeStepStatic_(TRUE),
+      isAlwaysStatic_(FALSE),
       isaxi_(FALSE),
       isComplex_(FALSE),
-      numPDENodes_(0),
-      numElems_(0),
-      sol_(NULL),
-      isAlwaysStatic_(FALSE),
+      sol_(NULL),     
       dampingType_(NONE),
-      needsDampingMatrix_(FALSE),
       isIncrFormulation_(FALSE),
-      TS_alg_(NULL),
-      materialData_(NULL),
-      effectiveMass_(FALSE),
       solveStep_(NULL)
     
   {
@@ -73,6 +72,9 @@ namespace CoupledField {
     else {
       (*error) << pdename_ << ":getS1: No timestepping defined for this PDE";
       Error( __FILE__, __LINE__ );
+
+      // Only a dummy line for compiler
+      return TS_alg_->GetDeriv1();      
     }
   }
   
@@ -87,10 +89,13 @@ namespace CoupledField {
     else {
       (*error) << pdename_ << ":getS2: No timestepping defined for this PDE";
       Error( __FILE__, __LINE__ );
+
+      // Only a dummy line for compiler
+      return TS_alg_->GetDeriv2();
     }
   }
 
-  void StdPDE::setBCs_id_phase_(Integer i, Double & phase) {
+  void StdPDE::setBCs_id_phase_(UInt i, Double & phase) {
 
     ENTER_FCN("setBSs_PDE::setBCs_id_phase");
     
@@ -106,7 +111,7 @@ namespace CoupledField {
     actFrequency_ = freq;
   }
   
-  void StdPDE::setPDE_actFreqStep(Integer & fstep){
+  void StdPDE::setPDE_actFreqStep(UInt & fstep){
     
     ENTER_FCN("SinglePDE::setPDE_actFreqStep");
     
@@ -119,17 +124,17 @@ namespace CoupledField {
   // GRID SECTION (Meshing, ...) 
   // ======================================================
 
-  void StdPDE::GetElemCoords( const StdVector<Integer> connect, 
+  void StdPDE::GetElemCoords( const StdVector<UInt> connect, 
                               Matrix<Double> &coordMat ) {
 
     ENTER_FCN( "StdPDE::GetElemCoords" );
 
-    Integer pdeNode;
+    UInt pdeNode;
     ptgrid_->GetElemNodesCoord(coordMat, connect);
   
     if (deltCoords_.GetSizeRow() != 0 && geoUpdate_ == TRUE) {
-      for (Integer i=0; i<coordMat.GetSizeRow(); i++) {
-        for (Integer j=0; j<coordMat.GetSizeCol(); j++) {
+      for (UInt i=0; i<coordMat.GetSizeRow(); i++) {
+        for (UInt j=0; j<coordMat.GetSizeCol(); j++) {
           pdeNode = eqnData_->Mesh2PDENode(connect[j]);
           coordMat(i,j) += deltCoords_(i, pdeNode - 1);
         }
@@ -143,16 +148,17 @@ namespace CoupledField {
   {
     ENTER_FCN( "StdSolveStep::RhsL2Norm" );
 
-    Integer dof, eqnNr, eqnDof;
+    UInt dof, eqnDof;
+    Integer eqnNr;
   
-    StdVector<Integer> nodes;
+    StdVector<UInt> nodes;
   
-    Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
+    UInt dofsPerEQN = eqnData_->GetNumDofsPerEQN();
 
     // Eliminate homogeneous dirichlet node from RHS (due to penalty formulation).
     // In the case of a block system, there might be still some homogeneous dirichlet
     // entries left
-    for (Integer i=0; i< bcs_hd_.GetSize(); i++)
+    for (UInt i=0; i< bcs_hd_.GetSize(); i++)
       {
         dof = 1;
         if ( dofspernode_ > 1 ) {
@@ -161,7 +167,7 @@ namespace CoupledField {
 
         ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
       
-        for (Integer iNode=0; iNode<nodes.GetSize(); iNode++)
+        for (UInt iNode=0; iNode<nodes.GetSize(); iNode++)
           {
             eqnData_->Node2EQN(nodes[iNode],dof,eqnNr,eqnDof);
             if (eqnNr != 0){
@@ -171,7 +177,7 @@ namespace CoupledField {
       }
 
     // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
-    for (Integer i=0; i< bcs_id_.GetSize(); i++)
+    for (UInt i=0; i< bcs_id_.GetSize(); i++)
       {
         dof = 1;
         if ( dofspernode_ > 1 ) {
@@ -180,7 +186,7 @@ namespace CoupledField {
         
         ptgrid_->GetNodesByName( nodes, bcs_id_[i] );
         
-        for (Integer iNode=0; iNode<nodes.GetSize(); iNode++)
+        for (UInt iNode=0; iNode<nodes.GetSize(); iNode++)
           {
             eqnData_->Node2EQN(nodes[iNode],dof,eqnNr,eqnDof);
             if (eqnNr != 0){
@@ -195,11 +201,11 @@ namespace CoupledField {
 
   
 
-  Integer StdPDE::GetBCDof( const std::string dofStartString ) {
+  UInt StdPDE::GetBCDof( const std::string dofStartString ) {
     
     ENTER_FCN( "StdPDE::GetBCDof" );
     
-    Integer nrActDof = 0;
+    UInt nrActDof = 0;
     
     if ( dofStartString == "ux" )
       nrActDof = 1;
@@ -266,6 +272,8 @@ namespace CoupledField {
 
     ENTER_FCN( "StdPDE::SetMemento" );
   
+    UInt size = 0;
+
     // if there is no information in the memento just leave
     if ( memento.isSet_ == FALSE ) {
       return;
@@ -273,16 +281,17 @@ namespace CoupledField {
   
     if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
 
+      Vector<Double> & solHelp =  dynamic_cast<Vector<Double>&>(*solVec_);
+
       if ( transFromTo == "complexToReal" ) {
         // --- transform complex values to real one --
-        Vector<Double>& sol = 
-          dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
         Vector<Complex>& mementoSol = 
           dynamic_cast<Vector<Complex>&>(*(memento.sol_));
 
-        for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
-          sol[i] = mementoSol[i].real();
+        for ( UInt i=0; i<mementoSol.GetSize(); i++ ) {
+          solHelp[i] = mementoSol[i].real();
         }
+        sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
 
         if (analysistype_ == TRANSIENT) {
           // Set first and second derivative
@@ -290,7 +299,7 @@ namespace CoupledField {
           memento.solDeriv2_.Resize(mementoSol.GetSize());
 
           Complex val;
-          for ( Integer i=0; i<mementoSol.GetSize(); i++ ) {
+          for ( UInt i=0; i<mementoSol.GetSize(); i++ ) {
             val   = mementoSol[i];
             memento.solDeriv1_[i] = - 2*PI*frequency * val.imag();
             memento.solDeriv2_[i] = 
@@ -306,8 +315,11 @@ namespace CoupledField {
 
         // --- Real values --
         // Set solution
-        dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).SetAlgSysVector
-          (dynamic_cast<Vector<Double>&>(*(memento.sol_)));
+        solHelp = dynamic_cast<Vector<Double>&>(*(memento.sol_));
+        sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+        
+        //dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).SetAlgSysVector
+        //  (dynamic_cast<Vector<Double>&>(*(memento.sol_)));
       
         // if previous step was transient and the current step is also
         // then give the time derivative to the timestepping algorithm
@@ -366,7 +378,7 @@ namespace CoupledField {
   // ALGSYS SECTION (SOLVER, ...) 
   // ======================================================
 
-  Double StdPDE::GetFracDampMatrixCoeff(Integer actSD) {
+  Double StdPDE::GetFracDampMatrixCoeff(UInt actSD) {
     
     ENTER_FCN( "StdPDE::GetFracDampMatrixCoeff" );
 
@@ -387,22 +399,23 @@ namespace CoupledField {
   }
   
   void StdPDE::GetSolVecOfElement( Vector<Double>& elemSol,
-                                   StdVector<Integer>& connecth ) {
+                                   StdVector<UInt>& connecth ) {
 
     ENTER_FCN( "StdPDE::GetSolVecOfElement" );
 
     // displacement of element nodes
     elemSol.Resize(dofspernode_ * connecth.GetSize());
     elemSol.Init(0);
-    Integer eqnNr, eqnDof;
-    Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
+    Integer eqnNr; 
+    UInt eqnDof;
+    UInt dofsPerEQN = eqnData_->GetNumDofsPerEQN();
 
     NodeStoreSol<Double> * solhelp = 
       dynamic_cast<NodeStoreSol<Double>*>(sol_);
     Vector<Double> sol = solhelp->GetAlgSysVector();
   
-    for(Integer actNode=0; actNode<connecth.GetSize(); actNode++) {
-      for(Integer actDof=0; actDof < dofspernode_; actDof++) {
+    for(UInt actNode=0; actNode<connecth.GetSize(); actNode++) {
+      for(UInt actDof=0; actDof < dofspernode_; actDof++) {
         eqnData_->Node2EQN(connecth[actNode],actDof+1,eqnNr,eqnDof);
         if (eqnNr!= 0) {
           elemSol[actDof + actNode*dofspernode_] =
@@ -417,21 +430,22 @@ namespace CoupledField {
 
   
   void StdPDE::GetDerivSolVecOfElement(Vector<Double>& sol,
-                                       StdVector<Integer>& connecth) {
+                                       StdVector<UInt>& connecth) {
 
     ENTER_FCN( "StdPDE::GetDerivSolVecOfElement" );
 
     // displacement of element nodes
     sol.Resize(dofspernode_ * connecth.GetSize());
     sol.Init(0);
-    Integer eqnNr, eqnDof;
-    Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
+    Integer eqnNr;
+    UInt  eqnDof;
+    UInt dofsPerEQN = eqnData_->GetNumDofsPerEQN();
   
     if (analysistype_ == TRANSIENT) {
       const Vector<Double> & sol_der1 = getS1();
     
-      for( Integer actNode = 0; actNode < connecth.GetSize(); actNode++ ) {
-        for( Integer actDof = 0; actDof < dofspernode_; actDof++ ) {
+      for( UInt actNode = 0; actNode < connecth.GetSize(); actNode++ ) {
+        for( UInt actDof = 0; actDof < dofspernode_; actDof++ ) {
           eqnData_->Node2EQN(connecth[actNode],actDof+1,eqnNr,eqnDof);
           if ( eqnNr != 0 ) {
             sol[actDof + actNode*dofspernode_] =
@@ -446,21 +460,22 @@ namespace CoupledField {
   }
 
   void StdPDE::GetDeriv2SolVecOfElement( Vector<Double>& sol,
-                                         StdVector<Integer>& connecth ) {
+                                         StdVector<UInt>& connecth ) {
 
     ENTER_FCN( "StdPDE::GetDeriv2SolVecOfElement" );
 
     // displacement of element nodes
     sol.Resize(dofspernode_ * connecth.GetSize());
     sol.Init(0);
-    Integer eqnNr, eqnDof;
-    Integer dofsPerEQN = eqnData_->GetNumDofsPerEQN();
+    Integer eqnNr; 
+    UInt  eqnDof;
+    UInt dofsPerEQN = eqnData_->GetNumDofsPerEQN();
 
     if (analysistype_ == TRANSIENT) {
       const Vector<Double> & sol_der2 = getS2();
     
-      for( Integer actNode = 0; actNode < connecth.GetSize(); actNode++ ) {
-        for( Integer actDof = 0; actDof < dofspernode_; actDof++ ) {
+      for( UInt actNode = 0; actNode < connecth.GetSize(); actNode++ ) {
+        for( UInt actDof = 0; actDof < dofspernode_; actDof++ ) {
           eqnData_->Node2EQN(connecth[actNode],actDof+1,eqnNr,eqnDof);
           if (eqnNr!= 0) {
             sol[actDof + actNode*dofspernode_] =
@@ -476,7 +491,7 @@ namespace CoupledField {
 
 
   void StdPDE::GetDerivSolOfElement( Matrix<Double>& sol,
-                                     StdVector<Integer>& connect_PDE ) {
+                                     StdVector<UInt>& connect_PDE ) {
 
     ENTER_FCN( "StdPDE::GetDerivSolOfElement" );
 
@@ -485,8 +500,8 @@ namespace CoupledField {
 
     const Vector<Double>& sol_der1 = getS1();  
 
-    for( Integer actNode = 0; actNode < connect_PDE.GetSize(); actNode++ ) {
-      for( Integer actDof = 0; actDof < dofspernode_; actDof++) {
+    for( UInt actNode = 0; actNode < connect_PDE.GetSize(); actNode++ ) {
+      for( UInt actDof = 0; actDof < dofspernode_; actDof++) {
         sol[actDof][actNode] =
           sol_der1[actDof + dofspernode_*(connect_PDE[actNode]-1)];
       }
@@ -578,13 +593,18 @@ namespace CoupledField {
 
     ENTER_FCN( "StdPDE::StoreAlgsysToVec" );
 
-    //const Integer numElems = numPDENodes_ * dofspernode_;
-    Integer numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
+    //const UInt numElems = numPDENodes_ * dofspernode_;
+    UInt numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
 
     vec.Resize(numElems);
-    for (Integer i=0; i<numElems; i++) {
+    for (UInt i=0; i<numElems; i++) {
       vec[i] = pt[i];
     }
+  }
+
+  CFSVector *  StdPDE::GetSolutionVector() {
+    ENTER_FCN( "StdPDE::GetSolutionVector" );
+    return solVec_;
   }
 
   // ======================================================
@@ -605,9 +625,9 @@ namespace CoupledField {
       subDomVolReal.Resize(surfRegions.GetSize());
     }
 
-    Integer dof, dir;
+    UInt dof, dir;
 
-    for (Integer actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
+    for (UInt actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
       //check for direction
       if ( strDir[actSF] == "ux" ) {
         dir = 1;
@@ -639,9 +659,9 @@ namespace CoupledField {
       StdVector<SurfElem*> elemssd;
       ptgrid_->GetSurfElems(elemssd,surfRegions[actSF]);
    
-      for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
+      for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
         BaseFE * ptSurfEl = elemssd[actEl]->ptElem;
-        StdVector<Integer> connecth = elemssd[actEl]->connect;
+        StdVector<UInt> connecth = elemssd[actEl]->connect;
         
         Matrix<Double> ptSurfCoord;
         GetElemCoords(connecth, ptSurfCoord);
@@ -649,7 +669,7 @@ namespace CoupledField {
         //get the deformed solution
         if (analysistype_ == HARMONIC ) {
           Vector<Complex> disp(ptSurfEl->GetNumNodes());
-          for (Integer lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
+          for (UInt lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
             solHarmonic->Get(connecth[lnode]-1, dof, disp[lnode]);
           }
           // extract to volume element
@@ -658,7 +678,7 @@ namespace CoupledField {
         }
         else {
           Vector<Double> disp(ptSurfEl->GetNumNodes());
-          for (Integer lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
+          for (UInt lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
             solTransient->Get(connecth[lnode]-1,dof,disp[lnode]);
           }
           // extract to volume element
@@ -678,7 +698,7 @@ namespace CoupledField {
     
     if ( analysistype_ == HARMONIC ) {
       subDomVolReal.Resize(surfRegions.GetSize());
-      for (Integer actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
+      for (UInt actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
         subDomVolReal[actSF] = abs( subDomVolComplex[actSF] );
       }
  
@@ -703,12 +723,12 @@ namespace CoupledField {
 
     Double elemVol;
     Double averageDis;
-    Integer nrSurfNodes = surfEl->GetNumNodes();
+    UInt nrSurfNodes = surfEl->GetNumNodes();
 
 
     //compute average displacedment
     averageDis = 0;
-    for (Integer i=0; i<nrSurfNodes; i++) {
+    for (UInt i=0; i<nrSurfNodes; i++) {
       averageDis += disp[i]; 
     }
     averageDis /= (Double)nrSurfNodes;
@@ -727,12 +747,12 @@ namespace CoupledField {
 
     Complex elemVol;
     Complex averageDis;
-    Integer nrSurfNodes = surfEl->GetNumNodes();
+    UInt nrSurfNodes = surfEl->GetNumNodes();
 
 
     //compute average displacedment
     averageDis = 0;
-    for (Integer i=0; i<nrSurfNodes; i++) {
+    for (UInt i=0; i<nrSurfNodes; i++) {
       averageDis += disp[i]; 
     }
     averageDis /= (Double)nrSurfNodes;
