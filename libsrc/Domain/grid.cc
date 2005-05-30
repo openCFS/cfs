@@ -105,7 +105,7 @@ namespace CoupledField
     ENTER_FCN( "Grid::RegionIdToName" );
   
     regionNames.Resize( regionId.GetSize() );
-    for (Integer i=0; i<regionId.GetSize(); i++ ) {
+    for (UInt i=0; i<regionId.GetSize(); i++ ) {
       if ( regionId[i] == ALL_REGIONS )
         regionNames[i] = "all";
       else
@@ -119,7 +119,7 @@ namespace CoupledField
     ENTER_FCN( "Grid::RegionNameToId" );
 
     regionIds.Resize( regionNames.GetSize() );
-    for (Integer i=0; i<regionNames.GetSize(); i++ ) {
+    for (UInt i=0; i<regionNames.GetSize(); i++ ) {
     
       if (regionNames[i] == "all" )
         regionIds[i] = ALL_REGIONS;

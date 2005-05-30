@@ -113,14 +113,14 @@ namespace CoupledField{
       \param nSols (input) Number of different solution types
     */
     //! \note All entries of this object are deleted afterwards
-    virtual void SetNumSolutions(const Integer nSols) = 0;
+    virtual void SetNumSolutions(const UInt nSols) = 0;
   
     //! Set the number of solution elems
     /*!
       \param nElems (input) Number of solution elems
     */
     //! \note All entries of this object are deleted afterwards
-    virtual void SetNumElems(const Integer nElems) = 0;
+    virtual void SetNumElems(const UInt nElems) = 0;
 
   
     //! Set the type of solution and its position 
@@ -134,7 +134,7 @@ namespace CoupledField{
     */
     //! \note All entries of this object are deleted afterwards
     virtual void SetSolutionType(const SolutionType solType,
-                                 Integer numSolution = 0) = 0;
+                                 UInt numSolution = 0) = 0;
 
   
     //! Set the number of dofs for one solution type
@@ -147,7 +147,7 @@ namespace CoupledField{
       \param solType (input) Type of solution (ref. enum SolutionType)
     */
     //! \note All entries of this object are deleted afterwards
-    virtual void SetNumDofs(const Integer dof,
+    virtual void SetNumDofs(const UInt dof,
                             const SolutionType solType = NO_SOLUTION_TYPE) = 0;
 
 
@@ -162,7 +162,7 @@ namespace CoupledField{
 
     //! Return the accumulated number of Dofs for
     //! all solution types in this object
-    inline Integer GetTotalNumDofs() const;
+    inline UInt GetTotalNumDofs() const;
 
   
     //! Return the number of dofs for agiven solution type
@@ -173,21 +173,21 @@ namespace CoupledField{
     /*!
       \param solType (input) Type of solution (ref. enum SolutionType)
     */
-    inline Integer GetDof(const SolutionType solType = NO_SOLUTION_TYPE) const;
+    inline UInt GetDof(const SolutionType solType = NO_SOLUTION_TYPE) const;
 
   
     //! Get number of elems
-    inline Integer GetNumElems() const;
+    inline UInt GetNumElems() const;
   
 
     //! Get total length of solution vector
 
     //! Get total length of solution vector (= totalDofs_ * numElems_)
-    inline Integer GetSize() const;
+    inline UInt GetSize() const;
 
   
     //! Get number of solution types
-    inline Integer GetNumSolutions() const;
+    inline UInt GetNumSolutions() const;
 
   
     //! Get vectot with one type of solution. The length
@@ -207,7 +207,7 @@ namespace CoupledField{
       \param elemNr (input) elem number for solution
       \param val (input) Vector containing nodal results
     */
-    virtual void SetElemResult(const Integer elemNr,
+    virtual void SetElemResult(const UInt elemNr,
                                const CFSVector &val) = 0;
 
   
@@ -216,7 +216,7 @@ namespace CoupledField{
       \param elemNr (input) (Global) Elem number for solution
       \param val (output) Vector containing nodal results
     */
-    virtual void GetElemResult(const Integer elemNr,
+    virtual void GetElemResult(const UInt elemNr,
                                CFSVector & val) const = 0;
   
 
@@ -227,7 +227,7 @@ namespace CoupledField{
       \param val (output) Vector containing rsults
     */
     virtual void GetGlobalSolVectorSingleDof(const SolutionType solType,
-                                             const Integer dof,
+                                             const UInt dof,
                                              CFSVector & val) const = 0;
   
   
@@ -238,7 +238,7 @@ namespace CoupledField{
     */
     //! \note This method may only be called if object contains only
     //! one type of solution.
-    virtual void GetGlobalSolVectorSingleDof(const Integer dof,
+    virtual void GetGlobalSolVectorSingleDof(const UInt dof,
                                              CFSVector & val) const = 0;
 
 
@@ -250,8 +250,8 @@ namespace CoupledField{
     */
     //! \note This method may only be called if object contains only
     //! one type of solution.
-    virtual void Get(const Integer elemNr, 
-                     const Integer dof,
+    virtual void Get(const UInt elemNr, 
+                     const UInt dof,
                      Double & val) const
     {Error("BaseElemStoreSol::Get() not implemented here", __FILE__, __LINE__);} 
 
@@ -264,8 +264,8 @@ namespace CoupledField{
       \param val (output)  Result of elem elemNr for given dof
     */
     virtual void Get(const SolutionType solType, 
-                     const Integer elemNr,
-                     const Integer dof, 
+                     const UInt elemNr,
+                     const UInt dof, 
                      Double & val) const
     {Error("BaseElemStoreSol::Get() not implemented here", __FILE__, __LINE__);}
 
@@ -278,8 +278,8 @@ namespace CoupledField{
       \param val (input)  Result of elem elemNr for given solType and dof
     */  
     virtual void Set(const SolutionType solType, 
-                     const Integer elemNr,
-                     const Integer dof, 
+                     const UInt elemNr,
+                     const UInt dof, 
                      const Double val)
     {Error("BaseElemStoreSol::Set() not implemented here", __FILE__, __LINE__);}
   
@@ -292,8 +292,8 @@ namespace CoupledField{
       \param val (input)  Result of elem elemNr for given solType and dof
     */   
     virtual void Add(const SolutionType solType, 
-                     const Integer elemNr,
-                     const Integer dof, 
+                     const UInt elemNr,
+                     const UInt dof, 
                      const Double val) const
     {Error("BaseElemStoreSol::Add() not implemented here", __FILE__, __LINE__);} 
 
@@ -308,7 +308,7 @@ namespace CoupledField{
     //!
     virtual void TransformElemSolution(CFSVector & transformedSolution,
                                        Grid * ptGrid,
-                                       StdVector<Integer> & mapping) const
+                                       StdVector<UInt> & mapping) const
     {Error ("Not implemented here", __FILE__, __LINE__);}
   
   
@@ -327,22 +327,22 @@ namespace CoupledField{
 #define DEFINE_BASEELEMSTORESOL_FCT(TYPE)                                               \
   virtual void Init(const TYPE val)                                             \
   {Error("BaseElemStoreSol::Init() not implemented here", __FILE__, __LINE__);} \
-  virtual void Get(const Integer elemNr,                                        \
+  virtual void Get(const UInt elemNr,                                        \
                    TYPE & ret) const                                            \
   {Error("BaseElemStoreSol::Get() not implemented here", __FILE__, __LINE__);}  \
   virtual void Get(const SolutionType type,                                     \
-                   const Integer elemNr,                                        \
-                   const Integer dof,                                           \
+                   const UInt elemNr,                                        \
+                   const UInt dof,                                           \
                    TYPE & ret) const                                            \
   {Error("BaseElemStoreSol::Get not implemented here", __FILE__, __LINE__);}    \
   virtual void Set(const SolutionType type,                                     \
-                   const Integer elemNr,                                        \
-                   const Integer dof,                                           \
+                   const UInt elemNr,                                        \
+                   const UInt dof,                                           \
                    const TYPE val) const                                        \
   {Error("BaseElemStoreSol::Set not implemented here", __FILE__, __LINE__);}    \
   virtual void Add(const SolutionType type,                                     \
-                   const Integer elemNr,                                        \
-                   const Integer dof,                                           \
+                   const UInt elemNr,                                        \
+                   const UInt dof,                                           \
                    const TYPE val) const                                        \
   {Error("BaseElemStoreSol::Add() not implemented here", __FILE__, __LINE__);}
     
@@ -360,25 +360,25 @@ namespace CoupledField{
     NodeEQN * ptEQN_;
 
     //! Number of elements
-    Integer numElems_;
+    UInt numElems_;
 
     //! Number of different solutions
-    Integer numSolutions_;
+    UInt numSolutions_;
   
     //! Total number of entries
 
     //! Total number of entries
     //! (= numElems * sumOf(solDofs_[i]))
-    Integer length_;
+    UInt length_;
 
     //! 
-    Integer lengthVector_;
+    UInt lengthVector_;
   
     //! Contains order of solution types
 
     //! Contains order of solution types.
     //! Stores mapping SolutionType <-> position
-    std::map<SolutionType,Integer> solTypes_;
+    std::map<SolutionType,UInt> solTypes_;
 
     //! Stores offset of soltypes w.r.t. to beginning
 
@@ -386,16 +386,16 @@ namespace CoupledField{
     //! result w.r.t. to the beginning
     //! (depends on the number of dofs
     //! of all previous results)
-    std::map<SolutionType,Integer> solOffset_;
+    std::map<SolutionType,UInt> solOffset_;
 
     //! Stores offset
-    Integer eqnOffset_;
+    UInt eqnOffset_;
 
     //! Contains number of dofs for each quantity
-    std::map<SolutionType,Integer> solDofs_;
+    std::map<SolutionType,UInt> solDofs_;
  
     //! Total number of dofs 
-    Integer totalDofs_;
+    UInt totalDofs_;
 
     //! Array for convertin complex data to double
 
@@ -409,13 +409,13 @@ namespace CoupledField{
   // INLINE FUNCTIONS
   // ======================================================
 
-  inline Integer BaseElemStoreSol::GetTotalNumDofs() const
+  inline UInt BaseElemStoreSol::GetTotalNumDofs() const
   { 
     ENTER_IFCN( "BaseElemStoreSol::GetTotalNumDofs" );
     return totalDofs_; 
   }
 
-  inline Integer BaseElemStoreSol::GetDof(const SolutionType solType) const
+  inline UInt BaseElemStoreSol::GetDof(const SolutionType solType) const
   {
     ENTER_IFCN( "BaseElemStoreSol::GetDof" );
     if (numSolutions_ == 1 && solType == NO_SOLUTION_TYPE)
@@ -424,19 +424,19 @@ namespace CoupledField{
       return (*solDofs_.find(solType)).second;
   }
   
-  inline Integer BaseElemStoreSol::GetNumElems() const
+  inline UInt BaseElemStoreSol::GetNumElems() const
   {
     ENTER_IFCN( "BaseElemStoreSol::GetNumElems" );
     return numElems_;
   }
   
-  inline Integer BaseElemStoreSol::GetSize() const 
+  inline UInt BaseElemStoreSol::GetSize() const 
   {
     ENTER_IFCN( "BaseElemStoreSol::GetSize()" );
     return length_;
   }
   
-  inline Integer BaseElemStoreSol::GetNumSolutions() const 
+  inline UInt BaseElemStoreSol::GetNumSolutions() const 
   {
     ENTER_IFCN( "BaseElemStoreSol::GetNumSolutions()" );
     return numSolutions_;

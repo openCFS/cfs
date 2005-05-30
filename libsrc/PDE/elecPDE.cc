@@ -71,7 +71,7 @@ namespace CoupledField {
     if ( isPiezoCoupled_ == TRUE )
       factor *= -1.0;  
   
-    for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
+    for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ )
       {
         if (dim_ == 3) {
           form = new linElecInt3D( materialData_[actSD] );
@@ -99,14 +99,14 @@ namespace CoupledField {
   // POSTPROCESSING SECTION
   // ======================================================
 
-  void ElecPDE::WriteResultsInFile(const Integer kstep,
+  void ElecPDE::WriteResultsInFile(const UInt kstep,
                                    const Double asteptime,
-                                   Integer stepOffset,
+                                   UInt stepOffset,
                                    Double timeOffset)
   {
     ENTER_FCN( "ElecPDE::WriteResultsInFile" );
 
-    Integer actStep = kstep + stepOffset;
+    UInt actStep = kstep + stepOffset;
     Double actTime = lasttimecalc_ + timeOffset;
   
 #ifdef PARALLEL //only one thread should write output
@@ -185,7 +185,7 @@ namespace CoupledField {
       if (isIterCoupled_ == TRUE) {
         //   // TMPORARILY
         SolutionType quantity;
-        StdVector<Integer> * couplingNodes     = NULL;
+        StdVector<UInt> * couplingNodes     = NULL;
         CFSVector * values = 0;
         Vector<Double> sumForces(dim_);
         sumForces.Init();
@@ -193,7 +193,7 @@ namespace CoupledField {
     
     
         // loop over all output coupling quantities
-        for (Integer actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
+        for (UInt actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
           {
             quantity = ptCoupling_->GetOutputQuantity(actCoupling);
             ptCoupling_->GetOutputValues(actCoupling, values);
@@ -206,12 +206,12 @@ namespace CoupledField {
                 ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
                 if (quantity == ELEC_FORCE_VWP)
                   {
-                    for (Integer iDof=0; iDof<dim_; iDof++)
-                      for (Integer iNode=0; iNode<couplingNodes->GetSize(); iNode++)
+                    for (UInt iDof=0; iDof<dim_; iDof++)
+                      for (UInt iNode=0; iNode<couplingNodes->GetSize(); iNode++)
                         sumForces[iDof] += temp[iNode*dim_ + iDof];
                 
                     *data << lasttimecalc_ << "\t";
-                    for (Integer i=0; i<dim_; i++)
+                    for (UInt i=0; i<dim_; i++)
                       *data << sumForces[i]<< "\t";
                 
                     *data << std::endl;
@@ -266,12 +266,12 @@ namespace CoupledField {
     Vector<Double> LCoord;
   
     StdVector<Elem*> elemssd;
-    Integer counterElems=0;
+    UInt counterElems=0;
     Vector<Double> TempE;
-    Integer pdeElem;
+    UInt pdeElem;
   
     // loop over all subdomains
-    for (Integer isd=0; isd<calcEfield_.GetSize(); isd++)
+    for (UInt isd=0; isd<calcEfield_.GetSize(); isd++)
       {
 
         // ------ Calculation of the electric field ------
@@ -284,7 +284,7 @@ namespace CoupledField {
         ptgrid_->GetVolElems( elemssd, calcEfield_[isd] );
       
         // loop over elements of subdomain
-        for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
+        for (UInt iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
           {
             elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
             FieldOp->CalcElemGradField( TempE, elemssd[iel], LCoord, 1); 
@@ -309,7 +309,7 @@ namespace CoupledField {
     Double elemNormalD = 0.0;
     Double charge = 0.0;
     Double sumOfCharges = 0.0;
-    Integer pdeElemNum = 0;
+    UInt pdeElemNum = 0;
     Double normSign = 0;
  
  
@@ -326,13 +326,13 @@ namespace CoupledField {
     ElecChargeOp * chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, isaxi_);
   
     // loop over all subdomains
-    for (Integer iSD=0; iSD<calcCharges_.GetSize(); iSD++){
+    for (UInt iSD=0; iSD<calcCharges_.GetSize(); iSD++){
     
       // get surface and acoording volume elements
       ptgrid_->GetSurfElems( surfElems, calcCharges_[iSD] );
     
       // loop over all surface elements
-      for (Integer iElem=0; iElem<surfElems.GetSize(); iElem++)
+      for (UInt iElem=0; iElem<surfElems.GetSize(); iElem++)
         {
         
           // Determine, which volume element is the right neighbour for the 
@@ -351,8 +351,8 @@ namespace CoupledField {
           ptSurfElemFE = surfElems[iElem]->ptElem; 
           ptVolElemFE = ptVolElem->ptElem;
         
-          const StdVector<Integer> & surfConnect = surfElems[iElem]->connect;
-          const StdVector<Integer> & volConnect = ptVolElem->connect;
+          const StdVector<UInt> & surfConnect = surfElems[iElem]->connect;
+          const StdVector<UInt> & volConnect = ptVolElem->connect;
         
           // calculate volume integration coordinates from
           // surfe integration coordinat for evalauting the 
@@ -364,7 +364,7 @@ namespace CoupledField {
 
 
           // Get the right material parameter for actual volume element
-          for (Integer i=0; i<subdoms_.GetSize(); i++)
+          for (UInt i=0; i<subdoms_.GetSize(); i++)
             {
               if (subdoms_[i] == ptVolElem->regionId)
                 permittivity  = materialData_[i].GetPermittivity(2,2);
@@ -411,10 +411,10 @@ namespace CoupledField {
 
 
   void ElecPDE::CalcNodeForce(Vector<Double> & force, 
-                              StdVector<Integer> & nodes, 
+                              StdVector<UInt> & nodes, 
                               StdVector<Elem*> & elems,
                               StdVector<StdVector<ShortInt> > & isBoundaryNode,
-                              StdVector<StdVector<Integer> > & elemNodeToCouplingNode)
+                              StdVector<StdVector<UInt> > & elemNodeToCouplingNode)
   {
     ENTER_FCN( "ElecPDE::CalcNodeForce" );
 
@@ -424,12 +424,12 @@ namespace CoupledField {
   
     force.Init(0.0);
   
-    for (Integer ielem=0; ielem<elems.GetSize(); ielem++)
+    for (UInt ielem=0; ielem<elems.GetSize(); ielem++)
       {
         // Get Material Parameter
         Double epsilon;
       
-        for (Integer i=0; i<subdoms_.GetSize(); i++)
+        for (UInt i=0; i<subdoms_.GetSize(); i++)
           {
             if (elems[ielem]->regionId == subdoms_[i]) 
               epsilon = materialData_[i].GetPermittivity(2,2); 
@@ -442,8 +442,8 @@ namespace CoupledField {
       
 
         // Add the element force to the according coupling node
-        for (Integer ielemnode=0; ielemnode<elems[ielem]->connect.GetSize(); ielemnode++)
-          for( Integer idim=0; idim<dim_; idim++) {
+        for (UInt ielemnode=0; ielemnode<elems[ielem]->connect.GetSize(); ielemnode++)
+          for( UInt idim=0; idim<dim_; idim++) {
             force[elemNodeToCouplingNode[ielem][ielemnode]*dim_+idim] += 
               force_temp(ielemnode,idim);
           }
@@ -453,8 +453,8 @@ namespace CoupledField {
     Vector<Double> sum;
     sum.Resize(dim_);
   
-    for (Integer i=0; i<nodes.GetSize(); i++)
-      for (Integer dim=0; dim<dim_; dim++)
+    for (UInt i=0; i<nodes.GetSize(); i++)
+      for (UInt dim=0; dim<dim_; dim++)
         sum[dim] += force[i*dim_+dim];
 
     delete ForceOp;
@@ -481,10 +481,10 @@ namespace CoupledField {
     BaseFE         * ptElem;
     Double totalE=0;
 
-    StdVector<Integer> connecth;
+    StdVector<UInt> connecth;
     Vector<double> help;
 
-    Integer i, j;
+    UInt i, j;
     Vector<Double> energy(subdoms_.GetSize());
 
     for (i=0; i<subdoms_.GetSize(); i++)
@@ -570,16 +570,16 @@ namespace CoupledField {
     isIterCoupled_ = TRUE;
     ptCoupling_   = Coupling;
 
-    const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();
+    const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
   
 
     nonLin_ = FALSE;
 
     // Initialization of coupling helper arrays
     std::string quantity;
-    StdVector<Integer> * couplingnodes = NULL;
+    StdVector<UInt> * couplingnodes = NULL;
 
-    for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++) {
+    for (UInt actCoupling=0; actCoupling<numCouplings; actCoupling++) {
       // Initialize arrays for coupling surface elements
       if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP
           || ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE) {
@@ -619,17 +619,17 @@ namespace CoupledField {
 
     //   // Initialization of coupling helper arrays
     //   std::string quantity;
-    //   StdVector<Integer> * couplingnodes = NULL;
+    //   StdVector<UInt> * couplingnodes = NULL;
     //   StdVector<Elem*> interface_tmp;
     //   StdVector<StdVector<ShortInt> > isBoundaryNode_tmp;
     //   StdVector<std::string> * neighRegions = NULL;
-    //   //StdVector<Integer> numBoundaryNodes_tmp;
-    //   StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
+    //   //StdVector<UInt> numBoundaryNodes_tmp;
+    //   StdVector<StdVector<UInt> > elemNodeToCouplingNode_tmp;
     //   F_Interface_.Resize(numCouplings);
     //   isBoundaryNode_.Resize(numCouplings);
     //   elemNodeToCouplingNode_.Resize(numCouplings);
 
-    //   for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++)
+    //   for (UInt actCoupling=0; actCoupling<numCouplings; actCoupling++)
     //     {
     //       // Initialize arrays for coupling surface elements
     //       if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP
@@ -676,14 +676,14 @@ namespace CoupledField {
     //        elemNodeToCouplingNode_tmp.Resize(interface_tmp.GetSize());
          
           
-    //        for (Integer ielem=0; ielem<interface_tmp.GetSize(); ielem++)
+    //        for (UInt ielem=0; ielem<interface_tmp.GetSize(); ielem++)
     //          {
     //            isBoundaryNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
     //            elemNodeToCouplingNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
 
     //            // Determine Boundary Nodes
-    //            for (Integer ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].GetSize(); ielemnode++)
-    //              for (Integer inodes=0; inodes<(*couplingnodes).GetSize(); inodes++)
+    //            for (UInt ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].GetSize(); ielemnode++)
+    //              for (UInt inodes=0; inodes<(*couplingnodes).GetSize(); inodes++)
     //                if (interface_tmp[ielem]->connect[ielemnode] == (*couplingnodes)[inodes] )
     //                  {
     //                    isBoundaryNode_tmp[ielem][ielemnode] = 1;
@@ -708,12 +708,12 @@ namespace CoupledField {
     ENTER_FCN( "ElecPDE::CalcOutputCoupling" );
 
     SolutionType quantity;
-    StdVector<Integer> * couplingNodes     = NULL;
+    StdVector<UInt> * couplingNodes     = NULL;
     CFSVector * values = 0;
-    Integer forcesCount = 0;
+    UInt forcesCount = 0;
 
     // loop over all output coupling quantities
-    for (Integer actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
+    for (UInt actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
       {
         quantity = ptCoupling_->GetOutputQuantity(actCoupling);
         ptCoupling_->GetOutputValues(actCoupling, values);
@@ -795,7 +795,7 @@ namespace CoupledField {
   }
 
 
-  void ElecPDE::CalcInterfaceForces(Integer actCoupling)
+  void ElecPDE::CalcInterfaceForces(UInt actCoupling)
   {
     ENTER_FCN( "ElecPDE::CalcInterfaceForces" );
 
@@ -805,7 +805,7 @@ namespace CoupledField {
     Error( __FILE__, __LINE__ );
 
 
-    //   StdVector<Integer> *      couplingNodes          = NULL;
+    //   StdVector<UInt> *      couplingNodes          = NULL;
     //   CFSVector  *              elemCouplingSolsTemp   = NULL;
     //   StdVector<Elem*> *        couplingElems          = NULL;
     //   StdVector<Elem*> *        outerInterfaceVolElems = NULL;
@@ -821,7 +821,7 @@ namespace CoupledField {
     //   ptCoupling_->GetOutputNeighbourElems(actCoupling, innerInterfaceVolElems);
     //   ptCoupling_->GetInputNeighbourElems (actCoupling, outerInterfaceVolElems);
  
-    //   Integer couplingDof = ptCoupling_->GetOutputDof(actCoupling);
+    //   UInt couplingDof = ptCoupling_->GetOutputDof(actCoupling);
 
     //   Vector<Double> * elemCouplingSols = dynamic_cast<Vector<Double> *>(elemCouplingSolsTemp);
    
@@ -830,7 +830,7 @@ namespace CoupledField {
     //   Vector<Double> xPosCoupleNode(couplingNodes->GetSize());
   
 
-    //   for (Integer actElem=0; actElem < couplingElems->GetSize(); actElem++)
+    //   for (UInt actElem=0; actElem < couplingElems->GetSize(); actElem++)
     //     {
     //       Elem * actCoupleElem     = (*couplingElems)[actElem];
     //       Elem * actVolElem        = (*innerInterfaceVolElems)[actElem];
@@ -840,8 +840,8 @@ namespace CoupledField {
     //       const Vector<Double> & intWeights = ptCoupleElem->GetIntWeights();  
       
 
-    //       StdVector<Integer> connecth = actCoupleElem->connect;
-    //       const Integer spaceDim   = 2;
+    //       StdVector<UInt> connecth = actCoupleElem->connect;
+    //       const UInt spaceDim   = 2;
       
     //       if (ptCoupleElem->GetDim() == 3)
     //      Error("CalcInterfaceForces only implemented for 2D!", __FILE__, __LINE__);
@@ -870,10 +870,10 @@ namespace CoupledField {
 
 
 
-    //       StdVector<Integer> boundNodesOfVolElem;
+    //       StdVector<UInt> boundNodesOfVolElem;
   
-    //       // Integer ptCount = 0;
-    //       for (Integer nNode=0; nNode < isBoundaryNode_[actCoupling][actElem].GetSize(); nNode++)
+    //       // UInt ptCount = 0;
+    //       for (UInt nNode=0; nNode < isBoundaryNode_[actCoupling][actElem].GetSize(); nNode++)
     //      if (isBoundaryNode_[actCoupling][actElem][nNode] == 1)
     //        boundNodesOfVolElem.Push_back(nNode);
 
@@ -888,7 +888,7 @@ namespace CoupledField {
     //       Vector<Double> interfaceForceOnNodes(connecth.GetSize());   // is automatically initialized by 0
       
 
-    //       for (Integer actIP=1; actIP <= ptCoupleElem->GetNumIntPoints(); actIP++)
+    //       for (UInt actIP=1; actIP <= ptCoupleElem->GetNumIntPoints(); actIP++)
     //      {
     //        Vector<Double> shapeFncAtIP;
     //        Vector<Double> coordAtIP;
@@ -903,7 +903,7 @@ namespace CoupledField {
 
     //        Double abs_E_normal = 0;
           
-    //        for (Integer actSpaceDim=0; actSpaceDim < spaceDim; actSpaceDim++)
+    //        for (UInt actSpaceDim=0; actSpaceDim < spaceDim; actSpaceDim++)
     //          abs_E_normal += tempE[actSpaceDim] * n[actSpaceDim];
           
     //        Vector<Double> E_tangential(tempE);
@@ -930,15 +930,15 @@ namespace CoupledField {
 
 
     //       // copy result into final solution vector
-    //       for (Integer actNode=0; actNode < ptCoord.GetSizeRow(); actNode++)
+    //       for (UInt actNode=0; actNode < ptCoord.GetSizeRow(); actNode++)
     //      {
-    //        Integer nodePos = 0;
+    //        UInt nodePos = 0;
           
     //        while(connecth[actNode] != (*couplingNodes)[nodePos] && 
     //              nodePos < couplingNodes->GetSize()) 
     //          nodePos++;
           
-    //        for (Integer actDof=0; actDof < couplingDof ; actDof++)
+    //        for (UInt actDof=0; actDof < couplingDof ; actDof++)
     //          (*elemCouplingSols)[nodePos*couplingDof+actDof]  += 
     //            interfaceForceOnNodes[actNode] * n[actDof];
 
@@ -949,9 +949,9 @@ namespace CoupledField {
     //   Vector<Double> sum;
     //   sum.Resize(dim_);
   
-    //   Integer k = 0;
-    //   for (Integer i=0; i<elemCouplingSols->GetSize(); i++)
-    //     for (Integer dim=0; dim<dim_; dim++)
+    //   UInt k = 0;
+    //   for (UInt i=0; i<elemCouplingSols->GetSize(); i++)
+    //     for (UInt dim=0; dim<dim_; dim++)
     //       {
     //      sum[dim] += (*elemCouplingSols)[k];
     //      k++;
@@ -968,7 +968,7 @@ namespace CoupledField {
   void ElecPDE::CalcEfieldAtCoupleElemIP(Elem * actVolElem,
                                          Elem * actCoupleElem,
                                          Vector<Double>& coordAtIP, 
-                                         StdVector<Integer>& boundNodesOfVolElem,
+                                         StdVector<UInt>& boundNodesOfVolElem,
                                          Vector<Double>& tempE)
   {
     ENTER_FCN( "ElecPDE::CalcEfieldAtCoupleElemIP" );
@@ -976,7 +976,7 @@ namespace CoupledField {
     BaseFE * ptVolElem    = actVolElem->ptElem;
     BaseFE * ptCoupleElem = actCoupleElem->ptElem;
     
-    const Integer spaceDim   = 2;  
+    const UInt spaceDim   = 2;  
 
 
     Matrix<Double> boundElLocCoords;
@@ -1066,7 +1066,7 @@ namespace CoupledField {
     if ( calcEfield_.GetSize() > 0 ) {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_, " Computing electric field for regions:\n" );
-      for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+      for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
       E_.SetNumSolutions(1);
@@ -1091,7 +1091,7 @@ namespace CoupledField {
     if ( calcEnergy_.GetSize() > 0 ) {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_, " Computing energy for regions:\n" );
-      for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+      for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
     }
@@ -1110,7 +1110,7 @@ namespace CoupledField {
         hasOutput_ = TRUE;
         Info->PrintF( pdename_,
                       " Computing electric charges for regions:\n");
-        for ( Integer k = 0; k < temp.GetSize(); k++ ) {
+        for ( UInt k = 0; k < temp.GetSize(); k++ ) {
           Info->PrintF( pdename_, " %s\n", temp[k].c_str() );
         } 
         // Resize solution arrays
@@ -1138,7 +1138,7 @@ namespace CoupledField {
       saveSolHist_ = TRUE;
       hasOutput_ = TRUE;
       Info->PrintF( pdename_, " Saving ElecPotential for Nodes:\n" );
-      for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+      for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
     }

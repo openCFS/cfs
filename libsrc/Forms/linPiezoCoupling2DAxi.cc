@@ -11,15 +11,15 @@ namespace CoupledField {
   // ============
   //   calcAMat
   // ============
-  void linPiezoCoupling2DAxi::calcAMat( Matrix<Double> &aMat, Integer ip,
+  void linPiezoCoupling2DAxi::calcAMat( Matrix<Double> &aMat, UInt ip,
                                         const Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "linPiezoCoupling2DAxi::calcAMat" );
 
     // Obtain info on problem sizes
-    const Integer numNodes = ptelem->GetNumNodes();
-    const Integer nDofMech = 2;
-    const Integer nRowsD   = 4;
+    const UInt numNodes = ptelem->GetNumNodes();
+    const UInt nDofMech = 2;
+    const UInt nRowsD   = 4;
 
     // Set correct size of matrix A and initialise with zeros
     aMat.Resize( numNodes * nDofMech, nRowsD );
@@ -36,9 +36,9 @@ namespace CoupledField {
     // A of the ADB product evaluated at the k-th node of the finite
     // element. We assemble aMat in a top-down fashion and assume that
     // the first coordinate equals r and the second z.
-    Integer actInd = 0;
-    Integer j;
-    Integer actNode;
+    UInt actInd = 0;
+    UInt j;
+    UInt actNode;
     Double coordAtIp;
 
     for( actNode = 0; actNode < numNodes; actNode++ ) {
@@ -68,13 +68,13 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
-  void linPiezoCoupling2DAxi::calcBMat( Matrix<Double> &bMat, Integer ip,
+  void linPiezoCoupling2DAxi::calcBMat( Matrix<Double> &bMat, UInt ip,
                                         const Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "linPiezoCoupling2DAxi::calcBMat" );
 
     // Obtain info on number of element's nodes
-    const Integer numNodes = ptelem->GetNumNodes();
+    const UInt numNodes = ptelem->GetNumNodes();
 
     // Set correct size of matrix B and initialise with zeros
     bMat.Resize( 2, numNodes );
@@ -89,7 +89,7 @@ namespace CoupledField {
     // B of the ADB product evaluated at the k-th node of the finite
     // element. We assume that the first coordinate equals r and the
     // second z.
-    for( Integer actNode = 0; actNode < numNodes; actNode++ ) {
+    for( UInt actNode = 0; actNode < numNodes; actNode++ ) {
       bMat[0][actNode] = xiDx[actNode][0];
       bMat[1][actNode] = xiDx[actNode][1];
     }

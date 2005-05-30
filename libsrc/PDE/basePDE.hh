@@ -37,7 +37,7 @@ namespace CoupledField
     //! Initializes the PDE. This function is only called one time.
     //! \param bcSequenceId (input) name of the tag for current set of 
     //! boundary condition
-    // virtual void Init(Integer sequenceStep = 0,
+    // virtual void Init(UInt sequenceStep = 0,
     //                std::string  bcSequenceTag = "anyTag") 
     //     {
     //       Error( "Init not implemented here");
@@ -52,9 +52,6 @@ namespace CoupledField
     //! Return pointer to the SolveStep object
     virtual BaseSolveStep * GetSolveStep() = 0;
 
-    //! set time step
-    //! \params dt Current time step
-    virtual void SetTimeStep(const Double dt) = 0;
 
     // ======================================================
     // POSTPROC SECTION
@@ -69,9 +66,9 @@ namespace CoupledField
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
-    virtual void WriteResultsInFile(const Integer kstep = 0,
+    virtual void WriteResultsInFile(const UInt kstep = 0,
                                     const Double asteptime = 0.0, 
-                                    Integer stepOffset = 0,
+                                    UInt stepOffset = 0,
                                     Double timeOffset = 0.0) = 0; 
     //@}
 
@@ -111,7 +108,7 @@ namespace CoupledField
 
     //! index of current set of boundary conditions. For a multiSequence-simulation
     //! this index determines, which set of boundary conditions is applied.
-    Integer bcSequenceIndex_;
+    UInt bcSequenceIndex_;
     //@}
 
     //! name of the PDE

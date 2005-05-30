@@ -38,19 +38,19 @@ namespace CoupledField
 
     //@{ \name Geometrical Information
     //! global element number
-    Integer elemNum; 
+    UInt elemNum; 
 
     //! identifier for region
-    Integer regionId;
+    RegionIdType regionId;
 
     //! array with node numbers
-    StdVector<Integer> connect;
+    StdVector<UInt> connect;
   
     //! flag for refinement
     Boolean refinementFlag; 
   
     //! number of refinement for the element
-    Integer refinementNumber; 
+    UInt refinementNumber; 
   
     //@}
 

@@ -11,7 +11,7 @@ namespace CoupledField {
   // ***************
   BaseEQN::BaseEQN( Grid * aptGrid, 
                     StdVector<RegionIdType>& asubdoms, 
-                    Integer dofsPerNode ) {
+                    UInt dofsPerNode ) {
 
     ENTER_FCN( "BaseEQN::BaseEQN" );
 
@@ -21,7 +21,7 @@ namespace CoupledField {
 
     isInitialized_ = FALSE;
     sortEQNs_ = FALSE;
-    numRealEqns_ = -1;
+    numRealEqns_ = 0;
   }
 
 
@@ -41,14 +41,14 @@ namespace CoupledField {
 
     ENTER_FCN( "BaseEQN::SetHomoDirichletBCs" );
 
-    StdVector<Integer> tempNodeList;
+    StdVector<UInt> tempNodeList;
     homoDirichletNodes_.Clear();
 
-    for ( Integer i = 0; i < nodeLevel.GetSize(); i++ ) {
+    for ( UInt i = 0; i < nodeLevel.GetSize(); i++ ) {
       
       ptGrid_->GetNodesByName( tempNodeList, nodeLevel[i]);
       
-      for ( Integer iNode = 0; iNode < tempNodeList.GetSize(); iNode++ ) {
+      for ( UInt iNode = 0; iNode < tempNodeList.GetSize(); iNode++ ) {
         homoDirichletNodes_.Push_back(tempNodeList[iNode]);
         if (dofsPerNode_ > 1) {
           homoDirichletDofs_.Push_back(GetBCDof(dofs[i]));
@@ -69,14 +69,14 @@ namespace CoupledField {
     // Only do this, if we have to sort the equation numbers
     // with the inhom. Dirichlet part on the top
     if ( sortEQNs_ == TRUE ) {
-      StdVector<Integer> tempNodeList;
+      StdVector<UInt> tempNodeList;
       inhomDirichletNodes_.Clear();
 
-      for ( Integer i = 0; i < nodeLevel.GetSize(); i++ ) {
+      for ( UInt i = 0; i < nodeLevel.GetSize(); i++ ) {
       
         ptGrid_->GetNodesByName( tempNodeList, nodeLevel[i] );
       
-        for ( Integer iNode =0; iNode < tempNodeList.GetSize(); iNode++ ) {
+        for ( UInt iNode =0; iNode < tempNodeList.GetSize(); iNode++ ) {
           inhomDirichletNodes_.Push_back(tempNodeList[iNode]);
           if (dofsPerNode_ > 1) {
             inhomDirichletDofs_.Push_back(GetBCDof(dofs[i]));
@@ -90,8 +90,8 @@ namespace CoupledField {
   // ******************
   //   SetConstraints
   // ******************
-  void BaseEQN::SetConstraints( const StdVector<Integer> &slaveNodeNrs,
-                                const StdVector<Integer> &masterNodeNrs,
+  void BaseEQN::SetConstraints( const StdVector<UInt> &slaveNodeNrs,
+                                const StdVector<UInt> &masterNodeNrs,
                                 const StdVector<std::string> &dofs ) {
 
     ENTER_FCN( "BaseEQN::SetConstraints" );
@@ -102,7 +102,7 @@ namespace CoupledField {
     if ( dofsPerNode_ > 1 ) {
       constraintDofs_.Resize(dofs.GetSize());
 
-      for ( Integer i = 0; i < dofs.GetSize(); i++ ) {
+      for ( UInt i = 0; i < dofs.GetSize(); i++ ) {
         constraintDofs_[i] = GetBCDof(dofs[i]);
       }
     }
@@ -112,11 +112,11 @@ namespace CoupledField {
   // *************
   //   GetBCDofs
   // *************
-  Integer BaseEQN::GetBCDof( const std::string dofString ) const {
+  UInt BaseEQN::GetBCDof( const std::string dofString ) const {
 
     ENTER_FCN( "BaseEQN::GetBCDof" );
   
-    Integer retVal = 0;
+    UInt retVal = 0;
   
     if ( dofString == "ux" ) {
       retVal = 1;

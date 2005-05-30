@@ -38,7 +38,7 @@ namespace CoupledField
   //! SurfElem surfElem;
   //! Grid * ptGrid;
   //!
-  //! ptGrid_->CalcSurfNormal(normalUndefSign, surfElem);
+  //! ptGrid->CalcSurfNormal(normalUndefSign, surfElem);
   //! \endverbatim
   //! Now, in order to get a defined direction of the normal,
   //! multiply the normal with the \a normalSign:

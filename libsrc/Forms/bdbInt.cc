@@ -20,9 +20,9 @@ namespace CoupledField {
 
     ENTER_FCN( "BDBInt::CalcElementMatrix" );
 
-    const Integer nrIntPts = ptelem->GetNumIntPoints(); 
-    const Integer nrNodes  = ptelem->GetNumNodes();   
-    const Integer nrDofs   = getNrDofs();  
+    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+    const UInt nrNodes  = ptelem->GetNumNodes();   
+    const UInt nrDofs   = getNrDofs();  
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     double jacDet;
 
@@ -44,7 +44,7 @@ namespace CoupledField {
     }
 
     // Loop over all integration points
-    for ( Integer actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+    for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
       // Check if D matrix must be re-determined for
       // the current integration point
@@ -95,9 +95,9 @@ namespace CoupledField {
 
     ENTER_FCN( "BDBInt::CalcElementMatrix" );
 
-    const Integer nrIntPts = ptelem->GetNumIntPoints(); 
-    const Integer nrNodes  = ptelem->GetNumNodes();   
-    const Integer nrDofs   = getNrDofs();  
+    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+    const UInt nrNodes  = ptelem->GetNumNodes();   
+    const UInt nrDofs   = getNrDofs();  
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     double jacDet;
 
@@ -121,7 +121,7 @@ namespace CoupledField {
       calcDMat( dMat );
 
       // Loop over all integration points
-      for ( Integer actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+      for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
         // Setup the B matrix for current integration point
         calcBMat( bMat, actIntPt, ptCoord );
@@ -153,12 +153,12 @@ namespace CoupledField {
         // of the Jacobian and the weight of the current integration
         // point. The result is added to the element matrix.
         fac = jacDet * intWeights[actIntPt-1];
-        for ( Integer k = 0; k < bMat.GetSizeRow(); k++ ) {
+        for ( UInt k = 0; k < bMat.GetSizeRow(); k++ ) {
           ptr1 =  bMat[k];
           ptr2 = dbMat[k];
-          for ( Integer i = 0; i < bMat.GetSizeCol(); i++ ) {
+          for ( UInt i = 0; i < bMat.GetSizeCol(); i++ ) {
             aux = fac * ptr2[i];
-            for ( Integer j = 0; j < dbMat.GetSizeCol(); j++ ) {
+            for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
               elemMat[i][j] += aux * ptr2[j];
             }
           }
@@ -173,7 +173,7 @@ namespace CoupledField {
     else {
 
       // Loop over all integration points
-      for ( Integer actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+      for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
         // Setup material matrix for current integration point
         calcDMat( dMat, actIntPt, ptCoord );
@@ -209,12 +209,12 @@ namespace CoupledField {
         // of the Jacobian and the weight of the current integration
         // point. The result is added to the element matrix.
         fac = jacDet * intWeights[actIntPt-1];
-        for ( Integer k = 0; k < bMat.GetSizeRow(); k++ ) {
+        for ( UInt k = 0; k < bMat.GetSizeRow(); k++ ) {
           ptr1 =  bMat[k];
           ptr2 = dbMat[k];
-          for ( Integer i = 0; i < bMat.GetSizeCol(); i++ ) {
+          for ( UInt i = 0; i < bMat.GetSizeCol(); i++ ) {
             aux = fac * ptr2[i];
-            for ( Integer j = 0; j < dbMat.GetSizeCol(); j++ ) {
+            for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
               elemMat[i][j] += aux * ptr2[j];
             }
           }
@@ -236,9 +236,9 @@ namespace CoupledField {
 
     ENTER_FCN( "BDBInt::CalcComplexElementMatrix" );
 
-    const Integer nrIntPts = ptelem->GetNumIntPoints(); 
-    const Integer nrNodes  = ptelem->GetNumNodes();   
-    const Integer nrDofs   = getNrDofs();  
+    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+    const UInt nrNodes  = ptelem->GetNumNodes();   
+    const UInt nrDofs   = getNrDofs();  
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     double jacDet;
  
@@ -253,7 +253,7 @@ namespace CoupledField {
     
     calcDMaterialMatWithComplexDamping( dMat, beta, omega );
     
-    for ( Integer actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+    for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
       if (updateDMatInEveryIP_) {
         calcDMaterialMatWithComplexDamping(dMat,beta,omega);
@@ -265,10 +265,10 @@ namespace CoupledField {
       dB.Resize(dMat.GetSizeRow(), bMat.GetSizeCol());
       Complex a;
 
-      for ( int i = 0; i < dMat.GetSizeRow(); i++ ) {
-        for ( int j = 0; j < bMat.GetSizeCol(); j++ ) {       
+      for ( UInt i = 0; i < dMat.GetSizeRow(); i++ ) {
+        for ( UInt j = 0; j < bMat.GetSizeCol(); j++ ) {       
           a = dMat[i][0] * bMat[0][j];
-          for ( Integer k = 1; k < bMat.GetSizeRow(); k++ ) {
+          for ( UInt k = 1; k < bMat.GetSizeRow(); k++ ) {
             a += dMat[i][k] * bMat[k][j];
           }
           dB[i][j] = a;
@@ -279,10 +279,10 @@ namespace CoupledField {
 
       // hardcoded: partElemMat = bTrans * dB;
       partElemMat.Resize(bTrans.GetSizeRow(), dB.GetSizeCol());
-      for ( int i = 0; i < bTrans.GetSizeRow(); i++ ) {
-        for ( int j = 0; j < dB.GetSizeCol(); j++ ) {       
+      for ( UInt i = 0; i < bTrans.GetSizeRow(); i++ ) {
+        for ( UInt j = 0; j < dB.GetSizeCol(); j++ ) {       
           a = bTrans[i][0] *dB[0][j];
-          for ( Integer k = 1; k < dB.GetSizeRow(); k++ ) {
+          for ( UInt k = 1; k < dB.GetSizeRow(); k++ ) {
             a += bTrans[i][k] * dB[k][j];
           }
           partElemMat[i][j] = a;
@@ -307,8 +307,8 @@ namespace CoupledField {
         jacDet *= 2 * PI * CoordAtIP[0];
       }
 
-      for ( int i = 0; i < elemMat.GetSizeRow(); i++ ) {
-        for ( int j = 0; j < elemMat.GetSizeCol(); j++ ) {
+      for ( UInt i = 0; i < elemMat.GetSizeRow(); i++ ) {
+        for ( UInt j = 0; j < elemMat.GetSizeCol(); j++ ) {
           elemMat[i][j] += partElemMat[i][j] * jacDet *
             intWeights[actIntPt-1] ;
         }

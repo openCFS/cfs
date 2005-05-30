@@ -56,7 +56,7 @@ namespace CoupledField
       \param CornerCoords (input)
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f]
     */
-    virtual Double CalcJacobianDetAtIp(const Integer ip, 
+    virtual Double CalcJacobianDetAtIp(const UInt ip, 
                                        const Matrix<Double> & CornerCoors);
 
     //! calculates the Jacobian Matrix at an arbitrary local point
@@ -80,7 +80,7 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f] 
     */
     virtual void CalcJacobianAtIp(Matrix<Double> & J, 
-                                  const Integer ip, 
+                                  const UInt ip, 
                                   const Matrix<Double> & CornerCoords);
 
     //! calculates the Inverse Jacobian Matrix at an arbitrary local point
@@ -104,7 +104,7 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots  \end{array} \right) \f] 
     */
     virtual void CalcInvJacobianAtIp(Matrix<Double> & JInv,
-                                     const Integer ip,
+                                     const UInt ip,
                                      const Matrix<Double> & CornerCoords);
   };
 

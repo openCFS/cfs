@@ -9,10 +9,11 @@
 #include "MaterialData.hh"
 
 
+
 namespace CoupledField
 {
 
-  MaterialData::MaterialData():scaledMatDat(0)
+  MaterialData::MaterialData():scaledMatDat(FALSE)
   {
     ENTER_FCN("MaterialData::MaterialData");
     const int stringLength = 100;
@@ -63,13 +64,13 @@ namespace CoupledField
   }
 
 
-  void MaterialData::SetConductivity(const Integer& i, const Integer& j, const Double& value)
+  void MaterialData::SetConductivity(const UInt& i, const UInt& j, const Double& value)
   {
     ENTER_FCN("SetConductivity(int,int,double)");
     (*conducMatrix)(i,j) = value;
   }
 
-  void MaterialData::GetConductivity(const Integer& i, const Integer& j, Double &value)
+  void MaterialData::GetConductivity(const UInt& i, const UInt& j, Double &value)
   {
     ENTER_FCN("GetConductivity(int,int,double)");
     value = (*conducMatrix)(i,j);
@@ -96,14 +97,14 @@ namespace CoupledField
     return name;
   }
 
-  void MaterialData::SetPermeability(const Integer& i, const Integer& j, const Double& value)
+  void MaterialData::SetPermeability(const UInt& i, const UInt& j, const Double& value)
   {
     ENTER_IFCN("MaterialData::SetPermeability(int,int,double");
     (*permeaMatrix)(i,j) = value;
   }
 
 
-  void MaterialData::GetPermeability(const Integer& i, const Integer& j, Double &value)
+  void MaterialData::GetPermeability(const UInt& i, const UInt& j, Double &value)
   {
     ENTER_IFCN("GetPermeability(int,int,double)");
     value = (*permeaMatrix)(i,j);
@@ -144,25 +145,25 @@ namespace CoupledField
 
     // Z-DIRECTION
     if(a3==0)
-      for (Integer i=0;i<3;i++)
+      for (UInt i=0;i<3;i++)
         R[i][i]=0.0;
     else if(a3==1)
-      for (Integer i=0;i<3;i++)
+      for (UInt i=0;i<3;i++)
         R[i][i]=1.0;
     else
-      for (Integer i=0;i<3;i++)
+      for (UInt i=0;i<3;i++)
         R[i][i]=std::cos(a3);
 
-    for (Integer i=0;i<3;i++)
-      for (Integer j=0;j<3;j++){
+    for (UInt i=0;i<3;i++)
+      for (UInt j=0;j<3;j++){
         Q[i][j]=R[i][j];
         Q[i+3][j+3]=R[i][j];
         Q[i][j+3]=0;
         Q[i+3][j]=0;
       }
     // Rotate real matrix ...
-    for (Integer i=0;i<3;i++)
-      for (Integer j=0;j<3;j++){
+    for (UInt i=0;i<3;i++)
+      for (UInt j=0;j<3;j++){
         c[i][j]=(*piezoMatrix)[i][j];
         c[i+3][j+3]=(*piezoMatrix)[i+3][j+3];
         e[i][j]=(*piezoMatrix)[i][6+j];
@@ -176,8 +177,8 @@ namespace CoupledField
     e=Q*e*RT;
     eps=R*eps*RT;
 
-    for (Integer i=0;i<3;i++)
-      for (Integer j=0;j<3;j++){
+    for (UInt i=0;i<3;i++)
+      for (UInt j=0;j<3;j++){
         (*piezoMatrix)[i][j]=c[i][j];
         (*piezoMatrix)[i+3][j+3]=c[i+3][j+3];
         (*piezoMatrix)[i][6+j]=e[i][j];
@@ -189,8 +190,8 @@ namespace CoupledField
 
     // rotate complex Matrix
 
-    for (Integer i=0;i<3;i++)
-      for (Integer j=0;j<3;j++){
+    for (UInt i=0;i<3;i++)
+      for (UInt j=0;j<3;j++){
         c[i][j]=(*piezoMatrixC)[i][j];
         c[i+3][j+3]=(*piezoMatrixC)[i+3][j+3];
         e[i][j]=(*piezoMatrixC)[i][6+j];
@@ -204,8 +205,8 @@ namespace CoupledField
     e=Q*e*RT;
     eps=R*eps*RT;
 
-    for (Integer i=0;i<3;i++)
-      for (Integer j=0;j<3;j++){
+    for (UInt i=0;i<3;i++)
+      for (UInt j=0;j<3;j++){
         (*piezoMatrixC)[i][j]=c[i][j];
         (*piezoMatrixC)[i+3][j+3]=c[i+3][j+3];
         (*piezoMatrixC)[i][6+j]=e[i][j];

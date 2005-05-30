@@ -51,7 +51,7 @@ namespace CoupledField
         DegreeInteg_  = 2;
 
         IntWeights_.Resize(NumIntPoints_);
-        for(Integer i=0; i<IntWeights_.GetSize(); i++)
+        for(UInt i=0; i<IntWeights_.GetSize(); i++)
           {
             IntWeights_[i] = 0.166666666666667;
           }
@@ -59,7 +59,7 @@ namespace CoupledField
         if (!IntPoints_)
           IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);
 
         IntPoints_[0][0] =  0.166666666666667;

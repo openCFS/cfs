@@ -17,7 +17,7 @@ namespace CoupledField
     //! Constructor
     BaseEQN(Grid * aptGrid,
             StdVector<RegionIdType>& asubdoms, 
-            Integer dofsPerNode);
+            UInt dofsPerNode);
 
     //! Destructor
     virtual ~BaseEQN();
@@ -29,29 +29,29 @@ namespace CoupledField
     //! (= number of nodes * total number Dofs <br>
     //! - hom. Dirichlet nodes <br>
     //! - constraint nodes)
-    inline Integer GetNumEQNs() const {return numEqns_;}
+    inline UInt GetNumEQNs() const {return numEqns_;}
 
     //! Return the number of real equations
     //! (= number of nodes * total number Dofs
     //! - hom. Dirichlet nodes
     //! - inhom. Dirichlet nodes
     //! - constraint nodes)
-    inline Integer GetNumRealEQNs() const {
+    inline UInt GetNumRealEQNs() const {
       return numRealEqns_;
     }
   
     //! Return number of degree of freedoms per node
-    inline Integer GetNumDofs() const {return dofsPerNode_;}
+    inline UInt GetNumDofs() const {return dofsPerNode_;}
 
     //! Return number of dofs per equation
-    inline Integer GetNumDofsPerEQN() const {return dofsPerEQN_;}
+    inline UInt GetNumDofsPerEQN() const {return dofsPerEQN_;}
   
     //! Return number of build in Dirichlet values
 
     //! Returns the number of Dirichlet values that were assigned
     //! a 0 and therefore have not to set explicitly to 
     //! the algebraic system
-    inline Integer GetNumBuildInDirichletEQNs() const
+    inline UInt GetNumBuildInDirichletEQNs() const
     {return numBuildInDirichletEQNs_;}
 
     //! Returns true, if nodal mapping is applied
@@ -71,8 +71,8 @@ namespace CoupledField
 
     //! Set the node numbers and dofs which are
     //! slave nodes w.r.t. to constraints
-    void SetConstraints(const StdVector<Integer> & slaveNodeNrs,
-                        const StdVector<Integer> & masterodeNrs,
+    void SetConstraints(const StdVector<UInt> & slaveNodeNrs,
+                        const StdVector<UInt> & masterodeNrs,
                         const StdVector<std::string> & dofs);
                               
     //! Calculate the mapping after Dirichlet and
@@ -122,16 +122,16 @@ namespace CoupledField
     Grid * ptGrid_;  
 
     //! Number of nodes in PDE
-    Integer numPDENodes_;
+    UInt numPDENodes_;
 
     //! Number of dofs per node
-    Integer dofsPerNode_;
+    UInt dofsPerNode_;
  
     //! Number of dofs per eqn
-    Integer dofsPerEQN_;
+    UInt dofsPerEQN_;
 
     //! Number of equations in PDE
-    Integer numEqns_;
+    UInt numEqns_;
 
     //! Number of "real" equations in PDE
 
@@ -141,42 +141,42 @@ namespace CoupledField
     //! a Dirichlet boundary condition.
     //! \note This value is only computed, when sortEqns_ is TRUE, otherwise
     //!       we store a -1.
-    Integer numRealEqns_;
+    UInt numRealEqns_;
   
     //! Number of Dirichlet values
     //! which have been eliminated
     //! by equation class
-    Integer numBuildInDirichletEQNs_;
+    UInt numBuildInDirichletEQNs_;
 
     //! Vector containing subdomain names
     //! of according PDE
     StdVector<RegionIdType> subdoms_;  
 
     //! Vector with indices of nodes with hom. Dirichlet boundary conditions
-    StdVector<Integer> homoDirichletNodes_;
+    StdVector<UInt> homoDirichletNodes_;
 
     //! Vector containing dofs associated
     //! with hom. Dirichlet nodes
-    StdVector<Integer> homoDirichletDofs_;
+    StdVector<UInt> homoDirichletDofs_;
 
     //! Vector with indices of nodes with inhom. Dirichlet boundary conditions
-    StdVector<Integer> inhomDirichletNodes_;
+    StdVector<UInt> inhomDirichletNodes_;
 
     //! Vector containing dofs associated with inhom. Dirichlet nodes
-    StdVector<Integer> inhomDirichletDofs_;
+    StdVector<UInt> inhomDirichletDofs_;
   
     //! Vector containing constraint master nodes
-    StdVector<Integer> constraintMasterNodes_;
+    StdVector<UInt> constraintMasterNodes_;
 
     //! Vector containing according slave nodes
-    StdVector<Integer> constraintSlaveNodes_;
+    StdVector<UInt> constraintSlaveNodes_;
   
     //! Vector containing dofs associated
     //! with slave nodes
-    StdVector<Integer> constraintDofs_;
+    StdVector<UInt> constraintDofs_;
 
     //! Mapping of string-dof to integer (1-based)
-    Integer GetBCDof(const std::string dofString) const;
+    UInt GetBCDof(const std::string dofString) const;
 
   protected:
 

@@ -7,7 +7,7 @@ namespace CoupledField
   
   SuperBlockEQN::SuperBlockEQN(Grid * aptGrid, 
                                StdVector<RegionIdType> & asubdoms, 
-                               Integer dofsPerNode)
+                               UInt dofsPerNode)
     : NodeEQN(aptGrid, asubdoms, dofsPerNode)
   {
     ENTER_FCN( "SuperBlockEQN::SuperBlockEQN" );
@@ -34,11 +34,11 @@ namespace CoupledField
                            mesh2PDEElem_,
                            pde2MeshElem_); 
 
-    Integer numMechBCs = 0;
+    UInt numMechBCs = 0;
 
 
     // 1. STEP: Count number of mechanic eqns
-    for (Integer i=0; i<homoDirichletNodes_.GetSize(); i++)
+    for (UInt i=0; i<homoDirichletNodes_.GetSize(); i++)
       // check if node has a mechanic dof
       if(homoDirichletDofs_[i] < dofsPerNode_)
         numMechBCs++;
@@ -58,7 +58,7 @@ namespace CoupledField
     elecNode2EQN_.Init(1);
    
     // STEP 2
-    for (Integer i=0; i<homoDirichletNodes_.GetSize(); i++)
+    for (UInt i=0; i<homoDirichletNodes_.GetSize(); i++)
       {
         if (homoDirichletDofs_[i] == dofsPerNode_)
           elecNode2EQN_[mesh2PDENode_[homoDirichletNodes_[i]-1]-1] = 0;
@@ -70,7 +70,7 @@ namespace CoupledField
     //std::cerr << "After setting homoDirichletNodes" << std::endl;
   
     // STEP 3
-    for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
+    for (UInt i=0; i<constraintSlaveNodes_.GetSize(); i++)
       if (homoDirichletDofs_[i] == dofsPerNode_)
         elecNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1] = 0;
       else
@@ -81,13 +81,13 @@ namespace CoupledField
 
     // STEP 4
 
-    Integer mechEQNCounter = 0;
-    Integer elecEQNCounter = numMechEQNs_;
-    for (Integer iNode=0; iNode<pde2MeshNode_.GetSize(); iNode++)
+    UInt mechEQNCounter = 0;
+    UInt elecEQNCounter = numMechEQNs_;
+    for (UInt iNode=0; iNode<pde2MeshNode_.GetSize(); iNode++)
       {
         //std::cerr << "Checking Local Node " << iNode << std::endl;
         // Assign mechanic equation numbers
-        for (Integer iDof=0; iDof<dofsPerNode_-1; iDof++)
+        for (UInt iDof=0; iDof<dofsPerNode_-1; iDof++)
           {
             if (mechNode2EQN_[iNode][iDof] != 0)
               {
@@ -106,7 +106,7 @@ namespace CoupledField
   
       
     // STEP 5
-    for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
+    for (UInt i=0; i<constraintSlaveNodes_.GetSize(); i++)
       if (constraintDofs_[i] == dofsPerNode_)
         elecNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1] =
           elecNode2EQN_[mesh2PDENode_[constraintMasterNodes_[i]-1]-1];
@@ -144,7 +144,7 @@ namespace CoupledField
     out << std::setfill('-') << std::setw(39) << "-" << std::endl;
     out << std::setfill(' ');
   
-    for (Integer iNode=0; iNode<pde2MeshNode_.GetSize(); iNode++)
+    for (UInt iNode=0; iNode<pde2MeshNode_.GetSize(); iNode++)
       {
         // Print out first dof
         out << std::setw(10) << iNode+1  << " | ";
@@ -152,7 +152,7 @@ namespace CoupledField
         out << std::setw(10) << mechNode2EQN_[iNode][0] << std::endl;
       
         // Print out rest of mechanic dofs
-        for (Integer iDof = 1; iDof < dofsPerNode_-1; iDof++)
+        for (UInt iDof = 1; iDof < dofsPerNode_-1; iDof++)
           {
             out << std::setw(10) << " " << " | ";
             out << std::setw(13) << " " << " | ";
@@ -167,10 +167,10 @@ namespace CoupledField
   }
 
 
-  void SuperBlockEQN::Node2EQN(const Integer nodeNr, 
-                               const Integer dof,
+  void SuperBlockEQN::Node2EQN(const UInt nodeNr, 
+                               const UInt dof,
                                Integer & eqnNr,
-                               Integer & eqnDof) const
+                               UInt & eqnDof) const
   {
     ENTER_FCN( "SuperBlockEQN::Node2EQN" );
 #ifdef CHECK_INDEX
@@ -188,21 +188,21 @@ namespace CoupledField
     
   }
 
-  void SuperBlockEQN::Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const
+  void SuperBlockEQN::Node2EQN(const UInt nodeNr, StdVector<Integer> &eqns) const
   {
     ENTER_FCN( "SuperBlockEQN::Node2EQN" );
     Error( "Not implemented" );
   }
   
 
-  void SuperBlockEQN::Node2EQN(const StdVector<Integer> &nodeNr,
+  void SuperBlockEQN::Node2EQN(const StdVector<UInt> &nodeNr,
                                StdVector<Integer> &eqnNr) const
   {
     ENTER_FCN( "SuperBlockEQN::Node2EQN" );
 
     eqnNr.Resize(nodeNr.GetSize()*dofsPerNode_);
 
-    for(Integer iNode=0; iNode<nodeNr.GetSize(); iNode++)
+    for(UInt iNode=0; iNode<nodeNr.GetSize(); iNode++)
       {
 #ifdef CHECK_INDEX
         if (nodeNr[iNode] > mesh2PDENode_.GetSize())
@@ -211,7 +211,7 @@ namespace CoupledField
 #endif
 
         // Set mechanic eqnNrs
-        for (Integer iDof=0; iDof<dofsPerNode_-1; iDof++)
+        for (UInt iDof=0; iDof<dofsPerNode_-1; iDof++)
           eqnNr[iNode*dofsPerNode_ + iDof] =
             mechNode2EQN_[mesh2PDENode_[nodeNr[iNode]-1]-1][iDof];
 

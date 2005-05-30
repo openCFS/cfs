@@ -28,7 +28,7 @@ namespace CoupledField
                 StdPDE * ptPDE,
                 NodeEQN * ptEQN,
                 NodeStoreSol<Double> & sol,
-                Integer dim,
+                UInt dim,
                 MaterialData* &matData,
                 StdVector<RegionIdType> & allSubdoms,
                 Boolean isaxi);
@@ -38,7 +38,7 @@ namespace CoupledField
 
     //!
     void Setup(StdVector<RegionIdType> & neighRegions, 
-               StdVector<Integer>& couplingnodes);
+               StdVector<UInt>& couplingnodes);
 
     //!  
     void CalcNodeForce(Vector<Double> & force, Vector<Double> & totalForce );
@@ -63,17 +63,17 @@ namespace CoupledField
     //! \param J (input) Jacobian matrix
     //! \param J_dr (input) derivative of Jacobian matrix in r-direction
     //! \param dim (input) dimension (= direction) of r
-    Double CalcDetJDr(Matrix<Double> &J, Matrix<Double> &Jdr, Integer dim);
+    Double CalcDetJDr(Matrix<Double> &J, Matrix<Double> &Jdr, UInt dim);
 
     //! returns the scalar material value, used for force computation
-    virtual Double GetMatVal(Integer actSD)=0;
+    virtual Double GetMatVal(UInt actSD)=0;
 
     //! computes the field quantity
     virtual void ComputeField(Vector<Double> & Field, const Elem * ptElement,
                               const Vector<Double> & lCoord)=0;
 
     //! coupling nodes
-    StdVector<Integer> couplingNodes_;
+    StdVector<UInt> couplingNodes_;
 
     //!neighbor-regions
     StdVector<RegionIdType> neighRegions_;
@@ -85,10 +85,10 @@ namespace CoupledField
     StdVector<StdVector<ShortInt> > isBoundaryNode_;
 
     //! assigns each coupling element node the according Coupling Node number
-    StdVector<StdVector<Integer> > elemNodeToCouplingNode_; 
+    StdVector<StdVector<UInt> > elemNodeToCouplingNode_; 
 
     //! dimension
-    Integer dim_;
+    UInt dim_;
 
     //! material data
     MaterialData* materialData_;

@@ -19,7 +19,7 @@ namespace CoupledField
     //! Constructor
     SuperBlockEQN(Grid * aptGrid, 
                   StdVector<RegionIdType> & asubdoms, 
-                  Integer dofsPerNode);
+                  UInt dofsPerNode);
   
     virtual ~SuperBlockEQN();
   
@@ -31,11 +31,11 @@ namespace CoupledField
     void Print(std::ostream & out) const;
   
     //! 
-    Integer GetNumMechEQNs()
+    UInt GetNumMechEQNs()
     {return numMechEQNs_;}
 
     //!
-    Integer GetNumElecEQNs()
+    UInt GetNumElecEQNs()
     {return numElecEQNs_;}
 
     // -----------------------------------------------------------------------
@@ -43,17 +43,17 @@ namespace CoupledField
     // -----------------------------------------------------------------------
   
     //! Map node number and dof to according equation number
-    void Node2EQN(const Integer nodeNr, 
-                  const Integer dof,
+    void Node2EQN(const UInt nodeNr, 
+                  const UInt dof,
                   Integer & eqnNr,
-                  Integer & eqnDof) const;
+                  UInt & eqnDof) const;
   
     //! Map node number to according equation number(s)
-    void Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const;
+    void Node2EQN(const UInt nodeNr, StdVector<Integer> &eqns) const;
   
     //! Map vector of node numbers to according
     //! vector of equiation numbers
-    void Node2EQN(const StdVector<Integer> &nodeNr,
+    void Node2EQN(const StdVector<UInt> &nodeNr,
                   StdVector<Integer> &eqnNr) const;
 
     //! Maps the equation numbers according to the reordering
@@ -65,10 +65,10 @@ namespace CoupledField
   private:
 
     //! number of mechanic eqns
-    Integer numMechEQNs_;
+    UInt numMechEQNs_;
 
     //! number of electric eqns
-    Integer numElecEQNs_;
+    UInt numElecEQNs_;
 
     //! Contains the equation numbers
     Matrix<Integer> mechNode2EQN_;

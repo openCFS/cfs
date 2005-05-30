@@ -77,13 +77,13 @@ namespace CoupledField {
     //! \param ip      (input)  number of integration point
     //! \param ptCoord (input)  matrix containing co-ordinates of all
     //!                         integration points
-    void calcBMat( Matrix<Double> &bMat, Integer ip,
+    void calcBMat( Matrix<Double> &bMat, UInt ip,
                    Matrix<Double> &ptCoord ) {
 
       ENTER_FCN( "linElecInt3D::calcBMat" );
 
       // Obtain info on number of element's nodes
-      const Integer numNodes = ptelem->GetNumNodes();
+      const UInt numNodes = ptelem->GetNumNodes();
 
       // Set correct size of matrix B and initialise with zeros
       bMat.Resize( 3, numNodes );
@@ -97,7 +97,7 @@ namespace CoupledField {
       // The k-th entry of this block vector corresponds to the matrix
       // B of the BDB product evaluated at the k-th node of the finite
       // element. 
-      for( Integer actNode = 0; actNode < numNodes; actNode++ ) {
+      for( UInt actNode = 0; actNode < numNodes; actNode++ ) {
         bMat[0][actNode] = xiDx[actNode][0];
         bMat[1][actNode] = xiDx[actNode][1];
         bMat[2][actNode] = xiDx[actNode][2];
@@ -121,10 +121,10 @@ namespace CoupledField {
       // copy electric part of material matrix, which 
       // is the lower-right sub-diagonal block
       // d[7-9][7-9]
-      Integer startRow = 6;
-      Integer startCol = 6;
-      for( Integer i = 0; i < 3; i++ ) {
-        for ( Integer j = 0; j < 3; j++ ) {
+      UInt startRow = 6;
+      UInt startCol = 6;
+      for( UInt i = 0; i < 3; i++ ) {
+        for ( UInt j = 0; j < 3; j++ ) {
           dMat[i][j] = factor_ *
             (*matMatrix)[startRow+i][startCol+j];
         }
@@ -132,13 +132,13 @@ namespace CoupledField {
     }
     
     //! Returns dimension of D matrix
-    Integer getDimD() {
+    UInt getDimD() {
       ENTER_IFCN( "linElecInt3D::getDimD" );
       return 3;
     }
 
     //! Returns nr. of degrees of freedom
-    Integer getNrDofs() {
+    UInt getNrDofs() {
       ENTER_IFCN( "linElecInt3D::getNrDofs" );
       return 1;
     }

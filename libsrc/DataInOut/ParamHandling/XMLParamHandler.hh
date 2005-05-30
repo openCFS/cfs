@@ -75,6 +75,9 @@ namespace CoupledField {
     void Get( const std::string key, Integer &value,
               const std::string section="", const std::string subsection="" );
 
+    void Get( const std::string key, UInt &value,
+              const std::string section="", const std::string subsection="" );
+
     void Get( const std::string key, Double &value,
               const std::string section="", const std::string subsection="" );
 
@@ -91,6 +94,10 @@ namespace CoupledField {
                   const std::string section = "",
                   const std::string subsection = "" );
 
+    void GetList( const std::string key, StdVector<UInt> &list,
+                  const std::string section = "",
+                  const std::string subsection = "" );
+
     void Get( const StdVector<std::string> &keyVec,
               std::string &value );
 
@@ -99,6 +106,9 @@ namespace CoupledField {
 
     void Get( const StdVector<std::string> &keyVec,
               Integer &value );
+
+    void Get( const StdVector<std::string> &keyVec,
+              UInt &value );
     //@}
 
 
@@ -190,6 +200,12 @@ namespace CoupledField {
                   const StdVector<std::string> &valVec,
                   StdVector<Integer> &list );
 
+    //! Perform search and return values of matches as unsigned Integers.
+    void GetList( const StdVector<std::string> &keyVec,
+                  const StdVector<std::string> &attrVec,
+                  const StdVector<std::string> &valVec,
+                  StdVector<UInt> &list );
+
     //! Search for a unique match and return value as string.
     void Get( const StdVector<std::string> &keyVec,
               const StdVector<std::string> &attrVec,
@@ -207,6 +223,12 @@ namespace CoupledField {
               const StdVector<std::string> &attrVec,
               const StdVector<std::string> &valVec,
               Integer &value );
+
+    //! Search for a unique match and return value as unsigned Integer.
+    void Get( const StdVector<std::string> &keyVec,
+              const StdVector<std::string> &attrVec,
+              const StdVector<std::string> &valVec,
+              UInt &value );
     //@}
 
 
@@ -408,6 +430,15 @@ namespace CoupledField {
     Integer String2Integer( const std::string toTranscode ) {
       return (Integer)atoi( toTranscode.c_str() );
     };
+    
+    //! Transcodes an STL string to UInt
+    
+    //! The method converts an STL string to an unsigned Integer value by the 
+    //! help of the atoi function.
+    Integer String2UInt( const std::string toTranscode ) {
+      return (UInt)atoi( toTranscode.c_str() );
+    };
+
     //@}
 
 

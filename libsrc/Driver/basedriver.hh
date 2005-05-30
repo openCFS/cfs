@@ -32,7 +32,7 @@ namespace CoupledField
       \param pdenumber number of PDE
       \param matrixtype type of matrix
     */
-    virtual void SetupMatricesPDE(Integer pdenumber, const Integer matrixtype)
+    virtual void SetupMatricesPDE(UInt pdenumber, const FEMatrixType matrixtype)
     { Error("SetupMatricesPDE not implemented in base class!",__FILE__,__LINE__); };
   
   protected:
@@ -44,7 +44,7 @@ namespace CoupledField
     WriteResults * ptMeshes_;
 
     //! counter of meshes for printing meshes
-    Integer nummeshes_;  
+    UInt nummeshes_;  
 
     //! print mesh in special file. this method is used in adaptive procedure for space.
     void PrintSeqMeshes();

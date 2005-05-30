@@ -43,7 +43,7 @@ namespace CoupledField
       \param time time of calculation
     */
     virtual void WriteNodeSolutionTransient(const NodeStoreSol<Double>& data, 
-                                            const Integer step, 
+                                            const UInt step, 
                                             const Double time);
 
     //! write node solution vector
@@ -54,7 +54,7 @@ namespace CoupledField
       \param title name for the data
     */
     virtual void WriteElemSolutionTransient(const ElemStoreSol<Double>& data, 
-                                            const Integer step, 
+                                            const UInt step, 
                                             const Double time);
  
     //! write element solution vector 
@@ -66,7 +66,7 @@ namespace CoupledField
       (real-imag/amplitude-phase)
     */
     virtual void WriteNodeSolutionHarmonic(const NodeStoreSol<Complex>& data, 
-                                           const Integer step,
+                                           const UInt step,
                                            const Double frequency,
                                            const ComplexFormat format);
 
@@ -79,23 +79,23 @@ namespace CoupledField
       (real-imag/amplitude-phase)
     */
     virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data, 
-                                           const Integer step,
+                                           const UInt step,
                                            const Double frequency,
                                            const ComplexFormat format);
 
     //! \todo document me
-    Integer DoCompute();
+    UInt DoCompute();
 
     //! \todo document me
-    Integer TransferGrid();
+    UInt TransferGrid();
 
   private:
 
     //! number of step
-    Integer currstep_;
+    UInt currstep_;
 
     //! \todo document me
-    Integer maxnumnodes_;
+    UInt maxnumnodes_;
 
     //! dataset 666. 
     void Dataset666();
@@ -115,10 +115,10 @@ namespace CoupledField
     */
     void Dataset55_Transient(const std::string & title, 
                              const Vector<Double> & x, 
-                             const Integer step, 
+                             const UInt step, 
                              const Double time, 
-                             const Integer nrNodes,
-                             const Integer nrDofs=1);
+                             const UInt nrNodes,
+                             const UInt nrDofs=1);
   
     //! for printing nodal results of simulation (harmonic)
     /*!
@@ -129,11 +129,11 @@ namespace CoupledField
     */
     void Dataset55_Harmonic(const std::string & title, 
                             const Vector<Complex> & x, 
-                            const Integer step,
+                            const UInt step,
                             const Double frequency,
                             const ComplexFormat format,
-                            const Integer nrNodes,
-                            const Integer nrDofs=1);
+                            const UInt nrNodes,
+                            const UInt nrDofs=1);
   
     //! for printing cell results of simulation (transient / static)
     /*!
@@ -144,10 +144,10 @@ namespace CoupledField
     */
     void Dataset56_Transient(const std::string & title, 
                              const Vector<Double> & x, 
-                             const Integer step, 
+                             const UInt step, 
                              const Double time,
-                             const Integer numElems,
-                             const Integer nrDofs=1);
+                             const UInt numElems,
+                             const UInt nrDofs=1);
   
     //! for printing cell results of simulation (harmonic)
     /*!
@@ -158,11 +158,11 @@ namespace CoupledField
     */
     void Dataset56_Harmonic(const std::string & title, 
                             const Vector<Complex> & x, 
-                            const Integer step,
+                            const UInt step,
                             const Double frequency, 
                             const ComplexFormat format, 
-                            const Integer numElems,
-                            const Integer nrDofs=1);
+                            const UInt numElems,
+                            const UInt nrDofs=1);
   
     //! Convertes enum SolutionType to string
     std::string SolutionTypeToString(const SolutionType type) const;

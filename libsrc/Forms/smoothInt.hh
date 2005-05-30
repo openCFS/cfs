@@ -25,7 +25,7 @@ public:
 protected:    
   
   /// returns B - matrix for BDB
-  virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+  virtual void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
 
   //  /// orientation of calculation plane in 2D 
   //   //  (especially important for anisotropic simulations)
@@ -57,13 +57,13 @@ public:
 protected:
   
   /// calculate the data-matrix for 2D plain-strain
-  virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
+  virtual void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
 
   /// returns dimension of D matrix
-  virtual Integer getDimD(){return 3;};
+  virtual UInt getDimD(){return 3;};
   
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 2;};
+  virtual UInt getNrDofs(){return 2;};
 };
 
 
@@ -87,13 +87,13 @@ public:
 protected:
   
   /// calculate the data-matrix for 2D axi
-  virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
+  virtual void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
 
   /// returns dimension of D matrix
-  virtual Integer getDimD(){return 4;};
+  virtual UInt getDimD(){return 4;};
   
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 2;};
+  virtual UInt getNrDofs(){return 2;};
 };
 
 
@@ -116,13 +116,13 @@ public:
 protected:
   
   /// returns D - matrix for BDB
-  virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
+  virtual void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
 
   /// returns dimension of D matrix
-  virtual Integer getDimD(){return 6;};
+  virtual UInt getDimD(){return 6;};
   
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 3;};  
+  virtual UInt getNrDofs(){return 3;};  
 };
 
 

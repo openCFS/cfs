@@ -19,7 +19,7 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepAcouFlowNoise::SolveStepTrans(const Integer kstep, 
+  void SolveStepAcouFlowNoise::SolveStepTrans(const UInt kstep, 
                                               const Double asteptime, 
                                               const Boolean reset)
   {
@@ -32,7 +32,7 @@ namespace CoupledField {
     else laststepcalc_= kstep;
 
     Double * ptsol;
-    Integer job = 3;
+    UInt job = 3;
 
     //perform predictor step
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
@@ -75,8 +75,8 @@ namespace CoupledField {
     SetBCs(lasttimecalc_);
 
     if ( job == 1 ) {
-      algsys_->SetupPrecond(job);
-      algsys_->SetupSolver(job);
+      algsys_->SetupPrecond();
+      algsys_->SetupSolver();
     }
 
     algsys_->Solve();

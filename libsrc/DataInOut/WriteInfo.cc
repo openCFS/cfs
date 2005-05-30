@@ -167,7 +167,7 @@ namespace CoupledField
 
 
   void WriteInfo::WriteNonLinIter(const std::string& pdeName,
-                                  const Integer iterationCounter,
+                                  const UInt iterationCounter,
                                   const Double residualErr,
                                   const Double incrementalErr,
                                   double etaLineSearch)
@@ -196,7 +196,7 @@ namespace CoupledField
   }
 
 
-  void WriteInfo::WriteMultiSequenceStep(const Integer sequenceStep, 
+  void WriteInfo::WriteMultiSequenceStep(const UInt sequenceStep, 
                                          const AnalysisType analysis)
   {
     std::string analysisString;
@@ -234,7 +234,7 @@ namespace CoupledField
 
 
   void WriteInfo::WriteTimeStep(const std::string& pdeName,
-                                const Integer timeStep, const Double time)
+                                const UInt timeStep, const Double time)
   {
     ENTER_FCN( "WriteInfo::WriteTimeStep" );
 
@@ -263,7 +263,7 @@ namespace CoupledField
   
 
   void WriteInfo::WriteHarmonicStep(const std::string& pdeName,
-                                    const Integer freqStep,
+                                    const UInt freqStep,
                                     const Double frequency)
   {
     ENTER_FCN( "WriteInfo::WriteHarmonicStep" );
@@ -317,7 +317,7 @@ namespace CoupledField
       *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
                << ": " << resulttype << " ==========" << std::endl;
 
-      for ( Integer i = 0; i < subdoms.GetSize(); i++ ) {
+      for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
         *cfsInfo << "        === " << analysis << " " << analysisVal 
                  << "; " << subdoms[i] << ": " << results[i] 
                  << " "  << unit << std::endl << std::endl;
@@ -463,7 +463,7 @@ namespace CoupledField
       {
         *cfsInfo << comment << myEndl;
         
-        for (int i=0; i< vec.GetSize(); i++)
+        for (UInt i=0; i< vec.GetSize(); i++)
           *cfsInfo << vec[i] << std::endl;
         
         *cfsInfo << std::endl;
@@ -481,7 +481,7 @@ namespace CoupledField
   
   // prints warning to info-file
   void WriteInfo::Warning(const std::string & Text,
-                          const Char * const filename, const Integer numline)
+                          const Char * const filename, const UInt numline)
   {
     ENTER_FCN( "WriteInfo::Warning" );
 
@@ -527,7 +527,7 @@ namespace CoupledField
   
   // prints error to both std::out and info-file
   void WriteInfo::Error(const std::string & Text,
-                        const Char * const filename, const Integer numline)
+                        const Char * const filename, const UInt numline)
   {
     ENTER_FCN( "WriteInfo::Error" );
     
@@ -579,7 +579,7 @@ namespace CoupledField
 
 
   void WriteInfo::WriteHomBC(const std::string& pdeName,
-                             const std::string& subDom, Integer dof)
+                             const std::string& subDom, UInt dof)
   {
     ENTER_FCN( "WriteInfo::WriteHomBC" );
     
@@ -599,7 +599,7 @@ namespace CoupledField
   void WriteInfo::WriteInHomBC(const std::string& pdeName,
                                const std::string& subDom, 
                                const Double& val, const std::string & fnc,
-                               const Integer& dof)
+                               const UInt& dof)
   {
     ENTER_FCN( "WriteInfo::WriteInHomBC" );
     
@@ -618,7 +618,7 @@ namespace CoupledField
   void WriteInfo::WriteLoad(const std::string& pdeName,
                             const std::string& subDom, 
                             Double value, const std::string & fnc,
-                            Integer dof)
+                            UInt dof)
   {
     ENTER_FCN( "WriteInfo::WriteLoad" );
 
@@ -645,7 +645,7 @@ namespace CoupledField
     // list of supported format specifiers
     std::string supported = "idugGeEfsc";
 
-    const Integer maxSize = 100;
+    const UInt maxSize = 100;
     typedef std::string::size_type ST;
     ST actPos=0;
     ST foundPos;

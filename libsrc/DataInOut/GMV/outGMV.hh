@@ -33,7 +33,7 @@ namespace CoupledField
       \param time time of calculation
     */
     virtual void WriteNodeSolutionTransient(const NodeStoreSol<Double>& sol, 
-                                            const Integer step, 
+                                            const UInt step, 
                                             const Double time);
   
     //! write element solution vector
@@ -43,7 +43,7 @@ namespace CoupledField
       \param time time of calculation
     */
     virtual void WriteElemSolutionTransient(const ElemStoreSol<Double>& data, 
-                                            const Integer step, 
+                                            const UInt step, 
                                             const Double time);
   
     //! write element solution vector 
@@ -55,7 +55,7 @@ namespace CoupledField
       (real-imag/amplitude-phase)
     */
     virtual void WriteNodeSolutionHarmonic(const NodeStoreSol<Complex>& sol, 
-                                           const Integer step,
+                                           const UInt step,
                                            const Double frequency,
                                            const ComplexFormat format);
   
@@ -68,7 +68,7 @@ namespace CoupledField
       (real-imag/amplitude-phase)
     */
     virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data, 
-                                           const Integer step,
+                                           const UInt step,
                                            const Double frequency,
                                            const ComplexFormat format);
   
@@ -94,10 +94,10 @@ namespace CoupledField
     Char * namedir_;
 
     // number of step
-    Integer currStep_;
+    UInt currStep_;
 
     //! number of last step
-    Integer lastStep_;
+    UInt lastStep_;
 
     // current time 
     Double currTime_;
@@ -135,7 +135,7 @@ namespace CoupledField
     */
     void WriteNodeVariableTransient(const Vector<Double> var, 
                                     const std::string name, 
-                                    const Integer dataType);
+                                    const UInt dataType);
   
     //! write variable information
     /*!
@@ -147,7 +147,7 @@ namespace CoupledField
     */
     void WriteNodeVariableHarmonic(const Vector<Complex> var, 
                                    const std::string name, 
-                                   const Integer dataType,
+                                   const UInt dataType,
                                    const ComplexFormat outFormat);
 
     //! write vector-variable information
@@ -158,7 +158,7 @@ namespace CoupledField
       \param name     name of output-data
     */
     void WriteVelocity(const Vector<Double>* var, const std::string name,
-                       const Integer dataType);
+                       const UInt dataType);
  
     //! transform string to 8 characters. we need it, because name in gmv,
     //! in binary format, should be from 8 characters

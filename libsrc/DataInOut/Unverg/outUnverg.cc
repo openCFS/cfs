@@ -51,9 +51,9 @@ namespace CoupledField
 
     (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
 
-    Integer dim=ptGrid_->GetDim();
-    Integer maxnumnodes=ptGrid_->GetNumNodes();
-    Integer maxnumelem=ptGrid_->GetNumVolElems();
+    UInt dim=ptGrid_->GetDim();
+    UInt maxnumnodes=ptGrid_->GetNumNodes();
+    UInt maxnumelem=ptGrid_->GetNumVolElems();
 
     (*output)<< std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << dim << std::endl << std::setw(10) << maxnumnodes << std::setw(10) << maxnumelem << std::endl;
 
@@ -68,13 +68,13 @@ namespace CoupledField
 
     (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
 
-    Integer dim=ptGrid_->GetDim();
-    Integer maxnumnodes=ptGrid_->GetNumNodes();
+    UInt dim=ptGrid_->GetDim();
+    UInt maxnumnodes=ptGrid_->GetNumNodes();
 
     (*output).setf(std::ios::scientific);
     (*output).precision(16);
 
-    for (Integer i=0; i<maxnumnodes; i++)
+    for (UInt i=0; i<maxnumnodes; i++)
       {
         (*output) << std::setw(10) << i+1 << std::setw(10) << 0 << std::setw(10) << 0 << std::setw(10) << 11 << std::endl;
 
@@ -109,16 +109,16 @@ namespace CoupledField
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
     (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
-    Integer dim=ptGrid_->GetDim();
+    UInt dim=ptGrid_->GetDim();
 
-    StdVector<Integer> connect;
+    StdVector<UInt> connect;
     StdVector<Elem*> elemssd;
-    Integer elmsgrp=1;
+    UInt elmsgrp=1;
     std::string errMsg;
 
     StdVector<RegionIdType> subdoms;
     ptGrid_->GetVolRegionIds(subdoms);
-    Integer i, j, k;
+    UInt i, j, k;
     k = 0;
     for (i=0; i<subdoms.GetSize(); i++)
       {
@@ -166,8 +166,8 @@ namespace CoupledField
             if (dim == 2 && (connect.GetSize() == 6 || connect.GetSize() == 8))
               {
                 //quadratic elements
-                Integer offset = Integer(connect.GetSize()/2);
-                for (Integer ii=0; ii < offset; ii++)
+                UInt offset = UInt(connect.GetSize()/2);
+                for (UInt ii=0; ii < offset; ii++)
                   {
                     (*output).width(10);
                     (*output) << connect[ii];
@@ -178,7 +178,7 @@ namespace CoupledField
               }
             else
               {
-                for (Integer ii=0; ii < connect.GetSize(); ii++) 
+                for (UInt ii=0; ii < connect.GetSize(); ii++) 
                   { 
                     (*output).width(10);
                     (*output) << connect[ii];
@@ -192,13 +192,13 @@ namespace CoupledField
     (*output) << std::setw(6) << -1 << std::endl;
   }
 
-  void  WriteResultsUnverg::NodeElemDataTransient(const Integer dataSetNr,
+  void  WriteResultsUnverg::NodeElemDataTransient(const UInt dataSetNr,
                                                   const std::string & title, 
                                                   const Vector<Double> & x, 
-                                                  const Integer step, 
+                                                  const UInt step, 
                                                   const Double time, 
-                                                  const Integer nrNodes,
-                                                  const Integer nrDofs)
+                                                  const UInt nrNodes,
+                                                  const UInt nrDofs)
   {
     //
     if (!ptGrid_)
@@ -212,12 +212,12 @@ namespace CoupledField
     (*output).setf(std::ios::uppercase);
 
     // Standard for scalar values
-    Integer dataCharac = 1;
-    Integer valsPerNode = 1;
+    UInt dataCharac = 1;
+    UInt valsPerNode = 1;
  
     // needed for undocumented value of
     // Dataset 55/56 in record8 , field4
-    Integer specDataCharac = 0;
+    UInt specDataCharac = 0;
 
     // Vector type
     if (nrDofs > 1 && nrDofs <= 3) 
@@ -247,7 +247,7 @@ namespace CoupledField
       step << std::endl;
     (*output) << " " << time << std::endl;       
 
-    Integer i,j,n;
+    UInt i,j,n;
     n=nrNodes;;  
     for (i=0; i<n; i++)
       {
@@ -273,17 +273,17 @@ namespace CoupledField
     (*output) << std::setw(6) << -1 << std::endl;
   }  
 
-  void WriteResultsUnverg::NodeElemDataHarmonic(const Integer dataSetNr,
+  void WriteResultsUnverg::NodeElemDataHarmonic(const UInt dataSetNr,
                                                 const std::string & title, 
                                                 const Vector<Complex> & x, 
-                                                const Integer step,
+                                                const UInt step,
                                                 const Double frequency, 
                                                 const ComplexFormat format,
-                                                const Integer nrNodes,
-                                                const Integer nrDofs)
+                                                const UInt nrNodes,
+                                                const UInt nrDofs)
   {
   
-    Integer dataCharact = 1;
+    UInt dataCharact = 1;
     if (!ptGrid_)
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
   
@@ -294,7 +294,7 @@ namespace CoupledField
     (*output).precision(6);
     (*output).setf(std::ios::uppercase);
   
-    Integer valsPerNode = 1;
+    UInt valsPerNode = 1;
     if (nrDofs > 1)
       {
         dataCharact = 2;
@@ -313,7 +313,7 @@ namespace CoupledField
           step << std::endl;
         (*output) << " " << frequency << std::endl;       
       
-        Integer i,j,n;
+        UInt i,j,n;
         n=nrNodes;
         for (i=0; i<n; i++)
           {
@@ -372,7 +372,7 @@ namespace CoupledField
         step << std::endl;
       (*output) << " " << frequency << std::endl;       
     
-      Integer i,j,n;
+      UInt i,j,n;
       n=nrNodes;
       for (i=0; i<n; i++)
         {
@@ -434,7 +434,7 @@ namespace CoupledField
   }
 
   void  WriteResultsUnverg::WriteNodeSolutionTransient(const NodeStoreSol<Double> & sol, 
-                                                       const Integer step, 
+                                                       const UInt step, 
                                                        const Double time)
   {
   
@@ -442,11 +442,11 @@ namespace CoupledField
     
     Vector<Double> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numNodes =  ptGrid_->GetNumNodes();
+    UInt numNodes =  ptGrid_->GetNumNodes();
     std::string title;
     sol.GetSolutionTypes(solTypes);
 
-    for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
+    for (UInt iSol=0; iSol<solTypes.GetSize(); iSol++)
       {
         sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
         title = SolutionTypeToString(solTypes[iSol]);
@@ -457,7 +457,7 @@ namespace CoupledField
   }
 
   void  WriteResultsUnverg::WriteElemSolutionTransient(const ElemStoreSol<Double>& sol, 
-                                                       const Integer step, 
+                                                       const UInt step, 
                                                        const Double time)
   {
     ENTER_FCN( "WriteResultsUnverg::WriteElemSolutionTransient" );
@@ -465,7 +465,7 @@ namespace CoupledField
     Vector<Double> globalSolution;
     StdVector<SolutionType> solTypes;
     std::string title;
-    Integer numElems =  ptGrid_->GetNumVolElems();  
+    UInt numElems =  ptGrid_->GetNumVolElems();  
   
     sol.GetSolutionTypes(solTypes);
     sol.TransformElemSolution(globalSolution,ptGrid_);
@@ -475,7 +475,7 @@ namespace CoupledField
   }
 
   void  WriteResultsUnverg::WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> & sol, 
-                                                      const Integer step,
+                                                      const UInt step,
                                                       const Double frequency, 
                                                       const ComplexFormat format)
   {
@@ -487,10 +487,10 @@ namespace CoupledField
     StdVector<SolutionType> solTypes;
     sol.GetSolutionTypes(solTypes);
   
-    Integer numNodes =  ptGrid_->GetNumNodes();
+    UInt numNodes =  ptGrid_->GetNumNodes();
     std::string title;
 
-    for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
+    for (UInt iSol=0; iSol<solTypes.GetSize(); iSol++)
       {
         sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
         title = SolutionTypeToString(solTypes[iSol]);
@@ -503,14 +503,14 @@ namespace CoupledField
 
 
   void  WriteResultsUnverg::WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& sol, 
-                                                      const Integer step,
+                                                      const UInt step,
                                                       const Double frequency, 
                                                       const ComplexFormat format)
   {
     ENTER_FCN( "WriteResultsUnverg::WriteElemSolutionHarmonic" );
     Vector<Complex> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numElems =  ptGrid_->GetNumVolElems();  
+    UInt numElems =  ptGrid_->GetNumVolElems();  
 
     std::string title;
 
@@ -610,12 +610,13 @@ namespace CoupledField
         Error( "Wrong type of solution or 'SolutionType2String' not implemented for \
 this type of solution", __FILE__, __LINE__);
       }
+    return std::string();
   }
 
 
 
 
-  // void  WriteResultsUnverg::WriteDataOnCell(const Vector<Double> & sol, const Integer step, const Double time, const std::string title, const Integer nrDofs)
+  // void  WriteResultsUnverg::WriteDataOnCell(const Vector<Double> & sol, const UInt step, const Double time, const std::string title, const Integer nrDofs)
   // {
   //   std::string aux;
   //   if (title == "elecfield") {

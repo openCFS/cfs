@@ -56,9 +56,9 @@ namespace CoupledField
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
-    virtual void WriteResultsInFile(const Integer kstep = 0,
+    virtual void WriteResultsInFile(const UInt kstep = 0,
                                     const Double asteptime = 0.0,
-                                    Integer stepOffset = 0,
+                                    UInt stepOffset = 0,
                                     Double timeOffset = 0.0);
 
     //! perform postprocessing on data
@@ -69,13 +69,13 @@ namespace CoupledField
   
   protected:
 
-    Integer size_;        //!< total number of unknowns (equations)
+    UInt size_;        //!< total number of unknowns (equations)
 
   private:
 
-    Integer GetNrBCDof (const std::string & dofStartString);
+    UInt GetNrBCDof (const std::string & dofStartString);
 
-    Integer GetBCDof(const std::string dofString);
+    UInt GetBCDof(const std::string dofString);
 
     std::string method_;
 

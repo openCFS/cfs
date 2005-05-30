@@ -44,10 +44,10 @@ namespace CoupledField
     void Init();
 
     //! number of sequence steps
-    Integer numSteps_;
+    UInt numSteps_;
 
     //! current time step
-    Integer actStep_;
+    UInt actStep_;
   
     //! current time
     Double actTime_;

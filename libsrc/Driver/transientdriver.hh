@@ -16,7 +16,7 @@ namespace CoupledField {
     //! \param driverTag tag for current driver section
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     TransientDriver( Domain * adomain,
-                     Integer stepOffset = 0,
+                     UInt stepOffset = 0,
                      Double timeOffset = 0.0,
                      std::string driverTag = "anyTag",
                      Boolean isPartOfSequence = FALSE );
@@ -31,7 +31,7 @@ namespace CoupledField {
 
   private:
     //!
-    Integer numstep_,isavebegin_,isaveincr_,isaveend_;
+    UInt numstep_,isavebegin_,isaveincr_,isaveend_;
 
     //!
     Double firstdt_;

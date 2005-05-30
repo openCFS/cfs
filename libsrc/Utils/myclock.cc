@@ -25,14 +25,14 @@ namespace CoupledField
  
       }
     else InFile=FALSE;
-  };
+  }
  
   MyClock::~MyClock()
   {
 
     if (InFile) filetime.close();
  
-  };
+  }
 
   void MyClock::ClockCount(enum status n, const std::string title)
   {
@@ -70,6 +70,6 @@ namespace CoupledField
           }
  
         break;
-      };
+      }
   }
 } // end of namespace  

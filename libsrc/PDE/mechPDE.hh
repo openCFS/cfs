@@ -75,9 +75,9 @@ namespace CoupledField
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
-    virtual void WriteResultsInFile(const Integer kstep = 0,
+    virtual void WriteResultsInFile(const UInt kstep = 0,
                                     const Double asteptime = 0.0,
-                                    Integer stepOffset = 0,
+                                    UInt stepOffset = 0,
                                     Double timeOffset = 0.0);
 
     //! do PostProcessing step
@@ -86,7 +86,7 @@ namespace CoupledField
   protected:
 
   
-    Integer size_;        //!< total number of unknowns (equations)
+    UInt size_;        //!< total number of unknowns (equations)
 
     //computes mechanical deformation energy
     void CalcEnergy();
@@ -137,9 +137,9 @@ namespace CoupledField
     /// calc rhs coupling to acoustic pde
     void CalcAcousticCouplingRHS( StdVector<Elem*> * couplingElems, 
                                   StdVector<MaterialData*> & materials, 
-                                  StdVector<Integer>& couplingNodes,
+                                  StdVector<UInt>& couplingNodes,
                                   Vector<Double> & forceOnElem,
-                                  Integer couplingdof );
+                                  UInt couplingdof );
                                
   
 
@@ -149,7 +149,7 @@ namespace CoupledField
 
 
     /// Write nonlin iteration norms to the cla-file
-    void WriteClaNlNorms( const Integer iterationCounter,
+    void WriteClaNlNorms( const UInt iterationCounter,
                           const Double residualL2Norm,
                           const Double extForcesL2Norm, const Double residualErr, 
                           const Double solIncrL2Norm, const Double actSolL2Norm, 
@@ -163,7 +163,7 @@ namespace CoupledField
     void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
                         MaterialData& mat);
 
-    Integer GetNrBCDof (const std::string & dofStartString);
+    UInt GetNrBCDof (const std::string & dofStartString);
 
     /// stores an algsys_ vector into a StdVector and returns that L2-norm
     void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
@@ -175,7 +175,7 @@ namespace CoupledField
     StdVector<std::string> reducedIntegration_;
 
     /// returns the solution matrix belonging to all nodes of the actual element
-    void GetSolOfElement( Matrix<Double>& elDisp, StdVector<Integer>& connect_PDE);
+    void GetSolOfElement( Matrix<Double>& elDisp, StdVector<UInt>& connect_PDE);
 
 
     //!

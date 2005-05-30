@@ -15,8 +15,8 @@ namespace CoupledField {
 
     ENTER_FCN( "ADBInt::CalcElementMatrix" );
 
-    const Integer nrIntPts = ptelem->GetNumIntPoints(); 
-    const Integer nrNodes  = ptelem->GetNumNodes();   
+    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+    const UInt nrNodes  = ptelem->GetNumNodes();   
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     double jacDet;
 
@@ -37,7 +37,7 @@ namespace CoupledField {
     calcDMat( dMat );
 
     // Loop over all integration points
-    for ( Integer actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+    for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
       // Setup the A matrix for current integration point
       calcAMat( aMat, actIntPt, ptCoord );
@@ -67,7 +67,7 @@ namespace CoupledField {
         ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
         Double aux = 0.0;
         
-        for ( Integer i = 0; i < nrNodes; i++ ) {
+        for ( UInt i = 0; i < nrNodes; i++ ) {
           aux += ptCoord[0][i] * ShpFncAtIp[i];
         }
         
@@ -81,12 +81,12 @@ namespace CoupledField {
       // We now compute A * D * B and scale it by the determinant
       // of the Jacobian and the weight of the current integration
       // point. The result is added to the element matrix
-      for ( Integer i = 0; i < aMat.GetSizeRow(); i++ ) {
-        for ( Integer j = 0; j < dbMat.GetSizeCol(); j++ ) {
+      for ( UInt i = 0; i < aMat.GetSizeRow(); i++ ) {
+        for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
 
           // Compute entry (i,j) of A * D * B
           aux = 0.0;
-          for ( Integer k = 0; k < aMat.GetSizeCol(); k++ ) {
+          for ( UInt k = 0; k < aMat.GetSizeCol(); k++ ) {
             aux += aMat[i][k] * dbMat[k][j];
           }
 

@@ -29,7 +29,7 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepElec:: PreStepStatic(const Integer kstep, const Double asteptime,
+  void SolveStepElec:: PreStepStatic(const UInt kstep, const Double asteptime,
                                      const Boolean reset)
   {
     ENTER_FCN( "SolveStepElec::PreStepStatic" );
@@ -48,7 +48,7 @@ namespace CoupledField {
     //for hysteresis modeling
     Boolean hystModel = FALSE;
     //  Boolean hystModel = TRUE;
-    Integer numElems = PDE_.getPDE_numElems();
+    UInt numElems = PDE_.getPDE_numElems();
 
     if (hystModel) {
       if (kstep==1) {
@@ -81,7 +81,7 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepElec::SolveStepStatic(const Integer kstep, const Double asteptime,
+  void SolveStepElec::SolveStepStatic(const UInt kstep, const Double asteptime,
                                       const Boolean reset) {
 
     ENTER_FCN( "SolveStepElec::SolveStepStatic" );
@@ -101,7 +101,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepElec::StepStaticNonLinEpsDiff(const Integer kstep, const Double asteptime,
+  void SolveStepElec::StepStaticNonLinEpsDiff(const UInt kstep, const Double asteptime,
                                               const Boolean reset) {
 
     ENTER_FCN( "SolveStepElec::StepStaticNonLin" );
@@ -109,9 +109,8 @@ namespace CoupledField {
     laststepcalc_ = kstep;
     lasttimecalc_ = asteptime;
 
-    Integer job=1;
     Boolean performOneMoreStep;
-    Integer iterationCounter=0;
+    UInt iterationCounter=0;
   
     Vector<Double> newSol(eqnData_->GetNumEQNs());
     Vector<Double> oldSol(eqnData_->GetNumEQNs());
@@ -213,14 +212,14 @@ namespace CoupledField {
       StoreAlgsysToVec(RHS, actRHS );       
       Double residualNorm = RhsL2Norm( RHS );
 
-      algsys_->SetupSolver(job);
-      algsys_->SetupPrecond(job);
+      algsys_->SetupSolver();
+      algsys_->SetupPrecond();
     
       algsys_->Solve();
       algsys_->GetSolutionVal( solPtr );
       StoreAlgsysToVec(incrSol, solPtr );
 
-      Double alpha = 1;
+      //Double alpha = 1;
       //    newSol = oldSol + incrSol * alpha;
       newSol = incrSol;
 
@@ -237,7 +236,7 @@ namespace CoupledField {
       // compute L2-Norm of error between last incremental solution and
       // actual incremental solution
       Double solIncrL2Norm=0;
-      for (Integer i=0; i<newSol.GetSize(); i++)
+      for (UInt i=0; i<newSol.GetSize(); i++)
         solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
     
       solIncrL2Norm = sqrt(solIncrL2Norm);
@@ -275,7 +274,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepElec::PostStepStatic(const Integer kstep, const Double asteptime)
+  void SolveStepElec::PostStepStatic(const UInt kstep, const Double asteptime)
   {
     ENTER_FCN( "SolveStepElec::PostStepStatic" );
 
@@ -327,21 +326,22 @@ namespace CoupledField {
 
     Vector<Double> LCoord, Efield;
     Double Ecomp, Pval, PvalReduced;
-    Integer comp = Dir_ - 1;
-    Integer pdeElem=1;
+    UInt comp = Dir_ - 1;
+    UInt pdeElem=1;
 
     Matrix<Double>     ptCoord;
     Vector<Double>     sol, solderiv1, solderiv2, rhs;
     BaseFE             *ptElem;
-    StdVector<Integer> connect, connect_PDE;
+    StdVector<UInt> connect;
+    StdVector<Integer>  connect_PDE;
   
     BaseForm * rhsInt = new  PiezoPolarizationInt(Dir_, PDE_.getPDE_dofspernode(), isaxi_);
 
-    for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
     
-      for (Integer iel=0; iel < elemssd.GetSize(); iel++) {
+      for (UInt iel=0; iel < elemssd.GetSize(); iel++) {
 
         //compute the electric field intensity
         elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
@@ -391,17 +391,17 @@ namespace CoupledField {
 
     Vector<Double> LCoord, Efield;
     StdVector<Elem*> elemssd;
-    Integer pdeElem=1;
-    Double Ecomp, Pval, Dval;
+    UInt pdeElem=1;
+    Double Ecomp, Pval;
     Integer comp = Dir_-1;
 
     // loop over all subdomains
-    for (Integer isd=0; isd<subdoms_.GetSize(); isd++) {
+    for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
       // get vector of Elem of subdomain with color: subdoms[isd]
       ptgrid_->GetVolElems(elemssd,subdoms_[isd]);
       
       // loop over elements of subdomain
-      for (Integer iel=0; iel< elemssd.GetSize(); iel++)        {
+      for (UInt iel=0; iel< elemssd.GetSize(); iel++)        {
         elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
 
         //compute electric field
@@ -441,20 +441,21 @@ namespace CoupledField {
     Vector<Double> LCoord, Efield;
     Double Ecomp, Pval, Dval;
     Integer comp = Dir_ - 1;
-    Integer pdeElem=1;
+    UInt pdeElem=1;
 
     Matrix<Double>     ptCoord;
     Vector<Double>     Dfield, rhs;
     BaseFE             *ptElem;
-    StdVector<Integer> connect, connect_PDE;
+    StdVector<UInt> connect;
+    StdVector<Integer>   connect_PDE;
   
     ElecPolarizationInt *rhsInt = new   ElecPolarizationInt(isaxi_);
 
-    for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
     
-      for (Integer iel=0; iel < elemssd.GetSize(); iel++) {
+      for (UInt iel=0; iel < elemssd.GetSize(); iel++) {
 
         //compute the electric field intensity
         elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
@@ -511,15 +512,13 @@ namespace CoupledField {
     Vector<Double> LCoord, Efield;
     Double Ecomp, Pval, Dval, dE, dD, eps;
     Integer comp = Dir_ - 1;
-    Integer pdeElem=1;
+    UInt pdeElem=1;
 
-    BaseFE *ptElem;
-  
-    for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
     
-      for (Integer iel=0; iel < elemssd.GetSize(); iel++) {
+      for (UInt iel=0; iel < elemssd.GetSize(); iel++) {
 
         //compute the electric field intensity
         elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
@@ -558,7 +557,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepElec::StepStaticNonLin(const Integer kstep, const Double asteptime,
+  void SolveStepElec::StepStaticNonLin(const UInt kstep, const Double asteptime,
                                        const Boolean reset) {
 
     ENTER_FCN( "SolveStepElec::StepStaticNonLin" );
@@ -566,9 +565,9 @@ namespace CoupledField {
     //   laststepcalc_ = kstep;
     //   lasttimecalc_ = asteptime;
 
-    //   Integer job;
+    //   UInt job;
     //   Boolean performOneMoreStep;
-    //   Integer iterationCounter=0;
+    //   UInt iterationCounter=0;
   
     //   Vector<Double> newSol(numPDENodes_);
     //   Vector<Double> oldSol(numPDENodes_);
@@ -670,7 +669,7 @@ namespace CoupledField {
     //     // compute L2-Norm of error between last incremental solution and
     //     // actual incremental solution
     //     Double solIncrL2Norm=0;
-    //     for (Integer i=0; i<newSol.GetSize(); i++)
+    //     for (UInt i=0; i<newSol.GetSize(); i++)
     //       solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
     
     //     solIncrL2Norm = sqrt(solIncrL2Norm);

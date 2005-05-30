@@ -21,7 +21,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
   ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
 
-  Integer nameLength = std::strlen(filename);
+  UInt nameLength = std::strlen(filename);
   namedir_ = new Char[ nameLength + 4 + 1 ]; std::strcpy( namedir_, filename );
   std::strcat( namedir_, "_gmv" );
 
@@ -30,8 +30,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   std::system( command );
   delete[] command;
 
-  currStep_ = -1;
-  lastStep_ = -1;
+  currStep_ = 0;
+  lastStep_ = 0;
   lastTime_ = 0.0;
   currTime_ = 0.0;
 
@@ -69,7 +69,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
         (*output) << "probtime";
         output->write( (char*)&lastTime_, sizeof(Double) );
         (*output) << "cycleno ";
-        output->write( (char*)&lastStep_, sizeof(Integer) );
+        output->write( (char*)&lastStep_, sizeof(UInt) );
         (*output) << "endgmv  ";
       }
       delete output;
@@ -88,16 +88,16 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     (*output) << "nodev   ";
 
     //get and write number of nodes on the level
-    Integer numnodes=ptGrid_->GetNumNodes();
+    UInt numnodes=ptGrid_->GetNumNodes();
     if (ascii_)
       (*output) << numnodes << std::endl;
     else
-      output->write((char*)&numnodes,sizeof(Integer));
+      output->write((char*)&numnodes,sizeof(UInt));
 
-    Integer dim=ptGrid_->GetDim();
+    UInt dim=ptGrid_->GetDim();
 
     //get and write coodinates of nodes
-    Integer i;
+    UInt i;
 
     if ( dim == 2 ) {
 
@@ -158,19 +158,19 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     }
 
     // read information about number of elements 
-    Integer numelem; 
+    UInt numelem; 
     numelem=ptGrid_->GetNumVolElems();
 
     if (ascii_)
       (*output) << numelem << std::endl;
     else
-      output->write((char*)&numelem,sizeof(Integer));
+      output->write((char*)&numelem,sizeof(UInt));
 
-    StdVector<Integer> connect;
+    StdVector<UInt> connect;
 
-    Integer dim=ptGrid_->GetDim();
+    UInt dim=ptGrid_->GetDim();
   
-    Integer i;
+    UInt i;
     for ( i = 0; i < numelem; i++ ) {
 
       ptGrid_->GetElemNodes(connect, i+1);
@@ -182,16 +182,16 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
           //              (*output) << "line 2" << std::endl;
           //            else {
           //              (*output) << "line    ";
-          //              Integer nn=2;
-          //              output->write((char*)&nn,sizeof(Integer));
+          //              UInt nn=2;
+          //              output->write((char*)&nn,sizeof(UInt));
           //            }
         case 3: 
           if (ascii_)
             (*output) << "tri 3" << std::endl;
           else {
             (*output) << "tri     ";
-            Integer nn=3;
-            output->write((char*)&nn,sizeof(Integer));
+            UInt nn=3;
+            output->write((char*)&nn,sizeof(UInt));
           }
           break;
         case 4:
@@ -199,8 +199,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
             (*output) << "quad 4" << std::endl;
           else {
             (*output) << "quad    ";
-            Integer nn=4;
-            output->write((char*)&nn,sizeof(Integer));
+            UInt nn=4;
+            output->write((char*)&nn,sizeof(UInt));
           }
           break;
         case 6: 
@@ -208,8 +208,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
             (*output) << "6tri 6" << std::endl;
           else {
             (*output) << "6tri    ";
-            Integer nn=6;
-            output->write((char*)&nn,sizeof(Integer));
+            UInt nn=6;
+            output->write((char*)&nn,sizeof(UInt));
           }
           break;
         case 8:
@@ -217,8 +217,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
             (*output) << "8quad 8" << std::endl;
           else {
             (*output) << "8quad   ";
-            Integer nn=8;
-            output->write((char*)&nn,sizeof(Integer));
+            UInt nn=8;
+            output->write((char*)&nn,sizeof(UInt));
           }
           break;
         default:
@@ -235,8 +235,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
                 (*output) << "tet 4" << std::endl;
               else {
                 (*output) << "tet     ";
-                Integer nn=4;
-                output->write((char*)&nn,sizeof(Integer));
+                UInt nn=4;
+                output->write((char*)&nn,sizeof(UInt));
               }
               break;
             case 5:
@@ -244,8 +244,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
                 (*output) << "ppyrmd5 5" << std::endl;
               else {
                 (*output) << "ppyrmd5 ";
-                Integer nn=5;
-                output->write((char*)&nn,sizeof(Integer));
+                UInt nn=5;
+                output->write((char*)&nn,sizeof(UInt));
               }
               break;
             case 6:
@@ -253,8 +253,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
                 (*output) << "pprism6 6" << std::endl;
               else {
                 (*output) << "pprism6 ";
-                Integer nn=6;
-                output->write((char*)&nn,sizeof(Integer));
+                UInt nn=6;
+                output->write((char*)&nn,sizeof(UInt));
               }
               break;
 
@@ -265,9 +265,9 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
               }
               else {
                 (*output) << "pprism15";
-                Integer nn=15;
-                // Integer nn=16;
-                output->write((char*)&nn,sizeof(Integer));
+                UInt nn=15;
+                // UInt nn=16;
+                output->write((char*)&nn,sizeof(UInt));
               }
 
               // Note: Due to a bug up to the current version of GMV (v3.5)
@@ -282,8 +282,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
               else 
                 {
                   (*output) << "phex8   ";
-                  Integer nn=8;
-                  output->write((char*)&nn,sizeof(Integer));
+                  UInt nn=8;
+                  output->write((char*)&nn,sizeof(UInt));
                 }
               break;
             case 20:
@@ -292,8 +292,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
               else 
                 {
                   (*output) << "phex20  ";
-                  Integer nn=20;
-                  output->write((char*)&nn,sizeof(Integer));
+                  UInt nn=20;
+                  output->write((char*)&nn,sizeof(UInt));
                 }
               break;
             default:
@@ -305,16 +305,16 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
       if (ascii_) 
         {
-          Integer j;
+          UInt j;
           for (j=0; j< connect.GetSize(); j++)
             (*output) << " " << connect[j] ;
           (*output) << std::endl;
         }
       else 
         {
-          Integer * ptcon=connect.GetPointer();
-          Integer len=connect.GetSize();
-          output->write((char*)ptcon,len * sizeof(Integer));
+          UInt * ptcon=connect.GetPointer();
+          UInt len=connect.GetSize();
+          output->write((char*)ptcon,len * sizeof(UInt));
         }
 
     }
@@ -326,11 +326,11 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   // ******************
   void WriteResultsGMV::WriteMaterials() {
 
-    StdVector<Integer> regionID;
+    StdVector<UInt> regionID;
     StdVector<RegionIdType> subdoms;
     StdVector<Elem*> elemSD;
     std::string regionName;
-    Integer aux;
+    UInt aux;
     Char * str = NULL;
     if (! ascii_)
       str =new Char[8];
@@ -344,13 +344,13 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     else {
       (*output) << "material";
       aux = subdoms.GetSize();
-      output->write((char*)&aux,sizeof(Integer));
+      output->write((char*)&aux,sizeof(UInt));
       aux = 0;
-      output->write((char*)&aux,sizeof(Integer));
+      output->write((char*)&aux,sizeof(UInt));
     }
   
     // loop over all subdomains
-    for (Integer iSD=0; iSD<subdoms.GetSize(); iSD++) {
+    for (UInt iSD=0; iSD<subdoms.GetSize(); iSD++) {
       regionName = ptGrid_->RegionIdToName( subdoms[iSD] );
       if (ascii_)
         (*output) << regionName << std::endl;
@@ -363,18 +363,18 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       ptGrid_->GetVolElems(elemSD,subdoms[iSD]);
 
       // loop over all elemtns
-      for (Integer iElem=0; iElem<elemSD.GetSize(); iElem++) 
+      for (UInt iElem=0; iElem<elemSD.GetSize(); iElem++) 
         regionID[elemSD[iElem]->elemNum -1 ] = iSD+1;
     }
 
     // write for each element the according regionID
-    for (Integer i=0; i<regionID.GetSize(); i++) {
+    for (UInt i=0; i<regionID.GetSize(); i++) {
 
       if (ascii_)
         (*output) << regionID[i] << " ";
       else {
         aux = regionID[i];
-        output->write((char*)&aux,sizeof(Integer));
+        output->write((char*)&aux,sizeof(UInt));
       }
     }
   
@@ -392,7 +392,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   // ******************************
   void WriteResultsGMV::WriteNodeVariableTransient( const Vector<Double> var, 
                                                     const std::string name, 
-                                                    const Integer dataType ) {
+                                                    const UInt dataType ) {
   
     if (ascii_) {
       (*output) << std::endl;
@@ -405,18 +405,18 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       Char * str=new Char[8];  
       to8Char(name,str);
       (*output) << str;
-      output->write((Char*)&dataType,sizeof(Integer));
+      output->write((Char*)&dataType,sizeof(UInt));
       delete [] str;
     }
 
     if (ascii_) {
-      Integer i;
+      UInt i;
       for (i=0; i<var.GetSize(); i++)
         (*output) << var[i] << " ";
     }
     else {
       Double * ptvar=var.GetPointer();
-      Integer len=var.GetSize();
+      UInt len=var.GetSize();
       output->write((char*)ptvar,len * sizeof(Double));
     }
   }
@@ -428,9 +428,9 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   void WriteResultsGMV::
   WriteNodeVariableHarmonic( const Vector<Complex> var, 
                              const std::string name, 
-                             const Integer dataType,
+                             const UInt dataType,
                              const ComplexFormat outputFormat ) {
-    Integer i;
+    UInt i;
     Double val;
   
     if (outputFormat == REAL_IMAG) {
@@ -450,12 +450,12 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
         to8Char(name,str);
         str[7] = 'R';
         (*output) << str;
-        output->write((Char*)&dataType,sizeof(Integer));
+        output->write((Char*)&dataType,sizeof(UInt));
         delete [] str;
       }
     
       if (ascii_) {
-        Integer i;
+        UInt i;
         for (i=0; i<var.GetSize(); i++)
           (*output) << var[i].real() << " ";
       }
@@ -478,13 +478,13 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
           to8Char(name,str);
           str[7] = 'I';
           (*output) << str;
-          output->write((Char*)&dataType,sizeof(Integer));
+          output->write((Char*)&dataType,sizeof(UInt));
           delete [] str;
         }
     
       if (ascii_) 
         {
-          Integer i;
+          UInt i;
           for (i=0; i<var.GetSize(); i++)
             (*output) << var[i].imag();
         }
@@ -515,13 +515,13 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
           to8Char(name,str);
           str[7] = 'A';
           (*output) << str;
-          output->write((Char*)&dataType,sizeof(Integer));
+          output->write((Char*)&dataType,sizeof(UInt));
           delete [] str;
         }
     
       if (ascii_) 
         {
-          Integer i;
+          UInt i;
           for (i=0; i<var.GetSize(); i++)
             (*output) << std::abs(var[i]) << " ";
         }
@@ -545,7 +545,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
           to8Char(name,str);
           str[7] = 'P';
           (*output) << str;
-          output->write((Char*)&dataType,sizeof(Integer));
+          output->write((Char*)&dataType,sizeof(UInt));
           delete [] str;
         }
     
@@ -577,17 +577,17 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   // *****************
   void WriteResultsGMV::WriteVelocity( const Vector<Double> *var,
                                        const std::string name,
-                                       const Integer dataType ) {
+                                       const UInt dataType ) {
 
     (*output) << "velocity";
     if (ascii_)
       (*output) << " " << dataType << std::endl;
     else {
-      output->write((char*)&dataType,sizeof(Integer));
+      output->write((char*)&dataType,sizeof(UInt));
     }
 
     if (ascii_) {
-      Integer i,j;
+      UInt i,j;
       for (i=0; i<3; i++) {
         for (j=0; j<var[i].GetSize(); j++)
           (*output) << var[i][j] << " ";
@@ -595,10 +595,10 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       }
     }
     else {
-      Integer i;
+      UInt i;
       for(i=0; i<3; i++) {
         Double * ptvar=var[i].GetPointer();
-        Integer len=var[i].GetSize();
+        UInt len=var[i].GetSize();
         output->write((char*)ptvar,len * sizeof(Double));
       }
     }
@@ -695,12 +695,10 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
   void WriteResultsGMV::
   WriteNodeSolutionTransient( const NodeStoreSol<Double> &sol, 
-                              const Integer step, const Double time ) {
+                              const UInt step, const Double time ) {
     ENTER_FCN( "WriteResultsGMV::WriteNodeSolutionTransient" );
 
-    Integer iDof,i,j;
-    Integer nrDofs = 0;
-    Double help;
+    UInt iDof;
     Vector<Double> solhelp;
     std::string outString, errMsg;
     StdVector<SolutionType> solTypes;
@@ -709,7 +707,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     currStep_ = step;
     WriteGrid();  
 
-    Integer type=1; // 0 - for cell 
+    UInt type=1; // 0 - for cell 
     // 1 - for node
     // 2 - for face data
 
@@ -717,7 +715,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     sol.GetSolutionTypes(solTypes);
 
     // Iterate over all solutiontypes
-    for (Integer iSol=0; iSol<sol.GetNumSolutions(); iSol++) {
+    for (UInt iSol=0; iSol<sol.GetNumSolutions(); iSol++) {
 
       // GMV can not visualize tensor data
       if (sol.GetDof(solTypes[iSol]) > 3){
@@ -752,18 +750,18 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
   void WriteResultsGMV::
   WriteElemSolutionTransient( const ElemStoreSol<Double> &data, 
-                              const Integer step, const Double time ) {
+                              const UInt step, const Double time ) {
 
     ENTER_FCN ( "WriteResultsGMV::WriteElemSolutionTransient" );
 
-    Integer type=0; // 0 - for cell 
+    UInt type=0; // 0 - for cell 
     // 1 - for node
     // 2 - for face data
 
     currTime_ = time;
     currStep_ = step;
     std::string errMsg;
-    Integer i = 0;
+    UInt i = 0;
     Vector<Double> solhelp;
     StdVector<SolutionType> solType;
 
@@ -797,15 +795,13 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
   void WriteResultsGMV::
   WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> & sol, 
-                            const Integer step,
+                            const UInt step,
                             const Double frequency, 
                             const ComplexFormat format)
   {
     ENTER_FCN( "WriteResultsGMV::WriteNodeSolutionHarmonic" );
 
-    Integer iDof,i,j;
-    Integer nrDofs = 0;
-    Double help;
+    UInt iDof;
     Vector<Complex> solhelp;
     std::string outString, errMsg;
     StdVector<SolutionType> solTypes;
@@ -814,7 +810,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     currStep_ = step;
     WriteGrid();  
   
-    Integer type=1; // 0 - for cell 
+    UInt type=1; // 0 - for cell 
     // 1 - for node
     // 2 - for face data
   
@@ -822,7 +818,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     sol.GetSolutionTypes(solTypes);
   
     // Iterate over all solutiontypes
-    for (Integer iSol=0; iSol<sol.GetNumSolutions(); iSol++) {
+    for (UInt iSol=0; iSol<sol.GetNumSolutions(); iSol++) {
     
       // GMV can not visualize tensor data
       if (sol.GetDof(solTypes[iSol]) > 3){
@@ -857,20 +853,20 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
   void WriteResultsGMV::
   WriteElemSolutionHarmonic(const ElemStoreSol<Complex> & sol, 
-                            const Integer step,
+                            const UInt step,
                             const Double frequency,
                             const ComplexFormat format)
   {
     ENTER_FCN( "WriteResultsGMV::WriteElemSolutionHarmonic" );
 
-    Integer type=0; // 0 - for cell 
+    UInt type=0; // 0 - for cell 
     // 1 - for node
     // 2 - for face data
 
     currTime_ = frequency;
     currStep_ = step;
     std::string errMsg;
-    Integer i = 0;
+    UInt i = 0;
     Vector<Complex> solhelp;
     StdVector<SolutionType> solType;
  
@@ -949,7 +945,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
         (*output) << "probtime";
         output->write( (char*)&lastTime_, sizeof(Double) );
         (*output) << "cycleno ";
-        output->write( (char*)&lastStep_, sizeof(Integer) );
+        output->write( (char*)&lastStep_, sizeof(UInt) );
         (*output) << "endgmv  ";
       }
     }
@@ -999,7 +995,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   void WriteResultsGMV::to8Char(const std::string name, char * result)
   {
     std::string aux;
-    Integer i;
+    UInt i;
 
     aux="        "; 
     if (name.size()> 8) {

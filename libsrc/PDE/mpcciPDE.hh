@@ -32,7 +32,7 @@ namespace CoupledField
     //! Deconstructor
     virtual ~MpcciPDE(){};
 
-    virtual void Init(Integer sequenceStep = 0,
+    virtual void Init(UInt sequenceStep = 0,
                       std::string  bcSequenceTag = "anyTag");
 
 
@@ -45,7 +45,7 @@ namespace CoupledField
     virtual void DefineSolveStep();
 
     //! return size of solution
-    virtual Integer getSize() const 
+    virtual UInt getSize() const 
     { return numPDENodes_*dofspernode_;}
 
     //! initialize time stepping: 
@@ -70,9 +70,9 @@ namespace CoupledField
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
 
-    virtual void WriteResultsInFile(const Integer kstep = 0,
+    virtual void WriteResultsInFile(const UInt kstep = 0,
                                     const Double asteptime = 0.0,
-                                    Integer stepOffset = 0,
+                                    UInt stepOffset = 0,
                                     Double timeOffset = 0.0);
     
 
@@ -96,7 +96,7 @@ namespace CoupledField
 
     StdVector<StdVector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
     StdVector<StdVector<StdVector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
-    StdVector<StdVector<StdVector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
+    StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
     
     // *****************
     //  POSTPROCESSING
@@ -109,12 +109,12 @@ namespace CoupledField
 
   private:
     //!MpCCI
-    StdVector<Integer> mapSD_;
+    StdVector<UInt> mapSD_;
 #ifdef MpCCI
     MpCCIexch * ptMpCCIexch_;
 #endif
     Boolean flagFirstTimeStep_; // flag for first time stewp
-    Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
+    UInt MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
     void ReadStoreResults();
 
   };

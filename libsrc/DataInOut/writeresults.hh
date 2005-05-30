@@ -44,7 +44,7 @@ namespace CoupledField {
       \param time time of calculation
     */
     virtual void WriteNodeSolutionTransient(const NodeStoreSol<Double>& data, 
-                                            const Integer step, 
+                                            const UInt step, 
                                             const Double time) = 0;
 
     //! write element solution vector (transient/static)
@@ -54,7 +54,7 @@ namespace CoupledField {
       \param time time of calculation
     */
     virtual void WriteElemSolutionTransient(const ElemStoreSol<Double>& data, 
-                                            const Integer step, 
+                                            const UInt step, 
                                             const Double time) = 0;
 
     //! write node history vector (transient/static)
@@ -64,7 +64,7 @@ namespace CoupledField {
       \param time time of calculation
     */
     virtual void WriteNodeHistoryTransient(const NodeStoreSol<Double>& data, 
-                                           const Integer step, 
+                                           const UInt step, 
                                            const Double time);
   
 
@@ -81,7 +81,7 @@ namespace CoupledField {
       (real-imag/amplitude-phase)
     */
     virtual void WriteNodeSolutionHarmonic(const NodeStoreSol<Complex>& data, 
-                                           const Integer step,
+                                           const UInt step,
                                            const Double frequency,
                                            const ComplexFormat format) = 0;
 
@@ -95,7 +95,7 @@ namespace CoupledField {
       (real-imag/amplitude-phase)
     */
     virtual void WriteElemSolutionHarmonic(const ElemStoreSol<Complex>& data, 
-                                           const Integer step,
+                                           const UInt step,
                                            const Double frequency,
                                            const ComplexFormat format) = 0;
 
@@ -109,14 +109,14 @@ namespace CoupledField {
       (real-imag/amplitude-phase)
     */
     void WriteNodeHistoryHarmonic(const NodeStoreSol<Complex>& data, 
-                                  const Integer step,
+                                  const UInt step,
                                   const Double frequency,
                                   const ComplexFormat format);
 
     //! to open new file for printing results only for GMV
 
     //! \param number number for output-file (ex. result.gmv001)
-    virtual void OpenFile(const Integer number)
+    virtual void OpenFile(const UInt number)
     { Error("Not implemented",__FILE__,__LINE__);}
 
 
@@ -126,7 +126,7 @@ namespace CoupledField {
     */
     void WriteSolMatrix(Grid * ptgrid,
                         const Vector<Double> sol, 
-                        const std::string matFileName, const Integer nrDofs=1);
+                        const std::string matFileName, const UInt nrDofs=1);
 
 
   protected:
@@ -155,7 +155,7 @@ namespace CoupledField {
     StdVector<SolutionType> histQuantities_;
   
     //! history nodes per output quantity
-    StdVector<StdVector<Integer> > histNodesPerQuant_;
+    StdVector<StdVector<UInt> > histNodesPerQuant_;
 
     //! pointer to ofstream with history information
     StdVector<StdVector<std::ofstream*> >  historyFiles_;

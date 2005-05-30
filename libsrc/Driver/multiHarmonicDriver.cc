@@ -37,7 +37,7 @@ namespace CoupledField
   // opens datafiles: measuredData.dat for input, imedCurve.dat and piezoLog.dat for output
 
   MultiHarmonicDriver::MultiHarmonicDriver(Domain * adomain,
-                                           Integer stepOffset,
+                                           UInt stepOffset,
                                            Double timeOffset,
                                            std::string driverTag,
                                            Boolean isPartOfSequence)
@@ -134,7 +134,7 @@ namespace CoupledField
   
     ptPDE_->WriteGeneralPDEdefines();
       
-    Integer fstep;
+    UInt fstep;
     Double actFreq  = startFreq_;
     Double freqIncr = (stopFreq_ - startFreq_) / numFreq_;
     std::string errMsg;

@@ -36,7 +36,7 @@ namespace CoupledField {
     converged_=FALSE;
   }
 
-  void MpcciPDE::Init(Integer bcSequenceIndex, std::string  bcSequenceTag)
+  void MpcciPDE::Init(UInt bcSequenceIndex, std::string  bcSequenceTag)
   {
 
     ENTER_FCN( "MpCCI::Init()" );
@@ -51,7 +51,7 @@ namespace CoupledField {
     params->GetList( "name", regionNames, pdename_, "region" );
     ptgrid_->RegionNameToId( subdoms_, regionNames );
     Info->PrintF( pdename_, " %s lives on regions:\n", pdename_.c_str());
-    for ( Integer k = 0; k < regionNames.GetSize(); k++ ) 
+    for ( UInt k = 0; k < regionNames.GetSize(); k++ ) 
       {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
@@ -114,9 +114,9 @@ namespace CoupledField {
   // POSTPROCESSING SECTION
   // ======================================================
 
-  void MpcciPDE::WriteResultsInFile(const Integer kstep,
+  void MpcciPDE::WriteResultsInFile(const UInt kstep,
                                     const Double asteptime,
-                                    Integer stepOffset,
+                                    UInt stepOffset,
                                     Double timeOffset)
   {
     ENTER_FCN( "MpcciPDE::WriteResultsInFile" );
@@ -139,23 +139,23 @@ namespace CoupledField {
     isIterCoupled_ = TRUE;
     ptCoupling_   = Coupling;
 
-    const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();
+    const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
   
 
     nonLin_ = FALSE;
 
     // Initialization of coupling helper arrays
     std::string quantity;
-    StdVector<Integer> * couplingnodes = NULL;
+    StdVector<UInt> * couplingnodes = NULL;
     StdVector<Elem*> interface_tmp;
     StdVector<StdVector<ShortInt> > isBoundaryNode_tmp;
-    StdVector<std::string> * neighRegions = NULL;
-    StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
+//     StdVector<std::string> * neighRegions = NULL;
+    StdVector<StdVector<UInt> > elemNodeToCouplingNode_tmp;
     F_Interface_.Resize(numCouplings);
     isBoundaryNode_.Resize(numCouplings);
     elemNodeToCouplingNode_.Resize(numCouplings);
 
-    for (Integer actCoupling=0; actCoupling<numCouplings; actCoupling++)
+    for (UInt actCoupling=0; actCoupling<numCouplings; actCoupling++)
       {
         // Initialize arrays for coupling surface elements
         if (ptCoupling_->GetOutputQuantity(actCoupling) == FLUID_FORCE)
@@ -177,14 +177,14 @@ namespace CoupledField {
             elemNodeToCouplingNode_tmp.Resize(interface_tmp.GetSize());
          
           
-            for (Integer ielem=0; ielem<interface_tmp.GetSize(); ielem++)
+            for (UInt ielem=0; ielem<interface_tmp.GetSize(); ielem++)
               {
                 isBoundaryNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
                 elemNodeToCouplingNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
 
                 // Determine Boundary Nodes
-                for (Integer ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].GetSize(); ielemnode++)
-                  for (Integer inodes=0; inodes<(*couplingnodes).GetSize(); inodes++)
+                for (UInt ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].GetSize(); ielemnode++)
+                  for (UInt inodes=0; inodes<(*couplingnodes).GetSize(); inodes++)
                     if (interface_tmp[ielem]->connect[ielemnode] == (*couplingnodes)[inodes] )
                       {
                         isBoundaryNode_tmp[ielem][ielemnode] = 1;
@@ -209,17 +209,16 @@ namespace CoupledField {
     ENTER_FCN( "MpcciPDE::CalcInputCoupling" );
 
     std::string errMsg;
-    StdVector<Integer> * nodes;
+    StdVector<UInt> * nodes;
     CFSVector * val;
-    Integer pdeNode, eqnNr,eqnDof;
-    Integer couplingDof;
-    Boolean clearCoords = TRUE;
+    UInt pdeNode;
+    UInt couplingDof;
 
     // Reset counter for boundary conditions
     couplingBCsCounter_ = 0;
   
     // Outer loop over all INPUT coupling terms
-    for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
+    for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
       {
 
         //    ptCoupling_ = &ptCoupling_[i];
@@ -242,19 +241,13 @@ namespace CoupledField {
             displ.Resize(nodes->GetSize() * ptCoupling_->GetInputDof(i) );
             displ.Init(-1);
 
-            for (Integer j=0; j<nodes->GetSize(); j++)
+            for (UInt j=0; j<nodes->GetSize(); j++)
               {
-                for (Integer dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
+                for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
                   {
                     pdeNode = eqnData_->Mesh2PDENode((*nodes)[j]);
                     //std::cerr << "pdeNode " << pdeNode << "=" << (*nodes)[j] << std::endl;
-                    if (pdeNode==-1) {
-                      errMsg =  pdename_;
-                      errMsg += "PDE: Coupling node Nr. ";
-                      errMsg += Info->GenStr((*nodes)[j]);
-                      errMsg += " is not in contained in list of my subdomains!";
-                      Error(errMsg.c_str(), __FILE__, __LINE__);
-                    }
+
                     displ[dof + (pdeNode-1)*dim_] = help[dof + j*dim_];
                   }
               }
@@ -266,6 +259,15 @@ namespace CoupledField {
             //                else ptMpCCIexch_->CouplSendPhase(displ,converged_);
             // #endif
             break;
+          case RHS:
+            Error(" No use for RHS coupling!");
+            break;
+          case ID_BC:
+            Error(" No use for ID_BC coupling!");
+            break;
+          case MAT:
+            Error(" No use for MAT coupling!");
+            break;
           }  // end switch
       } // end for
   }
@@ -276,17 +278,16 @@ namespace CoupledField {
     ENTER_FCN( "MpcciPDE::CalcOutputCoupling" );
 
     SolutionType quantity;
-    StdVector<Integer> * couplingNodes     = NULL;
+    StdVector<UInt> * couplingNodes     = NULL;
     CFSVector * values = 0;
-    Integer forcesCount = 0;
+    UInt forcesCount = 0;
 
     // loop over all output coupling quantities
-    for (Integer actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
+    for (UInt actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
       {
         quantity = ptCoupling_->GetOutputQuantity(actCoupling);
         ptCoupling_->GetOutputValues(actCoupling, values);
 
-        Vector<Double> * temp = dynamic_cast<Vector<Double> *>(values);
       
         switch(ptCoupling_->GetOutputType(actCoupling))
           {

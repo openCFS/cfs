@@ -101,37 +101,34 @@ namespace CoupledField
     Vector<Double> coeffMass, coeffDamp;
     Vector<Double> elemvec;
 
-    Integer i;
+    UInt i;
 
-    // get maximum number of elements from grid
-    Integer maxnumelem=ptgrid_->GetNumElems(subdoms_);
+//     // get maximum number of elements from grid
+//     UInt maxnumelem=ptgrid_->GetNumElems(subdoms_);
 
 
-    double starttime, endtime;
+//     double starttime, endtime;
 
-    Double val;
+//     Double val;
     Matrix<Double> ptCoordNodes;
     // For ObstSurf
     Matrix<Double> ptCoordNodSurf;
     // For set of elements corresponding to surface elements
     Matrix<Double> ptCoordNodBelongSE;
     Matrix<Double> deriv;
-    StdVector<Integer> connecth;
+    StdVector<UInt> connecth;
     // For changing connecth to PDE
     StdVector<Integer> connect_PDE; 
-    Vector<Integer> connObstSurf; // For ObstSurf
-    Vector<Integer> connBelongSE;
+    Vector<UInt> connObstSurf; // For ObstSurf
+    Vector<UInt> connBelongSE;
     // vector of 1D-elements (ObstSurf) from mesh-file
     StdVector<Elem*> ObstSurf;
     BaseFE * ptEl;
-    BaseFE * ptElSurf;
-    BaseFE * ptElBelongSE;
  
   
-    Integer j,ii, elsize = -1;
+    UInt j;
+    UInt elsize = 0;
     StdVector<Elem*> elemssd;     
-    static Integer timestep=0;
-    static int auxtime=0;
  
 
     Double valmult;
@@ -215,7 +212,7 @@ namespace CoupledField
               ptEl=elemssd[j]->ptElem;
               BaseForm * linear_load = new LinearFlowNoiseInt(ptEl);
             
-              Integer ii;
+              UInt ii;
               elsize=(elemssd[j]->connect).GetSize();
               connecth.Resize(elsize);
               for (ii=0; ii<elsize; ii++)
@@ -270,14 +267,15 @@ namespace CoupledField
     }
 
     else {
-      Integer eqnDof, eqnNr, node, dof;
-      StdVector<Integer> connect(1);
+      UInt eqnDof, node, dof;
+      Integer eqnNr;
+      StdVector<UInt> connect(1);
  
       valmult=-1.0;    
      
       eqnDof = 1;
       dof    = 1;
-      for (Integer idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
+      for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
         Double val = flowdata_[0][idx];
         node = idx + 1;
 
@@ -337,14 +335,14 @@ namespace CoupledField
   } 
 
 
-  void AcouFlowNoise::ReadFlowData(const Char * aname, Integer timestep,
+  void AcouFlowNoise::ReadFlowData(const Char * aname, UInt timestep,
                                    Matrix<Double> &flowdata_)
   {
     ENTER_FCN( "AcouFlowNoise::ReadFlowData" );
 
     std::ifstream flowdatafile;
-    Integer maxnumnodes;
-    Integer maxnumqtts;
+    UInt maxnumnodes;
+    UInt maxnumqtts;
     std::ofstream testflowf;
     Char * aux=new Char[2];
     Char * anameloc=new Char[30];
@@ -392,7 +390,7 @@ namespace CoupledField
 
     // for maxnumqtts, currently for 2D we are working with 3, p and vx, vy
 
-    Integer ibuf;
+    UInt ibuf;
 
     /* Set pointer to beginning of file: */
     std::string::size_type pos=0;
@@ -401,9 +399,9 @@ namespace CoupledField
     flowdatafile >> ibuf >> maxnumqtts >> maxnumnodes >> ibuf;
 
     flowdata_.Resize(maxnumqtts,maxnumnodes);
-    Integer i,j;
+    UInt i,j;
 
-    Integer buffernodenum = 0;
+    UInt buffernodenum = 0;
     for (i=0; i < maxnumnodes; i++)
       {
         flowdatafile >> buffernodenum;

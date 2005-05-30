@@ -32,7 +32,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */  
-    virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+    virtual void PreStepStatic(const UInt kstep, const Double asteptime,
                                const Boolean reset)  {;};
  
     //! base method for solving one static step 
@@ -41,7 +41,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
+    virtual void SolveStepStatic(const UInt kstep, const Double asteptime,
                                  const Boolean reset);
 
     //! routine for acttions after the SolveStep-method
@@ -49,7 +49,7 @@ namespace CoupledField
       \param kstep time step counter
       \param asteptime current time
     */  
-    virtual void PostStepStatic(const Integer kstep, 
+    virtual void PostStepStatic(const UInt kstep, 
                                 const Double asteptime) {;};
 
 
@@ -62,7 +62,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */  
-    virtual void PreStepTrans(const Integer kstep, const Double asteptime,
+    virtual void PreStepTrans(const UInt kstep, const Double asteptime,
                               const Boolean reset) {;};
 
 
@@ -72,7 +72,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
+    virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
                                 const Boolean updatesysmat);
     
     //! routine for actions after the SolveStep-method
@@ -80,7 +80,7 @@ namespace CoupledField
       \param kstep time step counter
       \param asteptime current time
     */  
-    virtual void PostStepTrans(const Integer kstep, 
+    virtual void PostStepTrans(const UInt kstep, 
                                const Double asteptime) {;};
 
     //----------------------- HARMONIC---------------------------------------
@@ -91,7 +91,7 @@ namespace CoupledField
       \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */   
-    virtual void PreStepHarmonic(const Integer freqStep, const Double frequency, 
+    virtual void PreStepHarmonic(const UInt freqStep, const Double frequency, 
                                  const Boolean reset) {;};
 
 
@@ -101,7 +101,7 @@ namespace CoupledField
       \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void SolveStepHarmonic(const Integer freqStep, const Double frequency, 
+    virtual void SolveStepHarmonic(const UInt freqStep, const Double frequency, 
                                    const Boolean reset);
 
 
@@ -111,9 +111,11 @@ namespace CoupledField
       \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void PostStepHarmonic(const Integer freqStep, const Double frequency, 
+    virtual void PostStepHarmonic(const UInt freqStep, const Double frequency, 
                                   const Boolean reset) {;};
 
+    //! Set the current time step value
+    void SetTimeStep( Double dt );
 
 
   protected:

@@ -36,8 +36,8 @@ namespace CoupledField
   {
     ENTER_FCN( "CurlCurlNode2DInt::CalcElementMatrix" );
   
-    const Integer nrIntPts= ptelem->GetNumIntPoints();
-    const Integer nrNodes = ptelem->GetNumNodes();
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
 
@@ -55,7 +55,7 @@ namespace CoupledField
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrNodes); elemMat.Init();
     
-    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
@@ -65,7 +65,7 @@ namespace CoupledField
           {
             ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
             CoordAtIP = ptCoord * ShpFncAtIp;
-            for (Integer i=0; i<nrNodes; i++)
+            for (UInt i=0; i<nrNodes; i++)
               xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
             
             jacDet *= 2 * PI * CoordAtIP[0];

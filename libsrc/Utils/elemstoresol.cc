@@ -17,18 +17,18 @@ namespace CoupledField{
   }
   
   template<class TYPE>
-  ElemStoreSol<TYPE>::ElemStoreSol(Integer numElems, 
+  ElemStoreSol<TYPE>::ElemStoreSol(UInt numElems, 
                                    StdVector<SolutionType> solTypes, 
-                                   StdVector<Integer> solDofs)
+                                   StdVector<UInt> solDofs)
   {
     ENTER_FCN( "ElemStoreSol::ElemStoreSol(numElems, solTypes, solDofs" );
     Error( "Not implemented here", __FILE__, __LINE__ );
   }
 
   template<class TYPE>
-  ElemStoreSol<TYPE>::ElemStoreSol(const Integer numElems,
+  ElemStoreSol<TYPE>::ElemStoreSol(const UInt numElems,
                                    const SolutionType solType,
-                                   const Integer numDofs)
+                                   const UInt numDofs)
   {
     ENTER_FCN( "ElemStoreSol::ElemStoreSol(numElems, solType, soDofs" );
     Error( "Not implemented here", __FILE__, __LINE__ );
@@ -110,7 +110,7 @@ namespace CoupledField{
       
         // iterate over all solutiontypes and
         // sum up their number of dof
-        std::map<SolutionType,Integer>::iterator it;
+        std::map<SolutionType,UInt>::iterator it;
         for (it = solDofs_.begin(); it!=solDofs_.end(); it++)
           {
             // set offset of current solution
@@ -127,7 +127,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::SetNumSolutions(const Integer nSols)
+  void ElemStoreSol<TYPE>::SetNumSolutions(const UInt nSols)
   {
     ENTER_IFCN("ElemStoreSol::SetNumSolutions");
 
@@ -136,7 +136,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::SetNumElems(const Integer nElems)
+  void ElemStoreSol<TYPE>::SetNumElems(const UInt nElems)
   {
     ENTER_IFCN("ElemStoreSol::SetNumElems");
     numElems_ = nElems;
@@ -144,7 +144,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::SetSolutionType(const SolutionType solType, const Integer numSolution)
+  void ElemStoreSol<TYPE>::SetSolutionType(const SolutionType solType, const UInt numSolution)
   {
     ENTER_IFCN("ElemStoreSol::SetSolutionType");
 
@@ -157,7 +157,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::SetNumDofs(const Integer dof, const SolutionType sol)
+  void ElemStoreSol<TYPE>::SetNumDofs(const UInt dof, const SolutionType sol)
   {
     ENTER_IFCN("ElemStoreSol::SetDof");
   
@@ -177,7 +177,7 @@ namespace CoupledField{
     ENTER_FCN( "ElemStoreSol::GetSolutionTypes" );
   
     solTypes.Resize(numSolutions_);
-    std::map<SolutionType,Integer>::const_iterator it;
+    std::map<SolutionType,UInt>::const_iterator it;
  
     for (it = solTypes_.begin(); it!=solTypes_.end(); it++)
       solTypes[(*it).second] = (*it).first;
@@ -185,7 +185,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  TYPE& ElemStoreSol<TYPE>::operator()(Integer node, Integer dof)
+  TYPE& ElemStoreSol<TYPE>::operator()(UInt node, UInt dof)
   {
     ENTER_IFCN("ElemStoreSol::operator()");
 #ifdef CHECK_INITIALIZED
@@ -201,7 +201,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  TYPE  ElemStoreSol<TYPE>:: operator()(Integer node, Integer dof) const
+  TYPE  ElemStoreSol<TYPE>:: operator()(UInt node, UInt dof) const
   {
     ENTER_IFCN("ElemStoreSol::operator()");
   
@@ -219,7 +219,7 @@ namespace CoupledField{
 
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::SetElemResult(const Integer elemNr, const CFSVector &val)
+  void ElemStoreSol<TYPE>::SetElemResult(const UInt elemNr, const CFSVector &val)
   {
     ENTER_FCN("ElemStoreSol::SetElemResult");
 #ifdef CHECK_INITIALIZED
@@ -234,14 +234,14 @@ namespace CoupledField{
 #endif
 
     const Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
-    for (Integer i=0; i<temp.GetSize(); i++){
+    for (UInt i=0; i<temp.GetSize(); i++){
       data_[elemNr*totalDofs_ + i] = temp[i];
       // std::cout<<"data_"<< data_[elemNr*totalDofs_ + i] << std::endl;
     }
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::GetElemResult(const Integer elemNr, CFSVector &val) const
+  void ElemStoreSol<TYPE>::GetElemResult(const UInt elemNr, CFSVector &val) const
   {
     ENTER_FCN("ElemStoreSol::GetElemResult");
 #ifdef CHECK_INITIALIZED
@@ -262,9 +262,9 @@ namespace CoupledField{
     temp.Resize(ptGrid_->GetNumVolElems()*totalDofs_);
 
     // Loop over all PDE elements
-    for (Integer iElem=1; iElem<numElems_+1; iElem++)
+    for (UInt iElem=1; iElem<numElems_+1; iElem++)
       // Loop over all dimensions
-      for (Integer iDof=0; iDof<totalDofs_; iDof++)
+      for (UInt iDof=0; iDof<totalDofs_; iDof++)
         {
           //temp.data_[(mapping_[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
           temp.data_[(ptEQN_->PDE2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
@@ -275,7 +275,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const SolutionType type, const Integer dof, CFSVector & val) const
+  void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const SolutionType type, const UInt dof, CFSVector & val) const
   {
     ENTER_FCN("ElemStoreSol::GetGlobalSolVectorSingleDof");
 #ifdef CHECK_INITIALIZED
@@ -285,7 +285,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const Integer dof, CFSVector & val) const
+  void ElemStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const UInt dof, CFSVector & val) const
   {
     ENTER_FCN("ElemStoreSol::GetGlobalSolVectorSingleDof");
 #ifdef CHECK_INITIALIZED
@@ -296,7 +296,7 @@ namespace CoupledField{
     temp.Resize(ptEQN_->GetNumGlobalElems());
 
     // Loop over all PDE elements
-    for (Integer iElem=1; iElem<numElems_+1; iElem++)
+    for (UInt iElem=1; iElem<numElems_+1; iElem++)
       // Loop over all dimensions
       temp.data_[ptEQN_->PDE2MeshElem(iElem)-1] = data_[(iElem-1)*totalDofs_ + dof];
   
@@ -304,7 +304,7 @@ namespace CoupledField{
 
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::Get(const Integer elemNr, const Integer dof, TYPE & ret) const
+  void ElemStoreSol<TYPE>::Get(const UInt elemNr, const UInt dof, TYPE & ret) const
   {
     ENTER_FCN("ElemStoreSol::Get");
 #ifdef CHECK_INITIALIZED
@@ -322,19 +322,19 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::Get(const SolutionType type, const Integer elemNr, const Integer dof, TYPE & ret) const
+  void ElemStoreSol<TYPE>::Get(const SolutionType type, const UInt elemNr, const UInt dof, TYPE & ret) const
   {
     ENTER_FCN("ElemStoreSol::Get");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) Error("ElemStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-    Integer offset = (*solOffset_.find(type)).second;
+    UInt offset = (*solOffset_.find(type)).second;
 
     ret = data_[elemNr * totalDofs_ + offset + dof];
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::Set(const SolutionType type, const Integer elemNr, const Integer dof, const TYPE val)
+  void ElemStoreSol<TYPE>::Set(const SolutionType type, const UInt elemNr, const UInt dof, const TYPE val)
   {
     ENTER_FCN("ElemStoreSol::Set");
 #ifdef CHECK_INITIALIZED
@@ -344,7 +344,7 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::Add(const SolutionType type, const Integer elemNr, const Integer dof, const TYPE val) const
+  void ElemStoreSol<TYPE>::Add(const SolutionType type, const UInt elemNr, const UInt dof, const TYPE val) const
   {
     ENTER_FCN("ElemStoreSol::Set");
 #ifdef CHECK_INITIALIZED
@@ -368,9 +368,9 @@ namespace CoupledField{
     temp.Resize(ptGrid->GetNumVolElems()*totalDofs_);
 
     // Loop over all PDE elements
-    for (Integer iElem=1; iElem<numElems_+1; iElem++)
+    for (UInt iElem=1; iElem<numElems_+1; iElem++)
       // Loop over all dimensions
-      for (Integer iDof=0; iDof<totalDofs_; iDof++)
+      for (UInt iDof=0; iDof<totalDofs_; iDof++)
         {
           //temp.data_[(mapping_[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
           temp.data_[(ptEQN_->PDE2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
@@ -431,7 +431,7 @@ namespace CoupledField{
     ENTER_IFCN( "operator<<(ElemStoreSol<TYPE>) ");
     Error( "not implemented" );
 
-    std::map<SolutionType,Integer>::const_iterator it;
+    std::map<SolutionType,UInt>::const_iterator it;
     //for (it = solDofs_.begin(); it!=solDofs_.end(); it++)
     
   }

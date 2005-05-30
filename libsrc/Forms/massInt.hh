@@ -14,10 +14,10 @@ namespace CoupledField
     MassInt(BaseFE * aptelemt, Double aDensity, Boolean axi=FALSE);
 
     // Constructor
-    MassInt(const Double aDensity, const Integer nrDofsPerNode=1, Boolean axi=FALSE);
+    MassInt(const Double aDensity, const UInt nrDofsPerNode=1, Boolean axi=FALSE);
 
     // Constructor
-    MassInt(const Double aDensity, const Integer nrDofsPerNode, Integer dofzero, Boolean axi);
+    MassInt(const Double aDensity, const UInt nrDofsPerNode, UInt dofzero, Boolean axi);
 
     // Destructor
     virtual ~MassInt();
@@ -42,7 +42,7 @@ namespace CoupledField
   protected:
     //! generates a multi-dof-matrix with similar entries for all dofs
     virtual void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  
-                              const Integer nrDofs);
+                              const UInt nrDofs);
 
     virtual void MassMultiDofZero(Matrix<Double>& massMultDofZero, 
                                   const Matrix<Double>& massMatSingleDof);
@@ -52,8 +52,8 @@ namespace CoupledField
 
     Double density_;          //!< multiplicative value for mass integrator
     Double factor_;           //!< yet another multiplicative value for mass integrator
-    Integer nrDofsPerNode_;   //!< degrees of freedom per node
-    Integer dofzero_;
+    UInt nrDofsPerNode_;   //!< degrees of freedom per node
+    UInt dofzero_;
   
   };
 

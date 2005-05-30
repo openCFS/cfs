@@ -49,9 +49,9 @@ namespace CoupledField
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
-    virtual void WriteResultsInFile(const Integer kstep = 0,
+    virtual void WriteResultsInFile(const UInt kstep = 0,
                                     const Double asteptime = 0.0,
-                                    Integer stepOffset = 0,
+                                    UInt stepOffset = 0,
                                     Double timeOffset = 0.0);
 
     
@@ -77,7 +77,7 @@ namespace CoupledField
     
   protected:
   
-    Integer size_;        //!< total number of unknowns (equations)
+    UInt size_;        //!< total number of unknowns (equations)
 
     //! List of regions with non-linearity
     StdVector<std::string> nonLinType_;

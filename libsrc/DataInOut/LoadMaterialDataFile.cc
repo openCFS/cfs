@@ -118,12 +118,12 @@ namespace CoupledField
 
     ENTER_FCN( "LoadMaterialDataFile::ReadLine" );
 
-    Integer found = 0;
+    Boolean found = FALSE;
 
     while ( !found && !fin.eof() ) {
       fin.getline( buffer, bufLength, '\n' );
       if ( strchr(buffer,'#') == NULL ) {
-        found = 1;
+        found = TRUE;
         if ( fin.eof() ) {
           buffer = NULL;
           //std::cout << std::endl << " ReadLine: Unexpected end of file! "
@@ -145,7 +145,7 @@ namespace CoupledField
 
     std::string errMsg;
 
-    Integer found = 0;
+    Boolean found = FALSE;
     Integer pos;
     char tempMatName[bufLength];
     char tempMatType[bufLength];
@@ -162,7 +162,7 @@ namespace CoupledField
 
       if ( strcmp(matName,tempMatName) == 0 &&
            strcmp(matType,tempMatType) == 0 ) {
-        found = 1;
+        found = TRUE;
         fin.seekg(pos, std::ios::beg);
       }
     }
@@ -184,7 +184,7 @@ namespace CoupledField
 
     ENTER_FCN( "LoadMaterialDataFile::ReadPiezo" );
 
-    Integer i,j;
+    UInt i,j;
     Double helpval;
     Double alfa,beta;
     Double density;
@@ -323,7 +323,7 @@ namespace CoupledField
     if ( strcmp(nonLin,"hysteresis:") == 0 ) {
       Double Esat, Psat;
       Double aJiles, alphaJiles, kJiles, cJiles;
-      Integer dirPol;
+      UInt dirPol;
       ReadLine(fin,buffer);
       strPtr = new std::istringstream(buffer);
       *strPtr >>  Esat >> Psat >> dirPol;

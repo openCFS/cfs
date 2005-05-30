@@ -51,7 +51,7 @@ namespace CoupledField
       
         IntWeights_.Resize(NumIntPoints_);
       
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           {         
             IntWeights_[i]=1;
             IntPoints_[i].Resize(Dim_);
@@ -71,7 +71,7 @@ namespace CoupledField
       
         IntWeights_.Resize(NumIntPoints_);
       
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           {         
             IntWeights_[i]=1;
             IntPoints_[i].Resize(Dim_);
@@ -95,7 +95,7 @@ namespace CoupledField
     if (!ShFncAtIp_)
       ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
   
-    for( Integer i=0; i<NumIntPoints_; i++ )
+    for( UInt i=0; i<NumIntPoints_; i++ )
       CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i]);
   
   }
@@ -108,7 +108,7 @@ namespace CoupledField
     if( !ShFncDerivAtIp_)
       ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
   
-    for( Integer i=0; i<NumIntPoints_; i++ )
+    for( UInt i=0; i<NumIntPoints_; i++ )
       CalcLocalDerivShapeFnc( ShFncDerivAtIp_[i], IntPoints_[i]);
   }
 
@@ -126,7 +126,7 @@ namespace CoupledField
   }
 
 
-  Double LineFE::CalcJacobianDetAtIp(const Integer ip, 
+  Double LineFE::CalcJacobianDetAtIp(const UInt ip, 
                                      const Matrix<Double> & CornerCoords)
   {
     ENTER_FCN( "LineFE::CalcJacobianDetAtIp" );
@@ -171,7 +171,7 @@ namespace CoupledField
 
 
   void LineFE::CalcJacobianAtIp(Matrix<Double> & J, 
-                                const Integer ip, 
+                                const UInt ip, 
                                 const Matrix<Double> & CornerCoords)
   {
     ENTER_FCN( "LineFE::CalcJacobianAtIp" );
@@ -206,7 +206,7 @@ namespace CoupledField
   }
 
   void LineFE::CalcInvJacobianAtIp(Matrix<Double> & JInv,
-                                   const Integer ip,
+                                   const UInt ip,
                                    const Matrix<Double> & CornerCoords)
   {
     ENTER_FCN( "LineFE::CalcInvJacobianAtIp" );

@@ -79,13 +79,13 @@ namespace CoupledField {
     //! \param ip      (input)  number of integration point
     //! \param ptCoord (input)  matrix containing co-ordinates of all
     //!                         integration points
-    void calcBMat( Matrix<Double> &bMat, Integer ip,
+    void calcBMat( Matrix<Double> &bMat, UInt ip,
                    Matrix<Double> &ptCoord ) {
 
       ENTER_FCN( "linElecInt2D::calcBMat" );
 
       // Obtain info on number of element's nodes
-      const Integer numNodes = ptelem->GetNumNodes();
+      const UInt numNodes = ptelem->GetNumNodes();
 
       // Set correct size of matrix B and initialise with zeros
       bMat.Resize( 2, numNodes );
@@ -100,7 +100,7 @@ namespace CoupledField {
       // B of the ADB product evaluated at the k-th node of the finite
       // element. We assume that the first coordinate equals y and the
       // second z.
-      for( Integer actNode = 0; actNode < numNodes; actNode++ ) {
+      for( UInt actNode = 0; actNode < numNodes; actNode++ ) {
         bMat[0][actNode] = xiDx[actNode][0];
         bMat[1][actNode] = xiDx[actNode][1];
       }
@@ -129,10 +129,10 @@ namespace CoupledField {
       // copy electric part of material matrix, which 
       // is the lower-right sub-diagonal block
       // d[8-9][8-9]
-      Integer startRow = 7;
-      Integer startCol = 7;
-      for( Integer i = 0; i < 2; i++ ) {
-        for ( Integer j = 0; j < 2; j++ ) {
+      UInt startRow = 7;
+      UInt startCol = 7;
+      for( UInt i = 0; i < 2; i++ ) {
+        for ( UInt j = 0; j < 2; j++ ) {
           dMat[i][j] = factor_ *
             (*matMatrix)[startRow+i][startCol+j];
         }
@@ -140,13 +140,13 @@ namespace CoupledField {
     }
     
     //! Returns dimension of D matrix
-    Integer getDimD() {
+    UInt getDimD() {
       ENTER_IFCN( "linElecInt2D::getDimD" );
       return 2;
     }
 
     //! Returns nr. of degrees of freedom
-    Integer getNrDofs() {
+    UInt getNrDofs() {
       ENTER_IFCN( "linElecInt2D::getNrDofs" );
       return 1;
     }

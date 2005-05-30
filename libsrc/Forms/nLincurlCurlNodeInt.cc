@@ -40,8 +40,8 @@ namespace CoupledField
   {
     ENTER_FCN( "nLinCurlCurlNode2DInt::CalcElementMatrix");
   
-    const Integer nrIntPts= ptelem->GetNumIntPoints();
-    const Integer nrNodes = ptelem->GetNumNodes();
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
 
@@ -60,7 +60,7 @@ namespace CoupledField
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrNodes); elemMat.Init(0);
 
-    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
@@ -70,7 +70,7 @@ namespace CoupledField
           {
             ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
             CoordAtIP = ptCoord * ShpFncAtIp;
-            for (Integer i=0; i<nrNodes; i++)
+            for (UInt i=0; i<nrNodes; i++)
               xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
             
             jacDet *= 2 * PI * CoordAtIP[0];
@@ -81,9 +81,9 @@ namespace CoupledField
 
         //compute value for nonlinear reluctivity
         Vector<Double> B(2);
-        Integer dim = 2;
-        for( Integer i=0; i<dim; i++ )
-          for( Integer j=0; j<nrNodes; j++ )
+        UInt dim = 2;
+        for( UInt i=0; i<dim; i++ )
+          for( UInt j=0; j<nrNodes; j++ )
             B[i] += xiDx[j][i] * magPot_[j];
 
         Double Babs = B.NormL2();
@@ -105,8 +105,8 @@ namespace CoupledField
             Vector<Double> eB(2); eB = B * 1/Babs;
             dHfield = nlinFnc_->EvaluatePrimeInv(Babs);
             derivReluctivity = (dHfield*Babs - Hfield) / (Babs*Babs);
-            for (Integer p=0;  p<nrNodes; p++)
-              for (Integer q=0; q<nrNodes; q++) {               
+            for (UInt p=0;  p<nrNodes; p++)
+              for (UInt q=0; q<nrNodes; q++) {               
                 partElemMat[p][q] +=  derivReluctivity * 
                   (eB[0]*eB[0]*xiDx[p][1]*xiDx[q][1] +
                    eB[1]*eB[1]*xiDx[p][0]*xiDx[q][0] -

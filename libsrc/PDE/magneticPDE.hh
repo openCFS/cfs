@@ -41,7 +41,7 @@ namespace CoupledField
     virtual void DefineSolveStep();
 
     //! return size of solution
-    virtual Integer getSize() const 
+    virtual UInt getSize() const 
     { return numPDENodes_*dofspernode_;}
 
 
@@ -55,9 +55,9 @@ namespace CoupledField
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
-    virtual void WriteResultsInFile(const Integer kstep = 0,
+    virtual void WriteResultsInFile(const UInt kstep = 0,
                                     const Double asteptime = 0.0,
-                                    Integer stepOffset = 0,
+                                    UInt stepOffset = 0,
                                     Double timeOffset = 0.0);
     
     //! computes the electric energy for each subdomain
@@ -66,10 +66,10 @@ namespace CoupledField
 
     //! calculates nodal forces
     void CalcNodeForce(ElemStoreSol<Double> & force, 
-                       StdVector<Integer> & nodes, 
+                       StdVector<UInt> & nodes, 
                        StdVector<Elem*> & elems,
                        StdVector<StdVector<ShortInt> > & isBoundaryNode,
-                       StdVector<StdVector<Integer> > &elemNodeToCouplingNode)
+                       StdVector<StdVector<UInt> > &elemNodeToCouplingNode)
     {Error("CalcNodeForce not implemented",__FILE__,__LINE__);}
 
 
@@ -90,10 +90,10 @@ namespace CoupledField
 
     //! computation of Lorentz force
     void CalcNodeForceLorentz(Vector<Double> & force, 
-                              StdVector<StdVector<Integer> > & 
+                              StdVector<StdVector<UInt> > & 
                               elemNodeToCouplingNode,
-                              Integer actCoupling, 
-                              Integer numCouplingNodes);
+                              UInt actCoupling, 
+                              UInt numCouplingNodes);
 
 
   protected:
@@ -132,10 +132,10 @@ namespace CoupledField
     StdVector<StdVector<StdVector<ShortInt> > > isBoundaryNode_; 
 
     //! assigns each coupling element node the according Coupling Node number
-    StdVector<StdVector<StdVector<Integer> > > elemNodeToCouplingNode_; 
+    StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; 
 
     //! contains number of surface nodes per element
-    StdVector<StdVector<Integer> > numBoundaryNodes_;               
+    StdVector<StdVector<UInt> > numBoundaryNodes_;               
 
     // =======================================================================
     //   COILS
@@ -191,7 +191,7 @@ namespace CoupledField
     StdVector<std::string> calcForceVWP_;  
 
     //! nodes, for wich the force has to be computed
-    StdVector<Integer> ForceNodes_;           
+    StdVector<UInt> ForceNodes_;           
 
     //! force operator (for coupling as well as postprocessing)
     MagForceOp* ForceOpVWP_;

@@ -43,18 +43,18 @@ namespace CoupledField {
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
-    virtual void WriteResultsInFile(const Integer kstep = 0,
+    virtual void WriteResultsInFile(const UInt kstep = 0,
                                     const Double asteptime = 0.0,
-                                    Integer stepOffset = 0,
+                                    UInt stepOffset = 0,
                                     Double timeOffset = 0.0);
 
     //! return size of solution
-    virtual Integer getSize() const 
+    virtual UInt getSize() const 
     { return size_;}
 
 #ifdef ADAPTGRID
     //! test error of computation
-    virtual Boolean TestError(const Integer level);
+    virtual Boolean TestError(const UInt level);
 #endif
 
 
@@ -63,7 +63,7 @@ namespace CoupledField {
     // ======================================================
   
     //! initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling);;
+    void InitCoupling(PDECoupling * Coupling);
   
     //! calculate coupling terms
     void CalcOutputCoupling();
@@ -73,10 +73,14 @@ namespace CoupledField {
   
     //! calculate the vector of coupling forces to the mechanical PDE
     void CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
-                              StdVector<Integer> & couplingNodes,
+                              StdVector<UInt> & couplingNodes,
                               Vector<Double>& elemCouplingSols,
-                              Integer couplingdof );
+                              UInt couplingdof );
   
+    //! 
+    void SetMechanicCoupling() {
+      isMechCoupled_ = TRUE;
+    }
   
 
 
@@ -85,7 +89,10 @@ namespace CoupledField {
     //! Init the time stepping
     void InitTimeStepping();
 
-    Integer size_;                         //!< total number of unknowns (equations)
+    //! indicator for mechanic coupling
+    Boolean isMechCoupled_;
+
+    UInt size_;                         //!< total number of unknowns (equations)
     SolutionType formulation_;             //!< variable in which PDE is formulated
 
     StdVector<DampingType> dampingList_;   //!< list of damping types for all regions
@@ -94,7 +101,7 @@ namespace CoupledField {
     Boolean absorbingBCs_;                 //!< switch for absorbing boundary conditions
 
     // for fractional damping model
-    Integer fracMemory_;                   //!< number of old time steps to be saved
+    UInt fracMemory_;                   //!< number of old time steps to be saved
     InterpolType inType_;                  //!< type of interpolation
 
     // solving of nonlinear acoustics

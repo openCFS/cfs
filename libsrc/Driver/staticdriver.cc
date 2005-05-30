@@ -14,7 +14,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   StaticDriver::StaticDriver(Domain * adomain, 
-                             Integer stepOffset,
+                             UInt stepOffset,
                              Double timeOffset,
                              std::string driverTag,
                              Boolean isPartOfSequence) 
@@ -47,10 +47,9 @@ namespace CoupledField {
     }
 
     // Initialize 'TimeStepping'
-    const Integer nstep = 1;
+    const UInt nstep = 1;
     Double  steptime = 0.0;
     Boolean reset = FALSE;
-    
     ptPDE_->WriteGeneralPDEdefines();
     ptPDE_->GetSolveStep()->PreStepStatic(nstep, steptime, reset);
     ptPDE_->GetSolveStep()->SolveStepStatic(nstep, steptime, reset);

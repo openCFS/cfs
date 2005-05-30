@@ -44,11 +44,11 @@ namespace CoupledField
     //  ShortInt dim = ptElement->ptElem->GetDim();
   
     //   curlField.Resize(dim);
-    //   for (Integer i=0; i<dim; i++)
+    //   for (UInt i=0; i<dim; i++)
     //     curlField[i] = 0;
 
-    //   Integer nrEdges = ptElement->ptElem->GetNumEdges();
-    //   Integer nrNodes = ptElement->ptElem->GetNumNodes();
+    //   UInt nrEdges = ptElement->ptElem->GetNumEdges();
+    //   UInt nrNodes = ptElement->ptElem->GetNumNodes();
 
     //   Matrix<Double> CornerCoords; 
     //   ptGrid_->GetCoordNodesElemMat(ptElement->connect, CornerCoords, level_);
@@ -59,7 +59,7 @@ namespace CoupledField
 
     //   StdVector<Matrix<Double>* > deriv;
     //   deriv.Resize(nrEdges);
-    //   for (Integer actEdge=0; actEdge < nrEdges; actEdge++)
+    //   for (UInt actEdge=0; actEdge < nrEdges; actEdge++)
     //     deriv[actEdge] = new Matrix<Double>;
   
 
@@ -67,8 +67,8 @@ namespace CoupledField
 
     //   curlOnEdges.Resize(dim, nrEdges);
   
-    //   for (Integer actEdge=0; actEdge < nrEdges; actEdge++)
-    //     for (Integer actDim=0; actDim < dim; actDim++)
+    //   for (UInt actEdge=0; actEdge < nrEdges; actEdge++)
+    //     for (UInt actDim=0; actDim < dim; actDim++)
     //       curlOnEdges[actDim][actEdge] = 
     //      (*deriv[actEdge])[(actDim+2)%dim][(actDim+1)%dim] -
     //      (*deriv[actEdge])[(actDim+1)%dim][(actDim+2)%dim];
@@ -76,13 +76,13 @@ namespace CoupledField
 
     //   StdVector<Double> sol(nrEdges);
     //   // global edge index
-    //   StdVector<Integer> epos(nrEdges);
-    //   StdVector<Integer> esign(nrEdges);
+    //   StdVector<UInt> epos(nrEdges);
+    //   StdVector<UInt> esign(nrEdges);
 
 
-    //   StdVector<Integer> pos(nrNodes);
+    //   StdVector<UInt> pos(nrNodes);
   
-    //   for (Integer i=0; i < nrNodes; i++)
+    //   for (UInt i=0; i < nrNodes; i++)
     //      pos[i] = (*ptMesh2PDENode_)[ptElement->connect[i]-1];
   
     //   ptElement->ptElem->GetGlobalEdgeIndices(epos, &pos[0], algsys_);
@@ -93,7 +93,7 @@ namespace CoupledField
   
     // #endif
 
-    //   for (Integer j=0; j<nrEdges; j++)
+    //   for (UInt j=0; j<nrEdges; j++)
     //     {
     //       esign[j] = epos[j]/abs(epos[j]);
     //       epos[j]  = abs(epos[j]);
@@ -102,11 +102,11 @@ namespace CoupledField
   
   
     //   // loop over edge curls
-    //   for( Integer i=0; i<dim; i++ )
+    //   for( UInt i=0; i<dim; i++ )
     //     {
     //       curlField[i]=0;
       
-    //       for( Integer j=0; j < nrEdges; j++ )
+    //       for( UInt j=0; j < nrEdges; j++ )
     //      curlField[i] += curlOnEdges[i][j] * sol[j];
     //     }
   
@@ -123,8 +123,8 @@ namespace CoupledField
   
     Error( "CurlEdgeOp::CalcElemMagVec: Not working due to EQN-class",
            __FILE__, __LINE__);
-    // Integer nrEdges = ptElement->ptElem->GetNumEdges();
-    //   Integer nrNodes = ptElement->ptElem->GetNumNodes();
+    // UInt nrEdges = ptElement->ptElem->GetNumEdges();
+    //   UInt nrNodes = ptElement->ptElem->GetNumNodes();
     //   BaseFE * ptElem = ptElement->ptElem;
     //   ShortInt dim = ptElem->GetDim();
 
@@ -133,15 +133,15 @@ namespace CoupledField
 
     //   StdVector<Double> sol(nrEdges);
     //   // global edge index
-    //   StdVector<Integer> epos(nrEdges);
-    //   StdVector<Integer> esign(nrEdges);
-    //   Vector<Integer> pos(nrNodes);
+    //   StdVector<UInt> epos(nrEdges);
+    //   StdVector<UInt> esign(nrEdges);
+    //   Vector<UInt> pos(nrNodes);
 
 
 
     //   magVecPot.Resize(dim);
 
-    //   for (Integer i=0; i<dim; i++)
+    //   for (UInt i=0; i<dim; i++)
     //     magVecPot[i] = 0;
 
     //   ptGrid_->GetCoordNodesElemMat(ptElement->connect, cornerCoords, level_);
@@ -149,13 +149,13 @@ namespace CoupledField
     //   ptElem->CalcEdgeShapeFnc(shape, lCoord, cornerCoords);
 
   
-    //   for (Integer i=0; i < nrNodes; i++)
+    //   for (UInt i=0; i < nrNodes; i++)
     //      pos[i] = (*ptMesh2PDENode_)[ptElement->connect[i]-1];
   
     //   ptElem->GetGlobalEdgeIndices(epos, &pos[0], algsys_);
 
 
-    //   for (Integer j=0; j<nrEdges; j++)
+    //   for (UInt j=0; j<nrEdges; j++)
     //     {
     //       esign[j] = epos[j]/abs(epos[j]);
     //       epos[j]  = abs(epos[j]);
@@ -167,10 +167,10 @@ namespace CoupledField
   
     //   // loop over edge curls
     //   // magVecPot = sol * shape;
-    //   for( Integer j=0; j<dim; j++ )  
+    //   for( UInt j=0; j<dim; j++ )  
     //     {
     //       magVecPot[j]=0;
-    //       for( Integer i=0; i < nrEdges; i++ )
+    //       for( UInt i=0; i < nrEdges; i++ )
     //      magVecPot[j] += shape[i][j] * sol[i];
     //     }
   }
@@ -201,7 +201,7 @@ namespace CoupledField
   {
     ENTER_FCN( "CurlNodeOp::CalcElemCurlNode" );
   
-    ShortInt dim;
+    UInt dim;
     Double solEntry;
     dim = ptElement->ptElem->GetDim();
     if (dim ==2)
@@ -209,7 +209,7 @@ namespace CoupledField
         B.Resize(dim);
         B.Init();
 
-        Integer nShFnc = 0;
+        UInt nShFnc = 0;
         nShFnc = ptElement->ptElem->GetNumNodes();
       
         Matrix<Double> CornerCoords; 
@@ -225,13 +225,13 @@ namespace CoupledField
             Vector<Double> CoordAtIP;
             ptElement->ptElem->GetShFnc(ShpFncAtIp,LCoord);
             CoordAtIP = CornerCoords * ShpFncAtIp;
-            for (Integer i=0; i<nShFnc; i++)
+            for (UInt i=0; i<nShFnc; i++)
               GlobalGradient[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
           }
       
         // loop over shape functions
-        for( Integer i=0; i<dim; i++ )
-          for( Integer j=0; j<nShFnc; j++ )
+        for( UInt i=0; i<dim; i++ )
+          for( UInt j=0; j<nShFnc; j++ )
             {
               sol_->Get(ptElement->connect[j]-1,0,solEntry);
               //const Double solEntry = (*sol_)(ptElement->connect[j],1);

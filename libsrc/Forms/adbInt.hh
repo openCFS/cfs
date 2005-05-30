@@ -70,14 +70,14 @@ namespace CoupledField {
     //@{
 
     //! Compute matrix \f$A\f$ at given integration point
-    virtual void calcAMat( Matrix<Double> &aMat, Integer ip,
+    virtual void calcAMat( Matrix<Double> &aMat, UInt ip,
                            const Matrix<Double> &ptCoord ) = 0;
 
     //! Compute matrix \f$D\f$ at given integration point
     virtual void calcDMat( Matrix<Double> &dMat ) = 0;
 
     //! Compute matrix \f$B\f$ at given integration point
-    virtual void calcBMat( Matrix<Double> &bMat, Integer ip,
+    virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
                            const Matrix<Double> &ptCoord ) = 0;
 
     //! Query number of degrees of freedom for first physical quantity
@@ -85,17 +85,17 @@ namespace CoupledField {
     //! This method can be used to query the number of degrees of freedom at
     //! any node of a finite element for the physical quantity associated to
     //! the base functions whose derivatives form the matrix \f$A\f$.
-    virtual Integer getNumDofsA() = 0;
+    virtual UInt getNumDofsA() = 0;
 
     //! Query number of degrees of freedom for second physical quantity
 
     //! This method can be used to query the number of degrees of freedom at
     //! any node of a finite element for the physical quantity associated to
     //! the base functions whose derivatives form the matrix \f$B\f$.
-    virtual Integer getNumDofsB() = 0;
+    virtual UInt getNumDofsB() = 0;
 
     //! Query dimensions of matrix \f$D\f$
-    virtual void getDimD( Integer nRows, Integer nCols ) = 0;
+    virtual void getDimD( UInt nRows, UInt nCols ) = 0;
 
     //@}
 

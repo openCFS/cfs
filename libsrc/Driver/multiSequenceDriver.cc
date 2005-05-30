@@ -55,14 +55,14 @@ namespace CoupledField {
     // Vector of memento objects, which save the internal state
     // of a PDE
     StdVector<PDEMemento> memento;
-    Integer nextStep = 0;
+    UInt nextStep = 0;
     Double nextTime = 0.0;
-    Integer actNumSteps;
+    UInt actNumSteps;
     Double actDt = 0.0;
     Double actFrequency;
   
     // helper variables
-    Integer iPDE, kPDE;
+    UInt iPDE, kPDE;
 
     // Print out the grid
     ptdomain_->PrintGrid();
@@ -70,7 +70,7 @@ namespace CoupledField {
     Info->StartProgress("Starting to solve problem",FALSE);
 
     // outer loop over all single sequences
-    for (Integer iStep=0; iStep<numSteps_; iStep++) {
+    for (UInt iStep=0; iStep<numSteps_; iStep++) {
       
       Info->WriteMultiSequenceStep(iStep+1, 
                                    analysisPerStep_[iStep][0]);
@@ -127,7 +127,7 @@ namespace CoupledField {
              analysisPerStep_[iStep][0] == TRANSIENT) {
           transFromTo = "complexToReal";
         }
-        for (Integer i=0; i<pdesPerStep_[iStep].GetSize(); i++) {
+        for (UInt i=0; i<pdesPerStep_[iStep].GetSize(); i++) {
           if (memento[i].IsSet()) {
             ptPDEs[i]->SetMemento( memento[i], transFromTo, actFrequency );
           }
@@ -186,16 +186,16 @@ namespace CoupledField {
   {
     ENTER_FCN( "MultiSequenceDriver::Init" );
     
-    StdVector<Integer> steps;
+    StdVector<UInt> steps;
     StdVector<std::string> pdesAux, tagsAux, analysisAux;
 
     // 1.) Read in all steps
     params->GetList("index", steps, "multiSequence", "step");
 
     // 2.) ensure that all steps occur and none is left out
-    Integer currStep = 0;
-    for (Integer iStep=1; iStep<=steps.GetSize(); iStep++) {
-      for (Integer j=0; j<steps.GetSize(); j++) {
+    UInt currStep = 0;
+    for (UInt iStep=1; iStep<=steps.GetSize(); iStep++) {
+      for (UInt j=0; j<steps.GetSize(); j++) {
         if (steps[j] == iStep) {
           currStep++;
           break;
@@ -230,7 +230,7 @@ namespace CoupledField {
     attrVec = "", "index", "";
    
 
-    for (Integer iStep=0; iStep<numSteps_; iStep++) {
+    for (UInt iStep=0; iStep<numSteps_; iStep++) {
       stepString = Info->GenStr(iStep+1);
       //params->GetList("tag", tagsAux, "step", "pde");
       valVec  = "", stepString, "";
@@ -256,7 +256,7 @@ namespace CoupledField {
 
       // Add pdes, tags, and analysistypes of the current step
       // in the same order as defined by Domain
-      for (Integer iPDE=0; iPDE<pdesAux.GetSize(); iPDE++) {
+      for (UInt iPDE=0; iPDE<pdesAux.GetSize(); iPDE++) {
         pdesPerStep_[iStep].Push_back(pdesAux[iPDE]);
         String2Enum(analysisAux[iPDE], analysisType);
         
@@ -282,10 +282,10 @@ namespace CoupledField {
     // occur only one time
     // ********************************
 
-    for (Integer iStep=0; iStep<steps.GetSize(); iStep++) {
+    for (UInt iStep=0; iStep<steps.GetSize(); iStep++) {
       
       // iterate over all pdes in current step
-      for (Integer iPDE=0; iPDE<pdesPerStep_[iStep].GetSize(); iPDE++) {
+      for (UInt iPDE=0; iPDE<pdesPerStep_[iStep].GetSize(); iPDE++) {
 
         // ********************************
         // Check if specified PDE types are 
@@ -295,7 +295,7 @@ namespace CoupledField {
         StdVector<std::string> pdeNames;
         params->GetPDEList( pdeNames );
         pdeFound = FALSE;
-        for (Integer kPDE=0; kPDE<pdeNames.GetSize(); kPDE++)
+        for (UInt kPDE=0; kPDE<pdeNames.GetSize(); kPDE++)
           if (pdesPerStep_[iStep][iPDE] == pdeNames[kPDE])
             pdeFound = TRUE;
 
@@ -321,14 +321,14 @@ namespace CoupledField {
         tagFound = FALSE;
         
         // Iterate over all 'bcsAndLoads' occurences for this PDE
-        for (Integer iTag=0; iTag<tagsAux.GetSize(); iTag++) {
+        for (UInt iTag=0; iTag<tagsAux.GetSize(); iTag++) {
 
           // split the tag-string into a vector of 
           // seperate tags      
           SplitStringList(tagsAux[iTag], tagsLocal);
           
           // Iterate over all tags in one special 'bcsAndLoads' occurence
-          for (Integer iTagLocal=0; iTagLocal<tagsLocal.GetSize(); iTagLocal++)
+          for (UInt iTagLocal=0; iTagLocal<tagsLocal.GetSize(); iTagLocal++)
             if (tagsPerStep_[iStep][iPDE] == tagsLocal[iTagLocal]
                 || tagsLocal[iTagLocal] == "anyTag" ) {
               tagFound = TRUE;
@@ -350,7 +350,7 @@ namespace CoupledField {
         // one time per step and if for each step
         // only one type of analysistype occured
         // ************************************************
-        for (Integer kPDE=iPDE+1; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++) {
+        for (UInt kPDE=iPDE+1; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++) {
           if (pdesPerStep_[iStep][iPDE] == pdesPerStep_[iStep][kPDE]) {
             errMsg  = "MultiSequenceDriver::Init(): The PDE '";
             errMsg += pdesPerStep_[iStep][kPDE];
@@ -386,9 +386,9 @@ namespace CoupledField {
           params->GetList(keyVec, attrVec, valVec, tagStrings);
 
           tagFound = FALSE;       
-          for (Integer l=0; l<tagStrings.GetSize(); l++) {
+          for (UInt l=0; l<tagStrings.GetSize(); l++) {
             SplitStringList(tagStrings[l], tagsAux);
-            for (Integer iTag=0; iTag<tagsAux.GetSize(); iTag++) 
+            for (UInt iTag=0; iTag<tagsAux.GetSize(); iTag++) 
               //            if (tagsAux[iTag] == "anyTag" ||
               //                tagsAux[iTag] == tagsPerStep_[iStep][iPDE]) {
               if (tagsAux[iTag] == tagsPerStep_[iStep][iPDE] ||

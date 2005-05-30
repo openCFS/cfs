@@ -135,7 +135,7 @@ namespace CoupledField {
        << '\n'
        << " " << helpHelp_ << "\n\n";
 
-  };
+  }
 
 
   // ***************
@@ -183,6 +183,6 @@ namespace CoupledField {
         << COLOR_INIT
         << GetWriteSkeleton()
         << COLOR_STOP << "\n\n";
-  };
+  }
 
 }

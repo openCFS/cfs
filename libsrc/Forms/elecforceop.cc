@@ -17,7 +17,7 @@ namespace CoupledField
                            StdPDE * ptPDE,
                            NodeEQN * ptEQN,
                            NodeStoreSol<Double> & sol,
-                           Integer dim,
+                           UInt dim,
                            MaterialData* &matData,
                            StdVector<RegionIdType> & allSubdoms,
                            Boolean isaxi) 
@@ -49,7 +49,7 @@ namespace CoupledField
 
   } 
 
-  Double ElecForceOp::GetMatVal(Integer actSD)
+  Double ElecForceOp::GetMatVal(UInt actSD)
   {
     ENTER_FCN( "ElecForceOp::GetMatVal" );
 

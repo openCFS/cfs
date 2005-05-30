@@ -79,32 +79,32 @@ namespace CoupledField
     void PrintCoil( Coil &coil, AnalysisType &analysistype );
 
     /// prints the process of a nonlinear iteration
-    void WriteNonLinIter(const std::string& pdeName, const Integer iterationCounter,    
+    void WriteNonLinIter(const std::string& pdeName, const UInt iterationCounter,    
                          const Double residualErr, const Double incrementalErr, double etaLineSearch=0);
 
     /// prints the process of a mulitSequence Analysis
-    void WriteMultiSequenceStep(const Integer sequenceStep, 
+    void WriteMultiSequenceStep(const UInt sequenceStep, 
                                 const AnalysisType analysis);
 
     /// prints the process of a transient analysis
-    void WriteTimeStep(const std::string& pdeName, const Integer timeStep,    
+    void WriteTimeStep(const std::string& pdeName, const UInt timeStep,    
                        const Double time);
 
     /// prints the process of a harmonic analysis
-    void WriteHarmonicStep(const std::string& pdeName, const Integer freqStep,    
+    void WriteHarmonicStep(const std::string& pdeName, const UInt freqStep,    
                            const Double frequency);
 
     /// writes domain and dof of homogenous boundary conditions
     void WriteHomBC(const std::string& pdeName, 
-                    const std::string& subDom, Integer dof=0);
+                    const std::string& subDom, UInt dof=0);
 
     /// writes domain and dof of inhomogenous boundary conditions
     void WriteInHomBC(const std::string& pdeName,const std::string& subDom, 
-                      const Double& val, const std::string & fnc, const Integer& dof);
+                      const Double& val, const std::string & fnc, const UInt& dof);
 
     /// writes domain, value and dof of a load conditon
     void WriteLoad(const std::string& pdeName, const std::string& subDom, 
-                   Double value, const std::string & fnc, Integer dof=0);
+                   Double value, const std::string & fnc, UInt dof=0);
     
 
     /// write Result values
@@ -132,11 +132,11 @@ namespace CoupledField
 
     /// prints warning to info-file and std::cerr
     void Warning(const std::string & text, const Char * const filename=NULL,
-                 const Integer numline=0);
+                 const UInt numline=0);
     
     /// prints error to both std::out and info-file
     void Error(const std::string & text, const Char * const filename=NULL,
-               const Integer numline=0);
+               const UInt numline=0);
 
 
     /// generates a message, that a certain action has started

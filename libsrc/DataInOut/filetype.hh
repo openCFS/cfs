@@ -48,22 +48,22 @@ namespace CoupledField
     //@{ \name General Mesh Information
 
     //! Get dimension of the mesh
-    virtual Integer GetDim() = 0;
+    virtual UInt GetDim() = 0;
 
     //! Get total number of nodes in mesh
-    virtual Integer GetNumNodes() = 0;
+    virtual UInt GetNumNodes() = 0;
  
     //! Get total number of elements in mesh
-    virtual Integer GetNumElems( const Integer dim = 0 ) = 0;
+    virtual UInt GetNumElems( const UInt dim = 0 ) = 0;
 
     //! Get total number of regions
-    virtual Integer GetNumRegions() = 0;
+    virtual UInt GetNumRegions() = 0;
 
     //! Get total number of named nodes
-    virtual Integer GetNumNamedNodes() = 0;
+    virtual UInt GetNumNamedNodes() = 0;
 
     //! Get total number of named elements
-    virtual Integer GetNumNamedElems() = 0;
+    virtual UInt GetNumNamedElems() = 0;
 
     //@}
   
@@ -78,7 +78,7 @@ namespace CoupledField
     //! dimensions.
     //! \param regionNames (output) vector containing names of regions
     //! \note Since the RegionIdType is guaranteed to be defined by
-    //! a number type (Integer, UInt), the regionId of an element can
+    //! a number type (UInt, UInt), the regionId of an element can
     //! be directly used as index to the regionNames-vector
     virtual void GetAllRegionNames( StdVector<std::string> & regionNames ) = 0;
 
@@ -91,7 +91,7 @@ namespace CoupledField
     //! \param regionNames (output) vector containing names of regions
     //! \param dim (input) dimension of the region (1,2, or 3)
     virtual void GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                      const Integer dim ) = 0;
+                                      const UInt dim ) = 0;
 
     //! Get vector with all names of named nodes
 
@@ -134,7 +134,7 @@ namespace CoupledField
     //! \param regionId (output) vector containing the region Ids of the
     //!                          nodes corresponding to the outer index in the
     //!                          nodes vector
-    virtual void GetNodesOfRegions( StdVector<StdVector<Integer> > &nodes,
+    virtual void GetNodesOfRegions( StdVector<StdVector<UInt> > &nodes,
                                     const StdVector<RegionIdType>  
                                     & regionId ) = 0;
   
@@ -153,7 +153,7 @@ namespace CoupledField
     //! \param dim (input) dimension of the elements to be read (1,2 or 3)
     virtual void GetElements( StdVector< StdVector<Elem*> > & elems, 
                               StdVector<RegionIdType> & regionId,
-                              const Integer dim ) = 0;
+                              const UInt dim ) = 0;
   
     //! Read all named nodes
 
@@ -163,7 +163,7 @@ namespace CoupledField
     //!                       \c [nodeNr]
     //! \param nodeNames (output) vector containing the corresponding
     //!                           node names 
-    virtual void GetNamedNodes( StdVector<StdVector<Integer> > & nodes,
+    virtual void GetNamedNodes( StdVector<StdVector<UInt> > & nodes,
                                 StdVector<std::string> & nodeNames ) = 0;
     //! Read all named elements
 
@@ -173,7 +173,7 @@ namespace CoupledField
     //!                       \c [elemNr]
     //! \param elemNames (output) vector containing the corresponding
     //!                           element names 
-    virtual void GetNamedElems( StdVector<StdVector<Integer> > & elems,
+    virtual void GetNamedElems( StdVector<StdVector<UInt> > & elems,
                                 StdVector<std::string> & elemNames ) = 0;
     //@}
                                

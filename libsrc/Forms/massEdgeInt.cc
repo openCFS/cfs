@@ -10,9 +10,8 @@ namespace CoupledField
   void MassEdgeInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
   {
     ENTER_FCN( "MassEdgeInt::CalcElemMatrix" );
-    const Integer nrIntPts = ptelem->GetNumIntPoints();
-    const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer nrEdges  = ptelem->GetNumEdges();
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const UInt nrEdges  = ptelem->GetNumEdges();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;
   
@@ -27,7 +26,7 @@ namespace CoupledField
     elemMat.Resize(nrEdges);
   
   
-    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
       

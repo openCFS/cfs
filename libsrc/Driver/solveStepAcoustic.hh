@@ -27,7 +27,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */   
-    void StepTransNonLin(const Integer kstep, const Double asteptime,
+    void StepTransNonLin(const UInt kstep, const Double asteptime,
                          const Boolean reset);
 
     //! compute nonlinear part of RHS

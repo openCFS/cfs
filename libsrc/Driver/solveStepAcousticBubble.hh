@@ -30,7 +30,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    void SolveStepTrans(const Integer kstep, const Double asteptime,
+    void SolveStepTrans(const UInt kstep, const Double asteptime,
                         const Boolean reset) ;
 
 
@@ -40,7 +40,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */   
-    void StepTransBubble(const Integer kstep, const Double asteptime,
+    void StepTransBubble(const UInt kstep, const Double asteptime,
                          const Boolean reset);
 
     //!

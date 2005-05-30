@@ -37,7 +37,7 @@ namespace CoupledField {
     void Calc3DMaterialMat( Matrix<Double> &dMat );
 
     //! returns B - matrix for BDB
-    virtual void calcBMat( Matrix<Double> &bMat, Integer ip,
+    virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
                            Matrix<Double> &ptCoord );
 
     //! Orientation for 2D simulations like axi or plane strain
@@ -74,12 +74,12 @@ namespace CoupledField {
     virtual void calcDMat(Matrix<Double> & dMat);
 
     //! returns dimension of D matrix
-    virtual Integer getDimD(){
+    virtual UInt getDimD(){
       return 3;
     };
 
     //! returns nr. of degrees of freedom
-    virtual Integer getNrDofs(){
+    virtual UInt getNrDofs(){
       return 2;
     };
   };
@@ -105,12 +105,12 @@ namespace CoupledField {
     virtual void calcDMat(Matrix<Double> & dMat);
 
     //! returns dimension of D matrix
-    virtual Integer getDimD(){
+    virtual UInt getDimD(){
       return 4;
     };
   
     //! returns nr. of degrees of freedom
-    virtual Integer getNrDofs(){
+    virtual UInt getNrDofs(){
       return 2;
     };
   };
@@ -136,12 +136,12 @@ namespace CoupledField {
     virtual void calcDMat(Matrix<Double> & dMat);
 
     //! returns dimension of D matrix
-    virtual Integer getDimD(){
+    virtual UInt getDimD(){
       return 6;
     };
 
     //! returns nr. of degrees of freedom
-    virtual Integer getNrDofs(){
+    virtual UInt getNrDofs(){
       return 3;
     };
   };

@@ -25,7 +25,8 @@ namespace CoupledField
     virtual ~MechStressStrain();  
   
     /// calculates Piola-Kirchoff-stresses (vector notation)
-    void CalcStressVec(Vector<Double>& StressVec, Integer ip, Matrix<Double> & ptCoord);  
+    void CalcStressVec(Vector<Double>& StressVec, UInt ip, 
+                       Matrix<Double> & ptCoord);  
 
     /// in stress calculations, the actual displacement of the element is needed
     /*!
@@ -44,10 +45,11 @@ namespace CoupledField
     //  virtual void calcDMat(Matrix<Double> & dMat);
   
     /// returns B 
-    virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+    virtual void calcBMat(Matrix<Double> & bMat, UInt ip, 
+                          Matrix<Double> & ptCoord);
 
     /// returns nr. of degrees of freedom
-    virtual Integer getNrDofs()=0;  
+    virtual UInt getNrDofs()=0;  
 
     /// displacement of all nodes of actual element
     Matrix<Double> elemDisp_;
@@ -74,10 +76,10 @@ namespace CoupledField
     virtual void calcDMat(Matrix<Double> & dMat);
 
     /// returns nr. of degrees of freedom
-    virtual Integer getNrDofs(){return 3;};
+    virtual UInt getNrDofs(){return 3;};
 
     /// returns the size of the material d-matrix
-    virtual Integer getDimD(){return 6;};
+    virtual UInt getDimD(){return 6;};
 
   };
   
@@ -102,10 +104,10 @@ namespace CoupledField
     virtual void calcDMat(Matrix<Double> & dMat);
 
     /// returns nr. of degrees of freedom
-    virtual Integer getNrDofs(){return 2;};  
+    virtual UInt getNrDofs(){return 2;};  
 
     /// returns the size of the material d-matrix
-    virtual Integer getDimD(){return 3;};
+    virtual UInt getDimD(){return 3;};
 
   };
   
@@ -128,10 +130,10 @@ namespace CoupledField
     virtual void calcDMat(Matrix<Double> & dMat);
 
     /// returns nr. of degrees of freedom
-    virtual Integer getNrDofs(){return 2;};  
+    virtual UInt getNrDofs(){return 2;};  
 
     /// returns the size of the material d-matrix
-    virtual Integer getDimD(){return 4;};
+    virtual UInt getDimD(){return 4;};
   };
   
 

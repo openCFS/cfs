@@ -9,16 +9,16 @@ namespace CoupledField
 
 
   // returns B - matrix for BDB
-  void linElastInt::calcBMat( Matrix<Double> &bMat, Integer ip,
+  void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
                               Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "linElastInt::calcBMat" );
 
-    const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer spaceDim = ptelem->GetDim();  
-    const Integer nrDofs   = getNrDofs();  
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const UInt spaceDim = ptelem->GetDim();  
+    const UInt nrDofs   = getNrDofs();  
 
-    Integer actDim, actNode, help, j, k;
+    UInt actDim, actNode, j, k;
     
     
     bMat.Resize(getDimD(), nrNodes * nrDofs);
@@ -51,7 +51,7 @@ namespace CoupledField
 
         if (isaxi_)
           {
-            Integer idxtheta = getDimD();
+            UInt idxtheta = getDimD();
             Vector<Double> ShpFncAtIp;
             Vector<Double> CoordAtIP;
 
@@ -71,7 +71,7 @@ namespace CoupledField
 
 
       case 3:
-        Integer actDim=spaceDim;
+        UInt actDim=spaceDim;
         for (actNode = 0; actNode < nrNodes; actNode++)
           {
             bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
@@ -102,13 +102,13 @@ namespace CoupledField
   {
     ENTER_FCN( "linElastInt::CalcAxiMaterialMat" );
     
-    const Integer nrElemsAxi = 4;
+    const UInt nrElemsAxi = 4;
     
-    Integer rowPtrXY[] = {1,2,6,3};  // indices of rows and lines for xy-plane
-    Integer rowPtrYZ[] = {2,3,4,1};  // indices of rows and lines for yz-plane
-    Integer rowPtrXZ[] = {1,3,5,2};  // indices of rows and lines for xz-plane
-    Integer * rowPtr;
-    Integer i,j;
+    UInt rowPtrXY[] = {1,2,6,3};  // indices of rows and lines for xy-plane
+    UInt rowPtrYZ[] = {2,3,4,1};  // indices of rows and lines for yz-plane
+    UInt rowPtrXZ[] = {1,3,5,2};  // indices of rows and lines for xz-plane
+    UInt * rowPtr;
+    UInt i,j;
 
     switch(actOrientation)
       { 
@@ -146,13 +146,13 @@ namespace CoupledField
 
     ENTER_FCN( "linElastInt::CalcPlaneStrainMaterialMat" );
 
-    const Integer nrElems2d = getDimD();
+    const UInt nrElems2d = getDimD();
     
-    Integer rowPtrXY[] = {1,2,6};  // indices of rows and lines for xy-plane
-    Integer rowPtrYZ[] = {2,3,4};  // indices of rows and lines for yz-plane
-    Integer rowPtrXZ[] = {1,3,5};  // indices of rows and lines for xz-plane
-    Integer * rowPtr;
-    Integer i,j;
+    UInt rowPtrXY[] = {1,2,6};  // indices of rows and lines for xy-plane
+    UInt rowPtrYZ[] = {2,3,4};  // indices of rows and lines for yz-plane
+    UInt rowPtrXZ[] = {1,3,5};  // indices of rows and lines for xz-plane
+    UInt * rowPtr;
+    UInt i,j;
 
     switch(actOrientation)
       { 
@@ -189,14 +189,14 @@ namespace CoupledField
   {
     ENTER_FCN( "linElastInt::Calc3DMaterialMat" );
 
-    const Integer nrElems3d = getDimD();
+    const UInt nrElems3d = getDimD();
     
     Matrix<Double> const & matMatrix =  *(ptMaterial->GetMatrix());
     
     dMat.Resize(nrElems3d);
 
-    for (Integer i=0; i<nrElems3d; i++)
-      for (Integer j=0; j<nrElems3d; j++)
+    for (UInt i=0; i<nrElems3d; i++)
+      for (UInt j=0; j<nrElems3d; j++)
         dMat[i][j] = matMatrix[i][j];   
   }
 

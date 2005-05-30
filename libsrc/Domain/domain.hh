@@ -58,7 +58,7 @@ namespace CoupledField
     //! \param sequenceStep step index in MultiSequenceSimulation
     //! \param tags tags for each PDE 
     void InitPDEs(StdVector<std::string> &pdeNames,
-                  Integer sequenceStep,
+                  UInt sequenceStep,
                   StdVector<std::string> tags);
 
     //! Delete pointer to PDEs and create them new
@@ -146,10 +146,10 @@ namespace CoupledField
     //! \name Data about (coupled) PDEs
 
     //! Number of Single PDEs
-    Integer numSinglePde_;
+    UInt numSinglePde_;
 
     //! Number of DirectCoupled PDEs
-    Integer numDirectCoupledPde_;
+    UInt numDirectCoupledPde_;
 
     //! Number of StdPDEs which can couple iteratively
 
@@ -157,7 +157,7 @@ namespace CoupledField
     //! This means that SinglePDEs, which are already coupled directly, are
     //! not counted, since each SinglePDE is either directly OR iteratively
     //! coupled.
-    Integer numIterCoupledStdPde_;
+    UInt numIterCoupledStdPde_;
   
     //! Pointers to SinglePDEs
     StdVector<SinglePDE*> ptSinglePde_;

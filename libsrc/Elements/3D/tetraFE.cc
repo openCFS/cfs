@@ -53,14 +53,14 @@ void TetraFE::SetIntPoints()
 
 
 	// just one point, but keep the procedure general ... ;O)
-	for(Integer i=0; i<NumIntPoints_; i++)
+	for(UInt i=0; i<NumIntPoints_; i++)
 	  {	  
 	    IntWeights_[i] = 1;
 
 	    IntPoints_[i].Resize(Dim_);
 
 	    // all integration coords are at 1/4
-	    for(Integer j=0; j<Dim_; j++)
+	    for(UInt j=0; j<Dim_; j++)
 	      IntPoints_[i][j] = 1./4;
 	  }
 
@@ -77,14 +77,14 @@ void TetraFE::SetIntPoints()
 
 	IntWeights_.Resize(NumIntPoints_);
 	// all weights are 0.25
-	for(Integer i=0; i<IntWeights_.GetSize(); i++)
+	for(UInt i=0; i<IntWeights_.GetSize(); i++)
 	  IntWeights_[i] = 0.25;
 
 
 	if (!IntPoints_)
 	  IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-	for(Integer i=0; i<NumIntPoints_; i++)
+	for(UInt i=0; i<NumIntPoints_; i++)
 	  IntPoints_[i].Resize(Dim_);
       
 	IntPoints_[0][0]=0.5854102;
@@ -116,7 +116,7 @@ void TetraFE::SetIntPoints()
 	if (!IntPoints_)
 	  IntPoints_ = new Vector<Double>[NumIntPoints_];
      
-	for(Integer i=0; i<NumIntPoints_; i++)
+	for(UInt i=0; i<NumIntPoints_; i++)
 	  IntPoints_[i].Resize(Dim_);
      
 	IntWeights_.Resize(NumIntPoints_);
@@ -161,7 +161,7 @@ void TetraFE::SetIntPoints()
 	if (!IntPoints_)
 	  IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-	for(Integer i=0; i<NumIntPoints_; i++)
+	for(UInt i=0; i<NumIntPoints_; i++)
 	  IntPoints_[i].Resize(Dim_);
 
 	IntWeights_.Resize(NumIntPoints_);
@@ -217,15 +217,15 @@ void TetraFE::SetIntPoints()
   { 
     ENTER_IFCN( "TetraFE::CorrectIntWeights" );
 
-    for(Integer i=0; i<IntWeights_.GetSize(); i++)
+    for(UInt i=0; i<IntWeights_.GetSize(); i++)
       IntWeights_[i] /= 6.;
   }
 
 
-void TetraFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-					 const StdVector<Integer> & volConnect,
-					 const Vector<Double> & surfIntPoint,
-					 Vector<Double> & volIntPoint)
+void TetraFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                        const StdVector<UInt> & volConnect,
+                                        const Vector<Double> & surfIntPoint,
+                                        Vector<Double> & volIntPoint)
 {
   ENTER_IFCN( "TetraFE::GetLocalIntPoints4Surface" );
   
@@ -244,17 +244,17 @@ void TetraFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
   //  +------+
   //  1      2
 
-  StdVector<Integer> commonIndex(3);
-  Integer found = 0;
-  Integer indexProduct = 0;
+  StdVector<UInt> commonIndex(3);
+  UInt found = 0;
+  UInt indexProduct = 0;
   std::string errMsg;
   
   volIntPoint.Resize(3);
   
   // loop over surface connect
-  for (Integer iSurf=0; iSurf<3; iSurf++)
+  for (UInt iSurf=0; iSurf<3; iSurf++)
     // loop over volume connect
-    for (Integer iVol=0; iVol<4; iVol++)
+    for (UInt iVol=0; iVol<4; iVol++)
       if (surfConnect[iSurf] == volConnect[iVol])
 	{
 	  commonIndex[found++] = iVol+1;

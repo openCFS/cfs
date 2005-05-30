@@ -117,7 +117,7 @@ namespace CoupledField{
       \param nSols (input) Number of different solution types
     */
     //! \note All entries of this object are deleted afterwards
-    virtual void SetNumSolutions(const Integer nSols) = 0;
+    virtual void SetNumSolutions(const UInt nSols) = 0;
   
 
     //! Set the number of solution nodes
@@ -125,7 +125,7 @@ namespace CoupledField{
       \param nNodes (input) Number of solution nodes
     */
     //! \note All entries of this object are deleted afterwards
-    virtual void SetNumNodes(const Integer nNodes) = 0;
+    virtual void SetNumNodes(const UInt nNodes) = 0;
 
   
     //! Set the type of solution and its position 
@@ -139,7 +139,7 @@ namespace CoupledField{
     */
     //! \note All entries of this object are deleted afterwards
     virtual void SetSolutionType(const SolutionType solType,
-                                 Integer numSolution = 0) = 0;
+                                 UInt numSolution = 0) = 0;
 
   
     //! Set the number of dofs for one solution type
@@ -152,7 +152,7 @@ namespace CoupledField{
       \param solType (input) Type of solution (ref. enum SolutionType)
     */
     //! \note All entries of this object are deleted afterwards
-    virtual void SetNumDofs(const Integer dof,
+    virtual void SetNumDofs(const UInt dof,
                             const SolutionType solType = NO_SOLUTION_TYPE) = 0;
 
 
@@ -167,7 +167,7 @@ namespace CoupledField{
 
     //! Return the accumulated number of Dofs for
     //! all solution types in this object
-    inline Integer GetTotalNumDofs() const;
+    inline UInt GetTotalNumDofs() const;
 
   
     //! Return the number of dofs for agiven solution type
@@ -178,21 +178,21 @@ namespace CoupledField{
     /*!
       \param solType (input) Type of solution (ref. enum SolutionType)
     */
-    inline Integer GetDof(const SolutionType solType = NO_SOLUTION_TYPE) const;
+    inline UInt GetDof(const SolutionType solType = NO_SOLUTION_TYPE) const;
 
   
     //! Get number of nodes
-    inline Integer GetNumNodes() const;
+    inline UInt GetNumNodes() const;
   
 
     //! Get total length of solution vector
 
     //! Get total length of solution vector (= totalDofs_ * numNodes_)
-    inline Integer GetSize() const;
+    inline UInt GetSize() const;
 
   
     //! Get number of solution types
-    inline Integer GetNumSolutions() const;
+    inline UInt GetNumSolutions() const;
 
   
     //! Get vectot with one type of solution. The length
@@ -212,7 +212,7 @@ namespace CoupledField{
       \param nodeNr (input) Node number for solution
       \param val (input) Vector containing nodal results
     */
-    virtual void SetNodalResult(const Integer nodeNr,
+    virtual void SetNodalResult(const UInt nodeNr,
                                 const CFSVector &val) = 0;
 
   
@@ -221,7 +221,7 @@ namespace CoupledField{
       \param nodeNr (input) Node number for solution
       \param val (output) Vector containing nodal results
     */
-    virtual void GetNodalResult(const Integer nodeNr,
+    virtual void GetNodalResult(const UInt nodeNr,
                                 CFSVector & val) const = 0;
   
 
@@ -232,7 +232,7 @@ namespace CoupledField{
       \param val (output) Vector containing rsults
     */
     virtual void GetGlobalSolVectorSingleDof(const SolutionType solType,
-                                             const Integer dof,
+                                             const UInt dof,
                                              CFSVector & val) const = 0;
                                          
   
@@ -244,7 +244,7 @@ namespace CoupledField{
     */
     //! \note This method may only be called if object contains only
     //! one type of solution.
-    virtual void GetGlobalSolVectorSingleDof(const Integer dof,
+    virtual void GetGlobalSolVectorSingleDof(const UInt dof,
                                              CFSVector & val) const = 0;
 
 
@@ -256,8 +256,8 @@ namespace CoupledField{
     */
     //! \note This method may only be called if object contains only
     //! one type of solution.
-    virtual void Get(const Integer nodeNr, 
-                     const Integer dof,
+    virtual void Get(const UInt nodeNr, 
+                     const UInt dof,
                      Double & val) const
     {Error("BaseNodeStoreSol::Get() not implemented here", __FILE__, __LINE__);} 
 
@@ -270,8 +270,8 @@ namespace CoupledField{
       \param val (output)  Result of node nodeNr for given dof
     */
     virtual void Get(const SolutionType solType, 
-                     const Integer nodeNr,
-                     const Integer dof, 
+                     const UInt nodeNr,
+                     const UInt dof, 
                      Double & val) const
     {Error("BaseNodeStoreSol::Get() not implemented here", __FILE__, __LINE__);}
 
@@ -284,8 +284,8 @@ namespace CoupledField{
       \param val (input)  Result of node nodeNr for given solType and dof
     */  
     virtual void Set(const SolutionType solType, 
-                     const Integer nodeNr,
-                     const Integer dof, 
+                     const UInt nodeNr,
+                     const UInt dof, 
                      const Double val)
     {Error("BaseNodeStoreSol::Set() not implemented here", __FILE__, __LINE__);}
   
@@ -298,8 +298,8 @@ namespace CoupledField{
       \param val (input)  Result of node nodeNr for given solType and dof
     */   
     virtual void Add(const SolutionType solType, 
-                     const Integer nodeNr,
-                     const Integer dof, 
+                     const UInt nodeNr,
+                     const UInt dof, 
                      const Double val) const
     {Error("BaseNodeStoreSol::Add() not implemented here", __FILE__, __LINE__);} 
 
@@ -354,11 +354,11 @@ namespace CoupledField{
     //! when one can ensure, that the internal layout of the solution
     //! matches to the one of the given array. This is the case e.g. for
     //! the solution of the algebraic system.
-    virtual void SetAlgSysDataPointer( Integer size, Double * ptr ) 
+    virtual void SetAlgSysDataPointer( UInt size, Double * ptr ) 
     {Error("BaseNodeStoreSol::SetDataPointer() not implemented here", __FILE__,
            __LINE__);}
 
-    virtual void SetAlgSysDataPointer( Integer size, Complex * ptr ) 
+    virtual void SetAlgSysDataPointer( UInt size, Complex * ptr ) 
     {Error("BaseNodeStoreSol::SetDataPointer() not implemented here", __FILE__,
            __LINE__);}
     //@}
@@ -384,16 +384,16 @@ namespace CoupledField{
     /////////////////////////////////////////
 
     virtual void GetElemSolution(CFSVector & elemSol,
-                                 const StdVector<Integer> & connect) const = 0;
+                                 const StdVector<UInt> & connect) const = 0;
 
     //! 
     virtual void GetElemSolutionAsMatrix(CFSMatrix & elemSol,
-                                         const StdVector<Integer> & connect) const = 0;
+                                         const StdVector<UInt> & connect) const = 0;
   
     //! maps the local node solution to the coupling nodes
     virtual
     void NodeSolutionToCoupling(CFSVector & couplingSol,
-                                const StdVector<Integer>& nodeNumbers) const = 0;
+                                const StdVector<UInt>& nodeNumbers) const = 0;
 
     // ==========================================================
     // DECLARATION OF INTERFACES FOR NON-DOUBLE STORESOL-CLASSES
@@ -403,22 +403,22 @@ namespace CoupledField{
 #define DEFINE_BASENODESTORESOL_FCT(TYPE)                                               \
   virtual void Init(const TYPE val)                                             \
   {Error("BaseNodeStoreSol::Init() not implemented here", __FILE__, __LINE__);} \
-  virtual void Get(const Integer nodeNr,                                        \
+  virtual void Get(const UInt nodeNr,                                        \
                    TYPE & ret) const                                            \
   {Error("BaseNodeStoreSol::Get() not implemented here", __FILE__, __LINE__);}  \
   virtual void Get(const SolutionType type,                                     \
-                   const Integer nodeNr,                                        \
-                   const Integer dof,                                           \
+                   const UInt nodeNr,                                        \
+                   const UInt dof,                                           \
                    TYPE & ret) const                                            \
   {Error("BaseNodeStoreSol::Get not implemented here", __FILE__, __LINE__);}    \
   virtual void Set(const SolutionType type,                                     \
-                   const Integer nodeNr,                                        \
-                   const Integer dof,                                           \
+                   const UInt nodeNr,                                        \
+                   const UInt dof,                                           \
                    const TYPE val) const                                        \
   {Error("BaseNodeStoreSol::Set not implemented here", __FILE__, __LINE__);}    \
   virtual void Add(const SolutionType type,                                     \
-                   const Integer nodeNr,                                        \
-                   const Integer dof,                                           \
+                   const UInt nodeNr,                                        \
+                   const UInt dof,                                           \
                    const TYPE val) const                                        \
   {Error("BaseNodeStoreSol::Add() not implemented here", __FILE__, __LINE__);}  \
    
@@ -436,25 +436,25 @@ namespace CoupledField{
     NodeEQN * ptEQN_;
   
     //! Number of nodes
-    Integer numNodes_;
+    UInt numNodes_;
 
     //! Number of different solutions
-    Integer numSolutions_;
+    UInt numSolutions_;
   
     //! Total number of entries
 
     //! Total number of entries
     //! (= numNodes * sumOf(solDofs_[i]))
-    Integer length_;
+    UInt length_;
 
     //! 
-    Integer lengthVector_;
+    UInt lengthVector_;
   
     //! Contains order of solution types
 
     //! Contains order of solution types.
     //! Stores mapping SolutionType <-> position
-    std::map<SolutionType,Integer> solTypes_;
+    std::map<SolutionType,UInt> solTypes_;
 
     //! Stores offset of soltypes w.r.t. to beginning
 
@@ -462,19 +462,19 @@ namespace CoupledField{
     //! result w.r.t. to the beginning
     //! (depends on the number of dofs
     //! of all previous results)
-    std::map<SolutionType,Integer> solOffset_;
+    std::map<SolutionType,UInt> solOffset_;
 
     //! Stores offset
-    Integer eqnOffset_;
+    UInt eqnOffset_;
 
     //! Contains number of dofs for each quantity
-    std::map<SolutionType,Integer> solDofs_;
+    std::map<SolutionType,UInt> solDofs_;
  
     //! Total number of dofs 
-    Integer totalDofs_;
+    UInt totalDofs_;
 
     //! Number of equation dofs
-    Integer eqnDofs_;
+    UInt eqnDofs_;
 
     //! Array for convertin complex data to double
 
@@ -488,13 +488,13 @@ namespace CoupledField{
   // INLINE FUNCTIONS
   // ======================================================
 
-  inline Integer BaseNodeStoreSol::GetTotalNumDofs() const
+  inline UInt BaseNodeStoreSol::GetTotalNumDofs() const
   { 
     ENTER_IFCN( "BaseNodeStoreSol::GetTotalNumDofs" );
     return totalDofs_; 
   }
 
-  inline Integer BaseNodeStoreSol::GetDof(const SolutionType solType) const
+  inline UInt BaseNodeStoreSol::GetDof(const SolutionType solType) const
   {
     ENTER_IFCN( "BaseNodeStoreSol::GetDof" );
 #ifdef CHECK_INDEX
@@ -508,7 +508,7 @@ namespace CoupledField{
         Error(errMsg.c_str(), __FILE__, __LINE__);
       }
 #endif
-    Integer dof;
+    UInt dof;
     if (numSolutions_ == 1 && solType == NO_SOLUTION_TYPE)
       dof = (*solDofs_.begin()).second;
     else
@@ -526,19 +526,19 @@ namespace CoupledField{
     return dof;
   }
   
-  inline Integer BaseNodeStoreSol::GetNumNodes() const
+  inline UInt BaseNodeStoreSol::GetNumNodes() const
   {
     ENTER_IFCN( "BaseNodeStoreSol::GetNumNodes" );
     return numNodes_;
   }
   
-  inline Integer BaseNodeStoreSol::GetSize() const 
+  inline UInt BaseNodeStoreSol::GetSize() const 
   {
     ENTER_IFCN( "BaseNodeStoreSol::GetSize()" );
     return length_;
   }
   
-  inline Integer BaseNodeStoreSol::GetNumSolutions() const 
+  inline UInt BaseNodeStoreSol::GetNumSolutions() const 
   {
     ENTER_IFCN( "BaseNodeStoreSol::GetNumSolutions()" );
     return numSolutions_;

@@ -32,7 +32,8 @@ namespace CoupledField
   public:
 
     //!
-    linPiezoInt(): BDBInt(), actOrientation(yz),isDamping_(FALSE), factorDamp_(1.0) {;}
+    linPiezoInt(): BDBInt(), isDamping_(FALSE), 
+                   actOrientation(yz) ,factorDamp_(1.0) {;}
     
 
     //! Constructor
@@ -59,29 +60,41 @@ namespace CoupledField
       ENTER_FCN( "linPiezoInt::~linPiezoInt" );
     };
 
-    /// calculates mechanical stresses (vector notation), overloaded for real and complexvalued stresses
-    virtual void CalcStressVec(Vector<Double>& StressVec, Integer ip, Matrix<Double> & ptCoord);  
-    virtual void CalcStressVec(Vector<Double>& StressVec, Integer ip, Matrix<Double> & ptCoord,
-                               Integer comp, Double Dval); 
-    virtual void CalcStressVec(Vector<Complex>& StressVec, Integer ip, Matrix<Double> & ptCoord);  
+    //@{
+    //! calculates mechanical stresses (vector notation),
+    //! overloaded for real and complexvalued stresses
+    virtual void CalcStressVec(Vector<Double>& StressVec, UInt ip, 
+                               Matrix<Double> & ptCoord);  
 
+    virtual void CalcStressVec(Vector<Double>& StressVec, UInt ip, 
+                               Matrix<Double> & ptCoord,  UInt comp, 
+                               Double Dval); 
+
+    virtual void CalcStressVec(Vector<Complex>& StressVec, UInt ip, 
+                               Matrix<Double> & ptCoord);  
+    //@}
+    
     //     virtual void SetActElemSol(Matrix<Double>& disp) {
     //       ENTER_FCN( "linPiezoInt::SetActElemSol 1" );
     //       elemSol_ = disp;};
 
     //     virtual void SetActElemSol(CFSMatrix& disp) {
     //         ENTER_FCN( "linPiezoInt::SetActElemSol 2" );
-    //         Matrix<Double> & helpSol = dynamic_cast <Matrix<Double>&> (disp);
+    //         Matrix<Double> & helpSol = 
+    // dynamic_cast <Matrix<Double>&> (disp);
     //         elemSol_ = helpSol;};
 
     virtual void SetActElemSol(CFSMatrix& disp){
       ENTER_FCN("linPiezoInt::SetActElemSol 3");
       
       if(disp.IsComplex())
-        //        Matrix<Complex> & elemSolComplex_ = dynamic_cast <Matrix<Complex>&> (disp);
-        elemSol_ = new Matrix<Complex> (dynamic_cast<Matrix<Complex>&> (disp));
+        //        Matrix<Complex> & elemSolComplex_ = 
+        // dynamic_cast <Matrix<Complex>&> (disp);
+        elemSol_ = 
+          new Matrix<Complex> (dynamic_cast<Matrix<Complex>&> (disp));
       else
-        elemSol_ = new Matrix<Double> (dynamic_cast<Matrix<Double>&>(disp));
+        elemSol_ = 
+          new Matrix<Double> (dynamic_cast<Matrix<Double>&>(disp));
       //     Matrix<Double> & elemSol_ = dynamic_cast <Matrix<Double>&> (disp);
 
 
@@ -126,7 +139,7 @@ namespace CoupledField
     //! integration point ip and every FE ansatz function belonging to a node
     //! of the element. These partial matrices are appended one after another
     //! in a row-wise fashion to form the return matrix bMat.
-    void calcBMat(Matrix<Double> & bMat, Integer ip,
+    void calcBMat(Matrix<Double> & bMat, UInt ip,
                   Matrix<Double> & ptCoord);
 
 
@@ -197,17 +210,18 @@ namespace CoupledField
     //! The method returns the dimension of the data-matrix D. In a 3D
     //! piezoelectric simulation D is a square 9x9 matrix, so the return
     //! value is 9.
-    virtual Integer getDimD(){return 9;};
+    virtual UInt getDimD(){return 9;};
   
     //! Returns number of degrees of freedom per node.
 
     //! Returns the number of degrees of freedom per individual FE node.
     //! The current return value is fixed to 4, since in 3D simulations
     //! we have three mechanical and one potential component.
-    virtual Integer getNrDofs(){ return 4; };
+    virtual UInt getNrDofs(){ return 4; };
 
     //! Damps DMat with the factor \f$(1+j*\omega*\beta)\f$
-    void calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega);
+    void calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, 
+                                            Double &beta, Double &omega);
 
   };
 
@@ -261,7 +275,8 @@ namespace CoupledField
        
   protected:
 
-    //if set to true, stiffnessmatrix is computed for damping (just mechanical part)
+    //if set to true, stiffnessmatrix is computed for damping 
+    // (just mechanical part)
     //! Returns B - matrix for BDB
     //! The method computes the matrix B defined as
     //! \f$
@@ -287,20 +302,22 @@ namespace CoupledField
     //! in a row-wise fashion to form the return matrix bMat.
     
     //!
-    virtual void calcBMat(Matrix<Double> & bMat, Integer ip,
+    virtual void calcBMat(Matrix<Double> & bMat, UInt ip,
                           Matrix<Double> & ptCoord);
         
     //!   
     void  calcDMat(Matrix<Double> & dMat);
 
     //!
-    virtual Integer getDimD(){return 6;};
+    virtual UInt getDimD(){return 6;};
 
     //!
-    virtual Integer getNrDofs(){ return 3; };
+    virtual UInt getNrDofs(){ return 3; };
     
     //! Damps DMat with the factor \f$(1+j*\omega*\beta)\f$
-    void calcDMaterialMatWithComplexDamping(Matrix<Complex> & dMat, Double & beta, Double & omega);
+    void calcDMaterialMatWithComplexDamping(Matrix<Complex> & dMat, 
+                                            Double & beta, 
+                                            Double & omega);
 
   };
 
@@ -359,7 +376,7 @@ namespace CoupledField
     //! in a row-wise fashion to form the return matrix bMat.
     
     //!
-    void calcBMat(Matrix<Double> & bMat, Integer ip,
+    void calcBMat(Matrix<Double> & bMat, UInt ip,
                   Matrix<Double> & ptCoord);
  
     //!
@@ -369,14 +386,14 @@ namespace CoupledField
     //! The method returns the dimension of the data-matrix D. In a 2D
     //! piezoelectric simulation D is a square 5x5 matrix, so the return
     //! value is 5.
-    virtual Integer getDimD(){return 5;};
+    virtual UInt getDimD(){return 5;};
 
     
     //! Returns number of degrees of freedom per node.
     //! Returns the number of degrees of freedom per individual FE node.
     //! The current return value is fixed to 3, since in 2D simulations
     //! we have two mechanical and one potential component.
-    virtual Integer getNrDofs(){ return 3; };  
+    virtual UInt getNrDofs(){ return 3; };  
 
     //! Damps DMat with the factor \f$(1+j*\omega*\beta)\f$
     void calcDMaterialMatWithComplexDamping(Matrix<Complex> &dMat, Double &beta, Double &omega);

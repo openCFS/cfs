@@ -59,34 +59,34 @@ namespace CoupledField
 
     //! Returns the geometrical dimension of the mesh. Currently only
     //! two- and three-dimensional meshes are supported.
-    virtual Integer GetDim() = 0;  
+    virtual UInt GetDim() = 0;  
 
     //! Return maximum number of nodes
   
     //! Returns the maximum node number in the finite element grid.
-    virtual Integer GetNumNodes() = 0;
+    virtual UInt GetNumNodes() = 0;
 
     //! Returns the number of nodes contained in given region
-    virtual Integer GetNumNodes( const StdVector<RegionIdType> 
+    virtual UInt GetNumNodes( const StdVector<RegionIdType> 
                                  & regions ) = 0;
 
     //! Returns the number of nodes in the given nodelist
-    virtual Integer GetNumNodes( const std::string & nodesName ) = 0;
+    virtual UInt GetNumNodes( const std::string & nodesName ) = 0;
 
     //! Return maximum number of elements 
   
     //! Returns the total number of volume elements in the finite element grid
-    virtual Integer GetNumVolElems() = 0;
+    virtual UInt GetNumVolElems() = 0;
   
     //! Returns the total number of surface elements in the grid 
-    virtual Integer GetNumSurfElems() = 0;
+    virtual UInt GetNumSurfElems() = 0;
 
     //! Returns number of element contained in one region
 
     //! Returns the number of element, which belong to a list of given
     //! regions.
     //! \param regions (in) contains the regionIds of 
-    virtual Integer GetNumElems( const StdVector<RegionIdType> 
+    virtual UInt GetNumElems( const StdVector<RegionIdType> 
                                  & regions ) = 0;
   
     //! Get vector with all volume region identifiers
@@ -119,7 +119,7 @@ namespace CoupledField
     //! saving results.
     //! \param nodeList (out) list with node numbers
     //! \param name (in) name of nodes
-    virtual void GetNodesByName( StdVector<Integer> & nodeList,
+    virtual void GetNodesByName( StdVector<UInt> & nodeList,
                                  const std::string & name ) = 0;
 
     //! Get list of nodes contained in a region
@@ -128,21 +128,21 @@ namespace CoupledField
     //! volume- or surface-region.
     //! \param nodeList (out) list with node numbers
     //! \param regionId (in) region identifier
-    virtual void GetNodesByRegion( StdVector<Integer> & nodeList,
+    virtual void GetNodesByRegion( StdVector<UInt> & nodeList,
                                    const RegionIdType regionId ) = 0;
     
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 2D
     //! \param inode (in) node number
     virtual void GetNodeCoordinate( Point<2> & rfPoint,
-                                    const Integer inode )
+                                    const UInt inode )
     { Error( "Not implemented", __FILE__, __LINE__ ); }  
 
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 3D
     //! \param inode (in) node number
     virtual void GetNodeCoordinate( Point<3> & rfPoint,
-                                    const Integer inode )
+                                    const UInt inode )
     { Error( "Not implemented", __FILE__, __LINE__ ); }  
   
     //@}
@@ -177,8 +177,8 @@ namespace CoupledField
     //! Returns the node numbers of a  given element.
     //! \param connect (out) contains global node numbers
     //! \param iElem (in) element number
-    virtual void GetElemNodes( StdVector<Integer> & connect, 
-                               const Integer iElem ) = 0;
+    virtual void GetElemNodes( StdVector<UInt> & connect, 
+                               const UInt iElem ) = 0;
 
 
     //! Get coordinates of element nodes
@@ -188,7 +188,7 @@ namespace CoupledField
     //!                         (spaceDim \f$\times\f$ nrNodes);
     //! \param connect (in) global node numbers of element
     virtual void GetElemNodesCoord( Matrix<Double> & coordMat,  
-                                    const StdVector<Integer> & connect ) = 0;
+                                    const StdVector<UInt> & connect ) = 0;
   
     //! Get elements associated with given nodes
 
@@ -201,7 +201,7 @@ namespace CoupledField
     //! \param regionIds (in) identifiers for the regions, where the 
     //!                       neihgbouring elements are searched in
     virtual void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
-                                      const StdVector<Integer> & nodeList,
+                                      const StdVector<UInt> & nodeList,
                                       const StdVector<RegionIdType> 
                                       & regionIds ) = 0;
 
@@ -274,12 +274,12 @@ namespace CoupledField
     //! \param alevel (in) index in multilevel hierarchy
     virtual void ProlongSol( const Vector<Double> sol_coarse, 
                              Vector<Double> & sol,
-                             const Integer alevel )
+                             const UInt alevel )
     { Error( "Not implemented", __FILE__, __LINE__); }
 
     //! Do refinement of elements, which we mark through function 
     //! SetRefinementFlag
-    virtual void Refine(const Integer numLoops = 1)
+    virtual void Refine(const UInt numLoops = 1)
     { Error( "This fnc is valid only for adaptgrid. Change your config-file",
              __FILE__ ,__LINE__); }
 
@@ -290,13 +290,13 @@ namespace CoupledField
 
     //! Update nodes for boundary conditions
     //! \param bcs list of boundary nodes
-    virtual void UpdateBCs(std::list<Integer> * bcs)
+    virtual void UpdateBCs(std::list<UInt> * bcs)
     { Error( "Not implemented", __FILE__, __LINE__); }
   
     //! Return vector of element-neighbors for the element with number noOfElem
     //! \param noOfElem (in) element level
     //! \param color (in) subdomain
-    virtual  StdVector<Elem*> *GetNeighboursOfElem(const Integer noOfElem, 
+    virtual  StdVector<Elem*> *GetNeighboursOfElem(const UInt noOfElem, 
                                                    std::string color)
     { 
       Error(" Not implemented",__FILE__,__LINE__);
@@ -307,7 +307,7 @@ namespace CoupledField
     //! Return vector of element-neighbors for the node with number noOfNode
     //! \param noOfNode (in) global number of node
     //! \param neighbours (out) list with neighbors
-    virtual void GetNeighboursOfNode(const Integer noOfNode,
+    virtual void GetNeighboursOfNode(const UInt noOfNode,
                                      StdVector<Elem*> * neighbours)
     { Error(" Not implemented",__FILE__,__LINE__);}
     //@}
@@ -340,7 +340,7 @@ namespace CoupledField
     //! a list of given elements. Ther are no duplicate entries.
     //! \param nodeList (out) list of unique node numbers in elemList
     //! \param elemList (in) list of elements
-    virtual void GetNodesOfElemList( StdVector<Integer> & nodeList,
+    virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
                                      const StdVector<Elem*> & elemList ) = 0;
   
     //! Resets the integration type of all known elements

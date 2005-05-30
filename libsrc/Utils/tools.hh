@@ -27,7 +27,7 @@ namespace CoupledField {
   //!                 error occured. The __LINE__ macro should be inserted in
   //!                 the call. The argument is optional.
   void Error( const Char * Text, const Char * const filename = NULL,
-              const Integer numline = 0 );
+              const UInt numline = 0 );
 
 
   //! Function for issuing an error message and terminating program execution.
@@ -48,7 +48,7 @@ namespace CoupledField {
   //!                 number of the code line of the module/file in which the
   //!                 error occured. The __LINE__ macro should be inserted in
   //!                 the call.
-  void Error( const Char *const filename, const Integer numline );
+  void Error( const Char *const filename, const UInt numline );
 
 
   //! Function for issuing an warning message, will not terminate the program
@@ -65,7 +65,7 @@ namespace CoupledField {
   //!                 problem occured. The __LINE__ macro should be inserted in
   //!                 the call. The argument is optional.
   void Warning( const Char* Text, const Char* const filename = NULL,
-                const Integer numline = 0 );
+                const UInt numline = 0 );
 
 
   //! Function for issuing an warning message, will not terminate the program
@@ -86,7 +86,7 @@ namespace CoupledField {
   //!                 number of the code line of the module/file in which the
   //!                 problem occured. The __LINE__ macro should be inserted in
   //!                 the call.
-  void Warning( const Char *const filename, const Integer numline );
+  void Warning( const Char *const filename, const UInt numline );
 
 
   //! Function for splitting a string into a vector of single entries
@@ -120,12 +120,12 @@ namespace CoupledField {
 
   //! power of value
   template<class T>
-  T pow(T x, Integer power) 
+  T pow(T x, UInt power) 
   { T p=x;
   if (!power)
     return 1;
  
-  for (Integer i=2; i<=power; i++)
+  for (UInt i=2; i<=power; i++)
     p*=x;
   return p;
   }
@@ -134,7 +134,7 @@ namespace CoupledField {
   /*!
     \param dim dimension of the point. 2.. point in 2D, 3.. point in 3D
   */
-  template<Integer dim>
+  template<UInt dim>
   class Point {
 
   public:
@@ -151,7 +151,7 @@ namespace CoupledField {
     Point & operator-(const Point & t); 
 
     //! return coordinate number i
-    Double &operator[](Integer i){return p[i];} 
+    Double &operator[](UInt i){return p[i];} 
   private:
     Double p[dim];
   };
@@ -162,7 +162,7 @@ namespace CoupledField {
 #endif
 
   //! calculate distance between two points
-  template<Integer dim>
+  template<UInt dim>
   Double dist(Point<dim> a, Point<dim> b);
 
   //! calculate distance between two points embedded in matrix
@@ -174,7 +174,7 @@ namespace CoupledField {
     \param point point
     \param out pointer to a ofstream
   */
-  template<Integer dim>
+  template<UInt dim>
   void PrintPoint(Point<dim> point, std::ostream * out); 
 
   // calculation area or volume of element
@@ -183,8 +183,8 @@ namespace CoupledField {
   Double CalcArea(Elem * ptElem, Grid * ptgrid);
 
   // define number of refinement for the element
-  Integer defineRefinements(const Double tolElem, const Double tolTotal,
-                            const Integer noOfChilds);
+  UInt defineRefinements(const Double tolElem, const Double tolTotal,
+                            const UInt noOfChilds);
 
   //! calculate the normal to line with following orientation: a-->b
   /*!

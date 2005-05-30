@@ -29,10 +29,10 @@ namespace CoupledField
       \param nRows (input) Number of rows
       \param nCols (input) Number of columns)
     */
-    Matrix (const Integer nRows, const Integer nCols);
+    Matrix (const UInt nRows, const UInt nCols);
 
     //! Constructor (number of vectors, array of vectors(colomn))
-    Matrix (const Integer, const Vector<TYPE> * const);
+    Matrix (const UInt, const Vector<TYPE> * const);
 
     //! Default Copy Construcctor
     Matrix(const Matrix &);
@@ -56,7 +56,7 @@ namespace CoupledField
       \param size (input) Number of rows / columns
     */
     //! \note the matrix contains afterwards only zeroes
-    void Resize(const Integer size);
+    void Resize(const UInt size);
   
     //! Change size of general matrix 
     /*!
@@ -64,13 +64,13 @@ namespace CoupledField
       \param nCols (input) Number of columns)
     */
     //! \note the matrix contains afterwards only zeroes
-    void Resize(const Integer nRows, const Integer nCols);
+    void Resize(const UInt nRows, const UInt nCols);
 
     //! Get the number of rows
-    Integer GetSizeRow() const;
+    UInt GetSizeRow() const;
   
     //! Get the number of columns
-    Integer GetSizeCol() const;
+    UInt GetSizeCol() const;
   
     //! Set the entry 'val' at position (row,col) in the matrix
     /*!
@@ -78,7 +78,7 @@ namespace CoupledField
       \param col (input) Column of entry
       \param val (input) Value to be set
     */
-    void SetEntry( const Integer row, const Integer col, const TYPE val ) {
+    void SetEntry( const UInt row, const UInt col, const TYPE val ) {
       data_[row][col] = val;
     }
   
@@ -88,14 +88,14 @@ namespace CoupledField
       \param col (input) Column of entry
       \param val (input) Value to be added
     */
-    void AddToEntry(const Integer row, const Integer col, const TYPE val);
+    void AddToEntry(const UInt row, const UInt col, const TYPE val);
    
     //! Get the entry 'val' at position (row,col) in the matrix
 
     //! \param row (input) row index of entry
     //! \param col (input) column index of entry
     //! \param val (output) on return contains value of entry
-    void GetEntry(const Integer row, const Integer col, TYPE & val) const {
+    void GetEntry(const UInt row, const UInt col, TYPE & val) const {
       val = *( data_[0] + row * size_col_ + col ); 
     }
 
@@ -167,12 +167,12 @@ namespace CoupledField
   
     //! copies a submatrix at the position (row, col) into subMat, 
     //! the amount of copied elements depends on the size of subMat
-    void GetSubMatrix(CFSMatrix & subMat, const Integer nRows, const Integer nCols) const 
+    void GetSubMatrix(CFSMatrix & subMat, const UInt nRows, const UInt nCols) const 
     {Error("!!! IMPLEMENT !!!");};
   
     //! overwrites the matrix elements at the position (row, col) with subMat
     //! in a rectangular (submatrix) way
-    void SetSubMatrix(CFSMatrix & subMat, const Integer nRows, const Integer nCols)
+    void SetSubMatrix(CFSMatrix & subMat, const UInt nRows, const UInt nCols)
     {Error("!!! IMPLEMENT !!!");};
   
     //! scales the diagonal elements of a  matrix by a factor
@@ -220,7 +220,7 @@ namespace CoupledField
     Matrix & operator= (const Matrix &);
 
     //! Return pointer to row number []
-    inline TYPE * operator[] (const Integer) const;
+    inline TYPE * operator[] (const UInt) const;
 
     //! fast inversion for matrices smaller than size 3
     void Invert (Matrix <TYPE> & inv) const;
@@ -238,7 +238,7 @@ namespace CoupledField
       \param row (Input) Row number
       \param col (Input) Column number
     */
-    TYPE & operator()(const Integer row , const Integer col);
+    TYPE & operator()(const UInt row , const UInt col);
 
     //! 
     Matrix operator+() const;
@@ -277,35 +277,35 @@ namespace CoupledField
     //!
     Matrix & operator/=(const TYPE &);
     //!
-    Integer operator ==(const Matrix &) const;
+    Boolean operator ==(const Matrix &) const;
 
     //!
-    Integer operator!=(const Matrix &) const;
+    Boolean operator!=(const Matrix &) const;
  
 
     //  //! Cut part of matrix (left index row, right, upper index col, low )
-    //   //   Matrix    part    (const Integer, const Integer,
-    //   //                          const Integer, const Integer) const;
+    //   //   Matrix    part    (const UInt, const UInt,
+    //   //                          const UInt, const UInt) const;
   
     //   //! Cut row number i, colomn number j from matrix
-    //   //void cut(const Integer i, const Integer j);
+    //   //void cut(const UInt i, const UInt j);
 
     //! Add a row to Matrix at position i
-    void AddRow(const Vector<TYPE> & x, const Integer pos );
+    void AddRow(const Vector<TYPE> & x, const UInt pos );
 
     //! Add a colomn to Matrix at position i
-    void AddColumn(const Vector<TYPE> & x, const Integer pos ); 
+    void AddColumn(const Vector<TYPE> & x, const UInt pos ); 
 
     /// Transpose actual matrix
     void Transpose (Matrix<TYPE> &transposedMat);  
 
     /// copies a submatrix at the position (row, col) into subMat, 
     /// the amount of copied elements depends on the size of subMat
-    void GetSubMatrix(Matrix<TYPE>& subMat, Integer row, Integer col) const;
+    void GetSubMatrix(Matrix<TYPE>& subMat, UInt row, UInt col) const;
 
     /// overwrites the matrix elements at the position (row, col) with subMat
     /// in a rectangular (submatrix) way
-    void SetSubMatrix(Matrix<TYPE>& subMat, Integer row, Integer col);
+    void SetSubMatrix(Matrix<TYPE>& subMat, UInt row, UInt col);
 
     /// converts a matrix into a vector, by appending successively all rows
     void ConvertToVec_AppendRows(CFSVector& vec) const;
@@ -320,13 +320,13 @@ namespace CoupledField
   private:
 
     //! calculates the adjunct of the matrix at position (i,j)
-    TYPE Adjunct (Integer i, Integer j) const;
+    TYPE Adjunct (UInt i, UInt j) const;
 
     //! number of rows 
-    Integer size_row_;
+    UInt size_row_;
   
     //! number of columns
-    Integer size_col_;
+    UInt size_col_;
 
     //! data of the matrix
     TYPE** data_;
@@ -342,25 +342,25 @@ namespace CoupledField
   template<class TYPE>
   inline void Matrix<TYPE>::Init(const TYPE val)
   {
-    Integer i;
+    UInt i;
     for (i=0; i<size_row_*size_col_; i++) 
       data_[0][i]=val;
   }
 
   template<class TYPE>
-  inline void Matrix<TYPE>::AddToEntry ( const Integer i, const Integer j,
+  inline void Matrix<TYPE>::AddToEntry ( const UInt i, const UInt j,
                                          const TYPE value ) {
     data_[i][j]+=value;
   }
 
   template<class TYPE>
-  inline TYPE & Matrix<TYPE>::operator()(const Integer row, const Integer col) 
+  inline TYPE & Matrix<TYPE>::operator()(const UInt row, const UInt col) 
   {
     return data_[row][col];
   }
 
   template<class TYPE>
-  inline TYPE * Matrix<TYPE>::operator[] (const Integer i) const
+  inline TYPE * Matrix<TYPE>::operator[] (const UInt i) const
   { 
     ENTER_IFCN("Matrix::operator[]");
 
@@ -383,13 +383,13 @@ namespace CoupledField
 
 
   template<class TYPE>
-  inline Integer Matrix<TYPE>::GetSizeRow() const
+  inline UInt Matrix<TYPE>::GetSizeRow() const
   {       
     return size_row_;
   }
  
   template<class TYPE>
-  inline Integer Matrix<TYPE>::GetSizeCol () const
+  inline UInt Matrix<TYPE>::GetSizeCol () const
   {       
     return size_col_;
   }
@@ -437,11 +437,11 @@ namespace CoupledField
     Matrix<TYPE> &mMat1 = dynamic_cast<Matrix<TYPE>& >(mMat);
     Matrix<TYPE> &rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
   
-    Integer size_mMatRow = mMat1.GetSizeRow();
-    Integer size_mMatCol = mMat1.GetSizeCol();
+    UInt size_mMatRow = mMat1.GetSizeRow();
+    UInt size_mMatCol = mMat1.GetSizeCol();
 
-    Integer size_rMatRow = rMat1.GetSizeRow();
-    Integer size_rMatCol = rMat1.GetSizeCol();
+    UInt size_rMatRow = rMat1.GetSizeRow();
+    UInt size_rMatCol = rMat1.GetSizeCol();
  
 #ifdef CHECK_INITIALIZED
     if (size_row_ == 0 || size_col_ == 0) 
@@ -467,19 +467,20 @@ namespace CoupledField
     }
 #endif
    
-    for (Integer i = 0; i < size_row_; i++ ) {
-      for (Integer j = 0; j < size_mMatCol; j++ ) {
+    for (UInt i = 0; i < size_row_; i++ ) {
+      for (UInt j = 0; j < size_mMatCol; j++ ) {
         rMat1[i][j] = data_[i][0] * mMat1[0][j];
-        for ( Integer k = 1; k < size_mMatRow; k++ ) {
+        for ( UInt k = 1; k < size_mMatRow; k++ ) {
           rMat1[i][j] += data_[i][k] * mMat1[k][j];
         }
       }
     }
-  };
+  }
 
 #if defined(__GNUC__) 
   template class Matrix<Double>;
   template class Matrix<Integer>;
+  template class Matrix<UInt>;
   template class Matrix<Complex>;
 #endif
 

@@ -85,7 +85,7 @@ namespace CoupledField {
     //! \param ip      (input)  number of integration point
     //! \param ptCoord (input)  matrix containing co-ordinates of all
     //!                         integration points
-    void calcAMat( Matrix<Double> &aMat, Integer ip,
+    void calcAMat( Matrix<Double> &aMat, UInt ip,
                    const Matrix<Double> &ptCoord );
 
     //! Compute the matrix \f$B\f$ of the \f$ADB\f$ operator
@@ -115,7 +115,7 @@ namespace CoupledField {
     //! \param ip      (input)  number of integration point
     //! \param ptCoord (input)  matrix containing co-ordinates of all
     //!                         integration points
-    void calcBMat( Matrix<Double> &bMat, Integer ip,
+    void calcBMat( Matrix<Double> &bMat, UInt ip,
                    const Matrix<Double> &ptCoord );
 
     //! Compute the data-matrix \f$D\f$
@@ -134,7 +134,7 @@ namespace CoupledField {
     //! This method returns the dimensions of the data-matrix \f$D\f$.
     //! In the case of 3D piezoelectric coupling we have
     //! \f$\mbox{dim}D=6\times 3\f$
-    void getDimD( Integer nRows, Integer nCols ) {
+    void getDimD( UInt nRows, UInt nCols ) {
       ENTER_IFCN( "linPiezoCoupling3D::getDimD" );
       nRows = 6;
       nCols = 3;
@@ -148,7 +148,7 @@ namespace CoupledField {
     //! In the case of 3D piezoelectric coupling the first physical quantity
     //! is the mechanical displacements.
     //! \return 3
-    Integer getNumDofsA() {
+    UInt getNumDofsA() {
       ENTER_IFCN( "linPiezoCoupling3D::getNumDofsA" );
       return 3;
     }
@@ -161,7 +161,7 @@ namespace CoupledField {
     //! In the case of 3D piezoelectric coupling the second physical quantity
     //! is the electric potential.
     //! \return 1
-    Integer getNumDofsB() {
+    UInt getNumDofsB() {
       ENTER_IFCN( "linPiezoCoupling3D::getNumDofsB" );
       return 1;
     }

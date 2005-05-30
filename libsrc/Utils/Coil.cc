@@ -11,13 +11,13 @@ namespace CoupledField {
   // ------------------------------------
   //   Default Constructor (disallowed)
   // ------------------------------------
-  Coil::Coil() {};
+  Coil::Coil() {}
 
 
   // ---------------------------------
   //   Copy Constructor (disallowed)
   // ---------------------------------
-  Coil::Coil( const Coil &c ) {};
+  Coil::Coil( const Coil &c ) {}
 
 
   // ----------------------
@@ -33,7 +33,7 @@ namespace CoupledField {
       fileU_->close();
       delete fileU_;
     }
-  };
+  }
 
 
   // -----------------------

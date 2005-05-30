@@ -83,7 +83,7 @@ namespace CoupledField
   void Tetra1FE :: SetEdgeVertices()
   {
     ENTER_IFCN( "SetEdgeVertices" );
-    const Integer nrNodesPerEdge = 2;
+    const UInt nrNodesPerEdge = 2;
   
     edgeVertices_.Resize(NumEdges_, nrNodesPerEdge);
 
@@ -128,7 +128,7 @@ namespace CoupledField
 
   // std::ostream& operator<< (std::ostream & outStr, Vector<Double> xOut)
   // {
-  //   for (Integer i=0; i<xOut.size(); i++)
+  //   for (UInt i=0; i<xOut.size(); i++)
   //     outStr <<  " " << xOut[i];
   //   return outStr;
   // }
@@ -149,7 +149,7 @@ namespace CoupledField
     if (Shape[0] < 0)
       Error("Local coordinates are not inside tetrahedral element!",__FILE__,__LINE__);
 
-    for( Integer i=1; i<NumNodes_; i++)
+    for( UInt i=1; i<NumNodes_; i++)
       Shape[i] = LCoord[i-1];
 
   }
@@ -164,10 +164,10 @@ namespace CoupledField
 
     LDeriv.Init();
   
-    for( Integer i=0; i<Dim_; i++)
+    for( UInt i=0; i<Dim_; i++)
       LDeriv[0][i] = -1.0;
 
-    for( Integer i=1; i < NumNodes_; i++)
+    for( UInt i=1; i < NumNodes_; i++)
       LDeriv[i][i-1] = 1.0;
   }
 
@@ -192,12 +192,12 @@ namespace CoupledField
     //  CalcLocalDerivShapeFnc(xDxi, localcoord);
     GetGlobDerivShFnc(xDxi, LCoord, cornernodes);    
 
-    for (Integer actEdge=0; actEdge<NumEdges_; actEdge++)
+    for (UInt actEdge=0; actEdge<NumEdges_; actEdge++)
       {
-        Integer node1 = edgeVertices_[actEdge][0];
-        Integer node2 = edgeVertices_[actEdge][1];
+        UInt node1 = edgeVertices_[actEdge][0];
+        UInt node2 = edgeVertices_[actEdge][1];
       
-        for (Integer actDim=0; actDim<Dim_; actDim++)
+        for (UInt actDim=0; actDim<Dim_; actDim++)
           edgeShape[actEdge][actDim] = 
             nodeShape[node1] * xDxi[node2][actDim] - 
             nodeShape[node2] * xDxi[node1][actDim];
@@ -221,15 +221,15 @@ namespace CoupledField
     GetGlobDerivShFnc(xDxi, lCoord, cornerCoords);
   
   
-    for (Integer actEdge=0; actEdge<NumEdges_; actEdge++)
+    for (UInt actEdge=0; actEdge<NumEdges_; actEdge++)
       {
         shapeDeriv[actEdge]->Resize(Dim_,Dim_);
 
-        Integer node1 = edgeVertices_[actEdge][0];
-        Integer node2 = edgeVertices_[actEdge][1];
+        UInt node1 = edgeVertices_[actEdge][0];
+        UInt node2 = edgeVertices_[actEdge][1];
 
-        for (Integer dim1=0; dim1<Dim_; dim1++)
-          for (Integer dim2=0; dim2<Dim_; dim2++)
+        for (UInt dim1=0; dim1<Dim_; dim1++)
+          for (UInt dim2=0; dim2<Dim_; dim2++)
             (*shapeDeriv[actEdge]) [dim2][dim1] = 
               xDxi[node1][dim1] * xDxi[node2][dim2] -
               xDxi[node1][dim2] * xDxi[node2][dim1];

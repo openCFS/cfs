@@ -44,7 +44,7 @@ namespace CoupledField
   {
     ENTER_FCN( "GradientFieldOp::CalcElemGradField" );
   
-    ShortInt dim;
+    UInt dim;
     Vector<TYPE> potEntry(1);
     dim = ptElement->ptElem->GetDim();
  
@@ -53,10 +53,10 @@ namespace CoupledField
     helpElemField.Resize(dim);
     helpElemField.Init(0.0);
    
-    Integer nShFnc = 0;
+    UInt nShFnc = 0;
     nShFnc = ptElement->ptElem->GetNumNodes();
  
-    const StdVector<Integer> & connect = ptElement->connect;
+    const StdVector<UInt> & connect = ptElement->connect;
   
     Matrix<Double> CornerCoords; 
     ptPDE_->GetElemCoords(connect, CornerCoords);
@@ -66,8 +66,8 @@ namespace CoupledField
     ptElement->ptElem->GetGlobDerivShFnc(GlobalGradient, lCoord, CornerCoords);
 
     // loop over shape functions
-    for( Integer i=0; i<dim; i++ )
-      for( Integer j=0; j<nShFnc; j++ )
+    for( UInt i=0; i<dim; i++ )
+      for( UInt j=0; j<nShFnc; j++ )
         {
           //std::cerr << "Longing for connect = " << connect[j] << std::endl;
 
@@ -92,14 +92,13 @@ namespace CoupledField
     ENTER_FCN( "GradientFieldOp::CalcSDGradField" );
   
     Error( "GradientFieldOp::CalcSDElecField: Not working yet", __FILE__, __LINE__);
-    Integer nShFnc = 0;
-    ShortInt dim;
+    UInt nShFnc = 0;
+    UInt dim;
     Matrix<Double> cornerCoords;
     Matrix<Double> globalGradient;
   
     StdVector<Elem *> subDomain;
-    Double potEntry;
-    Integer maxelem;
+    UInt maxelem;
     maxelem = ptGrid_->GetNumElems(SD);
     dim = ptGrid_->GetDim();
 
@@ -109,12 +108,12 @@ namespace CoupledField
     //elemField.SetNumDofs(dim);
             
     // Iterate over all subdomains
-    for( Integer iSD=0; iSD<SD.GetSize(); iSD++)
+    for( UInt iSD=0; iSD<SD.GetSize(); iSD++)
       {
         ptGrid_->GetVolElems(subDomain,SD[iSD]);
 
         // Iterate over whole SubDomain
-        for( Integer k=0; k<subDomain.GetSize(); k++) 
+        for( UInt k=0; k<subDomain.GetSize(); k++) 
           {
             nShFnc = subDomain[k]->ptElem->GetNumNodes();
           
@@ -123,8 +122,8 @@ namespace CoupledField
             subDomain[k]->ptElem->GetGlobDerivShFnc(globalGradient, lCoord, cornerCoords);
           
             // loop over shape functions
-            for( Integer i=0; i<dim; i++ )
-              for( Integer j=0; j<nShFnc; j++ )
+            for( UInt i=0; i<dim; i++ )
+              for( UInt j=0; j<nShFnc; j++ )
                 {
                   // NOT WORKING YET
                   //elecEntry = (*EPotential_)(SubDomain[k]->connect[j],1);

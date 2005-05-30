@@ -56,7 +56,7 @@ namespace CoupledField
     if (Shape[0] < 0)
       Error("Local coordinates are not inside triangular element!",__FILE__,__LINE__);
 
-    for( Integer i=1; i<NumNodes_; i++)
+    for( UInt i=1; i<NumNodes_; i++)
       Shape[i] = LCoord[i-1];
 
 #ifdef DEBUG

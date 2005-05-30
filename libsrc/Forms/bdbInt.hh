@@ -34,7 +34,7 @@ namespace CoupledField {
   protected:
 
     //! returns B - matrix for BDB
-    virtual void calcBMat( Matrix<Double> &bMat, Integer ip,
+    virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
                            Matrix<Double> &ptCoord ) = 0;
 
     //! returns D - matrix for BDB
@@ -54,7 +54,7 @@ namespace CoupledField {
     };
 
     //! returns D - matrix for BDB, changes in every integration point
-    virtual void calcDMat( Matrix<Double> &dMat, Integer ip,
+    virtual void calcDMat( Matrix<Double> &dMat, UInt ip,
                            Matrix<Double> &ptCoord ) {
       (*error) << "BDBInt::calcDMat(Matrix<Double>&, int, Matrix<Double>&) "
                << "not correct overwritten!";
@@ -62,10 +62,10 @@ namespace CoupledField {
     };
 
     //! returns dimension of D matrix
-    virtual Integer getDimD() = 0;
+    virtual UInt getDimD() = 0;
 
     //! returns nr. of degrees of freedom
-    virtual Integer getNrDofs() = 0;
+    virtual UInt getNrDofs() = 0;
 
     //! Boolean for signaling that D matrix is non-constant
 
@@ -73,7 +73,7 @@ namespace CoupledField {
     //! necessary to compute the D matrix for each integration point
     //! individually. This attribute is used to signal when the latter is
     //! required.
-    Integer updateDMatInEveryIP_;
+    Boolean updateDMatInEveryIP_;
   };
 
 }

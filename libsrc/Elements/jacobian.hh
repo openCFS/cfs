@@ -18,7 +18,7 @@ namespace CoupledField
     \eta_{x} & \eta_{y} & \eta_{z}\\
     \zeta_{x} & \zeta_{y} & \zeta_{z} \end{array}\right)\f$ */
 
-  template<Integer dim>
+  template<UInt dim>
   class Jacobian
   {
   public:
