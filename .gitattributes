@@ -440,7 +440,6 @@ libsrc/ParamIdent/nuMethods.cc svneol=native#text/plain
 libsrc/ParamIdent/piezoParamIdent.cc svneol=native#text/plain
 libsrc/ParamIdent/piezoParamIdent.hh svneol=native#text/plain
 libsrc/ParamIdent/piezoParamIdent_methods.cc svneol=native#text/plain
-libsrc/ParamIdent/tichonov.cc svneol=native#text/plain
 libsrc/Utils/ApproxData.cc svneol=native#text/plain
 libsrc/Utils/ApproxData.hh svneol=native#text/plain
 libsrc/Utils/Coil.cc svneol=native#text/plain
