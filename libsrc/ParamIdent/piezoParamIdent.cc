@@ -667,8 +667,6 @@ namespace CoupledField
       }
     }
 
-    else if (whichNewtonCG==9)
-      tichonov();
     else
       std::cout<<"\n There was no valid NewtonCG method specified - see in your measuredData.dat -file "<<std::endl;
     //    tichonov();
