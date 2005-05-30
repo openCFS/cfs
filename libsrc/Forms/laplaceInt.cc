@@ -36,8 +36,8 @@ namespace CoupledField
   {
     ENTER_FCN( "LaplaceInt::CalcElementMatrix" );
   
-    const Integer nrIntPts= ptelem->GetNumIntPoints();
-    const Integer nrNodes = ptelem->GetNumNodes();
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
 
@@ -57,7 +57,7 @@ namespace CoupledField
       laplVal_ = (*materialArray_)[actSD_][actElemNr_];
     }
 
-    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         

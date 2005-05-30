@@ -31,11 +31,16 @@ namespace CoupledField {
 
 
     //! returns y(x)
-    virtual double EvaluateFunc(double x) {;};
+    virtual double EvaluateFunc(double x) {
+      Error("Not implemented", __FILE__, __LINE__);
+      return -1.0; };
 
     //! returns  y'(x)  
-    virtual double EvaluatePrime(double x)
-    { Error(" LinInterpolate: EvaluatePrime not implemented");};
+    virtual double EvaluatePrime(double x) { 
+      Error(" LinInterpolate: EvaluatePrime not implemented", 
+            __FILE__, __LINE__);
+      return -1.0; 
+    };
 
     ///
     virtual double EvaluateFuncInv(double t);

@@ -16,7 +16,7 @@ namespace CoupledField {
     //! \param driverTag tag for current driver section
     //! \param true, if driver is part of  multiSequence
     StaticDriver(Domain * adomain,
-                 Integer stepOffset = 0,
+                 UInt stepOffset = 0,
                  Double timeOffset = 0.0,
                  std::string driverTag = "anyTag",
                  Boolean isPartOfSequence = FALSE);

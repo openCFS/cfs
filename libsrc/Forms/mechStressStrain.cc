@@ -38,7 +38,7 @@ namespace CoupledField
   // S = B_lin * u 
   // see Habil. M. Kaltenbacher 
   void MechStressStrain::
-  CalcStressVec(Vector<Double>& stressVec, Integer ip, Matrix<Double> & ptCoord)
+  CalcStressVec(Vector<Double>& stressVec, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "MechStressStrain::calcPiolaStressTensor" );
 
@@ -62,7 +62,7 @@ namespace CoupledField
 
   // returns linear B - matrix
   void MechStressStrain::
-  calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "MechStressStrain::calcLinBMat" );
 

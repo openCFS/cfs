@@ -52,20 +52,20 @@ namespace CoupledField {
   // ======================================================
   // GENERAL MESH INFORMATION
   // ======================================================
-  Integer AnsysFile::GetDim() {
+  UInt AnsysFile::GetDim() {
     ENTER_FCN( "AndsysFile::GetDim ");
     return GetInteger("Dimension");
   }
   
-  Integer AnsysFile::GetNumNodes(){
+  UInt AnsysFile::GetNumNodes(){
     ENTER_FCN( "AndsysFile::GetNumNodes ");
     return GetInteger("NumNodes");
   }
     
-  Integer AnsysFile::GetNumElems(const Integer dim){
+  UInt AnsysFile::GetNumElems(const UInt dim){
     ENTER_FCN( "AndsysFile::GetNumElems ");
     
-    Integer numElems = 0;
+    UInt numElems = 0;
     std::string search;
     
 
@@ -88,15 +88,15 @@ namespace CoupledField {
     return numElems;
   }
   
-  Integer AnsysFile::GetNumRegions(){
+  UInt AnsysFile::GetNumRegions(){
     ENTER_FCN( "AndsysFile::GetNumRegions ");
     Error( "Not implemented", __FILE__, __LINE__ );
     return 0;
   }
 
-  Integer AnsysFile::GetNumNamedNodes(){
+  UInt AnsysFile::GetNumNamedNodes(){
     ENTER_FCN( "AndsysFile::GetNumNamedNodes");
-    Integer numNamedNodes = 0;
+    UInt numNamedNodes = 0;
     
     numNamedNodes += GetInteger("NumNodeBC");
     numNamedNodes += GetInteger("NumSaveNodes");
@@ -104,7 +104,7 @@ namespace CoupledField {
     return numNamedNodes;
   }
 
-  Integer AnsysFile::GetNumNamedElems(){
+  UInt AnsysFile::GetNumNamedElems(){
     ENTER_FCN( "AndsysFile::GetNumNamedElems");
     return GetInteger("NumSaveElements");
   }
@@ -120,10 +120,10 @@ namespace CoupledField {
     
     StdVector<std::string>  names;
     
-    for ( Integer iDim=dim_; iDim>0; iDim-- ) {
+    for ( UInt iDim=dim_; iDim>0; iDim-- ) {
       names.Clear();
       GetRegionNamesOfDim(names,iDim);
-      for ( Integer iName=0; iName<names.GetSize(); iName++ )
+      for ( UInt iName=0; iName<names.GetSize(); iName++ )
         regionNames.Push_back(names[iName]);
 
     }
@@ -132,7 +132,7 @@ namespace CoupledField {
     
     
   void AnsysFile::GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                                       const Integer dim ) {
+                                       const UInt dim ) {
     ENTER_FCN( "AnsysFile::GetRegionNamesOfDim" );
     
     regionNames.Clear();
@@ -146,7 +146,7 @@ namespace CoupledField {
     }
     
     // Look for region names of desired dimension
-    for ( Integer i=0; i<regionDim_.GetSize(); i++ ) 
+    for ( UInt i=0; i<regionDim_.GetSize(); i++ ) 
       if ( regionDim_[i] == dim )
         regionNames.Push_back( regionNames_[i] );
     
@@ -159,17 +159,17 @@ namespace CoupledField {
 
     std::string::size_type pos=0;
     std::string str;
-    Integer nodalnum;
-    Integer i,j;    
+    UInt nodalnum;
+    UInt i,j;    
     StdVector<std::string> sections;
-    StdVector<Integer> numNamedNodes;
+    StdVector<UInt> numNamedNodes;
     
     sections = "Node BC", "Save Nodes";
     numNamedNodes.Resize(2);
     numNamedNodes[0] = GetInteger("NumNodeBC");
     numNamedNodes[1] = GetInteger("NumSaveNodes");
     
-    for ( Integer iSect=0; iSect<sections.GetSize(); iSect++ ) {
+    for ( UInt iSect=0; iSect<sections.GetSize(); iSect++ ) {
       
       GetPosLine(sections[iSect], pos);
       inFile_.seekg(pos,std::ios::beg);
@@ -206,10 +206,10 @@ namespace CoupledField {
   void AnsysFile::GetCoordinates( StdVector<Point<2> > & nodeCoords ) {
     ENTER_FCN( "AnsysFile::GetCoordinates 2D" );
 
-    Integer i, ibuf;
+    UInt i, ibuf;
     std::string::size_type pos=0;
     
-    Integer numNodes = GetNumNodes();
+   UInt numNodes = GetNumNodes();
     nodeCoords.Resize(numNodes);
 
 
@@ -226,10 +226,10 @@ namespace CoupledField {
   void AnsysFile::GetCoordinates( StdVector<Point<3> > & nodeCoords ) {
     ENTER_FCN( "AnsysFile::GetCoordinates 3D" );
     
-    Integer i, ibuf;
+   UInt i, ibuf;
     std::string::size_type pos=0;
     
-    Integer numNodes = GetNumNodes();
+   UInt numNodes = GetNumNodes();
     nodeCoords.Resize(numNodes);
     
     
@@ -243,13 +243,13 @@ namespace CoupledField {
     }
   }
 
-  void AnsysFile::GetNodesOfRegions( StdVector<StdVector<Integer> > &nodes,
+  void AnsysFile::GetNodesOfRegions( StdVector<StdVector<UInt> > &nodes,
                                      const StdVector<RegionIdType> & regionId ) {
 
     ENTER_FCN( "AnsysFile::GetNodesOfRegions" );
 
-    std::set<Integer>::iterator it;
-    Integer iRegion, index, iNode;
+    std::set<UInt>::iterator it;
+   UInt iRegion, index, iNode;
     
     
     nodes.Resize(regionId.GetSize());
@@ -273,7 +273,7 @@ namespace CoupledField {
 
   void AnsysFile::GetElements( StdVector< StdVector<Elem*> > & elems, 
                                StdVector<RegionIdType> & regionIds,
-                               const Integer dim ) {
+                               const UInt dim ) {
     ENTER_FCN( "AnsysFile::GetElements" );
     
     // Check that dimension is correct
@@ -301,7 +301,7 @@ namespace CoupledField {
 
     // Determine the number of elements of respective dimension from
     // the header of the mesh-file
-    Integer numElems = GetNumElems(dim);
+   UInt numElems = GetNumElems(dim);
 
     // If there are no elements, we assume that this is fine an
     // simply return
@@ -321,7 +321,7 @@ namespace CoupledField {
     inFile_.seekg( pos, std::ios::beg );
 
     // Some additional variables
-    Integer i, k, eNum, eType, eNodes;
+   UInt i, k, eNum, eType, eNodes;
     std::string region, lastRegion;
     RegionIdType regionId = NO_REGION_ID;
     Integer regionIndex = 0;
@@ -370,7 +370,7 @@ namespace CoupledField {
         if ( regionIndex == -1 ) {
           regionIds.Push_back(regionId);
           elems.Push_back( StdVector<Elem*>() );
-          regionNodes_.Push_back(std::set<Integer>());
+          regionNodes_.Push_back(std::set<UInt>());
           regionIndex = regionIds.GetSize() - 1;
         }
       }
@@ -415,7 +415,7 @@ namespace CoupledField {
 
 
  
-  void AnsysFile::GetNamedNodes( StdVector<StdVector<Integer> > & nodes,
+  void AnsysFile::GetNamedNodes( StdVector<StdVector<UInt> > & nodes,
                                  StdVector<std::string> & nodeNames ) {
 
     ENTER_FCN( "AnsysFile::GetNamedNodes" );
@@ -427,18 +427,18 @@ namespace CoupledField {
     std::string lastName = "";
     Integer lastIndex = 0;
     std::string str, buf, errMsg;
-    Integer nodalnum;
-    Integer i;
+    UInt nodalnum;
+    UInt i;
 
     StdVector<std::string> sections;
-    StdVector<Integer> numNamedNodes;
+    StdVector<UInt> numNamedNodes;
     sections = "Node BC", "Save Nodes";
     numNamedNodes.Resize(2);
     numNamedNodes[0] = GetInteger("NumNodeBC");
     numNamedNodes[1] = GetInteger("NumSaveNodes");
 
 
-    for ( Integer iSect=0; iSect<sections.GetSize(); iSect++) {
+    for ( UInt iSect=0; iSect<sections.GetSize(); iSect++) {
 
       GetPosLine(sections[iSect], pos);
       inFile_.seekg(pos,std::ios::beg);
@@ -473,7 +473,7 @@ namespace CoupledField {
           
           if( lastIndex == -1 ) {
             nodeNames.Push_back(str);
-            nodes.Push_back( StdVector<Integer>() );
+            nodes.Push_back( StdVector<UInt>() );
             lastIndex = nodes.GetSize()-1; 
           }
         }
@@ -494,7 +494,7 @@ namespace CoupledField {
   }
 
 
-  void AnsysFile::GetNamedElems( StdVector<StdVector<Integer> > & elems,
+  void AnsysFile::GetNamedElems( StdVector<StdVector<UInt> > & elems,
                                  StdVector<std::string> & elemNames ) {
     ENTER_FCN( "AnsysFile::GetNamedElems" );
     
@@ -503,10 +503,10 @@ namespace CoupledField {
     std::string lastName = "";
     Integer lastIndex = 0;
     std::string str, buf, errMsg;
-    Integer elemNum;
-    Integer i;
+    UInt elemNum;
+    UInt i;
 
-    Integer numNamedElems = GetInteger("NumSaveElems");
+    UInt numNamedElems = GetInteger("NumSaveElems");
 
     GetPosLine("Save Elements", pos);
     inFile_.seekg(pos,std::ios::beg);
@@ -542,7 +542,7 @@ namespace CoupledField {
         
         if( lastIndex == -1 ) {
           elemNames.Push_back(str);
-          elems.Push_back( StdVector<Integer>() );
+          elems.Push_back( StdVector<UInt>() );
           lastIndex = elems.GetSize()-1; 
         }
       }
@@ -657,13 +657,13 @@ namespace CoupledField {
   // **************
   //   GetInteger
   // **************
-  Integer AnsysFile::GetInteger( std::string seekexp ) {
+  UInt AnsysFile::GetInteger( std::string seekexp ) {
 
     ENTER_IFCN( "AnsysFile::GetInteger" );
 
     std::string::size_type pos = 0;
     std::string::size_type lineEndPos = 0;
-    Integer val;
+    UInt val;
     std::string buf;
 
     GetPosition(seekexp, pos);
@@ -718,7 +718,7 @@ namespace CoupledField {
   // *******************
   
   RegionIdType AnsysFile::ObtainRegionId( const std::string & regionName, 
-                                          const Integer dim ) {
+                                          const UInt dim ) {
     ENTER_FCN( "AnsysFile::ObtainRegionId" );
 
     Integer index = regionNames_.Find(regionName);
@@ -740,7 +740,7 @@ namespace CoupledField {
   // ***************
   //   Type2ptElem
   // ***************
-  BaseFE * AnsysFile::Type2ptElem( const Integer itype ) {
+  BaseFE * AnsysFile::Type2ptElem( const UInt itype ) {
 
     ENTER_IFCN( "AnsysFile::Type2ptElem" );
 
@@ -811,7 +811,7 @@ namespace CoupledField {
     StdVector<std::string> levels;
     conf->getliststr("list_nodes",levels);
     
-    Integer numbc;
+    UInt numbc;
     ReadMaxnumnodesbc(numbc);
 
     std::string::size_type pos=0;
@@ -820,8 +820,8 @@ namespace CoupledField {
     
     std::string str;
   
-    Integer nodalnum;
-    Integer i,j;
+    UInt nodalnum;
+    UInt i,j;
     for (i=0; i < numbc; i++)
       {
         inFile_ >> nodalnum >> str;
@@ -867,7 +867,7 @@ namespace CoupledField {
   {
     ENER_FCN( "AnsysFile::ReadElems4AdaptGrid" );
 
-    Integer maxnelems;
+    UInt maxnelems;
     ReadMaxnumelem(maxnelems,"Num2DElements");
 
     if (maxnelems)
@@ -877,9 +877,9 @@ namespace CoupledField {
         GetPosLine("2D Elements", pos);
         inFile_.seekg(pos,std::ios::beg);
 
-        Integer i, ii, ibuf, itype, innodes;
+        UInt i, ii, ibuf, itype, innodes;
         std::string namesd;
-        Integer connect[4]; 
+        UInt connect[4]; 
 
         elems.resize(maxnelems);
         for (i=0; i<maxnelems; i++)
@@ -935,7 +935,7 @@ namespace CoupledField {
       {
         ENTER_FCN( "AnsysFile::ReadElems4AdaptGrid3d" );
 
-        Integer maxnelems;
+        UInt maxnelems;
         ReadMaxnumelem(maxnelems,"Num3DElements");
 
         if (maxnelems)
@@ -945,9 +945,9 @@ namespace CoupledField {
             GetPosLine("3D Elements", pos);
             inFile_.seekg(pos,std::ios::beg);
 
-            Integer i, ii, ibuf, itype, innodes;
+            UInt i, ii, ibuf, itype, innodes;
             std::string namesd;
-            Integer connect[4]; 
+            UInt connect[4]; 
 
             elems.resize(maxnelems);
             for (i=0; i<maxnelems; i++)
@@ -1016,7 +1016,7 @@ namespace CoupledField {
       ENTER_FCN( "AnsysFile::SetNumSD" );
 
       Boolean Find;
-      Integer j;
+      UInt  j;
       for (j=0; j<sdGetSize(); j++)
         if (namesd == sd[j]) { ptEl->setValue(j);
         Find=TRUE;

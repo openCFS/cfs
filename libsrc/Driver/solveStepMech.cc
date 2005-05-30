@@ -26,7 +26,7 @@ namespace CoupledField {
   // STATIC SOLVING SECTION
   // ======================================================
 
-  void SolveStepMech:: PreStepStatic(const Integer kstep, const Double asteptime,
+  void SolveStepMech:: PreStepStatic(const UInt kstep, const Double asteptime,
 				     const Boolean reset)
   {
     ENTER_FCN( "SolveStepMech::PreStepStatic" );
@@ -43,12 +43,12 @@ namespace CoupledField {
   }
 
 
-//   void SolveStepMech::StepStaticLin( const Integer kstep, const Double aTime,
+//   void SolveStepMech::StepStaticLin( const UInt kstep, const Double aTime,
 //                                 const Boolean reset ) {
 
 //     ENTER_FCN( "SolveStepMech::StepStaticLin" );
 
-//     Integer job = 3; // only update BCs
+//     UInt job = 3; // only update BCs
 //     Double * ptsol;
 //     lasttimecalc_ = aTime; // for correct output in unv-file
 
@@ -86,14 +86,13 @@ namespace CoupledField {
 //   }
 
 
-  void SolveStepMech::StepStaticNonLin(const Integer kstep, const Double aTime,
+  void SolveStepMech::StepStaticNonLin(const UInt kstep, const Double aTime,
 				       const Boolean reset)
   {
     ENTER_FCN( "SolveStepMech::SolveStepStaticNonLin" );
 
-    const Integer job = 1;
     Boolean performOneMoreStep;
-    Integer iterationCounter=0;
+    UInt iterationCounter=0;
     NodeStoreSol<Double>  & solHelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
   
     Vector<Double>  actSol = solHelp.GetAlgSysVector();
@@ -132,10 +131,8 @@ namespace CoupledField {
       
 	algsys_->BuildInDirichlet();
 
-	if (job == 1) {
-	  algsys_->SetupPrecond(job);
-	  algsys_->SetupSolver(job);
-	}
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
 
 	algsys_->Solve();   
 
@@ -224,7 +221,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMech :: PostStepStatic(const Integer kstep, const Double asteptime)
+  void SolveStepMech :: PostStepStatic(const UInt kstep, const Double asteptime)
   {
     ENTER_FCN( "SolveStepMech::PostStepStatic" );
 
@@ -239,7 +236,7 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-//   void SolveStepMech::PreStepTrans( const Integer kstep, const Double asteptime,
+//   void SolveStepMech::PreStepTrans( const UInt kstep, const Double asteptime,
 //                                      const Boolean reset ) {
 
 //     ENTER_FCN( "SolveStepMech::PreStepTrans" );
@@ -259,7 +256,7 @@ namespace CoupledField {
 //   }
 
 
-//   void SolveStepMech::SolveStepTrans( const Integer kstep, const Double asteptime, 
+//   void SolveStepMech::SolveStepTrans( const UInt kstep, const Double asteptime, 
 //                                       const Boolean reset ) {
 
 //     ENTER_FCN( "SolveStepMech::SolveStepTrans" );
@@ -285,13 +282,13 @@ namespace CoupledField {
 
   //! \todo delete job parameter or replace it by a 
   //! meaningfull attribute
-//   void SolveStepMech::StepTransLin( const Integer kstep, const Double asteptime,
+//   void SolveStepMech::StepTransLin( const UInt kstep, const Double asteptime,
 //                                      const Boolean reset ) {
 
 //     ENTER_FCN( "SolveStepMech::StepTransLin" );
 
 //     Double * ptsol;
-//     Integer job;
+//     UInt job;
 //     lasttimecalc_= asteptime;
 
 //     //account for RHS
@@ -396,7 +393,7 @@ namespace CoupledField {
 
 
 
-//   void SolveStepMech::PostStepTrans( const Integer kstep, const Double asteptime,
+//   void SolveStepMech::PostStepTrans( const UInt kstep, const Double asteptime,
 //                                    ) {
 
 //     ENTER_FCN( "SolveStepMech::PostStepTrans" );
@@ -423,16 +420,14 @@ namespace CoupledField {
 
 
 
-  void SolveStepMech::StepTransNonLin(const Integer kstep, const Double asteptime,
+  void SolveStepMech::StepTransNonLin(const UInt kstep, const Double asteptime,
 				      const Boolean reset)
   {
     ENTER_FCN( "SolveStepMech::StepTransNonLin" );
 
-    const Integer job = 1;
-  
-    static Integer timeStepCounter=1;
+    static UInt timeStepCounter=1;
     Boolean performOneMoreStep;
-    Integer iterationCounter=0;
+    UInt iterationCounter=0;
 
     Vector<Double> actSol;
     Vector<Double> solIncrement;
@@ -486,10 +481,8 @@ namespace CoupledField {
 
 	algsys_->BuildInDirichlet();
 
-	if (job == 1) {
-	  algsys_->SetupPrecond(job);
-	  algsys_->SetupSolver(job);
-	}
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
 
 	algsys_->Solve();
 

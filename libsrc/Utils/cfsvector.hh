@@ -34,14 +34,14 @@ namespace CoupledField
     virtual Boolean IsComplex() = 0;
 
     //! Return the length of the vector
-    virtual Integer GetSize() const = 0;
+    virtual UInt GetSize() const = 0;
 
     //! Set the lenght of the vector
     /*!
       \param size (input) Lengh of vector
     */
     //! \note the entries are set to zero afterwards!
-    virtual void Resize(const Integer size) = 0;
+    virtual void Resize(const UInt size) = 0;
 
     //! Initalizes the vector with a given entry
     /*!
@@ -60,7 +60,7 @@ namespace CoupledField
       \param i (input) Index of entry s
       \param s (input) Entry to be set on position i
     */
-    virtual void SetEntry(const Integer i, const Double &s)
+    virtual void SetEntry(const UInt i, const Double &s)
     {Error("CFSVector::SetEntry(): Not implemented here",__FILE__,__LINE__);}
 
     //! Get the entry i of the vector on the given value (ret = x[i])
@@ -68,7 +68,7 @@ namespace CoupledField
       \param i (input) Index of entry s
       \param ret (output) Entry on position i
     */
-    virtual void GetEntry(const Integer i, Double &ret) const
+    virtual void GetEntry(const UInt i, Double &ret) const
     {Error("CFSVector::GetEntry(): Not implemented here",__FILE__,__LINE__);}
   
     //! Add s to i-th vector entry (x[i] += s)
@@ -76,7 +76,7 @@ namespace CoupledField
       \param i (input) Index of entry s
       \param s (input) Value to be added to x[i]
     */
-    virtual void AddEntry(const Integer i, const Double &s)
+    virtual void AddEntry(const UInt i, const Double &s)
     {Error("CFSVector::AddEntry(): Not implemented here",__FILE__,__LINE__);}
   
     //! Multiply the i-th vector entry with s (x[i] *= s)
@@ -84,7 +84,7 @@ namespace CoupledField
       \param i (input) Index of entry s
       \param s (input) Factor, which i-the entry gets multiplied with
     */
-    virtual void MultEntry(const Integer i, const Double &s)
+    virtual void MultEntry(const UInt i, const Double &s)
     {Error("CFSVector::MultEntry(): Not implemented here",__FILE__,__LINE__);} 
   
     //! Multiply the i-th vector entry with a and add s on it (x[i] = a*x[i]+s)
@@ -93,7 +93,7 @@ namespace CoupledField
       \param a (input) Factor the i-the entry gets multiplied with
       \param s (input) Value to be added to a*x[i]
     */
-    virtual void MultAddEntry(const Integer i, const Double &a, const Double &s)
+    virtual void MultAddEntry(const UInt i, const Double &a, const Double &s)
     {Error("CFSVector::MultAddEntry(): Not implemented here",__FILE__,__LINE__);}   
 
     //! Adds another basevector to itself (x = x+y)
@@ -159,15 +159,15 @@ namespace CoupledField
 #define DECL_BASEVECTOR_FCN(TYPE)                                                               \
  virtual void Init(const TYPE entry = TYPE())                                           \
   {Error("CFSVector::Init(): Not implemented here",__FILE__,__LINE__);}         \
-  virtual void SetEntry(const Integer i, const TYPE &s)                                 \
+  virtual void SetEntry(const UInt i, const TYPE &s)                                 \
   {Error("CFSVector::SetEntry(): Not implemented here",__FILE__,__LINE__);}             \
-  virtual void GetEntry(const Integer i,  TYPE &ret) const                              \
+  virtual void GetEntry(const UInt i,  TYPE &ret) const                              \
   {Error("CFSVector::GetEntry(): Not implemented here",__FILE__,__LINE__);}             \
-  virtual void AddEntry(const Integer i, const TYPE &s)                                 \
+  virtual void AddEntry(const UInt i, const TYPE &s)                                 \
   {Error("CFSVector::AddEntry(): Not implemented here",__FILE__,__LINE__);}             \
-  virtual void MultEntry(const Integer i, const TYPE &s)                                \
+  virtual void MultEntry(const UInt i, const TYPE &s)                                \
   {Error("CFSVector::MultEntry(): Not implemented here",__FILE__,__LINE__);}            \
-  virtual void MultAddEntry(const Integer i, const TYPE &a, const TYPE &s)              \
+  virtual void MultAddEntry(const UInt i, const TYPE &a, const TYPE &s)              \
   {Error("CFSVector::MultAddEntry(): Not implemented here",__FILE__,__LINE__);}        \
   virtual void Inner(const CFSVector &y, TYPE &result)                                 \
   {Error("CFSVector::Inner(): Not implemented here",__FILE__,__LINE__);}

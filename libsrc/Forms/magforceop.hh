@@ -81,7 +81,7 @@ namespace CoupledField
                StdPDE * ptPDE,
                NodeEQN * ptEQN,
                NodeStoreSol<Double> & sol,
-               Integer dim,
+               UInt dim,
                MaterialData* &matData,
                StdVector<RegionIdType>& allSubdoms,
                Boolean isaxi);
@@ -93,7 +93,7 @@ namespace CoupledField
   protected:
   
     //! returns the scalar material value, used for force computation
-    virtual Double GetMatVal(Integer actSD);
+    virtual Double GetMatVal(UInt actSD);
 
     //! computes the field quantity
     virtual void ComputeField(Vector<Double> & Field, const Elem * ptElement,

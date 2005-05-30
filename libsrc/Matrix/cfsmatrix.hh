@@ -35,7 +35,7 @@ namespace CoupledField{
       \param nRows (input) Number of rows
       \param nCols (input) Number of columns)
     */
-    CFSMatrix(const Integer nRows, const Integer nCols){};
+    CFSMatrix(const UInt nRows, const UInt nCols){};
   
     //! Default Copy Construcctor
     CFSMatrix(const CFSMatrix &m){};
@@ -60,7 +60,7 @@ namespace CoupledField{
       \param size (input) Number of rows / columns
     */
     //! \note the matrix contains afterwards only zeroes
-    virtual void Resize(const Integer size) = 0;
+    virtual void Resize(const UInt size) = 0;
   
     //! Change size of general matrix 
     /*!
@@ -68,13 +68,13 @@ namespace CoupledField{
       \param nCols (input) Number of columns)
     */
     //! \note the matrix contains afterwards only zeroes
-    virtual void Resize(const Integer nRows, const Integer nCols) = 0;
+    virtual void Resize(const UInt nRows, const UInt nCols) = 0;
  
     //! Get the number of rows
-    virtual Integer GetSizeRow() const = 0;
+    virtual UInt GetSizeRow() const = 0;
   
     //! Get the number of columns
-    virtual Integer GetSizeCol() const = 0;
+    virtual UInt GetSizeCol() const = 0;
   
     //! Set the entry 'val' at position (row,col) in the matrix
     /*!
@@ -82,7 +82,7 @@ namespace CoupledField{
       \param col (input) Column of entry
       \param val (input) Value to be set
     */
-    void SetEntry(const Integer row, const Integer col, const Double val)
+    void SetEntry(const UInt row, const UInt col, const Double val)
     {Error("CFSMatrix::SetEntry(): Not implemented here",__FILE__,__LINE__);} 
   
     //! Add'val' to the matrix entry at position (row,col) in the matrix
@@ -91,7 +91,7 @@ namespace CoupledField{
       \param col (input) Column of entry
       \param val (input) Value to be added
     */
-    virtual void AddToEntry(const Integer row, const Integer col, const Double val)
+    virtual void AddToEntry(const UInt row, const UInt col, const Double val)
     {Error("CFSMatrix::AddToEntry(): Not implemented here",__FILE__,__LINE__);} 
   
     //! Get the entry 'val' at position (row,col) in the matrix
@@ -100,7 +100,7 @@ namespace CoupledField{
       \param col (input) Column of entry
       \param val (output) Variable the value is written into
     */ 
-    virtual void GetEntry(const Integer row, const Integer col, Double & val) const
+    virtual void GetEntry(const UInt row, const UInt col, Double & val) const
     {Error("CFSMatrix::GetEntry(): Not implemented here",__FILE__,__LINE__);} 
   
     //! Calculates the determinant (up to size 3)
@@ -148,11 +148,11 @@ namespace CoupledField{
   
     //! copies a submatrix at the position (row, col) into subMat, 
     //! the amount of copied elements depends on the size of subMat
-    virtual void GetSubMatrix(CFSMatrix & subMat, const Integer nRows, const Integer nCols) const = 0;
+    virtual void GetSubMatrix(CFSMatrix & subMat, const UInt nRows, const UInt nCols) const = 0;
 
     //! overwrites the matrix elements at the position (row, col) with subMat
     //! in a rectangular (submatrix) way
-    virtual void SetSubMatrix(CFSMatrix & subMat, const Integer nRows, const Integer nCols) = 0;
+    virtual void SetSubMatrix(CFSMatrix & subMat, const UInt nRows, const UInt nCols) = 0;
 
     //! converts a matrix into a vector, by appending successively all rows
     virtual void ConvertToVec_AppendRows(CFSVector & vec) const
@@ -200,11 +200,11 @@ namespace CoupledField{
 #define DECL_BASEMATRIX_FCN(TYPE)                                               \
   virtual void Init(const TYPE input = TYPE())                                  \
   {Error("CFSMatrix::Init(): Not implemented here",__FILE__,__LINE__);}         \
-  virtual void SetEntry(const Integer row, const Integer col, const TYPE val)   \
+  virtual void SetEntry(const UInt row, const UInt col, const TYPE val)   \
   {Error("CFSMatrix::SetEntry(): Not implemented here",__FILE__,__LINE__);}     \
-  virtual void AddToEntry(const Integer row, const Integer col, const TYPE val) \
+  virtual void AddToEntry(const UInt row, const UInt col, const TYPE val) \
   {Error("CFSMatrix::AddToEntry(): Not implemented here",__FILE__,__LINE__);}   \
-  virtual void GetEntry(const Integer row, const Integer col, TYPE & val) const \
+  virtual void GetEntry(const UInt row, const UInt col, TYPE & val) const \
   {Error("CFSMatrix::GetEntry(): Not implemented here",__FILE__,__LINE__);}
   
     DECL_BASEMATRIX_FCN(Integer)

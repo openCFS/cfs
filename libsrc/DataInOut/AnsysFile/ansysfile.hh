@@ -35,22 +35,22 @@ namespace CoupledField {
     //@{ \name General Mesh Information
 
     //! Return dimension of the mesh
-    Integer GetDim();
+    UInt GetDim();
     
     //! Get total number of nodes in mesh
-    Integer GetNumNodes();
+    UInt GetNumNodes();
     
     //! Get total number of elements in mesh
-    Integer GetNumElems( const Integer dim = 0 );
+    UInt GetNumElems( const UInt dim = 0 );
     
     //! Get total number of regions
-    Integer GetNumRegions();
+    UInt GetNumRegions();
 
     //! Get total number of named nodes
-    Integer GetNumNamedNodes();
+    UInt GetNumNamedNodes();
 
     //! Get total number of named elements
-    Integer GetNumNamedElems();
+    UInt GetNumNamedElems();
 
     //@}
   
@@ -65,7 +65,7 @@ namespace CoupledField {
     //! dimensions.
     //! \param regionNames (output) vector containing names of regions
     //! \note Since the RegionIdType is guaranteed to be defined by
-    //! a number type (Integer, UInt), the regionId of an element can
+    //! a number type (UInt, UInt), the regionId of an element can
     //! be directly used as index to the regions-vector
     void GetAllRegionNames( StdVector<std::string> & regionNames );
     
@@ -78,7 +78,7 @@ namespace CoupledField {
     //! \param regionNames (output) vector containing names of regions
     //! \param dim (input) dimension of the region (1,2, or 3)
     void GetRegionNamesOfDim( StdVector<std::string> & regionNames,
-                              const Integer dim );
+                              const UInt dim );
    
 
     //! Get vector with all names of named nodes
@@ -122,7 +122,7 @@ namespace CoupledField {
     //! \param regionId (output) vector containing the region Ids of the
     //!                          nodes corresponding to the outer index in the
     //!                          nodes vector
-    void GetNodesOfRegions( StdVector<StdVector<Integer> > &nodes,
+    void GetNodesOfRegions( StdVector<StdVector<UInt> > &nodes,
                             const StdVector<RegionIdType> & regionId );
     
     //! Read all elements of given dimension
@@ -140,7 +140,7 @@ namespace CoupledField {
     //! \param dim (input) dimension of the elements to be read (1,2 or 3)
     void GetElements( StdVector< StdVector<Elem*> > & elems, 
                       StdVector<RegionIdType> & regionId,
-                      const Integer dim );
+                      const UInt dim );
   
     //! Read all named nodes
     
@@ -150,7 +150,7 @@ namespace CoupledField {
     //!                       \c [nodeNr]
     //! \param nodeNames (output) vector containing the corresponding
     //!                           node names 
-    void GetNamedNodes( StdVector<StdVector<Integer> > & nodes,
+    void GetNamedNodes( StdVector<StdVector<UInt> > & nodes,
                         StdVector<std::string> & nodeNames );
     
     //! Read all named elements
@@ -161,7 +161,7 @@ namespace CoupledField {
     //!                       \c [elemNr]
     //! \param elemNames (output) vector containing the corresponding
     //!                           element names 
-    void GetNamedElems( StdVector<StdVector<Integer> > & elems,
+    void GetNamedElems( StdVector<StdVector<UInt> > & elems,
                         StdVector<std::string> & elemNames );
     //@}
 
@@ -179,8 +179,8 @@ namespace CoupledField {
     //! \param elems out: vector with elements
     //! \param vertex out: vector with vertices
     //! \param sd in: vector with color of subdomains which is put in Grid_RG
-    void ReadBCs_GridRG( StdVector<Integer> &idBCs,
-                         StdVector<Integer> &colorBCs );
+    void ReadBCs_GridRG( StdVector<UInt> &idBCs,
+                         StdVector<UInt> &colorBCs );
 #endif
 
   protected:
@@ -197,7 +197,7 @@ namespace CoupledField {
     //! This method searches in the mesh file for the expression \a seekexp
     //! and returns the number right next to it as integer value
     //! \param seekexp (input) expression next to a integer value in the mesh
-    Integer GetInteger(const std::string seekexp);
+    UInt GetInteger(const std::string seekexp);
 
     //! Test the next line, if it is empty
 
@@ -230,7 +230,7 @@ namespace CoupledField {
     //! \param regionName (input) name of region 
     //! \param dim (input) dimension of the elements (1, 2 or 3)
     RegionIdType ObtainRegionId( const std::string & regionName,
-                                 const Integer dim );
+                                 const UInt dim );
 
     
     //! Transform type of elem in pointer to base class BaseFE
@@ -238,7 +238,7 @@ namespace CoupledField {
     //! This method maps the type number of an element - as given in the 
     //! mesh file - to a pointer to a reference finite element.
     //! \param itype (input) element type number as read in from the mesh
-    BaseFE * Type2ptElem(const Integer itype);
+    BaseFE * Type2ptElem(const UInt itype);
     //@}
 
     // =======================================================================
@@ -248,25 +248,25 @@ namespace CoupledField {
     //! \name Attributes
 
     //! Dimension of the mesh
-    Integer dim_;
+    UInt dim_;
 
     //! Total number of elements
-    Integer maxNumElems_;
+    UInt maxNumElems_;
 
     //! Total number of nodes
-    Integer maxNumNodes_;
+    UInt maxNumNodes_;
     
     //! Vector containing all region names of mesh
     StdVector<std::string> regionNames_;
     
     //! Vector containgin dimension of corresponding \a regionNames_
-    StdVector<Integer> regionDim_;
+    StdVector<UInt> regionDim_;
     
     //! Array indicating if elems of given dimension were read in
     StdVector<Boolean> elemDimReadIn_;
 
     //! Vectpr with nodal numbers for each region
-    StdVector<std::set<Integer> > regionNodes_;
+    StdVector<std::set<UInt> > regionNodes_;
     
     //! Pointer to input file
     std::ifstream inFile_;

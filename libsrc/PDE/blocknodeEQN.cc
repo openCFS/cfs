@@ -6,7 +6,7 @@ namespace CoupledField
   
   BlockNodeEQN::BlockNodeEQN(Grid * aptGrid, 
                              StdVector<RegionIdType> & asubdoms, 
-                             Integer dofsPerNode)
+                             UInt dofsPerNode)
     : NodeEQN(aptGrid, asubdoms, dofsPerNode)
   {
     ENTER_FCN( "BlockNodeEQN::BlockNodeEQN" );
@@ -49,7 +49,7 @@ namespace CoupledField
     //         and set the according entry in pdeNode2EQN_ to the
     //         value of constraintMasterNode
 
-    Integer eqnCounter = 0;
+    UInt eqnCounter = 0;
 
     // STEP 1
 
@@ -69,9 +69,9 @@ namespace CoupledField
     // STEP 2
     // Check if there exist nodes, which only have
     // hom. Dirichlet BC dof
-    StdVector<Integer> numDirichletDofsPerNode;
+    StdVector<UInt> numDirichletDofsPerNode;
     numDirichletDofsPerNode.Resize(numPDENodes_);
-    for (Integer i=0; i<homoDirichletNodes_.GetSize(); i++)
+    for (UInt i=0; i<homoDirichletNodes_.GetSize(); i++)
       {
         if (mesh2PDENode_[homoDirichletNodes_[i]-1]-1 < 0)
           {
@@ -99,12 +99,12 @@ namespace CoupledField
     // Check if there are constraint slavenodes, where
     // all dofs depend on the same dofs of the same
     // master node
-    StdVector<Integer> numConstraintDofsPerNode;
-    StdVector<Integer> masterNodes;
+    StdVector<UInt> numConstraintDofsPerNode;
+    StdVector<UInt> masterNodes;
     numConstraintDofsPerNode.Resize(numPDENodes_);
     masterNodes.Resize(numPDENodes_);
 
-    for (Integer i=0; i<constraintSlaveNodes_.GetSize(); i++)
+    for (UInt i=0; i<constraintSlaveNodes_.GetSize(); i++)
       if (masterNodes[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1] == 0)
         {
           // If masternodes are still empty
@@ -134,7 +134,7 @@ namespace CoupledField
     //std::cerr << pde2MeshNode_ << std::endl;
 
     // STEP 4
-    for (Integer i=0; i<pde2MeshNode_.GetSize(); i++)
+    for (UInt i=0; i<pde2MeshNode_.GetSize(); i++)
       if (numDirichletDofsPerNode[i] != dofsPerNode_ &&
           numConstraintDofsPerNode[i] != dofsPerNode_)
         {
@@ -147,7 +147,7 @@ namespace CoupledField
     // Now count number of dirichlet BCs, which were not 
     // thrown out
     numBuildInDirichletEQNs_ = 0;
-    for (Integer i=0; i<numDirichletDofsPerNode.GetSize(); i++)
+    for (UInt i=0; i<numDirichletDofsPerNode.GetSize(); i++)
       if (numDirichletDofsPerNode[i] == dofsPerNode_)
         numBuildInDirichletEQNs_ += dofsPerNode_;
 
@@ -182,7 +182,7 @@ namespace CoupledField
     out << std::setfill(' ');
   
 
-    for (Integer i=0; i<pde2MeshNode_.GetSize(); i++)
+    for (UInt i=0; i<pde2MeshNode_.GetSize(); i++)
       {
         out << std::setw(10) << i+1  << " | ";
         out << std::setw(13) << pde2MeshNode_[i] << " | ";
@@ -191,10 +191,10 @@ namespace CoupledField
   }
 
 
-  void BlockNodeEQN::Node2EQN(const Integer nodeNr, 
-                              const Integer dof,
+  void BlockNodeEQN::Node2EQN(const UInt nodeNr, 
+                              const UInt dof,
                               Integer & eqnNr,
-                              Integer & eqnDof) const 
+                              UInt & eqnDof) const 
   {
     ENTER_FCN( "BlockNodeEQN::Node2EQN" );
 #ifdef CHECK_INDEX
@@ -206,21 +206,21 @@ namespace CoupledField
     eqnDof = dof;
   }
 
-  void BlockNodeEQN::Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const
+  void BlockNodeEQN::Node2EQN(const UInt nodeNr, StdVector<Integer> &eqns) const
   {
     ENTER_FCN( "BlockNodeEQN::Node2EQN" );
     Error( "Not implemented",__FILE__,__LINE__);
   }
   
 
-  void BlockNodeEQN::Node2EQN(const StdVector<Integer> &nodeNr,
+  void BlockNodeEQN::Node2EQN(const StdVector<UInt> &nodeNr,
                               StdVector<Integer> &eqnNr) const
   {
     ENTER_FCN( "BlockNodeEQN::Node2EQN" );
 
     eqnNr.Resize(nodeNr.GetSize());
 
-    for (Integer i=0; i<nodeNr.GetSize(); i++)
+    for (UInt i=0; i<nodeNr.GetSize(); i++)
       eqnNr[i] =  pdeNode2EQN_[mesh2PDENode_[nodeNr[i]-1]-1];
   }
 
@@ -232,7 +232,7 @@ namespace CoupledField
     ENTER_FCN( "BlockNodeEQN::ReorderMapping" );
 
     if ( order != NULL ) {
-      for ( Integer i = 0; i < pdeNode2EQN_.GetSize(); i++ ) {
+      for ( UInt i = 0; i < pdeNode2EQN_.GetSize(); i++ ) {
         if ( pdeNode2EQN_[i] > 0 ) {
           pdeNode2EQN_[i] = order[pdeNode2EQN_[i]-1];
         }

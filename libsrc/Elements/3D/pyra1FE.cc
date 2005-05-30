@@ -72,7 +72,7 @@ namespace CoupledField
 
   // std::ostream& operator<< (std::ostream & outStr, Vector<Double> xOut)
   // {
-  //   for (Integer i=0; i<xOut.size(); i++)
+  //   for (UInt i=0; i<xOut.size(); i++)
   //     outStr <<  " " << xOut[i];
   //   return outStr;
   // }

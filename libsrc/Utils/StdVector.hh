@@ -25,7 +25,7 @@ namespace CoupledField {
 
     //! Constructor with inital size.
     //! All entries are filled with zeroes
-    StdVector(Integer size);
+    StdVector(UInt size);
 
     //! Copy constructor
     StdVector(const StdVector<TYPE> & vec);
@@ -51,20 +51,20 @@ namespace CoupledField {
     inline Boolean IsEmpty() const {return (size_? FALSE : TRUE);}
   
     //! Returns capacity of the vector
-    inline Integer Capacity() const {return capacity_;}
+    inline UInt Capacity() const {return capacity_;}
 
     //! 
-    void Reserve(Integer size);
+    void Reserve(UInt size);
 
     //! Get the length of the vector
-    inline Integer GetSize() const {return size_;}
+    inline UInt GetSize() const {return size_;}
 
     //! Set the lenght of the vector
     /*!
       \param size (input) Lengh of vector
     */
     //! \note the entries are set to zero afterwards!
-    void Resize(const Integer size);
+    void Resize(const UInt size);
  
     //! Overloading of operation =
     StdVector     &operator=      (const StdVector &);
@@ -80,29 +80,29 @@ namespace CoupledField {
     StdVector & operator= (const std::vector<TYPE> & vec);
   
     //! General access operator
-    inline TYPE &operator[] (const Integer i);
+    inline TYPE &operator[] (const UInt i);
 
     //! Read-Only access operator
-    inline TYPE operator[] (const Integer i) const;
+    inline TYPE operator[] (const UInt i) const;
 
     //! Return pointer p to array 
     inline TYPE*  GetPointer() const;
 
     //! Add element of the same type at position pos
-    void Insert(const TYPE & y, Integer pos);
+    void Insert(const TYPE & y, UInt pos);
 
     //! Add element of the same type at position pos
     //! numCopies times
-    void Insert(const TYPE & y, Integer pos, Integer numCopies);
+    void Insert(const TYPE & y, UInt pos, UInt numCopies);
 
     //! Add element of the same type at the end of the vector
     void Push_back(const TYPE & y);
 
     //! Delete element from vector on position pos
-    void Erase (const Integer pos);
+    void Erase (const UInt pos);
 
     //! Delete elements from position pos1 to pos2, on pos1, pos2 too
-    void Erase (const Integer pos1, const Integer pos2);
+    void Erase (const UInt pos1, const UInt pos2);
 
 
     //! Return the position number of element x in the vector
@@ -123,7 +123,7 @@ namespace CoupledField {
     // ******************************************************
   
     //! Sort of vector: v - vec.p, n - vec.size
-    template <class S> void Sort(S* v, Integer n);
+    template <class S> void Sort(S* v, UInt n);
   
     //! Swap 2 elements in vector Ex Swap(v[i],v[j])
     template<class T2> void Swap(T2& a, T2 & b);
@@ -131,13 +131,13 @@ namespace CoupledField {
   protected:
 
     //! Length of the vector
-    Integer size_;
+    UInt size_;
 
     //! Data of the vector
     TYPE* data_;
   
     //! Capacity of the vector
-    Integer capacity_;
+    UInt capacity_;
 
   };
 
@@ -174,7 +174,7 @@ namespace CoupledField {
   
   //! Element can be referred to as v[i]
   template<class TYPE>
-  TYPE & StdVector<TYPE>::operator[] (const Integer i)
+  TYPE & StdVector<TYPE>::operator[] (const UInt i)
   {     
 #ifdef CHECK_INDEX
     if (i >= size_){
@@ -191,7 +191,7 @@ namespace CoupledField {
 
   //! Element can be referred to as v[i]
   template<class TYPE>
-  TYPE StdVector<TYPE>::operator[] (const Integer i) const
+  TYPE StdVector<TYPE>::operator[] (const UInt i) const
   {     
 #ifdef CHECK_INDEX
     if (i >= size_){

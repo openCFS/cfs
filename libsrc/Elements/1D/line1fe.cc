@@ -48,7 +48,7 @@ namespace CoupledField
 
     Shape.Resize(NumNodes_);
   
-    for( Integer i=0; i<NumNodes_; i++)
+    for( UInt i=0; i<NumNodes_; i++)
       Shape[i] = 0.5*(1+LCornerCoords_[0][i] * LCoord[0]);
 
   }
@@ -61,7 +61,7 @@ namespace CoupledField
 
     LDeriv.Resize(NumNodes_,Dim_);
 
-    for( Integer i=0; i<NumNodes_; i++)
+    for( UInt i=0; i<NumNodes_; i++)
       {
         LDeriv[i][0] = 0.5*LCornerCoords_[0][i];
 

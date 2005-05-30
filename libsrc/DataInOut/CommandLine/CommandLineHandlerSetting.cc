@@ -157,6 +157,6 @@ namespace CoupledField {
     // That's it
     Info->FinishProgress();
 
-  };
+  }
 
 }

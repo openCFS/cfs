@@ -53,7 +53,7 @@ namespace CoupledField
       
         IntWeights_.Resize(NumIntPoints_);
       
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           {
             IntWeights_[i]=1;
             IntPoints_[i].Resize(Dim_);
@@ -74,7 +74,7 @@ namespace CoupledField
 
         IntWeights_.Resize(NumIntPoints_);
 
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           {         
             IntWeights_[i]=1;
             IntPoints_[i].Resize(Dim_);
@@ -100,7 +100,7 @@ namespace CoupledField
         if( !IntPoints_)
           IntPoints_ = new Vector<Double>[NumIntPoints_];
       
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);
 
         IntWeights_.Resize(NumIntPoints_);
@@ -145,7 +145,7 @@ namespace CoupledField
         if ( !IntPoints_) 
           IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);
       
         IntPoints_[0][0] = -0.861136311594053;
@@ -214,10 +214,11 @@ namespace CoupledField
   {
     ENTER_FCN( "RectangleFE::CalcDistortion" );
     Error("RectangleFE::CalcDistortion: Not implemented", __FILE__, __LINE__);
+    return -1.0;
   }
 
-  void RectangleFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-                                              const StdVector<Integer> & volConnect,
+  void RectangleFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                              const StdVector<UInt> & volConnect,
                                               const Vector<Double> & surfIntPoint,
                                               Vector<Double> & volIntPoint)
   {
@@ -237,17 +238,17 @@ namespace CoupledField
 
 
 
-    StdVector<Integer> commonIndex(2);
-    Integer found = 0;
-    Integer indexProduct = 0;
+    StdVector<UInt> commonIndex(2);
+    UInt found = 0;
+    UInt indexProduct = 0;
     std::string errMsg;
   
     volIntPoint.Resize(2);
   
     // loop over surface connect
-    for (Integer iSurf=0; iSurf<2; iSurf++)
+    for (UInt iSurf=0; iSurf<2; iSurf++)
       // loop over volume connect
-      for (Integer iVol=0; iVol<4; iVol++)
+      for (UInt iVol=0; iVol<4; iVol++)
         if (surfConnect[iSurf] == volConnect[iVol])
           {
             commonIndex[found++] = iVol+1;

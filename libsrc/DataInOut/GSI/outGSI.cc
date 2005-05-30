@@ -111,7 +111,7 @@ namespace CoupledField {
   }
 
 
-  Integer WriteResultsGSI::DoCompute() {
+  UInt WriteResultsGSI::DoCompute() {
     ENTER_FCN("WriteResultsGSI::DoCompute");
 
     std::string in;
@@ -131,7 +131,7 @@ namespace CoupledField {
       return 0;
   }
 
-  Integer WriteResultsGSI::TransferGrid() {
+  UInt WriteResultsGSI::TransferGrid() {
 
     ENTER_FCN("WriteResultsGSI::TransferGrid");
 
@@ -161,9 +161,9 @@ namespace CoupledField {
     if (!ptGrid_)
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
-    Integer dim=ptGrid_->GetDim();
-    Integer maxnumnodes=ptGrid_-> GetNumNodes();
-    Integer maxnumelem=ptGrid_-> GetNumVolElems();
+    UInt dim=ptGrid_->GetDim();
+    UInt maxnumnodes=ptGrid_-> GetNumNodes();
+    UInt maxnumelem=ptGrid_-> GetNumVolElems();
 
     try 
       {
@@ -187,9 +187,9 @@ namespace CoupledField {
     if (!ptGrid_)
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
-    Integer i;
-    Integer dim=ptGrid_->GetDim();
-    Integer maxnumnodes=ptGrid_->GetNumNodes();
+    UInt i;
+    UInt dim=ptGrid_->GetDim();
+    UInt maxnumnodes=ptGrid_->GetNumNodes();
 
     try 
       {
@@ -241,20 +241,20 @@ namespace CoupledField {
     if (!ptGrid_)
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
   
-    Integer maxnumelem;
-    Integer dim=ptGrid_->GetDim();
+    UInt maxnumelem;
+    UInt dim=ptGrid_->GetDim();
   
-    Integer elmsgrp;
+    UInt elmsgrp;
   
     StdVector<RegionIdType> subdoms;
     StdVector<Elem*> elemssd;
-    StdVector<Integer> connect;
+    StdVector<UInt> connect;
 
     std::vector<int> connectsizes;
     std::vector<int> subdomains;
     std::vector<int> indexe;
 
-    Integer i, j, k, l;
+    UInt i, j, k, l;
 
     elmsgrp=1;
     ptGrid_->GetVolRegionIds(subdoms);
@@ -286,14 +286,14 @@ namespace CoupledField {
               
                 //              (*io_) << (int) connect.size();
               
-                Integer ii=0;
+                UInt ii=0;
               
                 /*              
                 //Wegen diesem Zeug hier nachfragen
                 if (elmsgrp == 3) {
                   
                   
-                Integer jkl;
+                UInt jkl;
                 for (jkl=1; jkl<5; jkl++) {
                 (*io_) << (int) maxnumnodes_+jkl-2;
                 }
@@ -333,21 +333,21 @@ namespace CoupledField {
 
 
   //void  WriteResultsGSI::Dataset55(const std::string & title,
-  // const Vector<Double> & x, const Integer step, const Double time)void  
+  // const Vector<Double> & x, const UInt step, const Double time)void  
   // nodal results
   void WriteResultsGSI::Dataset55_Transient(const std::string & title, 
                                             const Vector<Double> & x, 
-                                            const Integer step, 
+                                            const UInt step, 
                                             const Double time, 
-                                            const Integer nrNodes,
-                                            const Integer nrDofs)
+                                            const UInt nrNodes,
+                                            const UInt nrDofs)
   {
     ENTER_FCN("WriteResultsGSI::Dataset55_Transient");
 
     if (!ptGrid_)
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
-    Integer i,j,n;
+    UInt i,j,n;
     std::vector<float> vec;
 
     n = x.GetSize();
@@ -379,16 +379,16 @@ namespace CoupledField {
 
   void WriteResultsGSI::Dataset55_Harmonic(const std::string & title, 
                                            const Vector<Complex> & x, 
-                                           const Integer step,
+                                           const UInt step,
                                            const Double frequency, 
                                            const ComplexFormat format,
-                                           const Integer nrNodes,
-                                           const Integer nrDofs)
+                                           const UInt nrNodes,
+                                           const UInt nrDofs)
   {
     if (!ptGrid_)
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
   
-    Integer i,j,n;
+    UInt i,j,n;
     n=nrNodes;
     std::string id;
     std::vector<float> vec1, vec2;
@@ -448,17 +448,17 @@ namespace CoupledField {
 
 
   // void  WriteResultsGSI::Dataset56_Scalar(const std::string & title,
-  // const Vector<Double> & x, const Integer step, const Double time)
+  // const Vector<Double> & x, const UInt step, const Double time)
   void  WriteResultsGSI::Dataset56_Transient(const std::string & title, 
                                              const Vector<Double> & x, 
-                                             const Integer step, 
+                                             const UInt step, 
                                              const Double time, 
-                                             const Integer numElems,
-                                             const Integer nrDofs)
+                                             const UInt numElems,
+                                             const UInt nrDofs)
   {
     ENTER_FCN("WriteResultsGSI::Dataset56_Transient");
 
-    Integer i,n;
+    UInt i,n;
     std::vector<float> vec;
 
     n = x.GetSize();
@@ -492,16 +492,16 @@ namespace CoupledField {
 
   void WriteResultsGSI::Dataset56_Harmonic(const std::string & title, 
                                            const Vector<Complex> & x, 
-                                           const Integer step,
+                                           const UInt step,
                                            const Double frequency, 
                                            const ComplexFormat format, 
-                                           const Integer numElems,
-                                           const Integer nrDofs)
+                                           const UInt numElems,
+                                           const UInt nrDofs)
   {
     if (!ptGrid_)
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
   
-    Integer i,j,n;
+    UInt i,j,n;
     n=numElems;
     std::string id;
     std::vector<float> vec1, vec2;
@@ -565,7 +565,7 @@ namespace CoupledField {
 
   void WriteResultsGSI ::
   WriteNodeSolutionTransient( const NodeStoreSol<Double> & sol, 
-                              const Integer step, 
+                              const UInt step, 
                               const Double time )
   { 
     ENTER_FCN( "WriteResultsGSI::WriteNodeSolutionTransient" );
@@ -573,12 +573,12 @@ namespace CoupledField {
   
     Vector<Double> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numNodes =  ptGrid_->GetNumNodes();
+    UInt numNodes =  ptGrid_->GetNumNodes();
     std::string title;
 
     sol.GetSolutionTypes(solTypes);
   
-    for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
+    for (UInt iSol=0; iSol<solTypes.GetSize(); iSol++)
       {
         sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
         title = SolutionTypeToString(solTypes[iSol]);
@@ -600,7 +600,7 @@ namespace CoupledField {
 
   void
   WriteResultsGSI::WriteElemSolutionTransient( const ElemStoreSol<Double>& sol,
-                                               const Integer step,
+                                               const UInt step,
                                                const Double time )
   {
     ENTER_FCN( "WriteResultsGSI::WriteElemSolutionTransient" );
@@ -609,7 +609,7 @@ namespace CoupledField {
     StdVector<SolutionType> solTypes;
     std::string title;
 
-    Integer numElems =  ptGrid_->GetNumVolElems();  
+    UInt numElems =  ptGrid_->GetNumVolElems();  
   
     sol.GetSolutionTypes(solTypes);
     sol.TransformElemSolution(globalSolution,ptGrid_);
@@ -620,7 +620,7 @@ namespace CoupledField {
 
   void
   WriteResultsGSI::WriteNodeSolutionHarmonic( const NodeStoreSol<Complex>& sol,
-                                              const Integer step,
+                                              const UInt step,
                                               const Double frequency, 
                                               const ComplexFormat format )
   {
@@ -629,11 +629,11 @@ namespace CoupledField {
   
     Vector<Complex> globalSolution;
     StdVector<SolutionType> solTypes;
-    Integer numNodes =  ptGrid_->GetNumNodes();
+    UInt numNodes =  ptGrid_->GetNumNodes();
     std::string title;  
     sol.GetSolutionTypes(solTypes);
   
-    for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
+    for (UInt iSol=0; iSol<solTypes.GetSize(); iSol++)
       {
         sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
         title = SolutionTypeToString(solTypes[iSol]);
@@ -655,7 +655,7 @@ namespace CoupledField {
 
   void
   WriteResultsGSI::WriteElemSolutionHarmonic( const ElemStoreSol<Complex>& sol,
-                                              const Integer step,
+                                              const UInt step,
                                               const Double frequency, 
                                               const ComplexFormat format )
   {
@@ -666,9 +666,9 @@ namespace CoupledField {
     Vector<Complex> globalSolution;
     StdVector<SolutionType> solTypes;
     sol.GetSolutionTypes(solTypes);
-    Integer numElems =  ptGrid_->GetNumVolElems(); 
+    UInt numElems =  ptGrid_->GetNumVolElems(); 
   
-    for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++)
+    for (UInt iSol=0; iSol<solTypes.GetSize(); iSol++)
       {
         sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
         title = SolutionTypeToString(solTypes[iSol]);

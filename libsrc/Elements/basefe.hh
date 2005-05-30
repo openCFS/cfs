@@ -53,7 +53,7 @@ namespace CoupledField
       \param ip (input) Integration point
     */
     virtual void GetShFncAtIp(Vector<Double> & S, 
-                              const Integer ip);
+                              const UInt ip);
 
     //! Get global derivatives of all shape fnc at arbitrary local point
     /*! 
@@ -85,7 +85,7 @@ namespace CoupledField
       \param jacDet jacobian determinant
     */
     virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & deriv, 
-                                        const Integer ip,
+                                        const UInt ip,
                                         const Matrix<Double> & cornerCoords,
                                         Double & jacDet);
 
@@ -103,7 +103,7 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f]
     */
     virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
-                                        const Integer ip,
+                                        const UInt ip,
                                         const Matrix<Double> & CornerCoords);
 
     //! Calculates the Jacobian Matrix at an arbitrary local point
@@ -133,7 +133,7 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f] 
     */
     virtual void CalcJacobianAtIp(Matrix<Double> & J, 
-                                  const Integer ip, 
+                                  const UInt ip, 
                                   const Matrix<Double> & CornerCoords);
 
     //! Calculates the Inverse Jacobian Matrix at an arbitrary local point
@@ -163,7 +163,7 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f] 
     */
     virtual void CalcInvJacobianAtIp(Matrix<Double> & JInv,
-                                     const Integer ip,
+                                     const UInt ip,
                                      const Matrix<Double> & CornerCoords);
 
 
@@ -184,7 +184,7 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \\ y_{1} & y_{2} & \cdots \\
       \cdots & \cdots & \cdots \end{array} \right) \f]
     */
-    virtual Double CalcJacobianDetAtIp(const Integer ip, 
+    virtual Double CalcJacobianDetAtIp(const UInt ip, 
                                        const Matrix<Double> & CornerCoords);
 
     //! Calculation the volume (area, length) of an element
@@ -224,8 +224,8 @@ namespace CoupledField
       onto the volume element
       \param volIntPoint (output) Corresponding volume integration point
     */
-    virtual void GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-                                           const StdVector<Integer> & volConnect,
+    virtual void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                           const StdVector<UInt> & volConnect,
                                            const Vector<Double> & surfIntPoint,
                                            Vector<Double> & volIntPoint)
     {
@@ -233,25 +233,25 @@ namespace CoupledField
              __FILE__, __LINE__);}
 
     //! Return space dimension
-    ShortInt GetDim() const {return Dim_;}
+    UInt GetDim() const {return Dim_;}
  
     //! Get integration points
     Vector<Double> * GetIntPoints() {return IntPoints_;}
 
     //! Return number of nodes
-    ShortInt GetNumNodes() const {return NumNodes_;}
+    UInt GetNumNodes() const {return NumNodes_;}
 
     //! Return number of edges
-    ShortInt GetNumEdges() const {return NumEdges_;}
+    UInt GetNumEdges() const {return NumEdges_;}
 
     //! Return number of faces
-    ShortInt GetNumFaces() const {return NumFaces_;}
+    UInt GetNumFaces() const {return NumFaces_;}
 
     //! Return number of corners
-    ShortInt GetNumCorners() const {return NumCorners_;}
+    UInt GetNumCorners() const {return NumCorners_;}
 
     //! Returns number of integration points
-    ShortInt GetNumIntPoints() const {return NumIntPoints_;}
+    UInt GetNumIntPoints() const {return NumIntPoints_;}
   
     //! 
     void GetCoordMidPoint(Vector<Double> & coord) 
@@ -264,7 +264,7 @@ namespace CoupledField
     Vector<Double> GetIntWeights() const {return IntWeights_;};
   
     // return number of childs in refinement
-    virtual Integer getNumChilds() const { return numChilds_;}
+    virtual UInt getNumChilds() const { return numChilds_;}
 
 
     // ========================================================================
@@ -300,7 +300,7 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f]
     */
     virtual void GetEdgeGlobDerivShFncAtIp(StdVector< Matrix<Double> *> & deriv, 
-                                           const Integer ip,
+                                           const UInt ip,
                                            const Matrix<Double> & cornerCoords);
   
 
@@ -335,7 +335,7 @@ namespace CoupledField
       \param cornerCoords (input) Coordinates of edge points 
     */
     virtual void CalcEdgeShapeFncAtIp(Matrix<Double> & shape, 
-                                      const Integer ip,
+                                      const UInt ip,
                                       const Matrix<Double> & cornerCoords);
   
 
@@ -344,7 +344,7 @@ namespace CoupledField
       \param edges (output) Matrix of assignment of edge index to according nodes 
       (dimension: nrEdges x 2 (every edge has two nodes))
     */
-    virtual void GetEdgeVertices(Matrix<Integer> & edges){edges = edgeVertices_;};
+    virtual void GetEdgeVertices(Matrix<UInt> & edges){edges = edgeVertices_;};
 
 
     //! Get global edge numbers
@@ -353,17 +353,17 @@ namespace CoupledField
       \param pDENodes (input) Global index of nodes belonging to one element
       \param algsys (input) Pointer to the algebraic system
     */
-    virtual void GetGlobalEdgeIndices(StdVector<Integer>& edges, Integer * pDENodes, BaseSystem * algsys);
+    virtual void GetGlobalEdgeIndices(StdVector<UInt>& edges, UInt * pDENodes, BaseSystem * algsys);
 
 
     //! Get global coordinates based on local element coordinates
     /*! 
       \param globCoord (output) Vector of global coordinates
-      \param ip (input) Integeration point at which global coord has to be calculated
+      \param ip (input) UIntation point at which global coord has to be calculated
       \param cornerCoords (input) Matrix of corner coordinates
     */
     virtual void GetGlobalEdgeIndicesAtIP( Vector<Double> & globCoord,
-                                           Integer ip,
+                                           UInt ip,
                                            const Matrix<Double> & cornerCoords);
   
 
@@ -426,20 +426,20 @@ namespace CoupledField
     std::string CoordMatrix2String(const Matrix<Double> & coordMat);
 
 
-    ShortInt Dim_;                    //!< space dimension
-    ShortInt NumNodes_;               //!< number of nodes
-    ShortInt NumEdges_;               //!< number of edges 
-    ShortInt NumFaces_;               //!< number of faces
-    ShortInt NumCorners_;             //!< number of corners
-    ShortInt NumIntPoints_;           //!< number of integration points
-    ShortInt DegreeInteg_;            //!< numerical integration order
+    UInt Dim_;                    //!< space dimension
+    UInt NumNodes_;               //!< number of nodes
+    UInt NumEdges_;               //!< number of edges 
+    UInt NumFaces_;               //!< number of faces
+    UInt NumCorners_;             //!< number of corners
+    UInt NumIntPoints_;           //!< number of integration points
+    UInt DegreeInteg_;            //!< numerical integration order
     Vector<Double> MidPoint_;         //!< coordinate of midpoint (for 1. order integration)
     Matrix<Double> LCornerCoords_;    //!< Matrix of local corner coordinates (x:number, y:Dim)
     Vector<Double> * ShFncAtIp_;      //!< Array of vectors of function values at IPs (x:local Dim, y:Number)
     Matrix<Double> * ShFncDerivAtIp_; //!< Array of local derivatives in each integration point
     Vector<Double> * IntPoints_;      //!< integration points
     Vector<Double> IntWeights_;       //!< integration weights
-    Integer numChilds_;               //!< number of children for element in refinement
+    UInt numChilds_;               //!< number of children for element in refinement
 
     enum IntegrationType IntegType;
   
@@ -455,7 +455,7 @@ namespace CoupledField
       \cdots & \cdots 
       \end{array} \right) \f]
     */
-    Matrix<Integer> edgeVertices_; 
+    Matrix<UInt> edgeVertices_; 
   };
  
 }

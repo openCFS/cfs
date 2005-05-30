@@ -29,7 +29,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */  
-    virtual void PreStepTrans(const Integer kstep, const Double asteptime,
+    virtual void PreStepTrans(const UInt kstep, const Double asteptime,
                               const Boolean reset);
 
     //! base method for solving one transient step 
@@ -38,7 +38,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
+    virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
                                 const Boolean reset);
 
     //! solves for one nonlinear transient step (with hysteresis) 
@@ -47,7 +47,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepTransNonLinEpsDiff(const Integer kstep, const Double asteptime,
+    virtual void StepTransNonLinEpsDiff(const UInt kstep, const Double asteptime,
                                         const Boolean reset);
 
     //! update the hysteresis values

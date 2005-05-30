@@ -7,7 +7,7 @@ namespace CoupledField
   
   NodeEQN::NodeEQN(Grid * aptGrid, 
                    StdVector<RegionIdType>& asubdoms, 
-                   Integer dofsPerNode)
+                   UInt dofsPerNode)
     : BaseEQN(aptGrid, asubdoms, dofsPerNode)
   {
     ENTER_FCN( "NodeEQN::NodeEQN" );
@@ -22,35 +22,35 @@ namespace CoupledField
     ENTER_FCN( "NodeEQN::NodeEQN" );
   }
   
-  void NodeEQN::Mesh2PDENode(StdVector<Integer> & PDENodes,
-                             const StdVector<Integer> & MeshNodes) const
+  void NodeEQN::Mesh2PDENode(StdVector<UInt> & PDENodes,
+                             const StdVector<UInt> & MeshNodes) const
   {
     ENTER_FCN( "NodeEQN::Mesh2PDENode" );
   
     PDENodes.Resize(MeshNodes.GetSize());
    
-    for (Integer i=0; i<MeshNodes.GetSize(); i++) 
+    for (UInt i=0; i<MeshNodes.GetSize(); i++) 
       PDENodes[i] = mesh2PDENode_[MeshNodes[i]-1];
   
   }
 
-  void NodeEQN::PDE2MeshNode(StdVector<Integer> & meshNodes,
-                             const StdVector<Integer> & pdeNodes) const
+  void NodeEQN::PDE2MeshNode(StdVector<UInt> & meshNodes,
+                             const StdVector<UInt> & pdeNodes) const
   {
     ENTER_FCN( "NodeEQN::PDE2MeshNode" );
   
     meshNodes.Resize(pdeNodes.GetSize());
    
-    for (Integer i=0; i<pdeNodes.GetSize(); i++) 
+    for (UInt i=0; i<pdeNodes.GetSize(); i++) 
       meshNodes[i] = pde2MeshNode_[pdeNodes[i]-1];
   
   }
 
 
   void NodeEQN::CalcLocalGlobalMapping(StdVector<Integer> & mesh2PDENode,
-                                       StdVector<Integer> & pde2MeshNode,
+                                       StdVector<UInt> & pde2MeshNode,
                                        StdVector<Integer> & mesh2PDEElem,
-                                       StdVector<Integer> & pde2MeshElem)
+                                       StdVector<UInt> & pde2MeshElem)
   {
     ENTER_FCN( "NodeEQN::CalcLocalGlobalMapping" );
   
@@ -61,22 +61,22 @@ namespace CoupledField
     mesh2PDEElem.Resize(ptGrid_->GetNumVolElems());
     mesh2PDEElem.Init(-1);
     pde2MeshElem.Resize(ptGrid_->GetNumElems(subdoms_));
-    pde2MeshElem.Init(-1);
+    pde2MeshElem.Init(0);
     //std::cerr << "After init of pde2MeshElem" << std::endl;
     //std::cerr << "Size of pde2MeshEl
 
-    Integer nodeCounter = 0;
-    Integer elemCounter = 1;
+    UInt nodeCounter = 0;
+    UInt elemCounter = 1;
  
     StdVector<Elem*> subdom;
  
     // iterate over all subdomains
-    for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++)
+    for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++)
       {
         ptGrid_->GetVolElems(subdom,subdoms_[iSD]); 
 
         // iterate over all elems in subdomain
-        for (Integer iElem=0; iElem<subdom.GetSize(); iElem++)
+        for (UInt iElem=0; iElem<subdom.GetSize(); iElem++)
           {
             //std::cerr << "before mapping of elements" << std::endl;
             // *** Mapping of Elements ***
@@ -88,7 +88,7 @@ namespace CoupledField
           
             // *** Mapping of Nodes ***
             // iterate over all nodes in elem
-            for (Integer iNode=0; iNode<subdom[iElem]->connect.GetSize(); iNode++)
+            for (UInt iNode=0; iNode<subdom[iElem]->connect.GetSize(); iNode++)
               // Check if node was already assigned
               if (mesh2PDENode[subdom[iElem]->connect[iNode]-1] == -1)
                 {

@@ -46,7 +46,7 @@ namespace CoupledField
 
 
     // loop over time-fncs
-    for (Integer i=0; i< maxnumTF_; i++)
+    for (UInt i=0; i< maxnumTF_; i++)
       {
         std::ifstream timefile;
 
@@ -108,8 +108,8 @@ namespace CoupledField
   {
     ENTER_FCN( "TimeFunc::TimeFuncAtTime" );
   
-    Integer     numfnc;
-    Integer     i;
+    UInt     numfnc;
+    UInt     i;
  
     //if name of time function not defined, than a constant time function with value
     //1.0 is assumed 
@@ -167,7 +167,7 @@ namespace CoupledField
  
     if (maxnumTF_) 
       {
-        Integer i;
+        UInt i;
         for(i=0; i<maxnumTF_; i++)
           {
             timeTF_[i].clear();
@@ -185,7 +185,7 @@ namespace CoupledField
     ENTER_FCN( "TimeFunc::Print" );
     (*outfileDat) << "------------- Print Time function ----------------" 
                   << std::endl;
-    for (Integer i=0; i < maxnumTF_; i++)
+    for (UInt i=0; i < maxnumTF_; i++)
       {
         (*outfileDat) << " Number of time function is " << i+1 << std::endl;
         (*outfileDat) << "\t" << "time" <<

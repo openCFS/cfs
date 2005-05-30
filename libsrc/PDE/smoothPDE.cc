@@ -77,10 +77,10 @@ namespace CoupledField
 
     // Weigthening factors for smoothening 
     factor_.Resize(numElems_);
-    for (Integer i=0; i<factor_.GetSize(); i++)
+    for (UInt i=0; i<factor_.GetSize(); i++)
       factor_[i] = 1.0;
 
-    for (int actSD = 0; actSD < subdoms_.GetSize(); actSD++)
+    for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
         // ==============  add stiffness ===========================================
 
@@ -118,7 +118,7 @@ namespace CoupledField
     ptCoupling_   = coupling; 
 
     // input couplings
-    for (Integer i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
+    for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
       {
         // check for input mechanic displacement
         if (ptCoupling_->GetInputQuantity(i) == MECH_DISPLACEMENT)
@@ -129,7 +129,7 @@ namespace CoupledField
       }
 
     // output couplings
-    for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
+    for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
       {
         // check for output displacement
         if (ptCoupling_->GetOutputQuantity(i) == SMOOTH_DISPLACEMENT)
@@ -138,8 +138,6 @@ namespace CoupledField
           }
       }
 
-    // now overwrite number of Dirichlet BCs due to coupling 
-    assemble_->SetNumDirichlet(numDirichletBCs_);
   }
 
 
@@ -149,11 +147,11 @@ namespace CoupledField
     ENTER_FCN( "SmoothPDE::CalcOutputCoupling" );
 
     SolutionType quantity;
-    StdVector<Integer> * couplingnodes;
+    StdVector<UInt> * couplingnodes;
     CFSVector * values;
 
     // loop over all output coupling quantities
-    for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
+    for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
       {
         quantity = ptCoupling_->GetOutputQuantity(i);
 
@@ -179,16 +177,16 @@ namespace CoupledField
       }
   }
 
-  void SmoothPDE::WriteResultsInFile(const Integer kstep,
+  void SmoothPDE::WriteResultsInFile(const UInt kstep,
                                      const Double asteptime,
-                                     Integer stepOffset,
+                                     UInt stepOffset,
                                      Double timeOffset)
   {
     ENTER_FCN( "SmoothPDE::WriteResultsInFile" );
   
     NodeStoreSol<Double> * solTransient;
   
-    Integer actStep = laststepcalc_ + stepOffset;
+    UInt actStep = laststepcalc_ + stepOffset;
     Double actTime = lasttimecalc_ + timeOffset;
 
     if (analysistype_ == STATIC ||
@@ -205,11 +203,11 @@ namespace CoupledField
 
 
 
-  Integer SmoothPDE::GetNrBCDof(const std::string & dofStartString)
+  UInt SmoothPDE::GetNrBCDof(const std::string & dofStartString)
   {
     ENTER_FCN( "SmoothPDE::GetNrBCDof" );
 
-    Integer nrActDof;
+    UInt nrActDof;
   
     if (dofStartString == "ux")
       nrActDof = 1;
@@ -235,7 +233,7 @@ namespace CoupledField
   }
 
 
-  Integer SmoothPDE::GetBCDof(const std::string dofString)
+  UInt SmoothPDE::GetBCDof(const std::string dofString)
   {
     ENTER_FCN( "SmoothPDE::GetBCDof" );
 
@@ -247,8 +245,10 @@ namespace CoupledField
       else
         if (dofString == "uz")
           return 3;
-        else
+        else {
           Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
+          return 0;
+        }
   }
   
 

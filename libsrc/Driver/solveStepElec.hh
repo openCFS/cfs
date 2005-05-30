@@ -28,7 +28,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */  
-    virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+    virtual void PreStepStatic(const UInt kstep, const Double asteptime,
                                const Boolean reset);
 
     //! base method for solving one static step 
@@ -37,7 +37,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void SolveStepStatic(const Integer kstep, const Double asteptime,
+    virtual void SolveStepStatic(const UInt kstep, const Double asteptime,
                                  const Boolean reset);
 
     //! solves for one nonlinear static step 
@@ -46,7 +46,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
+    virtual void StepStaticNonLin(const UInt kstep, const Double asteptime,
                                   const Boolean reset);
 
     //! solves for one nonlinear static step 
@@ -55,7 +55,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepStaticNonLinEpsDiff(const Integer kstep, const Double asteptime,
+    virtual void StepStaticNonLinEpsDiff(const UInt kstep, const Double asteptime,
                                          const Boolean reset);
 
     //! routine for acttions after the SolveStep-method
@@ -63,7 +63,7 @@ namespace CoupledField
       \param kstep time step counter
       \param asteptime current time
     */  
-    virtual void PostStepStatic(const Integer kstep, const Double asteptime);
+    virtual void PostStepStatic(const UInt kstep, const Double asteptime);
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
@@ -72,7 +72,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */  
-    virtual void PreStepTrans(const Integer kstep, const Double asteptime,
+    virtual void PreStepTrans(const UInt kstep, const Double asteptime,
                               const Boolean reset)
     {PreStepStatic(kstep,asteptime,reset);};
 
@@ -82,7 +82,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
+    virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
                                 const Boolean reset)
     {SolveStepStatic(kstep,asteptime,reset);};
 
@@ -92,7 +92,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepTransLin(const Integer kstep, const Double asteptime,
+    virtual void StepTransLin(const UInt kstep, const Double asteptime,
                               const Boolean reset)
     {StepStaticLin(kstep,asteptime,reset);};
 
@@ -101,7 +101,7 @@ namespace CoupledField
       \param kstep time step counter
       \param asteptime current time
     */  
-    virtual void PostStepTrans(const Integer kstep, const Double asteptime)
+    virtual void PostStepTrans(const UInt kstep, const Double asteptime)
     {PostStepStatic(kstep,asteptime);};
 
     //! compute polarization and add the term to RHS
@@ -125,7 +125,7 @@ namespace CoupledField
     Double Esat_;
     Double Psat_;
     Double Ec_;
-    Integer Dir_;
+    UInt Dir_;
     Boolean isVirgin_;
 
     //for differential permittivity

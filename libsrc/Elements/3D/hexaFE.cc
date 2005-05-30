@@ -50,13 +50,13 @@ namespace CoupledField
 
         IntWeights_.Resize(NumIntPoints_);
         // all weights are 1.0
-        for(Integer i=0; i<IntWeights_.GetSize(); i++)
+        for(UInt i=0; i<IntWeights_.GetSize(); i++)
           IntWeights_[i] = 1.0;
       
         if (!IntPoints_)
           IntPoints_ = new Vector<Double>[NumIntPoints_];
       
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);
 
         IntPoints_[0][0] = 0;
@@ -102,7 +102,7 @@ namespace CoupledField
         if (!IntPoints_)
           IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);
 
         IntPoints_[0][0] =  -factor;
@@ -222,13 +222,13 @@ namespace CoupledField
 
         //       IntWeights_.Resize(NumIntPoints_);
         //      // all weights are 4/3
-        //       for(Integer i=0; i<IntWeights_.GetSize(); i++)
+        //       for(UInt i=0; i<IntWeights_.GetSize(); i++)
         //      IntWeights_[i] = 4.0/3.0;
       
         //       if (!IntPoints_)
         //      IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-        //       for(Integer i=0; i<NumIntPoints_; i++)
+        //       for(UInt i=0; i<NumIntPoints_; i++)
         //      IntPoints_[i].Resize(Dim_);
 
         //       IntPoints_[0][0] =  1.0/sqrt(6.0);
@@ -262,13 +262,13 @@ namespace CoupledField
 
         //      IntWeights_.Resize(NumIntPoints_);
         //      // all weights are 1.0
-        //      for(Integer i=0; i<IntWeights_.GetSize(); i++)
+        //      for(UInt i=0; i<IntWeights_.GetSize(); i++)
         //        IntWeights_[i] = 1.0;
       
         //      if (!IntPoints_)
         //        IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-        //      for(Integer i=0; i<NumIntPoints_; i++)
+        //      for(UInt i=0; i<NumIntPoints_; i++)
         //        IntPoints_[i].Resize(Dim_);
 
         //       IntPoints_[0][0] = -0.57735026919;
@@ -310,8 +310,8 @@ namespace CoupledField
       }
   }
 
-  void HexaFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-                                         const StdVector<Integer> & volConnect,
+  void HexaFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                         const StdVector<UInt> & volConnect,
                                          const Vector<Double> & surfIntPoint,
                                          Vector<Double> & volIntPoint)
   {
@@ -334,17 +334,17 @@ namespace CoupledField
 
 
 
-    StdVector<Integer> commonIndex(4);
-    Integer found = 0;
-    Integer indexProduct = 0;
+    StdVector<UInt> commonIndex(4);
+    UInt found = 0;
+    UInt indexProduct = 0;
     std::string errMsg;
   
     volIntPoint.Resize(3);
   
     // loop over surface connect
-    for (Integer iSurf=0; iSurf<4; iSurf++)
+    for (UInt iSurf=0; iSurf<4; iSurf++)
       // loop over volume connect
-      for (Integer iVol=0; iVol<8; iVol++)
+      for (UInt iVol=0; iVol<8; iVol++)
         if (surfConnect[iSurf] == volConnect[iVol])
           {
             commonIndex[found++] = iVol+1;

@@ -20,7 +20,7 @@ namespace CoupledField {
     //! Constructor
     ScalarNodeEQN( Grid * aptGrid, 
                    StdVector<RegionIdType>& asubdoms, 
-                   Integer dofsPerNode );
+                   UInt dofsPerNode );
   
     //! Destructor
     virtual ~ScalarNodeEQN();
@@ -42,17 +42,17 @@ namespace CoupledField {
     // -----------------------------------------------------------------------
   
     //! Map node number and dof to according equation number
-    void Node2EQN(const Integer nodeNr, 
-                  const Integer dof,
+    void Node2EQN(const UInt nodeNr, 
+                  const UInt dof,
                   Integer & eqnNr,
-                  Integer & eqnDof) const;
+                  UInt & eqnDof) const;
 
     //! Map node number to according equation number(s)
-    void Node2EQN(const Integer nodeNr, StdVector<Integer> &eqns) const;
+    void Node2EQN(const UInt nodeNr, StdVector<Integer> &eqns) const;
   
     //! Map vector of node numbers to according
     //! vector of equiation numbers
-    void Node2EQN(const StdVector<Integer> &nodeNr,
+    void Node2EQN(const StdVector<UInt> &nodeNr,
                   StdVector<Integer> &eqnNr) const;
 
     //! Maps the equation numbers according to the reordering

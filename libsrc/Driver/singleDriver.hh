@@ -20,7 +20,7 @@ namespace CoupledField {
     //! \param driverTag tag for current driver section
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     SingleDriver(Domain * adomain, 
-                 Integer stepOffset = 0, 
+                 UInt stepOffset = 0, 
                  Double timeOffset = 0.0, 
                  std::string driverTag ="anyTag",
                  Boolean isPartOfSequence = FALSE);
@@ -37,7 +37,7 @@ namespace CoupledField {
     //! to setup matrices of PDE. we call according method of class PDE for setup matrices of PDE in assembling procedure.
     //! \param pdenumber number of PDE
     //! \param matrixtype type of matrix
-    virtual void SetupMatricesPDE(Integer pdenumber, const Integer matrixtype){
+    virtual void SetupMatricesPDE(UInt pdenumber, const FEMatrixType matrixtype){
       Error( "SetupMatricesPDE must be implemented by derived class!",
              __FILE__, __LINE__ );
     };
@@ -63,7 +63,7 @@ namespace CoupledField {
     std::string driverTag_;
 
     //! offset for first timestep
-    Integer stepOffset_;
+    UInt stepOffset_;
 
     //! offset for first time
     Double timeOffset_;

@@ -53,7 +53,7 @@ namespace CoupledField
 
         IntWeights_.Resize(NumIntPoints_);
         // weights are different for the lower and upper integration points
-        for(Integer i=0; i<IntWeights_.GetSize(); i++)
+        for(UInt i=0; i<IntWeights_.GetSize(); i++)
           {
             if(i<(IntWeights_.GetSize()/2))
               {
@@ -68,7 +68,7 @@ namespace CoupledField
         if (!IntPoints_)
           IntPoints_ = new Vector<Double>[NumIntPoints_];
 
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);
 
         IntPoints_[0][0] = -0.506616303350116;

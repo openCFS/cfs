@@ -9,15 +9,15 @@ namespace CoupledField
 
 
   // returns B - matrix for BDB
-  void SmoothInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  void SmoothInt::calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "SmoothInt::calcBMat" );
     
-    const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer spaceDim = ptelem->GetDim();  
-    const Integer nrDofs   = getNrDofs();  
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const UInt spaceDim = ptelem->GetDim();  
+    const UInt nrDofs   = getNrDofs();  
 
-    Integer actDim, actNode, help, j, k;
+    UInt actDim, actNode, j, k;
     
     
     bMat.Resize(getDimD(), nrNodes * nrDofs);
@@ -47,7 +47,7 @@ namespace CoupledField
 
 
       case 3:
-        Integer actDim=spaceDim;
+        UInt actDim=spaceDim;
         for (actNode = 0; actNode < nrNodes; actNode++)
           {
             bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
@@ -75,18 +75,18 @@ namespace CoupledField
   
   // calculated the D-matrix for the plain strain state
   void smoothPlainStrainInt::calcDMat(Matrix<Double> & dMat, 
-                                      Integer ip, 
+                                      UInt ip, 
                                       Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "smoothPlainStrainInt::calcDMat" );
 
-    const Integer nrElems2d = getDimD();
+    const UInt nrElems2d = getDimD();
     
-    Integer rowPtrXY[] = {1,2,6,7,8};  // indices of rows and lines for xy-plane
-    Integer rowPtrYZ[] = {2,3,4,8,9};  // indices of rows and lines for yz-plane
-    Integer rowPtrXZ[] = {1,3,5,7,9};  // indices of rows and lines for xz-plane
-    Integer * rowPtr;
-    Integer i,j;
+    UInt rowPtrXY[] = {1,2,6,7,8};  // indices of rows and lines for xy-plane
+    UInt rowPtrYZ[] = {2,3,4,8,9};  // indices of rows and lines for yz-plane
+    UInt rowPtrXZ[] = {1,3,5,7,9};  // indices of rows and lines for xz-plane
+    UInt * rowPtr;
+    UInt i,j;
 
     switch(actOrientation_)
       { 
@@ -123,16 +123,16 @@ namespace CoupledField
 
 
   // calculated the D-matrix for the axisymmetric state
-  void SmoothAxiInt::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
+  void SmoothAxiInt::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "SmoothAxiInt::calcDMat" );
     
-    const Integer nrElemsAxi = 4;
+    const UInt nrElemsAxi = 4;
     
-    Integer rowPtrXY[] = {1,2,6,3};  // indices of rows and lines for xy-plane
-    Integer rowPtrYZ[] = {2,3,4,1};  // indices of rows and lines for yz-plane
-    Integer rowPtrXZ[] = {1,3,5,2};  // indices of rows and lines for xz-plane
-    Integer * rowPtr;
+    UInt rowPtrXY[] = {1,2,6,3};  // indices of rows and lines for xy-plane
+    UInt rowPtrYZ[] = {2,3,4,1};  // indices of rows and lines for yz-plane
+    UInt rowPtrXZ[] = {1,3,5,2};  // indices of rows and lines for xz-plane
+    UInt * rowPtr;
 
     switch(actOrientation_)
       { 
@@ -161,19 +161,19 @@ namespace CoupledField
     Double jacDetInv;
     jacDetInv = 1.0/ptelem->CalcJacobianDetAtIp(ip,ptCoord);
 
-    for (Integer i=0; i<nrElemsAxi; i++)
-      for (Integer j=0; j<nrElemsAxi; j++)
+    for (UInt i=0; i<nrElemsAxi; i++)
+      for (UInt j=0; j<nrElemsAxi; j++)
         dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1] * jacDetInv;
   }
 
 
 
   // calculates the D-matrix of a 3d-problem 
-  void smooth3DInt::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
+  void smooth3DInt::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "smooth3DInt::calcDMat" );
 
-    const Integer nrElems3d = getDimD();
+    const UInt nrElems3d = getDimD();
     
     Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
     dMat.Resize(nrElems3d);
@@ -181,8 +181,8 @@ namespace CoupledField
     Double jacDetInv;
     jacDetInv = 1.0/ptelem->CalcJacobianDetAtIp(ip,ptCoord);
 
-    for (Integer i=0; i<nrElems3d; i++)
-      for (Integer j=0; j<nrElems3d; j++)
+    for (UInt i=0; i<nrElems3d; i++)
+      for (UInt j=0; j<nrElems3d; j++)
         dMat[i][j] = (*matMatrix)[i][j] * jacDetInv;    
   }
 

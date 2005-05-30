@@ -146,12 +146,12 @@ namespace CoupledField {
     //!       option in <em>Makefile.option</em>. Specifying a trace depth of
     //!       zero avoids generation of the trace file, but does not remove
     //!       the work associated with function tracing.
-    Integer GetTraceDepth() const {
+    UInt GetTraceDepth() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetTraceDepth" );
       Setting *aux = commandLine_.getSetting( markerTraceDepth_.c_str() );
-      Integer retVal = DefaultTraceDepth();
+      UInt retVal = DefaultTraceDepth();
       if ( aux != NULL ) {
-        retVal = (Integer)(aux->getInt());
+        retVal = (UInt)(aux->getInt());
       }
       return retVal;
     };

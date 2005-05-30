@@ -33,7 +33,7 @@ namespace CoupledField
     void Print(std::ostream * outfile) const;
 
     //! return the number of time functions
-    Integer GetmaxTimeFnc() 
+    UInt GetmaxTimeFnc() 
     {
       return maxnumTF_;
     }
@@ -44,7 +44,7 @@ namespace CoupledField
     void ReadTimeFuncs();
  
     //! 
-    Integer maxnumTF_; //<! number of time functions
+    UInt maxnumTF_; //<! number of time functions
 
     //!
     std::list<Double> * timeTF_; //<! time 

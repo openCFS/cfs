@@ -873,7 +873,7 @@ namespace CoupledField
 
     Integer spacedim = ptMyPDE_->getPDE_spaceDim();
 
-    StdVector<Integer> bcs_list;
+    StdVector<UInt> bcs_list;
     std::string BCName="ep-top";
 
     
@@ -918,7 +918,7 @@ namespace CoupledField
   }// end typeOutSolutionOnSreen
 
   void piezoParamIdent::calcInitialResidual(Vector<Complex> & res, Vector<Complex> & y_hat, Vector<Complex> & PHI_p, Integer fstep, Vector<Complex> & solElecPot, Double & meanValueMechDeformation){
-    StdVector<Integer> bcs_list;
+    StdVector<UInt> bcs_list;
     ptdomain_->GetGrid()->GetNodesByName(bcs_list,"ep-top"); // for cube3dharmonic; zero, because level=0
     //bcs_list=ptBCs->GetNodesLevel("pot", 0); // for cubexi, zero, because level=0
     PHI_p[fstep]=solElecPot[bcs_list[0]];

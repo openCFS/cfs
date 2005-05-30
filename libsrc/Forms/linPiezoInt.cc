@@ -13,16 +13,16 @@ namespace CoupledField {
  
 
   // determine the matrix B of the BDB operator
-  void linPiezoInt::calcBMat( Matrix<Double> &bMat, Integer ip,
+  void linPiezoInt::calcBMat( Matrix<Double> &bMat, UInt ip,
                               Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "linPiezoInt::calcBMat" );
 
     // obtain info on problem sizes
-    const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer spaceDim = ptelem->GetDim();
-    const Integer nrDofs   = getNrDofs();
-    const Integer offset   = spaceDim + 1;
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const UInt spaceDim = ptelem->GetDim();
+    const UInt nrDofs   = getNrDofs();
+    const UInt offset   = spaceDim + 1;
 
     // set correct size of matrix B
     bMat.Resize( getDimD(), nrNodes * nrDofs );
@@ -37,7 +37,7 @@ namespace CoupledField {
       ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
     // auxiliary variables
-    Integer actDim, actNode;
+    UInt actDim, actNode;
 
     // treat mechanical part (same as in linElastInt)
     for(actDim=0; actDim < spaceDim; actDim++)
@@ -100,10 +100,10 @@ namespace CoupledField {
   {
     ENTER_FCN( "linPiezoInt::CalcPlaneStrainMaterialMat" );
 
-    Integer rowPtrXY[]={1,2,6,7,9};
-    Integer rowPtrYZ[]={2,3,4,8,9};
-    Integer rowPtrXZ[]={1,3,5,7,9};
-    Integer * rowPtr;
+    UInt rowPtrXY[]={1,2,6,7,9};
+    UInt rowPtrYZ[]={2,3,4,8,9};
+    UInt rowPtrXZ[]={1,3,5,7,9};
+    UInt * rowPtr;
 
     switch(actOrientation)
       {
@@ -130,7 +130,7 @@ namespace CoupledField {
       }
 
     // set the material matrix
-    Integer sizeofD=getDimD();
+    UInt sizeofD=getDimD();
     dMat.Resize(sizeofD);
     dMat.Init(0);
 
@@ -145,8 +145,8 @@ namespace CoupledField {
     if ( isDamping_ == false ) {
 
       // Copy entries from material matrix object into D matrix
-      for ( Integer i = 0; i < sizeofD; i++ ) {
-        for ( Integer j = 0; j < sizeofD; j++ ) {
+      for ( UInt i = 0; i < sizeofD; i++ ) {
+        for ( UInt j = 0; j < sizeofD; j++ ) {
           dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
         }
       }
@@ -160,8 +160,8 @@ namespace CoupledField {
 
       // multiply values of permittivity with -1 to obtain the correct
       // bilinearform
-      for ( Integer i = sizeofD - 2; i < sizeofD; i++ ) {
-        for ( Integer j = sizeofD - 2; j < sizeofD; j++ ) {
+      for ( UInt i = sizeofD - 2; i < sizeofD; i++ ) {
+        for ( UInt j = sizeofD - 2; j < sizeofD; j++ ) {
           dMat[i][j] *= -1.0;
         }
       }
@@ -188,8 +188,8 @@ namespace CoupledField {
 
       Double beta = ptMaterial->GetDampingBeta();
 
-      for( Integer i = 0; i < sizeofD - 2; i++ ) {
-        for ( Integer j = 0; j < sizeofD - 2; j++ ) {
+      for( UInt i = 0; i < sizeofD - 2; i++ ) {
+        for ( UInt j = 0; j < sizeofD - 2; j++ ) {
           dMat[i][j] = (*matMatrix)[i][j] * beta * factorDamp_;
         }
       }
@@ -206,15 +206,15 @@ namespace CoupledField {
 #endif
 
       // Scale mechanical parameters by 10^{-10}
-      for( Integer i = 0; i < sizeofD - 2; i++ ) {
-        for ( Integer j = 0; j < sizeofD - 2; j++ ) {
+      for( UInt i = 0; i < sizeofD - 2; i++ ) {
+        for ( UInt j = 0; j < sizeofD - 2; j++ ) {
           dMat[i][j] *= 1e-10;
         }
       }
 
       // Scale electrical parameters by 10^{+10}
-      for( Integer i = sizeofD - 2; i < sizeofD; i++ ) {
-        for ( Integer j = sizeofD - 2; j < sizeofD; j++ ) {
+      for( UInt i = sizeofD - 2; i < sizeofD; i++ ) {
+        for ( UInt j = sizeofD - 2; j < sizeofD; j++ ) {
           dMat[i][j] *= 1e+10;
         }
       }
@@ -230,10 +230,10 @@ namespace CoupledField {
 
     ENTER_FCN( "linPiezoInt::CalcAxiMaterialMat" );
 
-    Integer rowPtrXY[]={1,2,6,3,7,8};
-    Integer rowPtrYZ[]={2,3,4,1,8,9};
-    Integer rowPtrXZ[]={1,3,5,2,7,9};
-    Integer * rowPtr;   //alte Version
+    UInt rowPtrXY[]={1,2,6,3,7,8};
+    UInt rowPtrYZ[]={2,3,4,1,8,9};
+    UInt rowPtrXZ[]={1,3,5,2,7,9};
+    UInt * rowPtr;   //alte Version
 
     switch(actOrientation) {
 
@@ -260,7 +260,7 @@ namespace CoupledField {
     }
 
     // Set the material matrix
-    Integer sizeofD=getDimD();
+    UInt sizeofD=getDimD();
     dMat.Resize(sizeofD);
     dMat.Init(0);
 
@@ -277,8 +277,8 @@ namespace CoupledField {
     if ( isDamping_ == false ) {
 
       // Copy entries from material matrix object into D matrix
-      for ( Integer i = 0; i < sizeofD; i++ ) {
-        for( Integer j = 0; j < sizeofD; j++ ) {
+      for ( UInt i = 0; i < sizeofD; i++ ) {
+        for( UInt j = 0; j < sizeofD; j++ ) {
           dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1];
         }
       }
@@ -292,8 +292,8 @@ namespace CoupledField {
 
       // Multiply values of permittivity with -1 to obtain the
       // correct bilinearform
-      for ( Integer i = sizeofD - 2; i < sizeofD; i++ ) {
-        for ( Integer j = sizeofD - 2; j < sizeofD; j++ ) {
+      for ( UInt i = sizeofD - 2; i < sizeofD; i++ ) {
+        for ( UInt j = sizeofD - 2; j < sizeofD; j++ ) {
           dMat[i][j] *= -1.0;
         }
       }
@@ -315,8 +315,8 @@ namespace CoupledField {
         matMatrix = ptMaterial->GetMatrixC();
 
       Double beta = ptMaterial->GetDampingBeta();
-      for( Integer i = 0; i < sizeofD - 2; i++ ) {
-        for ( Integer j = 0; j < sizeofD - 2; j++ ) {
+      for( UInt i = 0; i < sizeofD - 2; i++ ) {
+        for ( UInt j = 0; j < sizeofD - 2; j++ ) {
           dMat[i][j] = (*matMatrix)[i][j] * beta * factorDamp_;
         }
       }
@@ -333,15 +333,15 @@ namespace CoupledField {
 #endif
 
       // Scale mechanical parameters by 10^{-10}
-      for( Integer i = 0; i < sizeofD - 2; i++ ) {
-        for ( Integer j = 0; j < sizeofD - 2; j++ ) {
+      for( UInt i = 0; i < sizeofD - 2; i++ ) {
+        for ( UInt j = 0; j < sizeofD - 2; j++ ) {
           dMat[i][j] *= 1e-10;
         }
       }
 
       // Scale electrical parameters by 10^{+10}
-      for( Integer i = sizeofD - 2; i < sizeofD; i++ ) {
-        for ( Integer j = sizeofD - 2; j < sizeofD; j++ ) {
+      for( UInt i = sizeofD - 2; i < sizeofD; i++ ) {
+        for ( UInt j = sizeofD - 2; j < sizeofD; j++ ) {
           dMat[i][j] *= 1e+10;
         }
       }
@@ -358,7 +358,7 @@ namespace CoupledField {
     ENTER_FCN( "linPiezoInt::Calc3DMaterialMat" );
 
     // Resize and initialise matrix object
-    const Integer sizeofD = getDimD();
+    const UInt sizeofD = getDimD();
     dMat.Resize( sizeofD );
     dMat.Init( 0 );
 
@@ -373,8 +373,8 @@ namespace CoupledField {
       else if (piezoMatType_ == IMAGMATERIALPARAMETER)
         matMatrix = ptMaterial->GetMatrixC();
       
-      for( Integer i = 0; i < sizeofD; i++ ) {
-        for ( Integer j = 0; j < sizeofD; j++ ) {
+      for( UInt i = 0; i < sizeofD; i++ ) {
+        for ( UInt j = 0; j < sizeofD; j++ ) {
           dMat[i][j] = (*matMatrix)[i][j];
         }
       }
@@ -387,8 +387,8 @@ namespace CoupledField {
 
       // Multiply values of permittivity with -1 to obtain the correct
       // bilinear form
-      for ( Integer i = sizeofD - 3; i < sizeofD; i++ ) {
-        for ( Integer j = sizeofD - 3; j <sizeofD; j++ ) {
+      for ( UInt i = sizeofD - 3; i < sizeofD; i++ ) {
+        for ( UInt j = sizeofD - 3; j <sizeofD; j++ ) {
           dMat[i][j] *= -1.0;
         }
       }
@@ -409,8 +409,8 @@ namespace CoupledField {
         matMatrix = ptMaterial->GetMatrixC();
 
       Double beta = ptMaterial->GetDampingBeta();
-      for( Integer i = 0; i < sizeofD - 3; i++ ) {
-        for ( Integer j = 0; j < sizeofD - 3; j++ ) {
+      for( UInt i = 0; i < sizeofD - 3; i++ ) {
+        for ( UInt j = 0; j < sizeofD - 3; j++ ) {
           dMat[i][j] = (*matMatrix)[i][j] * beta * factorDamp_;
         }
       }
@@ -427,15 +427,15 @@ namespace CoupledField {
 #endif
 
       // Scale mechanical parameters by 10^{-10}
-      for( Integer i = 0; i < sizeofD - 3; i++ ) {
-        for ( Integer j = 0; j < sizeofD - 3; j++ ) {
+      for( UInt i = 0; i < sizeofD - 3; i++ ) {
+        for ( UInt j = 0; j < sizeofD - 3; j++ ) {
           dMat[i][j] *= 1e-10;
         }
       }
 
       // Scale electrical parameters by 10^{+10}
-      for( Integer i = sizeofD - 3; i < sizeofD; i++ ) {
-        for ( Integer j = sizeofD - 3; j < sizeofD; j++ ) {
+      for( UInt i = sizeofD - 3; i < sizeofD; i++ ) {
+        for ( UInt j = sizeofD - 3; j < sizeofD; j++ ) {
           dMat[i][j] *= 1e+10;
         }
       }
@@ -455,7 +455,7 @@ namespace CoupledField {
   // S = Bmech * u 
   // E = Belec V
   // see Habil. M. Kaltenbacher 
-  void linPiezoInt::CalcStressVec( Vector<Double>& stressElecVec, Integer ip, 
+  void linPiezoInt::CalcStressVec( Vector<Double>& stressElecVec, UInt ip, 
                                    Matrix<Double> & ptCoord ) {
 
     ENTER_FCN( "linPiezoInt::CalcStressVec" );
@@ -481,8 +481,8 @@ namespace CoupledField {
 
   }
 
-  void linPiezoInt::CalcStressVec( Vector<Double>& stressElecVec, Integer ip, 
-                                   Matrix<Double> & ptCoord, Integer comp,
+  void linPiezoInt::CalcStressVec( Vector<Double>& stressElecVec, UInt ip, 
+                                   Matrix<Double> & ptCoord, UInt comp,
                                    Double Dval) {
 
     ENTER_FCN( "linPiezoInt::CalcStressVec" );
@@ -500,7 +500,7 @@ namespace CoupledField {
     calcBMat( linBMat, ip, ptCoord);
 
     //set corrsponding permittivity to zero
-    Integer idx = dMat.GetSizeRow() - comp - 1;
+    UInt idx = dMat.GetSizeRow() - comp - 1;
     dMat[idx][idx] = 0.0;
     //    std::cout << "Mat:\n" << dMat << std::endl;
 
@@ -513,7 +513,7 @@ namespace CoupledField {
     stressElecVec[idx] += Dval;
   }
 
-  void linPiezoInt::CalcStressVec( Vector<Complex>& stressElecVec, Integer ip, 
+  void linPiezoInt::CalcStressVec( Vector<Complex>& stressElecVec, UInt ip, 
                                    Matrix<Double> & ptCoord ) {
 
     ENTER_FCN( "linPiezoInt::CalcStressVec" );
@@ -552,20 +552,19 @@ namespace CoupledField {
   // ========================================================================
 
   // determine the matrix B of the BDB operator
-  void piezoAxiInt::calcBMat( Matrix<Double> &bMat, Integer ip,
+  void piezoAxiInt::calcBMat( Matrix<Double> &bMat, UInt ip,
                               Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "piezoAxiInt::calcBMat" );
 
     // obtain info on problem sizes
-    const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer spaceDim = ptelem->GetDim();
-    const Integer nrDofs   = getNrDofs();
-    const Integer offset   = spaceDim + 1;
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const UInt spaceDim = ptelem->GetDim();
+    const UInt nrDofs   = getNrDofs();
+    const UInt offset   = spaceDim + 1;
 
     // set correct size of matrix B
     bMat.Resize( getDimD(), nrNodes * nrDofs );
-    Integer totalnodes=nrNodes * nrDofs;
 
     // derivatives of local shape functions with respect to global coords
     // (format: nrNodes x spaceDim)
@@ -577,7 +576,7 @@ namespace CoupledField {
       ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
     // auxiliary variables
-    Integer actDim, actNode, idxtheta = getDimD();
+    UInt actDim, actNode;
     Vector<Double> ShpFncAtIp;
     Vector<Double> CoordAtIp;
 
@@ -628,10 +627,10 @@ namespace CoupledField {
 
     ENTER_FCN( "linPiezoAxiInt::calcDMatWithComplexDamping" );
 
-    Integer rowPtrXY[]={1,2,6,3,7,8};
-    Integer rowPtrYZ[]={2,3,4,1,8,9};
-    Integer rowPtrXZ[]={1,3,5,2,7,9};
-    Integer * rowPtr;   //alte Version
+    UInt rowPtrXY[]={1,2,6,3,7,8};
+    UInt rowPtrYZ[]={2,3,4,1,8,9};
+    UInt rowPtrXZ[]={1,3,5,2,7,9};
+    UInt * rowPtr;   //alte Version
 
     switch(actOrientation) {
 
@@ -658,7 +657,7 @@ namespace CoupledField {
     }
 
     // Set the material matrix
-    Integer sizeofD=getDimD();
+    UInt sizeofD=getDimD();
     dMat.Resize(sizeofD);
     dMat.Init(0);
 
@@ -675,8 +674,8 @@ namespace CoupledField {
     else if (piezoMatType_ == IMAGMATERIALPARAMETER)
       matMatrix = ptMaterial->GetMatrixC();
 
-    for ( Integer i = 0; i < sizeofD; i++ ) {
-      for( Integer j = 0; j < sizeofD; j++ ) {
+    for ( UInt i = 0; i < sizeofD; i++ ) {
+      for( UInt j = 0; j < sizeofD; j++ ) {
         dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1] *
           ( 1.0 + beta * omega * im );
       }
@@ -703,10 +702,10 @@ namespace CoupledField {
 
     ENTER_FCN( "piezoPlainStrainInt::calcDMaterialMatWithComplexDamping" );
 
-    Integer rowPtrXY[]={2,3,5,8,9};
-    Integer rowPtrYZ[]={2,3,4,8,9};
-    Integer rowPtrXZ[]={1,3,5,7,9};
-    Integer * rowPtr;
+    UInt rowPtrXY[]={2,3,5,8,9};
+    UInt rowPtrYZ[]={2,3,4,8,9};
+    UInt rowPtrXZ[]={1,3,5,7,9};
+    UInt * rowPtr;
 
     switch(actOrientation) {
 
@@ -729,7 +728,7 @@ namespace CoupledField {
     }
 
     // set the material matrix
-    Integer sizeofD=getDimD();
+    UInt sizeofD=getDimD();
     dMat.Resize(sizeofD);
     dMat.Init(0);
        
@@ -743,8 +742,8 @@ namespace CoupledField {
       matMatrix = ptMaterial->GetMatrixC();
 
     Complex imag=Complex(0,1);
-    for( Integer i = 0; i < sizeofD; i++ ) {
-      for ( Integer j = 0; j < sizeofD; j++ ) {
+    for( UInt i = 0; i < sizeofD; i++ ) {
+      for ( UInt j = 0; j < sizeofD; j++ ) {
         dMat[i][j] = (*matMatrix)[i][j] * beta * omega * imag;
       }
     }
@@ -752,21 +751,19 @@ namespace CoupledField {
 
 
   // determine the matrix B of the BDB operator
-  void piezoPlainStrainInt::calcBMat( Matrix<Double> &bMat, Integer ip,
+  void piezoPlainStrainInt::calcBMat( Matrix<Double> &bMat, UInt ip,
                                       Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "piezoPlainStrainInt::calcBMat" );
 
     // obtain info on problem sizes
-    const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer spaceDim = ptelem->GetDim();
-    const Integer nrDofs   = getNrDofs();
-    const Integer offset   = spaceDim + 1;
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const UInt spaceDim = ptelem->GetDim();
+    const UInt nrDofs   = getNrDofs();
+    const UInt offset   = spaceDim + 1;
 
     // set correct size of matrix B
     bMat.Resize( getDimD(), nrNodes * nrDofs );
-
-    Integer totalnodes=nrNodes * nrDofs;
 
     Matrix<Double> xiDx;
 
@@ -776,7 +773,7 @@ namespace CoupledField {
       ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
     // auxiliary variables
-    Integer actDim, actNode;
+    UInt actDim, actNode;
 
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++){
@@ -842,7 +839,7 @@ namespace CoupledField {
     ENTER_FCN( "linPiezoInt::Calc3DMaterialMatWithComplexDamping" );
 
     // Resize and initialise matrix object
-    const Integer sizeofD = getDimD();
+    const UInt sizeofD = getDimD();
     dMat.Resize( sizeofD );
     dMat.Init( 0 );
 
@@ -859,8 +856,8 @@ namespace CoupledField {
     }
 
     Complex imag = Complex( 0, 1.0 );
-    for( Integer i = 0; i < sizeofD - 3; i++ ) {
-      for ( Integer j = 0; j < sizeofD - 3; j++ ) {
+    for( UInt i = 0; i < sizeofD - 3; i++ ) {
+      for ( UInt j = 0; j < sizeofD - 3; j++ ) {
         dMat[i][j] = (*matMatrix)[i][j] * ( 1.0 + beta * imag * omega );
       }
     }

@@ -15,7 +15,7 @@ namespace CoupledField
 
   //! This class serves as a adapter between the base class Grid and
   //! the implementation GridCFS
-  template<Integer DIM> 
+  template<UInt DIM> 
   class GridInterfaceCFS: public Grid
   {
   public:
@@ -40,36 +40,36 @@ namespace CoupledField
     //@{ \name General Grid Information
 
     //! Return dimension of mesh
-    Integer GetDim() {
+    UInt GetDim() {
       return ptGridCFS->GetDim(); 
     }
   
     //! Return maximum number of nodes
-    Integer GetNumNodes() {
+    UInt GetNumNodes() {
       return ptGridCFS->GetNumNodes(); 
     }
   
     //! Returns the number of nodes contained in given region
-    Integer GetNumNodes( const StdVector<RegionIdType> & regions ) {
+    UInt GetNumNodes( const StdVector<RegionIdType> & regions ) {
       return ptGridCFS->GetNumNodes(regions); 
     }
   
     //! Returns the number of nodes in the given nodelist
-    Integer GetNumNodes( const std::string & nodesName ) {
+    UInt GetNumNodes( const std::string & nodesName ) {
       return ptGridCFS->GetNumNodes(nodesName);
     }
 
     //! Return maximum number of volume elements 
-    Integer GetNumVolElems() {
+    UInt GetNumVolElems() {
       return ptGridCFS->GetNumVolElems(); 
     }
     //! Return maximum number of surface elements 
-    Integer GetNumSurfElems() {
+    UInt GetNumSurfElems() {
       return ptGridCFS->GetNumSurfElems(); 
     }
   
     //! Returns number of element contained in given regions
-    Integer GetNumElems( const StdVector<RegionIdType> & regions ) {
+    UInt GetNumElems( const StdVector<RegionIdType> & regions ) {
       return ptGridCFS->GetNumElems(regions);
     }
   
@@ -91,13 +91,13 @@ namespace CoupledField
     //@{ \name Node Access Functions
 
     //! Get list of nodes by their name
-    void GetNodesByName( StdVector<Integer> & nodeList,
+    void GetNodesByName( StdVector<UInt> & nodeList,
                          const std::string & name ) {
       ptGridCFS->GetNodesByName(nodeList, name); 
     }
 
     //! Get list of nodes contained in a region
-    void GetNodesByRegion( StdVector<Integer> & nodeList,
+    void GetNodesByRegion( StdVector<UInt> & nodeList,
                            const RegionIdType regionId ) {
       ptGridCFS->GetNodesByRegion(nodeList,regionId);
     }
@@ -106,7 +106,7 @@ namespace CoupledField
     //! \param rfPoint (output) coordinates of point 2D
     //! \param inode (input) node number
     void GetNodeCoordinate( Point<DIM> & rfPoint,
-                            const Integer inode ) {
+                            const UInt inode ) {
       ptGridCFS->GetNodeCoordinate(rfPoint, inode);
     }
     //@}
@@ -135,20 +135,20 @@ namespace CoupledField
     }
   
     //! Get node numbers of given element
-    void GetElemNodes( StdVector<Integer> & connect, 
-                       const Integer iElem ) {
+    void GetElemNodes( StdVector<UInt> & connect, 
+                       const UInt iElem ) {
       ptGridCFS->GetElemNodes(connect, iElem);
     }
   
     //! Get coordinates of element nodes
     void GetElemNodesCoord( Matrix<Double> & coordMat,  
-                            const StdVector<Integer> & connect ) {
+                            const StdVector<UInt> & connect ) {
       ptGridCFS->GetElemNodesCoord(coordMat, connect);
     }
   
     //! Get elements associated with given nodes
     void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
-                              const StdVector<Integer> & nodeList,
+                              const StdVector<UInt> & nodeList,
                               const StdVector<RegionIdType> 
                               & regionIds ) {
       ptGridCFS->GetElemsNextToNodes(elemList, nodeList, regionIds);
@@ -199,7 +199,7 @@ namespace CoupledField
  
 
     //! Returns node numbers of a list of Elements
-    void GetNodesOfElemList( StdVector<Integer> & nodeList,
+    void GetNodesOfElemList( StdVector<UInt> & nodeList,
                              const StdVector<Elem*> & elemList ) {
       ptGridCFS->GetNodesOfElemList(nodeList, elemList);
     }
@@ -216,7 +216,7 @@ namespace CoupledField
     ///
   };
 
-  template<Integer DIM>
+  template<UInt DIM>
   inline GridInterfaceCFS<DIM>::GridInterfaceCFS(FileType * aptFileType)
     : Grid(aptFileType)
   {

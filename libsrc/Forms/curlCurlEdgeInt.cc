@@ -25,8 +25,8 @@ namespace CoupledField
   {
     ENTER_FCN( "CurlCurlEdgeInt::CalcElementMatrix" );
   
-    const Integer nrIntPts= ptelem->GetNumIntPoints();
-    const Integer nrEdges = ptelem->GetNumEdges();
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const UInt nrEdges = ptelem->GetNumEdges();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
   
@@ -34,7 +34,7 @@ namespace CoupledField
     // derivation of shape functions after global coordinates 
     StdVector< Matrix<Double>* > xiDx;
     xiDx.Resize(nrEdges);
-    for (Integer i=0; i<nrEdges; i++)
+    for (UInt i=0; i<nrEdges; i++)
       xiDx[i] = new Matrix<Double>;
   
     Matrix<Double> curl;
@@ -49,7 +49,7 @@ namespace CoupledField
     elemMat.Init();
   
   
-    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         // calc glob derivs of shape functions and jacobian determinante
         ptelem->GetEdgeGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord);
@@ -81,13 +81,13 @@ namespace CoupledField
   void CurlCurlEdgeInt::CalcEdgeCurl(Matrix<Double>& curl, 
                                      const StdVector<Matrix<Double>*>& shapeDeriv)
   {
-    Integer nrEdges = shapeDeriv.GetSize();
-    Integer dim = shapeDeriv[0]->GetSizeRow();
+    UInt nrEdges = shapeDeriv.GetSize();
+    UInt dim = shapeDeriv[0]->GetSizeRow();
     
     curl.Resize(dim, nrEdges);
     
-    for (Integer actEdge=0; actEdge < nrEdges; actEdge++)
-      for (Integer actDim=0; actDim < dim; actDim++)
+    for (UInt actEdge=0; actEdge < nrEdges; actEdge++)
+      for (UInt actDim=0; actDim < dim; actDim++)
         curl[actDim][actEdge] = 
           (*shapeDeriv[actEdge])[(actDim+2)%dim][(actDim+1)%dim] -
           (*shapeDeriv[actEdge])[(actDim+1)%dim][(actDim+2)%dim];

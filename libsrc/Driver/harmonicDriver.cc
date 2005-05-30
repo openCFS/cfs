@@ -15,7 +15,7 @@ namespace CoupledField
 {
 
   HarmonicDriver :: HarmonicDriver(Domain * adomain, 
-                                   Integer stepOffset,
+                                   UInt stepOffset,
                                    Double timeOffset,
                                    std::string driverTag,
                                    Boolean isPartOfSequence)
@@ -77,7 +77,7 @@ namespace CoupledField
       
     actFreq_  = startFreq_;
 
-    Integer fstep;
+    UInt fstep;
     Double freqIncr;
     if (numFreq_ > 1) {
       freqIncr = (stopFreq_ - startFreq_) / (numFreq_-1);

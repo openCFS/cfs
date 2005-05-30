@@ -33,8 +33,8 @@ namespace CoupledField {
   WriteResults::~WriteResults() {
     ENTER_FCN( "WriteResults::~WriteResults" );
   
-    for (Integer i=0; i<historyFiles_.GetSize(); i++) {
-      for (Integer j=0; j<historyFiles_[i].GetSize(); j++) {
+    for (UInt i=0; i<historyFiles_.GetSize(); i++) {
+      for (UInt j=0; j<historyFiles_[i].GetSize(); j++) {
         if (historyFiles_[i][j]) {
           delete historyFiles_[i][j];
         }
@@ -50,7 +50,7 @@ namespace CoupledField {
 
     ENTER_FCN( "WriteResults::InitHistoryFiles" );
  
-    StdVector<Integer> nodesTmp;
+    StdVector<UInt> nodesTmp;
 
     // *****************************************************************
     //   Determine for which output quantities there are history nodes
@@ -99,7 +99,7 @@ namespace CoupledField {
     }
 
     // Define some loop counters and auxilliary variables
-    Integer iQuant, i, j;
+    UInt iQuant, i, j;
     Integer quantityFound;
 
     // Local data structure for combining identifiers of history nodes
@@ -109,7 +109,7 @@ namespace CoupledField {
     //  a) index of identifier in nodeVec
     //  b) start index of node numbers for identifier in histNodesPerQuant_
     //  c) stop index of node numbers for identifier in histNodesPerQuant_
-    StdVector< StdVector<Integer> > histNodeNumIdentCoup;
+    StdVector< StdVector<UInt> > histNodeNumIdentCoup;
 
     // In the vector of quantities there may be duplicates
     // these must be eliminated!
@@ -133,8 +133,8 @@ namespace CoupledField {
       if ( quantityFound == -1 ) {
         String2Enum( quantVec[iQuant], solType );
         histQuantities_.Push_back(solType);
-        histNodesPerQuant_.Push_back(StdVector<Integer>());
-        histNodeNumIdentCoup.Push_back(StdVector<Integer>());
+        histNodesPerQuant_.Push_back(StdVector<UInt>());
+        histNodeNumIdentCoup.Push_back(StdVector<UInt>());
         quantityFound = histNodesPerQuant_.GetSize() - 1;
       }
 
@@ -142,7 +142,7 @@ namespace CoupledField {
       // related to a saveNodes identifier. Add the corresponding
       // nodes to the histNodesPerQuant_ vector and the indices of
       // the identifier and node numbers to histNodeNumIdentCoup
-      StdVector<Integer> tempNodes;
+      StdVector<UInt> tempNodes;
       
       ptGrid_->GetNodesByName( tempNodes, nodeVec[iQuant] );
       histNodeNumIdentCoup[quantityFound].Push_back(iQuant);
@@ -197,7 +197,7 @@ namespace CoupledField {
       // For each node there will be one history file
       historyFiles_[iQuant].Resize(histNodesPerQuant_[iQuant].GetSize());
 
-      for ( Integer iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
+      for ( UInt iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
             iNode++ ) {
 
         // Create complete filename
@@ -225,14 +225,14 @@ namespace CoupledField {
   void WriteResults::WriteSolMatrix(Grid * ptgrid, 
                                     const Vector<Double> sol, 
                                     const std::string matFileName,
-                                    const Integer nrDofs) {
+                                    const UInt nrDofs) {
 
     ENTER_FCN( "WriteResults::WriteSolMatrix" );
 
     //get and write number of nodes on the level
-    Integer numnodes=ptgrid->GetNumNodes();
-    Integer dim=ptgrid->GetDim();
-    Integer i;
+    UInt numnodes=ptgrid->GetNumNodes();
+    UInt dim=ptgrid->GetDim();
+    UInt i;
 
     std::ofstream * matrixOut = new std::ofstream(matFileName.c_str());
     // use scientific output, formatting is much better
@@ -247,7 +247,7 @@ namespace CoupledField {
         (*matrixOut) << " \t" << point[0] << " \t" << point[1] << " \t"
                      << 0 << " \t";
 
-        for (Integer actDof =0; actDof < nrDofs; actDof++) {
+        for (UInt actDof =0; actDof < nrDofs; actDof++) {
           (*matrixOut) << sol[i*nrDofs + actDof] << " \t";
         }
         (*matrixOut) << std::endl;
@@ -262,7 +262,7 @@ namespace CoupledField {
         (*matrixOut) << " \t" << point[0] << " \t" << point[1] << " \t"
                      << point[2] << " \t";
 
-        for (Integer actDof =0; actDof < nrDofs; actDof++) {
+        for (UInt actDof =0; actDof < nrDofs; actDof++) {
           (*matrixOut) << sol[i*nrDofs + actDof] << " \t";
         }
         (*matrixOut) << std::endl;
@@ -272,21 +272,21 @@ namespace CoupledField {
 
 
   void WriteResults::WriteNodeHistoryTransient(const NodeStoreSol<Double>&data,
-                                               const Integer step,
+                                               const UInt step,
                                                const Double time) {
 
     ENTER_FCN( "WriteResults::WriteNodeHistoryTransient" );
 
     std::ofstream * myHist;
     StdVector<SolutionType> solTypes;
-    Integer iQuant, actDof;
+    UInt iQuant, actDof;
     std::string quantity;
     Double val;
 
     data.GetSolutionTypes(solTypes);
   
     // Iterate over all solutiontypes
-    for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++) {
+    for (UInt iSol=0; iSol<solTypes.GetSize(); iSol++) {
    
       actDof = data.GetDof(solTypes[iSol]);
     
@@ -295,13 +295,13 @@ namespace CoupledField {
       if ( iQuant != -1 ) {
         
         // Iterate over all history nodes
-        for ( Integer iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
+        for ( UInt iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
               iNode++ ) {
           myHist = historyFiles_[iQuant][iNode];
           (*myHist) << time;
           
           // Iterate over all dofs
-          for ( Integer iDof = 0; iDof < actDof; iDof++ ) {
+          for ( UInt iDof = 0; iDof < actDof; iDof++ ) {
             data.Get( solTypes[iSol], histNodesPerQuant_[iQuant][iNode]-1,
                       iDof, val );
             
@@ -315,14 +315,14 @@ namespace CoupledField {
 
 
   void WriteResults::WriteNodeHistoryHarmonic(const NodeStoreSol<Complex>&data,
-                                              const Integer step,
+                                              const UInt step,
                                               const Double frequency,
                                               const ComplexFormat format) {
     ENTER_FCN( "WriteResults::WriteNodeHistoryHarmonic" );
 
     std::ofstream * myHist;
     StdVector<SolutionType> solTypes;
-    Integer iQuant, actDof;
+    UInt iQuant, actDof;
     std::string quantity;
     Complex val;
     Double val1, val2;
@@ -330,7 +330,7 @@ namespace CoupledField {
     data.GetSolutionTypes(solTypes);
 
     // Iterate over all solutiontypes
-    for (Integer iSol=0; iSol<solTypes.GetSize(); iSol++) {
+    for (UInt iSol=0; iSol<solTypes.GetSize(); iSol++) {
    
       actDof = data.GetDof(solTypes[iSol]);
     
@@ -338,13 +338,13 @@ namespace CoupledField {
       iQuant = histQuantities_.Find(solTypes[iSol]);
       if ( iQuant != -1 ) {    
         // Iterate over all history nodes
-        for ( Integer iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
+        for ( UInt iNode = 0; iNode < histNodesPerQuant_[iQuant].GetSize();
               iNode++ ) {
           myHist = historyFiles_[iQuant][iNode];
           (*myHist) << std::scientific << frequency;
           
           // Iterate over all dofs
-          for ( Integer iDof = 0; iDof < actDof; iDof++ ) {
+          for ( UInt iDof = 0; iDof < actDof; iDof++ ) {
             data.Get( solTypes[iSol], histNodesPerQuant_[iQuant][iNode]-1,
                       iDof, val );
             

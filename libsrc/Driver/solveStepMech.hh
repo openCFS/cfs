@@ -26,7 +26,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */    
-    virtual void PreStepStatic(const Integer kstep, const Double asteptime,
+    virtual void PreStepStatic(const UInt kstep, const Double asteptime,
                                const Boolean reset);
 
     //! solves for one linear static step 
@@ -35,7 +35,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    //     virtual void StepStaticLin(const Integer kstep, const Double asteptime,
+    //     virtual void StepStaticLin(const UInt kstep, const Double asteptime,
     //                                const Boolean reset);
 
     //! solves for one nonlinear static step 
@@ -44,7 +44,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    virtual void StepStaticNonLin(const Integer kstep, const Double asteptime,
+    virtual void StepStaticNonLin(const UInt kstep, const Double asteptime,
                                   const Boolean reset);
 
     //! routine for acttions after the SolveStep-method
@@ -52,7 +52,7 @@ namespace CoupledField
       \param kstep time step counter
       \param asteptime current time
     */  
-    virtual void PostStepStatic(const Integer kstep, const Double asteptime);
+    virtual void PostStepStatic(const UInt kstep, const Double asteptime);
 
 
     //----------------------- TRANSIENT---------------------------------------
@@ -62,7 +62,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */  
-    //     virtual void PreStepTrans(const Integer kstep, const Double asteptime,
+    //     virtual void PreStepTrans(const UInt kstep, const Double asteptime,
     //                               const Boolean reset);
 
     //! base method for solving one transient step 
@@ -71,7 +71,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    //     virtual void SolveStepTrans(const Integer kstep, const Double asteptime,
+    //     virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
     //                                 const Boolean updatesysmat);
 
     //! solves for one linear transient step 
@@ -80,7 +80,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    //     virtual void StepTransLin(const Integer kstep, const Double asteptime,
+    //     virtual void StepTransLin(const UInt kstep, const Double asteptime,
     //                               const Boolean updatesysmat);
 
 
@@ -90,7 +90,7 @@ namespace CoupledField
       \param asteptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    void StepTransNonLin(const Integer kstep, const Double asteptime,
+    void StepTransNonLin(const UInt kstep, const Double asteptime,
                          const Boolean reset);
 
     //! routine for actions after the SolveStep-method
@@ -98,7 +98,7 @@ namespace CoupledField
       \param kstep time step counter
       \param asteptime current time
     */  
-    //     virtual void PostStepTrans(const Integer kstep, const Double asteptime);
+    //     virtual void PostStepTrans(const UInt kstep, const Double asteptime);
 
 
   private:

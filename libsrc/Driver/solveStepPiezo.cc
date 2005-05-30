@@ -30,7 +30,7 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepPiezo:: PreStepTrans(const Integer kstep, const Double asteptime,
+  void SolveStepPiezo:: PreStepTrans(const UInt kstep, const Double asteptime,
                                      const Boolean reset)
   {
     ENTER_FCN( "SolveStepPiezo::PreStepStatic" );
@@ -42,7 +42,7 @@ namespace CoupledField {
     // the coupling forces are assembled to the RHS
     algsys_->InitRHS();
 
-    Integer numElems = PDE_.getPDE_numElems();
+    UInt numElems = PDE_.getPDE_numElems();
 
     if (isHyst_) {
       if (kstep==1) {
@@ -60,10 +60,10 @@ namespace CoupledField {
         Boolean isVirgin;
         hyst_.Resize(subdoms_.GetSize());
 
-        for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++) {
+        for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++) {
           Double Esat, Psat;
           Double Ec = 0; //currently not used
-          Integer dir, numSDElems;
+          UInt dir, numSDElems;
 
           ptgrid_->GetVolElems(elemssd,subdoms_[iSD]);
           numSDElems = elemssd.GetSize(); 
@@ -102,7 +102,7 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepPiezo::SolveStepTrans(const Integer kstep, const Double asteptime,
+  void SolveStepPiezo::SolveStepTrans(const UInt kstep, const Double asteptime,
                                       const Boolean reset) {
 
     ENTER_FCN( "SolveStepPiezo::SolveStepTrans" );
@@ -120,7 +120,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepPiezo::StepTransNonLinEpsDiff(const Integer kstep, const Double asteptime,
+  void SolveStepPiezo::StepTransNonLinEpsDiff(const UInt kstep, const Double asteptime,
                                               const Boolean reset) {
 
     ENTER_FCN( "SolveStepPiezo::StepTransNonLinEpsDiff" );
@@ -128,9 +128,8 @@ namespace CoupledField {
     laststepcalc_ = kstep;
     lasttimecalc_ = asteptime;
 
-    Integer job=1;
     Boolean performOneMoreStep;
-    Integer iterationCounter=0;
+    UInt iterationCounter=0;
   
     Vector<Double> newSol(eqnData_->GetNumEQNs());
     Vector<Double> oldSol(eqnData_->GetNumEQNs());
@@ -231,14 +230,13 @@ namespace CoupledField {
       StoreAlgsysToVec(RHS, actRHS );       
       Double residualNorm = RhsL2Norm( RHS );
 
-      algsys_->SetupSolver(job);
-      algsys_->SetupPrecond(job);
+      algsys_->SetupSolver();
+      algsys_->SetupPrecond();
     
       algsys_->Solve();
       algsys_->GetSolutionVal( solPtr );
       StoreAlgsysToVec(incrSol, solPtr );
 
-      Double alpha = 1;
       //    newSol = oldSol + incrSol * alpha;
       newSol = incrSol;
 
@@ -255,7 +253,7 @@ namespace CoupledField {
       // compute L2-Norm of error between last incremental solution and
       // actual incremental solution
       Double solIncrL2Norm=0;
-      for (Integer i=0; i<newSol.GetSize(); i++)
+      for (UInt i=0; i<newSol.GetSize(); i++)
         solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
     
       solIncrL2Norm = sqrt(solIncrL2Norm);
@@ -301,12 +299,12 @@ namespace CoupledField {
 
     Vector<Double> LCoord, Efield;
     StdVector<Elem*> elemssd;
-    Integer pdeElem=1;
-    Double Ecomp, Pval, Dval;
-    Integer comp;
+    UInt pdeElem=1;
+    Double Ecomp, Pval;
+    UInt comp;
 
     // loop over all subdomains
-    for (Integer isd=0; isd<subdoms_.GetSize(); isd++) {
+    for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
       // get vector of Elem of subdomain with color: subdoms[isd]
       ptgrid_->GetVolElems(elemssd,subdoms_[isd]);
       
@@ -314,7 +312,7 @@ namespace CoupledField {
       comp = materialData_[isd].GetDirPol() - 1;
 
       // loop over elements of subdomain
-      for (Integer iel=0; iel< elemssd.GetSize(); iel++)        {
+      for (UInt iel=0; iel< elemssd.GetSize(); iel++)        {
         elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
 
         //compute electric field
@@ -355,19 +353,17 @@ namespace CoupledField {
 
     Vector<Double> LCoord, Efield;
     Double Ecomp, Pval, Dval, dE, dD, eps;
-    Integer comp;
-    Integer pdeElem=1;
+    UInt comp;
+    UInt pdeElem=1;
 
-    BaseFE *ptElem;
-  
-    for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
     
       //get direction of polarization
       comp =  materialData_[actSD].GetDirPol() - 1;
     
-      for (Integer iel=0; iel < elemssd.GetSize(); iel++) {
+      for (UInt iel=0; iel < elemssd.GetSize(); iel++) {
 
         //compute the electric field intensity
         elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);

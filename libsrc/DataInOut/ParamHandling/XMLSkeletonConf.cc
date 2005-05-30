@@ -179,7 +179,7 @@ namespace CoupledField {
 
     StdVector<std::string> regionNames;
     
-    Integer dim=meshfile_->GetDim();
+    UInt dim=meshfile_->GetDim();
 
     if (dim == 3)
       {
@@ -206,7 +206,7 @@ namespace CoupledField {
     (*skelfile_) << "   <domain>" << myEndl;
     (*skelfile_) << "      <!-- LIST OF SUBDOMAINS -->"<< std::endl;
 
-    for (Integer i=0; i<regionNames.GetSize(); i++)
+    for (UInt i=0; i<regionNames.GetSize(); i++)
       (*skelfile_) << "      <region name=\"" << regionNames[i]
                    << "\" material=\"XXX\"/>" << std::endl;
 
@@ -227,7 +227,7 @@ namespace CoupledField {
     ENTER_FCN("SkeletonConf::WriteLists");
 
     StdVector<std::string> nodeNames, surfRegionNames;
-    Integer dim = meshfile_-> GetDim();
+    UInt dim = meshfile_-> GetDim();
 
    
 
@@ -240,7 +240,7 @@ namespace CoupledField {
         if (nodeNames.GetSize())
           (*skelfile_) << "      <!-- LIST OF NODES --> " << myendl;
         
-        for (Integer i=0; i<nodeNames.GetSize(); i++)
+        for (UInt i=0; i<nodeNames.GetSize(); i++)
           (*skelfile_) << "      <nodes name=\"" << nodeNames[i] 
                        << "\"/>" << myendl;
         (*skelfile_) << myendl;
@@ -263,7 +263,7 @@ namespace CoupledField {
     if (surfRegionNames.GetSize()) {
       (*skelfile_) << "      <!--  LIST OF SURFACE ELEMENTS -->" << std::endl;
       
-      for (Integer i=0; i<surfRegionNames.GetSize(); i++)
+      for (UInt i=0; i<surfRegionNames.GetSize(); i++)
         (*skelfile_) << "      <elements name=\"" << surfRegionNames[i] 
                      << "\"/>" << myendl;
       (*skelfile_) << myendl;

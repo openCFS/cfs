@@ -188,6 +188,32 @@ namespace CoupledField {
 
   }
 
+ // =================================================================
+  //   Return as integer the value of a parameter matching a keyword
+  // =================================================================
+  void XMLParamHandler::Get( const std::string key, UInt &value,
+                             const std::string section,
+                             const std::string subsection ) {
+
+    ENTER_FCN( "XMLParamHandler::Get" );
+
+    // Find element/value matching keyword as string
+    std::string match;
+    Get( key, match, section, subsection );
+
+    // Error detection and default handling occured in the above Get,
+    // so we only need to convert the detected value
+    value = (UInt) atoi( match.c_str() );
+
+    // Tell what we found
+    if ( beVerbose_ == true ) {
+      std::string msg = "Get: Value for parameter '" + key;
+      msg += "' is '" + match + "'";
+      Info->Warning( msg );
+    }
+
+  }
+
 
   // ================================================================
   //   Return as double the value of a parameter matching a keyword
@@ -280,6 +306,26 @@ namespace CoupledField {
     }
   }
 
+  // ====================================================
+  //   Return list of UInt values matching a keyword
+  // ====================================================
+  void XMLParamHandler::GetList( const std::string key,
+                                 StdVector<UInt> &list,
+                                 const std::string section,
+                                 const std::string subsection ) {
+
+    ENTER_FCN( "XMLParamHandler::GetList" );
+
+    // First determine all matches as strings
+    StdVector<std::string> matches;
+    GetList( key, matches, section, subsection );
+
+    // Now perform conversion
+    for ( unsigned int i = 0; i < matches.GetSize(); i++ ) {
+      list.Push_back( String2UInt( matches[i] ) );
+    }
+  }
+
 
   // ================================================================
   //   Return as string the value of a parameter matching a keyword
@@ -337,6 +383,23 @@ namespace CoupledField {
     value = atoi( match.c_str() );
   }
 
+  // =================================================================
+  //   Return as UInt the value of a parameter matching a keyword
+  // =================================================================
+  void XMLParamHandler::Get( const StdVector<std::string> &keyVec,
+                             UInt &value ) {
+
+    ENTER_FCN( "XMLParamHandler::Get" );
+
+    // First get value as string
+    std::string match;
+    Get( keyVec, match );
+
+    // Error detection and default handling occured in the above Get,
+    // so we only need to convert the detected value
+    value = (UInt) atoi( match.c_str() );
+  }
+
 
   // *************************************************************************
   //   Public Methods: Constrained Query Functions
@@ -391,6 +454,25 @@ namespace CoupledField {
     // Error detection and default handling occured in the above Get,
     // so we only need to convert the detected value
     value = atoi( match.c_str() );
+  }
+
+  // =================================================================
+  //   Return as UInt the value of a parameter matching a keyword
+  // =================================================================
+  void XMLParamHandler::Get( const StdVector<std::string> &keyVec,
+                             const StdVector<std::string> &attrVec,
+                             const StdVector<std::string> &valVec,
+                             UInt &value ) {
+
+    ENTER_FCN( "XMLParamHandler::Get" );
+
+    // Find element/value matching keyword as string
+    std::string match;
+    Get( keyVec, attrVec, valVec, match );
+
+    // Error detection and default handling occured in the above Get,
+    // so we only need to convert the detected value
+    value = (UInt) atoi( match.c_str() );
   }
 
 
@@ -469,6 +551,26 @@ namespace CoupledField {
     // Now perform conversion
     for ( unsigned int i = 0; i < matches.GetSize(); i++ ) {
       list.Push_back( String2Integer( matches[i] ) );
+    }
+  }
+
+   // ===========================================================
+  //   Return list of unsigned Integer values matching a keyword
+  // ============================================================
+  void XMLParamHandler::GetList(  const StdVector<std::string> &keyVec,
+                                  const StdVector<std::string> &attrVec,
+                                  const StdVector<std::string> &valVec,
+                                  StdVector<UInt> &list ) {
+
+    ENTER_FCN( "XMLParamHandler::GetList" );
+
+    // First determine all matches as strings
+    StdVector<std::string> matches;
+    FindAllMatches( keyVec, attrVec, valVec, matches, rootElem_ );
+
+    // Now perform conversion
+    for ( unsigned int i = 0; i < matches.GetSize(); i++ ) {
+      list.Push_back( String2UInt( matches[i] ) );
     }
   }
 
@@ -563,7 +665,7 @@ namespace CoupledField {
     DOMElement *currentCouplingSec = NULL;
     Boolean sectionFound = FALSE;
     
-    for (Integer i=0; i<coupledSections->getLength(); i++) {      
+    for (unsigned int i=0; i<coupledSections->getLength(); i++) {      
       auxElem = Node2Elem( coupledSections->item(i) );
       if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
         // Ensure that only one section matches
@@ -615,7 +717,7 @@ namespace CoupledField {
 
 
     // iterate over all pairwise couplings
-    for ( Integer i = 0; i < iterCoupledPDEsec->getLength(); i++ ) {
+    for ( unsigned int i = 0; i < iterCoupledPDEsec->getLength(); i++ ) {
 
       // Only treat element children and not comments!
       if ( iterCoupledPDEsec->item(i)->getNodeType()
@@ -647,7 +749,7 @@ namespace CoupledField {
 
               // Now ensure, that each PDEname occurs only one time
               found = FALSE;
-              for ( Integer j=0; j<list.GetSize(); j++)
+              for ( unsigned int j=0; j<list.GetSize(); j++)
                 if ( list[j] == pdename ) {
                   found = TRUE;
                   break;
@@ -697,7 +799,7 @@ namespace CoupledField {
     DOMElement *currentCouplingSec = NULL;
     Boolean sectionFound = FALSE;
     
-    for (Integer i=0; i<coupledSections->getLength(); i++) {      
+    for ( unsigned int i = 0; i < coupledSections->getLength(); i++) {
       auxElem = Node2Elem( coupledSections->item(i) );
       if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
         // Ensure that only one section matches
@@ -754,7 +856,7 @@ namespace CoupledField {
 
 
     // iterate over all pairwise couplings
-    for ( Integer i = 0; i < directCoupledPDEsec->getLength(); i++ ) {
+    for ( unsigned int i = 0; i < directCoupledPDEsec->getLength(); i++ ) {
 
       // Only treat element children and not comments!
       if ( directCoupledPDEsec->item(i)->getNodeType() ==
@@ -1618,7 +1720,7 @@ namespace CoupledField {
 
     return defaultFound;
 
-  };
+  }
 
 
   // *************************************************************************

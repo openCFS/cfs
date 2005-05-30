@@ -25,7 +25,7 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepAcoustic::StepTransNonLin(const Integer kstep, const Double asteptime,
+  void SolveStepAcoustic::StepTransNonLin(const UInt kstep, const Double asteptime,
                                           const Boolean reset) {
 
     ENTER_FCN( "SolveStepAcoustic::StepTransNonLin" );
@@ -34,9 +34,9 @@ namespace CoupledField {
     lasttimecalc_ = asteptime;
     Double *solPtr;
   
-    Integer job;
+    UInt job;
     Boolean performOneMoreStep;
-    Integer iterationCounter=0;
+    UInt iterationCounter=0;
   
     Vector<Double> newSol(numPDENodes_);
     Vector<Double> oldSol(numPDENodes_);
@@ -103,8 +103,8 @@ namespace CoupledField {
 
       algsys_->BuildInDirichlet();
       if ( job == 1 ) {
-        algsys_->SetupSolver(job);
-        algsys_->SetupPrecond(job);
+        algsys_->SetupSolver();
+        algsys_->SetupPrecond();
       }
 
       algsys_->Solve();
@@ -129,7 +129,7 @@ namespace CoupledField {
       // compute L2-Norm of error between last incremental solution and
       //   actual incremental solution
       Double solIncrL2Norm=0;
-      for (Integer i=0; i<newSol.GetSize(); i++)
+      for (UInt i=0; i<newSol.GetSize(); i++)
         solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
         
       solIncrL2Norm = sqrt(solIncrL2Norm);
@@ -163,7 +163,8 @@ namespace CoupledField {
     Matrix<Double>     ptCoord;
     Vector<Double>     sol, solderiv1, solderiv2, rhs;
     BaseFE             * ptElem;
-    StdVector<Integer> connect, connect_PDE;
+    StdVector<UInt> connect;
+    StdVector<Integer> connect_PDE;
   
     Double coeff1, coeff2;
     Double density, compressibility, c0, BoverA;
@@ -173,7 +174,7 @@ namespace CoupledField {
     if ( subdoms_.GetSize() != nonLinPDEName_.GetSize() )
       Error("nonLinPDEName_ does not match size of subdoms_",__FILE__,__LINE__);
 
-    for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
 
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
@@ -201,7 +202,7 @@ namespace CoupledField {
         rhsInt->SetSecondFactor(coeff2);
       }
         
-      for (Integer j=0; j < elemssd.GetSize(); j++) {
+      for (UInt j=0; j < elemssd.GetSize(); j++) {
 
         ptElem  = elemssd[j]->ptElem;
         connect = elemssd[j]->connect;

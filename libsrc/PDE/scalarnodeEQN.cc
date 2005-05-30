@@ -10,7 +10,7 @@ namespace CoupledField {
   // ===============
   ScalarNodeEQN::ScalarNodeEQN(Grid * aptGrid, 
                                StdVector<RegionIdType> & asubdoms, 
-                               Integer dofsPerNode)
+                               UInt dofsPerNode)
     : NodeEQN(aptGrid, asubdoms, dofsPerNode) {
 
     ENTER_FCN( "NodeEQN::NodeEQN" );
@@ -76,8 +76,8 @@ namespace CoupledField {
     // **********
     //   STEP 1
     // **********
-    Integer notIncludedBCs = 0;
-    Integer multipleBCs = 0;
+    UInt notIncludedBCs = 0;
+    UInt multipleBCs = 0;
     pdeNode2EQN_.Clear();
     pdeNode2EQN_.Resize(numPDENodes_);
     pdeNode2EQN_.Init(1);
@@ -85,9 +85,9 @@ namespace CoupledField {
     // **********
     //   STEP 2
     // **********
-    StdVector<Integer> countNodes;
+    StdVector<UInt> countNodes;
     countNodes.Resize(numPDENodes_);
-    for ( Integer i = 0; i < homoDirichletNodes_.GetSize(); i++ ) {
+    for ( UInt i = 0; i < homoDirichletNodes_.GetSize(); i++ ) {
       if (mesh2PDENode_[homoDirichletNodes_[i]-1]-1 < 0) {
         (*warning) << "ScalarNodeEQN::CalcMapping: Homogen. Dirichlet node #"
                    << homoDirichletNodes_[i]
@@ -116,7 +116,7 @@ namespace CoupledField {
     // ***********
     if ( sortEQNs_ == TRUE ) {
       countNodes.Init(0);
-      for ( Integer i = 0; i < inhomDirichletNodes_.GetSize(); i++ ) {
+      for ( UInt i = 0; i < inhomDirichletNodes_.GetSize(); i++ ) {
         if (mesh2PDENode_[inhomDirichletNodes_[i]-1]-1 < 0) {
           (*warning) << "ScalarNodeEQN::CalcMapping: Inhom. Dirichlet node #"
                      << inhomDirichletNodes_[i]
@@ -144,15 +144,15 @@ namespace CoupledField {
     // **********
     //   STEP 3
     // **********
-    for ( Integer i = 0; i < constraintSlaveNodes_.GetSize(); i++ ) {
+    for ( UInt i = 0; i < constraintSlaveNodes_.GetSize(); i++ ) {
       pdeNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1] = 0;
     }
 
     // **********
     //   STEP 4
     // **********
-    Integer eqnCounter = 0;
-    for ( Integer i = 0; i < pde2MeshNode_.GetSize(); i++ ) {
+    UInt eqnCounter = 0;
+    for ( UInt i = 0; i < pde2MeshNode_.GetSize(); i++ ) {
       if ( pdeNode2EQN_[i] != 0 ) {
         eqnCounter++;
         pdeNode2EQN_[i] = eqnCounter;
@@ -165,14 +165,14 @@ namespace CoupledField {
       numRealEqns_ = eqnCounter;
     }
     else {
-      numRealEqns_ = -1;
+      numRealEqns_ = 0;
     }
 
 
     // **********
     //   STEP 5
     // **********
-    for ( Integer i = 0; i < constraintSlaveNodes_.GetSize(); i++ ) {
+    for ( UInt i = 0; i < constraintSlaveNodes_.GetSize(); i++ ) {
       pdeNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1] =
         - pdeNode2EQN_[mesh2PDENode_[constraintMasterNodes_[i]-1]-1];
     }
@@ -181,7 +181,7 @@ namespace CoupledField {
     //   STEP 5b
     // ***********
     if ( sortEQNs_ == TRUE ) {
-      for ( Integer i = 0; i < inhomDirichletNodes_.GetSize(); i++ ) {
+      for ( UInt i = 0; i < inhomDirichletNodes_.GetSize(); i++ ) {
         eqnCounter++;
         pdeNode2EQN_[i] = eqnCounter;
       }
@@ -230,7 +230,7 @@ namespace CoupledField {
     out << std::setfill('-') << std::setw(39) << "-" << std::endl;
     out << std::setfill(' ');
   
-    for ( Integer i = 0; i < pde2MeshNode_.GetSize(); i++ ) {
+    for ( UInt i = 0; i < pde2MeshNode_.GetSize(); i++ ) {
       out << std::setw(10) << i+1  << " | ";
       out << std::setw(13) << pde2MeshNode_[i] << " | ";
       out << std::setw(10) << pdeNode2EQN_[i] << std::endl;
@@ -241,10 +241,10 @@ namespace CoupledField {
   // ============
   //   Node2EQN
   // ============
-  void ScalarNodeEQN::Node2EQN( const Integer nodeNr, 
-                                const Integer dof,
+  void ScalarNodeEQN::Node2EQN( const UInt nodeNr, 
+                                const UInt dof,
                                 Integer &eqnNr,
-                                Integer &eqnDof ) const { 
+                                UInt &eqnDof ) const { 
 
     ENTER_FCN( "ScalarNodeEQN::Node2EQN" );
 
@@ -264,7 +264,7 @@ namespace CoupledField {
   // ============
   //   Node2EQN
   // ============
-  void ScalarNodeEQN::Node2EQN( const Integer nodeNr,
+  void ScalarNodeEQN::Node2EQN( const UInt nodeNr,
                                 StdVector<Integer> &eqnNr ) const {
 
     ENTER_FCN( "ScalarNodeEQN::Node2EQN" );
@@ -286,14 +286,14 @@ namespace CoupledField {
   // ============
   //   Node2EQN
   // ============
-  void ScalarNodeEQN::Node2EQN( const StdVector<Integer> &nodeNr,
+  void ScalarNodeEQN::Node2EQN( const StdVector<UInt> &nodeNr,
                                 StdVector<Integer> &eqnNr ) const {
 
     ENTER_FCN( "ScalarNodeEQN::Node2EQN" );
   
     eqnNr.Resize(nodeNr.GetSize());
 
-    for ( Integer i = 0; i < nodeNr.GetSize(); i++ ) {
+    for ( UInt i = 0; i < nodeNr.GetSize(); i++ ) {
 
 #ifdef CHECK_INDEX
       if ( nodeNr[i] > mesh2PDENode_.GetSize() ) {
@@ -316,7 +316,7 @@ namespace CoupledField {
     ENTER_FCN( "ScalarNodeEQN::ReorderMapping" );
 
     if ( order != NULL ) {
-      for ( Integer i = 0; i < pdeNode2EQN_.GetSize(); i++ ) {
+      for ( UInt i = 0; i < pdeNode2EQN_.GetSize(); i++ ) {
         if ( pdeNode2EQN_[i] > 0 ) {
           pdeNode2EQN_[i] = order[pdeNode2EQN_[i]-1];
         }

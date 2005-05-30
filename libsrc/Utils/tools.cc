@@ -16,14 +16,14 @@ namespace CoupledField {
   //   Issue Error Message
   // =======================
   void Error( const Char * Text, const Char * const filename,
-              const Integer numline ) {
+              const UInt numline ) {
     Info->Error( Text, filename, numline );
   }
 
   // ====================================================
   //   Issue Error Message (using global string stream)
   // ====================================================
-  void Error( const Char *const filename, const Integer numline ) {
+  void Error( const Char *const filename, const UInt numline ) {
 
     // Obtain error message and clear string stream
     std::string errMsg = "";
@@ -43,7 +43,7 @@ namespace CoupledField {
   //   Issue Warning Message
   // =========================
   void Warning( const Char *Text, const Char * const filename,
-                const Integer numline ) {
+                const UInt numline ) {
     Info->Warning( Text, filename, numline );
     //std::cerr << "\033[31mWARNING:\033[0m " << Text;
   }
@@ -51,7 +51,7 @@ namespace CoupledField {
   // ======================================================
   //   Issue Warning Message (using global string stream)
   // ======================================================
-  void Warning( const Char *const filename, const Integer numline ) {
+  void Warning( const Char *const filename, const UInt numline ) {
 
     // Obtain error message and clear string stream
     std::string warnMsg = "";
@@ -73,9 +73,9 @@ namespace CoupledField {
   void SplitStringList( std::string list, StdVector<std::string> &strVec,
                         Char delimiter ) {
 
-    Integer lastDelim = 0;
+    UInt lastDelim = 0;
     strVec.Clear();
-    Integer i=0;
+    UInt i=0;
   
     // ignore all leading spaces
     while ( i < list.length() && list[i] == ' ' ) {
@@ -109,18 +109,18 @@ namespace CoupledField {
   }
 
 
-  template<Integer dim>
+  template<UInt dim>
   Point<dim> & Point<dim>::operator+(const Point<dim>&t) {
-    Integer i;
+    UInt i;
     for (i=0; i<dim; i++)
       p[i]+=t.p[i];     
     return *this;
   }
 
 
-  template<Integer dim>
+  template<UInt dim>
   void PrintPoint(Point<dim> point, std::ostream * out) {
-    Integer i;
+    UInt i;
     for(i=0; i<dim; i++) 
       (*out)<< "   " << point[i];
   }
@@ -130,17 +130,17 @@ namespace CoupledField {
   template void PrintPoint(Point<3>, std::ostream *);
 #endif
 
-  template<Integer dim>
+  template<UInt dim>
   Point<dim> & Point<dim>::operator=(const Point<dim>&t) {
-    Integer i;
+    UInt i;
     for (i=0; i<dim; i++)
       p[i]=t.p[i];
     return *this;
   }
 
-  template<Integer dim>
+  template<UInt dim>
   Point<dim> & Point<dim>::operator-(const Point<dim>&t) {
-    Integer i;
+    UInt i;
     for (i=0; i<dim; i++)
       p[i]-=t.p[i];     
     return *this;
@@ -162,10 +162,10 @@ namespace CoupledField {
     }
   }
 
-  template<Integer dim>
+  template<UInt dim>
   Double dist(Point<dim> a,Point<dim> b) {
     Double preSqrt=0;
-    Integer i;
+    UInt i;
     for (i=0; i<dim; i++)
       preSqrt+=sqr(a[i]-b[i]);
     return sqrt(preSqrt);
@@ -173,8 +173,8 @@ namespace CoupledField {
 
   Double dist_Mat(Matrix<Double> a) {
     Double preSqrt=0;
-    Integer i;
-    Integer k=a.GetSizeRow();
+    UInt i;
+    UInt k=a.GetSizeRow();
     // std::cout<<"tools.cc:size of matrix: "<<k<<std::endl;
     for (i=0; i<k; i++)
       preSqrt+=sqr(a[i][0]-a[i][1]);
@@ -225,7 +225,7 @@ namespace CoupledField {
   void calcNormal2Surface_Mat(Vector<Double> & normal,Matrix<Double> ptCoord){
     Point<3> t,s,a,b,c;
 
-    for (Integer i=0;i<3;i++) {
+    for (UInt i=0;i<3;i++) {
       a[i]=ptCoord[i][0];
       b[i]=ptCoord[i][1];      
       c[i]=ptCoord[i][2];
@@ -250,20 +250,20 @@ namespace CoupledField {
     return p;
   }
 
-  Integer defineRefinements(const Double tolElem, const Double tolTotal,
-                            const Integer noOfChilds){
+  UInt defineRefinements(const Double tolElem, const Double tolTotal,
+                            const UInt noOfChilds){
     Double tmp = log( tolElem/tolTotal ) / log( (Double) noOfChilds );
-    return (Integer)tmp + 1;
+    return (UInt)tmp + 1;
   }
 
-  Double CalcArea(Elem * ptE, Grid * ptgrid, const Integer level){
+  Double CalcArea(Elem * ptE, Grid * ptgrid, const UInt level){
     Double         area = 0;
     BaseFE         * ptelem = ptE->ptElem;
-    const StdVector<Integer> & connect = ptE->connect;
+    const StdVector<UInt> & connect = ptE->connect;
     Matrix<Double> ptCoord;
-    Integer        nrIntPnts = ptelem->GetNumIntPoints();
+    UInt        nrIntPnts = ptelem->GetNumIntPoints();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-    Integer        i;
+    UInt        i;
     Double         jacDet;
 
     ptgrid->GetElemNodesCoord(ptCoord,connect);

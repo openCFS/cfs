@@ -64,13 +64,13 @@ namespace CoupledField
     Shape.Resize(NumNodes_);
     // From Zienkiewicz, The Finite Element Method. Vol 1, page 122.
     // corner nodes
-    for( Integer i=0; i<(NumNodes_/2); i++)
+    for( UInt i=0; i<(NumNodes_/2); i++)
       Shape[i] = 0.25 * (1 + LCornerCoords_[0][i] * LCoord[0])
         * (1 + LCornerCoords_[1][i] * LCoord[1])
         * (LCornerCoords_[0][i] * LCoord[0] +
            LCornerCoords_[1][i] * LCoord[1] - 1);
     // midside node
-    for( Integer i=(NumNodes_/2); i<NumNodes_; i=i+2)
+    for( UInt i=(NumNodes_/2); i<NumNodes_; i=i+2)
       {
         Shape[i]   = 0.5 * (1 - LCoord[0]*LCoord[0])*
           (1 + LCornerCoords_[1][i] * LCoord[1]);
@@ -88,7 +88,7 @@ namespace CoupledField
     LDeriv.Resize(NumNodes_,Dim_);
 
     // corner nodes
-    for( Integer i=0; i<(NumNodes_/2); i++)
+    for( UInt i=0; i<(NumNodes_/2); i++)
       {
         LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] * 
           (1 + LCornerCoords_[1][i] * LCoord[1]) * 
@@ -102,7 +102,7 @@ namespace CoupledField
       }
   
     // midside node
-    for( Integer i=(NumNodes_/2); i<NumNodes_; i=i+2)
+    for( UInt i=(NumNodes_/2); i<NumNodes_; i=i+2)
       {
         LDeriv[i][0]   = - LCoord[0]*
           (1 + LCornerCoords_[1][i] * LCoord[1]);
@@ -123,7 +123,10 @@ namespace CoupledField
   {
     ENTER_IFCN( "Quad2FE::CalcDistortion" );
 
-    std::cout << "Quad2FE::CalcDistortion. This function has not yet been implemented in quadratic quadrilaterals" << std::endl;
+    (*error) << "Quad2FE::CalcDistortion. This function has not yet been implemented in " 
+             << " quadratic quadrilaterals" << std::endl;
+    Error( __FILE__, __LINE__ );
+    return -1;
 
     //   Double factor;
     //   Double eps1, eps2, eps4, eps5, eps11, eps12, eps21, eps22, eps41, eps42, eps51, eps52;

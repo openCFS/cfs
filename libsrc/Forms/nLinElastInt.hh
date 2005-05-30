@@ -53,7 +53,7 @@ public:
 protected:    
 
   /// returns B - matrix for BDB
-  virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+  virtual void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
 
   /// calcs the material matrix for the 2d case
   virtual void Calc2DMaterialMatrix(Matrix<Double> & dMat, enum orientation2D actOrientation);
@@ -95,10 +95,10 @@ protected:
   virtual void calcDMat(Matrix<Double> & dMat);
 
   /// returns dimension of D matrix
-  virtual Integer getDimD(){return 6;};
+  virtual UInt getDimD(){return 6;};
   
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 3;};
+  virtual UInt getNrDofs(){return 3;};
 };
 
 
@@ -123,39 +123,39 @@ public:
   
 protected:  
   /// returns D - matrix for BDB (size: 9x9, contains the 2. Piola-Kirchhoff-Stress tensor!!)
-  virtual void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
+  virtual void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
   
   /// returns B - matrix for BDB
-  virtual void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+  virtual void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
 
   /// returns dimension of D matrix
-  virtual Integer getDimD(){return piolaDimD_;};
+  virtual UInt getDimD(){return piolaDimD_;};
   
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs()=0;  
+  virtual UInt getNrDofs()=0;  
 
 
 protected:
   /// sets the size of d-matrix (needed for lin and nonlin B-matrix)
-  virtual void setPiolaDimD(Integer actDim){piolaDimD_ = actDim;};
+  virtual void setPiolaDimD(UInt actDim){piolaDimD_ = actDim;};
 
   /// calculates Piola-Kirchoff-stresses (vector notation)
-  virtual void CalcStressVec(Vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);  
+  virtual void CalcStressVec(Vector<Double>& piolaStressVec, UInt ip, Matrix<Double> & ptCoord);  
 
   /// returns linear B - matrix
-  virtual void calcLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+  virtual void calcLinBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
 
   /// returns nonlinear B - matrix
-  virtual void calcNonLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+  virtual void calcNonLinBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
 
   /// returns material D-matrix for 3d mechanics
   virtual void calcMaterialDMat(Matrix<Double> & dMat);
 
   /// returns the size of the material d-matrix
-  virtual Integer getMaterialDMatSize()=0;
+  virtual UInt getMaterialDMatSize()=0;
 
   /// returns the size of the full piola d-matrix
-  virtual Integer getFullPiolaDMatSize()=0;
+  virtual UInt getFullPiolaDMatSize()=0;
 
   /// conversion of stress vector to stress tensor
   virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
@@ -163,7 +163,7 @@ protected:
 private:
   
   /// dimension of d-matrix (has to be changed for some dirty implementation features ... )
-  Integer piolaDimD_;
+  UInt piolaDimD_;
 };
   
 
@@ -185,15 +185,15 @@ public:
   
 protected:  
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 3;};
+  virtual UInt getNrDofs(){return 3;};
 
 
   /// returns the size of the material d-matrix
-  virtual Integer getMaterialDMatSize(){return 6;};
+  virtual UInt getMaterialDMatSize(){return 6;};
 
 
   /// returns the size of the full piola d-matrix
-  virtual Integer getFullPiolaDMatSize(){return 9;};
+  virtual UInt getFullPiolaDMatSize(){return 9;};
 };
   
 
@@ -226,10 +226,10 @@ protected:
   virtual void calcDMat(Matrix<Double> & dMat);
 
   /// returns dimension of D matrix
-  virtual Integer getDimD(){return 3;};
+  virtual UInt getDimD(){return 3;};
   
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 2;};  
+  virtual UInt getNrDofs(){return 2;};  
 };
 
 
@@ -251,7 +251,7 @@ public:
   
 protected:  
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 2;};  
+  virtual UInt getNrDofs(){return 2;};  
 
   /// conversion of stress vector to stress tensor
   virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
@@ -260,10 +260,10 @@ protected:
   virtual void calcMaterialDMat(Matrix<Double> & dMat);
 
   /// returns the size of the material d-matrix
-  virtual Integer getMaterialDMatSize(){return 3;};
+  virtual UInt getMaterialDMatSize(){return 3;};
 
   /// returns the size of the full piola d-matrix
-  virtual Integer getFullPiolaDMatSize(){return 4;};
+  virtual UInt getFullPiolaDMatSize(){return 4;};
 };
   
 
@@ -298,10 +298,10 @@ protected:
   virtual void calcDMat(Matrix<Double> & dMat);
 
   /// returns dimension of D matrix
-  virtual Integer getDimD(){return 4;};
+  virtual UInt getDimD(){return 4;};
   
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 2;};  
+  virtual UInt getNrDofs(){return 2;};  
 };
 
 
@@ -323,7 +323,7 @@ public:
   
 protected:  
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 2;};  
+  virtual UInt getNrDofs(){return 2;};  
 
   /// conversion of stress vector to stress tensor
   virtual void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress);
@@ -333,10 +333,10 @@ protected:
 
 protected:
   /// returns the size of the material d-matrix
-  virtual Integer getMaterialDMatSize(){return 4;};
+  virtual UInt getMaterialDMatSize(){return 4;};
 
   /// returns the size of the full piola d-matrix
-  virtual Integer getFullPiolaDMatSize(){return 5;};  
+  virtual UInt getFullPiolaDMatSize(){return 5;};  
 };
   
 
@@ -368,10 +368,10 @@ public:
   virtual ~PreStressInt();  
 
   //! computation of D-matrix (consists of stress values)
-  void calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord);
+  void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
   
   //!
-  void calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord);
+  void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
 
   //!
   void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
@@ -379,19 +379,31 @@ public:
 
 protected:
   /// calculates pre-stresses (vector notation)
-  void CalcStressVec(Vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord);
+  void CalcStressVec(Vector<Double>& piolaStressVec, UInt ip, Matrix<Double> & ptCoord);
 
   /// returns the size of the full piola d-matrix
-  virtual Integer getFullPiolaDMatSize(){;};
+  virtual UInt getFullPiolaDMatSize(){
+    Error( "Not implemented here", __FILE__, __LINE__ );
+    return 0;
+  }
 
   /// returns dimension of D matrix
-  virtual Integer getDimD() {;};
-
+  virtual UInt getDimD() {
+    Error( "Not implemented here", __FILE__, __LINE__ );
+    return 0;
+  }
+  
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){;};
+  virtual UInt getNrDofs(){
+    Error( "Not implemented here", __FILE__, __LINE__ );
+    return 0;
+  }
 
   /// returns the size of the material d-matrix
-  virtual Integer getMaterialDMatSize(){;};
+  virtual UInt getMaterialDMatSize() {
+    Error( "Not implemented here", __FILE__, __LINE__ );
+    return 0;
+  }
 
 
 private: 
@@ -419,16 +431,16 @@ public:
 
 protected:
   /// returns the size of the full piola d-matrix
-  virtual Integer getFullPiolaDMatSize(){return 9;};
+  virtual UInt getFullPiolaDMatSize(){return 9;};
 
   /// returns dimension of D matrix
-  virtual Integer getDimD(){return 6;};
+  virtual UInt getDimD(){return 6;};
 
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 3;};
+  virtual UInt getNrDofs(){return 3;};
 
   /// returns the size of the material d-matrix
-  virtual Integer getMaterialDMatSize(){return 6;};
+  virtual UInt getMaterialDMatSize(){return 6;};
 
 };
 
@@ -451,16 +463,16 @@ public:
 
 protected:
   /// returns the size of the full piola d-matrix
-  virtual Integer getFullPiolaDMatSize(){return 4;};
+  virtual UInt getFullPiolaDMatSize(){return 4;};
 
   /// returns dimension of D matrix
-  virtual Integer getDimD(){return 3;};
+  virtual UInt getDimD(){return 3;};
 
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 2;};
+  virtual UInt getNrDofs(){return 2;};
 
   /// returns the size of the material d-matrix
-  virtual Integer getMaterialDMatSize(){return 3;};
+  virtual UInt getMaterialDMatSize(){return 3;};
 
 };
 
@@ -483,16 +495,16 @@ public:
 
 protected:
   /// returns the size of the full piola d-matrix
-  virtual Integer getFullPiolaDMatSize(){return 5;};
+  virtual UInt getFullPiolaDMatSize(){return 5;};
 
   /// returns dimension of D matrix
-  virtual Integer getDimD(){return 4;};
+  virtual UInt getDimD(){return 4;};
 
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 2;};
+  virtual UInt getNrDofs(){return 2;};
 
   /// returns the size of the material d-matrix
-  virtual Integer getMaterialDMatSize(){return 4;};
+  virtual UInt getMaterialDMatSize(){return 4;};
 
 };
 

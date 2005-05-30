@@ -343,7 +343,7 @@ namespace CoupledField
           allElemsVec.Resize(nrMeasuredData,elemssd.GetSize()*dofs*numNodes);
         for (int actEl=0;actEl<elemssd.GetSize();actEl++){
           BaseFE * ptEl = elemssd[actEl]->ptElem;
-          StdVector<Integer> connecth = elemssd[actEl]->connect;
+          StdVector<UInt> connecth = elemssd[actEl]->connect;
 
           Vector<Complex> elSolVec; 
           ptNodeStoreSol->GetElemSolution(elSolVec,connecth);
@@ -528,7 +528,7 @@ namespace CoupledField
 
         //       ptMyPDE_->DefineIntegrators(0);
 
-        for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
+        for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
           reset = TRUE;
 
           ptAlgsys->InitRHS();
@@ -538,7 +538,7 @@ namespace CoupledField
           //loop over elements
           for (int actEl=0; actEl< elemssd.GetSize(); actEl++) {
             BaseFE * ptEl = elemssd[actEl]->ptElem;
-            StdVector<Integer> connecth = elemssd[actEl]->connect;
+            StdVector<UInt> connecth = elemssd[actEl]->connect;
                              
             Matrix<Double> ptCoord;
             ptGrid->GetElemNodesCoord(ptCoord, connecth );
@@ -674,8 +674,8 @@ namespace CoupledField
 
           ptAlgsys->BuildInDirichlet();
           if ( job == 1 ) {
-            ptAlgsys->SetupSolver(job);
-            ptAlgsys->SetupPrecond(job);
+            ptAlgsys->SetupSolver();
+            ptAlgsys->SetupPrecond();
           }
 
           ptAlgsys->Solve();
@@ -825,7 +825,7 @@ namespace CoupledField
 
         //       ptMyPDE_->DefineIntegrators(0);
 
-        for (Integer fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
+        for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
           reset = TRUE;
 
           ptAlgsys->InitRHS();
@@ -838,7 +838,7 @@ namespace CoupledField
           //loop over elements
           for (int actEl=0; actEl< elemssd.GetSize(); actEl++) {
             BaseFE * ptEl = elemssd[actEl]->ptElem;
-            StdVector<Integer> connecth = elemssd[actEl]->connect;
+            StdVector<UInt> connecth = elemssd[actEl]->connect;
                              
             Matrix<Double> ptCoord;
             ptGrid->GetElemNodesCoord(ptCoord, connecth);
@@ -963,8 +963,8 @@ namespace CoupledField
 
           ptAlgsys->BuildInDirichlet();
           if ( job == 1 ) {
-            ptAlgsys->SetupPrecond(job);
-            ptAlgsys->SetupSolver(job);
+            ptAlgsys->SetupPrecond();
+            ptAlgsys->SetupSolver();
           }
 
           ptAlgsys->Solve();
@@ -1267,7 +1267,7 @@ namespace CoupledField
     //loop over elements
     for (int actEl=0; actEl< elemssd.GetSize(); actEl++) {
       BaseFE * ptEl = elemssd[actEl]->ptElem;
-      StdVector<Integer> connecth = elemssd[actEl]->connect;
+      StdVector<UInt> connecth = elemssd[actEl]->connect;
                              
       Matrix<Double> ptCoord;
       ptGrid->GetElemNodesCoord(ptCoord, connecth);
@@ -1435,8 +1435,8 @@ namespace CoupledField
 
         ptAlgsys->BuildInDirichlet();
         if ( job == 1 ) {
-          ptAlgsys->SetupPrecond(job);
-          ptAlgsys->SetupSolver(job);
+          ptAlgsys->SetupPrecond();
+          ptAlgsys->SetupSolver();
         }
 
         ptAlgsys->Solve();

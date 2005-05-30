@@ -48,7 +48,7 @@ namespace CoupledField {
 
     double * x;
     double * y;
-    Integer nummeas;
+    UInt nummeas;
 
   };
 

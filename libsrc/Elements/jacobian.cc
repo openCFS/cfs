@@ -6,14 +6,14 @@
 namespace CoupledField
 {
 
-  template <Integer dim>
+  template <UInt dim>
   Jacobian<dim>::Jacobian()
   {
     J.Resize(dim,dim);
     Jinv.Resize(dim,dim);
   }
 
-  template<Integer dim>
+  template<UInt dim>
   void Jacobian<dim>::GetJinvX(Vector<Double> & JinvX)
   {
     JinvX.Resize(dim);
@@ -25,7 +25,7 @@ namespace CoupledField
       JinvX[2]=Jinv[2][0];
   }
 
-  template<Integer dim>
+  template<UInt dim>
   void Jacobian<dim>::GetJinvY(Vector<Double> & JinvY)
   {
     JinvY.Resize(dim);
@@ -37,7 +37,7 @@ namespace CoupledField
       JinvY[2]=Jinv[2][1];
   }
 
-  template<Integer dim>
+  template<UInt dim>
   void Jacobian<dim>::GetJinvZ(Vector<Double> & JinvZ)
   {
     if (dim==2)

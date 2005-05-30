@@ -209,7 +209,7 @@ namespace CoupledField {
     //!       option in <em>Makefile.option</em>. Specifying a trace depth of
     //!       zero avoids generation of the trace file, but does not remove
     //!       the work associated with function tracing.
-    virtual Integer GetTraceDepth() const = 0;
+    virtual UInt GetTraceDepth() const = 0;
 
     //@}
 
@@ -276,7 +276,7 @@ namespace CoupledField {
     //! This method returns default value for --traceDepth parameter. The
     //! current default is 0, which indicates no function tracing.
     //! \return 0
-    Integer DefaultTraceDepth() const {
+    UInt DefaultTraceDepth() const {
       return 0;
     }
 

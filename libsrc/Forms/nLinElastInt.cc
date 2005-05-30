@@ -36,7 +36,7 @@ namespace CoupledField
 
 
   // returns nonlinear B - matrix (first part) for BDB
-  void nLinElastInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  void nLinElastInt::calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "nLinElastInt::calcBMat" );
 
@@ -44,9 +44,9 @@ namespace CoupledField
     if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
       Error("Undefined displacements! ",__FILE__,__LINE__);
 
-    const Integer nrNodes = ptelem->GetNumNodes();
-    const Integer nrDofs  = getNrDofs();    
-    const Integer dimD    = getDimD();
+    const UInt nrNodes = ptelem->GetNumNodes();
+    const UInt nrDofs  = getNrDofs();    
+    const UInt dimD    = getDimD();
 
     Matrix<Double> linBMat;    
     linElastInt::calcBMat( linBMat, ip, ptCoord);
@@ -79,7 +79,7 @@ namespace CoupledField
 
     
 
-    for(int actNode=0; actNode < nrNodes; actNode++)
+    for( UInt actNode=0; actNode < nrNodes; actNode++)
       {
         linBMat.GetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
 
@@ -91,7 +91,7 @@ namespace CoupledField
 
     if (isaxi_)
       {
-        const Integer spaceDim  = ptelem->GetDim();
+        const UInt spaceDim  = ptelem->GetDim();
 
         Vector<Double> shpFncAtIp;
         ptelem->GetShFncAtIp(shpFncAtIp, ip);
@@ -100,11 +100,11 @@ namespace CoupledField
         coordAtIP = ptCoord * shpFncAtIp;
 
         Double  l33=0;  // for l33, see Bathe, page 552
-        for (Integer actPos=0; actPos < shpFncAtIp.GetSize(); actPos++)
+        for (UInt actPos=0; actPos < shpFncAtIp.GetSize(); actPos++)
           l33 += elemDisp_[0][actPos] * shpFncAtIp[actPos] / coordAtIP[0];
         
         
-        for (Integer actNode = 0; actNode < nrNodes; actNode++)      
+        for (UInt actNode = 0; actNode < nrNodes; actNode++)      
           {         
             //  (N_a/r) * (u_x/r)
             bMat[dimD - 1][actNode * spaceDim]     = l33 * shpFncAtIp[actNode] / coordAtIP[0];
@@ -121,13 +121,13 @@ namespace CoupledField
   Calc2DMaterialMatrix(Matrix<Double> & dMat, enum orientation2D actOrientation)
   {  
     ENTER_FCN( "nLinElastInt::Calc2DMaterialMatrix" );
-    const Integer nrElems2d = 3;
+    const UInt nrElems2d = 3;
   
-    Integer rowPtrXY[] = {1,2,6};  // indices of rows and lines for xy-plane
-    Integer rowPtrYZ[] = {2,3,4};  // indices of rows and lines for yz-plane
-    Integer rowPtrXZ[] = {1,3,5};  // indices of rows and lines for xz-plane
-    Integer * rowPtr;
-    Integer i,j;
+    UInt rowPtrXY[] = {1,2,6};  // indices of rows and lines for xy-plane
+    UInt rowPtrYZ[] = {2,3,4};  // indices of rows and lines for yz-plane
+    UInt rowPtrXZ[] = {1,3,5};  // indices of rows and lines for xz-plane
+    UInt * rowPtr;
+    UInt i,j;
   
     switch(actOrientation)
       { 
@@ -194,14 +194,14 @@ namespace CoupledField
   {
     ENTER_FCN( "nLinMech3dInt_BNonLin::calcDMat" );
 
-    const Integer nrElems3d = getDimD();
+    const UInt nrElems3d = getDimD();
     
     Matrix<Double> const & matMatrix = *(ptMaterial->GetMatrix());
     
     dMat.Resize(nrElems3d);
 
-    for (Integer i=0; i<nrElems3d; i++)
-      for (Integer j=0; j<nrElems3d; j++)
+    for (UInt i=0; i<nrElems3d; i++)
+      for (UInt j=0; j<nrElems3d; j++)
         dMat[i][j] = matMatrix[i][j];   
   }
   
@@ -252,7 +252,7 @@ namespace CoupledField
   // V = B_lin * u  +  1/2 * B_nonLin * u
   // see Habil. M. Kaltenbacher Eq. (3.33)
   void nLinMechInt_PiolaStress::
-  CalcStressVec(Vector<Double>& piolaStressVec, Integer ip, Matrix<Double> & ptCoord)
+  CalcStressVec(Vector<Double>& piolaStressVec, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "mech3DInt_PiolaStress::calcPiolaStressTensor" );
 
@@ -293,14 +293,14 @@ namespace CoupledField
   {
     ENTER_FCN( "mech3DInt_PiolaStress::calcMaterialDMat" );
 
-    const Integer nrElems3d = getMaterialDMatSize();
+    const UInt nrElems3d = getMaterialDMatSize();
   
     Matrix<Double> const &  matMatrix = (*ptMaterial->GetMatrix());
   
     dMat.Resize(nrElems3d);
   
-    for (Integer i=0; i<nrElems3d; i++)
-      for (Integer j=0; j<nrElems3d; j++)
+    for (UInt i=0; i<nrElems3d; i++)
+      for (UInt j=0; j<nrElems3d; j++)
         dMat[i][j] = matMatrix[i][j];   
   }
 
@@ -309,7 +309,7 @@ namespace CoupledField
 
   // returns linear B - matrix
   void nLinMechInt_PiolaStress::
-  calcLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  calcLinBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "mech3DInt_PiolaStress::calcLinBMat" );
 
@@ -331,7 +331,7 @@ namespace CoupledField
 
   /// returns nonlinear B - matrix
   void nLinMechInt_PiolaStress::
-  calcNonLinBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  calcNonLinBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "nLinMechInt_PiolaStress::calcNonLinBMat" );
     // dirty trick: dimension of d-matrix is set to 6 (as it should be in 3d mechanics)
@@ -353,13 +353,13 @@ namespace CoupledField
   {
     ENTER_FCN( "mech3DInt_PiolaStress::convertStressVecToTensor" );
 
-    Integer indexRow[] = {1, 2, 3, 2, 1, 1}; // first index of tensor notation
-    Integer indexCol[] = {1, 2, 3, 3, 3, 2}; // second index of tensor notation
+    UInt indexRow[] = {1, 2, 3, 2, 1, 1}; // first index of tensor notation
+    UInt indexCol[] = {1, 2, 3, 3, 3, 2}; // second index of tensor notation
 
     stressTensor.Resize( getNrDofs() );
     
     // build symmetrical tensor
-    for (Integer i=0; i<piolaStress.GetSize(); i++)
+    for (UInt i=0; i<piolaStress.GetSize(); i++)
       {
         stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];      
         stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];      
@@ -375,12 +375,12 @@ namespace CoupledField
   // This matrix is equal to a block diagonal matrix with Piola-Stresses in tensor 
   // notation used as diagonal blocks (nrDim times)
   // (see e.g. Bathe: "Finite Element Procedures" p. 556)
-  void nLinMechInt_PiolaStress::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
+  void nLinMechInt_PiolaStress::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "nLinMechInt_PiolaStress::calcDMat");
 
-    const Integer dimD = getDimD();
-    const Integer nrDofs = getNrDofs();
+    const UInt dimD = getDimD();
+    const UInt nrDofs = getNrDofs();
 
     Vector<Double> piolaStressVec;
     Matrix<Double> stressTensor;
@@ -397,7 +397,7 @@ namespace CoupledField
       // method "convertStressVecToTensor"
       dMat = stressTensor;
     else
-      for (Integer i=0; i<nrDofs; i++)
+      for (UInt i=0; i<nrDofs; i++)
         dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
   }
 
@@ -409,12 +409,12 @@ namespace CoupledField
   // returns B - matrix for piola stresses
   // (see e.g. Bathe: "Finite Element Procedures" p. 556)
   void nLinMechInt_PiolaStress::
-  calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "nLinMechInt_PiolaStress::calcBMat" );
 
-    const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer nrDofs   = getNrDofs();    
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const UInt nrDofs   = getNrDofs();    
 
 
     // in "Resize", matrix elements are set to zero
@@ -427,22 +427,22 @@ namespace CoupledField
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
 
-    for(int actNode=0; actNode < nrNodes; actNode++)
-      for(int globPos=0; globPos < nrDofs; globPos++)
-        for(int actDof=0; actDof < nrDofs; actDof++)
+    for( UInt actNode=0; actNode < nrNodes; actNode++ )
+      for( UInt globPos=0; globPos < nrDofs; globPos++ )
+        for( UInt actDof=0; actDof < nrDofs; actDof++ )
           bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
 
 
     if (isaxi_)
       {
-        const Integer spaceDim = ptelem->GetDim();
+        const UInt spaceDim = ptelem->GetDim();
         Vector<Double> shpFncAtIp;
         Vector<Double> coordAtIP;
         
         ptelem->GetShFncAtIp(shpFncAtIp,ip);
         coordAtIP = ptCoord * shpFncAtIp;
         
-        for (int actNode = 0; actNode < nrNodes; actNode++)          
+        for ( UInt  actNode = 0; actNode < nrNodes; actNode++)          
           bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
       }
   }
@@ -534,15 +534,13 @@ namespace CoupledField
 
 
   // calculates the D-matrix needed for regarding pre-stresses
-  void PreStressInt::CalcStressVec(Vector<Double>& preStressVec, Integer ip, Matrix<Double> & ptCoord)
+  void PreStressInt::CalcStressVec(Vector<Double>& preStressVec, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "PreStressInt::CalcStressVec" );
 
     // ???????????????????????????????????????????????
-    //    const Integer dimD = nLinMechInt_BNonLin::getDimD();
-    const Integer dimD = getDimD();
-    const Integer nrDofs = getNrDofs();
-    const Integer distributedStress = 1;
+    //    const UInt dimD = nLinMechInt_BNonLin::getDimD();
+    const UInt dimD = getDimD();
     
     Vector<Double> preStrainVec(dimD);
     preStressVec.Resize(dimD);
@@ -576,12 +574,12 @@ namespace CoupledField
 
 
   // (see e.g. Bathe: "Finite Element Procedures" p. 556)
-  void PreStressInt::calcDMat(Matrix<Double> & dMat, Integer ip, Matrix<Double> & ptCoord)
+  void PreStressInt::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "PreStressInt::calcDMat");
 
-    const Integer dimD = getFullPiolaDMatSize();
-    const Integer nrDofs = getNrDofs();
+    const UInt dimD = getFullPiolaDMatSize();
+    const UInt nrDofs = getNrDofs();
 
     Vector<Double> piolaStressVec;
     Matrix<Double> stressTensor;
@@ -598,21 +596,21 @@ namespace CoupledField
       // method "convertStressVecToTensor"
       dMat = stressTensor;
     else
-      for (Integer i=0; i<nrDofs; i++)
+      for (UInt i=0; i<nrDofs; i++)
         dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
   }
 
 
   // returns B - matrix for piola stresses
   // (see e.g. Bathe: "Finite Element Procedures" p. 556)
-  void PreStressInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  void PreStressInt::calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "PreStressInt::calcBMat" );
 
-    const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer nrDofs   = getNrDofs();    
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const UInt nrDofs   = getNrDofs();    
 
-    Integer dimD = getFullPiolaDMatSize();
+    UInt dimD = getFullPiolaDMatSize();
     // in "Resize", matrix elements are set to zero
     bMat.Resize(dimD, nrNodes * nrDofs);
 
@@ -623,22 +621,22 @@ namespace CoupledField
     ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
 
 
-    for(int actNode=0; actNode < nrNodes; actNode++)
-      for(int globPos=0; globPos < nrDofs; globPos++)
-        for(int actDof=0; actDof < nrDofs; actDof++)
+    for( UInt actNode=0; actNode < nrNodes; actNode++ )
+      for( UInt globPos=0; globPos < nrDofs; globPos++ )
+        for( UInt actDof=0; actDof < nrDofs; actDof++ )
           bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
 
 
     if (isaxi_)
       {
-        const Integer spaceDim = ptelem->GetDim();
+        const UInt spaceDim = ptelem->GetDim();
         Vector<Double> shpFncAtIp;
         Vector<Double> coordAtIP;
         
         ptelem->GetShFncAtIp(shpFncAtIp,ip);
         coordAtIP = ptCoord * shpFncAtIp;
         
-        for (int actNode = 0; actNode < nrNodes; actNode++)          
+        for ( UInt actNode = 0; actNode < nrNodes; actNode++)          
           bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
       }
   }
@@ -671,12 +669,12 @@ namespace CoupledField
   {
     ENTER_FCN( "PreStressInt3D::convertStressVecToTensor" );
 
-    Integer indexRow[] = {1, 2, 3, 2, 1, 1}; // first index of tensor notation
-    Integer indexCol[] = {1, 2, 3, 3, 3, 2}; // second index of tensor notation
+    UInt indexRow[] = {1, 2, 3, 2, 1, 1}; // first index of tensor notation
+    UInt indexCol[] = {1, 2, 3, 3, 3, 2}; // second index of tensor notation
 
     stressTensor.Resize( getNrDofs() );
     // build symmetrical tensor
-    for (Integer i=0; i<piolaStress.GetSize(); i++)
+    for (UInt i=0; i<piolaStress.GetSize(); i++)
       {
         stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];      
         stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];      
@@ -713,13 +711,13 @@ namespace CoupledField
   {
     ENTER_FCN( "mechMechPlanseStrainInt_PiolaStress::convertStressVecToTensor" );
 
-    Integer indexRow[] = {1, 2, 1}; // first index of tensor notation
-    Integer indexCol[] = {1, 2, 2}; // second index of tensor notation
+    UInt indexRow[] = {1, 2, 1}; // first index of tensor notation
+    UInt indexCol[] = {1, 2, 2}; // second index of tensor notation
 
     stressTensor.Resize( getNrDofs() );
     
     // build symmetrical tensor
-    for (Integer i=0; i<piolaStress.GetSize(); i++)
+    for (UInt i=0; i<piolaStress.GetSize(); i++)
       {
         stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];      
         stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];      
@@ -760,18 +758,18 @@ namespace CoupledField
 
     // indizes see Bathe: "Finite Element Procedures", Sec. 6.3, 
     // page 553: "2. Piola-Kirchhoff stress matrix & vector"
-    const Integer indexSize = 9;
-    Integer indexRow[]   = {1, 2, 1, 2, 3, 4, 3, 4, 5}; // first index of tensor notation
-    Integer indexCol[]   = {1, 2, 2, 1, 3, 4, 4, 3, 5}; // second index of tensor notation
-    Integer indexPiola[] = {1, 2, 3, 3, 1, 2, 3, 3, 4}; // index in piola stress vec
+    const UInt indexSize = 9;
+    UInt indexRow[]   = {1, 2, 1, 2, 3, 4, 3, 4, 5}; // first index of tensor notation
+    UInt indexCol[]   = {1, 2, 2, 1, 3, 4, 4, 3, 5}; // second index of tensor notation
+    UInt indexPiola[] = {1, 2, 3, 3, 1, 2, 3, 3, 4}; // index in piola stress vec
 
-    const Integer axiTensSize = 5;
+    const UInt axiTensSize = 5;
     
     stressTensor.Resize( axiTensSize );
     stressTensor.Init();
     
     // build symmetrical tensor
-    for (Integer i=0; i<indexSize; i++)
+    for (UInt i=0; i<indexSize; i++)
       {
         stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[ indexPiola[i] -1 ];     
         stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[ indexPiola[i] -1 ];     
@@ -814,13 +812,13 @@ namespace CoupledField
   {
     ENTER_FCN( "mechMechPlanseStrainInt_PiolaStress::convertStressVecToTensor" );
 
-    Integer indexRow[] = {1, 2, 1}; // first index of tensor notation
-    Integer indexCol[] = {1, 2, 2}; // second index of tensor notation
+    UInt indexRow[] = {1, 2, 1}; // first index of tensor notation
+    UInt indexCol[] = {1, 2, 2}; // second index of tensor notation
 
     stressTensor.Resize( getNrDofs() );
     
     // build symmetrical tensor
-    for (Integer i=0; i<piolaStress.GetSize(); i++)
+    for (UInt i=0; i<piolaStress.GetSize(); i++)
       {
         stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[i];      
         stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[i];      
@@ -898,18 +896,18 @@ namespace CoupledField
 
     // indizes see Bathe: "Finite Element Procedures", Sec. 6.3, 
     // page 553: "2. Piola-Kirchhoff stress matrix & vector"
-    const Integer indexSize = 9;
-    Integer indexRow[]   = {1, 2, 1, 2, 3, 4, 3, 4, 5}; // first index of tensor notation
-    Integer indexCol[]   = {1, 2, 2, 1, 3, 4, 4, 3, 5}; // second index of tensor notation
-    Integer indexPiola[] = {1, 2, 3, 3, 1, 2, 3, 3, 4}; // index in piola stress vec
+    const UInt indexSize = 9;
+    UInt indexRow[]   = {1, 2, 1, 2, 3, 4, 3, 4, 5}; // first index of tensor notation
+    UInt indexCol[]   = {1, 2, 2, 1, 3, 4, 4, 3, 5}; // second index of tensor notation
+    UInt indexPiola[] = {1, 2, 3, 3, 1, 2, 3, 3, 4}; // index in piola stress vec
 
-    const Integer axiTensSize = 5;
+    const UInt axiTensSize = 5;
     
     stressTensor.Resize( axiTensSize );
     stressTensor.Init();
     
     // build symmetrical tensor
-    for (Integer i=0; i<indexSize; i++)
+    for (UInt i=0; i<indexSize; i++)
       {
         stressTensor[ indexRow[i] -1 ][ indexCol[i] -1 ] = piolaStress[ indexPiola[i] -1 ];     
         stressTensor[ indexCol[i] -1 ][ indexRow[i] -1 ] = piolaStress[ indexPiola[i] -1 ];     

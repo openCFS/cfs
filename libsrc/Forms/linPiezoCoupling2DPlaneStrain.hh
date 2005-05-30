@@ -79,15 +79,15 @@ namespace CoupledField {
     //! \param ip      (input)  number of integration point
     //! \param ptCoord (input)  matrix containing co-ordinates of all
     //!                         integration points
-    void calcAMat( Matrix<Double> &aMat, Integer ip,
+    void calcAMat( Matrix<Double> &aMat, UInt ip,
                    const Matrix<Double> &ptCoord ) {
 
       ENTER_FCN( "linPiezoCoupling2DPlaneStrain::calcAMat" );
 
       // Obtain info on problem sizes
-      const Integer numNodes = ptelem->GetNumNodes();
-      const Integer nDofMech = 2;
-      const Integer nRowsD   = 3;
+      const UInt numNodes = ptelem->GetNumNodes();
+      const UInt nDofMech = 2;
+      const UInt nRowsD   = 3;
 
       // Set correct size of matrix A and initialise with zeros
       aMat.Resize( numNodes * nDofMech, nRowsD );
@@ -104,10 +104,8 @@ namespace CoupledField {
       // A of the ADB product evaluated at the k-th node of the finite
       // element. We assemble aMat in a top-down fashion and assume that
       // the first coordinate equals y and the second z.
-      Integer actInd = 0;
-      Integer j;
-      Integer actNode;
-      Double coordAtIp;
+      UInt actInd = 0;
+      UInt actNode;
 
       for( actNode = 0; actNode < numNodes; actNode++ ) {
 
@@ -150,13 +148,13 @@ namespace CoupledField {
     //! \param ip      (input)  number of integration point
     //! \param ptCoord (input)  matrix containing co-ordinates of all
     //!                         integration points
-    void calcBMat( Matrix<Double> &bMat, Integer ip,
+    void calcBMat( Matrix<Double> &bMat, UInt ip,
                    const Matrix<Double> &ptCoord ) {
 
       ENTER_FCN( "linPiezoCoupling2DPlaneStrain::calcBMat" );
 
       // Obtain info on number of element's nodes
-      const Integer numNodes = ptelem->GetNumNodes();
+      const UInt numNodes = ptelem->GetNumNodes();
 
       // Set correct size of matrix B and initialise with zeros
       bMat.Resize( 2, numNodes );
@@ -171,7 +169,7 @@ namespace CoupledField {
       // B of the ADB product evaluated at the k-th node of the finite
       // element. We assume that the first coordinate equals y and the
       // second z.
-      for( Integer actNode = 0; actNode < numNodes; actNode++ ) {
+      for( UInt actNode = 0; actNode < numNodes; actNode++ ) {
         bMat[0][actNode] = xiDx[actNode][0];
         bMat[1][actNode] = xiDx[actNode][1];
       }
@@ -232,7 +230,7 @@ namespace CoupledField {
     //! This method returns the dimensions of the data-matrix \f$D\f$.
     //! In the case of 2D plane strain piezoelectric coupling we have
     //! \f$\mbox{dim}D=3\times 2\f$
-    void getDimD( Integer nRows, Integer nCols ) {
+    void getDimD( UInt nRows, UInt nCols ) {
       ENTER_IFCN( "linPiezoCoupling2DPlaneStrain::getDimD" );
       nRows = 3;
       nCols = 2;
@@ -246,7 +244,7 @@ namespace CoupledField {
     //! In the case of 2D plane strain piezoelectric coupling the first
     //! physical quantity is the mechanical displacements.
     //! \return 2
-    Integer getNumDofsA() {
+    UInt getNumDofsA() {
       ENTER_IFCN( "linPiezoCoupling2DPlaneStrain::getNumDofsA" );
       return 2;
     }
@@ -259,7 +257,7 @@ namespace CoupledField {
     //! In the case of 2D plain strain piezoelectric coupling the second
     //! physical quantity is the electric potential.
     //! \return 1
-    Integer getNumDofsB() {
+    UInt getNumDofsB() {
       ENTER_IFCN( "linPiezoCoupling2DPlaneStrain::getNumDofsB" );
       return 1;
     }

@@ -27,14 +27,14 @@ namespace CoupledField
 
   //----------------------- STATIC---------------------------------------
 
-  void IterSolveStep::SolveStepStatic(const Integer kstep, const Double aTime,
+  void IterSolveStep::SolveStepStatic(const UInt kstep, const Double aTime,
                                       const Boolean updatesysmat ) {
 
     ENTER_FCN ( "IterSolveStep::SolveStepStatic" );
   
     CFSVector *val, *oldVal;
-    Integer iter = 0;
-    Integer counter = 0;
+    UInt iter = 0;
+    UInt counter = 0;
     Boolean normsReached = FALSE;
     std::string quantityConv;
 
@@ -51,7 +51,7 @@ namespace CoupledField
         counter = 0;
         normsReached = TRUE;
       
-        for (Integer i=0; i<rPDE_.PDEs_.GetSize(); i++)
+        for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
           {
             if (rPDE_.nonLinLogging_)
               Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
@@ -67,7 +67,7 @@ namespace CoupledField
               rPDE_.PDEs_[i]->CalcOutputCoupling();
               
               // Calculate Norms
-              for (Integer k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
+              for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
                 {
                   rCouplings_[i]->GetOutputValues(k, val);
                   rCouplings_[i]->GetOutputOldValues(k, oldVal);
@@ -100,27 +100,27 @@ namespace CoupledField
       }
 
     // now we are converged and can compute any postprocessing-quantities
-    for (Integer i=0; i<rPDE_.PDEs_.GetSize(); i++)
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
       rPDE_.PDEs_[i]->PostProcess();
 
   }
 
 
   //----------------------- TRANSIENT---------------------------------------
-  void IterSolveStep::SolveStepTrans(const Integer kstep, const Double asteptime, 
+  void IterSolveStep::SolveStepTrans(const UInt kstep, const Double asteptime, 
                                      const Boolean updatesysmat)
   {
     ENTER_FCN( "IterSolveStep::SolveStepTrans" );
 
     Double  steptime  = asteptime;
 
-    Integer iter = 0;
+    UInt iter = 0;
     Boolean normsReached = FALSE;
     std::string quantityConv;
 
     // In the beginning of each time step
     // the coupling data has to be reseted
-    for (Integer i=0; i<rPDE_.PDEs_.GetSize(); i++)
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
       rPDE_.PDEs_[i]->ResetCoupling();
 
     while (iter < rPDE_.maxiter_ &&  (! normsReached))
@@ -132,10 +132,10 @@ namespace CoupledField
                          iter+1);
           }
 
-        Integer counter = 0;
+        UInt counter = 0;
         normsReached = TRUE;
       
-        for (Integer i=0; i<rPDE_.PDEs_.GetSize(); i++)
+        for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
           {
             if (rPDE_.nonLinLogging_)
               Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
@@ -152,7 +152,7 @@ namespace CoupledField
               rPDE_.PDEs_[i]->CalcOutputCoupling();
               
               // Calculate Norms
-              for (Integer k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
+              for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
                 {
                   CFSVector *val, *oldVal;
                   rCouplings_[i]->GetOutputValues(k, val);
@@ -182,7 +182,7 @@ namespace CoupledField
   } 
   
   //----------------------- HARMONIC---------------------------------------
-  void IterSolveStep::SolveStepHarmonic(const Integer freqStep, const Double frequency, 
+  void IterSolveStep::SolveStepHarmonic(const UInt freqStep, const Double frequency, 
                                         const Boolean reset) {
 
     ENTER_FCN( "IterSolveStep::SolveStepHarmonic" );
@@ -192,6 +192,13 @@ namespace CoupledField
   }
 
 
+
+  void IterSolveStep::SetTimeStep( Double dt) {
+    ENTER_FCN( "->GetSolveStep() ");
+
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
+      rPDE_.PDEs_[i]->GetSolveStep()->SetTimeStep(dt);
+  }
 
   Double IterSolveStep::CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval)
   {

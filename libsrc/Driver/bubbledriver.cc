@@ -23,7 +23,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   BubbleDriver::BubbleDriver(Domain * adomain, 
-                             Integer stepOffset,
+                             UInt stepOffset,
                              Double timeOffset,
                              std::string driverTag,
                              Boolean isPartOfSequence) 
@@ -211,13 +211,13 @@ namespace CoupledField {
   void  BubbleDriver::SolveProblem() {
     ENTER_FCN( " BubbleDriver::SolveProblem" );
 
-    //    Integer level     = 0;
+    //    UInt level     = 0;
     Double  steptime  = 0;
-    Integer stepsave  = isavebegin_;
+    UInt stepsave  = isavebegin_;
 
     Double  dt = firstdt_;
 
-    Integer nstep;
+    UInt nstep;
 
     for (nstep = 1; nstep <= numstep_; nstep++){
 

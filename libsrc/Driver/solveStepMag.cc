@@ -27,7 +27,7 @@ namespace CoupledField {
   // ======================================================
   // STATIC SOLVING SECTION
   // ======================================================
-  void SolveStepMag :: PreStepStatic(const Integer kstep, const Double asteptime,
+  void SolveStepMag :: PreStepStatic(const UInt kstep, const Double asteptime,
                                      const Boolean reset) {
     ENTER_FCN( "SolveStepMag::PreStepStatic" );
     if (isIterCoupled_) 
@@ -43,12 +43,11 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMag::StepStaticNonLin(const Integer kstep, const Double aTime,
+  void SolveStepMag::StepStaticNonLin(const UInt kstep, const Double aTime,
                                       const Boolean reset)
   {
     ENTER_FCN( "SolveStepMag::SolveStepStaticNonLin" );
 
-    const Integer job = 1;
     Boolean performOneMoreStep;
     Double *solPtr;
   
@@ -62,10 +61,10 @@ namespace CoupledField {
     //perform the load-steps
     Double loadFactor = 0;
 
-    //    for ( Integer iload=0; iload<5; iload++ ) {
+    //    for ( UInt iload=0; iload<5; iload++ ) {
     //      loadFactor += 0.2;
 
-    for ( Integer iload=0; iload<1; iload++ ) {
+    for ( UInt iload=0; iload<1; iload++ ) {
       loadFactor += 1;
       //      Info->PrintF(pdename_, "\n ");
       //      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
@@ -73,7 +72,7 @@ namespace CoupledField {
       // setup right hand side ==============================================
       Double RhsLinL2Norm = SetLinRHS(loadFactor); 
 
-      Integer iterationCounter=0;
+      UInt iterationCounter=0;
       do {
         iterationCounter++;
         
@@ -99,10 +98,8 @@ namespace CoupledField {
         
         algsys_->BuildInDirichlet();
         
-        if (job == 1) {
-          algsys_->SetupPrecond(job);
-          algsys_->SetupSolver(job);
-        }
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
         
         algsys_->Solve();
         
@@ -181,14 +178,14 @@ namespace CoupledField {
 
   }
 
-  //   void SolveStepMag::StepStaticNonLin(const Integer kstep, const Double aTime,
+  //   void SolveStepMag::StepStaticNonLin(const UInt kstep, const Double aTime,
   //                                  const Boolean reset)
   //   {
   //     ENTER_FCN( "SolveStepMag::SolveStepStaticNonLin" );
 
-  //     const Integer job = 1;
+  //     const UInt job = 1;
   //     Boolean performOneMoreStep;
-  //     Integer iterationCounter=0;
+  //     UInt iterationCounter=0;
   //     Double *solPtr;
   
   //     Vector<Double> solInc(eqnData_->GetNumEQNs());
@@ -306,7 +303,7 @@ namespace CoupledField {
   //   }
 
 
-  void SolveStepMag::StepTransNonLin(const Integer kstep, const Double asteptime,
+  void SolveStepMag::StepTransNonLin(const UInt kstep, const Double asteptime,
                                      const Boolean reset) {
 
     ENTER_FCN( "SolveStepMag::StepTransNonLin" );
@@ -315,11 +312,9 @@ namespace CoupledField {
     laststepcalc_ = kstep;
     Double *solPtr;
 
-    const Integer job = 1;
-  
-    static Integer timeStepCounter=1;
+    static UInt timeStepCounter=1;
     Boolean performOneMoreStep;
-    Integer iterationCounter=0;
+    UInt iterationCounter=0;
 
     Vector<Double> actSol;
     Vector<Double> solInc(numPDENodes_);
@@ -372,11 +367,9 @@ namespace CoupledField {
 
       algsys_->BuildInDirichlet();
 
-      if (job == 1) {
-        algsys_->SetupPrecond(job);
-        algsys_->SetupSolver(job);
-      }
-
+      algsys_->SetupPrecond();
+      algsys_->SetupSolver();
+      
       algsys_->Solve();
 
       // new solution is only an increment of the full solution =============

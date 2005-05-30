@@ -8,7 +8,7 @@ namespace CoupledField{
 
 
   SingleDriver::SingleDriver(Domain * adomain, 
-                             Integer stepOffset, 
+                             UInt stepOffset, 
                              Double timeOffset, 
                              std::string driverTag,
                              Boolean isPartOfSequence)

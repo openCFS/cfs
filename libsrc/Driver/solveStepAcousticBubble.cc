@@ -40,7 +40,7 @@ namespace CoupledField {
   // ======================================================
 
 
-  void SolveStepAcousticBubble::SolveStepTrans( const Integer kstep, const Double asteptime, 
+  void SolveStepAcousticBubble::SolveStepTrans( const UInt kstep, const Double asteptime, 
                                                 const Boolean reset ) {
 
     ENTER_FCN( "SolveStepAcousticBubble::SolveStepTrans" );
@@ -53,13 +53,13 @@ namespace CoupledField {
   }
 
 
-  void SolveStepAcousticBubble::StepTransBubble(const Integer kstep, const Double asteptime,
+  void SolveStepAcousticBubble::StepTransBubble(const UInt kstep, const Double asteptime,
                                                 const Boolean reset) {
 
     ENTER_FCN( "SolveStepAcousticBubble::StepTransBubble" );
 
     Double * ptsol;
-    Integer job;
+    UInt job;
 
 
     Double oldpressure=0;
@@ -93,7 +93,7 @@ namespace CoupledField {
 
 
     //do nonlinear iteration
-    Integer iterationCounter=0;
+    UInt iterationCounter=0;
     Boolean performOneMoreStep;
     do {
       iterationCounter++;
@@ -125,7 +125,7 @@ namespace CoupledField {
       //compute norm
       Double normRhs=0.0;
       nlRhsNorm = 0.0;
-      for (Integer i=0; i<nlRhsNew.GetSize(); i++) {
+      for (UInt i=0; i<nlRhsNew.GetSize(); i++) {
         nlRhsNorm += (nlRhsNew[i]-nlRhsOld[i])*(nlRhsNew[i]-nlRhsOld[i]);
         normRhs   += nlRhsNew[i]*nlRhsNew[i];
       }
@@ -154,8 +154,8 @@ namespace CoupledField {
 
       algsys_->BuildInDirichlet();
       if ( job == 1 ) {
-        algsys_->SetupSolver(job);
-        algsys_->SetupPrecond(job);
+        algsys_->SetupSolver();
+        algsys_->SetupPrecond();
       }
         
       //solve the PDE system
@@ -178,7 +178,7 @@ namespace CoupledField {
       // compute L2-Norm of error between last incremental solution and
       //   actual incremental solution
       Double solIncrL2Norm=0;
-      for (Integer i=0; i<newSol.GetSize(); i++)
+      for (UInt i=0; i<newSol.GetSize(); i++)
         solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
     
       solIncrL2Norm = sqrt(solIncrL2Norm);
@@ -204,14 +204,14 @@ namespace CoupledField {
     
       Matrix<Double> ptCoord;
       BaseFE         * ptElem;
-      StdVector<Integer> connect, Eqns;  
-      Integer numEl=0;
+      StdVector<UInt> connect, Eqns;  
+      UInt numEl=0;
     
-      for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+      for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
         StdVector<Elem*> elemssd;
         ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
       
-        for (Integer j=0; j < elemssd.GetSize(); j++) {
+        for (UInt j=0; j < elemssd.GetSize(); j++) {
         
           ptElem  = elemssd[j]->ptElem;
           connect = elemssd[j]->connect;
@@ -220,11 +220,11 @@ namespace CoupledField {
 
           // Output of nlRHSNew for all nodes of desired element
           //if (numEl == 90){
-          // Integer eqnNr = 0;
-          // Integer eqnDof = 0;
-          // Integer dof = 1;
+          // UInt eqnNr = 0;
+          // UInt eqnDof = 0;
+          // UInt dof = 1;
           // std::cerr << lasttimecalc_ << "   "  << numEl; 
-          // for ( Integer i=0; i < connect.GetSize(); i++){
+          // for ( UInt i=0; i < connect.GetSize(); i++){
           //   eqnData_ -> Node2EQN(connect[i],dof, eqnNr, eqnDof);
           //   std::cerr << "             " << connect[i];
           //   if (eqnNr != 0){
@@ -252,7 +252,7 @@ namespace CoupledField {
           //compute average values
           Double pressure=0;
           Double pressureDeriv=0;
-          for (Integer elnode=0; elnode<elPressure.GetSize(); elnode++) {
+          for (UInt elnode=0; elnode<elPressure.GetSize(); elnode++) {
             pressure      += elPressure[elnode];
             pressureDeriv += elPressureDeriv[elnode];
           }
@@ -388,7 +388,7 @@ namespace CoupledField {
     params->Get( "viscosity", viscosity, "bubbleDynamic" );
 
 
-    for (Integer el=0; el<numPDEElems_; el++) {
+    for (UInt el=0; el<numPDEElems_; el++) {
       // Choice which bubbledynamical method is used and 
       // creation of pointer to choosen class
       // so far method is chosen in cfs program call with -bubbletyp
@@ -435,15 +435,15 @@ namespace CoupledField {
     Double dummy=1.0;
     BaseForm *rhsForm = new VolumeSrcInt(dummy, isaxi_);        
 
-    Integer numEl = 0;
-    for (Integer actDom=0; actDom <  subdoms_.GetSize(); actDom++) {      
+    UInt numEl = 0;
+    for (UInt actDom=0; actDom <  subdoms_.GetSize(); actDom++) {      
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
     
     
-      for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++)    {              
+      for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++)    {              
         BaseFE * ptEl = elemssd[actEl]->ptElem;
-        StdVector<Integer> connecth = elemssd[actEl]->connect;
+        StdVector<UInt> connecth = elemssd[actEl]->connect;
 
         Matrix<Double> ptCoord;
         GetElemCoords(connecth, ptCoord);
@@ -507,6 +507,9 @@ namespace CoupledField {
     }
     else {
       Error("SolveStepAcousticBubble: Result-Type not possible");
+      
+      // only to satisfy compiler
+      return velocity_;
     }
 
   }

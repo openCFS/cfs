@@ -359,7 +359,7 @@ namespace CoupledField {
       ReadAttrsElem(matches,s_elems,e_elems);
 
     // convert matches to Double
-    for ( Integer k = 0; k < matches.GetSize(); k++ ) {
+    for ( UInt k = 0; k < matches.GetSize(); k++ ) {
       list.Push_back( (Double)atof( matches[k].c_str() ) );
     }
   }
@@ -559,7 +559,7 @@ namespace CoupledField {
       return std::string::npos;
    
     // return position of the next line after the line with keyword
-    Integer size=buf.size();
+    UInt size=buf.size();
     return help+size;
    
   }
@@ -575,7 +575,7 @@ namespace CoupledField {
 
     peeled.clear();
 
-    Integer i;
+    UInt i;
     for (i=0; i<unpeeled.size(); i++) {
       if ((unpeeled.c_str())[i] == '<')
         break;
@@ -695,7 +695,7 @@ namespace CoupledField {
     inFile.clear();
     inFile.seekg(0,std::ios::beg);
 
-    Integer i;
+    UInt i;
     // read a line from the file and check, whether it contains the key
     sType       pos=std::string::npos,
       posE=std::string::npos;
@@ -860,7 +860,7 @@ namespace CoupledField {
     list.Resize(s_elems.GetSize());
 
     // loop over list with given initial and final positions of the elements
-    Integer i;
+    UInt i;
     for (i=0; i<s_elems.GetSize(); i++) {
       
       inFile.seekg(s_elems[i],std::ios::beg);
@@ -896,7 +896,7 @@ namespace CoupledField {
     
     list.Resize(s_elems.GetSize());
     
-    Integer i;
+    UInt i;
     for (i=0; i<s_elems.GetSize(); i++) {
       
       inFile.seekg(e_elems[i],std::ios::beg);

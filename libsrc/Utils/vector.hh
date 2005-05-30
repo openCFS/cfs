@@ -28,7 +28,7 @@ namespace CoupledField {
 
     //! Constructor with inital size.
     //! All entries are filled with zeroes
-    Vector(const Integer size, const TYPE entry = TYPE());
+    Vector(const UInt size, const TYPE entry = TYPE());
 
     //! Copy constructor
     Vector(const Vector<TYPE> & vec);
@@ -67,45 +67,45 @@ namespace CoupledField {
     //!                    the new vector entries
     //! \param transferMem flag signalling transfer of responsibility for
     //!                    memory management
-    void Replace( Integer length, TYPE* entries, Boolean transferMem );
+    void Replace( UInt length, TYPE* entries, Boolean transferMem );
 
     //! Get the length of the vector
-    inline Integer GetSize() const {return size_;}
+    inline UInt GetSize() const {return size_;}
 
     //! Set the lenght of the vector
     /*!
       \param size (input) Lengh of vector
     */
     //! \note the entries are set to zero afterwards!
-    void Resize(const Integer size);
+    void Resize(const UInt size);
  
     //! Set the entry i of the vector to the given value (x[i] = s)
     /*!
       \param i (input) Index of entry s
       \param s (input) Entry to be set on position i
     */
-    void SetEntry(const Integer i, const TYPE &s);
+    void SetEntry(const UInt i, const TYPE &s);
   
     //! Get the entry i of the vector on the given value (ret = x[i])
     /*!
       \param i (input) Index of entry s
       \param ret (output) Entry on position i
     */
-    void GetEntry(const Integer i, TYPE &ret) const;
+    void GetEntry(const UInt i, TYPE &ret) const;
   
     //! Add s to i-th vector entry (x[i] += s)
     /*!
       \param i (input) Index of entry s
       \param s (input) Value to be added to x[i]
     */
-    void AddEntry(const Integer i, const TYPE &s);
+    void AddEntry(const UInt i, const TYPE &s);
   
     //! Mult the i-th vector entry with s (x[i] *= s)
     /*!
       \param i (input) Index of entry s
       \param s (input) Factor, which i-the entry gets multiplied with
     */
-    void MultEntry(const Integer i, const TYPE &s);
+    void MultEntry(const UInt i, const TYPE &s);
   
     //! Multiply the i-th vector entry with a and add s on it (x[i] = a*x[i]+s)
     /*!
@@ -113,7 +113,7 @@ namespace CoupledField {
       \param a (input) Factor the i-the entry gets multiplied with
       \param s (input) Value to be added to a*x[i]
     */
-    void MultAddEntry(const Integer i, const TYPE &a, const TYPE &s);
+    void MultAddEntry(const UInt i, const TYPE &a, const TYPE &s);
 
     //! Adds another vector to itself (x = x+y)
     /*! 
@@ -171,7 +171,7 @@ namespace CoupledField {
 
 
     //! Element can be referred to as v[i]
-    inline TYPE   &operator[]     (const Integer i) const
+    inline TYPE   &operator[]     (const UInt i) const
     {     
 #ifdef CHECK_INDEX
       if (i >= size_){
@@ -201,7 +201,7 @@ namespace CoupledField {
       \param nsize size of vector
       \param ptdata pointer to array with values of vector
     */
-    void TransformInVector(const Integer nsize, TYPE* ptdata);
+    void TransformInVector(const UInt nsize, TYPE* ptdata);
   
     //! Overloading of operations +,+=
     Vector        operator+       (const Vector &) const;
@@ -234,10 +234,10 @@ namespace CoupledField {
     Vector        &operator*=     (const Matrix<TYPE> &);
 
     //! Overloading of operation equal for Vector
-    Integer       operator==      (const Vector &) const;
+    Boolean       operator==      (const Vector &) const;
 
     //! Overloading of operation not equal for Vector
-    Integer       operator!=      (const Vector &) const;
+    Boolean       operator!=      (const Vector &) const;
 
     //! Overloading of assignement operatior for Vector and Matrix  
     Vector        operator=       (const Matrix<TYPE> &) const;
@@ -248,7 +248,7 @@ namespace CoupledField {
     inline VectorListInitializer<TYPE> operator=(const TYPE x);
 
     //! Return part of Vector from index i to ii
-    Vector        Part    (const Integer i, const Integer ii) const;
+    Vector        Part    (const UInt i, const UInt ii) const;
 
     //! Constructs the unit vector of length n, which only non-zero
     //! entry is a 1 at the i-th position
@@ -258,25 +258,25 @@ namespace CoupledField {
       \f[ \left( \begin{array}{c} 0  \\ \cdots \\ 0 \\ 1 \\ 0 \\ \cdots \\ 0 
       \end{array} \right) \f]
     */
-    static Vector Unit    (const Integer n, const Integer i);
+    static Vector Unit    (const UInt n, const UInt i);
 
     //! Add element of the same type at position pos, by default to the beginning Beware of numeration in C++
-    void AddElement(const TYPE & y, Integer pos=0);
+    void AddElement(const TYPE & y, UInt pos=0);
 
     //! Add element of the same type at the end of the vector
     void Push_back(const TYPE & y);
 
     //! Insert a vector to this vector at position pos
-    void InsertVector (const Vector<TYPE> & y, Integer pos=0);
+    void InsertVector (const Vector<TYPE> & y, UInt pos=0);
 
     //! Delete element from vector on position pos
-    void  Cut (const Integer pos);
+    void  Cut (const UInt pos);
 
     //! Delete elements from position pos1 to pos2, on pos1, pos2 too
-    void  Cut (const Integer pos1, const Integer pos2);
+    void  Cut (const UInt pos1, const UInt pos2);
 
     //! Return size of space memory of this vector
-    Integer  Memory() const;
+    UInt  Memory() const;
 
     //! Sort vector in ascending order
     void Sort();
@@ -284,13 +284,13 @@ namespace CoupledField {
   protected:
 
     //! Length of the vector
-    Integer size_;
+    UInt size_;
 
     //! Data of the vector
     TYPE* data_;
   
     //! Capacity of the vector
-    Integer capacity_;
+    UInt capacity_;
 
     //! Flag signaling whether management of data array is done by this object
   
@@ -355,6 +355,7 @@ namespace CoupledField {
   // Template instantiation for used vectors
   template class Vector<Integer>;
   template class Vector<Double>;
+  template class Vector<UInt>;
   template class Vector<Complex>;
 #endif
  

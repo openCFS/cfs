@@ -140,9 +140,9 @@ namespace CoupledField
     //helping variables
     Double  rgauss,sgauss,tgauss;
     Double  onehalf,one,two;
-    Double  oneplusr,oneminusr,oneminusr2,two_r;
-    Double  onepluss,oneminuss,oneminuss2,two_s;
-    Double  oneplust,oneminust,oneminust2,two_t;
+    Double  oneplusr,oneminusr,oneminusr2;
+    Double  onepluss,oneminuss,oneminuss2;
+    Double  oneplust,oneminust,oneminust2;
 
     Shape.Resize(NumNodes_);
 
@@ -307,7 +307,7 @@ namespace CoupledField
     LDeriv[17][2] =  oneminuss * oneplusr  * two_t;
 
 
-    for (Integer i=0; i<3; i++) {
+    for (UInt i=0; i<3; i++) {
       LDeriv[0][i] -= onehalf * (LDeriv[11][i] + LDeriv[8][i]  + LDeriv[16][i]);
       LDeriv[1][i] -= onehalf * (LDeriv[8][i]  + LDeriv[9][i]  + LDeriv[17][i]);
       LDeriv[2][i] -= onehalf * (LDeriv[9][i]  + LDeriv[10][i] + LDeriv[18][i]);

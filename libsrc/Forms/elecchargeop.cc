@@ -33,11 +33,11 @@ namespace CoupledField
   {
     ENTER_IFCN( "ElecChargeOp::CalcElemCharge" );
   
-    Double jacDet, chargeAux, elemFluxDensity;
+    Double jacDet, chargeAux;
     Vector<Double> shFnc, globCoord;
     Matrix<Double> coordMat;
     BaseFE * ptElemFE = ptElement->ptElem;
-    Integer nrIntPts, nrNodes;
+    UInt nrIntPts, nrNodes;
   
   
     charge = 0;
@@ -50,7 +50,7 @@ namespace CoupledField
     ptPDE_->GetElemCoords(ptElement->connect, coordMat);
   
     // loop over all integration points
-    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         ptElemFE->GetShFncAtIp(shFnc, actIntPt);
         jacDet = ptElemFE->CalcJacobianDetAtIp(actIntPt, coordMat);
@@ -65,13 +65,13 @@ namespace CoupledField
 
 
     //     // loop over all integration points
-    //     for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+    //     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
     //       {
     //      ptElemFE->GetShFncAtIp(shFnc, actIntPt);
     //      jacDet = ptElemFE->CalcJacobianDetAtIp(actIntPt, coordMat);
       
     //      // loop over all shape functions
-    //      for (Integer actShFnc=1; actShFnc<= shFnc.GetSize(); actShFnc++)
+    //      for (UInt actShFnc=1; actShFnc<= shFnc.GetSize(); actShFnc++)
     //        {
     //          chargeAux = shFnc[actShFnc-1] * intWeights[actIntPt-1];
     //          chargeAux *=  jacDet; // * eNormalFluxDensity;
@@ -99,7 +99,7 @@ namespace CoupledField
     Vector<Double> shFnc, globCoord;
     Matrix<Double> coordMat;
     BaseFE * ptElemFE = ptElement->ptElem;
-    Integer nrIntPts, nrNodes;
+    UInt nrIntPts, nrNodes;
   
   
     charge = Complex(0.0, 0.0);
@@ -112,13 +112,13 @@ namespace CoupledField
     ptPDE_->GetElemCoords(ptElement->connect, coordMat);
   
     // loop over all integration points
-    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         ptElemFE->GetShFncAtIp(shFnc, actIntPt);
         jacDet = ptElemFE->CalcJacobianDetAtIp(actIntPt, coordMat);
       
         // loop over all shape functions
-        for (Integer actShFnc=1; actShFnc<= shFnc.GetSize(); actShFnc++)
+        for (UInt actShFnc=1; actShFnc<= shFnc.GetSize(); actShFnc++)
           {
             chargeAux = shFnc[actShFnc-1] * intWeights[actIntPt-1];
             chargeAux = chargeAux * jacDet * eNormalFluxDensity;
@@ -143,16 +143,16 @@ namespace CoupledField
   {
     ENTER_FCN( "ElecChargeOp::CalcElemCharges" );
   
-    Double jacDet, charge, elemFluxDensity,helpNormalFluxDensityD;
+    Double jacDet, charge, helpNormalFluxDensityD;
     Complex chargeComplex,helpNormalFluxDensity;
     Vector<Double> shFnc, globCoord;
     Matrix<Double> coordMat;
     BaseFE * ptElem;
-    Integer nrIntPts, nrNodes;
+    UInt nrIntPts, nrNodes;
     charges.Resize(surfElems.GetSize());
   
     // loop over all surface elements
-    for (Integer iElem=0; iElem<surfElems.GetSize(); iElem++)
+    for (UInt iElem=0; iElem<surfElems.GetSize(); iElem++)
       {
         ptElem = surfElems[iElem]->ptElem;
         charge = 0;
@@ -164,7 +164,7 @@ namespace CoupledField
         ptPDE_->GetElemCoords(surfElems[iElem]->connect, coordMat);
         ptElem->GetShFnc(shFnc, lCoord);
         if (charges.IsComplex()){
-          for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+          for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
             {
               jacDet = ptElem->CalcJacobianDet(lCoord, coordMat);
               chargeComplex = shFnc[actIntPt] *intWeights[actIntPt];
@@ -182,7 +182,7 @@ namespace CoupledField
             }
         }
         else {
-          for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+          for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
             {
               jacDet = ptElem->CalcJacobianDet(lCoord, coordMat);
               charge = shFnc[actIntPt] *intWeights[actIntPt];

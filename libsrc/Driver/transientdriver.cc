@@ -18,7 +18,7 @@ namespace CoupledField {
   //   Constructor
   // ===============
   TransientDriver::TransientDriver(Domain * adomain, 
-                                   Integer stepOffset,
+                                   UInt stepOffset,
                                    Double timeOffset, 
                                    std::string driverTag,
                                    Boolean isPartOfSequence) 
@@ -78,7 +78,7 @@ namespace CoupledField {
     ENTER_FCN( "TransientDriver::SolveProblem" );
   
     Double  steptime  = firstdt_;
-    Integer stepsave  = isavebegin_;
+    UInt stepsave  = isavebegin_;
   
     Double  dt = firstdt_;
     Boolean updatesysmat=FALSE;
@@ -94,7 +94,7 @@ namespace CoupledField {
     Double percentCounter = timeStepPercent;
   
     // Solve problem
-    ptPDE_->SetTimeStep(dt);
+    ptPDE_->GetSolveStep()->SetTimeStep(dt);
   
     // if multiSequence is performed, the ms-driver
     // writes out the grid one time
@@ -103,7 +103,7 @@ namespace CoupledField {
   
     ptPDE_->WriteGeneralPDEdefines();
   
-    Integer nstep;
+    UInt nstep;
     for (nstep = 1; nstep <= numstep_; nstep++) {
     
       if ( numstep_ <= 50 )
@@ -115,7 +115,7 @@ namespace CoupledField {
                               steptime+timeOffset_);
       }
       else if ( numstep_ > 500 ) {
-        // Output in steps of en percent 
+        // Output in steps of ten percent 
         if ((double)nstep >= percentCounter  ){           
           Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
                               steptime+timeOffset_);

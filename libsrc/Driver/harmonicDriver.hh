@@ -19,7 +19,7 @@ namespace CoupledField
     //! \param driverTag tag for current driver
     //! \param isPartOfSequence true, if driver is part of  multiSequence
     HarmonicDriver(Domain * adomain,
-                   Integer stepOffset = 0,
+                   UInt stepOffset = 0,
                    Double timeOffset = 0.0,
                    std::string driverTag = "anyTag",
                    Boolean isPartOfSequence = FALSE);
@@ -35,8 +35,8 @@ namespace CoupledField
  
     Double  startFreq_;
     Double  stopFreq_;
-    Integer numFreq_;
-    Integer saveType_;
+    UInt numFreq_;
+    UInt saveType_;
     Boolean adjustDamping_;
   };
 

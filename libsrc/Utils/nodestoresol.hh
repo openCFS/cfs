@@ -58,9 +58,9 @@ namespace CoupledField{
     */
     //! \note By calling this constructor, one gets an iniaialized
     //! object, ready to use
-    NodeStoreSol(const Integer numNodes, 
+    NodeStoreSol(const UInt numNodes, 
                  const StdVector<SolutionType> solTypes, 
-                 const StdVector<Integer> solDofs);
+                 const StdVector<UInt> solDofs);
              
 
     //! Constructor with given layout for ONE solutiontype
@@ -71,9 +71,9 @@ namespace CoupledField{
     */
     //! \note By calling this constructor, one gets an iniaialized
     //! object, ready to use
-    NodeStoreSol(const Integer numNodes,
+    NodeStoreSol(const UInt numNodes,
                  const SolutionType solType,
-                 const Integer numDofs);
+                 const UInt numDofs);
              
 
     //! Copy Constructor
@@ -126,7 +126,7 @@ namespace CoupledField{
       \param nSols (input) Number of different solution types
     */
     //! \note All entries of this object are deleted afterwards
-    void SetNumSolutions(const Integer nSols);
+    void SetNumSolutions(const UInt nSols);
   
 
     //! Set the number of solution nodes
@@ -134,7 +134,7 @@ namespace CoupledField{
       \param nNodes (input) Number of solution nodes
     */
     //! \note All entries of this object are deleted afterwards
-    void SetNumNodes(const Integer nNodes);
+    void SetNumNodes(const UInt nNodes);
 
 
     //! Set the type of solution and its position 
@@ -148,7 +148,7 @@ namespace CoupledField{
     */
     //! \note All entries of this object are deleted afterwards
     void SetSolutionType(const SolutionType solTypes, 
-                         const Integer numSolution = 0);
+                         const UInt numSolution = 0);
 
 
     //! Set the number of dofs for one solution type
@@ -161,7 +161,7 @@ namespace CoupledField{
       \param solType (input) Type of solution (ref. enum SolutionType)
     */
     //! \note All entries of this object are deleted afterwards
-    void SetNumDofs(const Integer dof, 
+    void SetNumDofs(const UInt dof, 
                     const SolutionType solType = NO_SOLUTION_TYPE);
 
 
@@ -179,8 +179,8 @@ namespace CoupledField{
     */
     //! \note This method may only be called if object contains only
     //! one type of solution.
-    TYPE& operator()(const Integer nodeNr, 
-                     const Integer dof);
+    TYPE& operator()(const UInt nodeNr, 
+                     const UInt dof);
 
 
     //! Access operator for nodal result of given dof
@@ -190,8 +190,8 @@ namespace CoupledField{
     */
     //! \note This method may only be called if object contains only
     //! one type of solution.
-    TYPE operator()(const Integer node, 
-                    const Integer dof) const;
+    TYPE operator()(const UInt node, 
+                    const UInt dof) const;
 
 
     //! Get vector with one solutiontype for all nodes
@@ -219,7 +219,7 @@ namespace CoupledField{
       \param nodeNr (input) Node number for solution
       \param val (input) Vector containing nodal results
     */
-    void SetNodalResult(const Integer nodeNr, 
+    void SetNodalResult(const UInt nodeNr, 
                         const CFSVector &val);
 
  
@@ -228,7 +228,7 @@ namespace CoupledField{
       \param nodeNr (input) Node number for solution
       \param val (output) Vector containing nodal results
     */
-    void GetNodalResult(const Integer nodeNr, 
+    void GetNodalResult(const UInt nodeNr, 
                         CFSVector & val) const;
 
 
@@ -239,7 +239,7 @@ namespace CoupledField{
       \param val (output) Vector containing rsults
     */
     void GetGlobalSolVectorSingleDof(const SolutionType solType, 
-                                     const Integer dof, 
+                                     const UInt dof, 
                                      CFSVector & val) const;
   
 
@@ -250,7 +250,7 @@ namespace CoupledField{
     */
     //! \note This method may only be called if object contains only
     //! one type of solution.
-    void GetGlobalSolVectorSingleDof(const Integer dof, 
+    void GetGlobalSolVectorSingleDof(const UInt dof, 
                                      CFSVector & val) const;
 
 
@@ -262,8 +262,8 @@ namespace CoupledField{
     */
     //! \note This method may only be called if object contains only
     //! one type of solution.
-    void Get(const Integer nodeNr, 
-             const Integer dof, 
+    void Get(const UInt nodeNr, 
+             const UInt dof, 
              TYPE & ret) const;
 
   
@@ -275,8 +275,8 @@ namespace CoupledField{
       \param val (output)  Result of node nodeNr for given dof
     */
     void Get(const SolutionType solType, 
-             const Integer nodeNr, 
-             const Integer dof, 
+             const UInt nodeNr, 
+             const UInt dof, 
              TYPE & ret) const;
   
   
@@ -288,8 +288,8 @@ namespace CoupledField{
       \param val (input)  Result of node nodeNr for given solType and dof
     */  
     void Set(const SolutionType solType, 
-             const Integer nodeNr, 
-             const Integer dof, 
+             const UInt nodeNr, 
+             const UInt dof, 
              const TYPE val);
 
 
@@ -301,8 +301,8 @@ namespace CoupledField{
       \param val (input)  Result of node nodeNr for given solType and dof
     */   
     void Add(const SolutionType solType, 
-             const Integer nodeNr, 
-             const Integer dof, 
+             const UInt nodeNr, 
+             const UInt dof, 
              const TYPE val) const;
 
 
@@ -360,7 +360,7 @@ namespace CoupledField{
     //! when one can ensure, that the internal layout of the solution
     //! matches to the one of the given array. This is the case e.g. for
     //! the solution of the algebraic system.
-    void SetAlgSysDataPointer( Integer size, TYPE * ptr);
+    void SetAlgSysDataPointer( UInt size, TYPE * ptr);
   
     //! Get pointer to data in double* - format
 
@@ -388,17 +388,17 @@ namespace CoupledField{
     /////////////////////////////////////////
 
     void GetElemSolution(CFSVector & elemSol,
-                         const StdVector<Integer> & connect) const;
+                         const StdVector<UInt> & connect) const;
 
 
     //!
     void GetElemSolutionAsMatrix(CFSMatrix & elemSol, 
-                                 const StdVector<Integer> & connect) const;
+                                 const StdVector<UInt> & connect) const;
 
 
     //! maps the local node solution to the coupling nodes
     void NodeSolutionToCoupling(CFSVector & couplingSol,
-                                const StdVector<Integer>& nodeNumbers) const;
+                                const StdVector<UInt>& nodeNumbers) const;
                              
 
     ///////////////

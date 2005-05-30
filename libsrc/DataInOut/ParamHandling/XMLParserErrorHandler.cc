@@ -76,7 +76,7 @@ namespace CoupledField
   // =================================
   //  Only provided for completeness
   // =================================
-  void XMLParserErrorHandler::resetErrors(){};
+  void XMLParserErrorHandler::resetErrors(){}
 
 }
 

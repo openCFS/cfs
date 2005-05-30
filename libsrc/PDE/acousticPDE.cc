@@ -7,6 +7,7 @@
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "Forms/forms_header.hh"
+#include "Forms/abcInt.hh"
 #include "Estimator/spaceerror.hh"
 #include "newmark.hh"
 #include "newmarkFracDamp.hh"
@@ -35,6 +36,8 @@ namespace CoupledField {
     pdename_          = "acoustic";
     pdematerialclass_ = "fluid";
     laststepcalc_ = 0;
+
+    isMechCoupled_ = FALSE;
 
     coarsealpha_ = 0.01; // solver parameter, see basePDE.cc
 
@@ -79,7 +82,7 @@ namespace CoupledField {
     else {
       dampingList_.Resize(strVec.GetSize());
     
-      for ( Integer k = 0; k < strVec.GetSize(); k++) {
+      for ( UInt k = 0; k < strVec.GetSize(); k++) {
       
         if (strVec[k] == "rayleigh") {
           dampingList_[k] = RAYLEIGH;
@@ -116,7 +119,7 @@ namespace CoupledField {
         
           StdVector<std::string> fracAlgList_;
           params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
-          StdVector<Integer> fracMemoryList_;
+          StdVector<UInt> fracMemoryList_;
           params->GetList( "fracMemory", fracMemoryList_, pdename_, 
                            "damping" );
           StdVector<std::string> interpolationList_;
@@ -152,7 +155,7 @@ namespace CoupledField {
                           , interpolationList_[0].c_str() );
           }
           // modify dampingList, so that fracAlg is included
-          for ( Integer k = 0; k < strVec.GetSize(); k++) {
+          for ( UInt k = 0; k < strVec.GetSize(); k++) {
             if ( fracAlgList_[k] == "gl" )
               dampingList_[k] = FRACTIONAL_GL;
             else if (fracAlgList_[k] == "blank")
@@ -169,7 +172,7 @@ namespace CoupledField {
     params->GetList( "nonLinear", strVec, pdename_, "region" );
     nonLinPDEName_.Resize(strVec.GetSize());
 
-    for ( Integer k = 0; k < strVec.GetSize(); k++ ) {
+    for ( UInt k = 0; k < strVec.GetSize(); k++ ) {
 
       if ( strVec[k] == "no" )
         ;
@@ -236,19 +239,11 @@ namespace CoupledField {
     ptgrid_->RegionNameToId( absBCs_, auxVec );
 
     if ( absBCs_.GetSize() ) {
+      matrixTypes_.insert(DAMPING);
       absorbingBCs_ = TRUE;
       Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
       surfdoms_ = absBCs_;
     }
-
-    needsDampingMatrix_ = FALSE;
-    // two matrices formulation
-    if ( absorbingBCs_ == TRUE 
-         || (dampingType_ != NONE && dampingType_ != FRACTIONAL) )
-      needsDampingMatrix_ = TRUE;
-    // conservative formulation
-    //if ( absorbingBCs_ == TRUE || dampingType_ != NONE )
-    //  needsDampingMatrix_ = TRUE;
   }
 
 
@@ -260,15 +255,23 @@ namespace CoupledField {
     Double density, compressibility, c0, alpha, beta, BoverA;
     Double coeffmass, coeffdamp;
 
-    for (Integer actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
+    for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
       density         = materialData_[actSD].GetDensity();
+      
       compressibility = materialData_[actSD].GetCompressibility();
       c0 = sqrt(compressibility/density);
 
+      
       alpha  = materialData_[actSD].GetDampingAlfa();
       beta   = materialData_[actSD].GetDampingBeta();
       BoverA = materialData_[actSD].GetBoverA();
+
+      // if pde couples with mechanic, we have to multiply the density by -1
+      if ( isMechCoupled_ == TRUE ) {
+        density *= -1.0;
+        std::cerr << "->IS Mech Coupled!\n";
+      }
 
       // **********************************************************************
       //   Linear wave equation
@@ -358,14 +361,9 @@ namespace CoupledField {
     // **********************************************************************
 
     if ( absorbingBCs_ == TRUE && analysistype_ != HARMONIC ) {
-      for (Integer actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
-        //currently hard-coded!!
-        Double density = materialData_[0].GetDensity();
-        Double compressibility = materialData_[0].GetCompressibility();
-        Double coeffdamp = density/((sqrt(compressibility/density)));
-        
-        BaseForm * bilinear_damp = 
-          new MassInt(coeffdamp,dofspernode_, isaxi_);
+      for (UInt actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
+        SurfForm * bilinear_damp = new AbsorbingBCsInt(isaxi_);
+        bilinear_damp->SetFirstVoluInfo(pdename_, subdoms_, materialData_);
         assemble_->AddSurfIntegrator(bilinear_damp,  absBCs_[actSD],
                                      DAMPING, nonLin);
       }
@@ -396,19 +394,22 @@ namespace CoupledField {
   void AcousticPDE::InitTimeStepping() {
     ENTER_FCN( "AcousticPDE::InitTimeStepping" );
 
+    UInt rhsSize = eqnData_->GetNumEQNs() *
+      eqnData_->GetNumDofsPerEQN();
+
     if ( dampingType_!=FRACTIONAL ) {
       // this includes rayleigh and thermoviscous damping
       if ( effectiveMass_ == FALSE ) {
-        TS_alg_ = new Newmark(pdename_, algsys_, eqnData_, needsDampingMatrix_);
+        TS_alg_ = new Newmark( algsys_, rhsSize );
       }
       else {
-        TS_alg_ = new NewmarkEffMass(pdename_, algsys_, eqnData_, needsDampingMatrix_);
+        TS_alg_ = new NewmarkEffMass(  algsys_, rhsSize );
       }
     }
     else {
       if ( effectiveMass_ == FALSE )
-        TS_alg_ = new NewmarkFracDamp(pdename_, pdeId_, algsys_, eqnData_, 
-                                      ptgrid_, this, subdoms_, dampingList_, 
+        TS_alg_ = new NewmarkFracDamp(algsys_, rhsSize,  pdeId_, eqnData_, 
+                                      ptgrid_, this, subdoms_, dampingList_,
                                       fracMemory_, inType_, isaxi_);
       else
         Error("This needs to be implemented!",__FILE__,__LINE__);
@@ -437,16 +438,12 @@ namespace CoupledField {
     ptCoupling_   = Coupling;
     
     // Intialize the memory of the coupling values
-    for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
+    for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
       if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE)    {
         ptCoupling_->CreateCouplingVector(i,isComplex_);
         
         //now since we need a incremental formulation, initialize some necessary vectors
         isIncrFormulation_ = TRUE;
-        solIncr_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
-        actSol_.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
-        solIncr_.Init(0);
-        actSol_.Init(0);
       }
     }
   }
@@ -456,14 +453,14 @@ namespace CoupledField {
 
     ENTER_FCN( "AcousticPDE::CalcOutputCoupling" );
 
-    Integer dof;
+    UInt dof;
     SolutionType quantity;
     StdVector<Elem*> * couplingElems = NULL;
-    StdVector<Integer> * couplingNodes = NULL;
+    StdVector<UInt> * couplingNodes = NULL;
     CFSVector * temp_values = NULL;
   
     // loop over all output coupling quantities
-    for (Integer i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
+    for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
       quantity = ptCoupling_->GetOutputQuantity(i);
       ptCoupling_->GetOutputValues(i, temp_values);
 
@@ -494,9 +491,9 @@ namespace CoupledField {
 
   void AcousticPDE::
   CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
-                       StdVector<Integer> & couplingNodes,
+                       StdVector<UInt> & couplingNodes,
                        Vector<Double>& elemCouplingSols,
-                       Integer couplingdof ) {
+                       UInt couplingdof ) {
     
     ENTER_FCN( "AcousticPDE::CalcMechCouplingRHS" );
     
@@ -509,7 +506,7 @@ namespace CoupledField {
     
     elemCouplingSols.Init(0.0);
     
-    for (Integer actElem=0; actElem<couplingElems->GetSize(); actElem++) {
+    for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
       
       // Perform cast from volume element to surface element, since
       // mech-acou coupling makes only sense on surface elements
@@ -517,7 +514,7 @@ namespace CoupledField {
         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
       
       BaseFE * ptElem = actCoupleElem->ptElem;
-      StdVector<Integer> & connecth = actCoupleElem->connect;
+      StdVector<UInt> & connecth = actCoupleElem->connect;
       GetElemCoords(connecth, ptCoord);
       
       // Try to find according region for first neighbouring volume
@@ -565,15 +562,15 @@ namespace CoupledField {
       ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
       normal *= sign;
 
-      for (Integer actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
-        Integer nodePos = 0;
+      for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
+        UInt nodePos = 0;
           
         while(connecth[actNode] != couplingNodes[nodePos] &&
               nodePos < couplingNodes.GetSize()) {
           nodePos++;
         }
           
-        for (Integer actDof=0; actDof < couplingdof ; actDof++) {
+        for (UInt actDof=0; actDof < couplingdof ; actDof++) {
           elemCouplingSols[nodePos*couplingdof +actDof] += 
             forceOnElem[actNode] * normal[actDof];
         }
@@ -595,9 +592,9 @@ namespace CoupledField {
   // POSTPROCESSING SECTION
   // ======================================================
 
-  void AcousticPDE::WriteResultsInFile(const Integer kstep,
+  void AcousticPDE::WriteResultsInFile(const UInt kstep,
                                        const Double asteptime,
-                                       Integer stepOffset,
+                                       UInt stepOffset,
                                        Double timeOffset) {
     ENTER_FCN( "AcousticPDE::WriteResultsInFile" );
 
@@ -609,9 +606,10 @@ namespace CoupledField {
       NodeStoreSol<Double> solIm_mesh;
       NodeStoreSol<Double> * solTransient;
       NodeStoreSol<Complex> * solHarmonic;
-       
-      Double actTime = lasttimecalc_ + timeOffset;
-      Integer actStep = laststepcalc_ + stepOffset;
+      
+      
+      Double actTime = asteptime + timeOffset;
+      UInt actStep = kstep + stepOffset;
       
       if (analysistype_==HARMONIC) {
         solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
@@ -663,8 +661,11 @@ namespace CoupledField {
       if(bubbleDynType_ != NOBUBBLETYPE &&
          (saveSol_ == TRUE || saveDeriv1_ == TRUE || saveDeriv2_ == TRUE)) {
 
-        StdVector<Double> radius   = solveStep_->GetResultData("bubbleRadius");
-        StdVector<Double> velocity = solveStep_->GetResultData("bubbleVelocity");
+        StdVector<Double> radius = dynamic_cast<SolveStepAcousticBubble*>
+          (solveStep_)->GetResultData("bubbleRadius");
+
+        StdVector<Double> velocity = dynamic_cast<SolveStepAcousticBubble*>
+          (solveStep_)->GetResultData("bubbleVelocity");
 
         ElemStoreSol<Double> bubbleResult;
     
@@ -678,7 +679,7 @@ namespace CoupledField {
         bubbleResult.SetPtrEQNData(eqnData_, ptgrid_);
         bubbleResult.Init();
           
-        for (Integer el=0; el<numElems_; el++) {
+        for (UInt el=0; el<numElems_; el++) {
           Vector<Double> result(3);
             
           result[0] = radius[el];
@@ -846,7 +847,7 @@ node results in acoustic potential.", __FILE__,__LINE__);
         saveSolHist_ = TRUE;
         hasOutput_ = TRUE;
         Info->PrintF( pdename_, "Saving acouPotential for Nodes:\n" );
-        for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+        for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
 
@@ -861,7 +862,7 @@ node results in acoustic potential.", __FILE__,__LINE__);
         saveRHSvalHist_ = TRUE;
         hasOutput_ = TRUE;
         Info->PrintF( pdename_, "Saving acouRHSval for Nodes:\n" );
-        for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+        for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
 
@@ -876,7 +877,7 @@ node results in acoustic potential.", __FILE__,__LINE__);
         saveDeriv1Hist_ = TRUE;
         hasOutput_ = TRUE;
         Info->PrintF( pdename_, "Saving acouPotentialD1 for Nodes:\n" );
-        for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+        for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
         solDeriv1_.SetNumSolutions(1);
@@ -896,7 +897,7 @@ node results in acoustic potential.", __FILE__,__LINE__);
         saveDeriv2Hist_ = TRUE;
         hasOutput_ = TRUE;
         Info->PrintF( pdename_, "Saving acouPotetentialD2 for Nodes:\n" );
-        for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+        for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
         solDeriv2_.SetNumSolutions(1);
@@ -930,7 +931,7 @@ results in acoustic potential.", __FILE__,__LINE__);
         saveSolHist_ = TRUE;
         hasOutput_ = TRUE;
         Info->PrintF( pdename_, "Saving acouPotential for Nodes:\n" );
-        for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+        for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
       }

@@ -11,15 +11,15 @@ namespace CoupledField {
   // ============
   //   calcAMat
   // ============
-  void linPiezoCoupling3D::calcAMat( Matrix<Double> &aMat, Integer ip,
+  void linPiezoCoupling3D::calcAMat( Matrix<Double> &aMat, UInt ip,
                                      const Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "linPiezoCoupling3D::calcAMat" );
 
     // Obtain info on problem sizes
-    const Integer numNodes = ptelem->GetNumNodes();
-    const Integer nDofMech = 3;
-    const Integer nRowsD   = 6;
+    const UInt numNodes = ptelem->GetNumNodes();
+    const UInt nDofMech = 3;
+    const UInt nRowsD   = 6;
 
     // Set correct size of matrix A and initialise with zeros
     aMat.Resize( numNodes * nDofMech, nRowsD );
@@ -33,8 +33,8 @@ namespace CoupledField {
     // The k-th entry of this block vector corresponds to the matrix
     // A of the ADB product evaluated at the k-th node of the finite
     // element. We assemble aMat in a top-down fashion.
-    Integer actInd = 0;
-    Integer actNode;
+    UInt actInd = 0;
+    UInt actNode;
 
     for( actNode = 0; actNode < numNodes; actNode++ ) {
 
@@ -63,13 +63,13 @@ namespace CoupledField {
   // ============
   //   calcBMat
   // ============
-  void linPiezoCoupling3D::calcBMat( Matrix<Double> &bMat, Integer ip,
+  void linPiezoCoupling3D::calcBMat( Matrix<Double> &bMat, UInt ip,
                                      const Matrix<Double> &ptCoord ) {
 
     ENTER_FCN( "linPiezoCoupling3D::calcBMat" );
 
     // Obtain info on number of element's nodes
-    const Integer numNodes = ptelem->GetNumNodes();
+    const UInt numNodes = ptelem->GetNumNodes();
 
     // Set correct size of matrix B and initialise with zeros
     bMat.Resize( 3, numNodes );
@@ -83,7 +83,7 @@ namespace CoupledField {
     // The k-th entry of this block vector corresponds to the matrix
     // B of the ADB product evaluated at the k-th node of the finite
     // element. We simply must transpose xiDx.
-    for( Integer actNode = 0; actNode < numNodes; actNode++ ) {
+    for( UInt actNode = 0; actNode < numNodes; actNode++ ) {
       bMat[0][actNode] = xiDx[actNode][0];
       bMat[1][actNode] = xiDx[actNode][1];
       bMat[2][actNode] = xiDx[actNode][2];
@@ -102,8 +102,8 @@ namespace CoupledField {
     Matrix<Double> *matMatrix = ptMaterial->GetMatrix();
 
     // Extract e^T part from piezo-material matrix
-    for( Integer i = 0; i < 6; i++ ) {
-      for ( Integer j = 0; j < 3; j++ ) {
+    for( UInt i = 0; i < 6; i++ ) {
+      for ( UInt j = 0; j < 3; j++ ) {
         dMat[i][j] = (*matMatrix)[i][j+6];
       }
     }

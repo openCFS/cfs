@@ -18,7 +18,7 @@ namespace CoupledField {
     baseType_ = MASS;
   }
 
-  MassInt::MassInt(const Double aDensity,  const Integer nrDofsPerNode, Boolean axi)
+  MassInt::MassInt(const Double aDensity,  const UInt nrDofsPerNode, Boolean axi)
     : BaseForm(), 
       density_(aDensity), 
       nrDofsPerNode_(nrDofsPerNode)
@@ -31,7 +31,7 @@ namespace CoupledField {
     baseType_ = MASS;
   }
 
-  MassInt::MassInt(const Double aDensity,  const Integer nrDofsPerNode, Integer dofzero,
+  MassInt::MassInt(const Double aDensity,  const UInt nrDofsPerNode, UInt dofzero,
                    Boolean axi)
     : BaseForm(), 
       density_(aDensity), 
@@ -55,12 +55,10 @@ namespace CoupledField {
   {
     ENTER_FCN( "MassInt::CalcElemMatrix" );
   
-    const Integer nrIntPts= ptelem->GetNumIntPoints();
-    const Integer nrNodes = ptelem->GetNumNodes();
+    const UInt nrIntPts= ptelem->GetNumIntPoints();
+    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;
-
-    // derivation of shape functions after global coordinates 
 
     Vector<Double> shapeFncAtIp;
     Matrix<Double> partElemMat;
@@ -71,7 +69,7 @@ namespace CoupledField {
     elemMat.Resize(nrNodes);
     
 
-    for (Integer actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
         
@@ -110,13 +108,13 @@ namespace CoupledField {
 
 
   void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 
-                             const Matrix<Double>& massMatSingleDof,  const Integer nrDofs)
+                             const Matrix<Double>& massMatSingleDof,  const UInt nrDofs)
   {
     ENTER_FCN( "MassInt::MassMultiDof" );
     
-    const Integer singleDofSize = massMatSingleDof.GetSizeRow();
+    const UInt singleDofSize = massMatSingleDof.GetSizeRow();
 
-    Integer i, j, actDof;
+    UInt i, j, actDof;
     
     massMultDof.Resize(nrDofsPerNode_*singleDofSize);
     massMultDof.Init();
@@ -132,10 +130,9 @@ namespace CoupledField {
   {
     ENTER_FCN( "MassInt::MassMultiDofZero" );
     
-    Integer nrDofs = nrDofsPerNode_ -1;
-    const Integer singleDofSize = massMatSingleDof.GetSizeRow();
+    const UInt singleDofSize = massMatSingleDof.GetSizeRow();
     
-    Integer i, j, actDof;
+    UInt i, j, actDof;
     
     massMultDofZero.Resize(nrDofsPerNode_*singleDofSize);
     massMultDofZero.Init();

@@ -92,7 +92,7 @@ namespace CoupledField {
     nonLin_ = FALSE;
     params->GetList( "nonLinear", nonLinType_, pdename_, "region" );
     
-    for ( Integer k = 0; k < nonLinType_.GetSize(); k++ ) {
+    for ( UInt k = 0; k < nonLinType_.GetSize(); k++ ) {
       if ( nonLinType_[k] != "no" ) {
         nonLin_ = TRUE;
         break;
@@ -130,7 +130,7 @@ namespace CoupledField {
     ENTER_FCN( "MagPDE::DefineIntegerators" );
 
     // Loop over all regions this PDE lives on
-    for ( Integer actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
+    for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
 
       // Get reluctivity for this domain and perform consistency check
       Double reluctivity;
@@ -183,7 +183,7 @@ namespace CoupledField {
       assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, FALSE );
 
       // If this subdomain is a coil we have to do special things
-      for ( Integer coil = 0; coil < coilDef_.GetSize(); coil++ ) {
+      for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( subdoms_[actSD] == coilRegionId_[coil] ) {
           Double factor = coilDef_[coil]->value_ /
             coilDef_[coil]->windingCrossSection_;
@@ -196,7 +196,7 @@ namespace CoupledField {
       }
 
       // check, if this subdomain is a permanent magnet
-      for ( Integer perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
+      for ( UInt perm = 0; perm < magnetsDomain_.GetSize(); perm++ ) {
         if ( subdoms_[actSD] == magnetsDomain_[perm] ) {
 
           if ( dim_  == 3 ) {
@@ -243,8 +243,10 @@ namespace CoupledField {
 
   void MagPDE :: InitTimeStepping() {
     ENTER_FCN( "MagPDE::InitTimeStepping" );
+    UInt rhsSize = eqnData_->GetNumEQNs() *
+      eqnData_->GetNumDofsPerEQN();
     
-    TS_alg_ = new Trapezoidal(pdename_, algsys_, eqnData_);
+    TS_alg_ = new Trapezoidal( algsys_, rhsSize );
   }
 
 
@@ -253,9 +255,9 @@ namespace CoupledField {
   // POSTPROCESSING SECTION
   // ======================================================
 
-  void MagPDE::WriteResultsInFile(const Integer kstep,
+  void MagPDE::WriteResultsInFile(const UInt kstep,
                                   const Double asteptime,
-                                  Integer stepOffset,
+                                  UInt stepOffset,
                                   Double timeOffset) {
 
     ENTER_FCN( "MagPDE::WriteResultsInFile" );
@@ -264,7 +266,7 @@ namespace CoupledField {
     NodeStoreSol<Complex> * solHarmonic;
 
     Double actTime = lasttimecalc_ + timeOffset;
-    Integer actStep = laststepcalc_ + stepOffset;
+    UInt actStep = laststepcalc_ + stepOffset;
     
     if (analysistype_ == STATIC ||
         analysistype_ == TRANSIENT) {
@@ -338,9 +340,9 @@ namespace CoupledField {
       LCoord[1] = 0;
       
       StdVector<Elem*> elemssd;
-      Integer counterElems=0;
+      UInt counterElems=0;
       Vector<Double> TempE;
-      Integer pdeElem;
+      UInt pdeElem;
       
       // Resize solution arrays
       B_.SetNumSolutions(1);
@@ -351,13 +353,13 @@ namespace CoupledField {
       B_.Init(0);
       
       // loop over all subdomains
-      for (Integer isd=0; isd<calcBfield_.GetSize(); isd++) {
+      for (UInt isd=0; isd<calcBfield_.GetSize(); isd++) {
 
         // get vector of Elem of subdomain with color: subdoms[isd]
         ptgrid_->GetVolElems(elemssd,calcBfield_[isd]);
           
         // loop over elements of subdomain
-        for (Integer iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
+        for (UInt iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
           pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
           FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
           // TempE);
@@ -377,11 +379,12 @@ namespace CoupledField {
       StdVector<Elem*> elemssd;
       Vector<Double> ShpFnc, tmp;
       Vector<Double> magVecDeriv1Elem;
-      StdVector<Integer> connect, connect_PDE;
+      StdVector<UInt> connect;
+      StdVector<Integer>  connect_PDE;
       Double conductivity = 0.0;
 
-      Integer counterElems=0;
-      Integer pdeElem;
+      UInt counterElems=0;
+      UInt pdeElem;
 
       // dimension hard coded for .unv file!
       Vector<Double> JeddyElem(3);
@@ -398,18 +401,18 @@ namespace CoupledField {
       Jeddy_.Init(0);
 
       // loop over all subdomains
-      for (Integer actSD=0; actSD<calcEddy_.GetSize(); actSD++) {
+      for (UInt actSD=0; actSD<calcEddy_.GetSize(); actSD++) {
 
         // get vector of Elem of subdomain with color: subdoms[isd]
         ptgrid_->GetVolElems( elemssd, calcEddy_[actSD] );
           
         // Get the right material parameter for actual subdomain
-        for (Integer iSD=0; iSD<subdoms_.GetSize(); iSD++)
+        for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++)
           if (subdoms_[iSD] == calcEddy_[actSD])
             materialData_[iSD].GetConductivity(2,2,conductivity);
 
         // loop over elements of subdomain
-        for ( Integer actEl=0; actEl< elemssd.GetSize();
+        for ( UInt actEl=0; actEl< elemssd.GetSize();
               actEl++,counterElems++ ) {
           BaseFE * ptEl = elemssd[actEl]->ptElem;
           ptEl->GetShFnc(ShpFnc,LCoord);
@@ -457,10 +460,11 @@ namespace CoupledField {
     Matrix<Double> ptCoord;
     BaseFE         * ptElem;
 
-    StdVector<Integer> connecth, Eqns;  
+    StdVector<UInt> connecth;
+    StdVector<Integer> Eqns;  
     Vector<double> help;
 
-    Integer i, j;
+    UInt i, j;
     Vector<Double> energy(calcEnergy_.GetSize());
 
     for (i=0; i<calcEnergy_.GetSize(); i++) {
@@ -526,9 +530,9 @@ namespace CoupledField {
     uiSD.Resize(coilDef_.GetSize());
   
     // loop over all subdomains
-    for (Integer actSD=0; actSD<subdoms_.GetSize(); actSD++) {
+    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
 
-      for (Integer dom=0; dom<coilDef_.GetSize(); dom++) {
+      for (UInt dom=0; dom<coilDef_.GetSize(); dom++) {
         if (subdoms_[actSD] == coilRegionId_[dom]) {
            
           StdVector<Elem*> elemssd;             
@@ -537,14 +541,14 @@ namespace CoupledField {
             
 
           // loop over elements of subdomain        
-          for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
+          for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
             BaseFE * ptEl = elemssd[actEl]->ptElem;
                 
-            const Integer nrIntPts= ptEl->GetNumIntPoints();
+            const UInt nrIntPts= ptEl->GetNumIntPoints();
             const Vector<Double> & intWeights = ptEl->GetIntWeights();  
             Double jacDet;
                 
-            StdVector<Integer> connect;
+            StdVector<UInt> connect;
             connect = elemssd[actEl]->connect;
 
             Matrix<Double> ptCoord;
@@ -554,7 +558,7 @@ namespace CoupledField {
             GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
             Double uiElem=0;
                 
-            for (Integer actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
+            for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
               Vector<Double> shapeFnc;
               jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoord);    
               ptEl -> GetShFncAtIp(shapeFnc, actIntPt);
@@ -586,16 +590,16 @@ namespace CoupledField {
 
     ENTER_FCN( "MagPDE::WriteUI2File" );
 
-    Vector<Integer> coilIDs;   // just positive ids
+    Vector<UInt> coilIDs;   // just positive ids
     coilIDs.Push_back(abs(coilDef_[0]->id_));
 
     Integer maxID = coilDef_[0]->id_;
 
-    for (Integer dom=1; dom < coilDef_.GetSize(); dom++) {
+    for (UInt dom=1; dom < coilDef_.GetSize(); dom++) {
 
       Boolean isInVec = FALSE;
       
-      for (Integer dom2=0; dom2 < coilIDs.GetSize(); dom2++)    
+      for (UInt dom2=0; dom2 < coilIDs.GetSize(); dom2++)    
         if (abs(coilDef_[dom]->id_) == coilIDs[dom2])
           isInVec = TRUE;
       
@@ -609,13 +613,13 @@ namespace CoupledField {
     Vector<Double> uiID(maxID);
     uiID.Init();
 
-    for (Integer dom=0; dom < coilDef_.GetSize(); dom++) {
+    for (UInt dom=0; dom < coilDef_.GetSize(); dom++) {
       Integer actCoilID = coilDef_[dom]->id_;
       uiID[abs(actCoilID)-1] += uiSD[dom] * actCoilID/abs(actCoilID);
     }
 
     *UIfile_ << lasttimecalc_ << " \t";
-    for (Integer actID=0; actID < coilIDs.GetSize(); actID++) {
+    for (UInt actID=0; actID < coilIDs.GetSize(); actID++) {
       if ( coilDef_[coilIDs[actID]-1]->coilType_ == Coil::MEASUREMENT2D )
         *UIfile_ << uiID[coilIDs[actID]-1] *
           coilDef_[coilIDs[actID]-1]->windingCrossSection_ << " \t";
@@ -755,24 +759,24 @@ namespace CoupledField {
 
     if ( calcForceVWP_.GetSize() > 0 ) {
 
-      Integer numNodes = 0;
+      UInt numNodes = 0;
 
       // count complete number of nodes
-      for ( Integer i=0; i<calcForceVWP_.GetSize(); i++ ) {
+      for ( UInt i=0; i<calcForceVWP_.GetSize(); i++ ) {
         numNodes+= ptgrid_->GetNumNodes(calcForceVWP_[i]);
 
         ForceNodes_.Resize(numNodes);
       
-        Integer inode =0;
-        StdVector<Integer> nodesConverted;
-        std::list<Integer>::iterator it;
+        UInt inode =0;
+        StdVector<UInt> nodesConverted;
+        std::list<UInt>::iterator it;
 
         // get for each nodeslist all nodes
-        for (Integer i=0; i<calcForceVWP_.GetSize(); i++)
+        for (UInt i=0; i<calcForceVWP_.GetSize(); i++)
           {
             ptgrid_->GetNodesByName( nodesConverted, calcForceVWP_[i]);
           
-            for ( Integer j=0; j<nodesConverted.GetSize(); j++, inode++)
+            for ( UInt j=0; j<nodesConverted.GetSize(); j++, inode++)
               ForceNodes_[inode] = nodesConverted[j];
           }
 
@@ -817,7 +821,7 @@ namespace CoupledField {
       hasOutput_ = TRUE;
       Info->PrintF( pdename_,
                     "Computing magFluxDensity for regions:\n" );
-      for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+      for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
       Info->PrintF( "", "\n" );
@@ -839,7 +843,7 @@ namespace CoupledField {
       hasOutput_ = TRUE;    
       Info->PrintF( pdename_,
                     "Computing magEnergy for regions:\n" );
-      for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+      for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
       Info->PrintF( "", "\n" );
@@ -861,7 +865,7 @@ namespace CoupledField {
       hasOutput_ =TRUE;
       Info->PrintF( pdename_,
                     "Computing magEddyCurrent for regions:\n" );
-      for ( Integer k = 0; k < regionNames.GetSize(); k++ ) {
+      for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
       Info->PrintF( "", "\n" );
@@ -883,7 +887,7 @@ namespace CoupledField {
       saveSolHist_ = TRUE;
       hasOutput_ = TRUE;
       Info->PrintF( pdename_, "Saving magPotential for Nodes:\n" );
-      for ( Integer k = 0; k < saveNodeHist.GetSize(); k++ ) {
+      for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
       Info->PrintF( "", "\n" );
@@ -921,13 +925,13 @@ namespace CoupledField {
     ptCoupling_   = Coupling;
 
     // Enable update of geometry
-    const Integer numCouplings = ptCoupling_->GetNumOutputCouplings();  
+    const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();  
 
-    StdVector<StdVector<Integer> > elemNodeToCouplingNode_tmp;
+    StdVector<StdVector<UInt> > elemNodeToCouplingNode_tmp;
     elemNodeToCouplingNode_.Resize(numCouplings);
 
 
-    for ( Integer actCoupling = 0; actCoupling < numCouplings; actCoupling++ ){
+    for ( UInt actCoupling = 0; actCoupling < numCouplings; actCoupling++ ){
 
       if (ptCoupling_->GetOutputQuantity(actCoupling) == MAG_FORCE_LORENTZ) {
 
@@ -941,16 +945,16 @@ namespace CoupledField {
         ptgrid_->RegionNameToId( regionIds, couplRegions );
 
         //Get total number of coupling elements
-        Integer totalCouplingElems = ptgrid_->GetNumElems( regionIds );
+        UInt totalCouplingElems = ptgrid_->GetNumElems( regionIds );
         
         elemNodeToCouplingNode_tmp.Clear();
         elemNodeToCouplingNode_tmp.Resize(totalCouplingElems);
 
-        Integer offset = 0;
-        for ( Integer reg = 0; reg < couplRegions.GetSize(); reg++ ) {
+        UInt offset = 0;
+        for ( UInt reg = 0; reg < couplRegions.GetSize(); reg++ ) {
 
           // find subdomain index
-          Integer SDidx=-1; for (Integer sd=0; sd<subdoms_.GetSize(); sd++) {
+          Integer SDidx=-1; for (UInt sd=0; sd<subdoms_.GetSize(); sd++) {
             if (regionIds[reg] == subdoms_[sd]) {
               SDidx = sd;
               break;
@@ -966,18 +970,18 @@ namespace CoupledField {
           StdVector<Elem*> elemssd;
           ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);
 
-          StdVector<Integer> * couplingnodes = NULL;
+          StdVector<UInt> * couplingnodes = NULL;
           ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
           if (couplingnodes == NULL)
             Error("magnetics: Couplingnodes = 0!!!!");
 
-          for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
-            StdVector<Integer> & connecth = elemssd[actEl]->connect;
+          for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
+            StdVector<UInt> & connecth = elemssd[actEl]->connect;
             elemNodeToCouplingNode_tmp[offset+actEl].Resize(connecth.GetSize());
 
-            for ( Integer ielemnode = 0; ielemnode < connecth.GetSize();
+            for ( UInt ielemnode = 0; ielemnode < connecth.GetSize();
                   ielemnode++ ) {
-              for ( Integer cnode = 0; cnode < (*couplingnodes).GetSize();
+              for ( UInt cnode = 0; cnode < (*couplingnodes).GetSize();
                     cnode++ ) {
                 if (connecth[ielemnode] == (*couplingnodes)[cnode] ) {
                   elemNodeToCouplingNode_tmp[offset+actEl][ielemnode] = cnode;
@@ -1001,12 +1005,12 @@ namespace CoupledField {
     ENTER_FCN( "MagPDE::CalcOutputCoupling" );
 
     SolutionType quantity;
-    StdVector<Integer> * couplingNodes = NULL;
+    StdVector<UInt> * couplingNodes = NULL;
     CFSVector * values = NULL;
-    Integer forcesCount = 0;
+    UInt forcesCount = 0;
 
     // loop over all output coupling quantities
-    for ( Integer actCoupling = 0;
+    for ( UInt actCoupling = 0;
           actCoupling < ptCoupling_->GetNumOutputCouplings();
           actCoupling++ ) {
 
@@ -1036,8 +1040,8 @@ namespace CoupledField {
 
   void MagPDE::
   CalcNodeForceLorentz(Vector<Double> & force, 
-                       StdVector<StdVector<Integer> > & elemNodeToCouplingNode,
-                       Integer actCoupling, Integer numCouplingNodes) {
+                       StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
+                       UInt actCoupling, UInt numCouplingNodes) {
 
     ENTER_FCN( "MagPDE::CalcNodeForceLorentz" );
 
@@ -1056,11 +1060,11 @@ namespace CoupledField {
 
     Vector<Double> Jeddy;
 
-    Integer offset = 0;
-    for (Integer reg=0; reg<couplRegions.GetSize(); reg++) {
+    UInt offset = 0;
+    for (UInt reg=0; reg<couplRegions.GetSize(); reg++) {
 
       //find subdomain index
-      Integer SDidx=-1; for (Integer sd=0; sd<subdoms_.GetSize(); sd++) {
+      Integer SDidx=-1; for (UInt sd=0; sd<subdoms_.GetSize(); sd++) {
         if (regionIds[reg] == subdoms_[sd]) {
           SDidx = sd;
           break;
@@ -1073,8 +1077,8 @@ namespace CoupledField {
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);
   
-      for (Integer actEl=0; actEl< elemssd.GetSize(); actEl++) {
-        StdVector<Integer> connecth = elemssd[actEl]->connect;
+      for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
+        StdVector<UInt> connecth = elemssd[actEl]->connect;
         Matrix<Double> elemForce;
         GetDerivSolVecOfElement(Jeddy,connecth);
         Jeddy *= -conductivity;
@@ -1082,8 +1086,8 @@ namespace CoupledField {
         ForceOp->CalcElemMagLorentzForce(elemForce, Jeddy, elemssd[actEl]);
 
         // Add the element force to the according coupling node
-        for (Integer ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++) {
-          for( Integer idim=0; idim<dim_; idim++) {
+        for (UInt ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++) {
+          for( UInt idim=0; idim<dim_; idim++) {
             force[elemNodeToCouplingNode[actEl+offset][ielemnode]*dim_+idim]
               += elemForce[ielemnode][idim];
           }

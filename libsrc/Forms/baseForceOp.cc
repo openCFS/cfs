@@ -17,7 +17,7 @@ namespace CoupledField
                            StdPDE * ptPDE,
                            NodeEQN * ptEQN,
                            NodeStoreSol<Double> & sol,
-                           Integer dim,
+                           UInt dim,
                            MaterialData* &matData,
                            StdVector<RegionIdType> & allSubdoms,
                            Boolean isaxi) 
@@ -39,7 +39,7 @@ namespace CoupledField
 
 
   void BaseForceOp::Setup(StdVector<RegionIdType>& neighRegions, 
-                          StdVector<Integer>& couplingnodes)
+                          StdVector<UInt>& couplingnodes)
   {
     ENTER_FCN( "BaseForceOp::Setup" );
 
@@ -55,14 +55,14 @@ namespace CoupledField
     elemNodeToCouplingNode_.Resize(interfaceElems_.GetSize());
   
   
-    for (Integer ielem=0; ielem<interfaceElems_.GetSize(); ielem++)
+    for (UInt ielem=0; ielem<interfaceElems_.GetSize(); ielem++)
       {
         isBoundaryNode_[ielem].Resize(interfaceElems_[ielem]->connect.GetSize());
         elemNodeToCouplingNode_[ielem].Resize(interfaceElems_[ielem]->connect.GetSize());
       
         // Determine Boundary Nodes
-        for (Integer ielemnode=0; ielemnode<isBoundaryNode_[ielem].GetSize(); ielemnode++) {
-          for (Integer inodes=0; inodes<couplingnodes.GetSize(); inodes++) {
+        for (UInt ielemnode=0; ielemnode<isBoundaryNode_[ielem].GetSize(); ielemnode++) {
+          for (UInt inodes=0; inodes<couplingnodes.GetSize(); inodes++) {
             if (interfaceElems_[ielem]->connect[ielemnode] == couplingnodes[inodes] ) {
               isBoundaryNode_[ielem][ielemnode] = 1;
               elemNodeToCouplingNode_[ielem][ielemnode] = inodes;
@@ -83,12 +83,12 @@ namespace CoupledField
   
     force.Init(0.0);
   
-    for (Integer ielem=0; ielem<interfaceElems_.GetSize(); ielem++)
+    for (UInt ielem=0; ielem<interfaceElems_.GetSize(); ielem++)
       {
         // Get Material Parameter
         Double matVal;
       
-        for (Integer i=0; i<PDEsubdoms_.GetSize(); i++)   {
+        for (UInt i=0; i<PDEsubdoms_.GetSize(); i++)   {
           if (interfaceElems_[ielem]->regionId == PDEsubdoms_[i]) {
             matVal = GetMatVal(i); 
           }
@@ -98,8 +98,8 @@ namespace CoupledField
       
 
         // Add the element force to the according coupling node
-        for (Integer ielemnode=0; ielemnode<interfaceElems_[ielem]->connect.GetSize(); ielemnode++)
-          for( Integer idim=0; idim<dim_; idim++) {
+        for (UInt ielemnode=0; ielemnode<interfaceElems_[ielem]->connect.GetSize(); ielemnode++)
+          for( UInt idim=0; idim<dim_; idim++) {
             force[elemNodeToCouplingNode_[ielem][ielemnode]*dim_+idim] += 
               force_temp(ielemnode,idim);
           }
@@ -108,8 +108,8 @@ namespace CoupledField
 
     totalForce.Resize(dim_);
   
-    for (Integer i=0; i<couplingNodes_.GetSize(); i++)
-      for (Integer dim=0; dim<dim_; dim++)
+    for (UInt i=0; i<couplingNodes_.GetSize(); i++)
+      for (UInt dim=0; dim<dim_; dim++)
         totalForce[dim] += force[i*dim_+dim];
 
     //std::cerr << "Sum of E-Force:" << std::endl << sum << std::endl;
@@ -129,9 +129,8 @@ namespace CoupledField
     Vector<Double> * Ip;
     Vector<Double> intWeights = ptElement->ptElem->GetIntWeights();
     Matrix<Double> JInv, dJ_dr, CornerCoords,J;
-    ShortInt Dim, NumNodes, NumIntPoints;
+    UInt Dim, NumNodes, NumIntPoints;
     Double DetJ, DetdJ_dr;
-    Double elecEntry;
   
     Dim = ptElement->ptElem->GetDim();
     NumNodes = ptElement->ptElem->GetNumNodes();
@@ -151,7 +150,7 @@ namespace CoupledField
     Matrix<Double> J_Trans, J_Inv_Trans, J_r_Trans;
 
     // Loop over integration points
-    for (Integer nIp=1; nIp<NumIntPoints+1; nIp++)
+    for (UInt nIp=1; nIp<NumIntPoints+1; nIp++)
       {
         // Calculate E (electric field) / B (magnetic field) -Field
         ComputeField(E, ptElement, Ip[nIp-1]);
@@ -182,10 +181,10 @@ namespace CoupledField
           }     
 
         // loop over all boundary nodes
-        for (Integer nNode=0; nNode<IsBoundaryNode.GetSize(); nNode++)
+        for (UInt nNode=0; nNode<IsBoundaryNode.GetSize(); nNode++)
           {
             // loop over all dimension
-            for (Integer i=0; i<Dim; i++) 
+            for (UInt i=0; i<Dim; i++) 
               {
                 // form SpecCornerCoords-Array
                 SpecCornerCoords.Init();
@@ -249,7 +248,7 @@ namespace CoupledField
 
   
   //   // Loop over integration points
-  //   for (Integer nIp=1; nIp<NumIntPoints+1; nIp++)
+  //   for (UInt nIp=1; nIp<NumIntPoints+1; nIp++)
   //     {
   //       // Calculate E-Field
   //       //std::cerr << "numIntPoints = " << NumIntPoints << std::endl;
@@ -282,12 +281,12 @@ namespace CoupledField
   //       SpecCornerCoords.Resize(Dim,NumNodes);
       
   //       // 
-  //       for (Integer i=0; i<Dim; i++) 
+  //       for (UInt i=0; i<Dim; i++) 
   //      {
   //        // form SpecCornerCoords-Array
   //        SpecCornerCoords.Init();
           
-  //        for( Integer j=0; j<NumNodes; j++)
+  //        for( UInt j=0; j<NumNodes; j++)
   //          if (IsBoundaryNode[j] == 1)
   //            SpecCornerCoords[i][j] = 1;
 
@@ -322,7 +321,7 @@ namespace CoupledField
   //   //std::cerr << "F = <<" << F << std::endl;
   // }
 
-  Double BaseForceOp::CalcDetJDr(Matrix<Double> &J, Matrix<Double> &dJ_dr, Integer dim)
+  Double BaseForceOp::CalcDetJDr(Matrix<Double> &J, Matrix<Double> &dJ_dr, UInt dim)
   {
     ENTER_FCN( "BaseForceOp::CalcDetJDr" );
   

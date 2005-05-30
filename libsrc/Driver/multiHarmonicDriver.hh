@@ -18,7 +18,7 @@ namespace CoupledField
   public:
 
     MultiHarmonicDriver(Domain * adomain,
-                        Integer stepOffset = 0,
+                        UInt stepOffset = 0,
                         Double timeOffset = 0.0,
                         std::string driverTag = "anyTag",
                         Boolean isPartOfSequence = FALSE);
@@ -40,7 +40,7 @@ namespace CoupledField
 
     SinglePDE * ptMyPDE_;
 
-    void createMHMassMatrix(Integer N);
+    void createMHMassMatrix(UInt N);
 
     // pointers to classes involved
     //  SinglePDE * ptMyPDE_;
@@ -52,9 +52,9 @@ namespace CoupledField
 
     Double  startFreq_;
     Double  stopFreq_;
-    Integer numFreq_;
-    Integer saveType_;
-    Integer nrMultHarms_;
+    UInt numFreq_;
+    UInt saveType_;
+    UInt nrMultHarms_;
 
 
 

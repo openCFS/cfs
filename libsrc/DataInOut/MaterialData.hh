@@ -43,10 +43,10 @@ namespace CoupledField
     Double alphaJiles_;
     Double kJiles_;
     Double cJiles_;
-    Integer dirPol; //direction of polarization
+    UInt dirPol; //direction of polarization
     std::string hystType_;
 
-    Integer scaledMatDat;
+    Boolean scaledMatDat;
     char * name; 
     //char name[stringLength]; 
     std::string bhCurveFile_; //!< name of BH-Curve datafile
@@ -61,7 +61,7 @@ namespace CoupledField
     Matrix<Double> * permeaMatrix;
     Matrix<Double> * conducMatrix;
 
-    Integer matNr;
+    UInt matNr;
     Integer nonlin;
   
   public:
@@ -74,7 +74,7 @@ namespace CoupledField
     ~MaterialData();
   
     /// set the material number 
-    void SetMatNr(const Integer& MatNr){matNr = MatNr; };
+    void SetMatNr(const UInt& MatNr){matNr = MatNr; };
 
     // defines material either as linear or nonlinear and sets the permeability variable if necesarry
     //  void DefLin(const Integer& isLin);
@@ -126,7 +126,7 @@ namespace CoupledField
     void SetPsat(Double& val) {Psat = val;};
 
     /// set direction of electric polarization
-    void SetDirPol(Integer& val) {dirPol = val;};
+    void SetDirPol(UInt& val) {dirPol = val;};
 
     /// set type of hysteresis
     void SetHysteresisType(std::string& atype) {hystType_ = atype;};
@@ -155,19 +155,19 @@ namespace CoupledField
     std::string& GetBHCurveFileName() { return bhCurveFile_; }
 
     /// set one value of the data-matrix on position (i,j)
-    void SetPiezoMatrixData(const Integer& i, const Integer& j, const Double& value)
+    void SetPiezoMatrixData(const UInt& i, const UInt& j, const Double& value)
     {(*piezoMatrix)(i,j) = value;};
 
     /// set one value of the data-matrix on position (i,j)
-    void SetPiezoMatrixDataC(const Integer& i, const Integer& j, const Double& value)
+    void SetPiezoMatrixDataC(const UInt& i, const UInt& j, const Double& value)
     {(*piezoMatrixC)(i,j) = value;};
 
     /// get the value of the data-matrix on position (i,j)
-    void GetPiezoMatrixData(const Integer& i, const Integer& j, Double& value)
+    void GetPiezoMatrixData(const UInt& i, const UInt& j, Double& value)
     {value = (*piezoMatrix)(i,j);};
 
     /// get the value of the data-matrix on position (i,j)
-    void GetPiezoMatrixDataC(const Integer& i, const Integer& j, Double& value)
+    void GetPiezoMatrixDataC(const UInt& i, const UInt& j, Double& value)
     {value = (*piezoMatrixC)(i,j);};
 
     /// return a pointer to the data-matrix
@@ -185,20 +185,20 @@ namespace CoupledField
     void RotateMaterialMatrix(const Double& a1, const Double& a2, const Double& a3);
 
     //! set one value of the permeability-matrix on position (i,j)
-    void SetPermeability(const Integer& i, const Integer& j, const Double& value);
+    void SetPermeability(const UInt& i, const UInt& j, const Double& value);
 
     //! get the value of the permeability-matrix on position (i,j)
-    void GetPermeability(const Integer& i, const Integer& j, Double &value);
+    void GetPermeability(const UInt& i, const UInt& j, Double &value);
 
     //! return a pointer to the permeability matrix
     Matrix<Double> * GetPermeaMatrix(){return permeaMatrix;};
 
 
     //! set one value of the permeability-matrix on position (i,j)
-    void SetConductivity(const Integer& i, const Integer& j, const Double& value);
+    void SetConductivity(const UInt& i, const UInt& j, const Double& value);
 
     //! get the value of the permeability-matrix on position (i,j)
-    void GetConductivity(const Integer& i, const Integer& j, Double &value);
+    void GetConductivity(const UInt& i, const UInt& j, Double &value);
 
     //! return a pointer to the permeability matrix
     Matrix<Double> * GetConducMatrix(){return conducMatrix;};
@@ -220,19 +220,19 @@ namespace CoupledField
     /// 
     void SetScaledFlag(){scaledMatDat = 1;};
 
-    Integer IsMatDatScaled(){return scaledMatDat;};
+    Boolean IsMatDatScaled(){return scaledMatDat;};
 
     // is material nonlinear?
-    //  Integer GetNonlin() const { return nonlin; };
+    //  UInt GetNonlin() const { return nonlin; };
 
     /// get nr of elems of the matrix in the 3d case
-    Integer GetNrElems3d() const { return 9; };
+    UInt GetNrElems3d() const { return 9; };
 
     /// get nr of elems of the matrix in the 2d case
-    Integer GetNrElems2d() const { return 5; };
+    UInt GetNrElems2d() const { return 5; };
 
     /// get number of the matNr
-    Integer GetMatNr() const { return matNr; };
+    UInt GetMatNr() const { return matNr; };
 
     /// get E-Module
     Double GetEModule() const {return eModule; };
@@ -247,7 +247,7 @@ namespace CoupledField
     Double GetLameMu() const {return LameMu;}
 
     /// get permittivity
-    Double GetPermittivity(Integer i, Integer j) const {return (*piezoMatrix)[i+6][j+6];};
+    Double GetPermittivity(UInt i, UInt j) const {return (*piezoMatrix)[i+6][j+6];};
 
     /// get compressibility
     Double GetCompressibility() const {return compressibility;};
@@ -274,7 +274,7 @@ namespace CoupledField
     Double GetPsat() const {return Psat;};
 
     /// get direction of polarization
-    Integer GetDirPol() const {return dirPol;};
+    UInt GetDirPol() const {return dirPol;};
 
     /// get hysteresis type
     std::string GetHysteresisType() const {return hystType_;};
@@ -305,7 +305,7 @@ namespace CoupledField
       \param keyword name of material in the  material file
     */
     // for compatibility with elena
-    //   void ReadDensityAndCompressity(Double & density, Double & compress, const Integer matnum, const std::string keyword)
+    //   void ReadDensityAndCompressity(Double & density, Double & compress, const UInt matnum, const std::string keyword)
     //   { Error("Not implemented",__FILE__,__LINE__);}
 
 
@@ -315,7 +315,7 @@ namespace CoupledField
       \param matnum in: material number
     */
     // for compatibility with elena
-    //   void ReadDielectricTerms(Double & dielectr,const Integer matnum)
+    //   void ReadDielectricTerms(Double & dielectr,const UInt matnum)
     //   { Error("Not implemented",__FILE__,__LINE__);}
 
     // get value for error functional (see Institusbericht Michael Schinnerl: Behandlung gekoppelter

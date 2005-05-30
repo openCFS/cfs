@@ -41,7 +41,7 @@ namespace CoupledField
   }
 
   void BaseFE :: GetShFncAtIp(Vector<Double> & S, 
-                              const Integer ip)
+                              const UInt ip)
   {
     ENTER_FCN( "GetShFncAtIp" );
 
@@ -68,7 +68,7 @@ namespace CoupledField
   }
 
   void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
-                                       const Integer ip,
+                                       const UInt ip,
                                        const Matrix<Double> & CornerCoords,
                                        Double & jacDet)
   {
@@ -100,7 +100,7 @@ namespace CoupledField
 
 
   void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
-                                       const Integer ip,
+                                       const UInt ip,
                                        const Matrix<Double> & CornerCoords)
   {
     ENTER_FCN( "BaseFE::GetGlobDerivShFncAtIp" );
@@ -132,7 +132,7 @@ namespace CoupledField
 
 
   void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J, 
-                                  const Integer ip, 
+                                  const UInt ip, 
                                   const Matrix<Double> & CornerCoords)
   {
     ENTER_FCN( "BaseFE::CalcJacobianAtIp" );
@@ -164,7 +164,7 @@ namespace CoupledField
     return jacDet;
   }
 
-  Double BaseFE :: CalcJacobianDetAtIp(const Integer ip, 
+  Double BaseFE :: CalcJacobianDetAtIp(const UInt ip, 
                                        const Matrix<Double> & CornerCoords)
   {
     ENTER_FCN( "BaseFE::CalcJacobianDetAtIp" );
@@ -229,7 +229,7 @@ namespace CoupledField
 
  
   void BaseFE :: CalcInvJacobianAtIp(Matrix<Double> & JInv,
-                                     const Integer ip,
+                                     const UInt ip,
                                      const Matrix<Double> & CornerCoords)
   {
     ENTER_FCN( "BaseFE::CalcInvJacobianAtIp" );
@@ -254,7 +254,7 @@ namespace CoupledField
       ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
 
 
-    for( Integer i=0; i<NumIntPoints_; i++ )      
+    for( UInt i=0; i<NumIntPoints_; i++ )      
       CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i]);
   }
   
@@ -265,7 +265,7 @@ namespace CoupledField
     if( !ShFncDerivAtIp_)
       ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
 
-    for( Integer i=0; i<NumIntPoints_; i++ )
+    for( UInt i=0; i<NumIntPoints_; i++ )
       CalcLocalDerivShapeFnc( ShFncDerivAtIp_[i], IntPoints_[i]);
 
   }
@@ -292,7 +292,7 @@ namespace CoupledField
 
 
 
-  void BaseFE::GetGlobalEdgeIndicesAtIP( Vector<Double> & globCoord, Integer ip,
+  void BaseFE::GetGlobalEdgeIndicesAtIP( Vector<Double> & globCoord, UInt ip,
                                          const Matrix<Double> & cornerCoords)
   {
     ENTER_FCN( "BaseFE::GetGlobalEdgeIndicesAtIP" );
@@ -308,7 +308,7 @@ namespace CoupledField
 
   // calculate global derivates of edge shape functions in integration point ip
   void BaseFE::GetEdgeGlobDerivShFncAtIp(StdVector< Matrix<Double>* > & deriv, 
-                                         const Integer ip,
+                                         const UInt ip,
                                          const Matrix<Double> & cornerCoords)
   {
     ENTER_FCN( "BaseFE::GetEdgeGlobDerivShFncAtIp" );
@@ -317,14 +317,14 @@ namespace CoupledField
     Vector<Double> lCoord;
     lCoord.Resize(Dim_);
 
-    for (Integer i=0; i<Dim_; i++)
+    for (UInt i=0; i<Dim_; i++)
       lCoord[i] = IntPoints_[ip-1][i];
   
     GetEdgeGlobalDerivShapeFnc(deriv, lCoord, cornerCoords);
   }
 
   void BaseFE::CalcEdgeShapeFncAtIp(Matrix<Double> & shape, 
-                                    const Integer ip,
+                                    const UInt ip,
                                     const Matrix<Double> & cornerCoords)
   {
     ENTER_FCN( "BaseFE::CalcEdgeShapeFncAtIp" );
@@ -332,15 +332,15 @@ namespace CoupledField
     Vector<Double> lCoord;
     lCoord.Resize(Dim_);
 
-    for (Integer i=0; i<Dim_; i++)
+    for (UInt i=0; i<Dim_; i++)
       lCoord[i] = IntPoints_[ip-1][i];
   
     CalcEdgeShapeFnc(shape, lCoord, cornerCoords);
   }
 
 
-  void BaseFE::GetGlobalEdgeIndices(StdVector<Integer> & globEdgeIndex,
-                                    Integer * pDENodes, 
+  void BaseFE::GetGlobalEdgeIndices(StdVector<UInt> & globEdgeIndex,
+                                    UInt * pDENodes, 
                                     BaseSystem * algsys)
   {
     ENTER_FCN( "BaseFE::GetGlobalEdgeIndices" );
@@ -348,7 +348,7 @@ namespace CoupledField
     Error( "Edge functions are currently not supported!", __FILE__, __LINE__ );
 
     // define the global edge number
-    //for(Integer actEdge=0; actEdge < globEdgeIndex.GetSize(); actEdge++)
+    //for(UInt actEdge=0; actEdge < globEdgeIndex.GetSize(); actEdge++)
     //  globEdgeIndex[actEdge] = 
     //    algsys->GetNode2Edge(pDENodes[ edgeVertices_[actEdge][0]],
     // pDENodes[ edgeVertices_[actEdge][1]]);
@@ -357,9 +357,9 @@ namespace CoupledField
   std::string BaseFE::CoordMatrix2String(const Matrix<Double> & coordMat)
   {
     std::string ret;
-    for (Integer j=0; j<coordMat.GetSizeCol(); j++) {
+    for (UInt j=0; j<coordMat.GetSizeCol(); j++) {
       ret += "(";
-      for (Integer i=0; i<coordMat.GetSizeRow()-1; i++) {
+      for (UInt i=0; i<coordMat.GetSizeRow()-1; i++) {
         ret += Info->GenStr(coordMat[i][j]);
         ret += ", ";
       }
@@ -400,7 +400,7 @@ namespace CoupledField
 
     Double elemVol = 0;
     Double  jacDet, partVol;
-    for (Integer actIntPt=1; actIntPt <= NumIntPoints_; actIntPt++) {
+    for (UInt actIntPt=1; actIntPt <= NumIntPoints_; actIntPt++) {
 
       jacDet = CalcJacobianDetAtIp(actIntPt, CornerCoords);
         

@@ -27,7 +27,7 @@ namespace CoupledField
       \param steptime current time
       \param reset TRUE: perfrom new assembly, etc
     */
-    void SolveStepTrans(const Integer kstep, const Double steptime, 
+    void SolveStepTrans(const UInt kstep, const Double steptime, 
                         const Boolean reset);
 
   private:

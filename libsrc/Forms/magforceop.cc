@@ -46,7 +46,7 @@ namespace CoupledField
     Matrix<Double> CornerCoords;
     Vector<Double> intWeights = ptElement->ptElem->GetIntWeights();
 
-    ShortInt Dim, NumNodes, NumIntPoints;
+    UInt Dim, NumNodes, NumIntPoints;
 
     Dim = ptElement->ptElem->GetDim();
     NumNodes = ptElement->ptElem->GetNumNodes();
@@ -68,13 +68,13 @@ namespace CoupledField
     //   curlFieldOp_->CalcElemCurlNode(B1, ptElement, LCoord);
 
     //   Double JeddyAtIp1 = 0;
-    //   for (Integer k=0; k<Jeddy.GetSize(); k++)
+    //   for (UInt k=0; k<Jeddy.GetSize(); k++)
     //     JeddyAtIp1 += Jeddy[k]*0.25;
 
 
     // Loop over integration points
     Double factor = 1.0;
-    for (Integer nIp=1; nIp<NumIntPoints+1; nIp++)
+    for (UInt nIp=1; nIp<NumIntPoints+1; nIp++)
       {
         // Calculate B-Field
         curlFieldOp_->CalcElemCurlNode(B, ptElement, Ip[nIp-1]);
@@ -96,7 +96,7 @@ namespace CoupledField
 
         //compute J x B
         if (B.GetSize() == 2) {
-          for (Integer node=0; node<NumNodes; node++) {
+          for (UInt node=0; node<NumNodes; node++) {
             if (isaxi_) {
               F[node][0] += JeddyAtIp*B[1]*shpFncAtIp[node];
               F[node][1] -= JeddyAtIp*B[0]*shpFncAtIp[node];
@@ -110,7 +110,7 @@ namespace CoupledField
           //        just for testing with CAPA
           //       //compute J x B
           //       if (B.GetSize() == 2) {
-          //      for (Integer node=0; node<NumNodes; node++) {
+          //      for (UInt node=0; node<NumNodes; node++) {
           //        if (isaxi_) {
           //          F[node][0] += JeddyAtIp1*B1[1]*shpFncAtIp[node]*factor * intWeights[nIp-1] * jacDet;
           //          F[node][1] -= JeddyAtIp1*B1[0]*shpFncAtIp[node]*factor * intWeights[nIp-1] * jacDet;
@@ -135,7 +135,7 @@ namespace CoupledField
                          StdPDE * ptPDE,
                          NodeEQN * ptEQN,
                          NodeStoreSol<Double> & sol,
-                         Integer dim,
+                         UInt dim,
                          MaterialData* &matData,
                          StdVector<RegionIdType>& allSubdoms,
                          Boolean isaxi) 
@@ -167,7 +167,7 @@ namespace CoupledField
     curlFieldOp_->CalcElemCurlNode(Field, ptElement, lCoord);
   } 
 
-  Double MagForceOp::GetMatVal(Integer actSD)
+  Double MagForceOp::GetMatVal(UInt actSD)
   {
     ENTER_FCN( "MagForceOp::GetMatVal" );
 

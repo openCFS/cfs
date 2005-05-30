@@ -39,7 +39,7 @@ class LinearEdgeInt : public LinearForm
 {
 public:
   ///
-  LinearEdgeInt(BaseFE * aptelem, Double val, Integer direction, 
+  LinearEdgeInt(BaseFE * aptelem, Double val, UInt direction, 
                 Vector<Double> * coilMidPoint = NULL);
 
   ///
@@ -55,7 +55,7 @@ private:
   /// direction of source
   /*! 1: x-direction, 2: y-direction, 3: z-direction
    */
-  Integer direction_;
+  UInt direction_;
 
   /// midpoint of coil (needed for circular coils to calculate the current dirction)
   Vector<Double> * coilMidPt_;  
@@ -202,7 +202,7 @@ public:
   
 protected:
   /// returns nr. of degrees of freedom
-  virtual Integer getNrDofs(){return 3;};
+  virtual UInt getNrDofs(){return 3;};
 
   /// material data
   MaterialData matData_;
@@ -278,21 +278,21 @@ public:
 
   /// Calculation of vector of right hand side for the surface elements on the obstacle (dipole)
   void CalcElemVector4Dip(Matrix<Double>& ptCoord, 
-                          const StdVector<Integer> & connecth, 
+                          const StdVector<UInt> & connecth, 
                           Vector<Double> & Result, 
                           const Vector<Double> gradN_x_P);
 
   /// Calculation of vector of right hand side given from quadrupole contribution
   void CalcElemVector4Quad(Matrix<Double>& ptCoord, 
-                           const StdVector<Integer> & connecth,
+                           const StdVector<UInt> & connecth,
                            const Matrix<Double> & FlowData, 
                            Vector<Double> & Result);
 
   /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)
   void GetQttiesOfElement(Matrix<Double>& elVec, 
                           const Matrix<Double>& FlowData,
-                          const StdVector<Integer>& connecth, 
-                          Integer matrixRow);
+                          const StdVector<UInt>& connecth, 
+                          UInt matrixRow);
   
 private:
 
@@ -410,7 +410,7 @@ public:
   */
   void CalcElemVectorRHSForSPR(Matrix<Double>& ptCoord,
                                Vector<Double> & fncNodesElem,
-                               const Integer aComponent,
+                               const UInt aComponent,
                                Vector<Double> & elemVec);
 
 private:
@@ -456,7 +456,7 @@ class PiezoPolarizationInt : public LinearForm
 {
 public:
   ///
-  PiezoPolarizationInt(Integer direction, Integer numdof, Boolean isaxi);
+  PiezoPolarizationInt(UInt direction, UInt numdof, Boolean isaxi);
 
   ///
   virtual ~PiezoPolarizationInt();
@@ -469,10 +469,10 @@ public:
 private:
 
   //!
-  Integer comp_;
+  UInt comp_;
 
   //! 
-  Integer numDofs_;
+  UInt numDofs_;
 
   //!value of polarization
   Double Pval_;

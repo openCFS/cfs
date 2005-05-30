@@ -44,7 +44,7 @@ namespace CoupledField
     virtual void SetTimeStep(const Double dt) {;};
 
     //! return size of solution
-    virtual Integer getSize() const 
+    virtual UInt getSize() const 
     { return numPDENodes_*dofspernode_;}
 
 
@@ -58,9 +58,9 @@ namespace CoupledField
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
-    virtual void WriteResultsInFile(const Integer kstep = 0,
+    virtual void WriteResultsInFile(const UInt kstep = 0,
                                     const Double asteptime = 0.0,
-                                    Integer stepOffset = 0,
+                                    UInt stepOffset = 0,
                                     Double timeOffset = 0.0);
     
     //! computes the electric energy for each subdomain
@@ -68,16 +68,16 @@ namespace CoupledField
 
     //! callculates nodal forces
     void CalcNodeForce(Vector<Double> & force, 
-                       StdVector<Integer> & nodes, 
+                       StdVector<UInt> & nodes, 
                        StdVector<Elem*> & elems,
                        StdVector<StdVector<ShortInt> > &isBoundaryNode,
-                       StdVector<StdVector<Integer> > &elemNodeToCouplingNode);
+                       StdVector<StdVector<UInt> > &elemNodeToCouplingNode);
 
     //!
-    void CalcInterfaceForces(Integer actCoupling);
+    void CalcInterfaceForces(UInt actCoupling);
 
     //! GET SOLUTION AT ALL NODES OF AN ELEMENT
-    //void GetSolOfElement( Vector<Double>& elpot, StdVector<Integer>& connect_PDE);
+    //void GetSolOfElement( Vector<Double>& elpot, StdVector<UInt>& connect_PDE);
 
 
     // ======================================================
@@ -107,7 +107,7 @@ namespace CoupledField
     void CalcEfieldAtCoupleElemIP(Elem * actVolElem,
                                   Elem * actCoupleElem,
                                   Vector<Double>& coordAtIP, 
-                                  StdVector<Integer>& boundNodesOfVolElem,
+                                  StdVector<UInt>& boundNodesOfVolElem,
                                   Vector<Double>& tempE);
   
 
@@ -118,8 +118,8 @@ namespace CoupledField
     ElemStoreSol<Double> Force_;        //!< stores Electric force of each element
     StdVector<StdVector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
     StdVector<StdVector<StdVector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
-    StdVector<StdVector<StdVector<Integer> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
-    //  StdVector<StdVector<Integer> > numBoundaryNodes_;               //!< contains number of surface nodes per element
+    StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
+    //  StdVector<StdVector<UInt> > numBoundaryNodes_;               //!< contains number of surface nodes per element
     
     // *****************
     //  POSTPROCESSING

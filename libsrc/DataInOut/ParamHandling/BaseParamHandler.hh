@@ -66,6 +66,21 @@ namespace CoupledField
                       const std::string section="",
                       const std::string subsection="" ) = 0;
 
+    //! Get unsigned int-value for a keyword
+
+    //! The method will try to find the specified keyword in the parameter tree
+    //! returning the found value as an UInt. The search can be restricted
+    //! to a certain section and subsection.
+    //! \param key        Keyword
+    //! \param value      UInt (output)
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    virtual void Get( const std::string key, UInt &value,
+                      const std::string section="",
+                      const std::string subsection="" ) = 0;
+
     //! Get double-value for a keyword
 
     //! The method will try to find the specified keyword in the parameter tree
@@ -130,12 +145,32 @@ namespace CoupledField
     //! It will issue an error message, if there are matches for both, elements
     //! and attributes.
     //! \param key        Keyword
-    //! \param list       Vector of Doubles (output)
+    //! \param list       Vector of Integer (output)
     //! \param section    Name of a section in which to look for keyword
     //!                   (optional)
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual void GetList( const std::string key, StdVector<Integer> &list,
+                          const std::string section = "",
+                          const std::string subsection = "" ) = 0;
+
+    //! Get a list of unsigned Integers matching a keyword
+
+    //! The method will try to find the specified keyword in the parameter
+    //! tree and will return the values of the respective elements or
+    //! attributes in a vector of unsigned Integers. The search can be 
+    //! restricted to certain subtrees by specifying keywords for section 
+    //! and subsection.
+    //! The method will return an empty vector, if there is no match at all.
+    //! It will issue an error message, if there are matches for both, elements
+    //! and attributes.
+    //! \param key        Keyword
+    //! \param list       Vector of UInt (output)
+    //! \param section    Name of a section in which to look for keyword
+    //!                   (optional)
+    //! \param subsection Name of a subsection in which to look for keyword
+    //!                   (optional)
+    virtual void GetList( const std::string key, StdVector<UInt> &list,
                           const std::string section = "",
                           const std::string subsection = "" ) = 0;
 
@@ -171,6 +206,17 @@ namespace CoupledField
     //! \param value      (output) value of desired parameter
     virtual void Get( const StdVector<std::string> &keyVec,
                       Integer &value ) = 0;
+
+    //! Search for a unique match and return value as unsigned Integer.
+
+    //! The method searches the parameter file for an element or attribute and
+    //! returns the value as UInt, if a unique match is found. Otherwise an
+    //! error is reported and program execution terminated.
+    //! \param keyVec     (input) vector of keywords describing path to
+    //!                           desired parameter
+    //! \param value      (output) value of desired parameter
+    virtual void Get( const StdVector<std::string> &keyVec,
+                      UInt &value ) = 0;
     //@}
 
 
@@ -262,6 +308,12 @@ namespace CoupledField
                           const StdVector<std::string> &valVec,
                           StdVector<Integer> &list ) = 0;
 
+    //! Perform search and return values of matches as unsigned Integers.
+    virtual void GetList( const StdVector<std::string> &keyVec,
+                          const StdVector<std::string> &attrVec,
+                          const StdVector<std::string> &valVec,
+                          StdVector<UInt> &list ) = 0;
+
     //! Search for a unique match and return value as string.
     virtual void Get( const StdVector<std::string> &keyVec,
                       const StdVector<std::string> &attrVec,
@@ -279,6 +331,12 @@ namespace CoupledField
                       const StdVector<std::string> &attrVec,
                       const StdVector<std::string> &valVec,
                       Integer &value ) = 0;
+
+    //! Search for a unique match and return value as unsigned Integer.
+    virtual void Get( const StdVector<std::string> &keyVec,
+                      const StdVector<std::string> &attrVec,
+                      const StdVector<std::string> &valVec,
+                      UInt &value ) = 0;
     //@}
 
 

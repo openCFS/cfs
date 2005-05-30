@@ -53,7 +53,7 @@ namespace CoupledField
       
         IntWeights_.Resize(NumIntPoints_);
       
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);
       
         IntPoints_[0][0] = 1./3;
@@ -73,7 +73,7 @@ namespace CoupledField
 
         IntWeights_.Resize(NumIntPoints_);
 
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);
       
         IntPoints_[0][0] = 0.166666666666667;
@@ -100,7 +100,7 @@ namespace CoupledField
 
         IntWeights_.Resize(NumIntPoints_);
 
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);
         IntPoints_[0][0] = 1.0/3.0;
         IntPoints_[1][0] = 3.0/5.0;
@@ -139,7 +139,7 @@ namespace CoupledField
 
         IntWeights_.Resize(NumIntPoints_);
 
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);
 
         IntPoints_[0][0] = 4.45948490915965e-01;
@@ -179,7 +179,7 @@ namespace CoupledField
 
         IntWeights_.Resize(NumIntPoints_);
 
-        for(Integer i=0; i<NumIntPoints_; i++)
+        for(UInt i=0; i<NumIntPoints_; i++)
           IntPoints_[i].Resize(Dim_);      
  
         IntPoints_[0][0] = 3.333333333333333e-01;
@@ -217,8 +217,8 @@ namespace CoupledField
   }
 
 
-  void TriangleFE::GetLocalIntPoints4Surface(const StdVector<Integer> & surfConnect,
-                                             const StdVector<Integer> & volConnect,
+  void TriangleFE::GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                             const StdVector<UInt> & volConnect,
                                              const Vector<Double> & surfIntPoint,
                                              Vector<Double> & volIntPoint)
   {
@@ -242,17 +242,17 @@ namespace CoupledField
     // we have to calculate (1+surfCoord)/2 in order to get the right
     // position on the triangular element
 
-    StdVector<Integer> commonIndex(2);
-    Integer found = 0;
-    Integer indexProduct = 0;
+    StdVector<UInt> commonIndex(2);
+    UInt found = 0;
+    UInt indexProduct = 0;
     std::string errMsg;
   
     volIntPoint.Resize(2);
   
     // loop over surface connect
-    for (Integer iSurf=0; iSurf<2; iSurf++)
+    for (UInt iSurf=0; iSurf<2; iSurf++)
       // loop over volume connect
-      for (Integer iVol=0; iVol<3; iVol++)
+      for (UInt iVol=0; iVol<3; iVol++)
         if (surfConnect[iSurf] == volConnect[iVol])
           {
             commonIndex[found++] = iVol+1;

@@ -38,7 +38,7 @@ namespace CoupledField
     void ComputeRHS(const Double atime);
 
     //! Reads at every time the flowdatafile from the Fluid's Computation
-    void ReadFlowData(const char * aname, const Integer timestep,
+    void ReadFlowData(const char * aname, const UInt timestep,
                       Matrix<Double> &nodedata );
 
     //!
@@ -48,7 +48,7 @@ namespace CoupledField
   private:
 
 
-    Integer arg_rhs_; //!< function for RHS
+    UInt arg_rhs_; //!< function for RHS
 
 
     //Flow Data
@@ -64,21 +64,21 @@ namespace CoupledField
     
     //!MpCCI
 #ifdef MpCCI
-    StdVector<Integer> mapSD_;
+    StdVector<UInt> mapSD_;
     MpCCIexch * ptMpCCIexch_;
-    Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
-    Integer MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
-    Integer meshId_;
-    Integer partId_;
-    Integer nNodeIds_;
-    Integer *nodeIds_;
-    Integer GlobalDim_;
-    Integer nElemIds_;
-    Integer *elemIds_;
-    Integer nElemTypes_;
-    Integer *nNodesPerElem_;
-    Integer *elemTypes_;
-    Integer MpCCIprocess_;
+    UInt MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
+    UInt MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
+    UInt meshId_;
+    UInt partId_;
+    UInt nNodeIds_;
+    UInt *nodeIds_;
+    UInt GlobalDim_;
+    UInt nElemIds_;
+    UInt *elemIds_;
+    UInt nElemTypes_;
+    UInt *nNodesPerElem_;
+    UInt *elemTypes_;
+    UInt MpCCIprocess_;
 #endif
 
   };

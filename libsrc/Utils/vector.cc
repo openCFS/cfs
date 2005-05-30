@@ -23,7 +23,7 @@ namespace CoupledField
   }
 
   template<class TYPE> 
-  Vector<TYPE>::Vector(Integer size, const TYPE entry)
+  Vector<TYPE>::Vector(UInt size, const TYPE entry)
     : CFSVector(size)
   {
     ENTER_IFCN("Vector::Vector");
@@ -31,7 +31,7 @@ namespace CoupledField
     data_ = new TYPE [size];
     memBelongsToMe_ = TRUE;
 
-    for (Integer i = 0; i < size; i++)
+    for (UInt i = 0; i < size; i++)
       data_ [i] = entry;
   }
 
@@ -44,7 +44,7 @@ namespace CoupledField
     data_ = new TYPE [vec.size_];
     memBelongsToMe_ = TRUE;
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       data_ [i] =  vec.data_[i];
   }
 
@@ -96,12 +96,12 @@ namespace CoupledField
     //    Warning("Don't use Init() to undefined vector", __FILE__, __LINE__);
     //#endif
 
-    for (Integer i=0; i<size_; i++) 
+    for (UInt i=0; i<size_; i++) 
       data_[i]=entry;
   }
 
   template<class TYPE>
-  void Vector<TYPE>::Replace( Integer length, TYPE* entries, Boolean transferMem ) {
+  void Vector<TYPE>::Replace( UInt length, TYPE* entries, Boolean transferMem ) {
   
     ENTER_FCN( "Vector::Replace" );
 
@@ -120,7 +120,7 @@ namespace CoupledField
 
 
   template<class TYPE> 
-  void Vector<TYPE>::Resize(const Integer size)
+  void Vector<TYPE>::Resize(const UInt size)
   {
     ENTER_IFCN("Vector::Resize");
 
@@ -143,13 +143,13 @@ namespace CoupledField
         data_ = new TYPE[size_];
       }
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       data_ [i] = TYPE();
   }
 
 
   template<class TYPE> 
-  void Vector<TYPE>::SetEntry(const Integer i, const TYPE &s)
+  void Vector<TYPE>::SetEntry(const UInt i, const TYPE &s)
   {
     ENTER_IFCN("Vector::SetEntry");
 
@@ -165,7 +165,7 @@ namespace CoupledField
   }
   
   template<class TYPE> 
-  void Vector<TYPE>::GetEntry(const Integer i, TYPE &ret) const
+  void Vector<TYPE>::GetEntry(const UInt i, TYPE &ret) const
   {
     ENTER_IFCN("Vector::GetEntry");  
 
@@ -181,7 +181,7 @@ namespace CoupledField
   }
 
   template<class TYPE> 
-  void Vector<TYPE>::AddEntry(const Integer i, const TYPE &s)
+  void Vector<TYPE>::AddEntry(const UInt i, const TYPE &s)
   {
     ENTER_IFCN("Vector::AddEntry");
 
@@ -198,7 +198,7 @@ namespace CoupledField
   }
 
   template<class TYPE> 
-  void Vector<TYPE>::MultEntry(const Integer i, const TYPE &s)
+  void Vector<TYPE>::MultEntry(const UInt i, const TYPE &s)
   {
     ENTER_IFCN("Vector::MultEntry");
 
@@ -215,7 +215,7 @@ namespace CoupledField
   }
 
   template<class TYPE> 
-  void Vector<TYPE>::MultAddEntry(const Integer i, const TYPE &a, const TYPE &s)
+  void Vector<TYPE>::MultAddEntry(const UInt i, const TYPE &a, const TYPE &s)
   {
     ENTER_IFCN("Vector::MuldAddEntry");
 
@@ -244,7 +244,7 @@ namespace CoupledField
             __FILE__, __LINE__);
 #endif
 
-    for (Integer i=0; i<size_; i++)
+    for (UInt i=0; i<size_; i++)
       data_[i]+=vec.data_[i];
   }
 
@@ -261,7 +261,7 @@ namespace CoupledField
             __FILE__, __LINE__);
 #endif
 
-    for (Integer i=0; i<size_; i++)
+    for (UInt i=0; i<size_; i++)
       data_[i]+=a*vec.data_[i];
 
   }
@@ -280,7 +280,7 @@ namespace CoupledField
 Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 #endif
 
-    for (Integer i=0; i<size_; i++)
+    for (UInt i=0; i<size_; i++)
       data_[i] = a*data_[i]+ b*vec.data_[i];
   }
 
@@ -297,7 +297,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
             __FILE__, __LINE__);
 #endif
 
-    for (Integer i=0; i<size_; i++)
+    for (UInt i=0; i<size_; i++)
       data_[i] = a*data_[i]+ vec.data_[i];
   }
  
@@ -314,7 +314,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 #endif
 
     result = 0;
-    for (Integer i=0; i<size_; i++)
+    for (UInt i=0; i<size_; i++)
       result += data_[i] * vec.data_[i];
   }
 
@@ -349,7 +349,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
         data_ = new TYPE [size_];
       }
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       data_ [i] = x.data_[i];
   
     return *this;
@@ -380,7 +380,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
         data_ = new TYPE [size_];
       }
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       data_ [i] = temp.data_[i];
   
     return dynamic_cast<CFSVector &>(*this);
@@ -406,7 +406,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
     Vector ret(size_);
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       ret.data_[i] = data_[i] + x.data_ [i];
   
     return ret;
@@ -429,7 +429,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
             __FILE__, __LINE__);
 #endif
 
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       data_[i] += x.data_[i];
   
     return *this; 
@@ -446,7 +446,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 
     Vector ret(size_);
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       ret.data_ [i] = -data_ [i];
   
     return ret;
@@ -469,7 +469,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 #endif
     Vector ret(size_);
 
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       ret.data_ [i] = data_[i] - x.data_ [i];
   
     return ret;
@@ -491,7 +491,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
             __FILE__, __LINE__);
 #endif
 
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       data_[i] -= x.data_[i];
   
     return *this;
@@ -510,7 +510,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
     Vector ret(size_);
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       ret.data_[i] = data_[i] * x;
   
     return ret;
@@ -528,7 +528,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
     Vector ret(size_);
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       ret.data_[i] = data_[i] / x;
   
     return ret;
@@ -546,7 +546,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 
     TYPE y = x;
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       data_[i] /= y;
   
     return *this;
@@ -571,7 +571,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
     TYPE ret;
  
     ret = data_[0] * x.data_[0];
-    for (Integer i = 1; i < size_; i++)
+    for (UInt i = 1; i < size_; i++)
       ret += data_[i] * x.data_[i];
   
     return ret;
@@ -599,10 +599,10 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
     TYPE  a;
     Vector ret(x.size_col_);
   
-    for (Integer i = 0; i < x.size_col_; i++)
+    for (UInt i = 0; i < x.size_col_; i++)
       {   
         a = data_ [0] * x.data_ [0] [i];
-        for (Integer j = 1; j < size_; j++)
+        for (UInt j = 1; j < size_; j++)
           a += data_ [j] * x.data_ [j] [i];
         ret.data_ [i] = a;
       }
@@ -630,7 +630,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
     Vector ret(x.size_row_);
   
-    for (Integer i = 0; i < x.size_col_; i++)
+    for (UInt i = 0; i < x.size_col_; i++)
       ret.data_[i] = x[i][0];
 
     return ret;
@@ -648,7 +648,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
     TYPE y = x;
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       data_[i] *= y;
   
     return *this;
@@ -665,7 +665,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   }
 
   template<class TYPE>
-  Integer Vector<TYPE>::operator== (const Vector<TYPE> &x) const
+  Boolean Vector<TYPE>::operator== (const Vector<TYPE> &x) const
   {       
 #ifdef CHECK_INITIALIZED 
     if ((size_ == 0) || (x.size_ == 0))
@@ -673,7 +673,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
               __FILE__, __LINE__);
 #endif
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       if (data_[i] != x.data_ [i])
         return FALSE;
   
@@ -681,7 +681,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   }
 
   template<class TYPE>
-  Integer Vector<TYPE>::operator!= (const Vector<TYPE> &x) const
+  Boolean Vector<TYPE>::operator!= (const Vector<TYPE> &x) const
   {
     ENTER_IFCN( "Vector::operator!=" );
 #ifdef CHECK_INITIALIZED
@@ -690,7 +690,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
               __FILE__, __LINE__);
 #endif
   
-    for (Integer i = 0; i < size_; i++)
+    for (UInt i = 0; i < size_; i++)
       if (data_[i] != x.data_[i])
         return FALSE;
   
@@ -698,7 +698,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   }
 
   template<class TYPE>
-  Vector<TYPE> Vector<TYPE>::Part(const Integer i1,const Integer i2) const
+  Vector<TYPE> Vector<TYPE>::Part(const UInt i1,const UInt i2) const
   {
     ENTER_IFCN( "Vector::Part" );
 #ifdef CHECK_INITIALIZED
@@ -713,14 +713,14 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
     Vector ret (i2 - i1 + 1);
   
-    for (Integer i = 0; i < ret.size_; i++)
+    for (UInt i = 0; i < ret.size_; i++)
       ret.data_[i] = data_[i1 + i];
   
     return ret;
   }
 
   template<class TYPE>
-  Vector<TYPE> Vector<TYPE>::Unit (const Integer n,const Integer i)
+  Vector<TYPE> Vector<TYPE>::Unit (const UInt n,const UInt i)
   {
     ENTER_IFCN( "Vector::Unit" );
 #ifdef CHECK_INDEX      
@@ -777,7 +777,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 
 
   template<class TYPE>
-  void  Vector<TYPE>:: AddElement (const TYPE & y, Integer pos)
+  void  Vector<TYPE>:: AddElement (const TYPE & y, UInt pos)
   {
     ENTER_IFCN( "Vector::AddElement" );
 #ifdef CHECK_INDEX
@@ -791,7 +791,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
       Error( __FILE__, __LINE__ );
     }
   
-    Integer i;
+    UInt i;
   
     TYPE * help=new TYPE[size_+1];
   
@@ -809,7 +809,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 
 
   template<class TYPE>
-  void  Vector<TYPE>::InsertVector (const Vector<TYPE> & y, Integer pos)
+  void  Vector<TYPE>::InsertVector (const Vector<TYPE> & y, UInt pos)
   {
     ENTER_IFCN( "Vector::InsertVector" );
 #ifdef CHECK_INITIALIZED
@@ -830,9 +830,9 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
       Error( __FILE__, __LINE__ );
     }
   
-    Integer i;
+    UInt i;
   
-    Integer l=y.size_;
+    UInt l=y.size_;
     TYPE * help=new TYPE[size_+l];
   
     for (i=0; i < pos; i++) 
@@ -850,7 +850,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   }
 
   template<class TYPE>
-  void  Vector<TYPE>:: Cut (const Integer pos)
+  void  Vector<TYPE>:: Cut (const UInt pos)
   {
     ENTER_IFCN( "Vector::Cut" );
 #ifdef CHECK_INITIALIZED
@@ -868,7 +868,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
                << "belong to me!";
       Error( __FILE__, __LINE__ );
     }
-    Integer i;
+    UInt i;
    
     TYPE * help=new TYPE[size_-1];
     for (i=0; i < pos; i++) 
@@ -882,7 +882,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   }
 
   template<class TYPE>
-  void  Vector<TYPE>:: Cut (const Integer pos1, const Integer pos2)
+  void  Vector<TYPE>:: Cut (const UInt pos1, const UInt pos2)
   {
     ENTER_IFCN( "Vector::Cut" );
 #ifdef CHECK_INITIALIZED
@@ -904,9 +904,9 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
       Error( __FILE__, __LINE__ );
     }
    
-    Integer i;
+    UInt i;
  
-    Integer l=pos2-pos1+1;
+    UInt l=pos2-pos1+1;
     TYPE * help=new TYPE[size_-l];
     for (i=0; i < pos1; i++) 
       help[i]=data_[i];
@@ -920,7 +920,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   }
 
   template<class TYPE>
-  Integer  Vector<TYPE>::Memory() const
+  UInt  Vector<TYPE>::Memory() const
   {
     ENTER_IFCN( "Vector::Memory" );
     return size_*sizeof(TYPE);
@@ -930,17 +930,17 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   void Swap(Vector<TYPE> & a, Vector<TYPE> & b) 
   {
     ENTER_IFCN( "Swap" );
-    Integer tmp_size;
+    UInt tmp_size;
 
     tmp_size = a.size_;
     a.size_ = b.size_;
     b.size_ = tmp_size;
 
-    TYPE * tmp_data_;
+    TYPE * tmp_data;
 
     tmp_data = a.data_;
     a.data_ = b.data_;
-    b.data_ = temp_data;
+    b.data_ = tmp_data;
   }
 
 
@@ -955,9 +955,9 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 #endif
     TYPE temp; 
  
-    for (Integer gap=size_/2; gap >0; gap/=2)
-      for (Integer i=gap; i<size_; i++)
-        for (Integer j=i-gap; j>=0; j-=gap)
+    for (UInt gap=size_/2; gap >0; gap/=2)
+      for (UInt i=gap; i<size_; i++)
+        for (UInt j=i-gap; j>=0; j-=gap)
           if (data_[j+gap] < data_[j]) {
             temp = data_[j];
             data_[j] = data_[j+gap];
@@ -977,7 +977,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   {
     ENTER_IFCN( "operator <<(Vector)" );
 
-    for (Integer i=0; i < vc.GetSize(); i++)
+    for (UInt i=0; i < vc.GetSize(); i++)
       out << vc[i] << " " << std::endl;
     return out;
   }
