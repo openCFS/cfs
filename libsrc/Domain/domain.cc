@@ -16,6 +16,7 @@
 #include "CoupledPDE/coupledpdedef.hh"
 #include "CoupledPDE/pdecoupling.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
+#include "CoupledPDE/AcouMechCoupling.hh"
 
 
 #ifdef NETGEN
@@ -46,7 +47,7 @@ namespace CoupledField {
     // initialize data
     numSinglePde_ = 0;
     numDirectCoupledPde_ = 0;
-    numIterCoupledStdPde_;
+    numIterCoupledStdPde_ = 0;
 
     // assign pointers
     InFile_ = aptFileType; 
@@ -58,7 +59,7 @@ namespace CoupledField {
     std::string libmesh;
     params->Get( "meshLibrary", libmesh, "input" );
 
-    Integer dim=InFile_->GetDim();
+    UInt dim=InFile_->GetDim();
 
     std::string probGeo;
 
@@ -129,12 +130,12 @@ namespace CoupledField {
 
     // When the StdVector ptpde_ is destroyed, only the pointers to the PDEs,
     // but not the PDEs themselves will be destroyed
-    for ( Integer i = 0; i < ptSinglePde_.GetSize(); i++ ) {
+    for ( UInt i = 0; i < ptSinglePde_.GetSize(); i++ ) {
       delete (ptSinglePde_[i]);
     }
 
     //already deleted in destructor of IterCoupledPDE!!!
-    //     for ( Integer i = 0; i < couplings_.GetSize(); i++ ) {
+    //     for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
     //       delete (couplings_[i]);
     //     }
 
@@ -148,7 +149,7 @@ namespace CoupledField {
   {
     ENTER_IFCN( "Domain::GetStdDPE" );
     Boolean pdeFound = FALSE;
-    Integer i;
+    UInt i;
     std::string errMsg;
 
     // search the direct coupled pdes
@@ -196,7 +197,7 @@ namespace CoupledField {
   {
     ENTER_IFCN( "Domain::GetSingleDPE" );
     Boolean pdeFound = FALSE;
-    Integer i;
+    UInt i;
     std::string errMsg;
 
     for (i=0; i<ptSinglePde_.GetSize(); i++) {
@@ -241,7 +242,7 @@ namespace CoupledField {
   //   Initialization of PDEs
   // **************************
   void Domain::InitPDEs( StdVector<std::string> & pdeNames,
-                         Integer sequenceStep,
+                         UInt sequenceStep,
                          StdVector<std::string> tags ) {
 
     ENTER_FCN( "Domain::InitPDEs" );
@@ -259,7 +260,7 @@ namespace CoupledField {
     // directly coupled
     std::map<SinglePDE*,Boolean>::iterator it;
 
-    for (Integer i=0; i<numSinglePde_; i++) {
+    for (UInt i=0; i<numSinglePde_; i++) {
       it = isDirectCoupled_.find( ptSinglePde_[i] );
       if ( (*it).second == FALSE) {
         //std::cerr << "Domain: Init() of " 
@@ -270,8 +271,8 @@ namespace CoupledField {
 
     // initialize direct coupled pde(s)
     // -> this triggers also the initialization of
-    // those PDEs which are directly coupled
-    for (Integer i=0; i<numDirectCoupledPde_; i++) {
+    // those single PDEs which are directly coupled
+    for (UInt i=0; i<numDirectCoupledPde_; i++) {
       Info->StartProgress("Initializing direct coupling");
       ptDirectCoupledPde_[i]->Init(sequenceStep,tags[i]);
       ptDirectCoupledPde_[i]->DefineAlgSys();
@@ -289,7 +290,9 @@ namespace CoupledField {
     }
 
     // Initialize algebraic system of each SinglePDE
-    for (int i = 0; i < numSinglePde_; i++ ) {
+    // Note: DefineAlgSys() triggers only the initialization 
+    // of those SinglePDEs, which are not directly coupled
+    for (UInt i = 0; i < numSinglePde_; i++ ) {
       ptSinglePde_[i]->DefineAlgSys();
     }
 
@@ -310,9 +313,9 @@ namespace CoupledField {
 
 
     // Read dimension from mesh file and perform a consistency check
-    Integer dim = InFile_->GetDim();
+    UInt dim = InFile_->GetDim();
 
-    for (Integer i=0;i< pdeNames.GetSize();i++) {
+    for (UInt i=0;i< pdeNames.GetSize();i++) {
       Info->StartProgress("Creating PDE '" + pdeNames[i] + "'");
 
       if (pdeNames[i] == "electrostatic") 
@@ -410,7 +413,7 @@ namespace CoupledField {
     std::string firstTag;
     if (sequenceTags.GetSize() > 1) {
       firstTag = sequenceTags[0];
-      for (Integer i=1; i<sequenceTags.GetSize(); i++)
+      for (UInt i=1; i<sequenceTags.GetSize(); i++)
         if (sequenceTags[i] != firstTag) {
           errMsg = "CreateIterCoupledPDE: The tags in the <multiSequence> section ";
           errMsg += "are not all the same in each step.\n Coupling is only ";
@@ -425,14 +428,14 @@ namespace CoupledField {
 
     // we have all the names of the PDEs which couple iteratively.
     // Now we have to get the according pointers to the PDEs
-    for (Integer i=0; i<iterCoupledPDENames.GetSize(); i++)
-      for (Integer j=0; j<ptSinglePde_.GetSize(); j++) {
+    for (UInt i=0; i<iterCoupledPDENames.GetSize(); i++)
+      for (UInt j=0; j<ptSinglePde_.GetSize(); j++) {
         if (iterCoupledPDENames[i] == ptSinglePde_[j]->GetName() )
           iterCoupledPDEs.Push_back(ptSinglePde_[j]);
       }
     
     params->GetList( "method", methods);
-    for (Integer i=0; i<methods.GetSize(); i++)
+    for (UInt i=0; i<methods.GetSize(); i++)
       if (methods[i] != "RHS")
         {
           errMsg  = "Domain::InitCoupledPDE: Methode '";
@@ -479,7 +482,7 @@ namespace CoupledField {
     BasePairCoupling *coupling = NULL;
       
 
-    for (Integer i=0; i<couplingNames.GetSize(); i++) {
+    for (UInt i=0; i<couplingNames.GetSize(); i++) {
       //std::cerr << "Coupling " << i+1 << " = " << couplingNames[i] << std::endl;
 
       // *** PIEZO Coupling ***
@@ -487,8 +490,6 @@ namespace CoupledField {
 
         pde1 = GetSinglePDE( "mechanic" );
         pde2 = GetSinglePDE( "electrostatic" );
-        //std::cerr << pde1->GetName() << std::endl;
-        //std::cerr << pde2->GetName() << std::endl;
 
         // in the case of piezo coupling, the electrotstatic
         // entries have to be multiplied by -1
@@ -496,23 +497,31 @@ namespace CoupledField {
         
         coupling = new PiezoCoupling( pde1, pde2 );
         
-        isDirectCoupled_[pde1] = TRUE;
-        isDirectCoupled_[pde2] = TRUE;
-        
       } 
-      // *** MECH-ACOU Coupling ****
-      else if ( couplingNames[i] == "acouMech" ) {
-        Error( "Direct ACOUSTIC-MECHANIC coupling is not implemented yet",
-               __FILE__, __LINE__ );
+      // *** ACOU-MECH Coupling ***
+      else if ( couplingNames[i] == "acouMechDirect" ) {
 
+        pde1 = GetSinglePDE( "mechanic" );
+        pde2 = GetSinglePDE( "acoustic" );
+
+        // in the case of acou-Mech coupling, the acoustic
+        // entries have to be multiplied by -1
+        dynamic_cast<AcousticPDE*>(pde2)->SetMechanicCoupling();
+
+        coupling = new AcouMechCoupling( pde1, pde2 );
       }
       else {
         (*error) << "The direct coupling '" << couplingNames[i]
                  << "' is not implemented!" << std::endl;
         Error( __FILE__, __LINE__ );
       }
+      
+    // set flag for direct coupling
+    isDirectCoupled_[pde1] = TRUE;
+    isDirectCoupled_[pde2] = TRUE;
 
     }
+
 
     // check if any pair coupling was found
     if (coupling == NULL)
@@ -559,11 +568,11 @@ namespace CoupledField {
     ENTER_FCN( "Domain::ResetDEs" );
 
     // Delete single pde(s)
-    for (Integer iPDE=0; iPDE<numSinglePde_; iPDE++)
+    for (UInt iPDE=0; iPDE<numSinglePde_; iPDE++)
       delete ptSinglePde_[iPDE];
 
     // delete direct coupled pde(s)
-    for (Integer iPDE=0; iPDE<numDirectCoupledPde_; iPDE++)
+    for (UInt iPDE=0; iPDE<numDirectCoupledPde_; iPDE++)
       delete ptDirectCoupledPde_[iPDE];
 
     // delete iterative coupled pde
@@ -574,6 +583,8 @@ namespace CoupledField {
 
   void Domain::PrintGrid( ) {
     ENTER_FCN( "Domain::PrintGrid" );
+    if ( ptgrid_ == NULL )
+      Error("Domain: ptgrid == NULL!");
     OutFile_->Init(ptgrid_);
     OutFile_->WriteGrid( );
   }
@@ -591,7 +602,7 @@ namespace CoupledField {
     ENTER_FCN( "Domain::UpdateAlgSys"  );
 
     //set the algebraic systems and read material data
-    for (int i=0;i< numSinglePde_;i++)
+    for (UInt i=0;i< numSinglePde_;i++)
       {
         ptSinglePde_[i]->DeleteAlgSys();
         
