@@ -281,14 +281,14 @@ namespace CoupledField
   template<class TYPE> void String2Enum(const std::string &in, TYPE &out); \
   template<class TYPE> void Enum2String(const TYPE &in, std::string &out);
 
-  DEFINE_ENUM_CONVERSION(AnalysisType);
-  DEFINE_ENUM_CONVERSION(CouplingInputType);
-  DEFINE_ENUM_CONVERSION(CouplingOutputType);
-  DEFINE_ENUM_CONVERSION(CouplingRegionType);
-  DEFINE_ENUM_CONVERSION(NormType);
-  DEFINE_ENUM_CONVERSION(ComplexFormat);
-  DEFINE_ENUM_CONVERSION(EQNType);
-  DEFINE_ENUM_CONVERSION(FEType);
+  DEFINE_ENUM_CONVERSION(AnalysisType)
+  DEFINE_ENUM_CONVERSION(CouplingInputType)
+  DEFINE_ENUM_CONVERSION(CouplingOutputType)
+  DEFINE_ENUM_CONVERSION(CouplingRegionType)
+  DEFINE_ENUM_CONVERSION(NormType)
+  DEFINE_ENUM_CONVERSION(ComplexFormat)
+  DEFINE_ENUM_CONVERSION(EQNType)
+  DEFINE_ENUM_CONVERSION(FEType)
 #endif
 
 } // end of namespace
