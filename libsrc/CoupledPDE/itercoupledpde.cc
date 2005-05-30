@@ -39,7 +39,7 @@ namespace CoupledField
     pdename_ = "CoupledPDE: ";
 
 
-    for (Integer actPDE=0; actPDE < PDEs.GetSize()-1; actPDE++)
+    for (UInt actPDE=0; actPDE < PDEs.GetSize()-1; actPDE++)
       pdename_ += PDEs[actPDE] -> GetName() + "+";
     
     pdename_ += PDEs[PDEs.GetSize()-1] -> GetName();
@@ -81,7 +81,7 @@ namespace CoupledField
     delete solveStep_;
 
     // delete coupling objects
-    for (Integer i=0; i<Couplings_.GetSize(); i++)
+    for (UInt i=0; i<Couplings_.GetSize(); i++)
       if (Couplings_[i] != NULL)
 	delete Couplings_[i];
 
@@ -123,7 +123,7 @@ namespace CoupledField
     params->GetList( keyVec, attrVec, valVec, stopCritQuantities);
     
     // Iterate over all PDEs
-    for ( Integer iPDE = 0; iPDE < PDEs_.GetSize(); iPDE++ ) {
+    for ( UInt iPDE = 0; iPDE < PDEs_.GetSize(); iPDE++ ) {
 
       quantities.Clear();
       interfaceTypes.Clear();
@@ -166,12 +166,12 @@ namespace CoupledField
 
       // Check if for one quantity different kinds of 
       // interfaces were specified
-      for (Integer i=0; i<quantities.GetSize(); i++) {
+      for (UInt i=0; i<quantities.GetSize(); i++) {
 
 	typeAux = interfaceTypes[i];
 	quantityTemp = quantities[i];
 	
-	for (Integer j=0; j<quantities.GetSize(); j++) {
+	for (UInt j=0; j<quantities.GetSize(); j++) {
 	  if (quantityTemp == quantities[j]) {
 	    if (typeAux != interfaceTypes[j]) {
 	      errMsg  = "IterCoupledPDE::InitCoupling:";
@@ -193,12 +193,12 @@ namespace CoupledField
       // Now merge for each coupling quantity all interface names
       // of the same type (node, interface, region)
       Boolean found = FALSE;
-      for (Integer iQuant=0; iQuant<quantities.GetSize(); iQuant++) {
+      for (UInt iQuant=0; iQuant<quantities.GetSize(); iQuant++) {
 	typeAux = interfaceTypes[iQuant];
 	quantityTemp = quantities[iQuant];
 	nameAux = interfaceNames[iQuant];
 	found = FALSE;
-	for (Integer iSorted=0; iSorted<quantitiesSorted.GetSize(); iSorted++){
+	for (UInt iSorted=0; iSorted<quantitiesSorted.GetSize(); iSorted++){
 	  if(quantityTemp == quantitiesSorted[iSorted]) {
 	    interfaceNamesSorted[iSorted].Push_back(nameAux);
 	    found = TRUE;
@@ -224,7 +224,7 @@ namespace CoupledField
       attrVec = "", "", "quantity";
 
       // Get for each quantity the according stopping Criteria and normtype
-      for( Integer iQuant = 0; iQuant < quantitiesSorted.GetSize(); iQuant++ ){
+      for( UInt iQuant = 0; iQuant < quantitiesSorted.GetSize(); iQuant++ ){
 
 	epsilon = 0.0;
 	normtype.clear();
@@ -277,12 +277,14 @@ namespace CoupledField
     }
     
     // Initialize each PDEs coupling terms
-    for ( Integer i = 0; i < PDEs_.GetSize(); i++ ) {
+    for ( UInt i = 0; i < PDEs_.GetSize(); i++ ) {
       PDEs_[i]->InitCoupling(Couplings_[i]); 
     }
 
-    // write coupling data in .info-file
+#ifdef DEBUG    
+    // write coupling data in .debug-file
     WriteCouplingInfo(*debug);
+#endif
 
     // create solve step object
     solveStep_ = new IterSolveStep( *this );
@@ -297,9 +299,9 @@ namespace CoupledField
     Boolean nameFound;
     std::string errMsg;
 
-    for (Integer i=0; i<pdes.GetSize(); i++){
+    for (UInt i=0; i<pdes.GetSize(); i++){
       nameFound = FALSE;
-      for (Integer j=0; j<PDEs_.GetSize(); j++)
+      for (UInt j=0; j<PDEs_.GetSize(); j++)
 	if (pdes[i]->GetName() == PDEs_[j]->GetName()) {
 	  nameFound = TRUE;
 	  solvePDE_[j] = TRUE;
@@ -316,14 +318,14 @@ namespace CoupledField
 
 
 
-  // void IterCoupledPDE::SolveStepStatic(const Integer kstep, const Double aTime,
+  // void IterCoupledPDE::SolveStepStatic(const UInt kstep, const Double aTime,
 // 				       const Boolean updatesysmat ) {
 
 //     ENTER_FCN ( "entering  IterCoupledPDE::SolveStepStatic" );
   
 //     CFSVector *val, *oldVal;
-//     Integer iter = 0;
-//     Integer counter = 0;
+//     UInt iter = 0;
+//     UInt counter = 0;
 //     Boolean normsReached = FALSE;
 //     std::string quantityConv;
 
@@ -340,7 +342,7 @@ namespace CoupledField
 // 	counter = 0;
 // 	normsReached = TRUE;
       
-// 	for (Integer i=0; i<PDEs_.GetSize(); i++)
+// 	for (UInt i=0; i<PDEs_.GetSize(); i++)
 // 	  {
 // 	    if (nonLinLogging_)
 // 	    Info->PrintF(pdename_, " Processing PDE %s\n", 
@@ -356,7 +358,7 @@ namespace CoupledField
 // 	      PDEs_[i]->CalcOutputCoupling();
 	      
 // 	      // Calculate Norms
-// 	      for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
+// 	      for (UInt k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
 // 		{
 // 		  Couplings_[i]->GetOutputValues(k, val);
 // 		  Couplings_[i]->GetOutputOldValues(k, oldVal);
@@ -389,7 +391,7 @@ namespace CoupledField
 //       }
 
 //     // now we are converged and can compute any postprocessing-quantities
-//     for (Integer i=0; i<PDEs_.GetSize(); i++)
+//     for (UInt i=0; i<PDEs_.GetSize(); i++)
 //       PDEs_[i]->PostProcess(actlevel_);
 
 //   }
@@ -399,20 +401,20 @@ namespace CoupledField
   
 
 
-//   void IterCoupledPDE::SolveStepTrans(const Integer kstep, const Double asteptime, const Integer level, 
+//   void IterCoupledPDE::SolveStepTrans(const UInt kstep, const Double asteptime, const UInt level, 
 // 				      const Boolean updatesysmat)
 //   {
 //     ENTER_FCN( "IterCoupledPDE::SolveStepTrans" );
 
 //     Double  steptime  = asteptime;
 
-//     Integer iter = 0;
+//     UInt iter = 0;
 //     Boolean normsReached = FALSE;
 //     std::string quantityConv;
 
 //     // In the beginning of each time step
 //     // the coupling data has to be reseted
-//     for (Integer i=0; i<PDEs_.GetSize(); i++)
+//     for (UInt i=0; i<PDEs_.GetSize(); i++)
 //       PDEs_[i]->ResetCoupling();
 
 //     while (iter < maxiter_ &&  (! normsReached))
@@ -424,10 +426,10 @@ namespace CoupledField
 // 			 iter+1);
 // 	  }
 
-// 	Integer counter = 0;
+// 	UInt counter = 0;
 // 	normsReached = TRUE;
       
-// 	for (Integer i=0; i<PDEs_.GetSize(); i++)
+// 	for (UInt i=0; i<PDEs_.GetSize(); i++)
 // 	  {
 // 	    if (nonLinLogging_)
 // 	      Info->PrintF(pdename_, " Processing PDE %s\n", 
@@ -444,7 +446,7 @@ namespace CoupledField
 // 	      PDEs_[i]->CalcOutputCoupling();
 	      
 // 	      // Calculate Norms
-// 	      for (Integer k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
+// 	      for (UInt k=0; k<Couplings_[i]->GetNumOutputCouplings(); k++)
 // 		{
 // 		  CFSVector *val, *oldVal;
 // 		  Couplings_[i]->GetOutputValues(k, val);
@@ -475,14 +477,14 @@ namespace CoupledField
 
   
 
-  void IterCoupledPDE::WriteResultsInFile(const Integer kstep,
+  void IterCoupledPDE::WriteResultsInFile(const UInt kstep,
 					  const Double asteptime,
-					  Integer stepOffset,
+					  UInt stepOffset,
 					  Double timeOffset)
 {
   ENTER_FCN( "IterCoupledPDE::WriteResultsInFile" );
 
-  for (Integer i=0; i<PDEs_.GetSize(); i++)
+  for (UInt i=0; i<PDEs_.GetSize(); i++)
     PDEs_[i]->WriteResultsInFile(kstep, asteptime, stepOffset, timeOffset);
 }
 
@@ -492,12 +494,9 @@ void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
   ENTER_FCN( "IterCoupledPDE::WriteCouplingInfo" );
 
   CFSVector *val;
-  StdVector<Integer> * nodes;
+  StdVector<UInt> * nodes;
   StdVector<std::string> couplingRegions;
   std::string couplingTypeAux, quantityAux, regionTypeAux, normTypeAux;
-
-  if (!debug)
-    return;
 
   // write information in .debug-file
   out << "=======================" << std::endl;
@@ -505,7 +504,7 @@ void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
   out << "=======================" << std::endl;
   out << std::endl;
 
-  for (Integer ipde=0; ipde<PDEs_.GetSize(); ipde++)
+  for (UInt ipde=0; ipde<PDEs_.GetSize(); ipde++)
     {
       
       out << "Entering " << Couplings_[ipde]->GetPDEName() << ".InitCoupling" << std::endl;
@@ -513,7 +512,7 @@ void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
       
       
       // Show InputCouplings
-      for (Integer i=0; i<Couplings_[ipde]->GetNumInputCouplings(); i++)
+      for (UInt i=0; i<Couplings_[ipde]->GetNumInputCouplings(); i++)
 	{
 	  Couplings_[ipde]->GetInputNodes(i, nodes);
 	  Couplings_[ipde]->GetInputValues(i,val);
@@ -531,7 +530,7 @@ void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
 	  out << "InputQuantity: " << quantityAux<< std::endl;
 	  Couplings_[ipde]->GetInputRegions(i, couplingRegions);
 	  out << "RegionNames: ";
-	  for (Integer j=0; j<couplingRegions.GetSize()-1; j++)
+	  for (UInt j=0; j<couplingRegions.GetSize()-1; j++)
 	    out << couplingRegions[j] << ", ";
 	  out << couplingRegions[couplingRegions.GetSize() -1];
 	  out << std::endl;
@@ -550,7 +549,7 @@ void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
       couplingRegions.Clear();
       // Show OutputCouplings
       nodes = 0;
-      for (Integer i=0; i<Couplings_[ipde]->GetNumOutputCouplings(); i++)
+      for (UInt i=0; i<Couplings_[ipde]->GetNumOutputCouplings(); i++)
 	{
 	  Couplings_[ipde]->GetOutputNodes(i, nodes);
 	  Couplings_[ipde]->GetOutputValues(i,val);
@@ -570,7 +569,7 @@ void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
 	  Couplings_[ipde]->GetOutputRegions(i, couplingRegions);
 	  if (couplingRegions.GetSize() > 0)
 	    {
-	      for (Integer j=0; j<couplingRegions.GetSize()-1; j++)
+	      for (UInt j=0; j<couplingRegions.GetSize()-1; j++)
 		out << couplingRegions[j] << ", ";
 	      out << couplingRegions[couplingRegions.GetSize() -1];
 	      out << std::endl;   
@@ -636,20 +635,11 @@ void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
 // }
 
 
-void IterCoupledPDE::SetTimeStep(const Double dt)
-{
-  ENTER_FCN( "IterCoupledPDE::SetTimeStep" );
-
-    for (Integer i=0; i<PDEs_.GetSize(); i++)
-      PDEs_[i]->SetTimeStep(dt);
-}
-
-
 void IterCoupledPDE::WriteGeneralPDEdefines()
 {
   ENTER_FCN( "IterCoupledPDE::WriteGeneralPDEdefines" );
   
-  for (Integer i=0; i<PDEs_.GetSize(); i++)
+  for (UInt i=0; i<PDEs_.GetSize(); i++)
     PDEs_[i]->WriteGeneralPDEdefines();
 }
 
@@ -667,7 +657,7 @@ void IterCoupledPDE::PostProcess()
 {
   ENTER_FCN( "IterCoupledPDE::PostProcess" );
 
-    for (Integer i=0; i<PDEs_.GetSize(); i++)
+    for (UInt i=0; i<PDEs_.GetSize(); i++)
       PDEs_[i]->PostProcess();
 }
 

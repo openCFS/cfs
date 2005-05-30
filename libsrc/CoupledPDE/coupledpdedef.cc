@@ -25,7 +25,7 @@ namespace CoupledField
   {
     ENTER_FCN( "CoupledPDEDef::~CoupledPDEDef" );
 
-    for (Integer i=0; i<CoupledPDEs_.GetSize(); i++)
+    for (UInt i=0; i<CoupledPDEs_.GetSize(); i++)
       if (CoupledPDEs_[i]) delete CoupledPDEs_[i];
   }
   
@@ -37,16 +37,16 @@ namespace CoupledField
 
 
     bool found = false;
-    Integer CoupledPDENumber;
+    UInt CoupledPDENumber;
     StdVector<std::string> PDENames;
     OrderedPDEs.Clear();
 
-    //    for (Integer i=0; i<UnorderedPDEs.GetSize(); i++)
+    //    for (UInt i=0; i<UnorderedPDEs.GetSize(); i++)
     //      std::cerr << "Unorderered PDEs = " << UnorderedPDEs[i]->GetName() << std::endl;
 
     // iterate over all coupling PDEs to find the 
     // corresponding coupling definition for current set of PDEs
-    for (Integer i=0; i<CoupledPDEs_.GetSize(); i++)
+    for (UInt i=0; i<CoupledPDEs_.GetSize(); i++)
       {
         // check if number of PDEs in coupling matches
         if (CoupledPDEs_[i]->GetNumPDEs() == UnorderedPDEs.GetSize())
@@ -54,10 +54,10 @@ namespace CoupledField
             CoupledPDEs_[i]->GetNamePDEs(PDENames);
         
             // iterate over all PDEnames in ordered direction
-            for (Integer j=0; j<PDENames.GetSize(); j++)
+            for (UInt j=0; j<PDENames.GetSize(); j++)
               {
                 // iterate over all PDEnames in the vector of unordered PDEs
-                for (Integer k=0; k<UnorderedPDEs.GetSize(); k++)
+                for (UInt k=0; k<UnorderedPDEs.GetSize(); k++)
                   if (PDENames[j] == UnorderedPDEs[k]->GetName())
                     OrderedPDEs.Push_back(UnorderedPDEs[k]);
               }
@@ -95,7 +95,7 @@ namespace CoupledField
 
 
     // iterate over all PDEs specified CoupledPDE
-    for (Integer i=0; i<MyCoupledPDE->GetNumPDEs(); i++)
+    for (UInt i=0; i<MyCoupledPDE->GetNumPDEs(); i++)
       {
         MyCoupledPDE->GetCouplingType(OrderedPDEs[i]->GetName(), InputType);
         MyCoupledPDE->GetCouplingQuantity(OrderedPDEs[i]->GetName(), InputQuantity);
@@ -104,7 +104,7 @@ namespace CoupledField
         Couplings[i]->SetPDE(OrderedPDEs[i]);
 
         // add all coupling terms of PDE
-        for (Integer j=0; j<InputType.GetSize(); j++)
+        for (UInt j=0; j<InputType.GetSize(); j++)
 
           // if this coupling type is not needed in every coupled simulation
           if (inputOptionality[j])
@@ -116,11 +116,11 @@ namespace CoupledField
 
               couplingTermsConv.Clear();
               couplingTermsConv.Resize(couplingTerms.GetSize());
-              for (Integer k=0; k<couplingTerms.GetSize(); k++)
+              for (UInt k=0; k<couplingTerms.GetSize(); k++)
                 String2Enum(couplingTerms[k],couplingTermsConv[k]);
 
               Boolean found = FALSE;
-              for (Integer k=0; k<couplingTermsConv.GetSize(); k++)
+              for (UInt k=0; k<couplingTermsConv.GetSize(); k++)
                 if (couplingTermsConv[k] == InputQuantity[j])
                   found = TRUE;
 

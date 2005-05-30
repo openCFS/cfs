@@ -80,7 +80,7 @@ namespace CoupledField
                                   Boolean optional=FALSE);
   
     //! return number of pdes
-    virtual Integer GetNumPDEs(){return NumPDEs_;}
+    virtual UInt GetNumPDEs(){return NumPDEs_;}
 
     //! return vector with name of PDEs
     /*!
@@ -119,7 +119,7 @@ namespace CoupledField
   
   protected:
     //!< number of PDEs
-    Integer NumPDEs_;
+    UInt NumPDEs_;
   
     //!< vector conatining names of PDEs 
     StdVector< std::string> PDEs_;                                             
