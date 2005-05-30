@@ -64,6 +64,8 @@ auxiliary/mysql/getelements.sql -text
 auxiliary/mysql/getnodalresult.sql -text
 auxiliary/mysql/getresultidx.sql -text
 libsrc/AlgebraicSystem/README -text
+libsrc/CoupledPDE/AcouMechCoupling.cc svneol=native#text/plain
+libsrc/CoupledPDE/AcouMechCoupling.hh svneol=native#text/plain
 libsrc/CoupledPDE/BasePairCoupling.cc svneol=native#text/plain
 libsrc/CoupledPDE/BasePairCoupling.hh svneol=native#text/plain
 libsrc/CoupledPDE/DirectCoupledPDE.cc svneol=native#text/plain
