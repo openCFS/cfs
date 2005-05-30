@@ -1,6 +1,7 @@
 #include "DirectCoupledPDE.hh"
 
 #include "BasePairCoupling.hh"
+#include "PDE/newmark.hh"
 
 // include solveStep drivers
 #include "Driver/stdSolveStep.hh"
@@ -22,6 +23,8 @@ namespace CoupledField{
   {
     ENTER_FCN( "DirectCoupledPDE::DirectCoupledPDE" );
 
+    totalUnknowns_ = 0;
+
   }
 
 
@@ -40,6 +43,14 @@ namespace CoupledField{
     ENTER_FCN( "DirectCoupledPDE::SetSinglePDEs" );
 
     singlePDEs_ = pdes;
+    
+    // create pdename
+    for ( UInt i = 0; i < singlePDEs_.GetSize()-1; i++ ) {
+      pdename_ += singlePDEs_[i]->GetName();
+      pdename_ += "-";
+    }
+
+    pdename_ += singlePDEs_[singlePDEs_.GetSize()-1]->GetName();
   }
 
   void DirectCoupledPDE::SetCouplings( const StdVector<BasePairCoupling*> &couplings)
@@ -49,7 +60,7 @@ namespace CoupledField{
     couplings_ = couplings;
   }
 
-  void DirectCoupledPDE::Init(Integer bcSequenceStep ,
+  void DirectCoupledPDE::Init(UInt bcSequenceStep ,
                               std::string  bcSequenceTag)
   {
     ENTER_FCN( "DirectCoupledPDE::Init" );
@@ -66,12 +77,10 @@ namespace CoupledField{
     olasParams_ = algsys_->GetOLASParams();
     olasReport_ = algsys_->GetOLASReport();
   
-    // define solveStep-driver
-    DefineSolveStep();
   
     // activate direct coupling information
     // and initialize all single pdes
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) {
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       //std::cerr << "set Direct Coupling for pde " 
       //      << singlePDEs_[i]->GetName() << "\n";
     
@@ -84,6 +93,10 @@ namespace CoupledField{
     // HARD CODED:
     // We simply take the assemble object of the first SinglePDE
     assemble_ = singlePDEs_[0]->getPDE_assemble();
+
+    // HARD CODED
+    // Get information about analysistype of single PDEs
+    analysistype_ = singlePDEs_[0]->GetAnalysisType();
  
     // Get information about number of dirichlet values,
     // dofs, constraints and needed matrices
@@ -92,19 +105,37 @@ namespace CoupledField{
     // included boundary conditions
     numBuildInDirichletBCs_ = 0;
     NodeEQN * eqn;
-    for ( Integer i=0; i<singlePDEs_.GetSize(); i++ ) {
+    for ( UInt i=0; i<singlePDEs_.GetSize(); i++ ) {
       eqn = singlePDEs_[i]->getPDE_eqnData();
       numBuildInDirichletBCs_ += eqn->GetNumBuildInDirichletEQNs();
+      totalUnknowns_ += eqn->GetNumEQNs() * eqn->GetNumDofsPerEQN();
     }
 
     // get information about the needed matrix types 
     std::set<FEMatrixType> matTypes;
-    for ( Integer i=0; i<singlePDEs_.GetSize(); i++ ) {
+    for ( UInt i=0; i<singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->GetMatrixTypes( matTypes );
       matrixTypes_.insert( matTypes.begin(), matTypes.end() );
     }
     
     //std::cerr << "Leaving DirectCoupledPDE::Init\n";
+
+    // Initialize timestepping
+    if ( analysistype_ == TRANSIENT )
+      InitTimeStepping();
+
+
+
+    // Set correct size of direct solution value
+    if ( analysistype_ == HARMONIC ) {
+      solVec_ = new Vector<Complex>;
+    } else {
+      solVec_ = new Vector<Double>;
+    }
+    solVec_->Resize(totalUnknowns_);
+
+    // define solveStep-driver
+    DefineSolveStep();
   }
 
 
@@ -117,7 +148,7 @@ namespace CoupledField{
   void DirectCoupledPDE::SetBCs(const Double atimestep)
   {
     ENTER_FCN( "DirectCoupledPDE::SetBCs" );
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       singlePDEs_[i]->SetBCs( atimestep );
   }
 
@@ -131,14 +162,13 @@ namespace CoupledField{
     std::string pdeName;
     PdeIdType pdeId;
     NodeEQN *eqn = NULL;
-    Integer numDirichletEQNs = 0;
 
     // Begin setup of the matrix graph
     //std::cerr << "algsys_ = " << &(*algsys_) << std::endl;
     algsys_->GraphSetupInit( singlePDEs_.GetSize() );
 
     // iterate over all singlePDE and register them
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) {
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
 
       // obtain PDE identification tag from algebraic system
       // and set number of dirichlet and constraint equations
@@ -162,8 +192,14 @@ namespace CoupledField{
     }
   
   
+    // Hard Coded:
+    // After all Single PDEs have defined their algebraic system,
+    // the coupling object have to do this, too.
+    // Currently this is done by giving
+    algsys_->SetFEMatrixType( 0, DAMPING );
+
     // iterate over all singlePDE and setup matrix graph
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) {
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       //std::cerr << "Setting up Matrix graph for PDE " 
       //<< singlePDEs_[i]->GetName() << std::endl;
       // trigger the creation and assembly of the matrix graph
@@ -173,7 +209,7 @@ namespace CoupledField{
   
   
     // Initialize all Coupling Objects and setup their matrix graph
-    for (Integer i=0; i<couplings_.GetSize(); i++) {
+    for (UInt i=0; i<couplings_.GetSize(); i++) {
       couplings_[i]->SetAlgSys( algsys_ );
       couplings_[i]->Init( bcSequenceIndex_, bcSequenceTag_ );
       //    std::cerr << "Setting up matrix graph of coupling " << i << "\n";
@@ -187,7 +223,7 @@ namespace CoupledField{
   
     // obtain reordering of the matrix graph for each PDE
     // and give it to the EQN-object
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) {
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       pdeId = singlePDEs_[i]->GetPDEId();
       eqn = singlePDEs_[i]->getPDE_eqnData();
       Integer * newOrder = algsys_->GetReordering( pdeId );
@@ -200,42 +236,74 @@ namespace CoupledField{
     // Allocate the necessary matrices as well as solver and preconditioner
     CreateMatrices_Solver();
   
+
     //std::cerr << "Leaving DirectCoupledPDE::DefineAlgSys()\n";
   }
 
 
-  Integer DirectCoupledPDE::GetNumRestraints() {
+  UInt DirectCoupledPDE::GetNumRestraints() {
     ENTER_FCN( "DirectCoupledPDE::GetNumRestraints" );
 
-    Integer totalNumRestraints = 0;
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
+    UInt totalNumRestraints = 0;
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       totalNumRestraints += singlePDEs_[i]->GetNumRestraints();
   
     return totalNumRestraints;
   }
+  
   void DirectCoupledPDE::GetMatrixTypes( std::set<FEMatrixType> &matTypes) {
     ENTER_FCN( "DirectCoupledPDE::GetMatrixTypes" );
     Error ( "Not implemented", __FILE__, __LINE__ );
   }
 
 
-  void DirectCoupledPDE::SaveSolution() {
+  void DirectCoupledPDE::SaveSolution( const Double * ptSol, UInt size) {
     ENTER_FCN( "DirectCoupledPDE::SaveSolution" );
 
-    Double *ptSol = NULL;
-    Integer size = 0;
     BaseNodeStoreSol *ptNodeSol;
-
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) {
+    Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
+    solHelp.Resize(size);
     
-      // get associated solution from algsys
-      size = algsys_->GetSolutionVal( ptSol, singlePDEs_[i]->GetPDEId() );
-
-      // set pointer to solution object of the PDE
-      ptNodeSol = singlePDEs_[i]->getPDESolution();
-      ptNodeSol->SetAlgSysDataPointer( size, ptSol );
-    
+    for ( UInt i = 0; i < size; i++ ) {
+      solHelp[i] = ptSol[i];
     }
+    
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+       // set pointer to solution object of the PDE
+      ptNodeSol = singlePDEs_[i]->getPDESolution();
+      ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+      
+    }
+  }
+
+  void DirectCoupledPDE::SaveSolution( const Complex * ptSol, UInt size) {
+    ENTER_FCN( "DirectCoupledPDE::SaveSolution" );
+
+    BaseNodeStoreSol *ptNodeSol;
+    Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
+    solHelp.Resize(size);
+    
+    for ( UInt i = 0; i < size; i++ ) {
+      solHelp[i] = ptSol[i];
+    }
+    
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+       // set pointer to solution object of the PDE
+      ptNodeSol = singlePDEs_[i]->getPDESolution();
+      ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+      
+    }
+  }
+  
+
+  void DirectCoupledPDE::InitTimeStepping() {
+    ENTER_FCN( "DirecCoupledPDE::InitTimeStepping" );
+
+
+    // Hard Coded
+    TS_alg_ = new Newmark( algsys_, totalUnknowns_ );
+     
+    
   }
 
   // ======================================================
@@ -246,20 +314,20 @@ namespace CoupledField{
   {
     ENTER_FCN( "DirectCoupledPDE::PostProcess" );
   
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) {
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->PostProcess();
     }
   }
 
 
-  void DirectCoupledPDE::WriteResultsInFile(const Integer kstep,
+  void DirectCoupledPDE::WriteResultsInFile(const UInt kstep,
                                             const Double asteptime,
-                                            Integer stepOffset,
+                                            UInt stepOffset,
                                             Double timeOffset)
   {
     ENTER_FCN( "DirectCoupledPDE::WriteResultsInFile" );
   
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) {
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->WriteResultsInFile( kstep, asteptime, 
                                           stepOffset, timeOffset);
     }
@@ -301,19 +369,20 @@ namespace CoupledField{
 
   void DirectCoupledPDE::AssembleMatrices() {
 
+    std::cerr << "In DirectCoupledPDE::AssembleMatrices\n";
     // Assembly of diagonal-matrices
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       {
-        //std::cerr << "Assembling Matrices for PDE " 
-        //<< singlePDEs_[i]->GetName() << std::endl;
+        std::cerr << "Assembling Matrices for PDE " 
+                  << singlePDEs_[i]->GetName() << std::endl;
         singlePDEs_[i]->AssembleMatrices();
       }
 
     // Assembly of off-diagonal entries (coupling objcts)
-    for (Integer i=0; i<couplings_.GetSize(); i++) 
+    for (UInt i=0; i<couplings_.GetSize(); i++) 
       {
-        //      std::cerr << "Assembling Matrices for Coupling " 
-        //<< couplings_[i]->GetName() << std::endl;
+        std::cerr << "Assembling Matrices for Coupling " 
+                  << couplings_[i]->GetName() << std::endl;
         couplings_[i]->AssembleMatrices();
       }
   }
@@ -321,7 +390,7 @@ namespace CoupledField{
   void DirectCoupledPDE::AssembleSrcRHS(const Double time) {
     ENTER_FCN( "DirectCoupledPDE::AssembleSrcRHS" );
 
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       {
         singlePDEs_[i]->AssembleSrcRHS( time );
       }
@@ -331,7 +400,7 @@ namespace CoupledField{
   void DirectCoupledPDE::AssembleNLRHS(const Double time) {
     ENTER_FCN( "DirectCoupledPDE::AssembleNLRHS" );
 
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       {
         singlePDEs_[i]->AssembleNLRHS( time );
       }
@@ -340,7 +409,7 @@ namespace CoupledField{
   void DirectCoupledPDE::AssembleSprings( const Double time) {
     ENTER_FCN( "DirectCoupledPDE::AssembleSprings" );
 
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       {
         singlePDEs_[i]->AssembleSprings(time );
       }
@@ -349,7 +418,7 @@ namespace CoupledField{
   void DirectCoupledPDE::InitNonLinMatrices() {
     ENTER_FCN( "DirectCoupledPDE::InitNonLinMatrices" );
 
-    for (Integer i=0; i<singlePDEs_.GetSize(); i++) 
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       {
         singlePDEs_[i]->InitNonLinMatrices();
       }

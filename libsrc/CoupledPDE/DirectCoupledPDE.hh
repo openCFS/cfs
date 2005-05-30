@@ -41,7 +41,7 @@ namespace CoupledField {
     void SetCouplings( const StdVector<BasePairCoupling*> &couplings);
 
     //! Initialization routine
-    void Init(Integer sequenceStep = 0,
+    void Init(UInt sequenceStep = 0,
               std::string  bcSequenceTag = "anyTag");
 
     //! write general defines (BCs, loads, etc.) to info-file
@@ -56,13 +56,22 @@ namespace CoupledField {
     void DefineAlgSys();
 
     //! return number of restraints
-    Integer GetNumRestraints();
+    UInt GetNumRestraints();
   
     //! Get types of needed matrices (sysmtem, stiffness,..)
     void GetMatrixTypes( std::set<FEMatrixType> &matTypes);
 
+    //@{
     //! store the new solution returned by the algebraic system
-    void SaveSolution();
+    //! \param ptSol pointer to solution array
+    //! \param size legnth of solution array
+    void SaveSolution( const Double * ptSol, UInt size );
+    void SaveSolution( const Complex * ptSol, UInt size );
+    //@}
+
+    //!
+    virtual void InitTimeStepping();
+    
 
     // ======================================================
     // POSTPROC SECTION
@@ -77,9 +86,9 @@ namespace CoupledField {
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
-    void WriteResultsInFile(const Integer kstep = 0,
+    void WriteResultsInFile(const UInt kstep = 0,
                             const Double asteptime = 0.0,
-                            Integer stepOffset = 0,
+                            UInt stepOffset = 0,
                             Double timeOffset = 0.0);
     //@}
 
@@ -134,6 +143,12 @@ namespace CoupledField {
 
     //! References to pairwise coupling objects
     StdVector<BasePairCoupling*> couplings_;
+
+    //! Number of total unknowns 
+
+    //! Number of total unknowns, which is the sum of each PDE's
+    //! number of equations times its equations dof
+    UInt totalUnknowns_;
 
   };
 
