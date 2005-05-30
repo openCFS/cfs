@@ -79,4 +79,29 @@
     </xsd:complexType>
   </xsd:element> 
 
+ <!-- Acoustic-Mechanic coupling -->
+  <xsd:element name="acouMechDirect" substitutionGroup="PDEBasicDirectCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicDirectCoupling">
+          <xsd:sequence>
+            <xsd:element name="coupling" minOccurs="1" maxOccurs="unbounded">
+              <xsd:complexType>
+                <xsd:attribute name="type" use="required">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="interface"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+                <xsd:attribute name="name" type="xsd:token"
+                use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+
 </xsd:schema>
