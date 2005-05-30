@@ -56,9 +56,8 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::tichonov");
     std::cout<<"\n Entering piezoParamIdent::tichonov ... "<< std::endl;
 
-    Integer nrNewtonIterations=0;
-    Integer backtrackIterator=0;
-    Integer i;
+    UInt nrNewtonIterations=0;
+    UInt i;
     Double misfit, misfit_new, lin_misfit;
 
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
@@ -85,14 +84,14 @@ namespace CoupledField
     //     testA[2][2]=1.0;
 
     //     eigenValues(testA,0.0001,eigen);
-    //      for (Integer i=0;i<3;i++)
+    //      for (UInt i=0;i<3;i++)
     //        std::cout<<eigen[i]<<std::endl;
 
     //      std::getchar();
 
 
 
-    for(Integer i=0;i<actNrParameter;i++)
+    for(UInt i=0;i<actNrParameter;i++)
       bas[i]=1.0;
 
     Vector<Complex> step(actNrParameter);
@@ -104,14 +103,14 @@ namespace CoupledField
 
     misfit=sqrt(realA2norm(y_hat_F_hat)); 
     misfit_new=misfit;
-    lin_misfit;
+
     Double eta = 0.9;
 
     std::cout << "\n misfit = |y-F| =  " <<  misfit <<std::endl;
 
     while((misfit>tau*delta||nrNewtonIterations<25)&&nrNewtonIterations<20){ // Newton
 
-      for (Integer i=0;i<parameter.GetSize();i++)
+      for (UInt i=0;i<parameter.GetSize();i++)
         scaling[i]=1.0;
 
       nrNewtonIterations++;
@@ -129,12 +128,12 @@ namespace CoupledField
       std::cout<<"\n Tichonov 3"<<std::endl;
       
       std::cout<<"\n update bas"<<std::endl;
-      for(Integer i=0;i<actNrParameter;i++)
+      for(UInt i=0;i<actNrParameter;i++)
         bas[i]=basC[i].real();
 
       std::cout<<"\n Tichonov 4"<<std::endl;
       // Choice of regularisation parameter alpha!
-      Integer innerIter=0;
+      UInt innerIter=0;
 
       while (lin_misfit>eta*misfit_new&&innerIter<1||innerIter<1){
         innerIter++;
@@ -154,8 +153,8 @@ namespace CoupledField
 
         std::cout<<"\n Build up normal equation"<<std::endl;
 
-        for (Integer i=0;i<JacobiMatrixNE.GetSizeRow();i++)
-          for (Integer j=0;j<JacobiMatrixNE.GetSizeCol();j++){
+        for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
+          for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
             JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
             JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
             if(i==j)
@@ -168,7 +167,7 @@ namespace CoupledField
 
         std::cout<<"\n"<<std::endl;
 
-        for (Integer j=0;j<y_hat_F_hatNE.GetSize();j++){
+        for (UInt j=0;j<y_hat_F_hatNE.GetSize();j++){
           y_hat_F_hatNE[j]=y_hat_F_hatNE[j].real();
           //std::cout<<y_hat_F_hatNE[j].real()<<" ";
         }
@@ -176,7 +175,7 @@ namespace CoupledField
         //      Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
         //      eigenValues(JacobiMatrixNE_R,0.000001,eigenvalues);
 
-        //      for(Integer i=0;i<eigenvalues.GetSize();i++)
+        //      for(UInt i=0;i<eigenvalues.GetSize();i++)
         // std::cout <<" eig ("<<i<<") = "<< eigenvalues[i] << ", "<<std::endl; 
 
         //      std::cout<<"\n Condition number of normalequation: "<< sqrt(eigenvalues[0]/eigenvalues[eigenvalues.GetSize()-1])<<std::endl;
@@ -185,7 +184,7 @@ namespace CoupledField
         JacobiMatrixNE.DirectSolve(s,y_hat_F_hatNE);
       
         std::cout<< "\n s determined with direct solver ...\n " <<std::endl;
-        for (int i=0;i<parameter.GetSize();i++){ 
+        for (UInt i=0;i<parameter.GetSize();i++){ 
           std::cout<<"s("<<i<<")="<<s[i]<<"; \t";
           //      parameter_new[i]=parameter[i]; //+(1.0/scaling[i])*step[i].real();        
           //            parameter_new=parameter;
@@ -205,7 +204,7 @@ namespace CoupledField
         scaling[8]=1.0/((*matMat)[6][6]); 
         scaling[9]=1.0/((*matMat)[8][8]);
       
-        for (Integer i=0;i<nrParameter;i++)
+        for (UInt i=0;i<nrParameter;i++)
           stepR[i]=s[i].real();
 
         setNewParameterSet(parameter, parameter_new, scaling, theta, stepR, whichParameterToUpdate);
@@ -226,7 +225,7 @@ namespace CoupledField
         misfit_new = sqrt(realA2norm(y_hat_F_hat));
         reg_alpha = 1.1 * reg_alpha;
         
-        for (Integer i=0;i<nrParameter;i++){
+        for (UInt i=0;i<nrParameter;i++){
           std::cout<<"Paramter_new["<<i<<"]= " << parameter_new[i]<<std::endl; 
         }      
 
@@ -236,7 +235,7 @@ namespace CoupledField
       std::cout<<"\n"<<std::endl;
 
       // precautionary measure, if paramters tend to far away from initial values ...
-      //       for(Integer i=0;i<nrParameter;i++)
+      //       for(UInt i=0;i<nrParameter;i++)
       //        if (std::abs(parameter_new[i]-parstart[i])>0.5*std::abs(parstart[i])){
       //          parameter_new[i]=parameter[i];
       //          std::cout<<"\n parameter("<<i<<") was reset to value " << parameter[i] <<std::endl;
@@ -253,16 +252,16 @@ namespace CoupledField
     } // end while
   }
 
-  // void piezoParamIdent::jacobi(Matrix<Double>& a, Double eps, Integer l_sort, Integer l_print, Vector<Double> & d)
+  // void piezoParamIdent::jacobi(Matrix<Double>& a, Double eps, UInt l_sort, UInt l_print, Vector<Double> & d)
   //   {
   //     std::cout<<"\nEntering jacobi ... "<<std::endl;
-  //     Integer i, j;
-  //     Integer k, kmax;
-  //     Integer l_conv;
+  //     UInt i, j;
+  //     UInt k, kmax;
+  //     UInt l_conv;
   //     Double a2, eps2, dkmax;
   //     Double n, n2;
 
-  //     Integer ndim = a.GetSizeRow();
+  //     UInt ndim = a.GetSizeRow();
   
   //     a2 = 0.0;
   //     for (i=0; i<ndim; ++i)
@@ -275,7 +274,7 @@ namespace CoupledField
   //     n2 = n * n;
   //     eps2 = eps * eps;
   //     dkmax = std::log(eps)/std::log((n2-n-2)/(n2-n));
-  //     kmax = (Integer)std::ceil(dkmax);
+  //     kmax = (UInt)std::ceil(dkmax);
 
   //     std::cout<<"\nEntering jacobi 2... "<<std::endl;
   
@@ -300,13 +299,13 @@ namespace CoupledField
   //     ndim int : the matrix size
   //     a    double [][NDIM] : the square matrix A
   //   */
-  //   void piezoParamIdent::givens_rotation(Integer ndim, Matrix<Double> & a)
+  //   void piezoParamIdent::givens_rotation(UInt ndim, Matrix<Double> & a)
   //   {
   //     std::cout<<"\nEntering givens rotation ... "<<std::endl;
   //     Matrix<Double> b(ndim,ndim);
   //     //Double b[NDIM][NDIM];
   //     Double a2, max_a2;
-  //     Integer i, j, k, p, q;
+  //     UInt i, j, k, p, q;
   //     Double z, t, c, s, u;
   
   //     max_a2 = 0.0;
@@ -377,11 +376,11 @@ namespace CoupledField
   //     l_conv int * : l_conv = 1 if converged and 
   //     l_conv = 1 if not yet converged. 
   //   */
-  //   void piezoParamIdent::test_termination(Integer ndim, Matrix<Double> & a, Double a2, Double eps2, Integer *l_conv)
+  //   void piezoParamIdent::test_termination(UInt ndim, Matrix<Double> & a, Double a2, Double eps2, UInt *l_conv)
   //   {
   //     std::cout<<"\nEntering test_termin ... "<<std::endl;
   //     Double a_nd2;
-  //     Integer i, j;
+  //     UInt i, j;
   
   //     *l_conv = 0;
   
@@ -397,10 +396,10 @@ namespace CoupledField
   //   /*
   //     sorting of a 1-dimensional array d(1), d(2), ..., d(n)
   //   */
-  //   void piezoParamIdent::sort_array(Integer ndim, Integer l_sort, Vector<Double> & d)
+  //   void piezoParamIdent::sort_array(UInt ndim, UInt l_sort, Vector<Double> & d)
   //   {
   //     Double dv;
-  //     Integer k, i;
+  //     UInt k, i;
 
  
   //     if (l_sort == 0)

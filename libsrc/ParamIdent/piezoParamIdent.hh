@@ -35,6 +35,7 @@ namespace CoupledField
     std::ofstream * piezoLog;
     std::ofstream * parLog;
     std::ofstream * parFinal;
+    std::ofstream * mechDispl;
     //  std::ofstream impedCurve("impedCurve.dat");
     //  std::ofstream impedCurve("impedCurve.dat");
 
@@ -60,7 +61,7 @@ namespace CoupledField
     //! Method which reads Data from file measuredData.dat. The file contains measurements of amplitude, frequency, further 
     //according information concerning the piezhoelectric body (radius, thickness, ...)
     void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, 
-                          Double & voltage, Integer & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
+                          Double & voltage, UInt & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
 
     //! updates the piezoMatrix in MaterialData parameter = \f$(c_11, c_33, c_12, c_13, c_44, e_15, e_31, e_33, eps_11, eps_33)$\f
     //! \param parameter - new set of piezoelectric material parameters
@@ -70,12 +71,14 @@ namespace CoupledField
 
     //! overwrites values in paramter_new with paramter+step if whichParamterToUpdate ==1
     void setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,
-                            Vector<Double> & step, Vector<Integer> & whichParameterToUpdate);
+                            Vector<Double> & step, Vector<UInt> & whichParameterToUpdate);
 
     //! Calculates the impedance curve of piezo-simulation, writes results to file imped.dat
-    void calcAbsImped(Complex & charge, Double & freq, Integer & fstep, Boolean typeOut);
+    void calcAbsImped(Complex & charge, Double & freq, UInt & fstep, Boolean typeOut);
 
     void calcImpedanceCurve();
+
+    void calcMechDisplCurve();
 
     void updateRHS(Vector<Complex> & solElecPot, Vector<Complex> & mechDisplacement, Double omega);
 
@@ -86,13 +89,13 @@ namespace CoupledField
     //! types out nodal results of elecPot and mechanical displacement
     void typeOutSolutionOnScreen(Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
-    void calcInitialResidual(Vector<Complex> & res, Vector<Complex> & y_hat, Vector<Complex> & PHI_p, Integer fstep,
+    void calcInitialResidual(Vector<Complex> & res, Vector<Complex> & y_hat, Vector<Complex> & PHI_p, UInt fstep,
                              Vector<Complex> & solElecPot, Double & meanValueMechDeformation);
 
     void measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, 
-                                             Double & meanValueMechDeformation, int dof);
+                                             Double & meanValueMechDeformation, UInt dof);
    
-    void calcNorm2Resid(Vector<Complex> &res, Double & anorm, Integer nrMeasuredData);
+    void calcNorm2Resid(Vector<Complex> &res, Double & anorm, UInt nrMeasuredData);
 
     Double calcEuclidianMatrixNorm(Matrix<Complex> & mat);
     
@@ -131,7 +134,7 @@ namespace CoupledField
     void nuMethodsC2();
 
     //! saves sysmat of forward problem, multiplication with \omega*\beta*j ...
-    void createAndSetRHSforJacobian(Integer & fstep);
+    void createAndSetRHSforJacobian(UInt & fstep);
 
     //! calculates charges out of measurements of |Z|, phase and voltage for different frequencies
     void calc_measuredCharge(Vector<Double> freqs, Vector<Double> & absZ,
@@ -161,7 +164,7 @@ namespace CoupledField
     void calcSyntheticData(Vector<Complex> & y_hat);
 
     void createMaterialTensorMatrices(Vector<Double> & parameter, Matrix<Double> & couplingMatrix,
-                                      Matrix<Double> & dielectricMatrix, Integer spaceDim);
+                                      Matrix<Double> & dielectricMatrix, UInt spaceDim);
 
     //! Tests, if JacobiMatrix is more or less approximated by F(p)-F(p+delta)/delta
     void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
@@ -177,26 +180,29 @@ namespace CoupledField
                            MaterialData * ptMaterial);
     // ! The following methods serve for the determination of eigenvalues ...
 
-    //    void sort_array(Integer ndim, Integer l_sort, Vector<Double> & d);
-    //     void test_termination(Integer ndim, Matrix<Double> & a, Double a2, Double eps2, Integer *l_conv);
-    //     void givens_rotation(Integer ndim, Matrix<Double> & a);
-    //     void jacobi(Matrix<Double>& a, Double eps, Integer l_sort, Integer l_print, Vector<Double> & d);
+    //    void sort_array(UInt ndim, UInt l_sort, Vector<Double> & d);
+    //     void test_termination(UInt ndim, Matrix<Double> & a, Double a2, Double eps2, UInt *l_conv);
+    //     void givens_rotation(UInt ndim, Matrix<Double> & a);
+    //     void jacobi(Matrix<Double>& a, Double eps, UInt l_sort, UInt l_print, Vector<Double> & d);
 
-    Integer CalcImpedanceCurve;
-    Integer whichNewtonCG;
-    Integer maxNumberInnerLoops;
-    Integer maxNumberNewtonLoops;
-    Integer whichNorm;
+    Boolean CalcImpedanceCurve;
+    Boolean CalcMechDisplCurve;
+    UInt whichNewtonCG;
+    UInt maxNumberInnerLoops;
+    UInt maxNumberNewtonLoops;
+    UInt mechDisplAtNode;
+    UInt dofOfMechDispl;
+    UInt whichNorm;
     Boolean considerMechDeformation;
-    Vector<Integer> whichParameterToUpdate;
-    Vector<Integer> whichParameterToUpdateC;
-    Vector<Integer> whichParameterToUpdateRC;
-    Vector<Integer> whichParToUpInd;
-    Vector<Integer> whichParToUpIndC;
+    Vector<UInt> whichParameterToUpdate;
+    Vector<UInt> whichParameterToUpdateC;
+    Vector<UInt> whichParameterToUpdateRC;
+    Vector<UInt> whichParToUpInd;
+    Vector<UInt> whichParToUpIndC;
     Double sign;
     Matrix<Double> * piezoMatrix;
-    Integer dofs;
-    Integer numNodes;
+    UInt dofs;
+    UInt numNodes;
     BaseSystem * ptAlgsys;
     Grid * ptGrid;
     NodeEQN * ptNodeEqn;
@@ -206,9 +212,9 @@ namespace CoupledField
     Domain * ptDomain;
     Double startfreq;
     Double stopfreq;
-    Integer nrfreq;
+    UInt nrfreq;
     Double finalnorm;
-    Integer newtonCounter;
+    UInt newtonCounter;
     Double inner_eta;
 
     Vector<Complex> solElecPot;
@@ -241,12 +247,12 @@ namespace CoupledField
     Matrix<Complex> adjJacobiMatrix;
     Matrix<Complex> approxJacobiMatrix;
     Double voltage, thickness, radius, delta, meanValueMechDeformation, anorm, tau;
-    Integer nrMeasuredData;
-    Integer nrParameter;
-    Integer actNrParameter;
-    Integer actNrParameterC;
+    UInt nrMeasuredData;
+    UInt nrParameter;
+    UInt actNrParameter;
+    UInt actNrParameterC;
     Double relaxParameter;
-    Integer nrSol, sizeSol;
+    UInt nrSol, sizeSol;
     Double norm_res;
     Double eta;
     Double overall_res;

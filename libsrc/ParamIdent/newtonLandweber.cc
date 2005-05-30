@@ -59,9 +59,9 @@ namespace CoupledField
     //    std::cout<<"\n Landweber 1"<<std::endl;
 
     // Settings for Newton-CG - routine
-    Integer nrIterations=0;
-    Integer nLandweber=0;
-    Double theta, eta_acc, nu, omega;
+    UInt nrIterations=0;
+    UInt nLandweber=0;
+    Double theta, eta_acc;
 
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
@@ -71,7 +71,7 @@ namespace CoupledField
     Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer;
     Matrix<Complex> Identity(actNrParameter, actNrParameter);
     //we need the Identity of size nrParameter x nrParameter and some other temporary matrices
-    for (Integer i=0;i<actNrParameter;i++)
+    for (UInt i=0;i<actNrParameter;i++)
       Identity[i][i]=1;
     //  std::cout<<"\n Landweber 2"<<std::endl;
 
@@ -105,7 +105,7 @@ namespace CoupledField
     //    while (new_res_outer<=old_res_outer && nrIterations<maxNumberNewtonLoops) {
     while (nrIterations<1) {
 
-      for (Integer i=0;i<parameter.GetSize();i++)
+      for (UInt i=0;i<parameter.GetSize();i++)
         scaling[i]=1.0;
     
       nrIterations++;
@@ -147,7 +147,7 @@ namespace CoupledField
       //      getchar();
 
       // y_hat-F_hat
-      //       for (Integer i=0;i<y_hat.GetSize();i++)
+      //       for (UInt i=0;i<y_hat.GetSize();i++)
       //      act_res[i]=y_hat[i]-F_hat[i];
       //       std::cout<<"\n Landweber 4"<<std::endl;
           
@@ -171,7 +171,7 @@ namespace CoupledField
         //      //       std::cout<<"\n Landweber 5"<<std::endl;
 
         //      // F'sk - (y_hat-F_hat)
-        //      for (Integer i=0;i<nrMeasuredData;i++){
+        //      for (UInt i=0;i<nrMeasuredData;i++){
         //        act_res[i]=y_hat[i]-F_hat[i];
         //        JacFs_res[i]=JacFs[i]-act_res[i];
         //      }
@@ -188,20 +188,20 @@ namespace CoupledField
         
         // if accelerated
         if (FALSE){
-          for(Integer i=0;i<actNrParameter;i++){
+          for(UInt i=0;i<actNrParameter;i++){
             if (nLandweber>2)
               s[i]=s[i]+eta_acc*(s[i]-s_old[nLandweber-1][i])-100.0*w*adjFF_res[i];
             else
               s[i]=s[i]-100.0*w*adjFF_res[i];
             //         std::cout<<"s("<<i<<")= "<<s[i]<<"; "<<std::endl;
           }
-          for(Integer i=0;i<actNrParameter;i++)
+          for(UInt i=0;i<actNrParameter;i++)
             s_old[nLandweber][i]=s[i];
         }
        
         // classical version of Landweber ....
         if (TRUE){
-          for(Integer i=0;i<actNrParameter;i++){
+          for(UInt i=0;i<actNrParameter;i++){
             s[i]=s[i]-100.0*w*adjFF_res[i];
             //std::cout<<"s("<<i<<")= "<<s[i]<<"; "<<std::endl;
           }
@@ -212,12 +212,12 @@ namespace CoupledField
         //       std::cout<<"\n Landweber 6.5"<<std::endl;
 
         //F'(p^k)(s^k)-(y-F(p^k))
-        for (Integer i=0;i<nrMeasuredData;i++){
+        for (UInt i=0;i<nrMeasuredData;i++){
           act_res[i]=y_hat[i]-F_hat[i];
           JacFs_res[i]=JacFs[i]-act_res[i];
         }
 
-        //      for (Integer i=0;i<nrMeasuredData;i++)
+        //      for (UInt i=0;i<nrMeasuredData;i++)
         //act_res[i]-=JacFs[i];
         
         new_res_inner=a2norm(JacFs_res);
@@ -234,11 +234,11 @@ namespace CoupledField
 
 
         //      //F'(p^k)(s^k)-(y-F(p^k))
-        //      for (Integer i=0;i<nrMeasuredData;i++)
+        //      for (UInt i=0;i<nrMeasuredData;i++)
         //        act_res[i]-=JacFs[i];
         //      //       std::cout<<"\n Landweber 6.6"<<std::endl;
         
-        //      //      for (Integer i=0;i<act_res.GetSize();i++)
+        //      //      for (UInt i=0;i<act_res.GetSize();i++)
         //      // std::cout<<"act_res= "<< act_res[i]<<std::endl;
         
         //      new_res_inner=a2norm(act_res);
@@ -263,9 +263,6 @@ namespace CoupledField
       nLandweber=0;
 
 
-      Double old_resid2=old_res_outer;
-      Double new_resid2=new_res_outer;
-
       // backtracking(et , theta, s, old_resid2, new_resid2); 
 
       theta = 1.0;
@@ -282,7 +279,7 @@ namespace CoupledField
       scaling[8]=1.0/((*matMat)[6][6]); 
       scaling[9]=1.0/((*matMat)[8][8]);
 
-      for (Integer i=0;i<actNrParameter;i++)
+      for (UInt i=0;i<actNrParameter;i++)
         stepR[i]=s[i].real();
     
       //    parameter_new=parameter;
@@ -290,7 +287,7 @@ namespace CoupledField
       setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
 
       // if no backtracking is specified, please include the following lines!
-      for (Integer i=0;i<nrParameter;i++){
+      for (UInt i=0;i<nrParameter;i++){
         //      parameter_new[i]=scaling[i]*parameter[i];
         //      parameter_new[i]+=s[i].real();
         //      parameter[i]=1/scaling[i]*parameter_new[i];
@@ -302,7 +299,7 @@ namespace CoupledField
       createF(ptMaterial, F_hat,FALSE);
 
 
-      for (Integer i=0;i<y_hat.GetSize();i++)
+      for (UInt i=0;i<y_hat.GetSize();i++)
         act_res[i]=y_hat[i]-F_hat[i];
       new_res_outer=(a2norm(act_res));
       std::cout<<"\n new_res_outer = " << new_res_outer <<std::endl;
@@ -335,8 +332,8 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::NewtonLandweberC()");
     std::cout<<"\n Entering piezoParamIdent::NewtonLandweberC()"<<std::endl;
 
-    Integer nrIterations=0;
-    Integer nLandweber=0;
+    UInt nrIterations=0;
+    UInt nLandweber=0;
     Double theta, eta_acc;
 
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
@@ -349,7 +346,7 @@ namespace CoupledField
     Matrix<Complex> Identity(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
 
     //we need the Identity of size nrParameter x nrParameter and some other temporary matrices
-    for (Integer i=0;i<actNrParameter+actNrParameterC;i++)
+    for (UInt i=0;i<actNrParameter+actNrParameterC;i++)
       Identity[i][i]=1;
 
     std::cout<<"\n actNrParameter " << actNrParameter << " actNrParameterC = " << actNrParameterC << std::endl;
@@ -382,7 +379,7 @@ namespace CoupledField
     act_res = y_hat-F_hat;
     new_res_outer=old_res_outer=a2norm(act_res);
 
-    for (Integer i=0;i<actNrParameter+actNrParameterC;i++){
+    for (UInt i=0;i<actNrParameter+actNrParameterC;i++){
       bas[i]=1.0;
       basC[i]=Complex(1.0,1.0);
     }
@@ -392,7 +389,7 @@ namespace CoupledField
     //    while (new_res_outer<=old_res_outer && nrIterations<maxNumberNewtonLoops) {
     while (nrIterations<1) {
 
-      //  for (Integer i=0;i<parameter.GetSize();i++){
+      //  for (UInt i=0;i<parameter.GetSize();i++){
       //      scaling[i]=1.0;
       //      scalingC[i]=1.0;
       //       }
@@ -435,7 +432,7 @@ namespace CoupledField
       //      getchar();
 
       // y_hat-F_hat
-      //       for (Integer i=0;i<y_hat.GetSize();i++)
+      //       for (UInt i=0;i<y_hat.GetSize();i++)
       //      act_res[i]=y_hat[i]-F_hat[i];
       //       std::cout<<"\n Landweber 4"<<std::endl;
           
@@ -460,7 +457,7 @@ namespace CoupledField
         //       std::cout<<"\n Landweber 5"<<std::endl;
 
         // F'sk - (y_hat-F_hat)
-        for (Integer i=0;i<nrMeasuredData;i++){
+        for (UInt i=0;i<nrMeasuredData;i++){
           act_res[i]=y_hat[i]-F_hat[i];
           JacFs_res[i]=JacFs[i]-act_res[i];
         }
@@ -477,21 +474,21 @@ namespace CoupledField
         
         // if accelerated
         if (FALSE){
-          for(Integer i=0;i<actNrParameter+actNrParameterC;i++){
+          for(UInt i=0;i<actNrParameter+actNrParameterC;i++){
             if (nLandweber>2)
               s[i]=s[i]+eta_acc*(s[i]-s_old[nLandweber-2][i])-100.0*w*adjFF_res[i];
             else
               s[i]=s[i]-100.0*w*adjFF_res[i];
             //         std::cout<<"s("<<i<<")= "<<s[i]<<"; "<<std::endl;
           }
-          for(Integer i=0;i<actNrParameter;i++)
+          for(UInt i=0;i<actNrParameter;i++)
             s_old[nLandweber][i]=s[i];
         }
        
         //       std::cout<<"\n omega = " << w << std::endl;
 
         if (TRUE){
-          for(Integer i=0;i<actNrParameter+actNrParameterC;i++){
+          for(UInt i=0;i<actNrParameter+actNrParameterC;i++){
             s[i]=s[i]-10.0*w*adjFF_res[i];
             //std::cout<<"s("<<i<<")= "<<s[i]<<"; "<<std::endl;
           }
@@ -501,11 +498,11 @@ namespace CoupledField
         JacobiMatrix.Mult(s,JacFs);
         //       std::cout<<"\n Landweber 6.5"<<std::endl;
         //F'(p^k)(s^k)-(y-F(p^k))
-        for (Integer i=0; i<nrMeasuredData; i++)
+        for (UInt i=0; i<nrMeasuredData; i++)
           act_res[i]-=JacFs[i];
         //       std::cout<<"\n Landweber 6.6"<<std::endl;
         
-        //for (Integer i=0;i<act_res.GetSize();i++)
+        //for (UInt i=0;i<act_res.GetSize();i++)
         //std::cout<<"act_res= "<< act_res[i]<<std::endl;
         
         //      new_res_inner=a2norm(JacFs_res);
@@ -527,8 +524,6 @@ namespace CoupledField
       nLandweber=0;
 
 
-      Double old_resid2=old_res_outer;
-      Double new_resid2=new_res_outer;
 
       // backtracking(et , theta, s, old_resid2, new_resid2); 
 
@@ -561,12 +556,12 @@ namespace CoupledField
       //       std::cout<<"\n s:" <<std::endl;
       //       std::cout<<s<<std::endl;
 
-      for (Integer i=0;i<actNrParameter;i++)
+      for (UInt i=0;i<actNrParameter;i++)
         stepR[i]=s[i].real();
 
       //    std::cout<<stepR<<std::endl;
 
-      for (Integer i=actNrParameter;i<actNrParameter+actNrParameterC;i++)
+      for (UInt i=actNrParameter;i<actNrParameter+actNrParameterC;i++)
         stepC[i-actNrParameter]=s[i].imag();
       //       std::cout<<"\n stepC:"<<std::endl;
       //       std::cout<<stepC*scalingC[1]<<std::endl;
@@ -580,7 +575,7 @@ namespace CoupledField
       setNewParameterSet(parameterC, parameterC, scalingC, theta, stepC, whichParameterToUpdateC);
   
       // if no backtracking is specified, please include the following lines!
-      for (Integer i=0;i<nrParameter;i++){
+      for (UInt i=0;i<nrParameter;i++){
         //      parameter_new[i]=scaling[i]*parameter[i];
         //      parameter_new[i]+=s[i].real();
         //      parameter[i]=1/scaling[i]*parameter_new[i];
@@ -594,7 +589,7 @@ namespace CoupledField
       createF(ptMaterial, F_hat,FALSE);
 
 
-      for (Integer i=0;i<y_hat.GetSize();i++)
+      for (UInt i=0;i<y_hat.GetSize();i++)
         act_res[i]=y_hat[i]-F_hat[i];
       new_res_outer=(a2norm(act_res));
       std::cout<<"\n new_res_outer = " << new_res_outer <<std::endl;
