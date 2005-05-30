@@ -24,7 +24,7 @@ namespace CoupledField
     virtual ~BasePairCoupling();
     
     //! Initialization method
-    virtual void Init(Integer sequenceStep = 0,
+    virtual void Init(UInt sequenceStep = 0,
                       std::string  bcSequenceTag = "anyTag");
 
     //! Trigger calculation of postprocessing results
@@ -103,7 +103,7 @@ namespace CoupledField
 
     //! index of current set of boundary conditions. For a multiSequence-simulation
     //! this index determines, which set of boundary conditions is applied.
-    Integer bcSequenceIndex_;
+    UInt bcSequenceIndex_;
     //@}
 
     // -----------------------------------------------------------------------
@@ -121,11 +121,12 @@ namespace CoupledField
   
     //@}
     
-    
-
-    //! Subdomains of the coupling object
+    //! (Volume) regions of coupling object
     StdVector<RegionIdType> subdoms_;
-    
+
+    //! Surface regions of coupling object
+    StdVector<RegionIdType> surfRegions_;
+
     //! Name of coupling
     std::string couplingName_;
 
