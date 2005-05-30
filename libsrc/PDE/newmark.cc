@@ -9,13 +9,12 @@
 namespace CoupledField
 {
 
-  Newmark::Newmark(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN, 
-                   Boolean needDampingMatrix)
-    :TimeStepping(apdename, algebraicsystem,ptEQN)
+  Newmark::Newmark(BaseSystem * algebraicsystem, UInt rhsSize )
+    :TimeStepping(algebraicsystem, rhsSize)
   {
     ENTER_FCN( "Newmark::Newmark" );
 
-    damping_ = needDampingMatrix;
+    damping_ = FALSE;
 
     alpha_ = 0.0;
     //alpha_ = -1/3;
@@ -31,18 +30,15 @@ namespace CoupledField
     //  if(analysis != "paramIdent")
     //    Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
 
-    Integer numEQNs = ptEQN_->GetNumEQNs();
-    Integer dofs = ptEQN_->GetNumDofsPerEQN();
-  
     //get the memory
-    solderiv1_.Resize(numEQNs * dofs);
+    solderiv1_.Resize(rhsSize_);
     solderiv1_.Init();
-    solderiv2_.Resize(numEQNs * dofs);
+    solderiv2_.Resize(rhsSize_);
     solderiv2_.Init();
 
-    solpred_.Resize(numEQNs * dofs);
+    solpred_.Resize(rhsSize_);
     solpred_.Init();
-    solderiv1pred_.Resize(numEQNs * dofs);
+    solderiv1pred_.Resize(rhsSize_);
     solderiv1pred_.Init();
 
   }
@@ -53,21 +49,31 @@ namespace CoupledField
 
   }
 
-  void Newmark::Init(Double * matrix_factors, Double dt)
-  {
+  void Newmark::Init( std::map<FEMatrixType,Double> & matrix_factors,
+                      Double dt ) {
     ENTER_FCN( "Newmark::Init" );
 
+    // Check if a damping matrix is present
+    std::set<FEMatrixType> matTypes;    
+    algsys_->GetFEMatrixTypes(matTypes);
+
+    if ( matTypes.find(DAMPING) != matTypes.end() )
+      damping_ = TRUE;
+    
+    // Calculate parameters and store it in matrix_factors
     dt_ = dt;
     CalcParameters(dt_);
+        
+    matrix_factors[STIFFNESS] = (1.0 + alpha_);
+    matrix_factors[MASS] = 1.0*a2_;   
+    matrix_factors[CONVECTION] = 0.0; 
 
-    matrix_factors[0] = (1.0 + alpha_);    // factor for stiffness matrix
+    if ( damping_ == TRUE ) {
+      matrix_factors[DAMPING] = 1.0*a4_;
+    } else {
+      matrix_factors[DAMPING] = 0.0;     
+    }
 
-    matrix_factors[1] = 0.0; 
-    if (damping_)
-      matrix_factors[1] = 1.0*a4_; // factor for damping matrix
-
-    matrix_factors[2] = 0.0;       // factor for convection matrix
-    matrix_factors[3] = 1.0*a2_;   // factor for mass matrix
 
   }
 
@@ -178,15 +184,12 @@ namespace CoupledField
   // Effective Mass Matrix Formulation
   // ====================================================
 
-  NewmarkEffMass::NewmarkEffMass(std::string apdename, 
-                                 BaseSystem * algebraicsystem, 
-                                 NodeEQN * ptEQN, 
-                                 Boolean adamping)
-    :TimeStepping(apdename, algebraicsystem,ptEQN)
+  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem, UInt rhsSize)
+    :TimeStepping(algebraicsystem, rhsSize)
   { 
     ENTER_FCN( "NewmarkEffMass::NewmarkEffMass" );
 
-    damping_ = adamping;
+    damping_ = FALSE;
 
     alpha_ = 0.0;
     beta_  = 0.25;
@@ -198,23 +201,19 @@ namespace CoupledField
     if(analysis != "paramIdent")
       Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
 
-    Integer numEQNs = ptEQN_->GetNumEQNs();
-    Integer dofs = ptEQN_->GetNumDofsPerEQN();
-
-
     //get the memory
-    sol_.Resize(numEQNs*dofs);
+    sol_.Resize(rhsSize_);
     sol_.Init();
-    solpred_.Resize(numEQNs*dofs);
+    solpred_.Resize(rhsSize_);
     solpred_.Init();
 
-    solderiv1_.Resize(numEQNs*dofs);
+    solderiv1_.Resize(rhsSize_);
     solderiv1_.Init();
-    solderiv2_.Resize(numEQNs*dofs);
+    solderiv2_.Resize(rhsSize_);
     solderiv2_.Init();
 
   
-    solderiv1pred_.Resize(numEQNs*dofs);
+    solderiv1pred_.Resize(rhsSize_);
     solderiv1pred_.Init();
   }
 
@@ -224,21 +223,33 @@ namespace CoupledField
 
   }
 
-  void NewmarkEffMass::Init(Double * matrix_factors, Double dt)
+  void NewmarkEffMass::Init( std::map<FEMatrixType,Double> & matrix_factors,
+                             Double dt ) 
   {
     ENTER_FCN( "NewmarkEffMass::Init" );
 
+    // Check if a damping matrix is present
+    std::set<FEMatrixType> matTypes;    
+    algsys_->GetFEMatrixTypes(matTypes);
+
+    if ( matTypes.find(DAMPING) != matTypes.end() )
+      damping_ = TRUE;
+
+    
+    // Calculate parameters and store it in matrix_factors
     dt_ = dt;
     CalcParameters(dt_);
 
-    matrix_factors[0] = 1.0*a2_;   // factor for stiffness matrix
-
-    matrix_factors[1] = 0.0; 
-    if (damping_)
-      matrix_factors[1] = 1.0*a3_; // factor for damping matrix
-
-    matrix_factors[2] = 0.0;       // factor for convection matrix
-    matrix_factors[3] = 1.0;       // factor for mass matrix
+    
+    matrix_factors[STIFFNESS] = 1.0*a2_;
+    matrix_factors[MASS] = 1.0;
+    matrix_factors[CONVECTION] = 0.0;
+    
+    if (damping_) {
+      matrix_factors[DAMPING] = 1.0*a3_; 
+    } else {
+      matrix_factors[DAMPING] = 0.0; 
+    }
 
   }
 

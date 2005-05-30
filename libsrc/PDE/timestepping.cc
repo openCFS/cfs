@@ -7,15 +7,13 @@
 
 namespace CoupledField {
 
-  TimeStepping::TimeStepping(std::string apdename, BaseSystem * algebraicsystem, 
-                             NodeEQN * ptEQN)
+  TimeStepping::TimeStepping(BaseSystem * algebraicsystem, UInt rhsSize )
   {
 
     ENTER_FCN( "TimeStepping::TimeStepping" );
 
-    pdename_ = apdename;
     algsys_  = algebraicsystem;
-    ptEQN_ = ptEQN;
+    rhsSize_ = rhsSize;
   }
 
   TimeStepping::~TimeStepping() {

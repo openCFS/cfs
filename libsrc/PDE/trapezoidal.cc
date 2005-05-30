@@ -7,8 +7,8 @@
 namespace CoupledField
 {
 
-  Trapezoidal :: Trapezoidal(std::string apdename, BaseSystem * algebraicsystem, NodeEQN * ptEQN)
-    :TimeStepping(apdename, algebraicsystem, ptEQN)
+  Trapezoidal :: Trapezoidal( BaseSystem * algebraicsystem,  UInt numEqns )
+    :TimeStepping( algebraicsystem, numEqns )
   {
     ENTER_FCN( "Trapezoidal::Trapezoidal" );
 
@@ -19,14 +19,11 @@ namespace CoupledField
     //check if integration parameters are defined in conf-file
     //Info->Warning( "Trapezoidal: Using defaults for gamma!" );
 
-    Integer numEQNs = ptEQN_->GetNumEQNs();
-    Integer dofs = ptEQN_->GetNumDofsPerEQN();
-
     //get the memory
-    solderiv1_.Resize(numEQNs * dofs);  
+    solderiv1_.Resize(rhsSize_);  
     solderiv1_.Init();
 
-    solpred_.Resize(numEQNs * dofs); 
+    solpred_.Resize(rhsSize_); 
     solpred_.Init();
   }
 
@@ -36,19 +33,19 @@ namespace CoupledField
 
   }
 
-  void Trapezoidal::Init(Double * matrix_factors, Double dt)
-  {
+  void Trapezoidal::Init( std::map<FEMatrixType,Double> & matrix_factors,
+                          Double dt ) {
     ENTER_FCN( "Trapezoidal::Init" );
-
+    
     dt_ = dt;
     CalcParameters(dt_);
 
-    matrix_factors[0] = 1.0;       // factor for stiffness matrix
-    matrix_factors[3] = a1_;       // factor for mass matrix
+    matrix_factors[STIFFNESS] = 1.0;
+    matrix_factors[MASS] = a1_;
 
     //not used matrices
-    matrix_factors[1] = 0.0; 
-    matrix_factors[2] = 0.0;       
+    matrix_factors[CONVECTION] = 0.0; 
+    matrix_factors[DAMPING] = 0.0;       
   }
 
 

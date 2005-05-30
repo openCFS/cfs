@@ -1,6 +1,7 @@
 #ifndef FILE_TIMESTEPPING_2001
 #define FILE_TIMESTEPPING_2001
 
+#include <map>
 
 #include "General/environment.hh"
 #include "Utils/nodestoresol.hh"
@@ -12,24 +13,25 @@ namespace CoupledField {
   // forward class declaration
   class BaseSystem;
 
-  //! a base class for time stepping
+  //! Base class for time stepping algorithms
 
+  //! This is a base class for all classes, which performa a timestepping
+  //! i.e. solve a simple ODE. These are for exmaples trapezoidal rule
+  //! and newmark schemes.
   class TimeStepping
   {
   public:
     //! constructor
-    /*!
-      \param apdename name of PDE
-      \param algebraicsystem pointer to algebraic system used by PDE
-    */
-    TimeStepping(std::string apdename, BaseSystem * algebraicsystem,
-                 NodeEQN * ptEQN);
+    //! \param algebraicsystem pointer to algebraic system 
+    //! \param rhsSIze total number of entries in the rhs vector
+    TimeStepping( BaseSystem * algebraicsystem, UInt rhsSize );
 
     //! deconstructor
     virtual ~TimeStepping();
   
-    //! initilization
-    virtual void Init(Double * matrix_factors, Double dt)=0;
+    //! initialization
+    virtual void Init( std::map<FEMatrixType,Double> & matrix_factors, 
+                       Double dt ) = 0;
 
     //! perform predictor step
     virtual void Predictor(Vector<Double>& solold)=0;
@@ -58,8 +60,6 @@ namespace CoupledField {
     //! return pointer to vector with second derivative of solution
     virtual const Vector<Double>& GetDeriv2() const { return solderiv2_;}
 
-    NodeEQN * getNodeEQN(){return ptEQN_;};
-
     //! set the time step
     void SetTimeStep(Double dt) 
     { dt_ = dt;};
@@ -69,27 +69,33 @@ namespace CoupledField {
     { return dt_;};
 
     //! get beta coefficient from Newmark time stepping scheme
-    virtual Double GetNewmarkBeta()
-    {;};
+    virtual Double GetNewmarkBeta() { 
+      Error( "Not implemented here", __FILE__, __LINE__ );
+      return -1.0;
+    }
 
     //! Dirichlet boundary condition has to be adapted
     virtual Double DirichletBC4EffMassMatrix(Double val, Integer eq) {
       Error("DirichletBC4EffMassMatrix not implemented");
+      return -1.0;
     }
 
   protected:
+    
+    //! pointer to algebraic system
+    BaseSystem * algsys_;
 
-    std::string pdename_;  //<! name of PDE
-    BaseSystem * algsys_;  //<! pointer to algebraic system
-    NodeEQN * ptEQN_;      //<! pointer to eqn-object
+    //! total number of entries in the rhs vector
+    UInt rhsSize_;
+    
+    //! time step size
+    Double dt_;     
 
-    Double dt_;            //<! time step size
-
+    //! first and second time derivative of solution
     Vector<Double> solderiv1_, solderiv2_;
 
   private:
    
-
 
   };
 
