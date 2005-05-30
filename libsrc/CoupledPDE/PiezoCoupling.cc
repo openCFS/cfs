@@ -41,7 +41,7 @@ namespace CoupledField
     
     
     // iterate over all subdomains
-    for ( int actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
+    for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
        
       
       // ==============  add stiffness ========================================

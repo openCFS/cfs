@@ -36,8 +36,10 @@ namespace CoupledField
     //! write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
 
-    Assemble * getPDE_assemble()
-    {Error("Get Assemble-Object makes no sense for itercoupledPDE"); };
+    Assemble * getPDE_assemble() {
+      Error("Get Assemble-Object makes no sense for itercoupledPDE"); 
+      return NULL;
+    };
 
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
@@ -51,17 +53,17 @@ namespace CoupledField
     void DefineSolvingPDEs(StdVector<StdPDE*> & pdes);
 
     //! Solve static step
-    //void SolveStepStatic(const Integer kstep, const Double asteptime, 
+    //void SolveStepStatic(const UInt kstep, const Double asteptime, 
     //           const Boolean updatesysmat);
   
     //! solve transient step
-    //void SolveStepTrans(const Integer kstep, const Double asteptime,
+    //void SolveStepTrans(const UInt kstep, const Double asteptime,
     //                  const Boolean updatesysmat);
   
     //! write results in file
-    void WriteResultsInFile(const Integer kstep = 0,
+    void WriteResultsInFile(const UInt kstep = 0,
                             const Double asteptime = 0.0,
-                            Integer stepOffset = 0,
+                            UInt stepOffset = 0,
                             Double timeOffset = 0.0);
   
     //! set time step
@@ -80,7 +82,7 @@ namespace CoupledField
     //! calculates the norm of a vector
     //Double CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval);
 
-    Integer maxiter_;                        //!< maximum number of iterations per time step
+    UInt maxiter_;                        //!< maximum number of iterations per time step
     StdVector<Double> norms_;              //!< norm of coupling values
 
     //! pointer to SolveStep classes
@@ -93,7 +95,7 @@ namespace CoupledField
     AnalysisType analysistype_;         //!< type of analysis
     StdVector<StdPDE *> PDEs_;         //!< list of belonging PDEs
     StdVector<PDECoupling*> Couplings_; //!< vector of coupling objects
-    Integer NumPDEs_;                   //!< number of PDEs 
+    UInt NumPDEs_;                   //!< number of PDEs 
     std::string sequenceTag_;           //!< tag for current multisequence step
   
     // 

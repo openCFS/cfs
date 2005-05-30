@@ -55,6 +55,8 @@ namespace CoupledField
     numElems = x.numElems;
     normtype = x.normtype;
     epsilon = x.epsilon;
+    
+    return *this;
 
   }
  
@@ -94,11 +96,11 @@ namespace CoupledField
     // as output), it must be deleted only once. In this 
     // case the input-interface pointer was used.
   
-    //for (Integer i=0; i<outputInterfaces_.GetSize(); i++)
+    //for (UInt i=0; i<outputInterfaces_.GetSize(); i++)
     //if (outputInterfaces_[i]) 
     //  delete outputInterfaces_[i];
   
-    for (Integer i=0; i<inputInterfaces_.GetSize(); i++)
+    for (UInt i=0; i<inputInterfaces_.GetSize(); i++)
       if (inputInterfaces_[i]) 
         delete inputInterfaces_[i];
   
@@ -131,7 +133,7 @@ namespace CoupledField
     std::string quantityConv;
   
     // search matching  Quantity
-    for (Integer i=0; i<inputQuantities_.GetSize(); i++)
+    for (UInt i=0; i<inputQuantities_.GetSize(); i++)
       {
         if (inputQuantities_[i] == quantity)
           myNum = i; 
@@ -148,7 +150,7 @@ namespace CoupledField
     // Add coupling input as output to pde, which can calculate specified quantity
     CouplingOutputType myOutputType = Input2OutputType(inputTypes_[myNum]);
   
-    Integer i=0;
+    UInt i=0;
     while (myInterface == 0 && i<couplings.GetSize())
       {
         myInterface = couplings[i++]->AddOutput(myOutputType, quantity, 
@@ -196,11 +198,11 @@ namespace CoupledField
 
     // set neighbouring region name(s)
     // if only entry is "all", then add all regions
-    Integer numAllOccured = 0;
+    UInt numAllOccured = 0;
     StdVector<std::string> keyVec, attrVec, valVec;
 
     if (neighRegions.GetSize() != 0){
-      for (Integer iRegion=0; iRegion<neighRegions.GetSize(); iRegion++) {
+      for (UInt iRegion=0; iRegion<neighRegions.GetSize(); iRegion++) {
         if (neighRegions[iRegion] == "all")
           numAllOccured ++;
       }
@@ -238,10 +240,10 @@ namespace CoupledField
     
       
       
-        // for (Integer iSd=0; iSd < myPDE_->subdoms_.GetSize(); iSd++)
+        // for (UInt iSd=0; iSd < myPDE_->subdoms_.GetSize(); iSd++)
         //      {GetVolNeighboursForSurf
         //        ptGrid_->GetElemSD(actSubdomain, myPDE_->subdoms_[iSd]);
-        //        for (Integer j=0; j<actSubdomain.GetSize(); j++)
+        //        for (UInt j=0; j<actSubdomain.GetSize(); j++)
         //          possibleNeighbours.Push_back(actSubdomain[j]);
         //      }
       
@@ -257,10 +259,10 @@ namespace CoupledField
         //       // 2. Step: For each interface element, set the
         //       //          material parameter according to its neighbour
       
-        //       for (Integer i=0; i<myInterface->neighbours.GetSize(); i++)
+        //       for (UInt i=0; i<myInterface->neighbours.GetSize(); i++)
         //      {
         //        Boolean subdomFound = FALSE;
-        //        Integer subDomNr = 0;
+        //        UInt subDomNr = 0;
           
         //        for (subDomNr=0; subDomNr<myPDE_->subdoms_.GetSize(); subDomNr++)
         //          if (myPDE_->subdoms_[subDomNr] == myInterface->neighbours[i]->regionId)
@@ -283,10 +285,10 @@ namespace CoupledField
         //       possibleNeighbours.Clear();
       
       
-        //       for (Integer iSd=0; iSd < oppositePDE->subdoms_.GetSize(); iSd++)
+        //       for (UInt iSd=0; iSd < oppositePDE->subdoms_.GetSize(); iSd++)
         //         {
         //           ptGrid_->GetVolElems(actSubdomain, oppositePDE->subdoms_[iSd]);
-        //        for (Integer j=0; j<actSubdomain.GetSize(); j++)
+        //        for (UInt j=0; j<actSubdomain.GetSize(); j++)
         //          possibleNeighbours.Push_back(actSubdomain[j]);
         //      }
       
@@ -297,10 +299,10 @@ namespace CoupledField
         //        if (!neighbours.GetSize())
         //      Error("No opposite neighbours for element coupling found!",  __FILE__,__LINE__);
       
-        //       for (Integer i=0; i<neighbours.GetSize(); i++)
+        //       for (UInt i=0; i<neighbours.GetSize(); i++)
         //         {
         //           Boolean subdomFound = FALSE;
-        //           Integer subDomNr = 0;
+        //           UInt subDomNr = 0;
           
         //           for (subDomNr=0; subDomNr<oppositePDE->subdoms_.GetSize(); subDomNr++)
         //             if (oppositePDE->subdoms_[subDomNr] == neighbours[i]->regionId)
@@ -319,7 +321,7 @@ namespace CoupledField
         Integer index = -1;
         myInterface->oppositePdeMaterials.Resize(interfaceElems.GetSize());
 
-        for ( Integer iElem = 0; iElem < interfaceElems.GetSize(); iElem++ ) {
+        for ( UInt iElem = 0; iElem < interfaceElems.GetSize(); iElem++ ) {
         
           SurfElem const & myElem = 
             dynamic_cast<SurfElem &>(*interfaceElems[iElem]);
@@ -357,7 +359,7 @@ namespace CoupledField
     ENTER_FCN("PDECoupling::AddOutput");
   
     // search if output exists already
-    for (Integer i=0; i<outputTypes_.GetSize(); i++)
+    for (UInt i=0; i<outputTypes_.GetSize(); i++)
       if (outputTypes_[i] == outputType 
           && outputQuantities_[i] == quantity
           && outputInterfaces_[i]->regions == regions)
@@ -376,15 +378,14 @@ namespace CoupledField
     myInterface->regions = regions;
     myInterface->regionType = regionType;
 
-    StdVector<Integer> nodesConverted;
+    StdVector<UInt> nodesConverted;
     StdVector<Elem*> SD;
     StdVector<SurfElem*> surfElems;
-    StdVector<Integer> nodes;
-    Integer inode = 0;
-    Integer numNodes = 0;
+    StdVector<UInt> nodes;
+    UInt inode = 0;
+    UInt numNodes = 0;
     StdVector<Elem*> auxElems;
     std::string errMsg;
-    RegionIdType regionId;
     StdVector<RegionIdType> regionIdVec;
   
     // Get Elements/nodes of coupling region
@@ -398,10 +399,10 @@ namespace CoupledField
         myInterface->nodes.Reserve(numNodes);
       
                                       
-        for (Integer iSD=0; iSD<regions.GetSize(); iSD++)
+        for (UInt iSD=0; iSD<regions.GetSize(); iSD++)
           {
             ptGrid_->GetNodesByRegion(nodes, regionIdVec[iSD]);
-            for (Integer iNode=0; iNode<nodes.GetSize(); iNode++) {
+            for (UInt iNode=0; iNode<nodes.GetSize(); iNode++) {
               myInterface->nodes.Push_back(nodes[iNode]);
             }
           }
@@ -411,7 +412,7 @@ namespace CoupledField
         // Check if any nodes at all were found
         if ( myInterface->numNodes == 0){
           errMsg  = "Coupling::AddOutput: The region(s) ";
-          for (Integer k=0; k<regions.GetSize()-1; k++) {
+          for (UInt k=0; k<regions.GetSize()-1; k++) {
             errMsg += "'";
             errMsg += regions[k];
             errMsg += "', ";
@@ -435,7 +436,7 @@ namespace CoupledField
       
 
         // count complete number of nodes
-        for (Integer i=0; i<regions.GetSize(); i++)
+        for (UInt i=0; i<regions.GetSize(); i++)
           numNodes+= ptGrid_->GetNumNodes(regions[i]);
 
         myInterface->nodes.Resize(numNodes);
@@ -443,11 +444,11 @@ namespace CoupledField
         inode =0;
 
         // get for each nodeslist all nodes
-        for (Integer i=0; i<regions.GetSize(); i++)
+        for (UInt i=0; i<regions.GetSize(); i++)
           {
             ptGrid_->GetNodesByName(nodesConverted, regions[i]);
           
-            for ( Integer k=0; k< nodesConverted.GetSize(); k++, inode++)
+            for ( UInt k=0; k< nodesConverted.GetSize(); k++, inode++)
               myInterface->nodes[inode] = nodesConverted[k];
           }
 
@@ -456,7 +457,7 @@ namespace CoupledField
         // Check if any nodes at all were found
         if ( myInterface->numNodes == 0){
           errMsg  = "Coupling::AddOutput: The nodes(s) ";
-          for (Integer k=0; k<regions.GetSize()-1; k++) {
+          for (UInt k=0; k<regions.GetSize()-1; k++) {
             errMsg += "'";
             errMsg += regions[k];
             errMsg += "', ";
@@ -475,17 +476,17 @@ namespace CoupledField
         numNodes = ptGrid_->GetNumNodes( regionIdVec );
         myInterface->nodes.Reserve(numNodes);
 
-        for (Integer iSD=0; iSD<regions.GetSize(); iSD++) {
+        for (UInt iSD=0; iSD<regions.GetSize(); iSD++) {
 
           // first get the surface elements
           ptGrid_->GetSurfElems( surfElems, regionIdVec[iSD] );
-          for (Integer iElem=0; iElem<surfElems.GetSize(); iElem++)
+          for (UInt iElem=0; iElem<surfElems.GetSize(); iElem++)
             SD.Push_back(surfElems[iElem]);
         
           // then get the according coupling nodes
           ptGrid_->GetNodesByRegion(nodes, regionIdVec[iSD]);
         
-          for (Integer iNode=0; iNode<nodes.GetSize(); iNode++) {
+          for (UInt iNode=0; iNode<nodes.GetSize(); iNode++) {
             myInterface->nodes.Push_back(nodes[iNode]);
           }
         
@@ -502,7 +503,7 @@ namespace CoupledField
         // Check if any nodes at all were found
         if ( myInterface->numNodes == 0){
           errMsg  = "Coupling::AddOutput: The surface(s) ";
-          for (Integer k=0; k<regions.GetSize()-1; k++) {
+          for (UInt k=0; k<regions.GetSize()-1; k++) {
             errMsg += "'";
             errMsg += regions[k];
             errMsg += "', ";
@@ -535,7 +536,7 @@ namespace CoupledField
     myPDE_ = aPDE;
   }
 
-  void PDECoupling::SetOutputNumNodes(Integer i, Integer nnodes)
+  void PDECoupling::SetOutputNumNodes(UInt i, UInt nnodes)
   {
     ENTER_FCN("PDECoupling::SetOutputNumNodes");
   
@@ -543,7 +544,7 @@ namespace CoupledField
     
   }  
 
-  void PDECoupling::SetOutputNumElems(Integer i, Integer nelems)
+  void PDECoupling::SetOutputNumElems(UInt i, UInt nelems)
   {
     ENTER_FCN("PDECoupling::SetOutputNumElems");
     outputInterfaces_[i]->numElems = nelems;
@@ -551,7 +552,7 @@ namespace CoupledField
   }  
 
 
-  void PDECoupling::SetOutputDof(Integer i, ShortInt dof)
+  void PDECoupling::SetOutputDof(UInt i, UInt dof)
   {
     ENTER_FCN("PDECoupling::SetOutputDof");
     outputInterfaces_[i]->dof = dof;
@@ -564,27 +565,27 @@ namespace CoupledField
   }
 
 
-  Integer PDECoupling::GetNumInputCouplings()
+  UInt PDECoupling::GetNumInputCouplings()
   {
     ENTER_FCN("PDECoupling::GetnumInputCouplings");
     return inputInterfaces_.GetSize();
   }
 
 
-  Integer PDECoupling::GetNumOutputCouplings()
+  UInt PDECoupling::GetNumOutputCouplings()
   {
     ENTER_FCN("PDECoupling::GetnumOutputCouplings");
     return outputQuantities_.GetSize();
   }
 
 
-  void PDECoupling::CreateCouplingVector(Integer i,
+  void PDECoupling::CreateCouplingVector(UInt i,
                                          Boolean isComplex)
   {
     ENTER_FCN("PDECoupling::CreateCouplingVector");
 
-    Integer numNodes = outputInterfaces_[i]->numNodes;
-    Integer dof =  outputInterfaces_[i]->dof;
+    UInt numNodes = outputInterfaces_[i]->numNodes;
+    UInt dof =  outputInterfaces_[i]->dof;
 
     if (outputInterfaces_[i]->values != NULL || \
         outputInterfaces_[i]->oldValues != NULL)
@@ -637,7 +638,11 @@ namespace CoupledField
         return ELEM;
         break;
       }
-  
+
+    Error( "No output found for input", __FILE__, __LINE__ );
+    
+    // 
+
   }
 
   void PDECoupling::GetMemento(CouplingMemento & memento) {
@@ -647,7 +652,7 @@ namespace CoupledField
     memento.inputQuantities_ = inputQuantities_;
     memento.inputInterfaces_.Resize(inputInterfaces_.GetSize());
 
-    for (Integer i=0; i<inputInterfaces_.GetSize(); i++){
+    for (UInt i=0; i<inputInterfaces_.GetSize(); i++){
       memento.inputInterfaces_[i] = *(inputInterfaces_[i]);
     }
     memento.isSet_ = TRUE;
@@ -679,11 +684,11 @@ namespace CoupledField
     // Iterate over all quantities and check which values can be assigned
 
     // loop over all memento interfaces
-    for (Integer iMem=0; iMem<memento.inputTypes_.GetSize(); iMem++) {
+    for (UInt iMem=0; iMem<memento.inputTypes_.GetSize(); iMem++) {
       Boolean couplingFound = FALSE;
 
       // loop over all own interfaces
-      for (Integer iOwn=0; iOwn<inputTypes_.GetSize(); iOwn++) {
+      for (UInt iOwn=0; iOwn<inputTypes_.GetSize(); iOwn++) {
         if ((memento.inputTypes_[iMem] == inputTypes_[iOwn]) && 
           
             (memento.inputQuantities_[iMem] == inputQuantities_[iOwn]) &&
@@ -725,7 +730,6 @@ namespace CoupledField
             } else {
               // --- Real values --
 
-              Vector<Double> const & help = dynamic_cast<Vector<Double>&> (*(inputInterfaces_[iOwn]->values));
               dynamic_cast<Vector<Double>&> (*(inputInterfaces_[iOwn]->values))
                 = dynamic_cast<Vector<Double>&>
                 (*(memento.inputInterfaces_[iMem].values));
@@ -740,7 +744,7 @@ namespace CoupledField
           warnMsg  = "PDECoupling::SetMemento: The coupling quantitiy '";
           warnMsg += helper;
           warnMsg += "' at the interface(s) '";
-          for (Integer i=0; i<memento.inputInterfaces_[iMem].regions.GetSize()-1; i++) {
+          for (UInt i=0; i<memento.inputInterfaces_[iMem].regions.GetSize()-1; i++) {
             warnMsg +=  memento.inputInterfaces_[iMem].regions[i];
             warnMsg += ", ";
           }

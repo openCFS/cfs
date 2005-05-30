@@ -53,7 +53,7 @@ namespace CoupledField
       CouplingRegionType regionType;        
 
       //! vector of coupling nodes 
-      StdVector<Integer> nodes;           
+      StdVector<UInt> nodes;           
 
       //! vector of coupling elements
       StdVector<Elem*> elements;          
@@ -76,13 +76,13 @@ namespace CoupledField
       CFSVector * oldValues;
 
       //! dof of coupling values
-      ShortInt dof;
+      UInt dof;
 
       //! number of couplingnodes
-      Integer numNodes;
+      UInt numNodes;
 
       //! number of couplingelements
-      Integer numElems;
+      UInt numElems;
 
       //! type of norm
       NormType normtype;
@@ -129,22 +129,22 @@ namespace CoupledField
     virtual void SetPDE(StdPDE * aPDE);
 
     //! set coupling output dof
-    virtual void SetOutputDof(Integer i, ShortInt dof);
+    virtual void SetOutputDof(UInt i, UInt dof);
 
     //! set output coupling nodes size
-    virtual void SetOutputNumNodes(Integer i, Integer size);
+    virtual void SetOutputNumNodes(UInt i, UInt size);
  
     //! set output coupling elements size
-    virtual void SetOutputNumElems(Integer i, Integer size);  
+    virtual void SetOutputNumElems(UInt i, UInt size);  
 
     //! get PDE name
     virtual std::string GetPDEName();
   
     //! get number of input couplings
-    virtual Integer GetNumInputCouplings();
+    virtual UInt GetNumInputCouplings();
 
     //! get number of output couplings
-    virtual Integer GetNumOutputCouplings();
+    virtual UInt GetNumOutputCouplings();
 
 
     //! creates a new CFSVector-object for the 
@@ -156,135 +156,135 @@ namespace CoupledField
       \param solType (input) Type of Solution (ref. Enum-type)
       \param isComplex (inut) True if values are complex
     */
-    virtual void CreateCouplingVector(Integer i,
+    virtual void CreateCouplingVector(UInt i,
                                       Boolean isComplex);
   
     // ------------ input coupling -----------
 
     //! get input coupling type
-    virtual CouplingInputType GetInputType(Integer i)
+    virtual CouplingInputType GetInputType(UInt i)
     { return inputTypes_[i];}
 
     //! get input coupling quantity
-    virtual SolutionType GetInputQuantity(Integer i)
+    virtual SolutionType GetInputQuantity(UInt i)
     { return inputQuantities_[i]; }
 
     //! get input coupling region
-    virtual void GetInputRegions(Integer i, StdVector<std::string> & regions)
+    virtual void GetInputRegions(UInt i, StdVector<std::string> & regions)
     { regions = inputInterfaces_[i]->regions; }
 
     //! get input coupling regiontype
-    virtual CouplingRegionType GetInputRegionType(Integer i)
+    virtual CouplingRegionType GetInputRegionType(UInt i)
     { return inputInterfaces_[i]->regionType; }
 
     //! get input coupling region nodes
-    virtual void GetInputNodes(Integer i, StdVector<Integer>* &nodes)
+    virtual void GetInputNodes(UInt i, StdVector<UInt>* &nodes)
     { nodes  = &(inputInterfaces_[i]->nodes);}
 
     //! get input coupling region elements
-    virtual void GetInputElements(Integer i, StdVector<Elem *>*  &elements)
+    virtual void GetInputElements(UInt i, StdVector<Elem *>*  &elements)
     { elements = &(inputInterfaces_[i]->elements);}
 
     //! get input neighbour region
-    virtual void GetInputNeighbourRegion(Integer i, StdVector<std::string>* &regions)
+    virtual void GetInputNeighbourRegion(UInt i, StdVector<std::string>* &regions)
     { regions = &(inputInterfaces_[i]->neighInputRegions);}
 
     //! get input coupling values
-    virtual void GetInputValues(Integer i, CFSVector* &values)
+    virtual void GetInputValues(UInt i, CFSVector* &values)
     { values = (inputInterfaces_[i]->values);}
 
     //! get input coupling values
-    virtual void GetInputOldValues(Integer i, CFSVector* &values)
+    virtual void GetInputOldValues(UInt i, CFSVector* &values)
     { values = (inputInterfaces_[i]->oldValues);}
 
     //! get input coupling values dof
-    virtual ShortInt GetInputDof(Integer i)
+    virtual UInt GetInputDof(UInt i)
     { return inputInterfaces_[i]->dof; }
 
     //! get input coupling nodes size
-    virtual Integer GetInputNumNodes(Integer i)
+    virtual UInt GetInputNumNodes(UInt i)
     { return inputInterfaces_[i]->numNodes; }
 
     //! get input coupling elems size
-    virtual Integer GetInputNumElems(Integer i)
+    virtual UInt GetInputNumElems(UInt i)
     { return inputInterfaces_[i]->numElems; }
 
     //! get input coupling norm type
-    virtual NormType GetInputNormType(Integer i)
+    virtual NormType GetInputNormType(UInt i)
     { return inputInterfaces_[i]->normtype; }
 
     //! get input coupling epsilon
-    virtual Double GetInputEpsilon(Integer i)
+    virtual Double GetInputEpsilon(UInt i)
     { return inputInterfaces_[i]->epsilon; }
 
     // ------------- output coupling -----------
   
     //! get output coupling type
-    virtual CouplingOutputType GetOutputType(Integer i)
+    virtual CouplingOutputType GetOutputType(UInt i)
     { return outputTypes_[i];}
 
     //! get output coupling quantity
-    virtual SolutionType GetOutputQuantity(Integer i)
+    virtual SolutionType GetOutputQuantity(UInt i)
     { return outputQuantities_[i]; }
 
     //! get output coupling region
-    virtual void GetOutputRegions(Integer i, StdVector<std::string> &regions)
+    virtual void GetOutputRegions(UInt i, StdVector<std::string> &regions)
     { regions = outputInterfaces_[i]->regions; }
 
     //! get output coupling regiontype
-    virtual CouplingRegionType GetOutputRegionType(Integer i)
+    virtual CouplingRegionType GetOutputRegionType(UInt i)
     { return outputInterfaces_[i]->regionType; }
  
     //! get output coupling region nodes
-    virtual void GetOutputNodes(Integer i, StdVector<Integer>* &nodes)
+    virtual void GetOutputNodes(UInt i, StdVector<UInt>* &nodes)
     { nodes  = &(outputInterfaces_[i]->nodes);}
 
     //! get output coupling region elements
-    virtual void GetOutputElements(Integer i, StdVector<Elem *>* &elements)
+    virtual void GetOutputElements(UInt i, StdVector<Elem *>* &elements)
     { elements = &(outputInterfaces_[i]->elements);}
   
     //! get output neighbour elements
-    //virtual void GetOutputNeighbourElems(Integer i, StdVector<Elem *>*  &elements)
+    //virtual void GetOutputNeighbourElems(UInt i, StdVector<Elem *>*  &elements)
     //{ elements = &(outputInterfaces_[i]->neighbours);}
   
     //! get output neighbour region
-    //virtual void GetOutputNeighbourRegion(Integer i, StdVector<std::string>* &regions)
+    //virtual void GetOutputNeighbourRegion(UInt i, StdVector<std::string>* &regions)
     //{ regions = &(outputInterfaces_[i]->neighInputRegions);}
     
     //! get output coupling region materials
-    virtual void GetMaterials(Integer i, StdVector<MaterialData *>* &mat)
+    virtual void GetMaterials(UInt i, StdVector<MaterialData *>* &mat)
     { mat = &(outputInterfaces_[i]->materials);} 
   
     //! get output coupling region materials of opposite pde
-    virtual void GetOppositeMaterials(Integer i, StdVector<MaterialData *>* &mat)
+    virtual void GetOppositeMaterials(UInt i, StdVector<MaterialData *>* &mat)
     { mat = &(outputInterfaces_[i]->oppositePdeMaterials);}
 
     //! get output coupling values
-    virtual void GetOutputValues(Integer i, CFSVector* &values)
+    virtual void GetOutputValues(UInt i, CFSVector* &values)
     { values = (outputInterfaces_[i]->values);}
 
     //! get old output coupling values
-    virtual void GetOutputOldValues(Integer i, CFSVector* &values)
+    virtual void GetOutputOldValues(UInt i, CFSVector* &values)
     { values = (outputInterfaces_[i]->oldValues);}
 
     //! get output coupling values dof
-    virtual ShortInt GetOutputDof(Integer i)
+    virtual UInt GetOutputDof(UInt i)
     { return outputInterfaces_[i]->dof; }
 
     //! get output coupling number nodes
-    virtual Integer GetOutputNumNodes(Integer i)
+    virtual UInt GetOutputNumNodes(UInt i)
     { return outputInterfaces_[i]->numNodes; }
 
     //! get output coupling number elems
-    virtual Integer GetOutputNumElems(Integer i)
+    virtual UInt GetOutputNumElems(UInt i)
     { return outputInterfaces_[i]->numElems; }
 
     //! get output coupling norm type
-    virtual NormType GetOutputNormType(Integer i)
+    virtual NormType GetOutputNormType(UInt i)
     { return outputInterfaces_[i]->normtype; }
 
     //! get output coupling epsilon
-    virtual Double GetOutputEpsilon(Integer i)
+    virtual Double GetOutputEpsilon(UInt i)
     { return outputInterfaces_[i]->epsilon; }
 
     // ------------- memento operations  -----------
