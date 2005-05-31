@@ -118,6 +118,15 @@ namespace CoupledField {
   //!     </tr>
   //!
   //!     <tr>
+  //!       <td align="center">-e / --showEqnMap</td>
+  //!       <td align="center">flag / boolean</td>
+  //!       <td><em>print the dof to equation number mapping to OLAS report
+  //!           file</em></td>
+  //!       <td align="center">false = not set</td>
+  //!       <td align="center">%GetShowEqnMap()</td>
+  //!     </tr>
+  //!
+  //!     <tr>
   //!       <td align="center">-h / --help</td>
   //!       <td align="center">flag / boolean</td>
   //!       <td><em>print usage information</em></td>
@@ -190,6 +199,15 @@ namespace CoupledField {
     //! parameter file.
     virtual Boolean GetPrintGrid() const = 0;
 
+    //! Return showEqnMap flag
+
+    //! This method can be used to query the status of the shwoEqnMap flag.
+    //! By specifying this flag one instructs the executable to report the
+    //! maps that relates global to region-local node numbers and node number
+    //! to equation number in the algebraic system. The maps are written to
+    //! the standard OLAS report file.
+    virtual Boolean GetShowEqnMap() const = 0;
+
     //! Return writeSkeleton flag
 
     //! This method can be used to query the status of the writeSkeleton flag.
@@ -231,6 +249,7 @@ namespace CoupledField {
     const static std::string helpPrintGrid_;
     const static std::string helpHelp_;
     const static std::string helpSchemaPath_;
+    const static std::string helpShowEqnMap_;
     //@}
 
     //! \name Strings containing short markers for command line parameters
@@ -244,6 +263,7 @@ namespace CoupledField {
     const static std::string markerPrintGrid_;
     const static std::string markerHelp_;
     const static std::string markerSchemaPath_;
+    const static std::string markerShowEqnMap_;
     //@}
 
     //! \name Strings containing long markers for command line parameters
@@ -257,6 +277,7 @@ namespace CoupledField {
     const static std::string markerLongPrintGrid_;
     const static std::string markerLongHelp_;
     const static std::string markerLongSchemaPath_;
+    const static std::string markerLongShowEqnMap_;
     //@}
 
 
@@ -309,6 +330,16 @@ namespace CoupledField {
     //! print the grid.
     //! \return FALSE
     Boolean DefaultPrintGrid() const {
+      return FALSE;
+    }
+
+    //! Returns default value for --showEqnMap parameter
+
+    //! This method returns the default value for the --showEqnMap parameter.
+    //! The current default is not to report the node number <-> equation
+    //! number mapping.
+    //! \return FALSE
+    Boolean DefaultShowEqnMap() const {
       return FALSE;
     }
 

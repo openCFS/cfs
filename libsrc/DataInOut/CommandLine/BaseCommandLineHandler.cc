@@ -38,6 +38,9 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::helpPrintGrid_     =
   "only read grid from mesh-file and write it to output file";
 
+  const std::string BaseCommandLineHandler::helpShowEqnMap_    =
+  "print node to equation number mapping to OLAS report file";
+
   const std::string BaseCommandLineHandler::helpHelp_          =
   "print this usage information";
 
@@ -49,6 +52,7 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::markerPrintGrid_     = "-g";
   const std::string BaseCommandLineHandler::markerHelp_          = "-h";
   const std::string BaseCommandLineHandler::markerSchemaPath_    = "-s";
+  const std::string BaseCommandLineHandler::markerShowEqnMap_    = "-e";
 
   // Long forms of markers
   const std::string BaseCommandLineHandler::markerLongParamFile_     =
@@ -65,6 +69,8 @@ namespace CoupledField {
   "--help";
   const std::string BaseCommandLineHandler::markerLongSchemaPath_    =
   "--schemaPath";
+  const std::string BaseCommandLineHandler::markerLongShowEqnMap_    =
+  "--showEqnMap";
 
 
   // ---------------------------------------------------------------
@@ -128,6 +134,13 @@ namespace CoupledField {
        << '\n'
        << " " << helpWriteSkeleton_ << "\n\n"
 
+      // --showEqnMap
+       << " " << COLOR_INIT
+       << markerShowEqnMap_ << ", " << markerLongShowEqnMap_
+       << COLOR_STOP
+       << '\n'
+       << " " << helpShowEqnMap_ << "\n\n"
+
       // --help
        << " " << COLOR_INIT
        << markerHelp_ << ", " << markerLongHelp_
@@ -177,6 +190,11 @@ namespace CoupledField {
         << ' ' << markerLongPrintGrid_ << " = "
         << COLOR_INIT
         << GetPrintGrid()
+        << COLOR_STOP << '\n'
+
+        << ' ' << markerLongShowEqnMap_ << " = "
+        << COLOR_INIT
+        << GetShowEqnMap()
         << COLOR_STOP << '\n'
 
         << ' ' << markerLongWriteSkeleton_ << " = "

@@ -112,6 +112,15 @@ namespace CoupledField {
                   Setting::COMMAND_LINE_ONLY,
                   helpPrintGrid_.c_str() ),
 
+      // --showEqnMap
+      SettingDef( markerShowEqnMap_.c_str(),
+                  markerLongShowEqnMap_.c_str(),
+                  Setting::FLAG,
+                  1,
+                  1,
+                  Setting::COMMAND_LINE_ONLY,
+                  helpShowEqnMap_.c_str() ),
+
       // --help
       // SettingDef( markerHelp_.c_str(),
       //             markerLongHelp_.c_str(),
