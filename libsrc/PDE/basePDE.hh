@@ -31,17 +31,6 @@ namespace CoupledField
     
     //! Destructor
     virtual ~BasePDE();
-    
-    //! Initializes PDE 
-    
-    //! Initializes the PDE. This function is only called one time.
-    //! \param bcSequenceId (input) name of the tag for current set of 
-    //! boundary condition
-    // virtual void Init(UInt sequenceStep = 0,
-    //                std::string  bcSequenceTag = "anyTag") 
-    //     {
-    //       Error( "Init not implemented here");
-    //   }
 
     //! write general defines (BCs, loads, etc.) to info-file
     virtual void WriteGeneralPDEdefines() = 0;
@@ -64,17 +53,17 @@ namespace CoupledField
     virtual void PostProcess() = 0;
 
     //! write results in file
-    //! \param stepOffset offset for starting (time)step
-    //! \param timeOffset offset for starting time  
-    virtual void WriteResultsInFile(const UInt kstep = 0,
-                                    const Double asteptime = 0.0, 
+    //! \param stepOffset offset for starting (time/frequency)step
+    //! \param timeOffset offset for starting time / frequency
+    virtual void WriteResultsInFile(const UInt kstep, 
+                                    const Double actTimeFreq, 
                                     UInt stepOffset = 0,
                                     Double timeOffset = 0.0) = 0; 
     //@}
 
     
     // ======================================================
-    // GETTER METHODS
+    // SET /GET METHODS
     // ======================================================
 
     //@{

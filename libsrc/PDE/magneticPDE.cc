@@ -265,8 +265,8 @@ namespace CoupledField {
     NodeStoreSol<Double> * solTransient;
     NodeStoreSol<Complex> * solHarmonic;
 
-    Double actTime = lasttimecalc_ + timeOffset;
-    UInt actStep = laststepcalc_ + stepOffset;
+    Double actTime = asteptime + timeOffset;
+    UInt actStep = kstep + stepOffset;
     
     if (analysistype_ == STATIC ||
         analysistype_ == TRANSIENT) {
@@ -298,12 +298,12 @@ namespace CoupledField {
         solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
         
         if (saveSol_)
-          outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actFreqStep_, 
-                                              actFrequency_, complexFormat_);
+          outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actStep,
+                                              actTime, complexFormat_);
 
         if (saveSolHist_)
-          outFile_->WriteNodeHistoryHarmonic(*solHarmonic, actFreqStep_, 
-                                             actFrequency_, complexFormat_);
+          outFile_->WriteNodeHistoryHarmonic(*solHarmonic, actStep,
+                                             actTime, complexFormat_);
       }
       else {
         (*error) << "MagPDE: Only static, transient and harmonic results can "
@@ -507,11 +507,11 @@ namespace CoupledField {
     Double analysisVal;
     if ( analysistype_ == HARMONIC ) {
       analysis    = "Frequency:";
-      analysisVal = actFrequency_;
+      analysisVal = solveStep_->GetActFreq();
     }
     else {
       analysis    = "Time:";
-      analysisVal = lasttimecalc_;
+      analysisVal = solveStep_->GetActTime();
     }
 
     StdVector<std::string> regionNames;
@@ -618,7 +618,7 @@ namespace CoupledField {
       uiID[abs(actCoilID)-1] += uiSD[dom] * actCoilID/abs(actCoilID);
     }
 
-    *UIfile_ << lasttimecalc_ << " \t";
+    *UIfile_ << solveStep_->GetActTime() << " \t";
     for (UInt actID=0; actID < coilIDs.GetSize(); actID++) {
       if ( coilDef_[coilIDs[actID]-1]->coilType_ == Coil::MEASUREMENT2D )
         *UIfile_ << uiID[coilIDs[actID]-1] *

@@ -43,8 +43,6 @@ namespace CoupledField {
     // =====================================================================
     // set analysis parameters
     // =====================================================================
-    actFrequency_ = 0;
-    lasttimecalc_ = 0.0;
     couplingBCsCounter_ = 0;
     numDirichletBCs_ = 0;
     isIterCoupled_ = FALSE;
@@ -103,22 +101,6 @@ namespace CoupledField {
       Error("no such index in Vector bcs_id_phase_",__FILE__,__LINE__);
     bcs_id_phase_[i]=phase;
   }
-  
-  void StdPDE::setPDE_actFrequency(Double & freq) {
-    
-    ENTER_FCN("SinglePDE::setPDE_actFrequency");
-    
-    actFrequency_ = freq;
-  }
-  
-  void StdPDE::setPDE_actFreqStep(UInt & fstep){
-    
-    ENTER_FCN("SinglePDE::setPDE_actFreqStep");
-    
-    actFreqStep_ = fstep;
-  }
-  
-
 
   // ======================================================
   // GRID SECTION (Meshing, ...) 
@@ -372,6 +354,12 @@ namespace CoupledField {
     ENTER_FCN( "StdPDE::GetSolveStep" );
     return solveStep_;
   }
+  
+  UInt StdPDE::GetTimeStepCounter() {
+    ENTER_FCN( "StdPDE::GetTimeStepCounter" );
+    return solveStep_->GetActStep();
+  }
+
 
 
   // ======================================================
@@ -703,13 +691,13 @@ namespace CoupledField {
       }
  
       analysis    = "Frequency:";
-      analysisVal = actFrequency_;
+      analysisVal = solveStep_->GetActFreq();
       Info->WriteResult(pdename_,  resulttype, regionNames, subDomVolReal, 
                         unit, analysis, analysisVal);
     }
     else {
       analysis    = "Time:";
-      analysisVal = lasttimecalc_;
+      analysisVal = solveStep_->GetActTime();
       Info->WriteResult(pdename_,  resulttype, regionNames, subDomVolReal, 
                         unit, analysis, analysisVal);
     }

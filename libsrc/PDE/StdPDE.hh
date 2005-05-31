@@ -128,9 +128,8 @@ namespace CoupledField {
     //! return number of restraints
     virtual UInt GetNumRestraints( ) = 0;
 
-    //! Get number of time step
-    virtual UInt GetTimeStepCounter()
-    { return laststepcalc_; }
+    virtual UInt GetTimeStepCounter();
+   
 
     //! Get types of needed matrices (sysmtem, stiffness,..)
     virtual void GetMatrixTypes( std::set<FEMatrixType> &matTypes) = 0;
@@ -211,6 +210,9 @@ namespace CoupledField {
     //! system the element connectivities
     virtual void SetupMatrixGraph() = 0;
 
+    //! trigger the reassmbling of the matrices
+    virtual void SetReassemble() = 0;
+
     //! Init the time stepping
     virtual void InitTimeStepping()
     {Error("InitTimeStepping not implemented",__FILE__,__LINE__);};
@@ -251,11 +253,6 @@ namespace CoupledField {
     {return complexValuedCharge_;};
 
     virtual void setBCs_id_phase_(UInt i, Double & phase);
-
-    //! Sets frequency during harmonic analysis  
-    virtual void setPDE_actFrequency(Double & freq);
-    
-    virtual void setPDE_actFreqStep(UInt & fstep);
     
     void setPDE_piezoMaterialType(piezoMaterialType & pMatType){
       piezoMaterialType_ = pMatType;};
@@ -488,13 +485,7 @@ namespace CoupledField {
     TimeStepping * TS_alg_;       //!< handles the time stepping
     Boolean effectiveMass_;       //!< use effective mass formulation for transient analysis
     Boolean firstTimeStepStatic_; //!< needed for coupled, iterative methods
-    Double lasttimecalc_;    //!< Last time on which we have calculated solution
-  
-    //! Number of last timestep on which we have calculated our solution
-    UInt laststepcalc_;
-  
-    Double  actFrequency_; //!< current frequency for harmonic analysis
-    UInt actFreqStep_;  //!< current frequency step for harmonic analysis
+
     //@}
 
 
@@ -511,7 +502,6 @@ namespace CoupledField {
     Boolean isAlwaysStatic_;    //!< flag for static PDEs (like electrostatic)
     UInt dim_;              //!< space dimension of pde
     Boolean isaxi_;             //!< TRUE: axisymmetric problem
-    Boolean recalc_;            //!< flag indicating reassembling of system matrix
     Boolean isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
     NodeEQN * eqnData_;         //!< equation handling
 

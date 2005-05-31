@@ -186,8 +186,8 @@ namespace CoupledField
   
     NodeStoreSol<Double> * solTransient;
   
-    UInt actStep = laststepcalc_ + stepOffset;
-    Double actTime = lasttimecalc_ + timeOffset;
+    UInt actStep = kstep + stepOffset;
+    Double actTime = asteptime + timeOffset;
 
     if (analysistype_ == STATIC ||
         analysistype_ == HARMONIC) {

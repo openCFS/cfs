@@ -96,7 +96,7 @@ namespace CoupledField {
         notIncludedBCs++;
       }
       else if (countNodes[mesh2PDENode_[homoDirichletNodes_[i]-1]-1] != 0) {
-        (*error) << "ScalarNodeEQN::CalcMapping: HomDirichletNode # "
+        (*warning) << "ScalarNodeEQN::CalcMapping: HomDirichletNode # "
                  << homoDirichletNodes_[i]
                  << "\nappeared already at least once in the list of "
                  << "boundary nodes for this PDE!\n Please check, if this "

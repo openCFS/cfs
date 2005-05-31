@@ -172,6 +172,9 @@ namespace CoupledField
     //! constructes the matrix graph by providing to the algebraic system the element connectivities
     void SetupMatrixGraph();
 
+    //! trigger the reassmbling of the matrices
+    void SetReassemble();
+
   protected:
 
   

@@ -35,7 +35,6 @@ namespace CoupledField {
     solDofs_ = 1;
     pdename_          = "acoustic";
     pdematerialclass_ = "fluid";
-    laststepcalc_ = 0;
 
     isMechCoupled_ = FALSE;
 
@@ -270,7 +269,6 @@ namespace CoupledField {
       // if pde couples with mechanic, we have to multiply the density by -1
       if ( isMechCoupled_ == TRUE ) {
         density *= -1.0;
-        std::cerr << "->IS Mech Coupled!\n";
       }
 
       // **********************************************************************
@@ -615,11 +613,11 @@ namespace CoupledField {
         solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
         if (saveSol_)
-          outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
-                                              actFrequency_, complexFormat_);
+          outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actStep, 
+                                              actTime, complexFormat_);
         if (saveSolHist_)
-          outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
-                                             actFrequency_, complexFormat_);
+          outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actStep, 
+                                             actTime, complexFormat_);
       }
       else {  
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);

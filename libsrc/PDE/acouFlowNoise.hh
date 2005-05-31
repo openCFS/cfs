@@ -41,10 +41,14 @@ namespace CoupledField
     void ReadFlowData(const char * aname, const UInt timestep,
                       Matrix<Double> &nodedata );
 
-    //!
-    void WriteResultsInFile();
 
-
+    //! write results in file
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time  
+    void WriteResultsInFile(const UInt kstep,
+                                    const Double asteptime,
+                                    UInt stepOffset = 0,
+                                    Double timeOffset = 0.0);
   private:
 
 

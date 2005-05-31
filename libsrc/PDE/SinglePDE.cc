@@ -50,7 +50,6 @@ namespace CoupledField {
     // =====================================================================
     // set analysis parameters
     // =====================================================================
-    actFrequency_ = 0;
     complexFormat_ = AMPLITUDE_PHASE; // or REAL_IMAG
     couplingBCsCounter_ = 0;
     numDirichletBCs_ = 0;
@@ -184,7 +183,6 @@ namespace CoupledField {
 
     if (analysisHelp == STATIC ||
         isAlwaysStatic_ == TRUE) {
-      laststepcalc_ = 1;
       isComplex_ = FALSE;
       assemble_ = new StaticAssemble(algsys_, ptgrid_);
       analysistype_ = STATIC;
@@ -195,7 +193,6 @@ namespace CoupledField {
       isComplex_ = FALSE;
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
       analysistype_ = TRANSIENT;
-      laststepcalc_ = 1;
       matrixTypes_.insert(STIFFNESS);
       matrixTypes_.insert(MASS);
     }
@@ -220,14 +217,12 @@ namespace CoupledField {
 
       if ( analysistype_ == STATIC ) {
         assemble_ = new StaticAssemble(algsys_, ptgrid_);
-        laststepcalc_ = 1;      
         isComplex_ = FALSE;
         matrixTypes_.insert(STIFFNESS);
       }
       else if ( analysistype_ == TRANSIENT ) {
         isComplex_ = FALSE;
         assemble_ = new TransientAssemble(algsys_, ptgrid_);
-        laststepcalc_ = 1;      
         matrixTypes_.insert(STIFFNESS);
         matrixTypes_.insert(MASS);
       }
@@ -888,21 +883,11 @@ namespace CoupledField {
     UInt numDir = GetNumRestraints() - numBuildInDirichletBCs_;
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
 
-    if (matrixTypes_.find(SYSTEM) != matrixTypes_.end())
-      algsys_->SetFEMatrixType( pdeId_, SYSTEM );
-    
-    if (matrixTypes_.find(STIFFNESS) != matrixTypes_.end())
-      algsys_->SetFEMatrixType( pdeId_, STIFFNESS );
-   
-    if (matrixTypes_.find(DAMPING) != matrixTypes_.end())
-      algsys_->SetFEMatrixType( pdeId_, DAMPING );
-    
-    if (matrixTypes_.find(CONVECTION) != matrixTypes_.end())
-      algsys_->SetFEMatrixType( pdeId_, CONVECTION );
+    std::set<FEMatrixType>::iterator it;
 
-    if (matrixTypes_.find(MASS) != matrixTypes_.end())
-      algsys_->SetFEMatrixType( pdeId_, MASS );
-    
+    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) {
+      algsys_->SetFEMatrixType( *it, pdeId_ );
+    }
 
     // create matrices and solver object, if PDE is not direct coupled
     if ( isDirectCoupled_ == FALSE )
@@ -938,6 +923,10 @@ namespace CoupledField {
   //! constructes the matrix graph by providing to the algebraic system the element connectivities
   void  SinglePDE::SetupMatrixGraph() {
     assemble_->SetupMatrixGraph();
+  }
+
+  void SinglePDE::SetReassemble() {
+    assemble_->SetReassemble();
   }
 
   
