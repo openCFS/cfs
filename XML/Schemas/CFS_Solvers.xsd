@@ -201,6 +201,8 @@
           <xsd:element name="tol" type="DT_PosFloat" minOccurs="0"/>
           <xsd:element name="maxIter" type="xsd:positiveInteger"
             minOccurs="0"/>
+          <xsd:element name="resDirectly" type="xsd:positiveInteger"
+            minOccurs="0"/>
           <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
