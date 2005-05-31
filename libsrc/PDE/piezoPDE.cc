@@ -419,28 +419,28 @@ namespace CoupledField {
       if (saveSol_)
         {
           solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-          outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actFreqStep_, 
-                                              actFrequency_, complexFormat_);
+          outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actStep, 
+                                              actTime, complexFormat_);
         }
 
       //history nodes
       if (saveSolHist_) {
         solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-        outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actFreqStep_, 
-                                           actFrequency_, complexFormat_);
+        outFile_->WriteNodeHistoryHarmonic(*solHarmonic, actStep,
+                                           actTime, complexFormat_);
       }
 
       //element results
       if (calcCharge_.GetSize() !=0 ) {
-        outFile_->WriteElemSolutionHarmonic(chargesComplex_, actFreqStep_,  
-                                            actFrequency_, complexFormat_);
+        outFile_->WriteElemSolutionHarmonic(chargesComplex_, actStep,  
+                                            actTime, complexFormat_);
       }
       if (calcStress_.GetSize() !=0 ) 
-        outFile_->WriteElemSolutionHarmonic(stressComplex_, actFreqStep_,  
-                                            actFrequency_, complexFormat_);
+        outFile_->WriteElemSolutionHarmonic(stressComplex_, actStep,
+                                            actTime, complexFormat_);
       if (calcEfield_.GetSize() !=0 ) 
-	outFile_->WriteElemSolutionHarmonic(EfieldComplex_, actFreqStep_,  
-                                            actFrequency_, complexFormat_);
+	outFile_->WriteElemSolutionHarmonic(EfieldComplex_, actStep,
+                                            actTime, complexFormat_);
     }
   }
 

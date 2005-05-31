@@ -107,7 +107,7 @@ namespace CoupledField {
     ENTER_FCN( "ElecPDE::WriteResultsInFile" );
 
     UInt actStep = kstep + stepOffset;
-    Double actTime = lasttimecalc_ + timeOffset;
+    Double actTime = timeOffset + asteptime;
   
 #ifdef PARALLEL //only one thread should write output
     int commrank;
@@ -531,11 +531,11 @@ namespace CoupledField {
     Double analysisVal;
     if ( analysistype_ == HARMONIC ) {
       analysis    = "Frequency:";
-      analysisVal = actFrequency_;
+      analysisVal = solveStep_->GetActFreq();
     }
     else {
       analysis    = "Time:";
-      analysisVal = lasttimecalc_;
+      analysisVal = solveStep_->GetActTime();
     }
 
     StdVector<std::string> subdomNames;

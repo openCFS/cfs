@@ -43,13 +43,13 @@ namespace CoupledField {
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
-    virtual void WriteResultsInFile(const UInt kstep = 0,
-                                    const Double asteptime = 0.0,
+    void WriteResultsInFile(const UInt kstep,
+                                    const Double asteptime,
                                     UInt stepOffset = 0,
                                     Double timeOffset = 0.0);
 
     //! return size of solution
-    virtual UInt getSize() const 
+    UInt getSize() const 
     { return size_;}
 
 #ifdef ADAPTGRID

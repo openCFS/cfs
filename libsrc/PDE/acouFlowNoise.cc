@@ -432,7 +432,10 @@ namespace CoupledField
   }
 
 
-  void AcouFlowNoise::WriteResultsInFile()
+  void AcouFlowNoise::WriteResultsInFile(const UInt kstep,
+                                         const Double asteptime,
+                                         UInt stepOffset,
+                                         Double timeOffset) 
   {
     ENTER_FCN( "AcouFlowNoise::WriteResultsInFile" );
 
@@ -440,6 +443,9 @@ namespace CoupledField
     NodeStoreSol<Double> * solTransient;
     NodeStoreSol<Complex> * solHarmonic;
   
+    Double actTime = asteptime + timeOffset;
+    UInt actStep = kstep + stepOffset;
+
     if (analysistype_ == TRANSIENT)
       {
         sol_der1Array.SetNumSolutions(1);
@@ -461,11 +467,10 @@ namespace CoupledField
 
         if (plotRHS_)
           {
-            std::cout<<"In AcouFlowNoise. Writing RHS as solution..."<<std::endl;
-            outFile_->WriteNodeSolutionTransient(rhs_,laststepcalc_,
-                                                 lasttimecalc_);
-            outFile_->WriteNodeSolutionTransient(rhs_, laststepcalc_, 
-                                                 lasttimecalc_);
+            std::cout<<"In AcouFlowNoise. Writing RHS as solution..."
+                     <<std::endl;
+            outFile_->WriteNodeSolutionTransient( rhs_, actStep, actTime );
+            outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime );
           }
         //      else
         //  {
@@ -473,18 +478,18 @@ namespace CoupledField
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
         //  }
     
-        outFile_->WriteNodeSolutionTransient(*solTransient,laststepcalc_,
-                                             lasttimecalc_);
-        outFile_->WriteNodeSolutionTransient(sol_der1Array,
-                                             laststepcalc_,lasttimecalc_);
-        outFile_->WriteNodeSolutionTransient(sol_der2Array,
-                                             laststepcalc_,lasttimecalc_);
+        outFile_->WriteNodeSolutionTransient(*solTransient, actStep, 
+                                             actTime );
+        outFile_->WriteNodeSolutionTransient(sol_der1Array, actStep, 
+                                             actTime );
+        outFile_->WriteNodeSolutionTransient(sol_der2Array, actStep, 
+                                             actTime );
       }
     else if (analysistype_ == HARMONIC)
       {
         solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-        outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actFreqStep_, 
-                                            actFrequency_, complexFormat_);
+        outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actStep, actTime,
+                                            complexFormat_ );
       }
     else
       Error("AcouFlowNoisePDE: Only transient and harmonic results possible",
