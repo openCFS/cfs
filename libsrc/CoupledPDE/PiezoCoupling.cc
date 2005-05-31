@@ -43,7 +43,6 @@ namespace CoupledField
     // iterate over all subdomains
     for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
        
-      
       // ==============  add stiffness ========================================
       BaseForm * bilinearStiff = GetStiffIntegrator(&materialData_[actSD]);
       IntegratorDescriptor *actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);

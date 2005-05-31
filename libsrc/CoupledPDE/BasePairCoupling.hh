@@ -1,6 +1,8 @@
 #ifndef FILE_BASEPAIRCOUPLING_HH
 #define FILE_BASEPAIRCOUPLING_HH
 
+#include <set>
+
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
 
@@ -50,6 +52,9 @@ namespace CoupledField
     SinglePDE* GetPde2()
     { return pde2_;}
     
+        //! Get types of needed matrices (sysmtem, stiffness,..)
+    void GetMatrixTypes( std::set<FEMatrixType> &matTypes);
+
     // ======================================================
     // METHODS FOR ASSEMBLING
     // ======================================================
@@ -130,6 +135,9 @@ namespace CoupledField
     //! Name of coupling
     std::string couplingName_;
 
+    //! Set with matrix types
+    std::set<FEMatrixType> matrixTypes_;
+
     //! Pointer to first pde
     SinglePDE *pde1_;
 
@@ -145,7 +153,7 @@ namespace CoupledField
     //! Pointer to algebraic system
     BaseSystem * algsys_;
 
-    //! Pointer to grid class
+
   };
 
 
