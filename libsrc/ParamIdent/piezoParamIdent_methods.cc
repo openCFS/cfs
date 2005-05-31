@@ -168,15 +168,17 @@ namespace CoupledField
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
-      ptMyPDE_->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], reset); 
+      ptMyPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
+      ptMyPDE_->GetSolveStep()->SetActStep(fstep); 
+      ptMyPDE_->GetSolveStep()->PreStepHarmonic(reset); 
 
-      ptMyPDE_->GetSolveStep()->SolveStepHarmonic(fstep, freqs[fstep], reset);
+      ptMyPDE_->GetSolveStep()->SolveStepHarmonic(reset);
 
-      ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], reset);
+      ptMyPDE_->GetSolveStep()->PostStepHarmonic( reset);
 
       ptMyPDE_->PostProcess();   
       
-      ptMyPDE_->WriteResultsInFile();
+      ptMyPDE_->WriteResultsInFile(fstep,freqs[fstep]);
       
       Vector<Complex> chargeVec = ptMyPDE_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
 	  
@@ -273,11 +275,15 @@ namespace CoupledField
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
-      ptMyPDE_->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], reset); 
 
-      ptMyPDE_->GetSolveStep()->SolveStepHarmonic(fstep, freqs[fstep], reset);
       
-      ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], reset);
+      ptMyPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
+      ptMyPDE_->GetSolveStep()->SetActStep(fstep); 
+      ptMyPDE_->GetSolveStep()->PreStepHarmonic(reset); 
+
+      ptMyPDE_->GetSolveStep()->SolveStepHarmonic(reset);
+      
+      ptMyPDE_->GetSolveStep()->PostStepHarmonic(reset);
       
       ptMyPDE_->PostProcess();   
 
@@ -398,18 +404,20 @@ namespace CoupledField
       //      std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;
 
       reset=TRUE;
-      ptMyPDE_->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], reset); 
+      ptMyPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
+      ptMyPDE_->GetSolveStep()->SetActStep(fstep);       
+      ptMyPDE_->GetSolveStep()->PreStepHarmonic(reset); 
          
         
     //  updateMaterialData(parameter,ptMaterial);
      // updateComplexMaterialData(parameterC,ptMaterial);
 
       //  std::cout<<"\n piezoParam:createF SolveStepHarmonic"<<std::endl;
-      ptMyPDE_->GetSolveStep()->SolveStepHarmonic(fstep, freqs[fstep], reset);
+      ptMyPDE_->GetSolveStep()->SolveStepHarmonic(reset);
       //std::cout<<"\n after SolveStepHarm " <<std::endl;
 
       //        std::cout<<"\n piezoParam:createF PostStepHarmonic"<<std::endl;
-      ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], reset);
+      ptMyPDE_->GetSolveStep()->PostStepHarmonic(reset);
 
       //std::cout<<"\n piezoParam:createF PostProcess at step  "<< fstep << std::endl;
       ptMyPDE_->PostProcess();
@@ -768,8 +776,9 @@ namespace CoupledField
           // the following lines are the content of: PreStepHarmonic:
           // ptMyPDE_->PreStepHarmonic(fstep, freqs[fstep], reset);
 
-          ptMyPDE_->setPDE_actFrequency(freqs[fstep]);
-          ptMyPDE_->setPDE_actFreqStep(fstep);
+
+          ptMyPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
+          ptMyPDE_->GetSolveStep()->SetActStep(fstep); 
           ptAssemble->SetFrequency(freqs[fstep]);
 
 
@@ -821,7 +830,7 @@ namespace CoupledField
             JacobiMatrix[fstep + nrMeasuredData][parIndex]=meanValueMechDeformation;    
           }
 
-          ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], reset);
+          ptMyPDE_->GetSolveStep()->PostStepHarmonic(reset);
           ptMyPDE_->PostProcess();
 
           Vector<Complex> chargeVec =  ptMyPDE_->getPDE_complexValuedCharge();
@@ -1055,9 +1064,10 @@ namespace CoupledField
 
           // the following lines are the content of: PreStepHarmonic:
           // ptMyPDE_->PreStepHarmonic(fstep, freqs[fstep], reset);
+          ptMyPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
+          ptMyPDE_->GetSolveStep()->SetActStep(fstep); 
 
-          ptMyPDE_->setPDE_actFrequency(freqs[fstep]);
-          ptMyPDE_->setPDE_actFreqStep(fstep);
+
           ptAssemble->SetFrequency(freqs[fstep]);
           //        updateMaterialData(parameter, ptMaterial);    // is neccessary, since otherwise we wouldd solve PDE with sparse Mat-Data
           //        ptMyPDE_->DefineIntegratorsWithMatInfo(ptMaterial);
@@ -1107,7 +1117,7 @@ namespace CoupledField
             JacobiMatrix[fstep + nrMeasuredData][ind_param]=meanValueMechDeformation;    
           }
 
-          ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], reset);
+          ptMyPDE_->GetSolveStep()->PostStepHarmonic(reset);
           ptMyPDE_->PostProcess();
         
           Vector<Complex> chargeVec =  ptMyPDE_->getPDE_complexValuedCharge();
@@ -1531,7 +1541,9 @@ namespace CoupledField
         //      Info->WriteHarmonicStep(ptMyPDE_->GetName(), fstep, freqs[fstep]);
         
         ptMyPDE_->WriteGeneralPDEdefines();
-        ptMyPDE_->GetSolveStep()->PreStepHarmonic(fstep, freqs[fstep], reset);
+        ptMyPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
+        ptMyPDE_->GetSolveStep()->SetActStep(fstep); 
+        ptMyPDE_->GetSolveStep()->PreStepHarmonic(reset);
         
         //      Cannot use SolveStepHarmonic, since it overwrites RHS ...
         //      for this, I have copied the method StepHarmonicLin to this place 
@@ -1581,10 +1593,9 @@ namespace CoupledField
           measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs); // Braucht üÜberarbeitung!!
           JacobiMatrix[fstep + nrMeasuredData][ind_param]=meanValueMechDeformation;    
         }
-
-        ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], reset);
+        ptMyPDE_->GetSolveStep()->PostStepHarmonic(reset);
         ptMyPDE_->PostProcess();
-        ptMyPDE_->GetSolveStep()->PostStepHarmonic(fstep, freqs[fstep], reset);
+        ptMyPDE_->GetSolveStep()->PostStepHarmonic( reset);
         Vector<Complex> chargeVec =  ptMyPDE_->getPDE_complexValuedCharge();
 
         Complex charge=Complex(0.0,0.0);
