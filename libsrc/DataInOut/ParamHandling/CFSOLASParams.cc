@@ -494,10 +494,10 @@ namespace CoupledField {
         if ( list[0] == "lapackLU" ) {
           olas->SetValue( "AMG_DirectSolver", LAPACK_LU );
         }
-        if ( list[0] == "directLDL" ) {
+        else if ( list[0] == "directLDL" ) {
           olas->SetValue( "AMG_DirectSolver", LDL_SOLVER );
         }
-        if ( list[0] == "pardiso" ) {
+        else if ( list[0] == "pardiso" ) {
           olas->SetValue( "AMG_DirectSolver", PARDISO );
         }
         else {
