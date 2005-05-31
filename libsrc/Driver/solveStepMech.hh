@@ -20,85 +20,24 @@ namespace CoupledField
     virtual ~SolveStepMech();
 
     //----------------------- STATIC---------------------------------------
-    //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */    
-    virtual void PreStepStatic(const UInt kstep, const Double asteptime,
-                               const Boolean reset);
 
-    //! solves for one linear static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    //     virtual void StepStaticLin(const UInt kstep, const Double asteptime,
-    //                                const Boolean reset);
+    //! routine for initilizations befor execution the SolveStep-method
+    //! \param reset TRUE: perfrom new assembly, etc
+    void PreStepStatic( const Boolean reset );
 
     //! solves for one nonlinear static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepStaticNonLin(const UInt kstep, const Double asteptime,
-                                  const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepStaticNonLin( const Boolean reset );
 
     //! routine for acttions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    virtual void PostStepStatic(const UInt kstep, const Double asteptime);
+    void PostStepStatic();
 
 
     //----------------------- TRANSIENT---------------------------------------
-    //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    //     virtual void PreStepTrans(const UInt kstep, const Double asteptime,
-    //                               const Boolean reset);
-
-    //! base method for solving one transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    //     virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
-    //                                 const Boolean updatesysmat);
-
+    
     //! solves for one linear transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    //     virtual void StepTransLin(const UInt kstep, const Double asteptime,
-    //                               const Boolean updatesysmat);
-
-
-    //! solves for one linear transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    void StepTransNonLin(const UInt kstep, const Double asteptime,
-                         const Boolean reset);
-
-    //! routine for actions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    //     virtual void PostStepTrans(const UInt kstep, const Double asteptime);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepTransNonLin( const Boolean reset );
 
 
   private:

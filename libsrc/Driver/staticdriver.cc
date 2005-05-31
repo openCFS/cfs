@@ -50,10 +50,13 @@ namespace CoupledField {
     const UInt nstep = 1;
     Double  steptime = 0.0;
     Boolean reset = FALSE;
+
+    ptPDE_->GetSolveStep()->SetActTime(steptime);
+    ptPDE_->GetSolveStep()->SetActStep(nstep);
     ptPDE_->WriteGeneralPDEdefines();
-    ptPDE_->GetSolveStep()->PreStepStatic(nstep, steptime, reset);
-    ptPDE_->GetSolveStep()->SolveStepStatic(nstep, steptime, reset);
-    ptPDE_->GetSolveStep()->PostStepStatic(nstep, steptime);
+    ptPDE_->GetSolveStep()->PreStepStatic(reset);
+    ptPDE_->GetSolveStep()->SolveStepStatic(reset);
+    ptPDE_->GetSolveStep()->PostStepStatic();
     
     ptPDE_->PostProcess();
     

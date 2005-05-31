@@ -122,10 +122,12 @@ namespace CoupledField {
           percentCounter += timeStepPercent;
         }
       }
-    
-      ptPDE_->GetSolveStep()->PreStepTrans(nstep, steptime, updatesysmat);
-      ptPDE_->GetSolveStep()->SolveStepTrans(nstep, steptime, updatesysmat);
-      ptPDE_->GetSolveStep()->PostStepTrans(nstep,steptime);
+
+      ptPDE_->GetSolveStep()->SetActTime(steptime);
+      ptPDE_->GetSolveStep()->SetActStep(nstep);
+      ptPDE_->GetSolveStep()->PreStepTrans(updatesysmat);
+      ptPDE_->GetSolveStep()->SolveStepTrans(updatesysmat);
+      ptPDE_->GetSolveStep()->PostStepTrans();
     
       // writing results in output-file
       if (nstep == stepsave && (nstep <= isaveend_)) { 

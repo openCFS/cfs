@@ -19,17 +19,13 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepAcouFlowNoise::SolveStepTrans(const UInt kstep, 
-                                              const Double asteptime, 
-                                              const Boolean reset)
-  {
+  void SolveStepAcouFlowNoise::SolveStepTrans( const Boolean reset ) {
     ENTER_FCN( "SolveStepAcouFlowNoise::SolveStepTrans" );
+    
+    //    Boolean Recalc=FALSE;
 
-    lasttimecalc_= asteptime;
-    Boolean Recalc=FALSE;
-
-    if (laststepcalc_==kstep && kstep!=0) Recalc=TRUE;
-    else laststepcalc_= kstep;
+    //if (laststepcalc_==kstep && kstep!=0) Recalc=TRUE;
+    //else laststepcalc_= kstep;
 
     Double * ptsol;
     UInt job = 3;
@@ -39,16 +35,16 @@ namespace CoupledField {
   
     TS_alg_->Predictor(solhelp->GetAlgSysVector());
 
-    if (kstep==1)
+    if ( actStep_ == 1 )
       {
         job = 1;
         assemble_->AssembleMatrices();
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
         algsys_->InitRHS();
-        assemble_->AssembleSrcRHS(lasttimecalc_);
+        assemble_->AssembleSrcRHS( actTime_ );
 
-        PDE_.ComputeRHS(lasttimecalc_);
+        PDE_.ComputeRHS( actTime_ );
         TS_alg_->UpdateRHS();
       }
     else if (reset)
@@ -59,20 +55,20 @@ namespace CoupledField {
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
         algsys_->InitRHS();
-        assemble_->AssembleSrcRHS(lasttimecalc_);
-        PDE_.ComputeRHS(lasttimecalc_);
+        assemble_->AssembleSrcRHS( actTime_ );
+        PDE_.ComputeRHS( actTime_ );
         TS_alg_->UpdateRHS();
       }
     else
       {
         job    = 3;
         algsys_->InitRHS();
-        assemble_->AssembleSrcRHS(lasttimecalc_);
-        PDE_.ComputeRHS(lasttimecalc_);
+        assemble_->AssembleSrcRHS( actTime_ );
+        PDE_.ComputeRHS( actTime_ );
         TS_alg_->UpdateRHS();
       };
 
-    SetBCs(lasttimecalc_);
+    SetBCs( actTime_ );
 
     if ( job == 1 ) {
       algsys_->SetupPrecond();

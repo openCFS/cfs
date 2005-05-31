@@ -25,13 +25,10 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepAcoustic::StepTransNonLin(const UInt kstep, const Double asteptime,
-                                          const Boolean reset) {
+  void SolveStepAcoustic::StepTransNonLin( const Boolean reset ) {
 
     ENTER_FCN( "SolveStepAcoustic::StepTransNonLin" );
 
-    laststepcalc_ = kstep;
-    lasttimecalc_ = asteptime;
     Double *solPtr;
   
     UInt job;
@@ -45,7 +42,7 @@ namespace CoupledField {
     job = 3;
   
     // if first time step, setup system matrix
-    if (laststepcalc_ == 1) {
+    if (actStep_ == 1) {
       assemble_->AssembleMatrices();
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
                
@@ -60,7 +57,7 @@ namespace CoupledField {
 
     // set BCs, if effective mass matrix formulation, values of BCs depend on 
     //  predictors, so predictors have to be computed beforehand
-    SetBCs(lasttimecalc_);
+    SetBCs(actTime_);
 
     // set old solution  
     newSol = solhelp->GetAlgSysVector();
@@ -76,7 +73,7 @@ namespace CoupledField {
       iterationCounter++;
       // for every time step write out number of iteration loops to standard out
       if (iterationCounter == 1)
-        std::cout << std::endl << "Time step:   "  << kstep 
+        std::cout << std::endl << "Time step:   "  << actStep_ 
                   << "  ,Iterations: " << iterationCounter;
       else 
         std::cout     << "  " << iterationCounter;

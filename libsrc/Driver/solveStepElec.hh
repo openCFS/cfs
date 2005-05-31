@@ -23,86 +23,43 @@ namespace CoupledField
 
     //----------------------- STATIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepStatic(const UInt kstep, const Double asteptime,
-                               const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void PreStepStatic( const Boolean reset );
 
     //! base method for solving one static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepStatic(const UInt kstep, const Double asteptime,
-                                 const Boolean reset);
+    //!\param reset TRUE: perfrom new assembly, etc
+    void SolveStepStatic( const Boolean reset );
 
     //! solves for one nonlinear static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepStaticNonLin(const UInt kstep, const Double asteptime,
-                                  const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepStaticNonLin( const Boolean reset );
 
     //! solves for one nonlinear static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepStaticNonLinEpsDiff(const UInt kstep, const Double asteptime,
-                                         const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepStaticNonLinEpsDiff( const Boolean reset );
 
-    //! routine for acttions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    virtual void PostStepStatic(const UInt kstep, const Double asteptime);
+    //! routine for acttions after the SolveStep-method 
+    void PostStepStatic();
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepTrans(const UInt kstep, const Double asteptime,
-                              const Boolean reset)
-    {PreStepStatic(kstep,asteptime,reset);};
+    //! \param reset TRUE: perfrom new assembly, etc
+    void PreStepTrans( const Boolean reset )
+    {PreStepStatic(reset);};
 
     //! base method for solving one transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
-                                const Boolean reset)
-    {SolveStepStatic(kstep,asteptime,reset);};
+    //! \param reset TRUE: perfrom new assembly, etc
+    void SolveStepTrans( const Boolean reset )
+    {SolveStepStatic(reset);};
 
     //! solves for one linear transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepTransLin(const UInt kstep, const Double asteptime,
-                              const Boolean reset)
-    {StepStaticLin(kstep,asteptime,reset);};
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepTransLin( const Boolean reset )
+    {StepStaticLin(reset);};
 
     //! routine for actions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    virtual void PostStepTrans(const UInt kstep, const Double asteptime)
-    {PostStepStatic(kstep,asteptime);};
+     void PostStepTrans()
+    {PostStepStatic();};
 
     //! compute polarization and add the term to RHS
     void AddPolarizationToRHS();

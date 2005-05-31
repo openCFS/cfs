@@ -24,31 +24,16 @@ namespace CoupledField
     //----------------------- TRANSIENT---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepTrans(const UInt kstep, const Double asteptime,
-                              const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void PreStepTrans( const Boolean reset );
 
     //! base method for solving one transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
-                                const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void SolveStepTrans( const Boolean reset );
 
     //! solves for one nonlinear transient step (with hysteresis) 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepTransNonLinEpsDiff(const UInt kstep, const Double asteptime,
-                                        const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepTransNonLinEpsDiff( const Boolean reset );
 
     //! update the hysteresis values
     void DoUpdateHyst();

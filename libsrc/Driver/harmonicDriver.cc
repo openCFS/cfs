@@ -94,13 +94,16 @@ namespace CoupledField
 
     for (fstep = 1; fstep <= numFreq_; fstep++) {
       Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq_);    
-      ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq_, reset);
-      ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq_, reset);
-      ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq_, reset);
+
+      ptPDE_->GetSolveStep()->SetActFreq(actFreq_);
+      ptPDE_->GetSolveStep()->SetActStep(fstep);
+      ptPDE_->GetSolveStep()->PreStepHarmonic(reset);
+      ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
+      ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
     
       // writing results in output-file
       ptPDE_->PostProcess();
-      ptPDE_->WriteResultsInFile();
+      ptPDE_->WriteResultsInFile(fstep, actFreq_);
     
       actFreq_ += freqIncr;
     }
