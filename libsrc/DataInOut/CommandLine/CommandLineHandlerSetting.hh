@@ -119,6 +119,23 @@ namespace CoupledField {
       return retVal;
     };
 
+    //! Return showEqnMap flag
+
+    //! This method can be used to query the status of the shwoEqnMap flag.
+    //! By specifying this flag one instructs the executable to report the
+    //! maps that relates global to region-local node numbers and node
+    //! numbers to equation numbers in the algebraic system. The maps are
+    //! written to the standard OLAS report file.
+    Boolean GetShowEqnMap() const {
+      ENTER_FCN( "CommandLineHandlerSetting::GetShowEqnMap" );
+      Boolean retVal = DefaultShowEqnMap();
+      Setting *aux = commandLine_.getSetting( markerShowEqnMap_.c_str() );
+      if ( aux != NULL ) {
+        retVal = TRUE;
+      }
+      return retVal;
+    };
+
     //! Return writeSkeleton flag
 
     //! This method can be used to query the status of the writeSkeleton flag.
