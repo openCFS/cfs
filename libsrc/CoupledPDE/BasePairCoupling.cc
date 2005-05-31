@@ -89,6 +89,14 @@ namespace CoupledField
     Enum2String((*pde1_).analysistype_ , help);
     //std::cerr << "Analysis of PDE is " 
     //<< help << std::endl;
+
+    if ( algsys_ == NULL ) {
+      (*error) << "BasePairCoupling::Init: The pointer to the algebraic "
+               << "system was not set yet! You must call 'SetAlgSys()' "
+               << "before!";
+      Error( __FILE__, __LINE__ );
+    }
+
     switch ( (*pde1_).analysistype_ ) {
 
     case STATIC:
@@ -109,20 +117,24 @@ namespace CoupledField
     assemble_->SetGeneralParams(couplingName_, 1, subdoms_,
                                 surfRegions_, bcSequenceTag );
                                 
-
     // set PDE Ids to assemble object
     PdeIdType id1 = (*pde1_).pdeId_;
     PdeIdType id2 = (*pde2_).pdeId_;
     assemble_->SetPDEId( id1, id2 );
     
    
-
     // initialize nonlinearities
     
     // get the equation objects the assigned pdes
     NodeEQN * eqn1 = (*pde1_).eqnData_;
     NodeEQN * eqn2 = (*pde2_).eqnData_;
     assemble_->SetPtr2EQNData(eqn1, eqn2);
+
+    // Set the needed matrices
+    std::set<FEMatrixType>::iterator it;
+    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) {
+      algsys_->SetFEMatrixType( *it, id1, id2 );
+    }
 
     // Read in material data
     ReadMaterialData();
