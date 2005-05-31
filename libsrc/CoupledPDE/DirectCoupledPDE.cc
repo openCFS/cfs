@@ -80,6 +80,7 @@ namespace CoupledField{
   
     // activate direct coupling information
     // and initialize all single pdes
+    std::set<AnalysisType> analysisTypes;
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       //std::cerr << "set Direct Coupling for pde " 
       //      << singlePDEs_[i]->GetName() << "\n";
@@ -88,16 +89,35 @@ namespace CoupledField{
     
       // Initialize all SinglePDEs
       singlePDEs_[i]->Init( bcSequenceStep, bcSequenceTag );
+
+      // Insert analysistype into set
+      analysisTypes.insert(singlePDEs_[i]->GetAnalysisType());
     }
 
-    // HARD CODED:
+
+    // If one PDE is transient, this analysistype is also
+    if ( analysisTypes.find(HARMONIC) != analysisTypes.end() ) {
+      (*error) << "Direct Coupling is not implemented for harmonic "
+               << "analysis!";
+      Error( __FILE__, __LINE__ );
+    }
+    
+    if ( analysisTypes.find(TRANSIENT) != analysisTypes.end() ) {
+      analysistype_ = TRANSIENT;
+    }
+    else if ( analysisTypes.find(STATIC) != analysisTypes.end() ) {
+      analysistype_ = STATIC;
+    }
+    else {
+      (*error) << "I was not able to determine the correct analysistype for "
+               << "your set of PDEs!";
+      Error( __FILE__, __LINE__ );
+    }
+      
+ 
     // We simply take the assemble object of the first SinglePDE
     assemble_ = singlePDEs_[0]->getPDE_assemble();
 
-    // HARD CODED
-    // Get information about analysistype of single PDEs
-    analysistype_ = singlePDEs_[0]->GetAnalysisType();
- 
     // Get information about number of dirichlet values,
     // dofs, constraints and needed matrices
   
@@ -110,19 +130,13 @@ namespace CoupledField{
       numBuildInDirichletBCs_ += eqn->GetNumBuildInDirichletEQNs();
       totalUnknowns_ += eqn->GetNumEQNs() * eqn->GetNumDofsPerEQN();
     }
-
-    // get information about the needed matrix types 
-    std::set<FEMatrixType> matTypes;
-    for ( UInt i=0; i<singlePDEs_.GetSize(); i++ ) {
-      singlePDEs_[i]->GetMatrixTypes( matTypes );
-      matrixTypes_.insert( matTypes.begin(), matTypes.end() );
-    }
     
     //std::cerr << "Leaving DirectCoupledPDE::Init\n";
 
     // Initialize timestepping
-    if ( analysistype_ == TRANSIENT )
+    if ( analysistype_ == TRANSIENT ) {
       InitTimeStepping();
+    }
 
 
 
@@ -196,7 +210,7 @@ namespace CoupledField{
     // After all Single PDEs have defined their algebraic system,
     // the coupling object have to do this, too.
     // Currently this is done by giving
-    algsys_->SetFEMatrixType( 0, DAMPING );
+   
 
     // iterate over all singlePDE and setup matrix graph
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
@@ -231,7 +245,7 @@ namespace CoupledField{
       eqn->ReorderMapping( newOrder );
       delete[] newOrder;
     }
-  
+
     //std::cerr << "Call 'CreateMatrices_Solver'\n";
     // Allocate the necessary matrices as well as solver and preconditioner
     CreateMatrices_Solver();
@@ -369,20 +383,15 @@ namespace CoupledField{
 
   void DirectCoupledPDE::AssembleMatrices() {
 
-    std::cerr << "In DirectCoupledPDE::AssembleMatrices\n";
     // Assembly of diagonal-matrices
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       {
-        std::cerr << "Assembling Matrices for PDE " 
-                  << singlePDEs_[i]->GetName() << std::endl;
         singlePDEs_[i]->AssembleMatrices();
       }
 
     // Assembly of off-diagonal entries (coupling objcts)
     for (UInt i=0; i<couplings_.GetSize(); i++) 
       {
-        std::cerr << "Assembling Matrices for Coupling " 
-                  << couplings_[i]->GetName() << std::endl;
         couplings_[i]->AssembleMatrices();
       }
   }
@@ -421,6 +430,15 @@ namespace CoupledField{
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
       {
         singlePDEs_[i]->InitNonLinMatrices();
+      }
+  }
+
+  void DirectCoupledPDE::SetReassemble() {
+    ENTER_FCN( "DirectCoupledPDE::SetReassemble" );
+
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
+      {
+        singlePDEs_[i]->SetReassemble();
       }
   }
 
