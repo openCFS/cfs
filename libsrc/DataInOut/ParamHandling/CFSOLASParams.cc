@@ -163,6 +163,10 @@ namespace CoupledField {
       if( list.GetSize() == 1 ) {
         olas->SetValue( "CG_maxIter", atoi(list[0].c_str()) );
       }
+      cfs->GetList( "resDirectly", list, pdename, "cg" );
+      if( list.GetSize() == 1 ) {
+        olas->SetValue( "CG_resDirectly", atoi(list[0].c_str()) );
+      }
       break;
 
     case GMRES:
