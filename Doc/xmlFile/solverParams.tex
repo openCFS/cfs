@@ -804,10 +804,18 @@ points are forced to get F-points.\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 %
 %
-directSolver & noSolver $|$ lapackLU &
-Selects the direct solver that will be used to solve the system on the coarsest
-level. In the case that \xml{noSolver} is chosen the smoother will be used to
-solve the problem.\\
+directSolver & noSolver  & in this case solution on the coarsest level is
+                           performed by using the smoother (may be very
+                           inefficient, e.g.~if coarsest grid problem is
+                           still large) \\
+             & lapackLU  & solve coarsest grid problem using the lapackLU
+                           solver (note: requires compilation with
+                           USE\_LAPACK = yes)\\
+             & pardiso   & solve coarsest grid problem using the pardiso
+                           solver (note: requires compilation with
+                           USE\_PARDISO = yes)\\
+             & directLDL & solve coarsest grid problem using the directLDL
+                           solver of OLAS\\
 %
 %
 \noalign{\smallskip}\hline\noalign{\smallskip}
