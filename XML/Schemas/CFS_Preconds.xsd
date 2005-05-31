@@ -194,6 +194,8 @@
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="noSolver"/>
                 <xsd:enumeration value="lapackLU"/>
+                <xsd:enumeration value="directLDL"/>
+                <xsd:enumeration value="pardiso"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
