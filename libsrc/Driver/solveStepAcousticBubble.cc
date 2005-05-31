@@ -40,21 +40,16 @@ namespace CoupledField {
   // ======================================================
 
 
-  void SolveStepAcousticBubble::SolveStepTrans( const UInt kstep, const Double asteptime, 
-                                                const Boolean reset ) {
+  void SolveStepAcousticBubble::SolveStepTrans( const Boolean reset ) {
 
     ENTER_FCN( "SolveStepAcousticBubble::SolveStepTrans" );
 
-    lasttimecalc_ = asteptime;
-    laststepcalc_ = kstep;
-
-    StepTransBubble(kstep, asteptime, reset);
+    StepTransBubble(reset);
 
   }
 
 
-  void SolveStepAcousticBubble::StepTransBubble(const UInt kstep, const Double asteptime,
-                                                const Boolean reset) {
+  void SolveStepAcousticBubble::StepTransBubble( const Boolean reset ) {
 
     ENTER_FCN( "SolveStepAcousticBubble::StepTransBubble" );
 
@@ -77,7 +72,7 @@ namespace CoupledField {
     //check for assembling of matrices
     job = 3;
 
-    if (laststepcalc_ == 1) {
+    if (actStep_ == 1) {
       job = 1;
       assemble_->AssembleMatrices();
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
@@ -140,14 +135,14 @@ namespace CoupledField {
       nlRhsOld = nlRhsNew;
 
       //account for source terms RHS
-      assemble_->AssembleSrcRHS(lasttimecalc_);
+      assemble_->AssembleSrcRHS(actTime_);
     
     
       //acoust for time stepping
       TS_alg_->UpdateRHS();
     
     
-      SetBCs(lasttimecalc_);
+      SetBCs(actTime_);
 
       if ( iterationCounter>1 ) 
         job = 3;
@@ -223,7 +218,7 @@ namespace CoupledField {
           // UInt eqnNr = 0;
           // UInt eqnDof = 0;
           // UInt dof = 1;
-          // std::cerr << lasttimecalc_ << "   "  << numEl; 
+          // std::cerr << actTime_ << "   "  << numEl; 
           // for ( UInt i=0; i < connect.GetSize(); i++){
           //   eqnData_ -> Node2EQN(connect[i],dof, eqnNr, eqnDof);
           //   std::cerr << "             " << connect[i];
@@ -261,7 +256,7 @@ namespace CoupledField {
           pressureDeriv /= elPressureDeriv.GetSize();
 
           if(numEl==90){
-            (*cla)<< lasttimecalc_ << "    " << "numEl " <<  "   "
+            (*cla)<< actTime_ << "    " << "numEl " <<  "   "
                   << pressure << "    " << pressureDeriv  << "   "
                   << pressure-oldpressure << "    " 
                   << pressureDeriv-oldpressureDeriv << std::endl;
@@ -281,7 +276,7 @@ namespace CoupledField {
         
           // In case of explicit Euler watch out suggested stepsize
           Double dt = TS_alg_->GetTimeStep();
-          Double steptime = lasttimecalc_ - dt;
+          Double steptime = actTime_ - dt;
         
           //get the current values
 
@@ -294,7 +289,7 @@ namespace CoupledField {
           //bubbleValues_[1] = bubbleValues_[1] / (sqrt(1e5/998));
         
           //      if(numEl==90){
-          //(*cla)<< lasttimecalc_ << "    " << numEl << "   " <<  bubbleValues_[0]  << "    " <<  bubbleValues_[1]  << "   "
+          //(*cla)<< actTime_ << "    " << numEl << "   " <<  bubbleValues_[0]  << "    " <<  bubbleValues_[1]  << "   "
           //<<  radiusWork_[numEl]   << "    " << velocityWork_[numEl];
           //}
 
@@ -303,7 +298,7 @@ namespace CoupledField {
           //set numEl to ODE-Solver
           ptODESolver_->SetNumEl(numEl);
         
-          ptODESolver_->Solve(steptime, lasttimecalc_, bubbleValues_, *ptBubble_[numEl], dt / 3.0,
+          ptODESolver_->Solve(steptime, actTime_, bubbleValues_, *ptBubble_[numEl], dt / 3.0,
                               0, dt);
         
           //set the new values
@@ -311,7 +306,7 @@ namespace CoupledField {
           velocityWork_[numEl] = bubbleValues_[1]; //* 1e5 / 10e-6 / 998;
 
           //      if(numEl==90){
-          //        (*cla)<< "       " << numEl << "     " << lasttimecalc_ << "    " <<  bubbleValues_[0]  << "    " <<  bubbleValues_[1]  << "   "
+          //        (*cla)<< "       " << numEl << "     " << actTime_ << "    " <<  bubbleValues_[0]  << "    " <<  bubbleValues_[1]  << "   "
           //      <<  radiusWork_[numEl]   << "    " << velocityWork_[numEl] << std::endl;
           //
           //}
@@ -329,8 +324,8 @@ namespace CoupledField {
     radius_   = radiusWork_;
     velocity_ = velocityWork_;
 
-    (*data) << lasttimecalc_ << "   " << "90 " <<  "   " << radius_[90] << "    " << velocity_[90] << std::endl;
-    //   std::cerr << lasttimecalc_ << "   " << "0 " <<  "   " << radius_[0] << "    " << velocity_[0] << std::endl;
+    (*data) << actTime_ << "   " << "90 " <<  "   " << radius_[90] << "    " << velocity_[90] << std::endl;
+    //   std::cerr << actTime_ << "   " << "0 " <<  "   " << radius_[0] << "    " << velocity_[0] << std::endl;
   
     // if ( iterationCounter = nonLinMaxIter_ ){
     //    Error("Nonlinear Iteration not converged", __FILE__, __LINE__ );
@@ -456,16 +451,16 @@ namespace CoupledField {
         //output r,v
         //     if (numEl == 91)
         //        {
-        //      Info->PrintF("","%e  %e  %e\n",lasttimecalc_,radius_[numEl],velocity_[numEl]);
-        //          (*data)<< lasttimecalc_ << "    " << radius_[numEl] << "    " << velocity_[numEl]<< std::endl;
+        //      Info->PrintF("","%e  %e  %e\n",actTime_,radius_[numEl],velocity_[numEl]);
+        //          (*data)<< actTime_ << "    " << radius_[numEl] << "    " << velocity_[numEl]<< std::endl;
         //        }        
 
-        if (laststepcalc_ == 1) 
+        if (actStep_ == 1) 
           beta2 = 4*PI*bubbleDensity_*6*bubbleValues_[0]
             *bubbleValues_[1]*bubbleValues_[1]; 
         else {
           StdVector<Double> dydt(2);
-          ptBubble_[numEl]->CompDeriv(lasttimecalc_, bubbleValues_, dydt);
+          ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues_, dydt);
 
           beta2 = 4*PI*bubbleDensity_*
             (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]

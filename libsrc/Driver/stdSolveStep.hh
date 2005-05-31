@@ -33,146 +33,72 @@ namespace CoupledField
     //----------------------- STATIC---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepStatic(const UInt kstep, const Double asteptime,
-                               const Boolean reset){;}
+    //!\param reset TRUE: perfrom new assembly, etc
+    virtual void PreStepStatic( const Boolean reset ){;}
  
     //! base method for solving one static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepStatic(const UInt kstep, const Double asteptime,
-                                 const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void SolveStepStatic( const Boolean reset );
 
     //! solves for one linear static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepStaticLin(const UInt kstep, const Double asteptime,
-                               const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void StepStaticLin( const Boolean reset );
 
     //! solves for one nonlinear static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepStaticNonLin(const UInt kstep, const Double asteptime,
-                                  const Boolean reset)
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void StepStaticNonLin( const Boolean reset )
     {Error("StepStaticNonLin not implemented!",__FILE__,__LINE__);};
-
+    
     //! routine for acttions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    virtual void PostStepStatic(const UInt kstep, const Double asteptime) {;};
+    virtual void PostStepStatic() {;};
 
 
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepTrans(const UInt kstep, const Double asteptime,
-                              const Boolean reset);
-
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void PreStepTrans( const Boolean reset );
+    
     //! base method for solving one transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
-                                const Boolean updatesysmat);
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void SolveStepTrans( const Boolean updatesysmat );
 
     //! solves for one linear transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepTransLin(const UInt kstep, const Double asteptime,
-                              const Boolean updatesysmat);
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void StepTransLin( const Boolean updatesysmat );
 
     //! solves for one nonlinear transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepTransNonLin(const UInt kstep, const Double asteptime,
-                                 const Boolean updatesysmat)
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void StepTransNonLin( const Boolean updatesysmat )
     {Error("Nonlinear Transient Step not implemented!",__FILE__,__LINE__);};
-
+    
     //! routine for actions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    virtual void PostStepTrans(const UInt kstep, const Double asteptime);
+    virtual void PostStepTrans();
 
     //----------------------- HARMONIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
-      \param reset TRUE: perfrom new assembly, etc
-    */   
-    virtual void PreStepHarmonic(const UInt freqStep, const Double frequency, 
-                                 const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void PreStepHarmonic( const Boolean reset );
 
     //!  base method for solving one harmonic step 
-    /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepHarmonic(const UInt freqStep, const Double frequency, 
-                                   const Boolean reset);
-
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void SolveStepHarmonic( const Boolean reset );
+    
     //! solves for one linear frequency step 
-    /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepHarmonicLin(const UInt freqStep, const Double frequency, 
-                                 const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void StepHarmonicLin( const Boolean reset );
 
     //! solves for one nonlinear frequency step 
-    /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepHarmonicNonLin(const UInt freqStep, const Double frequency, 
-                                    const Boolean reset)
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void StepHarmonicNonLin( const Boolean reset )
     {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
-
-
+    
     //!  routine for actions after the SolveStep-method
-    /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void PostStepHarmonic(const UInt freqStep, const Double frequency, 
-                                  const Boolean reset) {;};
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void PostStepHarmonic( const Boolean reset ) {;};
 
 
-    //!
+    //! 
     virtual void WriteResults(UInt actStep, Double actTime) {;};
 
     //----------------------- helpfull methods--------------------------------------
@@ -257,8 +183,6 @@ namespace CoupledField
     std::map<FEMatrixType,Double> matrix_factor_;   
     
     TimeStepping * TS_alg_;        //!< pointer to time-stepping object
-    Double lasttimecalc_;          //!< last time on which we have calculated solution
-    UInt laststepcalc_;         //!< Number of last timestep on which we have calculated 
                                    //!< our solution
     Boolean recalc_;               //!< flag indicating reassembling of system matrix
 

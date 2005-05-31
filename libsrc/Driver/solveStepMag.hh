@@ -21,40 +21,21 @@ namespace CoupledField
 
     //----------------------- STATIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepStatic(const UInt kstep, const Double asteptime,
-                               const Boolean reset);
-
+    //! \param reset TRUE: perfrom new assembly, etc
+    void PreStepStatic( const Boolean reset );
+    
     //! solves for one linear static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepStaticNonLin(const UInt kstep, const Double aTime,
-                                  const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepStaticNonLin( const Boolean reset );
     
     //! routine for acttions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    virtual void PostStepStatic();
+    void PostStepStatic();
 
 
     //----------------------- TRANSIENT---------------------------------------
     //! solves for one nonlinear transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    void StepTransNonLin(const UInt kstep, const Double asteptime,
-                         const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepTransNonLin( const Boolean reset );
 
 
   private:

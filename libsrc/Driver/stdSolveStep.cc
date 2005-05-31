@@ -29,10 +29,7 @@ namespace CoupledField {
     eqnData_      = PDE_.eqnData_;
     assemble_     = PDE_.assemble_;
 
-    lasttimecalc_  = PDE_.lasttimecalc_;
-    laststepcalc_  = PDE_.laststepcalc_;
     TS_alg_        = PDE_.TS_alg_;
-    recalc_        = PDE_.recalc_;
 
     lineSearch_       = PDE_.lineSearch_;
     nonLin_           = PDE_.nonLin_;
@@ -64,49 +61,43 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void StdSolveStep::SolveStepStatic(const UInt kstep, const Double asteptime,
-                                     const Boolean reset) {
+  void StdSolveStep::SolveStepStatic( const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::SolveStepStatic" );
 
-    PDE_.lasttimecalc_ = asteptime;
-    PDE_.laststepcalc_ = kstep;
 
     if (PDE_.nonLin_) {
-      StepStaticNonLin(kstep,asteptime,reset);
+      StepStaticNonLin(reset);
     }
     else {
-      StepStaticLin(kstep,asteptime,reset);
+      StepStaticLin(reset);
     }
   }
 
 
-  void StdSolveStep::StepStaticLin( const UInt kstep, const Double aTime,
-                                    const Boolean reset ) {
+  void StdSolveStep::StepStaticLin( const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::StepStaticLin" );
 
     Integer job = 3; // only update BCs
     Double * ptSol;
     UInt size = 0;
-    PDE_.lasttimecalc_ = aTime; // for correct output in unv-file
-
 
     // If the geometry has changed or the system matrix
     // is calculated for the first time,
     // the matrices have to be reassembled and therfore
     // the preconditioner has to be recalculated
-
+    
     if ( PDE_.geoUpdate_ == TRUE ||  PDE_.firstTimeStepStatic_ == TRUE) {
       PDE_.AssembleMatrices();
-      PDE_.AssembleSprings(PDE_.lasttimecalc_);
+      PDE_.AssembleSprings( actTime_ );
       job = 1; // calc new preconditioner
     }
   
     // The RHS-sources have to be reassembled each time
-    PDE_.AssembleSrcRHS(aTime);
+    PDE_.AssembleSrcRHS( actTime_ );
 
-    PDE_.SetBCs(aTime);
+    PDE_.SetBCs( actTime_ );
 
 
     // Incorporate Boundary conitions and
@@ -130,13 +121,9 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void StdSolveStep::PreStepTrans( const UInt kstep, const Double asteptime,
-                                   const Boolean reset ) {
+  void StdSolveStep::PreStepTrans( const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::PreStepTrans" );
-
-    PDE_.lasttimecalc_= asteptime;
-    PDE_.laststepcalc_= kstep;
 
     // due to coupling-pdes, the RHS has to be initialized BEFORE 
     // the coupling forces are assembled to the RHS
@@ -146,51 +133,44 @@ namespace CoupledField {
       PDE_.algsys_->InitRHS();
       PDE_.algsys_->InitSol();
       PDE_.algsys_->InitMatrix();
-      PDE_.assemble_->SetReassemble();  
+      PDE_.SetReassemble();  
     }
   }
 
 
-  void StdSolveStep::SolveStepTrans( const UInt kstep, const Double asteptime, 
-                                     const Boolean reset ) {
+  void StdSolveStep::SolveStepTrans( const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::SolveStepTrans" );
 
-    PDE_.lasttimecalc_= asteptime;
-    PDE_.recalc_ = FALSE;
-
-    if (PDE_.laststepcalc_ == kstep && kstep != 1) {
-      PDE_.recalc_ = TRUE;
-    }
-    else {
-      PDE_.laststepcalc_= kstep;
-    }
+    // /DELETE
+    // if (PDE_.laststepcalc_ == kstep && kstep != 1) {
+//       PDE_.recalc_ = TRUE;
+//     }
+//     else {
+//       PDE_.laststepcalc_= kstep;
+//     }
 
     if (PDE_.nonLin_) {
-      StepTransNonLin(kstep, asteptime, reset);
+      StepTransNonLin(reset);
     }
     else {
-      StepTransLin(kstep, asteptime,  reset);
+      StepTransLin(reset);
     }
   }
 
 
   //! \todo delete job parameter or replace it by a 
   //! meaningfull attribute
-  void StdSolveStep::StepTransLin( const UInt kstep, const Double asteptime,
-                                   const Boolean reset ) {
+  void StdSolveStep::StepTransLin( const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::StepTransLin" );
-
-    PDE_.lasttimecalc_= asteptime;
-    PDE_.laststepcalc_= kstep;
 
     Double * ptsol;
     Integer job;
     UInt length = 0;
 
     //account for RHS
-    PDE_.assemble_->AssembleSrcRHS(PDE_.lasttimecalc_);
+    PDE_.AssembleSrcRHS( actTime_ );
 
     if ( PDE_.isIterCoupled_ == FALSE || PDE_.iterCoupledCounter_ == 0 ) {        
       Vector<Double> & solHelp = 
@@ -198,15 +178,14 @@ namespace CoupledField {
       PDE_.TS_alg_->Predictor(solHelp);
     }
 
-    if ( PDE_.laststepcalc_ == 1 ) {
+    if ( actStep_ == 1) {
       job = 3;
-
       // why is the first statement checking for 'pdeIsCoupled'?
       if ( PDE_.isIterCoupled_ == FALSE || PDE_.iterCoupledCounter_ == 0 
            || PDE_.geoUpdate_ == TRUE ) {
         job = 1;
         PDE_.AssembleMatrices();
-        PDE_.AssembleSprings(PDE_.lasttimecalc_);
+        PDE_.AssembleSprings( actTime_ );
         PDE_.algsys_->ConstructEffectiveMatrix(matrix_factor_);
       }  
     }
@@ -219,7 +198,7 @@ namespace CoupledField {
       if (PDE_.dampingType_) {
         PDE_.algsys_->InitMatrix(DAMPING);
       }
-      PDE_.AssembleSprings( PDE_.lasttimecalc_);
+      PDE_.AssembleSprings( actTime_ );
       PDE_.algsys_->ConstructEffectiveMatrix(matrix_factor_);
     }
     else {
@@ -233,7 +212,7 @@ namespace CoupledField {
         }
         job = 1;
         PDE_.AssembleMatrices();
-        PDE_.AssembleSprings( PDE_.lasttimecalc_);
+        PDE_.AssembleSprings( actTime_ );
         PDE_.algsys_->ConstructEffectiveMatrix(matrix_factor_);      
       }
     }
@@ -248,7 +227,7 @@ namespace CoupledField {
 
     PDE_.TS_alg_->UpdateRHS();
 
-    PDE_.SetBCs( PDE_.lasttimecalc_ );
+    PDE_.SetBCs( actTime_ );
     PDE_.algsys_->BuildInDirichlet();
 
     if ( job == 1 ) {
@@ -316,7 +295,7 @@ namespace CoupledField {
   }
 
 
-  void StdSolveStep::PostStepTrans( const UInt kstep, const Double asteptime ) {
+  void StdSolveStep::PostStepTrans( ) {
 
     ENTER_FCN( "StdSolveStep::PostStepTrans" );
          
@@ -334,42 +313,35 @@ namespace CoupledField {
   // Solve Step Harmonic  SECTION  
   // ======================================================
 
-  void StdSolveStep::PreStepHarmonic( const UInt freqStep,
-                                      const Double frequency,
-                                      const Boolean reset ) {
+  void StdSolveStep::PreStepHarmonic( const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::PreStepHarmonic" );
 
-    PDE_.actFrequency_ = frequency;
-    PDE_.actFreqStep_  = freqStep;
-    PDE_.assemble_->SetFrequency(frequency);
+  
+    PDE_.assemble_->SetFrequency( actFreq_ );
     PDE_.algsys_->InitRHS();
 
     if (reset) {
       PDE_.algsys_->InitMatrix();
-      PDE_.assemble_->SetReassemble();
+      PDE_.SetReassemble();
     }
   }
 
 
-  void StdSolveStep::SolveStepHarmonic( const UInt freqStep,
-                                        const Double frequency,
-                                        const Boolean reset ) {
+  void StdSolveStep::SolveStepHarmonic(const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::SolveStepHarmonic" );
 
     if ( PDE_.nonLin_ ) {
-      StepHarmonicNonLin( freqStep, frequency, reset );
+      StepHarmonicNonLin( reset );
     }
     else {
-      StepHarmonicLin( freqStep, frequency, reset );
+      StepHarmonicLin( reset );
     }
   }
 
 
-  void StdSolveStep::StepHarmonicLin( const UInt freqStep,
-                                      const Double frequency, 
-                                      const Boolean reset ) {
+  void StdSolveStep::StepHarmonicLin( const Boolean reset ) {
 
     ENTER_FCN( "StdSolveStep::StepHarmonicLin" );
 
@@ -378,17 +350,17 @@ namespace CoupledField {
     UInt length = 0;
 
     if ( reset ) {
-      PDE_.assemble_->AssembleMatrices( );
+      PDE_.AssembleMatrices( );
     }
 
 
     //this has to be done each time!
-    PDE_.assemble_->AssembleSrcRHS( frequency);
+    PDE_.AssembleSrcRHS( actFreq_ );
 
     if ( reset ) {
 
       //account for bcs
-      PDE_.SetBCs(frequency);
+      PDE_.SetBCs( actFreq_ );
 
       // calc new preconditioner
       job = 1;
@@ -424,7 +396,7 @@ namespace CoupledField {
 
 
     // to incorporate loads
-    assemble_->AssembleSrcRHS(lasttimecalc_); 
+    assemble_->AssembleSrcRHS(actTime_); 
 
     // Stores rhs vector into extForces and returns that L2-norm
  
@@ -492,7 +464,7 @@ namespace CoupledField {
         algsys_->InitRHS(RhsLinVal_.GetPointer());
 
         if(trans) {
-          assemble_->AssembleNLRHS( lasttimecalc_);
+          assemble_->AssembleNLRHS( actTime_ );
           TS_alg_->UpdateRHS(actSol);
         }
         else {
@@ -590,7 +562,7 @@ namespace CoupledField {
   {
     PDE_.GetSolVecOfElement(sol, connect_PDE);
   }
-
+ 
   void StdSolveStep::GetDerivSolVecOfElement(Vector<Double>& sol, 
                                              StdVector<UInt>& connect_PDE)
   {

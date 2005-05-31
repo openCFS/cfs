@@ -30,13 +30,10 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepPiezo:: PreStepTrans(const UInt kstep, const Double asteptime,
-                                     const Boolean reset)
+  void SolveStepPiezo:: PreStepTrans( const Boolean reset )
   {
     ENTER_FCN( "SolveStepPiezo::PreStepStatic" );
 
-    lasttimecalc_ = asteptime;
-    laststepcalc_ = kstep;
 
     // due to coupling-pdes, the RHS has to be initialized BEFORE 
     // the coupling forces are assembled to the RHS
@@ -45,7 +42,7 @@ namespace CoupledField {
     UInt numElems = PDE_.getPDE_numElems();
 
     if (isHyst_) {
-      if (kstep==1) {
+      if (actStep_==1) {
         Eprevious_.Resize(numElems);
         Dprevious_.Resize(numElems);
         epsDiff_.Resize(subdoms_.GetSize(),numElems);
@@ -102,31 +99,23 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepPiezo::SolveStepTrans(const UInt kstep, const Double asteptime,
-                                      const Boolean reset) {
+  void SolveStepPiezo::SolveStepTrans( const Boolean reset ) {
 
     ENTER_FCN( "SolveStepPiezo::SolveStepTrans" );
   
-    lasttimecalc_ = asteptime;
-    laststepcalc_ = kstep;
-  
     if (isHyst_) {
-      StepTransNonLinEpsDiff(kstep,asteptime,reset);
+      StepTransNonLinEpsDiff(reset);
     }
     else {
-      StepTransLin(kstep,asteptime,reset);
+      StepTransLin(reset);
     }
 
   }
 
 
-  void SolveStepPiezo::StepTransNonLinEpsDiff(const UInt kstep, const Double asteptime,
-                                              const Boolean reset) {
+  void SolveStepPiezo::StepTransNonLinEpsDiff( const Boolean reset ) {
 
     ENTER_FCN( "SolveStepPiezo::StepTransNonLinEpsDiff" );
-
-    laststepcalc_ = kstep;
-    lasttimecalc_ = asteptime;
 
     Boolean performOneMoreStep;
     UInt iterationCounter=0;
@@ -149,7 +138,7 @@ namespace CoupledField {
     solhelp->GetAlgSysVector(solPrev);
 
     // Update extrema-list just for first time step
-    if (laststepcalc_ == 1) {
+    if (actStep_ == 1) {
       DoUpdateHyst();
     }
 
@@ -157,7 +146,7 @@ namespace CoupledField {
     algsys_->InitRHS();
 
     //set BCs
-    SetBCs(lasttimecalc_);
+    SetBCs(actTime_);
 
     // stores this as linear part of RHS
     algsys_->GetRHSVal( actRHS );
@@ -167,7 +156,7 @@ namespace CoupledField {
       iterationCounter++;
       // for every time step write out number of iteration loops to standard out
       if (iterationCounter == 1)
-        std::cout << std::endl << "Time step:   "  << kstep 
+        std::cout << std::endl << "Time step:   "  << actStep_ 
                   << "  ,Iterations: " << iterationCounter << std::endl;
       else 
         std::cout << "Iter:  " << iterationCounter << std::endl;
@@ -195,7 +184,7 @@ namespace CoupledField {
       algsys_->InitRHS();
 
       //compute differential permittivity
-      if ( iterationCounter != 1 || laststepcalc_ ==1 ) {
+      if ( iterationCounter != 1 || actStep_ ==1 ) {
         ComputeDiffEpsilon();
       }
 

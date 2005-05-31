@@ -22,13 +22,8 @@ namespace CoupledField
 
     //----------------------- TRANSIENT---------------------------------------
     //! solves for one nonlinear transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */   
-    void StepTransNonLin(const UInt kstep, const Double asteptime,
-                         const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepTransNonLin( const Boolean reset );
 
     //! compute nonlinear part of RHS
     void AddNonLinRHS();

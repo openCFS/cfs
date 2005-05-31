@@ -22,13 +22,8 @@ namespace CoupledField
 
     //----------------------- TRANSIENT---------------------------------------
     //! base method for solving one transient step 
-    /*!
-      \param kstep time step counter
-      \param steptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    void SolveStepTrans(const UInt kstep, const Double steptime, 
-                        const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void SolveStepTrans( const Boolean reset );
 
   private:
 

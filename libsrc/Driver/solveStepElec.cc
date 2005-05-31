@@ -12,25 +12,22 @@
 
 namespace CoupledField {
 
-  SolveStepElec::SolveStepElec(StdPDE& apde) : StdSolveStep(apde)
-  {
-
+  SolveStepElec::SolveStepElec(StdPDE& apde) : StdSolveStep(apde) {
     ENTER_FCN( "SolveStepElec::SolveStepElec" );
     doInit_ = TRUE;
   }
-
-
+  
+  
   SolveStepElec::~SolveStepElec() {
     ENTER_FCN( "SolveStepElec::~SolveStepElec" );
   }
- 
+  
 
   // ======================================================
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepElec:: PreStepStatic(const UInt kstep, const Double asteptime,
-                                     const Boolean reset)
+  void SolveStepElec:: PreStepStatic( const Boolean reset )
   {
     ENTER_FCN( "SolveStepElec::PreStepStatic" );
 
@@ -51,7 +48,7 @@ namespace CoupledField {
     UInt numElems = PDE_.getPDE_numElems();
 
     if (hystModel) {
-      if (kstep==1) {
+      if ( actStep_ == 1 ) {
         Eprevious_.Resize(numElems);
         Dprevious_.Resize(numElems);
         epsDiff_.Resize(subdoms_.GetSize(),numElems);
@@ -81,33 +78,26 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepElec::SolveStepStatic(const UInt kstep, const Double asteptime,
-                                      const Boolean reset) {
+  void SolveStepElec::SolveStepStatic( const Boolean reset ) {
 
     ENTER_FCN( "SolveStepElec::SolveStepStatic" );
   
-    lasttimecalc_ = asteptime;
-    laststepcalc_ = kstep;
-  
     Boolean nonLin = FALSE;
+
     //  Boolean nonLin = TRUE;
     if (nonLin) {
-      StepStaticNonLinEpsDiff(kstep,asteptime,reset);
+      StepStaticNonLinEpsDiff(reset);
     }
     else {
-      StepStaticLin(kstep,asteptime,reset);
+      StepStaticLin(reset);
     }
 
   }
 
 
-  void SolveStepElec::StepStaticNonLinEpsDiff(const UInt kstep, const Double asteptime,
-                                              const Boolean reset) {
+  void SolveStepElec::StepStaticNonLinEpsDiff( const Boolean reset ) {
 
     ENTER_FCN( "SolveStepElec::StepStaticNonLin" );
-
-    laststepcalc_ = kstep;
-    lasttimecalc_ = asteptime;
 
     Boolean performOneMoreStep;
     UInt iterationCounter=0;
@@ -130,7 +120,7 @@ namespace CoupledField {
     solhelp->GetAlgSysVector(solPrev);
 
     // Update extrema-list just for first time step
-    if (laststepcalc_ == 1) {
+    if (actStep_ == 1) {
       DoUpdateHyst();
     }
 
@@ -138,7 +128,7 @@ namespace CoupledField {
     algsys_->InitRHS();
 
     //set BCs
-    SetBCs(lasttimecalc_);
+    SetBCs(actTime_);
 
     //compute constant part of RHS (div D(t) )
     // ComputeConstPartRHS();
@@ -151,7 +141,7 @@ namespace CoupledField {
       iterationCounter++;
       // for every time step write out number of iteration loops to standard out
       if (iterationCounter == 1)
-        std::cout << std::endl << "Time step:   "  << kstep 
+        std::cout << std::endl << "Time step:   "  << actStep_
                   << "  ,Iterations: " << iterationCounter << std::endl;
       else 
         std::cout << "Iter:  " << iterationCounter << std::endl;
@@ -179,7 +169,7 @@ namespace CoupledField {
       algsys_->InitRHS();
 
       //compute differential permittivity
-      if ( iterationCounter != 1 || laststepcalc_ ==1 ) {
+      if ( iterationCounter != 1 || actStep_ ==1 ) {
         ComputeDiffEpsilon();
       }
 
@@ -274,7 +264,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepElec::PostStepStatic(const UInt kstep, const Double asteptime)
+  void SolveStepElec::PostStepStatic()
   {
     ENTER_FCN( "SolveStepElec::PostStepStatic" );
 
@@ -557,13 +547,12 @@ namespace CoupledField {
   }
 
 
-  void SolveStepElec::StepStaticNonLin(const UInt kstep, const Double asteptime,
-                                       const Boolean reset) {
+  void SolveStepElec::StepStaticNonLin(const Boolean reset) {
 
     ENTER_FCN( "SolveStepElec::StepStaticNonLin" );
 
-    //   laststepcalc_ = kstep;
-    //   lasttimecalc_ = asteptime;
+    //   actStep_ = kstep;
+    //   actTime_ = asteptime;
 
     //   UInt job;
     //   Boolean performOneMoreStep;
@@ -576,7 +565,7 @@ namespace CoupledField {
     //   job = 3;
   
     //   // if first time step, setup system matrix
-    //   if (laststepcalc_ == 1) {
+    //   if (actStep_ == 1) {
     //     assemble_->AssembleMatrices();
     //     algsys_->ConstructEffectiveMatrix(matrix_factor_);
     
@@ -588,7 +577,7 @@ namespace CoupledField {
 
     //   // set BCs, if effective mass matrix formulation, values of BCs depend on 
     //   //  predictors, so predictors have to be computed beforehand
-    //   SetBCs(lasttimecalc_);
+    //   SetBCs(actTime_);
 
     //   // set old solution  
     //   newSol = solhelp->GetAlgSysVector();
@@ -597,7 +586,7 @@ namespace CoupledField {
     //   // StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
 
     //   // Update extrema-list just for first time step
-    //   if (laststepcalc_ == 1) {
+    //   if (actStep_ == 1) {
     //     DoUpdateHyst();
     //   }
 

@@ -143,20 +143,23 @@ namespace CoupledField
     for (fstep = 1; fstep <= numFreq_; fstep++) {
       Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq);
     
+      ptPDE_->GetSolveStep()->SetActFreq(actFreq);
+      ptPDE_->GetSolveStep()->SetActStep(fstep);
+
       //      std::cout<<"\n multiHarm: 1 " <<std::endl;
-      ptPDE_->GetSolveStep()->PreStepHarmonic(fstep, actFreq, reset);
+      ptPDE_->GetSolveStep()->PreStepHarmonic(reset);
     
       //      std::cout<<"\n multiHarm: 2"  <<std::endl;
-      ptPDE_->GetSolveStep()->SolveStepHarmonic(fstep, actFreq, reset);
+      ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
     
       //      std::cout<<"\n multiHarm: 3 " <<std::endl;
-      ptPDE_->GetSolveStep()->PostStepHarmonic(fstep, actFreq, reset);
+      ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
     
       //      std::cout<<"\n multiHarm: nrMultHarms_ =  " <<nrMultHarms_ <<std::endl;
     
       // writing results in output-file
       ptPDE_->PostProcess();
-      ptPDE_->WriteResultsInFile();
+      ptPDE_->WriteResultsInFile( fstep, actFreq);
     
       actFreq += freqIncr;
     }

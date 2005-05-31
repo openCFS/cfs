@@ -22,70 +22,37 @@ namespace CoupledField
 
     //----------------------- STATIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepStatic(const UInt kstep, const Double asteptime,
-                               const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void PreStepStatic( const Boolean reset );
 
     //! routine for acttions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    virtual void PostStepStatic(const UInt kstep, const Double asteptime);
+    void PostStepStatic();
                                 
 
     //! solves for one linear static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepStaticLin(const UInt kstep, const Double asteptime,
-                               const Boolean reset)
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepStaticLin( const Boolean reset )
     { ENTER_FCN( "SolveStepMpCCI::StepStaticLin");};
 
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepTrans(const UInt kstep, const Double asteptime,
-                              const Boolean reset)
+    //! \param reset TRUE: perfrom new assembly, etc
+     void PreStepTrans( const Boolean reset )
     { ENTER_FCN( "SolveStepMpCCI::PreStepTrans");};
     
     //! base method for solving one transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
-                                const Boolean reset)
+    //! \param reset TRUE: perfrom new assembly, etc
+    void SolveStepTrans( const Boolean reset )
     { ENTER_FCN( "SolveStepMpCCI::SolveStepTrans"); };
 
     //! solves for one linear transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void StepTransLin(const UInt kstep, const Double asteptime,
-                              const Boolean reset)
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepTransLin( const Boolean reset )
     { ENTER_FCN( "SolveStepMpCCI::StepTransLin");};
 
     //! routine for actions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    virtual void PostStepTrans(const UInt kstep, const Double asteptime);
+    void PostStepTrans();
 
 
   private:

@@ -25,23 +25,13 @@ namespace CoupledField
 
     //----------------------- TRANSIENT---------------------------------------
     //! base method for solving one transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    void SolveStepTrans(const UInt kstep, const Double asteptime,
-                        const Boolean reset) ;
+    //! \param reset TRUE: perfrom new assembly, etc
+    void SolveStepTrans( const Boolean reset ) ;
 
 
     //! solves for one nonlinear transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */   
-    void StepTransBubble(const UInt kstep, const Double asteptime,
-                         const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    void StepTransBubble( const Boolean reset );
 
     //!
     void ComputeBubbleRHS();

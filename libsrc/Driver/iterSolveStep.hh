@@ -27,92 +27,56 @@ namespace CoupledField
     //----------------------- STATIC---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepStatic(const UInt kstep, const Double asteptime,
-                               const Boolean reset)  {;};
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void PreStepStatic( const Boolean reset )  {;};
  
     //! base method for solving one static step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepStatic(const UInt kstep, const Double asteptime,
-                                 const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void SolveStepStatic( const Boolean reset );
 
     //! routine for acttions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    virtual void PostStepStatic(const UInt kstep, 
-                                const Double asteptime) {;};
-
+    virtual void PostStepStatic() {;}
 
 
     //----------------------- TRANSIENT---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepTrans(const UInt kstep, const Double asteptime,
-                              const Boolean reset) {;};
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void PreStepTrans( const Boolean reset ) {;};
 
 
     //! base method for solving one transient step 
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepTrans(const UInt kstep, const Double asteptime,
-                                const Boolean updatesysmat);
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void SolveStepTrans( const Boolean updatesysmat );
     
     //! routine for actions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
-    virtual void PostStepTrans(const UInt kstep, 
-                               const Double asteptime) {;};
+    virtual void PostStepTrans() {;};
 
     //----------------------- HARMONIC---------------------------------------
     
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
-      \param reset TRUE: perfrom new assembly, etc
-    */   
-    virtual void PreStepHarmonic(const UInt freqStep, const Double frequency, 
-                                 const Boolean reset) {;};
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void PreStepHarmonic( const Boolean reset ) {;};
 
 
     //!  base method for solving one harmonic step 
-    /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepHarmonic(const UInt freqStep, const Double frequency, 
-                                   const Boolean reset);
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void SolveStepHarmonic( const Boolean reset );
 
 
     //!  routine for actions after the SolveStep-method
-    /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void PostStepHarmonic(const UInt freqStep, const Double frequency, 
-                                  const Boolean reset) {;};
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void PostStepHarmonic( const Boolean reset ) {;};
+
+    //! Set actual time
+    virtual void SetActTime( const Double actTime );
+    
+
+    //! Set actual frequency
+    virtual void SetActFreq( const Double actFreq );
+
+    //! Set actual time / frequency step
+    virtual void SetActStep( const UInt actStep );
 
     //! Set the current time step value
     void SetTimeStep( Double dt );

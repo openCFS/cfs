@@ -21,8 +21,7 @@ namespace CoupledField {
   // ======================================================
   // Solve Step Static SECTION  
   // ======================================================
-  void SolveStepSmooth::PreStepStatic(const UInt kstep, const Double asteptime,
-                                      const Boolean reset)
+  void SolveStepSmooth::PreStepStatic( const Boolean reset )
   {
     ENTER_FCN( "SolveStepSmooth::PreStepStatic" );
 
@@ -33,8 +32,7 @@ namespace CoupledField {
 
   }
 
-  void SolveStepSmooth::StepStaticNonLin(const UInt kstep, const Double aTime,
-                                         const Boolean reset)
+  void SolveStepSmooth::StepStaticNonLin( const Boolean reset )
   {
     ENTER_FCN( "SolveStepSmooth::StepStaticNonLin" );
 
@@ -61,7 +59,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepSmooth:: PostStepStatic(const UInt kstep, const Double asteptime)
+  void SolveStepSmooth:: PostStepStatic( )
   {
     ENTER_FCN( "SolveStepSmooth::PostStepStatic" );
   

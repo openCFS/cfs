@@ -27,8 +27,7 @@ namespace CoupledField {
   // ======================================================
   // STATIC SOLVING SECTION
   // ======================================================
-  void SolveStepMag :: PreStepStatic(const UInt kstep, const Double asteptime,
-                                     const Boolean reset) {
+  void SolveStepMag :: PreStepStatic( const Boolean reset ) {
     ENTER_FCN( "SolveStepMag::PreStepStatic" );
     if (isIterCoupled_) 
       algsys_->InitSol();
@@ -43,8 +42,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMag::StepStaticNonLin(const UInt kstep, const Double aTime,
-                                      const Boolean reset)
+  void SolveStepMag::StepStaticNonLin( const Boolean reset )
   {
     ENTER_FCN( "SolveStepMag::SolveStepStaticNonLin" );
 
@@ -303,13 +301,10 @@ namespace CoupledField {
   //   }
 
 
-  void SolveStepMag::StepTransNonLin(const UInt kstep, const Double asteptime,
-                                     const Boolean reset) {
+  void SolveStepMag::StepTransNonLin( const Boolean reset ) {
 
     ENTER_FCN( "SolveStepMag::StepTransNonLin" );
 
-    lasttimecalc_ = asteptime;
-    laststepcalc_ = kstep;
     Double *solPtr;
 
     static UInt timeStepCounter=1;
@@ -338,7 +333,7 @@ namespace CoupledField {
     Double RhsLinL2Norm = SetLinRHS( loadFactor); 
 
     // inner forces due to nonlin formulation
-    assemble_->AssembleNLRHS(lasttimecalc_);  
+    assemble_->AssembleNLRHS( actTime_ );  
 
     //Update RHS (mass matrix on right hand side)
     TS_alg_->UpdateRHS(solhelp->GetAlgSysVector());
@@ -363,7 +358,7 @@ namespace CoupledField {
       assemble_->AssembleMatrices();
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
-      SetBCs(lasttimecalc_);
+      SetBCs( actTime_ );
 
       algsys_->BuildInDirichlet();
 
@@ -396,7 +391,7 @@ namespace CoupledField {
       TS_alg_->UpdateRHS(actSol);
 
       // inner forces due to nonlin formulation
-      assemble_->AssembleNLRHS(lasttimecalc_);
+      assemble_->AssembleNLRHS( actTime_ );
 
       // ====================================================================
       // calculation of error norms

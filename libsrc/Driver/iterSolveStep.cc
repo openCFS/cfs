@@ -27,8 +27,7 @@ namespace CoupledField
 
   //----------------------- STATIC---------------------------------------
 
-  void IterSolveStep::SolveStepStatic(const UInt kstep, const Double aTime,
-                                      const Boolean updatesysmat ) {
+  void IterSolveStep::SolveStepStatic( const Boolean updatesysmat ) {
 
     ENTER_FCN ( "IterSolveStep::SolveStepStatic" );
   
@@ -60,10 +59,12 @@ namespace CoupledField
             // Only solve current PDE, if the corresponding
             // flag in 'solvePDE_' is set to TRUE
             if (rPDE_.solvePDE_[i] == TRUE) {
-              rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,updatesysmat);
+              rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
+              rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+              rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic(updatesysmat);
               rPDE_.PDEs_[i]->CalcInputCoupling();
-              rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,updatesysmat);
-              rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic(kstep,aTime);
+              rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(updatesysmat);
+              rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
               rPDE_.PDEs_[i]->CalcOutputCoupling();
               
               // Calculate Norms
@@ -107,12 +108,9 @@ namespace CoupledField
 
 
   //----------------------- TRANSIENT---------------------------------------
-  void IterSolveStep::SolveStepTrans(const UInt kstep, const Double asteptime, 
-                                     const Boolean updatesysmat)
+  void IterSolveStep::SolveStepTrans( const Boolean updatesysmat )
   {
     ENTER_FCN( "IterSolveStep::SolveStepTrans" );
-
-    Double  steptime  = asteptime;
 
     UInt iter = 0;
     Boolean normsReached = FALSE;
@@ -144,11 +142,12 @@ namespace CoupledField
             // Only solve current PDE, if the corresponding
             // flag in 'solvePDE_' is set to TRUE
             if (rPDE_.solvePDE_[i] == TRUE) {
-              
-              rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans(kstep, steptime, updatesysmat);
+              rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
+              rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+              rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans( updatesysmat );
               rPDE_.PDEs_[i]->CalcInputCoupling();
-              rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(kstep, steptime, updatesysmat);
-              rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans(kstep, steptime);
+              rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans( updatesysmat );
+              rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
               rPDE_.PDEs_[i]->CalcOutputCoupling();
               
               // Calculate Norms
@@ -182,8 +181,7 @@ namespace CoupledField
   } 
   
   //----------------------- HARMONIC---------------------------------------
-  void IterSolveStep::SolveStepHarmonic(const UInt freqStep, const Double frequency, 
-                                        const Boolean reset) {
+  void IterSolveStep::SolveStepHarmonic( const Boolean reset ) {
 
     ENTER_FCN( "IterSolveStep::SolveStepHarmonic" );
 
@@ -191,6 +189,33 @@ namespace CoupledField
            __FILE__, __LINE__);
   }
 
+
+  void IterSolveStep::SetActTime( const Double actTime ) {
+    ENTER_FCN( "IterSolveStep::SetActTime() ");
+    actTime_ = actTime;
+
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
+      rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime);
+  }
+
+  void IterSolveStep::SetActFreq( const Double actFreq ) {
+    ENTER_FCN( "IterSolveStep::SetActFreq() ");
+
+    actFreq_ = actFreq;
+    
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
+      rPDE_.PDEs_[i]->GetSolveStep()->SetActFreq(actFreq);
+  }
+
+  void IterSolveStep::SetActStep( const UInt actStep ) {
+    ENTER_FCN( "IterSolveStep::SetActStep() ");
+    
+    actStep_ = actStep;
+
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep);
+    }
+  }
 
 
   void IterSolveStep::SetTimeStep( Double dt) {
