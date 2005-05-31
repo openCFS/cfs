@@ -79,9 +79,6 @@
           <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
 
           <!-- Desired solution values (optional) -->
-          <!-- Currently this is not supported, since it is difficult
-               to define in the magnetics case since it depends on the
-               boundary conditions -->
           <xsd:element name="storeResults" type="DT_MagneticStoreResults"
             minOccurs="0" maxOccurs="1"/>
   
@@ -217,7 +214,7 @@
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_MagneticElementHistory">
     <xsd:attribute name="type" type="DT_MagneticElementData" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
   </xsd:complexType>
 
   <!-- Data type for specifying the desired mechanical output quantities -->
