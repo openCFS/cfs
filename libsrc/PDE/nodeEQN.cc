@@ -5,21 +5,27 @@
 namespace CoupledField
 {
   
-  NodeEQN::NodeEQN(Grid * aptGrid, 
-                   StdVector<RegionIdType>& asubdoms, 
-                   UInt dofsPerNode)
-    : BaseEQN(aptGrid, asubdoms, dofsPerNode)
-  {
+  // ***************
+  //   Constructor
+  // ***************
+  NodeEQN::NodeEQN( Grid *aptGrid, 
+                    StdVector<RegionIdType> &asubdoms, 
+                    UInt dofsPerNode )
+    : BaseEQN( aptGrid, asubdoms, dofsPerNode ) {
+
     ENTER_FCN( "NodeEQN::NodeEQN" );
 
     isNodalMapped_ = TRUE;
   }
   
 
-  NodeEQN::~NodeEQN()
-  {
+  // **************
+  //   Destructor
+  // **************
+  NodeEQN::~NodeEQN() {
  
     ENTER_FCN( "NodeEQN::NodeEQN" );
+
   }
   
   void NodeEQN::Mesh2PDENode(StdVector<UInt> & PDENodes,
