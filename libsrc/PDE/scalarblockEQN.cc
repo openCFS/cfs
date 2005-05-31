@@ -1,6 +1,8 @@
-#include "scalarblockEQN.hh"
-
 #include <iomanip>
+
+#include "scalarblockEQN.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+
 
 namespace CoupledField {
   
@@ -23,7 +25,10 @@ namespace CoupledField {
   // **************
   ScalarBlockEQN::~ScalarBlockEQN() {
     ENTER_FCN( "ScalarBlockEQN::ScalarBlockEQN" );
-    Print( (*cla) );
+
+    if ( commandLine->GetShowEqnMap() == true ) {
+      Print( (*cla) );
+    }
   }
 
 

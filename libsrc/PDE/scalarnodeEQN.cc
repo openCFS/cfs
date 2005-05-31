@@ -1,6 +1,8 @@
-#include "scalarnodeEQN.hh"
-
 #include <iomanip>
+
+#include "scalarnodeEQN.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+
 
 namespace CoupledField {
 
@@ -21,11 +23,14 @@ namespace CoupledField {
   }
 
 
-  // ======================
-  //   Default Destructor
-  // ======================
+  // ==============
+  //   Destructor
+  // ==============
   ScalarNodeEQN::~ScalarNodeEQN() {
     ENTER_FCN( "ScalarNodeEQN::~ScalarNodeEQN" );
+    if ( commandLine->GetShowEqnMap() == true ) {
+      Print( (*cla) );
+    }
   }
 
 

@@ -1,8 +1,10 @@
-#include "blocknodeEQN.hh"
 #include <iomanip>
 
-namespace CoupledField
-{
+#include "blocknodeEQN.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+
+
+namespace CoupledField {
   
   BlockNodeEQN::BlockNodeEQN(Grid * aptGrid, 
                              StdVector<RegionIdType> & asubdoms, 
@@ -15,10 +17,14 @@ namespace CoupledField
     dofsPerEQN_ = dofsPerNode;
   }
 
-  BlockNodeEQN::~BlockNodeEQN()
-  {
- 
+  // ==============
+  //   Destructor
+  // ==============
+  BlockNodeEQN::~BlockNodeEQN() {
     ENTER_FCN( "BlockNodeEQN::BlockNodeEQN" );
+    if ( commandLine->GetShowEqnMap() == true ) {
+      Print( (*cla) );
+    }
   }
 
 

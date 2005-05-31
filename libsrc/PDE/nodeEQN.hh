@@ -76,6 +76,9 @@ namespace CoupledField
     //! Map local to global elem number
     inline UInt PDE2MeshElem(const UInt elemNumLoc) const;
 
+    //! Print the mapping nodes <-> EQNs
+    virtual void Print( std::ostream &out ) const = 0;
+
   protected:
     //! Calculate mapping local<->global for nodes and elems
     void CalcLocalGlobalMapping(StdVector<Integer> & mesh2PDENode,
