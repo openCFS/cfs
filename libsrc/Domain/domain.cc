@@ -1,5 +1,7 @@
 #include "domain.hh"
 
+#include <set>
+
 #include "General/environment.hh"
 #include "Domain/grid.hh"
 #include "Domain/GridCFS/interface_gridcfs.hh"
@@ -482,6 +484,12 @@ namespace CoupledField {
     BasePairCoupling *coupling = NULL;
       
 
+    // HARD CODED: At the moment we allow only one direct coupled pde
+    // with only on pairwise coupling
+    StdVector<SinglePDE*> singlePdes;
+    StdVector<BasePairCoupling*> couplings;
+    std::set<SinglePDE*> setSinglePDEs;
+
     for (UInt i=0; i<couplingNames.GetSize(); i++) {
       //std::cerr << "Coupling " << i+1 << " = " << couplingNames[i] << std::endl;
 
@@ -520,6 +528,11 @@ namespace CoupledField {
     isDirectCoupled_[pde1] = TRUE;
     isDirectCoupled_[pde2] = TRUE;
 
+    // add single PDEs and couplings into collections
+    setSinglePDEs.insert(pde1);
+    setSinglePDEs.insert(pde2);
+    couplings.Push_back(coupling);
+
     }
 
 
@@ -527,17 +540,18 @@ namespace CoupledField {
     if (coupling == NULL)
       return;
 
-
-    // HARD CODED: At the moment we allow only one direct coupled pde
-    // with only on pairwise coupling
-    StdVector<SinglePDE*> singlePdes;
-    StdVector<BasePairCoupling*> couplings;
+    // Transform set of PDEs into a vector
+    std::set<SinglePDE*>::iterator itSet;
     
-    singlePdes.Resize(2);
-    couplings.Resize(1);
-    singlePdes[0] = pde1;
-    singlePdes[1] = pde2;
-    couplings[0] = coupling;
+    for (itSet = setSinglePDEs.begin();  itSet != setSinglePDEs.end(); 
+         itSet++ ) {
+      singlePdes.Push_back(*itSet);
+    }
+    
+
+   
+    
+   
 
     ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(ptgrid_, OutFile_,
                                                        ptTimeFunc_));
