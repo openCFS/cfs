@@ -713,6 +713,7 @@ namespace CoupledField
     return out;
   }
 
+  template std::ostream & operator<<<UInt> (std::ostream & , const Matrix<UInt> &);
   template std::ostream & operator<<<Integer> (std::ostream & , const Matrix<Integer> &);
   template std::ostream & operator<<<Double> (std::ostream & , const Matrix<Double> &);
   template std::ostream & operator<<<Complex> (std::ostream & , const Matrix<Complex> &);
@@ -1081,6 +1082,7 @@ namespace CoupledField
 
   // explicit template instantiation for SGI compiler
 #ifdef __sgi
+#pragma instantiate Matrix<UInt>
 #pragma instantiate Matrix<Integer>
 #pragma instantiate Matrix<Double>
 #pragma instantiate Matrix<Complex>
