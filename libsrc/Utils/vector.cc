@@ -983,6 +983,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   }
 
 #ifdef __GNUC__
+  template std::ostream & operator<<<UInt> (std::ostream & , const Vector<UInt> &);
   template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
   template std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &);
   template std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> &);
@@ -991,9 +992,11 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 
   // explicit template instantiation for SGI compiler
 #ifdef __sgi
+#pragma instantiate Vector<UInt>
 #pragma instantiate Vector<Integer>
 #pragma instantiate Vector<Double>
 #pragma instantiate Vector<Complex>
+#pragma instantiate std::ostream & operator<<<UInt> (std::ostream & , const Vector<UInt> &)
 #pragma instantiate std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &)
 #pragma instantiate std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &)
 #pragma instantiate std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> &)
