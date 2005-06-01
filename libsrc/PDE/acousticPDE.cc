@@ -75,6 +75,7 @@ namespace CoupledField {
 
     dampingType_ = NONE;
     Boolean sorted = TRUE;
+	UInt firstFrac=0;
     if ( strVec.IsEmpty() )
       Info->PrintF( pdename_, 
                     "No information specifying damping detected!\n" );
@@ -95,6 +96,7 @@ namespace CoupledField {
         }
         else if (strVec[k] == "fractional") {
           dampingList_[k] = FRACTIONAL;
+		  dampingType_ = FRACTIONAL;
           Info->PrintF( pdename_, 
                         "      * FRACTIONAL damping for region: %d\n", k );
         }
@@ -103,66 +105,71 @@ namespace CoupledField {
           Info->PrintF( pdename_, 
                         "      * NO damping at all for region: %d\n", k );
         }
-        if ( k > 1 )
+        if ( k > 0 ) {
           if ( dampingList_[k] != dampingList_[k-1] )
             sorted = FALSE;
+		  if ( dampingType_ == FRACTIONAL && firstFrac == 0 )
+			firstFrac = k; // first index with fractional damping
+		}
       }
-      if ( sorted == FALSE )
-        Error("Specify same type of damping for all regions!",
-              __FILE__,__LINE__);
-      else {
-        dampingType_ = dampingList_[0];
-      
-        // get additional information for fractional damping model
-        if ( dampingType_ == FRACTIONAL ) {
+      if ( sorted == TRUE ) {
+		dampingType_ = dampingList_[0];
+	  }
+	  else {
+		std::cout << "Different types of damping for your specified regions!"
+				  << std::endl;
+	  }
+
+	  // get additional information for fractional damping model
+	  if ( dampingType_ == FRACTIONAL ) {
         
-          StdVector<std::string> fracAlgList_;
-          params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
-          StdVector<UInt> fracMemoryList_;
-          params->GetList( "fracMemory", fracMemoryList_, pdename_, 
-                           "damping" );
-          StdVector<std::string> interpolationList_;
-          params->GetList( "interpolation", interpolationList_, 
-                           pdename_, "damping" );
+		StdVector<std::string> fracAlgList_;
+		params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
+		StdVector<UInt> fracMemoryList_;
+		params->GetList( "fracMemory", fracMemoryList_, pdename_, 
+						 "damping" );
+		StdVector<std::string> interpolationList_;
+		params->GetList( "interpolation", interpolationList_, 
+						 pdename_, "damping" );
         
-          if( fracAlgList_.IsEmpty()
-              || fracMemoryList_.IsEmpty() 
-              || interpolationList_.IsEmpty() ) {
-            (*error) << "Specify attributes fracAlg, fracMemory " 
-                     << "and interpolation!";
+		if( fracAlgList_.IsEmpty()
+			|| fracMemoryList_.IsEmpty() 
+			|| interpolationList_.IsEmpty() ) {
+		  (*error) << "Specify attributes fracAlg, fracMemory " 
+				   << "and interpolation!";
             Error( __FILE__, __LINE__ ); 
-          }
-          // up to now take values from first subdomain
-          else {
-            if ( fracAlgList_[0] == "gl" )
-              Info->PrintF( pdename_, 
-                            "         with Gruenwald-Letnikov algorithm,\n");
-            else if (fracAlgList_[0] == "blank")
-              Info->PrintF( pdename_, 
-                            "         with Blanks algorithm,\n");
+		}
+		// up to now take values from first subdomain
+		else {
+		  if ( fracAlgList_[firstFrac] == "gl" )
+			Info->PrintF( pdename_, 
+						  "         with Gruenwald-Letnikov algorithm,\n");
+		  else if (fracAlgList_[firstFrac] == "blank")
+			Info->PrintF( pdename_, 
+						  "         with Blanks algorithm,\n");
           
-            fracMemory_ = fracMemoryList_[0];
-            Info->PrintF( pdename_, 
-                          "         memory size is: %d,\n", fracMemory_);
+		  fracMemory_ = fracMemoryList_[firstFrac];
+		  Info->PrintF( pdename_, 
+						"         memory size is: %d,\n", fracMemory_);
           
-            if ( interpolationList_[0] == "lin1pt")
-              inType_ = LIN1PT;
-            else
-              inType_ = NOTUSED;
-            Info->PrintF( pdename_, 
-                          "         %s interpolation of past values\n\n"
-                          , interpolationList_[0].c_str() );
-          }
-          // modify dampingList, so that fracAlg is included
-          for ( UInt k = 0; k < strVec.GetSize(); k++) {
-            if ( fracAlgList_[k] == "gl" )
-              dampingList_[k] = FRACTIONAL_GL;
-            else if (fracAlgList_[k] == "blank")
-              dampingList_[k] = FRACTIONAL_BLANK;
-          }
-        }
-      }
-    }
+		  if ( interpolationList_[firstFrac] == "lin1pt")
+			inType_ = LIN1PT;
+		  else
+			inType_ = NOTUSED;
+		  Info->PrintF( pdename_, 
+						"         %s interpolation of past values\n\n"
+						, interpolationList_[firstFrac].c_str() );
+		}
+		// modify dampingList, so that fracAlg is included
+		for ( UInt k = 0; k < strVec.GetSize(); k++) {
+		  if ( fracAlgList_[k] == "gl" )
+			dampingList_[k] = FRACTIONAL_GL;
+		  else if (fracAlgList_[k] == "blank")
+			dampingList_[k] = FRACTIONAL_BLANK;
+		}
+	  }
+	}
+
     // *************************************************************
     //   Check what type of nonlinear PDE formulation should be used
     // *************************************************************

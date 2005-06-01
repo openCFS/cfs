@@ -91,8 +91,8 @@ namespace CoupledField {
     CalcParameters(dt_);
 
     matrix_factors[STIFFNESS] = 1.0;
-    matrix_factors[DAMPING] = 0.0;
-    //  matrix_factors[DAMPING] = 1.0*a2_;
+    // matrix_factors[DAMPING] = 0.0;
+    matrix_factors[DAMPING] = 1.0*a2_;
     matrix_factors[CONVECTION] = 0.0;
     matrix_factors[MASS] = 1.0*a2_;
 
@@ -144,95 +144,105 @@ namespace CoupledField {
     
     for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
 
-      density         = mymaterialData[actSD].GetDensity();
-      compressibility = mymaterialData[actSD].GetCompressibility();
-      c0 = sqrt(compressibility/density);
-      alpha0 = mymaterialData[actSD].GetDampingAlfa();
-      y      = mymaterialData[actSD].GetDampingBeta();
+	  if ( dampingList_[actSD]==THERMOVISCOUS || 
+		   dampingList_[actSD]==RAYLEIGH ) {
+		
+		Vector<Double> coeffDamp;
+		
+		coeffDamp = -solderiv1pred_ + solpred_*a4_;
+		algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
+		
+		Info->PrintF(pdename_,"  THERMOVISCOUS/RAYLEIGH damping for region %d\n"
+					 , actSD );
+	  }
+	  else if ( dampingList_[actSD] == FRACTIONAL_GL || 
+				dampingList_[actSD] == FRACTIONAL_BLANK ) {
 
-      // factor: pre factor in Newmark timestepping scheme
-      // coeff_: weight factors in BDF
-      if ( dampingList_[actSD] == FRACTIONAL_GL ) {
-        factor = density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
-        factor *= exp(-(y-1.0)*log(dt_));
-        factor *= a2_;
-        GLWeights(calclimit_, y);
-      }
-      else if ( dampingList_[actSD] == FRACTIONAL_BLANK ) {
-        factor =  density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
-        factor *= exp(-(y-1.0)*log(dt_)) * exp(-gammaln(1.0- (y- 1.0)) );
-        factor *= a2_;
-        BlankWeights(calclimit_, y, TRUE);
-      }
-      else
-        std::cout << "Scheisse!" << std::endl;
+		density         = mymaterialData[actSD].GetDensity();
+		compressibility = mymaterialData[actSD].GetCompressibility();
+		c0 = sqrt(compressibility/density);
+		alpha0 = mymaterialData[actSD].GetDampingAlfa();
+		y      = mymaterialData[actSD].GetDampingBeta();
 
-      //      // output coeff_
-      //      std::cerr << "Weight factors of BDF are:" << std::endl;
-      //      for (UInt k=0; k<coeff_.size(); k++)
-      //        std::cerr << "          w(" << k << ") = " 
-      //                  << coeff_[k] << std::endl;
+		// factor: pre factor in Newmark timestepping scheme
+		// coeff_: weight factors in BDF
+		if ( dampingList_[actSD] == FRACTIONAL_GL ) {
+		  factor = density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
+		  factor *= exp(-(y-1.0)*log(dt_));
+		  factor *= a2_;
+		  GLWeights(calclimit_, y);
+		}
+		else if ( dampingList_[actSD] == FRACTIONAL_BLANK ) {
+		  factor =  density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
+		  factor *= exp(-(y-1.0)*log(dt_)) * exp(-gammaln(1.0- (y- 1.0)) );
+		  factor *= a2_;
+		  BlankWeights(calclimit_, y, TRUE);
+		}
 
-      // get elements belonging to actual subdomain   
-      StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
+		// output weight factors coeff_
+		//std::cout << "Weight factors of BDF are:" << coeff_ << std::endl;
+
+		// get elements belonging to actual subdomain   
+		StdVector<Elem*> elemssd;
+		ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
         
-      for (UInt el=0; el < elemssd.GetSize(); el++) {
-        // pointer to element
-        ptElem=elemssd[el]->ptElem;
-        BaseForm * bilinear_mass = new MassInt(ptElem, factor, isaxi_);
+		for (UInt el=0; el < elemssd.GetSize(); el++) {
+		  // pointer to element
+		  ptElem=elemssd[el]->ptElem;
+		  BaseForm * bilinear_mass = new MassInt(ptElem, factor, isaxi_);
           
-        connecth=elemssd[el]->connect;
-        ptgrid_->GetElemNodesCoord(ptCoord,connecth);
+		  connecth=elemssd[el]->connect;
+		  ptgrid_->GetElemNodesCoord(ptCoord,connecth);
           
-        bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+		  bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
           
-        // map connect to PDE node numbers
-        StdVector<Integer> connect_PDE;
-        ptEQN_->Node2EQN(connecth, connect_PDE);
+		  // map connect to PDE node numbers
+		  StdVector<Integer> connect_PDE;
+		  ptEQN_->Node2EQN(connecth, connect_PDE);
 
 #ifdef DEBUG
-        // output matrix with which BDF is computed
-        (*debug) << "Mass Matrix, damping part RHS, of Element " 
-                 << el << std::endl;
-        (*debug) << elemmat << std::endl;
+		  // output matrix with which BDF is computed
+		  (*debug) << "Mass Matrix, damping part RHS, of Element " 
+				   << el << std::endl;
+		  (*debug) << elemmat << std::endl;
 #endif
-        // compute BDF
-        GetElemSolution(solpred_, elemsol, connect_PDE);
-        rhsvec = -elemsol * coeff_[0];
-        noInt = 0; // counts how many values have allready been interpolated
-        for (UInt i=1; i<=calclimit_; i++) {
+		  // compute BDF
+		  GetElemSolution(solpred_, elemsol, connect_PDE);
+		  rhsvec = -elemsol * coeff_[0];
+		  noInt = 0; // counts how many values have allready been interpolated
+		  for (UInt i=1; i<=calclimit_; i++) {
 
-          if ( solMemoryVal_[i-1] == TRUEVAL ) {
-            GetElemSolution(solMemory_[i-1-noInt], elemsol, connect_PDE);
-            rhsvec += elemsol * coeff_[i];
-          }
-          else if ( solMemoryVal_[i-1] == LIN1PT ) {
-            noInt++;
-            GetElemSolution(solMemory_[i-1-noInt], elemsol, connect_PDE);
-            rhsvec += elemsol * 0.5 * coeff_[i];
-            GetElemSolution(solMemory_[i-1-noInt+1], elemsol, connect_PDE);
-            rhsvec += elemsol * 0.5 * coeff_[i];
-          }
-        }
-        rhsAssemble = elemmat * rhsvec;
+			if ( solMemoryVal_[i-1] == TRUEVAL ) {
+			  GetElemSolution(solMemory_[i-1-noInt], elemsol, connect_PDE);
+			  rhsvec += elemsol * coeff_[i];
+			}
+			else if ( solMemoryVal_[i-1] == LIN1PT ) {
+			  noInt++;
+			  GetElemSolution(solMemory_[i-1-noInt], elemsol, connect_PDE);
+			  rhsvec += elemsol * 0.5 * coeff_[i];
+			  GetElemSolution(solMemory_[i-1-noInt+1], elemsol, connect_PDE);
+			  rhsvec += elemsol * 0.5 * coeff_[i];
+			}
+		  }
+		  rhsAssemble = elemmat * rhsvec;
 
 #ifdef DEBUG
-        (*debug) <<  "BDF vector of timestep " << laststepcalc_ << std::endl;
-        (*debug) << rhsvec << std::endl;
+		  (*debug) <<  "BDF vector of timestep " << laststepcalc_ << std::endl;
+		  (*debug) << rhsvec << std::endl;
 #endif
           
-        //assemble to RHS
-        algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, 
-                               connect_PDE.GetPointer(),
-                               connect_PDE.GetSize());
+		  //assemble to RHS
+		  algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, 
+								 connect_PDE.GetPointer(),
+								 connect_PDE.GetSize());
           
-        delete bilinear_mass;   
-      }
-      Info->PrintF(pdename_, "timestep: %d, BDF over %d calculated\n"
-                   , laststepcalc_, calclimit_ );
-      PrintSolMemoryVal();
-    }
+		  delete bilinear_mass;
+		}
+		Info->PrintF(pdename_, "  FRACTIONAL damping for region  %d\n",actSD);
+		Info->PrintF(pdename_, "    BDF over %d calculated\n", calclimit_ );
+		PrintSolMemoryVal();
+	  }
+	}
   }
 
 
@@ -244,11 +254,14 @@ namespace CoupledField {
     solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
 
     // store function values, reverse storing!!!!
-    // solMemory_[0]=p_n, solMemory_[1]=p_(n-1)...
-    // solMemory_[fracMemory_ - 1]=p_(n-fracMemory_+1)
+    // solMemory_[0]=p_n
+	//   solMemory_[1]=p_(n-1)
+	//     ...
+    //       solMemory_[fracMemory_ - 1]=p_(n-fracMemory_+1)
+
     // no interpolation
     if (inType_ == NOTUSED) {
-
+	  
       for ( UInt i=fracMemory_-1; i>=1; i-- ) {
         solMemory_[i] = solMemory_[i-1];
       }
@@ -273,13 +286,11 @@ namespace CoupledField {
                 && (laststepcalc_ < 2*fracMemory_) ) {
         for (UInt i=(2*fracMemory_-laststepcalc_-1); i>=1; i--)
           solMemory_[i] = solMemory_[i-1];
-                
+		
         solMemoryVal_[0] = TRUEVAL;
         solMemoryVal_.insert( (solMemoryVal_.begin()
                                + 2*fracMemory_-laststepcalc_),LIN1PT);
-        //Info->PrintF(pdename_, 
-        //             "Middle section, timestep: %d\n",laststepcalc_ );
-      }
+	  }
       else if (laststepcalc_ >= 2*fracMemory_ ) {
         if ( (laststepcalc_%2)==0 ) {
           for (UInt i=fracMemory_-1; i>=1; i--)
@@ -355,10 +366,9 @@ namespace CoupledField {
       for (UInt i=1; i<memory; i++) // Index 1 .. (memory-1)
         coeff_[i]= ( exp(pot* log(i-1))
                      - 2* exp(pot* log(i))
-                     + exp(pot* log(i+1)) )
-          / pot;
+                     + exp(pot* log(i+1)) ) / pot;
       // Index memory
-      coeff_[memory]= exp(-(y-1.0)*log(fracMemory_))+ 
+      coeff_[memory]= exp(-(y-1.0)*log(fracMemory_)) + 
         ( exp(pot* log(fracMemory_ -1))
           - exp(pot* log(fracMemory_)) ) / pot;
     }
@@ -366,8 +376,7 @@ namespace CoupledField {
       for (UInt i=1; i<=memory; i++) // Index 1 .. memory
         coeff_[i]= ( exp(pot* log(i-1))
                      - 2* exp(pot* log(i))
-                     + exp(pot* log(i+1)) )
-          / pot;
+                     + exp(pot* log(i+1)) ) / pot;
     }
   }
 
