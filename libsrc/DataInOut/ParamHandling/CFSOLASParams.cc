@@ -692,6 +692,23 @@ namespace CoupledField {
       }
     }
 
+    // The MG preconditioner requires a CRS matrix
+    if ( pType == MG ) {
+      if ( mType != SPARSE_NONSYM ) {
+        if ( mType != NOSTORAGETYPE ) {
+          (*warning) << "Expert: Changing matrix storage type from "
+                     << Enum2String( mType ) << " to SPARSE_NONSYM for "
+                     << Enum2String( pType ) << " preconditioner";
+          Warning( __FILE__, __LINE__ );
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
+                        "type for MG preconditioner\n" );
+        }
+        mType = SPARSE_NONSYM;
+      }
+    }
+
     // The direct solver LDL_SOLVER expects an SCRS matrix
     if ( sType == LDL_SOLVER ) {
       if ( mType != SPARSE_SYM ) {
