@@ -39,7 +39,12 @@ GENERATE_TODOLIST      = YES
 GENERATE_TESTLIST      = YES
 GENERATE_BUGLIST       = YES
 GENERATE_DEPRECATEDLIST= YES
-ALIASES                = 
+ALIASES                = "purpose=\xrefitem purpose \"Class Purpose\" \"Class Purpose\"" \
+                         "collab=\xrefitem collab \"Class Collaboration\" \"Class Collaboration\"" \
+                         "implement=\xrefitem implement \"Implementation concept\" \"Implementation concept\"" \
+                         "status=\xrefitem status \"Status Of Use\" \"Status Of Use\"" \
+                         "improve=\xrefitem improve \"Improvements\" \"Improvements\"" \
+                         "unused=\xrefitem unused \"Unused Variables / Methods\" \"Unused Variables / Methods\""
 ENABLED_SECTIONS       = 
 MAX_INITIALIZER_LINES  = 30
 OPTIMIZE_OUTPUT_FOR_C  = NO
@@ -57,7 +62,8 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = ../libsrc/DataInOut \
+INPUT                  = ../Doc/DoxygenConfig/mainpage.txt \
+                         ../libsrc/DataInOut \
                          ../libsrc/DataInOut/AnsysFile \
                          ../libsrc/DataInOut/AnsysOut \
                          ../libsrc/DataInOut/Database \
@@ -90,7 +96,7 @@ RECURSIVE              = NO
 EXCLUDE                = 
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       = 
-EXAMPLE_PATH           = 
+EXAMPLE_PATH           = AddDoc/coding-rules/
 EXAMPLE_PATTERNS       = 
 EXAMPLE_RECURSIVE      = NO
 IMAGE_PATH             = 
@@ -136,7 +142,7 @@ TREEVIEW_WIDTH         = 250
 #---------------------------------------------------------------------------
 GENERATE_LATEX         = NO
 LATEX_OUTPUT           = ./latex
-LATEX_CMD_NAME         = latex
+LATEX_CMD_NAME         = pdflatex
 MAKEINDEX_CMD_NAME     = makeindex
 COMPACT_LATEX          = NO
 PAPER_TYPE             = a4wide
@@ -193,7 +199,8 @@ PREDEFINED             = OLAS \
                          TRACE \
                          USE_XERCES \
                          XMLPARAMS \
-                         DOXYGEN_SKIP_THIS
+                         DOXYGEN_SKIP_THIS \
+                         DOXYGEN_DETAILED_DOC
 EXPAND_AS_DEFINED      = 
 SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------

@@ -1,8 +1,11 @@
 * text=auto !eol
+Doc/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
+Doc/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
 Doc/DoxygenConfig/doxy-config -text
 Doc/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
 Doc/DoxygenConfig/footer.html svneol=native#text/html
 Doc/DoxygenConfig/header.html svneol=native#text/html
+Doc/DoxygenConfig/mainpage.txt svneol=native#text/plain
 Doc/auxilliaries/LaTeX/lsepaper.sty -text
 Doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
