@@ -8,12 +8,7 @@
 namespace CoupledField
 {
 
-  //! Class for electrostatic equation in 3D (no adaptivity)
-  /*! 
-    This class is derived from class BasePDE. It is used for solving
-    electrostatic equation in 3D. 
-  */
-
+  //! Class for electrostatic equation (no adaptivity)
   class ElecPDE : public SinglePDE {
 
   public:
@@ -197,6 +192,31 @@ namespace CoupledField
     //! force operator (for coupling as well as postprocessing)
     ElecForceOp* ForceOp_;
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class ElecPDE
+  //! 
+  //! \purpose   
+  //! This class is derived from class SinglePDE. It is used for solving
+  //! electrostatic equation in 3D. 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 

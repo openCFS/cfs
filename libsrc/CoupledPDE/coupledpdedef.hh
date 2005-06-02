@@ -17,8 +17,7 @@ namespace CoupledField
 
 
   //! Class for composing coupled PDEs out of single field PDEs
-  /*! This class arranges unordered PDEs in the right order and defines the coupling possibilities
-   */
+
   class CoupledPDEDef
   {
   public:
@@ -133,6 +132,55 @@ namespace CoupledField
     //!< mapping of PDEnames to optionality of input coupling quantities
     std::map <std::string, StdVector<Boolean> > optionalCoupling_;             
 
-  };  
+  };
+
+  
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class CoupledPDEDef
+  //! 
+  //! \purpose 
+  //! This class arranges unordered PDEs in the right order and defines the 
+  //! coupling possibilities
+  //!
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class Definition
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 } // end of namespace
 #endif

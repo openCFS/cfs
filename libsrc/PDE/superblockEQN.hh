@@ -7,10 +7,6 @@ namespace CoupledField
 {
 
   //! Class for numbering equations in a superblock way.
-  //! This class is hardcoded for use with piezoPDE,
-  //! since in summer there (hopefully) will be a general
-  //! mechanism to handel direct-coupled PDEs, so that
-  //! this class will superfluous.
 
   class SuperBlockEQN : public NodeEQN 
   {
@@ -78,6 +74,34 @@ namespace CoupledField
 
   };
 
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class SuperBlockEQN
+  //! 
+  //! \purpose 
+  //!  This class is hardcoded for use with piezoPDE,
+  //! since in summer there (hopefully) will be a general
+  //! mechanism to handel direct-coupled PDEs, so that
+  //! this class will superfluous.
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status 
+  //! Deprecated. Only used for the singlepde PiezoPDE, which is also 
+  //! deprecated
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
   
 }  // end of namespace
 

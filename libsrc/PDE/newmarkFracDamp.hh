@@ -145,6 +145,35 @@ namespace CoupledField {
 
   };
 
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class NewmarkFracDamp
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! This concept does not permit to have different regions with differnt
+  //! damping methods, since this method works on the global right hand side
+  //! vector. To improve the situation, we would need a generalized BaseForm
+  //! class, which allows each integrator to store old values of the solution
+  //! for a certain region. However, at the moment each integrator derived 
+  //! from BaseForm only gets a pointer to a reference element and has 
+  //! therefore no real memory of what it has calculated before.
+  //! 
+
+#endif
 } // end of namespace
 
 #endif // FILE_NEWMARKDAMP

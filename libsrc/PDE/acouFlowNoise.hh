@@ -9,17 +9,6 @@ namespace CoupledField
 {
 
   //! Class for acoustic equation
-  /*! 
-    This class is derived from class AcousticPDE. It is used for solving 
-    the acoustic analogy inhomogeneous acoustic equation for flow induced
-    noise on one time step. We define the right hand side by setting the
-    sound sources using the results from the external fluid computation, set 
-    rules for assembling global system matrix according to weak form of
-    this PDE, define right hand side and set first order absorbing boundary
-    conditions. Then we call one of methods of LinSystem for solving linear
-    system. On the last step we calculate first and second derivatives of
-    the solution.
-  */
 
   class AcouFlowNoise: public AcousticPDE
   {
@@ -86,6 +75,38 @@ namespace CoupledField
 #endif
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class AcouFlowNoise
+  //! 
+  //! \purpose 
+  //! This class is derived from class AcousticPDE. It is used for solving 
+  //! the acoustic analogy inhomogeneous acoustic equation for flow induced
+  //! noise on one time step. We define the right hand side by setting the
+  //! sound sources using the results from the external fluid computation, set 
+  //! rules for assembling global system matrix according to weak form of
+  //! this PDE, define right hand side and set first order absorbing boundary
+  //! conditions. Then we call one of methods of LinSystem for solving linear
+  //! system. On the last step we calculate first and second derivatives of
+  //! the solution.
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 #endif

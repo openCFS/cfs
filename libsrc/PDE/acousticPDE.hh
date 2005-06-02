@@ -9,10 +9,7 @@
 namespace CoupledField {
 
   //! Class for acoustic equation (no adaptivity)
-  /*! 
-    This class is derived from class SinglePDE.
-    It is used for solving acoustic equation on one time step.  
-  */
+
 
   class AcousticPDE: public SinglePDE
   {
@@ -138,6 +135,31 @@ namespace CoupledField {
     void ReadStoreResults();
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class AcousticPDE
+  //! 
+  //! \purpose 
+  //! This class is derived from class SinglePDE.
+  //! It is used for solving acoustic equation on one time step.  
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 #endif

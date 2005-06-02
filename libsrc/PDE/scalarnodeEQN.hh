@@ -5,14 +5,8 @@
 
 namespace CoupledField {
 
-  //! This class is used to perform the handling of equation numbers in the
-  //! case of scalar PDEs, i.e. PDEs which only have one degree of freedom per
-  //! node. In this case every unknown receives a unique equation number.
-  //! Unknowns whose value is fixed by homogeneous Dirichlet boundary
-  //! conditions are eliminated. Unknowns given by inhomogeneous Dirichlet
-  //! boundary conditions are treated with the penalty approach. The matrix
-  //! representing the linear system associated with the discretised PDE will
-  //! have scalar double or complex entries.
+  //! Class for handling eqaution data for PDEs with one degree of freedom
+  
   class ScalarNodeEQN : public NodeEQN {
 
   public:
@@ -77,6 +71,38 @@ namespace CoupledField {
     StdVector<Integer> pdeNode2EQN_;
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class ScalarNodeEQN
+  //! 
+  //! \purpose
+  //! This class is used to perform the handling of equation numbers in the
+  //! case of scalar PDEs, i.e. PDEs which only have one degree of freedom per
+  //! node. In this case every unknown receives a unique equation number.
+  //! Unknowns whose value is fixed by homogeneous Dirichlet boundary
+  //! conditions are eliminated. Unknowns given by inhomogeneous Dirichlet
+  //! boundary conditions are treated with the penalty approach. The matrix
+  //! representing the linear system associated with the discretised PDE will
+  //! have scalar double or complex entries.
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
+
 
 }  // end of namespace
 

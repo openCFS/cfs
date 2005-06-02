@@ -12,11 +12,6 @@ namespace CoupledField {
   class BaseSystem;
   
   //! This class implements the direct coupling of StdPDEs.
-
-  //! This class handles the direct coupling of two or more
-  //! SinglePDEs. Therefore it needs references to SinglePDEs
-  //! and the according pair coupling objects.
-
   class DirectCoupledPDE : public StdPDE
   {
   public:
@@ -154,6 +149,40 @@ namespace CoupledField {
     UInt totalUnknowns_;
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class DirectCoupledPDE
+  //! 
+  //! \purpose This class is implementes the concept of directly coupling two
+  //! or more SinglePDE's together by the use of BasePairCoupling 
+  //! objects. It has the same interface as a StdPDE, so the solveStep-classes
+  //! can work transparently with it.
+  //! 
+  //! \collab This class is instantiated in the class Domain. It gets one or 
+  //! more instances of SinglePDE (which get assembled on a main diagonal 
+  //! position in the resulting algebraic system) and the according instances
+  //! of BasePairCoupling, which implement the pairwise coupling between each 
+  //! two SinglePDEs.
+  //! 
+  //! \implement
+  //! 
+  //! \status In use
+  //! 
+  //! \unused
+  //! 
+  //! \improve 
+  //! - At the moment only a Newmark timestepping scheme is applied. In some
+  //! cases this will not be sufficient.
+  //! - Harmonic coupling has not been tested yet, as well as nonlinear 
+  //! analysis
+  //!
+
+#endif
 
 } // end of namespace
 

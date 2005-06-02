@@ -17,10 +17,6 @@ namespace CoupledField
 
   //! Base class for partial differential equations
 
-  //! Class BasePDE is the base class from which different types of classes
-  //! describing individual types of PDEs are derived. This class reflects the basic
-  //! functionality of all solvable problems (single, direct-coupled, iterative coupled).
-
   class BasePDE
   {
 
@@ -103,11 +99,34 @@ namespace CoupledField
     //! name of the PDE
     std::string pdename_;
 
-
-
   };
 
-  
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class BasePDE
+  //! 
+  //! \purpose
+  //! Class BasePDE is the base class from which different types of classes
+  //! describing individual types of PDEs are derived. This class reflects the 
+  //! basic functionality of all solvable problems (single, direct-coupled, 
+  //! iterative coupled).
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 

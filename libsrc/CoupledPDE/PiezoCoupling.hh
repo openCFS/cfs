@@ -11,8 +11,7 @@ namespace CoupledField
   class BaseForm;
   class MaterialData;
 
-  //! Implements the definition of the pairwise piezo coupling
-  //! between mechanic and electrostatic field
+  //! Implements the definition of pairwise piezo-coupling
   class PiezoCoupling : public BasePairCoupling
   {
   public:
@@ -46,6 +45,29 @@ namespace CoupledField
   private:
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class PiezoCoupling
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 

@@ -19,11 +19,7 @@ namespace CoupledField
   template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
 
-  //! This class holds information about Coupling terms, such as coupling quantity, 
-  //! values coupling nodes/elements ...
-
-  //! This class holds information about Coupling terms, such as coupling quantity, 
-  //! values coupling nodes/elements ...
+  //! This class holds information about itertive Coupling terms
   class PDECoupling
   {
 
@@ -351,6 +347,29 @@ namespace CoupledField
 
   }; // end of class declaration
 
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class PDECoupling
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 

@@ -17,9 +17,6 @@ namespace CoupledField
   
   //! Base class for all kinds of single field problems.
 
-  //! This class serves as base class for all single field problems, 
-  //! like electrostatic,  acoustic, mechanic and others.
-
   class SinglePDE : public StdPDE
   {
   
@@ -331,6 +328,31 @@ namespace CoupledField
     Boolean isDirectCoupled_;
     //@}
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class SinglePDE
+  //! 
+  //! \purpose 
+  //! This class serves as base class for all single field problems, 
+  //! like electrostatic,  acoustic, mechanic and others.
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 #endif

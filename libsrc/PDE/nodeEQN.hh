@@ -163,6 +163,30 @@ namespace CoupledField
 #endif
     return pde2MeshElem_[elemNumLoc-1];
   }
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class NodeEQN
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
+
 }  // end of namespace
 
 #endif // FILE_SCALARNODEEQN
