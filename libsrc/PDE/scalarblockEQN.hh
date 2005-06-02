@@ -6,7 +6,7 @@
 namespace CoupledField
 {
 
-  //! a base class for quation data handling
+  //! a base class for equation data handling
 
   class ScalarBlockEQN : public NodeEQN 
   {
@@ -71,6 +71,29 @@ namespace CoupledField
     Matrix<Integer> pdeNode2EQN_;
     //@}
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class ScalarBlockEQN
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
   
 }  // end of namespace

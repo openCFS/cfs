@@ -11,9 +11,7 @@ namespace CoupledField
   class StdPDE;
   class PDECoupling;
 
-  //! Derived Class from BasePDE. It solves iteratively
-  //! a list of PDES and calculates coupling terms in between
-
+  //! This class iteratively solve a list of given SinglePDEs 
   class IterCoupledPDE : public BasePDE
   {
 
@@ -106,6 +104,29 @@ namespace CoupledField
     StdVector<Boolean> solvePDE_;
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class IterCoupledPDE
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 

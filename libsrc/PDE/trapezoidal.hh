@@ -54,6 +54,29 @@ namespace CoupledField
     Vector<Double> solpred_;
   };
 
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class Trapezoidal
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use.
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
+
 }
 
 #endif // FILE_NEWMARK

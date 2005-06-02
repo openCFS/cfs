@@ -6,8 +6,7 @@
 namespace CoupledField
 {
 
-  //! Equation handling class for PDEs with number
-  //! of degrees of freedom > 1
+  //! Equation handling class for PDEs with number of degrees of freedom > 1
 
   class BlockNodeEQN : public NodeEQN
   {
@@ -66,7 +65,29 @@ namespace CoupledField
     StdVector<Integer> pdeNode2EQN_;
   
   };
-  
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class BlockNodeEQN
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif  
   
 }  // end of namespace
 

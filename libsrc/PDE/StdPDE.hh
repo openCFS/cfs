@@ -23,11 +23,6 @@ namespace CoupledField {
   
   //! Base class for all single-field and direct-coupled problems
 
-  //! This class serves as base class for all single-field and 
-  //! direct coupled problems. The idea is, that an iterative coupled
-  //! pde can have one or more objects of StdPDE, which are then
-  //! solved iteratively.
-  
   class StdPDE : public BasePDE {
   
   public:
@@ -533,6 +528,33 @@ namespace CoupledField {
     //@}
 
   }; // class StdPDE
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class StdPDE
+  //! 
+  //! \purpose 
+  //! This class serves as base class for all single-field and 
+  //! direct coupled problems. The idea is, that an iterative coupled
+  //! pde can have one or more objects of StdPDE, which are then
+  //! solved iteratively.
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 

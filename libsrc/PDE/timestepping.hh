@@ -15,9 +15,6 @@ namespace CoupledField {
 
   //! Base class for time stepping algorithms
 
-  //! This is a base class for all classes, which performa a timestepping
-  //! i.e. solve a simple ODE. These are for exmaples trapezoidal rule
-  //! and newmark schemes.
   class TimeStepping
   {
   public:
@@ -98,6 +95,32 @@ namespace CoupledField {
    
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class TimeStepping
+  //! 
+  //! \purpose 
+  //! This is a base class for all classes, which performa a timestepping
+  //! i.e. solve a simple ODE. These are for exmaples trapezoidal rule
+  //! and newmark schemes.
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 

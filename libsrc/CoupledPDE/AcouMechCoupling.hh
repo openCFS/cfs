@@ -12,7 +12,6 @@ namespace CoupledField
   class MaterialData;
 
   //! Implements the definition of the pairwise acoustic-mechanic
-  //! coupling via surface elements.
   class AcouMechCoupling : public BasePairCoupling
   {
   public:
@@ -47,6 +46,33 @@ namespace CoupledField
   private:
 
   };
+
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class AcouMechCoupling
+  //! 
+  //! \purpose This class implements the direct coupling of mechanical and
+  //! acoustic field via surface elements.
+  //! 
+  //! \collab Objects of this class are instantiated by the class Domain.
+  //! Afterwards they are passed to an instance of DirectCoupledPDE, which 
+  //! can have arbitrarely many of them.
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused
+  //! 
+  //! \improve 
+  //! 
+
+#endif
 
 } // end of namespace
 

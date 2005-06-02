@@ -17,7 +17,6 @@ namespace CoupledField
   class MaterialData;
 
   //! Base class for pairwise direct coupling of two pdes
-
   class BasePairCoupling
   {
   public:
@@ -52,7 +51,7 @@ namespace CoupledField
     SinglePDE* GetPde2()
     { return pde2_;}
     
-        //! Get types of needed matrices (sysmtem, stiffness,..)
+    //! Get types of needed matrices (sysmtem, stiffness,..)
     void GetMatrixTypes( std::set<FEMatrixType> &matTypes);
 
     // ======================================================
@@ -156,6 +155,37 @@ namespace CoupledField
 
   };
 
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class BasePairCoupling
+  //! 
+  //! \purpose This class serves as base class for all pair-wise coupling
+  //! objects, like piezo- or mech-acoustic coupling. This class and its
+  //! derived classes have to perform similar tasks like a SinglePDE, e.g.
+  //! - getting the region for the object
+  //! - defining couple integrators
+  //! - creating an assemble object
+  //! 
+  //! \collab Objects of this class are instantiated by the class Domain.
+  //! Afterwards they are passed to an instance of DirectCoupldPDE, which 
+  //! can have arbitrarely many of them.
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused
+  //! 
+  //! \improve 
+  //! - There should be only one assemble object for all direct-coupled 
+  //!   SinglePDEs, so that this class won't have to create an own
+  //!
+
+#endif
 
 } // end of namespace
 

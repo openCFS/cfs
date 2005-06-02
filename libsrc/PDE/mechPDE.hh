@@ -9,11 +9,6 @@ namespace CoupledField
 
 
   //! Class for mechanic equation (no adaptivity)
-  /*! 
-    This class is derived from class BasePDE. 
-    It is used for solving mechanic equation on one time step.  
-  */
-
   class MechPDE: public SinglePDE
   {
 
@@ -213,6 +208,31 @@ namespace CoupledField
     NodeStoreSol<Double> solDeriv2_;
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class MechPDE
+  //! 
+  //! \purpose 
+  //! This class defines the mechanical field PDE and the according 
+  //! postprocessing methods.
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 #endif

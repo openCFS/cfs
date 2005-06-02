@@ -12,9 +12,6 @@ namespace CoupledField
 {
 
   //! Class for coupling a pde via MpCCI
-  /*! 
-    This class is derived from class BasePDE. It is used for coupling CFS++ via MpCCI
-  */
 
   class MpcciPDE : public SinglePDE {
 
@@ -118,6 +115,31 @@ namespace CoupledField
     void ReadStoreResults();
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class MpcciPDE
+  //! 
+  //! \purpose 
+  //! This class is derived from class BasePDE. It is used for coupling CFS++ 
+  //! via MpCCI
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 

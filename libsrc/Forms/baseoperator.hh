@@ -12,8 +12,10 @@ namespace CoupledField
   class StdPDE;
 
   //! Base class for operators working on elements
-  /*! Class BaseOperator is base class from which different kinds of operators are derived
-   */
+
+  //! Class BaseOperator is base class from which different kinds of 
+  //! operators are derived
+
   class BaseOperator
   {
   public:

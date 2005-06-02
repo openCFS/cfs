@@ -7,10 +7,6 @@ namespace CoupledField
 {
 
   //! Class for electrostatic equation in 3D (no adaptivity)
-  /*! 
-    This class is derived from class SinglePDE. It is used for solving electrostatic equation in 3D. 
-  */
-
   class MagEdgePDE: public SinglePDE
   {
   public:
@@ -148,6 +144,40 @@ namespace CoupledField
     std::vector<struct coilDefStruct> coilDef_; //!< vector of paramters describing coils
   
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class MagEdgePDE
+  //! 
+  //! \purpose 
+  //! This class is derived from class SinglePDE. It is used for solving 
+  //! the magnetic field equation in 3D
+  //!
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status Not used
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! The concept of edge elements has to be re-thougt. We need a 
+  //! generalization of the Unknown/dof concept, because at the moment
+  //! each integrator only gets a vector with edge nodes from grid and 
+  //! calculates the according matrix. \n
+  //! Therefore the following is needed:
+  //! -# Introduce a strict separtaion ofreference element (BaseFE) and the
+  //! according degrees of freedom (nodes, edges, faces, ...)
+  //! -# Introduce an additional equation class, derived from BaseEQN, which
+  //! e.g. is repsonsible for giving equation numbers to edges, faces etc.
+  //! 
+
+#endif
 
 } // end of namespace
 #endif

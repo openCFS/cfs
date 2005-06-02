@@ -10,11 +10,7 @@ namespace CoupledField
   // Forward declaration of classes
   class Coil;
 
-  //! Class for magnetic equation (no adaptivity)
-  /*! 
-    This class is derived from class BasePDE. 
-  */
-
+  //! Class for defining the magnetic field in 2D
   class MagPDE : public SinglePDE
   {
   public:
@@ -264,6 +260,29 @@ namespace CoupledField
     void ReadStoreResults();
     
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class MagPDE
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 #endif

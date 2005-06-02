@@ -9,11 +9,6 @@ namespace CoupledField
 {
 
   //! Class for mechanic equation (no adaptivity)
-  /*! 
-    This class is derived from class BasePDE. 
-    It is used for solving mechanic equation on one time step.  
-  */
-
   class SmoothPDE: public SinglePDE
   {
 
@@ -84,6 +79,29 @@ namespace CoupledField
     Vector<Double> factor_;
 
   };
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class SmoothPDE
+  //! 
+  //! \purpose 
+  //! This class implements a simple, quasi-mechanic grid smoother.
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 } // end of namespace
 #endif

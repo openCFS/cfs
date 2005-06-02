@@ -11,8 +11,7 @@ namespace CoupledField
 
   //! Class for piezoelectric simulations
 
-  //! Detailed description to follow ...
-  class PiezoPDE: public SinglePDE
+   class PiezoPDE: public SinglePDE
   {
 
   public:
@@ -167,8 +166,32 @@ namespace CoupledField
     //! calculate comlex valued Charges
     void CalcComplexValuedCharges();
     
-    
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class PiezoPDE
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status Deprecated. Should be replaced by DirectCoupledPDE and 
+  //! PiezoCoupling
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
+
 }
 
 #endif
