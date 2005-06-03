@@ -63,7 +63,8 @@ namespace CoupledField
     void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, 
                           Double & voltage, UInt & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
 
-    //! updates the piezoMatrix in MaterialData parameter = \f$(c_11, c_33, c_12, c_13, c_44, e_15, e_31, e_33, eps_11, eps_33)$\f
+    //! updates the piezoMatrix in MaterialData parameter = 
+    //! \f$(c_11, c_33, c_12, c_13, c_44, e_15, e_31, e_33, eps_11, eps_33)\f$
     //! \param parameter - new set of piezoelectric material parameters
     void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
 
