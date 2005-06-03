@@ -6,6 +6,8 @@
 echo " "
 echo " Generating Doxygen Documentation for CFS++"
 echo " "
+# Change date in footer.html
+DoxygenConfig/changeDate.sh DoxygenConfig/footer.html
 doxygen DoxygenConfig/doxy-config
 echo " "
 echo " See `pwd`/html/index.html for doc"

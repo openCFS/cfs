@@ -1,6 +1,7 @@
 * text=auto !eol
 Doc/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 Doc/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
+Doc/DoxygenConfig/changeDate.sh svneol=native#text/plain
 Doc/DoxygenConfig/doxy-config -text
 Doc/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
 Doc/DoxygenConfig/footer.html svneol=native#text/html
