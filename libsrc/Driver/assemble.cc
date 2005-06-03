@@ -314,25 +314,27 @@ namespace CoupledField {
                                          connect_PDE2.GetSize() );
             }
 #ifdef DEBUG
+            UInt elemNum = elemssd[actEl]->elemNum;
+
             // output matrices
             if (destMat == STIFFNESS) {
               (*debug) << "Stiffness matrix of Element " 
-                       << actEl << std::endl;
+                       << elemNum << std::endl;
             }
 
             if (destMat == MASS) {
               (*debug) << "Mass      matrix of Element " 
-                       << actEl << std::endl;
+                       << elemNum << std::endl;
             }
 
             if (destMat == DAMPING) {
               (*debug) << "Damping   matrix of Element " 
-                       << actEl << std::endl;
+                       << elemNum << std::endl;
             }
 
             if (destMat == SYSTEM) {
               (*debug) << "System matrix of Element " 
-                       << actEl << std::endl;
+                       << elemNum << std::endl;
             }
             
             (*debug) << elemmat << std::endl;
