@@ -274,6 +274,45 @@ namespace CoupledField
 
   }; // end of class piezoParamIdent
 
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class piezoParamIdent
+  //! 
+  //! \purpose Determination of piezoelectric material parameters.
+  //! Class implements a simulation based reconstruction principle.
+  //! 
+  //! \collab 
+  //! 
+  //! \implement Code in File piezoParamIdent provides setting for
+  //! parameter identification. piezoParamIdent_methods is a container 
+  //! for different subroutines, like the harmonic forward solution of 
+  //! the piezoelectric PDEs, the calculation of the impedance curve ... It 
+  //! further comprises different realizations (for real and comlex-valued
+  //! parameters of the computation of
+  //! the Jacobian of the so called 'parameter-to-solution' mapping.
+  //!
+  //! Files like nuMethods, newtonLandweber, newtonCG provide different
+  //! regularization strategies which solve the nonlinear operator equation
+  //! F(p)=y, where symbolically F denotes the forward solution (charges) 
+  //! of the piezoelectric 
+  //! equations for different frequencies using the parameter set p. The right 
+  //! hand side contains a set of measured charges at the surface of the
+  //! piezo.
+  //! 
+  //! \status In use, still in improvement phase
+  //! 
+  //! \unused 
+  //! 
+  //! \improve Clean code from not approved methods and ansatzes.
+  //! Expand functionality to determination of parameters on different
+  //! domains and of Lame parameters in non-piezoelectric clamping material
+  //! 
+
+#endif
 }
 
 
