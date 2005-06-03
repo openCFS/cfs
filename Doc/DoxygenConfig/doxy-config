@@ -77,6 +77,7 @@ INPUT                  = ../Doc/DoxygenConfig/mainpage.txt \
                          ../libsrc/Domain/GridCFS \
                          ../libsrc/Domain/AdaptGrid \
                          ../libsrc/Driver \
+                         ../libsrc/ParamIdent \
                          ../libsrc/Elements \
                          ../libsrc/Elements/1D \
                          ../libsrc/Elements/2D \
