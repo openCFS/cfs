@@ -8,15 +8,7 @@
 
 namespace CoupledField {
 
-  //! Base class for exporting results
-
-  //! This is the base class for exporting simulation results. The methods of
-  //! this class are purely virtual and must be over-written by the derived
-  //! classes that handle the different types of output formats/files.
-  //! At present the following output formats are supported
-  //! - <b>gmv</b>
-  //! - <b>unverg</b>
-  //! - <b>database</b>
+  //! Base class for writing results
   class WriteResults {
 
   public:
@@ -167,6 +159,40 @@ namespace CoupledField {
     virtual void InitHistoryFiles();
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class WriteResults
+  //! 
+  //! \purpose
+  //! This is the base class for writing simulation results. The methods of
+  //! this class are purely virtual and must be over-written by the derived
+  //! classes that handle the different types of output formats/files.
+  //!
+  //! \collab 
+  //! The only object of this class gets instanciated in DefineFiles at the 
+  //! bginning of a simulation run. The results themselves are passed to this
+  //! class in the different SinglePDEs in the method WriteResultsInFile.
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! - Right now we open a new file for each history-node and quantity. 
+  //! Since all of these files occupie a file descriptor during the whole
+  //! simulation, there can occur strange errors when the operating systems
+  //! runs out of file handlers (normally only 1024 are allowed per process!).
+  //! Here  we need an appropriate check or we have to store all history 
+  //! results in a vector and write them out only at the end of a simulation.
+
+#endif
 
 } // end of namespace
 
