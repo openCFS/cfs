@@ -40,6 +40,18 @@ using namespace CoupledField;
 
 int main( int argc, const char **argv ) {
 
+  // =========================================================================
+  // INITIALISATION OF MPI
+  // =========================================================================
+
+#ifdef PARALLEL //initialize MPI
+  int commrank,commsize;
+  MPI_Comm comm = MPI_COMM_WORLD;
+  MPI_Init(&argc,(char***)(&argv));
+  MPI_Comm_size(comm, &commsize);
+  MPI_Comm_rank(comm, &commrank);
+#endif //parallel
+
   
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
@@ -102,19 +114,6 @@ int main( int argc, const char **argv ) {
   FileHandler.OpenFile( MEMTRACE_FILE );
   Info->FinishProgress();
 #endif
-
-
-  // =========================================================================
-  // INITIALISATION OF MPI
-  // =========================================================================
-
-#ifdef PARALLEL //initialize MPI
-  int commrank,commsize;
-  MPI_Comm comm = MPI_COMM_WORLD;
-  MPI_Init(&argc,&argv);
-  MPI_Comm_size(comm, &commsize);
-  MPI_Comm_rank(comm, &commrank);
-#endif //parallel
 
 
   // =========================================================================
