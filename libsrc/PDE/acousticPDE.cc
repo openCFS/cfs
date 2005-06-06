@@ -120,13 +120,13 @@ namespace CoupledField {
 		dampingType_ = dampingList_[0];
 	  }
 	  else {
-		std::cout << "Different types of damping for your specified regions!"
-				  << std::endl;
+		Info->PrintF(pdename_,
+					 "Found different types of damping for regions!");
 	  }
 
 	  // get additional information for fractional damping model
 	  if ( dampingType_ == FRACTIONAL ) {
-        
+
 		StdVector<std::string> fracAlgList_;
 		params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
 		StdVector<UInt> fracMemoryList_;
@@ -143,7 +143,7 @@ namespace CoupledField {
 				   << "and interpolation!";
             Error( __FILE__, __LINE__ ); 
 		}
-		// up to now take values from first subdomain
+		// up to now take values from first subdomain with frac damp
 		else {
 		  if ( fracAlgList_[firstFrac] == "gl" )
 			Info->PrintF( pdename_, 
@@ -164,12 +164,26 @@ namespace CoupledField {
 						"         %s interpolation of past values\n\n"
 						, interpolationList_[firstFrac].c_str() );
 		}
+
 		// modify dampingList, so that fracAlg is included
 		for ( UInt k = 0; k < strVec.GetSize(); k++) {
-		  if ( fracAlgList_[k] == "gl" )
-			dampingList_[k] = FRACTIONAL_GL;
-		  else if (fracAlgList_[k] == "blank")
-			dampingList_[k] = FRACTIONAL_BLANK;
+		  if ( dampingList_[k] == FRACTIONAL ) {
+
+			if ( fracAlgList_[k] == "gl" && interpolationList_[k] == "no" )
+			  dampingList_[k] = FRACTIONAL_GL;
+
+			else if ( fracAlgList_[k]=="gl" && 
+					  interpolationList_[k]=="lin1pt" )
+			  dampingList_[k] = FRACTIONAL_GL_INT;
+
+			else if ( fracAlgList_[k] == "blank" && 
+					  interpolationList_[k] == "no" )
+			  dampingList_[k] = FRACTIONAL_BLANK;
+
+			else if ( fracAlgList_[k]=="blank" && 
+					  interpolationList_[k]=="lin1pt" )
+			  dampingList_[k] = FRACTIONAL_BLANK_INT;
+		  }
 		}
 	  }
 	}
@@ -177,7 +191,6 @@ namespace CoupledField {
     // *************************************************************
     //   Check what type of nonlinear PDE formulation should be used
     // *************************************************************
-
     nonLin_ = FALSE; //declaration in basePDE.hh
     params->GetList( "nonLinear", strVec, pdename_, "region" );
     nonLinPDEName_.Resize(strVec.GetSize());
@@ -189,21 +202,22 @@ namespace CoupledField {
       else if ( strVec[k] == "westervelt" ) {
         nonLin_ = TRUE;
         nonLinPDEName_[k] = WESTERVELT;
-        Info->PrintF( pdename_, "      * Westervelt equation for region: %d\n", k );
+        Info->PrintF(pdename_, "      * Westervelt equation for region: %d\n",
+					 k );
         if ( solTypes_ == ACOU_POTENTIAL )
-          Error("Acoustic potential formulation not supported for Westervelt equation!"
-                ,__FILE__,__LINE__);
+          Error("Acoustic potential formulation not supported for \
+Westervelt equation!" ,__FILE__,__LINE__);
       }
       else if ( strVec[k] == "kuznetsov" ) {
         nonLin_ = TRUE;
         nonLinPDEName_[k] = KUZNETSOV;
-        Info->PrintF( pdename_, "      * Kuznetsov equation for region: %d\n", k );
+        Info->PrintF(pdename_, "      * Kuznetsov equation for region: %d\n",
+					 k );
         if ( solTypes_ == ACOU_PRESSURE )
-          Error("Acoustic pressure formulation not supported for Kuznetsov equation!"
-                ,__FILE__,__LINE__);
+          Error("Acoustic pressure formulation not supported for \
+Kuznetsov equation!" ,__FILE__,__LINE__);
       }
     }
-
 
     // **************************************************
     //   Check what type of bubble model should be used
@@ -214,11 +228,11 @@ namespace CoupledField {
       String2Enum( auxVec[0], bubbleDynType_ );
 
       //Set bubbledensity
-      params->Get( "bubbleNumDensity", bubbleDensity_, "acoustic", "bubbles" );
+      params->Get("bubbleNumDensity", bubbleDensity_, "acoustic", "bubbles");
     }
     else if ( auxVec.GetSize() > 1 ) {
-      Error( "Specification of bubble type not unique in xml-file", __FILE__,
-             __LINE__ );
+      Error("Specification of bubble type not unique in xml-file", __FILE__,
+			__LINE__ );
     }
     else {
       bubbleDynType_ = NOBUBBLETYPE;
@@ -267,12 +281,13 @@ namespace CoupledField {
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
+	  //std::cout << "dampingList_ entry of subdomain "
+	  //		<< actSD << " is:    " << dampingList_[actSD]
+	  //		<< std::endl << std::endl;
+
       density         = materialData_[actSD].GetDensity();
-      
       compressibility = materialData_[actSD].GetCompressibility();
       c0 = sqrt(compressibility/density);
-
-      
       alpha  = materialData_[actSD].GetDampingAlfa();
       beta   = materialData_[actSD].GetDampingBeta();
       BoverA = materialData_[actSD].GetBoverA();
@@ -282,9 +297,9 @@ namespace CoupledField {
         density *= -1.0;
       }
 
-      // **********************************************************************
+      // *********************************************************************
       //   Linear wave equation
-      // **********************************************************************
+      // *********************************************************************
 
       // stiffness integrator
       BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);        
@@ -294,14 +309,18 @@ namespace CoupledField {
 
       // mass integrator
       coeffmass = density / (c0*c0);
+#ifdef DEBUG
+		  (*debug) << std::endl << "rho/c0^2 = "
+				   << coeffmass << std::endl << std::endl;
+#endif
       BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
       IntegratorDescriptor * massIntDescr = 
         new IntegratorDescriptor(bilinearMass, MASS);
       assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]);
 
-      // **********************************************************************
+      // *********************************************************************
       //   Additional terms for damping
-      // **********************************************************************
+      // *********************************************************************
 
       if ( !dampingList_.IsEmpty() ) {
 
@@ -325,23 +344,32 @@ namespace CoupledField {
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
         }
 
-        else if ( dampingList_[actSD] == FRACTIONAL_GL ) {
+        else if ( dampingList_[actSD] == FRACTIONAL_GL ||
+				  dampingList_[actSD] == FRACTIONAL_GL_INT ) {
           coeffdamp = - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
-          BaseForm * bilinearDamp  = new MassInt(coeffdamp, dofspernode_, isaxi_);
+#ifdef DEBUG
+		  (*debug) << std::endl << "-rho*2*alpha0/c0/sin((y-1)*0.5*pi) = "
+				   << coeffdamp << std::endl << std::endl;
+#endif
+          BaseForm * bilinearDamp  = 
+			new MassInt(coeffdamp, dofspernode_, isaxi_);
           bilinearDamp->SetFracDamping();
-          // conservative formulation
-          // adapt NewmarkFracDamp::Init and BasePDE::GetFracDampMatrixCoeff
+          // formulation using DAMPING matrix
+          // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
           // IntegratorDescriptor * dampIntDescr = 
-          //new IntegratorDescriptor(bilinearDamp, DAMPING);
+          //   new IntegratorDescriptor(bilinearDamp, DAMPING);
 
           // two matrices formulation
+		  // added to STIFFNESS matrix because, because 
+		  //   matrix_factors[STIFFNESS] = 1.0
           IntegratorDescriptor * dampIntDescr = 
             new IntegratorDescriptor(bilinearDamp, STIFFNESS);
 
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
         }
 
-        else if  ( dampingList_[actSD] == FRACTIONAL_BLANK ) {
+        else if  ( dampingList_[actSD] == FRACTIONAL_BLANK ||
+				   dampingList_[actSD] == FRACTIONAL_BLANK_INT ) {
           coeffdamp =  - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
           // prefactor of blank alg
           coeffdamp *= exp(-gammaln(1.0- (beta- 1.0)) ); 
@@ -350,18 +378,27 @@ namespace CoupledField {
           BaseForm * bilinearDamp  = 
             new MassInt(coeffdamp, dofspernode_, isaxi_);
           bilinearDamp->SetFracDamping();
-          // conservative formulation
-          // adapt NewmarkFracDamp::Init and BasePDE::GetFracDampMatrixCoeff              
+          // formulation using DAMPING matrix
+          // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
           // IntegratorDescriptor * dampIntDescr = 
-          //new IntegratorDescriptor(bilinearDamp, DAMPING);
+          //   new IntegratorDescriptor(bilinearDamp, DAMPING);
 
           // two matrices formulation
+		  // added to STIFFNESS matrix because, because 
+		  //   matrix_factors[STIFFNESS] = 1.0
           IntegratorDescriptor * dampIntDescr = 
             new IntegratorDescriptor(bilinearDamp, STIFFNESS);
 
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
         }
       }
+
+	  if ( dampingList_.GetSize() != subdoms_.GetSize() ) {
+		(*error) << "Mismatch between dampingList_ and subdoms_!"
+				 << "Size(dampingList_): " << dampingList_.GetSize()
+				 << "Size(subdoms_): " << subdoms_.GetSize();
+		Error(__FILE__, __LINE__);  
+	  }
 
     }
 
@@ -451,7 +488,8 @@ namespace CoupledField {
       if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE)    {
         ptCoupling_->CreateCouplingVector(i,isComplex_);
         
-        //now since we need a incremental formulation, initialize some necessary vectors
+        // now since we need a incremental formulation, 
+		//  initialize some necessary vectors
         isIncrFormulation_ = TRUE;
       }
     }
@@ -634,10 +672,10 @@ namespace CoupledField {
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
         if (saveSol_){
-          outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
+          outFile_->WriteNodeSolutionTransient(*solTransient,actStep,actTime);
         }
         if (saveSolHist_){
-          outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
+          outFile_->WriteNodeHistoryTransient(*solTransient, actStep,actTime);
         }
         
         if (saveDeriv1_) {
@@ -693,9 +731,10 @@ namespace CoupledField {
             
           result[0] = radius[el];
           result[1] = velocity[el];
-          result[2] = (4.0/3.0)*PI*bubbleDensity_*radius[el]*radius[el]*radius[el];
+          result[2] = (4.0/3.0)*PI*bubbleDensity_*radius[el]*radius[el]
+			*radius[el];
           //        if (el == 90)
-          //std::cerr << actTime << "   " << el << "   " << result[0] << "   " 
+          //std::cerr<<actTime<<"   " <<el<< "   " << result[0] << "   " 
           // result[1] << "     " << result[2] << std::endl;
             
           bubbleResult.SetElemResult(el,result);
