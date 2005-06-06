@@ -325,6 +325,8 @@ namespace CoupledField {
   
     elemVec.Resize(nrNodes);
     elemVec = -elemmat * magPot_;
+
+    delete curlcurl2D;
   }
 
 

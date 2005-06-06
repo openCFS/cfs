@@ -730,7 +730,6 @@ namespace CoupledField {
                     
             Vector<Double> elemVec;
             actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
-                    
             algsys_->SetElementRHS(&elemVec[0], pdeId1_, 
                                    connect_PDE.GetPointer(), 
                                    connect_PDE.GetSize());
