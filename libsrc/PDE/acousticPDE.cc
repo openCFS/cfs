@@ -20,6 +20,10 @@
 #include "Driver/solveStepAcousticBubble.hh"
 #include "CoupledPDE/pdecoupling.hh"
 
+#ifdef PARALLEL
+#include <mpi.h>
+#endif
+
 namespace CoupledField {
 
   // =========================================================================
