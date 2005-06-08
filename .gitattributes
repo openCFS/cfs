@@ -7,6 +7,10 @@ Doc/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
 Doc/DoxygenConfig/footer.html svneol=native#text/html
 Doc/DoxygenConfig/header.html svneol=native#text/html
 Doc/DoxygenConfig/mainpage.txt svneol=native#text/plain
+Doc/Protokolle/Treffen_03_11_2003.pdf -text svneol=unset#application/pdf
+Doc/Protokolle/Treffen_07_06_2005.pdf -text svneol=unset#application/pdf
+Doc/Protokolle/Treffen_12_11_2003.pdf -text svneol=unset#application/pdf
+Doc/Protokolle/Treffen_14_04_2005.pdf -text svneol=unset#application/pdf
 Doc/auxilliaries/LaTeX/lsepaper.sty -text
 Doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
