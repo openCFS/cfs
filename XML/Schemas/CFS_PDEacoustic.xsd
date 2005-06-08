@@ -16,7 +16,7 @@
   <!--   Definition of element for acoustics PDEs -->
   <!-- ******************************************************************* -->
   <xsd:element name="acoustic" type="DT_PDEAcoustic"
-       substitutionGroup="PDEBasic"/>
+    substitutionGroup="PDEBasic"/>
 
 
   <!-- ******************************************************************* -->
@@ -32,7 +32,7 @@
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="damping" type="DT_AcousticDamp"
-                 minOccurs="0"/>
+                  minOccurs="0"/>
               </xsd:sequence>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="nonLinear" type="DT_AcousticNonLin"
@@ -41,7 +41,7 @@
           </xsd:element>
 
           <xsd:element name="valRHS" type="DT_CFSBool" minOccurs="0"
-                       maxOccurs="1" default="no"/>
+            maxOccurs="1" default="no"/>
 
           <!-- Type of FlowData (optional) -->
           <xsd:element name="flowData" minOccurs="0">
@@ -58,39 +58,39 @@
 
           <!-- Time Stepping Formulation (optional)-->
           <xsd:element name="timeSteppingFormulation"
-          type="DT_AcousticTimeStep" minOccurs="0" default="effStiffMatrix"/>
+            type="DT_AcousticTimeStep" minOccurs="0" default="effStiffMatrix"/>
 
           <!-- Information for simulation including bubbles (optional) -->
           <xsd:element name="bubbles" minOccurs="0">
             <xsd:complexType>
-             <xsd:sequence>
-               <xsd:element name="bubbleType">
-                 <xsd:simpleType>
-                   <xsd:restriction base="xsd:token">
-                     <xsd:enumeration value="Gilmore"/>
-                     <xsd:enumeration value="KellerMiksis"/>
-                   </xsd:restriction>
-                 </xsd:simpleType>
-               </xsd:element>
-               <xsd:element name="bubbleNumDensity" type="DT_NonNegFloat"/>
-             </xsd:sequence>
-             <xsd:attribute name="tag" type="xsd:token" use="optional"
-               default="anyTag"/>
-           </xsd:complexType>
-         </xsd:element>
+              <xsd:sequence>
+                <xsd:element name="bubbleType">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <xsd:enumeration value="Gilmore"/>
+                      <xsd:enumeration value="KellerMiksis"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:element>
+                <xsd:element name="bubbleNumDensity" type="DT_NonNegFloat"/>
+              </xsd:sequence>
+              <xsd:attribute name="tag" type="xsd:token" use="optional"
+                default="anyTag"/>
+            </xsd:complexType>
+          </xsd:element>
 
           <!-- Section for specifying acoustic slice data (pulse-wave
-               computation on slices) -->
+          computation on slices) -->
           <xsd:element name="sliceData" minOccurs="0">
             <xsd:complexType>
-	        <xsd:sequence>
-	          <xsd:element name="dimension" type="DT_DomainDimension"/>
-        	  <xsd:element name="waveLength" type="DT_PosFloat"/>
-	          <xsd:element name="elementsPerWavelength"
-                    type="xsd:nonNegativeInteger"/>
-	          <xsd:element name="pulseTime"  type="DT_PosFloat"/>
-	          <xsd:element name="soundSpeed" type="DT_PosFloat"/>
-        	</xsd:sequence>
+              <xsd:sequence>
+                <xsd:element name="dimension" type="DT_DomainDimension"/>
+                <xsd:element name="waveLength" type="DT_PosFloat"/>
+                <xsd:element name="elementsPerWavelength"
+                  type="xsd:nonNegativeInteger"/>
+                <xsd:element name="pulseTime"  type="DT_PosFloat"/>
+                <xsd:element name="soundSpeed" type="DT_PosFloat"/>
+              </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
 
@@ -99,13 +99,13 @@
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="dirichletHom" type="DT_AcousticHD"
-                             minOccurs="0" maxOccurs="unbounded"/>
+                  minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="dirichletInhom" type="DT_AcousticID"
-                             minOccurs="0" maxOccurs="unbounded"/>
+                  minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="neumannInhom" type="DT_AcousticIN"
-                             minOccurs="0" maxOccurs="unbounded"/>
+                  minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"
-                             minOccurs="0" maxOccurs="unbounded"/>
+                  minOccurs="0" maxOccurs="unbounded"/>
               </xsd:sequence>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
@@ -117,14 +117,14 @@
 
           <!-- Desired solution values (optional) -->
           <!-- Currently this is not supported, since it is difficult
-               to define in the acoustics case since it depends on the
-               boundary conditions -->
+          to define in the acoustics case since it depends on the
+          boundary conditions -->
           <xsd:element name="storeResults" type="DT_AcousticStoreResults"
             minOccurs="0" maxOccurs="1"/>
 
           <!-- Section for specifying solver (optional) -->
           <xsd:element ref="solver" minOccurs="0"/>
-  
+          
         </xsd:sequence>
 
         <!-- Type of acoustic formulation (optional) -->
@@ -213,7 +213,7 @@
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_AcousticDamp">
 
-	<!-- Type of damping -->
+    <!-- Type of damping -->
     <xsd:attribute name="type" use="optional" default="no">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -226,7 +226,7 @@
       </xsd:simpleType>
     </xsd:attribute>
 
-	<!-- Type of fractional damping algorithm -->
+    <!-- Type of fractional damping algorithm -->
     <xsd:attribute name="fracAlg" use="optional" default="gl">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -236,11 +236,11 @@
       </xsd:simpleType>
     </xsd:attribute>
 
-	<!-- Number of past time-steps for fractional damping -->
+    <!-- Number of past time-steps for fractional damping -->
     <xsd:attribute name="fracMemory" type="xsd:positiveInteger" use="optional"
       default="1"/>
 
-	<!-- Type of interpolation -->
+    <!-- Type of interpolation -->
     <xsd:attribute name="interpolation" use="optional" default="no">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -314,5 +314,5 @@
     <xsd:attribute name="dimY" type="DT_PosFloat"/>
     <xsd:attribute name="dimZ" type="DT_PosFloat"/>
   </xsd:complexType>
-   
+  
 </xsd:schema>
