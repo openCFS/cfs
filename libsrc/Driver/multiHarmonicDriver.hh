@@ -30,23 +30,38 @@ namespace CoupledField
     std::ofstream * impedCurve;
     std::ofstream * piezoLog;
     std::ofstream * parLog;
+
+    StdVector<RegionIdType> MHsubdoms_;  //!< subdomain-levels belongig to PDE
+    StdVector<RegionIdType> MHsurfdoms_; //!< surface-domain-levels belongig to PDE
+
   
     virtual void SolveProblem();
+    virtual void MHAssembleMatrices();
 
   protected:
     //! \param parameter - new set of piezoelectric material parameters
     void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
     // Domain * ptDomain;
 
+
+    void calcParameterCurveAtElement(Vector<Complex> & parameter, 
+                                     Matrix<Double> & parameterCoeff_, UInt element,Integer  N, 
+                                     Integer delta, UInt pMax);
+
     SinglePDE * ptMyPDE_;
 
     void createMHMassMatrix(UInt N);
 
     // pointers to classes involved
-    //  SinglePDE * ptMyPDE_;
     BaseSystem * ptAlgsys_;
     Assemble * ptAssemble_;
 
+    Integer nrMultHarms_;
+
+    UInt getNrMultHarms(){
+      return nrMultHarms_;
+    }
+    
 
   private:
 
@@ -54,7 +69,9 @@ namespace CoupledField
     Double  stopFreq_;
     UInt numFreq_;
     UInt saveType_;
-    UInt nrMultHarms_;
+
+    Matrix<Double> parameterCoeff_;
+    Vector<Complex> parameter_;
 
 
 
