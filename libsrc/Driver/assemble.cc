@@ -913,7 +913,7 @@ namespace CoupledField {
       loadDof_.Resize(loadDom_.GetSize());
       loadDof_.Init("ux");
 
-      springDof_.Resize(loadDom_.GetSize());
+      springDof_.Resize(springDom_.GetSize());
       springDof_.Init("ux");
     }else {
       keyVec = pdename_, "bcsAndLoads", "load", "dof";
@@ -921,6 +921,7 @@ namespace CoupledField {
 
       keyVecSpring = pdename_, "bcsAndLoads", "spring", "dof";
       params->GetList(keyVecSpring, attrVec, valVec, springDof_);
+
     }
     
     keyVec = pdename_, "bcsAndLoads", "load", "value";
