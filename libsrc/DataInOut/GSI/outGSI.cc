@@ -204,9 +204,9 @@ namespace CoupledField {
                 Point<2> Point;
                 ptGrid_->GetNodeCoordinate(Point,i+1);
               
-                vec[i*3+2] = (float) 0.0;
-                vec[i*3+1] = (float) Point[1];
                 vec[i*3+0] = (float) Point[0];
+                vec[i*3+1] = (float) Point[1];
+                vec[i*3+2] = (float) 0.0;
               }
           }
       
@@ -217,9 +217,9 @@ namespace CoupledField {
                 Point<3> Point;
                 ptGrid_->GetNodeCoordinate(Point,i+1);
               
-                vec[i*3+2] = (float) Point[2];
-                vec[i*3+1] = (float) Point[1];
                 vec[i*3+0] = (float) Point[0];
+                vec[i*3+1] = (float) Point[1];
+                vec[i*3+2] = (float) Point[2];
               }
           }
       
@@ -525,10 +525,6 @@ namespace CoupledField {
     else if (format == AMPLITUDE_PHASE) 
       {
         id = "---- DS56 HARMONIC AP ----";
-        std::cout << title << std::endl;
-        std::cout << x.GetSize() << std::endl;
-        std::cout << nrDofs << std::endl;
-        std::cout << numElems << std::endl;
        
         for (i=0; i<n; i++)
           {
@@ -586,16 +582,19 @@ namespace CoupledField {
                             time, numNodes ,sol.GetDof(solTypes[iSol]));
       }
   
-    try 
-      {
-        (*io_) << "---- END OF RESULTS ----";
-      }
-    catch (GridlibSocketInterface::IOException& e) 
-      {
-        std::cerr << "Exception in WriteResultsGSI::WriteNodeSolutionTransient"
-                  << std::endl << e.GetErrorString() << std::endl;
-      }
-  
+    if(solTypes.GetSize() > 0)
+    {
+      try 
+        {
+          (*io_) << "---- END OF RESULTS ----";
+        }
+      catch (GridlibSocketInterface::IOException& e) 
+        {
+          std::cerr << "Exception in WriteResultsGSI::WriteNodeSolutionTransient"
+                    << std::endl << e.GetErrorString() << std::endl;
+        }
+    }
+    
   }
 
   void
@@ -616,6 +615,19 @@ namespace CoupledField {
     title = SolutionTypeToString(solTypes[0]);
     Dataset56_Transient(title, globalSolution, step, 
                         time, numElems, sol.GetDof());
+
+    if(solTypes.GetSize() > 0)
+    {
+      try 
+        {
+          (*io_) << "---- END OF RESULTS ----";
+        }
+      catch (GridlibSocketInterface::IOException& e) 
+        {
+          std::cerr << "Exception in WriteResultsGSI::WriteElemSolutionTransient"
+                    << std::endl << e.GetErrorString() << std::endl;
+        }
+    }
   }
 
   void
@@ -641,15 +653,18 @@ namespace CoupledField {
                            format, numNodes ,sol.GetDof(solTypes[iSol]));
       }
   
-    try 
-      {
-        (*io_) << "---- END OF RESULTS ----";
-      }
-    catch (GridlibSocketInterface::IOException& e) 
-      {
-        std::cerr << "Exception in WriteResultsGSI::WriteNodeSolutionHarmonic"
-                  << std::endl << e.GetErrorString() << std::endl;
-      }
+    if(solTypes.GetSize() > 0)
+    {
+      try 
+        {
+          (*io_) << "---- END OF RESULTS ----";
+        }
+      catch (GridlibSocketInterface::IOException& e) 
+        {
+          std::cerr << "Exception in WriteResultsGSI::WriteNodeSolutionHarmonic"
+                    << std::endl << e.GetErrorString() << std::endl;
+        }
+    }
 
   }
 
@@ -676,6 +691,18 @@ namespace CoupledField {
                            format, numElems ,sol.GetDof(solTypes[iSol]));
       }
   
+    if(solTypes.GetSize() > 0)
+    {
+      try 
+        {
+          (*io_) << "---- END OF RESULTS ----";
+        }
+      catch (GridlibSocketInterface::IOException& e) 
+        {
+          std::cerr << "Exception in WriteResultsGSI::WriteElemSolutionHarmonic"
+                    << std::endl << e.GetErrorString() << std::endl;
+        }
+    }
   }
 
   std::string WriteResultsGSI::SolutionTypeToString(const SolutionType type)
