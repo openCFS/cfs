@@ -141,7 +141,7 @@ namespace CoupledField {
 			|| interpolationList_.IsEmpty() ) {
 		  (*error) << "Specify attributes fracAlg, fracMemory " 
 				   << "and interpolation!";
-            Error( __FILE__, __LINE__ ); 
+		  Error( __FILE__, __LINE__ ); 
 		}
 		// up to now take values from first subdomain with frac damp
 		else {
@@ -310,8 +310,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       // mass integrator
       coeffmass = density / (c0*c0);
 #ifdef DEBUG
-		  (*debug) << std::endl << "rho/c0^2 = "
-				   << coeffmass << std::endl << std::endl;
+	  (*debug) << std::endl << "rho/c0^2 = "
+			   << coeffmass << std::endl << std::endl;
 #endif
       BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
       IntegratorDescriptor * massIntDescr = 
@@ -323,6 +323,14 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       // *********************************************************************
 
       if ( !dampingList_.IsEmpty() ) {
+
+		// We check, if damping has been specified for all regions.
+		if ( dampingList_.GetSize() != subdoms_.GetSize() ) {
+		  (*warning) << "Mismatch between dampingList_ and subdoms_!"
+					 << "Size(dampingList_): " << dampingList_.GetSize()
+					 << "Size(subdoms_): " << subdoms_.GetSize();
+		  Warning(__FILE__, __LINE__);  
+		}
 
         if (dampingList_[actSD] == RAYLEIGH) {
           // This works even after assemble_->AddIntegrator() is executed
@@ -392,14 +400,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
         }
       }
-
-	  if ( dampingList_.GetSize() != subdoms_.GetSize() ) {
-		(*error) << "Mismatch between dampingList_ and subdoms_!"
-				 << "Size(dampingList_): " << dampingList_.GetSize()
-				 << "Size(subdoms_): " << subdoms_.GetSize();
-		Error(__FILE__, __LINE__);  
-	  }
-
     }
 
     // **********************************************************************
