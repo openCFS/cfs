@@ -94,10 +94,19 @@ namespace CoupledField
   RegionIdType Grid::RegionNameToId( const std::string & regionName ) {
     ENTER_FCN( "Grid::RegionNameToId" );
 
-    if (regionName == "all" )
-      return ALL_REGIONS;
-    else
-      return regionNames_.Find(regionName);
+    RegionIdType ret = NO_REGION_ID;
+
+    if (regionName == "all" ) {
+      ret= ALL_REGIONS;
+    } else {
+      ret =  regionNames_.Find(regionName);
+      if (ret == -1 ) {
+        (*error) << "The region with name '" << regionName 
+                 << "' is not contained in the grid!";
+        Error( __FILE__, __LINE__ );
+      }
+    }
+    return ret;
   }
 
   void Grid::RegionIdToName( StdVector<std::string> & regionNames,
@@ -118,16 +127,25 @@ namespace CoupledField
                              & regionNames ) {
     ENTER_FCN( "Grid::RegionNameToId" );
 
+    RegionIdType ret = NO_REGION_ID;
+    
     regionIds.Resize( regionNames.GetSize() );
     for (UInt i=0; i<regionNames.GetSize(); i++ ) {
     
-      if (regionNames[i] == "all" )
-        regionIds[i] = ALL_REGIONS;
-      else
-        regionIds[i] = regionNames_.Find(regionNames[i]);
+      if (regionNames[i] == "all" ) {
+        ret = ALL_REGIONS;
+      } else {
+        ret = regionNames_.Find(regionNames[i]);
+        if ( ret == -1 ) {
+          (*error) << "The region with name '" << regionNames_[i]
+                   << "' is not contained in the grid!";
+          Error( __FILE__, __LINE__ );
+        }
+      }
+      regionIds[i] = ret;
     }
   }
-
+  
   std::string Grid::RegionIdToName( const RegionIdType regionId ) {
     ENTER_FCN( "Grid::RegionIdToName" );
   

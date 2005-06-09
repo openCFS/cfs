@@ -317,6 +317,9 @@ namespace CoupledField
     //!                      yet converted to \a SurfElem*
     void CreateSurfaceElements( StdVector<StdVector<Elem*> > & elems);
 
+    
+    //! Prints information about the grid into the .info file
+    void PrintGridInfo() const;
     //@}
 
     // =======================================================================
