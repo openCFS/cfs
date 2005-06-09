@@ -103,6 +103,7 @@ namespace CoupledField {
     if ( isDirectCoupled_ == FALSE ) {
       DeleteAlgSys();
       delete solveStep_;
+      delete TS_alg_;
     }
 
 
@@ -110,7 +111,7 @@ namespace CoupledField {
     delete sol_;
     delete solVec_;
     delete eqnData_;
-    delete TS_alg_;
+
     delete[] materialData_;
   }
 
@@ -396,8 +397,8 @@ namespace CoupledField {
     // =====================================================================
     // Create time stepping algorithm
     // =====================================================================
-    if ( analysistype_ == TRANSIENT && 
-         isDirectCoupled_ == FALSE) {
+     if ( analysistype_ == TRANSIENT && 
+          isDirectCoupled_ == FALSE) {
       InitTimeStepping();
     }
 
@@ -630,6 +631,11 @@ namespace CoupledField {
   }
 
  
+  void SinglePDE::SetTimeStepping(TimeStepping *timeStepping) {
+    ENTER_FCN( "SinglePDE::SetTimeStepping" );
+    TS_alg_ = timeStepping;
+  }
+
 
   void SinglePDE::ReadBCs() {
 
@@ -798,8 +804,8 @@ namespace CoupledField {
 
   //! Activate the direct coupling
   void SinglePDE::SetDirectCoupling (BaseSystem *algsys,
-                                     StdSolveStep *solveStep)
-  {
+                                     StdSolveStep *solveStep) {
+                           
     ENTER_FCN( "SinglePDE::SetDirectCoupling" );
     
     if ( algsys_ != NULL ) {
@@ -813,12 +819,12 @@ namespace CoupledField {
                << "was defined already.";
       Error (__FILE__, __LINE__);
     }
-    
+  
+
     algsys_ = algsys;
     solveStep_ = solveStep;
-    isDirectCoupled_ = TRUE;
-    
-    
+   
+    isDirectCoupled_ = TRUE;          
   }
 
   void SinglePDE::SetAlgebraicSystem( BaseSystem *algSys) {

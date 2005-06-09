@@ -112,7 +112,7 @@ namespace CoupledField
     //! Activate the direct coupling
     void SetDirectCoupling (BaseSystem *algsys,
                             StdSolveStep *solveStep);
-
+    
     //! get algsys identification tag of PDE
     PdeIdType GetPDEId()
     { return pdeId_; }
@@ -129,6 +129,9 @@ namespace CoupledField
 
     //! set solveStep object
     void SetSolveStep ( StdSolveStep *solveStep);
+
+    //! set pointer to time stepping
+    void SetTimeStepping(TimeStepping *timeStepping);
 
     //! return subtype
     virtual std::string GetSubType() {return subType_;}
@@ -172,6 +175,8 @@ namespace CoupledField
     //! trigger the reassmbling of the matrices
     void SetReassemble();
 
+
+
   protected:
 
   
@@ -193,6 +198,7 @@ namespace CoupledField
       return *this;
       ;}
 
+   
     // ======================================================
     // INITIALIZATION METHODS
     // ======================================================
