@@ -244,8 +244,8 @@ namespace CoupledField
     //{ elements = &(outputInterfaces_[i]->neighbours);}
   
     //! get output neighbour region
-    //virtual void GetOutputNeighbourRegion(UInt i, StdVector<std::string>* &regions)
-    //{ regions = &(outputInterfaces_[i]->neighInputRegions);}
+    virtual void GetOutputNeighbourRegion(UInt i, StdVector<std::string>* &regions)
+    { regions = &(outputInterfaces_[i]->neighInputRegions);}
     
     //! get output coupling region materials
     virtual void GetMaterials(UInt i, StdVector<MaterialData *>* &mat)
