@@ -573,9 +573,11 @@ namespace CoupledField {
   
     isIterCoupled_ = TRUE;
     ptCoupling_   = Coupling;
-
+    
+    StdVector<std::string> * nRegions;
+    StdVector<RegionIdType> nRegionIds;
     const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
-  
+    
 
     nonLin_ = FALSE;
 
@@ -596,10 +598,13 @@ namespace CoupledField {
         // coupling nodes, because these volume elements have to be 
         // moved 'virtually'
         if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP) {
-          NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
+                    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
           ForceOp_ = new  ElecForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, materialData_,
                                       subdoms_, isaxi_);
-          ForceOp_->Setup(subdoms_, *couplingnodes);
+
+          ptCoupling_->GetOutputNeighbourRegion(actCoupling, nRegions);
+          ptgrid_->RegionNameToId(nRegionIds,*nRegions);
+          ForceOp_->Setup(nRegionIds, *couplingnodes);
         }
       
         else if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE) {
