@@ -41,6 +41,7 @@ namespace CoupledField {
     pdematerialclass_ = "fluid";
 
     isMechCoupled_ = FALSE;
+    saveRHSval_ = FALSE;
 
     coarsealpha_ = 0.01; // solver parameter, see basePDE.cc
 
@@ -673,6 +674,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
         if (saveSol_){
           outFile_->WriteNodeSolutionTransient(*solTransient,actStep,actTime);
+         
         }
         if (saveSolHist_){
           outFile_->WriteNodeHistoryTransient(*solTransient, actStep,actTime);
@@ -681,6 +683,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         if (saveDeriv1_) {
           solDeriv1_.SetAlgSysVector(getS1()); 
           outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
+
         }
         
         if (saveDeriv1Hist_) {
