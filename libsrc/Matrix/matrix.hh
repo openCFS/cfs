@@ -440,10 +440,10 @@ namespace CoupledField
     UInt size_mMatRow = mMat1.GetSizeRow();
     UInt size_mMatCol = mMat1.GetSizeCol();
 
+#ifdef CHECK_INITIALIZED
     UInt size_rMatRow = rMat1.GetSizeRow();
     UInt size_rMatCol = rMat1.GetSizeCol();
- 
-#ifdef CHECK_INITIALIZED
+
     if (size_row_ == 0 || size_col_ == 0) 
       Error("undefined Matrix",__FILE__,__LINE__);
     if (size_mMatRow == 0 || size_mMatCol==0) 
