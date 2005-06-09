@@ -108,8 +108,7 @@ namespace CoupledField
   {
     ENTER_FCN( "TimeFunc::TimeFuncAtTime" );
   
-    UInt     numfnc;
-    UInt     i;
+    Integer numfnc;
  
     //if name of time function not defined, than a constant time function with value
     //1.0 is assumed 
@@ -117,9 +116,7 @@ namespace CoupledField
       return 1.0;
 
     //get correct time function
-    numfnc = -1;
-    for (i=0; i<fnc_names_.GetSize(); i++)
-      if (fnc_names_[i] == fncname) numfnc = i;
+    numfnc = fnc_names_.Find(fncname);
 
     if (numfnc == -1)
       {
