@@ -96,11 +96,11 @@ namespace CoupledField{
 
 
     // If one PDE is transient, this analysistype is also
-    if ( analysisTypes.find(HARMONIC) != analysisTypes.end() ) {
-      (*error) << "Direct Coupling is not implemented for harmonic "
-               << "analysis!";
-      Error( __FILE__, __LINE__ );
-    }
+    // if ( analysisTypes.find(HARMONIC) != analysisTypes.end() ) {
+//       (*error) << "Direct Coupling is not implemented for harmonic "
+//                << "analysis!";
+//       Error( __FILE__, __LINE__ );
+//     }
     
     if ( analysisTypes.find(TRANSIENT) != analysisTypes.end() ) {
       analysistype_ = TRANSIENT;
@@ -317,6 +317,12 @@ namespace CoupledField{
     // Hard Coded
     TS_alg_ = new Newmark( algsys_, totalUnknowns_ );
      
+
+    // Pass time stepping object to single pdes
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      singlePDEs_[i]->SetTimeStepping(TS_alg_);
+    }
+
     
   }
 
@@ -340,7 +346,7 @@ namespace CoupledField{
                                             Double timeOffset)
   {
     ENTER_FCN( "DirectCoupledPDE::WriteResultsInFile" );
-  
+
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->WriteResultsInFile( kstep, asteptime, 
                                           stepOffset, timeOffset);
