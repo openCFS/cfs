@@ -47,6 +47,7 @@ namespace CoupledField
     dim_=inFile_->GetDim();
     numNodes_ = inFile_->GetNumNodes();
     numElems_ = inFile_->GetNumElems();
+
     // 2. Read coordinatess
     inFile_->GetCoordinates(coords_);
 
@@ -90,7 +91,9 @@ namespace CoupledField
 
     inFile_->GetAllRegionNames(regionNames_);
     
-   
+    
+    // Print information about region mapping into
+    PrintGridInfo();
     
 #ifdef ADAPTGRID
     FormNeighborsLists();
@@ -305,13 +308,23 @@ namespace CoupledField
                                   const RegionIdType regionId ) {
     ENTER_FCN( "GridCFS::GetVolElems" );
     
-    Integer index = volRegionIds_.Find(regionId);
-    if ( index != -1 ) {
-      elems = volElems_[index];
-    } else {    
-      (*error) << "GridCFS: The volume region with id '" << regionId
-               << "' was not found in the grid!";
-      Error( __FILE__, __LINE__ );
+    // check if region Id is ALL_REGIONS
+    if ( regionId == ALL_REGIONS ) {
+      elems.Reserve( GetNumVolElems() );
+      for ( UInt i = 0; i < volElems_.GetSize(); i++) {
+        for (UInt iElem = 0; iElem < volElems_[i].GetSize(); iElem++ ) {
+          elems.Push_back(volElems_[i][iElem]);
+        }
+      }
+    } else {
+      Integer index = volRegionIds_.Find(regionId);
+      if ( index != -1 ) {
+        elems = volElems_[index];
+      } else {    
+        (*error) << "GridCFS: The volume region with id '" << regionId
+                 << "' was not found in the grid!";
+        Error( __FILE__, __LINE__ );
+      }
     }
   }
   
@@ -621,6 +634,25 @@ namespace CoupledField
       }
     }
 
+  }
+
+  template<UInt DIM>
+  void GridCFS<DIM>::PrintGridInfo() const {
+    ENTER_FCN( "GRIDCFS::PrintGridInfo()" );
+    
+    std::string help;
+    
+    Info->PrintF("GridCFS", "Region Mapping:\n");
+    Info->PrintF("GridCFS", "ID\t| Name\n");
+    Info->PrintF("GridCFS", "-------------------\n");
+    
+    for( UInt i = 0; i < regionNames_.GetSize(); i++ ) {
+      help = Info->GenStr(i);
+      help += "\t| ";
+      help += regionNames_[i];
+      help += '\n';
+      Info->PrintF("GridCFS",help.c_str());
+    }
   }
   
   template<UInt DIM>
