@@ -30,7 +30,11 @@ namespace CoupledField {
   "name of mesh file for the simulation";  
 
   const std::string BaseCommandLineHandler::helpTraceDepth_    =
+#ifdef TRACE
   "depth of function tracing";
+#else
+  "depth of function tracing \033[1m(de-activated in this version)\033[0m";
+#endif
 
   const std::string BaseCommandLineHandler::helpWriteSkeleton_ =
   "write skeleton of XML file for subsequent simulation";
