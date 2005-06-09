@@ -515,12 +515,12 @@ namespace CoupledField{
     if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
 #ifdef CHECK_INDEX
-    if (val.GetSize() !=  lengthVector_)
-      {
-        std::cerr << "Vector has Size" << lengthVector_ << std::endl;
-        std::cerr << "Your vector has size " << val.GetSize() << std::endl;
-        Error("NodeStoreSol::SetAlgSysVector(): Vector has wrong size!",__FILE__,__LINE__);
-      }
+   //  if (val.GetSize() !=  lengthVector_)
+//       {
+//         std::cerr << "Vector has Size" << lengthVector_ << std::endl;
+//         std::cerr << "Your vector has size " << val.GetSize() << std::endl;
+//         Error("NodeStoreSol::SetAlgSysVector(): Vector has wrong size!",__FILE__,__LINE__);
+//       }
 #endif
 
     const  Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
