@@ -34,17 +34,6 @@ namespace CoupledField {
     pdematerialclass_ = "piezo";
     piezoMaterialType_ = REALMATERIALPARAMETER; // default
 
-    // TEMPORARY
-    StdVector<std::string> keyVec;
-    keyVec = pdename_, "solver", "matrix", "eqnNumbering";
-    std::string typeOfNumbering;
-    params->Get( keyVec, typeOfNumbering );
-    //if (typeOfNumbering == "block" ||
-    //  typeOfNumbering == "supBlock") {
-    //  Error("PiezoPDE only working with 'scalar'-numbering",
-    //    __FILE__, __LINE__);
-    //}
-
     if( params->HasValue( "type", "imagMaterialParameter", pdename_,
                           "materialDataType" ) ) {
 
