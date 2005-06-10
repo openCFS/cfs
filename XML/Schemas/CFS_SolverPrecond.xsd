@@ -13,94 +13,124 @@
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of solver data type -->
+  <!--   Definition of data type for linear system properties -->
   <!-- ******************************************************************** -->
 
-  <xsd:element name="solver">
-    <xsd:complexType>
+  <xsd:complexType name="DT_SystemSpec">
+    <xsd:sequence>
 
-      <xsd:sequence>
-        <!-- Matrix format, entries and layout (optional) -->
-        <xsd:element name="matrix" type="DT_MatrixDescription" minOccurs="0"/>
+      <!-- Matrix format, entries and layout (optional) -->
+      <xsd:element name="matrix" type="DT_MatrixDescription" minOccurs="0"/>
 
-        <!-- Export linear system? (optional) -->
-        <xsd:element name="exportLinSys" minOccurs="0">
-          <xsd:complexType>
-            <xsd:attribute name="baseName" use="required" type="xsd:token"/>
-          </xsd:complexType>
-        </xsd:element>
+      <!-- Export linear system? (optional) -->
+      <xsd:element name="exportLinSys" minOccurs="0">
+        <xsd:complexType>
+          <xsd:attribute name="baseName" use="required" type="xsd:token"/>
+        </xsd:complexType>
+      </xsd:element>
 
-        <!-- Select stopping rule to be used -->
-        <xsd:element name="stoppingRule" minOccurs="0">
-          <xsd:complexType>
-            <xsd:attribute name="type" use="optional" default="relNormRes0">
-              <xsd:simpleType>
-                <xsd:restriction base="xsd:token">
-                  <xsd:enumeration value="absNorm"/>
-                  <xsd:enumeration value="relNormRHS"/>
-                  <xsd:enumeration value="relNormRes0"/>
-                </xsd:restriction>
-              </xsd:simpleType>
-            </xsd:attribute>
-          </xsd:complexType>
-        </xsd:element>
+      <!-- Description of solver properties -->
+      <xsd:element name="solver" type="DT_SolverSpec" minOccurs="0"/>
 
-        <!-- Parameters for solver (optional) -->
-        <xsd:element ref="SolverBasic" minOccurs="0"/>
+    </xsd:sequence>
 
-        <!-- Parameters for preconditioner (optional) -->
-        <xsd:element ref="PrecondBasic" minOccurs="0"/>
+    <!-- Name attribute to associate system with PDE -->
+    <xsd:attribute name="name" use="required">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="acoustic"/>
+          <xsd:enumeration value="direct"/>
+          <xsd:enumeration value="electrostatic"/>
+          <xsd:enumeration value="magnetic"/>
+          <xsd:enumeration value="mechanic"/>
+          <xsd:enumeration value="mpcci"/>
+          <xsd:enumeration value="piezo"/>
+          <xsd:enumeration value="smooth"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
 
-      </xsd:sequence>
+  </xsd:complexType>
 
-      <!-- List of available solvers to chose from --> 
-      <xsd:attribute name="type" use="optional" default="expertsChoice">
-        <xsd:simpleType>
-          <xsd:restriction base="xsd:token">
-            <xsd:enumeration value="expertsChoice"/>
-            <xsd:enumeration value="Richardson"/>
-            <xsd:enumeration value="cg"/>
-            <xsd:enumeration value="gmres"/>
-            <xsd:enumeration value="minres"/>
-            <xsd:enumeration value="symmlq"/>
-            <xsd:enumeration value="qmr"/>
-            <xsd:enumeration value="hyprePCG"/>
-            <xsd:enumeration value="hypreAMG"/>
-            <xsd:enumeration value="hypreGMRES"/>
-            <xsd:enumeration value="hypreBICGSTAB"/>
-            <xsd:enumeration value="lapackLU"/>
-            <xsd:enumeration value="lapackLL"/>
-            <xsd:enumeration value="directLU"/>
-            <xsd:enumeration value="directLDL"/>
-            <xsd:enumeration value="pardiso"/>
-          </xsd:restriction>
-        </xsd:simpleType>
-     </xsd:attribute>
 
-     <!-- Desired Preconditioner (if any) -->
-     <xsd:attribute name="precond" use="optional" default="noPrecond">
-       <xsd:simpleType>
-         <xsd:restriction base="xsd:token">
-           <xsd:enumeration value="noPrecond"/>
-           <xsd:enumeration value="Id"/>
-           <xsd:enumeration value="MG"/>
-           <xsd:enumeration value="Jacobi"/>
-           <xsd:enumeration value="SSOR"/>
-           <xsd:enumeration value="ILU0"/>
-           <xsd:enumeration value="ILUK"/>
-           <xsd:enumeration value="ILDLK"/>
-           <xsd:enumeration value="ILDLTP"/>
-           <xsd:enumeration value="ILDLCN"/>
-           <xsd:enumeration value="hypreJacobi"/>
-           <xsd:enumeration value="hypreAMG"/>
-           <xsd:enumeration value="hypreILU"/>
-           <xsd:enumeration value="hypreSPAI"/>
-         </xsd:restriction>
-       </xsd:simpleType>
-     </xsd:attribute>
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for solver specification -->
+  <!-- ******************************************************************** -->
 
-    </xsd:complexType>
-  </xsd:element>
+  <xsd:complexType name="DT_SolverSpec">
+
+    <xsd:sequence>
+
+      <!-- Select stopping rule to be used -->
+      <xsd:element name="stoppingRule" minOccurs="0">
+        <xsd:complexType>
+          <xsd:attribute name="type" use="optional" default="relNormRes0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="absNorm"/>
+                <xsd:enumeration value="relNormRHS"/>
+                <xsd:enumeration value="relNormRes0"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+
+      <!-- Parameters for solver (optional) -->
+      <xsd:element ref="SolverBasic" minOccurs="0"/>
+
+      <!-- Parameters for preconditioner (optional) -->
+      <xsd:element ref="PrecondBasic" minOccurs="0"/>
+
+    </xsd:sequence>
+
+    <!-- List of available solvers to chose from --> 
+    <xsd:attribute name="type" use="optional" default="expertsChoice">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="expertsChoice"/>
+          <xsd:enumeration value="Richardson"/>
+          <xsd:enumeration value="cg"/>
+          <xsd:enumeration value="gmres"/>
+          <xsd:enumeration value="minres"/>
+          <xsd:enumeration value="symmlq"/>
+          <xsd:enumeration value="qmr"/>
+          <xsd:enumeration value="hyprePCG"/>
+          <xsd:enumeration value="hypreAMG"/>
+          <xsd:enumeration value="hypreGMRES"/>
+          <xsd:enumeration value="hypreBICGSTAB"/>
+          <xsd:enumeration value="lapackLU"/>
+          <xsd:enumeration value="lapackLL"/>
+          <xsd:enumeration value="directLU"/>
+          <xsd:enumeration value="directLDL"/>
+          <xsd:enumeration value="pardiso"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <!-- Desired Preconditioner (if any) -->
+    <xsd:attribute name="precond" use="optional" default="noPrecond">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="noPrecond"/>
+          <xsd:enumeration value="Id"/>
+          <xsd:enumeration value="MG"/>
+          <xsd:enumeration value="Jacobi"/>
+          <xsd:enumeration value="SSOR"/>
+          <xsd:enumeration value="ILU0"/>
+          <xsd:enumeration value="ILUK"/>
+          <xsd:enumeration value="ILDLK"/>
+          <!--xsd:enumeration value="ILDLTP"/-->
+          <!--xsd:enumeration value="ILDLCN"/-->
+          <xsd:enumeration value="hypreJacobi"/>
+          <xsd:enumeration value="hypreAMG"/>
+          <xsd:enumeration value="hypreILU"/>
+          <xsd:enumeration value="hypreSPAI"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+  </xsd:complexType>
 
 
   <!-- ******************************************************************** -->

@@ -16,7 +16,7 @@
   <!--   Definition of element for piezoelectric PDEs -->
   <!-- ******************************************************************** -->
   <xsd:element name="piezo" type="DT_PDEPiezo"
-       substitutionGroup="PDEBasic"/>
+    substitutionGroup="PDEBasic"/>
 
 
   <!-- ******************************************************************** -->
@@ -37,7 +37,7 @@
                 use="optional" default="no"/>
             </xsd:complexType>
           </xsd:element>
-    
+          
           <!-- Type of damping model (optional) -->
           <xsd:element name="damping" type="DT_PiezoDamp" minOccurs="0"/>
 
@@ -54,15 +54,15 @@
             <xsd:complexType>
               <xsd:sequence>
                 <xsd:element name="dirichletHom" type="DT_PiezoHD"
-                             minOccurs="0" maxOccurs="unbounded"/>
+                  minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="dirichletInhom" type="DT_PiezoID"
-                             minOccurs="0" maxOccurs="unbounded"/>
+                  minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="neumannInhom" type="DT_PiezoIN"
-                             minOccurs="0" maxOccurs="unbounded"/>
+                  minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="load" type="DT_PiezoLoad" minOccurs="0"
-                             maxOccurs="unbounded"/>
+                  maxOccurs="unbounded"/>
                 <xsd:element name="pressure" type="DT_PiezoPressure"
-                             minOccurs="0" maxOccurs="unbounded"/>
+                  minOccurs="0" maxOccurs="unbounded"/>
               </xsd:sequence>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
@@ -75,9 +75,6 @@
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_PiezoStoreResults"
             minOccurs="0" maxOccurs="1"/>
-
-          <!-- Section for specifying solver (optional) -->
-          <xsd:element ref="solver" minOccurs="0"/>
 
         </xsd:sequence>
 
@@ -160,8 +157,10 @@
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
         <xsd:attribute name="value" type="xsd:double" use="required"/>
-        <xsd:attribute name="phase" type="xsd:double" use="optional" default="0.0"/>
-        <xsd:attribute name="dynamics" type="xsd:token" use="optional" default="none"/>
+        <xsd:attribute name="phase" type="xsd:double" use="optional"
+          default="0.0"/>
+        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
+          default="none"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -211,7 +210,6 @@
       default="all"/>
   </xsd:complexType>
 
-
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistoryPiezo">
     <xsd:attribute name="type" type="DT_ElemDataPiezo" use="required"/>
@@ -228,7 +226,6 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-
   <!-- Global type for specifying the desired mechanical output quantities -->
   <xsd:complexType name="DT_PiezoStoreResults">
     <xsd:sequence>
@@ -244,7 +241,7 @@
         maxOccurs="unbounded"/>
       <xsd:element name="volumeAboveDefSurf" type="DT_SurfVolume" minOccurs="0"
         maxOccurs="unbounded"/>
-      </xsd:sequence>
+    </xsd:sequence>
   </xsd:complexType>
 
 
@@ -266,7 +263,6 @@
   <!--   Definition of material data type (real or complex) -->
   <!-- ******************************************************************** -->
 
-
   <xsd:simpleType name="DT_matDataType">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="imagMaterialParameter"/>
@@ -278,10 +274,10 @@
     <xsd:attribute name="type" type="DT_matDataType" use="required"/>
   </xsd:complexType>
 
+
   <!-- ******************************************************************** -->
   <!--   Definition of poling direction -->
   <!-- ******************************************************************** -->
-
 
   <xsd:simpleType name="DT_polingDirection">
     <xsd:restriction base="xsd:token">
@@ -295,6 +291,7 @@
     <xsd:attribute name="y" type="DT_polingDirection" use="optional"/>
     <xsd:attribute name="z" type="DT_polingDirection" use="optional"/>
   </xsd:complexType>
+
 
   <!-- ******************************************************************** -->
   <!--   Definition of data type for non-linearity in piezoelectric PDEs -->

@@ -122,9 +122,6 @@
           <xsd:element name="storeResults" type="DT_AcousticStoreResults"
             minOccurs="0" maxOccurs="1"/>
 
-          <!-- Section for specifying solver (optional) -->
-          <xsd:element ref="solver" minOccurs="0"/>
-          
         </xsd:sequence>
 
         <!-- Type of acoustic formulation (optional) -->
