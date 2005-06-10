@@ -33,7 +33,10 @@
 
   <pdeList>
 
+
+    <!-- ***************************************************************** -->
     <!-- Template for mechanics PDE -->
+    <!-- ***************************************************************** -->
     <mechanic>
   
       <region name="dummyRegion"/>
@@ -44,14 +47,13 @@
         <resStopCrit>1</resStopCrit>
         <maxNumIters>1</maxNumIters>
       </nonLinear>
-      <solver>
-        <matrix/>
-        <stoppingRule/>
-      </solver>
   
     </mechanic>
 
+
+    <!-- ***************************************************************** -->
     <!-- Template for electrostatics PDE -->
+    <!-- ***************************************************************** -->
     <electrostatic>
       <region name="dummyRegion"/>
 
@@ -62,14 +64,12 @@
         <maxNumIters>1</maxNumIters>
       </nonLinear>
 
-      <solver>
-        <matrix/>
-        <stoppingRule/>
-      </solver>
-  
     </electrostatic>
 
+
+    <!-- ***************************************************************** -->
     <!-- Template for piezo PDE -->
+    <!-- ***************************************************************** -->
     <piezo>
   
       <region name="dummyRegion"/>
@@ -81,15 +81,12 @@
         <maxNumIters>1</maxNumIters>
       </nonLinear>
 
-      <solver>
-        <matrix/>
-        <stoppingRule/>
-      </solver>
-
     </piezo>
 
 
+    <!-- ***************************************************************** -->
     <!-- Template for magnetics PDE -->
+    <!-- ***************************************************************** -->
     <magnetic>
       <region name="dummyRegion"/>
       <region name="dummyRegion"/>
@@ -147,53 +144,76 @@
 
       </coils>
 
-      <solver>
-        <matrix/>
-        <stoppingRule/>
-      </solver>
-
     </magnetic>
 
+
+    <!-- ***************************************************************** -->
     <!-- Template for acoustic PDE -->
+    <!-- ***************************************************************** -->
     <acoustic>
   
       <region name="dummyRegion">
        <damping/>
       </region>
       <timeSteppingFormulation/>
-       <solver>
-        <matrix/>
-        <stoppingRule/>
-      </solver>
 
     </acoustic> 
 
+
+    <!-- ***************************************************************** -->
     <!-- Template for smooth PDE -->
+    <!-- ***************************************************************** -->
     <smooth>
-  
       <region name="dummyRegion"/>
-
-      <solver>
-        <matrix/>
-        <stoppingRule/>
-      </solver>
-
     </smooth>
 
+
+    <!-- ***************************************************************** -->
     <!-- Template for mpcci PDE -->
+    <!-- ***************************************************************** -->
     <mpcci>
   
       <region name="dummyRegion"/>
-
-      <solver>
-        <matrix/>
-      </solver>
 
     </mpcci>
 
   </pdeList>
 
   
+  <linearSystems>
+    <system name="acoustic">
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="direct">
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="electrostatic">
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="magnetic">
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="mechanic">
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="mpcci">
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="piezo">
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="smooth">
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+  </linearSystems>
 
   <integRules>
     <line      />

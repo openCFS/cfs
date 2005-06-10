@@ -33,13 +33,9 @@
               <xsd:attribute name="name" type="xsd:token" use="required"/>
             </xsd:complexType>
           </xsd:element>
-          <!-- Section for specifying solver (optional) -->
-          <xsd:element ref="solver" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
-
 
 </xsd:schema>
