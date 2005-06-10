@@ -106,8 +106,19 @@
       <xsd:element ref="MpCCI" minOccurs="0"
         maxOccurs="unbounded"/>
 
+      <!-- List of descriptions of linear system parameters -->
+      <xsd:element name="linearSystems" minOccurs="0" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="system" type="DT_SystemSpec" minOccurs="1"
+             maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
       <!-- Parameters for specifying integration rules (optional) -->
       <xsd:element name="integRules" type="DT_IntegRules" minOccurs="0"/>
+
 
       <!-- Enforce parameter settings by disabling Expert() (optional) -->
       <xsd:element name="expert" minOccurs="0" maxOccurs="1">
