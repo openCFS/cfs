@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org">
+
+  <analysis type="static"/>
+  <geometry type="3d"/>
+  <output format="gmv"/>
+
+  <domain>
+    <region name="piezo3d" material="PZT-4"/>
+    <nodes name="ux-lower"/>
+    <nodes name="uy-lower"/>
+    <nodes name="uz-lower"/>
+    <nodes name="ep-lower"/>
+    <nodes name="ep-top"/>
+  </domain>
+
+  <pdeList>
+    <piezo subType="3d">
+      <region name="piezo3d"/>
+      <bcsAndLoads>
+        <dirichletHom name="ux-lower" dof="ux"/>
+        <dirichletHom name="uy-lower" dof="uy"/>
+        <dirichletHom name="uz-lower" dof="uz"/>
+        <dirichletHom name="ep-lower" dof="ep"/>
+        <dirichletInhom name="ep-top" dof="ep" value="1.0"/>
+      </bcsAndLoads>
+    </piezo>
+  </pdeList>
+
+  <linearSystems>
+
+    <system name="piezo">
+
+      <matrix eqnNumbering="scalar" entry="double" storage="sparseNonSym"/>
+      <exportLinSys baseName="cube5Penalty"/>
+
+      <solver type="hypreBICGSTAB" precond="hypreSPAI">
+
+        <hypreBICGSTAB>
+          <tol>1e-8</tol>
+          <maxIter>1000</maxIter>
+          <logging>2</logging>
+          <printLevel>2</printLevel>
+        </hypreBICGSTAB>
+
+        <hypreSPAI>
+          <thresh>-0.4</thresh>
+          <levels>6</levels>
+          <filter>-0.8</filter>
+          <symmetry>0</symmetry>
+          <reuse>yes</reuse>
+        </hypreSPAI>
+
+      </solver>
+
+    </system>
+
+  </linearSystems>
+
+
+</cfsSimulation>
