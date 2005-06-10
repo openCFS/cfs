@@ -18,10 +18,20 @@ namespace CoupledField {
 
     ENTER_FCN( "CFSOLASParams::SetParams" );
 
+    // We need three vectors for our parameter queries
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
     // First determine the type of solver for this PDE
     std::string sTypeString;
     SolverType sType;
-    cfs->Get( "type", sTypeString, pdename, "solver" );
+
+    keyVec  = "linearSystems", "system", "solver", "type";
+    attrVec = "", "name", "";
+    valVec  = "", pdename, "";
+    cfs->Get( keyVec, attrVec, valVec, sTypeString );
+
     if ( sTypeString == "expertsChoice" ) {
       if ( overrideExpert ) {
         (*error) << "You cannot specify expertsChoice as solver type "
@@ -36,13 +46,23 @@ namespace CoupledField {
     // Now determine the type of preconditioner for this PDE
     std::string pTypeString;
     PrecondType pType;
-    cfs->Get( "precond", pTypeString, pdename, "solver" );
+
+    keyVec  = "linearSystems", "system", "solver", "precond";
+    attrVec = "", "name", "";
+    valVec  = "", pdename, "";
+    cfs->Get( keyVec, attrVec, valVec, pTypeString );
+
     OLAS::String2Enum( pTypeString, pType );
 
     // Next determine the matrix type for this PDE
     std::string mMatString;
     MatrixStorageType mType;
-    cfs->Get( "storage", mMatString, pdename, "matrix" );
+
+    keyVec  = "linearSystems", "system", "matrix", "storage";
+    attrVec = "", "name", "";
+    valVec  = "", pdename, "";
+    cfs->Get( keyVec, attrVec, valVec, mMatString );
+
     if ( mMatString == "expertsChoice" ) {
       if ( overrideExpert ) {
         (*error) << "You cannot specify expertsChoice as storage type "
@@ -57,7 +77,12 @@ namespace CoupledField {
     // Determine matrix entry type
     std::string eMatString;
     MatrixEntryType eType;
-    cfs->Get( "entry", eMatString, pdename, "matrix" );
+
+    keyVec  = "linearSystems", "system", "matrix", "entry";
+    attrVec = "", "name", "";
+    valVec  = "", pdename, "";
+    cfs->Get( keyVec, attrVec, valVec, eMatString );
+
     if ( eMatString == "double" ) {
       eType = DOUBLE;
     }
@@ -68,7 +93,12 @@ namespace CoupledField {
     // Type of re-odering
     std::string orderString;
     ReorderingType orderType;
-    cfs->Get( "reordering", orderString, pdename, "matrix" );
+
+    keyVec  = "linearSystems", "system", "matrix", "reordering";
+    attrVec = "", "name", "";
+    valVec  = "", pdename, "";
+    cfs->Get( keyVec, attrVec, valVec, orderString );
+
     OLAS::String2Enum( orderString, orderType );
 
     // Let expert module modify the settings
@@ -358,12 +388,17 @@ namespace CoupledField {
     }
 
     // Now set the stopping rule
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    keyVec  = "linearSystems", "system", "solver", "stoppingRule", "type";
+    attrVec = "", "name", "", "";
+    valVec  = "", pdename, "", "";
     std::string stopCrit;
-    cfs->Get( "type", stopCrit, pdename, "stoppingRule" );
+    cfs->Get( keyVec, attrVec, valVec, stopCrit );
     StopCritType stopRule;
     OLAS::String2Enum( stopCrit, stopRule );
     olas->SetValue( "StoppingCriterion", stopRule );
-
   }
 
 
