@@ -281,9 +281,11 @@ namespace CoupledField {
     // =====================================================================
 
     // What type of equation numbering does the user want?
-    keyVec = pdename_, "solver", "matrix", "eqnNumbering";
     std::string typeOfNumbering;
-    params->Get( keyVec, typeOfNumbering );
+    keyVec  = "linearSystems", "system", "matrix", "eqnNumbering";
+    attrVec = "", "name", "";
+    valVec  = "", pdename_, "";
+    params->Get( keyVec, attrVec, valVec, typeOfNumbering );
 
     // Assemble a system matrix with scalar complex or double entries
     if ( typeOfNumbering == "scalar" ) {
