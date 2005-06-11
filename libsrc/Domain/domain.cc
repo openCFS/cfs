@@ -156,7 +156,6 @@ namespace CoupledField {
 
     // search the direct coupled pdes
 
-
     // *** IMPLEMENT ***
 
     // search the single pdes
@@ -176,10 +175,12 @@ namespace CoupledField {
           Error( __FILE__, __LINE__ );
         }
         
-        if ( (*it).second == FALSE ) {
-          pdeFound = TRUE;
-          break;
-        }
+//         if ( (*it).second == FALSE ) {
+//           pdeFound = TRUE;
+//           break;
+//         }
+        pdeFound = TRUE;
+        break;
       }
     }
 
@@ -610,16 +611,34 @@ namespace CoupledField {
     ENTER_FCN( "Domain::ResetDEs" );
 
     // Delete single pde(s)
-    for (UInt iPDE=0; iPDE<numSinglePde_; iPDE++)
+    for (UInt iPDE=0; iPDE<numSinglePde_; iPDE++) {
       delete ptSinglePde_[iPDE];
+    }
+    ptSinglePde_.Clear();
 
     // delete direct coupled pde(s)
-    for (UInt iPDE=0; iPDE<numDirectCoupledPde_; iPDE++)
-      delete ptDirectCoupledPde_[iPDE];
+    for (UInt iPDE=0; iPDE<numDirectCoupledPde_; iPDE++) {
+      delete ptDirectCoupledPde_[iPDE]; 
+    }
+    ptDirectCoupledPde_.Clear();
 
     // delete iterative coupled pde
-    if (ptIterCoupledPde_ != NULL)
+    if (ptIterCoupledPde_ != NULL) {
       delete ptIterCoupledPde_;
+    }
+    ptIterCoupledPde_ = NULL;
+
+   //  // delete all couplings
+//     for (UInt iCoupl=0; iCoupl<couplings_.GetSize(); iCoupl++) {
+//       delete couplings_[iCoupl];
+//     }
+//     couplings_.Clear();
+
+    // Also reset all state variables
+    isDirectCoupled_.clear();
+    numSinglePde_ = 0;
+    numDirectCoupledPde_ = 0;
+    numIterCoupledStdPde_ = 0;
   }
 
 
