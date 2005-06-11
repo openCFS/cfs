@@ -558,10 +558,10 @@ namespace CoupledField
     outputInterfaces_[i]->dof = dof;
   }
 
-  std::string PDECoupling::GetPDEName()
+  StdPDE*  PDECoupling::GetPDE()
   {
-    ENTER_FCN("PDECoupling::GetPDEName");
-    return myPDE_->GetName();
+    ENTER_FCN("PDECoupling::GetPDE");
+    return myPDE_;
   }
 
 
