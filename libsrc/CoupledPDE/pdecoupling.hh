@@ -133,8 +133,8 @@ namespace CoupledField
     //! set output coupling elements size
     virtual void SetOutputNumElems(UInt i, UInt size);  
 
-    //! get PDE name
-    virtual std::string GetPDEName();
+    //! get pointer to PDE
+    virtual StdPDE* GetPDE();
   
     //! get number of input couplings
     virtual UInt GetNumInputCouplings();
