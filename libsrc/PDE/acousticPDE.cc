@@ -42,6 +42,7 @@ namespace CoupledField {
 
     isMechCoupled_ = FALSE;
     saveRHSval_ = FALSE;
+    saveRHSvalHist_ = FALSE;
 
     coarsealpha_ = 0.01; // solver parameter, see basePDE.cc
 
