@@ -397,17 +397,18 @@ namespace CoupledField {
       ptIterCoupledPde_ = NULL;
       return;
     }
-
+    
     Info->StartProgress("Creating coupling");
-
+    
     // ================================
     //   Check for iterative coupling
     // ================================
     
     StdVector<StdPDE*> iterCoupledPDEs;
+    StdVector<SinglePDE*> iterSinglePDEs;
     StdVector<std::string> iterCoupledPDENames;
     StdVector<std::string> methods;
-
+    
     // Check if all sequenceTags are the same.
     // Currently the tag for the current coupling in a multisequence
     // analysis is determined by simply taking the first tag of
@@ -423,19 +424,23 @@ namespace CoupledField {
           Error(errMsg.c_str(), __FILE__, __LINE__ );
         }
     }
-
+    
     params->GetIterCoupledPDEList(iterCoupledPDENames, sequenceTags[0]);
     
-    iterCoupledPDEs.Clear();
 
     // we have all the names of the PDEs which couple iteratively.
     // Now we have to get the according pointers to the PDEs
-    for (UInt i=0; i<iterCoupledPDENames.GetSize(); i++)
+    for (UInt i=0; i<iterCoupledPDENames.GetSize(); i++) {
       for (UInt j=0; j<ptSinglePde_.GetSize(); j++) {
-        if (iterCoupledPDENames[i] == ptSinglePde_[j]->GetName() )
+        if (iterCoupledPDENames[i] == ptSinglePde_[j]->GetName()) {
           iterCoupledPDEs.Push_back(ptSinglePde_[j]);
+        }
       }
-    
+    }
+  
+
+    // Determine method of coupling (currently only RHS is
+    // given)
     params->GetList( "method", methods);
     for (UInt i=0; i<methods.GetSize(); i++)
       if (methods[i] != "RHS")
@@ -448,21 +453,44 @@ namespace CoupledField {
     
     
     CoupledPDEDef * CouplingDef = new CoupledPDEDef(ptgrid_);
-
+    
     // create coupling objects 
-
     StdVector<StdPDE*> orderedPdes;
     CouplingDef->CreateCoupling(orderedPdes, couplings_, iterCoupledPDEs);
     
+    // Sort the different orderedPDEs into the singlePDEs
+    for (UInt i = 0; i< orderedPdes.GetSize(); i++) {
+      iterSinglePDEs.Push_back( (SinglePDE*) orderedPdes[i]);
+    }
+
+    
+    // Delete all of the singlePDEs, which are DirectCoupled and 
+    // replace them by the direct-coupled ones. This is necessary,
+    // since the iterCoupledPDE has to solve StdPDEs, whereas the
+    // pairwise iterative couplings are defined only for 
+    // SinglePDEs
+    Integer index = 0;
+    for (UInt i = 0; i<ptSinglePde_.GetSize(); i++ ) {
+      if (isDirectCoupled_[ptSinglePde_[i]] == TRUE ) {
+        index = orderedPdes.Find(ptSinglePde_[i]);
+        
+        if ( index != -1 ) {
+          orderedPdes[index] = ptDirectCoupledPde_[0];
+          ptDirectCoupledPde_[0]->InitCoupling(NULL);
+        }
+      }
+    }
+
+    
     // create new iterative coupeld PDE
-    ptIterCoupledPde_ = new IterCoupledPDE(orderedPdes, couplings_,
-                                           sequenceTags[0]);
+    ptIterCoupledPde_ = new IterCoupledPDE(orderedPdes, iterSinglePDEs,
+                                           couplings_, sequenceTags[0]);
     
     delete CouplingDef; 
-
+    
     Info->FinishProgress();
-  }
-
+      }
+    
 
   void Domain::CreateDirectCoupledPDEs(StdVector<std::string> & sequenceTags) {
     ENTER_FCN( "Domain::CreateDirectCoupledPDEs" );
