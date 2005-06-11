@@ -542,6 +542,10 @@ namespace CoupledField
     StdVector<std::string> outputRegions;
   
 
+    // at first, check if this PDE is iterative coupled
+    if (isIterCoupled_ == FALSE)
+      return;
+
     // loop over all output coupling quantities
     for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
       {

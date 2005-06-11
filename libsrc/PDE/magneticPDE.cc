@@ -1009,6 +1009,10 @@ namespace CoupledField {
     CFSVector * values = NULL;
     UInt forcesCount = 0;
 
+    // at first, check if this PDE is iterative coupled
+    if (isIterCoupled_ == FALSE)
+      return;
+
     // loop over all output coupling quantities
     for ( UInt actCoupling = 0;
           actCoupling < ptCoupling_->GetNumOutputCouplings();

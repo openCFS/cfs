@@ -507,6 +507,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     StdVector<UInt> * couplingNodes = NULL;
     CFSVector * temp_values = NULL;
   
+    // at first, check if this PDE is iterative coupled
+    if (isIterCoupled_ == FALSE)
+      return;
+
     // loop over all output coupling quantities
     for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
       quantity = ptCoupling_->GetOutputQuantity(i);
