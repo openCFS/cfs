@@ -66,20 +66,21 @@ namespace CoupledField
               rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(updatesysmat);
               rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
               rPDE_.PDEs_[i]->CalcOutputCoupling();
-              
+
               // Calculate Norms
               for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
                 {
                   rCouplings_[i]->GetOutputValues(k, val);
                   rCouplings_[i]->GetOutputOldValues(k, oldVal);
+                  
                   rPDE_.norms_[counter] = CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
 
                   if (rPDE_.nonLinLogging_)
                     {
                       Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
                       Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-                                   (rCouplings_[i]->GetPDEName()).c_str(),
-                                   quantityConv.c_str(), rPDE_.norms_[counter]);
+                                   (rCouplings_[i]->GetPDE()->GetName()).c_str(),
+                                    quantityConv.c_str(), rPDE_.norms_[counter]);
                     }
                   
                   if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k) && 
@@ -115,12 +116,12 @@ namespace CoupledField
     UInt iter = 0;
     Boolean normsReached = FALSE;
     std::string quantityConv;
-
+    
     // In the beginning of each time step
     // the coupling data has to be reseted
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
       rPDE_.PDEs_[i]->ResetCoupling();
-
+    
     while (iter < rPDE_.maxiter_ &&  (! normsReached))
       {
         if (rPDE_.nonLinLogging_)
@@ -135,6 +136,8 @@ namespace CoupledField
       
         for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
           {
+
+
             if (rPDE_.nonLinLogging_)
               Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
                            (rPDE_.PDEs_[i]->GetName()).c_str());
@@ -162,7 +165,7 @@ namespace CoupledField
                     {
                       Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
                       Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-                                   (rCouplings_[i]->GetPDEName()).c_str(),
+                                   (rCouplings_[i]->GetPDE()->GetName()).c_str(),
                                    quantityConv.c_str(), rPDE_.norms_[counter]);
                     }
                   if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
