@@ -58,6 +58,7 @@ namespace CoupledField{
     ENTER_FCN( "DirectCoupledPDE::SetCouplings" );
 
     couplings_ = couplings;
+    
   }
 
   void DirectCoupledPDE::Init(UInt bcSequenceStep ,
@@ -361,24 +362,35 @@ namespace CoupledField{
   void DirectCoupledPDE::InitCoupling(PDECoupling * Coupling)
   {
     ENTER_FCN( "DirectCoupledPDE::InitCoupling" );
-    Warning( "DirectCoupledPDE::InitCoupling:Not implemented yet", __FILE__ , __LINE__ );
+    isIterCoupled_ = TRUE;
   }
   void DirectCoupledPDE::ResetCoupling()
   {
     ENTER_FCN( "DirectCoupledPDE::ResetCoupling ");
-    Warning( "Not implemented yet", __FILE__ , __LINE__ );
+
+    iterCoupledCounter_ = 0;
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
+      {
+        singlePDEs_[i]->ResetCoupling();
+      }
   }
            
   void DirectCoupledPDE::CalcInputCoupling()
   {
     ENTER_FCN( "DirectCoupledPDE::CalcInputCoupling" );
-    Warning( "Not implemented yet", __FILE__ , __LINE__ );
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
+      {
+        singlePDEs_[i]->CalcInputCoupling();
+      }
   }
 
   void DirectCoupledPDE::CalcOutputCoupling()
   {
     ENTER_FCN( "DirectCoupledPDE::CalcOutputCoupling" );
-    Warning( "Not implemented yet", __FILE__ , __LINE__ );
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
+      {
+        singlePDEs_[i]->CalcOutputCoupling();
+      }
   }
 
 
