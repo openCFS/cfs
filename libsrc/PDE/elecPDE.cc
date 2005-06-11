@@ -578,7 +578,6 @@ namespace CoupledField {
     StdVector<RegionIdType> nRegionIds;
     const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
     
-
     nonLin_ = FALSE;
 
     // Initialization of coupling helper arrays
@@ -720,6 +719,10 @@ namespace CoupledField {
     StdVector<UInt> * couplingNodes     = NULL;
     CFSVector * values = 0;
     UInt forcesCount = 0;
+
+    // at first, check if this PDE is iterative coupled
+    if (isIterCoupled_ == FALSE)
+      return;
 
     // loop over all output coupling quantities
     for (UInt actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)

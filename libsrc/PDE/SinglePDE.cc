@@ -1072,9 +1072,16 @@ namespace CoupledField {
     UInt couplingDof;
     Boolean clearCoords = TRUE;
 
+    
+
+    // at first, check if this PDE is iterative coupled
+    if (isIterCoupled_ == FALSE)
+      return;
+
     // Reset counter for boundary conditions
     couplingBCsCounter_ = 0;
-  
+ 
+
     // Outer loop over all INPUT coupling terms
     for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
 
@@ -1091,7 +1098,7 @@ namespace CoupledField {
         // -------------------
         // COORDINATE COUPLING
         // -------------------
-      case COORD:
+      case COORD: 
         
         // Set flag that the geometry has changed
         geoUpdate_ = TRUE;
@@ -1112,7 +1119,6 @@ namespace CoupledField {
         for (UInt j=0; j<nodes->GetSize(); j++)
           for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++) {
             pdeNode = eqnData_->Mesh2PDENode((*nodes)[j]);
-
             deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
 
           }

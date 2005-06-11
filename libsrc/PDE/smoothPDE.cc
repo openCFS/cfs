@@ -150,6 +150,10 @@ namespace CoupledField
     StdVector<UInt> * couplingnodes;
     CFSVector * values;
 
+    // at first, check if this PDE is iterative coupled
+    if (isIterCoupled_ == FALSE)
+      return;
+
     // loop over all output coupling quantities
     for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
       {
