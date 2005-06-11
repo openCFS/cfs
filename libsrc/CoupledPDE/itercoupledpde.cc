@@ -3,7 +3,7 @@
 #include "pdecoupling.hh"
 
 #include "DataInOut/WriteInfo.hh"
-#include "PDE/StdPDE.hh"
+#include "PDE/SinglePDE.hh"
 #include "Driver/iterSolveStep.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
@@ -11,6 +11,7 @@ namespace CoupledField
 {
 
   IterCoupledPDE::IterCoupledPDE(StdVector<StdPDE*> & PDEs,
+                                 StdVector<SinglePDE*> & singlePDEs,
 				 StdVector<PDECoupling*> & Couplings,
 				 std::string sequenceTag) 
     : BasePDE()
@@ -18,6 +19,7 @@ namespace CoupledField
     ENTER_FCN( "IterCoupledPDE::IterCoupledPDE" );
     
     PDEs_       = PDEs;
+    singlePDEs_ = singlePDEs;
     Couplings_  = Couplings;
     
     NumPDEs_ = PDEs.GetSize();
@@ -123,7 +125,7 @@ namespace CoupledField
     params->GetList( keyVec, attrVec, valVec, stopCritQuantities);
     
     // Iterate over all PDEs
-    for ( UInt iPDE = 0; iPDE < PDEs_.GetSize(); iPDE++ ) {
+    for ( UInt iPDE = 0; iPDE < singlePDEs_.GetSize(); iPDE++ ) {
 
       quantities.Clear();
       interfaceTypes.Clear();
@@ -136,15 +138,15 @@ namespace CoupledField
       attrVec = "tag", "", "", "";
       valVec = sequenceTag_, "", "", "";
       
-      keyVec = "couplingList", "iterative", PDEs_[iPDE]->GetName(), 
+      keyVec = "couplingList", "iterative", singlePDEs_[iPDE]->GetName(), 
 	       "coupling", "quantity";
       params->GetList( keyVec, attrVec, valVec, quantities);
 
-      keyVec = "couplingList", "iterative", PDEs_[iPDE]->GetName(),
+      keyVec = "couplingList", "iterative", singlePDEs_[iPDE]->GetName(),
                "coupling", "type";
       params->GetList( keyVec, attrVec, valVec, interfaceTypes);
 
-      keyVec = "couplingList", "iterative", PDEs_[iPDE]->GetName(),
+      keyVec = "couplingList", "iterative", singlePDEs_[iPDE]->GetName(),
                "coupling", "name";
       params->GetList( keyVec, attrVec, valVec, interfaceNames);
 
@@ -155,7 +157,7 @@ namespace CoupledField
 
 	errMsg  = "IterCoupledPDE::InitCoupling: Inconsistent definition ";
 	errMsg += "of Coupling interfaces for PDE '";
-	errMsg += PDEs_[iPDE]->GetName();
+	errMsg += singlePDEs_[iPDE]->GetName();
 	errMsg += "'. Check your parameter file!";
 	Error(errMsg.c_str(), __FILE__, __LINE__);
       }
@@ -277,8 +279,8 @@ namespace CoupledField
     }
     
     // Initialize each PDEs coupling terms
-    for ( UInt i = 0; i < PDEs_.GetSize(); i++ ) {
-      PDEs_[i]->InitCoupling(Couplings_[i]); 
+    for ( UInt i = 0; i < Couplings_.GetSize(); i++ ) {
+      Couplings_[i]->GetPDE()->InitCoupling(Couplings_[i]); 
     }
 
 #ifdef DEBUG    
@@ -507,7 +509,8 @@ void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
   for (UInt ipde=0; ipde<PDEs_.GetSize(); ipde++)
     {
       
-      out << "Entering " << Couplings_[ipde]->GetPDEName() << ".InitCoupling" << std::endl;
+      out << "Entering " << Couplings_[ipde]->GetPDE()->GetName() 
+          << ".InitCoupling" << std::endl;
       out << "=====================================" << std::endl;
       
       

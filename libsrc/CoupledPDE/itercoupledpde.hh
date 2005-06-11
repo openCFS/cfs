@@ -9,6 +9,7 @@ namespace CoupledField
   // forward class declaration
   class IterSolveStep;
   class StdPDE;
+  class SinglePDE;
   class PDECoupling;
 
   //! This class iteratively solve a list of given SinglePDEs 
@@ -22,6 +23,7 @@ namespace CoupledField
 
     //! Constructor
     IterCoupledPDE(StdVector<StdPDE*> & PDEs,
+                   StdVector<SinglePDE*> & sinlgePDEs,
                    StdVector<PDECoupling*> & Couplings,
                    std::string sequenceTag); 
 
@@ -92,6 +94,7 @@ namespace CoupledField
     // general PDE parameters
     AnalysisType analysistype_;         //!< type of analysis
     StdVector<StdPDE *> PDEs_;         //!< list of belonging PDEs
+    StdVector<SinglePDE*> singlePDEs_;
     StdVector<PDECoupling*> Couplings_; //!< vector of coupling objects
     UInt NumPDEs_;                   //!< number of PDEs 
     std::string sequenceTag_;           //!< tag for current multisequence step
