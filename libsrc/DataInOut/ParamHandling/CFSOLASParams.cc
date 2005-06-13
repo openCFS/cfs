@@ -127,8 +127,12 @@ namespace CoupledField {
     // olas->ShowPool( OLAS_Params::ENUM_POOL    , std::cerr );
 
     // Output Matrix
+    keyVec  = "linearSystems", "system", "exportLinSys", "baseName";
+    attrVec = "", "name", "";
+    valVec  = "", pdename, "";
     StdVector<std::string> doExport;
-    cfs->GetList( "baseName", doExport, pdename, "exportLinSys" );
+    cfs->GetList( keyVec, attrVec, valVec, doExport );
+    // cfs->GetList( "baseName", doExport, pdename, "exportLinSys" );
     if ( doExport.GetSize() == 1 ) {
       olas->SetValue( "exportLinSys", true );
       olas->SetValue( "exportLinSysBaseName", doExport[0] );
