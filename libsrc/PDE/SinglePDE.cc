@@ -368,7 +368,7 @@ namespace CoupledField {
 
     assemble_->SetPtr2Sol(sol_);
 
-    if ( dampingType_ != NONE )
+    if ( needsDampingMatrix_ == TRUE )
       matrixTypes_.insert(DAMPING);
 
     // =====================================================================

@@ -202,6 +202,7 @@ namespace CoupledField
     StdVector<NonLinPDE> nonLinPDEName_;//!< some PDEs carry a name (->acoustics!)
 
     DampingType dampingType_;  //!< damping type of PDE
+
     Vector<Double> solIncr_;   //! needed in iterative coupled computation 
     Vector<Double> actSol_;    //! needed in iterative coupled computation 
     Boolean isIncrFormulation_;//! checks, if we have for the coupling a incremental solution

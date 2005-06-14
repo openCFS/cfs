@@ -51,6 +51,7 @@ namespace CoupledField {
     geoUpdate_ = FALSE;
     iterCoupledCounter_ = 0;
     effectiveMass_ = FALSE;
+	needsDampingMatrix_ = FALSE;
 
   }
   
