@@ -92,11 +92,13 @@ namespace CoupledField {
       
         if (strVec[k] == "rayleigh") {
           dampingList_[k] = RAYLEIGH;
+		  needsDampingMatrix_ = TRUE;
           Info->PrintF( pdename_, 
                         "      * RAYLEIGH damping for region: %d\n", k );
         }
         else if (strVec[k] == "thermoViscous") {
           dampingList_[k] = THERMOVISCOUS;
+		  needsDampingMatrix_ = TRUE;
           Info->PrintF( pdename_, 
                         "      * THERMOVISCOUS damping for region: %d\n", k );
         }
@@ -266,6 +268,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
     if ( absBCs_.GetSize() ) {
       matrixTypes_.insert(DAMPING);
+	  needsDampingMatrix_ = TRUE;
       absorbingBCs_ = TRUE;
       Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
       surfdoms_ = absBCs_;

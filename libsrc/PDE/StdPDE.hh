@@ -506,7 +506,9 @@ namespace CoupledField {
     //! specifies the type of damping model (see environment.hh)
     DampingType dampingType_;
   
-
+	//! flag indicating, if damping matrix is needed
+	Boolean needsDampingMatrix_;
+	
     Boolean isIncrFormulation_;   //! checks, if we have for the coupling a incremental solution
     
 

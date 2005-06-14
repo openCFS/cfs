@@ -191,13 +191,14 @@ namespace CoupledField {
     }
     else if (reset) {
       job = 1;
-
-      PDE_.algsys_->InitMatrix(SYSTEM);
-      PDE_.algsys_->InitMatrix(STIFFNESS);
-      PDE_.algsys_->InitMatrix(MASS);
-      if (PDE_.dampingType_) {
-        PDE_.algsys_->InitMatrix(DAMPING);
-      }
+	  
+	  PDE_.algsys_->InitMatrix();
+//       PDE_.algsys_->InitMatrix(SYSTEM);
+//       PDE_.algsys_->InitMatrix(STIFFNESS);
+//       PDE_.algsys_->InitMatrix(MASS);
+//       if (PDE_.dampingType_) {
+//         PDE_.algsys_->InitMatrix(DAMPING);
+//       }
       PDE_.AssembleSprings( actTime_ );
       PDE_.algsys_->ConstructEffectiveMatrix(matrix_factor_);
     }
