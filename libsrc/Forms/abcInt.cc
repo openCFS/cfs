@@ -8,6 +8,7 @@ namespace CoupledField {
     ENTER_FCN( "AbsorbingBCsInt::AbsorbingBCsInt" );
 
     isaxi_ = isAxi;
+    factor_ = 1.0;
     
   }
 
@@ -52,7 +53,7 @@ namespace CoupledField {
 
     density = acouMaterials[index].GetDensity();
     compressibility = acouMaterials[index].GetCompressibility();
-    factor = density / sqrt( compressibility / density );
+    factor = factor_ * density / sqrt( compressibility / density );
     
 
     // 2) Calculate a normal mass matrix

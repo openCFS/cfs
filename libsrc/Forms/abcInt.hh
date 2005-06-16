@@ -18,6 +18,11 @@ namespace CoupledField {
     //! Default destructor
     virtual ~AbsorbingBCsInt();
 
+    //! Set an additional factor for multiplying the form
+    void SetFactor(Double factor) {
+      factor_ = factor;
+    }
+
     //! Calculate elementwise matrix
 
     //! This method calculates the element matrix for absorbing boundary
@@ -26,6 +31,9 @@ namespace CoupledField {
                            Matrix<Double> & StiffMat);
 
   private:
+    
+    //! Additional multiplicative factor
+    Double factor_;
     
   };
 
