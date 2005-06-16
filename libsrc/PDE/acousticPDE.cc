@@ -415,6 +415,13 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       for (UInt actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
         SurfForm * bilinear_damp = new AbsorbingBCsInt(isaxi_);
         bilinear_damp->SetFirstVoluInfo(pdename_, subdoms_, materialData_);
+
+        // In the case of acou-mech coupling we have to multiply the 
+        // abc-Integrator matrix with -1
+        if ( isMechCoupled_ == TRUE ) {
+          bilinear_damp->SetFactor(-1.0);
+        }
+          
         assemble_->AddSurfIntegrator(bilinear_damp,  absBCs_[actSD],
                                      DAMPING, nonLin);
       }
