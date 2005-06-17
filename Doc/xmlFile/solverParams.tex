@@ -4,15 +4,18 @@
 \chapter{Solver Parameters}
 %
 %
+% =============================================================================
 \section{Interface between CFS++ and OLAS}
+% =============================================================================
 \label{sec:SP_Interface}
 %
 %
 This section deals with specifying solvers and preconditioners for the linear
 systems associated with the solution of the different PDEs. It is important to
-note at this point that these parameters are of no importance in CFS++ itself,
-but will only be passed on to the underlying linear algebra system OLAS. The
-necessary interface in CFS++ is proviede by the CFSOLASParams class.
+note at this point that (nearly all of) these parameters are of no importance
+in CFS++ itself, but will only be passed on to the underlying linear algebra
+system OLAS. The necessary interface in CFS++ is provided by the CFSOLASParams
+class.
 
 Note that all parameters that can be specified for the individual solvers and
 preconditioners are optional. Contrary to the policy in other cases,
@@ -23,13 +26,193 @@ method for shuffling parameters from CFS++ to OLAS. See that file or the
 doxygen documentation of OLAS for the defaults.
 %
 %
+% =============================================================================
 \section{Basic specification}
+% =============================================================================
 %
 %
-The PDE section may contain a \xml{solver} element. The element is optional
-and can be used to choose a solution algorithm for the linear system
-associated to the PDE and in the case of iterative solvers also a
-preconditioning method. The two choices are specified as the \xml{type}
+The specification of the properties of a linear system and its solver is
+done by inserting into the XML-file a \xml{linearSystem}. Its position can be
+seen in table \ref{tab:leavesLevelOne}. The \xml{linearSystem} section has
+the following structure
+%
+%
+\begin{verbatim}
+  <linearSystems>
+    <system name="...">
+      <matrix .../>
+      <exportLinSys .../>
+      <solver type="..." precond="...">
+      </solver>
+    </system>
+  </linearSystems>
+\end{verbatim}
+%
+%
+For each linear system for which properties are to be specified a separate
+\xml{system} block must be inserted. The \xml{name} attribute is used to
+relate the linear system with the respective PDE. Thus, the value of \xml{name}
+must either be a PDE name, e.g. \xml{mechanic}, or the keyword \xml{direct}.
+The latter is reserved for a directly coupled PDE system\footnote{As a
+consequence it is currently only possible to specify properties for a single
+direct coupled PDE.}
+
+The \xml{system} section itself can contain three child elements which can be
+used to specify matrix properties, like e.g. storage type, trigger the export
+of the linear system to file or specification of a solver/preconditioner for
+the linear system. Details are given in the following sections.
+%
+%
+% =============================================================================
+\section{Specifying Properties of the System Matrix}
+% =============================================================================
+%
+%
+The first child of the \xml{system} element can be a \xml{matrix} element. The
+matrix element possesses the following four optional attributes:
+\xml{eqnNumbering}, \xml{entry}, \xml{storage} and \xml{reordering}.
+%
+%
+\begin{center}
+\begin{longtable}{llp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+attribute & values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+eqnNumbering & scalar & Every unknown receives a unique equation number.
+                        Unknowns whose value is fixed by homogeneous Dirichlet
+                        boundary conditions are eliminated. Unknowns given by
+                        inhomogeneous Dirichlet boundary conditions are treated
+                        with the penalty approach.
+
+                        In this case the matrix representing the linear system
+                        will have scalar double or complex entries.\\
+             & block  & This is relevant only for PDEs like e.g.~mechanic,
+                        where to each node of the grid belong several unkowns.
+                        If block is chosen as value, then all unknowns
+                        belonging to a node, so actually the node itself, will
+                        receive a unique equation number. If all the unknowns
+                        at a node are fixed by homogeneous Dirichlet boundary
+                        conditions, then the node and all its unknowns are
+                        eliminated. If not all unkowns are fixed, or if
+                        inhomogeneous Dirichlet boundary conditions are
+                        involved, then the penalty approach is employed.
+
+                        In this case the matrix representing the linear system
+                        will have square matrices of dimension $n\times n$ as
+                        entries, where $n$ is the number of degrees of freedom
+                        per node. The tiny matrices themselves will have scalar
+                        double or complex entries.\\
+             & superBlock & This setting is currently only of importance for
+                        the piezo PDE. It will be no longer required, as soon
+                        as direct coupling is implemented in CFS++.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+entry & double, complex & specifies the entry type on the scalar level, i.e.
+                          the type of the entries of the system matrix for
+                          scalar equation numbering, or the type of the entries
+                          of the tiny matrices in block numbering.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+storage & sparseSym      & System matrix is stored in compressed row storage
+                           format (CRS) format. However, symmetry is exploited
+                           by storing only the upper triangle.\\
+        & sparseNonSym	 & System matrix is stored in CRS format.\\
+        & skylineSym	 & \emph{not fully supported yet}\\
+        & skylineNonSym	 & \emph{not fully supported yet}\\
+        & hypreMatrix	 & System matrix is stored as a hypre matrix. This is
+	                   the correct choice, if a hypre solver is to be used.
+                           Note that a hypre matrix can only store scalar
+                           double entries.\\
+        & lapackGBMatrix & System matrix is stored as a general banded matrix.
+                           This is the suitable choice for the lapackLU solver.
+                           \\
+        & lapackPBMatrix & \emph{not fully supported yet}\\
+        & expertsChoice  & CFS++ will choose the storage type itself.\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+reordering & noReordering  & Specifies that OLAS should not reorder the
+                             graph.\\
+           & Sloan         & Specifies that OLAS should try to reorder the
+                             graph, before the associated matrices are
+                             assembled, using the bandwidth reduction algorithm
+                             by Sloan. Note that the reordering will be
+                             discarded, if the profile of the matrix is not
+                             reduced.\\
+           & Metis         & Specifies that OLAS should try to reorder the
+                             graph, before the associated matrices are
+                             assembled, using a fill-reducing ordering from
+                             Metis. This will be a sort of nested-discetion
+                             reordering. Note that this is untested so far.\\
+%           & expertsChoice  & CFS++ will choose the re-ordering strategy
+%                              itself.\\
+\noalign{\smallskip}\hline
+\end{longtable}
+\end{center}
+%
+%
+Note that not all values of \xml{eqnNumbering}, \xml{entry} and \xml{storage}
+will work together and that some choices, while being possible, will not lead
+to an efficient simulation run in combination with certain solvers. The
+CFSOLASParams interface class has an Expert() subroutine, that will adapt the
+parameters, if they are not sensible and issue a respective warning. It is also
+this routine that will determine a storage type for the system matrix, if
+\xml{expertsChoice} is specified, which also is the default for the
+\xml{storage} attribute.
+
+For the re-ordering strategy the Expert() module will enforce the settings
+specified in the following table. If you want another re-ordering, you must
+over-ride the expert, see Chap.~\ref{chap:SpecialElements}.
+%
+%
+\begin{center}
+\begin{longtable}{ll}
+\hline\noalign{\smallskip}
+solver              & re-ordering                             \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+directLDL, directLU & Metis (if available), Sloan (otherwise) \\
+lapackLU, lapackLL  & Sloan                                   \\
+pardiso             & noReordering                            \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+preconditioner      & re-ordering                             \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+ILU0, Jacobi, hypreJacobi & noReordering                      \\
+ILUK, ILDLK, hypreILU    & Sloan                              \\
+\noalign{\smallskip}\hline
+\end{longtable}
+\end{center}
+%
+%
+% =============================================================================
+\section{Exporting the Linear System}
+% =============================================================================
+%
+%
+In some situations one is interested in obtaining the system matrix of the
+linear system for post-processing. We may e.g.~want to plot the sparsity
+pattern or compute some eigenvalues using matlab. Thus, OLAS offers the
+possibility to export the system matrix to an ascii file in a format conforming
+to the MatrixMarket specifications. For details see
+\url{math.nist.gov/MatrixMarket}. The right-hand side vector is exported
+together with the matrix, but in a separate ascii file. The first line of this
+file contains the dimension of the vector. This is followed by the vector
+entries.
+
+In order to trigger the export one must specify an \xml{exportLinSys} element.
+This is a child of the \xml{solver} element. It expects as \xml{baseName}
+attribute the basename for the two output files. For the MatrixMarket file a
+trailing '.mtx' will be appended to this basename, while for the right-hand
+side a '.vec' postfix is used. See Sec.~\ref{sec:SP_Examples} for an example.
+%
+%
+%
+% =============================================================================
+\section{Specifying Solver Parameters}
+% =============================================================================
+%
+%
+One can choose a solution algorithm for the linear system associated with a
+single or directly coupled PDE and in the case of iterative solvers also a
+preconditioning method by inserting a \xml{solver} block into the \xml{system}
+section for the corresponding linear system.
+
+The two choices for solver and preconditioner are specified as the \xml{type}
 and \xml{precond} attributes of the \xml{solver} element. The following two
 tables give an overview on the currently available choices for solver and
 preconditioner:
@@ -110,8 +293,6 @@ preconditioner. Its general structure is as follows:
 \begin{tabbing}
 \quad\=\\ \kill
 \verb!<solver type="!\emph{value}\verb!" precond="!\emph{value}\verb!">!\\
-\> \verb!<matrix eqnNumbering="!\emph{value}\verb!" entry="!\emph{value}\verb!" storage="!\emph{value}\verb!"/>!\\
-\> \verb!<exportLinSys baseName="!\emph{value}\verb!"/>!\\
 \> \verb!<stoppingRule type="!\emph{value}\verb!"/>!\\
 \> \emph{element with parameters for solver}\\
 \> \emph{element with parameters for preconditioner}\\
@@ -119,141 +300,6 @@ preconditioner. Its general structure is as follows:
 \end{tabbing}
 \end{minipage}
 \end{center}
-%
-%
-\section{Specifying Properties of the System Matrix}
-%
-%
-The first child of the \xml{solver} element can be a \xml{matrix} element. The
-matrix element possesses the following four optional attributes:
-\xml{eqnNumbering}, \xml{entry}, \xml{storage} and \xml{reordering}.
-%
-%
-\begin{center}
-\begin{longtable}{llp{0.5\textwidth}}
-\hline\noalign{\smallskip}
-attribute & values & meaning \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-eqnNumbering & scalar & Every unknown receives a unique equation number.
-                        Unknowns whose value is fixed by homogeneous Dirichlet
-                        boundary conditions are eliminated. Unknowns given by
-                        inhomogeneous Dirichlet boundary conditions are treated
-                        with the penalty approach.
-
-                        In this case the matrix representing the linear system
-                        will have scalar double or complex entries.\\
-             & block  & This is relevant only for PDEs like e.g.~mechanic,
-                        where to each node of the grid belong several unkowns.
-                        If block is chosen as value, then all unknowns
-                        belonging to a node, so actually the node itself, will
-                        receive a unique equation number. If all the unknowns
-                        at a node are fixed by homogeneous Dirichlet boundary
-                        conditions, then the node and all its unknowns are
-                        eliminated. If not all unkowns are fixed, or if
-                        inhomogeneous Dirichlet boundary conditions are
-                        involved, then the penalty approach is employed.
-
-                        In this case the matrix representing the linear system
-                        will have square matrices of dimension $n\times n$ as
-                        entries, where $n$ is the number of degrees of freedom
-                        per node. The tiny matrices themselves will have scalar
-                        double or complex entries.\\
-             & superBlock & This setting is currently only of importance for
-                        the piezo PDE. It will be no longer required, as soon
-                        as direct coupling is implemented in CFS++.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-entry & double, complex & specifies the entry type on the scalar level, i.e.
-                          the type of the entries of the system matrix for
-                          scalar equation numbering, or the type of the entries
-                          of the tiny matrices in block numbering.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-storage & sparseSym      & System matrix is stored in compressed row storage
-                           format (CRS) format. However, symmetry is exploited
-                           by storing only the upper triangle.\\
-        & sparseNonSym	 & System matrix is stored in CRS format.\\
-        & skylineSym	 & \emph{not fully supported yet}\\
-        & skylineNonSym	 & \emph{not fully supported yet}\\
-        & hypreMatrix	 & System matrix is stored as a hypre matrix. This is
-	                   the correct choice, if a hypre solver is to be used.
-                           Note that a hypre matrix can only store scalar
-                           double entries.\\
-        & lapackGBMatrix & System matrix is stored as a general banded matrix.
-                           This is the suitable choice for the lapackLU solver.
-                           \\
-        & lapackPBMatrix & \emph{not fully supported yet}\\
-        & expertsChoice  & CFS++ will choose the storage type itself.\\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-reordering & noReordering & Specifies that OLAS should not reorder the graph.\\
-           & Sloan        & Specifies that OLAS should try to reorder the
-                            graph, before the associated matrices are
-                            assembled, using the bandwidth reduction algorithm
-                            by Sloan. Note that the reordering will be
-                            discarded, if the profile of the matrix is not
-                            reduced.\\
-           & Metis        & Specifies that OLAS should try to reorder the
-                            graph, before the associated matrices are
-                            assembled, using a fill-reducing ordering from
-                            Metis. This will be a sort of nested-discetion
-                            reordering. Note that this is untested so far.\\
-\noalign{\smallskip}\hline
-\end{longtable}
-\end{center}
-%
-%
-Note that not all values of \xml{eqnNumbering}, \xml{entry} and \xml{storage}
-will work together and that some choices, while being possible will not lead
-to an efficient simulation run in combination with certain solvers. The
-CFSOLASParams interface class has an Expert() subroutine, that will adapt the
-parameters, if they are not sensible and issue a respective warning. It is also
-this routine that will determine a storage type for the system matrix, if
-\xml{expertsChoice} is specified, which also is the default for the
-\xml{storage} attribute.
-
-For the re-ordering strategy the Expert() module will enforce the settings
-specified in the following table. If you want another re-ordering, you must
-over-ride the expert, see Chap.~\ref{chap:SpecialElements}.
-%
-%
-\begin{center}
-\begin{longtable}{ll}
-\hline\noalign{\smallskip}
-solver              & re-ordering                             \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-directLDL, directLU & Metis (if available), Sloan (otherwise) \\
-lapackLU, lapackLL  & Sloan                                   \\
-pardiso             & noReordering                            \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-preconditioner      & re-ordering                             \\
-\noalign{\smallskip}\hline\noalign{\smallskip}
-ILU0, Jacobi, hypreJacobi & noReordering                      \\
-ILUK, ILDLK, hypreILU    & Sloan                              \\
-\noalign{\smallskip}\hline
-\end{longtable}
-\end{center}
-%
-%
-
-
-%
-%
-\section{Exporting the Linear System}
-%
-%
-In some situations one is interested in obtaining the system matrix of the
-linear system for post-processing. We may e.g.~want to plot the sparsity
-pattern or compute some eigenvalues using matlab. Thus, OLAS offers the
-possibility to export the system matrix to an ascii file in a format conforming
-to the MatrixMarket specifications. For details see
-\url{math.nist.gov/MatrixMarket}. The right-hand side vector is exported
-together with the matrix, but in a separate ascii file. The first line of this
-file contains the dimension of the vector. This is followed by the vector
-entries.
-
-In order to trigger the export one must specify an \xml{exportLinSys} element.
-This is a child of the \xml{solver} element. It expects as \xml{baseName}
-attribute the basename for the two output files. For the MatrixMarket file a
-trailing '.mtx' will be appended to this basename, while for the right-hand
-side a '.vec' postfix is used. See Sec.~\ref{sec:SP_Examples} for an example.
 %
 %
 \section{Setting the stopping rule}
@@ -335,7 +381,7 @@ interface accepts the following parameters:
 %
 %
 \begin{center}
-\begin{tabular}{lcp{0.5\textwidth}}
+\begin{longtable}{lcp{0.5\textwidth}}
 \hline\noalign{\smallskip}
 element & range of values & meaning \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
@@ -364,7 +410,7 @@ logging    & yes, no & If set to yes, the solver object will write minimal
 stats      & yes, no & Setting this parameter to yes triggers Pardiso to print
                        statistical information to the standard output\\
 \noalign{\smallskip}\hline
-\end{tabular}
+\end{longtable}
 \end{center}
 %
 %
@@ -977,8 +1023,8 @@ library together with an SPAI preconditioner:
 %
 %
 \begin{verbatim}
+<matrix eqnNumbering="scalar" entry="double" storage="sparseNonSym"/>
 <solver type="hypreBICGSTAB" precond="hypreSPAI">
-  <matrix eqnNumbering="scalar" entry="double" storage="sparseNonSym"/>
   <hypreBICGSTAB>
     <tol>     1e-8 </tol>
     <maxIter> 1000 </maxIter>
@@ -1001,14 +1047,16 @@ conjunction with a block numbering of the equations/unknowns. The system matrix
 will be exported to the file ``piezo5.mtx'' and the right-hand side vector to 
 he file ``piezo5.vec'':
 \begin{verbatim}
-<solver type="gmres">
+<system name="piezo">
   <matrix eqnNumbering="block"/>
   <exportLinSys baseName="piezo5"/>
-  <gmres>
-    <tol>1e-10</tol>
-    <maxIter>2</maxIter>
-    <logging>yes</logging>
-  </gmres>
-</solver>
+  <solver type="gmres">
+    <gmres>
+      <tol>1e-10</tol>
+      <maxIter>2</maxIter>
+      <logging>yes</logging>
+    </gmres>
+  </solver>
+</system>
 \end{verbatim}
 
