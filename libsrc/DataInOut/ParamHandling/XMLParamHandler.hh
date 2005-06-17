@@ -325,11 +325,11 @@ namespace CoupledField {
     //! on or off. The specifications demand that an application should query
     //! a serialiser first, before attempting to set a certain feature, or be
     //! prepared to catch the resulting exception, if it cannot. Thus, this
-    //! method will first query the serisalier, whether it does support
+    //! method will first query the serialiser, whether it does support
     //! setting the feature to the specified value. If the serialiser does,
     //! then the method will set the feature and return true. If the
-    //! serialsier does not supported it, then the behaviour depends on the
-    //! value of the shouldHave argument. Setting shouldHave to true,
+    //! serialiser does not supported it, then the behaviour depends on the
+    //! value of the shouldHave argument. %Setting shouldHave to true,
     //! indicates that the application relies on the serialiser having the
     //! desired feature capability. If the latter is not the case, an error
     //! will be issued. If shouldHave is false, then only a warning will be
@@ -346,7 +346,7 @@ namespace CoupledField {
     //! \param shouldHave  boolean signalling that the application relies on
     //!                    the serialiser having the specified feature
     //!                    capability
-    //! \return a boolean signaling whether the serialiser supports setting
+    //! \return a boolean signalling whether the serialiser supports setting
     //!         the specified feature to the specified value.
     bool DOMWriterSetFeature( xercesc::DOMWriter *serialiser,
 			      const XMLCh *const feature,
