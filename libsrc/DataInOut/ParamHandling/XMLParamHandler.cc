@@ -33,6 +33,7 @@ using namespace xercesc;
 #include "DataInOut/ParamHandling/XMLParserErrorHandler.hh"
 #include "Utils/tools.hh"
 
+#define DEBUG_XMLPARAMHANDLER
 
 namespace CoupledField {
 
@@ -108,6 +109,11 @@ namespace CoupledField {
   XMLParamHandler::~XMLParamHandler() {
 
     ENTER_FCN( "XMLParamHandler::~XMLParamHandler" );
+
+#ifdef DEBUG_XMLPARAMHANDLER
+    PrintTree( parser_->getDocument() );
+    PrintTree( parserDefaults_->getDocument() );
+#endif
 
     // Delete parser for parameter file
     if ( parser_ != NULL ) {
