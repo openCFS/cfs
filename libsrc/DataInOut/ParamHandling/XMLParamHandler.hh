@@ -306,6 +306,53 @@ namespace CoupledField {
                                StdVector<std::string> &attrVec,
                                StdVector<std::string> &valVec );
 
+    //! Report parameters to the specified output stream
+
+    //! This method can be used to serialise the specified DOM tree and write
+    //! it to standard output.
+    //! \note
+    //! - We will see the whole tree including all optional parameters whose
+    //!   values were set by the Schema specification and not in the input
+    //!   XML file.
+    //! - The current implementation of this method makes use of several
+    //!   experimental features of xerces that might change in future
+    //!   releases!
+    void PrintTree( xercesc::DOMDocument *doc );
+
+    //! Turn on/off a feature of the DOMWriter
+
+    //! This method can be used to turn a feature of the DOMWriter/serialiser
+    //! on or off. The specifications demand that an application should query
+    //! a serialiser first, before attempting to set a certain feature, or be
+    //! prepared to catch the resulting exception, if it cannot. Thus, this
+    //! method will first query the serisalier, whether it does support
+    //! setting the feature to the specified value. If the serialiser does,
+    //! then the method will set the feature and return true. If the
+    //! serialsier does not supported it, then the behaviour depends on the
+    //! value of the shouldHave argument. Setting shouldHave to true,
+    //! indicates that the application relies on the serialiser having the
+    //! desired feature capability. If the latter is not the case, an error
+    //! will be issued. If shouldHave is false, then only a warning will be
+    //! issued, if the serialiser does not support this feature capability and
+    //! false will be returned.
+    //! \note For a list of features that every serialiser should support see
+    //!       the Xerces documentation of the DOMWriter class or the Document
+    //!       object model specification.
+    //! \param serialiser  pointer to the DOMWriter / serialiser
+    //! \param feature     feature specification encoded as constant XMLCh
+    //!                    array; feature names are static attributes of the
+    //!                    xercesc::XMLUni class
+    //! \param featureVal  value to which the feature should be set
+    //! \param shouldHave  boolean signalling that the application relies on
+    //!                    the serialiser having the specified feature
+    //!                    capability
+    //! \return a boolean signaling whether the serialiser supports setting
+    //!         the specified feature to the specified value.
+    bool DOMWriterSetFeature( xercesc::DOMWriter *serialiser,
+			      const XMLCh *const feature,
+			      bool featureVal,
+			      bool shouldHave );
+
 
     // ***********************************************************************
     //   Private Auxilliary Methods: Problem Handlers
@@ -436,7 +483,18 @@ namespace CoupledField {
     //! The method converts an STL string to an unsigned Integer value by the 
     //! help of the atoi function.
     Integer String2UInt( const std::string toTranscode ) {
-      return (UInt)atoi( toTranscode.c_str() );
+      UInt retVal = 0;
+      int aux = 0;
+      aux = atoi( toTranscode.c_str() );
+      if ( aux >= 0 ) {
+        retVal = (UInt)aux;
+      }
+      else {
+        (*error) << "String2UInt: Cannot convert negative value " << aux
+                 << " to unsigned integral type UInt";
+        Error( __FILE__, __LINE__ );
+      }
+      return retVal;
     };
 
     //@}
