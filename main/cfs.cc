@@ -40,6 +40,7 @@ using namespace CoupledField;
 
 int main( int argc, const char **argv ) {
 
+
   // =========================================================================
   // INITIALISATION OF MPI
   // =========================================================================
@@ -53,8 +54,12 @@ int main( int argc, const char **argv ) {
 #endif //parallel
 
   
+  // =========================================================================
+  // TIMING
+  // =========================================================================
   MyClock oClockTotal;
   oClockTotal.ClockCount(MyClock::beg);
+
 
   // =========================================================================
   // CREATE INFORMATION OBJECT
@@ -314,6 +319,7 @@ int main( int argc, const char **argv ) {
   // delete domain;
   // delete ptTimeFunc;
   delete Info;
+  delete params;
 
   // As the last thing we close the trace file (if exists)
 #ifdef TRACE
