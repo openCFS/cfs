@@ -33,7 +33,6 @@ using namespace xercesc;
 #include "DataInOut/ParamHandling/XMLParserErrorHandler.hh"
 #include "Utils/tools.hh"
 
-#define DEBUG_XMLPARAMHANDLER
 
 namespace CoupledField {
 
