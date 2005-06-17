@@ -22,7 +22,12 @@ closing tag.
 
 Only a few tags are allowed in this main body. They will be documented in the
 remaining sections. These top level tags have to be used in the order shown in
-the following table
+table \ref{tab:leavesLevelOne}.
+%
+%
+\begin{table}
+\caption{Possible elements on the first leave level and their order.}
+\label{tab:leavesLevelOne}
 \begin{center}
   \begin{longtable}{lll}
     \hline\noalign{\smallskip}
@@ -36,17 +41,31 @@ the following table
     domain          & section & required \\
     pdeList         & section & required \\
     couplingList    & section & required for iterative or direct coupling\\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    \multicolumn{3}{c}{\emph{elements in the following block can appear in any
+    order}}\\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
     harmonic        & section & required for harmonic analysis \\
     transient       & section & required for transient analysis \\
     multiSequence   & section & required for multi sequence analysis \\
-    bubbleDynamic   & section & optional for simulation of bubbles \\
-    bubbleDriver    & section & optional for simulation of bubbles \\
+    bubbleDynamic   & section & optional (for simulation of bubbles) \\
+    bubbleDriver    & section & optional (for simulation of bubbles) \\
     transient4Slice & section & ??? \\
+    \noalign{\smallskip}\hline\noalign{\smallskip}
+    MpCCI           & section & optional (for coupling via MpCCI)\\
+    linearSystems   & section & optional (for specifying properties of
+                      linear system solvers) \\
+    integRules      & section & optional (do not use)\\
     expert          & plane   & optional (for disabling expert module)\\
     devel           & plane   & optional (for developers only)\\
     \noalign{\smallskip}\hline
   \end{longtable}
 \end{center}
+\end{table}
+%
+% EOF: general.tex
+%
+
 
 
 
