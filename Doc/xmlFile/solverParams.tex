@@ -509,6 +509,17 @@ Parameters for the directLDL solver are:
 \hline\noalign{\smallskip}
 element & range of values & meaning \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
+itRefSteps      & $\mathbb{N}_0$  & number of iterative refinement steps to
+                                    perform once the solution was computed
+                                    using backward/forward substitution\\
+itRefVerbosity  & 0, 1, 2 & determines the verbosity of the iterative
+                            refinement process for logging to the .las-file:
+                            \begin{tabular}{lp{6.5cm}}
+                            0 & quiet \\
+                            1 & logs general startup\\
+                            2 & also print residual norms (induces\newline
+                                additional computational work)
+                            \end{tabular}\\
 saveFacFile     & string  & this parameter can be used to specify the name of
 	                    a file to which the factor matrix $F=D+L^T$ is
                             exported using the MatrixMarket format
