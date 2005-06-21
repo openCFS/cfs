@@ -132,7 +132,6 @@ namespace CoupledField {
     valVec  = "", pdename, "";
     StdVector<std::string> doExport;
     cfs->GetList( keyVec, attrVec, valVec, doExport );
-    // cfs->GetList( "baseName", doExport, pdename, "exportLinSys" );
     if ( doExport.GetSize() == 1 ) {
       olas->SetValue( "exportLinSys", true );
       olas->SetValue( "exportLinSysBaseName", doExport[0] );
@@ -182,6 +181,16 @@ namespace CoupledField {
 
     ENTER_FCN( "CFSOLASParams::SetSolverParams" );
 
+    // We need three vectors for our parameter queries
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    // Basic part of query will always be the same
+    keyVec  = "linearSystems", "system", "", "";
+    attrVec = "", "name", "";
+    valVec  = "", pdename, "";
+
     // Determine which parameters have been set by the user
     // and insert them into the olasParams object.
     StdVector<std::string> list;
@@ -189,147 +198,216 @@ namespace CoupledField {
     switch( sType ) {
 
     case CG:
-      cfs->GetList( "tol", list, pdename, "cg" );
+      keyVec[2] = "cg";
+
+      keyVec[3] = "tol";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "CG_epsilon", atof(list[0].c_str()) );
       }
-      cfs->GetList( "maxIter", list, pdename, "cg" );
+
+      keyVec[3] = "maxIter";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "CG_maxIter", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "resDirectly", list, pdename, "cg" );
+
+      keyVec[3] = "resDirectly";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "CG_resDirectly", atoi(list[0].c_str()) );
       }
       break;
 
     case GMRES:
-      cfs->GetList( "tol", list, pdename, "gmres" );
+      keyVec[2] = "gmres";
+
+      keyVec[3] = "tol";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "GMRES_epsilon", atof(list[0].c_str()) );
       }
-      cfs->GetList( "maxIter", list, pdename, "gmres" );
+
+      keyVec[3] = "maxIter";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "GMRES_maxIter", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "maxKrylovDim", list, pdename, "gmres" );
+
+      keyVec[3] = "maxKrylovDim";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "GMRES_maxKrylovDim", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "logging", list, pdename, "gmres" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "GMRES_logging", (list[0] == "yes") );
       }
       break;
 
     case MINRES:
-      cfs->GetList( "tol", list, pdename, "minres" );
+      keyVec[2] = "gmres";
+
+      keyVec[3] = "tol";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "MINRES_epsilon", atof(list[0].c_str()) );
       }
-      cfs->GetList( "maxIter", list, pdename, "minres" );
+
+      keyVec[3] = "maxIter";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "MINRES_maxIter", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "logging", list, pdename, "minres" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "MINRES_logging", (list[0] == "yes") );
       }
       break;
 
     case HYPRE_PCG:
-      cfs->GetList( "tol", list, pdename, "hyprePCG" );
+      keyVec[2] = "hyprePCG";
+
+      keyVec[3] = "tol";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREPCG_epsilon", atof(list[0].c_str()) );
       }
-      cfs->GetList( "maxIter", list, pdename, "hyprePCG" );
+
+      keyVec[3] = "maxIter";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREPCG_maxIter", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "logging", list, pdename, "hyprePCG" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREPCG_logging", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "printLevel", list, pdename, "hyprePCG" );
+
+      keyVec[3] = "printLevel";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREPCG_printLevel", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "twoNorm", list, pdename, "hyprePCG" );
+
+      keyVec[3] = "twonorm";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREPCG_twoNorm", (list[0] == "yes") );
       }
       break;
 
     case HYPRE_GMRES:
-      cfs->GetList( "tol", list, pdename, "hypreGMRES" );
+      keyVec[2] = "hypreGMRES";
+
+      keyVec[3] = "tol";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREGMRES_epsilon", atof(list[0].c_str()) );
       }
-      cfs->GetList( "maxIter", list, pdename, "hypreGMRES" );
+
+      keyVec[3] = "maxIter";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREGMRES_maxIter", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "maxKrylovDim", list, pdename, "hypreGMRES" );
+
+      keyVec[3] = "maxKrylovDim";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREGMRES_maxKrylovDim", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "logging", list, pdename, "hypreGMRES" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREGMRES_logging", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "printLevel", list, pdename, "hypreGMRES" );
+
+      keyVec[3] = "printLevel";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREGMRES_printLevel", atoi(list[0].c_str()) );
       }
       break;
 
     case HYPRE_BICGSTAB:
-      cfs->GetList( "tol", list, pdename, "hypreBICGSTAB" );
+      keyVec[2] = "hypreBICGSTAB";
+
+      keyVec[3] = "tol";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREBICGSTAB_epsilon", atof(list[0].c_str()) );
       }
-      cfs->GetList( "maxIter", list, pdename, "hypreBICGSTAB" );
+
+      keyVec[3] = "maxIter";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREBICGSTAB_maxIter", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "logging", list, pdename, "hypreBICGSTAB" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREBICGSTAB_logging", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "printLevel", list, pdename, "hypreBICGSTAB" );
+
+      keyVec[3] = "printLevel";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "HYPREBICGSTAB_printLevel", atoi(list[0].c_str()) );
       }
       break;
 
     case LAPACK_LU:
-      cfs->GetList( "tryScaling", list, pdename, "lapackLU" );
+      keyVec[2] = "lapackLU";
+
+      keyVec[3] = "tryScaling";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "LAPACKLU_tryScaling", (list[0] == "yes") );
       }
-      cfs->GetList( "refineSol", list, pdename, "lapackLU" );
+
+      keyVec[3] = "refineSol";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "LAPACKLU_refineSol", (list[0] == "yes") );
       }
-      cfs->GetList( "logging", list, pdename, "lapackLU" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "LAPACKLU_logging", (list[0] == "yes") );
       }
       break;
 
     case LAPACK_LL:
-      cfs->GetList( "logging", list, pdename, "lapackLL" );
+      keyVec[2] = "lapackLL";
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "LAPACKLL_logging", (list[0] == "yes") );
       }
       break;
 
     case LU_SOLVER:
-      cfs->GetList( "logging", list, pdename, "directLU" );
+      keyVec[2] = "directLU";
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "LUSOLVER_logging", (list[0] == "yes") );
       }
-      cfs->GetList( "saveFacFile", list, pdename, "directLU" );
+
+      keyVec[3] = "saveFacFile";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "CROUT_saveFacToFile", true );
         olas->SetValue( "CROUT_facFileName", list[0] );
@@ -337,15 +415,33 @@ namespace CoupledField {
       break;
 
     case LDL_SOLVER:
-      cfs->GetList( "logging", list, pdename, "directLDL" );
+      keyVec[2] = "directLDL";
+
+      keyVec[3] = "itRefSteps";
+      cfs->GetList( keyVec, attrVec, valVec, list );
+      if( list.GetSize() == 1 ) {
+        olas->SetValue( "LDLSOLVER_itRefSteps", atoi(list[0].c_str()) );
+      }
+
+      keyVec[3] = "itRefVerbosity";
+      cfs->GetList( keyVec, attrVec, valVec, list );
+      if( list.GetSize() == 1 ) {
+        olas->SetValue( "LDLSOLVER_itRefVerbosity", atoi(list[0].c_str()) );
+      }
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "LDLSOLVER_logging", (list[0] == "yes") );
       }
-      cfs->GetList( "saveFacFile", list, pdename, "directLDL" );
+
+      keyVec[3] = "saveFacFile";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "LDLSOLVER_saveFacToFile", true );
         olas->SetValue( "LDLSOLVER_facFileName", list[0] );
-        cfs->GetList( "savePatternOnly", list, pdename, "directLDL" );
+        keyVec[3] = "savePatternOnly";
+        cfs->GetList( keyVec, attrVec, valVec, list );
         if( list.GetSize() == 1 ) {
           olas->SetValue( "LDLSOLVER_facPatternOnly", (list[0] == "yes") );
         }
@@ -353,29 +449,42 @@ namespace CoupledField {
       break;
 
     case PARDISO:
-      cfs->GetList( "posDef", list, pdename, "pardiso" );
+      keyVec[2] = "pardiso";
+
+      keyVec[3] = "posDef";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "PARDISO_posDef", (list[0] == "yes") );
       }
-      cfs->GetList( "hermitean", list, pdename, "pardiso" );
+
+      keyVec[3] = "hermitean";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "PARDISO_hermitean", (list[0] == "yes") );
       }
-      cfs->GetList( "symStruct", list, pdename, "pardiso" );
+
+      keyVec[3] = "symStruct";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "PARDISO_symStructure", (list[0] == "yes") );
       }
-      cfs->GetList( "ordering", list, pdename, "pardiso" );
+
+      keyVec[3] = "ordering";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         ReorderingType ordering;
         OLAS::String2Enum( list[0], ordering );
         olas->SetValue( "PARDISO_ordering", ordering );
       }
-      cfs->GetList( "logging", list, pdename, "pardiso" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "PARDISO_logging", (list[0] == "yes") );
       }
-      cfs->GetList( "stats", list, pdename, "pardiso" );
+
+      keyVec[3] = "stats";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "PARDISO_stats", (list[0] == "yes") );
       }
@@ -392,9 +501,6 @@ namespace CoupledField {
     }
 
     // Now set the stopping rule
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
     keyVec  = "linearSystems", "system", "solver", "stoppingRule", "type";
     attrVec = "", "name", "", "";
     valVec  = "", pdename, "", "";
@@ -416,6 +522,16 @@ namespace CoupledField {
 
     ENTER_FCN( "CFSOLASParams::SetPrecondParams" );
 
+    // We need three vectors for our parameter queries
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    // Basic part of query will always be the same
+    keyVec  = "linearSystems", "system", "", "";
+    attrVec = "", "name", "";
+    valVec  = "", pdename, "";
+
     // Determine which parameters have been set by the user
     // and insert them into the olasParams object.
     StdVector<std::string> list;
@@ -431,15 +547,22 @@ namespace CoupledField {
       break;
 
     case HYPRE_ILU:
-      cfs->GetList( "level", list, pdename, "hypreILU" );
+      keyVec[2] = "hypreILU";
+
+      keyVec[3] = "level";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "EUCLID_level",  atoi(list[0].c_str()) );
       }
-      cfs->GetList( "stats", list, pdename, "hypreILU" );
+
+      keyVec[3] = "stats";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "EUCLID_stats", (list[0] == "yes") );
       }
-      cfs->GetList( "memory", list, pdename, "hypreILU" );
+
+      keyVec[3] = "memory";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         Integer memory = (list[0] == "yes");
         olas->SetValue( "EUCLID_memory", memory );
@@ -447,28 +570,41 @@ namespace CoupledField {
       break;
 
     case HYPRE_SPAI:
-      cfs->GetList( "thresh", list, pdename, "hypreSPAI" );
+      keyVec[2] = "hypreSPAI";
+
+      keyVec[3] = "thresh";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "PARASAILS_thresh", atof(list[0].c_str()) );
       }
-      cfs->GetList( "levels", list, pdename, "hypreSPAI" );
+
+      keyVec[3] = "levels";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "PARASAILS_levels", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "filter", list, pdename, "hypreSPAI" );
+
+      keyVec[3] = "filter";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "PARASAILS_filter", atof(list[0].c_str()) );
       }
-      cfs->GetList( "symmetry", list, pdename, "hypreSPAI" );
+
+      keyVec[3] = "symmetry";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "PARASAILS_symmetry", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "loadBalance", list, pdename, "hypreSPAI" );
+
+      keyVec[3] = "loadBalance";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         Integer balance = (list[0] == "yes");
         olas->SetValue( "PARASAILS_loadBalance", balance );
       }
-      cfs->GetList( "reuse", list, pdename, "hypreSPAI" );
+
+      keyVec[3] = "reuse";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         Integer balance = (list[0] == "yes");
         olas->SetValue( "PARASAILS_reuse", balance );
@@ -476,19 +612,28 @@ namespace CoupledField {
       break;
 
     case HYPRE_AMG:
-      cfs->GetList( "maxLevels", list, pdename, "hypreAMG" );
+      keyVec[2] = "hypreAMG";
+
+      keyVec[3] = "maxLevels";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "BOOMERAMG_maxLevels", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "alpha", list, pdename, "hypreAMG" );
+
+      keyVec[3] = "alpha";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "BOOMERAMG_alpha", atof(list[0].c_str()) );
       }
-      cfs->GetList( "numSweeps", list, pdename, "hypreAMG" );
+
+      keyVec[3] = "numSweeps";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "BOOMERAMG_numSweeps", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "cycleType", list, pdename, "hypreAMG" );
+
+      keyVec[3] = "cycleType";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         Integer cycleType = list[0] == "W-cycle" ? 2 : 1;
         olas->SetValue( "BOOMERAMG_cycleType", cycleType );
@@ -496,39 +641,58 @@ namespace CoupledField {
       break;
 
     case MG:
-      cfs->GetList( "maxCoarseDepend", list, pdename, "MG" );
+      keyVec[2] = "MG";
+
+      keyVec[3] = "maxCoarseDepend";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "AMG_MaxCoarseDependency", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "minSystemSize", list, pdename, "MG" );
+
+      keyVec[3] = "minSystemSize";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "AMG_MinSystemSize", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "numPreSmooth", list, pdename, "MG" );
+
+      keyVec[3] = "numPreSmooth";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "AMG_NumPreSmoothing", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "numPostSmooth", list, pdename, "MG" );
+
+      keyVec[3] = "numPostSmooth";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "AMG_NumPostSmoothing", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "cycleParam", list, pdename, "MG" );
+
+      keyVec[3] = "cycleParam";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "AMG_CycleParameter", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "alpha", list, pdename, "MG" );
+
+      keyVec[3] = "alpha";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "AMG_CoarseningAlpha", atof(list[0].c_str()) );
       }
-      cfs->GetList( "strongDiagRatio", list, pdename, "MG" );
+
+      keyVec[3] = "strongDiagRatio";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "AMG_StrongDiagRatio", atof(list[0].c_str()) );
       }
-      cfs->GetList( "forceFineRatio", list, pdename, "MG" );
+
+      keyVec[3] = "forceFineRatio";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "AMG_ForceFineRatio", atof(list[0].c_str()) );
       }
-      cfs->GetList( "directSolver", list, pdename, "MG" );
+
+      keyVec[3] = "directSolver";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         if ( list[0] == "lapackLU" ) {
           olas->SetValue( "AMG_DirectSolver", LAPACK_LU );
@@ -543,22 +707,31 @@ namespace CoupledField {
           olas->SetValue( "AMG_DirectSolver", NOSOLVER );
         }
       }
-      cfs->GetList( "logging", list, pdename, "MG" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "AMG_logging", (list[0] == "yes") );
       }
       break;
 
     case ILUK:
-      cfs->GetList( "level", list, pdename, "ILUK" );
+      keyVec[2] = "ILUK";
+
+      keyVec[3] = "level";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILUK_level", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "logging", list, pdename, "ILUK" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILUK_logging", (list[0] == "yes") );
       }
-      cfs->GetList( "saveFacFile", list, pdename, "ILUK" );
+
+      keyVec[3] = "saveFacFile";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "CROUT_saveFacToFile", true );
         olas->SetValue( "CROUT_facFileName", list[0] );
@@ -566,19 +739,27 @@ namespace CoupledField {
       break;
 
     case ILDLK:
-      cfs->GetList( "level", list, pdename, "ILDLK" );
+      keyVec[2] = "ILDLK";
+
+      keyVec[3] = "level";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILDLPRECOND_level", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "logging", list, pdename, "ILDLK" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILDLKPRECOND_logging", (list[0] == "yes") );
       }
-      cfs->GetList( "saveFacFile", list, pdename, "ILDLK" );
+
+      keyVec[3] = "saveFacFile";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
         olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
-        cfs->GetList( "savePatternOnly", list, pdename, "ILDLK" );
+        keyVec[3] = "savePatternOnly";
+        cfs->GetList( keyVec, attrVec, valVec, list );
         if( list.GetSize() == 1 ) {
           olas->SetValue( "ILDLPRECOND_facPatternOnly", (list[0] == "yes") );
         }
@@ -586,23 +767,33 @@ namespace CoupledField {
       break;
 
     case ILDLTP:
-      cfs->GetList( "threshold", list, pdename, "ILDLTP" );
+      keyVec[2] = "ILDLTP";
+
+      keyVec[3] = "threshold";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILDLPRECOND_tau", atof(list[0].c_str()) );
       }
-      cfs->GetList( "fillVal", list, pdename, "ILDLTP" );
+
+      keyVec[3] = "fillVal";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILDLPRECOND_fillVal", atoi(list[0].c_str()) );
       }
-      cfs->GetList( "logging", list, pdename, "ILDLTP" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILDLTPPRECOND_logging", (list[0] == "yes") );
       }
-      cfs->GetList( "saveFacFile", list, pdename, "ILDLTP" );
+
+      keyVec[3] = "saveFacFile";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
         olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
-        cfs->GetList( "savePatternOnly", list, pdename, "ILDLTP" );
+        keyVec[3] = "savePatternOnly";
+        cfs->GetList( keyVec, attrVec, valVec, list );
         if( list.GetSize() == 1 ) {
           olas->SetValue( "ILDLPRECOND_facPatternOnly", (list[0] == "yes") );
         }
@@ -610,19 +801,28 @@ namespace CoupledField {
       break;
 
     case ILDLCN:
+      keyVec[2] = "ILDLCN";
+
+      keyVec[3] = "threshold";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       cfs->GetList( "threshold", list, pdename, "ILDLCN" );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILDLPRECOND_tau", atof(list[0].c_str()) );
       }
-      cfs->GetList( "logging", list, pdename, "ILDLCN" );
+
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILDLCNPRECOND_logging", (list[0] == "yes") );
       }
-      cfs->GetList( "saveFacFile", list, pdename, "ILDLCN" );
+
+      keyVec[3] = "saveFacFile";
+      cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         olas->SetValue( "ILDLPRECOND_saveFacToFile", true );
         olas->SetValue( "ILDLPRECOND_facFileName", list[0] );
-        cfs->GetList( "savePatternOnly", list, pdename, "ILDLCN" );
+        keyVec[3] = "savePatternOnly";
+        cfs->GetList( keyVec, attrVec, valVec, list );
         if( list.GetSize() == 1 ) {
           olas->SetValue( "ILDLPRECOND_facPatternOnly", (list[0] == "yes") );
         }
@@ -668,9 +868,9 @@ namespace CoupledField {
     }
 
 
-    // ======================
-    //  Precondtioner stuff
-    // ======================
+    // =======================
+    //  Preconditioner stuff
+    // =======================
 
     // For direct solver we need no preconditioner
     if ( sType == DIRECT || sType == LAPACK_LU && pType != NOPRECOND ) {
@@ -715,6 +915,7 @@ namespace CoupledField {
     }
 
     // The direct solver LU_SOLVER expects a CRS matrix
+    // the ILU0 preconditioner, too
     if ( sType == LU_SOLVER ) {
       if ( mType != SPARSE_NONSYM ) {
         if ( mType != NOSTORAGETYPE ) {
@@ -726,6 +927,21 @@ namespace CoupledField {
         else {
           Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
                         "type for direct solver\n" );
+        }
+        mType = SPARSE_NONSYM;
+      }
+    }
+    if ( pType == ILU0 ) {
+      if ( mType != SPARSE_NONSYM ) {
+        if ( mType != NOSTORAGETYPE ) {
+          (*warning) << "Expert: Changing matrix storage type from "
+                     << Enum2String( mType ) << " to SPARSE_NONSYM for "
+                     << Enum2String( pType ) << " preconditioner";
+          Warning( __FILE__, __LINE__ );
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
+                        "type for preconditioner\n" );
         }
         mType = SPARSE_NONSYM;
       }
