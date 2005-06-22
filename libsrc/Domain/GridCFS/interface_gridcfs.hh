@@ -109,6 +109,14 @@ namespace CoupledField
                             const UInt inode ) {
       ptGridCFS->GetNodeCoordinate(rfPoint, inode);
     }
+
+    //! Get coordinates of node with global number inode as vector
+    //! \param rfPoint (output) coordinates of point 2D
+    //! \param inode (input) node number
+    void GetNodeCoordinate( Vector<Double> & rfPoint,
+                            const UInt inode ) {
+      ptGridCFS->GetNodeCoordinate(rfPoint, inode);
+    }
     //@}
   
     // ======================================================

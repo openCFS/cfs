@@ -144,6 +144,12 @@ namespace CoupledField
     virtual void GetNodeCoordinate( Point<3> & rfPoint,
                                     const UInt inode )
     { Error( "Not implemented", __FILE__, __LINE__ ); }  
+
+    //! Get coordinates of node with global number inode as vector
+    //! \param rfPoint (out) coordinates of point 3D
+    //! \param inode (in) node number
+    virtual void GetNodeCoordinate( Vector<Double> & rfPoint,
+                                    const UInt inode ) = 0;
   
     //@}
 

@@ -136,6 +136,12 @@ namespace CoupledField
     void GetNodeCoordinate( Point<DIM> & rfPoint,
                             const UInt inode );
   
+
+    //! Get coordinates of node with global number inode as vector
+    //! \param rfPoint (out) coordinates of point 3D
+    //! \param inode (in) node number
+    void GetNodeCoordinate( Vector<Double> & rfPoint,
+                            const UInt inode );
     //@}
 
     // =======================================================================
