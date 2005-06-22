@@ -39,6 +39,24 @@ namespace CoupledField
     CalcShapeFnc(S, LCoord);
 
   }
+  
+  void BaseFE :: Local2GlobalCoord(Vector<Double> & globCoord,
+                                   const Vector<Double> & locCoord, 
+                                   const Matrix<Double> & coordMat ) {
+    
+    ENTER_FCN( "BaseFE::Local2GlobalCoord");
+    
+    // step 1: evaluate shape fncs. at local coordinate
+    Vector<Double> shFnc;
+    CalcShapeFnc(shFnc, locCoord);
+
+    // step2: multiply shape fncs for each dimension with according matrix entries
+    globCoord.Resize(Dim_);
+    coordMat.Mult(shFnc,globCoord);
+    
+  }
+
+
 
   void BaseFE :: GetShFncAtIp(Vector<Double> & S, 
                               const UInt ip)

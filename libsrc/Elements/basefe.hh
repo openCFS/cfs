@@ -45,6 +45,14 @@ namespace CoupledField
     { lCornerCoords = LCornerCoords_;};
   
   
+    //! Get the global coordinate for a given local one
+    //! \param globCoord (output) global coordinate
+    //! \param locCoord (input) local coordinate
+    //! \param coordMat (input) global corner coordinates of element
+    //!                         (spaceDim \f$\times\f$ nrNodes)
+    virtual void Local2GlobalCoord(Vector<Double> & globCoord,
+                                   const Vector<Double> & locCoord,
+                                   const Matrix<Double> & coordMat);
 
   
     //! Get value of all shape fnc at integration point ip
