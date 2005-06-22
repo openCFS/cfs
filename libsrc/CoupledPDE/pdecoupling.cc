@@ -109,11 +109,11 @@ namespace CoupledField
   void PDECoupling::RegisterInput(CouplingInputType InType, SolutionType Quantity)
 
   {
-    ENTER_FCN("PDECoupling::RegisterInput")
-  
-      inputTypes_.Push_back(InType);
+    ENTER_FCN("PDECoupling::RegisterInput");
+    
+    inputTypes_.Push_back(InType);
     inputQuantities_.Push_back(Quantity);  
-    inputInterfaces_.Push_back(0);
+    inputInterfaces_.Push_back(NULL);
   }
 
 
@@ -568,14 +568,30 @@ namespace CoupledField
   UInt PDECoupling::GetNumInputCouplings()
   {
     ENTER_FCN("PDECoupling::GetnumInputCouplings");
-    return inputInterfaces_.GetSize();
+    
+    UInt numCouplings = 0;
+    
+    for ( UInt i = 0; i < inputInterfaces_.GetSize(); i++ ) {
+      if ( inputInterfaces_[i] != NULL )
+        numCouplings++;
+    }
+    
+    return numCouplings;
+  
   }
 
 
   UInt PDECoupling::GetNumOutputCouplings()
   {
     ENTER_FCN("PDECoupling::GetnumOutputCouplings");
-    return outputQuantities_.GetSize();
+    UInt numCouplings = 0;
+    
+    for ( UInt i = 0; i < outputInterfaces_.GetSize(); i++ ) {
+      if ( outputInterfaces_[i] != NULL )
+        numCouplings++;
+    }
+    return numCouplings;
+//     return outputQuantities_.GetSize();
   }
 
 
