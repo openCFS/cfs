@@ -235,11 +235,13 @@ int main( int argc, const char **argv ) {
   adaptspace = params->IsSet( "adaptspace" );
   String2Enum( analysis, analysisType );
 
+
   // Generate log message
   Info->StartProgress( "Generating driver" );
 
   // Generate driver
   switch( analysisType ) {
+
 
   case STATIC:
 
@@ -270,10 +272,12 @@ int main( int argc, const char **argv ) {
     if ( analysis == "paramIdent" ) {
       ptdriver = new piezoParamIdent( &domain );
     }
-    else if ( analysis == "multiHarmonic" )
-      ptdriver = new MultiHarmonicDriver( &domain );
     else
       ptdriver = new HarmonicDriver( &domain );
+    break;
+
+  case MULTIHARMONIC:
+    ptdriver = new MultiHarmonicDriver( &domain );
     break;
 
   case MULTI_SEQUENCE:
