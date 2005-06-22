@@ -187,7 +187,6 @@ namespace CoupledField {
       isComplex_ = FALSE;
       assemble_ = new StaticAssemble(algsys_, ptgrid_);
       analysistype_ = STATIC;
-      matrixTypes_.insert(STIFFNESS);
     }
 
     else if (analysisHelp == TRANSIENT) {
@@ -329,7 +328,9 @@ namespace CoupledField {
     // which relates nodes/dofs to equation numbers
     eqnData_->SetHomoDirichletBCs ( bcs_hd_, homDirichDof_  );
     eqnData_->SetInhomDirichletBCs( bcs_id_, inhomDirichDof_);
+    SETPROFILE("Before Equation Mapping");
     eqnData_->CalcMapping();
+    SETPROFILE("After Equation Mapping");
 
     // Report results to logfile
     Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
@@ -353,14 +354,15 @@ namespace CoupledField {
     sol_->SetPtrEQNData(eqnData_, ptgrid_);
     sol_->Init(); 
 
-    solVec_->Resize( eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN() );    
+    SETPROFILE("Before Resizing StoreSol");
+    solVec_->Resize( eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN() );
+    SETPROFILE("After Resizing StoreSol");
 
 
     // =====================================================================
     // initialize assemble object
     // =====================================================================
     assemble_->SetPtr2EQNData(eqnData_); 
-    std::cout<<"     assemble_- SetPtr2EQNData eqnData_ " <<std::endl;
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
     if (pdename_ == "piezo" || pdename_ == "mechanic" ) {
@@ -415,7 +417,9 @@ namespace CoupledField {
     // =====================================================================
      if ( analysistype_ == TRANSIENT && 
           isDirectCoupled_ == FALSE) {
+       SETPROFILE("Before Definition of Timestepping");
       InitTimeStepping();
+      SETPROFILE("After Definition of TimeStepping");
     }
 
     PreparePDE4Computation();
@@ -876,7 +880,7 @@ namespace CoupledField {
     // If PDE is not direct coupled then the PDE has to register
     // at the algebraic system and obtain an Id. 
     // Afterwards the matrix-graph has to be set up
-
+    SETPROFILE("Before GraphSetupInit()");
     if ( isDirectCoupled_ == FALSE ) {
       
       // Initialize the matrix graph object
@@ -889,9 +893,12 @@ namespace CoupledField {
 
       solveStep_->SetPDEId( pdeId_ );
       
+      
       // trigger the creation and assembly of the matrix graph
+      SETPROFILE("Before SetupMatrixGraph()");
       assemble_->SetupMatrixGraph();
       
+      SETPROFILE("Before GraphSetupDone()");
       // finish the assembly of the matrix graph
       algsys_->GraphSetupDone();
       
@@ -902,6 +909,7 @@ namespace CoupledField {
 
     }
 
+    SETPROFILE("After setting up the matrix graph");
     // pass information about dofs, number of dirichlet equations
     // and constraints to the algebraic system
     algsys_->SetBlockSize( pdeId_, eqnData_->GetNumDofsPerEQN() );
