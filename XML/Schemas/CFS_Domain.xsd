@@ -35,6 +35,55 @@
   <xsd:complexType name="DT_DomainElems">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
   </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic CoordSys data type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_CoordSysBasic" abstract="true">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        </xsd:restriction>
+      </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic CoordSys element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised CoordSys elements -->
+  <xsd:element name="CoordSysBasic" type="DT_CoordSysBasic" abstract="true"/>
+    
+    
+  <!-- ******************************************************************** -->
+  <!--   Definition of element for cylindric coordinate system -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="cylindric" type="DT_CoordSysCylindric"
+    substitutionGroup="CoordSysBasic"/>
+  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for cylindric coordinate system -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_CoordSysCylindric">
+    <xsd:complexContent>
+      <xsd:extension base="DT_CoordSysBasic">
+        <xsd:sequence>
+          <xsd:element name="origin" type="DT_PointType"/>
+          <xsd:element name="hAxis" type="DT_PointType"/>
+          <xsd:element name="rAxis" type="DT_PointType"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
 
 
   <!-- ******************************************************************** -->
@@ -48,6 +97,14 @@
         maxOccurs="unbounded"/>
       <xsd:element name="elements" type="DT_DomainElems" minOccurs="0"
         maxOccurs="unbounded"/>
+      <xsd:element name="coordSys" minOccurs="0" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element ref="CoordSysBasic" minOccurs="1"
+              maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
 
