@@ -28,7 +28,9 @@ namespace CoupledField {
 
   Boolean PrintGridOnly = FALSE;
 
+#ifdef PROFILING
   Profiler * profiler = NULL;
+#endif
 
   Flags * flags=NULL;
 
