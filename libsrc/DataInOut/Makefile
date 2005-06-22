@@ -6,7 +6,7 @@ include ../../main/Makefile.option
 #
 src = filetype.cc timefunc.cc writeresults.cc MaterialData.cc\
 	LoadMaterialData.cc LoadMaterialDataFile.cc WriteInfo.cc\
-	MHMaterialDataFile.cc
+	MHMaterialDataFile.cc MHMaterialData.cc
 #
 ifeq ($(DATABASE),yes)
   src := $(src) LoadMaterialDataDatabase.cc
