@@ -138,10 +138,9 @@ namespace CoupledField {
 
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
-    if ( isDirectCoupled_ == FALSE )
-      {
-        algsys_ = new StandardSystem();
-      }
+    if ( isDirectCoupled_ == FALSE ) {
+	  algsys_ = new StandardSystem();
+	}
 
     // Get parameter and report object of OLAS
     olasParams_ = algsys_->GetOLASParams();
@@ -264,6 +263,11 @@ namespace CoupledField {
     else {
       tolSpaceErr_ = 0;
     }
+
+    // =====================================================================
+    // read in damping information
+    // =====================================================================
+	ReadDampingInformation( ptgrid_ );
 
     // =====================================================================
     // read in boundary conditions

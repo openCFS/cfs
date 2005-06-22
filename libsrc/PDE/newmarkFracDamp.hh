@@ -33,9 +33,7 @@ namespace CoupledField {
                      NodeEQN * ptEQN, 
                      Grid * aptgrid, StdPDE * aptStdPDE, 
                      StdVector<RegionIdType> asubdomainList,
-                     StdVector<DampingType> adampingList,
-                     UInt afracMemory, InterpolType ainType, 
-                     Boolean isaxi );
+                     StdVector<DampingType> adampingList);
   
     //! deconstructor
     virtual ~NewmarkFracDamp();

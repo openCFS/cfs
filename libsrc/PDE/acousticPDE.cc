@@ -72,130 +72,12 @@ namespace CoupledField {
     // axisymmetric setup    
     isaxi_ = params->HasValue( "type", "axi", "geometry" );
 
-    // *********************************************
-    //   Check what type of damping should be used
-    // *********************************************
-
-    StdVector<std::string> strVec;
-    params->GetList( "type", strVec, pdename_, "damping");
-
-    dampingType_ = NONE;
-    Boolean sorted = TRUE;
-	UInt firstFrac=0;
-    if ( strVec.IsEmpty() )
-      Info->PrintF( pdename_, 
-                    "No information specifying damping detected!\n" );
-    else {
-      dampingList_.Resize(strVec.GetSize());
-    
-      for ( UInt k = 0; k < strVec.GetSize(); k++) {
-      
-        if (strVec[k] == "rayleigh") {
-          dampingList_[k] = RAYLEIGH;
-		  needsDampingMatrix_ = TRUE;
-          Info->PrintF( pdename_, 
-                        "      * RAYLEIGH damping for region: %d\n", k );
-        }
-        else if (strVec[k] == "thermoViscous") {
-          dampingList_[k] = THERMOVISCOUS;
-		  needsDampingMatrix_ = TRUE;
-          Info->PrintF( pdename_, 
-                        "      * THERMOVISCOUS damping for region: %d\n", k );
-        }
-        else if (strVec[k] == "fractional") {
-          dampingList_[k] = FRACTIONAL;
-		  dampingType_ = FRACTIONAL;
-          Info->PrintF( pdename_, 
-                        "      * FRACTIONAL damping for region: %d\n", k );
-        }
-        else if (strVec[k] == "no") {
-          dampingList_[k] = NONE;
-          Info->PrintF( pdename_, 
-                        "      * NO damping at all for region: %d\n", k );
-        }
-        if ( k > 0 ) {
-          if ( dampingList_[k] != dampingList_[k-1] )
-            sorted = FALSE;
-		  if ( dampingType_ == FRACTIONAL && firstFrac == 0 )
-			firstFrac = k; // first index with fractional damping
-		}
-      }
-      if ( sorted == TRUE ) {
-		dampingType_ = dampingList_[0];
-	  }
-	  else {
-		Info->PrintF(pdename_,
-					 "Found different types of damping for regions!");
-	  }
-
-	  // get additional information for fractional damping model
-	  if ( dampingType_ == FRACTIONAL ) {
-
-		StdVector<std::string> fracAlgList_;
-		params->GetList( "fracAlg", fracAlgList_, pdename_, "damping" );
-		StdVector<UInt> fracMemoryList_;
-		params->GetList( "fracMemory", fracMemoryList_, pdename_, 
-						 "damping" );
-		StdVector<std::string> interpolationList_;
-		params->GetList( "interpolation", interpolationList_, 
-						 pdename_, "damping" );
-        
-		if( fracAlgList_.IsEmpty()
-			|| fracMemoryList_.IsEmpty() 
-			|| interpolationList_.IsEmpty() ) {
-		  (*error) << "Specify attributes fracAlg, fracMemory " 
-				   << "and interpolation!";
-		  Error( __FILE__, __LINE__ ); 
-		}
-		// up to now take values from first subdomain with frac damp
-		else {
-		  if ( fracAlgList_[firstFrac] == "gl" )
-			Info->PrintF( pdename_, 
-						  "         with Gruenwald-Letnikov algorithm,\n");
-		  else if (fracAlgList_[firstFrac] == "blank")
-			Info->PrintF( pdename_, 
-						  "         with Blanks algorithm,\n");
-          
-		  fracMemory_ = fracMemoryList_[firstFrac];
-		  Info->PrintF( pdename_, 
-						"         memory size is: %d,\n", fracMemory_);
-          
-		  if ( interpolationList_[firstFrac] == "lin1pt")
-			inType_ = LIN1PT;
-		  else
-			inType_ = NOTUSED;
-		  Info->PrintF( pdename_, 
-						"         %s interpolation of past values\n\n"
-						, interpolationList_[firstFrac].c_str() );
-		}
-
-		// modify dampingList, so that fracAlg is included
-		for ( UInt k = 0; k < strVec.GetSize(); k++) {
-		  if ( dampingList_[k] == FRACTIONAL ) {
-
-			if ( fracAlgList_[k] == "gl" && interpolationList_[k] == "no" )
-			  dampingList_[k] = FRACTIONAL_GL;
-
-			else if ( fracAlgList_[k]=="gl" && 
-					  interpolationList_[k]=="lin1pt" )
-			  dampingList_[k] = FRACTIONAL_GL_INT;
-
-			else if ( fracAlgList_[k] == "blank" && 
-					  interpolationList_[k] == "no" )
-			  dampingList_[k] = FRACTIONAL_BLANK;
-
-			else if ( fracAlgList_[k]=="blank" && 
-					  interpolationList_[k]=="lin1pt" )
-			  dampingList_[k] = FRACTIONAL_BLANK_INT;
-		  }
-		}
-	  }
-	}
 
     // *************************************************************
     //   Check what type of nonlinear PDE formulation should be used
     // *************************************************************
     nonLin_ = FALSE; //declaration in basePDE.hh
+    StdVector<std::string> strVec;
     params->GetList( "nonLinear", strVec, pdename_, "region" );
     nonLinPDEName_.Resize(strVec.GetSize());
 
@@ -276,6 +158,143 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
   }
 
 
+  // *********************************************
+  //   Check what type of damping should be used
+  // *********************************************
+  void AcousticPDE::ReadDampingInformation( Grid *aptgrid ) {
+
+    ENTER_FCN( "AcousticPDE::ReadDampingInformation" );
+
+    dampingType_ = NONE;
+	dampingList_.Resize(subdoms_.GetSize());
+	fracMemory_ = 0;
+    Boolean identical = TRUE; // i.e. same type of damping for all regions
+	Integer firstFrac=-1;
+
+    // Construct vectors for restricted search parameter
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+	for (UInt k = 0; k < subdoms_.GetSize(); k++) {
+
+	  std::string actRegion;
+	  actRegion = aptgrid->RegionIdToName( k );
+	  keyVec = "acoustic" , "region" , "damping" , "type";
+	  attrVec= ""         , "name"   , "";
+	  valVec = ""         , actRegion, "";
+	  StdVector<std::string> dampInfo;
+	  params->GetList( keyVec, attrVec, valVec, dampInfo);
+
+	  if ( dampInfo.IsEmpty() ) {
+		dampingList_[k] = NONE;
+		Info->PrintF( pdename_, 
+					  "No information specifying damping detected!\n" );
+	  }
+	  else if (dampInfo[0] == "no") {
+		dampingList_[k] = NONE;
+		Info->PrintF( pdename_, 
+					  "      * NO damping at all for region: %d\n", k );
+	  }
+	  else if (dampInfo[0] == "rayleigh") {
+		dampingList_[k] = RAYLEIGH;
+		needsDampingMatrix_ = TRUE;
+		Info->PrintF( pdename_, 
+					  "      * RAYLEIGH damping for region: %d\n", k );
+	  }
+	  else if (dampInfo[0] == "thermoViscous") {
+		dampingList_[k] = THERMOVISCOUS;
+		needsDampingMatrix_ = TRUE;
+		Info->PrintF( pdename_, 
+					  "      * THERMOVISCOUS damping for region: %d\n", k );
+	  }
+	  else if (dampInfo[0] == "fractional") {
+		dampingType_ = FRACTIONAL;
+		Info->PrintF( pdename_, 
+					  "      * FRACTIONAL damping for region: %d\n", k );
+
+		// Find first region containing fractional damping
+		if ( firstFrac < 0 )
+		  firstFrac = k;
+
+		keyVec = "acoustic" , "region" , "damping" , "fracAlg";
+		StdVector<std::string> fracAlg;
+		params->GetList( keyVec, attrVec, valVec, fracAlg );
+
+		keyVec = "acoustic" , "region" , "damping" , "fracMemory";
+		StdVector<UInt> fracMem;
+		params->GetList( keyVec, attrVec, valVec, fracMem );
+
+		keyVec = "acoustic" , "region" , "damping" , "interpolation";
+		StdVector<std::string> interpol;
+		params->GetList(  keyVec, attrVec, valVec, interpol );
+
+
+		if( fracAlg.IsEmpty() || fracMem.IsEmpty() || interpol.IsEmpty() ) {
+		  (*error) << "Specify attributes fracAlg, fracMemory " 
+				   << "and interpolation!";
+		  Error( __FILE__, __LINE__ ); 
+		}
+		else if  ( fracAlg[0] == "gl" ) {
+
+		  // Include fracAlg and interpolation info in dampingList
+		  Info->PrintF( "", "\t\t\t using Gruenwald-Letnikov algorithm,\n");
+		  if (interpol[0] == "no" )
+			dampingList_[k] = FRACTIONAL_GL;
+		  else {
+			dampingList_[k] = FRACTIONAL_GL_INT;
+			Info->PrintF("", 
+						 "\t\t\t linear interpol. of single past values\n\n");
+		  }
+		}
+		else if ( fracAlg[0] == "blank" ) {
+
+		  Info->PrintF( "", "\t\t\t using Blanks algorithm,\n");
+		  if (interpol[0] == "no" )
+			dampingList_[k] = FRACTIONAL_BLANK;
+		  else {
+			dampingList_[k] = FRACTIONAL_BLANK_INT;
+			Info->PrintF("", 
+						 "\t\t\t linear interpol. of single past values\n\n");
+		  }
+		}
+
+		// up to now take maximum of fracMemory
+		if ( fracMem[0] > fracMemory_ )
+		  fracMemory_ = fracMem[0];
+	  }
+
+	  // Determine, if regions have different types of damping
+	  if ( k > 0 ) {
+		if ( dampingList_[k] != dampingList_[k-1] )
+		  identical = FALSE;
+	  }
+	}
+
+	if ( dampingType_ == FRACTIONAL ) {
+
+	  Info->PrintF(pdename_, "Memory size for fractional damping  is: %d\n",
+				   fracMemory_ );
+
+	  if ( dampingList_[firstFrac] == FRACTIONAL_GL ||
+		   dampingList_[firstFrac] == FRACTIONAL_BLANK )
+		inType_ = NOTUSED;
+	  else
+		inType_ = LIN1PT;
+	}
+
+	if ( identical==TRUE && dampingType_!=FRACTIONAL ) {
+	  dampingType_ = dampingList_[0];
+	}
+	else if ( identical==TRUE && dampingType_==FRACTIONAL ) {
+	  ;
+	}
+	else {
+	  Info->PrintF(pdename_,
+				   "Found different types of damping for regions!\n");
+	}
+  }
+
   void AcousticPDE::DefineIntegrators() {
 
     ENTER_FCN( "AcousticPDE::DefineIntegerators" );
@@ -285,10 +304,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     Double coeffmass, coeffdamp;
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
-
-	  //std::cout << "dampingList_ entry of subdomain "
-	  //		<< actSD << " is:    " << dampingList_[actSD]
-	  //		<< std::endl << std::endl;
 
       density         = materialData_[actSD].GetDensity();
       compressibility = materialData_[actSD].GetCompressibility();
@@ -302,9 +317,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         density *= -1.0;
       }
 
-      // *********************************************************************
+      // ********************************************************************
       //   Linear wave equation
-      // *********************************************************************
+      // ********************************************************************
 
       // stiffness integrator
       BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);        
@@ -323,9 +338,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         new IntegratorDescriptor(bilinearMass, MASS);
       assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]);
 
-      // *********************************************************************
+      // ********************************************************************
       //   Additional terms for damping
-      // *********************************************************************
+      // ********************************************************************
 
       if ( !dampingList_.IsEmpty() ) {
 
@@ -426,12 +441,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
                                      DAMPING, nonLin);
       }
     }
-
-  
   }
 
-  void AcousticPDE::DefineSolveStep()
-  {
+  void AcousticPDE::DefineSolveStep() {
     ENTER_FCN( "AcousticPDE::DefineSolveStep" );
 
     if( bubbleDynType_ != NOBUBBLETYPE ) {
@@ -440,7 +452,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     else {
       solveStep_ = new SolveStepAcoustic(*this);
     }
-
   }
 
 
@@ -455,20 +466,20 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     UInt rhsSize = eqnData_->GetNumEQNs() *
       eqnData_->GetNumDofsPerEQN();
 
-    if ( dampingType_!=FRACTIONAL ) {
-      // this includes rayleigh and thermoviscous damping
+	// this includes rayleigh and thermoviscous damping
+    if ( dampingType_!=FRACTIONAL ) { 
       if ( effectiveMass_ == FALSE ) {
         TS_alg_ = new Newmark( algsys_, rhsSize );
       }
       else {
-        TS_alg_ = new NewmarkEffMass(  algsys_, rhsSize );
+        TS_alg_ = new NewmarkEffMass( algsys_, rhsSize );
       }
     }
     else {
       if ( effectiveMass_ == FALSE )
-        TS_alg_ = new NewmarkFracDamp(algsys_, rhsSize,  pdeId_, eqnData_, 
-                                      ptgrid_, this, subdoms_, dampingList_,
-                                      fracMemory_, inType_, isaxi_);
+        TS_alg_ = new NewmarkFracDamp( algsys_, rhsSize, 
+									   pdeId_, eqnData_, ptgrid_, this, 
+									   subdoms_, dampingList_ );
       else
         Error("This needs to be implemented!",__FILE__,__LINE__);
     }
