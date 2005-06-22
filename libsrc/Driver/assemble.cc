@@ -262,7 +262,7 @@ namespace CoupledField {
                              
             Matrix<Double> ptCoord;
             GetElemCoords(connecth, ptCoord);
-                    
+
             // map connect to PDE node numbers
             StdVector<Integer> connect_PDE1, connect_PDE2;
                     
@@ -316,39 +316,39 @@ namespace CoupledField {
                                          connect_PDE2.GetSize() );
             }
 #ifdef DEBUG
-            UInt elemNum = elemssd[actEl]->elemNum;
+          //   UInt elemNum = elemssd[actEl]->elemNum;
 
-            // output matrices
-            if (destMat == STIFFNESS) {
-              (*debug) << "Stiffness matrix of Element " 
-                       << elemNum << std::endl;
-            }
+//             // output matrices
+//             if (destMat == STIFFNESS) {
+//               (*debug) << "Stiffness matrix of Element " 
+//                        << elemNum << std::endl;
+//             }
 
-            if (destMat == MASS) {
-              (*debug) << "Mass      matrix of Element " 
-                       << elemNum << std::endl;
-            }
+//             if (destMat == MASS) {
+//               (*debug) << "Mass      matrix of Element " 
+//                        << elemNum << std::endl;
+//             }
 
-            if (destMat == DAMPING) {
-              (*debug) << "Damping   matrix of Element " 
-                       << elemNum << std::endl;
-            }
+//             if (destMat == DAMPING) {
+//               (*debug) << "Damping   matrix of Element " 
+//                        << elemNum << std::endl;
+//             }
 
-            if (destMat == SYSTEM) {
-              (*debug) << "System matrix of Element " 
-                       << elemNum << std::endl;
-            }
+//             if (destMat == SYSTEM) {
+//               (*debug) << "System matrix of Element " 
+//                        << elemNum << std::endl;
+//             }
             
-            (*debug) << elemmat << std::endl;
+//             (*debug) << elemmat << std::endl;
 
-            if ( !elemmat.IsSymmetric() ) {
-              (*debug) << " --> Matrix is not symmetric " 
-                       << std::endl << std::endl;
-            }
-            else {
-              (*debug) << " --> Matrix is symmetric " 
-                       << std::endl << std::endl;
-            }
+//             if ( !elemmat.IsSymmetric() ) {
+//               (*debug) << " --> Matrix is not symmetric " 
+//                        << std::endl << std::endl;
+//             }
+//             else {
+//               (*debug) << " --> Matrix is symmetric " 
+//                        << std::endl << std::endl;
+//             }
 #endif
             if (actDescriptor->GetSecondaryMat() != NOTYPE) {
               Double damp = dampTransform * actDescriptor->GetSecMatFac();
@@ -1128,7 +1128,8 @@ namespace CoupledField {
         //std::cerr << "connect: " << std::endl << connecth << std::endl;
         //std::cerr << "connect_PDE " << std::endl;
         //std::cerr << connect_PDE << std::endl << std::endl;
-        
+       
+       
         algsys_->SetElementPos( pdeId1_, connect_PDE1.GetPointer(),
                                 connect_PDE1.GetSize(), 
                                 pdeId2_, connect_PDE2.GetPointer(),
@@ -1160,6 +1161,7 @@ namespace CoupledField {
     
     // finish assembling procedure
     algsys_->AssembleDone( pdeId1_, pdeId2_ );
+    SETPROFILE("After AssembleDone");
   }
   
   
