@@ -300,6 +300,20 @@ namespace CoupledField
     rfPoint = coords_[inode-1];
   }
   
+  template<UInt DIM>
+  void GridCFS<DIM>::GetNodeCoordinate( Vector<Double> & rfPoint,
+                                        const UInt inode ) {
+    ENTER_FCN( "GridCFS::GetNodeCoordinate" );
+
+    if ( inode > numNodes_ || inode < 0 ) {
+      (*error) << "GridCFS: There are only " << numNodes_
+               << " nodes in the grid. You requested coordinates for "
+               << "node number " << inode <<". Go check your mesh file!";
+      Error( __FILE__, __LINE__ );
+    }
+    rfPoint = coords_[inode-1];
+  }
+    
   // ======================================================
   // ELEMENT ACCESS FUNCTIONS
   // ======================================================
@@ -613,13 +627,20 @@ namespace CoupledField
       for (UInt iSurfElem = 0; iSurfElem < surfElems_[iRegion].GetSize();
            iSurfElem++ ) {
         
-        
+        // check, if each surface element has at least one volume neighbour
+        if ( surfElems_[iRegion][iSurfElem]->ptVolElem1 == NULL ) {
+          (*error) << "Pointer to first volume elem is NULL for surface "
+                   << " element nr. "  
+                   << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
+                   << "Please check your mesh-file!";
+          Error( __FILE__, __LINE__ );
+        }
+
         CalcSurfNormal( normalUndefSign, *surfElems_[iRegion][iSurfElem] );
         CalcSurfNormalOutOfVol( normalDefSign, 
                                 *surfElems_[iRegion][iSurfElem],
                                 *surfElems_[iRegion][iSurfElem]->ptVolElem1 );
 
-                
         // Check if all entries have the same sign by calulating
         // a scalar product between both vectors.
         // If it is positive, they point in the smae direction,
