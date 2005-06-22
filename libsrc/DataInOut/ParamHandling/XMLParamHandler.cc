@@ -258,6 +258,9 @@ namespace CoupledField {
 
     ENTER_FCN( "XMLParamHandler::GetList" );
 
+    // Clear input vector
+    ClearVector( list );
+
     // Generate vectors of keywords and side-constraints
     StdVector<std::string> keys;
     StdVector<std::string> attribs;
@@ -281,6 +284,10 @@ namespace CoupledField {
 
     ENTER_FCN( "XMLParamHandler::GetList" );
 
+    // Clear input vector
+    ClearVector( list );
+
+
     // First determine all matches as strings
     StdVector<std::string> matches;
     GetList( key, matches, section, subsection );
@@ -302,6 +309,10 @@ namespace CoupledField {
 
     ENTER_FCN( "XMLParamHandler::GetList" );
 
+    // Clear input vector
+    ClearVector( list );
+
+
     // First determine all matches as strings
     StdVector<std::string> matches;
     GetList( key, matches, section, subsection );
@@ -322,6 +333,10 @@ namespace CoupledField {
                                  const std::string subsection ) {
 
     ENTER_FCN( "XMLParamHandler::GetList" );
+
+    // Clear input vector
+    ClearVector( list );
+
 
     // First determine all matches as strings
     StdVector<std::string> matches;
@@ -515,6 +530,10 @@ namespace CoupledField {
 
     ENTER_FCN( "XMLParamHandler::GetList" );
 
+    // Clear input vector
+    ClearVector( list );
+
+
     // We just have to pass everything through to the
     // central auxilliary search method
     FindAllMatches( keyVec, attrVec, valVec, list, rootElem_ );
@@ -531,6 +550,10 @@ namespace CoupledField {
                                   StdVector<Double> &list ) {
 
     ENTER_FCN( "XMLParamHandler::GetList" );
+
+    // Clear input vector
+    ClearVector( list );
+
 
     // First determine all matches as strings
     StdVector<std::string> matches;
@@ -553,6 +576,10 @@ namespace CoupledField {
 
     ENTER_FCN( "XMLParamHandler::GetList" );
 
+    // Clear input vector
+    ClearVector( list );
+
+
     // First determine all matches as strings
     StdVector<std::string> matches;
     FindAllMatches( keyVec, attrVec, valVec, matches, rootElem_ );
@@ -574,6 +601,10 @@ namespace CoupledField {
 
     ENTER_FCN( "XMLParamHandler::GetList" );
 
+    // Clear input vector
+    ClearVector( list );
+
+
     // First determine all matches as strings
     StdVector<std::string> matches;
     FindAllMatches( keyVec, attrVec, valVec, matches, rootElem_ );
@@ -589,6 +620,7 @@ namespace CoupledField {
   //   Public Methods: Specialised Query Functions
   // *************************************************************************
 
+
   // =====================================
   //   Return a list of the defined PDEs
   // =====================================
@@ -601,14 +633,7 @@ namespace CoupledField {
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( list.IsEmpty() != true ) {
-      if ( beVerbose_ == true ) {
-        errmsg  = "Warning input vector was not empty!\n";
-        errmsg += "Contents have been erased!";
-        Info->Warning( errmsg );
-      }
-      list.Clear();
-    }
+    ClearVector( list );
 
     // Find PDE section
     DOMNodeList *pdesec = rootElem_->getElementsByTagName( C2X("pdeList") );
@@ -656,14 +681,7 @@ namespace CoupledField {
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( list.IsEmpty() != true ) {
-      if ( beVerbose_ == true ) {
-        errmsg  = "Warning input vector was not empty!\n";
-        errmsg += "Contents have been erased!";
-        Info->Warning( errmsg );
-      }
-      list.Clear();
-    }
+    ClearVector( list );
 
     // Get all coupling sections in the param file
     DOMNodeList * coupledSections = 
@@ -790,14 +808,7 @@ namespace CoupledField {
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( list.IsEmpty() != true ) {
-      if ( beVerbose_ == true ) {
-        errmsg  = "Warning input vector was not empty!\n";
-        errmsg += "Contents have been erased!";
-        Info->Warning( errmsg );
-      }
-      list.Clear();
-    }
+    ClearVector( list );
 
     // Get all coupling sections in the param file
     DOMNodeList * coupledSections = 
@@ -905,14 +916,7 @@ namespace CoupledField {
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( list.IsEmpty() != true ) {
-      if ( beVerbose_ == true ) {
-        (*warning) << "Warning input vector was not empty! "
-                   << "Contents have been erased!";
-        Warning( __FILE__, __LINE__ );
-      }
-      list.Clear();
-    }
+    ClearVector( list );
 
     // Assemble keywords for attribute search
     // and empty vectors for side constraints
@@ -1419,14 +1423,8 @@ namespace CoupledField {
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
-    if ( list.IsEmpty() != true ) {
-      if ( beVerbose_ == true ) {
-        std::string errmsg = "Warning input vector was not empty!\n";
-        errmsg += "Contents have been erased!";
-        Info->Warning( errmsg );
-      }
-      list.Clear();
-    }
+    ClearVector( list );
+
 
     // **************************
     //   Part 2: Prepare search
