@@ -11,6 +11,7 @@
 #include "olas.hh"
 
 #include "assemble.hh"
+#include "MHassemble.hh"
 
 namespace CoupledField {
   
@@ -167,9 +168,8 @@ namespace CoupledField {
   // do the basic assembling stuff
   void Assemble::AssembleMatrices()
   {
-    
     ENTER_FCN( "Assemble:AssembleMatrices" );
-    
+   
     Vector<Double> harmonicVec;
     Double dampTransform = 1.0;
 
@@ -230,6 +230,7 @@ namespace CoupledField {
             if ( matDataFreq > 0 && actFreq_ > 0 ) {
               FEMatrixType destMat =
                 actDescriptor->GetIntegrator()->GetBaseType();
+
 
               if ( destMat == STIFFNESS ) {
                 dampTransform = matDataFreq / actFreq_;
@@ -298,6 +299,7 @@ namespace CoupledField {
                                        actDescriptor->GetOrigMatrixType(),
                                        actDescriptor->GetPiezoMaterialType());
          
+
               algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
                                          pdeId1_, connect_PDE1.GetPointer(), 
                                          connect_PDE1.GetSize(),
@@ -385,7 +387,7 @@ namespace CoupledField {
         
     } //subdomains
 
-    //assemble matrices for surface integrators
+      //assemble matrices for surface integrators
     for (UInt actDom=0; actDom < surfdoms_.GetSize(); actDom++) {    
 
       ptgrid_->RegionIdToName(surfdoms_[actDom]);
@@ -448,6 +450,7 @@ namespace CoupledField {
               // calculate normal
 
               FEMatrixType destMat = actDescriptor->DestMat();
+
               
               // this matrix is nonlinear and, therefore, 
               // has to be reassembled next time
@@ -508,6 +511,7 @@ namespace CoupledField {
      
     firstTime_ = FALSE;
 
+
   }
 
 
@@ -536,7 +540,7 @@ namespace CoupledField {
             
           Double val_tfunc = 1.0;
           Double valPhase = 0.0;
-          if (analysisType_ == HARMONIC) 
+          if (analysisType_ == HARMONIC||analysisType_ == MULTIHARMONIC) 
             valPhase = rhsSrcPhase_[actDom];
           else {
             if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
@@ -565,7 +569,7 @@ namespace CoupledField {
                 Vector<Double> elemVec;
                 actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
                     
-                if (analysisType_ == HARMONIC) {
+                if (analysisType_ == HARMONIC||analysisType_ == MULTIHARMONIC) {
                   TransformVector2Harmonic(harmVec,elemVec,valPhase);
                   algsys_->SetElementRHS(&harmVec[0], pdeId1_, 
                                          connect_PDE.GetPointer(), 
@@ -592,7 +596,7 @@ namespace CoupledField {
             
         Double val_tfunc = 1.0;
         Double valPhase = 0.0;
-        if (analysisType_ == HARMONIC) 
+        if (analysisType_ == HARMONIC||analysisType_ == MULTIHARMONIC) 
           valPhase = rhsSrcSurfPhase_[actSurf];
         else {
           if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
@@ -620,7 +624,7 @@ namespace CoupledField {
                     
             Vector<Double> elemVec;
             actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
-            if (analysisType_ == HARMONIC) {
+            if (analysisType_ == HARMONIC||analysisType_ == MULTIHARMONIC) {
               TransformVector2Harmonic(harmVec,elemVec,valPhase);
               algsys_->SetElementRHS(&harmVec[0], pdeId1_, connect_PDE.GetPointer(), 
                                      connect_PDE.GetSize());
@@ -1478,7 +1482,7 @@ namespace CoupledField {
     ENTER_FCN( "IntegratorDescriptor::SetSecondaryMat" );
     FEMatrixType MatType = aSecMat;
 
-    if (analysisType == HARMONIC) {
+    if (analysisType == HARMONIC||analysisType == MULTIHARMONIC) {
       if (aSecMat == STIFFNESS || aSecMat == MASS || aSecMat == DAMPING )
         MatType = SYSTEM;
       else

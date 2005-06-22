@@ -361,6 +361,11 @@ namespace CoupledField
     void SetPDEPointer(StdPDE * aptPDE)
     {ptPDE_ = aptPDE;};
 
+    //! returns private variable matArray_
+    Matrix<Double>* GetPDEMatArray (){
+      return   matArray_;
+    }
+
     // ====================================================
     // DATA SECTION 
     // ====================================================
@@ -503,6 +508,8 @@ namespace CoupledField
     //! needed to identify the PDE uniquely in the algebraic system
     PdeIdType pdeId2_;
 
+    //!
+    Matrix<Double>* matArray_;
 
 
   private:
@@ -513,8 +520,6 @@ namespace CoupledField
     //! set analysis type
     AnalysisType analysisType_;
 
-    //!
-    Matrix<Double>* matArray_;
   };
     
       
