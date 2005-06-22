@@ -160,11 +160,12 @@ namespace CoupledField {
       }
       cfs->Get( "type", analysis, "analysis" );
       if ( matType[0] == "imagMaterialParameter" &&
-           analysis != "harmonic" && analysis != "paramIdent" ) {
+           analysis != "harmonic" && analysis != "paramIdent" && analysis!="multiHarmonic") {
         (*error) << "XML-file specifies material parameters with imaginary "
                  << "part for an analysis of type '" << analysis << "'. "
                  << "Complex parameters are currently only implemented for "
-                 << "a 'harmonic' or 'paramIdent'" << "analysis, however.";
+                 << "a 'harmonic', 'multiHarmonic', or 'paramIdent'" 
+                 << "analysis, however.";
         Error( __FILE__, __LINE__ );
       }
     }
@@ -878,7 +879,7 @@ namespace CoupledField {
       Info->Warning( warn );
       pType = NOPRECOND;
     }
-
+ 
     // Hypre solvers only work together with hypre preconditioners
     if ( (sType == HYPRE_PCG || sType == HYPRE_GMRES ||
           sType == HYPRE_BICGSTAB)
@@ -1032,7 +1033,7 @@ namespace CoupledField {
     }
 
     if ( analysis == "multiSequence" ) {
-      if ( analysisType == HARMONIC && eType != COMPLEX ) {
+      if (( analysisType == HARMONIC||analysisType==MULTIHARMONIC) && eType != COMPLEX ) {
         eType = COMPLEX;
         Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type, "
                       "harmonic part of multi-sequence analysis\n" );

@@ -1,3 +1,6 @@
+#ifndef MHMATERIAL_DATAFILE
+#define MHMATERIAL_DATAFILE
+
 /**************************************************************************/
 /* File:   MHMaterialDataFile.hh                                          */
 /* Author: Tom Lahmer                                                     */
@@ -10,6 +13,7 @@
 
 #include <General/environment.hh>
 #include <Matrix/matrix.hh>
+#include <Utils/vector.hh>
 
 
 namespace CoupledField 
@@ -30,6 +34,13 @@ namespace CoupledField
 
     std::ifstream * indexSetFileIn;
     std::ifstream * indexSetCountFileIn;
+
+    std::ifstream * allMeasuredData;
+
+    void readData();
+
+    Vector<Double> parameter;
+    Vector<Double> parameterC;
 
     void createFiles();
     //! Generates and writes an index set to file
@@ -72,5 +83,6 @@ namespace CoupledField
 
 }
 
+#endif
 
 
