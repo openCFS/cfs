@@ -243,6 +243,7 @@
       <xsd:enumeration value="acoustic"/>
       <xsd:enumeration value="electrostatic"/>
       <xsd:enumeration value="smooth"/>
+      <xsd:enumeration value="mpcci"/>
     </xsd:restriction>
   </xsd:simpleType>
   
