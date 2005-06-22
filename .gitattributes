@@ -34,6 +34,7 @@ XML/Defaults/CFS++Defaults.xml svneol=native#text/xml
 XML/Docs/XMLParams.tex svneol=native#text/plain
 XML/Examples/SolverSpec.xml svneol=native#text/xml
 XML/Examples/bubble.xml svneol=native#text/xml
+XML/Examples/coordSys.xml svneol=native#text/xml
 XML/Examples/plate1.xml svneol=native#text/xml
 XML/Schemas/CFS_Analysis.xsd -text
 XML/Schemas/CFS_Coupling.xsd -text
