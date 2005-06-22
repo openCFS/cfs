@@ -29,6 +29,10 @@
   </pdeList>
 
   <linearSystems>
+    <system name="electrostatic">
+      <solver type="directLDL"/>
+    </system>
+
 
     <system name="piezo">
 
@@ -54,6 +58,11 @@
 
       </solver>
 
+    </system>
+
+    <system name="direct">
+      <sbmMatrix eqnNumbering="scalar" entry="double" symmetric="no"
+        reordering="noReordering"/>
     </system>
 
   </linearSystems>
