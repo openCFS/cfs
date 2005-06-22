@@ -59,7 +59,7 @@ mylibrary = driver domain pde coupledpde forms  \
             elements3d elements2d elements1d elements \
             gridcfs definefiles gmv unverg \
 	    ansysfile datainout paramhandling commandline \
-            driver \
+            driver datainout\
             utils matrix general odesolve odedescr \
 	    paramIdent \
             $(EXTRA_CFSLIBS)
