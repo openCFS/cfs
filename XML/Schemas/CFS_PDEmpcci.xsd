@@ -31,11 +31,25 @@
           <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="type"  type="DT_MpcciType" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="tag" type="xsd:token"
+              use="optional" default="anyTag"/>
             </xsd:complexType>
           </xsd:element>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+  <xsd:simpleType name="DT_MpcciType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="shell"/>
+      <xsd:enumeration value="solid"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
 </xsd:schema>
