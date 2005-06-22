@@ -19,6 +19,7 @@ namespace CoupledField
   class Grid;
   class FileType;
   class WriteResults;
+  class CoordSystem;
 
   //! This class defines the computational domain.
 
@@ -105,6 +106,9 @@ namespace CoupledField
     //! Get time pointer to function
     TimeFunc* GetTimeFncPointer() {return ptTimeFunc_;}
 
+    //! Return local coordinate system by name
+    CoordSystem * GetCoordSystem( const std::string & name );
+
     //@}
 
 
@@ -136,6 +140,12 @@ namespace CoupledField
     //! Initialize iterative coupled pde
     //! \param sequenceTag Tag specifying the current coupling section
     void CreateIterCoupledPDE(StdVector<std::string> & sequenceTags);
+
+
+    //! Initialize local coordinate systems
+
+    //! Initialize local coordinate systems as read in from the parameter file
+    void CreateCoordinateSystems();
     //@}
   
     // ======================================================
@@ -193,6 +203,9 @@ namespace CoupledField
 
     //!  Pointer to object handling output file 
     WriteResults * OutFile_;
+
+    //! Mapping between name and coordinate sysem pointer
+    std::map<std::string, CoordSystem*> coordSys_;
 
   };
 

@@ -8,6 +8,8 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/writeresults.hh"
+#include "Utils/coordSystem.hh"
+#include "Utils/cylCoordSys.hh"
 
 #include "PDE/pdes_header.hh"
 #include "PDE/basePDE.hh"
@@ -75,6 +77,7 @@ namespace CoupledField {
                    __FILE__, __LINE__ );
     }
 
+    SETPROFILE("Before Grid-Creation");
     // initialize pointer to grid 
     if (dim==2) {
 
@@ -114,6 +117,10 @@ namespace CoupledField {
 
     //read in the mesh information
     ptgrid_->Read();
+    SETPROFILE("After Grid Creation");
+
+    // Read in coordinate systems
+    CreateCoordinateSystems();
 
     Info->FinishProgress();
     
@@ -135,6 +142,13 @@ namespace CoupledField {
     for ( UInt i = 0; i < ptSinglePde_.GetSize(); i++ ) {
       delete (ptSinglePde_[i]);
     }
+
+    // Delete all coordinate systems
+    std::map<std::string, CoordSystem*>::iterator it;
+    for ( it=coordSys_.begin(); it!=coordSys_.end(); it++ ) {
+      delete (*it).second;
+    }
+    coordSys_.clear();
 
     //already deleted in destructor of IterCoupledPDE!!!
     //     for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
@@ -240,6 +254,14 @@ namespace CoupledField {
       return ptIterCoupledPde_;
     
   }
+
+  CoordSystem * Domain::GetCoordSystem( const std::string & name ) {
+    ENTER_FCN( "Domain::GetCoordSystem" );
+    
+    Error( "Not implemented", __FILE__, __LINE__ );
+    return (CoordSystem*) NULL;
+  }
+
 
   // **************************
   //   Initialization of PDEs
@@ -604,6 +626,24 @@ namespace CoupledField {
     }
     
     
+  }
+
+  void Domain::CreateCoordinateSystems() {
+    ENTER_FCN( "Domain::CreateCoordinateSystems");
+
+    StdVector<std::string> keyVec, attrVec, valVec, names;
+    keyVec = "domain", "coordSys", "cylindric", "name";
+    attrVec = "", "", "";
+    valVec = "", "", "";
+    params->GetList(keyVec, attrVec, valVec, names);
+
+    for (UInt i = 0; i < names.GetSize(); i++ ) {
+      CoordSystem * test = new CylCoordSystem(names[i],ptgrid_);
+      coordSys_[names[i]] = test;
+    }
+    
+    
+
   }
 
   void Domain::ResetPDEs()
