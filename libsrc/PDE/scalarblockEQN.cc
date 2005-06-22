@@ -85,11 +85,11 @@ namespace CoupledField {
 
 
     if ( multipleBCs > 0 ) {
-      (*error) << "ScalarBlockEQN::CalcMapping: Some hom dirichlet nodes "
-               << "occured already at least two times in the list of "
-               << "homDirichlet boundary nodes "
-               << "for this PDE! Please check, if this node is defined in"
-               << " more than one level of boundary nodes!";
+      (*warning) << "ScalarBlockEQN::CalcMapping: Some hom dirichlet nodes "
+                 << "occured already at least two times in the list of "
+                 << "homDirichlet boundary nodes "
+                 << "for this PDE! Please check, if this node is defined in"
+                 << " more than one level of boundary nodes!";
       Warning( __FILE__, __LINE__ );
     }
 

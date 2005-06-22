@@ -398,7 +398,7 @@ namespace CoupledField {
           // can handle these
           Vector<Double> chargeVec(1);
           chargeVec[0] = charge;
-          sumOfCharges +=charge ;
+          sumOfCharges +=charge;
           charges_.SetElemResult(pdeElemNum-1, chargeVec);
         
         }
