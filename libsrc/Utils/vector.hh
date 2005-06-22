@@ -33,6 +33,12 @@ namespace CoupledField {
     //! Copy constructor
     Vector(const Vector<TYPE> & vec);
 
+    //@{
+    //! Converting a point to a vector
+    Vector(const Point<2> & p);
+    Vector(const Point<3> & p);
+    //@}
+
     //! Destructor
     ~Vector();  
 

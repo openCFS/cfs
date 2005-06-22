@@ -7,6 +7,7 @@
 
 #include "vector.hh"
 #include "Matrix/matrix.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField
 { 
@@ -28,6 +29,7 @@ namespace CoupledField
   {
     ENTER_IFCN("Vector::Vector");
     size_ = size;
+    capacity_ = size;
     data_ = new TYPE [size];
     memBelongsToMe_ = TRUE;
 
@@ -41,12 +43,39 @@ namespace CoupledField
     ENTER_IFCN("Vector::Vector");    
 
     size_ = vec.size_;
+    capacity_ = size_;
     data_ = new TYPE [vec.size_];
     memBelongsToMe_ = TRUE;
   
     for (UInt i = 0; i < size_; i++)
       data_ [i] =  vec.data_[i];
   }
+
+  template<class TYPE> 
+  Vector<TYPE>::Vector(const Point<2> & p)
+  {
+    ENTER_IFCN("Vector::Vector");
+    size_ = 2;
+    capacity_ = 2;
+    data_ = new TYPE[2];
+    memBelongsToMe_ = TRUE;
+    data_[0] = (TYPE) p[0];
+    data_[1] = (TYPE) p[1];
+  }
+
+  template<class TYPE> 
+  Vector<TYPE>::Vector(const Point<3> & p)
+  {
+    ENTER_IFCN("Vector::Vector");
+    size_ = 3;
+    capacity_ = 3;
+    data_ = new TYPE[3];
+    memBelongsToMe_ = TRUE;
+    data_[0] = (TYPE) p[0];
+    data_[1] = (TYPE) p[1];
+    data_[2] = (TYPE) p[2];
+  }
+  
 
   template<class TYPE>
   Vector<TYPE>::~Vector()
@@ -69,6 +98,7 @@ namespace CoupledField
     }
     
     size_ = 0;
+    capacity_ = 0;
     if (data_)
       delete[] data_;
     data_ = NULL;
