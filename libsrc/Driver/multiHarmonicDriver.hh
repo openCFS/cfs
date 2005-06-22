@@ -4,6 +4,8 @@
 #include "Driver/singleDriver.hh"
 #include <PDE/SinglePDE.hh>
 #include "singleDriver.hh"
+#include "DataInOut/MHMaterialDataFile.hh"
+#include "Utils/elemstoresol.hh"
 
 namespace CoupledField 
 {
@@ -26,35 +28,40 @@ namespace CoupledField
     //! Destructor
     virtual ~MultiHarmonicDriver();
   
-    std::ifstream * allMeasuredData;
+
     std::ofstream * impedCurve;
     std::ofstream * piezoLog;
     std::ofstream * parLog;
 
-    StdVector<RegionIdType> MHsubdoms_;  //!< subdomain-levels belongig to PDE
+    MHMaterialDataFile * ptMHFiles_;
+
+
     StdVector<RegionIdType> MHsurfdoms_; //!< surface-domain-levels belongig to PDE
 
   
     virtual void SolveProblem();
-    virtual void MHAssembleMatrices();
+    //  virtual void MHAssembleMatrices();
 
   protected:
     //! \param parameter - new set of piezoelectric material parameters
-    void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
-    // Domain * ptDomain;
+//     void updateMaterialData(Vector<Complex> & parameter, MaterialData * ptMaterial);
+//     // Domain * ptDomain;
 
 
-    void calcParameterCurveAtElement(Vector<Complex> & parameter, 
-                                     Matrix<Double> & parameterCoeff_, UInt element,Integer  N, 
-                                     Integer delta, UInt pMax);
+//     void calcParameterCurveAtElement(Vector<Complex> & parameter, 
+//                                      Matrix<Double> & parameterCoeff_, UInt element,UInt  N, 
+//                                     Integer delta, UInt pMax);
 
     SinglePDE * ptMyPDE_;
 
-    void createMHMassMatrix(UInt N);
+//     void createMHMassMatrix(UInt N);
 
     // pointers to classes involved
     BaseSystem * ptAlgsys_;
     Assemble * ptAssemble_;
+    Boolean adjustDamping_;
+
+    Vector<Complex> EfieldInZDir_;
 
     Integer nrMultHarms_;
 
@@ -70,8 +77,8 @@ namespace CoupledField
     UInt numFreq_;
     UInt saveType_;
 
-    Matrix<Double> parameterCoeff_;
-    Vector<Complex> parameter_;
+   //  Matrix<Double> parameterCoeff_;
+//     Vector<Complex> parameter_;
 
 
 

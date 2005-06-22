@@ -5,10 +5,13 @@
 #include "multiHarmonicDriver.hh"
 #include "stdSolveStep.hh"
 
+
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "Domain/domain.hh"
 #include "PDE/StdPDE.hh"
-#include "DataInOut/MHMaterialDataFile.hh"
+#include "PDE/piezoPDE.hh"
+#include "DataInOut/MaterialData.hh"
+#include "Utils/elemstoresol.hh"
 
 
 #ifdef __sgi
@@ -22,7 +25,6 @@
 #include <cmath>
 #define POW std::pow
 #endif
-
 
 
 namespace CoupledField
@@ -48,6 +50,8 @@ namespace CoupledField
     //  ptDomain = adomain;
     ptMyPDE_ = NULL;
 
+    ptMHFiles_ = new MHMaterialDataFile;
+
     StdVector<std::string> keyVec, attrVec, valVec;
     
     attrVec = "tag";
@@ -66,16 +70,14 @@ namespace CoupledField
     keyVec = "multiHarmonic", "nrMultiHarmonics";
     params->Get(keyVec, attrVec, valVec, nrMultHarms_);
 
+    adjustDamping_ = FALSE;
+    std::string damp;
+    keyVec = "multiHarmonic", "adjustDamping";
+    //   adjustDamping_ =  params->IsSet(keyVec, attrVec, valVec, adjustDamping_);
+    adjustDamping_ = params->IsSet("adjustDamping",  "multiHarmonic");
+
+
  
-    Char* measuredData="measuredData.dat";
-    allMeasuredData = new std::ifstream(measuredData, std::basic_ios<char>::in);
-
-    if (!allMeasuredData)
-      {
-        std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
-        exit(1);
-      }
-
     std::cout<<"\n Opens impedCurve.dat and piezoLog.dat ... "<<std::endl;
 
     std::string filename= "imped.dat";
@@ -110,7 +112,7 @@ namespace CoupledField
   
   MultiHarmonicDriver::~MultiHarmonicDriver(){
     ENTER_FCN( "MultiHarmonicDriver::~MultiHarmonicDriver" );
-    allMeasuredData->close();
+    //    allMeasuredData->close();
     impedCurve->close();
     piezoLog->close();
     parLog->close();
@@ -119,6 +121,7 @@ namespace CoupledField
   void MultiHarmonicDriver::SolveProblem() {
     ENTER_FCN( "MultiHarmonicDriver::SolveProblem" );
     
+    PiezoPDE * ptPiezoPDE;
     if (! isPartOfSequence_)
       ptdomain_->PrintGrid();
     if (isPartOfSequence_ == FALSE){     
@@ -126,71 +129,61 @@ namespace CoupledField
     
       //! cast pointer to BasePDE * to pointer of SinglePDE *
       ptMyPDE_ = dynamic_cast<SinglePDE*>(ptPDE_);
+
+      
+      ptPiezoPDE = dynamic_cast<PiezoPDE*>(ptPDE_);
       Info->StartProgress ("Starting to solve problem", FALSE);
     }
     ptMyPDE_->WriteGeneralPDEdefines();
     //    pdeId_ = ptMyPDE_->GetPDEId();
 
+    MaterialData * ptMaterial;
 
-    //    MHAssembleMatrices();
+    ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-    MHMaterialDataFile *ptMHFiles_;
-    ptMHFiles_ = new MHMaterialDataFile;
-    ptMHFiles_->computeIndexSet(2,2,nrMultHarms_);
+    Assemble * ptAssemble_;
 
-    UInt maxP=5;
-    
-    parameterCoeff_.Resize(10,maxP);
-    parameter_.Resize(10);
+    ptAssemble_=ptMyPDE_->getPDE_assemble();
 
-    parameterCoeff_[0][0]=1.0; // c_11, a_0=1, andere a_i=0, somit konstant
-    parameterCoeff_[1][0]=1.0; // c_33, a_0=1
-    parameterCoeff_[1][1]=0.5; // c_33, a_1=0.5
-    parameterCoeff_[1][2]=0.25; // c_33, a_2=0.25 Polynom vom Grad 3
-    parameterCoeff_[2][0]=1.0; // c_12, a_0=1, andere a_i=0, somit konstant
-    parameterCoeff_[3][0]=1.0; // c_13, a_0=1, andere a_i=0, somit konstant
-    parameterCoeff_[4][0]=1.0; // c_44, a_0=1, andere a_i=0, somit konstant
-    parameterCoeff_[5][0]=1.0; // e_15, a_0=1, andere a_i=0, somit konstant
-    parameterCoeff_[6][0]=1.0; // e_13, a_0=1, andere a_i=0, somit konstant
-    parameterCoeff_[7][0]=1.0; // e_33
-    parameterCoeff_[7][1]=0.5; // e_33 Polynom vom Grad 2
-    parameterCoeff_[8][0]=1.0; // eps_11, a_0=1, andere a_i=0, somit konstant
-    parameterCoeff_[9][0]=1.0; // eps_33, 
-    parameterCoeff_[9][1]=1.0; // eps_33, Polynom vom Grad 2
+    ptAssemble_->SetMaterialPointer(ptMaterial);
 
+
+    // ptMHFiles_->computeIndexSet(2,2,nrMultHarms_);
+    //     ptMHFiles_->computeIndexSet(3,3,nrMultHarms_);
+    //     std::cout<<"    ptMHFiles_->computeIndexSet2,2,nrMultHarms_ went fine " <<std::endl;
+
+
+    //  MHAssembleMatrices();
 
     UInt element;
-    element=5;
-    Integer delta=-1;
+    element=2;
+    //    Integer delta=3;
 
-    calcParameterCurveAtElement(parameter_, parameterCoeff_, element, nrMultHarms_, delta, maxP);
+   //  calcParameterCurveAtElement(parameter_, parameterCoeff_, element, nrMultHarms_, delta, maxP);
+//     calcParameterCurveAtElement(parameter_, parameterCoeff_, element, nrMultHarms_, 1, maxP);
     
-
     Matrix<Integer> exps;
     Matrix<Integer> count;
-    ptMHFiles_->getExponentArray(exps,count,3,3,-3);    
-    std::cout<<"delta = -3: " <<std::endl;
-    std::cout<< exps << std::endl;
-    std::cout<< count << std::endl;
-
+   
     Boolean reset = TRUE;
-    
-    if (! isPartOfSequence_)
-      ptdomain_->PrintGrid();
-
-    // if driver is not part of multiSequence Driver, get list
-    // of pdes which have to be solved and intialize them
-    if (isPartOfSequence_ == FALSE){     
-      GetMyPDEs();
-      Info->StartProgress ("Starting to solve problem", FALSE);
-    }
-  
-    ptPDE_->WriteGeneralPDEdefines();
-      
+        
     UInt fstep;
     Double actFreq  = startFreq_;
-    Double freqIncr = (stopFreq_ - startFreq_) / numFreq_;
+    Double freqIncr;
+    
+    if (numFreq_ > 1) {
+      freqIncr = (stopFreq_ - startFreq_) / (numFreq_-1);
+    }
+    else {
+      freqIncr = stopFreq_ - startFreq_ ;
+    }
+    
     std::string errMsg;
+  
+    if ( adjustDamping_ ) {
+      ptPDE_->getPDE_assemble()->SetStartFrequency(startFreq_);
+    }
+    
   
     // branch for single PDE
     for (fstep = 1; fstep <= numFreq_; fstep++) {
@@ -198,347 +191,129 @@ namespace CoupledField
     
       ptPDE_->GetSolveStep()->SetActFreq(actFreq);
       ptPDE_->GetSolveStep()->SetActStep(fstep);
-
+      std::cout<<" Step in multiharmonicDriver =  "<< fstep <<std::endl;
       //      std::cout<<"\n multiHarm: 1 " <<std::endl;
-      ptPDE_->GetSolveStep()->PreStepHarmonic(reset);
-    
+      ptPDE_->GetSolveStep()->PreStepHarmonic(reset);   
       //      std::cout<<"\n multiHarm: 2"  <<std::endl;
       ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
-    
       //      std::cout<<"\n multiHarm: 3 " <<std::endl;
       ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
-    
-      ptPDE_->PostProcess();
-      ptPDE_->WriteResultsInFile( fstep, actFreq);
-    
-      actFreq += freqIncr;
-    }
-  }
 
-  void MultiHarmonicDriver::MHAssembleMatrices(){
-    ENTER_FCN( "MultiHarmonicDriver::MHAssembleMatrices" );
+      ptMyPDE_->PostProcess();
 
-    // StdVector<RegionIdType> MHsubdoms_;
-//     Assemble * ptAssemble_;
-//     Matrix<Double> elemmat;
+      Grid * ptGrid;
+      NodeEQN * ptNodeEqn;
+      //      Assemble * ptAssemble;
+      //      Domain * ptDomain;
+     
 
-//     MHsubdoms_ = ptMyPDE_->getPDE_subdoms();
-//     ptAssemble_=ptMyPDE_->getPDE_assemble();
+      Boolean reset = TRUE;
+      ptGrid = ptMyPDE_->getPDE_grid();
+      ptNodeEqn = ptMyPDE_->getPDE_eqnData();
 
-//     Vector<Double> harmonicVec;
-//     Double dampTransform = 1.0;
-    
-//     // initialize reassembling "indicator" vector
-//     for (Integer MHInd=-nrMultHarms_; MHInd<=nrMultHarms_;MHInd++){
 
-//     if (ptAssemble_->firstTime_)
-//        for (UInt actMat=0; actMat < ptAssemble_->nrMatrices_; actMat++)
-//          ptAssemble_->reassembleMat_[actMat] = TRUE;
-
-//     std::cout<<"MultiHarmonicDriver::MHAssembleMatrices Nr "<< MHInd <<std::endl;
-
-//     for (UInt actDom=0; actDom < MHsubdoms_.GetSize(); actDom++) {     
-//       StdVector<Elem*> elemssd;
-
-//        ptAssemble_->ptgrid_->GetVolElems(elemssd, MHsubdoms_[actDom]);
-
-//        for(UInt actInteg=0; actInteg < ptAssemble_->integrators_[actDom]->GetSize(); actInteg++) {
-
-//          std::cout<<" Integrator "<< actInteg <<std::endl;
-       
-
-//          IntegratorDescriptor * actDescriptor = (*ptAssemble_->integrators_[actDom])[actInteg];
-
-//          actDescriptor->GetIntegrator()->SetSubdomain(actDom);
-
-//          if (ptAssemble_->alternateMaterialData_ == TRUE)
-//            actDescriptor->GetIntegrator()->SetMaterial(ptAssemble_->ptMaterial_);
+      StdVector<Elem*> elemssd;
+      StdVector<RegionIdType>  subdoms = ptMyPDE_->getPDE_subdoms();
+      //      ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+      ptGrid->GetVolElems(elemssd,subdoms[0]); // gets element list elemssd
       
-                    
-//          // assemble only if nonlinear or first time
-//          if (ptAssemble_->reassembleMat_[actDescriptor->DestMat()] || ptAssemble_->firstTime_) {
+      BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
+      NodeStoreSol<Complex> * ptNodeStoreSol;
+      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
 
-//            if ( actDescriptor->IsReducedInt()) {
-//              //set all elements to reduced integration!!
-//              ptAssemble_->SetFE2ReducedInt();
-// //           }
+      StdVector<Integer> connect_PDE;                 
+      //      getchar();
 
-// //              if ( actDescriptor->GetIntegrator()->IsFracDamping() ) {
-// // //             // get multiplicative pre factor depending on time step size
-// //                Double damp;
-// //                damp = ptMyPDE_->GetFracDampMatrixCoeff(actDom);
-// //                actDescriptor->GetIntegrator()->SetFactor(damp);
-// //              }
-//            }
-//          }
+      EfieldInZDir_.Resize(elemssd.GetSize());
+    //loop over elements
+      for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
+        BaseFE * ptEl = elemssd[actEl]->ptElem;
+        StdVector<UInt> connecth = elemssd[actEl]->connect;
+        
+        Matrix<Double> ptCoord;
+        ptGrid->GetElemNodesCoord(ptCoord, connecth);
+
+//         std::cout<<" ElementNummer = " << actEl <<std::endl;
+//         std::cout<<(ptCoord)<<std::endl;        
+        // map connect to PDE node numbers
+        
+        const UInt nrIntPts = ptEl->GetNumIntPoints(); 
+
+        ptNodeEqn->Node2EQN(connecth, connect_PDE);
+//         std::cout<<connect_PDE<<std::endl;
+//         std::cout<<connecth<<std::endl;
+        Vector<Complex> elSolVec; 
+        ptNodeStoreSol->GetElemSolution(elSolVec,connecth);
+        Vector<Complex> solVecElecPot;
+        UInt dim = ptMyPDE_->getPDE_spaceDim();
+        
+        if (dim==3){
+          solVecElecPot.Resize(elSolVec.GetSize()/4);
+          UInt j=0;
+          for (UInt i=3; i<elSolVec.GetSize();i=i+4){
+            solVecElecPot[j] = elSolVec[i];
+            j++;
+          }
+        }
+        else if (dim==2){
+          solVecElecPot.Resize(elSolVec.GetSize()/3);
+          UInt j=0;
+          for (UInt i=2; i<elSolVec.GetSize();i=i+3){
+            solVecElecPot[j] = elSolVec[i];
+            j++;
+          }
+        }
+//         std::cout<<"solVecElecPot:"<<std::endl;
+//         std::cout<<solVecElecPot<<std::endl;
+
+        //Vector<Complex> globSolVec;
+
+        //        ptNodeStoreSol->GetSolVectorSingleDof(ELEC_POTENTIAL, 0, globSolVec);
+        //        std::cout<<" Globaler Solution Vector ElecPot : " <<std::endl;
+        // std::cout<<globSolVec<<std::endl;
+
+        Complex ElecFieldInDirZ;
+        ElecFieldInDirZ = Complex(0.0,0.0);
+
+        for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+
+          Matrix<Double> xiDx;
+          ptEl->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord);
+//           std::cout<<"xiDx"<<std::endl;
+//           std::cout<<xiDx[actIntPt-1][1]<<std::endl;
+          ElecFieldInDirZ+=xiDx[actIntPt-1][1]*solVecElecPot[actIntPt-1];
+
+          //          Matrix<Complex> 
+        }
+//         std::cout <<" ElecFieldInDirZ : " <<std::endl;
+//         std::cout << ElecFieldInDirZ  <<std::endl;
        
+        EfieldInZDir_[actEl]=ElecFieldInDirZ;
+        
+        ptNodeEqn->Node2EQN(connecth, connect_PDE);
+        //        std::cout<<connect_PDE<<std::endl;
+        // std::cout<<connecth<<std::endl;
+        
 
-// //           dampTransform = 1.0;
-//        if ( ( actDescriptor->GetIntegrator()->IsRaylDamping() 
-//               || actDescriptor->GetSecondaryMat() != NOTYPE ) 
-//             && ptAssemble_->startFreq_ > 0 ) {
+        //        ptElemFE->GetShFncAtIp(shFnc, actIntPt);
 
-//              // Obtain frequency value to which the damping parameters
-//              // in the material file do belong
-//              StdVector<Double> freqs;
-//              Double matDataFreq;
-//              params->GetList( "matDataFreq", freqs, "harmonic" );
-//              if ( freqs.GetSize() == 1 ) {
-//                matDataFreq = freqs[0] * 2.0 * PI;
-//              }
-//              else {
-//                matDataFreq = ptAssemble_->startFreq_;
-//              }
+        //      std::cout<<elSolVec<<std::endl;
+        //        getchar();
+        
+        MaterialData actSDMat(*ptMaterial);
+        //        Boolean isdamping=TRUE;
+      }
+      
+      ptPiezoPDE->SetEfieldInZDir_(EfieldInZDir_);
 
-             
-// //             // get multiplicative pre factor depending on frequency
-//              if ( matDataFreq > 0 && actFreq_ > 0 ) {
-//                FEMatrixType destMat =
-//                  actDescriptor->GetIntegrator()->GetBaseType();
-
-//                if ( destMat == STIFFNESS ) {
-//                  dampTransform = matDataFreq / actFreq_;
-//                  Info->PrintF( "", " dampTransform (stiffness matrix) = %e\n",
-//                                dampTransform );
-//                }
-//                else if ( destMat == MASS ) {
-//                  dampTransform = actFreq_ / matDataFreq;
-//                  Info->PrintF( "", " dampTransform (mass matrix) = %e\n",
-//                                dampTransform );
-//                }
-//              }
-
-//              if ( actDescriptor->GetIntegrator()->IsRaylDamping() ) {
-//                actDescriptor->GetIntegrator()->SetFactor(dampTransform);
-//              }
-//        }
-          
+   
+    //    std::cout<<"piezoParamIdent::createAndSetRHSforJacobian 1 "<< std::endl; 
+   
+        ptPDE_->WriteResultsInFile( fstep, actFreq);
+        
+        actFreq += freqIncr;
        
-//            //put pointer to array containing the material parameter 
-//            // for each element
-//        //actDescriptor->GetIntegrator()->SetMaterialArray(matArray_);
-
-//        // HIER SELBER ÜBERLEGEN; WAS MIT DEM MATERIAL PASSIERT ....
-
-//            for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-//              actDescriptor->GetIntegrator()->SetElemNr(actEl);
-
-//              BaseFE * ptEl = elemssd[actEl]->ptElem;
-//              StdVector<UInt> connecth = elemssd[actEl]->connect;
-         
-//              Matrix<Double> ptCoord;
-//              ptAssemble_->GetElemCoords(connecth, ptCoord);
-                    
-// //             // map connect to PDE node numbers
-//              StdVector<Integer> connect_PDE1, connect_PDE2;
-                    
-//              ptAssemble_->ptEQN1_->Node2EQN(connecth, connect_PDE1);
-//              ptAssemble_->ptEQN2_->Node2EQN(connecth, connect_PDE2);
-                    
-//              Matrix<Double> elSol;
-                    
-//              actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
-//              FEMatrixType destMat = actDescriptor->DestMat();
-           
-                
-// //             // this matrix is nonlinear and, therefore, 
-// //             // has to be reassembled next time
-//              if (actDescriptor->IsNonLin()) {
-//                ptAssemble_->oneIntIsNonlin_ = TRUE;
-//                ptAssemble_->reassembleMat_[actDescriptor->DestMat()] = TRUE;
-//                ptAssemble_->sol_->GetElemSolutionAsMatrix(elSol, connecth);
-//                actDescriptor->GetIntegrator()->SetActElemSol(elSol);
-//              }       
-           
-                   
-// //             // ================================================================
-// //             //                             assemble matrices
-// //             // ================================================================
-
-//              actDescriptor->GetIntegrator()->
-//                CalcElementMatrix(ptCoord, elemmat);
-//              //             std::cout<<elemmat<<std::endl;
-                  
-//              piezoMaterialType matType = actDescriptor->GetPiezoMaterialType();
-//              actDescriptor->SetPiezoMaterialType(matType);
-
-
-//              if (ptAssemble_->analysisType_ == HARMONIC) {
-//                ptAssemble_->TransformMatrix2Harmonic(harmonicVec,elemmat, 
-//                                         actDescriptor->GetOrigMatrixType(),
-//                                         actDescriptor->GetPiezoMaterialType());
-
-//                if (destMat== MASS){
-//                  elemmat = elemmat*MHInd;
-//                  std::cout<<elemmat<<std::endl;
-//                  getchar();
-
-//                  ptAssemble_->algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
-//                                                          ptAssemble_->pdeId1_, connect_PDE1.GetPointer(), 
-//                                                          connect_PDE1.GetSize(),
-//                                                          ptAssemble_->pdeId2_, connect_PDE2.GetPointer(), 
-//                                                          connect_PDE2.GetSize() );
-//                }else 
-//                  ptAssemble_->algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
-//                                                          ptAssemble_->pdeId1_, connect_PDE1.GetPointer(), 
-//                                                          connect_PDE1.GetSize(),
-//                                                          ptAssemble_->pdeId2_, connect_PDE2.GetPointer(), 
-//                                                          connect_PDE2.GetSize() );
-
-//              }
-//            }
-//        }
-// //             else {
-
-// //               algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
-// //                                          pdeId1_, connect_PDE1.GetPointer(), 
-// //                                          connect_PDE1.GetSize(), 
-// //                                          pdeId2_, connect_PDE2.GetPointer(), 
-// //                                          connect_PDE2.GetSize() );
-// //             }
-// // #ifdef DEBUG
-// //             // output matrices
-// //             if (destMat == STIFFNESS) {
-// //               (*debug) << "Stiffness matrix of Element " 
-// //                        << actEl << std::endl;
-// //             }
-
-// //             if (destMat == MASS) {
-// //               (*debug) << "Mass      matrix of Element " 
-// //                        << actEl << std::endl;
-// //             }
-
-// //             if (destMat == DAMPING) {
-// //               (*debug) << "Damping   matrix of Element " 
-// //                        << actEl << std::endl;
-// //             }
-
-// //             if (destMat == SYSTEM) {
-// //               (*debug) << "System matrix of Element " 
-// //                        << actEl << std::endl;
-// //             }
-            
-// //             (*debug) << elemmat << std::endl;
-
-// //             if ( !elemmat.IsSymmetric() ) {
-// //               (*debug) << " --> Matrix is not symmetric " 
-// //                        << std::endl << std::endl;
-// //             }
-// //             else {
-// //               (*debug) << " --> Matrix is symmetric " 
-// //                        << std::endl << std::endl;
-// //             }
-// // #endif
-// //             if (actDescriptor->GetSecondaryMat() != NOTYPE) {
-// //               Double damp = dampTransform * actDescriptor->GetSecMatFac();
-// //               elemmat *= damp;
-// //               if (analysisType_ == HARMONIC) {
-// //                 TransformMatrix2Harmonic(harmonicVec,elemmat,
-// //                                          actDescriptor->GetOrigSecMatrixType(),
-// //                                          actDescriptor->GetPiezoMaterialType());
-        
-// //                 algsys_->SetElementMatrix(destMat, &harmonicVec[0], 
-// //                                           pdeId1_, connect_PDE1.GetPointer(),
-// //                                           connect_PDE1.GetSize(), 
-// //                                           pdeId2_, connect_PDE2.GetPointer(),
-// //                                           connect_PDE2.GetSize() );
-// //               }
-// //               else 
-// //                 algsys_->SetElementMatrix(actDescriptor->GetSecondaryMat(), 
-// //                                           elemmat.GetDataPointer(), 
-// //                                           pdeId1_, connect_PDE1.GetPointer(), 
-// //                                           connect_PDE1.GetSize(), 
-// //                                           pdeId2_, connect_PDE2.GetPointer(), 
-// //                                           connect_PDE2.GetSize());
-// //             }
-                  
-// //           } //over all elements of subdomain            
-                
-// //         } //check, if we have to assemble
-          
-// //         if ( actDescriptor->IsReducedInt()) {
-// //           //set all elements back to standard integration!!
-// //           SetFE2StandardInt();
-// //         }
-          
-
-// //       } //integrators
-        
-  
-    //   } //subdomains
-    //  }// multiharmonics 
-  }// MHAssemble Matrices
-    
-
-
-  void MultiHarmonicDriver::updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial){
-    ENTER_FCN( "multiharmonic::updateMaterialData");
-  }
-
-
-
-  void MultiHarmonicDriver::calcParameterCurveAtElement(Vector<Complex> & parameter, 
-                                                        Matrix<Double> & parameterCoeff_, UInt element,Integer N,
-                                                        Integer delta, UInt PP){
-
-    UInt j;
-    Complex prod;
-    prod=Complex(1,0);
-    UInt p;
-    Double pFac;
-    Vector<UInt> exponent;
-    Double binomCoeffNenner;
-    Complex innerSum;
-    innerSum=Complex(0,0);
-    //    getExponentArray(exponent, N, PP, delta);
-
-    Complex elementSolution;
-    elementSolution=Complex(0.1,0.5);
-
-    for (UInt i=0;i<parameter.GetSize();i++){
-      //      std::cout<<" Parameter Nr = " << i <<std::endl;
-      j=0;
-      p=1;
-      //      std::cout<<parameterCoeff_[i][j]<<std::endl;
-      while(parameterCoeff_[i][j]!=0){
-
-         binomCoeffNenner=1;
-         for (UInt e=0;e<exponent.GetSize();e++)
-           if (exponent[e]!=0)
-             binomCoeffNenner*=exponent[e];
-
-         pFac=1;
-         for (UInt pInd=1; pInd<=p; pInd++)
-           pFac*=pInd;
-         
-         //         getExponentArray(exponent, N, p, delta);
-
-          for (Integer n=-N;n<=N;n++)
-            prod=prod*std::pow(elementSolution,exponent[n]);
-        
-          prod=prod*pFac/binomCoeffNenner;
-
-          innerSum+=prod;
-         
-         parameter[i]=parameter[i]+parameterCoeff_[i][j]*innerSum;
-          j++;
-
-         innerSum=Complex(0,0);
-         p++;
     }
-      prod=Complex(1,0);
-      //      p++;
-
-    }
-    std::cout<<parameter<<std::endl;
-
-  }
-  
-
-  //  void MultiHarmonicDriver::providePolynomialCoefficients(Complex & parameter, UInt indexOfParameter)
-
-  
- 
-
+  } // end Solve
 
 }// end of namespace coupled field
