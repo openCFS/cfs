@@ -194,7 +194,7 @@ namespace CoupledField
     Double actTime = asteptime + timeOffset;
 
     if (analysistype_ == STATIC ||
-        analysistype_ == HARMONIC) {
+        analysistype_ == HARMONIC|| analysistype_==MULTIHARMONIC) {
       if (saveSol_) {
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
         outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);

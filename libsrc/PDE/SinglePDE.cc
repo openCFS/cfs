@@ -198,11 +198,16 @@ namespace CoupledField {
       matrixTypes_.insert(MASS);
     }
 
-    else if ( analysis=="harmonic" || analysis == "paramIdent" ||
-              analysis == "multiHarmonic") {
+    else if ( analysis=="harmonic" || analysis == "paramIdent" ) {
       isComplex_ = TRUE;
       assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
       analysistype_ = HARMONIC;
+    }
+
+    else if (analysis == "multiHarmonic"){
+      isComplex_ = TRUE;
+      assemble_ = new MHassemble(algsys_,ptgrid_);
+      analysistype_ = MULTIHARMONIC;
     }
 
     else if ( analysisHelp == MULTI_SEQUENCE ) {
@@ -232,6 +237,11 @@ namespace CoupledField {
         assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
         analysistype_ = HARMONIC;
       }
+      else if ( analysis=="multiHarmonic" ) {
+        isComplex_ = TRUE;
+        assemble_ = new MHassemble(algsys_, ptgrid_);
+        analysistype_ = MULTIHARMONIC;
+      }
       else {
         (*error) << "SinglePDE::Init: AnalysisType '" << analysis
                  << "' is not supported";
@@ -245,7 +255,7 @@ namespace CoupledField {
     }
     
     // Determine if solution is of complex type or not
-    if ( analysistype_ == HARMONIC ) {
+    if ( analysistype_ == HARMONIC ||analysistype_ == MULTIHARMONIC ) {
       sol_ = new NodeStoreSol<Complex>;
       solVec_ = new Vector<Complex>;
     }
@@ -343,14 +353,14 @@ namespace CoupledField {
     sol_->SetPtrEQNData(eqnData_, ptgrid_);
     sol_->Init(); 
 
-    solVec_->Resize( eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN() );
-    
+    solVec_->Resize( eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN() );    
 
 
     // =====================================================================
     // initialize assemble object
     // =====================================================================
     assemble_->SetPtr2EQNData(eqnData_); 
+    std::cout<<"     assemble_- SetPtr2EQNData eqnData_ " <<std::endl;
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
     if (pdename_ == "piezo" || pdename_ == "mechanic" ) {
@@ -540,14 +550,16 @@ namespace CoupledField {
       
       ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
       
+
       
       for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-        
+            
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
+    
         if (eqnNr > 0) {
           
           // Increment counter for BCs
-          if ( analysistype_ == HARMONIC ) {
+          if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC) {
             
             // set real part 
             algsys_->SetDirichlet(j*2+1, pdeId_, eqnNr, val, eqnDof);
@@ -581,14 +593,13 @@ namespace CoupledField {
       
       //get the correct time function value
       val_tfunc = 1.0;
-      if (ptTimeFunc_->GetmaxTimeFnc() > 0 && analysistype_ != HARMONIC) {
+      if (ptTimeFunc_->GetmaxTimeFnc() > 0 && (analysistype_ != HARMONIC || analysistype_!=MULTIHARMONIC)) {
         val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
       }
       
       val    =  val_id_[i] * val_tfunc;
       dirVal = val;
       for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-
 
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
         
@@ -617,7 +628,8 @@ namespace CoupledField {
           val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
         }
 
-        if (analysistype_ == HARMONIC) {
+
+        if (analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC) {
           phase = bcs_id_phase_[i];
 
           // set real part
@@ -672,7 +684,7 @@ namespace CoupledField {
       keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
       params->GetList(keyVec, attrVec, valVec, fncnames_id_);
     }
-    else if (analysistype_ == HARMONIC) {
+    else if (analysistype_ == HARMONIC||analysistype_ == MULTIHARMONIC) {
       keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "phase";
       params->GetList(keyVec, attrVec, valVec, bcs_id_phase_);
     }
@@ -874,6 +886,7 @@ namespace CoupledField {
       pdeId_ = algsys_->RegisterPDE( pdename_, eqnData_->GetNumEQNs() );
 
       assemble_->SetPDEId( pdeId_ );
+
       solveStep_->SetPDEId( pdeId_ );
       
       // trigger the creation and assembly of the matrix graph

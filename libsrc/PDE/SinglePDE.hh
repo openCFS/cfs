@@ -7,6 +7,7 @@
 #include <list>
 
 #include "Driver/assemble.hh"
+#include "Driver/MHassemble.hh"
 
 
 namespace CoupledField
