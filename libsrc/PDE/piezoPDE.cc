@@ -252,7 +252,7 @@ namespace CoupledField {
 
     //surface integrators
     //RHS-part
-    if (analysistype_==HARMONIC){
+    if (analysistype_==HARMONIC || analysistype_==MULTIHARMONIC){
       UInt nonlin = 0;
       Vector<Complex> pressValsC_(pressVals_.GetSize());
             
@@ -404,7 +404,7 @@ namespace CoupledField {
         outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
       } 
         
-    } else if (analysistype_ == HARMONIC) {
+    } else if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
       
       if (saveSol_)
         {
@@ -541,7 +541,7 @@ namespace CoupledField {
       }
       Info->PrintF( "", "\n" );
 
-      if ( analysistype_ == HARMONIC ) {
+      if ( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
         EfieldComplex_.SetNumSolutions(1);
         EfieldComplex_.SetSolutionType(ELEC_FIELD_INTENSITY);
         EfieldComplex_.SetNumElems(numElems_);
@@ -580,7 +580,7 @@ namespace CoupledField {
       }
       Info->PrintF( "", "\n" );
 
-      if( analysistype_ == HARMONIC ) {
+      if( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
 
         // Resize solution arrays
         stressComplex_.SetNumSolutions(1);
@@ -626,7 +626,7 @@ namespace CoupledField {
       Info->PrintF( "", "\n" );
 
       // Resize solution arrays
-      if( analysistype_ == HARMONIC ) {
+      if( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
         chargesComplex_.SetNumSolutions(1);
         chargesComplex_.SetSolutionType(ELEC_CHARGE);
         chargesComplex_.SetNumElems(numElems_);
@@ -748,7 +748,7 @@ namespace CoupledField {
 
     // calc electric field
     if (calcEfield_.GetSize() !=0 ) {
-      if (analysistype_==HARMONIC)
+      if (analysistype_==HARMONIC || analysistype_==MULTIHARMONIC)
         CalcComplexValuedEfield();
       else
         CalcEfield();
@@ -756,7 +756,7 @@ namespace CoupledField {
   
     // calc stresses
     if (calcStress_.GetSize() !=0 ) {
-      if (analysistype_ == HARMONIC)
+      if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC)
         CalcComplexValuedStress();
       else
         CalcStress();
@@ -766,7 +766,7 @@ namespace CoupledField {
     //calc charges
     if (calcCharge_.GetSize() !=0 ) {
    
-      if (analysistype_ == HARMONIC)
+      if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC)
         CalcComplexValuedCharges();
       else
         CalcCharges();

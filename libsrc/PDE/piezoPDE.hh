@@ -72,11 +72,26 @@ namespace CoupledField
     return FALSE;}
   
 
-    ElemStoreSol<Complex>  GetComplexValuedCharge(){return chargesComplex_;};
+    ElemStoreSol<Complex>  GetComplexValuedCharge()
+    {return chargesComplex_;};
+    //    ElemStoreSol<Double>  GetEfield(){return Efield_;};
+    //    ElemStoreSol<Complex>  GetEfieldComplex(){return EfieldComplex_;};
+
+    //! Set vector which contains the E-Field in z 
+    //! Direction for each element (used in MHanalysis)
+    void SetEfieldInZDir_(Vector<Complex> Efz){EfieldInZDir_ = Efz;};
+
+    //! Retrieve vector which contains the E-Field in 
+    //! z Direction for each element (used in MHanalysis)
+    Vector<Complex> GetEfieldInZDir_(){return EfieldInZDir_;};
     
   protected:
   
     UInt size_;        //!< total number of unknowns (equations)
+
+    //! contains z-component of EField (in 3D), 
+    //! or x-component (axi-sym), respectivly
+    Vector<Complex> EfieldInZDir_;
 
     //! List of regions with non-linearity
     StdVector<std::string> nonLinType_;
@@ -147,7 +162,8 @@ namespace CoupledField
     
     //! contains mechanic acceleration
     NodeStoreSol<Double> solDeriv2_;
-    
+
+   
     //! calculate Electric field
     void CalcEfield();
 

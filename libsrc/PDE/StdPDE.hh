@@ -451,6 +451,7 @@ namespace CoupledField {
     piezoMaterialType piezoMaterialType_;
     //! contains element results of complex valued charge 
     Vector<Complex> complexValuedCharge_;
+    Vector<Complex> complexValuedEfield_;
     //@}
 
 
