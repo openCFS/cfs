@@ -165,6 +165,13 @@ namespace CoupledField {
     //! damping model gets implemented in a separate Forms-class
     virtual Double GetFracDampMatrixCoeff(UInt actSD);
 
+	//! Also for fractional damping model do obtain
+	virtual UInt GetFracMemory() {
+	  return fracMemory_;
+	}
+	virtual Boolean GetIsaxi() {
+	  return isaxi_;
+	}
 
     //! computes the coordinates of an element including the delta
     //! \param connect (input) global node numbers of element
@@ -495,7 +502,7 @@ namespace CoupledField {
     //! \name Miscellaneous attributes
     AnalysisType analysistype_; //!< analysis type
     Boolean isAlwaysStatic_;    //!< flag for static PDEs (like electrostatic)
-    UInt dim_;              //!< space dimension of pde
+    UInt dim_;                  //!< space dimension of pde
     Boolean isaxi_;             //!< TRUE: axisymmetric problem
     Boolean isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
     NodeEQN * eqnData_;         //!< equation handling
@@ -505,12 +512,18 @@ namespace CoupledField {
 
     //! specifies the type of damping model (see environment.hh)
     DampingType dampingType_;
+	//! list of damping types for all regions
+    StdVector<DampingType> dampingList_;
+	//! number of old time steps to be saved (for fractional damping)
+    UInt fracMemory_;
+	//! type of interpolation (for fractional damping)
+    InterpolType inType_;
   
 	//! flag indicating, if damping matrix is needed
 	Boolean needsDampingMatrix_;
 	
-    Boolean isIncrFormulation_;   //! checks, if we have for the coupling a incremental solution
-    
+	//! checks, if we have for the coupling a incremental solution
+    Boolean isIncrFormulation_;    
 
     //! set defining which type of matrices (stiffness, mass,...) is used
     std::set<FEMatrixType> matrixTypes_;
@@ -521,12 +534,12 @@ namespace CoupledField {
     //! pointer to SolveStep classes
     StdSolveStep * solveStep_;
     
-    BaseSystem * algsys_;     //!< pointer to algebraic system
-    TimeFunc * ptTimeFunc_;   //!< pointer to time functions
+    BaseSystem * algsys_;      //!< pointer to algebraic system
+    TimeFunc * ptTimeFunc_;    //!< pointer to time functions
 
   
-    OLAS_Params * olasParams_; //! pointer to paramter object of OLAS
-    OLAS_Report * olasReport_; //! pointer to report object of OLAS
+    OLAS_Params * olasParams_; //!< pointer to paramter object of OLAS
+    OLAS_Report * olasReport_; //!< pointer to report object of OLAS
     //@}
 
   }; // class StdPDE

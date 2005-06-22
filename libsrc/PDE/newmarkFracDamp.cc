@@ -16,12 +16,11 @@ namespace CoupledField {
   NewmarkFracDamp::NewmarkFracDamp( BaseSystem * algebraicsystem,
                                     UInt rhsSize, 
                                     const PdeIdType apdeId,
-                                    NodeEQN * ptEQN, Grid * aptgrid,
+                                    NodeEQN * ptEQN,
+									Grid * aptgrid,
                                     StdPDE * aptStdPDE,
                                     StdVector<RegionIdType> asubdomainList,
-                                    StdVector<DampingType> adampingList, 
-                                    UInt afracMemory, 
-                                    InterpolType ainType, Boolean isaxi)
+                                    StdVector<DampingType> adampingList) 
     :TimeStepping( algebraicsystem, rhsSize )
   {
     ENTER_FCN( "NewmarkFracDamp::NewmarkFracDamp" );
@@ -29,14 +28,18 @@ namespace CoupledField {
     pdename_     = aptStdPDE->GetName();
     pdeId_       = apdeId;
     ptgrid_      = aptgrid;
-    ptStdPDE_   =  aptStdPDE;
-    ptEQN_ = ptEQN;
-
+	ptStdPDE_    = aptStdPDE;
+    ptEQN_       = ptEQN;
+	
     subdoms_     = asubdomainList;
     dampingList_ = adampingList;
-    fracMemory_  = afracMemory;
-    inType_      = ainType;
-    isaxi_       = isaxi;
+    fracMemory_  = aptStdPDE->GetFracMemory();
+	if ( dampingList_.Find(FRACTIONAL_GL) < 0 || 
+		 dampingList_.Find(FRACTIONAL_BLANK) < 0 )
+	  inType_  = LIN1PT;
+	else
+	  inType_ = NOTUSED;
+    isaxi_       = aptStdPDE->GetIsaxi();
   
     alpha_ = 0.0;
     beta_  = 0.25;

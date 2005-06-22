@@ -24,9 +24,11 @@ namespace CoupledField {
     */
     AcousticPDE(Grid *aGrid, TimeFunc *aTimeFunc, WriteResults *aOutFile );
 
-    //!  Deconstructor
-    virtual ~AcousticPDE() {;};
+    //! Destructor
+    virtual ~AcousticPDE(){};
 
+	//! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation( Grid *aptgrid );
 
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators();
@@ -35,7 +37,7 @@ namespace CoupledField {
     virtual void DefineSolveStep();
 
     //! perform postprocessing on data
-    void PostProcess() {;};
+    void PostProcess(){};
 
     //! write results in file
     //! \param stepOffset offset for starting (time)step
@@ -89,26 +91,24 @@ namespace CoupledField {
     //! indicator for mechanic coupling
     Boolean isMechCoupled_;
 
-    UInt size_;                         //!< total number of unknowns (equations)
-    SolutionType formulation_;             //!< variable in which PDE is formulated
+	//! total number of unknowns (equations)
+    UInt size_;
+	//! variable in which PDE is formulated
+    SolutionType formulation_;
 
-    StdVector<DampingType> dampingList_;   //!< list of damping types for all regions
-
-    StdVector<RegionIdType> absBCs_;        //!< list of boundaries( for absorbing BCs)
-    Boolean absorbingBCs_;                 //!< switch for absorbing boundary conditions
-
-    // for fractional damping model
-    UInt fracMemory_;                   //!< number of old time steps to be saved
-    InterpolType inType_;                  //!< type of interpolation
+	//! list of boundaries( for absorbing BCs)
+    StdVector<RegionIdType> absBCs_;
+	//! switch for absorbing boundary conditions
+    Boolean absorbingBCs_;                
 
     // solving of nonlinear acoustics
     NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
     Vector<Double> RhsLinVal_;
 
     // Postprocessing results
-    NodeStoreSol<Double> solDeriv1_;       //!< contains 1st derivative of solution
-    NodeStoreSol<Double> solDeriv2_;       //!< contains 2nd derivative of solution
-    NodeStoreSol<Double> rhs_;       //!< contains 2nd derivative of solution
+    NodeStoreSol<Double> solDeriv1_; //!< contains 1st derivative of solution
+    NodeStoreSol<Double> solDeriv2_; //!< contains 2nd derivative of solution
+    NodeStoreSol<Double> rhs_;
 
     //! Attribute describing model for bubble dynamics
     BubbleDynType bubbleDynType_;
