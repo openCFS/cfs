@@ -51,7 +51,7 @@ namespace CoupledField {
     geoUpdate_ = FALSE;
     iterCoupledCounter_ = 0;
     effectiveMass_ = FALSE;
-	needsDampingMatrix_ = FALSE;
+    needsDampingMatrix_ = FALSE;
 
   }
   
@@ -196,12 +196,13 @@ namespace CoupledField {
       nrActDof = 2;
     if ( dofStartString == "uz" )
       nrActDof = 3;
-    // HARD coded for piezo case
+    // --- DOF for piezo - HARD CODED -
+    // 
     if ( dofStartString == "ep" )
       nrActDof = dofspernode_;
     if ( nrActDof == 0 )
       Error( "Unknown dof-type in homog. BC; substring must start with ux, uy,"
-             "uz or ep!!", __FILE__, __LINE__);
+             "uz, uax, urad, uphi or ep!!", __FILE__, __LINE__);
 
     return nrActDof;
   }
@@ -337,16 +338,21 @@ namespace CoupledField {
     // ==============================
 
     // create algebraic system and intialize matrices
+    SETPROFILE("Before CreatLinSys()");
     algsys_->CreateLinSys();
+    SETPROFILE("After CreatLinSys()");
     algsys_->InitMatrix();
     
     // create solver and preconditioner
+    SETPROFILE("Before CreateSolver()");
     algsys_->CreateSolver();
+    SETPROFILE("Before CreatePrecond()");
     algsys_->CreatePrecond();
 
     // now reset AlgebraicSystem 
     algsys_->InitRHS();
     algsys_->InitSol();
+    SETPROFILE("-- Finished CreateMatrices_Solver--");
   }
 
 
