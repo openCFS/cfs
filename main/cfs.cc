@@ -164,7 +164,7 @@ int main( int argc, const char **argv ) {
 
 #ifdef MpCCI
   Info->StartProgress( "Setting up MpCCI interface" );
-  CCI_Init( &argc, &argv );  
+  CCI_Init( &argc, const_cast<char***>(&argv) );  
   Info->FinishProgress();
 #endif
 
@@ -234,7 +234,7 @@ int main( int argc, const char **argv ) {
   flags = new Flags();
 #endif
 
-  BaseDriver   *ptdriver;  
+  BaseDriver   *ptdriver = NULL;
   AnalysisType analysisType;
   std::string  analysis;
   Boolean      adaptspace;
