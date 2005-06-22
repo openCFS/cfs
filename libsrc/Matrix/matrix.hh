@@ -41,7 +41,7 @@ namespace CoupledField
     ~Matrix();
 
     //! Hard coded query if values are complex
-    Boolean IsComplex();
+    Boolean IsComplex() const;
 
     //! Initialize matrix with a given entry.
     //! If no entry given, it gets initalized with zeroes
@@ -147,7 +147,7 @@ namespace CoupledField
       \left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
       \f]
     */                    
-    void DyadicMult(CFSVector & vec1);  
+    void DyadicMult(const CFSVector & vec1);  
   
     //! Assignes the matrix itself the dyadic product of a vector vec1 
     //! with a vector vec2
@@ -163,7 +163,7 @@ namespace CoupledField
       \left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
       \f]
     */          
-    void DyadicMult(CFSVector & vec1, CFSVector & vec2); 
+    void DyadicMult(const CFSVector & vec1, const CFSVector & vec2); 
   
     //! copies a submatrix at the position (row, col) into subMat, 
     //! the amount of copied elements depends on the size of subMat
@@ -172,7 +172,7 @@ namespace CoupledField
   
     //! overwrites the matrix elements at the position (row, col) with subMat
     //! in a rectangular (submatrix) way
-    void SetSubMatrix(CFSMatrix & subMat, const UInt nRows, const UInt nCols)
+    void SetSubMatrix(const CFSMatrix & subMat, const UInt nRows, const UInt nCols)
     {Error("!!! IMPLEMENT !!!");};
   
     //! scales the diagonal elements of a  matrix by a factor
@@ -182,19 +182,19 @@ namespace CoupledField
     void Add(const TYPE fac, const CFSMatrix & mat){};
 
     //! Perform a matrix-matrix multiplication rMat = this*mMat
-    void Mult(CFSMatrix & mMat, CFSMatrix & rMat);
+    void Mult(const CFSMatrix & mMat, CFSMatrix & rMat) const ;
   
     //! Perform a matrix-vector multiplication rvec = this*mvec
-    void Mult(CFSVector & mvec, CFSVector & rvec);
+    void Mult(const CFSVector & mvec, CFSVector & rvec) const;
 
 
     //! Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
     //! where the matrix is supposed to be of type Double, rvec and mvec are complex valued
-    void MatVecMult_DC(Vector<Complex> & mvec, Vector<Complex> & rvec);
+    void MatVecMult_DC(const Vector<Complex> & mvec, Vector<Complex> & rvec) const;
 
     //! Perform a matrix(Complex)-vector(Double) multiplication rvec = this*mvec
     //! where the matrix is supposed to be of type Complex as well as rvec; mvec is of type Double
-    void MatVecMult_CD(Vector<Double> & mvec, Vector<Complex> & rvec);
+    void MatVecMult_CD(const Vector<Double> & mvec, Vector<Complex> & rvec) const;
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT(const CFSVector & mvec, CFSVector & rvec) const {;};
@@ -209,7 +209,7 @@ namespace CoupledField
     void MultSub(const CFSVector & mvec, CFSVector & rvec) const {;};
 
     //! Check if the matrix is symmetric
-    bool IsSymmetric();
+    bool IsSymmetric() const;
 
     //////////////////////////////////////
     // Functions for working with other //
@@ -297,7 +297,7 @@ namespace CoupledField
     void AddColumn(const Vector<TYPE> & x, const UInt pos ); 
 
     /// Transpose actual matrix
-    void Transpose (Matrix<TYPE> &transposedMat);  
+    void Transpose (Matrix<TYPE> &transposedMat) const;  
 
     /// copies a submatrix at the position (row, col) into subMat, 
     /// the amount of copied elements depends on the size of subMat
@@ -305,7 +305,7 @@ namespace CoupledField
 
     /// overwrites the matrix elements at the position (row, col) with subMat
     /// in a rectangular (submatrix) way
-    void SetSubMatrix(Matrix<TYPE>& subMat, UInt row, UInt col);
+    void SetSubMatrix(const Matrix<TYPE>& subMat, UInt row, UInt col);
 
     /// converts a matrix into a vector, by appending successively all rows
     void ConvertToVec_AppendRows(CFSVector& vec) const;
@@ -430,12 +430,12 @@ namespace CoupledField
 
   // Perform a matrix-matrix multiplication rMat = this*mMat
   template<class TYPE>
-  inline void Matrix<TYPE>::Mult(CFSMatrix & mMat, CFSMatrix & rMat) {
+  inline void Matrix<TYPE>::Mult(const CFSMatrix & mMat, CFSMatrix & rMat) const {
 
     ENTER_IFCN( "Matrix::Mult" );
 
-    Matrix<TYPE> &mMat1 = dynamic_cast<Matrix<TYPE>& >(mMat);
-    Matrix<TYPE> &rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
+    Matrix<TYPE> const & mMat1 = dynamic_cast<const Matrix<TYPE>& >(mMat);
+    Matrix<TYPE> & rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
   
     UInt size_mMatRow = mMat1.GetSizeRow();
     UInt size_mMatCol = mMat1.GetSizeCol();
