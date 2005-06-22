@@ -108,6 +108,9 @@ namespace CoupledField
     case HARMONIC:
       assemble_ = new HarmonicAssemble(algsys_, ptGrid_);
       break;
+    case MULTIHARMONIC:
+      assemble_ = new MHassemble(algsys_, ptGrid_);
+      break;
     default:
       Error (" analysistype was not found" , __FILE__, __LINE__ );
       break;

@@ -142,7 +142,7 @@ namespace CoupledField{
 
 
     // Set correct size of direct solution value
-    if ( analysistype_ == HARMONIC ) {
+    if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
       solVec_ = new Vector<Complex>;
     } else {
       solVec_ = new Vector<Double>;

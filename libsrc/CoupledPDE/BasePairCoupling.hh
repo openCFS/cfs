@@ -12,6 +12,7 @@ namespace CoupledField
   // forward class declaration
   class SinglePDE;
   class Assemble;
+  class MHassemble;
   class BaseSystem;
   class Grid;
   class MaterialData;
