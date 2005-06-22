@@ -20,7 +20,10 @@
     <xsd:sequence>
 
       <!-- Matrix format, entries and layout (optional) -->
-      <xsd:element name="matrix" type="DT_MatrixDescription" minOccurs="0"/>
+      <xsd:choice minOccurs="0">
+        <xsd:element name="matrix" type="DT_MatrixDescription"/>
+        <xsd:element name="sbmMatrix" type="DT_SBMMatrixDescription"/>
+      </xsd:choice>
 
       <!-- Export linear system? (optional) -->
       <xsd:element name="exportLinSys" minOccurs="0">
@@ -169,6 +172,39 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    <xsd:attribute name="reordering" use="optional" default="noReordering">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="noReordering"/>
+          <xsd:enumeration value="Metis"/>
+          <xsd:enumeration value="Sloan"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of matrix description type for SBM_Matrices -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_SBMMatrixDescription">
+    <xsd:attribute name="eqnNumbering" use="optional" default="scalar">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="scalar"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="entry" use="optional" default="double">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="double"/>
+          <xsd:enumeration value="complex"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="symmetric" use="optional" default="no"
+      type="DT_CFSBool"/>
     <xsd:attribute name="reordering" use="optional" default="noReordering">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
