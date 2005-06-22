@@ -38,7 +38,7 @@
     substitutionGroup="MpCCI"> 
   </xsd:element>
 
-  <xsd:element name="MpCCI-FSI" type="DT_MpCCIFluidStruct"
+  <xsd:element name="mpcciFSI" type="DT_MpCCIFluidStruct"
     substitutionGroup="MpCCI"> 
   </xsd:element>
 
