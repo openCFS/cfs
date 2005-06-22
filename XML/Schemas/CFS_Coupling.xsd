@@ -289,7 +289,7 @@
             <xsd:element name="acoustic">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="coupling" type="DT_CouplingAcou"
+                  <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingAcou"
                                maxOccurs="unbounded" />
                 </xsd:sequence>
               </xsd:complexType>
@@ -297,7 +297,7 @@
             <xsd:element name="mechanic">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="coupling" type="DT_CouplingMech"
+                  <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingMech"
                                maxOccurs="unbounded" />
                 </xsd:sequence>
               </xsd:complexType>
@@ -319,7 +319,7 @@
             <xsd:element name="electrostatic">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="coupling" type="DT_CouplingElec"
+                  <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingElec"
                                maxOccurs="unbounded" />
                 </xsd:sequence>
               </xsd:complexType>
@@ -387,7 +387,7 @@
             <xsd:element name="magnetic">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="coupling" type="DT_CouplingMag"
+                  <xsd:element name="coupling" minOccurs="0" type="DT_CouplingMag"
                                maxOccurs="unbounded" />
                 </xsd:sequence>
               </xsd:complexType>
