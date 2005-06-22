@@ -38,6 +38,10 @@
     substitutionGroup="MpCCI"> 
   </xsd:element>
 
+  <xsd:element name="MpCCI-FSI" type="DT_MpCCIFluidStruct"
+    substitutionGroup="MpCCI"> 
+  </xsd:element>
+
   <!-- Data type for transient section, i.e. parameters required for
        performing a transient analysis -->
   <xsd:complexType name="DT_MpCCIFlowNoise">
@@ -64,6 +68,30 @@
     	  <xsd:element name="facrampYmax" type="xsd:float"/>
 
     	  <xsd:element name="meshId" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="partId" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="nNodeIds" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="GlobalDim" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="nQuantityIds" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="nLocalMeshIds" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="remoteCodeId" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="quantityId1" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="quantityId2" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="quantityDim1" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="quantityDim2" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="maxnEmptyNodes" type="xsd:nonNegativeInteger"/>
+        </xsd:sequence>
+        <xsd:attribute name="tag"  type="xsd:string" use="optional"
+          default="anyTag"/> 
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_MpCCIFluidStruct">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MpCCI">
+        <xsd:sequence>
+    	  <xsd:element name="meshIdA" type="xsd:nonNegativeInteger"/>
+    	  <xsd:element name="meshIdB" type="xsd:nonNegativeInteger"/>
           <xsd:element name="partId" type="xsd:nonNegativeInteger"/>
           <xsd:element name="nNodeIds" type="xsd:nonNegativeInteger"/>
           <xsd:element name="GlobalDim" type="xsd:nonNegativeInteger"/>
