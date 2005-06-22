@@ -173,7 +173,7 @@
     <!-- ***************************************************************** -->
     <mpcci>
   
-      <region name="dummyRegion"/>
+      <region name="dummyRegion" type="solid"/>
 
     </mpcci>
 
