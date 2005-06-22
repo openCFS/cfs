@@ -84,6 +84,9 @@ namespace CoupledField
   //! Global pointer to a stringstream used for generating warning messages
   extern std::stringstream *warning;
 
+  //! Global memtrace pointer
+  extern Profiler *profiler;
+
   // enumeration with elements types.
   // enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};
 

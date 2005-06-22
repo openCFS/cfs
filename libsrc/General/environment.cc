@@ -28,6 +28,8 @@ namespace CoupledField {
 
   Boolean PrintGridOnly = FALSE;
 
+  Profiler * profiler = NULL;
+
   Flags * flags=NULL;
 
   BaseFE * ptQ1     = NULL;
