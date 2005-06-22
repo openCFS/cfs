@@ -57,8 +57,9 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->PreStepStatic(reset);
     ptPDE_->GetSolveStep()->SolveStepStatic(reset);
     ptPDE_->GetSolveStep()->PostStepStatic();
-    
+
     ptPDE_->PostProcess();
+
     
     // if multiSequence is performed, the ms-driver
     // writes out the grid one time
@@ -66,6 +67,8 @@ namespace CoupledField {
       ptdomain_->PrintGrid();
       
     ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
+
+    SETPROFILE("After Static Step");
   }
 
 

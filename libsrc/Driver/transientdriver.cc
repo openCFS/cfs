@@ -137,6 +137,8 @@ namespace CoupledField {
       }
     
       steptime+=dt;        
+
+      SETPROFILE("After Transient Step");
     }
   
   }
