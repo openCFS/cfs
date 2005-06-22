@@ -7,7 +7,7 @@ namespace CoupledField {
 
 
   // New version seems to be buggy
-  // #define BDB_NEW_VERSION
+#define BDB_NEW_VERSION
 
 
 #ifndef BDB_NEW_VERSION
@@ -157,7 +157,7 @@ namespace CoupledField {
           ptr1 =  bMat[k];
           ptr2 = dbMat[k];
           for ( UInt i = 0; i < bMat.GetSizeCol(); i++ ) {
-            aux = fac * ptr2[i];
+            aux = fac * ptr1[i];
             for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
               elemMat[i][j] += aux * ptr2[j];
             }
@@ -213,7 +213,7 @@ namespace CoupledField {
           ptr1 =  bMat[k];
           ptr2 = dbMat[k];
           for ( UInt i = 0; i < bMat.GetSizeCol(); i++ ) {
-            aux = fac * ptr2[i];
+            aux = fac * ptr1[i];
             for ( UInt j = 0; j < dbMat.GetSizeCol(); j++ ) {
               elemMat[i][j] += aux * ptr2[j];
             }
