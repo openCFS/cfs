@@ -106,13 +106,13 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  Boolean Matrix<TYPE>::IsComplex()
+  Boolean Matrix<TYPE>::IsComplex() const
   {
     return FALSE;
   }
 
   template<>
-  Boolean Matrix<Complex>::IsComplex()
+  Boolean Matrix<Complex>::IsComplex() const
   {
     return TRUE;
   }
@@ -454,10 +454,10 @@ namespace CoupledField
 
   // Perform a matrix-vector multiplication rvec = this*mvec
   template<class TYPE>
-  void Matrix<TYPE>::Mult(CFSVector & mvec, CFSVector & rvec)
+  void Matrix<TYPE>::Mult(const CFSVector & mvec, CFSVector & rvec) const
   {
     ENTER_IFCN("Matrix::Mult");
-    Vector<TYPE> & mvec1 = dynamic_cast<Vector<TYPE>& >(mvec);
+    Vector<TYPE> const & mvec1 = dynamic_cast<const Vector<TYPE>& >(mvec);
     Vector<TYPE> & rvec1 = dynamic_cast<Vector<TYPE>& >(rvec);
   
     UInt size_mvec = mvec1.GetSize();
@@ -539,7 +539,7 @@ namespace CoupledField
   // Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
   // where the matrix is supposed to be of type Double, rvec and mvec are complex valued
   template<>
-  void Matrix<Double>::MatVecMult_DC(Vector<Complex> & mvec, Vector<Complex> & rvec){
+  void Matrix<Double>::MatVecMult_DC(const Vector<Complex> & mvec, Vector<Complex> & rvec) const {
     ENTER_IFCN("Matrix::MatVecMult_DC");
   
     UInt size_mvec = mvec.GetSize();
@@ -569,7 +569,7 @@ namespace CoupledField
   // Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
   // where the matrix is supposed to be of type Double, rvec and mvec are complex valued
   template<>
-  void Matrix<Complex>::MatVecMult_CD(Vector<Double> & mvec, Vector<Complex> & rvec){
+  void Matrix<Complex>::MatVecMult_CD(const Vector<Double> & mvec, Vector<Complex> & rvec) const {
     ENTER_IFCN("Matrix::MatVecMult_CD");
 
     UInt size_mvec = mvec.GetSize();
@@ -720,7 +720,7 @@ namespace CoupledField
 
 
   template<class TYPE>
-  void Matrix<TYPE>::Transpose (Matrix<TYPE> &transposedMat)
+  void Matrix<TYPE>::Transpose (Matrix<TYPE> &transposedMat) const
   {
     ENTER_FCN("Matrix::Transpose");
     transposedMat.Resize(size_col_, size_row_);
@@ -790,7 +790,7 @@ namespace CoupledField
 
 
   template<class TYPE>
-  void Matrix<TYPE>::DyadicMult(CFSVector & v1)
+  void Matrix<TYPE>::DyadicMult(const CFSVector & v1)
   {
     ENTER_FCN("Matrix::DyadicMult");
     DyadicMult(v1, v1);
@@ -799,12 +799,12 @@ namespace CoupledField
 
 
   template<class TYPE>
-  void Matrix<TYPE>::DyadicMult(CFSVector & v1, CFSVector & v2)
+  void Matrix<TYPE>::DyadicMult(const CFSVector & v1, const CFSVector & v2)
   {
     ENTER_FCN("Matrix::DyadicMult");
   
-    Vector<TYPE> & vec1 = dynamic_cast<Vector<TYPE>& >(v1);
-    Vector<TYPE> & vec2 = dynamic_cast<Vector<TYPE>& >(v2);
+    Vector<TYPE> const & vec1 = dynamic_cast<const Vector<TYPE>& >(v1);
+    Vector<TYPE> const & vec2 = dynamic_cast<const Vector<TYPE>& >(v2);
   
     UInt row = vec1.GetSize();
     UInt col = vec2.GetSize();
@@ -944,7 +944,7 @@ namespace CoupledField
   // overwrites the matrix elements at the position (row, col) with subMat
   // in a rectangular (submatrix) way
   template<class TYPE>
-  void Matrix<TYPE>::SetSubMatrix(Matrix<TYPE>& subMat, UInt startRow, UInt startCol)
+  void Matrix<TYPE>::SetSubMatrix(const Matrix<TYPE>& subMat, UInt startRow, UInt startCol)
   {
     ENTER_FCN("Matrix::SetSubMatrix");
 #ifdef CHECK_INITIALIZED
@@ -1044,7 +1044,7 @@ namespace CoupledField
   }
 
 
-  template<class TYPE> bool Matrix<TYPE>::IsSymmetric() {
+  template<class TYPE> bool Matrix<TYPE>::IsSymmetric() const {
     ENTER_FCN( "Matrix::IsSymmetric" );
     bool amSymm = true;
     for ( UInt i = 1; i < size_row_; i++ ) {

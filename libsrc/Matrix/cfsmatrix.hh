@@ -44,7 +44,7 @@ namespace CoupledField{
     virtual ~CFSMatrix(){ENTER_IFCN("CFSMatrix::CFSMatrix");};
 
     //! Hard coded query if values are complex
-    virtual Boolean IsComplex() = 0;
+    virtual Boolean IsComplex() const = 0;
 
     //! Initialize matrix with a given entry.
     //! If no entry given, it gets initalized with zeroes
@@ -137,12 +137,12 @@ namespace CoupledField{
     {Error("CFSMatrix:DirectSolve(): Not implemented here",__FILE__,__LINE__);}
 
     //!
-    virtual  void DyadicMult(CFSVector & vec1) const
+    virtual  void DyadicMult(const CFSVector & vec1) const
     {Error("CFSMatrix:: DyadicMult(): Not implemented here",__FILE__,__LINE__);} 
   
 
     //!
-    virtual void DyadicMult(CFSVector & vec1, CFSVector & vec2) const
+    virtual void DyadicMult(const CFSVector & vec1, const CFSVector & vec2) const
     {Error("CFSMatrix:: DyadicMult: Not implemented here",__FILE__,__LINE__);} 
   
   
@@ -152,7 +152,7 @@ namespace CoupledField{
 
     //! overwrites the matrix elements at the position (row, col) with subMat
     //! in a rectangular (submatrix) way
-    virtual void SetSubMatrix(CFSMatrix & subMat, const UInt nRows, const UInt nCols) = 0;
+    virtual void SetSubMatrix(const CFSMatrix & subMat, const UInt nRows, const UInt nCols) = 0;
 
     //! converts a matrix into a vector, by appending successively all rows
     virtual void ConvertToVec_AppendRows(CFSVector & vec) const
@@ -181,7 +181,7 @@ namespace CoupledField{
     {Error("CFSMatrix:Mult(): Not implemented here",__FILE__,__LINE__);}
 
     //! Perform a matrix-matrix multiplication rMat = this*mMat
-    virtual void Mult(CFSMatrix & mMat, CFSMatrix & rMat) const
+    virtual void Mult(const CFSMatrix & mMat, CFSMatrix & rMat) const
     {Error("CFSMatrix:Mult(): Not implemented here",__FILE__,__LINE__);}
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
