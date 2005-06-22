@@ -10,7 +10,7 @@
 #include "Domain/domain.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "Utils/tracing.hh"
-
+#include "Utils/profiler.hh"
 
 #ifdef PARALLEL
 #include <mpi.h>
@@ -28,6 +28,7 @@
 #ifdef NETGEN
 #include "Domain/NetGen/interface_netgen.hh"
 #endif
+
 
 using namespace CoupledField;
 
@@ -120,6 +121,12 @@ int main( int argc, const char **argv ) {
   Info->FinishProgress();
 #endif
 
+#ifdef PROFILING
+  Info->StartProgress( "Opening file for profiling output" );
+  profiler = new Profiler();
+  SETPROFILE("Begin of program");
+  Info->FinishProgress();
+#endif
 
   // =========================================================================
   // WRITE SKELETON XML-FILE
@@ -203,8 +210,10 @@ int main( int argc, const char **argv ) {
   // GENERATION OF DOMAIN OBJECT
   // =========================================================================
   TimeFunc myTimeFunc;
-  Domain domain( ptInputfile, ptOut, &myTimeFunc );
 
+  SETPROFILE("Before Creation of Domain");
+  Domain domain( ptInputfile, ptOut, &myTimeFunc );
+  SETPROFILE("After Creation of Domain");
 
   // =========================================================================
   // Only output of grid
@@ -330,6 +339,12 @@ int main( int argc, const char **argv ) {
   delete trace;
   trace = NULL;
 #endif
+
+#ifdef PROFILING
+  delete profiler;
+  profiler = NULL;
+#endif
+
 
 #ifdef PARALLEL
   MPI_Finalize();
