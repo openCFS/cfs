@@ -139,8 +139,12 @@ namespace CoupledField {
 
   public:
     //! constructor
-    Point(){;}
-    //!deconstructor
+    Point(){
+      for(UInt i=0; i<dim; i++)
+        p[i]=0.0;
+    }
+
+    //!destructor
     ~Point(){;}
 
     //!
@@ -152,6 +156,10 @@ namespace CoupledField {
 
     //! return coordinate number i
     Double &operator[](UInt i){return p[i];} 
+
+    //! return coordinate number i
+    Double operator[](UInt i) const {return p[i];} 
+
   private:
     Double p[dim];
   };
