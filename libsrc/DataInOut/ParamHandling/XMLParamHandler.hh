@@ -353,6 +353,23 @@ namespace CoupledField {
 			      bool featureVal,
 			      bool shouldHave );
 
+    //! Auxilliary routine for clearing input vector
+
+    //! This routine is used to empty the given input vector if it does not
+    //! have zero length. If this happends and beVerbose_ is true, a warning
+    //! message will be logged in case this happened accidentially.
+    template <class T>
+    void ClearVector( StdVector<T> &myVec ) {
+      if ( myVec.IsEmpty() != true ) {
+        if ( beVerbose_ == true ) {
+          std::string msg = "Warning input vector was not empty!\n";
+          msg += "Contents have been erased!";
+          Info->Warning( msg );
+        }
+        myVec.Clear();
+      }
+    }
+
 
     // ***********************************************************************
     //   Private Auxilliary Methods: Problem Handlers
