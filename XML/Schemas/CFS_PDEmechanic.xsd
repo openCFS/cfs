@@ -69,6 +69,9 @@
                              minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="spring" type="DT_MechSpring" minOccurs="0"
                              maxOccurs="unbounded"/>
+                <xsd:element name="regionLoad" type="DT_MechRegionLoad" minOccurs="0"
+                             maxOccurs="unbounded"/>
+                
               </xsd:sequence>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
@@ -109,6 +112,9 @@
       <xsd:enumeration value="ux"/>
       <xsd:enumeration value="uy"/>
       <xsd:enumeration value="uz"/>
+      <xsd:enumeration value="urad"/>
+      <xsd:enumeration value="uax"/>
+      <xsd:enumeration value="uphi"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -181,6 +187,17 @@
         <xsd:attribute name="stiffnessValue" type="xsd:double" use="required"/>
         <xsd:attribute name="dynamics" type="xsd:token" use="optional"
           default="none"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- Element type for region Loads -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_MechRegionLoad">
+    <xsd:complexContent>
+      <xsd:extension base="DT_MechLoad">
+        <xsd:attribute name="refCoordSys" type="xsd:token"
+        use="optional" default="default"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
