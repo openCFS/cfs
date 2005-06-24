@@ -117,7 +117,7 @@ METIS_ROOT = /home/data/proj/SoftwareLibraries/metis
 endif
 
 ifeq ("$(SCHEMA_ROOT)","")
-SCHEMA_ROOT = /home/data/proj/share/CFS++XML
+SCHEMA_ROOT = $(addsuffix /$(C_DIR)/XML,$(PWD))
 endif
 
 
