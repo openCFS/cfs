@@ -306,7 +306,7 @@ namespace CoupledField
                                                    std::string color)
     { 
       Error(" Not implemented",__FILE__,__LINE__);
-      StdVector<Elem*> *dummy;
+      StdVector<Elem*> *dummy = NULL;
       return dummy;
     }
   
