@@ -160,7 +160,8 @@ namespace CoupledField {
       }
       cfs->Get( "type", analysis, "analysis" );
       if ( matType[0] == "imagMaterialParameter" &&
-           analysis != "harmonic" && analysis != "paramIdent" && analysis!="multiHarmonic") {
+           analysis != "harmonic" && analysis != "paramIdent" &&
+           analysis!="multiHarmonic") {
         (*error) << "XML-file specifies material parameters with imaginary "
                  << "part for an analysis of type '" << analysis << "'. "
                  << "Complex parameters are currently only implemented for "
@@ -904,7 +905,8 @@ namespace CoupledField {
     if ( sType == LAPACK_LU ) {
       if ( mType != LAPACK_GBMATRIX ) {
         if ( mType != NOSTORAGETYPE ) {
-          warn = "Expert: Re-setting matrix storage type to 'LAPACK_GBMATRIX'";
+          warn = "Expert: Re-setting matrix storage type to ";
+          warn += "'LAPACK_GBMATRIX'";
           Info->Warning( warn );
         }
         else {
@@ -916,8 +918,7 @@ namespace CoupledField {
     }
 
     // The direct solver LU_SOLVER expects a CRS matrix
-    // the ILU0 preconditioner, too
-    if ( sType == LU_SOLVER ) {
+    else if ( sType == LU_SOLVER ) {
       if ( mType != SPARSE_NONSYM ) {
         if ( mType != NOSTORAGETYPE ) {
           (*warning) << "Expert: Changing matrix storage type from "
@@ -932,7 +933,47 @@ namespace CoupledField {
         mType = SPARSE_NONSYM;
       }
     }
-    if ( pType == ILU0 ) {
+
+    // The direct solver LDL_SOLVER expects an SCRS matrix
+    else if ( sType == LDL_SOLVER ) {
+      if ( mType != SPARSE_SYM ) {
+        if ( mType != NOSTORAGETYPE ) {
+          (*warning) << "Expert: Changing matrix storage type from "
+                     << Enum2String( mType ) << " to SPARSE_SYM for "
+                     << Enum2String( sType ) << " solver";
+          Warning( __FILE__, __LINE__ );
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Using SPARSE_SYM as storage "
+                        "type for directLDL solver\n" );
+        }
+        mType = SPARSE_SYM;
+      }
+    }
+
+    // Hypre solvers want their own matrix format
+    else if ( sType == HYPRE_PCG || sType == HYPRE_GMRES ||
+              sType == HYPRE_BICGSTAB ) {
+      if ( mType != HYPRE_MATRIX ) {
+        if ( mType != NOSTORAGETYPE ) {
+          warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'\n";
+          Info->Warning( warn );
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Using HYPRE_MATRIX as storage "
+                        "type\n" );
+        }
+        mType = HYPRE_MATRIX;
+      }
+      if ( eType != DOUBLE ) {
+        warn = "Expert: Re-setting matrix entry type to DOUBLE\n";
+        Info->Warning( warn );
+        eType = DOUBLE;
+      }
+    }
+
+    // ILU-type preconditioners expect CRS matrices
+    if ( pType == ILU0 || pType == ILUK ) {
       if ( mType != SPARSE_NONSYM ) {
         if ( mType != NOSTORAGETYPE ) {
           (*warning) << "Expert: Changing matrix storage type from "
@@ -945,6 +986,23 @@ namespace CoupledField {
                         "type for preconditioner\n" );
         }
         mType = SPARSE_NONSYM;
+      }
+    }
+
+    // ILDL-type preconditioners expect SCRS matrices
+    if ( pType == ILDLK ) {
+      if ( mType != SPARSE_SYM ) {
+        if ( mType != NOSTORAGETYPE ) {
+          (*warning) << "Expert: Changing matrix storage type from "
+                     << Enum2String( mType ) << " to SPARSE_SYM for "
+                     << Enum2String( pType ) << " preconditioner";
+          Warning( __FILE__, __LINE__ );
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Using SPARSE_SYM as storage "
+                        "type for preconditioner\n" );
+        }
+        mType = SPARSE_SYM;
       }
     }
 
@@ -965,48 +1023,11 @@ namespace CoupledField {
       }
     }
 
-    // The direct solver LDL_SOLVER expects an SCRS matrix
-    if ( sType == LDL_SOLVER ) {
-      if ( mType != SPARSE_SYM ) {
-        if ( mType != NOSTORAGETYPE ) {
-          (*warning) << "Expert: Changing matrix storage type from "
-                     << Enum2String( mType ) << " to SPARSE_SYM for "
-                     << Enum2String( sType ) << " solver";
-          Warning( __FILE__, __LINE__ );
-        }
-        else {
-          Info->PrintF( pdename, "Expert: Using SPARSE_SYM as storage "
-                        "type for directLDL solver\n" );
-        }
-        mType = SPARSE_SYM;
-      }
-    }
-
-    // Hypre solvers want their own matrix format
-    if ( sType == HYPRE_PCG || sType == HYPRE_GMRES ||
-         sType == HYPRE_BICGSTAB ) {
-      if ( mType != HYPRE_MATRIX ) {
-        if ( mType != NOSTORAGETYPE ) {
-          warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'\n";
-          Info->Warning( warn );
-        }
-        else {
-          Info->PrintF( pdename, "Expert: Using HYPRE_MATRIX as storage "
-                        "type\n" );
-        }
-        mType = HYPRE_MATRIX;
-      }
-      if ( eType != DOUBLE ) {
-        warn = "Expert: Re-setting matrix entry type to DOUBLE\n";
-        Info->Warning( warn );
-        eType = DOUBLE;
-      }
-    }
-
-    // If no storage type was yet assigned use plain CRS
+    // If no storage type was yet assigned use plain SCRS
     if ( mType == NOSTORAGETYPE ) {
-      mType = SPARSE_NONSYM;
-      Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage type\n" );
+      mType = SPARSE_SYM;
+      Info->PrintF( pdename, "Expert: Using SPARSE_SYM as matrix "
+                    "storage type\n" );
     }
 
     // In case of a harmonic analysis or parameter identification
@@ -1033,7 +1054,8 @@ namespace CoupledField {
     }
 
     if ( analysis == "multiSequence" ) {
-      if (( analysisType == HARMONIC||analysisType==MULTIHARMONIC) && eType != COMPLEX ) {
+      if (( analysisType == HARMONIC||analysisType==MULTIHARMONIC) &&
+          eType != COMPLEX ) {
         eType = COMPLEX;
         Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type, "
                       "harmonic part of multi-sequence analysis\n" );
