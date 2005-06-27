@@ -95,7 +95,7 @@ namespace CoupledField
 
   void IterCoupledPDE::InitCoupling() {
 
-    ENTER_FCN ("IterSolveStep::InitCoupling" );
+    ENTER_FCN ("IterCoupledPDE::InitCoupling" );
   
     StdVector<std::string> quantities;
     StdVector<std::string> interfaceTypes;
