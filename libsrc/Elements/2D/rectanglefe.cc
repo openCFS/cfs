@@ -30,6 +30,177 @@ namespace CoupledField
 
   }
 
+// <<<<<<< rectanglefe.cc
+//   switch(IntegType) 
+//     {
+//     case GaussOrder1:
+      
+//       NumIntPoints_ = 1;
+//       DegreeInteg_  = 1;
+      
+      
+//       if ( !IntPoints_)
+// 	IntPoints_ = new Vector<Double>[NumIntPoints_];
+      
+//       IntWeights_.Resize(NumIntPoints_);
+      
+//       for(Integer i=0; i<NumIntPoints_; i++)
+// 	{
+// 	  IntWeights_[i]=1;
+// 	  IntPoints_[i].Resize(Dim_);
+// 	}
+      
+//       IntPoints_[0][0] = 0;
+//       IntPoints_[0][1] = 0;
+//       break;
+      
+//     case GaussOrder2:
+
+//       NumIntPoints_=4;
+//       DegreeInteg_=2;
+
+      
+//       if ( !IntPoints_)
+// 	IntPoints_ = new Vector<Double>[NumIntPoints_];
+
+//       IntWeights_.Resize(NumIntPoints_);
+
+//       for(Integer i=0; i<NumIntPoints_; i++)
+// 	{	  
+// 	  IntWeights_[i]=1;
+// 	  IntPoints_[i].Resize(Dim_);
+// 	}
+      
+//       IntPoints_[0][0] = -0.57735026919;
+//       IntPoints_[1][0] =  0.57735026919;
+//       IntPoints_[2][0] =  0.57735026919;
+//       IntPoints_[3][0] = -0.57735026919;
+
+//       IntPoints_[0][1] = -0.57735026919;
+//       IntPoints_[1][1] = -0.57735026919;
+//       IntPoints_[2][1] =  0.57735026919;
+//       IntPoints_[3][1] =  0.57735026919;
+
+// // // To try with modified integration rules
+// //       IntPoints_[0][0] = -0.81649658092;
+// //       IntPoints_[1][0] =  0.81649658092;
+// //       IntPoints_[2][0] =  0.81649658092;
+// //       IntPoints_[3][0] = -0.81649658092;
+
+// //       IntPoints_[0][1] = -0.81649658092;
+// //       IntPoints_[1][1] = -0.81649658092;
+// //       IntPoints_[2][1] =  0.81649658092;
+// //       IntPoints_[3][1] =  0.81649658092;
+//       break;
+
+//     case GaussOrder5:
+
+//       NumIntPoints_=9;
+//       DegreeInteg_=5;
+
+//       if( !IntPoints_)
+// 	IntPoints_ = new Vector<Double>[NumIntPoints_];
+      
+//       for(Integer i=0; i<NumIntPoints_; i++)
+// 	IntPoints_[i].Resize(Dim_);
+
+//       IntWeights_.Resize(NumIntPoints_);
+
+//       IntPoints_[0][0] = -0.774596669241483;
+//       IntPoints_[1][0] =  0.0;
+//       IntPoints_[2][0] =  0.774596669241483;
+//       IntPoints_[3][0] = -0.774596669241483;
+//       IntPoints_[4][0] = 0.0;
+//       IntPoints_[5][0] =  0.774596669241483;
+//       IntPoints_[6][0] = -0.774596669241483;
+//       IntPoints_[7][0] = 0.0;
+//       IntPoints_[8][0] =  0.774596669241483; 
+
+//       IntPoints_[0][1] = -0.774596669241483;
+//       IntPoints_[1][1] = -0.774596669241483;
+//       IntPoints_[2][1] = -0.774596669241483;
+//       IntPoints_[3][1] = 0.0;
+//       IntPoints_[4][1] = 0.0;
+//       IntPoints_[5][1] = 0.0;
+//       IntPoints_[6][1] =  0.774596669241483;
+//       IntPoints_[7][1] =  0.774596669241483;
+//       IntPoints_[8][1] =  0.774596669241483;
+
+//       IntWeights_[0]= 0.308642;
+//       IntWeights_[1]= 0.493827;
+//       IntWeights_[2]= 0.308642;
+//       IntWeights_[3]= 0.493827;
+//       IntWeights_[4]= 0.790123; 
+//       IntWeights_[5]= 0.493827; 
+//       IntWeights_[6]= 0.308642; 
+//       IntWeights_[7]= 0.493827; 
+//       IntWeights_[8]= 0.308642; 
+
+//       break;
+
+//     case GaussOrder7:
+
+//       Error("Type of integration Gauss with order 7 is incorrect", __FILE__, __LINE__);
+//       NumIntPoints_=16;
+//       DegreeInteg_=7;
+//       if ( !IntPoints_) 
+// 	IntPoints_ = new Vector<Double>[NumIntPoints_];
+
+//       for(Integer i=0; i<NumIntPoints_; i++)
+// 	IntPoints_[i].Resize(Dim_);
+      
+//       IntPoints_[0][0] = -0.861136311594053;
+//       IntPoints_[1][0] =  -0.339981043584856;
+//       IntPoints_[2][0] =  0.339981043584856;
+//       IntPoints_[3][0] = 0.861136311594053;
+//       IntPoints_[4][0] = -0.861136311594053;
+//       IntPoints_[5][0] = -0.339981043584856;
+//       IntPoints_[6][0] =   0.339981043584856;
+//       IntPoints_[7][0] =  0.861136311594053;
+//       IntPoints_[8][0] =  -0.861136311594053;
+//       IntPoints_[9][0] =  -0.339981043584856;
+//       IntPoints_[10][0] =  0.339981043584856;
+//       IntPoints_[11][0] =  0.861136311594053;
+//       IntPoints_[12][0] =  -0.861136311594053;
+//       IntPoints_[13][0] =  -0.339981043584856;
+//       IntPoints_[14][0] =  0.339981043584856;
+//       IntPoints_[15][0] =  0.861136311594053;
+
+
+//       IntPoints_[0][1] =  -0.861136311594053;
+//       IntPoints_[1][1] =   -0.861136311594053;
+//       IntPoints_[2][1] =  -0.861136311594053;
+//       IntPoints_[3][1] =  -0.861136311594053;
+//       IntPoints_[4][1] =  -0.339981043584856;
+//       IntPoints_[5][1] =  -0.339981043584856;
+//       IntPoints_[6][1] =  -0.339981043584856;
+//       IntPoints_[7][1] =  -0.339981043584856;
+//       IntPoints_[8][1] =  0.339981043584856;
+//       IntPoints_[9][1] =  0.339981043584856;
+//       IntPoints_[10][1] =  0.339981043584856;
+//       IntPoints_[11][1] =  0.339981043584856;
+//       IntPoints_[12][1] =  0.861136311594053;
+//       IntPoints_[13][1] =  0.861136311594053;
+//       IntPoints_[14][1] =  0.861136311594053;
+//       IntPoints_[15][1] =  0.861136311594053;
+
+//       IntWeights_[0]= 0.121003;
+//       IntWeights_[1]= 0.226852;
+//       IntWeights_[2]= - 0.226852;
+//       IntWeights_[3]= - 0.121003;
+//       IntWeights_[4]= 0.226852;
+//       IntWeights_[5]= 0.425293;
+//       IntWeights_[6]= -0.425293;
+//       IntWeights_[7]= -0.226852;
+//       IntWeights_[8]= -0.226852;
+//       IntWeights_[9]= -0.425293;
+//       IntWeights_[10]= 0.425293;
+//       IntWeights_[11]= 0.226852;
+//       IntWeights_[12]= -0.121003;
+//       IntWeights_[13]= -0.226852;
+//       IntWeights_[14]= 0.226852;
+//       IntWeights_[15]= 0.121003;
+// =======
   RectangleFE :: ~RectangleFE()
   {
     ENTER_FCN( "RectangleFE::~RectangleFE" );

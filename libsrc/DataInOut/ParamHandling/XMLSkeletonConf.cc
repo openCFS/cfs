@@ -89,8 +89,8 @@ namespace CoupledField {
     WriteSubdomains(); 
     //  WriteLists(); --> has to be done in WriteSubdomains!!
 
-    (*skelfile_) << myendl << "   <!--  PDE SPECIFIC PARAMETERS -->" << myendl 
-                 << "   <pdeList>" << myendl << myendl;
+    (*skelfile_) <<myendl<< "   <!--  PDE SPECIFIC PARAMETERS -->" << myendl
+		 << "   <pdeList>" << myendl << myendl;
     WritePDE();
     (*skelfile_)  << "   </pdeList>" << std::endl << myendl;
 
@@ -159,6 +159,7 @@ namespace CoupledField {
     ptQ1   = new Quad1FE();
     ptQ2   = new Quad2FE();
     ptTet1 = new Tetra1FE();
+    ptTet2 = new Tetra2FE();
     ptL1   = new Line1FE();
     ptL2   = new Line2FE();
     ptTr1  = new Triangle1FE();
@@ -166,6 +167,7 @@ namespace CoupledField {
     ptHexa1 = new Hexa1FE();
     ptHexa2 = new Hexa2FE();
     ptPyra1 = new Pyra1FE();
+    ptPyra2 = new Pyra2FE();
     ptWedge1 = new Wedge1FE();
     ptWedge2 = new Wedge2FE();
 
@@ -276,29 +278,29 @@ namespace CoupledField {
     ENTER_FCN("SkeletonConf::WritePDE");
 
     (*skelfile_) << "      <!-- name of pde -->" << std::endl
-                 << "      <XXX>" << std::endl 
-                 << std::endl
-                 << "         <region name=\"XXX\"/>" << std::endl 
-                 << std::endl
-                 << "         <!-- boundary conditions -->" << std::endl
-                 << "         <bcsAndLoads>" << std::endl
-                 << "            <dirichletHom   name=\"XXX\"/>" << std::endl
-                 << "            <dirichletInhom name=\"XXX\" value=\"1\" />"
-                 << std::endl
-                 << "            <load           name=\"XXX\" value=\"1\" />"
-                 << std::endl 
-                 << "         </bcsAndLoads>" << std::endl 
-                 << myendl
-                 << "         <!-- storing of results -->" << std::endl
-                 << "         <storeResults>" << std::endl
-                 << "           <!-- <nodeResults type=\"XXX\"/>                 -->"  
-                 << std::endl
-                 << "           <!-- <nodeHistory type=\"XXX\" saveNodes=\"XXX\"/> -->" 
-                 << std::endl
-                 << "           <!-- <elemResults type=\"XXX\" region=\"XXX\"/>    -->" 
-                 << std::endl
-                 << "         </storeResults>" << std::endl
-                 << "      </XXX>" << std::endl << std::endl;
+      << "      <XXX>" << std::endl 
+      << std::endl
+      << "         <region name=\"XXX\"/>" << std::endl 
+      << std::endl
+      << "         <!-- boundary conditions -->" << std::endl
+      << "         <bcsAndLoads>" << std::endl
+      << "            <dirichletHom   name=\"XXX\"/>" << std::endl
+      << "            <dirichletInhom name=\"XXX\" value=\"1\" />"
+      << std::endl
+      << "            <load           name=\"XXX\" value=\"1\" />"
+      << std::endl 
+      << "         </bcsAndLoads>" << std::endl 
+      << myendl
+      << "         <!-- storing of results -->" << std::endl
+      << "         <storeResults>" << std::endl
+      << "           <!-- <nodeResults type=\"XXX\"/>                 -->"  
+      << std::endl
+      << "           <!-- <nodeHistory type=\"XXX\" saveNodes=\"XXX\"/> -->"
+      << std::endl
+      << "           <!-- <elemResults type=\"XXX\" region=\"XXX\"/>    -->" 
+      << std::endl
+      << "         </storeResults>" << std::endl
+      << "      </XXX>" << std::endl << std::endl;
   }
 
   void SkeletonConf::WriteCouplingList ()
@@ -363,8 +365,8 @@ namespace CoupledField {
                   << "     <stepSaveBeg> 1    </stepSaveBeg>    " << std::endl
                   << "     <stepSaveEnd> 1    </stepSaveEnd>    " << std::endl
                   << "     <stepSaveInc> 1    </stepSaveInc>    " << std::endl
-                  << "     <timeDataFile name=\"XXX.dat\"/>       " << std::endl
-                  << "   </transient>                         -->" << std::endl 
+                  << "     <timeDataFile name=\"XXX.dat\"/>     " << std::endl
+                  << "   </transient>                        -->" << std::endl 
                   << myEndl;
 
     // Harmonic Analysis
@@ -372,7 +374,7 @@ namespace CoupledField {
                   << "following lines -->" << std::endl
                   << "   <!--<harmonic>    " << std::endl
                   << "      <numFreq>    1   </numFreq>       " << std::endl
-                  << "      <startFreq>  1e3 </startFreq>        " << std::endl
+                  << "      <startFreq>  1e3 </startFreq>     " << std::endl
                   << "      <stopFreq>   1   </stopFreq>    " << std::endl
                   << "   </harmonic>                         -->" << std::endl 
                   << myEndl;
@@ -389,7 +391,7 @@ namespace CoupledField {
                   << "       <pde refTag=\"XXX\" type=\"XXX\" " 
                   << "analysis=\"XXX\"/>" << std::endl
                   << "     </step>               " << std::endl
-                  << "   </multiSequence>                            -->" << std::endl 
+         << "   </multiSequence>                            -->" << std::endl 
                   << myEndl;
 
 

@@ -359,14 +359,13 @@ namespace CoupledField{
                                                        CFSVector & val) const
   {
     ENTER_FCN("NodeStoreSol::GetSolVectorSingleDof");
-
     UInt solDof = (*solDofs_.find(type)).second;
 #ifdef CHECK_INITIALIZED
-  
+
     if (length_ == 0) 
       Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 
-  
+
     std::string errMsg;
     if (dof > solDof)
       {
@@ -380,22 +379,19 @@ namespace CoupledField{
   
     UInt offset = (*solOffset_.find(type)).second;
     UInt dofs = (*solDofs_.find(type)).second;
-  
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
-  
+    
     Integer eqnNr;
     UInt eqnDof, dofsPerEQN;
     UInt globNumNodes = ptGrid_->GetNumNodes();
-  
     temp.Resize(globNumNodes);
     dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
-  
     UInt numLocNodes = ptEQN_->GetNumLocalNodes();
     UInt globNode = 0;
     for (UInt iNode=0; iNode<numLocNodes; iNode++) {
       globNode = ptEQN_->PDE2MeshNode(iNode+1);
       ptEQN_->Node2EQN(globNode,dof+1+offset,eqnNr,eqnDof);
-    
+ 
       if (eqnNr > 0) 
         temp[globNode-1] = data_[(eqnNr-1) * dofsPerEQN + (eqnDof-1)];
       else if (eqnNr == 0)

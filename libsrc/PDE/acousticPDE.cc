@@ -818,14 +818,15 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         hasOutput_ = TRUE;
       }
 
-      // --- acoustic potential ---
+      // --- acoustic rhsval ---
       Enum2String(ACOU_RHSVAL, quantity);
       valVec = "", "", quantity;
       params->GetList( keyVec, attrVec, valVec, nodeValues);
       if (nodeValues.GetSize() > 0) {
-        saveRHSval_ = TRUE;
-        hasOutput_ = TRUE;
+	saveRHSval_ = TRUE;
+	hasOutput_ = TRUE;
       }
+
 
       // --- acoustic potential, 1. Deriv ---
       Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
@@ -930,6 +931,7 @@ node results in acoustic potential.", __FILE__,__LINE__);
 
       }
 
+
       // --- acoustic RHS ---
       Enum2String(ACOU_RHSVAL, quantity);
       valVec  = "", "", quantity;
@@ -942,6 +944,7 @@ node results in acoustic potential.", __FILE__,__LINE__);
         for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
+
 
       }
 

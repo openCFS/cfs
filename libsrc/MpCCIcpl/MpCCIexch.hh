@@ -25,7 +25,7 @@ namespace CoupledField
     virtual ~MpCCIexch();
 
     //! Reorganizing grid info for MpCCi and hand over to MpCCI
-    void PutExchangeGrid2MpCCI(StdVector<std::string> subdoms);
+    void PutExchangeGrid2MpCCI(StdVector<RegionIdType> subdoms);
 
     //! Performs the coupled computation phase
     void CouplCompPhase(Matrix<Double> & flowdata, Integer timestep);
@@ -34,7 +34,7 @@ namespace CoupledField
 
     // pointers to objects
     Grid * ptgrid_;           //!< pointer to Grid
-    StdVector<std::string> subdoms_;  //!< subdomain-levels belongig to PDE
+    StdVector<RegionIdType> subdoms_;  //!< subdomain-levels belongig to PDE
     ShortInt Dim_;         //!< space dimension of pde  
 
     //!MpCCI

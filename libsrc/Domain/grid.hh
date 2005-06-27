@@ -309,7 +309,8 @@ namespace CoupledField
       StdVector<Elem*> *dummy = NULL;
       return dummy;
     }
-  
+ 
+
     //! Return vector of element-neighbors for the node with number noOfNode
     //! \param noOfNode (in) global number of node
     //! \param neighbours (out) list with neighbors
@@ -346,8 +347,10 @@ namespace CoupledField
     //! a list of given elements. Ther are no duplicate entries.
     //! \param nodeList (out) list of unique node numbers in elemList
     //! \param elemList (in) list of elements
+    //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
-                                     const StdVector<Elem*> & elemList ) = 0;
+                                     const StdVector<Elem*> & elemList,
+				     Boolean onlyLinNodes = FALSE ) = 0;
   
     //! Resets the integration type of all known elements
     //! \deprecated Does anyone need this function?
@@ -397,6 +400,7 @@ namespace CoupledField
   private:
     ///
   };
+
 
 } // end of namespace
 #endif // FILE_GRID

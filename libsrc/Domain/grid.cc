@@ -16,21 +16,25 @@ namespace CoupledField
 
     ptFileType = aptFileType;
 
-    ptQ1     = new Quad1FE();
-    ptQ2     = new Quad2FE();
-    ptTet1   = new Tetra1FE();
-    ptL1     = new Line1FE();
-    ptL2     = new Line2FE();
-    ptTr1    = new Triangle1FE();
-    ptTr2    = new Triangle2FE();
-    ptHexa1  = new Hexa1FE();
-    ptHexa2  = new Hexa2FE();
-    ptPyra1  = new Pyra1FE();
-    ptWedge1 = new Wedge1FE();
-    ptWedge2 = new Wedge2FE();
+
+  ptQ1     = new Quad1FE();
+  ptQ2     = new Quad2FE();
+  ptTet1   = new Tetra1FE();
+  ptTet2   = new Tetra2FE();
+  ptL1     = new Line1FE();
+  ptL2     = new Line2FE();
+  ptTr1    = new Triangle1FE();
+  ptTr2    = new Triangle2FE();
+  ptHexa1  = new Hexa1FE();
+  ptHexa2  = new Hexa2FE();
+  ptPyra1  = new Pyra1FE();
+  ptPyra2  = new Pyra2FE();
+  ptWedge1 = new Wedge1FE();
+  ptWedge2 = new Wedge2FE();
 
 
   }
+
 
 
 
@@ -39,9 +43,11 @@ namespace CoupledField
   {
     ENTER_FCN( "Grid::SetIntTypeAllElems" );
 
+
     ptQ1    -> SetIntegrationType(aIntType);
     ptQ2    -> SetIntegrationType(aIntType);
     ptTet1  -> SetIntegrationType(aIntType);
+    ptTet2  -> SetIntegrationType(aIntType);
     ptL1    -> SetIntegrationType(aIntType);
     ptL2    -> SetIntegrationType(aIntType);
     ptTr1   -> SetIntegrationType(aIntType);
@@ -49,12 +55,14 @@ namespace CoupledField
     ptHexa1 -> SetIntegrationType(aIntType);
     ptHexa2 -> SetIntegrationType(aIntType);
     ptPyra1 -> SetIntegrationType(aIntType);
+    ptPyra2 -> SetIntegrationType(aIntType);
     ptWedge1-> SetIntegrationType(aIntType);
     ptWedge2-> SetIntegrationType(aIntType);
 
     ptQ1    ->Init();
     ptQ2    ->Init();
     ptTet1  ->Init();
+    ptTet2  ->Init();
     ptL1    ->Init();
     ptL2    ->Init();
     ptTr1   -> Init();
@@ -62,10 +70,12 @@ namespace CoupledField
     ptHexa1 -> Init();
     ptHexa2 -> Init();
     ptPyra1 -> Init();
+    ptPyra2 -> Init();
     ptWedge1-> Init();
     ptWedge2-> Init();
-
   }
+
+
 
 
 
@@ -76,6 +86,7 @@ namespace CoupledField
     if (ptQ1)     delete ptQ1;
     if (ptQ2)     delete ptQ2;
     if (ptTet1)   delete ptTet1;
+    if (ptTet2)   delete ptTet2;
     if (ptL1)     delete ptL1;
     if (ptL2)     delete ptL2;
     if (ptTr1)    delete ptTr1;
@@ -83,11 +94,11 @@ namespace CoupledField
     if (ptHexa1)  delete ptHexa1;
     if (ptHexa2)  delete ptHexa2;
     if (ptPyra1)  delete ptPyra1;
+    if (ptPyra2)  delete ptPyra2;
     if (ptWedge1) delete ptWedge1;
     if (ptWedge2) delete ptWedge2;
   
   }
-
 
 
 

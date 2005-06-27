@@ -254,7 +254,8 @@ namespace CoupledField
  
     //! Returns node numbers of a list of Elements
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
-                             const StdVector<Elem*> & elemList )
+                             const StdVector<Elem*> & elemList,
+			     			     Boolean onlyLinNodes = FALSE)
     {Error("Method not supported by GridStruct-Class"); };
 
 

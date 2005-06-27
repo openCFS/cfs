@@ -71,11 +71,13 @@ namespace CoupledField
     //std::cerr << "After init of pde2MeshElem" << std::endl;
     //std::cerr << "Size of pde2MeshEl
 
+
     UInt nodeCounter = 0;
     UInt elemCounter = 1;
  
     StdVector<Elem*> subdom;
  
+
     // iterate over all subdomains
     for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++)
       {

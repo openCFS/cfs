@@ -42,7 +42,7 @@ namespace CoupledField
     if (nodeIds_)  delete [] nodeIds_;
   }
 
-  void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> coupledsubdoms)
+  void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
   {
     ENTER_FCN("entering MpCCIexch::PutExchangeGrid2MpCCI");
 
@@ -50,10 +50,8 @@ namespace CoupledField
   
     CCI_Def_partition(meshId_, partId_);
  
-    actlevel_= 0;
-
     Matrix<Double> ptCoordNodes;
-    StdVector<Integer> connecth;
+    StdVector<UInt> connecth;
     Integer i,j,ii;
     Integer elsize = -1;
 
@@ -68,69 +66,83 @@ namespace CoupledField
 
     for (i=0; i<(coupledsubdoms.GetSize()); i++)
       {
-        ptgrid_->GetElemSD(elemssd,coupledsubdoms[i],actlevel_);
+	ptgrid_->GetVolElems(elemssd,coupledsubdoms[i]);
+	elsize=(elemssd[0]->connect).GetSize();
+	//workaround for computing with quadratic hexas 
+	if  ((elsize==20)&&(Dim_==3))
+	  {
+	    elsize=8;
+	  }
+	else if ((elsize==10)&&(Dim_==3))
+	  {
+	    elsize=4;
+	  }
+	else
+	  elsize=(elemssd[0]->connect).GetSize();
+      
+	TOPOLOGYDATA[i]=new int[elsize*elemssd.GetSize()];	  
 
-        elsize=(elemssd[0]->connect).GetSize();
-        TOPOLOGYDATA[i]=new int[elsize*elemssd.GetSize()];          
-        int k=0;
-        for (j=0; j< elemssd.GetSize(); j++)
-          {
-            connecth=elemssd[j]->connect;
-            //      ptCoordNodes=new Point<2>[connecth.size()];
-            //      ptgrid_->GetCoordNodesElem(connecth,ptCoordNodes,actlevel_);
-            ptgrid_->GetCoordNodesElemMat(connecth,ptCoordNodes,actlevel_);
-            for (ii=0; ii<elsize; ii++, k++)
-              {  
-                if ((elsize==8)&&(Dim_==2))
-                  {
-                    // A bit hard coded node order transformation
-                    if ((ii==0)||(ii==7))
-                      TOPOLOGYDATA[i][k]=connecth[ii];
-                    else
-                      if ((ii==2)||(ii==4)||(ii==6))
-                        TOPOLOGYDATA[i][k]=connecth[ii/2];
-                      else
-                        {
-                          switch(ii) 
-                            {
-                            case 1:
-                              {
-                                TOPOLOGYDATA[i][k]=connecth[ii+3];
-                                break;
-                              }
-                            case 3:
-                              {
-                                TOPOLOGYDATA[i][k]=connecth[ii+2];
-                                break;
-                              }
-                            case 5:
-                              {
-                                TOPOLOGYDATA[i][k]=connecth[ii+1];
-                                break;
-                              }
-                            }
-                        }
-                  }
-                else
-                  TOPOLOGYDATA[i][k]=connecth[ii];
-              
-                NODEDATA[3*(connecth[ii]-1)]=ptCoordNodes[0][ii];               
-                NODEDATA[3*(connecth[ii]-1)+1]=ptCoordNodes[1][ii];
-                if(Dim_==3)
-                  NODEDATA[3*(connecth[ii]-1)+2]= ptCoordNodes[2][ii]; // z-component for the 2d case is zero
-                else
-                  NODEDATA[3*(connecth[ii]-1)+2]= 0.0; // z-component for the 2d case is zero                   
-              }   
-          }
 
-        //              std::cout<<"NODEDATA 1d Array:"<<std::endl;
-        //              for (ii=0; ii<(3*size_); ii++)
-        //                std::cout<<NODEDATA[ii]<<"\t";
-        //              std::cout<<std::endl;
-        //              std::cout<<"TOPOLOGYDATA 1d Array:"<<std::endl;
-        //              for (ii=0; ii<(elsize*maxnumelem_); ii++)
-        //                std::cout<<TOPOLOGYDATA[ii]<<"\t";                  
-        //              std::cout<<std::endl;
+
+	int k=0;
+	for (j=0; j< elemssd.GetSize(); j++)
+	  {
+	    connecth=elemssd[j]->connect;
+	    // 	  ptCoordNodes=new Point<2>[connecth.size()];
+	    //	  ptgrid_->GetCoordNodesElem(connecth,ptCoordNodes,actlevel_);
+	    ptgrid_->GetElemNodesCoord(ptCoordNodes,connecth);
+	    for (ii=0; ii<elsize; ii++, k++)
+	      {  
+		if ((elsize==8)&&(Dim_==2))
+		  {
+		    // A bit hard coded node order transformation
+		    if ((ii==0)||(ii==7))
+		      TOPOLOGYDATA[i][k]=connecth[ii];
+		    else
+		      if ((ii==2)||(ii==4)||(ii==6))
+			TOPOLOGYDATA[i][k]=connecth[ii/2];
+		      else
+			{
+			  switch(ii) 
+			    {
+			    case 1:
+			      {
+				TOPOLOGYDATA[i][k]=connecth[ii+3];
+				break;
+			      }
+			    case 3:
+			      {
+				TOPOLOGYDATA[i][k]=connecth[ii+2];
+				break;
+			      }
+			    case 5:
+			      {
+				TOPOLOGYDATA[i][k]=connecth[ii+1];
+				break;
+			      }
+			    }
+			}
+		  }
+		else
+		  TOPOLOGYDATA[i][k]=connecth[ii];
+	      
+		NODEDATA[3*(connecth[ii]-1)]=ptCoordNodes[0][ii];		      
+		NODEDATA[3*(connecth[ii]-1)+1]=ptCoordNodes[1][ii];
+		if(Dim_==3)
+		  NODEDATA[3*(connecth[ii]-1)+2]= ptCoordNodes[2][ii];
+		else
+		  NODEDATA[3*(connecth[ii]-1)+2]= 0.0; // z-component for the 2d case is zero		      
+	      }	
+	  }
+
+	// 	      std::cout<<"NODEDATA 1d Array:"<<std::endl;
+	// 	      for (ii=0; ii<(3*size_); ii++)
+	// 		std::cout<<NODEDATA[ii]<<"\t";
+	// 	      std::cout<<std::endl;
+	// 	      std::cout<<"TOPOLOGYDATA 1d Array:"<<std::endl;
+	// 	      for (ii=0; ii<(elsize*maxnumelem_); ii++)
+	// 		std::cout<<TOPOLOGYDATA[ii]<<"\t";		    
+	// 	      std::cout<<std::endl;
 
       }
 
@@ -139,66 +151,144 @@ namespace CoupledField
 
     for (i=0; i<coupledsubdoms.GetSize(); i++)
       {
-        ptgrid_->GetElemSD(elemssd,coupledsubdoms[i],actlevel_);
-        int k=0;
-        nElemIds_=0;
-        Integer nElemSD=elemssd.GetSize();
-        elemIds_ = new Integer[nElemSD];
-        elemIds_[0] = 0;
-        nElemTypes_ = 1;
-        nNodesPerElem_ = new Integer[nElemSD];
-        elemTypes_ = new Integer[nElemSD];
-        elsize=(elemssd[0]->connect).GetSize();// each subdomain must have only one elementtype
-        switch(elsize)
-          {
-          case 2:
-            {
-              nNodesPerElem_[0] = 2;      
-              elemTypes_[0] = CCI_ELEM_LINE;
-              break;
-            }
-          case 3:
-            {
-              nNodesPerElem_[0] = 3;      
-              elemTypes_[0] = CCI_ELEM_TRIANGLE;
-              break;
-            }
-          case 4:
-            {
-              nNodesPerElem_[0] = 4;  
-              if(Dim_==3)
-                elemTypes_[0] = CCI_ELEM_TETRAHEDRON;
-              else
-                elemTypes_[0] = CCI_ELEM_QUAD;
-              break;
-            }
-          case 5:
-            {
-              nNodesPerElem_[0] = 5;      
-              elemTypes_[0] = CCI_ELEM_PYRAMID;
-              break;
-            }
-          case 6:
-            {
-              nNodesPerElem_[0] = 6;
-              elemTypes_[0] = CCI_ELEM_PRISM;
-              break;
-            }
-          case 8:
-            {
-              nNodesPerElem_[0] = 8; 
-              if (Dim_==3)
-                elemTypes_[0] = CCI_ELEM_HEXAHEDRON;
-              else
-                elemTypes_[0] = CCI_ELEM_QUAD8;
-              break;
-              
-            }
-          }
+	ptgrid_->GetVolElems(elemssd,coupledsubdoms[i]);
+	int k=0;
+	nElemIds_=0;
+	Integer nElemSD=elemssd.GetSize();
+	elemIds_ = new Integer[nElemSD];
+	elemIds_[0] = 0;
+	nElemTypes_ = 1;
+	nNodesPerElem_ = new Integer[nElemSD];
+	elemTypes_ = new Integer[nElemSD];
+	// each subdomain must have only one elementtype
+	//workaround for computing with quadratic hexas 
+	elsize=(elemssd[0]->connect).GetSize();
+	if  ((elsize==20)&&(Dim_==3))
+	  {
+	    elsize=8;
+	  }
+	else if ((elsize==10)&&(Dim_==3))
+	  {
+	    elsize=4;
+	  }
+	else
+	  elsize=(elemssd[0]->connect).GetSize();
+	switch(elsize)
+	  {
+	  case 2:
+	    {
+	      nNodesPerElem_[0] = 2;      
+	      elemTypes_[0] = CCI_ELEM_LINE;
+	      break;
+	    }
+	  case 3:
+	    {
+	      nNodesPerElem_[0] = 3;      
+	      elemTypes_[0] = CCI_ELEM_TRIANGLE;
+	      break;
+	    }
+	  case 4:
+	    {
+	      nNodesPerElem_[0] = 4;  
+	      if(Dim_==3)
+		elemTypes_[0] = CCI_ELEM_TETRAHEDRON;
+	      else
+		elemTypes_[0] = CCI_ELEM_QUAD;
+	      break;
+	    }
+	  case 5:
+	    {
+	      nNodesPerElem_[0] = 5;      
+	      elemTypes_[0] = CCI_ELEM_PYRAMID;
+	      break;
+	    }
+	  case 6:
+	    {
+	      nNodesPerElem_[0] = 6;
+	      elemTypes_[0] = CCI_ELEM_PRISM;
+	      break;
+	    }
+	  case 8:
+	    {
+	      nNodesPerElem_[0] = 8; 
+	      if (Dim_==3)
+		elemTypes_[0] = CCI_ELEM_HEXAHEDRON;
+	      else
+		elemTypes_[0] = CCI_ELEM_QUAD8;
+	      break;
+	      
+	    }
+	  }
       
-        //define the elements
-        CCI_Def_elems(meshId_, partId_, nElemSD, nElemIds_, elemIds_, nElemTypes_, elemTypes_, nNodesPerElem_, TOPOLOGYDATA[i]);
-      }
+	//define the elements
+	CCI_Def_elems(meshId_, partId_, nElemSD, nElemIds_, elemIds_, 
+		      nElemTypes_, elemTypes_, nNodesPerElem_, TOPOLOGYDATA[i]);
+	// =======
+	//         elsize=(elemssd[0]->connect).GetSize();
+	//         TOPOLOGYDATA[i]=new int[elsize*elemssd.GetSize()];          
+	//         int k=0;
+	//         for (j=0; j< elemssd.GetSize(); j++)
+	//           {
+	//             connecth=elemssd[j]->connect;
+	//             //      ptCoordNodes=new Point<2>[connecth.size()];
+	//             //      ptgrid_->GetCoordNodesElem(connecth,ptCoordNodes,actlevel_);
+	//             ptgrid_->GetCoordNodesElemMat(connecth,ptCoordNodes,actlevel_);
+	//             for (ii=0; ii<elsize; ii++, k++)
+	//               {  
+	//                 if ((elsize==8)&&(Dim_==2))
+	//                   {
+	//                     // A bit hard coded node order transformation
+	//                     if ((ii==0)||(ii==7))
+	//                       TOPOLOGYDATA[i][k]=connecth[ii];
+	//                     else
+	//                       if ((ii==2)||(ii==4)||(ii==6))
+	//                         TOPOLOGYDATA[i][k]=connecth[ii/2];
+	//                       else
+	//                         {
+	//                           switch(ii) 
+	//                             {
+	//                             case 1:
+	//                               {
+	//                                 TOPOLOGYDATA[i][k]=connecth[ii+3];
+	//                                 break;
+	//                               }
+	//                             case 3:
+	//                               {
+	//                                 TOPOLOGYDATA[i][k]=connecth[ii+2];
+	//                                 break;
+	//                               }
+	//                             case 5:
+	//                               {
+	//                                 TOPOLOGYDATA[i][k]=connecth[ii+1];
+	//                                 break;
+	//                               }
+	//                             }
+	//                         }
+	//                   }
+	//                 else
+	//                   TOPOLOGYDATA[i][k]=connecth[ii];
+              
+	//                 NODEDATA[3*(connecth[ii]-1)]=ptCoordNodes[0][ii];               
+	//                 NODEDATA[3*(connecth[ii]-1)+1]=ptCoordNodes[1][ii];
+	//                 if(Dim_==3)
+	//                   NODEDATA[3*(connecth[ii]-1)+2]= ptCoordNodes[2][ii];
+	//                 else
+	//                   NODEDATA[3*(connecth[ii]-1)+2]= 0.0; // z-component for the 2d case is zero                   
+	//               }   
+	// >>>>>>> 1.11
+
+    //              std::cout<<"NODEDATA 1d Array:"<<std::endl;
+    //              for (ii=0; ii<(3*size_); ii++)
+    //                std::cout<<NODEDATA[ii]<<"\t";
+    //              std::cout<<std::endl;
+    //              std::cout<<"TOPOLOGYDATA 1d Array:"<<std::endl;
+    //              for (ii=0; ii<(elsize*maxnumelem_); ii++)
+    //                std::cout<<TOPOLOGYDATA[ii]<<"\t";                  
+    //              std::cout<<std::endl;
+
+     }
+
+
   
 
     //Close the definition phase; contact detection.
@@ -255,64 +345,64 @@ namespace CoupledField
     Double *value_Press = new Double[MpCCInodes_]; // pressure
     Double *value_VxVy = new Double[MpCCInodes_*3]; //*3 due to velx, vely, velz (for 2D=0)
 
-      Integer globalConvergence = CCI_CONTINUE;
-      Integer myConvergence     = CCI_CONTINUE;
+							Integer globalConvergence = CCI_CONTINUE;
+    Integer myConvergence     = CCI_CONTINUE;
 
-      //Retrieve valuedata via MpCCI
-      //   while ( globalConvergence != CCI_STOP ) 
-      //     {
+    //Retrieve valuedata via MpCCI
+    //   while ( globalConvergence != CCI_STOP ) 
+    //     {
 
-      CCI_Recv(nQuantityIds, quantityIds, nLocalMeshIds, localMeshIds, comm, &status);
+    CCI_Recv(nQuantityIds, quantityIds, nLocalMeshIds, localMeshIds, comm, &status);
 
-      //Get_nodes is a local operation
-      //PRESSURE
-      CCI_Get_nodes( meshId_, partId_, quantityId1, quantityDim1, MpCCInodes_, nNodeIds_, nodeIds_,
-                     CCI_DOUBLE, value_Press, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
-      //VELOCITY
-      CCI_Get_nodes( meshId_, partId_, quantityId2, quantityDim2, MpCCInodes_, nNodeIds_, nodeIds_,
-                     CCI_DOUBLE, value_VxVy, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
+    //Get_nodes is a local operation
+    //PRESSURE
+    CCI_Get_nodes( meshId_, partId_, quantityId1, quantityDim1, MpCCInodes_, nNodeIds_, nodeIds_,
+		   CCI_DOUBLE, value_Press, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
+    //VELOCITY
+    CCI_Get_nodes( meshId_, partId_, quantityId2, quantityDim2, MpCCInodes_, nNodeIds_, nodeIds_,
+		   CCI_DOUBLE, value_VxVy, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
 
-      // Putting values in our matrix flowdata
-      Integer k = 0;
+    // Putting values in our matrix flowdata
+    Integer k = 0;
 
 
-      Boolean nodalSrc;
-      //check type of flow data
-      if( params->HasValue( "type", "nodalSrc", "acoustic", "flowData" ) ) {
-        nodalSrc = TRUE;
-        Info->PrintF("acoustic", "In MpCCIexch Using FlowData as RHS nodal source\n" );
-      }
+    Boolean nodalSrc;
+    //check type of flow data
+    if( params->HasValue( "type", "nodalSrc", "acoustic", "flowData" ) ) {
+      nodalSrc = TRUE;
+      Info->PrintF("acoustic", "In MpCCIexch Using FlowData as RHS nodal source\n" );
+    }
     
 
 
 
-      if (nodalSrc == TRUE)
-        for (Integer inode=0; inode<MpCCInodes_; inode++)
-          {
-            flowdata[0][inode] = value_Press[inode]; // Getting first column as INT(dTdxdw)
-          }
-      else
-        {
-          for (Integer inode=0; inode<MpCCInodes_; inode++)
-            {
-              flowdata[0][inode] = value_Press[inode];
-              for(Integer i=0;i<Dim_;i++)
-                flowdata[i+1][inode] = value_VxVy[k+i];
+    if (nodalSrc == TRUE)
+      for (Integer inode=0; inode<MpCCInodes_; inode++)
+	{
+	  flowdata[0][inode] = value_Press[inode]; // Getting first column as INT(dTdxdw)
+	}
+    else
+      {
+	for (Integer inode=0; inode<MpCCInodes_; inode++)
+	  {
+	    flowdata[0][inode] = value_Press[inode];
+	    for(Integer i=0;i<Dim_;i++)
+	      flowdata[i+1][inode] = value_VxVy[k+i];
               
-              k = k+3;
-            }
-        }
+	    k = k+3;
+	  }
+      }
       
  
-      //check covergence: do another time step or not!
-      CCI_Check_convergence(myConvergence,&globalConvergence,CCI_ANY_CODE);
+    //check covergence: do another time step or not!
+    CCI_Check_convergence(myConvergence,&globalConvergence,CCI_ANY_CODE);
 
-      //     }
+    //     }
 
-      if (quantityIds)  delete [] quantityIds;
-      if (value_Press)  delete [] value_Press;
-      if (value_VxVy)  delete []  value_VxVy;
-      std::cout<<"Leaving CplCompPhase"<<std::endl;
+    if (quantityIds)  delete [] quantityIds;
+    if (value_Press)  delete [] value_Press;
+    if (value_VxVy)  delete []  value_VxVy;
+    std::cout<<"Leaving CplCompPhase"<<std::endl;
   }
       
 } // end of namespace
