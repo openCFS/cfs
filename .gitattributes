@@ -4,7 +4,7 @@ Doc/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
 Doc/DoxygenConfig/changeDate.sh svneol=native#text/plain
 Doc/DoxygenConfig/doxy-config -text
 Doc/DoxygenConfig/doxygen_manual.pdf -text svneol=unset#application/pdf
-Doc/DoxygenConfig/footer.html svneol=native#text/html
+Doc/DoxygenConfig/footerTemplate.html svneol=native#text/html
 Doc/DoxygenConfig/header.html svneol=native#text/html
 Doc/DoxygenConfig/mainpage.txt svneol=native#text/plain
 Doc/Protokolle/Treffen_03_11_2003.pdf -text svneol=unset#application/pdf
