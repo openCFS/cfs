@@ -16,10 +16,9 @@ namespace CoupledField
 
   MpCCIexch::MpCCIexch(Grid *aptgrid, Integer nNodesSD)
   {
-#ifdef TRACE
-    (*trace) << "entering MpCCIexch::MpCCIexch " << std::endl;
-#endif
-    std::cout<<"Nodes SD: "<<nNodesSD<<std::endl;
+    ENTER_FCN("entering MpCCIexch::MpCCIexch");
+
+   std::cout<<"Nodes SD: "<<nNodesSD<<std::endl;
     ptgrid_ = aptgrid;
     // MpCCInodes_ = ptgrid_->GetMaxnumnodes(0);
     MpCCInodes_ = nNodesSD;
@@ -45,10 +44,7 @@ namespace CoupledField
 
   void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<std::string> coupledsubdoms)
   {
-#ifdef TRACE
-    (*trace) << "entering MpCCIexch::PutExchangeGrid2MpCCI" << std::endl;
-#endif
-
+    ENTER_FCN("entering MpCCIexch::PutExchangeGrid2MpCCI");
 
     // Here starts part for giving mixed mesh to MpCCI
   
@@ -221,9 +217,7 @@ namespace CoupledField
 
   void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
   {
-#ifdef TRACE
-    (*trace) << "entering MpCCIexch::CouplCompPhase" << std::endl;
-#endif
+    ENTER_FCN("entering MpCCIexch::CouplCompPhase");
 
     //Coupling parameters for MpCCI
     Integer nQuantityIds;
