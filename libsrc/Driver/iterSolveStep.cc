@@ -114,6 +114,7 @@ namespace CoupledField
     ENTER_FCN( "IterSolveStep::SolveStepTrans" );
 
     UInt iter = 0;
+
     Boolean normsReached = FALSE;
     std::string quantityConv;
     
@@ -133,6 +134,19 @@ namespace CoupledField
 
         UInt counter = 0;
         normsReached = TRUE;
+
+#ifdef MpCCI
+	// whenever iter == 0 the old time step has converged
+	// in CalcInputCoupling of mpcciPDE CFS++ tells with the 
+	// flag converged_==true that a new time step begins
+	//For the first iteration of the first time step this is ignored 
+	//because of the flag flagFirstTime in CalcInputCoupling of mpcciPDE
+	if (iter == 0)
+	  rPDE_.PDEs_[0]->converged_ = TRUE; 
+	else
+	  rPDE_.PDEs_[0]->converged_ = FALSE; 
+#endif
+
       
         for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
           {
@@ -180,7 +194,16 @@ namespace CoupledField
         iter++;
         if (rPDE_.nonLinLogging_)
           Info->PrintF(rPDE_.pdename_, "\n"); 
+      } // end while
+
+#ifdef MpCCI
+    if (actStep_==numTimeStep_)
+      {
+	rPDE_.PDEs_[0]->converged_ = TRUE;
+	rPDE_.PDEs_[0]->CalcInputCoupling();
       }
+#endif
+
   } 
   
   //----------------------- HARMONIC---------------------------------------
