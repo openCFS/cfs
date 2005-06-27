@@ -32,6 +32,9 @@ namespace CoupledField
     //! Print values of time function in stream outfile
     void Print(std::ostream * outfile) const;
 
+    //Set StartVector for structured Grid
+    void SetStartTimeVector(Integer numBcs);
+
     //! return the number of time functions
     UInt GetmaxTimeFnc() 
     {
@@ -57,6 +60,9 @@ namespace CoupledField
 
     //!
     Boolean timeFncDatFiles_;
+
+    //!
+    StdVector<Double> startTime_;
   };
 } // end of namespace
 #endif

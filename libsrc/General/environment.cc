@@ -78,6 +78,8 @@ namespace CoupledField {
       out = STATIC;
     else if (in == "transient")
       out = TRANSIENT;
+   else if (in == "transient4Slice")
+      out = TRANSIENT4SLICE;
     else if (in == "harmonic")
       out = HARMONIC;
     else if (in == "eigenfrequency")

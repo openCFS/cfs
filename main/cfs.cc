@@ -186,11 +186,21 @@ int main( int argc, const char **argv ) {
   // SETUP OF IO-STUFF
   // =========================================================================
 
-  // Generate mesh reader
-  Info->StartProgress( "Generating mesh reader" );
-  FileType *ptInputfile = FileHandler.CreateMeshFileHandler();
-  Info->FinishProgress();
+  // read type of mesh-libraray
+  std::string libmesh;
+  params->Get( "meshLibrary", libmesh, "input" );
 
+  FileType *ptInputfile;
+  if ( libmesh == "structGrid" ) {
+    //for struct grid we do not need a mesh-input-file
+    ptInputfile = NULL;
+  }
+  else {
+    // Generate mesh reader
+    Info->StartProgress( "Generating mesh reader" );
+    ptInputfile = FileHandler.CreateMeshFileHandler();
+    Info->FinishProgress();
+  }
 
   Info->StartProgress( "Generating remaining output files" );
 
@@ -219,8 +229,8 @@ int main( int argc, const char **argv ) {
   // Only output of grid
   // =========================================================================
   if ( commandLine->GetPrintGrid() == TRUE ) {
-    STDOUT << "Printing grid to file " <<  commandLine->GetSimName()
-           << ".unv" << myEndl << myEndl;
+    STDOUT << "Printing grid to file " << myEndl << myEndl;
+    PrintGridOnly = TRUE;
     domain.PrintGrid();
     exit(0);
   }
@@ -274,6 +284,10 @@ int main( int argc, const char **argv ) {
 
   case TRANSIENT:
     ptdriver = new TransientDriver( &domain );
+    break;
+
+  case TRANSIENT4SLICE:
+    ptdriver = new Transient4SliceDriver( &domain );
     break;
 
   case HARMONIC:

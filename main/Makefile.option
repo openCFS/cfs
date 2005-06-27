@@ -160,19 +160,19 @@ DATABASE = no
 # -----------------------------------------------------------------------------
 
 # Was OLAS compiled with support for hypre?
-HYPRE = yes
+HYPRE = no 
 
 # Was OLAS compiled with support for LAPACK?
-LAPACK = no
+LAPACK = no 
 
 # Was OLAS compiled with support for TVMET?
-TVMET = no
+TVMET = no 
 
 # Was OLAS compiled with support for Pardiso?
 PARDISO = no
 
 # Was OLAS compiled with support for Metis?
-METIS = no
+METIS = no 
 
 
 # -----------------------------------------------------------------------------

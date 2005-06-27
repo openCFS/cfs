@@ -189,7 +189,15 @@ namespace CoupledField {
       analysistype_ = STATIC;
     }
 
-    else if (analysisHelp == TRANSIENT) {
+    else if (analysisHelp == TRANSIENT ) {
+      isComplex_ = FALSE;
+      assemble_ = new TransientAssemble(algsys_, ptgrid_);
+      analysistype_ = TRANSIENT;
+      matrixTypes_.insert(STIFFNESS);
+      matrixTypes_.insert(MASS);
+    }
+
+    else if (analysisHelp == TRANSIENT4SLICE ) {
       isComplex_ = FALSE;
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
       analysistype_ = TRANSIENT;

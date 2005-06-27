@@ -50,8 +50,9 @@ namespace CoupledField {
     isIncrFormulation_  = PDE_.isIncrFormulation_;
 
 
-    pdeId1_ = NO_PDE_ID;
-    pdeId2_ = NO_PDE_ID;
+    pdeId1_   = NO_PDE_ID;
+    pdeId2_   = NO_PDE_ID;
+    numReset_ = 0;
   }
 
   
@@ -293,6 +294,62 @@ namespace CoupledField {
     
 
      
+  }
+
+
+  void StdSolveStep::SolveStepTrans4Slice( const Boolean reset ) {
+
+    ENTER_FCN( "StdSolveStep::SolveStepTrans4Slice" );
+
+    Double * ptsol;
+    UInt length = 0;
+
+    if ( reset ) {
+      numReset_ += 1;
+    }
+
+    //account for RHS
+    PDE_.AssembleSrcRHS( actTime_ );
+
+    //perform predictor step
+    Vector<Double> & solHelp1 = 
+        dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+    PDE_.TS_alg_->Predictor(solHelp1);
+
+    if ( actStep_ == 1) {
+      PDE_.AssembleMatrices();
+      PDE_.AssembleSprings( actTime_ );
+      PDE_.algsys_->ConstructEffectiveMatrix(matrix_factor_);
+    }
+    else if (reset) {
+      PDE_.algsys_->InitMatrix(SYSTEM);
+      PDE_.algsys_->ConstructEffectiveMatrix(matrix_factor_);
+    }
+
+    //update RHS due to time stepping
+    PDE_.TS_alg_->UpdateRHS();
+
+    if ( numReset_ == 0) {
+      PDE_.SetBCs( actTime_ );
+      PDE_.algsys_->BuildInDirichlet();
+    }
+
+    if ( actStep_ == 1 || reset == TRUE ) {
+      PDE_.algsys_->SetupPrecond( );
+      PDE_.algsys_->SetupSolver( );
+    }
+
+    PDE_.algsys_->Solve();
+
+    //get the solution
+    length = algsys_->GetSolutionVal(ptsol);
+    PDE_.SaveSolution(ptsol,length);
+   
+    //perform corrector step 
+    Vector<Double> & solHelp2 = 
+      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+    PDE_.TS_alg_->Corrector(solHelp2);
+        
   }
 
 
@@ -585,6 +642,22 @@ namespace CoupledField {
     ENTER_FCN( "StdSolveStep::SetPDEId" );
     
     pdeId1_ = pdeId;
+  }
+
+  void StdSolveStep::TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
+					const UInt flag) {
+    ENTER_FCN( "StdSolveStep::TransformSol4Slice" );
+    
+    PDE_.TransformSol4Slice(nodeShift, shiftFactor, flag); 
+  }
+
+  void StdSolveStep::SaveNodes(const UInt shiftFactor, const Double timeStep,
+		   const UInt numShift, const Integer nodeShift, 
+			       const UInt maxnumelemz_) {
+
+    ENTER_FCN( "StdSolveStep::SaveNodes" );
+    
+    PDE_.SaveNodes(shiftFactor, timeStep, numShift, nodeShift, maxnumelemz_);
   }
 
 

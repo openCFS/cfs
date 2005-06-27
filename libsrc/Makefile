@@ -12,6 +12,9 @@ domain:
 gridcfs:
 	@cd $(LIBSRC_DIR)/Domain/GridCFS; $(MAKE) -f Makefile
 
+gridstruct:
+	@cd $(LIBSRC_DIR)/Domain/GridStruct; $(MAKE) -f Makefile
+
 estimator:
 	@cd $(LIBSRC_DIR)/Estimator; $(MAKE) -f Makefile
 
