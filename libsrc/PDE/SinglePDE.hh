@@ -28,7 +28,6 @@ namespace CoupledField
 
     Boolean BooleanComplexMaterialData_;
 
-    Boolean converged_; //!< needed for coupling with MpCCI
  
 
  
