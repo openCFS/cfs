@@ -4,7 +4,7 @@
 #include <Matrix/matrix.hh>
 #include <Domain/grid.hh>
 #include <General/environment.hh>
-
+#include "PDE/nodeEQN.hh"
 
 namespace CoupledField
 {
@@ -19,7 +19,10 @@ namespace CoupledField
   public:
 
     //!
-    MpCCIexch(Grid * aptgrid, Integer nNodesSD);
+    MpCCIexch(Grid * aptgrid, UInt nNodesSD);
+
+    //!Fluid Structure constructor
+    MpCCIexch(Grid * aptgrid, StdVector<RegionIdType> subdoms);
 
     //!
     virtual ~MpCCIexch();
@@ -27,8 +30,37 @@ namespace CoupledField
     //! Reorganizing grid info for MpCCi and hand over to MpCCI
     void PutExchangeGrid2MpCCI(StdVector<RegionIdType> subdoms);
 
+    //! Define a partition for coupling via MpCCI
+    void DefMpcciPartition(UInt meshId, UInt partId);
+
+    //! Define Nodes belonging to a MpCCI partition and makes them known in MpCCI
+    void DefMpcciNodes(UInt  meshId, UInt partId, UInt nrNodes, UInt* Nodes, NodeEQN & eqnData);
+
+    //! Define Elements belonging to a MpCCI partition and makes them known in MpCCI
+    void DefMpcciElements(UInt meshId, UInt partId, NodeEQN & eqnData);
+
+    //! Define the communicator and call CloseSetup
+    void FinishMpcciSetup(std::string couplingType);
+
+    /////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////
+
     //! Performs the coupled computation phase
-    void CouplCompPhase(Matrix<Double> & flowdata, Integer timestep);
+    void CouplCompPhase(Matrix<Double> & flowdata, UInt timestep);
+
+    //! Receive values of all partitions/subdomains
+    void RecvAllPartitions(std::string couplingType);
+
+    //! Get the nodal value of one partition/subdomain
+    void GetNodalValOfOnePartition(UInt partId, Vector<Double> & forceData, UInt nrNodesSD, UInt* nodeIds, std::string couplingType);
+  
+    ////////////////////////////////////////////////////////////////
+
+    //! put values of one partitions/subdomain into the sending queue of MpCCI
+    void PutPartition(UInt partId, const Vector<Double>  & displData, UInt nrNodesSD, UInt* nodeIds, Boolean conv);
+
+    //! Sends values of all partitions/subdomains to MpCCI
+    void SendAllPartitions();
 
   private:
 
@@ -38,19 +70,21 @@ namespace CoupledField
     ShortInt Dim_;         //!< space dimension of pde  
 
     //!MpCCI
-    Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
+    UInt MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
     // Integer MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
-    Integer meshId_;
-    Integer partId_;
-    Integer nNodeIds_;
+    UInt meshId_;
+    UInt partId_;
+    UInt nNodeIds_;
     Integer *nodeIds_;
-    Integer GlobalDim_;
-    Integer nElemIds_;
+    UInt GlobalDim_;
+    UInt nElemIds_;
     Integer *elemIds_;
-    Integer nElemTypes_;
+    UInt nElemTypes_;
     Integer *nNodesPerElem_;
     Integer *elemTypes_;
     Integer MpCCIprocess_;
+    int ** TOPOLOGYDATA_;
+    double ** NODEDATA_;
   };
 
 } // end of namespace
