@@ -140,7 +140,12 @@ namespace CoupledField
     virtual Double GetActTime() {
       return actTime_;
     }
-    
+
+    //! Set number of time steps
+    virtual void SetNumTimeSteps( UInt numTimeStep ) {
+      ENTER_FCN( "BaseSolveStep::SetNumSteps") ;
+      numTimeStep_ = numTimeStep;
+    };
     
     //! Set the current time step value
     virtual void SetTimeStep( Double dt ) = 0;
@@ -161,6 +166,9 @@ namespace CoupledField
 
     //! Actual frequency 
     Double actFreq_;
+
+    //! number of time steps
+    UInt numTimeStep_;
     //!
   };
 
