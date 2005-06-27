@@ -95,6 +95,8 @@ namespace CoupledField {
   
     // Solve problem
     ptPDE_->GetSolveStep()->SetTimeStep(dt);
+
+    ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
   
     // if multiSequence is performed, the ms-driver
     // writes out the grid one time
