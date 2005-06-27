@@ -64,6 +64,7 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="cfsGrid"/>
               <xsd:enumeration value="adaptGrid"/>
+              <xsd:enumeration value="structGrid"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>

@@ -189,6 +189,15 @@ namespace CoupledField {
     virtual  void SetBCs( const Double atimestep ) = 0;
   
   
+    //! transform solution and derivatives due to slicing technique
+    void TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
+			    const UInt flag);
+
+    //! save solution of special nodes
+    void SaveNodes(const UInt shiftFactor, const Double timeStep,
+		   const UInt numShift, const Integer nodeShift, 
+		   const UInt maxnumelemz_);
+
     // ======================================================
     // METHODS FOR ASSEMBLING
     // ======================================================

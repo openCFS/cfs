@@ -72,7 +72,7 @@ namespace CoupledField
   piezoMaterialType;
 
   typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTIHARMONIC, MULTI_SEQUENCE,
-                BUBBLEDYNAMIC} AnalysisType;
+                BUBBLEDYNAMIC, TRANSIENT4SLICE} AnalysisType;
   
 
   //! print grid only and then exit

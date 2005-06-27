@@ -393,7 +393,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   void WriteResultsGMV::WriteNodeVariableTransient( const Vector<Double> var, 
                                                     const std::string name, 
                                                     const UInt dataType ) {
-  
+
     if (ascii_) {
       (*output) << std::endl;
     }
@@ -640,6 +640,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       OpenFile(-1);
       WriteNodes();
       WriteCells();
+
       WriteMaterials();
       if (ascii_)
         (*output) << "\nendgmv";
@@ -713,7 +714,6 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
     // Get all solutiontypes
     sol.GetSolutionTypes(solTypes);
-
     // Iterate over all solutiontypes
     for (UInt iSol=0; iSol<sol.GetNumSolutions(); iSol++) {
 

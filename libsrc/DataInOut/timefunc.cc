@@ -18,7 +18,19 @@ namespace CoupledField
     timeFncDatFiles_=FALSE;
     std::string nametf;
 
-    params->GetList( "name", fnc_names_, "transient", "timeDataFile" );
+    // Determine type of analysis and, if adaptivity is to be used
+    AnalysisType analysisType;
+    std::string  analysis;
+    params->Get( "type", analysis, "analysis" );
+    String2Enum( analysis, analysisType );
+
+    if (analysisType == TRANSIENT) {
+      params->GetList( "name", fnc_names_, "transient", "timeDataFile" );
+    }
+    else if (analysisType == TRANSIENT4SLICE) {
+      params->GetList( "name", fnc_names_, "transient4Slice", "timeDataFile" );
+    }
+
     if (fnc_names_.GetSize())
       timeFncDatFiles_ = TRUE;
 
@@ -28,7 +40,6 @@ namespace CoupledField
         Info->StartProgress("Reading in time data function(s)");
         ReadTimeFuncs();
         Info->FinishProgress();
-
       }
 
   }
@@ -193,5 +204,158 @@ namespace CoupledField
       } // 
  
   } // end of TimeFunc::Print
+
+
+  /****************************************************************************
+   Function for setting up the start time vector, it is:
+   TASK: - built in an if condition for the dimension,
+         - calculate the start time vector for the 3D-Case 
+   ****************************************************************************/
+  void TimeFunc::SetStartTimeVector(Integer numBcs)
+  {
+    ENTER_FCN( "TimeFunc::SetStartTimeVector");
+
+    Double alpha;
+    Double meshSize;
+    Double nL;
+    Double distToFocus;
+    Double deltaT = 0.0;
+    Double x;
+    Integer nuOfBcsNodes;
+    Integer i;
+    Double soundSpeed;
+    Double waveLength;
+    Integer elementsPerWavelength;
+    Double dimx, dimy;
+    Integer dim_;
+    Integer maxnumelemy_, maxnumelemx_;
+
+    //Get slice data
+    std::string dimension;
+    std::string pdename = "acoustic";
+    StdVector<std::string> keyVec;
+    // NEW: Read in the Dimension of the Problem
+    dim_ = 2;
+    params->Get("type", dimension, "geometry");
+    if(dimension == "3d")
+      dim_ = 3;
+    //std::cerr << "Dimension in the timefunc.cc file: " << dim_ << std::endl;
+    keyVec  = pdename, "sliceData", "soundSpeed";
+    params->Get( keyVec, soundSpeed);
+    //std::cout << "sound" << soundSpeed << std::endl;
+    keyVec  = pdename, "sliceData", "dimension", "dimY";
+    params->Get( keyVec, dimy);
+    keyVec  = pdename, "sliceData", "dimension", "dimX";
+    params->Get( keyVec, dimx);
+    //std::cout << "dim" << dim << std::endl;
+    keyVec  = pdename, "sliceData", "waveLength";
+    params->Get( keyVec, waveLength);
+    //std::cout << "wave" << waveLength << std::endl;
+    keyVec  = pdename, "sliceData", "elementsPerWavelength";
+    params->Get( keyVec, elementsPerWavelength);
+    //std::cout << "elemperwave" << elementsPerWavelength << std::endl;
+
+    if(numBcs!=0) {
+      meshSize = waveLength/elementsPerWavelength;
+      // std::cout << "meshsize   " << meshSize << std::endl;
+
+      //Size of array
+      nuOfBcsNodes = numBcs;
+  
+      distToFocus = 0.05; //Kann der einfach so festglegt werden??
+      /*
+       * Now the switchin for either 3D-Case or 2D-Case
+       */  
+      switch(dim_){
+      case 2: //The 2-Dimensional Case
+	// std::cout << "nL " << nL << "   nuOfBcsBNodes " << nuOfBcsNodes <<std::endl;
+	nL = (nuOfBcsNodes-1.0)* meshSize;
+	alpha = atan(nL/distToFocus) * (180 /PI);
+	// std::cout << "alpha: " << alpha << "    ";
+
+	// Init StartTime
+	startTime_.Resize(nuOfBcsNodes);
+	startTime_[0] = 0.0;
+	startTime_[nuOfBcsNodes-1] = 0.0;
+	x=nL;
+
+	for(i=2;i<nuOfBcsNodes+1;i++) {
+	  Double sinus;
+	  sinus = sin(alpha*(PI/180));
+	  // std::cout << "sinus " << sinus <<"  ";
+	  deltaT += (meshSize*(sin(alpha*(PI/180))))/soundSpeed;
+	  //  std::cout << "deltaT " << deltaT <<"  ";
+	  startTime_[nuOfBcsNodes -i]=deltaT;
+	  x=x-meshSize;
+	  if(x>0) {
+	    alpha = atan(x/distToFocus) * (180/PI);
+	    //std::cout << "alpha neu " << alpha << std::endl;
+	  }
+	}
+	// Double test=0.0;
+	// for (i=0;i<nuOfBcsNodes;i++) {
+	// startTime_[i]=test;
+	// test+=2*2E-8;
+	// std::cout << "startTime ["<<i<<"]: " << startTime_[i] << "   " ;
+	// std::cout << "startpoint["<<i<<"]: " << startTime_[i]/2E-8 << std::endl;
+	// }
+	break;
+
+      case 3: //The 3-Dimensional Case
+	//std::cerr << "Bin jetzt in set timefunc" << std::endl;
+	//first of all calculate the maximum number of elements for
+	// x and y direction;
+	Integer j;
+	maxnumelemy_ = (Integer) (dimy/meshSize);
+	maxnumelemx_ = (Integer) (dimx/meshSize);
+	//if(nuOfBcsNodes == (maxnumelemy_+1)*(maxnumelemx_+1)){
+	//std::cerr << "Welcome to timefunc.cc 3D" << std::endl;
+	// The mastertime, is the node, that needs the longest time to reach the focus
+	startTime_.Resize((maxnumelemx_+1)*(maxnumelemy_+1));
+	Integer abs1 = (Integer) (maxnumelemx_+1) - (maxnumelemx_+1)/2;
+	//std::cout << "abs1" << abs1 << std::endl;
+	Integer abs2 = (Integer) (maxnumelemy_+1) - (maxnumelemx_+1)/2;
+	//Insert due to the testing the Channel Case
+	if(maxnumelemy_ ==1 && maxnumelemx_ ==1){
+	  abs1 = 1;
+	  abs2 = 1;
+	}
+	Double mastertime = sqrt(((abs1*abs1)+(abs2*abs2))*(meshSize*meshSize)
+				 +distToFocus*distToFocus)/soundSpeed;
+	//std::cout << "mastertime: " << mastertime << std::endl;
+	//Loop over all elements of the Boundary Slice
+	Integer k = 0;
+	Double temp;
+	for(i=0; i<maxnumelemx_+1; i++){
+	  for(j=0; j<maxnumelemy_+1; j++){
+	    /* The startTime_ vector can't be simply set up linear any more.
+	     * The element-numbering is not linear anymore. Clearly spoken, 
+	     * it isn't not like it was in 2D that: the bigger the node-number
+	     * the smaller the Delta.
+	     */		
+	    //the inhom. Dirichlet nodes are set to its delta Values
+	    if(i<abs1 && j<abs2){
+	      temp = sqrt((((i+1)*(i+1))+((j+1)*(j+1)))*(meshSize*meshSize)
+			  +distToFocus*distToFocus)/soundSpeed;
+	      startTime_[k] = mastertime - temp;
+	      //std::cout << "Delta Time at node " << k << " = " <<  startTime_[k] << std::endl;					
+	    }
+	    else{
+	      startTime_[k] = -1;
+	    }
+	    k++;
+	  }
+	}
+	//}else{
+	//std::cerr << "Error in timefunc.cc" << std:: endl;
+	//std::cerr << "nuOfBcsNodes was: " << nuOfBcsNodes << std::endl;
+	//std::cerr << "Actual BC-Nodes is: " << (maxnumelemy_+1)*(maxnumelemx_+1)<<std::endl;
+	//exit(0);
+	//}			
+	break;
+      }
+    }
+  }
+
 
 } // end of namespace

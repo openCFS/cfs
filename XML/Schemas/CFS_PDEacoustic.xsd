@@ -84,12 +84,13 @@
           <xsd:element name="sliceData" minOccurs="0">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="dimension" type="DT_DomainDimension"/>
-                <xsd:element name="waveLength" type="DT_PosFloat"/>
-                <xsd:element name="elementsPerWavelength"
-                  type="xsd:nonNegativeInteger"/>
-                <xsd:element name="pulseTime"  type="DT_PosFloat"/>
-                <xsd:element name="soundSpeed" type="DT_PosFloat"/>
+	          <xsd:element name="dimension" type="DT_DomainDimension"/>
+        	  <xsd:element name="waveLength" type="DT_PosFloat"/>
+	          <xsd:element name="nrSafetyElements" type="xsd:nonNegativeInteger"/>
+	          <xsd:element name="addNrOfWaveLength" type="xsd:nonNegativeInteger"/>
+	          <xsd:element name="elementsPerWavelength"  type="xsd:nonNegativeInteger"/>
+	          <xsd:element name="pulseTime"  type="DT_PosFloat"/>
+	          <xsd:element name="soundSpeed" type="DT_PosFloat"/>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>

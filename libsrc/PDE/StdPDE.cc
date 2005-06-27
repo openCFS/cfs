@@ -369,6 +369,128 @@ namespace CoupledField {
 
 
 
+  //=========================================================================
+  // Implemented TransformSol4Slice
+  //=========================================================================
+  /*
+    Has the task to shift the solution vector and the vectors for the first- and
+    second derivatives. Furtheron, the entries of these vectors which are not
+    calculated for the new slice are initialized with zeros:
+  */
+  void StdPDE::TransformSol4Slice(UInt &  nodeShift, UInt & shiftFactor, 
+				  const UInt flag) {
+
+    ENTER_FCN( "StdPDE::TransformSol4Slice" );
+
+    ptgrid_->TransformGridStruct(nodeShift, shiftFactor, flag);
+
+    if ( flag ) 
+      return;
+
+    //perform the transformation of solution
+    NodeStoreSol<Double>  & solHelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
+  
+    Vector<Double> & sol = solHelp.GetAlgSysVector();
+    Vector<Double> solD1 = getS1();
+    Vector<Double> solD2 = getS2();
+    
+    //get equation numbers
+    UInt dof = 1;
+    Integer eqnNrFrom, eqnNrTo; 
+    UInt eqnDof, nodeFrom;
+
+    for (UInt node=1; node <=numPDENodes_-nodeShift; node++) {
+      eqnData_->Node2EQN(node,dof,eqnNrTo, eqnDof);
+      nodeFrom = node + nodeShift;
+      eqnData_->Node2EQN(nodeFrom,dof,eqnNrFrom, eqnDof);
+      
+      sol[eqnNrTo-1]   = sol[eqnNrFrom-1];
+      solD1[eqnNrTo-1] = solD1[eqnNrFrom-1];
+      solD2[eqnNrTo-1] = solD2[eqnNrFrom-1];
+    }
+
+    // set remaining nodes to zero
+    for (UInt node=numPDENodes_-nodeShift+1; node <=numPDENodes_; node++) {
+      eqnData_->Node2EQN(node,dof,eqnNrTo, eqnDof);
+      sol[eqnNrTo-1]   = 0;
+      solD1[eqnNrTo-1] = 0;
+      solD2[eqnNrTo-1] = 0;
+    }
+    
+    TS_alg_->SetDeriv1(solD1);
+    TS_alg_->SetDeriv2(solD2);
+    
+    
+    WriteResultsInFile(0,0);
+    
+  }
+
+
+  /*
+   * save important nodes for a post analysis
+   * ATENTION: The first time SaveNodes is called in
+   * transient4slicedriver timeStep has the value meshsize
+   */
+  void StdPDE::SaveNodes(const UInt shiftFactor, const Double timeStep,
+			 const UInt numShift, const Integer nodeShift, 
+			 const UInt maxnumelemz_) {
+  
+    ENTER_FCN( "StdPDE::TransformSol4Slice" );
+    
+    NodeStoreSol<Double>  & solHelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
+    Vector<Double> & sol = solHelp.GetAlgSysVector();
+
+    Integer dof = 1;
+    Integer filesave, eqn;
+    UInt local, global, eqnDof;
+
+    if(nodeShift == -1){
+      //First time the function SaveNodes is called
+      std::string S="mkdir -p saveNodes";
+      system(S.c_str());
+
+      //Write the actual meshsize in mesh.dat
+      //      std::fstream x("saveNodes/mesh.dat", std::ios::out|std::ios::app);
+      //      x << timeStep << '\t' << shiftFactor << '\n';
+      return;
+    }
+  
+    // Calculate the global Node number
+    for(UInt i = 0; i<=maxnumelemz_; i++){
+      //access the global node number
+      local  = i*shiftFactor+1;
+      global = local + nodeShift*numShift;
+      filesave = i + (nodeShift*numShift)/shiftFactor;
+  
+      eqnData_->Node2EQN(local,dof,eqn, eqnDof);
+      //Store the solution to the right position of the solution Vector.
+      //testing if shifts have been made
+  
+      // First of all built the whole filename
+      std::string namePrefix="saveNodes/focuse";
+      std::string namePostfix = ".save";
+      std::string totalName;
+
+      // Create complete filename
+      std::string quantString;
+
+      //Enum2String((double) global, quantString);
+      //should be a "good" conversion from Integer to string
+
+      std::ostringstream o;
+
+      o<<filesave;
+      totalName = namePrefix + o.str();
+      totalName += "node";
+      totalName += namePostfix;
+  
+      //Öffnen der Datei
+      //    std::fstream x(totalName.c_str(), std::ios::out|std::ios::app);
+
+      //      x << timeStep << '\t'  <<  sol[eqn-1] << '\n'; 
+    }
+  }
+
   // ======================================================
   // ALGSYS SECTION (SOLVER, ...) 
   // ======================================================

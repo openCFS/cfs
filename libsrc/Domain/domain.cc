@@ -5,6 +5,7 @@
 #include "General/environment.hh"
 #include "Domain/grid.hh"
 #include "Domain/GridCFS/interface_gridcfs.hh"
+#include "Domain/GridStruct/interface_gridstruct.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/writeresults.hh"
@@ -59,30 +60,49 @@ namespace CoupledField {
     ptTimeFunc_ = aptTimeFunc;
     ptIterCoupledPde_ = NULL;
 
-    // read type of output results from conf-file
+    // read type of mesh library
     std::string libmesh;
     params->Get( "meshLibrary", libmesh, "input" );
 
-    UInt dim=InFile_->GetDim();
-
     std::string probGeo;
-
-    // Check consistency of mesh and geometry type specified
-    // in the param file
     params->Get( "type", probGeo, "geometry" );
-    if ( !(probGeo == "3d"    && dim == 3 ||
-           probGeo == "axi"   && dim == 2 ||
-           probGeo == "plane" && dim == 2 ) ) {
-      Info->Error( "Dimensions in parameter file and geometry file do not fit",
-                   __FILE__, __LINE__ );
+
+    if ( libmesh == "structGrid" ) {
+      if ( probGeo == "3d") {
+        dim_ = 3;
+      } 
+      else if ( probGeo == "axi" || probGeo == "plane" ) {
+        dim_ = 2;
+      }
+      else {
+        Info->Error( "Wromg Dimension parameter in xml-File", 
+                     __FILE__, __LINE__ );
+      }
+    }
+    else {
+      dim_ = InFile_->GetDim();
+
+      // Check consistency of mesh and geometry type specified
+      // in the param file
+      params->Get( "type", probGeo, "geometry" );
+      if ( !(probGeo == "3d"    && dim_ == 3 ||
+             probGeo == "axi"   && dim_ == 2 ||
+             probGeo == "plane" && dim_ == 2 ) ) {
+        Info->Error( "Dimensions in parameter file and geometry file do not fit",
+                     __FILE__, __LINE__ );
+      }
     }
 
     SETPROFILE("Before Grid-Creation");
+
     // initialize pointer to grid 
-    if (dim==2) {
+    if (dim_==2) {
 
       if (libmesh =="cfsGrid") {
         ptgrid_=new GridInterfaceCFS<2>(InFile_);
+      }
+      else if (libmesh == "structGrid" ) {
+        ptgrid_=new GridInterfaceStruct<2>(dim_);
       }
 
 #ifdef ADAPTGRID
@@ -98,10 +118,14 @@ namespace CoupledField {
       }
     }
 
-    if (dim==3) {
+    if (dim_==3) {
       if (libmesh =="cfsGrid") {
         ptgrid_=new GridInterfaceCFS<3>(InFile_);
       }
+      else if (libmesh == "structGrid" ) {
+        ptgrid_=new GridInterfaceStruct<3>(dim_);
+      }
+
 
 #ifdef ADAPTGRID
       else if (libmesh== "adaptGrid") {
@@ -335,11 +359,6 @@ namespace CoupledField {
     ptSinglePde_.Clear();
     ptSinglePde_.Resize(numSinglePde_);
 
-
-
-    // Read dimension from mesh file and perform a consistency check
-    UInt dim = InFile_->GetDim();
-
     for (UInt i=0;i< pdeNames.GetSize();i++) {
       Info->StartProgress("Creating PDE '" + pdeNames[i] + "'");
 
@@ -365,7 +384,7 @@ namespace CoupledField {
 
       else if (pdeNames[i] == "magnetic") 
         {
-          if (dim == 2)
+          if (dim_ == 2)
             ptSinglePde_[i]=new MagPDE(ptgrid_,ptTimeFunc_,OutFile_);
           else
             Error( "Magnetic field calculation currently only possible in 2D!",
@@ -386,7 +405,7 @@ namespace CoupledField {
 
 
       //      else if (pdeNames[i] == "magnetic") 
-      //        if (dim == 3
+      //        if (dim_ == 3
       //        ptSinglePde_[i]=new MagEdgePDE(ptgrid_,ptTimeFunc_,OutFile_); 
       else
         {
@@ -686,6 +705,7 @@ namespace CoupledField {
     ENTER_FCN( "Domain::PrintGrid" );
     if ( ptgrid_ == NULL )
       Error("Domain: ptgrid == NULL!");
+
     OutFile_->Init(ptgrid_);
     OutFile_->WriteGrid( );
   }

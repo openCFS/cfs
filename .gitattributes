@@ -200,6 +200,10 @@ libsrc/Domain/GridCFS/Makefile -text
 libsrc/Domain/GridCFS/grid_cfs.cc svneol=native#text/plain
 libsrc/Domain/GridCFS/grid_cfs.hh svneol=native#text/plain
 libsrc/Domain/GridCFS/interface_gridcfs.hh svneol=native#text/plain
+libsrc/Domain/GridStruct/Makefile -text
+libsrc/Domain/GridStruct/grid_struct.cc svneol=native#text/plain
+libsrc/Domain/GridStruct/grid_struct.hh svneol=native#text/plain
+libsrc/Domain/GridStruct/interface_gridstruct.hh svneol=native#text/plain
 libsrc/Domain/Gridlib/Makefile -text
 libsrc/Domain/Gridlib/interface_gridlib.cc svneol=native#text/plain
 libsrc/Domain/Gridlib/interface_gridlib.hh svneol=native#text/plain
@@ -262,6 +266,8 @@ libsrc/Driver/staticdriver.cc svneol=native#text/plain
 libsrc/Driver/staticdriver.hh svneol=native#text/plain
 libsrc/Driver/stdSolveStep.cc svneol=native#text/plain
 libsrc/Driver/stdSolveStep.hh svneol=native#text/plain
+libsrc/Driver/transient4SliceDriver.cc svneol=native#text/plain
+libsrc/Driver/transient4SliceDriver.hh svneol=native#text/plain
 libsrc/Driver/transientAdaptSpaceDriver.cc svneol=native#text/plain
 libsrc/Driver/transientAdaptSpaceDriver.hh svneol=native#text/plain
 libsrc/Driver/transientdriver.cc svneol=native#text/plain

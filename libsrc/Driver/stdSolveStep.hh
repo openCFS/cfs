@@ -63,6 +63,10 @@ namespace CoupledField
     //! \param reset TRUE: perfrom new assembly, etc
     virtual void SolveStepTrans( const Boolean updatesysmat );
 
+    //! base method for solving one transient step with slicing method 
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void SolveStepTrans4Slice(const Boolean reset);
+
     //! solves for one linear transient step 
     //! \param reset TRUE: perfrom new assembly, etc
     virtual void StepTransLin( const Boolean updatesysmat );
@@ -136,6 +140,15 @@ namespace CoupledField
     Hysteresis * GetHystOperator(UInt iSD) {
       return hyst_[iSD];
     };
+
+    //! transform solution and derivatives due to slicing technique
+    virtual void TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
+                                    const UInt flag);
+
+    //! save solution of special nodes
+    void SaveNodes(const UInt shiftFactor, const Double timeStep,
+		   const UInt numShift, const Integer nodeShift, 
+		   const UInt maxnumelemz_);
 
   protected:
 
@@ -218,6 +231,9 @@ namespace CoupledField
 
     //! Identification tag for second PDE (coupled case)
     PdeIdType pdeId2_;
+
+    //! counts the number of resets
+    UInt numReset_;
 
   };
 

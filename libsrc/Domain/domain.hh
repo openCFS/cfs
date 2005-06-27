@@ -207,6 +207,8 @@ namespace CoupledField
     //! Mapping between name and coordinate sysem pointer
     std::map<std::string, CoordSystem*> coordSys_;
 
+    //! dimension of the problem
+    UInt dim_;
   };
 
 }

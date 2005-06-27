@@ -355,6 +355,27 @@ namespace CoupledField
 
     //@}
   
+
+    // =======================================================================
+    // Methods just needed for StructGrid-Class
+    // =======================================================================
+    //@{ \name StructGrid  
+
+    //! reads the grid
+    virtual void GenGridStruct(const UInt elemx,const UInt elemy, 
+			       const UInt elemz) {;};
+
+    //! Transforms the grid
+    virtual void TransformGridStruct(UInt & nodeShift, UInt & shiftFactor, 
+				     const UInt flag){;};
+
+    //! Returns maximum number of elements in x,y,z-direction
+    virtual Integer GetMaxElem(std::string dir)
+    { Error("GetMaxElem in Grid-Class not implemented",__FILE__, __LINE__); 
+      return 1;};
+
+     //@}
+
   
   protected:
 

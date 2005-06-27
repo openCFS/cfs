@@ -24,24 +24,19 @@ namespace CoupledField
 
     //! routine for initilizations befor execution the SolveStep-method
     /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
+       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepStatic( const Boolean reset) = 0;
     
     //! base method for solving one static step 
     /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
+       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepStatic( const Boolean reset) = 0;
 
     //! routine for acttions after the SolveStep-method
     /*!
-      \param kstep time step counter
-      \param asteptime current time
+       \param asteptime current time
     */  
     virtual void PostStepStatic()  = 0;
 
@@ -50,19 +45,22 @@ namespace CoupledField
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
     /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
+       \param reset TRUE: perfrom new assembly, etc
     */  
     virtual void PreStepTrans( const Boolean reset) = 0;
 
     //! base method for solving one transient step 
     /*!
-      \param kstep time step counter
-      \param asteptime current time
-      \param reset TRUE: perfrom new assembly, etc
+       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepTrans(const Boolean reset) = 0;
+
+    //! base method for solving one transient step with slicing method 
+    /*!
+       \param reset TRUE: perfrom new assembly, etc
+    */
+    virtual void SolveStepTrans4Slice(const Boolean reset)
+    {Error("SolveStepTrans4Slice not implemented!",__FILE__,__LINE__);};
 
     //! routine for actions after the SolveStep-method
     /*!
@@ -74,16 +72,12 @@ namespace CoupledField
     //----------------------- HARMONIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
     /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */   
     virtual void PreStepHarmonic(const Boolean reset) = 0;
 
     //!  base method for solving one harmonic step 
     /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void SolveStepHarmonic(const Boolean reset) = 0;
@@ -95,6 +89,25 @@ namespace CoupledField
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void PostStepHarmonic(const Boolean reset) = 0;
+
+
+    //----------------------- SPECIAL FUNCTIONS ------------------------------
+    //! transform solution and derivatives due to slicing technique
+    virtual void TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
+                                    const UInt flag)
+    {Error("TransformSol4Slice not implemented", __FILE__, __LINE__); };
+
+    //! save important nodes for the a post analysis
+    //! \param shiftFactor number of nodes in x and y direction
+    //! \param numShift how many shifts have been made
+    //! \param nodeShift how many nodes have been shifted
+    //! save solution of special nodes
+    void SaveNodes(const UInt shiftFactor, const Double timeStep,
+		   const UInt numShift, const Integer nodeShift, 
+		   const UInt maxnumelemz_)
+    {Error("TransformSol4Slice not implemented"); };
+
+
 
     //----------------------- SET/ GET METHODS--------------------------------
 
