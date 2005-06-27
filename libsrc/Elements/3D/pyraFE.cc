@@ -10,6 +10,7 @@
 namespace CoupledField
 {
 
+
   PyraFE::PyraFE()
   {
     ENTER_FCN( "PyraFE::PyraFE" );
@@ -19,7 +20,8 @@ namespace CoupledField
     NumFaces_   = 5;
     NumCorners_ = 5;
     //    numChilds_ = 8;
-    MidPoint_ = 0.0, 0.0, 1./5;
+    MidPoint_ = 0.0, 0.0, 1./4;
+
   
     std::string integtype;
     params->Get( "type", integtype, "integRules", "pyra" );

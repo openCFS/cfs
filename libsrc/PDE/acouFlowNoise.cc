@@ -6,10 +6,23 @@
 #include <stdio.h>
 
 #include "acouFlowNoise.hh"
+// <<<<<<< acouFlowNoise.cc
+// #include <Domain/bcs.hh>
+// #include <DataInOut/Unverg/outUnverg.hh>
+// #include <DataInOut/GMV/outGMV.hh>
+// #include <Forms/forms_header.hh>
+// //For 2D
+// // #include <MpCCIcpl/MpCCIexch.hh>
+// //TO USE WITH 3D 
+// #include <MpCCIcpl/MpCCIexch-patchQuad3D.hh>
+//  =======
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "Forms/forms_header.hh"
 #include "MpCCIcpl/MpCCIexch.hh"
+//TO USE WITH 3D 
+//#include <MpCCIcpl/MpCCIexch-patchQuad3D.hh>
+// >>>>>>> 1.34
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "Driver/solveStepAcouFlowNoise.hh"
 
@@ -33,11 +46,12 @@ namespace CoupledField
 
 #ifdef MpCCI
     StdVector<Elem*> elemssd;
-    StdVector<std::string> regionNames;
-    params->GetList( "name", subdoms_, pdename_, "region" );
-    params->GetList( "name", regionNames,  "MpCCI-flownoise",
+    StdVector<std::string> regionNames, coupledRegionNames;
+    params->GetList( "name", regionNames, pdename_, "region" );
+    params->GetList( "name", coupledRegionNames,  "MpCCI-flownoise",
                      "coupledregion" );
-    ptgrid_->RegionNameRoId( couplSubDomId_, regionNames ):
+    ptgrid_->RegionNameToId( subdoms_, regionNames );
+    ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
 
       //check type of flow data
       if( params->HasValue( "type", "nodalSrc", pdename_, "flowData" ) ) {
@@ -49,18 +63,37 @@ namespace CoupledField
       plotRHS_ = TRUE;
       Info->PrintF(pdename_, "Writing RHS as solution of problem\n" );
     }
-    
+    Boolean OnlyLinNodes=TRUE;
     Boolean Find=FALSE;
+    std::cerr << "Subdoms:\n" << subdoms_ << std::endl;
+    std::cerr << "CoupledSubdoms:\n" << couplSubDomId_  << std::endl;
+    
+
     for (int i=0; i<subdoms_.GetSize(); i++)
       {
-        for (int j=0; j<couplSubDomName_.GetSize(); j++)
+        for (int j=0; j<couplSubDomId_.GetSize(); j++)
           {
-            if (couplSubDomName_[j] == subdoms_[i])
+            if (couplSubDomId_[j] == subdoms_[i])
               {
-                ptgrid_->GetElemSD(elemssd,couplSubDomName_[j]);
-                ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
-                ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
-                Find=TRUE;
+
+                ptgrid_->GetVolElems(elemssd,couplSubDomId_[j]);
+		
+		if (dim_ == 3)
+		  { //TO USE WITH 3D 
+		    //ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_allNodes_);
+		    //ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_, OnlyLinNodes);
+		    //ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_);
+		  }
+		else
+		  {
+// 		    ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
+		    ptgrid_->GetNodesOfElemList(mapSD_, elemssd, FALSE);
+		    
+		    ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
+		  }
+		
+		Find=TRUE;
+
               }
           }
       }
@@ -70,9 +103,13 @@ namespace CoupledField
         msg+="Please, check .xml-file";
         Error(msg.c_str(),__FILE__,__LINE__);
       }
-
-    MpCCInodes_=mapSD_.GetSize();
-    ptMpCCIexch_->PutExchangeGrid2MpCCI(couplSubDomName_);
+    // This is due to workaround from quad to lin elements for MpCCI
+    if (dim_ == 3)
+      MpCCInodes_=mapSD_allNodes_.GetSize();
+    else
+      MpCCInodes_=mapSD_.GetSize();
+    
+    ptMpCCIexch_->PutExchangeGrid2MpCCI(couplSubDomId_);
 
 #endif
 
@@ -107,7 +144,7 @@ namespace CoupledField
 //     UInt maxnumelem=ptgrid_->GetNumElems(subdoms_);
 
 
-//     double starttime, endtime;
+    double starttime, endtime;
 
 //     Double val;
     Matrix<Double> ptCoordNodes;
@@ -148,7 +185,7 @@ namespace CoupledField
     starttime = CCI_Wtime();
       
 
-
+    Integer timestep = 0;
     ptMpCCIexch_->CouplCompPhase(flowdata_, timestep);
 
 
@@ -429,71 +466,6 @@ namespace CoupledField
         testflowf << std::endl;
         }
         testflowf.close();*/
-  }
-
-
-  void AcouFlowNoise::WriteResultsInFile(const UInt kstep,
-                                         const Double asteptime,
-                                         UInt stepOffset,
-                                         Double timeOffset) 
-  {
-    ENTER_FCN( "AcouFlowNoise::WriteResultsInFile" );
-
-    NodeStoreSol<Double> sol_der1Array, sol_der2Array;
-    NodeStoreSol<Double> * solTransient;
-    NodeStoreSol<Complex> * solHarmonic;
-  
-    Double actTime = asteptime + timeOffset;
-    UInt actStep = kstep + stepOffset;
-
-    if (analysistype_ == TRANSIENT)
-      {
-        sol_der1Array.SetNumSolutions(1);
-        sol_der1Array.SetNumNodes(numPDENodes_);
-        sol_der1Array.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
-        sol_der1Array.SetNumDofs(dofspernode_);
-        sol_der1Array.Init(0.0);
-        sol_der1Array.SetAlgSysVector(getS1());
-      
-        sol_der2Array.SetNumSolutions(1);
-        sol_der2Array.SetNumNodes(numPDENodes_);
-        sol_der2Array.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
-        sol_der2Array.SetNumDofs(dofspernode_);
-        sol_der2Array.Init(0.0);
-        sol_der2Array.SetAlgSysVector(getS2());
- 
-        std::cout<<"In AcouFlowNoise. Writing solution..."<<std::endl;
-     
-
-        if (plotRHS_)
-          {
-            std::cout<<"In AcouFlowNoise. Writing RHS as solution..."
-                     <<std::endl;
-            outFile_->WriteNodeSolutionTransient( rhs_, actStep, actTime );
-            outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime );
-          }
-        //      else
-        //  {
-        std::cout<<"In AcouFlowNoise. Writing solution..."<<std::endl;
-        solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-        //  }
-    
-        outFile_->WriteNodeSolutionTransient(*solTransient, actStep, 
-                                             actTime );
-        outFile_->WriteNodeSolutionTransient(sol_der1Array, actStep, 
-                                             actTime );
-        outFile_->WriteNodeSolutionTransient(sol_der2Array, actStep, 
-                                             actTime );
-      }
-    else if (analysistype_ == HARMONIC)
-      {
-        solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-        outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actStep, actTime,
-                                            complexFormat_ );
-      }
-    else
-      Error("AcouFlowNoisePDE: Only transient and harmonic results possible",
-            __FILE__, __LINE__);
   }
 
 } // end of namespace

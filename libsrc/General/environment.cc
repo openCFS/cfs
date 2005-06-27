@@ -37,6 +37,7 @@ namespace CoupledField {
   BaseFE * ptQ1     = NULL;
   BaseFE * ptQ2     = NULL;
   BaseFE * ptTet1   = NULL;
+  BaseFE * ptTet2   = NULL;
   BaseFE * ptL1     = NULL;
   BaseFE * ptL2     = NULL;
   BaseFE * ptTr1    = NULL;
@@ -44,6 +45,7 @@ namespace CoupledField {
   BaseFE * ptHexa1  = NULL;
   BaseFE * ptHexa2  = NULL;
   BaseFE * ptPyra1  = NULL;
+  BaseFE * ptPyra2  = NULL;
   BaseFE * ptWedge1 = NULL;
   BaseFE * ptWedge2 = NULL;
 

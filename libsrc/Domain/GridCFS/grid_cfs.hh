@@ -52,6 +52,7 @@ namespace CoupledField
 
     //@}
 
+
     // =======================================================================
     // GENERAL GRID INFORMATION
     // =======================================================================
@@ -97,6 +98,7 @@ namespace CoupledField
     void GetVolRegionIds( StdVector<RegionIdType> & volRegions );
   
     //! Get vector with all surface region identifiers
+    //>>>>>>> 1.41
 
     //! Return a vector with names of all surface region identifiers in the
     //! current mesh.
@@ -275,8 +277,10 @@ namespace CoupledField
     //! a list of given elements. Ther are no duplicate entries.
     //! \param nodeList (out) list of unique node numbers in elemList
     //! \param elemList (in) list of elements
+    //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
-                             const StdVector<Elem*> & elemList );
+                             const StdVector<Elem*> & elemList,
+			     Boolean onlyLinNodes = FALSE);
     
 
     //! Returns the names of all regions

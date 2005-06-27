@@ -63,6 +63,7 @@ namespace CoupledField
 
     Matrix<Double> GlobalGradient;
 
+
     ptElement->ptElem->GetGlobDerivShFnc(GlobalGradient, lCoord, CornerCoords);
 
     // loop over shape functions
@@ -70,6 +71,7 @@ namespace CoupledField
       for( UInt j=0; j<nShFnc; j++ )
         {
           //std::cerr << "Longing for connect = " << connect[j] << std::endl;
+
 
           potential_->Get(solType_, connect[j]-1,0, potEntry[0]);
 

@@ -19,7 +19,7 @@
 namespace CoupledField {
 
 
-  AnsysFile::AnsysFile( const Char *const afilename ) : FileType(afilename) {
+  AnsysFile::AnsysFile( const Char *const afilename ) : FileType(afilename){
 
     ENTER_FCN( "AnsysFile::AnsysFile" );
 
@@ -115,7 +115,7 @@ namespace CoupledField {
   // ======================================================
 
   
-  void AnsysFile::GetAllRegionNames( StdVector<std::string> & regionNames ) {
+  void AnsysFile::GetAllRegionNames( StdVector<std::string> & regionNames ){
     ENTER_FCN( "AnsysFile::GetAllRegionNames" );
     
     StdVector<std::string>  names;
@@ -199,6 +199,7 @@ namespace CoupledField {
   }
 
 
+
   // ======================================================
   // ENTITY ACCESS
   // ======================================================
@@ -207,6 +208,7 @@ namespace CoupledField {
     ENTER_FCN( "AnsysFile::GetCoordinates 2D" );
 
     UInt i, ibuf;
+
     std::string::size_type pos=0;
     
    UInt numNodes = GetNumNodes();
@@ -244,7 +246,7 @@ namespace CoupledField {
   }
 
   void AnsysFile::GetNodesOfRegions( StdVector<StdVector<UInt> > &nodes,
-                                     const StdVector<RegionIdType> & regionId ) {
+                             const StdVector<RegionIdType> & regionId ) {
 
     ENTER_FCN( "AnsysFile::GetNodesOfRegions" );
 
@@ -260,7 +262,7 @@ namespace CoupledField {
       index = regionId[iRegion];
       nodes[iRegion].Resize(regionNodes_[index].size());
 
-      for ( it = regionNodes_[index].begin(); it != regionNodes_[index].end();
+      for (it = regionNodes_[index].begin();it != regionNodes_[index].end();
             it++, iNode++ ) {
         nodes[iRegion][iNode] = *it;
       }
@@ -285,12 +287,14 @@ namespace CoupledField {
     }
     
     // Check that pointers to base elements are initialised
-    if ( (dim == 1 && ( !ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 ||
-                        !ptWedge1 || !ptWedge2 ) ) ||
+
+    if ( (dim == 1 && ( !ptTet1 || !ptTet2 || !ptHexa1 || !ptHexa2 ||!ptPyra1
+			|| !ptPyra2 || !ptWedge1 || !ptWedge2 ) ) ||
          (dim == 2 && ( !ptQ1 || !ptQ2 || !ptTr1 || !ptTr2 ) ) ||
-         (dim == 3 && ( !ptTet1 || !ptHexa1 || !ptHexa2 || !ptPyra1 ||
-                        !ptWedge1 || !ptWedge2 ) ) ) {
+         (dim == 3 && ( !ptTet1 || !ptTet2 || !ptHexa1 || !ptHexa2 ||!ptPyra1
+			|| !ptPyra2 || !ptWedge1 || !ptWedge2 ) ) ) {
       (*error) << "Pointers to " << dim << "D base elements are not "
+
                << "completely initialized";
       Error( __FILE__, __LINE__ );
     }
@@ -350,6 +354,7 @@ namespace CoupledField {
         Error( __FILE__, __LINE__ );
       }
 
+
       // Check number of element
       if ( eNum > maxNumElems_ ) {
         (*error) << "Current element number = " << eNum << " > "
@@ -357,6 +362,7 @@ namespace CoupledField {
                  << "have gone wrong in the meshing process.";
         Error( __FILE__, __LINE__ );
       }
+
 
       // Check if previous element had the same id. 
       // If not, obtain new region identifier
@@ -436,8 +442,7 @@ namespace CoupledField {
     numNamedNodes.Resize(2);
     numNamedNodes[0] = GetInteger("NumNodeBC");
     numNamedNodes[1] = GetInteger("NumSaveNodes");
-
-
+    
     for ( UInt iSect=0; iSect<sections.GetSize(); iSect++) {
 
       GetPosLine(sections[iSect], pos);
@@ -459,8 +464,8 @@ namespace CoupledField {
         inFile_.ignore(100,'\n');
         pos = inFile_.tellg();
         if (pos != lineEndPos) {
-          (*error) << "AnsysFile:GetNamedNodes: The node list for the boundary "
-                   << "conditions has wrong size or format. Please correct it!";
+      (*error) << "AnsysFile:GetNamedNodes: The node list for the boundary "
+           << "conditions has wrong size or format. Please correct it!";
           Error( __FILE__, __LINE__ );
         }
         
@@ -769,6 +774,9 @@ namespace CoupledField {
     case 8:
       retVal = ptTet1;
       break;
+    case 9:
+      retVal = ptTet2;
+      break;
     case 10:
       retVal = ptHexa1;
       break;
@@ -778,8 +786,13 @@ namespace CoupledField {
     case 12:
       retVal = ptPyra1;
       break;
-      // case 13:
-      // retVal = ptPyra2;
+    case 13:
+      (*warning) << "Pyram. with quadratic shape functions" << 
+	"do not work well for some cases "<< 
+	"(i.e. electric field intensity). Please verify your results."; 
+      Warning(__FILE__, __LINE__);
+      retVal = ptPyra2;
+      break;
     case 14:
       retVal = ptWedge1;
       break;
@@ -795,8 +808,7 @@ namespace CoupledField {
     // Return what we found
     return retVal;
   }
-
- 
+  
   // =========================================================================
   // The following methods are concerned with grid adaptation
   // =========================================================================

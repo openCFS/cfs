@@ -219,8 +219,9 @@ public:
 
     //! Returns node numbers of a list of Elements
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
-                             const StdVector<Elem*> & elemList ) {
-      ptGridStruct->GetNodesOfElemList(nodeList, elemList);
+                             const StdVector<Elem*> & elemList,
+			     Boolean onlyLinNodes = FALSE) {
+  ptGridStruct->GetNodesOfElemList(nodeList, elemList, onlyLinNodes);
     }
     
   

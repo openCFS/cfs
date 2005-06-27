@@ -22,7 +22,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
 
   UInt nameLength = std::strlen(filename);
-  namedir_ = new Char[ nameLength + 4 + 1 ]; std::strcpy( namedir_, filename );
+  namedir_ = new Char[ nameLength + 4 + 1 ]; 
+  std::strcpy( namedir_, filename );
   std::strcat( namedir_, "_gmv" );
 
   Char *command = new Char[ nameLength + 4 + 9 + 1 ];
@@ -257,7 +258,24 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
                 output->write((char*)&nn,sizeof(UInt));
               }
               break;
-
+            case 10:
+              if (ascii_)
+                (*output) << "ptet10 10" << std::endl;
+              else {
+                (*output) << "ptet10  ";
+                Integer nn=10;
+                output->write((char*)&nn,sizeof(Integer));
+              }
+              break;
+            case 13:
+              if (ascii_)
+                (*output) << "ppyrmd13 13" << std::endl;
+              else {
+                (*output) << "ppyrmd13";
+                Integer nn=13;
+                output->write((char*)&nn,sizeof(Integer));
+              }
+              break;
             case 15:
               if (ascii_) {
                 (*output) << "pprism15 15" << std::endl;

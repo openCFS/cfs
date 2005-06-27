@@ -26,17 +26,19 @@ namespace CoupledField {
   }
 
 
-  void LinearForm::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & Result)
+  void LinearForm::CalcElemVector(Matrix<Double>& ptCoord, 
+				  Vector<Double> & Result)
   {
     ENTER_FCN( "LinearForm::CalcElemVector" );
   }
 
 
-  // =============================================================================
+  // ================================================================
   // edge integration
-  // =============================================================================
+  // ================================================================
 
-  LinearEdgeInt::LinearEdgeInt(BaseFE * aptelem, Double aVal, UInt aDirection,
+  LinearEdgeInt::LinearEdgeInt(BaseFE * aptelem, Double aVal, 
+			       UInt aDirection,
                                Vector<Double> * aCoilMidPt) 
     : LinearForm(aptelem), val_(aVal), direction_(aDirection)
   {
@@ -98,7 +100,7 @@ namespace CoupledField {
             break;
           
           case 4: // current in xy-plane ==> z=0
-            ptelem->GetGlobalEdgeIndicesAtIP(globCoord, actIntPt, ptCoord);
+            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord);
             currentVec[xDir] = -(globCoord[yDir] - (*coilMidPt_)[yDir]);
             currentVec[yDir] = globCoord[xDir] - (*coilMidPt_)[xDir];
             currentVec[zDir] = 0;
@@ -108,7 +110,7 @@ namespace CoupledField {
             break;
 
           case 5: // current in yz-plane ==> x=0
-            ptelem->GetGlobalEdgeIndicesAtIP(globCoord, actIntPt, ptCoord);
+            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord);
             currentVec[xDir] = 0;
             currentVec[yDir] = -(globCoord[zDir] - (*coilMidPt_)[zDir]);
             currentVec[zDir] = globCoord[yDir] - (*coilMidPt_)[yDir];
@@ -118,7 +120,7 @@ namespace CoupledField {
             break;
 
           case 6: // current in xz-plane ==> y=0
-            ptelem->GetGlobalEdgeIndicesAtIP(globCoord, actIntPt, ptCoord);
+            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord);
             currentVec[xDir] = globCoord[zDir] - (*coilMidPt_)[zDir];
             currentVec[yDir] = 0;
             currentVec[zDir] = -(globCoord[xDir] - (*coilMidPt_)[xDir]);
@@ -129,7 +131,7 @@ namespace CoupledField {
             break;
             
           default:
-            std::string errMsg = "Selected current direction with number ";
+            std::string errMsg = "Selected current direction with num. ";
             errMsg += direction_ + " not supported!";
             Error(errMsg.c_str(),__FILE__,__LINE__);
           }
@@ -155,9 +157,9 @@ namespace CoupledField {
   }
 
 
-  // =============================================================================
+  // ====================================================================
   // volume source integration
-  // =============================================================================
+  // ====================================================================
 
   VolumeSrcInt::VolumeSrcInt(Double aVal, Boolean isaxi)
     : LinearForm(), val_(aVal)
@@ -173,7 +175,8 @@ namespace CoupledField {
   }
 
 
-  void VolumeSrcInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+  void VolumeSrcInt::CalcElemVector(Matrix<Double>& ptCoord, 
+				    Vector<Double> & elemVec)
   {
     ENTER_FCN( "VolumeSrcInt::CalcElemVector" );
 
@@ -189,7 +192,8 @@ namespace CoupledField {
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {  
         ptelem->GetShFncAtIp(shapeFnc,actIntPt);
-        factor = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord) * intWeights[actIntPt-1] * val_;
+        factor = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord) * 
+	  intWeights[actIntPt-1] * val_;
       
         if (isaxi_)
           {
@@ -204,11 +208,12 @@ namespace CoupledField {
   }
 
 
-  // =============================================================================
+  // ===================================================================
   // permanent magnet in 2D
-  // =============================================================================
+  // ===================================================================
 
-  MagPerm2DInt::MagPerm2DInt(Vector<Double> vecVal, Double rel, Boolean isaxi)
+  MagPerm2DInt::MagPerm2DInt(Vector<Double> vecVal, Double rel, 
+			     Boolean isaxi)
     : LinearForm(), perm_(vecVal), reluctivity_(rel)
   {
     ENTER_FCN( "MagPerm2DInt::VolumeSrcInt" );
@@ -222,7 +227,8 @@ namespace CoupledField {
   }
 
 
-  void MagPerm2DInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+  void MagPerm2DInt::CalcElemVector(Matrix<Double>& ptCoord, 
+				    Vector<Double> & elemVec)
   {
     ENTER_FCN( "MagPerm2DInt::CalcElemVector" );
 
@@ -263,15 +269,17 @@ namespace CoupledField {
   // nLinMagnetics
   // ==================================================================
 
-  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(BaseFE * aptelem, MaterialData & matData, 
-                                                     Boolean isaxi) 
+  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(BaseFE * aptelem, 
+					MaterialData & matData,
+					Boolean isaxi) 
     : LinearForm(aptelem), matData_(matData)
   {
     ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
     isaxi_ = isaxi;
   }
 
-  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(ApproxData *nlinFnc, Double startVal, 
+  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(ApproxData *nlinFnc, 
+						     Double startVal, 
                                                      Boolean axi)
     : LinearForm()
   {
@@ -282,7 +290,8 @@ namespace CoupledField {
     nlinFnc_     = nlinFnc;
   }
   
-  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(Double startVal, Boolean axi)
+  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(Double startVal, 
+						     Boolean axi)
     : LinearForm()
   {
     ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
@@ -297,7 +306,8 @@ namespace CoupledField {
     ENTER_FCN( "nLinMagNode2D_linFormInt ::~nLinMagNode2D_linFormInt" );  
   }
 
-  void nLinMagNode2D_linFormInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+  void nLinMagNode2D_linFormInt::CalcElemVector(Matrix<Double>& ptCoord,
+						Vector<Double> & elemVec)
   {
     ENTER_FCN("nLinMagNode2D_linFormInt :: ~CalcElemVector" );
   
@@ -347,7 +357,8 @@ namespace CoupledField {
   }
 
 
-  nLinMech_linFormInt::nLinMech_linFormInt(MaterialData & matData, Boolean isaxi) 
+  nLinMech_linFormInt::nLinMech_linFormInt(MaterialData & matData,
+					   Boolean isaxi) 
     : LinearForm(), matData_(matData)
   {
     ENTER_FCN( "nLinMech_linFormInt::nLinMech_linFormInt" );
@@ -370,7 +381,7 @@ namespace CoupledField {
 
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
-    // getNrDofs() would not work, because CalcElemVec is used for 2d & 3d !
+    // getNrDofs() would not work, because CalcElemVec is used for 2d&3d!
     //    const UInt nrDofs   = getNrDofs();
     const UInt nrDofs   = ptelem->GetDim(); 
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -385,9 +396,11 @@ namespace CoupledField {
   
     nLinMechInt_PiolaStress * stressBiformInt;
   
-    // These, as friend defined bilinearforms holds the necessary differential operators
+    // These, as friend defined bilinearforms holds the necessary 
+    // differential operators
     if (ptelem->GetDim() == 2 && !isaxi_)
-      stressBiformInt = new nLinMechPlaneStrainInt_PiolaStress(ptelem, matData_);
+      stressBiformInt = new nLinMechPlaneStrainInt_PiolaStress(ptelem,
+							       matData_);
     else if (ptelem->GetDim() == 2 && isaxi_)
       stressBiformInt = new nLinMechAxiInt_PiolaStress(ptelem, matData_);
     else if (ptelem->GetDim() == 3)
@@ -410,7 +423,7 @@ namespace CoupledField {
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {    
         stressBiformInt->setActElemDispl(elemDisp_);
-        stressBiformInt->CalcStressVec(piolaStressVec, actIntPt, ptCoord);
+        stressBiformInt->CalcStressVec(piolaStressVec, actIntPt,ptCoord);
         stressBiformInt->calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
         stressBiformInt->calcLinBMat(linBMat, actIntPt, ptCoord);
       
@@ -433,8 +446,10 @@ namespace CoupledField {
       
         partElemVec *= jacDet * intWeights[actIntPt-1];
       
-        // the negative sign is due the fact, that this vector has to be subtracted from the RHS!! 
-        // (see Kaltenbacher  "Numerical Sim. of Mechatronic Sensors and Actuators" p. 55
+        // the negative sign is due the fact, that this vector has
+	// to be subtracted from the RHS!! 
+        // (see Kaltenbacher  "Numerical Sim. of Mechatronic Sensors 
+	// and Actuators" p. 55
         elemVec -=  partElemVec;
       }
 
@@ -459,10 +474,11 @@ namespace CoupledField {
     ENTER_FCN( "RHSForRecoveryProcedure::~RHSForRecoveryProcedure" );
   }
 
-  void  RHSForRecoveryProcedure::CalcElemVectorRHSForSPR(Matrix<Double>& ptCoord,
-                                                         Vector<Double> & fncNodesElem,
-                                                         const UInt aComponent,
-                                                         Vector<Double> & elemVec)
+  void  RHSForRecoveryProcedure::CalcElemVectorRHSForSPR(Matrix<Double>&
+					ptCoord,
+                                        Vector<Double> & fncNodesElem,
+                                        const UInt aComponent,
+                                        Vector<Double> & elemVec)
   {
     ENTER_FCN( "RHSForRecoveryProcedure::CalcElemVectorRHSForSPR" );
              
@@ -538,11 +554,14 @@ namespace CoupledField {
     //   Matrix<Double> linBMat; 
     //   Matrix<Double> nonLinBMat; 
     //   Matrix<Double> dMat;
-    //   Matrix<Double> transpSumB;    // we need transposed of the b-matrices
+    //  // we need transposed of the b-matrices
+    //   Matrix<Double> transpSumB; 
   
 
-    //   // This, as friend defined bilinearform holds the necessary differential operators
-    //   PreStressInt preStressBiformInt(ptelem, matData_, preStressVal_, preStressDir_);
+    //   // This, as friend defined bilinearform holds 
+    //   //the necessary differential operators
+    //   PreStressInt preStressBiformInt(ptelem, matData_, 
+    //                  preStressVal_, preStressDir_);
 
     //   if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
     //     Error("Undefined displacements! ",__FILE__,__LINE__);
@@ -558,8 +577,10 @@ namespace CoupledField {
     //   for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
     //     {    
     //       preStressBiformInt.setActElemDispl(elemDisp_);
-    //       preStressBiformInt.CalcStressVec(piolaStressVec, actIntPt, ptCoord);
-    //       preStressBiformInt.calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
+    //       preStressBiformInt.CalcStressVec(piolaStressVec, actIntPt,
+    //                                                ptCoord);
+    //       preStressBiformInt.calcNonLinBMat(nonLinBMat, actIntPt, 
+    //                                                ptCoord);
     //       preStressBiformInt.calcLinBMat(linBMat, actIntPt, ptCoord);
 
     //       nonLinBMat += linBMat;
@@ -568,7 +589,8 @@ namespace CoupledField {
         
     //       partElemVec = transpSumB * piolaStressVec;
 
-    //       Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+    //       Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, 
+    //                                                ptCoord);
     //       partElemVec *= jacDet * intWeights[actIntPt-1];
         
     //       elemVec +=  partElemVec;
@@ -576,9 +598,9 @@ namespace CoupledField {
   }
 
 
-  // ========================================================================
+  // =================================================================
   // pressureLinForm 
-  // ========================================================================
+  // =================================================================
 
 
   PressureLinForm::PressureLinForm(Double aVal, Boolean isaxi)
@@ -682,7 +704,8 @@ namespace CoupledField {
   //Members of class LinearFormFlowNoise
   //==================================================================
 
-  LinearFlowNoiseInt::LinearFlowNoiseInt(BaseFE * aptelem) : LinearForm(aptelem)
+  LinearFlowNoiseInt::LinearFlowNoiseInt(BaseFE * aptelem) 
+    : LinearForm(aptelem)
   {
     ENTER_FCN( "LinearFlowNoiseInt::LinearFlowNoiseInt" );
   }
@@ -693,9 +716,9 @@ namespace CoupledField {
   }
 
   void LinearFlowNoiseInt::CalcElemVector4Dip(Matrix<Double>& ptCoord,
-                                              const StdVector<UInt> & connecth, 
-                                              Vector<Double> & Result, 
-                                              const Vector<Double> gradN_x_P)
+                                   const StdVector<UInt> & connecth, 
+                                   Vector<Double> & Result, 
+                                   const Vector<Double> gradN_x_P)
   {
     ENTER_FCN( "LinearForm::CalcElemVector4FlowSrc" );
 
@@ -759,9 +782,9 @@ namespace CoupledField {
 
 
   void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,
-                                               const StdVector<UInt> & connecth,
-                                               const Matrix<Double> & FlowData, 
-                                               Vector<Double> & Result)
+                                        const StdVector<UInt> & connecth,
+                                        const Matrix<Double> & FlowData, 
+                                        Vector<Double> & Result)
   {
     ENTER_FCN( "LinearFlowNoiseInt::CalcElemVector4Quad" );
 
@@ -819,15 +842,19 @@ namespace CoupledField {
   
 
     //      //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    //      // Just for testing with source term from Anne Le Duc (ddTij/dxidxj) in MixLayer example
+    //      // Just for testing with source term from Anne Le Duc
+    //      // (ddTij/dxidxj) in MixLayer example
     //     for (actInt=1; actInt<=l; actInt++)
     //       {
-    //      ddTij_dxidxi[actInt-1]=0; // Set to zero index to be filled in.
+    //      // Set to zero index to be filled in.
+    //      ddTij_dxidxi[actInt-1]=0; 
     //      ptelem->GetShFncAtIp(Sf, actInt);
     //      for (int ctrIP=1; ctrIP<=l; ctrIP++)
     //        {
     //          // Interpolate to IP and fill in vector
-    //      ddTij_dxidxi[actInt-1]+=(FlowData[0][connecth[ctrIP-1]-1])*Sf[actInt-1]; // In files from MixL first value is ddTij/dxidxj!!
+    //          // In files from MixL first value is ddTij/dxidxj!!
+    //      ddTij_dxidxi[actInt-1]+=(FlowData[0][connecth[ctrIP-1]-1])*
+    //      Sf[actInt-1]; 
     //        }
     //       }
     //      //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -843,7 +870,8 @@ namespace CoupledField {
         
         for (int comp=0;comp<dimelem;comp++)
           {
-            elVelAtIP[comp][actInt-1]=VelAtIP[comp]; //Filling the matrix of velocity components at IP
+	    //Filling the matrix of velocity components at IP
+            elVelAtIP[comp][actInt-1]=VelAtIP[comp];
           }
       }
     
@@ -853,31 +881,20 @@ namespace CoupledField {
         ptelem->GetShFncAtIp(Sf, actInt);
         ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet);
       
-        // This work only for quad1 and trilinear hexahedrals elements since we have values
+        // This work only for quad1 and trilinear hexahedrals 
+	// elements since we have values
         // of the flow quantities only at the corners!
-        // Here we compute the derivatives of the Lighthill's tensor needed in the quadrupole term
+        // Here we compute the derivatives of the Lighthill's tensor 
+	// needed in the quadrupole term
         // at the ith integration point
      
         //Implementation 26.09.03
         //Modified 15.06.04
 
-
-
-        //Wrong mathematic derivation!! 
-        //      VelDerAtIP.GetDiagInMatrix(VelDerFromDiag);      
-        //      VelDerFromDiag.ConvertToVec_AppendRows(helpVect);
-        //      for (int k=0;k<(dimelem-1);k++)
-        //        VelDerFromDiag.add_col(helpVect,1);
-
-        //      VelDerFromDiag.ScaleDiagElems(2.0);
-        //      dTij_di=(VelDerFromDiag*VelAtIP);
-
-        // Implementation of new derivation
-
         VelAtIP=elVel*Sf;
         
 
-        VelDerAtIP=(elVelAtIP*xiDx); // Now this is computed more accurately using elVelAtIP, before was elVel
+        VelDerAtIP=(elVelAtIP*xiDx);
         //VelDerAtIP*=jacDet; 
 
         VelDerAtIP.GetDiagInMatrix(VelDerFromDiag);
@@ -909,7 +926,8 @@ namespace CoupledField {
 
 
         //      //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        //      // Just for testing with source term from Anne Le Duc (ddTij/dxidxj) in MixLayer example
+        //      // Just for testing with source term from Anne Le Duc 
+	//      //(ddTij/dxidxj) in MixLayer example
         //      ddTij_dxidxi*=density;
         //      for (int ii=0;ii<n;ii++)
         //        {
@@ -926,9 +944,9 @@ namespace CoupledField {
  
 
   void LinearFlowNoiseInt::GetQttiesOfElement(Matrix<Double>& elVel,
-                                              const Matrix<Double>& FlowData,
-                                              const StdVector<UInt>& connecth, 
-                                              UInt matrixRow)
+                                      const Matrix<Double>& FlowData,
+                                      const StdVector<UInt>& connecth, 
+                                      UInt matrixRow)
   {
     ENTER_FCN( "LinearFlowNoiseInt::GetVecOfElement" );
  
@@ -937,13 +955,14 @@ namespace CoupledField {
    
     for(UInt actNode=0; actNode<connecth.GetSize(); actNode++)
       for (UInt dim=0; dim < matrixRow; dim++)
-        elVel[dim][actNode] = FlowData[dim+1][connecth[actNode]-1]; // dim+1 because index 0 in FlowData is used for storing pressure
+	// dim+1 because index 0 in FlowData is used for storing pressure
+        elVel[dim][actNode] = FlowData[dim+1][connecth[actNode]-1]; 
   }
 
 
-  // =============================================================================
+  // ===================================================================
   // nonlinear RHS for nonlinear acoustics
-  // =============================================================================
+  // ===================================================================
 
   nLinKuznetsovRHSInt::nLinKuznetsovRHSInt(Double aVal, Boolean isaxi)
     : LinearForm(), val_(aVal)
@@ -959,7 +978,8 @@ namespace CoupledField {
   }
 
 
-  void nLinKuznetsovRHSInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+  void nLinKuznetsovRHSInt::CalcElemVector(Matrix<Double>& ptCoord,
+					   Vector<Double> & elemVec)
   {
     ENTER_FCN( "nLinKuznetsovRHSInt::CalcElemVector" );
 
@@ -999,7 +1019,8 @@ namespace CoupledField {
         
       xiDx.Transpose(xiDxTransp);
         
-      //compute gradient of solution and 1st derivative at integration point
+      //compute gradient of solution and 1st derivative at integration
+      //point
       solGradAtIp       = xiDxTransp * sol_;
       solDeriv1GradAtIp = xiDxTransp * solderiv1_;
         
@@ -1037,7 +1058,8 @@ namespace CoupledField {
   }
 
 
-  void nLinWesterveltRHSInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+  void nLinWesterveltRHSInt::CalcElemVector(Matrix<Double>& ptCoord,
+					    Vector<Double> & elemVec)
   {
     ENTER_FCN( "nLinWesterveltRHSInt::CalcElemVector" );
 
@@ -1069,7 +1091,8 @@ namespace CoupledField {
       solDeriv1AtIp = solderiv1_*ShpFncAtIp;
       solDeriv2AtIp = solderiv2_*ShpFncAtIp;
         
-      totalfactor = jacDet*factor_*2.0*(solDeriv1AtIp * solDeriv1AtIp + solAtIp*solDeriv2AtIp);
+      totalfactor = jacDet*factor_*2.0*(solDeriv1AtIp * solDeriv1AtIp +
+					solAtIp*solDeriv2AtIp);
         
       for (UInt i=0; i< nrNodes; i++)
         elemVec[i] += ShpFncAtIp[i] * totalfactor;
@@ -1077,9 +1100,9 @@ namespace CoupledField {
   }
 
 
-  // =============================================================================
+  // ====================================================================
   // electric polarization
-  // =============================================================================
+  // ====================================================================
 
   ElecPolarizationInt::ElecPolarizationInt(Boolean isaxi)
     : LinearForm() 
@@ -1095,7 +1118,8 @@ namespace CoupledField {
   }
 
 
-  void ElecPolarizationInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+  void ElecPolarizationInt::CalcElemVector(Matrix<Double>& ptCoord, 
+					   Vector<Double> & elemVec)
   {
     ENTER_FCN( "ElecPolarizationInt::CalcElemVector" );
 
@@ -1134,9 +1158,9 @@ namespace CoupledField {
   }
 
 
-  // =============================================================================
+  // ==================================================================
   // piezoelectric polarization
-  // =============================================================================
+  // ==================================================================
 
   PiezoPolarizationInt::PiezoPolarizationInt(UInt dir, UInt numdof, 
                                              Boolean isaxi)
@@ -1154,7 +1178,8 @@ namespace CoupledField {
   }
 
 
-  void PiezoPolarizationInt::CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & elemVec)
+  void PiezoPolarizationInt::CalcElemVector(Matrix<Double>& ptCoord,
+					    Vector<Double> & elemVec)
   {
     ENTER_FCN( "PiezoPolarizationInt::CalcElemVector" );
 

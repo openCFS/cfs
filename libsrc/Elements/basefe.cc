@@ -106,6 +106,7 @@ namespace CoupledField
     JInv.Determinant(JInvDet);
     jacDet = 1.0 / JInvDet;
 
+
     if ( jacDet < 0.0 ){
       errMsg = "BaseFE:GetGlobDerivShFncAtIp: ";
       errMsg += "Negative Jacobian Determinant!\n";
@@ -113,6 +114,7 @@ namespace CoupledField
       errMsg += CoordMatrix2String(CornerCoords);
       Error(errMsg.c_str(), __FILE__, __LINE__ );     
     }
+
  
   }
 
@@ -179,8 +181,10 @@ namespace CoupledField
       errMsg += CoordMatrix2String(CornerCoords);
       Error(errMsg.c_str(), __FILE__, __LINE__ );     
     }
+
     return jacDet;
   }
+
 
   Double BaseFE :: CalcJacobianDetAtIp(const UInt ip, 
                                        const Matrix<Double> & CornerCoords)
@@ -220,9 +224,11 @@ namespace CoupledField
         errMsg += CoordMatrix2String(CornerCoords);
         Error(errMsg.c_str(), __FILE__, __LINE__ );     
       }
+
       return jacDet;
     }  
   }
+
 
 
 

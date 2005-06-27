@@ -51,11 +51,12 @@ namespace CoupledField
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrNodes); elemMat.Init();
-    
-    //check for material value
-    if (materialArray_ != NULL) {
-      laplVal_ = (*materialArray_)[actSD_][actElemNr_];
-    }
+
+//     //check for material value
+//     if (materialArray_ != NULL) {
+//       laplVal_ = (*materialArray_)[actSD_][actElemNr_];
+//     }
+
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {

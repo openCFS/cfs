@@ -3,6 +3,7 @@
 
 #include "basePDE.hh"
 #include "acousticPDE.hh"
+//#include <MpCCIcpl/MpCCIexch-patchQuad3D.hh>
 #include <MpCCIcpl/MpCCIexch.hh>
 
 namespace CoupledField
@@ -31,13 +32,7 @@ namespace CoupledField
                       Matrix<Double> &nodedata );
 
 
-    //! write results in file
-    //! \param stepOffset offset for starting (time)step
-    //! \param timeOffset offset for starting time  
-    void WriteResultsInFile(const UInt kstep,
-                                    const Double asteptime,
-                                    UInt stepOffset = 0,
-                                    Double timeOffset = 0.0);
+
   private:
 
 
@@ -57,21 +52,23 @@ namespace CoupledField
     
     //!MpCCI
 #ifdef MpCCI
+
     StdVector<UInt> mapSD_;
+    StdVector<Integer> mapSD_allNodes_;
     MpCCIexch * ptMpCCIexch_;
-    UInt MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
-    UInt MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
-    UInt meshId_;
-    UInt partId_;
-    UInt nNodeIds_;
-    UInt *nodeIds_;
-    UInt GlobalDim_;
-    UInt nElemIds_;
-    UInt *elemIds_;
-    UInt nElemTypes_;
-    UInt *nNodesPerElem_;
-    UInt *elemTypes_;
-    UInt MpCCIprocess_;
+    Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
+    Integer meshId_;
+    Integer partId_;
+    Integer nNodeIds_;
+    Integer *nodeIds_;
+    Integer GlobalDim_;
+    Integer nElemIds_;
+    Integer *elemIds_;
+    Integer nElemTypes_;
+    Integer *nNodesPerElem_;
+    Integer *elemTypes_;
+    Integer MpCCIprocess_;
+
 #endif
 
   };

@@ -27,7 +27,7 @@ namespace CoupledField
     SetIntPoints();
     SetCornerCoords();
     SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();  
+    SetShapeFncDerivAtIp(); 
   }
 
   void Quad1FE :: SetCornerCoords()

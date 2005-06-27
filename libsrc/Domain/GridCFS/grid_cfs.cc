@@ -460,19 +460,24 @@ namespace CoupledField
   // ======================================================
   template<UInt DIM>
   void GridCFS<DIM>::GetNodesOfElemList( StdVector<UInt> & nodeList,
-                                         const StdVector<Elem*> & elemList ) {
+                                         const StdVector<Elem*> & elemList,
+					 Boolean onlyLinNodes) {
     ENTER_FCN( "GridCFS::GetNodesOfElemList" );
 
     std::set<UInt> elemNodes;
     std::set<UInt>::iterator it;
-    UInt iElem, iNode;
-
+    UInt iElem, iNode, numElemCorners;
 
     // First, create a set with node numbers of elements
     for ( iElem = 0; iElem < elemList.GetSize(); iElem++ ) {
       StdVector<UInt> const & connecth = elemList[iElem]->connect;
       
-      for ( iNode = 0; iNode < connecth.GetSize(); iNode++ ) {
+      if (onlyLinNodes == TRUE)
+	numElemCorners = elemList[iElem]->ptElem->GetNumCorners();
+      else
+	numElemCorners = connecth.GetSize();
+      
+      for ( iNode = 0; iNode < numElemCorners; iNode++ ) {
         elemNodes.insert(connecth[iNode]);
       }
     }
@@ -627,6 +632,7 @@ namespace CoupledField
       for (UInt iSurfElem = 0; iSurfElem < surfElems_[iRegion].GetSize();
            iSurfElem++ ) {
         
+
         // check, if each surface element has at least one volume neighbour
         if ( surfElems_[iRegion][iSurfElem]->ptVolElem1 == NULL ) {
           (*error) << "Pointer to first volume elem is NULL for surface "
@@ -640,6 +646,7 @@ namespace CoupledField
         CalcSurfNormalOutOfVol( normalDefSign, 
                                 *surfElems_[iRegion][iSurfElem],
                                 *surfElems_[iRegion][iSurfElem]->ptVolElem1 );
+
 
         // Check if all entries have the same sign by calulating
         // a scalar product between both vectors.
@@ -1547,6 +1554,46 @@ namespace CoupledField
   //   }
 
 
+
+//   template<UInt DIM> void
+//   GridCFS<DIM>::CalcNumberOfNodesInPatch(const StdVector<Elem*> & patch,
+// 					 StdVector<Integer> & map, 
+// 					 Boolean OnlyLinNodes)
+//   {
+//     ENTER_FCN( "GridCFS::CalcNumberOfNodesInPatch" );
+
+//     Integer iels,ivc,imp;
+//     StdVector<Integer> vec_connect;
+//     Boolean NewNode;
+
+//     for (iels=0; iels<patch.GetSize(); iels++) // loop over elements in patch
+//       {
+     
+// 	vec_connect=patch[iels]->connect;
+// 	Integer numElemCorners;
+// 	if (OnlyLinNodes == TRUE)
+// 	  numElemCorners = patch[iels]->ptElem->GetNumCorners();
+// 	else
+// 	  numElemCorners = vec_connect.GetSize();
+	
+// 	for (ivc=0; ivc<numElemCorners; ivc++) {
+// 	  NewNode=TRUE;
+// 	  // loop over vector with global nodes for previous elements
+// 	  for (imp=0; imp<map.GetSize(); imp++) {
+// 	    // check that this node is not new
+// 	    if (map[imp] == vec_connect[ivc]) { 
+// 	      NewNode=FALSE;
+// 	    }	 
+// 	  }
+
+// 	  if (NewNode) {
+// 	    map.Push_back(vec_connect[ivc]);
+// 	  }
+
+// 	} // end of loop over nodes in element
+
+//       } // end of loop over elements in patch   
+//   }
 
 
 
