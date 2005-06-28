@@ -91,6 +91,17 @@ namespace CoupledField
 
   protected:
 
+    //!Get an Integer array including all nodes of a subdomain.
+    //!Thereby for each elements the connecting nodes are picked up and stored 
+    //!sequentially in localNodes_. Thereby it is possible that one node
+    //!is mentioned more then once. Because one node can belong to more elements.
+    void GetNodesOfSubdomain();
+
+
+    //!set up an bool Matrix with the mapping which pdenode belongs to which subdomain
+    void SetupNodesSubdomainsMapping();
+
+
     StdVector<StdVector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
     StdVector<StdVector<StdVector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
     StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number

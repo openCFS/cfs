@@ -446,5 +446,61 @@ namespace CoupledField {
     ENTER_FCN( "MpcciPDE::ReadStoreResults" );
   }
 
+
+  void MpcciPDE::GetNodesOfSubdomain()
+  {
+    ENTER_FCN( "MpcciPDE::GetNodesOfSubdomain" );
+    UInt i, j;
+    UInt localPDENode;
+    UInt numOfSubdom=subdoms_.GetSize();
+    StdVector<UInt> globalNodes;
+    StdVector<Elem*> elemsInSD;
+
+    localNodes_=new UInt*[numOfSubdom];
+
+    numOfNodesInSD_=new UInt[numOfSubdom];
+    for (i=0; i<numOfSubdom; i++)
+      {
+	globalNodes.Resize(0);
+	ptgrid_->GetVolElems(elemsInSD,subdoms_[i]);
+	ptgrid_->GetNodesOfElemList(globalNodes, elemsInSD);
+	numOfNodesInSD_[i] = globalNodes.GetSize();
+	localNodes_[i]  =new UInt[numOfNodesInSD_[i]];
+	for (j=0; j<numOfNodesInSD_[i]; j++)
+	  {
+	    localPDENode = eqnData_->Mesh2PDENode(globalNodes[j]);
+	    localNodes_[i][j]=localPDENode;
+	  }
+      }
+  }
+
+  void MpcciPDE::SetupNodesSubdomainsMapping()
+  {
+    ENTER_FCN( "MpcciPDE::SetupNodesSubdomainsMapping" );
+
+    UInt i, j, k;
+    UInt numOfSubdom=subdoms_.GetSize();
+
+    NodeBelongsToSD_.Resize(numPDENodes_+1, numOfSubdom);
+    NodeBelongsToSD_.Init(FALSE);
+
+    for (i=1; i<=numPDENodes_; i++)
+      {
+	for (j=0; j<numOfSubdom; j++)
+	  {
+	    for (k=0; k<numOfNodesInSD_[j]; k++)
+	      {
+		if(i==localNodes_[j][k])
+		  {
+		    NodeBelongsToSD_(i,j)=TRUE;
+		    Info->PrintF( pdename_, "pdeNode:%d is in SD %d \t", i, j );
+		    break;
+		  }
+	      }
+	  }
+	Info->PrintF( pdename_, "\n");
+      }
+  }
+
 } // end of namespace
 
