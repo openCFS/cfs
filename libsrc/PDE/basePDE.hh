@@ -22,6 +22,8 @@ namespace CoupledField
 
   public:
 
+    Boolean converged_; //!< needed for coupling with MpCCI
+
     //! Constructor
     BasePDE();
     
