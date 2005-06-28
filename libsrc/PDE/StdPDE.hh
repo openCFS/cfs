@@ -173,6 +173,17 @@ namespace CoupledField {
 	  return isaxi_;
 	}
 
+    //!Get an Integer array including all nodes of a subdomain.
+    //!Thereby for each elements the connecting nodes are picked up and stored 
+    //!sequentially in localNodes_. Thereby it is possible that one node
+    //!is mentioned more then once. Because one node can belong to more elements.
+    void GetNodesOfSubdomain();
+
+
+    //!set up an bool Matrix with the mapping which pdenode belongs to which subdomain
+    void SetupNodesSubdomainsMapping();
+
+
     //! computes the coordinates of an element including the delta
     //! \param connect (input) global node numbers of element
     //! \param ptCoord (output) coordinates of the element nodes
@@ -540,6 +551,11 @@ namespace CoupledField {
 
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;
+
+    // Matrix containig the local PDE node numbers of all subdomains of the PDE
+    UInt ** localNodes_;
+    UInt * numOfNodesInSD_;
+    Matrix<Boolean> NodeBelongsToSD_;
     
     //! pointer to SolveStep classes
     StdSolveStep * solveStep_;
