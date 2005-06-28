@@ -127,6 +127,12 @@ namespace CoupledField
     UInt MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
     void ReadStoreResults();
     StdVector<std::string> MpCCIType_; // <! Coupling Type: shell:= pressure from bioth sides; solid:= pressure from one side
+
+    // Matrix containig the local PDE node numbers of all subdomains of the PDE
+    UInt ** localNodes_;
+    UInt * numOfNodesInSD_;
+    Matrix<Boolean> NodeBelongsToSD_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
