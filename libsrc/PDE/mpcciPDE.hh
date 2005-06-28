@@ -107,13 +107,15 @@ namespace CoupledField
   private:
     //!MpCCI
     StdVector<UInt> mapSD_;
+    UInt * meshId_;
+    UInt NumMeshIds_;
 #ifdef MpCCI
     MpCCIexch * ptMpCCIexch_;
 #endif
     Boolean flagFirstTimeStep_; // flag for first time stewp
     UInt MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
     void ReadStoreResults();
-
+    StdVector<std::string> MpCCIType_; // <! Coupling Type: shell:= pressure from bioth sides; solid:= pressure from one side
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
@@ -126,7 +128,13 @@ namespace CoupledField
   //! 
   //! \purpose 
   //! This class is derived from class BasePDE. It is used for coupling CFS++ 
-  //! via MpCCI
+  //! via MpCCI to FASTEST-3D. The class is thereby a dummy class in which
+  //! nothing needs to be solved here just data transfer is handled.
+  //! Currently only a coupled computation with mechanics is possible. 
+  //! Within the Method CalcInputCoupling the 
+  //! mechanical displacements from CFS++ are delivered to FASTEST-3D.
+  //! In the method CalcOutputCoupling the fluid dynamical forces due to
+  //! pressure and shear are send to CFS++.
   //! 
   //! \collab 
   //! 
