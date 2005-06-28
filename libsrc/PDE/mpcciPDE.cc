@@ -34,6 +34,30 @@ namespace CoupledField {
     pdematerialclass_ = "piezo"; 
     flagFirstTimeStep_= TRUE;
     converged_=FALSE;
+
+    params->GetList( "type", MpCCIType_, pdename_ , "region");
+
+    if (MpCCIType_[0]=="shell")
+      {
+	NumMeshIds_=2;
+	meshId_= new UInt[NumMeshIds_];
+	std::cerr << "i am a shell" << std::endl;
+	params->Get("meshIdA", meshId_[0], "mpcciFSI");
+	params->Get("meshIdB", meshId_[1], "mpcciFSI");
+      }
+    else if (MpCCIType_[0]=="solid")
+      {
+	std::cerr << "i am a solid" << std::endl;
+	NumMeshIds_=1;
+	meshId_ = new UInt[NumMeshIds_];
+	params->Get("meshIdA", meshId_[0], "mpcciFSI");
+      }
+    else
+      {
+        std::string errmsg = "MpCCIType '" + MpCCIType_[0];
+        errmsg += "does not exist";
+        Info->Error( errmsg, __FILE__, __LINE__ );
+      }
   }
 
   void MpcciPDE::Init(UInt bcSequenceIndex, std::string  bcSequenceTag)
@@ -50,6 +74,7 @@ namespace CoupledField {
     // =====================================================================
     params->GetList( "name", regionNames, pdename_, "region" );
     ptgrid_->RegionNameToId( subdoms_, regionNames );
+
     Info->PrintF( pdename_, " %s lives on regions:\n", pdename_.c_str());
     for ( UInt k = 0; k < regionNames.GetSize(); k++ ) 
       {
@@ -69,30 +94,35 @@ namespace CoupledField {
   void MpcciPDE::PreparePDE4Computation()
   {
     ENTER_FCN( "MpcciPDE::PreparePDE4Computation" );
+#ifdef MpCCI
 
-    // #ifdef MpCCI
+  StdVector<Elem*> elemssd;
 
-    //   params->GetList( "name", subdoms_, pdename_, "region" );
-    
-    //   StdVector<Elem*> elemssd;
+  MpCCInodes_ = 0;
+  for (UInt i=0; i<subdoms_.GetSize(); i++)
+    {
+      ptgrid_->GetVolElems(elemssd,subdoms_[i]);
+      mapSD_.Clear(); // needed to call CalcNumberOfNodesInPatch(.,.) correctly
+      ptgrid_->GetNodesOfElemList(mapSD_, elemssd);
+      MpCCInodes_ += mapSD_.GetSize();
+    }
 
-    //   if (subdoms_.GetSize() != 1)
-    //     {
-    //       std::cerr << "currently only one subdomain can be coupled with mpcciPDE" << std::endl;
-    //       exit(0);
-    //     }
-    //   else
-    //     {
-    //       ptgrid_->GetElemSD(elemssd,subdoms_[0]);
-    //       ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
-
-    //       MpCCInodes_= mapSD_.GetSize();
-    //       ptMpCCIexch_ = new MpCCIexch(ptgrid_,MpCCInodes_);
-    //     }
-
-    //   ptMpCCIexch_->PutExchangeGrid2MpCCI(subdoms_, *eqnData_);
-    // #endif
-
+  GetNodesOfSubdomain();
+  SetupNodesSubdomainsMapping();
+  ptMpCCIexch_ = new MpCCIexch(ptgrid_, subdoms_);
+  for (UInt i=0; i<NumMeshIds_; i++)
+    {
+      for (UInt j=0; j<subdoms_.GetSize(); j++)
+	{
+	  ptMpCCIexch_->DefMpcciPartition(meshId_[i], j+1);
+	  ptMpCCIexch_->DefMpcciNodes(meshId_[i], j+1, numOfNodesInSD_[j], localNodes_[j], *eqnData_);
+	  ptMpCCIexch_->DefMpcciElements(meshId_[i], j+1, *eqnData_);
+	  //possible alternative:
+	  //ptMpCCIexch_->DefMpcciPartNodeElem(i+1, MpCCInodes_,*eqnData_);
+	}
+    }
+  ptMpCCIexch_->FinishMpcciSetup(MpCCIType_[0]);
+#endif
   }
 
 
@@ -212,7 +242,8 @@ namespace CoupledField {
     StdVector<UInt> * nodes;
     CFSVector * val;
     UInt pdeNode;
-    UInt couplingDof;
+    UInt k, couplingDof;
+    UInt * nodeIds;
 
     // Reset counter for boundary conditions
     couplingBCsCounter_ = 0;
@@ -238,26 +269,60 @@ namespace CoupledField {
           
             ptCoupling_->GetInputNodes(i, nodes);
 
-            displ.Resize(nodes->GetSize() * ptCoupling_->GetInputDof(i) );
-            displ.Init(-1);
-
-            for (UInt j=0; j<nodes->GetSize(); j++)
+            for (UInt ii=0; ii<subdoms_.GetSize(); ii++)
               {
-                for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
+                displ.Resize( numOfNodesInSD_[ii] * ptCoupling_->GetInputDof(i) );
+                displ.Init(-1);
+                nodeIds=new UInt[numOfNodesInSD_[ii]];
+                k=0;
+
+                for (UInt j=0; j<nodes->GetSize(); j++)
                   {
                     pdeNode = eqnData_->Mesh2PDENode((*nodes)[j]);
-                    //std::cerr << "pdeNode " << pdeNode << "=" << (*nodes)[j] << std::endl;
 
-                    displ[dof + (pdeNode-1)*dim_] = help[dof + j*dim_];
+                    // begin FASTEST NETZ CHECK
+                    Point<3> ptPoint;
+                    ptgrid_->GetNodeCoordinate(ptPoint, (*nodes)[j]);
+                    //Info->PrintF( pdename_, "pdeNode=%d \t (*nodes)[%d]=%d \t x=%e \t y=%e \t z=%e \n", pdeNode, j, (*nodes)[j], ptPoint[0], ptPoint[1], ptPoint[2] );
+                    // end FASTEST NETZ CHECK
+
+                    //Info->PrintF( pdename_, "pdeNode=%d \t (*nodes)[%d]=%d\n", pdeNode, j, (*nodes)[j] );
+                  
+                    if(NodeBelongsToSD_(pdeNode,ii)==TRUE)
+                      {
+                        nodeIds[k]=pdeNode;
+                        for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
+                          {
+                            displ[dof + k*dim_] = help[dof + j*dim_];
+                            //Test der Netzadaption in FASTEST x-Displ=yCoordinate
+                            //if(dof==0) displ[dof + k*dim_] = ptPoint[1];
+
+                            //Info->PrintF( pdename_, "%e \t ", displ[dof + k*dim_]);
+                          }
+                        //Info->PrintF( pdename_, "\n" );
+                        k++;
+                      }
                   }
-              }
+                //Info->PrintF(pdename_, "k =%d \t  numOfNodesInSD_[%d]=%d \n", k, ii, numOfNodesInSD_[ii]);
+      
+                if (flagFirstTimeStep_== TRUE) {;} // do nothing
+                else
+#ifdef MpCCI
+                  ptMpCCIexch_->PutPartition(ii+1, displ, numOfNodesInSD_[ii], nodeIds, converged_);
+#endif
+                if(nodeIds) delete [] nodeIds;
+              } // end for ii
+
             if (flagFirstTimeStep_== TRUE)
               {
+                //for the first iteration of the first time step 
+                //do not call ptMpCCIexch_->SendAllPartitions();
                 flagFirstTimeStep_=FALSE;
               }
-            // #ifdef MpCCI
-            //                else ptMpCCIexch_->CouplSendPhase(displ,converged_);
-            // #endif
+#ifdef MpCCI
+            // Send the displacements to FASTEST-3D
+            else ptMpCCIexch_->SendAllPartitions();
+#endif
             break;
           case RHS:
             Error(" No use for RHS coupling!");
@@ -278,9 +343,14 @@ namespace CoupledField {
     ENTER_FCN( "MpcciPDE::CalcOutputCoupling" );
 
     SolutionType quantity;
-    StdVector<UInt> * couplingNodes     = NULL;
+    StdVector<UInt> * couplingNodes = NULL;
     CFSVector * values = 0;
     UInt forcesCount = 0;
+
+    std::string errMsg;
+    UInt pdeNode, k; //, eqnNr,eqnDof;
+    UInt * nodeIds;
+
 
     // loop over all output coupling quantities
     for (UInt actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
@@ -288,28 +358,69 @@ namespace CoupledField {
         quantity = ptCoupling_->GetOutputQuantity(actCoupling);
         ptCoupling_->GetOutputValues(actCoupling, values);
 
-      
+        Vector<Double> * temp = dynamic_cast<Vector<Double> *>(values);
+        Vector<Double> subdomForces;
+
+        temp->Init(0.0);
+
         switch(ptCoupling_->GetOutputType(actCoupling))
           {
-          
-          case NODE:        
+	  
+          case NODE:	  
+            
             ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
-          
+            
             if (quantity == FLUID_FORCE)
               {
+#ifdef MpCCI
+                if (MpCCIType_[0]=="shell")
+                  {
+                    std::cerr << "i am a shell" << std::endl;
+                  }
+                else if (MpCCIType_[0]=="solid")
+                  {
+                    std::cerr << "i am a solid" << std::endl;
+                  }
+                else
+                  {
+                    std::string errmsg = "MpCCIType '" + MpCCIType_[0];
+                  }
 
-                // #ifdef MpCCI
-                //            ptMpCCIexch_->CouplRecvPhase(temp[actCoupling]);
-                // #endif
-
+                ptMpCCIexch_->RecvAllPartitions(MpCCIType_[0]);
+                //ptMpCCIexch_->RecvAllPartitions("shell");
+#endif
                 forcesCount++;
+                for (UInt ii=0; ii<subdoms_.GetSize(); ii++)
+                  {
+                    subdomForces.Resize(numOfNodesInSD_[ii] * ptCoupling_->GetInputDof(actCoupling));
+                    subdomForces.Init(0.0);
+                    nodeIds=new UInt[numOfNodesInSD_[ii]];
+#ifdef MpCCI
+                    ptMpCCIexch_->GetNodalValOfOnePartition(ii+1 , subdomForces, numOfNodesInSD_[ii], localNodes_[ii], MpCCIType_[0]);
+#endif
+                    for (k=0; k<numOfNodesInSD_[ii]; k++)
+                      {
+                        for (UInt j=0; j<couplingNodes->GetSize(); j++)
+                          {
+                            pdeNode = eqnData_->Mesh2PDENode((*couplingNodes)[j]);
+                         
+                            if(pdeNode==localNodes_[ii][k])
+                              {
+                                for (UInt dof=0; dof<ptCoupling_->GetInputDof(actCoupling); dof++)
+                                  {
+                                    temp[actCoupling][dof + j*dim_] += subdomForces[dof + k*dim_];
+                                  }
+                              }
+                          }
+                      }
+                  }
               }
             break;
-          
           case ELEM:
             Error("No Element coupling output", __FILE__,__LINE__);
           }
       }
+    
   }
 
 
