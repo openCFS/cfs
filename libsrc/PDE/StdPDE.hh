@@ -541,11 +541,6 @@ namespace CoupledField {
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;
 
-    // Matrix containig the local PDE node numbers of all subdomains of the PDE
-    UInt ** localNodes_;
-    UInt * numOfNodesInSD_;
-    Matrix<Boolean> NodeBelongsToSD_;
-    
     //! pointer to SolveStep classes
     StdSolveStep * solveStep_;
     
