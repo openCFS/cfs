@@ -2,6 +2,8 @@
 #include <list>
 #include "Domain/grid.hh"
 #include "DataInOut/WriteInfo.hh"
+#include "Domain/domain.hh"
+#include "Utils/coordSystem.hh"
 
 namespace CoupledField {
 
@@ -42,6 +44,7 @@ namespace CoupledField {
     ENTER_FCN( "BaseEQN::SetHomoDirichletBCs" );
 
     StdVector<UInt> tempNodeList;
+    UInt dof;
     homoDirichletNodes_.Clear();
 
     for ( UInt i = 0; i < nodeLevel.GetSize(); i++ ) {
@@ -51,7 +54,8 @@ namespace CoupledField {
       for ( UInt iNode = 0; iNode < tempNodeList.GetSize(); iNode++ ) {
         homoDirichletNodes_.Push_back(tempNodeList[iNode]);
         if (dofsPerNode_ > 1) {
-          homoDirichletDofs_.Push_back(GetBCDof(dofs[i]));
+          dof = domain->GetCoordSystem()->GetVecComponent(dofs[i]);
+          homoDirichletDofs_.Push_back(dof);
         }
       } 
     }
@@ -66,6 +70,8 @@ namespace CoupledField {
 
     ENTER_FCN( "BaseEQN::SetInhomDirichletBCs" );
 
+    UInt dof = 0;
+
     // Only do this, if we have to sort the equation numbers
     // with the inhom. Dirichlet part on the top
     if ( sortEQNs_ == TRUE ) {
@@ -79,7 +85,8 @@ namespace CoupledField {
         for ( UInt iNode =0; iNode < tempNodeList.GetSize(); iNode++ ) {
           inhomDirichletNodes_.Push_back(tempNodeList[iNode]);
           if (dofsPerNode_ > 1) {
-            inhomDirichletDofs_.Push_back(GetBCDof(dofs[i]));
+            dof = domain->GetCoordSystem()->GetVecComponent(dofs[i]);
+            inhomDirichletDofs_.Push_back(dof);
           }
         } 
       }
@@ -103,45 +110,10 @@ namespace CoupledField {
       constraintDofs_.Resize(dofs.GetSize());
 
       for ( UInt i = 0; i < dofs.GetSize(); i++ ) {
-        constraintDofs_[i] = GetBCDof(dofs[i]);
+        constraintDofs_[i]  = domain->GetCoordSystem()->GetVecComponent(dofs[i]);
       }
     }
   }
 
-
-  // *************
-  //   GetBCDofs
-  // *************
-  UInt BaseEQN::GetBCDof( const std::string dofString ) const {
-
-    ENTER_FCN( "BaseEQN::GetBCDof" );
-  
-    UInt retVal = 0;
-  
-    if ( dofString == "ux" ) {
-      retVal = 1;
-    }
-    else if ( dofString == "uy" ) {
-      retVal = 2;
-    }
-    else if ( dofString == "uz" ) {
-      retVal = 3;
-    }
-  
-    // hard-coded for Piezo PDE
-    else if ( dofString == "ep" ) {
-      retVal = dofsPerNode_;
-    }
-
-    else {
-      // According to the Schema definition of the parameter file this cannot
-      // happen. Did the parser not perform validation?
-      (*error) << "Direction should be one of ux, uy, uz and not "
-               << dofString;
-      Error( __FILE__, __LINE__ );
-    }
-
-    return retVal;
-  }
 
 } // end of namespace
