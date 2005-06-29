@@ -81,7 +81,7 @@ namespace CoupledField
     // iterate over all subdomains
     for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++)
       {
-        ptGrid_->GetVolElems(subdom,subdoms_[iSD]); 
+        ptGrid_->GetElems(subdom,subdoms_[iSD]); 
 
         // iterate over all elems in subdomain
         for (UInt iElem=0; iElem<subdom.GetSize(); iElem++)
