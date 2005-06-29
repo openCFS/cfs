@@ -3,6 +3,7 @@
 #include <math.h>
 
 #include "forms_header.hh"
+#include "Utils/coordSystem.hh"
 
 namespace CoupledField {
 
@@ -270,8 +271,8 @@ namespace CoupledField {
   // ==================================================================
 
   nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(BaseFE * aptelem, 
-					MaterialData & matData,
-					Boolean isaxi) 
+                                                     MaterialData & matData,
+                                                     Boolean isaxi) 
     : LinearForm(aptelem), matData_(matData)
   {
     ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
@@ -475,10 +476,10 @@ namespace CoupledField {
   }
 
   void  RHSForRecoveryProcedure::CalcElemVectorRHSForSPR(Matrix<Double>&
-					ptCoord,
-                                        Vector<Double> & fncNodesElem,
-                                        const UInt aComponent,
-                                        Vector<Double> & elemVec)
+                                                         ptCoord,
+                                                         Vector<Double> & fncNodesElem,
+                                                         const UInt aComponent,
+                                                         Vector<Double> & elemVec)
   {
     ENTER_FCN( "RHSForRecoveryProcedure::CalcElemVectorRHSForSPR" );
              
@@ -716,9 +717,9 @@ namespace CoupledField {
   }
 
   void LinearFlowNoiseInt::CalcElemVector4Dip(Matrix<Double>& ptCoord,
-                                   const StdVector<UInt> & connecth, 
-                                   Vector<Double> & Result, 
-                                   const Vector<Double> gradN_x_P)
+                                              const StdVector<UInt> & connecth, 
+                                              Vector<Double> & Result, 
+                                              const Vector<Double> gradN_x_P)
   {
     ENTER_FCN( "LinearForm::CalcElemVector4FlowSrc" );
 
@@ -782,9 +783,9 @@ namespace CoupledField {
 
 
   void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,
-                                        const StdVector<UInt> & connecth,
-                                        const Matrix<Double> & FlowData, 
-                                        Vector<Double> & Result)
+                                               const StdVector<UInt> & connecth,
+                                               const Matrix<Double> & FlowData, 
+                                               Vector<Double> & Result)
   {
     ENTER_FCN( "LinearFlowNoiseInt::CalcElemVector4Quad" );
 
@@ -944,9 +945,9 @@ namespace CoupledField {
  
 
   void LinearFlowNoiseInt::GetQttiesOfElement(Matrix<Double>& elVel,
-                                      const Matrix<Double>& FlowData,
-                                      const StdVector<UInt>& connecth, 
-                                      UInt matrixRow)
+                                              const Matrix<Double>& FlowData,
+                                              const StdVector<UInt>& connecth, 
+                                              UInt matrixRow)
   {
     ENTER_FCN( "LinearFlowNoiseInt::GetVecOfElement" );
  
@@ -1229,6 +1230,79 @@ namespace CoupledField {
 
   }
 
+
+  // =========================================================================
+  // mechanic rhs volume integrator
+  // =========================================================================
+  
+  
+  MechVolForceInt::MechVolForceInt(UInt numDof, Boolean isaxi) {
+
+    ENTER_FCN( "MechVolForceInt::MechVolForceInt" );
+    
+    isaxi_ = isaxi;
+    numDofs_ = numDof;
+    
+  }
+    
+  MechVolForceInt::~MechVolForceInt() {
+
+    ENTER_FCN( "MechVolForceInt::~MechVolForceInt" );
+
+  }
+    
+  void MechVolForceInt::SetVolForceVector(Vector<Double> & volForce, 
+                                          const CoordSystem * coordSys) {
+
+    ENTER_FCN( "MechVolForceInt::SetVolForceVector" );
+
+    locForce_ = volForce;
+    coordSys_ = coordSys;
+    
+  }
+    
+  void MechVolForceInt::CalcElemVector(Matrix<Double>& ptCoord, 
+                                       Vector<Double> & elemVec) {
+
+    ENTER_FCN( "MechVolForceInt::CalcElemVector");
+
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    Vector<Double> shapeFnc, CoordAtIP, globVec;
+
+    // First, map force to global coordinate system
+    Vector<Double> globMidPoint, locMidPoint;
+
+    ptelem->GetCoordMidPoint(locMidPoint);
+    ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, ptCoord);
+    coordSys_->Local2GlobalVector(globVec, locForce_, globMidPoint);
+
+    // Then, calculate element vector
+    elemVec.Resize(nrNodes * numDofs_);
+    elemVec.Init(0.0);
+    Double factor;
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+      Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+      ptelem->GetShFncAtIp(shapeFnc,actIntPt);
+
+      if (isaxi_) {
+        CoordAtIP = ptCoord * shapeFnc;
+        jacDet *= 2 * PI * CoordAtIP[0];
+      }
+      
+      factor = intWeights[actIntPt-1] * jacDet;
+
+      for (UInt iNode = 0; iNode < nrNodes; iNode++) {
+        for (UInt iDof = 0; iDof < numDofs_; iDof++) {
+          elemVec[iNode*numDofs_ + iDof] += 
+            factor * shapeFnc[iNode] * globVec[iDof]; 
+        }
+      }
+    }
+  }
 
 
 } // end of namespace
