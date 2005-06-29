@@ -24,6 +24,9 @@
 namespace CoupledField
 {
 
+  // forward class declaration
+  class Domain;
+
   //! redeclaration of types
   typedef int Integer;
   typedef unsigned int UInt;
@@ -86,8 +89,11 @@ namespace CoupledField
 
 #ifdef PROFILING
   //! Global memtrace pointer
-  extern Profiler *profiler;
+  extern Profiler * profiler;
 #endif
+
+  //! Global pointer to domain object
+  extern Domain *domain;
 
   // enumeration with elements types.
   // enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};

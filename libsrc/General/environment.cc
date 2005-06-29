@@ -4,6 +4,7 @@
 
 #include "environment.hh"
 #include "Utils/tools.hh"
+#include "Domain/domain.hh"
 
 
 // Since OLAS uses a separate namespace for 
@@ -30,9 +31,13 @@ namespace CoupledField {
 
 #ifdef PROFILING
   Profiler * profiler = NULL;
-#endif
+#endif  
+
+  Domain * domain = NULL;
 
   Flags * flags=NULL;
+
+  
 
   BaseFE * ptQ1     = NULL;
   BaseFE * ptQ2     = NULL;
