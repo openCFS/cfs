@@ -207,54 +207,6 @@ namespace CoupledField
 
 
 
-  UInt SmoothPDE::GetNrBCDof(const std::string & dofStartString)
-  {
-    ENTER_FCN( "SmoothPDE::GetNrBCDof" );
-
-    UInt nrActDof;
-  
-    if (dofStartString == "ux")
-      nrActDof = 1;
-    else 
-      if (dofStartString == "uy")
-        nrActDof = 2;
-      else
-        if (dofspernode_ == 3)
-          if (dofStartString == "uz")
-            nrActDof = 3;
-          else
-            {
-              Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
-              std::cerr << dofStartString << std::endl;
-            }
-        else
-          {
-            std::cerr << dofStartString << std::endl;
-            Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
-          }
-  
-    return nrActDof;
-  }
-
-
-  UInt SmoothPDE::GetBCDof(const std::string dofString)
-  {
-    ENTER_FCN( "SmoothPDE::GetBCDof" );
-
-    if (dofString == "ux")
-      return 1;
-    else
-      if (dofString == "uy")
-        return 2;
-      else
-        if (dofString == "uz")
-          return 3;
-        else {
-          Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
-          return 0;
-        }
-  }
-  
 
   Boolean SmoothPDE::HasOutput(SolutionType output)
   {
