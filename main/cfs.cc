@@ -1,3 +1,5 @@
+#include <iostream>
+#include <iomanip>
 #include "Utils/myclock.hh"
 #include "DataInOut/DefineFiles/definefiles.hh"
 #include "DataInOut/timefunc.hh"
@@ -8,6 +10,7 @@
 #include "DataInOut/CommandLine/CommandLineHandlerSetting.hh"
 #include "Driver/driver_header.hh"
 #include "Domain/domain.hh"
+#include "General/environment.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "Utils/tracing.hh"
 #include "Utils/profiler.hh"
@@ -59,7 +62,7 @@ int main( int argc, const char **argv ) {
   // TIMING
   // =========================================================================
   MyClock oClockTotal;
-  oClockTotal.ClockCount(MyClock::beg);
+  oClockTotal.Start();
 
 
   // =========================================================================
@@ -222,7 +225,7 @@ int main( int argc, const char **argv ) {
   TimeFunc myTimeFunc;
 
   SETPROFILE("Before Creation of Domain");
-  Domain domain( ptInputfile, ptOut, &myTimeFunc );
+  domain = new  Domain( ptInputfile, ptOut, &myTimeFunc );
   SETPROFILE("After Creation of Domain");
 
   // =========================================================================
@@ -231,7 +234,7 @@ int main( int argc, const char **argv ) {
   if ( commandLine->GetPrintGrid() == TRUE ) {
     STDOUT << "Printing grid to file " << myEndl << myEndl;
     PrintGridOnly = TRUE;
-    domain.PrintGrid();
+    domain->PrintGrid();
     exit(0);
   }
 
@@ -267,7 +270,7 @@ int main( int argc, const char **argv ) {
     // with adaptivity
     if ( adaptspace ) {
 #ifdef ADAPTGRID
-      ptdriver = new StaticAdaptSpaceDriver(domain);
+      ptdriver = new StaticAdaptSpaceDriver(*domain);
 #else
       std::string errmsg;
       errmsg  = "Your version of cfs does not support adaptivity! ";
@@ -278,37 +281,37 @@ int main( int argc, const char **argv ) {
 
     // without adaptivity
     else {
-      ptdriver = new StaticDriver( &domain );
+      ptdriver = new StaticDriver( domain );
     }
     break;
 
   case TRANSIENT:
-    ptdriver = new TransientDriver( &domain );
+    ptdriver = new TransientDriver( domain );
     break;
 
   case TRANSIENT4SLICE:
-    ptdriver = new Transient4SliceDriver( &domain );
+    ptdriver = new Transient4SliceDriver( domain );
     break;
 
   case HARMONIC:
     // calls Driver for parameter identification, using harmonic analysis
     if ( analysis == "paramIdent" ) {
-      ptdriver = new piezoParamIdent( &domain );
+      ptdriver = new piezoParamIdent( domain );
     }
     else
-      ptdriver = new HarmonicDriver( &domain );
+      ptdriver = new HarmonicDriver( domain );
     break;
 
   case MULTIHARMONIC:
-    ptdriver = new MultiHarmonicDriver( &domain );
+    ptdriver = new MultiHarmonicDriver( domain );
     break;
 
   case MULTI_SEQUENCE:
-    ptdriver = new MultiSequenceDriver( &domain );
+    ptdriver = new MultiSequenceDriver( domain );
     break;
 
   case BUBBLEDYNAMIC:
-    ptdriver = new BubbleDriver( &domain );
+    ptdriver = new BubbleDriver( domain );
     break;
 
   default:
@@ -330,7 +333,14 @@ int main( int argc, const char **argv ) {
 
   std::cout << std::endl;
   std::cout << std::endl;
-  oClockTotal.ClockCount(MyClock::end,"Total time");
+
+  Double wTime, cTime;
+  oClockTotal.GetTime(wTime, cTime);
+  std::cout << std::setw(70) << std::setfill('=') << "" << std::endl;
+  std::cout << "TOTAL TIME:\t\t Wall clock: " << wTime
+            << " s\t CPU: " << cTime << " s" << std::endl;
+  std::cout << std::setw(70) << std::setfill('=') << "" 
+            << std::endl << std::endl;
 
 
   // =========================================================================
@@ -343,7 +353,7 @@ int main( int argc, const char **argv ) {
 
   // Delete objects
   delete ptdriver;
-  // delete domain;
+  delete domain;
   // delete ptTimeFunc;
   delete Info;
   delete params;
