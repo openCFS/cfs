@@ -7,6 +7,8 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "PDE/StdPDE.hh"
+#include "Domain/domain.hh"
+#include "Utils/coordSystem.hh"
 
 #include "olas.hh"
 
@@ -170,6 +172,8 @@ namespace CoupledField {
   {
     ENTER_FCN( "Assemble:AssembleMatrices" );
    
+    SETPROFILE("Before AssembleMatrices");
+
     Vector<Double> harmonicVec;
     Double dampTransform = 1.0;
 
@@ -181,7 +185,7 @@ namespace CoupledField {
     for (UInt actDom=0; actDom < subdoms_.GetSize(); actDom++) {     
       StdVector<Elem*> elemssd;
 
-      ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
+      ptgrid_->GetElems(elemssd, subdoms_[actDom]);
 
       for(UInt actInteg=0; actInteg < integrators_[actDom]->GetSize(); 
           actInteg++) {
@@ -512,6 +516,7 @@ namespace CoupledField {
     firstTime_ = FALSE;
 
 
+    SETPROFILE("After AssembleMatrices");
   }
 
 
@@ -532,11 +537,16 @@ namespace CoupledField {
     Vector<Double> harmVec;
 
     //add the volume sources
+//     std::cerr << "subdoms_ = \n" << subdoms_ << std::endl;
     for (UInt actDom=0; actDom <  subdoms_.GetSize(); actDom++) { 
       if (rhsSrcIntegrators_[actDom]->GetSize())
         {
+//           std::cerr << "********************\n";
+//           std::cerr << " REGION " << ptgrid_->RegionIdToName(subdoms_[actDom]) << std::endl;
+//           std::cerr << "********************\n";
+          
           StdVector<Elem*> elemssd;
-          ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
+          ptgrid_->GetElems(elemssd, subdoms_[actDom]);
             
           Double val_tfunc = 1.0;
           Double valPhase = 0.0;
@@ -548,6 +558,10 @@ namespace CoupledField {
           }
 
           for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {        
+            // std::cerr << "********************\n";
+//              std::cerr << " Elelment Nr:" << elemssd[actEl]->elemNum << std::endl;
+//             std::cerr << "********************\n";
+            
             BaseFE * ptEl = elemssd[actEl]->ptElem;
             StdVector<UInt> connecth = elemssd[actEl]->connect;
                 
@@ -658,7 +672,7 @@ namespace CoupledField {
 
       UInt dof = 1;
       if (dofsPerNode_ != 1)
-        dof = GetBCDof( loadDof_[actDom] );   
+        dof = domain->GetCoordSystem()->GetVecComponent( loadDof_[actDom] );
 
       StdVector<UInt> nodes;
       ptgrid_->GetNodesByName( nodes,loadDom_[actDom]);
@@ -697,7 +711,7 @@ namespace CoupledField {
    
     for (UInt actDom=0; actDom < subdoms_.GetSize(); actDom++) { 
       if (rhsIntegrators_[actDom]->GetSize()) {
-        ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
+        ptgrid_->GetElems(elemssd, subdoms_[actDom]);
         
         for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
           BaseFE * ptEl = elemssd[actEl]->ptElem;
@@ -757,7 +771,7 @@ namespace CoupledField {
 
       UInt dof = 1;
       if (dofsPerNode_ != 1)
-        dof = GetBCDof( springDof_[actDom] );   
+        dof = domain->GetCoordSystem()->GetVecComponent( springDof_[actDom] );   
 
       StdVector<UInt> nodes;
       ptgrid_->GetNodesByName(nodes, springDom_[actDom]);
@@ -824,28 +838,6 @@ namespace CoupledField {
     }
   }
 
-
-
-  UInt Assemble::
-  GetBCDof(const std::string dofString) {
-    ENTER_FCN( "MechPDE::GetBCDof" );
-    
-    if (dofString == "ux")
-      return 1;
-    else
-      if (dofString == "uy")
-        return 2;
-      else
-        if (dofString == "uz")
-          return 3;
-        else {
-          Error("The direction mentioned in the config-file is not implemented! ",__FILE__,__LINE__);
-          return 0;
-        }
-  }
-  
-  
-  
 
   
   void Assemble::InitNonLinMatrices() {
@@ -1101,7 +1093,8 @@ namespace CoupledField {
   {
     ENTER_FCN( "Assemble::SetupMatrixGraph" );
     
-  
+    SETPROFILE("Before SetupMatrixGraph");
+
     algsys_->AssembleInit( pdeId1_, pdeId2_ );
     
     // set the graph - connectivity matrix
@@ -1115,7 +1108,7 @@ namespace CoupledField {
     // elements
     for (nsub=0; nsub<subdoms_.GetSize(); nsub++) {
       StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems(elemssd,subdoms_[nsub]);
+      ptgrid_->GetElems(elemssd,subdoms_[nsub]);
       
       for (iel=0; iel < elemssd.GetSize(); iel++) {  
         ptElem=elemssd[iel]->ptElem;
@@ -1159,36 +1152,13 @@ namespace CoupledField {
       }
     }
     
+    SETPROFILE("After SetupMatrixGraph");
     // finish assembling procedure
     algsys_->AssembleDone( pdeId1_, pdeId2_ );
     SETPROFILE("After AssembleDone");
   }
   
   
-
-  UInt Assemble::GetNrBCDof(const std::string & dofStartString)
-  {
-    ENTER_FCN( "Analysis::GetNrBCDof" );
-    
-    UInt nrActDof = 0;
-    
-    if (dofStartString == "ux")
-      nrActDof = 1;
-    else
-      if (dofStartString == "uy")
-        nrActDof = 2;
-      else
-        if (dofsPerNode_ == 3)
-          if (dofStartString == "uz")
-            nrActDof = 3;
-          else
-            Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
-        else
-          Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
-    
-    return nrActDof;
-  }
-
   //set all FE-Elements to reduced integration  
   void Assemble::SetFE2ReducedInt()
   {
