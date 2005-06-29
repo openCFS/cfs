@@ -36,9 +36,6 @@ namespace CoupledField
     //! define the SoltionStep-Driver
     virtual void DefineSolveStep();
 
-    /// reads the directions (e.g. for prestress) from the config-file
-    void GetDirection(Directions& dir, const std::string keyword);
-
 
     /// returns a stiffness integrator appropriate to the actual problem (e.g.3D)
     BaseForm * GetStiffIntegrator(MaterialData& actSDMat,
@@ -154,11 +151,12 @@ namespace CoupledField
     //! read in the domains with prestressing
     void ReadPreStressing();
 
+    //! read in volume sources
+    void DefineRegionLoads();
+
     /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
     void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
                         MaterialData& mat);
-
-    UInt GetNrBCDof (const std::string & dofStartString);
 
     /// stores an algsys_ vector into a StdVector and returns that L2-norm
     void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
@@ -171,7 +169,6 @@ namespace CoupledField
 
     /// returns the solution matrix belonging to all nodes of the actual element
     void GetSolOfElement( Matrix<Double>& elDisp, StdVector<UInt>& connect_PDE);
-
 
     //!
     StdVector<RegionIdType> preStressDomain_;

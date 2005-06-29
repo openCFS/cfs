@@ -1,5 +1,8 @@
 #include "mechPDE.hh"
 
+#include <sstream>
+#include <iomanip>
+
 #include "Forms/forms_header.hh"
 #include "Forms/linElastInt.hh"
 #include "Forms/massInt.hh"
@@ -9,6 +12,8 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "Driver/solveStepMech.hh" 
 #include "CoupledPDE/pdecoupling.hh"
+#include "Domain/domain.hh"
+#include "Utils/coordSystem.hh"
 
 namespace CoupledField
 {
@@ -357,7 +362,7 @@ namespace CoupledField
           {
             BaseForm * rhsSource = new nLinMech_linFormInt(actSDMat, isaxi_);
             assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
-          }      
+          }
       }
 
     //surface integrators
@@ -369,6 +374,10 @@ namespace CoupledField
                                          nonlin);
     }
     
+    // Trigger reading of region load
+    DefineRegionLoads();
+    
+
   }
 
 
@@ -392,43 +401,166 @@ namespace CoupledField
     return bilinearStiff;
   }
 
+  void MechPDE::DefineRegionLoads() {
+    ENTER_FCN ( "MechPDE::DefineRegionLoads" );
+    
+    StdVector<std::string> keyVec, attrVec, valVec;
+    StdVector<std::string> tempNames, names, dofs, dynamics, refCoord, type;
+    StdVector<RegionIdType> regionIds;
+    StdVector<UInt> vecComp;
+    StdVector<Double> loadVec;
+    Vector<Double> unitLoad(dim_), totLoad(dim_), tempLoad(dim_);
+    MechVolForceInt * forceInt = NULL;
+    Integer index = -1;
+    UInt locDof = 0;
+    Double volume = 0.0;
+    std::ostringstream out;
+
+
+    // get names of all regions with region loads
+    keyVec = "mechanic", "bcsAndLoads", "regionLoad", "name";
+    attrVec = "", "tag", "";
+    valVec  = "", bcSequenceTag_, "";
+    params->GetList(keyVec,attrVec,valVec,tempNames);
+
+    // Now sort the names and remove double entries
+    for (UInt i = 0; i < tempNames.GetSize(); i++) {
+      index = names.Find(tempNames[i]);
+      if ( index == -1) {
+        names.Push_back(tempNames[i]);
+      }
+    }
+
+    ptgrid_->RegionNameToId(regionIds, names);
+
+    if ( regionIds.GetSize() > 0 ) {
+      Info->PrintF(pdename_, "The following regions have a region load:\n\n");
+      out.clear();
+      out << std::setw(15) << "name" << " | " 
+          << std::setw(15) << "refCoordSys" << " | "
+          << std::setw(15) << "dynamics" << " | "
+          << std::setw(10) << "volume" << " | "
+          << std::setw(10) << "tot. load" << " | "
+          << std::setw(10) << "unit load" <<std::endl;
+      Info->PrintF(pdename_, out.str().c_str());
+      out.str("");
+      out << std::setw(90) << std::setfill('-') << "" 
+          << std::setfill(' ') << std::endl;
+      Info->PrintF(pdename_, out.str().c_str());
+      out.str("");
+    }
+                   
+
+
+    // loop over all regionnames
+    for (UInt i = 0; i < names.GetSize(); i++) {
+
+      // restrict search to current region name
+      attrVec = "", "tag", "name";
+      valVec  = "", bcSequenceTag_, names[i];
+
+      // get value
+      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "value";
+      params->GetList(keyVec, attrVec, valVec, loadVec);
+      
+      // get dynamics
+      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dynamics";
+      params->GetList(keyVec, attrVec, valVec, dynamics);
+
+      // get dofs
+      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dof";
+      params->GetList(keyVec, attrVec, valVec, dofs);
+
+      // get coordinate system
+      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "refCoordSys";
+      params->GetList(keyVec, attrVec, valVec, refCoord);
+
+      // get load type (total / unit)
+      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "type";
+      params->GetList(keyVec, attrVec, valVec, type);
+
+      // check if all vectors have the same length
+      if ( loadVec.GetSize() != dynamics.GetSize() ||
+           loadVec.GetSize() != dofs.GetSize() ||
+           loadVec.GetSize() != refCoord.GetSize() || 
+           loadVec.GetSize() != type.GetSize() ) {
+        (*error) << "MechPDE::DefineRegionLoads: Inconsistent definition for "
+                 << "region '" << names[i] <<"'!\n"
+                 << "Please correct parameter file!";
+        Error( __FILE__, __LINE__ );
+      }
+      
+      // check if all entries for dynamics, refCoord and type
+      // are the same
+      for (UInt k=0; k<dynamics.GetSize(); k++) {
+        if (dynamics[k] != dynamics[0] ||
+            refCoord[k] != refCoord[0] ||
+            type[k] != type[0] ) {
+          (*error) << "MechPDE::DefineRegionLoads: The region load on region "
+                   << names[i] << " has not for all dofs the same entry for "
+                   << "dynamics, refCoord or type (total/unit)!";
+          Error( __FILE__, __LINE__ );
+        }
+      }
+
+      // now create local load vector
+      unitLoad.Init();
+      tempLoad.Init();
+      for (UInt iDim=0; iDim < loadVec.GetSize(); iDim++) {
+        locDof = domain->GetCoordSystem(refCoord[iDim])->
+          GetVecComponent(dofs[iDim]);
+        tempLoad[locDof-1] = loadVec[iDim];
+      }
+
+      // if the load is for a complete region, divide it by the
+      // volume to obtain the unit load in f / m^2
+      volume = ptgrid_->CalcVolumeOfRegion(regionIds[i], isaxi_);
+      if ( type[0] == "total" ) {
+        totLoad = tempLoad;
+        unitLoad = tempLoad / volume;
+      } else {
+        totLoad =  tempLoad * volume;
+        unitLoad = tempLoad;
+      }
+        
+      // create linearform and add to assemble
+      forceInt = new MechVolForceInt(dim_, isaxi_);
+      forceInt->SetVolForceVector(unitLoad, 
+                                  domain->GetCoordSystem(refCoord[0]));
+      assemble_->AddRhsSrcIntegrator( forceInt, regionIds[i],
+                                      dynamics[0], nonLin_ );
+
+      // write logging information into info file
+      for (UInt k=0; k<dim_; k++) {
+        out.str("");
+        if ( k == 0) {
+          out << std::setw(15) << names[i] << " | " 
+              << std::setw(15) << refCoord[0] << " | "
+              << std::setw(15) << dynamics[0] << " | "
+              << std::setw(10) << volume << " | ";
+        } else {
+          out << std::setw(15) << "" << " | " 
+              << std::setw(15) << "" << " | "
+              << std::setw(15) << "" << " | "
+              << std::setw(10) << "" << " | ";
+              
+        }
+        
+        out << std::setw(10) << totLoad[k] << " | "
+            << std::setw(10) << unitLoad[k] << std::endl;
+
+        Info->PrintF(pdename_,out.str().c_str());
+      }
+      Info->PrintF(pdename_,"\n");
+    }
+    
+  }
+  
   void MechPDE::DefineSolveStep()
   {
     ENTER_FCN( "MechPDE::DefineSolveStep" );
 
     solveStep_ = new SolveStepMech(*this);
-  }
-
-
-  void MechPDE::
-  GetDirection(Directions& dir, const std::string keyword)
-  {
-    ENTER_FCN( "MechPDE::GetDirection" );
-
-    std::string dirString;
-
-    params->Get( keyword, dirString, pdename_);
-
-    if (dirString == "x")
-      dir = X;
-    else if (dirString == "y")
-      dir = Y;
-    else if (dirString == "z")
-      dir = Z;
-    else if (dirString == "radXY")
-      dir = radXY;
-    else if (dirString == "radXZ")
-      dir = radXZ;
-    else if (dirString == "radYZ")
-      dir = radYZ;
-    else
-      {
-        // According to the Schema definition of the parameter file this cannot
-        // happen. Did the parser not perform validation?
-        std::string errmsg = "Direction should be one of x, y, z, radXY, ";
-        errmsg += "radXZ, radYZ\nand not" + dirString;
-        Info->Error( errmsg, __FILE__, __LINE__ );
-      }
   }
 
 
@@ -464,32 +596,6 @@ namespace CoupledField
     std::cout << "MuMat:\n" << *mueMechMat << std::endl;
 
   }
-
-
-
-  UInt MechPDE::GetNrBCDof(const std::string & dofStartString)
-  {
-    ENTER_FCN( "MechPDE::GetNrBCDof" );
-
-    UInt nrActDof;
-    
-    if (dofStartString == "ux")
-      nrActDof = 1;
-    else 
-      if (dofStartString == "uy")
-        nrActDof = 2;
-      else
-        if (dofspernode_ == 3)
-          if (dofStartString == "uz")
-            nrActDof = 3;
-          else
-            Error("Unknown dof-type in homog. BC; substring must start with ux, uy or uz!!",__FILE__,__LINE__);
-        else
-          Error("Unknown dof-type in homog. BC; substring must start with ux or uy!!",__FILE__,__LINE__);
-    
-    return nrActDof;
-  }
-
 
 
 
@@ -732,7 +838,7 @@ namespace CoupledField
 
     Double actTime = asteptime + timeOffset;
     UInt actStep = kstep + stepOffset;
- 
+
     if (analysistype_ == STATIC ||
         analysistype_ == TRANSIENT) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
