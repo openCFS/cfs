@@ -1,5 +1,8 @@
 #include "PDE/SinglePDE.hh"
 
+// for coordinate handling
+#include "Domain/domain.hh"
+#include "Utils/coordSystem.hh"
 
 // header for Paramhandling
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
@@ -132,7 +135,7 @@ namespace CoupledField {
     Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
                   pdename_.c_str());
     for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s, index %d\n", regionNames[k].c_str(), k );
+      Info->PrintF( pdename_, " %s, index %i\n", pdename_.c_str(),subdoms_[k]);
     }
     Info->PrintF( "", "\n" );
 
@@ -487,7 +490,7 @@ namespace CoupledField {
       UInt dof;
       std::string doftype = bcs_hd_[i];
       if (dofspernode_ > 1) 
-        dof = GetBCDof(homDirichDof_[i]);
+        dof = domain->GetCoordSystem()->GetVecComponent(homDirichDof_[i]);
       else
         dof = 1;
       
@@ -498,7 +501,7 @@ namespace CoupledField {
       UInt dof;
       std::string doftype = bcs_id_[i];
       if (dofspernode_ > 1) {
-        dof = GetBCDof(inhomDirichDof_[i]);
+        dof = domain->GetCoordSystem()->GetVecComponent(inhomDirichDof_[i]);
       }
       else {
         dof = 1;
@@ -518,7 +521,7 @@ namespace CoupledField {
       UInt dof;
       std::string doftype = loadDom[i];
       if (dofspernode_ > 1) {
-        dof = GetBCDof(loadDof[i]);
+        dof = domain->GetCoordSystem()->GetVecComponent(loadDof[i]);
       }
       else {
         dof = 1;
@@ -557,7 +560,7 @@ namespace CoupledField {
       dof = 1;
       if ( dofspernode_ > 1 ) {
         std::string doftype = bcs_hd_[i];
-        dof = GetBCDof(homDirichDof_[i]);
+        dof = domain->GetCoordSystem()->GetVecComponent(homDirichDof_[i]);
       }
       
       ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
@@ -598,7 +601,7 @@ namespace CoupledField {
       dof = 1;
       if ( dofspernode_ > 1 ) {
         std::string doftype = bcs_id_[i]; 
-        dof = GetBCDof(inhomDirichDof_[i]);
+        dof = domain->GetCoordSystem()->GetVecComponent(inhomDirichDof_[i]);
       }
       
       ptgrid_->GetNodesByName( nodes, bcs_id_[i] ); 
@@ -903,10 +906,8 @@ namespace CoupledField {
       
       
       // trigger the creation and assembly of the matrix graph
-      SETPROFILE("Before SetupMatrixGraph()");
       assemble_->SetupMatrixGraph();
-      
-      SETPROFILE("Before GraphSetupDone()");
+    
       // finish the assembly of the matrix graph
       algsys_->GraphSetupDone();
       
@@ -917,7 +918,6 @@ namespace CoupledField {
 
     }
 
-    SETPROFILE("After setting up the matrix graph");
     // pass information about dofs, number of dirichlet equations
     // and constraints to the algebraic system
     algsys_->SetBlockSize( pdeId_, eqnData_->GetNumDofsPerEQN() );

@@ -291,9 +291,6 @@ namespace CoupledField {
     };
   
   
-    //! return index of dof defined by keyword (e.g. 'ux')
-    virtual UInt GetBCDof(const std::string keyword);
-
     //@{
     //! store the new solution returned by the algebraic system
     //! \param ptSol pointer to solution array
