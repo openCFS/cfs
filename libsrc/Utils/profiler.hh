@@ -11,25 +11,39 @@
 
 namespace CoupledField {
 
+  // forward class declarations
+  class MyClock;
+
+  //! Class for gathering information about memory consumption and time
   class Profiler {
 
   public:
     
-    //!
+    //! Constructor
     Profiler();
 
+    //! Destructor
     virtual ~Profiler();
 
-    //!
+    //! Write tracing marker into file
     void Trace(std::string name);
     
   private:
     
-    //! process id of this program
+    //! Process id of this program
     pid_t myPid_;
+
+    //! Clock object
+    MyClock * clock_;
     
-    //! ostream for tracing
+    //! Name of output file
+    std::string fileName_;
+    
+    //! File stream for output
     std::ofstream *memOut_;
+
+    //! Previous timing values
+    double wTimeLast_, cTimeLast_;
   };
 
 
