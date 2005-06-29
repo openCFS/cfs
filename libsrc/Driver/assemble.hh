@@ -339,10 +339,6 @@ namespace CoupledField
     void SetPtr2Sol(BaseNodeStoreSol * aSol){sol_ = aSol;};
     
 
-    /// return index to dof
-    UInt GetBCDof(const std::string dofString);
-    
-
     //! sets the actual frequency (just needed for harmonic analysis)
     virtual void SetFrequency(Double actFreq) {;};
 
@@ -513,9 +509,6 @@ namespace CoupledField
 
 
   private:
-
-    //! returns the index of the named dof
-    UInt GetNrBCDof (const std::string & dofStartString);
 
     //! set analysis type
     AnalysisType analysisType_;
