@@ -198,9 +198,18 @@
       <xsd:extension base="DT_MechLoad">
         <xsd:attribute name="refCoordSys" type="xsd:token"
         use="optional" default="default"/>
+        <xsd:attribute name="type" use="optional" default="total">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="total"/>
+              <xsd:enumeration value="unit"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
 
 
   <!-- ******************************************************************** -->
