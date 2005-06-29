@@ -107,7 +107,8 @@ namespace CoupledField
     TimeFunc* GetTimeFncPointer() {return ptTimeFunc_;}
 
     //! Return local coordinate system by name
-    CoordSystem * GetCoordSystem( const std::string & name );
+    CoordSystem * GetCoordSystem( const std::string & name 
+                                  = std::string("default") );
 
     //@}
 
