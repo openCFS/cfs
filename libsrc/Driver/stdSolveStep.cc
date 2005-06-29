@@ -104,11 +104,18 @@ namespace CoupledField {
     // Incorporate Boundary conitions and
     // recalc the prconditioner eventually
     PDE_.algsys_->BuildInDirichlet();
+
+    SETPROFILE("Before SetupPrecond");
     PDE_.algsys_->SetupPrecond();
+    SETPROFILE("After SetupPrecond / Before SetupSolver");
+
     PDE_.algsys_->SetupSolver( );
+    SETPROFILE("After SetupSolver / Before Solve");
 
     // Solve problem
     PDE_.algsys_->Solve();
+    SETPROFILE("After Solve");
+    
 
     // Get the solution and store it
     size = PDE_.algsys_->GetSolutionVal(ptSol);
@@ -193,13 +200,7 @@ namespace CoupledField {
     else if (reset) {
       job = 1;
 	  
-	  PDE_.algsys_->InitMatrix();
-//       PDE_.algsys_->InitMatrix(SYSTEM);
-//       PDE_.algsys_->InitMatrix(STIFFNESS);
-//       PDE_.algsys_->InitMatrix(MASS);
-//       if (PDE_.dampingType_) {
-//         PDE_.algsys_->InitMatrix(DAMPING);
-//       }
+      PDE_.algsys_->InitMatrix();
       PDE_.AssembleSprings( actTime_ );
       PDE_.algsys_->ConstructEffectiveMatrix(matrix_factor_);
     }
@@ -233,11 +234,15 @@ namespace CoupledField {
     PDE_.algsys_->BuildInDirichlet();
 
     if ( job == 1 ) {
+      SETPROFILE("Before SetupPrecond");
       PDE_.algsys_->SetupPrecond( );
+      SETPROFILE("After SetupPrecond / Before SetupSolver");
       PDE_.algsys_->SetupSolver( );
+      SETPROFILE("After SetupSolver / Before Solve");  
     }
 
     PDE_.algsys_->Solve();
+    SETPROFILE("After Solve");
 
     if ( PDE_.isIncrFormulation_ ) {
 
