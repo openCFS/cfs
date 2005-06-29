@@ -127,7 +127,7 @@ namespace CoupledField
     //! Returns a list of all nodes, which are contained in a 
     //! volume- or surface-region.
     //! \param nodeList (out) list with node numbers
-    //! \param regionId (in) region identifier
+    //! \param regionId (in) region identifier 
     virtual void GetNodesByRegion( StdVector<UInt> & nodeList,
                                    const RegionIdType regionId ) = 0;
     
@@ -157,6 +157,15 @@ namespace CoupledField
     // ELEMENT ACCESS FUNCTIONS
     // =======================================================================
     //@{ \name Element Access Functions
+
+    //! Get list of elements (surface / volumes)
+    
+    //! Returns all elems for a given surface / volume region. If the desired 
+    //! region consists of surface elements, they are up-casted into Elem*.
+    //! \param elems (out) vector with elements for given regionId
+    //! \param regionId (in) region identifier
+    virtual void GetElems( StdVector<Elem*> & elems,
+                           const RegionIdType regionId ) = 0;
 
     //! Get list of volume elements
 
@@ -238,12 +247,6 @@ namespace CoupledField
     // =======================================================================
     //@{ \name Geometry Calculation
 
-    //! Calculates area of a element
-
-    //! Calculates the are of an element
-    //! \param elem (in) element object
-    virtual Double CalcElemArea( const Elem* elem ) = 0;
-
     //! Returns surface element normal without defined orientation
 
     //! This method calculates the normal of an surface element. The direction
@@ -266,6 +269,17 @@ namespace CoupledField
     virtual void CalcSurfNormalOutOfVol( Vector<Double> & n,
                                          const Elem & surfElem,
                                          const Elem & volElem ) = 0;
+
+    //! Returns the volume of a given region
+
+    //! This method returns the volume of a given region by iterating over
+    //! all elements (volume / surface) and summing up their volume. 
+    //! 'Volume' here means, that for 2D elements the third dimension is 
+    //! assumed to be 1m.
+    //! \param regionId (in) region identifier 
+    //! \param isaxi (in) flag indicating axial symmetry
+    virtual Double CalcVolumeOfRegion( const RegionIdType regionId,
+                                       Boolean isaxi = FALSE ) = 0;
     //@}
 
 

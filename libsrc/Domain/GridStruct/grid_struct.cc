@@ -838,6 +838,51 @@ namespace CoupledField
   // ELEMENT ACCESS FUNCTIONS
   // ======================================================
   template<UInt DIM>
+  void GridStruct<DIM>::GetElems( StdVector<Elem*> & elems, 
+                                  const RegionIdType regionId ) {
+    ENTER_FCN( "GridStruct::GetElems" );
+    
+    // check if region Id is ALL_REGIONS
+    if ( regionId == ALL_REGIONS ) {
+      elems.Reserve( GetNumVolElems() + GetNumSurfElems() );
+
+      // iterate over all volume elements
+      for ( UInt i = 0; i < volElems_.GetSize(); i++) {
+        for (UInt iElem = 0; iElem < volElems_[i].GetSize(); iElem++ ) {
+          elems.Push_back(volElems_[i][iElem]);
+        }
+      }
+      // iterate over all surface elements
+      for ( UInt i = 0; i < surfElems_.GetSize(); i++) {
+        for (UInt iElem = 0; iElem < surfElems_[i].GetSize(); iElem++ ) {
+          elems.Push_back(surfElems_[i][iElem]);
+        }
+      }
+      
+    } else {
+      // look in volume regions
+      Integer index = volRegionIds_.Find(regionId);
+      if ( index != -1 ) {
+        elems = volElems_[index];
+      } else {    
+        // look in surface regions
+        index = surfRegionIds_.Find(regionId);
+        if ( index != -1 ) {
+          elems.Reserve( surfElems_[index].GetSize());
+          for (UInt iElem=0; iElem<surfElems_[index].GetSize(); iElem++ ) {
+            elems.Push_back(surfElems_[index][iElem]);
+          }
+        } else {    
+          (*error) << "GridStruct: The region with id '" << regionId
+                   << "' was not found in the grid!";
+          Error( __FILE__, __LINE__ );
+        }
+      }
+    }
+  }
+
+
+  template<UInt DIM>
   void GridStruct<DIM>::GetVolElems( StdVector<Elem*> & elems, 
                                   const RegionIdType regionId ) {
     ENTER_FCN( "GridStruct::GetVolElems" );
