@@ -1,5 +1,6 @@
 #include "cylCoordSys.hh"
 #include <cmath>
+#include <sstream>
 
 namespace CoupledField{
 
@@ -9,6 +10,12 @@ namespace CoupledField{
     
     ENTER_FCN("CylCoordSystem::CylCoordSystem");
     
+    // check, if grid has three dimensions
+    if ( ptGrid_->GetDim() != 3 ) {
+      (*error) << "A cylindrical coordinate system can only be used in "
+               << "a three dimensional grid!";
+    }
+
     // get origin point of coordinate system
     StdVector<std::string>  keyVec, attrVec, valVec;
     keyVec = "domain", "coordSys", "cylindric", "origin";
@@ -31,24 +38,9 @@ namespace CoupledField{
     // calculate the rotation matrix and the invers
     CalcRotationMatrix();
 
-    //   // TEST TEST
-    //     Vector<Double> globPoint(3), force(3), globVec;
+    // print information to .info-file
+    PrintInfo();
     
-    //     force[0] = 0;
-    //     force[1] = 1;
-    //     force[2] = 45;
-    //     globPoint[0] = -4;
-    //     globPoint[1] = 8;
-    //     globPoint[2] = -1;
-
-    //     Local2GlobalVector(globVec, force, globPoint);
-
-    //     std::cerr << "\n====================\n";
-    //     std::cerr << "Global Point is:\n" << globPoint << std::endl;
-    //     std::cerr << "Local Force is:\n" << force << std::endl;
-    //     std::cerr << "=> Global Force is:\n" << globVec << std::endl;
-
-      
   }
   
   CylCoordSystem::~CylCoordSystem(){
@@ -56,41 +48,69 @@ namespace CoupledField{
   }
 
   void CylCoordSystem::Local2GlobalCoord( Vector<Double> & glob, 
-                                          const Vector<Double> & loc ) {
+                                          const Vector<Double> & loc ) const {
     ENTER_FCN("CylCoordSystem::Local2GlobalCoord");
+    
+    Vector<Double> temp(3);
+
+    if ( loc.GetSize() != 3 ) {
+      (*error) << "CylCoordSystem::Local2GlobalCoord: Coordinate system only "
+               << "defined for 3-dimensionl coordinates!";
+      Error( __FILE__, __LINE__ );
+    }
+    
+    // transform cylindrical coords into local cartesian ones
+    temp[0] = loc[0] * std::cos(loc[1]);
+    temp[1] = loc[0] * std::sin(loc[1]);
+    temp[2] = loc[2];
+    
+    // rotate local cartesian coordinate system to global one
+    glob.Resize(3);
+    invRotationMat_.Mult(temp,glob);
+    
   }
   
   void CylCoordSystem::Global2LocalCoord( Vector<Double> & loc, 
-                                          const Vector<Double> & glob ) {
+                                          const Vector<Double> & glob ) const {
     ENTER_FCN("CylCoordSystem:: Global2LocalCoord");
+
+    Vector<Double> temp(3);
+    if ( glob.GetSize() != 3 ) {
+      (*error) << "CylCoordSystem::Local2GlobalCoord: Coordinate system only "
+               << "defined for 3-dimensionl coordinates!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // rotate global cartesian coordinate system to local one
+    rotationMat_.Mult(glob,temp);
+
+    // transform local cartesian nodes to cylindrical ones
+    loc.Resize(3);
+    loc[0] = std::sqrt(temp[0] * temp[0] + temp[1] * temp[1]);
+    loc[1] = std::atan2(temp[1],temp[0]);
+    loc[2] = temp[2];
+                        
   }
   
   void CylCoordSystem::
   Local2GlobalVector( Vector<Double> & globVec, 
                       const Vector<Double> & locVec, 
-                      const Vector<Double> & globModelPoint ){ 
+                      const Vector<Double> & globModelPoint ) const { 
     ENTER_FCN("CylCoordSystem::Local2GlobalVector");
 
     Double phi, r;
-    static Vector<Double> locModelPoint(3), temp(3), d(3);
+    Vector<Double> locModelPoint(3), temp(3), d(3);
 
     // Transform global cartesian model point into local
     // cartesian one
     rotationMat_.Mult(globModelPoint, locModelPoint);
 
-    std::cerr << "Local Point is " << locModelPoint << std::endl;
-
     // Calculate the distance and angle to the point
     d =  locModelPoint;
     d -= origin_;
 
-    std::cerr << "d=\n" << d << std::endl;
-
     r = std::sqrt(d[0] * d[0] + d[1] *d[1]);
     phi = std::atan2(d[1],d[0]);
-
-    std::cerr << "r = " << r << std::endl;
-    std::cerr << "phi = " << phi * 180 / PI << std::endl;
 
     // calculate global coordinate of locVec, by applying the
     // standard conversion routines
@@ -103,8 +123,6 @@ namespace CoupledField{
     temp[1] = locVec[0] * std::sin(phi) + locVec[1]*std::cos(phi);
     temp[2] = locVec[2];
     
-    std::cerr << "Force before rotation:\n" << temp << std::endl;
-
     // Now we have the vector in cartesian coordinates for the
     // LOCAL cartesian system. To get the cartesian representation for
     // the GLOBAL one, we have to apply the inverse rotation matrix.
@@ -149,11 +167,6 @@ namespace CoupledField{
       Error( __FILE__, __LINE__ );
     }
 
-    std::cerr << "----------------\n";
-    std::cerr << "x_old = \n" << x << std::endl;
-    std::cerr << "y_old = \n" << y << std::endl;
-    std::cerr << "z_old = \n" << z << std::endl;
-    std::cerr << "----------------\n";
 
     // 2) Calculation of the rotation matrix, which defines the mapping
     //    from the global to the local coordinate system
@@ -163,25 +176,90 @@ namespace CoupledField{
     //       machine precission.
 
     rotationMat_.Resize(3,3);
-    rotationMat_[0][0] = (std::abs(x[0]) < EPS ) ? 0.0 : (1.0 / x[0]);
-    rotationMat_[0][1] = (std::abs(x[1]) < EPS ) ? 0.0 : (1.0 / x[1]);
-    rotationMat_[0][2] = (std::abs(x[2]) < EPS ) ? 0.0 : (1.0 / x[2]);
+    rotationMat_[0][0] = (std::abs(x[0]) < EPS ) ? 0.0 : (x[0]);
+    rotationMat_[0][1] = (std::abs(x[1]) < EPS ) ? 0.0 : (x[1]);
+    rotationMat_[0][2] = (std::abs(x[2]) < EPS ) ? 0.0 : (x[2]);
 
-    rotationMat_[1][0] = (std::abs(y[0]) < EPS ) ? 0.0 : (1.0 / y[0]);
-    rotationMat_[1][1] = (std::abs(y[1]) < EPS ) ? 0.0 : (1.0 / y[1]);
-    rotationMat_[1][2] = (std::abs(y[2]) < EPS ) ? 0.0 : (1.0 / y[2]);
+    rotationMat_[1][0] = (std::abs(y[0]) < EPS ) ? 0.0 : (y[0]);
+    rotationMat_[1][1] = (std::abs(y[1]) < EPS ) ? 0.0 : (y[1]);
+    rotationMat_[1][2] = (std::abs(y[2]) < EPS ) ? 0.0 : (y[2]);
 
-    rotationMat_[2][0] = (std::abs(z[0]) < EPS ) ? 0.0 : (1.0 / z[0]);
-    rotationMat_[2][1] = (std::abs(z[1]) < EPS ) ? 0.0 : (1.0 / z[1]);
-    rotationMat_[2][2] = (std::abs(z[2]) < EPS ) ? 0.0 : (1.0 / z[2]);
+    rotationMat_[2][0] = (std::abs(z[0]) < EPS ) ? 0.0 : (z[0]);
+    rotationMat_[2][1] = (std::abs(z[1]) < EPS ) ? 0.0 : (z[1]);
+    rotationMat_[2][2] = (std::abs(z[2]) < EPS ) ? 0.0 : (z[2]);
 
-    // 3) Calculate invers rotation matrix, which defines mapping from
-    //    local to global cartesian coordinate system
+    // 3) Calculate transposed invers rotation matrix, which defines 
+    //    mapping from  local to global cartesian coordinate system
+    Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);
 
-    std::cerr << "Rotation Matrix:\n" << rotationMat_ << std::endl;
+  }
 
+
+  UInt CylCoordSystem::GetVecComponent( const std::string & dof ) const{
+    ENTER_FCN( "CylCoordSystem::GetVecComponent" );
     
+    
+    UInt component = 0;
+    
+    if ( dof == "urad" )
+      component = 1;
+    if ( dof == "uphi" )
+      component = 2;
+    if ( dof == "uax" )
+      component = 3;
+    
+    if ( component == 0 ) {
+      (*error) << "CylSystem:GetVecComponent:\n"
+               << "The component with name '" << dof 
+               << "' is not known in the global cylinder coordinate system '"
+               << name_ << "'!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    return component;
+  }  
+
+  const std::string CylCoordSystem::GetDofName( const UInt dof ) const {
+    ENTER_FCN( "CylCoordSystem::GetDofName" );
+    
+    std::string ret = "";
+    
+    switch (dof) {
+    case 1:
+      ret = "urad";
+      break;
+    case 2:
+      ret = "uphi";
+      break;
+    case 3:
+      ret = "uax";
+      break;
+    default:
+      (*error) << "CylCoordSystem::GetDofName:\n"
+               << "The component number " << dof << " does not exist in a "
+               << "global cartesian coordinate system!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    return ret;
+  }
+
+  void CylCoordSystem::PrintInfo() {
+    ENTER_FCN( "CylCoordSystem::PrintInfo") ;
+
+    std::ostringstream out;
+    out << "\n--- local coordinate system ---\n"
+        << "    name:\t" << name_ << std::endl
+        << "    type:\tcylindrical" << std::endl
+        << "  origin:\t" << origin_[0] << "," << origin_[1] << "," 
+        << origin_[2] << std::endl
+        << "  h-axis:\t" << hAxis_[0] << "," << hAxis_[1] << ","
+        << hAxis_[2] << std::endl
+        << "  r-axis:\t" << rAxis_[0] << "," << rAxis_[1] << ","
+        << rAxis_[2] << "\n\n";
+    Info->PrintF(std::string(), out.str().c_str());
+
   }
 
 } // end of namespace
