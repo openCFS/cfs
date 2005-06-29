@@ -175,9 +175,6 @@ namespace CoupledField
     //! with slave nodes
     StdVector<UInt> constraintDofs_;
 
-    //! Mapping of string-dof to integer (1-based)
-    UInt GetBCDof(const std::string dofString) const;
-
   protected:
 
     //! Default constructor is disallowed
