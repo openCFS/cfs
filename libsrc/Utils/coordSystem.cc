@@ -42,7 +42,6 @@ namespace CoupledField{
     mKeyVec.Push_back("node");
 
     params->Get(mKeyVec, attrVec, valVec, nodeName);
-    std::cerr << "name of the node was " << nodeName << std::endl;
 
     vec.Resize(dim_);
     if ( nodeName != "none" ) {
@@ -69,7 +68,6 @@ namespace CoupledField{
       }
     }
       
-    std::cerr << "vec = \n" << vec << std::endl;
   }
 
 
