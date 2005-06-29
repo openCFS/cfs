@@ -2,29 +2,79 @@
 
 #include <iostream>
 #include <sstream>
+#include <sys/resource.h>
+#include <iomanip>
+
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#include "myclock.hh"
 
 namespace CoupledField{
 
 
   Profiler::Profiler() {
+
+    // get process id
     myPid_ = getpid();
-    memOut_ = new std::ofstream("cfs.mem");
+
+    // intiialize profile file
+    fileName_ = commandLine->GetSimName() + ".profile";
+    memOut_ = new std::ofstream(fileName_.c_str());
+
+    (*memOut_).setf(std::ios::fixed,std::ios::floatfield);
+    (*memOut_).precision(2);
+      
+    (*memOut_) << "# Profiling output\n"
+               << "# Memory | Wall time | User Time "
+               << "| Rel. wall time | Rel. user time | Name\n";
+    (*memOut_) << std::setw(80) << std::setfill('=') << "" 
+               << std::setfill(' ') << std::endl;
+
+    // Start timing
+    clock_ = new MyClock();
+    clock_->Start();
   }
+  
   Profiler::~Profiler() {
-    if ( memOut_ )
+
+    if ( memOut_ ) {
       delete memOut_;
+      memOut_ = NULL;
+    }
+    
+    if ( clock_ ) {
+      delete clock_;
+      clock_ = NULL;
+    }
+    
   }
   
   
   void Profiler::Trace(std::string name) {
     std::ostringstream command;
+    Double wTime, cTime;
+    
+    // Get memory consumption
     command << "ps -F " << myPid_ 
             << " | grep " << myPid_ 
-            << " | gawk '{printf $6}' >> cfs.mem";
+            << " | gawk '{printf \"% 5d MB\",$6/1024}' >> " << fileName_;
     memOut_->close();
     std::system( (command.str()).c_str() );
-    memOut_->open("cfs.mem", std::ofstream::out | std::ofstream::app);
+    memOut_->open(fileName_.c_str(), std::ofstream::out | std::ofstream::app);
+
+    // Get time
+    clock_->GetTime(wTime, cTime);
+    (*memOut_) << "\t" << wTime << "\t" << cTime;
+    
+    // Write relative time
+    (*memOut_) << "\t" <<  wTime-wTimeLast_
+               << "\t" <<  cTime-cTimeLast_;
+    wTimeLast_ = wTime;
+    cTimeLast_ = cTime;
+     
+
+    // Write name
     (*memOut_)  << '\t' << name << std::endl;
+    
 
     
   }
