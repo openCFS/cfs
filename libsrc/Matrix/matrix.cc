@@ -478,6 +478,7 @@ namespace CoupledField
 #endif
    
     UInt k,kk;
+    rvec1.Init();
     for ( k = 0; k < size_row_; k++)
       for ( kk = 0; kk < size_col_; kk++)
         rvec1[k] += data_[k][kk]*mvec1[kk];
