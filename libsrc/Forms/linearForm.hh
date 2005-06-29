@@ -7,6 +7,9 @@
 
 namespace CoupledField
 {
+  // forward class declaration
+  class CoordSystem;
+
 
   /// base class class for calculation right hand side
 class LinearForm : public BaseForm
@@ -478,6 +481,43 @@ private:
   Double Pval_;
 };
 
-}
+  // =========================================================================
+  // mechanic rhs volume integrator
+  // =========================================================================
+  
+  //! Linear integrator for mechanic volume load sources. This integrator
+  //! can also work on different local coordinate systems
+  class MechVolForceInt : public LinearForm {
+    
+  public:
+    
+    //! Constructor
+    MechVolForceInt(UInt numDof, Boolean isaxi);
+    
+    //! Destructor
+    virtual ~MechVolForceInt();
+    
+    //! Set the volume force vector
+    //! \param volForce vector with volume force w.r.t. coordSys
+    //! \param coordSys pointer to reference coordinate system
+    void SetVolForceVector(Vector<Double> & volForce, const CoordSystem * coordSys);
+    
+    //! Calculation of vector of right hand side 
+    void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
+    
+  protected:
+    
+    //! number of degrees of freedom
+    UInt numDofs_;
+    
+    //! vector with volume force (local coordinate system)
+    Vector<Double> locForce_;
+
+    //! reference coordinate system
+    const CoordSystem * coordSys_;
+    
+  };
+
+} // end of namespace
 
 #endif // FILE_LINEARFORM
