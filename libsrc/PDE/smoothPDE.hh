@@ -68,10 +68,6 @@ namespace CoupledField
 
   private:
 
-    UInt GetNrBCDof (const std::string & dofStartString);
-
-    UInt GetBCDof(const std::string dofString);
-
     std::string method_;
 
     Boolean firstTurn_;
