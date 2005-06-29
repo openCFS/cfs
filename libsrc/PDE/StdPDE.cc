@@ -3,6 +3,8 @@
 
 #include "Utils/vector.hh"
 #include "Driver/stdSolveStep.hh"
+#include "Domain/domain.hh"
+#include "Utils/coordSystem.hh"
 
 namespace CoupledField {
 
@@ -145,7 +147,7 @@ namespace CoupledField {
       {
         dof = 1;
         if ( dofspernode_ > 1 ) {
-          dof = GetBCDof( homDirichDof_[i] );
+          dof = domain->GetCoordSystem()->GetVecComponent( homDirichDof_[i] );
         }
 
         ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
@@ -164,7 +166,7 @@ namespace CoupledField {
       {
         dof = 1;
         if ( dofspernode_ > 1 ) {
-          dof = GetBCDof( inhomDirichDof_[i] );
+          dof = domain->GetCoordSystem()->GetVecComponent( inhomDirichDof_[i] );
         }
         
         ptgrid_->GetNodesByName( nodes, bcs_id_[i] );
@@ -182,30 +184,6 @@ namespace CoupledField {
   }
 
 
-  
-
-  UInt StdPDE::GetBCDof( const std::string dofStartString ) {
-    
-    ENTER_FCN( "StdPDE::GetBCDof" );
-    
-    UInt nrActDof = 0;
-    
-    if ( dofStartString == "ux" )
-      nrActDof = 1;
-    if ( dofStartString == "uy" )
-      nrActDof = 2;
-    if ( dofStartString == "uz" )
-      nrActDof = 3;
-    // --- DOF for piezo - HARD CODED -
-    // 
-    if ( dofStartString == "ep" )
-      nrActDof = dofspernode_;
-    if ( nrActDof == 0 )
-      Error( "Unknown dof-type in homog. BC; substring must start with ux, uy,"
-             "uz, uax, urad, uphi or ep!!", __FILE__, __LINE__);
-
-    return nrActDof;
-  }
 
   void StdPDE::GetMemento(PDEMemento & memento) {
 
