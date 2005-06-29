@@ -318,6 +318,51 @@ namespace CoupledField
   // ELEMENT ACCESS FUNCTIONS
   // ======================================================
   template<UInt DIM>
+  void GridCFS<DIM>::GetElems( StdVector<Elem*> & elems, 
+                                  const RegionIdType regionId ) {
+    ENTER_FCN( "GridCFS::GetElems" );
+    
+    // check if region Id is ALL_REGIONS
+    if ( regionId == ALL_REGIONS ) {
+      elems.Reserve( GetNumVolElems() + GetNumSurfElems() );
+
+      // iterate over all volume elements
+      for ( UInt i = 0; i < volElems_.GetSize(); i++) {
+        for (UInt iElem = 0; iElem < volElems_[i].GetSize(); iElem++ ) {
+          elems.Push_back(volElems_[i][iElem]);
+        }
+      }
+      // iterate over all surface elements
+      for ( UInt i = 0; i < surfElems_.GetSize(); i++) {
+        for (UInt iElem = 0; iElem < surfElems_[i].GetSize(); iElem++ ) {
+          elems.Push_back(surfElems_[i][iElem]);
+        }
+      }
+      
+    } else {
+      // look in volume regions
+      Integer index = volRegionIds_.Find(regionId);
+      if ( index != -1 ) {
+        elems = volElems_[index];
+      } else {    
+        // look in surface regions
+        index = surfRegionIds_.Find(regionId);
+        if ( index != -1 ) {
+          elems.Reserve( surfElems_[index].GetSize());
+          for (UInt iElem=0; iElem<surfElems_[index].GetSize(); iElem++ ) {
+            elems.Push_back(surfElems_[index][iElem]);
+          }
+        } else {    
+          (*error) << "GridCFS: The region with id '" << regionId
+                   << "' was not found in the grid!";
+          Error( __FILE__, __LINE__ );
+        }
+      }
+    }
+  }
+  
+
+  template<UInt DIM>
   void GridCFS<DIM>::GetVolElems( StdVector<Elem*> & elems, 
                                   const RegionIdType regionId ) {
     ENTER_FCN( "GridCFS::GetVolElems" );
@@ -668,18 +713,18 @@ namespace CoupledField
   void GridCFS<DIM>::PrintGridInfo() const {
     ENTER_FCN( "GRIDCFS::PrintGridInfo()" );
     
-    std::string help;
-    
-    Info->PrintF("GridCFS", "Region Mapping:\n");
-    Info->PrintF("GridCFS", "ID\t| Name\n");
-    Info->PrintF("GridCFS", "-------------------\n");
+    std::string help, empty;
+
+    Info->PrintF("", "\n--- GridCFS: Region Map ---\n\n");
+    Info->PrintF("", "ID\t| Name\n");
+    Info->PrintF("", "-------------------\n");
     
     for( UInt i = 0; i < regionNames_.GetSize(); i++ ) {
       help = Info->GenStr(i);
       help += "\t| ";
       help += regionNames_[i];
       help += '\n';
-      Info->PrintF("GridCFS",help.c_str());
+      Info->PrintF("",help.c_str());
     }
   }
   
@@ -823,12 +868,24 @@ namespace CoupledField
     }
   }
   template<UInt DIM>
-  Double GridCFS<DIM>::CalcElemArea( const Elem* elem ) {
-    Error( "Not implemented", __FILE__, __LINE__ );
-    return -1.0;
+  Double GridCFS<DIM>::CalcVolumeOfRegion( const RegionIdType regionId,
+                                           Boolean isaxi) {
+    ENTER_FCN( "GridCFS::GetVolumeOfRegion" );
+
+    StdVector<Elem*> elems;
+    Matrix<Double> cornerCoords;
+    Double volume = 0.0;
+
+    GetElems(elems,regionId);
+
+    for( UInt i = 0; i < elems.GetSize(); i++ ) {
+      GetElemNodesCoord(cornerCoords, elems[i]->connect);
+      volume += elems[i]->ptElem->CalcVolume(cornerCoords, isaxi);
+    }
+
+    return volume;
   }
-
-
+  
 
 #ifdef ADAPTGRID
   template<UInt DIM>

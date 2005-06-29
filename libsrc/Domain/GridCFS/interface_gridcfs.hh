@@ -123,7 +123,13 @@ namespace CoupledField
     // ELEMENT ACCESS FUNCTIONS
     // ======================================================
     //@{ \name Element Access Functions
-  
+    
+    //! Get list of elements (surface / volumes)
+    void GetElems( StdVector<Elem*> & elems, 
+                   const RegionIdType regionId ) {
+      ptGridCFS->GetElems(elems, regionId);
+    }
+
     //! Get list of volume elements
     void GetVolElems( StdVector<Elem*> & elems, 
                       const RegionIdType regionId ) {
@@ -178,10 +184,6 @@ namespace CoupledField
     // =======================================================================
     //@{ \name Geometry Calculation
     
-    //! Calculates area of a element
-    Double CalcElemArea( const Elem* elem ) {
-      return ptGridCFS->CalcElemArea(elem);
-    }
     
     //! Returns surface element normal without defined orientation
 
@@ -197,6 +199,13 @@ namespace CoupledField
                                  const Elem & volElem ) {
       ptGridCFS->CalcSurfNormalOutOfVol(n, surfElem, volElem);
     }
+
+    //! Returns the volume of a given region
+    Double CalcVolumeOfRegion( const RegionIdType regionId, 
+                               Boolean isaxi) {
+      return ptGridCFS->CalcVolumeOfRegion(regionId, isaxi);
+    }
+      
     //@}
     
 
@@ -216,79 +225,6 @@ namespace CoupledField
   
   protected:
 
-// <<<<<<< interface_gridcfs.hh
-//   //!
-//   StdVector<std::string>* GetAllSDs(){ return ptGridCFS->GetAllSDs();}
-
-//   //!
-//   virtual void GetCoordNodesElem(const StdVector<Integer> connect, Point<dim> * ptCoord, const Integer level)
-//   { ptGridCFS->GetCoordNodesElem(connect, ptCoord, level);}
-
-//   //! gets the coordinates of the element nodes
-//   virtual void GetCoordNodesElemMat(const StdVector<Integer> connect, Matrix<Double>& coordMat, const Integer level)
-//   { ptGridCFS->GetCoordNodesElemMat(connect, coordMat, level);}  
-
-//      //! return vector of element-neighbors for the element with number noOfElem
-//   virtual  StdVector<Elem*> *  GetNeighboursOfElem(const Integer noOfElem, std::string color)
-//   { return ptGridCFS->GetptNeighboursOfElem(noOfElem,color);}
-
-//   //! return vector of element-neighbors for the node with number noOfNode
-//   virtual void GetNeighboursOfNode(const Integer noOfNode, StdVector<Elem*> * neighbours)
-//   { ptGridCFS->GetNeighboursOfNode(noOfNode,neighbours);}
- 
-//   //! in this function we calculate area of element
-//   virtual Double CalcAreaElem(const Elem* elem)
-//   { 
-//     return ptGridCFS->CalcAreaElem(elem);
-//   }  
-  
-//   //!
-//   virtual void GetInterfaceNeighbours(StdVector<Integer> & interfaceNodes, 
-// 				      StdVector<std::string> & subdoms, 
-// 				      StdVector<Elem*> & neighbours, 
-// 				      Integer level)
-//   {  ptGridCFS->GetInterfaceNeighbours(interfaceNodes, subdoms, neighbours, level);}
-  
-//   //!
-//   virtual void GetVolNeighboursForSurf(const StdVector<Elem*> & surfElems,
-// 				       const StdVector<std::string> & neighRegions,
-// 				       StdVector<Elem*> & volElems,
-// 				       const Integer level)
-//   { ptGridCFS->GetVolNeighboursForSurf(surfElems, neighRegions, volElems,level);}
-
-  
-//   //!
-//   virtual void CalcNumberOfNodesInPatch(const StdVector<Elem*> & patch, 
-// 					StdVector<Integer>& map, 
-// 					Boolean OnlyLinNodes = FALSE) 
-//   { ptGridCFS->CalcNumberOfNodesInPatch(patch,map,OnlyLinNodes);}
-
-// protected:
-//   //!
-//   void FormNeighbors4NodesOfElements(const StdVector<Elem*> &elems, 
-// 				     StdVector<StdVector<Elem*> > &nodeNeighbors, 
-// 				     StdVector<Integer> & map)
-//   { ptGridCFS->FormNeighbors4NodesOfElements(elems, nodeNeighbors,  map);}
-
-// private:
-//   GridCFS<dim> * ptGridCFS;
-//   ///
-// };
-
-// template<Integer dim>
-// inline GridInterfaceCFS<dim>::GridInterfaceCFS(FileType * aptFileType)
-// : Grid(aptFileType)
-// {
-//   ENTER_FCN( "GridInterfaceCFS<Dim>::GridInterfaceCFS<Dim>" );
-//  lastlevel_=0;
-//    ptGridCFS=new GridCFS<dim>(ptFileType); 
-// }
-// =======
-//   virtual void CalcNumberOfNodesInPatch(const StdVector<Elem*> & patch, 
-// 					StdVector<Integer>& map, 
-// 					Boolean OnlyLinNodes = FALSE) 
-//   { ptGridCFS->CalcNumberOfNodesInPatch(patch,map,OnlyLinNodes);}
-
     void GetAllRegionNames( StdVector<std::string> & regionNames ) {
       ptGridCFS->GetAllRegionNames(regionNames);
     }
@@ -305,7 +241,6 @@ namespace CoupledField
     ENTER_FCN( "GridInterfaceCFS<Dim>::GridInterfaceCFS<Dim>" );
     ptGridCFS=new GridCFS<DIM>(ptFileType); 
   }
-  //>>>>>>> 1.41
 
 #if defined(__GNUC__) || defined(__sgi)
   template class GridInterfaceCFS<3>;

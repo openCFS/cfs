@@ -6,44 +6,44 @@
 
 namespace CoupledField
 {
+  
+  class FileType;
+  
+  /// Class for working with grid
+  template<Integer DIM>
+  class GridInterfaceStruct: public Grid
+  {
+  public:
+    /// Constructor with parameter - pointer to FileType for reading initial grid
+    GridInterfaceStruct(UInt aDIM);
 
-class FileType;
+    /// Deconstructor
+    virtual ~GridInterfaceStruct() { if (ptGridStruct) delete ptGridStruct;}
 
-/// Class for working with grid
-template<Integer DIM>
-class GridInterfaceStruct: public Grid
-{
-public:
-  /// Constructor with parameter - pointer to FileType for reading initial grid
-  GridInterfaceStruct(UInt aDIM);
+    //! Read of mesh
+    virtual void Read()
+    { 
+      ptGridStruct->Read();
 
-  /// Deconstructor
-  virtual ~GridInterfaceStruct() { if (ptGridStruct) delete ptGridStruct;}
+      // Transfer region Names to base class
+      ptGridStruct->GetAllRegionNames(regionNames_);
+    }
 
-  //! Read of mesh
-  virtual void Read()
-  { 
-    ptGridStruct->Read();
+    //==================================================================================
+    //special functions for structured Grid
+    //! Read of structured mesh
+    virtual void GenGridStruct(const UInt elemx, const UInt elemy,const UInt elemz)
+    { ptGridStruct->GenGridStruct(elemx, elemy, elemz);}
 
-    // Transfer region Names to base class
-    ptGridStruct->GetAllRegionNames(regionNames_);
-  }
+    //! Transform Grid
+    virtual void TransformGridStruct(UInt& nodeShift, UInt& shiftFactor, const UInt flag)
+    { ptGridStruct->TransformGridStruct(nodeShift, shiftFactor, flag);}
 
-  //==================================================================================
-  //special functions for structured Grid
-  //! Read of structured mesh
-  virtual void GenGridStruct(const UInt elemx, const UInt elemy,const UInt elemz)
-  { ptGridStruct->GenGridStruct(elemx, elemy, elemz);}
+    //Get Maximum nuber of Elements in x,y,z-direction
+    virtual Integer GetMaxElem(const std::string dir)
+    {return ptGridStruct->GetMaxElem(dir);}
 
-  //! Transform Grid
-  virtual void TransformGridStruct(UInt& nodeShift, UInt& shiftFactor, const UInt flag)
-  { ptGridStruct->TransformGridStruct(nodeShift, shiftFactor, flag);}
-
-  //Get Maximum nuber of Elements in x,y,z-direction
-  virtual Integer GetMaxElem(const std::string dir)
-  {return ptGridStruct->GetMaxElem(dir);}
-
-  //===================================================================================
+    //===================================================================================
 
     // ======================================================
     // GENERAL GRID INFORMATION
@@ -135,6 +135,13 @@ public:
     // ======================================================
     //@{ \name Element Access Functions
   
+    //! Get list of elements (surface / volumes)
+    void GetElems( StdVector<Elem*> & elems, 
+                   const RegionIdType regionId ) {
+      ptGridStruct->GetElems(elems, regionId);
+    }
+
+
     //! Get list of volume elements
     void GetVolElems( StdVector<Elem*> & elems, 
                       const RegionIdType regionId ) {
@@ -179,7 +186,7 @@ public:
                                 const StdVector<RegionIdType> 
                                 & neighRegions ) {
       ptGridStruct->GetElemsNextToSurface(neighbours, surfElems, 
-                                       neighRegions );
+                                          neighRegions );
     }
     
     //@}
@@ -189,11 +196,6 @@ public:
     // =======================================================================
     //@{ \name Geometry Calculation
     
-    //! Calculates area of a element
-    Double CalcElemArea( const Elem* elem ) {
-      return ptGridStruct->CalcElemArea(elem);
-    }
-    
     //! Returns surface element normal without defined orientation
 
     void CalcSurfNormal( Vector<Double> & n, 
@@ -202,12 +204,18 @@ public:
     }
     
     //! Returns surface element normal with defined orientation
-    
+  
     void CalcSurfNormalOutOfVol( Vector<Double> & n,
                                  const Elem & surfElem,
                                  const Elem & volElem ) {
       ptGridStruct->CalcSurfNormalOutOfVol(n, surfElem, volElem);
     }
+  
+    //! Returns the volume of a given region
+    Double CalcVolumeOfRegion( const RegionIdType regionId, Boolean isaxi = FALSE ) {
+      return ptGridStruct->CalcVolumeOfRegion(regionId,isaxi);
+    }
+  
     //@}
     
 
@@ -221,7 +229,7 @@ public:
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
                              const StdVector<Elem*> & elemList,
 			     Boolean onlyLinNodes = FALSE) {
-  ptGridStruct->GetNodesOfElemList(nodeList, elemList, onlyLinNodes);
+      ptGridStruct->GetNodesOfElemList(nodeList, elemList, onlyLinNodes);
     }
     
   
@@ -232,26 +240,26 @@ public:
     }
 
 
-protected:
+  protected:
 
 
-private:
-  GridStruct<DIM> * ptGridStruct;
-  ///
-};
+  private:
+    GridStruct<DIM> * ptGridStruct;
+    ///
+  };
 
-template<Integer DIM>
-inline GridInterfaceStruct<DIM>::GridInterfaceStruct(UInt adim)
-: Grid(NULL)
-{
-  ENTER_FCN( "GridInterfaceStruct<DIM>::GridInterfaceStruct<DIM>" );
-  //  lastlevel_=0;
-  ptGridStruct=new GridStruct<DIM>(adim);
-}
+  template<Integer DIM>
+  inline GridInterfaceStruct<DIM>::GridInterfaceStruct(UInt adim)
+    : Grid(NULL)
+  {
+    ENTER_FCN( "GridInterfaceStruct<DIM>::GridInterfaceStruct<DIM>" );
+    //  lastlevel_=0;
+    ptGridStruct=new GridStruct<DIM>(adim);
+  }
 
 #if defined(__GNUC__) || defined(__sgi)
-template class GridInterfaceStruct<3>;
-template class GridInterfaceStruct<2>;
+  template class GridInterfaceStruct<3>;
+  template class GridInterfaceStruct<2>;
 #endif
 
 } // end of namespace
