@@ -11,6 +11,7 @@
 #include "DataInOut/writeresults.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/cylCoordSys.hh"
+#include "Utils/defaultCoordSys.hh"
 
 #include "PDE/pdes_header.hh"
 #include "PDE/basePDE.hh"
@@ -47,6 +48,10 @@ namespace CoupledField {
                   TimeFunc * aptTimeFunc) {
 
     ENTER_FCN( "Domain::Domain" );
+
+    Info->PrintF("","==================\n");
+    Info->PrintF("","   DOMAIN SETUP   \n");
+    Info->PrintF("","==================\n\n");
   
 
     // initialize data
@@ -75,7 +80,7 @@ namespace CoupledField {
         dim_ = 2;
       }
       else {
-        Info->Error( "Wromg Dimension parameter in xml-File", 
+        Info->Error( "Wrong Dimension parameter in xml-File", 
                      __FILE__, __LINE__ );
       }
     }
@@ -93,6 +98,7 @@ namespace CoupledField {
       }
     }
 
+    Info->PrintF("", "Type of grid: %s\nDimension: %i\n\n",libmesh.c_str(), dim_);
     SETPROFILE("Before Grid-Creation");
 
     // initialize pointer to grid 
@@ -146,6 +152,9 @@ namespace CoupledField {
     // Read in coordinate systems
     CreateCoordinateSystems();
 
+    Info->PrintF("","\n=========================\n");
+    Info->PrintF("","   END OF DOMAIN SETUP   \n");
+    Info->PrintF("","=========================\n\n");
     Info->FinishProgress();
     
  
@@ -282,8 +291,19 @@ namespace CoupledField {
   CoordSystem * Domain::GetCoordSystem( const std::string & name ) {
     ENTER_FCN( "Domain::GetCoordSystem" );
     
-    Error( "Not implemented", __FILE__, __LINE__ );
-    return (CoordSystem*) NULL;
+    
+    std::map<std::string, CoordSystem*>::iterator it;
+
+    it = coordSys_.find(name);
+
+    if ( it == coordSys_.end() ) {
+      (*error) << "Domain::GetCoordSystem: A coordinate system with name '"
+               << name << "' is not registered!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    return (*it).second;
+  
   }
 
 
@@ -619,10 +639,6 @@ namespace CoupledField {
     }
     
 
-   
-    
-   
-
     ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(ptgrid_, OutFile_,
                                                        ptTimeFunc_));
     ptDirectCoupledPde_[0]->SetSinglePDEs( singlePdes );
@@ -650,6 +666,13 @@ namespace CoupledField {
   void Domain::CreateCoordinateSystems() {
     ENTER_FCN( "Domain::CreateCoordinateSystems");
 
+    // first create the "global" standard cartesian
+    // coordinate system
+    std::string defaultname = "default";
+    coordSys_[defaultname] = new DefaultCoordSystem(ptgrid_);
+
+
+    // then read in the additional coordinate systems
     StdVector<std::string> keyVec, attrVec, valVec, names;
     keyVec = "domain", "coordSys", "cylindric", "name";
     attrVec = "", "", "";
@@ -657,10 +680,9 @@ namespace CoupledField {
     params->GetList(keyVec, attrVec, valVec, names);
 
     for (UInt i = 0; i < names.GetSize(); i++ ) {
-      CoordSystem * test = new CylCoordSystem(names[i],ptgrid_);
-      coordSys_[names[i]] = test;
+      CoordSystem * actCoord = new CylCoordSystem(names[i],ptgrid_);
+      coordSys_[names[i]] = actCoord;
     }
-    
     
 
   }
