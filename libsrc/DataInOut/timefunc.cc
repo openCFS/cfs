@@ -24,11 +24,10 @@ namespace CoupledField
     params->Get( "type", analysis, "analysis" );
     String2Enum( analysis, analysisType );
 
-    if (analysisType == TRANSIENT) {
-      params->GetList( "name", fnc_names_, "transient", "timeDataFile" );
-    }
-    else if (analysisType == TRANSIENT4SLICE) {
+    if (analysisType == TRANSIENT4SLICE) {
       params->GetList( "name", fnc_names_, "transient4Slice", "timeDataFile" );
+    } else {
+      params->GetList( "name", fnc_names_, "transient", "timeDataFile" );
     }
 
     if (fnc_names_.GetSize())
