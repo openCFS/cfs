@@ -148,7 +148,7 @@ namespace CoupledField
       } else {
         ret = regionNames_.Find(regionNames[i]);
         if ( ret == -1 ) {
-          (*error) << "The region with name '" << regionNames_[i]
+          (*error) << "The region with name '" << regionNames[i]
                    << "' is not contained in the grid!";
           Error( __FILE__, __LINE__ );
         }
