@@ -577,7 +577,8 @@ namespace CoupledField
     } // loop over regions
 
 
-    // iterate over all temp elements and convert them into volume elements
+    // iterate over all temporary elements and convert them into
+    // surface elements
     SurfElem * myElem;
     surfElems_.Resize(elems.GetSize());
     
@@ -641,8 +642,9 @@ namespace CoupledField
               if ( elemNrPerNode[index][iElem2] == 
                    elemNrPerNode[surfNodeNr-1][iVolElem] ) {
                 elemsFound++;
+                break;
               }
-              
+
             } // loop over all elements of other nodes
           } // loop over all other nodes
           
@@ -659,8 +661,16 @@ namespace CoupledField
 
             elemsAssigned++;
           }
-          
         } // loop over element numbers of first node
+
+        // sanity check (avoid the impossible ;-)
+        if ( elemsAssigned > 2 ) {
+          (*error) << "Found " << elemsAssigned
+                   << " volume elements for surface element no. "
+                   << surfElems_[iRegion][iSurfElem]->elemNum;
+            Error( __FILE__, __LINE__ );
+        }
+
       } // loop over surface elements
     } // loop over regions
 
@@ -680,8 +690,8 @@ namespace CoupledField
 
         // check, if each surface element has at least one volume neighbour
         if ( surfElems_[iRegion][iSurfElem]->ptVolElem1 == NULL ) {
-          (*error) << "Pointer to first volume elem is NULL for surface "
-                   << " element nr. "  
+          (*error) << "Pointer to first volume element is NULL for surface"
+                   << " element no. "  
                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
                    << "Please check your mesh-file!";
           Error( __FILE__, __LINE__ );
