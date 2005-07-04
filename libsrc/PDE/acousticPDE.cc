@@ -73,6 +73,38 @@ namespace CoupledField {
     isaxi_ = params->HasValue( "type", "axi", "geometry" );
 
 
+    // ===========================
+    // DODO GridAdaption
+    // check if <specialNodes> is given, to determine whether we to write them
+    // to file,
+    StdVector<std::string> vecKey, vecVals, vecAttr;
+    StdVector<std::string> vecNodes, vecFiles;
+    vecKey = pdename_, "storeResults", "specialNodes", "saveNodes";
+    vecAttr = "", "", "";
+    vecVals = "", "", "";
+    params->GetList(vecKey, vecAttr, vecVals, vecNodes);
+    
+    // specialNodes is given => set flag
+    if(vecNodes.GetSize() > 0) {
+      m_bWriteSpecialBCs = TRUE;
+      
+      // get file to store specialNodes
+      vecKey = pdename_, "storeResults", "specialNodes", "file";
+      std::string strFile;
+      params->Get(vecKey, strFile);
+      
+      // setup grid adaption object
+      // it needs: the .data-file, the .xml-file and the grid
+      m_pGridAdaption = new GridAdaption(strFile, aptgrid);
+    }
+    else {
+      m_bWriteSpecialBCs = FALSE;
+    }
+    
+    // DODO
+    // ===========================
+
+
     // *************************************************************
     //   Check what type of nonlinear PDE formulation should be used
     // *************************************************************
@@ -698,6 +730,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       else {  
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
+
         if (saveSol_){
           outFile_->WriteNodeSolutionTransient(*solTransient,actStep,actTime);
          
@@ -705,6 +738,11 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         if (saveSolHist_){
           outFile_->WriteNodeHistoryTransient(*solTransient, actStep,actTime);
         }
+
+	// DODO here
+	if(m_bWriteSpecialBCs) {
+	  m_pGridAdaption->Add2DataFile(*solTransient, actTime);
+	}
         
         if (saveDeriv1_) {
           solDeriv1_.SetAlgSysVector(getS1()); 

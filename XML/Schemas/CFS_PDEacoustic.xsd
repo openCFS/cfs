@@ -173,6 +173,12 @@
           default="none"/>
         <xsd:attribute name="phase" type="xsd:double" use="optional"
           default="0.0"/>
+	<xsd:attribute name="fileName" type="xsd:token" use="optional"
+	     default="none"/>
+	<xsd:attribute name="interpolType" type="xsd:token" use="optional"
+	     default="NNB"/>
+	<xsd:attribute name="noNodes" type="xsd:token" use="optional"
+	     default="-1"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -297,12 +303,22 @@
     </xsd:attribute>
   </xsd:complexType>
 
+  <!-- Data type for describing history of node values to be stored -->
+  <xsd:complexType name="DT_AcousticSpecialNodes">
+	<xsd:attribute name="type" type="DT_AcousticNodeData" use="required"/>
+	<xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
+	<xsd:attribute name="file" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
+
   <!-- Global type for specifying the desired mechanical output quantities -->
   <xsd:complexType name="DT_AcousticStoreResults">
     <xsd:sequence>
       <xsd:element name="nodeResults" type="DT_AcousticNodeResults"
         minOccurs="0" maxOccurs="unbounded"/>
       <xsd:element name="nodeHistory" type="DT_AcousticNodeHistory"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="specialNodes" type="DT_AcousticSpecialNodes"
         minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
