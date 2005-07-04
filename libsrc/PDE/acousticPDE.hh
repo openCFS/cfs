@@ -5,6 +5,7 @@
 #include "ODEDescr/KellerMiksis.hh"
 #include "ODEDescr/Gilmore.hh"
 #include "ODESolve/ODESolver_RKF45.hh"
+#include "Domain/GridAdaption/GridAdaption.hh"
  
 namespace CoupledField {
 
@@ -101,6 +102,8 @@ namespace CoupledField {
 	//! switch for absorbing boundary conditions
     Boolean absorbingBCs_;                
 
+    Boolean m_bWriteSpecialBCs;            //!< switch for special bcs in combination with slicing technique
+
     // solving of nonlinear acoustics
     NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
     Vector<Double> RhsLinVal_;
@@ -118,6 +121,9 @@ namespace CoupledField {
 
     Boolean plotRHS_; //!< Flag for saving of rhs for output
 
+    // DODO
+    // the grid adaption object
+    GridAdaption *m_pGridAdaption;
 
   private:
 

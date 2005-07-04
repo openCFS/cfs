@@ -15,6 +15,9 @@ gridcfs:
 gridstruct:
 	@cd $(LIBSRC_DIR)/Domain/GridStruct; $(MAKE) -f Makefile
 
+gridadaption:
+	@cd $(LIBSRC_DIR)/Domain/GridAdaption; $(MAKE) -f Makefile
+
 estimator:
 	@cd $(LIBSRC_DIR)/Estimator; $(MAKE) -f Makefile
 

@@ -32,7 +32,7 @@ C_DIR = ..
 
 SUBLIBDIR = Driver PDE CoupledPDE \
             Forms Elements Elements/1D Elements/2D Elements/3D \
-            Domain/GridCFS Domain \
+            Domain/GridCFS Domain/GridAdaption Domain \
             Domain/GridStruct \
             DataInOut/DefineFiles \
             DataInOut/ParamHandling \
@@ -58,7 +58,7 @@ TAGSPATH = $(addsuffix /*.??,$(PATHSUBLIBDIR))
 
 mylibrary = driver domain pde coupledpde forms  \
             elements3d elements2d elements1d elements \
-            gridcfs gridstruct definefiles gmv unverg \
+            gridadaption gridcfs gridstruct  definefiles gmv unverg \
 	    ansysfile datainout paramhandling commandline \
             driver datainout\
             utils matrix general odesolve odedescr \
@@ -113,6 +113,8 @@ gridcfs:
 	@cd $(LIBSRC_DIR)/Domain/GridCFS; $(MAKE) -f Makefile
 gridstruct:
 	@cd $(LIBSRC_DIR)/Domain/GridStruct; $(MAKE) -f Makefile
+gridadaption:
+	@cd $(LIBSRC_DIR)/Domain/GridAdaption; $(MAKE) -f Makefile
 estimator:
 	@cd $(LIBSRC_DIR)/Estimator; $(MAKE) -f Makefile
 toadaptgrid:
@@ -215,6 +217,8 @@ clean-domain:
 	@cd $(LIBSRC_DIR)/Domain/Gridlib&& \
         $(MAKE) clean 
 	@cd $(LIBSRC_DIR)/Domain/AdaptGrid&& \
+        $(MAKE) clean
+	@cd $(LIBSRC_DIR)/Domain/GridAdaption&& \
         $(MAKE) clean
 clean-general:
 	@cd $(LIBSRC_DIR)/General&&\

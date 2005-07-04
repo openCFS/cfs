@@ -90,7 +90,9 @@ namespace CoupledField {
     // set miscellaneous parameters
     // =====================================================================
     pdeId_ = NO_PDE_ID;
-    isDirectCoupled_ = FALSE;
+    isDirectCoupled_  = FALSE;
+    m_bReadSpecialBCs = FALSE;
+			
   }
 
 
@@ -617,6 +619,27 @@ namespace CoupledField {
       for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
+
+
+	// DODO GridAdaption
+	// interpolate acoustic pressure at current node?
+	if(m_bReadSpecialBCs) {
+	  Point<3> pt;
+	  UInt ibcNode = nodes[iNode];
+	  m_pGridAdaption->GetCoordinatesFromGridNode(ptgrid_, ibcNode, pt);
+	  
+	  Double x, y, z;
+	  x = pt[0];
+	  y = pt[1];
+	  z = pt[2];
+	  
+	  // perform interpolation with previously set interpolation scheme
+	  val = m_pGridAdaption->GetAt(x, y, z, time);
+	  if(effectiveMass_) {
+	    dirVal = val;
+	  }
+	}
+
         
         // Sanity check. This should not happen, but might appear
         // in the case that the same node/dof belongs to a region
@@ -698,6 +721,70 @@ namespace CoupledField {
         analysistype_ == STATIC) {
       keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
       params->GetList(keyVec, attrVec, valVec, fncnames_id_);
+
+      // DODO
+      // determine filename for reading boundary conditions calculated before
+      std::string strFileName = "none"; // default
+      keyVec  = pdename_, "bcsAndLoads", "dirichletInhom", "fileName";
+      attrVec = "", "", "";
+      valVec  = "", "", "";
+      StdVector<std::string> vecFiles;
+      params->GetList(keyVec, attrVec, valVec, vecFiles);
+      //params->Get(keyVec, strFileName);
+
+      if(vecFiles.GetSize() > 0) {
+	strFileName = vecFiles[0];
+      }
+
+      // if attribute "fileName" is set, we're in "post" mode, i.e. set flag
+      // to use interpolation techqnique
+      if(strFileName != "none") {
+	m_bReadSpecialBCs = TRUE;
+
+	// create new adaption object
+	m_pGridAdaption = new GridAdaption();
+
+	// determine no of nodes to use for interpolation
+	keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "noNodes";
+	std::string strNoNodes;
+	params->Get(keyVec, strNoNodes);
+
+	// how many? atoi() strips percentage sign
+	Integer nNodes = atoi(strNoNodes.c_str());
+
+	// check if to use percentage, atoi() takes care of conversion
+	bool bPercent = false;
+	if(strNoNodes[strNoNodes.length()-1] == '%') {
+	  bPercent = true;
+	}
+	m_pGridAdaption->SetInfluencingNodes(nNodes, bPercent);
+
+	// default interpolation type is nearest neighbor
+	GridAdaption::INTERPOLATION_TYPE it = GridAdaption::NNB;
+
+	// now check for interpolation type, if given
+	StdVector<std::string> vecInterpolType;
+	std::string strInterpolType;
+	keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "interpolType";
+	params->Get(keyVec, strInterpolType);
+
+	// check interpolation type, if other than NNB
+	if(strInterpolType == "IDW") {
+	  it = GridAdaption::IDW;
+	}
+	else if(strInterpolType == "SHP") {
+	  it = GridAdaption::SHP;
+	}
+
+	// now set type, default is NNB
+	m_pGridAdaption->SetInterpolationType(it);
+
+	// now parse given data file
+	m_pGridAdaption->ReadFile(strFileName);
+      }
+      // DODO
+
+
     }
     else if (analysistype_ == HARMONIC||analysistype_ == MULTIHARMONIC) {
       keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "phase";

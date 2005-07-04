@@ -8,6 +8,7 @@
 
 #include "Driver/assemble.hh"
 #include "Driver/MHassemble.hh"
+#include "Domain/GridAdaption/GridAdaption.hh"
 
 
 namespace CoupledField
@@ -280,6 +281,12 @@ namespace CoupledField
 
     //! TRUE, if solution should be written to history file
     Boolean saveSolHist_;
+
+    //! TRUE, if special nodes should be written to be used for a 2nd run
+    Boolean m_bReadSpecialBCs;
+    
+    // the grid adaption object
+    GridAdaption *m_pGridAdaption;
 
     //! TRUE, if RHS values should be written to history file
     Boolean saveRHSvalHist_;
