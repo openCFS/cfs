@@ -3,8 +3,8 @@
 
 #include "basePDE.hh"
 #include "acousticPDE.hh"
-//#include <MpCCIcpl/MpCCIexch-patchQuad3D.hh>
 #include <MpCCIcpl/MpCCIexch.hh>
+//#include <MpCCIcpl/MpCCIexch.hh>
 
 namespace CoupledField
 {
@@ -54,7 +54,7 @@ namespace CoupledField
 #ifdef MpCCI
 
     StdVector<UInt> mapSD_;
-    StdVector<Integer> mapSD_allNodes_;
+    StdVector<UInt> mapSD_allNodes_;
     MpCCIexch * ptMpCCIexch_;
     Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
     Integer meshId_;

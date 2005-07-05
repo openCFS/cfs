@@ -7,36 +7,38 @@
 #include <DataInOut/ParamHandling/ConfFile.hh>
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
-//#ifdef MpCCI
+ //#ifdef MpCCI
 #include <cci.h>
-//#endif
+ //#endif
 
 namespace CoupledField
 {
 
-  MpCCIexch::MpCCIexch(Grid *aptgrid, UInt nNodesSD)
-  {
-    ENTER_FCN("entering MpCCIexch::MpCCIexch");
+MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
+{
+  ENTER_FCN("entering MpCCIexch::MpCCIexch");
 
-    std::cout<<"Nodes SD: "<<nNodesSD<<std::endl;
-    ptgrid_ = aptgrid;
-    // MpCCInodes_ = ptgrid_->GetMaxnumnodes(0);
-    MpCCInodes_ = nNodesSD;
+  //std::cout<<"Nodes SD: "<<nNodesSD<<std::endl;
+  ptgrid_ = aptgrid;
+  mapSD_ = mapSD;
+  MpCCInodes_ = mapSD_.GetSize();
 
-    Dim_ = ptgrid_->GetDim();
+  Dim_ = ptgrid_->GetDim();
 
 
-    //Get general specific coupling description for CFS++ side
-    params->Get("meshId", meshId_, "MpCCI-flownoise");
-    params->Get("partId",partId_, "MpCCI-flownoise");
-    params->Get("nNodeIds", nNodeIds_,"MpCCI-flownoise");
-    params->Get("GlobalDim", GlobalDim_, "MpCCI-flownoise");
+  //Get general specific coupling description for CFS++ side
+  params->Get("meshId", meshId_, "MpCCI-flownoise");
+  params->Get("partId",partId_, "MpCCI-flownoise");
+  params->Get("nNodeIds", nNodeIds_,"MpCCI-flownoise");
+  params->Get("GlobalDim", GlobalDim_, "MpCCI-flownoise");
 
-    nodeIds_   = new Integer[MpCCInodes_]; 
-    nodeIds_[0] = 0;
+  nodeIds_   = new Integer[MpCCInodes_]; 
+  nodeIds_[0] = 0;
 
-  }
+  //To activate storage of node numbers in an array
+  nNodeIds_=MpCCInodes_;
 
+}
   //constructer used for FSI
   MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<RegionIdType>  subdoms)
   {
@@ -52,204 +54,216 @@ namespace CoupledField
     params->Get("GlobalDim", GlobalDim_, "mpcciFSI");
   }
 
-  MpCCIexch::~MpCCIexch()
-  {
-    if (nodeIds_)  delete [] nodeIds_;
-  }
+MpCCIexch::~MpCCIexch()
+{
+if (nodeIds_)  delete [] nodeIds_;
+}
 
-  void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
-  {
+void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
+{
     ENTER_FCN("entering MpCCIexch::PutExchangeGrid2MpCCI");
 
     // Here starts part for giving mixed mesh to MpCCI
   
-    CCI_Def_partition(meshId_, partId_);
- 
-    Matrix<Double> ptCoordNodes;
-    StdVector<UInt> connecth;
-    UInt i,j,ii;
-    UInt elsize = 0;
+  CCI_Def_partition(meshId_, partId_);
+
+  Matrix<Double> ptCoordNodes;
+  StdVector<UInt> connecth;
+  UInt i,j,ii;
+  UInt elsize = 0;
 
 #define REALTYPE CCI_DOUBLE
-    typedef double Realtype;
+  typedef double Realtype;
 
-    std::cout<<"Nodes: "<<MpCCInodes_<<std::endl;
-    Realtype * NODEDATA=new Realtype[3*MpCCInodes_];
-    int ** TOPOLOGYDATA;
-    TOPOLOGYDATA=new int*[coupledsubdoms.GetSize()];
-    StdVector<Elem*> elemssd;     
+  std::cout<<"Nodes: "<<MpCCInodes_<<std::endl;
+  Realtype * NODEDATA=new Realtype[3*MpCCInodes_];
+  int ** TOPOLOGYDATA;
+  TOPOLOGYDATA=new int*[coupledsubdoms.GetSize()];
+  StdVector<Elem*> elemssd;     
 
-    for (i=0; i<(coupledsubdoms.GetSize()); i++)
+  Point<2> ptNodalCoord2D;      
+  Point<3> ptNodalCoord3D;      
+
+  for (i=0; i<(coupledsubdoms.GetSize()); i++)
       {
-        ptgrid_->GetVolElems(elemssd,coupledsubdoms[i]);
-        elsize=(elemssd[0]->connect).GetSize();
-	//workaround for computing with quadratic hexas 
-	if  ((elsize==20)&&(Dim_==3))
+        // This is part of workaround for 3D quadratic elements
+	for (Integer n=0; n<(mapSD_.GetSize()); n++)
 	  {
-	    elsize=8;
-	  }
-	else if ((elsize==10)&&(Dim_==3))
-	  {
-	    elsize=4;
-	  }
-	else
-	  elsize=(elemssd[0]->connect).GetSize();
-      
-        TOPOLOGYDATA[i]=new int[elsize*elemssd.GetSize()];
-
-        int k=0;
-        for (j=0; j< elemssd.GetSize(); j++)
-          {
-            connecth=elemssd[j]->connect;
-            //   ptCoordNodes=new Point<2>[connecth.size()];
-            ptgrid_->GetElemNodesCoord(ptCoordNodes,connecth);
-            for (ii=0; ii<elsize; ii++, k++)
-              {  
-                if ((elsize==8)&&(Dim_==2))
-                  {
-                    // A bit hard coded node order transformation
-                    if ((ii==0)||(ii==7))
-                      TOPOLOGYDATA[i][k]=connecth[ii];
-                    else
-                      if ((ii==2)||(ii==4)||(ii==6))
-                        TOPOLOGYDATA[i][k]=connecth[ii/2];
-                      else
-                        {
-                          switch(ii) 
-                            {
-                            case 1:
-                              {
-                                TOPOLOGYDATA[i][k]=connecth[ii+3];
-                                break;
-                              }
-                            case 3:
-                              {
-                                TOPOLOGYDATA[i][k]=connecth[ii+2];
-                                break;
-                              }
-                            case 5:
-                              {
-                                TOPOLOGYDATA[i][k]=connecth[ii+1];
-                                break;
-                              }
-                            }
-                        }
-                  }
-                else
-                  TOPOLOGYDATA[i][k]=connecth[ii];
-
-                NODEDATA[3*(connecth[ii]-1)]=ptCoordNodes[0][ii];
-                NODEDATA[3*(connecth[ii]-1)+1]=ptCoordNodes[1][ii];
-                if(Dim_==3)
-                  NODEDATA[3*(connecth[ii]-1)+2]= ptCoordNodes[2][ii];
-                else
-                  NODEDATA[3*(connecth[ii]-1)+2]= 0.0; // z-component for the 2d case is zero
+	    nodeIds_[n] = (int)mapSD_[n];
+//   	    std::cout<<"nodeIds["<<n<<"]= "<<nodeIds_[n]<<std::endl;
+//   	    std::cout<<"mapSD_.GetSize: "<<mapSD_.GetSize()<<std::endl;
+            if (Dim_==2)
+              {
+                ptgrid_->GetNodeCoordinate(ptNodalCoord2D, nodeIds_[n]);
+                NODEDATA[3*n]=ptNodalCoord2D[0];		      
+                NODEDATA[3*n+1]=ptNodalCoord2D[1];  
+                NODEDATA[3*n+2]= 0.0; // z-component for the 2d case is zero
               }
-          }
-
-        //       std::cout<<"NODEDATA 1d Array:"<<std::endl;
-        //       for (ii=0; ii<(3*size_); ii++)
-        //       std::cout<<NODEDATA[ii]<<"\t";
-        //       std::cout<<std::endl;
-        //       std::cout<<"TOPOLOGYDATA 1d Array:"<<std::endl;
-        //       for (ii=0; ii<(elsize*maxnumelem_); ii++)
-        //       std::cout<<TOPOLOGYDATA[ii]<<"\t";		    
-        //       std::cout<<std::endl;
-
-      }
-
-    //define the nodes
-    CCI_Def_nodes((int)meshId_, (int)partId_, (int)GlobalDim_, MpCCInodes_, (int)nNodeIds_,
-                   (int*)nodeIds_, REALTYPE, NODEDATA);
-
-    for (i=0; i<coupledsubdoms.GetSize(); i++)
-      {
+            else
+              {
+                ptgrid_->GetNodeCoordinate(ptNodalCoord3D, nodeIds_[n]);
+                NODEDATA[3*n]=ptNodalCoord3D[0];		      
+                NODEDATA[3*n+1]=ptNodalCoord3D[1];
+                NODEDATA[3*n+2]=ptNodalCoord3D[2];
+              }
+	  }
+    
         ptgrid_->GetVolElems(elemssd,coupledsubdoms[i]);
-        nElemIds_=0;
-        UInt nElemSD=elemssd.GetSize();
-        elemIds_ = new Integer[nElemSD];
-        elemIds_[0] = 0;
-        nElemTypes_ = 1;
-        nNodesPerElem_ = new Integer[nElemSD];
-        elemTypes_ = new Integer[nElemSD];
-        // each subdomain must have only one elementtype
-        //workaround for computing with quadratic hexas 
-        elsize=(elemssd[0]->connect).GetSize();
-        if  ((elsize==20)&&(Dim_==3))
-          {
-            elsize=8;
-          }
-        else if ((elsize==10)&&(Dim_==3))
-          {
-            elsize=4;
-          }
-        else
-          elsize=(elemssd[0]->connect).GetSize();
-        switch(elsize)
-          {
-          case 2:
-            {
-              nNodesPerElem_[0] = 2;      
-              elemTypes_[0] = CCI_ELEM_LINE;
-              break;
-            }
-          case 3:
-            {
-              nNodesPerElem_[0] = 3;      
-              elemTypes_[0] = CCI_ELEM_TRIANGLE;
-              break;
-            }
-          case 4:
-            {
-              nNodesPerElem_[0] = 4;  
-              if(Dim_==3)
-                elemTypes_[0] = CCI_ELEM_TETRAHEDRON;
-              else
-                elemTypes_[0] = CCI_ELEM_QUAD;
-              break;
-            }
-          case 5:
-            {
-              nNodesPerElem_[0] = 5;      
-              elemTypes_[0] = CCI_ELEM_PYRAMID;
-              break;
-            }
-          case 6:
-            {
-              nNodesPerElem_[0] = 6;
-              elemTypes_[0] = CCI_ELEM_PRISM;
-              break;
-            }
-          case 8:
-            {
-              nNodesPerElem_[0] = 8; 
-              if (Dim_==3)
-                elemTypes_[0] = CCI_ELEM_HEXAHEDRON;
-              else
-                elemTypes_[0] = CCI_ELEM_QUAD8;
-              break;
+        //ptgrid_->GetElemSD(elemssd,coupledsubdoms[i],actlevel_);
+      
+      elsize=(elemssd[0]->connect).GetSize();
+      //workaround for computing with quadratic hexas 
+      if  ((elsize==20)&&(Dim_==3))
+	{
+	  elsize=8;
+	}
+      else if ((elsize==10)&&(Dim_==3))
+	{
+	  elsize=4;
+	}
+
+      
+      TOPOLOGYDATA[i]=new int[elsize*elemssd.GetSize()];	  
+
+      int k=0;
+      for (j=0; j< elemssd.GetSize(); j++)
+	{
+	  connecth=elemssd[j]->connect;
+	  //	  ptgrid_->GetCoordNodesElem(connecth,ptCoordNodes,actlevel_);
+	  // ptgrid_->GetCoordNodesElemMat(connecth,ptCoordNodes,actlevel_);
+          ptgrid_->GetElemNodesCoord(ptCoordNodes,connecth);
+	  for (ii=0; ii<elsize; ii++, k++)
+	    {  
+	      if ((elsize==8)&&(Dim_==2))
+		{
+		    // A bit hard coded node order transformation
+		    if ((ii==0)||(ii==7))
+		      TOPOLOGYDATA[i][k]=connecth[ii];
+		    else
+		      if ((ii==2)||(ii==4)||(ii==6))
+			TOPOLOGYDATA[i][k]=connecth[ii/2];
+		      else
+			{
+			  switch(ii) 
+			    {
+			    case 1:
+			      {
+				TOPOLOGYDATA[i][k]=connecth[ii+3];
+				break;
+			      }
+			    case 3:
+			      {
+				TOPOLOGYDATA[i][k]=connecth[ii+2];
+				break;
+			      }
+			    case 5:
+			      {
+				TOPOLOGYDATA[i][k]=connecth[ii+1];
+				break;
+			      }
+			    }
+			}
+		  }
+	      else
+		  TOPOLOGYDATA[i][k]=connecth[ii];
+	      
               
             }
-          }
-        //define the elements
-        CCI_Def_elems((int)meshId_, (int)partId_, (int)nElemSD, (int)nElemIds_, elemIds_,
-                       (int)nElemTypes_, elemTypes_, (int*)nNodesPerElem_, TOPOLOGYDATA[i]);
+        }
       }
 
-    //Close the definition phase; contact detection.
-    //i take part in the coupling
-    MpCCIprocess_ = 1;
-    CCI_Close_setup(MpCCIprocess_);
+  //define the nodes
+          CCI_Def_nodes((int)meshId_, (int)partId_, (int)GlobalDim_, MpCCInodes_, (int)nNodeIds_, &nodeIds_[0], REALTYPE, NODEDATA);
 
-    if (NODEDATA)  delete [] NODEDATA;
-    if (TOPOLOGYDATA)  delete [] TOPOLOGYDATA; 
+   for (i=0; i<coupledsubdoms.GetSize(); i++)
+     {
+       ptgrid_->GetVolElems(elemssd,coupledsubdoms[i]);
+       int k=0;
+      nElemIds_=0;
+      UInt nElemSD=elemssd.GetSize();
+      elemIds_ = new Integer[nElemSD];
+      elemIds_[0] = 0;
+      nElemTypes_ = 1;
+      nNodesPerElem_ = new Integer[nElemSD];
+      elemTypes_ = new Integer[nElemSD];
+      // each subdomain must have only one elementtype
+      elsize=(elemssd[0]->connect).GetSize();
+      //workaround for computing with quadratic hexas and tetras
+      if  ((elsize==20)&&(Dim_==3))
+	{
+	  elsize=8;
+	}
+      else if ((elsize==10)&&(Dim_==3))
+	{
+	  elsize=4;
+	}
 
-    if (elemIds_)  delete [] elemIds_;
-    if ( nNodesPerElem_)  delete [] nNodesPerElem_;
-    if (elemTypes_)  delete [] elemTypes_;
+      switch(elsize)
+	{
+	case 2:
+	  {
+	    nNodesPerElem_[0] = 2;      
+	    elemTypes_[0] = CCI_ELEM_LINE;
+	    break;
+	  }
+	case 3:
+	  {
+	    nNodesPerElem_[0] = 3;      
+	    elemTypes_[0] = CCI_ELEM_TRIANGLE;
+	    break;
+	  }
+	case 4:
+	  {
+	    nNodesPerElem_[0] = 4;  
+	    if(Dim_==3)
+	      elemTypes_[0] = CCI_ELEM_TETRAHEDRON;
+	    else
+	      elemTypes_[0] = CCI_ELEM_QUAD;
+	    break;
+	  }
+	case 5:
+	  {
+	    nNodesPerElem_[0] = 5;      
+	    elemTypes_[0] = CCI_ELEM_PYRAMID;
+	    break;
+	  }
+	case 6:
+	  {
+	    nNodesPerElem_[0] = 6;
+	    elemTypes_[0] = CCI_ELEM_PRISM;
+	    break;
+	  }
+	case 8:
+	  {
+	    nNodesPerElem_[0] = 8; 
+	    if (Dim_==3)
+	      elemTypes_[0] = CCI_ELEM_HEXAHEDRON;
+	    else
+	      elemTypes_[0] = CCI_ELEM_QUAD8;
+	    break;
+	      
+	  }
+	}
+      //define the elements
+      CCI_Def_elems((int)meshId_, (int)partId_, (int)nElemSD, (int)nElemIds_, elemIds_, 
+		    (int)nElemTypes_, elemTypes_, (int*)nNodesPerElem_, TOPOLOGYDATA[i]);
+          }
+  
 
-  }
+  //Close the definition phase; contact detection.
+  //i take part in the coupling
+  MpCCIprocess_ = 1;
+  CCI_Close_setup(MpCCIprocess_);
 
+if (NODEDATA)  delete [] NODEDATA;
+if (TOPOLOGYDATA)  delete [] TOPOLOGYDATA; 
+
+if (elemIds_)  delete [] elemIds_;
+if ( nNodesPerElem_)  delete [] nNodesPerElem_;
+if (elemTypes_)  delete [] elemTypes_;
+
+}
+    
 void MpCCIexch::DefMpcciPartition(UInt meshId, UInt partId)
 {
   ENTER_FCN( "MpCCIexch::DefMpcciPartition" );
@@ -447,48 +461,45 @@ void MpCCIexch::FinishMpcciSetup(std::string couplingType)
   if (elemTypes_) delete [] elemTypes_;
 }
 
-//==================================================================================================
-//            Comunication Section
-//==================================================================================================
-  void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, UInt timestep)
-  {
-    ENTER_FCN("entering MpCCIexch::CouplCompPhase");
+void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
+{
+  ENTER_FCN("entering MpCCIexch::CouplCompPhase");
 
-    //Coupling parameters for MpCCI
-    Integer nQuantityIds;
-    Integer *quantityIds = new Integer[CCI_MAX_NQUANTITIES];
-    //    quantityIds[0] = 0;
-    UInt nLocalMeshIds;
-    Integer *localMeshIds = new Integer[CCI_MAX_NQUANTITIES];
-    localMeshIds[0] = 0;
-    UInt remoteCodeId;
+  //Coupling parameters for MpCCI
+  Integer nQuantityIds;
+  Integer *quantityIds = new Integer[CCI_MAX_NQUANTITIES];
+  //    quantityIds[0] = 0;
+  UInt nLocalMeshIds;
+  Integer *localMeshIds = new Integer[CCI_MAX_NQUANTITIES];
+  localMeshIds[0] = 0;
+  UInt remoteCodeId;
 
 
-    Integer quantityId1; // Id for pressure
-    Integer quantityId2; // Id for vel
-    Integer quantityDim1; //pressure (scalar)
-    Integer quantityDim2; //velx, vely, velz (vector)
-    Integer maxnEmptyNodes;
+  Integer quantityId1; // Id for pressure
+  Integer quantityId2; // Id for vel
+  Integer quantityDim1; //pressure (scalar)
+  Integer quantityDim2; //velx, vely, velz (vector)
+  Integer maxnEmptyNodes;
 
-    params->Get("nQuantityIds",nQuantityIds, "MpCCI-flownoise");
-    params->Get("nLocalMeshIds",nLocalMeshIds, "MpCCI-flownoise");
-    params->Get("remoteCodeId",remoteCodeId, "MpCCI-flownoise");
-    params->Get("quantityId1",quantityId1, "MpCCI-flownoise");
-    params->Get("quantityId2",quantityId2, "MpCCI-flownoise");
-    params->Get("quantityDim1",quantityDim1, "MpCCI-flownoise");
-    params->Get("quantityDim2",quantityDim2, "MpCCI-flownoise");
-    params->Get("maxnEmptyNodes",maxnEmptyNodes, "MpCCI-flownoise");
+  params->Get("nQuantityIds",nQuantityIds, "MpCCI-flownoise");
+  params->Get("nLocalMeshIds",nLocalMeshIds, "MpCCI-flownoise");
+  params->Get("remoteCodeId",remoteCodeId, "MpCCI-flownoise");
+  params->Get("quantityId1",quantityId1, "MpCCI-flownoise");
+  params->Get("quantityId2",quantityId2, "MpCCI-flownoise");
+  params->Get("quantityDim1",quantityDim1, "MpCCI-flownoise");
+  params->Get("quantityDim2",quantityDim2, "MpCCI-flownoise");
+  params->Get("maxnEmptyNodes",maxnEmptyNodes, "MpCCI-flownoise");
 
-    CCI_Status status;
-    Integer comm = CCI_COMM_RCODE[remoteCodeId];
-    quantityIds[0] = quantityId1;
-    quantityIds[1] = quantityId2;
+  CCI_Status status;
+  Integer comm = CCI_COMM_RCODE[remoteCodeId];
+  quantityIds[0] = quantityId1;
+  quantityIds[1] = quantityId2;
 
-    Integer *emptyNodes = new Integer[MpCCInodes_];
-    Integer nEmptyNodes;
+  Integer *emptyNodes = new Integer[MpCCInodes_];
+  Integer nEmptyNodes;
 
-    Double *value_Press = new Double[MpCCInodes_]; // pressure
-    Double *value_VxVy = new Double[MpCCInodes_*3]; //*3 due to velx, vely, velz (for 2D=0)
+  Double *value_Press = new Double[MpCCInodes_]; // pressure
+  Double *value_VxVy = new Double[MpCCInodes_*3]; //*3 due to velx, vely, velz (for 2D=0)
 
     Integer globalConvergence = CCI_CONTINUE;
     Integer myConvergence     = CCI_CONTINUE;
@@ -498,22 +509,21 @@ void MpCCIexch::FinishMpcciSetup(std::string couplingType)
     //     {
 
     CCI_Recv(nQuantityIds, quantityIds, nLocalMeshIds, localMeshIds, comm, &status);
-
+//     std::cout<<"nodeIds size: "<<nodeIds_[MpCCInodes_-1]<<std::endl;
+//     std::cout<<"nNodeIds= "<<nNodeIds_<<std::endl;
     //Get_nodes is a local operation
     //PRESSURE
-    CCI_Get_nodes((int)meshId_, (int)partId_, quantityId1, quantityDim1, (int)MpCCInodes_,
-                  (int)nNodeIds_, nodeIds_,
-                   CCI_DOUBLE, value_Press, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
+    CCI_Get_nodes((int)meshId_, (int)partId_, quantityId1, quantityDim1, (int)MpCCInodes_, nNodeIds_,  &nodeIds_[0],
+		   CCI_DOUBLE, value_Press, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
     //VELOCITY
-    CCI_Get_nodes((int)meshId_, (int)partId_, quantityId2, quantityDim2, (int)MpCCInodes_,
-                   (int)nNodeIds_, nodeIds_,
-                   CCI_DOUBLE, value_VxVy, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
+    CCI_Get_nodes((int) meshId_, (int)partId_, quantityId2, quantityDim2, MpCCInodes_, (int)nNodeIds_,  &nodeIds_[0],
+		   CCI_DOUBLE, value_VxVy, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
 
     // Putting values in our matrix flowdata
     Integer k = 0;
 
 
-    Boolean nodalSrc;
+  Boolean nodalSrc;
     //check type of flow data
     if( params->HasValue( "type", "nodalSrc", "acoustic", "flowData" ) ) {
       nodalSrc = TRUE;
@@ -521,36 +531,40 @@ void MpCCIexch::FinishMpcciSetup(std::string couplingType)
     }
     
 
-
-
+    std::cout<<"flowdata length= "<<flowdata.GetSizeCol()<<std::endl;
     if (nodalSrc == TRUE)
       for (UInt inode=0; inode<MpCCInodes_; inode++)
-        {
-          flowdata[0][inode] = value_Press[inode]; // Getting first column as INT(dTdxdw)
-        }
-    else
-      {
-        for (UInt inode=0; inode<MpCCInodes_; inode++)
-          {
-            flowdata[0][inode] = value_Press[inode];
-            for(ShortInt i=0;i<Dim_;i++)
-              flowdata[i+1][inode] = value_VxVy[k+i];
-            
-            k = k+3;
-          }
-      }
+	{
+	  // Getting first column (no node identifier)
+	  // flowdata[0][inode] = value_Press[inode];
+	  // Getting first column as INT(dTdxdw)
+	  flowdata[0][nodeIds_[inode]-1] = value_Press[inode]; 
+	  // std::cout<<"flowdata[0]["<<nodeIds_[inode]-1<<"]= "<<value_Press[inode]<<std::endl;
+	  // std::cout<<"value_Press["<<inode<<"]= "<<value_Press[inode]<<std::endl;
+	}
+      else
+	{
+	  for (UInt inode=0; inode<MpCCInodes_; inode++)
+	    {
+	      flowdata[0][inode] = value_Press[inode];
+	      for(Integer i=0;i<Dim_;i++)
+		flowdata[i+1][inode] = value_VxVy[k+i];
+	      
+	      k = k+3;
+	    }
+	}
       
-
+ 
     //check covergence: do another time step or not!
     CCI_Check_convergence(myConvergence,&globalConvergence,CCI_ANY_CODE);
 
-   //     }
+    //     }
 
-    if (quantityIds)  delete [] quantityIds;
-    if (value_Press)  delete [] value_Press;
-    if (value_VxVy)  delete []  value_VxVy;
+if (quantityIds)  delete [] quantityIds;
+if (value_Press)  delete [] value_Press;
+if (value_VxVy)  delete []  value_VxVy;
     std::cout<<"Leaving CplCompPhase"<<std::endl;
-  }
+}
 
 void MpCCIexch::RecvAllPartitions(std::string couplingType)
 {
@@ -821,7 +835,5 @@ void MpCCIexch::SendAllPartitions()
 
   std::cout<<"CCI_CONTINUE_VALUE"<<CCI_CONTINUE<<std::endl;
   std::cout<<"Leaving SendAllPartitions"<<std::endl;
-}
-
-  
+}      
 } // end of namespace
