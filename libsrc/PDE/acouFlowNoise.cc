@@ -6,23 +6,11 @@
 #include <stdio.h>
 
 #include "acouFlowNoise.hh"
-// <<<<<<< acouFlowNoise.cc
-// #include <Domain/bcs.hh>
-// #include <DataInOut/Unverg/outUnverg.hh>
-// #include <DataInOut/GMV/outGMV.hh>
-// #include <Forms/forms_header.hh>
-// //For 2D
-// // #include <MpCCIcpl/MpCCIexch.hh>
-// //TO USE WITH 3D 
-// #include <MpCCIcpl/MpCCIexch-patchQuad3D.hh>
-//  =======
+
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "Forms/forms_header.hh"
 #include "MpCCIcpl/MpCCIexch.hh"
-//TO USE WITH 3D 
-//#include <MpCCIcpl/MpCCIexch-patchQuad3D.hh>
-// >>>>>>> 1.34
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "Driver/solveStepAcouFlowNoise.hh"
 
@@ -83,13 +71,17 @@ namespace CoupledField
 		    //ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_allNodes_);
 		    //ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_, OnlyLinNodes);
 		    //ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_);
+                    ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
+                    ptgrid_->GetNodesOfElemList(mapSD_, elemssd, OnlyLinNodes);
+		    ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_);
 		  }
 		else
 		  {
 // 		    ptgrid_->CalcNumberOfNodesInPatch(elemssd,mapSD_);
 		    ptgrid_->GetNodesOfElemList(mapSD_, elemssd, FALSE);
 		    
-		    ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
+		    //ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
+                    ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_);
 		  }
 		
 		Find=TRUE;
