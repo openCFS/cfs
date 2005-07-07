@@ -738,8 +738,22 @@ namespace CoupledField
                      __FILE__, __LINE__ );
     }
   }
-    
+  
 
+  template<UInt DIM>
+  void GridStruct<DIM> :: GetRegionIds( StdVector<RegionIdType> & regions ) {
+    ENTER_FCN( "GridStruct::GetRegionIds");
+    regions.Clear();
+    regions.Reserve(volRegionIds_.GetSize() + surfRegionIds_.GetSize());
+    
+    for( UInt i = 0; i < volRegionIds_.GetSize(); i++) {
+      regions.Push_back(volRegionIds_[i]);
+    }
+
+    for( UInt i = 0; i < surfRegionIds_.GetSize(); i++) {
+      regions.Push_back(surfRegionIds_[i]);
+    }
+  }
 
   // ======================================================
   // NODE ACCESS FUNCTIONS
@@ -838,10 +852,28 @@ namespace CoupledField
   // ELEMENT ACCESS FUNCTIONS
   // ======================================================
   template<UInt DIM>
+  const Elem * GridStruct<DIM>::GetElem( UInt elemNr ) {
+    ENTER_FCN( "GridStruct::GetElem" );
+    
+    //!!!!!!!!!!!!!!!! currently just volume elements!!!!
+    
+    if ( elemNr > numVolElems_ || elemNr < 0) {  
+      (*error) << "GridStruct: There are only " << numVolElems_ 
+               << " elements in the grid! You requested element number " 
+               << elemNr << ". Go check your mesh file!";
+      Error( __FILE__, __LINE__ );
+    }
+    
+    return volElems_[0][elemNr-1];
+
+  }
+
+  template<UInt DIM>
   void GridStruct<DIM>::GetElems( StdVector<Elem*> & elems, 
                                   const RegionIdType regionId ) {
     ENTER_FCN( "GridStruct::GetElems" );
-    
+    elems.Clear();
+
     // check if region Id is ALL_REGIONS
     if ( regionId == ALL_REGIONS ) {
       elems.Reserve( GetNumVolElems() + GetNumSurfElems() );

@@ -70,6 +70,11 @@ namespace CoupledField
       return ptGridStruct->GetNumNodes(nodesName);
     }
 
+    //! Returns the total number of elements in the grid
+    UInt GetNumElems() {
+      return ptGridStruct->GetNumElems();
+    }
+
     //! Return maximum number of volume elements 
     UInt GetNumVolElems() {
       return ptGridStruct->GetNumVolElems(); 
@@ -82,6 +87,11 @@ namespace CoupledField
     //! Returns number of element contained in given regions
     UInt GetNumElems( const StdVector<RegionIdType> & regions ) {
       return ptGridStruct->GetNumElems(regions);
+    }
+
+    //! Get vector with all region identifiers
+    void GetRegionIds( StdVector<RegionIdType> & regions ) {
+      ptGridStruct->GetRegionIds(regions); 
     }
   
     //! Get vector with all volume region identifiers
@@ -135,6 +145,12 @@ namespace CoupledField
     // ======================================================
     //@{ \name Element Access Functions
   
+    //! Get element with given element number
+    const Elem * GetElem( UInt elemNr ) {
+      return ptGridStruct->GetElem(elemNr);
+    }
+
+    
     //! Get list of elements (surface / volumes)
     void GetElems( StdVector<Elem*> & elems, 
                    const RegionIdType regionId ) {
