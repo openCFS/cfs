@@ -160,31 +160,42 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
     // read information about number of elements 
     UInt numelem; 
-    numelem=ptGrid_->GetNumVolElems();
+    numelem=ptGrid_->GetNumElems();
 
     if (ascii_)
       (*output) << numelem << std::endl;
     else
       output->write((char*)&numelem,sizeof(UInt));
 
-    StdVector<UInt> connect;
+    UInt i, dim;
+    const Elem * ptElem = NULL;
 
-    UInt dim=ptGrid_->GetDim();
-  
-    UInt i;
     for ( i = 0; i < numelem; i++ ) {
 
-      ptGrid_->GetElemNodes(connect, i+1);
+      ptElem = ptGrid_->GetElem(i+1);
+      
+      StdVector<UInt> const & connect = ptElem->connect;
+      dim = ptElem->ptElem->GetDim();
 
-      if ( dim == 2 ) {
+      if ( dim == 1 )
         switch ( connect.GetSize() ) {
-          //          case 2:
-          //            if (ascii_)
-          //              (*output) << "line 2" << std::endl;
-          //            else {
-          //              (*output) << "line    ";
-          //              UInt nn=2;
-          //              output->write((char*)&nn,sizeof(UInt));
+        case 2:
+          if (ascii_)
+            (*output) << "line 2" << std::endl;
+          else {
+            (*output) << "line    ";
+          UInt nn=2;
+          output->write((char*)&nn,sizeof(UInt));
+          }
+          break;
+        default:
+          Error("This type of element is not implemented",
+                __FILE__, __LINE__);
+          
+        } 
+      else if ( dim == 2 ) {
+        switch ( connect.GetSize() ) {
+          //
           //            }
         case 3: 
           if (ascii_)
@@ -353,9 +364,9 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     if (! ascii_)
       str =new Char[8];
       
-    ptGrid_->GetVolRegionIds(subdoms);
+    ptGrid_->GetRegionIds(subdoms);
 
-    regionID.Resize(ptGrid_->GetNumVolElems());
+    regionID.Resize(ptGrid_->GetNumElems());
 
     if (ascii_)
       (*output) << "material " << subdoms.GetSize() << " 0" << std::endl;
@@ -378,7 +389,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       }
       
 
-      ptGrid_->GetVolElems(elemSD,subdoms[iSD]);
+      ptGrid_->GetElems(elemSD,subdoms[iSD]);
 
       // loop over all elemtns
       for (UInt iElem=0; iElem<elemSD.GetSize(); iElem++) 
