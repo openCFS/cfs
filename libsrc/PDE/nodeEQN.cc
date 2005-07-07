@@ -64,7 +64,7 @@ namespace CoupledField
     mesh2PDENode.Init(-1);
     pde2MeshNode.Clear();
 
-    mesh2PDEElem.Resize(ptGrid_->GetNumVolElems());
+    mesh2PDEElem.Resize(ptGrid_->GetNumElems());
     mesh2PDEElem.Init(-1);
     pde2MeshElem.Resize(ptGrid_->GetNumElems(subdoms_));
     pde2MeshElem.Init(0);
