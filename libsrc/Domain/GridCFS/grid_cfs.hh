@@ -75,6 +75,9 @@ namespace CoupledField
     //! Returns the number of nodes in the given nodelist
     UInt GetNumNodes( const std::string & nodesName );
 
+    //! Returns the total number of elements in the grid
+    UInt GetNumElems();
+    
     //! Return maximum number of elements 
   
     //! Returns the total number of volume elements in the  grid
@@ -90,6 +93,13 @@ namespace CoupledField
     //! \param regions (in) contains the regionIds of 
     UInt GetNumElems( const StdVector<RegionIdType> & regions );
   
+    //! Get vector with all (surface and volume) region identifiers
+    
+    //! Return a vector with names of all region identifiers in the
+    //! current mesh (surface and volume)
+    //! \param volRegions (out) vector with region identifiers
+    void GetRegionIds( StdVector<RegionIdType> & regions );
+
     //! Get vector with all volume region identifiers
 
     //! Return a vector with names of all volume region identifiers in the
@@ -98,7 +108,6 @@ namespace CoupledField
     void GetVolRegionIds( StdVector<RegionIdType> & volRegions );
   
     //! Get vector with all surface region identifiers
-    //>>>>>>> 1.41
 
     //! Return a vector with names of all surface region identifiers in the
     //! current mesh.
@@ -150,6 +159,12 @@ namespace CoupledField
     // ELEMENT ACCESS FUNCTIONS
     // =======================================================================
     //@{ \name Element Access Functions
+
+    //! Get element with given element number
+    
+    //! Returns a single element with the given element number
+    //! \param elemNr element number
+    const Elem * GetElem( UInt elemNr );
 
     //! Get list of elements (surface / volumes)
     

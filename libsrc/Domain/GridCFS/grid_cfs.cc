@@ -60,28 +60,55 @@ namespace CoupledField
     //       of neighbouring elements for each node
     //    -   Read In Surface elements
     inFile_->GetElements(temp, surfRegionIds_, DIM-1);
- 
+    
+    // Obtain all region names
+    inFile_->GetAllRegionNames(regionNames_);
+    
     // Create ordered list of elements
     Elem * ptVolElem;
     orderedElems_.Resize(numElems_);
+    orderedElems_.Init(NULL);
     for ( UInt iRegion = 0; iRegion < volElems_.GetSize(); iRegion++ ) {
-
+      
       for ( UInt iElem = 0; iElem < volElems_[iRegion].GetSize();
             iElem++ ) {
         ptVolElem =  volElems_[iRegion][iElem];
+        
+        // Check, if element with same number is already contained
+        // in the grid
+        if ( orderedElems_[ptVolElem->elemNum-1]  != NULL) {
+          (*error) << "Element Nr. " << ptVolElem->elemNum 
+                   << " exists at least two times!\n"
+                   << "The first occurence is in region '"
+                   << regionNames_[orderedElems_[ptVolElem->elemNum-1]
+                                     ->regionId] 
+                   << "', the second in region '"
+                   << regionNames_[volElems_[iRegion][iElem]->regionId]
+                   << "'.\nPlease check your mesh file!";
+          Error( __FILE__, __LINE__ );
+        }
         orderedElems_[ptVolElem->elemNum-1] = ptVolElem;
-
       } // loop over elements
     } // loop over region
-
+    
     if ( temp.GetSize() > 0 )
       CreateSurfaceElements(temp);
 
+    // Perform final consistency check
+    for( UInt i = 0; i<orderedElems_.GetSize(); i++ ) {
+      if ( orderedElems_[i] == NULL ) {
+        (*warning) << "Gap in numbering: No Element Nr. " << i+1 
+                   << " contained in the mesh! Errors can occur!";
+        Warning( __FILE__, __LINE__ );
+      }
+    }
+
+    
     // Get nodes of each volume and surface region
     inFile_->GetNodesOfRegions( volElemNodes_, volRegionIds_ );
     inFile_->GetNodesOfRegions( surfElemNodes_, surfRegionIds_ );
+ 
     
-
     // 8. Read in named nodes
     inFile_->GetNamedNodes( namedNodes_, namedNodeNames_ );
     
@@ -89,8 +116,6 @@ namespace CoupledField
     // 9. Read in named elements
     //inFile_->GetNamedElems( namedElems_, namedElemNames_ );
 
-    inFile_->GetAllRegionNames(regionNames_);
-    
     
     // Print information about region mapping into
     PrintGridInfo();
@@ -166,18 +191,11 @@ namespace CoupledField
 
     return numNodes;
   }
-
+  
   template<UInt DIM>
-  UInt GridCFS<DIM>::GetNumVolElems() {
-    ENTER_FCN( "GridCFS::GetNumVolElems" );
-    
-    UInt numVolElems = 0;
-    
-    for (UInt i=0; i<volElems_.GetSize(); i++) {
-      numVolElems += volElems_[i].GetSize();
-    }
-    
-    return numVolElems;
+  UInt GridCFS<DIM>::GetNumElems() {
+    ENTER_IFCN( "GridCFS::GetNumElems" );
+    return numElems_;
   }
 
   template<UInt DIM>
@@ -191,6 +209,19 @@ namespace CoupledField
     }
     
     return numSurfElems;
+  }
+  
+  template<UInt DIM>
+  UInt GridCFS<DIM>::GetNumVolElems() {
+    ENTER_FCN( "GridCFS::GetNumVolElems" );
+    
+    UInt numVolElems = 0;
+    
+    for (UInt i=0; i<volElems_.GetSize(); i++) {
+      numVolElems += volElems_[i].GetSize();
+    }
+    
+    return numVolElems;
   }
   
   template<UInt DIM>
@@ -223,6 +254,22 @@ namespace CoupledField
     
     return numElems;
     
+  }
+  
+  template<UInt DIM>
+  void GridCFS<DIM>::GetRegionIds( StdVector<RegionIdType> & regions ) {
+    ENTER_FCN( "GridCFS::GetRegionIds" );
+    
+    regions.Clear();
+    regions.Reserve(volRegionIds_.GetSize() + surfRegionIds_.GetSize());
+    
+    for( UInt i = 0; i < volRegionIds_.GetSize(); i++) {
+      regions.Push_back(volRegionIds_[i]);
+    }
+
+    for( UInt i = 0; i < surfRegionIds_.GetSize(); i++) {
+      regions.Push_back(surfRegionIds_[i]);
+    }
   }
   
   template<UInt DIM>
@@ -318,9 +365,32 @@ namespace CoupledField
   // ELEMENT ACCESS FUNCTIONS
   // ======================================================
   template<UInt DIM>
+  const Elem * GridCFS<DIM>::GetElem( UInt elemNr ) {
+    ENTER_FCN( "GridCFS::GetElem" );
+    
+#ifdef DEBUG
+    if ( elemNr > numElems_ || elemNr < 0) {  
+      (*error) << "GridCFS: There are only " << numElems_ 
+               << " elements in the grid! You requested element number " 
+               << elemNr << ". Go check your mesh file!";
+      Error( __FILE__, __LINE__ );
+    }
+    if ( orderedElems_[elemNr-1] == NULL ) {
+      (*error) << "Element with Nr. " << elemNr << " is not contained in mesh!";
+      Error( __FILE__, __LINE__ );
+    }
+#endif
+   
+    return orderedElems_[elemNr-1];
+
+  }
+
+
+  template<UInt DIM>
   void GridCFS<DIM>::GetElems( StdVector<Elem*> & elems, 
                                   const RegionIdType regionId ) {
     ENTER_FCN( "GridCFS::GetElems" );
+    elems.Clear();
     
     // check if region Id is ALL_REGIONS
     if ( regionId == ALL_REGIONS ) {
@@ -420,6 +490,13 @@ namespace CoupledField
                << iElem << ". Go check your mesh file!";
       Error( __FILE__, __LINE__ );
     }
+    
+#ifdef DEBUG
+    if ( orderedElems_[iElem-1] == NULL ) {
+      (*error) << "Element with Nr. " << iElem << " is not contained in mesh!";
+      Error( __FILE__, __LINE__ );
+    }
+#endif
     
     connect = orderedElems_[iElem-1]->connect;
     
@@ -596,6 +673,9 @@ namespace CoupledField
         myElem->elemNum = elems[iRegion][iSurfElem]->elemNum;
         myElem->ptElem = elems[iRegion][iSurfElem]->ptElem;
         surfElems_[iRegion][iSurfElem] = myElem;
+        
+        // add surface element into vector with ordered Elements
+        orderedElems_[myElem->elemNum-1] = myElem;
 
         // delete old volume element
         delete elems[iRegion][iSurfElem];
