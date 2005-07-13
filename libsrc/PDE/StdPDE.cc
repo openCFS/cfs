@@ -3,8 +3,14 @@
 
 #include "Utils/vector.hh"
 #include "Driver/stdSolveStep.hh"
+
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
+
+// headers for Paramhandling
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/ParamHandling/CFSOLASParams.hh"
+
 
 namespace CoupledField {
 
@@ -861,4 +867,25 @@ namespace CoupledField {
       
     return elemVol;
   }
+
+
+  // ******************
+  //   ReadOlasParams
+  // ******************
+  void StdPDE::ReadOlasParams( std::string sysName ) {
+
+    ENTER_FCN( "StdPDE::ReaOlasParams" );
+
+    // Log to .las file
+    (*cla) <<  " --- CFS: Setting parameters for linear system '"
+           << sysName << " ---" << std::endl;
+
+    // Set parameters for OLAS
+    std::string amExpert;
+    params->Get( "override", amExpert, "expert" );
+    CFSOLASParams::SetParams( sysName, params, olasParams_, analysistype_,
+                              (amExpert == "yes") );
+
+  }
+
 } // end of namespace

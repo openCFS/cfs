@@ -55,6 +55,7 @@ DEBUG    = -Wno-long-long -Wno-comment -DTRACE -ggdb -pg \
 STANDARD = -ansi -Wall -pedantic
 
 CFLAG_EXE      =
+# CFLAGS_MACHINE = $(STANDARD) $(DEBUG) $(MODEDEBUG) -DSBM_SYSTEM
 CFLAGS_MACHINE = $(STANDARD) $(DEBUG) $(MODEDEBUG)
 
 

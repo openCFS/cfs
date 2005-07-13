@@ -15,7 +15,6 @@ src =   basePDE.cc\
 	scalarnodeEQN.cc\
 	blocknodeEQN.cc\
 	scalarblockEQN.cc\
-	superblockEQN.cc\
 	smoothPDE.cc\
 	magneticPDE.cc\
 	trapezoidal.cc\

@@ -2,7 +2,6 @@
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "PDE/superblockEQN.hh"
 
 namespace CoupledField{
 
@@ -405,11 +404,12 @@ namespace CoupledField{
 
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetGlobalSolVectorSingleDof(const UInt dof, 
-                                                       CFSVector & val) const
-  {
+                                                       CFSVector & val) const{
     ENTER_FCN("NodeStoreSol::GetSolVectorSingleDof");
 #ifdef CHECK_INITIALIZED
-    if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    if (length_ == 0) {
+      Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
+    }
 #endif
   
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
