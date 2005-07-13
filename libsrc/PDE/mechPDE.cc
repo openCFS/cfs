@@ -73,21 +73,6 @@ namespace CoupledField
     effectiveMass_ = params->IsSet( "effMass" );
     
     // *********************************
-    //  Check damping model
-    // *********************************
-    
-    if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) )
-      {
-        dampingType_ = RAYLEIGH;
-		needsDampingMatrix_ = TRUE;
-        Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
-      }
-    else
-      {
-        dampingType_ = NONE;
-      }
-
-    // *********************************
     //  Check for pressure loads
     // *********************************
 
@@ -122,7 +107,6 @@ namespace CoupledField
 
   }
 
-
   MechPDE::~MechPDE()
   {
     ENTER_FCN( "MechPDE::~MechPDE" );
@@ -134,7 +118,21 @@ namespace CoupledField
       delete mueMat;
   }
 
+  void MechPDE::ReadDampingInformation( Grid *aptgrid )
+  {
+	ENTER_FCN( "MechPDE::ReadDampingInformation" );
 
+    if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) ) {
+
+	  dampingType_ = RAYLEIGH;
+	  needsDampingMatrix_ = TRUE;
+	  Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
+	}
+    else {
+	  
+	  dampingType_ = NONE;
+	}
+  }
   
   void MechPDE::InitNonLin()
   {

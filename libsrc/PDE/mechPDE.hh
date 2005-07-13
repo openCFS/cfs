@@ -25,17 +25,17 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~MechPDE();
 
+	//! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation( Grid *aptgrid );
+
     //! Initialize NonLinearities
     virtual void InitNonLin();
-
 
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( );
 
-
     //! define the SoltionStep-Driver
     virtual void DefineSolveStep();
-
 
     /// returns a stiffness integrator appropriate to the actual problem (e.g.3D)
     BaseForm * GetStiffIntegrator(MaterialData& actSDMat,
@@ -54,7 +54,6 @@ namespace CoupledField
   
     //! returns if PDE can compute the quantity
     virtual Boolean HasOutput(SolutionType output);
-
 
     /// setup source term
     void SetupRHS( );
