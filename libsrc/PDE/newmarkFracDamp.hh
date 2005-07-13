@@ -16,22 +16,21 @@ namespace CoupledField {
   public:
     //! constructor
     /*!
-      \param apdename name of PDE
       \param algebraicsystem pointer to algebraic system used by PDE
+	  \param rhsSize size of right hand side vector
+	  \param apdeId Id of PDE who called NewmarkFracDamp
       \param ptEQN
       \param aptgrid
       \param aptStdPDE pointer of class from which NewmarkFracDamp is initiated
       \param asubdomainList list of subdomains
       \param adampingList list damping description for subdomains
-      \param afracMemory number of stored function values
-      \param ainType descriptor for interpolation of past function values
-      \param isaxi axisymmetric setup
     */
     NewmarkFracDamp( BaseSystem * algebraicsystem,
                      UInt rhsSize,
                      const PdeIdType apdeId,
                      NodeEQN * ptEQN, 
-                     Grid * aptgrid, StdPDE * aptStdPDE, 
+                     Grid * aptgrid,
+					 StdPDE * aptStdPDE, 
                      StdVector<RegionIdType> asubdomainList,
                      StdVector<DampingType> adampingList);
   
