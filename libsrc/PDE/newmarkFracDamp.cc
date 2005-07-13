@@ -21,8 +21,8 @@ namespace CoupledField {
                                     StdPDE * aptStdPDE,
                                     StdVector<RegionIdType> asubdomainList,
                                     StdVector<DampingType> adampingList) 
-    :TimeStepping( algebraicsystem, rhsSize )
-  {
+    :TimeStepping( algebraicsystem, rhsSize ){
+	
     ENTER_FCN( "NewmarkFracDamp::NewmarkFracDamp" );
   
     pdename_     = aptStdPDE->GetName();
@@ -49,9 +49,8 @@ namespace CoupledField {
     std::string analysis;
     params->Get( "type", analysis, "analysis" );
     if(analysis != "paramIdent")
-      Info->PrintF( pdename_,
-                    "Newmark: Using defaults for alpha, beta and gamma!\n" );
-
+      Info->PrintF( pdename_, "NewmarkFracDamp: Using defaults for alpha, \
+beta and gamma!\n" );
 
     // get the memory
     solderiv1_.Resize(rhsSize_);  
@@ -76,18 +75,16 @@ namespace CoupledField {
         solMemory_[i].Init();
       }
     }
-
   }
 
-  NewmarkFracDamp::~NewmarkFracDamp()
-  {
-    ENTER_FCN( "NewmarkFracDamp::~NewmarkFracDamp" );
+  NewmarkFracDamp::~NewmarkFracDamp() {
 
+    ENTER_FCN( "NewmarkFracDamp::~NewmarkFracDamp" );
   }
 
   void NewmarkFracDamp::Init( std::map<FEMatrixType,Double> & matrix_factors,
-                              Double dt ) 
-  {
+                              Double dt ) {
+	
     ENTER_FCN( "NewmarkFracDamp::Init" );
 
     dt_ = dt;
@@ -97,27 +94,33 @@ namespace CoupledField {
     matrix_factors[DAMPING] = 1.0*a4_; // needed for thermoviscous damping
     matrix_factors[CONVECTION] = 0.0;
     matrix_factors[MASS] = 1.0*a2_;
-
   }
 
 
-  void NewmarkFracDamp::Predictor(Vector<Double>& solold)
-  {
+  void NewmarkFracDamp::Predictor(Vector<Double>& solold) {
+
     ENTER_FCN( "NewmarkFracDamp::Predictor" );
 
-    laststepcalc_ = ptStdPDE_->GetTimeStepCounter();
+    actStep_ = ptStdPDE_->GetTimeStepCounter();
 
     // determine number of terms over which BDF is calculated
     //   assumes first nstep = 1 (see transientdriver.cc)!
-    calclimit_ = solMemoryVal_.size(); 
+    numValues_ = solMemoryVal_.size();
+
+	// determine number of past values stored in solMemory_
+	numTrueValues_ = 0;
+	for ( UInt i=0; i < numValues_; i++ ) {
+	  if ( solMemoryVal_[i] == TRUEVAL )
+		numTrueValues_++;
+	}
 
     solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
     solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
   }
 
 
-  void NewmarkFracDamp::UpdateRHS()
-  {
+  void NewmarkFracDamp::UpdateRHS() {
+
     ENTER_FCN( "NewmarkFracDamp::UpdateRHS" );
 
     // mass part
@@ -125,7 +128,6 @@ namespace CoupledField {
 
     coeffMass = solpred_*a2_;
     algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
-
 
     // damping part
     Matrix<Double>  elemmat,ptCoord;
@@ -135,7 +137,6 @@ namespace CoupledField {
     Double          density, compressibility, c0, alpha0, y, factor;
     MaterialData    *mymaterialData;
     mymaterialData = ptStdPDE_->getPDEMaterialData();
-    UInt noInt; // counts how many values have allready been interpolated
 
     for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
 
@@ -158,24 +159,33 @@ namespace CoupledField {
 		y      = mymaterialData[actSD].GetDampingBeta();
 
 		// factor: pre factor in Newmark timestepping scheme
-		// coeff_: weight factors in BDF
-		if ( dampingList_[actSD] == FRACTIONAL_GL ||
-			 dampingList_[actSD] == FRACTIONAL_GL_INT ) {
-		  factor = density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
-		  factor *= exp(-(y-1.0)*log(dt_));
-		  factor *= a2_;
-		  GLWeights(calclimit_, y);
-		}
-		else if ( dampingList_[actSD] == FRACTIONAL_BLANK ||
-				  dampingList_[actSD] == FRACTIONAL_BLANK_INT ) {
-		  factor =  density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
-		  factor *= exp(-(y-1.0)*log(dt_)) * exp(-gammaln(1.0- (y- 1.0)) );
-		  factor *= a2_;
-		  BlankWeights(calclimit_, y, TRUE);
-		}
+		//         times pre factor of damping term
+		factor = a2_ * density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
 
-		// output weight factors coeff_
-		//std::cout << "Weight factors of BDF are:" << coeff_ << std::endl;
+
+		// coeff_: weight factors in BDF
+		if ( dampingList_[actSD] == FRACTIONAL_GL ) {
+		  factor *= exp(-(y-1.0)*log(dt_));
+
+		  GLWeights(numValues_, y);
+		}
+		else if ( dampingList_[actSD] == FRACTIONAL_GL_INT ) {
+		  factor *= exp(-(y-1.0)*log(dt_));
+
+		  GLWeights(numValues_, y);
+		  CompressWeights();
+		}
+		else if ( dampingList_[actSD] == FRACTIONAL_BLANK ) {
+		  factor *= exp(-(y-1.0)*log(dt_)) * exp(-gammaln(1.0- (y- 1.0)) );
+
+		  BlankWeights(numValues_, y, TRUE);
+		}
+		else if ( dampingList_[actSD] == FRACTIONAL_BLANK_INT ) {
+		  factor *= exp(-(y-1.0)*log(dt_)) * exp(-gammaln(1.0- (y- 1.0)) );
+
+		  BlankWeights(numValues_, y, TRUE);
+		  CompressWeights();
+		}
 
 		// get elements belonging to actual subdomain   
 		StdVector<Elem*> elemssd;
@@ -206,28 +216,17 @@ namespace CoupledField {
 		  // compute BDF
 		  GetElemSolution(solpred_, elemsol, connect_PDE);
 		  rhsvec = -elemsol * coeff_[0];
-		  noInt = 0;
-		  for (UInt i=1; i<=calclimit_; i++) {
 
-			if ( solMemoryVal_[i-1] == TRUEVAL ) {
-			  GetElemSolution(solMemory_[i-1-noInt], elemsol, connect_PDE);
-			  rhsvec += elemsol * coeff_[i];
-			}
-			else if ( solMemoryVal_[i-1] == LIN1PT ) {
-			  noInt++;
-			  GetElemSolution(solMemory_[i-1-noInt], elemsol, connect_PDE);
-			  rhsvec += elemsol * 0.5 * coeff_[i];
-			  GetElemSolution(solMemory_[i-1-noInt+1], elemsol, connect_PDE);
-			  rhsvec += elemsol * 0.5 * coeff_[i];
-			}
+		  for (UInt i=1; i<numTrueValues_; i++) {
+
+			GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
+			rhsvec += elemsol * coeff_[i];
 		  }
 		  rhsAssemble = elemmat * rhsvec;
 
 #ifdef DEBUG
-		  (*debug) << "BDF vector of timestep " << laststepcalc_ 
-				   << " size " <<  calclimit_ << std::endl;
-		  // PrintSolMemoryVal();
-		  (*debug) << rhsvec << std::endl;
+		  (*debug) << "BDF vector of timestep " << actStep_ << std::endl
+				   << rhsvec << std::endl;
 #endif
           
 		  //assemble to RHS
@@ -263,7 +262,7 @@ namespace CoupledField {
       }
       solMemory_[0] = solnew - solpred_;
 
-      if (laststepcalc_ <= fracMemory_)
+      if (actStep_ <= fracMemory_)
         solMemoryVal_.insert( solMemoryVal_.begin(),TRUEVAL);
       // when solMemoryVal_ reaches size fracMemory_ , all entries are TRUEVAL
       //  and stay the same for all time steps
@@ -272,23 +271,23 @@ namespace CoupledField {
     // linear interpolation of one solution value 
     else if (inType_ == LIN1PT) {
 
-      if (laststepcalc_ <= fracMemory_) {
+      if (actStep_ <= fracMemory_) {
         for (UInt i=fracMemory_-1; i>=1; i--)
           solMemory_[i] = solMemory_[i-1];
 
         solMemoryVal_.insert( solMemoryVal_.begin(),TRUEVAL);
       }
-      else if ( (laststepcalc_ > fracMemory_) 
-                && (laststepcalc_ < 2*fracMemory_) ) {
-        for (UInt i=(2*fracMemory_-laststepcalc_-1); i>=1; i--)
+      else if ( (actStep_ > fracMemory_) 
+                && (actStep_ < 2*fracMemory_) ) {
+        for (UInt i=(2*fracMemory_-actStep_-1); i>=1; i--)
           solMemory_[i] = solMemory_[i-1];
 		
         solMemoryVal_[0] = TRUEVAL;
         solMemoryVal_.insert( (solMemoryVal_.begin()
-                               + 2*fracMemory_-laststepcalc_),LIN1PT);
+                               + 2*fracMemory_-actStep_),LIN1PT);
 	  }
-      else if (laststepcalc_ >= 2*fracMemory_ ) {
-        if ( (laststepcalc_%2)==0 ) {
+      else if (actStep_ >= 2*fracMemory_ ) {
+        if ( (actStep_%2)==0 ) {
           for (UInt i=fracMemory_-1; i>=1; i--)
             solMemory_[i] = solMemory_[i-1];
 
@@ -296,7 +295,7 @@ namespace CoupledField {
           solMemoryVal_.pop_back();
           solMemoryVal_.insert(solMemoryVal_.begin(), TRUEVAL);
         }
-        else if ( (laststepcalc_%2)==1 )
+        else if ( (actStep_%2)==1 )
           solMemoryVal_.insert( (solMemoryVal_.begin()+1), LIN1PT);
       }
       solMemory_[0] = solnew - solpred_;
@@ -323,8 +322,8 @@ namespace CoupledField {
   void NewmarkFracDamp::
   GetElemSolution ( const Vector<Double>& sol, 
                     Vector<Double>& elemsol,
-                    const StdVector<Integer> & connectPDE )
-  {
+                    const StdVector<Integer> & connectPDE ) {
+
     ENTER_FCN( "NewmarkFracDamp::GetElemSolution" );
    
     elemsol.Resize(connectPDE.GetSize());
@@ -332,8 +331,8 @@ namespace CoupledField {
       elemsol[eqn] = sol[connectPDE[eqn]-1];
   }
 
-  void NewmarkFracDamp::GLWeights(UInt memory, Double y )
-  {
+  void NewmarkFracDamp::GLWeights(UInt memory, Double y ) {
+
     ENTER_FCN( "NewmarkFracDamp::GLWeights" );
    
     // reserve memory for weights of BDF, order of derivative is y-1
@@ -346,8 +345,8 @@ namespace CoupledField {
   }
 
 
-  void NewmarkFracDamp::BlankWeights(UInt memory, Double y, Boolean full)
-  {
+  void NewmarkFracDamp::BlankWeights(UInt memory, Double y, Boolean full) {
+
     ENTER_FCN( "NewmarkFracDamp::BlankWeights" );
  
     Double pot;
@@ -376,8 +375,49 @@ namespace CoupledField {
     }
   }
 
-  void NewmarkFracDamp::PrintSolMemoryVal()
-  {
+  void NewmarkFracDamp::CompressWeights() {
+
+    ENTER_FCN( "NewmarkFracDamp::CompressWeights" );
+
+	std::vector<Double> newCoeff;
+	newCoeff.resize(numTrueValues_);
+	//for (UInt i=0; i<numTrueValues_; i++) 
+	//  newCoeff[i] = 0;
+	newCoeff.assign(numTrueValues_+1, 0); // initialize with zeros
+
+	// Index 0
+	newCoeff[0] = coeff_[0];
+
+	// Index 1 .. number of stored/interpolated values
+	UInt noInt = 0;  // counts number of interpolated values
+	for ( UInt i=1; i < coeff_.size(); i++) {
+
+	  if ( solMemoryVal_[i-1] == TRUEVAL ) {
+		newCoeff[i - noInt] += coeff_[i];
+	  }
+	  else if (solMemoryVal_[i-1] == LIN1PT ) {
+		newCoeff[i - noInt - 1] += 0.5 * coeff_[i];
+		newCoeff[i - noInt] += 0.5 * coeff_[i];
+
+		noInt++;
+	  }
+	}
+	// output weight factors coeff_
+// 	PrintSolMemoryVal();
+// 	std::cout << "Weight factors of BDF are:" << std::endl;
+// 	for(UInt i=0; i<coeff_.size(); i++)
+// 	  std::cout << coeff_[i] << "  ";
+// 	std::cout << std::endl << "Compressed Weight factors are:" << std::endl;
+// 	for(UInt i=0; i<newCoeff.size(); i++)
+// 	  std::cout << newCoeff[i] << "  ";
+// 	std::cout << std::endl;
+
+	// assign compressed weight factors to coeff_
+	coeff_ = newCoeff;
+  }
+
+  void NewmarkFracDamp::PrintSolMemoryVal() {
+
     ENTER_FCN( "NewmarkFracDamp::PrintSolMemoryVal" );
 
     std::string msg="solMemory_ is:";
@@ -390,7 +430,8 @@ namespace CoupledField {
         msg += " L";
     }
     msg += "\n\n";
-    Info->PrintF(pdename_, msg.c_str() );
+    //Info->PrintF(pdename_, msg.c_str() );
+	std::cout << msg;
   }
 
 } // end of namespace

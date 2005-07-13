@@ -71,6 +71,9 @@ namespace CoupledField {
     //! compute Weights for Luise Blanks frac diff spline collocation formula
     void BlankWeights(UInt memory, Double y, Boolean full);
 
+	//! integrate interpolation of past function values in weight vector
+	void CompressWeights();
+
     //! print solMemoryVal_ in .info file
     void PrintSolMemoryVal();
 
@@ -105,19 +108,19 @@ namespace CoupledField {
     //! pointer to equation object
     NodeEQN * ptEQN_;
 
-    //! last calculated time step
-    UInt laststepcalc_;
+    //! time step
+    UInt actStep_;
    
-    //! number of timesteps with which frac deriv is calculated
-    UInt calclimit_;
+    //! number of terms over which BDF is calculated
+    UInt numValues_;
 
-    //! describes used damping model for whole domain
-    //DampingType dampType_; 
+	//! number of truely stored values
+	UInt numTrueValues_;
 
     //! damping type for all regions
     StdVector<DampingType> dampingList_;
 
-    //! all names of subdomains
+    //! list of subdomains
     StdVector<RegionIdType> subdoms_;
 
     //! flag indicating axisymmetric model
@@ -162,9 +165,11 @@ namespace CoupledField {
   //! \unused 
   //! 
   //! \improve
-  //! This concept does not permit to have different regions with differnt
-  //! damping methods, since this method works on the global right hand side
-  //! vector. To improve the situation, we would need a generalized BaseForm
+  //! This concept does permit to have different regions with differnt
+  //! damping methods.
+  //! Although it would be desirable to eliminate the class NewmarkFracDamp
+  //! to simplify direct coupling with acoustics.
+  //! To improve the situation, we would need a generalized BaseForm
   //! class, which allows each integrator to store old values of the solution
   //! for a certain region. However, at the moment each integrator derived 
   //! from BaseForm only gets a pointer to a reference element and has 
