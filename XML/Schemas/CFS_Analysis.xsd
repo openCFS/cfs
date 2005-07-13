@@ -103,6 +103,8 @@
           <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
           <xsd:element name="startFreq" type="DT_PosFloat"/>
           <xsd:element name="stopFreq" type="DT_PosFloat"/>
+          <xsd:element name="logSampling" type="DT_CFSBool" minOccurs="0"
+	                     maxOccurs="1" default="no"/>
           <xsd:element name="adjustDamping" type="DT_CFSBool" minOccurs="0"
 	                     maxOccurs="1" default="no"/>
           <xsd:element name="matDataFreq" type="DT_PosFloat" minOccurs="0"
