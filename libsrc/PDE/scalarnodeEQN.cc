@@ -19,7 +19,8 @@ namespace CoupledField {
   
     isBlockMapped_ = FALSE;
     dofsPerEQN_ = 1;
- 
+    // sortEQNs_ = true;
+    sortEQNs_ = false;
   }
 
 
@@ -62,6 +63,8 @@ namespace CoupledField {
     // Step 5:  Afterwards loop again over all nodes in constraintSlaveNodes_
     //          and set the corresponding entry in pdeNode2EQN_ to the negative
     //          of the value of constraintMasterNode
+    // Step 5b: 
+
 
     // Each local PDE-node number is assigned a 
     // corresponding EQN number:
@@ -125,17 +128,19 @@ namespace CoupledField {
         if (mesh2PDENode_[inhomDirichletNodes_[i]-1]-1 < 0) {
           (*warning) << "ScalarNodeEQN::CalcMapping: Inhom. Dirichlet node #"
                      << inhomDirichletNodes_[i]
-                     << " is not contained in any of the regions for this PDE";
+                     << " is not contained in any of the regions for "
+                     << "this PDE";
           Warning( __FILE__, __LINE__ );
           notIncludedBCs++;
         }
-        else if (countNodes[mesh2PDENode_[inhomDirichletNodes_[i]-1]-1] != 0) {
-          (*error) << "ScalarNodeEQN::CalcMapping: InhomDirichletNode # "
-                   << inhomDirichletNodes_[i]
-                   << "\nappeared already at least once in the list of "
-                   << "boundary nodes for this PDE!\n Please check, if this "
-                   << "node is defined in more than one level of boundary "
-                   << "nodes!";
+        else if ( countNodes[mesh2PDENode_[inhomDirichletNodes_[i]-1]-1]
+                  != 0 ) {
+          (*warning) << "ScalarNodeEQN::CalcMapping: InhomDirichletNode # "
+                     << inhomDirichletNodes_[i]
+                     << "\nappeared already at least once in the list of "
+                     << "boundary nodes for this PDE!\n Please check, if "
+                     << "this node is defined in more than one level of "
+                     << "boundary nodes!";
           Warning( __FILE__, __LINE__ );
           multipleBCs++;
         }
@@ -164,15 +169,8 @@ namespace CoupledField {
       }
     }
 
-
-    // Now we know how many "real" equations we have
-    if ( sortEQNs_ == TRUE ) {
-      numRealEqns_ = eqnCounter;
-    }
-    else {
-      numRealEqns_ = 0;
-    }
-
+    // now we know the number of 'real' dofs
+    numRealEqns_ = eqnCounter;
 
     // **********
     //   STEP 5
@@ -188,14 +186,14 @@ namespace CoupledField {
     if ( sortEQNs_ == TRUE ) {
       for ( UInt i = 0; i < inhomDirichletNodes_.GetSize(); i++ ) {
         eqnCounter++;
-        pdeNode2EQN_[i] = eqnCounter;
+        pdeNode2EQN_[mesh2PDENode_[inhomDirichletNodes_[i]-1]-1] = eqnCounter;
       }
     }
 
-    // Now the object is initialized
+    // Now the object is initialized and we can set the administrative
+    // information
     isInitialized_ = TRUE;
     numEqns_ = eqnCounter;
-
     numBuildInDirichletEQNs_ = numPDENodes_ - numEqns_ + multipleBCs;
   }
 

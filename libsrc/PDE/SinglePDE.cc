@@ -19,7 +19,6 @@
 #include "blocknodeEQN.hh"
 #include "scalarblockEQN.hh"
 #include "scalarnodeEQN.hh"
-#include "superblockEQN.hh"
 
 // header for Solvestep
 #include "Driver/stdSolveStep.hh"
@@ -438,17 +437,10 @@ namespace CoupledField {
     PreparePDE4Computation();
 
     //! Define step solution driver
-    if ( isDirectCoupled_ == FALSE )
+    if ( isDirectCoupled_ == FALSE ) {
       DefineSolveStep();
-  
-    // =====================================================================
-    // Set correct parameter for OLAS
-    // =====================================================================
-    std::string amExpert;
-    params->Get( "override", amExpert, "expert" );
-    CFSOLASParams::SetParams( pdename_, params, olasParams_,analysistype_,
-                              (amExpert=="yes"));
-  
+    }
+
   }
 
   
@@ -965,27 +957,21 @@ namespace CoupledField {
 
     ENTER_FCN( "StdPDE::DefineAlgSys" );
 
-    // Set parameter for solver and preconditioner
-
-    (*cla) <<  "--- PDE: " << pdename_ << " ---" << std::endl;
-
-    // Set parameters for OLAS
-    std::string amExpert;
-    params->Get( "override", amExpert, "expert" );
-    CFSOLASParams::SetParams( pdename_, params, olasParams_,analysistype_,
-                              (amExpert=="yes"));
-
     // If PDE is not direct coupled then the PDE has to register
     // at the algebraic system and obtain an Id. 
     // Afterwards the matrix-graph has to be set up
     SETPROFILE("Before GraphSetupInit()");
     if ( isDirectCoupled_ == FALSE ) {
-      
+
+      // Set linear system parameters for OLAS
+      ReadOlasParams( pdename_ );
+
       // Initialize the matrix graph object
       algsys_->GraphSetupInit(1);
 
       // obtain PDE identification tag from algebraic system
-      pdeId_ = algsys_->RegisterPDE( pdename_, eqnData_->GetNumEQNs() );
+      pdeId_ = algsys_->RegisterPDE( pdename_, eqnData_->GetNumEQNs(),
+                                     eqnData_->GetNumLastFreeDof() );
 
       assemble_->SetPDEId( pdeId_ );
 
@@ -1019,10 +1005,10 @@ namespace CoupledField {
     }
 
     // create matrices and solver object, if PDE is not direct coupled
-    if ( isDirectCoupled_ == FALSE )
+    if ( isDirectCoupled_ == FALSE ) {
       CreateMatrices_Solver();
+    }
 
-     
   }
 
   // ======================================================

@@ -11,6 +11,9 @@
 namespace CoupledField{
 
 
+  // ***********************
+  //   Default Constructor
+  // ***********************
   Profiler::Profiler() {
 
     // get process id
@@ -29,11 +32,19 @@ namespace CoupledField{
     (*memOut_) << std::setw(80) << std::setfill('=') << "" 
                << std::setfill(' ') << std::endl;
 
+    // Initialise attributes
+    wTimeLast_ = 0.0;
+    cTimeLast_ = 0.0;
+
     // Start timing
     clock_ = new MyClock();
     clock_->Start();
   }
-  
+
+
+  // **************
+  //   Destructor
+  // **************
   Profiler::~Profiler() {
 
     if ( memOut_ ) {
@@ -49,6 +60,9 @@ namespace CoupledField{
   }
   
   
+  // *********
+  //   Trace
+  // *********
   void Profiler::Trace(std::string name) {
     std::ostringstream command;
     Double wTime, cTime;
@@ -75,8 +89,19 @@ namespace CoupledField{
     // Write name
     (*memOut_)  << '\t' << name << std::endl;
     
-
+    // Get time
+    clock_->GetTime(wTime, cTime);
+    (*memOut_) << "\t" << wTime << "\t" << cTime;
     
+    // Write relative time
+    (*memOut_) << "\t" <<  wTime-wTimeLast_
+               << "\t" <<  cTime-cTimeLast_;
+    wTimeLast_ = wTime;
+    cTimeLast_ = cTime;
+     
+
+    // Write name
+    (*memOut_)  << '\t' << name << std::endl;
   }
   
   

@@ -12,6 +12,7 @@
 
 #include "PDE/nodeEQN.hh"
 
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
 namespace CoupledField{
 
@@ -71,13 +72,34 @@ namespace CoupledField{
     bcSequenceIndex_ = bcSequenceStep;
     bcSequenceTag_ = bcSequenceTag;
 
+    // Check, whether we shall generate an SBM_System
+    StdVector<std::string> aux;
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    bool genSBMSys = false;
+    keyVec  = "linearSystems", "system", "sbmMatrix", "entry";
+    attrVec = "", "name", "";
+    valVec  = "", "direct", "";
+    params->GetList( keyVec, attrVec, valVec, aux );
+    genSBMSys = aux.GetSize() == 1;
+
     // Create algebraic system and pass it to SinglePDEs
-    algsys_ = new StandardSystem();
-  
+    if ( genSBMSys == true ) {
+#ifdef SBM_SYSTEM
+      algsys_ = new SBM_System();
+#else
+      (*error) << "Re-compile with SBM_SYSTEM!";
+      Error( __FILE__, __LINE__ );
+#endif
+    }
+    else {
+      algsys_ = new StandardSystem();
+    }
+
     // Get parameter and report object of OLAS
     olasParams_ = algsys_->GetOLASParams();
     olasReport_ = algsys_->GetOLASReport();
-  
   
     // activate direct coupling information
     // and initialize all single pdes
@@ -98,10 +120,10 @@ namespace CoupledField{
 
     // If one PDE is transient, this analysistype is also
     // if ( analysisTypes.find(HARMONIC) != analysisTypes.end() ) {
-//       (*error) << "Direct Coupling is not implemented for harmonic "
-//                << "analysis!";
-//       Error( __FILE__, __LINE__ );
-//     }
+    //       (*error) << "Direct Coupling is not implemented for harmonic "
+    //                << "analysis!";
+    //       Error( __FILE__, __LINE__ );
+    //     }
     
     if ( analysisTypes.find(TRANSIENT) != analysisTypes.end() ) {
       analysistype_ = TRANSIENT;
@@ -131,9 +153,8 @@ namespace CoupledField{
       numBuildInDirichletBCs_ += eqn->GetNumBuildInDirichletEQNs();
       totalUnknowns_ += eqn->GetNumEQNs() * eqn->GetNumDofsPerEQN();
     }
-    
-    //std::cerr << "Leaving DirectCoupledPDE::Init\n";
 
+    
     // Initialize timestepping
     if ( analysistype_ == TRANSIENT ) {
       InitTimeStepping();
@@ -151,6 +172,8 @@ namespace CoupledField{
 
     // define solveStep-driver
     DefineSolveStep();
+
+    // std::cerr << "Leaving DirectCoupledPDE::Init\n";
   }
 
 
@@ -168,18 +191,25 @@ namespace CoupledField{
   }
 
 
-  void DirectCoupledPDE::DefineAlgSys()
-  {
+  // ****************
+  //   DefineAlgSys
+  // ****************
+  void DirectCoupledPDE::DefineAlgSys() {
+
     ENTER_FCN( "DirectCoupledPDE::DefineAlgSys" );
- 
-    //std::cerr << "Entering DirectCoupledPDE::DefineAlgSys()\n";
  
     std::string pdeName;
     PdeIdType pdeId;
     NodeEQN *eqn = NULL;
 
+    // Set linear system parameters for OLAS
+    //
+    // NOTE: Using current naming conventions in the XML Schema definitions
+    //       the linear system for a direct coupled PDE problem is always
+    //       called "direct", thus there can currently only be one of them.
+    ReadOlasParams( "direct" );
+
     // Begin setup of the matrix graph
-    //std::cerr << "algsys_ = " << &(*algsys_) << std::endl;
     algsys_->GraphSetupInit( singlePDEs_.GetSize() );
 
     // iterate over all singlePDE and register them
@@ -189,70 +219,51 @@ namespace CoupledField{
       // and set number of dirichlet and constraint equations
       pdeName= singlePDEs_[i]->GetName();
       eqn = singlePDEs_[i]->getPDE_eqnData();
-      pdeId = algsys_->RegisterPDE( pdeName, eqn->GetNumEQNs() );
-      //std::cerr << "Registering PDE " << pdeName << " with id= " 
-      //      << pdeId  << "\n";
-      singlePDEs_[i]->SetPDEId( pdeId);
-      //numDirichletEQNs = singlePDEs_[i]->GetNumRestraints();
-      //numDirichletEQNs -= eqn->GetNumBuildInDirichletEQNs();
-      //std::cerr << "Setting Number of Dirichlet BCs to " 
-      //      << numDirichletEQNs << std::endl;
-      //algsys_->SetNumDirichletBCs( pdeId, numDirichletEQNs);
-      //algsys_->SetNumDof( pdeId, eqn->GetDofsPerEQN() );
+      pdeId = algsys_->RegisterPDE( pdeName, eqn->GetNumEQNs(),
+                                    eqn->GetNumLastFreeDof() );
+      singlePDEs_[i]->SetPDEId( pdeId );
 
-      // HARD CODED 
-      // -> call CFSOLASPARAMS for each individual single PDE
-      // lateron this has to be done by the directcoupled PDE directly
+      // Let the PDE set its Dirichlet information and related stuff
       singlePDEs_[i]->DefineAlgSys();
     }
-  
   
     // Hard Coded:
     // After all Single PDEs have defined their algebraic system,
     // the coupling object have to do this, too.
     // Currently this is done by giving
-   
 
     // iterate over all singlePDE and setup matrix graph
+    // trigger the creation and assembly of the matrix graph
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      //std::cerr << "Setting up Matrix graph for PDE " 
-      //<< singlePDEs_[i]->GetName() << std::endl;
-      // trigger the creation and assembly of the matrix graph
       singlePDEs_[i]->SetupMatrixGraph();
-      //    std::cerr << " DONE\n";
     }
-  
-  
+
+    // For SBM_Systems we must obtain the re-orderings now
+    // and pass it to the EQN-objects
+#ifdef SBM_SYSTEM
+    if ( dynamic_cast<SBM_System*>(algsys_) != NULL ) {
+      IncorporateReordering();
+    }
+#endif
+
     // Initialize all Coupling Objects and setup their matrix graph
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       couplings_[i]->SetAlgSys( algsys_ );
       couplings_[i]->Init( bcSequenceIndex_, bcSequenceTag_ );
-      //    std::cerr << "Setting up matrix graph of coupling " << i << "\n";
       couplings_[i]->SetupMatrixGraph();
-      //    std::cerr << "DONE\n" << std::endl;
     }
 
-    //std::cerr << "Call GraphSetupDon\n";
-    // finish the assembly of the matrix graph
+    // Finish assembly of the matrix graph
     algsys_->GraphSetupDone();
   
-    // obtain reordering of the matrix graph for each PDE
-    // and give it to the EQN-object
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      pdeId = singlePDEs_[i]->GetPDEId();
-      eqn = singlePDEs_[i]->getPDE_eqnData();
-      Integer * newOrder = algsys_->GetReordering( pdeId );
-      //std::cerr << "Reorder PDE " << pdeId << std::endl;
-      eqn->ReorderMapping( newOrder );
-      delete[] newOrder;
+    // For StandardSystems we must obtain the re-orderings at this point
+    // and pass it to the EQN-objects
+    if ( dynamic_cast<StandardSystem*>(algsys_) != NULL ) {
+      IncorporateReordering();
     }
 
-    //std::cerr << "Call 'CreateMatrices_Solver'\n";
     // Allocate the necessary matrices as well as solver and preconditioner
     CreateMatrices_Solver();
-  
-
-    //std::cerr << "Leaving DirectCoupledPDE::DefineAlgSys()\n";
   }
 
 
@@ -402,16 +413,14 @@ namespace CoupledField{
   void DirectCoupledPDE::AssembleMatrices() {
 
     // Assembly of diagonal-matrices
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
-      {
-        singlePDEs_[i]->AssembleMatrices();
-      }
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      singlePDEs_[i]->AssembleMatrices();
+    }
 
     // Assembly of off-diagonal entries (coupling objcts)
-    for (UInt i=0; i<couplings_.GetSize(); i++) 
-      {
-        couplings_[i]->AssembleMatrices();
-      }
+    for (UInt i=0; i<couplings_.GetSize(); i++) {
+      couplings_[i]->AssembleMatrices();
+    }
   }
 
   void DirectCoupledPDE::AssembleSrcRHS(const Double time) {
@@ -471,6 +480,26 @@ namespace CoupledField{
   
     // HARD CODED
     solveStep_ = new SolveStepMech(*this);
+  }
+
+  // *************************
+  //   IncorporateReordering
+  // *************************
+  void DirectCoupledPDE::IncorporateReordering() {
+
+    ENTER_FCN( "DirectCoupledPDE::IncorporateReordering" );
+
+    PdeIdType pdeId   = NO_PDE_ID;
+    NodeEQN *eqn      = NULL;
+    Integer *newOrder = NULL;
+
+    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+      pdeId    = singlePDEs_[i]->GetPDEId();
+      eqn      = singlePDEs_[i]->getPDE_eqnData();
+      newOrder = algsys_->GetReordering( pdeId );
+      eqn->ReorderMapping( newOrder );
+      delete[] newOrder;
+    }
   }
 
 } // end of namesapce

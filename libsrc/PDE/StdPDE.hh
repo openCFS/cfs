@@ -39,17 +39,31 @@ namespace CoupledField {
     // ALGSYS SECTION (SOLVER, ...)
     // ======================================================
   
-    //! define algebraic system 
+    //! Define the algebraic system 
     virtual void DefineAlgSys() = 0;
-  
+
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
   
-    //! deletes the algebraic system
-    void DeleteAlgSys()
-    {if (algsys_)
-      delete algsys_;
+    //! Deletes the algebraic system
+    void DeleteAlgSys() {
+      ENTER_FCN( "StdPDE::DeleteAlgsys" );
+      if ( algsys_ != NULL ) {
+        delete algsys_;
+        algsys_ = NULL;
+      }
     };
+
+    //! Transfer parameters from CFS++ to OLAS parameter object
+
+    //! This method reads the parameters specified for the linear system
+    //! associated with the PDE from the parameter object of CFS++, adapts
+    //! them using an expert module and passes them to OLAS. It relies on
+    //! The SetParams() method of the CFSOLASParams class for doing this.
+    //! \param sysName name of the linear system in the XML file (in the
+    //!                case of a single PDE this coincides with pdename_)
+    void ReadOlasParams( std::string sysName );
+
 
     // ======================================================
     // COUPLING SECTION

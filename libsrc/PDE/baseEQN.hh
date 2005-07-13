@@ -31,13 +31,27 @@ namespace CoupledField
     //! - constraint nodes)
     inline UInt GetNumEQNs() const {return numEqns_;}
 
-    //! Return the number of real equations
-    //! (= number of nodes * total number Dofs
-    //! - hom. Dirichlet nodes
-    //! - inhom. Dirichlet nodes
-    //! - constraint nodes)
+    //! Return the number of equation numbers for degrees of freedom that are
+    //! not fixed by either
+    //! - homogeneous Dirichlet boundary conditions
+    //! - inhomogeneous Dirichlet boundary conditions
+    //! - constraints (master - slave dof relations)
     inline UInt GetNumRealEQNs() const {
       return numRealEqns_;
+    }
+
+    //! Return the equation number of the last unfixed degree of freedom
+
+    //! This method returns the equation number of the last degree of freedom
+    //! that is not fixed by an inhomogeneous Dirichlet boundary conditions.
+    //! The return value actually depends on the status of the sortEQNs_ flag.
+    //! If the latter is true, then we return numRealEqns_. If it is false,
+    //! then inhomogeneous Dirichlet boundary conditions are treated by the
+    //! penalty method and must be considered free dofs as well. Thus, in this
+    //! case we return numEqns_.
+    inline UInt GetNumLastFreeDof() {
+      ENTER_FCN( "BaseEQN::GetNumLastFreeDof" );
+      return ( ( sortEQNs_ == true ) ? numRealEqns_ : numEqns_ );
     }
   
     //! Return number of degree of freedoms per node
@@ -135,12 +149,12 @@ namespace CoupledField
 
     //! Number of "real" equations in PDE
 
-    //! This attribute stores the number of "real" equations in the linear
-    //! system associated with the underlying PDE. "Real" here means that the
-    //! value of the unknown that corresponds to an equation is not fixed by
-    //! a Dirichlet boundary condition.
-    //! \note This value is only computed, when sortEqns_ is TRUE, otherwise
-    //!       we store a -1.
+    //! This attribute stores the number of 'real' equation numbers. By the
+    //! latter we understand equation numbers for degrees of freedom that
+    //! are not fixed by either
+    //! - homogeneous Dirichlet boundary conditions
+    //! - inhomogeneous Dirichlet boundary conditions
+    //! - constraints (master - slave dof relations)
     UInt numRealEqns_;
   
     //! Number of Dirichlet values
@@ -200,7 +214,7 @@ namespace CoupledField
   //! \status In use
   //! 
   //! \unused 
-  //! 
+  //!
   //! \improve
   //! 
 
