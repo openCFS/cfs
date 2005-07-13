@@ -77,16 +77,22 @@ where {\bf TYPE} can be chosen as one of
 \end{itemize}
 
 
+% ----------------------------------------------------------------------------
 \subsection{Static Analysis}
-For static analysis, no additional information beside the command
+% ----------------------------------------------------------------------------
+%
+%
+r static analysis, no additional information beside the command
 
 {\bf \verb!<analysis type="static"/>!}
 
 \noindent
 is needed.
 
+% ----------------------------------------------------------------------------
 \subsection{Transient Analysis}
-
+% ----------------------------------------------------------------------------
+%
 To be able to define the transient analysis in more detail, several
 additional parameters have to be used:
 
@@ -127,8 +133,67 @@ timeVal3          funcVal3
 ...
 \end{verbatim}
 
-\subsection{Multi--Sequence Analysis}
+% ----------------------------------------------------------------------------
+\subsection{Harmonic Analysis}
+% ----------------------------------------------------------------------------
 %
+Specification of parameters for a harmonic analysis is done by adding a
+\xml{harmonic} section to the parameter file. When all currently available
+parameters are set this section takes the following form:
+%
+%
+\begin{verbatim}
+  <harmonic>
+    <numFreq>        ...   </numFreq>
+    <startFreq>      ...   </startFreq>
+    <stopFreq>       ...   </stopFreq>
+    <logSampling>    ...   </logSampling>
+    <adjustDamping>  ...   </adjustDamping>
+    <matDataFreq>    ...   </matDataFreq>
+  </harmonic>
+\end{verbatim}
+%
+%
+The parameters have the following meaning
+%
+%
+\begin{center}
+\begin{longtable}{llp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+parameter & values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+numFreq & $\nat$ & specifies the number of frequencies for which
+                   a simulation is to be performed\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+startFreq & $> 0$ & smallest frequency for which a simulation is to be
+                    performed\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+stopFreq & $\geqslant$ startFreq & largest frequency for which a simulation
+                                   is to be performed\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+logSampling & yes, no & if this parameter is no or not specified, we perform
+                        an equally spaced sampling of the interval
+                        [startFreq, stopFreq]; if the parameter is set to
+                        yes, we perform a logarithmic sampling\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+adjustDamping & yes, no & set this to yes, if the damping is depending on the
+                          frequency; in this case CFS++ will
+                          adjust the damping for each frequency (for further
+                          details ask Manfred \verb!;-)!\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+matDataFreq   & $>0$ & if adjustDamping is set to yes, this parameter
+                       specifies the frequency of the damping parameters
+                       in the material data file; if the parameter is omitted,
+                       we assume that the damping parameters found are those
+                       for startFreq\\
+\noalign{\smallskip}\hline
+\end{longtable}
+\end{center}
+%
+%
+% ----------------------------------------------------------------------------
+\subsection{Multi--Sequence Analysis}
+% ----------------------------------------------------------------------------
 %
 The idea of multi-sequence analysis is to allow the user to combine different
 types of analyses in one program run. It might, e.g.~be sensible to combine a
@@ -198,10 +263,15 @@ performed:
       \end{itemize}
  
 \end{itemize}
+%
+% ----------------------------------------------------------------------------
 \subsection{ParamIdent - Analysis and Multiharmonics}
-For the documentation of parameter identification in piezoelectric equations see Chapter \ref{paramIdent}.
-The analysistype multiharmonics is not yet implemented. Once it shall simulate the piezoelectric equations 
-where the material parameters are a function of frequency.
+% ----------------------------------------------------------------------------
+%
+For the documentation of parameter identification in piezoelectric equations
+see Chapter \ref{paramIdent}.The analysistype multiharmonics is not yet
+implemented. Once it shall simulate the piezoelectric equations where the
+material parameters are a function of frequency.
 %
 %
 \section{List of PDEs}
