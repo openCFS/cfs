@@ -649,11 +649,12 @@ namespace CoupledField {
     pdeId1_ = pdeId;
   }
 
-  void StdSolveStep::TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
-					const UInt flag) {
+  void StdSolveStep::TransformSol4Slice(UInt & shiftFactor, UInt & nodeShift,
+		UInt & elemgrid, Double &  meshsize, const UInt flag) {
     ENTER_FCN( "StdSolveStep::TransformSol4Slice" );
     
-    PDE_.TransformSol4Slice(nodeShift, shiftFactor, flag); 
+    PDE_.TransformSol4Slice(shiftFactor, nodeShift,
+		elemgrid, meshsize, flag); 
   }
 
   void StdSolveStep::SaveNodes(const UInt shiftFactor, const Double timeStep,

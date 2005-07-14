@@ -36,8 +36,12 @@ namespace CoupledField
     { ptGridStruct->GenGridStruct(elemx, elemy, elemz);}
 
     //! Transform Grid
-    virtual void TransformGridStruct(UInt& nodeShift, UInt& shiftFactor, const UInt flag)
-    { ptGridStruct->TransformGridStruct(nodeShift, shiftFactor, flag);}
+    //  virtual void TransformGridStruct(UInt& nodeShift, UInt& shiftFactor, const UInt flag)
+    //     { ptGridStruct->TransformGridStruct(nodeShift, shiftFactor, flag);}
+    virtual void TransformGridStruct(UInt & shiftFactor, UInt & nodeShift,
+					UInt & elemgrid, Double &  meshsize, const UInt flag)
+    { ptGridStruct->TransformGridStruct(shiftFactor, nodeShift,
+					elemgrid, meshsize, flag);}
 
     //Get Maximum nuber of Elements in x,y,z-direction
     virtual Integer GetMaxElem(const std::string dir)

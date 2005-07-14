@@ -93,8 +93,8 @@ namespace CoupledField
 
     //----------------------- SPECIAL FUNCTIONS ------------------------------
     //! transform solution and derivatives due to slicing technique
-    virtual void TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
-                                    const UInt flag)
+    virtual void TransformSol4Slice(UInt & shiftFactor, UInt & nodeShift,
+		UInt & elemgrid, Double &  meshsize, const UInt flag)
     {Error("TransformSol4Slice not implemented", __FILE__, __LINE__); };
 
     //! save important nodes for the a post analysis
@@ -102,10 +102,10 @@ namespace CoupledField
     //! \param numShift how many shifts have been made
     //! \param nodeShift how many nodes have been shifted
     //! save solution of special nodes
-    void SaveNodes(const UInt shiftFactor, const Double timeStep,
+    virtual void SaveNodes(const UInt shiftFactor, const Double timeStep,
 		   const UInt numShift, const Integer nodeShift, 
 		   const UInt maxnumelemz_)
-    {Error("TransformSol4Slice not implemented"); };
+    {Error("TransformSol4Slice not implemented",__FILE__, __LINE__); };
 
 
 

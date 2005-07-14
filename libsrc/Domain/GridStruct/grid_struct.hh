@@ -49,8 +49,9 @@ namespace CoupledField
     void GenGridStruct(const UInt elemx,const UInt elemy,const UInt elemz);
 
     //! Transorm Grid
-    void TransformGridStruct(UInt & nodeShift, UInt & shiftFactor, const UInt flag);
-
+    //void TransformGridStruct(UInt & nodeShift, UInt & shiftFactor, const UInt flag);
+      void TransformGridStruct(UInt & shiftFactor, UInt & nodeShift,
+			UInt & elemgrid, Double &  meshsize, const UInt flag);
     //! Get maximum elements in "dir"-direction
     Integer GetMaxElem(std::string dir);
 
@@ -257,8 +258,7 @@ namespace CoupledField
     
     //! Returns surface element normal without defined orientation
     void CalcSurfNormal( Vector<Double> & n, 
-                         const Elem & surfElem )
-    {Error("Method not supported by GridStruct-Class"); };
+                         const Elem & surfElem );
 
     //! Returns surface element normal with defined orientation
     void CalcSurfNormalOutOfVol( Vector<Double> & n,
@@ -399,11 +399,11 @@ namespace CoupledField
     Double waveLength_;
     Double pulseTime_;
     Double soundSpeed_;
+    Double safetyRegion_;
+
     Integer elementsPerWavelength_;
     std::string subname_;
     Integer tol_;
-    Integer sik_;
-
     //@}
 
   };

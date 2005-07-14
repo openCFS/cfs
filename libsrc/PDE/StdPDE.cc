@@ -361,14 +361,17 @@ namespace CoupledField {
     second derivatives. Furtheron, the entries of these vectors which are not
     calculated for the new slice are initialized with zeros:
   */
-  void StdPDE::TransformSol4Slice(UInt &  nodeShift, UInt & shiftFactor, 
-				  const UInt flag) {
+  //void StdPDE::TransformSol4Slice(UInt &  nodeShift, UInt & shiftFactor, 
+  //				  const UInt flag) {
+  void StdPDE::TransformSol4Slice(UInt & shiftFactor, UInt & nodeShift,
+		UInt & elemgrid, Double &  meshsize, const UInt flag){
 
     ENTER_FCN( "StdPDE::TransformSol4Slice" );
 
-    ptgrid_->TransformGridStruct(nodeShift, shiftFactor, flag);
-
-    if ( flag ) 
+    ptgrid_->TransformGridStruct(shiftFactor, nodeShift,
+					elemgrid, meshsize, flag);
+   
+    if (flag) 
       return;
 
     //perform the transformation of solution
@@ -382,6 +385,13 @@ namespace CoupledField {
     UInt dof = 1;
     Integer eqnNrFrom, eqnNrTo; 
     UInt eqnDof, nodeFrom;
+
+//     for (UInt node=1; node <= 10*shiftFactor; node++) {
+//       eqnData_->Node2EQN(node,dof,eqnNrTo, eqnDof);
+//       sol[eqnNrTo-1]   = 0;
+//       solD1[eqnNrTo-1] = 0;
+//       solD2[eqnNrTo-1] = 0;
+//     }
 
     for (UInt node=1; node <=numPDENodes_-nodeShift; node++) {
       eqnData_->Node2EQN(node,dof,eqnNrTo, eqnDof);
@@ -405,7 +415,7 @@ namespace CoupledField {
     TS_alg_->SetDeriv2(solD2);
     
     
-    WriteResultsInFile(0,0);
+    //    WriteResultsInFile(0,0);
     
   }
 
@@ -434,8 +444,8 @@ namespace CoupledField {
       system(S.c_str());
 
       //Write the actual meshsize in mesh.dat
-      //      std::fstream x("saveNodes/mesh.dat", std::ios::out|std::ios::app);
-      //      x << timeStep << '\t' << shiftFactor << '\n';
+      std::fstream x("saveNodes/mesh.dat", std::ios::out|std::ios::app);
+      x << timeStep << '\t' << shiftFactor << '\n';
       return;
     }
   
@@ -468,10 +478,10 @@ namespace CoupledField {
       totalName += "node";
       totalName += namePostfix;
   
-      //Ã–ffnen der Datei
-      //    std::fstream x(totalName.c_str(), std::ios::out|std::ios::app);
+      //Öffnen der Datei
+      std::fstream x(totalName.c_str(), std::ios::out|std::ios::app);
 
-      //      x << timeStep << '\t'  <<  sol[eqn-1] << '\n'; 
+      x << timeStep << '\t'  <<  sol[eqn-1] << '\n'; 
     }
   }
 
