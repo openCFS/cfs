@@ -400,8 +400,8 @@ namespace CoupledField
 			       const UInt elemz) {;};
 
     //! Transforms the grid
-    virtual void TransformGridStruct(UInt & nodeShift, UInt & shiftFactor, 
-				     const UInt flag){;};
+    virtual void TransformGridStruct(UInt & shiftFactor, UInt & nodeShift,
+				     UInt & elemgrid, Double &  meshsize, const UInt flag){;};
 
     //! Returns maximum number of elements in x,y,z-direction
     virtual Integer GetMaxElem(std::string dir)

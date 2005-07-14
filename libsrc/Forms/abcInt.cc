@@ -54,7 +54,6 @@ namespace CoupledField {
     density = acouMaterials[index].GetDensity();
     compressibility = acouMaterials[index].GetCompressibility();
     factor = factor_ * density / sqrt( compressibility / density );
-    
 
     // 2) Calculate a normal mass matrix
     elemMat.Resize(nrNodes);

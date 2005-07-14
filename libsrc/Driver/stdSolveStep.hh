@@ -142,11 +142,11 @@ namespace CoupledField
     };
 
     //! transform solution and derivatives due to slicing technique
-    virtual void TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
-                                    const UInt flag);
+    virtual void TransformSol4Slice(UInt & shiftFactor, UInt & nodeShift,
+		UInt & elemgrid, Double &  meshsize, const UInt flag);
 
     //! save solution of special nodes
-    void SaveNodes(const UInt shiftFactor, const Double timeStep,
+    virtual void SaveNodes(const UInt shiftFactor, const Double timeStep,
 		   const UInt numShift, const Integer nodeShift, 
 		   const UInt maxnumelemz_);
 

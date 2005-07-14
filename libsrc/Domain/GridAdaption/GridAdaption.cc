@@ -706,7 +706,6 @@ namespace CoupledField
 	{
 		ENTER_FCN("GridAdaption::GetCoordinatesFromGridNode()");
 
-		std::cout << "node=" << nNode << std::endl;
 		if(pGrid->GetDim() == 2) {
 			Point<2> pt2D;
 			pGrid->GetNodeCoordinate(pt2D, nNode);

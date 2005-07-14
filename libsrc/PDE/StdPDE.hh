@@ -1,6 +1,6 @@
 #ifndef FILE_STDPDE
 #define FILE_STDPDE
-
+#include <fstream>
 #include "PDE/basePDE.hh"
 
 #include <set>
@@ -204,8 +204,10 @@ namespace CoupledField {
   
   
     //! transform solution and derivatives due to slicing technique
-    void TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
-			    const UInt flag);
+    //void TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
+    //		    const UInt flag);
+    void TransformSol4Slice(UInt & shiftFactor, UInt & nodeShift,
+				    UInt & elemgrid, Double &  meshsize, const UInt flag);
 
     //! save solution of special nodes
     void SaveNodes(const UInt shiftFactor, const Double timeStep,

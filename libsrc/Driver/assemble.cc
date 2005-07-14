@@ -320,39 +320,39 @@ namespace CoupledField {
                                          connect_PDE2.GetSize() );
             }
 #ifdef DEBUG
-          //   UInt elemNum = elemssd[actEl]->elemNum;
+	    UInt elemNum = elemssd[actEl]->elemNum;
 
-//             // output matrices
-//             if (destMat == STIFFNESS) {
-//               (*debug) << "Stiffness matrix of Element " 
-//                        << elemNum << std::endl;
-//             }
+            // output matrices
+            if (destMat == STIFFNESS) {
+              (*debug) << "Stiffness matrix of Element " 
+                       << elemNum << std::endl;
+            }
 
-//             if (destMat == MASS) {
-//               (*debug) << "Mass      matrix of Element " 
-//                        << elemNum << std::endl;
-//             }
+            if (destMat == MASS) {
+              (*debug) << "Mass      matrix of Element " 
+                       << elemNum << std::endl;
+            }
 
-//             if (destMat == DAMPING) {
-//               (*debug) << "Damping   matrix of Element " 
-//                        << elemNum << std::endl;
-//             }
+            if (destMat == DAMPING) {
+              (*debug) << "Damping   matrix of Element " 
+                       << elemNum << std::endl;
+            }
 
-//             if (destMat == SYSTEM) {
-//               (*debug) << "System matrix of Element " 
-//                        << elemNum << std::endl;
-//             }
+            if (destMat == SYSTEM) {
+              (*debug) << "System matrix of Element " 
+                       << elemNum << std::endl;
+            }
             
-//             (*debug) << elemmat << std::endl;
+            (*debug) << elemmat << std::endl;
 
-//             if ( !elemmat.IsSymmetric() ) {
-//               (*debug) << " --> Matrix is not symmetric " 
-//                        << std::endl << std::endl;
-//             }
-//             else {
-//               (*debug) << " --> Matrix is symmetric " 
-//                        << std::endl << std::endl;
-//             }
+            if ( !elemmat.IsSymmetric() ) {
+              (*debug) << " --> Matrix is not symmetric " 
+                       << std::endl << std::endl;
+            }
+            else {
+              (*debug) << " --> Matrix is symmetric " 
+                       << std::endl << std::endl;
+            }
 #endif
             if (actDescriptor->GetSecondaryMat() != NOTYPE) {
               Double damp = dampTransform * actDescriptor->GetSecMatFac();
@@ -408,6 +408,9 @@ namespace CoupledField {
 
           Matrix<Double> ptCoord;
           GetElemCoords(connecth, ptCoord);
+	  std::cout << "Connect of Surf Elem Nr" << elemssd[actEl]->elemNum << std::endl 
+		    << elemssd[actEl]->connect <<std::endl << "Coordinates: " << std::endl
+		    << ptCoord << std::endl << std::endl;
 
           // map connect to PDE node numbers
           StdVector<Integer> connect_PDE1, connect_PDE2;

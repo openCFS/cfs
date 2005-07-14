@@ -43,13 +43,31 @@ namespace CoupledField
                      __FILE__, __LINE__ );
     }
 
+    // check for absorbing boundary conditions
+    UInt numRegions;
+    StdVector<std::string> abcBCs;
+    params->GetList( "name", abcBCs, pdename_, "absorbingBCs" );
+
+    if ( abcBCs.GetSize() == 0 ) {
+      numRegions = 1;
+    }
+    else if ( abcBCs.GetSize() == 1 ) {
+      numRegions = 2;
+      regionNames_.Push_back(abcBCs[0]);
+    }
+    else {
+      Error("Just one ABC-region allowed",__FILE__,__LINE__);
+    }
+
+    //std::cout << "reg1=" << regionNames_[0] << "  reg2=" << regionNames_[1] << std::endl;
+
     //we just allow one volume and one surface region
     //therefore, we can hardcode the Ids level
     volRegionIds_.Resize(1);
     volRegionIds_[0] = 0;
 
     surfRegionIds_.Resize(1);
-    surfRegionIds_[0] = 0;
+    surfRegionIds_[0] = 1;
 
     //Get slice data
     StdVector<std::string> keyVec;
@@ -76,14 +94,14 @@ namespace CoupledField
     keyVec  = pdename_, "sliceData", "soundSpeed";
     params->Get( keyVec, soundSpeed_);
 
-    keyVec  = pdename_, "sliceData", "nrSafetyElements";
-    params->Get( keyVec, sik_);
+    keyVec  = pdename_, "sliceData", "safetyRegion";
+    params->Get( keyVec, safetyRegion_);
 
     keyVec  = pdename_, "sliceData", "addNrOfWaveLength";
     params->Get( keyVec, tol_);
 
-    keyVec  = pdename_, "region", "name";
-    params->Get( keyVec, subname_);
+//     keyVec  = pdename_, "region", "name";
+//     params->Get( keyVec, subname_);
 
   }
 
@@ -120,11 +138,8 @@ namespace CoupledField
     Double y = 0.0;			//Coordinates
     Double z = 0.0;			//Coordinates
     Double start_=0.0;
-    Integer sik=sik_;//10;
-    Double T;
-    Double wavesPerPulse;
-    Double way;
-    Double tol  ;
+    Double totalLength;
+
     Integer absbcs=0;
 
 
@@ -132,52 +147,32 @@ namespace CoupledField
 
     case 2:
       //calculate number of elements for x- and y-direction
-      meshsizez_ = waveLength_/elementsPerWavelength_;
-      //maxnumelemx_= dimx_/meshsize;
-      maxnumelemy_= (Integer) (dimY_/meshsizez_);
-      //	std::cout << "y_ = " << maxnumelemy_ << std::endl;
-      //Addtional space for Wave
-      tol = tol_; //2*elementsPerWavelength_;
-      //std::cout << "Tol_ = " << tol << std::endl;
-      T = waveLength_/soundSpeed_;
-      //std::cout << "T_ = " << T << std::endl;
-      wavesPerPulse = pulseTime_/T;
-      //std::cout << "wavesperpulse_ = " << wavesPerPulse << std::endl;
-      way =wavesPerPulse*elementsPerWavelength_;
-      //std::cout << "way_ = " << way<< std::endl;
-      maxnumelemz_= 2*(Integer)way+2*sik+ (Integer)tol;
+      meshsizez_   = waveLength_/elementsPerWavelength_;
+      maxnumelemy_ = (Integer) (dimY_/meshsizez_);
+
+      totalLength  = 2*pulseTime_*soundSpeed_ + (tol_ * waveLength_);
+      //	           + (safetyRegion_ * waveLength_);
+      maxnumelemz_ = (Integer) ( totalLength / meshsizez_ + 10*meshsizez_ ) ;
+
       std::cout << std::endl;
       std::cout << "Size of slice in  z- direction:  " << maxnumelemz_* meshsizez_ << std:: endl;
       std::cout << "Size of slice in  y- direction:  " << maxnumelemy_* meshsizez_ << std:: endl;
       std::cout << "elements in  z- direction:  " << maxnumelemz_ << std:: endl;
       std::cout << "elements in  y- direction:  " << maxnumelemy_ << std:: endl;
       std::cout << "elements in  x- direction:  " << maxnumelemx_ << std:: endl;
-      //std::cout << "Bin in Gittererzeugung" << std::endl;
       break;
 
     case 3:
 
-      meshsizez_ = waveLength_/elementsPerWavelength_;
-      meshsizex_ = meshsizez_;
-      meshsizey_ = meshsizez_;
-      maxnumelemy_= (Integer) (dimY_/meshsizez_);
-      //if(maxnumelemy_%2)
-      //	maxnumelemy_++;
-      maxnumelemx_= (Integer) (dimX_/meshsizez_);
-      //if(maxnumelemx_%2)
-      //	maxnumelemy_++;
-      tol = tol_;
-      T = waveLength_/soundSpeed_;
-      wavesPerPulse = pulseTime_/T;
-      way =wavesPerPulse*elementsPerWavelength_;
-      maxnumelemz_=(Integer)2*(Integer)way+2*sik+ (Integer)tol;
-      //maxnumelemz_ +=(maxnumelemz_%2);
-      std::cout << std:: endl;
-      //std::cout << "Size of mesh (for all directions) " << meshsizez_ << std::endl;
-      //std::cout << "Size of slice in  x- direction:  " << maxnumelemx_* meshsizez_ << std:: endl;
-      //std::cout << "Size of slice in  y- direction:  " << maxnumelemy_* meshsizez_ << std:: endl;
-      //std::cout << "Size of slice in  z- direction:  " << maxnumelemz_* meshsizez_ << std:: endl;
-      std::cout <<  "N.A." << std::endl;
+      meshsizez_   = waveLength_/elementsPerWavelength_;
+      meshsizex_   = meshsizez_;
+      meshsizey_   = meshsizez_;
+      maxnumelemy_ = (Integer) (dimY_/meshsizez_);
+      maxnumelemx_ = (Integer) (dimX_/meshsizez_);
+
+      totalLength  = 2*pulseTime_*soundSpeed_ + (tol_ * waveLength_);
+	//	           + (safetyRegion_ * waveLength_);
+      maxnumelemz_ = (Integer) ( totalLength / meshsizez_ + 10*meshsizez_ );
       break;
     }
 
@@ -211,7 +206,7 @@ namespace CoupledField
     surfElems_.Resize(1); 
 
     //absorbing boundary conditions
-    Boolean ABC = FALSE;
+    Boolean ABC = TRUE;
 
     //Init
     switch(dim_) {
@@ -262,6 +257,7 @@ namespace CoupledField
       temp = m;
 
       if ( ABC ) {
+	Elem * volEl = volElems_[0][0];
         for(i=0; i< maxnumelemz_;i++) {
           SurfElem* el= new SurfElem();
           el->elemNum = temp;
@@ -271,7 +267,10 @@ namespace CoupledField
           
           el->connect[0] = 1+i*maxnumelemy_;
           el->connect[1] = 1+(i+1)*maxnumelemy_;
-          
+
+	  //set arbitrary volume element
+          el->ptVolElem1 = volEl;
+
           surfElems_[0].Push_back(el);
           
           temp++;
@@ -289,6 +288,9 @@ namespace CoupledField
           el->connect[0] = maxnumelemy_ +i*maxnumelemy_;
           el->connect[1] = maxnumelemy_ +(i+1)*maxnumelemy_;
           
+	  //set arbitrary volume element
+          el->ptVolElem1 = volEl;
+
           surfElems_[0].Push_back(el);
           
           temp2++;
@@ -307,6 +309,9 @@ namespace CoupledField
           el->connect[0] = (maxnumelemy_+1)/2+i;
           el->connect[1] = (maxnumelemy_+1)/2+1+i;
           
+	  //set arbitrary volume element
+          el->ptVolElem1 = volEl;
+
           surfElems_[0].Push_back(el);
           
           temp3++;
@@ -385,6 +390,7 @@ namespace CoupledField
       // referring to the TOP-BOUNDARY
 
       if ( ABC ) {
+	Elem * volEl = volElems_[0][0];
         temp = 0;
         for(i=0;i<maxnumelemz_;i++) {
           for(j=0;j<maxnumelemx_;j++) {
@@ -395,14 +401,17 @@ namespace CoupledField
             el->connect.Resize(4);
             
             el->connect[0] = maxnumelemy_+(maxnumelemy_+1)*j+(maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-            //std::cout << maxnumelemy_+(maxnumelemy_+1)*j+(maxnumelemy_+1)*(maxnumelemx_+1)*i << ", ";
+            //std::cout << maxnumelemy_+(maxnumelemy_+1)*j+(maxnumelemy_+1)*(maxnumelemx_+1)*i+1 << ", ";
             el->connect[1] =  maxnumelemy_+(maxnumelemy_+1)*j+(maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1; 
-            //std::cout <<   maxnumelemy_+(maxnumelemy_+1)*j+(maxnumelemy_+1)*(maxnumelemx_+1)*(i+1) <<", ";
+            //std::cout <<   maxnumelemy_+(maxnumelemy_+1)*j+(maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1 <<", ";
             el->connect[2] =  maxnumelemy_+(maxnumelemy_+1)*(j+1)+(maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1; 
-            //std::cout <<  maxnumelemy_+(maxnumelemy_+1)*(j+1)+(maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)<< ", ";
+            //std::cout <<  maxnumelemy_+(maxnumelemy_+1)*(j+1)+(maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1<< ", ";
             el->connect[3] =  maxnumelemy_+(maxnumelemy_+1)*(j+1)+(maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-            //std::cout << maxnumelemy_+(maxnumelemy_+1)*(j+1)+(maxnumelemy_+1)*(maxnumelemx_+1)*i<< std::endl;
+            //std::cout << maxnumelemy_+(maxnumelemy_+1)*(j+1)+(maxnumelemy_+1)*(maxnumelemx_+1)*i+1<< std::endl;
             
+	    //set arbitrary volume element
+	    el->ptVolElem1 = volEl;
+
             surfElems_[0].Push_back(el);
             
             m++;
@@ -412,60 +421,66 @@ namespace CoupledField
         //std::cerr << "soviele top BE: " << temp << std::endl;
         // referring to the BOTTOM-BOUNDARY
         
-        k=0;
-        temp = 0;
-        for(i=0;i<maxnumelemz_;i++) {
-          for(j=0;j<maxnumelemx_;j++) {
-            SurfElem* el = new SurfElem();
-            el->elemNum = m;
-            el->ptElem = ptQ1;
-            el->regionId = surfRegionIds_[0];
-            el->connect.Resize(4);
+       //  k=0;
+//         temp = 0;
+//         for(i=0;i<maxnumelemz_;i++) {
+//           for(j=0;j<maxnumelemx_;j++) {
+//             SurfElem* el = new SurfElem();
+//             el->elemNum = m;
+//             el->ptElem = ptQ1;
+//             el->regionId = surfRegionIds_[0];
+//             el->connect.Resize(4);
             
-            el->connect[0] = (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-            //std::cout << (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*i<< ", ";
-            el->connect[1] = (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1;
-            //std::cout << (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)<< ", ";
-            el->connect[2] = (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1;
-            //std::cout << (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)<< ", ";
-            el->connect[3] = (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-            //std::cout << (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i<< std::endl;
+//             el->connect[0] = (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
+//             //std::cout << (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*i<< ", ";
+//             el->connect[1] = (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1;
+//             //std::cout << (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)<< ", ";
+//             el->connect[2] = (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1;
+//             //std::cout << (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)<< ", ";
+//             el->connect[3] = (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
+//             //std::cout << (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i<< std::endl;
             
-            surfElems_[0].Push_back(el);
+// 	    //set arbitrary volume element
+// 	    el->ptVolElem1 = volEl;
 
-            k++;
-            m++;
-            temp++;
-          }
-        }
+// 	    surfElems_[0].Push_back(el);
+
+//             k++;
+//             m++;
+//             temp++;
+//           }
+//         }
         //std::cerr << "soviele bottom  BE: " << temp << std::endl;
         // referring to the RIGHT-BOUNDARY
-        k=0;
-        temp = 0;
-        for(i=0;i<maxnumelemz_;i++) {
-          for(j=0;j<maxnumelemy_;j++) {
-            SurfElem* el = new SurfElem();
-            el->elemNum = m;
-            el->ptElem = ptQ1;
-            el->regionId = surfRegionIds_[0];
-            el->connect.Resize(4);
+       //  k=0;
+//         temp = 0;
+//         for(i=0;i<maxnumelemz_;i++) {
+//           for(j=0;j<maxnumelemy_;j++) {
+//             SurfElem* el = new SurfElem();
+//             el->elemNum = m;
+//             el->ptElem = ptQ1;
+//             el->regionId = surfRegionIds_[0];
+//             el->connect.Resize(4);
             
-            el->connect[0] = j + (maxnumelemx_+1)*(maxnumelemy_+1)*i+1;
-            //std::cout << j + (maxnumelemx_+1)*(maxnumelemy_+1)*i << ", ";
-            el->connect[1] = j + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)+1;
-            //std::cout <<  j + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)<< ", ";
-            el->connect[2] = (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)+1;
-            //std::cout <<  (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)<< ", ";
-            el->connect[3] = (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*i+1;
-            //std::cout <<  (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*i<< std::endl;
-            
-            surfElems_[0].Push_back(el);
+//             el->connect[0] = j + (maxnumelemx_+1)*(maxnumelemy_+1)*i+1;
+//             //std::cout << j + (maxnumelemx_+1)*(maxnumelemy_+1)*i << ", ";
+//             el->connect[1] = j + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)+1;
+//             //std::cout <<  j + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)<< ", ";
+//             el->connect[2] = (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)+1;
+//             //std::cout <<  (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)<< ", ";
+//             el->connect[3] = (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*i+1;
+//             //std::cout <<  (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*i<< std::endl;
 
-            k++;
-            m++;
-            temp++;
-          }
-        }
+// 	    //set arbitrary volume element
+// 	    el->ptVolElem1 = volEl;  
+          
+//             surfElems_[0].Push_back(el);
+
+//             k++;
+//             m++;
+//             temp++;
+//           }
+//         }
         //std::cerr << "soviele right BE: " << temp << std::endl;
         // referring to the LEFT_BOUNDARY
         
@@ -480,14 +495,17 @@ namespace CoupledField
             el->connect.Resize(4);
             
             el->connect[0] = (maxnumelemy_+1)*maxnumelemx_ + j + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-            //std::cout << (maxnumelemy_+1)*maxnumelemx_ + j + (maxnumelemy_+1)*(maxnumelemx_+1)*i<< ", ";
+            //std::cout << (maxnumelemy_+1)*maxnumelemx_ + j + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1<< ", ";
             el->connect[1] = (maxnumelemy_+1)*maxnumelemx_ + j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1;
-            //std::cout << (maxnumelemy_+1)*maxnumelemx_ + j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)<< ", ";
+            //std::cout << (maxnumelemy_+1)*maxnumelemx_ + j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1<< ", ";
             el->connect[2] = (maxnumelemy_+1)*maxnumelemx_ + (j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1;
-            //std::cout << (maxnumelemy_+1)*maxnumelemx_ + (j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)<< ", ";
+            //std::cout << (maxnumelemy_+1)*maxnumelemx_ + (j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1<< ", ";
             el->connect[3] = (maxnumelemy_+1)*maxnumelemx_ + (j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-            //std::cout <<  (maxnumelemy_+1)*maxnumelemx_ + (j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i<< std::endl;
-            
+            //std::cout <<  (maxnumelemy_+1)*maxnumelemx_ + (j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1<< std::endl;
+
+	    //set arbitrary volume element
+	    el->ptVolElem1 = volEl;  
+          
             surfElems_[0].Push_back(el);
 
             k++;
@@ -495,6 +513,34 @@ namespace CoupledField
             temp++;
           }
         }
+	//referring to the BOUNDARY AT THE END OF THE SLICE
+	temp = 0;
+	double shift = (maxnumelemy_+1)*(maxnumelemx_+1);
+        for(i=0;i<maxnumelemy_;i++) {
+          for(j=0;j<maxnumelemx_;j++) {
+            SurfElem* el = new SurfElem();
+            el->elemNum = m;
+            el->ptElem = ptQ1;
+            el->regionId = surfRegionIds_[0];
+            el->connect.Resize(4);
+	    el->connect[0] =  maxnumelemz_*shift + (maxnumelemy_+1)*j + i + 1;
+	    //std::cout << maxnumelemz_*shift + (maxnumelemy_+1)*j + i + 1 << ", ";
+            el->connect[1] =  maxnumelemz_*shift + (maxnumelemy_+1)*j + i + 2;
+	    //std::cout << maxnumelemz_*shift + (maxnumelemy_+1)*j + i + 2<< ", ";
+            el->connect[2] =  maxnumelemz_*shift + (maxnumelemy_+1)*(j+1) + i + 2;
+	    //std::cout <<maxnumelemz_*shift + (maxnumelemy_+1)*(j+1) + i + 2 << ", ";
+            el->connect[3] =  maxnumelemz_*shift + (maxnumelemy_+1)*(j+1) + i + 1; 
+            //std::cout <<maxnumelemz_*shift + (maxnumelemy_+1)*(j+1) + i + 1 << std::endl;
+            
+	    //set arbitrary volume element
+	    el->ptVolElem1 = volEl;
+
+            surfElems_[0].Push_back(el);
+            
+            m++;
+            temp++;
+          }
+        }	
       }
 
       break;
@@ -565,17 +611,18 @@ namespace CoupledField
 	  class)
   ****************************************************************************/
   template<UInt DIM>
-  void GridStruct<DIM> :: TransformGridStruct(UInt& nodeShift, UInt & shiftFactor, 
-					      const UInt flag)
+ //  void GridStruct<DIM> :: TransformGridStruct(UInt& nodeShift, UInt & shiftFactor, 
+// 					      const UInt flag)
+  void GridStruct<DIM> :: TransformGridStruct(UInt & shiftFactor, UInt & nodeShift,
+		UInt & elemgrid, Double &  meshsize, const UInt flag)
   {
     ENTER_FCN( "GridStruct::TransformGridStruct");
-    Info->StartProgress(" \n Shift Executed \n");
     //Variablen
     //Numshift*2 + 2*sik = SizeOfGrid
     Integer innodes_;
-    Integer numelemshift_;	//area of calc
+    Integer numelemshift_, maxnumelem;	
     Integer shiftfactor_;	//
-    Double a,b,x,y,z;
+    Double a,b,x,y,z,shiftLength, sliceLength;
     Double meshsizez_;	//
     Double meshsizey_;	//
     Double meshsize_;	// it should be enough to have one variable meshsize,
@@ -587,10 +634,13 @@ namespace CoupledField
     x=0.0;
     y=0.0;
     z=0.0;
-    //calculate numelemshift
-    numelemshift_ = (maxnumelemz_*1/2 - sik_);
-    std::cout << "Number of elements shifted in z-direction  - gridstruct = " << numelemshift_ << std::endl;
 
+    shiftLength   = pulseTime_*soundSpeed_ + (tol_ * waveLength_);
+    shiftLength  -= safetyRegion_ * waveLength_;
+    meshsizez_    = waveLength_/elementsPerWavelength_;
+    numelemshift_ = (Integer) ( shiftLength / meshsizez_ );
+
+   
     //calculate shiftfaktor
     switch(dim_) {
     case 2 :
@@ -599,10 +649,7 @@ namespace CoupledField
       //Calculate meshsize
       a = ptCoordinate_[0][1];
       b = ptCoordinate_[1][1];
-      meshsizey_ = b-a;
-      //saving the shiftFactor for TransformSol4Slice
-      shiftFactor = shiftfactor_;
-
+      //meshsizey_ = b-a;
       break;
     case 3 :
       //stimmt?
@@ -611,80 +658,86 @@ namespace CoupledField
       shiftfactor_ = (maxnumelemy_+1)*(maxnumelemx_+1);
       innodes_ = 8;
       //Calculate meshsizes for x,y,z direction
-
-      a = ptCoordinate_[0][1];
-      b = ptCoordinate_[1][1];
-      meshsize_ = b-a;
-      //std::cout << "Meshsize: " << meshsize_ << std::endl;
-      //saving the shiftFactor for TransformSol4Slice
+      break;
+    }
+   
+ //If flag = 1 the function TransformGridStruct is writing
+ //information for the saveNodes-Routine
+    if(flag){
+      sliceLength = 2*pulseTime_*soundSpeed_ + (tol_ * waveLength_);
+      maxnumelem = (Integer) (sliceLength / meshsizez_);
+      elemgrid    = maxnumelem;
       shiftFactor = shiftfactor_;
-      if(flag)
-        return; 
-      break;
+      meshsize    = meshsizez_;
+      return;
     }
+    Info->StartProgress(" \n Shift Executed \n");
+    std::cout << "Number of elements shifted in z-direction  - gridstruct = " 
+	      << numelemshift_ << std::endl;
+    
 
 
+    // switch(dim_) {
 
-    switch(dim_) {
+//     case 2 :
+//       //Shift of known values
+//       for(i=0; i<(((numelemshift_) + 1 + (maxnumelemz_%2))*(maxnumelemy_+1));i++) {
+//         ptCoordinate_[i][0] = ptCoordinate_[i + (numelemshift_*shiftfactor_) ][0];
+//       }
 
-    case 2 :
-      //Shift of known values
-      for(i=0; i<(((numelemshift_+2*sik_) + 1 + (maxnumelemz_%2))*(maxnumelemy_+1));i++) {
-        ptCoordinate_[i][0] = ptCoordinate_[i + (numelemshift_*shiftfactor_) ][0];
-      }
-
-      //calc meshsize
-      a = ptCoordinate_[0][0];
-      b = ptCoordinate_[1+shiftfactor_][0];
-      meshsizez_ = b-a;
+//       //calc meshsize
+//       a = ptCoordinate_[0][0];
+//       b = ptCoordinate_[1+shiftfactor_][0];
+//       meshsizez_ = b-a;
 
 
-      start_ = ptCoordinate_[(((numelemshift_+2*sik_) + 1 + (maxnumelemz_%2))*(maxnumelemy_+1))-1][0] + meshsizez_;
+//       start_ = ptCoordinate_[(((numelemshift_) + 1 
+// 			       + (maxnumelemz_%2))*(maxnumelemy_+1))-1][0] + meshsizez_;
 
-      k = ((numelemshift_+2*sik_)+(maxnumelemz_%2)+1)*(maxnumelemy_+1);
+//       k = ((numelemshift_)+(maxnumelemz_%2)+1)*(maxnumelemy_+1);
 
-      for(i=0;i<numelemshift_;i++) {
-        for(j=0;j<maxnumelemy_+1;j++) {
+//       for(i=0;i<numelemshift_;i++) {
+//         for(j=0;j<maxnumelemy_+1;j++) {
 
-          ptCoordinate_[k][0] = start_ + z;
-          ptCoordinate_[k][1] = y;
-          y+= meshsizey_;
-          k++;
-        }
-        z+=meshsizez_;
-        y=0.0;
-      }
+//           ptCoordinate_[k][0] = start_ + z;
+//           ptCoordinate_[k][1] = y;
+//           y+= meshsizey_;
+//           k++;
+//         }
+//         z+=meshsizez_;
+//         y=0.0;
+//       }
 
-      break;
+//       break;
 
-    case 3:
-      std::cerr << "Transformation of Slice 3D" << std::endl;
-      //Shift of known values
-      //the only values that change, are the  one´s referring to the 
-      //z-direction, the rest remains!
-      for(i=0; i<(((numelemshift_+2*sik_)+1+(maxnumelemz_%2))*shiftfactor_);i++) {
-        ptCoordinate_[i][0] = ptCoordinate_[i + (numelemshift_*shiftfactor_)][0];
-      }
-      start_ = ptCoordinate_[(((numelemshift_+2*sik_)+1+(maxnumelemz_%2))*shiftfactor_)-1][0] + meshsize_;
-      k = ((numelemshift_+2*sik_)+(maxnumelemz_%2)+1)*shiftfactor_;
-      //std::cout << "k= " << k << std::endl;
-      for(i=0;i<numelemshift_;i++) {
-        for(j=0;j<maxnumelemx_+1;j++) {
-          for(m=0;m<maxnumelemy_+1;m++) {
+//     case 3:
+//       std::cerr << "Transformation of Slice 3D" << std::endl;
+//       //Shift of known values
+//       //the only values that change, are the  one´s referring to the 
+//       //z-direction, the rest remains!
+//       for(i=0; i<(((numelemshift_)+(maxnumelemz_%2))*shiftfactor_);i++) {
+//         ptCoordinate_[i][0] = ptCoordinate_[i + (numelemshift_*shiftfactor_)][0];
+//       }
+//       start_ = ptCoordinate_[(((numelemshift_)+(maxnumelemz_%2))*shiftfactor_)-1][0] + meshsize_;
+//       k = ((numelemshift_)+(maxnumelemz_%2))*shiftfactor_;
+//       std::cout << "k= " << k << std::endl;
+//       for(i=0;i<numelemshift_;i++) {
+//         for(j=0;j<maxnumelemx_+1;j++) {
+//           for(m=0;m<maxnumelemy_+1;m++) {
 
-            ptCoordinate_[k][0] = start_ + z;
-            ptCoordinate_[k][1] =  y;
-            ptCoordinate_[k][2] =  x;
-            y+= meshsize_;
-            k++;
-          }
-          x+=meshsize_;
-          y=0.0;
-        }
-        z+=meshsize_;
-        x=0.0;
-      }
-    }
+//             ptCoordinate_[k][0] = start_ + z;
+//             ptCoordinate_[k][1] =  y;
+//             ptCoordinate_[k][2] =  x;
+//             y+= meshsize_;
+//             k++;
+//           }
+//           x+=meshsize_;
+//           y=0.0;
+//         }
+//         z+=meshsize_;
+//         x=0.0;
+//       }
+//     }
     //std::cout << "k= " << k << std::endl;
     //std::cout << "z at point: " << ptCoordinate_[2500][0] << std::endl;
     //std::cout << "z at point: " << ptCoordinate_[3375][0] << std::endl;
@@ -731,12 +784,16 @@ namespace CoupledField
 
     ENTER_FCN( "GridStruct::GetMaxElem");
 
-    params->GetList( "name", regionNames, "domain", "region" );
+    regionNames = regionNames_;
 
-    if ( regionNames.GetSize() > 1) {
-      Info->Error( "Slicing techique just supports one region!!", 
-                     __FILE__, __LINE__ );
-    }
+//     params->GetList( "name", regionNames, "domain", "region" );
+
+//     if ( regionNames.GetSize() > 1) {
+//       Info->Error( "Slicing techique just supports one region!!", 
+//                      __FILE__, __LINE__ );
+//     }
+
+
   }
   
 
@@ -990,7 +1047,25 @@ namespace CoupledField
       for (UInt actDim=0; actDim < dim_; actDim++)
         coordMat[actDim][k] = ptCoordinate_[connect[k]-1][actDim];
   }
-  
+
+  template<UInt DIM>
+  void GridStruct<DIM>::CalcSurfNormal( Vector<Double> & n, 
+                                     const Elem & surfElem ) {
+    ENTER_FCN( "GridStruct::CalcSurfNormal" );
+    
+    //compute normal vector
+    if (dim_ ==2 ) {
+      n.Resize(2);
+      n[0] = 0.0;
+      n[1] = 1.0;
+    }
+    else {
+      n.Resize(3);
+      n[0] = 0.0;
+      n[1] = 1.0;
+      n[2] = 0.0;
+    }
+  }
 
 #ifdef __sgi
 #pragma instantiate GridStruct<3>

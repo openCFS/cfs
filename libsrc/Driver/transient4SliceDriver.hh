@@ -38,8 +38,9 @@ namespace CoupledField {
     Double dimZ_;
     Double waveLength_;
     Double pulseTime_;
+    Double pulseOffset_;
     Double soundSpeed_;
-    Integer sik_;
+    Double safetyRegion_;
     Integer tol_;
     Domain *domain_;
     //!

@@ -64,14 +64,17 @@ Transient4SliceDriver::Transient4SliceDriver(Domain * adomain,
   keyVec  = pdename, "sliceData", "pulseTime";
   params->Get( keyVec, pulseTime_);
 
+  keyVec  = pdename, "sliceData", "pulseOffset";
+  params->Get( keyVec, pulseOffset_);
+
   keyVec  = pdename, "sliceData", "soundSpeed";
   params->Get( keyVec, soundSpeed_);
 
   keyVec  = pdename, "sliceData", "waveLength";
   params->Get( keyVec, waveLength_);
 
-  keyVec  = pdename, "sliceData", "nrSafetyElements";
-  params->Get( keyVec, sik_);
+  keyVec  = pdename, "sliceData", "safetyRegion";
+  params->Get( keyVec, safetyRegion_);
 
   keyVec  = pdename, "sliceData", "addNrOfWaveLength";
   params->Get( keyVec, tol_);
@@ -82,6 +85,9 @@ Transient4SliceDriver::Transient4SliceDriver(Domain * adomain,
   keyVec  = pdename, "sliceData", "dimension", "dimZ";
   params->Get( keyVec, dimZ_);
 
+  if ( safetyRegion_ < 0 ) {
+    Error("safetyRegion value has to be positive",__FILE__,__LINE__);
+  }
 
   // Make consistency check. In fact in the XML case the Schema should catch
   // this error. But one can never be sure.
@@ -112,64 +118,31 @@ void Transient4SliceDriver::SolveProblem()
 
   Double  steptime  = firstdt_;
   Integer stepsave  = isavebegin_;
-  Integer elemgrid;
-  Double  timegrid, timefirst;
-  Integer tol;
-  Integer sik=sik_;//10;
-  Integer nodeShift;//for function call SaveNodes
-  Integer shiftFactor;// for function call SaveNodes
-  Integer numShift=0; // for function call: SaveNodes ... number of shifts made
-  Integer hel = TRUE;
-  Double T,wavesPerPulse,way;
+
+  Double  timeFirst, timeOffset, timeShift;
+
+  //All the variables I need for saving the nodes
+  //****************************************************************************
+  UInt nodeShift = 0;//for function call SaveNodes
+  UInt shiftFactor=0;// for function call SaveNodes
+  UInt numShift=0; // for function call: SaveNodes ... number of shifts made
+  UInt elemgrid = 0;
+  Double  meshsize = 0;
+  //****************************************************************************
+
+
   Double  dt = firstdt_;
   Boolean updatesysmat=FALSE;
   Boolean mkdir=FALSE;
-  Double meshsize = waveLength_/elementsPerWavelength_;
-
-  tol = tol_;// 2*elementsPerWavelength_;
-  //std::cout << " transient -Tol_ = " << tol << std::endl;
-  T = waveLength_/soundSpeed_;
-  //std::cout << " transient -T_ = " << T << std::endl;
-  wavesPerPulse = pulseTime_/T;
-  //std::cout << " transient -wavesperpulse_ = " << wavesPerPulse << std::endl;
-  way =wavesPerPulse*elementsPerWavelength_;
-  //std::cout << " transient -way_ = " << way<< std::endl;
-  elemgrid= 2*(Integer)way+2*sik+ (Integer)tol;
-
-  //std::cout << " transient -elemgrid = " << elemgrid << std::endl;
-  //elemgrid =  2*((Integer) ((pulseTime_*soundSpeed_/waveLength_)*elementsPerWavelength_)) + 2*sik +tol;
-  //std::cout << "transient- elemgrid = " << elemgrid << std::endl;
-  timefirst = ((((elemgrid - sik)*1.0)/elementsPerWavelength_)*waveLength_)/soundSpeed_;
   
-  //timegrid = ((((tol*1.0)/2)/elementsPerWavelength_)*waveLength_)/soundSpeed_ + pulseTime_;
-  Integer numelemshift= elemgrid*1/2-sik;
-  //std::cout << "transient- numelemshift = " << numelemshift << std::endl;
-  timegrid = (numelemshift*meshsize)/soundSpeed_;
-  //std::cout << "transient- timefirst = " << timefirst << std::endl;
-  //std::cout << "transient- timegrid = " << timegrid << std::endl;
+  // timeFirst is the time, the pulse needs at the first time, he runs in the slice
+  timeFirst   = 2*pulseTime_  + (tol_ * waveLength_) / soundSpeed_;
+  timeFirst  -= (safetyRegion_ * waveLength_) / soundSpeed_;
+  timeFirst  += pulseOffset_; 
+  // timeOffset is the time, the pulse needs to run thru a shifted slice
+  timeOffset  = pulseTime_  + (tol_ * waveLength_) / soundSpeed_;
+  timeOffset -= (safetyRegion_ * waveLength_) / soundSpeed_;
 
-  //Integer numelemshift= (Integer) (((tol/2))*elementsPerWavelength_+((pulseTime_*soundSpeed_)/waveLength_)* elementsPerWavelength_);
-
-  Integer testmaxelem = numelemshift;
-  //std::cout << "testmaxelem init : " << testmaxelem << std::endl;
-
-  //  Integer maxelem = (Integer) (dimZ_ * elementsPerWavelength_)/waveLength_;
-
-  //std::cout << "dim = " << dimZ_ << std::endl;
-  //std::cout << "elemper wave = " << elementsPerWavelength_ << std::endl;
-  //std::cout << "wavelength = " << waveLength_ << std::endl;
-  //std::cout << "maxelem = " << maxelem << std::endl;
-/*
-  //Just for testing reasons
-  FileType * InFile_ = domain_-> GetInFile(); 
-  TimeFunc *  zeitfunc_ = new TimeFunc(InFile_);
-  zeitfunc_->SetStartTimeVector(4*4);
-
-  //Testing the Transformation for the 3D-Case
-  Integer Nodeshift;
-  Grid * ptgrid_ = domain_->GetGrid();
-  ptgrid_->TransformGridStruct(Nodeshift); 	
-*/
   // if driver is not part of multiSequence Driver, get list
   // of pdes which have to be solved and intialize them
 
@@ -192,14 +165,9 @@ void Transient4SliceDriver::SolveProblem()
   //time for transformation reached?
   Boolean doTransform = FALSE;
 
-  //already reached end of Domain?
-  Boolean max = FALSE;
-  
-  Double timeshift = timegrid-timefirst;
+  timeShift = timeFirst;
   
   Integer nstep;
-  Integer transformStep=0;
-  Integer numTrans = 0;
   for (nstep = 1; nstep <= numstep_; nstep++) {
     
     if ( numstep_ < 50 )
@@ -210,38 +178,20 @@ void Transient4SliceDriver::SolveProblem()
     if ( doTransform ) {
       std::cout << "Perform Transformation at timestep : " <<nstep << std::endl;
 
-      testmaxelem += numelemshift;
+      ptPDE_->GetSolveStep()->TransformSol4Slice(shiftFactor,
+		    nodeShift, elemgrid, meshsize,(UInt) 0);
 
-      std::cout << "testmaxelem : " << testmaxelem << std::endl;
-      std::cout << "maxelem     : " << dimZ_/(waveLength_/elementsPerWavelength_) << std::endl;
-
-      if(testmaxelem > (dimZ_/(waveLength_/elementsPerWavelength_))) {
-        max = TRUE;
-        std::cout << "end of Domain reached -> No shift" << std::endl;
-      } 
-      else {
-        std::cout << "shift" << std::endl;
-      }
-       
-      ptPDE_->GetSolveStep()->TransformSol4Slice((UInt)nodeShift, (UInt)shiftFactor, (UInt)0);
-
-      numShift++; //the number of transformations is incremented
-      timeshift = 0.0;
-      
       doTransform = FALSE;
-      transformStep = nstep;
-      
-      numTrans++;
+   
+      numShift++;
     }
     
-    if (numTrans == 1 && transformStep == nstep) {
+    if (numShift == 1) {
       updatesysmat = TRUE;
     }
     else {
       updatesysmat = FALSE;
     }
-
-    //    ptPDE_->SetNumTransSlice(numTrans);
  
     ptPDE_->GetSolveStep()->SetActTime(steptime);
     ptPDE_->GetSolveStep()->SetActStep(nstep);
@@ -262,27 +212,35 @@ void Transient4SliceDriver::SolveProblem()
      *                    - Save for each node, the pressure Value for the actual Time-Step
      *===========================================================================================*/
     //SaveNodes is implemented in StdPDE
-//     if(numShift == 0 && hel){
-//       ptPDE_->GetSolveStep()->TransformSol4Slice((UInt)nodeShift, (UInt)shiftFactor, (UInt)1);
-//       hel = FALSE;
-//     }
-
-//     //The first time the function SaveNodes has been called, the directory has to be opened  
-//     if(!mkdir){
-//       ptPDE_->GetSolveStep()->SaveNodes(numstep_, meshsize, numShift, -1, elemgrid);
-//       mkdir = TRUE;
-//     }		
-//     ptPDE_->GetSolveStep()->SaveNodes(shiftFactor, steptime, numShift, nodeShift, elemgrid);
-    
-    steptime+=dt;
-    std::cout << "acttime=" <<  steptime << " timeshift=" << timeshift << " timegrid=" << timegrid << std::endl; 
-    
-    if (max==FALSE) {
-      timeshift +=dt;
-      if(timeshift>=timegrid) {
-        doTransform = TRUE;
-      }
+    if ( nstep == 1 ){
+      //ptPDE_->GetSolveStep()->TransformSol4Slice((UInt)nodeShift, (UInt)shiftFactor, (UInt)1);
+      ptPDE_->GetSolveStep()->TransformSol4Slice(shiftFactor,
+		nodeShift, elemgrid, meshsize, 1);  
     }
+     
+    //The first time the function SaveNodes has been called, the directory has to be opened  
+    if(!mkdir){
+      /*
+	The First time the function is called, it need,
+	numstep_ = referring to the number of steps, that have to be made
+	meshsize = referring to the meshsize of the grid
+      */
+      
+      ptPDE_->GetSolveStep()->SaveNodes(numstep_, meshsize, numShift, -1, elemgrid);
+      mkdir = TRUE;
+    }		
+    ptPDE_->GetSolveStep()->SaveNodes(shiftFactor, steptime, numShift, nodeShift, elemgrid);
+    
+
+    steptime+=dt;
+
+    std::cout << "acttime=" <<  steptime << " timeshift=" << timeShift << std::endl; 
+    
+    if ( steptime >= timeShift ) {
+        doTransform = TRUE;
+	timeShift  += timeOffset;
+    }
+    
   }
 
 }
