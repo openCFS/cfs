@@ -13,9 +13,9 @@
 
 namespace CoupledField{
 
-  // ****************************************************************************
+  // *************************************************************************
   //   This block deals with function tracing
-  // ****************************************************************************
+  // *************************************************************************
 
 #ifdef TRACE //normal function tracing
 #define ENTER_FCN(name) \
@@ -32,9 +32,10 @@ OutInfo::FcnTraceObjLocal fcn(name);
 #define ENTER_IFCN(name)        
 #endif
 
-  // ****************************************************************************
+  // *************************************************************************
   //   This block deals with profiling information
-  // ****************************************************************************
+  // *************************************************************************
+
 #ifdef PROFILING
 #define SETPROFILE(name)\
 profiler->Trace(name)
@@ -42,5 +43,5 @@ profiler->Trace(name)
 #define SETPROFILE(name)
 #endif
 
-} // end of namespace
+}
 #endif
