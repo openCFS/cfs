@@ -7,12 +7,11 @@ namespace CoupledField
 {
 
   //! driver for harmonic problems. it is derived from BaseDriver
-  class HarmonicDriver : public SingleDriver
-  {
+  class HarmonicDriver : public SingleDriver {
 
   public:
 
-    //! constructor
+    //! Constructor
     //! \param adomain pointer to class Domain
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time
@@ -24,19 +23,39 @@ namespace CoupledField
                    std::string driverTag = "anyTag",
                    Boolean isPartOfSequence = FALSE);
 
-    //! deconstructor 
+    //! Detructor 
     virtual ~HarmonicDriver();
 
-    //!  main method, where harmonic analysus is implemented.
+    //! Main method, where harmonic analysis is implemented.
     virtual void SolveProblem();
 
-
   private:
- 
-    Double  startFreq_;
-    Double  stopFreq_;
+
+    //! Method for computing the actual frequency for a given frequency number
+
+    //! This method implements the different sampling variants for the
+    //! frequency domain. We currently support linear, logarithmic and
+    //! reverse logarithmic sampling.
+    //! \param freqIndex index of the frequency that shall be computed, i.e.
+    //!                  an integral value from [1:numFreq_]
+    Double ComputeNextFrequency( UInt freqIndex );
+
+    //! First frequency for which a simulation is performed
+    Double startFreq_;
+
+    //! Last frequency for which a simulation is performed
+    Double stopFreq_;
+
+    //! Number of frequencies for which a simulation is performed
     UInt numFreq_;
-    UInt saveType_;
+
+    //! A attribute storing the type of algorithm used for frequency sampling
+    FreqSamplingType samplingType_;
+
+    //! Flag for signalling frequency dependend damping
+
+    //! If we have frequency dependend damping, then for each new frequency
+    //! the damping must be adapted2
     Boolean adjustDamping_;
   };
 
