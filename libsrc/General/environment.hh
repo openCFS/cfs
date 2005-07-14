@@ -189,6 +189,19 @@ namespace CoupledField
   //! output format for complex numbers
   typedef enum {REAL_IMAG, AMPLITUDE_PHASE} ComplexFormat;
 
+  //! Data type for specification of frequency sampling approach
+
+  //! This enumeration data type is used for distinguishing the different
+  //! approaches for sampling the frequency domain when performing a
+  //! harmonic analysis with CFS++. The type currently allows the following
+  //! values
+  //! - NO_SAMPLING_TYPE
+  //! - LINEAR_SAMPLING
+  //! - LOG_SAMPLING
+  //! - REVERSE_LOG_SAMPLING
+  typedef enum { NO_SAMPLING_TYPE, LINEAR_SAMPLING, LOG_SAMPLING,
+                 REVERSE_LOG_SAMPLING } FreqSamplingType;
+
 
   //--------------------- Stuff for handling different IO files -------------
 
@@ -299,6 +312,7 @@ namespace CoupledField
   template<class TYPE> void Enum2String(const TYPE &in, std::string &out);
 
   DEFINE_ENUM_CONVERSION(AnalysisType)
+  DEFINE_ENUM_CONVERSION(FreqSamplingType)
   DEFINE_ENUM_CONVERSION(CouplingInputType)
   DEFINE_ENUM_CONVERSION(CouplingOutputType)
   DEFINE_ENUM_CONVERSION(CouplingRegionType)
