@@ -179,6 +179,14 @@
 
   </pdeList>
 
+  <harmonic>
+    <numFreq>   10 </numFreq>
+    <startFreq> 10 </startFreq>
+    <stopFreq>  10 </stopFreq>
+    <sampling/>
+    <adjustDamping/>
+  </harmonic>
+
   
   <linearSystems>
     <system name="acoustic">
