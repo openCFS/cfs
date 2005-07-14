@@ -596,4 +596,56 @@ namespace CoupledField {
     Error( "Not implemented", __FILE__, __LINE__ );
   }
 
+  // FreqSamplingType
+  template<>
+  void String2Enum<FreqSamplingType>( const std::string &in,
+                                      FreqSamplingType &out ) {
+
+    if ( in == "noSamplingType" ) {
+      out = NO_SAMPLING_TYPE;
+    }
+    else if ( in == "linear" ) {
+      out = LINEAR_SAMPLING;
+    }
+    else if ( in == "log" ) {
+      out = LOG_SAMPLING;
+    }
+    else if ( in == "reverseLog" ) {
+      out = REVERSE_LOG_SAMPLING;
+    }
+    else {
+      (*error) << "'" << in << "' cannot be converted into an '"
+               << "FreqSamplingType' item!";
+      Error( __FILE__, __LINE__);
+    }
+  }
+
+  template<>
+  void Enum2String<FreqSamplingType>( const FreqSamplingType &in,
+                                      std::string &out ) {
+
+    switch( in ) {
+
+    case NO_SAMPLING_TYPE:
+      out = "noSamplingType";
+      break;
+
+    case LINEAR_SAMPLING:
+      out = "linear";
+      break;
+
+    case LOG_SAMPLING:
+      out = "log";
+      break;
+
+    case REVERSE_LOG_SAMPLING:
+      out = "reverseLog";
+      break;
+
+    default:
+      (*error) << "Found no conversion for supplied FreqSamplingType value!";
+      Error( __FILE__, __LINE__ );
+    }
+  }
+
 }
