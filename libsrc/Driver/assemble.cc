@@ -408,10 +408,7 @@ namespace CoupledField {
 
           Matrix<Double> ptCoord;
           GetElemCoords(connecth, ptCoord);
-	  std::cout << "Connect of Surf Elem Nr" << elemssd[actEl]->elemNum << std::endl 
-		    << elemssd[actEl]->connect <<std::endl << "Coordinates: " << std::endl
-		    << ptCoord << std::endl << std::endl;
-
+	
           // map connect to PDE node numbers
           StdVector<Integer> connect_PDE1, connect_PDE2;
           ptEQN1_->Node2EQN(connecth, connect_PDE1);
@@ -540,14 +537,9 @@ namespace CoupledField {
     Vector<Double> harmVec;
 
     //add the volume sources
-//     std::cerr << "subdoms_ = \n" << subdoms_ << std::endl;
     for (UInt actDom=0; actDom <  subdoms_.GetSize(); actDom++) { 
       if (rhsSrcIntegrators_[actDom]->GetSize())
         {
-//           std::cerr << "********************\n";
-//           std::cerr << " REGION " << ptgrid_->RegionIdToName(subdoms_[actDom]) << std::endl;
-//           std::cerr << "********************\n";
-          
           StdVector<Elem*> elemssd;
           ptgrid_->GetElems(elemssd, subdoms_[actDom]);
             
@@ -561,9 +553,6 @@ namespace CoupledField {
           }
 
           for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {        
-            // std::cerr << "********************\n";
-//              std::cerr << " Elelment Nr:" << elemssd[actEl]->elemNum << std::endl;
-//             std::cerr << "********************\n";
             
             BaseFE * ptEl = elemssd[actEl]->ptElem;
             StdVector<UInt> connecth = elemssd[actEl]->connect;
