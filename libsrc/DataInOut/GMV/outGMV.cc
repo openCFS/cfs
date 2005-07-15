@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
 #include <stdio.h>
@@ -14,40 +15,44 @@ namespace CoupledField {
 
 
   //*****************
-//   Constructor
-//*****************
-WriteResultsGMV::WriteResultsGMV( const Char *const filename)
-  : WriteResults(filename) {
+    //   Constructor
+    //*****************
+    WriteResultsGMV::WriteResultsGMV( const Char *const filename)
+      : WriteResults(filename) {
 
-  ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
+      ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
 
-  UInt nameLength = std::strlen(filename);
-  namedir_ = new Char[ nameLength + 4 + 1 ]; 
-  std::strcpy( namedir_, filename );
-  std::strcat( namedir_, "_gmv" );
+      UInt nameLength = std::strlen(filename);
+      namedir_ = new Char[ nameLength + 4 + 1 ]; 
+      std::strcpy( namedir_, filename );
+      std::strcat( namedir_, "_gmv" );
 
-  Char *command = new Char[ nameLength + 4 + 9 + 1 ];
-  std::sprintf( command, "mkdir -p %s", namedir_ );
-  std::system( command );
-  delete[] command;
+      Char *command = new Char[ nameLength + 4 + 9 + 1 ];
+      std::sprintf( command, "mkdir -p %s", namedir_ );
+      std::system( command );
+      delete[] command;
 
-  currStep_ = 0;
-  lastStep_ = 0;
-  lastTime_ = 0.0;
-  currTime_ = 0.0;
+      currStep_ = 0;
+      lastStep_ = 0;
+      lastTime_ = 0.0;
+      currTime_ = 0.0;
 
-  firstGridWritten_ = FALSE;
-  output = NULL;
+      firstGridWritten_ = FALSE;
+      output = NULL;
 
-  ascii_ = TRUE;
-  fixedgrid_ = TRUE;
+      ascii_ = TRUE;
+      fixedgrid_ = TRUE;
 
-  // Output format can be either ascii (default) or binary
-  ascii_ = !params->IsSet( "binaryFormat", "gmv" );
+      // Set allowed lenght of characters for names
+      charOutSize_ = 32;
+      strBuffer_ = new Char[charOutSize_];
+
+      // Output format can be either ascii (default) or binary
+      ascii_ = !params->IsSet( "binaryFormat", "gmv" );
  
-  // Does the grid change over time, or can we use a fixed grid
-  fixedgrid_ = params->IsSet( "fixedGrid", "gmv" );
-}
+      // Does the grid change over time, or can we use a fixed grid
+      fixedgrid_ = params->IsSet( "fixedGrid", "gmv" );
+    }
 
 
   // **********************
@@ -77,6 +82,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     }
 
     delete [] namedir_;
+
+    delete [] strBuffer_;
   }
 
 
@@ -159,8 +166,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     }
 
     // read information about number of elements 
-    UInt numelem; 
-    numelem=ptGrid_->GetNumElems();
+    UInt numelem =ptGrid_->GetNumElems();
 
     if (ascii_)
       (*output) << numelem << std::endl;
@@ -184,8 +190,8 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
             (*output) << "line 2" << std::endl;
           else {
             (*output) << "line    ";
-          UInt nn=2;
-          output->write((char*)&nn,sizeof(UInt));
+            UInt nn=2;
+            output->write((char*)&nn,sizeof(UInt));
           }
           break;
         default:
@@ -354,15 +360,13 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   //   WriteMaterials
   // ******************
   void WriteResultsGMV::WriteMaterials() {
+    ENTER_FCN( "WriteResultsGMV::WriteMaterials");
 
     StdVector<UInt> regionID;
     StdVector<RegionIdType> subdoms;
     StdVector<Elem*> elemSD;
     std::string regionName;
     UInt aux;
-    Char * str = NULL;
-    if (! ascii_)
-      str =new Char[8];
       
     ptGrid_->GetRegionIds(subdoms);
 
@@ -381,12 +385,16 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     // loop over all subdomains
     for (UInt iSD=0; iSD<subdoms.GetSize(); iSD++) {
       regionName = ptGrid_->RegionIdToName( subdoms[iSD] );
-      if (ascii_)
-        (*output) << regionName << std::endl;
-      else {
-        to8Char(regionName,str);
-        (*output) << str;
+
+      TruncateString(regionName,strBuffer_);
+      std::cerr << "strBuffer = '" << strBuffer_ << "' \n" << std::endl;
+
+      if (ascii_) {
+        (*output) << strBuffer_ << std::endl;
+      } else {
+        output->write(strBuffer_,charOutSize_*sizeof(char));
       }
+        
       
 
       ptGrid_->GetElems(elemSD,subdoms[iSD]);
@@ -411,9 +419,87 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     if (ascii_)
       (*output) << std::endl;
   
-    if (str)
-      delete[] str;
   }
+
+
+  // **************************************
+  //   Write named entities (nodes, names)
+  // **************************************
+  void WriteResultsGMV::WriteNamedEntities() {
+    ENTER_FCN( "WriteResultsGMV::WriteNamedEntities" );
+
+
+    StdVector<std::string> nodeNames, elemNames;
+    StdVector<UInt> nodeNumbers, elemNumbers;
+    UInt entType = 0;
+    UInt aux = 0;
+
+    ptGrid_->GetListNodeNames(nodeNames);
+    ptGrid_->GetListNodeNames(elemNames);
+    
+    // Check if there are any named nodes / elems in the grid
+    if( nodeNames.GetSize() == 0 &&
+        elemNames.GetSize() == 0 ) {
+      return;
+    }
+    
+    // Begin group section
+    if (ascii_) {
+      (*output) << "groups" << std::endl;
+    } else {
+      (*output) << "groups  ";
+    }
+    
+    // write names nodes
+    entType = 1;
+      
+    for( UInt i = 0; i < nodeNames.GetSize(); i++ ) {
+      
+      // get nodes
+      ptGrid_->GetNodesByName(nodeNumbers, nodeNames[i]);
+
+      // write name and number of nodes
+
+      TruncateString(nodeNames[i],strBuffer_);
+      if (ascii_) {
+        (*output) << strBuffer_ <<  " " << entType << " " 
+                  << nodeNumbers.GetSize();
+      } else {
+        output->write(strBuffer_,charOutSize_*sizeof(char));
+        output->write((char*)&entType,sizeof(UInt));
+        aux = nodeNumbers.GetSize();
+        output->write((char*)&aux,sizeof(UInt));
+      }
+
+      // write node numbers itself
+      
+      if (ascii_) {
+        for( UInt iNode = 0; iNode < nodeNumbers.GetSize(); iNode++) {
+          (*output) << " " << nodeNumbers[iNode];
+        }
+      } else {
+        for( UInt iNode = 0; iNode < nodeNumbers.GetSize(); iNode++) {
+          aux = nodeNumbers[iNode];
+          output->write((char*)&aux,sizeof(UInt));
+        }
+      }
+      
+      if (ascii_) {
+        (*output) << std::endl;
+      }
+          
+
+    }
+    
+    if (ascii_) {
+      (*output) << "endgrp" << std::endl;
+    } else {
+      (*output) << "endgrp  ";
+    }
+      
+    
+  }
+  
 
 
   // ******************************
@@ -427,15 +513,14 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       (*output) << std::endl;
     }
 
+    TruncateString(name,strBuffer_);
     if (ascii_) {
-      (*output) << name << " " << dataType << std::endl;
+      (*output) << strBuffer_ << " " << dataType << std::endl;
     }
     else {
-      Char * str=new Char[8];  
-      to8Char(name,str);
-      (*output) << str;
+
+      output->write(strBuffer_,charOutSize_*sizeof(char));
       output->write((Char*)&dataType,sizeof(UInt));
-      delete [] str;
     }
 
     if (ascii_) {
@@ -461,6 +546,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
                              const ComplexFormat outputFormat ) {
     UInt i;
     Double val;
+    std::string auxName, suffix;
   
     if (outputFormat == REAL_IMAG) {
   
@@ -471,16 +557,17 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       // --- Real Part ---
       if (ascii_) (*output) << std::endl;
     
-    
+      auxName = name;
+      suffix = "-Real";
+      auxName.resize(charOutSize_-suffix.size());
+      auxName += suffix;                     
+      TruncateString(auxName,strBuffer_);
+      
       if (ascii_)
-        (*output) << name << "-Real " << dataType << std::endl;
+        (*output) << strBuffer_ << dataType << std::endl;
       else {
-        Char * str=new Char[8];  
-        to8Char(name,str);
-        str[7] = 'R';
-        (*output) << str;
+        output->write(strBuffer_,charOutSize_*sizeof(char));
         output->write((Char*)&dataType,sizeof(UInt));
-        delete [] str;
       }
     
       if (ascii_) {
@@ -497,18 +584,18 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
       // --- Imaginary Part ---
       if (ascii_) (*output) << std::endl;
-    
+      auxName = name;
+      suffix = "-Imag";
+      auxName.resize(charOutSize_-suffix.size());
+      auxName += suffix;                     
+      TruncateString(auxName,strBuffer_);
     
       if (ascii_)
-        (*output) << name << "-Imag " << dataType << std::endl;
+        (*output) << strBuffer_ << dataType << std::endl;
       else 
         {
-          Char * str=new Char[8];  
-          to8Char(name,str);
-          str[7] = 'I';
-          (*output) << str;
+          output->write(strBuffer_,charOutSize_*sizeof(char));
           output->write((Char*)&dataType,sizeof(UInt));
-          delete [] str;
         }
     
       if (ascii_) 
@@ -534,18 +621,18 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     
       // --- Amplitude ---
       if (ascii_) (*output) << std::endl;
-    
+      auxName = name;
+      suffix = "-Ampl";
+      auxName.resize(charOutSize_-suffix.size());
+      auxName += suffix;                     
+      TruncateString(auxName,strBuffer_);
     
       if (ascii_)
-        (*output) << name << "-Amplitude " << dataType << std::endl;
+        (*output) << strBuffer_ << dataType << std::endl;
       else 
         {
-          Char * str=new Char[8];  
-          to8Char(name,str);
-          str[7] = 'A';
-          (*output) << str;
+          output->write(strBuffer_,charOutSize_*sizeof(char));
           output->write((Char*)&dataType,sizeof(UInt));
-          delete [] str;
         }
     
       if (ascii_) 
@@ -564,18 +651,18 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
       // --- Phase ---
       if (ascii_) (*output) << std::endl;
-    
-    
+      auxName = name;
+      suffix = "-Phase";
+      auxName.resize(charOutSize_-suffix.size());
+      auxName += suffix;                     
+      TruncateString(auxName,strBuffer_);
+      
       if (ascii_)
-        (*output) << name << "-Phase " << dataType << std::endl;
+        (*output) << strBuffer_ << dataType << std::endl;
       else 
         {
-          Char * str=new Char[8];  
-          to8Char(name,str);
-          str[7] = 'P';
-          (*output) << str;
+          output->write(strBuffer_,charOutSize_*sizeof(char));
           output->write((Char*)&dataType,sizeof(UInt));
-          delete [] str;
         }
     
       if (ascii_) 
@@ -652,11 +739,11 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       WriteNodes();
       WriteCells();
       WriteMaterials();
+      
       if (ascii_)
         (*output) << "\nendgmv";
       else 
         (*output) << "endgmv  ";
-      delete output;
       return;
     }
 
@@ -669,8 +756,9 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       OpenFile(-1);
       WriteNodes();
       WriteCells();
-
       WriteMaterials();
+      WriteNamedEntities();
+      
       if (ascii_)
         (*output) << "\nendgmv";
       else 
@@ -707,10 +795,15 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
                     <<"\""<< std::endl;
         else 
           (*output) << "materialfromfile\"" << nameGridFile_ <<"\"";
+        
+        // Since there exist no 'fromfile'-construct for groups, we have
+        // to write it out all the time
+        WriteNamedEntities();
       } else {
         WriteNodes();
         WriteCells();
         WriteMaterials();
+        WriteNamedEntities();
       }
       if (ascii_)
         (*output) << std::endl << "variable" << std::endl;
@@ -720,9 +813,6 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
   }
 
 
-
-
-
   void WriteResultsGMV::
   WriteNodeSolutionTransient( const NodeStoreSol<Double> &sol, 
                               const UInt step, const Double time ) {
@@ -730,7 +820,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
     UInt iDof;
     Vector<Double> solhelp;
-    std::string outString, errMsg;
+    std::string outString;
     StdVector<SolutionType> solTypes;
   
     currTime_ = time;
@@ -748,11 +838,12 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
       // GMV can not visualize tensor data
       if (sol.GetDof(solTypes[iSol]) > 3){
-        errMsg  = "OutGMV::WriteNodeSolutionTransient: GMV can only ";
-        errMsg += "visualize 3 dimensional data.\n Your solution has ";
-        errMsg += Info->GenStr(sol.GetDof(solTypes[iSol]));
-        errMsg += " degrees of freedom!";
-        Error(errMsg.c_str(), __FILE__, __LINE__);
+        (*warning) << "OutGMV::WriteNodeSolutionTransient: GMV can only "
+                   << "visualize 3 dimensional data.\n Your solution has "
+                   << Info->GenStr(sol.GetDof(solTypes[iSol]))
+                   << " degrees of freedom!";
+        Warning(__FILE__, __LINE__);
+        return;
       }
         
       // Iterate over all degrees of freedom
@@ -789,7 +880,6 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
     currTime_ = time;
     currStep_ = step;
-    std::string errMsg;
     UInt i = 0;
     Vector<Double> solhelp;
     StdVector<SolutionType> solType;
@@ -799,11 +889,12 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
     // GMV can not visualize tensor data
     if (data.GetDof() > 3){
-      errMsg  = "OutGMV::WriteElemSolutionTransient: GMV can only ";
-      errMsg += "visualize 3 dimensional data.\n Your solution has ";
-      errMsg += Info->GenStr(data.GetDof());
-      errMsg += " degrees of freedom!";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
+      (*warning) << "OutGMV::WriteElemSolutionTransient: GMV can only "
+                 << "visualize 3 dimensional data.\n Your solution has "
+                 << Info->GenStr(data.GetDof())
+                 << " degrees of freedom!";
+      Warning(__FILE__, __LINE__);
+      return;
     }
  
     // Iterate over all degrees of freedom 
@@ -851,11 +942,12 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
     
       // GMV can not visualize tensor data
       if (sol.GetDof(solTypes[iSol]) > 3){
-        errMsg  = "OutGMV::WirteNodeSolutionHarmonic: GMV can only ";
-        errMsg += "visualize 3 dimensional data.\n Your solution has ";
-        errMsg += Info->GenStr(sol.GetDof(solTypes[iSol]));
-        errMsg += " degrees of freedom!";
-        Error(errMsg.c_str(), __FILE__, __LINE__);
+        (*warning) << "OutGMV::WriteElemSolutionTransient: GMV can only "
+                   << "visualize 3 dimensional data.\n Your solution has "
+                   << Info->GenStr(sol.GetDof(solTypes[iSol]))
+                   << " degrees of freedom!";
+        Warning(__FILE__, __LINE__);
+        return;
       }
         
       // Iterate over all degrees of freedom
@@ -904,11 +996,12 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
     // GMV can not visualize tensor data
     if (sol.GetDof() > 3){
-      errMsg  = "OutGMV::WriteElemSolutionHarmonic: GMV can only ";
-      errMsg += "visualize 3 dimensional data.\n Your solution has ";
-      errMsg += Info->GenStr(sol.GetDof());
-      errMsg += " degrees of freedom!";
-      Error(errMsg.c_str(), __FILE__, __LINE__);
+      (*warning) << "OutGMV::WriteElemSolutionTransient: GMV can only "
+                 << "visualize 3 dimensional data.\n Your solution has "
+                 << Info->GenStr(sol.GetDof())
+                 << " degrees of freedom!";
+      Warning(__FILE__, __LINE__);
+      return;
     }
  
     // Iterate over all degrees of freedom 
@@ -1004,7 +1097,7 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       (*output) << "gmvinput ascii" << std::endl;
     }
     else {
-      (*output) << "gmvinput" << "ieeei4r8";
+      (*output) << "gmvinput" << "iecxi4r8";
     }
   }
 
@@ -1021,24 +1114,11 @@ WriteResultsGMV::WriteResultsGMV( const Char *const filename)
 
   }
 
-  void WriteResultsGMV::to8Char(const std::string name, char * result)
+  void WriteResultsGMV::TruncateString(const std::string name, char * result)
   {
-    std::string aux;
-    UInt i;
-
-    aux="        "; 
-    if (name.size()> 8) {
-      for (i=0; i<8; i++)
-        aux[i]=name[i];
-    }
-    else {
-      for (i=0; i<name.size(); i++)
-        aux[i]=name[i];
-    }
-    
-
-    strcpy(result,aux.c_str());
-
+    std::string aux(charOutSize_,'\0');
+    aux.insert(0,name,0,name.length());
+    aux.copy(result,charOutSize_);
   }
 
 } // end of namespace
