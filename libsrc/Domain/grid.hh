@@ -114,6 +114,18 @@ namespace CoupledField
     virtual void GetSurfRegionIds( StdVector<RegionIdType> 
                                    & surfRegions ) = 0;
 
+    //! Get list with names of all named nodes
+
+    //! Get a list with names of all named nodes in the grid
+    //! \param nodeNames list of names of nodes
+    virtual void GetListNodeNames( StdVector<std::string> & nodeNames) = 0;
+
+    //! Get list with names of all named elements
+
+    //! Get a list with names of all named elements in the grid
+    //! \param elemNames list of names of elements
+    virtual void GetListElemNames( StdVector<std::string> & elemNames) = 0;
+
     //@}
 
 

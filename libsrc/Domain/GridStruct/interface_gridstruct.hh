@@ -107,6 +107,16 @@ namespace CoupledField
     void GetSurfRegionIds( StdVector<RegionIdType> & surfRegions ) {
       ptGridStruct->GetSurfRegionIds(surfRegions);
     }
+
+    //! Get list with names of all named nodes
+    void GetListNodeNames( StdVector<std::string> & nodeNames) {
+      ptGridStruct->GetListNodeNames(nodeNames);
+    }
+    
+    //! Get list with names of all named elements
+    void GetListElemNames( StdVector<std::string> & elemNames) {
+      ptGridStruct->GetListElemNames(elemNames);
+    }
     //@}
 
 

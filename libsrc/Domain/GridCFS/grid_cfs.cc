@@ -231,27 +231,44 @@ namespace CoupledField
     
     UInt numElems = 0;
     Integer index = 0;
-
+    
     for ( UInt i=0; i<regions.GetSize(); i++ ) {
       
-      // look in volume regions
-      index = volRegionIds_.Find(regions[i]);
-      if ( index != -1 ) {
-        numElems += volElems_[index].GetSize();
+      
+      // check if region Id is ALL_REGIONS
+      if ( regions[i] == ALL_REGIONS ) {
+
+        // iterate over all volume elements
+        for ( UInt i = 0; i < volElems_.GetSize(); i++) {
+          numElems += volElems_[index].GetSize();
+        }
+        
+        // iterate over all surface elements
+        for ( UInt i = 0; i < surfElems_.GetSize(); i++) {
+          numElems += surfElems_[index].GetSize();
+        }
+        
       } else {
         
-        // look in surface regions
-        index = surfRegionIds_.Find(regions[i]);
+        
+        // look in volume regions
+        index = volRegionIds_.Find(regions[i]);
         if ( index != -1 ) {
-          numElems += surfElems_[index].GetSize();
+          numElems += volElems_[index].GetSize();
         } else {
-          (*error) << "GridCFS: The region with id '" << regions[i]
-                   << "' was not found in the grid!";
-          Error( __FILE__, __LINE__ );
+          
+          // look in surface regions
+          index = surfRegionIds_.Find(regions[i]);
+          if ( index != -1 ) {
+          numElems += surfElems_[index].GetSize();
+          } else {
+            (*error) << "GridCFS: The region with id '" << regions[i]
+                     << "' was not found in the grid!";
+            Error( __FILE__, __LINE__ );
+          }
         }
       }
     }
-    
     return numElems;
     
   }
@@ -284,6 +301,19 @@ namespace CoupledField
     ENTER_FCN( "GridCFS::GetSurfRegionIds" );
     
     surfRegions = surfRegionIds_;
+  }
+
+  
+  template<UInt DIM>
+  void GridCFS<DIM>::GetListNodeNames( StdVector<std::string> & nodeNames) {
+    ENTER_FCN( "GridCFS<DIM>::GetListNodeNames" );
+    nodeNames = namedNodeNames_;
+  }
+
+  template<UInt DIM>
+  void GridCFS<DIM>::GetListElemNames( StdVector<std::string> & elemNames) {
+    ENTER_FCN( "GridCFS<DIM>::GetListElemNames" );
+    elemNames = namedElemNames_;
   }
   
   
