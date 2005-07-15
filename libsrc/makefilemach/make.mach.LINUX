@@ -44,11 +44,12 @@ ARFLAGS = r
 # Makefile.option.
 # -----------------------------------------------------------------------------
 
+PROFILE  = -DPROFILING
 OPT      = -O3 -mcpu=pentium
 STANDARD = -ansi -pedantic -Wno-long-long -Wno-comments
 
 CFLAG_EXE      = $(OPT)
-CFLAGS_MACHINE = $(OPT) $(STANDARD)
+CFLAGS_MACHINE = $(OPT) $(STANDARD) $(PROFILE)
 
 
 # -----------------------------------------------------------------------------
