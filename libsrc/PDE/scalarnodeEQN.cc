@@ -259,7 +259,12 @@ namespace CoupledField {
     }
 #endif
 
-    eqnNr = pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
+    Integer localNode = mesh2PDENode_[nodeNr-1];
+    if (localNode < 1 ) {
+      eqnNr = 0;
+    } else {
+      eqnNr = pdeNode2EQN_[localNode-1];
+    }
     eqnDof = 1;
   }
 
@@ -281,8 +286,12 @@ namespace CoupledField {
 #endif 
 
     eqnNr.Resize(dofsPerNode_);
-
-    eqnNr[0] = pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
+    Integer localNode = mesh2PDENode_[nodeNr-1];
+    if (localNode < 1 ) {
+      eqnNr = 0;
+    } else {
+      eqnNr[0] = pdeNode2EQN_[localNode-1];
+    }
   }
 
 
@@ -296,6 +305,8 @@ namespace CoupledField {
   
     eqnNr.Resize(nodeNr.GetSize());
 
+    Integer localNode = 0;
+
     for ( UInt i = 0; i < nodeNr.GetSize(); i++ ) {
 
 #ifdef CHECK_INDEX
@@ -305,8 +316,12 @@ namespace CoupledField {
         Error( __FILE__, __LINE__ );
       }
 #endif
-
-      eqnNr[i] =  pdeNode2EQN_[mesh2PDENode_[nodeNr[i]-1]-1];
+      localNode = mesh2PDENode_[nodeNr[i]-1];
+      if (localNode < 1 ) {
+        eqnNr[i] = 0;
+      } else {
+        eqnNr[i] =  pdeNode2EQN_[localNode-1];
+      }
     }
   }
 

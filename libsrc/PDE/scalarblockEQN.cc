@@ -181,7 +181,13 @@ namespace CoupledField {
              __FILE__, __LINE__ );
     }
 #endif
-    eqnNr = pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1][dof-1];
+
+    Integer localNode = mesh2PDENode_[nodeNr-1];
+    if (localNode < 1 ) {
+      eqnNr = 0;
+    } else {
+      eqnNr = pdeNode2EQN_[localNode-1][dof-1];
+    }
     eqnDof = 1;
   }
 
@@ -202,9 +208,15 @@ namespace CoupledField {
 #endif
 
     eqns.Resize(dofsPerNode_);
-  
+    Integer localNode = 0;
+
     for ( UInt i = 0; i < dofsPerNode_; i++ ) {
-      eqns[i] = pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1][i];
+      localNode = mesh2PDENode_[nodeNr-1];
+      if (localNode < 1 ) {
+        eqns[i] = 0;
+      } else {
+        eqns[i] = pdeNode2EQN_[localNode-1][i];
+      }
     }
   }
 
@@ -217,11 +229,11 @@ namespace CoupledField {
                                  StdVector<Integer> &eqnNr ) const {
 
     ENTER_FCN( "ScalarBlockEQN::Node2EQN" );
-
+    Integer localNode = 0;
     eqnNr.Resize(nodeNr.GetSize()*dofsPerNode_);
 
     for( UInt iNode = 0; iNode < nodeNr.GetSize(); iNode++ ) {
-
+      
 #ifdef CHECK_INDEX
       if ( nodeNr[iNode] > mesh2PDENode_.GetSize() ) {
         Error("ScalarNodeEQN::Node2EQN: Index out of bounds", 
@@ -229,12 +241,16 @@ namespace CoupledField {
       }
 #endif
       for (UInt iDof = 0; iDof < dofsPerNode_; iDof++ ) {
-        eqnNr[iNode*dofsPerNode_ + iDof] =
-          pdeNode2EQN_[mesh2PDENode_[nodeNr[iNode]-1]-1][iDof];
+        localNode = mesh2PDENode_[nodeNr[iNode]-1];
+        if (localNode < 1 ) {
+          eqnNr[iNode*dofsPerNode_ + iDof] = 0;
+        } else {
+          eqnNr[iNode*dofsPerNode_ + iDof] = pdeNode2EQN_[localNode-1][iDof];
+        }
       }
     }
   }
-
+    
 
   // ******************
   //   ReorderMapping
