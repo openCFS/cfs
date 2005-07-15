@@ -147,7 +147,7 @@ parameters are set this section takes the following form:
     <numFreq>        ...   </numFreq>
     <startFreq>      ...   </startFreq>
     <stopFreq>       ...   </stopFreq>
-    <logSampling>    ...   </logSampling>
+    <sampling>       ...   </sampling>
     <adjustDamping>  ...   </adjustDamping>
     <matDataFreq>    ...   </matDataFreq>
   </harmonic>
@@ -162,19 +162,47 @@ The parameters have the following meaning
 \hline\noalign{\smallskip}
 parameter & values & meaning \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-numFreq & $\nat$ & specifies the number of frequencies for which
+numFreq & $\nat$ & specifies the number $N$ of frequencies for which
                    a simulation is to be performed\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-startFreq & $> 0$ & smallest frequency for which a simulation is to be
-                    performed\\
+startFreq & $> 0$ & sets $f_1$, i.e. the smallest frequency for which a
+                    simulation is to be performed\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-stopFreq & $\geqslant$ startFreq & largest frequency for which a simulation
-                                   is to be performed\\
+stopFreq & $\geqslant$ startFreq & sets $f_N$, i.e. the largest frequency for
+                                   which a simulation is to be performed\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
-logSampling & yes, no & if this parameter is no or not specified, we perform
-                        an equally spaced sampling of the interval
-                        [startFreq, stopFreq]; if the parameter is set to
-                        yes, we perform a logarithmic sampling\\
+sampling & linear & in this case a linear sampling of the interval
+                    $[f_1,f_N]$ is performed, i.e.
+                    \begin{displaymath}
+                    f_k = f_1 + (k-1) \frac{f_N - f_1}{N-1}
+                    \enspace,\mbox{ for } k = 1,\ldots,N
+                    \end{displaymath}\\
+         & log    & in this case a logarithmic sampling of the interval
+                    $[f_1,f_N]$ is performed, i.e.
+                    \begin{displaymath}
+                    f_k = f_1 \cdot
+                    \left(\frac{f_N}{f_1}\right)^{\frac{k-1}{N-1}}
+                    \enspace,\mbox{ for } k = 1,\ldots,N
+                    \end{displaymath}
+                    This leads to a finer sampling at the beginnig of the
+                    interval and a coarser sampling at the end, since the
+                    distance between samples increases as
+                    \begin{displaymath}
+                    f_{k+1} - f_k = \left[
+                    \left(\frac{f_N}{f_1}\right)^{\frac{1}{N-1}}
+                    - 1 \right] \cdot f_k
+                    \end{displaymath}
+	            and corresponds to a linear sampling of the transformed
+                    interval $[\log_{10}(f_1),\log_{10}(f_N)]$.\\[1ex]
+         & reverseLog & in this case a reverse logarithmic sampling of the
+                        interval $[f_1,f_N]$ is performed, i.e.
+                    \begin{displaymath}
+                    f_k = f_N + f_1\cdot\left[ 1 -
+                    \left(\frac{f_N}{f_1}\right)^{\frac{N-k}{N-1}}\right]
+                    \end{displaymath}
+                    for $k = 1,\ldots,N$.
+                    This leads to a coarser sampling at the beginnig of the
+                    interval and a finer sampling at the end.\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 adjustDamping & yes, no & set this to yes, if the damping is depending on the
                           frequency; in this case CFS++ will
