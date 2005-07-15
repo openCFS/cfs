@@ -178,12 +178,10 @@ namespace CoupledField {
   {     
 #ifdef CHECK_INDEX
     if (i >= size_){
-      std::string errorMsg;
-      errorMsg =  "Vector: invalid access to element ";
-      errorMsg += Info->GenStr(i+1);
-      errorMsg += "! \n Length of vector: ";
-      errorMsg += Info->GenStr(size_);
-      Error(errorMsg.c_str(),__FILE__,__LINE__);
+      (*warning) <<  "Vector: invalid access to element "
+                 << i+1
+                 << " \n Length of vector: " << size_;
+      Warning(__FILE__,__LINE__);
     }
 #endif
     return  data_[i];
@@ -194,13 +192,11 @@ namespace CoupledField {
   TYPE StdVector<TYPE>::operator[] (const UInt i) const
   {     
 #ifdef CHECK_INDEX
-    if (i >= size_){
-      std::string errorMsg;
-      errorMsg =  "Vector: invalid access to element ";
-      errorMsg += Info->GenStr(i+1);
-      errorMsg += "! \n Length of vector: ";
-      errorMsg += Info->GenStr(size_);
-      Error(errorMsg.c_str(),__FILE__,__LINE__);
+     if (i >= size_){
+      (*warning) <<  "Vector: invalid access to element "
+                 << i+1
+                 << " \n Length of vector: " << size_;
+      Warning(__FILE__,__LINE__);
     }
 #endif
     return  data_[i];
@@ -222,7 +218,7 @@ namespace CoupledField {
   {
 #ifdef CHECK_MEMORY
     if (!data_)
-      Error("Vector: undefined Vector",__FILE__,__LINE__);
+      Warning("Vector: undefined Vector",__FILE__,__LINE__);
 #endif
     return data_;
   }
