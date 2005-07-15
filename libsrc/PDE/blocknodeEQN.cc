@@ -208,7 +208,12 @@ namespace CoupledField {
       Error("ScalarNodeEQN::Node2EQN: Index out of bounds", 
             __FILE__, __LINE__);
 #endif
-    eqnNr = pdeNode2EQN_[mesh2PDENode_[nodeNr-1]-1];
+     Integer localNode = mesh2PDENode_[nodeNr-1];
+    if (localNode < 1 ) {
+      eqnNr = 0;
+    } else {
+      eqnNr = pdeNode2EQN_[localNode-1];
+    }
     eqnDof = dof;
   }
 
@@ -224,10 +229,17 @@ namespace CoupledField {
   {
     ENTER_FCN( "BlockNodeEQN::Node2EQN" );
 
+    Integer localNode = 0;
     eqnNr.Resize(nodeNr.GetSize());
 
-    for (UInt i=0; i<nodeNr.GetSize(); i++)
-      eqnNr[i] =  pdeNode2EQN_[mesh2PDENode_[nodeNr[i]-1]-1];
+    for (UInt i=0; i<nodeNr.GetSize(); i++) {
+      localNode = mesh2PDENode_[nodeNr[i]-1];
+      if (localNode < 1 ) {
+        eqnNr[i] = 0;
+      } else {
+        eqnNr[i] =  pdeNode2EQN_[localNode-1];
+      }
+    }  
   }
 
   // ==========================================
