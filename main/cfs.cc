@@ -235,7 +235,10 @@ int main( int argc, const char **argv ) {
     STDOUT << "Printing grid to file " << myEndl << myEndl;
     PrintGridOnly = TRUE;
     domain->PrintGrid();
-    exit(0);
+    delete domain;
+    delete Info;
+    delete commandLine; 
+    return 0;
   }
 
 

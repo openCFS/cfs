@@ -64,25 +64,27 @@ namespace CoupledField {
 
     // The last gmv-file is closed by the destructor
     if ( output != NULL ) {
-      if (ascii_) {
-        (*output) << "\nendvars\n" ;
-        (*output) << "probtime " << lastTime_ << std::endl;
-        (*output) << "cycleno " << lastStep_ << std::endl;
-        (*output) << "endgmv ";
-      }
-      else {
-        (*output) << "endvars ";
-        (*output) << "probtime";
-        output->write( (char*)&lastTime_, sizeof(Double) );
-        (*output) << "cycleno ";
-        output->write( (char*)&lastStep_, sizeof(UInt) );
-        (*output) << "endgmv  ";
+      if ( PrintGridOnly == FALSE ) {
+        if (ascii_) {
+          (*output) << "\nendvars\n" ;
+          (*output) << "probtime " << lastTime_ << std::endl;
+          (*output) << "cycleno " << lastStep_ << std::endl;
+          (*output) << "endgmv ";
+        }
+        else {
+          (*output) << "endvars ";
+          (*output) << "probtime";
+          output->write( (char*)&lastTime_, sizeof(Double) );
+          (*output) << "cycleno ";
+          output->write( (char*)&lastStep_, sizeof(UInt) );
+          (*output) << "endgmv  ";
+        }
       }
       delete output;
     }
-
+    
     delete [] namedir_;
-
+    
     delete [] strBuffer_;
   }
 
@@ -738,11 +740,13 @@ namespace CoupledField {
       WriteNodes();
       WriteCells();
       WriteMaterials();
+      WriteNamedEntities();
       
       if (ascii_)
         (*output) << "\nendgmv";
       else 
         (*output) << "endgmv  ";
+      
       return;
     }
 

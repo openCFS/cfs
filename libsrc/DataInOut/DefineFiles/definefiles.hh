@@ -24,7 +24,7 @@ namespace CoupledField
     //! \param name This is the basename for all auxilliary file.
     DefineInOutFiles(const Char * name);
 
-    //! deconstructor
+    //! destructor
     ~DefineInOutFiles();
 
     //! Open an auxilliary file
