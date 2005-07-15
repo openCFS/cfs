@@ -387,7 +387,6 @@ namespace CoupledField {
       regionName = ptGrid_->RegionIdToName( subdoms[iSD] );
 
       TruncateString(regionName,strBuffer_);
-      std::cerr << "strBuffer = '" << strBuffer_ << "' \n" << std::endl;
 
       if (ascii_) {
         (*output) << strBuffer_ << std::endl;
