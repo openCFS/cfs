@@ -573,6 +573,9 @@ namespace CoupledField
       case ACOU_POTENTIAL:
         return "fluid potential";
         break;
+      case ACOU_RHSVAL:
+        return "fluid potential";
+        break;
       case ACOU_PRESSURE:
         //       warnMsg = "Due to the restrictions in the .unv file format, the ";
         //       warnMsg += "acoustic pressure is written as acoustic (fluid) potential!";

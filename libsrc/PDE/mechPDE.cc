@@ -836,6 +836,21 @@ namespace CoupledField
 
     Double actTime = asteptime + timeOffset;
     UInt actStep = kstep + stepOffset;
+    
+#ifdef WRITE_RHS
+    NodeStoreSol<Double> rhs;
+    rhs.SetNumSolutions(1);
+    rhs.SetNumNodes(numPDENodes_);
+    rhs.SetSolutionType(ACOU_RHSVAL);
+    rhs.SetNumDofs(dim_);
+    rhs.SetPtrEQNData(eqnData_, ptgrid_);
+    rhs.Init(0.0);
+    
+    Double *ptRHS;
+    algsys_->GetRHSVal( ptRHS );
+    rhs.CopyFromAlgSysDataPointer(ptRHS);
+    outFile_->WriteNodeSolutionTransient(rhs, actStep, actTime);
+#endif
 
     if (analysistype_ == STATIC ||
         analysistype_ == TRANSIENT) {
