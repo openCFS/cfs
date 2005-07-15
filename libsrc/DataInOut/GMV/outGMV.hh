@@ -108,6 +108,12 @@ namespace CoupledField
     //! indicator of type for data
     Boolean ascii_;
 
+    //! size of character string to be written out
+    UInt charOutSize_;
+
+    //! output buffer for character strings
+    Char * strBuffer_;
+
     //! indicator of adaptive grid or not
     Boolean fixedgrid_; 
 
@@ -125,6 +131,9 @@ namespace CoupledField
 
     //! write cell materials
     void WriteMaterials();
+
+    //! write named entities (nodes, elements)
+    void WriteNamedEntities();
 
     //! write variable information
     /*!
@@ -160,13 +169,15 @@ namespace CoupledField
     void WriteVelocity(const Vector<Double>* var, const std::string name,
                        const UInt dataType);
  
-    //! transform string to 8 characters. we need it, because name in gmv,
-    //! in binary format, should be from 8 characters
+    //! Truncate a std::string and copy the result into a *char array.
+    //! This function is needed, since gmv permits only to write 8 characters
+    //! (binary format up to gmv 3.4) or 32 characters (ascii format, binary 
+    //! format since version 3.5)
     /*!
       \param name (input) title
       \param result (output) result
     */
-    void to8Char(const std::string name, char * result);
+    void TruncateString(const std::string name, char * result);
   
   };
 
