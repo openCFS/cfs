@@ -156,7 +156,7 @@ namespace CoupledField
 
 #ifdef CHECK_INDEX
     if (size <= 0) 
-      Error("invalid dimension for Resize", __FILE__, __LINE__);
+      Warning("invalid dimension for Resize", __FILE__, __LINE__);
 #endif  
   
     if (memBelongsToMe_ == FALSE ) {
@@ -185,11 +185,11 @@ namespace CoupledField
 
 #ifdef CHECK_INDEX
     std::string errorMsg;
-    std::stringstream errorMsgStream(errorMsg);
-    errorMsgStream << "Vector: invalid access to element ";
-    errorMsgStream << i << "\n Length of vector: " << size_;
+    std::stringstream warnMsgStream(errorMsg);
+    warnMsgStream << "Vector: invalid access to element ";
+    warnMsgStream << i << "\n Length of vector: " << size_;
     if (i >= size_)
-      Error(errorMsg.c_str(),__FILE__, __LINE__);
+      Warning(errorMsg.c_str(),__FILE__, __LINE__);
 #endif
     data_[i] = s;
   }
@@ -201,11 +201,11 @@ namespace CoupledField
 
 #ifdef CHECK_INDEX
     std::string errorMsg;
-    std::stringstream errorMsgStream(errorMsg);
-    errorMsgStream << "Vector: invalid access to element ";
-    errorMsgStream << i << "\n Length of vector: " << size_;
+    std::stringstream warnMsgStream(errorMsg);
+    warnMsgStream << "Vector: invalid access to element ";
+    warnMsgStream << i << "\n Length of vector: " << size_;
     if (i >= size_)
-      Error(errorMsg.c_str(),__FILE__, __LINE__);
+      Warning(errorMsg.c_str(),__FILE__, __LINE__);
 #endif
     ret=  data_[i];
   }
@@ -217,11 +217,11 @@ namespace CoupledField
 
 #ifdef CHECK_INDEX
     std::string errorMsg;
-    std::stringstream errorMsgStream(errorMsg);
-    errorMsgStream << "Vector: invalid access to element ";
-    errorMsgStream << i << "\n Length of vector: " << size_;
+    std::stringstream warnMsgStream(errorMsg);
+    warnMsgStream << "Vector: invalid access to element ";
+    warnMsgStream << i << "\n Length of vector: " << size_;
     if (i >= size_)
-      Error(errorMsg.c_str(),__FILE__, __LINE__);
+      Warning(errorMsg.c_str(),__FILE__, __LINE__);
 #endif
 
     data_[i]+=s;
@@ -238,7 +238,7 @@ namespace CoupledField
     errorMsgStream << "Vector::MultEntry: invalid access to element ";
     errorMsgStream << i << "\n Length of vector: " << size_;
     if (i >= size_)
-      Error(errorMsg.c_str(),__FILE__, __LINE__);
+      Warning(errorMsg.c_str(),__FILE__, __LINE__);
 #endif
 
     data_[i]+=s;
@@ -255,7 +255,7 @@ namespace CoupledField
     errorMsgStream << "Vector::MultEntry: invalid access to element ";
     errorMsgStream << i << "\n Length of vector: " << size_;
     if (i >= size_)
-      Error(errorMsg.c_str(),__FILE__, __LINE__);
+      Warning(errorMsg.c_str(),__FILE__, __LINE__);
 #endif
 
     data_[i]=a*data_[i] + s;
@@ -270,7 +270,7 @@ namespace CoupledField
 
 #ifdef CHECK_INDEX
     if (size_ != vec.size_)
-      Error("Vector: incompatible dimension for operator Add(Basevector)",
+      Warning("Vector: incompatible dimension for operator Add(Basevector)",
             __FILE__, __LINE__);
 #endif
 
@@ -287,7 +287,7 @@ namespace CoupledField
 
 #ifdef CHECK_INDEX
     if (size_ != vec.size_)
-      Error("Vector: incompatible dimension for operator Add(TYPE,Basevector)",
+      Warning("Vector: incompatible dimension for operator Add(TYPE,Basevector)",
             __FILE__, __LINE__);
 #endif
 
@@ -306,7 +306,7 @@ namespace CoupledField
 
 #ifdef CHECK_INDEX
     if (size_ != vec.size_)
-      Error("Vector: incompatible dimension for operator \
+      Warning("Vector: incompatible dimension for operator \
 Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 #endif
 
@@ -323,7 +323,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 
 #ifdef CHECK_INDEX
     if (size_ != vec.size_)
-      Error("Vector: incompatible dimension for operator Add(TYPE,Basevector)",
+      Warning("Vector: incompatible dimension for operator Add(TYPE,Basevector)",
             __FILE__, __LINE__);
 #endif
 
@@ -339,7 +339,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
     const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>& >(y);
 #ifdef CHECK_INDEX
     if (size_ != vec.size_)
-      Error("Vector: incompatible dimension for operator Add(T,Basevector)",
+      Warning("Vector: incompatible dimension for operator Add(T,Basevector)",
             __FILE__, __LINE__);
 #endif
 
@@ -430,7 +430,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
 #ifdef CHECK_INDEX
     if (size_ != x.size_)
-      Error("Vector: incompatible dimension for operator +(vector)",
+      Warning("Vector: incompatible dimension for operator +(vector)",
             __FILE__, __LINE__);
 #endif
   
@@ -455,7 +455,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
 #ifdef CHECK_INDEX
     if (size_ != x.size_)
-      Error("Vector: incompatible dimension for operator +=(vector)",
+      Warning("Vector: incompatible dimension for operator +=(vector)",
             __FILE__, __LINE__);
 #endif
 
@@ -494,7 +494,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
 #ifdef CHECK_INDEX
     if (size_ != x.size_)
-      Error("Vector: incompatible dimension for operator -(vector)",
+      Warning("Vector: incompatible dimension for operator -(vector)",
             __FILE__, __LINE__);
 #endif
     Vector ret(size_);
@@ -517,7 +517,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
 #ifdef CHECK_INDEX
     if (size_ != x.size_)
-      Error("Vector: incompatible dimension for operator -=(vector)",
+      Warning("Vector: incompatible dimension for operator -=(vector)",
             __FILE__, __LINE__);
 #endif
 
@@ -594,7 +594,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
 #ifdef CHECK_INDEX
     if (size_ != x.size_)
-      Error("Vector: incompatible dimension for operator *(vector)", 
+      Warning("Vector: incompatible dimension for operator *(vector)", 
             __FILE__, __LINE__);
 #endif
 
@@ -622,7 +622,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
 #ifdef CHECK_INDEX
     if (size_ != x.size_row_)
-      Error("Vector: incompatible dimension for operator *(Matrix)",
+      Warning("Vector: incompatible dimension for operator *(Matrix)",
             __FILE__, __LINE__);
 #endif
 
@@ -651,10 +651,10 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 
 #ifdef CHECK_INDEX
     if (!x.data_)
-      Error( "undefined Matrix in operator = ", __FILE__, __LINE__);
+      Warning( "undefined Matrix in operator = ", __FILE__, __LINE__);
 
     if (x.size_col_ != 1)
-      Error( "matrix has more tha one row. No assignment to vector possible ", 
+      Warning( "matrix has more tha one row. No assignment to vector possible ", 
              __FILE__, __LINE__);
 #endif
   
@@ -812,7 +812,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
     ENTER_IFCN( "Vector::AddElement" );
 #ifdef CHECK_INDEX
     if (pos < 0 || pos > size_)
-      Error("Vector::AddElemen(): Index out of bounds", __FILE__, __LINE__);
+      Warning("Vector::AddElemen(): Index out of bounds", __FILE__, __LINE__);
 #endif
   
     if (memBelongsToMe_ == FALSE ) {
@@ -850,7 +850,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
 #ifdef CHECK_INDEX
     if (pos < 0)
-      Error("Vector: index is smaller than zero in function InsertVector()", 
+      Warning("Vector: index is smaller than zero in function InsertVector()", 
             __FILE__, __LINE__);
 #endif
   
@@ -890,7 +890,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 
 #ifdef CHECK_INDEX
     if (pos<0 || pos >=size_) 
-      Error("Invalid index for cut");
+      Warning("Invalid index for cut");
 #endif
    
     if (memBelongsToMe_ == FALSE ) {
@@ -922,9 +922,9 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 
 #ifdef CHECK_INDEX
     if (pos1 < 0 || pos1 >= size_ || pos2 < 0 || pos2 >= size_) 
-      Error("Invalid index for cut");
+      Warning("Invalid index for cut");
     if (pos1 > pos2)
-      Error("First index is bigger than second one in function Cut()",
+      Warning("First index is bigger than second one in function Cut()",
             __FILE__, __LINE__);
 #endif
  

@@ -122,7 +122,7 @@ namespace CoupledField {
 
 #ifdef CHECK_INDEX
     if (size < 0) 
-      Error("Invalid dimension for Resize", __FILE__, __LINE__);
+      Warning("Invalid dimension for Resize", __FILE__, __LINE__);
 #endif  
   
     if (size != size_ ||  capacity_ < size)
@@ -192,7 +192,7 @@ namespace CoupledField {
   
 #ifdef CHECK_INDEX
     if (pos >= size_)
-      Error( "StdVector::Insert: Index out of bounds", __FILE__, __LINE__);
+      Warning( "StdVector::Insert: Index out of bounds", __FILE__, __LINE__);
 #endif
 
     TYPE * help = new TYPE[size_+1];
@@ -218,10 +218,10 @@ namespace CoupledField {
   
 #ifdef CHECK_INDEX
     if (pos >= size_)
-      Error( "StdVector::Insert: Index out of bounds", __FILE__, __LINE__);
+      Warning( "StdVector::Insert: Index out of bounds", __FILE__, __LINE__);
 
     if (numCopies < 1)
-      Error( "StdVector::Insert: NumCopies must be greater 1",
+      Warning( "StdVector::Insert: NumCopies must be greater 1",
              __FILE__, __LINE__);
 #endif
 
@@ -284,7 +284,7 @@ namespace CoupledField {
 
 #ifdef CHECK_INDEX
     if (pos<0 || pos >=size_) 
-      Error("Invalid index for cut");
+      Warning("Invalid index for cut");
 #endif
 
     UInt i;
@@ -313,9 +313,9 @@ namespace CoupledField {
 
 #ifdef CHECK_INDEX
     if (pos1 < 0 || pos1 >= size_ || pos2 < 0 || pos2 >= size_) 
-      Error("Invalid index for cut");
+      Warning("Invalid index for cut");
     if (pos1 > pos2)
-      Error("First index is bigger than second one in function Erase()",
+      Warning("First index is bigger than second one in function Erase()",
             __FILE__, __LINE__);
 #endif
     UInt i;
@@ -352,7 +352,7 @@ namespace CoupledField {
     ENTER_IFCN( "StdVector::operator==" );
     // #ifdef CHECK_INITIALIZED 
     //   if ((size_ == 0) || (vec.size_ == 0))
-    //     Error("Vector: undefined Vector in operator==",__FILE__,__LINE__);
+    //     Warning("Vector: undefined Vector in operator==",__FILE__,__LINE__);
     // #endif
 
     if (size_ == 0 && vec.size_ == 0)
@@ -372,7 +372,7 @@ namespace CoupledField {
     ENTER_IFCN( "StdVector::operator!=" );
 #ifdef CHECK_INITIALIZED
     if ((size_ == 0) || (vec.size_ == 0))
-      Error("Vector: undefined Vector in operator !=", __FILE__, __LINE__);
+      Warning("Vector: undefined Vector in operator !=", __FILE__, __LINE__);
 #endif
   
     for (UInt i = 0; i < size_; i++)
