@@ -163,7 +163,7 @@ DATABASE = no
 HYPRE = yes
 
 # Was OLAS compiled with support for LAPACK?
-LAPACK = yes 
+LAPACK = yes
 
 # Was OLAS compiled with support for TVMET?
 TVMET = yes
