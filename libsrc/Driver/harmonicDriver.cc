@@ -79,6 +79,16 @@ namespace CoupledField {
       Error( __FILE__, __LINE__ );
     }
 
+    // If only one step, check that start and stop are equal
+    if ( numFreq_ == 1 ) {
+      if ( startFreq_ != stopFreq_ ) {
+        (*error) << "Found numFreq = " << numFreq_ << " in xml-File, "
+                 << "but startFreq_ = " << startFreq_ << " != "
+                 << "stopFreq_ = " << stopFreq_;
+      Error( __FILE__, __LINE__ );
+      }
+    }
+
     // We do not allow smaller stopping than starting frequencies
     if ( startFreq_ > stopFreq_ ) {
       (*error) << "startFreq = " << startFreq_ << " > stopFreq = "
@@ -136,7 +146,7 @@ namespace CoupledField {
 
       // Get list of PDEs which have to be solved and intialize them
       GetMyPDEs();
-      Info->StartProgress ("Starting to solve problem", FALSE);
+      Info->StartProgress ( "Starting to solve problem", FALSE );
     }
 
     ptPDE_->WriteGeneralPDEdefines();
@@ -177,40 +187,48 @@ namespace CoupledField {
 
     Double retFreq = 0.0;
 
-    switch( samplingType_ ) {
+    // Check for single step
+    if ( numFreq_ == 1 ) {
+      retFreq = startFreq_;
+    }
+    else {
 
-      // Linear sampling
-    case LINEAR_SAMPLING:
-      retFreq = (freqIndex - 1) * (stopFreq_ - startFreq_) / ( numFreq_ - 1 )
-        + startFreq_;
-      break;
+      switch( samplingType_ ) {
 
-      // Logarithmic sampling
-    case LOG_SAMPLING:
-      {
-        Double fac = stopFreq_ / startFreq_;
-        fac = std::pow( fac, (Double)(freqIndex - 1) / (numFreq_ - 1) );
-        retFreq = startFreq_ * fac;
+        // Linear sampling
+      case LINEAR_SAMPLING:
+        retFreq = (freqIndex - 1) * (stopFreq_ - startFreq_) /
+          (Double)( numFreq_ - 1 ) + startFreq_;
+        break;
+
+        // Logarithmic sampling
+      case LOG_SAMPLING:
+        {
+          Double fac = stopFreq_ / startFreq_;
+          fac = std::pow( fac, (Double)(freqIndex - 1) / (numFreq_ - 1) );
+          retFreq = startFreq_ * fac;
+        }
+        break;
+
+        // Reverse logarithmic sampling
+      case REVERSE_LOG_SAMPLING:
+        {
+          Double fac = stopFreq_ / startFreq_;
+          fac = std::pow( fac, (Double)(numFreq_ - freqIndex)
+                          / (numFreq_ - 1));
+          retFreq = stopFreq_ + startFreq_ * ( 1.0 - fac );
+        }
+        break;
+
+        // Something's wrong
+      default:
+        std::string damp;
+        Enum2String( samplingType_, damp );
+        (*error) << "HarmonicDriver::ComputeNextFrequency: '"
+                 << damp
+                 << "' is not supported as sampling type";
+        Error( __FILE__, __LINE__ );
       }
-      break;
-
-      // Reverse logarithmic sampling
-    case REVERSE_LOG_SAMPLING:
-      {
-        Double fac = stopFreq_ / startFreq_;
-        fac = std::pow( fac, 1.0 - (Double)(freqIndex - 1) / (numFreq_ - 1) );
-        retFreq = stopFreq_ + startFreq_ * ( 1.0 - fac );
-      }
-      break;
-
-      // Something's wrong
-    default:
-      std::string damp;
-      Enum2String( samplingType_, damp );
-      (*error) << "HarmonicDriver::ComputeNextFrequency: '"
-               << damp
-               << "' is not supported as sampling type";
-      Error( __FILE__, __LINE__ );
     }
 
     return retFreq;
