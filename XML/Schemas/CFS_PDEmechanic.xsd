@@ -43,12 +43,12 @@
           <!-- Type of damping model (optional) -->
           <xsd:element name="damping" type="DT_MechDamp" minOccurs="0"/>
 
-          <!-- Section for specifying pprestressing (optional) -->
+          <!-- Section for specifying pre-stressing (optional) -->
           <xsd:element name="preStressing" minOccurs="0">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="preStress" type="DT_PreStress" minOccurs="1"
-                  maxOccurs="unbounded"/>
+                <xsd:element name="preStress" type="DT_PreStress"
+                  minOccurs="1" maxOccurs="unbounded"/>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
@@ -69,8 +69,8 @@
                              minOccurs="0" maxOccurs="unbounded"/>
                 <xsd:element name="spring" type="DT_MechSpring" minOccurs="0"
                              maxOccurs="unbounded"/>
-                <xsd:element name="regionLoad" type="DT_MechRegionLoad" minOccurs="0"
-                             maxOccurs="unbounded"/>
+                <xsd:element name="regionLoad" type="DT_MechRegionLoad"
+                             minOccurs="0" maxOccurs="unbounded"/>
                 
               </xsd:sequence>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
@@ -260,6 +260,16 @@
     <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
   </xsd:complexType>
 
+  <!-- Data type for computing the volume over a surface -->
+  <xsd:complexType name="DT_SurfVolumeMech">
+    <xsd:complexContent>
+      <xsd:extension base="xsd:anyType">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
   <!-- Global type for specifying the desired mechanical output quantities -->
   <xsd:complexType name="DT_MechStoreResults">
     <xsd:sequence>
@@ -271,6 +281,8 @@
         maxOccurs="unbounded"/>
       <xsd:element name="elemHistory" type="DT_ElemHistoryMech" minOccurs="0"
         maxOccurs="unbounded"/>
+      <xsd:element name="volumeAboveDefSurf" type="DT_SurfVolumeMech"
+        minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
 
