@@ -437,9 +437,9 @@ namespace CoupledField
       out << std::setw(15) << "name" << " | " 
           << std::setw(15) << "refCoordSys" << " | "
           << std::setw(15) << "dynamics" << " | "
-          << std::setw(10) << "volume" << " | "
-          << std::setw(10) << "tot. load" << " | "
-          << std::setw(10) << "unit load" <<std::endl;
+          << std::setw(11) << "volume" << " | "
+          << std::setw(11) << "tot. load" << " | "
+          << std::setw(11) << "unit load" <<std::endl;
       Info->PrintF(pdename_, out.str().c_str());
       out.str("");
       out << std::setw(90) << std::setfill('-') << "" 
@@ -535,17 +535,17 @@ namespace CoupledField
           out << std::setw(15) << names[i] << " | " 
               << std::setw(15) << refCoord[0] << " | "
               << std::setw(15) << dynamics[0] << " | "
-              << std::setw(10) << volume << " | ";
+              << std::setw(11) << volume << " | ";
         } else {
           out << std::setw(15) << "" << " | " 
               << std::setw(15) << "" << " | "
               << std::setw(15) << "" << " | "
-              << std::setw(10) << "" << " | ";
+              << std::setw(11) << "" << " | ";
               
         }
         
-        out << std::setw(10) << totLoad[k] << " | "
-            << std::setw(10) << unitLoad[k] << std::endl;
+        out << std::setw(11) << totLoad[k] << " | "
+            << std::setw(11) << unitLoad[k] << std::endl;
 
         Info->PrintF(pdename_,out.str().c_str());
       }

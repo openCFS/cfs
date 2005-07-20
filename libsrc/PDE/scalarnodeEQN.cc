@@ -288,7 +288,7 @@ namespace CoupledField {
     eqnNr.Resize(dofsPerNode_);
     Integer localNode = mesh2PDENode_[nodeNr-1];
     if (localNode < 1 ) {
-      eqnNr = 0;
+      eqnNr[0] = 0;
     } else {
       eqnNr[0] = pdeNode2EQN_[localNode-1];
     }
