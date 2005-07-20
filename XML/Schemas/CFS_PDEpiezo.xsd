@@ -227,11 +227,19 @@
   </xsd:complexType>
 
   <!-- Data type for computing the volume over a surface -->
-  <xsd:complexType name="DT_SurfVolume">
+  <xsd:complexType name="DT_SurfVolumePiezo">
     <xsd:complexContent>
       <xsd:extension base="xsd:anyType">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="dof" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="ux"/>
+              <xsd:enumeration value="uy"/>
+              <xsd:enumeration value="uz"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -249,8 +257,8 @@
         maxOccurs="unbounded"/>
       <xsd:element name="charge" type="DT_ChargePiezo" minOccurs="0"
         maxOccurs="unbounded"/>
-      <xsd:element name="volumeAboveDefSurf" type="DT_SurfVolume" minOccurs="0"
-        maxOccurs="unbounded"/>
+      <xsd:element name="volumeAboveDefSurf" type="DT_SurfVolumePiezo"
+        minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
 
