@@ -216,12 +216,22 @@
     <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
   </xsd:complexType>
 
-  <!-- Element type for computing of electric charges -->
+  <!-- Data type for computing of electric charges -->
   <xsd:complexType name="DT_ChargePiezo">
     <xsd:complexContent>
       <xsd:extension base="xsd:anyType">
         <xsd:attribute name="region" type="xsd:token" use="required"/>
         <xsd:attribute name="element" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Data type for computing the volume over a surface -->
+  <xsd:complexType name="DT_SurfVolume">
+    <xsd:complexContent>
+      <xsd:extension base="xsd:anyType">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="xsd:token" use="required"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -303,16 +313,5 @@
       <xsd:enumeration value="hysteresis"/>
     </xsd:restriction>
   </xsd:simpleType>
-
-
-  <!-- Element type for computing the volume over a surface -->
-  <xsd:complexType name="DT_SurfVolume">
-    <xsd:complexContent>
-      <xsd:extension base="xsd:anyType">
-        <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="dof" type="xsd:token" use="required"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
 
 </xsd:schema>
