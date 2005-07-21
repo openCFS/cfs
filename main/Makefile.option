@@ -325,7 +325,7 @@ endif
 ifeq "$(LAPACK)" "yes"
   MACRO_LAPACK = -DUSE_LAPACK
 else
-  MACRO_METIS =
+  MACRO_LAPACK =
 endif
 
 # Combine everything
