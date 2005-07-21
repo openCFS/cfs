@@ -96,10 +96,9 @@ namespace CoupledField
            << "============================================================"
            << "===========\n"
            << "============================================================"
-           << "===========\n"
-           << std::endl;
+           << "===========\n";
 
-    std::cout << std::endl << header.str();
+    std::cout << std::endl << header.str() << std::endl;
 
     if (cfsInfo) {
       *cfsInfo << header.str();
