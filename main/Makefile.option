@@ -267,6 +267,7 @@ $(INCDIR_ADAPTIVITY) $(INCDIR_TVMET)
 #  - XERCES
 #  - TVMET
 #  - METIS
+#  - LAPACK
 #
 # These will be combined into a COMPILE_MACROS parameter
 # -----------------------------------------------------------------------------
@@ -320,9 +321,17 @@ else
   MACRO_METIS =
 endif
 
+# LAPACK
+ifeq "$(LAPACK)" "yes"
+  MACRO_LAPACK = -DUSE_LAPACK
+else
+  MACRO_METIS =
+endif
+
 # Combine everything
 COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
-                 $(MACRO_GSI) $(MACRO_XERCES) $(MACRO_TVMET) $(MACRO_METIS)
+                 $(MACRO_GSI) $(MACRO_XERCES) $(MACRO_TVMET) $(MACRO_METIS)\
+		 $(MACRO_LAPACK)
 
 
 # -----------------------------------------------------------------------------
