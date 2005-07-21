@@ -261,45 +261,54 @@ namespace CoupledField
   }
   
 
-  void WriteInfo::WriteHarmonicStep(const std::string& pdeName,
-                                    const UInt freqStep,
-                                    const Double frequency)
-  {
+
+  // *********************
+  //   WriteHarmonicStep
+  // *********************
+  void WriteInfo::WriteHarmonicStep( const std::string& pdeName,
+                                     const UInt freqStep,
+                                     const Double frequency ) {
+
     ENTER_FCN( "WriteInfo::WriteHarmonicStep" );
 
-    std::string pdeNameLong(pdeName);
+    // We do not log something in the case of the paramIdent driver,
+    // since the output will be more disturbing than helpful in this case
     std::string analysis;
-
     params->Get( "type", analysis, "analysis" );
+    if( analysis == "paramIdent" ) {
+      return;
+    }
 
-    // write std::out info    
+    // Compute size of freqStep when written as string
+    UInt fw = (Integer)std::log10( (float)freqStep ) + 1;
 
+    // Report 1: Goes to standard output
+    std::cout << myEndl << pdeName << ": Harmonic step " 
+              << freqStep <<" ======================= " << std::endl;      
 
-    // since the paramIdent driver calls iteratively this step, the output is
-    // rather disturbing than helpful
-    if( analysis != "paramIdent" ) {
-
-      std::cout << myEndl << pdeName << ": Harmonic step " 
-                << freqStep <<" ======================= " << std::endl;      
-
-
-      *cla << myEndl << pdeName << ": Harmonic step " 
-           << freqStep <<" ********************************************"
+    // Report 2: Goes into logfile for algebraic sub-system
+    (*cla) << myEndl << ' '
+           << std::setw( 79 ) << std::setfill( '*' ) << "\n"
+           << " *** " << pdeName
+           << ": Harmonic step " << freqStep << ' '
+           << std::setw( 80 - pdeName.size() - 21 - fw )
+           << std::setfill( '*' ) << "*\n "
+           << std::setw( 78 ) << std::setfill( '*' ) << "*"
            << std::endl;
 
-
-      // write to info-file
-      pdeNameLong += "-PDE: ";    
-      if (cfsInfo)
-        *cfsInfo << std::endl << std::endl << std::endl 
-                 << "********************************************************"
-                 << "************************" 
-                 << std::endl << pdeNameLong << "HARMONIC STEP " << freqStep 
+    // Report 3: Goes into CFS++ info-file
+    if ( cfsInfo != NULL ) {
+      (*cfsInfo) << "\n\n"
+                 << std::setw( 80 ) << std::setfill( '*' ) << "*\n"
+                 << pdeName << "-PDE: HARMONIC STEP " << freqStep 
                  << ", frequency: " << frequency << std::endl;
     }
   }
 
 
+  // ***************
+  //   WriteResult
+  // ***************
   void WriteInfo:: WriteResult(std::string pdename, std::string resulttype,
                                StdVector<std::string> subdoms,
                                Vector<Double> results,
@@ -336,9 +345,9 @@ namespace CoupledField
              << myEndl;
 
     // Basic coil info
-    *cfsInfo << "Coil domain: "              << coil.coilRegionName_  << std::endl;
-    *cfsInfo << "Coil type: "                << coil.coilTypeS_ << std::endl;
-    *cfsInfo << "Cross-Section of winding: " << coil.windingCrossSection_
+    *cfsInfo << "Coil domain: "              << coil.coilRegionName_ << '\n'
+             << "Coil type: "                << coil.coilTypeS_ << '\n'
+             << "Cross-Section of winding: " << coil.windingCrossSection_
              << std::endl;
 
     // ID tag for 2D coils
