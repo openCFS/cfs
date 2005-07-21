@@ -74,60 +74,56 @@ namespace CoupledField
  
     Char* measuredData="measuredData.dat";
     allMeasuredData = new std::ifstream(measuredData, std::basic_ios<char>::in);
-
-    if (!allMeasuredData)
-      {
+    if (!allMeasuredData){
         std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
-        //      exit(1);
       }
 
-    std::cout<<"\n Opens impedCurve.dat and piezoLog.dat ... "<<std::endl;
+    Info->StartProgress( "\n Opening output files \n imped.dat, piezoLog.dat, parLog.dat, mechDispl.dat, parFinal.dat ... " );
+//     //    std::cout<<"\n Opening output files (imped.dat, piezoLog.dat, parLog.dat, mechDispl.dat, parFinal.dat) ... "<<std::endl;
+    Info->FinishProgress();
 
     std::string filename= "imped.dat";
-
     impedCurve = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
+    if (!impedCurve){
+      std::cerr << "\n ImpedanceCurve.dat could not be initialized" << std::endl;
+    }
 
-    if (!impedCurve)
-      {
-        std::cerr << "\n ImpedanceCurve.dat could not be initialized" << std::endl;
-      }
+    std::string filenameSynMess= "synMess.dat";
+    synMess = new std::ofstream(filenameSynMess.c_str(),std::basic_ios<char>::out);
+    if (!synMess){
+      std::cerr << "\n syMess.dat could not be initialized" << std::endl;
+    }
+
 
     std::string filenameLog= "piezoLog.dat";
-
     piezoLog = new std::ofstream(filenameLog.c_str(),std::basic_ios<char>::out);
-
-    if (!piezoLog)
-      {
+    if (!piezoLog){
         std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
-      }
+    }
 
     std::string filenameMechDispl= "mechDispl.dat";
-
     mechDispl = new std::ofstream(filenameMechDispl.c_str(),std::basic_ios<char>::out);
-
-    if (!mechDispl)
-      {
+    if (!mechDispl){
 	std::cerr << "\n mechDispl.dat could not be initialized" << std::endl;
-      }
-
+    }
 
     std::string filenameParLog= "parLog.dat";
-
     parLog = new std::ofstream(filenameParLog.c_str(),std::basic_ios<char>::out);
-
-    if (!parLog)
-      {
+    if (!parLog){
         std::cerr << "\n parLog.dat could not be initialized" << std::endl;
-      }
+    }
 
     std::string filenameParFinal= "parFinal.dat";
-
     parFinal = new std::ofstream(filenameParFinal.c_str(),std::basic_ios<char>::out);
-
-    if (!parFinal)
-      {
+    if (!parFinal){
         std::cerr << "\n parFinal.dat could not be initialized" << std::endl;
-      }
+    }
+
+    std::string filenameOptimalFreqs= "optimalFreqs.dat";
+    optimalFreqs = new std::ofstream(filenameOptimalFreqs.c_str(),std::basic_ios<char>::out);
+    if (!optimalFreqs){
+        std::cerr << "\n optimalFreqs.dat could not be initialized" << std::endl;
+    }
 
     // in future, several parameters wwill be taken from the xml - file ...
     StdVector<std::string> keyVec, attrVec, valVec;
@@ -144,6 +140,7 @@ namespace CoupledField
     
     keyVec = "paramIdent", "numFreq";
     params->Get(keyVec, attrVec, valVec, nrfreq);
+
     
     // should we calculate the impedance curve?
     CalcImpedanceCurve = params->IsSet("calcImpedanceCurve",  "paramIdent");
@@ -185,6 +182,19 @@ namespace CoupledField
       piezoLog->close();
     if(parLog)
       parLog->close();
+#ifdef USE_LAPACK
+    if(lp_af77)
+      DeleteArray(lp_af77);
+    std::cout<<"delete wf77 in destructor ..."<<std::endl;
+    if(&lp_wf77)
+      DeleteArray(lp_wf77);
+    std::cout<<"delete workf77"<<std::endl;
+    if(lp_workf77)
+      DeleteArray(lp_workf77);
+    std::cout<<"delete rwork77"<<std::endl;
+    if(lp_rworkf77)
+      DeleteArray(lp_rworkf77);
+#endif
   }
 
   void piezoParamIdent :: SolveProblem() {
@@ -196,9 +206,7 @@ namespace CoupledField
     parameter.Resize(nrParameter);
     parameterC.Resize(nrParameter);
     whichParameterToUpdate.Resize(nrParameter);
-
     whichParameterToUpdateC.Resize(nrParameter);
-
     whichParameterToUpdateRC.Resize(1);
 
     //     parameterIncrement.Resize(nrParameter);
@@ -258,11 +266,12 @@ namespace CoupledField
     for (UInt i=0;i<whichParameterToUpdateC.GetSize();i++)
       if (whichParameterToUpdateC[i]==1)
         actNrParameterC++;
+    if (actNrParameter!=0)   
+      whichParToUpInd.Resize(actNrParameter);
 
-   
-    whichParToUpInd.Resize(actNrParameter);
-    if (whichNewtonCG==4||whichNewtonCG==6||whichNewtonCG==8)
-      whichParToUpIndC.Resize(actNrParameterC);
+    if (whichNewtonCG==4||whichNewtonCG==6||whichNewtonCG==8||whichNewtonCG==10)
+      if (actNrParameterC!=0)   
+        whichParToUpIndC.Resize(actNrParameterC);
 
     UInt intTemp=0;
 
@@ -363,23 +372,6 @@ namespace CoupledField
     updateMaterialData(parameter,ptMaterial);
     updateComplexMaterialData(parameterC,ptMaterial);
 
-    //   Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
-    // Matrix<Double> *matMat = ptMaterial->GetMatrix();
-    //     Matrix<Double> *matMat1 = ptMaterial[1].GetMatrix();
-    //     Matrix<Double> *matMat2 = ptMaterial[2].GetMatrix();
-
-    //    ptMaterial[2].SetPiezoMatrixData(0,0, -999.999);
-
-    //    std::cout<<*matMat<<std::endl;
-    //     std::cout<<*matMat1<<std::endl;
-    //     std::cout<<*matMat2<<std::endl;
-    
-
-
-
-    //    std::cout<<*matMat<<std::endl;
-    //getchar();
-
     Matrix<Double> matMatStart(9,9); // = ptMaterial->GetMatrix();
     Matrix<Double> matMatCStart(9,9); // = ptMaterial->GetMatrixC();
 
@@ -388,13 +380,6 @@ namespace CoupledField
         matMatStart[i][j]=(*matMat)[i][j];
         matMatCStart[i][j]=(*matMatC)[i][j];
       }
-
-
-
-    //     ptAlgsys = ptMyPDE_->getPDE_algsys();                       //Pointer to AlgebraicSystem
-    //     UInt numElems = ptMyPDE_->getPDE_numElems();
-    //     dofs=ptMyPDE_->getPDE_dofspernode();
-    //     numNodes= ptMyPDE_->getPDE_numPDENodes();
 
 
     //xxxxxxxxxxxxxxxx Initialize and resize all matrices and vectors involved xxxxxxxxxx
@@ -419,16 +404,8 @@ namespace CoupledField
     overall_res0.Resize(2*nrMeasuredData);
     parameter_new.Resize(nrParameter);
 
-    //    for(UInt i=0;i<nrParameter;i++)
-    // parameterC[i]=0.0;
-    //    parameterC[7]=1.0;
-
-
     updateMaterialData(parameter, ptMaterial);
     updateComplexMaterialData(parameterC, ptMaterial);
-
-
-    //  ptMyPDE_->DefineIntegratorsWithMatInfo(level,ptMaterial); // deletes all Integrators and creates new ones with Material in ptMaterial
 
 
     // ~~~~~~~~~~~~~ modificate the algorithm ~~~~~~~~~~~~~~~
@@ -438,7 +415,6 @@ namespace CoupledField
     // calculates and determines the ImpedanceCurve before and after identification
     sign=1.0;
     // ~~~~~~~~~~ end of modification part  ~~~~~~~~~~~~~~
-
 
     if (considerMechDeformation==FALSE){
       y_hat.Resize(nrMeasuredData);
@@ -652,8 +628,9 @@ namespace CoupledField
       while (nrNuMethodsC<maxNumberNewtonLoops){
 
         nuMethodsC2();
-        *parLog <<nrNuMethodsC <<"  "<< parameter[1]<<"  " <<parameter[7]<<"   " <<parameter[9]<<"  "<<
-          c33history[nrNuMethodsC]<<"  " <<e33history[nrNuMethodsC]<<"   " <<eps33history[nrNuMethodsC]<<std::endl;
+        //        *parLog <<nrNuMethodsC <<"  "<< parameter[1]<<"  " <<parameterC[1]<<"   " <<parameter[9]<<"  "<<
+        //c33history[nrNuMethodsC]<<"  " <<e33history[nrNuMethodsC]<<"   " <<eps33history[nrNuMethodsC]<<std::endl;
+        *parLog<<nrNuMethodsC << parameter << parameterC<<std::endl;
         for (UInt i=0; i<parameter.GetSize(); i++)
           *parFinal<<parameter[i]<<", ";
         *parFinal<<"/"<<std::endl;
@@ -666,6 +643,17 @@ namespace CoupledField
 
       }
     }
+
+    else if (whichNewtonCG==9){
+      std::cout<<"++ Optimal experiment Design"<<std::endl;
+      optimalExpDesign();
+    }
+
+    else if (whichNewtonCG==10){
+      std::cout<<"++ Optimal experiment Design - Complex parameters"<<std::endl;
+      optimalExpDesign();
+    }
+
 
     else
       std::cout<<"\n There was no valid NewtonCG method specified - see in your measuredData.dat -file "<<std::endl;
@@ -1308,7 +1296,7 @@ namespace CoupledField
     ptMaterial[0].SetPiezoMatrixData(7,7, parameter[8]);
     ptMaterial[0].SetPiezoMatrixData(8,8, parameter[9]);
 
-   //  //  ptMaterial[1].SetPiezoMatrixData(0,0, parameter[0]);
+//     ptMaterial[1].SetPiezoMatrixData(0,0, parameter[0]);
 //     ptMaterial[1].SetPiezoMatrixData(1,1, parameter[0]);
 //     ptMaterial[1].SetPiezoMatrixData(2,2, parameter[1]);
 //     ptMaterial[1].SetPiezoMatrixData(0,1, parameter[2]);
