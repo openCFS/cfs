@@ -90,6 +90,8 @@
         <xsd:attribute name="value" type="xsd:double" use="required"/>
         <xsd:attribute name="dynamics" type="xsd:token" use="optional"
           default="none"/>
+        <xsd:attribute name="phase" type="xsd:double" use="optional"
+          default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
