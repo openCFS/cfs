@@ -5,12 +5,12 @@ include ../../main/Makefile.option
 C_DIR=../..
 #
 src =  	piezoParamIdent.cc piezoParamIdent_methods.cc \
-	newtonCG.cc newtonLandweber.cc nuMethods.cc \
+	newtonCG.cc newtonLandweber.cc nuMethods.cc optimalExpDesign.cc \
 #
 ifeq ($(Adaptivity),yes)
 
   src = piezoParamIdent.cc piezoParamIdent_methods.cc \
-	newtonCG.cc newtonLandweber.cc nuMethods.cc \
+	newtonCG.cc newtonLandweber.cc nuMethods.cc optimalExpDesign.cc\
 
 endif
 #

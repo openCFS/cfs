@@ -4,11 +4,65 @@
 #include "Driver/singleDriver.hh"
 #include "Driver/assemble.hh"
 
+
+
 // forward class declaration
 class SinglePDE;
 
 namespace CoupledField 
 {
+
+#ifdef USE_LAPACK
+ 
+#define LP_ZSYSV zsysv_ // solves symmetric matrices
+#define LP_ZGESV zgesv_ // solves general type of matrices
+#define LP_ZHESV zhesv_ // solves  ZHESV computes the solution to a complex system of linear equations
+  // A * X = B, where A is an N-by-N Hermitian matrix and X and B are N-by-NRHS matrices
+#define LP_DLAMCH dlamch_ // tests data types ...
+#define LP_ZHEEV zheev_ //ZHEEV computes all eigenvalues and, optionally, eigenvectors of a
+  //  complex Hermitian matrix A.
+
+  typedef double F77real8;
+  
+  class F77complex16 {
+  public:
+    F77real8 real;
+    F77real8 imag;
+    F77complex16() {
+      real = 0;
+      imag = 0;
+    }
+    F77complex16 &operator= ( F77complex16 v ) {
+      this->real = v.real;
+      this->imag = v.imag;
+      return *this;
+    }
+    F77complex16 &operator= ( double v ) {
+      this->real = v;
+      this->imag = 0;
+      return *this;
+    }
+    F77complex16 &operator+= ( F77complex16 v ) {
+      this->real += v.real;
+      this->imag += v.imag;
+      return *this;
+    }
+  };
+
+  // Generate prototypes for LAPACK routines
+  extern "C" {
+    //  void LP_ZSYSV( int*, int*, int*, int*, F77real8    *, int*, int*, int* );
+    void LP_ZSYSV( char*, int*, int*, F77complex16*, int*, int*, F77complex16*, int*, F77complex16*, int*, int*);
+    void LP_ZHESV( char*, int*, int*, F77complex16*, int*, int*, F77complex16*, int*, F77complex16*, int*, int*);
+    void LP_ZGESV( int*, int*, F77complex16*, int*, int*, F77complex16*, int*, int*);
+    double LP_DLAMCH (char *CMACHp); // DLAMCH - determine double precision machine parameters
+    void LP_ZHEEV( char*, char*, int*, F77complex16*, int *, F77real8*, F77complex16*, int*, F77real8* ,int* ); 
+
+  }
+
+#endif
+  
+
   //! Driver class for an inverse problem: The identification of material parameters in a piezoelectric body.
   class piezoParamIdent : public SingleDriver
   {
@@ -30,27 +84,75 @@ namespace CoupledField
     //! Destructor
     ~piezoParamIdent();
 
-    std::ifstream * allMeasuredData;
+    std::ifstream * allMeasuredData; // Contains selected measurements & further steering parameters
+    std::ifstream * mess; // contains whole set of measurements
     std::ofstream * impedCurve;
     std::ofstream * piezoLog;
     std::ofstream * parLog;
     std::ofstream * parFinal;
     std::ofstream * mechDispl;
+    std::ofstream * optimalFreqs;
+    std::ofstream * synMess;
     //  std::ofstream impedCurve("impedCurve.dat");
     //  std::ofstream impedCurve("impedCurve.dat");
 
     //! Starts parameter identification
     void SolveProblem();
 
+
+
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
     //! \param F_hat - contains calculated charge, each entry belongs to different frequency 
     void createF(MaterialData * ptMaterial, Vector<Complex> & F_hat, Boolean typeOut);
 
+    // ! like create F but the frequencies are specified with Vector frequencies
+    void createFVec(Complex & F_hat, Boolean typeOut,
+                 Double frequency);
+
+    // ! inverts a Matrix
+    void invert(Matrix<Complex> & data);
+
+    // ! inverts a Matrix with Lapacks ZGESV
+    void invertWithLapack(Matrix<Complex> & data);
+    
+    // Descent Method for functional J(w)
+    void descentMethod(Complex & functional);
+
+#ifdef USE_LAPACK
+    //! Converts a fortran 77 matrix to C++ complex
+    void F772CC( const F77complex16 &v, std::complex<double> &val ) {
+      std::complex<double> aux(v.real,v.imag);
+      val = aux;
+    }
+
+    void F772CC( const F77real8 &v, double &val ) {
+      val = (double)v;
+    }
+
+    //! Converts cfs data to fortran 77 format
+    void CC2F77( const std::complex<double> &v, F77complex16 &val ) {
+      val.real = (F77real8)v.real();
+      val.imag = (F77real8)v.imag();
+    }
+    void CC2F77( const double &v, F77real8 &val ) {
+      val = (F77real8)v;
+    }
+#endif
+
     //! Calculates an approximation of the Jacobi Matrix of parameter to solution operator F 
     //! \param Jacobi Matrix - approximation of F'
     void createJacobiMatrix(MaterialData * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
                             Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
+
+    //! Creates special Jacobi Matrix, for optimal experiment design
+    void createJacobian(Vector<Complex> & jacobi, Double omega);
+
+    //! Calculates gradient of minimization problem \nabla J(w) in opt.Exp.design
+    void createGradient(Vector<Complex> & grad, Double dOmega);
+
+    //! Determines variance - covariance Matrix 
+    void createCovA(Complex &J, Boolean writeOutCov);
 
     void createJacobiMatrix2(Matrix<Complex> & JacobiMatrix);
     void createJacobiMatrixC(Matrix<Complex> & JacobiMatrix);
@@ -62,6 +164,9 @@ namespace CoupledField
     //according information concerning the piezhoelectric body (radius, thickness, ...)
     void readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, 
                           Double & voltage, UInt & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
+
+    //! reads whole set of measured data
+    void readInMeasurement(Vector<Double> & frequencies);
 
     //! updates the piezoMatrix in MaterialData parameter = 
     //! \f$(c_11, c_33, c_12, c_13, c_44, e_15, e_31, e_33, eps_11, eps_33)\f$
@@ -132,6 +237,13 @@ namespace CoupledField
     // ! nu - methods, complex version - uses weighted norms
     void nuMethodsC2();
 
+    //! methods which determines a set of parameters for an optimal experiment design
+    void optimalExpDesign();
+
+    //! methods which determines a set of parameters for an optimal experiment design
+    //! with flexible number of frequencies ...
+    void optimalExpDesignDiffNumberFreqs();
+
     //! saves sysmat of forward problem, multiplication with \omega*\beta*j ...
     void createAndSetRHSforJacobian(UInt & fstep);
 
@@ -184,6 +296,15 @@ namespace CoupledField
     //     void givens_rotation(UInt ndim, Matrix<Double> & a);
     //     void jacobi(Matrix<Double>& a, Double eps, UInt l_sort, UInt l_print, Vector<Double> & d);
 
+#ifdef USE_LAPACK
+    //! Fortran f77 variables
+    F77complex16 *lp_af77;
+    F77real8 * lp_wf77;
+    F77complex16 *lp_workf77;
+    F77real8 *lp_rworkf77;
+#endif
+
+    Double fa_, fr_;
     Boolean CalcImpedanceCurve;
     Boolean CalcMechDisplCurve;
     UInt whichNewtonCG;

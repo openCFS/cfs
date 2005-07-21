@@ -65,6 +65,12 @@ namespace CoupledField
     j=Complex(0,1);
     Double phase;
     Double randFactor=0.0;
+
+    freqs.Part(0,nrMeasuredData);
+    absZ.Part(0,nrMeasuredData);
+    phi.Part(0,nrMeasuredData);
+    y_hat.Resize(nrMeasuredData);
+
     Vector<Complex> rand(nrMeasuredData);
     for (UInt i=0; i<nrMeasuredData; i++){
       x=absZ[i]*cos(PI/180*phi[i]);
@@ -77,10 +83,10 @@ namespace CoupledField
       //       std::cout<<"This is y_hat!!"<<std::endl;
       //      getchar();
 
-      //      std::cout<<"\n Frequenz; " << freqs[i] << ", messZ: " << absZ[i] << ", phase: " << phi[i] << std::endl;
-      //std::cout<<" Frequenz; " << freqs[i] << ", calcZ: " << std::abs(Z) << ", phase: " << phase << std::endl << std::endl;
+      //       std::cout<<"\n Frequenz; " << freqs[i] << ", messZ: " << absZ[i] << ", phase: " << phi[i] << std::endl;
+//       std::cout<<" Frequenz; " << freqs[i] << ", calcZ: " << std::abs(Z) << ", phase: " << phase << std::endl << std::endl;
      
-      //      std::cout<<i<<") = " << phi[i] << ",\t "<< freqs[i] <<",\t q = y_hat = " << y_hat[i]<<",\t Z= " << Z << " phase " << phase << std::endl;
+//       std::cout<<i<<") = " << phi[i] << ",\t "<< freqs[i] <<",\t q = y_hat = " << y_hat[i]<<",\t Z= " << Z << " phase " << phase << std::endl;
     }
    
     if (TRUE){
@@ -202,12 +208,15 @@ namespace CoupledField
 	imped = std::abs(voltage/(charge*2.0*PI*freqs[fstep]*im)); 
 	//    phase = 180.0/PI*(std::arg(charge));
 	phase = 180.0/PI*(std::arg(impedC));
+
 	std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< imped
 		  << ";\t Phase: " << phase <<";\t Volt = "<<voltage<<";\t Charge = "<< charge<< std::endl;
 // 	*impedCurve <<"\n" << freqs[fstep] << " " << std::log(imped) << "  " << phase << "  " 
 // 		      << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
 	*impedCurve <<"\n" << freqs[fstep] << " " << imped << "  " << phase << "  " 
 		      << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
+        synMess->setf(std::ios::fixed); // output should by in fixed point numbers,i.e. 100.23 instead of 1.0023e+2
+        *synMess <<freqs[fstep]<<"\t"<<imped<<"\t"<<phase<<"\t"<<fstep<<std::endl;
 
 	
 	
@@ -270,7 +279,7 @@ namespace CoupledField
     //    if(adjustDamping)
     //      ptPDE_->getPDE_assemble()->SetStartFrequency(freqs[0]);
    
-    for (UInt fstep = 0; fstep < freqs.GetSize(); fstep++) { 
+    for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { 
             
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
@@ -357,6 +366,7 @@ namespace CoupledField
     Grid * ptGrid =   ptdomain_->GetGrid();
     ptAssemble = ptMyPDE_->getPDE_assemble();
     ptAlgsys = ptMyPDE_->getPDE_algsys();
+    F_hat.Resize(nrMeasuredData);
 
     Boolean reset = TRUE;
 
@@ -505,16 +515,19 @@ namespace CoupledField
           for (UInt k=0;k<elSolVec.GetSize();k++)
             allElemsVec[fstep][actEl*elSolVec.GetSize()+k] = elSolVec[k];
         } // end loop over elements
-
+        calcAbsImped(charge, freqs[fstep], fstep,typeOut);   // calculates |Z| and writes results in File
 
     } // end of loop over all frequencies
      //std::cout<<"\n Number of Integrators in CreateF: " << ptAssemble->integrators_[0]->GetSize()<< std::endl;
+
+
 
     if (typeOut==TRUE){
       //      std::cout<<"\nFinished to create F ... here it is:"<<std::endl;
       for (UInt i=0;i<F_hat.GetSize();i++)
         std::cout<<"F("<<i<<")="<<F_hat[i]<<"; \t";
       std::cout<<"\n ------------------------------- " <<std::endl;
+      
     }
 
     //     std::cout<<" \n all ElemsVec: "<<std::endl;
@@ -1265,7 +1278,8 @@ namespace CoupledField
 
         // second order FD approximation
         for (UInt j=0;j<nrMeasuredData;j++)
-          approxJacobiMatrix[j][parInd]=0.5*(F_hat_incr[j]-F_hat_incr2[j])/((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
+          approxJacobiMatrix[j][parInd]=0.5*(F_hat_incr[j]-F_hat_incr2[j])/
+            ((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
 
 
         // forth order FD approximation
@@ -1324,6 +1338,7 @@ namespace CoupledField
         createF(ptMaterial,F_hat_incr2,FALSE);
 
         // second order FD approximation
+
         for (UInt j=0;j<nrMeasuredData;j++)
           approxJacobiMatrix[j][parInd]=0.5*(F_hat_incr[j]-F_hat_incr2[j])/
             ((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
