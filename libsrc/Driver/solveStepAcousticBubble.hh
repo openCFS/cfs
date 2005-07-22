@@ -4,7 +4,9 @@
 #include "stdSolveStep.hh"
 #include "ODEDescr/KellerMiksis.hh"
 #include "ODEDescr/Gilmore.hh"
+#include "ODEDescr/Gilmoredimlos.hh"
 #include "ODESolve/ODESolver_RKF45.hh"
+#include "ODESolve/ODESolver_Rosenbrock.hh"
 
 namespace CoupledField
 {
@@ -75,7 +77,70 @@ namespace CoupledField
     BubbleDynType bubbleDynType_;
 
 
+    //! Parameters for the bubble dynamics
+    //! \param initRadius_ Initial radius of bubble
+    //! \param initVel_ Initial velocity of bubble
+    //! \param density_ Density of fluid
+    //! \param sonicVel_ Sonic velocity of fluid
+    //! \param pStatic_ Static pressure of fluid
+    //! \param pVapour_ Vapour pressure of fluid
+    //! \param surfaceTension_ Surface tension of fluid
+    //! \param polytrop_ Polytropic index of fluid
+    //! \param viscosity_ Viscosity of fluid
+    Double initRadius_;
+    Double initVel_;
+    Double density_;
+    Double sonicVel_;
+    Double pStatic_;
+    Double pVapour_;
+    Double surfaceTension_;
+    Double polytrop_;
+    Double viscosity_;
+
+
+
+    //! Parameter for the dimensionless case
+    StdVector<Double> yNoDim_;
+    Double tNoDim_;
+    Double pressureNoDim;
+    Double presDerivNoDim;  
+
+    //! Suggested step size for ODESolver
+    Double hTry_;
+   
+
   };
+
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class SolveStepAcousticBubble
+  //! This class is used, if simulation acoustics
+  //! computed in bubbly-liquid, it couples the 
+  //! acoustic with the bubbledynamics  
+  //! 
+  //! \purpose
+  //! 
+  //! \collab
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! So far one has to comment in or out the way he
+  //! wishes to compute, dimensionless or not, choice of
+  //! solver, model for bubbledynamics in case of Gilmore
+  //! dimensionless
+
+
+#endif
 
 } // end of namespace
 
