@@ -413,6 +413,8 @@ libsrc/ODESolve/ODESolver_ExplEuler.cc svneol=native#text/plain
 libsrc/ODESolve/ODESolver_ExplEuler.hh svneol=native#text/plain
 libsrc/ODESolve/ODESolver_RKF45.cc svneol=native#text/plain
 libsrc/ODESolve/ODESolver_RKF45.hh svneol=native#text/plain
+libsrc/ODESolve/ODESolver_Rosenbrock.cc svneol=native#text/plain
+libsrc/ODESolve/ODESolver_Rosenbrock.hh svneol=native#text/plain
 libsrc/PDE/Makefile -text
 libsrc/PDE/SinglePDE.cc svneol=native#text/plain
 libsrc/PDE/SinglePDE.hh svneol=native#text/plain
