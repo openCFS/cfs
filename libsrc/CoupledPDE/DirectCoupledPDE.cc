@@ -100,6 +100,9 @@ namespace CoupledField{
     // Get parameter and report object of OLAS
     olasParams_ = algsys_->GetOLASParams();
     olasReport_ = algsys_->GetOLASReport();
+
+    // define solveStep-driver
+    DefineSolveStep();
   
     // activate direct coupling information
     // and initialize all single pdes
@@ -117,27 +120,28 @@ namespace CoupledField{
       analysisTypes.insert(singlePDEs_[i]->GetAnalysisType());
     }
 
+    // ----------------------------
+    //  Detection of analysis type
+    // ----------------------------
 
-    // If one PDE is transient, this analysistype is also
-    // if ( analysisTypes.find(HARMONIC) != analysisTypes.end() ) {
-    //       (*error) << "Direct Coupling is not implemented for harmonic "
-    //                << "analysis!";
-    //       Error( __FILE__, __LINE__ );
-    //     }
-    
+    // NOTE: The current implementation is not sophisticated. We need
+    //       to develop a better concept here
     if ( analysisTypes.find(TRANSIENT) != analysisTypes.end() ) {
       analysistype_ = TRANSIENT;
     }
     else if ( analysisTypes.find(STATIC) != analysisTypes.end() ) {
       analysistype_ = STATIC;
     }
+    else if ( analysisTypes.find(HARMONIC) != analysisTypes.end() ) {
+      analysistype_ = HARMONIC;
+    }
     else {
       (*error) << "I was not able to determine the correct analysistype for "
                << "your set of PDEs!";
       Error( __FILE__, __LINE__ );
     }
-      
- 
+
+
     // We simply take the assemble object of the first SinglePDE
     assemble_ = singlePDEs_[0]->getPDE_assemble();
 
@@ -161,7 +165,6 @@ namespace CoupledField{
     }
 
 
-
     // Set correct size of direct solution value
     if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
       solVec_ = new Vector<Complex>;
@@ -170,24 +173,27 @@ namespace CoupledField{
     }
     solVec_->Resize(totalUnknowns_);
 
-    // define solveStep-driver
-    DefineSolveStep();
-
-    // std::cerr << "Leaving DirectCoupledPDE::Init\n";
   }
 
 
-  void DirectCoupledPDE::WriteGeneralPDEdefines()
-  {
-
+  // **************************
+  //   WriteGeneralPDEdefines
+  // **************************
+  void DirectCoupledPDE::WriteGeneralPDEdefines() {
     ENTER_FCN( "DirectCoupledPDE::WriteGeneralPDEdefines" );
   }
 
-  void DirectCoupledPDE::SetBCs(const Double atimestep)
-  {
+
+  // **********
+  //   SetBCs
+  // **********
+  void DirectCoupledPDE::SetBCs( const Double atimestep ) {
+
     ENTER_FCN( "DirectCoupledPDE::SetBCs" );
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
+
+    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->SetBCs( atimestep );
+    }
   }
 
 
