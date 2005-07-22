@@ -222,6 +222,10 @@ namespace CoupledField
     void SetSecondVoluInfo( const std::string & name,
                             const StdVector<RegionIdType> & regionIds,
                             const MaterialData* materials );
+
+    //! set additional multiplicative factor for matrix
+    void SetFactor(Double factor); 
+
   protected:
 
     //! Current surface element
@@ -247,6 +251,9 @@ namespace CoupledField
 
     //! Materials on second interface side
     const MaterialData * secondMaterials_;
+
+    //! Multiplicative factor for matrix
+    Double factor_;
  
   };
 
