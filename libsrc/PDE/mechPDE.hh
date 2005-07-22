@@ -191,17 +191,28 @@ namespace CoupledField
     /// external forces (for nonlin simulations)
     Vector<Double> extForces_;
 
-    //postprocessing
-    ElemStoreSol<Double> Stress_;  //!< conatins magnetic field
-    StdVector<RegionIdType> calcStress_;  //!< contains the subdomains, on which the stress is computed
+    //@{ \name Attributes related to post-processing
 
-    StdVector<RegionIdType> calcEnergy_;  //!< contains the subdomains, on which the energy is computed
+    //! Contains magnetic field
+    ElemStoreSol<Double> Stress_;
 
-    //! contains mechanic velocity
+    //! Contains the subdomains on which the stress is computed
+    StdVector<RegionIdType> calcStress_;
+
+    //! Contains the subdomains on which the energy is computed
+    StdVector<RegionIdType> calcEnergy_;
+
+    //! Contains mechanic velocity
     NodeStoreSol<Double> solDeriv1_;
   
-    //! contains mechanic acceleration
+    //! Contains mechanic acceleration
     NodeStoreSol<Double> solDeriv2_;
+
+    //! Contains the regions above which the deformed volume is computed
+    StdVector<RegionIdType> volAboveDefSurfRegions_;
+
+    //! Contains the directions for which the deformed volume is computed
+    StdVector<std::string> volAboveDefSurfDir_;
 
   };
 

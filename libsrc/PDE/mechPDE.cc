@@ -916,9 +916,9 @@ namespace CoupledField
     StdVector<std::string> regionNames;
     std::string quantity;
   
-    // *****************************
-    // Determine nodal results
-    // ***************************** 
+    // -------------------------
+    //  Determine nodal results
+    // -------------------------
     StdVector<std::string> nodeValues;
     keyVec  = pdename_, "storeResults", "nodeResults", "region";
     attrVec = "", "", "type";  
@@ -967,9 +967,9 @@ namespace CoupledField
       solDeriv2_.Init();
     }
 
-    // *****************************
-    // Determine element results
-    // *****************************
+    // ---------------------------
+    //  Determine element results
+    // ---------------------------
     StdVector<std::string> elemResults;
     keyVec  = pdename_, "storeResults", "elemResults", "region";
     attrVec = "", "", "type";  
@@ -1016,9 +1016,9 @@ namespace CoupledField
       }
     }
 
-    // *****************************
-    // Determine nodal history
-    // *****************************
+    // -------------------------
+    //  Determine nodal history
+    // -------------------------
     StdVector<std::string> saveNodeHist; 
     keyVec  = pdename_, "storeResults", "nodeHistory", "saveNodes";
     attrVec = "", "", "type";
@@ -1064,10 +1064,10 @@ namespace CoupledField
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
     }
-  
-    // *****************************
-    // Determine element history
-    // *****************************
+
+    // ---------------------------
+    //  Determine element history
+    // ---------------------------
     StdVector<std::string> saveElemHist;
     keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
     attrVec = "", "", "";
@@ -1080,6 +1080,15 @@ namespace CoupledField
       errMsg += "Meanwhile you can use 'unvtool' to extract element data.";
       Error( errMsg.c_str(), __FILE__, __LINE__);
     }
+
+    // ---------------------------
+    //  Determine special results
+    // ---------------------------
+    params->GetList( "name", regionNames, pdename_, "volumeAboveDefSurf" );
+    ptgrid_->RegionNameToId( volAboveDefSurfRegions_, regionNames );
+    params->GetList( "dof", volAboveDefSurfDir_, pdename_, 
+		     "volumeAboveDefSurf" );
+
   }
 
 
@@ -1114,9 +1123,9 @@ namespace CoupledField
       }
     
       else 
-        Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
-      
-      
+        Info->Error( "StressOp: Unknown subtype in mech PDE!", __FILE__,
+                     __LINE__);  
+
       // Resize solution arrays
       Stress_.SetNumSolutions(1);
       Stress_.SetSolutionType(MECH_STRESS);
@@ -1130,7 +1139,6 @@ namespace CoupledField
       elemStress.Init(0);
       sortedStress.Resize(6);
 
-      
       // loop over all subdomains
       for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
         
@@ -1183,6 +1191,12 @@ namespace CoupledField
         delete stress;
       }
     }
+
+    // Compute volume above deformed surfaces
+    if ( volAboveDefSurfRegions_.GetSize() > 0 ) {
+      ComputeVolDefSurf( volAboveDefSurfRegions_, volAboveDefSurfDir_ );
+    }
+
   }
   
   // ********************************************************
