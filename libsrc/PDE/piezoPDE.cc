@@ -18,7 +18,8 @@
 
 namespace CoupledField {
 
-  PiezoPDE::PiezoPDE( Grid *aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut ) :
+  PiezoPDE::PiezoPDE( Grid *aptgrid, TimeFunc *aptTimeFunc,
+                      WriteResults *aptOut ) :
     SinglePDE( aptgrid, aptOut, aptTimeFunc ) {
 
     ENTER_FCN( "PiezoPDE::PiezoPDE" );
@@ -608,7 +609,7 @@ namespace CoupledField {
     }
   
     // --- Electric Charges ---
-    //check for charge computation
+    // check for charge computation
     params->GetList( "region", regionNames, pdename_, "charge" );
     ptgrid_->RegionNameToId( chargeNeighborRegion_, regionNames );
 
@@ -644,16 +645,14 @@ namespace CoupledField {
     } 
 
 
-    // *****************************
-    // Check for volume computation of 
-    // deformed surface
-    // *****************************
-    params->GetList( "name" , regionNames , pdename_, 
-		     "volumeAboveDefSurf" );
+    // --- Surface Deformation ---
+    // Check for computation of
+    // volume of deformed surface
+    params->GetList( "name", regionNames, pdename_, "volumeAboveDefSurf" );
     ptgrid_->RegionNameToId( volAboveDefSurfRegions_, regionNames );
 
-    params->GetList( "dof" , volAboveDefSurfDir_ , pdename_, 
-		     "volumeAboveDefSurf" );
+    params->GetList( "dof", volAboveDefSurfDir_, pdename_,
+                     "volumeAboveDefSurf" );
 
     // *****************************
     // Determine nodal history
