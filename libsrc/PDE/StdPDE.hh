@@ -306,7 +306,12 @@ namespace CoupledField {
       return *this;
     };
   
-  
+
+////////////////////////////////////////////////////
+// Made these methods (temporarily ?) public, since method
+// SolveStepAcousticBubble::StepTransBubble wants to use them.
+// Should be fixed properly (Uwe, 22.07.2005)
+public:
     //@{
     //! store the new solution returned by the algebraic system
     //! \param ptSol pointer to solution array
@@ -317,6 +322,8 @@ namespace CoupledField {
 
     //! get the data vector of the current solution of a PDE.
     CFSVector * GetSolutionVector();
+
+protected:
 
     //! stores an algsys_ vector into a StdVector
     void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
