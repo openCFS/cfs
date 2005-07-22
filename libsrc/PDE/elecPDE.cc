@@ -75,25 +75,21 @@ namespace CoupledField {
     if ( isPiezoCoupled_ == TRUE )
       factor *= -1.0;  
   
-    for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ )
-      {
-        if (dim_ == 3) {
-          form = new linElecInt3D( materialData_[actSD] );
-          form->SetFactor( factor );
-        }
-        else {
-          form = new linElecInt2D( materialData_[actSD], isaxi_ );
-          form->SetFactor( factor );
-        }
-      
-        assemble_->AddIntegrator(form, subdoms_[actSD], SYSTEM, nonLin_);
-      } // for
+    for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
+      if (dim_ == 3) {
+        form = new linElecInt3D( materialData_[actSD] );
+        form->SetFactor( factor );
+      }
+      else {
+        form = new linElecInt2D( materialData_[actSD], isaxi_ );
+        form->SetFactor( factor );
+      }
+      assemble_->AddIntegrator(form, subdoms_[actSD], STIFFNESS, nonLin_ );
+    }
   }
 
-  void ElecPDE::DefineSolveStep()
-  {
+  void ElecPDE::DefineSolveStep() {
     ENTER_FCN( "ElecPDE::DefineSolveStep" );
-
     solveStep_ = new SolveStepElec(*this);
   }
 
@@ -106,135 +102,132 @@ namespace CoupledField {
   void ElecPDE::WriteResultsInFile(const UInt kstep,
                                    const Double asteptime,
                                    UInt stepOffset,
-                                   Double timeOffset)
-  {
+                                   Double timeOffset) {
+
     ENTER_FCN( "ElecPDE::WriteResultsInFile" );
 
     UInt actStep = kstep + stepOffset;
     Double actTime = timeOffset + asteptime;
-  
-#ifdef PARALLEL //only one thread should write output
+
+    // only first process should write output
+#ifdef PARALLEL
     int commrank;
-    MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
-    if (!commrank){
+    MPI_Comm_rank( MPI_COMM_WORLD, &commrank );
+    if ( commrank != 0 ) {
+      return;
+    }
 #endif
     
-      // ATTENTION:
-      // The errorMap should be assigned as a StoreSolution, not as a 
-      // Vector. This is only temporarely
-      ElemStoreSol<Double> error, error_Mesh;
-      NodeStoreSol<Double> * solConverted;
-      if (analysistype_ == STATIC)
-        {
-          solConverted = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-      
-          // write electric potential
-          if (saveSol_) {
-            outFile_->WriteNodeSolutionTransient(*solConverted, actStep, actTime);
-          }
+    // ATTENTION:
+    // The errorMap should be assigned as a StoreSolution, not as a 
+    // Vector. This is only temporarely
+    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
 
-          if (saveSolHist_)
-            outFile_->WriteNodeHistoryTransient(*solConverted, actStep, actTime);
-      
-          if (calcEfield_.GetSize() !=0 )
-            {
-              outFile_->WriteElemSolutionTransient(E_, actStep, actTime);
-            }
-      
-          if (calcCharges_.GetSize() !=0 )
-            {
-              outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
-            }
+      // Down-cast
+      NodeStoreSol<Double> *solConverted;
+      solConverted = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+
+      // write electric potential
+      if (saveSol_) {
+        outFile_->WriteNodeSolutionTransient(*solConverted, actStep, actTime);
+      }
+
+      if ( saveSolHist_ ) {
+        outFile_->WriteNodeHistoryTransient(*solConverted, actStep, actTime);
+      }
+
+      if ( calcEfield_.GetSize() != 0 ) {
+        outFile_->WriteElemSolutionTransient(E_, actStep, actTime);
+      }
+
+      if ( calcCharges_.GetSize() != 0 ) {
+        outFile_->WriteElemSolutionTransient(charges_, actStep, actTime);
+      }
+
 #ifdef ADAPTGRID
+      if (flags->CalcErrorMap_ ) {
 
+        ElemStoreSol<Double> error, error_Mesh;
+
+        std::cout << "Do write" << std::endl;
+
+        // this is only a temporar solution
+        error.SetNumSolutions(1);
+        error.SetNumElems(errorMap_.GetSize());
+        error.SetSolutionType(NO_SOLUTION_TYPE);
+        error.SetNumDofs(dofspernode_);
+        error.Init(0);
       
-
-          if (flags->CalcErrorMap_ )
-            {
-
-              std::cout << "Do write" << std::endl;
-
-              // this is only a temporar solution
-              error.SetNumSolutions(1);
-              error.SetNumElems(errorMap_.GetSize());
-              error.SetSolutionType(NO_SOLUTION_TYPE);
-              error.SetNumDofs(dofspernode_);
-              error.Init(0);
-      
-              //Error.SetAlgSysVector(errorMap_);
+        //Error.SetAlgSysVector(errorMap_);
           
-              // ATTENTION!!
-              // up to now now transformation of the Error performed,
-              // since the calculation of the error is done on the global element numeration
-              //Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_);
-              //OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time, "relERR-E-Potential"); 
-              outFile_->WriteElemSolutionTransient(error_Mesh, actStep, actTime); 
-            }
-#endif
-
-      
-
-          if (calcEnergy_.GetSize() !=0 ) {
-            CalcEnergy();
-          }     
-        }
-      else
-        Error("ElecPDE: Only static results can be written", __FILE__, __LINE__);
-
-
-      // The following section was used by Gerhard to compute sum of forces over
-      // different iteration and time steps. The sum was written into the .data stream.
-      // Since this is not available anymore, this is commented out
-#ifdef COMMENTET_OUT
-      if (isIterCoupled_ == TRUE) {
-        //   // TMPORARILY
-        SolutionType quantity;
-        StdVector<UInt> * couplingNodes     = NULL;
-        CFSVector * values = 0;
-        Vector<Double> sumForces(dim_);
-        sumForces.Init();
-    
-    
-    
-        // loop over all output coupling quantities
-        for (UInt actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
-          {
-            quantity = ptCoupling_->GetOutputQuantity(actCoupling);
-            ptCoupling_->GetOutputValues(actCoupling, values);
-        
-            Vector<Double> const & temp = dynamic_cast<Vector<Double> &>(*values);
-            switch(ptCoupling_->GetOutputType(actCoupling))
-              {
-            
-              case NODE:      
-                ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
-                if (quantity == ELEC_FORCE_VWP)
-                  {
-                    for (UInt iDof=0; iDof<dim_; iDof++)
-                      for (UInt iNode=0; iNode<couplingNodes->GetSize(); iNode++)
-                        sumForces[iDof] += temp[iNode*dim_ + iDof];
-                
-                    *data << lasttimecalc_ << "\t";
-                    for (UInt i=0; i<dim_; i++)
-                      *data << sumForces[i]<< "\t";
-                
-                    *data << std::endl;
-                
-                  }
-                break;
-
-              case ELEM:
-                Error( "Element input coupling not implemented for elecPDE",
-                       __FILE__, __LINE__ );
-              } // switch
-          } // for
+        // ATTENTION!!
+        // up to now now transformation of the Error performed,
+        // since the calculation of the error is done on the global
+        // element numeration
+        // Error.TransformElemSolution(Error_Mesh,subdoms_,ptgrid_);
+        // OutFile_->WriteElemSolution(errorMap_, laststepcalc_, time,
+        // "relERR-E-Potential"); 
+        outFile_->WriteElemSolutionTransient(error_Mesh, actStep, actTime); 
       }
 #endif
 
-#ifdef PARALLEL
-    }//!commrank
-#endif
+      if (calcEnergy_.GetSize() !=0 ) {
+        CalcEnergy();
+      }     
+    }
 
+    else {
+      (*warning) << "ElecPDE: Only static results can be written currently";
+      Warning( __FILE__, __LINE__);
+    }
+
+
+    // The following section was used by Gerhard to compute sum of forces over
+    // different iteration and time steps. The sum was written into the .data stream.
+    // Since this is not available anymore, this is commented out
+#ifdef COMMENTET_OUT
+    if (isIterCoupled_ == TRUE) {
+      //   // TMPORARILY
+      SolutionType quantity;
+      StdVector<UInt> * couplingNodes     = NULL;
+      CFSVector * values = 0;
+      Vector<Double> sumForces(dim_);
+      sumForces.Init();
+    
+      // loop over all output coupling quantities
+      for (UInt actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
+        {
+          quantity = ptCoupling_->GetOutputQuantity(actCoupling);
+          ptCoupling_->GetOutputValues(actCoupling, values);
+        
+          Vector<Double> const & temp = dynamic_cast<Vector<Double> &>(*values);
+          switch(ptCoupling_->GetOutputType(actCoupling))
+            {
+            
+            case NODE:      
+              ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
+              if (quantity == ELEC_FORCE_VWP)
+                {
+                  for (UInt iDof=0; iDof<dim_; iDof++)
+                    for (UInt iNode=0; iNode<couplingNodes->GetSize(); iNode++)
+                      sumForces[iDof] += temp[iNode*dim_ + iDof];
+                
+                  *data << lasttimecalc_ << "\t";
+                  for (UInt i=0; i<dim_; i++)
+                    *data << sumForces[i]<< "\t";
+                
+                  *data << std::endl;
+                
+                }
+              break;
+
+            case ELEM:
+              Error( "Element input coupling not implemented for elecPDE",
+                     __FILE__, __LINE__ );
+            } // switch
+        } // for
+    }
+#endif
   }
 
   void ElecPDE::PostProcess()
