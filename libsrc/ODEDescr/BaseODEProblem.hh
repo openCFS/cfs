@@ -22,15 +22,49 @@ namespace CoupledField {
     }
 
     //! Compute the right hand side for dy/dt=f(t,y)
-    //! \param t      Current time step (can also be used as current position
+    //! \param t      Current time step (can also be used as current position)
     //! \param vector y cointains starting values
     //! \param vector dydt contains on return the resulting rhs
     virtual void CompDeriv(const Double &t,
                            const StdVector<Double> &y,
                            StdVector<Double> &dydt) = 0;
 
+    //! Compute the Jacobian Matrix of the ode
+    virtual void Jacobi(StdVector<Double> &y,
+			Matrix<Double> &dfdy,
+			Double &t) //= 0;
+    {
+      ENTER_FCN( "BadeODEProblem::Jacobi" );
+      std::cerr<< "Jacobi method is not yet implemented for this problem" << std::endl;
+    }
+
 
   };
+
+
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class BaseODEProblem
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
 
 }
 
