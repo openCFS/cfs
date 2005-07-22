@@ -7,6 +7,7 @@
 
 #include "ODESolver_RKF45.hh"
 #include "ODEDescr/Gilmore.hh"
+#include "ODEDescr/Gilmoredimlos.hh"
 #include "ODEDescr/KellerMiksis.hh"
 
 namespace CoupledField
@@ -15,7 +16,7 @@ namespace CoupledField
                                const Double tStop,
                                StdVector<Double> &yInitOut,
                                BaseODEProblem &myODE,
-                               Double hInit,
+                               Double & hInit,
                                Double hMin,
                                Double hMax ){
     const Double tiny = 1.0e-30;
@@ -32,7 +33,6 @@ namespace CoupledField
     StdVector<Double> dydt(nvar);
 
     t = tInit;
-    //Achtung bei nachfolgender Abfrage Problem durch default wert?
     h = ((tStop-tInit) >= 0 ? 
          (hInit>= 0 ? hInit :-hInit) : (hInit>= 0 ? -hInit : hInit));
 
@@ -44,6 +44,13 @@ namespace CoupledField
     for ( i = 0; i < nvar; i++ ){
       y[i] = yInitOut[i];
     }
+
+    // *** Test ************************************
+    if (t+h-tStop > 0.0) {
+      h = tStop-t;
+    }
+    // *********************************************
+
     for (nstp=0; nstp<maxSteps_; nstp++){
       myODE.CompDeriv(t,y,dydt);
       //Scaling to monitor accuracy.
@@ -51,13 +58,16 @@ namespace CoupledField
       for ( i = 0; i < nvar; i++ ){
         yScal[i] = fabs(y[i])+fabs(dydt[i]*h)+tiny;
       }
-      //If stepsize can overshoot, decrease
-      if ((t+h-tStop)*(t+h-tInit) > 0.0){
-        h = tStop-t;
-      }
+
+      // *** Test ************************************
+      // //If stepsize can overshoot, decrease
+      //if ((t+h-tStop)*(t+h-tInit) > 0.0){
+      //  h = tStop-t;
+      //}
+      // *********************************************
+
       RKAdaptiveStepsize(y,dydt,t,h,yScal,hDid,hNext,myODE);
-      //  Info-> PrintF("","%e %e  %e  %e\n",t,hDid,y[0],y[1]);
-      //(*data)<< t << "    " << y[0] << "    " << y[1] << std::endl;
+
       if (hDid == h){
         ++numStepsLastSolve_;
       }
@@ -65,51 +75,39 @@ namespace CoupledField
         ++numBadStepsLastSolve_;
       } 
       //Did we get the final value for tStop?
-      if ((t-tStop)*(tStop-tInit) >= 0.0){
-        for (i=0; i<nvar; i++){
-          yInitOut[i] = y[i];
-        }
-        successLastSolve_ = true;
-        //Info-> PrintF("","%d Timestep %e %e %e No. of good steps %d No. of bad steps %d\n",nstp,t,y[0],y[1],numStepsLastSolve_,numBadStepsLastSolve_);
-        //      if (numEl_ == 89){
-        //  (*data)<< t << "    " << numEl_ <<  "    " << y[0] << "    " 
-        //<< y[1];
-        //}
-
-        //      if (numEl_ == 90){
-        //(*data)<< "    " << numEl_ <<  "    " << y[0] << "    " << y[1]//;
-        //               << "   " << yInitOut[0] << "   " 
-        //<< yInitOut[1] << std::endl;
-        //}
-
-        //if (numEl_ == 91){
-        // (*data)<<"    " << numEl_ <<  "    " << y[0] << "    " 
-        //<< y[1] << std::endl;
-        //}
-        return;      // Normal exit
+      // *** MODIFIED testing case, added second condition*******
+      if (((t-tStop)*(tStop-tInit) >= 0.0) || (t+hNext-tStop > 0.0)){
+	for (i=0; i<nvar; i++){
+	  yInitOut[i] = y[i];
+	}
+	hInit = hNext; //added compared to nr
+	successLastSolve_ = true;
+	//	std::cout<<"Number of good steps nok   " <<numStepsLastSolve_<< "   Number of bad steps  nbad  "<<numBadStepsLastSolve_<<std::endl;
+	return;      // Normal exit
       }
-      if (std::abs(hNext) <= hMin){
-        hNext=hMin;
-        //Error("Step size too small",__FILE__,__LINE__);
-        //successLastSolve_ = false;
+      
+      if (fabs(hNext) <= hMin){
+	Error("Step size too small",__FILE__,__LINE__);
+	successLastSolve_ = false;
       }
       h = hNext;
     }
-    Double dummyp;
-    Double dummydpdt;
-    try { 
-      //KellerMiksis &theODE = dynamic_cast<KellerMiksis&>(myODE);
-      Gilmore &theODE = dynamic_cast<Gilmore&>(myODE);
-      dummyp = theODE.GetP();
-      dummydpdt = theODE.GetDpdt();
-      Info->PrintF("","ElemNo. %d P %e Dpdt %e t %e h %e  R %e dRdt %e\n"
-                   ,numEl_,dummyp,dummydpdt,t,h,y[0],y[1]);
-      Error( "Too many steps", __FILE__, __LINE__ );
-    }
-    catch (...) {
-      Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
-             __FILE__, __LINE__ );
-    }
+
+    //	Double dummyp;
+    //	Double dummydpdt;
+    //	try { 
+    //	  //KellerMiksis &theODE = dynamic_cast<KellerMiksis&>(myODE);
+    //	  Gilmore &theODE = dynamic_cast<Gilmore&>(myODE);
+    //	  dummyp = theODE.GetP();
+    //	  dummydpdt = theODE.GetDpdt();
+    //	  Info->PrintF("","ElemNo. %d P %e Dpdt %e t %e h %e  R %e dRdt %e\n"
+    //		       ,numEl_,dummyp,dummydpdt,t,h,y[0],y[1]);
+    Error( "Too many steps", __FILE__, __LINE__ );
+    //	}
+    //	catch (...) {
+    //Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
+    //	 __FILE__, __LINE__ );
+    //}
     successLastSolve_ = false;
 
             
@@ -130,9 +128,9 @@ namespace CoupledField
     Double  powerShrink = -0.25;
 
     // errCon = (5/safetyFac_) rasied to the power (1/powergrow)
-    Double errCon = 1.89e-4;
-    //Double errCon =2.48832e-5;
-    //Double errCon =1.0e-5;
+    //Double errCon = 1.89e-4;
+    Double errCon;
+    errCon = std::pow((5.0/safetyFac_),(1.0/powerGrow));//1.0e-5;
    
     Integer i;
 
@@ -149,45 +147,45 @@ namespace CoupledField
     StdVector<Double> yTemp(n);
 
     for(;;){
+
       RKCashKarp(y, dydt, t, h, yTemp, yError, myODE); //Take one step
-      //        std::cerr<<yTemp[0]<<std::endl;
-      // Info-> PrintF("","%e  %e\n",yTemp[0],yTemp[1]);
+
       errMax = 0.0;
       for (i=0; i<n; i++){
-        errMax = ( errMax > std::abs(yError[i]/yScal[i]) 
-                   ? errMax : (std::abs(yError[i]/yScal[i])));
+	errMax = ( errMax >fabs(yError[i]/yScal[i])
+		   ? errMax : (fabs(yError[i]/yScal[i])) );
       }
-      errMax /= eps_;             //Scale relative to required tolernace
 
-      if (errMax < 1.0) {
-        break;  //Step succeeded. Compute size of next step
+      errMax /= eps_;             //Scale relative to required tolernace
+      if (errMax <= 1.0) {
+	break;                    //Step succeeded. Compute size of next step
       }
 
       hTemp = safetyFac_ * h * std::pow(errMax,powerShrink);
       //Truncation error too large, reduce stepsize, no more than factor 10
       h = ( h >= 0.0 ?
-            (hTemp>0.1*h ? hTemp : 0.1*h):(hTemp<0.1*h ? hTemp : 0.1*h ));
+      	    (hTemp > 0.1*h ? hTemp: 0.1*h ):(hTemp <0.1*h ? hTemp: 0.1*h ));
       tNew = t + h;
       if (tNew == t){
-        Double dummyp;
-        Double dummydpdt;
-        Double testr;
+	//	Double dummyp;
+	//	Double dummydpdt;
+	//	Double testr;
 
-        try {
-          // KellerMiksis &theODE = dynamic_cast<KellerMiksis&>(myODE);
-          Gilmore &theODE = dynamic_cast<Gilmore&>(myODE);
-          dummyp = theODE.GetP();
-          dummydpdt = theODE.GetDpdt();
-          //dummyp=myODE.GetP();
-          //    dummydpdt=myODE.GetDpdt();
-          Info-> PrintF("","ElemNo. %d P %e Dpdt %e t %e h %e  R %e dRdt %e\n"
-                        ,numEl_,dummyp,dummydpdt,t,h,yTemp[0],yTemp[1]);
-          Error("Stepsize underflow",__FILE__,__LINE__);
-        }
-        catch (...) {
-          Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
-                 __FILE__, __LINE__ );
-        }
+	//	try {
+	//	  //KellerMiksis &theODE = dynamic_cast<KellerMiksis&>(myODE);
+	//	  Gilmore &theODE = dynamic_cast<Gilmore&>(myODE);
+	//	  dummyp = theODE.GetP();
+	//	  dummydpdt = theODE.GetDpdt();
+	//dummyp=myODE.GetP();
+	//	dummydpdt=myODE.GetDpdt();
+	//	  Info-> PrintF("","ElemNo. %d P %e Dpdt %e t %e h %e  R %e dRdt %e\n"
+	//			,numEl_,dummyp,dummydpdt,t,h,yTemp[0],yTemp[1]);
+	Error("Stepsize underflow",__FILE__,__LINE__);
+	//	}
+	//	catch (...) {
+	//	  Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
+	//		 __FILE__, __LINE__ );
+	//	}
       }
     }
 
@@ -195,35 +193,39 @@ namespace CoupledField
     if ( errMax > errCon ) {
       hNext = safetyFac_ * h * std::pow(errMax, powerGrow);
     }
-    else hNext = 5.0*h;
+    else {
+      hNext = 5.0*h;
+    }
     hDid = h;
  
     t += hDid;
     for (i=0; i<n; i++) {
       y[i] = yTemp[i];
     }
-      
+
   } 
 
 
 
 
   void ODESolver_RKF45::RKCashKarp (const StdVector<Double> &y,
-                                    const StdVector<Double> &dydt,
-                                    const Double &t,
-                                    const Double h,
-                                    StdVector<Double> &yOut,
-                                    StdVector<Double> &yError,
-                                    BaseODEProblem &myODE){
-    static const Double a2 = 0.2, a3 = 0.3, a4 = 0.6, a5 = 1.0, a6 = 0.875,
-      b21 = 0.2, b31 = 3.0/40.0, b32 = 9.0/40.0, b41 = 0.3, b42 = -0.9,
-      b43 = 1.2, b51 = -11.0/54.0, b52 = 2.5, b53 = -70.0/27.0,
-      b54 = 35.0/27.0, b61 = 1631.0/55296.0,b62 = 175.0/512.0,
-      b63 = 575.0/13824.0, b64 = 44275.0/110592.0, b65 = 253.0/4096.0,
-      c1 = 37.0/378.0, c3 = 250.0/621.0, c4 = 125.0/594.0, 
-      c6 = 512.0/ 1771.0,
-      dc1 = c1-2825.0/27648.0, dc3 = c3-18575.0/48384.0,
-      dc4 = c4-13525.0/55296.0, dc5 = -277.00/14336.0, dc6 = c6-0.25;
+				    const StdVector<Double> &dydt,
+				    const Double t,
+				    const Double h,
+				    StdVector<Double> &yOut,
+				    StdVector<Double> &yError,
+				    BaseODEProblem &myODE){
+
+
+    static const Double a2=0.2, a3=0.3, a4=0.6, a5=1.0, a6=0.875;
+    static const Double b21=0.2, b31=3.0/40.0, b32=9.0/40.0, b41=0.3, b42= (-0.9);
+    static const Double b43=1.2, b51= -11.0/54.0, b52=2.5, b53= (-70.0/27.0);
+    static const Double b54=35.0/27.0, b61=1631.0/55296.0, b62=175.0/512.0;
+    static const Double b63=575.0/13824.0, b64=44275.0/110592.0, b65=253.0/4096.0;
+    static const Double c1=37.0/378.0, c3=250.0/621.0, c4=125.0/594.0, c6=512.0/1771.0;
+    static const Double dc1=c1-2825.0/27648.0, dc3=c3-18575.0/48384.0;
+    static const Double dc4=c4-13525.0/55296.0, dc5= -277.0/14336.0, dc6=c6-0.25;
+
 
     Integer i;
 
