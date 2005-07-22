@@ -33,7 +33,8 @@
 namespace CoupledField {
 
 
-  SinglePDE::SinglePDE( Grid *aptgrid, WriteResults * aOutFile, TimeFunc *aptTimeFunc )
+  SinglePDE::SinglePDE( Grid *aptgrid, WriteResults *aOutFile,
+                        TimeFunc *aptTimeFunc )
     :  StdPDE(aptgrid, aOutFile, aptTimeFunc) {
   
     ENTER_FCN( "BasePDE::BasePDE" );
@@ -186,14 +187,21 @@ namespace CoupledField {
     // stiffness matrix is always needed
     matrixTypes_.insert(SYSTEM);
 
-    if (analysisHelp == STATIC ||
-        isAlwaysStatic_ == TRUE) {
+    // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
+    //       and must be re-designed
+    if ( isAlwaysStatic_ == TRUE ) {
+      (*warning) << "Ignoring isAlwaysStatic flag of PDE '"
+                 << pdename_ << "' for direct coupling!";
+      Warning( __FILE__, __LINE__ );
+    }
+
+    if ( analysisHelp == STATIC ) {
       isComplex_ = FALSE;
       assemble_ = new StaticAssemble(algsys_, ptgrid_);
       analysistype_ = STATIC;
     }
 
-    else if (analysisHelp == TRANSIENT ) {
+    else if ( analysisHelp == TRANSIENT ) {
       isComplex_ = FALSE;
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
       analysistype_ = TRANSIENT;
@@ -201,7 +209,7 @@ namespace CoupledField {
       matrixTypes_.insert(MASS);
     }
 
-    else if (analysisHelp == TRANSIENT4SLICE ) {
+    else if ( analysisHelp == TRANSIENT4SLICE ) {
       isComplex_ = FALSE;
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
       analysistype_ = TRANSIENT;
@@ -264,9 +272,9 @@ namespace CoupledField {
                << "' is not supported";
       Error( __FILE__, __LINE__ );
     }
-    
+
     // Determine if solution is of complex type or not
-    if ( analysistype_ == HARMONIC ||analysistype_ == MULTIHARMONIC ) {
+    if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
       sol_ = new NodeStoreSol<Complex>;
       solVec_ = new Vector<Complex>;
     }
@@ -274,7 +282,7 @@ namespace CoupledField {
       sol_ = new NodeStoreSol<Double>;
       solVec_ = new Vector<Double>;
     }
-    
+
     // =====================================================================
     // initialize adaptivity
     // =====================================================================
@@ -602,10 +610,11 @@ namespace CoupledField {
       
       //get the correct time function value
       val_tfunc = 1.0;
-      if (ptTimeFunc_->GetmaxTimeFnc() > 0 && (analysistype_ != HARMONIC || analysistype_!=MULTIHARMONIC)) {
+      if ( ptTimeFunc_->GetmaxTimeFnc() > 0 &&
+           (analysistype_ != HARMONIC || analysistype_ != MULTIHARMONIC) ) {
         val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
       }
-      
+
       val    =  val_id_[i] * val_tfunc;
       dirVal = val;
       for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
