@@ -1,17 +1,18 @@
-#ifndef FILE_GILMORE
-#define FILE_GILMORE
+#ifndef FILE_GILMOREDIMLOS
+#define FILE_GILMOREDIMLOS
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
 #include "BubbleODE.hh"
+#include "Matrix/matrix.hh"
 
 namespace CoupledField{
 
-  //! Class for bubble dynamics using the equation of Gilmore together 
-  //! with the Tait-equation; also known as Gilmore-Akulichev model.
-  //! Class is derived from BubbleODE 
+  //! Class to determine the bubble dynamics using the dimensionless Gilmore-equations. 
 
-  class Gilmore : public BubbleODE {
+
+
+  class Gilmoredimlos : public BubbleODE {
  
   public:
 
@@ -24,18 +25,19 @@ namespace CoupledField{
     //! \param surfacTen  Surfacetension of fluid
     //! \param polytrop   Polytropic index
     //! \param viscosity  Viscosity of fluid
-    Gilmore(Double  RadiusInit, 
-            Double  density,
-            Double  sonicVel,
-            Double  pStatic,
-            Double  pVapour,
-            Double  surfacTen,
-            Double  polytrop,
-            Double  viscosity); 
+    Gilmoredimlos(Double  RadiusInit, 
+		  Double  density,
+		  Double  sonicVel,
+		  Double  pStatic,
+		  Double  pVapour,
+		  Double  surfacTen,
+		  Double  polytrop,
+		  Double  viscosity); 
+
      
     //! Default Destructor
-    virtual ~Gilmore() {
-      ENTER_FCN( "Gilmore::~Gilmore" );
+    virtual ~Gilmoredimlos() {
+      ENTER_FCN( "Gilmoredimlos::~Gilmoredimlos" );
     }
 
     //! Compute the right hand side for dy/dt=f(t,y)
@@ -46,27 +48,44 @@ namespace CoupledField{
                    const StdVector<Double> &y,
                    StdVector<Double> &dydt);
 
+    //! Get the pressure used in this class
     Double GetP (){
-      ENTER_IFCN( "Gilmore::GetP" );      
+      ENTER_IFCN( "Gilmoredimlos::GetP" );      
       return p_;
     }
 
+    //! Set the pressure 
     void SetP (Double p){
-      ENTER_IFCN( "Gilmore::SetP" );
+      ENTER_IFCN( "Gilmoredimlos::SetP" );
       p_ = p;
     }
 
+    //! Get the derivative of the pressure used in this class
     Double GetDpdt (){ 
-      ENTER_IFCN( "Gilmore::GetDpdt" );
+      ENTER_IFCN( "Gilmoredimlos::GetDpdt" );
       return dpdt_;
     }
 
+    //! Set the derivative of the pressure 
     void SetDpdt (Double dpdt){
-      ENTER_IFCN( "Gilmore::SetDpdt" );
+      ENTER_IFCN( "Gilmoredimlos::SetDpdt" );
       dpdt_ = dpdt;
     }
+    
+    //! Compute or approximate the Jacobian Matrix
+    //! of the Gilmore-equation
+    void  Jacobi(StdVector<Double> &y,
+		 Matrix<Double> &dfdy,
+		 Double &t);
 
+    //! Help function to compute the Jacobian
+    Double df2dy1(StdVector<Double> &y,
+		  Double &t);
 
+    //! Help function to compute the Jacobian
+    Double df2dy2(StdVector<Double> &y,
+		  Double &t);
+   
    
   private:
 
@@ -93,32 +112,64 @@ namespace CoupledField{
     Double   p_;
     //! \param dpdt_       Time derivative of pressure computed by acoustics
     Double   dpdt_;
-    //! Later p and dpdt will become vector to be able to contain the data for
-    //! all elements in one time step
+
 
 
     
     //! Constants needed for computation of enthalpy and new sonicvelocity
-    //! Later these constants should be read from a file, either xml or mat 
     Double A_;
     Double B_;
     Double n_;
 
-    //! \param H_     Enthapy of the fluid
+    //! \param H_ Enthapydifference of the fluid close to the bubble
+    //! and far away
     Double H_;
 
-    //! \param sonicVelMix_ Sonicvelocity of the bubbly-liquid 
-    Double sonicVelMix_;
+    //! \param C_ Sonicvelocity of the bubbly-liquid 
+    Double C_;
 
     //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // Dimensionless constants
-    Double D_;
-    Double v_;
+    Double sigma_;
+    Double c0_;
     Double mu_;
     Double a_;
     Double b_;
-    
+    Double pV_;
+
   };
+
+
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class Gilmoredimlos
+  //! 
+  //! \purpose
+  //! The equation is known as the  Gilmore-Akulichev model, it
+  //! uses the Tait-equation.
+  //! 
+  //! \collab
+  //! Class is derived from BubbleODE. 
+  //! Class ist called from ODESolver_RKF45,
+  //! ODESolver_Rosenbrock and solveStepAcousticBubble 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! So far the choice of computing or approximating
+  //! the Jacobian Matrix has to done by 
+  //! directly commenting in and out
+
+#endif
 
 } // end of namespace
 
