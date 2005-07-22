@@ -7,7 +7,7 @@
 
 namespace CoupledField{
 
-  //! Class derived from BaseODEProblem
+
   //! Base class from which all bubble problems are derived
   class BubbleODE : public BaseODEProblem {
 
@@ -31,16 +31,45 @@ namespace CoupledField{
                            const StdVector<Double> &y,
                            StdVector<Double> &dydt) = 0;
 
+    //! Get the pressure used in this class
     virtual Double GetP () = 0;
 
+    //! Set the pressure 
     virtual void SetP (Double p) = 0;
 
+    //! Get the derivative of the pressure used in this class
     virtual  Double GetDpdt () = 0;
 
+    //! Set the derivative of the pressure 
     virtual void SetDpdt (Double dpdt) = 0;
 
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class BubbleODE
+  //! Class derived from BaseODEProblem
+  //! 
+  //! \purpose 
+  //! 
+  //! \collab 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! 
+
+#endif
+
 
 }
 
