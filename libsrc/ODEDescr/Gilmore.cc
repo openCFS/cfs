@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <stdio.h>
 
 #include <cmath>     
 
@@ -30,33 +31,8 @@ namespace CoupledField
     viscosity_  = viscosity;
 
     n_ = 7.0;
-
-    // There are different method to obtain the constants A and B;
-    // it is not yet cleared which one is to be used 
-    A_ = 3.001e8;                                    // Philipp and Dähnke
-    //A_ = sonicVel_ * sonicVel_ * density_ / ( n * pStatic_); // Sapozhnikov
-    //A_ = sonicVel_ * sonicVel_ * density_ / n_;          // meine Vermutung
- 
-    B_ = 3e8;                                        // Philipp and Dähnke
-    //B_ = A_ - pStatic_;                                // Sapozhnikov   
-    //B_ = A_ -1;                                         // Church
-
-
-    // log to screen 
-    // std::cerr << " constants\n";
-    // std::cerr << "RadiusInit_" << RadiusInit_ << " \n";
-    // std::cerr << "density_"    << density_    << " \n";
-    // std::cerr << "SonicVel_"   << sonicVel_   << " \n";
-    // std::cerr << "pStatic_"    << pStatic_    << " \n";
-    // std::cerr << "pVapour_"    << pVapour_    << " \n";
-    // std::cerr << "surfacTen_"  << surfacTen_  << " \n";
-    // std::cerr << "polytrop_"   << polytrop_   << " \n";
-    // std::cerr << "viscosity_"  << viscosity_  << " \n";
-    // std::cerr << "A_"          << A _         << " \n";
-    // std::cerr << "B_"          << B_          << " \n";
-    // std::cerr << "n_"          << n_          << " \n";
-
-
+    A_ = 3.001e8;
+    B_ = 3e8;
   }
 
   void  Gilmore::CompDeriv(const Double &t,
@@ -64,93 +40,53 @@ namespace CoupledField
                            StdVector<Double> &dydt){
     ENTER_FCN( "Gilmore::CompDeriv" );
 
-    Double temp1, temp2, temp3, temp4, temp5;
+    Double temp1, temp2, temp3, temp4, temp5, temp6, temp7;
+
+    // For testing only:-------------------------------------------
+
+//         Double ampl, freq;
+
+//         printf("%10.6e \t %10.6e \t %10.6e \n",t, y[0],y[1]);
+
+//         ampl  = 24.0e5;            //Anregungsamplitude
+//         freq  = 27000.0;           //Anregungsfrequenz
+//         p_    = -ampl *sin(2 * (PI) *freq * (t));                        
+//         dpdt_ = -ampl *(2 *(PI) * freq)* cos(2 * (PI) *freq * (t));
+    // -------------------------------------------------------------
+
+    dydt[0] = y[1];
+    
+
+    temp1  = (pStatic_ - pVapour_ + 2.0 * surfacTen_ / RadiusInit_) 
+      * std::pow((RadiusInit_/y[0]),(3.0*polytrop_));
+    temp1 += (-2.0) * surfacTen_ / y[0] - 4.0* viscosity_ * y[1] / y[0] + pVapour_ + B_;
+    temp2  = std::pow(temp1,((n_-1.0)/n_));
+    temp3  = std::pow((pStatic_ + p_ + B_),((n_-1.0)/n_));
+    H_      = (temp2 - temp3)*std::pow(A_,(1.0/n_)) / density_ * n_/(n_-1.0);
+    C_      = sqrt(sonicVel_ * sonicVel_ + (n_-1.0) * H_);
 
 
+    temp4  = (pStatic_ - pVapour_ + 2.0 * surfacTen_ / RadiusInit_) 
+      *std::pow((RadiusInit_/y[0]),(3.0*polytrop_))*(-3.0) * polytrop_ * y[1] / y[0];
+    temp4 += 2.0 * surfacTen_ / (y[0] * y[0]) *y[1] 
+      + 4.0* viscosity_ *(y[1] * y[1]) / (y[0] * y[0]);
+    temp5  = temp4 * std::pow(temp1,(-1.0/n_));
+    temp6  = std::pow((pStatic_ + p_ + B_),(-1.0/n_)) * dpdt_;
 
-    // Computation of enthalpy with pressure at wall 
-    // (pStatic + 2 * surfacTen_ / RadiusInit ) 
-    //  * std::pow(( RadiusInit_ / y[0] ), ( 3.0 * polytrop_ )) 
-    // pVapour neglegted, so is diffusion;
-
-
-    //pVapour included in p(R)
-    temp1   = ( pStatic_ - pVapour_ + 2.0 * surfacTen_ / RadiusInit_ ) 
-      * std::pow(( RadiusInit_ / y[0] ), ( 3.0 * polytrop_ ));
-
-    temp1  -=  2.0 * surfacTen_ / y[0];
-
-    temp1  -=  4.0 * viscosity_ * y[1] / y[0] - B_;
-
-    H_      = std::pow( temp1 , (( n_ - 1.0 ) / n_ ));
-
-    temp2   =  std::pow( ( pStatic_ + p_ + B_ ) ,(( n_ - 1.0 ) / n_ ));
-
-    H_     -=  temp2;
- 
-    H_  *=  n_ / ( n_ - 1.0 ) / density_ * std::pow( A_ , ( 1.0 / n_ ));
-
-
-    sonicVelMix_ = sqrt ( sonicVel_ * sonicVel_ + ( n_ - 1.0 ) * H_ );
-
-
-    dydt[0]  = y[1];
-
-    temp3    = ( pStatic_  - pVapour_+ 2.0 * surfacTen_ / RadiusInit_ )
-      * std::pow(( RadiusInit_ / y[0] ), ( 3.0 * polytrop_ )) 
-      * ( -3.0) * polytrop_ * y[1] / y[0];
-
-    temp3   += 2.0 * surfacTen_ / ( y[0] * y[0] ) * y[1];
-
-    temp3   += 4.0 * viscosity_ *  y[1] * y[1]  / ( y[0] * y[0] );
-  
-    temp3   *= std::pow( temp1 , ((- 1.0) / n_ ));
- 
-    Double temp41=( pStatic_ + p_ + B_ );
-
- 
-    temp4    = std::pow( ( pStatic_ + p_ + B_ ) ,( (- 1.0) / n_ )) * dpdt_;
- 
-    dydt[1]  = ( temp3 - temp4 ) * std::pow( A_ , ( 1.0 / n_ )) / density_;
+    dydt[1]= (temp5 - temp6) * std::pow(A_,(1.0/n_)) 
+      / density_ * (1.0-(y[1]/C_)) * y[0]/ C_;
+    dydt[1]+= (1.0+ (y[1]/C_)) * H_ - 3.0 / 2.0 * y[1] * y[1]*(1.0 - (y[1]/(3.0*C_)));
 
     
-    dydt[1] *= ( 1.0 - (y[1] / sonicVelMix_) ) * y[0] /sonicVelMix_;
-   
-    dydt[1] -= 3.0 / 2.0 * y[1] * y[1] * ( 1.0 - (y[1] 
-                                                  / ( 3.0 * sonicVelMix_ )));
-    
-    dydt[1] += ( 1.0 + y[1] / sonicVelMix_ ) * H_;
 
-   
+    temp7  = (1.0 - (y[1] / C_)) * y[0]* 
+      (1.0+( 4.0 * viscosity_ / (C_*y[0])
+	     *std::pow(temp1,(-1.0/n_)) * std::pow(A_,(1.0/n_))/density_));
 
-    temp5   =  (( 1.0 - ( y[1] / sonicVelMix_ )) * y[0] 
-                * ( 1.0 + (4.0 * viscosity_ / ( sonicVelMix_ * y[0])
-                           * std::pow( temp1 , ((- 1.0) / n_ )) 
-                           * std::pow( A_ , ( 1.0 / n_ )) / density_)));
+    dydt[1]= dydt[1] / temp7;
 
- 
-
-    //    dydt[1] = dydt[1] / (( 1.0 - ( y[1] / sonicVelMix_ )) * y[0] 
-    //           * ( 1.0 + (4.0 * viscosity_ / ( sonicVelMix_ * y[0])
-    //                      * std::pow( temp1 , ((- 1.0) / n_ )) 
-    //                      * std::pow( A_ , ( 1.0 / n_ )) / density_)));
-
-    if (abs(temp1) <= 1e-15){
-      std::cerr<< "temp1: " << temp1 << std::endl;
-      Error("Nenner zu klein",__FILE__,__LINE__);
-    }
-    if (abs(temp41) <= 1e-15){
-      std::cerr<< "temp41: " << temp41 << std::endl;
-      Error("Nenner zu klein",__FILE__,__LINE__);
-    }
-    if (abs(temp5) <= 1e-15){
-      std::cerr<< "tmp5: " << temp5 << std::endl;
-      Error("Nenner zu klein",__FILE__,__LINE__);
-    }
-    dydt[1] = dydt[1] / temp5;
 
   }
-
 
  
 } // end of namespace

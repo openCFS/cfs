@@ -4,12 +4,12 @@
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
 #include "BubbleODE.hh"
+#include "Matrix/matrix.hh"
 
 namespace CoupledField{
 
-  //! Class for bubble dynamics using the equation of Gilmore together 
-  //! with the Tait-equation; also known as Gilmore-Akulichev model.
-  //! Class is derived from BubbleODE 
+  //! Class to determine the bubble dynamics using the Gilmore-equations. 
+
 
   class Gilmore : public BubbleODE {
  
@@ -46,26 +46,31 @@ namespace CoupledField{
                    const StdVector<Double> &y,
                    StdVector<Double> &dydt);
 
+
+    //! Get the pressure used in this class
     Double GetP (){
       ENTER_IFCN( "Gilmore::GetP" );      
       return p_;
     }
 
+    //! Set the pressure 
     void SetP (Double p){
       ENTER_IFCN( "Gilmore::SetP" );
       p_ = p;
     }
 
+    //! Get the derivative of the pressure used in this class
     Double GetDpdt (){ 
       ENTER_IFCN( "Gilmore::GetDpdt" );
       return dpdt_;
     }
 
+    //! Set the derivative of the pressure 
     void SetDpdt (Double dpdt){
       ENTER_IFCN( "Gilmore::SetDpdt" );
       dpdt_ = dpdt;
     }
-
+    
 
    
   private:
@@ -97,9 +102,7 @@ namespace CoupledField{
     //! all elements in one time step
 
 
-    
-    //! Constants needed for computation of enthalpy and new sonicvelocity
-    //! Later these constants should be read from a file, either xml or mat 
+    //! Constants needed for computation of enthalpy and new sonicvelocity    
     Double A_;
     Double B_;
     Double n_;
@@ -107,10 +110,42 @@ namespace CoupledField{
     //! \param H_     Enthapy of the fluid
     Double H_;
 
-    //! \param sonicVelMix_ Sonicvelocity of the bubbly-liquid 
-    Double sonicVelMix_;
+    //! \param C_ Sonicvelocity of the bubbly-liquid 
+    Double C_;
+
+
     
   };
+
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class Gilmore
+  //! 
+  //! \purpose
+  //! The equation is known as the  Gilmore-Akulichev model, it
+  //! uses the Tait-equation.
+  //! 
+  //! \collab
+  //! Class is derived from BubbleODE. 
+  //! Class ist called from ODESolver_RKF45,
+  //! ODESolver_Rosenbrock and solveStepAcousticBubble 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+
+
+#endif
+
 
 } // end of namespace
 
