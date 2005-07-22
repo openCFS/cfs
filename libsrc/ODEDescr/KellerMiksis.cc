@@ -29,16 +29,7 @@ namespace CoupledField
     polytrop_   = polytrop;
     viscosity_  = viscosity;
 
-    // log to screen 
-    // std::cerr << " constants\n";
-    // std::cerr << "RadiusInit_" << RadiusInit_ << " \n";
-    // std::cerr << "density_"    << density_    << " \n";
-    // std::cerr << "SonicVel_"   << sonicVel_   << " \n";
-    // std::cerr << "pStatic_"    << pStatic_    << " \n";
-    // std::cerr << "pVapour_"    << pVapour_    << " \n";
-    // std::cerr << "surfacTen_"  << surfacTen_  << " \n";
-    // std::cerr << "polytrop_"   << polytrop_   << " \n";
-    // std::cerr << "viscosity_"  << viscosity_  << " \n";
+
 
   }
 
@@ -52,13 +43,14 @@ namespace CoupledField
 
     dydt[1]  = -3.0 / 2.0 * y[1] * y[1] * ( 1.0 - y[1] / ( 3.0 * sonicVel_ ));
 
+
     dydt[1] += 1.0 / density_ * ( pStatic_ - pVapour_ 
                                   + 2.0 * surfacTen_ / RadiusInit_ )
       * std::pow(( RadiusInit_ / y[0] ), ( 3.0 * polytrop_ )) 
       * ( 1.0 + ( 1.0 - 3.0 * polytrop_ ) * y[1] / sonicVel_);
 
     dydt[1] -= ( 1.0 + y[1] / sonicVel_ ) / density_ 
-      *( pStatic_ - pVapour_ + p_);
+      *( pStatic_ + p_ - pVapour_); 
 
     dydt[1] -= 2.0 * surfacTen_ / (density_ * y[0] );
 
