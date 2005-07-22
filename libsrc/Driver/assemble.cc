@@ -235,16 +235,11 @@ namespace CoupledField {
               FEMatrixType destMat =
                 actDescriptor->GetIntegrator()->GetBaseType();
 
-
               if ( destMat == STIFFNESS ) {
                 dampTransform = matDataFreq / actFreq_;
-                Info->PrintF( "", " dampTransform (stiffness matrix) = %e\n",
-                              dampTransform );
               }
               else if ( destMat == MASS ) {
                 dampTransform = actFreq_ / matDataFreq;
-                Info->PrintF( "", " dampTransform (mass matrix) = %e\n",
-                              dampTransform );
               }
             }
 
@@ -1453,7 +1448,7 @@ namespace CoupledField {
         {
           std::string error_msg = "Matrix type ";
           error_msg += aSecMat + " not supported in harmonic analysis";
-          Error(error_msg.c_str());
+          Error(error_msg.c_str(), __FILE__, __LINE__ );
         }
 
       SetOrigSecMatrixType(aSecMat);
@@ -1508,7 +1503,7 @@ namespace CoupledField {
     else {
       std::string error_msg = "Matrix type ";
       error_msg += actMatType + " not supported in harmonic analysis";
-      Error(error_msg.c_str());
+      Error(error_msg.c_str(), __FILE__, __LINE__ );
     }
 
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
@@ -1536,7 +1531,7 @@ namespace CoupledField {
       {
         std::string error_msg = "Matrix type ";
         error_msg += actMatType + " not supported in harmonic analysis";
-        Error(error_msg.c_str());
+        Error(error_msg.c_str(), __FILE__, __LINE__ );
       }
 
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, matType, nonLin);
@@ -1560,7 +1555,7 @@ namespace CoupledField {
       {
         std::string error_msg = "Matrix type ";
         error_msg += actID->DestMat() + " not supported in harmonic analysis";
-        Error(error_msg.c_str());
+        Error(error_msg.c_str(), __FILE__, __LINE__ );
       }
 
     integrators_[SubDomIndex(regionId)]->Push_back(actID);
