@@ -9,6 +9,7 @@
 #include "Forms/forms_header.hh"
 #include "General/environment.hh"
 #include "PDE/timestepping.hh"
+#include "PDE/StdPDE.hh"
 
 namespace CoupledField {
 
@@ -19,9 +20,7 @@ namespace CoupledField {
     ENTER_FCN( "SolveStepAcousticBubble::SolveStepAcousticBubble" );
     std::cerr << ":SolveStepAcousticBubble" << std::endl;
   
-    // setup the structure for bubble dynamics
-    // query if cavitation model should be used will be added after setup of new
-    // xml file 
+
     bubbleDynType_ = bubbleDynType;
   
     if( bubbleDynType_ != NOBUBBLETYPE ) {
@@ -78,9 +77,12 @@ namespace CoupledField {
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
     }  
 
+    //ACHTUNG: Wurde angepasst
     //perform predictor and update RHS according to time stepping algorithm
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-    Vector<Double> & sol4pred= solhelp->GetAlgSysVector();
+    //NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    //Vector<Double> & sol4pred= solhelp->GetAlgSysVector();
+    Vector<Double> & sol4pred = 
+      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
     TS_alg_->Predictor(sol4pred);
 
     //set old solution  
@@ -92,7 +94,6 @@ namespace CoupledField {
     Boolean performOneMoreStep;
     do {
       iterationCounter++;
-
       // for every time step write out number of iteration loops to standard out
       //    if (iterationCounter == 1)
       // std::cout << std::endl << "Time step:   "  << kstep 
@@ -156,20 +157,19 @@ namespace CoupledField {
       //solve the PDE system
       algsys_->Solve();
     
+      //ACHTUNG: Wurde angepasst
+      //get the solution
+      UInt length = algsys_->GetSolutionVal(ptsol);
+      PDE_.SaveSolution(ptsol,length);
+      
       // store new solution in newSol
-      algsys_->GetSolutionVal( ptsol );
       StoreAlgsysToVec(newSol, ptsol );
     
       // perform corrector step, if effective mass formulation is used,
       //   we need the Corrector step before we store newsol to sol_,
       //   because newsol is second time derivative at first!
       TS_alg_->Corrector(newSol);
-    
-      //put new solution to sol_
-      sol_->SetAlgSysVector(newSol);  
-
-
-    
+   
       // compute L2-Norm of error between last incremental solution and
       //   actual incremental solution
       Double solIncrL2Norm=0;
@@ -187,8 +187,8 @@ namespace CoupledField {
 
       // output of norms and data
       if ( nonLinLogging_ == TRUE ) {
-        Info->WriteNonLinIter(pdename_, iterationCounter, nlRhsNorm,
-                              incrementalErr );
+	Info->WriteNonLinIter(pdename_, iterationCounter, nlRhsNorm,
+			      incrementalErr );
       }
     
 
@@ -206,111 +206,130 @@ namespace CoupledField {
         StdVector<Elem*> elemssd;
         ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
       
-        for (UInt j=0; j < elemssd.GetSize(); j++) {
-        
-          ptElem  = elemssd[j]->ptElem;
-          connect = elemssd[j]->connect;
+
+	for (UInt j=0; j < elemssd.GetSize(); j++) {
+	
+	  ptElem  = elemssd[j]->ptElem;
+	  connect = elemssd[j]->connect;
+
+		
+
+
+	  Vector<Double> elPressure;
+	  Vector<Double> elPressureDeriv;
+	
+	  //we now have also in coupled computation a pressure formulation =============
+	
+	  //get the pressure
+	  sol_->GetElemSolution(elPressure,connect);
+
+	
+	  //get 1st derivative of pressure
+	  GetDerivSolVecOfElement(elPressureDeriv,connect);
+	
+
+	  //compute average values
+	  Double pressure=0;
+	  Double pressureDeriv=0;
+	  for (UInt elnode=0; elnode<elPressure.GetSize(); elnode++) {
+	    pressure      += elPressure[elnode];
+	    pressureDeriv += elPressureDeriv[elnode];
+	  }
+	
+	  pressure      /= elPressure.GetSize();
+	  pressureDeriv /= elPressureDeriv.GetSize();
+
+
+	
+	  //set to ODE
 
 
 
-          // Output of nlRHSNew for all nodes of desired element
-          //if (numEl == 90){
-          // UInt eqnNr = 0;
-          // UInt eqnDof = 0;
-          // UInt dof = 1;
-          // std::cerr << actTime_ << "   "  << numEl; 
-          // for ( UInt i=0; i < connect.GetSize(); i++){
-          //   eqnData_ -> Node2EQN(connect[i],dof, eqnNr, eqnDof);
-          //   std::cerr << "             " << connect[i];
-          //   if (eqnNr != 0){
-          //     std::cerr << "    " << nlRhsNew[ (eqnNr - 1)];
-          //   }
-          // }
-          // std::cerr << "   " << std::endl;
-          //}
-                
+	  //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++
 
 
-          Vector<Double> elPressure;
-          Vector<Double> elPressureDeriv;
-        
-          //========= we now have also in coupled computation a pressure formulation =============
-        
-          //get the pressure
-          sol_->GetElemSolution(elPressure,connect);
+	  pressureNoDim = pressure / pStatic_ ;
+	  presDerivNoDim = pressureDeriv * initRadius_ / pStatic_ / ( sqrt ( pStatic_ / density_));
+	  // std::cerr<<"numEl "<<numEl<<"    presserNoDim  "<< pressureNoDim<<std::endl;
+	  ptBubble_[numEl]->SetP(pressureNoDim);
+	  //		  std::cerr<<"hier "<<std::endl;
+	  ptBubble_[numEl]->SetDpdt(presDerivNoDim);
 
-        
-          //get 1st derivative of pressure
-          GetDerivSolVecOfElement(elPressureDeriv,connect);
-        
+	  // In case of explicit Euler watch out suggested stepsize
+	  Double dt = TS_alg_->GetTimeStep();
+	  Double steptime = actTime_ - dt;
 
-          //compute average values
-          Double pressure=0;
-          Double pressureDeriv=0;
-          for (UInt elnode=0; elnode<elPressure.GetSize(); elnode++) {
-            pressure      += elPressure[elnode];
-            pressureDeriv += elPressureDeriv[elnode];
-          }
-        
-          pressure      /= elPressure.GetSize();
-          pressureDeriv /= elPressureDeriv.GetSize();
+	  if ( hTry_ > dt){
+	    hTry_ = dt / 3.0;
+	  }
 
-          if(numEl==90){
-            (*cla)<< actTime_ << "    " << "numEl " <<  "   "
-                  << pressure << "    " << pressureDeriv  << "   "
-                  << pressure-oldpressure << "    " 
-                  << pressureDeriv-oldpressureDeriv << std::endl;
-            oldpressure = pressure;
-            oldpressureDeriv = pressureDeriv;
-          }
-        
-        
-          //set to ODE
+	  steptime   = steptime / initRadius_ * (sqrt(pStatic_/ density_));
+	  tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
+	  hTry_      = hTry_ / initRadius_ * (sqrt(pStatic_/ density_));
 
-          //Dimensionless pressure to bubble
-          //      pressure = pressure / 1e5;
-          //pressureDeriv = pressureDeriv * 10e-6 /1e5 /(sqrt(1e5/998));
+	  //get the current values
+	  bubbleValues_[0] = radius_[numEl];
+	  bubbleValues_[1] = velocity_[numEl];
+	  yNoDim_[0] = bubbleValues_[0] / initRadius_;
+	  yNoDim_[1] = bubbleValues_[1] / (sqrt( pStatic_/ density_));
+	
+	  //	if(numEl==90){
+	  //(*cla)<< actTime_ << "    " << numEl << "   " <<  bubbleValues_[0]  << "    " <<  bubbleValues_[1]  << "   "
+	  //<<  radiusWork_[numEl]   << "    " << velocityWork_[numEl];
+	  //}
 
-          ptBubble_[numEl]->SetP(pressure);
-          ptBubble_[numEl]->SetDpdt(pressureDeriv);
+	  //set numEl to ODE-Solver
+	  ptODESolver_->SetNumEl(numEl);
+	
+	  ptODESolver_->Solve(steptime, tNoDim_, yNoDim_, *ptBubble_[numEl], hTry_,
+			      0, dt);
+	
+	  //set the new values
+	  radiusWork_[numEl]   = yNoDim_[0] * initRadius_;
+	  velocityWork_[numEl] = yNoDim_[1] * sqrt( pStatic_/ density_);
+	  //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+	  //Normal case++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	  //          ptBubble_[numEl]->SetP(pressure);
+	  //          ptBubble_[numEl]->SetDpdt(pressureDeriv);
         
           // In case of explicit Euler watch out suggested stepsize
-          Double dt = TS_alg_->GetTimeStep();
-          Double steptime = actTime_ - dt;
+	  //          Double dt = TS_alg_->GetTimeStep();
+	  //          Double steptime = actTime_ - dt;
+
+	  //	  if ( hTry_ > dt){
+	  //	    hTry_ = dt / 3.0;
+	  //	  }
         
           //get the current values
-
-
-          bubbleValues_[0] = radius_[numEl];
-          bubbleValues_[1] = velocity_[numEl];
-        
-          //Dimensionless radius etc. to bubble
-          //bubbleValues_[0] = bubbleValues_[0] / 10e-6;
-          //bubbleValues_[1] = bubbleValues_[1] / (sqrt(1e5/998));
-        
+	  //          bubbleValues_[0] = radius_[numEl];
+	  //          bubbleValues_[1] = velocity_[numEl];
+                
           //      if(numEl==90){
           //(*cla)<< actTime_ << "    " << numEl << "   " <<  bubbleValues_[0]  << "    " <<  bubbleValues_[1]  << "   "
           //<<  radiusWork_[numEl]   << "    " << velocityWork_[numEl];
           //}
-
-
         
           //set numEl to ODE-Solver
-          ptODESolver_->SetNumEl(numEl);
+	  //          ptODESolver_->SetNumEl(numEl);
         
-          ptODESolver_->Solve(steptime, actTime_, bubbleValues_, *ptBubble_[numEl], dt / 3.0,
-                              0, dt);
+	  //          ptODESolver_->Solve(steptime, actTime_, bubbleValues_, *ptBubble_[numEl], hTry_,
+	  //                              0, dt);
         
           //set the new values
-          radiusWork_[numEl]   = bubbleValues_[0]; //* (sqrt(1e5/998)) ;
-          velocityWork_[numEl] = bubbleValues_[1]; //* 1e5 / 10e-6 / 998;
+	  //          radiusWork_[numEl]   = bubbleValues_[0]; 
+	  //          velocityWork_[numEl] = bubbleValues_[1]; 
+
 
           //      if(numEl==90){
           //        (*cla)<< "       " << numEl << "     " << actTime_ << "    " <<  bubbleValues_[0]  << "    " <<  bubbleValues_[1]  << "   "
           //      <<  radiusWork_[numEl]   << "    " << velocityWork_[numEl] << std::endl;
           //
           //}
-        
+	  //Normal case+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
           numEl++;
         }  
       }
@@ -321,19 +340,11 @@ namespace CoupledField {
     } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
 
+
     radius_   = radiusWork_;
     velocity_ = velocityWork_;
 
-    (*data) << actTime_ << "   " << "90 " <<  "   " << radius_[90] << "    " << velocity_[90] << std::endl;
-    //   std::cerr << actTime_ << "   " << "0 " <<  "   " << radius_[0] << "    " << velocity_[0] << std::endl;
   
-    // if ( iterationCounter = nonLinMaxIter_ ){
-    //    Error("Nonlinear Iteration not converged", __FILE__, __LINE__ );
-    //  }
-  }
-
-
-
 
   // ======================================================================
   //   Setup structure for bubbly dynamics
@@ -349,8 +360,8 @@ namespace CoupledField {
     radiusWork_.Resize(numPDEElems_);  
     velocityWork_.Resize(numPDEElems_);
 
-
-
+    hTry_=1e-10;
+    yNoDim_.Resize(2);
     // =============================================
     //  Query ParamHandler for material parameters
     // =============================================
@@ -364,23 +375,25 @@ namespace CoupledField {
              "is missing in xml-file", __FILE__, __LINE__ );
     }
 
-    Double initRadius = auxVec[0];
-    Double initVel = 0.0;
-    params->Get( "initVel", initVel, "bubbleDynamic" );
-    Double density = 0.0;
-    params->Get( "density", density, "bubbleDynamic" );
-    Double sonicVel = 0.0;
-    params->Get( "sonicVel", sonicVel, "bubbleDynamic" );
-    Double pStatic = 0.0;
-    params->Get( "pStatic", pStatic, "bubbleDynamic" );
-    Double pVapour = 0.0;
-    params->Get( "pVapour", pVapour, "bubbleDynamic" );
-    Double surfaceTension = 0.0;
-    params->Get( "surfaceTension", surfaceTension, "bubbleDynamic" );
-    Double polytrop = 0.0;
-    params->Get( "polytrop", polytrop, "bubbleDynamic" );
-    Double viscosity = 0.0;
-    params->Get( "viscosity", viscosity, "bubbleDynamic" );
+    //Double initRadius = auxVec[0];
+    initRadius_ = auxVec[0];
+    //    Double initVel = 0.0;
+    params->Get( "initVel", initVel_, "bubbleDynamic" );
+    //    Double density = 0.0;
+    params->Get( "density", density_, "bubbleDynamic" );
+    //    Double sonicVel = 0.0;
+    params->Get( "sonicVel", sonicVel_, "bubbleDynamic" );
+    //    Double pStatic = 0.0;
+    params->Get( "pStatic", pStatic_, "bubbleDynamic" );
+    //    Double pVapour = 0.0;
+    params->Get( "pVapour", pVapour_, "bubbleDynamic" );
+    //    Double surfaceTension = 0.0;
+    params->Get( "surfaceTension", surfaceTension_, "bubbleDynamic" );
+    //    Double polytrop = 0.0;
+    params->Get( "polytrop", polytrop_, "bubbleDynamic" );
+    //    Double viscosity = 0.0;
+    params->Get( "viscosity", viscosity_, "bubbleDynamic" );
+
 
 
     for (UInt el=0; el<numPDEElems_; el++) {
@@ -389,33 +402,38 @@ namespace CoupledField {
       // so far method is chosen in cfs program call with -bubbletyp
       switch(bubbleDynType_){
       case KELLERMIKSIS:
-        ptBubble_[el] = new KellerMiksis(initRadius,density, sonicVel, pStatic, 
-                                         pVapour, surfaceTension, polytrop, viscosity);
-        //      Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
-
+	ptBubble_[el] = new KellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
+					 pVapour_, surfaceTension_, polytrop_, viscosity_);
+	//	Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
         break;
      
+
       case GILMORE:
-        ptBubble_[el] = new Gilmore(initRadius,density, sonicVel, pStatic, 
-                                    pVapour, surfaceTension, polytrop, viscosity);
-        //      Info->PrintF( pdename_, "Using Gilmore-Bubble-Model\n");
-        
-        break;
+	//ptBubble_[el] = new Gilmore(initRadius_,density_, sonicVel_, pStatic_, 
+	//			pVapour_, surfaceTension_, polytrop_, viscosity_);
+	//	Info->PrintF( pdename_, "Using Gilmore-Bubble-Model\n");
+	ptBubble_[el] = new Gilmoredimlos(initRadius_,density_, sonicVel_, pStatic_, 
+				      pVapour_, surfaceTension_, polytrop_, viscosity_);
+	Info->PrintF( pdename_, "Using dimensionless Gilmore-Bubble-Model\n");
+	break;
 
       default:
-        Error("No bubblemethod specified ",__FILE__,__LINE__);
+	Error("No bubblemethod specified ",__FILE__,__LINE__);
       }
   
 
-      radius_[el]       = initRadius;
-      velocity_[el]     = initVel;
-      radiusWork_[el]   = initRadius;
-      velocityWork_[el] = initVel;
+
+      radius_[el]       = initRadius_;
+      velocity_[el]     = initVel_;
+      radiusWork_[el]   = initRadius_;
+      velocityWork_[el] = initVel_;
+
     
     }
 
     // Generate ODE solver object
     ptODESolver_ = new ODESolver_RKF45;
+    // ptODESolver_ = new ODESolver_Rosenbrock;
 
     //Set bubbledensity
     params->Get( "bubbleNumDensity", bubbleDensity_, "acoustic", "bubbles" );
@@ -424,7 +442,6 @@ namespace CoupledField {
 
   void SolveStepAcousticBubble::ComputeBubbleRHS(){  
     ENTER_FCN( "SolveStepAcousticBubble::ComputeBubbleRHS" );
-
 
     //rhs-integrator
     Double dummy=1.0;
@@ -445,41 +462,57 @@ namespace CoupledField {
         
         Double beta2 = 1;
                 
-        bubbleValues_[0] = radiusWork_[numEl];
-        bubbleValues_[1] = velocityWork_[numEl];
 
-        //output r,v
-        //     if (numEl == 91)
-        //        {
-        //      Info->PrintF("","%e  %e  %e\n",actTime_,radius_[numEl],velocity_[numEl]);
-        //          (*data)<< actTime_ << "    " << radius_[numEl] << "    " << velocity_[numEl]<< std::endl;
-        //        }        
+	bubbleValues_[0] = radiusWork_[numEl];
+	bubbleValues_[1] = velocityWork_[numEl];
 
-        if (actStep_ == 1) 
-          beta2 = 4*PI*bubbleDensity_*6*bubbleValues_[0]
-            *bubbleValues_[1]*bubbleValues_[1]; 
-        else {
-          StdVector<Double> dydt(2);
-          ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues_, dydt);
+	//output r,v
+	//     if (numEl == 91)
+	//	{
+	//	  Info->PrintF("","%e  %e  %e\n",actTime_,radius_[numEl],velocity_[numEl]);
+	//	  (*data)<< actTime_ << "    " << radius_[numEl] << "    " << velocity_[numEl]<< std::endl;
+	//	}	 
 
-          beta2 = 4*PI*bubbleDensity_*
-            (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
-             + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
-        }
+	if (actStep_ == 1) 
+	  beta2 = 4*PI*bubbleDensity_*6*bubbleValues_[0]
+	    *bubbleValues_[1]*bubbleValues_[1]; 
+	else {
+	  StdVector<Double> dydt(2);
 
-        rhsForm->SetFactor(beta2);            
-        rhsForm->SetElemPtr(ptEl);
+
+	  // dimensionless**************************************
+	  yNoDim_[0] = bubbleValues_[0] / initRadius_;
+	  yNoDim_[1] = bubbleValues_[1] / (sqrt( pStatic_/ density_));
+	  tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
+	  ptBubble_[numEl]->CompDeriv(tNoDim_, yNoDim_, dydt);
+	  dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
+	  beta2 = 4*PI*bubbleDensity_*
+	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
+	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
+	  // dimensionless**************************************
+
+	  //Normal case+++++++++++++++++++++++++++++++++++++++
+	  //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues_, dydt);
+	  //	  beta2 = 4*PI*bubbleDensity_*
+	  //	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
+	  //	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
+	  //Normal case+++++++++++++++++++++++++++++++++++++++
+	}
+
+
+	rhsForm->SetFactor(beta2);            
+	rhsForm->SetElemPtr(ptEl);
       
-        Vector<Double> elemVec;
-        rhsForm->CalcElemVector(ptCoord, elemVec);
+	Vector<Double> elemVec;
+	rhsForm->CalcElemVector(ptCoord, elemVec);
 
-        // map connect to PDE node numbers
-        StdVector<Integer> connect_PDE;
-        eqnData_->Node2EQN(connecth, connect_PDE);
+	// map connect to PDE node numbers
+	StdVector<Integer> connect_PDE;
+	eqnData_->Node2EQN(connecth, connect_PDE);
 
-        algsys_->SetElementRHS(&elemVec[0], pdeId1_, connect_PDE.GetPointer(), 
-                               connect_PDE.GetSize());
-        numEl++;
+	algsys_->SetElementRHS(&elemVec[0], pdeId1_, connect_PDE.GetPointer(), 
+			       connect_PDE.GetSize());
+	numEl++;
       }
     }
 
