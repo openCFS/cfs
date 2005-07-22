@@ -18,7 +18,7 @@ ARCH = LINUX
 # Which program do we use for compiling, linking, etc.
 # -----------------------------------------------------------------------------
 
-CC     = g++ 
+CC     = g++
 AR     = ar
 LINK   = $(CC)
 MAKE   = make

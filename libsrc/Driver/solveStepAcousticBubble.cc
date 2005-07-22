@@ -344,7 +344,7 @@ namespace CoupledField {
     radius_   = radiusWork_;
     velocity_ = velocityWork_;
 
-  
+  }
 
   // ======================================================================
   //   Setup structure for bubbly dynamics
