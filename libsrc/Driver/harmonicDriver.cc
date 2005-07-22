@@ -104,7 +104,7 @@ namespace CoupledField {
     }
 
     // Check for single frequency computation
-    if ( startFreq_ == stopFreq_ ) {
+    if ( startFreq_ == stopFreq_ && numFreq_ != 1 ) {
       if ( numFreq_ > 0 ) {
         (*warning) << "Re-setting numFreq to 1, since startFreq = stopFreq"
                    << " = " << startFreq_;
