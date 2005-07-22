@@ -7,8 +7,8 @@
 
 namespace CoupledField{
 
-  //! Class for bubbledynamic equation Keller-Miksis
-  //! Class is derived from BubbleODE 
+  //! Class to determine the  bubbledynamic using the Keller-Miksis-equation
+
 
   class KellerMiksis : public BubbleODE {
  
@@ -45,21 +45,25 @@ namespace CoupledField{
                    const StdVector<Double> &y,
                    StdVector<Double> &dydt);
 
+    //! Get the pressure used in this class
     Double GetP (){
       ENTER_IFCN( "KellerMiksis::GetP" );      
       return p_;
     }
 
+    //! Set the pressure 
     void SetP (Double p){
       ENTER_IFCN( "KellerMiksis::SetP" );
       p_ = p;
     }
 
+    //! Get the derivative of the pressure used in this class
     Double GetDpdt (){ 
       ENTER_IFCN( "KellerMiksis::GetDpdt" );
       return dpdt_;
     }
 
+    //! Set the derivative of the pressure 
     void SetDpdt (Double dpdt){
       ENTER_IFCN( "KellerMiksis::SetDpdt" );
       dpdt_ = dpdt;
@@ -97,6 +101,36 @@ namespace CoupledField{
     
     
   };
+
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class KellerMiksis
+  //! 
+  //! \purpose
+  //! The equation is known as the Keller-Miksis model, it
+  //! is simular to the Keller oder Herring-Model.
+  //! 
+  //! \collab
+  //! Class is derived from BubbleODE. 
+  //! Class ist called from ODESolver_RKF45,
+  //! ODESolver_Rosenbrock and solveStepAcousticBubble 
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+  //! Create dimensionless version and implement the Jacobian Matrix there.
+
+
+#endif
 
 } // end of namespace
 
