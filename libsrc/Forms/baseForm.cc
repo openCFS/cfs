@@ -90,6 +90,8 @@ namespace CoupledField
 
   SurfForm::SurfForm() {
     ENTER_FCN( "SurfForm::SurfForm" );
+
+    factor_ = 1.0;
   }
 
 
@@ -122,6 +124,11 @@ namespace CoupledField
     secondRegionIds_ = regionIds;
     secondMaterials_ = materials;
   }
+
+  void SetFactor(Double factor){
+
+    factor_ = factor;
+  } 
   
   
 }
