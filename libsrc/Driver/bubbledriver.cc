@@ -13,7 +13,7 @@
 #include "Domain/domain.hh"
 #include "ODEDescr/KellerMiksis.hh"
 #include "ODEDescr/Gilmore.hh"
-
+#include "ODEDescr/Gilmoredimlos.hh"
 
 
 
@@ -23,7 +23,7 @@ namespace CoupledField {
   //   Constructor
   // ***************
   BubbleDriver::BubbleDriver(Domain * adomain, 
-                             UInt stepOffset,
+                             UInt   stepOffset,
                              Double timeOffset,
                              std::string driverTag,
                              Boolean isPartOfSequence) 
@@ -58,12 +58,12 @@ namespace CoupledField {
     params->Get(keyVec, attrVec, valVec, isaveincr_);  
 
 
-    // Make consistency check. In fact in the XML case the Schema should catch
-    // this error. But one can never be sure.
+    // Make consistency check. In fact in the XML case the Schema 
+    // should catch this error. But one can never be sure.
     if(isavebegin_ <= 0)
       {
-        Error( "Value of stepsavebegin must be positive and nonzero!",
-               __FILE__, __LINE__ );
+        Error("Value of stepsavebegin must be positive and nonzero!",
+	      __FILE__, __LINE__ );
       }
    
 
@@ -80,23 +80,33 @@ namespace CoupledField {
              "is missing in xml-file", __FILE__, __LINE__ );
     }
 
-    Double initRadius = auxVec[0];
-    Double initVel = 0.0;
-    params->Get( "initVel", initVel, "bubbleDynamic" );
-    Double density = 0.0;
-    params->Get( "density", density, "bubbleDynamic" );
-    Double sonicVel = 0.0;
-    params->Get( "sonicVel", sonicVel, "bubbleDynamic" );
-    Double pStatic = 0.0;
-    params->Get( "pStatic", pStatic, "bubbleDynamic" );
-    Double pVapour = 0.0;
-    params->Get( "pVapour", pVapour, "bubbleDynamic" );
-    Double surfaceTension = 0.0;
-    params->Get( "surfaceTension", surfaceTension, "bubbleDynamic" );
-    Double polytrop = 0.0;
-    params->Get( "polytrop", polytrop, "bubbleDynamic" );
-    Double viscosity = 0.0;
-    params->Get( "viscosity", viscosity, "bubbleDynamic" );
+
+    initRadius_ = auxVec[0];
+
+    params->Get( "initVel", initVel_, "bubbleDynamic" );
+
+    params->Get( "density", density_, "bubbleDynamic" );
+
+    params->Get( "sonicVel", sonicVel_, "bubbleDynamic" );
+
+    params->Get( "pStatic", pStatic_, "bubbleDynamic" );
+
+    params->Get( "pVapour", pVapour_, "bubbleDynamic" );
+
+    params->Get( "surfaceTension", surfaceTension_, "bubbleDynamic" );
+
+    params->Get( "polytrop", polytrop_, "bubbleDynamic" );
+
+    params->Get( "viscosity", viscosity_, "bubbleDynamic" );
+
+    // Only necessary if bubbledriver should compute 
+    // the functions of pressure und its derivative
+    params->Get( "pressure", pressureAmpl_, "bubbleDriver" );
+ 
+    params->Get( "frequency", frequency_, "bubbleDriver" );
+
+
+
 
     // **************************************************
     //   Check what type of bubble model should be used
@@ -110,56 +120,49 @@ namespace CoupledField {
     
     String2Enum( auxVec2[0], bubbleDynType_ );
 
-    //Online necessary if bubbledriver should compute 
-    //the functions of pressure und its derivative
-    params->Get( "pressure", pressureAmpl_, "bubbleDriver" );
- 
-    params->Get( "frequency", frequency_, "bubbleDriver" );
-        
-
-
     // Choice which bubbledynamical method is used and 
     // creation of pointer to choosen class
     switch(bubbleDynType_){
+
     case KELLERMIKSIS:
-      ptBubble_ = new KellerMiksis(initRadius,density, sonicVel, pStatic, 
-                                   pVapour, surfaceTension, polytrop, viscosity);
+      ptBubble_ = new KellerMiksis(initRadius_, density_, 
+				   sonicVel_, pStatic_, 
+				   pVapour_, surfaceTension_, 
+				   polytrop_, viscosity_);
       break;
     case GILMORE:
-      ptBubble_ = new Gilmore(initRadius,density, sonicVel, pStatic, 
-                              pVapour, surfaceTension, polytrop, viscosity);
+//       ptBubble_ = new Gilmore(initRadius_,density_, 
+//                               sonicVel_, pStatic_, 
+//                		pVapour_, surfaceTension_, 
+//                               polytrop_, viscosity_);
+
+      // Should be expanded in XML-File, such that one
+      // can choose between dimensionless and
+      // non-dimensionless computation
+      // ----------------------------------------------------
+      ptBubble_ = new Gilmoredimlos(initRadius_,density_, 
+				    sonicVel_, pStatic_, 
+				    pVapour_, surfaceTension_, 
+ 				    polytrop_, viscosity_);
+      // -----------------------------------------------------
+
       break;
+
     default:
       Error("No bubblemethod specified ",__FILE__,__LINE__);
     }
 
-    // For test phase only two values are needed.
-    // Need to be exchanged if bubbledynamic and acoustic is coupled then
-    // y_[0] and y_[1] each will become a vector of length number of elements
-    y_.Push_back( initRadius );
-    y_.Push_back( initVel );
+    // **************************************************
+    //  Set initial values
+    // **************************************************
+
+    y_.Push_back( initRadius_ );
+    y_.Push_back( initVel_ );
 
 
-
-    //________________________________________________________________
-
-    // Testanfangwerte für Dreikörperproblem
-   
-
-    //   y_.Push_back(0.994);
-    //   y_.Push_back( 0.0);
-    //   y_.Push_back(0.0);
-    //   y_.Push_back(-2.001585106);
-
-    //________________________________________________________________
-
-
-    // ----------------------------------------------------------------
-    // Open output file in which time step, pressure, Radius and 
-    // Velocity at wall of bubble is written
-
-
-
+    // **************************************************
+    //   Open output file for bubbledynamics
+    // **************************************************
     // Generate filename
     std::string simName = commandLine->GetSimName();
     Char *auxfile = new Char[ strlen( simName.c_str() ) + 4 ];
@@ -181,19 +184,20 @@ namespace CoupledField {
     fprintf( fp, "# Time\t\tPressure\t\tRadius\t\tVelocity\n" );
 
     // First line with initial values
-    fprintf( fp, "0\t0\t%16.10e\t%16.10e\n", y_[0], y_[1] );
+    fprintf( fp, "0\t0\t%10.6e\t%10.6e\n", y_[0], y_[1] );
 
-
-
-    // Generate ODE solver object
-    ptODESolver_ = new ODESolver_RKF45;
-    
-    // Optional solver Explicit Euler 
+    // **************************************************
+    //   Generate ODE solver object
+    // **************************************************
     // Later here could be a switch option to choose the solver method
+    ptODESolver_ = new ODESolver_RKF45;
+    // ptODESolver_ = new ODESolver_Rosenbrock;
     // ptODESolver_ = new ODESolver_ExplEuler;
  
   }
  
+
+
 
   // **********************
   //   Default destructor
@@ -207,93 +211,99 @@ namespace CoupledField {
   //   Solve problem
   // *****************
 
-  // Method to compute bubble behavour, 
+  // Method to compute bubble behaviour 
   void  BubbleDriver::SolveProblem() {
     ENTER_FCN( " BubbleDriver::SolveProblem" );
 
-    //    UInt level     = 0;
     Double  steptime  = 0;
     UInt stepsave  = isavebegin_;
-
     Double  dt = firstdt_;
 
     UInt nstep;
 
-    for (nstep = 1; nstep <= numstep_; nstep++){
+    // Two alternatives to be chosen here in method 
+    // a) follow predetermined steps and give output
+    // b) Initial- and Endtime is given, choose steps 
+    // freely, output should be defined in ODESolve
 
-      // forward the actual pressure values to BubbleODE object
-      // in test phase read the values from input file 
-      // or compute them directly
+    Double tEnd = 1.0e-3;  // should mayby included in XML-File
+    Double h1;             // Startvalue for adaptive stepping
+    h1 = 1e-8;
 
-      Double val_tfunc;
-      Double val_tfuncDerv;
+    //Dimlos Case ---------------------------
+
+    dt = dt / initRadius_ * (sqrt( pStatic_ / density_));
+
+    y_[0] /= initRadius_;
+    y_[1] /= (sqrt( pStatic_/ density_));
+    
+
+    steptime   = steptime / initRadius_ * (sqrt(pStatic_/ density_));
+    tEnd       = tEnd / initRadius_ * (sqrt(pStatic_/ density_)); 
+    h1         = h1 / initRadius_ * (sqrt(pStatic_/ density_)); 
+
+    pressureAmpl_= pressureAmpl_ / pStatic_;
+    frequency_   = frequency_ * initRadius_ /(sqrt(pStatic_/ density_)); 
+
+    Double tdim;
+    StdVector<Double> ydim(2);
+    // ------------------------------------------------------------
+
+
+
+    //for (nstep = 1; nstep <= numstep_; nstep++){
+    // tEnd = steptime + dt;
+
+      // a) forward the actual pressure values to BubbleODE object
+      //    - therefore read the values from input file 
+      //    - or compute them directly
+      // b) no forwarding since they will be computed in BubbleODE
+
+
+      // In case of self-computed pressure---------------------------------
+      // pressure_ = - pressureAmpl_ * sin( 2 * PI * frequency_ * (steptime+dt));
+      // dpresdt_  = - pressureAmpl_ * (2 * PI * frequency_ ) * 
+      // cos( 2 * PI * frequency_ * (steptime+dt));     
+      // ptBubble_->SetP(pressure_);
+      // ptBubble_->SetDpdt(dpresdt_);
+
+      // In case of input file---------------------------------------
+      //Double val_tfunc;
+      //Double val_tfuncDerv;
 
       //For testing write names of function directly
-      std::string tfname = "linpres1500.dat";
-      std::string tfnameDerv = "linpresDerv1500.dat";
+      //std::string tfname = "linpres1500.dat";
+      //std::string tfnameDerv = "linpresDerv1500.dat";
 
-      val_tfunc = ptTimeFunc_->TimeFuncAtTime(steptime+dt,tfname);
-      val_tfuncDerv = ptTimeFunc_->TimeFuncAtTime(steptime+dt,tfnameDerv);
-      //    std::cout << "val=" << val_tfunc << std::endl;
+      //val_tfunc = ptTimeFunc_->TimeFuncAtTime(steptime+dt,tfname);
+      //val_tfuncDerv = ptTimeFunc_->TimeFuncAtTime(steptime+dt,tfnameDerv);
 
-      pressure_ = - pressureAmpl_ * sin( 2 * PI * frequency_ * (steptime+dt));
-      dpresdt_  = - pressureAmpl_ * (2 * PI * frequency_ ) * 
-        cos( 2 * PI * frequency_ * (steptime+dt));
-
-      // for test of dimensionless
-      // Double pressureDimlos;
-      //Double dpresdtDimlos; 
-
-      //pressureDimlos = pressure_ /1e5;
-      //dpresdtDimlos = dpresdt_ * 10e-6 /1e5 /(sqrt(1e5/998));
-  
-      //StdVector<Double> yDimlos;
-      //yDimlos = y_;
-      //yDimlos[0] /= 10e-6;
-      //yDimlos[1] /= (sqrt(1e5/998));
-      //ptBubble_->SetP(pressureDimlos);
-      //ptBubble_->SetDpdt(dpresdtDimlos);
-
-      //Double  steptimeDimlos  = 0;
-      //Double  dtDimlos = 0;
-
-      //steptimeDimlos = steptime / 10-6 * (sqrt(1e5/998));
-      //dtDimlos       = dt / 10-6 * (sqrt(1e5/998)); 
-
-      // In case of self-computed pressure
-      //ptBubble_->SetP(pressure_);
-      //ptBubble_->SetDpdt(dpresdt_);
+      //ptBubble_->SetP(val_tfunc);
+      //ptBubble_->SetDpdt(val_tfuncDerv);
 
 
-
-
-      // In case pressure ans its derivative are given
-      ptBubble_->SetP(val_tfunc);
-      ptBubble_->SetDpdt(val_tfuncDerv);
-
-
-      ptODESolver_->Solve( steptime, steptime+dt, y_, *ptBubble_, 
-                           dt / 3.0, 0, dt);
-
-      //ptODESolver_->Solve( steptime, steptime+dt, yDimlos, *ptBubble_, 
-      //                   dt / 3.0, 0, dt);
-          
-      steptime += dt;
-
-      // for test of dimensionless
-      //y_[0] = yDimlos[0] * (sqrt(1e5/998)) ;
-      //y_[1] = yDimlos[1] * 1e5 / 10e-6 / 998; 
+      // Call for ODESolver
+      ptODESolver_->Solve( steptime, tEnd, y_, *ptBubble_, h1, 0, dt);
+	  
+      // steptime += dt;
 
 
       // writing results of bubbledynamic in output file
-
-
       if (nstep == stepsave && (nstep <= isaveend_)) {
-        fprintf( fp, "%e\t%e\t%16.10e\t%16.10e\n", steptime,
-                 pressure_ ,y_[0],y_[1]);
-        stepsave+=isaveincr_;
-      }
-    }
+	//dimensionless---------------------------------------
+// 	ydim[0] = y_[0] * initRadius_ ;
+// 	ydim[1] = y_[1] * sqrt( pStatic_/ density_); 
+// 	tdim = tEnd *  initRadius_ / (sqrt( pStatic_/ density_));
+	
+	//	fprintf(fp, "%10.6e\t%10.6e\t%10.6e\n", tdim,ydim[0],ydim[1]);
+	// ---------------------------------------------------
+
+	//fprintf( fp, "%10.6e\t%10.6e\t%10.6e\t%10.6e\n", steptime,
+	//		 pressure_ ,y_[0],y_[1]);
+	// 	stepsave+=isaveincr_;
+         }
+
+      // }
 
 
     // Close output file
