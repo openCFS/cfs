@@ -8,10 +8,8 @@
 
 namespace CoupledField {
 
-  //! Integrator for solution of an initial value problem using a
-  //! Runge-Kutta-Fehlberg method of 4th order with a step size control of
-  //! 5th order using the Runge-Kutta parameters by Cash-Karp. See Numerical
-  //! Recipes.
+
+  //! Runge-Kutta solver for systems of first order ode's.
   class ODESolver_RKF45 : public BaseODESolver {
 
   public:
@@ -37,12 +35,13 @@ namespace CoupledField {
     //! \param hMin      Minimal allowed size for time step
     //! \param hMax      Maximal allowed size for time step
     void Solve( const Double tInit,
-                const Double tStop,
-                StdVector<Double> &yInitOut,
-                BaseODEProblem &myODE,
-                Double hInit = -1.0,
-                Double hMin = -1.0,
-                Double hMax = -1.0 );
+		const Double tStop,
+		StdVector<Double> &yInitOut,
+		BaseODEProblem &myODE,
+		Double &hInit,
+		Double hMin = 0.0,
+		Double hMax = -1.0 );
+
 
 
 
@@ -87,13 +86,44 @@ namespace CoupledField {
     //!                  function of the ODE 
     void RKCashKarp (const StdVector<Double> &y,
                      const StdVector<Double> &dydt,
-                     const Double &t,
+                     const Double t,
                      const Double h,
                      StdVector<Double> &yOut,
                      StdVector<Double> &yError,
                      BaseODEProblem &myODE);
                      
   };
+
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class ODESolver_RKF45
+  //! 
+  //! \purpose
+  //! Integrator for solution of an initial value problem using a
+  //! Runge-Kutta-Fehlberg method of 4th order with a step size control of
+  //! 5th order using the Runge-Kutta parameters by Cash-Karp. See Numerical
+  //! Recipes.
+  //! 
+  //! \collab
+  //! Needs a user provided routine to compute the right hand side
+  //! of the ode dy/dt = f(t,y); here this is done via the pointer
+  //! to the bubble-class ( Gilmoredimlos, Gilmore, Keller-Miksis).
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+
+
+#endif
 
 }
 
