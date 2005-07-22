@@ -18,10 +18,9 @@ namespace CoupledField {
       successLastSolve_     = false;
       numStepsLastSolve_    = 0;
       numBadStepsLastSolve_ = 0;
-      eps_                  = 10e-4;
-      maxSteps_             = 50000;
-      safetyFac_            = 0.9;
-      //safetyFac_            = 0.5;
+      eps_                  = 1e-6;
+      maxSteps_             = 40000000;
+      safetyFac_            = 0.5;
     }
 
     //! Default Destructor
@@ -43,7 +42,7 @@ namespace CoupledField {
                         const Double tStop,
                         StdVector<Double> &y,
                         BaseODEProblem &myODE,
-                        Double hInit = -1.0,
+                        Double &hInit,
                         Double hMin = -1.0,
                         Double hMax = -1.0) = 0;
 
@@ -102,6 +101,30 @@ namespace CoupledField {
     Double safetyFac_;
 
   };
+
+#ifdef DOXYGEN_DETAILED_DOC
+
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+
+  //! \class BaseODESolver
+  //! 
+  //! \purpose
+  //! 
+  //! \collab
+  //! 
+  //! \implement 
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve
+
+
+#endif
+
 
 }
 
