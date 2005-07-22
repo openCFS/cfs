@@ -32,12 +32,10 @@ namespace CoupledField {
       sol_(NULL),     
       dampingType_(NONE),
       isIncrFormulation_(FALSE),
-      solveStep_(NULL)
-    
-  {
+      solveStep_(NULL) {
+
     ENTER_FCN( "StdPDE::StdPDE");
 
-   
     // =====================================================================
     // set file pointers
     // =====================================================================
@@ -149,43 +147,39 @@ namespace CoupledField {
     // Eliminate homogeneous dirichlet node from RHS (due to penalty formulation).
     // In the case of a block system, there might be still some homogeneous dirichlet
     // entries left
-    for (UInt i=0; i< bcs_hd_.GetSize(); i++)
-      {
-        dof = 1;
-        if ( dofspernode_ > 1 ) {
-          dof = domain->GetCoordSystem()->GetVecComponent( homDirichDof_[i] );
-        }
-
-        ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
-      
-        for (UInt iNode=0; iNode<nodes.GetSize(); iNode++)
-          {
-            eqnData_->Node2EQN(nodes[iNode],dof,eqnNr,eqnDof);
-            if (eqnNr != 0){
-              actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0.0;
-            }
-          }
+    for ( UInt i = 0; i < bcs_hd_.GetSize(); i++ ) {
+      dof = 1;
+      if ( dofspernode_ > 1 ) {
+        dof = domain->GetCoordSystem()->GetVecComponent( homDirichDof_[i] );
       }
 
-    // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
-    for (UInt i=0; i< bcs_id_.GetSize(); i++)
-      {
-        dof = 1;
-        if ( dofspernode_ > 1 ) {
-          dof = domain->GetCoordSystem()->GetVecComponent( inhomDirichDof_[i] );
+      ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
+
+      for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+        eqnData_->Node2EQN(nodes[iNode],dof,eqnNr,eqnDof);
+        if ( eqnNr != 0 ) {
+          actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0.0;
         }
-        
-        ptgrid_->GetNodesByName( nodes, bcs_id_[i] );
-        
-        for (UInt iNode=0; iNode<nodes.GetSize(); iNode++)
-          {
-            eqnData_->Node2EQN(nodes[iNode],dof,eqnNr,eqnDof);
-            if (eqnNr != 0){
-              actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0.0;
-            }
-          }
-      } 
-    
+      }
+    }
+
+    // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
+    for ( UInt i = 0; i < bcs_id_.GetSize(); i++ ) {
+      dof = 1;
+      if ( dofspernode_ > 1 ) {
+        dof = domain->GetCoordSystem()->GetVecComponent( inhomDirichDof_[i] );
+      }
+
+      ptgrid_->GetNodesByName( nodes, bcs_id_[i] );
+
+      for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+        eqnData_->Node2EQN( nodes[iNode], dof, eqnNr, eqnDof );
+        if ( eqnNr != 0 ) {
+          actRHS[(eqnNr-1)*dofsPerEQN + eqnDof-1] = 0.0;
+        }
+      }
+    } 
+
     return actRHS.NormL2();
   }
 
@@ -733,7 +727,7 @@ namespace CoupledField {
     // function uses index starting at zero
     Vector<Double>  subDomVolReal;
     Vector<Complex> subDomVolComplex;
-    if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+    if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
       subDomVolComplex.Resize(surfRegions.GetSize());
     }
     else {
@@ -742,8 +736,10 @@ namespace CoupledField {
 
     UInt dof, dir;
 
-    for (UInt actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
-      //check for direction
+    // Loop over all specified surfaces
+    for ( UInt actSF = 0; actSF < surfRegions.GetSize(); actSF++ ) {
+
+      // Determine co-ordinate direction for surface computation
       if ( strDir[actSF] == "ux" ) {
         dir = 1;
       }
@@ -754,7 +750,9 @@ namespace CoupledField {
         dir = 3;
       }
       else {
-        Error("ComputeVolDefSurf: dof must be ux,uy or uz!");
+        (*error) << "ComputeVolDefSurf: dof = '" << dir << "' is not "
+                 << "allowed! Must be one of 'ux', 'uy' or 'uz'";
+        Error( __FILE__, __LINE__ );
       }
 
       //we start from zero!
@@ -762,25 +760,25 @@ namespace CoupledField {
 
       NodeStoreSol<Complex> * solHarmonic;
       NodeStoreSol<Double> * solTransient;
-      if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
-        solHarmonic =  dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+      if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+        solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
         subDomVolComplex[actSF] = 0;   
       }
       else {
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);;
         subDomVolReal[actSF] = 0;   
       }
-      
+
       StdVector<SurfElem*> elemssd;
       ptgrid_->GetSurfElems(elemssd,surfRegions[actSF]);
-   
+
       for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
         BaseFE * ptSurfEl = elemssd[actEl]->ptElem;
         StdVector<UInt> connecth = elemssd[actEl]->connect;
         
         Matrix<Double> ptSurfCoord;
         GetElemCoords(connecth, ptSurfCoord);
-        
+
         //get the deformed solution
         if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
           Vector<Complex> disp(ptSurfEl->GetNumNodes());
@@ -811,7 +809,7 @@ namespace CoupledField {
     StdVector<std::string> regionNames;
     ptgrid_->RegionIdToName( regionNames, surfRegions );
     
-    if ( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+    if ( analysistype_ == HARMONIC || analysistype_== MULTIHARMONIC ) {
       subDomVolReal.Resize(surfRegions.GetSize());
       for (UInt actSF = 0; actSF < surfRegions.GetSize(); actSF++) {
         subDomVolReal[actSF] = abs( subDomVolComplex[actSF] );
@@ -819,14 +817,14 @@ namespace CoupledField {
  
       analysis    = "Frequency:";
       analysisVal = solveStep_->GetActFreq();
-      Info->WriteResult(pdename_,  resulttype, regionNames, subDomVolReal, 
-                        unit, analysis, analysisVal);
+      Info->WriteResult( pdename_, resulttype, regionNames, subDomVolReal, 
+                         unit, analysis, analysisVal );
     }
     else {
       analysis    = "Time:";
       analysisVal = solveStep_->GetActTime();
-      Info->WriteResult(pdename_,  resulttype, regionNames, subDomVolReal, 
-                        unit, analysis, analysisVal);
+      Info->WriteResult( pdename_, resulttype, regionNames, subDomVolReal, 
+                         unit, analysis, analysisVal );
     }
   }
 
