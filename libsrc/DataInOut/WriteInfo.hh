@@ -11,11 +11,14 @@
 
 
 #include <sstream>
+#include <ostream>
 #include "General/environment.hh"
 #include "Matrix/matrix.hh"
 
-namespace CoupledField
-{
+
+namespace CoupledField {
+
+
   // Forward declarations
   class MaterialData;
   template <class TYPE> class Vector;
@@ -25,16 +28,17 @@ namespace CoupledField
   class Coil;
 
   //! Class for writing formatted output to the info-file.
-  class WriteInfo
-  {
-  private:
-    // file for informational output
-    std::ofstream * cfsInfo;
+  class WriteInfo {
 
-    // indicates, if a warning occured already
+  private:
+
+    //! file for informational output
+    std::ofstream *cfsInfo;
+
+    //! indicates, if a warning occured already
     Boolean warningOccured_;
 
-    // indicates, if there`s a progress running
+    //! indicates, if there`s a progress running
     Boolean progressRunning_;
 
     //! flag for acknowledge message for progress
@@ -48,6 +52,17 @@ namespace CoupledField
     
     /// destructor
     virtual ~WriteInfo();
+
+    //! Obtain a pointer to the logfile stream
+    std::ostream* GetInfoStreamPointer() {
+      std::ostream *ofs = NULL;
+      ofs = dynamic_cast<std::ostream*>( cfsInfo );
+      if ( ofs == NULL ) {
+        (*error) << "GetInfoStreamPointer: Some weird shit happened!";
+        CoupledField::Error( __FILE__, __LINE__ );
+      }
+      return ofs;
+    }
 
     //! Open output file
 
