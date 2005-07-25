@@ -4,6 +4,7 @@
 #include "DataInOut/DefineFiles/definefiles.hh"
 #include "DataInOut/timefunc.hh"
 #include "DataInOut/WriteInfo.hh"
+#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
@@ -210,6 +211,10 @@ int main( int argc, const char **argv ) {
   // Open file for status reports by CFS++
   Info->CreateFile();
 
+  // Log command line parameters
+  std::ostream *myInfo = Info->GetInfoStreamPointer();
+  commandLine->PrintParams( *myInfo, FALSE );
+
   // Open file for status reports by OLAS
   FileHandler.OpenFile( OLAS_FILE );
 
@@ -227,6 +232,7 @@ int main( int argc, const char **argv ) {
   SETPROFILE("Before Creation of Domain");
   domain = new  Domain( ptInputfile, ptOut, &myTimeFunc );
   SETPROFILE("After Creation of Domain");
+
 
   // =========================================================================
   // Only output of grid
