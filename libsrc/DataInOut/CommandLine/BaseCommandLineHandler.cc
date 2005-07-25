@@ -158,53 +158,62 @@ namespace CoupledField {
   // ***************
   //   PrintParams
   // ***************
-  void BaseCommandLineHandler::PrintParams( std::ostream &out ) {
+  void BaseCommandLineHandler::PrintParams( std::ostream &out,
+                                            Boolean colorise ) {
 
     ENTER_FCN( "BaseCommandLineHandler::PrintParams" );
 
-    out << COLOR_INIT
+    std::string colorInit = "";
+    std::string colorStop = "";
+
+    if ( colorise == TRUE ) {
+      colorInit = COLOR_INIT;
+      colorStop = COLOR_STOP;
+    }
+
+    out << colorInit
         << "\n\nValues of command line parameters (including defaults):\n\n"
-        << COLOR_STOP
+        << colorStop
 
         << " name of simulation run = "
-        << COLOR_INIT
+        << colorInit
         << GetSimName()
-        << COLOR_STOP << '\n'
+        << colorStop << '\n'
 
         << ' ' << markerLongParamFile_ << " = "
-        << COLOR_INIT
+        << colorInit
         << GetParamFile()
-        << COLOR_STOP << '\n'
+        << colorStop << '\n'
 
         << ' ' << markerLongSchemaPath_ << " = "
-        << COLOR_INIT
+        << colorInit
         << GetSchemaPath()
-        << COLOR_STOP << '\n'
+        << colorStop << '\n'
 
         << ' ' << markerLongMeshFile_ << " = "
-        << COLOR_INIT
+        << colorInit
         << GetMeshFile()
-        << COLOR_STOP << '\n'
+        << colorStop << '\n'
 
         << ' ' << markerLongTraceDepth_ << " = "
-        << COLOR_INIT
+        << colorInit
         << GetTraceDepth()
-        << COLOR_STOP << '\n'
+        << colorStop << '\n'
 
         << ' ' << markerLongPrintGrid_ << " = "
-        << COLOR_INIT
+        << colorInit
         << GetPrintGrid()
-        << COLOR_STOP << '\n'
+        << colorStop << '\n'
 
         << ' ' << markerLongShowEqnMap_ << " = "
-        << COLOR_INIT
+        << colorInit
         << GetShowEqnMap()
-        << COLOR_STOP << '\n'
+        << colorStop << '\n'
 
         << ' ' << markerLongWriteSkeleton_ << " = "
-        << COLOR_INIT
+        << colorInit
         << GetWriteSkeleton()
-        << COLOR_STOP << "\n\n";
+        << colorStop << "\n\n";
   }
 
 }

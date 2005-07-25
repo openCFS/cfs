@@ -384,7 +384,7 @@ namespace CoupledField {
     //! line parameters to the specified output stream. The values include
     //! the parameters supplied on the command line and the default values for
     //! those parameters where no value was supplied.
-    void PrintParams( std::ostream &out );
+    void PrintParams( std::ostream &out, Boolean colorise = TRUE );
 
     //@}
   };
