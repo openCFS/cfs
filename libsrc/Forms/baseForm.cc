@@ -125,8 +125,7 @@ namespace CoupledField
     secondMaterials_ = materials;
   }
 
-  void SetFactor(Double factor){
-
+  void SurfForm::SetFactor( Double factor ) {
     factor_ = factor;
   } 
   
