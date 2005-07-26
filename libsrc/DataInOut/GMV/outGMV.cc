@@ -20,7 +20,7 @@ namespace CoupledField {
     WriteResultsGMV::WriteResultsGMV( const Char *const filename)
       : WriteResults(filename) {
 
-      ENTER_FCN( "WriteResultsGMV :: WriteResultsGMV" );
+      ENTER_FCN( "WriteResultsGMV::WriteResultsGMV" );
 
       UInt nameLength = std::strlen(filename);
       namedir_ = new Char[ nameLength + 4 + 1 ]; 
@@ -93,6 +93,8 @@ namespace CoupledField {
   //   WriteNodes
   // **************
   void WriteResultsGMV::WriteNodes() {
+
+    ENTER_FCN( "WriteResultsGMV::WriteNodes" );
 
     // write keyword
     (*output) << "nodev   ";
@@ -362,6 +364,7 @@ namespace CoupledField {
   //   WriteMaterials
   // ******************
   void WriteResultsGMV::WriteMaterials() {
+    
     ENTER_FCN( "WriteResultsGMV::WriteMaterials");
 
     StdVector<UInt> regionID;
@@ -427,8 +430,8 @@ namespace CoupledField {
   //   Write named entities (nodes, names)
   // **************************************
   void WriteResultsGMV::WriteNamedEntities() {
-    ENTER_FCN( "WriteResultsGMV::WriteNamedEntities" );
 
+    ENTER_FCN( "WriteResultsGMV::WriteNamedEntities" );
 
     StdVector<std::string> nodeNames, elemNames;
     StdVector<UInt> nodeNumbers, elemNumbers;
@@ -506,10 +509,12 @@ namespace CoupledField {
   // ******************************
   //   WriteNodeVariableTransient
   // ******************************
-  void WriteResultsGMV::WriteNodeVariableTransient( const Vector<Double> var, 
-                                                    const std::string name, 
+  void WriteResultsGMV::WriteNodeVariableTransient( const Vector<Double> var,
+                                                    const std::string name,
                                                     const UInt dataType ) {
 
+    ENTER_FCN("WriteResultsGMV::WriteNodeVariableTransient");
+    
     if (ascii_) {
       (*output) << std::endl;
     }
@@ -545,6 +550,9 @@ namespace CoupledField {
                              const std::string name, 
                              const UInt dataType,
                              const ComplexFormat outputFormat ) {
+
+    ENTER_FCN( "void WriteResultsGMV::WriteNodeVariableHarmonic" );
+    
     UInt i;
     Double val;
     std::string auxName, suffix;
@@ -688,6 +696,8 @@ namespace CoupledField {
                                        const std::string name,
                                        const UInt dataType ) {
 
+    ENTER_FCN( "WriteResultsGMV::WriteVelocity" );
+    
     (*output) << "velocity";
     if (ascii_)
       (*output) << " " << dataType << std::endl;
@@ -715,9 +725,10 @@ namespace CoupledField {
 
 
 
-  void WriteResultsGMV::WriteGrid()
-  {
+  void WriteResultsGMV::WriteGrid() {
 
+    ENTER_FCN( "WriteResultsGMV::WriteVelocity" );
+    
     // ---------------------------
     // Section for PrintGridOnly
     // ----------------------------
@@ -811,6 +822,7 @@ namespace CoupledField {
   void WriteResultsGMV::
   WriteNodeSolutionTransient( const NodeStoreSol<Double> &sol, 
                               const UInt step, const Double time ) {
+
     ENTER_FCN( "WriteResultsGMV::WriteNodeSolutionTransient" );
 
     UInt iDof;
@@ -912,8 +924,8 @@ namespace CoupledField {
   WriteNodeSolutionHarmonic(const NodeStoreSol<Complex> & sol, 
                             const UInt step,
                             const Double frequency, 
-                            const ComplexFormat format)
-  {
+                            const ComplexFormat format) {
+
     ENTER_FCN( "WriteResultsGMV::WriteNodeSolutionHarmonic" );
 
     UInt iDof;
@@ -971,8 +983,8 @@ namespace CoupledField {
   WriteElemSolutionHarmonic(const ElemStoreSol<Complex> & sol, 
                             const UInt step,
                             const Double frequency,
-                            const ComplexFormat format)
-  {
+                            const ComplexFormat format) {
+    
     ENTER_FCN( "WriteResultsGMV::WriteElemSolutionHarmonic" );
 
     UInt type=0; // 0 - for cell 
@@ -1020,6 +1032,8 @@ namespace CoupledField {
   //  OpenFile
   // ***********
   void WriteResultsGMV::OpenFile( const Integer num ) {
+
+    ENTER_FCN( "WriteResultsGMV::OpenFile") ;
 
     std::string filename;
 
@@ -1102,6 +1116,8 @@ namespace CoupledField {
   // ********
   void WriteResultsGMV::Init( Grid *aptgrid ) {
 
+    ENTER_FCN( "WriteResultsGMV::OpenFile" );
+
     ptGrid_ = aptgrid;
 
     // Initialize history files
@@ -1109,8 +1125,11 @@ namespace CoupledField {
 
   }
 
-  void WriteResultsGMV::TruncateString(const std::string name, const std::string suffix, char * result)
-  {
+  void WriteResultsGMV::TruncateString(const std::string name, 
+                                       const std::string suffix, 
+                                       char * result) {
+
+    ENTER_FCN( "WriteResultsGMV::TruncateString" );
 
     UInt totalSize, insert_pos;
 
@@ -1138,6 +1157,6 @@ namespace CoupledField {
     
     // copy the result string into the given char * buffer
     aux.copy(result,charOutSize_);
-    }
+  }
 
 } // end of namespace
