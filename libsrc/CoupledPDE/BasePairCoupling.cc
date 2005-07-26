@@ -212,6 +212,10 @@ namespace CoupledField
     assemble_->AssembleSprings(time);
   }
 
+  void BasePairCoupling::SetReassemble() {
+    ENTER_FCN( "BasePairCoupling::SetReassemble" );
+    assemble_->SetReassemble();
+  };
 
 
 
