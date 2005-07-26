@@ -74,6 +74,9 @@ namespace CoupledField
     //!  assemble a spring into the system matrix
     void AssembleSprings(const Double time = 0.0);
 
+    //! trigger the reassembling of the matrices
+    void SetReassemble();
+
   protected:
 
     //! Constructor
