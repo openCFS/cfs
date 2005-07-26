@@ -175,9 +175,11 @@ namespace CoupledField
     //! format since version 3.5)
     /*!
       \param name (input) title
+      \param suffix (input) suffix for name
       \param result (output) result
     */
-    void TruncateString(const std::string name, char * result);
+    void TruncateString(const std::string name, const std::string suffix, 
+                        char * result);
   
   };
 

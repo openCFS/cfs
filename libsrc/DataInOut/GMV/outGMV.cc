@@ -388,7 +388,7 @@ namespace CoupledField {
     for (UInt iSD=0; iSD<subdoms.GetSize(); iSD++) {
       regionName = ptGrid_->RegionIdToName( subdoms[iSD] );
 
-      TruncateString(regionName,strBuffer_);
+      TruncateString(regionName,"",strBuffer_);
 
       if (ascii_) {
         (*output) << strBuffer_ << std::endl;
@@ -461,7 +461,7 @@ namespace CoupledField {
 
       // write name and number of nodes
 
-      TruncateString(nodeNames[i],strBuffer_);
+      TruncateString(nodeNames[i],"",strBuffer_);
       if (ascii_) {
         (*output) << strBuffer_ <<  " " << entType << " " 
                   << nodeNumbers.GetSize();
@@ -514,7 +514,7 @@ namespace CoupledField {
       (*output) << std::endl;
     }
 
-    TruncateString(name,strBuffer_);
+    TruncateString(name,"",strBuffer_);
     if (ascii_) {
       (*output) << strBuffer_ << " " << dataType << std::endl;
     }
@@ -560,12 +560,10 @@ namespace CoupledField {
     
       auxName = name;
       suffix = "-Real";
-      auxName.resize(charOutSize_-suffix.size());
-      auxName += suffix;                     
-      TruncateString(auxName,strBuffer_);
+      TruncateString(auxName,suffix,strBuffer_);
       
       if (ascii_)
-        (*output) << strBuffer_ << dataType << std::endl;
+        (*output) << strBuffer_ << " "<< dataType << std::endl;
       else {
         output->write(strBuffer_,charOutSize_*sizeof(char));
         output->write((Char*)&dataType,sizeof(UInt));
@@ -587,12 +585,10 @@ namespace CoupledField {
       if (ascii_) (*output) << std::endl;
       auxName = name;
       suffix = "-Imag";
-      auxName.resize(charOutSize_-suffix.size());
-      auxName += suffix;                     
-      TruncateString(auxName,strBuffer_);
-    
+      TruncateString(auxName,suffix,strBuffer_);
+       
       if (ascii_)
-        (*output) << strBuffer_ << dataType << std::endl;
+        (*output) << strBuffer_ << " " << dataType << std::endl;
       else 
         {
           output->write(strBuffer_,charOutSize_*sizeof(char));
@@ -624,12 +620,10 @@ namespace CoupledField {
       if (ascii_) (*output) << std::endl;
       auxName = name;
       suffix = "-Ampl";
-      auxName.resize(charOutSize_-suffix.size());
-      auxName += suffix;                     
-      TruncateString(auxName,strBuffer_);
-    
+      TruncateString(auxName,suffix,strBuffer_);
+      
       if (ascii_)
-        (*output) << strBuffer_ << dataType << std::endl;
+        (*output) << strBuffer_ << " " << dataType << std::endl;
       else 
         {
           output->write(strBuffer_,charOutSize_*sizeof(char));
@@ -654,12 +648,10 @@ namespace CoupledField {
       if (ascii_) (*output) << std::endl;
       auxName = name;
       suffix = "-Phase";
-      auxName.resize(charOutSize_-suffix.size());
-      auxName += suffix;                     
-      TruncateString(auxName,strBuffer_);
-      
+      TruncateString(auxName,suffix,strBuffer_);
+            
       if (ascii_)
-        (*output) << strBuffer_ << dataType << std::endl;
+        (*output) << strBuffer_ << " " << dataType << std::endl;
       else 
         {
           output->write(strBuffer_,charOutSize_*sizeof(char));
@@ -1117,11 +1109,35 @@ namespace CoupledField {
 
   }
 
-  void WriteResultsGMV::TruncateString(const std::string name, char * result)
+  void WriteResultsGMV::TruncateString(const std::string name, const std::string suffix, char * result)
   {
+
+    UInt totalSize, insert_pos;
+
+    // initalize an empty string with #00
     std::string aux(charOutSize_,'\0');
+
+    // insert the name
     aux.insert(0,name,0,name.length());
+    
+    // if a 'suffix' was given, copy it at the end of the
+    // buffer. if the size of  'name+suffix' is too long,
+    // adapt the insert position, so that some characters of
+    // 'name' get overwritten.
+    
+    if( suffix.length() > 0 ) {
+      totalSize = name.length() + suffix.length();
+
+      if( totalSize > charOutSize_ ) {
+        insert_pos = charOutSize_ - suffix.length();
+      } else {
+        insert_pos = name.length();
+      }
+      aux.insert(insert_pos,suffix,0,suffix.length());
+    }
+    
+    // copy the result string into the given char * buffer
     aux.copy(result,charOutSize_);
-  }
+    }
 
 } // end of namespace
