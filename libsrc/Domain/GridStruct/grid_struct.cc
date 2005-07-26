@@ -515,7 +515,12 @@ namespace CoupledField
         }
 	//referring to the BOUNDARY AT THE END OF THE SLICE
 	temp = 0;
+
+        // Why is this a double? Any deeper reason? Is is because
+        // of size limitations of integral types? Ask because of
+        // implicit conversions below!
 	double shift = (maxnumelemy_+1)*(maxnumelemx_+1);
+
         for(i=0;i<maxnumelemy_;i++) {
           for(j=0;j<maxnumelemx_;j++) {
             SurfElem* el = new SurfElem();
