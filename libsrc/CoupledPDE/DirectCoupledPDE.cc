@@ -467,12 +467,15 @@ namespace CoupledField{
   }
 
   void DirectCoupledPDE::SetReassemble() {
+
     ENTER_FCN( "DirectCoupledPDE::SetReassemble" );
 
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
-      {
-        singlePDEs_[i]->SetReassemble();
-      }
+    for (UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+      singlePDEs_[i]->SetReassemble();
+    }
+    for (UInt i = 0; i < couplings_.GetSize(); i++ ) {
+      couplings_[i]->SetReassemble();
+    }
   }
 
   void DirectCoupledPDE::SetupMatrixGraph() {
