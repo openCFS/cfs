@@ -12,6 +12,7 @@
 
 #include <sstream>
 #include <ostream>
+#include <fstream>
 #include "General/environment.hh"
 #include "Matrix/matrix.hh"
 
