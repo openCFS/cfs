@@ -38,6 +38,7 @@ SUBLIBDIR = Driver PDE CoupledPDE \
             DataInOut/ParamHandling \
             DataInOut/CommandLine \
             DataInOut/Unverg \
+            DataInOut/cfsRST \
             DataInOut/GMV \
             DataInOut/AnsysFile \
             DataInOut \
@@ -59,7 +60,7 @@ TAGSPATH = $(addsuffix /*.??,$(PATHSUBLIBDIR))
 mylibrary = driver domain pde coupledpde forms  \
             elements3d elements2d elements1d elements \
             gridadaption gridcfs gridstruct  definefiles gmv unverg \
-	    ansysfile datainout paramhandling commandline \
+	    cfsRST ansysfile datainout paramhandling commandline \
             driver datainout\
             utils matrix general odesolve odedescr \
 	    paramIdent \
@@ -145,6 +146,8 @@ ansys-out:
 	@cd $(LIBSRC_DIR)/DataInOut/AnsysOut; $(MAKE) -f Makefile
 unverg:
 	@cd $(LIBSRC_DIR)/DataInOut/Unverg; $(MAKE) -f Makefile
+cfsRST:
+	@cd $(LIBSRC_DIR)/DataInOut/cfsRST; $(MAKE) -f Makefile
 gmv:
 	@cd $(LIBSRC_DIR)/DataInOut/GMV; $(MAKE) -f Makefile
 database:
@@ -197,6 +200,9 @@ clean-dat:
 	$(MAKE) clean
 clean-unverg:
 	@cd $(LIBSRC_DIR)/DataInOut/Unverg && \
+	$(MAKE) clean
+clean-cfsRST:
+	@cd $(LIBSRC_DIR)/DataInOut/cfsRST && \
 	$(MAKE) clean
 clean-gmv:
 	@cd $(LIBSRC_DIR)/DataInOut/GMV && \
