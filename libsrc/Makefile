@@ -63,6 +63,9 @@ ansys-out:
 unverg:
 	@cd $(LIBSRC_DIR)/DataInOut/Unverg; $(MAKE) -f Makefile
 
+cfsRST:
+	@cd $(LIBSRC_DIR)/DataInOut/cfsRST; $(MAKE) -f Makefile
+
 gmv:
 	@cd $(LIBSRC_DIR)/DataInOut/GMV; $(MAKE) -f Makefile
 

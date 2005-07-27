@@ -9,6 +9,7 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
+#include "DataInOut/cfsRST/outCFS.hh"
 
 #ifdef GSI
 #include "DataInOut/GSI/outGSI.hh"
@@ -142,6 +143,8 @@ namespace CoupledField
     }
     else if ( outformat == "unv" ) 
       ptWriteResults_= new WriteResultsUnverg( simName.c_str() ); 
+    else if ( outformat == "cfsRST" ) 
+      ptWriteResults_= new WriteResultsCFS( simName.c_str() ); 
 #ifdef GSI
     else if ( outformat == "gsi" ) 
       ptWriteResults_= new WriteResultsGSI( simName.c_str() );
