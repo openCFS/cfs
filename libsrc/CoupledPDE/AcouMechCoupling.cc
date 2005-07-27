@@ -40,6 +40,7 @@ namespace CoupledField
     ENTER_FCN( "AcouMechCoupling::DefineIntegrators" );
     
 
+    //number of mechanical dofs = geometric dimension
     UInt dofs = ptGrid_->GetDim();
     Boolean isAxi = params->HasValue( "type", "axi", "geometry" );
     
@@ -59,6 +60,8 @@ namespace CoupledField
                                  pde2_->getPDEMaterialData());
 
       assemble_->AddSurfIntegrator(massInt, surfRegions_[actSD], DAMPING, FALSE);
+
+      //if pressure formulation: RHS integrator
       
     }
 
