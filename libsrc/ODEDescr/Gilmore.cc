@@ -31,8 +31,14 @@ namespace CoupledField
     viscosity_  = viscosity;
 
     n_ = 7.0;
-    A_ = 3.001e8;
-    B_ = 3e8;
+    // A_ = 3.001e8;
+    // B_ = 3e8;
+    // The following constants can be determined 
+    // as in the paper of C. Church
+    // or one uses the above values, which are
+    // approximations made of experience
+    A_ = sonicVel_ * sonicVel_ * density_ / n_;
+    B_ = A_ - pStatic_;
   }
 
   void  Gilmore::CompDeriv(const Double &t,
