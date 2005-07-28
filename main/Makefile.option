@@ -97,23 +97,23 @@
 # -----------------------------------------------------------------------------
 
 ifeq ("$(OLAS_ROOT)","")
-OLAS_ROOT =
+OLAS_ROOT = /home/lse10/lse/mmohr/local/OLAS
 endif
 
 ifeq ("$(HYPRE_ROOT)","")
-HYPRE_ROOT = /home/data/proj/SoftwareLibraries/hypre/sequential
+HYPRE_ROOT = /home/data/libraries/hypre/sequential
 endif
 
 ifeq ("$(TVMET_ROOT)","")
-TVMET_ROOT = /home/data/proj/SoftwareLibraries/tvmet
+TVMET_ROOT = /home/data/libraries/tvmet
 endif
 
 ifeq ("$(XERCES_ROOT)","")
-XERCES_ROOT = /home/data/proj/SoftwareLibraries/xerces-c
+XERCES_ROOT = /home/data/libraries/xerces-c
 endif
 
 ifeq ("$(METIS_ROOT)","")
-METIS_ROOT = /home/data/proj/SoftwareLibraries/metis
+METIS_ROOT = /home/data/libraries/metis
 endif
 
 ifeq ("$(SCHEMA_ROOT)","")
