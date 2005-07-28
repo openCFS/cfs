@@ -32,6 +32,7 @@ namespace CoupledField {
 
   SolveStepAcousticBubble::~SolveStepAcousticBubble() {
     ENTER_FCN( "SolveStepAcousticBubble::~SolveStepAcousticBubble" );
+    delete[] materialData_;
   }
  
   // ======================================================
@@ -212,9 +213,6 @@ namespace CoupledField {
 	  ptElem  = elemssd[j]->ptElem;
 	  connect = elemssd[j]->connect;
 
-		
-
-
 	  Vector<Double> elPressure;
 	  Vector<Double> elPressureDeriv;
 	
@@ -250,9 +248,7 @@ namespace CoupledField {
 
 	  pressureNoDim = pressure / pStatic_ ;
 	  presDerivNoDim = pressureDeriv * initRadius_ / pStatic_ / ( sqrt ( pStatic_ / density_));
-	  // std::cerr<<"numEl "<<numEl<<"    presserNoDim  "<< pressureNoDim<<std::endl;
 	  ptBubble_[numEl]->SetP(pressureNoDim);
-	  //		  std::cerr<<"hier "<<std::endl;
 	  ptBubble_[numEl]->SetDpdt(presDerivNoDim);
 
 	  // In case of explicit Euler watch out suggested stepsize
@@ -272,11 +268,6 @@ namespace CoupledField {
 	  bubbleValues_[1] = velocity_[numEl];
 	  yNoDim_[0] = bubbleValues_[0] / initRadius_;
 	  yNoDim_[1] = bubbleValues_[1] / (sqrt( pStatic_/ density_));
-	
-	  //	if(numEl==90){
-	  //(*cla)<< actTime_ << "    " << numEl << "   " <<  bubbleValues_[0]  << "    " <<  bubbleValues_[1]  << "   "
-	  //<<  radiusWork_[numEl]   << "    " << velocityWork_[numEl];
-	  //}
 
 	  //set numEl to ODE-Solver
 	  ptODESolver_->SetNumEl(numEl);
@@ -306,28 +297,16 @@ namespace CoupledField {
           //get the current values
 	  //          bubbleValues_[0] = radius_[numEl];
 	  //          bubbleValues_[1] = velocity_[numEl];
-                
-          //      if(numEl==90){
-          //(*cla)<< actTime_ << "    " << numEl << "   " <<  bubbleValues_[0]  << "    " <<  bubbleValues_[1]  << "   "
-          //<<  radiusWork_[numEl]   << "    " << velocityWork_[numEl];
-          //}
+               
         
           //set numEl to ODE-Solver
 	  //          ptODESolver_->SetNumEl(numEl);
-        
-	  //          ptODESolver_->Solve(steptime, actTime_, bubbleValues_, *ptBubble_[numEl], hTry_,
+      	  //          ptODESolver_->Solve(steptime, actTime_, bubbleValues_, *ptBubble_[numEl], hTry_,
 	  //                              0, dt);
         
           //set the new values
 	  //          radiusWork_[numEl]   = bubbleValues_[0]; 
 	  //          velocityWork_[numEl] = bubbleValues_[1]; 
-
-
-          //      if(numEl==90){
-          //        (*cla)<< "       " << numEl << "     " << actTime_ << "    " <<  bubbleValues_[0]  << "    " <<  bubbleValues_[1]  << "   "
-          //      <<  radiusWork_[numEl]   << "    " << velocityWork_[numEl] << std::endl;
-          //
-          //}
 	  //Normal case+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
           numEl++;
@@ -394,7 +373,21 @@ namespace CoupledField {
     //    Double viscosity = 0.0;
     params->Get( "viscosity", viscosity_, "bubbleDynamic" );
 
+    //Set bubbledensity
+    params->Get( "bubbleNumDensity", bubbleDensity_, "acoustic", "bubbles" );
 
+    Info->PrintF ("", "The following paramters and methods were used\n");
+    Info->PrintF ("", "to compute the bubble behaviour:\n\n");
+    Info->PrintF ("", "Initial Radius of the bubbles:\t %10.6e\n", initRadius_);
+    Info->PrintF ("", "Initial Velocity of the bubble wall:\t %10.6e\n", initVel_);
+    Info->PrintF ("", "Density of bubbles per unit volume:\t %10.6e\n", bubbleDensity_);
+    Info->PrintF ("", "Density of the fluid:\t %10.6e\n", density_);
+    Info->PrintF ("", "Sound velocity of the fluid:\t %10.6e\n", sonicVel_);
+    Info->PrintF ("", "Static pressure:\t %10.6e\n", pStatic_);
+    Info->PrintF ("", "Vapour pressure of the fluid:\t %10.6e\n", pVapour_);
+    Info->PrintF ("", "Surface tension of the fluid:\t %10.6e\n", surfaceTension_);
+    Info->PrintF ("", "Polytropic exponent of the fluid:\t %10.6e\n", polytrop_);
+    Info->PrintF ("", "Viscosity of the fluid:\t %10.6e\n\n", viscosity_);
 
     for (UInt el=0; el<numPDEElems_; el++) {
       // Choice which bubbledynamical method is used and 
@@ -404,39 +397,47 @@ namespace CoupledField {
       case KELLERMIKSIS:
 	ptBubble_[el] = new KellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
 					 pVapour_, surfaceTension_, polytrop_, viscosity_);
-	//	Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
+	if (el == 0){
+	  Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
+	}
         break;
      
 
       case GILMORE:
 	//ptBubble_[el] = new Gilmore(initRadius_,density_, sonicVel_, pStatic_, 
 	//			pVapour_, surfaceTension_, polytrop_, viscosity_);
-	//	Info->PrintF( pdename_, "Using Gilmore-Bubble-Model\n");
+// 	if (el == 0){
+// 	  Info->PrintF( pdename_, "Using Gilmore-Bubble-Model\n");
+// 	}
 	ptBubble_[el] = new Gilmoredimlos(initRadius_,density_, sonicVel_, pStatic_, 
 				      pVapour_, surfaceTension_, polytrop_, viscosity_);
-	Info->PrintF( pdename_, "Using dimensionless Gilmore-Bubble-Model\n");
+	if (el == 0){
+	  Info->PrintF( pdename_, "Using dimensionless Gilmore-Bubble-Model\n");
+	}
 	break;
 
       default:
 	Error("No bubblemethod specified ",__FILE__,__LINE__);
       }
   
-
-
       radius_[el]       = initRadius_;
       velocity_[el]     = initVel_;
       radiusWork_[el]   = initRadius_;
       velocityWork_[el] = initVel_;
-
-    
     }
 
     // Generate ODE solver object
     ptODESolver_ = new ODESolver_RKF45;
+    Info->PrintF( pdename_, "Using the Runge-Kutta-Method to solve bubbledynamics\n");
     // ptODESolver_ = new ODESolver_Rosenbrock;
+    // Info->PrintF( pdename_, "Using the Rosenbrock-Method to solve bubbledynamics\n");
+    // Info->PrintF( pdename_, "which computation of the jacobian\n");
+    // Info->PrintF( pdename_, "which approximation of the jacobian\n");
 
-    //Set bubbledensity
-    params->Get( "bubbleNumDensity", bubbleDensity_, "acoustic", "bubbles" );
+
+    // Zwischenloesung, bis alles über bilinear und linear forms laeuft
+    materialData_ = new MaterialData[subdoms_.GetSize()];
+
   }
 
 
@@ -448,11 +449,13 @@ namespace CoupledField {
     BaseForm *rhsForm = new VolumeSrcInt(dummy, isaxi_);        
 
     UInt numEl = 0;
+    Double fluidDensity;
     for (UInt actDom=0; actDom <  subdoms_.GetSize(); actDom++) {      
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
     
-    
+      fluidDensity= materialData_[actDom].GetDensity();    
+
       for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++)    {              
         BaseFE * ptEl = elemssd[actEl]->ptElem;
         StdVector<UInt> connecth = elemssd[actEl]->connect;
@@ -465,16 +468,11 @@ namespace CoupledField {
 
 	bubbleValues_[0] = radiusWork_[numEl];
 	bubbleValues_[1] = velocityWork_[numEl];
-
-	//output r,v
-	//     if (numEl == 91)
-	//	{
-	//	  Info->PrintF("","%e  %e  %e\n",actTime_,radius_[numEl],velocity_[numEl]);
-	//	  (*data)<< actTime_ << "    " << radius_[numEl] << "    " << velocity_[numEl]<< std::endl;
-	//	}	 
-
+	 
+	// New rhs for cavitational fluid
+	// rho0 * 4/3 * pi* n * ( 3 * R^2 * d^2R/dt^2 + 6 * R * (dR/dt)^2) 
 	if (actStep_ == 1) 
-	  beta2 = 4*PI*bubbleDensity_*6*bubbleValues_[0]
+	  beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*6*bubbleValues_[0]
 	    *bubbleValues_[1]*bubbleValues_[1]; 
 	else {
 	  StdVector<Double> dydt(2);
@@ -486,14 +484,14 @@ namespace CoupledField {
 	  tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
 	  ptBubble_[numEl]->CompDeriv(tNoDim_, yNoDim_, dydt);
 	  dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
-	  beta2 = 4*PI*bubbleDensity_*
+	  beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*
 	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
 	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
 	  // dimensionless**************************************
 
 	  //Normal case+++++++++++++++++++++++++++++++++++++++
 	  //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues_, dydt);
-	  //	  beta2 = 4*PI*bubbleDensity_*
+	  //	  beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*
 	  //	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
 	  //	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
 	  //Normal case+++++++++++++++++++++++++++++++++++++++
