@@ -84,7 +84,7 @@ endif
 # -----------------------------------------------------------------------------
 ifeq "$(LINK_PARDISO)" "yes"
 LIBDIR_PARDISO = -L$(PARDISO_ROOT)/lib
-LIB_PARDISO    = -lpardiso_GNU_IA32
+LIB_PARDISO    = -lpardiso$(ARCH)
 else
 LIBDIR_PARDISO =
 LIB_PARDISO    =
