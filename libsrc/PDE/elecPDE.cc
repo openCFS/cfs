@@ -28,7 +28,9 @@
 #include <mpi.h>
 #endif
 
+
 namespace CoupledField {
+
 
   // ***************
   //   Constructor
@@ -99,10 +101,14 @@ namespace CoupledField {
   // POSTPROCESSING SECTION
   // ======================================================
 
-  void ElecPDE::WriteResultsInFile(const UInt kstep,
-                                   const Double asteptime,
-                                   UInt stepOffset,
-                                   Double timeOffset) {
+
+  // **********************
+  //   WriteResultsInFile
+  // **********************
+  void ElecPDE::WriteResultsInFile( const UInt kstep,
+                                    const Double asteptime,
+                                    UInt stepOffset,
+                                    Double timeOffset ) {
 
     ENTER_FCN( "ElecPDE::WriteResultsInFile" );
 
@@ -120,7 +126,7 @@ namespace CoupledField {
     
     // ATTENTION:
     // The errorMap should be assigned as a StoreSolution, not as a 
-    // Vector. This is only temporarely
+    // Vector. This is only temporary!
     if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
 
       // Down-cast
@@ -177,7 +183,19 @@ namespace CoupledField {
     }
 
     else {
-      (*warning) << "ElecPDE: Only static results can be written currently";
+
+      // Down-cast
+      NodeStoreSol<Complex> *mySol = NULL;
+      mySol = dynamic_cast< NodeStoreSol<Complex>* >( sol_ );
+
+      // Write electric potential
+      if ( saveSol_ == TRUE ) {
+        outFile_->WriteNodeSolutionHarmonic( *mySol, actStep, actTime,
+                                             complexFormat_ );
+      }
+
+      (*warning) << "ElecPDE: Only solution can be written for harmonic "
+                 << "case currently";
       Warning( __FILE__, __LINE__);
     }
 
@@ -230,8 +248,12 @@ namespace CoupledField {
 #endif
   }
 
-  void ElecPDE::PostProcess()
-  {
+
+  // ***************
+  //   PostProcess
+  // ***************
+  void ElecPDE::PostProcess() {
+
     ENTER_FCN( "ElecPDE::PostProcess" );
 
 
