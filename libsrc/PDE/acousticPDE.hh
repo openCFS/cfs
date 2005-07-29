@@ -32,11 +32,14 @@ namespace CoupledField {
     void ReadDampingInformation( Grid *aptgrid );
 
     //! define all (bilinearform) integrators needed for this pde
-    virtual void DefineIntegrators();
+    void DefineIntegrators();
   
     //! define the SoltionStep-Driver
-    virtual void DefineSolveStep();
+    void DefineSolveStep();
 
+    //! Read special boundary conditions (here: bubble information)
+    void  ReadSpecialBCs();
+    
     //! perform postprocessing on data
     void PostProcess(){};
 
