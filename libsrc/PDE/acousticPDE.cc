@@ -137,45 +137,13 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       }
     }
 
-    // **************************************************
-    //   Check what type of bubble model should be used
-    // **************************************************
-    StdVector<std::string> auxVec;
-    params->GetList( "bubbleType", auxVec, "acoustic", "bubbles" );
-    if ( auxVec.GetSize() == 1 ) {
-      String2Enum( auxVec[0], bubbleDynType_ );
-
-      //Set bubbledensity
-      params->Get("bubbleNumDensity", bubbleDensity_, "acoustic", "bubbles");
-    }
-    else if ( auxVec.GetSize() > 1 ) {
-      Error("Specification of bubble type not unique in xml-file", __FILE__,
-			__LINE__ );
-    }
-    else {
-      bubbleDynType_ = NOBUBBLETYPE;
-    }
-  
-
-    if( nonLin_ || bubbleDynType_ != NOBUBBLETYPE ) {
-      // solution method
-      params->Get("method", nonLinMethod_, pdename_, "nonLinear" );
-      // perform logging?
-      nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
-      // type of line search
-      params->Get("type", lineSearch_, pdename_, "lineSearch" );
-      // incremental stopping criterion
-      params->Get("incStopCrit", incStopCrit_, pdename_, "nonLinear" );
-      // residual stopping criterion
-      params->Get("resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
-      // maximal number of NL-iterations
-      params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
-    }
+   
 
     // ***************************************************************
     //   If no other damping type is specified and we have absorbing
     //   boundary conditions, then use ABCDAMP
     // ***************************************************************
+    StdVector<std::string> auxVec;
     absorbingBCs_ = FALSE;
     params->GetList( "name", auxVec, pdename_, "absorbingBCs" );
     ptgrid_->RegionNameToId( absBCs_, auxVec );
@@ -475,6 +443,58 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     }
   }
 
+  void AcousticPDE::ReadSpecialBCs() {
+    ENTER_FCN( "AcousticPDE::ReadSpecialBCs" );
+ 
+    // **************************************************
+    //   Check what type of bubble model should be used
+    // **************************************************
+
+    // TEST TEST TEST 
+    StdVector<std::string> auxVec;    
+
+    // vectors for parameter handling
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    
+    keyVec = pdename_, "bubbles", "bubbleType";
+    attrVec = "", "tag";
+    valVec =  "", bcSequenceTag_;
+    params->GetList(keyVec, attrVec, valVec, auxVec);
+
+    if ( auxVec.GetSize() == 1 ) {
+      String2Enum( auxVec[0], bubbleDynType_ );
+
+      //Set bubbledensity
+      keyVec = pdename_, "bubbles", "bubbleNumDensity";
+      params->Get(keyVec, attrVec, valVec, bubbleDensity_);
+    }
+    else if ( auxVec.GetSize() > 1 ) {
+      Error("Specification of bubble type not unique in xml-file", __FILE__,
+	    __LINE__ );
+    }
+    else {
+      bubbleDynType_ = NOBUBBLETYPE;
+    }
+    
+    
+    if( nonLin_ || bubbleDynType_ != NOBUBBLETYPE ) {
+      // solution method
+      params->Get("method", nonLinMethod_, pdename_, "nonLinear" );
+      // perform logging?
+      nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
+      // type of line search
+      params->Get("type", lineSearch_, pdename_, "lineSearch" );
+      // incremental stopping criterion
+      params->Get("incStopCrit", incStopCrit_, pdename_, "nonLinear" );
+      // residual stopping criterion
+      params->Get("resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
+      // maximal number of NL-iterations
+      params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
+    }
+  }
+
   void AcousticPDE::DefineSolveStep() {
     ENTER_FCN( "AcousticPDE::DefineSolveStep" );
 
@@ -770,45 +790,45 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           outFile_->WriteNodeHistoryTransient(rhs_, actStep, actTime); 
         }
       }
+ 
+       // ------- for bubble results ----------------------
+       if(bubbleDynType_ != NOBUBBLETYPE &&
+          (saveSol_ == TRUE || saveDeriv1_ == TRUE || saveDeriv2_ == TRUE)) {
 
-      // ------- for bubble results ----------------------
-      if(bubbleDynType_ != NOBUBBLETYPE &&
-         (saveSol_ == TRUE || saveDeriv1_ == TRUE || saveDeriv2_ == TRUE)) {
+         StdVector<Double> radius = dynamic_cast<SolveStepAcousticBubble*>
+           (solveStep_)->GetResultData("bubbleRadius");
 
-        StdVector<Double> radius = dynamic_cast<SolveStepAcousticBubble*>
-          (solveStep_)->GetResultData("bubbleRadius");
+         StdVector<Double> velocity = dynamic_cast<SolveStepAcousticBubble*>
+           (solveStep_)->GetResultData("bubbleVelocity");
 
-        StdVector<Double> velocity = dynamic_cast<SolveStepAcousticBubble*>
-          (solveStep_)->GetResultData("bubbleVelocity");
-
-        ElemStoreSol<Double> bubbleResult;
+         ElemStoreSol<Double> bubbleResult;
     
-        // Resize solution arrays
-        bubbleResult.SetNumSolutions(1);
-        bubbleResult.SetSolutionType(ELEC_FIELD_INTENSITY);
-        bubbleResult.SetNumElems(numElems_);
+         // Resize solution arrays
+         bubbleResult.SetNumSolutions(1);
+         bubbleResult.SetSolutionType(ELEC_FIELD_INTENSITY);
+         bubbleResult.SetNumElems(numElems_);
           
-        // dimension hard coded for .unv file!
-        bubbleResult.SetNumDofs(3);  
-        bubbleResult.SetPtrEQNData(eqnData_, ptgrid_);
-        bubbleResult.Init();
+         // dimension hard coded for .unv file!
+         bubbleResult.SetNumDofs(3);  
+         bubbleResult.SetPtrEQNData(eqnData_, ptgrid_);
+         bubbleResult.Init();
           
-        for (UInt el=0; el<numElems_; el++) {
-          Vector<Double> result(3);
+         for (UInt el=0; el<numElems_; el++) {
+           Vector<Double> result(3);
             
-          result[0] = radius[el];
-          result[1] = velocity[el];
-          result[2] = (4.0/3.0)*PI*bubbleDensity_*radius[el]*radius[el]
-			*radius[el];
-          //        if (el == 90)
-          //std::cerr<<actTime<<"   " <<el<< "   " << result[0] << "   " 
-          // result[1] << "     " << result[2] << std::endl;
+           result[0] = radius[el];
+           result[1] = velocity[el];
+           result[2] = (4.0/3.0)*PI*bubbleDensity_*radius[el]*radius[el]
+ 			*radius[el];
+           //        if (el == 90)
+           //std::cerr<<actTime<<"   " <<el<< "   " << result[0] << "   " 
+           // result[1] << "     " << result[2] << std::endl;
             
-          bubbleResult.SetElemResult(el,result);
-        }
+           bubbleResult.SetElemResult(el,result);
+         }
           
-        outFile_->WriteElemSolutionTransient(bubbleResult, actStep, actTime);
-      }
+         outFile_->WriteElemSolutionTransient(bubbleResult, actStep, actTime);
+       }
 
 #ifdef PARALLEL
     }//!commrank
