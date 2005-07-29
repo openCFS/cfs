@@ -137,7 +137,8 @@ namespace CoupledField {
     Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
                   pdename_.c_str());
     for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
-      Info->PrintF( pdename_, " %s, index %i\n", pdename_.c_str(),subdoms_[k]);
+      Info->PrintF( pdename_, "%s, index %i\n",
+                    regionNames[k].c_str(), subdoms_[k] );
     }
     Info->PrintF( "", "\n" );
 
