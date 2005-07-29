@@ -72,7 +72,6 @@ namespace CoupledField {
     // axisymmetric setup    
     isaxi_ = params->HasValue( "type", "axi", "geometry" );
 
-
     // ===========================
     // DODO GridAdaption
     // check if <specialNodes> is given, to determine whether we to write them
@@ -100,61 +99,9 @@ namespace CoupledField {
     else {
       m_bWriteSpecialBCs = FALSE;
     }
-    
     // DODO
     // ===========================
 
-
-    // *************************************************************
-    //   Check what type of nonlinear PDE formulation should be used
-    // *************************************************************
-    nonLin_ = FALSE; //declaration in basePDE.hh
-    StdVector<std::string> strVec;
-    params->GetList( "nonLinear", strVec, pdename_, "region" );
-    nonLinPDEName_.Resize(strVec.GetSize());
-
-    for ( UInt k = 0; k < strVec.GetSize(); k++ ) {
-
-      if ( strVec[k] == "no" )
-        ;
-      else if ( strVec[k] == "westervelt" ) {
-        nonLin_ = TRUE;
-        nonLinPDEName_[k] = WESTERVELT;
-        Info->PrintF(pdename_, "      * Westervelt equation for region: %d\n",
-					 k );
-        if ( solTypes_ == ACOU_POTENTIAL )
-          Error("Acoustic potential formulation not supported for \
-Westervelt equation!" ,__FILE__,__LINE__);
-      }
-      else if ( strVec[k] == "kuznetsov" ) {
-        nonLin_ = TRUE;
-        nonLinPDEName_[k] = KUZNETSOV;
-        Info->PrintF(pdename_, "      * Kuznetsov equation for region: %d\n",
-					 k );
-        if ( solTypes_ == ACOU_PRESSURE )
-          Error("Acoustic pressure formulation not supported for \
-Kuznetsov equation!" ,__FILE__,__LINE__);
-      }
-    }
-
-   
-
-    // ***************************************************************
-    //   If no other damping type is specified and we have absorbing
-    //   boundary conditions, then use ABCDAMP
-    // ***************************************************************
-    StdVector<std::string> auxVec;
-    absorbingBCs_ = FALSE;
-    params->GetList( "name", auxVec, pdename_, "absorbingBCs" );
-    ptgrid_->RegionNameToId( absBCs_, auxVec );
-
-    if ( absBCs_.GetSize() ) {
-      matrixTypes_.insert(DAMPING);
-	  needsDampingMatrix_ = TRUE;
-      absorbingBCs_ = TRUE;
-      Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
-      surfdoms_ = absBCs_;
-    }
   }
 
 
@@ -294,6 +241,109 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 				   "Found different types of damping for regions!\n");
 	}
   }
+
+  void AcousticPDE::ReadSpecialBCs() {
+    ENTER_FCN( "AcousticPDE::ReadSpecialBCs" );
+
+    // ***************************************************************
+    //   If no other damping type is specified and we have absorbing
+    //   boundary conditions, then use ABCDAMP
+    // ***************************************************************
+    StdVector<std::string> auxVec;
+    absorbingBCs_ = FALSE;
+    params->GetList( "name", auxVec, pdename_, "absorbingBCs" );
+    ptgrid_->RegionNameToId( absBCs_, auxVec );
+
+    if ( absBCs_.GetSize() ) {
+      matrixTypes_.insert(DAMPING);
+	  needsDampingMatrix_ = TRUE;
+      absorbingBCs_ = TRUE;
+      Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
+      surfdoms_ = absBCs_;
+    }
+ 
+    // **************************************************
+    //   Check what type of bubble model should be used
+    // **************************************************
+
+    // vectors for parameter handling
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    
+    keyVec = pdename_, "bubbles", "bubbleType";
+    attrVec = "", "tag";
+    valVec =  "", bcSequenceTag_;
+    params->GetList(keyVec, attrVec, valVec, auxVec);
+
+    if ( auxVec.GetSize() == 1 ) {
+      String2Enum( auxVec[0], bubbleDynType_ );
+
+      //Set bubbledensity
+      keyVec = pdename_, "bubbles", "bubbleNumDensity";
+      params->Get(keyVec, attrVec, valVec, bubbleDensity_);
+    }
+    else if ( auxVec.GetSize() > 1 ) {
+      Error("Specification of bubble type not unique in xml-file", __FILE__,
+	    __LINE__ );
+    }
+    else {
+      bubbleDynType_ = NOBUBBLETYPE;
+    }
+  }
+
+
+  // *************************************************************
+  //   Check what type of nonlinear PDE formulation should be used
+  // *************************************************************
+  void  AcousticPDE::InitNonLin() {
+    ENTER_FCN( "AcousticPDE::InitNonLin" );
+
+    nonLin_ = FALSE; //declaration in StdPDE.hh
+    StdVector<std::string> strVec;
+    params->GetList( "nonLinear", strVec, pdename_, "region" );
+    nonLinPDEName_.Resize(strVec.GetSize());
+
+    for ( UInt k = 0; k < strVec.GetSize(); k++ ) {
+
+      if ( strVec[k] == "no" )
+        ;
+      else if ( strVec[k] == "westervelt" ) {
+        nonLin_ = TRUE;
+        nonLinPDEName_[k] = WESTERVELT;
+        Info->PrintF(pdename_, "      * Westervelt equation for region: %d\n",
+					 k );
+        if ( solTypes_ == ACOU_POTENTIAL )
+          Error("Acoustic potential formulation not supported for \
+Westervelt equation!" ,__FILE__,__LINE__);
+      }
+      else if ( strVec[k] == "kuznetsov" ) {
+        nonLin_ = TRUE;
+        nonLinPDEName_[k] = KUZNETSOV;
+        Info->PrintF(pdename_, "      * Kuznetsov equation for region: %d\n",
+					 k );
+        if ( solTypes_ == ACOU_PRESSURE )
+          Error("Acoustic pressure formulation not supported for \
+Kuznetsov equation!" ,__FILE__,__LINE__);
+      }
+    }
+
+    if( nonLin_ || bubbleDynType_ != NOBUBBLETYPE ) {
+      // solution method
+      params->Get("method", nonLinMethod_, pdename_, "nonLinear" );
+      // perform logging?
+      nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
+      // type of line search
+      params->Get("type", lineSearch_, pdename_, "lineSearch" );
+      // incremental stopping criterion
+      params->Get("incStopCrit", incStopCrit_, pdename_, "nonLinear" );
+      // residual stopping criterion
+      params->Get("resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
+      // maximal number of NL-iterations
+      params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
+    }
+  }
+
 
   void AcousticPDE::DefineIntegrators() {
 
@@ -443,58 +493,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     }
   }
 
-  void AcousticPDE::ReadSpecialBCs() {
-    ENTER_FCN( "AcousticPDE::ReadSpecialBCs" );
- 
-    // **************************************************
-    //   Check what type of bubble model should be used
-    // **************************************************
-
-    // TEST TEST TEST 
-    StdVector<std::string> auxVec;    
-
-    // vectors for parameter handling
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-    
-    keyVec = pdename_, "bubbles", "bubbleType";
-    attrVec = "", "tag";
-    valVec =  "", bcSequenceTag_;
-    params->GetList(keyVec, attrVec, valVec, auxVec);
-
-    if ( auxVec.GetSize() == 1 ) {
-      String2Enum( auxVec[0], bubbleDynType_ );
-
-      //Set bubbledensity
-      keyVec = pdename_, "bubbles", "bubbleNumDensity";
-      params->Get(keyVec, attrVec, valVec, bubbleDensity_);
-    }
-    else if ( auxVec.GetSize() > 1 ) {
-      Error("Specification of bubble type not unique in xml-file", __FILE__,
-	    __LINE__ );
-    }
-    else {
-      bubbleDynType_ = NOBUBBLETYPE;
-    }
-    
-    
-    if( nonLin_ || bubbleDynType_ != NOBUBBLETYPE ) {
-      // solution method
-      params->Get("method", nonLinMethod_, pdename_, "nonLinear" );
-      // perform logging?
-      nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
-      // type of line search
-      params->Get("type", lineSearch_, pdename_, "lineSearch" );
-      // incremental stopping criterion
-      params->Get("incStopCrit", incStopCrit_, pdename_, "nonLinear" );
-      // residual stopping criterion
-      params->Get("resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
-      // maximal number of NL-iterations
-      params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
-    }
-  }
-
   void AcousticPDE::DefineSolveStep() {
     ENTER_FCN( "AcousticPDE::DefineSolveStep" );
 
@@ -505,7 +503,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       solveStep_ = new SolveStepAcoustic(*this);
     }
   }
-
 
 
   // ======================================================

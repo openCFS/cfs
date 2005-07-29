@@ -31,15 +31,18 @@ namespace CoupledField {
 	//! read in damping information, see SinglePDE.cc  and SinglePDE.hh
     void ReadDampingInformation( Grid *aptgrid );
 
+    //! Read special boundary conditions (here: bubble information)
+    void  ReadSpecialBCs();
+
+    //! Initialize NonLinearities
+    void InitNonLin();
+
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
   
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 
-    //! Read special boundary conditions (here: bubble information)
-    void  ReadSpecialBCs();
-    
     //! perform postprocessing on data
     void PostProcess(){};
 
