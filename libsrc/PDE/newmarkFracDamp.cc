@@ -165,23 +165,25 @@ beta and gamma!\n" );
 
 		// coeff_: weight factors in BDF
 		if ( dampingList_[actSD] == FRACTIONAL_GL ) {
-		  factor *= exp(-(y-1.0)*log(dt_));
+		  factor *= std::exp(-(y-1.0)*std::log(dt_));
 
 		  GLWeights(numValues_, y);
 		}
 		else if ( dampingList_[actSD] == FRACTIONAL_GL_INT ) {
-		  factor *= exp(-(y-1.0)*log(dt_));
+		  factor *= std::exp(-(y-1.0)*std::log(dt_));
 
 		  GLWeights(numValues_, y);
 		  CompressWeights();
 		}
 		else if ( dampingList_[actSD] == FRACTIONAL_BLANK ) {
-		  factor *= exp(-(y-1.0)*log(dt_)) * exp(-gammaln(1.0- (y- 1.0)) );
+		  factor *= std::exp(-(y - 1.0)*std::log(dt_)) 
+			        * std::exp(-gammaln(1.0- (y - 1.0)) );
 
 		  BlankWeights(numValues_, y, TRUE);
 		}
 		else if ( dampingList_[actSD] == FRACTIONAL_BLANK_INT ) {
-		  factor *= exp(-(y-1.0)*log(dt_)) * exp(-gammaln(1.0- (y- 1.0)) );
+		  factor *= std::exp(-(y - 1.0)*std::log(dt_)) 
+			        * std::exp(-gammaln(1.0- (y - 1.0)) );
 
 		  BlankWeights(numValues_, y, TRUE);
 		  CompressWeights();
@@ -341,7 +343,7 @@ beta and gamma!\n" );
     coeff_[0] = 1.0; // Index 0
 
     for (UInt i=1; i <= memory; i++) // Index 1 .. memory
-      coeff_[i] = coeff_[i-1] * ((i-1) - (y-1))/i;
+      coeff_[i] = coeff_[i-1] * (((Double)i - 1.0) - (y - 1.0))/(Double)i;
   }
 
 
@@ -359,19 +361,19 @@ beta and gamma!\n" );
  
     if (full) {
       for (UInt i=1; i<memory; i++) // Index 1 .. (memory-1)
-        coeff_[i]= ( exp(pot* log(i-1))
-                     - 2* exp(pot* log(i))
-                     + exp(pot* log(i+1)) ) / pot;
+        coeff_[i]= ( std::exp(pot* std::log((Double)i - 1.0))
+                     - 2.0 * std::exp(pot* std::log((Double)i))
+                     + std::exp(pot* std::log((Double)i + 1.0)) ) / pot;
       // Index memory
-      coeff_[memory]= exp(-(y-1.0)*log(fracMemory_)) + 
-        ( exp(pot* log(fracMemory_ -1))
-          - exp(pot* log(fracMemory_)) ) / pot;
+      coeff_[memory]= std::exp(-(y-1.0)*std::log((Double)fracMemory_)) + 
+        ( std::exp(pot* std::log((Double)fracMemory_ - 1.0))
+          - std::exp(pot* std::log((Double)fracMemory_)) ) / pot;
     }
     else {
       for (UInt i=1; i<=memory; i++) // Index 1 .. memory
-        coeff_[i]= ( exp(pot* log(i-1))
-                     - 2* exp(pot* log(i))
-                     + exp(pot* log(i+1)) ) / pot;
+        coeff_[i]= ( std::exp(pot* std::log((Double)i - 1.0))
+                     - 2* std::exp(pot* std::log((Double)i))
+                     + std::exp(pot* std::log((Double)i + 1.0)) ) / pot;
     }
   }
 
