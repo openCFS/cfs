@@ -211,7 +211,7 @@ namespace CoupledField {
       if ( PDE_.geoUpdate_ == TRUE && PDE_.isIterCoupled_ == TRUE ) {
         if (PDE_.isIncrFormulation_) {
           Error( "Incremental formulation and geoUpdate are currently not "
-                 "working together" );
+                 "working together", __FILE__, __LINE__ );
         }
         job = 1;
         PDE_.AssembleMatrices();

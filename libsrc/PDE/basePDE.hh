@@ -76,7 +76,7 @@ namespace CoupledField
     
     //! define the SolutionStep-Driver
     virtual void DefineSolveStep() {
-      Error("DefineSolveStep not implemented");
+      Error( "DefineSolveStep not implemented", __FILE__, __LINE__ );
     }
 
     

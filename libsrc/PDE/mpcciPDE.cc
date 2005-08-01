@@ -325,13 +325,13 @@ namespace CoupledField {
 #endif
             break;
           case RHS:
-            Error(" No use for RHS coupling!");
+            Error(" No use for RHS coupling!", __FILE__, __LINE__ );
             break;
           case ID_BC:
-            Error(" No use for ID_BC coupling!");
+            Error(" No use for ID_BC coupling!", __FILE__, __LINE__ );
             break;
           case MAT:
-            Error(" No use for MAT coupling!");
+            Error(" No use for MAT coupling!", __FILE__, __LINE__ );
             break;
           }  // end switch
       } // end for

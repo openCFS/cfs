@@ -41,7 +41,7 @@ namespace CoupledField
     if (x.values != NULL) {
       if (x.values->IsComplex()) {
         std::cerr << "IM FALSCHEN TEIL" << std::endl;
-        Error("Im falschen Zweig");
+        Error( "Sorry, wrong branch :)", __FILE__, __LINE__ );
         values = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.values)));
         oldValues = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.oldValues)));
       } else {

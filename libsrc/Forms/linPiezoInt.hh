@@ -101,11 +101,12 @@ namespace CoupledField
     };
 
     //! set multiplicative factor for matrix
-    virtual void SetFactor(Double factor) 
-    { if (factor <= 0) {
-      Error("Additional damping factor cannot be zero");
-    }
-    factorDamp_ = factor;
+    virtual void SetFactor( Double factor ) {
+      if (factor <= 0 ) {
+        Error( "Additional damping factor cannot be zero",
+               __FILE__, __LINE__ );
+      }
+      factorDamp_ = factor;
     };
 
   protected:

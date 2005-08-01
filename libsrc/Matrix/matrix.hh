@@ -112,8 +112,9 @@ namespace CoupledField
     /*!
       \param inv (output) Inverse of the matrix
     */
-    void Invert(CFSMatrix & inv) const
-    {Error("!!! IMPLEMENT !!!");};
+    void Invert(CFSMatrix & inv) const {
+      Error( "!!! IMPLEMENT !!!", __FILE__, __LINE__ );
+    };
   
     //! Transpose the matrix and store it in 'trans'
     /*!
@@ -122,8 +123,9 @@ namespace CoupledField
     //! \note The matrix itself gets not changed.
     //! \note If the transposed of a matrix is needed for a operation
     //! with a vector, the according function like 'MultT' should be used
-    void Transpose(CFSMatrix & trans) const
-    {Error("!!! IMPLEMENT !!!");};
+    void Transpose(CFSMatrix & trans) const {
+      Error("!!! IMPLEMENT !!!", __FILE__, __LINE__ );
+    };
 
 
     //! Solves a small system of equations (Ax=b) directly
@@ -205,13 +207,17 @@ namespace CoupledField
   
     //! copies a submatrix at the position (row, col) into subMat, 
     //! the amount of copied elements depends on the size of subMat
-    void GetSubMatrix(CFSMatrix & subMat, const UInt nRows, const UInt nCols) const 
-    {Error("!!! IMPLEMENT !!!");};
+    void GetSubMatrix( CFSMatrix &subMat, const UInt nRows,
+                       const UInt nCols ) const {
+      Error( "!!! IMPLEMENT !!!", __FILE__, __LINE__ );
+    };
   
     //! overwrites the matrix elements at the position (row, col) with subMat
     //! in a rectangular (submatrix) way
-    void SetSubMatrix(const CFSMatrix & subMat, const UInt nRows, const UInt nCols)
-    {Error("!!! IMPLEMENT !!!");};
+    void SetSubMatrix(const CFSMatrix & subMat, const UInt nRows,
+                      const UInt nCols) {
+      Error("!!! IMPLEMENT !!!", __FILE__, __LINE__ );
+    };
   
     //! scales the diagonal elements of a  matrix by a factor
     void ScaleDiagElems(const TYPE factor);

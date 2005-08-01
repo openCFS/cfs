@@ -69,9 +69,10 @@ namespace CoupledField {
                            const PdeIdType id2 ) {
     ENTER_FCN( "Assemble::SetPdeId" );
     
-    if ( id1 == NO_PDE_ID )
-      Error( "Assemble::SetPdeId: The Id is empty!" );
-    
+    if ( id1 == NO_PDE_ID ) {
+      Error( "Assemble::SetPdeId: The Id is empty!", __FILE__, __LINE__ );
+    }
+
     pdeId1_ = id1;
 
     // Set identifier for second pde equal to that of the

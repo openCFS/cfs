@@ -59,7 +59,8 @@ namespace CoupledField {
 
 
     if ( !io_ ) {
-      Error( "File for output results is not initialized" );
+      Error( "File for output results is not initialized", __FILE__,
+             __LINE__ );
     }
 
     try {

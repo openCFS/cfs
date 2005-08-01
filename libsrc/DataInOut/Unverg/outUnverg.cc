@@ -29,44 +29,48 @@ namespace CoupledField
       }
   }
 
-  void WriteResultsUnverg :: WriteGrid()
-  {
+  void WriteResultsUnverg::WriteGrid() {
+
     ENTER_FCN( "WriteResultsUnverg::WriteGrid" );
 
-    if (!output) 
-      Error(" File for output results is not initialized");
+    if ( !output ) {
+      Error( "File for output results is not initialized", __FILE__,
+             __LINE__ );
+    }
 
     Dataset666();
     Dataset781();
     Dataset780();
- 
   }
 
 
-  void  WriteResultsUnverg::Dataset666()
-  {
-    //
-    if (!ptGrid_)
-      Error("ptGrid_ is not initialized", __FILE__,__LINE__);
+  void  WriteResultsUnverg::Dataset666() {
 
-    (*output)<< std::setw(6) << -1 << std::endl << std::setw(6) << -666 << std::endl ;
+    if (!ptGrid_) {
+      Error("ptGrid_ is not initialized",  __FILE__, __LINE__ );
+    }
+
+    (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
+              << -666 << std::endl ;
 
     UInt dim=ptGrid_->GetDim();
     UInt maxnumnodes=ptGrid_->GetNumNodes();
     UInt maxnumelem=ptGrid_->GetNumVolElems();
 
-    (*output)<< std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << dim << std::endl << std::setw(10) << maxnumnodes << std::setw(10) << maxnumelem << std::endl;
+    (*output) << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10)
+              << dim << std::endl << std::setw(10) << maxnumnodes
+              << std::setw(10) << maxnumelem << std::endl;
 
     (*output) << std::setw(6) << -1 << std::endl;
   }
 
-  void  WriteResultsUnverg::Dataset781()
-  {
+  void  WriteResultsUnverg::Dataset781() {
     //
     if (!ptGrid_)
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
-    (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781 << std::endl;
+    (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 781
+              << std::endl;
 
     UInt dim=ptGrid_->GetDim();
     UInt maxnumnodes=ptGrid_->GetNumNodes();

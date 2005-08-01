@@ -73,7 +73,8 @@ namespace CoupledField {
 
     //! Dirichlet boundary condition has to be adapted
     virtual Double DirichletBC4EffMassMatrix(Double val, Integer eq) {
-      Error("DirichletBC4EffMassMatrix not implemented");
+      Error( "DirichletBC4EffMassMatrix not implemented",
+             __FILE__, __LINE__ );
       return -1.0;
     }
 

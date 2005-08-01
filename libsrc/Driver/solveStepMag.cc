@@ -196,8 +196,10 @@ namespace CoupledField {
     //set actual solution  
     actSol = solhelp->GetAlgSysVector();
 
-    if ( TS_alg_== NULL)
-      Error("TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin");
+    if ( TS_alg_== NULL ) {
+      Error( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin",
+             __FILE__, __LINE__ );
+    }
 
     //compute predictors
     TS_alg_->Predictor(actSol);

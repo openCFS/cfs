@@ -329,9 +329,9 @@ namespace CoupledField
       *strPtr >>  Esat >> Psat >> dirPol;
 
       if (strPtr->fail()) {
-        std::cout << "*** The materialfile is corrupt (hysteresis)! ***  Material: "
-                  << materialName << std::endl;
-        Error("");
+        (*error) << "*** The materialfile is corrupt (hysteresis)! "
+                 << "***  Material: " << materialName;
+        Error( __FILE__, __LINE__ );
       }
 
       delete strPtr;

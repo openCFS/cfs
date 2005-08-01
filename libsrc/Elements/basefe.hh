@@ -427,8 +427,9 @@ namespace CoupledField
     virtual void SetShapeFncDerivAtIp();
 
     //! Set integration points
-    virtual void SetIntPoints() 
-    { Error("Not implemented in baseFE!"); };
+    virtual void SetIntPoints() {
+      Error( "Not implemented in baseFE!", __FILE__, __LINE__ );
+    };
 
     //! Helper function for printing a coordinate matrix in a string
     std::string CoordMatrix2String(const Matrix<Double> & coordMat);

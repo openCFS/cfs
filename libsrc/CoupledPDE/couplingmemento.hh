@@ -19,8 +19,10 @@ namespace CoupledField
     CouplingMemento();
 
     //! Copy Constructor
-    CouplingMemento(const CouplingMemento & x)
-    { Error("CouplingMemento: Copy constructor not implemented");}
+    CouplingMemento( const CouplingMemento & x ) {
+      Error( "CouplingMemento: Copy constructor not implemented",
+             __FILE__, __LINE__ );
+    }
 
     //! Destructor
     ~CouplingMemento();

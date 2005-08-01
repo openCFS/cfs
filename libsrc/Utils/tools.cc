@@ -157,8 +157,14 @@ namespace CoupledField {
   pfn1var FncReader(const std::string namefnc) {
     if (namefnc == "sin") return Sin;
     else {
-      if (namefnc == "cos") return Cos;
-      else Error("This function is not predefined in CFS++");
+      if (namefnc == "cos") {
+        return Cos;
+      }
+      else {
+        (*error) << "Function '" << namefnc
+                 << "' is not predefined in CFS++";
+        Error( __FILE__, __LINE__ );
+      }
     }
   }
 

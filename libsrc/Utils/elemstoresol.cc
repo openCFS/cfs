@@ -426,14 +426,9 @@ namespace CoupledField{
   }
 
   template <class TYPE>
-  void ElemStoreSol<TYPE>::Print(std::ostream& str)                         
-  {
-    ENTER_IFCN( "operator<<(ElemStoreSol<TYPE>) ");
-    Error( "not implemented" );
-
-    std::map<SolutionType,UInt>::const_iterator it;
-    //for (it = solDofs_.begin(); it!=solDofs_.end(); it++)
-    
+  void ElemStoreSol<TYPE>::Print( std::ostream& str ) {
+    ENTER_IFCN( "ElemStoreSol::Print" );
+    Error( "ElemStoreSol::Print() not implemented", __FILE__, __LINE__ );
   }
 
   // explicit template instantiation for SGI compiler

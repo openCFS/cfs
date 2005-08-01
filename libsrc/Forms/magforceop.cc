@@ -21,9 +21,10 @@ namespace CoupledField
 
     curlFieldOp_ = new  CurlNodeOp(ptGrid, ptPDE, ptEQN,magPotential);
     curlFieldOp_->Set2DType(isaxi);
-    if ( ptGrid->GetDim() != 2 )
-      Error("Currently MagLorentzForceOp just working for 2D problems");
-
+    if ( ptGrid->GetDim() != 2 ) {
+      Error( "Currently MagLorentzForceOp just working for 2D problems",
+             __FILE__, __LINE__ );
+    }
   }
 
   MagLorentzForceOp::~MagLorentzForceOp()
