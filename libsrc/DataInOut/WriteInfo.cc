@@ -17,11 +17,9 @@
 
 #define CFS_VERSION  "0.1a"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
-  WriteInfo::WriteInfo ()
-  {
+  WriteInfo::WriteInfo () {
 
     ENTER_FCN( "WriteInfo::WriteInfo");
     warningOccured_ = FALSE;
@@ -32,12 +30,12 @@ namespace CoupledField
   }
 
 
-  WriteInfo::~WriteInfo ()
-  {
+  // **************
+  //   Destructor
+  // **************
+  WriteInfo::~WriteInfo () {
     ENTER_FCN( "WriteInfo::~WriteInfo" );
-
-    if (!cfsInfo)
-      delete cfsInfo;
+    delete cfsInfo;
   }
 
 
@@ -667,7 +665,7 @@ namespace CoupledField
     std::string formatted;
     
     // init the argument list
-    va_list argList;
+    std::va_list argList;
     va_start(argList, formatChar);
     
     // for classes which are not a pde, this string is ""
