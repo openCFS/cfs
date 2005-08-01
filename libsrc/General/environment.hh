@@ -71,11 +71,18 @@ namespace CoupledField
   typedef Double (*pfn3var)(const Double, const Double, const Double);
 
   //! enumeration with material parameter formats (real / complex)
-  typedef enum {REALMATERIALPARAMETER=0,IMAGMATERIALPARAMETER=1}
-  piezoMaterialType;
+  typedef enum {REALMATERIALPARAMETER=0,IMAGMATERIALPARAMETER=1}  piezoMaterialType;
 
   typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTIHARMONIC, MULTI_SEQUENCE,
                 BUBBLEDYNAMIC, TRANSIENT4SLICE} AnalysisType;
+
+  //! specifications of Lapack routines for different types of system matrices in 
+  //! matrix.solveWithLapack
+  //! Z - Complex valued matrix
+  //! SY - symmetric matrix
+  //! GE - general matrix
+  //! HE - hermitian matrix
+  typedef enum {ZSYSV, ZGESV, ZHESV} lapackSysMatType;
   
 
   //! print grid only and then exit

@@ -210,6 +210,7 @@ namespace CoupledField {
     }
   }
 
+
   // CouplingOutputType
   template<>
   void String2Enum<CouplingOutputType>(const std::string &in, 
