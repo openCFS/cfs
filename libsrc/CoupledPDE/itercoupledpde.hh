@@ -37,7 +37,8 @@ namespace CoupledField
     void WriteGeneralPDEdefines();
 
     Assemble * getPDE_assemble() {
-      Error("Get Assemble-Object makes no sense for itercoupledPDE"); 
+      Error( "Get Assemble-Object makes no sense for itercoupledPDE",
+             __FILE__, __LINE__ );
       return NULL;
     };
 

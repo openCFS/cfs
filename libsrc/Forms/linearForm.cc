@@ -543,7 +543,8 @@ namespace CoupledField {
                                            Vector<Double> & elemVec)
   {
     ENTER_FCN( "PreStressLinFormInt::CalcElemVector" );
-    Error("PreStressLinFormInt::CalcElemVector: not working");
+    Error( "PreStressLinFormInt::CalcElemVector: not working",
+           __FILE__, __LINE__ );
 
     //   const UInt nrIntPts = ptelem->GetNumIntPoints();
     //   const UInt nrNodes  = ptelem->GetNumNodes();
@@ -631,33 +632,33 @@ namespace CoupledField {
     Vector<Double> shapeFnc;
     Vector<Double> normalVec(dim);
 
-    //comput normal vector
-    if (dim == 2) 
-      {
-        Double dx  = ptCoord[0][1] - ptCoord[0][0];
-        Double dy  = ptCoord[1][1] - ptCoord[1][0];
-        Double len = sqrt(dx*dx + dy*dy);
-        if (len <= 0.0)
-          Error("length of normal vector is zero!");
-        normalVec[0] = dy/len;
-        normalVec[1] = -dx/len;
+    // compute normal vector
+    if (dim == 2) {
+      Double dx  = ptCoord[0][1] - ptCoord[0][0];
+      Double dy  = ptCoord[1][1] - ptCoord[1][0];
+      Double len = sqrt(dx*dx + dy*dy);
+      if ( len <= 0.0 ) {
+        Error("length of normal vector is zero!", __FILE__, __LINE__ );
       }
-    else 
-      {
-        //compute the two vectors in the plane
-        Vector<Double> vec1(3), vec2(3);
-        for (UInt i=0; i<dim; i++) {
-          vec1[i] = ptCoord[i][1] - ptCoord[i][0];
-          vec2[i] = ptCoord[i][nrNodes-1] - ptCoord[i][0];
-        }
-        //compute cross product
-        normalVec[0] = vec1[1] * vec2[2] - vec1[2]*vec2[1];
-        normalVec[1] = vec1[2] * vec2[0] - vec1[0]*vec2[2];
-        normalVec[2] = vec1[0] * vec2[1] - vec1[1]*vec2[0];
-        //normalize the length to 1
-        Double length = normalVec.NormL2();
-        normalVec /= length;
+      normalVec[0] = dy/len;
+      normalVec[1] = -dx/len;
+    }
+
+    else {
+      //compute the two vectors in the plane
+      Vector<Double> vec1(3), vec2(3);
+      for (UInt i=0; i<dim; i++) {
+        vec1[i] = ptCoord[i][1] - ptCoord[i][0];
+        vec2[i] = ptCoord[i][nrNodes-1] - ptCoord[i][0];
       }
+      //compute cross product
+      normalVec[0] = vec1[1] * vec2[2] - vec1[2]*vec2[1];
+      normalVec[1] = vec1[2] * vec2[0] - vec1[0]*vec2[2];
+      normalVec[2] = vec1[0] * vec2[1] - vec1[1]*vec2[0];
+      //normalize the length to 1
+      Double length = normalVec.NormL2();
+      normalVec /= length;
+    }
 
     UInt zerodim = 0;
     if (dofzero_ >0) {

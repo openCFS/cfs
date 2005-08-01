@@ -22,9 +22,9 @@ namespace CoupledField
     PDEMemento();
 
     //! Copy constructor
-    PDEMemento(const PDEMemento & x)
-    {
-      Error("PDEMemento: Copy constructor not implemented");
+    PDEMemento( const PDEMemento &x ) {
+      Error( "PDEMemento: Copy constructor not implemented",
+             __FILE__, __LINE__ );
     };
 
     //! Destructor

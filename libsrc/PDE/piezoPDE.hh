@@ -59,18 +59,20 @@ namespace CoupledField
     // ======================================================
 
     //! initalize PDE coupling
-    void InitCoupling(PDECoupling * Coupling)
-    { Error ("Coupling not implemented" );}
+    void InitCoupling( PDECoupling *Coupling ) {
+      Error ("Coupling not implemented", __FILE__, __LINE__ );
+    }
 
     //! calculate coupling terms
-    void CalcOutputCoupling()
-    { Error ("Coupling not implemented" );}
+    void CalcOutputCoupling() {
+      Error ( "Coupling not implemented", __FILE__, __LINE__ );
+    }
 
     //! returns if PDE can compute the quantity
-    Boolean HasOutput(SolutionType output)
-    { Error ( "Coupling not implemented" );
-    return FALSE;}
-  
+    Boolean HasOutput( SolutionType output ) {
+      Error( "Coupling not implemented", __FILE__, __LINE__ );
+      return FALSE;
+    }
 
     ElemStoreSol<Complex>  GetComplexValuedCharge()
     {return chargesComplex_;};

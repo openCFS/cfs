@@ -268,7 +268,7 @@ namespace CoupledField {
     } while ( performOneMoreStep && iterationCounter < nonLinMaxIter_ );  
 
     if ( iterationCounter >=  nonLinMaxIter_) {
-      Error(" Number of nonlinear iterations too larger");
+      Error(" Number of nonlinear iterations too larger", __FILE__, __LINE__ );
     }
   
     //  std::cout << "Do Update after Sol" << std::endl;

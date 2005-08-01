@@ -480,9 +480,9 @@ namespace CoupledField
         actMatType == DAMPING )
       matType = SYSTEM;
     else {
-      std::string error_msg = "Matrix type ";
-      error_msg += actMatType + " not supported in harmonic analysis";
-      Error(error_msg.c_str());
+      (*error) << "Matrix type " << actMatType
+               << " is not supported in harmonic analysis";
+      Error( __FILE__, __LINE__ );
     }
     
     IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
@@ -505,12 +505,11 @@ namespace CoupledField
         || actID->DestMat() == MASS 
         || actID->DestMat() == DAMPING )
       actID->SetDestMat(SYSTEM);
-    else
-      {
-        std::string error_msg = "Matrix type ";
-        error_msg += actID->DestMat() + " not supported in harmonic analysis";
-        Error(error_msg.c_str());
-      }
+    else {
+      (*error) << "Matrix type " << actID->DestMat()
+               << " is not supported in harmonic analysis";
+      Error( __FILE__, __LINE__ );
+    }
 
     integrators_[SubDomIndex(regionId)]->Push_back(actID);
 

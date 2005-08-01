@@ -867,8 +867,9 @@ namespace CoupledField
       Double dx  = ptCoord[0][1] - ptCoord[0][0];
       Double dy  = ptCoord[1][1] - ptCoord[1][0];
       Double len = sqrt(dx*dx + dy*dy);
-      if (len <= 0.0)
-        Error("length of normal vector is zero!");
+      if (len <= 0.0) {
+        Error("length of normal vector is zero!", __FILE__, __LINE__ );
+      }
       n.Resize(2);
       n[0] = dy/len;
       n[1] = -dx/len;

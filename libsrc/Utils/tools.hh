@@ -26,8 +26,8 @@ namespace CoupledField {
   //!                 number of the code line of the module/file in which the
   //!                 error occured. The __LINE__ macro should be inserted in
   //!                 the call. The argument is optional.
-  void Error( const Char * Text, const Char * const filename = NULL,
-              const UInt numline = 0 );
+  void Error( const Char *Text, const Char *const filename,
+              const UInt numline );
 
 
   //! Function for issuing an error message and terminating program execution.

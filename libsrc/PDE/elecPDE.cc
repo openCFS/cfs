@@ -621,10 +621,12 @@ namespace CoupledField {
           ForceOp_->Setup(nRegionIds, *couplingnodes);
         }
       
-        else if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_INTERFACE_FORCE) {
-          Error("Currently ELEC_INTERFACE_FORCE not supported");
+        else if ( ptCoupling_->GetOutputQuantity(actCoupling)
+                  == ELEC_INTERFACE_FORCE) {
+          Error( "Currently ELEC_INTERFACE_FORCE not supported", __FILE__,
+                 __LINE__ );
         }
-      
+
         else {
           Enum2String(ptCoupling_->GetOutputQuantity(actCoupling), quantity);
           std::string errMsg = "Coupling " + quantity +  " not known! ";    

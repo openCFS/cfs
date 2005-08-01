@@ -6,11 +6,10 @@
 #include "WriteInfo.hh"
 #include "ParamHandling/BaseParamHandler.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
-  TimeFunc :: TimeFunc()
-  {
+  TimeFunc::TimeFunc() {
+
     ENTER_FCN( "TimeFunc::TimeFunc" );
 
     maxnumTF_  = 0;
@@ -56,62 +55,64 @@ namespace CoupledField
 
 
     // loop over time-fncs
-    for (UInt i=0; i< maxnumTF_; i++)
-      {
-        std::ifstream timefile;
+    for ( UInt i = 0; i < maxnumTF_; i++ ) {
 
-        timefile.open(fnc_names_[i].c_str());
-        if (!timefile)  
-          Error("Can't open file with data of time function");
+      std::ifstream timefile;
 
-        timefile.clear(); // clear flags
+      timefile.open( fnc_names_[i].c_str() );
+      if ( !timefile ) {
+        (*error) << "Failed to open file '" << fnc_names_[i]
+                 << "' containing data of time function";
+        Error( __FILE__, __LINE__ );
+      }
 
-        // we don't trust .eof() =)
-        timefile.seekg(0,std::ios::end);
-        std::string::size_type pos = 0, pos_end = timefile.tellg(), line_end_pos = 0;
+      timefile.clear(); // clear flags
 
-        timefile.seekg(0,std::ios::beg); // start from the beginning
-        std::string     buf;
-        Double          timeT, valT;
+      // we don't trust .eof() =)
+      timefile.seekg(0,std::ios::end);
+      std::string::size_type pos = 0, pos_end = timefile.tellg(),
+        line_end_pos = 0;
 
-        while(pos <= pos_end)
-          {         
-            buf = "";
-            std::getline(timefile,buf,'\n');
-            line_end_pos = timefile.tellg();
+      timefile.seekg(0,std::ios::beg); // start from the beginning
+      std::string     buf;
+      Double          timeT, valT;
+
+      while( pos <= pos_end ) {         
+        buf = "";
+        std::getline(timefile,buf,'\n');
+        line_end_pos = timefile.tellg();
           
-            // big choice of signs for comment's
-            if (buf.length() != 0 &&
-                buf[0] != '#' &&
-                buf[0] != '%' && 
-                buf[0] != '!') 
-              {
-                timefile.seekg(- buf.size() - 1,std::ios::cur); // rewind
+        // big choice of signs for comment's
+        if (buf.length() != 0 &&
+            buf[0] != '#' &&
+            buf[0] != '%' && 
+            buf[0] != '!') {
+          timefile.seekg(- buf.size() - 1,std::ios::cur); // rewind
 
-                timefile >> timeT >> valT ;                    
- 
-                valTF_[i].push_back(valT);
-                timeTF_[i].push_back(timeT);
-                timefile.ignore(100,'\n');
-          
-              }
+          timefile >> timeT >> valT ;                    
 
-            pos = timefile.tellg();  // and, where we are ?    
+          valTF_[i].push_back(valT);
+          timeTF_[i].push_back(timeT);
+          timefile.ignore(100,'\n');
           
-            if( pos != line_end_pos)
-              {
-                errMsg  = "The time data file '";
-                errMsg += fnc_names_[i];
-                errMsg += "' is not correctly formatted.\n";
-                errMsg += "Please correct it!";
-                Error(errMsg.c_str(), __FILE__, __LINE__);
-              }
+        }
+
+        pos = timefile.tellg();  // and, where we are ?    
           
+        if( pos != line_end_pos)
+          {
+            errMsg  = "The time data file '";
+            errMsg += fnc_names_[i];
+            errMsg += "' is not correctly formatted.\n";
+            errMsg += "Please correct it!";
+            Error(errMsg.c_str(), __FILE__, __LINE__);
           }
+          
+      }
       
-        timefile.close();
+      timefile.close();
 
-      } // loop over fncs
+    } // loop over fncs
   }
 
   Double TimeFunc::TimeFuncAtTime(const Double time,  const std::string fncname)
@@ -209,7 +210,7 @@ namespace CoupledField
    Function for setting up the start time vector, it is:
    TASK: - built in an if condition for the dimension,
          - calculate the start time vector for the 3D-Case 
-   ****************************************************************************/
+  ****************************************************************************/
   void TimeFunc::SetStartTimeVector(Integer numBcs)
   {
     ENTER_FCN( "TimeFunc::SetStartTimeVector");

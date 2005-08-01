@@ -191,7 +191,7 @@ namespace CoupledField
 #else
     // If data from fluid file call to get fluid flow data in flowdata_  
     std::string flowdata;
-    Error("Need change to XML-Standard");
+    Error( "Need change to XML-Standard", __FILE__, __LINE__ );
       
     //      conf->get("acousrc_file",flowdata);
     //      ReadFlowData(flowdata.c_str(), timestep, flowdata_); 

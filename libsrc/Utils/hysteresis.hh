@@ -15,22 +15,22 @@ namespace CoupledField {
     virtual ~Hysteresis();
 
     //!
-    virtual Double computeValue(Double xVal, Integer idxElem)
-    {
-      Error("computeValue not implemented in base-Class");
+    virtual Double computeValue(Double xVal, Integer idxElem) {
+      Error( "computeValue not implemented in base-Class",
+             __FILE__, __LINE__ );
       return 0.0;
     };
 
     //!
-    virtual void updateMinMaxList(Double newX, Integer idxElem) 
-    {
-      Error("updateMinMaxList not implemented in base-Class");
+    virtual void updateMinMaxList(Double newX, Integer idxElem) {
+      Error( "updateMinMaxList not implemented in base-Class",
+             __FILE__, __LINE__ );
     };
 
     //! 
-    virtual void SetTimeStepVal(Double dt) 
-    {
-      Error("SetTimeStepVal not implemented in base-Class");
+    virtual void SetTimeStepVal(Double dt) {
+      Error( "SetTimeStepVal not implemented in base-Class"
+             __FILE__, __LINE__ );
     };
 
   protected:

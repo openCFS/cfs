@@ -725,8 +725,9 @@ namespace CoupledField {
 
   void Domain::PrintGrid( ) {
     ENTER_FCN( "Domain::PrintGrid" );
-    if ( ptgrid_ == NULL )
-      Error("Domain: ptgrid == NULL!");
+    if ( ptgrid_ == NULL ) {
+      Error("Domain: ptgrid == NULL!", __FILE__, __LINE__ );
+    }
 
     OutFile_->Init(ptgrid_);
     OutFile_->WriteGrid( );

@@ -532,7 +532,8 @@ namespace CoupledField {
       return velocity_;
     }
     else {
-      Error("SolveStepAcousticBubble: Result-Type not possible");
+      Error("SolveStepAcousticBubble: Result-Type not possible",
+            __FILE__, __LINE__ );
       
       // only to satisfy compiler
       return velocity_;

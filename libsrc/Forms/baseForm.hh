@@ -130,8 +130,10 @@ namespace CoupledField
     {Error("SetActElemSolDeriv2 not implemented!",__FILE__,__LINE__);};
 
     //! reads the values y(x) out of the file with name fncName  
-    void ReadNlinFunc(std::string fncName, Vector<double> &xval, Vector<Double> &yval)
-    {Error("ReadNlinFunc not implemented!");};
+    void ReadNlinFunc( std::string fncName, Vector<double> &xval,
+                       Vector<Double> &yval ) {
+      Error("ReadNlinFunc not implemented!", __FILE__, __LINE__ );
+    };
 
     //! set the integration point
     void SetIntPoint(Vector<Double> point)

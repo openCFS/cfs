@@ -27,11 +27,12 @@ namespace CoupledField
   }
 
   // for computation with adaptivity
-  Boolean BaseDriver::printMeshesOrNot()
-  {
+  Boolean BaseDriver::printMeshesOrNot() {
+
     ENTER_FCN( "BaseDriver::DefinePrintMeshesOrNot" );
   
-    Error("Currently not working, need change to XML-Standard");
+    Error( "Currently not working, need change to XML-Standard",
+           __FILE__, __LINE__ );
   
     Boolean meshesInfo=FALSE;
     //   std::string typeForMeshesInfo;

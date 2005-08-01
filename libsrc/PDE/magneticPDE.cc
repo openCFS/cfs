@@ -200,7 +200,8 @@ namespace CoupledField {
         if ( subdoms_[actSD] == magnetsDomain_[perm] ) {
 
           if ( dim_  == 3 ) {
-            Error( "Permanent magnets not implemented for 3D computation" );
+            Error( "Permanent magnets not implemented for 3D computation",
+                   __FILE__, __LINE__ );
           }
 
           //change direction of magnetization, so that we can use the
@@ -972,8 +973,9 @@ namespace CoupledField {
 
           StdVector<UInt> * couplingnodes = NULL;
           ptCoupling_->GetOutputNodes(actCoupling, couplingnodes);
-          if (couplingnodes == NULL)
-            Error("magnetics: Couplingnodes = 0!!!!");
+          if ( couplingnodes == NULL ) {
+            Error( "Pointer couplingnodes = NULL!", __FILE__, __LINE__ );
+          }
 
           for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
             StdVector<UInt> & connecth = elemssd[actEl]->connect;

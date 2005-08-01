@@ -67,10 +67,9 @@ namespace CoupledField{
 
 
   template<class TYPE>
-  void NodeStoreSol<TYPE>::Clear()
-  {
+  void NodeStoreSol<TYPE>::Clear() {
     ENTER_FCN( "NodeStoreSol::Clear()" );
-    Error("Not implemented" );
+    Error( "NodeStoreSol::Clear() not implemented", __FILE__, __LINE__ );
   }
 
   template<class TYPE>
@@ -736,13 +735,9 @@ namespace CoupledField{
   }
 
   template <class TYPE>
-  void NodeStoreSol<TYPE>::Print(std::ostream& str)                         
-  {
-    ENTER_IFCN( "operator<<(NodeStoreSol<TYPE>) ");
-    Error( "not implemented" );
-
-    std::map<SolutionType,UInt>::const_iterator it;
-  
+  void NodeStoreSol<TYPE>::Print( std::ostream& str ) {
+    ENTER_IFCN( "NodeStoreSol::Print" );
+    Error( "NodeStoreSol::Print() not implemented", __FILE__, __LINE__ );
   }
 
   // explicit template instantiation for SGI compiler

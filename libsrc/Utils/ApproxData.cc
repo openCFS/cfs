@@ -27,8 +27,11 @@ namespace CoupledField
     std::ifstream datafile;
   
     datafile.open(fncName.c_str());
-    if (!datafile)  
-      Error("Can't open file with nonlinear data");
+    if ( !datafile ) {
+      (*error) << "Failed to open file '" << fncName
+               << "' suspected to contain nonlinear data";
+      Error( __FILE__, __LINE__ );
+    }
   
     datafile.clear(); // clear flags
   

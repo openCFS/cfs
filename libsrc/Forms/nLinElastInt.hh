@@ -374,8 +374,10 @@ public:
   void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
 
   //!
-  void convertStressVecToTensor(Matrix<Double>& stressTensor, Vector<Double>& piolaStress)
-  {Error("convertStressVecToTensor not implemented");}
+  void convertStressVecToTensor( Matrix<Double> &stressTensor,
+                                 Vector<Double> &piolaStress ) {
+    Error( "convertStressVecToTensor not implemented", __FILE__, __LINE__ );
+  }
 
 protected:
   /// calculates pre-stresses (vector notation)

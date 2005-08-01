@@ -81,8 +81,10 @@ namespace CoupledField
     { return numNodes_; };  
 
     //! Returns the number of nodes contained in given region
-    UInt GetNumNodes( const StdVector<RegionIdType> & regions )
-    {Error("Method not supported by GridStruct-Class"); return 0;};
+    UInt GetNumNodes( const StdVector<RegionIdType> &regions ) {
+      Error( "Method not supported by GridStruct-Class", __FILE__, __LINE__ );
+      return 0;
+    };
 
     //! Returns the number of nodes in the given nodelist
     UInt GetNumNodes( const std::string & nodesName );
@@ -252,15 +254,17 @@ namespace CoupledField
     void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
                               const StdVector<UInt> & nodeList,
                               const StdVector<RegionIdType> 
-                              & regionIds )
-    {Error("Method not supported by GridStruct-Class"); };
+                              & regionIds ) {
+      Error("Method not supported by GridStruct-Class", __FILE__, __LINE__ );
+    };
 
     //! Get volume elements lying next to given surface elements
     void GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
                                 const StdVector<Elem*> & surfElems,
                                 const StdVector<RegionIdType> 
-                                &neighRegions )
-    {Error("Method not supported by GridStruct-Class"); };
+                                &neighRegions ) {
+      Error( "Method not supported by GridStruct-Class", __FILE__, __LINE__ );
+    };
    
     //@}
     
@@ -276,8 +280,9 @@ namespace CoupledField
     //! Returns surface element normal with defined orientation
     void CalcSurfNormalOutOfVol( Vector<Double> & n,
                                  const Elem & surfElem,
-                                 const Elem & volElem )
-    {Error("Method not supported by GridStruct-Class"); };
+                                 const Elem & volElem ) {
+      Error("Method not supported by GridStruct-Class", __FILE__, __LINE__ );
+    };
 
     //! Returns the volume of a given region
 
@@ -289,7 +294,7 @@ namespace CoupledField
     //! \param isaxi (in) flag indicating axial symmetry
     Double CalcVolumeOfRegion( const RegionIdType regionId,
                                Boolean isaxi = FALSE ) {
-      Error("Method not supported by GridStruct-Class"); 
+      Error("Method not supported by GridStruct-Class", __FILE__, __LINE__ ); 
       return -1.0;
     }
     //@}
@@ -303,8 +308,9 @@ namespace CoupledField
     //! Returns node numbers of a list of Elements
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
                              const StdVector<Elem*> & elemList,
-			     			     Boolean onlyLinNodes = FALSE)
-    {Error("Method not supported by GridStruct-Class"); };
+                             Boolean onlyLinNodes = FALSE ) {
+      Error("Method not supported by GridStruct-Class", __FILE__, __LINE__ );
+    };
 
 
     //! Returns the names of all regions

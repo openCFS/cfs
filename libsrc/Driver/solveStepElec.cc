@@ -257,8 +257,11 @@ namespace CoupledField {
     
     } while ( performOneMoreStep && iterationCounter < nonLinMaxIter_ );  
 
-    if ( iterationCounter >=  nonLinMaxIter_) {
-      Error(" Number of nonlinear iterations too larger");
+    if ( iterationCounter >= nonLinMaxIter_ ) {
+      (*error) << "Number of nonlinear iterations exceeds limit "
+               << "nonLinearMaxIter_ = "
+               << nonLinMaxIter_;
+      Error( __FILE__, __LINE__ );
     }
   
   }
