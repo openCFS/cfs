@@ -5,6 +5,9 @@
 #include <iomanip>
 
 #include "matrix.hh"
+// #ifdef USE_LAPACK
+// #include "matrixLapackSupport.hh"
+// #endif
 #include <Utils/vector.hh>
 
 namespace CoupledField
@@ -116,6 +119,7 @@ namespace CoupledField
   {
     return TRUE;
   }
+
 
 
   template<class TYPE>
@@ -742,11 +746,10 @@ namespace CoupledField
     Vector<TYPE> & x = dynamic_cast<Vector<TYPE>& >(x1);
     Vector<TYPE> & b = dynamic_cast<Vector<TYPE>& >(b1);
     
-    UInt nmat = size_row_-1;
-    UInt i, j, k, k1;
+    Integer nmat = size_row_-1;
+    Integer i, j, k, k1;
     
     //  the Gauss elimination 
-    
     for (k=0; k<=nmat-1; ++k)
       {
         k1 = k + 1;
@@ -768,16 +771,17 @@ namespace CoupledField
       }
 
     // solve Ly = b by forward substitution 
+
    
     Vector<TYPE> y(b.GetSize());
 
     for (i=0; i<=nmat; ++i)
-      {
+      { 
         y[i] = b[i];
         for (j=0; j<=i-1; ++j)
           y[i] -= data_[i][j] * y[j];
       }
-    
+
     // solve Ux = y backward substitution
     
     for (i=nmat; i>=0; --i)
@@ -789,6 +793,215 @@ namespace CoupledField
       }
   }
 
+
+#ifdef USE_LAPACK
+  // Compile OLAS and CFS++ with USE_LAPACK
+  template<>
+  void Matrix<Complex>::solveWithLapack(Matrix<Complex> & b1,
+                                        lapackSysMatType & LAPACK_MATRIX_TYPE)
+  {
+    ENTER_FCN("Matrix::solveWithLapack");
+
+    if(size_row_!=size_col_)
+      Error("Matrix is not quadratic, no solver! ",__FILE__,__LINE__);
+
+    char lp_matType;
+    lp_matType='L';
+    
+    Integer lp_nrRHS, lp_loadDim, lp_loadDimRHS, lp_info, lp_lwork,lp_dim;
+    Integer lp_lda, lp_ldb;
+    lp_nrRHS=b1.GetSizeCol();
+    lp_dim=size_row_;
+    lp_lda=size_row_;
+    lp_ldb=size_row_;
+
+    Integer *lp_interchanges;
+    
+    F77complex16 *lp_rhsVecf77;
+    F77complex16 *lp_sysVecf77;
+    F77complex16 *lp_workf77;
+    F77complex16 auxVal2;
+    
+    Vector<Complex> lp_sysVec, lp_work;
+    lp_sysVec.Resize(size_row_*size_row_);
+    
+      // copy values from system and RHS - Matrix into vector
+    for (UInt i=0;i<size_row_;i++)
+      for (UInt j=0;j<size_row_;j++){
+        lp_sysVec[i+j*size_row_]=data_[i][j];
+      }
+    
+    Vector<Complex> lp_rhsVec;
+    lp_rhsVec.Resize(b1.GetSizeRow()*b1.GetSizeCol());
+ 
+    for (UInt i=0;i<b1.GetSizeRow();i++)
+      for (UInt j=0;j<b1.GetSizeCol();j++){
+        lp_rhsVec[i+j*b1.GetSizeRow()]=b1[i][j];
+      }
+    std::cout<<lp_rhsVec<<std::endl;
+
+    lp_rhsVecf77 = new F77complex16[size_row_*lp_nrRHS];
+    lp_interchanges = new int[size_row_*size_row_];
+    lp_workf77 = new F77complex16[size_row_*size_row_];
+    lp_sysVecf77 = new F77complex16[size_row_*size_row_];
+   
+
+    // Convert CFS++ Vector<Complex> to Vector<F77complex16>
+    for ( UInt count = 0; count < size_row_*b1.GetSizeCol(); count++ ) {
+      CC2F77( lp_rhsVec[count], auxVal2 );
+      lp_rhsVecf77[count] = auxVal2;
+      }
+    
+    for (UInt count = 0; count < size_row_*size_row_; count++ ) {
+      CC2F77( lp_sysVec[count], auxVal2 );
+      lp_sysVecf77[count] = auxVal2;
+    }
+    
+    for (UInt count=0; count < lp_work.GetSize();count++){
+      CC2F77(lp_work[count], auxVal2);
+      lp_workf77[count] = auxVal2;
+    }
+    
+    switch (LAPACK_MATRIX_TYPE){
+      
+    case ZGESV:
+      // solves systems with general system matrix
+      zgesv_(&lp_dim , &lp_nrRHS, lp_sysVecf77, &lp_lda, 
+             lp_interchanges, lp_rhsVecf77, &lp_ldb, &lp_info);
+
+      if ( lp_info != 0 ) {
+        Error( "ZGESV reports invalid input parameter", __FILE__, __LINE__ );
+      }    
+      break;
+    case ZSYSV:
+      
+      lp_lwork=192;
+      // solves systems with symmetric system matrix
+      zsysv_(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77, 
+             &lp_lda, lp_interchanges, lp_rhsVecf77, &lp_ldb,
+             lp_workf77, &lp_lwork, &lp_info);
+
+      if ( lp_info != 0 ) {
+        Error( "ZSYSV reports invalid input parameter", __FILE__, __LINE__ );
+      }
+      break;
+    case ZHESV:
+      lp_lwork=192;
+      // solves systems with hermitian system matrix
+      zhesv_(&lp_matType, &lp_dim , &lp_nrRHS, lp_sysVecf77,
+             &lp_lda, lp_interchanges,lp_rhsVecf77, &lp_ldb, 
+             lp_workf77, &lp_lwork, &lp_info);
+
+      if ( lp_info != 0 ) {
+        Error( "ZHESV reports invalid input parameter", __FILE__, __LINE__ );
+      }
+      break;
+
+    default:
+      std::cout<<LAPACK_MATRIX_TYPE<<std::endl;
+      Error( " the chosen routine is not yet implemented in solveWithLapack",
+             __FILE__, __LINE__ );
+
+
+    } // matches switch ()...
+      
+          
+     //reconvert Fortran77 -> CFS ++ datatypes
+    for ( UInt count = 0; count < size_row_*b1.GetSizeCol(); count++ ) 
+      F772CC( lp_rhsVecf77[count], lp_rhsVec[count] );
+    std::cout<<lp_rhsVec<<std::endl;
+      
+    for ( UInt count = 0; count < size_row_*size_row_; count++ ) 
+      F772CC( lp_sysVecf77[count], lp_sysVec[count]);
+    std::cout<<lp_sysVec<<std::endl;
+      
+    for (UInt count=0; count < lp_work.GetSize();count++)
+      F772CC(lp_workf77[count], lp_work[count]);
+      
+    // Writes result into b1
+    for (UInt i=0;i<size_row_;i++)
+      for (UInt j=0;j<b1.GetSizeCol();j++)
+        b1[i][j]=lp_rhsVec[i+j*b1.GetSizeRow()];
+  
+    delete[] (lp_rhsVecf77);
+    delete[] (lp_interchanges);
+    delete[] (lp_sysVecf77);
+    delete[] (lp_workf77 );
+    
+  }
+#endif
+
+#ifdef USE_LAPACK
+  // Compile OLAS and CFS++ with USE_LAPACK
+  template<>
+  void Matrix<Complex>::eigenvaluesWithLapack(Vector<Double> & lp_w)
+  {
+    ENTER_FCN("Matrix::eigenvaluesWithLapack");
+    // computes all eigenvalues of a complex hermitian matrix
+
+    char lp_jobz='V';
+    char lp_uplo='L';
+    Integer lp_N=size_row_;                
+    Integer lp_lda=size_row_;
+      
+    // array contains ev in ascending order
+    //    Vector<Double> lp_w;
+    lp_w.Resize(size_row_);
+    Integer lp_lworkf77=99;
+      
+    // workspace array - complex 16 array
+    Vector<Complex> lp_work;
+    lp_work.Resize(lp_lworkf77);
+      
+    // workspace array - double precission
+    Vector<Double> lp_rwork;
+    lp_rwork.Resize(3*size_row_-2);
+      
+    Integer lp_infof77;
+    F77complex16 auxValC;
+    F77real8 auxValR;
+
+    F77complex16 * lp_af77 = new F77complex16[size_row_*size_row_];
+    F77real8 * lp_wf77 = new F77real8[size_row_];
+    F77complex16 * lp_workf77 = new F77complex16[99];
+    F77real8 * lp_rworkf77 = new F77real8[3*size_row_-2];
+      
+    // Convert CFS++ Vector<Complex> to Vector<F77complex16>
+    for ( UInt count = 0; count < size_row_; count++ ) 
+      for ( UInt countC = 0; countC <size_row_; countC++ ) {
+        CC2F77( data_[count][countC], auxValC );
+        lp_af77[countC*size_row_+count] = auxValC;
+      }
+    
+    for ( UInt count = 0; count < size_row_; count++ ) {
+      CC2F77( lp_w[count], auxValR );
+      lp_wf77[count] = auxValR;
+    }
+    
+    for (UInt count=0; count < lp_rwork.GetSize();count++){
+      CC2F77(lp_rwork[count], auxValR);
+      lp_rworkf77[count] = auxValR;
+    }
+    
+    zheev_( &lp_jobz, &lp_uplo, &lp_N, lp_af77, &lp_lda, lp_wf77, 
+            lp_workf77, &lp_lworkf77, lp_rworkf77 ,&lp_infof77); 
+    
+    // reconvert f772C++
+    for (UInt count=0; count < lp_work.GetSize();count++)
+      F772CC(lp_workf77[count], lp_work[count]);
+    
+    for ( UInt count = 0; count < size_row_; count++ ) 
+      F772CC( lp_wf77[count], lp_w[count] );
+    
+    delete lp_workf77;
+    delete lp_rworkf77;
+    delete lp_af77;
+    delete lp_wf77;
+    
+  }
+
+#endif
+  
 
   template<class TYPE>
   void Matrix<TYPE>::DyadicMult(const CFSVector & v1)
@@ -866,7 +1079,7 @@ namespace CoupledField
 
   template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
   {
-    ENTER_FCN("Matrix::Adjunct"); 
+    ENTER_FCN("Matrix::Invert"); 
     Error("Matrix<Complex>::Invert: Not implemented!",__FILE__,__LINE__);
   }
 

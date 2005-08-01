@@ -2,6 +2,9 @@
 #define FILE_MATRIX_2004
 
 #include "cfsmatrix.hh"
+#ifdef USE_LAPACK
+#include "matrixLapackSupport.hh"
+#endif
 
 namespace CoupledField
 {      
@@ -129,9 +132,44 @@ namespace CoupledField
       \param b (input) right-hand-side vector
     */
     //! Solves directly a small system of equations of the form Ax=b
-    //! using LU - decomposition (no pivoting - so dear numerical people, do not exhaust this method!)
-    //! \note The Matrix A=LU contains afterwards the the values of L in the lower triangular, and the values of U in the upper part.
+    //! using LU - decomposition (without pivoting!)
+    //! \note The Matrix A=LU contains afterwards the the values of L 
+    //! in the lower triangular, and the values of U in the upper part.
     void DirectSolve(CFSVector & x, CFSVector & b);
+
+#ifdef USE_LAPACK
+    //! Solves system of algebraic equation AX=B
+    //! where A is a quadratic matrix, and B a collection of 
+    //! right hans side vectors which will be replaced by the 
+    //! solution vectors. The enumeration LAPACK_MATRIX_TYPE
+    //! describes the qualities of the system matrix A, 
+    //! like symmetric, hermitian or general
+    //! Compile with LAPACK - Support (USE_LAPACK = yes)
+    void solveWithLapack(Matrix<Complex> & b1,
+                         lapackSysMatType & LAPACK_MATRIX_TYPE);
+
+    //! Computes eigenvalues of an hermitian matrix
+    void eigenvaluesWithLapack(Vector<Double> & b1);
+
+    //! Converts a fortran 77 matrix to C++ complex
+    void F772CC( const F77complex16 &v, std::complex<double> &val ) {
+      std::complex<double> aux(v.real,v.imag);
+      val = aux;
+    }
+
+    void F772CC( const F77real8 &v, double &val ) {
+      val = (double)v;
+    }
+
+    //! Converts cfs data to fortran 77 format
+    void CC2F77( const std::complex<double> &v, F77complex16 &val ) {
+      val.real = (F77real8)v.real();
+      val.imag = (F77real8)v.imag();
+    }
+    void CC2F77( const double &v, F77real8 &val ) {
+      val = (F77real8)v;
+    }
+#endif
   
     //! Assignes the matrix itself the dyadic product of a vector vec1 
     //! with itself
