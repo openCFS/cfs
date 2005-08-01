@@ -20,6 +20,10 @@
 #include "Utils/mathfunctions.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
+#ifdef USE_LAPACK
+#include "Matrix/matrixLapackSupport.hh"
+#endif
+
 
 #ifdef __sgi
 #include <stdarg.h>
@@ -59,9 +63,52 @@ namespace CoupledField
 #endif
 #ifdef USE_LAPACK
     std::cout<<"! LAPACK routines will be called throughout the program run" <<std::endl;
-    getchar();
 #endif
 
+
+    Matrix<Complex> x, data;
+    data.Resize(3,3);
+
+//     data[0][0]=Complex(2.0,1.0);
+//     data[0][1]=Complex(1.0,1.0);
+//     data[0][2]=Complex(2.0,0.0);
+//     data[1][0]=Complex(1.0,1.0);
+//     data[1][1]=Complex(2.0,2.0);
+//     data[1][2]=Complex(0.0,0.0);
+//     data[2][0]=Complex(2.0,0.0);
+//     data[2][1]=Complex(0.0,0.0);
+//     data[2][2]=Complex(2.0,2.0); 
+
+    data[0][0]=Complex(2.0,0.0);
+    data[0][1]=Complex(1.0,0.0);
+    data[0][2]=Complex(0.0,-5.0);
+    data[1][0]=Complex(1.0,0.0);
+    data[1][1]=Complex(6.0,0.0);
+    data[1][2]=Complex(0.0,0.0);
+    data[2][0]=Complex(0.0,-5.0);
+    data[2][1]=Complex(0.0,0.0);
+    data[2][2]=Complex(3.0,0.0); 
+
+    Matrix<Complex> rhsMat;
+    rhsMat.Resize(3,3);
+
+    for(UInt i=0;i<3;i++)
+      rhsMat[i][i]=Complex(1.0,0.0);
+
+    lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
+
+    data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
+
+    Vector<Double> eigen;
+    //data.eigenvaluesWithLapack(eigen);
+//     std::cout<<"eigen:"<<std::endl;
+//     std::cout<<eigen<<std::endl;
+
+    std::cout<<"rhsMat:"<<std::endl;
+    std::cout<<rhsMat<<std::endl;
+
+    std::cout<<data*rhsMat<<std::endl;
+    getchar();
 
  
     // optimalExpDesignDiffNumberFreqs();
@@ -119,8 +166,11 @@ namespace CoupledField
 //       for(UInt fr=0;fr<nrMeasuredData;fr++)
 //         *optimalFreqs<< freqs[fr]<<"  ";
 
+      std::cout<<" before calc_measuredCharge" <<std::endl;
       calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       newtonCounter=0;
+
+      std::cout<<" after calc_measuredCharge" <<std::endl;
       while (nrNuMethods<maxNumberNewtonLoops){
         //    nuMethodsC2();
         nuMethods();
@@ -245,7 +295,7 @@ namespace CoupledField
 
     Vector<Complex> gradient;
     //    Double lambda = 0.00002; // for three parameter
-    Double lambda = 1.0e-8; // for three parameter
+    Double lambda = 1.0e+8; // for three parameter
     // Double lambda = 1.0e-19; // for nine parameter
     // Double lambda = 1.0e-7; // for nine parameter
     //Double lambda = 1.0e-7; // for nine parameter
@@ -253,12 +303,13 @@ namespace CoupledField
     //    Double lambda = 1.0e+7; // for nine parameter using M - confidence crit.
     //Double lambda = 40; // for three parameters using M - confidence crit.
 
-    UInt maxNumberDescentIterations=5;
+    UInt maxNumberDescentIterations=10;
    
     for (UInt descIter=0;descIter<maxNumberDescentIterations;descIter++){
 
       Complex J, JOld;
       Vector<Double> freqsOld;
+      freqsOld.Resize(nrMeasuredData);
       freqsOld=freqs;
       createCovA(J, TRUE);
       std::cout<<" Value of functional J(w) = "<< J <<std::endl;
@@ -267,7 +318,8 @@ namespace CoupledField
 
       std::cout<<J<<std::endl;
 
-      createGradient(gradient,1.0e-2);
+      //      createGradient(gradient,10.0);
+      createGradient(gradient,1.0e-5);
       lambda = 2*lambda;
 
       std::cout<<"gradient"<<std::endl;
@@ -275,8 +327,10 @@ namespace CoupledField
       //      getchar();
       
       *optimalFreqs<< descIter <<"  "<< J.real() <<"  ";
-      for(UInt fr=0;fr<nrMeasuredData;fr++)
+      for(UInt fr=0;fr<nrMeasuredData;fr++){
         *optimalFreqs<< freqs[fr]<<"  ";
+        std::cout<<"freqs written out, "<< fr<<") = "<<freqs[fr]<<std::endl;
+      }
       *optimalFreqs<<std::endl;    
 
       UInt innerCounter=0;
@@ -382,18 +436,20 @@ namespace CoupledField
        for (UInt i=0;i<jacobi.GetSize();i++)
          jacobiH[i]=Complex(jacobi[i].real(),-jacobi[i].imag());
        
-
        for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
          for(UInt j=0;j<actNrParameter+actNrParameterC;j++){
-           covTemp[i][j]=jacobiH[i]*jacobi[j]/
-             (std::abs(Complex(real[actFreq],imag[actFreq]))*std::abs(Complex(real[actFreq],imag[actFreq])));
+           //           covTemp[i][j]=jacobiH[i]*jacobi[j]/(delta*delta*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+           covTemp[i][j]=jacobiH[i]*jacobi[j]/((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+             
            if (i==j)
              covTemp[i][i]=covTemp[i][i]+covTemp[i][i];// *1.0e-10;
          }
        cov+=covTemp;
      } // end for actFreq ...
 
-      //      std::cout<<cov<<std::endl;
+     std::cout<<"cov"<<std::endl;
+     std::cout<<cov<<std::endl;
+
      //     invertWithLapack(cov);
 
 //      for(UInt i=0;i<cov.GetSizeRow();i++)
@@ -405,14 +461,26 @@ namespace CoupledField
 //        }
 
      Matrix<Complex> data;
+     data.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
      data=cov;     
      invert(cov);
 
-//        std::cout<<"inv(cov):"<<std::endl;
+     //     std::cout<<"inv(cov):"<<std::endl;
 //        std::cout<<cov<<std::endl;
-//       std::cout<<"inv(cov)*cov :"<<std::endl;
-//       std::cout<<data*cov<<std::endl;
-//       getchar();
+    //    std::cout<<"inv(cov)*cov :"<<std::endl;
+
+     data=data*cov;
+     Complex diagC=Complex(0.0,0.0);
+     for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
+       diagC+=data[i][i];
+     diagC/=Complex(actNrParameter+actNrParameterC,0.0);
+     //     std::cout<<"Trace of inv(cov)*cov = "<< diagC <<std::endl;
+     if (std::abs(diagC)>1.5)
+       std::cout<<" ! Inversion of Cov failed!!"<<std::endl;
+
+
+
+// //       getchar();
 //       cov=data;
 
 
@@ -429,18 +497,34 @@ namespace CoupledField
      }
 
      // A - Criterion
-    if(FALSE){
+    if(TRUE){
       for(UInt i=0; i<actNrParameter+actNrParameterC; i++)
         J+=cov[i][i];
       J=J/Complex(actNrParameter+actNrParameterC,0.0);
       if (writeOutCov==TRUE){
-        for(UInt i=0; i<actNrParameter+actNrParameterC; i++)
+        for(UInt i=0; i<actNrParameter+actNrParameterC; i++){
           *optimalFreqs<<cov[i][i].real()<<"  ";
-      }
-    }
+        }
+        *optimalFreqs<<parameter[1]+1000.0*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+        std::cout<<parameter[1]+1000.0*std::sqrt(cov[0][0].real()*0.115*0.115)<<std::endl;
+        *optimalFreqs<<parameter[1]<<"  ";
+        *optimalFreqs<<parameter[1]-1000.0*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+        std::cout<<parameter[1]-1000.00*std::sqrt(cov[0][0].real()*0.115*0.115)<<std::endl;
 
+
+        *optimalFreqs<<parameter[7]+1.0e-7*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+        *optimalFreqs<<parameter[7]<<"  ";
+        *optimalFreqs<<parameter[7]-1.0e-7*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+
+
+        *optimalFreqs<<parameter[9]+1.0e-15*std::sqrt(cov[2][2].real()*0.115*0.115*0.01)<<"  ";
+        *optimalFreqs<<parameter[9]<<"  ";
+        *optimalFreqs<<parameter[9]-1.0e-15*std::sqrt(cov[2][2].real()*0.115*0.115*0.01)<<"  ";
+      }
+
+    }
     // smallest eigenvalue criterion:
-    if(TRUE){
+    if(FALSE){
 
 #ifndef USE_LAPACK
     std::cout<<"Optimum experiment design works with LAPACK Routines"<<std::endl;
@@ -522,6 +606,9 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::createGradient");
 
     Vector<Complex> jacobi1, jacobi2;
+    Vector<Double> freqsOld;
+    freqsOld.Resize(nrMeasuredData);
+    freqsOld=freqs;
 
     grad.Resize(nrMeasuredData);
     Complex J1,J2;
@@ -532,7 +619,7 @@ namespace CoupledField
       createCovA(J2,FALSE);
       for(UInt i=0; i<actNrParameter+actNrParameterC;i++)
       grad[j]= (J2-J1)* voltage*voltage / (dOmega*freqs[j]) ;
-      freqs[j]=freqs[j]-dOmega*freqs[j];
+      freqs[j]=freqsOld[j];
     }
     //    grad=grad*Complex(1.0e+05,0);
 
@@ -554,6 +641,7 @@ namespace CoupledField
 #ifdef USE_LAPACK
 
     Matrix<Complex> cov;
+    cov.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
     cov=data;
 
     data.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
@@ -566,6 +654,7 @@ namespace CoupledField
     data[2][0]=Complex(1.0,0.0);
     data[2][1]=Complex(0.0,0.0);
     data[2][2]=Complex(1.0,1.0); 
+
 
 
     Vector<Complex> lp_covVec;
@@ -605,6 +694,12 @@ namespace CoupledField
 
 //     std::cout<<"rhsMat:"<<std::endl;
 //     std::cout<<rhsMat<<std::endl;
+
+    Matrix<Complex> x;
+
+    lapackSysMatType LAPACK_SYS_MAT_TYPE = ZSYSV;
+    
+    //    data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
 
 
     for (UInt i=0;i<actNrParameter+actNrParameterC;i++)
@@ -731,6 +826,7 @@ namespace CoupledField
 //     data[2][1]=1;
 //     data[2][2]=1;
     Matrix<Complex> dataTemp;
+    dataTemp.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
     dataTemp=data;
 
     Vector<Complex> e;
@@ -929,6 +1025,7 @@ namespace CoupledField
     }
 
     frequencies.Resize(nrMeasuredData);
+
     real.Resize(nrMeasuredData);
     imag.Resize(nrMeasuredData);
 
@@ -937,13 +1034,15 @@ namespace CoupledField
     Double newFreq, amplitude,phase;
 
     while(mess->getline(mDataRow, 265)){
-      //      std::cout<<mDataRow<<std::endl;
+      //std::cout<<mDataRow<<std::endl;
       i=0;j=0;
       while (mDataRow[i]!='\t'){
         helpChar[j]=mDataRow[i];
         i++;j++;
       }// end while madataRow
       newFreq=atof(helpChar);
+//       std::cout<<"newFreq"<<std::endl;
+//       std::cout<<newFreq<<std::endl;
       i++;
       j=0;
       for(UInt k=0;k<i;k++) // Delete content of helpChar
@@ -967,6 +1066,7 @@ namespace CoupledField
 //       std::cout<<"freqs:"<<std::endl;
 //       std::cout<<freqs<<std::endl;
 
+      freqs[0]=startfreq;
       for(UInt mInd=0;mInd<nrMeasuredData;mInd++){
         if(std::abs(freqs[mInd]-newFreq)<std::abs(freqs[mInd]-frequencies[mInd])){
           frequencies[mInd]=newFreq;
@@ -975,11 +1075,13 @@ namespace CoupledField
         }
       }
     }// end while mess
+    //  std::cout<<frequencies<<std::endl;
 
+    freqs.Resize(nrMeasuredData);
     freqs=frequencies;   
-    std::cout<<" New Measurements"<<std::endl;
-    for(UInt m=0;m<nrMeasuredData;m++)
-      std::cout<<freqs[m]<<",  " << real[m] << ",  " << imag[m] <<std::endl;
+//     std::cout<<" New Measurements"<<std::endl;
+//     for(UInt m=0;m<nrMeasuredData;m++)
+//       std::cout<<freqs[m]<<",  " << real[m] << ",  " << imag[m] <<std::endl;
 
     mess->close();
 

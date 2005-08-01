@@ -5,7 +5,6 @@
 #include "Driver/assemble.hh"
 
 
-
 // forward class declaration
 class SinglePDE;
 
@@ -24,30 +23,31 @@ namespace CoupledField
 
   typedef double F77real8;
   
-  class F77complex16 {
-  public:
-    F77real8 real;
-    F77real8 imag;
-    F77complex16() {
-      real = 0;
-      imag = 0;
-    }
-    F77complex16 &operator= ( F77complex16 v ) {
-      this->real = v.real;
-      this->imag = v.imag;
-      return *this;
-    }
-    F77complex16 &operator= ( double v ) {
-      this->real = v;
-      this->imag = 0;
-      return *this;
-    }
-    F77complex16 &operator+= ( F77complex16 v ) {
-      this->real += v.real;
-      this->imag += v.imag;
-      return *this;
-    }
-  };
+
+//   class F77complex16 {
+//   public:
+//     F77real8 real;
+//     F77real8 imag;
+//     F77complex16() {
+//       real = 0;
+//       imag = 0;
+//     }
+//     F77complex16 &operator= ( F77complex16 v ) {
+//       this->real = v.real;
+//       this->imag = v.imag;
+//       return *this;
+//     }
+//     F77complex16 &operator= ( double v ) {
+//       this->real = v;
+//       this->imag = 0;
+//       return *this;
+//     }
+//     F77complex16 &operator+= ( F77complex16 v ) {
+//       this->real += v.real;
+//       this->imag += v.imag;
+//       return *this;
+//     }
+//   };
 
   // Generate prototypes for LAPACK routines
   extern "C" {
@@ -119,6 +119,13 @@ namespace CoupledField
     // Descent Method for functional J(w)
     void descentMethod(Complex & functional);
 
+    //  Descent Method for functional J(rho) with constraints
+    void descentMethodRho(Complex & functional);
+
+    // gradient of J(\rho)
+    void createGradientRho(Vector<Complex> & grad, Double dOmega);
+
+
 #ifdef USE_LAPACK
     //! Converts a fortran 77 matrix to C++ complex
     void F772CC( const F77complex16 &v, std::complex<double> &val ) {
@@ -153,6 +160,9 @@ namespace CoupledField
 
     //! Determines variance - covariance Matrix 
     void createCovA(Complex &J, Boolean writeOutCov);
+
+    //! Determines J(omega) in case of flexible number of frequencies
+    void createJRho(Complex &J, Boolean writeOutCov);
 
     void createJacobiMatrix2(Matrix<Complex> & JacobiMatrix);
     void createJacobiMatrixC(Matrix<Complex> & JacobiMatrix);
@@ -240,9 +250,12 @@ namespace CoupledField
     //! methods which determines a set of parameters for an optimal experiment design
     void optimalExpDesign();
 
+    // ! To be removed ... is now a kind of multilevel algo ...
+    void optimalExpDesignDiffNumberFreqs();
+
     //! methods which determines a set of parameters for an optimal experiment design
     //! with flexible number of frequencies ...
-    void optimalExpDesignDiffNumberFreqs();
+    void optimalExpDesignVarNrFreqs();
 
     //! saves sysmat of forward problem, multiplication with \omega*\beta*j ...
     void createAndSetRHSforJacobian(UInt & fstep);
@@ -377,6 +390,7 @@ namespace CoupledField
     Double eta;
     Double overall_res;
     Vector<Complex> overall_res0;
+    Vector<Double> rhos; // rhos in optimalExpDesignVarNrFreqs
 
     Matrix<Complex> completeSolOf_F;
     Matrix<Complex> allElemsVec;

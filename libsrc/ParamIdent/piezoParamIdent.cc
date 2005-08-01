@@ -654,6 +654,12 @@ namespace CoupledField
       optimalExpDesign();
     }
 
+    else if (whichNewtonCG==11){
+      std::cout<<"++ Optimal experiment Design - variable number of frequencies"<<std::endl;
+      optimalExpDesignVarNrFreqs();
+    }
+
+
 
     else
       std::cout<<"\n There was no valid NewtonCG method specified - see in your measuredData.dat -file "<<std::endl;
