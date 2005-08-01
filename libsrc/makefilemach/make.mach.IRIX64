@@ -50,6 +50,7 @@ ARFLAGS = r
 # SUPP ..... we want to suppress certain compiler warnings
 # TEMPL .... flags related to template instantiation
 # OPT ...... optimisation flags
+# ASTD ..... options for ANSI/ISO compatibility
 #
 # Set compiler flags. These must be assembled into the parameter
 # CFLAGS_MACHINE, which is added to the compilation option for normal source
@@ -59,9 +60,10 @@ ARFLAGS = r
 SUPP  = -woff1681,1682
 TEMPL = -ptused -no_prelink -no_auto_include
 OPT   = -O3 -r12000 -LNO
+ASTD  = -LANG:std 
 
 CFLAG_EXE      = $(OPT)
-CFLAGS_MACHINE = $(OPT) $(STANDARD) $(PROFILE)
+CFLAGS_MACHINE = $(ASTD) $(TEMPL) $(SUPP) $(OPT)
 
 
 # -----------------------------------------------------------------------------
