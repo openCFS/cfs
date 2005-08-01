@@ -97,7 +97,9 @@ namespace CoupledField
 
     lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
 
+#ifdef USE_LAPACK
     data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
+#endif
 
     Vector<Double> eigen;
     //data.eigenvaluesWithLapack(eigen);
@@ -644,150 +646,153 @@ namespace CoupledField
     cov.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
     cov=data;
 
-    data.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
-    data[0][0]=Complex(1.0,0.0);
-    data[0][1]=Complex(1.0,1.0);
-    data[0][2]=Complex(2.0,0.0);
-    data[1][0]=Complex(1.0,1.0);
-    data[1][1]=Complex(1.0,1.0);
-    data[1][2]=Complex(0.0,0.0);
-    data[2][0]=Complex(1.0,0.0);
-    data[2][1]=Complex(0.0,0.0);
-    data[2][2]=Complex(1.0,1.0); 
+    // data.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
+//     data[0][0]=Complex(1.0,0.0);
+//     data[0][1]=Complex(1.0,1.0);
+//     data[0][2]=Complex(2.0,0.0);
+//     data[1][0]=Complex(1.0,1.0);
+//     data[1][1]=Complex(1.0,1.0);
+//     data[1][2]=Complex(0.0,0.0);
+//     data[2][0]=Complex(1.0,0.0);
+//     data[2][1]=Complex(0.0,0.0);
+//     data[2][2]=Complex(1.0,1.0); 
 
 
 
-    Vector<Complex> lp_covVec;
-    lp_covVec.Resize(actNrParameter+actNrParameterC*actNrParameter+actNrParameterC);
-    //  lp_covVec.Resize(6);
+   //  Vector<Complex> lp_covVec;
+//     lp_covVec.Resize(actNrParameter+actNrParameterC*actNrParameter+actNrParameterC);
+//     //  lp_covVec.Resize(6);
 
-    // Complex divisor = cov[0][0];
-    // std::cout<<"\n wo geht es raus ? 0 " <<std::endl;
-    for (UInt i=0;i<actNrParameter+actNrParameterC;i++)
-      for (UInt j=0;j<actNrParameter+actNrParameterC;j++){
-        lp_covVec[i+j*actNrParameter+actNrParameterC]=cov[i][j];// /divisor;
-       }
+//     // Complex divisor = cov[0][0];
+//     // std::cout<<"\n wo geht es raus ? 0 " <<std::endl;
+//     for (UInt i=0;i<actNrParameter+actNrParameterC;i++)
+//       for (UInt j=0;j<actNrParameter+actNrParameterC;j++){
+//         lp_covVec[i+j*actNrParameter+actNrParameterC]=cov[i][j];// /divisor;
+//        }
  
-    char  lp_matType;
-    lp_matType='L';
+//     char  lp_matType;
+//     lp_matType='L';
 
-    Integer lp_nrRHS, lp_loadDim, lp_loadDimRHS, lp_info, lp_lwork,lp_dim;
-    lp_nrRHS = actNrParameter+actNrParameterC;
+//     Integer lp_nrRHS, lp_loadDim, lp_loadDimRHS, lp_info, lp_lwork,lp_dim;
+//     lp_nrRHS = actNrParameter+actNrParameterC;
 
-    lp_lwork=192;
-    lp_loadDim =actNrParameter+actNrParameterC;
-    lp_loadDimRHS = actNrParameter+actNrParameterC;
-    lp_dim=actNrParameter+actNrParameterC;
+//     lp_lwork=192;
+//     lp_loadDim =actNrParameter+actNrParameterC;
+//     lp_loadDimRHS = actNrParameter+actNrParameterC;
+//     lp_dim=actNrParameter+actNrParameterC;
 
-    Integer *lp_interchanges;
-    Vector<Complex> lp_rhsVec, lp_rhsVec1, lp_rhsVec2, lp_work;
+//     Integer *lp_interchanges;
+//     Vector<Complex> lp_rhsVec, lp_rhsVec1, lp_rhsVec2, lp_work;
 
-    lp_rhsVec.Resize(actNrParameter+actNrParameterC*actNrParameter+actNrParameterC);
-    lp_work.Resize(192);
+//     lp_rhsVec.Resize(actNrParameter+actNrParameterC*actNrParameter+actNrParameterC);
+//     lp_work.Resize(192);
 
-    F77complex16 *lp_rhsVecf77, *lp_covVecf77, *lp_workf77;
+//     F77complex16 *lp_rhsVecf77, *lp_covVecf77, *lp_workf77;
 
     Matrix<Complex> rhsMat;
     rhsMat.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
     for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
       rhsMat[i][i]=Complex(1.0,0.0);
 
-//     std::cout<<"rhsMat:"<<std::endl;
-//     std::cout<<rhsMat<<std::endl;
+// //     std::cout<<"rhsMat:"<<std::endl;
+// //     std::cout<<rhsMat<<std::endl;
 
-    Matrix<Complex> x;
+//     Matrix<Complex> x;
 
-    lapackSysMatType LAPACK_SYS_MAT_TYPE = ZSYSV;
-    
-    //    data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
+#ifdef USE_LAPACK
+    lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
+    data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
+#endif 
 
-
-    for (UInt i=0;i<actNrParameter+actNrParameterC;i++)
-      for (UInt j=0;j<actNrParameter+actNrParameterC;j++){
-        lp_rhsVec[i+j*actNrParameter+actNrParameterC]=rhsMat[i][j];
-      }
-//     std::cout<<"lp_rhsVec:"<<std::endl;
-//     std::cout<<lp_rhsVec<<std::endl;
+    data=rhsMat;
 
 
-    NewArray( lp_rhsVecf77, F77complex16, actNrParameter+actNrParameterC*actNrParameter+actNrParameterC );
-    NewArray( lp_interchanges, int, actNrParameter+actNrParameterC );
-    NewArray( lp_covVecf77, F77complex16, actNrParameter+actNrParameterC*actNrParameter+actNrParameterC );
-    NewArray( lp_workf77, F77complex16, 192 );
-    F77complex16 auxVal2;
-
-    // Convert CFS++ Vector<Complex> to Vector<F77complex16>
-    for ( UInt count = 0; count < actNrParameter+actNrParameterC*actNrParameter+actNrParameterC; count++ ) {
-      CC2F77( lp_rhsVec[count], auxVal2 );
-      lp_rhsVecf77[count] = auxVal2;
-    }
-
-    for (UInt count = 0; count < actNrParameter+actNrParameterC*actNrParameter+actNrParameterC; count++ ) {
-      CC2F77( lp_covVec[count], auxVal2 );
-      lp_covVecf77[count] = auxVal2;
-    }
-
-    for (UInt count=0; count < lp_work.GetSize();count++){
-      CC2F77(lp_work[count], auxVal2);
-      lp_workf77[count] = auxVal2;
-    }
-
-    Integer lp_lda, lp_ldb;
-    lp_lda=actNrParameter+actNrParameterC;
-    lp_ldb=actNrParameter+actNrParameterC;
-
-
-    // Solve symmetric linear system
-    //        zsysv_(&lp_matType, &lp_dim , &lp_nrRHS, lp_covVecf77, &lp_loadDim, &lp_interchanges,
-    //               lp_rhsVecf77, &lp_loadDimRHS, lp_workf77, &lp_lwork, &lp_info);
-    
-    // Solves system with hermitian matrix
-    //     zhesv_(&lp_matType, &lp_dim , &lp_nrRHS, lp_covVecf77, &lp_loadDim, &lp_interchanges,
-    //            lp_rhsVecf77, &lp_loadDimRHS, lp_workf77, &lp_lwork, &lp_info);
-
-    // Solves general kind of linear system with pivotin
-    zgesv_(&lp_dim , &lp_nrRHS, lp_covVecf77, &lp_lda, lp_interchanges, lp_rhsVecf77, &lp_ldb, &lp_info);
-
-
-    //    std::cout<<"Finished solving ... the following lines got interchanged"<<std::endl;
-    for (UInt count =0 ;count < actNrParameter+actNrParameterC;count++)
-      std::cout<<(int)lp_interchanges[count]<<std::endl;
-
-    Vector<Complex> covVec2;
-    covVec2.Resize(actNrParameter+actNrParameterC*actNrParameter+actNrParameterC);
-
-
-    // reconvert: fortran -> cfs++
-    for ( UInt count = 0; count < actNrParameter+actNrParameterC*actNrParameter+actNrParameterC; count++ ) 
-      F772CC( lp_rhsVecf77[count], lp_rhsVec[count] );
-
-    for ( UInt count = 0; count < actNrParameter+actNrParameterC*actNrParameter+actNrParameterC; count++ ) 
-      F772CC( lp_covVecf77[count], lp_covVec[count]);
-
-    for (UInt count=0; count < lp_work.GetSize();count++)
-      F772CC(lp_workf77[count], lp_work[count]);
-
-    //    std::cout<<"Conversion f772cc Solved ZSYSV successfull ...?? " <<std::endl;
-
-    Matrix<Complex> inverse(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
-    for (UInt i=0;i<actNrParameter+actNrParameterC;i++)
-      for (UInt j=0;j<actNrParameter+actNrParameterC;j++){
-        inverse[i][j]=lp_rhsVec[i+j*actNrParameter+actNrParameterC];
-      }
-    // std::cout<<"inverse:"<<std::endl;
-//     std::cout<<inverse<<std::endl;
-
-//    std::cout<<" Covariance  - Inverse : " <<std::endl;
-
-//     for(UInt i=0;i<inverse.GetSizeRow();i++)
-//       for (UInt j=0; j<inverse.GetSizeCol();j++){
-//         std::cout<<inverse[i][j].real()<<"+"<<inverse[i][j].imag()<<"i"<< ", ";
-//         //std::cout<<"F'("<<i<<")("<<j<<")= "<< JacobiMatrix[i][j]<<"; \t";
-//         if (j==inverse.GetSizeCol()-1)
-//           std::cout<<";\n";
+    // for (UInt i=0;i<actNrParameter+actNrParameterC;i++)
+//       for (UInt j=0;j<actNrParameter+actNrParameterC;j++){
+//         lp_rhsVec[i+j*actNrParameter+actNrParameterC]=rhsMat[i][j];
 //       }
+// //     std::cout<<"lp_rhsVec:"<<std::endl;
+// //     std::cout<<lp_rhsVec<<std::endl;
+
+
+//     NewArray( lp_rhsVecf77, F77complex16, actNrParameter+actNrParameterC*actNrParameter+actNrParameterC );
+//     NewArray( lp_interchanges, int, actNrParameter+actNrParameterC );
+//     NewArray( lp_covVecf77, F77complex16, actNrParameter+actNrParameterC*actNrParameter+actNrParameterC );
+//     NewArray( lp_workf77, F77complex16, 192 );
+//     F77complex16 auxVal2;
+
+//     // Convert CFS++ Vector<Complex> to Vector<F77complex16>
+//     for ( UInt count = 0; count < actNrParameter+actNrParameterC*actNrParameter+actNrParameterC; count++ ) {
+//       CC2F77( lp_rhsVec[count], auxVal2 );
+//       lp_rhsVecf77[count] = auxVal2;
+//     }
+
+//     for (UInt count = 0; count < actNrParameter+actNrParameterC*actNrParameter+actNrParameterC; count++ ) {
+//       CC2F77( lp_covVec[count], auxVal2 );
+//       lp_covVecf77[count] = auxVal2;
+//     }
+
+//     for (UInt count=0; count < lp_work.GetSize();count++){
+//       CC2F77(lp_work[count], auxVal2);
+//       lp_workf77[count] = auxVal2;
+//     }
+
+//     Integer lp_lda, lp_ldb;
+//     lp_lda=actNrParameter+actNrParameterC;
+//     lp_ldb=actNrParameter+actNrParameterC;
+
+
+//     // Solve symmetric linear system
+//     //        zsysv_(&lp_matType, &lp_dim , &lp_nrRHS, lp_covVecf77, &lp_loadDim, &lp_interchanges,
+//     //               lp_rhsVecf77, &lp_loadDimRHS, lp_workf77, &lp_lwork, &lp_info);
     
-    data=inverse;
+//     // Solves system with hermitian matrix
+//     //     zhesv_(&lp_matType, &lp_dim , &lp_nrRHS, lp_covVecf77, &lp_loadDim, &lp_interchanges,
+//     //            lp_rhsVecf77, &lp_loadDimRHS, lp_workf77, &lp_lwork, &lp_info);
+
+//     // Solves general kind of linear system with pivotin
+//     zgesv_(&lp_dim , &lp_nrRHS, lp_covVecf77, &lp_lda, lp_interchanges, lp_rhsVecf77, &lp_ldb, &lp_info);
+
+
+//     //    std::cout<<"Finished solving ... the following lines got interchanged"<<std::endl;
+//     for (UInt count =0 ;count < actNrParameter+actNrParameterC;count++)
+//       std::cout<<(int)lp_interchanges[count]<<std::endl;
+
+//     Vector<Complex> covVec2;
+//     covVec2.Resize(actNrParameter+actNrParameterC*actNrParameter+actNrParameterC);
+
+
+//     // reconvert: fortran -> cfs++
+//     for ( UInt count = 0; count < actNrParameter+actNrParameterC*actNrParameter+actNrParameterC; count++ ) 
+//       F772CC( lp_rhsVecf77[count], lp_rhsVec[count] );
+
+//     for ( UInt count = 0; count < actNrParameter+actNrParameterC*actNrParameter+actNrParameterC; count++ ) 
+//       F772CC( lp_covVecf77[count], lp_covVec[count]);
+
+//     for (UInt count=0; count < lp_work.GetSize();count++)
+//       F772CC(lp_workf77[count], lp_work[count]);
+
+//     //    std::cout<<"Conversion f772cc Solved ZSYSV successfull ...?? " <<std::endl;
+
+//     Matrix<Complex> inverse(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
+//     for (UInt i=0;i<actNrParameter+actNrParameterC;i++)
+//       for (UInt j=0;j<actNrParameter+actNrParameterC;j++){
+//         inverse[i][j]=lp_rhsVec[i+j*actNrParameter+actNrParameterC];
+//       }
+//     // std::cout<<"inverse:"<<std::endl;
+// //     std::cout<<inverse<<std::endl;
+
+// //    std::cout<<" Covariance  - Inverse : " <<std::endl;
+
+// //     for(UInt i=0;i<inverse.GetSizeRow();i++)
+// //       for (UInt j=0; j<inverse.GetSizeCol();j++){
+// //         std::cout<<inverse[i][j].real()<<"+"<<inverse[i][j].imag()<<"i"<< ", ";
+// //         //std::cout<<"F'("<<i<<")("<<j<<")= "<< JacobiMatrix[i][j]<<"; \t";
+// //         if (j==inverse.GetSizeCol()-1)
+// //           std::cout<<";\n";
+// //       }
+    
+    data=rhsMat;
 
     //Matrix<Complex> covInv;
 //     covInv=cov*inverse;
@@ -801,14 +806,14 @@ namespace CoupledField
 //           std::cout<<";\n";
 //       }
 
-    std::cout<<"deleting variables in inversion of covariance Matrix ... " <<std::endl;
+ //    std::cout<<"deleting variables in inversion of covariance Matrix ... " <<std::endl;
 
-    DeleteArray(lp_rhsVecf77);
-    DeleteArray(lp_interchanges);
-    DeleteArray(lp_covVecf77);
-    DeleteArray(lp_workf77 );
+//     DeleteArray(lp_rhsVecf77);
+//     DeleteArray(lp_interchanges);
+//     DeleteArray(lp_covVecf77);
+//     DeleteArray(lp_workf77 );
 
-    std::cout<<"leaving inversion of covariance Matrix ... " <<std::endl;
+//     std::cout<<"leaving inversion of covariance Matrix ... " <<std::endl;
 
 #endif
 
