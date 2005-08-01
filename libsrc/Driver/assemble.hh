@@ -266,7 +266,7 @@ namespace CoupledField
 
     // set ptr to equation data
     void SetPtr2EQNData(NodeEQN * aPtNodeEQN1,
-                        NodeEQN * aPtNodeEQN1 = NULL );
+                        NodeEQN * aPtNodeEQN2 = NULL );
 
     //! set the identification tag of the pde
     //! \param id1 identification tag for PDE 1
