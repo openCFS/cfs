@@ -2,7 +2,7 @@
 C_DIR=../..
 #
 #src = matrix.cc symmatrix.cc bandmatrix.cc sparsematrix.cc
-src = matrix.cc
+src = matrix.cc matrixLapackSupport.hh
 #
 lib = matrix
 libpath = libsrc/Matrix

@@ -397,6 +397,7 @@ libsrc/Matrix/Makefile -text
 libsrc/Matrix/cfsmatrix.hh svneol=native#text/plain
 libsrc/Matrix/matrix.cc svneol=native#text/plain
 libsrc/Matrix/matrix.hh svneol=native#text/plain
+libsrc/Matrix/matrixLapackSupport.hh svneol=native#text/plain
 libsrc/Matrix/matrix_header.hh svneol=native#text/plain
 libsrc/MpCCIcpl/Makefile -text
 libsrc/MpCCIcpl/MpCCIexch.cc svneol=native#text/plain
