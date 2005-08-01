@@ -124,9 +124,10 @@ namespace CoupledField
     //std::cout<<JacobiMatrix<<std::endl;
     testJacobiMatrix2(F_hat, JacobiMatrix, parameter, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
     //std::cout<<approxJacobiMatrix<<std::endl;
-    //std::cout<<JacobiMatrix<<std::endl;
+    
     //      std::cout<<approxJacobiMatrix<<std::endl;
     JacobiMatrix=approxJacobiMatrix;
+    // std::cout<<JacobiMatrix<<std::endl;
       
 
   //   for (UInt i=0;i<nrMeasuredData;i++)
@@ -156,7 +157,7 @@ namespace CoupledField
     //      std::cout<<"\n Adjoint Matrix * ImgSpaceScalingMat"<<std::endl;
     adjJacobiMatrix = adjJacobiMatrix*ImgSpaceScalingMat;
       
-    //    std::cout<<adjJacobiMatrix<<std::endl;
+    std::cout<<adjJacobiMatrix<<std::endl;
     
   
     // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -297,7 +298,7 @@ namespace CoupledField
     scaling[6]=1.0/((*matMat)[8][0]);
     scaling[7]=0.5/((*matMat)[8][2]);
     scaling[8]=1.0/((*matMat)[6][6]); 
-    scaling[9]=1.0/((*matMat)[8][8]);
+    scaling[9]=0.5/((*matMat)[8][8]);
 
     //     if(100-(1-parameter[6]/parameterIncrement[6])*100>=100)
     //      scaling[6]=scaling[6]*100;

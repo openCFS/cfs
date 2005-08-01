@@ -66,9 +66,9 @@ namespace CoupledField
     Double phase;
     Double randFactor=0.0;
 
-    freqs.Part(0,nrMeasuredData);
-    absZ.Part(0,nrMeasuredData);
-    phi.Part(0,nrMeasuredData);
+    // freqs.Part(0,nrMeasuredData);
+//     absZ.Part(0,nrMeasuredData);
+//     phi.Part(0,nrMeasuredData);
     y_hat.Resize(nrMeasuredData);
 
     Vector<Complex> rand(nrMeasuredData);
@@ -112,8 +112,8 @@ namespace CoupledField
       if(delta!=0.0){
         //std::cout<<"\n average_error = " <<average_error<<std::endl;
         std::cout<<"\n The average data error is about ~ " << std::abs(average_error-1.0)*100<<" % " << std::endl;
-        std::cout<<"\n Press any key to continue ... " <<std::endl;
-        getchar();
+      //   std::cout<<"\n Press any key to continue ... " <<std::endl;
+//         getchar();
       }
       
     }
