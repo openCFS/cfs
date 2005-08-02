@@ -3,7 +3,7 @@
 
 /**************************************************************************/
 /* File:   analysis.hh                                                    */
-/* Author: Fred Hofer                                                     */
+/* Author: Fred Hofei                                                     */
 /* Date:   24. Nov. 2003                                                  */
 /*                                                                        */
 /* Handles the assembling of the various integrators to the appropriate   */
@@ -25,6 +25,7 @@ namespace CoupledField
 
   // Forward declaration of StdPDE
   class StdPDE;
+  class SinglePDE;
 
   //! additional information for every integrator
   class BaseIntDescriptor {
@@ -52,6 +53,27 @@ namespace CoupledField
     /// returns the integrator
     BaseForm * GetIntegrator(){return integrator;};
 
+    //!
+    void SetPDEIds(SinglePDE * aPDE1, SinglePDE * aPDE2) {
+      myPDE1_ = aPDE1;
+      myPDE2_ = aPDE2;
+    }
+
+    //! returns pointer to PDE1
+    SinglePDE * GetPDE1 () 
+    { return myPDE1_; };
+
+    //! returns pointer to PDE2
+    SinglePDE * GetPDE2 () 
+    { return myPDE2_; };
+
+    //! set function for SetCounterPart
+    void SetCounterPart(bool setCounterPart) 
+    { setCounterPart_ = setCounterPart; };
+
+    //! check, if element matrix has to be assembled to upper and lower part of global matrix
+    bool IsSetCounterPart() {return setCounterPart_; };
+
   protected:
 
     /// pointer to integrator
@@ -62,6 +84,12 @@ namespace CoupledField
 
     //! reduced integration flag
     Boolean reducedIntegration_;
+
+    SinglePDE * myPDE1_;                    //!< pointer to PDE 1
+    SinglePDE * myPDE2_;                    //!< pointer to PDE 2
+
+    //! TRUE: add to upper and lower part of global matrix
+    bool setCounterPart_;
   };
   
 
@@ -151,20 +179,12 @@ namespace CoupledField
     virtual ~Assemble();
     
     /// adds integrators to the pde
-    virtual void AddIntegrator(BaseForm * integrator,
-                               const RegionIdType  subdomain,
-                               const FEMatrixType destinationMatrix,
-                               const Boolean nonLin)=0;
-
-    /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr,
                                const RegionIdType subdomain)=0;
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator,
-                                   const RegionIdType subdomain,
-                                   const FEMatrixType destinationMatrix,
-                                   const Boolean nonLin)=0;
+    virtual void AddSurfIntegrator(IntegratorDescriptor * intDescr,
+                               const RegionIdType subdomain)=0;
     
     //! specify type of system matrix for AlgebraicSystem
     virtual void AssembleMatrices();
@@ -532,20 +552,13 @@ namespace CoupledField
     //! set information for algebraic system about PDE. set matrix factors
     virtual void SetMatrixFactors(){};
 
-    virtual void AddIntegrator(BaseForm * integrator, 
-                               const RegionIdType subdomain,
-                               const FEMatrixType destinationMatrix, 
-                               const Boolean nonLin);
-
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
                                const RegionIdType subdomain);
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, 
-                                   const RegionIdType subdomain,
-                                   const FEMatrixType destinationMatrix, 
-                                   const Boolean nonLin);
+    virtual void AddSurfIntegrator(IntegratorDescriptor * intDescr, 
+				   const RegionIdType subdomain);
 
   };
 
@@ -567,20 +580,12 @@ namespace CoupledField
     virtual void SetMatrixFactors(){};  
     
     /// adds integrators to the pde
-    virtual void AddIntegrator(BaseForm * integrator, 
-                               const RegionIdType subdomain,
-                               const FEMatrixType destinationMatrix, 
-                               const Boolean nonLin);
-
-    /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
                                const RegionIdType subdomain);
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, 
-                                   const RegionIdType subdomain,
-                                   const FEMatrixType destinationMatrix, 
-                                   const Boolean nonLin);
+    virtual void AddSurfIntegrator(IntegratorDescriptor * intDescr, 
+                               const RegionIdType subdomain);
   };
 
 
@@ -612,20 +617,13 @@ namespace CoupledField
                                           Vector<Double> origVec,
                                           const Double valPhase);
 
-    virtual void AddIntegrator(BaseForm * integrator, 
-                               const RegionIdType subdomain,
-                               const FEMatrixType destinationMatrix, 
-                               const Boolean nonLin);
-
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
                                const RegionIdType subdomain);
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, 
-                                   const RegionIdType subdomain,
-                                   const FEMatrixType destinationMatrix, 
-                                   const Boolean nonLin);
+    virtual void AddSurfIntegrator(IntegratorDescriptor * intDescr, 
+				   const RegionIdType subdomain);
 
   };
 
