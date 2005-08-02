@@ -48,8 +48,8 @@ namespace CoupledField
       IntegratorDescriptor *actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
       bilinearStiff->SetPiezoMaterialType(realMatParameter);
       actIntDescrStiff->SetPiezoMaterialType(realMatParameter);
-      assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);
-      
+      actIntDescrStiff->SetPDEIds(pde1_, pde2_);      
+      assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);     
     }
 
   }
