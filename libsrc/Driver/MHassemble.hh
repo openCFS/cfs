@@ -53,21 +53,13 @@ namespace CoupledField
                                           const piezoMaterialType 
                                           piezoMatType);
 
-
-    virtual void AddIntegrator(BaseForm * integrator, 
-                               const RegionIdType subdomain,
-                               const FEMatrixType destinationMatrix, 
-                               const Boolean nonLin);
-
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
                                const RegionIdType subdomain);
 
     /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(BaseForm * integrator, 
-                                   const RegionIdType subdomain,
-                                   const FEMatrixType destinationMatrix, 
-                                   const Boolean nonLin);
+    virtual void AddSurfIntegrator(IntegratorDescriptor * intDescr, 
+				   const RegionIdType subdomain);
 
     //! define discrete PDE
     virtual void MatrixSettings(){};
