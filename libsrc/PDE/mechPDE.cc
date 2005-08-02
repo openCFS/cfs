@@ -239,6 +239,9 @@ namespace CoupledField
             IntegratorDescriptor * actIntDescr1 =
               new IntegratorDescriptor(bilinearStiff1, STIFFNESS);
 
+	    actIntDescr1->SetPDEIds(this, this);
+
+
             //check for damping
             if (dampingType_ == RAYLEIGH) {
               actIntDescr1->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
@@ -249,6 +252,9 @@ namespace CoupledField
             BaseForm * bilinearStiff2 = GetStiffIntegrator(*lambdaMat);
             IntegratorDescriptor * actIntDescr2 =
               new IntegratorDescriptor(bilinearStiff2, STIFFNESS);
+
+	    actIntDescr2->SetPDEIds(this, this);
+
 
             //for this integrator, we need reduced integration
             //see Hughes, pp.219
@@ -269,10 +275,14 @@ namespace CoupledField
             IntegratorDescriptor * actIntDescr =
               new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
+	    actIntDescr->SetPDEIds(this, this);
+
+
             //check for damping
             if (dampingType_ == RAYLEIGH) {
               actIntDescr->SetSecondaryMat(DAMPING, actSDMat.GetDampingBeta(),analysistype_);
             }
+	    
             assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 
 
@@ -296,6 +306,8 @@ namespace CoupledField
 
                 IntegratorDescriptor * actIntDescrPre =
                   new IntegratorDescriptor(bilinearPreStress, STIFFNESS);
+		actIntDescrPre->SetPDEIds(this, this);
+	    
                 assemble_->AddIntegrator(actIntDescrPre, subdoms_[actSD]);
               }
             }
@@ -327,11 +339,18 @@ namespace CoupledField
                 nLinPart2 = new nLinMechAxiInt_PiolaStress(actSDMat);
 
               }
-          
-            assemble_->AddIntegrator(nLinPart1, subdoms_[actSD], STIFFNESS,
-                                     nonLin_);
-            assemble_->AddIntegrator(nLinPart2, subdoms_[actSD], STIFFNESS,
-                                     nonLin_);
+
+	    IntegratorDescriptor * stiffNL1Descr = 
+	      new IntegratorDescriptor(nLinPart1, STIFFNESS, nonLin_);
+
+	    stiffNL1Descr->SetPDEIds(this, this);
+	    assemble_->AddIntegrator(stiffNL1Descr, subdoms_[actSD]);
+
+	    IntegratorDescriptor * stiffNL2Descr = 
+	      new IntegratorDescriptor(nLinPart2, STIFFNESS, nonLin_);
+
+	    stiffNL2Descr->SetPDEIds(this, this);
+	    assemble_->AddIntegrator(stiffNL2Descr, subdoms_[actSD]);
 
             // assemble prestress, if in config-file given
             //    if (preStressVal_)
@@ -346,6 +365,7 @@ namespace CoupledField
 
         IntegratorDescriptor * actIntDescr =
           new IntegratorDescriptor(bilinearMass, MASS);
+	actIntDescr->SetPDEIds(this, this);
 
         //check for damping (mass part)
         if (dampingType_ == RAYLEIGH) {

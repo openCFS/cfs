@@ -185,6 +185,8 @@ namespace CoupledField {
       BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
       IntegratorDescriptor *actIntDescrStiff = 
 	new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+      actIntDescrStiff->SetPDEIds(this, this);
+
       bilinearStiff->SetPiezoMaterialType(realMatParameter);
       actIntDescrStiff->SetPiezoMaterialType(realMatParameter);
       assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);
@@ -194,6 +196,8 @@ namespace CoupledField {
         BaseForm * bilinearStiffC = GetStiffIntegrator(actSDMat);
         IntegratorDescriptor *actComplexIntDescrStiff = 
 	  new IntegratorDescriptor(bilinearStiffC, STIFFNESS);
+	actComplexIntDescrStiff->SetPDEIds(this, this);
+
         actComplexIntDescrStiff->SetPiezoMaterialType(piezoMaterialType_);
         bilinearStiffC->SetPiezoMaterialType(piezoMaterialType_);
         assemble_->AddIntegrator(actComplexIntDescrStiff, subdoms_[actSD]);
@@ -209,6 +213,8 @@ namespace CoupledField {
 
         IntegratorDescriptor *actIntDescrDamp =
 	  new IntegratorDescriptor(dampStiff, DAMPING);
+	actIntDescrDamp->SetPDEIds(this, this);
+
         dampStiff->SetPiezoMaterialType(realMatParameter);
         actIntDescrDamp->SetPiezoMaterialType(realMatParameter);
         
@@ -222,6 +228,8 @@ namespace CoupledField {
 	    GetStiffIntegrator( actSDMat,reducedIntegration, isdamping );
           IntegratorDescriptor *actComplexIntDescrDamp =
 	    new IntegratorDescriptor(dampStiffC, DAMPING);
+	  actComplexIntDescrDamp->SetPDEIds(this, this);
+
           dampStiffC->SetPiezoMaterialType(piezoMaterialType_);
           actComplexIntDescrDamp->SetPiezoMaterialType(piezoMaterialType_);
           assemble_->AddIntegrator(actComplexIntDescrDamp, subdoms_[actSD]);
@@ -238,6 +246,8 @@ namespace CoupledField {
 
       IntegratorDescriptor * actIntDescrMass =
 	new IntegratorDescriptor(bilinearMass, MASS);
+	actIntDescrMass->SetPDEIds(this, this);
+
       //check for damping (mass part)
       if (dampingType_ == RAYLEIGH){    
         actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),
