@@ -53,8 +53,14 @@ namespace CoupledField {
     }
 
     density = acouMaterials[index].GetDensity();
-
-
+    if (formulation_ == ACOU_PRESSURE && firstPDEName_ == "acoustic" ) {
+      //multiplicative factor in case of pressure formulation
+      density *= -density;
+    }
+    else if (formulation_ == ACOU_PRESSURE && firstPDEName_ == "mechanic" ) {
+      density = 1.0;
+    }
+    
     // 2) Calculate a normal mass matrix
     helpMat.Resize(nrNodes);
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
@@ -84,12 +90,25 @@ namespace CoupledField {
     // 3) Create a multi-dof matrix, multiplied by normal vector
     elemMat.Resize( nrNodes*dofs_, nrNodes );
 
-    for ( UInt iRow = 0; iRow < nrNodes; iRow++ ) {
-      for ( UInt iCol = 0; iCol < nrNodes; iCol++ ) {
-        for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
-          elemMat[iRow*dofs_+iDof][iCol] = 
-            normal_[iDof] * helpMat[iRow][iCol];
-        }
+    //for pressure forumation
+    if (formulation_ == ACOU_PRESSURE && firstPDEName_ == "acoustic" ) {
+      for ( UInt iRow = 0; iRow < nrNodes; iRow++ ) {
+	for ( UInt iCol = 0; iCol < nrNodes; iCol++ ) {
+	  for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
+	    elemMat[iRow][iCol*dofs_+iDof] = 
+	      normal_[iDof] * helpMat[iRow][iCol];
+	  }
+	}
+      }
+    }
+    else {
+      for ( UInt iRow = 0; iRow < nrNodes; iRow++ ) {
+	for ( UInt iCol = 0; iCol < nrNodes; iCol++ ) {
+	  for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
+	    elemMat[iRow*dofs_+iDof][iCol] = 
+	      normal_[iDof] * helpMat[iRow][iCol];
+	  }
+	}
       }
     }
   }
