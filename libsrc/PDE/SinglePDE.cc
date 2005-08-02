@@ -190,10 +190,9 @@ namespace CoupledField {
 
     // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
     //       and must be re-designed
-    if ( isAlwaysStatic_ == TRUE ) {
-      (*warning) << "Ignoring isAlwaysStatic flag of PDE '"
-                 << pdename_ << "' for direct coupling!";
-      Warning( __FILE__, __LINE__ );
+    if ( isAlwaysStatic_ == TRUE &&
+         analysisHelp == TRANSIENT) {
+      analysisHelp =STATIC;
     }
 
     if ( analysisHelp == STATIC ) {
@@ -925,27 +924,10 @@ namespace CoupledField {
   // ======================================================
 
   //! Activate the direct coupling
-  void SinglePDE::SetDirectCoupling (BaseSystem *algsys,
-                                     StdSolveStep *solveStep) {
+  void SinglePDE::SetDirectCoupling () {
                            
     ENTER_FCN( "SinglePDE::SetDirectCoupling" );
     
-    if ( algsys_ != NULL ) {
-      (*error) << "SinglePDE::SetDirectCoupling: An algebraic system " 
-               << "was defined already.";
-      Error (__FILE__, __LINE__);
-    }
-
-    if ( solveStep_ != NULL ) {
-      (*error) << "SinglePDE::SetDirectCoupling: A SolveStep object " 
-               << "was defined already.";
-      Error (__FILE__, __LINE__);
-    }
-  
-
-    algsys_ = algsys;
-    solveStep_ = solveStep;
-   
     isDirectCoupled_ = TRUE;          
   }
 
