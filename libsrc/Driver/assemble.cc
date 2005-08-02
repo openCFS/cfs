@@ -7,6 +7,7 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "PDE/StdPDE.hh"
+#include "PDE/SinglePDE.hh"
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
 
@@ -194,11 +195,19 @@ namespace CoupledField {
         IntegratorDescriptor * actDescriptor = 
           (*integrators_[actDom])[actInteg];
 
+	// get PDE-Ids
+	PdeIdType pdeId1 = actDescriptor->GetPDE1()->GetPDEId();
+	PdeIdType pdeId2 = actDescriptor->GetPDE2()->GetPDEId();
+
+	// get equation data of PDEs
+	NodeEQN * ptEQN1 = actDescriptor->GetPDE1()->getPDE_eqnData();
+	NodeEQN * ptEQN2 = actDescriptor->GetPDE2()->getPDE_eqnData();
+                    
         actDescriptor->GetIntegrator()->SetSubdomain(actDom);
 
         if (alternateMaterialData_ == TRUE)
           actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_);
-                    
+
         // assemble only if nonlinear or first time
         if (reassembleMat_[actDescriptor->DestMat()] || firstTime_) {
 
@@ -248,7 +257,6 @@ namespace CoupledField {
               actDescriptor->GetIntegrator()->SetFactor(dampTransform);
             }
           }
-          
 
           //put pointer to array containing the material parameter 
           // for each element
@@ -266,9 +274,9 @@ namespace CoupledField {
             // map connect to PDE node numbers
             StdVector<Integer> connect_PDE1, connect_PDE2;
                     
-            ptEQN1_->Node2EQN(connecth, connect_PDE1);
-            ptEQN2_->Node2EQN(connecth, connect_PDE2);
-                    
+            ptEQN1->Node2EQN(connecth, connect_PDE1);
+            ptEQN2->Node2EQN(connecth, connect_PDE2);                  
+
             Matrix<Double> elSol;
                     
             actDescriptor->GetIntegrator()->SetElemPtr(ptEl);
@@ -293,27 +301,27 @@ namespace CoupledField {
             piezoMaterialType matType = actDescriptor->GetPiezoMaterialType();
             actDescriptor->SetPiezoMaterialType(matType);
 
-
             if (analysisType_ == HARMONIC) {
               TransformMatrix2Harmonic(harmonicVec,elemmat, 
                                        actDescriptor->GetOrigMatrixType(),
                                        actDescriptor->GetPiezoMaterialType());
-         
 
               algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
-                                         pdeId1_, connect_PDE1.GetPointer(), 
+                                         pdeId1, connect_PDE1.GetPointer(), 
                                          connect_PDE1.GetSize(),
-                                         pdeId2_, connect_PDE2.GetPointer(), 
-                                         connect_PDE2.GetSize() );
-
+                                         pdeId2, connect_PDE2.GetPointer(), 
+                                         connect_PDE2.GetSize());
+	      //actDescriptor->IsSetCounterPart());
             }
             else {
 
               algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
-                                         pdeId1_, connect_PDE1.GetPointer(), 
+                                         pdeId1, connect_PDE1.GetPointer(), 
                                          connect_PDE1.GetSize(), 
-                                         pdeId2_, connect_PDE2.GetPointer(), 
-                                         connect_PDE2.GetSize() );
+                                         pdeId2, connect_PDE2.GetPointer(), 
+                                         connect_PDE2.GetSize());
+	      // actDescriptor->IsSetCounterPart());
+
             }
 #ifdef DEBUG
 	    UInt elemNum = elemssd[actEl]->elemNum;
@@ -359,20 +367,24 @@ namespace CoupledField {
                                          actDescriptor->GetPiezoMaterialType());
         
                 algsys_->SetElementMatrix(destMat, &harmonicVec[0], 
-                                          pdeId1_, connect_PDE1.GetPointer(),
+                                          pdeId1, connect_PDE1.GetPointer(),
                                           connect_PDE1.GetSize(), 
-                                          pdeId2_, connect_PDE2.GetPointer(),
-                                          connect_PDE2.GetSize() );
+                                          pdeId2, connect_PDE2.GetPointer(),
+                                          connect_PDE2.GetSize());
+		//actDescriptor->IsSetCounterPart());
+
               }
               else 
                 algsys_->SetElementMatrix(actDescriptor->GetSecondaryMat(), 
                                           elemmat.GetDataPointer(), 
-                                          pdeId1_, connect_PDE1.GetPointer(), 
+                                          pdeId1, connect_PDE1.GetPointer(), 
                                           connect_PDE1.GetSize(), 
-                                          pdeId2_, connect_PDE2.GetPointer(), 
+                                          pdeId2, connect_PDE2.GetPointer(), 
                                           connect_PDE2.GetSize());
+	      //actDescriptor->IsSetCounterPart());
+
             }
-                  
+
           } //over all elements of subdomain            
                 
         } //check, if we have to assemble
@@ -382,9 +394,8 @@ namespace CoupledField {
           SetFE2StandardInt();
         }
           
-
       } //integrators
-        
+
     } //subdomains
 
       //assemble matrices for surface integrators
@@ -403,13 +414,7 @@ namespace CoupledField {
           StdVector<UInt> connecth = elemssd[actEl]->connect;
 
           Matrix<Double> ptCoord;
-          GetElemCoords(connecth, ptCoord);
-	
-          // map connect to PDE node numbers
-          StdVector<Integer> connect_PDE1, connect_PDE2;
-          ptEQN1_->Node2EQN(connecth, connect_PDE1);
-          ptEQN2_->Node2EQN(connecth, connect_PDE2);
-          
+          GetElemCoords(connecth, ptCoord);        
               
           Matrix<Double> elSol;
           Vector<Double> normal;
@@ -435,6 +440,20 @@ namespace CoupledField {
 
             SurfForm * myForm = 
               dynamic_cast<SurfForm*>(actDescriptor->GetIntegrator());
+
+
+	    // get PDE-Ids
+	    PdeIdType pdeId1 = actDescriptor->GetPDE1()->GetPDEId();
+	    PdeIdType pdeId2 = actDescriptor->GetPDE2()->GetPDEId();
+
+	    // get equation data of PDEs
+	    NodeEQN * ptEQN1 = actDescriptor->GetPDE1()->getPDE_eqnData();
+	    NodeEQN * ptEQN2 = actDescriptor->GetPDE2()->getPDE_eqnData();
+
+	    // map connect to PDE node numbers
+	    StdVector<Integer> connect_PDE1, connect_PDE2;
+	    ptEQN1->Node2EQN(connecth, connect_PDE1);
+	    ptEQN2->Node2EQN(connecth, connect_PDE2);
 
             // assemble only if nonlinear or first time
             if (reassembleMat_[actDescriptor->DestMat()] || firstTime_) {
@@ -468,17 +487,19 @@ namespace CoupledField {
                                          actDescriptor->GetPiezoMaterialType());
                 
                 algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
-                                           pdeId1_, connect_PDE1.GetPointer(), 
+                                           pdeId1, connect_PDE1.GetPointer(), 
                                            connect_PDE1.GetSize(),
-                                           pdeId2_, connect_PDE2.GetPointer(), 
+                                           pdeId2, connect_PDE2.GetPointer(), 
                                            connect_PDE2.GetSize());
+		//actDescriptor->IsSetCounterPart());
               }
               else {
                 algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
-                                           pdeId1_, connect_PDE1.GetPointer(), 
+                                           pdeId1, connect_PDE1.GetPointer(), 
                                            connect_PDE1.GetSize(),
-                                           pdeId2_, connect_PDE2.GetPointer(), 
-                                           connect_PDE2.GetSize() );
+                                           pdeId2, connect_PDE2.GetPointer(), 
+                                           connect_PDE2.GetSize());
+		//  actDescriptor->IsSetCounterPart());
               }
 
                         
@@ -490,18 +511,20 @@ namespace CoupledField {
                                            actDescriptor->GetPiezoMaterialType());
                   
                   algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
-                                             pdeId1_, connect_PDE1.GetPointer(), 
+                                             pdeId1, connect_PDE1.GetPointer(), 
                                              connect_PDE1.GetSize(),
-                                             pdeId2_, connect_PDE2.GetPointer(), 
-                                             connect_PDE2.GetSize() );
+                                             pdeId2, connect_PDE2.GetPointer(), 
+                                             connect_PDE2.GetSize());
+		  //actDescriptor->IsSetCounterPart());
                 }
                 else
                   algsys_->SetElementMatrix(  actDescriptor->GetSecondaryMat(), 
                                               elemmat.GetDataPointer(), 
-                                              pdeId1_, connect_PDE1.GetPointer(), 
+                                              pdeId1, connect_PDE1.GetPointer(), 
                                               connect_PDE1.GetSize(),
-                                              pdeId2_, connect_PDE2.GetPointer(), 
-                                              connect_PDE2.GetSize() );
+                                              pdeId2, connect_PDE2.GetPointer(), 
+                                              connect_PDE2.GetSize());
+		// actDescriptor->IsSetCounterPart());
               }
             }           
           }
@@ -1257,50 +1280,6 @@ namespace CoupledField {
   
 
   // define integrators
-  void StaticAssemble::AddIntegrator( BaseForm *integrator,
-                                      const RegionIdType regionId,
-                                      const FEMatrixType destinationMatrix,
-                                      const Boolean nonLin ) {
-
-    ENTER_FCN( "StaticAssemble::AddIntegrator" );
-
-    FEMatrixType actMatType = destinationMatrix;
-    
-    if (actMatType == STIFFNESS)
-      actMatType = SYSTEM;
-
-    if (actMatType !=  SYSTEM)
-      return;
-
-    IntegratorDescriptor *actID = new IntegratorDescriptor(integrator,
-                                                           actMatType, nonLin);
-    integrators_[SubDomIndex(regionId)]->Push_back(actID);
-  }
-
-
-  // define integrators
-  void StaticAssemble::AddSurfIntegrator( BaseForm *integrator,
-                                          const RegionIdType regionId,
-                                          const FEMatrixType destinationMatrix,
-                                          const Boolean nonLin ) {
-
-    ENTER_FCN( "StaticAssemble::AddSurfIntegrator" );
-   
-    FEMatrixType actMatType = destinationMatrix;
-    
-    if (actMatType == STIFFNESS)
-      actMatType = SYSTEM;
-
-    if (actMatType !=  SYSTEM)
-      return;
-
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
-                                                            actMatType,
-                                                            nonLin);
-    surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
-  }
-
-  // define integrators
   void StaticAssemble::AddIntegrator(IntegratorDescriptor * actID,
                                      const RegionIdType regionId) {
 
@@ -1309,12 +1288,30 @@ namespace CoupledField {
     if (actID->DestMat() == STIFFNESS)
       actID->SetDestMat(SYSTEM);
 
+    // in static analysis, neglect damping and mass contributions
     if (actID->DestMat() !=  SYSTEM)
       return;
 
     integrators_[SubDomIndex(regionId)]->Push_back(actID);
   }
     
+
+  // define surface integrators
+  void StaticAssemble::AddSurfIntegrator( IntegratorDescriptor * actID,
+					  const RegionIdType regionId) {
+
+    ENTER_FCN( "StaticAssemble::AddSurfIntegrator" );
+   
+    if (actID->DestMat() == STIFFNESS)
+      actID->SetDestMat(SYSTEM);
+
+    // in static analysis, neglect damping and mass contributions
+    if (actID->DestMat() !=  SYSTEM)
+      return;
+
+    surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
+  }
+
 
   // ==========================================================
   // TRANSIENT ANALYSIS
@@ -1331,37 +1328,6 @@ namespace CoupledField {
     massMatrix_       = TRUE;
   }
 
-  // define integrators
-  void TransientAssemble::AddIntegrator( BaseForm * integrator,
-                                         const RegionIdType  regionId,
-                                         const FEMatrixType destinationMatrix,
-                                         const Boolean nonLin ) {
-
-    ENTER_FCN( "TransientAssemble::AddIntegrator" );
-    
-    if (destinationMatrix == SYSTEM)
-      Info->Error( "In transient assembling, no SYSTEM matrix may be defined "
-                   "directly", __FILE__, __LINE__ );
-    
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    integrators_[SubDomIndex(regionId)]->Push_back(actID);
-  }
-
-
-  // define integrators
-  void TransientAssemble::AddSurfIntegrator(BaseForm * integrator,
-                                            const RegionIdType regionId,
-                                            const FEMatrixType destinationMatrix, const Integer nonLin)
-  {
-    ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
-    if (destinationMatrix == SYSTEM)
-      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
-
-    IntegratorDescriptor * actID = 
-      new IntegratorDescriptor(integrator, destinationMatrix, nonLin);
-    surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
-  }
-
 
   // define integrators
   void TransientAssemble::AddIntegrator( IntegratorDescriptor * actID,
@@ -1374,13 +1340,26 @@ namespace CoupledField {
     integrators_[SubDomIndex(regionId)]->Push_back(actID);
   }
 
+  // define integrators
+  void TransientAssemble::AddSurfIntegrator( IntegratorDescriptor * actID,
+					     const RegionIdType regionId ) {
+    ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
+
+    if (actID->DestMat() == SYSTEM) {
+      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
+    }
+
+    surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
+  }
+
+
 
   // ==========================================================
-  // RHS INTEGRATOR DESCRIPTOR
+  // BASE INTEGRATOR DESCRIPTOR
   // ==========================================================
 
   BaseIntDescriptor::BaseIntDescriptor() : 
-    integrator(NULL), nonLin(FALSE), reducedIntegration_(FALSE)
+    integrator(NULL), nonLin(FALSE), reducedIntegration_(FALSE), setCounterPart_(TRUE)
   {
     ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor" );
   }
@@ -1488,60 +1467,6 @@ namespace CoupledField {
 
 
   // define integrators
-  void HarmonicAssemble::AddIntegrator(BaseForm * integrator,
-                                       const RegionIdType regionId,
-                                       const FEMatrixType destinationMatrix,
-                                       const Integer nonLin) {
-
-    ENTER_FCN( "HarmonicAssemble::AddIntegrator" );
-
-    FEMatrixType actMatType = destinationMatrix;
-    FEMatrixType matType;  
-    
-    if (actMatType == STIFFNESS || actMatType == MASS ||
-        actMatType == DAMPING )
-      matType = SYSTEM;
-    else {
-      std::string error_msg = "Matrix type ";
-      error_msg += actMatType + " not supported in harmonic analysis";
-      Error(error_msg.c_str(), __FILE__, __LINE__ );
-    }
-
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
-                                                            matType, nonLin);
-    actID->SetOrigMatrixType(actMatType);
-
-    integrators_[SubDomIndex(regionId)]->Push_back(actID);
-
-  }
-
-  // define integrators
-  void HarmonicAssemble::AddSurfIntegrator(BaseForm * integrator,
-                                           const RegionIdType regionId,
-                                           const FEMatrixType destinationMatrix,
-                                           const Integer nonLin)
-  {
-    ENTER_FCN( "HarmonicAssemble::AddSurfIntegrator" );
-   
-    FEMatrixType actMatType = destinationMatrix;
-    FEMatrixType matType;
-    
-    if (actMatType == STIFFNESS || actMatType == MASS || actMatType == DAMPING )
-      matType = SYSTEM;
-    else
-      {
-        std::string error_msg = "Matrix type ";
-        error_msg += actMatType + " not supported in harmonic analysis";
-        Error(error_msg.c_str(), __FILE__, __LINE__ );
-      }
-
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator, matType, nonLin);
-    actID->SetOrigMatrixType(actMatType);
-
-    surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
-  }
-
-  // define integrators
   void HarmonicAssemble::AddIntegrator(IntegratorDescriptor * actID,
                                        const RegionIdType regionId)
   {
@@ -1560,6 +1485,26 @@ namespace CoupledField {
       }
 
     integrators_[SubDomIndex(regionId)]->Push_back(actID);
+  }
+
+  // define integrators
+  void HarmonicAssemble::AddSurfIntegrator(IntegratorDescriptor * actID,
+					   const RegionIdType regionId) {
+    ENTER_FCN( "HarmonicAssemble::AddSurfIntegrator" );
+    
+    actID->SetOrigMatrixType(actID->DestMat());
+    if (actID->DestMat() == STIFFNESS 
+        || actID->DestMat() == MASS 
+        || actID->DestMat() == DAMPING )
+      actID->SetDestMat(SYSTEM);
+    else
+      {
+        std::string error_msg = "Matrix type ";
+        error_msg += actID->DestMat() + " not supported in harmonic analysis";
+        Error(error_msg.c_str(), __FILE__, __LINE__ );
+      }
+
+    surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
   }
 
 
