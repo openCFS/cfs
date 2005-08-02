@@ -465,36 +465,6 @@ namespace CoupledField
   }
 
 
-  // define integrators
-  void MHassemble::AddIntegrator(BaseForm * integrator,
-                                 const RegionIdType regionId,
-                                 const FEMatrixType destinationMatrix,
-                                 const Integer nonLin) {
-
-    ENTER_FCN( "MHAssemble::AddIntegrator" );
-  
-    FEMatrixType actMatType = destinationMatrix;
-    FEMatrixType matType;  
-    
-    if (actMatType == STIFFNESS || actMatType == MASS ||
-        actMatType == DAMPING )
-      matType = SYSTEM;
-    else {
-      (*error) << "Matrix type " << actMatType
-               << " is not supported in harmonic analysis";
-      Error( __FILE__, __LINE__ );
-    }
-    
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
-                                                            matType, nonLin);
-    actID->SetOrigMatrixType(actMatType);
-    
-    integrators_[SubDomIndex(regionId)]->Push_back(actID);
-   
-  }
-
-
-
   void MHassemble::AddIntegrator(IntegratorDescriptor * actID,
                                  const RegionIdType regionId)
   {
@@ -516,24 +486,23 @@ namespace CoupledField
   }
 
 
-  void MHassemble::AddSurfIntegrator(BaseForm * integrator,
-                                     const RegionIdType regionId,
-                                     const FEMatrixType destinationMatrix,
-                                     const Integer nonLin)
+  void MHassemble::AddSurfIntegrator(IntegratorDescriptor * actID,
+				     const RegionIdType regionId)
   {
     ENTER_FCN( "MHAssemble::AddSurfIntegrator" );
 
-    FEMatrixType actMatType = destinationMatrix;
-    
-    if (actMatType == STIFFNESS)
-      actMatType = SYSTEM;
+    actID->SetOrigMatrixType(actID->DestMat());
+    if (actID->DestMat() == STIFFNESS 
+        || actID->DestMat() == MASS 
+        || actID->DestMat() == DAMPING ) {
+      actID->SetDestMat(SYSTEM);
+    }
+    else {
+      (*error) << "Matrix type " << actID->DestMat()
+               << " is not supported in harmonic analysis";
+      Error( __FILE__, __LINE__ );
+    }
 
-    if (actMatType !=  SYSTEM)
-      return;
-
-    IntegratorDescriptor * actID = new IntegratorDescriptor(integrator,
-                                                            actMatType,
-                                                            nonLin);
     surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
   }
   
