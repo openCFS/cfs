@@ -228,6 +228,10 @@ namespace CoupledField
     //! set additional multiplicative factor for matrix
     void SetFactor(Double factor); 
 
+    //!
+    void SetFormulation(SolutionType aformulation) 
+    { formulation_ = aformulation;};
+
   protected:
 
     //! Current surface element
@@ -256,7 +260,9 @@ namespace CoupledField
 
     //! Multiplicative factor for matrix
     Double factor_;
- 
+
+    //! formulation type
+    SolutionType formulation_;  
   };
 
 } //end namespace

@@ -92,6 +92,7 @@ namespace CoupledField
     ENTER_FCN( "SurfForm::SurfForm" );
 
     factor_ = 1.0;
+    formulation_ = NO_SOLUTION_TYPE;
   }
 
 
