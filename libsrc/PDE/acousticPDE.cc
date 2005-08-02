@@ -54,7 +54,12 @@ namespace CoupledField {
     Info->PrintF( pdename_, str.c_str() );
 
     // class NodeStoreSol will be initialized with acoustic potential
-    solTypes_ = ACOU_POTENTIAL;
+    if ( formulation_ ==  ACOU_PRESSURE) {
+      solTypes_ = ACOU_PRESSURE;
+    }
+    else {
+      solTypes_ = ACOU_POTENTIAL;
+    }
 
     // timestepping formulation
     params->Get( "timeSteppingFormulation", str, "pdeList", pdename_ );
@@ -363,7 +368,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       BoverA = materialData_[actSD].GetBoverA();
 
       // if pde couples with mechanic, we have to multiply the density by -1
-      if ( isMechCoupled_ == TRUE ) {
+      if ( isMechCoupled_ == TRUE && formulation_ !=  ACOU_PRESSURE) {
         density *= -1.0;
       }
 
@@ -375,6 +380,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);        
       IntegratorDescriptor * stiffIntDescr = 
         new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+
+      stiffIntDescr->SetPDEIds(this, this);
       assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
 
       // mass integrator
@@ -386,6 +393,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
       IntegratorDescriptor * massIntDescr = 
         new IntegratorDescriptor(bilinearMass, MASS);
+
+      massIntDescr->SetPDEIds(this, this);
       assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]);
 
       // ********************************************************************
@@ -418,7 +427,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
           IntegratorDescriptor * dampIntDescr = 
             new IntegratorDescriptor(bilinearStiff, DAMPING);
-                
+
+	  dampIntDescr->SetPDEIds(this, this);   
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
         }
 
@@ -442,7 +452,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 		  //   matrix_factors[STIFFNESS] = 1.0
           IntegratorDescriptor * dampIntDescr = 
             new IntegratorDescriptor(bilinearDamp, STIFFNESS);
-
+   
+	  dampIntDescr->SetPDEIds(this, this);
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
         }
 
@@ -467,6 +478,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           IntegratorDescriptor * dampIntDescr = 
             new IntegratorDescriptor(bilinearDamp, STIFFNESS);
 
+	  dampIntDescr->SetPDEIds(this, this);
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
         }
       }
@@ -486,9 +498,11 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         if ( isMechCoupled_ == TRUE ) {
           bilinear_damp->SetFactor(-1.0);
         }
-          
-        assemble_->AddSurfIntegrator(bilinear_damp,  absBCs_[actSD],
-                                     DAMPING, nonLin);
+
+	IntegratorDescriptor * abcDescr = 
+	  new IntegratorDescriptor(bilinear_damp, DAMPING);
+	abcDescr->SetPDEIds(this, this);      
+	assemble_->AddSurfIntegrator(abcDescr,  absBCs_[actSD]);
       }
     }
   }
