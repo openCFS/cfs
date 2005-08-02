@@ -97,7 +97,10 @@ namespace CoupledField
         else 
           Error("Unknown subtype in smooth PDE! ",__FILE__,__LINE__);
 
-        assemble_->AddIntegrator(bilinearStiff, subdoms_[actSD], STIFFNESS, nonLin);
+	IntegratorDescriptor * stiffDescr = 
+	  new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+	stiffDescr->SetPDEIds(this, this);        
+	assemble_->AddIntegrator(stiffDescr,  subdoms_[actSD]);
       }
   }
 

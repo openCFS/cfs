@@ -86,7 +86,13 @@ namespace CoupledField {
         form = new linElecInt2D( materialData_[actSD], isaxi_ );
         form->SetFactor( factor );
       }
-      assemble_->AddIntegrator(form, subdoms_[actSD], STIFFNESS, nonLin_ );
+
+      IntegratorDescriptor * stiffIntDescr = 
+        new IntegratorDescriptor(form, STIFFNESS, nonLin_);
+
+      stiffIntDescr->SetPDEIds(this, this);
+      assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
+
     }
   }
 

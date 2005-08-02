@@ -156,7 +156,11 @@ namespace CoupledField {
         BaseForm *curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity,
                                                          isaxi_);
         curlcurl2D->SetNonLinMethod(nonLinMethod_);      
-        assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS, TRUE);
+
+	IntegratorDescriptor * stiffDescr = 
+	  new IntegratorDescriptor(curlcurl2D, STIFFNESS, TRUE);
+	stiffDescr->SetPDEIds(this, this);        
+	assemble_->AddIntegrator(stiffDescr,  subdoms_[actSD]);
 
         // nonlinear RHS linearform!!
         BaseForm * rhsSource = new nLinMagNode2D_linFormInt(nlinFnc,
@@ -166,7 +170,11 @@ namespace CoupledField {
       }
       else {
         BaseForm *curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_);
-        assemble_->AddIntegrator(curlcurl2D, subdoms_[actSD], STIFFNESS,FALSE);
+	IntegratorDescriptor * stiffDescr = 
+	  new IntegratorDescriptor(curlcurl2D, STIFFNESS, FALSE);
+	stiffDescr->SetPDEIds(this, this);        
+	assemble_->AddIntegrator(stiffDescr,  subdoms_[actSD]);
+
         if (nonLin_==TRUE) {
           // for nonlinear RHS linearform we need linear and nonlinear
           // subdomains
@@ -180,7 +188,11 @@ namespace CoupledField {
       Double conductivity;
       materialData_[actSD].GetConductivity(2,2,conductivity);
       BaseForm *bilinear_mass = new MassInt(conductivity, dofspernode_,isaxi_);
-      assemble_->AddIntegrator(bilinear_mass, subdoms_[actSD], MASS, FALSE );
+
+      IntegratorDescriptor * massDescr = 
+	new IntegratorDescriptor(bilinear_mass, MASS, FALSE);
+	massDescr->SetPDEIds(this, this);        
+	assemble_->AddIntegrator(massDescr,  subdoms_[actSD]);
 
       // If this subdomain is a coil we have to do special things
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
