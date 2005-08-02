@@ -100,9 +100,6 @@ namespace CoupledField{
     // Get parameter and report object of OLAS
     olasParams_ = algsys_->GetOLASParams();
     olasReport_ = algsys_->GetOLASReport();
-
-    // define solveStep-driver
-    DefineSolveStep();
   
     // activate direct coupling information
     // and initialize all single pdes
@@ -110,8 +107,8 @@ namespace CoupledField{
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       //std::cerr << "set Direct Coupling for pde " 
       //      << singlePDEs_[i]->GetName() << "\n";
-    
-      singlePDEs_[i]->SetDirectCoupling( algsys_, solveStep_ );
+      singlePDEs_[i]->SetAlgebraicSystem(algsys_);
+      singlePDEs_[i]->SetDirectCoupling();
     
       // Initialize all SinglePDEs
       singlePDEs_[i]->Init( bcSequenceStep, bcSequenceTag );
@@ -163,6 +160,14 @@ namespace CoupledField{
     if ( analysistype_ == TRANSIENT ) {
       InitTimeStepping();
     }
+
+    // define solveStep-driver
+    DefineSolveStep();
+    
+    // Pass SolveStep object to all single pdes
+     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+       singlePDEs_[i]->SetSolveStep(solveStep_);
+     }
 
 
     // Set correct size of direct solution value

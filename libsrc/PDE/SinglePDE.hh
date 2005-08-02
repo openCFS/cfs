@@ -111,8 +111,7 @@ namespace CoupledField
     // ======================================================
 
     //! Activate the direct coupling
-    void SetDirectCoupling (BaseSystem *algsys,
-                            StdSolveStep *solveStep);
+    void SetDirectCoupling ();
     
     //! get algsys identification tag of PDE
     PdeIdType GetPDEId()
