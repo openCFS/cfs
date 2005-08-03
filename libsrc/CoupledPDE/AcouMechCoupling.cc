@@ -73,7 +73,7 @@ namespace CoupledField
 	IntegratorDescriptor * massDescr1 = 
 	  new IntegratorDescriptor(massInt1, DAMPING, FALSE);
 	massDescr1->SetPDEIds(pde1_, pde2_);      
-	massDescr1->SetCounterPart(FALSE);
+	massDescr1->SetCounterPart(false);
 	
 	assemble_->AddSurfIntegrator(massDescr1, surfRegions_[actSD]);
 
@@ -90,7 +90,7 @@ namespace CoupledField
 	IntegratorDescriptor * massDescr2 = 
 	  new IntegratorDescriptor(massInt2, DAMPING, FALSE);
 	massDescr2->SetPDEIds(pde2_, pde1_);      
-	massDescr2->SetCounterPart(FALSE);
+	massDescr2->SetCounterPart(false);
 	
 	assemble_->AddSurfIntegrator(massDescr2, surfRegions_[actSD]);
       }
