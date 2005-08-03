@@ -310,8 +310,8 @@ namespace CoupledField {
                                          pdeId1, connect_PDE1.GetPointer(), 
                                          connect_PDE1.GetSize(),
                                          pdeId2, connect_PDE2.GetPointer(), 
-                                         connect_PDE2.GetSize());
-	      //actDescriptor->IsSetCounterPart());
+                                         connect_PDE2.GetSize(),
+					 actDescriptor->IsSetCounterPart());
             }
             else {
 
@@ -319,8 +319,8 @@ namespace CoupledField {
                                          pdeId1, connect_PDE1.GetPointer(), 
                                          connect_PDE1.GetSize(), 
                                          pdeId2, connect_PDE2.GetPointer(), 
-                                         connect_PDE2.GetSize());
-	      // actDescriptor->IsSetCounterPart());
+                                         connect_PDE2.GetSize(),
+					 actDescriptor->IsSetCounterPart());
 
             }
 #ifdef DEBUG
@@ -365,24 +365,24 @@ namespace CoupledField {
                 TransformMatrix2Harmonic(harmonicVec,elemmat,
                                          actDescriptor->GetOrigSecMatrixType(),
                                          actDescriptor->GetPiezoMaterialType());
-        
+
                 algsys_->SetElementMatrix(destMat, &harmonicVec[0], 
                                           pdeId1, connect_PDE1.GetPointer(),
                                           connect_PDE1.GetSize(), 
                                           pdeId2, connect_PDE2.GetPointer(),
-                                          connect_PDE2.GetSize());
-		//actDescriptor->IsSetCounterPart());
+                                          connect_PDE2.GetSize(),
+					  actDescriptor->IsSetCounterPart());
 
               }
-              else 
+              else {
                 algsys_->SetElementMatrix(actDescriptor->GetSecondaryMat(), 
                                           elemmat.GetDataPointer(), 
                                           pdeId1, connect_PDE1.GetPointer(), 
                                           connect_PDE1.GetSize(), 
                                           pdeId2, connect_PDE2.GetPointer(), 
-                                          connect_PDE2.GetSize());
-	      //actDescriptor->IsSetCounterPart());
-
+                                          connect_PDE2.GetSize(),
+					  actDescriptor->IsSetCounterPart());
+	      }
             }
 
           } //over all elements of subdomain            
@@ -485,21 +485,21 @@ namespace CoupledField {
                 TransformMatrix2Harmonic(harmonicVec,elemmat, 
                                          actDescriptor->GetOrigMatrixType(),
                                          actDescriptor->GetPiezoMaterialType());
-                
+
                 algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
                                            pdeId1, connect_PDE1.GetPointer(), 
                                            connect_PDE1.GetSize(),
                                            pdeId2, connect_PDE2.GetPointer(), 
-                                           connect_PDE2.GetSize());
-		//actDescriptor->IsSetCounterPart());
+                                           connect_PDE2.GetSize(),
+					   actDescriptor->IsSetCounterPart());
               }
               else {
                 algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
                                            pdeId1, connect_PDE1.GetPointer(), 
                                            connect_PDE1.GetSize(),
                                            pdeId2, connect_PDE2.GetPointer(), 
-                                           connect_PDE2.GetSize());
-		//  actDescriptor->IsSetCounterPart());
+                                           connect_PDE2.GetSize(),
+					   actDescriptor->IsSetCounterPart());
               }
 
                         
@@ -514,17 +514,18 @@ namespace CoupledField {
                                              pdeId1, connect_PDE1.GetPointer(), 
                                              connect_PDE1.GetSize(),
                                              pdeId2, connect_PDE2.GetPointer(), 
-                                             connect_PDE2.GetSize());
-		  //actDescriptor->IsSetCounterPart());
+                                             connect_PDE2.GetSize(),
+					     actDescriptor->IsSetCounterPart());
                 }
-                else
+                else{
                   algsys_->SetElementMatrix(  actDescriptor->GetSecondaryMat(), 
                                               elemmat.GetDataPointer(), 
                                               pdeId1, connect_PDE1.GetPointer(), 
                                               connect_PDE1.GetSize(),
                                               pdeId2, connect_PDE2.GetPointer(), 
-                                              connect_PDE2.GetSize());
-		// actDescriptor->IsSetCounterPart());
+                                              connect_PDE2.GetSize(),
+					      actDescriptor->IsSetCounterPart());
+		}
               }
             }           
           }
@@ -1359,7 +1360,7 @@ namespace CoupledField {
   // ==========================================================
 
   BaseIntDescriptor::BaseIntDescriptor() : 
-    integrator(NULL), nonLin(FALSE), reducedIntegration_(FALSE), setCounterPart_(TRUE)
+    integrator(NULL), nonLin(FALSE), reducedIntegration_(FALSE), setCounterPart_(true)
   {
     ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor" );
   }
@@ -1375,7 +1376,8 @@ namespace CoupledField {
   // define integrators
   BaseIntDescriptor::BaseIntDescriptor(BaseForm * aIntegrator,
                                        const Boolean aNonLin)
-    : integrator(aIntegrator), nonLin(aNonLin), reducedIntegration_(FALSE)
+    : integrator(aIntegrator), nonLin(aNonLin), 
+      reducedIntegration_(FALSE), setCounterPart_(true)
   {
     ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor " );
   }
