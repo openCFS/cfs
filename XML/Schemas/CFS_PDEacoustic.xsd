@@ -283,6 +283,13 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- What data can a single element have in an acoustic PDE -->  
+  <xsd:simpleType name="DT_AcousticElementData">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="acouForce"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <!-- Data type for describing final node values to be stored -->
   <xsd:complexType name="DT_AcousticNodeResults">
     <xsd:attribute name="type" type="DT_AcousticNodeData" use="required"/>
@@ -306,10 +313,16 @@
 
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_AcousticSpecialNodes">
-	<xsd:attribute name="type" type="DT_AcousticNodeData" use="required"/>
-	<xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
-	<xsd:attribute name="file" type="xsd:token" use="required"/>
+    <xsd:attribute name="type" type="DT_AcousticNodeData" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
+    <xsd:attribute name="file" type="xsd:token" use="required"/>
   </xsd:complexType>
+  
+  <!-- Data type for describing history of element values to be stored -->
+  <xsd:complexType name="DT_AcousticElementHistory">
+    <xsd:attribute name="type" type="DT_AcousticElementData" use="required"/>
+    <xsd:attribute name="saveElements" type="xsd:token" use="required"/>
+  </xsd:complexType>  
 
 
   <!-- Global type for specifying the desired mechanical output quantities -->
@@ -320,6 +333,8 @@
       <xsd:element name="nodeHistory" type="DT_AcousticNodeHistory"
         minOccurs="0" maxOccurs="unbounded"/>
       <xsd:element name="specialNodes" type="DT_AcousticSpecialNodes"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="elementHistory" type="DT_AcousticElementHistory"
         minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
