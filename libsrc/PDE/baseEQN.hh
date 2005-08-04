@@ -5,19 +5,16 @@
 #include "Domain/grid.hh"
 #include "Utils/StdVector.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
   //! a base class for equation data handling
+  class BaseEQN {
 
-  class BaseEQN
-  {
   public:
 
     //! Constructor
-    BaseEQN(Grid * aptGrid,
-            StdVector<RegionIdType>& asubdoms, 
-            UInt dofsPerNode);
+    BaseEQN( Grid *aptGrid, StdVector<RegionIdType>& asubdoms,
+             UInt dofsPerNode, bool sortEQNs );
 
     //! Destructor
     virtual ~BaseEQN();
@@ -127,13 +124,13 @@ namespace CoupledField
 
     //! Flag for turning on ordering of equation numbers
 
-    //! If this flag is TRUE, the equation numbers are ordered in the following
-    //! fashion. The set of highest equation numbers belongs to "unknowns" whose
+    //! If this flag is TRUE, the equation numbers are ordered such that
+    //! the set of highest equation numbers belongs to "unknowns" whose
     //! values are fixed by inhomogeneous Dirichlet boundary conditions.
     Boolean sortEQNs_;
 
     //! Pointer to Grid
-    Grid * ptGrid_;  
+    Grid *ptGrid_;  
 
     //! Number of nodes in PDE
     UInt numPDENodes_;
@@ -194,7 +191,6 @@ namespace CoupledField
     //! Default constructor is disallowed
     BaseEQN() {}; 
 
-
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
@@ -205,14 +201,20 @@ namespace CoupledField
 
   //! \class BaseEQN
   //! 
-  //! \purpose 
-  //! 
+  //! \purpose
+  //!
+  //! This class is the base class which defines the interface of all
+  //! objects that deal with the assignment of equation numbers to degrees
+  //! of freedom. The following gives an overview on the meaning of the
+  //! different equation numbers
+  //! <center><img src="../AddDoc/splitting.png"></center>
+  //!
   //! \collab 
-  //! 
+  //!
   //! \implement 
-  //! 
+  //!
   //! \status In use
-  //! 
+  //!
   //! \unused 
   //!
   //! \improve

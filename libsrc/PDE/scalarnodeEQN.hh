@@ -12,10 +12,9 @@ namespace CoupledField {
   public:
   
     //! Constructor
-    ScalarNodeEQN( Grid * aptGrid, 
-                   StdVector<RegionIdType>& asubdoms, 
-                   UInt dofsPerNode );
-  
+    ScalarNodeEQN( Grid *aptGrid, StdVector<RegionIdType>& asubdoms, 
+                   UInt dofsPerNode, bool sortEQNs );
+
     //! Destructor
     virtual ~ScalarNodeEQN();
   

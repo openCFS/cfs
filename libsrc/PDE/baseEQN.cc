@@ -11,9 +11,8 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  BaseEQN::BaseEQN( Grid * aptGrid, 
-                    StdVector<RegionIdType>& asubdoms, 
-                    UInt dofsPerNode ) {
+  BaseEQN::BaseEQN( Grid *aptGrid, StdVector<RegionIdType>& asubdoms, 
+                    UInt dofsPerNode, bool sortEQNs ) {
 
     ENTER_FCN( "BaseEQN::BaseEQN" );
 
@@ -22,7 +21,11 @@ namespace CoupledField {
     dofsPerNode_ = dofsPerNode;
 
     isInitialized_ = FALSE;
+
+    // Set sortEQNs to false until we have implemented this in each child
+    // sortEQNs_ = sortEQNs;
     sortEQNs_ = FALSE;
+
     numRealEqns_ = 0;
   }
 

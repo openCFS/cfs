@@ -13,10 +13,9 @@ namespace CoupledField
   public:
   
     //! Constructor
-    ScalarBlockEQN(Grid * aptGrid, 
-                   StdVector<RegionIdType>& asubdoms, 
-                   UInt dofsPerNode);
-  
+    ScalarBlockEQN( Grid *aptGrid, StdVector<RegionIdType> &asubdoms,
+                    UInt dofsPerNode, bool sortEQNs );
+
     //! Destructor
     virtual ~ScalarBlockEQN();
   

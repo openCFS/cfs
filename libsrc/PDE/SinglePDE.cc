@@ -336,10 +336,12 @@ namespace CoupledField {
     // Assemble a system matrix with scalar complex or double entries
     if ( typeOfNumbering == "scalar" ) {
       if ( dofspernode_ == 1 ) {
-        eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_ );
+        eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_,
+                                      !usePenalty );
       }
       else {
-        eqnData_ = new ScalarBlockEQN( ptgrid_, subdoms_, dofspernode_ );
+        eqnData_ = new ScalarBlockEQN( ptgrid_, subdoms_, dofspernode_,
+                                       !usePenalty );
       }
       Info->PrintF( pdename_, "Using scalar equation numbering\n" );
     }
@@ -348,11 +350,16 @@ namespace CoupledField {
     // small square matrices as entries
     else if ( typeOfNumbering == "block" ) {
       if ( dofspernode_ == 1 ) {
-        Warning("dopspernode = 1, so 'block' numbering identical to 'scalar'");
-        eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_ );
+        (*warning) << "dofspernode = " << dofspernode_
+                   << "so 'block' numbering identical to 'scalar'";
+        Warning( __FILE__, __LINE__ );
+        eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_,
+                                      usePenalty );
+        Info->PrintF( pdename_, "Using scalar equation numbering\n" );
       }
       else {
-        eqnData_ = new BlockNodeEQN( ptgrid_, subdoms_, dofspernode_ );
+        eqnData_ = new BlockNodeEQN( ptgrid_, subdoms_, dofspernode_,
+                                     usePenalty );
         Info->PrintF( pdename_, "Using block equation numbering\n" );
       }
     }

@@ -16,10 +16,9 @@ namespace CoupledField
   public:
   
     //! Constructor
-    NodeEQN(Grid * aptGrid, 
-            StdVector<RegionIdType>& asubdoms, 
-            UInt dofsPerNode);
-  
+    NodeEQN(Grid *aptGrid, StdVector<RegionIdType>& asubdoms, 
+            UInt dofsPerNode, Boolean sortEQNs );
+
     //! Destructor
     virtual ~NodeEQN();
   
@@ -46,7 +45,8 @@ namespace CoupledField
                           UInt & eqnDof) const = 0;
   
     //! Map node number to according equation number(s)
-    virtual void Node2EQN(const UInt nodeNr, StdVector<Integer> &eqns) const = 0;
+    virtual void Node2EQN(const UInt nodeNr,
+                          StdVector<Integer> &eqns) const = 0;
   
     //! Map vector of node numbers to according
     //! vector of equiation numbers

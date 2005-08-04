@@ -81,11 +81,11 @@ namespace CoupledField {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
  
-    eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_ );
+    eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_, FALSE );
     eqnData_->CalcMpcciMapping();
     numPDENodes_ = eqnData_->GetNumLocalNodes();
     numElems_ = eqnData_->GetNumLocalElems();
-    
+
     PreparePDE4Computation();
   }
 
