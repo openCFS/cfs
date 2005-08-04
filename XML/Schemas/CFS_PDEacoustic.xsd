@@ -39,6 +39,13 @@
                 use="optional" default="no"/>
             </xsd:complexType>
           </xsd:element>
+          
+          <!-- Surface regions on which results as force are calculated -->
+          <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
 
           <xsd:element name="valRHS" type="DT_CFSBool" minOccurs="0"
             maxOccurs="1" default="no"/>
