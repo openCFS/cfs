@@ -11,9 +11,9 @@ namespace CoupledField {
   //   Constructor
   // ***************
   ScalarBlockEQN::ScalarBlockEQN( Grid *aptGrid, 
-                                  StdVector<RegionIdType> & asubdoms, 
-                                  UInt dofsPerNode)
-    : NodeEQN(aptGrid, asubdoms, dofsPerNode) {
+                                  StdVector<RegionIdType> &asubdoms, 
+                                  UInt dofsPerNode, bool sortEQNs )
+    : NodeEQN( aptGrid, asubdoms, dofsPerNode, sortEQNs ) {
     ENTER_FCN( "ScalarBlockEQN::ScalarBlockEQN" );
     isBlockMapped_ = FALSE;
     dofsPerEQN_ = 1;

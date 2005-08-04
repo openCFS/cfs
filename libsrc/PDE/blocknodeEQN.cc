@@ -6,10 +6,10 @@
 
 namespace CoupledField {
   
-  BlockNodeEQN::BlockNodeEQN(Grid * aptGrid, 
-                             StdVector<RegionIdType> & asubdoms, 
-                             UInt dofsPerNode)
-    : NodeEQN(aptGrid, asubdoms, dofsPerNode)
+  BlockNodeEQN::BlockNodeEQN( Grid *aptGrid,
+                              StdVector<RegionIdType> & asubdoms, 
+                              UInt dofsPerNode, bool sortEQNs )
+    : NodeEQN( aptGrid, asubdoms, dofsPerNode, sortEQNs )
   {
     ENTER_FCN( "BlockNodeEQN::BlockNodeEQN" );
 

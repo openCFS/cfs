@@ -7,15 +7,13 @@ namespace CoupledField
 {
 
   //! Equation handling class for PDEs with number of degrees of freedom > 1
+  class BlockNodeEQN : public NodeEQN {
 
-  class BlockNodeEQN : public NodeEQN
-  {
   public:
   
     //! Constructor
-    BlockNodeEQN(Grid * aptgrid, 
-                 StdVector<RegionIdType> & asubdoms, 
-                 UInt dofsPerNode);
+    BlockNodeEQN( Grid *aptgrid, StdVector<RegionIdType> &asubdoms, 
+                  UInt dofsPerNode, bool sortEQNs );
   
     //! Destructor
     virtual ~BlockNodeEQN();

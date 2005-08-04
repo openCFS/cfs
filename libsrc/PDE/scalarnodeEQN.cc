@@ -10,17 +10,16 @@ namespace CoupledField {
   // ===============
   //   Constructor
   // ===============
-  ScalarNodeEQN::ScalarNodeEQN(Grid * aptGrid, 
-                               StdVector<RegionIdType> & asubdoms, 
-                               UInt dofsPerNode)
-    : NodeEQN(aptGrid, asubdoms, dofsPerNode) {
+  ScalarNodeEQN::ScalarNodeEQN( Grid *aptGrid,
+                                StdVector<RegionIdType> &asubdoms,
+                                UInt dofsPerNode, bool sortEQNs )
+    : NodeEQN(aptGrid, asubdoms, dofsPerNode, sortEQNs ) {
 
     ENTER_FCN( "NodeEQN::NodeEQN" );
   
     isBlockMapped_ = FALSE;
     dofsPerEQN_ = 1;
-    // sortEQNs_ = true;
-    sortEQNs_ = false;
+    sortEQNs_ = sortEQNs;
   }
 
 

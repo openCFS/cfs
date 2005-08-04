@@ -8,10 +8,9 @@ namespace CoupledField
   // ***************
   //   Constructor
   // ***************
-  NodeEQN::NodeEQN( Grid *aptGrid, 
-                    StdVector<RegionIdType> &asubdoms, 
-                    UInt dofsPerNode )
-    : BaseEQN( aptGrid, asubdoms, dofsPerNode ) {
+  NodeEQN::NodeEQN( Grid *aptGrid, StdVector<RegionIdType> &asubdoms, 
+                    UInt dofsPerNode, Boolean sortEQNs )
+    : BaseEQN( aptGrid, asubdoms, dofsPerNode, sortEQNs ) {
 
     ENTER_FCN( "NodeEQN::NodeEQN" );
 
