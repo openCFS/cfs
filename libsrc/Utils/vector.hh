@@ -177,16 +177,13 @@ namespace CoupledField {
 
 
     //! Element can be referred to as v[i]
-    inline TYPE   &operator[]     (const UInt i) const
-    {     
+    inline TYPE &operator[] ( const UInt i ) const {
+
 #ifdef CHECK_INDEX
-      if (i >= size_){
-        std::string errorMsg;
-        errorMsg =  "Vector: invalid access to element ";
-        errorMsg += Info->GenStr(i+1);
-        errorMsg += "! \n Length of vector: ";
-        errorMsg += Info->GenStr(size_);
-        Error(errorMsg.c_str(),__FILE__,__LINE__);
+      if ( i >= size_ ) {
+        (*error) << "Vector: Invalid access, index " << i
+                 << " not in range [0," << size_ - 1 << "]";
+        Error( __FILE__, __LINE__ );
       }
 #endif
       return  data_[i];
