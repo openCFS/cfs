@@ -23,7 +23,19 @@ namespace CoupledField {
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
 
-    // First determine the type of solver for this PDE
+    // First determine approach for handling inhomogeneous Dirichlet
+    // boundary conditions
+    bool usingPenalty = true;
+    {
+      std::string aux;
+      keyVec  = "linearSystems", "system", "setup", "idbcHandling";
+      attrVec = "", "name", "";
+      valVec  = "", pdename, "";
+      params->Get( keyVec, attrVec, valVec, aux );
+      usingPenalty = aux == "penalty" ? true : false;
+    }
+
+    // Determine the type of solver for this PDE
     std::string sTypeString;
     SolverType sType;
 
@@ -120,12 +132,13 @@ namespace CoupledField {
     }
 
     // Insert information into OLAS_Params object
-    olas->SetValue( "Solver"             , sType );
-    olas->SetValue( "Precond"            , pType );
-    olas->SetValue( "MatrixStructureType", STDMATRIX );
-    olas->SetValue( "MatrixStorageType"  , mType );
-    olas->SetValue( "MatrixEntryType"    , eType );
-    olas->SetValue( "GRAPH_reordering"   , orderType );
+    olas->SetValue( "Solver"                 , sType        );
+    olas->SetValue( "Precond"                , pType        );
+    olas->SetValue( "MatrixStructureType"    , STDMATRIX    );
+    olas->SetValue( "MatrixStorageType"      , mType        );
+    olas->SetValue( "MatrixEntryType"        , eType        );
+    olas->SetValue( "GRAPH_reordering"       , orderType    );
+    olas->SetValue( "UsingPenaltyFormulation", usingPenalty );
 
     // Set special parameters for solver and preconditioner
     CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );
