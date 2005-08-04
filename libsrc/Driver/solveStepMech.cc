@@ -84,6 +84,7 @@ namespace CoupledField {
 	assemble_->InitNonLinMatrices();
 	assemble_->AssembleMatrices();
       
+        algsys_->ConstructEffectiveMatrix(matrix_factor_);
 	algsys_->BuildInDirichlet();
 
         algsys_->SetupPrecond();
