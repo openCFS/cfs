@@ -43,8 +43,10 @@ namespace CoupledField {
     assemble_->AssembleSrcRHS();
   
     SetBCs(0);
-
+    
+    algsys_->ConstructEffectiveMatrix(matrix_factor_);
     algsys_->BuildInDirichlet();
+
     if (job == 1) {
       algsys_->SetupPrecond();
       algsys_->SetupSolver();

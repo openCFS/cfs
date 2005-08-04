@@ -100,6 +100,7 @@ namespace CoupledField {
 
     PDE_.SetBCs( actTime_ );
 
+    PDE_.algsys_->ConstructEffectiveMatrix( matrix_factor_ );
 
     // Incorporate Boundary conitions and
     // recalc the prconditioner eventually
@@ -432,6 +433,7 @@ namespace CoupledField {
       job = 3;
     }
 
+    PDE_.algsys_->ConstructEffectiveMatrix( matrix_factor_ );
     PDE_.algsys_->BuildInDirichlet();
  
     if (job == 1) {
