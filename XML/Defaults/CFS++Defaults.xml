@@ -190,34 +190,42 @@
   
   <linearSystems>
     <system name="acoustic">
+      <setup/>
       <matrix/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="direct">
+      <setup/>
       <matrix/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="electrostatic">
+      <setup/>
       <matrix/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="magnetic">
+      <setup/>
       <matrix/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="mechanic">
+      <setup/>
       <matrix/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="mpcci">
+      <setup/>
       <matrix/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="piezo">
+      <setup/>
       <matrix/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="smooth">
+      <setup/>
       <matrix/>
       <solver><stoppingRule/></solver>
     </system>

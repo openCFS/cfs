@@ -40,6 +40,7 @@ the following structure
 \begin{verbatim}
   <linearSystems>
     <system name="...">
+      <setup .../>
       <matrix .../>
       <exportLinSys .../>
       <solver type="..." precond="...">
@@ -68,15 +69,24 @@ the linear system. Details are given in the following sections.
 % =============================================================================
 %
 %
-The first child of the \xml{system} element can be a \xml{matrix} element. The
-matrix element possesses the following four optional attributes:
-\xml{eqnNumbering}, \xml{entry}, \xml{storage} and \xml{reordering}.
-%
-%
+The first two children of the \xml{system} element are the \xml{setup} and
+the \xml{matrix} element. Both are used to specify parameters for the setup
+of the linear system and the resulting matrix.
+
+The \xml{setup} element possesses the following two optional attributes:
+\xml{eqnNumbering} and \xml{idbcHandling}.
 \begin{center}
 \begin{longtable}{llp{0.5\textwidth}}
 \hline\noalign{\smallskip}
 attribute & values & meaning \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+idbcHandling & penalty    & the penalty approach is used for the treatment of
+                            degrees of freedom that are fixed by inhomogeneous
+                            Dirichlet boundary conditions\\
+             & elmination & degrees of freedom that are fixed by inhomogeneous
+                            Dirichlet boundary conditions are eliminated from
+                            the linear system and their values appear on the
+                            right-hand side\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 eqnNumbering & scalar & Every unknown receives a unique equation number.
                         Unknowns whose value is fixed by homogeneous Dirichlet
@@ -102,9 +112,19 @@ eqnNumbering & scalar & Every unknown receives a unique equation number.
                         entries, where $n$ is the number of degrees of freedom
                         per node. The tiny matrices themselves will have scalar
                         double or complex entries.\\
-             & superBlock & This setting is currently only of importance for
-                        the piezo PDE. It will be no longer required, as soon
-                        as direct coupling is implemented in CFS++.\\
+\noalign{\smallskip}\hline
+\end{longtable}
+\end{center}
+%
+%
+The \xml{matrix} element possesses the following three optional attributes:
+\xml{entry}, \xml{storage} and \xml{reordering}.
+%
+%
+\begin{center}
+\begin{longtable}{llp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+attribute & values & meaning \\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 entry & double, complex & specifies the entry type on the scalar level, i.e.
                           the type of the entries of the system matrix for
@@ -124,7 +144,6 @@ storage & sparseSym      & System matrix is stored in compressed row storage
         & lapackGBMatrix & System matrix is stored as a general banded matrix.
                            This is the suitable choice for the lapackLU solver.
                            \\
-        & lapackPBMatrix & \emph{not fully supported yet}\\
         & expertsChoice  & CFS++ will choose the storage type itself.\\
 \noalign{\smallskip}\hline\noalign{\smallskip}
 reordering & noReordering  & Specifies that OLAS should not reorder the

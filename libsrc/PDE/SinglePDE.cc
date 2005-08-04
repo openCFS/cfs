@@ -315,15 +315,28 @@ namespace CoupledField {
 
     // What type of equation numbering does the user want?
     std::string typeOfNumbering;
-    keyVec  = "linearSystems", "system", "matrix", "eqnNumbering";
+    keyVec  = "linearSystems", "system", "setup", "eqnNumbering";
     attrVec = "", "name", "";
     valVec  = "", pdename_, "";
     params->Get( keyVec, attrVec, valVec, typeOfNumbering );
 
+    // How do we want to treat inhomogeneous Dirichlet boundary conditions?
+    bool usePenalty = true;
+    {
+      std::string aux;
+      keyVec  = "linearSystems", "system", "setup", "idbcHandling";
+      attrVec = "", "name", "";
+      valVec  = "", pdename_, "";
+      params->Get( keyVec, attrVec, valVec, aux );
+      usePenalty = aux == "penalty" ? true : false;
+      Info->PrintF( pdename_, "Treating IDBCs using '%s' approach\n",
+                    aux.c_str() );
+    }
+
     // Assemble a system matrix with scalar complex or double entries
     if ( typeOfNumbering == "scalar" ) {
       if ( dofspernode_ == 1 ) {
-        eqnData_ = new ScalarNodeEQN( ptgrid_,  subdoms_, dofspernode_ );
+        eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_ );
       }
       else {
         eqnData_ = new ScalarBlockEQN( ptgrid_, subdoms_, dofspernode_ );

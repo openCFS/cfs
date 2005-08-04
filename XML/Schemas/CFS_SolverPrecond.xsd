@@ -19,6 +19,9 @@
   <xsd:complexType name="DT_SystemSpec">
     <xsd:sequence>
 
+      <!-- Syste setup (optional) -->
+      <xsd:element name="setup" type="DT_SetupDescription" minOccurs="0"/>
+
       <!-- Matrix format, entries and layout (optional) -->
       <xsd:choice minOccurs="0">
         <xsd:element name="matrix" type="DT_MatrixDescription"/>
@@ -137,19 +140,34 @@
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of matrix description type -->
+  <!--   Definition of linear system setup description type -->
   <!-- ******************************************************************** -->
 
-  <xsd:complexType name="DT_MatrixDescription">
+  <xsd:complexType name="DT_SetupDescription">
     <xsd:attribute name="eqnNumbering" use="optional" default="scalar">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="scalar"/>
           <xsd:enumeration value="block"/>
-          <xsd:enumeration value="superBlock"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    <xsd:attribute name="idbcHandling" use="optional" default="penalty">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="penalty"/>
+          <xsd:enumeration value="elimination"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of matrix description type -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_MatrixDescription">
     <xsd:attribute name="entry" use="optional" default="double">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
@@ -167,7 +185,6 @@
           <xsd:enumeration value="skylineNonSym"/>
           <xsd:enumeration value="hypreMatrix"/>
           <xsd:enumeration value="lapackGBMatrix"/>
-          <xsd:enumeration value="lapackPBMatrix"/>
           <xsd:enumeration value="expertsChoice"/>
         </xsd:restriction>
       </xsd:simpleType>
@@ -189,13 +206,6 @@
   <!-- ******************************************************************** -->
 
   <xsd:complexType name="DT_SBMMatrixDescription">
-    <xsd:attribute name="eqnNumbering" use="optional" default="scalar">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="scalar"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
     <xsd:attribute name="entry" use="optional" default="double">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
