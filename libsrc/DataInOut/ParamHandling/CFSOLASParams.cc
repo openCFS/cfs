@@ -99,12 +99,24 @@ namespace CoupledField {
     valVec  = "", pdename, "";
     cfs->Get( keyVec, attrVec, valVec, orderString );
 
+    bool allowChangeOfReordering = false;
+    if ( orderString == "expertsChoice" ) {
+      if ( overrideExpert ) {
+        (*error) << "You cannot specify expertsChoice as re-ordering "
+                 << "strategy and at the same time specify overrideExpert! "
+                 << "This would leave the re-ordering strategy undefined!";
+        Error( __FILE__, __LINE__ );
+      }
+      orderString = "noReordering";
+      allowChangeOfReordering = true;
+    }
     OLAS::String2Enum( orderString, orderType );
 
     // Let expert module modify the settings
     if ( !overrideExpert ) {
       CFSOLASParams::Expert( cfs, pdename, sType, pType, mType, eType,
-                             orderType, analysisType );
+                             orderType, analysisType,
+                             allowChangeOfReordering );
     }
 
     // Insert information into OLAS_Params object
@@ -852,7 +864,8 @@ namespace CoupledField {
                               MatrixStorageType &mType,
                               MatrixEntryType &eType,
                               ReorderingType &rType,
-                              AnalysisType analysisType ) {
+                              AnalysisType analysisType,
+                              bool allowChangeOfReordering ) {
 
     ENTER_FCN( "CFSOLASParams::Expert" );
 
@@ -1063,87 +1076,93 @@ namespace CoupledField {
     }
 
 
-    // ========================
-    //  Reordering for Solvers
-    // ========================
+    // NOTE: We only try to determine a re-ordering, if the caller did
+    //       explicitely allow us to do so
+    if ( allowChangeOfReordering == true ) {
 
-    // For the sparse direct solvers implemented in OLAS, use METIS
-    // re-ordering if available and SLOAN otherwise
+
+      // ========================
+      //  Reordering for Solvers
+      // ========================
+
+      // For the sparse direct solvers implemented in OLAS, use METIS
+      // re-ordering if available and SLOAN otherwise
 
 #ifdef USE_METIS
-    if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
-      if ( rType == NOREORDERING ) {
-        Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-                      "'METIS'\n" );
-        rType = METIS;
+      if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
+        if ( rType == NOREORDERING ) {
+          Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+                        "'METIS'\n" );
+          rType = METIS;
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+                        "to METIS\n" );
+          rType = METIS;
+        }
       }
-      else {
-        Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
-                      "to METIS\n" );
-        rType = METIS;
-      }
-    }
 #else
-    if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
-      if ( rType == NOREORDERING ) {
-        Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-                      "'SLOAN'\n" );
-        rType = SLOAN;
+      if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
+        if ( rType == NOREORDERING ) {
+          Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+                        "'SLOAN'\n" );
+          rType = SLOAN;
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+                        "to SLOAN\n" );
+          rType = SLOAN;
+        }
       }
-      else {
-        Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
-                      "to SLOAN\n" );
-        rType = SLOAN;
-      }
-    }
 #endif
 
-    // For the LAPACK solvers use SLOAN re-ordering
-    if ( sType == LAPACK_LU || sType == LAPACK_LL ) {
-      if ( rType == NOREORDERING ) {
+      // For the LAPACK solvers use SLOAN re-ordering
+      if ( sType == LAPACK_LU || sType == LAPACK_LL ) {
+        if ( rType == NOREORDERING ) {
+          Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+                        "'SLOAN'\n" );
+          rType = SLOAN;
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+                        "to SLOAN\n" );
+          rType = SLOAN;
+        }
+      }
+
+      // For Pardiso do not re-order (since Pardiso does this better itself)
+      if ( sType == PARDISO && rType != NOREORDERING ) {
         Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-                      "'SLOAN'\n" );
-        rType = SLOAN;
+                      "'NOREORDERING'\n" );
+        rType = NOREORDERING;
       }
-      else {
-        Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
-                      "to SLOAN\n" );
-        rType = SLOAN;
+
+
+      // ================================
+      //  Reordering for Preconditioners
+      // ================================
+
+      // For all advanced ILU type preconditioners use SLOAN re-ordering
+      if ( pType == ILUK || pType == ILDLK || pType == HYPRE_ILU ) {
+        if ( rType == NOREORDERING ) {
+          Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
+                        "'SLOAN'\n" );
+          rType = SLOAN;
+        }
+        else {
+          Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
+                        "to SLOAN\n" );
+          rType = SLOAN;
+        }
       }
-    }
 
-    // For Pardiso do not re-order (since Pardiso does this better itself)
-    if ( sType == PARDISO && rType != NOREORDERING ) {
-      Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-                    "'NOREORDERING'\n" );
-      rType = NOREORDERING;
-    }
-
-
-    // ================================
-    //  Reordering for Preconditioners
-    // ================================
-
-    // For all advanced ILU type preconditioners use SLOAN re-ordering
-    if ( pType == ILUK || pType == ILDLK || pType == HYPRE_ILU ) {
-      if ( rType == NOREORDERING ) {
+      // For ILU0 and JACOBI we do not use re-ordering.
+      else if ( ( pType == ILU0 || pType == JACOBI || pType == HYPRE_JACOBI )
+                && rType != NOREORDERING ) {
         Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-                      "'SLOAN'\n" );
-        rType = SLOAN;
+                      "'NOREORDERING'\n" );
+        rType = NOREORDERING;
       }
-      else {
-        Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
-                      "to SLOAN\n" );
-        rType = SLOAN;
-      }
-    }
-
-    // For ILU0 and JACOBI we do not use re-ordering.
-    else if ( ( pType == ILU0 || pType == JACOBI || pType == HYPRE_JACOBI )
-              && rType != NOREORDERING ) {
-      Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
-                    "'NOREORDERING'\n" );
-      rType = NOREORDERING;
     }
   }
 

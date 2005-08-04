@@ -29,6 +29,18 @@ namespace CoupledField
     //! consisteny and sensibility of the parameters and adapt them, if
     //! necessary. This behaviour can be disabled by setting overrideExpert
     //! to no.
+    //! \param pdename        symbolic name of PDE; the value is matched
+    //!                       against the 'name' attribute of the 'system'
+    //!                       element in the 'linearSystems' section of the
+    //!                       XML file
+    //! \param cfs            pointer to %CFS parameter object
+    //! \param olas           pointer to %OLAS parameter object
+    //! \param analysistype   specifies the type of analysis (required e.g.
+    //!                       for correcting the matrix entry type)
+    //! \param overrideExpert if set to 'false' the method will call the
+    //!                       Expert() module in order to validate or
+    //!                       improve the solution parameters or set those
+    //!                       no specified by the user
     static void SetParams( std::string pdename, BaseParamHandler *cfs,
                            OLAS_Params *olas, AnalysisType analysistype,
                            bool overrideExpert = false );
@@ -74,7 +86,8 @@ namespace CoupledField
                         std::string pdename, SolverType &sType,
                         PrecondType &pType, MatrixStorageType &mType,
                         MatrixEntryType &eType, ReorderingType &rType,
-                        AnalysisType analysisType );
+                        AnalysisType analysisType,
+                        bool allowChangeOfReordering );
 
   };
 

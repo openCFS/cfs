@@ -172,9 +172,10 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-    <xsd:attribute name="reordering" use="optional" default="noReordering">
+    <xsd:attribute name="reordering" use="optional" default="expertsChoice">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="expertsChoice"/>
           <xsd:enumeration value="noReordering"/>
           <xsd:enumeration value="Metis"/>
           <xsd:enumeration value="Sloan"/>
@@ -205,9 +206,10 @@
     </xsd:attribute>
     <xsd:attribute name="symmetric" use="optional" default="no"
       type="DT_CFSBool"/>
-    <xsd:attribute name="reordering" use="optional" default="noReordering">
+    <xsd:attribute name="reordering" use="optional" default="expertsChoice">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="expertsChoice"/>
           <xsd:enumeration value="noReordering"/>
           <xsd:enumeration value="Metis"/>
           <xsd:enumeration value="Sloan"/>
