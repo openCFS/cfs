@@ -18,6 +18,7 @@
 #include "Utils/nodestoresol.hh"
 #include "Driver/solveStepAcoustic.hh"
 #include "Driver/solveStepAcousticBubble.hh"
+#include "Driver/solveStepAcousticMechBubble.hh"
 #include "CoupledPDE/pdecoupling.hh"
 
 #ifdef PARALLEL
@@ -806,11 +807,25 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
        if(bubbleDynType_ != NOBUBBLETYPE &&
           (saveSol_ == TRUE || saveDeriv1_ == TRUE || saveDeriv2_ == TRUE)) {
 
-         StdVector<Double> radius = dynamic_cast<SolveStepAcousticBubble*>
-           (solveStep_)->GetResultData("bubbleRadius");
+         StdVector<Double> radius;
+         StdVector<Double> velocity;
 
-         StdVector<Double> velocity = dynamic_cast<SolveStepAcousticBubble*>
-           (solveStep_)->GetResultData("bubbleVelocity");
+     	 if ( isMechCoupled_ == TRUE ) {
+
+	   radius = dynamic_cast<SolveStepAcousticMechBubble*>
+	     (solveStep_)->GetResultData("bubbleRadius");
+
+	   velocity = dynamic_cast<SolveStepAcousticMechBubble*>
+	     (solveStep_)->GetResultData("bubbleVelocity");
+	 }
+	 else {
+
+	   radius = dynamic_cast<SolveStepAcousticBubble*>
+	     (solveStep_)->GetResultData("bubbleRadius");
+
+	   velocity = dynamic_cast<SolveStepAcousticBubble*>
+	     (solveStep_)->GetResultData("bubbleVelocity");
+	 }
 
          ElemStoreSol<Double> bubbleResult;
     
