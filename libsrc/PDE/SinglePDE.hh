@@ -172,6 +172,9 @@ namespace CoupledField
     //! constructes the matrix graph by providing to the algebraic system the element connectivities
     void SetupMatrixGraph();
 
+    //! sets the actual frequency (just needed for harmonic analysis)
+    void SetFrequency(Double actFreq);
+    
     //! trigger the reassembling of the matrices
     void SetReassemble();
 
