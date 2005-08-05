@@ -382,9 +382,8 @@ namespace CoupledField {
     ENTER_FCN( "StdSolveStep::PreStepHarmonic" );
 
   
-    PDE_.assemble_->SetFrequency( actFreq_ );
+    PDE_.SetFrequency( actFreq_ );
     PDE_.algsys_->InitRHS();
-
     if (reset) {
       PDE_.algsys_->InitMatrix();
       PDE_.SetReassemble();
