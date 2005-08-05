@@ -424,7 +424,11 @@ namespace CoupledField {
 
     assemble_->SetPtr2Sol(sol_);
 
-    if ( needsDampingMatrix_ == TRUE )
+    // Note: Due to the 'sophisticated' damping mechanism in the (Single)
+    // PiezoPDE, the damping matrix is not explicitly created and therefore
+    // not needed in OLAS.
+    if ( needsDampingMatrix_ == TRUE 
+         && pdename_ != "piezo" )
       matrixTypes_.insert(DAMPING);
 
     // =====================================================================
