@@ -191,8 +191,8 @@ namespace CoupledField {
     // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
     //       and must be re-designed
     if ( isAlwaysStatic_ == TRUE &&
-         analysisHelp == TRANSIENT) {
-      analysisHelp =STATIC;
+         analysisHelp == TRANSIENT ) {
+      analysisHelp = STATIC;
     }
 
     if ( analysisHelp == STATIC ) {
@@ -296,7 +296,7 @@ namespace CoupledField {
     // =====================================================================
     // read in damping information
     // =====================================================================
-	ReadDampingInformation( ptgrid_ );
+      ReadDampingInformation( ptgrid_ );
 
     // =====================================================================
     // read in boundary conditions
@@ -427,8 +427,7 @@ namespace CoupledField {
     // Note: Due to the 'sophisticated' damping mechanism in the (Single)
     // PiezoPDE, the damping matrix is not explicitly created and therefore
     // not needed in OLAS.
-    if ( needsDampingMatrix_ == TRUE 
-         && pdename_ != "piezo" )
+    if ( needsDampingMatrix_ == TRUE )
       matrixTypes_.insert(DAMPING);
 
     // =====================================================================
@@ -704,6 +703,7 @@ namespace CoupledField {
                                 eqnDof+1);
         }
         else {
+	  
           algsys_->SetDirichlet(j+1, pdeId_, eqnNr, val, eqnDof);
         }
         j++;
@@ -742,6 +742,14 @@ namespace CoupledField {
     keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "value";
     params->GetList(keyVec, attrVec, valVec, val_id_);
 
+    if (dofspernode_ > 1) {
+      keyVec = pdename_, "bcsAndLoads", "dirichletHom", "dof";
+      params->GetList(keyVec, attrVec, valVec, homDirichDof_);
+      
+      keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dof";
+      params->GetList(keyVec, attrVec, valVec, inhomDirichDof_);
+    }
+    
     if (analysistype_ == TRANSIENT ||
         analysistype_ == STATIC) {
       keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
@@ -830,19 +838,13 @@ namespace CoupledField {
     for ( UInt k = fncnames_id_.GetSize(); k < bcs_id_.GetSize(); k++ ) {
       fncnames_id_.Push_back( "none" );
     }
-    if (dofspernode_ > 1) {
-      keyVec = pdename_, "bcsAndLoads", "dirichletHom", "dof";
-      params->GetList(keyVec, attrVec, valVec, homDirichDof_);
-   
-      keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dof";
-      params->GetList(keyVec, attrVec, valVec, inhomDirichDof_);
-    }
-
+    
     // =====================================================================
     // if pde has more than one dof, initialize dof of boundary conditions
     // =====================================================================
     if ( dofspernode_ > 1 ) {
       if (bcs_hd_.GetSize() != homDirichDof_.GetSize()) {
+
         std::string errmsg = "Inconsistent definition of homogeneous ";
         errmsg += "Dirichlet Boundary Conditions\n";
         errmsg += " bcs_hd_.GetSize() = " + Info->GenStr( bcs_hd_.GetSize() );
@@ -1056,13 +1058,17 @@ namespace CoupledField {
     assemble_->SetupMatrixGraph();
   }
 
+  void SinglePDE::SetFrequency(Double actFreq) {
+    assemble_->SetFrequency(actFreq);
+  }
+
   void SinglePDE::SetReassemble() {
     assemble_->SetReassemble();
   }
 
   
   // ======================================================
-  // ADAPTIVITY SECTION 
+  // Adaptivity SECTION 
   // ======================================================
 
 #ifdef ADAPTGRID
