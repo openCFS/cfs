@@ -214,6 +214,32 @@ namespace CoupledField {
 		   const UInt numShift, const Integer nodeShift, 
 		   const UInt maxnumelemz_);
 
+
+    //@{
+    //! store the new solution returned by the algebraic system
+    //! \param ptSol pointer to solution array
+    //! \param size legnth of solution array
+    virtual void SaveSolution( const Double * ptSol, UInt size ) = 0;
+    virtual void SaveSolution( const Complex * ptSol, UInt size ) = 0;
+    //@}
+
+    //! get the data vector of the current solution of a PDE.
+    CFSVector * GetSolutionVector();
+    
+    /// returns the time derivative of the solution belonging to all nodes of the actual element
+    void GetDerivSolOfElement(Matrix<Double>& sol, StdVector<UInt>& connect_PDE);
+    
+    /// returns the vector of the solution belonging to all nodes of the actual element
+    void GetSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
+    
+    /// returns the vector of time derivative of the solution belonging to all nodes of the actual element
+    void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
+    
+    /// returns the vector of 2nd time derivative of the solution belonging to all nodes 
+    /// of the actual element
+    void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
+    
+    
     // ======================================================
     // METHODS FOR ASSEMBLING
     // ======================================================
@@ -239,6 +265,9 @@ namespace CoupledField {
 
     //! trigger the reassmbling of the matrices
     virtual void SetReassemble() = 0;
+
+    //! sets the actual frequency (just needed for harmonic analysis)
+    virtual void SetFrequency(Double actFreq) = 0;
 
     //! Init the time stepping
     virtual void InitTimeStepping()
@@ -307,43 +336,12 @@ namespace CoupledField {
     };
   
 
-////////////////////////////////////////////////////
-// Made these methods (temporarily ?) public, since method
-// SolveStepAcousticBubble::StepTransBubble wants to use them.
-// Should be fixed properly (Uwe, 22.07.2005)
-public:
-    //@{
-    //! store the new solution returned by the algebraic system
-    //! \param ptSol pointer to solution array
-    //! \param size legnth of solution array
-    virtual void SaveSolution( const Double * ptSol, UInt size ) = 0;
-    virtual void SaveSolution( const Complex * ptSol, UInt size ) = 0;
-    //@}
-
-    //! get the data vector of the current solution of a PDE.
-    CFSVector * GetSolutionVector();
-
-protected:
 
     //! stores an algsys_ vector into a StdVector
     void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
 
     //! calculates L2-norm of RHS regarding entries due to penalty formulation
     Double RhsL2Norm(Vector<Double>& stdVec);
-  
-    /// returns the time derivative of the solution belonging to all nodes of the actual element
-    void GetDerivSolOfElement(Matrix<Double>& sol, StdVector<UInt>& connect_PDE);
-
-    /// returns the vector of the solution belonging to all nodes of the actual element
-    void GetSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
-
-    /// returns the vector of time derivative of the solution belonging to all nodes of the actual element
-    void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
-
-    /// returns the vector of 2nd time derivative of the solution belonging to all nodes 
-    /// of the actual element
-    void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
-  
 
     //!
     void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);
