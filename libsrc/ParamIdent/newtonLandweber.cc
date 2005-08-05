@@ -1,50 +1,6 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-//#include "staticdriver.hh"
-#include "DataInOut/GMV/outGMV.hh"
-#include "General/environment.hh"
+
 #include "PDE/SinglePDE.hh" 
-
 #include "piezoParamIdent.hh"
-#include "Forms/baseForm.hh"
-#include "Utils/vector.hh"
-#include "Utils/nodestoresol.hh"
-#include "Utils/elemstoresol.hh"
-#include "DataInOut/MaterialData.hh"
-#include "PDE/timestepping.hh"
-#include "Utils/baseelemstoresol.hh"
-#include "Driver/singleDriver.hh"
-#include "PDE/nodeEQN.hh"
-#include <Domain/elem.hh>
-#include "Forms/forms_header.hh"
-
-
-#ifdef __sgi
-#include <stdarg.h>
-#include <stdio.h>
-#include <math.h>
-#define POW pow
-#else
-#include <cstdarg>
-#include <cstdio>
-#include <cmath>
-#define POW std::pow
-#endif
-
-#include <stdlib.h>
-#include <sstream>
-#include <iomanip>
-
-
-
-#include "Utils/tools.hh"
-#include <PDE/pdes_header.hh>
-
-
-//#include "/../OLAS/algsys/basesystem.hh"
-//#include "DataInOut/piezoParameterData.hh"
-
 
 
 namespace CoupledField

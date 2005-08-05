@@ -5,62 +5,29 @@
 #include "Driver/assemble.hh"
 
 
+#ifdef __sgi
+#include <stdarg.h>
+#include <stdio.h>
+#include <math.h>
+#define POW pow
+#else
+#include <cstdarg>
+#include <cstdio>
+#include <cmath>
+#define POW std::pow
+#endif
+
+
 // forward class declaration
 class SinglePDE;
+class StdPDE;
+class SingleDriver;
+class PiezoPDE;
+
 
 namespace CoupledField 
 {
 
-#ifdef USE_LAPACK
- 
-#define LP_ZSYSV zsysv_ // solves symmetric matrices
-#define LP_ZGESV zgesv_ // solves general type of matrices
-#define LP_ZHESV zhesv_ // solves  ZHESV computes the solution to a complex system of linear equations
-  // A * X = B, where A is an N-by-N Hermitian matrix and X and B are N-by-NRHS matrices
-#define LP_DLAMCH dlamch_ // tests data types ...
-#define LP_ZHEEV zheev_ //ZHEEV computes all eigenvalues and, optionally, eigenvectors of a
-  //  complex Hermitian matrix A.
-
-  typedef double F77real8;
-  
-
-//   class F77complex16 {
-//   public:
-//     F77real8 real;
-//     F77real8 imag;
-//     F77complex16() {
-//       real = 0;
-//       imag = 0;
-//     }
-//     F77complex16 &operator= ( F77complex16 v ) {
-//       this->real = v.real;
-//       this->imag = v.imag;
-//       return *this;
-//     }
-//     F77complex16 &operator= ( double v ) {
-//       this->real = v;
-//       this->imag = 0;
-//       return *this;
-//     }
-//     F77complex16 &operator+= ( F77complex16 v ) {
-//       this->real += v.real;
-//       this->imag += v.imag;
-//       return *this;
-//     }
-//   };
-
-  // Generate prototypes for LAPACK routines
-  extern "C" {
-    //  void LP_ZSYSV( int*, int*, int*, int*, F77real8    *, int*, int*, int* );
-    void LP_ZSYSV( char*, int*, int*, F77complex16*, int*, int*, F77complex16*, int*, F77complex16*, int*, int*);
-    void LP_ZHESV( char*, int*, int*, F77complex16*, int*, int*, F77complex16*, int*, F77complex16*, int*, int*);
-    void LP_ZGESV( int*, int*, F77complex16*, int*, int*, F77complex16*, int*, int*);
-    double LP_DLAMCH (char *CMACHp); // DLAMCH - determine double precision machine parameters
-    void LP_ZHEEV( char*, char*, int*, F77complex16*, int *, F77real8*, F77complex16*, int*, F77real8* ,int* ); 
-
-  }
-
-#endif
   
 
   //! Driver class for an inverse problem: The identification of material parameters in a piezoelectric body.
@@ -149,8 +116,8 @@ namespace CoupledField
 
     //! Calculates an approximation of the Jacobi Matrix of parameter to solution operator F 
     //! \param Jacobi Matrix - approximation of F'
-    void createJacobiMatrix(MaterialData * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
-                            Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
+  //   void createJacobiMatrix(MaterialData * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
+//                             Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
     //! Creates special Jacobi Matrix, for optimal experiment design
     void createJacobian(Vector<Complex> & jacobi, Double omega);
@@ -164,6 +131,7 @@ namespace CoupledField
     //! Determines J(omega) in case of flexible number of frequencies
     void createJRho(Complex &J, Boolean writeOutCov);
 
+    //! Not in use in this version
     void createJacobiMatrix2(Matrix<Complex> & JacobiMatrix);
     void createJacobiMatrixC(Matrix<Complex> & JacobiMatrix);
 
@@ -217,13 +185,13 @@ namespace CoupledField
     
   
     //! see SFBReport F013 for details ;-)
-    void NewtonCG();
+  //   void NewtonCG();
 
-    //! The version from 10.12.04 ...
-    void NewtonCG1();
+//     //! The version from 10.12.04 ...
+//     void NewtonCG1();
 
-    //! see SFBReport F013 for details ;-)
-    void NewtonCG2();
+//     //! see SFBReport F013 for details ;-)
+//     void NewtonCG2();
 
     //! see SFBReport F013 for details ;-)
     void NewtonCG3();
