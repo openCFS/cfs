@@ -61,7 +61,7 @@ namespace CoupledField {
     Double loadFactor = 1.0;
     Double extForcesL2Norm = SetLinRHS(loadFactor); 
 
-    assemble_->AssembleNLRHS();
+    PDE_.AssembleNLRHS();
 
    std::cout << "In SolveStepStaticNonLin" << std::endl;
     do
@@ -81,8 +81,8 @@ namespace CoupledField {
 
 
 	// setup and solve new system (rhs is already set) =====================
-	assemble_->InitNonLinMatrices();
-	assemble_->AssembleMatrices();
+	PDE_.InitNonLinMatrices();
+	PDE_.AssembleMatrices();
       
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
 	algsys_->BuildInDirichlet();
@@ -111,7 +111,7 @@ namespace CoupledField {
 	// recalculate RHS with new values to get new residual (f^(k+1))========
 	algsys_->InitRHS(RhsLinVal_.GetPointer());
 
-	assemble_->AssembleNLRHS();  // inner forces due to nonlin formulation
+	PDE_.AssembleNLRHS();  // inner forces due to nonlin formulation
 
 
 	// =====================================================================
@@ -239,7 +239,8 @@ namespace CoupledField {
 
 
 	// setup and solve new system (rhs is already set) =====================
-	assemble_->InitNonLinMatrices();
+	PDE_.InitNonLinMatrices();
+	PDE_.AssembleMatrices();
 	assemble_->AssembleMatrices();
 	algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
