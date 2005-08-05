@@ -1,49 +1,8 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include "DataInOut/GMV/outGMV.hh"
-#include "General/environment.hh"
 #include "PDE/SinglePDE.hh" 
-
+#include "PDE/piezoPDE.hh"
 #include "piezoParamIdent.hh"
-#include "Forms/baseForm.hh"
-#include "Utils/vector.hh"
-#include "Utils/nodestoresol.hh"
-#include "Utils/elemstoresol.hh"
-#include "DataInOut/MaterialData.hh"
-#include "PDE/timestepping.hh"
-#include "Utils/baseelemstoresol.hh"
-#include "Driver/singleDriver.hh"
-#include "PDE/nodeEQN.hh"
-#include <Domain/elem.hh>
-#include "Forms/forms_header.hh"
-#include "Utils/mathfunctions.hh"
-#include "DataInOut/ParamHandling/BaseParamHandler.hh"
-
-#ifdef USE_LAPACK
-#include "Matrix/matrixLapackSupport.hh"
-#endif
 
 
-#ifdef __sgi
-#include <stdarg.h>
-#include <stdio.h>
-#include <math.h>
-#define POW pow
-#else
-#include <cstdarg>
-#include <cstdio>
-#include <cmath>
-#define POW std::pow
-#endif
-
-#include <stdlib.h>
-#include <sstream>
-#include <iomanip>
-
-
-#include "Utils/tools.hh"
-#include <PDE/pdes_header.hh>
 
 namespace CoupledField
 {
@@ -66,65 +25,30 @@ namespace CoupledField
 #endif
 
 
-    Matrix<Complex> x, data;
-    data.Resize(3,3);
 
-//     data[0][0]=Complex(2.0,1.0);
-//     data[0][1]=Complex(1.0,1.0);
-//     data[0][2]=Complex(2.0,0.0);
-//     data[1][0]=Complex(1.0,1.0);
-//     data[1][1]=Complex(2.0,2.0);
-//     data[1][2]=Complex(0.0,0.0);
-//     data[2][0]=Complex(2.0,0.0);
-//     data[2][1]=Complex(0.0,0.0);
-//     data[2][2]=Complex(2.0,2.0); 
-
-    data[0][0]=Complex(2.0,0.0);
-    data[0][1]=Complex(1.0,0.0);
-    data[0][2]=Complex(0.0,-5.0);
-    data[1][0]=Complex(1.0,0.0);
-    data[1][1]=Complex(6.0,0.0);
-    data[1][2]=Complex(0.0,0.0);
-    data[2][0]=Complex(0.0,-5.0);
-    data[2][1]=Complex(0.0,0.0);
-    data[2][2]=Complex(3.0,0.0); 
-
-    Matrix<Complex> rhsMat;
-    rhsMat.Resize(3,3);
-
-    for(UInt i=0;i<3;i++)
-      rhsMat[i][i]=Complex(1.0,0.0);
-
-    lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
-
-#ifdef USE_LAPACK
-    data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
-#endif
-
-    Vector<Double> eigen;
-    //data.eigenvaluesWithLapack(eigen);
-//     std::cout<<"eigen:"<<std::endl;
-//     std::cout<<eigen<<std::endl;
-
-    std::cout<<"rhsMat:"<<std::endl;
-    std::cout<<rhsMat<<std::endl;
-
-    std::cout<<data*rhsMat<<std::endl;
-    getchar();
-
- 
     // optimalExpDesignDiffNumberFreqs();
-    nrMeasuredData=5;
+    nrMeasuredData=7;
     Vector<Double> freqs5;
-    freqs5.Resize(5);
+    freqs5.Resize(7);
     freqs5[0]=3.0e+06;
-    freqs5[1]=3.5e+06;
-    freqs5[2]=4.0e+06;
-    freqs5[3]=5.9e+06;
-    freqs5[4]=6.5e+06;
+    freqs5[1]=4.0e+06;
+    freqs5[2]=6.0e+06;
+    freqs5[3]=6.5e+06;
+    freqs5[4]=6.0e+06;
+    freqs5[5]=6.5e+06;
+    freqs5[6]=7.0e+06;
+    //    freqs5[7]=7.5e+06;
+
     freqs=freqs5;
     Vector<Double> newFreqs;
+   
+    for(UInt fr=0;fr<nrMeasuredData;fr++)
+      *impedCurve<< freqs[fr]<<"  ";
+    *impedCurve<<std::endl;
+
     readInMeasurement(newFreqs);
+
+    calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
 
     //  actNrParameterC=0;
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
@@ -152,27 +76,29 @@ namespace CoupledField
     std::cout<<fa_<<std::endl;
     Vector<Complex> jacobi;
 
-#ifdef USE_LAPACK
-    NewArray( lp_af77, F77complex16, actNrParameter+actNrParameterC*actNrParameter+actNrParameterC );
-    NewArray(lp_wf77, F77real8,actNrParameter+actNrParameterC);
-    NewArray(lp_workf77,F77complex16,99);
-    NewArray(lp_rworkf77,F77real8,3*actNrParameter+actNrParameterC-2);
-#endif
+// #ifdef USE_LAPACK
+//     NewArray( lp_af77, F77complex16, actNrParameter+actNrParameterC*actNrParameter+actNrParameterC );
+//     NewArray(lp_wf77, F77real8,actNrParameter+actNrParameterC);
+//     NewArray(lp_workf77,F77complex16,99);
+//     NewArray(lp_rworkf77,F77real8,3*actNrParameter+actNrParameterC-2);
+// #endif
 
     Complex functional;
 
     for (UInt nrOptExpSteps=0; nrOptExpSteps<20; nrOptExpSteps++){ 
       UInt nrNuMethods=0;
+
+      descentMethod(functional);
       readInMeasurement(newFreqs);
 
-//       for(UInt fr=0;fr<nrMeasuredData;fr++)
-//         *optimalFreqs<< freqs[fr]<<"  ";
+      for(UInt fr=0;fr<nrMeasuredData;fr++)
+        *impedCurve<< freqs[fr]<<"  ";
+      *impedCurve<<std::endl;
 
-      std::cout<<" before calc_measuredCharge" <<std::endl;
       calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       newtonCounter=0;
 
-      std::cout<<" after calc_measuredCharge" <<std::endl;
+
       while (nrNuMethods<maxNumberNewtonLoops){
         //    nuMethodsC2();
         nuMethods();
@@ -187,7 +113,6 @@ namespace CoupledField
 
         newtonCounter++;
       }
-      descentMethod(functional);
       
     } // end nrOptExpSteps
     
@@ -297,15 +222,16 @@ namespace CoupledField
 
     Vector<Complex> gradient;
     //    Double lambda = 0.00002; // for three parameter
-    Double lambda = 1.0e+8; // for three parameter
+    //Double lambda = 1.0e+8; // for three parameter
     // Double lambda = 1.0e-19; // for nine parameter
-    // Double lambda = 1.0e-7; // for nine parameter
+    //Double lambda = 1.0e+3; // for nine parameter
+    Double lambda = 1.0e+5; // for nine parameter
     //Double lambda = 1.0e-7; // for nine parameter
     //    Double lambda = 1.0; // for nine parameter using M - confidence crit.
     //    Double lambda = 1.0e+7; // for nine parameter using M - confidence crit.
     //Double lambda = 40; // for three parameters using M - confidence crit.
 
-    UInt maxNumberDescentIterations=10;
+    UInt maxNumberDescentIterations=2;
    
     for (UInt descIter=0;descIter<maxNumberDescentIterations;descIter++){
 
@@ -329,10 +255,10 @@ namespace CoupledField
       //      getchar();
       
       *optimalFreqs<< descIter <<"  "<< J.real() <<"  ";
-      for(UInt fr=0;fr<nrMeasuredData;fr++){
-        *optimalFreqs<< freqs[fr]<<"  ";
-        std::cout<<"freqs written out, "<< fr<<") = "<<freqs[fr]<<std::endl;
-      }
+      //     for(UInt fr=0;fr<nrMeasuredData;fr++){
+      // *impedCurve<< freqs[fr]<<"  ";
+         //         std::cout<<"freqs written out, "<< fr<<") = "<<freqs[fr]<<std::endl;
+      //       }
       *optimalFreqs<<std::endl;    
 
       UInt innerCounter=0;
@@ -389,14 +315,14 @@ namespace CoupledField
               std::cout<<"! Frequency "<< fr <<" to close to fa, fixed it at f= " << fa_<< std::endl;
             }
           } 
-          if (freqs[fr]<=1.0e+06){
+          if (freqs[fr]<=2.0e+06){
             std::cout<<"! There are no measurements for frequency "<< fr  <<std::endl;
-            std::cout<<"! Fixed frequency at 1.0e+06 " <<std::endl;
-            freqs[fr]=1.0e+06;
+            std::cout<<"! Fixed frequency at 2.0e+06 " <<std::endl;
+            freqs[fr]=2.0e+06;
           }
           if(freqs[fr]>=8.0e+06){
             std::cout<<"! There are no measurements for frequency"<<fr <<std::endl;
-            std::cout<<"! Fixed frequency at 8.0e+06 " <<std::endl;
+            std::cout<<"! Fixed frequency at 9.0e+06 " <<std::endl;
             freqs[fr]=8.0e+06;
           }
             
@@ -433,8 +359,7 @@ namespace CoupledField
 
        createJacobian(jacobi, freqs[actFreq]);
        jacobiH.Resize(actNrParameter+actNrParameterC);
-       
-       //       std::cout<<jacobi<<std::endl;
+
        for (UInt i=0;i<jacobi.GetSize();i++)
          jacobiH[i]=Complex(jacobi[i].real(),-jacobi[i].imag());
        
@@ -448,9 +373,6 @@ namespace CoupledField
          }
        cov+=covTemp;
      } // end for actFreq ...
-
-     std::cout<<"cov"<<std::endl;
-     std::cout<<cov<<std::endl;
 
      //     invertWithLapack(cov);
 
@@ -480,7 +402,13 @@ namespace CoupledField
      if (std::abs(diagC)>1.5)
        std::cout<<" ! Inversion of Cov failed!!"<<std::endl;
 
+  //    cov[0][0]/=parameter[1];
+//      cov[1][1]/=parameter[7];
+//      cov[2][2]/=parameter[9];
 
+
+   //   std::cout<<"cov"<<std::endl;
+//      std::cout<<cov<<std::endl;
 
 // //       getchar();
 //       cov=data;
@@ -500,101 +428,157 @@ namespace CoupledField
 
      // A - Criterion
     if(TRUE){
-      for(UInt i=0; i<actNrParameter+actNrParameterC; i++)
+      Vector<Double> covDiag(actNrParameter+actNrParameterC);
+      for(UInt i=0; i<actNrParameter+actNrParameterC; i++){
         J+=cov[i][i];
-      J=J/Complex(actNrParameter+actNrParameterC,0.0);
-      if (writeOutCov==TRUE){
-        for(UInt i=0; i<actNrParameter+actNrParameterC; i++){
-          *optimalFreqs<<cov[i][i].real()<<"  ";
-        }
-        *optimalFreqs<<parameter[1]+1000.0*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
-        std::cout<<parameter[1]+1000.0*std::sqrt(cov[0][0].real()*0.115*0.115)<<std::endl;
-        *optimalFreqs<<parameter[1]<<"  ";
-        *optimalFreqs<<parameter[1]-1000.0*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
-        std::cout<<parameter[1]-1000.00*std::sqrt(cov[0][0].real()*0.115*0.115)<<std::endl;
-
-
-        *optimalFreqs<<parameter[7]+1.0e-7*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
-        *optimalFreqs<<parameter[7]<<"  ";
-        *optimalFreqs<<parameter[7]-1.0e-7*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
-
-
-        *optimalFreqs<<parameter[9]+1.0e-15*std::sqrt(cov[2][2].real()*0.115*0.115*0.01)<<"  ";
-        *optimalFreqs<<parameter[9]<<"  ";
-        *optimalFreqs<<parameter[9]-1.0e-15*std::sqrt(cov[2][2].real()*0.115*0.115*0.01)<<"  ";
+        covDiag[i]=cov[i][i].real();
       }
+      J=J/Complex(actNrParameter+actNrParameterC,0.0);
+      
+      if (writeOutCov==TRUE){
+        std::cout<<"covDiag"<<std::endl;
+        std::cout<<covDiag<<std::endl;
+      
+        //        for(UInt i=0; i<actNrParameter+actNrParameterC; i++){
+//           *optimalFreqs<<cov[i][i].real()<<"  ";
+//         }
 
+        if (actNrParameter==3){      
+          *optimalFreqs<<parameter[1]+parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+        //        std::cout<<parameter[1]+parameter[1]*std::sqrt(cov[1][1].real()*0.115*0.115)<<std::endl;
+          *optimalFreqs<<parameter[1]<<"  ";
+          *optimalFreqs<<parameter[1]-parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+        //        std::cout<<parameter[1]-1000.0*std::sqrt(cov[0][0].real()*parameter[1]*0.115*0.115)<<std::endl;
+
+
+          *optimalFreqs<<parameter[7]+parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+          *optimalFreqs<<parameter[7]<<"  ";
+          *optimalFreqs<<parameter[7]-parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+
+
+          *optimalFreqs<<parameter[9]+parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+          *optimalFreqs<<parameter[9]<<"  ";
+          *optimalFreqs<<parameter[9]-parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+        }
+
+        else if (actNrParameter==4){
+          for (UInt ii=0;ii<=4;ii++){
+            if(ii<=1){
+              *optimalFreqs<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*0.115*0.115)<<"  ";
+              *optimalFreqs<<parameter[ii]<<"  ";
+              *optimalFreqs<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*0.115*0.115)<<"  ";
+            }
+            else if(ii>2)
+              {
+                *optimalFreqs<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii-1][ii-1].real()*0.115*0.115)<<"  ";
+                *optimalFreqs<<parameter[ii]<<"  ";
+                *optimalFreqs<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii-1][ii-1].real()*0.115*0.115)<<"  ";
+              }
+          }
+        }
+        if (actNrParameter==10){
+          for (UInt ii=0;ii<10;ii++){
+            *optimalFreqs<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+            *optimalFreqs<<parameter[ii]<<"  ";
+            *optimalFreqs<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+          }
+        }
+        if (actNrParameter==5){
+          for (UInt ii=0;ii<5;ii++){
+            *optimalFreqs<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*0.55*0.55)<<"  ";
+            *optimalFreqs<<parameter[ii]<<"  ";
+            *optimalFreqs<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*0.55*0.55)<<"  ";
+          }
+        }   
+
+      }
     }
+
+    
     // smallest eigenvalue criterion:
     if(FALSE){
 
-#ifndef USE_LAPACK
-    std::cout<<"Optimum experiment design works with LAPACK Routines"<<std::endl;
-    std::cout<<"Please set LAPACK = yes in your Makefile.option (CFS & OLAS)" <<std::endl;
-#endif
+      Vector<Double> eig;
+      cov.eigenvaluesWithLapack(eig);
 
-#ifdef USE_LAPACK
-      char lp_jobz='V';
-      char lp_uplo='L';
-      Integer lp_N=actNrParameter+actNrParameterC;                
-      Integer lp_lda=actNrParameter+actNrParameterC;
+      std::cout<<"eigenvalues"<<std::endl;
+      std::cout<<eig<<std::endl;
       
-      // array contains ev in ascending order
-      Vector<Double> lp_w;
-      lp_w.Resize(actNrParameter+actNrParameterC);
-      
-      Integer lp_lworkf77=99;
-      
-      // workspace array - complex 16 array
-      Vector<Complex> lp_work;
-      lp_work.Resize(lp_lworkf77);
-      
-      // workspace array - double precission
-      Vector<Double> lp_rwork;
-      lp_rwork.Resize(3*actNrParameter+actNrParameterC-2);
-      
-      Integer lp_infof77;
-      F77complex16 auxValC;
-      F77real8 auxValR;
-      
-      
-      // Convert CFS++ Vector<Complex> to Vector<F77complex16>
-      for ( UInt count = 0; count < actNrParameter+actNrParameterC; count++ ) 
-        for ( UInt countC = 0; countC < actNrParameter+actNrParameterC; countC++ ) {
-          CC2F77( cov[count][countC], auxValC );
-          lp_af77[countC*actNrParameter+actNrParameterC+count] = auxValC;
-        }
-
-      for ( UInt count = 0; count < actNrParameter+actNrParameterC; count++ ) {
-        CC2F77( lp_w[count], auxValR );
-        lp_wf77[count] = auxValR;
-      }
-      
-      for (UInt count=0; count < lp_rwork.GetSize();count++){
-        CC2F77(lp_rwork[count], auxValR);
-        lp_rworkf77[count] = auxValR;
-      }
-      
-      //     void LP_ZHEEV( char*, char*, int*, F77complex16*, int *, F77real8*, F77complex16*, int*, F77real8* ,int* ); 
-      zheev_( &lp_jobz, &lp_uplo, &lp_N, lp_af77, &lp_lda, lp_wf77, lp_workf77, &lp_lworkf77, lp_rworkf77 ,&lp_infof77); 
-      
-      // reconvert f772C++
-      for (UInt count=0; count < lp_work.GetSize();count++)
-        F772CC(lp_workf77[count], lp_work[count]);
-      
-      for ( UInt count = 0; count < actNrParameter+actNrParameterC; count++ ) 
-        F772CC( lp_wf77[count], lp_w[count] );
-      
-//        std::cout<<"eigenvalues"<<std::endl;
-//        std::cout<<lp_w<<std::endl;
-      
-      Double eigMin=std::abs(lp_w[0]);
+      Double eigMin=std::abs(eig[0]);
       for(UInt eigInd=0; eigInd<actNrParameter+actNrParameterC; eigInd++){
-        if(std::abs(lp_w[eigInd])>eigMin)
-          eigMin=std::abs(lp_w[eigInd]);
+        if(std::abs(eig[eigInd])>eigMin)
+          eigMin=std::abs(eig[eigInd]);
       }
       J=std::log(eigMin);
-#endif
+
+
+// #ifndef USE_LAPACK
+//     std::cout<<"Optimum experiment design works with LAPACK Routines"<<std::endl;
+//     std::cout<<"Please set LAPACK = yes in your Makefile.option (CFS & OLAS)" <<std::endl;
+// #endif
+
+// #ifdef USE_LAPACK
+//       char lp_jobz='V';
+//       char lp_uplo='L';
+//       Integer lp_N=actNrParameter+actNrParameterC;                
+//       Integer lp_lda=actNrParameter+actNrParameterC;
+      
+//       // array contains ev in ascending order
+//       Vector<Double> lp_w;
+//       lp_w.Resize(actNrParameter+actNrParameterC);
+      
+//       Integer lp_lworkf77=99;
+      
+//       // workspace array - complex 16 array
+//       Vector<Complex> lp_work;
+//       lp_work.Resize(lp_lworkf77);
+      
+//       // workspace array - double precission
+//       Vector<Double> lp_rwork;
+//       lp_rwork.Resize(3*actNrParameter+actNrParameterC-2);
+      
+//       Integer lp_infof77;
+//       F77complex16 auxValC;
+//       F77real8 auxValR;
+      
+      
+//       // Convert CFS++ Vector<Complex> to Vector<F77complex16>
+//       for ( UInt count = 0; count < actNrParameter+actNrParameterC; count++ ) 
+//         for ( UInt countC = 0; countC < actNrParameter+actNrParameterC; countC++ ) {
+//           CC2F77( cov[count][countC], auxValC );
+//           lp_af77[countC*actNrParameter+actNrParameterC+count] = auxValC;
+//         }
+
+//       for ( UInt count = 0; count < actNrParameter+actNrParameterC; count++ ) {
+//         CC2F77( lp_w[count], auxValR );
+//         lp_wf77[count] = auxValR;
+//       }
+      
+//       for (UInt count=0; count < lp_rwork.GetSize();count++){
+//         CC2F77(lp_rwork[count], auxValR);
+//         lp_rworkf77[count] = auxValR;
+//       }
+      
+//       //     void LP_ZHEEV( char*, char*, int*, F77complex16*, int *, F77real8*, F77complex16*, int*, F77real8* ,int* ); 
+//       zheev_( &lp_jobz, &lp_uplo, &lp_N, lp_af77, &lp_lda, lp_wf77, lp_workf77, &lp_lworkf77, lp_rworkf77 ,&lp_infof77); 
+      
+//       // reconvert f772C++
+//       for (UInt count=0; count < lp_work.GetSize();count++)
+//         F772CC(lp_workf77[count], lp_work[count]);
+      
+//       for ( UInt count = 0; count < actNrParameter+actNrParameterC; count++ ) 
+//         F772CC( lp_wf77[count], lp_w[count] );
+      
+// //        std::cout<<"eigenvalues"<<std::endl;
+// //        std::cout<<lp_w<<std::endl;
+      
+//       Double eigMin=std::abs(lp_w[0]);
+//       for(UInt eigInd=0; eigInd<actNrParameter+actNrParameterC; eigInd++){
+//         if(std::abs(lp_w[eigInd])>eigMin)
+//           eigMin=std::abs(lp_w[eigInd]);
+//       }
+//       J=std::log(eigMin);
+// #endif
 
     } // end minim EV criterion
 
@@ -891,19 +875,21 @@ namespace CoupledField
      for (UInt ind_param=0;ind_param<nrParameter;ind_param++){ 
       if (whichParameterToUpdate[ind_param]==1){
         
-        parIncr1[ind_param]=1.00001*parameter[ind_param];
+        parIncr1[ind_param]=1.001*parameter[ind_param];
         //        std::cout<<parIncr1<<std::endl;
         updateMaterialData(parIncr1,ptMaterial);
         createFVec(F_hat_incr1,FALSE,omega);
         // std::cout<<"par="<<ind_param<<" ="<<F_hat_incr1<<std::endl;
         
-        parIncr2[ind_param]=0.99999*parameter[ind_param];  
+        parIncr2[ind_param]=0.999*parameter[ind_param];  
 
         updateMaterialData(parIncr2,ptMaterial);
         createFVec(F_hat_incr2,FALSE,omega);
 
+//         std::cout<<"scaling"<<std::endl;
+//         std::cout<<scaling<<std::endl;
         jacobi[parInd]=0.5*(F_hat_incr1-F_hat_incr2)/
-          ((parIncr1[ind_param]-parIncr2[ind_param])*scaling[ind_param]);
+          ((parIncr1[ind_param]-parameter[ind_param])*scaling[ind_param]);
         
         parIncr1[ind_param]=parameter[ind_param];
         parIncr2[ind_param]=parameter[ind_param];

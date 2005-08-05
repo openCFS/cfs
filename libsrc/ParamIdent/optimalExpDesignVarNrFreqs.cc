@@ -1,46 +1,5 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include "DataInOut/GMV/outGMV.hh"
-#include "General/environment.hh"
 #include "PDE/SinglePDE.hh" 
-
 #include "piezoParamIdent.hh"
-#include "Forms/baseForm.hh"
-#include "Utils/vector.hh"
-#include "Utils/nodestoresol.hh"
-#include "Utils/elemstoresol.hh"
-#include "DataInOut/MaterialData.hh"
-#include "PDE/timestepping.hh"
-#include "Utils/baseelemstoresol.hh"
-#include "Driver/singleDriver.hh"
-#include "PDE/nodeEQN.hh"
-#include <Domain/elem.hh>
-#include "Forms/forms_header.hh"
-#include "Utils/mathfunctions.hh"
-#include "DataInOut/ParamHandling/BaseParamHandler.hh"
-
-
-#ifdef __sgi
-#include <stdarg.h>
-#include <stdio.h>
-#include <math.h>
-#define POW pow
-#else
-#include <cstdarg>
-#include <cstdio>
-#include <cmath>
-#define POW std::pow
-#endif
-
-#include <stdlib.h>
-#include <sstream>
-#include <iomanip>
-
-
-#include "Utils/tools.hh"
-#include <PDE/pdes_header.hh>
-
 
 namespace CoupledField
 {
@@ -52,34 +11,131 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::optimalDesignVarNrFreqs");
     std::cout<<"call for optimum experiment desing with variable number of frequencies "<<std::endl;
 
+    Boolean firstTime=TRUE;
 
-    Double hOmega = (stopfreq-startfreq)/nrfreq;
-    freqs.Resize(nrfreq);
-    nrMeasuredData=nrfreq;
+    for(UInt optExpVarFreqCout=0; optExpVarFreqCout<15; optExpVarFreqCout++){
+
+      Double hOmega = (stopfreq-startfreq)/nrfreq;
+      freqs.Resize(nrfreq);
+      nrMeasuredData=nrfreq;
     
-    for (UInt actFreq=0;actFreq<nrfreq;actFreq++)
-      freqs[actFreq] = startfreq+actFreq*hOmega;
+      for (UInt actFreq=0;actFreq<nrfreq;actFreq++)
+        freqs[actFreq] = startfreq+actFreq*hOmega;
 
-    std::cout<<freqs<<std::endl;
+      Vector<Double> newFreqs;
+      readInMeasurement(newFreqs);
+      calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
+    
+      if (firstTime==TRUE){
+        std::cout<<freqs<<std::endl;
+      firstTime=FALSE;
+    }
 
-    UInt maxNrBreakpoints = nrfreq;
+      UInt maxNrBreakpoints = nrfreq;
 
-    Complex J;
+      Complex J;
 
-    Double dOmega = 0.0001;
-    rhos.Resize(nrfreq);
+      Double dOmega = 0.0001;
+      rhos.Resize(nrfreq);
 
-    for(UInt i=0;i<nrfreq;i++)
-      rhos[i]=0.1;
+      for(UInt i=0;i<nrfreq;i++)
+        rhos[i]=0.1;
 
+      descentMethodRho(J);
+      std::cout<<"rhos: "<<std::endl;
+      std::cout<<rhos<<std::endl;
 
-    descentMethodRho(J);
+      UInt nrNuMethods=0;
 
-    std::cout<<"Final rhos ..." <<std::endl;
-    std::cout<<rhos <<std::endl;
-    //  std::cout<< " J after descent - method = " << J <<std::endl;
- 
+      // choose 8 highest values ...
+      Vector<Double> highestFreqs;
+      Vector<Double> highestRhos;
+      UInt maxIndex;
+      Double sumRhos=0.0;
+      highestFreqs.Resize(nrfreq);
+      highestRhos.Resize(nrfreq);
 
+      for (UInt i=0;i<nrfreq;i++){
+        maxIndex=0;
+        highestFreqs[i]=rhos[0];
+
+        for (UInt j=0;j<rhos.GetSize();j++){
+          if (highestRhos[i]<=rhos[j]){
+            highestFreqs[i]=freqs[j];
+            highestRhos[i]=rhos[j];
+            maxIndex=j;
+          }
+        }
+        rhos[maxIndex]=0.0;
+        sumRhos+=highestRhos[i];
+        if (sumRhos>1.3){
+          std::cout<<"sumRhos = "<<sumRhos <<std::endl;
+          //          getchar();
+          break;
+        }
+      }
+             
+      Integer howManyFreqs=0;
+      for (UInt i=0;i<nrfreq;i++)
+        if (highestFreqs[i]!=0.0)
+          howManyFreqs++;
+
+      std::cout<<"howManyFreqs = "<< howManyFreqs<<std::endl;
+
+      // sort highestFreqs
+      Double dv,dr;
+      Integer k, ii;
+
+      for (k=0; k<howManyFreqs-1; ++k)
+        for (ii=k+1; ii<howManyFreqs; ++ii)
+          if (highestFreqs[ii] < highestFreqs[k])
+            {
+              dv = highestFreqs[k];
+              dr = highestRhos[k];
+              highestFreqs[k] = highestFreqs[ii];
+              highestRhos[k] = highestRhos[ii];
+              highestFreqs[ii] = dv;
+              highestRhos[ii] = dr;
+            }
+
+ //      std::cout<<"highestRhos"<<std::endl;
+//       std::cout<<highestRhos<<std::endl;
+//       std::cout<<"highestFreqs"<<std::endl;
+//       std::cout<<highestFreqs<<std::endl;
+      
+
+      nrMeasuredData=howManyFreqs;
+      rhos.Resize(howManyFreqs);
+      freqs.Resize(howManyFreqs);
+      real.Resize(howManyFreqs);
+      imag.Resize(howManyFreqs);
+
+      rhos=highestRhos;
+      freqs=highestFreqs;
+
+      readInMeasurement(newFreqs);
+
+      calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
+      newtonCounter=0;
+    
+      while (nrNuMethods<maxNumberNewtonLoops){
+        //    nuMethodsC2();
+        nuMethods();
+        nrNuMethods++;
+        for (UInt i=0; i<parameter.GetSize(); i++)
+          *parFinal<<parameter[i]<<", ";
+        *parFinal<<"/"<<std::endl;
+
+        for (UInt i=0; i<parameterC.GetSize(); i++)
+          *parFinal<<parameterC[i]<<", ";
+        *parFinal<<"/"<<std::endl;
+
+        newtonCounter++;
+      }
+
+      //  nrfreq++;
+
+    }
 
   }
 
@@ -91,16 +147,12 @@ namespace CoupledField
     //    Complex J;
     J=Complex(0.0,0.0);
 
-    Vector<Double> newFreqs;
+
     Vector<Complex> jacobi;
     Vector<Complex> jacobiH;
 
     Double penaltyFactor1=0.1;
     Double penaltyFactor2=0.1;
-
-
-    readInMeasurement(newFreqs);
-    calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
 
     fr_=4000/(2*thickness);
     // minus 5 percent
@@ -139,21 +191,32 @@ namespace CoupledField
        //       std::cout<<jacobi<<std::endl;
        for (UInt i=0;i<jacobi.GetSize();i++)
          jacobiH[i]=Complex(jacobi[i].real(),-jacobi[i].imag());
-       
-       for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
-         for(UInt j=0;j<actNrParameter+actNrParameterC;j++){
-	   //           if (freqs[actFreq]<=fr_||freqs[actFreq]>=fa_){
-         //           covTemp[i][j]=jacobiH[i]*jacobi[j]/(delta*delta*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+
+       if (freqs[actFreq]<=fr_||freqs[actFreq]>=fa_){   
+
+         for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
+           for(UInt j=0;j<actNrParameter+actNrParameterC;j++){
+             //           covTemp[i][j]=jacobiH[i]*jacobi[j]/(delta*delta*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
              if(actFreq==0||actFreq==nrfreq)
-               covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
-             //covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq]));
+               //  covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/
+               // ((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+               //        covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/
+               //((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq]));
+
+               covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/
+                 (freqs[actFreq]*(1+delta)*(1+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+
              else 
-               covTemp[i][j]=rhos[actFreq]*hOmega*jacobiH[i]*jacobi[j]/((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
-             //covTemp[i][j]=rhos[actFreq]*hOmega*jacobiH[i]*jacobi[j]/((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq]));
+               //  covTemp[i][j]=rhos[actFreq]*hOmega*jacobiH[i]*jacobi[j]/
+               //((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+
+               covTemp[i][j]=rhos[actFreq]*hOmega*jacobiH[i]*jacobi[j]/
+                 (freqs[actFreq]*(1+delta)*(1+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+
              if (i==j)
                covTemp[i][i]+=covTemp[i][i];// *1.0e-10;
            }
-       //}
+       }
        cov+=covTemp;
 //        std::cout<<"cov"<<std::endl;
 //        std::cout<<cov<<std::endl;
@@ -166,10 +229,36 @@ namespace CoupledField
      data.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
      data=cov;     
      invert(cov);
+     Vector<Double> covDiag(actNrParameter+actNrParameterC);
+     for (UInt ii=0;ii<actNrParameter+actNrParameterC;ii++)
+       covDiag[ii]=cov[ii][ii].real();
+//      std::cout<<"covDiag"<<std::endl;
+//      std::cout<<covDiag<<std::endl;
      //     std::cout<<data*cov<<std::endl;
 
      J=Complex(0.0,0.0);
 
+     if (writeOutCov==TRUE){
+
+       if (actNrParameter==3){      
+         *impedCurve<<parameter[1]+parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+         //        std::cout<<parameter[1]+parameter[1]*std::sqrt(cov[1][1].real()*0.115*0.115)<<std::endl;
+         *impedCurve<<parameter[1]<<"  ";
+         *impedCurve<<parameter[1]-parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+         //        std::cout<<parameter[1]-1000.0*std::sqrt(cov[0][0].real()*parameter[1]*0.115*0.115)<<std::endl;
+         
+         
+         *impedCurve<<parameter[7]+parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+         *impedCurve<<parameter[7]<<"  ";
+         *impedCurve<<parameter[7]-parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+         
+         
+         *impedCurve<<parameter[9]+parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+         *impedCurve<<parameter[9]<<"  ";
+         *impedCurve<<parameter[9]-parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+       }
+       *impedCurve<<std::endl;
+     }
 
      for(UInt parInd=0;parInd<actNrParameter+actNrParameterC;parInd++)
        J+=cov[parInd][parInd];
@@ -181,10 +270,10 @@ namespace CoupledField
      for (UInt actFreq=0;actFreq<nrfreq;actFreq++){
        sum1+=std::min(0.0,rhos[actFreq])*std::min(0.0,rhos[actFreq]);
        sum2+= (1-std::max(1.0,rhos[actFreq]))*(1-std::max(1.0,rhos[actFreq]));
-       if (sum1!=0.0||sum2!=0){
-         std::cout<<" sum1 ... sum2 " <<std::endl;
-         std::cout<< sum1 << " ... " << sum2 <<std::endl;
-       }
+//        if (sum1!=0.0||sum2!=0){
+//          std::cout<<" sum1 ... sum2 " <<std::endl;
+//          std::cout<< sum1 << " ... " << sum2 <<std::endl;
+//        }
      }
 
      J+=Complex((1.0/penaltyFactor1)*sum1+(1.0/penaltyFactor2)*sum2,0.0);
@@ -198,7 +287,7 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::createGradientRho");
 
     Complex J1, J2;
-    createJRho(J1,FALSE);
+    createJRho(J1,TRUE);
     std::cout<<"Value of J1 = "<<J1 <<std::endl;
     Vector<Double> rhosTemp;
     rhosTemp.Resize(nrfreq);
@@ -206,14 +295,13 @@ namespace CoupledField
     rhosTemp=rhos;
 
     for(UInt actFreq=0; actFreq<nrMeasuredData; actFreq ++){
-      rhos[actFreq] +=0.001;//*rhos[actFreq];
+      rhos[actFreq] = 1.0001*rhos[actFreq];
       createJRho(J2,FALSE);
       grad[actFreq]=(J2-J1)/(rhos[actFreq]-rhosTemp[actFreq]);
       rhos=rhosTemp;
     }
-    std::cout<<"gradient von rhoJ ..."<<std::endl;
-    std::cout<<grad<<std::endl;
-
+//     std::cout<<"gradient von rhoJ ..."<<std::endl;
+//     std::cout<<grad<<std::endl;
 
   }
 
@@ -221,12 +309,12 @@ namespace CoupledField
   void piezoParamIdent::descentMethodRho(Complex & functional){
     ENTER_FCN("piezoParamIdent::descentMethodRho");
 
-    UInt maxNumberDescentIterations=20;
+    UInt maxNumberDescentIterations=1;
     Vector<Complex> grad;
     Vector<Double> rhosOld;
     rhosOld.Resize(nrMeasuredData);
     rhosOld=rhos;
-    Double lambda=1.0e+8;
+    Double lambda=1.0;
 
     Complex J_old,J;
 
@@ -256,8 +344,8 @@ namespace CoupledField
 	}
 	rhosOld=rhos;
       }
-      std::cout<<"rhos:"<<std::endl;
-      std::cout<<rhos<<std::endl;
+//       std::cout<<"rhos:"<<std::endl;
+//       std::cout<<rhos<<std::endl;
       Double rhoInt=0.0;
       *optimalFreqs<<J.real()<<"  ";
       
@@ -271,7 +359,6 @@ namespace CoupledField
       for (UInt actFreq=0;actFreq<nrMeasuredData;actFreq++)
         *optimalFreqs<<rhos[actFreq]<<"  " ;
       *optimalFreqs<<std::endl;
-
 
       if (rhoInt>=0.85){
         std::cout<<" Sum rho_i exceeds upper bound ... -> break min J(w) " <<std::endl;

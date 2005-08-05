@@ -1,45 +1,6 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-#include "DataInOut/GMV/outGMV.hh"
-#include "General/environment.hh"
 #include "PDE/SinglePDE.hh" 
-
 #include "piezoParamIdent.hh"
-#include "Forms/baseForm.hh"
-#include "Utils/vector.hh"
-#include "Utils/nodestoresol.hh"
-#include "Utils/elemstoresol.hh"
-#include "DataInOut/MaterialData.hh"
-#include "PDE/timestepping.hh"
-#include "Utils/baseelemstoresol.hh"
-#include "Driver/singleDriver.hh"
-#include "PDE/nodeEQN.hh"
-#include <Domain/elem.hh>
-#include "Forms/forms_header.hh"
-#include "Utils/mathfunctions.hh"
 
-
-#ifdef __sgi
-#include <stdarg.h>
-#include <stdio.h>
-#include <math.h>
-#define POW pow
-#else
-#include <cstdarg>
-#include <cstdio>
-#include <cmath>
-#define POW std::pow
-#endif
-
-#include <stdlib.h>
-#include <sstream>
-#include <iomanip>
-
-
-
-#include "Utils/tools.hh"
-#include <PDE/pdes_header.hh>
 
 namespace CoupledField
 {
@@ -58,7 +19,7 @@ namespace CoupledField
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
-    Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer, maxres_inner;
+    Double normJacMat, old_res_outer, res_outer, new_res_inner, old_res_inner, new_res_outer, maxres_inner;
     Double relax;
     relax=10.0;
 
@@ -84,10 +45,10 @@ namespace CoupledField
       act_res = y_hat-F_hat;
       //  std::cout<<"act_res = " <<std::endl;
 //       std::cout<<act_res<<std::endl;
-      std::cout<<"y_hat:"<<std::endl;
-      std::cout<<y_hat<<std::endl;
-      std::cout<<"F_hat:"<<std::endl;
-      std::cout<<F_hat<<std::endl;
+//       std::cout<<"y_hat:"<<std::endl;
+//       std::cout<<y_hat<<std::endl;
+//       std::cout<<"F_hat:"<<std::endl;
+//       std::cout<<F_hat<<std::endl;
       //   getchar();
 
     //       std::cout<<"act_res = " <<std::endl;
@@ -96,9 +57,8 @@ namespace CoupledField
     //       std::cout<<F_hat<<std::endl;
     //   getchar();
       
-    // Norm ersetzt:
-    //      new_res_outer=old_res_outer=a2norm(act_res);      
     norm(act_res,new_res_outer,maxres_inner,y_hat);
+    res_outer=new_res_outer;
 
     *parLog<< new_res_outer; 
 
@@ -157,7 +117,7 @@ namespace CoupledField
     //      std::cout<<"\n Adjoint Matrix * ImgSpaceScalingMat"<<std::endl;
     adjJacobiMatrix = adjJacobiMatrix*ImgSpaceScalingMat;
       
-    std::cout<<adjJacobiMatrix<<std::endl;
+    //   std::cout<<adjJacobiMatrix<<std::endl;
     
   
     // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -296,17 +256,9 @@ namespace CoupledField
     scaling[4]=1.0/((*matMat)[3][3]); 
     scaling[5]=1.0/((*matMat)[6][4]);
     scaling[6]=1.0/((*matMat)[8][0]);
-    scaling[7]=0.5/((*matMat)[8][2]);
+    scaling[7]=0.6/((*matMat)[8][2]);
     scaling[8]=1.0/((*matMat)[6][6]); 
     scaling[9]=0.5/((*matMat)[8][8]);
-
-    //     if(100-(1-parameter[6]/parameterIncrement[6])*100>=100)
-    //      scaling[6]=scaling[6]*100;
-    //       if(100-(1-parameter[4]/parameterIncrement[4])*100>=100)
-    //      scaling[4]=scaling[4]*10;
-    //       if(100-(1-parameter[8]/parameterIncrement[8])*100>=100)
-    //      scaling[8]=scaling[8]*70;
-
 
     //   if (newtonCounter<=1){
     //       stepR[1]=s[1].real();
@@ -322,18 +274,61 @@ namespace CoupledField
 
     theta=1.0;
 
-    ///std::cout<<stepR<<std::endl;
-      //std::cout<<s<<std::endl;
-      //    getchar();      
+    parameter_old=parameter;
+    setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
+    updateMaterialData(parameter, ptMaterial);
+    createF(ptMaterial, F_hat,FALSE);
+    
+    for (UInt i=0;i<nrMeasuredData;i++)
+      act_res[i]=y_hat[i]-F_hat[i];
+      //Norm ersetzt:
+      //      std::cout<<act_res<<std::endl;
+    norm(act_res,new_res_outer,maxres_inner,y_hat);
 
-      setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
+//     Integer lineSearchCount=0;
+
+//     while (new_res_outer>=res_outer){
+//       theta = 0.5*theta;
+//       std::cout<<"theta = "<<theta<<std::endl;
+//       parameter=parameter_old;
+//       setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
+//       updateMaterialData(parameter, ptMaterial);
+//       createF(ptMaterial, F_hat,FALSE);
+      
+//       for (UInt i=0;i<nrMeasuredData;i++)
+//         act_res[i]=y_hat[i]-F_hat[i];
+//       //Norm ersetzt:
+//       //      std::cout<<act_res<<std::endl;
+//       norm(act_res,new_res_outer,maxres_inner,y_hat);
+//       std::cout<<"new_res_outer = " << new_res_outer <<std::endl;
+//       std::cout<<"res_outer = " << res_outer <<std::endl;
+     
+//       lineSearchCount++;
+
+//       if (lineSearchCount>=5){
+//         theta=1.0;  
+//         setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
+//         updateMaterialData(parameter, ptMaterial);
+//         break;
+//       }
+
+//       if (new_res_outer<res_outer){
+//         parameter_old=parameter;
+//         std::cout<<"Final theta = " <<theta<<std::endl;
+//         res_outer=new_res_outer;
+//         break;
+//       }
+
+//     }
 
       // if no backtracking is specified, please include the following lines!
       for (UInt i=0;i<nrParameter;i++){
         //      parameter_new[i]=scaling[i]*parameter[i];
         //      parameter_new[i]+=s[i].real();
         //      parameter[i]=1/scaling[i]*parameter_new[i];
-        std::cout<<" paramter("<<i<<") = " << parameter[i]<< " ( ~ "<< 100-(1-parameter[i]/parameterIncrement[i])*100<<" Prozent) "<< std::endl;
+        if (whichParameterToUpdate[i]==1)
+          std::cout<<" paramter("<<i<<") = " << parameter[i]<<
+            " ( ~ "<< 100-(1-parameter[i]/parameterIncrement[i])*100<<" Prozent) "<< std::endl;
       }
       // parameter=parameter_new;
       

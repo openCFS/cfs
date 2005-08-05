@@ -1,51 +1,7 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-//include "staticdriver.hh"
-#include "DataInOut/GMV/outGMV.hh"
-#include "General/environment.hh"
+#include <iomanip>
 #include <PDE/SinglePDE.hh>
 #include "Domain/domain.hh"
-
 #include "piezoParamIdent.hh"
-#include "Forms/baseForm.hh"
-#include "Utils/vector.hh"
-#include "Utils/nodestoresol.hh"
-#include "Utils/elemstoresol.hh"
-#include "DataInOut/MaterialData.hh"
-#include "PDE/timestepping.hh"
-#include "Utils/baseelemstoresol.hh"
-#include "Driver/singleDriver.hh"
-#include "PDE/nodeEQN.hh"
-
-#include "DataInOut/WriteInfo.hh"
-#include "DataInOut/ParamHandling/BaseParamHandler.hh"
-
-#include <Domain/elem.hh>
-
-#include <sstream>
-#include <iomanip>
-
-
-#ifdef __sgi
-#include <stdarg.h>
-#include <stdio.h>
-#include <math.h>
-#define POW pow
-#else
-#include <cstdarg>
-#include <cstdio>
-#include <cmath>
-#define POW std::pow
-#endif
-
-#include "Utils/tools.hh"
-#include <PDE/pdes_header.hh>
-
-
-
-//#include "/../OLAS/algsys/basesystem.hh"
-//#include "DataInOut/piezoParameterData.hh"
 
 
 
@@ -123,6 +79,12 @@ namespace CoupledField
     optimalFreqs = new std::ofstream(filenameOptimalFreqs.c_str(),std::basic_ios<char>::out);
     if (!optimalFreqs){
         std::cerr << "\n optimalFreqs.dat could not be initialized" << std::endl;
+    }
+
+    Char* measuremets="mess.dat";
+    mess = new std::ifstream(measuremets, std::basic_ios<char>::in);
+    if (!mess){
+      std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
     }
 
     // in future, several parameters wwill be taken from the xml - file ...
@@ -225,25 +187,6 @@ namespace CoupledField
     // The rows are containing the values of the given frequencies, such as phase and amplitude!
     readMeasuredData(freqs, real, imag, parameter, voltage, nrMeasuredData, thickness, radius, delta);
      
-
-    // std::cout<<whichParameterToUpdate<<std::endl;
-
-    // std::cout<<"\n oben wichParToUp ... unten whichParToUpC"<<std::endl;
-    //    std::cout<<whichParameterToUpdateC<<std::endl;
-    // real - entspricht |Z|, Betrag der Impedanz
-    // imag - entspricht \phi, gemessener Phasenwinkel
-
-
-    //Kreisfrequenz oder nicht?!   
-    //for (UInt i=0; i<freqs.GetSize();i++)
-    // freqs[i]=2*pi*freqs[i];
-
-    //    std::cout<<"\n Size of piezoElectric Body:"<< thickness << " x " << radius <<std::endl;
-    //    std::cout<<"\n Number of measure points: " << nrMeasuredData << " with DataError: " << delta <<  std::endl;
-
-    //Settings for harmonic PDE - Driver
-
-
     if (! isPartOfSequence_)
       ptdomain_->PrintGrid();
     if (isPartOfSequence_ == FALSE){     
@@ -323,19 +266,7 @@ namespace CoupledField
 
       }
 
-    if (FALSE){
-      parameter[0]=1.458491485e+11;
-      parameter[1]=1.132373842e+11;
-      parameter[2]=1.05e+11;
-      parameter[3]=9.320007465e+10;
-      parameter[4]=2.322576951e+10;
-      parameter[5]=11.14101571;
-      parameter[6]=-2.959244238;
-      parameter[7]=16.008769;
-      parameter[8]=9.479219002e-09;
-      parameter[9]=8.098761552e-09;
-
-    }
+  
     //Generates ansys code for stack actuator
     if (FALSE){
       UInt numOfLayers=200;
@@ -510,7 +441,7 @@ namespace CoupledField
 
     scalingC[0]=1.0/((*matMatC)[0][0]); 
     scalingC[1]=1.0/((*matMatC)[2][2]);
-    scalingC[2]=1.0/((*matMatC)[1][0]);
+    scalingC[2]=10.0/((*matMatC)[1][0]);
     scalingC[3]=1.0/((*matMatC)[0][2]);
     scalingC[4]=1.0/((*matMatC)[3][3]); 
     scalingC[5]=1.0/((*matMatC)[6][4]);
@@ -770,6 +701,10 @@ namespace CoupledField
       maxAndWeightedResNorm(vec,norm2,norm, q_meas);  // for complex valued problem
       //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
       break;
+    case 6:
+      maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
+      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
+      break;
 
     default:
       norm=a2norm(vec);
@@ -836,7 +771,19 @@ namespace CoupledField
       }
       else if (whichNorm==5)
         wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-
+      else if (whichNorm==6){
+        if (whichNewtonCG!=11){
+          std::cout<<"This choice of norm is not valid for your case. Set Norm in measuredData.dat = 2"<<std::endl;
+          getchar();
+        }
+        Double stepWidth=0.0;
+        stepWidth=std::abs(0.5*freqs[std::min(i+1,actNrParameter)]-freqs[std::max((Integer)i-1,1)]);
+        stepWidth/=1.0e+06;
+        wNorm = wNorm+stepWidth*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        // wNorm = wNorm+rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        //      getchar();
+      }
+      
       if (maxNormTemp>maxNorm)
         maxNorm=maxNormTemp;
     }
