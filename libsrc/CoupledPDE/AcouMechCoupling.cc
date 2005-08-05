@@ -71,7 +71,7 @@ namespace CoupledField
 				   pde2_->getPDEMaterialData());
 	
 	IntegratorDescriptor * massDescr1 = 
-	  new IntegratorDescriptor(massInt1, DAMPING, FALSE);
+	  new IntegratorDescriptor(massInt1, STIFFNESS, FALSE);
 	massDescr1->SetPDEIds(pde1_, pde2_);      
 	massDescr1->SetCounterPart(false);
 	
@@ -88,7 +88,7 @@ namespace CoupledField
 				   pde1_->getPDEMaterialData());
 	
 	IntegratorDescriptor * massDescr2 = 
-	  new IntegratorDescriptor(massInt2, DAMPING, FALSE);
+	  new IntegratorDescriptor(massInt2, MASS, FALSE);
 	massDescr2->SetPDEIds(pde2_, pde1_);      
 	massDescr2->SetCounterPart(false);
 	
