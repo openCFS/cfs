@@ -212,6 +212,10 @@ namespace CoupledField
     assemble_->AssembleSprings(time);
   }
 
+  void BasePairCoupling::SetFrequency(Double actFreq) {
+    assemble_->SetFrequency(actFreq);
+  }
+  
   void BasePairCoupling::SetReassemble() {
     ENTER_FCN( "BasePairCoupling::SetReassemble" );
     assemble_->SetReassemble();

@@ -74,6 +74,9 @@ namespace CoupledField
     //!  assemble a spring into the system matrix
     void AssembleSprings(const Double time = 0.0);
 
+    //! sets the actual frequency (just needed for harmonic analysis)
+    void SetFrequency(Double actFreq);
+    
     //! trigger the reassembling of the matrices
     void SetReassemble();
 
