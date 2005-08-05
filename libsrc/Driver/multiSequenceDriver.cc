@@ -318,7 +318,7 @@ namespace CoupledField {
         //      std::cerr << "pdesPerStep_[iStep][iPDE] = " << pdesPerStep_[iStep][iPDE]->GetName() << std::endl;
         params->GetList(keyVec, attrVec, valVec, tagsAux);
 
-        tagFound = FALSE;
+	tagFound = FALSE;
         
         // Iterate over all 'bcsAndLoads' occurences for this PDE
         for (UInt iTag=0; iTag<tagsAux.GetSize(); iTag++) {
@@ -335,15 +335,17 @@ namespace CoupledField {
               break;
             }
         }
-        
-        if (!tagFound) {
-          errMsg  = "MultiSequenceDriver::Init(): The tag '";
-          errMsg += tagsPerStep_[iStep][iPDE];
-          errMsg += "' was not found in PDE '";
-          errMsg += pdesPerStep_[iStep][iPDE];
-          errMsg += "'!";
-          Error(errMsg.c_str(), __FILE__, __LINE__);
-        }
+
+	// NOTE: It can be okay to have no BcsAndLoads section
+	//       e.g. acoustic-mechanic
+	// Tag not found
+        // if (!tagFound) {
+        //   (*error) << "MultiSequenceDriver::Init(): The tag '"
+	// 	   << tagsPerStep_[iStep][iPDE]
+	// 	   << "' was not found in PDE '"
+	// 	   << pdesPerStep_[iStep][iPDE] << "'!";
+        //   Error( __FILE__, __LINE__ );
+        // }
           
         // ************************************************
         // Check if one PDE occured more than 
