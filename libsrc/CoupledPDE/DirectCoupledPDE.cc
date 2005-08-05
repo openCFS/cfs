@@ -6,7 +6,7 @@
 // include solveStep drivers
 #include "Driver/stdSolveStep.hh"
 #include "Driver/solveStepMech.hh"
-
+#include "Driver/solveStepAcousticMechBubble.hh"
 // include PDE classes
 #include "PDE/SinglePDE.hh"
 
@@ -186,6 +186,7 @@ namespace CoupledField{
   // **************************
   void DirectCoupledPDE::WriteGeneralPDEdefines() {
     ENTER_FCN( "DirectCoupledPDE::WriteGeneralPDEdefines" );
+    std::cout << "HaHa" << std::endl;
   }
 
 
@@ -483,6 +484,19 @@ namespace CoupledField{
     }
   }
 
+ void DirectCoupledPDE::SetFrequency(Double actFreq) {
+
+    ENTER_FCN( "DirectCoupledPDE::SetFrequency" );
+    
+    for (UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+      singlePDEs_[i]->SetFrequency(actFreq);
+    }
+    
+    for (UInt i = 0; i < couplings_.GetSize(); i++ ) {
+      couplings_[i]->SetFrequency(actFreq);
+    }
+ }
+  
   void DirectCoupledPDE::SetupMatrixGraph() {
     // nothing to do here, since this method gets only called for 
     // SinglePDEs
@@ -493,7 +507,49 @@ namespace CoupledField{
     ENTER_FCN( "DirectCoupledPDE::DefineSolveStep" );
   
     // HARD CODED
-    solveStep_ = new SolveStepMech(*this);
+    // In case of acou-mech-coupling with pressure formulation
+    // use as driver SolveStepAcousticMechBubble
+    // otherwise SolveStepMech
+    bool acouMechBubble = false;
+    std::string pdeName;
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    StdVector<std::string> auxVec;
+    
+    for (UInt i = 0 ; i < singlePDEs_.GetSize() ; i++){
+      pdeName = singlePDEs_[i]->GetName();  
+      if ( pdeName == "acoustic" ){
+	
+	BubbleDynType bubbleDynType = NOBUBBLETYPE;
+	keyVec = "acoustic", "bubbles", "bubbleType";
+	attrVec = "", "tag";
+	valVec =  "", bcSequenceTag_;
+	params->GetList(keyVec, attrVec, valVec, auxVec);
+	if ( auxVec.GetSize() == 1 ) {
+	  String2Enum( auxVec[0], bubbleDynType );
+	}
+	else {
+	  bubbleDynType = NOBUBBLETYPE;
+	}
+	if ( bubbleDynType !=  NOBUBBLETYPE){
+	  std::string str;
+	  SolutionType formulation;
+	  params->Get( "formulation", str, "pdeList", "acoustic" );
+	  String2Enum( str, formulation );
+	  if ( formulation ==  ACOU_PRESSURE){
+	    acouMechBubble = true;
+	  }
+	}
+	break;
+      }
+    }
+    if ( acouMechBubble == true ){
+      solveStep_ = new SolveStepAcousticMechBubble(*this, GILMORE );
+    }
+    else{
+      solveStep_ = new SolveStepMech(*this);
+    }
   }
 
   // *************************

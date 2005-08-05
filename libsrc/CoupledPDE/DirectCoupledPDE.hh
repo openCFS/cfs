@@ -32,6 +32,14 @@ namespace CoupledField {
     //! Set SinglePDEs
     void SetSinglePDEs( const StdVector<SinglePDE*> &pdes);
 
+    //! returns all single PDEs
+    StdVector<SinglePDE*>& GetSinglePDEs()
+    { return singlePDEs_;};
+
+    // get total number of unknowns
+    UInt GetTotalUnknowns()
+    { return totalUnknowns_;};
+
     //! Set Coupling objects
     void SetCouplings( const StdVector<BasePairCoupling*> &couplings);
 
@@ -128,6 +136,9 @@ namespace CoupledField {
     //! constructes the matrix graph by providing to the algebraic system the element connectivities
     void SetupMatrixGraph();
 
+    //! sets the actual frequency (just needed for harmonic analysis)
+    void SetFrequency(Double actFreq);
+    
     //! trigger the reassmbling of the matrices
     void SetReassemble();
 
