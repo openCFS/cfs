@@ -88,20 +88,22 @@ namespace CoupledField {
 
 
     // 3) Create a multi-dof matrix, multiplied by normal vector
-    elemMat.Resize( nrNodes*dofs_, nrNodes );
+
 
     //for pressure forumation
     if (formulation_ == ACOU_PRESSURE && firstPDEName_ == "acoustic" ) {
+      elemMat.Resize( nrNodes, nrNodes*dofs_ );
       for ( UInt iRow = 0; iRow < nrNodes; iRow++ ) {
 	for ( UInt iCol = 0; iCol < nrNodes; iCol++ ) {
 	  for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
 	    elemMat[iRow][iCol*dofs_+iDof] = 
-	      normal_[iDof] * helpMat[iRow][iCol];
+	      normal_[iDof] * helpMat[iCol][iRow];
 	  }
 	}
       }
     }
     else {
+      elemMat.Resize( nrNodes*dofs_, nrNodes );
       for ( UInt iRow = 0; iRow < nrNodes; iRow++ ) {
 	for ( UInt iCol = 0; iCol < nrNodes; iCol++ ) {
 	  for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
@@ -111,6 +113,8 @@ namespace CoupledField {
 	}
       }
     }
+//     std::cerr<<"Density :"<<density<<std::endl;
+//     std::cerr<<"Matrix\n"<<elemMat<<std::endl;
   }
   
 
