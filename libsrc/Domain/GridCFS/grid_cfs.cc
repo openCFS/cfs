@@ -112,11 +112,9 @@ namespace CoupledField
     // 8. Read in named nodes
     inFile_->GetNamedNodes( namedNodes_, namedNodeNames_ );
     
-
     // 9. Read in named elements
-    //inFile_->GetNamedElems( namedElems_, namedElemNames_ );
+    inFile_->GetNamedElems( namedElems_, namedElemNames_ );
 
-    
     // Print information about region mapping into
     PrintGridInfo();
     
@@ -506,7 +504,23 @@ namespace CoupledField
   void GridCFS<DIM>::GetElemsByName( StdVector<Elem*> & elems,
                                      const std::string & elemsName ) {
     ENTER_FCN( "GridCFS::GetElemsByName" );
-    Error( "Not implemented", __FILE__, __LINE__ );
+
+    StdVector<UInt> elemNumbers;
+    Integer index = namedElemNames_.Find(elemsName);
+    
+
+    if ( index != -1 ) {
+      elemNumbers = namedElems_[index];
+      elems.Resize( elemNumbers.GetSize() ); 
+      for ( UInt i = 0; i < elemNumbers.GetSize(); i++ ) {
+        elems[i] = orderedElems_[elemNumbers[i]-1 ];
+      }
+    } else {
+      (*error) << "GridCFS: There are no named elements with name '" 
+               << elemsName << "' in the grid!";
+      Error( __FILE__, __LINE__ );
+    }
+    
   }
 
   template<UInt DIM>
