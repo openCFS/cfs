@@ -139,10 +139,6 @@ namespace CoupledField {
 
     virtual UInt GetTimeStepCounter();
    
-
-    //! Get types of needed matrices (sysmtem, stiffness,..)
-    virtual void GetMatrixTypes( std::set<FEMatrixType> &matTypes) = 0;
-
     //! return pointer to vector with subdomains, on which we calculate the PDE
     virtual StdVector<RegionIdType> * getSDsPDE()
     { return &subdoms_;}
@@ -547,15 +543,10 @@ namespace CoupledField {
 	//! type of interpolation (for fractional damping)
     InterpolType inType_;
   
-	//! flag indicating, if damping matrix is needed
-	Boolean needsDampingMatrix_;
-	
 	//! checks, if we have for the coupling a incremental solution
     Boolean isIncrFormulation_;    
 
-    //! set defining which type of matrices (stiffness, mass,...) is used
-    std::set<FEMatrixType> matrixTypes_;
-
+    
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;
 
