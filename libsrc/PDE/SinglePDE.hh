@@ -117,13 +117,6 @@ namespace CoupledField
     PdeIdType GetPDEId()
     { return pdeId_; }
 
-    //! set algsys identifaction tag of  PDE
-    void SetPDEId( const PdeIdType id)
-    { 
-      pdeId_ = id;
-      assemble_->SetPDEId (id);
-    }
-
     //! set algebraic system object
     void SetAlgebraicSystem( BaseSystem *algSys);
 
@@ -139,10 +132,6 @@ namespace CoupledField
     //! return number of restraints
     UInt GetNumRestraints( );
  
-    //! Get types of needed matrices (sysmtem, stiffness,..)
-    void GetMatrixTypes( std::set<FEMatrixType> &matTypes)
-    { matTypes = matrixTypes_;}
-
     //! set boundary condition
     //! \param atimestep         time step of claculation
     void SetBCs(const Double atimestep);

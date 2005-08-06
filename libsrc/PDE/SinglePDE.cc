@@ -125,15 +125,29 @@ namespace CoupledField {
                         std::string  bcSequenceTag) {
     ENTER_FCN( "SinglePDE::Init()" );
 
+    StdVector<RegionIdType> allIDs;
+
     bcSequenceIndex_ = bcSequenceIndex;
     bcSequenceTag_ = bcSequenceTag;
   
     // =====================================================================
     // get regions/subdomains for PDE
     // =====================================================================
-    StdVector<std::string> regionNames;
+    StdVector<std::string> regionNames, surfaceNames;
+    StdVector<RegionIdType> surfIds;
     params->GetList( "name", regionNames, pdename_, "region" );
     ptgrid_->RegionNameToId( subdoms_, regionNames );
+
+    params->GetList( "name", surfaceNames, pdename_, "surface" );
+    ptgrid_->RegionNameToId( surfIds, surfaceNames );
+
+    // Create vector of all IDs
+    allIDs = subdoms_;
+    for (UInt i = 0; i < surfIds.GetSize(); i++) {
+      allIDs.Push_back(surfIds[i]);
+    }
+
+
     Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
                   pdename_.c_str());
     for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
@@ -151,6 +165,9 @@ namespace CoupledField {
     // Get parameter and report object of OLAS
     olasParams_ = algsys_->GetOLASParams();
     olasReport_ = algsys_->GetOLASReport();
+
+    // Obtain unique pde identifier
+    pdeId_ = algsys_->ObtainPDEId( pdename_ );
 
     // Determine, if this is a parallel run
     // and pass this information to OLAS
@@ -184,9 +201,6 @@ namespace CoupledField {
     AnalysisType analysisHelp;
     StdVector<std::string> tags, analysisTypes, pdenames;
     String2Enum(analysis,analysisHelp);
-    
-    // stiffness matrix is always needed
-    matrixTypes_.insert(SYSTEM);
 
     // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
     //       and must be re-designed
@@ -205,16 +219,12 @@ namespace CoupledField {
       isComplex_ = FALSE;
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
       analysistype_ = TRANSIENT;
-      matrixTypes_.insert(STIFFNESS);
-      matrixTypes_.insert(MASS);
     }
 
     else if ( analysisHelp == TRANSIENT4SLICE ) {
       isComplex_ = FALSE;
       assemble_ = new TransientAssemble(algsys_, ptgrid_);
       analysistype_ = TRANSIENT;
-      matrixTypes_.insert(STIFFNESS);
-      matrixTypes_.insert(MASS);
     }
 
     else if ( analysis=="harmonic" || analysis == "paramIdent" ) {
@@ -238,18 +248,21 @@ namespace CoupledField {
       keyVec = "multiSequence", "step", "pde", "analysis";
       params->Get(keyVec, attrVec, valVec, analysis);
 
+
       String2Enum(analysis, analysistype_);
+
+      if ( isAlwaysStatic_ == TRUE &&
+           analysistype_ == TRANSIENT ) {
+        analysistype_ = STATIC;
+      }      
 
       if ( analysistype_ == STATIC ) {
         assemble_ = new StaticAssemble(algsys_, ptgrid_);
         isComplex_ = FALSE;
-        matrixTypes_.insert(STIFFNESS);
       }
       else if ( analysistype_ == TRANSIENT ) {
         isComplex_ = FALSE;
         assemble_ = new TransientAssemble(algsys_, ptgrid_);
-        matrixTypes_.insert(STIFFNESS);
-        matrixTypes_.insert(MASS);
       }
       else if ( analysis=="harmonic" ) {
         isComplex_ = TRUE;
@@ -272,7 +285,10 @@ namespace CoupledField {
                << "' is not supported";
       Error( __FILE__, __LINE__ );
     }
-
+    
+    // Give pde Id to assemble
+    assemble_->SetPDEId ( pdeId_ );
+    
     // Determine if solution is of complex type or not
     if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
       sol_ = new NodeStoreSol<Complex>;
@@ -292,12 +308,12 @@ namespace CoupledField {
     else {
       tolSpaceErr_ = 0;
     }
-
+    
     // =====================================================================
     // read in damping information
     // =====================================================================
       ReadDampingInformation( ptgrid_ );
-
+      
     // =====================================================================
     // read in boundary conditions
     // =====================================================================
@@ -336,11 +352,11 @@ namespace CoupledField {
     // Assemble a system matrix with scalar complex or double entries
     if ( typeOfNumbering == "scalar" ) {
       if ( dofspernode_ == 1 ) {
-        eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_,
+        eqnData_ = new ScalarNodeEQN( ptgrid_, allIDs, dofspernode_,
                                       !usePenalty );
       }
       else {
-        eqnData_ = new ScalarBlockEQN( ptgrid_, subdoms_, dofspernode_,
+        eqnData_ = new ScalarBlockEQN( ptgrid_, allIDs, dofspernode_,
                                        !usePenalty );
       }
       Info->PrintF( pdename_, "Using scalar equation numbering\n" );
@@ -353,12 +369,12 @@ namespace CoupledField {
         (*warning) << "dofspernode = " << dofspernode_
                    << "so 'block' numbering identical to 'scalar'";
         Warning( __FILE__, __LINE__ );
-        eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_,
+        eqnData_ = new ScalarNodeEQN( ptgrid_, allIDs, dofspernode_,
                                       usePenalty );
         Info->PrintF( pdename_, "Using scalar equation numbering\n" );
       }
       else {
-        eqnData_ = new BlockNodeEQN( ptgrid_, subdoms_, dofspernode_,
+        eqnData_ = new BlockNodeEQN( ptgrid_, allIDs, dofspernode_,
                                      usePenalty );
         Info->PrintF( pdename_, "Using block equation numbering\n" );
       }
@@ -423,12 +439,6 @@ namespace CoupledField {
     }
 
     assemble_->SetPtr2Sol(sol_);
-
-    // Note: Due to the 'sophisticated' damping mechanism in the (Single)
-    // PiezoPDE, the damping matrix is not explicitly created and therefore
-    // not needed in OLAS.
-    if ( needsDampingMatrix_ == TRUE )
-      matrixTypes_.insert(DAMPING);
 
     // =====================================================================
     // read in material data
@@ -975,6 +985,7 @@ namespace CoupledField {
 
     ENTER_FCN( "StdPDE::DefineAlgSys" );
 
+
     // If PDE is not direct coupled then the PDE has to register
     // at the algebraic system and obtain an Id. 
     // Afterwards the matrix-graph has to be set up
@@ -988,8 +999,8 @@ namespace CoupledField {
       algsys_->GraphSetupInit(1);
 
       // obtain PDE identification tag from algebraic system
-      pdeId_ = algsys_->RegisterPDE( pdename_, eqnData_->GetNumEQNs(),
-                                     eqnData_->GetNumLastFreeDof() );
+      algsys_->RegisterPDE( pdeId_, eqnData_->GetNumEQNs(),
+                            eqnData_->GetNumLastFreeDof() );
 
       assemble_->SetPDEId( pdeId_ );
 
@@ -1015,12 +1026,6 @@ namespace CoupledField {
     
     UInt numDir = GetNumRestraints() - numBuildInDirichletBCs_;
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
-
-    std::set<FEMatrixType>::iterator it;
-
-    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) {
-      algsys_->SetFEMatrixType( *it, pdeId_ );
-    }
 
     // create matrices and solver object, if PDE is not direct coupled
     if ( isDirectCoupled_ == FALSE ) {
