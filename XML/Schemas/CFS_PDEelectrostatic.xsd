@@ -37,6 +37,13 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Surface regions on which results can be calculated-->
+          <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -143,7 +150,8 @@
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_NodeHistoryElec">
     <xsd:attribute name="type" type="DT_NodeDataElec" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
@@ -156,33 +164,30 @@
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistoryElec">
     <xsd:attribute name="type" type="DT_ElemDataElec" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
   </xsd:complexType>
 
   <!-- Element type for computing of electric charges -->
   <xsd:complexType name="DT_ChargeElec">
-    <xsd:complexContent>
-      <xsd:extension base="xsd:anyType">
-        <xsd:attribute name="region" type="xsd:token" use="required"/>
-        <xsd:attribute name="element" type="xsd:token" use="required"/>
-      </xsd:extension>
-    </xsd:complexContent>
+    <xsd:attribute name="region" type="xsd:token" use="required" />
+    <xsd:attribute name="element" type="xsd:token" use="required"/>
   </xsd:complexType>
 
 
   <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_ElecStoreResults">
     <xsd:sequence>
-      <xsd:element name="nodeResults" type="DT_NodeResultsElec" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="nodeHistory" type="DT_NodeHistoryElec" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="elemResults" type="DT_ElemResultsElec" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="elemHistory" type="DT_ElemHistoryElec" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="charge" type="DT_ChargeElec" minOccurs="0"
-        maxOccurs="unbounded"/>
+        <xsd:element name="nodeResults" type="DT_NodeResultsElec" minOccurs="0"
+          maxOccurs="unbounded"/>
+        <xsd:element name="nodeHistory" type="DT_NodeHistoryElec" minOccurs="0"
+          maxOccurs="unbounded"/>
+        <xsd:element name="elemResults" type="DT_ElemResultsElec" minOccurs="0"
+          maxOccurs="unbounded"/>
+        <xsd:element name="elemHistory" type="DT_ElemHistoryElec" minOccurs="0"
+          maxOccurs="unbounded"/>
+        <xsd:element name="charge" type="DT_ChargeElec" minOccurs="0"
+          maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
 
