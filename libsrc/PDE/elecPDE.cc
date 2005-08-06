@@ -337,6 +337,11 @@ namespace CoupledField {
     UInt pdeElemNum = 0;
     Double normSign = 0;
  
+    // Check, if charges are written on the surface elements or onto the 
+    // volume elements
+    std::string outputType = "surface";
+    params->Get("outputType",outputType,"electrostatic","charge");
+
  
     // Create vector with interpolation coordinate.
     // For simplicity we only evaluate the integral
@@ -413,7 +418,11 @@ namespace CoupledField {
           chargeOp->CalcElemCharge(charge, surfElems[iElem], 
                                    lCoordSurf, elemNormalD);
 
-          pdeElemNum = eqnData_->Mesh2PDEElem(ptVolElem->elemNum);
+          if ( outputType == "surface" ) {
+            pdeElemNum = eqnData_->Mesh2PDEElem(surfElems[iElem]->elemNum);
+          } else {
+            pdeElemNum = eqnData_->Mesh2PDEElem(ptVolElem->elemNum);
+          }
         
           // Create temporar vector, since SetElemResult only
           // can handle these
