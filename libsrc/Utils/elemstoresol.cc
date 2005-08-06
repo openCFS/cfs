@@ -365,7 +365,7 @@ namespace CoupledField{
 #endif
   
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(transformedSolution);
-    temp.Resize(ptGrid->GetNumVolElems()*totalDofs_);
+    temp.Resize(ptGrid->GetNumElems()*totalDofs_);
 
     // Loop over all PDE elements
     for (UInt iElem=1; iElem<numElems_+1; iElem++)
