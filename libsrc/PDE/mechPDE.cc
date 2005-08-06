@@ -96,6 +96,7 @@ namespace CoupledField
 
     if (pressSurf_.GetSize() > 0)
       surfdoms_ = pressSurf_;
+    
     // We need not have as many function/filenames as pressureloads!
     for ( UInt k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ )
       {
@@ -125,7 +126,6 @@ namespace CoupledField
     if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) ) {
 
 	  dampingType_ = RAYLEIGH;
-	  needsDampingMatrix_ = TRUE;
 	  Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
 	}
     else {

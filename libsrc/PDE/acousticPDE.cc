@@ -151,13 +151,11 @@ namespace CoupledField {
 	  }
 	  else if (dampInfo[0] == "rayleigh") {
 		dampingList_[k] = RAYLEIGH;
-		needsDampingMatrix_ = TRUE;
 		Info->PrintF( pdename_, 
 					  "      * RAYLEIGH damping for region: %d\n", k );
 	  }
 	  else if (dampInfo[0] == "thermoViscous") {
 		dampingList_[k] = THERMOVISCOUS;
-		needsDampingMatrix_ = TRUE;
 		Info->PrintF( pdename_, 
 					  "      * THERMOVISCOUS damping for region: %d\n", k );
 	  }
@@ -261,8 +259,6 @@ namespace CoupledField {
     ptgrid_->RegionNameToId( absBCs_, auxVec );
 
     if ( absBCs_.GetSize() ) {
-      matrixTypes_.insert(DAMPING);
-	  needsDampingMatrix_ = TRUE;
       absorbingBCs_ = TRUE;
       Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
       surfdoms_ = absBCs_;
@@ -355,7 +351,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
     ENTER_FCN( "AcousticPDE::DefineIntegerators" );
 
-    Boolean nonLin = FALSE;
     Double density, compressibility, c0, alpha, beta, BoverA;
     Double coeffmass, coeffdamp;
 
@@ -383,7 +378,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
       stiffIntDescr->SetPDEIds(this, this);
-      assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
 
       // mass integrator
       coeffmass = density / (c0*c0);
@@ -396,7 +390,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         new IntegratorDescriptor(bilinearMass, MASS);
 
       massIntDescr->SetPDEIds(this, this);
-      assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]);
 
       // ********************************************************************
       //   Additional terms for damping
@@ -422,7 +415,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           // mass part
           massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
         }
-          
+
+        
         else if ( dampingList_[actSD] == THERMOVISCOUS ) {
           coeffdamp  =  density * 2.0 * alpha * c0;
           BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
@@ -481,8 +475,13 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
 	  dampIntDescr->SetPDEIds(this, this);
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+
         }
       }
+
+      // Finally add the standard integrators
+      assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
+      assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]); 
     }
 
     // **********************************************************************
