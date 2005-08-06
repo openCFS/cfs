@@ -22,8 +22,6 @@ namespace CoupledField
     couplingName_ = "acouMechDirect";
     materialClass_ = "fluid";
 
-    // determine the needed matrices
-    matrixTypes_.insert(DAMPING);
   }
 
 
