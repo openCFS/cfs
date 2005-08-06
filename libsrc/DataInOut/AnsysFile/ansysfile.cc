@@ -246,7 +246,7 @@ namespace CoupledField {
   }
 
   void AnsysFile::GetNodesOfRegions( StdVector<StdVector<UInt> > &nodes,
-                             const StdVector<RegionIdType> & regionId ) {
+                                     const StdVector<RegionIdType> & regionId ) {
 
     ENTER_FCN( "AnsysFile::GetNodesOfRegions" );
 
@@ -511,7 +511,7 @@ namespace CoupledField {
     UInt elemNum;
     UInt i;
 
-    UInt numNamedElems = GetInteger("NumSaveElems");
+    UInt numNamedElems = GetInteger("NumSaveElements");
 
     GetPosLine("Save Elements", pos);
     inFile_.seekg(pos,std::ios::beg);
@@ -565,7 +565,6 @@ namespace CoupledField {
       Warning( __FILE__, __LINE__ );
     } // end if 
       
-    Error( "Not implemented", __FILE__, __LINE__);
   }
   
  
