@@ -172,6 +172,14 @@
   <xsd:complexType name="DT_ChargeElec">
     <xsd:attribute name="region" type="xsd:token" use="required" />
     <xsd:attribute name="element" type="xsd:token" use="required"/>
+    <xsd:attribute name="outputType" use="optional" default="surface">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="surface"/>
+          <xsd:enumeration value="volume"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
 
