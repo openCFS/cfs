@@ -6,11 +6,17 @@
 #include "Utils/elemstoresol.hh"
 #include "Utils/StdVector.hh"
 
+// maximum number of open history files
+#define MAX_NUM_HIST_FILES 1000
+
 namespace CoupledField {
 
   //! Base class for writing results
   class WriteResults {
 
+    //! Enum describing entities
+    typedef enum {NO_ENTITIY,ELEMENT,NODE} entityType;
+    
   public:
     //! Constructor
     WriteResults(const Char * const filename);
@@ -51,11 +57,21 @@ namespace CoupledField {
 
     //! write node history vector (transient/static)
     /*!
-      \param data vector with data (ex. value of an error for the cell)
+      \param data vector with data (ex. value of an error for the node)
       \param step step of calculation
       \param time time of calculation
     */
     virtual void WriteNodeHistoryTransient(const NodeStoreSol<Double>& data, 
+                                           const UInt step, 
+                                           const Double time);
+
+    //! write element history vector (transient/static)
+    /*!
+      \param data vector with data (ex. value of an error for the cell)
+      \param step step of calculation
+      \param time time of calculation
+    */
+    virtual void WriteElemHistoryTransient(const ElemStoreSol<Double>& data, 
                                            const UInt step, 
                                            const Double time);
   
@@ -105,6 +121,21 @@ namespace CoupledField {
                                   const Double frequency,
                                   const ComplexFormat format);
 
+    //! write element history vector (harmonic)
+    /*!
+      \param data vector with data (ex. value of an error for the cell)
+      \param step step of calculation
+      \param frequency frequency of exciting function
+      \param frequencyStep step of calculation
+      \param format format for writing complex solution
+      (real-imag/amplitude-phase)
+    */
+    virtual void WriteElemHistoryHarmonic(const ElemStoreSol<Complex>& data, 
+                                          const UInt step,
+                                          const Double frequency,
+                                          const ComplexFormat format);
+    
+
     //! to open new file for printing results only for GMV
 
     //! \param number number for output-file (ex. result.gmv001)
@@ -123,6 +154,12 @@ namespace CoupledField {
 
   protected:
 
+    //! Initializes the history data
+    void InitHistoryData( StdVector<SolutionType> & quantities,
+                          StdVector<StdVector<UInt> > & entitiesPerQuant,
+                          StdVector<StdVector<std::ofstream*> > & histEntFiles,
+                          entityType entType );
+      
     //! Convertes enum SolutionType to string
     virtual std::string SolutionTypeToString(const SolutionType type) const {
       Error( "Not implemented here", __FILE__, __LINE__ );
@@ -142,15 +179,33 @@ namespace CoupledField {
     //! indicator: print history file or not
     Boolean NeedHistory_;
 
+    //! Total number of open history files
+    UInt totalNumHistFiles_;
+
+    //@{
+    // \name Data structures for nodal history
     //! vector with type of output values
     //! for which a history file is written
-    StdVector<SolutionType> histQuantities_;
+    StdVector<SolutionType> histNodeQuantities_;
   
     //! history nodes per output quantity
     StdVector<StdVector<UInt> > histNodesPerQuant_;
 
     //! pointer to ofstream with history information
-    StdVector<StdVector<std::ofstream*> >  historyFiles_;
+    StdVector<StdVector<std::ofstream*> >  histNodeFiles_;
+    //@}
+    
+    //@{
+    // \name Data structures for element history
+    //! vector with type of output values
+    //! for which a history file is written
+    StdVector<SolutionType> histElemQuantities_;
+  
+    //! history nodes per output quantity
+    StdVector<StdVector<UInt> > histElemsPerQuant_;
+
+    //! pointer to ofstream with history information
+    StdVector<StdVector<std::ofstream*> >  histElemFiles_;
 
     //! indicator: format of output: ascii or binary
     Boolean ascii_;
