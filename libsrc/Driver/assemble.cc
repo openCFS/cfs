@@ -21,9 +21,6 @@ namespace CoupledField {
   Assemble::Assemble(BaseSystem * algsys, Grid * aptgrid)
     :algsys_(algsys),
      ptgrid_(aptgrid),
-     stiffnessMatrix_(FALSE),
-     massMatrix_(FALSE),
-     convectionMatrix_(FALSE),
      integrators_(0),
      rhsIntegrators_(0),
      rhsSrcIntegrators_(0),
@@ -314,7 +311,6 @@ namespace CoupledField {
 					 actDescriptor->IsSetCounterPart());
             }
             else {
-
               algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
                                          pdeId1, connect_PDE1.GetPointer(), 
                                          connect_PDE1.GetSize(), 
@@ -1325,8 +1321,6 @@ namespace CoupledField {
     ENTER_FCN( "TransientAssemble::TransientAssemble" );
     SetAnalysisType(TRANSIENT);
 
-    stiffnessMatrix_  = TRUE;
-    massMatrix_       = TRUE;
   }
 
 
@@ -1339,6 +1333,15 @@ namespace CoupledField {
       Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
     }
     integrators_[SubDomIndex(regionId)]->Push_back(actID);
+    
+    // Pass needed FE-matrix types to the algebraic system
+    algsys_->SetFEMatrixType(actID->DestMat(),
+                             actID->GetPDE1()->GetPDEId(),
+                             actID->GetPDE2()->GetPDEId());
+
+    algsys_->SetFEMatrixType(actID->GetSecondaryMat(),
+                             actID->GetPDE1()->GetPDEId(),
+                             actID->GetPDE2()->GetPDEId());
   }
 
   // define integrators
@@ -1351,6 +1354,15 @@ namespace CoupledField {
     }
 
     surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
+
+    // Pass needed FE-matrix types to the algebraic system
+    algsys_->SetFEMatrixType(actID->DestMat(),
+                             actID->GetPDE1()->GetPDEId(),
+                             actID->GetPDE2()->GetPDEId());
+    
+    algsys_->SetFEMatrixType(actID->GetSecondaryMat(),
+                             actID->GetPDE1()->GetPDEId(),
+                             actID->GetPDE2()->GetPDEId());
   }
 
 
@@ -1437,6 +1449,7 @@ namespace CoupledField {
     }
 
     secondaryMatrix = MatType;
+
     secMatFac = aSecMatFac;
   }
 
@@ -1487,6 +1500,7 @@ namespace CoupledField {
       }
 
     integrators_[SubDomIndex(regionId)]->Push_back(actID);
+
   }
 
   // define integrators

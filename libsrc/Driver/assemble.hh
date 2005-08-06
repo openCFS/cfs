@@ -403,10 +403,8 @@ namespace CoupledField
     MatrixEntryType entryType_;          //!< type of matrix entries (double, complex)
     MatrixStorageType storageType_;      //!< storage type of matrix (sparse, symmetric,..)
 
-    Boolean systemMatrix_;               //!< need system matrix (TRUE/FALSE)
-    Boolean stiffnessMatrix_;            //!< need stiffness matrix (TRUE/FALSE)
-    Boolean massMatrix_;                 //!< need mass matrix (TRUE/FALSE)
-    Boolean convectionMatrix_;           //!< need convective matrix (TRUE/FALSE)
+    //! set defining which type of matrices (stiffness, mass,...) is used
+    std::set<FEMatrixType> matrixTypes_;
 
     UInt dofsPerNode_;                //!< number of unknowns per node
     UInt numPDENodes_;                //!< number of nodes in pde
