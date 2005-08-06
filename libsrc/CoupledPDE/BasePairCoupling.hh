@@ -52,9 +52,6 @@ namespace CoupledField
     SinglePDE* GetPde2()
     { return pde2_;}
     
-    //! Get types of needed matrices (sysmtem, stiffness,..)
-    void GetMatrixTypes( std::set<FEMatrixType> &matTypes);
-
     // ======================================================
     // METHODS FOR ASSEMBLING
     // ======================================================

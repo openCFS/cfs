@@ -133,12 +133,6 @@ namespace CoupledField
     NodeEQN * eqn2 = (*pde2_).eqnData_;
     assemble_->SetPtr2EQNData(eqn1, eqn2);
 
-    // Set the needed matrices
-    std::set<FEMatrixType>::iterator it;
-    for ( it = matrixTypes_.begin(); it != matrixTypes_.end(); it++ ) {
-      algsys_->SetFEMatrixType( *it, id1, id2 );
-    }
-
     // Read in material data
     ReadMaterialData();
     
