@@ -362,7 +362,10 @@ namespace CoupledField {
     // Note: DefineAlgSys() triggers only the initialization 
     // of those SinglePDEs, which are not directly coupled
     for (UInt i = 0; i < numSinglePde_; i++ ) {
-      ptSinglePde_[i]->DefineAlgSys();
+      it = isDirectCoupled_.find( ptSinglePde_[i] );
+      if ( (*it).second == FALSE) {
+        ptSinglePde_[i]->DefineAlgSys();
+      }
     }
 
   }
