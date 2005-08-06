@@ -186,7 +186,6 @@ namespace CoupledField{
   // **************************
   void DirectCoupledPDE::WriteGeneralPDEdefines() {
     ENTER_FCN( "DirectCoupledPDE::WriteGeneralPDEdefines" );
-    std::cout << "HaHa" << std::endl;
   }
 
 
@@ -231,10 +230,10 @@ namespace CoupledField{
       // and set number of dirichlet and constraint equations
       pdeName= singlePDEs_[i]->GetName();
       eqn = singlePDEs_[i]->getPDE_eqnData();
-      pdeId = algsys_->RegisterPDE( pdeName, eqn->GetNumEQNs(),
-                                    eqn->GetNumLastFreeDof() );
-      singlePDEs_[i]->SetPDEId( pdeId );
-
+      pdeId = singlePDEs_[i]->GetPDEId();
+      algsys_->RegisterPDE( pdeId, eqn->GetNumEQNs(),
+                            eqn->GetNumLastFreeDof() );
+      
       // Let the PDE set its Dirichlet information and related stuff
       singlePDEs_[i]->DefineAlgSys();
     }
@@ -289,11 +288,6 @@ namespace CoupledField{
     return totalNumRestraints;
   }
   
-  void DirectCoupledPDE::GetMatrixTypes( std::set<FEMatrixType> &matTypes) {
-    ENTER_FCN( "DirectCoupledPDE::GetMatrixTypes" );
-    Error ( "Not implemented", __FILE__, __LINE__ );
-  }
-
 
   void DirectCoupledPDE::SaveSolution( const Double * ptSol, UInt size) {
     ENTER_FCN( "DirectCoupledPDE::SaveSolution" );
