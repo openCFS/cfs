@@ -198,7 +198,8 @@
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_MagneticNodeHistory">
     <xsd:attribute name="type" type="DT_MagneticNodeData" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
@@ -211,7 +212,8 @@
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_MagneticElementHistory">
     <xsd:attribute name="type" type="DT_MagneticElementData" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
   </xsd:complexType>
 
   <!-- Data type for specifying the desired mechanical output quantities -->

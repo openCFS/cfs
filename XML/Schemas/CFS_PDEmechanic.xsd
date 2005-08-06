@@ -246,7 +246,8 @@
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_NodeHistoryMech">
     <xsd:attribute name="type" type="DT_NodeDataMech" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
@@ -259,25 +260,22 @@
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistoryMech">
     <xsd:attribute name="type" type="DT_ElemDataMech" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="required"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
   </xsd:complexType>
 
   <!-- Data type for computing the volume over a surface -->
   <xsd:complexType name="DT_SurfVolumeMech">
-    <xsd:complexContent>
-      <xsd:extension base="xsd:anyType">
-        <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="dof" use="required">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="ux"/>
-              <xsd:enumeration value="uy"/>
-              <xsd:enumeration value="uz"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-      </xsd:extension>
-    </xsd:complexContent>
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="dof" use="required">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="ux"/>
+          <xsd:enumeration value="uy"/>
+          <xsd:enumeration value="uz"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- Global type for specifying the desired mechanical output quantities -->
