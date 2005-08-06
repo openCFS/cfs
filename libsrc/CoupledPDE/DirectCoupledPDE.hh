@@ -61,8 +61,6 @@ namespace CoupledField {
     //! return number of restraints
     UInt GetNumRestraints();
   
-    //! Get types of needed matrices (sysmtem, stiffness,..)
-    void GetMatrixTypes( std::set<FEMatrixType> &matTypes);
 
     //@{
     //! store the new solution returned by the algebraic system
