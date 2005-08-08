@@ -498,8 +498,10 @@ namespace CoupledField
     // smallest eigenvalue criterion:
     if(FALSE){
 
+#ifdef USE_LAPACK
       Vector<Double> eig;
       cov.eigenvaluesWithLapack(eig);
+#endif 
 
       std::cout<<"eigenvalues"<<std::endl;
       std::cout<<eig<<std::endl;
