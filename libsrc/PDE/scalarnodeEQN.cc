@@ -100,7 +100,7 @@ namespace CoupledField {
                    << homoDirichletNodes_[i]
                    << " is not contained in any of the regions for this PDE";
         Warning( __FILE__, __LINE__ );
-        notIncludedBCs++;
+        multipleBCs++;
       }
       else if (countNodes[mesh2PDENode_[homoDirichletNodes_[i]-1]-1] != 0) {
         (*warning) << "ScalarNodeEQN::CalcMapping: HomDirichletNode # "
@@ -130,7 +130,7 @@ namespace CoupledField {
                      << " is not contained in any of the regions for "
                      << "this PDE";
           Warning( __FILE__, __LINE__ );
-          notIncludedBCs++;
+          multipleBCs++;
         }
         else if ( countNodes[mesh2PDENode_[inhomDirichletNodes_[i]-1]-1]
                   != 0 ) {
