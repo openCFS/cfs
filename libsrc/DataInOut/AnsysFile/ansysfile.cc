@@ -120,6 +120,8 @@ namespace CoupledField {
     
     StdVector<std::string>  names;
     
+    regionNames.Clear();
+    
     for ( UInt iDim=dim_; iDim>0; iDim-- ) {
       names.Clear();
       GetRegionNamesOfDim(names,iDim);
@@ -164,6 +166,7 @@ namespace CoupledField {
     StdVector<std::string> sections;
     StdVector<UInt> numNamedNodes;
     
+    nodeNames.Clear();
     sections = "Node BC", "Save Nodes";
     numNamedNodes.Resize(2);
     numNamedNodes[0] = GetInteger("NumNodeBC");
@@ -195,10 +198,35 @@ namespace CoupledField {
   void AnsysFile::GetElemNames( StdVector<std::string> & elemNames ) {
     ENTER_FCN( "AnsysFile::GetElemNames" );
 
-    Error( "Not implemented", __FILE__, __LINE__ );
+    std::string::size_type pos=0;
+    std::string str;
+    UInt elemNum, numNamedElems;
+    UInt i,j;    
+    
+    elemNames.Clear();
+    numNamedElems = GetInteger("NumSaveElements");
+    
+    GetPosLine("[Save Elements]", pos);
+    inFile_.seekg(pos,std::ios::beg);
+    
+    
+    for ( i = 0; i < numNamedElems; i++ ) {
+      inFile_ >> elemNum >> str;
+      inFile_.ignore(100,'\n');
+      
+      Boolean found = FALSE;
+      
+      for ( j = 0; j < elemNames.GetSize(); j++ ) {
+        if ( str == elemNames[j] ) {
+          found = TRUE;
+        }
+      }
+      if ( !found ) {
+        elemNames.Push_back(str);
+      } 
+    }
   }
-
-
+  
 
   // ======================================================
   // ENTITY ACCESS
@@ -211,7 +239,7 @@ namespace CoupledField {
 
     std::string::size_type pos=0;
     
-   UInt numNodes = GetNumNodes();
+    UInt numNodes = GetNumNodes();
     nodeCoords.Resize(numNodes);
 
 
@@ -228,10 +256,10 @@ namespace CoupledField {
   void AnsysFile::GetCoordinates( StdVector<Point<3> > & nodeCoords ) {
     ENTER_FCN( "AnsysFile::GetCoordinates 3D" );
     
-   UInt i, ibuf;
+    UInt i, ibuf;
     std::string::size_type pos=0;
     
-   UInt numNodes = GetNumNodes();
+    UInt numNodes = GetNumNodes();
     nodeCoords.Resize(numNodes);
     
     
@@ -251,7 +279,7 @@ namespace CoupledField {
     ENTER_FCN( "AnsysFile::GetNodesOfRegions" );
 
     std::set<UInt>::iterator it;
-   UInt iRegion, index, iNode;
+    UInt iRegion, index, iNode;
     
     
     nodes.Resize(regionId.GetSize());
@@ -263,7 +291,7 @@ namespace CoupledField {
       nodes[iRegion].Resize(regionNodes_[index].size());
 
       for (it = regionNodes_[index].begin();it != regionNodes_[index].end();
-            it++, iNode++ ) {
+           it++, iNode++ ) {
         nodes[iRegion][iNode] = *it;
       }
         
@@ -305,7 +333,7 @@ namespace CoupledField {
 
     // Determine the number of elements of respective dimension from
     // the header of the mesh-file
-   UInt numElems = GetNumElems(dim);
+    UInt numElems = GetNumElems(dim);
 
     // If there are no elements, we assume that this is fine an
     // simply return
@@ -325,7 +353,7 @@ namespace CoupledField {
     inFile_.seekg( pos, std::ios::beg );
 
     // Some additional variables
-   UInt i, k, eNum, eType, eNodes;
+    UInt i, k, eNum, eType, eNodes;
     std::string region, lastRegion;
     RegionIdType regionId = NO_REGION_ID;
     Integer regionIndex = 0;
@@ -464,8 +492,8 @@ namespace CoupledField {
         inFile_.ignore(100,'\n');
         pos = inFile_.tellg();
         if (pos != lineEndPos) {
-      (*error) << "AnsysFile:GetNamedNodes: The node list for the boundary "
-           << "conditions has wrong size or format. Please correct it!";
+          (*error) << "AnsysFile:GetNamedNodes: The node list for the boundary "
+                   << "conditions has wrong size or format. Please correct it!";
           Error( __FILE__, __LINE__ );
         }
         
@@ -943,79 +971,79 @@ namespace CoupledField {
     void AnsysFile::ReadEl4AdaptGrid3d(StdVector<grd::Element*> & elems, 
                                        StdVector<grd::Vertex*> * vertex,  
                                        const StdVector<std::string> sd)
-      {
-        ENTER_FCN( "AnsysFile::ReadElems4AdaptGrid3d" );
+    {
+      ENTER_FCN( "AnsysFile::ReadElems4AdaptGrid3d" );
 
-        UInt maxnelems;
-        ReadMaxnumelem(maxnelems,"Num3DElements");
+      UInt maxnelems;
+      ReadMaxnumelem(maxnelems,"Num3DElements");
 
-        if (maxnelems)
-          {
-            std::string::size_type pos=0;
+      if (maxnelems)
+        {
+          std::string::size_type pos=0;
 
-            GetPosLine("3D Elements", pos);
-            inFile_.seekg(pos,std::ios::beg);
+          GetPosLine("3D Elements", pos);
+          inFile_.seekg(pos,std::ios::beg);
 
-            UInt i, ii, ibuf, itype, innodes;
-            std::string namesd;
-            UInt connect[4]; 
+          UInt i, ii, ibuf, itype, innodes;
+          std::string namesd;
+          UInt connect[4]; 
 
-            elems.resize(maxnelems);
-            for (i=0; i<maxnelems; i++)
-              {
-                inFile_ >> ibuf >> itype >> innodes >> namesd;
-                inFile_.ignore(100,'\n');
+          elems.resize(maxnelems);
+          for (i=0; i<maxnelems; i++)
+            {
+              inFile_ >> ibuf >> itype >> innodes >> namesd;
+              inFile_.ignore(100,'\n');
 
-                for (ii=0; ii<innodes; ii++)
-                  inFile_ >> connect[ii];
+              for (ii=0; ii<innodes; ii++)
+                inFile_ >> connect[ii];
 
-                grd::Tetrahedron * tmpTetra;
-                grd::Hexahedron * tmpHexa;
-                switch(itype)
-                  {
-                  case 8:
-                    tmpTetra=new grd::Tetrahedron;
+              grd::Tetrahedron * tmpTetra;
+              grd::Hexahedron * tmpHexa;
+              switch(itype)
+                {
+                case 8:
+                  tmpTetra=new grd::Tetrahedron;
 
-                    tmpTetra->setVertex(0,(*vertex)[connect[0]-1]);
-                    tmpTetra->setVertex(1,(*vertex)[connect[1]-1]);
-                    tmpTetra->setVertex(2,(*vertex)[connect[2]-1]); 
-                    tmpTetra->setVertex(3,(*vertex)[connect[3]-1]);
+                  tmpTetra->setVertex(0,(*vertex)[connect[0]-1]);
+                  tmpTetra->setVertex(1,(*vertex)[connect[1]-1]);
+                  tmpTetra->setVertex(2,(*vertex)[connect[2]-1]); 
+                  tmpTetra->setVertex(3,(*vertex)[connect[3]-1]);
    
-                    SetNumSD(tmpTetra,namesd,sd);
+                  SetNumSD(tmpTetra,namesd,sd);
     
-                    elems[i]=tmpTetra; 
-                    break;
+                  elems[i]=tmpTetra; 
+                  break;
 
-                  case 10:
-                    tmpHexa=new grd::Hexahedron;
+                case 10:
+                  tmpHexa=new grd::Hexahedron;
 
-                    tmpTetra->setVertex(0,(*vertex)[connect[0]-1]);
-                    tmpTetra->setVertex(1,(*vertex)[connect[1]-1]);
-                    tmpTetra->setVertex(2,(*vertex)[connect[2]-1]); 
-                    tmpTetra->setVertex(3,(*vertex)[connect[3]-1]);
-                    tmpTetra->setVertex(4,(*vertex)[connect[4]-1]);
-                    tmpTetra->setVertex(5,(*vertex)[connect[5]-1]);
-                    tmpTetra->setVertex(6,(*vertex)[connect[6]-1]); 
-                    tmpTetra->setVertex(7,(*vertex)[connect[7]-1]);
+                  tmpTetra->setVertex(0,(*vertex)[connect[0]-1]);
+                  tmpTetra->setVertex(1,(*vertex)[connect[1]-1]);
+                  tmpTetra->setVertex(2,(*vertex)[connect[2]-1]); 
+                  tmpTetra->setVertex(3,(*vertex)[connect[3]-1]);
+                  tmpTetra->setVertex(4,(*vertex)[connect[4]-1]);
+                  tmpTetra->setVertex(5,(*vertex)[connect[5]-1]);
+                  tmpTetra->setVertex(6,(*vertex)[connect[6]-1]); 
+                  tmpTetra->setVertex(7,(*vertex)[connect[7]-1]);
 
-                    SetNumSD(tmpHexa,namesd,sd);
+                  SetNumSD(tmpHexa,namesd,sd);
 
-                    elems[i]=tmpHexa;
+                  elems[i]=tmpHexa;
 
-                    break;
+                  break;
  
-                  default:
-                    {
-                      (*error) << "This type of elems in mesh file is not "
-                               << "implemented yet";
-                      Error( __FILE__, __LINE__ );
-                    }
+                default:
+                  {
+                    (*error) << "This type of elems in mesh file is not "
+                             << "implemented yet";
+                    Error( __FILE__, __LINE__ );
                   }
-                inFile_.ignore(100,'\n'); 
-              }
+                }
+              inFile_.ignore(100,'\n'); 
+            }
 
-          } // end of if
-      }
+        } // end of if
+    }
 
 
     // ************
@@ -1030,7 +1058,7 @@ namespace CoupledField {
       UInt  j;
       for (j=0; j<sdGetSize(); j++)
         if (namesd == sd[j]) { ptEl->setValue(j);
-        Find=TRUE;
+          Find=TRUE;
         }
       if (!Find) {
         (*error) << namesd << "- this level of element is not mentioned in "
