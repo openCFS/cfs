@@ -50,7 +50,6 @@ namespace CoupledField {
     std::string warnMsg, errMsg;
 
     // STEP 1
-    UInt notIncludedBCs = 0;
     UInt multipleBCs = 0;
     pdeNode2EQN_.Resize(numPDENodes_,dofsPerNode_);
     pdeNode2EQN_.Init(1);
@@ -69,7 +68,7 @@ namespace CoupledField {
                    << "nr. " << homoDirichletNodes_[i]
                    << " is not contained in any of the regions for this PDE";
         Warning( __FILE__, __LINE__ );
-        notIncludedBCs++;
+        multipleBCs++;
       }
       else if ( countNodes[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]
                 [homoDirichletDofs_[i]-1] != 0 ) {
