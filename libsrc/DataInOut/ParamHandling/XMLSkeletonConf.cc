@@ -36,7 +36,7 @@ namespace CoupledField {
     testfile >> dummy;
     if ( !dummy.empty() ) {
       std::cerr << std::endl << "  \033[31mError\033[0m: " //<< std::endl 
-                << "conf-File is not empty: please change the name of your "
+                << "xml-File is not empty: please change the name of your "
                 << "current conf-file" << std::endl
                 << "\t \t \t \t before calling cfs with option -skel"
                 << std::endl<< std::endl ;
@@ -108,14 +108,23 @@ namespace CoupledField {
   {
     ENTER_FCN("SkeletonConf::WriteGeneral");
 
+    UInt dim=meshfile_->GetDim();
+    std::string geomType;
+
+    if( dim == 2) {
+      geomType = "plane";
+    } else {
+      geomType = "3d";
+    }
+    
     (*skelfile_)  << "<?xml version=\"1.0\"?>" << myendl
                   << "<cfsSimulation xmlns=\"http://www.cfs++.org\">"
                   << myendl << myendl;    
 
     (*skelfile_)  << "   <!-- ==============================================="
                   << "============== -->" << std::endl 
-                  << "   <!--   SKELETON-CONF-FILE: PLEASE REPLACE ALL \"XXX\""
-                  << " AND FILL OUT!  -->" << std::endl
+                  << "   <!--   SKELETON-XML-FILE: PLEASE REPLACE ALL \"XXX\""
+                  << " AND FILL OUT!   -->" << std::endl
                   << "   <!-- ==============================================="
                   << "============== -->" << std::endl
                   << myendl;
@@ -126,7 +135,8 @@ namespace CoupledField {
 
     (*skelfile_)  << "   <!--  DEFINE GEOMETRY TYPE (plane, axi, 3d)-->"
                   << std::endl
-                  << "   <geometry type=\"plane\"/>" << std::endl << std::endl;
+                  << "   <geometry type=\""
+                  << geomType << "\"/>" << std::endl << std::endl;
 
     (*skelfile_)  << "   <!--  NAME OF MATERIAL FILE -->" << std::endl
                   << "   <materialData file=\"mat.dat\"/>" << std::endl
@@ -228,26 +238,8 @@ namespace CoupledField {
   {
     ENTER_FCN("SkeletonConf::WriteLists");
 
-    StdVector<std::string> nodeNames, surfRegionNames;
+    StdVector<std::string> nodeNames, surfRegionNames, elemNames;
     UInt dim = meshfile_-> GetDim();
-
-   
-
-
-    //check for node-list
-    if (meshfile_->GetNumNamedNodes() != 0)
-      {
-        meshfile_->GetNodeNames(nodeNames);
-
-        if (nodeNames.GetSize())
-          (*skelfile_) << "      <!-- LIST OF NODES --> " << myendl;
-        
-        for (UInt i=0; i<nodeNames.GetSize(); i++)
-          (*skelfile_) << "      <nodes name=\"" << nodeNames[i] 
-                       << "\"/>" << myendl;
-        (*skelfile_) << myendl;
-      }
-
 
     // Print surface elements
     if (dim == 3){
@@ -266,10 +258,38 @@ namespace CoupledField {
       (*skelfile_) << "      <!--  LIST OF SURFACE ELEMENTS -->" << std::endl;
       
       for (UInt i=0; i<surfRegionNames.GetSize(); i++)
-        (*skelfile_) << "      <elements name=\"" << surfRegionNames[i] 
+        (*skelfile_) << "      <surface name=\"" << surfRegionNames[i] 
                      << "\"/>" << myendl;
       (*skelfile_) << myendl;
     }
+    
+    //check for save elements
+    if (meshfile_->GetNumNamedElems() != 0)
+      {
+        meshfile_->GetElemNames(elemNames);
+        
+        if (elemNames.GetSize())
+          (*skelfile_) << "      <!-- LIST OF NAMED ELEMENTS --> " << myendl;
+        
+        for (UInt i=0; i<elemNames.GetSize(); i++)
+          (*skelfile_) << "      <elements name=\"" << elemNames[i] 
+                       << "\"/>" << myendl;
+        (*skelfile_) << myendl;
+      }
+    
+    //check for node-list
+    if (meshfile_->GetNumNamedNodes() != 0)
+      {
+        meshfile_->GetNodeNames(nodeNames);
+
+        if (nodeNames.GetSize())
+          (*skelfile_) << "      <!-- LIST OF NAMED NODES --> " << myendl;
+        
+        for (UInt i=0; i<nodeNames.GetSize(); i++)
+          (*skelfile_) << "      <nodes name=\"" << nodeNames[i] 
+                       << "\"/>" << myendl;
+        (*skelfile_) << myendl;
+      }
   }
 
   
@@ -278,29 +298,29 @@ namespace CoupledField {
     ENTER_FCN("SkeletonConf::WritePDE");
 
     (*skelfile_) << "      <!-- name of pde -->" << std::endl
-      << "      <XXX>" << std::endl 
-      << std::endl
-      << "         <region name=\"XXX\"/>" << std::endl 
-      << std::endl
-      << "         <!-- boundary conditions -->" << std::endl
-      << "         <bcsAndLoads>" << std::endl
-      << "            <dirichletHom   name=\"XXX\"/>" << std::endl
-      << "            <dirichletInhom name=\"XXX\" value=\"1\" />"
-      << std::endl
-      << "            <load           name=\"XXX\" value=\"1\" />"
-      << std::endl 
-      << "         </bcsAndLoads>" << std::endl 
-      << myendl
-      << "         <!-- storing of results -->" << std::endl
-      << "         <storeResults>" << std::endl
-      << "           <!-- <nodeResults type=\"XXX\"/>                 -->"  
-      << std::endl
-      << "           <!-- <nodeHistory type=\"XXX\" saveNodes=\"XXX\"/> -->"
-      << std::endl
-      << "           <!-- <elemResults type=\"XXX\" region=\"XXX\"/>    -->" 
-      << std::endl
-      << "         </storeResults>" << std::endl
-      << "      </XXX>" << std::endl << std::endl;
+                 << "      <XXX>" << std::endl 
+                 << std::endl
+                 << "         <region name=\"XXX\"/>" << std::endl 
+                 << std::endl
+                 << "         <!-- boundary conditions -->" << std::endl
+                 << "         <bcsAndLoads>" << std::endl
+                 << "            <dirichletHom   name=\"XXX\"/>" << std::endl
+                 << "            <dirichletInhom name=\"XXX\" value=\"1\" />"
+                 << std::endl
+                 << "            <load           name=\"XXX\" value=\"1\" />"
+                 << std::endl 
+                 << "         </bcsAndLoads>" << std::endl 
+                 << myendl
+                 << "         <!-- storing of results -->" << std::endl
+                 << "         <storeResults>" << std::endl
+                 << "           <!-- <nodeResults type=\"XXX\"/>                 -->"  
+                 << std::endl
+                 << "           <!-- <nodeHistory type=\"XXX\" saveNodes=\"XXX\"/> -->"
+                 << std::endl
+                 << "           <!-- <elemResults type=\"XXX\" region=\"XXX\"/>    -->" 
+                 << std::endl
+                 << "         </storeResults>" << std::endl
+                 << "      </XXX>" << std::endl << std::endl;
   }
 
   void SkeletonConf::WriteCouplingList ()
@@ -391,7 +411,7 @@ namespace CoupledField {
                   << "       <pde refTag=\"XXX\" type=\"XXX\" " 
                   << "analysis=\"XXX\"/>" << std::endl
                   << "     </step>               " << std::endl
-         << "   </multiSequence>                            -->" << std::endl 
+                  << "   </multiSequence>                            -->" << std::endl 
                   << myEndl;
 
 
