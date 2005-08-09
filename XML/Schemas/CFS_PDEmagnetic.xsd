@@ -42,14 +42,11 @@
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="dirichletHom" type="DT_MagneticHD"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="dirichletInhom" type="DT_MagneticID"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="neumannInhom" type="DT_MagneticIN"
-                             minOccurs="0" maxOccurs="unbounded"/>
-              </xsd:sequence>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="dirichletHom"   type="DT_MagneticHD"/>
+                <xsd:element name="dirichletInhom" type="DT_MagneticID"/>
+                <xsd:element name="neumannInhom"   type="DT_MagneticIN"/>
+              </xsd:choice>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
             </xsd:complexType>

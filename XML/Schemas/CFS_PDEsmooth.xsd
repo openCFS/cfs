@@ -39,18 +39,13 @@
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="dirichletHom" type="DT_SmoothHD"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="dirichletInhom" type="DT_SmoothID"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="neumannInhom" type="DT_SmoothIN"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="load" type="DT_SmoothLoad" minOccurs="0"
-                             maxOccurs="unbounded"/>
-                <xsd:element name="pressure" type="DT_SmoothPressure"
-                             minOccurs="0" maxOccurs="unbounded"/>
-              </xsd:sequence>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="dirichletHom"   type="DT_SmoothHD"      />
+                <xsd:element name="dirichletInhom" type="DT_SmoothID"      />
+                <xsd:element name="neumannInhom"   type="DT_SmoothIN"      />
+                <xsd:element name="load"           type="DT_SmoothLoad"    />
+                <xsd:element name="pressure"       type="DT_SmoothPressure"/>
+              </xsd:choice>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
             </xsd:complexType>

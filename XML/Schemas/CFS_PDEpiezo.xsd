@@ -52,18 +52,13 @@
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="dirichletHom" type="DT_PiezoHD"
-                  minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="dirichletInhom" type="DT_PiezoID"
-                  minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="neumannInhom" type="DT_PiezoIN"
-                  minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="load" type="DT_PiezoLoad" minOccurs="0"
-                  maxOccurs="unbounded"/>
-                <xsd:element name="pressure" type="DT_PiezoPressure"
-                  minOccurs="0" maxOccurs="unbounded"/>
-              </xsd:sequence>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="dirichletHom"   type="DT_PiezoHD"      />
+                <xsd:element name="dirichletInhom" type="DT_PiezoID"      />
+                <xsd:element name="neumannInhom"   type="DT_PiezoIN"      />
+                <xsd:element name="load"           type="DT_PiezoLoad"    />
+                <xsd:element name="pressure"       type="DT_PiezoPressure"/>
+              </xsd:choice>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
             </xsd:complexType>

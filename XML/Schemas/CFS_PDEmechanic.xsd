@@ -56,23 +56,17 @@
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="dirichletHom" type="DT_MechHD"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="dirichletInhom" type="DT_MechID"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="neumannInhom" type="DT_MechIN"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="load" type="DT_MechLoad" minOccurs="0"
-                             maxOccurs="unbounded"/>
-                <xsd:element name="pressure" type="DT_MechPressure"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="spring" type="DT_MechSpring" minOccurs="0"
-                             maxOccurs="unbounded"/>
-                <xsd:element name="regionLoad" type="DT_MechRegionLoad"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                
-              </xsd:sequence>
+
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="dirichletHom"   type="DT_MechHD"        />
+                <xsd:element name="dirichletInhom" type="DT_MechID"        />
+                <xsd:element name="neumannInhom"   type="DT_MechIN"        />
+                <xsd:element name="load"           type="DT_MechLoad"      />
+                <xsd:element name="pressure"       type="DT_MechPressure"  />
+                <xsd:element name="spring"         type="DT_MechSpring"    />
+                <xsd:element name="regionLoad"     type="DT_MechRegionLoad"/>
+              </xsd:choice>
+
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
             </xsd:complexType>
