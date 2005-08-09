@@ -124,6 +124,7 @@ namespace CoupledField {
     
     // Do we use damping?
     if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) ) {
+      dampingType_ = RAYLEIGH;
       Info->PrintF( pdename_, " Using RAYLEIGH damping\n" );
     }
     else {
