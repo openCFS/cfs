@@ -68,7 +68,7 @@ namespace CoupledField
         }
         rhos[maxIndex]=0.0;
         sumRhos+=highestRhos[i];
-        if (sumRhos>1.3){
+        if (sumRhos>1.1&&i>3){
           std::cout<<"sumRhos = "<<sumRhos <<std::endl;
           //          getchar();
           break;
@@ -100,8 +100,8 @@ namespace CoupledField
 
  //      std::cout<<"highestRhos"<<std::endl;
 //       std::cout<<highestRhos<<std::endl;
-//       std::cout<<"highestFreqs"<<std::endl;
-//       std::cout<<highestFreqs<<std::endl;
+      std::cout<<"highestFreqs"<<std::endl;
+      std::cout<<highestFreqs<<std::endl;
       
 
       nrMeasuredData=howManyFreqs;
@@ -151,8 +151,8 @@ namespace CoupledField
     Vector<Complex> jacobi;
     Vector<Complex> jacobiH;
 
-    Double penaltyFactor1=0.1;
-    Double penaltyFactor2=0.1;
+    Double penaltyFactor1=0.01;
+    Double penaltyFactor2=0.01;
 
     fr_=4000/(2*thickness);
     // minus 5 percent
@@ -270,10 +270,12 @@ namespace CoupledField
      for (UInt actFreq=0;actFreq<nrfreq;actFreq++){
        sum1+=std::min(0.0,rhos[actFreq])*std::min(0.0,rhos[actFreq]);
        sum2+= (1-std::max(1.0,rhos[actFreq]))*(1-std::max(1.0,rhos[actFreq]));
-//        if (sum1!=0.0||sum2!=0){
-//          std::cout<<" sum1 ... sum2 " <<std::endl;
-//          std::cout<< sum1 << " ... " << sum2 <<std::endl;
 //        }
+     }
+
+     if (sum1!=0.0||sum2!=0){
+       std::cout<<" sum1 ... sum2 " <<std::endl;
+       std::cout<<1.0/penaltyFactor1 * sum1 << " ... " << 1.0/penaltyFactor1*sum2 <<std::endl;
      }
 
      J+=Complex((1.0/penaltyFactor1)*sum1+(1.0/penaltyFactor2)*sum2,0.0);
@@ -314,7 +316,7 @@ namespace CoupledField
     Vector<Double> rhosOld;
     rhosOld.Resize(nrMeasuredData);
     rhosOld=rhos;
-    Double lambda=1.0;
+    Double lambda=1.0e-1;
 
     Complex J_old,J;
 
@@ -326,7 +328,7 @@ namespace CoupledField
       
       J=J_old;
       
-      lambda=10*lambda;
+      lambda=2*lambda;
       createGradientRho(grad, dOmega);
 
       while (J_old.real()<=J.real()){
@@ -338,7 +340,7 @@ namespace CoupledField
 	std::cout<<"OLD Functional J = "<<J_old.real()<<std::endl;
 
 	if (J.real()>=J_old.real()){
-	  lambda=0.1*lambda;
+	  lambda=0.5*lambda;
 	  rhos=rhosOld;
 	  std::cout<<"lambda = " << lambda << std::endl;
 	}

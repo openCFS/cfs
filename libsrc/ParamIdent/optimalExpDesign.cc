@@ -123,7 +123,7 @@ namespace CoupledField
   void piezoParamIdent::optimalExpDesignDiffNumberFreqs(){
 
     ENTER_FCN("piezoParamIdent::optimalExpDesignDiffNumberFreqs");
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+
     nrMeasuredData=1;
     Vector<Double> newFreqs;
 
@@ -242,7 +242,7 @@ namespace CoupledField
       createCovA(J, TRUE);
       std::cout<<" Value of functional J(w) = "<< J <<std::endl;
       JOld=J;
-      Boolean scaleFlag=FALSE;
+      //      Boolean scaleFlag=FALSE;
 
       std::cout<<J<<std::endl;
 
@@ -498,8 +498,9 @@ namespace CoupledField
     // smallest eigenvalue criterion:
     if(FALSE){
 
-#ifdef USE_LAPACK
       Vector<Double> eig;
+      eig.Resize(actNrParameter+actNrParameterC);
+#ifdef USE_LAPACK
       cov.eigenvaluesWithLapack(eig);
 #endif 
 
@@ -1023,7 +1024,7 @@ namespace CoupledField
     imag.Resize(nrMeasuredData);
 
     char mDataRow[256], helpChar[64];
-    UInt i=0, j=0, k=0;
+    UInt i=0, j=0;
     Double newFreq, amplitude,phase;
 
     while(mess->getline(mDataRow, 265)){
