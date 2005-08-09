@@ -507,4 +507,4 @@ LFLAGS_GLOBAL = $(LINK_LIBS)
 # Note: These two variables are required for the use of makedepend
 #
 DEPEND_FILE = Makefile.depend
-DEPEND_FLAG =  
+DEPEND_FLAG = -- $(COMPILE_MACROS) --  
