@@ -435,9 +435,6 @@ namespace CoupledField {
     //! number of dirichlet boundary conditions
     UInt numDirichletBCs_;
 
-    //! number of built-in dirichlet conditions
-    UInt numBuildInDirichletBCs_;
-
     //@}
 
     // -----------------------------------------------------------------------

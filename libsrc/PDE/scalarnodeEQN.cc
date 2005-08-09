@@ -19,7 +19,6 @@ namespace CoupledField {
   
     isBlockMapped_ = FALSE;
     dofsPerEQN_ = 1;
-    sortEQNs_ = sortEQNs;
   }
 
 
@@ -28,9 +27,6 @@ namespace CoupledField {
   // ==============
   ScalarNodeEQN::~ScalarNodeEQN() {
     ENTER_FCN( "ScalarNodeEQN::~ScalarNodeEQN" );
-    if ( commandLine->GetShowEqnMap() == true ) {
-      Print( (*cla) );
-    }
   }
 
 
@@ -60,9 +56,11 @@ namespace CoupledField {
     // Step 4:  Loop over all entries in pde2Meshnode
     //          and assign each non-zero entry an equation number
     // Step 5:  Afterwards loop again over all nodes in constraintSlaveNodes_
-    //          and set the corresponding entry in pdeNode2EQN_ to the negative
-    //          of the value of constraintMasterNode
-    // Step 5b: 
+    //          and set the corresponding entry in pdeNode2EQN_ to the
+    //          negative of the value of constraintMasterNode
+    // Step 5b: Loop over all entries in inhomoDirichletNodes_ and assign that
+    //          dof an equation number after the hightest equation number of
+    //          the free dofs
 
 
     // Each local PDE-node number is assigned a 
@@ -83,7 +81,6 @@ namespace CoupledField {
     // **********
     //   STEP 1
     // **********
-    UInt notIncludedBCs = 0;
     UInt multipleBCs = 0;
     pdeNode2EQN_.Clear();
     pdeNode2EQN_.Resize(numPDENodes_);
@@ -193,7 +190,13 @@ namespace CoupledField {
     // information
     isInitialized_ = TRUE;
     numEqns_ = eqnCounter;
-    numBuildInDirichletEQNs_ = numPDENodes_ - numEqns_ + multipleBCs;
+    numDroppedDofs_ = numPDENodes_ - numEqns_ + multipleBCs;
+
+    // Print mapping to LAS-file
+    if ( commandLine->GetShowEqnMap() == true ) {
+      Print( (*cla) );
+    }
+
   }
 
 
@@ -221,8 +224,11 @@ namespace CoupledField {
     out << "Equation numbering - Information" << std::endl;
     out << "================================" << std::endl;
     out << "DOFs per Node: 1 " << std::endl;
-    out << "Using SCALAR numbering of equations" << std::endl;
-    out << std::endl;
+    out << "Using SCALAR numbering of equations\n\n"
+        << "highest equation numbers             = " << numEqns_ << '\n'
+        << "number of free degrees of freedom    = " << numRealEqns_ << '\n'
+        << "number of dropped degrees of freedom = " << numDroppedDofs_
+        << '\n' << std::endl;
 
     // Print pde2MeshNode_ and pdeNode2EQN_
     out << std::setw(10) << "PDE NodeNr" << " | ";

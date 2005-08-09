@@ -79,8 +79,12 @@ namespace CoupledField
 
   //! \class ScalarBlockEQN
   //! 
-  //! \purpose 
-  //! 
+  //! \purpose to assign equation numbers to degrees of freedom. This class
+  //!          handles the case that there are multiple degrees of freedom
+  //!          per node, as e.g. in a mechanics problem. Each degree of
+  //!          freedom is assigned an individual, though not necessarily
+  //!          unique equation number, i.e. no dof-blocking is performed.
+  //!
   //! \collab 
   //! 
   //! \implement 

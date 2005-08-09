@@ -49,7 +49,9 @@ ARFLAGS = r
 
 # MODEDEBUG = -DDEBUG_XMLPARAMHANDLER
 MODEDEBUG =
-DEBUG     = -Wno-long-long -Wno-comment -DTRACE -ggdb -pg \
+#DEBUG     = -Wno-long-long -Wno-comment -DTRACE -ggdb -pg \
+#           -DCHECK_INDEX -DCHECK_INITIALIZED -DDEBUG -DMEMTRACE
+DEBUG     = -Wno-long-long -Wno-comment -DTRACE -ggdb \
            -DCHECK_INDEX -DCHECK_INITIALIZED -DDEBUG -DMEMTRACE
 STANDARD  = -ansi -Wall -pedantic
 

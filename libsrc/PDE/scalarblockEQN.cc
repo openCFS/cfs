@@ -16,7 +16,7 @@ namespace CoupledField {
     : NodeEQN( aptGrid, asubdoms, dofsPerNode, sortEQNs ) {
     ENTER_FCN( "ScalarBlockEQN::ScalarBlockEQN" );
     isBlockMapped_ = FALSE;
-    dofsPerEQN_ = 1;
+    dofsPerEQN_    = 1;
   }
 
 
@@ -25,10 +25,6 @@ namespace CoupledField {
   // **************
   ScalarBlockEQN::~ScalarBlockEQN() {
     ENTER_FCN( "ScalarBlockEQN::ScalarBlockEQN" );
-
-    if ( commandLine->GetShowEqnMap() == true ) {
-      Print( (*cla) );
-    }
   }
 
 
@@ -45,24 +41,46 @@ namespace CoupledField {
                            pde2MeshNode_,
                            mesh2PDEElem_,
                            pde2MeshElem_);
+
  
-    UInt eqnCounter = 0;
-    std::string warnMsg, errMsg;
+    // Idea of the algorithm:
+    //
+    // Step 1:  Initialize pdeNode2eqn_ with 1
+    // Step 2:  For each entry in homoDirichletNodes_ set the corresponding
+    //          entry in pdeNode2eqn_ to 0
+    // Step 2b: For each entry in inhomoDirichletNodes_ set the corresponding
+    //          entry in pdeNode2eqn_ to 0
+    // Step 3:  For each entry in constraintSlaveNodes_ set the corresponding
+    //          entry in pdeNode2eqn_ to 0
+    // Step 4:  Loop over all entries in pde2Meshnode
+    //          and assign each non-zero entry an equation number
+    // Step 5:  Afterwards loop again over all nodes in constraintSlaveNodes_
+    //          and set the corresponding entry in pdeNode2EQN_ to the
+    //          negative of the value of constraintMasterNode
+    // Step 5b: Loop over all entries in inhomoDirichletNodes_ and assign that
+    //          dof an equation number after the hightest equation number of
+    //          the free dofs
+    //
+    // Note:    Steps 2b and 5b are only performed, if sortEQNs = TRUE
 
+
+    // ------
     // STEP 1
+    // ------
     UInt multipleBCs = 0;
-    pdeNode2EQN_.Resize(numPDENodes_,dofsPerNode_);
-    pdeNode2EQN_.Init(1);
+    pdeNode2EQN_.Resize( numPDENodes_, dofsPerNode_ );
+    pdeNode2EQN_.Init( 1 );
 
 
+    // ------
     // STEP 2
+    // ------
     Matrix<UInt> countNodes;
-    countNodes.Resize(numPDENodes_,dofsPerNode_);
-    countNodes.Init(0);
+    countNodes.Resize( numPDENodes_, dofsPerNode_ );
+    countNodes.Init( 0 );
     for ( UInt i = 0; i < homoDirichletNodes_.GetSize(); i++ ) {
 
-      // Check if homDirichletNode belongs to one of my 
-      // subdomains
+      // Check if homDirichletNode belongs to one of my subdomains
       if ( mesh2PDENode_[homoDirichletNodes_[i]-1]-1 < 0 ) {
         (*warning) << "ScalarBlockEQN::CalcMapping: Homogen. Dirichlet node "
                    << "nr. " << homoDirichletNodes_[i]
@@ -72,6 +90,13 @@ namespace CoupledField {
       }
       else if ( countNodes[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]
                 [homoDirichletDofs_[i]-1] != 0 ) {
+        (*warning) << "ScalarBlockEQN::CalcMapping: HomDirichletNode # "
+                 << homoDirichletNodes_[i]
+                 << "\nappeared already at least once in the list of "
+                 << "boundary nodes for this PDE!\n Please check, if this "
+                 << "node is defined in more than one level of boundary "
+                 << "nodes!";
+        Warning( __FILE__, __LINE__ );
         multipleBCs++;
       }
       else {
@@ -83,23 +108,56 @@ namespace CoupledField {
     }
 
 
-    if ( multipleBCs > 0 ) {
-      (*warning) << "ScalarBlockEQN::CalcMapping: Some hom dirichlet nodes "
-                 << "occured already at least two times in the list of "
-                 << "homDirichlet boundary nodes "
-                 << "for this PDE! Please check, if this node is defined in"
-                 << " more than one level of boundary nodes!";
-      Warning( __FILE__, __LINE__ );
+    // -------
+    // STEP 2b
+    // -------
+    if ( sortEQNs_ == TRUE ) {
+      countNodes.Init(0);
+      for ( UInt i = 0; i < inhomDirichletNodes_.GetSize(); i++ ) {
+        if ( mesh2PDENode_[ inhomDirichletNodes_[i] - 1 ] - 1 < 0 ) {
+          (*warning) << "ScalarBlockEQN::CalcMapping: Inhom. Dirichlet "
+                     << "node #"
+                     << inhomDirichletNodes_[i]
+                     << " is not contained in any of the regions for "
+                     << "this PDE";
+          Warning( __FILE__, __LINE__ );
+          multipleBCs++;
+        }
+        else if ( countNodes[mesh2PDENode_[inhomDirichletNodes_[i]-1]-1]
+                  [inhomDirichletDofs_[i]-1] != 0 ) {
+          (*warning) << "ScalarBlockEQN::CalcMapping: Inhom. Dirichlet "
+                     << "node #"
+                     << inhomDirichletNodes_[i]
+                     << "\nappeared already at least once in the list of "
+                     << "boundary nodes for this PDE!\n Please check, if "
+                     << "this node is defined in more than one level of "
+                     << "boundary nodes!";
+          Warning( __FILE__, __LINE__ );
+          multipleBCs++;
+        }
+        else {
+          pdeNode2EQN_[mesh2PDENode_[inhomDirichletNodes_[i]-1]-1]
+            [inhomDirichletDofs_[i]-1] = 0;
+          countNodes[mesh2PDENode_[inhomDirichletNodes_[i]-1]-1]
+            [inhomDirichletDofs_[i]-1]++;
+        }
+      }
     }
 
 
+    // ------
     // STEP 3
+    // ------
     for ( UInt i = 0; i < constraintSlaveNodes_.GetSize(); i++ ) {
       pdeNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1]
         [constraintDofs_[i]-1] = 0;
     }
+
   
+    // ------
     // STEP 4
+    // ------
+    UInt eqnCounter = 0;
     for ( UInt iNode = 0; iNode < pde2MeshNode_.GetSize(); iNode++ ) {
       for ( UInt iDof = 0; iDof < dofsPerNode_; iDof++ ) {
         if ( pdeNode2EQN_[iNode][iDof] != 0 ) {
@@ -108,8 +166,15 @@ namespace CoupledField {
         }
       }
     }
-      
+
+
+    // now we know the number of 'real' dofs
+    numRealEqns_ = eqnCounter;
+
+
+    // ------
     // STEP 5
+    // ------
     for ( UInt i = 0; i < constraintSlaveNodes_.GetSize(); i++ ) {
       pdeNode2EQN_[mesh2PDENode_[constraintSlaveNodes_[i]-1]-1]
         [constraintDofs_[i]-1] =
@@ -117,27 +182,48 @@ namespace CoupledField {
         [constraintDofs_[i]-1];
     }
 
+
+    // -------
+    // STEP 5b
+    // -------
+    if ( sortEQNs_ == TRUE ) {
+      for ( UInt i = 0; i < inhomDirichletNodes_.GetSize(); i++ ) {
+        eqnCounter++;
+        pdeNode2EQN_[mesh2PDENode_[inhomDirichletNodes_[i]-1]-1]
+          [inhomDirichletDofs_[i]-1] = eqnCounter;
+      }
+    }
+
+
     // Now object is initialized
     isInitialized_ = TRUE;
     numEqns_ = eqnCounter;
+    numDroppedDofs_ = numPDENodes_ * dofsPerNode_ - numEqns_ + multipleBCs;
 
-    numBuildInDirichletEQNs_ = numPDENodes_ * dofsPerNode_
-      - numEqns_ + multipleBCs;
+
+    // Print information to LAS file
+    if ( commandLine->GetShowEqnMap() == true ) {
+      Print( (*cla) );
+    }
+
   }
 
 
   // *********
   //   Print
   // *********
-  void ScalarBlockEQN::Print(std::ostream & out) const {
+  void ScalarBlockEQN::Print( std::ostream &out ) const {
 
     ENTER_FCN( "ScalarBlockEQN::Print" );
 
     out << "Equation numbering - Information\n"
         << "================================\n"
         << "DOFs per Node: " << dofsPerNode_ << '\n'
-        << "Using SCALAR-BLOCK numbering of equations\n"
-        << std::endl;
+        << "Using SCALAR-BLOCK numbering of equations\n\n"
+        << "highest equation numbers             = " << numEqns_ << '\n'
+        << "number of free degrees of freedom    = " << numRealEqns_ << '\n'
+        << "number of dropped degrees of freedom = " << numDroppedDofs_
+        << '\n' << std::endl;
 
     // Print pde2MeshNode_ and pdeNode2EQN_
     out << std::setw(10) << "PDE NodeNr" << " | ";
