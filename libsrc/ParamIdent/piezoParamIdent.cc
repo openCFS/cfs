@@ -315,6 +315,8 @@ namespace CoupledField
 
     //xxxxxxxxxxxxxxxx Initialize and resize all matrices and vectors involved xxxxxxxxxx
 
+    std::cout<<" we crash here ? " <<nrMeasuredData<<std::endl;
+
     freqs.Part(0,nrMeasuredData);
     real.Part(0,nrMeasuredData);
     imag.Part(0,nrMeasuredData);
