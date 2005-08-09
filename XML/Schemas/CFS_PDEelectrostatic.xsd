@@ -47,16 +47,12 @@
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="dirichletHom" type="DT_ElecHD"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="dirichletInhom" type="DT_ElecID"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="neumannInhom" type="DT_ElecIN"
-                             minOccurs="0" maxOccurs="unbounded"/>
-                <xsd:element name="load" type="DT_ElecLoad" minOccurs="0"
-                             maxOccurs="unbounded"/>
-              </xsd:sequence>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="dirichletHom"   type="DT_ElecHD"   />
+                <xsd:element name="dirichletInhom" type="DT_ElecID"   />
+                <xsd:element name="neumannInhom"   type="DT_ElecIN"   />
+                <xsd:element name="load"           type="DT_ElecLoad" />
+              </xsd:choice>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
             </xsd:complexType>
