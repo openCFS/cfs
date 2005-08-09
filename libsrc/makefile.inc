@@ -68,7 +68,7 @@ make-include: $(src:.cc=.hh) $(src_h)
 #
 depend:
 	@touch $(DEPEND_FILE)
-	@makedepend -I$(LIBSRC_DIR) $(INCDIR_OLAS) -f$(DEPEND_FILE) $(DEPEND_FILE) $(src)
+	makedepend -I$(LIBSRC_DIR) $(INCDIR_OLAS) -f$(DEPEND_FILE) $(DEPEND_FLAG) $(src)
 
 clean-depend:
 	@rm -f $(DEPEND_FILE)
