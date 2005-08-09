@@ -14,8 +14,21 @@ namespace CoupledField {
     ENTER_FCN( "BlockNodeEQN::BlockNodeEQN" );
 
     isBlockMapped_ = TRUE;
-    dofsPerEQN_ = dofsPerNode;
+    dofsPerEQN_    = dofsPerNode;
+
+    // We do not support special treatment of inhomogeneous Dirichlet
+    // boundary conditions, since this does not make sense for dof-
+    // blocking. So, we check the value here and correct it if necessary.
+    if ( sortEQNs == TRUE ) {
+      (*warning) << "BlockNodeEQN: We do not support equation sorting for "
+                 << "dof-blocking! Please check that value of 'idbcHandling'"
+                 << " is 'penalty' and not 'elimination' in your"
+                 << " xml-file.";
+      Warning( __FILE__, __LINE__ );
+    }
+    sortEQNs_ = FALSE;
   }
+
 
   // ==============
   //   Destructor
@@ -77,16 +90,15 @@ namespace CoupledField {
     // hom. Dirichlet BC dof
     StdVector<UInt> numDirichletDofsPerNode;
     numDirichletDofsPerNode.Resize(numPDENodes_);
-    for (UInt i=0; i<homoDirichletNodes_.GetSize(); i++)
-      {
-        if (mesh2PDENode_[homoDirichletNodes_[i]-1]-1 < 0)
-          {
-            warnMsg  = "BlockNodeEQN::CalcMapping: Homogen. Dirichlet node nr. ";
-            warnMsg += Info->GenStr(homoDirichletNodes_[i]);
-            warnMsg += " is not contained in any of the regions for this PDE";
-            Info->Warning(warnMsg, __FILE__, __LINE__);
-          }
-        else if (numDirichletDofsPerNode[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]
+    for ( UInt i = 0; i < homoDirichletNodes_.GetSize(); i++ ) {
+      if ( mesh2PDENode_[ homoDirichletNodes_[i] - 1 ] - 1 < 0 ) {
+        (*warning) << "BlockNodeEQN::CalcMapping: Homogen. Dirichlet node "
+                   << " nr. "
+                   << Info->GenStr(homoDirichletNodes_[i])
+                   << " is not contained in any of the regions for this PDE";
+        Warning( __FILE__, __LINE__ );
+      }
+      else if ( numDirichletDofsPerNode[ mesh2PDENode_[homoDirichletNodes_[i]-1]-1]
                  > dofsPerNode_) {
           errMsg  = "BlockNodeEQN::CalcMapping: Homogen. Dirichlet node nr. ";
           errMsg += Info->GenStr(homoDirichletNodes_[i]);
@@ -94,10 +106,11 @@ namespace CoupledField {
           Warning(errMsg.c_str(), __FILE__, __LINE__);
         
         }
-        else
-          numDirichletDofsPerNode[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]++;
+      else {
+        numDirichletDofsPerNode[mesh2PDENode_[homoDirichletNodes_[i]-1]-1]++;
       }
-
+    }
+      
     // REMOVE LATER !!!!!!!!!!!!!!!!!!!
     //numDirichletDofsPerNode.Init(0);
 
@@ -152,14 +165,11 @@ namespace CoupledField {
   
     // Now count number of dirichlet BCs, which were not 
     // thrown out
-    numBuildInDirichletEQNs_ = 0;
+    numDroppedDofs_ = 0;
     for (UInt i=0; i<numDirichletDofsPerNode.GetSize(); i++)
-      if (numDirichletDofsPerNode[i] == dofsPerNode_)
-        numBuildInDirichletEQNs_ += dofsPerNode_;
-
-   
-    //std::cerr << "NumBuildInDirichletEQNs = " <<numBuildInDirichletEQNs_ << std::endl; 
-  
+      if ( numDirichletDofsPerNode[i] == dofsPerNode_ ) {
+        numDroppedDofs_ += dofsPerNode_;
+      }
 
     // Now object is initialized
     numDirichletDofsPerNode.Clear();
@@ -169,15 +179,22 @@ namespace CoupledField {
     numEqns_ = eqnCounter;
   }
 
-  void BlockNodeEQN::Print(std::ostream & out) const
-  {
+
+  // =========
+  //   Print
+  // =========
+  void BlockNodeEQN::Print(std::ostream & out) const {
+
     ENTER_FCN( "BlockNodeEQN::Print" );
 
-    out << "Equation numbering - Information" << std::endl;
-    out << "================================" << std::endl;
-    out << "DOFs per Node: " << dofsPerNode_ << std::endl;
-    out << "Using BLOCK numbering of equations" << std::endl;
-    out << std::endl;
+    out << "Equation numbering - Information\n"
+        << "================================\n"
+        << "DOFs per Node: " << dofsPerNode_ << '\n'
+        << "Using BLOCK numbering of equations\n\n"
+        << "highest equation numbers             = " << numEqns_ << '\n'
+        << "number of free degrees of freedom    = " << numRealEqns_ << '\n'
+        << "number of dropped degrees of freedom = " << numDroppedDofs_
+        << '\n' << std::endl;
 
     // Print pde2MeshNode_ and pdeNode2EQN_
     out << std::setw(10) << "PDE NodeNr" << " | ";

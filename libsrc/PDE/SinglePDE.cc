@@ -398,8 +398,7 @@ namespace CoupledField {
 
     numPDENodes_ = eqnData_->GetNumLocalNodes();
     numElems_ = eqnData_->GetNumLocalElems();
-    numBuildInDirichletBCs_ = eqnData_->GetNumBuildInDirichletEQNs();
-    
+
     // Initialize Storesolution class
     sol_->SetNumSolutions(solTypes_.GetSize());
     sol_->SetNumNodes(numPDENodes_);
@@ -705,12 +704,12 @@ namespace CoupledField {
           phase = bcs_id_phase_[i];
 
           // set real part
-          algsys_->SetDirichlet( j*2+1, pdeId_, eqnNr, val * cos(phase/180*PI),
-                                 eqnDof );
+          algsys_->SetDirichlet( j*2+1, pdeId_, eqnNr,
+                                 val * cos(phase/180*PI), eqnDof );
 
           // set imaginary part 
-          algsys_->SetDirichlet(j*2+2, pdeId_, eqnNr, val * sin(phase/180*PI),
-                                eqnDof+1);
+          algsys_->SetDirichlet( j*2+2, pdeId_, eqnNr,
+                                 val * sin(phase/180*PI), eqnDof+1 );
         }
         else {
 	  
@@ -1023,8 +1022,8 @@ namespace CoupledField {
     // pass information about dofs, number of dirichlet equations
     // and constraints to the algebraic system
     algsys_->SetBlockSize( pdeId_, eqnData_->GetNumDofsPerEQN() );
-    
-    UInt numDir = GetNumRestraints() - numBuildInDirichletBCs_;
+
+    UInt numDir = GetNumRestraints() - eqnData_->GetNumDroppedDofs();
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
 
     // create matrices and solver object, if PDE is not direct coupled
@@ -1058,7 +1057,8 @@ namespace CoupledField {
     assemble_->InitNonLinMatrices();
   }
   
-  //! constructes the matrix graph by providing to the algebraic system the element connectivities
+  // constructs the matrix graph by providing to the algebraic system
+  // the element connectivities
   void  SinglePDE::SetupMatrixGraph() {
     assemble_->SetupMatrixGraph();
   }
@@ -1268,7 +1268,8 @@ namespace CoupledField {
           for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
             eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
             if ( eqnNr != 0 ) {
-              algsys_->SetNodeRHS(help[dof+couplingDof*j], pdeId_, eqnNr, eqnDof);
+              algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
+                                   eqnNr, eqnDof );
             }
           }
         }

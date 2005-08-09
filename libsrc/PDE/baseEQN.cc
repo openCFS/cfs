@@ -16,17 +16,13 @@ namespace CoupledField {
 
     ENTER_FCN( "BaseEQN::BaseEQN" );
 
-    ptGrid_   = aptGrid;
-    subdoms_  = asubdoms;
-    dofsPerNode_ = dofsPerNode;
-
+    ptGrid_        = aptGrid;
+    subdoms_       = asubdoms;
+    dofsPerNode_   = dofsPerNode;
     isInitialized_ = FALSE;
-
-    // Set sortEQNs to false until we have implemented this in each child
-    // sortEQNs_ = sortEQNs;
-    sortEQNs_ = FALSE;
-
-    numRealEqns_ = 0;
+    numRealEqns_   = 0;
+    numEqns_       = 0;
+    sortEQNs_      = sortEQNs;
   }
 
 
@@ -113,7 +109,8 @@ namespace CoupledField {
       constraintDofs_.Resize(dofs.GetSize());
 
       for ( UInt i = 0; i < dofs.GetSize(); i++ ) {
-        constraintDofs_[i]  = domain->GetCoordSystem()->GetVecComponent(dofs[i]);
+        constraintDofs_[i] =
+          domain->GetCoordSystem()->GetVecComponent(dofs[i]);
       }
     }
   }

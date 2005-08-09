@@ -147,14 +147,13 @@ namespace CoupledField{
   
     // Iterate over all single PDEs and collect data about
     // included boundary conditions
-    numBuildInDirichletBCs_ = 0;
+    UInt numDroppedDofs = 0;
     NodeEQN * eqn;
     for ( UInt i=0; i<singlePDEs_.GetSize(); i++ ) {
       eqn = singlePDEs_[i]->getPDE_eqnData();
-      numBuildInDirichletBCs_ += eqn->GetNumBuildInDirichletEQNs();
+      numDroppedDofs += eqn->GetNumDroppedDofs();
       totalUnknowns_ += eqn->GetNumEQNs() * eqn->GetNumDofsPerEQN();
     }
-
     
     // Initialize timestepping
     if ( analysistype_ == TRANSIENT ) {

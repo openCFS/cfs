@@ -28,19 +28,14 @@ namespace CoupledField {
     //! - constraint nodes)
     inline UInt GetNumEQNs() const {return numEqns_;}
 
-    //! Return the number of equation numbers for degrees of freedom that are
-    //! not fixed by either
+    //! Return the equation number of the last unfixed degree of freedom
+
+    //! This method returns the equation number of the last free degree of
+    //! freedom. We consider a degree of freedom to be free, if it is not
+    //! fixed by either
     //! - homogeneous Dirichlet boundary conditions
     //! - inhomogeneous Dirichlet boundary conditions
     //! - constraints (master - slave dof relations)
-    inline UInt GetNumRealEQNs() const {
-      return numRealEqns_;
-    }
-
-    //! Return the equation number of the last unfixed degree of freedom
-
-    //! This method returns the equation number of the last degree of freedom
-    //! that is not fixed by an inhomogeneous Dirichlet boundary conditions.
     //! The return value actually depends on the status of the sortEQNs_ flag.
     //! If the latter is true, then we return numRealEqns_. If it is false,
     //! then inhomogeneous Dirichlet boundary conditions are treated by the
@@ -48,7 +43,7 @@ namespace CoupledField {
     //! case we return numEqns_.
     inline UInt GetNumLastFreeDof() {
       ENTER_FCN( "BaseEQN::GetNumLastFreeDof" );
-      return ( ( sortEQNs_ == true ) ? numRealEqns_ : numEqns_ );
+      return ( ( sortEQNs_ == TRUE ) ? numRealEqns_ : numEqns_ );
     }
   
     //! Return number of degree of freedoms per node
@@ -57,13 +52,16 @@ namespace CoupledField {
     //! Return number of dofs per equation
     inline UInt GetNumDofsPerEQN() const {return dofsPerEQN_;}
   
-    //! Return number of build in Dirichlet values
+    //! Return number of dropped degrees of freedom
 
-    //! Returns the number of Dirichlet values that were assigned
-    //! a 0 and therefore have not to set explicitly to 
-    //! the algebraic system
-    inline UInt GetNumBuildInDirichletEQNs() const
-    {return numBuildInDirichletEQNs_;}
+    //! This method returns the number of degrees of freedom that were
+    //! dropped, i.e. they were either assigned a zero equation number,
+    //! since they represent homogeneous Dirichlet boundary conditions,
+    //! or they were multiply defined, or their nodes do not belong to
+    //! the associated PDE.
+    inline UInt GetNumDroppedDofs() const {
+      return numDroppedDofs_;
+    }
 
     //! Returns true, if nodal mapping is applied
     inline Boolean IsNodalMapped() const {return isNodalMapped_;}
@@ -157,7 +155,7 @@ namespace CoupledField {
     //! Number of Dirichlet values
     //! which have been eliminated
     //! by equation class
-    UInt numBuildInDirichletEQNs_;
+    UInt numDroppedDofs_;
 
     //! Vector containing subdomain names
     //! of according PDE
