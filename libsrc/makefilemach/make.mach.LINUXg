@@ -43,18 +43,19 @@ ARFLAGS = r
 # Makefile.option.
 #
 # MODEDEBUG ... for enabling debug output in certain modules
+# GPROF ....... set to -pg to enable profiling with gprof
 # DEBUG ....... global debug and warning options
 # STANDARD .... the rest
 # -----------------------------------------------------------------------------
 
-# MODEDEBUG = -DDEBUG_XMLPARAMHANDLER
 MODEDEBUG =
-DEBUG     = -Wno-long-long -Wno-comment -DTRACE -ggdb -pg \
-           -DCHECK_INDEX -DCHECK_INITIALIZED -DDEBUG -DMEMTRACE
+GPROF     =
+DEBUG     = -Wno-long-long -Wno-comment -DTRACE -ggdb \
+            -DCHECK_INDEX -DCHECK_INITIALIZED -DDEBUG -DMEMTRACE
 STANDARD  = -ansi -Wall -pedantic
 
 CFLAG_EXE      =
-CFLAGS_MACHINE = $(STANDARD) $(DEBUG) $(MODEDEBUG)
+CFLAGS_MACHINE = $(STANDARD) $(DEBUG) $(MODEDEBUG) $(GPROF)
 
 
 # -----------------------------------------------------------------------------
