@@ -49,7 +49,7 @@ namespace OutInfo {
         (*TRACESTREAM) << "entering function " << name_ << std::endl;
       }
     }
-    
+
     //! Destructor
 
     //! The destructor is responsible for issuing a "leaving
@@ -64,7 +64,7 @@ namespace OutInfo {
       fcnDepth_ = 0;
       name_ = NULL;
     }
-    
+
     FcnTraceListElem *caller_; //!< Link to FcnTrace object for predecessor
     FcnTraceListElem *called_; //!< Link to FcnTrace object for successor
 
@@ -90,7 +90,7 @@ namespace OutInfo {
   public:
 
     //! Init method
-    static void Init(){
+    static void Init() {
       fcnTraceDepth_ = 0;
       foo_ = NULL;
     }
