@@ -177,10 +177,6 @@ namespace CoupledField
   //! L2REL = relative L2 norm: (|val| - |oldval|) / |val|
   typedef enum {NO_NORM, L2ABS, L2REL} NormType;
 
-  //! Enumeration for type of equation numbering
-  typedef enum {NODE_SCALAR, NODE_BLOCK, NODE_SCALAR_BLOCK,
-                NODE_SUPER_BLOCK} EQNType;
-
   //! Enumeration for directions
   //! direction of various fields 
   //! "Rad" means readial, following two letters indicate the stress-plane

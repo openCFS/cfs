@@ -506,45 +506,6 @@ namespace CoupledField {
       }
   } 
 
-  // EQNType
-  template<>
-  void String2Enum<EQNType>(const std::string &in, EQNType &out) {
-
-    if (in == "scalar")
-      out = NODE_SCALAR;
-    else if (in == "block")
-      out = NODE_BLOCK;
-    else if (in == "sclarBlock")
-      out = NODE_SCALAR_BLOCK;
-    else if (in == "superBlock")
-      out = NODE_SUPER_BLOCK;
-    else {
-      (*error) << "'" << in << "' cannot be converted into item of 'EQNType'!";
-      Error( __FILE__, __LINE__);
-    }
-  }
-
-  template<>
-  void Enum2String<EQNType>(const EQNType &in, std::string &out) {
-
-    switch(in) {
-    case NODE_SCALAR:
-      out = "scalar";
-      break; 
-    case NODE_BLOCK:
-      out = "block";
-      break;
-    case NODE_SCALAR_BLOCK:
-      out = "scalarBlock";
-      break;
-    case NODE_SUPER_BLOCK:
-      out = "superBlock";
-      break;
-    default:  
-      Error("No conversion found for your 'EQNType'", __FILE__, __LINE__);
-    }
-  }
-
   // FEType
   template<>
   void Enum2String<FEType>( const FEType &in, std::string &out ) {
