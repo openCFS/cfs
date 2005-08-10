@@ -107,5 +107,5 @@ endif
 # -----------------------------------------------------------------------------
 
 syslib = -lm -lc $(BLASLAPACK) $(LIBDIR_BLASLAPACK)
-LFLAGS_MACHINE = -pg $(LIBDIR_PARDISO) $(LIB_PARDISO)
+LFLAGS_MACHINE = $(GPROF) $(LIBDIR_PARDISO) $(LIB_PARDISO)
 LFLAGS_EXE =
