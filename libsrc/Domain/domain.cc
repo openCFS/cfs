@@ -581,7 +581,7 @@ namespace CoupledField {
     // with only on pairwise coupling
     StdVector<SinglePDE*> singlePdes;
     StdVector<BasePairCoupling*> couplings;
-    std::set<SinglePDE*> setSinglePDEs;
+    std::set<std::string> setSinglePDEs;
 
     for (UInt i=0; i<couplingNames.GetSize(); i++) {
       //std::cerr << "Coupling " << i+1 << " = " << couplingNames[i] << std::endl;
@@ -622,8 +622,8 @@ namespace CoupledField {
     isDirectCoupled_[pde2] = TRUE;
 
     // add single PDEs and couplings into collections
-    setSinglePDEs.insert(pde1);
-    setSinglePDEs.insert(pde2);
+    setSinglePDEs.insert( pde1->GetName() );
+    setSinglePDEs.insert( pde2->GetName() );
     couplings.Push_back(coupling);
 
     }
@@ -634,11 +634,11 @@ namespace CoupledField {
       return;
 
     // Transform set of PDEs into a vector
-    std::set<SinglePDE*>::iterator itSet;
+    std::set<std::string>::iterator itSet;
     
     for (itSet = setSinglePDEs.begin();  itSet != setSinglePDEs.end(); 
          itSet++ ) {
-      singlePdes.Push_back(*itSet);
+      singlePdes.Push_back( GetSinglePDE(*itSet) );
     }
     
 
