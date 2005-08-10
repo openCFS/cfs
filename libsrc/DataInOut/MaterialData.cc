@@ -13,36 +13,45 @@
 namespace CoupledField
 {
 
-  MaterialData::MaterialData():scaledMatDat(FALSE)
-  {
+  // ***********************
+  //   Default Constructor
+  // ***********************
+  MaterialData::MaterialData() : scaledMatDat(FALSE) {
+
     ENTER_FCN("MaterialData::MaterialData");
+
     const int stringLength = 100;
     piezoMatrix  = NULL;
     piezoMatrixC = NULL;
     permeaMatrix = new Matrix<Double>(3,3);
     conducMatrix = new Matrix<Double>(3,3);
-    name = new char[stringLength];  
+    name = new char[stringLength];
+    BoverA = 0.0;
   }
 
 
-  MaterialData::MaterialData(const MaterialData & mat)
-  {
-    ENTER_FCN("MaterialData::MaterialData(MaterialData)")
-      density         = mat.density;
-    compressibility = mat.compressibility ;
+  // ********************
+  //   Copy Constructor
+  // ********************
+  MaterialData::MaterialData( const MaterialData &mat ) {
+
+    ENTER_FCN( "MaterialData::MaterialData(MaterialData)" );
+
+    density         = mat.density;
+    compressibility = mat.compressibility;
     damp_alfa       = mat.damp_alfa;
     damp_beta       = mat.damp_beta;
     BoverA          = mat.BoverA;
     eModule         = mat.eModule;
-    nu           = mat.nu;
+    nu              = mat.nu;
     //  permeability = mat.permeability;
     //  conductivity = mat.conductivity;
-    permMx       = mat.permMx;
-    permMy       = mat.permMy;
-    permMz       = mat.permMz;
-    scaledMatDat = mat.scaledMatDat;
-    matNr        = mat.matNr;
-    nonlin       = mat.nonlin;
+    permMx          = mat.permMx;
+    permMy          = mat.permMy;
+    permMz          = mat.permMz;
+    scaledMatDat    = mat.scaledMatDat;
+    matNr           = mat.matNr;
+    nonlin          = mat.nonlin;
 
     const int stringLength = 100;
     name = new char[stringLength];  
@@ -64,13 +73,15 @@ namespace CoupledField
   }
 
 
-  void MaterialData::SetConductivity(const UInt& i, const UInt& j, const Double& value)
+  void MaterialData::SetConductivity(const UInt& i, const UInt& j,
+                                     const Double& value)
   {
     ENTER_FCN("SetConductivity(int,int,double)");
     (*conducMatrix)(i,j) = value;
   }
 
-  void MaterialData::GetConductivity(const UInt& i, const UInt& j, Double &value)
+  void MaterialData::GetConductivity(const UInt& i, const UInt& j,
+                                     Double &value)
   {
     ENTER_FCN("GetConductivity(int,int,double)");
     value = (*conducMatrix)(i,j);
