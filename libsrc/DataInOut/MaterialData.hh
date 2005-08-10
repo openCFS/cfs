@@ -2,7 +2,7 @@
 #define MATERIAL_DATA
 
 /**************************************************************************/
-/* File:   MaterialData.hh                                            */
+/* File:   MaterialData.hh                                                */
 /* Author: Fred Hofer & Michael Schinnerl                                 */
 /* Date:   26.06.1998                                                     */ 
 /*         Rev. 16.12.1999                                                */
@@ -26,6 +26,7 @@ namespace CoupledField
   class MaterialData
   {
   private:
+
     Double density;
     Double compressibility;
     Double damp_alfa;
@@ -65,24 +66,17 @@ namespace CoupledField
     Integer nonlin;
   
   public:
-    //  MaterialData(const Integer& MatNr, const Integer& Nonlin, const ARRAY<NonlinSpline*> & MagneticSpline);
-  
+
+    //! Default constructor
     MaterialData();
 
-    MaterialData(const MaterialData& mat);
+    //! Copy constructor
+    MaterialData( const MaterialData &mat );
 
     ~MaterialData();
   
     /// set the material number 
     void SetMatNr(const UInt& MatNr){matNr = MatNr; };
-
-    // defines material either as linear or nonlinear and sets the permeability variable if necesarry
-    //  void DefLin(const Integer& isLin);
-
-    // in the linear case MagneticSpline has 1 NonlinSpline with 1 factor = const mue !!
-    // the splines must express the magntic field strength as function of the induction B!!!
-    // $H = a_0 + a_1B + a_2B^2 + ... !
-    //  void SetNonLinSpline(ARRAY<NonlinSpline*> * MagneticSpline){magneticSpline = MagneticSpline;};
 
     /// set the e-module
     void SetEModule(const Double& EModule){eModule = EModule;};
@@ -117,7 +111,10 @@ namespace CoupledField
 
 
     /// set BoverA (nonlinearity parameter in nonlinear acoustics)
-    void SetBoverA(const Double& BA){BoverA = BA;};
+    void SetBoverA( const Double &BA ) {
+      ENTER_FCN( "MaterialData::SetBoverA" );
+      BoverA = BA;
+    }
 
     /// set electric field value for saturation
     void SetEsat(Double& val) {Esat = val;};
@@ -262,7 +259,10 @@ namespace CoupledField
     Double GetDampingBeta() const {return damp_beta;};  
 
     /// get BoverA for nonlinear acoustics
-    Double GetBoverA() const {return BoverA;}; 
+    Double GetBoverA() const {
+      ENTER_FCN( "MaterialData::GetBoverA" );
+      return BoverA;
+    }
 
     /// get nu
     Double GetNu() const { return nu; };
