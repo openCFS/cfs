@@ -8,7 +8,7 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 
-// header for Materiahlhandling
+// header for Materialhandling
 #include "DataInOut/LoadMaterialData.hh"
 #include "DataInOut/LoadMaterialDataFile.hh"
 #ifdef USE_DATABASE
@@ -564,6 +564,11 @@ namespace CoupledField {
     }
   }
 
+
+
+  // **********
+  //   SetBCs
+  // **********
   void SinglePDE::SetBCs( const Double time ) {
     
     ENTER_FCN( "SinglePDE::SetBCs" );
@@ -573,65 +578,79 @@ namespace CoupledField {
     
     StdVector<UInt> nodes;
 
-    UInt i;
-    UInt j;
+    UInt bcNum = 0;
     Integer eqnNr; 
     UInt eqnDof;
-    
-    if (isIterCoupled_) {
-      j = couplingBCsCounter_;
+
+    if ( isIterCoupled_ ) {
+      bcNum = couplingBCsCounter_;
     }
     else {
-      j=0;
+      bcNum = 0;
     }
-    
-    
+
+
     // ---------------------------
     // HOMOGENEOUS DIRICHLET BC
     // ---------------------------
-    val = 0;
-    for ( i = 0; i < bcs_hd_.GetSize(); i++ )   {  
-      dof = 1;
-      if ( dofspernode_ > 1 ) {
+
+    // Notes:
+    //
+    // 1.) We only need the following part, if we perform dof-blocking
+    //
+    // 2.) Dof-blocking is currently only supported for real-valued problems
+
+    // What type of equation numbering does the user want?
+    std::string typeOfNumbering;
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    keyVec = "linearSystems", "system", "setup", "eqnNumbering";
+    attrVec = "", "name", "";
+    valVec  = "", pdename_, "";
+
+    params->Get( keyVec, attrVec, valVec, typeOfNumbering );
+
+    if ( typeOfNumbering == "block" ) {
+
+      val = 0;
+      for ( UInt i = 0; i < bcs_hd_.GetSize(); i++ )   {  
+        dof = 1;
+        if ( dofspernode_ == 1 ) {
+          (*error) << "dofspernode_ = 1, but I assumed dof-blocking???";
+          Error( __FILE__, __LINE__ );
+        }
         std::string doftype = bcs_hd_[i];
         dof = domain->GetCoordSystem()->GetVecComponent(homDirichDof_[i]);
-      }
+        ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
       
-      ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
-      
-
-      
-      for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-            
-        eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
-    
-        if (eqnNr > 0) {
-          
-          // Increment counter for BCs
-          if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC) {
-            
-            // set real part 
-            algsys_->SetDirichlet(j*2+1, pdeId_, eqnNr, val, eqnDof);
-            
-            // set imaginary part 
-            algsys_->SetDirichlet(j*2+2, pdeId_, eqnNr, val, eqnDof+1);
+        for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+          eqnData_->Node2EQN( nodes[iNode], dof, eqnNr, eqnDof );
+          if (eqnNr > 0) {
+            if ( analysistype_ == HARMONIC ||
+                 analysistype_ == MULTIHARMONIC) {
+              (*error) << "Dof-blocking for complex systems is not "
+                       << "supported, yet!";
+              Error( __FILE__, __LINE__ );
+            }
+            else {
+              algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, val, eqnDof );
+            }
+            bcNum++;
           }
-          else {
-            algsys_->SetDirichlet(j+1, pdeId_, eqnNr ,val, eqnDof);
-          }
-          j++;
         }
       }
     }
 
-    
     // ---------------------------
     // INHOMOGENEOUS DIRICHLET BC
     // ---------------------------
     
     Double phase = 0.0;
     Double dirVal;
-    for ( i = 0; i < bcs_id_.GetSize(); i++ ) {
+
+    for ( UInt i = 0; i < bcs_id_.GetSize(); i++ ) {
       dof = 1;
       if ( dofspernode_ > 1 ) {
         std::string doftype = bcs_id_[i]; 
@@ -640,7 +659,7 @@ namespace CoupledField {
       
       ptgrid_->GetNodesByName( nodes, bcs_id_[i] ); 
       
-      //get the correct time function value
+      // Get the correct time function value
       val_tfunc = 1.0;
       if ( ptTimeFunc_->GetmaxTimeFnc() > 0 &&
            (analysistype_ != HARMONIC || analysistype_ != MULTIHARMONIC) ) {
@@ -649,10 +668,10 @@ namespace CoupledField {
 
       val    =  val_id_[i] * val_tfunc;
       dirVal = val;
+
       for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
-
 
 	// DODO GridAdaption
 	// interpolate acoustic pressure at current node?
@@ -673,7 +692,6 @@ namespace CoupledField {
 	  }
 	}
 
-        
         // Sanity check. This should not happen, but might appear
         // in the case that the same node/dof belongs to a region
         // with hom. and a region with inhom. Dirichlet BCs. This
@@ -693,29 +711,27 @@ namespace CoupledField {
           Error( __FILE__, __LINE__ );
         }
 
-        //transform Dirichlet boundary conditions for effmass-formulation
+        // Transform Dirichlet boundary conditions for effmass-formulation
         if (effectiveMass_) {
           val = dirVal;
           val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
         }
 
-
+        // Case of complex-valued entries
         if (analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC) {
+
           phase = bcs_id_phase_[i];
-
-          // set real part
-          algsys_->SetDirichlet( j*2+1, pdeId_, eqnNr,
-                                 val * cos(phase/180*PI), eqnDof );
-
-          // set imaginary part 
-          algsys_->SetDirichlet( j*2+2, pdeId_, eqnNr,
-                                 val * sin(phase/180*PI), eqnDof+1 );
+          //Complex complexValue( val * std::cos( phase / 180 * PI ),
+          //                      val * std::sin( phase / 180 * PI ) );
+          Complex complexValue( val * cos( phase / 180 * PI ),
+                                val * sin( phase / 180 * PI ) );
+          algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, complexValue,
+                                 eqnDof );
         }
         else {
-	  
-          algsys_->SetDirichlet(j+1, pdeId_, eqnNr, val, eqnDof);
+          algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, val, eqnDof );
         }
-        j++;
+        bcNum++;
       }
     }
   }
@@ -891,7 +907,7 @@ namespace CoupledField {
 
     // Allocate space to hold material data for each subdomain of this PDE
     materialData_ = new MaterialData[subdoms_.GetSize()];
-  
+
     // Get list of subdomains and materials
     StdVector< std::string > subdomName;
     StdVector< std::string > subdomMaterial;
@@ -904,7 +920,8 @@ namespace CoupledField {
 
     params->Get("format", outformat, "output");
 
-    if (outformat!="database") {
+    if ( outformat != "database" ) {
+
       // Query name of file with material data
       params->Get( "file", matFileName, "materialData" );
     
