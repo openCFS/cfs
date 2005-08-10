@@ -376,7 +376,6 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes related to geometry and node numbering
-    EQNType eqnType_;      //!< type of equation numbering used
     UInt dofspernode_;  //!< number of unknowns per node
     UInt dofsperedge_;  //!< number of unknowns per edge
     UInt numPDENodes_;  //!< number of nodes in subdomains
