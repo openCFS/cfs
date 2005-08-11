@@ -1297,8 +1297,8 @@ namespace CoupledField {
         // -----------------------
       case ID_BC:
 
-        // How do we want to treat inhomogeneous Dirichlet
-        // boundary conditions?
+        // How do we want to treat inhomogeneous Dirichlet boundary
+        // conditions?
         {
           bool usePenalty = true;
           std::string aux;
