@@ -139,6 +139,7 @@ namespace CoupledField {
     olas->SetValue( "MatrixEntryType"        , eType        );
     olas->SetValue( "GRAPH_reordering"       , orderType    );
     olas->SetValue( "UsingPenaltyFormulation", usingPenalty );
+    olas->SetValue( "SystemName"             , pdename      );
 
     // Set special parameters for solver and preconditioner
     CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );
