@@ -1296,7 +1296,33 @@ namespace CoupledField {
         // InhomDirichlet COUPLING
         // -----------------------
       case ID_BC:
-          
+
+        // How do we want to treat inhomogeneous Dirichlet
+        // boundary conditions?
+        {
+          bool usePenalty = true;
+          std::string aux;
+          StdVector<std::string> keyVec;
+          StdVector<std::string> attrVec;
+          StdVector<std::string> valVec;
+          keyVec  = "linearSystems", "system", "setup", "idbcHandling";
+          attrVec = "", "name", "";
+          valVec  = "", pdename_, "";
+          params->Get( keyVec, attrVec, valVec, aux );
+          usePenalty = aux == "penalty" ? true : false;
+          Info->PrintF( pdename_, "Treating IDBCs using '%s' approach\n",
+                        aux.c_str() );
+          if ( usePenalty == false ) {
+            (*error) << "Cannot use inhom. Dirichlet coupling together with "
+                     << "IDBC elimination, since the equation numbering "
+                     << "object does currently not have the information "
+                     << "required to put those values at the end of the "
+                     << "equation number interval! Please set idbcHandling="
+                     << '"' << "penalty" << '"' << " in your xml-file";
+            Error( __FILE__, __LINE__ );
+          }
+        }
+
         // Set flag that the boundary conditions have to be incorporated
         updateCouplingBCs_ = TRUE;
 
