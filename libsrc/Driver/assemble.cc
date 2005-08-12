@@ -1097,14 +1097,17 @@ namespace CoupledField {
   }
   
 
-  void Assemble::SetupMatrixGraph()
-  {
+  // ********************
+  //   SetupMatrixGraph
+  // ********************
+  void Assemble::SetupMatrixGraph( bool insertCounterPart ) {
+
     ENTER_FCN( "Assemble::SetupMatrixGraph" );
     
-    SETPROFILE("Before SetupMatrixGraph");
+    SETPROFILE( "Before SetupMatrixGraph" );
 
     algsys_->AssembleInit( pdeId1_, pdeId2_ );
-    
+
     // set the graph - connectivity matrix
     BaseFE * ptElem; 
     UInt nsub, iel;
@@ -1134,7 +1137,8 @@ namespace CoupledField {
         algsys_->SetElementPos( pdeId1_, connect_PDE1.GetPointer(),
                                 connect_PDE1.GetSize(), 
                                 pdeId2_, connect_PDE2.GetPointer(),
-                                connect_PDE2.GetSize() );
+                                connect_PDE2.GetSize(),
+                                insertCounterPart );
       }
     }
     
@@ -1156,7 +1160,8 @@ namespace CoupledField {
         algsys_->SetElementPos( pdeId1_, connect_PDE1.GetPointer(),
                                 connect_PDE1.GetSize(), 
                                 pdeId2_, connect_PDE2.GetPointer(),
-                                connect_PDE2.GetSize() );
+                                connect_PDE2.GetSize(),
+                                insertCounterPart );
       }
     }
     

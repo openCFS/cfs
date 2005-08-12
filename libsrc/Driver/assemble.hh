@@ -343,8 +343,16 @@ namespace CoupledField
     MatrixStorageType GetMatrixStorageType()
     {return storageType_;};
 
-    //! constructes the matrix graph by providing to the algebraic system the element connectivities
-    void SetupMatrixGraph();
+    //! Generates the matrix graph
+
+    //! The method generates the matrix graph by passing the element
+    //! connectivities to the algebraic system.
+    //! \param insertCounterPart by default we always insert the complete
+    //!                          connectivity of an for a PDE coupling, i.e.
+    //!                          for forward and backward coupling; setting
+    //!                          this flag to false will only insert the
+    //!                          forward coupling
+    void SetupMatrixGraph( bool insertCounterPart = true );
 
 
     //! set information for algebraic system about PDE. set matrix factors
