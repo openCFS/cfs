@@ -329,8 +329,8 @@
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_AcousticElementHistory">
     <xsd:attribute name="type" type="DT_AcousticElementData" use="required"/>
-    <xsd:attribute name="saveElements" type="xsd:token" use="optional"/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
   </xsd:complexType>  
 
 
@@ -343,7 +343,7 @@
         minOccurs="0" maxOccurs="unbounded"/>
       <xsd:element name="specialNodes" type="DT_AcousticSpecialNodes"
         minOccurs="0" maxOccurs="unbounded"/>
-      <xsd:element name="elementHistory" type="DT_AcousticElementHistory"
+      <xsd:element name="elemHistory" type="DT_AcousticElementHistory"
         minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
