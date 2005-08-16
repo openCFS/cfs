@@ -22,11 +22,17 @@ namespace CoupledField {
     //! Return true if eqns are assigned
     inline Boolean IsInitialized() {return isInitialized_;}
 
-    //! Return the number of equations
-    //! (= number of nodes * total number Dofs <br>
-    //! - hom. Dirichlet nodes <br>
-    //! - constraint nodes)
-    inline UInt GetNumEQNs() const {return numEqns_;}
+    //! Return the total number of equations
+
+    //! This method can be used to query the total number of equations. This
+    //! value coincides with the highest equation number that was assigned
+    //! to a degree of freedom. It represents the sum of free degrees of
+    //! freedom and those fixed by inhomogeneous Dirichlet boundary
+    //! conditions. Dofs fixed by homogeneous Dirichlet boundary conditions
+    //! or constraints do not enter this value.
+    inline UInt GetNumEQNs() const {
+      return numEqns_;
+    }
 
     //! Return the equation number of the last unfixed degree of freedom
 
