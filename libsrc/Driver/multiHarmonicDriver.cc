@@ -86,7 +86,7 @@ namespace CoupledField
 
     if (!impedCurve)
       {
-        std::cerr << "\n ImpedanceCurve.dat could not be initialized" << std::endl;
+        std::cout << "\n ImpedanceCurve.dat could not be initialized" << std::endl;
       }
 
     std::string filenameLog= "piezoLog.dat";
@@ -95,7 +95,7 @@ namespace CoupledField
     
     if (!piezoLog)
       {
-        std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
+        std::cout << "\n piezoLog.dat could not be initialized" << std::endl;
       }
 
     std::string filenameParLog= "parLog.dat";
@@ -103,7 +103,7 @@ namespace CoupledField
 
     if (!parLog)
       {
-        std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
+        std::cout << "\n piezoLog.dat could not be initialized" << std::endl;
       }
 
   } // end of constructor

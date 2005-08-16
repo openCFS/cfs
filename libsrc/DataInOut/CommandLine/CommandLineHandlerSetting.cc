@@ -19,7 +19,7 @@ namespace CoupledField {
     //  Check, if any parameter was supplied
     // --------------------------------------
     if ( argc == 1 ) {
-      std::cerr << "\n As HAL said in 2001\n\n"
+      std::cout << "\n As HAL said in 2001\n\n"
                 << "   \"I'm sorry Dave, I don't have enough information.\""
                 <<"\n\n So please specify a name for the current "
                 << "simulation run!\n\n";
@@ -160,7 +160,7 @@ namespace CoupledField {
 #endif
 
 #ifdef DEBUG
-    PrintParams( std::cerr );
+    PrintParams( std::cout );
 #endif
 
     // That's it

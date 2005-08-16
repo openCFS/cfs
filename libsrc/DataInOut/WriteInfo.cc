@@ -752,7 +752,7 @@ namespace CoupledField {
 
     needAck_ = needAck;
     
-    std::cerr << "++ " << std::setw(60) << std::left << modifiedName;
+    std::cout << "++ " << std::setw(60) << std::left << modifiedName;
 
     if (needAck)
       {
@@ -760,7 +760,7 @@ namespace CoupledField {
         progressRunning_ = TRUE;
       }
     else
-      std::cerr << std::endl;
+      std::cout << std::endl;
   }
 
 
@@ -771,9 +771,9 @@ namespace CoupledField {
  
     if (!warningOccured_)
       if (success)
-        std::cerr << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
+        std::cout << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
       else
-        std::cerr << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
+        std::cout << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
 
     warningOccured_ = FALSE;
     progressRunning_ = FALSE;

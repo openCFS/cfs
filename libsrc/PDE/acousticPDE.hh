@@ -44,15 +44,18 @@ namespace CoupledField {
     void DefineSolveStep();
 
     //! perform postprocessing on data
-    void PostProcess(){};
+    void PostProcess();
+
+	//! calculate Force acting on specified surface elements
+	void CalcForce( StdVector<Elem*> & saveElems );
 
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
     void WriteResultsInFile(const UInt kstep,
-                                    const Double asteptime,
-                                    UInt stepOffset = 0,
-                                    Double timeOffset = 0.0);
+                            const Double asteptime,
+                            UInt stepOffset = 0,
+                            Double timeOffset = 0.0);
 
     //! return size of solution
     UInt getSize() const 
@@ -108,7 +111,8 @@ namespace CoupledField {
 	//! switch for absorbing boundary conditions
     Boolean absorbingBCs_;                
 
-    Boolean m_bWriteSpecialBCs;            //!< switch for special bcs in combination with slicing technique
+	//! switch for special bcs in combination with slicing technique
+    Boolean m_bWriteSpecialBCs;
 
     // solving of nonlinear acoustics
     NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
@@ -118,6 +122,16 @@ namespace CoupledField {
     NodeStoreSol<Double> solDeriv1_; //!< contains 1st derivative of solution
     NodeStoreSol<Double> solDeriv2_; //!< contains 2nd derivative of solution
     NodeStoreSol<Double> rhs_;
+
+	// TRUE, if integral of solution on surface element = force
+	//  should be written to history file
+	Boolean saveForceHist_;
+	//! contains force acting on surface element
+	ElemStoreSol<Double> acouForce_;
+    Double sumForce_;
+
+	//! name of element set to be saved
+	StdVector<std::string> saveElemHist_;
 
     //! Attribute describing model for bubble dynamics
     BubbleDynType bubbleDynType_;
