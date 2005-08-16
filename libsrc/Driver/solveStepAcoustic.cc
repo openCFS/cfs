@@ -72,12 +72,14 @@ namespace CoupledField {
 
     do {
       iterationCounter++;
-      // for every time step write out number of iteration loops to standard out
-      if (iterationCounter == 1)
-        std::cout << std::endl << "Time step:   "  << actStep_ 
-                  << "  ,Iterations: " << iterationCounter;
-      else 
-        std::cout     << "  " << iterationCounter;
+      // write out number of iteration loops to standard out
+	  if ( (actStep_ < 100) || (actStep_%1000) == 0 ) {
+		if (iterationCounter == 1)
+		  std::cout << std::endl << "Time step:   "  << actStep_ 
+					<< "  ,Iterations: " << iterationCounter;
+		else 
+		  std::cout << "  " << iterationCounter;
+	  }
 
 #ifdef DEBUG
       *debug << std::endl

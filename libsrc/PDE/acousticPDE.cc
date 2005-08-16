@@ -287,7 +287,7 @@ namespace CoupledField {
     }
     else if ( auxVec.GetSize() > 1 ) {
       Error("Specification of bubble type not unique in xml-file", __FILE__,
-	    __LINE__ );
+			__LINE__ );
     }
     else {
       bubbleDynType_ = NOBUBBLETYPE;
@@ -381,10 +381,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
       // mass integrator
       coeffmass = density / (c0*c0);
-#ifdef DEBUG
-	  (*debug) << std::endl << "rho/c0^2 = "
-			   << coeffmass << std::endl << std::endl;
-#endif
+
       BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
       IntegratorDescriptor * massIntDescr = 
         new IntegratorDescriptor(bilinearMass, MASS);
@@ -423,7 +420,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           IntegratorDescriptor * dampIntDescr = 
             new IntegratorDescriptor(bilinearStiff, DAMPING);
 
-	  dampIntDescr->SetPDEIds(this, this);   
+		  dampIntDescr->SetPDEIds(this, this);   
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
         }
 
@@ -448,7 +445,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           IntegratorDescriptor * dampIntDescr = 
             new IntegratorDescriptor(bilinearDamp, STIFFNESS);
    
-	  dampIntDescr->SetPDEIds(this, this);
+		  dampIntDescr->SetPDEIds(this, this);
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
         }
 
@@ -473,7 +470,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           IntegratorDescriptor * dampIntDescr = 
             new IntegratorDescriptor(bilinearDamp, STIFFNESS);
 
-	  dampIntDescr->SetPDEIds(this, this);
+		  dampIntDescr->SetPDEIds(this, this);
           assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
 
         }
@@ -499,10 +496,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           bilinear_damp->SetFactor(-1.0);
         }
 
-	IntegratorDescriptor * abcDescr = 
-	  new IntegratorDescriptor(bilinear_damp, DAMPING);
-	abcDescr->SetPDEIds(this, this);      
-	assemble_->AddSurfIntegrator(abcDescr,  absBCs_[actSD]);
+		IntegratorDescriptor * abcDescr = 
+		  new IntegratorDescriptor(bilinear_damp, DAMPING);
+		abcDescr->SetPDEIds(this, this);      
+		assemble_->AddSurfIntegrator(abcDescr,  absBCs_[actSD]);
       }
     }
   }
@@ -649,6 +646,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       // mech-acou coupling makes only sense on surface elements
       SurfElem * actCoupleElem = 
         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
+
+	  if (actCoupleElem == NULL) {
+		Error( "No elements found for coupling!", __FILE__, __LINE__ );
+	  }
       
       BaseFE * ptElem = actCoupleElem->ptElem;
       StdVector<UInt> & connecth = actCoupleElem->connect;
@@ -729,6 +730,137 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
   // POSTPROCESSING SECTION
   // ======================================================
 
+  void AcousticPDE::PostProcess() {
+	ENTER_FCN( "AcousticPDE::PostProcess" );
+
+	StdVector<Elem*> saveElems, temp;
+
+	for ( UInt i = 0; i < saveElemHist_.GetSize(); i++ ) {
+
+	  ptgrid_->GetElemsByName(temp, saveElemHist_[i]);
+
+	  for( UInt j = 0; j < temp.GetSize(); j++ ) {
+		saveElems.Push_back(temp[j]);
+		//std::cerr << "Saving force for elem Nr. " 
+		//		  << temp[j]->elemNum <<  std::endl;
+	  }
+	}
+
+	// force calculation
+	if( saveForceHist_ ) {
+	  CalcForce(saveElems);
+	}
+  }
+
+  void AcousticPDE::CalcForce( StdVector<Elem*> & saveElems ) {  
+    ENTER_FCN( "AcousticPDE::CalcForce" );
+
+    Matrix<Double> ptCoord;
+	Vector<Double> forceVec(saveElems.GetSize());
+	
+	for (UInt actEl=0; actEl < saveElems.GetSize(); actEl++) {
+
+      // Perform cast from volume element to surface element,
+	  //  since calculation of force makes only sense on a surface
+      SurfElem * actSaveElem = 
+        dynamic_cast<SurfElem*> ((saveElems)[actEl]);
+
+	  if (actSaveElem == NULL) {
+		Error( "No elements specified in storeResults section!"
+			   , __FILE__, __LINE__ );
+	  }
+
+	  BaseFE * ptElem = actSaveElem->ptElem;
+	  StdVector<UInt> connect = actSaveElem->connect;
+	  GetElemCoords(connect, ptCoord);
+                
+	  Vector<Double> valueElem;
+	  if ( formulation_ == ACOU_POTENTIAL ) {
+
+		Integer matIndex = -1;
+		// Try to find according region for first neighbouring volume
+		// element of the surface element
+		matIndex = subdoms_.Find(actSaveElem->ptVolElem1->regionId);
+
+		// If first volume element does not belong to acoustic PDE, try the
+		// second one
+		Elem * ptVolElem = NULL;
+		if ( matIndex == -1 ) {
+		  matIndex = subdoms_.Find(actSaveElem->ptVolElem2->regionId);
+		  ptVolElem = actSaveElem->ptVolElem2;
+		}
+		else {
+		  ptVolElem = actSaveElem->ptVolElem1;
+		}
+		
+		if ( matIndex == -1) {
+		  (*error) << "AcousticPDE::CalcForce: The two volume element"
+				   << "neighbours of surface element no. "
+				   << actSaveElem->elemNum << " don't belong to my region!";
+		  Error( __FILE__, __LINE__ );
+		}
+      
+		// Assign correct density
+		Double density = materialData_[matIndex].GetDensity();
+		
+		// retrieve 1st derivative, since F = rho * dpsi/dt * A
+		GetDerivSolVecOfElement(valueElem, connect);
+
+		valueElem *= density;
+	  }
+	  else if ( formulation_ == ACOU_PRESSURE ) {
+
+		// retrieve solution, since F = p * A
+		GetSolVecOfElement(valueElem,connect);
+	  }
+
+	  const UInt nrIntPts= ptElem->GetNumIntPoints();
+	  const Vector<Double> & intWeights = ptElem->GetIntWeights();
+
+	  Double forceAtIPs=0; // force value at integration point
+	  Double jacDet;
+	  for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
+
+		jacDet = ptElem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+		Vector<Double> shapeFnc;  
+		ptElem -> GetShFncAtIp(shapeFnc, actIntPt);
+
+		if (isaxi_) {
+		  Vector<Double> coordAtIP = ptCoord * shapeFnc;
+		  forceAtIPs += shapeFnc * intWeights[actIntPt-1] * jacDet
+            * 2 * PI * coordAtIP[0] * valueElem;
+		}
+		else {
+		  forceAtIPs += shapeFnc * intWeights[actIntPt-1] * jacDet 
+            * valueElem;
+		}
+	  }
+
+	  // get normal of surface element
+	  //Vector<Double> normal;
+	  //ptgrid_->CalcSurfNormal(normal,*actSaveElem);
+	  //normal *= (Double) actSaveElem->normalSign;
+
+	  Vector<Double> forceEntry(1);
+	  forceEntry = forceAtIPs;
+	  // std::cerr << "forceEntry = " << forceEntry << std::endl;
+
+	  forceVec[actEl] = forceAtIPs;
+
+	  // map element result back in global set of results
+	  UInt pdeElem;
+	  pdeElem = eqnData_->Mesh2PDEElem(actSaveElem->elemNum);
+	  acouForce_.SetElemResult(pdeElem-1,forceEntry);
+	}
+
+    sumForce_ = 0;
+    for(UInt k=0; k<saveElems.GetSize(); k++) {
+      sumForce_ += forceVec[k];
+    }
+
+  }
+
+
   void AcousticPDE::WriteResultsInFile(const UInt kstep,
                                        const Double asteptime,
                                        UInt stepOffset,
@@ -751,41 +883,43 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       if (analysistype_==HARMONIC) {
         solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
+		// Please remember, that in harmonic case actTime means indeed
+		//  the actual frequency
         if (saveSol_)
           outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actStep, 
                                               actTime, complexFormat_);
         if (saveSolHist_)
           outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actStep, 
                                              actTime, complexFormat_);
+
+		if (saveDeriv1Hist_) {
+		  // multiply solution with j * omega
+		}
       }
       else {  
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-
         if (saveSol_){
           outFile_->WriteNodeSolutionTransient(*solTransient,actStep,actTime);
-         
         }
         if (saveSolHist_){
           outFile_->WriteNodeHistoryTransient(*solTransient, actStep,actTime);
         }
 
-	// DODO here
-	if(m_bWriteSpecialBCs) {
-	  m_pGridAdaption->Add2DataFile(*solTransient, actTime);
-	}
-        
+		// DODO here
+		if(m_bWriteSpecialBCs) {
+		  m_pGridAdaption->Add2DataFile(*solTransient, actTime);
+		}
+		// DODO until here        
+
         if (saveDeriv1_) {
           solDeriv1_.SetAlgSysVector(getS1()); 
           outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
-
         }
-        
         if (saveDeriv1Hist_) {
           solDeriv1_.SetAlgSysVector(getS1()); 
           outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
         }
-
         if (saveDeriv2_) {
           solDeriv2_.SetAlgSysVector(getS2());
           outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
@@ -794,66 +928,74 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           solDeriv2_.SetAlgSysVector(getS2());
           outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
         }
+
         if (saveRHSval_){
           outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
         }
         if (saveRHSvalHist_){
           outFile_->WriteNodeHistoryTransient(rhs_, actStep, actTime); 
         }
+
+		if (saveForceHist_) {
+		  outFile_->WriteElemHistoryTransient(acouForce_, actStep, actTime);
+
+          // lazy mans way to produce output
+          std::cerr << actTime << "   " << sumForce_ << std::endl;
+		}
       }
  
-       // ------- for bubble results ----------------------
-       if(bubbleDynType_ != NOBUBBLETYPE &&
-          (saveSol_ == TRUE || saveDeriv1_ == TRUE || saveDeriv2_ == TRUE)) {
+	  // ------- for bubble results ----------------------
+	  if(bubbleDynType_ != NOBUBBLETYPE &&
+		 (saveSol_ == TRUE || saveDeriv1_ == TRUE || saveDeriv2_ == TRUE)) {
 
-         StdVector<Double> radius;
-         StdVector<Double> velocity;
+		StdVector<Double> radius;
+		StdVector<Double> velocity;
 
-     	 if ( isMechCoupled_ == TRUE ) {
+		if ( isMechCoupled_ == TRUE ) {
 
-	   radius = dynamic_cast<SolveStepAcousticMechBubble*>
-	     (solveStep_)->GetResultData("bubbleRadius");
+		  radius = dynamic_cast<SolveStepAcousticMechBubble*>
+			(solveStep_)->GetResultData("bubbleRadius");
 
-	   velocity = dynamic_cast<SolveStepAcousticMechBubble*>
-	     (solveStep_)->GetResultData("bubbleVelocity");
-	 }
-	 else {
+		  velocity = dynamic_cast<SolveStepAcousticMechBubble*>
+			(solveStep_)->GetResultData("bubbleVelocity");
+		}
+		else {
 
-	   radius = dynamic_cast<SolveStepAcousticBubble*>
-	     (solveStep_)->GetResultData("bubbleRadius");
+		  radius = dynamic_cast<SolveStepAcousticBubble*>
+			(solveStep_)->GetResultData("bubbleRadius");
 
-	   velocity = dynamic_cast<SolveStepAcousticBubble*>
-	     (solveStep_)->GetResultData("bubbleVelocity");
-	 }
+		  velocity = dynamic_cast<SolveStepAcousticBubble*>
+			(solveStep_)->GetResultData("bubbleVelocity");
+		}
 
-         ElemStoreSol<Double> bubbleResult;
+		ElemStoreSol<Double> bubbleResult;
     
-         // Resize solution arrays
-         bubbleResult.SetNumSolutions(1);
-         bubbleResult.SetSolutionType(ELEC_FIELD_INTENSITY);
-         bubbleResult.SetNumElems(numElems_);
+		// Resize solution arrays
+		bubbleResult.SetNumSolutions(1);
+		bubbleResult.SetSolutionType(ELEC_FIELD_INTENSITY);
+		bubbleResult.SetNumElems(numElems_);
           
-         // dimension hard coded for .unv file!
-         bubbleResult.SetNumDofs(3);  
-         bubbleResult.SetPtrEQNData(eqnData_, ptgrid_);
-         bubbleResult.Init();
+		// dimension hard coded for .unv file!
+		bubbleResult.SetNumDofs(3);  
+		bubbleResult.SetPtrEQNData(eqnData_, ptgrid_);
+		bubbleResult.Init();
           
-         for (UInt el=0; el<numElems_; el++) {
-           Vector<Double> result(3);
+		for (UInt el=0; el<numElems_; el++) {
+		  Vector<Double> result(3);
             
-           result[0] = radius[el];
-           result[1] = velocity[el];
-           result[2] = (4.0/3.0)*PI*bubbleDensity_*radius[el]*radius[el]
+		  result[0] = radius[el];
+		  result[1] = velocity[el];
+		  result[2] = (4.0/3.0)*PI*bubbleDensity_*radius[el]*radius[el]
  			*radius[el];
-           //        if (el == 90)
-           //std::cerr<<actTime<<"   " <<el<< "   " << result[0] << "   " 
-           // result[1] << "     " << result[2] << std::endl;
+		  //        if (el == 90)
+		  //std::cerr<<actTime<<"   " <<el<< "   " << result[0] << "   " 
+		  // result[1] << "     " << result[2] << std::endl;
             
-           bubbleResult.SetElemResult(el,result);
-         }
+		  bubbleResult.SetElemResult(el,result);
+		}
           
-         outFile_->WriteElemSolutionTransient(bubbleResult, actStep, actTime);
-       }
+		outFile_->WriteElemSolutionTransient(bubbleResult, actStep, actTime);
+	  }
 
 #ifdef PARALLEL
     }//!commrank
@@ -906,8 +1048,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       valVec = "", "", quantity;
       params->GetList( keyVec, attrVec, valVec, nodeValues);
       if (nodeValues.GetSize() > 0) {
-	saveRHSval_ = TRUE;
-	hasOutput_ = TRUE;
+		saveRHSval_ = TRUE;
+		hasOutput_ = TRUE;
       }
 
 
@@ -1027,8 +1169,6 @@ node results in acoustic potential.", __FILE__,__LINE__);
         for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
-
-
       }
 
       // --- acoustic potential, 1. Deriv ---
@@ -1098,8 +1238,39 @@ results in acoustic potential.", __FILE__,__LINE__);
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
       }
-    }
+	}
+    // *****************************
+    // Determine element history
+    // *****************************
+
+    keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
+    attrVec = "", "", "type";
+
+    if ( (formulation_==ACOU_POTENTIAL) || (formulation_==ACOU_PRESSURE) ) {
+
+      // --- force ---
+      Enum2String(ACOU_FORCE, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveElemHist_ );
+
+      saveForceHist_ = FALSE;
+      if (saveElemHist_.GetSize() > 0) {
+
+		saveForceHist_ = TRUE;
+        hasOutput_ = TRUE;
+
+		acouForce_.SetNumSolutions(1);
+        acouForce_.SetSolutionType(ACOU_FORCE);
+		acouForce_.SetNumElems(numElems_);
+		acouForce_.SetNumDofs(1);
+		acouForce_.SetPtrEQNData(eqnData_, ptgrid_);
+        acouForce_.Init();
+
+        Info->PrintF( pdename_, "Saving acouForce for Elements:\n" );
+        for ( UInt k = 0; k < saveElemHist_.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveElemHist_[k].c_str() );
+        }
+      }
+	}
   }
-
-
 } // end of namespace

@@ -18,8 +18,6 @@ namespace CoupledField {
     : StdSolveStep(apde) 
   {
     ENTER_FCN( "SolveStepAcousticBubble::SolveStepAcousticBubble" );
-    std::cerr << ":SolveStepAcousticBubble" << std::endl;
-  
 
     bubbleDynType_ = bubbleDynType;
   
@@ -188,8 +186,8 @@ namespace CoupledField {
 
       // output of norms and data
       if ( nonLinLogging_ == TRUE ) {
-	Info->WriteNonLinIter(pdename_, iterationCounter, nlRhsNorm,
-			      incrementalErr );
+        Info->WriteNonLinIter(pdename_, iterationCounter, nlRhsNorm,
+                              incrementalErr );
       }
     
 
@@ -208,106 +206,106 @@ namespace CoupledField {
         ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
       
 
-	for (UInt j=0; j < elemssd.GetSize(); j++) {
+        for (UInt j=0; j < elemssd.GetSize(); j++) {
 	
-	  ptElem  = elemssd[j]->ptElem;
-	  connect = elemssd[j]->connect;
+          ptElem  = elemssd[j]->ptElem;
+          connect = elemssd[j]->connect;
 
-	  Vector<Double> elPressure;
-	  Vector<Double> elPressureDeriv;
+          Vector<Double> elPressure;
+          Vector<Double> elPressureDeriv;
 	
-	  //we now have also in coupled computation a pressure formulation =============
+          //we now have also in coupled computation a pressure formulation =============
 	
-	  //get the pressure
-	  sol_->GetElemSolution(elPressure,connect);
-
-	
-	  //get 1st derivative of pressure
-	  GetDerivSolVecOfElement(elPressureDeriv,connect);
-	
-
-	  //compute average values
-	  Double pressure=0;
-	  Double pressureDeriv=0;
-	  for (UInt elnode=0; elnode<elPressure.GetSize(); elnode++) {
-	    pressure      += elPressure[elnode];
-	    pressureDeriv += elPressureDeriv[elnode];
-	  }
-	
-	  pressure      /= elPressure.GetSize();
-	  pressureDeriv /= elPressureDeriv.GetSize();
-
+          //get the pressure
+          sol_->GetElemSolution(elPressure,connect);
 
 	
-	  //set to ODE
-
-
-
-	  //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++
-
-
-	  pressureNoDim = pressure / pStatic_ ;
-	  presDerivNoDim = pressureDeriv * initRadius_ / pStatic_ / ( sqrt ( pStatic_ / density_));
-	  ptBubble_[numEl]->SetP(pressureNoDim);
-	  ptBubble_[numEl]->SetDpdt(presDerivNoDim);
-
-	  // In case of explicit Euler watch out suggested stepsize
-	  Double dt = TS_alg_->GetTimeStep();
-	  Double steptime = actTime_ - dt;
-
-	  if ( hTry_ > dt){
-	    hTry_ = dt / 3.0;
-	  }
-
-	  steptime   = steptime / initRadius_ * (sqrt(pStatic_/ density_));
-	  tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
-	  hTry_      = hTry_ / initRadius_ * (sqrt(pStatic_/ density_));
-
-	  //get the current values
-	  bubbleValues_[0] = radius_[numEl];
-	  bubbleValues_[1] = velocity_[numEl];
-	  yNoDim_[0] = bubbleValues_[0] / initRadius_;
-	  yNoDim_[1] = bubbleValues_[1] / (sqrt( pStatic_/ density_));
-
-	  //set numEl to ODE-Solver
-	  ptODESolver_->SetNumEl(numEl);
+          //get 1st derivative of pressure
+          GetDerivSolVecOfElement(elPressureDeriv,connect);
 	
-	  ptODESolver_->Solve(steptime, tNoDim_, yNoDim_, *ptBubble_[numEl], hTry_,
-			      0, dt);
+
+          //compute average values
+          Double pressure=0;
+          Double pressureDeriv=0;
+          for (UInt elnode=0; elnode<elPressure.GetSize(); elnode++) {
+            pressure      += elPressure[elnode];
+            pressureDeriv += elPressureDeriv[elnode];
+          }
 	
-	  //set the new values
-	  radiusWork_[numEl]   = yNoDim_[0] * initRadius_;
-	  velocityWork_[numEl] = yNoDim_[1] * sqrt( pStatic_/ density_);
-	  //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++++++
+          pressure      /= elPressure.GetSize();
+          pressureDeriv /= elPressureDeriv.GetSize();
+
+
+	
+          //set to ODE
 
 
 
-	  //Normal case++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-	  //          ptBubble_[numEl]->SetP(pressure);
-	  //          ptBubble_[numEl]->SetDpdt(pressureDeriv);
+          //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+          pressureNoDim = pressure / pStatic_ ;
+          presDerivNoDim = pressureDeriv * initRadius_ / pStatic_ / ( sqrt ( pStatic_ / density_));
+          ptBubble_[numEl]->SetP(pressureNoDim);
+          ptBubble_[numEl]->SetDpdt(presDerivNoDim);
+
+          // In case of explicit Euler watch out suggested stepsize
+          Double dt = TS_alg_->GetTimeStep();
+          Double steptime = actTime_ - dt;
+
+          if ( hTry_ > dt){
+            hTry_ = dt / 3.0;
+          }
+
+          steptime   = steptime / initRadius_ * (sqrt(pStatic_/ density_));
+          tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
+          hTry_      = hTry_ / initRadius_ * (sqrt(pStatic_/ density_));
+
+          //get the current values
+          bubbleValues_[0] = radius_[numEl];
+          bubbleValues_[1] = velocity_[numEl];
+          yNoDim_[0] = bubbleValues_[0] / initRadius_;
+          yNoDim_[1] = bubbleValues_[1] / (sqrt( pStatic_/ density_));
+
+          //set numEl to ODE-Solver
+          ptODESolver_->SetNumEl(numEl);
+	
+          ptODESolver_->Solve(steptime, tNoDim_, yNoDim_, *ptBubble_[numEl], hTry_,
+                              0, dt);
+	
+          //set the new values
+          radiusWork_[numEl]   = yNoDim_[0] * initRadius_;
+          velocityWork_[numEl] = yNoDim_[1] * sqrt( pStatic_/ density_);
+          //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+
+          //Normal case++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+          //          ptBubble_[numEl]->SetP(pressure);
+          //          ptBubble_[numEl]->SetDpdt(pressureDeriv);
         
           // In case of explicit Euler watch out suggested stepsize
-	  //          Double dt = TS_alg_->GetTimeStep();
-	  //          Double steptime = actTime_ - dt;
+          //          Double dt = TS_alg_->GetTimeStep();
+          //          Double steptime = actTime_ - dt;
 
-	  //	  if ( hTry_ > dt){
-	  //	    hTry_ = dt / 3.0;
-	  //	  }
+          //	  if ( hTry_ > dt){
+          //	    hTry_ = dt / 3.0;
+          //	  }
         
           //get the current values
-	  //          bubbleValues_[0] = radius_[numEl];
-	  //          bubbleValues_[1] = velocity_[numEl];
+          //          bubbleValues_[0] = radius_[numEl];
+          //          bubbleValues_[1] = velocity_[numEl];
                
         
           //set numEl to ODE-Solver
-	  //          ptODESolver_->SetNumEl(numEl);
+          //          ptODESolver_->SetNumEl(numEl);
       	  //          ptODESolver_->Solve(steptime, actTime_, bubbleValues_, *ptBubble_[numEl], hTry_,
-	  //                              0, dt);
+          //                              0, dt);
         
           //set the new values
-	  //          radiusWork_[numEl]   = bubbleValues_[0]; 
-	  //          velocityWork_[numEl] = bubbleValues_[1]; 
-	  //Normal case+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+          //          radiusWork_[numEl]   = bubbleValues_[0]; 
+          //          velocityWork_[numEl] = bubbleValues_[1]; 
+          //Normal case+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
           numEl++;
         }  
@@ -395,29 +393,29 @@ namespace CoupledField {
       // so far method is chosen in cfs program call with -bubbletyp
       switch(bubbleDynType_){
       case KELLERMIKSIS:
-	ptBubble_[el] = new KellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
-					 pVapour_, surfaceTension_, polytrop_, viscosity_);
-	if (el == 0){
-	  Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
-	}
+        ptBubble_[el] = new KellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
+                                         pVapour_, surfaceTension_, polytrop_, viscosity_);
+        if (el == 0){
+          Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
+        }
         break;
      
 
       case GILMORE:
-	//ptBubble_[el] = new Gilmore(initRadius_,density_, sonicVel_, pStatic_, 
-	//			pVapour_, surfaceTension_, polytrop_, viscosity_);
-// 	if (el == 0){
-// 	  Info->PrintF( pdename_, "Using Gilmore-Bubble-Model\n");
-// 	}
-	ptBubble_[el] = new Gilmoredimlos(initRadius_,density_, sonicVel_, pStatic_, 
-				      pVapour_, surfaceTension_, polytrop_, viscosity_);
-	if (el == 0){
-	  Info->PrintF( pdename_, "Using dimensionless Gilmore-Bubble-Model\n");
-	}
-	break;
+        //ptBubble_[el] = new Gilmore(initRadius_,density_, sonicVel_, pStatic_, 
+        //			pVapour_, surfaceTension_, polytrop_, viscosity_);
+        // 	if (el == 0){
+        // 	  Info->PrintF( pdename_, "Using Gilmore-Bubble-Model\n");
+        // 	}
+        ptBubble_[el] = new Gilmoredimlos(initRadius_,density_, sonicVel_, pStatic_, 
+                                          pVapour_, surfaceTension_, polytrop_, viscosity_);
+        if (el == 0){
+          Info->PrintF( pdename_, "Using dimensionless Gilmore-Bubble-Model\n");
+        }
+        break;
 
       default:
-	Error("No bubblemethod specified ",__FILE__,__LINE__);
+        Error("No bubblemethod specified ",__FILE__,__LINE__);
       }
   
       radius_[el]       = initRadius_;
@@ -466,51 +464,51 @@ namespace CoupledField {
         Double beta2 = 1;
                 
 
-	bubbleValues_[0] = radiusWork_[numEl];
-	bubbleValues_[1] = velocityWork_[numEl];
+        bubbleValues_[0] = radiusWork_[numEl];
+        bubbleValues_[1] = velocityWork_[numEl];
 	 
-	// New rhs for cavitational fluid
-	// rho0 * 4/3 * pi* n * ( 3 * R^2 * d^2R/dt^2 + 6 * R * (dR/dt)^2) 
-	if (actStep_ == 1) 
-	  beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*6*bubbleValues_[0]
-	    *bubbleValues_[1]*bubbleValues_[1]; 
-	else {
-	  StdVector<Double> dydt(2);
+        // New rhs for cavitational fluid
+        // rho0 * 4/3 * pi* n * ( 3 * R^2 * d^2R/dt^2 + 6 * R * (dR/dt)^2) 
+        if (actStep_ == 1) 
+          beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*6*bubbleValues_[0]
+            *bubbleValues_[1]*bubbleValues_[1]; 
+        else {
+          StdVector<Double> dydt(2);
 
 
-	  // dimensionless**************************************
-	  yNoDim_[0] = bubbleValues_[0] / initRadius_;
-	  yNoDim_[1] = bubbleValues_[1] / (sqrt( pStatic_/ density_));
-	  tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
-	  ptBubble_[numEl]->CompDeriv(tNoDim_, yNoDim_, dydt);
-	  dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
-	  beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*
-	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
-	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
-	  // dimensionless**************************************
+          // dimensionless**************************************
+          yNoDim_[0] = bubbleValues_[0] / initRadius_;
+          yNoDim_[1] = bubbleValues_[1] / (sqrt( pStatic_/ density_));
+          tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
+          ptBubble_[numEl]->CompDeriv(tNoDim_, yNoDim_, dydt);
+          dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
+          beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*
+            (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
+             + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
+          // dimensionless**************************************
 
-	  //Normal case+++++++++++++++++++++++++++++++++++++++
-	  //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues_, dydt);
-	  //	  beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*
-	  //	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
-	  //	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
-	  //Normal case+++++++++++++++++++++++++++++++++++++++
-	}
+          //Normal case+++++++++++++++++++++++++++++++++++++++
+          //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues_, dydt);
+          //	  beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*
+          //	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
+          //	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
+          //Normal case+++++++++++++++++++++++++++++++++++++++
+        }
 
 
-	rhsForm->SetFactor(beta2);            
-	rhsForm->SetElemPtr(ptEl);
+        rhsForm->SetFactor(beta2);            
+        rhsForm->SetElemPtr(ptEl);
       
-	Vector<Double> elemVec;
-	rhsForm->CalcElemVector(ptCoord, elemVec);
+        Vector<Double> elemVec;
+        rhsForm->CalcElemVector(ptCoord, elemVec);
 
-	// map connect to PDE node numbers
-	StdVector<Integer> connect_PDE;
-	eqnData_->Node2EQN(connecth, connect_PDE);
+        // map connect to PDE node numbers
+        StdVector<Integer> connect_PDE;
+        eqnData_->Node2EQN(connecth, connect_PDE);
 
-	algsys_->SetElementRHS(&elemVec[0], pdeId1_, connect_PDE.GetPointer(), 
-			       connect_PDE.GetSize());
-	numEl++;
+        algsys_->SetElementRHS(&elemVec[0], pdeId1_, connect_PDE.GetPointer(), 
+                               connect_PDE.GetSize());
+        numEl++;
       }
     }
 

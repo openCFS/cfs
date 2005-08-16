@@ -109,11 +109,11 @@ namespace CoupledField {
 
       keyVec = "storeResults", "elemHistory", "saveElems";
       params->GetList(keyVec, attrVec, valVec, entityVec);
-      
+
       keyVec = "storeResults", "elemHistory", "saveRegion";
       params->GetList(keyVec, attrVec, valVec, regionVec);
-
-    } else {
+	}
+    else {
       keyVec = "storeResults", "nodeHistory", "type";
       params->GetList(keyVec, attrVec, valVec, quantVec);
 
@@ -212,10 +212,12 @@ namespace CoupledField {
         // get elements of region          
         if ( regionVec[iQuant] != "") {
           regionId = ptGrid_->RegionNameToId( regionVec[iQuant] );
+		  std::cerr << "Getting element for region " << regionId << std::endl;
           ptGrid_->GetElems( tempElems, regionId);
           for (UInt iElem = 0; iElem < tempElems.GetSize(); iElem++) {
             tempEntities.Push_back(tempElems[iElem]->elemNum);
           }
+		  std::cerr << "-> found " << tempEntities.GetSize() << std::endl;
         }
         // get elements by name        
         if ( entityVec[iQuant] != "" ) {
@@ -473,7 +475,7 @@ namespace CoupledField {
     Double val;
     
     data.GetSolutionTypes(solTypes);
-    
+
     // Iterate over all solutiontypes
     for (UInt iSol=0; iSol<solTypes.GetSize(); iSol++) {
    
