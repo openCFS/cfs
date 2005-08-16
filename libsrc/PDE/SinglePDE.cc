@@ -50,7 +50,7 @@ namespace CoupledField {
     assemble_   = NULL;
     algsys_     = NULL;
     eqnData_    = NULL;
-  
+
     // =====================================================================
     // set analysis parameters
     // =====================================================================
@@ -1209,9 +1209,9 @@ namespace CoupledField {
   // ======================================================
   // COUPLING SECTION
   // ======================================================
-  
+
   void SinglePDE::CalcInputCoupling() {
-    
+
     ENTER_FCN( "SinglePDE::CalcInputCoupling" );
 
     std::string errMsg;
@@ -1222,7 +1222,8 @@ namespace CoupledField {
     UInt couplingDof;
     Boolean clearCoords = TRUE;
 
-    
+    // Determine maximal allowed equation number for algebraic system
+    Integer maxAllowedEqn = (Integer)algsys_->GetDimension();
 
     // at first, check if this PDE is iterative coupled
     if (isIterCoupled_ == FALSE)
@@ -1284,10 +1285,29 @@ namespace CoupledField {
         for ( UInt dof = 0; dof < couplingDof; dof++ ) {
           for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
             eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
-            if ( eqnNr != 0 ) {
+            if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
               algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
                                    eqnNr, eqnDof );
             }
+
+#ifdef DEBUG
+            else if ( eqnNr > maxAllowedEqn ) {
+              (*debug) << "SinglePDE::CalcInputCoupling: "
+                       << "(" << pdename_ << ") "
+                       << "Refused to pass "
+                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
+                       << "it execeeds numLastFreeDof = " << maxAllowedEqn
+                       << std::endl;
+            }
+            else if ( eqnNr == 0 ) {
+              (*debug) << "SinglePDE::CalcInputCoupling: "
+                       << "(" << pdename_ << ") "
+                       << "Refused to pass "
+                       << "eqnNr = " << eqnNr << " to SetNodeRHS(), since "
+                       << "it is fixed by hom. Dirichlet BC" << std::endl;
+            }
+#endif
+
           }
         }
         break;
