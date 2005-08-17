@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <unistd.h> 
 
+#include "General/environment.hh"
 
 
 namespace CoupledField {
@@ -44,6 +45,14 @@ namespace CoupledField {
 
     //! Previous timing values
     double wTimeLast_, cTimeLast_;
+
+    //! Flag for enabling/disabling profiling
+
+    //! In this flag we store the information whether profiling is to be
+    //! performed, or whether the object should only perform a dummy
+    //! behaviour, i.e. we can call it, but the methods simply do nothing.
+    Boolean doProfiling_;
+
   };
 
 
