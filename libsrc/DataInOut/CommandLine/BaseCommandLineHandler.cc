@@ -45,6 +45,9 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::helpShowEqnMap_    =
   "print node to equation number mapping to OLAS report file";
 
+  const std::string BaseCommandLineHandler::helpNoProfile_     =
+  "turn off generation of profiling information";
+
   const std::string BaseCommandLineHandler::helpHelp_          =
   "print this usage information";
 
@@ -57,6 +60,7 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::markerHelp_          = "-h";
   const std::string BaseCommandLineHandler::markerSchemaPath_    = "-s";
   const std::string BaseCommandLineHandler::markerShowEqnMap_    = "-e";
+  const std::string BaseCommandLineHandler::markerNoProfile_     = "-n";
 
   // Long forms of markers
   const std::string BaseCommandLineHandler::markerLongParamFile_     =
@@ -75,6 +79,8 @@ namespace CoupledField {
   "--schemaPath";
   const std::string BaseCommandLineHandler::markerLongShowEqnMap_    =
   "--showEqnMap";
+  const std::string BaseCommandLineHandler::markerLongNoProfile_     =
+  "--noProfile";
 
 
   // ---------------------------------------------------------------
@@ -145,6 +151,13 @@ namespace CoupledField {
        << '\n'
        << " " << helpShowEqnMap_ << "\n\n"
 
+      // --noProfile
+       << " " << COLOR_INIT
+       << markerNoProfile_ << ", " << markerLongNoProfile_
+       << COLOR_STOP
+       << '\n'
+       << " " << helpNoProfile_ << "\n\n"
+
       // --help
        << " " << COLOR_INIT
        << markerHelp_ << ", " << markerLongHelp_
@@ -202,17 +215,26 @@ namespace CoupledField {
 
         << ' ' << markerLongPrintGrid_ << " = "
         << colorInit
-        << GetPrintGrid()
+        << std::boolalpha
+        << ( GetPrintGrid() == TRUE )
         << colorStop << '\n'
 
         << ' ' << markerLongShowEqnMap_ << " = "
         << colorInit
-        << GetShowEqnMap()
+        << std::boolalpha
+        << ( GetShowEqnMap() == TRUE )
+        << colorStop << '\n'
+
+        << ' ' << markerLongNoProfile_ << " = "
+        << colorInit
+        << std::boolalpha
+        << ( GetNoProfile() == TRUE )
         << colorStop << '\n'
 
         << ' ' << markerLongWriteSkeleton_ << " = "
         << colorInit
-        << GetWriteSkeleton()
+        << std::boolalpha
+        << ( GetWriteSkeleton() == TRUE )
         << colorStop << "\n\n";
   }
 

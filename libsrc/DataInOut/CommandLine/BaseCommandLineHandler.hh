@@ -127,6 +127,15 @@ namespace CoupledField {
   //!     </tr>
   //!
   //!     <tr>
+  //!       <td align="center">-n / --noProfile</td>
+  //!       <td align="center">flag / boolean</td>
+  //!       <td><em>do not use system call for generating profiling
+  //!           information</em></td>
+  //!       <td align="center">false = not set</td>
+  //!       <td align="center">%GetNoProfile()</td>
+  //!     </tr>
+  //!
+  //!     <tr>
   //!       <td align="center">-h / --help</td>
   //!       <td align="center">flag / boolean</td>
   //!       <td><em>print usage information</em></td>
@@ -201,12 +210,23 @@ namespace CoupledField {
 
     //! Return showEqnMap flag
 
-    //! This method can be used to query the status of the shwoEqnMap flag.
+    //! This method can be used to query the status of the showEqnMap flag.
     //! By specifying this flag one instructs the executable to report the
     //! maps that relates global to region-local node numbers and node number
     //! to equation number in the algebraic system. The maps are written to
     //! the standard OLAS report file.
     virtual Boolean GetShowEqnMap() const = 0;
+
+    //! Return noProfile flag
+
+    //! This method can be used to query the status of the noProfile flag.
+    //! By specifying this flag one instructs the executable to not generate
+    //! profiling information. By default system call are used (under Linux)
+    //! to obtain information on things like e.g. memory footprint of the
+    //! simulation run.
+    //! \note The flag is only of use in the case that profiling was enabled
+    //!       during compilation by defining the PROFILING macro.
+    virtual Boolean GetNoProfile() const = 0;
 
     //! Return writeSkeleton flag
 
@@ -250,6 +270,7 @@ namespace CoupledField {
     const static std::string helpHelp_;
     const static std::string helpSchemaPath_;
     const static std::string helpShowEqnMap_;
+    const static std::string helpNoProfile_;
     //@}
 
     //! \name Strings containing short markers for command line parameters
@@ -264,6 +285,7 @@ namespace CoupledField {
     const static std::string markerHelp_;
     const static std::string markerSchemaPath_;
     const static std::string markerShowEqnMap_;
+    const static std::string markerNoProfile_;
     //@}
 
     //! \name Strings containing long markers for command line parameters
@@ -278,6 +300,7 @@ namespace CoupledField {
     const static std::string markerLongHelp_;
     const static std::string markerLongSchemaPath_;
     const static std::string markerLongShowEqnMap_;
+    const static std::string markerLongNoProfile_;
     //@}
 
 
@@ -361,6 +384,21 @@ namespace CoupledField {
     //! \return \<XMLSCHEMA\>
     std::string DefaultSchemaPath() const {
       return XMLSCHEMA;
+    }
+
+    //! Returns default value for --noProfile parameter
+
+    //! This method returns default value for --noProfile parameter. The
+    //! default is to generate profile information, if profiling was enabled
+    //! during compile time.
+    //! \return - FALSE if PROFILING was enabled during compilation
+    //!         - TRUE otherwise
+    Boolean DefaultNoProfile() const {
+#ifdef PROFILING
+      return FALSE;
+#else
+      return TRUE;
+#endif
     }
 
     //@}

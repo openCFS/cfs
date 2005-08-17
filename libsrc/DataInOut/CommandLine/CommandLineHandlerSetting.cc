@@ -19,7 +19,7 @@ namespace CoupledField {
     //  Check, if any parameter was supplied
     // --------------------------------------
     if ( argc == 1 ) {
-      std::cout << "\n As HAL said in 2001\n\n"
+      std::cerr << "\n As HAL said in 2001\n\n"
                 << "   \"I'm sorry Dave, I don't have enough information.\""
                 <<"\n\n So please specify a name for the current "
                 << "simulation run!\n\n";
@@ -120,6 +120,15 @@ namespace CoupledField {
                   1,
                   Setting::COMMAND_LINE_ONLY,
                   helpShowEqnMap_.c_str() ),
+
+      // --noProfile
+      SettingDef( markerNoProfile_.c_str(),
+                  markerLongNoProfile_.c_str(),
+                  Setting::FLAG,
+                  1,
+                  1,
+                  Setting::COMMAND_LINE_ONLY,
+                  helpNoProfile_.c_str() ),
 
       // --help
       // SettingDef( markerHelp_.c_str(),

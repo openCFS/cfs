@@ -136,6 +136,25 @@ namespace CoupledField {
       return retVal;
     };
 
+    //! Return noProfile flag
+
+    //! This method can be used to query the status of the noProfile flag.
+    //! By specifying this flag one instructs the executable to not generate
+    //! profiling information. By default system call are used (under Linux)
+    //! to obtain information on things like e.g. memory footprint of the
+    //! simulation run.
+    //! \note The flag is only of use in the case that profiling was enabled
+    //!       during compilation by defining the PROFILING macro.
+    Boolean GetNoProfile() const {
+      ENTER_FCN( "CommandLineHandlerSetting::GetNoProfile" );
+      Boolean retVal = DefaultNoProfile();
+      Setting *aux = commandLine_.getSetting( markerNoProfile_.c_str() );
+      if ( aux != NULL ) {
+        retVal = FALSE;
+      }
+      return retVal;
+    };
+
     //! Return writeSkeleton flag
 
     //! This method can be used to query the status of the writeSkeleton flag.
