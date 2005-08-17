@@ -150,7 +150,7 @@ namespace CoupledField {
       Boolean retVal = DefaultNoProfile();
       Setting *aux = commandLine_.getSetting( markerNoProfile_.c_str() );
       if ( aux != NULL ) {
-        retVal = FALSE;
+        retVal = TRUE;
       }
       return retVal;
     };
