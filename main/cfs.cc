@@ -8,6 +8,7 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/CommandLine/CommandLineHandlerSetting.hh"
 #include "Driver/driver_header.hh"
 #include "Domain/domain.hh"
@@ -126,7 +127,12 @@ int main( int argc, const char **argv ) {
 #endif
 
 #ifdef PROFILING
-  Info->StartProgress( "Opening file for profiling output" );
+  if ( commandLine->GetNoProfile() == FALSE ) {
+    Info->StartProgress( "Opening file for profiling output" );
+  }
+  else {
+    Info->StartProgress( "Skipping generation of profiling output" );
+  }
   profiler = new Profiler();
   SETPROFILE("Begin of program");
   Info->FinishProgress();
