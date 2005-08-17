@@ -7,8 +7,6 @@
 #include <sys/types.h>
 #include <unistd.h> 
 
-#include "General/environment.hh"
-
 
 namespace CoupledField {
 
@@ -51,12 +49,10 @@ namespace CoupledField {
     //! In this flag we store the information whether profiling is to be
     //! performed, or whether the object should only perform a dummy
     //! behaviour, i.e. we can call it, but the methods simply do nothing.
-    Boolean doProfiling_;
+    bool doProfiling_;
 
   };
 
-
-} // end of namespace
-
+}
 
 #endif

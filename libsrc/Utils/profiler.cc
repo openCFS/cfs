@@ -8,7 +8,7 @@
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "myclock.hh"
 
-namespace CoupledField{
+namespace CoupledField {
 
 
   // ***********************
@@ -17,7 +17,7 @@ namespace CoupledField{
   Profiler::Profiler() {
 
     // Determine whether profiling should be performed
-    doProfiling_ = !commandLine->GetNoProfile();
+    doProfiling_ = commandLine->GetNoProfile() == FALSE;
 
     if ( doProfiling_ == true ) {
 
@@ -76,7 +76,7 @@ namespace CoupledField{
   // *********
   void Profiler::Trace( std::string name ) {
 
-    if ( doProfiling_ == TRUE ) {
+    if ( doProfiling_ == true ) {
 
       std::ostringstream command;
       Double wTime, cTime;
