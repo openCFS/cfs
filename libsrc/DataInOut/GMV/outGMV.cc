@@ -198,6 +198,15 @@ namespace CoupledField {
             output->write((char*)&nn,sizeof(UInt));
           }
           break;
+        case 3:
+          if (ascii_)
+            (*output) << "3line 3" << std::endl;
+          else {
+            (*output) << "3line   ";
+            UInt nn=3;
+            output->write((char*)&nn,sizeof(UInt));
+          }
+          break;
         default:
           Error("This type of element is not implemented",
                 __FILE__, __LINE__);
