@@ -101,7 +101,8 @@ namespace CoupledField {
   MpCCInodes_ = 0;
   for (UInt i=0; i<subdoms_.GetSize(); i++)
     {
-      ptgrid_->GetVolElems(elemssd,subdoms_[i]);
+//       ptgrid_->GetVolElems(elemssd,subdoms_[i]);
+      ptgrid_->GetElems(elemssd,subdoms_[i]);
       mapSD_.Clear(); // needed to call CalcNumberOfNodesInPatch(.,.) correctly
       ptgrid_->GetNodesOfElemList(mapSD_, elemssd);
       MpCCInodes_ += mapSD_.GetSize();
@@ -462,7 +463,8 @@ namespace CoupledField {
     for (i=0; i<numOfSubdom; i++)
       {
 	globalNodes.Resize(0);
-	ptgrid_->GetVolElems(elemsInSD,subdoms_[i]);
+// 	ptgrid_->GetVolElems(elemsInSD,subdoms_[i]);
+	ptgrid_->GetElems(elemsInSD,subdoms_[i]);
 	ptgrid_->GetNodesOfElemList(globalNodes, elemsInSD);
 	numOfNodesInSD_[i] = globalNodes.GetSize();
 	localNodes_[i]  =new UInt[numOfNodesInSD_[i]];

@@ -108,7 +108,8 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
               }
 	  }
     
-        ptgrid_->GetVolElems(elemssd,coupledsubdoms[i]);
+        ptgrid_->GetElems(elemssd,coupledsubdoms[i]);
+        //ptgrid_->GetVolElems(elemssd,coupledsubdoms[i]);
         //ptgrid_->GetElemSD(elemssd,coupledsubdoms[i],actlevel_);
       
       elsize=(elemssd[0]->connect).GetSize();
@@ -177,7 +178,8 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
 
    for (i=0; i<coupledsubdoms.GetSize(); i++)
      {
-       ptgrid_->GetVolElems(elemssd,coupledsubdoms[i]);
+       ptgrid_->GetElems(elemssd,coupledsubdoms[i]);
+       //ptgrid_->GetVolElems(elemssd,coupledsubdoms[i]);
        int k=0;
       nElemIds_=0;
       UInt nElemSD=elemssd.GetSize();
@@ -315,7 +317,8 @@ void MpCCIexch::DefMpcciElements(UInt meshId, UInt partId, NodeEQN & eqnData)
   StdVector<Elem*> elemssd;     
   StdVector<UInt> connecth;
 
-  ptgrid_->GetVolElems(elemssd,subdoms_[partId-1]);
+  ptgrid_->GetElems(elemssd,subdoms_[partId-1]);
+//   ptgrid_->GetVolElems(elemssd,subdoms_[partId-1]);
 
   NrOfElemsInSD = elemssd.GetSize(); // evtl check: if (NrOfElemsInSD==-1) dann exit
 
