@@ -151,7 +151,7 @@ namespace CoupledField {
     Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
                   pdename_.c_str());
     for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
-      Info->PrintF( pdename_, "%s, index %i\n",
+      Info->PrintF( pdename_, "%s, ID = %i\n",
                     regionNames[k].c_str(), subdoms_[k] );
     }
     Info->PrintF( "", "\n" );
@@ -930,9 +930,18 @@ namespace CoupledField {
       
       // Load material data for subdomains on which this PDE lives
       // from data file
+      std::string actRegionName;
       for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
         for( UInt k = 0; k <= subdomId.GetSize(); k++ ) {
           if( subdoms_[i] == subdomId[k] ){
+
+            // Be verbose
+            actRegionName = ptgrid_->RegionIdToName( subdomId[k] );
+            Info->PrintF( pdename_, "Material '%s' for region '%s' (ID = %d) "
+                          "follows\n", subdomMaterial[k].c_str(),
+                          actRegionName.c_str(), subdomId[k] );
+
+            // Read data
             loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
                                           pdematerialclass_ );
             break;
