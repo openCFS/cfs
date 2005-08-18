@@ -373,7 +373,7 @@ endif
 
 # METIS
 ifeq "$(METIS)" "yes"
-   LIBDIR_METIS = -L$(METIS_ROOT)/$(MACHINE)/lib
+   LIBDIR_METIS = -L$(METIS_ROOT)/$(ARCH)/lib
    LIB_METIS = -lmetis
 else
    LIBDIR_METIS =
