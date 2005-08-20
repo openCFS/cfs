@@ -269,53 +269,25 @@ namespace CoupledField {
 
         connectsizes.resize(maxnumelem);
         subdomains.resize(maxnumelem);
-  
-        for (i=0; i<subdoms.GetSize(); i++)
-          {
-            ptGrid_->GetVolElems(elemssd,subdoms[i]);
-          
-            //          (*io_) << (int) elemssd.size();
-            for (j=0; j < elemssd.GetSize(); j++)
-              {  
-                connect=elemssd[j]->connect;
-                connectsizes[k] = connect.GetSize();
-                subdomains[k] = i;
-                k++;
+        const Elem * ptElem = NULL;
 
-                //              k++; 
-                //              connect=elemssd[j]->connect;
-              
-                //              (*io_) << (int) connect.size();
-              
-                UInt ii=0;
-              
-                /*              
-                //Wegen diesem Zeug hier nachfragen
-                if (elmsgrp == 3) {
-                  
-                  
-                UInt jkl;
-                for (jkl=1; jkl<5; jkl++) {
-                (*io_) << (int) maxnumnodes_+jkl-2;
-                }
-            
-                ii=4;
-                }
-                */
+        for (i=0; i<maxnumelem; i++)
+        {
+            ptElem = ptGrid_->GetElem(i+1);
 
-                for (; ii < connect.GetSize(); ii++) 
-                  { 
-                    indexe.push_back((int)connect[ii]-1);
-                    l++;
-                    //                  (*io_) << (int) connect[ii]-1;
-                  }
-              
-                // write the element's subdomain
-                //              (*io_) << (int) i;
+            connect=ptElem->connect;
+            connectsizes[i] = connect.GetSize();
+            subdomains[i] = ptElem->regionId;
 
-              } // over elements of group
-            elmsgrp++;
-          } // over groups
+            UInt ii, csize;
+
+            for (ii=0, csize = connect.GetSize(); ii < csize; ii++) 
+            { 
+                indexe.push_back((int)connect[ii]-1);
+            }
+
+        }
+        
 
         (*io_) << connectsizes;
         (*io_) << subdomains;
