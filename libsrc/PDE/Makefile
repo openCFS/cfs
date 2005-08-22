@@ -22,6 +22,7 @@ src =   basePDE.cc\
 	acouFlowNoise.cc\
 	piezoPDE.cc \
 	newmarkFracDamp.cc \
+	newmarkFracDampMech.cc \
 	mpcciPDE.cc 
 
 #
