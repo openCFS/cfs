@@ -19,4 +19,6 @@
 #include "nLincurlCurlNodeInt.hh"
 #include "mechStressStrain.hh"
 #include "magforceop.hh"
+#include "linViscoElastInt.hh"
+#include "bdInt.hh"
 #endif
