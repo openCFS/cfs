@@ -32,6 +32,10 @@
           <!-- Regions the PDE lives on -->
           <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
             <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="damping" type="DT_MechDamp"
+                  minOccurs="0"/>
+              </xsd:sequence>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="nonLinear" type="DT_MechNonLin"
                 use="optional" default="no"/>
@@ -40,9 +44,6 @@
             </xsd:complexType>
           </xsd:element>
     
-          <!-- Type of damping model (optional) -->
-          <xsd:element name="damping" type="DT_MechDamp" minOccurs="0"/>
-
           <!-- Section for specifying pre-stressing (optional) -->
           <xsd:element name="preStressing" minOccurs="0">
             <xsd:complexType>
@@ -292,14 +293,61 @@
   <!-- ******************************************************************** -->
   <!--   Definition of data type for damping model -->
   <!-- ******************************************************************** -->
-  <xsd:simpleType name="DT_MechDampType">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="rayleigh"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
   <xsd:complexType name="DT_MechDamp">
-    <xsd:attribute name="type" type="DT_MechDampType" use="required"/>
+
+    <!-- Type of damping -->
+    <xsd:attribute name="type" use="optional" default="no">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="no"/>
+          <xsd:enumeration value="fractional"   />
+          <xsd:enumeration value="rayleigh"     />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <!-- Type of fractional damping algorithm -->
+    <xsd:attribute name="fracAlg" use="optional" default="gl">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="gl"/>
+          <xsd:enumeration value="blank"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <!-- Number of past time-steps for fractional damping -->
+    <xsd:attribute name="fracMemory" type="xsd:positiveInteger" use="optional"
+      default="1"/>
+
+    <!-- Type of interpolation -->
+    <xsd:attribute name="interpolation" use="optional" default="no">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="no"/>
+          <xsd:enumeration value="lin1pt"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <!-- order of the fractional derivative -->
+    <xsd:attribute name="fracDeriv" type="xsd:double" use="optional"/>
+
+    <!-- Elasticity Modulus -->
+    <xsd:attribute name="ElastModule" type="xsd:double"	use="optional"/>
+
+    <!-- History Time to remember -->
+    <xsd:attribute name="timeSlot" type="xsd:double" use="optional"/>
+
+    <!-- fractional derivative model -->
+    <xsd:attribute name="model" use="optional" default="3param">
+  	<xsd:simpleType>
+        	<xsd:restriction base="xsd:token">
+          <xsd:enumeration value="3param"/>
+          <xsd:enumeration value="KelvinVoigt"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
 
