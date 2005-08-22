@@ -31,6 +31,10 @@ namespace CoupledField {
                                           Matrix<Complex> &elemMat,
                                           Double &beta, Double &omega );
 
+    virtual void GetDMat(Matrix<Double> & dMat);
+
+    virtual void GetBMat(Matrix<Double> & bMat, Matrix<Double> & ptCoord);
+
   protected:
 
     //! returns B - matrix for BDB
