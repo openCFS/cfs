@@ -9,6 +9,7 @@
 #include "DataInOut/writeresults.hh"
 #include "Driver/assemble.hh"
 #include "newmark.hh"
+#include "newmarkFracDampMech.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "Driver/solveStepMech.hh" 
 #include "CoupledPDE/pdecoupling.hh"
@@ -121,18 +122,130 @@ namespace CoupledField
 
   void MechPDE::ReadDampingInformation( Grid *aptgrid )
   {
-	ENTER_FCN( "MechPDE::ReadDampingInformation" );
+    ENTER_FCN( "MechPDE::ReadDampingInformation" );
+    
+    dampingType_ = NONE;
+    dampingList_.Resize(subdoms_.GetSize());
+    fracMemory_ = 0;
+    Boolean identical = TRUE; // i.e. same type of damping for all regions
+    Integer firstFrac=-1;
 
-    if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) ) {
+    // Construct vectors for restricted search parameter
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
 
-	  dampingType_ = RAYLEIGH;
-	  Info->PrintF(pdename_, " Using RAYLEIGH damping\n" );
-	}
+    for (UInt k = 0; k < subdoms_.GetSize(); k++) {
+      
+      std::string actRegion;
+      actRegion = aptgrid->RegionIdToName( k );
+      keyVec = "mechanic" , "region" , "damping" , "type";
+      attrVec= ""         , "name"   , "";
+      valVec = ""         , actRegion, "";
+      StdVector<std::string> dampInfo;
+      params->GetList( keyVec, attrVec, valVec, dampInfo);
+      
+      if ( dampInfo.IsEmpty() ) {
+        dampingList_[k] = NONE;
+        Info->PrintF( pdename_, 
+                      "No information specifying damping detected!\n" );
+      }
+      else if (dampInfo[0] == "no") {
+        dampingList_[k] = NONE;
+        Info->PrintF( pdename_, 
+                      "      * NO damping at all for region: %d\n", k );
+      }
+      else if (dampInfo[0] == "rayleigh") {
+        dampingList_[k] = RAYLEIGH;
+        Info->PrintF( pdename_, 
+                      "      * RAYLEIGH damping for region: %d\n", k );
+      }
+      else if (dampInfo[0] == "fractional") {
+        dampingType_ = FRACTIONAL;
+        Info->PrintF( pdename_, 
+                      "      * FRACTIONAL damping for region: %d\n", k );
+        
+        // Find first region containing fractional damping
+        if ( firstFrac < 0 )
+          firstFrac = k;
+        
+        keyVec = "mechanic" , "region" , "damping" , "fracAlg";
+        StdVector<std::string> fracAlg;
+        params->GetList( keyVec, attrVec, valVec, fracAlg );
+        
+        keyVec = "mechanic" , "region" , "damping" , "fracMemory";
+        StdVector<UInt> fracMem;
+        params->GetList( keyVec, attrVec, valVec, fracMem );
+        
+        keyVec = "mechanic" , "region" , "damping" , "interpolation";
+        StdVector<std::string> interpol;
+        params->GetList(  keyVec, attrVec, valVec, interpol );
+        
+        
+        if( fracAlg.IsEmpty() || fracMem.IsEmpty() || interpol.IsEmpty() ) {
+          (*error) << "Specify attributes fracAlg, fracMemory " 
+                   << "and interpolation!";
+          Error( __FILE__, __LINE__ ); 
+        }
+        else if  ( fracAlg[0] == "gl" ) {
+          
+          // Include fracAlg and interpolation info in dampingList
+          Info->PrintF( "", "\t\t\t using Gruenwald-Letnikov algorithm,\n");
+          if (interpol[0] == "no" )
+            dampingList_[k] = FRACTIONAL_GL;
+          else {
+            Error("Till now no interpolation is allowed in mechanics fractional damnping!",__FILE__,__LINE__);
+          }
+        }
+//         else if ( fracAlg[0] == "blank" ) {
+          
+//           Info->PrintF( "", "\t\t\t using Blanks algorithm,\n");
+//           if (interpol[0] == "no" )
+//             dampingList_[k] = FRACTIONAL_BLANK;
+//           else {
+//             dampingList_[k] = FRACTIONAL_BLANK_INT;
+//             Info->PrintF("", 
+//                          "\t\t\t linear interpol. of single past values\n\n");
+//           }
+//         }
+        
+        // up to now take maximum of fracMemory
+        if ( fracMem[0] > fracMemory_ )
+          fracMemory_ = fracMem[0];
+      }
+      
+      // Determine, if regions have different types of damping
+      if ( k > 0 ) {
+        if ( dampingList_[k] != dampingList_[k-1] )
+          identical = FALSE;
+      }
+    }
+    
+    if ( dampingType_ == FRACTIONAL ) {
+      
+      Info->PrintF(pdename_, "Memory size for fractional damping  is: %d\n",
+                   fracMemory_ );
+      
+      if ( dampingList_[firstFrac] == FRACTIONAL_GL ||
+           dampingList_[firstFrac] == FRACTIONAL_BLANK )
+        inType_ = NOTUSED;
+      else
+        inType_ = LIN1PT;
+    }
+    
+    if ( identical==TRUE && dampingType_!=FRACTIONAL ) {
+      dampingType_ = dampingList_[0];
+    }
+    else if ( identical==TRUE && dampingType_==FRACTIONAL ) {
+      ;
+    }
     else {
-	  
-	  dampingType_ = NONE;
-	}
+      Info->PrintF(pdename_,
+                   "Found different types of damping for regions!\n");
+    }
+    
   }
+
   
   void MechPDE::InitNonLin()
   {
@@ -407,14 +520,28 @@ namespace CoupledField
   
     BaseForm * bilinearStiff = NULL;
 
-    if (subType_ == "planeStrain")
-      bilinearStiff = new mechPlainStrainInt(actSDMat);
-    else if (subType_ == "axi")
-      bilinearStiff = new mechAxiInt(actSDMat);
-    else if (subType_ == "3d")
-      bilinearStiff = new mech3DInt(actSDMat);
-    else 
-      Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
+    if(dampingType_ != FRACTIONAL)
+      {
+        if (subType_ == "planeStrain")
+          bilinearStiff = new mechPlainStrainInt(actSDMat);
+        else if (subType_ == "axi")
+          bilinearStiff = new mechAxiInt(actSDMat);
+        else if (subType_ == "3d")
+          bilinearStiff = new mech3DInt(actSDMat);
+        else 
+          Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
+      }
+    else
+      {
+
+        StdVector<std::string> keyVec, attrVec, valVec;
+        keyVec = "transient", "firstDt";
+        attrVec = "tag";
+        valVec  =  bcSequenceTag_;
+        Double dt = 0.0;
+        params->Get(keyVec,attrVec,valVec,dt);
+	bilinearStiff = new LinViscoElastInt(actSDMat,GetSubType(), "modifiedStiffness",dt );
+      }
 
     return bilinearStiff;
   }
@@ -829,10 +956,21 @@ namespace CoupledField
     UInt rhsSize = eqnData_->GetNumEQNs() *
       eqnData_->GetNumDofsPerEQN();
 
-    if (effectiveMass_)  
-      TS_alg_ = new NewmarkEffMass( algsys_, rhsSize );
-    else
-      TS_alg_ = new Newmark( algsys_, rhsSize );
+    if ( dampingType_!=FRACTIONAL ) { 
+      if (effectiveMass_)  
+        TS_alg_ = new NewmarkEffMass( algsys_, rhsSize );
+      else
+        TS_alg_ = new Newmark( algsys_, rhsSize );
+    }
+    else {
+      if (effectiveMass_ == FALSE)
+        TS_alg_ = new NewmarkFracDampMech( algsys_, rhsSize, pdeId_,
+                                           eqnData_, ptgrid_, this, 
+                                           subdoms_, dampingList_ );
+      else
+        Error("This needs to be implemented!",__FILE__,__LINE__);
+    }
+
 
   }
 
