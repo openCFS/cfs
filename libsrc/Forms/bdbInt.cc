@@ -317,6 +317,22 @@ namespace CoupledField {
   }
 
 
+ void BDBInt::GetDMat(Matrix<Double> &dMat) {
+   ENTER_FCN( "BDBInt::GetDMat" );
+   calcDMat(dMat);
+ }
+
+ void BDBInt::GetBMat(Matrix<Double> &bMat, Matrix<Double> & ptCoord) {
+   ENTER_FCN( "BDBInt::GetBMat" );
+   const Integer nrIntPts = ptelem->GetNumIntPoints(); 
+   
+   for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++) {
+     calcBMat(bMat, actIntPt, ptCoord);     
+   }
+ }
+
+
+
   // ***************
   //   Constructor
   // ***************
