@@ -491,17 +491,19 @@ namespace CoupledField {
     // pre factor of fractional derivative (same for all algorithms)
     Double y  = materialData_[actSD].GetDampingBeta();
     Double dt = TS_alg_->GetTimeStep();
-
-    coeff = exp(-(y-1.0)*log(dt));
-#ifdef DEBUG
-	(*debug) << std::endl << "1/delt^(y-1) = "
-			 << coeff << std::endl << std::endl;
-#endif
+    coeff = std::exp(-(y-1.0) * std::log(dt));
 
     // needed for formulation with only MASS and STIFFNESS matrix
     // pre factor of Newmark time stepping scheme
     Double beta = TS_alg_->GetNewmarkBeta();
     coeff *= 1.0 / (beta*dt*dt);
+
+//     std::cerr<< std::endl << "Parameters in GetFracDampMatrixCoeff are:"
+//              << std::endl << "actSD: " << actSD
+//              <<	std::endl << "y    = " << y
+//              <<	std::endl << "dt   = " << dt
+//              <<	std::endl << "beta = " << beta
+//              << std::endl << "coeff= " << coeff << std::endl << std::endl;
 
     return coeff;
   }

@@ -212,12 +212,12 @@ namespace CoupledField {
         // get elements of region          
         if ( regionVec[iQuant] != "") {
           regionId = ptGrid_->RegionNameToId( regionVec[iQuant] );
-		  std::cerr << "Getting element for region " << regionId << std::endl;
+		  std::cout << "Getting element for region " << regionId << std::endl;
           ptGrid_->GetElems( tempElems, regionId);
           for (UInt iElem = 0; iElem < tempElems.GetSize(); iElem++) {
             tempEntities.Push_back(tempElems[iElem]->elemNum);
           }
-		  std::cerr << "-> found " << tempEntities.GetSize() << std::endl;
+		  std::cout << "-> found " << tempEntities.GetSize() << std::endl;
         }
         // get elements by name        
         if ( entityVec[iQuant] != "" ) {

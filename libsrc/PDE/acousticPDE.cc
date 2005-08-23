@@ -130,9 +130,12 @@ namespace CoupledField {
     StdVector<std::string> valVec;
 
 	for (UInt k = 0; k < subdoms_.GetSize(); k++) {
+      // Be aware, that the RegionId entries in subdoms_ need not be in order!
+      // We follow the order in subdoms_, which has to be in acordance with
+      //  AcousticPDE::DefineIntegrators()
 
 	  std::string actRegion;
-	  actRegion = aptgrid->RegionIdToName( k );
+	  actRegion = aptgrid->RegionIdToName( subdoms_[k] );
 	  keyVec = "acoustic" , "region" , "damping" , "type";
 	  attrVec= ""         , "name"   , "";
 	  valVec = ""         , actRegion, "";
@@ -168,6 +171,7 @@ namespace CoupledField {
 		if ( firstFrac < 0 )
 		  firstFrac = k;
 
+        // Gather additional information for fractional damping model
 		keyVec = "acoustic" , "region" , "damping" , "fracAlg";
 		StdVector<std::string> fracAlg;
 		params->GetList( keyVec, attrVec, valVec, fracAlg );
@@ -181,14 +185,13 @@ namespace CoupledField {
 		params->GetList(  keyVec, attrVec, valVec, interpol );
 
 
+        // Include fracAlg and interpolation info in dampingList
 		if( fracAlg.IsEmpty() || fracMem.IsEmpty() || interpol.IsEmpty() ) {
 		  (*error) << "Specify attributes fracAlg, fracMemory " 
-				   << "and interpolation!";
+				   << "and interpolation for fractional damping model!";
 		  Error( __FILE__, __LINE__ ); 
 		}
 		else if  ( fracAlg[0] == "gl" ) {
-
-		  // Include fracAlg and interpolation info in dampingList
 		  Info->PrintF( "", "\t\t\t using Gruenwald-Letnikov algorithm,\n");
 		  if (interpol[0] == "no" )
 			dampingList_[k] = FRACTIONAL_GL;
@@ -199,7 +202,6 @@ namespace CoupledField {
 		  }
 		}
 		else if ( fracAlg[0] == "blank" ) {
-
 		  Info->PrintF( "", "\t\t\t using Blanks algorithm,\n");
 		  if (interpol[0] == "no" )
 			dampingList_[k] = FRACTIONAL_BLANK;
@@ -210,39 +212,15 @@ namespace CoupledField {
 		  }
 		}
 
-		// up to now take maximum of fracMemory
+		// up to now take maximum of specified fracMemory values
 		if ( fracMem[0] > fracMemory_ )
 		  fracMemory_ = fracMem[0];
-	  }
-
-	  // Determine, if regions have different types of damping
-	  if ( k > 0 ) {
-		if ( dampingList_[k] != dampingList_[k-1] )
-		  identical = FALSE;
 	  }
 	}
 
 	if ( dampingType_ == FRACTIONAL ) {
-
 	  Info->PrintF(pdename_, "Memory size for fractional damping  is: %d\n",
 				   fracMemory_ );
-
-	  if ( dampingList_[firstFrac] == FRACTIONAL_GL ||
-		   dampingList_[firstFrac] == FRACTIONAL_BLANK )
-		inType_ = NOTUSED;
-	  else
-		inType_ = LIN1PT;
-	}
-
-	if ( identical==TRUE && dampingType_!=FRACTIONAL ) {
-	  dampingType_ = dampingList_[0];
-	}
-	else if ( identical==TRUE && dampingType_==FRACTIONAL ) {
-	  ;
-	}
-	else {
-	  Info->PrintF(pdename_,
-				   "Found different types of damping for regions!\n");
 	}
   }
 
