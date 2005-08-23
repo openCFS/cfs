@@ -1106,7 +1106,14 @@ namespace CoupledField {
     
     SETPROFILE( "Before SetupMatrixGraph" );
 
-    algsys_->AssembleInit( pdeId1_, pdeId2_ );
+    // By default we currently assume that also the "transpose" coupling
+    // object will be required in the long run
+    if ( pdeId1_ != pdeId2_ ) {
+      algsys_->AssembleInit( pdeId1_, pdeId2_, true );
+    }
+    else {
+      algsys_->AssembleInit( pdeId2_, pdeId1_, false );
+    }
 
     // set the graph - connectivity matrix
     BaseFE * ptElem; 
@@ -1165,16 +1172,21 @@ namespace CoupledField {
       }
     }
     
-    SETPROFILE("After SetupMatrixGraph");
-    // finish assembling procedure
-    algsys_->AssembleDone( pdeId1_, pdeId2_ );
-    SETPROFILE("After AssembleDone");
+    SETPROFILE( "After SetupMatrixGraph" );
+
+    // finish assembling procedure (see note for AssembleInit(), above)
+    if ( pdeId1_ != pdeId2_ ) {
+      algsys_->AssembleDone( pdeId1_, pdeId2_, true );
+    }
+    else {
+      algsys_->AssembleDone( pdeId1_, pdeId2_, false );
+    }
+    SETPROFILE( "After AssembleDone" );
   }
-  
-  
+
+
   //set all FE-Elements to reduced integration  
-  void Assemble::SetFE2ReducedInt()
-  {
+  void Assemble::SetFE2ReducedInt() {
     ptQ1    -> SetReducedIntegration();
     ptQ2    -> SetReducedIntegration();
     ptTet1  -> SetReducedIntegration();
