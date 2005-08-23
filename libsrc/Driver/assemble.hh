@@ -577,7 +577,9 @@ namespace CoupledField
   public:
     TransientAssemble(BaseSystem * algsys, Grid * agrid);
     
-    virtual ~TransientAssemble(){};
+    virtual ~TransientAssemble() {
+      ENTER_FCN( "TransientAssemble::~TransientAssemble" );
+    }
 
     //! define discrete PDE
     virtual void MatrixSettings(){};
