@@ -123,19 +123,17 @@ namespace CoupledField {
     NodeStoreSol<Double> solDeriv2_; //!< contains 2nd derivative of solution
     NodeStoreSol<Double> rhs_;
 
-	// TRUE, if integral of solution on surface element = force
-	//  should be written to history file
+	//! TRUE, if force should be written to history file
 	Boolean saveForceHist_;
-	//! contains force acting on surface element
-	ElemStoreSol<Double> acouForce_;
-    Double sumForce_;
-
 	//! name of element set to be saved
 	StdVector<std::string> saveElemHist_;
+	//! contains force acting on surface element
+	ElemStoreSol<Double> acouForce_;
+    //! contains force acting on all surfuce elements
+    Double sumForce_;
 
     //! Attribute describing model for bubble dynamics
     BubbleDynType bubbleDynType_;
-
     //! bubbledensity
     Double bubbleDensity_;
 
@@ -155,8 +153,8 @@ namespace CoupledField {
     //! The output quantities currently supported by the acoustics PDE are
     //! given in the following table. Here 'Keyword' and 'Result Type' refer
     //! to the XML parameter file, while 'Class Attribute' refers to the
-    //! internal attribute of the AcousticPDE class that is set, if the keyword
-    //! is specified.\n
+    //! internal attribute of the AcousticPDE class that is set, if the
+    //! keyword is specified.\n
     //! \todo Specification of ReadStoreResults for AcousticPDE!!!
     void ReadStoreResults();
 
