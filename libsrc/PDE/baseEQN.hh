@@ -42,6 +42,7 @@ namespace CoupledField {
     //! - homogeneous Dirichlet boundary conditions
     //! - inhomogeneous Dirichlet boundary conditions
     //! - constraints (master - slave dof relations)
+    //!
     //! The return value actually depends on the status of the sortEQNs_ flag.
     //! If the latter is true, then we return numRealEqns_. If it is false,
     //! then inhomogeneous Dirichlet boundary conditions are treated by the
