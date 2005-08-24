@@ -408,12 +408,20 @@ namespace CoupledField {
     }
     sol_->SetPtrEQNData(eqnData_, ptgrid_);
     sol_->Init(); 
+    
 
     SETPROFILE("Before Resizing StoreSol");
     solVec_->Resize( eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN() );
     SETPROFILE("After Resizing StoreSol");
+    if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+      sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
+                                 dynamic_cast<Vector<Complex>&>(*solVec_).GetPointer() );
+    } else {
+      sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
+                                 dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
 
-
+  }
+    
     // =====================================================================
     // initialize assemble object
     // =====================================================================
