@@ -233,35 +233,37 @@ namespace CoupledField {
 
     ENTER_FCN( "StdPDE::SetMemento" );
   
-    UInt size = 0;
-
     // if there is no information in the memento just leave
     if ( memento.isSet_ == FALSE ) {
       return;
     }
   
     if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
-
-      Vector<Double> & solHelp =  dynamic_cast<Vector<Double>&>(*solVec_);
+      
+      // convert solution to transient StoreSolution type
+      Vector<Double> & solVec = 
+        (dynamic_cast<NodeStoreSol<Double> &>(*sol_)).GetAlgSysVector();
+      
 
       if ( transFromTo == "complexToReal" ) {
+
         // --- transform complex values to real one --
-        Vector<Complex>& mementoSol = 
+        Vector<Complex>& mementoVec = 
           dynamic_cast<Vector<Complex>&>(*(memento.sol_));
 
-        for ( UInt i=0; i<mementoSol.GetSize(); i++ ) {
-          solHelp[i] = mementoSol[i].real();
+        for ( UInt i=0; i < solVec.GetSize(); i++ ) {
+          solVec[i] = mementoVec[i].real();
         }
-        sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
 
         if (analysistype_ == TRANSIENT) {
           // Set first and second derivative
-          memento.solDeriv1_.Resize(mementoSol.GetSize());
-          memento.solDeriv2_.Resize(mementoSol.GetSize());
+          memento.solDeriv1_.Resize(mementoVec.GetSize());
+          memento.solDeriv2_.Resize(mementoVec.GetSize());
 
           Complex val;
-          for ( UInt i=0; i<mementoSol.GetSize(); i++ ) {
-            val   = mementoSol[i];
+          for ( UInt i=0; i<mementoVec.GetSize(); i++ ) {
+            
+            val   = mementoVec[i];
             memento.solDeriv1_[i] = - 2*PI*frequency * val.imag();
             memento.solDeriv2_[i] = 
               - 4 * PI * PI * frequency * frequency * val.real();
@@ -274,14 +276,13 @@ namespace CoupledField {
       }
       else {
 
-        // --- Real values --
-        // Set solution
-        solHelp = dynamic_cast<Vector<Double>&>(*(memento.sol_));
-        sol_->SetAlgSysDataPointer( size, solHelp.GetPointer() );
-        
-        //dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).SetAlgSysVector
-        //  (dynamic_cast<Vector<Double>&>(*(memento.sol_)));
-      
+        Vector<Double>& mementoVec = 
+          dynamic_cast<Vector<Double>&>(*(memento.sol_));
+
+        for (UInt i = 0; i< solVec.GetSize(); i++ ) {
+          solVec[i] = mementoVec[i];
+        }
+
         // if previous step was transient and the current step is also
         // then give the time derivative to the timestepping algorithm
         if (analysistype_ == TRANSIENT
@@ -296,8 +297,17 @@ namespace CoupledField {
 
       // --- Complex values --      
       // Set solution
-      dynamic_cast<NodeStoreSol<Complex>&>(*(sol_)).SetAlgSysVector
-        (dynamic_cast<Vector<Complex>&>(*(memento.sol_)));
+
+       // convert solution to transient StoreSolution type
+      Vector<Complex> & solVec = 
+        (dynamic_cast<NodeStoreSol<Complex> &>(*sol_)).GetAlgSysVector();
+      
+      Vector<Complex>& mementoVec = 
+          dynamic_cast<Vector<Complex>&>(*(memento.sol_));
+
+      for (UInt i = 0; i< solVec.GetSize(); i++ ) {
+        solVec[i] = mementoVec[i];
+      }
     }
 
     // If PDE is coupled, set the according coupling memento
