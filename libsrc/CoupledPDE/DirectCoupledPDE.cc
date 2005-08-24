@@ -177,6 +177,23 @@ namespace CoupledField{
     }
     solVec_->Resize(totalUnknowns_);
 
+
+    // TEMPORARY CHANGE CHANGE CHANGE
+    BaseNodeStoreSol *ptNodeSol;
+
+    if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+      Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
+      for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+        ptNodeSol = singlePDEs_[i]->getPDESolution();
+        ptNodeSol->SetAlgSysDataPointer( totalUnknowns_, solHelp.GetPointer() );
+      }
+    } else {
+      Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
+      for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+        ptNodeSol = singlePDEs_[i]->getPDESolution();
+        ptNodeSol->SetAlgSysDataPointer( totalUnknowns_, solHelp.GetPointer() );
+      }
+    }
   }
 
 
