@@ -54,21 +54,25 @@ namespace CoupledField{
     pdename_ += singlePDEs_[singlePDEs_.GetSize()-1]->GetName();
   }
 
-  void DirectCoupledPDE::SetCouplings( const StdVector<BasePairCoupling*> &couplings)
-  {
-    ENTER_FCN( "DirectCoupledPDE::SetCouplings" );
 
+  // ****************
+  //   SetCouplings
+  // ****************
+  void DirectCoupledPDE::SetCouplings( const StdVector<BasePairCoupling*>
+                                       &couplings ) {
+    ENTER_FCN( "DirectCoupledPDE::SetCouplings" );
     couplings_ = couplings;
-    
   }
 
-  void DirectCoupledPDE::Init(UInt bcSequenceStep ,
-                              std::string  bcSequenceTag)
-  {
+
+  // ********
+  //   Init
+  // ********
+  void DirectCoupledPDE::Init( UInt bcSequenceStep,
+                               std::string bcSequenceTag ) {
+
     ENTER_FCN( "DirectCoupledPDE::Init" );
   
-    //std::cerr << "Entering DirectCoupledPDE::Init\n";
-
     bcSequenceIndex_ = bcSequenceStep;
     bcSequenceTag_ = bcSequenceTag;
 
@@ -86,12 +90,7 @@ namespace CoupledField{
 
     // Create algebraic system and pass it to SinglePDEs
     if ( genSBMSys == true ) {
-#ifdef SBM_SYSTEM
       algsys_ = new SBM_System();
-#else
-      (*error) << "Re-compile with SBM_SYSTEM!";
-      Error( __FILE__, __LINE__ );
-#endif
     }
     else {
       algsys_ = new StandardSystem();
@@ -105,8 +104,6 @@ namespace CoupledField{
     // and initialize all single pdes
     std::set<AnalysisType> analysisTypes;
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-      //std::cerr << "set Direct Coupling for pde " 
-      //      << singlePDEs_[i]->GetName() << "\n";
       singlePDEs_[i]->SetAlgebraicSystem(algsys_);
       singlePDEs_[i]->SetDirectCoupling();
     
@@ -249,7 +246,7 @@ namespace CoupledField{
       pdeId = singlePDEs_[i]->GetPDEId();
       algsys_->RegisterPDE( pdeId, eqn->GetNumEQNs(),
                             eqn->GetNumLastFreeDof() );
-      
+
       // Let the PDE set its Dirichlet information and related stuff
       singlePDEs_[i]->DefineAlgSys();
     }
@@ -261,17 +258,15 @@ namespace CoupledField{
 
     // iterate over all singlePDE and setup matrix graph
     // trigger the creation and assembly of the matrix graph
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->SetupMatrixGraph();
     }
 
     // For SBM_Systems we must obtain the re-orderings now
     // and pass it to the EQN-objects
-#ifdef SBM_SYSTEM
     if ( dynamic_cast<SBM_System*>(algsys_) != NULL ) {
       IncorporateReordering();
     }
-#endif
 
     // Initialize all Coupling Objects and setup their matrix graph
     for (UInt i=0; i<couplings_.GetSize(); i++) {
@@ -582,6 +577,4 @@ namespace CoupledField{
     }
   }
 
-} // end of namesapce
-
-
+}
