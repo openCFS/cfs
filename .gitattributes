@@ -63,6 +63,7 @@ XML/TestParser/SPHandler.cc svneol=native#text/plain
 XML/TestParser/SPHandler.hh svneol=native#text/plain
 XML/TestParser/TestParser.cc svneol=native#text/plain
 XML/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
+auxiliary/matlab/mminfo.m -text
 auxiliary/matlab/mmread.m -text
 auxiliary/mysql/dump_data.csh svneol=native#text/plain
 auxiliary/mysql/dump_db.csh svneol=native#text/plain
