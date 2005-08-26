@@ -56,7 +56,7 @@ namespace CoupledField {
     catch( const XMLException &event ) {
       (*error) << "The following error occured during initialisation of "
                << "xerces-c!\n"
-               << X2S( event.getMessage() );
+               << event.getMessage();
       Error( __FILE__, __LINE__ );
     }
 
@@ -125,6 +125,10 @@ namespace CoupledField {
       delete parserDefaults_->getErrorHandler();
       delete parserDefaults_;
     }
+
+    // Shutdown platform dependend utilities
+    XMLPlatformUtils::Terminate();
+
   }
 
 
@@ -533,7 +537,6 @@ namespace CoupledField {
     // Clear input vector
     ClearVector( list );
 
-
     // We just have to pass everything through to the
     // central auxilliary search method
     FindAllMatches( keyVec, attrVec, valVec, list, rootElem_ );
@@ -636,13 +639,15 @@ namespace CoupledField {
     ClearVector( list );
 
     // Find PDE section
-    DOMNodeList *pdesec = rootElem_->getElementsByTagName( C2X("pdeList") );
+    XMLCh *tmpString = C2X( "pdeList" );
+    DOMNodeList *pdesec = rootElem_->getElementsByTagName( tmpString );
+    FreeX( &tmpString );
 
     // Check that there is only one such section
     if ( pdesec->getLength() != 1 ) {
-      errmsg  = "Got " + Info->GenStr( pdesec->getLength() );
-      errmsg += " pdeList elements in parameter file!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "Got " << pdesec->getLength() << " pdeList elements "
+               << "in parameter file!";
+      Error( __FILE__, __LINE__ );
     }
 
     // The names of the PDEs are the tags of the child elements of the
@@ -650,17 +655,20 @@ namespace CoupledField {
     // at least one child/PDE
     DOMNodeList *pdelist = pdesec->item(0)->getChildNodes();
     if ( pdelist->getLength() == 0 ) {
-      errmsg = "Cannot find a single PDE in parameter file!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "Cannot find a single PDE in parameter file!";
+      Error( __FILE__, __LINE__ );
     }
 
     // Now get hold of tags, convert them to strings and assemble vector
     std::string pdename;
+    char *auxString = NULL;
     for ( unsigned int i = 0; i < pdelist->getLength(); i++ ) {
 
       // Only treat element children and not comments!
       if ( pdelist->item(i)->getNodeType() == DOMNode::ELEMENT_NODE ) {
-        pdename.assign( X2C( Node2Elem( pdelist->item(i) )->getNodeName() ) );
+        auxString = X2C( Node2Elem( pdelist->item(i) )->getNodeName() );
+        pdename.assign( auxString );
+        FreeC( &auxString );
         list.Push_back( pdename );
       }
     }
@@ -684,8 +692,9 @@ namespace CoupledField {
     ClearVector( list );
 
     // Get all coupling sections in the param file
-    DOMNodeList * coupledSections = 
-      rootElem_->getElementsByTagName( C2X("couplingList") );
+    XMLCh *tmpString = C2X( "couplingList" );
+    DOMNodeList *coupledSections = rootElem_->getElementsByTagName(tmpString);
+    FreeX( &tmpString );
     
     // Pick that coupling section, which matches
     // the specfifed sequenceTag
@@ -697,52 +706,52 @@ namespace CoupledField {
       auxElem = Node2Elem( coupledSections->item(i) );
       if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
         // Ensure that only one section matches
-        if (sectionFound == FALSE) {
+        if ( sectionFound == FALSE ) {
           sectionFound = TRUE;
           currentCouplingSec = auxElem;
-        } else {
-          errmsg  = "Got more than one matching coupling section for tag '";
-          errmsg += sequenceTag;
-          errmsg += "'.\n Please correct parameter file!";
-          Info->Error( errmsg, __FILE__, __LINE__ );
+        }
+        else {
+          (*error) << "Got more than one matching coupling section for "
+                   << "tag '" << sequenceTag
+                   << "'.\n Please correct parameter file!";
+          Error( __FILE__, __LINE__ );
         }
       }
     }
      
     // Print error if specified coupling section was not found
-    if (sectionFound == FALSE)
-      {
-        errmsg = "The coupling section with tag '";
-        errmsg += sequenceTag;
-        errmsg += "' was not found in the parameter file!";
-        Info->Error( errmsg, __FILE__, __LINE__ );
-      }
+    if ( sectionFound == FALSE ) {
+      (*error) << "The coupling section with tag '" << sequenceTag
+               << "' was not found in the parameter file!";
+      Error( __FILE__, __LINE__ );
+    }
 
     // Get the iterative coupling section in the current
     // section of couplings
+    tmpString = C2X( "iterative" );
     DOMNodeList *coupledPDEsec =
-      currentCouplingSec->getElementsByTagName( C2X("iterative") );
+      currentCouplingSec->getElementsByTagName( tmpString );
+    FreeX( &tmpString );
 
     // If no such section exists, simply return an empty vector
     if ( coupledPDEsec->getLength() == 0 ) {
       return;
     }
-    
+
     // Check that there is only one such section
     if ( coupledPDEsec->getLength() > 1 ) {
-      errmsg  = "Got " + Info->GenStr( coupledPDEsec->getLength() );
-      errmsg += " couplingList elements in parameter file!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "Got " << coupledPDEsec->getLength()
+               << " couplingList elements in parameter file!";
+      Error( __FILE__, __LINE__ );
     }
-
     
     // Find iterative Coupled section
     DOMNodeList * iterCoupledPDEsec = coupledPDEsec->item(0)->getChildNodes();
     if ( iterCoupledPDEsec->getLength() == 0 ) {
-      errmsg = "Cannot find an iterative coupling section in parameter file!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "Cannot find an iterative coupling section in parameter "
+               << "file!";
+      Error( __FILE__, __LINE__ );
     }
-
 
     // iterate over all pairwise couplings
     for ( unsigned int i = 0; i < iterCoupledPDEsec->getLength(); i++ ) {
@@ -757,34 +766,36 @@ namespace CoupledField {
         DOMNodeList *iterPDElist =
           iterCoupledPDEsec->item(i)->getChildNodes();
         if ( iterPDElist->getLength() == 0 ) {
-          errmsg = "Cannot find a single PDE in iterative couplingList of ";
-          errmsg += "parameter file!";
-          Info->Error( errmsg, __FILE__, __LINE__ );
+          (*error) << "Cannot find a single PDE in iterative couplingList "
+                   << " of parameter file!";
+          Error( __FILE__, __LINE__ );
         }
                   
         // Now get hold of tags, convert them to strings and assemble vector
-        std::string pdename;
         Boolean found = FALSE;
         for ( unsigned int k = 0; k < iterPDElist->getLength(); k++ ) {
             
           // Only treat element children and not comments!
           if ( iterPDElist->item(k)->getNodeType()
                == DOMNode::ELEMENT_NODE ) {
-            pdename = X2C( Node2Elem( iterPDElist->item(k) )->getNodeName());
-              
+
+            std::string *pdename =
+              X2S( Node2Elem( iterPDElist->item(k) )->getNodeName() );
+
             // only get elements which describe a PDE element
-            if (pdename != "nonLinear") {
+            if ( *pdename != "nonLinear" ) {
 
               // Now ensure, that each PDEname occurs only one time
               found = FALSE;
-              for ( unsigned int j=0; j<list.GetSize(); j++)
-                if ( list[j] == pdename ) {
+              for ( unsigned int j = 0; j < list.GetSize(); j++ ) {
+                if ( *pdename == list[j] ) {
                   found = TRUE;
                   break;
                 }
-                  
+              }
               if ( !found ) {
-                list.Push_back( pdename );
+                list.Push_back( *pdename );
+                FreeS( &pdename );
               }
             }
           }
@@ -811,9 +822,10 @@ namespace CoupledField {
     ClearVector( list );
 
     // Get all coupling sections in the param file
-    DOMNodeList * coupledSections = 
-      rootElem_->getElementsByTagName( C2X("couplingList") );
-    
+    XMLCh *tmpString = C2X( "couplingList" );
+    DOMNodeList *coupledSections = rootElem_->getElementsByTagName(tmpString);
+    FreeX( &tmpString );
+
     // Pick that coupling section, which matches
     // the specfifed sequenceTag
     DOMElement *auxElem = NULL;
@@ -837,18 +849,18 @@ namespace CoupledField {
     }
      
     // Print error if specified coupling section was not found
-    if (sectionFound == FALSE)
-      {
-        errmsg = "The coupling section with tag '";
-        errmsg += sequenceTag;
-        errmsg += "' was not found in the parameter file!";
-        Info->Error( errmsg, __FILE__, __LINE__ );
-      }
+    if ( sectionFound == FALSE ) {
+      (*error) << "The coupling section with tag '" << sequenceTag
+               << "' was not found in the parameter file!";
+      Error( __FILE__, __LINE__ );
+    }
 
     // Get the iterative coupling section in the current
     // section of couplings
+    tmpString = C2X( "direct" );
     DOMNodeList *coupledPDEsec =
-      currentCouplingSec->getElementsByTagName( C2X("direct") );
+      currentCouplingSec->getElementsByTagName( tmpString );
+    FreeX( &tmpString );
 
     // If no direct coupled section is found, return simply an 
     // empty vector
@@ -859,24 +871,25 @@ namespace CoupledField {
 
     // Check that there is at most one such section
     if ( coupledPDEsec->getLength() > 1 ) {
-      errmsg  = "Got " + Info->GenStr( coupledPDEsec->getLength() );
-      errmsg += " 'direct' elements in parameter file!\n";
-      errmsg += "One at maximum is allowed in the 'coupledList' section!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "Got " << coupledPDEsec->getLength()
+               << " 'direct' elements in parameter file!\n"
+               << "One at maximum is allowed in the 'coupledList' section!";
+      Error( __FILE__, __LINE__ );
     }
-
  
     // Find direct Coupled section
     DOMNodeList *directCoupledPDEsec =
       coupledPDEsec->item(0)->getChildNodes();
 
     if ( directCoupledPDEsec->getLength() == 0 ) {
-      errmsg = "Cannot find a direct coupling section in parameter file!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "Cannot find a direct coupling section in parameter file!";
+      Error( __FILE__, __LINE__ );
     }
 
 
     // iterate over all pairwise couplings
+    std::string pdename;
+    char *auxString = NULL;
     for ( unsigned int i = 0; i < directCoupledPDEsec->getLength(); i++ ) {
 
       // Only treat element children and not comments!
@@ -896,10 +909,11 @@ namespace CoupledField {
         }
                   
         // Now get hold of name, convert it and push it back in the name list
-        std::string pdename;
-        pdename = X2C(Node2Elem(directCoupledPDEsec->item(i))->getNodeName());
+        auxString =
+          X2C( Node2Elem( directCoupledPDEsec->item(i) )->getNodeName() );
+        pdename.assign( auxString );
         list.Push_back( pdename );
-
+        FreeC( &auxString );
       }
     }
   }
@@ -944,10 +958,11 @@ namespace CoupledField {
     StdVector<DOMAttr*> *attrs =
       FindMatchingAttributes( "name", keyVec, attrVec, valVec, rootElem_ );
 
-    std::string value;
+    char *value = NULL;
     for ( unsigned int i = 0; i < attrs->GetSize(); i++ ) {
-      value.assign( X2C( (*attrs)[i]->getValue() ) );
+      value = X2C( (*attrs)[i]->getValue() );
       list.Push_back( value );
+      FreeC( &value );
     }
 
     // Cleanup
@@ -1002,6 +1017,7 @@ namespace CoupledField {
     // type of coil
     unsigned int foundCoils = 0;
     DOMElement *elem = NULL;
+    char *auxString = NULL;
 
     for ( unsigned int k = 0; k < coils->getLength(); k++ ) {
 
@@ -1010,12 +1026,13 @@ namespace CoupledField {
         elem = Node2Elem( coils->item(k) );
 
         if ( beVerbose_ == true ) {
-          coilType = X2S( elem->getTagName() );
-          std::cerr << " coilType = " << coilType << std::endl;
+          std::cerr << " coilType = " << elem->getTagName() << std::endl;
         }
 
         if ( AttribHasValue( elem, "name", coilName ) ) {
-          coilType = X2S( elem->getTagName() );
+          auxString = X2C( elem->getTagName() );
+          coilType.assign( auxString );
+          FreeC( &auxString );
           foundCoils++;
         }
       }
@@ -1023,8 +1040,8 @@ namespace CoupledField {
 
     // Check for errors
     if ( foundCoils == 0 ) {
-      Info->Error( "Found no coil with name '" + coilName + "'", __FILE__,
-                   __LINE__ );
+      (*error) << "Found no coil with name '" << coilName << "'";
+      Error( __FILE__, __LINE__ );
     }
     else if ( foundCoils > 1 ) {
       (*error) << "Found " << foundCoils + " coils with name '"
@@ -1177,18 +1194,20 @@ namespace CoupledField {
   // =================================
   //   Convert a DOMNode to a string
   // =================================
-  void XMLParamHandler::Node2String( DOMNode *textnode, std::string &value ){
+  void XMLParamHandler::Node2String( DOMNode *textnode, std::string &value ) {
+
     ENTER_IFCN( "XMLParamHandler::Node2String" );
+
     if ( textnode->getNodeType() != DOMNode::TEXT_NODE ) {
-      std::string errmsg;
-      errmsg  = "Invalid conversion attempt from DOMNode to string!";
-      errmsg += "\n Node is not of type TEXT_NODE\n Conversion of arbitrary";
-      errmsg += " types to string is currently not supported!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "Invalid conversion attempt from DOMNode to string!\n"
+               << "Node is not of type TEXT_NODE\n Conversion of arbitrary"
+               << " types to string is currently not supported!";
+      Error( __FILE__, __LINE__ );
     }
     else {
-      // value = X2S(textnode->getNodeValue());
-      value.assign(X2C(textnode->getNodeValue()));
+      char *auxString = X2C( textnode->getNodeValue() );
+      value.assign( auxString );
+      FreeC( &auxString );
     }
   }
 
@@ -1220,12 +1239,9 @@ namespace CoupledField {
                    __LINE__ );
     }
     if ( curdepth == 0 || curdepth > keys.GetSize() ) {
-      std::string errmsg = "FindMatchingElements: curdepth = ";
-      errmsg += Info->GenStr( curdepth );
-      errmsg += ", but should be in [1,";
-      errmsg += Info->GenStr( keys.GetSize() );
-      errmsg += "]";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "FindMatchingElements: curdepth = " << curdepth
+               << ", but should be in [1," << keys.GetSize() << "]";
+      Error( __FILE__, __LINE__ );
     }
     if ( attribs.GetSize() < keys.GetSize() ||
          aValues.GetSize() < keys.GetSize() ) {
@@ -1247,7 +1263,9 @@ namespace CoupledField {
 
     // Generate list of all elements in subtree starting at treetop
     // that match the curdepth'th keyword
-    DOMNodeList *list = treetop->getElementsByTagName(S2X(keys[curdepth-1]));
+    XMLCh *tmpString = S2X( keys[curdepth-1] );
+    DOMNodeList *list = treetop->getElementsByTagName( tmpString );
+    FreeX( &tmpString );
 
     // Test, if there are side constraints for the attributes of the elements
     // on this search depth, and, if there are, remove from the list of
@@ -1311,10 +1329,13 @@ namespace CoupledField {
         for ( unsigned int k = 0; k < tmpvec->GetSize(); k++ ) {
           elemvec->Push_back( (*tmpvec)[k] );
         }
-
-        // delete intermediate result to avoid memory leak
-        delete tmpvec;
       }
+
+      // At end of ascending we delete intermediate stuff that is no
+      // longer necessary to avoid memory leaks and _yes_, it _is_
+      // intended that these deletions are not deep!
+      delete tmpvec;
+      delete branchTops;
     }
 
     // Return element vector
@@ -1358,13 +1379,17 @@ namespace CoupledField {
     DOMNode* aux_node = NULL;
     DOMAttr* match_attr = NULL;
     std::string dummy;
+    XMLCh *tmpString = NULL;
+
     for ( unsigned int i = 0; i < elements->GetSize(); i++ ) {
 
       // Get attribute of elements
       attributes = (*elements)[i]->getAttributes();
 
       // Select attributes matching name and convert them
-      aux_node = attributes->getNamedItem( S2X( attr_key ) );
+      tmpString = S2X( attr_key );
+      aux_node = attributes->getNamedItem( tmpString );
+      FreeX( &tmpString );
       if ( aux_node != NULL ) {
         match_attr = Node2Attr( aux_node );
       }
@@ -1501,26 +1526,32 @@ namespace CoupledField {
     //   Part 5: Process search results
     // **********************************
 
+    char *auxString = NULL;
+
     // See, if there were element and attribute matches
     if ( elem_match == true && attr_match == true ) {
-      std::string errmsg = "Keyword '" + key[key.GetSize()-1] +
-        "' matches element(s) " + "and attribute(s)!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "Keyword '" << key[key.GetSize()-1]
+               << "' matches element(s) and attribute(s)!";
+      Error( __FILE__, __LINE__ );
     }
 
     // Convert element values to strings and append to list
     else if ( elem_match == true ) {
       for ( unsigned int i = 0; i < elem_matches->GetSize(); i++ ) {
-        value.assign( GetElementValue( (*elem_matches)[i] ) );
+        auxString = GetElementValue( (*elem_matches)[i] );
+        value.assign( auxString );
         list.Push_back( value );
+        FreeC( &auxString );
       }
     }
 
     // Convert element values to strings and append to list
     else if ( attr_match == true ) {
       for ( unsigned int i = 0; i < attr_matches->GetSize(); i++ ) {
-        value.assign( X2C( (*attr_matches)[i]->getValue() ) );
+        auxString = X2C( (*attr_matches)[i]->getValue() );
+        value.assign( auxString );
         list.Push_back( value );
+        FreeC( &auxString );
       }
     }
 
@@ -1748,18 +1779,16 @@ namespace CoupledField {
 
     // Complain, if there is not exactly one child
     if ( children->getLength() != 1 ) {
-      std::string errmsg;
       if ( children->getLength() == 0 ) {
-        errmsg = "GetElementValue: Encountered element without child!";
+        (*error) << "GetElementValue: Encountered element without child!";
       }
       else {
-        errmsg = "GetElementValue: Encountered element with multiple ";
-        errmsg += "children!";
+        (*error) << "GetElementValue: Encountered element with multiple "
+                 << "children!";
       }
-      errmsg += "\n       GetElementValue: Element tag is '";
-      errmsg += X2C(elem->getNodeName());
-      errmsg += "'"; 
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "\n       GetElementValue: Element tag is '"
+               << elem->getNodeName() << "'";
+      Error( __FILE__, __LINE__ );
     }
 
     // Make sure that child is a text node
@@ -1787,12 +1816,15 @@ namespace CoupledField {
     DOMNamedNodeMap *attributes = NULL;
     DOMNode* aux_node = NULL;
     DOMAttr* aux_attr = NULL;
+    char *auxString = NULL;
 
     // Get attribute of elements
     attributes = element->getAttributes();
 
     // Select attributes matching name and convert them
-    aux_node = attributes->getNamedItem( S2X( keyword ) );
+    XMLCh *tmpString = S2X( keyword );
+    aux_node = attributes->getNamedItem( tmpString );
+    FreeX( &tmpString );
 
     // Check, if element has specified attribute
     if ( aux_node != NULL ) {
@@ -1804,8 +1836,10 @@ namespace CoupledField {
 
     // If element has specified attribute obtain its value
     if ( hasAttr ) {
-      aux_attr = Node2Attr(aux_node);
-      attrVal.assign( X2C( aux_attr->getValue() ) );
+      aux_attr = Node2Attr( aux_node );
+      auxString = X2C( aux_attr->getValue() );
+      attrVal.assign( auxString );
+      FreeC( &auxString );
     }
     else {
       attrVal = "";
@@ -1828,9 +1862,6 @@ namespace CoupledField {
     // Root element of DOMTree built by parser
     DOMElement *rootElem = NULL;
 
-    // String for assembling error messages
-    std::string errmsg;
-
     // Create the parser, force validation using full schema checking with
     // namespaces and tell it to drop irrelevant white space
     (*parser) = new XercesDOMParser();
@@ -1850,10 +1881,9 @@ namespace CoupledField {
     // cfsSchema_ += "/CFS.xsd";
 
     (*parser)->setExternalSchemaLocation( cfsSchema_.c_str() );
-
     
-    // Have not yet understood what an entity reference node is, but it seems
-    // we do not need them
+    // Have not yet understood what an entity reference node is,
+    // but it seems we do not need them
     (*parser)->setCreateEntityReferenceNodes(false);
 
     // Attach our own error handler to the parser
@@ -1867,44 +1897,43 @@ namespace CoupledField {
       (*parser)->parse( xmlFile );
     }
     catch( const XMLException &event ) {
-      errmsg  = "The following XML error was encountered during parsing:\n";
-      errmsg += X2C( event.getMessage() );
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "The following XML error was encountered during "
+               << "parsing:\n" << event.getMessage();
+      Error( __FILE__, __LINE__ );
     }
     catch( const DOMException &event ) {
       const unsigned int maxChars = 2047;
       XMLCh errText[maxChars + 1];
 
-      errmsg = "DOM Error during parsing! DOMException code is:\n"
-        + Info->GenStr( event.code ) + '\n';
+      (*error) << "DOM Error during parsing! DOMException code is:\n"
+               << event.code << '\n';
 
       if( DOMImplementation::loadDOMExceptionMsg(event.code, errText,
                                                  maxChars) ) {
-        errmsg += "Message is: ";
-        errmsg += X2C(errText);
+        (*error) << "Message is: " << errText;
       }
 
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      Error( __FILE__, __LINE__ );
     }
     catch(...) {
-      errmsg  = "An unknown error occurred during parsing!\n";
-      errmsg += "All I can say is that it was neither an XMLException"; 
-      errmsg += " nor a DOMException.";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "An unknown error occurred during parsing!\n"
+               << "All I can say is that it was neither an XMLException "
+               << "nor a DOMException.";
+      Error( __FILE__, __LINE__ );
     }
 
     // Obtain and validate root element of document tree
     DOMDocument *doc = (*parser)->getDocument();
     DOMNodeList *children = doc->getChildNodes();
     if ( children->getLength() != 1 ) {
-      errmsg  = "Document root has more than one child!\n";
-      errmsg += "We are in real trouble here!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "Document root has more than one child!\n"
+               << "We are in real trouble here!";
+      Error( __FILE__, __LINE__ );
     }
     if ( children->item(0)->getNodeType() != DOMNode::ELEMENT_NODE ) {
-      errmsg  = "Root node is not of type DOMNode::ELEMENT_NODE!\n";
-      errmsg += "We are in real trouble here!";
-      Info->Error( errmsg, __FILE__, __LINE__ );
+      (*error) << "Root node is not of type DOMNode::ELEMENT_NODE!\n"
+               << "We are in real trouble here!";
+      Error( __FILE__, __LINE__ );
     }
     rootElem = (DOMElement *)(children->item(0)); 
 
@@ -1931,17 +1960,18 @@ namespace CoupledField {
     attributes = elem->getAttributes();
 
     // Select attribute matching name
-    DOMNode* attrib = NULL;
-    attrib = attributes->getNamedItem( S2X( attribute ) );
+    XMLCh *tmpString = S2X( attribute );
+    DOMNode* attrib = attributes->getNamedItem( tmpString );
+    FreeX( &tmpString );
 
     StdVector<std::string> attribs;
 
     // Test, if element has an attribute with specified name
     if ( attrib == NULL ) {
       if ( failIfNoAttrib == true ) {
-        Info->Error( "AttribHasValue: Element '" + X2S(elem->getTagName()) +
-                     "' has no attribute '" + attribute + "'",
-                     __FILE__, __LINE__ );
+        (*error) << "AttribHasValue: Element '" << elem->getTagName()
+                 << "' has no attribute '" << attribute << "'";
+        Error( __FILE__, __LINE__ );
       }
       else {
         retVal = false;
@@ -1952,19 +1982,21 @@ namespace CoupledField {
     else {
 
       // Convert attribute's value to string representation
-      std::string foundValue = X2S( Node2Attr(attrib)->getValue() );
+      std::string *foundValue = X2S( Node2Attr(attrib)->getValue() );
 
       // Treat case of 'tag' attribute in special way
       if ( attribute == "tag" ) {
-        retVal = MatchesTag( foundValue, value );
+        retVal = MatchesTag( *foundValue, value );
       }
 
       // Standard case
       else {
-        retVal = X2S( Node2Attr(attrib)->getValue() ) == value ? true : false;
+        retVal = *foundValue == value ? true : false;
       }
+
+      FreeS( &foundValue );
     }
-    
+
     return retVal;
   }
   
@@ -2042,8 +2074,6 @@ namespace CoupledField {
 
     ENTER_FCN( "XMLParamHandler::GenerateSearchParams" );
 
-    unsigned int numConstraints = 0;
-
     // Check for section
     if ( section != "" ) {
       keyVec.Push_back( section );
@@ -2074,8 +2104,10 @@ namespace CoupledField {
 
       // Obtain a DOMImplementationLS implementation from the registry and
       // use this factory to generate an instance of DOMWriter
+      XMLCh *tmpString = C2X( "LS" );
       DOMImplementation *impl =
-        DOMImplementationRegistry::getDOMImplementation( C2X( "LS" ) );
+        DOMImplementationRegistry::getDOMImplementation( tmpString );
+      FreeX( &tmpString );
       DOMWriter *theSerializer =
         ((DOMImplementationLS*)impl)->createDOMWriter();
 
@@ -2141,7 +2173,7 @@ namespace CoupledField {
     else {
       std::cout << " Disabling feature '";
     }
-    std::cout << X2C( feature ) << "'." << std::endl;
+    std::cout << feature << "'." << std::endl;
 
     // Check if serialiser supports setting the feature
     // to the specified value
@@ -2149,12 +2181,12 @@ namespace CoupledField {
     if ( supportsFeature == false ) {
       if ( shouldHave == true ) {
         std::cout << "\n ERROR: The serialiser does not support enabling "
-                  << "feature '" << X2C(feature) << "'\n\n";
+                  << "feature '" << feature << "'\n\n";
         exit(-1);
       }
       else {
         std::cout << "\n WARNING: The serialiser does not support enabling "
-                  << "feature '" << X2C(feature) << "'\n\n";
+                  << "feature '" << feature << "'\n\n";
       }
     }
 
