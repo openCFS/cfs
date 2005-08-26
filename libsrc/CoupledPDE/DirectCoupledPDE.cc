@@ -29,13 +29,15 @@ namespace CoupledField{
   }
 
 
-  DirectCoupledPDE::~DirectCoupledPDE()
-  {
+  // **************
+  //   Destructor
+  // **************
+  DirectCoupledPDE::~DirectCoupledPDE() {
+
     ENTER_FCN( "DirectCoupledPDE::~DirectCoupledPDE" );
 
     delete algsys_;
     delete solveStep_;
-  
   }
 
 
