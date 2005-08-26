@@ -44,15 +44,6 @@ namespace CoupledField {
 
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
-  
-    //! Deletes the algebraic system
-    void DeleteAlgSys() {
-      ENTER_FCN( "StdPDE::DeleteAlgsys" );
-      if ( algsys_ != NULL ) {
-        delete algsys_;
-        algsys_ = NULL;
-      }
-    };
 
     //! Transfer parameters from CFS++ to OLAS parameter object
 

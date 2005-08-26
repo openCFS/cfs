@@ -96,9 +96,9 @@ namespace CoupledField {
   }
 
 
-  // **********************
-  //   Default Destructor
-  // **********************
+  // **************
+  //   Destructor
+  // **************
   SinglePDE::~SinglePDE() {
 
     ENTER_FCN( "SinglePDE::~SinglePDE" );
@@ -106,11 +106,10 @@ namespace CoupledField {
     // Delete algebraic system only if
     // PDE is not direct coupled
     if ( isDirectCoupled_ == FALSE ) {
-      DeleteAlgSys();
+      delete algsys_;
       delete solveStep_;
       delete TS_alg_;
     }
-
 
     delete assemble_;
     delete sol_;
@@ -121,8 +120,11 @@ namespace CoupledField {
   }
 
 
+  // ********
+  //   Init
+  // ********
   void SinglePDE::Init( UInt bcSequenceIndex,
-                        std::string  bcSequenceTag) {
+                        std::string  bcSequenceTag ) {
     ENTER_FCN( "SinglePDE::Init()" );
 
     StdVector<RegionIdType> allIDs;
@@ -159,8 +161,8 @@ namespace CoupledField {
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
     if ( isDirectCoupled_ == FALSE ) {
-	  algsys_ = new StandardSystem();
-	}
+      algsys_ = new StandardSystem();
+    }
 
     // Get parameter and report object of OLAS
     olasParams_ = algsys_->GetOLASParams();
