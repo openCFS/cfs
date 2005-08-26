@@ -19,22 +19,20 @@
 namespace CoupledField {
 
 
-  AnsysFile::AnsysFile( const Char *const afilename ) : FileType(afilename){
+  AnsysFile::AnsysFile( const Char *const afilename ) : FileType(afilename) {
 
     ENTER_FCN( "AnsysFile::AnsysFile" );
 
-    std::string myFile = afilename;
-    inFile_.open( myFile.c_str() );
-    
-    if (!inFile_.good()) {
+    inFile_.open( afilename );
+    if ( !inFile_.good() ) {
       (*error) << "AnsysFile: I am unable to open mesh file '"
-               << filename << "'.mesh!";
+               << afilename << "!";
       Error( __FILE__, __LINE__ );
     }
-    
+
     inFile_.seekg(0, std::ios::end);
     pos_end = inFile_.tellg();
-    
+
     dim_ = GetDim();
     elemDimReadIn_.Resize(dim_);
     elemDimReadIn_.Init(FALSE);
