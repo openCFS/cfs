@@ -52,7 +52,6 @@ namespace CoupledField {
     Info->PrintF("","==================\n");
     Info->PrintF("","   DOMAIN SETUP   \n");
     Info->PrintF("","==================\n\n");
-  
 
     // initialize data
     numSinglePde_ = 0;
@@ -93,12 +92,14 @@ namespace CoupledField {
       if ( !(probGeo == "3d"    && dim_ == 3 ||
              probGeo == "axi"   && dim_ == 2 ||
              probGeo == "plane" && dim_ == 2 ) ) {
-        Info->Error( "Dimensions in parameter file and geometry file do not fit",
-                     __FILE__, __LINE__ );
+        (*error) << "Dimensions in parameter file and geometry file "
+                 << "do not match!";
+        Error( __FILE__, __LINE__ );
       }
     }
 
-    Info->PrintF("", "Type of grid: %s\nDimension: %i\n\n",libmesh.c_str(), dim_);
+    Info->PrintF( "", "Type of grid: %s\nDimension: %i\n\n",
+                  libmesh.c_str(), dim_ );
     SETPROFILE("Before Grid-Creation");
 
     // initialize pointer to grid 
@@ -118,9 +119,9 @@ namespace CoupledField {
 #endif
 
       else {
-        std::string errmsg = "Type of mesh_library should be one of ";
-        errmsg += "'cfsgrid' or 'adaptgrid', but is '" + libmesh + "'";
-        Info->Error( errmsg, __FILE__, __LINE__ );
+        (*error) << "Type of mesh_library should be one of "
+                 << "'cfsgrid' or 'adaptgrid', but is '" << libmesh << "'";
+        Error( __FILE__, __LINE__ );
       }
     }
 
@@ -156,25 +157,26 @@ namespace CoupledField {
     Info->PrintF("","   END OF DOMAIN SETUP   \n");
     Info->PrintF("","=========================\n\n");
     Info->FinishProgress();
-    
- 
   }
 
 
-  // **********************
-  //   Default destructor
-  // **********************
+  // **************
+  //   Destructor
+  // **************
   Domain::~Domain() {
     ENTER_FCN( "Domain::~Domain" );
 
     delete ptgrid_;
+    ptgrid_ = NULL;
     delete ptIterCoupledPde_;
+    ptIterCoupledPde_ = NULL;
 
     // When the StdVector ptpde_ is destroyed, only the pointers to the PDEs,
     // but not the PDEs themselves will be destroyed
     for ( UInt i = 0; i < ptSinglePde_.GetSize(); i++ ) {
       delete (ptSinglePde_[i]);
     }
+    ptSinglePde_.Clear();
 
     // Delete all coordinate systems
     std::map<std::string, CoordSystem*>::iterator it;
@@ -182,6 +184,12 @@ namespace CoupledField {
       delete (*it).second;
     }
     coordSys_.clear();
+
+    // Delete all direct coupled PDEs
+    for ( UInt i = 0; i < ptDirectCoupledPde_.GetSize(); i++ ) {
+      delete (ptDirectCoupledPde_[i]);
+    }
+    ptDirectCoupledPde_.Clear();
 
     //already deleted in destructor of IterCoupledPDE!!!
     //     for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
@@ -734,31 +742,6 @@ namespace CoupledField {
 
     OutFile_->Init(ptgrid_);
     OutFile_->WriteGrid( );
-  }
-
-
-  void Domain::Update( ) {
-    ENTER_FCN( "Domain::Update" );
- 
-    // Init AlgSystem
-    UpdateAlgSys();
-  }
-
-
-  void Domain::UpdateAlgSys( ) {
-    ENTER_FCN( "Domain::UpdateAlgSys"  );
-
-    //set the algebraic systems and read material data
-    for (UInt i=0;i< numSinglePde_;i++)
-      {
-        ptSinglePde_[i]->DeleteAlgSys();
-        
-        // the 'Reset' function was never implemented
-        // for a PDE, so what sould the function call
-        // trigger?
-        //ptSinglePde_[i]->Reset();
-        ptSinglePde_[i]->DefineAlgSys(); 
-      }
   }
 
 }
