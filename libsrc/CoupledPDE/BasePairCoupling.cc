@@ -8,43 +8,56 @@
 #include "DataInOut/LoadMaterialDataFile.hh"
 
 
-namespace CoupledField
-{
-  
+namespace CoupledField {
+
+
+  // ***************
+  //   Constructor
+  // ******Ü********
   BasePairCoupling::BasePairCoupling(SinglePDE *pde1, SinglePDE *pde2 ) {
+
     ENTER_FCN( "BasePairCoupling::BasePairCoupling" );
     
-    pde1_ = pde1;
-    pde2_ = pde2;
-
+    pde1_   = pde1;
+    pde2_   = pde2;
     ptGrid_ = pde1_->ptgrid_;
   }
 
-  
+
+  // **************
+  //   Destructor
+  // **************
   BasePairCoupling::~BasePairCoupling() {
+
     ENTER_FCN( "BasePairCoupling::~BasePairCoupling" );
 
     pde1_ = NULL;
     pde2_ = NULL;
-               
+
+    // We generated assemble object, so we also must delete it
+    delete assemble_;
   }
 
-  void BasePairCoupling::Init(UInt bcSequenceStep,
-                              std::string  bcSequenceTag) {
+
+  // ********
+  //   Init
+  // ********
+  void BasePairCoupling::Init( UInt bcSequenceStep,
+                               std::string bcSequenceTag ) {
+
     ENTER_FCN( "BasePairCoupling::Init" );
     
     bcSequenceTag_ = bcSequenceTag;
     bcSequenceIndex_ = bcSequenceStep;
-    
-    
+
     // get subdomains of coupling object
     StdVector<std::string> keyVec, attrVec, valVec, regionNames, regionTypes;
     StdVector<RegionIdType> regionIds;
-    
+
     // we are looking in coupling section of current tag
     attrVec = "tag", "", "", "";
     valVec = bcSequenceTag, "", "", ""; 
-    
+
     // get coupling region names
     keyVec = "couplingList", "direct", couplingName_, "coupling", "name";
     params->GetList( keyVec, attrVec, valVec, regionNames );
@@ -53,7 +66,7 @@ namespace CoupledField
     // get coupling region types
     keyVec = "couplingList", "direct", couplingName_, "coupling", "type";
     params->GetList( keyVec, attrVec, valVec, regionTypes );
- 
+
     // check if there are as many region types as region names
     if ( regionIds.GetSize() != regionTypes.GetSize() ) {
       (*error) << "BasePairCoupling::Init: There have to be as many region "
@@ -75,12 +88,6 @@ namespace CoupledField
         Error( __FILE__, __LINE__ );
       }
     }
-//     std::cerr << "BasePairCoupling: My subdoms are:\n" << subdoms_ << std::endl;
-//     std::cerr << "BasePairCoupling: My surfRegions are:\n" << surfRegions_ << std::endl;
-
-    //std::cerr << "Name of pde1 = " << pde1_->GetName() 
-    //<< std::endl;
-    
 
     // Get type of analysis and create according 
     // assemble object
@@ -100,19 +107,23 @@ namespace CoupledField
     switch ( (*pde1_).analysistype_ ) {
 
     case STATIC:
-      assemble_ = new StaticAssemble(algsys_, ptGrid_);
+      assemble_ = new StaticAssemble( algsys_, ptGrid_ );
       break;
     case TRANSIENT:
-      assemble_ = new TransientAssemble(algsys_, ptGrid_);
+      assemble_ = new TransientAssemble( algsys_, ptGrid_ );
       break;
     case HARMONIC:
-      assemble_ = new HarmonicAssemble(algsys_, ptGrid_);
+      assemble_ = new HarmonicAssemble( algsys_, ptGrid_ );
       break;
     case MULTIHARMONIC:
-      assemble_ = new MHassemble(algsys_, ptGrid_);
+      assemble_ = new MHassemble( algsys_, ptGrid_ );
       break;
     default:
-      Error (" analysistype was not found" , __FILE__, __LINE__ );
+      std::string myType;
+      Enum2String( (*pde1_).analysistype_, myType );
+      (*error) << "Unsupported analysis type '" << myType << "' detected "
+               << "(in PDE1)";
+      Error ( __FILE__, __LINE__ );
       break;
     }
 
@@ -214,7 +225,5 @@ namespace CoupledField
     ENTER_FCN( "BasePairCoupling::SetReassemble" );
     assemble_->SetReassemble();
   };
-
-
 
 } // end of namespace

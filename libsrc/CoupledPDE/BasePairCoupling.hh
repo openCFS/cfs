@@ -148,7 +148,7 @@ namespace CoupledField
     SinglePDE *pde2_;
     
     //! Pointer to assemble object
-    Assemble * assemble_;
+    Assemble *assemble_;
 
     //! Pointer to grid object
     Grid * ptGrid_;
