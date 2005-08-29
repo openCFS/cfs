@@ -65,12 +65,6 @@ namespace CoupledField
     //! Delete pointer to PDEs and create them new
     void ResetPDEs();
 
-    //! Update algebraic system and bcs after refinement of the mesh
-    void Update( );
-
-    //! Update algebraic system in case of new mesh
-    void UpdateAlgSys( );
-
     //@}
 
     // ======================================================
