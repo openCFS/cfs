@@ -11,21 +11,23 @@
 // writing out data, two different declarations
 // have to be made
 namespace OutInfo{
-  std::ostream * trace    = NULL;
-  std::ostream * debug    = NULL;
-  std::ostream * cla      = NULL;
-  std::ostream * memtrace = NULL;
-  std::ostream * data     = NULL;
-}
 
-
-namespace CoupledField {
+  std::ostream *trace    = NULL;
+  std::ostream *debug    = NULL;
+  std::ostream *cla      = NULL;
+  std::ostream *memtrace = NULL;
+  std::ostream *data     = NULL;
 
   // Generate string stream for generation of error messages
   std::stringstream *error = new std::stringstream();
 
   // Generate string stream for generation of warning messages
   std::stringstream *warning = new std::stringstream();
+}
+
+
+namespace CoupledField {
+
 
   Boolean PrintGridOnly = FALSE;
 
