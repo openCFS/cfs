@@ -49,6 +49,8 @@ namespace CoupledField {
       delete couplings_[i];
     }
     couplings_.Clear();
+
+    delete solVec_;
   }
 
 
@@ -198,13 +200,13 @@ namespace CoupledField {
       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
       for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
         ptNodeSol = singlePDEs_[i]->getPDESolution();
-        ptNodeSol->SetAlgSysDataPointer( totalUnknowns_, solHelp.GetPointer() );
+        ptNodeSol->SetAlgSysDataPointer(totalUnknowns_, solHelp.GetPointer());
       }
     } else {
       Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
       for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
         ptNodeSol = singlePDEs_[i]->getPDESolution();
-        ptNodeSol->SetAlgSysDataPointer( totalUnknowns_, solHelp.GetPointer() );
+        ptNodeSol->SetAlgSysDataPointer(totalUnknowns_, solHelp.GetPointer());
       }
     }
   }

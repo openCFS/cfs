@@ -1,9 +1,13 @@
 #include "basePDE.hh"
-
 #include "Driver/baseSolveStep.hh"
 
+
 namespace CoupledField {
-  
+
+
+  // ***********************
+  //   Default Constructor
+  // ***********************
   BasePDE::BasePDE() {
     
     ENTER_FCN( "BasePDE::BasePDE" );
@@ -12,13 +16,11 @@ namespace CoupledField {
     bcSequenceTag_   = "anyTag";
   }
 
-  // **********************
-  //   Default Destructor
-  // **********************
+  // **************
+  //   Destructor
+  // **************
   BasePDE::~BasePDE() {
     ENTER_FCN( "BasePDE::~BasePDE" );
   }
-  
 
-} // end of namespace
-
+}
