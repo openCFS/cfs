@@ -137,35 +137,55 @@ namespace CoupledField {
     for (UInt i = 0; i < size_; i++)
       data_ [i] = TYPE();
   }
- 
+
+
+  // *************
+  //   operator=
+  // *************
   template<class TYPE>
-  StdVector<TYPE>& StdVector<TYPE>::operator= (const StdVector & vec)
-  {
-    ENTER_IFCN(" StdVector::operator=(StdVector)" );
+  StdVector<TYPE>& StdVector<TYPE>::operator= ( const StdVector &vec ) {
 
-    if (this == &vec)
+    ENTER_IFCN( "StdVector::operator=(StdVector)" );
+
+    // Avoid self-assignements
+    if ( this == &vec ) {
       return *this;
+    }
 
+    // Vectors are different
+    else {
 
-    if (size_ != vec.size_)
-      { 
-        if (data_)
+      // If there is not enough space to copy the entries
+      // perform a re-allocation
+      if ( capacity_ < vec.size_ ) {
+
+        // Delete old buffer
+        if ( data_ != NULL ) {
           delete [] data_;
-      
-        size_ = vec.size_;
+        }
+
+        // Allocate new buffer
         capacity_ = vec.size_;
-        data_ = new TYPE [size_];
+        data_     = new TYPE[capacity_];
       }
-  
-    for (UInt i = 0; i < size_; i++)
-      data_ [i] = vec.data_[i];
-  
+
+      // Copy entries
+      size_ = vec.size_;
+      for ( UInt i = 0; i < size_; i++ ) {
+        data_[i] = vec.data_[i];
+      }
+    }
+
     return *this;
+
   }
 
+
+  // *************
+  //   operator=
+  // *************
   template<class TYPE>
-  StdVector<TYPE>& StdVector<TYPE>::operator= (const std::vector<TYPE> & vec)
-  {
+  StdVector<TYPE>& StdVector<TYPE>::operator= ( const std::vector<TYPE> &vec){
     ENTER_IFCN( "StdVector::operator=(const std::vector)" );
 
     if (size_ != vec.size())
