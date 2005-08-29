@@ -1048,11 +1048,9 @@ namespace CoupledField {
       // finish the assembly of the matrix graph
       algsys_->GraphSetupDone();
       
-      // obtain reordering of the matrix graph
-      // and give it to the EQN-object
-      Integer * newOrder = algsys_->GetReordering( pdeId_ );
-      eqnData_->ReorderMapping( newOrder );
-
+      // obtain reordering of the matrix graph and pass it to the EQN-object.
+      Integer *newOrder = algsys_->GetReordering( pdeId_ );
+      eqnData_->ReorderMapping( &newOrder );
     }
 
     // pass information about dofs, number of dirichlet equations

@@ -591,8 +591,7 @@ namespace CoupledField {
       pdeId    = singlePDEs_[i]->GetPDEId();
       eqn      = singlePDEs_[i]->getPDE_eqnData();
       newOrder = algsys_->GetReordering( pdeId );
-      eqn->ReorderMapping( newOrder );
-      delete[] newOrder;
+      eqn->ReorderMapping( &newOrder );
     }
   }
 
