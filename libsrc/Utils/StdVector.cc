@@ -242,44 +242,54 @@ namespace CoupledField {
     data_ = help;
   }
 
+
+  // *************
+  //   Push_back
+  // *************
   template<class TYPE>
-  void StdVector<TYPE>::Push_back(const TYPE & y)
-  {
+  void StdVector<TYPE>::Push_back( const TYPE &y ) {
+
     ENTER_IFCN( "StdVector::Push_back" );
   
-    if (size_ >= capacity_)
-      {
-        TYPE * help;
-        if (size_ == 0)
-          {
-            help = new TYPE[1];
-            capacity_ = 1;
-          }
-        else 
-          {
-            help = new TYPE[size_*2];
-            capacity_ = size_*2;
-          }
-      
-        for (UInt i=0; i<size_; i++)
-          help[i] = data_[i];
-      
-        delete[] data_;
-        data_ = help;
-      } 
-  
+    // Check whether capacity is sufficiently large to perform
+    // a push-back operation. If not allocate memory according
+    // to the following simply scheme: Each time capacity is
+    // exceeded allocate twice as much memory as there was before.
+    if ( size_ >= capacity_ ) {
+
+      TYPE *help;
+
+      // perform memory allocation
+      capacity_ = size_ == 0 ? 1 : 2 * size_;
+      help = new TYPE[ capacity_ ];
+
+      // copy old entries into new buffer
+      for ( UInt i = 0; i < size_; i++ ) {
+        help[i] = data_[i];
+      }
+
+      // delete old buffer and re-set pointer
+      delete[] data_;
+      data_ = help;
+    }
+
+    // Perform push-back and increase size
     data_[size_] = y;
     size_++;
-  
   }
 
-  template<class TYPE>
-  void StdVector<TYPE>::Erase(const UInt pos)
-  {
+
+  // *********
+  //   Erase
+  // *********
+  template<class TYPE> void StdVector<TYPE>::Erase( const UInt pos ) {
     ENTER_IFCN( "StdVector::Erase" );
+
 #ifdef CHECK_INITIALIZED
-    if (size_ == 0)
-      Warning("Vector: undefined Vector in function Erase", __FILE__, __LINE__);
+    if (size_ == 0) {
+      (*warning) << "Vector: Undefined Vector in function Erase";
+      Warning( __FILE__, __LINE__ );
+    }
 #endif
 
 #ifdef CHECK_INDEX
@@ -307,8 +317,10 @@ namespace CoupledField {
   {
     ENTER_IFCN( "StdVector::Erase" );
 #ifdef CHECK_INITIALIZED
-    if (size_ == 0)
-      Warning("Vector: undefined Vector in function Erase()", __FILE__, __LINE__);
+    if (size_ == 0) {
+      (*warning) << "Vector: Undefined Vector in function Erase";
+      Warning( __FILE__, __LINE__ );
+    }
 #endif
 
 #ifdef CHECK_INDEX
