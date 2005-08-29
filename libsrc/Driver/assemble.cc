@@ -46,20 +46,36 @@ namespace CoupledField {
   }
 
 
+  // **************
+  //   Destructor
+  // **************
   Assemble::~Assemble() {
+
     ENTER_FCN( "Assemble::~Assemble" );
     
-    for (UInt i=0; i<integrators_.GetSize();i++)
-      for (UInt j=0; j<integrators_[i]->GetSize(); j++)
+    for ( UInt i = 0; i < integrators_.GetSize(); i++ ) {
+      for ( UInt j = 0; j < integrators_[i]->GetSize(); j++ ) {
         delete (*integrators_[i])[j];
+      }
+      delete integrators_[i];
+    }
+    integrators_.Clear();
 
-    for (UInt i=0; i<surfintegrators_.GetSize();i++)
-      for (UInt j=0; j<surfintegrators_[i]->GetSize(); j++)
+    for ( UInt i = 0; i < surfintegrators_.GetSize(); i++ ) {
+      for ( UInt j = 0; j < surfintegrators_[i]->GetSize(); j++ ) {
         delete (*surfintegrators_[i])[j];
+      }
+      delete surfintegrators_[i];
+    }
+    surfintegrators_.Clear();
 
-    for (UInt i=0; i<rhsIntegrators_.GetSize();i++)
-      for (UInt j=0; j<rhsIntegrators_[i]->GetSize(); j++)
+    for ( UInt i = 0; i < rhsIntegrators_.GetSize(); i++ ) {
+      for ( UInt j = 0; j < rhsIntegrators_[i]->GetSize(); j++ ) {
         delete (*rhsIntegrators_[i])[j];
+      }
+      delete rhsIntegrators_[i];
+    }
+    rhsIntegrators_.Clear();
   }
 
 
@@ -1362,12 +1378,14 @@ namespace CoupledField {
   }
 
   // define integrators
-  void TransientAssemble::AddSurfIntegrator( IntegratorDescriptor * actID,
+  void TransientAssemble::AddSurfIntegrator( IntegratorDescriptor *actID,
 					     const RegionIdType regionId ) {
     ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
 
-    if (actID->DestMat() == SYSTEM) {
-      Info->Error("In transient assembling, no SYSTEM matrix may be defined directly", __FILE__, __LINE__);
+    if ( actID->DestMat() == SYSTEM ) {
+      (*error) << "In transient assembling, no SYSTEM matrix may be "
+               << "defined directly";
+      Error( __FILE__, __LINE__ );
     }
 
     surfintegrators_[SurfDomIndex(regionId)]->Push_back(actID);
@@ -1389,18 +1407,19 @@ namespace CoupledField {
   // ==========================================================
 
   BaseIntDescriptor::BaseIntDescriptor() : 
-    integrator(NULL), nonLin(FALSE), reducedIntegration_(FALSE), setCounterPart_(true)
-  {
+    integrator(NULL),
+    nonLin(FALSE),
+    reducedIntegration_(FALSE),
+    setCounterPart_(true) {
+
     ENTER_FCN( "BaseIntDescriptor::BaseIntDescriptor" );
+
   }
 
-  BaseIntDescriptor::~BaseIntDescriptor()
-  {
+  BaseIntDescriptor::~BaseIntDescriptor() {
     ENTER_FCN( "BaseIntDescriptor::~BaseIntDescriptor" );
-    if (integrator != NULL)
-      delete integrator;
+    delete integrator;
   }
-  
 
   // define integrators
   BaseIntDescriptor::BaseIntDescriptor(BaseForm * aIntegrator,
@@ -1471,6 +1490,9 @@ namespace CoupledField {
   }
 
 
+  // **************
+  //   Destructor
+  // **************
   IntegratorDescriptor::~IntegratorDescriptor() {
     ENTER_FCN( "IntegratorDescriptor::~IntegratorDescriptor" );
   }
