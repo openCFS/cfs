@@ -38,6 +38,12 @@ namespace CoupledField{
 
     delete algsys_;
     delete solveStep_;
+
+    // Delete BasePairCoupling objects
+    for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
+      delete couplings_[i];
+    }
+    couplings_.Clear();
   }
 
 
