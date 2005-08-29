@@ -76,6 +76,22 @@ namespace CoupledField {
       delete rhsIntegrators_[i];
     }
     rhsIntegrators_.Clear();
+
+    for ( UInt i = 0; i < rhsSrcIntegrators_.GetSize(); i++ ) {
+      for ( UInt j = 0; j < rhsSrcIntegrators_[i]->GetSize(); j++ ) {
+        delete (*rhsSrcIntegrators_[i])[j];
+      }
+      delete rhsSrcIntegrators_[i];
+    }
+    rhsSrcIntegrators_.Clear();
+
+    for ( UInt i = 0; i < rhsSrcSurfIntegrators_.GetSize(); i++ ) {
+      for ( UInt j = 0; j < rhsSrcSurfIntegrators_[i]->GetSize(); j++ ) {
+        delete (*rhsSrcSurfIntegrators_[i])[j];
+      }
+      delete rhsSrcSurfIntegrators_[i];
+    }
+    rhsSrcIntegrators_.Clear();
   }
 
 
@@ -138,17 +154,22 @@ namespace CoupledField {
 
     return 0;
   }
-  
-  UInt Assemble::SurfDomIndex(const RegionIdType surfDomId)
-  {
+
+
+  // ****************
+  //   SurfDomIndex
+  // ****************
+  UInt Assemble::SurfDomIndex( const RegionIdType surfDomId ) {
+
     ENTER_FCN( "Assemble::SurfDomIndex" );
 
-    for (UInt i=0; i < surfdoms_.GetSize();i++)
-      if (surfDomId == surfdoms_[i])
+    for ( UInt i = 0; i < surfdoms_.GetSize(); i++ ) {
+      if ( surfDomId == surfdoms_[i] ) {
         return i;
-    
-  
-    (*error) << "Surface-Domain " << ptgrid_->RegionIdToName(surfDomId) 
+      }
+    }
+
+    (*error) << "Surface-Domain " << ptgrid_->RegionIdToName( surfDomId )
              << " not defined!";
     Error( __FILE__, __LINE__ );
     return 0;
