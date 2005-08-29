@@ -230,10 +230,10 @@ namespace CoupledField {
           Error( __FILE__, __LINE__ );
         }
         
-//         if ( (*it).second == FALSE ) {
-//           pdeFound = TRUE;
-//           break;
-//         }
+        //         if ( (*it).second == FALSE ) {
+        //           pdeFound = TRUE;
+        //           break;
+        //         }
         pdeFound = TRUE;
         break;
       }
@@ -428,22 +428,22 @@ namespace CoupledField {
       else if (pdeNames[i] == "mpcci")
         ptSinglePde_[i]=new MpcciPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
-      //       else if (pdeNames[i] == "acouflownoise")
-      //              ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
+      // else if (pdeNames[i] == "acouflownoise")
+      // ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
 
-      //      else if (pdeNames[i] == "smoothlaplace") 
-      //        ptSinglePde_[i]=new SmoothLaPlacePDE(ptgrid_,ptTimeFunc_,OutFile_); 
+      // else if (pdeNames[i] == "smoothlaplace") 
+      // ptSinglePde_[i]=new SmoothLaPlacePDE(ptgrid_,ptTimeFunc_,OutFile_); 
 
 
-      //      else if (pdeNames[i] == "magnetic") 
-      //        if (dim_ == 3
-      //        ptSinglePde_[i]=new MagEdgePDE(ptgrid_,ptTimeFunc_,OutFile_); 
-      else
-        {
-          std::string msg=pdeNames[i]+" - this type of pdes is unknown";
-          Error(msg.c_str(),__FILE__,__LINE__);
-        }     
-      
+      // else if (pdeNames[i] == "magnetic") 
+      // if (dim_ == 3
+      // ptSinglePde_[i]=new MagEdgePDE(ptgrid_,ptTimeFunc_,OutFile_); 
+
+      else {
+        std::string msg=pdeNames[i]+" - this type of pdes is unknown";
+        Error(msg.c_str(),__FILE__,__LINE__);
+      }     
+
       // by default, not single pde is directly coupled
       isDirectCoupled_[ptSinglePde_[i]] = FALSE;
       
@@ -452,10 +452,7 @@ namespace CoupledField {
       //ptSinglePde_[i]->Init();
 
       Info->FinishProgress();
-
-
     }
-
 
   } // end of InitPDE()
 
@@ -489,15 +486,18 @@ namespace CoupledField {
     std::string firstTag;
     if (sequenceTags.GetSize() > 1) {
       firstTag = sequenceTags[0];
-      for (UInt i=1; i<sequenceTags.GetSize(); i++)
-        if (sequenceTags[i] != firstTag) {
-          errMsg = "CreateIterCoupledPDE: The tags in the <multiSequence> section ";
-          errMsg += "are not all the same in each step.\n Coupling is only ";
-          errMsg += "possible if in each step all the <refTag> are the same!";
-          Error(errMsg.c_str(), __FILE__, __LINE__ );
+      for ( UInt i = 1; i < sequenceTags.GetSize(); i++ ) {
+        if ( sequenceTags[i] != firstTag ) {
+          (*error) << "CreateIterCoupledPDE: The tags in the "
+                   << "<multiSequence> section "
+                   << "are not all the same in each step.\n "
+                   << "Coupling is only possible if in each step all the "
+                   << "<refTag> tags are the same!";
+          Error( __FILE__, __LINE__ );
         }
+      }
     }
-    
+
     params->GetIterCoupledPDEList(iterCoupledPDENames, sequenceTags[0]);
     
 
@@ -562,10 +562,14 @@ namespace CoupledField {
     delete CouplingDef; 
     
     Info->FinishProgress();
-      }
+  }
     
 
-  void Domain::CreateDirectCoupledPDEs(StdVector<std::string> & sequenceTags) {
+  // ***************************
+  //   CreateDirectCoupledPDEs
+  // ***************************
+  void Domain::CreateDirectCoupledPDEs(StdVector<std::string> &sequenceTags) {
+
     ENTER_FCN( "Domain::CreateDirectCoupledPDEs" );
 
     numIterCoupledStdPde_ = numSinglePde_;
@@ -592,7 +596,6 @@ namespace CoupledField {
     std::set<std::string> setSinglePDEs;
 
     for (UInt i=0; i<couplingNames.GetSize(); i++) {
-      //std::cerr << "Coupling " << i+1 << " = " << couplingNames[i] << std::endl;
 
       // *** PIEZO Coupling ***
       if ( couplingNames[i] == "piezoDirect" ) {
@@ -625,14 +628,14 @@ namespace CoupledField {
         Error( __FILE__, __LINE__ );
       }
       
-    // set flag for direct coupling
-    isDirectCoupled_[pde1] = TRUE;
-    isDirectCoupled_[pde2] = TRUE;
+      // set flag for direct coupling
+      isDirectCoupled_[pde1] = TRUE;
+      isDirectCoupled_[pde2] = TRUE;
 
-    // add single PDEs and couplings into collections
-    setSinglePDEs.insert( pde1->GetName() );
-    setSinglePDEs.insert( pde2->GetName() );
-    couplings.Push_back(coupling);
+      // add single PDEs and couplings into collections
+      setSinglePDEs.insert( pde1->GetName() );
+      setSinglePDEs.insert( pde2->GetName() );
+      couplings.Push_back(coupling);
 
     }
 
@@ -656,8 +659,8 @@ namespace CoupledField {
     ptDirectCoupledPde_[0]->SetCouplings( couplings );
 
 
-    // At the moment we allow only one direct coupled pde, so we set the number
-    // of direct coupledPDEs to one;
+    // At the moment we allow only one direct coupled pde, so we set the
+    // number of direct coupledPDEs to one;
     numDirectCoupledPde_ = 1;
 
     // now determine, how many SinglePDEs are coupling directly
@@ -698,8 +701,12 @@ namespace CoupledField {
 
   }
 
-  void Domain::ResetPDEs()
-  {
+
+  // *************
+  //   ResetPDEs
+  // *************
+  void Domain::ResetPDEs() {
+
     ENTER_FCN( "Domain::ResetDEs" );
 
     // Delete single pde(s)
@@ -720,11 +727,11 @@ namespace CoupledField {
     }
     ptIterCoupledPde_ = NULL;
 
-   //  // delete all couplings
-//     for (UInt iCoupl=0; iCoupl<couplings_.GetSize(); iCoupl++) {
-//       delete couplings_[iCoupl];
-//     }
-//     couplings_.Clear();
+    //  // delete all couplings
+    //     for (UInt iCoupl=0; iCoupl<couplings_.GetSize(); iCoupl++) {
+    //       delete couplings_[iCoupl];
+    //     }
+    //     couplings_.Clear();
 
     // Also reset all state variables
     isDirectCoupled_.clear();
@@ -734,14 +741,18 @@ namespace CoupledField {
   }
 
 
-  void Domain::PrintGrid( ) {
-    ENTER_FCN( "Domain::PrintGrid" );
-    if ( ptgrid_ == NULL ) {
-      Error("Domain: ptgrid == NULL!", __FILE__, __LINE__ );
-    }
+  // *************
+  //   PrintGrid
+  // *************
+  void Domain::PrintGrid() {
 
-    OutFile_->Init(ptgrid_);
-    OutFile_->WriteGrid( );
+    ENTER_FCN( "Domain::PrintGrid" );
+
+    if ( ptgrid_ == NULL ) {
+      Error( "Domain: ptgrid == NULL!", __FILE__, __LINE__ );
+    }
+    OutFile_->Init( ptgrid_ );
+    OutFile_->WriteGrid();
   }
 
 }
