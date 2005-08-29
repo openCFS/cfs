@@ -966,8 +966,10 @@ namespace CoupledField {
     }
 
     // Cleanup
-    delete attrs;
-
+    if ( attrs != NULL ) {
+      attrs->Clear();
+      delete attrs;
+    }
   }
 
 
@@ -1050,6 +1052,7 @@ namespace CoupledField {
     }
 
     // Cleanup
+    coilSec->Clear();
     delete coilSec;
 
   }
@@ -1329,12 +1332,15 @@ namespace CoupledField {
         for ( unsigned int k = 0; k < tmpvec->GetSize(); k++ ) {
           elemvec->Push_back( (*tmpvec)[k] );
         }
+
+        // Clean up
+        tmpvec->Clear();
+        delete tmpvec;
       }
 
       // At end of ascending we delete intermediate stuff that is no
       // longer necessary to avoid memory leaks and _yes_, it _is_
-      // intended that these deletions are not deep!
-      delete tmpvec;
+      // intended that this delete is not deep!
       delete branchTops;
     }
 
@@ -1404,7 +1410,10 @@ namespace CoupledField {
     }
 
     // Free space allocated by ourselves in this routine
-    delete elements;
+    if ( elements != NULL ) {
+      elements->Clear();
+      delete elements;
+    }
 
     // Finished
     return attrvec;
@@ -1568,9 +1577,14 @@ namespace CoupledField {
     // *******************
     //   Part 7: Cleanup
     // *******************
-    delete elem_matches;
-    delete attr_matches;
-
+    if ( elem_matches != NULL ) {
+      elem_matches->Clear();
+      delete elem_matches;
+    }
+    if ( attr_matches != NULL ) {
+      attr_matches->Clear();
+      delete attr_matches;
+    }
   }
 
 
