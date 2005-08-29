@@ -12,29 +12,43 @@
 #include "Forms/acouMechInt.hh"
 
 
-namespace CoupledField
-{
+namespace CoupledField {
 
+
+  // ***************
+  //   Constructor
+  // ***************
   AcouMechCoupling::AcouMechCoupling( SinglePDE *pde1, SinglePDE *pde2 )
     : BasePairCoupling( pde1, pde2 ) {
+
     ENTER_FCN( "AcouMechCoupling::AcouMechCoupling" );
 
     couplingName_ = "acouMechDirect";
     materialClass_ = "fluid";
-
   }
 
 
+  // **************
+  //   Destructor
+  // **************
   AcouMechCoupling::~AcouMechCoupling() {
-    ENTER_FCN( "AcouMechCoupling::~AcouMechCoupling" )
-      }
+    ENTER_FCN( "AcouMechCoupling::~AcouMechCoupling" );
+  }
 
+
+  // ***************
+  //   PostProcess
+  // ***************
   void AcouMechCoupling::PostProcess() {
     ENTER_FCN( "AcouMechCoupling::PostProcess" );
   }
-  
 
+
+  // *********************
+  //   DefineIntegrators
+  // *********************
   void AcouMechCoupling::DefineIntegrators() {
+
     ENTER_FCN( "AcouMechCoupling::DefineIntegrators" );
     
     //number of mechanical dofs = geometric dimension
@@ -58,7 +72,7 @@ namespace CoupledField
     if ( formulation ==  ACOU_PRESSURE) {
       for ( UInt actSD = 0; actSD < surfRegions_.GetSize(); actSD++ ) {
 
-       	// ==============  add first mass integrator (mechanic equation)=========
+       	// =========  add first mass integrator (mechanic equation) ======
 	SurfForm * massInt1 = new AcouMechInt(dofs,isAxi);
 	massInt1->SetFormulation(formulation);
 
@@ -75,7 +89,7 @@ namespace CoupledField
 	
 	assemble_->AddSurfIntegrator(massDescr1, surfRegions_[actSD]);
 
-       	// ==============  add second mass integrator (acoustic equation)=========
+       	// ========  add second mass integrator (acoustic equation)=======
 	SurfForm * massInt2 = new AcouMechInt(dofs,isAxi);
 	massInt2->SetFormulation(formulation);
 
@@ -96,7 +110,7 @@ namespace CoupledField
     else {      
       for ( UInt actSD = 0; actSD < surfRegions_.GetSize(); actSD++ ) {
 
-	// ==============  add mass ========================================
+	// ========  add mass =============================================
 	SurfForm * massInt = new AcouMechInt(dofs,isAxi);
 	
 	// Set information about two neighbouring volume regions
@@ -112,19 +126,22 @@ namespace CoupledField
 	assemble_->AddSurfIntegrator(massDescr, surfRegions_[actSD]);
       }
     }
-
   }
-  
+
+
+  // ********************
+  //   ReadStoreResults
+  // ********************
   void AcouMechCoupling::ReadStoreResults() {
     ENTER_FCN( "AcouMechCoupling::ReadStoreResults" );
-    
   }
 
+
+  // ********************
+  //   ReadMaterialData
+  // ********************
   void AcouMechCoupling::ReadMaterialData() {
     ENTER_FCN( "AcouMechCoupling::ReadMaterialData" );
-    
   }
-  
 
-
-} // end of namespace
+}

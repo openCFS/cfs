@@ -72,21 +72,20 @@ namespace CoupledField
   } 
 
 
+  // **************
+  //   Destructor
+  // **************
+  IterCoupledPDE::~IterCoupledPDE() {
 
-
-  
-  IterCoupledPDE::~IterCoupledPDE()
-  {
     ENTER_FCN( "IterCoupledPDE::~IterCoupledPDE" );
 
     // delete solveStep-object
     delete solveStep_;
 
     // delete coupling objects
-    for (UInt i=0; i<Couplings_.GetSize(); i++)
-      if (Couplings_[i] != NULL)
-	delete Couplings_[i];
-
+    for ( UInt i = 0; i < Couplings_.GetSize(); i++ ) {
+      delete Couplings_[i];
+    }
     Couplings_.Clear();
   }
 
