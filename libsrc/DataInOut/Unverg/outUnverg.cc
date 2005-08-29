@@ -5,30 +5,35 @@
 
 #include "outUnverg.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
-  WriteResultsUnverg :: WriteResultsUnverg(const Char * const filename)
-    :WriteResults(filename)
-  {
+
+  // ***************
+  //   Constructor
+  // ***************
+  WriteResultsUnverg::WriteResultsUnverg( const Char* const filename )
+    : WriteResults( filename ) {
+
     ENTER_FCN( "WriteResultsUnverg::WriteResultsUnverg" );
 
     std::string name = namefile_ + ".unv";
     output = NULL;
-    output=new std::ofstream(name.c_str());
-
+    output = new std::ofstream(name.c_str());
   }
 
-  WriteResultsUnverg ::~WriteResultsUnverg()
-  {
+
+  // **************
+  //   Destructor
+  // **************
+  WriteResultsUnverg::~WriteResultsUnverg() {
     ENTER_FCN( "WriteResultsUnverg::~WriteResultsUnverg" );
-    if (output)
-      {
-        output->close();
-        //   delete output;
-      }
+    delete output;
   }
 
+
+  // *************
+  //   WriteGrid
+  // *************
   void WriteResultsUnverg::WriteGrid() {
 
     ENTER_FCN( "WriteResultsUnverg::WriteGrid" );
@@ -78,30 +83,28 @@ namespace CoupledField
     (*output).setf(std::ios::scientific);
     (*output).precision(16);
 
-    for (UInt i=0; i<maxnumnodes; i++)
-      {
-        (*output) << std::setw(10) << i+1 << std::setw(10) << 0 << std::setw(10) << 0 << std::setw(10) << 11 << std::endl;
+    for ( UInt i = 0; i < maxnumnodes; i++ ) {
+      (*output) << std::setw(10) << i+1 << std::setw(10) << 0
+                << std::setw(10) << 0 << std::setw(10) << 11 << std::endl;
 
-        (*output).setf(std::ios::uppercase);
+      (*output).setf(std::ios::uppercase);
 
-        if (dim==2)
-          {
-            Point<2> Point;
-            ptGrid_->GetNodeCoordinate(Point,i+1);
+      if ( dim==2 ) {
+        Point<2> Point;
+        ptGrid_->GetNodeCoordinate(Point,i+1);
 
-            (*output) << "   " << 0.0 ;
-            PrintPoint(Point,output);
-            (*output) << std::endl;
-          }
-        else
-          {
-            Point<3> Point;
-            ptGrid_->GetNodeCoordinate(Point,i+1);
-
-            PrintPoint(Point,output);
-            (*output) << std::endl;
-          }
+        (*output) << "   " << 0.0 ;
+        PrintPoint(Point,output);
+        (*output) << std::endl;
       }
+      else {
+        Point<3> Point;
+        ptGrid_->GetNodeCoordinate(Point,i+1);
+
+        PrintPoint(Point,output);
+        (*output) << std::endl;
+      }
+    }
  
     (*output) << std::setw(6) << -1 << std::endl;
   }
@@ -112,8 +115,10 @@ namespace CoupledField
     if (!ptGrid_)
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
-    (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 780 << std::endl;
-    UInt dim=ptGrid_->GetDim();
+    (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
+              << 780 << std::endl;
+
+    UInt dim = ptGrid_->GetDim();
 
     StdVector<UInt> connect;
     StdVector<Elem*> elemssd;
@@ -124,75 +129,74 @@ namespace CoupledField
     ptGrid_->GetVolRegionIds(subdoms);
     UInt i, j, k;
     k = 0;
-    for (i=0; i<subdoms.GetSize(); i++)
-      {
-        ptGrid_->GetVolElems(elemssd,subdoms[i]);
+    for (i=0; i<subdoms.GetSize(); i++) {
 
-        for (j=0; j < elemssd.GetSize(); j++)
-          {  
-            k++; 
-            connect=elemssd[j]->connect;
-            (*output) << std::setw(10) << elemssd[j]->elemNum << std::setw(10);
+      ptGrid_->GetVolElems(elemssd,subdoms[i]);
 
-            if (dim==2)
-              {     switch(connect.GetSize())
-                {
-                case 3: (*output) << 91 ; break;
-                case 4: (*output) << 94 ; break;
-                case 6: (*output) << 92; break;
-                case 8: (*output) << 95; break;
-                default: Error("Please, put element type according to unverg-format for this number of nodes per element", __FILE__,__LINE__);
-                }
+      for ( j = 0; j < elemssd.GetSize(); j++ ) {  
+        k++;
+        connect=elemssd[j]->connect;
+        (*output) << std::setw(10) << elemssd[j]->elemNum << std::setw(10);
 
-              (*output) << std::setw(10) << 2 << std::setw(10) << 2 << std::setw(10) << 1 << std::setw(10) << 1 << std::setw(10) << elmsgrp << std::setw(10) << connect.GetSize() << std::endl;
-              }
-            else
-              {
-                switch(connect.GetSize())
-                  {
-                  case 4: (*output) << 111 ; break;  // tetraeder 1.ord
-                  case 6: (*output) << 112; break;   // prism     1.ord
-                  case 8: (*output) << 115; break;   // hexaeder  1.ord
-                  case 15: (*output) << 113; break;  // prism     2.ord
-                  case 20: (*output) << 116; break;  // hexaeder  2.ord
-                  default: 
-                    errMsg  = "Please, put element type according to unverg-format for ";
-                    errMsg += Info->GenStr(connect.GetSize());
-                    errMsg += " nodes per Element in 3D!";
-                    Error(errMsg.c_str(), __FILE__,__LINE__);
-                  }
+        if ( dim == 2 ) {
+          switch(connect.GetSize()) {
+          case 3: (*output) << 91; break;
+          case 4: (*output) << 94; break;
+          case 6: (*output) << 92; break;
+          case 8: (*output) << 95; break;
+          default:
+            (*error) << "Please, put element type according to "
+                     << "unverg-format for this number of nodes "
+                     << "per element";
+            Error( __FILE__, __LINE__ );
+          }
 
-                (*output) << std::setw(10) << 11 << std::setw(10) << 1 << std::setw(10) << 1
-                          << std::setw(10) << 1 << std::setw(10) << elmsgrp << std::setw(10) 
-                          << connect.GetSize() << std::endl;
-              }
+          (*output) << std::setw(10) << 2 << std::setw(10) << 2
+                    << std::setw(10) << 1 << std::setw(10) << 1
+                    << std::setw(10) << elmsgrp << std::setw(10)
+                    << connect.GetSize() << std::endl;
+        }
+        else {
+          switch(connect.GetSize()) {
+          case  4: (*output) << 111; break;  // tetraeder 1.ord
+          case  6: (*output) << 112; break;  // prism     1.ord
+          case  8: (*output) << 115; break;  // hexaeder  1.ord
+          case 15: (*output) << 113; break;  // prism     2.ord
+          case 20: (*output) << 116; break;  // hexaeder  2.ord
+          default:
+            (*error) << "Please, put element type according to "
+                     << "unverg-format for " << connect.GetSize()
+                     << " nodes per Element in 3D!";
+            Error( __FILE__,__LINE__);
+          }
 
-            if (dim == 2 && (connect.GetSize() == 6 || connect.GetSize() == 8))
-              {
-                //quadratic elements
-                UInt offset = UInt(connect.GetSize()/2);
-                for (UInt ii=0; ii < offset; ii++)
-                  {
-                    (*output).width(10);
-                    (*output) << connect[ii];
-                    (*output).width(10);
-                    (*output) << connect[ii+offset]; 
-                  }
+          (*output) << std::setw(10) << 11 << std::setw(10) << 1
+                    << std::setw(10) << 1  << std::setw(10) << 1
+                    << std::setw(10) << elmsgrp << std::setw(10) 
+                    << connect.GetSize() << std::endl;
+        }
 
-              }
-            else
-              {
-                for (UInt ii=0; ii < connect.GetSize(); ii++) 
-                  { 
-                    (*output).width(10);
-                    (*output) << connect[ii];
-                  }
-              }
+        if (dim == 2 && (connect.GetSize() == 6 || connect.GetSize() == 8)) {
+          //quadratic elements
+          UInt offset = UInt(connect.GetSize()/2);
+          for (UInt ii=0; ii < offset; ii++) {
+            (*output).width(10);
+            (*output) << connect[ii];
+            (*output).width(10);
+            (*output) << connect[ii+offset]; 
+          }
+        }
+        else {
+          for (UInt ii=0; ii < connect.GetSize(); ii++) { 
+            (*output).width(10);
+            (*output) << connect[ii];
+          }
+        }
 
-            (*output) << std::endl;
-          } // over elements of group
-        elmsgrp++;
-      } // over groups
+        (*output) << std::endl;
+      } // over elements of group
+      elmsgrp++;
+    } // over groups
     (*output) << std::setw(6) << -1 << std::endl;
   }
 
