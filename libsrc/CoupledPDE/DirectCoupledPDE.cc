@@ -11,21 +11,23 @@
 #include "PDE/SinglePDE.hh"
 
 #include "PDE/nodeEQN.hh"
-
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
-namespace CoupledField{
+
+namespace CoupledField {
 
 
-  DirectCoupledPDE::DirectCoupledPDE(Grid *aptgrid,  
-                                     WriteResults *aOutFile, 
-                                     TimeFunc *aTimeFunc)
-    : StdPDE(aptgrid, aOutFile, aTimeFunc)
-  {
+  // ***************
+  //   Constructor
+  // ***************
+  DirectCoupledPDE::DirectCoupledPDE( Grid *aptgrid, WriteResults *aOutFile, 
+                                      TimeFunc *aTimeFunc )
+
+    : StdPDE( aptgrid, aOutFile, aTimeFunc ) {
+
     ENTER_FCN( "DirectCoupledPDE::DirectCoupledPDE" );
 
     totalUnknowns_ = 0;
-
   }
 
 
@@ -36,8 +38,11 @@ namespace CoupledField{
 
     ENTER_FCN( "DirectCoupledPDE::~DirectCoupledPDE" );
 
+    // The following cannot easily be deleted by StdPDE from which we inherit
+    // them, since SinglePDE also inherits them.
     delete algsys_;
     delete solveStep_;
+    delete TS_alg_;
 
     // Delete BasePairCoupling objects
     for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
@@ -47,8 +52,11 @@ namespace CoupledField{
   }
 
 
-  void DirectCoupledPDE::SetSinglePDEs( const StdVector<SinglePDE*> &pdes)
-  {
+  // *****************
+  //   SetSinglePDEs
+  // *****************
+  void DirectCoupledPDE::SetSinglePDEs( const StdVector<SinglePDE*> &pdes ) {
+
     ENTER_FCN( "DirectCoupledPDE::SetSinglePDEs" );
 
     singlePDEs_ = pdes;
@@ -169,15 +177,15 @@ namespace CoupledField{
     DefineSolveStep();
     
     // Pass SolveStep object to all single pdes
-     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-       singlePDEs_[i]->SetSolveStep(solveStep_);
-     }
-
+    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+      singlePDEs_[i]->SetSolveStep( solveStep_ );
+    }
 
     // Set correct size of direct solution value
     if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
       solVec_ = new Vector<Complex>;
-    } else {
+    }
+    else {
       solVec_ = new Vector<Double>;
     }
     solVec_->Resize(totalUnknowns_);
@@ -347,21 +355,22 @@ namespace CoupledField{
   }
   
 
+  // ********************
+  //   InitTimeStepping
+  // ********************
   void DirectCoupledPDE::InitTimeStepping() {
-    ENTER_FCN( "DirecCoupledPDE::InitTimeStepping" );
 
+    ENTER_FCN( "DirecCoupledPDE::InitTimeStepping" );
 
     // Hard Coded
     TS_alg_ = new Newmark( algsys_, totalUnknowns_ );
-     
 
     // Pass time stepping object to single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->SetTimeStepping(TS_alg_);
     }
-
-    
   }
+
 
   // ======================================================
   // POSTPROC SECTION
