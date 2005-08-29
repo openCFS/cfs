@@ -104,10 +104,10 @@ namespace CoupledField
     /// constructor
     IntegratorDescriptor(BaseForm * aIntegrator, FEMatrixType aDestMat,
                          const Boolean aNonLin=FALSE);
-      
+
     /// destructor
     virtual ~IntegratorDescriptor();
-      
+
     /// returns the destination matrix
     FEMatrixType DestMat() {return destinationMatrix;}; 
 
