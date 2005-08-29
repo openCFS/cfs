@@ -164,6 +164,7 @@ namespace CoupledField {
   //   Destructor
   // **************
   Domain::~Domain() {
+
     ENTER_FCN( "Domain::~Domain" );
 
     delete ptgrid_;
@@ -191,11 +192,12 @@ namespace CoupledField {
     }
     ptDirectCoupledPde_.Clear();
 
-    //already deleted in destructor of IterCoupledPDE!!!
-    //     for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
-    //       delete (couplings_[i]);
-    //     }
-
+    // Destructor of IterCoupledPDE deletes couplings! Since it also sets
+    // size to zero the following code is safe.
+    for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
+      delete couplings_[i];
+    }
+    couplings_.Clear();
   }
 
 
@@ -592,7 +594,7 @@ namespace CoupledField {
     // HARD CODED: At the moment we allow only one direct coupled pde
     // with only on pairwise coupling
     StdVector<SinglePDE*> singlePdes;
-    StdVector<BasePairCoupling*> couplings;
+    StdVector<BasePairCoupling*> DirectCouplingPairs;
     std::set<std::string> setSinglePDEs;
 
     for (UInt i=0; i<couplingNames.GetSize(); i++) {
@@ -635,10 +637,8 @@ namespace CoupledField {
       // add single PDEs and couplings into collections
       setSinglePDEs.insert( pde1->GetName() );
       setSinglePDEs.insert( pde2->GetName() );
-      couplings.Push_back(coupling);
-
+      DirectCouplingPairs.Push_back(coupling);
     }
-
 
     // check if any pair coupling was found
     if (coupling == NULL)
@@ -652,12 +652,10 @@ namespace CoupledField {
       singlePdes.Push_back( GetSinglePDE(*itSet) );
     }
     
-
     ptDirectCoupledPde_.Push_back(new DirectCoupledPDE(ptgrid_, OutFile_,
                                                        ptTimeFunc_));
     ptDirectCoupledPde_[0]->SetSinglePDEs( singlePdes );
-    ptDirectCoupledPde_[0]->SetCouplings( couplings );
-
+    ptDirectCoupledPde_[0]->SetCouplings( DirectCouplingPairs );
 
     // At the moment we allow only one direct coupled pde, so we set the
     // number of direct coupledPDEs to one;
