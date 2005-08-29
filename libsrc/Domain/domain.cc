@@ -192,12 +192,7 @@ namespace CoupledField {
     }
     ptDirectCoupledPde_.Clear();
 
-    // Destructor of IterCoupledPDE deletes couplings! Since it also sets
-    // size to zero the following code is safe.
-    for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
-      delete couplings_[i];
-    }
-    couplings_.Clear();
+    // Destructor of IterCoupledPDE deletes couplings!
   }
 
 
