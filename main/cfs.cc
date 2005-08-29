@@ -149,7 +149,6 @@ int main( int argc, const char **argv ) {
   // be used, since it would try to open other files also, that need not be
   // present????
   if ( commandLine->GetWriteSkeleton() == TRUE ) {
-
 #ifdef TRACE
     FileHandler.OpenFile( TRACE_FILE );
 #endif
@@ -372,6 +371,7 @@ int main( int argc, const char **argv ) {
   // delete ptTimeFunc;
   delete Info;
   delete params;
+  delete commandLine;
 
   // As the last thing we close the trace file (if exists)
 #ifdef TRACE
@@ -389,6 +389,10 @@ int main( int argc, const char **argv ) {
   MPI_Finalize();
 #endif
 
-  return 0;
+  // Deleting global string streams
+  delete error;
+  delete warning;
 
+  // Seems that everything went fine
+  return 0;
 }
