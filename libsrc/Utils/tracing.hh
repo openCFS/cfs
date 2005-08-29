@@ -1,5 +1,5 @@
-#ifndef FILE_DEBUGGER_HH
-#define FILE_DEBUGGER_HH
+#ifndef TRACING_HH
+#define TRACING_HH
 
 #ifdef TRACE
 
@@ -8,7 +8,7 @@
 // The trace stream pointer is also used by OLAS and therefore belongs to the
 // joint CFS++ / OLAS namespace for IO-objects
 namespace OutInfo {
-  extern std::ostream * trace;
+  extern std::ostream *trace;
 }
 
 //! Stream to which trace information is sent
@@ -17,7 +17,12 @@ namespace OutInfo {
 //! Macro for specifying depth of indentation in function trace log
 #define TRACE_INDENT "    "
 
+
 namespace OutInfo {
+
+
+  //! Private unsigned integer data type for function tracing
+  typedef unsigned long TraceInt;
 
 
   // ========================================================================
@@ -37,13 +42,14 @@ namespace OutInfo {
   public:
 
     //! Constructor
-    FcnTraceListElem( char *name, int depth, int limit ) {
-      this->name_ = name;
+    FcnTraceListElem( char *name, TraceInt depth, TraceInt limit ) {
+
+      name_     = name;
       fcnDepth_ = depth;
-      limit_ = limit;
+      limit_    = limit;
     
       if ( fcnDepth_ <= limit_ && TRACESTREAM != NULL ) {
-        for ( int i = 0; i < fcnDepth_; i++ ) {
+        for ( TraceInt i = 0; i < fcnDepth_; i++ ) {
           (*TRACESTREAM) << TRACE_INDENT;
         }
         (*TRACESTREAM) << "entering function " << name_ << std::endl;
@@ -56,7 +62,7 @@ namespace OutInfo {
     //! function" message to the trace stream object.
     ~FcnTraceListElem() {
       if ( fcnDepth_ <= limit_ && TRACESTREAM != NULL ) {
-        for ( int i = 0; i < fcnDepth_; i++ ) {
+        for ( TraceInt i = 0; i < fcnDepth_; i++ ) {
           (*TRACESTREAM) << TRACE_INDENT;
         }
         (*TRACESTREAM) << "leaving function " << name_ << std::endl;
@@ -69,8 +75,8 @@ namespace OutInfo {
     FcnTraceListElem *called_; //!< Link to FcnTrace object for successor
 
   private:
-    int fcnDepth_;
-    int limit_;
+    TraceInt fcnDepth_;
+    TraceInt limit_;
     char *name_;
 
   };
@@ -142,8 +148,8 @@ namespace OutInfo {
 
   private:
     static FcnTraceListElem *foo_;
-    static unsigned int fcnTraceDepth_;
-    static unsigned int fcnTraceDepthLimit_;
+    static TraceInt fcnTraceDepth_;
+    static TraceInt fcnTraceDepthLimit_;
   };
 
 
@@ -171,8 +177,8 @@ namespace OutInfo {
   };
 
 
-} // namespace
+}
 
-#endif // TRACE
+#endif
 
-#endif // FILE_DEBUGGER_HH
+#endif
