@@ -334,20 +334,22 @@ namespace CoupledField {
   // ================================================
   //   Equation re-mapping according to re-ordering
   // ================================================
-  void ScalarNodeEQN::ReorderMapping(Integer *order) {
+  void ScalarNodeEQN::ReorderMapping( Integer **order ) {
 
     ENTER_FCN( "ScalarNodeEQN::ReorderMapping" );
 
     if ( order != NULL ) {
       for ( UInt i = 0; i < pdeNode2EQN_.GetSize(); i++ ) {
         if ( pdeNode2EQN_[i] > 0 ) {
-          pdeNode2EQN_[i] = order[pdeNode2EQN_[i]-1];
+          pdeNode2EQN_[i] = (*order)[pdeNode2EQN_[i]-1];
         }
         else if(pdeNode2EQN_[i] < 0 ) {
           //due to constraints
-          pdeNode2EQN_[i] = -order[-pdeNode2EQN_[i]-1];   
+          pdeNode2EQN_[i] = -(*order)[-pdeNode2EQN_[i]-1];   
         }
       }
+      delete [] (*order);
+      (*order) = NULL;
     }
   }
 

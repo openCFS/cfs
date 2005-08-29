@@ -51,10 +51,15 @@ namespace CoupledField
     //! \param order permutation vector containing the re-ordering, i.e.
     //!              order[k-1] is the new equation number for the dof that
     //!              was previously associated to the k-th equation number.
-    //! \note It is safe to pass a NULL pointer to the method. In this case
-    //!       the method assumes that no re-ordering was performed by the
-    //!       algebraic system.
-    void ReorderMapping(Integer *order);
+    //! \note
+    //! - It is safe to pass a NULL pointer to the method. In this case
+    //!   the method assumes that no re-ordering was performed by the
+    //!   algebraic system.
+    //! - Since the re-ordering is private property of the equation data
+    //!   object, we re-set order to NULL in this method.
+    //! - For the sake of a low memory foot-print we delete the permutation
+    //!   buffer once the reordering was incorporated
+    void ReorderMapping( Integer **order );
 
 
   private:

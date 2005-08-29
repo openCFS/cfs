@@ -342,23 +342,24 @@ namespace CoupledField {
   // ******************
   
   // Equation re-mapping according to re-ordering
-  void ScalarBlockEQN::ReorderMapping( Integer *order ) {
+  void ScalarBlockEQN::ReorderMapping( Integer **order ) {
     
     ENTER_FCN( "ScalarBlockEQN::ReorderMapping" );
     
-    if ( order != NULL ) {
+    if ( (*order) != NULL ) {
       for ( UInt i = 0; i < pdeNode2EQN_.GetSizeRow(); i++ ) {
         for ( UInt j = 0; j < pdeNode2EQN_.GetSizeCol(); j++ ) {
           if ( pdeNode2EQN_[i][j] > 0 ) {
-            pdeNode2EQN_[i][j] = order[pdeNode2EQN_[i][j]-1];
+            pdeNode2EQN_[i][j] = (*order)[pdeNode2EQN_[i][j]-1];
           }
           else if(pdeNode2EQN_[i][j] < 0 ) {
             //due to constraints
-            pdeNode2EQN_[i][j] = -order[-pdeNode2EQN_[i][j]-1];   
+            pdeNode2EQN_[i][j] = -(*order)[-pdeNode2EQN_[i][j]-1];   
           }
         }
-        
       }
+      delete [] (*order);
+      (*order) = NULL;
     }
   }
   
