@@ -21,8 +21,18 @@
 #define MAXPOSTFIX 15
 
 
-namespace CoupledField
-{
+namespace OutInfo {
+
+  //! Global pointer to a stringstream used for generating error messages
+  extern std::stringstream *error;
+
+  //! Global pointer to a stringstream used for generating warning messages
+  extern std::stringstream *warning;
+}
+
+
+namespace CoupledField {
+
 
   // forward class declaration
   class Domain;
@@ -87,12 +97,6 @@ namespace CoupledField
 
   //! print grid only and then exit
   extern Boolean PrintGridOnly;
-
-  //! Global pointer to a stringstream used for generating error messages
-  extern std::stringstream *error;
-
-  //! Global pointer to a stringstream used for generating warning messages
-  extern std::stringstream *warning;
 
 #ifdef PROFILING
   //! Global memtrace pointer
@@ -228,6 +232,8 @@ namespace CoupledField
   using OutInfo::cla;
   using OutInfo::memtrace;
   using OutInfo::data;
+  using OutInfo::error;
+  using OutInfo::warning;
 
   // Forward declaration of class
   class WriteInfo;
