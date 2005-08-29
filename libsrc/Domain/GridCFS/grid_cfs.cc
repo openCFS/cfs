@@ -15,8 +15,8 @@ namespace CoupledField
 {
 
   template<UInt DIM>
-  GridCFS<DIM>::GridCFS(FileType * const aptFileType)
-  {
+  GridCFS<DIM>::GridCFS( FileType * const aptFileType) {
+
     ENTER_FCN( "GridCFS::GridCFS" );
 
     inFile_ = aptFileType;
@@ -25,14 +25,33 @@ namespace CoupledField
     dim_ = 0;
     numNodes_ = 0;
     numElems_ = 0;
-    
-
   } 
 
+
+  // **************
+  //   Destructor
+  // **************
   template<UInt DIM>
-  GridCFS<DIM>::~GridCFS()
-  {
+  GridCFS<DIM>::~GridCFS() {
+
     ENTER_FCN( "GridCFS::GridCFS" );
+
+    // Delete volume elements
+    for ( UInt i = 0; i < volElems_.GetSize(); i++ ) {
+      for ( UInt j = 0; j < volElems_[i].GetSize(); j++ ) {
+        delete volElems_[i][j];
+      }
+    }
+    volElems_.Clear();
+
+    // Delete surface elements
+    for ( UInt i = 0; i < surfElems_.GetSize(); i++ ) {
+      for ( UInt j = 0; j < surfElems_[i].GetSize(); j++ ) {
+        delete surfElems_[i][j];
+      }
+    }
+    surfElems_.Clear();
+
   } 
 
 
@@ -700,7 +719,7 @@ namespace CoupledField
 
     // iterate over all temporary elements and convert them into
     // surface elements
-    SurfElem * myElem;
+    SurfElem *myElem;
     surfElems_.Resize(elems.GetSize());
     
     for ( UInt iRegion = 0; iRegion < elems.GetSize(); iRegion++ ) {
