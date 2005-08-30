@@ -338,7 +338,7 @@ namespace CoupledField {
 
     ENTER_FCN( "ScalarNodeEQN::ReorderMapping" );
 
-    if ( order != NULL ) {
+    if ( (*order) != NULL ) {
       for ( UInt i = 0; i < pdeNode2EQN_.GetSize(); i++ ) {
         if ( pdeNode2EQN_[i] > 0 ) {
           pdeNode2EQN_[i] = (*order)[pdeNode2EQN_[i]-1];
