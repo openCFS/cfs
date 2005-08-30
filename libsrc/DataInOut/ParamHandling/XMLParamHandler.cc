@@ -682,10 +682,6 @@ namespace CoupledField {
                                                const std::string sequenceTag){
 
     ENTER_FCN( "XMLParamHandler::GetIterCoupledPDEList" );
-    
-    // string for assembling error messages
-    std::string errmsg;
-
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
@@ -695,13 +691,13 @@ namespace CoupledField {
     XMLCh *tmpString = C2X( "couplingList" );
     DOMNodeList *coupledSections = rootElem_->getElementsByTagName(tmpString);
     FreeX( &tmpString );
-    
+
     // Pick that coupling section, which matches
     // the specfifed sequenceTag
     DOMElement *auxElem = NULL;
     DOMElement *currentCouplingSec = NULL;
     Boolean sectionFound = FALSE;
-    
+
     for (unsigned int i=0; i<coupledSections->getLength(); i++) {      
       auxElem = Node2Elem( coupledSections->item(i) );
       if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
@@ -718,7 +714,7 @@ namespace CoupledField {
         }
       }
     }
-     
+
     // Print error if specified coupling section was not found
     if ( sectionFound == FALSE ) {
       (*error) << "The coupling section with tag '" << sequenceTag
@@ -744,7 +740,7 @@ namespace CoupledField {
                << " couplingList elements in parameter file!";
       Error( __FILE__, __LINE__ );
     }
-    
+
     // Find iterative Coupled section
     DOMNodeList * iterCoupledPDEsec = coupledPDEsec->item(0)->getChildNodes();
     if ( iterCoupledPDEsec->getLength() == 0 ) {
@@ -754,11 +750,12 @@ namespace CoupledField {
     }
 
     // iterate over all pairwise couplings
+    std::string *pdename = NULL;
     for ( unsigned int i = 0; i < iterCoupledPDEsec->getLength(); i++ ) {
 
       // Only treat element children and not comments!
-      if ( iterCoupledPDEsec->item(i)->getNodeType()
-           == DOMNode::ELEMENT_NODE ) {
+      if ( iterCoupledPDEsec->item(i)->getNodeType() ==
+           DOMNode::ELEMENT_NODE ) {
     
         // The names of the PDEs are the tags of the child elements of the
         // PDE_list element, except perhaps the last one, which specifies
@@ -770,17 +767,15 @@ namespace CoupledField {
                    << " of parameter file!";
           Error( __FILE__, __LINE__ );
         }
-                  
+
         // Now get hold of tags, convert them to strings and assemble vector
         Boolean found = FALSE;
         for ( unsigned int k = 0; k < iterPDElist->getLength(); k++ ) {
-            
+ 
           // Only treat element children and not comments!
-          if ( iterPDElist->item(k)->getNodeType()
-               == DOMNode::ELEMENT_NODE ) {
+          if ( iterPDElist->item(k)->getNodeType() == DOMNode::ELEMENT_NODE ){
 
-            std::string *pdename =
-              X2S( Node2Elem( iterPDElist->item(k) )->getNodeName() );
+            pdename = X2S( Node2Elem( iterPDElist->item(k) )->getNodeName() );
 
             // only get elements which describe a PDE element
             if ( *pdename != "nonLinear" ) {
@@ -795,9 +790,11 @@ namespace CoupledField {
               }
               if ( !found ) {
                 list.Push_back( *pdename );
-                FreeS( &pdename );
               }
             }
+
+            // Clean up
+            FreeS( &pdename );
           }
         }
       }
@@ -813,9 +810,6 @@ namespace CoupledField {
                                           const std::string sequenceTag ) {
 
     ENTER_FCN( "XMLParamHandler::GetDirectCouplingList" );
-    
-    // string for assembling error messages
-    std::string errmsg;
 
     // Check if vector is empty. If not issue a warning
     // and erase its entries, if this is desired
@@ -836,14 +830,14 @@ namespace CoupledField {
       auxElem = Node2Elem( coupledSections->item(i) );
       if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
         // Ensure that only one section matches
-        if (sectionFound == FALSE) {
+        if ( sectionFound == FALSE ) {
           sectionFound = TRUE;
           currentCouplingSec = auxElem;
-        } else {
-          errmsg  = "Got more than one matching coupling section for tag '";
-          errmsg += sequenceTag;
-          errmsg += "'.\n Please correct parameter file!";
-          Info->Error( errmsg, __FILE__, __LINE__ );
+        }
+        else {
+          (*error) << "Got more than one matching coupling section for tag '"
+                   << sequenceTag << "'.\n Please correct parameter file!";
+          Error( __FILE__, __LINE__ );
         }
       }
     }
@@ -864,7 +858,7 @@ namespace CoupledField {
 
     // If no direct coupled section is found, return simply an 
     // empty vector
-    
+
     if ( coupledPDEsec->getLength() == 0 ) {
       return;
     }
@@ -876,7 +870,7 @@ namespace CoupledField {
                << "One at maximum is allowed in the 'coupledList' section!";
       Error( __FILE__, __LINE__ );
     }
- 
+
     // Find direct Coupled section
     DOMNodeList *directCoupledPDEsec =
       coupledPDEsec->item(0)->getChildNodes();
@@ -885,7 +879,6 @@ namespace CoupledField {
       (*error) << "Cannot find a direct coupling section in parameter file!";
       Error( __FILE__, __LINE__ );
     }
-
 
     // iterate over all pairwise couplings
     std::string pdename;
@@ -903,11 +896,11 @@ namespace CoupledField {
           directCoupledPDEsec->item(i)->getChildNodes();
 
         if ( directCouplinglist->getLength() == 0 ) {
-          errmsg = "Cannot find a single direct coupling definition in ";
-          errmsg += "the direct coupling section of the parameter file!";
-          Info->Error( errmsg, __FILE__, __LINE__ );
+          (*error) << "Cannot find a single direct coupling definition in "
+                   << "the direct coupling section of the parameter file!";
+          Error( __FILE__, __LINE__ );
         }
-                  
+  
         // Now get hold of name, convert it and push it back in the name list
         auxString =
           X2C( Node2Elem( directCoupledPDEsec->item(i) )->getNodeName() );
