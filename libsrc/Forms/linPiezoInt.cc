@@ -186,13 +186,24 @@ namespace CoupledField {
                __FILE__, __LINE__ );
       }
 
+      // get the correct D-Matrix for plane strain case and multiply
+      // with stiffness damping coefficient
       Double beta = ptMaterial->GetDampingBeta();
-
-      for( UInt i = 0; i < sizeofD - 2; i++ ) {
-        for ( UInt j = 0; j < sizeofD - 2; j++ ) {
-          dMat[i][j] = (*matMatrix)[i][j] * beta * factorDamp_;
+      for ( UInt i = 0; i < sizeofD; i++ ) {
+        for( UInt j = 0; j < sizeofD; j++ ) {
+          dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1] * beta * factorDamp_;
         }
       }
+
+      // set all coupling and electric material parameters to zero
+      for ( UInt i = 0; i < sizeofD; i++ ) {
+        for( UInt j = 0; j < sizeofD; j++ ) {
+          if ( (i > sizeofD-3 ) || (j > sizeofD-3) ) {
+            dMat[i][j] = 0.0;
+          }
+        }
+      }
+
     }
 
     // If desired, try to equilibrate the material parameters
@@ -314,10 +325,21 @@ namespace CoupledField {
       else if (piezoMatType_ == IMAGMATERIALPARAMETER)
         matMatrix = ptMaterial->GetMatrixC();
 
+      // get the correct D-Matrix for axisymmetric case and multiply
+      // with stiffness damping coefficient
       Double beta = ptMaterial->GetDampingBeta();
-      for( UInt i = 0; i < sizeofD - 2; i++ ) {
-        for ( UInt j = 0; j < sizeofD - 2; j++ ) {
-          dMat[i][j] = (*matMatrix)[i][j] * beta * factorDamp_;
+      for ( UInt i = 0; i < sizeofD; i++ ) {
+        for( UInt j = 0; j < sizeofD; j++ ) {
+          dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1] * beta * factorDamp_;
+        }
+      }
+
+      // set all coupling and electric material parameters to zero
+      for ( UInt i = 0; i < sizeofD; i++ ) {
+        for( UInt j = 0; j < sizeofD; j++ ) {
+          if ( (i > sizeofD-3 ) || (j > sizeofD-3) ) {
+            dMat[i][j] = 0.0;
+          }
         }
       }
     }
