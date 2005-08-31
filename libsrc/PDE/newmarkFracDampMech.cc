@@ -13,16 +13,17 @@
 
 namespace CoupledField {
 
-  NewmarkFracDampMech::NewmarkFracDampMech( BaseSystem * algebraicsystem,
-                                    UInt rhsSize, 
-                                    const PdeIdType apdeId,
-                                    NodeEQN * ptEQN,
-                                    Grid * aptgrid,
-                                    StdPDE * aptStdPDE,
-                                    StdVector<RegionIdType> asubdomainList,
-                                    StdVector<DampingType> adampingList) 
+  NewmarkFracDampMech::
+  NewmarkFracDampMech( BaseSystem * algebraicsystem,
+                       UInt rhsSize, 
+                       const PdeIdType apdeId,
+                       NodeEQN * ptEQN,
+                       Grid * aptgrid,
+                       StdPDE * aptStdPDE,
+                       StdVector<RegionIdType> asubdomainList,
+                       std::map<RegionIdType,DampingType> adampingList) 
     :TimeStepping( algebraicsystem, rhsSize ){
-	
+    
     ENTER_FCN( "NewmarkFracDampMech::NewmarkFracDampMech" );
     
     pdename_     = aptStdPDE->GetName();
@@ -177,7 +178,7 @@ namespace CoupledField {
     timeStepPowerFracDeriv_ = std::pow(timeStep,-fracDeriv_);
 
 
-    if ( dampingList_.GetSize() != subdoms_.GetSize() )
+    if ( dampingList_.size() != subdoms_.GetSize() )
       Error("Mismatch between dampingList_ and subdoms_!", __FILE__, __LINE__);
 
     std::string model;
@@ -186,17 +187,17 @@ namespace CoupledField {
     model =  modelList_[0]; 
 
     for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
-      if ( dampingList_[actSD] == NONE ) {
+      if ( dampingList_[subdoms_[actSD]] == NONE ) {
         // no damping term has to be computed
       }
-      else if ( dampingList_[actSD] == RAYLEIGH ) {
+      else if ( dampingList_[subdoms_[actSD]] == RAYLEIGH ) {
 	
         Vector<Double> coeffDamp;
         coeffDamp = -solderiv1pred_ + solpred_*a4_;
         algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
       }
       else {
-        if ( dampingList_[actSD] == FRACTIONAL_GL ) {
+        if ( dampingList_[subdoms_[actSD]]== FRACTIONAL_GL ) {
           //factor *= std::exp(-(y-1.0)*std::log(dt_));
           //GLWeights(numValues_, y);
           GLWeights(numValues_ + 1, fracDeriv_); // calclimit_+1 because the coeffcients in the loop start with i+1
@@ -597,6 +598,7 @@ void NewmarkFracDampMech::GetBetaMat(Matrix<Double>& betaMat,  Double E, Materia
     }
     else {
       Error("wrong subType(axi,planeStrain,3d) specified", __FILE__, __LINE__);  
+      return 0;
     }
   }
   
@@ -614,6 +616,7 @@ void NewmarkFracDampMech::GetBetaMat(Matrix<Double>& betaMat,  Double E, Materia
     }
     else {
       Error("wrong subType(axi,planeStrein,3d) specified", __FILE__, __LINE__);  
+      return 0;
     }
   }
 } // end of namespace

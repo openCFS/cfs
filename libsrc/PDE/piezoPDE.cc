@@ -122,16 +122,6 @@ namespace CoupledField {
     // Use effective mass approach?
     effectiveMass_ = params->IsSet( "effMass" );
     
-    // Do we use damping?
-    if( params->HasValue( "type", "rayleigh", pdename_, "damping" ) ) {
-      dampingType_ = RAYLEIGH;
-      Info->PrintF( pdename_, " Using RAYLEIGH damping\n" );
-    }
-    else {
-      dampingType_ = NONE;
-      Info->PrintF( pdename_, "Using no damping\n" );
-    }
-
     // check for pressure loads
     StdVector<std::string> regionNames;
     
@@ -157,7 +147,53 @@ namespace CoupledField {
 	pressFnc_.Push_back( "none" );
       }
   }
-  
+
+  void PiezoPDE::ReadDampingInformation( )
+  {
+    ENTER_FCN( "PiezoPDE::ReadDampingInformation" );
+    
+    // Construct vectors for restricted search parameter
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    for (UInt k = 0; k < subdoms_.GetSize(); k++) {
+      
+      RegionIdType actRegion = subdoms_[k];
+
+      std::string actRegionName;
+      actRegionName = ptgrid_->RegionIdToName( actRegion );
+
+
+      actRegionName = ptgrid_->RegionIdToName( actRegion );
+      keyVec = "piezo" , "region" , "damping" , "type";
+      attrVec= ""         , "name"   , "";
+      valVec = ""         , actRegionName, "";
+      StdVector<std::string> dampInfo;
+      params->GetList( keyVec, attrVec, valVec, dampInfo);
+      
+      if ( dampInfo.IsEmpty() ) {
+        dampingList_[actRegion] = NONE;
+        Info->PrintF( pdename_, 
+                      "No information specifying damping detected!\n" );
+      }
+      else if (dampInfo[0] == "no") {
+        dampingList_[actRegion] = NONE;
+        Info->PrintF( pdename_, 
+                      "      * NO damping at all for region: %s\n",
+                      actRegionName.c_str() );
+      }
+      else if (dampInfo[0] == "rayleigh") {
+        dampingList_[actRegion] = RAYLEIGH;
+        Info->PrintF( pdename_, 
+                      "      * RAYLEIGH damping for region: %s\n",
+                      actRegionName.c_str() );
+      }
+
+
+    }
+    
+  }
 
   // *********************
   //   DefineIntegrators
@@ -203,7 +239,7 @@ namespace CoupledField {
       }
       
       //check for damping
-      if ( dampingType_ == RAYLEIGH ) {
+      if ( dampingList_[subdoms_[actSD]] == RAYLEIGH ) {
         Boolean isdamping = TRUE;
         Boolean reducedIntegration = FALSE; //is currently not supported
         BaseForm * dampStiff = 
@@ -248,20 +284,20 @@ namespace CoupledField {
 	actIntDescrMass->SetPDEIds(this, this);
 
       //check for damping (mass part)
-      if (dampingType_ == RAYLEIGH){    
+      if (dampingList_[subdoms_[actSD]] == RAYLEIGH ){    
         actIntDescrMass->SetSecondaryMat(DAMPING, actSDMat.GetDampingAlfa(),
                                          analysistype_);
       }
       actIntDescrMass->SetPiezoMaterialType(realMatParameter);
       assemble_->AddIntegrator(actIntDescrMass, subdoms_[actSD]);
-
-
+      
+      
     } // end for actSD ...
     
 
     //surface integrators
     //RHS-part
-    if (analysistype_==HARMONIC || analysistype_==MULTIHARMONIC){
+    if (analysistype_== HARMONIC || analysistype_==MULTIHARMONIC){
       UInt nonlin = 0;
       Vector<Complex> pressValsC_(pressVals_.GetSize());
             

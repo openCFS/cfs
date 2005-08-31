@@ -28,8 +28,8 @@ namespace CoupledField {
     //! Destructor
     virtual ~AcousticPDE(){};
 
-	//! read in damping information, see SinglePDE.cc  and SinglePDE.hh
-    void ReadDampingInformation( Grid *aptgrid );
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
 
     //! Read special boundary conditions (here: bubble information)
     void  ReadSpecialBCs();
@@ -46,8 +46,8 @@ namespace CoupledField {
     //! perform postprocessing on data
     void PostProcess();
 
-	//! calculate Force acting on specified surface elements
-	void CalcForce( StdVector<Elem*> & saveElems );
+    //! calculate Force acting on specified surface elements
+    void CalcForce( StdVector<Elem*> & saveElems );
 
     //! write results in file
     //! \param stepOffset offset for starting (time)step
@@ -101,17 +101,21 @@ namespace CoupledField {
     //! indicator for mechanic coupling
     Boolean isMechCoupled_;
 
-	//! total number of unknowns (equations)
+    //! total number of unknowns (equations)
     UInt size_;
-	//! variable in which PDE is formulated
+    //! variable in which PDE is formulated
     SolutionType formulation_;
 
-	//! list of boundaries( for absorbing BCs)
+    //! list of boundaries( for absorbing BCs)
     StdVector<RegionIdType> absBCs_;
-	//! switch for absorbing boundary conditions
+    
+    //! Flag indicating the use of fractional damping
+    Boolean fracDamping_;
+    
+    //! switch for absorbing boundary conditions
     Boolean absorbingBCs_;                
-
-	//! switch for special bcs in combination with slicing technique
+    
+    //! switch for special bcs in combination with slicing technique
     Boolean m_bWriteSpecialBCs;
 
     // solving of nonlinear acoustics
@@ -123,12 +127,12 @@ namespace CoupledField {
     NodeStoreSol<Double> solDeriv2_; //!< contains 2nd derivative of solution
     NodeStoreSol<Double> rhs_;
 
-	//! TRUE, if force should be written to history file
-	Boolean saveForceHist_;
-	//! name of element set to be saved
-	StdVector<std::string> saveElemHist_;
-	//! contains force acting on surface element
-	ElemStoreSol<Double> acouForce_;
+    //! TRUE, if force should be written to history file
+    Boolean saveForceHist_;
+    //! name of element set to be saved
+    StdVector<std::string> saveElemHist_;
+    //! contains force acting on surface element
+    ElemStoreSol<Double> acouForce_;
     //! contains force acting on all surfuce elements
     Double sumForce_;
 
