@@ -32,6 +32,9 @@ namespace CoupledField
     //!  Destructor
     virtual ~PiezoPDE() {};
 
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
+
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( );
 

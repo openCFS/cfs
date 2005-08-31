@@ -205,11 +205,11 @@ namespace CoupledField
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
 
-	//! read damping information
-	virtual void ReadDampingInformation(  Grid *aptgrid ){
-	  ENTER_FCN( "SinglePDE::ReadDampingInformation" );
-	};
-
+    //! read damping information
+    virtual void ReadDampingInformation( ){
+      ENTER_FCN( "SinglePDE::ReadDampingInformation" );
+    };
+    
     //! read material data
     virtual void ReadMaterialData();
 

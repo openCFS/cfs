@@ -17,8 +17,8 @@ namespace CoupledField {
     //! constructor
     /*!
       \param algebraicsystem pointer to algebraic system used by PDE
-	  \param rhsSize size of right hand side vector
-	  \param apdeId Id of PDE who called NewmarkFracDampMech
+      \param rhsSize size of right hand side vector
+      \param apdeId Id of PDE who called NewmarkFracDampMech
       \param ptEQN
       \param aptgrid
       \param aptStdPDE pointer of class from which NewmarkFracDampMech is initiated
@@ -26,13 +26,13 @@ namespace CoupledField {
       \param adampingList list damping description for subdomains
     */
     NewmarkFracDampMech( BaseSystem * algebraicsystem,
-                     UInt rhsSize,
-                     const PdeIdType apdeId,
-                     NodeEQN * ptEQN, 
-                     Grid * aptgrid,
-					 StdPDE * aptStdPDE, 
-                     StdVector<RegionIdType> asubdomainList,
-                     StdVector<DampingType> adampingList);
+                         UInt rhsSize,
+                         const PdeIdType apdeId,
+                         NodeEQN * ptEQN, 
+                         Grid * aptgrid,
+                         StdPDE * aptStdPDE, 
+                         StdVector<RegionIdType> asubdomainList,
+                         std::map<RegionIdType,DampingType> adampingList);
   
     //! deconstructor
     virtual ~NewmarkFracDampMech();
@@ -136,7 +136,7 @@ namespace CoupledField {
     UInt numTrueValues_;
 
     //! damping type for all regions
-    StdVector<DampingType> dampingList_;
+    std::map<RegionIdType,DampingType> dampingList_;
 
     //! list of subdomains
     StdVector<RegionIdType> subdoms_;

@@ -25,8 +25,8 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~MechPDE();
 
-	//! read in damping information, see SinglePDE.cc  and SinglePDE.hh
-    void ReadDampingInformation( Grid *aptgrid );
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
 
     //! Initialize NonLinearities
     virtual void InitNonLin();
@@ -168,6 +168,9 @@ namespace CoupledField
 
     /// returns the solution matrix belonging to all nodes of the actual element
     void GetSolOfElement( Matrix<Double>& elDisp, StdVector<UInt>& connect_PDE);
+
+    //! Flag indicating the use of fractional damping
+    Boolean fracDamping_;
 
     //!
     StdVector<RegionIdType> preStressDomain_;

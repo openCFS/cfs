@@ -17,10 +17,10 @@ namespace CoupledField {
                                     UInt rhsSize, 
                                     const PdeIdType apdeId,
                                     NodeEQN * ptEQN,
-									Grid * aptgrid,
+                                    Grid * aptgrid,
                                     StdPDE * aptStdPDE,
                                     StdVector<RegionIdType> asubdomainList,
-                                    StdVector<DampingType> adampingList) 
+                                    std::map<RegionIdType,DampingType> adampingList) 
     :TimeStepping( algebraicsystem, rhsSize ){
 	
     ENTER_FCN( "NewmarkFracDamp::NewmarkFracDamp" );
@@ -28,17 +28,30 @@ namespace CoupledField {
     pdename_     = aptStdPDE->GetName();
     pdeId_       = apdeId;
     ptgrid_      = aptgrid;
-	ptStdPDE_    = aptStdPDE;
+    ptStdPDE_    = aptStdPDE;
     ptEQN_       = ptEQN;
 	
     subdoms_     = asubdomainList;
     dampingList_ = adampingList;
     fracMemory_  = aptStdPDE->GetFracMemory();
-	if ( dampingList_.Find(FRACTIONAL_GL) < 0 || 
-		 dampingList_.Find(FRACTIONAL_BLANK) < 0 )
-	  inType_  = LIN1PT;
-	else
-	  inType_ = NOTUSED;
+
+    Boolean found = FALSE;
+    std::map<RegionIdType,DampingType>::iterator it;
+    for ( it = dampingList_.begin(); it != dampingList_.end(); it++ ) {
+      
+      if ( (*it).second == FRACTIONAL_GL ||
+           (*it).second == FRACTIONAL_BLANK ) {
+        found = TRUE;
+        break;
+      }
+    }
+    
+    if ( found == TRUE ) {
+      inType_ = NOTUSED;
+    } else {
+      inType_ = LIN1PT;
+    }
+
     isaxi_       = aptStdPDE->GetIsaxi();
   
     alpha_ = 0.0;
@@ -107,12 +120,12 @@ beta and gamma!\n" );
     //   assumes first nstep = 1 (see transientdriver.cc)!
     numValues_ = solMemoryVal_.size();
 
-	// determine number of past values stored in solMemory_
-	numTrueValues_ = 0;
-	for ( UInt i=0; i < numValues_; i++ ) {
-	  if ( solMemoryVal_[i] == TRUEVAL )
-		numTrueValues_++;
-	}
+    // determine number of past values stored in solMemory_
+    numTrueValues_ = 0;
+    for ( UInt i=0; i < numValues_; i++ ) {
+      if ( solMemoryVal_[i] == TRUEVAL )
+        numTrueValues_++;
+    }
 
     solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
     solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
@@ -140,106 +153,106 @@ beta and gamma!\n" );
 
     for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
 
-	  if ( dampingList_[actSD] == NONE ) {
-		// no damping term has to be computed
-	  }
-	  else if ( dampingList_[actSD] == THERMOVISCOUS || 
-				dampingList_[actSD] == RAYLEIGH ) {
+      if ( dampingList_[subdoms_[actSD]] == NONE ) {
+        // no damping term has to be computed
+      }
+      else if ( dampingList_[subdoms_[actSD]] == THERMOVISCOUS || 
+                dampingList_[subdoms_[actSD]] == RAYLEIGH ) {
 		
-		Vector<Double> coeffDamp;
-		coeffDamp = -solderiv1pred_ + solpred_*a4_;
-		algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
-	  }
-	  else {
+        Vector<Double> coeffDamp;
+        coeffDamp = -solderiv1pred_ + solpred_*a4_;
+        algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
+      }
+      else {
 
-		density         = mymaterialData[actSD].GetDensity();
-		compressibility = mymaterialData[actSD].GetCompressibility();
-		c0 = sqrt(compressibility/density);
-		alpha0 = mymaterialData[actSD].GetDampingAlfa();
-		y      = mymaterialData[actSD].GetDampingBeta();
+        density         = mymaterialData[actSD].GetDensity();
+        compressibility = mymaterialData[actSD].GetCompressibility();
+        c0 = sqrt(compressibility/density);
+        alpha0 = mymaterialData[actSD].GetDampingAlfa();
+        y      = mymaterialData[actSD].GetDampingBeta();
 
-		// factor: pre factor in Newmark timestepping scheme
-		//         times pre factor of damping term
-		factor = a2_ * density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
+        // factor: pre factor in Newmark timestepping scheme
+        //         times pre factor of damping term
+        factor = a2_ * density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
 
 
-		// coeff_: weight factors in BDF
-		if ( dampingList_[actSD] == FRACTIONAL_GL ) {
-		  factor *= std::exp(-(y-1.0)*std::log(dt_));
+        // coeff_: weight factors in BDF
+        if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ) {
+          factor *= std::exp(-(y-1.0)*std::log(dt_));
 
-		  GLWeights(numValues_, y);
-		}
-		else if ( dampingList_[actSD] == FRACTIONAL_GL_INT ) {
-		  factor *= std::exp(-(y-1.0)*std::log(dt_));
+          GLWeights(numValues_, y);
+        }
+        else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ) {
+          factor *= std::exp(-(y-1.0)*std::log(dt_));
 
-		  GLWeights(numValues_, y);
-		  CompressWeights();
-		}
-		else if ( dampingList_[actSD] == FRACTIONAL_BLANK ) {
-		  factor *= std::exp(-(y - 1.0)*std::log(dt_)) 
-			        * std::exp(-gammaln(1.0- (y - 1.0)) );
+          GLWeights(numValues_, y);
+          CompressWeights();
+        }
+        else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ) {
+          factor *= std::exp(-(y - 1.0)*std::log(dt_)) 
+            * std::exp(-gammaln(1.0- (y - 1.0)) );
 
-		  BlankWeights(numValues_, y, TRUE);
-		}
-		else if ( dampingList_[actSD] == FRACTIONAL_BLANK_INT ) {
-		  factor *= std::exp(-(y - 1.0)*std::log(dt_)) 
-			        * std::exp(-gammaln(1.0- (y - 1.0)) );
+          BlankWeights(numValues_, y, TRUE);
+        }
+        else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT ) {
+          factor *= std::exp(-(y - 1.0)*std::log(dt_)) 
+            * std::exp(-gammaln(1.0- (y - 1.0)) );
 
-		  BlankWeights(numValues_, y, TRUE);
-		  CompressWeights();
-		}
+          BlankWeights(numValues_, y, TRUE);
+          CompressWeights();
+        }
 
-		// get elements belonging to actual subdomain   
-		StdVector<Elem*> elemssd;
-		ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
+        // get elements belonging to actual subdomain   
+        StdVector<Elem*> elemssd;
+        ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
         
-		for (UInt actEl=0; actEl < elemssd.GetSize(); actEl++) {
-		  // pointer to element
-		  ptElem=elemssd[actEl]->ptElem;
-		  BaseForm * bilinear_mass = new MassInt(ptElem, factor, isaxi_);
+        for (UInt actEl=0; actEl < elemssd.GetSize(); actEl++) {
+          // pointer to element
+          ptElem=elemssd[actEl]->ptElem;
+          BaseForm * bilinear_mass = new MassInt(ptElem, factor, isaxi_);
           
-		  connecth=elemssd[actEl]->connect;
-		  ptgrid_->GetElemNodesCoord(ptCoord,connecth);
+          connecth=elemssd[actEl]->connect;
+          ptgrid_->GetElemNodesCoord(ptCoord,connecth);
           
-		  bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+          bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
           
-		  // map connect to PDE node numbers
-		  StdVector<Integer> connect_PDE;
-		  ptEQN_->Node2EQN(connecth, connect_PDE);
+          // map connect to PDE node numbers
+          StdVector<Integer> connect_PDE;
+          ptEQN_->Node2EQN(connecth, connect_PDE);
 
 #ifdef DEBUG
-		  UInt elemNum = elemssd[actEl]->elemNum;
+          UInt elemNum = elemssd[actEl]->elemNum;
 		  
-		  // output matrix with which BDF is computed
-		  (*debug) << "Damping   matrix (fractional Damping) of Element " 
-				   << elemNum << std::endl;
-		  (*debug) << elemmat << std::endl;
+          // output matrix with which BDF is computed
+          (*debug) << "Damping   matrix (fractional Damping) of Element " 
+                   << elemNum << std::endl;
+          (*debug) << elemmat << std::endl;
 #endif
-		  // compute BDF
-		  GetElemSolution(solpred_, elemsol, connect_PDE);
-		  rhsvec = -elemsol * coeff_[0];
+          // compute BDF
+          GetElemSolution(solpred_, elemsol, connect_PDE);
+          rhsvec = -elemsol * coeff_[0];
 
-		  for (UInt i=1; i<numTrueValues_; i++) {
+          for (UInt i=1; i<numTrueValues_; i++) {
 
-			GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
-			rhsvec += elemsol * coeff_[i];
-		  }
-		  rhsAssemble = elemmat * rhsvec;
+            GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
+            rhsvec += elemsol * coeff_[i];
+          }
+          rhsAssemble = elemmat * rhsvec;
 
 #ifdef DEBUG
-		  (*debug) << "BDF vector of timestep " << actStep_ << std::endl
-				   << rhsvec << std::endl;
+          (*debug) << "BDF vector of timestep " << actStep_ << std::endl
+                   << rhsvec << std::endl;
 #endif
           
-		  //assemble to RHS
-		  algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, 
-								 connect_PDE.GetPointer(),
-								 connect_PDE.GetSize());
+          //assemble to RHS
+          algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, 
+                                 connect_PDE.GetPointer(),
+                                 connect_PDE.GetSize());
           
-		  delete bilinear_mass;
-		}
-	  }
-	}
+          delete bilinear_mass;
+        }
+      }
+    }
   }
 
 
@@ -252,8 +265,8 @@ beta and gamma!\n" );
 
     // store function values, reverse storing!!!!
     // solMemory_[0]=p_n
-	//   solMemory_[1]=p_(n-1)
-	//     ...
+    //   solMemory_[1]=p_(n-1)
+    //     ...
     //       solMemory_[fracMemory_ - 1]=p_(n-fracMemory_+1)
 
     // no interpolation
@@ -287,7 +300,7 @@ beta and gamma!\n" );
         solMemoryVal_[0] = TRUEVAL;
         solMemoryVal_.insert( (solMemoryVal_.begin()
                                + 2*fracMemory_-actStep_),LIN1PT);
-	  }
+      }
       else if (actStep_ >= 2*fracMemory_ ) {
         if ( (actStep_%2)==0 ) {
           for (UInt i=fracMemory_-1; i>=1; i--)
@@ -381,41 +394,41 @@ beta and gamma!\n" );
 
     ENTER_FCN( "NewmarkFracDamp::CompressWeights" );
 
-	std::vector<Double> newCoeff;
-	newCoeff.resize(numTrueValues_);
-	//for (UInt i=0; i<numTrueValues_; i++) 
-	//  newCoeff[i] = 0;
-	newCoeff.assign(numTrueValues_+1, 0); // initialize with zeros
+    std::vector<Double> newCoeff;
+    newCoeff.resize(numTrueValues_);
+    //for (UInt i=0; i<numTrueValues_; i++) 
+    //  newCoeff[i] = 0;
+    newCoeff.assign(numTrueValues_+1, 0); // initialize with zeros
 
-	// Index 0
-	newCoeff[0] = coeff_[0];
+    // Index 0
+    newCoeff[0] = coeff_[0];
 
-	// Index 1 .. number of stored/interpolated values
-	UInt noInt = 0;  // counts number of interpolated values
-	for ( UInt i=1; i < coeff_.size(); i++) {
+    // Index 1 .. number of stored/interpolated values
+    UInt noInt = 0;  // counts number of interpolated values
+    for ( UInt i=1; i < coeff_.size(); i++) {
 
-	  if ( solMemoryVal_[i-1] == TRUEVAL ) {
-		newCoeff[i - noInt] += coeff_[i];
-	  }
-	  else if (solMemoryVal_[i-1] == LIN1PT ) {
-		newCoeff[i - noInt - 1] += 0.5 * coeff_[i];
-		newCoeff[i - noInt] += 0.5 * coeff_[i];
+      if ( solMemoryVal_[i-1] == TRUEVAL ) {
+        newCoeff[i - noInt] += coeff_[i];
+      }
+      else if (solMemoryVal_[i-1] == LIN1PT ) {
+        newCoeff[i - noInt - 1] += 0.5 * coeff_[i];
+        newCoeff[i - noInt] += 0.5 * coeff_[i];
 
-		noInt++;
-	  }
-	}
-	// output weight factors coeff_
-// 	PrintSolMemoryVal();
-// 	std::cout << "Weight factors of BDF are:" << std::endl;
-// 	for(UInt i=0; i<coeff_.size(); i++)
-// 	  std::cout << coeff_[i] << "  ";
-// 	std::cout << std::endl << "Compressed Weight factors are:" << std::endl;
-// 	for(UInt i=0; i<newCoeff.size(); i++)
-// 	  std::cout << newCoeff[i] << "  ";
-// 	std::cout << std::endl;
+        noInt++;
+      }
+    }
+    // output weight factors coeff_
+    // 	PrintSolMemoryVal();
+    // 	std::cout << "Weight factors of BDF are:" << std::endl;
+    // 	for(UInt i=0; i<coeff_.size(); i++)
+    // 	  std::cout << coeff_[i] << "  ";
+    // 	std::cout << std::endl << "Compressed Weight factors are:" << std::endl;
+    // 	for(UInt i=0; i<newCoeff.size(); i++)
+    // 	  std::cout << newCoeff[i] << "  ";
+    // 	std::cout << std::endl;
 
-	// assign compressed weight factors to coeff_
-	coeff_ = newCoeff;
+    // assign compressed weight factors to coeff_
+    coeff_ = newCoeff;
   }
 
   void NewmarkFracDamp::PrintSolMemoryVal() {
@@ -433,7 +446,7 @@ beta and gamma!\n" );
     }
     msg += "\n\n";
     //Info->PrintF(pdename_, msg.c_str() );
-	std::cout << msg;
+    std::cout << msg;
   }
 
 } // end of namespace

@@ -521,18 +521,18 @@ namespace CoupledField {
     BaseNodeStoreSol * sol_;    //!< solution
     CFSVector * solVec_;        //! needed in iterative coupled computation 
 
-    //! specifies the type of damping model (see environment.hh)
-    DampingType dampingType_;
-	//! list of damping types for all regions
-    StdVector<DampingType> dampingList_;
-	//! number of old time steps to be saved (for fractional damping)
-    UInt fracMemory_;
-	//! type of interpolation (for fractional damping)
-    InterpolType inType_;
-  
-	//! checks, if we have for the coupling a incremental solution
-    Boolean isIncrFormulation_;    
+    //! list of damping types for all regions
+    std::map<RegionIdType,DampingType> dampingList_;
 
+    //! number of old time steps to be saved (for fractional damping)
+    UInt fracMemory_;
+    
+    //! type of interpolation (for fractional damping)
+    InterpolType inType_;
+    
+    //! checks, if we have for the coupling a incremental solution
+    Boolean isIncrFormulation_;    
+    
     
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;

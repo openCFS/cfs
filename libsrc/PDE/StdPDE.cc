@@ -30,7 +30,6 @@ namespace CoupledField {
       isaxi_(FALSE),
       isComplex_(FALSE),
       sol_(NULL),     
-      dampingType_(NONE),
       isIncrFormulation_(FALSE),
       solveStep_(NULL) {
 

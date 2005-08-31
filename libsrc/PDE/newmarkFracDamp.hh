@@ -17,8 +17,8 @@ namespace CoupledField {
     //! constructor
     /*!
       \param algebraicsystem pointer to algebraic system used by PDE
-	  \param rhsSize size of right hand side vector
-	  \param apdeId Id of PDE who called NewmarkFracDamp
+      \param rhsSize size of right hand side vector
+      \param apdeId Id of PDE who called NewmarkFracDamp
       \param ptEQN
       \param aptgrid
       \param aptStdPDE pointer of class from which NewmarkFracDamp is initiated
@@ -30,9 +30,9 @@ namespace CoupledField {
                      const PdeIdType apdeId,
                      NodeEQN * ptEQN, 
                      Grid * aptgrid,
-					 StdPDE * aptStdPDE, 
+                     StdPDE * aptStdPDE, 
                      StdVector<RegionIdType> asubdomainList,
-                     StdVector<DampingType> adampingList);
+                     std::map<RegionIdType,DampingType> adampingList);
   
     //! deconstructor
     virtual ~NewmarkFracDamp();
@@ -70,8 +70,8 @@ namespace CoupledField {
     //! compute Weights for Luise Blanks frac diff spline collocation formula
     void BlankWeights(UInt memory, Double y, Boolean full);
 
-	//! integrate interpolation of past function values in weight vector
-	void CompressWeights();
+    //! integrate interpolation of past function values in weight vector
+    void CompressWeights();
 
     //! print solMemoryVal_ in .info file
     void PrintSolMemoryVal();
@@ -113,11 +113,11 @@ namespace CoupledField {
     //! number of terms over which BDF is calculated
     UInt numValues_;
 
-	//! number of truely stored values
-	UInt numTrueValues_;
+    //! number of truely stored values
+    UInt numTrueValues_;
 
     //! damping type for all regions
-    StdVector<DampingType> dampingList_;
+    std::map<RegionIdType,DampingType> dampingList_;
 
     //! list of subdomains
     StdVector<RegionIdType> subdoms_;

@@ -314,7 +314,7 @@ namespace CoupledField {
     // =====================================================================
     // read in damping information
     // =====================================================================
-      ReadDampingInformation( ptgrid_ );
+    ReadDampingInformation( );
       
     // =====================================================================
     // read in boundary conditions
