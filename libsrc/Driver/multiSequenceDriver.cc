@@ -104,6 +104,8 @@ namespace CoupledField {
       else if (analysisPerStep_[iStep][0] == HARMONIC) {
         actDriver = new HarmonicDriver(ptdomain_, actStep_, actTime_,
                                        tagsPerStep_[iStep][0], TRUE);
+
+        nextStep = actStep_ + 1;
       }
       
       // Initialize all PDEs
