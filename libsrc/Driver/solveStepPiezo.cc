@@ -190,10 +190,6 @@ namespace CoupledField {
 
       //set up the new matrices
       algsys_->InitMatrix();
-//       algsys_->InitMatrix(STIFFNESS);
-//       if (dampingType_ != NONE)
-//         algsys_->InitMatrix(DAMPING);
-//       algsys_->InitMatrix(MASS); 
       assemble_->SetReassemble();   
 
       assemble_->SetMaterialArray( &epsDiff_ ); 

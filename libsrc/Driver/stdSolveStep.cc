@@ -46,7 +46,6 @@ namespace CoupledField {
     firstTimeStepStatic_ =PDE_.firstTimeStepStatic_;
     iterCoupledCounter_ = &PDE_.iterCoupledCounter_;
 
-    dampingType_        = PDE_.dampingType_;
     isIncrFormulation_  = PDE_.isIncrFormulation_;
 
 
