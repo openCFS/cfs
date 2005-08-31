@@ -32,15 +32,16 @@
           <!-- Regions the PDE lives on -->
           <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
             <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="damping" type="DT_PiezoDamp"
+                  minOccurs="0"/>
+              </xsd:sequence>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="nonLinear" type="DT_PiezoNonLin"
                 use="optional" default="no"/>
             </xsd:complexType>
           </xsd:element>
           
-          <!-- Type of damping model (optional) -->
-          <xsd:element name="damping" type="DT_PiezoDamp" minOccurs="0"/>
-
           <!-- Type of materialDataType (real / complex) (optional) -->
           <xsd:element name="materialDataType" type="DT_matData"
             minOccurs="0"/>
@@ -253,20 +254,6 @@
 
 
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for damping model -->
-  <!-- ******************************************************************** -->
-  <xsd:simpleType name="DT_PiezoDampType">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="rayleigh"/>
-    </xsd:restriction>
-  </xsd:simpleType>
-
-  <xsd:complexType name="DT_PiezoDamp">
-    <xsd:attribute name="type" type="DT_PiezoDampType" use="required"/>
-  </xsd:complexType>
-
-
-  <!-- ******************************************************************** -->
   <!--   Definition of material data type (real or complex) -->
   <!-- ******************************************************************** -->
 
@@ -310,5 +297,23 @@
       <xsd:enumeration value="hysteresis"/>
     </xsd:restriction>
   </xsd:simpleType>
+  
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for damping model -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PiezoDamp">
+    
+    <!-- Type of damping -->
+    <xsd:attribute name="type" use="optional" default="no">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="no"/>
+          <xsd:enumeration value="rayleigh"     />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
+  
+  
 </xsd:schema>
