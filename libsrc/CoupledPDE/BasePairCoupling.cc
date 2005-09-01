@@ -13,7 +13,7 @@ namespace CoupledField {
 
   // ***************
   //   Constructor
-  // ******Ü********
+  // ***************
   BasePairCoupling::BasePairCoupling(SinglePDE *pde1, SinglePDE *pde2 ) {
 
     ENTER_FCN( "BasePairCoupling::BasePairCoupling" );
@@ -146,7 +146,7 @@ namespace CoupledField {
 
     // Read in material data
     ReadMaterialData();
-    
+ 
     // Define the integrators
     DefineIntegrators();
 
