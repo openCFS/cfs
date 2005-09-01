@@ -801,11 +801,13 @@ namespace CoupledField {
       }
     }
   }
-  
 
-  // do the basic assembling stuff
-  void Assemble::AssembleSprings(const Double time)
-  {
+
+  // *******************
+  //   AssembleSprings
+  // *******************
+  void Assemble::AssembleSprings( const Double time ) {
+
     ENTER_FCN( "Assemble::AssembleSprings" );
     
     UInt eqnDof;
@@ -815,8 +817,9 @@ namespace CoupledField {
       std::string doftype = springDom_[actDom];
 
       UInt dof = 1;
-      if (dofsPerNode_ != 1)
-        dof = domain->GetCoordSystem()->GetVecComponent( springDof_[actDom] );   
+      if ( dofsPerNode_ != 1 ) {
+        dof = domain->GetCoordSystem()->GetVecComponent( springDof_[actDom] );
+      }
 
       StdVector<UInt> nodes;
       ptgrid_->GetNodesByName(nodes, springDom_[actDom]);
@@ -826,65 +829,65 @@ namespace CoupledField {
       Double stiffnessValue_ = springStiffVals_[actDom];
 
       Double val_tfunc = 1.0;
-      if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
-        val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncname_springs_[actDom]);
+      if ( ptTimeFunc_->GetmaxTimeFnc() > 0 ) {
+        val_tfunc = ptTimeFunc_->TimeFuncAtTime( time,
+                                                 fncname_springs_[actDom] );
+      }
 
+      for ( UInt i = 0; i < nodes.GetSize(); i++ ) {
 
-      for ( UInt i=0; i < nodes.GetSize(); i++ ) {
         UInt node = nodes[i];
-            
-        massValue_ = springMassVals_[actDom]  * val_tfunc;
-        dampingValue_ = springDampVals_[actDom]  * val_tfunc;
+
+        massValue_      = springMassVals_[actDom]  * val_tfunc;
+        dampingValue_   = springDampVals_[actDom]  * val_tfunc;
         stiffnessValue_ = springStiffVals_[actDom] * val_tfunc;
 
-        ptEQN1_->Node2EQN(node,dof,eqnNr,eqnDof);
+        ptEQN1_->Node2EQN( node, dof, eqnNr, eqnDof );
 
-        if (analysisType_==TRANSIENT)
-          {
-            if (abs(massValue_)>1e-30) 
-              {
-                Info->PrintF ("",  "Adding a value to the mass matrix\n");
-                algsys_->AddToDiagMatrixEntry(MASS, pdeId1_, eqnNr, 
-                                              eqnDof, &massValue_ );
-              }
-            if (abs(dampingValue_)>1e-30) 
-              {
-                // if (!dampingMatrix_)
-                // Error("The damping value of a spring can only be added to 
-                // the damping matrix when there exist one! ",__FILE__,__LINE__);
-
-                Info->PrintF ("", "Adding a value to the damping matrix");
-                algsys_->AddToDiagMatrixEntry(DAMPING, pdeId1_, eqnNr, 
-                                              eqnDof, &dampingValue_ );
-              }
-            if (abs(stiffnessValue_)>1e-30) 
-              {
-                Info->PrintF ("", "Adding a value to the stiffness matrix");
-                algsys_->AddToDiagMatrixEntry(STIFFNESS, pdeId1_, 
-                                              eqnNr, eqnDof, &stiffnessValue_ );
-              }
+        if ( analysisType_ == TRANSIENT ) {
+          if ( abs(massValue_) > 1e-30 ) {
+            Info->PrintF( "", "Adding value %e to the mass matrix\n",
+                          massValue_ );
+            algsys_->AddToDiagMatrixEntry( MASS, pdeId1_, eqnNr, eqnDof,
+                                           &massValue_ );
           }
+          if ( abs(dampingValue_) > 1e-30 ) {
 
-        else if(analysisType_==STATIC)
-          {
-            if (abs(stiffnessValue_)>1e-30)
-              {
-                Info->PrintF ("", "Adding a value to the stiffness matrix");
-                algsys_->AddToDiagMatrixEntry(SYSTEM, pdeId1_, eqnNr, 
-                                              eqnDof, &stiffnessValue_ );
-              }
-            if (abs(dampingValue_)>1e-30 || abs(massValue_)>1e-30 ) {
-              (*error) << "The damping and mass value of a spring will not considered "
-                       << "in an static analysis!";
-              Error( __FILE__, __LINE__ );
-            }
+            // if (!dampingMatrix_)
+            // Error("The damping value of a spring can only be added to 
+            // the damping matrix when there exist one! ",__FILE__,__LINE__);
+
+            Info->PrintF( "", "Adding value %e to the damping matrix\n",
+                          dampingValue_ );
+            algsys_->AddToDiagMatrixEntry( DAMPING, pdeId1_, eqnNr, eqnDof,
+                                           &dampingValue_ );
           }
+          if ( abs(stiffnessValue_) > 1e-30 ) {
+            Info->PrintF( "", "Adding value %e to the stiffness matrix\n",
+                          stiffnessValue_ );
+            algsys_->AddToDiagMatrixEntry( STIFFNESS, pdeId1_, eqnNr, eqnDof,
+                                           &stiffnessValue_ );
+          }
+        }
+
+        else if( analysisType_ == STATIC ) {
+          if ( abs(stiffnessValue_) > 1e-30 ) {
+            Info->PrintF( "", "Adding value %e to the system matrix\n",
+                          stiffnessValue_ );
+            algsys_->AddToDiagMatrixEntry( SYSTEM, pdeId1_, eqnNr, eqnDof,
+                                           &stiffnessValue_ );
+          }
+          if ( abs(dampingValue_) > 1e-30 || abs(massValue_) > 1e-30 ) {
+            (*error) << "The damping and mass value of a spring will not "
+                     << "be considered in an static analysis!";
+            Error( __FILE__, __LINE__ );
+          }
+        }
       }
     }
   }
 
 
-  
   void Assemble::InitNonLinMatrices() {
     ENTER_FCN( "Assemble::InitNonLinMatrices" );
     
