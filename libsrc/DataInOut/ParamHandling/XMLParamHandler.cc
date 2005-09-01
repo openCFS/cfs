@@ -34,6 +34,11 @@ using namespace xercesc;
 #include "Utils/tools.hh"
 
 
+// uncomment for debugging (shows details of search progress on screen)
+// this does not use (*debug), so it works also with a non-debug version
+// #define DEBUG_XMLPARAMHANDLER
+
+
 namespace CoupledField {
 
 
@@ -1273,6 +1278,10 @@ namespace CoupledField {
       }
     }
     else {
+      if ( beVerbose_ == true ) {
+        std::cerr << " -> Testing " << list->getLength() << " element(s) that"
+                  << " are potential matches" << std::endl;
+      }
       for ( unsigned int i = 0; i < list->getLength(); i++ ) {
         auxElem = Node2Elem( list->item(i) );
         if ( AttribHasValue( auxElem, attribs[curdepth-1],
@@ -1290,6 +1299,14 @@ namespace CoupledField {
         std::cerr << " Found " << elemvec->GetSize() << " matches!\n";
         std::cerr << " Reached bottom of recursion!\n";
       }
+    }
+
+    // There were no new branchTops so return immediately
+    else if ( branchTops->GetSize() == 0 ) {
+      if ( beVerbose_ == true ) {
+        std::cerr << " No new sub-tress -> ascending again\n";
+      }
+      elemvec = branchTops;
     }
 
     // This is not the lowest level, so we descend and look for elements
@@ -1318,7 +1335,7 @@ namespace CoupledField {
 
         // Report ascend
         if ( beVerbose_ == true ) {
-          std::cerr << "Back on level " << curdepth << '\n';
+          std::cerr << " Back on level " << curdepth << '\n';
         }
 
         // append results to our element vector
@@ -1984,9 +2001,15 @@ namespace CoupledField {
         retVal = false;
       }
     }
-    
+
     // Test, if attribute's value matches specification
     else {
+
+      // Report for debugging
+      if ( beVerbose_ == true ) {
+        std::cerr << " Checking attribute '" << attribute
+                  << "' for value '" << value << "'" << std::endl;
+      }
 
       // Convert attribute's value to string representation
       std::string *foundValue = X2S( Node2Attr(attrib)->getValue() );
