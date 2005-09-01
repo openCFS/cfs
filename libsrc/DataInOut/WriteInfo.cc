@@ -529,95 +529,98 @@ namespace CoupledField {
                << myEndl;
     }
   }
-  
-  
-  // prints error to both std::out and info-file
-  void WriteInfo::Error(const std::string & Text,
-                        const Char * const filename, const UInt numline)
-  {
+
+
+  // *********
+  //   Error
+  // *********
+  void WriteInfo::Error( const std::string &Text, const Char *const filename,
+                         const UInt numline ) {
+
     ENTER_FCN( "WriteInfo::Error" );
-    
-    if (progressRunning_);
-    std::cerr << "\033[31mFAILED\033[0m" << std::endl << std::endl;
 
-    std::cerr << std::endl << "\033[31mERROR:\033[0m " << myEndl;
-    std::cerr << Text;
+    // If a progress part is still there, then finish it with
+    // a failure
+    if ( progressRunning_ ) {
+      FinishProgress( FALSE );
+    }
 
-    if (filename) {
-      std::cerr <<"\n\nThe error occurred in '" << filename << "'";
-      if (numline) {
-        std::cerr << " on line " << numline << ".";
-      }
+    std::cerr << std::endl << " \033[31mERROR:\033[0m\n" << myEndl;
+    std::cerr << ' ' << Text;
+
+    if ( filename ) {
+      std::cerr << "\n\n This error message was brought to you by\n "
+		<< filename << ", line " << numline;
     }
 
 #ifdef TRACE
     OutInfo::FcnTraceHandler::Dump();
-    std::cerr << "\nSee .trace-file for trace dump of function "
-              << "call tree.";
+    std::cerr << "\n\n See '" << commandLine->GetSimName()
+              << ".trace' for trace dump of function call tree.";
 #endif
 
     std::cerr << std::endl << std::endl;
     
-    if (cfsInfo)
-      {
-        *cfsInfo << myEndl << myEndl << myEndl
-                 << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
-                 << myEndl
-                 << "                          ERROR " << myEndl
-                 << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
-                 << myEndl
-                 << " ERROR: " << Text;
-        
-        if (filename) 
-          {
-            *cfsInfo <<" (" << filename <<" ";
-            if (numline) 
-              *cfsInfo << numline;
-            *cfsInfo << ")";
-          }
-        *cfsInfo << std::endl;  
+    if (cfsInfo) {
+      *cfsInfo << myEndl << myEndl << myEndl
+               << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
+               << myEndl
+               << "                          ERROR " << myEndl
+               << " !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! "
+               << myEndl
+               << " ERROR: " << Text;
+
+      if (filename) {
+        *cfsInfo <<" (" << filename <<" ";
+        if (numline) 
+          *cfsInfo << numline;
+        *cfsInfo << ")";
       }
-    
+      *cfsInfo << std::endl;  
+    }
+
     // exit program
     exit(-1);
   }
-  
 
 
-  void WriteInfo::WriteHomBC(const std::string& pdeName,
-                             const std::string& subDom, UInt dof)
-  {
+  // **************
+  //   WriteHomBC
+  // **************
+  void WriteInfo::WriteHomBC( const std::string& pdeName,
+                              const std::string& subDom, UInt dof ) {
     ENTER_FCN( "WriteInfo::WriteHomBC" );
     
-    if (cfsInfo)
-      {
-        
-        *cfsInfo << pdeName << "-PDE: Homogenous Dirichlet BC on \"" << subDom
-                 << "\"";
-        if (dof)
-          *cfsInfo << " with DOF number " << dof;
-        
-        *cfsInfo << myEndl;
+    if (cfsInfo) {
+      *cfsInfo << pdeName << "-PDE: Homogenous Dirichlet BC on \"" << subDom
+               << "\"";
+      if (dof) {
+        *cfsInfo << " with DOF number " << dof;
       }
+      *cfsInfo << myEndl;
+    }
   }
 
 
-  void WriteInfo::WriteInHomBC(const std::string& pdeName,
-                               const std::string& subDom, 
-                               const Double& val, const std::string & fnc,
-                               const UInt& dof)
-  {
+  // ****************
+  //   WriteInHomBC
+  // ****************
+  void WriteInfo::WriteInHomBC( const std::string& pdeName,
+                                const std::string& subDom, 
+                                const Double& val, const std::string & fnc,
+                                const UInt& dof ) {
+
     ENTER_FCN( "WriteInfo::WriteInHomBC" );
     
-    if (cfsInfo)
-      {
-        *cfsInfo << pdeName << "-PDE: Inhomogenous Dirichlet BC on \""
-                 << subDom  << "\"";
-        if (dof)
-          *cfsInfo << " with DOF number " << dof;
-        *cfsInfo << ", value = " <<  val << ", FncName: " << fnc; 
-        *cfsInfo << myEndl;
+    if (cfsInfo) {
+      *cfsInfo << pdeName << "-PDE: Inhomogenous Dirichlet BC on \""
+               << subDom  << "\"";
+      if (dof) {
+        *cfsInfo << " with DOF number " << dof;
       }
+      *cfsInfo << ", value = " <<  val << ", FncName: " << fnc; 
+      *cfsInfo << myEndl;
+    }
   }
 
 
@@ -720,12 +723,11 @@ namespace CoupledField {
 
 
         default:
-          std::string errStr;
-          errStr = "Format character " + formatChar;
-          errStr += " not yet defined!";
-          Error(errStr.c_str());
+          (*error) << "Format character " << formatChar
+                   << " not yet defined!";
+          CoupledField::Error( __FILE__, __LINE__ );
           break;
-        }           
+        }
 
         formatted += charOut;
         
@@ -742,10 +744,13 @@ namespace CoupledField {
     
     va_end(argList);
   }
-    
-  void WriteInfo::StartProgress(const std::string &name,
-                                Boolean needAck)
-  {
+
+
+  // *****************
+  //   StartProgress
+  // *****************
+  void WriteInfo::StartProgress( const std::string &name, Boolean needAck ) {
+
     ENTER_IFCN( "WriteInfo::StartProgress" );
    
     std::string modifiedName = name + " ...";
@@ -754,30 +759,38 @@ namespace CoupledField {
     
     std::cout << "++ " << std::setw(60) << std::left << modifiedName;
 
-    if (needAck)
-      {
-        warningOccured_ = FALSE;
-        progressRunning_ = TRUE;
-      }
-    else
+    if ( needAck ) {
+      warningOccured_ = FALSE;
+      progressRunning_ = TRUE;
+    }
+    else {
       std::cout << std::endl;
+    }
   }
 
 
-  void WriteInfo::FinishProgress(const Boolean success)
-  {
-    ENTER_IFCN( "WriteInfo::StartProgress" );
-    
- 
-    if (!warningOccured_)
-      if (success)
-        std::cout << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
-      else
-        std::cout << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
+  // ******************
+  //   FinishProgress
+  // ******************
+  void WriteInfo::FinishProgress( const Boolean success ) {
 
-    warningOccured_ = FALSE;
+    ENTER_IFCN( "WriteInfo::StartProgress" );
+
+    bool okay = ( warningOccured_ == FALSE ) && ( success == TRUE );
+
+    if ( okay == true ) {
+      std::cout << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
+    }
+    else if ( warningOccured_ == TRUE ) {
+      std::cout << std::setw(10) << "\033[31mWARNED\033[0m" << std::endl;
+    }
+    else {
+      std::cout << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
+    }
+
+    // re-set flags
+    warningOccured_  = FALSE;
     progressRunning_ = FALSE;
   }
-  
   
 }
