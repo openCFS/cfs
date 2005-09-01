@@ -486,17 +486,17 @@ namespace CoupledField {
 
   
   // prints warning to info-file
-  void WriteInfo::Warning(const std::string & Text,
-                          const Char * const filename, const UInt numline)
-  {
+  void WriteInfo::Warning( const std::string & Text,
+                           const Char* const filename, const UInt numline ) {
+
     ENTER_FCN( "WriteInfo::Warning" );
 
-    if (progressRunning_) {
-      std::cerr <<  "\033[31mWARNING\033[0m " << myEndl << myEndl;
+    if ( progressRunning_ == TRUE ) {
+      std::cout << std::endl;
     }
 
-    std::cerr << "\033[31mWARNING:\033[0m " << Text << myEndl << myEndl;
-    
+    std::cerr << "\n \033[31mWARNING:\033[0m\n " << Text << myEndl;
+
     warningOccured_ = TRUE;
 
     if (filename) {
@@ -505,8 +505,10 @@ namespace CoupledField {
         std::cerr << numline;
       }
       std::cerr << ")" << std::endl;
-    }else
+    }
+    else {
       std::cerr << std::endl;
+    }
 
     if (cfsInfo) {
       *cfsInfo << myEndl << myEndl << myEndl
@@ -756,8 +758,9 @@ namespace CoupledField {
     std::string modifiedName = name + " ...";
 
     needAck_ = needAck;
-    
-    std::cout << "++ " << std::setw(60) << std::left << modifiedName;
+
+    std::cout << "++ " << std::setw(60) << std::left << modifiedName
+              << std::flush;
 
     if ( needAck ) {
       warningOccured_ = FALSE;
@@ -781,11 +784,11 @@ namespace CoupledField {
     if ( okay == true ) {
       std::cout << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
     }
-    else if ( warningOccured_ == TRUE ) {
-      std::cout << std::setw(10) << "\033[31mWARNED\033[0m" << std::endl;
+    else if ( success == FALSE ) {
+      std::cout << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
     }
     else {
-      std::cout << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
+      std::cout << std::endl;
     }
 
     // re-set flags
