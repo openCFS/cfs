@@ -151,9 +151,8 @@ namespace CoupledField {
                  const UInt numline=0);
     
     /// prints error to both std::out and info-file
-    void Error(const std::string & text, const Char * const filename=NULL,
-               const UInt numline=0);
-
+    void Error( const std::string &text, const Char *const filename,
+                const UInt numline );
 
     /// generates a message, that a certain action has started
     void StartProgress(const std::string &name, Boolean needAck = TRUE);
