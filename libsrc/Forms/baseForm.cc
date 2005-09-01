@@ -7,13 +7,17 @@ namespace CoupledField
 {
 
   BaseForm::BaseForm(BaseFE * aptelem, MaterialData & matData)
-    : ptelem(aptelem), ptMaterial(&matData), isaxi_(FALSE),
+    : ptelem(aptelem), isaxi_(FALSE),
       isFracDamping_(FALSE), isRaylDamping_(FALSE), dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     piezoMatType_ = REALMATERIALPARAMETER;
+
+    // We generate the object, so we will delete it
     ptMaterial = new MaterialData(matData);
+    delMatDataAtEnd_ = true;
+
     baseType_ = NOTYPE;
     materialArray_ = NULL;
   }
@@ -25,7 +29,11 @@ namespace CoupledField
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     ptMaterial = new MaterialData(matData);
+
+    // We generate the object, so we will delete it
     piezoMatType_ = REALMATERIALPARAMETER;
+    delMatDataAtEnd_ = true;
+
     baseType_ = NOTYPE;
     materialArray_ = NULL;
     
@@ -38,7 +46,11 @@ namespace CoupledField
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     piezoMatType_ = REALMATERIALPARAMETER;
+
+    // We do not generate the object, so we will not delete it
     ptMaterial = NULL;
+    delMatDataAtEnd_ = false;
+
     baseType_ = NOTYPE;
     materialArray_ = NULL;
   }
@@ -50,19 +62,45 @@ namespace CoupledField
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
     piezoMatType_ = REALMATERIALPARAMETER;
+
+    // We do not generate the object, so we will not delete it
     ptMaterial = NULL;
+    delMatDataAtEnd_ = false;
+
     baseType_ = NOTYPE;
     materialArray_ = NULL;
   }
  
 
 
-  BaseForm::~BaseForm()
-  {
+  // **************
+  //   Destructor
+  // **************
+  BaseForm::~BaseForm() {
     ENTER_FCN( "BaseForm::~BaseForm" );
-    delete ptMaterial;
+
+    if ( delMatDataAtEnd_ == true ) {
+      delete ptMaterial;
+    }
   }
 
+
+  // ***************
+  //   SetMaterial
+  // ***************
+  void BaseForm::SetMaterial( MaterialData *matPtr ) {
+
+    ENTER_FCN( "BaseForm::SetMaterial" );
+
+    // Avoid leaks
+    if ( ptMaterial != NULL && delMatDataAtEnd_ == true ) {
+      delete ptMaterial;
+    }
+
+    // Set new material pointer and avoid deleting it
+    ptMaterial = matPtr;
+    delMatDataAtEnd_ = false;
+  }
 
 
   void BaseForm::CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double>& elemMat) 
@@ -129,6 +167,5 @@ namespace CoupledField
   void SurfForm::SetFactor( Double factor ) {
     factor_ = factor;
   } 
-  
   
 }
