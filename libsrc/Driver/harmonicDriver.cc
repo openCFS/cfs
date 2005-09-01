@@ -34,7 +34,7 @@ namespace CoupledField {
 
     attrVec = "tag";
     valVec = driverTag_;
-  
+
     // Get time stepping information from parameter object
     keyVec = "harmonic", "startFreq";
     params->Get( keyVec, attrVec, valVec, startFreq_ );
@@ -54,9 +54,15 @@ namespace CoupledField {
     keyVec = "harmonic", "sampling";
     params->Get( keyVec, attrVec, valVec, sampling );
     String2Enum( sampling, samplingType_ );
-    Info->PrintF( "", "HarmonicDriver uses '%s' sampling\n",
-                  sampling.c_str() );
-                  
+
+    // Be verbose
+    Info->PrintF( "", " HarmonicDriver\n" ); 
+    Info->PrintF( "", " -> Sampling strategy ....... '%s'\n",
+		  sampling.c_str() );
+    Info->PrintF( "", " -> starting frequency ...... '%f'\n", startFreq_ );
+    Info->PrintF( "", " -> stopping frequency ...... '%f'\n", stopFreq_ );
+    Info->PrintF( "", " -> number of frequencies ... '%d'\n", numFreq_ );
+
 
     // ---------------------------------
     //  Perform some consistency checks
