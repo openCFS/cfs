@@ -7,6 +7,7 @@
 #include "assemble.hh"
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "PDE/StdPDE.hh"
 #include "Domain/domain.hh"
@@ -35,9 +36,24 @@ namespace CoupledField {
     attrVec = "tag";
     valVec = driverTag_;
 
-    // Get time stepping information from parameter object
+    // --------------------------------------------------------
+    // Get frequency sampling information from parameter object
+    // --------------------------------------------------------
+
+    // In order to avoid problems with non-matching tag attributes,
+    // we do a GetList() first, since this does not check for defaults
+    StdVector<Double> auxVec;
     keyVec = "harmonic", "startFreq";
-    params->Get( keyVec, attrVec, valVec, startFreq_ );
+    params->GetList( keyVec, attrVec, valVec, auxVec );
+    if ( auxVec.GetSize() == 1 ) {
+      startFreq_ = auxVec[0];
+    }
+    else {
+      (*error) << "HarmonicDriver::HarmonicDriver:\n "
+               << "Could not find a section <harmonic> with tag = '"
+               << driverTag_ << "' in " << commandLine->GetParamFile();
+      Error( __FILE__, __LINE__ );
+    }
 
     keyVec = "harmonic", "stopFreq";
     params->Get( keyVec, attrVec, valVec, stopFreq_ );
@@ -56,12 +72,13 @@ namespace CoupledField {
     String2Enum( sampling, samplingType_ );
 
     // Be verbose
-    Info->PrintF( "", " HarmonicDriver\n" ); 
+    Info->PrintF( "", "\n HarmonicDriver\n" ); 
     Info->PrintF( "", " -> Sampling strategy ....... '%s'\n",
 		  sampling.c_str() );
     Info->PrintF( "", " -> starting frequency ...... '%f'\n", startFreq_ );
-    Info->PrintF( "", " -> stopping frequency ...... '%f'\n", stopFreq_ );
-    Info->PrintF( "", " -> number of frequencies ... '%d'\n", numFreq_ );
+    Info->PrintF( "", " -> stopping frequency ...... '%f'\n", stopFreq_  );
+    Info->PrintF( "", " -> number of frequencies ... '%d'\n", numFreq_   );
+    Info->PrintF( "", "\n" );
 
 
     // ---------------------------------
