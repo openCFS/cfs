@@ -97,9 +97,13 @@ namespace CoupledField
     void SetElemPtr(BaseFE * elemPtr){ptelem = elemPtr;};
 
     //! sets pointer to actual material
-    void SetMaterial(MaterialData * matPtr){ptMaterial = matPtr;};
+    void SetMaterial( MaterialData *matPtr );
 
-    MaterialData * GetMaterial(){return ptMaterial;};
+    //! query pointer to actual material
+    MaterialData *GetMaterial() {
+      ENTER_FCN( "BaseForm::GetMaterial" );
+      return ptMaterial;
+    }
 
     //! get base type of biliearform: STIFFNESS, DAMPING, MASS
     virtual FEMatrixType GetBaseType() 
@@ -161,7 +165,6 @@ namespace CoupledField
 
   protected:
 
-
     //! pointer to reference element
     BaseFE  * ptelem;   
     
@@ -188,6 +191,11 @@ namespace CoupledField
 
     UInt actSD_;
     UInt actElemNr_;
+
+  private:
+
+    //! Should we delete the material data object?
+    bool delMatDataAtEnd_;
 
   };
 
@@ -262,7 +270,7 @@ namespace CoupledField
     Double factor_;
 
     //! formulation type
-    SolutionType formulation_;  
+    SolutionType formulation_;
   };
 
 } //end namespace
