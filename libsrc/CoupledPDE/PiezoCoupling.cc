@@ -12,11 +12,15 @@
 #include "Forms/linPiezoCoupling2DPlaneStrain.hh"
 
 
-namespace CoupledField
-{
+namespace CoupledField {
 
+
+  // ***************
+  //   Constructor
+  // ***************
   PiezoCoupling::PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2 )
     : BasePairCoupling( pde1, pde2 ) {
+
     ENTER_FCN( "PiezoCoupling::PiezoCoupling" );
 
     couplingName_ = "piezoDirect";
@@ -24,38 +28,55 @@ namespace CoupledField
   }
 
 
+  // **************
+  //   Destructor
+  // **************
   PiezoCoupling::~PiezoCoupling() {
-    ENTER_FCN( "PiezoCoupling::~PiezoCoupling" )
-      }
+    ENTER_FCN( "PiezoCoupling::~PiezoCoupling" );
+  }
 
+
+  // ***************
+  //   PostProcess
+  // ***************
   void PiezoCoupling::PostProcess() {
     ENTER_FCN( "PiezoCoupling::PostProcess" );
   }
-  
 
+
+  // *********************
+  //   DefineIntegrators
+  // *********************
   void PiezoCoupling::DefineIntegrators() {
+
     ENTER_FCN( "PiezoCoupling::DefineIntegrators" );
     
-
     piezoMaterialType realMatParameter = REALMATERIALPARAMETER;
-    
-    
+
     // iterate over all subdomains
     for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
        
-      // ==============  add stiffness ========================================
-      BaseForm * bilinearStiff = GetStiffIntegrator(&materialData_[actSD]);
-      IntegratorDescriptor *actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
-      bilinearStiff->SetPiezoMaterialType(realMatParameter);
-      actIntDescrStiff->SetPiezoMaterialType(realMatParameter);
-      actIntDescrStiff->SetPDEIds(pde1_, pde2_);      
-      assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);     
-    }
+      // add stiffness
+      BaseForm *bilinearStiff = GetStiffIntegrator( &materialData_[actSD] );
 
+      IntegratorDescriptor *actIntDescrStiff =
+        new IntegratorDescriptor( bilinearStiff, STIFFNESS );
+
+      bilinearStiff->SetPiezoMaterialType( realMatParameter );
+
+      actIntDescrStiff->SetPiezoMaterialType( realMatParameter );
+      actIntDescrStiff->SetPDEIds( pde1_, pde2_ );
+      assemble_->AddIntegrator( actIntDescrStiff, subdoms_[actSD] );
+    }
   }
-  BaseForm * PiezoCoupling::GetStiffIntegrator(MaterialData * actSDMat,
+
+
+  // **********************
+  //   GetStiffIntegrator
+  // **********************
+  BaseForm* PiezoCoupling::GetStiffIntegrator( MaterialData *actSDMat,
                                                Boolean reducedInt,
-                                               Boolean isdamping) {
+                                               Boolean isdamping ) {
 
     ENTER_FCN( "PiezoCoupling::GetStiffIntegrator" );
 
@@ -64,7 +85,7 @@ namespace CoupledField
     params->Get( "subType", subType, "mechanic" );
     params->Get( "type", probGeo, "geometry" );
 
-    BaseForm * bilinearStiff;
+    BaseForm *bilinearStiff;
 
     if (subType == "planeStrain") {
       bilinearStiff = new linPiezoCoupling2DPlaneStrain();
@@ -75,19 +96,25 @@ namespace CoupledField
     else if (subType == "3d") {
       bilinearStiff = new linPiezoCoupling3D(); 
     }
-    else
-      Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);
+    else {
+      (*error) << "PiezoCoupling::GetStiffIntegrator:\n "
+               << "Don't kn  ow how to handle subType = "
+               << subType;
+      Error( __FILE__, __LINE__ );
+    }
 
     // Set pointer to material type
     bilinearStiff->SetMaterial( actSDMat );
-    
+
     return bilinearStiff;
   }
-  
+
+
+  // ********************
+  //   ReadStoreResults
+  // ********************
   void PiezoCoupling::ReadStoreResults() {
     ENTER_FCN( "PiezoCoupling::ReadStoreResults" );
-    
   }
 
-
-} // end of namespace
+}
