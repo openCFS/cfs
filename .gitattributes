@@ -54,7 +54,6 @@ XML/Schemas/CFS_PDEmpcci.xsd -text
 XML/Schemas/CFS_PDEpiezo.xsd -text
 XML/Schemas/CFS_PDEsmooth.xsd -text
 XML/Schemas/CFS_Preconds.xsd -text
-XML/Schemas/CFS_SolverPrecond.xsd -text
 XML/Schemas/CFS_Solvers.xsd -text
 XML/Schemas/OLAS.xsd -text
 XML/TestParser/Doc/doxy.conf -text
