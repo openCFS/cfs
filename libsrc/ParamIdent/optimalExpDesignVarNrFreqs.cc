@@ -68,7 +68,7 @@ namespace CoupledField
         }
         rhos[maxIndex]=0.0;
         sumRhos+=highestRhos[i];
-        if (sumRhos>1.1&&i>3){
+        if (sumRhos>1.10 && i>3){
           std::cout<<"sumRhos = "<<sumRhos <<std::endl;
           //          getchar();
           break;
@@ -151,8 +151,8 @@ namespace CoupledField
     Vector<Complex> jacobi;
     Vector<Complex> jacobiH;
 
-    Double penaltyFactor1=0.01;
-    Double penaltyFactor2=0.01;
+    Double penaltyFactor1=0.000000001;
+    Double penaltyFactor2=0.000000001;
 
     fr_=4000/(2*thickness);
     // minus 5 percent
@@ -200,18 +200,19 @@ namespace CoupledField
              if(actFreq==0||actFreq==nrfreq)
                //  covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/
                // ((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
-               //        covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/
-               //((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq]));
 
                covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/
-                 (freqs[actFreq]*(1+delta)*(1+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+                 ((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq]));
+
+//                covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/
+//                  (freqs[actFreq]*(1+delta)*(1+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
 
              else 
-               //  covTemp[i][j]=rhos[actFreq]*hOmega*jacobiH[i]*jacobi[j]/
-               //((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
-
                covTemp[i][j]=rhos[actFreq]*hOmega*jacobiH[i]*jacobi[j]/
-                 (freqs[actFreq]*(1+delta)*(1+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+                 ((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+
+//                covTemp[i][j]=rhos[actFreq]*hOmega*jacobiH[i]*jacobi[j]/
+//                  (freqs[actFreq]*(1+delta)*(1+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
 
              if (i==j)
                covTemp[i][i]+=covTemp[i][i];// *1.0e-10;
@@ -257,8 +258,16 @@ namespace CoupledField
          *impedCurve<<parameter[9]<<"  ";
          *impedCurve<<parameter[9]-parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
        }
+
+       if (actNrParameter==10)
+         for (UInt i=0;i<10;i++)
+           *impedCurve<<parameter[i]+parameter[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
+
        *impedCurve<<std::endl;
      }
+
+
+
 
      for(UInt parInd=0;parInd<actNrParameter+actNrParameterC;parInd++)
        J+=cov[parInd][parInd];
@@ -316,11 +325,12 @@ namespace CoupledField
     Vector<Double> rhosOld;
     rhosOld.Resize(nrMeasuredData);
     rhosOld=rhos;
-    Double lambda=1.0e-1;
+    //    Double lambda=1.0e-4; // for 10 parameters
+    //    Double lambda=1.0e-1; // for 3 parameters
+    Double lambda=1.0e-2; // for 4 parameters
 
     Complex J_old,J;
 
-   
     Double dOmega=0.0001;
     for (UInt descIter=0;descIter<maxNumberDescentIterations;descIter++){
 
@@ -328,7 +338,7 @@ namespace CoupledField
       
       J=J_old;
       
-      lambda=2*lambda;
+      lambda=10*lambda;
       createGradientRho(grad, dOmega);
 
       while (J_old.real()<=J.real()){
@@ -340,7 +350,7 @@ namespace CoupledField
 	std::cout<<"OLD Functional J = "<<J_old.real()<<std::endl;
 
 	if (J.real()>=J_old.real()){
-	  lambda=0.5*lambda;
+	  lambda=0.1*lambda;
 	  rhos=rhosOld;
 	  std::cout<<"lambda = " << lambda << std::endl;
 	}

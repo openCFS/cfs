@@ -27,19 +27,33 @@ namespace CoupledField
 
 
     // optimalExpDesignDiffNumberFreqs();
-    nrMeasuredData=7;
-    Vector<Double> freqs5;
-    freqs5.Resize(7);
-    freqs5[0]=3.0e+06;
-    freqs5[1]=4.0e+06;
-    freqs5[2]=6.0e+06;
-    freqs5[3]=6.5e+06;
-    freqs5[4]=6.0e+06;
-    freqs5[5]=6.5e+06;
-    freqs5[6]=7.0e+06;
-    //    freqs5[7]=7.5e+06;
+//      nrMeasuredData=10;
+//      Vector<Double> freqs5;
+//      freqs5.Resize(10);
+//      freqs5[0]=1.2e+06;
+//      freqs5[1]=2.0e+06;
+//      freqs5[2]=2.5e+06;
+//      freqs5[3]=3.0e+06;
+//      freqs5[4]=3.5e+06;
+//      freqs5[5]=4.0e+06;
+//      freqs5[6]=5.8e+06;
+//      freqs5[7]=6.1e+06;
+//      freqs5[8]=6.4e+06;
+//      freqs5[9]=6.9e+06;
+//      freqs=freqs5;
 
-    freqs=freqs5;
+
+     nrMeasuredData=5;
+     Vector<Double> freqs5;
+     freqs5.Resize(5);
+
+     freqs5[0]=2.0e+06;
+     freqs5[1]=3.5e+06;
+     freqs5[2]=4.5e+06;
+     freqs5[3]=5.8e+06;
+     freqs5[4]=6.9e+06;
+     freqs=freqs5;
+
     Vector<Double> newFreqs;
    
     for(UInt fr=0;fr<nrMeasuredData;fr++)
@@ -88,7 +102,7 @@ namespace CoupledField
     for (UInt nrOptExpSteps=0; nrOptExpSteps<20; nrOptExpSteps++){ 
       UInt nrNuMethods=0;
 
-      descentMethod(functional);
+      //      descentMethod(functional);
       readInMeasurement(newFreqs);
 
       for(UInt fr=0;fr<nrMeasuredData;fr++)

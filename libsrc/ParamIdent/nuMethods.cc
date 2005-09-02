@@ -1,5 +1,6 @@
 #include "PDE/SinglePDE.hh" 
 #include "piezoParamIdent.hh"
+#include "Utils/mathfunctions.hh"
 
 
 namespace CoupledField
@@ -83,9 +84,16 @@ namespace CoupledField
     //  createJacobiMatrix2(JacobiMatrix);
     //std::cout<<JacobiMatrix<<std::endl;
     testJacobiMatrix2(F_hat, JacobiMatrix, parameter, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
-    //std::cout<<approxJacobiMatrix<<std::endl;
-    
-    //      std::cout<<approxJacobiMatrix<<std::endl;
+//     std::cout<<approxJacobiMatrix<<std::endl;
+
+//     for(UInt ii=0;ii<approxJacobiMatrix.GetSizeRow();ii++)
+//       for(UInt jj=0;jj<approxJacobiMatrix.GetSizeCol();jj++){
+//         std::cout<<approxJacobiMatrix[ii][jj].real()<<" + " << approxJacobiMatrix[ii][jj].imag() << "i   ";
+//         if (jj==approxJacobiMatrix.GetSizeCol()-1)
+//           std::cout<<"; " <<std::endl;
+//       }
+
+   
     JacobiMatrix=approxJacobiMatrix;
     // std::cout<<JacobiMatrix<<std::endl;
       
@@ -102,7 +110,7 @@ namespace CoupledField
         if (i==j)
           ImgSpaceScalingMat[i][j] = 1.0/std::log(Complex(real[i],imag[i]));
 
-  //   std::cout<<"\n ImgspaceScalingMat"<<std::endl;
+//     std::cout<<"\n ImgspaceScalingMat"<<std::endl;
 //     std::cout<<ImgSpaceScalingMat<<std::endl;
 //     getchar();
 
@@ -116,40 +124,49 @@ namespace CoupledField
     //std::cout<<adjJacobiMatrix<<std::endl;
     //      std::cout<<"\n Adjoint Matrix * ImgSpaceScalingMat"<<std::endl;
     adjJacobiMatrix = adjJacobiMatrix*ImgSpaceScalingMat;
-      
-    //   std::cout<<adjJacobiMatrix<<std::endl;
+
+//     std::cout<<"adjJacobiMatrix"<<std::endl;      
+//     std::cout<<adjJacobiMatrix<<std::endl;
     
   
     // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    //         Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-    //      Matrix<Double> JacobiMatrixR(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-    //    Matrix<Double> JacobiMatrixNE_R(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-    //       Vector<Complex> y_hat_F_hatNE(JacobiMatrix.GetSizeCol());
+//     Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+//     Matrix<Double> JacobiMatrixR(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+//     Matrix<Double> JacobiMatrixNE_R(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+//     Vector<Complex> y_hat_F_hatNE(JacobiMatrix.GetSizeCol());
 
-    //    adjJacobiMatrix.Mult(JacobiMatrix,JacobiMatrixNE);
-    //       adjJacobiMatrix.Mult(act_res, y_hat_F_hatNE);
-    //       std::cout<<JacobiMatrixNE<<std::endl;
+//     adjJacobiMatrix.Mult(JacobiMatrix,JacobiMatrixNE);
+//     adjJacobiMatrix.Mult(act_res, y_hat_F_hatNE);
+//     //std::cout<<JacobiMatrixNE<<std::endl;
       
-    //   for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
-    //      for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
-    //        JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
-    //        JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
-    //      }
-    //       for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
-    //      for (UInt j=0;j<JacobiMatrix.GetSizeCol();j++)
-    //        JacobiMatrixR[i][j]=JacobiMatrix[i][j].real();
-    //       std::cout<<"JacobiMatrixR"<<std::endl;
-    //       std::cout<<JacobiMatrixR<<std::endl;
+//     for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
+//       for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
+//         JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
+//         JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
+//       }
+//     for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
+//       for (UInt j=0;j<JacobiMatrix.GetSizeCol();j++)
+//         JacobiMatrixR[i][j]=JacobiMatrix[i][j].real();
+//     //      std::cout<<"JacobiMatrixR"<<std::endl;
+//     //       std::cout<<JacobiMatrixR<<std::endl;
 
-    // //       std::cout<<JacobiMatrixNE_R<<std::endl;
-    //    Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
-    //        eigenValues(JacobiMatrixNE_R,0.000001,eigenvalues);
-    //        std::cout<<"\n Eigenvalues of F'*F:"<<std::endl;
-    //        std::cout<<eigenvalues<<std::endl;
-    //       getchar();
+//     std::cout<<JacobiMatrixNE_R<<std::endl;
+//     Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
+//     eigenValues(JacobiMatrixNE_R,0.000001,eigenvalues);
+//     std::cout<<"\n Eigenvalues of F'*F:"<<std::endl;
+//     std::cout<<eigenvalues<<std::endl;
 
-    //      for(UInt i=0;i<eigenvalues.GetSize();i++)
-    // std::cout <<" eig ("<<i<<") = "<< eigenvalues[i] << ", "<<std::endl; 
+// #ifdef USE_LAPACK
+//     Vector<Double> eigenvaluesWL;
+//     JacobiMatrixNE.eigenvaluesWithLapack(eigenvaluesWL);
+//     std::cout<<"eigenvaluesWL:"<<std::endl;
+//     std::cout<<eigenvaluesWL<<std::endl;
+
+// #endif
+//     //    getchar();
+
+//     for(UInt i=0;i<eigenvalues.GetSize();i++)
+//       std::cout <<" eig ("<<i<<") = "<< eigenvalues[i] << ", "<<std::endl; 
     
     // TEST MAT_MULT 
           
