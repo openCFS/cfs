@@ -180,10 +180,6 @@ namespace CoupledField
     
     std::string errMsg;
   
-    if ( adjustDamping_ ) {
-      ptPDE_->getPDE_assemble()->SetStartFrequency(startFreq_);
-    }
-    
   
     // branch for single PDE
     for (fstep = 1; fstep <= numFreq_; fstep++) {

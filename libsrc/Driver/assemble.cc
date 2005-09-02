@@ -1532,6 +1532,19 @@ namespace CoupledField {
   {
     ENTER_FCN( "HarmonicAssemble::HarmonicAssemble" );
     SetAnalysisType(HARMONIC);
+
+    //get start frequency of harmonic analysis
+    StdVector<std::string> keyVec, attrVec, valVec;
+    Double freq;
+
+    attrVec = "tag";
+    valVec  = "anyTag";
+  
+    // Get time stepping information from parameter object
+    keyVec = "harmonic", "startFreq";
+    params->Get( keyVec, attrVec, valVec, freq );
+
+    startFreq_ = 2*PI*freq;
   }
 
   /// set actual frequency (already multiplied by 2*pi)
@@ -1605,7 +1618,6 @@ namespace CoupledField {
 
       if (matrixType == STIFFNESS) {
 
-        // std::cout<<"real_stiff - actfreq: "<< actFreq_<<std::endl;
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
             harmMat[k] = origMat[row][col];

@@ -174,10 +174,6 @@ namespace CoupledField {
 
     ptPDE_->WriteGeneralPDEdefines();
 
-    if ( adjustDamping_ == TRUE ) {
-      ptPDE_->getPDE_assemble()->SetStartFrequency( startFreq_ );
-    }
-
     // Perform one simulation for each desired frequency
     for ( UInt fstep = 1; fstep <= numFreq_; fstep++ ) {
 
