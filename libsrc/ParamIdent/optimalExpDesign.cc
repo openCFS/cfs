@@ -958,10 +958,6 @@ namespace CoupledField
     ptAlgsys->InitRHS();
 
   
-//     Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
-//     if(adjustDamping)
-//       ptMyPDE_->getPDE_assemble()->SetStartFrequency(frequencies[0]);
-    
    
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //

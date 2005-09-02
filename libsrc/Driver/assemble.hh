@@ -486,10 +486,6 @@ namespace CoupledField
     void SetAnalysisType(AnalysisType analysis)
     {analysisType_ = analysis;};
 
-    //!
-    void SetStartFrequency(Double freq)
-    {startFreq_ = 2*PI*freq;};
-
     // ==============================================
     // AUXILIARY METHODS
     // ==============================================

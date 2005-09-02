@@ -115,8 +115,6 @@ namespace CoupledField
     //    ptMaterial->RotateMaterialMatrix(1,0,1);
 
     Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
-    if(adjustDamping)
-      ptPDE_->getPDE_assemble()->SetStartFrequency(freqs[0]);
 
     for (UInt fstep = 0; fstep < freqs.GetSize(); fstep++) { 
 
@@ -236,8 +234,6 @@ namespace CoupledField
     updateComplexMaterialData(parameterC,ptMaterial);
     
     // Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
-    //    if(adjustDamping)
-    //      ptPDE_->getPDE_assemble()->SetStartFrequency(freqs[0]);
    
     for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { 
             
@@ -358,9 +354,6 @@ namespace CoupledField
     //     updateComplexMaterialData(parameterC,ptMaterial);
 
     
-    Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
-    if(adjustDamping)
-      ptPDE_->getPDE_assemble()->SetStartFrequency(freqs[0]);
     
     for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
 
