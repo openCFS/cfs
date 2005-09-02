@@ -66,31 +66,37 @@ namespace CoupledField {
 
     OLAS::String2Enum( pTypeString, pType );
 
-    // Next determine the matrix type for this PDE
-    std::string mMatString;
-    MatrixStorageType mType;
-
-    keyVec  = "linearSystems", "system", "matrix", "storage";
+    // Before we try to determine matrix properties, we first should
+    // find out, what type of linear system we are using. We do this
+    // by trying to determine the symmetry attribute of the sbmMatrix
+    // element
+    bool sbmSymmetry = false;
+    bool stdSystem = true;
+    StdVector<std::string> sbmSymmetric;
+    keyVec  = "linearSystems", "system", "sbmMatrix", "symmetric";
     attrVec = "", "name", "";
     valVec  = "", pdename, "";
-    cfs->Get( keyVec, attrVec, valVec, mMatString );
+    cfs->GetList( keyVec, attrVec, valVec, sbmSymmetric );
 
-    if ( mMatString == "expertsChoice" ) {
-      if ( overrideExpert ) {
-        (*error) << "You cannot specify expertsChoice as storage type "
-                 << "and at the same time specify overrideExpert! "
-                 << "This would leave the storage type undefined!";
-        Error( __FILE__, __LINE__ );
-      }
-      mMatString = "noStorageType";
+    // If the list is not empty we got a sbmMatrix
+    if ( sbmSymmetric.GetSize() == 1 ) {
+      sbmSymmetry = sbmSymmetric[0] == "yes";
+      stdSystem = false;
     }
-    OLAS::String2Enum( mMatString, mType );
+    else if ( sbmSymmetric.GetSize() > 1 ) {
+      (*error) << "Found multiple 'symmtric' attributes for (multiple?) "
+               << "'sbmMatrix' elements! We are screwed!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // Set matrix element type string for further queries
+    std::string matElement = stdSystem == true ? "matrix" : "sbmMatrix";
 
     // Determine matrix entry type
     std::string eMatString;
     MatrixEntryType eType;
 
-    keyVec  = "linearSystems", "system", "matrix", "entry";
+    keyVec  = "linearSystems", "system", matElement, "entry";
     attrVec = "", "name", "";
     valVec  = "", pdename, "";
     cfs->Get( keyVec, attrVec, valVec, eMatString );
@@ -102,30 +108,55 @@ namespace CoupledField {
       eType = COMPLEX;
     }
 
-    // Type of re-odering
-    std::string orderString;
-    ReorderingType orderType;
-
-    keyVec  = "linearSystems", "system", "matrix", "reordering";
-    attrVec = "", "name", "";
-    valVec  = "", pdename, "";
-    cfs->Get( keyVec, attrVec, valVec, orderString );
-
+    // Following stuff only for required for standard systems
+    MatrixStorageType mType  = NOSTORAGETYPE;
+    ReorderingType orderType = NOREORDERING;
     bool allowChangeOfReordering = false;
-    if ( orderString == "expertsChoice" ) {
-      if ( overrideExpert ) {
-        (*error) << "You cannot specify expertsChoice as re-ordering "
-                 << "strategy and at the same time specify overrideExpert! "
-                 << "This would leave the re-ordering strategy undefined!";
-        Error( __FILE__, __LINE__ );
+
+    if ( stdSystem == true ) {
+
+      // Next determine the matrix type for this PDE
+      std::string mMatString;
+
+      keyVec  = "linearSystems", "system", "matrix", "storage";
+      attrVec = "", "name", "";
+      valVec  = "", pdename, "";
+      cfs->Get( keyVec, attrVec, valVec, mMatString );
+
+      if ( mMatString == "expertsChoice" ) {
+        if ( overrideExpert ) {
+          (*error) << "You cannot specify expertsChoice as storage type "
+                   << "and at the same time specify overrideExpert! "
+                   << "This would leave the storage type undefined!";
+          Error( __FILE__, __LINE__ );
+        }
+        mMatString = "noStorageType";
       }
-      orderString = "noReordering";
-      allowChangeOfReordering = true;
+      OLAS::String2Enum( mMatString, mType );
+
+      // Type of re-odering
+      std::string orderString;
+
+      keyVec  = "linearSystems", "system", "matrix", "reordering";
+      attrVec = "", "name", "";
+      valVec  = "", pdename, "";
+      cfs->Get( keyVec, attrVec, valVec, orderString );
+
+      if ( orderString == "expertsChoice" ) {
+        if ( overrideExpert ) {
+          (*error) << "You cannot specify expertsChoice as re-ordering "
+                   << "strategy and at the same time specify overrideExpert! "
+                   << "This would leave the re-ordering strategy undefined!";
+          Error( __FILE__, __LINE__ );
+        }
+        orderString = "noReordering";
+        allowChangeOfReordering = true;
+      }
+      OLAS::String2Enum( orderString, orderType );
     }
-    OLAS::String2Enum( orderString, orderType );
 
     // Let expert module modify the settings
-    if ( !overrideExpert ) {
+    if ( overrideExpert == false && stdSystem == true ) {
       CFSOLASParams::Expert( cfs, pdename, sType, pType, mType, eType,
                              orderType, analysisType,
                              allowChangeOfReordering );
@@ -140,6 +171,7 @@ namespace CoupledField {
     olas->SetValue( "GRAPH_reordering"       , orderType    );
     olas->SetValue( "UsingPenaltyFormulation", usingPenalty );
     olas->SetValue( "SystemName"             , pdename      );
+    olas->SetValue( "SBM_Symmetry"           , sbmSymmetry  );
 
     // Set special parameters for solver and preconditioner
     CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );
