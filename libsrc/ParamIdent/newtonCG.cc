@@ -72,7 +72,13 @@ namespace CoupledField
     parstart=parameter;
 
     updateMaterialData(parameter,ptMaterial);
-    createF(ptMaterial, F_hat,TRUE);
+    createF(ptMaterial, F_hat, FALSE);
+
+    std::cout<<"F_hat:"<<std::endl;
+    std::cout<<F_hat<<std::endl;
+
+    std::cout<<"y_hat:"<<std::endl;
+    std::cout<<y_hat<<std::endl;
 
     for (i=0; i<nrMeasuredData;i++)
       y_hat_F_hat[i]=y_hat[i]-F_hat[i];
@@ -119,13 +125,13 @@ namespace CoupledField
       //     getchar();
 
       std::cout<<parameter<<std::endl;
-      getchar();
+      // getchar();
       //      createJacobiMatrix2(JacobiMatrix);
       testJacobiMatrix2(F_hat, JacobiMatrix, parameter, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
 
       //std::cout<<JacobiMatrix<<std::endl;
 
-      std::cout<<approxJacobiMatrix<<std::endl;
+      //      std::cout<<approxJacobiMatrix<<std::endl;
       //getchar();
 
       JacobiMatrix = approxJacobiMatrix;
@@ -215,12 +221,12 @@ namespace CoupledField
           std::cout<<"\n new_res_inner = "<< new_res_inner <<", normres02 = " << normres02 << std::endl;
 
         
-          if (new_res_inner>0.10*normres02){
-            std::cout << " \n !! New_res_inner is worse than old_res_inner -> break of inner Loop! "<< std::endl;
-            //std::cout<<"\n Nr of CG Iterations = " << nrCGIter <<std::endl;
-            getchar();
-            //      break;
-          }
+//           if (new_res_inner>0.00010*normres02){
+//             std::cout << " \n !! New_res_inner is worse than old_res_inner -> break of inner Loop! "<< std::endl;
+//             //std::cout<<"\n Nr of CG Iterations = " << nrCGIter <<std::endl;
+//             //            getchar();
+//             //      break;
+//           }
 
           //      std::cout<<"\n\nres = res - alpha*bas_bar: "<<std::endl;
           for (UInt i=0;i<res.GetSize();i++){
@@ -260,11 +266,11 @@ namespace CoupledField
           norm(Res_linear,res_linear,res_linear_max,y_hat);
         
 
-          if (res_linear<alin_new){
-            std::cout<<"\n res_linear = " << res_linear << " < = alin_new = " << alin_new << std::endl;
-            getchar();
-            break;
-          }
+//           if (res_linear<alin_new){
+//             std::cout<<"\n res_linear = " << res_linear << " < = alin_new = " << alin_new << std::endl;
+//             getchar();
+//             break;
+//           }
 
           normresNEold2 = normresNE2;
 
@@ -306,10 +312,10 @@ namespace CoupledField
         for(UInt i=0;i<actNrParameter;i++)
           stepR[i]=step[i].real();  
         std::cout<<stepR<<std::endl;
-        //      getchar();
+        getchar();
      
         //      parameter_new[9]=parameter[9]+(1.0/scaling[9])*step[9].real();        // eps33      
-        //theta=1.0;
+        theta=1.0;
         setNewParameterSet(parameter, parameter_new, scaling, theta, stepR, whichParameterToUpdate);
 
         //       for (UInt i=0;i<nrParameter;i++){
@@ -349,8 +355,8 @@ namespace CoupledField
 
         std::cout<< parameter<<std::endl;
 
-        if(maxres_outer<=1.0e-8)
-          getchar();
+//         if(maxres_outer<=1.0e-8)
+//           getchar();
 
 
         //        backtracking(eta, theta, s, a, a_lin_new);

@@ -479,6 +479,7 @@ libsrc/PDE/timestepping.hh svneol=native#text/plain
 libsrc/PDE/trapezoidal.cc svneol=native#text/plain
 libsrc/PDE/trapezoidal.hh svneol=native#text/plain
 libsrc/ParamIdent/Makefile -text
+libsrc/ParamIdent/leastSquare.cc svneol=native#text/plain
 libsrc/ParamIdent/newtonCG.cc svneol=native#text/plain
 libsrc/ParamIdent/newtonCG1.cc svneol=native#text/plain
 libsrc/ParamIdent/newtonLandweber.cc svneol=native#text/plain

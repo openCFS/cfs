@@ -225,6 +225,9 @@ namespace CoupledField
     //! with flexible number of frequencies ...
     void optimalExpDesignVarNrFreqs();
 
+    //! Try to solve problem with a least square approach
+    void leastSquare();
+
     //! saves sysmat of forward problem, multiplication with \omega*\beta*j ...
     void createAndSetRHSforJacobian(UInt & fstep);
 

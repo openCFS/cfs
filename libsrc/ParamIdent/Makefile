@@ -6,14 +6,14 @@ C_DIR=../..
 #
 src =  	piezoParamIdent.cc piezoParamIdent_methods.cc \
 	newtonCG.cc newtonLandweber.cc nuMethods.cc optimalExpDesign.cc \
-	optimalExpDesign.cc optimalExpDesignVarNrFreqs.cc \
+	optimalExpDesign.cc optimalExpDesignVarNrFreqs.cc leastSquare.cc \
 #
 ifeq ($(Adaptivity),yes)
 
   src = piezoParamIdent.cc piezoParamIdent_methods.cc \
 	newtonCG.cc newtonLandweber.cc nuMethods.cc \
-	optimalExpDesign.cc optimalExpDesignVarNrFreqs.cc \
-	
+	optimalExpDesign.cc optimalExpDesignVarNrFreqs.cc leastSquare.cc\
+#
 endif
 #
 lib = paramIdent

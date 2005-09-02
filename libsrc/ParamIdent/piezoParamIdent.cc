@@ -31,11 +31,11 @@ namespace CoupledField
     Char* measuredData="measuredData.dat";
     allMeasuredData = new std::ifstream(measuredData, std::basic_ios<char>::in);
     if (!allMeasuredData){
-        std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
-      }
+      std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
+    }
 
     Info->StartProgress( "\n Opening output files \n imped.dat, piezoLog.dat, parLog.dat, mechDispl.dat, parFinal.dat ... " );
-//     //    std::cout<<"\n Opening output files (imped.dat, piezoLog.dat, parLog.dat, mechDispl.dat, parFinal.dat) ... "<<std::endl;
+    //     //    std::cout<<"\n Opening output files (imped.dat, piezoLog.dat, parLog.dat, mechDispl.dat, parFinal.dat) ... "<<std::endl;
     Info->FinishProgress();
 
     std::string filename= "imped.dat";
@@ -54,31 +54,31 @@ namespace CoupledField
     std::string filenameLog= "piezoLog.dat";
     piezoLog = new std::ofstream(filenameLog.c_str(),std::basic_ios<char>::out);
     if (!piezoLog){
-        std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
+      std::cerr << "\n piezoLog.dat could not be initialized" << std::endl;
     }
 
     std::string filenameMechDispl= "mechDispl.dat";
     mechDispl = new std::ofstream(filenameMechDispl.c_str(),std::basic_ios<char>::out);
     if (!mechDispl){
-	std::cerr << "\n mechDispl.dat could not be initialized" << std::endl;
+      std::cerr << "\n mechDispl.dat could not be initialized" << std::endl;
     }
 
     std::string filenameParLog= "parLog.dat";
     parLog = new std::ofstream(filenameParLog.c_str(),std::basic_ios<char>::out);
     if (!parLog){
-        std::cerr << "\n parLog.dat could not be initialized" << std::endl;
+      std::cerr << "\n parLog.dat could not be initialized" << std::endl;
     }
 
     std::string filenameParFinal= "parFinal.dat";
     parFinal = new std::ofstream(filenameParFinal.c_str(),std::basic_ios<char>::out);
     if (!parFinal){
-        std::cerr << "\n parFinal.dat could not be initialized" << std::endl;
+      std::cerr << "\n parFinal.dat could not be initialized" << std::endl;
     }
 
     std::string filenameOptimalFreqs= "optimalFreqs.dat";
     optimalFreqs = new std::ofstream(filenameOptimalFreqs.c_str(),std::basic_ios<char>::out);
     if (!optimalFreqs){
-        std::cerr << "\n optimalFreqs.dat could not be initialized" << std::endl;
+      std::cerr << "\n optimalFreqs.dat could not be initialized" << std::endl;
     }
 
     Char* measuremets="mess.dat";
@@ -212,7 +212,7 @@ namespace CoupledField
     if (actNrParameter!=0)   
       whichParToUpInd.Resize(actNrParameter);
 
-    if (whichNewtonCG==4||whichNewtonCG==6||whichNewtonCG==8||whichNewtonCG==10)
+    if (whichNewtonCG==4||whichNewtonCG==6||whichNewtonCG==8||whichNewtonCG==10||whichNewtonCG==12)
       if (actNrParameterC!=0)   
         whichParToUpIndC.Resize(actNrParameterC);
 
@@ -244,6 +244,29 @@ namespace CoupledField
     // of pdes which have to be solved and intialize them
 
     ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+
+    if (TRUE){
+      Matrix<Double> *mat0=ptMaterial[0].GetMatrix();
+      //       Matrix<Double> *mat0C=ptMaterial[0].GetMatrixC();
+      //       Matrix<Double> *mat1=ptMaterial[1].GetMatrix();
+      //       Matrix<Double> *mat1C=ptMaterial[1].GetMatrixC();
+      //       Matrix<Double> *mat2=ptMaterial[2].GetMatrix();
+      //       Matrix<Double> *mat2C=ptMaterial[2].GetMatrixC();
+      std::cout<<"mat0:"<<std::endl;
+      std::cout<<*mat0<<std::endl;
+      //       std::cout<<"mat0C"<<std::endl;
+      //       std::cout<<*mat0C<<std::endl;
+      
+      //       std::cout<<"mat1:"<<std::endl;
+      //       std::cout<<*mat1<<std::endl;
+      //       std::cout<<"mat1C"<<std::endl;
+      //       std::cout<<*mat1C<<std::endl;
+      
+      //       std::cout<<"mat2"<<std::endl;
+      //       std::cout<<*mat2<<std::endl;
+      //       std::cout<<"mat2C"<<std::endl;
+      //       std::cout<<*mat2C<<std::endl;
+    }
 
 	
     Matrix<Double> *matMat = ptMaterial->GetMatrix();	
@@ -303,6 +326,30 @@ namespace CoupledField
     updateMaterialData(parameter,ptMaterial);
     updateComplexMaterialData(parameterC,ptMaterial);
 
+    if (FALSE){
+      Matrix<Double> *mat0=ptMaterial[0].GetMatrix();
+      Matrix<Double> *mat0C=ptMaterial[0].GetMatrixC();
+      Matrix<Double> *mat1=ptMaterial[1].GetMatrix();
+      Matrix<Double> *mat1C=ptMaterial[1].GetMatrixC();
+      Matrix<Double> *mat2=ptMaterial[2].GetMatrix();
+      Matrix<Double> *mat2C=ptMaterial[2].GetMatrixC();
+      std::cout<<"mat0:"<<std::endl;
+      std::cout<<*mat0<<std::endl;
+      std::cout<<"mat0C"<<std::endl;
+      std::cout<<*mat0C<<std::endl;
+      
+      std::cout<<"mat1:"<<std::endl;
+      std::cout<<*mat1<<std::endl;
+      std::cout<<"mat1C"<<std::endl;
+      std::cout<<*mat1C<<std::endl;
+      
+      std::cout<<"mat2"<<std::endl;
+      std::cout<<*mat2<<std::endl;
+      std::cout<<"mat2C"<<std::endl;
+      std::cout<<*mat2C<<std::endl;
+    }
+    
+
     Matrix<Double> matMatStart(9,9); // = ptMaterial->GetMatrix();
     Matrix<Double> matMatCStart(9,9); // = ptMaterial->GetMatrixC();
 
@@ -315,7 +362,6 @@ namespace CoupledField
 
     //xxxxxxxxxxxxxxxx Initialize and resize all matrices and vectors involved xxxxxxxxxx
 
-    std::cout<<" we crash here ? " <<nrMeasuredData<<std::endl;
 
     freqs.Part(0,nrMeasuredData);
     real.Part(0,nrMeasuredData);
@@ -337,8 +383,8 @@ namespace CoupledField
     overall_res0.Resize(2*nrMeasuredData);
     parameter_new.Resize(nrParameter);
 
-    updateMaterialData(parameter, ptMaterial);
-    updateComplexMaterialData(parameterC, ptMaterial);
+    //     updateMaterialData(parameter, ptMaterial);
+    //     updateComplexMaterialData(parameterC, ptMaterial);
 
 
     // ~~~~~~~~~~~~~ modificate the algorithm ~~~~~~~~~~~~~~~
@@ -469,6 +515,26 @@ namespace CoupledField
     //  NewtonCG();
     //         NewtonCG2();
     if (whichNewtonCG==3){
+
+
+     nrMeasuredData=5;
+     Vector<Double> freqs5;
+     freqs5.Resize(5);
+
+     freqs5[0]=2.0e+06;
+     freqs5[1]=3.5e+06;
+     freqs5[2]=4.5e+06;
+     freqs5[3]=5.8e+06;
+     freqs5[4]=6.9e+06;
+     freqs=freqs5;
+
+     Vector<Double> newFreqs;
+     readInMeasurement(newFreqs);
+
+     std::cout<<"newFreqs:"<<std::endl;
+     std::cout<<newFreqs<<std::endl;
+     calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
+
       UInt nNewtonCG =0;
       //    while (nNewtonCG<100){
       c33history[nNewtonCG] = parameter[1];
@@ -590,6 +656,11 @@ namespace CoupledField
     else if (whichNewtonCG==11){
       std::cout<<"++ Optimal experiment Design - variable number of frequencies"<<std::endl;
       optimalExpDesignVarNrFreqs();
+    }
+
+    else if (whichNewtonCG==12){
+      std::cout<<"++ Optimal experiment Design - variable number of frequencies"<<std::endl;
+      leastSquare();
     }
 
 
@@ -781,8 +852,8 @@ namespace CoupledField
         Double stepWidth=0.0;
         stepWidth=std::abs(0.5*freqs[std::min(i+1,actNrParameter)]-freqs[std::max((Integer)i-1,1)]);
         stepWidth/=1.0e+06;
-        wNorm = wNorm+stepWidth*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-        // wNorm = wNorm+rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        // wNorm = wNorm+stepWidth*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        wNorm = wNorm+rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
         //      getchar();
       }
       
@@ -1223,87 +1294,117 @@ namespace CoupledField
       for(UInt j=0;j<9;j++)
         ptMaterial->SetPiezoMatrixData(i,j,0.0);
     
-    
-    ptMaterial[0].SetPiezoMatrixData(0,0, parameter[0]);
-    ptMaterial[0].SetPiezoMatrixData(1,1, parameter[0]);
-    ptMaterial[0].SetPiezoMatrixData(2,2, parameter[1]);
-    ptMaterial[0].SetPiezoMatrixData(0,1, parameter[2]);
-    ptMaterial[0].SetPiezoMatrixData(1,0, parameter[2]);
-    ptMaterial[0].SetPiezoMatrixData(0,2, parameter[3]);
-    ptMaterial[0].SetPiezoMatrixData(2,0, parameter[3]);
-    ptMaterial[0].SetPiezoMatrixData(1,2, parameter[3]);
-    ptMaterial[0].SetPiezoMatrixData(2,1, parameter[3]);
-    ptMaterial[0].SetPiezoMatrixData(3,3, parameter[4]);
-    ptMaterial[0].SetPiezoMatrixData(4,4, parameter[4]);
-    // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
-    ptMaterial[0].SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
-    ptMaterial[0].SetPiezoMatrixData(6,4, parameter[5]);
-    ptMaterial[0].SetPiezoMatrixData(7,3, parameter[5]);
-    ptMaterial[0].SetPiezoMatrixData(4,6, parameter[5]);
-    ptMaterial[0].SetPiezoMatrixData(3,7, parameter[5]);
-    ptMaterial[0].SetPiezoMatrixData(8,0, parameter[6]);
-    ptMaterial[0].SetPiezoMatrixData(8,1, parameter[6]);
-    ptMaterial[0].SetPiezoMatrixData(0,8, parameter[6]);
-    ptMaterial[0].SetPiezoMatrixData(1,8, parameter[6]);
-    ptMaterial[0].SetPiezoMatrixData(8,2, parameter[7]);
-    ptMaterial[0].SetPiezoMatrixData(2,8, parameter[7]);
-    ptMaterial[0].SetPiezoMatrixData(6,6, parameter[8]);
-    ptMaterial[0].SetPiezoMatrixData(7,7, parameter[8]);
-    ptMaterial[0].SetPiezoMatrixData(8,8, parameter[9]);
+    StdVector<Integer>subdoms = ptMyPDE_->getPDE_subdoms();
+    if (subdoms.GetSize()==1){
+         
+      ptMaterial[0].SetPiezoMatrixData(0,0, parameter[0]);
+      ptMaterial[0].SetPiezoMatrixData(1,1, parameter[0]);
+      ptMaterial[0].SetPiezoMatrixData(2,2, parameter[1]);
+      ptMaterial[0].SetPiezoMatrixData(0,1, parameter[2]);
+      ptMaterial[0].SetPiezoMatrixData(1,0, parameter[2]);
+      ptMaterial[0].SetPiezoMatrixData(0,2, parameter[3]);
+      ptMaterial[0].SetPiezoMatrixData(2,0, parameter[3]);
+      ptMaterial[0].SetPiezoMatrixData(1,2, parameter[3]);
+      ptMaterial[0].SetPiezoMatrixData(2,1, parameter[3]);
+      ptMaterial[0].SetPiezoMatrixData(3,3, parameter[4]);
+      ptMaterial[0].SetPiezoMatrixData(4,4, parameter[4]);
+      // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
+      ptMaterial[0].SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
+      ptMaterial[0].SetPiezoMatrixData(6,4, parameter[5]);
+      ptMaterial[0].SetPiezoMatrixData(7,3, parameter[5]);
+      ptMaterial[0].SetPiezoMatrixData(4,6, parameter[5]);
+      ptMaterial[0].SetPiezoMatrixData(3,7, parameter[5]);
+      ptMaterial[0].SetPiezoMatrixData(8,0, parameter[6]);
+      ptMaterial[0].SetPiezoMatrixData(8,1, parameter[6]);
+      ptMaterial[0].SetPiezoMatrixData(0,8, parameter[6]);
+      ptMaterial[0].SetPiezoMatrixData(1,8, parameter[6]);
+      ptMaterial[0].SetPiezoMatrixData(8,2, parameter[7]);
+      ptMaterial[0].SetPiezoMatrixData(2,8, parameter[7]);
+      ptMaterial[0].SetPiezoMatrixData(6,6, parameter[8]);
+      ptMaterial[0].SetPiezoMatrixData(7,7, parameter[8]);
+      ptMaterial[0].SetPiezoMatrixData(8,8, parameter[9]);
+    }
+    else{
 
-//     ptMaterial[1].SetPiezoMatrixData(0,0, parameter[0]);
-//     ptMaterial[1].SetPiezoMatrixData(1,1, parameter[0]);
-//     ptMaterial[1].SetPiezoMatrixData(2,2, parameter[1]);
-//     ptMaterial[1].SetPiezoMatrixData(0,1, parameter[2]);
-//     ptMaterial[1].SetPiezoMatrixData(1,0, parameter[2]);
-//     ptMaterial[1].SetPiezoMatrixData(0,2, parameter[3]);
-//     ptMaterial[1].SetPiezoMatrixData(2,0, parameter[3]);
-//     ptMaterial[1].SetPiezoMatrixData(1,2, parameter[3]);
-//     ptMaterial[1].SetPiezoMatrixData(2,1, parameter[3]);
-//     ptMaterial[1].SetPiezoMatrixData(3,3, parameter[4]);
-//     ptMaterial[1].SetPiezoMatrixData(4,4, parameter[4]);
-//     // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
-//     ptMaterial[1].SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
-//     ptMaterial[1].SetPiezoMatrixData(6,4, -parameter[5]);
-//     ptMaterial[1].SetPiezoMatrixData(7,3, -parameter[5]);
-//     ptMaterial[1].SetPiezoMatrixData(4,6, -parameter[5]);
-//     ptMaterial[1].SetPiezoMatrixData(3,7, -parameter[5]);
-//     ptMaterial[1].SetPiezoMatrixData(8,0, -parameter[6]);
-//     ptMaterial[1].SetPiezoMatrixData(8,1, -parameter[6]);
-//     ptMaterial[1].SetPiezoMatrixData(0,8, -parameter[6]);
-//     ptMaterial[1].SetPiezoMatrixData(1,8, -parameter[6]);
-//     ptMaterial[1].SetPiezoMatrixData(8,2, -parameter[7]);
-//     ptMaterial[1].SetPiezoMatrixData(2,8, -parameter[7]);
-//     ptMaterial[1].SetPiezoMatrixData(6,6, parameter[8]);
-//     ptMaterial[1].SetPiezoMatrixData(7,7, parameter[8]);
-//     ptMaterial[1].SetPiezoMatrixData(8,8, parameter[9]);
+      ptMaterial[0].SetPiezoMatrixData(0,0, parameter[0]);
+      ptMaterial[0].SetPiezoMatrixData(1,1, parameter[0]);
+      ptMaterial[0].SetPiezoMatrixData(2,2, parameter[1]);
+      ptMaterial[0].SetPiezoMatrixData(0,1, parameter[2]);
+      ptMaterial[0].SetPiezoMatrixData(1,0, parameter[2]);
+      ptMaterial[0].SetPiezoMatrixData(0,2, parameter[3]);
+      ptMaterial[0].SetPiezoMatrixData(2,0, parameter[3]);
+      ptMaterial[0].SetPiezoMatrixData(1,2, parameter[3]);
+      ptMaterial[0].SetPiezoMatrixData(2,1, parameter[3]);
+      ptMaterial[0].SetPiezoMatrixData(3,3, parameter[4]);
+      ptMaterial[0].SetPiezoMatrixData(4,4, parameter[4]);
+      // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
+      ptMaterial[0].SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
+      ptMaterial[0].SetPiezoMatrixData(6,4, parameter[5]);
+      ptMaterial[0].SetPiezoMatrixData(7,3, parameter[5]);
+      ptMaterial[0].SetPiezoMatrixData(4,6, parameter[5]);
+      ptMaterial[0].SetPiezoMatrixData(3,7, parameter[5]);
+      ptMaterial[0].SetPiezoMatrixData(8,0, parameter[6]);
+      ptMaterial[0].SetPiezoMatrixData(8,1, parameter[6]);
+      ptMaterial[0].SetPiezoMatrixData(0,8, parameter[6]);
+      ptMaterial[0].SetPiezoMatrixData(1,8, parameter[6]);
+      ptMaterial[0].SetPiezoMatrixData(8,2, parameter[7]);
+      ptMaterial[0].SetPiezoMatrixData(2,8, parameter[7]);
+      ptMaterial[0].SetPiezoMatrixData(6,6, parameter[8]);
+      ptMaterial[0].SetPiezoMatrixData(7,7, parameter[8]);
+      ptMaterial[0].SetPiezoMatrixData(8,8, parameter[9]);
+      ptMaterial[1].SetPiezoMatrixData(0,0, parameter[0]);
+      ptMaterial[1].SetPiezoMatrixData(1,1, parameter[0]);
+      ptMaterial[1].SetPiezoMatrixData(2,2, parameter[1]);
+      ptMaterial[1].SetPiezoMatrixData(0,1, parameter[2]);
+      ptMaterial[1].SetPiezoMatrixData(1,0, parameter[2]);
+      ptMaterial[1].SetPiezoMatrixData(0,2, parameter[3]);
+      ptMaterial[1].SetPiezoMatrixData(2,0, parameter[3]);
+      ptMaterial[1].SetPiezoMatrixData(1,2, parameter[3]);
+      ptMaterial[1].SetPiezoMatrixData(2,1, parameter[3]);
+      ptMaterial[1].SetPiezoMatrixData(3,3, parameter[4]);
+      ptMaterial[1].SetPiezoMatrixData(4,4, parameter[4]);
+      // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
+      ptMaterial[1].SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
+      ptMaterial[1].SetPiezoMatrixData(6,4, -parameter[5]);
+      ptMaterial[1].SetPiezoMatrixData(7,3, -parameter[5]);
+      ptMaterial[1].SetPiezoMatrixData(4,6, -parameter[5]);
+      ptMaterial[1].SetPiezoMatrixData(3,7, -parameter[5]);
+      ptMaterial[1].SetPiezoMatrixData(8,0, -parameter[6]);
+      ptMaterial[1].SetPiezoMatrixData(8,1, -parameter[6]);
+      ptMaterial[1].SetPiezoMatrixData(0,8, -parameter[6]);
+      ptMaterial[1].SetPiezoMatrixData(1,8, -parameter[6]);
+      ptMaterial[1].SetPiezoMatrixData(8,2, -parameter[7]);
+      ptMaterial[1].SetPiezoMatrixData(2,8, -parameter[7]);
+      ptMaterial[1].SetPiezoMatrixData(6,6, parameter[8]);
+      ptMaterial[1].SetPiezoMatrixData(7,7, parameter[8]);
+      ptMaterial[1].SetPiezoMatrixData(8,8, parameter[9]);
 
-//     ptMaterial[2].SetPiezoMatrixData(0,0, parameter[0]);
-//     ptMaterial[2].SetPiezoMatrixData(1,1, parameter[0]);
-//     ptMaterial[2].SetPiezoMatrixData(2,2, parameter[1]);
-//     ptMaterial[2].SetPiezoMatrixData(0,1, parameter[2]);
-//     ptMaterial[2].SetPiezoMatrixData(1,0, parameter[2]);
-//     ptMaterial[2].SetPiezoMatrixData(0,2, parameter[3]);
-//     ptMaterial[2].SetPiezoMatrixData(2,0, parameter[3]);
-//     ptMaterial[2].SetPiezoMatrixData(1,2, parameter[3]);
-//     ptMaterial[2].SetPiezoMatrixData(2,1, parameter[3]);
-//     ptMaterial[2].SetPiezoMatrixData(3,3, parameter[4]);
-//     ptMaterial[2].SetPiezoMatrixData(4,4, parameter[4]);
-//     ptMaterial[2].SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
-//     ptMaterial[2].SetPiezoMatrixData(6,4, 0.0);
-//     ptMaterial[2].SetPiezoMatrixData(7,3, 0.0);
-//     ptMaterial[2].SetPiezoMatrixData(4,6, 0.0);
-//     ptMaterial[2].SetPiezoMatrixData(3,7, 0.0);
-//     ptMaterial[2].SetPiezoMatrixData(8,0, 0.0);
-//     ptMaterial[2].SetPiezoMatrixData(8,1, 0.0);
-//     ptMaterial[2].SetPiezoMatrixData(0,8, 0.0);
-//     ptMaterial[2].SetPiezoMatrixData(1,8, 0.0);
-//     ptMaterial[2].SetPiezoMatrixData(8,2, 0.0);
-//     ptMaterial[2].SetPiezoMatrixData(2,8, 0.0);
-//     ptMaterial[2].SetPiezoMatrixData(6,6, parameter[8]);
-//     ptMaterial[2].SetPiezoMatrixData(7,7, parameter[8]);
-//     ptMaterial[2].SetPiezoMatrixData(8,8, parameter[9]);
-
+      ptMaterial[2].SetPiezoMatrixData(0,0, parameter[0]);
+      ptMaterial[2].SetPiezoMatrixData(1,1, parameter[0]);
+      ptMaterial[2].SetPiezoMatrixData(2,2, parameter[1]);
+      ptMaterial[2].SetPiezoMatrixData(0,1, parameter[2]);
+      ptMaterial[2].SetPiezoMatrixData(1,0, parameter[2]);
+      ptMaterial[2].SetPiezoMatrixData(0,2, parameter[3]);
+      ptMaterial[2].SetPiezoMatrixData(2,0, parameter[3]);
+      ptMaterial[2].SetPiezoMatrixData(1,2, parameter[3]);
+      ptMaterial[2].SetPiezoMatrixData(2,1, parameter[3]);
+      ptMaterial[2].SetPiezoMatrixData(3,3, parameter[4]);
+      ptMaterial[2].SetPiezoMatrixData(4,4, parameter[4]);
+      ptMaterial[2].SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
+      ptMaterial[2].SetPiezoMatrixData(6,4, 0.0);
+      ptMaterial[2].SetPiezoMatrixData(7,3, 0.0);
+      ptMaterial[2].SetPiezoMatrixData(4,6, 0.0);
+      ptMaterial[2].SetPiezoMatrixData(3,7, 0.0);
+      ptMaterial[2].SetPiezoMatrixData(8,0, 0.0);
+      ptMaterial[2].SetPiezoMatrixData(8,1, 0.0);
+      ptMaterial[2].SetPiezoMatrixData(0,8, 0.0);
+      ptMaterial[2].SetPiezoMatrixData(1,8, 0.0);
+      ptMaterial[2].SetPiezoMatrixData(8,2, 0.0);
+      ptMaterial[2].SetPiezoMatrixData(2,8, 0.0);
+      ptMaterial[2].SetPiezoMatrixData(6,6, parameter[8]);
+      ptMaterial[2].SetPiezoMatrixData(7,7, parameter[8]);
+      ptMaterial[2].SetPiezoMatrixData(8,8, parameter[9]);
+    }
 
     ptAssemble = ptMyPDE_->getPDE_assemble();
     ptAssemble->SetAlternatingMaterial(TRUE);
@@ -1337,31 +1438,144 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::updateComplexMaterialData");    
     //    std::cout<<"updateComplexMaterialData"<<std::endl;
 
-    ptMaterial->SetPiezoMatrixDataC(0,0, parameterC[0]);
-    ptMaterial->SetPiezoMatrixDataC(1,1, parameterC[0]);
-    ptMaterial->SetPiezoMatrixDataC(2,2, parameterC[1]);
-    ptMaterial->SetPiezoMatrixDataC(0,1, parameterC[2]);
-    ptMaterial->SetPiezoMatrixDataC(1,0, parameterC[2]);
-    ptMaterial->SetPiezoMatrixDataC(0,2, parameterC[3]);
-    ptMaterial->SetPiezoMatrixDataC(2,0, parameterC[3]);
-    ptMaterial->SetPiezoMatrixDataC(1,2, parameterC[3]);
-    ptMaterial->SetPiezoMatrixDataC(2,1, parameterC[3]);
-    ptMaterial->SetPiezoMatrixDataC(3,3, parameterC[4]);
-    ptMaterial->SetPiezoMatrixDataC(4,4, parameterC[4]);
-    ptMaterial->SetPiezoMatrixDataC(5,5, 0.5*(parameterC[0]-parameterC[2]));
-    ptMaterial->SetPiezoMatrixDataC(6,4, parameterC[5]);
-    ptMaterial->SetPiezoMatrixDataC(7,3, parameterC[5]);
-    ptMaterial->SetPiezoMatrixDataC(4,6, parameterC[5]);
-    ptMaterial->SetPiezoMatrixDataC(3,7, parameterC[5]);
-    ptMaterial->SetPiezoMatrixDataC(8,0, parameterC[6]);
-    ptMaterial->SetPiezoMatrixDataC(8,1, parameterC[6]);
-    ptMaterial->SetPiezoMatrixDataC(0,8, parameterC[6]);
-    ptMaterial->SetPiezoMatrixDataC(1,8, parameterC[6]);
-    ptMaterial->SetPiezoMatrixDataC(8,2, parameterC[7]);
-    ptMaterial->SetPiezoMatrixDataC(2,8, parameterC[7]);
-    ptMaterial->SetPiezoMatrixDataC(6,6, parameterC[8]);
-    ptMaterial->SetPiezoMatrixDataC(7,7, parameterC[8]);
-    ptMaterial->SetPiezoMatrixDataC(8,8, parameterC[9]);
+    StdVector<Integer>subdoms = ptMyPDE_->getPDE_subdoms();
+    if (subdoms.GetSize()==1){
+
+      ptMaterial[0].SetPiezoMatrixDataC(0,0, parameterC[0]);
+      ptMaterial[0].SetPiezoMatrixDataC(1,1, parameterC[0]);
+      ptMaterial[0].SetPiezoMatrixDataC(2,2, parameterC[1]);
+      ptMaterial[0].SetPiezoMatrixDataC(0,1, parameterC[2]);
+      ptMaterial[0].SetPiezoMatrixDataC(1,0, parameterC[2]);
+      ptMaterial[0].SetPiezoMatrixDataC(0,2, parameterC[3]);
+      ptMaterial[0].SetPiezoMatrixDataC(2,0, parameterC[3]);
+      ptMaterial[0].SetPiezoMatrixDataC(1,2, parameterC[3]);
+      ptMaterial[0].SetPiezoMatrixDataC(2,1, parameterC[3]);
+      ptMaterial[0].SetPiezoMatrixDataC(3,3, parameterC[4]);
+      ptMaterial[0].SetPiezoMatrixDataC(4,4, parameterC[4]);
+      // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
+      ptMaterial[0].SetPiezoMatrixDataC(5,5, 0.5*(parameterC[0]-parameterC[2]));
+      ptMaterial[0].SetPiezoMatrixDataC(6,4, parameterC[5]);
+      ptMaterial[0].SetPiezoMatrixDataC(7,3, parameterC[5]);
+      ptMaterial[0].SetPiezoMatrixDataC(4,6, parameterC[5]);
+      ptMaterial[0].SetPiezoMatrixDataC(3,7, parameterC[5]);
+      ptMaterial[0].SetPiezoMatrixDataC(8,0, parameterC[6]);
+      ptMaterial[0].SetPiezoMatrixDataC(8,1, parameterC[6]);
+      ptMaterial[0].SetPiezoMatrixDataC(0,8, parameterC[6]);
+      ptMaterial[0].SetPiezoMatrixDataC(1,8, parameterC[6]);
+      ptMaterial[0].SetPiezoMatrixDataC(8,2, parameterC[7]);
+      ptMaterial[0].SetPiezoMatrixDataC(2,8, parameterC[7]);
+      ptMaterial[0].SetPiezoMatrixDataC(6,6, parameterC[8]);
+      ptMaterial[0].SetPiezoMatrixDataC(7,7, parameterC[8]);
+      ptMaterial[0].SetPiezoMatrixDataC(8,8, parameterC[9]);
+    } else
+      {
+        ptMaterial[0].SetPiezoMatrixDataC(0,0, parameterC[0]);
+        ptMaterial[0].SetPiezoMatrixDataC(1,1, parameterC[0]);
+        ptMaterial[0].SetPiezoMatrixDataC(2,2, parameterC[1]);
+        ptMaterial[0].SetPiezoMatrixDataC(0,1, parameterC[2]);
+        ptMaterial[0].SetPiezoMatrixDataC(1,0, parameterC[2]);
+        ptMaterial[0].SetPiezoMatrixDataC(0,2, parameterC[3]);
+        ptMaterial[0].SetPiezoMatrixDataC(2,0, parameterC[3]);
+        ptMaterial[0].SetPiezoMatrixDataC(1,2, parameterC[3]);
+        ptMaterial[0].SetPiezoMatrixDataC(2,1, parameterC[3]);
+        ptMaterial[0].SetPiezoMatrixDataC(3,3, parameterC[4]);
+        ptMaterial[0].SetPiezoMatrixDataC(4,4, parameterC[4]);
+        // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
+        ptMaterial[0].SetPiezoMatrixDataC(5,5, 0.5*(parameterC[0]-parameterC[2]));
+        ptMaterial[0].SetPiezoMatrixDataC(6,4, parameterC[5]);
+        ptMaterial[0].SetPiezoMatrixDataC(7,3, parameterC[5]);
+        ptMaterial[0].SetPiezoMatrixDataC(4,6, parameterC[5]);
+        ptMaterial[0].SetPiezoMatrixDataC(3,7, parameterC[5]);
+        ptMaterial[0].SetPiezoMatrixDataC(8,0, parameterC[6]);
+        ptMaterial[0].SetPiezoMatrixDataC(8,1, parameterC[6]);
+        ptMaterial[0].SetPiezoMatrixDataC(0,8, parameterC[6]);
+        ptMaterial[0].SetPiezoMatrixDataC(1,8, parameterC[6]);
+        ptMaterial[0].SetPiezoMatrixDataC(8,2, parameterC[7]);
+        ptMaterial[0].SetPiezoMatrixDataC(2,8, parameterC[7]);
+        ptMaterial[0].SetPiezoMatrixDataC(6,6, parameterC[8]);
+        ptMaterial[0].SetPiezoMatrixDataC(7,7, parameterC[8]);
+        ptMaterial[0].SetPiezoMatrixDataC(8,8, parameterC[9]);
+
+
+        ptMaterial[1].SetPiezoMatrixDataC(0,0, parameterC[0]);
+        ptMaterial[1].SetPiezoMatrixDataC(1,1, parameterC[0]);
+        ptMaterial[1].SetPiezoMatrixDataC(2,2, parameterC[1]);
+        ptMaterial[1].SetPiezoMatrixDataC(0,1, parameterC[2]);
+        ptMaterial[1].SetPiezoMatrixDataC(1,0, parameterC[2]);
+        ptMaterial[1].SetPiezoMatrixDataC(0,2, parameterC[3]);
+        ptMaterial[1].SetPiezoMatrixDataC(2,0, parameterC[3]);
+        ptMaterial[1].SetPiezoMatrixDataC(1,2, parameterC[3]);
+        ptMaterial[1].SetPiezoMatrixDataC(2,1, parameterC[3]);
+        ptMaterial[1].SetPiezoMatrixDataC(3,3, parameterC[4]);
+        ptMaterial[1].SetPiezoMatrixDataC(4,4, parameterC[4]);
+        // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
+        ptMaterial[1].SetPiezoMatrixDataC(5,5, 0.5*(parameterC[0]-parameterC[2]));
+        ptMaterial[1].SetPiezoMatrixDataC(6,4, -parameterC[5]);
+        ptMaterial[1].SetPiezoMatrixDataC(7,3, -parameterC[5]);
+        ptMaterial[1].SetPiezoMatrixDataC(4,6, -parameterC[5]);
+        ptMaterial[1].SetPiezoMatrixDataC(3,7, -parameterC[5]);
+        ptMaterial[1].SetPiezoMatrixDataC(8,0, -parameterC[6]);
+        ptMaterial[1].SetPiezoMatrixDataC(8,1, -parameterC[6]);
+        ptMaterial[1].SetPiezoMatrixDataC(0,8, -parameterC[6]);
+        ptMaterial[1].SetPiezoMatrixDataC(1,8, -parameterC[6]);
+        ptMaterial[1].SetPiezoMatrixDataC(8,2, -parameterC[7]);
+        ptMaterial[1].SetPiezoMatrixDataC(2,8, -parameterC[7]);
+        ptMaterial[1].SetPiezoMatrixDataC(6,6, parameterC[8]);
+        ptMaterial[1].SetPiezoMatrixDataC(7,7, parameterC[8]);
+        ptMaterial[1].SetPiezoMatrixDataC(8,8, parameterC[9]);
+
+        ptMaterial[2].SetPiezoMatrixDataC(0,0, parameterC[0]);
+        ptMaterial[2].SetPiezoMatrixDataC(1,1, parameterC[0]);
+        ptMaterial[2].SetPiezoMatrixDataC(2,2, parameterC[1]);
+        ptMaterial[2].SetPiezoMatrixDataC(0,1, parameterC[2]);
+        ptMaterial[2].SetPiezoMatrixDataC(1,0, parameterC[2]);
+        ptMaterial[2].SetPiezoMatrixDataC(0,2, parameterC[3]);
+        ptMaterial[2].SetPiezoMatrixDataC(2,0, parameterC[3]);
+        ptMaterial[2].SetPiezoMatrixDataC(1,2, parameterC[3]);
+        ptMaterial[2].SetPiezoMatrixDataC(2,1, parameterC[3]);
+        ptMaterial[2].SetPiezoMatrixDataC(3,3, parameterC[4]);
+        ptMaterial[2].SetPiezoMatrixDataC(4,4, parameterC[4]);
+        ptMaterial[2].SetPiezoMatrixDataC(5,5, 0.5*(parameterC[0]-parameterC[2]));
+        ptMaterial[2].SetPiezoMatrixDataC(6,4, 0.0);
+        ptMaterial[2].SetPiezoMatrixDataC(7,3, 0.0);
+        ptMaterial[2].SetPiezoMatrixDataC(4,6, 0.0);
+        ptMaterial[2].SetPiezoMatrixDataC(3,7, 0.0);
+        ptMaterial[2].SetPiezoMatrixDataC(8,0, 0.0);
+        ptMaterial[2].SetPiezoMatrixDataC(8,1, 0.0);
+        ptMaterial[2].SetPiezoMatrixDataC(0,8, 0.0);
+        ptMaterial[2].SetPiezoMatrixDataC(1,8, 0.0);
+        ptMaterial[2].SetPiezoMatrixDataC(8,2, 0.0);
+        ptMaterial[2].SetPiezoMatrixDataC(2,8, 0.0);
+        ptMaterial[2].SetPiezoMatrixDataC(6,6, parameterC[8]);
+        ptMaterial[2].SetPiezoMatrixDataC(7,7, parameterC[8]);
+        ptMaterial[2].SetPiezoMatrixDataC(8,8, parameterC[9]);
+
+        //     ptMaterial->SetPiezoMatrixDataC(0,0, parameterC[0]);
+        //     ptMaterial->SetPiezoMatrixDataC(1,1, parameterC[0]);
+        //     ptMaterial->SetPiezoMatrixDataC(2,2, parameterC[1]);
+        //     ptMaterial->SetPiezoMatrixDataC(0,1, parameterC[2]);
+        //     ptMaterial->SetPiezoMatrixDataC(1,0, parameterC[2]);
+        //     ptMaterial->SetPiezoMatrixDataC(0,2, parameterC[3]);
+        //     ptMaterial->SetPiezoMatrixDataC(2,0, parameterC[3]);
+        //     ptMaterial->SetPiezoMatrixDataC(1,2, parameterC[3]);
+        //     ptMaterial->SetPiezoMatrixDataC(2,1, parameterC[3]);
+        //     ptMaterial->SetPiezoMatrixDataC(3,3, parameterC[4]);
+        //     ptMaterial->SetPiezoMatrixDataC(4,4, parameterC[4]);
+        //     ptMaterial->SetPiezoMatrixDataC(5,5, 0.5*(parameterC[0]-parameterC[2]));
+        //     ptMaterial->SetPiezoMatrixDataC(6,4, parameterC[5]);
+        //     ptMaterial->SetPiezoMatrixDataC(7,3, parameterC[5]);
+        //     ptMaterial->SetPiezoMatrixDataC(4,6, parameterC[5]);
+        //     ptMaterial->SetPiezoMatrixDataC(3,7, parameterC[5]);
+        //     ptMaterial->SetPiezoMatrixDataC(8,0, parameterC[6]);
+        //     ptMaterial->SetPiezoMatrixDataC(8,1, parameterC[6]);
+        //     ptMaterial->SetPiezoMatrixDataC(0,8, parameterC[6]);
+        //     ptMaterial->SetPiezoMatrixDataC(1,8, parameterC[6]);
+        //     ptMaterial->SetPiezoMatrixDataC(8,2, parameterC[7]);
+        //     ptMaterial->SetPiezoMatrixDataC(2,8, parameterC[7]);
+        //     ptMaterial->SetPiezoMatrixDataC(6,6, parameterC[8]);
+        //     ptMaterial->SetPiezoMatrixDataC(7,7, parameterC[8]);
+        //     ptMaterial->SetPiezoMatrixDataC(8,8, parameterC[9]);
+      }
 
     ptAssemble = ptMyPDE_->getPDE_assemble();
     ptAssemble->SetAlternatingMaterial(TRUE);

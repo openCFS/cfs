@@ -1261,7 +1261,8 @@ namespace CoupledField
         //              dparameter[ind_param]=1.2/scaling[ind_param];
         //     dparameter[ind_param]=1.3/scaling[ind_param]*bas[ind_param]; // 1.0/scaling[ind_param];
         if (whichNewtonCG==3)
-          dparameter[ind_param]=relaxParameter/scaling[ind_param]*bas[parIndex]; // 1.0/scaling[ind_param];
+          //          dparameter[ind_param]=relaxParameter/scaling[ind_param]*bas[parIndex]; // 1.0/scaling[ind_param];
+          dparameter[ind_param]=1.3/scaling[ind_param]*bas[parIndex]; // 1.0/scaling[ind_param];
         else 
           dparameter[ind_param]=relaxParameter/scaling[ind_param];
         
