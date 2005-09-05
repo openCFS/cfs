@@ -548,17 +548,26 @@ namespace CoupledField {
     }
 
     std::cerr << std::endl << " \033[31mERROR:\033[0m\n" << myEndl;
-    std::cerr << ' ' << Text;
-
+    if ( Text != "" ) {
+      std::cerr << ' ' << Text;
+    }
+    else {
+      std::cerr << ' ' << "I've got the feeling that something is wrong!\n"
+                << " Can't say what, however :(\n\n"
+                << " (No error message was provided by the"
+                << " programmer)";
+    }
     if ( filename ) {
       std::cerr << "\n\n This error message was brought to you by\n "
 		<< filename << ", line " << numline;
     }
 
 #ifdef TRACE
-    OutInfo::FcnTraceHandler::Dump();
-    std::cerr << "\n\n See '" << commandLine->GetSimName()
-              << ".trace' for trace dump of function call tree.";
+    if ( commandLine->GetTraceDepth() > 0 ) {
+      OutInfo::FcnTraceHandler::Dump();
+      std::cerr << "\n\n See '" << commandLine->GetSimName()
+                << ".trace' for trace dump of function call tree.";
+    }
 #endif
 
     std::cerr << std::endl << std::endl;
