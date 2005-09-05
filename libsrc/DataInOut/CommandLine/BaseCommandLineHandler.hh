@@ -105,7 +105,7 @@ namespace CoupledField {
   //!       <td align="center">non-negative integer</td>
   //!       <td><em>depth of function tracing</em></td>
   //!       <td align="center">0</td>
-  //!       <td align="center">%GetTrace()</td>
+  //!       <td align="center">%GetTraceDepth()</td>
   //!     </tr>
   //!
   //!     <tr>
