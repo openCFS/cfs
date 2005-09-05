@@ -331,11 +331,18 @@ namespace CoupledField {
     // initialize EQN-object and Storeresults class
     // =====================================================================
 
+    // Name of linear system depends of coupling type
+    if ( isDirectCoupled_ == FALSE ) {
+      valVec  = "", pdename_, "";
+    }
+    else {
+      valVec  = "", "direct", "";
+    }
+
     // What type of equation numbering does the user want?
     std::string typeOfNumbering;
     keyVec  = "linearSystems", "system", "setup", "eqnNumbering";
     attrVec = "", "name", "";
-    valVec  = "", pdename_, "";
     params->Get( keyVec, attrVec, valVec, typeOfNumbering );
 
     // How do we want to treat inhomogeneous Dirichlet boundary conditions?
@@ -344,7 +351,6 @@ namespace CoupledField {
       std::string aux;
       keyVec  = "linearSystems", "system", "setup", "idbcHandling";
       attrVec = "", "name", "";
-      valVec  = "", pdename_, "";
       params->Get( keyVec, attrVec, valVec, aux );
       usePenalty = aux == "penalty" ? true : false;
       Info->PrintF( pdename_, "Treating IDBCs using '%s' approach\n",
