@@ -91,6 +91,12 @@ namespace CoupledField {
                             const Double asteptime = 0.0,
                             UInt stepOffset = 0,
                             Double timeOffset = 0.0);
+
+    //! write history of nodes/elements to file
+    void WriteHistoryInFile(const UInt kstep = 0,
+                            const Double asteptime = 0.0,
+                            UInt stepOffset = 0,
+                            Double timeOffset = 0.0);
     //@}
 
 

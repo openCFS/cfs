@@ -153,6 +153,14 @@ namespace CoupledField {
     ENTER_FCN( "MpcciPDE::WriteResultsInFile" );
   }
 
+  void MpcciPDE::WriteHistoryInFile(const UInt kstep,
+                                    const Double asteptime,
+                                    UInt stepOffset,
+                                    Double timeOffset)
+  {
+    ENTER_FCN( "MpcciPDE::WriteHistoryInFile" );
+  }
+
   void MpcciPDE::PostProcess()
   {
     ENTER_FCN( "MpcciPDE::PostProcess" );

@@ -411,6 +411,20 @@ namespace CoupledField {
 
   }
 
+  void DirectCoupledPDE::WriteHistoryInFile(const UInt kstep,
+                                            const Double asteptime,
+                                            UInt stepOffset,
+                                            Double timeOffset)
+  {
+    ENTER_FCN( "DirectCoupledPDE::WriteHistoryInFile" );
+
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      singlePDEs_[i]->WriteHistoryInFile( kstep, asteptime, 
+                                          stepOffset, timeOffset);
+    }
+
+  }
+
   // ======================================================
   // COUPLING SECTION
   // ======================================================

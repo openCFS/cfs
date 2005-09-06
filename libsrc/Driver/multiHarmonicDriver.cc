@@ -306,6 +306,9 @@ namespace CoupledField
     //    std::cout<<"piezoParamIdent::createAndSetRHSforJacobian 1 "<< std::endl; 
    
         ptPDE_->WriteResultsInFile( fstep, actFreq);
+
+        //write history data
+        ptPDE_->WriteHistoryInFile(fstep, actFreq);
         
         actFreq += freqIncr;
        

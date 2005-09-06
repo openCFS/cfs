@@ -144,10 +144,6 @@ namespace CoupledField {
         outFile_->WriteNodeSolutionTransient(*solConverted, actStep, actTime);
       }
 
-      if ( saveSolHist_ ) {
-        outFile_->WriteNodeHistoryTransient(*solConverted, actStep, actTime);
-      }
-
       if ( calcEfield_.GetSize() != 0 ) {
         outFile_->WriteElemSolutionTransient(E_, actStep, actTime);
       }
@@ -253,6 +249,60 @@ namespace CoupledField {
     }
 #endif
   }
+
+
+
+  // **********************
+  //   WriteHistoryInFile
+  // **********************
+  void ElecPDE::WriteHistoryInFile( const UInt kstep,
+                                    const Double asteptime,
+                                    UInt stepOffset,
+                                    Double timeOffset ) {
+
+    ENTER_FCN( "ElecPDE::WriteHistoryInFile" );
+
+    UInt actStep = kstep + stepOffset;
+    Double actTime = timeOffset + asteptime;
+
+    // only first process should write output
+#ifdef PARALLEL
+    int commrank;
+    MPI_Comm_rank( MPI_COMM_WORLD, &commrank );
+    if ( commrank != 0 ) {
+      return;
+    }
+#endif
+    
+    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
+
+      // Down-cast
+      NodeStoreSol<Double> *solConverted;
+      solConverted = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+
+      if ( saveSolHist_ ) {
+        outFile_->WriteNodeHistoryTransient(*solConverted, actStep, actTime);
+      }
+
+    }
+    else {
+
+      // Down-cast
+      NodeStoreSol<Complex> *mySol = NULL;
+      mySol = dynamic_cast< NodeStoreSol<Complex>* >( sol_ );
+
+      // Write electric potential
+      if ( saveSolHist_ == TRUE ) {
+        outFile_->WriteNodeHistoryHarmonic( *mySol, actStep, actTime,
+                                             complexFormat_ );
+      }
+
+      (*warning) << "ElecPDE: Only solution can be written for harmonic "
+                 << "case currently";
+      Warning( __FILE__, __LINE__);
+    }
+  }
+
 
 
   // ***************

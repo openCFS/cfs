@@ -193,6 +193,9 @@ namespace CoupledField {
       // Write results into output-file
       ptPDE_->PostProcess();
       ptPDE_->WriteResultsInFile(fstep, actFreq_);
+
+      //write history data
+      ptPDE_->WriteHistoryInFile(fstep, actFreq_);
     }
   }
 

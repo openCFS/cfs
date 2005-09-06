@@ -872,13 +872,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         if (saveSol_)
           outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actStep, 
                                               actTime, complexFormat_);
-        if (saveSolHist_)
-          outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actStep, 
-                                             actTime, complexFormat_);
-
-        if (saveDeriv1Hist_) {
-          // multiply solution with j * omega
-        }
       }
       else {  
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
@@ -886,46 +879,25 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         if (saveSol_){
           outFile_->WriteNodeSolutionTransient(*solTransient,actStep,actTime);
         }
-        if (saveSolHist_){
-          outFile_->WriteNodeHistoryTransient(*solTransient, actStep,actTime);
-        }
 
-        // DODO here
         if(m_bWriteSpecialBCs) {
           m_pGridAdaption->Add2DataFile(*solTransient, actTime);
         }
-        // DODO until here        
 
         if (saveDeriv1_) {
           solDeriv1_.SetAlgSysVector(getS1()); 
           outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
         }
-        if (saveDeriv1Hist_) {
-          solDeriv1_.SetAlgSysVector(getS1()); 
-          outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
-        }
+
         if (saveDeriv2_) {
           solDeriv2_.SetAlgSysVector(getS2());
           outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
-        }
-        if (saveDeriv2Hist_){
-          solDeriv2_.SetAlgSysVector(getS2());
-          outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
         }
 
         if (saveRHSval_){
           outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
         }
-        if (saveRHSvalHist_){
-          outFile_->WriteNodeHistoryTransient(rhs_, actStep, actTime); 
-        }
 
-        if (saveForceHist_) {
-          outFile_->WriteElemHistoryTransient(acouForce_, actStep, actTime);
-
-          // lazy mans way to produce output
-          std::cerr << actTime << "   " << sumForce_ << std::endl;
-        }
       }
  
       // ------- for bubble results ----------------------
@@ -981,6 +953,70 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         outFile_->WriteElemSolutionTransient(bubbleResult, actStep, actTime);
       }
 
+#ifdef PARALLEL
+    }//!commrank
+#endif
+  }
+
+  void AcousticPDE::WriteHistoryInFile(const UInt kstep,
+                                       const Double asteptime,
+                                       UInt stepOffset,
+                                       Double timeOffset) {
+    ENTER_FCN( "AcousticPDE::WriteHistoryInFile" );
+
+#ifdef PARALLEL //only one thread should write the output
+    int commrank;
+    MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
+    if (!commrank) {
+#endif
+      NodeStoreSol<Double> solIm_mesh;
+      NodeStoreSol<Double> * solTransient;
+      NodeStoreSol<Complex> * solHarmonic;
+      
+      
+      Double actTime = asteptime + timeOffset;
+      UInt actStep = kstep + stepOffset;
+      
+      if (analysistype_==HARMONIC) {
+        solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+
+        if (saveSolHist_)
+          outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actStep, 
+                                             actTime, complexFormat_);
+
+        if (saveDeriv1Hist_) {
+          // multiply solution with j * omega
+        }
+      }
+      else {  
+        solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+
+        if (saveSolHist_){
+          outFile_->WriteNodeHistoryTransient(*solTransient, actStep,actTime);
+        }
+
+        if (saveDeriv1Hist_) {
+          solDeriv1_.SetAlgSysVector(getS1()); 
+          outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
+        }
+
+        if (saveDeriv2Hist_){
+          solDeriv2_.SetAlgSysVector(getS2());
+          outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
+        }
+
+        if (saveRHSvalHist_){
+          outFile_->WriteNodeHistoryTransient(rhs_, actStep, actTime); 
+        }
+
+        if (saveForceHist_) {
+          outFile_->WriteElemHistoryTransient(acouForce_, actStep, actTime);
+
+          // lazy mans way to produce output
+          std::cerr << actTime << "   " << sumForce_ << std::endl;
+        }
+      }
+ 
 #ifdef PARALLEL
     }//!commrank
 #endif

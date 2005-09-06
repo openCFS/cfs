@@ -489,6 +489,17 @@ namespace CoupledField
     PDEs_[i]->WriteResultsInFile(kstep, asteptime, stepOffset, timeOffset);
 }
 
+  void IterCoupledPDE::WriteHistoryInFile(const UInt kstep,
+					  const Double asteptime,
+					  UInt stepOffset,
+					  Double timeOffset)
+{
+  ENTER_FCN( "IterCoupledPDE::WriteHistoryInFile" );
+
+  for (UInt i=0; i<PDEs_.GetSize(); i++)
+    PDEs_[i]->WriteHistoryInFile(kstep, asteptime, stepOffset, timeOffset);
+}
+
 
 void IterCoupledPDE::WriteCouplingInfo(std::ostream &out)
 {

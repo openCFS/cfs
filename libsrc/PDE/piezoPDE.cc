@@ -406,10 +406,6 @@ namespace CoupledField {
       if (saveSol_)
         outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
 
-      if (saveSolHist_) {
-        outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
-      }
-        
       // Write derivatives
       if (analysistype_== TRANSIENT) {
         if (saveDeriv1_ == TRUE)
@@ -418,21 +414,11 @@ namespace CoupledField {
             outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
           }
 
-        if (saveDeriv1Hist_ == TRUE) {
-          solDeriv1_.SetAlgSysVector(getS1());
-          outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
-        }
-
-          
         if (saveDeriv2_ == TRUE)
           {
             solDeriv2_.SetAlgSysVector(getS2());
             outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
           }
-        if (saveDeriv2Hist_ == TRUE){
-          solDeriv2_.SetAlgSysVector(getS2());
-          outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
-        }
       }
         
       //element results
@@ -458,13 +444,6 @@ namespace CoupledField {
                                               actTime, complexFormat_);
         }
 
-      //history nodes
-      if (saveSolHist_) {
-        solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-        outFile_->WriteNodeHistoryHarmonic(*solHarmonic, actStep,
-                                           actTime, complexFormat_);
-      }
-
       //element results
       if (calcCharge_.GetSize() !=0 ) {
         outFile_->WriteElemSolutionHarmonic(chargesComplex_, actStep,  
@@ -476,6 +455,52 @@ namespace CoupledField {
       if (calcEfield_.GetSize() !=0 ) 
 	outFile_->WriteElemSolutionHarmonic(EfieldComplex_, actStep,
                                             actTime, complexFormat_);
+    }
+  }
+
+
+  void PiezoPDE::WriteHistoryInFile( const UInt kstep,
+                                     const Double asteptime,
+                                     UInt stepOffset,
+                                     Double timeOffset ) {
+
+    ENTER_FCN( "PiezoPDE::WriteHIstoryInFile" );
+
+    NodeStoreSol<Double> * solTransient;
+    NodeStoreSol<Complex> * solHarmonic;
+
+    Double actTime = asteptime + timeOffset;
+    UInt actStep = kstep + stepOffset;
+
+    if (analysistype_ == STATIC ||
+        analysistype_ == TRANSIENT) {
+      solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);      
+
+      if (saveSolHist_) {
+        outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
+      }
+        
+      // Write derivatives
+      if (analysistype_== TRANSIENT) {
+        if (saveDeriv1Hist_ == TRUE) {
+          solDeriv1_.SetAlgSysVector(getS1());
+          outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
+        }
+
+        if (saveDeriv2Hist_ == TRUE){
+          solDeriv2_.SetAlgSysVector(getS2());
+          outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
+        }
+      }
+        
+    } 
+    else if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+      //history nodes
+      if (saveSolHist_) {
+        solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+        outFile_->WriteNodeHistoryHarmonic(*solHarmonic, actStep,
+                                           actTime, complexFormat_);
+      }
     }
   }
 
