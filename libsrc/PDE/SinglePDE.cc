@@ -867,19 +867,25 @@ namespace CoupledField {
 	// now parse given data file
 	m_pGridAdaption->ReadFile(strFileName);
       }
-      // DODO
 
-      StdVector<std::string> keyVec;
+      StdVector<Double> value;
+      attrVec = "", "";
+      valVec = "", "";
 
+      //first ofd all do a test, if slcicing data is defined
       keyVec = pdename_, "sliceData", "pulseStartDamping";
-      params->Get(keyVec, m_dStartDamping_);
+      params->GetList(keyVec, attrVec, valVec, value); 
 
-      keyVec = pdename_, "sliceData", "pulseTime";
-      params->Get(keyVec, m_dPulseTime_);
+      if (value.GetSize() > 0 ) {      
+        keyVec = pdename_, "sliceData", "pulseStartDamping";
+        params->Get(keyVec, m_dStartDamping_);
 
-      keyVec = pdename_, "sliceData", "pulseOffset";
-      params->Get(keyVec, m_dPulseOffset_);
-
+        keyVec = pdename_, "sliceData", "pulseTime";
+        params->Get(keyVec, m_dPulseTime_);
+        
+        keyVec = pdename_, "sliceData", "pulseOffset";
+        params->Get(keyVec, m_dPulseOffset_);
+      }
     }
     else if (analysistype_ == HARMONIC||analysistype_ == MULTIHARMONIC) {
       keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "phase";
