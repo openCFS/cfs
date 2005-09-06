@@ -17,6 +17,8 @@
 
 #define CFS_VERSION  "0.1a"
 
+#define PROGRESS_TEXT_WIDTH 62
+
 namespace CoupledField {
 
   WriteInfo::WriteInfo () {
@@ -764,11 +766,13 @@ namespace CoupledField {
 
     ENTER_IFCN( "WriteInfo::StartProgress" );
    
-    std::string modifiedName = name + " ...";
+    std::string modifiedName = name + " ";
 
     needAck_ = needAck;
 
-    std::cout << "++ " << std::setw(60) << std::left << modifiedName
+    std::cout << "++ " << std::setw(PROGRESS_TEXT_WIDTH)
+              << std::setfill( '.' ) << std::left
+              << modifiedName << std::setfill( ' ' ) << ' '
               << std::flush;
 
     if ( needAck ) {
