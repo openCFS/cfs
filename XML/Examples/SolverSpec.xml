@@ -36,7 +36,8 @@
 
     <system name="piezo">
 
-      <matrix eqnNumbering="scalar" entry="double" storage="sparseNonSym"/>
+      <setup eqnNumbering="scalar"/>
+      <matrix entry="double" storage="sparseNonSym"/>
       <exportLinSys baseName="cube5Penalty"/>
 
       <solver type="hypreBICGSTAB" precond="hypreSPAI">
@@ -61,8 +62,19 @@
     </system>
 
     <system name="direct">
-      <sbmMatrix eqnNumbering="scalar" entry="double" symmetric="no"
-        reordering="noReordering"/>
+      <setup idbcHandling="elimination"/>
+      <sbmMatrix symmetric="no"/>
+    </system>
+
+    <system name="mechanic">
+      <setup idbcHandling="elimination"/>
+      <solver type="pardiso" precond="Id">
+        <pardiso>
+          <posDef>yes</posDef>
+          <logging>yes</logging>
+          <stats>yes</stats>
+        </pardiso>
+      </solver>
     </system>
 
   </linearSystems>
