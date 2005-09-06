@@ -209,7 +209,14 @@ namespace CoupledField
   }
 
 
-
+  void SmoothPDE::WriteHistoryInFile(const UInt kstep,
+                                     const Double asteptime,
+                                     UInt stepOffset,
+                                     Double timeOffset)
+  {
+    ENTER_FCN( "SmoothPDE::WriteHistoryInFile" );
+  
+  }
 
   Boolean SmoothPDE::HasOutput(SolutionType output)
   {

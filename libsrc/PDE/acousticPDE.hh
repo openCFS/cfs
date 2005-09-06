@@ -57,6 +57,14 @@ namespace CoupledField {
                             UInt stepOffset = 0,
                             Double timeOffset = 0.0);
 
+    //! write history results in file
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time  
+    void WriteHistoryInFile(const UInt kstep,
+                            const Double asteptime,
+                            UInt stepOffset = 0,
+                            Double timeOffset = 0.0);
+
     //! return size of solution
     UInt getSize() const 
     { return size_;}

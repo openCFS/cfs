@@ -1023,14 +1023,11 @@ namespace CoupledField
       if (saveSol_ == TRUE ) 
         outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
     
-      if (saveSolHist_ == TRUE)
-        outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
-    
       if (analysistype_== TRANSIENT) {
         if (saveDeriv1_ == TRUE)
           {
             solDeriv1_.SetAlgSysVector(getS1());
-            //        outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
+            outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
           
             if (saveDeriv1Hist_ == TRUE)
               outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
@@ -1041,8 +1038,6 @@ namespace CoupledField
             solDeriv2_.SetAlgSysVector(getS2());
             outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
           }
-        if (saveDeriv2Hist_ == TRUE)
-          outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
       }
     
       //element results
@@ -1056,6 +1051,50 @@ namespace CoupledField
       if (saveSol_ == TRUE )
         outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actStep,
                                             actTime, complexFormat_);
+    } else
+      Error("MechPDE: Only static, transient and harmonic results cna be written",
+            __FILE__, __LINE__);
+  
+  }
+
+
+  void MechPDE::WriteHistoryInFile(const UInt kstep,
+                                   const Double asteptime,
+                                   UInt stepOffset,
+                                   Double timeOffset)
+  {
+    ENTER_FCN( "MechPDE::WriteHistoryInFile" );
+
+    NodeStoreSol<Double> sol_der1Array, sol_der2Array;
+    NodeStoreSol<Double> * solTransient;
+    NodeStoreSol<Complex> * solHarmonic;
+
+    Double actTime = asteptime + timeOffset;
+    UInt actStep = kstep + stepOffset;
+    
+    if (analysistype_ == STATIC ||
+        analysistype_ == TRANSIENT) {
+      solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    
+      if (saveSolHist_ == TRUE)
+        outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
+    
+      if (analysistype_== TRANSIENT) {
+        if (saveDeriv1_ == TRUE) {
+          if (saveDeriv1Hist_ == TRUE)
+            outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
+        }
+      
+        if (saveDeriv2_ == TRUE) {
+          if (saveDeriv2Hist_ == TRUE) {
+            outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
+          }
+        }
+      }
+    }
+    else if (analysistype_ == HARMONIC) {
+      solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+
       if (saveSolHist_ == TRUE)
         outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actStep, 
                                            actTime, complexFormat_);

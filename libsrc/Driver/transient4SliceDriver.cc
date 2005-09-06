@@ -199,6 +199,9 @@ void Transient4SliceDriver::SolveProblem()
     ptPDE_->GetSolveStep()->SolveStepTrans4Slice(updatesysmat);
     ptPDE_->GetSolveStep()->PostStepTrans();
 
+    //write history data
+    ptPDE_->WriteHistoryInFile(nstep, steptime, stepOffset_, timeOffset_);
+
     // writing results in output-file
     if (nstep == stepsave && (nstep <= isaveend_)) {
       ptPDE_->PostProcess();

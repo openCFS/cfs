@@ -67,6 +67,7 @@ namespace CoupledField {
       ptdomain_->PrintGrid();
       
     ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
+    ptPDE_->WriteHistoryInFile(nstep, steptime, stepOffset_, timeOffset_);
 
     SETPROFILE("After Static Step");
   }

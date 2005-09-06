@@ -290,11 +290,6 @@ namespace CoupledField {
                                              actStep, actTime);
       }
 
-      if (saveSolHist_) {
-        outFile_->WriteNodeHistoryTransient(*solTransient, 
-                                            actStep, actTime);
-      }
-      
       if (calcBfield_.GetSize() !=0 ) {
         outFile_->WriteElemSolutionTransient(B_, actStep, actTime);
       }
@@ -313,7 +308,40 @@ namespace CoupledField {
         if (saveSol_)
           outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actStep,
                                               actTime, complexFormat_);
+      }
+      else {
+        (*error) << "MagPDE: Only static, transient and harmonic results can "
+                 << "be written";
+        Error( __FILE__, __LINE__ );
+      }
+    }
+  }
 
+
+  void MagPDE::WriteHistoryInFile(const UInt kstep,
+                                  const Double asteptime,
+                                  UInt stepOffset,
+                                  Double timeOffset) {
+
+    ENTER_FCN( "MagPDE::WriteHistoryInFile" );
+
+    NodeStoreSol<Double> * solTransient;
+    NodeStoreSol<Complex> * solHarmonic;
+
+    Double actTime = asteptime + timeOffset;
+    UInt actStep = kstep + stepOffset;
+    
+    if (analysistype_ == STATIC ||
+        analysistype_ == TRANSIENT) {
+      solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+
+      if (saveSolHist_) {
+        outFile_->WriteNodeHistoryTransient(*solTransient, 
+                                            actStep, actTime);
+      }     
+    }
+    else {
+      if (analysistype_ == HARMONIC) {        
         if (saveSolHist_)
           outFile_->WriteNodeHistoryHarmonic(*solHarmonic, actStep,
                                              actTime, complexFormat_);

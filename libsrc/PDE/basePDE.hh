@@ -57,6 +57,14 @@ namespace CoupledField
                                     const Double actTimeFreq, 
                                     UInt stepOffset = 0,
                                     Double timeOffset = 0.0) = 0; 
+
+    //! write history (selected nodes/elements) results in file
+    //! \param stepOffset offset for starting (time/frequency)step
+    //! \param timeOffset offset for starting time / frequency
+    virtual void WriteHistoryInFile(const UInt kstep, 
+                                    const Double actTimeFreq, 
+                                    UInt stepOffset = 0,
+                                    Double timeOffset = 0.0) = 0; 
     //@}
 
     
