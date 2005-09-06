@@ -45,12 +45,21 @@ namespace CoupledField
     { algsys_ = algSys;}
 
     //! Return pointer to first PDE
-    SinglePDE* GetPde1()
-    { return pde1_;}
+    SinglePDE* GetPde1() {
+      return pde1_;
+    }
 
     //! Return pointer to second PDE
-    SinglePDE* GetPde2()
-    { return pde2_;}
+    SinglePDE* GetPde2() {
+      return pde2_;
+    }
+
+    //! Return identifier of first PDE
+    PdeIdType GetPdeId1();
+
+    //! Return identifier of second PDE
+    PdeIdType GetPdeId2();
+
     
     // ======================================================
     // METHODS FOR ASSEMBLING
