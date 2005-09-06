@@ -24,7 +24,7 @@ namespace CoupledField
     pdename_ = "acoustic";
 
     isInitialized_ = FALSE;
-
+    ABC = FALSE;
     /*
       DEFINED IN BASEPARAMHANDLER.hh && XMLPARAMHANDLER.hh
       The method will try to find the specified keyword in the parameter tree and will
@@ -46,6 +46,7 @@ namespace CoupledField
     // check for absorbing boundary conditions
     UInt numRegions;
     StdVector<std::string> abcBCs;
+    //params->GetList( "name", abcBCs, "domain", "elements" );
     params->GetList( "name", abcBCs, pdename_, "absorbingBCs" );
 
     if ( abcBCs.GetSize() == 0 ) {
@@ -54,20 +55,26 @@ namespace CoupledField
     else if ( abcBCs.GetSize() == 1 ) {
       numRegions = 2;
       regionNames_.Push_back(abcBCs[0]);
+      ABC = TRUE;
+
+      //we just allow one surface region
+      //therefore, we can hardcode the Ids level
+      surfRegionIds_.Resize(1);
+      surfRegionIds_[0] = 1;
     }
     else {
       Error("Just one ABC-region allowed",__FILE__,__LINE__);
     }
 
-    //std::cout << "reg1=" << regionNames_[0] << "  reg2=" << regionNames_[1] << std::endl;
+    for (Integer k=0; k<regionNames_.GetSize(); k++) {
+      std::cout << "Name: " << k << "  " << regionNames_[k] << std::endl;
+    }
 
-    //we just allow one volume and one surface region
+
+    //we just allow one volume region
     //therefore, we can hardcode the Ids level
     volRegionIds_.Resize(1);
     volRegionIds_[0] = 0;
-
-    surfRegionIds_.Resize(1);
-    surfRegionIds_[0] = 1;
 
     //Get slice data
     StdVector<std::string> keyVec;
@@ -115,6 +122,33 @@ namespace CoupledField
     GenGridStruct(1,3,20);
     SetNamedNodes();
 
+    numElems_ = numVolElems_ + numSurfElems_;
+
+    // Create ordered list of elements
+    orderedElems_.Resize(numElems_);
+    orderedElems_.Init(NULL);
+
+    //volume elements
+    Elem * ptVolElem;
+    for ( UInt iRegion = 0; iRegion < volElems_.GetSize(); iRegion++ ) {    
+      for ( UInt iElem = 0; iElem < volElems_[iRegion].GetSize();
+            iElem++ ) {
+        ptVolElem =  volElems_[iRegion][iElem];
+        orderedElems_[ptVolElem->elemNum-1] = ptVolElem;
+      } // loop over elements
+    } // loop over region
+    
+    //surface elements
+    UInt offset = volElems_[0].GetSize();
+    Elem * ptSurfElem;
+    for ( UInt iRegion = 0; iRegion < surfElems_.GetSize(); iRegion++ ) {    
+      for ( UInt iElem = 0; iElem < surfElems_[iRegion].GetSize();
+            iElem++ ) {
+        ptSurfElem =  surfElems_[iRegion][iElem];
+        orderedElems_[ptSurfElem->elemNum-1 + offset] = ptSurfElem;
+      } 
+    } 
+
     isInitialized_ = TRUE;
   }
 
@@ -125,14 +159,14 @@ namespace CoupledField
   {
     ENTER_FCN( "GridStruct::GenGridStruct");
 
-    maxnumelemz_ = elemz;	//Number of elements in z-direction (moving- direction)
-    maxnumelemy_ = elemy;	//Number of elements in y-direction
-    maxnumelemx_ = elemx;	//Number of elements in x-direction
+    maxnumelemz_ = 0;	//Number of elements in z-direction (moving- direction)
+    maxnumelemy_ = 0;	//Number of elements in y-direction
+    maxnumelemx_ = 0;	//Number of elements in x-direction
 
     Integer innodes_;		//Number of nodes per element
     Integer i,j,k,l,m,temp,temp2,temp3;		//index- variables
-    Double meshsizez_ = 1.5E-4;	//
-    Double meshsizey_ = 1.5E-4;	//
+    Double meshsizez_ = 0.0;	//
+    Double meshsizey_ = 0.0;	//
     Double meshsizex_ = 0.0;	//
     Double x = 0.0;			//Coordinates
     Double y = 0.0;			//Coordinates
@@ -140,7 +174,6 @@ namespace CoupledField
     Double start_=0.0;
     Double totalLength;
 
-    Integer absbcs=0;
 
 
     switch(dim_) {
@@ -205,8 +238,6 @@ namespace CoupledField
     volElems_.Resize(1);  
     surfElems_.Resize(1); 
 
-    //absorbing boundary conditions
-    Boolean ABC = TRUE;
 
     //Init
     switch(dim_) {
@@ -217,14 +248,14 @@ namespace CoupledField
 
       for(i=0;i<maxnumelemz_+1;i++) {
         for(j=0;j<maxnumelemy_+1;j++) {
+          ptCoordinate_[k][0] = start_ + y;
+          ptCoordinate_[k][1] = start_ + z;
 
-          ptCoordinate_[k][0] = start_ + z;
-          ptCoordinate_[k][1] = start_ + y;
-          y+= meshsizey_;
+          y += meshsizez_;
           k++;
         }
-        z+=meshsizez_;
-        y=0.0;
+        z += meshsizez_;
+        y = 0.0;
       }
 
       k = 0;
@@ -240,9 +271,9 @@ namespace CoupledField
           el->connect.Resize(innodes_);
 
           el->connect[0] = 1+ k;		 	     //Connect elements
-          el->connect[1] = 1+ k +     (maxnumelemy_+1);//Connect elements
+          el->connect[3] = 1+ k +     (maxnumelemy_+1);//Connect elements
           el->connect[2] = 1+ k + 1 + (maxnumelemy_+1);//Connect elements
-          el->connect[3] = 1+ k + 1;		     //Connect elements
+          el->connect[1] = 1+ k + 1;		     //Connect elements
 
           volElems_[0].Push_back(el);
 
@@ -257,34 +288,20 @@ namespace CoupledField
       temp = m;
 
       if ( ABC ) {
-	Elem * volEl = volElems_[0][0];
-        for(i=0; i< maxnumelemz_;i++) {
-          SurfElem* el= new SurfElem();
-          el->elemNum = temp;
-          el->ptElem = ptL1;
-          el->regionId = surfRegionIds_[0];
-          el->connect.Resize(2);
-          
-          el->connect[0] = 1+i*maxnumelemy_;
-          el->connect[1] = 1+(i+1)*maxnumelemy_;
+        UInt surfElNum = 1;
+        Elem * volEl  = volElems_[0][0];
 
-	  //set arbitrary volume element
-          el->ptVolElem1 = volEl;
-
-          surfElems_[0].Push_back(el);
-          
-          temp++;
-        }
-        
         //upper
         temp2 = temp;
-        for(i=0; i< maxnumelemz_;i++) {
+
+        for(i=0; i < maxnumelemz_ ;i++) {
           SurfElem* el= new SurfElem();
           el->elemNum = temp2;
           el->ptElem = ptL1;
           el->regionId = surfRegionIds_[0];
-          el->connect.Resize(2);
-          
+          el->elemNum  = surfElNum;
+
+          el->connect.Resize(2);          
           el->connect[0] = maxnumelemy_ +i*maxnumelemy_;
           el->connect[1] = maxnumelemy_ +(i+1)*maxnumelemy_;
           
@@ -292,30 +309,33 @@ namespace CoupledField
           el->ptVolElem1 = volEl;
 
           surfElems_[0].Push_back(el);
-          
+          surfElNum++;
           temp2++;
         }
-        
-        absbcs = maxnumelemy_-((maxnumelemy_+1)/2);
-        //left
-        temp3 = temp2;
-        for(i=0; i< absbcs;i++) {
-          SurfElem* el= new SurfElem();
-          el->elemNum = temp3;
-          el->ptElem = ptL1;
-          el->regionId = surfRegionIds_[0];
-          el->connect.Resize(2);
-          
-          el->connect[0] = (maxnumelemy_+1)/2+i;
-          el->connect[1] = (maxnumelemy_+1)/2+1+i;
-          
-	  //set arbitrary volume element
-          el->ptVolElem1 = volEl;
 
-          surfElems_[0].Push_back(el);
-          
-          temp3++;
+	temp3 = temp2;
+      	UInt shift = (maxnumelemy_+1);
+        for(i=0;i<maxnumelemy_;i++) {
+            SurfElem* el = new SurfElem();
+            el->elemNum = temp3;
+            el->ptElem = ptL1;
+            el->regionId = surfRegionIds_[0];
+            el->elemNum  = surfElNum;
+
+            el->connect.Resize(2);
+            el->connect[0] =  maxnumelemz_*shift + i + 1;
+            el->connect[1] =  maxnumelemz_*shift + i + 2;
+
+            //set arbitrary volume element
+            el->ptVolElem1 = volEl;
+
+            surfElems_[0].Push_back(el);
+
+            surfElNum++;
+            m++;
+            temp++;
         }
+        
       }
 
       break;
@@ -329,10 +349,9 @@ namespace CoupledField
       for(i=0;i<maxnumelemz_+1;i++) {
         for(j=0;j<maxnumelemx_+1;j++) {
           for(l=0;l<maxnumelemy_+1;l++) {
-
-            ptCoordinate_[k][0] = start_ + z;
+            ptCoordinate_[k][0] = start_ + x;
             ptCoordinate_[k][1] = start_ + y;
-            ptCoordinate_[k][2] = start_ + x;
+            ptCoordinate_[k][2] = start_ + z;
             y+= meshsizey_;
             k++;
           }
@@ -353,28 +372,18 @@ namespace CoupledField
             el -> elemNum  = m;
             el -> ptElem   = ptHexa1;
             el->  regionId = volRegionIds_[0] ;
+
             el -> connect.Resize(innodes_);
-
-            //Connect elements
-            //std::cerr << "Element Nr.: " << k << ": ";
             el->connect[0] = j+i*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
-            //std::cerr <<  j+i*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1)<< ", ";
-            el->connect[3] = j+i*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
-            //std::cerr <<   j+i*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)<< ", ";
-            el->connect[2] =j+(i+1)*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
-            //std::cerr <<  j+(i+1)*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1) << ", ";
-            el->connect[1] = j+(i+1)*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
-            //std::cerr <<  j+(i+1)*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1) << ", ";
+            el->connect[1] = j+i*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
+            el->connect[2] = j+(i+1)*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
+            el->connect[3] = j+(i+1)*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
             el->connect[4] = (j+1)+i*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
-            //std::cerr << (j+1)+i*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1) << ", ";
-            el->connect[7] = (j+1)+i*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
-            //std::cerr <<   (j+1)+i*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)<< ", ";
+            el->connect[5] = (j+1)+i*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
             el->connect[6] = (j+1)+(i+1)*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
-            //std::cerr <<   (j+1)+(i+1)*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)<< ", ";
-            el->connect[5] = (j+1)+(i+1)*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
-            //std::cerr <<   (j+1)+(i+1)*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1)<< std::endl;
-            //add the Element el to the Element-Vector
+            el->connect[7] = (j+1)+(i+1)*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
 
+            //add the Element el to the Element-Vector
             volElems_[0].Push_back(el);
             
             k++;
@@ -391,6 +400,8 @@ namespace CoupledField
 
       if ( ABC ) {
 	Elem * volEl = volElems_[0][0];
+
+        UInt surfElNum = 1;
         temp = 0;
         for(i=0;i<maxnumelemz_;i++) {
           for(j=0;j<maxnumelemx_;j++) {
@@ -398,91 +409,24 @@ namespace CoupledField
             el->elemNum = m;
             el->ptElem = ptQ1;
             el->regionId = surfRegionIds_[0];
+            el->elemNum  = surfElNum;
+
             el->connect.Resize(4);
-            
             el->connect[0] = maxnumelemy_+(maxnumelemy_+1)*j+(maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-            //std::cout << maxnumelemy_+(maxnumelemy_+1)*j+(maxnumelemy_+1)*(maxnumelemx_+1)*i+1 << ", ";
             el->connect[1] =  maxnumelemy_+(maxnumelemy_+1)*j+(maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1; 
-            //std::cout <<   maxnumelemy_+(maxnumelemy_+1)*j+(maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1 <<", ";
             el->connect[2] =  maxnumelemy_+(maxnumelemy_+1)*(j+1)+(maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1; 
-            //std::cout <<  maxnumelemy_+(maxnumelemy_+1)*(j+1)+(maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1<< ", ";
             el->connect[3] =  maxnumelemy_+(maxnumelemy_+1)*(j+1)+(maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-            //std::cout << maxnumelemy_+(maxnumelemy_+1)*(j+1)+(maxnumelemy_+1)*(maxnumelemx_+1)*i+1<< std::endl;
             
 	    //set arbitrary volume element
 	    el->ptVolElem1 = volEl;
 
             surfElems_[0].Push_back(el);
-            
+
+            surfElNum++;            
             m++;
             temp++;
           }
         }
-        //std::cerr << "soviele top BE: " << temp << std::endl;
-        // referring to the BOTTOM-BOUNDARY
-        
-       //  k=0;
-//         temp = 0;
-//         for(i=0;i<maxnumelemz_;i++) {
-//           for(j=0;j<maxnumelemx_;j++) {
-//             SurfElem* el = new SurfElem();
-//             el->elemNum = m;
-//             el->ptElem = ptQ1;
-//             el->regionId = surfRegionIds_[0];
-//             el->connect.Resize(4);
-            
-//             el->connect[0] = (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-//             //std::cout << (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*i<< ", ";
-//             el->connect[1] = (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1;
-//             //std::cout << (maxnumelemy_+1)*j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)<< ", ";
-//             el->connect[2] = (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1;
-//             //std::cout << (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)<< ", ";
-//             el->connect[3] = (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-//             //std::cout << (maxnumelemy_+1)*(j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i<< std::endl;
-            
-// 	    //set arbitrary volume element
-// 	    el->ptVolElem1 = volEl;
-
-// 	    surfElems_[0].Push_back(el);
-
-//             k++;
-//             m++;
-//             temp++;
-//           }
-//         }
-        //std::cerr << "soviele bottom  BE: " << temp << std::endl;
-        // referring to the RIGHT-BOUNDARY
-       //  k=0;
-//         temp = 0;
-//         for(i=0;i<maxnumelemz_;i++) {
-//           for(j=0;j<maxnumelemy_;j++) {
-//             SurfElem* el = new SurfElem();
-//             el->elemNum = m;
-//             el->ptElem = ptQ1;
-//             el->regionId = surfRegionIds_[0];
-//             el->connect.Resize(4);
-            
-//             el->connect[0] = j + (maxnumelemx_+1)*(maxnumelemy_+1)*i+1;
-//             //std::cout << j + (maxnumelemx_+1)*(maxnumelemy_+1)*i << ", ";
-//             el->connect[1] = j + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)+1;
-//             //std::cout <<  j + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)<< ", ";
-//             el->connect[2] = (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)+1;
-//             //std::cout <<  (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*(i+1)<< ", ";
-//             el->connect[3] = (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*i+1;
-//             //std::cout <<  (j+1) + (maxnumelemx_+1)*(maxnumelemy_+1)*i<< std::endl;
-
-// 	    //set arbitrary volume element
-// 	    el->ptVolElem1 = volEl;  
-          
-//             surfElems_[0].Push_back(el);
-
-//             k++;
-//             m++;
-//             temp++;
-//           }
-//         }
-        //std::cerr << "soviele right BE: " << temp << std::endl;
-        // referring to the LEFT_BOUNDARY
         
         k=1;
         temp = 0;
@@ -492,22 +436,20 @@ namespace CoupledField
             el->elemNum = m;
             el->ptElem = ptQ1;
             el->regionId = surfRegionIds_[0];
-            el->connect.Resize(4);
-            
+            el->elemNum  = surfElNum;
+
+            el->connect.Resize(4);            
             el->connect[0] = (maxnumelemy_+1)*maxnumelemx_ + j + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-            //std::cout << (maxnumelemy_+1)*maxnumelemx_ + j + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1<< ", ";
             el->connect[1] = (maxnumelemy_+1)*maxnumelemx_ + j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1;
-            //std::cout << (maxnumelemy_+1)*maxnumelemx_ + j + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1<< ", ";
             el->connect[2] = (maxnumelemy_+1)*maxnumelemx_ + (j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1;
-            //std::cout << (maxnumelemy_+1)*maxnumelemx_ + (j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*(i+1)+1<< ", ";
             el->connect[3] = (maxnumelemy_+1)*maxnumelemx_ + (j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1;
-            //std::cout <<  (maxnumelemy_+1)*maxnumelemx_ + (j+1) + (maxnumelemy_+1)*(maxnumelemx_+1)*i+1<< std::endl;
 
 	    //set arbitrary volume element
 	    el->ptVolElem1 = volEl;  
           
             surfElems_[0].Push_back(el);
 
+            surfElNum++;            
             k++;
             m++;
             temp++;
@@ -516,10 +458,7 @@ namespace CoupledField
 	//referring to the BOUNDARY AT THE END OF THE SLICE
 	temp = 0;
 
-        // Why is this a double? Any deeper reason? Is is because
-        // of size limitations of integral types? Ask because of
-        // implicit conversions below!
-	double shift = (maxnumelemy_+1)*(maxnumelemx_+1);
+	UInt shift = (maxnumelemy_+1)*(maxnumelemx_+1);
 
         for(i=0;i<maxnumelemy_;i++) {
           for(j=0;j<maxnumelemx_;j++) {
@@ -527,21 +466,20 @@ namespace CoupledField
             el->elemNum = m;
             el->ptElem = ptQ1;
             el->regionId = surfRegionIds_[0];
+            el->elemNum  = surfElNum;
+
             el->connect.Resize(4);
 	    el->connect[0] =  maxnumelemz_*shift + (maxnumelemy_+1)*j + i + 1;
-	    //std::cout << maxnumelemz_*shift + (maxnumelemy_+1)*j + i + 1 << ", ";
             el->connect[1] =  maxnumelemz_*shift + (maxnumelemy_+1)*j + i + 2;
-	    //std::cout << maxnumelemz_*shift + (maxnumelemy_+1)*j + i + 2<< ", ";
             el->connect[2] =  maxnumelemz_*shift + (maxnumelemy_+1)*(j+1) + i + 2;
-	    //std::cout <<maxnumelemz_*shift + (maxnumelemy_+1)*(j+1) + i + 2 << ", ";
             el->connect[3] =  maxnumelemz_*shift + (maxnumelemy_+1)*(j+1) + i + 1; 
-            //std::cout <<maxnumelemz_*shift + (maxnumelemy_+1)*(j+1) + i + 1 << std::endl;
             
 	    //set arbitrary volume element
 	    el->ptVolElem1 = volEl;
 
             surfElems_[0].Push_back(el);
             
+            surfElNum++;            
             m++;
             temp++;
           }
@@ -550,6 +488,10 @@ namespace CoupledField
 
       break;
     }
+
+    //set number of surface elements
+    numSurfElems_ = surfElems_[0].GetSize();
+
   }
 
 
@@ -919,14 +861,14 @@ namespace CoupledField
     
     //!!!!!!!!!!!!!!!! currently just volume elements!!!!
     
-    if ( elemNr > numVolElems_ || elemNr < 0) {  
+    if ( elemNr > (numVolElems_ + numSurfElems_) || elemNr < 0) {  
       (*error) << "GridStruct: There are only " << numVolElems_ 
                << " elements in the grid! You requested element number " 
                << elemNr << ". Go check your mesh file!";
       Error( __FILE__, __LINE__ );
     }
     
-    return volElems_[0][elemNr-1];
+    return orderedElems_[elemNr-1];
 
   }
 
