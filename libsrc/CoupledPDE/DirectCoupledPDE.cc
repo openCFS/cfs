@@ -269,17 +269,19 @@ namespace CoupledField {
       singlePDEs_[i]->DefineAlgSys();
     }
 
-    // iterate over all coupling objects and register them
-    for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
-
-      // register forward coupling
-      algsys_->RegisterCoupling( couplings_[i]->GetPdeId1(),
-                                 couplings_[i]->GetPdeId2() );
-
-      // register backward coupling
-      algsys_->RegisterCoupling( couplings_[i]->GetPdeId2(),
-                                 couplings_[i]->GetPdeId1() );
-    }
+    // CURRENTLY NOT REQUIRED
+    //
+    // // iterate over all coupling objects and register them
+    // for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
+    // 
+    //   // register forward coupling
+    //   algsys_->RegisterCoupling( couplings_[i]->GetPdeId1(),
+    //                              couplings_[i]->GetPdeId2() );
+    // 
+    //   // register backward coupling
+    //   algsys_->RegisterCoupling( couplings_[i]->GetPdeId2(),
+    //                              couplings_[i]->GetPdeId1() );
+    // }
 
     // iterate over all singlePDE and setup matrix graph
     // trigger the creation and assembly of the matrix graph
