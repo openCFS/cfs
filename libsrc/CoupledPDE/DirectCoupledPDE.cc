@@ -255,7 +255,7 @@ namespace CoupledField {
     algsys_->GraphSetupInit( singlePDEs_.GetSize() );
 
     // iterate over all singlePDE and register them
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
 
       // obtain PDE identification tag from algebraic system
       // and set number of dirichlet and constraint equations
@@ -268,11 +268,18 @@ namespace CoupledField {
       // Let the PDE set its Dirichlet information and related stuff
       singlePDEs_[i]->DefineAlgSys();
     }
-  
-    // Hard Coded:
-    // After all Single PDEs have defined their algebraic system,
-    // the coupling object have to do this, too.
-    // Currently this is done by giving
+
+    // iterate over all coupling objects and register them
+    for ( UInt i = 0; i < couplings_.GetSize(); i++ ) {
+
+      // register forward coupling
+      algsys_->RegisterCoupling( couplings_[i]->GetPdeId1(),
+                                 couplings_[i]->GetPdeId2() );
+
+      // register backward coupling
+      algsys_->RegisterCoupling( couplings_[i]->GetPdeId2(),
+                                 couplings_[i]->GetPdeId1() );
+    }
 
     // iterate over all singlePDE and setup matrix graph
     // trigger the creation and assembly of the matrix graph
