@@ -226,4 +226,14 @@ namespace CoupledField {
     assemble_->SetReassemble();
   };
 
+  PdeIdType BasePairCoupling::GetPdeId1() {
+    ENTER_FCN( "BasePairCoupling::GetPdeId1" );
+    return pde1_->GetPDEId();
+  }
+
+  PdeIdType BasePairCoupling::GetPdeId2() {
+    ENTER_FCN( "BasePairCoupling::GetPdeId2" );
+    return pde2_->GetPDEId();
+  }
+
 } // end of namespace
