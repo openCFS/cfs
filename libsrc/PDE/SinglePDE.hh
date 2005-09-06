@@ -279,6 +279,11 @@ namespace CoupledField
     // the grid adaption object
     GridAdaption *m_pGridAdaption;
 
+    //! linear damping for slicing technique
+    Double m_dStartDamping_;
+    Double m_dPulseTime_;
+    Double m_dPulseOffset_;
+
     //! TRUE, if RHS values should be written to history file
     Boolean saveRHSvalHist_;
 

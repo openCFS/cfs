@@ -703,6 +703,16 @@ namespace CoupledField {
 	  
 	  // perform interpolation with previously set interpolation scheme
 	  val = m_pGridAdaption->GetAt(x, y, z, time);
+	  
+	  // linear damping
+	  if(m_dStartDamping_ > 0) {
+	  	Double dRelTime = time - m_dPulseOffset_;
+	  	Double dStopTime = m_dPulseTime_ + m_dPulseOffset_;
+	        if(dRelTime > m_dStartDamping_ && time < dStopTime) {
+	                 val *= sqrt(1 - dRelTime/m_dPulseTime_);
+	       }
+	  }
+	  
 	  if(effectiveMass_) {
 	    dirVal = val;
 	  }
@@ -790,7 +800,8 @@ namespace CoupledField {
       keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dof";
       params->GetList(keyVec, attrVec, valVec, inhomDirichDof_);
     }
-    
+
+
     if (analysistype_ == TRANSIENT ||
         analysistype_ == STATIC) {
       keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
@@ -858,12 +869,23 @@ namespace CoupledField {
       }
       // DODO
 
+      StdVector<std::string> keyVec;
+
+      keyVec = pdename_, "sliceData", "pulseStartDamping";
+      params->Get(keyVec, m_dStartDamping_);
+
+      keyVec = pdename_, "sliceData", "pulseTime";
+      params->Get(keyVec, m_dPulseTime_);
+
+      keyVec = pdename_, "sliceData", "pulseOffset";
+      params->Get(keyVec, m_dPulseOffset_);
 
     }
     else if (analysistype_ == HARMONIC||analysistype_ == MULTIHARMONIC) {
       keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "phase";
       params->GetList(keyVec, attrVec, valVec, bcs_id_phase_);
     }
+
 
     // Check consistency
     if ( bcs_id_.GetSize() != val_id_.GetSize() ||

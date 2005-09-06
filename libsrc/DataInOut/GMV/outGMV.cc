@@ -413,8 +413,10 @@ namespace CoupledField {
       ptGrid_->GetElems(elemSD,subdoms[iSD]);
 
       // loop over all elemtns
-      for (UInt iElem=0; iElem<elemSD.GetSize(); iElem++) 
+      for (UInt iElem=0; iElem<elemSD.GetSize(); iElem++) {
         regionID[elemSD[iElem]->elemNum -1 ] = iSD+1;
+      }
+
     }
 
     // write for each element the according regionID
