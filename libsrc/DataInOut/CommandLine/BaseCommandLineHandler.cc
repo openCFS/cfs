@@ -45,8 +45,8 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::helpShowEqnMap_    =
   "print node to equation number mapping to OLAS report file";
 
-  const std::string BaseCommandLineHandler::helpNoProfile_     =
-  "turn off generation of profiling information";
+  const std::string BaseCommandLineHandler::helpDoProfile_     =
+  "turns on generation of profiling information";
 
   const std::string BaseCommandLineHandler::helpHelp_          =
   "print this usage information";
@@ -60,7 +60,7 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::markerHelp_          = "-h";
   const std::string BaseCommandLineHandler::markerSchemaPath_    = "-s";
   const std::string BaseCommandLineHandler::markerShowEqnMap_    = "-e";
-  const std::string BaseCommandLineHandler::markerNoProfile_     = "-n";
+  const std::string BaseCommandLineHandler::markerDoProfile_     = "-d";
 
   // Long forms of markers
   const std::string BaseCommandLineHandler::markerLongParamFile_     =
@@ -79,8 +79,8 @@ namespace CoupledField {
   "--schemaPath";
   const std::string BaseCommandLineHandler::markerLongShowEqnMap_    =
   "--showEqnMap";
-  const std::string BaseCommandLineHandler::markerLongNoProfile_     =
-  "--noProfile";
+  const std::string BaseCommandLineHandler::markerLongDoProfile_     =
+  "--doProfile";
 
 
   // ---------------------------------------------------------------
@@ -151,12 +151,12 @@ namespace CoupledField {
        << '\n'
        << " " << helpShowEqnMap_ << "\n\n"
 
-      // --noProfile
+      // --doProfile
        << " " << COLOR_INIT
-       << markerNoProfile_ << ", " << markerLongNoProfile_
+       << markerDoProfile_ << ", " << markerLongDoProfile_
        << COLOR_STOP
        << '\n'
-       << " " << helpNoProfile_ << "\n\n"
+       << " " << helpDoProfile_ << "\n\n"
 
       // --help
        << " " << COLOR_INIT
@@ -225,10 +225,10 @@ namespace CoupledField {
         << ( GetShowEqnMap() == TRUE )
         << colorStop << '\n'
 
-        << ' ' << markerLongNoProfile_ << " = "
+        << ' ' << markerLongDoProfile_ << " = "
         << colorInit
         << std::boolalpha
-        << ( GetNoProfile() == TRUE )
+        << ( GetDoProfile() == TRUE )
         << colorStop << '\n'
 
         << ' ' << markerLongWriteSkeleton_ << " = "

@@ -17,7 +17,7 @@ namespace CoupledField {
   Profiler::Profiler() {
 
     // Determine whether profiling should be performed
-    doProfiling_ = commandLine->GetNoProfile() == FALSE;
+    doProfiling_ = commandLine->GetDoProfile() == TRUE;
 
     if ( doProfiling_ == true ) {
 
@@ -59,15 +59,11 @@ namespace CoupledField {
   // **************
   Profiler::~Profiler() {
 
-    if ( memOut_ ) {
-      delete memOut_;
-      memOut_ = NULL;
-    }
-    
-    if ( clock_ ) {
-      delete clock_;
-      clock_ = NULL;
-    }
+    delete memOut_;
+    memOut_ = NULL;
+
+    delete clock_;
+    clock_ = NULL;
   }
   
   

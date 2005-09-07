@@ -281,9 +281,13 @@ namespace CoupledField {
 
               if ( destMat == STIFFNESS ) {
                 dampTransform = matDataFreq / actFreq_;
+                Info->PrintF( "", " dampTransform for STIFFNESS ... %e\n",
+                              dampTransform );
               }
               else if ( destMat == MASS ) {
                 dampTransform = actFreq_ / matDataFreq;
+                Info->PrintF( "", " dampTransform for MASS ........ %e\n",
+                              dampTransform );
               }
             }
 

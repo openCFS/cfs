@@ -165,7 +165,7 @@ namespace CoupledField {
         error.SetSolutionType(NO_SOLUTION_TYPE);
         error.SetNumDofs(dofspernode_);
         error.Init(0);
-      
+
         //Error.SetAlgSysVector(errorMap_);
           
         // ATTENTION!!
@@ -196,15 +196,18 @@ namespace CoupledField {
                                              complexFormat_ );
       }
 
-      (*warning) << "ElecPDE: Only solution can be written for harmonic "
-                 << "case currently";
-      Warning( __FILE__, __LINE__);
+      // Must be implemented for harmonic case
+      if ( calcEfield_.GetSize() != 0 || calcCharges_.GetSize() != 0 ) {
+        (*warning) << "ElecPDE: Only solution can be written for harmonic "
+                   << "case currently";
+        Warning( __FILE__, __LINE__);
+      }
     }
 
 
     // The following section was used by Gerhard to compute sum of forces over
-    // different iteration and time steps. The sum was written into the .data stream.
-    // Since this is not available anymore, this is commented out
+    // different iteration and time steps. The sum was written into the .data
+    // stream. Since this is not available anymore, this is commented out
 #ifdef COMMENTET_OUT
     if (isIterCoupled_ == TRUE) {
       //   // TMPORARILY
@@ -215,41 +218,37 @@ namespace CoupledField {
       sumForces.Init();
     
       // loop over all output coupling quantities
-      for (UInt actCoupling=0; actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++)
-        {
+      for (UInt actCoupling=0;
+           actCoupling<ptCoupling_->GetNumOutputCouplings(); actCoupling++) {
           quantity = ptCoupling_->GetOutputQuantity(actCoupling);
           ptCoupling_->GetOutputValues(actCoupling, values);
         
-          Vector<Double> const & temp = dynamic_cast<Vector<Double> &>(*values);
-          switch(ptCoupling_->GetOutputType(actCoupling))
-            {
+          Vector<Double> const &temp = dynamic_cast<Vector<Double> &>(*values);
+          switch(ptCoupling_->GetOutputType(actCoupling)) {
             
-            case NODE:      
-              ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
-              if (quantity == ELEC_FORCE_VWP)
-                {
-                  for (UInt iDof=0; iDof<dim_; iDof++)
-                    for (UInt iNode=0; iNode<couplingNodes->GetSize(); iNode++)
-                      sumForces[iDof] += temp[iNode*dim_ + iDof];
-                
-                  *data << lasttimecalc_ << "\t";
-                  for (UInt i=0; i<dim_; i++)
-                    *data << sumForces[i]<< "\t";
-                
-                  *data << std::endl;
-                
-                }
-              break;
+          case NODE:      
+            ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
+            if (quantity == ELEC_FORCE_VWP) {
+              for (UInt iDof=0; iDof<dim_; iDof++)
+                for (UInt iNode=0; iNode<couplingNodes->GetSize(); iNode++)
+                  sumForces[iDof] += temp[iNode*dim_ + iDof];
 
-            case ELEM:
-              Error( "Element input coupling not implemented for elecPDE",
-                     __FILE__, __LINE__ );
-            } // switch
-        } // for
+              *data << lasttimecalc_ << "\t";
+              for (UInt i=0; i<dim_; i++)
+                *data << sumForces[i]<< "\t";
+
+              *data << std::endl;
+            }
+            break;
+
+          case ELEM:
+            Error( "Element input coupling not implemented for elecPDE",
+                   __FILE__, __LINE__ );
+          } // switch
+      } // for
     }
 #endif
   }
-
 
 
   // **********************
