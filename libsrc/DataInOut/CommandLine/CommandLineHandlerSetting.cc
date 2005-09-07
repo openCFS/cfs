@@ -121,14 +121,14 @@ namespace CoupledField {
                   Setting::COMMAND_LINE_ONLY,
                   helpShowEqnMap_.c_str() ),
 
-      // --noProfile
-      SettingDef( markerNoProfile_.c_str(),
-                  markerLongNoProfile_.c_str(),
+      // --doProfile
+      SettingDef( markerDoProfile_.c_str(),
+                  markerLongDoProfile_.c_str(),
                   Setting::FLAG,
                   1,
                   1,
                   Setting::COMMAND_LINE_ONLY,
-                  helpNoProfile_.c_str() ),
+                  helpDoProfile_.c_str() ),
 
       // --help
       // SettingDef( markerHelp_.c_str(),

@@ -127,12 +127,12 @@ namespace CoupledField {
   //!     </tr>
   //!
   //!     <tr>
-  //!       <td align="center">-n / --noProfile</td>
+  //!       <td align="center">-d / --doProfile</td>
   //!       <td align="center">flag / boolean</td>
-  //!       <td><em>do not use system call for generating profiling
+  //!       <td><em>do use system calls for generating profiling
   //!           information</em></td>
   //!       <td align="center">false = not set</td>
-  //!       <td align="center">%GetNoProfile()</td>
+  //!       <td align="center">%GetDoProfile()</td>
   //!     </tr>
   //!
   //!     <tr>
@@ -217,16 +217,16 @@ namespace CoupledField {
     //! the standard OLAS report file.
     virtual Boolean GetShowEqnMap() const = 0;
 
-    //! Return noProfile flag
+    //! Return doProfile flag
 
-    //! This method can be used to query the status of the noProfile flag.
-    //! By specifying this flag one instructs the executable to not generate
-    //! profiling information. By default system call are used (under Linux)
+    //! This method can be used to query the status of the doProfile flag.
+    //! By specifying this flag one instructs the executable to generate
+    //! profiling information. By default system calls are used (under Linux)
     //! to obtain information on things like e.g. memory footprint of the
     //! simulation run.
     //! \note The flag is only of use in the case that profiling was enabled
     //!       during compilation by defining the PROFILING macro.
-    virtual Boolean GetNoProfile() const = 0;
+    virtual Boolean GetDoProfile() const = 0;
 
     //! Return writeSkeleton flag
 
@@ -270,7 +270,7 @@ namespace CoupledField {
     const static std::string helpHelp_;
     const static std::string helpSchemaPath_;
     const static std::string helpShowEqnMap_;
-    const static std::string helpNoProfile_;
+    const static std::string helpDoProfile_;
     //@}
 
     //! \name Strings containing short markers for command line parameters
@@ -285,7 +285,7 @@ namespace CoupledField {
     const static std::string markerHelp_;
     const static std::string markerSchemaPath_;
     const static std::string markerShowEqnMap_;
-    const static std::string markerNoProfile_;
+    const static std::string markerDoProfile_;
     //@}
 
     //! \name Strings containing long markers for command line parameters
@@ -300,7 +300,7 @@ namespace CoupledField {
     const static std::string markerLongHelp_;
     const static std::string markerLongSchemaPath_;
     const static std::string markerLongShowEqnMap_;
-    const static std::string markerLongNoProfile_;
+    const static std::string markerLongDoProfile_;
     //@}
 
 
@@ -317,8 +317,8 @@ namespace CoupledField {
 
     //! Returns default value for --traceDepth parameter
 
-    //! This method returns default value for --traceDepth parameter. The
-    //! current default is 0, which indicates no function tracing.
+    //! This method returns the default value for --traceDepth parameter.
+    //! The current default is 0, which indicates no function tracing.
     //! \return 0
     UInt DefaultTraceDepth() const {
       return 0;
@@ -326,8 +326,8 @@ namespace CoupledField {
 
     //! Returns default value for --paramFile parameter
 
-    //! This method returns default value for --paramFile parameter. The
-    //! current default is to compose the name of the parameter file, by
+    //! This method returns the default value for --paramFile parameter.
+    //! The current default is to compose the name of the parameter file, by
     //! adding a <em>.xml</em> postfix to the name of the current simulation
     //! run
     //! \return \<simName\>.xml
@@ -337,8 +337,8 @@ namespace CoupledField {
 
     //! Returns default value for --meshFile parameter
 
-    //! This method returns default value for --meshFile parameter. The
-    //! current default is to compose the name of the parameter file, by
+    //! This method returns the default value for --meshFile parameter.
+    //! The current default is to compose the name of the parameter file, by
     //! adding a <em>.mesh</em> postfix to the name of the current simulation
     //! run
     //! \return \<simName\>.mesh
@@ -348,8 +348,8 @@ namespace CoupledField {
 
     //! Returns default value for --printGrid parameter
 
-    //! This method returns default value for --printGrid parameter. The
-    //! current default is to perform a full simulation and to not only
+    //! This method returns the default value for --printGrid parameter.
+    //! The current default is to perform a full simulation and to not only
     //! print the grid.
     //! \return FALSE
     Boolean DefaultPrintGrid() const {
@@ -368,8 +368,8 @@ namespace CoupledField {
 
     //! Returns default value for --writeSkeleton parameter
 
-    //! This method returns default value for --writeSkeleton parameter. The
-    //! current default is to perform a full simulation and to not only
+    //! This method returns the default value for --writeSkeleton parameter.
+    //! The current default is to perform a full simulation and to not only
     //! write a skeleton XML-file.
     //! \return FALSE
     Boolean DefaultWriteSkeleton() const {
@@ -378,22 +378,21 @@ namespace CoupledField {
 
     //! Returns default value for --schemaPath parameter
 
-    //! This method returns default value for --schemaPath parameter. The
-    //! default name and location of the XML schema file is hard-coded
+    //! This method returns the default value for --schemaPath parameter.
+    //! The default name and location of the XML schema file is hard-coded
     //! during compile time making use of the \<XMLSCHEMA\> compile macro.
     //! \return \<XMLSCHEMA\>
     std::string DefaultSchemaPath() const {
       return XMLSCHEMA;
     }
 
-    //! Returns default value for --noProfile parameter
+    //! Returns default value for --doProfile parameter
 
-    //! This method returns default value for --noProfile parameter. The
-    //! default is to generate profile information, if profiling was enabled
-    //! during compile time.
-    //! \return - FALSE if PROFILING was enabled during compilation
-    //!         - TRUE otherwise
-    Boolean DefaultNoProfile() const {
+    //! This method returns the default value for --doProfile parameter.
+    //! The default is not to generate profile information via system calls,
+    //! since this can considerable slow down run-time.
+    //! \return FALSE
+    Boolean DefaultDoProfile() const {
 #ifdef PROFILING
       return FALSE;
 #else
