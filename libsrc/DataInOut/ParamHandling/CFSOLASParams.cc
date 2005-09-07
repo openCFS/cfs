@@ -221,9 +221,9 @@ namespace CoupledField {
            analysis != "harmonic" && analysis != "paramIdent" &&
            analysis!="multiHarmonic") {
         (*error) << "XML-file specifies material parameters with imaginary "
-                 << "part for an analysis of type '" << analysis << "'. "
-                 << "Complex parameters are currently only implemented for "
-                 << "a 'harmonic', 'multiHarmonic', or 'paramIdent'" 
+                 << "part for an analysis\n of type '" << analysis << "'.\n\n"
+                 << " Complex parameters are currently only implemented for "
+                 << "a 'harmonic',\n 'multiHarmonic', or 'paramIdent' "
                  << "analysis, however.";
         Error( __FILE__, __LINE__ );
       }
