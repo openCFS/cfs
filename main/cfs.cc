@@ -127,14 +127,14 @@ int main( int argc, const char **argv ) {
 #endif
 
 #ifdef PROFILING
-  if ( commandLine->GetNoProfile() == FALSE ) {
+  if ( commandLine->GetDoProfile() == TRUE ) {
     Info->StartProgress( "Opening file for profiling output" );
   }
   else {
     Info->StartProgress( "Skipping generation of profiling output" );
   }
   profiler = new Profiler();
-  SETPROFILE("Begin of program");
+  SETPROFILE( "Begin of program" );
   Info->FinishProgress();
 #endif
 
@@ -368,10 +368,14 @@ int main( int argc, const char **argv ) {
   // Delete objects
   delete ptdriver;
   delete domain;
-  // delete ptTimeFunc;
   delete Info;
   delete params;
   delete commandLine;
+
+#ifdef PROFILING
+  delete profiler;
+  profiler = NULL;
+#endif
 
   // As the last thing we close the trace file (if exists)
 #ifdef TRACE
@@ -379,17 +383,12 @@ int main( int argc, const char **argv ) {
   trace = NULL;
 #endif
 
-#ifdef PROFILING
-  delete profiler;
-  profiler = NULL;
-#endif
-
-
+  // Cleanup parallel stuff if it exists
 #ifdef PARALLEL
   MPI_Finalize();
 #endif
 
-  // Deleting global string streams
+  // Delete global string streams
   delete error;
   delete warning;
 
