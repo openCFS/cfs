@@ -12,16 +12,16 @@
   </xsd:annotation>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element for mechanic PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="smooth" type="DT_PDESmooth"
-       substitutionGroup="PDEBasic"/>
+    substitutionGroup="PDEBasic"/>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for smoothening PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <xsd:complexType name="DT_PDESmooth">
     <xsd:complexContent>
@@ -35,7 +35,7 @@
               <xsd:attribute name="name" type="xsd:token" use="required"/>
             </xsd:complexType>
           </xsd:element>
-    
+          
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -66,9 +66,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
-  <!--   Definition of enumeration type describing the degrees of freedom   -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
+  <!--   Definition of enumeration type describing the degrees of freedom  -->
+  <!-- ******************************************************************* -->
 
   <xsd:simpleType name="DT_SmoothDOF">
     <xsd:restriction base="xsd:token">
@@ -79,9 +79,9 @@
   </xsd:simpleType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of the boundary condition types for smooth -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- Element type for homogeneous Dirichlet boundary conditions -->
   <!-- We derive it by extending the base type -->
@@ -136,9 +136,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- What data can a single node have in a mechanic PDE -->
   <xsd:simpleType name="DT_NodeDataSmooth">
@@ -183,14 +183,14 @@
   <!-- Global type for specifying the desired mechanical output quantities -->
   <xsd:complexType name="DT_SmoothStoreResults">
     <xsd:sequence>
-      <xsd:element name="nodeResults" type="DT_NodeResultsSmooth" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="nodeHistory" type="DT_NodeHistorySmooth" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="elemResults" type="DT_ElemResultsSmooth" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="elemHistory" type="DT_ElemHistorySmooth" minOccurs="0"
-        maxOccurs="unbounded"/>
+      <xsd:element name="nodeResults" type="DT_NodeResultsSmooth"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="nodeHistory" type="DT_NodeHistorySmooth"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="elemResults" type="DT_ElemResultsSmooth"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="elemHistory" type="DT_ElemHistorySmooth"
+        minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
 
