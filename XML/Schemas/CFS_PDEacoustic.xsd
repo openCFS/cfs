@@ -65,7 +65,8 @@
 
           <!-- Time Stepping Formulation (optional)-->
           <xsd:element name="timeSteppingFormulation"
-            type="DT_AcousticTimeStep" minOccurs="0" default="effStiffMatrix"/>
+            type="DT_AcousticTimeStep" minOccurs="0"
+            default="effStiffMatrix"/>
 
           <!-- Information for simulation including bubbles (optional) -->
           <xsd:element name="bubbles" minOccurs="0">
@@ -91,23 +92,23 @@
           <xsd:element name="sliceData" minOccurs="0">
             <xsd:complexType>
               <xsd:sequence>
-	          <xsd:element name="dimension" 
+                <xsd:element name="dimension" 
                   type="DT_DomainDimension"/>
-        	  <xsd:element name="waveLength" 
+                <xsd:element name="waveLength" 
                   type="DT_PosFloat"/>
-	          <xsd:element name="safetyRegion" 
+                <xsd:element name="safetyRegion" 
                   type="DT_PosFloat"/>
-	          <xsd:element name="addNrOfWaveLength" 
+                <xsd:element name="addNrOfWaveLength" 
                   type="xsd:nonNegativeInteger"/>
-	          <xsd:element name="elementsPerWavelength" 
+                <xsd:element name="elementsPerWavelength" 
                   type="xsd:nonNegativeInteger"/>
-	          <xsd:element name="pulseTime" 
+                <xsd:element name="pulseTime" 
                   type="DT_PosFloat"/>
-	          <xsd:element name="pulseOffset" 
+                <xsd:element name="pulseOffset" 
                   type="DT_NonNegFloat"/>
-	          <xsd:element name="pulseStartDamping" 
+                <xsd:element name="pulseStartDamping" 
                   type="DT_NonNegFloat"/>
-	          <xsd:element name="soundSpeed" 
+                <xsd:element name="soundSpeed" 
                   type="DT_PosFloat"/>
               </xsd:sequence>
             </xsd:complexType>
@@ -188,11 +189,11 @@
         <xsd:attribute name="phase" type="xsd:double" use="optional"
           default="0.0"/>
 	<xsd:attribute name="fileName" type="xsd:token" use="optional"
-	     default="none"/>
+          default="none"/>
 	<xsd:attribute name="interpolType" type="xsd:token" use="optional"
-	     default="NNB"/>
+          default="NNB"/>
 	<xsd:attribute name="noNodes" type="xsd:token" use="optional"
-	     default="-1"/>
+          default="-1"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -337,8 +338,10 @@
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_AcousticElementHistory">
     <xsd:attribute name="type" type="DT_AcousticElementData" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional" default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
   </xsd:complexType>  
 
 

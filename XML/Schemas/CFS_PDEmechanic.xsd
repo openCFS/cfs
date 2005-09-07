@@ -12,16 +12,16 @@
   </xsd:annotation>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element for mechanic PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="mechanic" type="DT_PDEMechanic"
-       substitutionGroup="PDEBasic"/>
+    substitutionGroup="PDEBasic"/>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for mechanic PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <xsd:complexType name="DT_PDEMechanic">
     <xsd:complexContent>
@@ -43,7 +43,7 @@
                 use="optional" default="no"/>
             </xsd:complexType>
           </xsd:element>
-    
+          
           <!-- Section for specifying pre-stressing (optional) -->
           <xsd:element name="preStressing" minOccurs="0">
             <xsd:complexType>
@@ -98,9 +98,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
-  <!--   Definition of enumeration type describing the degrees of freedom   -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
+  <!--   Definition of enumeration type describing the degrees of freedom  -->
+  <!-- ******************************************************************* -->
 
   <xsd:simpleType name="DT_MechDOF">
     <xsd:restriction base="xsd:token">
@@ -114,9 +114,9 @@
   </xsd:simpleType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of the boundary condition types for mechanic -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- Element type for homogeneous Dirichlet boundary conditions -->
   <!-- We derive it by extending the base type -->
@@ -181,7 +181,8 @@
         <xsd:attribute name="dof" type="DT_MechDOF" use="required"/>
         <xsd:attribute name="massValue" type="xsd:double" use="required"/>
         <xsd:attribute name="dampingValue" type="xsd:double" use="required"/>
-        <xsd:attribute name="stiffnessValue" type="xsd:double" use="required"/>
+        <xsd:attribute name="stiffnessValue" type="xsd:double"
+          use="required"/>
         <xsd:attribute name="dynamics" type="xsd:token" use="optional"
           default="none"/>
       </xsd:extension>
@@ -194,7 +195,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_MechLoad">
         <xsd:attribute name="refCoordSys" type="xsd:token"
-        use="optional" default="default"/>
+          use="optional" default="default"/>
         <xsd:attribute name="type" use="optional" default="total">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
@@ -209,9 +210,9 @@
 
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- What data can a single node have in a mechanic PDE -->
   <xsd:simpleType name="DT_NodeDataMech">
@@ -241,8 +242,10 @@
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_NodeHistoryMech">
     <xsd:attribute name="type" type="DT_NodeDataMech" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional" default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
@@ -255,8 +258,10 @@
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistoryMech">
     <xsd:attribute name="type" type="DT_ElemDataMech" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional" default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
   </xsd:complexType>
 
   <!-- Data type for computing the volume over a surface -->
@@ -276,7 +281,7 @@
   <!-- Global type for specifying the desired mechanical output quantities -->
   <xsd:complexType name="DT_MechStoreResults">
     <xsd:sequence>
-       <xsd:element name="nodeResults" type="DT_NodeResultsMech" minOccurs="0"
+      <xsd:element name="nodeResults" type="DT_NodeResultsMech" minOccurs="0"
         maxOccurs="unbounded"/>
       <xsd:element name="nodeHistory" type="DT_NodeHistoryMech" minOccurs="0"
         maxOccurs="unbounded"/>
@@ -290,9 +295,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for damping model -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:complexType name="DT_MechDamp">
 
     <!-- Type of damping -->
@@ -341,8 +346,8 @@
 
     <!-- fractional derivative model -->
     <xsd:attribute name="model" use="optional" default="3param">
-  	<xsd:simpleType>
-        	<xsd:restriction base="xsd:token">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
           <xsd:enumeration value="3param"/>
           <xsd:enumeration value="KelvinVoigt"/>
         </xsd:restriction>
@@ -351,9 +356,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for non-linearity in mechanic PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:simpleType name="DT_MechNonLin">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
@@ -362,9 +367,9 @@
   </xsd:simpleType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for prestressing -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:complexType name="DT_PreStress">
     <xsd:attribute name="name"    type="xsd:token"/>
     <xsd:attribute name="orientX" type="xsd:float"/>

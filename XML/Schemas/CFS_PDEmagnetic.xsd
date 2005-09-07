@@ -12,16 +12,16 @@
   </xsd:annotation>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element for magnetics PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="magnetic" type="DT_PDEMagnetic"
-       substitutionGroup="PDEBasic"/>
+    substitutionGroup="PDEBasic"/>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for magnetics PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:complexType name="DT_PDEMagnetic">
     <xsd:complexContent>
       <xsd:extension base="DT_PDEBasic">
@@ -78,7 +78,7 @@
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_MagneticStoreResults"
             minOccurs="0" maxOccurs="1"/>
-  
+          
         </xsd:sequence>
 
         <!-- Type of magnetic formulation -->
@@ -96,9 +96,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of the boundary condition types for magnetics -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- Element type for homogeneous Dirichlet boundary conditions -->
   <!-- We derive it by extending the base type -->
@@ -131,9 +131,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for non-linearity in mechanic PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:simpleType name="DT_MagneticNonLin">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
@@ -144,9 +144,9 @@
   </xsd:simpleType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for damping model -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:simpleType name="DT_MagneticDampType">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="fractional"   />
@@ -162,9 +162,9 @@
       use="optional" default="1"/>
   </xsd:complexType>
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- What data can a single node have in an magnetic PDE -->
   <xsd:simpleType name="DT_MagneticNodeData">
@@ -195,8 +195,10 @@
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_MagneticNodeHistory">
     <xsd:attribute name="type" type="DT_MagneticNodeData" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional" default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
@@ -209,8 +211,10 @@
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_MagneticElementHistory">
     <xsd:attribute name="type" type="DT_MagneticElementData" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional" default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
   </xsd:complexType>
 
   <!-- Data type for specifying the desired mechanical output quantities -->
@@ -228,9 +232,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying coils -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- Data type for basic coil -->
   <xsd:complexType name="DT_BasicCoil">
@@ -378,9 +382,9 @@
     substitutionGroup="BasicCoil"/>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for permanent magnets -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:complexType name="DT_Magnet">
     <xsd:attribute name="name"    type="xsd:token"/>
     <xsd:attribute name="orientX" type="xsd:float"/>

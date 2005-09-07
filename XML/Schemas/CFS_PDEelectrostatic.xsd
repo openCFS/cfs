@@ -12,16 +12,16 @@
   </xsd:annotation>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element for electrostatic PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="electrostatic" type="DT_PDEElectrostatic"
-       substitutionGroup="PDEBasic"/>
+    substitutionGroup="PDEBasic"/>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for electrostatic PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <xsd:complexType name="DT_PDEElectrostatic">
     <xsd:complexContent>
@@ -71,9 +71,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of the boundary condition types for electrostatic -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- Element type for homogeneous Dirichlet boundary conditions -->
   <!-- We derive it by extending the base type -->
@@ -116,9 +116,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- What data can a single node have in an electrostatic PDE -->
   <xsd:simpleType name="DT_NodeDataElec">
@@ -146,8 +146,10 @@
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_NodeHistoryElec">
     <xsd:attribute name="type" type="DT_NodeDataElec" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional" default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
@@ -160,8 +162,10 @@
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistoryElec">
     <xsd:attribute name="type" type="DT_ElemDataElec" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token" use="optional" default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
   </xsd:complexType>
 
   <!-- Element type for computing of electric charges -->
@@ -182,23 +186,23 @@
   <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_ElecStoreResults">
     <xsd:sequence>
-        <xsd:element name="nodeResults" type="DT_NodeResultsElec" minOccurs="0"
-          maxOccurs="unbounded"/>
-        <xsd:element name="nodeHistory" type="DT_NodeHistoryElec" minOccurs="0"
-          maxOccurs="unbounded"/>
-        <xsd:element name="elemResults" type="DT_ElemResultsElec" minOccurs="0"
-          maxOccurs="unbounded"/>
-        <xsd:element name="elemHistory" type="DT_ElemHistoryElec" minOccurs="0"
-          maxOccurs="unbounded"/>
-        <xsd:element name="charge" type="DT_ChargeElec" minOccurs="0"
-          maxOccurs="unbounded"/>
+      <xsd:element name="nodeResults" type="DT_NodeResultsElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="nodeHistory" type="DT_NodeHistoryElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="elemResults" type="DT_ElemResultsElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="elemHistory" type="DT_ElemHistoryElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="charge" type="DT_ChargeElec" minOccurs="0"
+        maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for non-linearity in electrostatic PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:simpleType name="DT_ElecNonLin">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
