@@ -15,16 +15,15 @@
 #include <General/environment.hh>
 #include <Matrix/matrix.hh>
 
-namespace CoupledField
-{
+namespace CoupledField {
 
   //! Class for Material Data
   /*! 
     Interface class for getting material data
   */
 
-  class MaterialData
-  {
+  class MaterialData {
+
   private:
 
     Double density;
@@ -296,6 +295,17 @@ namespace CoupledField
 
     /// get name of the material
     char * GetMaterialName(); 
+
+    //! Check whether material has imaginary part
+    bool IsComplex() {
+      std::string matName( name );
+      UInt tail = matName.size() - 5;
+      bool retVal = true;
+      if ( matName.size() <= 5 || matName.substr(tail) != "-imag" ) {
+        retVal = false;
+      }
+      return retVal;
+    }
 
     //! get density and compressity for acoustic equation from material data-file
     /*!
