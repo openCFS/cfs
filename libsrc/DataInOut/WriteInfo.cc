@@ -15,7 +15,7 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 
-#define CFS_VERSION  "0.1a"
+#define CFS_VERSION  "0.2"
 
 #define PROGRESS_TEXT_WIDTH 62
 
