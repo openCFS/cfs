@@ -401,20 +401,22 @@ $(LIB_OLAS) $(LIB_HYPRE) $(LIB_XERCES) $(LIB_METIS)
 # macros here to show the need of linking against BLAS or LAPACK.
 # -----------------------------------------------------------------------------
 
+LINK_BLAS   := no
+LINK_LAPACK := no
+
 ifeq "$(LAPACK)" "yes"
-LINK_LAPACK = yes
-LINK_BLAS = yes
-
-else
-ifeq "$(HYPRE)" "yes"
-LINK_LAPACK = yes
-LINK_BLAS = yes
-
-else
-LINK_BLAS = no
-LINK_LAPACK = no
+LINK_BLAS   := yes
+LINK_LAPACK := yes
 endif
 
+ifeq "$(HYPRE)" "yes"
+LINK_BLAS   := yes
+LINK_LAPACK := yes
+endif
+
+ifeq "$(PARDISO)" "yes"
+LINK_BLAS   := yes
+LINK_LAPACK := yes
 endif
 
 # -----------------------------------------------------------------------------
