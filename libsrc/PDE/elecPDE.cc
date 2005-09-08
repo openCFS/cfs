@@ -179,7 +179,7 @@ namespace CoupledField {
       }
 #endif
 
-      if (calcEnergy_.GetSize() !=0 ) {
+      if ( calcEnergy_.GetSize() != 0 ) {
         CalcEnergy();
       }     
     }
@@ -197,7 +197,8 @@ namespace CoupledField {
       }
 
       // Must be implemented for harmonic case
-      if ( calcEfield_.GetSize() != 0 || calcCharges_.GetSize() != 0 ) {
+      if ( calcEfield_.GetSize() != 0 || calcCharges_.GetSize() != 0 ||
+           calcEnergy_.GetSize() != 0 ) {
         (*warning) << "ElecPDE: Only solution can be written for harmonic "
                    << "case currently";
         Warning( __FILE__, __LINE__);
@@ -295,10 +296,6 @@ namespace CoupledField {
         outFile_->WriteNodeHistoryHarmonic( *mySol, actStep, actTime,
                                              complexFormat_ );
       }
-
-      (*warning) << "ElecPDE: Only solution can be written for harmonic "
-                 << "case currently";
-      Warning( __FILE__, __LINE__);
     }
   }
 
