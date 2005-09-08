@@ -27,15 +27,20 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepElec:: PreStepStatic( const Boolean reset )
-  {
+  void SolveStepElec::PreStepStatic( const Boolean reset ) {
+
     ENTER_FCN( "SolveStepElec::PreStepStatic" );
+
+    // Set right-hand side to zero
+    //
+    // Note: Though this is PreStepStatic, this is most important
+    //       for transient analysis ;-)
+    algsys_->InitRHS();
 
     if (isIterCoupled_)     
       algsys_->InitSol();
-  
+
     if (geoUpdate_) {
-      algsys_->InitRHS();
       algsys_->InitSol();
       algsys_->InitMatrix();
       assemble_->SetReassemble();   
