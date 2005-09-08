@@ -106,26 +106,40 @@ namespace CoupledField {
   }
   
 
-  
-  void WriteInfo::PrintPiezoMat(MaterialData& material)
-  {
+  // *****************
+  //   PrintPiezoMat
+  // *****************
+  void WriteInfo::PrintPiezoMat( MaterialData &material ) {
+
     ENTER_FCN( "WriteInfo::PrintPiezoMat" );
-    
-    if (cfsInfo)
+
+    Matrix<Double> *myMat = NULL;
+
+    // Check for real or imaginary part of material description
+    if ( material.IsComplex() == false ) {
+      myMat = material.GetMatrix();
+    }
+    else {
+      myMat = material.GetMatrixC();
+    }
+
+    if ( cfsInfo != NULL ) {
       *cfsInfo  << "FULL PIEZO DATAMATRIX OF " << material.GetMaterialName()
-                << ":" << std::endl
-                << std::endl << *(material.GetMatrix()) << std::endl
+                << ":\n\n" << *myMat << std::endl
                 << "density = " << material.GetDensity() << std::endl
                 << "damping coefficient alfa = " << material.GetDampingAlfa()
                 << std::endl
                 << "damping coefficient beta = " << material.GetDampingBeta()
                 << std::endl <<  std::endl;
+    }
   }
-  
 
 
-  void WriteInfo::PrintFluidMat(MaterialData& material)
-  {
+  // *****************
+  //   PrintFluidMat
+  // *****************
+  void WriteInfo::PrintFluidMat( MaterialData &material ) {
+
     ENTER_FCN( "WriteInfo::PrintFluidMat" );
 
     if (cfsInfo)
