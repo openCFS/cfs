@@ -702,26 +702,42 @@ namespace CoupledField
     data_[0]=help[0]; 
   }
 
+
+  // **************
+  //   operator<<
+  // **************
   template<class S>
-  std::ostream & operator << (std::ostream & out, const Matrix<S> &mat)
-  {
-    ENTER_IFCN("Matrix::operator<<");
-    out.setf(std::ios::scientific);
-  
-    for (UInt i=0; i < mat.GetSizeRow(); i++)
-      {for (UInt j=0; j < mat.GetSizeCol(); j++)
-        out << mat[i][j] << " ";
-      out << std::endl;}
-  
-    //out.setf(0, std::ios::floatfield);
-  
+  std::ostream &operator<< ( std::ostream &out, const Matrix<S> &mat ) {
+
+    ENTER_IFCN( "Matrix::operator<<" );
+
+    // Set output format
+    out.setf( std::ios::scientific );
+    UInt oldPrec = out.precision();
+    UInt newPrec = 4;
+    out.precision( newPrec );
+
+    for ( UInt i = 0; i < mat.GetSizeRow(); i++ ) {
+      for ( UInt j = 0; j < mat.GetSizeCol(); j++ ) {
+        out << std::setw( newPrec + 7 ) << mat[i][j] << " ";
+      }
+      out << std::endl;
+    }
+
+    // Restore old settings
+    out.precision( oldPrec );
+
     return out;
   }
 
-  template std::ostream & operator<<<UInt> (std::ostream & , const Matrix<UInt> &);
-  template std::ostream & operator<<<Integer> (std::ostream & , const Matrix<Integer> &);
-  template std::ostream & operator<<<Double> (std::ostream & , const Matrix<Double> &);
-  template std::ostream & operator<<<Complex> (std::ostream & , const Matrix<Complex> &);
+  template std::ostream &operator<<<UInt>    ( std::ostream &,
+                                               const Matrix<UInt>    & );
+  template std::ostream &operator<<<Integer> ( std::ostream &,
+                                               const Matrix<Integer> & );
+  template std::ostream &operator<<<Double>  ( std::ostream &,
+                                               const Matrix<Double>  & );
+  template std::ostream &operator<<<Complex> ( std::ostream &,
+                                               const Matrix<Complex> & );
 
 
   template<class TYPE>
