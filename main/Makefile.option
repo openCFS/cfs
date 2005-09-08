@@ -97,7 +97,7 @@
 # -----------------------------------------------------------------------------
 
 ifeq ("$(OLAS_ROOT)","")
-OLAS_ROOT = /home/lse10/lse/mmohr/local/OLAS
+OLAS_ROOT =
 endif
 
 ifeq ("$(HYPRE_ROOT)","")
@@ -507,4 +507,4 @@ LFLAGS_GLOBAL = $(LINK_LIBS)
 # Note: These two variables are required for the use of makedepend
 #
 DEPEND_FILE = Makefile.depend
-DEPEND_FLAG = -- $(COMPILE_MACROS) --  
+DEPEND_FLAG = -Y -- $(COMPILE_MACROS) --  
