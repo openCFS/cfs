@@ -40,6 +40,10 @@ namespace CoupledField
     //! Default Copy Construcctor
     Matrix(const Matrix &);
 
+    //! Special copy constructor (e.g. convert double to complex)
+    template<class T2> 
+    Matrix(const Matrix<T2> &);
+
     //! Destructor
     ~Matrix();
 
