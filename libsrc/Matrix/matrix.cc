@@ -108,6 +108,39 @@ namespace CoupledField
       }
   }
 
+  template<class TYPE> template<class T2>
+  Matrix<TYPE>::Matrix (const Matrix<T2> &x) {
+    Error("Is not implemented");
+  }
+  
+  template<>
+  Matrix<Complex>::Matrix (const Matrix<Double> &x) {
+    
+    // Do conversion
+    ENTER_FCN("Matrix::Matrix");
+    
+#ifdef CHECK_INITIALIZED
+    if (x.GetSizeRow() == 0 || 
+        x.GetSizeCol() == 0)  Error("undefined Matrix",__FILE__,__LINE__);
+#endif
+    
+    
+    size_row_ = x.GetSizeRow();
+    size_col_ = x.GetSizeCol();
+    
+    data_ = new Complex * [size_row_];
+    data_[0]=new Complex[size_row_ * size_col_];
+ 
+ 
+    UInt k;
+ 
+    for (k=0; k < size_row_*size_col_; k++)  
+      data_[0][k]=x[0][k];
+    for (k=1; k < size_row_; k++) 
+      data_[k]=data_[k-1]+size_col_;    
+  }
+
+
   template<class TYPE>
   Boolean Matrix<TYPE>::IsComplex() const
   {
