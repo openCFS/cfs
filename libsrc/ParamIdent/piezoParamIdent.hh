@@ -59,6 +59,8 @@ namespace CoupledField
     std::ofstream * parFinal;
     std::ofstream * mechDispl;
     std::ofstream * optimalFreqs;
+    std::ofstream * confInterval;
+    std::ofstream * rhosOut;
     std::ofstream * synMess;
     //  std::ofstream impedCurve("impedCurve.dat");
     //  std::ofstream impedCurve("impedCurve.dat");
@@ -320,6 +322,8 @@ namespace CoupledField
     Double finalnorm;
     UInt newtonCounter;
     Double inner_eta;
+
+    Double residuum;
 
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;

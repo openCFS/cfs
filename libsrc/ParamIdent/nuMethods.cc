@@ -127,46 +127,54 @@ namespace CoupledField
 
 //     std::cout<<"adjJacobiMatrix"<<std::endl;      
 //     std::cout<<adjJacobiMatrix<<std::endl;
-    
-  
-    // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-//     Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-//     Matrix<Double> JacobiMatrixR(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-//     Matrix<Double> JacobiMatrixNE_R(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-//     Vector<Complex> y_hat_F_hatNE(JacobiMatrix.GetSizeCol());
 
-//     adjJacobiMatrix.Mult(JacobiMatrix,JacobiMatrixNE);
-//     adjJacobiMatrix.Mult(act_res, y_hat_F_hatNE);
-//     //std::cout<<JacobiMatrixNE<<std::endl;
+
+    // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX    
+    if (FALSE){
+
+      Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+      Matrix<Double> JacobiMatrixR(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+      Matrix<Double> JacobiMatrixNE_R(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+      Vector<Complex> y_hat_F_hatNE(JacobiMatrix.GetSizeCol());
+
+      adjJacobiMatrix.Mult(JacobiMatrix,JacobiMatrixNE);
+      adjJacobiMatrix.Mult(act_res, y_hat_F_hatNE);
+      //std::cout<<JacobiMatrixNE<<std::endl;
       
-//     for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
-//       for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
-//         JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
-//         JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
-//       }
-//     for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
-//       for (UInt j=0;j<JacobiMatrix.GetSizeCol();j++)
-//         JacobiMatrixR[i][j]=JacobiMatrix[i][j].real();
-//     //      std::cout<<"JacobiMatrixR"<<std::endl;
-//     //       std::cout<<JacobiMatrixR<<std::endl;
+      for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
+        for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
+          JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
+          JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
+        }
+      std::cout<<"JacobiMatrixNE_R"<<std::endl;
+      std::cout<<JacobiMatrixNE_R<<std::endl;
 
-//     std::cout<<JacobiMatrixNE_R<<std::endl;
-//     Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
-//     eigenValues(JacobiMatrixNE_R,0.000001,eigenvalues);
-//     std::cout<<"\n Eigenvalues of F'*F:"<<std::endl;
-//     std::cout<<eigenvalues<<std::endl;
+      for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
+        for (UInt j=0;j<JacobiMatrix.GetSizeCol();j++)
+          JacobiMatrixR[i][j]=JacobiMatrix[i][j].real();
+      std::cout<<"JacobiMatrixR"<<std::endl;
+      std::cout<<JacobiMatrixR<<std::endl;
 
-// #ifdef USE_LAPACK
-//     Vector<Double> eigenvaluesWL;
-//     JacobiMatrixNE.eigenvaluesWithLapack(eigenvaluesWL);
-//     std::cout<<"eigenvaluesWL:"<<std::endl;
-//     std::cout<<eigenvaluesWL<<std::endl;
+      Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
+      eigenValues(JacobiMatrixNE_R,0.000001,eigenvalues);
+      std::cout<<"\n Eigenvalues of F'*F:"<<std::endl;
+      std::cout<<eigenvalues<<std::endl;
 
-// #endif
-//     //    getchar();
+      for(UInt i=0;i<eigenvalues.GetSize();i++)
+        std::cout <<" eig ("<<i<<") = "<< eigenvalues[i] << ", "<<std::endl; 
 
-//     for(UInt i=0;i<eigenvalues.GetSize();i++)
-//       std::cout <<" eig ("<<i<<") = "<< eigenvalues[i] << ", "<<std::endl; 
+#ifdef USE_LAPACK
+      Vector<Double> eigenvaluesWL;
+      JacobiMatrixNE.eigenvaluesWithLapack(eigenvaluesWL);
+      std::cout<<"eigenvaluesWL:"<<std::endl;
+      std::cout<<eigenvaluesWL<<std::endl;
+ #endif
+      getchar();
+
+    } // end if TRUE/FALSE
+
+  // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX    
+
     
     // TEST MAT_MULT 
           
@@ -249,7 +257,7 @@ namespace CoupledField
 
         
       //      if (new_res_inner>1.15*inner_eta*old_res_inner){
-      if (new_res_inner>1.25*old_res_inner){
+      if (new_res_inner>1.15*old_res_inner){
         //      std::cout << " \n !! New_res_inner is worse than old_res_inner -> break of inner Loop! "<< std::endl;
         std::cout<<"\n Nr of nuMethods during "<< newtonCounter << " Newton-step = " << nNuMethods <<std::endl;
         //      getchar();
@@ -302,39 +310,42 @@ namespace CoupledField
       //      std::cout<<act_res<<std::endl;
     norm(act_res,new_res_outer,maxres_inner,y_hat);
 
-//     Integer lineSearchCount=0;
+    Integer lineSearchCount=0;
 
-//     while (new_res_outer>=res_outer){
-//       theta = 0.5*theta;
-//       std::cout<<"theta = "<<theta<<std::endl;
-//       parameter=parameter_old;
-//       setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
-//       updateMaterialData(parameter, ptMaterial);
-//       createF(ptMaterial, F_hat,FALSE);
+  //    while (new_res_outer>=res_outer){
+//        theta = 0.5*theta;
+//        std::cout<<"theta = "<<theta<<std::endl;
+//        parameter=parameter_old;
+//        setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
+//        updateMaterialData(parameter, ptMaterial);
+//        createF(ptMaterial, F_hat,FALSE);
       
-//       for (UInt i=0;i<nrMeasuredData;i++)
-//         act_res[i]=y_hat[i]-F_hat[i];
-//       //Norm ersetzt:
-//       //      std::cout<<act_res<<std::endl;
-//       norm(act_res,new_res_outer,maxres_inner,y_hat);
-//       std::cout<<"new_res_outer = " << new_res_outer <<std::endl;
-//       std::cout<<"res_outer = " << res_outer <<std::endl;
+//        for (UInt i=0;i<nrMeasuredData;i++)
+//          act_res[i]=y_hat[i]-F_hat[i];
+// //       //Norm ersetzt:
+// //       //      std::cout<<act_res<<std::endl;
+//        norm(act_res,new_res_outer,maxres_inner,y_hat);
+//        std::cout<<"new_res_outer = " << new_res_outer <<std::endl;
+//        std::cout<<"res_outer = " << res_outer <<std::endl;
      
-//       lineSearchCount++;
+//        lineSearchCount++;
 
-//       if (lineSearchCount>=5){
-//         theta=1.0;  
-//         setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
-//         updateMaterialData(parameter, ptMaterial);
-//         break;
-//       }
+//        if (lineSearchCount>=1){
+//          //         theta=1.0;  
+// //         setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
+// //         updateMaterialData(parameter, ptMaterial);
+//          break;
+//        }
+//          res_outer=new_res_outer;
+         
+//      } // End while
 
-//       if (new_res_outer<res_outer){
-//         parameter_old=parameter;
-//         std::cout<<"Final theta = " <<theta<<std::endl;
-//         res_outer=new_res_outer;
-//         break;
-//       }
+//      if (new_res_outer<res_outer){
+//        parameter_old=parameter;
+//        theta=0.5*theta;
+//        res_outer=new_res_outer;
+       //break;
+//     }
 
 //     }
 
@@ -367,7 +378,7 @@ namespace CoupledField
       //        *parLog<<"  "<< parameter[i]/parameterIncrement[i];
       //       *parLog<<std::endl;
 
-      if(new_res_outer<=1.0e-5)
+      if(new_res_outer<=1.0e-9)
         getchar();
 
       //       while (new_res_outer>old_res_outer){
@@ -462,6 +473,7 @@ namespace CoupledField
       //        }
 
       parameter_old=parameter;
+      residuum=new_res_outer;
 
   } // end NewtonNuMethodsy
 
@@ -533,19 +545,21 @@ namespace CoupledField
     createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
 
     // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-    //      Matrix<Double> JacobiMatrixR(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-    Matrix<Double> JacobiMatrixNE_R(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-    //       Vector<Complex> y_hat_F_hatNE(JacobiMatrix.GetSizeCol());
+    if (FALSE){
 
-    adjJacobiMatrix.Mult(JacobiMatrix,JacobiMatrixNE);
+      Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+      //      Matrix<Double> JacobiMatrixR(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+      Matrix<Double> JacobiMatrixNE_R(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+      //       Vector<Complex> y_hat_F_hatNE(JacobiMatrix.GetSizeCol());
+
+      adjJacobiMatrix.Mult(JacobiMatrix,JacobiMatrixNE);
     //       adjJacobiMatrix.Mult(act_res, y_hat_F_hatNE);
     //       std::cout<<JacobiMatrixNE<<std::endl;
       
-    for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
-      for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
-        JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
-        JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
+      for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
+        for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
+          JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
+          JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
       }
     //       for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
     //      for (UInt j=0;j<JacobiMatrix.GetSizeCol();j++)
@@ -553,12 +567,24 @@ namespace CoupledField
     //       std::cout<<"JacobiMatrixR"<<std::endl;
     //       std::cout<<JacobiMatrixR<<std::endl;
 
-    // //       std::cout<<JacobiMatrixNE_R<<std::endl;
-    //        Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
-    //        eigenValues(JacobiMatrixNE_R,0.000001,eigenvalues);
-    //        std::cout<<"\n Eigenvalues of F'*F:"<<std::endl;
-    //        std::cout<<eigenvalues<<std::endl;
-    //       getchar();
+      std::cout<<JacobiMatrixNE_R<<std::endl;
+      Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
+      eigenValues(JacobiMatrixNE_R,0.000001,eigenvalues);
+      std::cout<<"\n Eigenvalues of F'*F:"<<std::endl;
+      std::cout<<eigenvalues<<std::endl;
+
+#ifdef USE_LAPACK
+      Vector<Double> eigenvaluesWL;
+      JacobiMatrixNE.eigenvaluesWithLapack(eigenvaluesWL);
+      std::cout<<"eigenvaluesWL:"<<std::endl;
+      std::cout<<eigenvaluesWL<<std::endl;
+#endif
+      getchar();
+
+    } // end if TRUE/FALSE
+
+    // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
 
     // TEST MAT_MULT 
 
@@ -651,6 +677,7 @@ namespace CoupledField
       //      break;
       //       }
         
+      residuum=new_res_outer;
       std::cout<<"\n end of inner nuMethodsC Iter ..."<<std::endl;
     } // end while nuMethod ...
 
@@ -838,32 +865,48 @@ namespace CoupledField
 
 
     // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-//     Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-//     Matrix<Double> JacobiMatrixR(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-//     Matrix<Double> JacobiMatrixNE_R(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
-//     //       Vector<Complex> y_hat_F_hatNE(JacobiMatrix.GetSizeCol());
-    
-//     adjJacobiMatrix.Mult(JacobiMatrix,JacobiMatrixNE);
+    if (TRUE){
+
+      Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+      //      Matrix<Double> JacobiMatrixR(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+      Matrix<Double> JacobiMatrixNE_R(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
+      //       Vector<Complex> y_hat_F_hatNE(JacobiMatrix.GetSizeCol());
+
+      adjJacobiMatrix.Mult(JacobiMatrix,JacobiMatrixNE);
     //       adjJacobiMatrix.Mult(act_res, y_hat_F_hatNE);
     //       std::cout<<JacobiMatrixNE<<std::endl;
-    
-//     for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
-//       for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
-//         JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
-//         JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
-//       }
-//     for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
-//       for (UInt j=0;j<JacobiMatrix.GetSizeCol();j++)
-//     JacobiMatrixR[i][j]=JacobiMatrix[i][j].real();
-    //std::cout<<"JacobiMatrixR"<<std::endl;
+      
+      for (UInt i=0;i<JacobiMatrixNE.GetSizeRow();i++)
+        for (UInt j=0;j<JacobiMatrixNE.GetSizeCol();j++){
+          JacobiMatrixNE[i][j]=JacobiMatrixNE[i][j].real();
+          JacobiMatrixNE_R[i][j]=JacobiMatrixNE[i][j].real();
+      }
+    //       for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
+    //      for (UInt j=0;j<JacobiMatrix.GetSizeCol();j++)
+    //        JacobiMatrixR[i][j]=JacobiMatrix[i][j].real();
+    //       std::cout<<"JacobiMatrixR"<<std::endl;
     //       std::cout<<JacobiMatrixR<<std::endl;
 
-    // //       std::cout<<JacobiMatrixNE_R<<std::endl;
-//     Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
-//     eigenValues(JacobiMatrixNE_R,0.000001,eigenvalues);
-//     std::cout<<"\n Eigenvalues of F'*F:"<<std::endl;
-//     std::cout<<eigenvalues<<std::endl;
-//     getchar();
+      std::cout<<JacobiMatrixNE_R<<std::endl;
+      Vector<Double> eigenvalues(JacobiMatrixNE_R.GetSizeRow());
+      eigenValues(JacobiMatrixNE_R,0.000001,eigenvalues);
+      std::cout<<"\n Eigenvalues of F'*F:"<<std::endl;
+      std::cout<<eigenvalues<<std::endl;
+
+#ifdef USE_LAPACK
+      Vector<Double> eigenvaluesWL;
+      JacobiMatrixNE.eigenvaluesWithLapack(eigenvaluesWL);
+      std::cout<<"eigenvaluesWL:"<<std::endl;
+      std::cout<<eigenvaluesWL<<std::endl;
+#endif
+      getchar();
+
+    } // end if TRUE/FALSE
+
+    // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+
+
 
     // TEST MAT_MULT 
     
@@ -1055,6 +1098,7 @@ namespace CoupledField
       //        NewtonNuMethods();
     }
     parameter_old=parameter;
+    residuum=new_res_outer;
       
    
   } // end NewtonNuMethodsy

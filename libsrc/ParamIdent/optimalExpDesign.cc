@@ -27,32 +27,32 @@ namespace CoupledField
 
 
     // optimalExpDesignDiffNumberFreqs();
-//      nrMeasuredData=10;
+      nrMeasuredData=10;
+      Vector<Double> freqs5;
+      freqs5.Resize(10);
+      freqs5[0]=3.0e+06;
+      freqs5[1]=3.5e+06;
+      freqs5[2]=3.75e+06;
+      freqs5[3]=4.0e+06;
+      freqs5[4]=4.1e+06;
+      freqs5[5]=4.2e+06;
+      freqs5[6]=5.6e+06;
+      freqs5[7]=6.0e+06;
+      freqs5[8]=6.5e+06;
+      freqs5[9]=7.0e+06;
+      //      freqs5[10]=7.75e+06;
+      freqs=freqs5;
+
+//      nrMeasuredData=5;
 //      Vector<Double> freqs5;
-//      freqs5.Resize(10);
-//      freqs5[0]=1.2e+06;
-//      freqs5[1]=2.0e+06;
-//      freqs5[2]=2.5e+06;
-//      freqs5[3]=3.0e+06;
-//      freqs5[4]=3.5e+06;
-//      freqs5[5]=4.0e+06;
-//      freqs5[6]=5.8e+06;
-//      freqs5[7]=6.1e+06;
-//      freqs5[8]=6.4e+06;
-//      freqs5[9]=6.9e+06;
+//      freqs5.Resize(5);
+
+//      freqs5[0]=2.0e+06;
+//      freqs5[1]=3.5e+06;
+//      freqs5[2]=4.5e+06;
+//      freqs5[3]=5.8e+06;
+//      freqs5[4]=6.9e+06;
 //      freqs=freqs5;
-
-
-     nrMeasuredData=5;
-     Vector<Double> freqs5;
-     freqs5.Resize(5);
-
-     freqs5[0]=2.0e+06;
-     freqs5[1]=3.5e+06;
-     freqs5[2]=4.5e+06;
-     freqs5[3]=5.8e+06;
-     freqs5[4]=6.9e+06;
-     freqs=freqs5;
 
     Vector<Double> newFreqs;
    
@@ -90,12 +90,6 @@ namespace CoupledField
     std::cout<<fa_<<std::endl;
     Vector<Complex> jacobi;
 
-// #ifdef USE_LAPACK
-//     NewArray( lp_af77, F77complex16, actNrParameter+actNrParameterC*actNrParameter+actNrParameterC );
-//     NewArray(lp_wf77, F77real8,actNrParameter+actNrParameterC);
-//     NewArray(lp_workf77,F77complex16,99);
-//     NewArray(lp_rworkf77,F77real8,3*actNrParameter+actNrParameterC-2);
-// #endif
 
     Complex functional;
 
@@ -112,8 +106,7 @@ namespace CoupledField
       calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       newtonCounter=0;
 
-
-      while (nrNuMethods<maxNumberNewtonLoops){
+      while (nrNuMethods<maxNumberNewtonLoops && residuum< 1.0e-2*tau*(1+delta)){
         //    nuMethodsC2();
         nuMethods();
         nrNuMethods++;
@@ -346,9 +339,9 @@ namespace CoupledField
           
         // end while ....
       
-        //     for(UInt fr=0;fr<nrMeasuredData;fr++)
-        //       *optimalFreqs<< freqs[fr]<<"  ";
-        //       *optimalFreqs<<std::endl;    
+        for(UInt fr=0;fr<nrMeasuredData;fr++)
+          *optimalFreqs<< freqs[fr]<<"  ";
+        *optimalFreqs<<std::endl;    
           
     }      
 
@@ -453,55 +446,55 @@ namespace CoupledField
         std::cout<<"covDiag"<<std::endl;
         std::cout<<covDiag<<std::endl;
       
-        //        for(UInt i=0; i<actNrParameter+actNrParameterC; i++){
-//           *optimalFreqs<<cov[i][i].real()<<"  ";
-//         }
+        for(UInt i=0; i<actNrParameter+actNrParameterC; i++){
+          *confInterval<<cov[i][i].real()<<"  ";
+        }
 
         if (actNrParameter==3){      
-          *optimalFreqs<<parameter[1]+parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+          *confInterval<<parameter[1]+parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
         //        std::cout<<parameter[1]+parameter[1]*std::sqrt(cov[1][1].real()*0.115*0.115)<<std::endl;
-          *optimalFreqs<<parameter[1]<<"  ";
-          *optimalFreqs<<parameter[1]-parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+          *confInterval<<parameter[1]<<"  ";
+          *confInterval<<parameter[1]-parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
         //        std::cout<<parameter[1]-1000.0*std::sqrt(cov[0][0].real()*parameter[1]*0.115*0.115)<<std::endl;
 
 
-          *optimalFreqs<<parameter[7]+parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
-          *optimalFreqs<<parameter[7]<<"  ";
-          *optimalFreqs<<parameter[7]-parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+          *confInterval<<parameter[7]+parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+          *confInterval<<parameter[7]<<"  ";
+          *confInterval<<parameter[7]-parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
 
 
-          *optimalFreqs<<parameter[9]+parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
-          *optimalFreqs<<parameter[9]<<"  ";
-          *optimalFreqs<<parameter[9]-parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+          *confInterval<<parameter[9]+parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+          *confInterval<<parameter[9]<<"  ";
+          *confInterval<<parameter[9]-parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
         }
 
         else if (actNrParameter==4){
           for (UInt ii=0;ii<=4;ii++){
             if(ii<=1){
-              *optimalFreqs<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*0.115*0.115)<<"  ";
-              *optimalFreqs<<parameter[ii]<<"  ";
-              *optimalFreqs<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*0.115*0.115)<<"  ";
+              *confInterval<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*0.115*0.115)<<"  ";
+              *confInterval<<parameter[ii]<<"  ";
+              *confInterval<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*0.115*0.115)<<"  ";
             }
             else if(ii>2)
               {
-                *optimalFreqs<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii-1][ii-1].real()*0.115*0.115)<<"  ";
-                *optimalFreqs<<parameter[ii]<<"  ";
-                *optimalFreqs<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii-1][ii-1].real()*0.115*0.115)<<"  ";
+                *confInterval<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii-1][ii-1].real()*0.115*0.115)<<"  ";
+                *confInterval<<parameter[ii]<<"  ";
+                *confInterval<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii-1][ii-1].real()*0.115*0.115)<<"  ";
               }
           }
         }
         if (actNrParameter==10){
           for (UInt ii=0;ii<10;ii++){
-            *optimalFreqs<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
-            *optimalFreqs<<parameter[ii]<<"  ";
-            *optimalFreqs<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+            *confInterval<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+            *confInterval<<parameter[ii]<<"  ";
+            *confInterval<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
           }
         }
         if (actNrParameter==5){
           for (UInt ii=0;ii<5;ii++){
-            *optimalFreqs<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*0.55*0.55)<<"  ";
-            *optimalFreqs<<parameter[ii]<<"  ";
-            *optimalFreqs<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*0.55*0.55)<<"  ";
+            *confInterval<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*0.55*0.55)<<"  ";
+            *confInterval<<parameter[ii]<<"  ";
+            *confInterval<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*0.55*0.55)<<"  ";
           }
         }   
 
