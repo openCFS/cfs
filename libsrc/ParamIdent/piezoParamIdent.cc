@@ -27,6 +27,8 @@ namespace CoupledField
 
     ptDomain = adomain;
     ptMyPDE_ = NULL;
+    residuum=1.0;
+    tau=1.0;
  
     Char* measuredData="measuredData.dat";
     allMeasuredData = new std::ifstream(measuredData, std::basic_ios<char>::in);
@@ -80,6 +82,19 @@ namespace CoupledField
     if (!optimalFreqs){
       std::cerr << "\n optimalFreqs.dat could not be initialized" << std::endl;
     }
+
+    std::string filenameConfInterval = "confInterval.dat";
+    confInterval = new std::ofstream(filenameConfInterval.c_str(),std::basic_ios<char>::out);
+    if (!confInterval){
+      std::cerr << "\n confInterval.dat could not be initialized" << std::endl;
+    }
+
+    std::string filenameRhosOut = "rhosOut.dat";
+    rhosOut = new std::ofstream(filenameRhosOut.c_str(),std::basic_ios<char>::out);
+    if (!rhosOut){
+      std::cerr << "\n rhosOut.dat could not be initialized" << std::endl;
+    }
+
 
     Char* measuremets="mess.dat";
     mess = new std::ifstream(measuremets, std::basic_ios<char>::in);

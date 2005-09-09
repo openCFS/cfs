@@ -67,8 +67,18 @@ namespace CoupledField
           }
         }
         rhos[maxIndex]=0.0;
-        sumRhos+=highestRhos[i];
-        if (sumRhos>1.10 && i>3){
+
+        Double omegaDiff=highestFreqs[i]-highestFreqs[0];
+
+        // Get Neighbor of \omega_i
+        for(UInt nI=0;nI<highestFreqs.GetSize();nI++){
+          if ((highestFreqs[i]-highestFreqs[nI])<omegaDiff)
+            omegaDiff=highestFreqs[i]-highestFreqs[nI];
+          std::cout<<" omegaDiff = " <<omegaDiff<<std::endl;
+        }
+        sumRhos+=highestRhos[i]/omegaDiff;
+
+        if (sumRhos>1.15 && i>3){
           std::cout<<"sumRhos = "<<sumRhos <<std::endl;
           //          getchar();
           break;
@@ -102,6 +112,10 @@ namespace CoupledField
 //       std::cout<<highestRhos<<std::endl;
       std::cout<<"highestFreqs"<<std::endl;
       std::cout<<highestFreqs<<std::endl;
+
+      for(UInt i=0; i<highestFreqs.GetSize();i++)
+        *optimalFreqs<<highestFreqs[i]<<"  ";
+      *optimalFreqs<<std::endl;
       
 
       nrMeasuredData=howManyFreqs;
@@ -202,14 +216,14 @@ namespace CoupledField
                // ((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
 
                covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/
-                 ((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq]));
+                 (0.8*freqs[actFreq]*(1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
 
-//                covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/
-//                  (freqs[actFreq]*(1+delta)*(1+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+//                 covTemp[i][j]=rhos[actFreq]*hOmega*0.5*jacobiH[i]*jacobi[j]/
+//                   (0.8*freqs[actFreq]*(1+delta)*(1+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
 
              else 
                covTemp[i][j]=rhos[actFreq]*hOmega*jacobiH[i]*jacobi[j]/
-                 ((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+                 (0.8*freqs[actFreq]*(1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
 
 //                covTemp[i][j]=rhos[actFreq]*hOmega*jacobiH[i]*jacobi[j]/
 //                  (freqs[actFreq]*(1+delta)*(1+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
@@ -242,28 +256,32 @@ namespace CoupledField
      if (writeOutCov==TRUE){
 
        if (actNrParameter==3){      
-         *impedCurve<<parameter[1]+parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[1]+parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
          //        std::cout<<parameter[1]+parameter[1]*std::sqrt(cov[1][1].real()*0.115*0.115)<<std::endl;
-         *impedCurve<<parameter[1]<<"  ";
-         *impedCurve<<parameter[1]-parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[1]<<"  ";
+         *confInterval<<parameter[1]-parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
          //        std::cout<<parameter[1]-1000.0*std::sqrt(cov[0][0].real()*parameter[1]*0.115*0.115)<<std::endl;
          
          
-         *impedCurve<<parameter[7]+parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
-         *impedCurve<<parameter[7]<<"  ";
-         *impedCurve<<parameter[7]-parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[7]+parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[7]<<"  ";
+         *confInterval<<parameter[7]-parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
          
          
-         *impedCurve<<parameter[9]+parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
-         *impedCurve<<parameter[9]<<"  ";
-         *impedCurve<<parameter[9]-parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[9]+parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[9]<<"  ";
+         *confInterval<<parameter[9]-parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
        }
 
        if (actNrParameter==10)
-         for (UInt i=0;i<10;i++)
-           *impedCurve<<parameter[i]+parameter[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
+         for (UInt i=0;i<10;i++){
+           *confInterval<<parameter[i]+parameter[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
+           *confInterval<<parameter[i]<<"  ";
+           *confInterval<<parameter[i]-parameter[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
+         }
 
-       *impedCurve<<std::endl;
+
+       *confInterval<<std::endl;
      }
 
 
@@ -325,9 +343,9 @@ namespace CoupledField
     Vector<Double> rhosOld;
     rhosOld.Resize(nrMeasuredData);
     rhosOld=rhos;
-    //    Double lambda=1.0e-4; // for 10 parameters
+    Double lambda=1.0e-4; // for 10 parameters
     //    Double lambda=1.0e-1; // for 3 parameters
-    Double lambda=1.0e-2; // for 4 parameters
+    //    Double lambda=1.0e-2; // for 4 parameters
 
     Complex J_old,J;
 
@@ -359,18 +377,18 @@ namespace CoupledField
 //       std::cout<<"rhos:"<<std::endl;
 //       std::cout<<rhos<<std::endl;
       Double rhoInt=0.0;
-      *optimalFreqs<<J.real()<<"  ";
+      *rhosOut<<J.real()<<"  ";
       
       for (UInt actFreq=0;actFreq<nrMeasuredData;actFreq++)
         rhoInt+=rhos[actFreq];
       rhoInt/=nrMeasuredData;
 
       std::cout<<"rhoInt = "<< rhoInt<<std::endl;
-      *optimalFreqs<<rhoInt;
+      *rhosOut<<rhoInt;
 
       for (UInt actFreq=0;actFreq<nrMeasuredData;actFreq++)
-        *optimalFreqs<<rhos[actFreq]<<"  " ;
-      *optimalFreqs<<std::endl;
+        *rhosOut<<rhos[actFreq]<<"  " ;
+      *rhosOut<<std::endl;
 
       if (rhoInt>=0.85){
         std::cout<<" Sum rho_i exceeds upper bound ... -> break min J(w) " <<std::endl;
