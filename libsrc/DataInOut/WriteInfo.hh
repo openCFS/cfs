@@ -129,6 +129,9 @@ namespace CoupledField {
                      Double analysisVal);
 
     /// just prints a vector
+    void PrintVec(Vector<Complex>& vec);
+
+    /// just prints a vector
     void PrintVec(Vector<Double>& vec);
 
     /// prints a standard vector

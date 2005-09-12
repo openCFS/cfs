@@ -449,6 +449,13 @@ namespace CoupledField {
   }
 
 
+  void WriteInfo::PrintVec(Vector<Complex>& vec)
+  {
+    ENTER_FCN( "WriteInfo::PrintVec" );
+    if (cfsInfo)
+      *cfsInfo << vec << std::endl;
+  }
+
   void WriteInfo::PrintVec(Vector<Double>& vec)
   {
     ENTER_FCN( "WriteInfo::PrintVec" );
