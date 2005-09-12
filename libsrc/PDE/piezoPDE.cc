@@ -1328,6 +1328,7 @@ void PiezoPDE::CalcComplexValuedCharges(){
   UInt pdeElemNum = 0;
   Integer regionIndex = 0;
   Double normSign = 0.0;
+  Vector<Complex> chargeSD;
 
   ShortInt stressDim, elecDim;
   Vector<Double> intPoint;
@@ -1364,6 +1365,9 @@ void PiezoPDE::CalcComplexValuedCharges(){
 
   //charge operator  
   chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, isaxi_);
+
+  chargeSD.Resize(calcCharge_.GetSize());
+  chargeSD.Init(0);
                               
   // loop over all subdomains
   for (UInt iSD=0; iSD<calcCharge_.GetSize(); iSD++){
@@ -1469,11 +1473,20 @@ void PiezoPDE::CalcComplexValuedCharges(){
         complexValuedCharge_[iElem]=charge;
         chargesComplex_.SetElemResult(pdeElemNum-1, chargeVec); 
 
+        chargeSD[iSD] += charge;
+
         // Delete integrator again (Stressabbau ;-)
         delete stress;
       }
 
+    //print to info-file
+    Info->PrintF(pdename_, "Computed Charges: ");
+    Info->PrintVec(chargeSD);
+
+
   }
+
+
 }
 
 } // end of namespace
