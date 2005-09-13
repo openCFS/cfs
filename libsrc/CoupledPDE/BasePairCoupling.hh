@@ -5,6 +5,7 @@
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
+#include "PDE/nodeEQN.hh"
 
 namespace CoupledField
 {
@@ -16,6 +17,7 @@ namespace CoupledField
   class BaseSystem;
   class Grid;
   class MaterialData;
+  class BaseNodeStoreSol;
 
   //! Base class for pairwise direct coupling of two pdes
   class BasePairCoupling
@@ -50,9 +52,17 @@ namespace CoupledField
     }
 
     //! Return pointer to second PDE
-    SinglePDE* GetPde2() {
-      return pde2_;
-    }
+
+    SinglePDE* GetPde2()
+    { return pde2_;}
+
+    //! computes the coordinates of an element including the delta
+    //! \param connect (input) global node numbers of element
+    //! \param ptCoord (output) coordinates of the element nodes
+    //!                (nrNodes \f$\times\f$ spaceDim);
+    virtual void GetElemCoords(const StdVector< UInt > connect,
+                               Matrix< Double > &coordMat );
+
 
     //! Return identifier of first PDE
     PdeIdType GetPdeId1();
@@ -103,6 +113,18 @@ namespace CoupledField
     //! read material data
     virtual void ReadMaterialData();
 
+    // =====================================================
+    // Miscellaneous
+    // =====================================================
+
+    BaseNodeStoreSol * sol_;    //!< solution
+
+    Integer isaxi_;             //!< TRUE: axisymmetric problem
+
+    Matrix<Double> deltCoords_;    //!< offset to grid coordinates
+
+    Boolean geoUpdate_;        //!< flag for geometric update
+
     // ======================================================
     // DATA SECTION
     // ======================================================
@@ -122,6 +144,29 @@ namespace CoupledField
     //! this index determines, which set of boundary conditions is applied.
     UInt bcSequenceIndex_;
     //@}
+
+    //! TRUE, if solution should be written to result file
+    Boolean saveSol_;
+
+    //! TRUE, if first derivative of solution should be written to result file
+    Boolean saveDeriv1_;
+
+    //! TRUE, if second derivative of solution should be written to result file
+    Boolean saveDeriv2_;
+
+    //! contains element results of complex valued charge 
+    Vector<Complex> complexValuedCharge_;
+
+    //! contains element results of complex valued Efield 
+    Vector<Complex> complexValuedEfield_;
+
+    CFSVector * solVec_;        //! needed in iterative coupled computation 
+
+    //! vector containing solutiontypes of PDE
+    StdVector<SolutionType> solTypes_;
+
+    //! vector containgin dofs of solutiontypes
+    StdVector<UInt> solDofs_;
 
     // -----------------------------------------------------------------------
     // Material data
@@ -152,7 +197,7 @@ namespace CoupledField
 
     //! Pointer to first pde
     SinglePDE *pde1_;
-
+    
     //! Pointer to second pde
     SinglePDE *pde2_;
     
@@ -164,6 +209,23 @@ namespace CoupledField
 
     //! Pointer to algebraic system
     BaseSystem * algsys_;
+
+    NodeEQN * eqnData_;         //!< equation handling
+
+    // -----------------------------------------------------------------------
+    // Geometry & node numbering
+    // -----------------------------------------------------------------------
+  
+    //@{
+    //! \name Attributes related to geometry and node numbering
+    UInt dofspernode_;  //!< number of unknowns per node
+    UInt numPDENodes_;  //!< number of nodes in subdomains
+    UInt numElems_;     //!< number of elements in subdomains
+    UInt dim_;                  //!< space dimension of pde
+  
+    //! defines subtype of mechanic PDE: plainStrain, 3d, ...
+    std::string subType_;
+    //@}
 
 
   };

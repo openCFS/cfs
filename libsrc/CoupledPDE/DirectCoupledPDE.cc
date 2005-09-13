@@ -375,7 +375,6 @@ namespace CoupledField {
 
     // Hard Coded
     TS_alg_ = new Newmark( algsys_, totalUnknowns_ );
-
     // Pass time stepping object to single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->SetTimeStepping(TS_alg_);
@@ -394,8 +393,12 @@ namespace CoupledField {
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->PostProcess();
     }
-  }
 
+    for (UInt i=0; i<couplings_.GetSize(); i++) {
+      couplings_[i]->PostProcess();
+    }
+  }
+  
 
   void DirectCoupledPDE::WriteResultsInFile(const UInt kstep,
                                             const Double asteptime,

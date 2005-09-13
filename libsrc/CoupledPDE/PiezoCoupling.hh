@@ -2,6 +2,9 @@
 #define FILE_PIEZOCOUPLING_HH
 
 #include "BasePairCoupling.hh"
+#include "Utils/elemstoresol.hh"
+#include "Utils/nodestoresol.hh"
+
 
 
 namespace CoupledField
@@ -25,6 +28,11 @@ namespace CoupledField
 
     //! Trigger calculation of postprocessing results
     void PostProcess();
+
+    void calcMaterialMatrices(Matrix<Double> &sMat, 
+                              Matrix<Double>&cMat,
+                              Matrix<Double> &pMat,
+                              Matrix<Double> *matDat);
     
   protected:
     
@@ -42,7 +50,48 @@ namespace CoupledField
                                    Boolean reducedInt = FALSE ,
                                    Boolean isdamping = FALSE );
 
+    // Data section
+    Boolean hasOutput_;
+
   private:
+    
+    AnalysisType analysistype_;
+
+    //! Postprocession section
+
+
+    StdVector<RegionIdType> calcDfield_;  //!< contains the subdomains, on which the electric field is computed
+    ElemStoreSol<Double> Dfield_;  //!< conatins electric field
+    ElemStoreSol<Complex> DfieldComplex_;
+
+
+    StdVector<RegionIdType> calcStress_;  //!< contains the subdomains, on which the stress is computed
+    ElemStoreSol<Double> stress_;  //!< conatins mechanical stresses
+    ElemStoreSol<Complex> stressComplex_;  //!< conatins mechanical stresses
+
+    ElemStoreSol<Double> charges_;
+    ElemStoreSol<Complex> chargesComplex_;
+
+    StdVector<RegionIdType> chargeNeighborRegion_;
+    StdVector<RegionIdType> calcCharge_;
+
+    //! contains mechanic velocity
+    NodeStoreSol<Double> solDeriv1_;
+    
+    //! contains mechanic acceleration
+    NodeStoreSol<Double> solDeriv2_;
+
+    //! calculate Charges
+    void CalcCharges();
+
+    //! calculate comlex valued Charges
+    void CalcComplexValuedCharges();
+
+    //! calculate electric field
+    //    void CalcDfield();
+
+    // calculate complex valued electric field
+    //    void CalcComplexValuedDfield();
 
   };
 
