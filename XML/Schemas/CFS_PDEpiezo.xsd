@@ -265,7 +265,7 @@
   </xsd:simpleType>
 
   <xsd:complexType name="DT_matData">
-    <xsd:attribute name="type" type="DT_matDataType" use="required"/>
+    <xsd:attribute name="type" type="DT_matDataType" use="optional"/>
   </xsd:complexType>
 
 
