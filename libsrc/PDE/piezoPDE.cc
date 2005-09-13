@@ -29,7 +29,6 @@ namespace CoupledField {
     // =====================================================================
 
     // Set name of the PDE and its material class
-
     pdename_ = "piezo";
     pdematerialclass_ = "piezo";
     piezoMaterialType_ = REALMATERIALPARAMETER; // default
@@ -39,7 +38,7 @@ namespace CoupledField {
 
       piezoMaterialType_ = IMAGMATERIALPARAMETER; 
       Info->PrintF( pdename_, "Using complex piezoMaterialData\n" );
-      std::cout << "\n++ Be aware, that you are about to consider "
+      std::cout << "\n++ Be aware that you are about to consider "
                 << "complex-valued material parameter!"
                 << std::endl;
     }
@@ -144,7 +143,7 @@ namespace CoupledField {
     // We need not have as many function/filenames as pressureloads!
     for ( UInt k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ )
       {
-	pressFnc_.Push_back( "none" );
+        pressFnc_.Push_back( "none" );
       }
   }
 
@@ -219,7 +218,7 @@ namespace CoupledField {
 
       BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
       IntegratorDescriptor *actIntDescrStiff = 
-	new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+        new IntegratorDescriptor(bilinearStiff, STIFFNESS);
       actIntDescrStiff->SetPDEIds(this, this);
 
       bilinearStiff->SetPiezoMaterialType(realMatParameter);
@@ -230,8 +229,8 @@ namespace CoupledField {
       if (piezoMaterialType_ == IMAGMATERIALPARAMETER){
         BaseForm * bilinearStiffC = GetStiffIntegrator(actSDMat);
         IntegratorDescriptor *actComplexIntDescrStiff = 
-	  new IntegratorDescriptor(bilinearStiffC, STIFFNESS);
-	actComplexIntDescrStiff->SetPDEIds(this, this);
+          new IntegratorDescriptor(bilinearStiffC, STIFFNESS);
+        actComplexIntDescrStiff->SetPDEIds(this, this);
 
         actComplexIntDescrStiff->SetPiezoMaterialType(piezoMaterialType_);
         bilinearStiffC->SetPiezoMaterialType(piezoMaterialType_);
@@ -243,12 +242,12 @@ namespace CoupledField {
         Boolean isdamping = TRUE;
         Boolean reducedIntegration = FALSE; //is currently not supported
         BaseForm * dampStiff = 
-	  GetStiffIntegrator( actSDMat, reducedIntegration,isdamping );
+          GetStiffIntegrator( actSDMat, reducedIntegration,isdamping );
         dampStiff->SetRaylDamping();
 
         IntegratorDescriptor *actIntDescrDamp =
-	  new IntegratorDescriptor(dampStiff, DAMPING);
-	actIntDescrDamp->SetPDEIds(this, this);
+          new IntegratorDescriptor(dampStiff, DAMPING);
+        actIntDescrDamp->SetPDEIds(this, this);
 
         dampStiff->SetPiezoMaterialType(realMatParameter);
         actIntDescrDamp->SetPiezoMaterialType(realMatParameter);
@@ -260,10 +259,10 @@ namespace CoupledField {
           Boolean isdamping = TRUE;
           Boolean reducedIntegration = FALSE; //is currently not supported
           BaseForm * dampStiffC = 
-	    GetStiffIntegrator( actSDMat,reducedIntegration, isdamping );
+            GetStiffIntegrator( actSDMat,reducedIntegration, isdamping );
           IntegratorDescriptor *actComplexIntDescrDamp =
-	    new IntegratorDescriptor(dampStiffC, DAMPING);
-	  actComplexIntDescrDamp->SetPDEIds(this, this);
+            new IntegratorDescriptor(dampStiffC, DAMPING);
+          actComplexIntDescrDamp->SetPDEIds(this, this);
 
           dampStiffC->SetPiezoMaterialType(piezoMaterialType_);
           actComplexIntDescrDamp->SetPiezoMaterialType(piezoMaterialType_);
@@ -280,8 +279,8 @@ namespace CoupledField {
       bilinearMass->SetPiezoMaterialType(realMatParameter);
 
       IntegratorDescriptor * actIntDescrMass =
-	new IntegratorDescriptor(bilinearMass, MASS);
-	actIntDescrMass->SetPDEIds(this, this);
+        new IntegratorDescriptor(bilinearMass, MASS);
+      actIntDescrMass->SetPDEIds(this, this);
 
       //check for damping (mass part)
       if (dampingList_[subdoms_[actSD]] == RAYLEIGH ){    
@@ -302,28 +301,28 @@ namespace CoupledField {
       Vector<Complex> pressValsC_(pressVals_.GetSize());
             
       for (UInt actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
-	BaseForm * rhsSrcSurf = new 
-	  PressureLinForm(pressVals_[actSF], isaxi_);
-	rhsSrcSurf->SetDofZero(posOfElectricPot);
+        BaseForm * rhsSrcSurf = new 
+          PressureLinForm(pressVals_[actSF], isaxi_);
+        rhsSrcSurf->SetDofZero(posOfElectricPot);
 	
-	assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
-					   pressFnc_[actSF],nonlin);
-	assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
-					   pressPhase_[actSF],nonlin);
+        assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
+                                           pressFnc_[actSF],nonlin);
+        assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
+                                           pressPhase_[actSF],nonlin);
       }
 	
     }
     else
       {
 
-	Boolean nonlin = FALSE;
-	for (UInt actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
-	  BaseForm * rhsSrcSurf = new 
-	    PressureLinForm(pressVals_[actSF], isaxi_);
-	  rhsSrcSurf->SetDofZero(posOfElectricPot);
-	  assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
-					     pressFnc_[actSF],nonlin);
-	}
+        Boolean nonlin = FALSE;
+        for (UInt actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
+          BaseForm * rhsSrcSurf = new 
+            PressureLinForm(pressVals_[actSF], isaxi_);
+          rhsSrcSurf->SetDofZero(posOfElectricPot);
+          assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], 
+                                             pressFnc_[actSF],nonlin);
+        }
       }
   }
 
@@ -453,7 +452,7 @@ namespace CoupledField {
         outFile_->WriteElemSolutionHarmonic(stressComplex_, actStep,
                                             actTime, complexFormat_);
       if (calcEfield_.GetSize() !=0 ) 
-	outFile_->WriteElemSolutionHarmonic(EfieldComplex_, actStep,
+        outFile_->WriteElemSolutionHarmonic(EfieldComplex_, actStep,
                                             actTime, complexFormat_);
     }
   }
@@ -686,6 +685,7 @@ namespace CoupledField {
     params->GetList( "element", regionNames, pdename_, "charge" );
     ptgrid_->RegionNameToId( calcCharge_, regionNames );
 
+
     if ( calcCharge_.GetSize() > 0 ) {
 
       hasOutput_ = TRUE;
@@ -694,6 +694,15 @@ namespace CoupledField {
         Info->PrintF( pdename_, "%s\n", regionNames[k].c_str() );
       }
       Info->PrintF( "", "\n" );
+
+
+      std::cout<<"values for setting into charges_:"<<std::endl;
+      
+      std::cout<<"eqnData_:"<<std::endl;
+      std::cout<<eqnData_<<std::endl;
+      
+      std::cout<<"numElems_:"<<std::endl;
+      std::cout<<numElems_<<std::endl;
 
       // Resize solution arrays
       if( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
@@ -893,8 +902,8 @@ namespace CoupledField {
     
     GradientFieldOp<Complex> * FieldOp 
       = new GradientFieldOp<Complex>(ptgrid_, this, eqnData_,
-				     *solhelp, ELEC_POTENTIAL, 
-				     isaxi_);
+                                     *solhelp, ELEC_POTENTIAL, 
+                                     isaxi_);
 
     // ------ Calculation of the electric field ------
 
@@ -951,7 +960,7 @@ namespace CoupledField {
   
     else 
       Info->Error("StressOp: Unknown subtype in mech PDE! "
-		  ,__FILE__,__LINE__);  
+                  ,__FILE__,__LINE__);  
   
   
     Vector<Double> elemElecStress, elemStress, sortedStress;
@@ -1041,7 +1050,7 @@ namespace CoupledField {
   
     else 
       Info->Error("StressOp: Unknown subtype in mech PDE! "
-		  ,__FILE__,__LINE__);  
+                  ,__FILE__,__LINE__);  
   
   
     Vector<Complex> elemElecStress, elemStress, sortedStress;
@@ -1137,8 +1146,8 @@ namespace CoupledField {
     GradientFieldOp<Double> * FieldOp;
     if (isHysteresis_) {
       FieldOp = new GradientFieldOp<Double>(ptgrid_, this, eqnData_,
-					    *solhelp, ELEC_POTENTIAL, 
-					    isaxi_);
+                                            *solhelp, ELEC_POTENTIAL, 
+                                            isaxi_);
     }
 
     if (subType_ == "planeStrain") {
@@ -1154,7 +1163,7 @@ namespace CoupledField {
     }
     else 
       Info->Error("StressOp: Unknown subtype in mech PDE! "
-		  ,__FILE__,__LINE__);  
+                  ,__FILE__,__LINE__);  
     
   
     Vector<Double> elemElecStress;
@@ -1188,6 +1197,10 @@ namespace CoupledField {
 
           // Determine, which volume element is the right neighbour for the 
           // calculation
+
+          std::cout<<"->chargeNeighborRegion_:"<<std::endl;
+          std::cout<<chargeNeighborRegion_<<std::endl;
+
           if ( chargeNeighborRegion_.
                Find(surfElems[iElem]->ptVolElem1->regionId) != -1 ) {
             ptVolElem = surfElems[iElem]->ptVolElem1;
@@ -1247,37 +1260,47 @@ namespace CoupledField {
           //get coordinates of element
           GetElemCoords(volConnect, ptCoord);
 
-	  // check for electric hysteresis
-	  if (isHysteresis_) {
-	    FieldOp->CalcElemGradField( Efield, ptVolElem, lCoordVol, 1);
-	    UInt comp =  materialData_[regionIndex].GetDirPol() - 1;
-	    Ecomp = Efield[comp];
-	    UInt elemNr = ptVolElem->elemNum;
+          // check for electric hysteresis
+          if (isHysteresis_) {
+            FieldOp->CalcElemGradField( Efield, ptVolElem, lCoordVol, 1);
+            UInt comp =  materialData_[regionIndex].GetDirPol() - 1;
+            Ecomp = Efield[comp];
+            UInt elemNr = ptVolElem->elemNum;
 	    
-	    Dcomp = solveStep_->GetHystOperator(regionIndex)->computeValue(Ecomp,elemNr); 
-	    //	    std::cerr << "nr=" << elemNr << " D=" << Dcomp << std::endl;
-	    //	    std::cerr << Ecomp << " " << Dcomp << std::endl;
-	    averageE[iSD] += Ecomp/surfElems.GetSize();
-	  }
+            Dcomp = solveStep_->GetHystOperator(regionIndex)->computeValue(Ecomp,elemNr); 
+            //	    std::cerr << "nr=" << elemNr << " D=" << Dcomp << std::endl;
+            //	    std::cerr << Ecomp << " " << Dcomp << std::endl;
+            averageE[iSD] += Ecomp/surfElems.GetSize();
+          }
 
           //calculates the stress
           Vector<Double> actElecD;
 
-	  if (isHysteresis_) {
-	    stress->CalcStressVec(elemElecStress,1,ptCoord, 0, Dcomp);
-	  }
-	  else {
-	    stress->CalcStressVec(elemElecStress,1,ptCoord);
-	  }
+          if (isHysteresis_) {
+            stress->CalcStressVec(elemElecStress,1,ptCoord, 0, Dcomp);
+          }
+          else {
+            stress->CalcStressVec(elemElecStress,1,ptCoord);
+          }
 
           actElecD = elemElecStress.Part(stressDim,elemElecStress.GetSize()-1);
-	  //	  actElecD[1] = Dcomp;
+
+          std::cout<<"actElecD:"<<std::endl;
+          std::cout<<actElecD<<std::endl;
+
+          //	  actElecD[1] = Dcomp;
 
           // Calc surface normal, which points from the surface element
           // into the volume
           ptgrid_->CalcSurfNormal(normal, *surfElems[iElem]);
           normal *= normSign;
           elemNormalD = normal * actElecD;
+
+          std::cout<<"elemNormalD"<<std::endl;
+          std::cout<<elemNormalD<<std::endl;
+
+          std::cout<<"lCoordSurf"<<std::endl;
+          std::cout<<lCoordSurf<<std::endl;
 
 
           chargeOp->CalcElemCharge(charge, surfElems[iElem], 
@@ -1290,7 +1313,13 @@ namespace CoupledField {
           Vector<Double> chargeVec(1);
           chargeVec[0] = charge;
           charges_.SetElemResult(pdeElemNum-1, chargeVec);
-	  chargeSD[iSD] += charge;        
+          chargeSD[iSD] += charge;   
+          std::cout<<"charge:"<<std::endl;
+          std::cout<<charge<<std::endl;     
+
+          std::cout<<"Final charge = "<<std::endl;
+          std::cout<<chargeSD[iSD]<<std::endl;
+          getchar();
 
           // Delete integrator again (reeller Stressabbau !)
           delete stress;
@@ -1307,186 +1336,189 @@ namespace CoupledField {
     }
 
     //  Warning ("Charges are written to unv/gmv file, although capapost \
-// can not draw them", __FILE__, __LINE__);
- }
+      // can not draw them", __FILE__, __LINE__);
+  }
 
 
 
-void PiezoPDE::CalcComplexValuedCharges(){
-  ENTER_FCN( "PiezoPDE::CalcComplexValuedCharges" );
-  StdVector<SurfElem*> surfElems;
-  Elem* ptVolElem;
-  SurfElem * ptSurfElem;
-  Matrix<Double> ptCoord;
-  Matrix<Complex> elSol;
-  Vector<Double> lCoordSurf, lCoordVol, normal;
-  Vector<Complex> elemDField;
-  ElecChargeOp * chargeOp;
-  BaseFE * ptSurfElemFE, * ptVolElemFE;
-  Complex   elemNormalD = Complex(0.0,0.0);
-  Complex charge = Complex(0.0,0.0);
-  UInt pdeElemNum = 0;
-  Integer regionIndex = 0;
-  Double normSign = 0.0;
-  Vector<Complex> chargeSD;
+  void PiezoPDE::CalcComplexValuedCharges(){
+    ENTER_FCN( "PiezoPDE::CalcComplexValuedCharges" );
+    StdVector<SurfElem*> surfElems;
+    Elem* ptVolElem;
+    SurfElem * ptSurfElem;
+    Matrix<Double> ptCoord;
+    Matrix<Complex> elSol;
+    Vector<Double> lCoordSurf, lCoordVol, normal;
+    Vector<Complex> elemDField;
+    ElecChargeOp * chargeOp;
+    BaseFE * ptSurfElemFE, * ptVolElemFE;
+    Complex   elemNormalD = Complex(0.0,0.0);
+    Complex charge = Complex(0.0,0.0);
+    UInt pdeElemNum = 0;
+    Integer regionIndex = 0;
+    Double normSign = 0.0;
+    Vector<Complex> chargeSD;
 
-  ShortInt stressDim, elecDim;
-  Vector<Double> intPoint;
+    ShortInt stressDim, elecDim;
+    Vector<Double> intPoint;
   
-  if (subType_ == "planeStrain") 
-    {
-      stressDim = 3;
+    if (subType_ == "planeStrain") 
+      {
+        stressDim = 3;
+        elecDim   = 2;
+      }
+  
+    else if (subType_ == "axi") {
+      stressDim = 4;
       elecDim   = 2;
     }
   
-  else if (subType_ == "axi") {
-    stressDim = 4;
-    elecDim   = 2;
-  }
+    else if (subType_ == "3d") {
+      stressDim = 6;
+      elecDim   = 3;
+    }
   
-  else if (subType_ == "3d") {
-    stressDim = 6;
-    elecDim   = 3;
-  }
+    else 
+      Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
   
-  else 
-    Info->Error("StressOp: Unknown subtype in mech PDE! ",__FILE__,__LINE__);  
-  
-  Vector<Complex> elemElecStress;
-  elemElecStress.Resize(stressDim+elecDim);
-  elemElecStress.Init(0);
+    Vector<Complex> elemElecStress;
+    elemElecStress.Resize(stressDim+elecDim);
+    elemElecStress.Init(0);
     
-  // Create vector with interpolation coordinate.
-  // For simplicity we only evaluate the integral
-  // in coordinate origin
+    // Create vector with interpolation coordinate.
+    // For simplicity we only evaluate the integral
+    // in coordinate origin
 
-  lCoordSurf.Resize(dim_-1);
-  lCoordSurf.Init(0);
+    lCoordSurf.Resize(dim_-1);
+    lCoordSurf.Init(0);
 
-  //charge operator  
-  chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, isaxi_);
+    //charge operator  
+    chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, isaxi_);
 
-  chargeSD.Resize(calcCharge_.GetSize());
-  chargeSD.Init(0);
+    chargeSD.Resize(calcCharge_.GetSize());
+    chargeSD.Init(0);
                               
-  // loop over all subdomains
-  for (UInt iSD=0; iSD<calcCharge_.GetSize(); iSD++){
+    // loop over all subdomains
+    for (UInt iSD=0; iSD<calcCharge_.GetSize(); iSD++){    
     
-    
-    // get surface and acoording volume elements
-    ptgrid_->GetSurfElems( surfElems, calcCharge_[iSD] );
-    complexValuedCharge_.Resize(surfElems.GetSize());
+      // get surface and acoording volume elements
+      ptgrid_->GetSurfElems( surfElems, calcCharge_[iSD] );
+      complexValuedCharge_.Resize(surfElems.GetSize());
     
 
-    // loop over all surface elements
-    for (UInt iElem=0; iElem<surfElems.GetSize(); iElem++)
-      {
+      // loop over all surface elements
+      for (UInt iElem=0; iElem<surfElems.GetSize(); iElem++)
+        {
         
-        // Determine, which volume element is the right neighbour for the 
-        // calculation
-        if ( chargeNeighborRegion_.
-             Find(surfElems[iElem]->ptVolElem1->regionId) != -1 ) {
-          ptVolElem = surfElems[iElem]->ptVolElem1;
-          normSign = -1.0;
-        } else {
-          ptVolElem = surfElems[iElem]->ptVolElem2;
-          normSign = 1.0;
-        }
+          // Determine, which volume element is the right neighbour for the 
+          // calculation
+          if ( chargeNeighborRegion_.
+               Find(surfElems[iElem]->ptVolElem1->regionId) != -1 ) {
+            ptVolElem = surfElems[iElem]->ptVolElem1;
+            normSign = -1.0;
+          } else {
+            ptVolElem = surfElems[iElem]->ptVolElem2;
+            normSign = 1.0;
+          }
         
-        normSign *= (double) surfElems[iElem]->normalSign;
+          normSign *= (double) surfElems[iElem]->normalSign;
       
-        ptSurfElemFE = surfElems[iElem]->ptElem;
-        ptVolElemFE = ptVolElem->ptElem;
-        const StdVector<UInt> & surfConnect = surfElems[iElem]->connect;
-        const StdVector<UInt> & volConnect = ptVolElem->connect;
+          ptSurfElemFE = surfElems[iElem]->ptElem;
+          ptVolElemFE = ptVolElem->ptElem;
+          const StdVector<UInt> & surfConnect = surfElems[iElem]->connect;
+          const StdVector<UInt> & volConnect = ptVolElem->connect;
 
-        // calculate volume integration coordinates from
-        // surfe integration coordinates for evaluating the 
-        // electric flux density on the surface of the volume
-        // element
-        ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
-        ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
-                                               lCoordSurf, lCoordVol);
+          // calculate volume integration coordinates from
+          // surfe integration coordinates for evaluating the 
+          // electric flux density on the surface of the volume
+          // element
+          ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
+          ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
+                                                 lCoordSurf, lCoordVol);
 
-        // Find correct material for volume element
-        regionIndex = subdoms_.Find( ptVolElem->regionId );
-        if ( regionIndex == -1 ) {
-          (*error) << "PiezoPDE:CalcCharges:: The region with Name " 
-                   << ptgrid_->RegionIdToName(ptVolElem->regionId)
-                   << " of surface element Nr. " << ptSurfElem->elemNum
-                   << "is not contained in my set of regions!.";
-          Error( __FILE__, __LINE__ );
+          // Find correct material for volume element
+          regionIndex = subdoms_.Find( ptVolElem->regionId );
+          if ( regionIndex == -1 ) {
+            (*error) << "PiezoPDE:CalcCharges:: The region with Name " 
+                     << ptgrid_->RegionIdToName(ptVolElem->regionId)
+                     << " of surface element Nr. " << ptSurfElem->elemNum
+                     << "is not contained in my set of regions!.";
+            Error( __FILE__, __LINE__ );
+          }
+
+          MaterialData actSDMat(materialData_[regionIndex]);
+          linPiezoInt * stress;
+        
+          if (subType_ == "planeStrain")
+            stress = new piezoPlainStrainInt(actSDMat);
+        
+          else if (subType_ == "axi")      
+            stress = new piezoAxiInt(actSDMat);
+        
+          else if (subType_ == "3d")
+            stress = new linPiezo3DInt(actSDMat);
+
+          //set volume element
+          stress->SetElemPtr(ptVolElemFE);
+
+          //set element solution  
+          sol_->GetElemSolutionAsMatrix(elSol, volConnect);
+
+          //           std::cout<<"elSol in PiezoPDE:"<<std::endl;
+          //           std::cout<<elSol<<std::endl;
+          //           getchar();
+          stress->SetActElemSol(elSol);
+
+          //set the integration point
+          stress->SetIntPoint(lCoordVol);
+
+          //get coordinates of element
+          GetElemCoords(volConnect, ptCoord);
+
+          //calculates the stress
+          Vector<Complex> actElecD;       
+          stress->CalcStressVec(elemElecStress,1,ptCoord);
+
+          actElecD = elemElecStress.Part(stressDim,elemElecStress.GetSize()-1);
+
+          elemNormalD = Complex();
+
+          // Calc surface normal, which points from the surface element
+          // into the volume
+          ptgrid_->CalcSurfNormal(normal, *surfElems[iElem]);
+          normal *= normSign;
+        
+          // scalarProduct lCoordCal*actElecD
+          for (UInt i=0; i<normal.GetSize(); i++)
+            elemNormalD += normal[i] * actElecD[i];
+        
+          //lCoordVol.Mult(actElecD, elemNormalD);
+          chargeOp->CalcElemCharge(charge, surfElems[iElem], 
+                                   lCoordSurf, elemNormalD);
+        
+          pdeElemNum = eqnData_->Mesh2PDEElem(ptVolElem->elemNum);
+
+        
+          // Create temporar vector, since SetElemResult only
+          // can handle these
+          Vector<Complex> chargeVec(1);
+          chargeVec[0] = charge;
+          complexValuedCharge_[iElem]=charge;
+          chargesComplex_.SetElemResult(pdeElemNum-1, chargeVec); 
+          chargeSD[iSD] += charge;        
+
+          // Delete integrator again (Stressabbau ;-)
+          std::cout<<"Final charge " <<std::endl;
+          std::cout<<chargeSD[iSD]<<std::endl;
+          delete stress;
         }
 
-        MaterialData actSDMat(materialData_[regionIndex]);
-        linPiezoInt * stress;
-        
-        if (subType_ == "planeStrain")
-          stress = new piezoPlainStrainInt(actSDMat);
-        
-        else if (subType_ == "axi")      
-          stress = new piezoAxiInt(actSDMat);
-        
-        else if (subType_ == "3d")
-          stress = new linPiezo3DInt(actSDMat);
-
-        //set volume element
-        stress->SetElemPtr(ptVolElemFE);
-      
-        //set element solution  
-        sol_->GetElemSolutionAsMatrix(elSol, volConnect);
-        stress->SetActElemSol(elSol);
-
-        //set the integration point
-        stress->SetIntPoint(lCoordVol);
-
-        //get coordinates of element
-        GetElemCoords(volConnect, ptCoord);
-
-        //calculates the stress
-        Vector<Complex> actElecD;       
-        stress->CalcStressVec(elemElecStress,1,ptCoord);
-        actElecD = elemElecStress.Part(stressDim,elemElecStress.GetSize()-1);
-
-        elemNormalD = Complex();
-
-        // Calc surface normal, which points from the surface element
-        // into the volume
-        ptgrid_->CalcSurfNormal(normal, *surfElems[iElem]);
-        normal *= normSign;
-        
-        // scalarProduct lCoordCal*actElecD
-        for (UInt i=0; i<normal.GetSize(); i++)
-          elemNormalD += normal[i] * actElecD[i];
-        
-        //lCoordVol.Mult(actElecD, elemNormalD);
-        chargeOp->CalcElemCharge(charge, surfElems[iElem], 
-                                 lCoordSurf, elemNormalD);
-        
-        pdeElemNum = eqnData_->Mesh2PDEElem(ptVolElem->elemNum);
-
-        
-        // Create temporar vector, since SetElemResult only
-        // can handle these
-        Vector<Complex> chargeVec(1);
-        chargeVec[0] = charge;
-        complexValuedCharge_[iElem]=charge;
-        chargesComplex_.SetElemResult(pdeElemNum-1, chargeVec); 
-
-        chargeSD[iSD] += charge;
-
-        // Delete integrator again (Stressabbau ;-)
-        delete stress;
-      }
-
+    }
     //print to info-file
-    Info->PrintF(pdename_, "Computed Charges: ");
+    Info->PrintF(pdename_, "Computed surface charge: ");
     Info->PrintVec(chargeSD);
 
 
   }
-
-
-}
 
 } // end of namespace

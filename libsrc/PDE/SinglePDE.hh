@@ -167,7 +167,24 @@ namespace CoupledField
     //! trigger the reassembling of the matrices
     void SetReassemble();
 
+    // ======================================================
+    // METHODS & MEMBERS FOR POST PROCESSING
+    // ======================================================
 
+    //! calculates E-Field, charges, stresses ...
+    void PostProcess();
+
+    //! calculate Charges
+    void CalcCharges();
+
+    //! calculate comlex valued Charges
+    void CalcComplexValuedCharges();
+
+    StdVector<RegionIdType> calcCharge_;
+    ElemStoreSol<Double> charges_;
+    ElemStoreSol<Complex> chargesComplex_;
+    StdVector<RegionIdType> chargeNeighborRegion_;
+    
 
   protected:
 

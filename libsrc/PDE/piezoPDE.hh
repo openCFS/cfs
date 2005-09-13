@@ -17,7 +17,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    
+   
     //! The constructor relies on the constructor of the BasePDE class and
     //! only preforms additional operations necessary for the special piezo
     //! case.
@@ -158,8 +158,8 @@ namespace CoupledField
     ElemStoreSol<Double> stress_;  //!< conatins mechanical stresses
     ElemStoreSol<Complex> stressComplex_;  //!< conatins mechanical stresses
 
-    ElemStoreSol<Double> charges_;
-    ElemStoreSol<Complex> chargesComplex_;
+    ElemStoreSol <Double> charges_;
+    ElemStoreSol <Complex> chargesComplex_;
     StdVector<RegionIdType> chargeNeighborRegion_;
     StdVector<RegionIdType> calcCharge_;
 
