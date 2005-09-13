@@ -49,6 +49,7 @@
     </xsd:complexType>
   </xsd:element>
 
+
   
   <!-- ******************************************************************** -->
   <!--   Definition of pairwise direct PDE couplings -->
@@ -72,7 +73,11 @@
                 </xsd:attribute>
                 <xsd:attribute name="name" type="xsd:token" use="required"/>
               </xsd:complexType>
-            </xsd:element>
+            </xsd:element>            
+            <!-- Desired solution values (optional) -->
+            <xsd:element name="storeResults" type="DT_PiezoDirectStoreResults" minOccurs="0" maxOccurs="1"/>
+            <!-- Type of materialDataType (real / complex) (optional) -->
+            <xsd:element name="materialDataType" type="DT_matData" minOccurs="0" maxOccurs="1"/>          
           </xsd:sequence>
         </xsd:extension>
       </xsd:complexContent>
@@ -103,5 +108,24 @@
       </xsd:complexContent>
     </xsd:complexType>
   </xsd:element> 
+
+<!-- ******************************************************************** -->
+  <!--   Definition of Post Processing Results -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_PiezoDirectStoreResults">
+    <xsd:sequence>
+      <xsd:element name="nodeResults" type="DT_NodeResultsElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="nodeHistory" type="DT_NodeHistoryElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="elemResults" type="DT_ElemResultsElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="elemHistory" type="DT_ElemHistoryElec" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="charge" type="DT_ChargePiezo" minOccurs="0"
+        maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
 
 </xsd:schema>
