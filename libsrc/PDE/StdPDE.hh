@@ -194,12 +194,12 @@ namespace CoupledField {
     //void TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
     //		    const UInt flag);
     void TransformSol4Slice(UInt & shiftFactor, UInt & nodeShift,
-				    UInt & elemgrid, Double &  meshsize, const UInt flag);
+                            UInt & elemgrid, Double &  meshsize, const UInt flag);
 
     //! save solution of special nodes
     void SaveNodes(const UInt shiftFactor, const Double timeStep,
-		   const UInt numShift, const Integer nodeShift, 
-		   const UInt maxnumelemz_);
+                   const UInt numShift, const Integer nodeShift, 
+                   const UInt maxnumelemz_);
 
 
     //@{
@@ -302,6 +302,10 @@ namespace CoupledField {
   
     piezoMaterialType getPDE_piezoMaterialType()
     {return piezoMaterialType_;}
+
+    void setPDE_complexValuedCharge(Vector<Complex> chargeVec)
+    {complexValuedCharge_=chargeVec;};
+
     //@}
 
   protected:
