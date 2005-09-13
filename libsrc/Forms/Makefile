@@ -6,7 +6,7 @@ src = baseForm.cc laplaceInt.cc bdbInt.cc linElastInt.cc nLinElastInt.cc linVisc
       gradfieldop.cc elecforceop.cc curlCurlEdgeInt.cc massEdgeInt.cc\
       linearForm.cc curlfieldop.cc\
       smoothInt.cc curlCurlNodeInt.cc linPiezoInt.cc nLincurlCurlNodeInt.cc\
-      mechStressStrain.cc\
+      mechStressStrain.cc linStrainOp.cc\
       elecchargeop.cc magforceop.cc adbInt.cc\
       linPiezoCoupling3D.cc linPiezoCoupling2DAxi.cc\
       baseForceOp.cc acouMechInt.cc abcInt.cc
