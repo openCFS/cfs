@@ -381,6 +381,7 @@ libsrc/Forms/linPiezoCoupling3D.cc svneol=native#text/plain
 libsrc/Forms/linPiezoCoupling3D.hh svneol=native#text/plain
 libsrc/Forms/linPiezoInt.cc svneol=native#text/plain
 libsrc/Forms/linPiezoInt.hh svneol=native#text/plain
+libsrc/Forms/linStrainOp.cc svneol=native#text/plain
 libsrc/Forms/linViscoElastInt.cc svneol=native#text/plain
 libsrc/Forms/linViscoElastInt.hh svneol=native#text/plain
 libsrc/Forms/linearForm.cc svneol=native#text/plain

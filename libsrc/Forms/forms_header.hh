@@ -6,6 +6,7 @@
 #include "massInt.hh"
 #include "baseoperator.hh"
 #include "gradfieldop.hh"
+#include "linStrainOp.hh"
 #include "curlfieldop.hh"
 #include "elecforceop.hh"
 #include "elecchargeop.hh"
