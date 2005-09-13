@@ -14,13 +14,16 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  BasePairCoupling::BasePairCoupling(SinglePDE *pde1, SinglePDE *pde2 ) {
+  BasePairCoupling::BasePairCoupling(SinglePDE *pde1, SinglePDE *pde2 )    
+  {
 
     ENTER_FCN( "BasePairCoupling::BasePairCoupling" );
     
     pde1_   = pde1;
     pde2_   = pde2;
     ptGrid_ = pde1_->ptgrid_;
+
+    isaxi_ = FALSE;
   }
 
 
@@ -89,6 +92,15 @@ namespace CoupledField {
       }
     }
 
+    // Determine, if axisymmetric geometry is used
+    std::string probGeo;
+    params->Get( "type", probGeo, "geometry" );
+    if( probGeo == "axi" ) {
+      isaxi_ = TRUE;
+    } else {
+      isaxi_ = FALSE;
+    }
+
     // Get type of analysis and create according 
     // assemble object
     // -> copy simply from first pde
@@ -135,7 +147,7 @@ namespace CoupledField {
     PdeIdType id1 = (*pde1_).pdeId_;
     PdeIdType id2 = (*pde2_).pdeId_;
     assemble_->SetPDEId( id1, id2 );
-    
+
    
     // initialize nonlinearities
     
@@ -150,7 +162,9 @@ namespace CoupledField {
     // Define the integrators
     DefineIntegrators();
 
-    // Read the results which have to be stored
+
+    // define which solution types have to be saved
+    ReadStoreResults();
     
   }
 
@@ -188,6 +202,24 @@ namespace CoupledField {
           loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
                                         materialClass_ );
           break;
+        }
+      }
+    }
+  }
+
+  void BasePairCoupling::GetElemCoords( const StdVector<UInt> connect, 
+                              Matrix<Double> &coordMat ) {
+
+    ENTER_FCN( "StdPDE::GetElemCoords" );
+    
+    UInt pdeNode;
+    ptGrid_->GetElemNodesCoord(coordMat, connect);
+    
+    if (deltCoords_.GetSizeRow() != 0 && geoUpdate_ == TRUE) {
+      for (UInt i=0; i<coordMat.GetSizeRow(); i++) {
+        for (UInt j=0; j<coordMat.GetSizeCol(); j++) {
+          pdeNode = eqnData_->Mesh2PDENode(connect[j]);
+          coordMat(i,j) += deltCoords_(i, pdeNode - 1);
         }
       }
     }
