@@ -176,7 +176,7 @@
     <!-- Make sure that for all 'nodes' referenced in PDE section also -->
     <!-- corresponding 'nodes' have been designated in the domain part -->
     <xsd:keyref name="CS_NodesExist1" refer="CS_DomainNamesNodes">
-      <xsd:selector xpath="cfs:pdeList/*/cfs:bcsAndLoads/cfs:dirichletHom|cfs:pdeList/*/cfs:bcsAndLoads/cfs:dirichletInhom"/>
+      <xsd:selector xpath="cfs:pdeList/*/cfs:bcsAndLoads/cfs:dirichletHom|cfs:pdeList/*/cfs:bcsAndLoads/cfs:dirichletInhom|cfs:pdeList/*/cfs:bcsAndLoads/cfs:neumannInhom"/>
       <xsd:field xpath="@name"/>
     </xsd:keyref>
     <xsd:keyref name="CS_NodesExist2" refer="CS_DomainNamesNodes">
