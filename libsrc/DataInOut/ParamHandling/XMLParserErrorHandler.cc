@@ -15,13 +15,15 @@
 // #define XMLPARSERABORT ERROR( "", __FILE__, __LINE__ );
 #define XMLPARSERABORT exit(1)
 
-namespace CoupledField
-{
- 
+
+namespace CoupledField {
+
+
   // ========================
   //   Handler for warnings
   // ========================
-  void XMLParserErrorHandler::warning(const xercesc::SAXParseException &event){
+  void XMLParserErrorHandler::warning( const xercesc::SAXParseException
+                                       &event ) {
     std::cerr << std::endl
               << "\n Sorry to say, but the parser seems to be displeased "
               << "with the input file.\n"
@@ -39,8 +41,10 @@ namespace CoupledField
   // =============================
   //   Handler for simple errors
   // =============================
-  void XMLParserErrorHandler::error(const xercesc::SAXParseException &event){
-    std::cerr << "\n Oh, we are in trouble here ...\n"
+  void XMLParserErrorHandler::error( const xercesc::SAXParseException
+                                     &event ) {
+    std::cerr << std::endl
+              << "\n Oh, we are in trouble here ...\n"
               << " The parser seems to have encountered an error"
               << " in the input file.\n"
               << " Please check line " << event.getLineNumber()
@@ -57,9 +61,10 @@ namespace CoupledField
   // ============================
   //   Handler for fatal errors
   // ============================
-  void XMLParserErrorHandler::fatalError(const xercesc::SAXParseException
-                                         &event) {
-    std::cerr << "\n Oh, oh! We are in major trouble here ...\n"
+  void XMLParserErrorHandler::fatalError( const xercesc::SAXParseException
+                                          &event) {
+    std::cerr << std::endl
+              << "\n Oh, oh! We are in major trouble here ...\n"
               << " The parser seems to have encountered a fatal error in the"
               << " input file!\n"
               << " Please check line " << event.getLineNumber()
