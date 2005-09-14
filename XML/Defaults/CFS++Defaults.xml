@@ -89,10 +89,6 @@
     <!-- ***************************************************************** -->
     <magnetic>
       <region name="dummyRegion"/>
-      <region name="dummyRegion"/>
-      <bcsAndLoads>
-        <dirichletHom name="dummyRegion"/>
-      </bcsAndLoads>
 
       <coils>
 
