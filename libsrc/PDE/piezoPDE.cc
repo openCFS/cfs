@@ -1314,12 +1314,6 @@ namespace CoupledField {
           chargeVec[0] = charge;
           charges_.SetElemResult(pdeElemNum-1, chargeVec);
           chargeSD[iSD] += charge;   
-          std::cout<<"charge:"<<std::endl;
-          std::cout<<charge<<std::endl;     
-
-          std::cout<<"Final charge = "<<std::endl;
-          std::cout<<chargeSD[iSD]<<std::endl;
-          getchar();
 
           // Delete integrator again (reeller Stressabbau !)
           delete stress;
