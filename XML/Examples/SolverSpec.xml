@@ -36,7 +36,7 @@
 
     <system name="piezo">
 
-      <setup eqnNumbering="scalar"/>
+      <setup eqnNumbering="scalar" idbcHandling="penalty"/>
       <matrix entry="double" storage="sparseNonSym"/>
       <exportLinSys baseName="cube5Penalty"/>
 
