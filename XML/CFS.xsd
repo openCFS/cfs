@@ -71,10 +71,34 @@
 
         <!-- Description of problem domain (required) -->
         <xsd:element name="domain" type="DT_Domain">
-          <xsd:key name="KEY_Regions">
+
+          <!-- Ensure that names are unique over all sub-groups -->
+          <xsd:key name="CS_DomainNamesTotal">
+            <xsd:selector xpath="cfs:region|cfs:nodes|cfs:elements"/>
+            <xsd:field xpath="@name"/>
+          </xsd:key>
+
+          <!-- Generate key for check that regions referenced by PDEs
+          do actually exist. See 'CS_RegionExists' below -->
+          <xsd:key name="CS_DomainNamesRegion">
             <xsd:selector xpath="cfs:region"/>
             <xsd:field xpath="@name"/>
           </xsd:key>
+
+          <!-- Generate key for check that nodes referenced by PDEs
+          do actually exist. See 'CS_NodesExist' below -->
+          <xsd:key name="CS_DomainNamesNodes">
+            <xsd:selector xpath="cfs:nodes"/>
+            <xsd:field xpath="@name"/>
+          </xsd:key>
+
+          <!-- Generate key for check that elements referenced by PDEs
+          do actually exist. See 'CS_ElemsExist' below -->
+          <xsd:key name="CS_DomainNamesElems">
+            <xsd:selector xpath="cfs:elements"/>
+            <xsd:field xpath="@name"/>
+          </xsd:key>
+
         </xsd:element>
         
         <!-- List of PDEs (required) -->
@@ -135,27 +159,40 @@
       </xsd:sequence>
     </xsd:complexType>
 
-    <!-- Make sure that for every boundary condition of the PDE section   -->
-    <!-- a corresponding set of nodes reps. elements has been designated  -->
-    <!-- in the domain section                                            -->
-    <!--
-    <xsd:keyref name="interfaceExists" refer="uniq_interfacenames">
-    <xsd:selector xpath="cfs:PDE_list/cfs:PDE_descr/cfs:BoundaryConds/*"/>
-    <xsd:field xpath="@interface"/>
+    <!-- ***************************************************************** -->
+    <!--   Occurence checks -->
+    <!-- ***************************************************************** -->
+
+    <!-- Make sure that for every region referenced in the PDE section -->
+    <!-- a corresponding region has been designated in the domain part -->
+    <xsd:keyref name="CS_RegionExists" refer="CS_DomainNamesRegion">
+      <xsd:selector xpath="cfs:pdeList/*/cfs:region"/>
+      <xsd:field xpath="@name"/>
     </xsd:keyref>
-    <xsd:keyref name="surfaceExists" refer="uniq_surfacenames">
-    <xsd:selector xpath="cfs:PDE_list/cfs:PDE_descr/cfs:BoundaryConds/*"/>
-    <xsd:field xpath="@surface"/>
+
+    <!-- NOTE: The following check is incomplete, since not all cases where
+    nodes are referenced are contained in the selectors -->
+
+    <!-- Make sure that for all 'nodes' referenced in PDE section also -->
+    <!-- corresponding 'nodes' have been designated in the domain part -->
+    <xsd:keyref name="CS_NodesExist1" refer="CS_DomainNamesNodes">
+      <xsd:selector xpath="cfs:pdeList/*/cfs:bcsAndLoads/cfs:dirichletHom|cfs:pdeList/*/cfs:bcsAndLoads/cfs:dirichletInhom"/>
+      <xsd:field xpath="@name"/>
     </xsd:keyref>
-    -->
-    <!-- Make sure that for every subdomain referenced in the PDE section -->
-    <!-- a corresponding subdomain has been designated in the domain part -->
-    <!--
-    <xsd:keyref name="subdomExists" refer="uniq_subdomainnames">
-    <xsd:selector xpath="cfs:PDE_list/*/cfs:subdom"/>
-    <xsd:field xpath="."/>
+    <xsd:keyref name="CS_NodesExist2" refer="CS_DomainNamesNodes">
+      <xsd:selector xpath="cfs:pdeList/*/cfs:storeResults/cfs:nodeResults|cfs:pdeList/*/cfs:storeResults/cfs:nodeHistory"/>
+      <xsd:field xpath="@saveNodes"/>
     </xsd:keyref>
-    -->
+
+    <!-- NOTE: The following check is probably incomplete, since not all
+    cases where elements are referenced are contained in the selectors -->
+
+    <!-- Make sure that for all 'nodes' referenced in PDE section also -->
+    <!-- corresponding 'nodes' have been designated in the domain part -->
+    <xsd:keyref name="CS_ElemsExist" refer="CS_DomainNamesElems">
+      <xsd:selector xpath="cfs:pdeList/*/cfs:storeResults/cfs:elemResults|cfs:pdeList/*/cfs:storeResults/cfs:elemHistory"/>
+      <xsd:field xpath="@saveElems"/>
+    </xsd:keyref>
 
   </xsd:element>
 
