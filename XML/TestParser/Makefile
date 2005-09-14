@@ -5,7 +5,7 @@
 TARGET = ../parse
 SOURCE = TestParser
 PLATFORM = LINUX
-XERCESBASE = /home/data/proj/SoftwareLibraries/xerces-c
+XERCESBASE = /home/data/libraries/xerces-c
 XMLSCHEMA = $(dir $(PWD))
 INCPATH = $(XERCESBASE)/include
 LIBPATH = $(XERCESBASE)/lib/LINUX
