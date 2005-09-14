@@ -16,7 +16,12 @@
   <!--   Definition of element for mechanic PDEs -->
   <!-- ******************************************************************* -->
   <xsd:element name="mechanic" type="DT_PDEMechanic"
-    substitutionGroup="PDEBasic"/>
+    substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_MechanicRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
 
 
   <!-- ******************************************************************* -->

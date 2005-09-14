@@ -16,7 +16,12 @@
   <!--   Definition of element for electrostatic PDEs -->
   <!-- ******************************************************************* -->
   <xsd:element name="electrostatic" type="DT_PDEElectrostatic"
-    substitutionGroup="PDEBasic"/>
+    substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_ElectrostaticRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
 
 
   <!-- ******************************************************************* -->

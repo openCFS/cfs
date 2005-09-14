@@ -15,8 +15,12 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element for mechanic PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:element name="smooth" type="DT_PDESmooth"
-    substitutionGroup="PDEBasic"/>
+  <xsd:element name="smooth" type="DT_PDESmooth" substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_SmoothRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
 
 
   <!-- ******************************************************************* -->
