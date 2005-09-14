@@ -696,14 +696,6 @@ namespace CoupledField {
       Info->PrintF( "", "\n" );
 
 
-      std::cout<<"values for setting into charges_:"<<std::endl;
-      
-      std::cout<<"eqnData_:"<<std::endl;
-      std::cout<<eqnData_<<std::endl;
-      
-      std::cout<<"numElems_:"<<std::endl;
-      std::cout<<numElems_<<std::endl;
-
       // Resize solution arrays
       if( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
         chargesComplex_.SetNumSolutions(1);
@@ -1198,8 +1190,6 @@ namespace CoupledField {
           // Determine, which volume element is the right neighbour for the 
           // calculation
 
-          std::cout<<"->chargeNeighborRegion_:"<<std::endl;
-          std::cout<<chargeNeighborRegion_<<std::endl;
 
           if ( chargeNeighborRegion_.
                Find(surfElems[iElem]->ptVolElem1->regionId) != -1 ) {
@@ -1285,9 +1275,6 @@ namespace CoupledField {
 
           actElecD = elemElecStress.Part(stressDim,elemElecStress.GetSize()-1);
 
-          std::cout<<"actElecD:"<<std::endl;
-          std::cout<<actElecD<<std::endl;
-
           //	  actElecD[1] = Dcomp;
 
           // Calc surface normal, which points from the surface element
@@ -1295,12 +1282,6 @@ namespace CoupledField {
           ptgrid_->CalcSurfNormal(normal, *surfElems[iElem]);
           normal *= normSign;
           elemNormalD = normal * actElecD;
-
-          std::cout<<"elemNormalD"<<std::endl;
-          std::cout<<elemNormalD<<std::endl;
-
-          std::cout<<"lCoordSurf"<<std::endl;
-          std::cout<<lCoordSurf<<std::endl;
 
 
           chargeOp->CalcElemCharge(charge, surfElems[iElem], 
@@ -1458,9 +1439,6 @@ namespace CoupledField {
           //set element solution  
           sol_->GetElemSolutionAsMatrix(elSol, volConnect);
 
-          //           std::cout<<"elSol in PiezoPDE:"<<std::endl;
-          //           std::cout<<elSol<<std::endl;
-          //           getchar();
           stress->SetActElemSol(elSol);
 
           //set the integration point
@@ -1502,8 +1480,6 @@ namespace CoupledField {
           chargeSD[iSD] += charge;        
 
           // Delete integrator again (Stressabbau ;-)
-          std::cout<<"Final charge " <<std::endl;
-          std::cout<<chargeSD[iSD]<<std::endl;
           delete stress;
         }
 
