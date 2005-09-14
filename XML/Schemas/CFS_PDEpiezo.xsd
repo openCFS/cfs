@@ -12,16 +12,16 @@
   </xsd:annotation>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of element for piezoelectric PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:element name="piezo" type="DT_PDEPiezo"
     substitutionGroup="PDEBasic"/>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for piezoelectric PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <xsd:complexType name="DT_PDEPiezo">
     <xsd:complexContent>
@@ -43,7 +43,7 @@
           </xsd:element>
           
           <!-- Type of materialDataType (real / complex) (optional) -->
-          <xsd:element name="materialDataType" type="DT_matData"
+          <xsd:element name="materialDataType" type="DT_MatData"
             minOccurs="0"/>
 
           <!-- Poling direction of piezoelectric body (optional) -->
@@ -87,9 +87,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
-  <!--   Definition of enumeration type describing the degrees of freedom   -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
+  <!--   Definition of enumeration type describing the degrees of freedom  -->
+  <!-- ******************************************************************* -->
 
   <xsd:simpleType name="DT_PiezoDOF">
     <xsd:restriction base="xsd:token">
@@ -101,9 +101,9 @@
   </xsd:simpleType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of the boundary condition types for piezoelectric -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- Element type for homogeneous Dirichlet boundary conditions -->
   <!-- We derive it by extending the base type -->
@@ -162,9 +162,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <!-- What data can a single node have in a piezoelectric PDE -->
   <xsd:simpleType name="DT_NodeDataPiezo">
@@ -196,8 +196,10 @@
   <!-- Data type for describing history of node values to be stored -->
   <xsd:complexType name="DT_NodeHistoryPiezo">
     <xsd:attribute name="type" type="DT_NodeDataPiezo" use="required"/>
-    <xsd:attribute name="saveNodes" type="xsd:token" use="optional" default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
   </xsd:complexType>
 
   <!-- Data type for describing final element values to be stored -->
@@ -210,8 +212,10 @@
   <!-- Data type for describing history of element values to be stored -->
   <xsd:complexType name="DT_ElemHistoryPiezo">
     <xsd:attribute name="type" type="DT_ElemDataPiezo" use="required"/>
-    <xsd:attribute name="saveElems" type="xsd:token"  use="optional" default=""/>
-    <xsd:attribute name="saveRegion" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
   </xsd:complexType>
 
   <!-- Data type for computing of electric charges -->
@@ -253,25 +257,25 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of material data type (real or complex) -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
-  <xsd:simpleType name="DT_matDataType">
+  <xsd:simpleType name="DT_MatDataType">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="imagMaterialParameter"/>
       <xsd:enumeration value="realMaterialParameter"/>
     </xsd:restriction>
   </xsd:simpleType>
 
-  <xsd:complexType name="DT_matData">
-    <xsd:attribute name="type" type="DT_matDataType" use="optional"/>
+  <xsd:complexType name="DT_MatData">
+    <xsd:attribute name="type" type="DT_MatDataType" use="optional"/>
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of poling direction -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
 
   <xsd:simpleType name="DT_polingDirection">
     <xsd:restriction base="xsd:token">
@@ -287,9 +291,9 @@
   </xsd:complexType>
 
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for non-linearity in piezoelectric PDEs -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:simpleType name="DT_PiezoNonLin">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
@@ -299,17 +303,17 @@
   </xsd:simpleType>
   
 
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <!--   Definition of data type for damping model -->
-  <!-- ******************************************************************** -->
+  <!-- ******************************************************************* -->
   <xsd:complexType name="DT_PiezoDamp">
-    
+
     <!-- Type of damping -->
     <xsd:attribute name="type" use="optional" default="no">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="no"/>
-          <xsd:enumeration value="rayleigh"     />
+          <xsd:enumeration value="rayleigh"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
