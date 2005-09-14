@@ -171,14 +171,6 @@ namespace CoupledField
     // METHODS & MEMBERS FOR POST PROCESSING
     // ======================================================
 
-    //! calculates E-Field, charges, stresses ...
-    void PostProcess();
-
-    //! calculate Charges
-    void CalcCharges();
-
-    //! calculate comlex valued Charges
-    void CalcComplexValuedCharges();
 
     StdVector<RegionIdType> calcCharge_;
     ElemStoreSol<Double> charges_;
