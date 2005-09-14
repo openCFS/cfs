@@ -1139,14 +1139,6 @@ namespace CoupledField {
     assemble_->SetReassemble();
   }
 
-  // ======================================================
-  // METHODS FOR ASSEMBLING
-  // ======================================================
-
-  void SinglePDE::PostProcess(){
-    ENTER_FCN( "SinglePDE::PostProcess" );
-  }
-
   
   // ======================================================
   // Adaptivity SECTION 
