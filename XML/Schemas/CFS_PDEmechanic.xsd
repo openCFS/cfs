@@ -76,6 +76,13 @@
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
             </xsd:complexType>
+
+            <!-- Experimental: Side constraints on BCs -->
+            <xsd:unique name="CS_MechanicBCs">
+              <xsd:selector xpath="cfs:dirichletHom|cfs:dirichletInhom|cfs:neumannInhom"/>
+              <xsd:field xpath="@name"/>
+              <xsd:field xpath="@dof"/>
+            </xsd:unique>
           </xsd:element>
 
           <!-- Section for specifying non-linear parameters (optional) -->
