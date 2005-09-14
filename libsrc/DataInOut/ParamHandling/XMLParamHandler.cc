@@ -1899,11 +1899,6 @@ namespace CoupledField {
     cfsSchema_ = "http://www.cfs++.org ";
     cfsSchema_ += commandLine->GetSchemaPath();
     cfsSchema_ += "/CFS.xsd";
-
-    // cfsSchema_ = "http://www.cfs++.org ";
-    // cfsSchema_ += XMLSCHEMA;
-    // cfsSchema_ += "/CFS.xsd";
-
     (*parser)->setExternalSchemaLocation( cfsSchema_.c_str() );
     
     // Have not yet understood what an entity reference node is,
