@@ -21,8 +21,9 @@ namespace CoupledField {
     if ( argc == 1 ) {
       std::cerr << "\n As HAL said in 2001\n\n"
                 << "   \"I'm sorry Dave, I don't have enough information.\""
-                <<"\n\n So please specify a name for the current "
-                << "simulation run!\n\n";
+                <<"\n\n So please either specify a name for the current "
+                << "simulation run\n or -h for a help page with usage "
+                << "description!\n\n";
       exit(-1);
     }
 
