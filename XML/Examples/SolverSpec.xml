@@ -33,7 +33,6 @@
       <solver type="directLDL"/>
     </system>
 
-
     <system name="piezo">
 
       <setup eqnNumbering="scalar" idbcHandling="penalty"/>
