@@ -15,8 +15,12 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element for piezoelectric PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:element name="piezo" type="DT_PDEPiezo"
-    substitutionGroup="PDEBasic"/>
+  <xsd:element name="piezo" type="DT_PDEPiezo" substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_PiezoRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
 
 
   <!-- ******************************************************************* -->

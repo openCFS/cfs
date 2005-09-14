@@ -16,7 +16,12 @@
   <!--   Definition of element for acoustics PDEs -->
   <!-- ******************************************************************* -->
   <xsd:element name="acoustic" type="DT_PDEAcoustic"
-    substitutionGroup="PDEBasic"/>
+    substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_AcousticRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
 
 
   <!-- ******************************************************************* -->

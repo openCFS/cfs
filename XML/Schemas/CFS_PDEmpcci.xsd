@@ -15,8 +15,12 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element for mpcci PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:element name="mpcci" type="DT_PDEMpcci"
-    substitutionGroup="PDEBasic"/>
+  <xsd:element name="mpcci" type="DT_PDEMpcci" substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_MpcciRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
 
 
   <!-- ******************************************************************* -->

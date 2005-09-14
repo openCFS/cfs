@@ -16,7 +16,12 @@
   <!--   Definition of element for magnetics PDEs -->
   <!-- ******************************************************************* -->
   <xsd:element name="magnetic" type="DT_PDEMagnetic"
-    substitutionGroup="PDEBasic"/>
+    substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_MagneticRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
 
 
   <!-- ******************************************************************* -->
