@@ -289,9 +289,6 @@ namespace CoupledField {
     Grid * getPDE_grid(){return ptgrid_;};  
   
     Assemble * getPDE_assemble(){return assemble_;}
-
-    std::map<RegionIdType,DampingType> getPDE_dampingList(){
-      return dampingList_;};
   
     StdVector<RegionIdType> getPDE_subdoms(){return subdoms_;}
    
