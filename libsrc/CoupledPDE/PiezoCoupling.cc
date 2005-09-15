@@ -516,6 +516,9 @@ namespace CoupledField {
           permittivityMat.Mult(TempE,DField);
           DField+=piezoCouplTimesStrain;
 
+//           std::cout<<"direct - piezo: DField" <<std::endl;
+//           std::cout<<DField<<std::endl;
+
           //pdeElem = pde2_-> getPDE_eqnData()->Mesh2PDEElem(elemssd[iel]->elemNum);
             
           if(FALSE) // if calc DField:
@@ -565,7 +568,7 @@ namespace CoupledField {
 
     // iterate over all subdomains
     for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
-       
+      
       // add stiffness
       BaseForm *bilinearStiff = GetStiffIntegrator( &materialData_[actSD] );
 
@@ -578,6 +581,30 @@ namespace CoupledField {
       actIntDescrStiff->SetPDEIds( pde1_, pde2_ );
       assemble_->AddIntegrator( actIntDescrStiff, subdoms_[actSD] );
 
+
+      // Check for damping:
+
+      //! list of damping types for all regions
+      std::map<RegionIdType,DampingType> dampingList = pde1_->getPDE_dampingList();
+
+      if ( dampingList[subdoms_[actSD]] == RAYLEIGH ) {
+
+        Boolean isdamping = TRUE;
+        Boolean reducedIntegration = FALSE; //is currently not supported
+        BaseForm * dampStiff = 
+           GetStiffIntegrator(&materialData_[actSD], reducedIntegration,isdamping );
+        dampStiff->SetRaylDamping();
+        
+        IntegratorDescriptor *actIntDescrDamp =
+          new IntegratorDescriptor(dampStiff, DAMPING);
+        actIntDescrDamp->SetPDEIds(pde1_, pde1_);
+        
+        dampStiff->SetPiezoMaterialType(matType);
+        actIntDescrDamp->SetPiezoMaterialType(matType);
+        assemble_->AddIntegrator(actIntDescrDamp, subdoms_[actSD]);
+      }
+
+        // check for complex valued material parameter
       if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ) {
         matType = IMAGMATERIALPARAMETER; 
 
@@ -589,9 +616,7 @@ namespace CoupledField {
         bilinearStiffC->SetPiezoMaterialType(matType);
         assemble_->AddIntegrator(actComplexIntDescrStiff, subdoms_[actSD]);
       }
-
-
-
+      
     }
   }
 
