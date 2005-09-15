@@ -581,29 +581,6 @@ namespace CoupledField {
       actIntDescrStiff->SetPDEIds( pde1_, pde2_ );
       assemble_->AddIntegrator( actIntDescrStiff, subdoms_[actSD] );
 
-
-      // Check for damping:
-
-      //! list of damping types for all regions
-      std::map<RegionIdType,DampingType> dampingList = pde1_->getPDE_dampingList();
-
-      if ( dampingList[subdoms_[actSD]] == RAYLEIGH ) {
-
-        Boolean isdamping = TRUE;
-        Boolean reducedIntegration = FALSE; //is currently not supported
-        BaseForm * dampStiff = 
-           GetStiffIntegrator(&materialData_[actSD], reducedIntegration,isdamping );
-        dampStiff->SetRaylDamping();
-        
-        IntegratorDescriptor *actIntDescrDamp =
-          new IntegratorDescriptor(dampStiff, DAMPING);
-        actIntDescrDamp->SetPDEIds(pde1_, pde1_);
-        
-        dampStiff->SetPiezoMaterialType(matType);
-        actIntDescrDamp->SetPiezoMaterialType(matType);
-        assemble_->AddIntegrator(actIntDescrDamp, subdoms_[actSD]);
-      }
-
         // check for complex valued material parameter
       if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ) {
         matType = IMAGMATERIALPARAMETER; 
