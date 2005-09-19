@@ -293,6 +293,7 @@ namespace CoupledField
     Double fa_, fr_;
     Boolean CalcImpedanceCurve;
     Boolean CalcMechDisplCurve;
+    Boolean directCoupling;
     UInt whichNewtonCG;
     UInt maxNumberInnerLoops;
     UInt maxNumberNewtonLoops;
@@ -323,7 +324,11 @@ namespace CoupledField
     UInt newtonCounter;
     Double inner_eta;
 
-    Double residuum;
+    Double residuumParIdent;
+    Double residuumParIdentOld;
+    Vector<Double> projGradientFlags;
+    Double normGradient;
+    Double normGradientOld;
 
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;
@@ -335,6 +340,7 @@ namespace CoupledField
     Vector<Double> parameter_new;
     Vector<Double> parameter_newC;
     Vector<Double> parameterIncrement;
+    Vector<Double> parameterInitial;
     Vector<Double> omegas;
     Vector<Double> freqs;
     Vector<Double> real, imag;
@@ -376,6 +382,14 @@ namespace CoupledField
     //! SinglePDE *, since piezoParamIdebnt makes only sense
     //! with a PiezoPDE, which is of the latter type.
     SinglePDE * ptMyPDE_;
+
+    //! Pointer to mechanic pde while direct-coupled
+    SinglePDE * ptPDE1_; 
+
+    //! Pointer to electrostatic pde while direct-coupled
+    SinglePDE * ptPDE2_; 
+
+    //    StdVector<DirectCoupledPDE*> ptDirectCoupledPde_;
 
     //! identification tag of PDE for algebraic system
     PdeIdType pdeId_;

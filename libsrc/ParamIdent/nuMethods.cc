@@ -281,9 +281,9 @@ namespace CoupledField
     scaling[4]=1.0/((*matMat)[3][3]); 
     scaling[5]=1.0/((*matMat)[6][4]);
     scaling[6]=1.0/((*matMat)[8][0]);
-    scaling[7]=0.6/((*matMat)[8][2]);
+    scaling[7]=1.0/((*matMat)[8][2]);
     scaling[8]=1.0/((*matMat)[6][6]); 
-    scaling[9]=0.5/((*matMat)[8][8]);
+    scaling[9]=1.0/((*matMat)[8][8]);
 
     //   if (newtonCounter<=1){
     //       stepR[1]=s[1].real();
@@ -473,7 +473,7 @@ namespace CoupledField
       //        }
 
       parameter_old=parameter;
-      residuum=new_res_outer;
+      residuumParIdent=new_res_outer;
 
   } // end NewtonNuMethodsy
 
@@ -677,7 +677,7 @@ namespace CoupledField
       //      break;
       //       }
         
-      residuum=new_res_outer;
+      residuumParIdent=new_res_outer;
       std::cout<<"\n end of inner nuMethodsC Iter ..."<<std::endl;
     } // end while nuMethod ...
 
@@ -813,7 +813,7 @@ namespace CoupledField
     act_res = y_hat-F_hat;
     //    new_res_outer=old_res_outer=a2norm(act_res);
     norm(act_res, new_res_outer, maxres_inner,y_hat);
-    *parLog<<new_res_outer;
+    //    *parLog<<new_res_outer;
 
     //    std::cout<<"maxNumberNewtonLoops = " << maxNumberNewtonLoops <<std::endl;
     //      getchar();
@@ -865,7 +865,7 @@ namespace CoupledField
 
 
     // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    if (TRUE){
+    if (FALSE){
 
       Matrix<Complex> JacobiMatrixNE(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
       //      Matrix<Double> JacobiMatrixR(JacobiMatrix.GetSizeCol(), JacobiMatrix.GetSizeCol());
@@ -921,7 +921,7 @@ namespace CoupledField
     JacobiMatrix = JacobiMatrix*Complex(w,w);
     adjJacobiMatrix = adjJacobiMatrix*Complex(w,w);
       
-    std::cout<<adjJacobiMatrix<<std::endl;
+    //    std::cout<<adjJacobiMatrix<<std::endl;
       
     // old_res_outer=a2norm(act_res);
     norm(act_res, old_res_outer, maxres_inner,y_hat);
@@ -990,15 +990,15 @@ namespace CoupledField
 
 
         
-      if (new_res_inner>1.05*old_res_inner){
-        std::cout << " \n !! New_res_inner is worse than old_res_inner!! "<< std::endl;
-        std::cout<<"\n Nr of nuMethodsC = " << nNuMethods <<std::endl;
-        //      getchar();
-        s=s_old;
-        break;
-      }
+//       if (new_res_inner>1.05*old_res_inner){
+//         std::cout << " \n !! New_res_inner is worse than old_res_inner!! "<< std::endl;
+//         std::cout<<"\n Nr of nuMethodsC = " << nNuMethods <<std::endl;
+//         //      getchar();
+//         s=s_old;
+//         break;
+//       }
         
-      std::cout<<"\n end of inner nuMethodsC Iter ..."<<std::endl;
+//      std::cout<<"\n end of inner nuMethodsC Iter ..."<<std::endl;
     } // end while nuMethod ...
 
 
@@ -1036,7 +1036,7 @@ namespace CoupledField
     scalingC[4]=1.0/((*matMatC)[3][3]); 
     scalingC[5]=1.0/((*matMatC)[6][4]);
     scalingC[6]=std::abs(1.0/((*matMatC)[8][0]));
-    scalingC[7]=mult/((*matMatC)[8][2]);
+    scalingC[7]=0.2/((*matMatC)[8][2]);
     scalingC[8]=1.0/((*matMatC)[6][6]); 
     scalingC[9]=mult/((*matMatC)[8][8]);
 
@@ -1047,12 +1047,12 @@ namespace CoupledField
       //  stepC[i-actNrParameter]=s[i].real();
       stepC[i-actNrParameter]=s[i].imag();
 
-     std::cout<<"stepR:" <<std::endl;
-     std::cout<<stepR<<std::endl;
+//      std::cout<<"stepR:" <<std::endl;
+//      std::cout<<stepR<<std::endl;
 
 
      std::cout<<"stepC:" <<std::endl;
-     stepC=stepC*1000.0;
+     stepC=-stepC*10000.0;
      std::cout<<stepC<<std::endl;
 
     
@@ -1086,19 +1086,27 @@ namespace CoupledField
 
     *parLog<<" "<< new_res_outer<<"  "; 
 
+    for (UInt i=0; i<10;i++)
+      if (whichParameterToUpdateC[i]==1)
+        *parLog<<"  " << parameterC[i];
+
+    *parLog<<std::endl;
+
+
+
 
     //     if(new_res_outer<=1.0e-08)
     //       getchar();
 
 
-    if (new_res_outer>old_res_outer){
-      std::cout<<"\n Warning: residual norm gets worse!" <<std::endl;
+//     if (new_res_outer>old_res_outer){
+//       std::cout<<"\n Warning: residual norm gets worse!" <<std::endl;
       //        getchar();
       //parameter=parameter_new;
       //        NewtonNuMethods();
-    }
+    //    }
     parameter_old=parameter;
-    residuum=new_res_outer;
+    residuumParIdent=new_res_outer;
       
    
   } // end NewtonNuMethodsy

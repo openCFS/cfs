@@ -27,11 +27,18 @@ namespace CoupledField
 
     ptDomain = adomain;
     ptMyPDE_ = NULL;
-    residuum=1.0;
+    residuumParIdent=1.0;
     tau=1.0;
- 
-    Char* measuredData="measuredData.dat";
-    allMeasuredData = new std::ifstream(measuredData, std::basic_ios<char>::in);
+    StdVector<std::string> pdeList;
+      params->GetPDEList( pdeList );
+
+      if (pdeList[0]=="piezo")
+        directCoupling=FALSE;
+      else 
+        directCoupling=TRUE;
+
+    std::string  filenameMeasuredData="measuredData.dat";
+    allMeasuredData = new std::ifstream(filenameMeasuredData.c_str(), std::basic_ios<char>::in);
     if (!allMeasuredData){
       std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
     }
@@ -195,9 +202,6 @@ namespace CoupledField
     amplitude_phase.Resize(highestAssumableNrOfMeasData);
     F_hat.Resize(highestAssumableNrOfMeasData);
 
-
-    //    Double pi = 3.14159265358979;
-
     // the following passage reads Data from file measuredData.dat
     // The rows are containing the values of the given frequencies, such as phase and amplitude!
     readMeasuredData(freqs, real, imag, parameter, voltage, nrMeasuredData, thickness, radius, delta);
@@ -206,12 +210,26 @@ namespace CoupledField
       ptdomain_->PrintGrid();
     if (isPartOfSequence_ == FALSE){     
       GetMyPDEs();
+      //      StdVector<DirectCoupledPDE*> ptDirectCoupledPde_ = ptDomain->GetBasePDE();
       //! cast pointer to BasePDE * to pointer of SinglePDE *
       ptMyPDE_ = dynamic_cast<SinglePDE*>(ptPDE_);
       Info->StartProgress ("Starting to solve problem", FALSE);
+
+      //      ptPDE1_=ptPDE_->pde1_;
+
     }
-    ptMyPDE_->WriteGeneralPDEdefines();
-    pdeId_ = ptMyPDE_->GetPDEId();
+    if(directCoupling==TRUE){
+      ptPDE1_=ptDomain-> GetSinglePDE("mechanic");
+      ptPDE2_=ptDomain-> GetSinglePDE("electrostatic");
+      ptPDE_->WriteGeneralPDEdefines();
+    }
+    else
+      ptMyPDE_->WriteGeneralPDEdefines();
+
+
+    //ptMyPDE_->WriteGeneralPDEdefines();
+    //    pdeId_ = ptMyPDE_->GetPDEId();
+    //    pdeId_ = ptPDE_->GetPDEId();
 
     actNrParameter=0;
     actNrParameterC=0;
@@ -239,7 +257,6 @@ namespace CoupledField
         intTemp++;
       }
 
-
     intTemp=0;
     for (UInt i=0;i<whichParameterToUpdateC.GetSize();i++)
       if (whichParameterToUpdateC[i]==1) {
@@ -258,115 +275,57 @@ namespace CoupledField
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
 
-    ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-    if (TRUE){
-      Matrix<Double> *mat0=ptMaterial[0].GetMatrix();
-      //       Matrix<Double> *mat0C=ptMaterial[0].GetMatrixC();
-      //       Matrix<Double> *mat1=ptMaterial[1].GetMatrix();
-      //       Matrix<Double> *mat1C=ptMaterial[1].GetMatrixC();
-      //       Matrix<Double> *mat2=ptMaterial[2].GetMatrix();
-      //       Matrix<Double> *mat2C=ptMaterial[2].GetMatrixC();
-      std::cout<<"mat0:"<<std::endl;
-      std::cout<<*mat0<<std::endl;
-      //       std::cout<<"mat0C"<<std::endl;
-      //       std::cout<<*mat0C<<std::endl;
-      
-      //       std::cout<<"mat1:"<<std::endl;
-      //       std::cout<<*mat1<<std::endl;
-      //       std::cout<<"mat1C"<<std::endl;
-      //       std::cout<<*mat1C<<std::endl;
-      
-      //       std::cout<<"mat2"<<std::endl;
-      //       std::cout<<*mat2<<std::endl;
-      //       std::cout<<"mat2C"<<std::endl;
-      //       std::cout<<*mat2C<<std::endl;
-    }
+    if(directCoupling==TRUE)
+      ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+    else
+      ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-	
+    
     Matrix<Double> *matMat = ptMaterial->GetMatrix();	
     Matrix<Double> *matMatC = ptMaterial->GetMatrixC();	
     parameterIncrement=parameter;
 
-    //Alternate Materialparameter by x percent
-    if (FALSE)
-      for (UInt i=0;i<nrParameter;i++){
+     
+   //  //Generates ansys code for stack actuator
+//     if (FALSE){
+//       UInt numOfLayers=200;
 
-        if(i!=2)
-          if (i==1||i==7||i==9)
-            parameter[i]=parameter[i]-0.15*parameter[i];
-        //        else if (i==0||i==5||i==6)
-        //  parameter[i]=parameter[i]-0.05*parameter[i];             
-        //      if (i==1)
-        // parameter[i]=parameter[i]+0.1*parameter[i];
-        //      if (i==0)
-        //parameter[i]=parameter[i]+0.1*parameter[i];   
+//       for(UInt i=148;i<numOfLayers;i++){
+// 	*parLog<<"asel,s,loc,z,inactiveZ+"<<i<<"*th_layer-eps,inactiveZ+"<<i<<"*th_layer+eps"<<std::endl;
+// 	*parLog<<"cm,layer"<<i+1<<",area"<<std::endl;
+// 	*parLog<<"vext,layer"<<i+1<<",,,zero,zero,th_layer"<<std::endl;
+// 	*parLog<<"allsel"<<std::endl;
+//       }
 
-      }
+//       for(UInt i=148;i<numOfLayers;i=i+2){
+// 	*parLog<<"vsel,a,loc,z,inactiveZ+"<<i+3.5<<"*th_layer-eps,inactiveZ+"<<i+3.5<<"*th_layer+eps"<<std::endl;
+//       }
 
-  
-    //Generates ansys code for stack actuator
-    if (FALSE){
-      UInt numOfLayers=200;
-
-      for(UInt i=148;i<numOfLayers;i++){
-	*parLog<<"asel,s,loc,z,inactiveZ+"<<i<<"*th_layer-eps,inactiveZ+"<<i<<"*th_layer+eps"<<std::endl;
-	*parLog<<"cm,layer"<<i+1<<",area"<<std::endl;
-	*parLog<<"vext,layer"<<i+1<<",,,zero,zero,th_layer"<<std::endl;
-	*parLog<<"allsel"<<std::endl;
-      }
-
-      for(UInt i=148;i<numOfLayers;i=i+2){
-	*parLog<<"vsel,a,loc,z,inactiveZ+"<<i+3.5<<"*th_layer-eps,inactiveZ+"<<i+3.5<<"*th_layer+eps"<<std::endl;
-      }
-
-      for(UInt i=148;i<numOfLayers;i=i+2){
-	*parLog<<"vsel,a,loc,z,inactiveZ+"<<i+2.5<<"*th_layer-eps,inactiveZ+"<<i+2.5<<"*th_layer+eps"<<std::endl;
-      }
+//       for(UInt i=148;i<numOfLayers;i=i+2){
+// 	*parLog<<"vsel,a,loc,z,inactiveZ+"<<i+2.5<<"*th_layer-eps,inactiveZ+"<<i+2.5<<"*th_layer+eps"<<std::endl;
+//       }
 
 
-      for(UInt i=148;i<numOfLayers;i=i+2){
-	*parLog<<"asel,a,loc,z,inactiveZ+"<<i+3<<"*th_layer-eps,inactiveZ+"<<i+3<<"*th_layer+eps"<<std::endl;
-      }
+//       for(UInt i=148;i<numOfLayers;i=i+2){
+// 	*parLog<<"asel,a,loc,z,inactiveZ+"<<i+3<<"*th_layer-eps,inactiveZ+"<<i+3<<"*th_layer+eps"<<std::endl;
+//       }
 
-      for(UInt i=148;i<numOfLayers;i=i+2){
-	*parLog<<"asel,a,loc,z,inactiveZ+"<<i+2<<"*th_layer-eps,inactiveZ+"<<i+2<<"*th_layer+eps"<<std::endl;
-      }
+//       for(UInt i=148;i<numOfLayers;i=i+2){
+// 	*parLog<<"asel,a,loc,z,inactiveZ+"<<i+2<<"*th_layer-eps,inactiveZ+"<<i+2<<"*th_layer+eps"<<std::endl;
+//       }
 
-      std::cout<< " Stack Commands written in parLog.dat ..." <<std::endl;
-      getchar();
-    }
+//       std::cout<< " Stack Commands written in parLog.dat ..." <<std::endl;
+//       getchar();
+//     }
     
 
     updateMaterialData(parameter,ptMaterial);
     updateComplexMaterialData(parameterC,ptMaterial);
+  
 
-    if (FALSE){
-      Matrix<Double> *mat0=ptMaterial[0].GetMatrix();
-      Matrix<Double> *mat0C=ptMaterial[0].GetMatrixC();
-      Matrix<Double> *mat1=ptMaterial[1].GetMatrix();
-      Matrix<Double> *mat1C=ptMaterial[1].GetMatrixC();
-      Matrix<Double> *mat2=ptMaterial[2].GetMatrix();
-      Matrix<Double> *mat2C=ptMaterial[2].GetMatrixC();
-      std::cout<<"mat0:"<<std::endl;
-      std::cout<<*mat0<<std::endl;
-      std::cout<<"mat0C"<<std::endl;
-      std::cout<<*mat0C<<std::endl;
-      
-      std::cout<<"mat1:"<<std::endl;
-      std::cout<<*mat1<<std::endl;
-      std::cout<<"mat1C"<<std::endl;
-      std::cout<<*mat1C<<std::endl;
-      
-      std::cout<<"mat2"<<std::endl;
-      std::cout<<*mat2<<std::endl;
-      std::cout<<"mat2C"<<std::endl;
-      std::cout<<*mat2C<<std::endl;
-    }
-    
-
-    Matrix<Double> matMatStart(9,9); // = ptMaterial->GetMatrix();
-    Matrix<Double> matMatCStart(9,9); // = ptMaterial->GetMatrixC();
+    Matrix<Double> matMatStart(10,10); // = ptMaterial->GetMatrix();
+    Matrix<Double> matMatCStart(10,10); // = ptMaterial->GetMatrixC();
 
     for(UInt i=0;i<9;i++)
       for(UInt j=0;j<9;j++){
@@ -440,7 +399,6 @@ namespace CoupledField
       getchar();
     }
 
-
      
     if (CalcImpedanceCurve == TRUE){
       Vector<Double> freqsTemp = freqs;
@@ -461,29 +419,7 @@ namespace CoupledField
 
     // <<<<<<<<<<<<<<<<<<<<<<<< now we have it ... <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-
-    //xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx - MeasuredData - xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-    // Which data for the right had side of F(p)=y_hat should be taken? ... either .. or ... !!!!
-    
-    calc_measuredCharge(freqs, real, imag, y_hat); // out of measurements, values are taken from measuredData.dat
-    // calcSyntheticData(y_hat); // Generates synthetic data, i.e. one forward simulation will be performed.
-
-    //     std::cout<<"\n Measured Data - Set: "<<std::endl;
-    //     for(int i=0;i<y_hat.GetSize();i++)
-    //       std::cout<<"y("<<i<<")= "<< y_hat[i]<<"; ";
-    //     std::cout<<"\n"<<std::endl;
-
-    // some values for typical mechanical displacements:
-
-    // xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx Driver Part xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-    // since this driver normally will not be used in a coupled 
-    // field simulation, we simply can access the first PDE,
-    // as it will be the single one
- 
-    ptMyPDE_->WriteGeneralPDEdefines(); 
-   
+  
     matMat = ptMaterial->GetMatrix();
     matMatC = ptMaterial->GetMatrixC();
 
@@ -1175,66 +1111,7 @@ namespace CoupledField
         for (UInt l=0;l<=k;l++)
           helpChar[l]=0;
       }
-      // else if (mDataRow[0]=='S'){
-      //      i=2; k=0;
-      //      while(mDataRow){
-      //        if (mDataRow[i]=='/')
-      //          break;
-      //        helpChar[k]=mDataRow[i];
-      //        k++; i++;
-      //      }
-      //      nrfreq=atoi(helpChar);
-      //      for (UInt l=0;l<=k;l++)
-      //        helpChar[l]=0;
-      //       }
-      //  else if (mDataRow[0]=='L'){
-      //      i=2; k=0;
-      //      while(mDataRow){
-      //        if (mDataRow[i]=='/')
-      //          break;
-      //        helpChar[k]=mDataRow[i];
-      //        k++; i++;
-      //      }
-      //      startfreq=atof(helpChar);
-      //      for (UInt l=0;l<=k;l++)
-      //        helpChar[l]=0;
-      //       }
-      //       else if (mDataRow[0]=='R'){
-      //      i=2; k=0;
-      //      while(mDataRow){
-      //        if (mDataRow[i]=='/')
-      //          break;
-      //        helpChar[k]=mDataRow[i];
-      //        k++; i++;
-      //      }
-      //      stopfreq=atof(helpChar);
-      //      for (UInt l=0;l<=k;l++)
-      //        helpChar[l]=0;
-      //       }
-      //       else if (mDataRow[0]=='C'){
-      //      i=2; k=0;
-      //      while(mDataRow){
-      //        if (mDataRow[i]=='/')
-      //          break;
-      //        helpChar[k]=mDataRow[i];
-      //        k++; i++;
-      //      }
-      //      maxNumberInnerLoops=atoi(helpChar); 
-      //      for (UInt l=0;l<=k;l++)
-      //        helpChar[l]=0;
-      //       }
-      //       else if (mDataRow[0]=='O'){
-      //      i=2; k=0;
-      //      while(mDataRow){
-      //        if (mDataRow[i]=='/')
-      //          break;
-      //        helpChar[k]=mDataRow[i];
-      //        k++; i++;
-      //      }
-      //      maxNumberNewtonLoops=atoi(helpChar); 
-      //      for (UInt l=0;l<=k;l++)
-      //        helpChar[l]=0;
-      //       }
+     
       else if (mDataRow[0]=='M'){
         i=2; k=0;
         while(mDataRow){
@@ -1309,7 +1186,12 @@ namespace CoupledField
       for(UInt j=0;j<9;j++)
         ptMaterial->SetPiezoMatrixData(i,j,0.0);
     
-    StdVector<Integer>subdoms = ptMyPDE_->getPDE_subdoms();
+    StdVector<Integer>subdoms;
+    if(directCoupling==TRUE)
+      subdoms = ptPDE1_->getPDE_subdoms();
+    else 
+      subdoms=ptMyPDE_->getPDE_subdoms();
+    
     if (subdoms.GetSize()==1){
          
       ptMaterial[0].SetPiezoMatrixData(0,0, parameter[0]);
@@ -1421,7 +1303,11 @@ namespace CoupledField
       ptMaterial[2].SetPiezoMatrixData(8,8, parameter[9]);
     }
 
-    ptAssemble = ptMyPDE_->getPDE_assemble();
+    if(directCoupling==TRUE)
+      ptAssemble = ptPDE1_->getPDE_assemble();
+    else
+      ptAssemble = ptMyPDE_->getPDE_assemble();
+    
     ptAssemble->SetAlternatingMaterial(TRUE);
     ptAssemble->SetMaterialPointer(ptMaterial);
     //   std::cout<< parameter <<std::endl;
@@ -1453,7 +1339,12 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::updateComplexMaterialData");    
     //    std::cout<<"updateComplexMaterialData"<<std::endl;
 
-    StdVector<Integer>subdoms = ptMyPDE_->getPDE_subdoms();
+    StdVector<Integer>subdoms;
+    if(directCoupling==TRUE)
+      subdoms = ptPDE1_->getPDE_subdoms();
+    else 
+      subdoms=ptMyPDE_->getPDE_subdoms();
+    
     if (subdoms.GetSize()==1){
 
       ptMaterial[0].SetPiezoMatrixDataC(0,0, parameterC[0]);
@@ -1592,7 +1483,10 @@ namespace CoupledField
         //     ptMaterial->SetPiezoMatrixDataC(8,8, parameterC[9]);
       }
 
-    ptAssemble = ptMyPDE_->getPDE_assemble();
+    if(directCoupling==TRUE)
+      ptAssemble = ptPDE1_->getPDE_assemble();
+    else
+      ptAssemble = ptMyPDE_->getPDE_assemble();
     ptAssemble->SetAlternatingMaterial(TRUE);
     ptAssemble->SetMaterialPointer(ptMaterial);
 
