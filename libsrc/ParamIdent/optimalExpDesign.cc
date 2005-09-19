@@ -12,7 +12,6 @@ namespace CoupledField
   void piezoParamIdent::optimalExpDesign(){
 
     ENTER_FCN("piezoParamIdent::optimalDesign");
-    std::cout<<"call for optimum experiment desing .."<<std::endl;
 
 #ifndef USE_LAPACK
     std::cout<<"\n! Optimum experiment design works with LAPACK Routines"<<std::endl;
@@ -25,42 +24,64 @@ namespace CoupledField
 #endif
 
 
-
     // optimalExpDesignDiffNumberFreqs();
-      nrMeasuredData=10;
+  nrMeasuredData=10;
       Vector<Double> freqs5;
-      freqs5.Resize(10);
-      freqs5[0]=3.0e+06;
-      freqs5[1]=3.5e+06;
-      freqs5[2]=3.75e+06;
-      freqs5[3]=4.0e+06;
-      freqs5[4]=4.1e+06;
-      freqs5[5]=4.2e+06;
-      freqs5[6]=5.6e+06;
-      freqs5[7]=6.0e+06;
-      freqs5[8]=6.5e+06;
-      freqs5[9]=7.0e+06;
-      //      freqs5[10]=7.75e+06;
-      freqs=freqs5;
+       freqs5.Resize(10);
+       freqs5[0]=2.0e+06;
+       freqs5[1]=2.5e+06;
+       freqs5[2]=3.0e+06;
+       freqs5[3]=3.25e+06;
+       freqs5[4]=3.6e+06;
+       freqs5[5]=4.7e+06;
+       freqs5[6]=5.0e+06;
+       freqs5[7]=6.0e+06;
+       freqs5[8]=6.5e+06;
+       freqs5[9]=7.0e+06;
+       //      freqs5[10]=7.75e+06;
+       freqs=freqs5;
 
-//      nrMeasuredData=5;
-//      Vector<Double> freqs5;
-//      freqs5.Resize(5);
+//      nrMeasuredData=10;
+//         Vector<Double> freqs5;
+//         freqs5.Resize(10);
+//         freqs5[0]=0.51e+06;
+//         freqs5[1]=0.6e+06;
+//         freqs5[2]=0.7e+06;
+//         freqs5[3]=0.8e+06;
+//        freqs5[4]=0.85e+06;
+//        freqs5[5]=0.9e+06;
+//        freqs5[6]=1.3e+06;
+//        freqs5[7]=1.4e+06;
+//        freqs5[8]=1.5e+06;
+//        freqs5[9]=1.7e+06;
+//      freqs5[10]=7.75e+06;
 
-//      freqs5[0]=2.0e+06;
-//      freqs5[1]=3.5e+06;
-//      freqs5[2]=4.5e+06;
-//      freqs5[3]=5.8e+06;
-//      freqs5[4]=6.9e+06;
-//      freqs=freqs5;
+       //nrMeasuredData=5;
+    //Vector<Double> freqs5;
+    //    freqs5.Resize(nrMeasuredData);
 
+//     freqs5[0]=2.0e+06;
+//     freqs5[1]=3.5e+06;
+//     freqs5[2]=4.5e+06;
+//     freqs5[3]=5.9e+06;
+//     freqs5[4]=6.9e+06;
+//     freqs=freqs5;
+
+
+    projGradientFlags.Resize(nrMeasuredData);
+    parameterInitial = parameter;
+    residuumParIdentOld = residuumParIdent=0.5;
+       
+
+      std::cout<<"optimum experiment desing with "<<nrMeasuredData <<" frequencies and "<<actNrParameter+actNrParameterC << " parameter! " << std::endl;
     Vector<Double> newFreqs;
    
+    readInMeasurement(newFreqs);
+    std::cout<<newFreqs<<std::endl;
+
     for(UInt fr=0;fr<nrMeasuredData;fr++)
       *impedCurve<< freqs[fr]<<"  ";
     *impedCurve<<std::endl;
-
-    readInMeasurement(newFreqs);
 
     calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
 
@@ -77,26 +98,27 @@ namespace CoupledField
     // fa = 1/thickness * sqrt(c_33/rho)
    
     Double rho;
+    Vector<Complex> jacobi;
+    Complex functional;
+
     rho = ptMaterial->GetDensity();
 
     fa_ = 1.0/(2*thickness) * std::sqrt(1.3e+11/rho);
     fa_=1.2*fa_;
 
-    std::cout<<"++ Bounds for resonance and antiresonace frequency"<<std::endl;
-    std::cout<<"fr:"<<std::endl;
-    std::cout<<fr_<<std::endl;
+    std::cout<<"++ Bounds for resonance and antiresonace frequency: "<<std::endl;
+    std::cout<<"fr= "<< fr_ <<std::endl;
+    std::cout<<"fa= "<< fa_ <<std::endl;
 
-    std::cout<<"fa:"<<std::endl;
-    std::cout<<fa_<<std::endl;
-    Vector<Complex> jacobi;
-
-
-    Complex functional;
 
     for (UInt nrOptExpSteps=0; nrOptExpSteps<20; nrOptExpSteps++){ 
       UInt nrNuMethods=0;
+      // That at least we perform one descent step
+      normGradient=2.0;
+      normGradientOld=1.0;
 
-      //      descentMethod(functional);
+      descentMethod(functional);
+
       readInMeasurement(newFreqs);
 
       for(UInt fr=0;fr<nrMeasuredData;fr++)
@@ -106,8 +128,9 @@ namespace CoupledField
       calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       newtonCounter=0;
 
-      while (nrNuMethods<maxNumberNewtonLoops && residuum< 1.0e-2*tau*(1+delta)){
-        //    nuMethodsC2();
+      while (nrNuMethods<maxNumberNewtonLoops && residuumParIdent > 0.2*residuumParIdentOld){
+        //while (nrNuMethods<maxNumberNewtonLoops){
+        ///        nuMethodsC2();
         nuMethods();
         nrNuMethods++;
         for (UInt i=0; i<parameter.GetSize(); i++)
@@ -120,6 +143,7 @@ namespace CoupledField
 
         newtonCounter++;
       }
+      residuumParIdentOld = residuumParIdent;
       
     } // end nrOptExpSteps
     
@@ -228,45 +252,68 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::descentMethod");
 
     Vector<Complex> gradient;
-    //    Double lambda = 0.00002; // for three parameter
-    //Double lambda = 1.0e+8; // for three parameter
-    // Double lambda = 1.0e-19; // for nine parameter
-    //Double lambda = 1.0e+3; // for nine parameter
-    Double lambda = 1.0e+5; // for nine parameter
-    //Double lambda = 1.0e-7; // for nine parameter
+    Double lambda;
+    UInt descIter=0;
+    Double gradientNormUpdate;
+
+    if (actNrParameter==3)
+      lambda = 0.00002; // for three parameter
+    else if (actNrParameter==10||actNrParameter==9)
+      lambda = 1.0e+5; // for nine parameter
+    else if (actNrParameter==6)
+      lambda=0.025;
+    //        Double lambda = 1.0e-5; // for ten parameter
     //    Double lambda = 1.0; // for nine parameter using M - confidence crit.
     //    Double lambda = 1.0e+7; // for nine parameter using M - confidence crit.
     //Double lambda = 40; // for three parameters using M - confidence crit.
 
-    UInt maxNumberDescentIterations=2;
-   
-    for (UInt descIter=0;descIter<maxNumberDescentIterations;descIter++){
 
+    UInt maxNumberDescentIterations=10;
+    gradientNormUpdate = std::abs(normGradient - normGradientOld)/normGradientOld;
+    std::cout<<"gradientNormUpdate before descent iteration"<<std::endl;
+    std::cout<<gradientNormUpdate<<std::endl;
+
+   
+   while(descIter<maxNumberDescentIterations && gradientNormUpdate>0.25){
+     descIter++;
+
+     //    projGradientFlags.Resize(nrMeasuredData);
       Complex J, JOld;
       Vector<Double> freqsOld;
       freqsOld.Resize(nrMeasuredData);
       freqsOld=freqs;
-      createCovA(J, TRUE);
-      std::cout<<" Value of functional J(w) = "<< J <<std::endl;
+      createCovA(J,FALSE);
+      //      std::cout<<" Value of functional J(w) = "<< J <<std::endl;
       JOld=J;
-      //      Boolean scaleFlag=FALSE;
 
-      std::cout<<J<<std::endl;
+//       std::cout<<"projGradientFlags"<<std::endl;
+//       std::cout<<projGradientFlags<<std::endl;
 
-      //      createGradient(gradient,10.0);
+      normGradientOld=normGradient;
+      //overwrites normGradient!
       createGradient(gradient,1.0e-5);
-      lambda = 2*lambda;
+      gradientNormUpdate = std::abs(normGradient - normGradientOld)/normGradientOld;
+
+     std::cout<<"gradientNormOld"<<std::endl;
+     std::cout<<normGradientOld<<std::endl;
+     std::cout<<"gradientNorm"<<std::endl;
+     std::cout<<normGradient<<std::endl;
+
+     std::cout<<"gradientNormUpdate"<<std::endl;
+     std::cout<<gradientNormUpdate<<std::endl;
+
+      lambda = 1.1*lambda;
 
       std::cout<<"gradient"<<std::endl;
       std::cout<<gradient<<std::endl;
       //      getchar();
       
-      *optimalFreqs<< descIter <<"  "<< J.real() <<"  ";
+      //
       //     for(UInt fr=0;fr<nrMeasuredData;fr++){
       // *impedCurve<< freqs[fr]<<"  ";
          //         std::cout<<"freqs written out, "<< fr<<") = "<<freqs[fr]<<std::endl;
       //       }
-      *optimalFreqs<<std::endl;    
+      //      *optimalFreqs<<std::endl;    
 
       UInt innerCounter=0;
       //      while(innerCounter<1){
@@ -289,6 +336,11 @@ namespace CoupledField
 //           break;
         if (innerCounter>40)
           break;
+
+        for(UInt fr=0;fr<nrMeasuredData;fr++)
+          if (freqs[fr]<=0.0)
+            std::cout<<"! Frequency "<< fr << " is negative " <<std::endl;
+
 
         createCovA(J,FALSE);
 
@@ -315,10 +367,12 @@ namespace CoupledField
             //            std::cout<<"! Frequency in dangerous intervall [" <<fr_<< ", "<< fa_<<"] "<<std::endl;
             if(freqs[fr]<(fr_+fa_)/2){
               freqs[fr]=fr_;
+              projGradientFlags[fr]=freqs[fr];
               std::cout<<"! Frequency "<< fr <<" to close to fr, fixed it at f= " << fr_<< std::endl;
             }
             else{
               freqs[fr]=fa_;
+              projGradientFlags[fr]=freqs[fr];
               std::cout<<"! Frequency "<< fr <<" to close to fa, fixed it at f= " << fa_<< std::endl;
             }
           } 
@@ -326,19 +380,31 @@ namespace CoupledField
             std::cout<<"! There are no measurements for frequency "<< fr  <<std::endl;
             std::cout<<"! Fixed frequency at 2.0e+06 " <<std::endl;
             freqs[fr]=2.0e+06;
+            projGradientFlags[fr]=freqs[fr];
           }
           if(freqs[fr]>=8.0e+06){
             std::cout<<"! There are no measurements for frequency"<<fr <<std::endl;
             std::cout<<"! Fixed frequency at 9.0e+06 " <<std::endl;
             freqs[fr]=8.0e+06;
+            projGradientFlags[fr]=freqs[fr];
           }
             
             
         }// end in freqs[fr]<=fa_ ...
+
+
+
+        createCovA(J,TRUE);
+
+        std::cout<<" Value J(w) calculated with projected gradient "<< J <<std::endl;
+//         if (J <= 1.0 )
+//           std::cout<<" Convergence of projected gradient is small enough .." <<std::endl;
           
           
         // end while ....
-      
+
+        *optimalFreqs<< descIter <<"  "<< J.real() <<"  ";      
+
         for(UInt fr=0;fr<nrMeasuredData;fr++)
           *optimalFreqs<< freqs[fr]<<"  ";
         *optimalFreqs<<std::endl;    
@@ -364,40 +430,36 @@ namespace CoupledField
 
      for (UInt actFreq=0;actFreq<nrMeasuredData;actFreq++){
 
-       createJacobian(jacobi, freqs[actFreq]);
-       jacobiH.Resize(actNrParameter+actNrParameterC);
+         createJacobian(jacobi, freqs[actFreq]);
+         jacobiH.Resize(actNrParameter+actNrParameterC);
 
-       for (UInt i=0;i<jacobi.GetSize();i++)
-         jacobiH[i]=Complex(jacobi[i].real(),-jacobi[i].imag());
-       
-       for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
-         for(UInt j=0;j<actNrParameter+actNrParameterC;j++){
-           //           covTemp[i][j]=jacobiH[i]*jacobi[j]/(delta*delta*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
-           covTemp[i][j]=jacobiH[i]*jacobi[j]/((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+         for (UInt i=0;i<jacobi.GetSize();i++)
+           jacobiH[i]=Complex(jacobi[i].real(),-jacobi[i].imag());
+         
+         for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
+           for(UInt j=0;j<actNrParameter+actNrParameterC;j++){
+             //           covTemp[i][j]=jacobiH[i]*jacobi[j]/(delta*delta*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
+             covTemp[i][j]=jacobiH[i]*jacobi[j]/((1.0+delta)*(1.0+delta)*std::abs(y_hat[actFreq])*std::abs(y_hat[actFreq]));
              
-           if (i==j)
-             covTemp[i][i]=covTemp[i][i]+covTemp[i][i];// *1.0e-10;
+             if (i==j)
+               covTemp[i][i]=covTemp[i][i]+covTemp[i][i];// *1.0e-10;
          }
-       cov+=covTemp;
+         cov+=covTemp;
+         
      } // end for actFreq ...
-
-     //     invertWithLapack(cov);
-
-//      for(UInt i=0;i<cov.GetSizeRow();i++)
-//        for (UInt j=0; j<cov.GetSizeCol();j++){
-//          std::cout<<cov[i][j].real()<<"+"<<cov[i][j].imag()<<"i"<< ", ";
-//           //std::cout<<"F'("<<i<<")("<<j<<")= "<< JacobiMatrix[i][j]<<"; \t";
-//           if (j==cov.GetSizeCol()-1)
-//              std::cout<<";\n";
-//        }
+       
+       //     invertWithLapack(cov);
 
      Matrix<Complex> data;
      data.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
      data=cov;     
-     invert(cov);
 
-     //     std::cout<<"inv(cov):"<<std::endl;
-//        std::cout<<cov<<std::endl;
+//       std::cout<<"cov:"<<std::endl;
+//       std::cout<<cov<<std::endl;
+
+     invert(cov);
+   
+
     //    std::cout<<"inv(cov)*cov :"<<std::endl;
 
      data=data*cov;
@@ -443,63 +505,155 @@ namespace CoupledField
       J=J/Complex(actNrParameter+actNrParameterC,0.0);
       
       if (writeOutCov==TRUE){
-        std::cout<<"covDiag"<<std::endl;
-        std::cout<<covDiag<<std::endl;
+//         std::cout<<"covDiag"<<std::endl;
+//         std::cout<<covDiag<<std::endl;
       
         for(UInt i=0; i<actNrParameter+actNrParameterC; i++){
           *confInterval<<cov[i][i].real()<<"  ";
         }
 
         if (actNrParameter==3){      
-          *confInterval<<parameter[1]+parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+          //          *confInterval<<parameter[1]+parameterInitial[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+          *confInterval<<parameter[1]+parameterInitial[1]*(cov[0][0].real()*0.7)<<"  ";
         //        std::cout<<parameter[1]+parameter[1]*std::sqrt(cov[1][1].real()*0.115*0.115)<<std::endl;
           *confInterval<<parameter[1]<<"  ";
-          *confInterval<<parameter[1]-parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+          //          *confInterval<<parameter[1]-parameterInitial[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+          *confInterval<<parameter[1]-parameterInitial[1]*(cov[0][0].real()*0.7)<<"  ";
         //        std::cout<<parameter[1]-1000.0*std::sqrt(cov[0][0].real()*parameter[1]*0.115*0.115)<<std::endl;
 
 
-          *confInterval<<parameter[7]+parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+//           *confInterval<<parameter[7]+parameterInitial[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+//           *confInterval<<parameter[7]<<"  ";
+//           *confInterval<<parameter[7]-parameterInitial[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+
+          *confInterval<<parameter[7]+parameterInitial[7]*(cov[1][1].real()*0.7)<<"  ";
           *confInterval<<parameter[7]<<"  ";
-          *confInterval<<parameter[7]-parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+          *confInterval<<parameter[7]-parameterInitial[7]*(cov[1][1].real()*0.7)<<"  ";
 
 
-          *confInterval<<parameter[9]+parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+//           *confInterval<<parameter[9]+parameterInitial[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+//           *confInterval<<parameter[9]<<"  ";
+//           *confInterval<<parameter[9]-parameterInitial[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+
+          *confInterval<<parameter[9]+parameterInitial[9]*(cov[2][2].real()*0.7)<<"  ";
           *confInterval<<parameter[9]<<"  ";
-          *confInterval<<parameter[9]-parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+          *confInterval<<parameter[9]-parameterInitial[9]*(cov[2][2].real()*0.7)<<"  ";
+
         }
 
         else if (actNrParameter==4){
           for (UInt ii=0;ii<=4;ii++){
             if(ii<=1){
-              *confInterval<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*0.115*0.115)<<"  ";
+//               *confInterval<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*0.115*0.115)<<"  ";
+//               *confInterval<<parameter[ii]<<"  ";
+//               *confInterval<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*0.115*0.115)<<"  ";
+
+              *confInterval<<parameter[ii]+parameterInitial[ii]*(cov[ii][ii].real()*0.7)<<"  ";
               *confInterval<<parameter[ii]<<"  ";
-              *confInterval<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*0.115*0.115)<<"  ";
+              *confInterval<<parameter[ii]-parameterInitial[ii]*(cov[ii][ii].real()*0.7)<<"  ";
+
             }
             else if(ii>2)
               {
-                *confInterval<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii-1][ii-1].real()*0.115*0.115)<<"  ";
+//                 *confInterval<<parameter[ii]+parameterInitial[ii]*std::sqrt(cov[ii-1][ii-1].real()*0.115*0.115)<<"  ";
+//                 *confInterval<<parameter[ii]<<"  ";
+//                 *confInterval<<parameter[ii]-parameterInitial[ii]*std::sqrt(cov[ii-1][ii-1].real()*0.115*0.115)<<"  ";
+
+                *confInterval<<parameter[ii]+parameterInitial[ii]*(cov[ii-1][ii-1].real()*0.7)<<"  ";
                 *confInterval<<parameter[ii]<<"  ";
-                *confInterval<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii-1][ii-1].real()*0.115*0.115)<<"  ";
+                *confInterval<<parameter[ii]-parameterInitial[ii]*(cov[ii-1][ii-1].real()*0.7)<<"  ";
+
               }
           }
         }
         if (actNrParameter==10){
           for (UInt ii=0;ii<10;ii++){
-            *confInterval<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+            *confInterval<<parameter[ii]+parameterInitial[ii]*sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
             *confInterval<<parameter[ii]<<"  ";
-            *confInterval<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+            *confInterval<<parameter[ii]-parameterInitial[ii]*sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
           }
         }
+
+        if (actNrParameter==9){
+          for (UInt ii=0;ii<10;ii++){
+            if(ii<=1){
+              *confInterval<<parameter[ii]+parameterInitial[ii]*sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+              *confInterval<<parameter[ii]<<"  ";
+              *confInterval<<parameter[ii]-parameterInitial[ii]*sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+            }
+            else if (ii>2){
+              *confInterval<<parameter[ii]+parameterInitial[ii]*sqrt(cov[ii-1][ii-1].real()*2.5*2.5)<<"  ";
+              *confInterval<<parameter[ii]<<"  ";
+              *confInterval<<parameter[ii]-parameterInitial[ii]*sqrt(cov[ii-1][ii-1].real()*2.5*2.5)<<"  ";
+            }
+
+          }
+        }
+
         if (actNrParameter==5){
           for (UInt ii=0;ii<5;ii++){
-            *confInterval<<parameter[ii]+parameter[ii]*std::sqrt(cov[ii][ii].real()*0.55*0.55)<<"  ";
+            *confInterval<<parameter[ii]+parameterInitial[ii]*std::sqrt(cov[ii][ii].real()*0.55*0.55)<<"  ";
             *confInterval<<parameter[ii]<<"  ";
-            *confInterval<<parameter[ii]-parameter[ii]*std::sqrt(cov[ii][ii].real()*0.55*0.55)<<"  ";
+            *confInterval<<parameter[ii]-parameterInitial[ii]*std::sqrt(cov[ii][ii].real()*0.55*0.55)<<"  ";
           }
         }   
 
+        if (actNrParameter==6){
+          
+          *confInterval<<parameter[0]+parameterInitial[0]*(cov[0][0].real()*0.03)<<"  ";
+          *confInterval<<parameter[0]<<"  ";
+          *confInterval<<parameter[0]-parameterInitial[0]*(cov[0][0].real()*0.03)<<"  ";
+
+          *confInterval<<parameter[1]+parameterInitial[1]*(cov[1][1].real()*1.0)<<"  ";
+          *confInterval<<parameter[1]<<"  ";
+          *confInterval<<parameter[1]-parameterInitial[1]*(cov[1][1].real()*1.0)<<"  ";
+
+          *confInterval<<parameter[3]+parameterInitial[3]*(cov[2][2].real()*0.03)<<"  ";
+          *confInterval<<parameter[3]<<"  ";
+          *confInterval<<parameter[3]-parameterInitial[3]*(cov[2][2].real()*0.03)<<"  ";
+
+          *confInterval<<parameter[4]+parameterInitial[4]*(cov[3][3].real()*0.03)<<"  ";
+          *confInterval<<parameter[4]<<"  ";
+          *confInterval<<parameter[4]-parameterInitial[4]*(cov[3][3].real()*0.03)<<"  ";
+
+          *confInterval<<parameter[7]+parameterInitial[7]*(cov[4][4].real()*0.75)<<"  ";
+          *confInterval<<parameter[7]<<"  ";
+          *confInterval<<parameter[7]-parameterInitial[7]*(cov[4][4].real()*0.75)<<"  ";
+
+          *confInterval<<parameter[9]+parameterInitial[9]*(cov[5][5].real()*0.75)<<"  ";
+          *confInterval<<parameter[9]<<"  ";
+          *confInterval<<parameter[9]-parameterInitial[9]*(cov[5][5].real()*0.75)<<"  ";
+
+//           *confInterval<<parameter[0]+parameterInitial[0]*std::sqrt(cov[0][0].real()*0.7)<<"  ";
+//           *confInterval<<parameter[0]<<"  ";
+//           *confInterval<<parameter[0]-parameterInitial[0]*std::sqrt(cov[0][0].real()*0.7)<<"  ";
+
+//           *confInterval<<parameter[1]+parameterInitial[1]*std::sqrt(cov[1][1].real()*0.7)<<"  ";
+//           *confInterval<<parameter[1]<<"  ";
+//           *confInterval<<parameter[1]-parameterInitial[1]*std::sqrt(cov[1][1].real()*0.7)<<"  ";
+
+//           *confInterval<<parameter[3]+parameterInitial[3]*std::sqrt(cov[2][2].real()*0.7)<<"  ";
+//           *confInterval<<parameter[3]<<"  ";
+//           *confInterval<<parameter[3]-parameterInitial[3]*std::sqrt(cov[2][2].real()*0.7)<<"  ";
+
+//           *confInterval<<parameter[4]+parameterInitial[4]*std::sqrt(cov[3][3].real()*0.7)<<"  ";
+//           *confInterval<<parameter[4]<<"  ";
+//           *confInterval<<parameter[4]-parameterInitial[4]*std::sqrt(cov[3][3].real()*0.7)<<"  ";
+
+//           *confInterval<<parameter[7]+parameterInitial[7]*std::sqrt(cov[4][4].real()*0.7)<<"  ";
+//           *confInterval<<parameter[7]<<"  ";
+//           *confInterval<<parameter[7]-parameterInitial[7]*std::sqrt(cov[4][4].real()*0.7)<<"  ";
+
+//           *confInterval<<parameter[9]+parameterInitial[9]*std::sqrt(cov[5][5].real()*0.7)<<"  ";
+//           *confInterval<<parameter[9]<<"  ";
+//           *confInterval<<parameter[9]-parameterInitial[9]*std::sqrt(cov[5][5].real()*0.7)<<"  ";
+         
+        
+      }
+      *confInterval<<std::endl;
       }
     }
+  
 
     
     // smallest eigenvalue criterion:
@@ -611,17 +765,20 @@ namespace CoupledField
     createCovA(J1,FALSE);
 
     for (UInt j=0;j<nrMeasuredData;j++){
-      freqs[j]=freqs[j]+dOmega*freqs[j];
-      createCovA(J2,FALSE);
-      for(UInt i=0; i<actNrParameter+actNrParameterC;i++)
-      grad[j]= (J2-J1)* voltage*voltage / (dOmega*freqs[j]) ;
-      freqs[j]=freqsOld[j];
+      if (projGradientFlags[j]==0.0){
+        freqs[j]=freqs[j]+dOmega*freqs[j];
+        createCovA(J2,FALSE);
+        for(UInt i=0; i<actNrParameter+actNrParameterC;i++)
+          grad[j]= (J2-J1)* voltage*voltage / (dOmega*freqs[j]) ;
+        freqs[j]=freqsOld[j];
+      }
+//       else 
+//         std::cout<<" No new gradient entry for frequency " << freqs[j]<<std::endl;
     }
-    //    grad=grad*Complex(1.0e+05,0);
 
-//      std::cout<<"Gradient of J" <<std::endl;
-//      std::cout<<grad <<std::endl;
-//      getchar();
+    for (UInt i=0; i<nrMeasuredData;i++)
+     normGradient+=grad[i].real()*grad[i].real();
+    normGradient=std::sqrt(normGradient);
 
 
   } // end create Gradient

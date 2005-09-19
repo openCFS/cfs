@@ -12,6 +12,9 @@ namespace CoupledField
     std::cout<<"call for optimum experiment desing with variable number of frequencies "<<std::endl;
 
     Boolean firstTime=TRUE;
+    parameterInitial = parameter;
+    residuumParIdentOld = residuumParIdent=0.5;
+
 
     for(UInt optExpVarFreqCout=0; optExpVarFreqCout<15; optExpVarFreqCout++){
 
@@ -256,33 +259,35 @@ namespace CoupledField
      if (writeOutCov==TRUE){
 
        if (actNrParameter==3){      
-         *confInterval<<parameter[1]+parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[1]+parameterInitial[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
          //        std::cout<<parameter[1]+parameter[1]*std::sqrt(cov[1][1].real()*0.115*0.115)<<std::endl;
          *confInterval<<parameter[1]<<"  ";
-         *confInterval<<parameter[1]-parameter[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[1]-parameterInitial[1]*std::sqrt(cov[0][0].real()*0.115*0.115)<<"  ";
          //        std::cout<<parameter[1]-1000.0*std::sqrt(cov[0][0].real()*parameter[1]*0.115*0.115)<<std::endl;
          
          
-         *confInterval<<parameter[7]+parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[7]+parameterInitial[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
          *confInterval<<parameter[7]<<"  ";
-         *confInterval<<parameter[7]-parameter[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[7]-parameterInitial[7]*std::sqrt(cov[1][1].real()*0.115*0.115)<<"  ";
          
          
-         *confInterval<<parameter[9]+parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[9]+parameterInitial[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
          *confInterval<<parameter[9]<<"  ";
-         *confInterval<<parameter[9]-parameter[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
+         *confInterval<<parameter[9]-parameterInitial[9]*std::sqrt(cov[2][2].real()*0.115*0.115)<<"  ";
        }
 
        if (actNrParameter==10)
          for (UInt i=0;i<10;i++){
-           *confInterval<<parameter[i]+parameter[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
+           *confInterval<<parameter[i]+parameterInitial[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
            *confInterval<<parameter[i]<<"  ";
-           *confInterval<<parameter[i]-parameter[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
+           *confInterval<<parameter[i]-parameterInitial[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
          }
 
 
        *confInterval<<std::endl;
      }
+
+      
 
 
 
