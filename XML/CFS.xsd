@@ -166,7 +166,10 @@
     <!-- Make sure that for every region referenced in the PDE section -->
     <!-- a corresponding region has been designated in the domain part -->
     <xsd:keyref name="CS_RegionExists" refer="CS_DomainNamesRegion">
-      <xsd:selector xpath="cfs:pdeList/*/cfs:region"/>
+      <xsd:selector xpath="cfs:pdeList/cfs:acoustic/cfs:region|cfs:pdeList/cfs:electrostatic/cfs:region|cfs:pdeList/cfs:magnetic/cfs:region|cfs:pdeList/cfs:mechanic/cfs:region|cfs:pdeList/cfs:piezo/cfs:region|cfs:pdeList/acoustic/cfs:smooth"/>
+      <!-- Simple selection of all PDEs does not work due to problems -->
+      <!--- with auxilliary MPCCI PDE. What is a region in that case? -->
+      <!--xsd:selector xpath="cfs:pdeList/*/cfs:region"/-->
       <xsd:field xpath="@name"/>
     </xsd:keyref>
 
