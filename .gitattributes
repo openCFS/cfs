@@ -62,6 +62,7 @@ XML/TestParser/Makefile -text
 XML/TestParser/SPHandler.cc svneol=native#text/plain
 XML/TestParser/SPHandler.hh svneol=native#text/plain
 XML/TestParser/TestParser.cc svneol=native#text/plain
+XML/TestParser/tryStuff.cc svneol=native#text/plain
 XML/Tools/SchemaViewer2.zip -text svneol=unset#application/zip
 auxiliary/matlab/PCOLOR.m -text
 auxiliary/matlab/README -text
