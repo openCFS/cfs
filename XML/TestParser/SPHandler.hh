@@ -167,6 +167,17 @@ namespace CoupledField {
 			      const XMLCh *const feature,
 			      bool featureVal,
 			      bool shouldHave );
+
+    //! Method for doing experimental stuff
+    void tryStuff();
+
+    void process( SchemaGrammar *sg );
+    void processAttributes( XMLAttDefList& attList, bool margin = false );
+    void processDatatypeValidator( const DatatypeValidator* dtValidator,
+                                   bool margin = false );
+    void processContentSpecNode( const ContentSpecNode* cSpecNode,
+                                 bool margin = false );
+
   };
 
 }
