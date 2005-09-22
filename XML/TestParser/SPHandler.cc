@@ -9,6 +9,14 @@
 #include <xercesc/parsers/XercesDOMParser.hpp>
 #include <xercesc/util/XMLUni.hpp>
 
+// #include <xercesc/util/NameIdPool.hpp>
+// #include <xercesc/framework/XMLValidator.hpp>
+
+#include <xercesc/validators/schema/SchemaValidator.hpp>
+// #include <xercesc/validators/common/ContentSpecNode.hpp>
+// #include <xercesc/validators/schema/SchemaSymbols.hpp>
+// #include <xercesc/util/OutOfMemoryException.hpp>
+
 // we want to use the Xerces-C++ namespace
 using namespace xercesc;
 
@@ -53,6 +61,8 @@ namespace CoupledField {
     parser_->setDoSchema(true);
     parser_->setValidationSchemaFullChecking(true);
     parser_->setIncludeIgnorableWhitespace(false);
+    parser_->setCreateSchemaInfo(true);
+    parser_->setCreateCommentNodes(false);
 
     // We may separate the schema file from the instance file
     std::string mySchema = "http://www.cfs++.org ";
@@ -116,6 +126,9 @@ namespace CoupledField {
       MYABORT;
     }
     rootelem_ = (DOMElement *)(children->item(0)); 
+
+    // Experimental
+    // tryStuff();
   }
 
 
@@ -237,5 +250,7 @@ namespace CoupledField {
     // the feature
     return supportsFeature;
   }
+
+#include "tryStuff.cc"
 
 }
