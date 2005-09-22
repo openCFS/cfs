@@ -39,6 +39,7 @@ namespace CoupledField {
 
     // We generated assemble object, so we also must delete it
     delete assemble_;
+    delete[] materialData_;
   }
 
 
