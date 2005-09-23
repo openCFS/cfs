@@ -1,181 +1,279 @@
-#ifndef FILE_INTERFACE_AdaptGrid_2002
-#define FILE_INTERFACE_AdaptGrid_2002
+#ifndef FILE_GRID_INTERFACE_ADAPTIVE_2005
+#define FILE_GRID_INTERFACE_ADAPTIVE_2005
 
-#include <DataInOut/filetype.hh>
-#include <Domain/grid.hh>
-
-#include <Domain/GridCFS/grid_cfs.hh>
-
-
-// from Adapt Grid
-#ifdef ADAPTGRID
-#include "Vertex.h"
-#include "Edge.h"
-#include "Element.h"
-#include "Tetrahedron.h"
-#include "Octahedron.h"
-#include "MultilevelGrid.h"
-#include "MeshReader.h"
-#include "TetrahedronMeasure.h"
-#include "MeshWriter.h"
-#endif
+#include "Domain/grid.hh"
+#include "MultilevelGrid.hh"
 
 namespace CoupledField
 {
 
-  class SetRefFlag;
-  class SetRefFlagTest;
+  // Forward class declaration
+  class FileType;
 
-  /// Interface to library Grid by Roberto G.
-  template<Integer dim>
-  class InterfaceAdaptGrid: public Grid
+
+  //! Class for making an interface from base class grid to Adaptive grid
+
+  //! This class serves as a adapter between the base class Grid and
+  //! the implementation GridAdaptive
+  template<UInt DIM> 
+  class GridInterfaceAdaptive: public Grid
   {
   public:
-    //! Constructor with parameter - pointer to FileType for reading initial grid
-    InterfaceAdaptGrid(FileType * const aptFileType);
+    //! Constructor with parameter 
+    GridInterfaceAdaptive(FileType * const aptFileType);
 
-    //! Deconstructor
-    virtual ~InterfaceAdaptGrid();
-
-    //! Get coordinates of node with global number inode
-    virtual void GetCoordinateNode(const Integer inode, const Integer numlevel, Point<dim> & rfPoint);
-
-    //! Get coordinate of all nodes that belong to elem ie
-    virtual void GetCoordNodesElem(const Vector<Integer> connect, Point<dim> * ptCoord, const Integer level);
-
-    //! 
-    virtual void GetCoordNodesElemMat(const Vector<Integer> connect, Matrix<Double>& coordMat, const Integer level);
-
-    //! Get connection of element
-    virtual void GetConnection(Vector<Integer> & connect, const Integer iElem, const Integer level);
-
-    //! return vector of element-neighbors for the element with number noOfElem
-    virtual std::vector<Elem*>* GetNeighboursOfElem(const Integer noOfElem, std::string color);
-
-    //! Return maximum number of nodes
-    virtual Integer GetMaxnumnodes(const Integer numlevel);
- 
-    //! Return maximum number of elements 
-    virtual Integer GetMaxnumElem(const Integer numlevel);
-    //! Return maximum number of elements in subdomains
-    virtual Integer GetMaxnumElem(const Integer numlevel, const std::vector<std::string> & subdoms);
-
-    //! Put information about initial grid in mesh
-    virtual void Read();
-
-    //! update nodes for boundary conditions
-    virtual void UpdateBCs(std::list<Integer> * bcs);
-
-    //! prolongation of solution
-    virtual void ProlongSol(const Vector<Double> sol_coarse, Vector<Double> &sol, const Integer alevel);
-
-    //! return dimension of grid
-    virtual Integer GetDim() { return dim_; }  
+    //! Destructor
+    virtual ~GridInterfaceAdaptive() { if (ptGridAdaptive) delete ptGridAdaptive;}
   
-    //! return vector of elements for this subdomain of grid
-    virtual void GetElemSD(std::vector<Elem*> &, const std::string sd, const Integer level);
+    //! Read in Mesh data
+    void Read() {
+      return;
+      // ptGridAdaptive->Read();
 
-    //! return pointer to vector with all names of subdomains
-    virtual std::vector<std::string> *GetAllSDs();
+      // Transfer region Names to base class
+      //ptGridAdaptive->GetAllRegionNames(regionNames_);
+    }
 
-    //! restore initial coarse mesh
-    //  virtual void ResetToCoarseGrid();
 
-    //! in this function we calculate area of element
-    virtual Double CalcAreaElem(const Elem* elem)
-    { return ptgridcfs_->CalcAreaElem(elem);}
+    // ======================================================
+    // GENERAL GRID INFORMATION
+    // ======================================================
+    //@{ \name General Grid Information
 
-    //! Do refinement of elements, which we mark through function SetRefinementFlag
-    virtual void Refine(const Integer numLoops = 1);
-    virtual void RefineUniform();
+    //! Return dimension of mesh
+    UInt GetDim() {
+      //return ptGridAdaptive->GetDim(); 
+    }
+  
+    //! Return maximum number of nodes
+    UInt GetNumNodes() {
+      //return ptGridAdaptive->GetNumNodes(); 
+    }
+  
+    //! Returns the number of nodes contained in given region
+    UInt GetNumNodes( const StdVector<RegionIdType> & regions ) {
+      //return ptGridAdaptive->GetNumNodes(regions); 
+    }
+  
+    //! Returns the number of nodes in the given nodelist
+    UInt GetNumNodes( const std::string & nodesName ) {
+      //return ptGridAdaptive->GetNumNodes(nodesName);
+    }
 
-    void FormNeighbors4NodesOfElements(const std::vector<Elem*> &elems, std::vector<std::vector<Elem*> > &nodeNeighbors, std::vector<Integer> & map)
-    { ptgridcfs_->FormNeighbors4NodesOfElements(elems, nodeNeighbors,  map);}
+    //! Returns the total number of elements in the grid
+    UInt GetNumElems() {
+      //return ptGridAdaptive->GetNumElems();
+    }
+      
+    //! Return maximum number of volume elements 
+    UInt GetNumVolElems() {
+      //return ptGridAdaptive->GetNumVolElems(); 
+    }
+    //! Return maximum number of surface elements 
+    UInt GetNumSurfElems() {
+      //return ptGridAdaptive->GetNumSurfElems(); 
+    }
+  
+    //! Returns number of element contained in given regions
+    UInt GetNumElems( const StdVector<RegionIdType> & regions ) {
+      //return ptGridAdaptive->GetNumElems(regions);
+    }
+    
+    //! Get vector with all region identifiers
+    void GetRegionIds( StdVector<RegionIdType> & regions ) {
+      //ptGridAdaptive->GetRegionIds(regions); 
+    }
 
-    //!
-    virtual void DefineBelonging4Elems(const std::vector<Elem*>& elemsSurf, const std::vector<Elem*>&elems, std::vector<Elem*> & belongingSE)
-    { ptgridcfs_->DefineBelonging4Elems(elemsSurf,elems,belongingSE);}
+    //! Get vector with all volume region identifiers
+    void GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
+      //ptGridAdaptive->GetVolRegionIds(volRegions); 
+    }
+  
+    //! Get vector with all surface region identifiers
+    void GetSurfRegionIds( StdVector<RegionIdType> & surfRegions ) {
+      //ptGridAdaptive->GetSurfRegionIds(surfRegions);
+    }
+    
+    //! Get list with names of all named nodes
+    void GetListNodeNames( StdVector<std::string> & nodeNames) {
+      //ptGridAdaptive->GetListNodeNames(nodeNames);
+    }
 
-    //!
-    virtual void GetInterfaceNeighbours(std::vector<Integer> & Interface, 
-                                        std::vector<std::string> & subdoms, 
-                                        std::vector<Elem*> & Neighbours,
-                                        Integer level)
-    {  ptgridcfs_->GetInterfaceNeighbours(Interface, subdoms, Neighbours, level);}
+    //! Get list with names of all named elements
+    void GetListElemNames( StdVector<std::string> & elemNames) {
+      //ptGridAdaptive->GetListElemNames(elemNames);
+    }
+    //@}
 
-    //!
-    virtual void CalcNumberOfNodesInPatch(const std::vector<Elem*> & patch,
-                                          std::vector<Integer> & map)
-    { ptgridcfs_->CalcNumberOfNodesInPatch(patch,map);}
+
+    // ======================================================
+    // NODE ACCESS FUNCTIONS
+    // ======================================================
+    //@{ \name Node Access Functions
+
+    //! Get list of nodes by their name
+    void GetNodesByName( StdVector<UInt> & nodeList,
+                         const std::string & name ) {
+      //ptGridAdaptive->GetNodesByName(nodeList, name); 
+    }
+
+    //! Get list of nodes contained in a region
+    void GetNodesByRegion( StdVector<UInt> & nodeList,
+                           const RegionIdType regionId ) {
+      //ptGridAdaptive->GetNodesByRegion(nodeList,regionId);
+    }
+    
+    //! Get coordinates of node with global number inode
+    //! \param rfPoint (output) coordinates of point 2D
+    //! \param inode (input) node number
+    void GetNodeCoordinate( Point<DIM> & rfPoint,
+                            const UInt inode ) {
+      //ptGridAdaptive->GetNodeCoordinate(rfPoint, inode);
+    }
+
+    //! Get coordinates of node with global number inode as vector
+    //! \param rfPoint (output) coordinates of point 2D
+    //! \param inode (input) node number
+    void GetNodeCoordinate( Vector<Double> & rfPoint,
+                            const UInt inode ) {
+      //ptGridAdaptive->GetNodeCoordinate(rfPoint, inode);
+    }
+    //@}
+  
+    // ======================================================
+    // ELEMENT ACCESS FUNCTIONS
+    // ======================================================
+    //@{ \name Element Access Functions
+    
+    
+    //! Get element with given element number
+    const Elem * GetElem( UInt elemNr ) {
+      //return ptGridAdaptive->GetElem(elemNr);
+    }
+
+    //! Get list of elements (surface / volumes)
+    void GetElems( StdVector<Elem*> & elems, 
+                   const RegionIdType regionId ) {
+      //ptGridAdaptive->GetElems(elems, regionId);
+    }
+
+    //! Get list of volume elements
+    void GetVolElems( StdVector<Elem*> & elems, 
+                      const RegionIdType regionId ) {
+      //ptGridAdaptive->GetVolElems(elems, regionId);
+    }
+  
+    //! Get list of surface elements
+    void GetSurfElems( StdVector<SurfElem*> & surfElems, 
+                       const RegionIdType regionId ) {
+      //ptGridAdaptive->GetSurfElems(surfElems, regionId); 
+    }
+
+    //! Get list of elements by their names
+    void GetElemsByName( StdVector<Elem*> & elems,
+                         const std::string & elemsName ) {
+      //ptGridAdaptive->GetElemsByName(elems, elemsName);
+    }
+  
+    //! Get node numbers of given element
+    void GetElemNodes( StdVector<UInt> & connect, 
+                       const UInt iElem ) {
+      //ptGridAdaptive->GetElemNodes(connect, iElem);
+    }
+  
+    //! Get coordinates of element nodes
+    void GetElemNodesCoord( Matrix<Double> & coordMat,  
+                            const StdVector<UInt> & connect ) {
+      //ptGridAdaptive->GetElemNodesCoord(coordMat, connect);
+    }
+  
+    //! Get elements associated with given nodes
+    void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
+                              const StdVector<UInt> & nodeList,
+                              const StdVector<RegionIdType> 
+                              & regionIds ) {
+      //ptGridAdaptive->GetElemsNextToNodes(elemList, nodeList, regionIds);
+    }
+
+    //! Get volume elements lying next to given surface elements
+    void GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
+                                const StdVector<Elem*> & surfElems,
+                                const StdVector<RegionIdType> 
+                                & neighRegions ) {
+      //ptGridAdaptive->GetElemsNextToSurface(neighbours, surfElems, 
+      //                                      neighRegions );
+    }
+    
+    //@}
+
+    // =======================================================================
+    // GEOMETRY CALCULATION
+    // =======================================================================
+    //@{ \name Geometry Calculation
+    
+    
+    //! Returns surface element normal without defined orientation
+
+    void CalcSurfNormal( Vector<Double> & n, 
+                         const Elem & surfElem ) {
+      //ptGridAdaptive->CalcSurfNormal(n, surfElem);
+    }
+    
+    //! Returns surface element normal with defined orientation
+    
+    void CalcSurfNormalOutOfVol( Vector<Double> & n,
+                                 const Elem & surfElem,
+                                 const Elem & volElem ) {
+      //ptGridAdaptive->CalcSurfNormalOutOfVol(n, surfElem, volElem);
+    }
+
+    //! Returns the volume of a given region
+    Double CalcVolumeOfRegion( const RegionIdType regionId, 
+                               Boolean isaxi) {
+      //return ptGridAdaptive->CalcVolumeOfRegion(regionId, isaxi);
+    }
+      
+    //@}
+    
+
+    // ======================================================
+    // MISCELLANEOUS
+    // ======================================================
+    //@{ \name Miscellaneous  
+ 
+
+    //! Returns node numbers of a list of Elements
+    void GetNodesOfElemList( StdVector<UInt> & nodeList,
+                             const StdVector<Elem*> & elemList,
+			     Boolean onlyLinNodes = FALSE) {
+      //ptGridAdaptive->GetNodesOfElemList(nodeList, elemList, onlyLinNodes);
+    }
+    
+  
+  protected:
+
+    void GetAllRegionNames( StdVector<std::string> & regionNames ) {
+      //ptGridAdaptive->GetAllRegionNames(regionNames);
+    }
 
   private:
-
-    //! 
-    FileType * ptFileType;
-       
-    //!
-    GridCFS<dim> * ptgridcfs_;
-
-    //!
-    Integer dim_;
-
-#ifdef ADAPTGRID
-    //!
-    std::vector<grd::Vertex*> vertices_;
-    std::vector<grd::Element*> elements_;
-
-    //!
-    grd::MultilevelGrid grid_;
-    //!
-    grd::ConformingClosure closure_;  
-#endif
-
-    //!
-    void SetVertexNumbers();
-
-    //! transformation from GridRG to CFS-Grid
-    void Trans2CFSGrid(const Integer level=-1);
-
+    grd::MultilevelGrid * ptGridAdaptive;
+    ///
   };
 
-
-  class SetRefFlag
+  template<UInt DIM>
+  inline GridInterfaceAdaptive<DIM>::GridInterfaceAdaptive(FileType * aptFileType)
+    : Grid(aptFileType)
   {
-  public:
+    ENTER_FCN( "GridInterfaceAdaptive<Dim>::GridInterfaceAdaptive<Dim>" );
+    //ptGridAdaptive=new GridAdaptive<DIM>(ptFileType);
+    ptGridAdaptive=new grd::MultilevelGrid;
+  }
 
-    SetRefFlag(){;}
-    ~SetRefFlag(){;}
-
-#ifdef ADAPTGRID
-    void operator() (grd::Element * t)
-    {
-      t->markForRefinement();
-    }
-#endif
-
-  private:
-  };
-
-  class SetRefFlagTest
-  {
-  public:
-
-    SetRefFlagTest(){;}
-    ~SetRefFlagTest(){;}
-
-#ifdef ADAPTGRID
-    void operator() (grd::Element * t)
-    {
-      t->markForRefinement();
-    }
-#endif
-  };
-
-
-#ifdef __GNUC__
-  template class InterfaceAdaptGrid<2>;
-  template class InterfaceAdaptGrid<3>;
+#if defined(__GNUC__) || defined(__sgi)
+  template class GridInterfaceAdaptive<3>;
+  template class GridInterfaceAdaptive<2>;
 #endif
 
 } // end of namespace
-#endif // 
+#endif // FILE_GRID

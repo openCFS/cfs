@@ -21,11 +21,8 @@ gridadaption:
 estimator:
 	@cd $(LIBSRC_DIR)/Estimator; $(MAKE) -f Makefile
 
-toadaptgrid:
-	@cd $(LIBSRC_DIR)/Domain/AdaptGrid; $(MAKE) -f Makefile
-
 adaptgrid:
-	@cd $(AdaptGrid); $(MAKE) -f Makefile
+	@cd $(LIBSRC_DIR)/Domain/AdaptGrid; $(MAKE) -f Makefile
 
 forms:
 	@cd $(LIBSRC_DIR)/Forms; $(MAKE) -f Makefile

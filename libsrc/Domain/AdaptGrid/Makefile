@@ -5,21 +5,25 @@ C_DIR=../../..
 #
 include ../../../main/Makefile.option
 
-ifeq ($(Adaptivity),yes)
-   src = interface_adgrid.cc 
-else
-   src = 
-endif
+
+src = Edge.cc Hexahedron.cc  MeshReader.cc Octahedron.cc  Quadrangle.cc   Triangle.cc \
+	GridLevel.cc  Jacobian.cc    MultilevelGrid.cc  Pyramid.cc     Tetrahedron.cc  Vertex.cc
+
 #
-lib = toadaptgrid
+lib = adaptgrid
 libpath = libsrc/Domain/AdaptGrid
 CFLAGS3 =
 #
+
+
 include ../../makefile.inc
-ifeq ($(Adaptivity),yes)
-  -include $(DEPEND_FILE)
-else
-endif
+
+-include $(DEPEND_FILE)
+
+#ifeq ($(Adaptivity),yes)
+#  -include $(DEPEND_FILE)
+#else
+#endif
 # DO NOT DELETE
 
 
