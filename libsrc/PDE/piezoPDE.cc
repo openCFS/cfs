@@ -864,7 +864,6 @@ namespace CoupledField {
     Vector<Double> LCoord;
       
     StdVector<Elem*> elemssd;
-    UInt counterElems=0;
     Vector<Double> TempE;
     UInt pdeElem;
   
@@ -875,7 +874,7 @@ namespace CoupledField {
         ptgrid_->GetVolElems(elemssd,calcEfield_[isd]);
       
         // loop over elements of subdomain
-        for (UInt iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
+        for (UInt iel=0; iel< elemssd.GetSize(); iel++)
           {
             elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
             FieldOp->CalcElemGradField( TempE, elemssd[iel], LCoord, 1); 
@@ -903,7 +902,6 @@ namespace CoupledField {
  
       
     StdVector<Elem*> elemssd;
-    UInt counterElems=0;
     Vector<Complex> TempE;
     UInt pdeElem;
   
@@ -914,7 +912,7 @@ namespace CoupledField {
         ptgrid_->GetVolElems(elemssd,calcEfield_[isd]);
       
         // loop over elements of subdomain
-        for (UInt iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
+        for (UInt iel=0; iel< elemssd.GetSize(); iel++)
           {
             elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
             FieldOp->CalcElemGradField(TempE, elemssd[iel], LCoord, 1); 
@@ -1015,6 +1013,8 @@ namespace CoupledField {
       delete stress;
 
     }
+//     Info->PrintF(pdename_, " Computed element Stresses:");
+//     Info-> PrintVec(sortedStress);
   }
   
   void PiezoPDE::CalcComplexValuedStress(){
@@ -1336,6 +1336,9 @@ namespace CoupledField {
 
     ShortInt stressDim, elecDim;
     Vector<Double> intPoint;
+
+    std::string analysis;
+    params->Get( "type", analysis, "analysis" );
   
     if (subType_ == "planeStrain") 
       {
@@ -1485,8 +1488,10 @@ namespace CoupledField {
 
     }
     //print to info-file
-    Info->PrintF(pdename_, "Computed surface charge: ");
-    Info->PrintVec(chargeSD);
+    if (analysis!="paramIdent"){
+      Info->PrintF(pdename_, "Computed surface charge: ");
+      Info->PrintVec(chargeSD);
+    }
 
 
   }
