@@ -213,6 +213,9 @@ namespace CoupledField {
     Vector<Double> harmonicVec;
     Double dampTransform = 1.0;
 
+    std::string analysis;
+    params->Get( "type", analysis, "analysis" );
+
     // initialize reassembling "indicator" vector
     if (firstTime_)
       for (UInt actMat=0; actMat < nrMatrices_; actMat++)
@@ -281,13 +284,15 @@ namespace CoupledField {
 
               if ( destMat == STIFFNESS ) {
                 dampTransform = matDataFreq / actFreq_;
-                Info->PrintF( "", " dampTransform for STIFFNESS ... %e\n",
-                              dampTransform );
+                if(analysis != "paramIdent")
+                  Info->PrintF( "", " dampTransform for STIFFNESS ... %e\n",
+                                dampTransform );
               }
               else if ( destMat == MASS ) {
                 dampTransform = actFreq_ / matDataFreq;
-                Info->PrintF( "", " dampTransform for MASS ........ %e\n",
-                              dampTransform );
+                if (analysis != "paramIdent")
+                  Info->PrintF( "", " dampTransform for MASS ........ %e\n",
+                                dampTransform );
               }
             }
 
@@ -1645,7 +1650,7 @@ namespace CoupledField {
         {       
           //    std::cout<<"real_damping"<<std::endl;
           Double factor = actFreq_;
-        
+       
           k=numRow*numCol;
           for (Integer row=0; row<numRow; row++)
             for (Integer col=0; col<numCol; col++) {
