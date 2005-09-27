@@ -109,12 +109,14 @@ namespace CoupledField
   }
 
   template<class TYPE> template<class T2>
-  Matrix<TYPE>::Matrix (const Matrix<T2> &x) {
-    Error("Is not implemented");
+  Matrix<TYPE>::Matrix ( const Matrix<T2> &x ) {
+    (*error) << "The conversion constructor for Matrix<T> is only "
+	     << "implemented for Double -> Complex, yet."
+    Error( __FILE__, __LINE__ );
   }
-  
-  template<>
-  Matrix<Complex>::Matrix (const Matrix<Double> &x) {
+
+  template<> template<>
+  Matrix<Complex>::Matrix<Double> ( const Matrix<Double> &x ) {
     
     // Do conversion
     ENTER_FCN("Matrix::Matrix");
