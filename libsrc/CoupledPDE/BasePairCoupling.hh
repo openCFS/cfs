@@ -33,6 +33,12 @@ namespace CoupledField
 
     //! Trigger calculation of postprocessing results
     virtual void PostProcess() = 0;
+
+    //! Write solutions of postprocessing into gmv/unv ... files
+    virtual void WriteResultsInFile(const UInt kstep,
+                             const Double asteptime,
+                             UInt stepOffset,
+                             Double timeOffse) = 0;
     
     // ======================================================
     // GET / SET METHODS

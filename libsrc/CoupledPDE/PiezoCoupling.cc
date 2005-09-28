@@ -5,6 +5,8 @@
 #include "DataInOut/MaterialData.hh"
 #include "DataInOut/LoadMaterialData.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/writeresults.hh"
 
 // integrator (bi-)linear forms
 #include "Forms/linPiezoCoupling3D.hh"
@@ -17,6 +19,8 @@
 #include "Utils/elemstoresol.hh"
 
 #include "PDE/SinglePDE.hh"
+#include "PDE/StdPDE.hh"
+
 
 namespace CoupledField {
 
@@ -50,8 +54,8 @@ namespace CoupledField {
   // ***************
   void PiezoCoupling::PostProcess() {
     ENTER_FCN( "PiezoCoupling::PostProcess" );
-    //calc charges
 
+    //calc charges
     std::string analysis;
     params->Get( "type", analysis, "analysis" );
     String2Enum(analysis,analysistype_);
@@ -66,17 +70,164 @@ namespace CoupledField {
       }
     }
 
-    
-    if (calcDfield_.GetSize() !=0 ) {
-      if (analysistype_==HARMONIC || analysistype_==MULTIHARMONIC){
-        std::cout<<"PiezoCoupling::PostProces DField -- needs further implementation! "<<std::endl;
-        //        CalcComplexValuedDfie();
-      }
-      else{
-        std::cout<<"PiezoCoupling::PostProces CalcDField -- needs further implementation! "<<std::endl;
-        //        CalcDfield();
-      }
+    // calc stresses
+    if (calcStress_.GetSize() !=0 ) {
+      if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC)
+        CalcComplexValuedStress();
+      else
+        CalcStress();
     }
+
+    
+//     if (calcDfield_.GetSize() !=0 ) {
+//       if (analysistype_==HARMONIC || analysistype_==MULTIHARMONIC){
+//         std::cout<<"PiezoCoupling::PostProces DField -- needs further implementation! "<<std::endl;
+//         //        CalcComplexValuedDfie();
+//       }
+//       else{
+//         std::cout<<"PiezoCoupling::PostProces CalcDField -- needs further implementation! "<<std::endl;
+//         //        CalcDfield();
+//       }
+  }
+  
+
+  void PiezoCoupling::CalcStress(){
+    ENTER_FCN("PiezoCoupling::CalcStress");
+
+    ShortInt  stressDim, elecDim;
+    Vector<Double> intPoint;
+    Vector<Double> LCoord;
+    Vector<Double> TempE;
+    Vector<Double> TempBu;
+    Vector<Double> TempMechStress;
+    Vector<Double> TempDField;
+    
+    if (subType_ == "planeStrain") {
+        stressDim = 3;
+        elecDim   = 2;
+    }
+    
+    else if (subType_ == "axi") {
+      stressDim = 4;
+      elecDim   = 2;
+    }
+    
+    else if (subType_ == "3d") {
+      stressDim = 6;
+      elecDim   = 3;
+    }
+    
+    else 
+      Info->Error("StressOp: Unknown subtype in mech PDE! "
+                  ,__FILE__,__LINE__);  
+  
+    // Retrieve solution from nodeStoreSolution Class
+    BaseNodeStoreSol * solPDE1 = pde1_->getPDESolution();
+    BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
+    //    eqnData_ = pde2_-> getPDE_eqnData(); 
+
+    NodeStoreSol<Double> * solhelp1 = 
+      dynamic_cast<NodeStoreSol<Double>*>(solPDE1);    
+    NodeStoreSol<Double> * solhelp2 = 
+      dynamic_cast<NodeStoreSol<Double>*>(solPDE2);
+
+    // Determines gradient of electric potential, i.e. E=\grad \phi
+    GradientFieldOp<Double> * FieldOp2
+      = new GradientFieldOp<Double>(ptGrid_, pde2_,pde2_->getPDE_eqnData(),
+                                    *solhelp2, ELEC_POTENTIAL, 
+                                    isaxi_);
+    
+    // Determines linear Strain S=Bu, i.e.
+    //  partial derivates of mechanical displacement
+    
+    LinStrainOp<Double> * FieldOp1 
+      = new LinStrainOp<Double>(ptGrid_, pde1_,pde1_->getPDE_eqnData(),
+                                *solhelp1,MECH_DISPLACEMENT, 
+                                isaxi_);
+    
+
+    
+    Vector<Double> elemElecStress, elemStress, sortedStress;
+    elemElecStress.Resize(stressDim);
+    elemStress.Resize(stressDim);
+    TempMechStress.Resize(stressDim);
+    TempDField.Resize(elecDim);
+    elemElecStress.Init(0);
+    elemStress.Init(0);
+    sortedStress.Resize(6);
+    UInt pdeElem;
+
+    Matrix<Double> stiffnessMat;
+    Matrix<Double> piezoCouplingMat; 
+    Matrix<Double> piezoCouplingMatT; 
+    Matrix<Double> permittivityMat;
+    
+
+    if (subType_ == "axi") 
+      isaxi_=TRUE;
+
+    
+    // loop over all subdomains
+    for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
+      
+      Matrix<Double> *matDat=pde1_[isd].getPDEMaterialData()->GetMatrix();
+      calcMaterialMatrices(stiffnessMat, piezoCouplingMat, 
+                           permittivityMat, matDat);   
+
+      piezoCouplingMat.Transpose(piezoCouplingMatT);
+          
+      // get vector of Elements of subdomains
+      StdVector<Elem*> elemssd;     
+      ptGrid_->GetVolElems(elemssd,subdoms_[isd]);
+    
+      // loop over elements of subdomain
+      for (UInt iel=0; iel< elemssd.GetSize(); iel++) {
+
+        // Calc E - field;
+        elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
+
+        FieldOp2->CalcElemGradField( TempE, elemssd[iel], LCoord, 1); 
+
+        pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
+        //        Efield_.SetElemResult(pdeElem-1,TempE);
+
+        // Calc linear Strain:
+        StdVector<UInt> connecth = elemssd[iel]->connect;
+        //get coordinates of element
+        Matrix<Double> Coord;
+
+        pde1_->GetElemCoords(connecth, Coord);
+
+        TempBu.Init();        
+        FieldOp1->CalcElemLinearStrain(TempBu, elemssd[iel], Coord);
+
+        elemStress.Init(0);
+        // c^E S
+        //        stiffnessMat.Mult(TempBu,TempMechStress);
+        TempMechStress = stiffnessMat*TempBu;
+        // e^T E
+        //        piezoCouplingMatT.Mult(TempE,TempDField);
+        TempDField = piezoCouplingMatT*TempE;
+        // \sigma = c^E S - e^T E
+        elemStress = TempMechStress-TempDField;
+
+        pde1_->sortStresses(elemStress,sortedStress);
+        stress_.SetElemResult(pdeElem-1, sortedStress);
+
+      }
+      // Delete integrator again (Stressabbau ;-)
+
+      Info->PrintF(couplingName_, " Computed element Stresses:");
+      Info-> PrintVec(sortedStress);
+      delete FieldOp1;
+      delete FieldOp2;
+
+    }
+  
+  }
+  
+  void PiezoCoupling::CalcComplexValuedStress(){
+    ENTER_FCN("PiezoCoupling::CalcComplexValuedStress");
   }
 
 
@@ -87,8 +238,10 @@ namespace CoupledField {
     BaseNodeStoreSol * solPDE2 = pde2_->getPDESolution();
     eqnData_ = pde2_-> getPDE_eqnData(); 
 
-    NodeStoreSol<Double> * solhelp1 = dynamic_cast<NodeStoreSol<Double>*>(solPDE1);    
-    NodeStoreSol<Double> * solhelp2 = dynamic_cast<NodeStoreSol<Double>*>(solPDE2);
+    NodeStoreSol<Double> * solhelp1 = 
+      dynamic_cast<NodeStoreSol<Double>*>(solPDE1);    
+    NodeStoreSol<Double> * solhelp2 = 
+      dynamic_cast<NodeStoreSol<Double>*>(solPDE2);
     
     // Determines gradient of electric potential, i.e. E=\grad \phi
     GradientFieldOp<Double> * FieldOp2
@@ -122,7 +275,8 @@ namespace CoupledField {
 
     //charge operator  
     ElecChargeOp * chargeOp;
-    chargeOp = new ElecChargeOp(ptGrid_, pde2_, pde2_->getPDE_eqnData(), isaxi_);
+    chargeOp = new ElecChargeOp(ptGrid_, pde2_, pde2_->getPDE_eqnData(), 
+                                isaxi_);
 
     Vector<Double> chargeSD(calcCharge_.GetSize());
     chargeSD.Init(0);
@@ -134,12 +288,15 @@ namespace CoupledField {
     if (subType_ == "axi") 
       isaxi_=TRUE;
 
-    Matrix<Double> *matDat=pde1_->getPDEMaterialData()->GetMatrix();
-    calcMaterialMatrices(stiffnessMat, piezoCouplingMat, permittivityMat, matDat);
 
     // loop over all subdomains
     for (UInt isd=0; isd<calcCharge_.GetSize(); isd++)
       {
+
+        Matrix<Double> *matDat=pde1_[isd].getPDEMaterialData()->GetMatrix();
+        calcMaterialMatrices(stiffnessMat, piezoCouplingMat,
+                             permittivityMat, matDat);
+
         // get surface and according volume elements
         ptGrid_->GetSurfElems( surfElems, calcCharge_[isd] );
 
@@ -209,8 +366,6 @@ namespace CoupledField {
           permittivityMat.Mult(TempE,DField);
           DField+=piezoCouplTimesStrain;
 
-          //pdeElem = pde2_-> getPDE_eqnData()->Mesh2PDEElem(elemssd[iel]->elemNum);
-            
           if(FALSE) // if calc DField:
             Dfield_.SetElemResult(pdeElem-1,DField);
 
@@ -287,7 +442,8 @@ namespace CoupledField {
 
     //charge operator  
     ElecChargeOp * chargeOp;
-    chargeOp = new ElecChargeOp(ptGrid_, pde2_, pde2_->getPDE_eqnData(), isaxi_);
+    chargeOp = new ElecChargeOp(ptGrid_, pde2_, pde2_->getPDE_eqnData(),
+                                isaxi_);
 
     Vector<Complex> chargeSD(calcCharge_.GetSize());
     chargeSD.Init(0);
@@ -315,31 +471,40 @@ namespace CoupledField {
     if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ) {
       // calc real - parts
       matDat=pde1_->getPDEMaterialData()->GetMatrix();
-      calcMaterialMatrices(stiffnessMatD, piezoCouplingMatD, permittivityMatD, matDat);
+      calcMaterialMatrices(stiffnessMatD, piezoCouplingMatD,
+                           permittivityMatD, matDat);
       // calc imag - parts
       matDat=pde1_->getPDEMaterialData()->GetMatrixC();
-      calcMaterialMatrices(stiffnessMatC, piezoCouplingMatC, permittivityMatC, matDat);
+      calcMaterialMatrices(stiffnessMatC, piezoCouplingMatC, 
+                           permittivityMatC, matDat);
       // resize Matrices
-      stiffnessMat.Resize(stiffnessMatD.GetSizeRow(),stiffnessMatD.GetSizeRow());
-      piezoCouplingMat.Resize(piezoCouplingMatD.GetSizeRow(), piezoCouplingMatD.GetSizeCol());
-      permittivityMat.Resize(permittivityMatD.GetSizeRow(),permittivityMatD.GetSizeCol());
+      stiffnessMat.Resize(stiffnessMatD.GetSizeRow(),
+                          stiffnessMatD.GetSizeRow());
+      piezoCouplingMat.Resize(piezoCouplingMatD.GetSizeRow(),
+                              piezoCouplingMatD.GetSizeCol());
+      permittivityMat.Resize(permittivityMatD.GetSizeRow(),
+                             permittivityMatD.GetSizeCol());
 
       // put them together
       for (UInt it=0;it<stiffnessMatC.GetSizeRow();it++)
         for (UInt jt=0;jt<stiffnessMatC.GetSizeRow();jt++){
-          stiffnessMat[it][jt]=Complex(stiffnessMatD[it][jt], stiffnessMatC[it][jt]);
+          stiffnessMat[it][jt]=Complex(stiffnessMatD[it][jt], 
+                                       stiffnessMatC[it][jt]);
           
           if (it<piezoCouplingMatC.GetSizeRow()){
-            piezoCouplingMat[it][jt] = Complex(piezoCouplingMatD[it][jt], piezoCouplingMatC[it][jt]);
+            piezoCouplingMat[it][jt] = Complex(piezoCouplingMatD[it][jt], 
+                                               piezoCouplingMatC[it][jt]);
             if (jt<permittivityMatC.GetSizeRow())
-              permittivityMat[it][jt]=Complex(permittivityMatD[it][jt],permittivityMatC[it][jt]);
+              permittivityMat[it][jt]=Complex(permittivityMatD[it][jt],
+                                              permittivityMatC[it][jt]);
           }
         } // end for jt ...
     } // end if params->HasValue
     
     else { 
       matDat=pde1_->getPDEMaterialData()->GetMatrix();
-      calcMaterialMatrices(stiffnessMatD, piezoCouplingMatD, permittivityMatD, matDat);
+      calcMaterialMatrices(stiffnessMatD, piezoCouplingMatD,
+                           permittivityMatD, matDat);
       
       stiffnessMat=stiffnessMatD;
       piezoCouplingMat = piezoCouplingMatD;
@@ -420,9 +585,7 @@ namespace CoupledField {
           permittivityMat.Mult(TempE,DField);
           DField+=piezoCouplTimesStrain;
 
-          //pdeElem = pde2_-> getPDE_eqnData()->Mesh2PDEElem(elemssd[iel]->elemNum);
-            
-          if(FALSE) // if calc DField:
+               if(FALSE) // if calc DField:
             Dfield_.SetElemResult(pdeElem-1,DField);
         
           ptGrid_->CalcSurfNormal(normal, *surfElems[iel]);
@@ -488,7 +651,8 @@ namespace CoupledField {
     }
   
     else 
-      Info->Error("Piezo DirectCoupling: Unknown subtype in PDE! ",__FILE__,__LINE__);  
+      Info->Error("Piezo DirectCoupling: Unknown subtype in PDE! "
+                  ,__FILE__,__LINE__);  
 
     stiffnessMat.Resize(stressDim,stressDim);
     piezoCouplingMat.Resize(elecDim,stressDim);
@@ -543,14 +707,15 @@ namespace CoupledField {
           tempMat[i][j] = (*matDat)[rowPtr[i]-1][rowPtr[j]-1];
         }
       }
+
       tempMat.GetSubMatrix(stiffnessMat,0,0);
       tempMat.GetSubMatrix(piezoCouplingMat,stressDim,0);
       tempMat.GetSubMatrix(permittivityMat,stressDim,stressDim);
     }
 
     else if (subType_ == "planeStrain"){
-      std::cout<<"PiezoCoupling::calcMaterialMatrices - plane strain ... not yet implemented"<<std::endl;
-    
+      std::cout<<"PiezoCoupling::calcMaterialMatrices:" <<std::endl;
+      std::cout<<"plane strain ... not yet implemented"<<std::endl;
     }
   
 }// end calcMaterialMatrices
@@ -582,7 +747,8 @@ namespace CoupledField {
       assemble_->AddIntegrator( actIntDescrStiff, subdoms_[actSD] );
 
         // check for complex valued material parameter
-      if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ) {
+      if( params->HasValue( "type", "imagMaterialParameter", 
+                            "materialDataType" ) ) {
         matType = IMAGMATERIALPARAMETER; 
 
         BaseForm * bilinearStiffC = GetStiffIntegrator(&materialData_[actSD]);
@@ -592,8 +758,10 @@ namespace CoupledField {
         actComplexIntDescrStiff->SetPiezoMaterialType(matType);
         bilinearStiffC->SetPiezoMaterialType(matType);
         assemble_->AddIntegrator(actComplexIntDescrStiff, subdoms_[actSD]);
+        //        delete actComplexIntDescrStiff;
       }
-      
+      //      delete actIntDescrStiff;      
+
     }
   }
 
@@ -637,6 +805,48 @@ namespace CoupledField {
   }
 
 
+ void PiezoCoupling::WriteResultsInFile( const UInt kstep,
+                                         const Double asteptime,
+                                         UInt stepOffset,
+                                         Double timeOffset ) {
+
+   ENTER_FCN( "PiezoCoupling::WriteResultsInFile" );
+
+
+   ComplexFormat complexFormat_ = AMPLITUDE_PHASE; // or REAL_IMAG
+
+   Double actTime = asteptime + timeOffset;
+   UInt actStep = kstep + stepOffset;
+
+   //!< pointer to output file
+   WriteResults * outFile = pde1_->getPDE_outFile();
+        
+   if (analysistype_ == STATIC || analysistype_==TRANSIENT) {
+
+     if (calcStress_.GetSize() !=0 ) {
+       outFile->WriteElemSolutionTransient(stress_, actStep, actTime);
+     }
+     
+     //element results
+     if (calcCharge_.GetSize() !=0 ) {
+       outFile->WriteElemSolutionTransient(charges_, actStep, actTime);
+     } 
+   }
+   
+   else if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+      
+   //element results
+   if (calcCharge_.GetSize() !=0 ) {
+     outFile->WriteElemSolutionHarmonic(chargesComplex_, actStep,  
+                                        actTime, complexFormat_);
+   }
+   if (calcStress_.GetSize() !=0 ) 
+     outFile->WriteElemSolutionHarmonic(stressComplex_, actStep,
+                                        actTime, complexFormat_);
+   
+   }
+ }
+
   // ********************
   //   ReadStoreResults
   // ********************
@@ -661,10 +871,112 @@ namespace CoupledField {
     // Determine nodal results
     // ***************************** 
     StdVector<std::string> nodeValues;
-    keyVec  = couplingName_, "storeResults", "nodeResults", "region";
+    keyVec  = couplingName_, "storeResults", "elemResults", "region";
     attrVec = "", "", "type";  
   
+        // --- Mechanic Stress ---
+    Enum2String(MECH_STRESS, quantity);
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, regionNames );
+    ptGrid_->RegionNameToId ( calcStress_, regionNames );
     
+    // If the symbolic name is "all" compute stresses for all regions
+    if ( calcStress_.GetSize() == 1 && calcStress_[0] == ALL_REGIONS ) {
+      calcStress_ = subdoms_;
+    }
+    
+    //    Log to info file
+      if ( calcStress_.GetSize() > 0 ) {
+            hasOutput_ = TRUE;
+            Info->PrintF(couplingName_,
+                         "Computing mechanical stress for regions:\n" );
+            for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
+              Info->PrintF( couplingName_, "%s\n", regionNames[k].c_str() );
+            }
+            Info->PrintF( "", "\n" );
+
+            if( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+
+              // Resize solution arrays
+              stressComplex_.SetNumSolutions(1);
+              stressComplex_.SetSolutionType(MECH_STRESS);
+              stressComplex_.SetNumElems(pde1_->getPDE_numElems());
+
+              // We always store for six components
+              // (unverg-file-format as capa does)
+              stressComplex_.SetNumDofs(6);
+
+              // if output is gmv only the three normalstresses are stored
+              if (params->HasValue( "format", "gmv", "output"))
+                stressComplex_.SetNumDofs(3);
+
+              eqnData_ = pde2_-> getPDE_eqnData(); 
+              stressComplex_.SetPtrEQNData(eqnData_, ptGrid_);
+              stressComplex_.Init(0);
+            }
+
+            else {
+
+              // Resize solution arrays
+              stress_.SetNumSolutions(1);
+              stress_.SetSolutionType(MECH_STRESS);
+              stress_.SetNumElems(pde1_->getPDE_numElems());
+
+              // We always store for six components 
+              // (unverg-file-format as capa does)
+              stress_.SetNumDofs(6);
+
+              // if output is gmv only the three normalstresses are stored
+              if (params->HasValue( "format", "gmv", "output"))
+                stress_.SetNumDofs(3);
+
+              eqnData_ = pde2_-> getPDE_eqnData(); 
+              stress_.SetPtrEQNData(eqnData_, ptGrid_);
+              stress_.Init(0);
+
+            }
+          }
+
+    // --- Electric Charges ---
+    // check for charge computation
+    params->GetList( "region", regionNames, couplingName_, "charge" );
+    ptGrid_->RegionNameToId( chargeNeighborRegion_, regionNames );
+
+    params->GetList( "element", regionNames, couplingName_, "charge" );
+    ptGrid_->RegionNameToId( calcCharge_, regionNames );
+
+    
+    if ( calcCharge_.GetSize() > 0 ) {
+      
+      hasOutput_ = TRUE;
+      Info->PrintF( couplingName_, 
+                    "Computing electric charges for regions:\n" );
+      for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
+        Info->PrintF( couplingName_, "%s\n", regionNames[k].c_str() );
+      }
+      Info->PrintF( "", "\n" );
+      
+      // Resize solution arrays
+      if( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+        chargesComplex_.SetNumSolutions(1);
+        chargesComplex_.SetSolutionType(ELEC_CHARGE);
+        chargesComplex_.SetNumElems(pde1_->getPDE_numElems());
+        chargesComplex_.SetNumDofs(1);
+        eqnData_ = pde2_-> getPDE_eqnData(); 
+        chargesComplex_.SetPtrEQNData(eqnData_, ptGrid_);
+        chargesComplex_.Init();
+      }
+      else {
+        charges_.SetNumSolutions(1);
+        charges_.SetSolutionType(ELEC_CHARGE);
+        charges_.SetNumElems(pde2_->getPDE_numElems());
+        charges_.SetNumDofs(1);
+        eqnData_ = pde2_-> getPDE_eqnData(); 
+        charges_.SetPtrEQNData(eqnData_, ptGrid_);
+        charges_.Init();
+      }
+    } 
+
     //  if ( calcDField_.GetSize() > 0 ) {
     //         hasOutput_ = TRUE;
     //         Info->PrintF( couplingName_, "Computing electric field for regions:\n" );
@@ -700,92 +1012,6 @@ namespace CoupledField {
     //           Dfield_.Init(); 
     //         }
     //       }
-
-    // --- Mechanic Stress ---
-    //   Enum2String(MECH_STRESS, quantity);
-    //       valVec  = "", "", quantity;
-    //       params->GetList( keyVec, attrVec, valVec, regionNames );
-    //       ptGrid_->RegionNameToId ( calcStress_, regionNames );
-  
-    //       // If the symbolic name is "all" compute stresses for all regions
-    //       if ( calcStress_.GetSize() == 1 && calcStress_[0] == ALL_REGIONS ) {
-    //         calcStress_ = subdoms_;
-    //       }
-
-    // Log to info file
-    //   if ( calcStress_.GetSize() > 0 ) {
-    //         hasOutput_ = TRUE;
-    //         Info->PrintF(couplingName_,
-    //                      "Computing mechanical stress for regions:\n" );
-    //         for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
-    //           Info->PrintF( couplingName_, "%s\n", regionNames[k].c_str() );
-    //         }
-    //         Info->PrintF( "", "\n" );
-
-    //         if( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
-
-    //           // Resize solution arrays
-    //           stressComplex_.SetNumSolutions(1);
-    //           stressComplex_.SetSolutionType(MECH_STRESS);
-    //           stressComplex_.SetNumElems(pde2_->getPDE_numElems());
-
-    //           // We always store for six components (unverg-file-format as capa does
-    //           stressComplex_.SetNumDofs(6);
-    //           stressComplex_.SetPtrEQNData(eqnData_, ptGrid_);
-    //           stressComplex_.Init(0);
-    //         }
-
-    //         else {
-
-    //           // Resize solution arrays
-    //           stress_.SetNumSolutions(1);
-    //           stress_.SetSolutionType(MECH_STRESS);
-    //           stress_.SetNumElems(pde2_->getPDE_numElems());
-
-    //           // We always store for six components (unverg-file-format as capa does
-    //           stress_.SetNumDofs(6);
-    //           stress_.SetPtrEQNData(eqnData_, ptGrid_);
-    //           stress_.Init(0);
-
-    //         }
-    //       }
-
-    // --- Electric Charges ---
-    // check for charge computation
-    params->GetList( "region", regionNames, couplingName_, "charge" );
-    ptGrid_->RegionNameToId( chargeNeighborRegion_, regionNames );
-
-    params->GetList( "element", regionNames, couplingName_, "charge" );
-    ptGrid_->RegionNameToId( calcCharge_, regionNames );
-
-    
-    if ( calcCharge_.GetSize() > 0 ) {
-      
-      hasOutput_ = TRUE;
-      Info->PrintF( couplingName_, "Computing electric charges for regions:\n" );
-      for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
-        Info->PrintF( couplingName_, "%s\n", regionNames[k].c_str() );
-      }
-      Info->PrintF( "", "\n" );
-      
-      // Resize solution arrays
-      if( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
-        chargesComplex_.SetNumSolutions(1);
-        chargesComplex_.SetSolutionType(ELEC_CHARGE);
-        chargesComplex_.SetNumElems(pde1_->getPDE_numElems());
-        chargesComplex_.SetNumDofs(1);
-        chargesComplex_.SetPtrEQNData(eqnData_, ptGrid_);
-        chargesComplex_.Init();
-      }
-      else {
-        charges_.SetNumSolutions(1);
-        charges_.SetSolutionType(ELEC_CHARGE);
-        charges_.SetNumElems(pde2_->getPDE_numElems());
-        charges_.SetNumDofs(1);
-        charges_.SetPtrEQNData(eqnData_, ptGrid_);
-        charges_.Init();
-      }
-    } 
 
     // *****************************
     // Determine element history
