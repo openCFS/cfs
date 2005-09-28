@@ -303,8 +303,14 @@ namespace CoupledField {
     piezoMaterialType getPDE_piezoMaterialType()
     {return piezoMaterialType_;}
 
+    WriteResults * getPDE_outFile(){return outFile_;};
+
     void setPDE_complexValuedCharge(Vector<Complex> chargeVec)
     {complexValuedCharge_=chargeVec;};
+
+    //!
+    void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);
+    void sortStresses(Vector<Complex>& unsorted, Vector<Complex>& sorted);
 
     //@}
 
@@ -334,9 +340,6 @@ namespace CoupledField {
     //! calculates L2-norm of RHS regarding entries due to penalty formulation
     Double RhsL2Norm(Vector<Double>& stdVec);
 
-    //!
-    void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);
-    void sortStresses(Vector<Complex>& unsorted, Vector<Complex>& sorted);
 
     // ======================================================
     // DATA SECTION
