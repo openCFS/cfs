@@ -4,6 +4,7 @@
 #include "BasePairCoupling.hh"
 #include "Utils/elemstoresol.hh"
 #include "Utils/nodestoresol.hh"
+#include "PDE/SinglePDE.hh"
 
 
 
@@ -13,6 +14,7 @@ namespace CoupledField
   // Forward declarations
   class BaseForm;
   class MaterialData;
+  class SinglePDE;
 
   //! Implements the definition of pairwise piezo-coupling
   class PiezoCoupling : public BasePairCoupling
@@ -33,9 +35,17 @@ namespace CoupledField
                               Matrix<Double>&cMat,
                               Matrix<Double> &pMat,
                               Matrix<Double> *matDat);
+
+    //! write results in file
+    //! \param stepOffset offset for starting (time)step
+    //! \param timeOffset offset for starting time  
+    void WriteResultsInFile(const UInt kstep,
+                             const Double asteptime,
+                             UInt stepOffset,
+                             Double timeOffset);    
     
   protected:
-    
+
     //! Obtain information on desired output quantities from parameter file
     //! This method is used to query the parameter handling object for the
     //! desired output quantities and translate their literal description into
@@ -80,6 +90,13 @@ namespace CoupledField
     
     //! contains mechanic acceleration
     NodeStoreSol<Double> solDeriv2_;
+
+    //! computes stresses, i.e. \sigma = cBu + e \grad \phi
+    void CalcStress();
+
+    //! computes complex valued stresses, 
+    //! i.e. \sigma = cBu + e \grad \phi     
+    void CalcComplexValuedStress();
 
     //! calculate Charges
     void CalcCharges();

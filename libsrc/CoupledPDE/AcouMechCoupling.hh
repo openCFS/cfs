@@ -25,6 +25,11 @@ namespace CoupledField
 
     //! Trigger calculation of postprocessing results
     void PostProcess();
+
+    void WriteResultsInFile(const UInt kstep,
+                            const Double asteptime,
+                            UInt stepOffset,
+                            Double timeOffset);    
     
   protected:
     

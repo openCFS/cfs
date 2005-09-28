@@ -44,6 +44,18 @@ namespace CoupledField {
   }
 
 
+  // ***************
+  //   Output of Results
+  // ***************
+  void AcouMechCoupling::WriteResultsInFile(const UInt kstep,
+                                            const Double asteptime,
+                                            UInt stepOffset,
+                                            Double timeOffset){
+    ENTER_FCN( "AcouMechCoupling::WriteResultsInFile" );
+  }
+
+
+
   // *********************
   //   DefineIntegrators
   // *********************
