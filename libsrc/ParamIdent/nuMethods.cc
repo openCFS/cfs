@@ -17,7 +17,14 @@ namespace CoupledField
     UInt nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+
+    MaterialData * ptMaterial;
+
+    if(directCoupling==TRUE)
+      ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+    else
+      ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
     Double normJacMat, old_res_outer, res_outer, new_res_inner, old_res_inner, new_res_outer, maxres_inner;
@@ -43,8 +50,9 @@ namespace CoupledField
 
       updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
       createF(ptMaterial, F_hat,FALSE);
+
       act_res = y_hat-F_hat;
-      //  std::cout<<"act_res = " <<std::endl;
+//       std::cout<<"act_res = " <<std::endl;
 //       std::cout<<act_res<<std::endl;
 //       std::cout<<"y_hat:"<<std::endl;
 //       std::cout<<y_hat<<std::endl;
@@ -84,7 +92,7 @@ namespace CoupledField
     //  createJacobiMatrix2(JacobiMatrix);
     //std::cout<<JacobiMatrix<<std::endl;
     testJacobiMatrix2(F_hat, JacobiMatrix, parameter, ptMaterial,parameterIncrement, solElecPot, solMechDispl);
-//     std::cout<<approxJacobiMatrix<<std::endl;
+    //    std::cout<<approxJacobiMatrix<<std::endl;
 
 //     for(UInt ii=0;ii<approxJacobiMatrix.GetSizeRow();ii++)
 //       for(UInt jj=0;jj<approxJacobiMatrix.GetSizeCol();jj++){
@@ -297,7 +305,9 @@ namespace CoupledField
     //      stepR[7]=s[0].real();
     //stepR[8]=s[1].real();       
 
-    theta=1.0;
+//     std::cout<<"Parameter update"<<std::endl;
+//     std::cout<<s<<std::endl;
+    theta=10.0;
 
     parameter_old=parameter;
     setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
@@ -378,7 +388,7 @@ namespace CoupledField
       //        *parLog<<"  "<< parameter[i]/parameterIncrement[i];
       //       *parLog<<std::endl;
 
-      if(new_res_outer<=1.0e-9)
+      if(new_res_outer<=1.0e-4)
         getchar();
 
       //       while (new_res_outer>old_res_outer){
@@ -493,7 +503,14 @@ namespace CoupledField
     UInt nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+
+    MaterialData * ptMaterial;
+
+    if(directCoupling==TRUE)
+      ptMaterial= ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+    else
+      ptMaterial= ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+   
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
     updateComplexMaterialData(parameterC, ptMaterial);         //Writes initial guesses of parameterC
 
@@ -541,7 +558,7 @@ namespace CoupledField
       
     // Create the Matrices F, F', F*
     createF(ptMaterial, F_hat,FALSE);
-    createJacobiMatrixC(JacobiMatrix);
+    //    createJacobiMatrixC(JacobiMatrix);
     createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
 
     // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -783,7 +800,12 @@ namespace CoupledField
     UInt nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial;
+      if(directCoupling==TRUE)
+        ptMaterial= ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+      else
+      ptMaterial= ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
     updateComplexMaterialData(parameterC, ptMaterial);         //Writes initial guesses of parameterC
 

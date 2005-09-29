@@ -610,7 +610,7 @@ namespace CoupledField
       updateComplexMaterialData(parameterC, ptMaterial);
 
       // Create the matrices ...
-      createJacobiMatrixC(JacobiMatrix);
+      //      createJacobiMatrixC(JacobiMatrix);
 
       //      std::cout <<"\n NewtonCG4 ... 2 "<<std::endl;
       //       std::cout<<"Jacobi created ..." <<std::endl;

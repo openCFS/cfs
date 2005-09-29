@@ -71,7 +71,7 @@ namespace CoupledField
 
       // Create the Matrices F, F', F*
       createF(ptMaterial, F_hat,FALSE);
-      createJacobiMatrix2(JacobiMatrix);
+      //      createJacobiMatrix2(JacobiMatrix);
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
 
       // TEST MAT_MULT 
@@ -360,7 +360,7 @@ namespace CoupledField
 
       // Create the Matrices F, F', F*
       createF (ptMaterial, F_hat,FALSE);
-      createJacobiMatrixC(JacobiMatrix);
+      //      createJacobiMatrixC(JacobiMatrix);
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
      
 

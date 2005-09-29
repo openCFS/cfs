@@ -25,36 +25,39 @@ namespace CoupledField
 
 
     // optimalExpDesignDiffNumberFreqs();
-  nrMeasuredData=10;
-      Vector<Double> freqs5;
-       freqs5.Resize(10);
-       freqs5[0]=2.0e+06;
-       freqs5[1]=2.5e+06;
-       freqs5[2]=3.0e+06;
-       freqs5[3]=3.25e+06;
-       freqs5[4]=3.6e+06;
-       freqs5[5]=4.7e+06;
-       freqs5[6]=5.0e+06;
-       freqs5[7]=6.0e+06;
-       freqs5[8]=6.5e+06;
-       freqs5[9]=7.0e+06;
-       //      freqs5[10]=7.75e+06;
+   nrMeasuredData=4;
+   Vector<Double> freqs5;
+   freqs5.Resize(4);
+    freqs5[0]=3.0e+06;
+    //        freqs5[1]=2.5e+06;
+    freqs5[1]=3.2e+06;
+//        freqs5[3]=3.25e+06;
+//        freqs5[4]=3.5e+06;
+    freqs5[2]=4.5e+06;
+//        freqs5[6]=3.7e+06;
+//    freqs5[3]=3.4e+06;
+//        freqs5[8]=5.6e+06;
+    freqs5[3]=4.8e+06;
+//        freqs5[10]=6.0e+06;
+    // freqs5[4]=5.5e+06;
+    //    freqs5[6]=7.0e+06;
+//        //      freqs5[10]=7.75e+06;
        freqs=freqs5;
 
-//      nrMeasuredData=10;
-//         Vector<Double> freqs5;
-//         freqs5.Resize(10);
-//         freqs5[0]=0.51e+06;
-//         freqs5[1]=0.6e+06;
-//         freqs5[2]=0.7e+06;
-//         freqs5[3]=0.8e+06;
-//        freqs5[4]=0.85e+06;
-//        freqs5[5]=0.9e+06;
-//        freqs5[6]=1.3e+06;
-//        freqs5[7]=1.4e+06;
-//        freqs5[8]=1.5e+06;
-//        freqs5[9]=1.7e+06;
-//      freqs5[10]=7.75e+06;
+//       nrMeasuredData=10;
+//          Vector<Double> freqs5;
+//          freqs5.Resize(10);
+//          freqs5[0]=0.51e+06;
+//          freqs5[1]=0.6e+06;
+//          freqs5[2]=0.7e+06;
+//          freqs5[3]=0.8e+06;
+//         freqs5[4]=0.85e+06;
+//         freqs5[5]=0.9e+06;
+//         freqs5[6]=1.3e+06;
+//         freqs5[7]=1.4e+06;
+//         freqs5[8]=1.5e+06;
+//         freqs5[9]=1.7e+06;
+//       freqs5[10]=7.75e+06;
 
        //nrMeasuredData=5;
     //Vector<Double> freqs5;
@@ -86,7 +89,12 @@ namespace CoupledField
     calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
 
     //  actNrParameterC=0;
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialData * ptMaterial;
+
+    if(directCoupling==TRUE)
+      ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+    else
+      ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     // Frequency bounds
 
@@ -117,9 +125,11 @@ namespace CoupledField
       normGradient=2.0;
       normGradientOld=1.0;
 
-      descentMethod(functional);
+      //  descentMethod(functional);
 
       readInMeasurement(newFreqs);
+
+      std::cout<<newFreqs<<std::endl;
 
       for(UInt fr=0;fr<nrMeasuredData;fr++)
         *impedCurve<< freqs[fr]<<"  ";
@@ -454,8 +464,9 @@ namespace CoupledField
      data.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
      data=cov;     
 
-//       std::cout<<"cov:"<<std::endl;
-//       std::cout<<cov<<std::endl;
+     std::cout<<"cov:"<<std::endl;
+     std::cout<<cov<<std::endl;
+//      getchar();
 
      invert(cov);
    
@@ -1037,19 +1048,22 @@ namespace CoupledField
     Integer parInd=0;
     jacobi.Resize(actNrParameter+actNrParameterC);
 
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
+    MaterialData * ptMaterial;
+
+    if(directCoupling==TRUE)
+      ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+    else
+      ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    
      for (UInt ind_param=0;ind_param<nrParameter;ind_param++){ 
       if (whichParameterToUpdate[ind_param]==1){
         
         parIncr1[ind_param]=1.001*parameter[ind_param];
-        //        std::cout<<parIncr1<<std::endl;
         updateMaterialData(parIncr1,ptMaterial);
         createFVec(F_hat_incr1,FALSE,omega);
-        // std::cout<<"par="<<ind_param<<" ="<<F_hat_incr1<<std::endl;
         
         parIncr2[ind_param]=0.999*parameter[ind_param];  
-
         updateMaterialData(parIncr2,ptMaterial);
         createFVec(F_hat_incr2,FALSE,omega);
 
@@ -1096,57 +1110,77 @@ namespace CoupledField
                                    Double frequency){
     ENTER_FCN("PiezoParamIdent:createFVec");
     //    std::cout<<"createFVec ...."<<std::endl;
-        
-    ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-    ptAssemble = ptMyPDE_->getPDE_assemble();
-    ptAlgsys = ptMyPDE_->getPDE_algsys();
+      
+
+    if(directCoupling==TRUE){
+      ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+      ptAssemble = ptPDE1_->getPDE_assemble();
+      ptAlgsys = ptPDE1_->getPDE_algsys();    
+
+    }
+    else{
+      ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+      ptAssemble = ptMyPDE_->getPDE_assemble();
+      ptAlgsys = ptMyPDE_->getPDE_algsys();    
+      ptAlgsys->InitMatrix();
+      ptAlgsys->InitRHS();
+    }
+
+      ptAssemble->SetReassemble();
+   
 
     Boolean reset = TRUE;
       
-    ptAlgsys->InitMatrix();
-    ptAssemble->SetReassemble();
-    ptAlgsys->InitRHS();
 
-  
-   
-      ////////////////////////////////////////////////////////
-      //                   SOLVES PDE                      //
-      ///////////////////////////////////////////////////////  
-
-        //      ptMyPDE_->WriteGeneralPDEdefines();   // should not be used, overwrites to much!!    
-
+    ////////////////////////////////////////////////////////
+    //                   SOLVES PDE                      //
+    ///////////////////////////////////////////////////////  
+      
+      //      ptPDE_->WriteGeneralPDEdefines();   // should not be used, overwrites to much!!    
+      
       reset=TRUE;
-      ptMyPDE_->GetSolveStep()->SetActFreq(frequency); 
+      ptPDE_->GetSolveStep()->SetActFreq(frequency); 
       //      std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;
-      ptMyPDE_->GetSolveStep()->SetActStep(0);       
+      ptPDE_->GetSolveStep()->SetActStep(0);       
       //      std::cout<<"\n piezoParam:createF SetActStepHarmonic"<<std::endl;
-      ptMyPDE_->GetSolveStep()->PreStepHarmonic(0); 
-      //      std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;        
-      ptMyPDE_->GetSolveStep()->SolveStepHarmonic(reset);
+      ptPDE_->GetSolveStep()->PreStepHarmonic(0); 
+      //     std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;        
+      ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
       //      std::cout<<"\n piezoParam:createF SolveStepHarmonic"<<std::endl;
-
-      ptMyPDE_->GetSolveStep()->PostStepHarmonic(reset);
+      ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
       //      std::cout<<"\n piezoParam:createF PostStepHarmonic"<<std::endl;
+      ptPDE_->PostProcess();
+//       ptMyPDE_->GetSolveStep()->SetActFreq(frequency); 
+//       //      std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;
+//       ptMyPDE_->GetSolveStep()->SetActStep(0);       
+//       //      std::cout<<"\n piezoParam:createF SetActStepHarmonic"<<std::endl;
+//       ptMyPDE_->GetSolveStep()->PreStepHarmonic(0); 
+//       //      std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;        
+//       ptMyPDE_->GetSolveStep()->SolveStepHarmonic(reset);
+//       //      std::cout<<"\n piezoParam:createF SolveStepHarmonic"<<std::endl;
 
-      ptMyPDE_->PostProcess();
+//       ptMyPDE_->GetSolveStep()->PostStepHarmonic(reset);
+//       //      std::cout<<"\n piezoParam:createF PostStepHarmonic"<<std::endl;
+
+//       ptMyPDE_->PostProcess();
 
 
       //////////////////////////////////////////////////////////
       //Retrieves & stores Solution for further calculations  //
       /////////////////////////////////////////////////////////
 
-        BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
-        NodeStoreSol<Complex> * ptNodeStoreSol;
-        ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
-
-        Vector<Complex> chargeVec =   ptMyPDE_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
+        Vector<Complex> chargeVec;
+        if(directCoupling==TRUE)      
+          chargeVec = ptPDE1_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
+        else
+        chargeVec = ptMyPDE_->getPDE_complexValuedCharge();
 
         Complex charge=Complex(0.0,0.0);
-
          
         for (UInt i=0;i<chargeVec.GetSize();i++){
           charge+=chargeVec[i];
         }
+
         Integer fstep=0;
         Double x=real[fstep]*cos(PI/180*imag[fstep]);
         Double y=real[fstep]*sin(PI/180*imag[fstep]);
@@ -1156,15 +1190,13 @@ namespace CoupledField
         F_hat=(sign*charge*Z)/std::log(Z); // without minus --- classical way ...
         //F_hat=charge;
         //	F_hat[fstep]=-(sign*charge*Z)/std::log(Z); // the "-" became important within the stack
-
-
+    
         if (typeOut==TRUE){
           //      std::cout<<"\nFinished to create F ... here it is:"<<std::endl;
 
             std::cout<<"F(p)="<<F_hat<<"; \t";
           std::cout<<"\n ------------------------------- " <<std::endl;
-      
-          
+               
     }
 
   } // end createF
