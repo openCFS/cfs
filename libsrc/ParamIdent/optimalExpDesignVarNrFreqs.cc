@@ -13,7 +13,7 @@ namespace CoupledField
 
     Boolean firstTime=TRUE;
     parameterInitial = parameter;
-    residuumParIdentOld = residuumParIdent=0.5;
+    residuumParIdentOld = residuumParIdent=14000;
 
 
     for(UInt optExpVarFreqCout=0; optExpVarFreqCout<15; optExpVarFreqCout++){
@@ -58,6 +58,8 @@ namespace CoupledField
       highestFreqs.Resize(nrfreq);
       highestRhos.Resize(nrfreq);
 
+      omegaDiffVec.Resize(nrfreq);
+
       for (UInt i=0;i<nrfreq;i++){
         maxIndex=0;
         highestFreqs[i]=rhos[0];
@@ -71,22 +73,27 @@ namespace CoupledField
         }
         rhos[maxIndex]=0.0;
 
-        Double omegaDiff=highestFreqs[i]-highestFreqs[0];
-
+        Double omegaDiff=nrfreq*hOmega;
+        
         // Get Neighbor of \omega_i
         for(UInt nI=0;nI<highestFreqs.GetSize();nI++){
-          if ((highestFreqs[i]-highestFreqs[nI])<omegaDiff)
-            omegaDiff=highestFreqs[i]-highestFreqs[nI];
-          std::cout<<" omegaDiff = " <<omegaDiff<<std::endl;
+          if (std::abs((highestFreqs[i]-highestFreqs[nI]))<omegaDiff&&(nI!=i))
+            omegaDiff=std::abs(highestFreqs[i]-highestFreqs[nI]);
+    
         }
-        sumRhos+=highestRhos[i]/omegaDiff;
+        //  std::cout<<" omegaDiff = " <<omegaDiff<<std::endl;
+        omegaDiffVec[i]=omegaDiff;
+        sumRhos+=highestRhos[i]*omegaDiff;
+        std::cout<<" - sumRhos = " << sumRhos<<std::endl;
 
-        if (sumRhos>1.15 && i>3){
-          std::cout<<"sumRhos = "<<sumRhos <<std::endl;
+        if ((sumRhos>10.5*hOmega && i>3) || i>=12){
+          //        if (sumRhos>6*hOmega && i>3){
+          std::cout<<"sumRhos = "<<sumRhos <<" ecxeeds 10.5*hOmega = " << 10.5*hOmega << "; hOmega = " << hOmega<< std::endl;
           //          getchar();
           break;
         }
       }
+
              
       Integer howManyFreqs=0;
       for (UInt i=0;i<nrfreq;i++)
@@ -96,7 +103,7 @@ namespace CoupledField
       std::cout<<"howManyFreqs = "<< howManyFreqs<<std::endl;
 
       // sort highestFreqs
-      Double dv,dr;
+      Double dv,dr,dO;
       Integer k, ii;
 
       for (k=0; k<howManyFreqs-1; ++k)
@@ -105,16 +112,24 @@ namespace CoupledField
             {
               dv = highestFreqs[k];
               dr = highestRhos[k];
+              dO = omegaDiffVec[k];
               highestFreqs[k] = highestFreqs[ii];
               highestRhos[k] = highestRhos[ii];
+              omegaDiffVec[k]=omegaDiffVec[ii];
               highestFreqs[ii] = dv;
               highestRhos[ii] = dr;
+              omegaDiffVec[ii]=dO;
             }
 
- //      std::cout<<"highestRhos"<<std::endl;
+   //    std::cout<<"highestRhos"<<std::endl;
 //       std::cout<<highestRhos<<std::endl;
-      std::cout<<"highestFreqs"<<std::endl;
-      std::cout<<highestFreqs<<std::endl;
+      
+//       std::cout<<"highestFreqs"<<std::endl;
+//       std::cout<<highestFreqs<<std::endl;
+
+//       std::cout<<"omegaDiffVec"<<std::endl;
+//       std::cout<<omegaDiffVec<<std::endl;
+
 
       for(UInt i=0; i<highestFreqs.GetSize();i++)
         *optimalFreqs<<highestFreqs[i]<<"  ";
@@ -135,7 +150,8 @@ namespace CoupledField
       calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       newtonCounter=0;
     
-      while (nrNuMethods<maxNumberNewtonLoops){
+      while (nrNuMethods<maxNumberNewtonLoops && residuumParIdent > 0.3*residuumParIdentOld){
+      //      while (nrNuMethods<maxNumberNewtonLoops){
         //    nuMethodsC2();
         nuMethods();
         nrNuMethods++;
@@ -148,8 +164,10 @@ namespace CoupledField
         *parFinal<<"/"<<std::endl;
 
         newtonCounter++;
+
       }
 
+      residuumParIdentOld = residuumParIdent;
       //  nrfreq++;
 
     }
@@ -245,7 +263,10 @@ namespace CoupledField
 
      Matrix<Complex> data;
      data.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
-     data=cov;     
+     data=cov;    
+     std::cout<<"cov:"<<std::endl; 
+     std::cout<<cov<<std::endl;
+     getchar();
      invert(cov);
      Vector<Double> covDiag(actNrParameter+actNrParameterC);
      for (UInt ii=0;ii<actNrParameter+actNrParameterC;ii++)
@@ -283,12 +304,42 @@ namespace CoupledField
            *confInterval<<parameter[i]-parameterInitial[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
          }
 
+       if (actNrParameter==9){
+         for (UInt ii=0;ii<10;ii++){
+           //           if(ii<=1){
+           //             *confInterval<<parameter[ii]+parameterInitial[ii]*sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+           //             *confInterval<<parameter[ii]<<"  ";
+           //             *confInterval<<parameter[ii]-parameterInitial[ii]*sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+           //           }
+           //           else if (ii>2){
+           //             *confInterval<<parameter[ii]+parameterInitial[ii]*sqrt(cov[ii-1][ii-1].real()*2.5*2.5)<<"  ";
+           //             *confInterval<<parameter[ii]<<"  ";
+           //             *confInterval<<parameter[ii]-parameterInitial[ii]*sqrt(cov[ii-1][ii-1].real()*2.5*2.5)<<"  ";
+           
+           if(ii<=1){
+             *confInterval<<parameter[ii]+parameterInitial[ii]*sqrt(cov[ii][ii].real()*0.01)<<"  ";
+             *confInterval<<parameter[ii]<<"  ";
+             *confInterval<<parameter[ii]-parameterInitial[ii]*sqrt(cov[ii][ii].real()*0.01)<<"  ";
+           }
+           else if (ii>2){
+             *confInterval<<parameter[ii]+parameterInitial[ii]*sqrt(cov[ii-1][ii-1].real()*0.01)<<"  ";
+             *confInterval<<parameter[ii]<<"  ";
+             *confInterval<<parameter[ii]-parameterInitial[ii]*sqrt(cov[ii-1][ii-1].real()*0.01)<<"  ";
+             
+           }
+           
+         }
+       }
+       
+       if (actNrParameter==10)
+        for (UInt i=0;i<10;i++){
+          *confInterval<<parameter[i]+parameterInitial[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
+          *confInterval<<parameter[i]<<"  ";
+          *confInterval<<parameter[i]-parameterInitial[i]*std::sqrt(cov[i][i].real()*0.155*0.155)<<"  ";
+        }
 
        *confInterval<<std::endl;
      }
-
-      
-
 
 
 
@@ -348,7 +399,7 @@ namespace CoupledField
     Vector<Double> rhosOld;
     rhosOld.Resize(nrMeasuredData);
     rhosOld=rhos;
-    Double lambda=1.0e-4; // for 10 parameters
+    Double lambda=1.0e-6; // for 10 parameters
     //    Double lambda=1.0e-1; // for 3 parameters
     //    Double lambda=1.0e-2; // for 4 parameters
 

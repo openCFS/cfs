@@ -465,6 +465,8 @@ namespace CoupledField
     
     //  NewtonCG();
     //         NewtonCG2();
+
+
     if (whichNewtonCG==3){
 
 
@@ -498,6 +500,7 @@ namespace CoupledField
       //  }
     }
     else if (whichNewtonCG==4){
+      calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       UInt nNewtonCG =0;
       while (nNewtonCG<200){
         c33history[nNewtonCG] = parameter[1];
@@ -518,6 +521,7 @@ namespace CoupledField
       }
     }
     else if (whichNewtonCG==5){
+      calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       UInt nrNewtonLandweber=0;
       while (nrNewtonLandweber<maxNumberNewtonLoops){
         std::cout<<"\n Nr: "<< nrNewtonLandweber << ", start next Newton Landweber?"<<std::endl;
@@ -533,6 +537,7 @@ namespace CoupledField
     }
 
     else if (whichNewtonCG==6){
+      calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       UInt nrNewtonLandweber=0;
       while (nrNewtonLandweber<maxNumberNewtonLoops){
         std::cout<<"\n Nr: "<< nrNewtonLandweber << ", start next Newton Landweber?"<<std::endl;
@@ -555,6 +560,7 @@ namespace CoupledField
     }
 
     else if (whichNewtonCG==7){
+      calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       UInt nrNuMethods=0;
       newtonCounter=0;
       inner_eta=1.0;
@@ -572,6 +578,7 @@ namespace CoupledField
     }
 
     else if (whichNewtonCG==8){
+      calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       UInt nrNuMethodsC=0;
       newtonCounter=0;
       inner_eta=1.0;
@@ -803,8 +810,9 @@ namespace CoupledField
         Double stepWidth=0.0;
         stepWidth=std::abs(0.5*freqs[std::min(i+1,actNrParameter)]-freqs[std::max((Integer)i-1,1)]);
         stepWidth/=1.0e+06;
-        // wNorm = wNorm+stepWidth*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-        wNorm = wNorm+rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        //wNorm = wNorm+stepWidth*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        wNorm = wNorm + omegaDiffVec[i]*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        //        wNorm = wNorm+rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
         //      getchar();
       }
       

@@ -134,8 +134,8 @@ namespace CoupledField
     void createJRho(Complex &J, Boolean writeOutCov);
 
     //! Not in use in this version
-    void createJacobiMatrix2(Matrix<Complex> & JacobiMatrix);
-    void createJacobiMatrixC(Matrix<Complex> & JacobiMatrix);
+//     void createJacobiMatrix2(Matrix<Complex> & JacobiMatrix);
+//     void createJacobiMatrixC(Matrix<Complex> & JacobiMatrix);
 
     //! Calculates explicitely the Adjoint operator of F'
     void createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix, Matrix<Complex> & adjJacobiMatrix);
@@ -324,11 +324,15 @@ namespace CoupledField
     UInt newtonCounter;
     Double inner_eta;
 
+
+    // optimal experiment design:
     Double residuumParIdent;
     Double residuumParIdentOld;
     Vector<Double> projGradientFlags;
     Double normGradient;
     Double normGradientOld;
+    Vector<Double> omegaDiffVec;
+
 
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;
