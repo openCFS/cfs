@@ -58,6 +58,7 @@ namespace CoupledField
     ~linPiezoInt()
     {
       ENTER_FCN( "linPiezoInt::~linPiezoInt" );
+      delete elemSol_;
     };
 
     //@{
