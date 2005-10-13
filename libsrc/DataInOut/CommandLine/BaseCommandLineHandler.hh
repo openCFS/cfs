@@ -393,11 +393,7 @@ namespace CoupledField {
     //! since this can considerable slow down run-time.
     //! \return FALSE
     Boolean DefaultDoProfile() const {
-#ifdef PROFILING
       return FALSE;
-#else
-      return TRUE;
-#endif
     }
 
     //@}
