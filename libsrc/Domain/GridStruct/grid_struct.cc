@@ -496,6 +496,33 @@ namespace CoupledField
 
 
   template<UInt DIM>
+  UInt GridStruct<DIM>::GetNumElemOfType( FEType type ) {
+
+    ENTER_FCN( "GridStruct::GetNumElemOfType" );
+
+    if( dim_ == 2 ) {
+      if( type == LINE ) {
+        return numSurfElems_;
+      } else if( type == QUAD ) {
+        return numVolElems_;
+      } else {
+        return 0;
+      }
+    } else if ( dim_ == 3) {
+      if( type == QUAD ) {
+        return numSurfElems_;
+      } else if( type == HEX ) {
+        return numVolElems_;
+      } else {
+        return 0;
+      }
+    } else {
+      return 0;
+    }
+  }
+  
+
+  template<UInt DIM>
   void GridStruct<DIM>::SetNamedNodes() {
 
    ENTER_FCN( "GridStruct::SetNamedNodes");

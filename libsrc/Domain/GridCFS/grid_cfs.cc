@@ -22,6 +22,7 @@ namespace CoupledField
     inFile_ = aptFileType;
 
     isInitialized_ = FALSE;
+    isQuadratic_ = FALSE;
     dim_ = 0;
     numNodes_ = 0;
     numElems_ = 0;
@@ -92,6 +93,15 @@ namespace CoupledField
       for ( UInt iElem = 0; iElem < volElems_[iRegion].GetSize();
             iElem++ ) {
         ptVolElem =  volElems_[iRegion][iElem];
+        BaseFE * ptFE = ptVolElem->ptElem;
+
+        // Check, if quadratic elements are in the grid
+        if  ( ptFE->GetNumCorners() < ptFE->GetNumNodes() ) {
+          isQuadratic_ = TRUE;
+        }
+        
+        // Add type of FE to map
+        numElemTypes_[ptFE->feType()]++;
         
         // Check, if element with same number is already contained
         // in the grid
@@ -148,6 +158,13 @@ namespace CoupledField
   // ======================================================
   // GENERAL GRID INFORMATION
   // ======================================================
+
+  template<UInt DIM>
+  UInt GridCFS<DIM>::GetNumElemOfType( FEType type ) {
+    ENTER_FCN( "GridCFS::GetNumElemOfType" );
+    return numElemTypes_[type];
+  }
+
   template<UInt DIM>
   UInt GridCFS<DIM>::GetDim() {
     ENTER_FCN( "GridCFS::GetDim" );
@@ -1065,7 +1082,7 @@ namespace CoupledField
       for (VerI p=le->begin(); p!=le->end(); ++p) {
         Integer index = (*p)->getId();
         index--;
-        if (index >= maxnumnodes) {
+        if ( index >= maxnumnodes ) {
           std::cerr << " ERROR: catastrophic error, index overflow\n "
                     << " The index: " << index << "  the maxnumnodes: "
                     << maxnumnodes << '\n';
