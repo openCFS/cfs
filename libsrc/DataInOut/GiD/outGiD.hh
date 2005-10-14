@@ -115,7 +115,7 @@ namespace CoupledField
     Boolean degen3DElems_;
   };
 
-#endif#ifdef DOXYGEN_DETAILED_DOC
+#ifdef DOXYGEN_DETAILED_DOC
 
   // =========================================================================
   //     Detailed description of the class 
