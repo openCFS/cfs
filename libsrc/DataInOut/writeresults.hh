@@ -182,7 +182,7 @@ namespace CoupledField {
     //! Total number of open history files
     UInt totalNumHistFiles_;
 
-    //@{
+    //@{ 
     // \name Data structures for nodal history
     //! vector with type of output values
     //! for which a history file is written
@@ -206,9 +206,6 @@ namespace CoupledField {
 
     //! pointer to ofstream with history information
     StdVector<StdVector<std::ofstream*> >  histElemFiles_;
-
-    //! indicator: format of output: ascii or binary
-    Boolean ascii_;
 
     //! intialize the management of history files
     virtual void InitHistoryFiles();
