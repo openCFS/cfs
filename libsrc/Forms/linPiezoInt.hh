@@ -33,7 +33,8 @@ namespace CoupledField
 
     //!
     linPiezoInt(): BDBInt(), isDamping_(FALSE), 
-                   actOrientation(yz) ,factorDamp_(1.0) {;}
+                   actOrientation(yz) ,factorDamp_(1.0) {
+      elemSol_ = NULL;}
     
 
     //! Constructor
@@ -58,7 +59,6 @@ namespace CoupledField
     ~linPiezoInt()
     {
       ENTER_FCN( "linPiezoInt::~linPiezoInt" );
-      delete elemSol_;
     };
 
     //@{
@@ -91,11 +91,9 @@ namespace CoupledField
       if(disp.IsComplex())
         //        Matrix<Complex> & elemSolComplex_ = 
         // dynamic_cast <Matrix<Complex>&> (disp);
-        elemSol_ = 
-          new Matrix<Complex> (dynamic_cast<Matrix<Complex>&> (disp));
+        elemSol_ = dynamic_cast<Matrix<Complex>*> (&disp);
       else
-        elemSol_ = 
-          new Matrix<Double> (dynamic_cast<Matrix<Double>&>(disp));
+        elemSol_ = dynamic_cast<Matrix<Double>*>(&disp);
       //     Matrix<Double> & elemSol_ = dynamic_cast <Matrix<Double>&> (disp);
 
 
