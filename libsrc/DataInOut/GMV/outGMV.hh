@@ -80,9 +80,6 @@ namespace CoupledField
     */
     virtual void WriteComments(const std::string comments){;}
 
-    //! check, is it the gmv-output file
-    virtual Boolean IsGMV(){ return TRUE;}
-
     //! function for open file with number num 
     void OpenFile(const Integer num);
 
@@ -142,7 +139,7 @@ namespace CoupledField
       \param var      vector with data
       \param name     name of output-data
     */
-    void WriteNodeVariableTransient(const Vector<Double> var, 
+    void WriteNodeVariableTransient(const Vector<Double> & var, 
                                     const std::string name, 
                                     const UInt dataType);
   
@@ -154,7 +151,7 @@ namespace CoupledField
       \param name name  of output-data
       \param outFormat  format of complex numbers
     */
-    void WriteNodeVariableHarmonic(const Vector<Complex> var, 
+    void WriteNodeVariableHarmonic(const Vector<Complex> & var, 
                                    const std::string name, 
                                    const UInt dataType,
                                    const ComplexFormat outFormat);
