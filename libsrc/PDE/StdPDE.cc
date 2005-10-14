@@ -632,7 +632,7 @@ namespace CoupledField {
     ENTER_FCN( "StdPDE::SortStresses" );
 
     //soring according to capa (unv) notation
-    //our notation is Voit: Txx Tyy Tzz Tyz Txz Txy
+    //our notation is Voigt: Txx Tyy Tzz Tyz Txz Txy
 
     if (subType_ == "3d") {
       //Txx Txy Tyy Txz Tyz Tzz
@@ -670,7 +670,7 @@ namespace CoupledField {
     ENTER_FCN( "StdPDE::SortStresses" );
 
     //soring according to capa (unv) notation
-    //our notation is Voit: Txx Tyy Tzz Tyz Txz Txy
+    //our notation is Voigt: Txx Tyy Tzz Tyz Txz Txy
 
     if (subType_ == "3d") {
 
