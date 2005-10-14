@@ -520,7 +520,7 @@ namespace CoupledField {
   // ******************************
   //   WriteNodeVariableTransient
   // ******************************
-  void WriteResultsGMV::WriteNodeVariableTransient( const Vector<Double> var,
+  void WriteResultsGMV::WriteNodeVariableTransient( const Vector<Double> & var,
                                                     const std::string name,
                                                     const UInt dataType ) {
 
@@ -557,7 +557,7 @@ namespace CoupledField {
   //   WriteNodeVariableHarmonic
   // *****************************
   void WriteResultsGMV::
-  WriteNodeVariableHarmonic( const Vector<Complex> var, 
+  WriteNodeVariableHarmonic( const Vector<Complex> & var, 
                              const std::string name, 
                              const UInt dataType,
                              const ComplexFormat outputFormat ) {
