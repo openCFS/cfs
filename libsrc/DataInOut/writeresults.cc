@@ -21,7 +21,6 @@ namespace CoupledField {
 
     namefile_ = filename;
     NeedHistory_ = FALSE;
-    ascii_= TRUE;
     ptGrid_ = NULL;
     totalNumHistFiles_ = 0;
     
