@@ -15,6 +15,12 @@
 #include "DataInOut/GSI/outGSI.hh"
 #endif
 
+#ifdef GIDPOST
+#include "DataInOut/GiD/outGiD.hh"
+#endif
+
+
+
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
@@ -148,6 +154,11 @@ namespace CoupledField
 #ifdef GSI
     else if ( outformat == "gsi" ) 
       ptWriteResults_= new WriteResultsGSI( simName.c_str() );
+#endif
+
+#ifdef GIDPOST
+    else if ( outformat == "gid" ) 
+      ptWriteResults_= new WriteResultsGiD( simName.c_str() );
 #endif
 
 #ifdef USE_DATABASE
