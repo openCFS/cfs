@@ -57,6 +57,13 @@ namespace CoupledField
     // GENERAL GRID INFORMATION
     // =======================================================================
     //@{ \name General Grid Information
+    
+    //! Return if grid uses quadratic elements
+    Boolean IsQuadratic() {return isQuadratic_; }
+
+    //! Return number of elements of a given type
+    //! \param type Type of finite element (LINE, TRIA, ...)
+    UInt GetNumElemOfType( FEType type );
 
     //! Return dimension of mesh
 
@@ -399,6 +406,9 @@ namespace CoupledField
     //! Total number of elements
     UInt numElems_;
 
+    //! Flag indicating use of quadratic elements
+    Boolean isQuadratic_;
+
     //@}
 
     // =======================================================================
@@ -433,6 +443,8 @@ namespace CoupledField
     //! Vector with elements (surface and volume), ordered by element number
     StdVector<Elem*> orderedElems_;
   
+    //! Map containing number elements of each type
+    std::map<FEType, UInt> numElemTypes_;
     //@}
   
     // =======================================================================

@@ -67,6 +67,13 @@ namespace CoupledField
     // =======================================================================
     //@{ \name General Grid Information
 
+    //! Return if grid uses quadratic elements
+    Boolean IsQuadratic() {return FALSE; }
+
+    //! Return number of elements of a given type
+    //! \param type Type of finite element (LINE, TRIA, ...)
+    UInt GetNumElemOfType( FEType type );
+
     //! Return dimension of mesh
 
     //! Returns the geometrical dimension of the mesh. Currently only

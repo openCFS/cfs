@@ -39,6 +39,17 @@ namespace CoupledField
     // ======================================================
     //@{ \name General Grid Information
 
+    //! Return if grid uses quadratic elements
+    Boolean IsQuadratic() {
+      return ptGridCFS->IsQuadratic();
+    }
+
+    //! Return number of elements of a given type
+    //! \param type Type of finite element (LINE, TRIA, ...)
+    UInt GetNumElemOfType( FEType type ) {
+      return ptGridCFS->GetNumElemOfType( type );
+    }
+
     //! Return dimension of mesh
     UInt GetDim() {
       return ptGridCFS->GetDim(); 
