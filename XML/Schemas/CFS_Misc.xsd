@@ -82,22 +82,11 @@
               <xsd:enumeration value="unv"/>
               <xsd:enumeration value="gmv"/>
               <xsd:enumeration value="gsi"/>
+              <xsd:enumeration value="gid"/>
               <xsd:enumeration value="database"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
-        <xsd:attribute name="type" use="optional" default="ascii">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="ascii"/>
-              <xsd:enumeration value="binary"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-        <xsd:attribute name="fixedGrid" type="DT_CFSBool" use="optional"
-          default="no"/>
-        <xsd:attribute name="noGrid" type="DT_CFSBool" use="optional"
-          default="no"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
@@ -138,6 +127,27 @@
   <!--   Definition of data type for GSI output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputGSI">
+    <xsd:complexContent>
+      <xsd:extension base="DT_OutputBasic">
+        <xsd:sequence>
+          <xsd:element name="binaryFormat" type="DT_CFSBool" minOccurs="0"
+                       maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+ <!-- ******************************************************************** -->
+  <!--   Definition of element GiD output -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="gid" type="DT_OutputGiD"
+       substitutionGroup="OutputBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for GiD output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputGiD">
     <xsd:complexContent>
       <xsd:extension base="DT_OutputBasic">
         <xsd:sequence>
