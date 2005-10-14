@@ -152,6 +152,8 @@ database:
 	@cd $(LIBSRC_DIR)/DataInOut/Database; $(MAKE) -f Makefile
 gsi:
 	@cd $(LIBSRC_DIR)/DataInOut/GSI; $(MAKE) -f Makefile
+gid:
+	@cd $(LIBSRC_DIR)/DataInOut/GiD; $(MAKE) -f Makefile
 utils:
 	@cd $(LIBSRC_DIR)/Utils; $(MAKE) -f Makefile
 matrix:
