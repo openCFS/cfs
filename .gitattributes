@@ -160,6 +160,7 @@ libsrc/DataInOut/GSI/GSIXDRIO.hh svneol=native#text/plain
 libsrc/DataInOut/GSI/Makefile -text
 libsrc/DataInOut/GSI/outGSI.cc svneol=native#text/plain
 libsrc/DataInOut/GSI/outGSI.hh svneol=native#text/plain
+libsrc/DataInOut/GiD/Makefile -text
 libsrc/DataInOut/GiD/outGiD.cc svneol=native#text/plain
 libsrc/DataInOut/GiD/outGiD.hh svneol=native#text/plain
 libsrc/DataInOut/LoadMaterialData.cc svneol=native#text/plain
