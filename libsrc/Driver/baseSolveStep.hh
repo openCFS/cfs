@@ -126,6 +126,11 @@ namespace CoupledField
       actStep_ = actStep;
     }
 
+    //! Set restart time / frequency step
+    virtual void SetStartStep( const UInt startStep ) {
+      startStep_ = startStep;
+    }
+
     //! Return actual time / frequency step
     virtual UInt GetActStep() {
       return actStep_;
@@ -160,6 +165,9 @@ namespace CoupledField
 
     //! Actual time / frequency step
     UInt actStep_;
+
+    //! Start time / frequency step
+    UInt startStep_;
 
     //! Actual time
     Double actTime_;
