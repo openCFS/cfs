@@ -81,6 +81,8 @@
               </xsd:complexContent>
             </xsd:complexType>
           </xsd:element>
+          <xsd:element name="writeRestartInc"
+          type="xsd:nonNegativeInteger" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
         <xsd:attribute name="tag" type="xsd:string" use="optional"
           default="anyTag"/> 
