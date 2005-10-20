@@ -297,6 +297,13 @@ namespace CoupledField {
       if (calcEddy_.GetSize() !=0 ) {
         outFile_->WriteElemSolutionTransient(Jeddy_, actStep, actTime);
       }
+
+      
+      if (calcForceVWP_.GetSize() > 0 )
+        outFile_->WriteNodeSolutionTransient(Force_, 
+                                             actStep, actTime);
+        
+      
     }
 
     else {
@@ -481,6 +488,23 @@ namespace CoupledField {
       Vector<Double> ForceValues(dim_*ForceNodes_.GetSize());
 
       ForceOpVWP_->CalcNodeForce(ForceValues, totalForce);
+
+      // put information into storesol
+
+      UInt actPos =  0;
+      Double sum = 0.0;
+      for (UInt iNode = 0; iNode < ForceNodes_.GetSize(); iNode++) {
+        for (UInt iDof = 0; iDof < dim_; iDof++) {
+          std::cerr << "Value before: " 
+                    << Force_(ForceNodes_[iNode]-1,iDof) << std::endl;
+          std::cerr << "Force(" << ForceNodes_[iNode] << ", " << iDof+1
+                    << ") = " << ForceValues[actPos] << std::endl;
+          Force_(ForceNodes_[iNode]-1,iDof) = ForceValues[actPos++];
+          std::cerr << "Value afterwards: " 
+                    << Force_(ForceNodes_[iNode]-1,iDof) << std::endl;
+        }
+      }
+
 
       // write information in .info-file
       Info->PrintF(pdename_, "Sum of magnetic force (VWM):\n");
@@ -801,6 +825,16 @@ namespace CoupledField {
     if ( calcForceVWP_.GetSize() > 0 ) {
 
       UInt numNodes = 0;
+      
+      // initalize force nodestoresol
+       // intialize corresponding storesolution object
+      Force_.SetNumSolutions(1);
+      Force_.SetNumNodes(numPDENodes_);
+      Force_.SetSolutionType(MAG_FORCE_VWP);
+      Force_.SetNumDofs(dim_);
+      Force_.SetPtrEQNData(eqnData_, ptgrid_); 
+      Force_.Init();
+
 
       // count complete number of nodes
       for ( UInt i=0; i<calcForceVWP_.GetSize(); i++ ) {
