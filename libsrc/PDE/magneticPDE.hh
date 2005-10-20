@@ -126,8 +126,8 @@ namespace CoupledField
     ElemStoreSol<Double> Jeddy_;  //!< conatins eddy currents field
   
     // ---- Electric Force variables ---
-    //!  stores Magnetic force of each element
-    ElemStoreSol<Double> Force_;        
+    //!  stores Magnetic force (VWP) of each element
+    NodeStoreSol<Double> Force_;        
 
     //! vector of vectors conaining Elements with acting force
     StdVector<StdVector<Elem*> > F_Interface_; //!<

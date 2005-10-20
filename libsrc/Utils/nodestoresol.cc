@@ -285,7 +285,6 @@ namespace CoupledField {
     UInt eqnDof;  
     ptEQN_->Node2EQN(node+1,dof+1,eqnNr,eqnDof);
 
-    Warning ("Is this operator ever be used?", __FILE__, __LINE__);
     if (eqnNr > 0)
       return data_[abs(eqnNr-1)+eqnDof-1];
     else
