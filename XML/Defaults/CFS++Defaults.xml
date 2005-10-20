@@ -183,6 +183,15 @@
     <adjustDamping/>
   </harmonic>
 
+   <transient>    
+     <numSteps>        10    </numSteps>       
+     <firstDt>         1e-3 </firstDt>        
+     <stepSaveBeg>     1      </stepSaveBeg>    
+     <stepSaveEnd>     10    </stepSaveEnd>    
+     <stepSaveInc>     1      </stepSaveInc>    
+     <writeRestartInc> 0     </writeRestartInc>
+   </transient>
+
   
   <linearSystems>
     <system name="acoustic">
