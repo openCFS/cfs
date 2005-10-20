@@ -15,6 +15,7 @@ namespace CoupledField
   {
     ENTER_FCN( "IterSolveStep::IterSolveStep" );
     
+    startStep_ = 1;
 
   }
 
@@ -121,8 +122,12 @@ namespace CoupledField
     // In the beginning of each time step
     // the coupling data has to be reseted
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
-      rPDE_.PDEs_[i]->ResetCoupling();
-    
+      {
+        rPDE_.PDEs_[i]->ResetCoupling();
+        rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep_);
+      }
+
+   
     while (iter < rPDE_.maxiter_ &&  (! normsReached))
       {
         if (rPDE_.nonLinLogging_)
