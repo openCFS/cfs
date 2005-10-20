@@ -36,10 +36,22 @@ namespace CoupledField
     //! Query if information is saved
     Boolean IsSet() {return isSet_;};
 
+    //! Set the size of the memento (length of all vectors)
+    void SetSize(UInt size) {size_ = size;};
+
+    friend std::ostream & operator << ( std::ostream & out, const PDEMemento & mem);
+    //std::ostream & operator << ( std::ostream & out);
+
+    friend std::ifstream & operator >> ( std::ifstream & in, PDEMemento & mem );
+    //std::ifstream & operator >> ( std::ifstream & in );
+
   protected:
 
     //! TRUE, if information is saved
     Boolean isSet_;
+
+    //! Set the size of the memento (length of all vectors)
+    UInt size_;
 
     //! Contains analysistype of PDE
     AnalysisType analysisType_;
