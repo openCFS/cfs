@@ -1,5 +1,4 @@
 #include "StdPDE.hh"
-#include "pdememento.hh"
 
 #include "Utils/vector.hh"
 #include "Driver/stdSolveStep.hh"
@@ -8,6 +7,7 @@
 #include "Utils/coordSystem.hh"
 
 // headers for Paramhandling
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 
@@ -181,7 +181,65 @@ namespace CoupledField {
     return actRHS.NormL2();
   }
 
+  void StdPDE::WriteRestart(const UInt nstep) {
 
+    ENTER_FCN( "StdPDE::WriteRestart" );
+
+    if (pdename_=="mechanic")
+      {
+        std::string simName = commandLine->GetSimName();
+        std::string restartFileName_ = simName+"_"+pdename_+".restart";
+        std::ofstream writeTo(restartFileName_.c_str(), std::ios_base::out|std::ios_base::trunc);
+        GetMemento(memento_);
+        writeTo << nstep << std::endl;
+        writeTo << memento_;
+      }
+
+    else 
+      {
+        Error( "Restart functionality only for mechanic tested", __FILE__, __LINE__ );
+      }
+
+  }
+
+  void StdPDE::ReadRestart(UInt &startStep) {
+
+    ENTER_FCN( "StdPDE::ReadRestart" );
+
+    if (pdename_=="mechanic")
+      {
+        std::string simName = commandLine->GetSimName();
+        std::string transFromTo = "standard";
+        Double actFrequency=0.0;
+        char buffer[64];
+
+        std::string restartFileName_ = simName+"_"+pdename_+".restart";
+        std::ifstream readRestart(restartFileName_.c_str(), std::ios_base::in );
+        if (!readRestart) {
+          Error( "Can not find the restart file from which i should read ?!?!", 
+                 __FILE__, __LINE__ );
+        }
+        readRestart.seekg(0, std::ios_base::beg);
+        readRestart.getline( buffer, 64, '\n' );
+        std::sscanf(buffer,"%u", &startStep );
+    
+        UInt rhsSize = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
+
+        memento_.SetSize(rhsSize);
+        memento_.analysisType_ = analysistype_;
+    
+        // Readind the restart file via an overwritten input operator >>
+        readRestart >> memento_;
+        readRestart.close();
+        SetMemento( memento_, transFromTo, actFrequency );
+      }
+
+    else 
+      {
+        Error( "Restart functionality only for mechanic tested", __FILE__, __LINE__ );
+      }
+
+  }
 
   void StdPDE::GetMemento(PDEMemento & memento) {
 

@@ -318,6 +318,22 @@ namespace CoupledField
   }
 
 
+  void IterCoupledPDE::WriteRestart(const UInt nstep) 
+  {
+    ENTER_FCN( "IterCoupledPDE::WriteRestart" );
+
+    for (UInt actPDE=0; actPDE < PDEs_.GetSize()-1; actPDE++)
+      PDEs_[actPDE]->WriteRestart(nstep);
+  }
+
+
+  void IterCoupledPDE::ReadRestart(UInt &startStep) 
+  {
+    ENTER_FCN( "IterCoupledPDE::WriteRestart" );
+    
+    for (UInt actPDE=0; actPDE < PDEs_.GetSize()-1; actPDE++)
+      PDEs_[actPDE]->ReadRestart(startStep);
+  }
 
   // void IterCoupledPDE::SolveStepStatic(const UInt kstep, const Double aTime,
 // 				       const Boolean updatesysmat ) {

@@ -2,6 +2,7 @@
 #define FILE_STDPDE
 #include <fstream>
 #include "PDE/basePDE.hh"
+#include "pdememento.hh"
 
 #include <set>
 
@@ -91,6 +92,12 @@ namespace CoupledField {
     virtual Complex ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
                                    Vector<Complex> disp);
   
+    //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
+    void WriteRestart(const UInt nstep);
+
+    //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
+    void ReadRestart(UInt &startStep);
+
     // ======================================================
     // GET/SET METHODS
     // ======================================================
@@ -541,6 +548,9 @@ namespace CoupledField {
     Boolean isIncrFormulation_;    
     
     
+    //! PDEMemento
+    PDEMemento memento_;
+
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;
 

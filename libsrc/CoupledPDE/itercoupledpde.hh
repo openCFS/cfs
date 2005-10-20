@@ -61,6 +61,13 @@ namespace CoupledField
     //void SolveStepTrans(const UInt kstep, const Double asteptime,
     //                  const Boolean updatesysmat);
   
+    //! write a restart file "simname_pdename.restart"
+    void WriteRestart(const UInt nstep);
+
+
+    //! read a restart file "simname_pdename.restart"
+    void ReadRestart(UInt &startStep);
+
     //! write results in file
     void WriteResultsInFile(const UInt kstep = 0,
                             const Double asteptime = 0.0,
