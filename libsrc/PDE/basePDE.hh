@@ -40,6 +40,12 @@ namespace CoupledField
     virtual BaseSolveStep * GetSolveStep() = 0;
 
 
+    //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
+    virtual void WriteRestart(const UInt nstep) = 0;
+
+    //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
+    virtual void ReadRestart(UInt &startStep) = 0;
+
     // ======================================================
     // POSTPROC SECTION
     // ======================================================
