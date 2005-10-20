@@ -32,6 +32,7 @@ namespace CoupledField {
   private:
     //!
     UInt numstep_,isavebegin_,isaveincr_,isaveend_;
+    UInt restartIncr_;
 
     //!
     Double firstdt_;
