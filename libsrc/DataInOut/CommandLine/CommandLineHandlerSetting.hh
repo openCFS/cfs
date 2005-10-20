@@ -155,6 +155,20 @@ namespace CoupledField {
       return retVal;
     };
 
+    //! Return Restart flag
+
+    //! This method can be used to query the status of the restart flag.
+    //! If this flag is true the simulation restarts from an previous state.
+    Boolean GetRestart() const {
+      ENTER_FCN( "CommandLineHandlerSetting::GetRestart" );
+      Boolean retVal = DefaultRestart();
+      Setting *aux = commandLine_.getSetting( markerRestart_.c_str() );
+      if ( aux != NULL ) {
+        retVal = TRUE;
+      }
+      return retVal;
+    };
+
     //! Return writeSkeleton flag
 
     //! This method can be used to query the status of the writeSkeleton flag.
