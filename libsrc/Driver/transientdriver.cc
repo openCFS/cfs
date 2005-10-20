@@ -2,13 +2,16 @@
 #include <iostream>
 #include <string>
 #include <stdio.h>
+#include <list>
 #include <math.h>
 
 #include "transientdriver.hh"
 #include "stdSolveStep.hh"
 
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "PDE/StdPDE.hh"
+#include "PDE/pdememento.hh"
 #include "Domain/domain.hh"
 
 namespace CoupledField {
@@ -50,6 +53,9 @@ namespace CoupledField {
     keyVec = "transient", "stepSaveInc";
     params->Get(keyVec, attrVec, valVec, isaveincr_);
 
+    keyVec = "transient", "writeRestartInc";
+    params->Get(keyVec, attrVec, valVec, restartIncr_);
+
     // Make consistency check. In fact in the XML case the Schema should catch
     // this error. But one can never be sure.
     if(isavebegin_ <= 0)  {
@@ -78,7 +84,8 @@ namespace CoupledField {
     ENTER_FCN( "TransientDriver::SolveProblem" );
   
     Double  steptime  = firstdt_;
-    UInt stepsave  = isavebegin_;
+    UInt stepsave     = isavebegin_;
+    UInt restartStep  = isavebegin_ + restartIncr_ - 1;
   
     Double  dt = firstdt_;
     Boolean updatesysmat=FALSE;
@@ -104,9 +111,25 @@ namespace CoupledField {
       ptdomain_->PrintGrid();
   
     ptPDE_->WriteGeneralPDEdefines();
+
+    UInt startStep=1, lastStepToRestartFrom=0;
   
+    if ( commandLine->GetRestart() ){
+      ptPDE_->ReadRestart(lastStepToRestartFrom);
+      startStep = lastStepToRestartFrom + 1;
+      ptPDE_->GetSolveStep()->SetStartStep(startStep);
+      steptime=(startStep)*dt;
+      restartStep  = startStep + restartIncr_ - 1;
+      std::cout << myEndl << "Reading a restart file from step " 
+                << lastStepToRestartFrom <<" ********** " << std::endl;      
+    }
+
+    else {
+      ptPDE_->GetSolveStep()->SetStartStep(1);
+    }
+
     UInt nstep;
-    for (nstep = 1; nstep <= numstep_; nstep++) {
+    for (nstep = startStep; nstep <= numstep_; nstep++) {
     
       if ( numstep_ <= 50 )
         Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
@@ -139,6 +162,17 @@ namespace CoupledField {
         ptPDE_->PostProcess();
         ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
         stepsave+=isaveincr_;
+      }
+
+      // writing current PDE-state into the restart-file
+      if (restartIncr_ >= 1){
+        if ( ( nstep == restartStep && (nstep <= isaveend_) ) || (nstep == isaveend_) ) { 
+          std::cout << myEndl << "Write a restart file after step " 
+                    << nstep <<" *********** " << std::endl;      
+
+          ptPDE_->WriteRestart(nstep);
+          restartStep+=restartIncr_;
+        }
       }
     
       steptime+=dt;        
