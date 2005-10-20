@@ -228,6 +228,13 @@ namespace CoupledField {
     //!       during compilation by defining the PROFILING macro.
     virtual Boolean GetDoProfile() const = 0;
 
+
+    //! Return Restart flag
+
+    //! This method can be used to query the status of the restart flag.
+    //! If this flag is true the simulation restarts from an previous state.
+    virtual Boolean GetRestart() const = 0;
+
     //! Return writeSkeleton flag
 
     //! This method can be used to query the status of the writeSkeleton flag.
@@ -271,6 +278,7 @@ namespace CoupledField {
     const static std::string helpSchemaPath_;
     const static std::string helpShowEqnMap_;
     const static std::string helpDoProfile_;
+    const static std::string helpRestart_;
     //@}
 
     //! \name Strings containing short markers for command line parameters
@@ -286,6 +294,7 @@ namespace CoupledField {
     const static std::string markerSchemaPath_;
     const static std::string markerShowEqnMap_;
     const static std::string markerDoProfile_;
+    const static std::string markerRestart_;
     //@}
 
     //! \name Strings containing long markers for command line parameters
@@ -301,6 +310,7 @@ namespace CoupledField {
     const static std::string markerLongSchemaPath_;
     const static std::string markerLongShowEqnMap_;
     const static std::string markerLongDoProfile_;
+    const static std::string markerLongRestart_;
     //@}
 
 
@@ -393,6 +403,14 @@ namespace CoupledField {
     //! since this can considerable slow down run-time.
     //! \return FALSE
     Boolean DefaultDoProfile() const {
+      return FALSE;
+    }
+
+    //! Returns default value for --Restart parameter
+
+    //! This method returns the default value for --Restart parameter.
+    //! \return FALSE
+    Boolean DefaultRestart() const {
       return FALSE;
     }
 

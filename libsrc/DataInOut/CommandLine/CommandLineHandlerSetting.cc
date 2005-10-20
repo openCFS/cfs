@@ -131,6 +131,15 @@ namespace CoupledField {
                   Setting::COMMAND_LINE_ONLY,
                   helpDoProfile_.c_str() ),
 
+      // --doProfile
+      SettingDef( markerRestart_.c_str(),
+                  markerLongRestart_.c_str(),
+                  Setting::FLAG,
+                  1,
+                  1,
+                  Setting::COMMAND_LINE_ONLY,
+                  helpRestart_.c_str() ),
+
       // --help
       // SettingDef( markerHelp_.c_str(),
       //             markerLongHelp_.c_str(),

@@ -48,6 +48,9 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::helpDoProfile_     =
   "turns on generation of profiling information";
 
+  const std::string BaseCommandLineHandler::helpRestart_     =
+  "read restart file";
+
   const std::string BaseCommandLineHandler::helpHelp_          =
   "print this usage information";
 
@@ -61,6 +64,7 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::markerSchemaPath_    = "-s";
   const std::string BaseCommandLineHandler::markerShowEqnMap_    = "-e";
   const std::string BaseCommandLineHandler::markerDoProfile_     = "-d";
+  const std::string BaseCommandLineHandler::markerRestart_       = "-r";
 
   // Long forms of markers
   const std::string BaseCommandLineHandler::markerLongParamFile_     =
@@ -81,6 +85,8 @@ namespace CoupledField {
   "--showEqnMap";
   const std::string BaseCommandLineHandler::markerLongDoProfile_     =
   "--doProfile";
+  const std::string BaseCommandLineHandler::markerLongRestart_     =
+  "--restart";
 
 
   // ---------------------------------------------------------------
@@ -158,6 +164,13 @@ namespace CoupledField {
        << '\n'
        << " " << helpDoProfile_ << "\n\n"
 
+      // --Restart
+       << " " << COLOR_INIT
+       << markerRestart_ << ", " << markerLongRestart_
+       << COLOR_STOP
+       << '\n'
+       << " " << helpRestart_ << "\n\n"
+
       // --help
        << " " << COLOR_INIT
        << markerHelp_ << ", " << markerLongHelp_
@@ -229,6 +242,12 @@ namespace CoupledField {
         << colorInit
         << std::boolalpha
         << ( GetDoProfile() == TRUE )
+        << colorStop << '\n'
+
+        << ' ' << markerLongRestart_ << " = "
+        << colorInit
+        << std::boolalpha
+        << ( GetRestart() == TRUE )
         << colorStop << '\n'
 
         << ' ' << markerLongWriteSkeleton_ << " = "
