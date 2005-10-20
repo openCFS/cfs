@@ -52,6 +52,8 @@ namespace CoupledField {
     pdeId1_   = NO_PDE_ID;
     pdeId2_   = NO_PDE_ID;
     numReset_ = 0;
+
+    startStep_ = 1;
   }
 
   
@@ -186,7 +188,7 @@ namespace CoupledField {
       PDE_.TS_alg_->Predictor(solHelp);
     }
 
-    if ( actStep_ == 1) {
+    if ( actStep_ == 1 || actStep_ == startStep_) {
       job = 3;
       // why is the first statement checking for 'pdeIsCoupled'?
       if ( PDE_.isIterCoupled_ == FALSE || PDE_.iterCoupledCounter_ == 0 
