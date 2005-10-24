@@ -70,6 +70,7 @@ INPUT                  = ../Doc/DoxygenConfig/mainpage.txt \
                          ../libsrc/DataInOut/DefineFiles \
                          ../libsrc/DataInOut/GMV \
                          ../libsrc/DataInOut/GSI \
+                         ../libsrc/DataInOut/GiD \
                          ../libsrc/DataInOut/ParamHandling \
                          ../libsrc/DataInOut/CommandLine \
                          ../libsrc/DataInOut/Unverg \
