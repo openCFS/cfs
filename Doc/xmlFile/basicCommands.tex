@@ -98,12 +98,13 @@ additional parameters have to be used:
 
 \begin{verbatim}
 <transient>
-   <numSteps>    20   </numSteps>
-   <firstDt>     5e-5 </firstDt>
-   <stepSaveBeg> 1    </stepSaveBeg>
-   <stepSaveEnd> 20   </stepSaveEnd>
-   <stepSaveInc> 1    </stepSaveInc>
+   <numSteps>    20    </numSteps>
+   <firstDt>     5e-5  </firstDt>
+   <stepSaveBeg> 1     </stepSaveBeg>
+   <stepSaveEnd> 20    </stepSaveEnd>
+   <stepSaveInc> 1     </stepSaveInc>
    <timeDataFile name="sin1kHz.dat"/>
+   <writeRestartInc> 5 </writeRestartInc>
 </transient>
 \end{verbatim}
 
@@ -115,7 +116,9 @@ $\circ$ & {\bf firstDt }    &  time step size\\
 $\circ$ & {\bf stepSaveBeg}  &  number of first step for saving results\\
 $\circ$ & {\bf stepSaveEnd}  &  number of last step for saving results\\
 $\circ$ & {\bf stepSaveIncr} & increment in steps for saving results\\
-$\circ$ & {\bf timeDataFile} & file which holds the varying time values
+$\circ$ & {\bf timeDataFile} & file which holds the varying time values\\
+$\circ$ & {\bf writeRestartInc} & step increment for writing a restart
+file (currently only for mechanic PDE)
 \end{tabular}
 \bigskip
 
@@ -192,7 +195,7 @@ sampling & linear & in this case a linear sampling of the interval
                     \left(\frac{f_N}{f_1}\right)^{\frac{1}{N-1}}
                     - 1 \right] \cdot f_k
                     \end{displaymath}
-	            and corresponds to a linear sampling of the transformed
+                    and corresponds to a linear sampling of the transformed
                     interval $[\log_{10}(f_1),\log_{10}(f_N)]$.\\[1ex]
          & reverseLog & in this case a reverse logarithmic sampling of the
                         interval $[f_1,f_N]$ is performed, i.e.
