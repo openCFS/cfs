@@ -272,7 +272,8 @@ void MpCCIexch::DefMpcciPartition(UInt meshId, UInt partId)
   CCI_Def_partition(meshId, partId);
 }
 
-void MpCCIexch::DefMpcciNodes(UInt meshId, UInt partId, UInt nrNodesSD, UInt* nodeIds,  NodeEQN & eqnData)
+void MpCCIexch::DefMpcciNodes(UInt meshId, UInt partId, UInt nrNodesSD, 
+                              UInt* nodeIds,  NodeEQN & eqnData)
 {
   ENTER_FCN( "MpCCIexch::DefMpcciNodes" );
 
@@ -691,8 +692,8 @@ void MpCCIexch::GetNodalValOfOnePartition(UInt partId, Vector<Double> & forceDat
 	}
       if (value_force_pa)    delete []  value_force_pa;
       if (value_force_taua)  delete []  value_force_taua;
-      if (value_force_pb)    delete []  value_force_pa;
-      if (value_force_taub)  delete []  value_force_taua;
+      if (value_force_pb)    delete []  value_force_pb;
+      if (value_force_taub)  delete []  value_force_taub;
     }
 
 
