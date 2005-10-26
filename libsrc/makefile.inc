@@ -9,10 +9,10 @@ endif
 
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 #
-ifeq ($(MpCCI),yes)
-  CC=/opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/bin/cciCC
+#ifeq ($(MpCCI),yes)
+#  CC=/opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/bin/cciCC
 #  CFLAGSMpCCI = -DMpCCI
-endif
+#endif
 
 ARFLAGS = r 
 #
