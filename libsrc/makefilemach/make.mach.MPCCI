@@ -18,7 +18,7 @@ ARCH = LINUX
 # Which program do we use for compiling, linking, etc.
 # -----------------------------------------------------------------------------
 
-CC     = /opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/bin/cciCC
+CC     = $(CCI_HOME)/bin/cciCC
 AR     = ar
 LINK   = $(CC)
 MAKE   = make
@@ -71,8 +71,8 @@ BLASLAPACK =
 endif
 endif
 
-LIBDIR_MPCCI = -L/opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/lib
-LIBDIR_MPICH = -L/opt/mpich-1.2.5.2/lib
+LIBDIR_MPCCI = -L$(CCI_HOME)/lib
+LIBDIR_MPICH = -L$(MPIROOTDIR)/lib
 
 # -----------------------------------------------------------------------------
 # LINKING
