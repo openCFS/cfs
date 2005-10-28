@@ -123,9 +123,11 @@
           <xsd:enumeration value="MG"/>
           <xsd:enumeration value="Jacobi"/>
           <xsd:enumeration value="SSOR"/>
+          <xsd:enumeration value="IC0"/>
           <xsd:enumeration value="ILU0"/>
           <xsd:enumeration value="ILUK"/>
           <xsd:enumeration value="ILDLK"/>
+          <xsd:enumeration value="ILDL0"/>
           <!--xsd:enumeration value="ILDLTP"/-->
           <!--xsd:enumeration value="ILDLCN"/-->
           <xsd:enumeration value="hypreJacobi"/>

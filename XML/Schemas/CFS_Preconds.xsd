@@ -243,10 +243,28 @@
   <!-- ==                                                                == -->
   <!-- ==================================================================== -->
 
+  <!-- ******************************************************************** -->
+  <!-- Definition of elements for OLAS_IC Preconditioners -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="IC0" type="DT_PrecondIC0"
+    substitutionGroup="PrecondBasic"/>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data types for OLAS_IC0 Preconditioners -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondIC0">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 
   <!-- ******************************************************************** -->
   <!-- Definition of elements for OLAS_ILDL Preconditioners -->
   <!-- ******************************************************************** -->
+  <xsd:element name="ILDL0" type="DT_PrecondILDL0"
+    substitutionGroup="PrecondBasic"/>
   <xsd:element name="ILDLK" type="DT_PrecondILDLK"
     substitutionGroup="PrecondBasic"/>
   <xsd:element name="ILDLTP" type="DT_PrecondILDLTP"
@@ -258,6 +276,19 @@
   <!-- ******************************************************************** -->
   <!--   Definition of data types for OLAS_ILDL Preconditioners -->
   <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_PrecondILDL0">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PrecondBasic">
+        <xsd:sequence>
+          <xsd:element name="saveFacFile"     type="xsd:token"  minOccurs="0"/>
+          <xsd:element name="savePatternOnly" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging"                           minOccurs="0">
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
   <xsd:complexType name="DT_PrecondILDLK">
     <xsd:complexContent>
       <xsd:extension base="DT_PrecondBasic">
