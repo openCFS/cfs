@@ -603,6 +603,7 @@ namespace CoupledField {
     case NOPRECOND:
     case JACOBI:
     case ILU0:
+    case IC0:
     case HYPRE_JACOBI:
       break;
 
