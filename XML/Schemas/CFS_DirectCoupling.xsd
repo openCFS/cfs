@@ -116,18 +116,22 @@
   <!--   Definition of Post Processing Results -->
   <!-- ******************************************************************* -->
 
+  <!-- Piezo - Case -->
+  <!-- Global type for specifying the desired  output quantities -->
   <xsd:complexType name="DT_PiezoDirectStoreResults">
     <xsd:sequence>
-      <xsd:element name="nodeResults" type="DT_NodeResultsElec" minOccurs="0"
+      <xsd:element name="nodeResults" type="DT_NodeResultsPiezo" minOccurs="0"
         maxOccurs="unbounded"/>
-      <xsd:element name="nodeHistory" type="DT_NodeHistoryElec" minOccurs="0"
+      <xsd:element name="nodeHistory" type="DT_NodeHistoryPiezo" minOccurs="0"
         maxOccurs="unbounded"/>
-      <xsd:element name="elemResults" type="DT_ElemResultsElec" minOccurs="0"
+      <xsd:element name="elemResults" type="DT_ElemResultsPiezo" minOccurs="0"
         maxOccurs="unbounded"/>
-      <xsd:element name="elemHistory" type="DT_ElemHistoryElec" minOccurs="0"
+      <xsd:element name="elemHistory" type="DT_ElemHistoryPiezo" minOccurs="0"
         maxOccurs="unbounded"/>
       <xsd:element name="charge" type="DT_ChargePiezo" minOccurs="0"
         maxOccurs="unbounded"/>
+      <xsd:element name="volumeAboveDefSurf" type="DT_SurfVolumePiezo"
+        minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
 
