@@ -303,9 +303,10 @@
   </xsd:simpleType>
 
   <!-- What data can a single element have in an acoustic PDE -->  
-  <xsd:simpleType name="DT_AcousticElementData">
+  <xsd:simpleType name="DT_AcousticElemData">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouForce"/>
+      <xsd:enumeration value="acouPressure"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -339,18 +340,24 @@
     <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
     <xsd:attribute name="file" type="xsd:token" use="required"/>
   </xsd:complexType>
+
+  <!-- Data type for describing final element values to be stored -->
+  <xsd:complexType name="DT_AcousticElemResults">
+    <xsd:attribute name="type" type="DT_AcousticElemData" use="required"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
   
   <!-- Data type for describing history of element values to be stored -->
-  <xsd:complexType name="DT_AcousticElementHistory">
-    <xsd:attribute name="type" type="DT_AcousticElementData" use="required"/>
+  <xsd:complexType name="DT_AcousticElemHistory">
+    <xsd:attribute name="type" type="DT_AcousticElemData" use="required"/>
     <xsd:attribute name="saveElems" type="xsd:token" use="optional"
       default=""/>
     <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
       default=""/>
   </xsd:complexType>  
 
-
-  <!-- Global type for specifying the desired mechanical output quantities -->
+  <!-- Global type for specifying the desired acoustic output quantities -->
   <xsd:complexType name="DT_AcousticStoreResults">
     <xsd:sequence>
       <xsd:element name="nodeResults" type="DT_AcousticNodeResults"
@@ -359,7 +366,9 @@
         minOccurs="0" maxOccurs="unbounded"/>
       <xsd:element name="specialNodes" type="DT_AcousticSpecialNodes"
         minOccurs="0" maxOccurs="unbounded"/>
-      <xsd:element name="elemHistory" type="DT_AcousticElementHistory"
+      <xsd:element name="elemResults" type="DT_AcousticElemResults"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="elemHistory" type="DT_AcousticElemHistory"
         minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
