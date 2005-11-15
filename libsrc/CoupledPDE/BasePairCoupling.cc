@@ -257,7 +257,7 @@ namespace CoupledField {
   void BasePairCoupling::SetReassemble() {
     ENTER_FCN( "BasePairCoupling::SetReassemble" );
     assemble_->SetReassemble();
-  };
+  }
 
   PdeIdType BasePairCoupling::GetPdeId1() {
     ENTER_FCN( "BasePairCoupling::GetPdeId1" );
