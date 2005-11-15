@@ -1203,12 +1203,16 @@ node results in acoustic potential.", __FILE__,__LINE__);
         for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
-        solDeriv1_.SetNumSolutions(1);
-        solDeriv1_.SetNumNodes(numPDENodes_);
-        solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
-        solDeriv1_.SetNumDofs(1);
-        solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_); 
-        solDeriv1_.Init(0);
+        // Check if solDeriv_1 was already set by the previous nodal
+        // output check
+        if( saveDeriv1_ != TRUE ) {
+          solDeriv1_.SetNumSolutions(1);
+          solDeriv1_.SetNumNodes(numPDENodes_);
+          solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
+          solDeriv1_.SetNumDofs(1);
+          solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_); 
+          solDeriv1_.Init(0);
+        }
       }
 
       // --- acoustic potential, 2. Deriv ---
@@ -1223,12 +1227,16 @@ node results in acoustic potential.", __FILE__,__LINE__);
         for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
-        solDeriv2_.SetNumSolutions(1);
-        solDeriv2_.SetNumNodes(numPDENodes_);
-        solDeriv2_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
-        solDeriv2_.SetNumDofs(1);
-        solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_); 
-        solDeriv2_.Init(0);
+        // Check if solDeriv_2 was already set by the previous nodal
+        // output check
+        if( saveDeriv2_ != TRUE ) {
+          solDeriv2_.SetNumSolutions(1);
+          solDeriv2_.SetNumNodes(numPDENodes_);
+          solDeriv2_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
+          solDeriv2_.SetNumDofs(1);
+          solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_); 
+          solDeriv2_.Init(0);
+        }
       }
     }
 

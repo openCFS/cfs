@@ -1028,9 +1028,6 @@ namespace CoupledField
           {
             solDeriv1_.SetAlgSysVector(getS1());
             outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
-          
-            if (saveDeriv1Hist_ == TRUE)
-              outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
           }
       
         if (saveDeriv2_ == TRUE)
@@ -1075,23 +1072,23 @@ namespace CoupledField
     if (analysistype_ == STATIC ||
         analysistype_ == TRANSIENT) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-    
+      
       if (saveSolHist_ == TRUE)
         outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
-    
-      if (analysistype_== TRANSIENT) {
-        if (saveDeriv1_ == TRUE) {
-          if (saveDeriv1Hist_ == TRUE)
-            outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
-        }
       
-        if (saveDeriv2_ == TRUE) {
-          if (saveDeriv2Hist_ == TRUE) {
-            outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
-          }
+      if (analysistype_== TRANSIENT) {
+        if (saveDeriv1Hist_ == TRUE) {
+          solDeriv1_.SetAlgSysVector(getS1());
+          outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
         }
       }
+      
+      if (saveDeriv2Hist_ == TRUE) {
+        solDeriv2_.SetAlgSysVector(getS2());
+        outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
+      }
     }
+    
     else if (analysistype_ == HARMONIC) {
       solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
@@ -1252,6 +1249,16 @@ namespace CoupledField
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
+      // Check if solDeriv_1 was already set by the previous nodal
+      // output check
+      if ( saveDeriv1_ != TRUE ) {   
+        solDeriv1_.SetNumSolutions(1);
+        solDeriv1_.SetNumNodes(numPDENodes_);
+        solDeriv1_.SetSolutionType(MECH_VELOCITY);
+        solDeriv1_.SetNumDofs(dim_);
+        solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_); 
+        solDeriv1_.Init();
+      }
     }
 
     // --- mechAcceleration ---
@@ -1260,11 +1267,22 @@ namespace CoupledField
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
     if (saveNodeHist.GetSize() > 0) {
-      saveDeriv1Hist_ = TRUE;
+      saveDeriv2Hist_ = TRUE;
       hasOutput_ = TRUE;
       Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
+      }
+
+      // Check if solDeriv_1 was already set by the previous nodal
+      // output check
+      if ( saveDeriv2_ != TRUE ) {
+        solDeriv2_.SetNumSolutions(1);
+        solDeriv2_.SetNumNodes(numPDENodes_);
+        solDeriv2_.SetSolutionType(MECH_ACCELERATION);
+        solDeriv2_.SetNumDofs(dim_);
+        solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_);
+        solDeriv2_.Init();
       }
     }
 

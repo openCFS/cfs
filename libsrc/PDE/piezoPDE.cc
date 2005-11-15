@@ -773,6 +773,15 @@ namespace CoupledField {
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
+
+      if ( saveDeriv1_ != TRUE ) {
+      solDeriv1_.SetNumSolutions(1);
+      solDeriv1_.SetNumNodes(numPDENodes_);
+      solDeriv1_.SetSolutionType(MECH_VELOCITY);
+      solDeriv1_.SetNumDofs(dofspernode_);
+      solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_);
+      solDeriv1_.Init();
+      }
     }
 
     // --- mechAcceleration ---
@@ -781,11 +790,20 @@ namespace CoupledField {
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
     if (saveNodeHist.GetSize() > 0) {
-      saveDeriv1Hist_ = TRUE;
+      saveDeriv2Hist_ = TRUE;
       hasOutput_ = TRUE;
       Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
+      }
+      
+      if (saveDeriv2_ != TRUE ) {
+        solDeriv2_.SetNumSolutions(1);
+        solDeriv2_.SetNumNodes(numPDENodes_);
+        solDeriv2_.SetSolutionType(MECH_ACCELERATION);
+        solDeriv2_.SetNumDofs(dofspernode_);
+        solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_);
+        solDeriv2_.Init();
       }
     } 
 
