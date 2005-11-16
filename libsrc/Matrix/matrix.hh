@@ -236,13 +236,17 @@ namespace CoupledField
     void Mult(const CFSVector & mvec, CFSVector & rvec) const;
 
 
-    //! Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
-    //! where the matrix is supposed to be of type Double, rvec and mvec are complex valued
-    void MatVecMult_DC(const Vector<Complex> & mvec, Vector<Complex> & rvec) const;
+    //! Perform a matrix(Double)-vector(Complex) multiplication 
+    //! rvec = this*mvec where the matrix is supposed to be of
+    //! type Double, rvec and mvec are complex valued
+    void MatVecMult_DC(const Vector<Complex> & mvec, 
+                       Vector<Complex> & rvec) const;
 
-    //! Perform a matrix(Complex)-vector(Double) multiplication rvec = this*mvec
-    //! where the matrix is supposed to be of type Complex as well as rvec; mvec is of type Double
-    void MatVecMult_CD(const Vector<Double> & mvec, Vector<Complex> & rvec) const;
+    //! Perform a matrix(Complex)-vector(Double) multiplication
+    //! rvec = this*mvec where the matrix is supposed to be of
+    //! type Complex as well as rvec; mvec is of type Double
+    void MatVecMult_CD(const Vector<Double> & mvec, 
+                       Vector<Complex> & rvec) const;
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT(const CFSVector & mvec, CFSVector & rvec) const {;};
@@ -358,7 +362,7 @@ namespace CoupledField
     /// converts a matrix into a vector, by appending successively all rows
     void ConvertToVec_AppendRows(CFSVector& vec) const;
 
-    /// converts a matrix into a vector, by appending successively all columns
+    /// converts a matrix into a vector, by appending successively all cols
     void ConvertToVec_AppendCols(CFSVector& vec) const;
 
     /// gets the diagonal elements of a  matrix in a one column matrix
@@ -413,7 +417,8 @@ namespace CoupledField
     ENTER_IFCN("Matrix::operator[]");
 
 #ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) Error("undefined Matrix",__FILE__,__LINE__);
+    if (size_row_ == 0 || size_col_ == 0) Error("undefined Matrix",
+                                                __FILE__,__LINE__);
 #endif
 
 #ifdef CHECK_INDEX
@@ -472,13 +477,15 @@ namespace CoupledField
       }
   }
 
-  template<class TYPE>  std::ostream& operator << ( std::ostream & , const Matrix<TYPE> &);
+  template<class TYPE>  std::ostream& operator << ( std::ostream & , 
+                                                    const Matrix<TYPE> &);
 
 
 
   // Perform a matrix-matrix multiplication rMat = this*mMat
   template<class TYPE>
-  inline void Matrix<TYPE>::Mult(const CFSMatrix & mMat, CFSMatrix & rMat) const {
+  inline void Matrix<TYPE>::Mult(const CFSMatrix & mMat, 
+                                 CFSMatrix & rMat) const {
 
     ENTER_IFCN( "Matrix::Mult" );
 
