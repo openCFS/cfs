@@ -18,7 +18,7 @@ namespace CoupledField
   {
   public:
 
-    // Friend  declarations
+    // Friend declarations
     friend class Vector<TYPE>;
   
     //! Constructor 
