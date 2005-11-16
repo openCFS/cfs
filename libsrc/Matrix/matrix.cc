@@ -1241,7 +1241,7 @@ namespace CoupledField
   
     for( UInt i=0; i < size_row_; i++)
       for( UInt j=0; j < size_col_; j++)
-        vec[i*(size_row_-1) + j] = (*this)[i][j];
+        vec[i*(size_col_) + j] = (*this)[i][j];
   }
 
   /// converts a matrix into a vector, by appending successively all colums
