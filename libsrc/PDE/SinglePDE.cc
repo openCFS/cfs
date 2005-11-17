@@ -136,25 +136,31 @@ namespace CoupledField {
     // get regions/subdomains for PDE
     // =====================================================================
     StdVector<std::string> regionNames, surfaceNames;
-    StdVector<RegionIdType> surfIds;
     params->GetList( "name", regionNames, pdename_, "region" );
     ptgrid_->RegionNameToId( subdoms_, regionNames );
 
     params->GetList( "name", surfaceNames, pdename_, "surface" );
-    ptgrid_->RegionNameToId( surfIds, surfaceNames );
+    ptgrid_->RegionNameToId( surfdoms_, surfaceNames );
 
     // Create vector of all IDs
     allIDs = subdoms_;
-    for (UInt i = 0; i < surfIds.GetSize(); i++) {
-      allIDs.Push_back(surfIds[i]);
+    for (UInt i = 0; i < surfdoms_.GetSize(); i++) {
+      allIDs.Push_back(surfdoms_[i]);
     }
 
-
+    // output to info-file
     Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
                   pdename_.c_str());
     for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
       Info->PrintF( pdename_, "%s, ID = %i\n",
                     regionNames[k].c_str(), subdoms_[k] );
+    }
+    Info->PrintF( "", "\n" );
+    Info->PrintF( pdename_, "The %s PDE has the following surface regions:\n",
+                  pdename_.c_str());
+    for ( UInt k = 0; k < surfaceNames.GetSize(); k++ ) {
+      Info->PrintF( pdename_, "%s, ID = %i\n",
+                    surfaceNames[k].c_str(), surfdoms_[k] );
     }
     Info->PrintF( "", "\n" );
 
@@ -428,7 +434,7 @@ namespace CoupledField {
       sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
                                  dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
 
-  }
+    }
     
     // =====================================================================
     // initialize assemble object
@@ -436,15 +442,9 @@ namespace CoupledField {
     assemble_->SetPtr2EQNData(eqnData_); 
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
 
-    if (pdename_ == "piezo" || pdename_ == "mechanic" ) {
-      assemble_->SetGeneralParams(pdename_, dofspernode_, 
-                                  subdoms_, pressSurf_, bcSequenceTag_);
-    }
-    else {
-      assemble_->SetGeneralParams(pdename_, dofspernode_, 
-                                  subdoms_, surfdoms_, bcSequenceTag_);
-    }
-
+    assemble_->SetGeneralParams(pdename_, dofspernode_, 
+                                subdoms_, surfdoms_, bcSequenceTag_);
+    
     if (isComplex_) {
       assemble_->SetMatrixEntryType( OLAS::COMPLEX );
     }
@@ -483,9 +483,9 @@ namespace CoupledField {
     // =====================================================================
     // Create time stepping algorithm
     // =====================================================================
-     if ( analysistype_ == TRANSIENT && 
-          isDirectCoupled_ == FALSE) {
-       SETPROFILE("Before Definition of Timestepping");
+    if ( analysistype_ == TRANSIENT && 
+         isDirectCoupled_ == FALSE) {
+      SETPROFILE("Before Definition of Timestepping");
       InitTimeStepping();
       SETPROFILE("After Definition of TimeStepping");
     }
@@ -689,34 +689,34 @@ namespace CoupledField {
 
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
 
-	// DODO GridAdaption
-	// interpolate acoustic pressure at current node?
-	if(m_bReadSpecialBCs) {
-	  Point<3> pt;
-	  UInt ibcNode = nodes[iNode];
-	  m_pGridAdaption->GetCoordinatesFromGridNode(ptgrid_, ibcNode, pt);
+        // DODO GridAdaption
+        // interpolate acoustic pressure at current node?
+        if(m_bReadSpecialBCs) {
+          Point<3> pt;
+          UInt ibcNode = nodes[iNode];
+          m_pGridAdaption->GetCoordinatesFromGridNode(ptgrid_, ibcNode, pt);
 	  
-	  Double x, y, z;
-	  x = pt[0];
-	  y = pt[1];
-	  z = pt[2];
+          Double x, y, z;
+          x = pt[0];
+          y = pt[1];
+          z = pt[2];
 	  
-	  // perform interpolation with previously set interpolation scheme
-	  val = m_pGridAdaption->GetAt(x, y, z, time);
+          // perform interpolation with previously set interpolation scheme
+          val = m_pGridAdaption->GetAt(x, y, z, time);
 	  
-	  // linear damping
-	  if(m_dStartDamping_ > 0) {
-	  	Double dRelTime = time - m_dPulseOffset_;
-	  	Double dStopTime = m_dPulseTime_ + m_dPulseOffset_;
+          // linear damping
+          if(m_dStartDamping_ > 0) {
+            Double dRelTime = time - m_dPulseOffset_;
+            Double dStopTime = m_dPulseTime_ + m_dPulseOffset_;
 	        if(dRelTime > m_dStartDamping_ && time < dStopTime) {
-	                 val *= sqrt(1 - dRelTime/m_dPulseTime_);
-	       }
-	  }
+              val *= sqrt(1 - dRelTime/m_dPulseTime_);
+            }
+          }
 	  
-	  if(effectiveMass_) {
-	    dirVal = val;
-	  }
-	}
+          if(effectiveMass_) {
+            dirVal = val;
+          }
+        }
 
         // Sanity check. This should not happen, but might appear
         // in the case that the same node/dof belongs to a region
@@ -777,6 +777,10 @@ namespace CoupledField {
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
+
+    // =====================================================================
+    // homogeneous Dirichlet BC
+    // =====================================================================
  
     // Get names of node sets for homogeneous Dirichlet boundary conditions
     //   params->GetList( "name", bcs_hd_, pdename_, "dirichletHom"   );
@@ -784,6 +788,10 @@ namespace CoupledField {
     attrVec = "", "tag", "";
     valVec = "", bcSequenceTag_, "";
     params->GetList(keyVec, attrVec, valVec, bcs_hd_);
+
+    // =====================================================================
+    // inhomogeneous Dirichlet BC
+    // =====================================================================
 
     // Get names of node sets, values and filenames for inhomogenous
     // Dirichlet boundary conditions
@@ -801,9 +809,7 @@ namespace CoupledField {
       params->GetList(keyVec, attrVec, valVec, inhomDirichDof_);
     }
 
-
-    if (analysistype_ == TRANSIENT ||
-        analysistype_ == STATIC) {
+    if (analysistype_ == TRANSIENT || analysistype_ == STATIC) {
       keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
       params->GetList(keyVec, attrVec, valVec, fncnames_id_);
 
@@ -818,61 +824,61 @@ namespace CoupledField {
       //params->Get(keyVec, strFileName);
 
       if(vecFiles.GetSize() > 0) {
-	strFileName = vecFiles[0];
+        strFileName = vecFiles[0];
       }
 
       // if attribute "fileName" is set, we're in "post" mode, i.e. set flag
       // to use interpolation techqnique
       if(strFileName != "none") {
-	m_bReadSpecialBCs = TRUE;
+        m_bReadSpecialBCs = TRUE;
 
-	// create new adaption object
-	m_pGridAdaption = new GridAdaption();
+        // create new adaption object
+        m_pGridAdaption = new GridAdaption();
 
-	// determine no of nodes to use for interpolation
-	keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "noNodes";
-	std::string strNoNodes;
-	params->Get(keyVec, strNoNodes);
+        // determine no of nodes to use for interpolation
+        keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "noNodes";
+        std::string strNoNodes;
+        params->Get(keyVec, strNoNodes);
 
-	// how many? atoi() strips percentage sign
-	Integer nNodes = atoi(strNoNodes.c_str());
+        // how many? atoi() strips percentage sign
+        Integer nNodes = atoi(strNoNodes.c_str());
 
-	// check if to use percentage, atoi() takes care of conversion
-	bool bPercent = false;
-	if(strNoNodes[strNoNodes.length()-1] == '%') {
-	  bPercent = true;
-	}
-	m_pGridAdaption->SetInfluencingNodes(nNodes, bPercent);
+        // check if to use percentage, atoi() takes care of conversion
+        bool bPercent = false;
+        if(strNoNodes[strNoNodes.length()-1] == '%') {
+          bPercent = true;
+        }
+        m_pGridAdaption->SetInfluencingNodes(nNodes, bPercent);
 
-	// default interpolation type is nearest neighbor
-	GridAdaption::INTERPOLATION_TYPE it = GridAdaption::NNB;
+        // default interpolation type is nearest neighbor
+        GridAdaption::INTERPOLATION_TYPE it = GridAdaption::NNB;
 
-	// now check for interpolation type, if given
-	StdVector<std::string> vecInterpolType;
-	std::string strInterpolType;
-	keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "interpolType";
-	params->Get(keyVec, strInterpolType);
+        // now check for interpolation type, if given
+        StdVector<std::string> vecInterpolType;
+        std::string strInterpolType;
+        keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "interpolType";
+        params->Get(keyVec, strInterpolType);
 
-	// check interpolation type, if other than NNB
-	if(strInterpolType == "IDW") {
-	  it = GridAdaption::IDW;
-	}
-	else if(strInterpolType == "SHP") {
-	  it = GridAdaption::SHP;
-	}
+        // check interpolation type, if other than NNB
+        if(strInterpolType == "IDW") {
+          it = GridAdaption::IDW;
+        }
+        else if(strInterpolType == "SHP") {
+          it = GridAdaption::SHP;
+        }
 
-	// now set type, default is NNB
-	m_pGridAdaption->SetInterpolationType(it);
+        // now set type, default is NNB
+        m_pGridAdaption->SetInterpolationType(it);
 
-	// now parse given data file
-	m_pGridAdaption->ReadFile(strFileName);
+        // now parse given data file
+        m_pGridAdaption->ReadFile(strFileName);
       }
 
       StdVector<Double> value;
       attrVec = "", "";
       valVec = "", "";
 
-      //first ofd all do a test, if slcicing data is defined
+      //first of all, do a test, if slicing data is defined
       keyVec = pdename_, "sliceData", "pulseStartDamping";
       params->GetList(keyVec, attrVec, valVec, value); 
 
@@ -892,8 +898,27 @@ namespace CoupledField {
       params->GetList(keyVec, attrVec, valVec, bcs_id_phase_);
     }
 
+    // =====================================================================
+    // inhomogeneous von Neumann BC
+    // =====================================================================
+    attrVec = "", "tag", "";
+    valVec = "", bcSequenceTag_, "";
+    
+    // Get names of node sets, values and filenames
+    keyVec = pdename_, "bcsAndLoads", "neumannInhom", "name";
+    params->GetList(keyVec, attrVec, valVec, bcs_ni_);
 
+    keyVec = pdename_, "bcsAndLoads", "neumannInhom", "value";
+    params->GetList(keyVec, attrVec, valVec, val_ni_);
+
+    if (analysistype_ == TRANSIENT || analysistype_ == STATIC) {
+      keyVec = pdename_, "bcsAndLoads", "neumannInhom", "dynamics";
+      params->GetList(keyVec, attrVec, valVec, fncnames_ni_);
+    }
+
+    // =====================================================================
     // Check consistency
+    // =====================================================================
     if ( bcs_id_.GetSize() != val_id_.GetSize() ||
          fncnames_id_.GetSize() > bcs_id_.GetSize() ) {
       std::string errmsg = "dirichletInhom: ";

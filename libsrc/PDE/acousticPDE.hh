@@ -32,7 +32,7 @@ namespace CoupledField {
     void ReadDampingInformation();
 
     //! Read special boundary conditions (here: bubble information)
-    void  ReadSpecialBCs();
+    void ReadSpecialBCs();
 
     //! Initialize NonLinearities
     void InitNonLin();
@@ -48,6 +48,9 @@ namespace CoupledField {
 
     //! calculate Force acting on specified surface elements
     void CalcForce( StdVector<Elem*> & saveElems );
+
+    //! calculate pressure from acoustic potential
+    void CalcElemPressure();
 
     //! write results in file
     //! \param stepOffset offset for starting (time)step
@@ -93,6 +96,9 @@ namespace CoupledField {
                               StdVector<UInt> & couplingNodes,
                               Vector<Double>& elemCouplingSols,
                               UInt couplingdof );
+
+    //! calculate the heat source term for heatConduction PDE
+    void CalcHeatCouplingRHS( );
   
     //! 
     void SetMechanicCoupling() {
@@ -106,43 +112,49 @@ namespace CoupledField {
     //! Init the time stepping
     void InitTimeStepping();
 
-    //! indicator for mechanic coupling
-    Boolean isMechCoupled_;
-
-    //! total number of unknowns (equations)
-    UInt size_;
-    //! variable in which PDE is formulated
-    SolutionType formulation_;
-
-    //! list of boundaries( for absorbing BCs)
-    StdVector<RegionIdType> absBCs_;
+    // ========================
+    // set solution information
+    // ========================    
+    Boolean isMechCoupled_; //!< indicator for mechanic coupling
     
-    //! Flag indicating the use of fractional damping
-    Boolean fracDamping_;
+    UInt size_; //!< total number of unknowns (equations)
+
+    SolutionType formulation_; //!< variable in which PDE is formulated
+
+    StdVector<RegionIdType> absBCs_; //!< subdomains, which form absorbing BCs
+
+    Boolean absorbingBCs_; //!< switch for absorbing BCs     
     
-    //! switch for absorbing boundary conditions
-    Boolean absorbingBCs_;                
+    Boolean fracDamping_; //!< switch indicating use of fractional damping
     
     //! switch for special bcs in combination with slicing technique
     Boolean m_bWriteSpecialBCs;
 
+
+    // ========================
+    // time stepping
+    // ========================
     // solving of nonlinear acoustics
     NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
     Vector<Double> RhsLinVal_;
 
+
+    // ========================
     // Postprocessing results
+    // ========================
     NodeStoreSol<Double> solDeriv1_; //!< contains 1st derivative of solution
     NodeStoreSol<Double> solDeriv2_; //!< contains 2nd derivative of solution
-    NodeStoreSol<Double> rhs_;
+    NodeStoreSol<Double> rhs_; //!< right hand side vector
 
-    //! TRUE, if force should be written to history file
-    Boolean saveForceHist_;
-    //! name of element set to be saved
-    StdVector<std::string> saveElemHist_;
-    //! contains force acting on surface element
-    ElemStoreSol<Double> acouForce_;
-    //! contains force acting on all surfuce elements
-    Double sumForce_;
+    // force calculation on surface elements
+    ElemStoreSol<Double> acouForce_; //!< contains force on surface elements
+    Double sumAcouForce_; //!< contains force acting on all surface elements
+    StdVector<std::string> saveElemForceHist_;//!< name of elements to be saved
+
+    // calculate pressure from acoustic potential
+    StdVector<RegionIdType> calcElemPressure_; //!< contains the regions
+    ElemStoreSol<Double>  acouPressure_; //!< conatins acoustic pressure
+    StdVector<std::string> saveElemPressureHist_;//!< name of elements
 
     //! Attribute describing model for bubble dynamics
     BubbleDynType bubbleDynType_;

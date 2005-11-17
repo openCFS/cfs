@@ -380,16 +380,12 @@ namespace CoupledField {
                                             *solhelp);
       FieldOp->Set2DType(isaxi_);
  
-      // ------ Calculation of the electric field ------
+      // ------ Calculation of the magnetic flux density  ------
 
-      Vector<Double> LCoord;
-      LCoord.Resize(dim_);
-      LCoord[0] = 0;
-      LCoord[1] = 0;
-      
+      Vector<Double> lCoord;
       StdVector<Elem*> elemssd;
       UInt counterElems=0;
-      Vector<Double> TempE;
+      Vector<Double> tempB;
       UInt pdeElem;
       
       // Resize solution arrays
@@ -409,9 +405,9 @@ namespace CoupledField {
         // loop over elements of subdomain
         for (UInt iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
           pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-          FieldOp->CalcElemCurlNode( TempE, elemssd[iel], LCoord); 
-          // TempE);
-          B_.SetElemResult(pdeElem-1, TempE);
+          elemssd[iel]->ptElem->GetCoordMidPoint( lCoord );
+          FieldOp->CalcElemCurlNode( tempB, elemssd[iel], lCoord); 
+          B_.SetElemResult(pdeElem-1, tempB);
         }
       }
       delete FieldOp;
@@ -419,13 +415,9 @@ namespace CoupledField {
 
     if (calcEddy_.GetSize() !=0 ) {
 
-      Vector<Double> LCoord;
-      LCoord.Resize(dim_);
-      LCoord[0] = 0;
-      LCoord[1] = 0;
-      
+      Vector<Double> lCoord;
       StdVector<Elem*> elemssd;
-      Vector<Double> ShpFnc, tmp;
+      Vector<Double> shpFnc, tmp;
       Vector<Double> magVecDeriv1Elem;
       StdVector<UInt> connect;
       StdVector<Integer>  connect_PDE;
@@ -463,13 +455,14 @@ namespace CoupledField {
         for ( UInt actEl=0; actEl< elemssd.GetSize();
               actEl++,counterElems++ ) {
           BaseFE * ptEl = elemssd[actEl]->ptElem;
-          ptEl->GetShFnc(ShpFnc,LCoord);
+          elemssd[actEl]->ptElem->GetCoordMidPoint( lCoord );
+          ptEl->GetShFnc(shpFnc,lCoord);
           pdeElem = eqnData_->Mesh2PDEElem(elemssd[actEl]->elemNum);
 
           connect = elemssd[actEl]->connect;
           
           GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
-          JeddyElem[0] = magVecDeriv1Elem * ShpFnc;
+          JeddyElem[0] = magVecDeriv1Elem * shpFnc;
           JeddyElem[0] *= -conductivity;
           Jeddy_.SetElemResult(pdeElem-1, JeddyElem);
         }
