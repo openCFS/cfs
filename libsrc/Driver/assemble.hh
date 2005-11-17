@@ -13,6 +13,7 @@
 
 #include "Utils/StdVector.hh"
 #include "Forms/baseForm.hh" 
+#include "Forms/linSurfForm.hh"
 #include "DataInOut/timefunc.hh"
 #include "Utils/nodestoresol.hh"
 #include "Utils/elemstoresol.hh"

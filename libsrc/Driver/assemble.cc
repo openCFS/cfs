@@ -11,6 +11,7 @@
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
 
+
 #include "olas.hh"
 
 #include "assemble.hh"
@@ -232,13 +233,13 @@ namespace CoupledField {
         IntegratorDescriptor * actDescriptor = 
           (*integrators_[actDom])[actInteg];
 
-	// get PDE-Ids
-	PdeIdType pdeId1 = actDescriptor->GetPDE1()->GetPDEId();
-	PdeIdType pdeId2 = actDescriptor->GetPDE2()->GetPDEId();
+        // get PDE-Ids
+        PdeIdType pdeId1 = actDescriptor->GetPDE1()->GetPDEId();
+        PdeIdType pdeId2 = actDescriptor->GetPDE2()->GetPDEId();
 
-	// get equation data of PDEs
-	NodeEQN * ptEQN1 = actDescriptor->GetPDE1()->getPDE_eqnData();
-	NodeEQN * ptEQN2 = actDescriptor->GetPDE2()->getPDE_eqnData();
+        // get equation data of PDEs
+        NodeEQN * ptEQN1 = actDescriptor->GetPDE1()->getPDE_eqnData();
+        NodeEQN * ptEQN2 = actDescriptor->GetPDE2()->getPDE_eqnData();
                     
         actDescriptor->GetIntegrator()->SetSubdomain(actDom);
 
@@ -354,7 +355,7 @@ namespace CoupledField {
                                          connect_PDE1.GetSize(),
                                          pdeId2, connect_PDE2.GetPointer(), 
                                          connect_PDE2.GetSize(),
-					 actDescriptor->IsSetCounterPart());
+                                         actDescriptor->IsSetCounterPart());
             }
             else {
               algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
@@ -362,11 +363,11 @@ namespace CoupledField {
                                          connect_PDE1.GetSize(), 
                                          pdeId2, connect_PDE2.GetPointer(), 
                                          connect_PDE2.GetSize(),
-					 actDescriptor->IsSetCounterPart());
+                                         actDescriptor->IsSetCounterPart());
 
             }
 #ifdef DEBUG
-	    UInt elemNum = elemssd[actEl]->elemNum;
+            UInt elemNum = elemssd[actEl]->elemNum;
 
             // output matrices
             if (destMat == STIFFNESS) {
@@ -413,7 +414,7 @@ namespace CoupledField {
                                           connect_PDE1.GetSize(), 
                                           pdeId2, connect_PDE2.GetPointer(),
                                           connect_PDE2.GetSize(),
-					  actDescriptor->IsSetCounterPart());
+                                          actDescriptor->IsSetCounterPart());
 
               }
               else {
@@ -423,8 +424,8 @@ namespace CoupledField {
                                           connect_PDE1.GetSize(), 
                                           pdeId2, connect_PDE2.GetPointer(), 
                                           connect_PDE2.GetSize(),
-					  actDescriptor->IsSetCounterPart());
-	      }
+                                          actDescriptor->IsSetCounterPart());
+              }
             }
 
           } //over all elements of subdomain            
@@ -484,25 +485,25 @@ namespace CoupledField {
               dynamic_cast<SurfForm*>(actDescriptor->GetIntegrator());
 
 
-	    // get PDE-Ids
-	    PdeIdType pdeId1 = actDescriptor->GetPDE1()->GetPDEId();
-	    PdeIdType pdeId2 = actDescriptor->GetPDE2()->GetPDEId();
+            // get PDE-Ids
+            PdeIdType pdeId1 = actDescriptor->GetPDE1()->GetPDEId();
+            PdeIdType pdeId2 = actDescriptor->GetPDE2()->GetPDEId();
 
-	    // get equation data of PDEs
-	    NodeEQN * ptEQN1 = actDescriptor->GetPDE1()->getPDE_eqnData();
-	    NodeEQN * ptEQN2 = actDescriptor->GetPDE2()->getPDE_eqnData();
+            // get equation data of PDEs
+            NodeEQN * ptEQN1 = actDescriptor->GetPDE1()->getPDE_eqnData();
+            NodeEQN * ptEQN2 = actDescriptor->GetPDE2()->getPDE_eqnData();
 
-	    // map connect to PDE node numbers
-	    StdVector<Integer> connect_PDE1, connect_PDE2;
-	    ptEQN1->Node2EQN(connecth, connect_PDE1);
-	    ptEQN2->Node2EQN(connecth, connect_PDE2);
+            // map connect to PDE node numbers
+            StdVector<Integer> connect_PDE1, connect_PDE2;
+            ptEQN1->Node2EQN(connecth, connect_PDE1);
+            ptEQN2->Node2EQN(connecth, connect_PDE2);
 
             // assemble only if nonlinear or first time
             if (reassembleMat_[actDescriptor->DestMat()] || firstTime_) {
-
+          
               myForm->SetElemPtr(ptEl);
               myForm->SetSurfElem(elemssd[actEl]);
-
+          
               // calculate normal of surface element
               ptgrid_->CalcSurfNormal(normal,*elemssd[actEl]);
               normal *= (Double) elemssd[actEl]->normalSign;
@@ -533,7 +534,7 @@ namespace CoupledField {
                                            connect_PDE1.GetSize(),
                                            pdeId2, connect_PDE2.GetPointer(), 
                                            connect_PDE2.GetSize(),
-					   actDescriptor->IsSetCounterPart());
+                                           actDescriptor->IsSetCounterPart());
               }
               else {
                 algsys_->SetElementMatrix( destMat, elemmat.GetDataPointer(), 
@@ -541,7 +542,7 @@ namespace CoupledField {
                                            connect_PDE1.GetSize(),
                                            pdeId2, connect_PDE2.GetPointer(), 
                                            connect_PDE2.GetSize(),
-					   actDescriptor->IsSetCounterPart());
+                                           actDescriptor->IsSetCounterPart());
               }
 
                         
@@ -557,7 +558,7 @@ namespace CoupledField {
                                              connect_PDE1.GetSize(),
                                              pdeId2, connect_PDE2.GetPointer(), 
                                              connect_PDE2.GetSize(),
-					     actDescriptor->IsSetCounterPart());
+                                             actDescriptor->IsSetCounterPart());
                 }
                 else{
                   algsys_->SetElementMatrix(  actDescriptor->GetSecondaryMat(), 
@@ -566,8 +567,8 @@ namespace CoupledField {
                                               connect_PDE1.GetSize(),
                                               pdeId2, connect_PDE2.GetPointer(), 
                                               connect_PDE2.GetSize(),
-					      actDescriptor->IsSetCounterPart());
-		}
+                                              actDescriptor->IsSetCounterPart());
+                }
               }
             }           
           }
@@ -687,11 +688,20 @@ namespace CoupledField {
                   
             BaseIntDescriptor * actRhsID = 
               (*rhsSrcSurfIntegrators_[actSurf])[actRhsInt];
-                    
-            actRhsID->GetIntegrator()->SetElemPtr(ptEl);
-                    
+             
+            LinearSurfForm * myForm =  dynamic_cast<LinearSurfForm*>(actRhsID->GetIntegrator());
+             
+            myForm->SetElemPtr(ptEl);
+            myForm->SetSurfElem(elemssd[actEl]);
+
+            // calculate normal of surface element
+            Vector<Double> normal;
+            ptgrid_->CalcSurfNormal(normal,*elemssd[actEl]);
+            normal *= (Double) elemssd[actEl]->normalSign;
+            myForm->SetVoluNormal(normal);
+              
             Vector<Double> elemVec;
-            actRhsID->GetIntegrator()->CalcElemVector(ptCoord, elemVec);
+            myForm->CalcElemVector(ptCoord, elemVec);
             if (analysisType_ == HARMONIC||analysisType_ == MULTIHARMONIC) {
               TransformVector2Harmonic(harmVec,elemVec,valPhase);
               algsys_->SetElementRHS(&harmVec[0], pdeId1_, connect_PDE.GetPointer(), 
@@ -1361,7 +1371,7 @@ namespace CoupledField {
 
   // define surface integrators
   void StaticAssemble::AddSurfIntegrator( IntegratorDescriptor * actID,
-					  const RegionIdType regionId) {
+                                          const RegionIdType regionId) {
 
     ENTER_FCN( "StaticAssemble::AddSurfIntegrator" );
    
@@ -1412,7 +1422,7 @@ namespace CoupledField {
 
   // define integrators
   void TransientAssemble::AddSurfIntegrator( IntegratorDescriptor *actID,
-					     const RegionIdType regionId ) {
+                                             const RegionIdType regionId ) {
     ENTER_FCN( "TransientAssemble::AddSurfIntegrator" );
 
     if ( actID->DestMat() == SYSTEM ) {
@@ -1590,7 +1600,7 @@ namespace CoupledField {
 
   // define integrators
   void HarmonicAssemble::AddSurfIntegrator(IntegratorDescriptor * actID,
-					   const RegionIdType regionId) {
+                                           const RegionIdType regionId) {
     ENTER_FCN( "HarmonicAssemble::AddSurfIntegrator" );
     
     actID->SetOrigMatrixType(actID->DestMat());
