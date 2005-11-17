@@ -185,7 +185,7 @@ namespace CoupledField {
 
     ENTER_FCN( "StdPDE::WriteRestart" );
 
-    if (pdename_=="mechanic")
+    if (pdename_=="mechanic" || pdename_=="acoustic")
       {
         std::string simName = commandLine->GetSimName();
         std::string restartFileName_ = simName+"_"+pdename_+".restart";
@@ -197,7 +197,7 @@ namespace CoupledField {
 
     else 
       {
-        Error( "Restart functionality only for mechanic tested", __FILE__, __LINE__ );
+        Error( "Restart functionality only for mechanic and acoustic tested", __FILE__, __LINE__ );
       }
 
   }
@@ -206,7 +206,7 @@ namespace CoupledField {
 
     ENTER_FCN( "StdPDE::ReadRestart" );
 
-    if (pdename_=="mechanic")
+    if (pdename_=="mechanic" || pdename_=="acoustic")
       {
         std::string simName = commandLine->GetSimName();
         std::string transFromTo = "standard";
@@ -236,7 +236,7 @@ namespace CoupledField {
 
     else 
       {
-        Error( "Restart functionality only for mechanic tested", __FILE__, __LINE__ );
+        Error( "Restart functionality only for mechanic and acoustic tested", __FILE__, __LINE__ );
       }
 
   }
