@@ -96,9 +96,6 @@ namespace CoupledField
         Info->Error( errmsg, __FILE__, __LINE__ );
       }
 
-    if (pressSurf_.GetSize() > 0)
-      surfdoms_ = pressSurf_;
-    
     // We need not have as many function/filenames as pressureloads!
     for ( UInt k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ )
       {
