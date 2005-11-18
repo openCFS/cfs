@@ -71,7 +71,7 @@ namespace CoupledField {
       // we don't trust .eof() =)
       timefile.seekg(0,std::ios::end);
       std::string::size_type pos = 0, pos_end = timefile.tellg(),
-        line_end_pos = 0;
+        line_end_pos , line_start_pos = 0;
 
       timefile.seekg(0,std::ios::beg); // start from the beginning
       std::string     buf;
@@ -79,16 +79,16 @@ namespace CoupledField {
 
       while( pos <= pos_end ) {         
         buf = "";
+        line_start_pos = timefile.tellg();
         std::getline(timefile,buf,'\n');
         line_end_pos = timefile.tellg();
-          
+        
         // big choice of signs for comment's
         if (buf.length() != 0 &&
             buf[0] != '#' &&
             buf[0] != '%' && 
             buf[0] != '!') {
-          timefile.seekg(- buf.size() - 1,std::ios::cur); // rewind
-
+          timefile.seekg(line_start_pos); // rewind
           timefile >> timeT >> valT ;                    
 
           valTF_[i].push_back(valT);
