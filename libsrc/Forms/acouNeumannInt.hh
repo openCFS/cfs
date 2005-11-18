@@ -6,7 +6,7 @@
 namespace CoupledField 
 {
   
-  //! Base class for all type of right-hand-side surface integrators
+  //! Class implementing an inhomogeneous Neumann integrator for acoustic field
   class AcouNeumannInt : public LinearSurfForm {
 
   public:
