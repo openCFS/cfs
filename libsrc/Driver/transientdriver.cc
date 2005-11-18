@@ -117,11 +117,13 @@ namespace CoupledField {
     if ( commandLine->GetRestart() ){
       ptPDE_->ReadRestart(lastStepToRestartFrom);
       startStep = lastStepToRestartFrom + 1;
+      stepsave=startStep;
       ptPDE_->GetSolveStep()->SetStartStep(startStep);
       steptime=(startStep)*dt;
       restartStep  = startStep + restartIncr_ - 1;
       std::cout << myEndl << "Reading a restart file from step " 
                 << lastStepToRestartFrom <<" ********** " << std::endl;      
+      ptPDE_->GetSolveStep()->SetStartStep(startStep);
     }
 
     else {
