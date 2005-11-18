@@ -269,7 +269,7 @@ namespace CoupledField
     //////////////////////////////////////
 
     //! Assignment operator
-    Matrix & operator= (const Matrix &);
+    Matrix<TYPE> & operator= (const Matrix &);
 
     //! Return pointer to row number []
     inline TYPE * operator[] (const UInt) const;
@@ -293,46 +293,46 @@ namespace CoupledField
     TYPE & operator()(const UInt row , const UInt col);
 
     //! 
-    Matrix operator+() const;
+    Matrix<TYPE> operator+() const;
 
     //!
-    Matrix operator+(const Matrix &) const;
+    Matrix<TYPE> operator+(const Matrix<TYPE> &) const;
 
     //!
-    Matrix & operator+=(const Matrix &);
+    Matrix<TYPE> & operator+=(const Matrix<TYPE> &);
 
     //!
-    Matrix operator-() const;
+    Matrix<TYPE> operator-() const;
 
     //!
-    Matrix operator-(const Matrix &) const;
+    Matrix<TYPE> operator-(const Matrix<TYPE> &) const;
 
     //!
-    Matrix & operator-=(const Matrix &);
+    Matrix<TYPE> & operator-=(const Matrix<TYPE> &);
 
     //! multiplication with scalar value
-    Matrix operator* (const TYPE &) const;
+    Matrix<TYPE> operator* (const TYPE &) const;
 
     //!
     Vector<TYPE> operator* (const Vector<TYPE> &) const;
 
     //!
-    Matrix operator*(const Matrix &) const;
+    Matrix<TYPE> operator*(const Matrix<TYPE> &) const;
 
     //!
-    Matrix & operator*=(const TYPE &);
+    Matrix<TYPE> & operator*=(const TYPE &);
 
 
     //!
-    Matrix & operator*=(const Matrix &);
+    Matrix<TYPE> & operator*=(const Matrix<TYPE> &);
 
     //!
-    Matrix & operator/=(const TYPE &);
+    Matrix<TYPE> & operator/=(const TYPE &);
     //!
-    Boolean operator ==(const Matrix &) const;
+    Boolean operator ==(const Matrix<TYPE> &) const;
 
     //!
-    Boolean operator!=(const Matrix &) const;
+    Boolean operator!=(const Matrix<TYPE> &) const;
  
 
     //  //! Cut part of matrix (left index row, right, upper index col, low )
