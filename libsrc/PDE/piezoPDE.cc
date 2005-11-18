@@ -12,6 +12,7 @@
 #include "blocknodeEQN.hh"
 #include "scalarblockEQN.hh"
 #include "Forms/forms_header.hh"
+#include "Forms/linPressureInt.hh"
 #include "Driver/solveStepPiezo.hh"
 
 #include "piezoPDE.hh" 
@@ -138,6 +139,11 @@ namespace CoupledField {
       errmsg += ", #value = " + Info->GenStr(pressVals_.GetSize());
       errmsg += ", #dynamics = " + pressFnc_.GetSize() + '\n';
       Info->Error( errmsg, __FILE__, __LINE__ );
+    }
+
+    // append pressure Surface to surface region of this PDE
+    for ( UInt i = 0; i < pressSurf_.GetSize(); i++ ) {
+      surfdoms_.Push_back( pressSurf_[i] );
     }
 
     // We need not have as many function/filenames as pressureloads!
@@ -301,7 +307,7 @@ namespace CoupledField {
       Vector<Complex> pressValsC_(pressVals_.GetSize());
             
       for (UInt actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
-        BaseForm * rhsSrcSurf = new 
+        LinearSurfForm * rhsSrcSurf = new 
           PressureLinForm(pressVals_[actSF], isaxi_);
         rhsSrcSurf->SetDofZero(posOfElectricPot);
 	
