@@ -48,6 +48,13 @@
                 use="optional" default="no"/>
             </xsd:complexType>
           </xsd:element>
+
+          <!-- Surface regions (e.g.for prestressing) -->
+          <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
           
           <!-- Section for specifying pre-stressing (optional) -->
           <xsd:element name="preStressing" minOccurs="0">
