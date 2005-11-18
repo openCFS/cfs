@@ -37,21 +37,23 @@ namespace CoupledField
   
     // we don't trust .eof() =)
     datafile.seekg(0,std::ios::end);
-    std::string::size_type pos = 0, pos_end = datafile.tellg();
-  
+    std::string::size_type pos = 0, line_start_pos = 0,
+      pos_end = datafile.tellg();
+    
     datafile.seekg(0,std::ios::beg); // start from the beginning
     std::string     buf;
     Double          xval,yval;
     std::vector<Double> xx, yy;
-
+    
     while(pos <= pos_end)
       {     
+        line_start_pos = datafile.tellg();
         std::getline(datafile,buf);
       
         // big choice of signs for comment's
         if ((buf[0] != '#' || buf[0] != '%' || buf[0] != '!') && buf.size() > 0) 
           {
-            datafile.seekg(- buf.size() - 1,std::ios::cur); // rewind
+            datafile.seekg(line_start_pos); // rewind
           
             datafile >> xval >> yval;                  
             yy.push_back(yval);

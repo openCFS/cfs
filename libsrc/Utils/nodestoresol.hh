@@ -77,7 +77,7 @@ namespace CoupledField{
              
 
     //! Copy Constructor
-    NodeStoreSol(const NodeStoreSol & x);
+    NodeStoreSol(const NodeStoreSol<TYPE> & x);
 
 
     //! Destructor
@@ -407,7 +407,7 @@ namespace CoupledField{
   
 
     //! assignment operator
-    NodeStoreSol & operator= (const NodeStoreSol & x);
+    NodeStoreSol<TYPE> & operator= (const NodeStoreSol<TYPE> & x);
   
     //! assignment operator for Base-class
     BaseNodeStoreSol & operator= (const BaseNodeStoreSol & x);

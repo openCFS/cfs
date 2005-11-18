@@ -24,11 +24,11 @@ namespace CoupledField {
     friend class ElemStoreSol<TYPE>;
 
     //! Constructor
-    Vector();
+    Vector<TYPE>();
 
     //! Constructor with inital size.
     //! All entries are filled with zeroes
-    Vector(const UInt size, const TYPE entry = TYPE());
+    Vector<TYPE>(const UInt size, const TYPE entry = TYPE());
 
     //! Copy constructor
     Vector(const Vector<TYPE> & vec);
@@ -170,7 +170,7 @@ namespace CoupledField {
     //*************************************************
 
     //! Overloading of operation =
-    Vector        &operator=      (const Vector &);
+    Vector<TYPE>  &operator= (const Vector<TYPE> &);
 
     //! Assignment operator for base class
     CFSVector & operator= (const CFSVector & vec);
@@ -207,43 +207,43 @@ namespace CoupledField {
     void TransformInVector(const UInt nsize, TYPE* ptdata);
   
     //! Overloading of operations +,+=
-    Vector        operator+       (const Vector &) const;
-    Vector        &operator+=     (const Vector &);
+    Vector<TYPE>        operator+       (const Vector<TYPE> &) const;
+    Vector<TYPE>        &operator+=     (const Vector<TYPE> &);
 
     //! Overloading of operations -,-=
-    Vector        operator-       () const;
-    Vector        operator-       (const Vector &) const;
-    Vector        &operator-=     (const Vector &);
+    Vector<TYPE>        operator-       () const;
+    Vector<TYPE>        operator-       (const Vector<TYPE> &) const;
+    Vector<TYPE>        &operator-=     (const Vector<TYPE> &);
 
-    //! Overloading of operations / for number and Vector
-    Vector  operator/       (const TYPE &) const;
+    //! Overloading of operations / for number and Vector<TYPE>
+    Vector<TYPE>  operator/       (const TYPE &) const;
 
     //! Overloading of operation not equal for Vector
-    Vector &operator/= (const TYPE &x);
+    Vector<TYPE> &operator/= (const TYPE &x);
 
     //! Overloading of operations * for number and Vector   
-    Vector        operator*       (const TYPE &) const;
+    Vector<TYPE>        operator*       (const TYPE &) const;
 
     //! Overloading of operations * for Vector and Vector 
-    TYPE  operator*       (const Vector &) const;
+    TYPE  operator*       (const Vector<TYPE> &) const;
 
     //! Overloading of operations * for Vector and Matrix  
-    Vector        operator*       (const Matrix<TYPE> &) const;
+    Vector<TYPE>        operator*       (const Matrix<TYPE> &) const;
 
     //! Overloading of operation *= for Vector and number
-    Vector        &operator*=     (const TYPE &);
+    Vector<TYPE>        &operator*=     (const TYPE &);
 
     //! Overloading of operations * for Vector and Matrix 
-    Vector        &operator*=     (const Matrix<TYPE> &);
+    Vector<TYPE>        &operator*=     (const Matrix<TYPE> &);
 
     //! Overloading of operation equal for Vector
-    Boolean       operator==      (const Vector &) const;
+    Boolean       operator==      (const Vector<TYPE> &) const;
 
     //! Overloading of operation not equal for Vector
-    Boolean       operator!=      (const Vector &) const;
+    Boolean       operator!=      (const Vector<TYPE> &) const;
 
     //! Overloading of assignement operatior for Vector and Matrix  
-    Vector        operator=       (const Matrix<TYPE> &) const;
+    Vector<TYPE>        operator=       (const Matrix<TYPE> &) const;
 
     //! This method is needed to intialize a StdVector like this
     //! StdVector<Integer> A;<br>
@@ -251,7 +251,7 @@ namespace CoupledField {
     inline VectorListInitializer<TYPE> operator=(const TYPE x);
 
     //! Return part of Vector from index i to ii
-    Vector        Part    (const UInt i, const UInt ii) const;
+    Vector<TYPE>        Part    (const UInt i, const UInt ii) const;
 
     //! Constructs the unit vector of length n, which only non-zero
     //! entry is a 1 at the i-th position
@@ -261,7 +261,7 @@ namespace CoupledField {
       \f[ \left( \begin{array}{c} 0  \\ \cdots \\ 0 \\ 1 \\ 0 \\ \cdots \\ 0 
       \end{array} \right) \f]
     */
-    static Vector Unit    (const UInt n, const UInt i);
+    static Vector<TYPE> Unit    (const UInt n, const UInt i);
 
     //! Add element of the same type at position pos, by default to the beginning Beware of numeration in C++
     void AddElement(const TYPE & y, UInt pos=0);
@@ -351,16 +351,15 @@ namespace CoupledField {
   void Swap(Vector<TYPE> & a, Vector<TYPE> & b);
 
   //! Overloading << for class vector
-  template<class TYPE>  std::ostream& operator << ( std::ostream & , const Vector<TYPE> &);
+  template<class TYPE>  std::ostream& operator << ( std::ostream & , 
+const Vector<TYPE> &);
 
 
-#if defined(__GNUC__)
   // Template instantiation for used vectors
   template class Vector<Integer>;
   template class Vector<Double>;
   template class Vector<UInt>;
   template class Vector<Complex>;
-#endif
  
 } // end of namespace
 
