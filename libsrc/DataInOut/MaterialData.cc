@@ -57,10 +57,17 @@ namespace CoupledField
     name = new char[stringLength];  
     SetName(mat.name);
 
-    piezoMatrix  = new Matrix<Double>( *mat.piezoMatrix);
-    piezoMatrixC = new Matrix<Double> (*mat.piezoMatrixC);
-    permeaMatrix = new Matrix<Double>( *mat.permeaMatrix);
-    conducMatrix = new Matrix<Double>( *mat.conducMatrix);
+    if ( mat.piezoMatrix != NULL )
+      piezoMatrix  = new Matrix<Double>( *mat.piezoMatrix);
+
+    if ( mat.piezoMatrixC != NULL )
+      piezoMatrixC = new Matrix<Double> (*mat.piezoMatrixC);
+
+    if ( mat.permeaMatrix != NULL )
+      permeaMatrix = new Matrix<Double>( *mat.permeaMatrix);
+    
+    if ( mat.conducMatrix != NULL )
+      conducMatrix = new Matrix<Double>( *mat.conducMatrix);
   }
 
   void MaterialData::SetConductivity(const double& Conductivity) 

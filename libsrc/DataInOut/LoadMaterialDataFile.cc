@@ -438,6 +438,7 @@ namespace CoupledField
     char buffer[bufLength];
     char materialName[bufLength];
 
+
     ReadLine(fin,buffer);
     SSCANF(buffer,"%*d%*s%s", materialName);  
 
@@ -445,14 +446,22 @@ namespace CoupledField
 
     ReadLine(fin,buffer);
     strPtr = new std::istringstream(buffer);
+
+    // initialize all values by zero
+    alfa = 0.0;
+    beta = 0.0;
+    density = 0.0;
+    compress = 0.0;
+    BoverA = 0.0;
       
     *strPtr >> density >> compress >> alfa >> beta >> BoverA;
-    if (strPtr->fail())
+    if (strPtr->fail()) {
       std::cout << "*** The materialfile is corrupt! ***  Material: " 
                 << materialName << std::endl
                 << "Please specify density, compression module, alfa, beta "
                 << "and BoverA."
                 << std::endl;
+    }
 
     delete strPtr;
     
