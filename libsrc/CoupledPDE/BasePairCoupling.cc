@@ -19,11 +19,23 @@ namespace CoupledField {
 
     ENTER_FCN( "BasePairCoupling::BasePairCoupling" );
     
+    // initialize pointers
+    sol_          = NULL;
+    solVec_       = NULL;
+    materialData_ = NULL;
+    pde1_         = NULL;
+    pde2_         = NULL;
+    ptGrid_       = NULL;
+    algsys_       = NULL;
+    eqnData_      = NULL;
+
     pde1_   = pde1;
     pde2_   = pde2;
     ptGrid_ = pde1_->ptgrid_;
 
     isaxi_ = FALSE;
+    
+    
   }
 
 
@@ -39,6 +51,7 @@ namespace CoupledField {
 
     // We generated assemble object, so we also must delete it
     delete assemble_;
+    
     delete[] materialData_;
   }
 
