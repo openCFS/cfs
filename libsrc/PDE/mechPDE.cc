@@ -6,6 +6,7 @@
 #include "Forms/forms_header.hh"
 #include "Forms/linElastInt.hh"
 #include "Forms/massInt.hh"
+#include "Forms/linPressureInt.hh"
 #include "DataInOut/writeresults.hh"
 #include "Driver/assemble.hh"
 #include "newmark.hh"
@@ -95,7 +96,11 @@ namespace CoupledField
         errmsg += ", #dynamics = " + pressFnc_.GetSize() + '\n';
         Info->Error( errmsg, __FILE__, __LINE__ );
       }
-
+    // append pressure Surface to surface region of this PDE
+    for ( UInt i = 0; i < pressSurf_.GetSize(); i++ ) {
+      surfdoms_.Push_back( pressSurf_[i] );
+    }
+    
     // We need not have as many function/filenames as pressureloads!
     for ( UInt k = pressFnc_.GetSize(); k < pressSurf_.GetSize(); k++ )
       {
@@ -505,7 +510,8 @@ namespace CoupledField
     //RHS-part
     Boolean nonlin = FALSE;
     for (UInt actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
-      BaseForm * rhsSrcSurf = new PressureLinForm(pressVals_[actSF], isaxi_);
+      LinearSurfForm * rhsSrcSurf = new PressureLinForm(pressVals_[actSF], isaxi_);
+      rhsSrcSurf->SetVoluInfo( subdoms_, materialData_ );
       assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], pressFnc_[actSF],
                                          nonlin);
     }
