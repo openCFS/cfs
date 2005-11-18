@@ -8,7 +8,7 @@ src = baseForm.cc laplaceInt.cc bdbInt.cc linElastInt.cc nLinElastInt.cc linVisc
       smoothInt.cc curlCurlNodeInt.cc linPiezoInt.cc nLincurlCurlNodeInt.cc\
       mechStressStrain.cc linStrainOp.cc\
       elecchargeop.cc magforceop.cc adbInt.cc\
-      linPiezoCoupling3D.cc linPiezoCoupling2DAxi.cc\
+      linPiezoCoupling3D.cc linPiezoCoupling2DAxi.cc linPressureInt.cc\
       baseForceOp.cc acouMechInt.cc abcInt.cc linSurfForm.cc acouNeumannInt.cc
 #
 lib = forms
