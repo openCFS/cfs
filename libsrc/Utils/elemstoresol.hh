@@ -314,7 +314,7 @@ namespace CoupledField{
   
 
     //! assignment operator
-    ElemStoreSol & operator= (const ElemStoreSol & x);
+    ElemStoreSol<TYPE> & operator= (const ElemStoreSol<TYPE> & x);
   
     //! assignment operator for Base-class
     BaseElemStoreSol & operator= (const BaseElemStoreSol & x);
