@@ -240,30 +240,6 @@ private:
   Directions preStressDir_;
 };
 
-/// class for surface integration
-class PressureLinForm : public LinearForm
-{
-public:
-  ///
-  PressureLinForm(Double aVal, Boolean isaxi);
-
-  ///
-  virtual ~PressureLinForm();
-
-  /// Calculation of vector of right hand side 
-  virtual void CalcElemVector(Matrix<Double>& ptCoord, 
-                              Vector<Double> & elemVec);
-
-  virtual void SetMultiplier(Double mult){multiplier_ = mult;};
-  
-protected:
-
-private:
-  /// factor of load
-  Double multiplier_;
-
-};
-
 
 // =============================================================================
 // calculation for right hand side of flownoise problem
