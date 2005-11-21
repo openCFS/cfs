@@ -185,23 +185,28 @@ The command for calculating the mechanical stresses is
 The \xml{acoustic} element is appended by the following child elements
 \begin{itemize}
 \item \xml{region}
-\item \xml{timeSteppingFormulation} to date effective stiffness formulation 
-is default(optional)
+\item \xml{surface}
+\item \xml{timeSteppingFormulation} effective stiffness formulation 
+is default(optional), effective mass matrix formulation can be chosen unless one is not using the fractional damping model
 \item \xml{bcsAndLoads} (optional)
 \item \xml{nonLinear}\footnote{Other Nonlinearities than nonlinear acoustic
  PDE, which can be chosen by an attribute of \xml{region} element. This is
  currently not implemented.}
 \item \xml{storeResults} (optional)
-\item \xml{solver}(optional)
 \end{itemize}
 and the following attributes
 \begin{itemize}
 \item \xml{formulation} used to choose between an acoustic pressure or
       acoustic potential PDE formulation, specified by either choosing
       either \xml{acouPressure} or \xml{acouPotential} as value.
-      \emph{ Not yet fully supported in CFS++ }.
 \item \xml{subType} for flownoise computations set this to \xml{flowNoise}.
 \end{itemize}
+
+\subsection{Formulation}
+For linear acoustics, the PDE in pressure and acoustic potential has the same 
+form. Allthough default is acoustic potential. If acoustics is coupled to 
+other PDEs, acoustic potential is obligatory. Westervelt's nonlinear PDE is 
+in pressure, Kuznetsov's nonlinear PDE is in acoustic potential.
 
 \subsection{Damping and nonlinear acoustic simulation}
 Damping and nonlinear acoustic PDE formulations can be chosen for each 
@@ -212,8 +217,17 @@ frequency power law.
 \xml{nonLinear} comes as attribute to region. It can take the value \xml{no},
 \xml{westervelt}, or \xml{kuznetsov}.
 
+\subsection{Boundary Conditions}
+Unique to the acoustic PDE is the possibiliy to prescribe inhomogeneous Neumann boundary conditions. In acoustic potential formulation this means a normal velocity on a surface. Remember, that the specified surface elements have to appear in the \xml{domain} section and in the \xml{acoustic} section below the region definitions. The syntax is:
+
+\begin{verbatim} 
+<bcsAndLoads>
+  <neumannInhom name="transducer" value="1e-6" dynamics="sweep5M.dat"/>
+</bcsAndLoads>
+\end{verbatim}
+
 \subsection{Nodal Results}
-The config-file command for storing (only) the acoustic potential in the result
+The config-file command for storing e.g. the acoustic potential in the result
 file is
 
 \begin{verbatim}      
@@ -222,13 +236,32 @@ file is
 </storeResults>
 \end{verbatim}
 
-%\subsubsection{Element Velocity $\{v\}$}
+Analogously one can specify storing of certain node values with the help of the \xml{nodeHistory} element.
 
+\begin{verbatim}    
+<storeResults>
+  <nodeHistory saveNodes="historyPoints" type="acouPotential"/>
+</storeResults>
+\end{verbatim}
+
+Remember, that the quantity, you want to store as result, depends on the formulation of the PDE. It is straightforward to retrieve the quantity acoustic potential, when the formulation of the PDE is in acoustic potential. But if your formulation is in acoustic pressure, it is nonsense to retrieve the quantity acoustic potential, because this would need integration. A combination, which does work, is formulation in acoustic potential and results in acoustic pressure. This will be discussed in the next section.
+
+\subsection{Element Result}
+
+Because $p = \rho \partial \psi / \partial t$, and we can only assign a certain density to an element in the computational domain, pressure is an element result for acoustic potential formulation. It is specified with
+
+\begin{verbatim}
+<storeResults>
+  <elemResults type="acouPressure" />
+  <elemHistory type="acouPressure" saveElems="receiver"/>
+</storeResults>
+\end{verbatim}
+
+%\subsubsection{Element Velocity $\{v\}$}
 %\begin{print}
 %  The velocity can be calculated as an element result by applying an
 %  {\em attgroup} command.
 %\end{print}
-
 %\begin{verbatim}
 %attgroup,1,calc,calc_gvp
 %\end{verbatim}
@@ -251,16 +284,9 @@ command
 
 \begin{verbatim}
 <domain>
-   <elements name="abc"/>
+   <surface name="abc"/>
 </domain>
 \end{verbatim}
-
-\subsection{Formulation}
-For linear acoustics, the PDE in pressure and acoustic potential has the same 
-form. Allthough default is acoustic potential. If acoustics is coupled to 
-other PDEs, acoustic potential is obligatory. Westervelt's nonlinear PDE is 
-in pressure, Kuznetsov's nonlinear PDE is in acoustic potential.
-
 
 \subsection{Example}
 
