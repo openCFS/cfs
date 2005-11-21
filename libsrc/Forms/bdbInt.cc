@@ -36,7 +36,6 @@ namespace CoupledField {
     // elemMat.Init();
     dB.Resize( getDimD(), nrNodes * nrDofs );
 
-
     // If the material parameters are constant within the element
     // we can compute the D matrix once and for all
     if ( updateDMatInEveryIP_ == FALSE ) {
@@ -95,10 +94,10 @@ namespace CoupledField {
 
     ENTER_FCN( "BDBInt::CalcElementMatrix" );
 
-    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+
     const UInt nrNodes  = ptelem->GetNumNodes();   
     const UInt nrDofs   = getNrDofs();  
-    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
     double jacDet;
 
     Matrix<Double> bMat; 
@@ -107,18 +106,35 @@ namespace CoupledField {
     Double aux, fac, *ptr1, *ptr2;
 
     elemMat.Resize( nrNodes * nrDofs );
+    elemMat.Init(0);
     // elemMat.Init(); <- done by resize anyway
 
     dbMat.Resize( getDimD(), nrNodes * nrDofs );
 
+
+    //if softening, get maximal/minimal edge lenght
+    if ( softeningPart_ == "bendingBK1" ) {
+      ptelem->GetMaxMinEdgeLength(ptCoord,maxEdgeLength_,minEdgeLength_);
+    }
+
+    if ( softeningPart_ == "shearBK1" ||  softeningPart_ == "shearSRI" ) {
+      //do reduced order of integration
+      ptelem->SetReducedIntegration();
+    }
+
+    //get integration points
+    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
 
     // **************************************************
     //  Material matrix independent of integration point
     // **************************************************
     if ( updateDMatInEveryIP_ == FALSE ) {
 
+
       // Setup material matrix once and for all
       calcDMat( dMat );
+
 
       // Loop over all integration points
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
@@ -164,6 +180,7 @@ namespace CoupledField {
           }
         }
       }
+
     }
 
 
@@ -220,6 +237,11 @@ namespace CoupledField {
           }
         }
       }
+    }
+
+    if ( softeningPart_ == "shearSRI" || softeningPart_ == "shearBK1" ) {
+      //set back to standard integration
+      ptelem->SetStandardIntegration();
     }
 
   }

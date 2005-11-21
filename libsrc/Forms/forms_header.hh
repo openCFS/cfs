@@ -21,5 +21,6 @@
 #include "mechStressStrain.hh"
 #include "magforceop.hh"
 #include "linViscoElastInt.hh"
+#include "laplacePMLInt.hh"
 #include "bdInt.hh"
 #endif

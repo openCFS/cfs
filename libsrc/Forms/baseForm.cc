@@ -20,6 +20,7 @@ namespace CoupledField
 
     baseType_ = NOTYPE;
     materialArray_ = NULL;
+    softeningModel_ = "no";
   }
 
   BaseForm::BaseForm(MaterialData & matData)
@@ -36,7 +37,7 @@ namespace CoupledField
 
     baseType_ = NOTYPE;
     materialArray_ = NULL;
-    
+    softeningModel_ = "no";   
   }
 
   BaseForm::BaseForm(BaseFE * aptelem)
@@ -53,6 +54,7 @@ namespace CoupledField
 
     baseType_ = NOTYPE;
     materialArray_ = NULL;
+    softeningModel_ = "no";
   }
  
   BaseForm::BaseForm()
@@ -69,6 +71,7 @@ namespace CoupledField
 
     baseType_ = NOTYPE;
     materialArray_ = NULL;
+    softeningModel_ = "no";
   }
  
 

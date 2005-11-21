@@ -47,6 +47,9 @@ namespace CoupledField
                                    const Vector<Double> & surfIntPoint,
                                    Vector<Double> & volIntPoint);
 
+    //! compute length of edge with maximal size
+    void GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin );
+
   protected:
 
     //! Set integration points

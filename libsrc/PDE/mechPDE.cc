@@ -337,6 +337,11 @@ namespace CoupledField
   {
     ENTER_FCN( "MechPDE::DefineIntegerators" );
 
+    // help variables for parameter checking
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
     //voulme integrators
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
@@ -394,10 +399,26 @@ namespace CoupledField
           {
             // ==============  add "standard" stiffness ===========================
             BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat);
+
+	    //check  for softening!
+	    RegionIdType actRegion = subdoms_[actSD];
+	    std::string actRegionName;
+	    actRegionName = ptgrid_->RegionIdToName( actRegion );
+	    keyVec = "mechanic" , "region" , "softening" , "type";
+	    attrVec= ""         , "name"   , "";
+	    valVec = ""         , actRegionName, "";
+	    StdVector<std::string> softeningInfo;
+	    params->GetList( keyVec, attrVec, valVec, softeningInfo);
+
+	    if (softeningInfo.GetSize() > 0)
+	      bilinearStiff->SetSofteningModel(softeningInfo[0]);
+
+
             IntegratorDescriptor * actIntDescr =
               new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
 	    actIntDescr->SetPDEIds(this, this);
+
 
 
             //check for damping
