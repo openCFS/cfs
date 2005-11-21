@@ -341,7 +341,7 @@ namespace CoupledField {
 
             actDescriptor->GetIntegrator()->
               CalcElementMatrix(ptCoord, elemmat);
-                  
+
             piezoMaterialType matType = actDescriptor->GetPiezoMaterialType();
             actDescriptor->SetPiezoMaterialType(matType);
 
@@ -402,6 +402,7 @@ namespace CoupledField {
             }
 #endif
             if (actDescriptor->GetSecondaryMat() != NOTYPE) {
+
               Double damp = dampTransform * actDescriptor->GetSecMatFac();
               elemmat *= damp;
               if (analysisType_ == HARMONIC) {
@@ -1527,9 +1528,11 @@ namespace CoupledField {
       SetOrigSecMatrixType(aSecMat);
     }
 
-    secondaryMatrix = MatType;
+    else if ( analysisType == TRANSIENT ) {
+      secondaryMatrix = MatType;
+      secMatFac = aSecMatFac;
+    }
 
-    secMatFac = aSecMatFac;
   }
 
 

@@ -265,6 +265,12 @@ namespace CoupledField
     void GetCoordMidPoint(Vector<Double> & coord) 
     {coord = MidPoint_;};
 
+    //! compute length of edge with maximal/minimal size
+    virtual void GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin ) 
+    { 
+      Error("GetMaxMinEdgeLength not implemented", __FILE__, __LINE__);
+    }
+
     //! Return FE-Type
     virtual FEType feType() = 0;
 

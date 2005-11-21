@@ -155,6 +155,11 @@ namespace CoupledField
     void SetMaterialArray(Matrix<Double>* mat)
     { materialArray_ = mat; };
 
+    //! set softening type for forms
+    void SetSofteningModel(std::string type) {
+      softeningModel_ = type;
+    }
+
     //!
     void SetSubdomain(UInt sd)
     {actSD_ = sd; };
@@ -191,6 +196,21 @@ namespace CoupledField
 
     UInt actSD_;
     UInt actElemNr_;
+
+    // specifies model of softening
+    std::string softeningModel_;
+
+    //! softening part (bending or shear) of softening Model
+    std::string softeningPart_;
+
+    //maximal length of an edge within an element
+    Double maxEdgeLength_;
+
+    //minimal length of an edge within an element
+    Double minEdgeLength_;
+
+    //! current frequency
+    Double frequency_;
 
   private:
 
@@ -271,6 +291,8 @@ namespace CoupledField
 
     //! formulation type
     SolutionType formulation_;
+
+
   };
 
 } //end namespace

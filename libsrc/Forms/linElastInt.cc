@@ -6,7 +6,42 @@
 namespace CoupledField
 {
 
+  // =====================
+  //   CalcElementMatrix
+  // =====================
+  void linElastInt::CalcElementMatrix( Matrix<Double> &ptCoord,
+                                  Matrix<Double> &elemMat ) {
 
+    ENTER_FCN( "linElastInt::CalcElementMatrix" );
+
+    Boolean Softening;
+
+    if (softeningModel_=="BK1") {
+      softeningPart_ = "bendingBK1";
+      BDBInt::CalcElementMatrix(ptCoord, elemMat);
+      Matrix<Double> helpMat = elemMat;
+      // std::cout << "Bending Mat:\n" << helpMat << std::endl;
+
+      softeningPart_ = "shearBK1";
+      BDBInt::CalcElementMatrix(ptCoord, elemMat);
+      elemMat += helpMat;
+      //     std::cout << "Total Mat:\n" << elemMat << std::endl;
+    }
+    else if (softeningModel_=="SRI") {
+      softeningPart_ = "bendingSRI";
+      BDBInt::CalcElementMatrix(ptCoord, elemMat);
+      Matrix<Double> helpMat = elemMat;
+      // std::cout << "Bending Mat:\n" << helpMat << std::endl;
+
+      softeningPart_ = "shearSRI";
+      BDBInt::CalcElementMatrix(ptCoord, elemMat);
+      elemMat += helpMat;
+      //     std::cout << "Total Mat:\n" << elemMat << std::endl;
+    }
+    else {
+      BDBInt::CalcElementMatrix(ptCoord, elemMat);
+    }
+  }
 
   // returns B - matrix for BDB
   void linElastInt::calcBMat( Matrix<Double> &bMat, UInt ip,
@@ -137,6 +172,39 @@ namespace CoupledField
       for (j=0; j<nrElemsAxi; j++)
         dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];
 
+    //check for softening model
+    if (softeningPart_ == "bendingBK1" ) {
+      Error("BK1-Softening-Model for 2D not implemented",__FILE__,__LINE__);
+    }
+
+    else if (softeningPart_ == "bendingSRI" ) {
+      UInt idx = nrElemsAxi-2;
+      dMat[idx][idx] = 0.0;
+    }
+
+    else if (softeningPart_ == "shearBK1" ) {
+      Error("BK1-Softening-Model for 2D not implemented",__FILE__,__LINE__);
+    }
+
+    else if (softeningPart_ == "shearSRI" ) {
+      for (UInt i=0; i<nrElemsAxi-2; i++) {
+	for (UInt j=0; j<nrElemsAxi-2; j++) {
+	  dMat[i][j] = 0.0;
+	}
+      }
+
+      UInt rowidx=nrElemsAxi-1;
+      for (UInt i=0; i<nrElemsAxi; i++) {
+	dMat[rowidx][i] = 0.0;
+      }
+
+      UInt colidx=nrElemsAxi-1;
+      for (UInt i=0; i<nrElemsAxi; i++) {
+	dMat[i][colidx] = 0.0;
+      }
+
+    }
+
   }
 
   // calculated the D-matrix for the plain strain state
@@ -180,7 +248,30 @@ namespace CoupledField
 
     for (i=0; i<nrElems2d; i++)
       for (j=0; j<nrElems2d; j++)
-        dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];       
+        dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];    
+
+    //check for softening model
+    if (softeningPart_ == "bendingBK1" ) {
+      Error("BK1-Softening-Model for 2D not implemented",__FILE__,__LINE__);
+    }
+
+    else if (softeningPart_ == "bendingSRI" ) {
+      UInt idx = nrElems2d-1;
+      dMat[idx][idx] = 0.0;
+    }
+
+    else if (softeningPart_ == "shearBK1" ) {
+      Error("BK1-Softening-Model for 2D not implemented",__FILE__,__LINE__);
+    }
+
+    else if (softeningPart_ == "shearSRI" ) {
+      for (UInt i=0; i<nrElems2d; i++) {
+	for (UInt j=0; j<nrElems2d; j++) {
+	  dMat[i][j] = 0.0;
+	}
+      }
+    }
+   
   }
 
 
@@ -195,9 +286,59 @@ namespace CoupledField
     
     dMat.Resize(nrElems3d);
 
-    for (UInt i=0; i<nrElems3d; i++)
-      for (UInt j=0; j<nrElems3d; j++)
-        dMat[i][j] = matMatrix[i][j];   
+    for (UInt i=0; i<nrElems3d; i++) {
+      for (UInt j=0; j<nrElems3d; j++) {
+        dMat[i][j] = matMatrix[i][j];
+      }
+    }
+
+    if (softeningPart_ == "bendingBK1" ) {
+      
+      if (  maxEdgeLength_ < 1e-15 ) {
+	Error("linElastInt::Calc3DMaterialMat: maxEdgeLength_=0",__FILE__,__LINE__);
+      }
+
+      Double f1, factor;
+      f1 = (minEdgeLength_* minEdgeLength_);
+      factor =  f1 / ( f1 + maxEdgeLength_ * maxEdgeLength_);
+
+      dMat[3][3] *= factor;   
+      dMat[4][4] *= factor;   
+      dMat[5][5] *= factor;   
+    }
+
+    else if (softeningPart_ == "bendingSRI" ) {
+      for (UInt i=3; i<nrElems3d; i++) {
+	for (UInt j=3; j<nrElems3d; j++) {
+	  dMat[i][j] = 0.0;
+	}
+      }
+    }
+
+    else if (softeningPart_ == "shearBK1" ) {
+      for (UInt i=0; i<3; i++) {
+	for (UInt j=0; j<3; j++) {
+	  dMat[i][j] = 0.0;
+	}
+      }
+
+      Double f1, factor;
+      f1 = maxEdgeLength_ * maxEdgeLength_;
+      factor = f1 / ( f1 + minEdgeLength_* minEdgeLength_ ); 
+      dMat[3][3] *= factor;   
+      dMat[4][4] *= factor;   
+      dMat[5][5] *= factor; 
+    }
+
+    else if (softeningPart_ == "shearSRI" ) {
+      for (UInt i=0; i<3; i++) {
+	for (UInt j=0; j<3; j++) {
+	  dMat[i][j] = 0.0;
+	}
+      }
+    }
+
+    //   std::cout << "Dmat:\n" << dMat << std::endl;
   }
 
   

@@ -23,6 +23,10 @@ namespace CoupledField {
     //! Destructor
     virtual ~linElastInt();
 
+    //! Function for calculation bdb matrix 
+    virtual void CalcElementMatrix( Matrix<Double> &ptCoord,
+                                    Matrix<Double> &elemmat );
+
   protected:    
 
     //! calculates the material data for the axisymmetric case

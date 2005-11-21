@@ -47,7 +47,6 @@ namespace CoupledField
         NumIntPoints_ = 1;
         DegreeInteg_  = 2;
 
-
         IntWeights_.Resize(NumIntPoints_);
         // all weights are 1.0
         for(UInt i=0; i<IntWeights_.GetSize(); i++)
@@ -408,6 +407,57 @@ namespace CoupledField
   }
 
 
+  void HexaFE::GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin )
+  {
+    ENTER_IFCN( "HexaFE::GetMaxMinEdgeLength" );
+
+    Vector<Double> L(12);
+    Double dx,dy,dz;
+
+    //first face
+    for (UInt i=0; i<3; i++ ) {
+      dx   = ptCoord[0][i] - ptCoord[0][i+1];
+      dy   = ptCoord[1][i] - ptCoord[1][i+1];
+      dz   = ptCoord[2][i] - ptCoord[2][i+1];
+      L[i] = sqrt( dx*dx + dy*dy + dz*dz);
+    }
+    dx   = ptCoord[0][0] - ptCoord[0][3];
+    dy   = ptCoord[1][0] - ptCoord[1][3];
+    dz   = ptCoord[2][0] - ptCoord[2][3];
+    L[3] = sqrt( dx*dx + dy*dy + dz*dz);
+
+    //second face
+    for (UInt i=4; i<7; i++ ) {
+      dx   = ptCoord[0][i] - ptCoord[0][i+1];
+      dy   = ptCoord[1][i] - ptCoord[1][i+1];
+      dz   = ptCoord[2][i] - ptCoord[2][i+1];
+      L[i] = sqrt( dx*dx + dy*dy + dz*dz);
+    }
+    dx   = ptCoord[0][4] - ptCoord[0][7];
+    dy   = ptCoord[1][4] - ptCoord[1][7];
+    dz   = ptCoord[2][4] - ptCoord[2][7];
+    L[7] = sqrt( dx*dx + dy*dy + dz*dz);
+
+    // side faces
+    UInt offset = 8;
+    for (UInt i=0; i<4; i++ ) {
+      dx   = ptCoord[0][i] - ptCoord[0][i+4];
+      dy   = ptCoord[1][i] - ptCoord[1][i+4];
+      dz   = ptCoord[2][i] - ptCoord[2][i+4];
+      L[i+offset] = sqrt( dx*dx + dy*dy + dz*dz);
+    }
+
+    Lmax = L[0];
+    Lmin = Lmax; 
+    for ( UInt i=1; i<12; i++ ) {
+      if ( L[i] > Lmax ) {
+	Lmax = L[i];
+      }
+      if ( L[i] < Lmin ) {
+	Lmin = L[i];
+      }
+    }
+  }
 
 } // end of namespace
 
