@@ -255,6 +255,7 @@
       <xsd:enumeration value="electrostatic"/>
       <xsd:enumeration value="smooth"/>
       <xsd:enumeration value="mpcci"/>
+      <xsd:enumeration value="heatConduction"/>
     </xsd:restriction>
   </xsd:simpleType>
   

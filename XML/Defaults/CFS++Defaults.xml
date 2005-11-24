@@ -234,6 +234,11 @@
       <matrix/>
       <solver><stoppingRule/></solver>
     </system>
+    <system name="heatConduction">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
   </linearSystems>
 
   <integRules>
