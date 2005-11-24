@@ -49,6 +49,7 @@ XML/Schemas/CFS_MpCCI.xsd -text
 XML/Schemas/CFS_PDEacoustic.xsd -text
 XML/Schemas/CFS_PDEbasic.xsd -text
 XML/Schemas/CFS_PDEelectrostatic.xsd -text
+XML/Schemas/CFS_PDEheatConduction.xsd -text
 XML/Schemas/CFS_PDEmagnetic.xsd -text
 XML/Schemas/CFS_PDEmechanic.xsd -text
 XML/Schemas/CFS_PDEmpcci.xsd -text

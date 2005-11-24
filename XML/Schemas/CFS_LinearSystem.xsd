@@ -52,6 +52,7 @@
           <xsd:enumeration value="mpcci"/>
           <xsd:enumeration value="piezo"/>
           <xsd:enumeration value="smooth"/>
+          <xsd:enumeration value="heatConduction"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
