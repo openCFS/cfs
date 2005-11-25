@@ -396,45 +396,43 @@ namespace CoupledField {
       else if (pdeNames[i] == "mechanic")
         ptSinglePde_[i]=new MechPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
-      else if (pdeNames[i] == "acoustic")
-        {
-          StdVector<std::string> acouSubType;
-          params->GetList( "subType", acouSubType,"pdeList", "acoustic");
-          if (acouSubType.GetSize())
-            ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
-          else
-            ptSinglePde_[i]=new AcousticPDE(ptgrid_,ptTimeFunc_,OutFile_);
-        }
+      else if (pdeNames[i] == "acoustic") {
+        StdVector<std::string> acouSubType;
+        params->GetList( "subType", acouSubType,"pdeList", "acoustic");
+        if (acouSubType.GetSize())
+          ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
+        else
+          ptSinglePde_[i]=new AcousticPDE(ptgrid_,ptTimeFunc_,OutFile_);
+      }
+      // else if (pdeNames[i] == "acouflownoise")
+      // ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
       
 
       else if (pdeNames[i] == "smooth")
         ptSinglePde_[i]=new SmoothPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
-      else if (pdeNames[i] == "magnetic") 
-        {
-          if (dim_ == 2)
-            ptSinglePde_[i]=new MagPDE(ptgrid_,ptTimeFunc_,OutFile_);
-          else
-            Error( "Magnetic field calculation currently only possible in 2D!",
-                   __FILE__, __LINE__);
-        }
+      // else if (pdeNames[i] == "smoothlaplace") 
+      // ptSinglePde_[i]=new SmoothLaPlacePDE(ptgrid_,ptTimeFunc_,OutFile_); 
 
+      else if (pdeNames[i] == "magnetic") {
+        if (dim_ == 2)
+          ptSinglePde_[i]=new MagPDE(ptgrid_,ptTimeFunc_,OutFile_);
+        // else if (dim_ == 3)
+        // ptSinglePde_[i]=new MagEdgePDE(ptgrid_,ptTimeFunc_,OutFile_); 
+        else
+          Error( "Magnetic field calculation currently only possible in 2D!",
+                 __FILE__, __LINE__);
+      }
+      
       else if (pdeNames[i] == "piezo")
         ptSinglePde_[i]=new PiezoPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
       else if (pdeNames[i] == "mpcci")
         ptSinglePde_[i]=new MpcciPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
-      // else if (pdeNames[i] == "acouflownoise")
-      // ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
+      else if (pdeNames[i] == "heatConduction")
+        ptSinglePde_[i]=new HeatCondPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
-      // else if (pdeNames[i] == "smoothlaplace") 
-      // ptSinglePde_[i]=new SmoothLaPlacePDE(ptgrid_,ptTimeFunc_,OutFile_); 
-
-
-      // else if (pdeNames[i] == "magnetic") 
-      // if (dim_ == 3
-      // ptSinglePde_[i]=new MagEdgePDE(ptgrid_,ptTimeFunc_,OutFile_); 
 
       else {
         std::string msg=pdeNames[i]+" - this type of pdes is unknown";
