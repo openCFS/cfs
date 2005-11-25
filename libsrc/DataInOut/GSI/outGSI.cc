@@ -757,6 +757,9 @@ namespace CoupledField {
       case MAG_ENERGY:
         return "mag. energy";
         break;
+      case HEAT_TEMPERATURE:
+        return "temperature";
+        break;
       default:
         (*error) << "Wrong type of solution or 'SolutionType2String' not "
                  << "implemented for this type of solution";

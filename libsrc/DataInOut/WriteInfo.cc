@@ -139,21 +139,36 @@ namespace CoupledField {
   //   PrintFluidMat
   // *****************
   void WriteInfo::PrintFluidMat( MaterialData &material ) {
-
     ENTER_FCN( "WriteInfo::PrintFluidMat" );
 
     if (cfsInfo)
       *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":"
-               << std::endl << "compressibility: "
+               << std::endl 
+               << "compression modulus [N/m^2] = "
                << material.GetCompressibility() << std::endl
-               << "density: " << material.GetDensity() << std::endl
-               << "alpha: " << material.GetDampingAlfa() << std::endl
-               << "beta: " << material.GetDampingBeta() << std::endl
-               << "BoverA: " << material.GetBoverA() << std::endl
-               << std::endl;
+               << "density [kg/m^3]            = " 
+               << material.GetDensity() << std::endl
+               << "alpha / alpha_0 [Np/m]      = " 
+               << material.GetDampingAlfa() << std::endl
+               << "beta  / y                   = " 
+               << material.GetDampingBeta() << std::endl
+               << "B/A                         = " 
+               << material.GetBoverA() << std::endl << std::endl;
   }
   
+  void WriteInfo::PrintThermicMat( MaterialData &material ) {
+    ENTER_FCN( "WriteInfo::PrintThermicMat" );
 
+    if (cfsInfo)
+      *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":"
+               << std::endl
+               << "density [kg/m^3]             = " 
+               << material.GetDensity() << std::endl
+               << "heat capacity [J/kg K]       = " 
+               << material.GetHeatCapacity() << std::endl
+               << "thermal conductivity [W/m K] = " 
+               << material.GetThermalConductivity() << std::endl << std::endl;
+  }
 
   void WriteInfo::PrintMagMat(MaterialData& material)
   {
@@ -166,8 +181,8 @@ namespace CoupledField {
     material.GetConductivity(2,2,cond);
 
 
-    *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName()
-             << ":" << std::endl
+    *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":" 
+             << std::endl
              << "conductivity:            " << cond
              << std::endl
              << "permeability:            " << perm

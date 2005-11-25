@@ -617,6 +617,10 @@ namespace CoupledField {
       case MAG_ENERGY:
         Error("Not implemented", __FILE__, __LINE__);
         break;
+      case HEAT_TEMPERATURE:
+        return "temperature";
+        break;
+
       default:
         Error( "Wrong type of solution or 'SolutionType2String' not implemented for \
 this type of solution", __FILE__, __LINE__);

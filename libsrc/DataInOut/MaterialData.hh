@@ -26,11 +26,16 @@ namespace CoupledField {
 
   private:
 
+    // material type: fluid
     Double density;
     Double compressibility;
     Double damp_alfa;
     Double damp_beta;
     Double BoverA;
+    // material type: thermic
+    Double heatCapacity;
+    Double thermalConductivity;
+
     Double eModule;
     Double nu;
     Double LameLambda;
@@ -83,7 +88,6 @@ namespace CoupledField {
     /// set nu
     void SetNu(const Double& Nu){nu = Nu;};
 
-
     /// set density of the material
     void SetDensity(const Double& Density){density = Density;};
 
@@ -108,12 +112,13 @@ namespace CoupledField {
     void SetDampingCoeffs(const Double& Damp_alfa, const Double& Damp_beta)
     {damp_alfa=Damp_alfa; damp_beta=Damp_beta;};
 
-
     /// set BoverA (nonlinearity parameter in nonlinear acoustics)
-    void SetBoverA( const Double &BA ) {
-      ENTER_FCN( "MaterialData::SetBoverA" );
-      BoverA = BA;
-    }
+    void SetBoverA( const Double &BA )
+    {BoverA = BA;}
+
+    /// set parameters for heat conduction
+    void SetThermic(const Double& HeatCapacity, const Double ThermalConductivity)
+    {heatCapacity = HeatCapacity; thermalConductivity = ThermalConductivity;}
 
     /// set electric field value for saturation
     void SetEsat(Double& val) {Esat = val;};
@@ -258,10 +263,13 @@ namespace CoupledField {
     Double GetDampingBeta() const {return damp_beta;};  
 
     /// get BoverA for nonlinear acoustics
-    Double GetBoverA() const {
-      ENTER_FCN( "MaterialData::GetBoverA" );
-      return BoverA;
-    }
+    Double GetBoverA() const {return BoverA;}
+
+    /// get heatConduction
+    Double GetHeatCapacity() const {return heatCapacity;}
+
+    /// get thermalConductivity
+    Double GetThermalConductivity() const {return thermalConductivity;}
 
     /// get nu
     Double GetNu() const { return nu; };

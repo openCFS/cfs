@@ -87,6 +87,8 @@ namespace CoupledField {
     /// prints all fluid data
     void PrintFluidMat(MaterialData& material);
 
+    /// prints all thermic data
+    void PrintThermicMat(MaterialData& material);
 
     /// prints all magnetic data
     void PrintMagMat(MaterialData& material);
