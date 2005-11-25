@@ -137,18 +137,19 @@ namespace CoupledField {
   enum NonLinPDE{WESTERVELT=0, KUZNETSOV=1};
 
   //! Describes all possible solution types in a CFS simulation
-  typedef enum{ NO_SOLUTION_TYPE, MECH_DISPLACEMENT, MECH_ACCELERATION,
-                  MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN,
-                  MECH_ENERGY,
-                  ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP, 
-                  ELEC_INTERFACE_FORCE, ELEC_CHARGE, ELEC_FLUX_DENSITY,
-                  ELEC_ENERGY,
-                  SMOOTH_DISPLACEMENT, 
-                  ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_FORCE, 
-                  ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2, ACOU_RHSVAL,
-                  MAG_POTENTIAL, MAG_FLUX_DENSITY, MAG_EDDY_CURRENT, 
-                  MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY,
-                  MPCCI, FLUID_FORCE} SolutionType;
+  typedef enum{NO_SOLUTION_TYPE, MECH_DISPLACEMENT, MECH_ACCELERATION,
+               MECH_VELOCITY, MECH_FORCE, MECH_STRESS, MECH_STRAIN,
+               MECH_ENERGY,
+               ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP, 
+               ELEC_INTERFACE_FORCE, ELEC_CHARGE, ELEC_FLUX_DENSITY,
+               ELEC_ENERGY,
+               SMOOTH_DISPLACEMENT, 
+               ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_FORCE, 
+               ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2, ACOU_RHSVAL,
+               MAG_POTENTIAL, MAG_FLUX_DENSITY, MAG_EDDY_CURRENT, 
+               MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY,
+               HEAT_TEMPERATURE,
+               MPCCI, FLUID_FORCE} SolutionType;
 
   //! Enumberation for coupling method\n
   //! NO_COUPLING          = No coupling at all
@@ -264,13 +265,8 @@ namespace CoupledField {
   //! They are used, when we read information about elements from mesh and
   //! create a pointer to the class containing the description of the Finite
   //! Element.
-// <<<<<<< environment.hh
   extern BaseFE *ptQ1, *ptQ2, *ptL1, *ptL2, *ptTet1, *ptTet2, *ptTr1, 
 	*ptTr2, *ptHexa1, *ptHexa2, *ptPyra1, *ptPyra2, *ptWedge1, *ptWedge2;
-// =======
-//   extern BaseFE *ptQ1, *ptQ2, *ptL1, *ptL2, *ptTet1, *ptTr1, *ptTr2,
-//     *ptHexa1, *ptHexa2, *ptPyra1, *ptWedge1, *ptWedge2;
-// >>>>>>> 1.81
 
   //! class for flags of programm
   class Flags
