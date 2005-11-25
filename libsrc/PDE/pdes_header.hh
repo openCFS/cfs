@@ -11,6 +11,7 @@
 #include "piezoPDE.hh"
 #include "acouFlowNoise.hh"
 #include "mpcciPDE.hh"
+#include "heatCondPDE.hh"
 
 
 #endif
