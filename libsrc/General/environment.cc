@@ -386,7 +386,10 @@ namespace CoupledField {
       out = MAG_FORCE_LORENTZ;
     else if (in == "magEnergy")
       out = MAG_ENERGY;
-    //energy
+
+    //heat conduction
+    else if (in == "heatTemperature")
+      out = HEAT_TEMPERATURE;
 
     //mpcci
     else if (in == "fluidForce")
@@ -496,6 +499,12 @@ namespace CoupledField {
       case MAG_ENERGY:
         out = "magEnergy";
         break;
+
+        //heat conduction
+      case HEAT_TEMPERATURE:
+        out = "heatTemperature";
+        break;
+
         //mpcci PDE  
       case FLUID_FORCE:
         out = "fluidForce";
