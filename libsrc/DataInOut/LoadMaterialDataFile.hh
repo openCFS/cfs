@@ -52,6 +52,9 @@ namespace CoupledField
     /// read fluid material data
     void ReadFluid(std::ifstream & fin, MaterialData * material);
 
+    /// read thermic material data -> e.g. for heat conduction simulation
+    void ReadThermic(std::ifstream & fin, MaterialData * material);
+
     /// read linear magnetic material data (could be also done by ReadMagNonLin -> is only here for compatibility)
     void ReadMagnetic(std::ifstream & fin, MaterialData * material);
 

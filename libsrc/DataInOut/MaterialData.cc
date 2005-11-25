@@ -42,6 +42,10 @@ namespace CoupledField
     damp_alfa       = mat.damp_alfa;
     damp_beta       = mat.damp_beta;
     BoverA          = mat.BoverA;
+
+    heatCapacity        = mat.heatCapacity;
+    thermalConductivity = mat.thermalConductivity;
+
     eModule         = mat.eModule;
     nu              = mat.nu;
     //  permeability = mat.permeability;

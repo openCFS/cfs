@@ -88,15 +88,15 @@ namespace CoupledField
       }
 
     }
-
     else if ( matType == "fluid" ) {
       ReadFluid(fin, &material);
     }
-
     else if ( matType == "magnetic" ) {
       ReadMagnetic(fin, &material);
     }
-
+    else if ( matType == "thermic" ) {
+      ReadThermic(fin, &material);
+    }
     else {
       (*error) << "Warning: material type " << matType << " in File "
                << filename << " unknown!";
@@ -279,7 +279,8 @@ namespace CoupledField
         delete strPtr;  
       }
 
-    // Rotation of the MaterialMatrices corresponding to the polarisation of the piezoelectric body
+    // Rotation of the MaterialMatrices corresponding to the polarisation
+    //  of the piezoelectric body
 
     Double a1, a2, a3;
     a1=a2=a3=0; 
@@ -429,11 +430,9 @@ namespace CoupledField
 
   void LoadMaterialDataFile::ReadFluid( std::ifstream &fin,
                                         MaterialData *material ) {
-
     ENTER_FCN("LoadMaterialDataFile::ReadFluid");
-    Double alfa,beta;
-    Double density, compress;   
-    Double BoverA;
+
+    Double density=0.0, compress=0.0, alfa=0.0, beta=0.0, BoverA=0.0;   
     std::istringstream * strPtr;
     char buffer[bufLength];
     char materialName[bufLength];
@@ -447,13 +446,6 @@ namespace CoupledField
     ReadLine(fin,buffer);
     strPtr = new std::istringstream(buffer);
 
-    // initialize all values by zero
-    alfa = 0.0;
-    beta = 0.0;
-    density = 0.0;
-    compress = 0.0;
-    BoverA = 0.0;
-      
     *strPtr >> density >> compress >> alfa >> beta >> BoverA;
     if (strPtr->fail()) {
       std::cout << "*** The materialfile is corrupt! ***  Material: " 
@@ -471,6 +463,38 @@ namespace CoupledField
     material->SetBoverA(BoverA);
 
     Info->PrintFluidMat(*material);
+  }
+
+  void LoadMaterialDataFile::ReadThermic( std::ifstream &fin,
+                                          MaterialData *material ) {
+    ENTER_FCN("LoadMaterialDataFile::ReadThermic");
+
+    Double density=0.0, heatCapacity=0.0, thermalConductivity=0.0;
+    std::istringstream * strPtr;
+    char buffer[bufLength];
+    char materialName[bufLength];
+
+
+    ReadLine(fin,buffer);
+    SSCANF(buffer,"%*d%*s%s", materialName);  
+
+    material -> SetName(materialName);
+
+    ReadLine(fin,buffer);
+    strPtr = new std::istringstream(buffer);
+
+    *strPtr >> density >> heatCapacity >> thermalConductivity;
+    if (strPtr->fail()) {
+      std::cout << "*** The materialfile is corrupt! ***  Material: " 
+                << materialName << std::endl;
+    }
+
+    delete strPtr;
+    
+    material->SetDensity(density);
+    material->SetThermic(heatCapacity,thermalConductivity);
+
+    Info->PrintThermicMat(*material);
   }
 
 
