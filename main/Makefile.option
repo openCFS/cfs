@@ -98,7 +98,7 @@
 # -----------------------------------------------------------------------------
 
 ifeq ("$(OLAS_ROOT)","")
-OLAS_ROOT =
+OLAS_ROOT = /home/lse10/lse/bahr/CFS/OLAS
 endif
 
 ifeq ("$(HYPRE_ROOT)","")
@@ -168,16 +168,16 @@ DATABASE = no
 # -----------------------------------------------------------------------------
 
 # Was OLAS compiled with support for hypre?
-HYPRE = yes
+HYPRE = no
 
 # Was OLAS compiled with support for LAPACK?
 LAPACK = yes
 
 # Was OLAS compiled with support for TVMET?
-TVMET = yes
+TVMET = no
 
 # Was OLAS compiled with support for Pardiso?
-PARDISO = no
+PARDISO = yes
 
 # Was OLAS compiled with support for Metis?
 METIS = yes

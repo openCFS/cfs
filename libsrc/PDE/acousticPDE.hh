@@ -53,6 +53,8 @@ namespace CoupledField {
     void CalcElemPressure();
 
     //! write results in file
+    //! \param kstep actual time step number
+    //! \param asteptime time corresponding to kstep
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
     void WriteResultsInFile(const UInt kstep,
@@ -61,6 +63,8 @@ namespace CoupledField {
                             Double timeOffset = 0.0);
 
     //! write history results in file
+    //! \param kstep actual time step number
+    //! \param asteptime time corresponding to kstep
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
     void WriteHistoryInFile(const UInt kstep,

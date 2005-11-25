@@ -14,7 +14,7 @@ namespace CoupledField
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    //! \param rhsSIze total number of entries in the rhs vector
+    //! \param rhsSize total number of entries in the rhs vector
     Newmark( BaseSystem * algebraicsystem, UInt rhsSize );
 
     //! destructor

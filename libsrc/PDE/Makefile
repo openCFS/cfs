@@ -23,7 +23,8 @@ src =   basePDE.cc\
 	piezoPDE.cc \
 	newmarkFracDamp.cc \
 	newmarkFracDampMech.cc \
-	mpcciPDE.cc 
+	mpcciPDE.cc \
+	heatCondPDE.cc
 
 #
 lib = pde
