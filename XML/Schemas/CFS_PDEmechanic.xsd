@@ -40,6 +40,8 @@
               <xsd:sequence>
                 <xsd:element name="damping" type="DT_MechDamp"
                   minOccurs="0"/>
+                <xsd:element name="softening" type="DT_MechSoftening"
+                  minOccurs="0"/>
               </xsd:sequence>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="nonLinear" type="DT_MechNonLin"
@@ -311,6 +313,24 @@
       <xsd:element name="volumeAboveDefSurf" type="DT_SurfVolumeMech"
         minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition for softening                                          -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MechSoftening">
+    <xsd:attribute name="type" use="optional" default="no">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="no"/>
+          <xsd:enumeration value="BK1"/>
+          <xsd:enumeration value="SRI"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <!-- thickness of structure -->
+    <xsd:attribute name="thickness" type="xsd:double" use="optional"/>
   </xsd:complexType>
 
 
