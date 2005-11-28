@@ -168,6 +168,12 @@ namespace CoupledField
     void SetElemNr(UInt nr)
     {actElemNr_ = nr; };
 
+    //! set min/max of x,y,z coordinates form where PML starts
+    virtual void SetPosPML(Matrix<Double> & pos) {;};
+
+    void SetFrequency(Double freq)
+    {frequency_ = freq;};
+
   protected:
 
     //! pointer to reference element

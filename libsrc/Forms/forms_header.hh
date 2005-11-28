@@ -22,5 +22,6 @@
 #include "magforceop.hh"
 #include "linViscoElastInt.hh"
 #include "laplacePMLInt.hh"
+#include "PMLInt.hh"
 #include "bdInt.hh"
 #endif

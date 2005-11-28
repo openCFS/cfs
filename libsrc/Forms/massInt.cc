@@ -99,6 +99,7 @@ namespace CoupledField {
       elemMat = multDofMass;
     }
 
+    //    std::cout << "ElemMatMass:\n" << elemMat << std::endl;
   }
 
   void MassInt::Print(std::ostream * out, const Matrix<Double> Result) const

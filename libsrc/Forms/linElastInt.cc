@@ -300,7 +300,7 @@ namespace CoupledField
 
       Double f1, factor;
       f1 = (minEdgeLength_* minEdgeLength_);
-      factor =  f1 / ( f1 + maxEdgeLength_ * maxEdgeLength_);
+      factor =  2*f1 / ( 2*f1 + maxEdgeLength_ * maxEdgeLength_);
 
       dMat[3][3] *= factor;   
       dMat[4][4] *= factor;   
@@ -324,7 +324,7 @@ namespace CoupledField
 
       Double f1, factor;
       f1 = maxEdgeLength_ * maxEdgeLength_;
-      factor = f1 / ( f1 + minEdgeLength_* minEdgeLength_ ); 
+      factor = f1 / ( f1 + 2* minEdgeLength_* minEdgeLength_ ); 
       dMat[3][3] *= factor;   
       dMat[4][4] *= factor;   
       dMat[5][5] *= factor; 
