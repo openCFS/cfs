@@ -38,6 +38,8 @@
               <xsd:sequence>
                 <xsd:element name="damping" type="DT_AcousticDamp"
                   minOccurs="0"/>
+                <xsd:element name="pml" type="DT_AcousticPML"
+                  minOccurs="0"/>
               </xsd:sequence>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="nonLinear" type="DT_AcousticNonLin"
@@ -230,6 +232,35 @@
       <xsd:enumeration value="kuznetsov"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition for PML                                                -->
+  <!-- ******************************************************************* -->
+
+   <xsd:complexType name="DT_AcousticPML">
+
+    <!-- Type of PML -->
+    <xsd:attribute name="type" use="optional" default="constant">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="constant"   />
+          <xsd:enumeration value="quadDist"     />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <xsd:attribute name="xMin" type="xsd:double" use="required"/>
+    <xsd:attribute name="xMax" type="xsd:double" use="required"/>
+    <xsd:attribute name="yMin" type="xsd:double" use="required"/>
+    <xsd:attribute name="yMax" type="xsd:double" use="required"/>
+    <xsd:attribute name="zMin" type="xsd:double" use="required"/>
+    <xsd:attribute name="zMax" type="xsd:double" use="required"/>
+    <xsd:attribute name="dampFactor" type="xsd:double" use="optional"
+      default="1000"/>
+    <xsd:attribute name="layerThickness" type="xsd:double" use="optional"
+      default="1"/>
+  </xsd:complexType>
 
 
   <!-- ******************************************************************* -->
