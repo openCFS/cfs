@@ -43,26 +43,76 @@ namespace CoupledField
     switch(IntegType) 
       {
       case GaussOrder1:
-          
-        NumIntPoints_ = 1;
-        DegreeInteg_  = 2;
 
-        IntWeights_.Resize(NumIntPoints_);
-        // all weights are 1.0
-        for(UInt i=0; i<IntWeights_.GetSize(); i++)
-          IntWeights_[i] = 1.0;
-      
-        if (!IntPoints_)
-          IntPoints_ = new Vector<Double>[NumIntPoints_];
-      
-        for(UInt i=0; i<NumIntPoints_; i++)
-          IntPoints_[i].Resize(Dim_);
+	if (NumNodes_ ==8 ) {          
+	  NumIntPoints_ = 1;
+	  DegreeInteg_  = 2;
+	  
+	  IntWeights_.Resize(NumIntPoints_);
+	  // all weights are 1.0
+	  for(UInt i=0; i<IntWeights_.GetSize(); i++)
+	    IntWeights_[i] = 1.0;
+	  
+	  if (!IntPoints_)
+	    IntPoints_ = new Vector<Double>[NumIntPoints_];
+	  
+	  for(UInt i=0; i<NumIntPoints_; i++)
+	    IntPoints_[i].Resize(Dim_);
+	  
+	  IntPoints_[0][0] = 0;
+	  IntPoints_[0][1] = 0;
+	  IntPoints_[0][2] = 0;     
+	}
 
-        IntPoints_[0][0] = 0;
-        IntPoints_[0][1] = 0;
-        IntPoints_[0][2] = 0;      
-      
-        break;
+	else {
+	  NumIntPoints_=8;
+	  DegreeInteg_=3;
+	  
+	  IntWeights_.Resize(NumIntPoints_);
+	  // all weights are 1.0
+	  for(UInt i=0; i<IntWeights_.GetSize(); i++)
+	    IntWeights_[i] = 1.0;
+	  
+	  if (!IntPoints_)
+	    IntPoints_ = new Vector<Double>[NumIntPoints_];
+	  
+	  for(UInt i=0; i<NumIntPoints_; i++)
+	    IntPoints_[i].Resize(Dim_);
+	  
+	  IntPoints_[0][0] = -0.57735026919;
+	  IntPoints_[0][1] = -0.57735026919;
+	  IntPoints_[0][2] = -0.57735026919;
+	  
+	  IntPoints_[1][0] = 0.57735026919;
+	  IntPoints_[1][1] = -0.57735026919;
+	  IntPoints_[1][2] = -0.57735026919;
+	  
+	  IntPoints_[2][0] = 0.57735026919;
+	  IntPoints_[2][1] = 0.57735026919;
+	  IntPoints_[2][2] = -0.57735026919;
+	  
+	  IntPoints_[3][0] = -0.57735026919;
+	  IntPoints_[3][1] = 0.57735026919;
+	  IntPoints_[3][2] = -0.57735026919;
+	  
+	  IntPoints_[4][0] = -0.57735026919;
+	  IntPoints_[4][1] = -0.57735026919;
+	  IntPoints_[4][2] = 0.57735026919;
+	  
+	  IntPoints_[5][0] = 0.57735026919;
+	  IntPoints_[5][1] = -0.57735026919;
+	  IntPoints_[5][2] = 0.57735026919;
+	  
+	  IntPoints_[6][0] = 0.57735026919;
+	  IntPoints_[6][1] = 0.57735026919;
+	  IntPoints_[6][2] = 0.57735026919;
+	  
+	  IntPoints_[7][0] = -0.57735026919;
+	  IntPoints_[7][1] = 0.57735026919;
+	  IntPoints_[7][2] = 0.57735026919;
+	}
+
+	break;
 
       case GaussOrder2:
 
@@ -215,94 +265,49 @@ namespace CoupledField
 
         break;
           
-        //      NumIntPoints_=6;
-        //       DegreeInteg_=3;
+ 
+// 	NumIntPoints_=6;
+// 	DegreeInteg_=3;
+	
+	
+// 	IntWeights_.Resize(NumIntPoints_);
 
+// 	// all weights are 4/3
+// 	for(UInt i=0; i<IntWeights_.GetSize(); i++)
+// 	  IntWeights_[i] = 4.0/3.0;
+	
+// 	if (!IntPoints_)
+// 	  IntPoints_ = new Vector<Double>[NumIntPoints_];
+	
+// 	for(UInt i=0; i<NumIntPoints_; i++)
+// 	  IntPoints_[i].Resize(Dim_);
+	
+// 	IntPoints_[0][0] =  1.0/sqrt(6.0);
+// 	IntPoints_[0][1] =  1.0/sqrt(2.0);
+// 	IntPoints_[0][2] = -1.0/sqrt(3.0);
+	
+// 	IntPoints_[1][0] =  1.0/sqrt(6.0);
+// 	IntPoints_[1][1] = -1.0/sqrt(2.0);
+// 	IntPoints_[1][2] = -1.0/sqrt(3.0);
+	
+// 	IntPoints_[2][0] = -1.0/sqrt(6.0);
+// 	IntPoints_[2][1] =  1.0/sqrt(2.0);
+// 	IntPoints_[2][2] =  1.0/sqrt(3.0);
+	
+// 	IntPoints_[3][0] = -1.0/sqrt(6.0);
+// 	IntPoints_[3][1] = -1.0/sqrt(2.0);
+// 	IntPoints_[3][2] =  1.0/sqrt(3.0);
+	
+// 	IntPoints_[4][0] = -sqrt(2.0/3.0);
+// 	IntPoints_[4][1] = 0.0;
+// 	IntPoints_[4][2] = -1/sqrt(3.0);
+	
+// 	IntPoints_[5][0] = sqrt(2.0/3.0);
+// 	IntPoints_[5][1] = 0.0;
+// 	IntPoints_[5][2] = 1/sqrt(3.0);
+	
+//         break;
 
-        //       IntWeights_.Resize(NumIntPoints_);
-        //      // all weights are 4/3
-        //       for(UInt i=0; i<IntWeights_.GetSize(); i++)
-        //      IntWeights_[i] = 4.0/3.0;
-      
-        //       if (!IntPoints_)
-        //      IntPoints_ = new Vector<Double>[NumIntPoints_];
-
-        //       for(UInt i=0; i<NumIntPoints_; i++)
-        //      IntPoints_[i].Resize(Dim_);
-
-        //       IntPoints_[0][0] =  1.0/sqrt(6.0);
-        //       IntPoints_[0][1] =  1.0/sqrt(2.0);
-        //       IntPoints_[0][2] = -1.0/sqrt(3.0);
-
-        //       IntPoints_[1][0] =  1.0/sqrt(6.0);
-        //       IntPoints_[1][1] = -1.0/sqrt(2.0);
-        //       IntPoints_[1][2] = -1.0/sqrt(3.0);
-      
-        //       IntPoints_[2][0] = -1.0/sqrt(6.0);
-        //       IntPoints_[2][1] =  1.0/sqrt(2.0);
-        //       IntPoints_[2][2] =  1.0/sqrt(3.0);
-
-        //       IntPoints_[3][0] = -1.0/sqrt(6.0);
-        //       IntPoints_[3][1] = -1.0/sqrt(2.0);
-        //       IntPoints_[3][2] =  1.0/sqrt(3.0);
-
-        //       IntPoints_[4][0] = -sqrt(2.0/3.0);
-        //       IntPoints_[4][1] = 0.0;
-        //       IntPoints_[4][2] = -1/sqrt(3.0);
-
-        //       IntPoints_[5][0] = sqrt(2.0/3.0);
-        //       IntPoints_[5][1] = 0.0;
-        //       IntPoints_[5][2] = 1/sqrt(3.0);
-
-
-        //       NumIntPoints_=8;
-        //       DegreeInteg_=3;
-
-
-        //      IntWeights_.Resize(NumIntPoints_);
-        //      // all weights are 1.0
-        //      for(UInt i=0; i<IntWeights_.GetSize(); i++)
-        //        IntWeights_[i] = 1.0;
-      
-        //      if (!IntPoints_)
-        //        IntPoints_ = new Vector<Double>[NumIntPoints_];
-
-        //      for(UInt i=0; i<NumIntPoints_; i++)
-        //        IntPoints_[i].Resize(Dim_);
-
-        //       IntPoints_[0][0] = -0.57735026919;
-        //       IntPoints_[0][1] = -0.57735026919;
-        //       IntPoints_[0][2] = -0.57735026919;
-      
-        //       IntPoints_[1][0] = 0.57735026919;
-        //       IntPoints_[1][1] = -0.57735026919;
-        //       IntPoints_[1][2] = -0.57735026919;
-
-        //       IntPoints_[2][0] = 0.57735026919;
-        //       IntPoints_[2][1] = 0.57735026919;
-        //       IntPoints_[2][2] = -0.57735026919;
-
-        //       IntPoints_[3][0] = -0.57735026919;
-        //       IntPoints_[3][1] = 0.57735026919;
-        //       IntPoints_[3][2] = -0.57735026919;
-
-        //       IntPoints_[4][0] = -0.57735026919;
-        //       IntPoints_[4][1] = -0.57735026919;
-        //       IntPoints_[4][2] = 0.57735026919;
-      
-        //       IntPoints_[5][0] = 0.57735026919;
-        //       IntPoints_[5][1] = -0.57735026919;
-        //       IntPoints_[5][2] = 0.57735026919;
-
-        //       IntPoints_[6][0] = 0.57735026919;
-        //       IntPoints_[6][1] = 0.57735026919;
-        //       IntPoints_[6][2] = 0.57735026919;
-
-        //       IntPoints_[7][0] = -0.57735026919;
-        //       IntPoints_[7][1] = 0.57735026919;
-        //       IntPoints_[7][2] = 0.57735026919;
-
-        //      break;
 
       default:
         Error("Integration type is not implemented",__FILE__,__LINE__);

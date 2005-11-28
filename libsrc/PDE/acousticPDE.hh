@@ -186,6 +186,10 @@ namespace CoupledField {
     //! \todo Specification of ReadStoreResults for AcousticPDE!!!
     void ReadStoreResults();
 
+    // reads in the PML data
+    void ReadDataPML(std::string& typePML, Matrix<Double>& inner, 
+		     Double& layerThickness, Double& dampPML,
+		     RegionIdType actRegion);
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

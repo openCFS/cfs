@@ -10,7 +10,7 @@ src = baseForm.cc laplaceInt.cc bdbInt.cc linElastInt.cc nLinElastInt.cc linVisc
       elecchargeop.cc magforceop.cc adbInt.cc\
       linPiezoCoupling3D.cc linPiezoCoupling2DAxi.cc linPressureInt.cc\
       baseForceOp.cc acouMechInt.cc abcInt.cc linSurfForm.cc acouNeumannInt.cc \
-      laplacePMLInt.cc
+      laplacePMLInt.cc PMLInt.cc
 #
 lib = forms
 libpath = libsrc/Forms

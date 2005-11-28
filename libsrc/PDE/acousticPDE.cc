@@ -335,6 +335,11 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
     ENTER_FCN( "AcousticPDE::DefineIntegerators" );
 
+    // help variables for parameter checking
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
     Double density, compressibility, c0, alpha, beta, BoverA;
     Double coeffmass, coeffdamp;
 
@@ -361,115 +366,227 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       //   Linear wave equation
       // ********************************************************************
 
-      // stiffness integrator
-      BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);        
-      IntegratorDescriptor * stiffIntDescr = 
-        new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
-      stiffIntDescr->SetPDEIds(this, this);
+      //do the stiffness part;
+      IntegratorDescriptor * stiffIntDescr;
 
-      // mass integrator
-      coeffmass = density / (c0*c0);
+      //check  for PML!
+      RegionIdType actRegion = subdoms_[actSD];
+      std::string actRegionName;
+      actRegionName = ptgrid_->RegionIdToName( actRegion );
+      keyVec = "acoustic" , "region" , "pml" , "type";
+      attrVec= ""         , "name"   , "";
+      valVec = ""         , actRegionName, "";
+      StdVector<std::string> pmlInfo;
+      params->GetList( keyVec, attrVec, valVec, pmlInfo);
 
-      BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
-      IntegratorDescriptor * massIntDescr = 
-        new IntegratorDescriptor(bilinearMass, MASS);
+      if (pmlInfo.GetSize() > 0) {
+	//read data for PML layer
 
-      massIntDescr->SetPDEIds(this, this);
+	//type of PML damping
+	std::string dampingTypePML;
 
-      // ********************************************************************
-      //   Additional terms for damping
-      // ********************************************************************
+	// xmin / xmax;  ymin/ymax; zmin/zmax
+	Matrix<Double> inner;
 
-      if ( dampingList_.size() > 0 ) {
+	//layer thickness in all three dimensions
+	Double layerThickness;
 
-        // We check, if damping has been specified for all regions.
-        if ( dampingList_.size() != subdoms_.GetSize() ) {
-          (*warning) << "Mismatch between dampingList_ and subdoms_!"
-                     << "Size(dampingList_): " << dampingList_.size()
-                     << "Size(subdoms_): " << subdoms_.GetSize();
-          Warning(__FILE__, __LINE__);  
-        }
+	//damping factor
+	Double dampPML;
 
-        if (dampingList_[subdoms_[actSD]] == RAYLEIGH) {
-          // This works even after assemble_->AddIntegrator() is executed
-          //   because of the pointers...
+	ReadDataPML(dampingTypePML, inner, layerThickness, dampPML, actRegion);
 
-          // stiffness part
-          stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
-        
-          // mass part
-          massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
-        }
 
-        
-        else if ( dampingList_[subdoms_[actSD]] == THERMOVISCOUS ) {
-          coeffdamp  =  density * 2.0 * alpha * c0;
-          BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
-          IntegratorDescriptor * dampIntDescr = 
-            new IntegratorDescriptor(bilinearStiff, DAMPING);
+	//====================================================================
+	//	 stiffness integrator for PML
+	//====================================================================
 
-          dampIntDescr->SetPDEIds(this, this);   
-          assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
-        }
+	std::string formsType = "laplaceInt";
 
-        else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
-                  dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ) {
-          coeffdamp = - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
-#ifdef DEBUG
-          (*debug) << std::endl << "-rho*2*alpha0/c0/sin((y-1)*0.5*pi) = "
-                   << coeffdamp << std::endl << std::endl;
-#endif
-          BaseForm * bilinearDamp  = 
-            new MassInt(coeffdamp, dofspernode_, isaxi_);
-          bilinearDamp->SetFracDamping();
-          // formulation using DAMPING matrix
-          // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
-          // IntegratorDescriptor * dampIntDescr = 
-          //   new IntegratorDescriptor(bilinearDamp, DAMPING);
+	//set real part
+	BaseForm * bilinearStiffReal = 
+	  new PMLInt(formsType, density, dampingTypePML, dampPML, layerThickness, 
+		     isaxi_);
 
-          // two matrices formulation
-          // added to STIFFNESS matrix because, because 
-          //   matrix_factors[STIFFNESS] = 1.0
-          IntegratorDescriptor * dampIntDescr = 
-            new IntegratorDescriptor(bilinearDamp, STIFFNESS);
-   
-          dampIntDescr->SetPDEIds(this, this);
-          assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
-        }
+	bilinearStiffReal->SetPosPML(inner);
+	piezoMaterialType matType = REALMATERIALPARAMETER;
+	bilinearStiffReal->SetPiezoMaterialType(matType);
 
-        else if  ( dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
-                   dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT ) {
-          coeffdamp =  - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
-          // prefactor of blank alg
-          coeffdamp *= exp(-gammaln(1.0- (beta- 1.0)) ); 
-          // weight factor of index 0
-          coeffdamp *= 1.0/(1.0- (beta- 1.0));           
-          BaseForm * bilinearDamp  = 
-            new MassInt(coeffdamp, dofspernode_, isaxi_);
-          bilinearDamp->SetFracDamping();
-          // formulation using DAMPING matrix
-          // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
-          // IntegratorDescriptor * dampIntDescr = 
-          //   new IntegratorDescriptor(bilinearDamp, DAMPING);
+	IntegratorDescriptor * stiffIntDescrReal = 
+	  new IntegratorDescriptor(bilinearStiffReal, STIFFNESS);
 
-          // two matrices formulation
-          // added to STIFFNESS matrix because, because 
-          //   matrix_factors[STIFFNESS] = 1.0
-          IntegratorDescriptor * dampIntDescr = 
-            new IntegratorDescriptor(bilinearDamp, STIFFNESS);
+	stiffIntDescrReal->SetPDEIds(this, this);
+	stiffIntDescrReal->SetPiezoMaterialType(matType);
+	assemble_->AddIntegrator(stiffIntDescrReal, subdoms_[actSD]);
 
-          dampIntDescr->SetPDEIds(this, this);
-          assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+	//set imaginary part
+	BaseForm * bilinearStiffImag = 
+	  new PMLInt(formsType, density, dampingTypePML, dampPML, layerThickness, 
+		     isaxi_);
 
-        }
+	bilinearStiffImag->SetPosPML(inner);
+	matType = IMAGMATERIALPARAMETER;
+	bilinearStiffImag->SetPiezoMaterialType(matType);
+
+	IntegratorDescriptor * stiffIntDescrImag = 
+	  new IntegratorDescriptor(bilinearStiffImag, STIFFNESS);
+
+
+	stiffIntDescrImag->SetPDEIds(this, this);
+	stiffIntDescrImag->SetPiezoMaterialType(matType);
+	assemble_->AddIntegrator(stiffIntDescrImag, subdoms_[actSD]);
+
+
+	//====================================================================
+	//	 mass integrator for PML
+	//====================================================================
+	formsType = "massInt";
+
+	//	Double dampMass = (2.0/3.0)*density/c0;
+	Double massFactor = density/(c0*c0);
+
+	//set real part
+	BaseForm * bilinearMassReal = 
+	  new PMLInt(formsType, massFactor, dampingTypePML, dampPML, layerThickness, 
+		     isaxi_);
+
+	bilinearMassReal->SetPosPML(inner);
+	matType = REALMATERIALPARAMETER;
+	bilinearMassReal->SetPiezoMaterialType(matType);
+
+	IntegratorDescriptor * massIntDescrReal = 
+	  new IntegratorDescriptor(bilinearMassReal, MASS);
+
+	massIntDescrReal->SetPDEIds(this, this);
+	massIntDescrReal->SetPiezoMaterialType(matType);
+	assemble_->AddIntegrator(massIntDescrReal, subdoms_[actSD]);
+
+	//set imaginary part
+	BaseForm * bilinearMassImag = 
+	  new PMLInt(formsType, massFactor, dampingTypePML, dampPML, layerThickness, 
+		     isaxi_);
+
+	bilinearMassImag->SetPosPML(inner);
+	matType = IMAGMATERIALPARAMETER;
+	bilinearMassImag->SetPiezoMaterialType(matType);
+
+	IntegratorDescriptor * massIntDescrImag = 
+	  new IntegratorDescriptor(bilinearMassImag, MASS);
+
+	massIntDescrImag->SetPDEIds(this, this);
+	massIntDescrImag->SetPiezoMaterialType(matType);
+	assemble_->AddIntegrator(massIntDescrImag, subdoms_[actSD]);
       }
 
-      // Finally add the standard integrators
-      assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
-      assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]); 
-    }
+      else {
+	// stiffness integrator 
+	BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);        
+	stiffIntDescr = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
+	stiffIntDescr->SetPDEIds(this, this);
+
+	// mass integrator
+	coeffmass = density / (c0*c0);
+
+	BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
+	IntegratorDescriptor * massIntDescr = 
+	  new IntegratorDescriptor(bilinearMass, MASS);
+
+	massIntDescr->SetPDEIds(this, this);
+      
+
+	// ********************************************************************
+	//   Additional terms for damping
+	// ********************************************************************
+
+	if ( dampingList_.size() > 0 && pmlInfo.GetSize() < 0 ) {
+	  
+	  // We check, if damping has been specified for all regions.
+	  if ( dampingList_.size() != subdoms_.GetSize() ) {
+	    (*warning) << "Mismatch between dampingList_ and subdoms_!"
+		       << "Size(dampingList_): " << dampingList_.size()
+		       << "Size(subdoms_): " << subdoms_.GetSize();
+	    Warning(__FILE__, __LINE__);  
+	  }
+	  
+	  if (dampingList_[subdoms_[actSD]] == RAYLEIGH) {
+	    // This works even after assemble_->AddIntegrator() is executed
+	    //   because of the pointers...
+	    
+	    // stiffness part
+	    stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
+	    
+	    // mass part
+	    massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
+	  }
+	  
+	  
+	  else if ( dampingList_[subdoms_[actSD]] == THERMOVISCOUS ) {
+	    coeffdamp  =  density * 2.0 * alpha * c0;
+	    BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
+	    IntegratorDescriptor * dampIntDescr = 
+	      new IntegratorDescriptor(bilinearStiff, DAMPING);
+	    
+	    dampIntDescr->SetPDEIds(this, this);   
+	    assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+	  }
+	  
+	  else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
+		    dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ) {
+	    coeffdamp = - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
+
+	    BaseForm * bilinearDamp  = 
+	      new MassInt(coeffdamp, dofspernode_, isaxi_);
+	    bilinearDamp->SetFracDamping();
+	    // formulation using DAMPING matrix
+	    // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
+	    // IntegratorDescriptor * dampIntDescr = 
+	    //   new IntegratorDescriptor(bilinearDamp, DAMPING);
+	    
+	    // two matrices formulation
+	    // added to STIFFNESS matrix because, because 
+	    //   matrix_factors[STIFFNESS] = 1.0
+	    IntegratorDescriptor * dampIntDescr = 
+	      new IntegratorDescriptor(bilinearDamp, STIFFNESS);
+	    
+	    dampIntDescr->SetPDEIds(this, this);
+	    assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+	  }
+	  
+	  else if  ( dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
+		     dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT ) {
+	    coeffdamp =  - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
+	    // prefactor of blank alg
+	    coeffdamp *= exp(-gammaln(1.0- (beta- 1.0)) ); 
+	    // weight factor of index 0
+	    coeffdamp *= 1.0/(1.0- (beta- 1.0));           
+	    BaseForm * bilinearDamp  = 
+	      new MassInt(coeffdamp, dofspernode_, isaxi_);
+	    bilinearDamp->SetFracDamping();
+	    // formulation using DAMPING matrix
+	    // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
+	    // IntegratorDescriptor * dampIntDescr = 
+	    //   new IntegratorDescriptor(bilinearDamp, DAMPING);
+	    
+	    // two matrices formulation
+	    // added to STIFFNESS matrix because, because 
+	    //   matrix_factors[STIFFNESS] = 1.0
+	    IntegratorDescriptor * dampIntDescr = 
+	      new IntegratorDescriptor(bilinearDamp, STIFFNESS);
+	    
+	    dampIntDescr->SetPDEIds(this, this);
+	    assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+
+	  }
+	}
+
+	// Finally add the stiffness/mass integrators
+	assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
+	assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]); 
+      }
+    }
+  
     // **********************************************************************
     //   von Neumann boundary condition
     // **********************************************************************
@@ -494,7 +611,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     // **********************************************************************
     //   surface-integration: Absorbing boundaries
     // **********************************************************************
-    if ( absorbingBCs_ == TRUE && analysistype_ != HARMONIC ) {
+    if ( absorbingBCs_ == TRUE) { // && analysistype_ != HARMONIC ) {
       for (UInt actSD = 0; actSD < absBCs_.GetSize(); actSD++) {
         SurfForm * bilinear_damp = new AbsorbingBCsInt(isaxi_);
         bilinear_damp->SetFirstVoluInfo(pdename_, subdoms_, materialData_);
@@ -507,7 +624,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
         IntegratorDescriptor * abcDescr = 
           new IntegratorDescriptor(bilinear_damp, DAMPING);
-        abcDescr->SetPDEIds(this, this);      
+        abcDescr->SetPDEIds(this, this);     
+        //	std::cout << "Add ABC" << std::endl; 
         assemble_->AddSurfIntegrator(abcDescr, absBCs_[actSD]);
       }
     }
@@ -1444,4 +1562,78 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
 
   }
+
+  // ***********************************************************************
+  //   Obtain information on desired output quantities from parameter file
+  // ***********************************************************************
+  void AcousticPDE::ReadDataPML(std::string& dampingTypePML, Matrix<Double>& inner, 
+				Double& layerThickness, Double& dampPML,
+				RegionIdType actRegion) {
+  
+    ENTER_FCN( "AcousticPDE::ReadDataPML" );
+
+    inner.Resize(dim_,dim_);
+
+    // help variables for parameter checking
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    StdVector<std::string> stringVal;
+
+    // Construct vectors for restricted parameter search
+    std::string actRegionName;
+    actRegionName = ptgrid_->RegionIdToName( actRegion );
+    keyVec = "acoustic" , "region" , "pml" , "type";
+    attrVec= ""         , "name"   , "";
+    valVec = ""         , actRegionName, "";
+    params->GetList( keyVec, attrVec, valVec, stringVal);
+    dampingTypePML = stringVal[0];
+
+    StdVector<Double> val;
+ 
+    //xMin
+    keyVec = "acoustic" , "region" , "pml" , "xMin";
+    params->GetList( keyVec, attrVec, valVec, val);
+    inner[0][0] =  val[0];
+
+    //xMax
+    keyVec = "acoustic" , "region" , "pml" , "xMax";
+    params->GetList( keyVec, attrVec, valVec, val);
+    inner[1][0] =  val[0];
+
+    //yMin
+    keyVec = "acoustic" , "region" , "pml" , "yMin";
+    params->GetList( keyVec, attrVec, valVec, val);
+    inner[0][1] =  val[0];
+
+    //yMax
+    keyVec = "acoustic" , "region" , "pml" , "yMax";
+    params->GetList( keyVec, attrVec, valVec, val);
+    inner[1][1] =  val[0];
+
+    if ( dim_ == 3 ) {
+      //zMin
+      keyVec = "acoustic" , "region" , "pml" , "zMin";
+      params->GetList( keyVec, attrVec, valVec, val);
+      inner[0][2] =  val[0];
+
+      //zMax     
+      keyVec = "acoustic" , "region" , "pml" , "zMax";
+      params->GetList( keyVec, attrVec, valVec, val);
+      inner[1][2] =  val[0];
+    }
+
+    // layer thickness
+    keyVec = "acoustic" , "region" , "pml" , "layerThickness";
+    params->GetList( keyVec, attrVec, valVec, val);
+    layerThickness = val[0];
+
+    keyVec = "acoustic" , "region" , "pml" , "dampFactor";
+    params->GetList( keyVec, attrVec, valVec, val);
+    dampPML = val[0];
+
+
+  }
+
 } // end of namespace

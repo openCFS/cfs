@@ -302,7 +302,12 @@ namespace CoupledField {
             }
           }
 
-          //put pointer to array containing the material parameter 
+	  // pass frequency value to bilinearform
+	  if (analysisType_ == HARMONIC) {
+	    actDescriptor->GetIntegrator()->SetFrequency(actFreq_);
+	  }
+
+	  //put pointer to array containing the material parameter 
           // for each element
           actDescriptor->GetIntegrator()->SetMaterialArray(matArray_);
 
@@ -1639,6 +1644,7 @@ namespace CoupledField {
     if (piezoMatType == REALMATERIALPARAMETER) {
 
       if (matrixType == STIFFNESS) {
+        //	std::cout << "Assemble real stiff\n" << std::endl;
 
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
@@ -1649,7 +1655,7 @@ namespace CoupledField {
     
       else if (matrixType == MASS)
         {
-          //std::cout<<"real_mass"<<std::endl;
+          //          std::cout<<"Assemble real_mass\n"<<std::endl;
 
           Double factor = -actFreq_*actFreq_;
           for (Integer row=0; row<numRow; row++)
@@ -1677,7 +1683,7 @@ namespace CoupledField {
    
       if (matrixType == STIFFNESS)
         {
-          //std::cout<<"comlex_stiff"<<std::endl;
+          //          std::cout<<"Assmble imag_stiff\n"<< std::endl;
           k=numRow*numCol;
           for (Integer row=0; row<numRow; row++)
             for (Integer col=0; col<numCol; col++) {
@@ -1686,6 +1692,20 @@ namespace CoupledField {
             }
         }
        
+    
+      else if (matrixType == MASS)
+        {
+          //          std::cout<<"Assemble imag_mass\n"<<std::endl;
+
+          Double factor = -actFreq_*actFreq_;
+	  k=numRow*numCol;
+          for (Integer row=0; row<numRow; row++)
+            for (Integer col=0; col<numCol; col++) {
+              harmMat[k] = factor*origMat[row][col];
+              k++;
+            }
+        }
+
       else if (matrixType == DAMPING)
         {
           Double factor = actFreq_;
