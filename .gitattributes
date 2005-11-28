@@ -459,6 +459,7 @@ libsrc/General/environment.hh svneol=native#text/plain
 libsrc/Makefile -text
 libsrc/Matrix/Makefile -text
 libsrc/Matrix/cfsmatrix.hh svneol=native#text/plain
+libsrc/Matrix/dinolfo_matrix.hh svneol=native#text/plain
 libsrc/Matrix/matrix.cc svneol=native#text/plain
 libsrc/Matrix/matrix.hh svneol=native#text/plain
 libsrc/Matrix/matrixLapackSupport.hh svneol=native#text/plain
