@@ -188,8 +188,12 @@ namespace CoupledField {
 
     // reads in the PML data
     void ReadDataPML(std::string& typePML, Matrix<Double>& inner, 
-		     Double& layerThickness, Double& dampPML,
-		     RegionIdType actRegion);
+		     Double& dampPML, RegionIdType actRegion);
+
+    //! computes the PML layer dimensions
+    void GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,
+			 UInt actSD);
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

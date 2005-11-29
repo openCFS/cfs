@@ -14,7 +14,7 @@ public:
 
   //! Constructor
   PMLInt(std::string type, Double factor, std::string dampingTypePML, Double damp, 
-	 Double layerThick, Boolean axi=FALSE);
+	 Boolean axi=FALSE);
 
   /// 
   virtual ~PMLInt();
@@ -22,8 +22,8 @@ public:
   //! Calculation of stiffmess matrix
   void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
 
-  //! set min/max of x,y,z coordinates form where PML starts
-  void SetPosPML(Matrix<Double> & pos);
+  //! set min/max of x,y,z coordinates form where PML starts and ends
+  void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
 
   virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
@@ -42,6 +42,9 @@ private:
   //! calculates position and values
   void ComputeFactorPML(Vector<Double>& factorsPML, Matrix<Double> & ptCoord);
 
+  //! calculates the damping factor
+  Double ComputeDampingFactor(Vector<Double>& pos, Directions dir);
+
   //! type of bilinear form
   std::string formsType_;
 
@@ -55,7 +58,7 @@ private:
   Double dampingFactor_;
 
   //!layer thickness
-  Double layerThickness_;
+  Matrix<Double> layerThickness_;
 
   //! coordinates for inner box at which PML starts
   Double minX_, maxX_, minY_, maxY_, minZ_, maxZ_;

@@ -7,9 +7,8 @@ namespace CoupledField
 {
 
   PMLInt::PMLInt(std::string type, Double factor, std::string dampingTypePML, Double damp, 
-		 Double thickness, Boolean axi)
-    : BaseForm(), formsFactor_(factor), formsType_(type), dampingFactor_(damp), 
-      layerThickness_(thickness)
+		 Boolean axi)
+    : BaseForm(), formsFactor_(factor), formsType_(type), dampingFactor_(damp)
   {
     ENTER_FCN( "PMLInt::PMLInt" );
 
@@ -31,10 +30,14 @@ namespace CoupledField
     else if ( dampingTypePML == "quadDist" ) {
       dampingTypePML_ = dampingTypePML;
     }
+    else if ( dampingTypePML == "inverseDist" ) {
+      dampingTypePML_ = dampingTypePML;
+    }
     else {
       Error("Damping type for PML not known", __FILE__, __LINE__);
     }
 
+    std::cout << "Damping type: " << dampingTypePML << std::endl;
     isaxi_ = axi;
 
     //    std::cout << "damp=" << damp << std::endl;
@@ -182,21 +185,24 @@ namespace CoupledField
 
     Vector<Complex> factors(numVals);
     Double omegaInv = 1.0 / frequency_;
-    Double imagVal;
+    Double imagVal, factor;
 
     if ( pos[0] < minX_ || pos[0] > maxX_ ) {
-      imagVal = dampingFactor_ * omegaInv;
+      factor = ComputeDampingFactor(pos, X);
+      imagVal = factor * omegaInv;
       factors[0] = Complex(1.0,-imagVal);
 
       if ( pos[1] < minY_ || pos[1] > maxY_ ) {
-	imagVal = dampingFactor_ * omegaInv;
+	factor = ComputeDampingFactor(pos, Y);
+	imagVal = factor * omegaInv;
 	factors[1] = Complex(1.0,-imagVal);
 
 	//check for 3D
 	if (numVals == 3) {
 	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
 	    //compute z-value
-	    imagVal = dampingFactor_ * omegaInv;
+	    factor = ComputeDampingFactor(pos, Z);
+	    imagVal = factor * omegaInv;
 	    factors[2] = Complex(1.0,-imagVal);
 	  }
 	  else {
@@ -212,7 +218,8 @@ namespace CoupledField
 	if (numVals == 3) {
 	  if  (pos[2] < minZ_ || pos[1] > maxZ_ ) {
 	    //compute z-value
-	    imagVal = dampingFactor_ * omegaInv;
+	    factor  = ComputeDampingFactor(pos, Z);
+	    imagVal = factor * omegaInv;
 	    factors[2] = Complex(1.0,-imagVal);
 	  }
 	  else {
@@ -227,14 +234,16 @@ namespace CoupledField
 
       if ( pos[1] < minY_ || pos[1] > maxY_ ) {
 	//compute y-value
-	imagVal = dampingFactor_ * omegaInv;
+	factor  = ComputeDampingFactor(pos, Y);
+	imagVal = factor * omegaInv;
 	factors[1] = Complex(1.0,-imagVal);
 
 	//check for 3D
 	if (numVals == 3) {
 	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
 	    //compute z-value
-	    imagVal = dampingFactor_ * omegaInv;
+	    factor  = ComputeDampingFactor(pos, Z);
+	    imagVal = factor * omegaInv;
 	    factors[2] = Complex(1.0,-imagVal);
 	  }
 	  else {
@@ -249,7 +258,8 @@ namespace CoupledField
 	//check for 3D
 	if (numVals == 3) {
 	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
-	    imagVal = dampingFactor_ * omegaInv;
+	    factor  = ComputeDampingFactor(pos, Z);
+	    imagVal = factor * omegaInv;
 	    factors[2] = Complex(1,-imagVal);
 	  }
 	  else {
@@ -554,19 +564,130 @@ namespace CoupledField
 
 //   }
 
-  void PMLInt:: SetPosPML(Matrix<Double> & pos)
+
+  Double PMLInt:: ComputeDampingFactor(Vector<Double>& pos, Directions dir)
+  {
+    ENTER_FCN( "PMLInt :: ComputeDampingFactor"); 
+
+    Double factor, maxPos, delta, diffCoord;
+    UInt idx;
+
+    if ( dampingTypePML_ == "constant" ) {
+      factor = dampingFactor_;
+    }
+
+    else if ( dampingTypePML_ == "quadDist" ) {
+      if ( dir == X ) {
+	//get correct layer thickness
+	if ( pos[0] < minX_ ) {
+	  delta = layerThickness_[0][0];
+	  diffCoord = abs(pos[0]) - minX_;
+	}
+	else {
+	  delta = layerThickness_[1][0];
+	  diffCoord = abs(pos[0]) - maxX_;
+	}
+      }
+      else if ( dir == Y ) {
+	//get correct layer thickness
+	if ( pos[1] < minY_ ) {
+	  delta = layerThickness_[0][1];
+	  diffCoord = abs(pos[1]) - minY_;
+	}
+	else {
+	  delta = layerThickness_[1][1];
+	  diffCoord = abs(pos[1]) - maxY_;
+	}
+      }
+      else {
+	//get correct layer thickness
+	if ( pos[2] < minZ_ ) {
+	  delta = layerThickness_[0][2];
+	  diffCoord = abs(pos[2]) - minZ_;
+	}
+	else {
+	  delta = layerThickness_[1][2];
+	  diffCoord = abs(pos[2]) - maxZ_;
+	}
+      }
+
+      factor = dampingFactor_ * ( diffCoord*diffCoord )/ ( delta*delta );
+
+    }
+
+    else if ( dampingTypePML_ == "inverseDist" ) {
+      if ( dir == X ) {
+	//get correct maximal PML y-coordinate
+	if ( pos[0] < minX_ ) {
+	  maxPos = minX_ - layerThickness_[0][0];
+	}
+	else {
+	  maxPos = maxX_ + layerThickness_[1][0];
+	}
+	idx = 0;
+      }
+
+      else if ( dir == Y ) {
+	//get correct maximal PML y-coordinate
+	if ( pos[1] < minY_ ) {
+	  maxPos = minY_ - layerThickness_[0][1];
+	}
+	else {
+	  maxPos = maxY_ + layerThickness_[1][1];
+	}
+	idx = 1;
+      }
+
+      else {
+	//get correct maximal PML z-coordinate
+	if ( pos[2] < minZ_ ) {
+	  maxPos = minZ_ - layerThickness_[0][2];
+	}
+	else {
+	  maxPos = maxZ_ + layerThickness_[1][2];
+	}
+	idx = 2;
+      }
+
+      if ( abs (maxPos - pos[idx]) < 1e-12 ) {
+	Error("PML damping inverseDist divides by factor smaller 1E-12",
+	      __FILE__,__LINE__);
+      }
+
+      //      std::cout << "maxPos =" << maxPos << std::endl;
+
+      factor = abs (dampingFactor_ / ( maxPos  - pos[idx] ) );
+    }
+
+    return factor;
+  }
+
+
+  void PMLInt:: SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer)
   {
     ENTER_FCN( "PMLInt ::SetPosXML"); 
 
-    minX_ = pos[0][0];
-    maxX_ = pos[1][0];
-    minY_ = pos[0][1];
-    maxY_ = pos[1][1];
+    // inner/outer:   xmin  ymin  zmin
+    //                xmax  ymax  zmax
 
-    if (pos.GetSizeCol() > 2 ) {
-      minZ_ = pos[0][2];
-      maxZ_ = pos[1][2];
+    minX_ = inner[0][0];
+    maxX_ = inner[1][0];
+    minY_ = inner[0][1];
+    maxY_ = inner[1][1];
+
+    if (inner.GetSizeCol() > 2 ) {
+      minZ_ = inner[0][2];
+      maxZ_ = inner[1][2];
     }
+
+    //get layer thickness
+    layerThickness_.Resize(2,inner.GetSizeCol());
+    for (UInt i=0; i<inner.GetSizeCol(); i++) {
+      layerThickness_[0][i] = abs(outer[0][i] - inner[0][i]);
+      layerThickness_[1][i] = abs(outer[1][i] - inner[1][i]);
+    }
+
+    //    std::cout << "LayerThickness:\n" << layerThickness_ << std::endl;
 
   }
 

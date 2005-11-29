@@ -169,7 +169,7 @@ namespace CoupledField
     {actElemNr_ = nr; };
 
     //! set min/max of x,y,z coordinates form where PML starts
-    virtual void SetPosPML(Matrix<Double> & pos) {;};
+    virtual void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer) {;};
 
     void SetFrequency(Double freq)
     {frequency_ = freq;};

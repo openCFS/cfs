@@ -386,17 +386,17 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 	//type of PML damping
 	std::string dampingTypePML;
 
-	// xmin / xmax;  ymin/ymax; zmin/zmax
+	// inner / outer region
 	Matrix<Double> inner;
-
-	//layer thickness in all three dimensions
-	Double layerThickness;
+	Matrix<Double> outer;
 
 	//damping factor
 	Double dampPML;
 
-	ReadDataPML(dampingTypePML, inner, layerThickness, dampPML, actRegion);
+	ReadDataPML(dampingTypePML, inner, dampPML, actRegion);
+	dampPML *= c0;
 
+	GetPMLLayerData(inner, outer, actSD);
 
 	//====================================================================
 	//	 stiffness integrator for PML
@@ -406,10 +406,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
 	//set real part
 	BaseForm * bilinearStiffReal = 
-	  new PMLInt(formsType, density, dampingTypePML, dampPML, layerThickness, 
-		     isaxi_);
+	  new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
 
-	bilinearStiffReal->SetPosPML(inner);
+	bilinearStiffReal->SetPosPML(inner,outer);
 	piezoMaterialType matType = REALMATERIALPARAMETER;
 	bilinearStiffReal->SetPiezoMaterialType(matType);
 
@@ -422,10 +421,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
 	//set imaginary part
 	BaseForm * bilinearStiffImag = 
-	  new PMLInt(formsType, density, dampingTypePML, dampPML, layerThickness, 
-		     isaxi_);
+	  new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
 
-	bilinearStiffImag->SetPosPML(inner);
+	bilinearStiffImag->SetPosPML(inner,outer);
 	matType = IMAGMATERIALPARAMETER;
 	bilinearStiffImag->SetPiezoMaterialType(matType);
 
@@ -448,10 +446,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
 	//set real part
 	BaseForm * bilinearMassReal = 
-	  new PMLInt(formsType, massFactor, dampingTypePML, dampPML, layerThickness, 
-		     isaxi_);
+	  new PMLInt(formsType, massFactor, dampingTypePML, dampPML, isaxi_);
 
-	bilinearMassReal->SetPosPML(inner);
+	bilinearMassReal->SetPosPML(inner,outer);
 	matType = REALMATERIALPARAMETER;
 	bilinearMassReal->SetPiezoMaterialType(matType);
 
@@ -464,10 +461,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
 	//set imaginary part
 	BaseForm * bilinearMassImag = 
-	  new PMLInt(formsType, massFactor, dampingTypePML, dampPML, layerThickness, 
-		     isaxi_);
+	  new PMLInt(formsType, massFactor, dampingTypePML, dampPML, isaxi_);
 
-	bilinearMassImag->SetPosPML(inner);
+	bilinearMassImag->SetPosPML(inner,outer);
 	matType = IMAGMATERIALPARAMETER;
 	bilinearMassImag->SetPiezoMaterialType(matType);
 
@@ -1567,8 +1563,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
   void AcousticPDE::ReadDataPML(std::string& dampingTypePML, Matrix<Double>& inner, 
-				Double& layerThickness, Double& dampPML,
-				RegionIdType actRegion) {
+				Double& dampPML, RegionIdType actRegion) {
   
     ENTER_FCN( "AcousticPDE::ReadDataPML" );
 
@@ -1624,15 +1619,72 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       inner[1][2] =  val[0];
     }
 
-    // layer thickness
-    keyVec = "acoustic" , "region" , "pml" , "layerThickness";
-    params->GetList( keyVec, attrVec, valVec, val);
-    layerThickness = val[0];
-
     keyVec = "acoustic" , "region" , "pml" , "dampFactor";
     params->GetList( keyVec, attrVec, valVec, val);
     dampPML = val[0];
 
+
+  }
+
+  // ***********************************************************************
+  //   Obtain information on desired output quantities from parameter file
+  // ***********************************************************************
+  void AcousticPDE::GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,
+				    UInt actSD)  {  
+
+    ENTER_FCN( "AcousticPDE::GetPMLLayerData" );
+
+    outer.Resize(dim_,dim_);
+    outer = inner;
+
+    // inner/outer:   xmin  ymin  zmin
+    //                xmax  ymax  zmax
+
+
+    Double minXPML, minYPML, minZPML, maxXPML, maxYPML, maxZPML;
+
+    StdVector<Elem*> elemssd;
+    ptgrid_->GetElems(elemssd, subdoms_[actSD]);
+
+    for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
+      BaseFE * ptEl = elemssd[actEl]->ptElem;
+      StdVector<UInt> connecth = elemssd[actEl]->connect;
+                             
+      Matrix<Double> ptCoord;
+      GetElemCoords(connecth, ptCoord);
+      for (UInt i=0; i< ptCoord.GetSizeCol(); i++) {
+	//minXPML
+	if ( ptCoord[0][i] < outer[0][0] )
+	  outer[0][0] = ptCoord[0][i];
+
+	//minYPML
+	if ( ptCoord[1][i] < outer[0][1] )
+	  outer[0][1] = ptCoord[1][i];
+
+	if (inner.GetSizeCol() > 2 ) {
+	  //minZPML
+	  if ( ptCoord[2][i] < outer[0][2] )
+	    outer[0][2] = ptCoord[2][i];
+	}
+
+	//maxXPML
+	if ( ptCoord[0][i] > outer[1][0] )
+	  outer[1][0] = ptCoord[0][i];
+
+	//maxYPML
+	if ( ptCoord[1][i] > outer[1][1] )
+	  outer[1][1] = ptCoord[1][i];
+
+	if (inner.GetSizeCol() > 2 ) {
+	  //maxZPML
+	  if ( ptCoord[2][i] > outer[1][2] )
+	    outer[1][2] = ptCoord[2][i];
+	}
+      }
+
+    }
+
+    //   std::cout << "outer:\n" << outer << std::endl;
 
   }
 
