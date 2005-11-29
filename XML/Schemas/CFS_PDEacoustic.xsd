@@ -128,6 +128,7 @@
                 <xsd:element name="dirichletHom"   type="DT_AcousticHD"  />
                 <xsd:element name="dirichletInhom" type="DT_AcousticID"  />
                 <xsd:element name="neumannInhom"   type="DT_AcousticIN"  />
+                <xsd:element name="load"           type="DT_AcousticLoad"      />
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC" />
               </xsd:choice>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
@@ -213,6 +214,14 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- Element type for specifying loads -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_AcousticLoad">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
   <!-- Element type for specifying absorbing boundary conditions -->
   <!-- Identical to that of homogeneous Dirichlet case -->
   <xsd:complexType name="DT_AbsorbingBC">
@@ -246,6 +255,7 @@
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="constant"   />
           <xsd:enumeration value="quadDist"     />
+          <xsd:enumeration value="inverseDist"     />
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -257,9 +267,7 @@
     <xsd:attribute name="zMin" type="xsd:double" use="required"/>
     <xsd:attribute name="zMax" type="xsd:double" use="required"/>
     <xsd:attribute name="dampFactor" type="xsd:double" use="optional"
-      default="1000"/>
-    <xsd:attribute name="layerThickness" type="xsd:double" use="optional"
-      default="1"/>
+      default="10"/>
   </xsd:complexType>
 
 
