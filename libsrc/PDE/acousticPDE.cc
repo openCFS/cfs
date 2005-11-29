@@ -496,7 +496,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 	//   Additional terms for damping
 	// ********************************************************************
 
-	if ( dampingList_.size() > 0 && pmlInfo.GetSize() < 0 ) {
+	if ( dampingList_.size() > 0 ) {
 	  
 	  // We check, if damping has been specified for all regions.
 	  if ( dampingList_.size() != subdoms_.GetSize() ) {
