@@ -3,7 +3,6 @@
 #include "magneticPDE.hh"
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "DataInOut/Scripting/cfsmessenger.hh"
 #include "Driver/solveStepMag.hh"
 #include "Utils/Coil.hh"
 #include "Utils/SmoothSpline.hh"
@@ -13,6 +12,10 @@
 #include "trapezoidal.hh"
 #include "DataInOut/writeresults.hh"
 #include "CoupledPDE/pdecoupling.hh"
+
+#ifdef TCL_INTERFACE
+#include "DataInOut/Scripting/cfsmessenger.hh" 
+#endif
 
 namespace CoupledField {
 

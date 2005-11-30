@@ -19,11 +19,14 @@
 #include "elecPDE.hh"
 #include <General/defs.hh>
 #include "DataInOut/ParamHandling/BaseParamHandler.hh" 
-#include "DataInOut/Scripting/cfsmessenger.hh" 
 #include <string>
 #include "Utils/StdVector.hh"
 #include "Driver/solveStepElec.hh"
 #include "CoupledPDE/pdecoupling.hh"
+
+#ifdef TCL_INTERFACE
+#include "DataInOut/Scripting/cfsmessenger.hh" 
+#endif
 
 #ifdef PARALLEL
 #include <mpi.h>

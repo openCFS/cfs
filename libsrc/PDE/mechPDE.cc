@@ -8,7 +8,6 @@
 #include "Forms/massInt.hh"
 #include "Forms/linPressureInt.hh"
 #include "DataInOut/writeresults.hh"
-#include "DataInOut/Scripting/cfsmessenger.hh"
 #include "Driver/assemble.hh"
 #include "newmark.hh"
 #include "newmarkFracDampMech.hh"
@@ -17,6 +16,10 @@
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
+
+#ifdef TCL_INTERFACE
+#include "DataInOut/Scripting/cfsmessenger.hh" 
+#endif
 
 namespace CoupledField
 {

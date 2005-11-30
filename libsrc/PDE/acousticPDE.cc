@@ -14,7 +14,6 @@
 #include "newmarkFracDamp.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "DataInOut/Scripting/cfsmessenger.hh"
 #include "PDE/scalarnodeEQN.hh"
 #include "Utils/mathfunctions.hh"
 #include "Utils/nodestoresol.hh"
@@ -22,6 +21,10 @@
 #include "Driver/solveStepAcousticBubble.hh"
 #include "Driver/solveStepAcousticMechBubble.hh"
 #include "CoupledPDE/pdecoupling.hh"
+
+#ifdef TCL_INTERFACE
+#include "DataInOut/Scripting/cfsmessenger.hh" 
+#endif
 
 #ifdef PARALLEL
 #include <mpi.h>
