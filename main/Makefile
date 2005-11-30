@@ -154,6 +154,8 @@ gsi:
 	@cd $(LIBSRC_DIR)/DataInOut/GSI; $(MAKE) -f Makefile
 gid:
 	@cd $(LIBSRC_DIR)/DataInOut/GiD; $(MAKE) -f Makefile
+scripting:
+	@cd $(LIBSRC_DIR)/DataInOut/Scripting; $(MAKE) -f Makefile
 utils:
 	@cd $(LIBSRC_DIR)/Utils; $(MAKE) -f Makefile
 matrix:
@@ -206,6 +208,9 @@ clean-cfsRST:
 	$(MAKE) clean
 clean-gmv:
 	@cd $(LIBSRC_DIR)/DataInOut/GMV && \
+        $(MAKE) clean
+clean-gid:
+	@cd $(LIBSRC_DIR)/DataInOut/GiD && \
         $(MAKE) clean
 clean-database:
 	@cd $(LIBSRC_DIR)/DataInOut/Database && \

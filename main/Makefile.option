@@ -22,8 +22,10 @@
 #       |  7 | tvmet       |    no    |    yes   | TVMET_ROOT    |
 #       |  8 | Pardiso     |   yes    |     no   | PARDISO_ROOT  | (e)
 #       |  9 | Metis       |   yes    |     no   | METIS_ROOT    |
+#       | 10 | gidpost     |   yes    |    yes   | GIDPOST_ROOT  |
+#       ¦ 11 | tcl         |   yes    |    yes   | TCL_ROOT      | 
 #       |--------------------------------------------------------|
-#       | 10 | XML Schemas |         (b)         | SCHEMA_ROOT   |
+#       | 12 | XML Schemas |         (b)         | SCHEMA_ROOT   |
 #       ---------------------------------------------------------
 #
 #  (a) The Basic Linear Algebra Subroutines (BLAS) and the Linear Algebra
@@ -94,6 +96,7 @@
 # METIS_ROOT
 # SCHEMA_ROOT
 # GIDPOST_ROOT
+# TCL_ROOT
 #
 # -----------------------------------------------------------------------------
 
@@ -123,6 +126,10 @@ endif
 
 ifeq ("$(GIDPOST_ROOT)","")
 GIDPOST_ROOT = /home/data/libraries/gidpost
+endif
+
+ifeq ("$(TCL_ROOT)","")
+TCL_ROOT = /home/data/libraries/TCL
 endif
 
 # -----------------------------------------------------------------------------
@@ -157,6 +164,8 @@ GIDPOST = yes
 # can only be compiled if MySQL-devel is installed
 DATABASE = no
 
+# switch for use of tcl interface, enabling dynamic interaction with cfs
+TCL_INTERFACE = yes
 
 # -----------------------------------------------------------------------------
 # EXTERNAL PACKAGES required by OLAS interface
@@ -168,7 +177,7 @@ DATABASE = no
 # -----------------------------------------------------------------------------
 
 # Was OLAS compiled with support for hypre?
-HYPRE = no
+HYPRE = yes
 
 # Was OLAS compiled with support for LAPACK?
 LAPACK = yes
@@ -177,7 +186,7 @@ LAPACK = yes
 TVMET = no
 
 # Was OLAS compiled with support for Pardiso?
-PARDISO = yes
+PARDISO = no
 
 # Was OLAS compiled with support for Metis?
 METIS = yes
@@ -224,6 +233,7 @@ LIB_DIR    = $(C_DIR)/lib/$(MACHINE)
 # - ADAPTIVITY
 # - TVMET
 # - GIDPOST
+# - TCL_INTERFACE
 #
 # These will be combined into a COMPILE_INCDIRS parameter
 # -----------------------------------------------------------------------------
@@ -267,9 +277,16 @@ else
   INCDIR_GIDPOST =
 endif
 
+# TCL_INTERFACE
+ifeq "$(TCL_INTERFACE)" "yes"
+  INCDIR_TCL_INTERFACE = -I$(TCL_ROOT)/$(ARCH)/include
+else
+  INCDIR_TCL_INTERFACE =
+endif
+
 # Combine everything
 COMPILE_INCDIRS = $(INCDIR_OLAS) $(INCDIR_HYPRE) $(INCDIR_XERCES) \
-$(INCDIR_ADAPTIVITY) $(INCDIR_TVMET) $(INCDIR_GIDPOST)
+$(INCDIR_ADAPTIVITY) $(INCDIR_TVMET) $(INCDIR_GIDPOST) $(INCDIR_TCL_INTERFACE)
 
 
 # -----------------------------------------------------------------------------
@@ -286,6 +303,7 @@ $(INCDIR_ADAPTIVITY) $(INCDIR_TVMET) $(INCDIR_GIDPOST)
 #  - METIS
 #  - LAPACK
 #  - GIDPOST
+#  - TCL_INTERFACE
 #
 # These will be combined into a COMPILE_MACROS parameter
 # -----------------------------------------------------------------------------
@@ -353,10 +371,17 @@ else
   MACRO_GIDPOST =
 endif
 
+# TCL_INTERFACE
+ifeq "$(TCL_INTERFACE)" "yes"
+  MACRO_TCL_INTERFACE = -DTCL_INTERFACE
+else
+  MACRO_TCL_INTERFACE = 
+endif
+
 # Combine everything
 COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
                  $(MACRO_GSI) $(MACRO_XERCES) $(MACRO_TVMET) $(MACRO_METIS)\
-		 $(MACRO_LAPACK) $(MACRO_GIDPOST)
+		 $(MACRO_LAPACK) $(MACRO_GIDPOST) $(MACRO_TCL_INTERFACE)
 
 
 # -----------------------------------------------------------------------------
@@ -371,6 +396,7 @@ COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
 #  - METIS
 #  - DATABASE
 #  - GIDPOST
+#  - TCL_INTERFACE
 #
 # These will be combined into a LINK_LIBS parameter.
 # -----------------------------------------------------------------------------
@@ -415,7 +441,7 @@ else
    LIB_DATABASE =
 endif
 
-#GIDPOST
+# GIDPOST
 ifeq ($(GIDPOST),yes)
    LIBDIR_GIDPOST = -L$(GIDPOST_ROOT)/$(ARCH)/lib
    LIB_GIDPOST = -lgidpost
@@ -424,10 +450,20 @@ else
    LIB_GIDPOST =
 endif
 
+# TCL_INTERFACE
+ifeq ($(TCL_INTERFACE),yes)
+   LIBDIR_TCL_INTERFACE = -L$(TCL_ROOT)/$(ARCH)/lib
+   LIB_TCL_INTERFACE = -ltcl8.4
+else
+   LIBDIR_TCL_INTERFACE =
+   LIB_TCL_INTERFACE =
+endif
+
+
 # Combine everything
 LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) $(LIBDIR_METIS) \
-$(LIBDIR_GIDPOST) $(LIB_OLAS) $(LIB_HYPRE) $(LIB_XERCES) $(LIB_METIS) \
-$(LIB_GIDPOST) $
+$(LIBDIR_GIDPOST) $(LIBDIR_TCL_INTERFACE) $(LIB_OLAS) $(LIB_HYPRE) \
+$(LIB_XERCES) $(LIB_METIS) $(LIB_GIDPOST) $(LIB_TCL_INTERFACE)
 
 # -----------------------------------------------------------------------------
 # LAPACK and BLAS
@@ -483,6 +519,7 @@ endif
 # - DATABASE
 # - GSI
 # - GIDPOST
+# - TCL_INTERFACE
 #
 # These will be combined into an EXTRA_MODULES and EXTRA_CFSLIBS parameter.
 # These two parameters will be appended in Makefile to SUBLIBDIR and mylibrary.
@@ -533,12 +570,21 @@ else
   CFSLIB_GIDPOST =
 endif
 
+# TCL_INTERFACE
+ifeq ($(TCL_INTERFACE),yes)
+  MODULE_GIDPOST = DataInOut/Scripting
+  CFSLIB_TCL_INTERFACE = scripting
+else
+  MODULE_TCL_INTERFACE =
+  CFSLIB_TCL_INTERFACE =
+endif
+
 # Combine everything
 EXTRA_MODULES = $(MODULE_ADAPTIVITY) $(MODULE_MPCCI) $(MODULE_DATABASE) \
-$(MODULE_GSI) $(MODULE_GIDPOST)
+$(MODULE_GSI) $(MODULE_GIDPOST) $(MODULE_TCL_INTERFACE)
 
 EXTRA_CFSLIBS = $(CFSLIB_ADAPTIVITY) $(CFSLIB_MPCCI) $(CFSLIB_DATABASE) \
-$(CFSLIB_GSI) $(CFSLIB_GIDPOST)
+$(CFSLIB_GSI) $(CFSLIB_GIDPOST) $(CFSLIB_TCL_INTERFACE)
 
 # =========================================================================== #
 #                                                                             #
