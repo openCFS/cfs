@@ -3,6 +3,7 @@
 #include "magneticPDE.hh"
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/Scripting/cfsmessenger.hh"
 #include "Driver/solveStepMag.hh"
 #include "Utils/Coil.hh"
 #include "Utils/SmoothSpline.hh"
@@ -504,6 +505,21 @@ namespace CoupledField {
       Info->PrintVec(totalForce);
     }
 
+    // Last but no least trigger postprocessing fromt within script-file
+#ifdef TCL_INTERFACE
+    StdVector<std::string> context;
+    context.Push_back( pdename_ );
+    context.Push_back( Info->GenStr(solveStep_->GetActStep() ) );
+    
+    if ( analysistype_ == TRANSIENT ||
+         analysistype_ == STATIC ) {
+      context.Push_back( Info->GenStr(solveStep_->GetActTime() ) );
+    } else {
+      context.Push_back( Info->GenStr(solveStep_->GetActFreq() ) );
+    }
+    messenger->TriggerEvent( CFSMessenger::CFS_PostProcess, 
+                             context );
+#endif   
   }
 
 
