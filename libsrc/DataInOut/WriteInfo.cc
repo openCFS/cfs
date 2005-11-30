@@ -339,8 +339,8 @@ namespace CoupledField {
   //   WriteResult
   // ***************
   void WriteInfo:: WriteResult(std::string pdename, std::string resulttype,
-                               StdVector<std::string> subdoms,
-                               Vector<Double> results,
+                               StdVector<std::string> & subdoms,
+                               Vector<Double> & results,
                                std::string unit,
                                std::string analysis,
                                Double analysisVal)
@@ -356,7 +356,33 @@ namespace CoupledField {
 
       for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
         *cfsInfo << "        === " << analysis << " " << analysisVal 
-                 << "; " << subdoms[i] << ": " << results[i] 
+                 << "; " << subdoms[i] << ": " 
+                 << results[i] 
+                 << " "  << unit << std::endl << std::endl;
+      }
+    }
+  }
+
+  void WriteInfo:: WriteResult(std::string pdename, std::string resulttype,
+                               StdVector<std::string> & subdoms,
+                               Vector<Complex> & results,
+                               std::string unit,
+                               std::string analysis,
+                               Double analysisVal)
+  {
+    ENTER_FCN( "WriteInfo::WriteResult" );
+
+    if (subdoms.GetSize() != results.GetSize())
+      Error("Problem in WriteResults",__FILE__,__LINE__);
+ 
+    if (cfsInfo) {
+      *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
+               << ": " << resulttype << " ==========" << std::endl;
+
+      for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
+        *cfsInfo << "        === " << analysis << " " << analysisVal 
+                 << "; " << subdoms[i] << ": "
+                 << results[i] 
                  << " "  << unit << std::endl << std::endl;
       }
     }
