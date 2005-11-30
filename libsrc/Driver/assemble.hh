@@ -427,6 +427,7 @@ namespace CoupledField
     StdVector<std::string> loadDom_;  //!< load subdomains
     StdVector<std::string> loadDof_;  //!< dofs of loads
     StdVector<Double>      loadVals_; //!< values of the load condition
+    StdVector<Double>      loadPhase_; //!< values of the phase of the load condition
     StdVector<std::string> fncname_loads_; //!< function names of the loads
     StdVector<std::string> fncname_rhs_; //!< function names for RHS integrators
     StdVector<std::string> fncname_rhsSurf_; //!< function names for RHS surface integrators

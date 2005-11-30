@@ -734,8 +734,9 @@ namespace CoupledField {
   {
     ENTER_FCN( "Assemble:AssembleRHSNodalSources" );
     
-    Integer eqnNr;
-    UInt eqnDof;
+    Integer eqnNr = 0;
+    UInt eqnDof = 0;
+    Double phase = 0;
     
     for (UInt actDom=0; actDom < loadDom_.GetSize(); actDom++) {
       std::string doftype = loadDom_[actDom];
@@ -759,7 +760,15 @@ namespace CoupledField {
         val = loadVals_[actDom] * val_tfunc;
 
         ptEQN1_->Node2EQN(node,dof,eqnNr,eqnDof);
-        algsys_->SetNodeRHS(val, pdeId1_, eqnNr, eqnDof);    
+
+        if (analysisType_ == HARMONIC || analysisType_ == MULTIHARMONIC) {
+          phase = loadPhase_[actDom];
+          Complex complexValue( val * cos( phase / 180 * PI ),
+                                val * sin( phase / 180 * PI ) );
+          algsys_->SetNodeRHS(complexValue, pdeId1_, eqnNr, eqnDof);    
+        } else {
+          algsys_->SetNodeRHS(val, pdeId1_, eqnNr, eqnDof);    
+        }
       }
     }
   }
@@ -996,6 +1005,9 @@ namespace CoupledField {
     keyVec = pdename_, "bcsAndLoads", "load", "value";
     params->GetList(keyVec, attrVec, valVec, loadVals_);
 
+    keyVec = pdename_, "bcsAndLoads", "load", "phase";
+    params->GetList(keyVec, attrVec, valVec, loadPhase_);
+
     keyVecSpring = pdename_, "bcsAndLoads", "spring", "massValue";
     params->GetList(keyVecSpring, attrVec, valVec, springMassVals_);
 
@@ -1054,11 +1066,13 @@ namespace CoupledField {
 
     // Check load consistency
     if ( loadDom_.GetSize() != loadDof_.GetSize() ||
-         loadDom_.GetSize() != loadVals_.GetSize() ) {
+         loadDom_.GetSize() != loadVals_.GetSize() ||  
+         loadDom_.GetSize() != loadPhase_.GetSize() ) {
       std::string errmsg = "Loads: ";
       errmsg += "#name = " + Info->GenStr(loadDom_.GetSize());
       errmsg += ", #dof = " + Info->GenStr(loadDof_.GetSize());
       errmsg += ", #value = " + Info->GenStr(loadVals_.GetSize());
+      errmsg += ", #phase = " + Info->GenStr(loadPhase_.GetSize());
       errmsg += ", #dynamics = " + fncname_loads_.GetSize() + '\n';
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
@@ -1098,12 +1112,14 @@ namespace CoupledField {
     (*debug) << "Loads: #interfaces = " << loadDom_.GetSize()
              << ", #dof = " << loadDof_.GetSize()
              << ", #value = " << loadVals_.GetSize()
+             << ", #phase = " << loadPhase_.GetSize()
              << ", #dynamics = " << fncname_loads_.GetSize() << std::endl;
     for ( UInt k = 0; k < loadDom_.GetSize(); k++ )
       {
         (*debug) << "Loads: interface = " << loadDom_[k]
                  << ", dof = " << loadDof_[k]
-                 << ", value = " << loadVals_[k];
+                 << ", value = " << loadVals_[k]
+                 << ", phase = " << loadPhase_[k];
         if ( k < fncname_loads_.GetSize() )
           {
             (*debug) << ", dynamics = " << fncname_loads_[k] << std::endl;
