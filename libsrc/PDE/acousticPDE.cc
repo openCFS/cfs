@@ -14,6 +14,7 @@
 #include "newmarkFracDamp.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/Scripting/cfsmessenger.hh"
 #include "PDE/scalarnodeEQN.hh"
 #include "Utils/mathfunctions.hh"
 #include "Utils/nodestoresol.hh"
@@ -886,6 +887,22 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     if (calcElemPressure_.GetSize() != 0) {
       CalcElemPressure();
     }
+
+    // Last but no least trigger postprocessing fromt within script-file
+#ifdef TCL_INTERFACE
+    StdVector<std::string> context;
+    context.Push_back( pdename_ );
+    context.Push_back( Info->GenStr(solveStep_->GetActStep() ) );
+    
+    if ( analysistype_ == TRANSIENT ||
+         analysistype_ == STATIC ) {
+      context.Push_back( Info->GenStr(solveStep_->GetActTime() ) );
+    } else {
+      context.Push_back( Info->GenStr(solveStep_->GetActFreq() ) );
+    }
+    messenger->TriggerEvent( CFSMessenger::CFS_PostProcess, 
+                             context );
+#endif   
   }
 
   void AcousticPDE::CalcForce( StdVector<Elem*> & saveElems ) {  
