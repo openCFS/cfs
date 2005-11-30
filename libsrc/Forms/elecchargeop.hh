@@ -22,7 +22,7 @@ namespace CoupledField {
   //! flux density
    
 
-
+  template<class TYPE>
   class ElecChargeOp : public BaseOperator {
 
   
@@ -51,16 +51,11 @@ namespace CoupledField {
       \param lCoord (input) Local coordinates of evaluation point
       \param eFluxDensity (input) Normal component of Flux density in lCoord
     */
-    virtual void CalcElemCharge(Double & charge,
+    virtual void CalcElemCharge(TYPE & charge,
                                 const Elem * ptElement,
                                 const Vector<Double> & lCoord,
-                                const Double & eNormalFluxDensity);
+                                const TYPE & eNormalFluxDensity);
  
-    virtual void CalcElemCharge(Complex & charge,
-                                const Elem * ptElement,
-                                const Vector<Double> & lCoord,
-                                const Complex & eNormalFluxDensity);
-  
 
     //! Calculate charges for whole surface
     /*!
@@ -78,7 +73,11 @@ namespace CoupledField {
   
   };
 
-
+#ifdef __GNUC__
+  // Template instantiation for used vectors
+  template class ElecChargeOp<Double>;
+  template class ElecChargeOp<Complex>;
+#endif
 
 
 } // end of namespace

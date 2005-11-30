@@ -7,33 +7,34 @@
 namespace CoupledField
 {
 
-
-  ElecChargeOp::ElecChargeOp(Grid * ptGrid,
+  template<class TYPE>
+  ElecChargeOp<TYPE>::ElecChargeOp(Grid * ptGrid,
                              StdPDE * ptPDE,
                              NodeEQN * ptEQN,
                              Boolean isaxi)
     : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
   {
     ENTER_FCN( "ElecChargeOp::ElecChargeOp" );
-
+    
   }
-
- 
-  ElecChargeOp::~ElecChargeOp()
+  
+  template <class TYPE>
+  ElecChargeOp<TYPE>::~ElecChargeOp()
   {
     ENTER_FCN( "ElecChargeOp::~ElecChargeOp" );
 
   }
   
-
-  void ElecChargeOp::CalcElemCharge(Double & charge,
+  template <class TYPE>
+  void ElecChargeOp<TYPE>::CalcElemCharge(TYPE & charge,
                                     const Elem * ptElement,
                                     const Vector<Double> & lCoord,
-                                    const Double & eNormalFluxDensity)
+                                    const TYPE & eNormalFluxDensity)
   {
     ENTER_IFCN( "ElecChargeOp::CalcElemCharge" );
   
-    Double jacDet, chargeAux;
+    Double jacDet;
+    TYPE chargeAux;
     Vector<Double> shFnc, globCoord;
     Matrix<Double> coordMat;
     BaseFE * ptElemFE = ptElement->ptElem;
@@ -87,56 +88,13 @@ namespace CoupledField
 
   }
 
-  void ElecChargeOp::CalcElemCharge(Complex & charge,
-                                    const Elem * ptElement,
-                                    const Vector<Double> & lCoord,
-                                    const Complex & eNormalFluxDensity)
-  {
-    ENTER_IFCN( "ElecChargeOp::CalcElemCharge" );
-     
-    Double jacDet;
-    Complex chargeAux, elemFluxDensity;
-    Vector<Double> shFnc, globCoord;
-    Matrix<Double> coordMat;
-    BaseFE * ptElemFE = ptElement->ptElem;
-    UInt nrIntPts, nrNodes;
-  
-  
-    charge = Complex(0.0, 0.0);
-    chargeAux = Complex(0.0,0.0);
-    jacDet =0;
-    nrIntPts= ptElemFE->GetNumIntPoints();
-    nrNodes = ptElemFE->GetNumNodes();
-    const Vector<Double> & intWeights = ptElemFE->GetIntWeights();   
-  
-    ptPDE_->GetElemCoords(ptElement->connect, coordMat);
-  
-    // loop over all integration points
-    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-      {
-        ptElemFE->GetShFncAtIp(shFnc, actIntPt);
-        jacDet = ptElemFE->CalcJacobianDetAtIp(actIntPt, coordMat);
-      
-        // loop over all shape functions
-        for (UInt actShFnc=1; actShFnc<= shFnc.GetSize(); actShFnc++)
-          {
-            chargeAux = shFnc[actShFnc-1] * intWeights[actIntPt-1];
-            chargeAux = chargeAux * jacDet * eNormalFluxDensity;
-            if (isaxi_)
-              {
-                globCoord = coordMat * shFnc;
-                chargeAux *= 2 * PI * globCoord[0];
-              }
-            charge += chargeAux;
-          }
-      }
-  }
+
  
 
 
   
-
-  void ElecChargeOp::CalcElemCharges(CFSVector & charges,
+  template <class TYPE>
+  void ElecChargeOp<TYPE>::CalcElemCharges(CFSVector & charges,
                                      const StdVector<Elem*> & surfElems,
                                      const Vector<Double> & lCoord,
                                      const CFSVector & eNormalFluxDensity)
