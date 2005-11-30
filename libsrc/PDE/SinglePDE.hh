@@ -10,6 +10,8 @@
 #include "Driver/MHassemble.hh"
 #include "Domain/GridAdaption/GridAdaption.hh"
 
+#include "DataInOut/Scripting/scriptable.hh"
+
 
 namespace CoupledField
 {
@@ -19,7 +21,7 @@ namespace CoupledField
   
   //! Base class for all kinds of single field problems.
 
-  class SinglePDE : public StdPDE
+  class SinglePDE : public StdPDE, public Scriptable
   {
   
   public:
@@ -28,9 +30,6 @@ namespace CoupledField
     friend class BasePairCoupling;
 
     Boolean BooleanComplexMaterialData_;
-
- 
-
  
     void Init(UInt sequenceStep = 0,
               std::string  bcSequenceTag = "anyTag");
@@ -176,7 +175,35 @@ namespace CoupledField
     ElemStoreSol<Double> charges_;
     ElemStoreSol<Complex> chargesComplex_;
     StdVector<RegionIdType> chargeNeighborRegion_;
+
+    // ======================================================
+    // METHODS FOR SCRIPTING INTERFACE
+    // ======================================================
+
+    //! Central method vor evaluating a given scripting command
+
+    //! This method evaluates the given arguments, beginning from an offset 
+    //! prescribed by argOffset. If it is successful, it returns TRUE and the
+    //! as a vector of strings.
+    //! \param args Vector of arguments in string format to be evaluated
+    //! \param argOffset Offset for starting position in args vector
+    //! \param retVal Vector of return values in string format
+    //! \return TRUE, if evaluation was successful
+    Boolean Script_Eval( const StdVector<std::string> & args,
+                         UInt & argOffset,
+                         StdVector<std::string> & retVal);
     
+    //! Get list of all available commands of this object
+
+    //! This method returns a list of all available scripting commands
+    //! offered by the particular class.
+    //! \param commands Vector of available commands of this class
+    //! \param argOffset Offset for start position in args vector
+    void Script_GetCommands( StdVector<std::string> & commands,
+                             UInt & argOffset);
+    
+    
+
 
   protected:
 
@@ -245,6 +272,10 @@ namespace CoupledField
     void SaveSolution( const Double * ptSol, UInt size );
     void SaveSolution( const Complex * ptSol, UInt size );
     //@}
+
+
+    //! Internal method for setting an inhomogeneous dirichlet condition
+    void SetIDBC( std::string nodes, double value);
 
     // ======================================================
     // DATA SECTION

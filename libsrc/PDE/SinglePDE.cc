@@ -8,6 +8,9 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 
+// header for scripting
+#include "DataInOut/Scripting/cfsmessenger.hh"
+
 // header for Materialhandling
 #include "DataInOut/LoadMaterialData.hh"
 #include "DataInOut/LoadMaterialDataFile.hh"
@@ -147,7 +150,7 @@ namespace CoupledField {
     for (UInt i = 0; i < surfdoms_.GetSize(); i++) {
       allIDs.Push_back(surfdoms_[i]);
     }
-
+    
     // output to info-file
     Info->PrintF( pdename_, "The %s PDE lives on the following regions:\n",
                   pdename_.c_str());
@@ -327,6 +330,14 @@ namespace CoupledField {
     // =====================================================================
     ReadBCs();
     ReadSpecialBCs();
+    //
+#ifdef TCL_INTERFACE
+    // Trigger event for scripting 
+    StdVector<std::string> args;
+    args.Push_back( pdename_ );
+    messenger->TriggerEvent( CFSMessenger::CFS_ReadBCs, args );
+#endif   
+    
 
     // =====================================================================
     // read in NonLinearities
@@ -760,6 +771,21 @@ namespace CoupledField {
         bcNum++;
       }
     }
+
+    // Last but not least trigger setting of BC from script file
+#ifdef TCL_INTERFACE
+    StdVector<std::string> context;
+    context.Push_back( pdename_ );
+    context.Push_back( Info->GenStr(solveStep_->GetActStep() ) );
+
+    if ( analysistype_ == TRANSIENT ||
+         analysistype_ == STATIC ) {
+      context.Push_back( Info->GenStr(solveStep_->GetActTime() ) );
+    } else {
+      context.Push_back( Info->GenStr(solveStep_->GetActFreq() ) );
+    }
+    messenger->TriggerEvent( CFSMessenger::CFS_SetBCs, context );
+#endif
   }
 
  
@@ -1457,4 +1483,73 @@ namespace CoupledField {
     
   }
 
+   void SinglePDE::SetIDBC( std::string name, double value ) {
+    ENTER_FCN("SinglePDE::SetIDBC");
+    
+    StdVector<UInt> nodes;
+    UInt eqnDof;
+    Integer eqnNr;
+    
+    // Check, if name was is already set in list of IDBC nodes
+    Integer index = bcs_id_.Find(name);
+    if ( index == -1 ) {
+      (*error) << "Nodes '" << name << "' are not declared as "
+               << "inhom. dirichlet nodes!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    ptgrid_->GetNodesByName(nodes, name);
+    
+    for (UInt i=0; i<nodes.GetSize(); i++ ) {
+      
+      eqnData_->Node2EQN( nodes[i], 1, eqnNr, eqnDof );
+      algsys_->SetDirichlet( i+1, pdeId_, eqnNr, value, eqnDof );
+    }
+  }
+
+
+  Boolean SinglePDE::Script_Eval( const StdVector<std::string> & args,
+                                  UInt & argOffset,
+                                  StdVector<std::string> & retVals ) {
+    ENTER_FCN( "SinglePDE::Script_Eval");
+
+     if (args.GetSize()-argOffset < 1) {
+       errMsg_ << pdename_ << ": Need at least one additional argument!";
+       return FALSE;
+     }
+
+     // ** IDBC **
+     if (args[argOffset] == "idbc") {
+       if (args.GetSize()-argOffset < 3) {
+        errMsg_ << "Wrong nr. arguments. Usage: idbc <nodenames> <value>";
+         return FALSE;
+       }
+       SetIDBC( args[argOffset+1], String2Double(args[argOffset+2]) );
+     } else if (args[argOffset] == "value") {
+       
+       if (args.GetSize()-argOffset < 2) {
+         errMsg_ << "Wrong nr. arguments. Usage:  value <nodenames> ";
+         return FALSE;
+       }
+       // get node names
+       StdVector<UInt> nodeNrs;
+       ptgrid_->GetNodesByName( nodeNrs, args[argOffset+1]);
+       for (UInt i=0; i<nodeNrs.GetSize(); i++) {
+         Double val;
+         sol_->Get(nodeNrs[i]-1,0,val);
+         retVals.Push_back(Info->GenStr(val));
+       }
+     }else {
+       errMsg_ << "Unknown command: " << args[argOffset];
+       return FALSE;
+     }
+     // ** Values **
+     return TRUE;
+     
+  }
+  void SinglePDE::Script_GetCommands( StdVector<std::string> & commands,
+                                      UInt & argOffset) {
+    ENTER_FCN( "SinglePDE::Script_GetCommands" );
+  }
+  
 } // end of namespace
