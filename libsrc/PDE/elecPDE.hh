@@ -23,34 +23,30 @@ namespace CoupledField
     */
     ElecPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut);
 
-    //! Deconstructor
+    //! Destructor
     virtual ~ElecPDE(){};
 
-    //! define all (bilinearform) integrators needed for this pde
+    //! Define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( );
 
-    //! define the SoltionStep-Driver
+    //! Define the SolveStep-Driver
     virtual void DefineSolveStep();
 
     //! Init the time stepping: nothing to do
     virtual void InitTimeStepping() {;};
 
-    //! nothing to do
+    //! Nothing to do
     virtual void SetTimeStep(const Double dt) {;};
-
-    //! return size of solution
-    virtual UInt getSize() const 
-    { return numPDENodes_*dofspernode_;}
 
 
     // ======================================================
     // POSTPROCESSING SECTION
     // ======================================================
 
-    //! do PostProcessing step
+    //! Do PostProcessing step
     virtual void PostProcess( );
 
-    //! write results in file
+    //! Write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
     virtual void WriteResultsInFile(const UInt kstep = 0,
@@ -58,7 +54,7 @@ namespace CoupledField
                                     UInt stepOffset = 0,
                                     Double timeOffset = 0.0);
     
-    //! write history results in file
+    //! Write history results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
     void WriteHistoryInFile(const UInt kstep,
@@ -66,97 +62,65 @@ namespace CoupledField
                             UInt stepOffset = 0,
                             Double timeOffset = 0.0);
 
-    //! computes the electric energy for each subdomain
-    void CalcEnergy();
-
-    //! callculates nodal forces
-    void CalcNodeForce(Vector<Double> & force, 
-                       StdVector<UInt> & nodes, 
-                       StdVector<Elem*> & elems,
-                       StdVector<StdVector<ShortInt> > &isBoundaryNode,
-                       StdVector<StdVector<UInt> > &elemNodeToCouplingNode);
-
-    //!
-    void CalcInterfaceForces(UInt actCoupling);
-
-    //! GET SOLUTION AT ALL NODES OF AN ELEMENT
-    //void GetSolOfElement( Vector<Double>& elpot, StdVector<UInt>& connect_PDE);
-
+   
 
     // ======================================================
     // COUPLING SECTION
     // ======================================================
 
-    //! initalize PDE coupling
+    //! Initalize PDE coupling
     void InitCoupling(PDECoupling * Coupling);
 
-    //! calculate coupling terms
+    //! Calculate coupling terms
     void CalcOutputCoupling();
 
-    //! returns if PDE can compute the quantity
+    //! Returns if PDE can compute the quantity
     Boolean HasOutput(SolutionType output);
   
-    //! turn the piezo coupling on
+    //! Turn the piezo coupling on
 
-    //! triggers the correct assembly of the electrostatic block in a 
+    //! Triggers the correct assembly of the electrostatic block in a 
     //! piezo-coupled simulation, because the coupled electrostatic block
     //! is negative compared to the normal one
     void SetPiezoCoupling();
     
 
   protected:
-
-    /// calculated the electric field at the integration points of the couple element
-    void CalcEfieldAtCoupleElemIP(Elem * actVolElem,
-                                  Elem * actCoupleElem,
-                                  Vector<Double>& coordAtIP, 
-                                  StdVector<UInt>& boundNodesOfVolElem,
-                                  Vector<Double>& tempE);
-  
-
-
-    //  Boolean nonLinGeo_;  //! switch for geometric update 
-  
-    // ---- Electric Force variables ---
-    ElemStoreSol<Double> Force_;        //!< stores Electric force of each element
-    StdVector<StdVector<Elem*> > F_Interface_; //!<vector of vectors conaining Elements with acting force
-    StdVector<StdVector<StdVector<ShortInt> > > isBoundaryNode_; //!< vector containing flag array for element boundary nodes
-    StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; //!< assigns each coupling element node the according Coupling Node number
-    //  StdVector<StdVector<UInt> > numBoundaryNodes_;               //!< contains number of surface nodes per element
     
     // *****************
     //  POSTPROCESSING
     // *****************
 
-    //! callculate electrid field intensity
+    //! Calculate electrid field intensity
+    template <class TYPE>
     void CalcElectricField();
 
-    //! calculate electric charges
+    //! Calculate electric charges
+    template <class TYPE>
     void CalcCharges();
 
-    //! contains the subdomains, on which the electric field is computed
+    //! Computes the electric energy for each subdomain
+    template <class TYPE>
+    void CalcEnergy();
+
+    //! Contains the subdomains, on which the electric field is computed
     StdVector<RegionIdType> calcEfield_; 
     
-    //! contains the subdomains, on which the electric energy is computed
+    //! Contains the subdomains, on which the electric energy is computed
     StdVector<RegionIdType> calcEnergy_;  
 
-    //! contains the subdomains, on which the electric charges  are computed
+    //! Contains the subdomains, on which the electric charges  are computed
     StdVector<RegionIdType> calcCharges_;
 
-    //! contains the (Volume) subdomains next to the surface
+    //! Contains the (Volume) subdomains next to the surface
     //! elements where the charges are computed
     StdVector<RegionIdType> chargeNeighborRegion_;
 
-    //! conatins electric field
-    ElemStoreSol<Double>  E_;  
+    //! Conatins electric field
+    BaseElemStoreSol * E_;  
 
-    //! contains electric charges
-    ElemStoreSol<Double>  charges_;
-
-    // for check: own solver
-    Boolean SolverCFS_; //<! parameter indicator: TRUE, if you want to use Solver CFS. reading from config-file
-    Matrix<Double> sysmat_;
-    Vector<Double> vecrhs_;
+    //! Contains electric charges
+    BaseElemStoreSol * charges_;
 
   private:
 
