@@ -93,8 +93,7 @@ namespace CoupledField{
     //! functions have been called with a given value
     //! \note Only after calling Init(), the object can
     //! store information
-    virtual void Init()
-    {Error("BaseElemStoreSol::Init() not implemented here", __FILE__, __LINE__);}  
+    virtual void Init() = 0;
   
     //! Initialization of the StoreSolution-object (REQUIRED)
   
@@ -105,8 +104,8 @@ namespace CoupledField{
     /*!
       \param val (input) Value the object gets initialized with
     */
-    virtual void Init(const Double val)
-    {Error("BaseElemStoreSol::Init() not implemented here", __FILE__, __LINE__);}
+    virtual void Init(const Double val) 
+      {Error("BaseElemStoreSol::Init() not implemented here", __FILE__, __LINE__);}  
   
     //! Set the number of different solution types
     /*! 
