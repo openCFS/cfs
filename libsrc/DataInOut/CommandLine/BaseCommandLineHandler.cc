@@ -29,6 +29,9 @@ namespace CoupledField {
   const std::string BaseCommandLineHandler::helpMeshFile_      =
   "name of mesh file for the simulation";  
 
+  const std::string BaseCommandLineHandler::helpScriptFileName_ =
+  "(optional) name of script file to be evaluated";  
+
   const std::string BaseCommandLineHandler::helpTraceDepth_    =
 #ifdef TRACE
   "depth of function tracing";
@@ -55,22 +58,24 @@ namespace CoupledField {
   "print this usage information";
 
   // Short forms of markers
-  const std::string BaseCommandLineHandler::markerParamFile_     = "-p";
-  const std::string BaseCommandLineHandler::markerMeshFile_      = "-m";
-  const std::string BaseCommandLineHandler::markerTraceDepth_    = "-t";
-  const std::string BaseCommandLineHandler::markerWriteSkeleton_ = "-w";
-  const std::string BaseCommandLineHandler::markerPrintGrid_     = "-g";
-  const std::string BaseCommandLineHandler::markerHelp_          = "-h";
-  const std::string BaseCommandLineHandler::markerSchemaPath_    = "-s";
-  const std::string BaseCommandLineHandler::markerShowEqnMap_    = "-e";
-  const std::string BaseCommandLineHandler::markerDoProfile_     = "-d";
-  const std::string BaseCommandLineHandler::markerRestart_       = "-r";
+  const std::string BaseCommandLineHandler::markerParamFile_       = "-p";
+  const std::string BaseCommandLineHandler::markerMeshFile_        = "-m";
+  const std::string BaseCommandLineHandler::markerScriptFileName_  = "-e";
+  const std::string BaseCommandLineHandler::markerTraceDepth_      = "-t";
+  const std::string BaseCommandLineHandler::markerWriteSkeleton_   = "-w";
+  const std::string BaseCommandLineHandler::markerPrintGrid_       = "-g";
+  const std::string BaseCommandLineHandler::markerHelp_            = "-h";
+  const std::string BaseCommandLineHandler::markerSchemaPath_      = "-s";
+  const std::string BaseCommandLineHandler::markerDoProfile_       = "-d";
+  const std::string BaseCommandLineHandler::markerRestart_         = "-r";
 
   // Long forms of markers
   const std::string BaseCommandLineHandler::markerLongParamFile_     =
   "--paramFile";
   const std::string BaseCommandLineHandler::markerLongMeshFile_      =
   "--meshFile";
+  const std::string BaseCommandLineHandler::markerLongScriptFileName_ =
+  "--scriptFile";
   const std::string BaseCommandLineHandler::markerLongTraceDepth_    =
   "--traceDepth";
   const std::string BaseCommandLineHandler::markerLongWriteSkeleton_ =
@@ -129,6 +134,13 @@ namespace CoupledField {
        << " = <string>\n"
        << " " << helpMeshFile_ << "\n\n"
 
+      // --scriptFile
+       << COLOR_INIT
+       << " " << markerScriptFileName_ << ", " << markerLongScriptFileName_
+       << COLOR_STOP
+       << " = <string>\n"
+       << " " << helpScriptFileName_ << "\n\n"
+
       // --traceDepth
        << " " << COLOR_INIT
        << markerTraceDepth_ << ", " << markerLongTraceDepth_
@@ -152,7 +164,7 @@ namespace CoupledField {
 
       // --showEqnMap
        << " " << COLOR_INIT
-       << markerShowEqnMap_ << ", " << markerLongShowEqnMap_
+       << " "  << ", " << markerLongShowEqnMap_
        << COLOR_STOP
        << '\n'
        << " " << helpShowEqnMap_ << "\n\n"
@@ -219,6 +231,11 @@ namespace CoupledField {
         << ' ' << markerLongMeshFile_ << " = "
         << colorInit
         << GetMeshFile()
+        << colorStop << '\n'
+
+        << ' ' << markerLongScriptFileName_ << " = "
+        << colorInit
+        << GetScriptFileName()
         << colorStop << '\n'
 
         << ' ' << markerLongTraceDepth_ << " = "

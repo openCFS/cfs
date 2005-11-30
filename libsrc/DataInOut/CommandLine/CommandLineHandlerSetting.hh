@@ -61,13 +61,29 @@ namespace CoupledField {
     std::string GetParamFile() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetParamFile" );
       std::string paramFile = DefaultParamFile();
-      Setting *aux = commandLine_.getSetting( markerParamFile_.c_str() );
+      Setting *aux = commandLine_.getSetting( markerLongParamFile_.c_str() );
       if ( aux != NULL ) {
         paramFile = aux->getString();
       }
       return paramFile;
     };
 
+    //! Return (optional) name of scripting file
+
+    //! This method returns the full name of an (optional) scripting file,
+    //! e.g. a TCL-script that contains routines provided by the user to
+    //! interact dynamically with CFS++. If no filename was provided an
+    //! empty string is returned.
+    std::string GetScriptFileName() const {
+      ENTER_FCN( "CommandLineHandlerSetting::GetParamFile" );
+      std::string fileName = "";
+      Setting *aux = commandLine_.getSetting( markerLongScriptFileName_.c_str() );
+      if ( aux != NULL ) {
+        fileName = aux->getString();
+      }
+      return fileName;
+    };
+    
     //! Return path to XML schema file
 
     //! This method can be used to query the path to the XML schema file
@@ -81,7 +97,7 @@ namespace CoupledField {
     std::string GetSchemaPath() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetSchemaPath" );
       std::string schemaPath = DefaultSchemaPath();
-      Setting *aux = commandLine_.getSetting( markerSchemaPath_.c_str() );
+      Setting *aux = commandLine_.getSetting( markerLongSchemaPath_.c_str() );
       if ( aux != NULL ) {
         schemaPath = aux->getString();
       }
@@ -95,7 +111,7 @@ namespace CoupledField {
     std::string GetMeshFile() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetMeshFile" );
       std::string meshFile = DefaultMeshFile();
-      Setting *aux = commandLine_.getSetting( markerMeshFile_.c_str() );
+      Setting *aux = commandLine_.getSetting( markerLongMeshFile_.c_str() );
       if ( aux != NULL ) {
         meshFile = aux->getString();
       }
@@ -112,7 +128,7 @@ namespace CoupledField {
     Boolean GetPrintGrid() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetPrintGrid" );
       Boolean retVal = DefaultPrintGrid();
-      Setting *aux = commandLine_.getSetting( markerPrintGrid_.c_str() );
+      Setting *aux = commandLine_.getSetting( markerLongPrintGrid_.c_str() );
       if ( aux != NULL ) {
         retVal = TRUE;
       }
@@ -129,7 +145,7 @@ namespace CoupledField {
     Boolean GetShowEqnMap() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetShowEqnMap" );
       Boolean retVal = DefaultShowEqnMap();
-      Setting *aux = commandLine_.getSetting( markerShowEqnMap_.c_str() );
+      Setting *aux = commandLine_.getSetting( markerLongShowEqnMap_.c_str() );
       if ( aux != NULL ) {
         retVal = TRUE;
       }
@@ -148,7 +164,7 @@ namespace CoupledField {
     Boolean GetDoProfile() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetDoProfile" );
       Boolean retVal = DefaultDoProfile();
-      Setting *aux = commandLine_.getSetting( markerDoProfile_.c_str() );
+      Setting *aux = commandLine_.getSetting( markerLongDoProfile_.c_str() );
       if ( aux != NULL ) {
         retVal = TRUE;
       }
@@ -162,7 +178,7 @@ namespace CoupledField {
     Boolean GetRestart() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetRestart" );
       Boolean retVal = DefaultRestart();
-      Setting *aux = commandLine_.getSetting( markerRestart_.c_str() );
+      Setting *aux = commandLine_.getSetting( markerLongRestart_.c_str() );
       if ( aux != NULL ) {
         retVal = TRUE;
       }
@@ -178,7 +194,7 @@ namespace CoupledField {
     Boolean GetWriteSkeleton() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetWriteSkeleton" );
       Boolean retVal = DefaultWriteSkeleton();
-      Setting *aux = commandLine_.getSetting( markerWriteSkeleton_.c_str() );
+      Setting *aux = commandLine_.getSetting( markerLongWriteSkeleton_.c_str() );
       if ( aux != NULL ) {
         retVal = TRUE;
       }
@@ -198,7 +214,7 @@ namespace CoupledField {
     //!       the work associated with function tracing.
     UInt GetTraceDepth() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetTraceDepth" );
-      Setting *aux = commandLine_.getSetting( markerTraceDepth_.c_str() );
+      Setting *aux = commandLine_.getSetting( markerLongTraceDepth_.c_str() );
       UInt retVal = DefaultTraceDepth();
       if ( aux != NULL ) {
         retVal = (UInt)(aux->getInt());
