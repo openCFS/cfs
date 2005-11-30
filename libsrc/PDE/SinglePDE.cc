@@ -9,7 +9,9 @@
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 
 // header for scripting
+#ifdef TCL_INTERFACE
 #include "DataInOut/Scripting/cfsmessenger.hh"
+#endif
 
 // header for Materialhandling
 #include "DataInOut/LoadMaterialData.hh"

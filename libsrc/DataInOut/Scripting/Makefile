@@ -1,6 +1,11 @@
 #
 C_DIR = ../../..
-src = cfsmessenger.cc tcl-messenger.cc scriptable.cc
+include $(C_DIR)/main/Makefile.option
+ifeq "$(TCL_INTERFACE)" "yes"
+  src = cfsmessenger.cc tcl-messenger.cc scriptable.cc
+else
+  src = scriptable.cc
+endif
 #
 lib = scripting
 libpath = libsrc/DataInOut/Scripting

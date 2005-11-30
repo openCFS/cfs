@@ -41,6 +41,7 @@ SUBLIBDIR = Driver PDE CoupledPDE \
             DataInOut/cfsRST \
             DataInOut/GMV \
             DataInOut/AnsysFile \
+            DataInOut/Scripting \
             DataInOut \
             DataInOut/Database\
             Utils Matrix General ODESolve ODEDescr \
@@ -60,7 +61,7 @@ TAGSPATH = $(addsuffix /*.??,$(PATHSUBLIBDIR))
 mylibrary = driver domain pde coupledpde forms  \
             elements3d elements2d elements1d elements \
             gridadaption gridcfs gridstruct adaptgrid definefiles gmv unverg \
-	    cfsRST ansysfile datainout paramhandling commandline \
+	    cfsRST ansysfile scripting datainout paramhandling commandline \
             driver datainout\
             utils matrix general odesolve odedescr \
 	    paramIdent \
