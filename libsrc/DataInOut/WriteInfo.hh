@@ -126,8 +126,12 @@ namespace CoupledField {
     
 
     /// write Result values
-    void WriteResult(std::string pdename, std::string resulttype, StdVector<std::string> subdoms,
-                     Vector<Double> results, std::string unit, std::string analysis,
+    void WriteResult(std::string pdename, std::string resulttype, StdVector<std::string> & subdoms,
+                     Vector<Double> & results, std::string unit, std::string analysis,
+                     Double analysisVal);
+
+    void WriteResult(std::string pdename, std::string resulttype, StdVector<std::string> & subdoms,
+                     Vector<Complex> & results, std::string unit, std::string analysis,
                      Double analysisVal);
 
     /// just prints a vector
