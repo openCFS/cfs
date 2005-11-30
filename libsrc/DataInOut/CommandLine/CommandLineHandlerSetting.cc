@@ -60,8 +60,8 @@ namespace CoupledField {
     const SettingDef commandLineParamsSpec[] = {
 
       // --paramFile
-      SettingDef( markerParamFile_.c_str(),
-                  markerLongParamFile_.c_str(),
+      SettingDef( markerLongParamFile_.c_str(),
+                  markerParamFile_.c_str(),
                   Setting::STRING,
                   1,
                   1,
@@ -69,8 +69,8 @@ namespace CoupledField {
                   helpParamFile_.c_str() ),
 
       // --schemaPath
-      SettingDef( markerSchemaPath_.c_str(),
-                  markerLongSchemaPath_.c_str(),
+      SettingDef( markerLongSchemaPath_.c_str(),
+                  markerSchemaPath_.c_str(),
                   Setting::STRING,
                   1,
                   1,
@@ -78,17 +78,26 @@ namespace CoupledField {
                   helpSchemaPath_.c_str() ),
 
       // --meshFile
-      SettingDef( markerMeshFile_.c_str(),
-                  markerLongMeshFile_.c_str(),
+      SettingDef( markerLongMeshFile_.c_str(),
+                  markerMeshFile_.c_str(),
                   Setting::STRING,
                   1,
                   1,
                   Setting::COMMAND_LINE_ONLY | Setting::EXPLICIT_ASSIGNMENT,
                   helpMeshFile_.c_str() ),
 
+      // --script
+      SettingDef( markerLongScriptFileName_.c_str(),
+                  markerScriptFileName_.c_str(),
+                  Setting::STRING,
+                  1,
+                  1,
+                  Setting::COMMAND_LINE_ONLY | Setting::EXPLICIT_ASSIGNMENT,
+                  helpMeshFile_.c_str() ),
+      
       // --traceDepth
-      SettingDef( markerTraceDepth_.c_str(),
-                  markerLongTraceDepth_.c_str(),
+      SettingDef( markerLongTraceDepth_.c_str(),
+                  markerTraceDepth_.c_str(),
                   Setting::INT,
                   1,
                   1,
@@ -96,8 +105,8 @@ namespace CoupledField {
                   helpTraceDepth_.c_str() ),
 
       // --writeSkeleton
-      SettingDef( markerWriteSkeleton_.c_str(),
-                  markerLongWriteSkeleton_.c_str(),
+      SettingDef( markerLongWriteSkeleton_.c_str(),
+                  markerWriteSkeleton_.c_str(),
                   Setting::FLAG,
                   1,
                   1,
@@ -105,8 +114,8 @@ namespace CoupledField {
                   helpWriteSkeleton_.c_str() ),
 
       // --printGrid
-      SettingDef( markerPrintGrid_.c_str(),
-                  markerLongPrintGrid_.c_str(),
+      SettingDef( markerLongPrintGrid_.c_str(),
+                  markerPrintGrid_.c_str(),
                   Setting::FLAG,
                   1,
                   1,
@@ -114,8 +123,8 @@ namespace CoupledField {
                   helpPrintGrid_.c_str() ),
 
       // --showEqnMap
-      SettingDef( markerShowEqnMap_.c_str(),
-                  markerLongShowEqnMap_.c_str(),
+      SettingDef( markerLongShowEqnMap_.c_str(),
+                  NULL,
                   Setting::FLAG,
                   1,
                   1,
@@ -123,17 +132,17 @@ namespace CoupledField {
                   helpShowEqnMap_.c_str() ),
 
       // --doProfile
-      SettingDef( markerDoProfile_.c_str(),
-                  markerLongDoProfile_.c_str(),
+      SettingDef( markerLongDoProfile_.c_str(),
+                  markerDoProfile_.c_str(),
                   Setting::FLAG,
                   1,
                   1,
                   Setting::COMMAND_LINE_ONLY,
                   helpDoProfile_.c_str() ),
 
-      // --doProfile
-      SettingDef( markerRestart_.c_str(),
-                  markerLongRestart_.c_str(),
+      // --restart
+      SettingDef( markerLongRestart_.c_str(),
+                  markerRestart_.c_str(),
                   Setting::FLAG,
                   1,
                   1,
