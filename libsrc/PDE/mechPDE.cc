@@ -8,6 +8,7 @@
 #include "Forms/massInt.hh"
 #include "Forms/linPressureInt.hh"
 #include "DataInOut/writeresults.hh"
+#include "DataInOut/Scripting/cfsmessenger.hh"
 #include "Driver/assemble.hh"
 #include "newmark.hh"
 #include "newmarkFracDampMech.hh"
@@ -32,7 +33,6 @@ namespace CoupledField
 
     pdename_          = "mechanic";
     pdematerialclass_ = "piezo";
-   
 
 
     // ****************************
@@ -576,14 +576,16 @@ namespace CoupledField
     return bilinearStiff;
   }
   
+  
   void MechPDE::DefineRegionLoads() {
     ENTER_FCN ( "MechPDE::DefineRegionLoads" );
     
     StdVector<std::string> keyVec, attrVec, valVec;
-    StdVector<std::string> tempNames, names, dofs, dynamics, refCoord, type;
+    StdVector<std::string> tempNames, tempDofs, tempDynamics, tempRefCoord, tempType;
+    StdVector<std::string> names, dofs, dynamics, refCoord, type;
     StdVector<RegionIdType> regionIds;
     StdVector<UInt> vecComp;
-    StdVector<Double> loadVec;
+    StdVector<Double> loadVec, tempLoadVec;
     Vector<Double> unitLoad(dim_), totLoad(dim_), tempLoad(dim_);
     MechVolForceInt * forceInt = NULL;
     Integer index = -1;
@@ -598,6 +600,27 @@ namespace CoupledField
     valVec  = "", bcSequenceTag_, "";
     params->GetList(keyVec,attrVec,valVec,tempNames);
 
+     // get value
+    keyVec = "mechanic", "bcsAndLoads", "regionLoad", "value";
+    params->GetList(keyVec, attrVec, valVec, tempLoadVec);
+    
+    // get dynamics
+    keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dynamics";
+    params->GetList(keyVec, attrVec, valVec, tempDynamics);
+    
+    // get dofs
+    keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dof";
+    params->GetList(keyVec, attrVec, valVec, tempDofs);
+    
+    // get coordinate system
+    keyVec = "mechanic", "bcsAndLoads", "regionLoad", "refCoordSys";
+    params->GetList(keyVec, attrVec, valVec, tempRefCoord);
+    
+    // get load type (total / unit)
+    keyVec = "mechanic", "bcsAndLoads", "regionLoad", "type";
+    params->GetList(keyVec, attrVec, valVec, tempType);
+    
+    
     // Now sort the names and remove double entries
     for (UInt i = 0; i < tempNames.GetSize(); i++) {
       index = names.Find(tempNames[i]);
@@ -630,29 +653,22 @@ namespace CoupledField
     // loop over all regionnames
     for (UInt i = 0; i < names.GetSize(); i++) {
 
-      // restrict search to current region name
-      attrVec = "", "tag", "name";
-      valVec  = "", bcSequenceTag_, names[i];
-
-      // get value
-      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "value";
-      params->GetList(keyVec, attrVec, valVec, loadVec);
-      
-      // get dynamics
-      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dynamics";
-      params->GetList(keyVec, attrVec, valVec, dynamics);
-
-      // get dofs
-      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dof";
-      params->GetList(keyVec, attrVec, valVec, dofs);
-
-      // get coordinate system
-      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "refCoordSys";
-      params->GetList(keyVec, attrVec, valVec, refCoord);
-
-      // get load type (total / unit)
-      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "type";
-      params->GetList(keyVec, attrVec, valVec, type);
+      // get for each name all related entries for value, dynamics,
+      // dof, refCoordSys and type
+      loadVec.Clear();
+      dynamics.Clear();
+      dofs.Clear();
+      refCoord.Clear();
+      type.Clear();
+      for (UInt iEntry = 0; iEntry < tempNames.GetSize(); iEntry++ ) {
+        if ( names[i] == tempNames[iEntry] ) {
+          loadVec.Push_back(tempLoadVec[iEntry]);
+          dynamics.Push_back(tempDynamics[iEntry]);
+          dofs.Push_back(tempDofs[iEntry]);
+          refCoord.Push_back(tempRefCoord[iEntry]);
+          type.Push_back(tempType[iEntry]);
+        }
+      }
 
       // check if all vectors have the same length
       if ( loadVec.GetSize() != dynamics.GetSize() ||
@@ -730,6 +746,161 @@ namespace CoupledField
     }
     
   }
+
+//   void MechPDE::DefineRegionLoads() {
+//     ENTER_FCN ( "MechPDE::DefineRegionLoads" );
+    
+//     StdVector<std::string> keyVec, attrVec, valVec;
+//     StdVector<std::string> tempNames, names, dofs, dynamics, refCoord, type;
+//     StdVector<RegionIdType> regionIds;
+//     StdVector<UInt> vecComp;
+//     StdVector<Double> loadVec;
+//     Vector<Double> unitLoad(dim_), totLoad(dim_), tempLoad(dim_);
+//     MechVolForceInt * forceInt = NULL;
+//     Integer index = -1;
+//     UInt locDof = 0;
+//     Double volume = 0.0;
+//     std::ostringstream out;
+
+
+//     // get names of all regions with region loads
+//     keyVec = "mechanic", "bcsAndLoads", "regionLoad", "name";
+//     attrVec = "", "tag", "";
+//     valVec  = "", bcSequenceTag_, "";
+//     params->GetList(keyVec,attrVec,valVec,tempNames);
+
+//     // Now sort the names and remove double entries
+//     for (UInt i = 0; i < tempNames.GetSize(); i++) {
+//       index = names.Find(tempNames[i]);
+//       if ( index == -1) {
+//         names.Push_back(tempNames[i]);
+//       }
+//     }
+
+//     ptgrid_->RegionNameToId(regionIds, names);
+
+//     if ( regionIds.GetSize() > 0 ) {
+//       Info->PrintF(pdename_, "The following regions have a region load:\n\n");
+//       out.clear();
+//       out << std::setw(15) << "name" << " | " 
+//           << std::setw(15) << "refCoordSys" << " | "
+//           << std::setw(15) << "dynamics" << " | "
+//           << std::setw(11) << "volume" << " | "
+//           << std::setw(11) << "tot. load" << " | "
+//           << std::setw(11) << "unit load" <<std::endl;
+//       Info->PrintF(pdename_, out.str().c_str());
+//       out.str("");
+//       out << std::setw(90) << std::setfill('-') << "" 
+//           << std::setfill(' ') << std::endl;
+//       Info->PrintF(pdename_, out.str().c_str());
+//       out.str("");
+//     }
+                   
+
+
+//     // loop over all regionnames
+//     for (UInt i = 0; i < names.GetSize(); i++) {
+
+//       // restrict search to current region name
+//       attrVec = "", "tag", "name";
+//       valVec  = "", bcSequenceTag_, names[i];
+
+//       // get value
+//       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "value";
+//       params->GetList(keyVec, attrVec, valVec, loadVec);
+      
+//       // get dynamics
+//       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dynamics";
+//       params->GetList(keyVec, attrVec, valVec, dynamics);
+
+//       // get dofs
+//       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dof";
+//       params->GetList(keyVec, attrVec, valVec, dofs);
+
+//       // get coordinate system
+//       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "refCoordSys";
+//       params->GetList(keyVec, attrVec, valVec, refCoord);
+
+//       // get load type (total / unit)
+//       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "type";
+//       params->GetList(keyVec, attrVec, valVec, type);
+
+//       // check if all vectors have the same length
+//       if ( loadVec.GetSize() != dynamics.GetSize() ||
+//            loadVec.GetSize() != dofs.GetSize() ||
+//            loadVec.GetSize() != refCoord.GetSize() || 
+//            loadVec.GetSize() != type.GetSize() ) {
+//         (*error) << "MechPDE::DefineRegionLoads: Inconsistent definition for "
+//                  << "region '" << names[i] <<"'!\n"
+//                  << "Please correct parameter file!";
+//         Error( __FILE__, __LINE__ );
+//       }
+      
+//       // check if all entries for dynamics, refCoord and type
+//       // are the same
+//       for (UInt k=0; k<dynamics.GetSize(); k++) {
+//         if (dynamics[k] != dynamics[0] ||
+//             refCoord[k] != refCoord[0] ||
+//             type[k] != type[0] ) {
+//           (*error) << "MechPDE::DefineRegionLoads: The region load on region "
+//                    << names[i] << " has not for all dofs the same entry for "
+//                    << "dynamics, refCoord or type (total/unit)!";
+//           Error( __FILE__, __LINE__ );
+//         }
+//       }
+
+//       // now create local load vector
+//       unitLoad.Init();
+//       tempLoad.Init();
+//       for (UInt iDim=0; iDim < loadVec.GetSize(); iDim++) {
+//         locDof = domain->GetCoordSystem(refCoord[iDim])->
+//           GetVecComponent(dofs[iDim]);
+//         tempLoad[locDof-1] = loadVec[iDim];
+//       }
+
+//       // if the load is for a complete region, divide it by the
+//       // volume to obtain the unit load in f / m^2
+//       volume = ptgrid_->CalcVolumeOfRegion(regionIds[i], isaxi_);
+//       if ( type[0] == "total" ) {
+//         totLoad = tempLoad;
+//         unitLoad = tempLoad / volume;
+//       } else {
+//         totLoad =  tempLoad * volume;
+//         unitLoad = tempLoad;
+//       }
+        
+//       // create linearform and add to assemble
+//       forceInt = new MechVolForceInt(dim_, isaxi_);
+//       forceInt->SetVolForceVector(unitLoad, 
+//                                   domain->GetCoordSystem(refCoord[0]));
+//       assemble_->AddRhsSrcIntegrator( forceInt, regionIds[i],
+//                                       dynamics[0], nonLin_ );
+
+//       // write logging information into info file
+//       for (UInt k=0; k<dim_; k++) {
+//         out.str("");
+//         if ( k == 0) {
+//           out << std::setw(15) << names[i] << " | " 
+//               << std::setw(15) << refCoord[0] << " | "
+//               << std::setw(15) << dynamics[0] << " | "
+//               << std::setw(11) << volume << " | ";
+//         } else {
+//           out << std::setw(15) << "" << " | " 
+//               << std::setw(15) << "" << " | "
+//               << std::setw(15) << "" << " | "
+//               << std::setw(11) << "" << " | ";
+              
+//         }
+        
+//         out << std::setw(11) << totLoad[k] << " | "
+//             << std::setw(11) << unitLoad[k] << std::endl;
+
+//         Info->PrintF(pdename_,out.str().c_str());
+//       }
+//       Info->PrintF(pdename_,"\n");
+//     }
+    
+//   }
   
   void MechPDE::DefineSolveStep()
   {
@@ -1441,6 +1612,22 @@ namespace CoupledField
     if ( volAboveDefSurfRegions_.GetSize() > 0 ) {
       ComputeVolDefSurf( volAboveDefSurfRegions_, volAboveDefSurfDir_ );
     }
+
+    // Last but no least trigger setting of BC from script file
+#ifdef TCL_INTERFACE
+    StdVector<std::string> context;
+    context.Push_back( pdename_ );
+    context.Push_back( Info->GenStr(solveStep_->GetActStep() ) );
+    
+    if ( analysistype_ == TRANSIENT ||
+         analysistype_ == STATIC ) {
+      context.Push_back( Info->GenStr(solveStep_->GetActTime() ) );
+    } else {
+      context.Push_back( Info->GenStr(solveStep_->GetActFreq() ) );
+    }
+    messenger->TriggerEvent( CFSMessenger::CFS_PostProcess, 
+                             context );
+#endif
 
   }
   
