@@ -274,9 +274,9 @@ namespace CoupledField {
     Double normSign = 0.0;
 
     //charge operator  
-    ElecChargeOp * chargeOp;
-    chargeOp = new ElecChargeOp(ptGrid_, pde2_, pde2_->getPDE_eqnData(), 
-                                isaxi_);
+    ElecChargeOp<Double> * chargeOp;
+    chargeOp = new ElecChargeOp<Double>(ptGrid_, pde2_, pde2_->getPDE_eqnData(),
+                                        isaxi_);
 
     Vector<Double> chargeSD(calcCharge_.GetSize());
     chargeSD.Init(0);
@@ -441,9 +441,9 @@ namespace CoupledField {
     Double normSign = 0.0;
 
     //charge operator  
-    ElecChargeOp * chargeOp;
-    chargeOp = new ElecChargeOp(ptGrid_, pde2_, pde2_->getPDE_eqnData(),
-                                isaxi_);
+    ElecChargeOp<Complex> * chargeOp;
+    chargeOp = new ElecChargeOp<Complex>(ptGrid_, pde2_, 
+                                         pde2_->getPDE_eqnData(),isaxi_);
 
     Vector<Complex> chargeSD(calcCharge_.GetSize());
     chargeSD.Init(0);
