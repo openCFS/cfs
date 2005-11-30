@@ -1,0 +1,68 @@
+#ifndef CFS_MESSENGER_HH
+#define CFS_MESSENGER_HH
+
+#include <map>
+
+#include "Domain/domain.hh"
+#include "General/environment.hh"
+#include "Utils/StdVector.hh"
+#include "PDE/SinglePDE.hh"
+#include "scriptable.hh"
+
+namespace CoupledField {
+  
+  //! Central instance of message dispatcher for CFS++
+  class CFSMessenger {
+    
+  public: 
+
+    //! Define all available eventtypes
+    typedef enum {CFS_Init, CFS_ReadBCs, CFS_SetBCs, CFS_PostProcess} EventType;
+    
+    //! Constructor
+    CFSMessenger();
+
+    //! Destructor
+    virtual ~CFSMessenger();
+    
+    //! Call event procedure in target interface language
+
+    //! This method triggers the call of a related event procedure.
+    //! \param event Type of event function to be called
+    //! \param context Additional read only parameters to be passes to the 
+    //!  function
+    //! \return TRUE, if function exists and is successfully executed
+    virtual Boolean TriggerEvent( const EventType event, 
+                                  const StdVector<std::string> & context);
+    
+    //! Returns TRUE, if a script command is evaluated at the moment
+    Boolean IsEvaluating() {return isEvaluating_;}
+    
+    // ===================================================
+    // INTERFACE FUNCTIONS PROVIDED BY CFS++
+    // ===================================================
+    
+    //! Set function
+    static Boolean Set( const StdVector<std::string> & args );
+    
+    //! Get function
+    static Boolean Get( const StdVector<std::string> & args,
+                        StdVector<std::string> & retVal );
+    
+  protected:
+    
+    //! Error Message of central parsing function
+    static std::string errMsg_;
+
+    //! Flag indicating if a scripting command is evaluated at the moment
+    Boolean isEvaluating_;
+
+    //! Map containing for each Event the number of parameters to be passed
+    std::map<EventType, UInt> eventNumParams_;
+  };
+  
+} // end of namespace
+
+#endif
+
+
