@@ -257,7 +257,7 @@ namespace CoupledField {
   }
 
   UInt defineRefinements(const Double tolElem, const Double tolTotal,
-                            const UInt noOfChilds){
+                         const UInt noOfChilds){
     Double tmp = log( tolElem/tolTotal ) / log( (Double) noOfChilds );
     return (UInt)tmp + 1;
   }
@@ -282,6 +282,133 @@ namespace CoupledField {
     return area;
   }
 
+
+  // **************** Conversion Function *****************
+  
+  Double String2Double( const std::string & val) {
+
+   
+    Double retVal = 0.0;
+    char *endp;
+    retVal = strtod(val.c_str(), &endp);
+    if (! (val.c_str() != endp && *endp == '\0') ) {
+      (*error) << "Could not convert '" << val << "' into a double!";
+      Error( __FILE__, __LINE__ );
+    }
+    return retVal;
+    
+  }
+
+  Integer String2Int( const std::string & val) {
+    Integer retVal = 0;
+    char *endp;
+    retVal = strtol(val.c_str(), &endp, 0);
+    if (! (val.c_str() != endp && *endp == '\0') ) {
+      (*error) << "Could not convert '" << val 
+               << "' into an integer!";
+      Error( __FILE__, __LINE__ );
+    }
+    return retVal;
+  }
+
+  UInt String2UInt( const std::string & val) {
+
+    UInt retVal=0;
+    char *endp;
+    retVal = strtoul(val.c_str(), &endp, 0);
+    if (! (val.c_str() != endp && *endp == '\0') ) {
+      (*error) << "Could not convert '" << val 
+               << "' into an unsigned integer!";
+      Error( __FILE__, __LINE__ );
+    }
+    return retVal;
+  }
+
+   //! Converts a string vector into a double vector
+  void String2Double( StdVector<Double> & retVal, 
+                      const StdVector<std::string> & val ) { 
+    retVal.Resize( val.GetSize() );
+    
+    for ( UInt i = 0; i < val.GetSize(); i++ ) {
+      if ( std::sscanf ( val[i].c_str(), "%lf", &retVal[i]) != 1 ) {
+        (*error) << "Could not convert '" << val 
+                 << "' into a double!";
+        Error( __FILE__, __LINE__ );
+      }
+      
+    }
+  }
+    
+
+  //! Converts a double vector into a string vector
+  void Double2String( StdVector<std::string> & retVal, 
+                      const StdVector<Double> & val ) {
+
+    retVal.Resize( val.GetSize() );
+    std::ostringstream mystream;
+
+    for ( UInt i = 0; i < val.GetSize(); i++ ) {
+      mystream << val[i];
+      retVal[i] = mystream.str();
+      mystream.str("");
+    }
+  }
+  
+  //! Converts a string vector into an integer vector
+  void String2Int( StdVector<Integer> & retVal, 
+                   const StdVector<std::string> & val ) {
+    retVal.Resize( val.GetSize() );
+    
+    for ( UInt i = 0; i < val.GetSize(); i++ ) {
+      if ( std::sscanf ( val[i].c_str(), "%d", &retVal[i]) != 1 ) {
+        (*error) << "Could not convert '" << val 
+                 << "' into an integer!";
+        Error( __FILE__, __LINE__ );
+      }
+      
+    }
+  }
+  
+  //! Converts an integer vector into a string vector
+  void Int2String( StdVector<std::string> & retVal, 
+                   const StdVector<Integer> & val ) {
+    
+    retVal.Resize( val.GetSize() );
+    std::ostringstream mystream;
+    
+    for ( UInt i = 0; i < val.GetSize(); i++ ) {
+      mystream << val[i];
+      retVal[i] = mystream.str();
+      mystream.str("");
+    }
+  }
+  
+  //! Converts a string vector into an unsigned integer vector
+  void String2UInt( StdVector<UInt> & retVal, 
+                    const StdVector<std::string> & val ) {
+    retVal.Resize( val.GetSize() );
+    
+    for ( UInt i = 0; i < val.GetSize(); i++ ) {
+      if ( std::sscanf ( val[i].c_str(), "%u", &retVal[i]) != 1 ) {
+        (*error) << "Could not convert '" << val 
+                 << "' into an unsigned integer!";
+        Error( __FILE__, __LINE__ );
+      }
+    }
+  }
+  
+  //! Converts an unsigned integer vector into a string vector
+  void UInt2String( StdVector<std::string> & retVal, 
+                    const StdVector<UInt> & val ) {
+    retVal.Resize( val.GetSize() );
+    std::ostringstream mystream;
+    
+    for ( UInt i = 0; i < val.GetSize(); i++ ) {
+      mystream << val[i];
+      retVal[i] = mystream.str();
+      mystream.str("");
+    }
+  }
 
   // explicit template instantiation for SGI compiler
 #ifdef __sgi

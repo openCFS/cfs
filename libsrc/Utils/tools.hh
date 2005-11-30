@@ -237,6 +237,41 @@ namespace CoupledField {
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
 
+  // ***************** Conversion Functions *******************
+  //! Converts a string into a double value
+  Double String2Double( const std::string & val);
+  
+  //! Converts a string into an integer value
+  Integer String2Int( const std::string & val);
+  
+  //! Converts a string into an unsigned integer value
+  UInt String2UInt( const std::string & val);
+  
+  //! Converts a string vector into a double vector
+  void String2Double( StdVector<Double> & retVal, 
+                      const StdVector<std::string> & val );
+  
+  //! Converts a double vector into a string vector
+  void Double2String( StdVector<std::string> & retVal, 
+                      const StdVector<Double> & val );
+  
+  //! Converts a string vector into an integer vector
+  void String2Int( StdVector<Integer> & retVal, 
+                   const StdVector<std::string> & val );
+  
+  //! Converts an integer vector into a string vector
+  void Int2String( StdVector<std::string> & retVal, 
+                   const StdVector<Integer> & val );
+  
+  //! Converts a string vector into an unsigned integer vector
+  void String2UInt( StdVector<UInt> & retVal, 
+                    const StdVector<std::string> & val );
+  
+  //! Converts an unsigned integer vector into a string vector
+  void UInt2String( StdVector<std::string> & retVal, 
+                    const StdVector<UInt> & val );
+  
+  
 } // end of CoupledField
 
 #endif
