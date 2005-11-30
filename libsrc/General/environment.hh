@@ -11,6 +11,8 @@
 #include "olas.hh"
 
 
+
+
 //! \file environment.hh
 //! This file contains some global macro, class and enumeration data type
 //! definitions for CFS++.
@@ -36,6 +38,7 @@ namespace CoupledField {
 
   // forward class declaration
   class Domain;
+  class CFSMessenger;
 
   //! redeclaration of types
   typedef int Integer;
@@ -105,6 +108,13 @@ namespace CoupledField {
 
   //! Global pointer to domain object
   extern Domain *domain;
+
+#ifdef TCL_INTERFACE
+
+  //! Global pointer to messenger object
+  extern CFSMessenger * messenger;
+#endif
+
 
   // enumeration with elements types.
   // enum ElementType{Line1, Triang1, Triang2, Quadrilateral1, Quadrilateral2};
