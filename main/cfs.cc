@@ -35,6 +35,12 @@
 #endif
 
 
+#ifdef TCL_INTERFACE
+#include "DataInOut/Scripting/cfsmessenger.hh"
+#include "DataInOut/Scripting/tcl-messenger.hh"
+#endif
+
+
 using namespace CoupledField;
 
 #ifdef PARALLEL
@@ -42,7 +48,6 @@ using namespace CoupledField;
 #else
 #define STDOUT std::cout
 #endif
-
 
 int main( int argc, const char **argv ) {
 
@@ -82,6 +87,38 @@ int main( int argc, const char **argv ) {
   // HANDLE COMMAND LINE PARAMETERS
   // =========================================================================
   commandLine = new CommandLineHandlerSetting( argc, argv );
+
+
+  // =========================================================================
+  // GENERATE CENTRAL MESSENGER OBHJECT (CURRENTLY ONLY TCL)
+  // =========================================================================
+#ifdef TCL_INTERFACE
+
+  // Try to determine (optional) script file name
+  std::string scriptFileName = commandLine->GetScriptFileName();
+  
+  // Check if script file was provided
+  if ( scriptFileName != "" ) {
+    
+    std::stringstream msg;
+    msg << "Activating Scripting using '" << scriptFileName << "'";
+    Info->StartProgress( msg.str() );
+
+    // Create new central messenger object (up to now only tcl available)
+    messenger = new TCL_CFSMessenger( scriptFileName );
+    
+    // Call intialization procedure
+    StdVector<std::string> context;
+    context.Push_back( commandLine->GetSimName() );
+    messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
+    Info->FinishProgress();    
+  }  else {
+
+    // Crate dummy oject for Script evaluating
+    messenger = new CFSMessenger( );
+  }
+
+#endif
 
 
   // =========================================================================
@@ -371,6 +408,11 @@ int main( int argc, const char **argv ) {
   delete Info;
   delete params;
   delete commandLine;
+
+#ifdef TCL_INTERFACE
+  delete messenger;
+  messenger = NULL;
+#endif
 
 #ifdef PROFILING
   delete profiler;
