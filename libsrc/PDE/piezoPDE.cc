@@ -1137,14 +1137,14 @@ namespace CoupledField {
   
   
   void PiezoPDE::CalcCharges(){
-    ENTER_FCN( "PiezoPDE::CalcCharges" );
+  //   ENTER_FCN( "PiezoPDE::CalcCharges" );
     
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     StdVector<SurfElem*> surfElems;
     Elem * ptVolElem;
     SurfElem * ptSurfElem;
     Vector<Double> lCoordSurf, lCoordVol, elemDField, Efield, normal;
-    ElecChargeOp * chargeOp;
+    ElecChargeOp<Double> * chargeOp;
     BaseFE * ptSurfElemFE, * ptVolElemFE;
     Double elemNormalD = 0.0;
     Double charge = 0.0;
@@ -1194,7 +1194,7 @@ namespace CoupledField {
     lCoordSurf.Init(0);
 
     //charge operator  
-    chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, isaxi_);
+    chargeOp = new ElecChargeOp<Double>(ptgrid_, this, eqnData_, isaxi_);
                               
     Vector<Double> chargeSD(calcCharge_.GetSize());
     chargeSD.Init(0);
@@ -1349,7 +1349,7 @@ namespace CoupledField {
     Matrix<Complex> elSol;
     Vector<Double> lCoordSurf, lCoordVol, normal;
     Vector<Complex> elemDField;
-    ElecChargeOp * chargeOp;
+    ElecChargeOp<Complex> * chargeOp;
     BaseFE * ptSurfElemFE, * ptVolElemFE;
     Complex   elemNormalD = Complex(0.0,0.0);
     Complex charge = Complex(0.0,0.0);
@@ -1395,7 +1395,7 @@ namespace CoupledField {
     lCoordSurf.Init(0);
 
     //charge operator  
-    chargeOp = new ElecChargeOp(ptgrid_, this, eqnData_, isaxi_);
+    chargeOp = new ElecChargeOp<Complex>(ptgrid_, this, eqnData_, isaxi_);
 
     chargeSD.Resize(calcCharge_.GetSize());
     chargeSD.Init(0);
