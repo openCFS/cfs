@@ -35,6 +35,10 @@ namespace CoupledField {
   Profiler * profiler = NULL;
 #endif  
 
+#ifdef TCL_INTERFACE
+  CFSMessenger * messenger = NULL;
+#endif
+
   Domain * domain = NULL;
 
   Flags * flags=NULL;
