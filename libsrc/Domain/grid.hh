@@ -5,6 +5,7 @@
 
 #include "Domain/elem.hh"
 #include "Domain/surfElem.hh"
+#include "DataInOut/Scripting/scriptable.hh"
 
 namespace CoupledField
 {
@@ -27,7 +28,7 @@ namespace CoupledField
   //! and can be directly used as a index for vectors / arrays.
   //! - The region identifiers are used for surface AND volume elements
 
-  class Grid {
+  class Grid : public Scriptable {
 
   public:
 
@@ -369,6 +370,36 @@ namespace CoupledField
     { Error(" Not implemented",__FILE__,__LINE__);}
     //@}
 
+    // ======================================================
+    // METHODS FOR SCRIPTING INTERFACE
+    // ======================================================
+    //@{ \name Scripting Interface
+
+    //! Central method vor evaluating a given scripting command
+
+    //! This method evaluates the given arguments, beginning from an offset 
+    //! prescribed by argOffset. If it is successful, it returns TRUE and the
+    //! as a vector of strings.
+    //! \param args Vector of arguments in string format to be evaluated
+    //! \param argOffset Offset for starting position in args vector
+    //! \param retVal Vector of return values in string format
+    //! \return TRUE, if evaluation was successful
+    Boolean Script_Eval( const StdVector<std::string> & args,
+                         UInt & argOffset,
+                         StdVector<std::string> & retVal);
+    
+    //! Get list of all available commands of this object
+
+    //! This method returns a list of all available scripting commands
+    //! offered by the particular class.
+    //! \param commands Vector of available commands of this class
+    //! \param argOffset Offset for start position in args vector
+    void Script_GetCommands( StdVector<std::string> & commands,
+                             UInt & argOffset);
+    
+   
+    //@}
+    
 
     // =======================================================================
     // MISCELLANEOUS

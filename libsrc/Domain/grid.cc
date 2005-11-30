@@ -101,6 +101,56 @@ namespace CoupledField
   }
 
 
+  Boolean Grid::Script_Eval( const StdVector<std::string> & args,
+                             UInt & argOffset,
+                             StdVector<std::string> & retVal) {
+    ENTER_FCN( "Grid::Script_Eval" );
+
+    if (args.GetSize()-argOffset < 1) {
+       errMsg_ << "Grid: Need at least one additional argument!";
+       return FALSE;
+     }
+
+     // -- nodeCoordinate --
+     if (args[argOffset] == "nodeCoordinate") {
+       if (args.GetSize()-argOffset < 2) {
+         errMsg_ << "Wrong nr. arguments. Usage: nodeCoordinate <nodeNr>";
+         return FALSE;
+       }
+
+       Vector<Double> coords;
+       GetNodeCoordinate( coords, String2UInt(args[argOffset+1]) ) ;
+       for ( UInt i = 0; i < coords.GetSize(); i++ ) {
+         retVal.Push_back( Info->GenStr(coords[i]) );
+       }
+
+       // -- nodesByName --
+     } else if (args[argOffset] == "nodesByName") {
+       
+       if (args.GetSize()-argOffset < 2) {
+         errMsg_ << "Wrong nr. arguments. Usage: nodesByName <name> ";
+         return FALSE;
+       }
+       StdVector<UInt> nodeNrs;
+       GetNodesByName( nodeNrs, args[argOffset+1] );
+       UInt2String( retVal, nodeNrs );
+       
+     }else {
+       errMsg_ << "Unknown command: " << args[argOffset];
+       return FALSE;
+     }
+
+     return TRUE;
+
+
+
+  }
+
+  void Grid::Script_GetCommands( StdVector<std::string> & commands,
+                                 UInt & argOffset) {
+    ENTER_FCN( "Grid::Script_GetCommands") ;
+  }
+
 
   RegionIdType Grid::RegionNameToId( const std::string & regionName ) {
     ENTER_FCN( "Grid::RegionNameToId" );
