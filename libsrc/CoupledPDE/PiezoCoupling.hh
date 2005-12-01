@@ -69,19 +69,22 @@ namespace CoupledField
 
     //! Postprocession section
 
+    //! Contains the subdomains, on which the electric field is computed
+    StdVector<RegionIdType> calcDfield_;
 
-    StdVector<RegionIdType> calcDfield_;  //!< contains the subdomains, on which the electric field is computed
-    ElemStoreSol<Double> Dfield_;  //!< conatins electric field
-    ElemStoreSol<Complex> DfieldComplex_;
+    //! conatins electric flux density
+    BaseElemStoreSol *  Dfield_;  
 
+    //! contains the subdomains, on which the stress is computed
+    StdVector<RegionIdType> calcStress_;  
 
-    StdVector<RegionIdType> calcStress_;  //!< contains the subdomains, on which the stress is computed
-    ElemStoreSol<Double> stress_;  //!< conatins mechanical stresses
-    ElemStoreSol<Complex> stressComplex_;  //!< conatins mechanical stresses
+    //! conatins mechanical stresses
+    BaseElemStoreSol * stress_;
 
-    ElemStoreSol<Double> charges_;
-    ElemStoreSol<Complex> chargesComplex_;
+    //! contains electric charges
+    BaseElemStoreSol * charges_;
 
+    //! contains neighbouring regions for charge calculation
     StdVector<RegionIdType> chargeNeighborRegion_;
     StdVector<RegionIdType> calcCharge_;
 
@@ -92,23 +95,15 @@ namespace CoupledField
     NodeStoreSol<Double> solDeriv2_;
 
     //! computes stresses, i.e. \sigma = cBu + e \grad \phi
+    template <class TYPE>
     void CalcStress();
 
-    //! computes complex valued stresses, 
-    //! i.e. \sigma = cBu + e \grad \phi     
-    void CalcComplexValuedStress();
-
     //! calculate Charges
+    template <class TYPE>
     void CalcCharges();
 
-    //! calculate comlex valued Charges
-    void CalcComplexValuedCharges();
-
-    //! calculate electric field
+    //!! calculate electric field
     //    void CalcDfield();
-
-    // calculate complex valued electric field
-    //    void CalcComplexValuedDfield();
 
   };
 
