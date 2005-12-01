@@ -11,6 +11,7 @@ namespace CoupledField
 {
   
   //! class for calculation of mechanical stresses
+  template <class TYPE>
   class MechStressStrain : public linElastInt
   {
   public:
@@ -25,9 +26,13 @@ namespace CoupledField
     virtual ~MechStressStrain();  
   
     /// calculates Piola-Kirchoff-stresses (vector notation)
-    void CalcStressVec(Vector<Double>& StressVec, UInt ip, 
+    void CalcStressVec(Vector<TYPE>& stressVec, UInt ip, 
                        Matrix<Double> & ptCoord);  
 
+    // calculate linear part of Green Lagrangian Strain tensor
+    void CalcStrainVec(Vector<TYPE>& strainVec, UInt ip, 
+                       Matrix<Double> & ptCoord);  
+    
     /// in stress calculations, the actual displacement of the element is needed
     /*!
       \param disp (input) Matrix with displacement d of all nodes of actual element
@@ -36,7 +41,7 @@ namespace CoupledField
       d_{y1} &  d_{y2} &  d_{y3} \\
       \end{array}\right) \f]         
     */
-    virtual void SetActElemSol(Matrix<Double>& disp) {
+    virtual void SetActElemSol(Matrix<TYPE>& disp) {
       ENTER_FCN( "MechStressStrain::SetActElemSol" );
       elemDisp_ = disp;};
 
@@ -52,13 +57,14 @@ namespace CoupledField
     virtual UInt getNrDofs()=0;  
 
     /// displacement of all nodes of actual element
-    Matrix<Double> elemDisp_;
+    Matrix<TYPE> elemDisp_;
 
   };
   
 
   //! 3D Cauchy stresses, linear strains
-  class MechStressStrain3D : public MechStressStrain
+  template <class TYPE>
+  class MechStressStrain3D : public MechStressStrain<TYPE>
   {
   public:
 
@@ -87,7 +93,8 @@ namespace CoupledField
 
 
   // second part: regarding internal stresses
-  class MechStressStrainPlaneStrain : public MechStressStrain
+  template <class TYPE>
+  class MechStressStrainPlaneStrain : public MechStressStrain<TYPE>
   {
   public:
     /// Constructor
@@ -113,7 +120,8 @@ namespace CoupledField
   
 
   // second part: regarding internal stresses
-  class MechStressStrainAxi : public MechStressStrain
+  template <class TYPE>
+  class MechStressStrainAxi : public MechStressStrain<TYPE>
   {
   public:
     /// Constructor
@@ -137,6 +145,18 @@ namespace CoupledField
   };
   
 
+  // Explicite template instantiation
+  template class MechStressStrain<Double>;
+  template class MechStressStrain<Complex>;
+
+  template class MechStressStrain3D<Double>;
+  template class MechStressStrain3D<Complex>;
+
+  template class MechStressStrainPlaneStrain<Double>;
+  template class MechStressStrainPlaneStrain<Complex>;
+
+  template class MechStressStrainAxi<Double>;
+  template class MechStressStrainAxi<Complex>;
 } //end namespace
 
 #endif // FILE_XXX
