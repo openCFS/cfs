@@ -85,11 +85,14 @@ namespace CoupledField
   protected:
 
   
-    UInt size_;        //!< total number of unknowns (equations)
-
     //computes mechanical deformation energy
+    template <class TYPE>
     void CalcEnergy();
 
+    //computes mechanical stresses
+    template <class TYPE>
+    void CalcStresses();
+    
     //! Obtain information on desired output quantities from parameter file
   
     //! This method is used to query the parameter handling object for the
@@ -177,6 +180,9 @@ namespace CoupledField
     /// returns the solution matrix belonging to all nodes of the actual element
     void GetSolOfElement( Matrix<Double>& elDisp, StdVector<UInt>& connect_PDE);
 
+    //! Number of dimension for stresses
+    UInt stressDim_;
+    
     //! Flag indicating the use of fractional damping
     Boolean fracDamping_;
 
@@ -204,8 +210,8 @@ namespace CoupledField
 
     //@{ \name Attributes related to post-processing
 
-    //! Contains magnetic field
-    ElemStoreSol<Double> Stress_;
+    //! Contains elemen stresses
+    BaseElemStoreSol * stress_;
 
     //! Contains the subdomains on which the stress is computed
     StdVector<RegionIdType> calcStress_;
