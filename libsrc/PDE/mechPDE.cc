@@ -51,15 +51,18 @@ namespace CoupledField
     // ensure that subtype fits to problem geometry
     if ( subType_ == "3d" && probGeo == "3d" ) {
       dofspernode_ = 3;
+      stressDim_ = 6;
       Info->PrintF("", "=== 3D PROBLEM\n");
     }
     else if ( subType_ == "axi" && probGeo == "axi" ) {
       isaxi_ = TRUE;
       dofspernode_ = 2;
+      stressDim_ = 4;
       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
     else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
       dofspernode_ = 2;
+      stressDim_ = 3;
       Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
     }
     else
@@ -209,17 +212,17 @@ namespace CoupledField
             Error("Till now no interpolation is allowed in mechanics fractional damnping!",__FILE__,__LINE__);
           }
         }
-//         else if ( fracAlg[0] == "blank" ) {
+        //         else if ( fracAlg[0] == "blank" ) {
           
-//           Info->PrintF( "", "\t\t\t using Blanks algorithm,\n");
-//           if (interpol[0] == "no" )
-//             dampingList_[actRegion] = FRACTIONAL_BLANK;
-//           else {
-//             dampingList_[actREgion] = FRACTIONAL_BLANK_INT;
-//             Info->PrintF("", 
-//                          "\t\t\t linear interpol. of single past values\n\n");
-//           }
-//         }
+        //           Info->PrintF( "", "\t\t\t using Blanks algorithm,\n");
+        //           if (interpol[0] == "no" )
+        //             dampingList_[actRegion] = FRACTIONAL_BLANK;
+        //           else {
+        //             dampingList_[actREgion] = FRACTIONAL_BLANK_INT;
+        //             Info->PrintF("", 
+        //                          "\t\t\t linear interpol. of single past values\n\n");
+        //           }
+        //         }
         
         // up to now take maximum of fracMemory
         if ( fracMem[0] > fracMemory_ )
@@ -603,7 +606,7 @@ namespace CoupledField
     valVec  = "", bcSequenceTag_, "";
     params->GetList(keyVec,attrVec,valVec,tempNames);
 
-     // get value
+    // get value
     keyVec = "mechanic", "bcsAndLoads", "regionLoad", "value";
     params->GetList(keyVec, attrVec, valVec, tempLoadVec);
     
@@ -750,160 +753,160 @@ namespace CoupledField
     
   }
 
-//   void MechPDE::DefineRegionLoads() {
-//     ENTER_FCN ( "MechPDE::DefineRegionLoads" );
+  //   void MechPDE::DefineRegionLoads() {
+  //     ENTER_FCN ( "MechPDE::DefineRegionLoads" );
     
-//     StdVector<std::string> keyVec, attrVec, valVec;
-//     StdVector<std::string> tempNames, names, dofs, dynamics, refCoord, type;
-//     StdVector<RegionIdType> regionIds;
-//     StdVector<UInt> vecComp;
-//     StdVector<Double> loadVec;
-//     Vector<Double> unitLoad(dim_), totLoad(dim_), tempLoad(dim_);
-//     MechVolForceInt * forceInt = NULL;
-//     Integer index = -1;
-//     UInt locDof = 0;
-//     Double volume = 0.0;
-//     std::ostringstream out;
+  //     StdVector<std::string> keyVec, attrVec, valVec;
+  //     StdVector<std::string> tempNames, names, dofs, dynamics, refCoord, type;
+  //     StdVector<RegionIdType> regionIds;
+  //     StdVector<UInt> vecComp;
+  //     StdVector<Double> loadVec;
+  //     Vector<Double> unitLoad(dim_), totLoad(dim_), tempLoad(dim_);
+  //     MechVolForceInt * forceInt = NULL;
+  //     Integer index = -1;
+  //     UInt locDof = 0;
+  //     Double volume = 0.0;
+  //     std::ostringstream out;
 
 
-//     // get names of all regions with region loads
-//     keyVec = "mechanic", "bcsAndLoads", "regionLoad", "name";
-//     attrVec = "", "tag", "";
-//     valVec  = "", bcSequenceTag_, "";
-//     params->GetList(keyVec,attrVec,valVec,tempNames);
+  //     // get names of all regions with region loads
+  //     keyVec = "mechanic", "bcsAndLoads", "regionLoad", "name";
+  //     attrVec = "", "tag", "";
+  //     valVec  = "", bcSequenceTag_, "";
+  //     params->GetList(keyVec,attrVec,valVec,tempNames);
 
-//     // Now sort the names and remove double entries
-//     for (UInt i = 0; i < tempNames.GetSize(); i++) {
-//       index = names.Find(tempNames[i]);
-//       if ( index == -1) {
-//         names.Push_back(tempNames[i]);
-//       }
-//     }
+  //     // Now sort the names and remove double entries
+  //     for (UInt i = 0; i < tempNames.GetSize(); i++) {
+  //       index = names.Find(tempNames[i]);
+  //       if ( index == -1) {
+  //         names.Push_back(tempNames[i]);
+  //       }
+  //     }
 
-//     ptgrid_->RegionNameToId(regionIds, names);
+  //     ptgrid_->RegionNameToId(regionIds, names);
 
-//     if ( regionIds.GetSize() > 0 ) {
-//       Info->PrintF(pdename_, "The following regions have a region load:\n\n");
-//       out.clear();
-//       out << std::setw(15) << "name" << " | " 
-//           << std::setw(15) << "refCoordSys" << " | "
-//           << std::setw(15) << "dynamics" << " | "
-//           << std::setw(11) << "volume" << " | "
-//           << std::setw(11) << "tot. load" << " | "
-//           << std::setw(11) << "unit load" <<std::endl;
-//       Info->PrintF(pdename_, out.str().c_str());
-//       out.str("");
-//       out << std::setw(90) << std::setfill('-') << "" 
-//           << std::setfill(' ') << std::endl;
-//       Info->PrintF(pdename_, out.str().c_str());
-//       out.str("");
-//     }
+  //     if ( regionIds.GetSize() > 0 ) {
+  //       Info->PrintF(pdename_, "The following regions have a region load:\n\n");
+  //       out.clear();
+  //       out << std::setw(15) << "name" << " | " 
+  //           << std::setw(15) << "refCoordSys" << " | "
+  //           << std::setw(15) << "dynamics" << " | "
+  //           << std::setw(11) << "volume" << " | "
+  //           << std::setw(11) << "tot. load" << " | "
+  //           << std::setw(11) << "unit load" <<std::endl;
+  //       Info->PrintF(pdename_, out.str().c_str());
+  //       out.str("");
+  //       out << std::setw(90) << std::setfill('-') << "" 
+  //           << std::setfill(' ') << std::endl;
+  //       Info->PrintF(pdename_, out.str().c_str());
+  //       out.str("");
+  //     }
                    
 
 
-//     // loop over all regionnames
-//     for (UInt i = 0; i < names.GetSize(); i++) {
+  //     // loop over all regionnames
+  //     for (UInt i = 0; i < names.GetSize(); i++) {
 
-//       // restrict search to current region name
-//       attrVec = "", "tag", "name";
-//       valVec  = "", bcSequenceTag_, names[i];
+  //       // restrict search to current region name
+  //       attrVec = "", "tag", "name";
+  //       valVec  = "", bcSequenceTag_, names[i];
 
-//       // get value
-//       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "value";
-//       params->GetList(keyVec, attrVec, valVec, loadVec);
+  //       // get value
+  //       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "value";
+  //       params->GetList(keyVec, attrVec, valVec, loadVec);
       
-//       // get dynamics
-//       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dynamics";
-//       params->GetList(keyVec, attrVec, valVec, dynamics);
+  //       // get dynamics
+  //       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dynamics";
+  //       params->GetList(keyVec, attrVec, valVec, dynamics);
 
-//       // get dofs
-//       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dof";
-//       params->GetList(keyVec, attrVec, valVec, dofs);
+  //       // get dofs
+  //       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dof";
+  //       params->GetList(keyVec, attrVec, valVec, dofs);
 
-//       // get coordinate system
-//       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "refCoordSys";
-//       params->GetList(keyVec, attrVec, valVec, refCoord);
+  //       // get coordinate system
+  //       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "refCoordSys";
+  //       params->GetList(keyVec, attrVec, valVec, refCoord);
 
-//       // get load type (total / unit)
-//       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "type";
-//       params->GetList(keyVec, attrVec, valVec, type);
+  //       // get load type (total / unit)
+  //       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "type";
+  //       params->GetList(keyVec, attrVec, valVec, type);
 
-//       // check if all vectors have the same length
-//       if ( loadVec.GetSize() != dynamics.GetSize() ||
-//            loadVec.GetSize() != dofs.GetSize() ||
-//            loadVec.GetSize() != refCoord.GetSize() || 
-//            loadVec.GetSize() != type.GetSize() ) {
-//         (*error) << "MechPDE::DefineRegionLoads: Inconsistent definition for "
-//                  << "region '" << names[i] <<"'!\n"
-//                  << "Please correct parameter file!";
-//         Error( __FILE__, __LINE__ );
-//       }
+  //       // check if all vectors have the same length
+  //       if ( loadVec.GetSize() != dynamics.GetSize() ||
+  //            loadVec.GetSize() != dofs.GetSize() ||
+  //            loadVec.GetSize() != refCoord.GetSize() || 
+  //            loadVec.GetSize() != type.GetSize() ) {
+  //         (*error) << "MechPDE::DefineRegionLoads: Inconsistent definition for "
+  //                  << "region '" << names[i] <<"'!\n"
+  //                  << "Please correct parameter file!";
+  //         Error( __FILE__, __LINE__ );
+  //       }
       
-//       // check if all entries for dynamics, refCoord and type
-//       // are the same
-//       for (UInt k=0; k<dynamics.GetSize(); k++) {
-//         if (dynamics[k] != dynamics[0] ||
-//             refCoord[k] != refCoord[0] ||
-//             type[k] != type[0] ) {
-//           (*error) << "MechPDE::DefineRegionLoads: The region load on region "
-//                    << names[i] << " has not for all dofs the same entry for "
-//                    << "dynamics, refCoord or type (total/unit)!";
-//           Error( __FILE__, __LINE__ );
-//         }
-//       }
+  //       // check if all entries for dynamics, refCoord and type
+  //       // are the same
+  //       for (UInt k=0; k<dynamics.GetSize(); k++) {
+  //         if (dynamics[k] != dynamics[0] ||
+  //             refCoord[k] != refCoord[0] ||
+  //             type[k] != type[0] ) {
+  //           (*error) << "MechPDE::DefineRegionLoads: The region load on region "
+  //                    << names[i] << " has not for all dofs the same entry for "
+  //                    << "dynamics, refCoord or type (total/unit)!";
+  //           Error( __FILE__, __LINE__ );
+  //         }
+  //       }
 
-//       // now create local load vector
-//       unitLoad.Init();
-//       tempLoad.Init();
-//       for (UInt iDim=0; iDim < loadVec.GetSize(); iDim++) {
-//         locDof = domain->GetCoordSystem(refCoord[iDim])->
-//           GetVecComponent(dofs[iDim]);
-//         tempLoad[locDof-1] = loadVec[iDim];
-//       }
+  //       // now create local load vector
+  //       unitLoad.Init();
+  //       tempLoad.Init();
+  //       for (UInt iDim=0; iDim < loadVec.GetSize(); iDim++) {
+  //         locDof = domain->GetCoordSystem(refCoord[iDim])->
+  //           GetVecComponent(dofs[iDim]);
+  //         tempLoad[locDof-1] = loadVec[iDim];
+  //       }
 
-//       // if the load is for a complete region, divide it by the
-//       // volume to obtain the unit load in f / m^2
-//       volume = ptgrid_->CalcVolumeOfRegion(regionIds[i], isaxi_);
-//       if ( type[0] == "total" ) {
-//         totLoad = tempLoad;
-//         unitLoad = tempLoad / volume;
-//       } else {
-//         totLoad =  tempLoad * volume;
-//         unitLoad = tempLoad;
-//       }
+  //       // if the load is for a complete region, divide it by the
+  //       // volume to obtain the unit load in f / m^2
+  //       volume = ptgrid_->CalcVolumeOfRegion(regionIds[i], isaxi_);
+  //       if ( type[0] == "total" ) {
+  //         totLoad = tempLoad;
+  //         unitLoad = tempLoad / volume;
+  //       } else {
+  //         totLoad =  tempLoad * volume;
+  //         unitLoad = tempLoad;
+  //       }
         
-//       // create linearform and add to assemble
-//       forceInt = new MechVolForceInt(dim_, isaxi_);
-//       forceInt->SetVolForceVector(unitLoad, 
-//                                   domain->GetCoordSystem(refCoord[0]));
-//       assemble_->AddRhsSrcIntegrator( forceInt, regionIds[i],
-//                                       dynamics[0], nonLin_ );
+  //       // create linearform and add to assemble
+  //       forceInt = new MechVolForceInt(dim_, isaxi_);
+  //       forceInt->SetVolForceVector(unitLoad, 
+  //                                   domain->GetCoordSystem(refCoord[0]));
+  //       assemble_->AddRhsSrcIntegrator( forceInt, regionIds[i],
+  //                                       dynamics[0], nonLin_ );
 
-//       // write logging information into info file
-//       for (UInt k=0; k<dim_; k++) {
-//         out.str("");
-//         if ( k == 0) {
-//           out << std::setw(15) << names[i] << " | " 
-//               << std::setw(15) << refCoord[0] << " | "
-//               << std::setw(15) << dynamics[0] << " | "
-//               << std::setw(11) << volume << " | ";
-//         } else {
-//           out << std::setw(15) << "" << " | " 
-//               << std::setw(15) << "" << " | "
-//               << std::setw(15) << "" << " | "
-//               << std::setw(11) << "" << " | ";
+  //       // write logging information into info file
+  //       for (UInt k=0; k<dim_; k++) {
+  //         out.str("");
+  //         if ( k == 0) {
+  //           out << std::setw(15) << names[i] << " | " 
+  //               << std::setw(15) << refCoord[0] << " | "
+  //               << std::setw(15) << dynamics[0] << " | "
+  //               << std::setw(11) << volume << " | ";
+  //         } else {
+  //           out << std::setw(15) << "" << " | " 
+  //               << std::setw(15) << "" << " | "
+  //               << std::setw(15) << "" << " | "
+  //               << std::setw(11) << "" << " | ";
               
-//         }
+  //         }
         
-//         out << std::setw(11) << totLoad[k] << " | "
-//             << std::setw(11) << unitLoad[k] << std::endl;
+  //         out << std::setw(11) << totLoad[k] << " | "
+  //             << std::setw(11) << unitLoad[k] << std::endl;
 
-//         Info->PrintF(pdename_,out.str().c_str());
-//       }
-//       Info->PrintF(pdename_,"\n");
-//     }
+  //         Info->PrintF(pdename_,out.str().c_str());
+  //       }
+  //       Info->PrintF(pdename_,"\n");
+  //     }
     
-//   }
+  //   }
   
   void MechPDE::DefineSolveStep()
   {
@@ -1214,8 +1217,7 @@ namespace CoupledField
     outFile_->WriteNodeSolutionTransient(rhs, actStep, actTime);
 #endif
 
-    if (analysistype_ == STATIC ||
-        analysistype_ == TRANSIENT) {
+    if ( isComplex_ == FALSE ) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     
       if (saveSol_ == TRUE ) 
@@ -1237,19 +1239,26 @@ namespace CoupledField
     
       //element results
       if (calcStress_.GetSize() !=0 ) {
-        outFile_->WriteElemSolutionTransient(Stress_, actStep, actTime);
+        ElemStoreSol<Double> & stressConverted = 
+          dynamic_cast<ElemStoreSol<Double>&>(*stress_);
+        outFile_->WriteElemSolutionTransient( stressConverted, actStep, actTime);
       }
-    }
-    else if (analysistype_ == HARMONIC) {
+    } else {
       solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
-
+      
       if (saveSol_ == TRUE )
         outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actStep,
                                             actTime, complexFormat_);
-    } else
-      Error("MechPDE: Only static, transient and harmonic results cna be written",
-            __FILE__, __LINE__);
-  
+    
+
+      //element results
+      if (calcStress_.GetSize() !=0 ) {
+        ElemStoreSol<Complex> & stressConverted = 
+          dynamic_cast<ElemStoreSol<Complex>&>(*stress_);
+        outFile_->WriteElemSolutionHarmonic( stressConverted, actStep, 
+                                             actTime, complexFormat_);
+      }
+    }
   }
 
 
@@ -1267,8 +1276,7 @@ namespace CoupledField
     Double actTime = asteptime + timeOffset;
     UInt actStep = kstep + stepOffset;
     
-    if (analysistype_ == STATIC ||
-        analysistype_ == TRANSIENT) {
+    if ( isComplex_ == FALSE ) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
       
       if (saveSolHist_ == TRUE)
@@ -1285,19 +1293,14 @@ namespace CoupledField
         solDeriv2_.SetAlgSysVector(getS2());
         outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
       }
-    }
-    
-    else if (analysistype_ == HARMONIC) {
+    } else  {
       solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
       if (saveSolHist_ == TRUE)
         outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actStep, 
                                            actTime, complexFormat_);
     
-    } else
-      Error("MechPDE: Only static, transient and harmonic results cna be written",
-            __FILE__, __LINE__);
-  
+    } 
   }
 
   // ***********************************************************************
@@ -1391,6 +1394,18 @@ namespace CoupledField
       for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
+
+      if ( isComplex_ == FALSE ) {
+        stress_ = new ElemStoreSol<Double>;
+      } else {
+        stress_ = new ElemStoreSol<Complex>;
+      }
+      stress_->SetNumSolutions(1);
+      stress_->SetSolutionType(MECH_STRESS);
+      stress_->SetNumElems(numElems_);
+      stress_->SetNumDofs(6);
+      stress_->SetPtrEQNData(eqnData_, ptgrid_);
+      stress_->Init();
     }
 
     // --- Mechanic Energy ---
@@ -1520,94 +1535,19 @@ namespace CoupledField
     ENTER_FCN( "MechPDE::PostProcess" );
 
     //check for mechanical energy calculation
-    if (calcEnergy_.GetSize() !=0 ) 
-      CalcEnergy();
+    if (calcEnergy_.GetSize() !=0 ) {
+      if ( isComplex_ == FALSE) {
+        CalcEnergy<Double>();
+      } else {
+        CalcEnergy<Complex>();
+      }
+    }
   
     if (calcStress_.GetSize() !=0 ) {
-
-      //get the correct bilinearform
-      ShortInt stressDim;
-      Vector<Double> intPoint;
-
-      if (subType_ == "planeStrain") {
-        stressDim = 3;
-      }
-
-      else if (subType_ == "axi") {
-        stressDim = 4;
-      }
-    
-      else if (subType_ == "3d") {
-        stressDim = 6;
-      }
-    
-      else 
-        Info->Error( "StressOp: Unknown subtype in mech PDE!", __FILE__,
-                     __LINE__);  
-
-      // Resize solution arrays
-      Stress_.SetNumSolutions(1);
-      Stress_.SetSolutionType(MECH_STRESS);
-      Stress_.SetNumElems(numElems_);
-      Stress_.SetNumDofs(6);
-      Stress_.SetPtrEQNData(eqnData_, ptgrid_);
-      Stress_.Init(0);
-      
-      Vector<Double> elemStress, sortedStress;
-      elemStress.Resize(stressDim);
-      elemStress.Init(0);
-      sortedStress.Resize(6);
-
-      // loop over all subdomains
-      for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
-        
-        MaterialData actSDMat(materialData_[isd]);
-        MechStressStrain *stress;
-        
-        if (subType_ == "planeStrain") 
-          stress = new MechStressStrainPlaneStrain(actSDMat);
-
-        else if (subType_ == "axi") 
-          stress = new MechStressStrainAxi(actSDMat);
-
-        else if (subType_ == "3d") 
-          stress = new MechStressStrain3D(actSDMat);
-
-        
-        // get vector of Elements of subdomains
-        StdVector<Elem*> elemssd;     
-        ptgrid_->GetVolElems( elemssd,subdoms_[isd] );
-        
-        // loop over elements of subdomain
-        for (UInt iel=0; iel< elemssd.GetSize(); iel++) {
-          UInt pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-          elemssd[iel]->ptElem->GetCoordMidPoint(intPoint);
-          //set element pointer
-          BaseFE * ptEl = elemssd[iel]->ptElem;
-          stress->SetElemPtr(ptEl);
-          
-          //set element solution        
-          Matrix<Double> elSol;
-          StdVector<UInt> connecth = elemssd[iel]->connect;
-          sol_->GetElemSolutionAsMatrix(elSol, connecth);
-          stress->SetActElemSol(elSol);
-          
-          //get coordinates of element
-          Matrix<Double> ptCoord;
-          GetElemCoords(connecth, ptCoord);
-          
-          Vector<Double> actStress;     
-          
-          //set the integration point
-          stress->SetIntPoint(intPoint);
-
-          //calculates the stress
-          stress->CalcStressVec(elemStress,1,ptCoord);
-          sortStresses(elemStress,sortedStress);
-          Stress_.SetElemResult(pdeElem-1, sortedStress);
-        }
-
-        delete stress;
+      if ( isComplex_ == FALSE) {
+        CalcStresses<Double>();
+      } else {
+        CalcStresses<Complex>();
       }
     }
 
@@ -1632,6 +1572,73 @@ namespace CoupledField
                              context );
 #endif
 
+  }
+
+  template <class TYPE>
+  void MechPDE::CalcStresses() {
+    ENTER_FCN( "MechPDE::CalcStresses" );
+    
+    //get the correct bilinearform
+    Vector<Double> intPoint;
+    // Resize solution arrays
+  
+    
+    Vector<TYPE> elemStress, sortedStress;
+    elemStress.Resize(stressDim_);
+    elemStress.Init(0);
+    sortedStress.Resize(6);
+    
+    // loop over all subdomains
+    for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
+      
+      MaterialData actSDMat(materialData_[isd]);
+      MechStressStrain<TYPE> *stress;
+      
+      if (subType_ == "planeStrain") 
+        stress = new MechStressStrainPlaneStrain<TYPE>(actSDMat);
+      
+      else if (subType_ == "axi") 
+        stress = new MechStressStrainAxi<TYPE>(actSDMat);
+      
+      else if (subType_ == "3d") 
+        stress = new MechStressStrain3D<TYPE>(actSDMat);
+      
+      
+      // get vector of Elements of subdomains
+      StdVector<Elem*> elemssd;     
+      ptgrid_->GetVolElems( elemssd,subdoms_[isd] );
+        
+      // loop over elements of subdomain
+      for (UInt iel=0; iel< elemssd.GetSize(); iel++) {
+        UInt pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
+        elemssd[iel]->ptElem->GetCoordMidPoint(intPoint);
+        //set element pointer
+        BaseFE * ptEl = elemssd[iel]->ptElem;
+        stress->SetElemPtr(ptEl);
+          
+        //set element solution        
+        Matrix<TYPE> elSol;
+        StdVector<UInt> connecth = elemssd[iel]->connect;
+        sol_->GetElemSolutionAsMatrix(elSol, connecth);
+        stress->SetActElemSol(elSol);
+          
+        //get coordinates of element
+        Matrix<Double> ptCoord;
+        GetElemCoords(connecth, ptCoord);
+          
+        Vector<TYPE> actStress;     
+          
+        //set the integration point
+        stress->SetIntPoint(intPoint);
+
+        //calculates the stress
+        stress->CalcStressVec(elemStress,1,ptCoord);
+        sortStresses(elemStress,sortedStress);
+        stress_->SetElemResult(pdeElem-1, sortedStress);
+      }
+
+      delete stress;
+    }
   }
   
   // ********************************************************
@@ -1690,6 +1697,7 @@ namespace CoupledField
     }
   }
 
+  template <class TYPE>
   void MechPDE::CalcEnergy()
   {
     ENTER_FCN( "MechPDE::CalcEnergy" );
@@ -1699,12 +1707,12 @@ namespace CoupledField
     BaseFE         * ptElem;
 
     StdVector<UInt> connecth;
-    Vector<double> help;
+    Vector<TYPE> help;
 
-    Double totalE = 0;
+    TYPE totalE = 0;
 
     UInt i, j;
-    Vector<Double> energy(subdoms_.GetSize());
+    Vector<TYPE> energy(subdoms_.GetSize());
 
     for (i=0; i<subdoms_.GetSize(); i++) {
     
@@ -1724,9 +1732,9 @@ namespace CoupledField
         bilinear_stiff->SetElemPtr(ptElem);
         bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
 
-        Vector<Double> eldisp;
+        Vector<TYPE> eldisp;
         sol_->GetElemSolution(eldisp, connecth);
-        help = elemmat * eldisp;
+        help = Matrix<TYPE>(elemmat) * eldisp;
         energy[i] += help * eldisp;
 
         delete bilinear_stiff;      
@@ -1756,8 +1764,8 @@ namespace CoupledField
                       analysis, analysisVal);
 
     StdVector<std::string> suball(1);
-    Vector<Double> tmp(1);
-    suball[0] = "Summe";
+    Vector<TYPE> tmp(1);
+    suball[0] = "Sum";
     tmp[0] = totalE;
     Info->WriteResult(pdename_,  resulttype, suball, tmp, unit,
                       analysis, analysisVal);
