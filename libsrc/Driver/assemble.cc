@@ -263,7 +263,7 @@ namespace CoupledField {
 
           dampTransform = 1.0;
           if ( ( actDescriptor->GetIntegrator()->IsRaylDamping() 
-                 || actDescriptor->GetSecondaryMat() != NOTYPE ) 
+                 || actDescriptor->GetOrigSecMatrixType() != NOTYPE ) 
                && startFreq_ > 0 ) {
 
             // Obtain frequency value to which the damping parameters
@@ -301,7 +301,7 @@ namespace CoupledField {
               actDescriptor->GetIntegrator()->SetFactor(dampTransform);
             }
           }
-
+          
 	  // pass frequency value to bilinearform
 	  if (analysisType_ == HARMONIC) {
 	    actDescriptor->GetIntegrator()->SetFrequency(actFreq_);
@@ -406,7 +406,8 @@ namespace CoupledField {
                        << std::endl << std::endl;
             }
 #endif
-            if (actDescriptor->GetSecondaryMat() != NOTYPE) {
+            if (actDescriptor->GetSecondaryMat() != NOTYPE && 
+                actDescriptor->GetIntegrator()->IsRaylDamping() == FALSE ) {
 
               Double damp = dampTransform * actDescriptor->GetSecMatFac();
               elemmat *= damp;
@@ -1545,8 +1546,9 @@ namespace CoupledField {
           error_msg += aSecMat + " not supported in harmonic analysis";
           Error(error_msg.c_str(), __FILE__, __LINE__ );
         }
-
       SetOrigSecMatrixType(aSecMat);
+      secondaryMatrix = MatType;
+      secMatFac = aSecMatFac;
     }
 
     else if ( analysisType == TRANSIENT ) {
