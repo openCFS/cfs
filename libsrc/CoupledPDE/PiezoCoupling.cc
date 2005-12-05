@@ -94,12 +94,13 @@ namespace CoupledField {
   void PiezoCoupling::CalcStress(){
     ENTER_FCN("PiezoCoupling::CalcStress");
 
-    ShortInt  stressDim, elecDim;
+    ShortInt  stressDim=0, elecDim=0;
     Vector<Double> intPoint;
     Vector<Double> LCoord;
     Vector<TYPE> TempE;
     Vector<TYPE> TempMechStress;
     Vector<TYPE> TempDField;
+    Matrix<Complex> *complexMatMatrix=NULL;
 
     MechStressStrain<TYPE> * mechStressOp = NULL;
     if (subType_ == "planeStrain") {
@@ -151,10 +152,10 @@ namespace CoupledField {
     sortedStress.Resize(6);
     UInt pdeElem;
 
-    Matrix<Double> stiffnessMat;
-    Matrix<Double> piezoCouplingMat; 
-    Matrix<Double> piezoCouplingMatT; 
-    Matrix<Double> permittivityMat;
+    Matrix<TYPE> stiffnessMat;
+    Matrix<TYPE> piezoCouplingMat; 
+    Matrix<TYPE> piezoCouplingMatT; 
+    Matrix<TYPE> permittivityMat;
     Matrix<TYPE> elemDisp;
     
 
@@ -176,8 +177,13 @@ namespace CoupledField {
       Matrix<Double> * matMatrix= materialData_[regionIndex].GetMatrix();
       MaterialData & mat = materialData_[regionIndex];
 
+      if( params->HasValue( "type", "imagMaterialParameter", 
+                            "materialDataType" ) )
+        complexMatMatrix = 
+          materialData_[regionIndex].GetComplexMaterialMatrix();
+
       calcMaterialMatrices(stiffnessMat, piezoCouplingMat, 
-                           permittivityMat, matMatrix);   
+                           permittivityMat, matMatrix, complexMatMatrix);   
 
       if (subType_ == "planeStrain") 
         mechStressOp = new MechStressStrainPlaneStrain<TYPE>(mat);
@@ -285,9 +291,10 @@ namespace CoupledField {
     Vector<TYPE> chargeSD(calcCharge_.GetSize());
     chargeSD.Init();
 
-    Matrix<Double> stiffnessMat;
-    Matrix<Double> piezoCouplingMat; 
-    Matrix<Double> permittivityMat;
+    Matrix<TYPE> stiffnessMat;
+    Matrix<TYPE> piezoCouplingMat; 
+    Matrix<TYPE> permittivityMat;
+    Matrix<Complex>*complexMatMatrix=NULL;
 
     if (subType_ == "axi") 
       isaxi_=TRUE;
@@ -339,10 +346,14 @@ namespace CoupledField {
           }
           Matrix<Double> * matMatrix= materialData_[regionIndex].GetMatrix();
           MaterialData & mat = materialData_[regionIndex];
-          calcMaterialMatrices(stiffnessMat, piezoCouplingMat,
-                               permittivityMat, matMatrix);
 
-      
+          if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
+            complexMatMatrix = materialData_[regionIndex].GetComplexMaterialMatrix();
+          
+          
+          calcMaterialMatrices(stiffnessMat, piezoCouplingMat,
+                               permittivityMat, matMatrix, complexMatMatrix);
+                
 
           // 1.) calculate electric field
           FieldOp2->CalcElemGradField(TempE, ptVolElem, lCoordVol,1);
@@ -418,19 +429,26 @@ namespace CoupledField {
   } // end CalcCharges
 
 
-
-  void PiezoCoupling::calcMaterialMatrices(Matrix<Double> & stiffnessMat,
-                                           Matrix<Double> & piezoCouplingMat,
-                                           Matrix<Double> & permittivityMat,
-                                           Matrix<Double> * matDat){
+  template <class TYPE>
+  void PiezoCoupling::calcMaterialMatrices(Matrix<TYPE> & stiffnessMat,
+                                           Matrix<TYPE> & piezoCouplingMat,
+                                           Matrix<TYPE> & permittivityMat,
+                                           Matrix<Double> *matDat,
+                                           Matrix<Complex> *complexMatDat){
     
     ENTER_FCN("PiezoCoupling::calcMaterialMatrices");
       
-    UInt  stressDim, elecDim;    
-
+    UInt  stressDim=0, elecDim=0;    
+   
     // Until we have the new material class, the default orientation of the
     // 
     orientation2D actOrientation = yz;
+
+
+  //   Matrix<TYPE> & stiffnessMat = dynamic_cast<Matrix<TYPE>&>(stiffness);
+//     Matrix<TYPE> & piezoCouplingMat = dynamic_cast<Matrix<TYPE>&>(piezoCoupling);
+//     Matrix<TYPE> & permittivityMat = dynamic_cast<Matrix<TYPE>&>(permittivity);
+
 
     // create material matrices
 
@@ -454,19 +472,40 @@ namespace CoupledField {
       Info->Error("Piezo DirectCoupling: Unknown subtype in PDE! "
                   ,__FILE__,__LINE__);  
 
-    stiffnessMat.Resize(stressDim,stressDim);
-    piezoCouplingMat.Resize(elecDim,stressDim);
-    permittivityMat.Resize(elecDim,elecDim);
 
     if (subType_ == "3d") {
-      matDat->GetSubMatrix(stiffnessMat,0,0);
-      matDat->GetSubMatrix(piezoCouplingMat,stressDim,0);
-      matDat->GetSubMatrix(permittivityMat,stressDim,stressDim);
-    } 
+
+      stiffnessMat.Resize(stressDim,stressDim);
+      piezoCouplingMat.Resize(elecDim,stressDim);
+      permittivityMat.Resize(elecDim,elecDim);
+      
+      if( params->HasValue( "type", "imagMaterialParameter",
+                            "materialDataType" ) ){
+        complexMatDat->GetSubMatrix(stiffnessMat,0,0);
+        complexMatDat->GetSubMatrix(piezoCouplingMat,stressDim,0);
+        complexMatDat->GetSubMatrix(permittivityMat,stressDim,stressDim);
+      }
+
+      else
+        {
+          for (UInt i=0;i<stressDim+elecDim;i++)
+            for (UInt j=0;j<stressDim+elecDim;j++){
+              
+              if(i<stressDim && j<stressDim)
+                stiffnessMat[i][j]=(*matDat)[i][j];
+              else if (i>=stressDim && j<stressDim)
+                piezoCouplingMat[i-stressDim][j]=(*matDat)[i][j];
+              else if (i>=stressDim&&j>=stressDim)
+                permittivityMat[i-stressDim][j-stressDim]=(*matDat)[i][j];
+            }
+        } 
+    }
 
     else if (subType_ == "axi") {
       //stiffnessMat
-
+      stiffnessMat.Resize(stressDim,stressDim);
+      piezoCouplingMat.Resize(elecDim,stressDim);
+      permittivityMat.Resize(elecDim,elecDim);
 
       UInt rowPtrXY[]={1,2,6,3,7,8};
       UInt rowPtrYZ[]={2,3,4,1,8,9};
@@ -497,38 +536,67 @@ namespace CoupledField {
         }
       }
       
-
       Matrix<Double> tempMat;
-      tempMat.Resize(matDat->GetSizeRow(),matDat->GetSizeCol());
-      
-      // Copy entries from material matrix object into temporary matrix
-      for ( UInt i = 0; i < 6 ; i++ ) {
-        for( UInt j = 0; j < 6; j++ ) {
-          tempMat[i][j] = (*matDat)[rowPtr[i]-1][rowPtr[j]-1];
-        }
-      }
+      Matrix<Complex> tempMatC;
 
-      tempMat.GetSubMatrix(stiffnessMat,0,0);
-      tempMat.GetSubMatrix(piezoCouplingMat,stressDim,0);
-      tempMat.GetSubMatrix(permittivityMat,stressDim,stressDim);
+      if( params->HasValue( "type", "imagMaterialParameter",
+                            "materialDataType" ) ){
+      
+        tempMatC.Resize(matDat->GetSizeRow(),matDat->GetSizeCol());
+        for ( UInt i = 0; i < 6 ; i++ ) {
+          for( UInt j = 0; j < 6; j++ ) {
+            tempMatC[i][j] = (*complexMatDat)[rowPtr[i]-1][rowPtr[j]-1];
+          }
+        }
+        tempMatC.GetSubMatrix(stiffnessMat,0,0);
+        tempMatC.GetSubMatrix(piezoCouplingMat,stressDim,0);
+        tempMatC.GetSubMatrix(permittivityMat,stressDim,stressDim);
+      }
+      else
+        {
+          tempMat.Resize(matDat->GetSizeRow(),matDat->GetSizeCol());
+          
+          // Copy entries from material matrix object into temporary matrix
+          for ( UInt i = 0; i < 6 ; i++ ) {
+            for( UInt j = 0; j < 6; j++ ) {
+              tempMat[i][j] =(*matDat)[rowPtr[i]-1][rowPtr[j]-1];
+            }
+          }
+         
+         
+          for (UInt i=0;i<stressDim+elecDim;i++)
+            for (UInt j=0;j<stressDim+elecDim;j++){
+              if(i<stressDim && j<stressDim)
+                stiffnessMat[i][j]=tempMat[i][j];
+              else if (i>=stressDim && j<stressDim)
+                piezoCouplingMat[i-stressDim][j]=tempMat[i][j];
+              else if (i>=stressDim && j>=stressDim)
+                permittivityMat[i-stressDim][j-stressDim]=tempMat[i][j];
+            }
+        }
     }
+    
 
     else if (subType_ == "planeStrain"){
+      
+      stiffnessMat.Resize(stressDim,stressDim);
+      piezoCouplingMat.Resize(elecDim,stressDim);
+      permittivityMat.Resize(elecDim,elecDim);
    
-    UInt rowPtrXY[]={1,2,6,7,9};
-    UInt rowPtrYZ[]={2,3,4,8,9};
-    UInt rowPtrXZ[]={1,3,5,7,9};
-    UInt * rowPtr;
-
-    switch(actOrientation)
-      {
-      case xy:
+      UInt rowPtrXY[]={1,2,6,7,9};
+      UInt rowPtrYZ[]={2,3,4,8,9};
+      UInt rowPtrXZ[]={1,3,5,7,9};
+      UInt * rowPtr;
+      
+      switch(actOrientation)
         {
-          rowPtr=rowPtrXY;
-          break;
+        case xy:
+          {
+            rowPtr=rowPtrXY;
+            break;
         }
-      case yz:
-        {
+        case yz:
+          {
           rowPtr=rowPtrYZ;
           break;
         }
@@ -544,20 +612,45 @@ namespace CoupledField {
         }
       }
     Matrix<Double> tempMat;
-    tempMat.Resize(matDat->GetSizeRow(),matDat->GetSizeCol());
-    
-    // Copy entries from material matrix object into temporary matrix
-    for ( UInt i = 0; i < 5 ; i++ ) {
-      for( UInt j = 0; j < 5; j++ ) {
-        tempMat[i][j] = (*matDat)[rowPtr[i]-1][rowPtr[j]-1];
+    Matrix<Complex> tempMatC;
+
+    if( params->HasValue( "type", "imagMaterialParameter",
+                          "materialDataType" ) ){
+      tempMatC.Resize(matDat->GetSizeRow(),matDat->GetSizeCol());
+      for ( UInt i = 0; i < 5 ; i++ ) {
+        for( UInt j = 0; j < 5; j++ ) {
+          tempMatC[i][j] = (*complexMatDat)[rowPtr[i]-1][rowPtr[j]-1];
+        }
+      }
+      tempMatC.GetSubMatrix(stiffnessMat,0,0);
+      tempMatC.GetSubMatrix(piezoCouplingMat,stressDim,0);
+      tempMatC.GetSubMatrix(permittivityMat,stressDim,stressDim);
+      
+    }
+    else
+      {
+        tempMat.Resize(matDat->GetSizeRow(),matDat->GetSizeCol());
+        
+        // Copy entries from material matrix object into temporary matrix
+        for ( UInt i = 0; i < 5 ; i++ ) {
+          for( UInt j = 0; j < 5; j++ ) {
+            tempMat[i][j] = (*matDat)[rowPtr[i]-1][rowPtr[j]-1];
+          }
+        }
+        for (UInt i=0;i<stressDim+elecDim;i++)
+            for (UInt j=0;j<stressDim+elecDim;j++){
+              if(i<stressDim&&j<stressDim)
+                stiffnessMat[i][j]=tempMat[i][j];
+              else if (i>=stressDim&& j<stressDim)
+                piezoCouplingMat[i-stressDim][j]=tempMat[i][j];
+              else if (i>=stressDim&&j>=stressDim)
+                permittivityMat[i-stressDim][j-stressDim]=tempMat[i][j];
+            }
       }
     }
-    tempMat.GetSubMatrix(stiffnessMat,0,0);
-    tempMat.GetSubMatrix(piezoCouplingMat,stressDim,0);
-    tempMat.GetSubMatrix(permittivityMat,stressDim,stressDim);
-    }
     
-  }// end calcMaterialMatrices
+  
+}// end calcMaterialMatrices
   
   
 
@@ -619,7 +712,7 @@ namespace CoupledField {
     params->Get( "subType", subType, "mechanic" );
     params->Get( "type", probGeo, "geometry" );
 
-    BaseForm *bilinearStiff;
+    BaseForm *bilinearStiff=NULL;
 
     if (subType == "planeStrain") {
       bilinearStiff = new linPiezoCoupling2DPlaneStrain();
