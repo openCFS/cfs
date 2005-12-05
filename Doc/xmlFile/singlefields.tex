@@ -83,8 +83,7 @@ In the 3D case we have {\bf ux, uy, uz} and in the 2D case
 
 
 \subsection{Subtypes}
-%
-%
+
 A specification of the geometric type of the problem is done on the top-level
 via the \xml{geometry} element, which allows the values \xml{3d}, \xml{plane}
 and \xml{axi} for its \xml{type} attribute. For a mechanic PDE this definition
@@ -93,20 +92,17 @@ must be repeated in the \xml{mechanic} element via its \xml{subtype} entry.
        <mechanic subType="stype">
 \end{verbatim}
 \noindent Here stype can currently take one of the following three values
-%
-%
+
 \begin{itemize}
 \item planeStrain \emph{(the default)}
 \item 3d
 \item axi
 \end{itemize}
-%
-%
+
 \emph{Note:} The \xml{subType} value must of course match to the \xml{type}
 value of the geometry specification and a mixture of different subTypes within
 one analysis is thus not possible.
-%
-%
+
 \subsection{Node to Ground Springs}
 In mechanic it is possible to consider node to ground springs. In a
 static analysis one can consider a stiffness value and
@@ -142,7 +138,6 @@ The command for calculating the mechanical stresses is
 {\footnotesize 
 \begin{verbatim}
 <?xml version="1.0"?>
-
 <cfsSimulation xmlns="http://www.cfs++.org">
 
   <analysis type="static"/>
@@ -153,7 +148,6 @@ The command for calculating the mechanical stresses is
 
   <domain>
     <region name="cantilev"  material="steel"/>
-
     <nodes name="leftN"/>
     <nodes name="rightN"/>
   </domain>
@@ -161,15 +155,12 @@ The command for calculating the mechanical stresses is
   <pdeList>
     <mechanic subtype="planeStrain">
        <region name="cantilev"/>
-
-      <bcsAndLoads>
-        <dirichletHom name="leftN" dof="ux"/>
-        <dirichletHom name="leftN" dof="uy"/>
-        <dirichletHom name="rightN" dof="ux"/>
-
-        <load         name="rightN" dof="uy" value="-1.0"/>
-      </bcsAndLoads>
-
+       <bcsAndLoads>
+         <dirichletHom name="leftN" dof="ux"/>
+         <dirichletHom name="leftN" dof="uy"/>
+         <dirichletHom name="rightN" dof="ux"/>
+         <load         name="rightN" dof="uy" value="-1.0"/>
+       </bcsAndLoads>
     </mechanic>
   </pdeList>
 
@@ -292,7 +283,7 @@ command
 
 {\footnotesize 
 \begin{verbatim}
-<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml version="1.0"?>
 <cfsSimulation xmlns="http://www.cfs++.org">
   <analysis type="transient"/>
   <geometry type="plane"/>
@@ -415,7 +406,6 @@ In our simulation, we distinguish different coil types:
   \end{itemize}
 \end{itemize}
 
-
 There are several parameters which must be defined for a coil. Every
 coil needs an attribute {\bf name="xyz"}, standing nearby the
 definition of the coil:
@@ -501,7 +491,6 @@ used to identify coil cross-sections belonging together (fed by the
 same current). 
 The sign of the id also specifies the direction of the current.
 
-
 \subsubsection{3D Current Driven Coils}
 For 3D current driven coils, the direction of the current has to be
 given explicitly. In case of a straight current flow, three
@@ -534,10 +523,6 @@ must be defined:
 
 In this example, the midpoint lies at the origin, and the coil
 rotation axis is equal to the x-axis.
-
-
-
-
 
 \subsubsection{Coil Definition Examples}
 
@@ -646,6 +631,68 @@ values {\bf orientX}, {\bf orientY} and {\bf orientZ}
 
       </magnetic>
    </pdeList>
+</cfsSimulation>
+\end{verbatim}
+}
+
+\newpage
+\section{Heat Conduction}
+\subsection{Results}
+Until now, only the temperature, which is a nodal result, can be chosen for output either for the whole domain or at named history nodes.
+
+\begin{verbatim}
+<storeResults>
+   <nodeResults type="heatTemperature"/>
+</storeResults>
+\end{verbatim}
+
+
+\subsection{Example}
+
+{\footnotesize
+\begin{verbatim}
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org">
+
+  <analysis type="transient"/>
+  <geometry type="plane"/>
+  <input format="mesh"/>
+  <output format="gmv"/>
+  <gmv>
+    <fixedGrid> yes </fixedGrid>
+    <binaryFormat> no </binaryFormat>
+  </gmv>
+  <materialData file="mat.dat"/>
+
+  <domain>
+    <region name="slab" material="steel" />
+  </domain>
+
+  <pdeList>
+    <heatConduction>
+      <region name="slab"/>
+
+      <bcsAndLoads>
+        <dirichletInhom name="bcleft" value="0.0"/>
+        <dirichletInhom name="bcright" value="100.0" dynamics="sin80no.dat"/>
+      </bcsAndLoads>
+
+      <storeResults>
+        <nodeResults type="heatTemperature"/>
+        <nodeHistory type="heatTemperature" saveNodes="historyNode"/>
+      </storeResults>
+    </heatConduction>
+  </pdeList> 
+
+  <transient>
+    <numSteps>     400 </numSteps>
+    <firstDt>        2 </firstDt>
+    <stepSaveBeg>    1 </stepSaveBeg>
+    <stepSaveEnd>  400 </stepSaveEnd>
+    <stepSaveInc>    1 </stepSaveInc>
+    <timeDataFile name="sin80no.dat"/>
+  </transient>
+
 </cfsSimulation>
 \end{verbatim}
 }
