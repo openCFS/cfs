@@ -31,10 +31,12 @@ namespace CoupledField
     //! Trigger calculation of postprocessing results
     void PostProcess();
 
-    void calcMaterialMatrices(Matrix<Double> &sMat, 
-                              Matrix<Double>&cMat,
-                              Matrix<Double> &pMat,
-                              Matrix<Double> *matDat);
+    template <class TYPE>
+    void calcMaterialMatrices(Matrix<TYPE> &sMat, 
+                              Matrix<TYPE>&cMat,
+                              Matrix<TYPE> &pMat,
+                              Matrix<Double> *matDat,
+                              Matrix<Complex> *complexMatDat);
 
     //! write results in file
     //! \param stepOffset offset for starting (time)step
