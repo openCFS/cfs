@@ -21,8 +21,8 @@ namespace CoupledField
     ENTER_FCN("MaterialData::MaterialData");
 
     const int stringLength = 100;
-    piezoMatrix  = NULL;
-    piezoMatrixC = NULL;
+    piezoMatrix_  = NULL;
+    piezoMatrixC_ = NULL;
     permeaMatrix = new Matrix<Double>(3,3);
     conducMatrix = new Matrix<Double>(3,3);
     name = new char[stringLength];
@@ -61,11 +61,11 @@ namespace CoupledField
     name = new char[stringLength];  
     SetName(mat.name);
 
-    if ( mat.piezoMatrix != NULL )
-      piezoMatrix  = new Matrix<Double>( *mat.piezoMatrix);
+    if ( mat.piezoMatrix_ != NULL )
+      piezoMatrix_  = new Matrix<Double>( *mat.piezoMatrix_);
 
-    if ( mat.piezoMatrixC != NULL )
-      piezoMatrixC = new Matrix<Double> (*mat.piezoMatrixC);
+    if ( mat.piezoMatrixC_ != NULL )
+      piezoMatrixC_ = new Matrix<Double> (*mat.piezoMatrixC_);
 
     if ( mat.permeaMatrix != NULL )
       permeaMatrix = new Matrix<Double>( *mat.permeaMatrix);
@@ -100,8 +100,8 @@ namespace CoupledField
 
   MaterialData::~MaterialData()
   {
-    delete piezoMatrix;
-    delete piezoMatrixC;
+    delete piezoMatrix_;
+    delete piezoMatrixC_;
     delete permeaMatrix;
     delete conducMatrix;
     delete[] name;
@@ -186,11 +186,11 @@ namespace CoupledField
     // Rotate real matrix ...
     for (UInt i=0;i<3;i++)
       for (UInt j=0;j<3;j++){
-        c[i][j]=(*piezoMatrix)[i][j];
-        c[i+3][j+3]=(*piezoMatrix)[i+3][j+3];
-        e[i][j]=(*piezoMatrix)[i][6+j];
-        e[i+3][j]=(*piezoMatrix)[i+3][6+j];
-        eps[i][j]=(*piezoMatrix)[i+6][j+6];
+        c[i][j]=(*piezoMatrix_)[i][j];
+        c[i+3][j+3]=(*piezoMatrix_)[i+3][j+3];
+        e[i][j]=(*piezoMatrix_)[i][6+j];
+        e[i+3][j]=(*piezoMatrix_)[i+3][6+j];
+        eps[i][j]=(*piezoMatrix_)[i+6][j+6];
       }
     Q.Transpose(QT);
     R.Transpose(RT);
@@ -201,24 +201,24 @@ namespace CoupledField
 
     for (UInt i=0;i<3;i++)
       for (UInt j=0;j<3;j++){
-        (*piezoMatrix)[i][j]=c[i][j];
-        (*piezoMatrix)[i+3][j+3]=c[i+3][j+3];
-        (*piezoMatrix)[i][6+j]=e[i][j];
-        (*piezoMatrix)[i+3][6+j]=e[i+3][j];
-        (*piezoMatrix)[i+6][j]=e[j][i];
-        (*piezoMatrix)[i+6][3+j]=e[j+3][i];
-        (*piezoMatrix)[i+6][j+6]=eps[i][j];
+        (*piezoMatrix_)[i][j]=c[i][j];
+        (*piezoMatrix_)[i+3][j+3]=c[i+3][j+3];
+        (*piezoMatrix_)[i][6+j]=e[i][j];
+        (*piezoMatrix_)[i+3][6+j]=e[i+3][j];
+        (*piezoMatrix_)[i+6][j]=e[j][i];
+        (*piezoMatrix_)[i+6][3+j]=e[j+3][i];
+        (*piezoMatrix_)[i+6][j+6]=eps[i][j];
       }
 
     // rotate complex Matrix
 
     for (UInt i=0;i<3;i++)
       for (UInt j=0;j<3;j++){
-        c[i][j]=(*piezoMatrixC)[i][j];
-        c[i+3][j+3]=(*piezoMatrixC)[i+3][j+3];
-        e[i][j]=(*piezoMatrixC)[i][6+j];
-        e[i+3][j]=(*piezoMatrixC)[i+3][6+j];
-        eps[i][j]=(*piezoMatrixC)[i+6][j+6];
+        c[i][j]=(*piezoMatrixC_)[i][j];
+        c[i+3][j+3]=(*piezoMatrixC_)[i+3][j+3];
+        e[i][j]=(*piezoMatrixC_)[i][6+j];
+        e[i+3][j]=(*piezoMatrixC_)[i+3][6+j];
+        eps[i][j]=(*piezoMatrixC_)[i+6][j+6];
       }
     Q.Transpose(QT);
     R.Transpose(RT);
@@ -229,13 +229,13 @@ namespace CoupledField
 
     for (UInt i=0;i<3;i++)
       for (UInt j=0;j<3;j++){
-        (*piezoMatrixC)[i][j]=c[i][j];
-        (*piezoMatrixC)[i+3][j+3]=c[i+3][j+3];
-        (*piezoMatrixC)[i][6+j]=e[i][j];
-        (*piezoMatrixC)[i+3][6+j]=e[i+3][j];
-        (*piezoMatrixC)[i+6][j]=e[j][i];
-        (*piezoMatrixC)[i+6][3+j]=e[j+3][i];
-        (*piezoMatrixC)[i+6][j+6]=eps[i][j];
+        (*piezoMatrixC_)[i][j]=c[i][j];
+        (*piezoMatrixC_)[i+3][j+3]=c[i+3][j+3];
+        (*piezoMatrixC_)[i][6+j]=e[i][j];
+        (*piezoMatrixC_)[i+3][6+j]=e[i+3][j];
+        (*piezoMatrixC_)[i+6][j]=e[j][i];
+        (*piezoMatrixC_)[i+6][3+j]=e[j+3][i];
+        (*piezoMatrixC_)[i+6][j+6]=eps[i][j];
       }
 
   } // end RotateMaterialMatrix

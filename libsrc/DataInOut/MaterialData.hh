@@ -60,11 +60,15 @@ namespace CoupledField {
     //  ARRAY <NonlinSpline*> * magneticSpline;
 
     /// contains the stiffnes matrix, the piezelectric coefficients and the permitivity matrix
-    Matrix<Double> * piezoMatrix;
-    Matrix<Double> * piezoMatrixC;
+    Matrix<Double> * piezoMatrix_;
+    Matrix<Double> * piezoMatrixC_;
 
     Matrix<Double> * permeaMatrix;
     Matrix<Double> * conducMatrix;
+
+    Matrix<Complex> * complexPiezoMatrix_;
+    Matrix<Double>  stiffnessMatrix_;
+    Matrix<Complex> complexStiffnessMatrix_;
 
     UInt matNr;
     Integer nonlin;
@@ -78,6 +82,12 @@ namespace CoupledField {
     MaterialData( const MaterialData &mat );
 
     ~MaterialData();
+
+    void GetStiffnessMatrix(Matrix<Double> &stiffMat){
+      stiffMat =  stiffnessMatrix_;};
+    void GetStiffnessMatrix(Matrix<Complex> & stiffMat){
+      stiffMat = complexStiffnessMatrix_;};
+
   
     /// set the material number 
     void SetMatNr(const UInt& MatNr){matNr = MatNr; };
@@ -157,31 +167,44 @@ namespace CoupledField {
 
     /// set one value of the data-matrix on position (i,j)
     void SetPiezoMatrixData(const UInt& i, const UInt& j, const Double& value)
-    {(*piezoMatrix)(i,j) = value;};
+    {(*piezoMatrix_)(i,j) = value;
+      (*complexPiezoMatrix_)[i][j]=Complex(value,(*complexPiezoMatrix_)[i][j].imag());
+    };
 
     /// set one value of the data-matrix on position (i,j)
     void SetPiezoMatrixDataC(const UInt& i, const UInt& j, const Double& value)
-    {(*piezoMatrixC)(i,j) = value;};
+    {(*piezoMatrixC_)(i,j) = value;
+      (*complexPiezoMatrix_)[i][j]=Complex((*complexPiezoMatrix_)[i][j].real(),value);
+    };
 
     /// get the value of the data-matrix on position (i,j)
     void GetPiezoMatrixData(const UInt& i, const UInt& j, Double& value)
-    {value = (*piezoMatrix)(i,j);};
+    {value = (*piezoMatrix_)(i,j);};
 
     /// get the value of the data-matrix on position (i,j)
     void GetPiezoMatrixDataC(const UInt& i, const UInt& j, Double& value)
-    {value = (*piezoMatrixC)(i,j);};
+    {value = (*piezoMatrixC_)(i,j);};
 
-    /// return a pointer to the data-matrix
-    Matrix<Double> * GetMatrixC(){return piezoMatrixC;};
+    /// returns a pointer to the imaginary part of data-matrix
+    Matrix<Double> * GetMatrixC(){return piezoMatrixC_;};
 
-    /// return a pointer to the data-matrix
-    Matrix<Double> * GetMatrix(){return piezoMatrix;};
+    /// returns a pointer to the real part of data-matrix
+    Matrix<Double> * GetMatrix(){return piezoMatrix_;};
 
-    /// Rotates piezo Material Matrix. Input are the three solid angels (radian measure)
+    /// returns pointer to complex material matrix
+    Matrix<Complex> * GetComplexMaterialMatrix(){
+      return complexPiezoMatrix_;
+    };
 
-    //! Rotates the piezoelectric material matrix. Input are the three solid angels (radian measure).
-    //! Special case: The choice of 1 for one of the angels, rotates piezo matrix in that way
-    //! that it is polarized in the given direction. The choice of 0 does not performs any rotation
+    /// Rotates piezo Material Matrix. 
+    /// Input are the three solid angels (radian measure)
+
+    //! Rotates the piezoelectric material matrix. 
+    //! Input are the three solid angels (radian measure).
+    //! Special case: The choice of 1 for one of the angels,
+    //!  rotates piezo matrix in that way
+    //! that it is polarized in the given direction. 
+    //! The choice of 0 does not performs any rotation
     //! Poling in z - direction (a3=1) is given by default.
     void RotateMaterialMatrix(const Double& a1, const Double& a2, const Double& a3);
 
@@ -193,7 +216,6 @@ namespace CoupledField {
 
     //! return a pointer to the permeability matrix
     Matrix<Double> * GetPermeaMatrix(){return permeaMatrix;};
-
 
     //! set one value of the permeability-matrix on position (i,j)
     void SetConductivity(const UInt& i, const UInt& j, const Double& value);
@@ -207,10 +229,12 @@ namespace CoupledField {
     /// set size of data-matrix in x and y direction to nrElems3d x nrElems3d
     /// this matrix includes the stiffness, piezoelectric coupling and permitivity matrix
     void DefFull3dMatrix(){
-      piezoMatrix = new Matrix<Double>; 
-      piezoMatrix->Resize(GetNrElems3d(), GetNrElems3d() );
-      piezoMatrixC = new Matrix<Double>; 
-      piezoMatrixC->Resize(GetNrElems3d(), GetNrElems3d() );};
+      piezoMatrix_ = new Matrix<Double>; 
+      piezoMatrix_->Resize(GetNrElems3d(), GetNrElems3d() );
+      piezoMatrixC_ = new Matrix<Double>; 
+      piezoMatrixC_->Resize(GetNrElems3d(), GetNrElems3d() );
+      complexPiezoMatrix_ = new Matrix<Complex>;
+      complexPiezoMatrix_->Resize(GetNrElems3d(), GetNrElems3d() );};
 
     /// set conductivity of the material
     void SetConductivity(const Double& Conductivity);
@@ -248,7 +272,7 @@ namespace CoupledField {
     Double GetLameMu() const {return LameMu;}
 
     /// get permittivity
-    Double GetPermittivity(UInt i, UInt j) const {return (*piezoMatrix)[i+6][j+6];};
+    Double GetPermittivity(UInt i, UInt j) const {return (*piezoMatrix_)[i+6][j+6];};
 
     /// get compressibility
     Double GetCompressibility() const {return compressibility;};
