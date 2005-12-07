@@ -37,10 +37,7 @@ namespace CoupledField
       Error("Damping type for PML not known", __FILE__, __LINE__);
     }
 
-    std::cout << "Damping type: " << dampingTypePML << std::endl;
     isaxi_ = axi;
-
-    //    std::cout << "damp=" << damp << std::endl;
   }
 
 
@@ -216,7 +213,7 @@ namespace CoupledField
 
 	//check for 3D
 	if (numVals == 3) {
-	  if  (pos[2] < minZ_ || pos[1] > maxZ_ ) {
+	  if  (pos[2] < minZ_ || pos[2] > maxZ_ ) {
 	    //compute z-value
 	    factor  = ComputeDampingFactor(pos, Z);
 	    imagVal = factor * omegaInv;
@@ -269,6 +266,9 @@ namespace CoupledField
       }
     }
 
+
+//     std::cout << "pos:\n" << pos << std::endl;
+//     std::cout << "factors:\n" << factors << std::endl;
 
     factorsPML.Resize(numVals);
     Complex val;
