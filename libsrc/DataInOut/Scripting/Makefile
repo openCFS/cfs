@@ -4,7 +4,7 @@ include $(C_DIR)/main/Makefile.option
 ifeq "$(TCL_INTERFACE)" "yes"
   src = cfsmessenger.cc tcl-messenger.cc scriptable.cc
 else
-  src = scriptable.cc
+  src = scriptable.cc cfsmessenger.cc
 endif
 #
 lib = scripting
