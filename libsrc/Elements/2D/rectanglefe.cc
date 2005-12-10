@@ -20,7 +20,9 @@ namespace CoupledField
     NumFaces_ = 1;
     NumCorners_ = 4;
     numChilds_ = 4;
-    MidPoint_ = 0.0, 0.0;
+    MidPoint_.Resize(2);
+    MidPoint_[0] = 0.0;
+    MidPoint_[1] = 0.0;
   
 
     std::string integtype;

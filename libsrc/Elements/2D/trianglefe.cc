@@ -20,7 +20,9 @@ namespace CoupledField
     NumFaces_   = 1;
     NumCorners_ = 3;
     numChilds_  = 4;
-    MidPoint_ = 1./3, 1./3;
+    MidPoint_.Resize(2);
+    MidPoint_[0] = 1./3;
+    MidPoint_[1] = 1./3;
 
     std::string integtype;
     params->Get( "type", integtype, "integRules", "triangle" );
