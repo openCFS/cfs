@@ -94,8 +94,10 @@ namespace CoupledField
         w=0.9*w;
 
       // if nu-method ..
-      JacobiMatrix = JacobiMatrix*Complex(w,w);
-      adjJacobiMatrix = adjJacobiMatrix*Complex(w,w);
+//       JacobiMatrix = JacobiMatrix*Complex(w,w);
+      JacobiMatrix *= Complex(w,w);
+      // adjJacobiMatrix = adjJacobiMatrix*Complex(w,w);
+      adjJacobiMatrix *= Complex(w,w);
       
       // w=0.9;
       //    std::cout<<"Choice of w = "<< w << "; Norm JacMat*AdjJacMat = " << normJacMat << std::endl;

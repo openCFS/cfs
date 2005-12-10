@@ -146,8 +146,11 @@ namespace CoupledField
     F.SetNumDofs(Dim);
     F.Init(0.0);
   
-    // TEST TEST
+    // Needed variables
     Matrix<Double> J_Trans, J_Inv_Trans, J_r_Trans;
+    Double E_square;
+    Vector<Double> dJdrTimesE, JInvTimesdJdr;
+
 
     // Loop over integration points
     for (UInt nIp=1; nIp<NumIntPoints+1; nIp++)
@@ -207,8 +210,19 @@ namespace CoupledField
                 dJ_dr = J_r_Trans;
               
                 // Force Calculation
-                F(nNode,i) += ( intWeights[nIp-1] * factor * ( (E * ( JInv * (dJ_dr * E) ) * -DetJ  
-                                                                + ( E * E ) * DetdJ_dr * 0.5) * matVal) ) * sign_;
+                // F(nNode,i) += ( intWeights[nIp-1] * factor * 
+//                                 ( (E * ( JInv * (dJ_dr * E) ) * (-DetJ)  
+//                                    + ( E * E ) * DetdJ_dr * 0.5) * matVal) ) * sign_;
+                
+                E_square = E*E;
+                dJdrTimesE = dJ_dr * E;
+                JInvTimesdJdr = JInv * dJdrTimesE;
+                F(nNode,i) += ( intWeights[nIp-1] * factor * 
+                                ( (-DetJ) *(E * JInvTimesdJdr)  
+                                + E_square * DetdJ_dr * 0.5) * matVal)  * sign_;
+
+
+                
               } // loop over dimension
           } // loop over boundary nodes
       } // loop over integration points

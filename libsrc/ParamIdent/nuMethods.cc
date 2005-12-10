@@ -192,8 +192,10 @@ namespace CoupledField
     while (w>=1/(normJacMat*normJacMat))
       w=0.9*w;
     // if nu-method ..
-    JacobiMatrix = JacobiMatrix*Complex(w,w);
-    adjJacobiMatrix = adjJacobiMatrix*Complex(w,w);
+    //JacobiMatrix = JacobiMatrix*Complex(w,w);
+    JacobiMatrix *= Complex(w,w);
+    //adjJacobiMatrix = adjJacobiMatrix*Complex(w,w);
+    adjJacobiMatrix *= Complex(w,w);
       
     //Norm ersetzt:
     norm(act_res,old_res_outer,maxres_inner,y_hat);
@@ -614,8 +616,10 @@ namespace CoupledField
       w=0.9*w;
 
     // if nu-method ..
-    JacobiMatrix = JacobiMatrix*Complex(w,w);
-    adjJacobiMatrix = adjJacobiMatrix*Complex(w,w);
+    //JacobiMatrix = JacobiMatrix*Complex(w,w);
+    JacobiMatrix *= Complex(w,w);
+    //adjJacobiMatrix = adjJacobiMatrix*Complex(w,w);
+    adjJacobiMatrix *= Complex(w,w);
       
       
     old_res_outer=a2norm(act_res);
@@ -940,8 +944,10 @@ namespace CoupledField
       w=0.9*w;
 
     // if nu-method ..
-    JacobiMatrix = JacobiMatrix*Complex(w,w);
-    adjJacobiMatrix = adjJacobiMatrix*Complex(w,w);
+    //JacobiMatrix = JacobiMatrix*Complex(w,w);
+    JacobiMatrix *= Complex(w,w);
+    //adjJacobiMatrix = adjJacobiMatrix*Complex(w,w);
+    adjJacobiMatrix *= Complex(w,w);
       
     //    std::cout<<adjJacobiMatrix<<std::endl;
       

@@ -572,7 +572,7 @@ namespace CoupledField {
 
             Vector<TYPE> elpot;
             sol_->GetElemSolution(elpot, connecth);
-            help = Matrix<TYPE>(elemmat) * elpot;
+            help = elemmat * elpot;
             energy[i] += help * elpot;
 
             delete bilinear_stiff;          

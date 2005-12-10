@@ -643,7 +643,8 @@ namespace CoupledField {
               uiElem += shapeFnc * magVecDeriv1Elem;
                     
               if (isaxi_) {
-                Vector<Double> coordAtIP = ptCoord * shapeFnc;
+                Vector<Double> coordAtIP;
+                 coordAtIP = ptCoord * shapeFnc;
                 uiElem += shapeFnc * magVecDeriv1Elem * 2 * PI * coordAtIP[0]
                   * intWeights[actIntPt-1];
               }

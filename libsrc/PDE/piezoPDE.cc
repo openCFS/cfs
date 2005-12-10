@@ -1488,8 +1488,7 @@ namespace CoupledField {
           normal *= normSign;
         
           // scalarProduct lCoordCal*actElecD
-          for (UInt i=0; i<normal.GetSize(); i++)
-            elemNormalD += normal[i] * actElecD[i];
+          elemNormalD = normal * actElecD;
         
           //lCoordVol.Mult(actElecD, elemNormalD);
           chargeOp->CalcElemCharge(charge, surfElems[iElem], 

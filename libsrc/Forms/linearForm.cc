@@ -1,4 +1,4 @@
-#include <iostream>
+ #include <iostream>
 #include <fstream>
 #include <math.h>
 
@@ -335,7 +335,7 @@ namespace CoupledField {
     curlcurl2D->CalcElementMatrix(ptCoord, elemmat);
   
     elemVec.Resize(nrNodes);
-    elemVec = -elemmat * magPot_;
+    elemVec = -(elemmat * magPot_);
 
     delete curlcurl2D;
   }
