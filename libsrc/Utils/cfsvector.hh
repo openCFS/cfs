@@ -51,10 +51,6 @@ namespace CoupledField
     virtual void Init(const Double entry = 0.0)
     {Error("CFSVector::Init(): Not implemented here",__FILE__,__LINE__);}
   
-    //! Assignment operator for base class
-    virtual CFSVector & operator= (const CFSVector & vec) = 0;
- 
-
     //! Set the entry i of the vector to the given value (x[i] = s)
     /*!
       \param i (input) Index of entry s
