@@ -194,10 +194,20 @@ namespace CoupledField
       }
     Q.Transpose(QT);
     R.Transpose(RT);
-
-    c=Q*c*QT;
-    e=Q*e*RT;
-    eps=R*eps*RT;
+    
+    Matrix<Double> helpMat;
+    //c=Q*c*QT;
+    helpMat = c * QT;
+    c = Q * helpMat;
+    
+    // e=Q*e*RT;
+    helpMat = e * RT;
+    e = Q * helpMat;
+      
+    // eps=R*eps*RT;
+    helpMat = eps * RT;
+    eps = R * helpMat;
+    
 
     for (UInt i=0;i<3;i++)
       for (UInt j=0;j<3;j++){
@@ -223,9 +233,17 @@ namespace CoupledField
     Q.Transpose(QT);
     R.Transpose(RT);
 
-    c=Q*c*QT;
-    e=Q*e*RT;
-    eps=R*eps*RT;
+    //c=Q*c*QT;
+    helpMat = c * QT;
+    c = Q * helpMat;
+
+    //e=Q*e*RT;
+    helpMat = e * RT;
+    e = Q * helpMat;
+    
+    //eps=R*eps*RT;
+    helpMat = eps * RT;
+    eps = R * helpMat;
 
     for (UInt i=0;i<3;i++)
       for (UInt j=0;j<3;j++){
