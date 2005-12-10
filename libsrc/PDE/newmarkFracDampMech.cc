@@ -260,7 +260,7 @@ namespace CoupledField {
             }		
           }
               
-          rhsAssemble = -elemmat  * (rhsvec * timeStepPowerFracDeriv_);
+          rhsAssemble = -(elemmat  * rhsvec *timeStepPowerFracDeriv_);
           
           // compute stress history from displacement history with the fractional constitutive equation
           // later perhabs  this method should be implemented in a own class
@@ -465,7 +465,10 @@ void NewmarkFracDampMech::CalcStress(BaseFE * aptelem, MaterialData & matDa, Std
   GetAMat(aMat);
 
   //computation of the term1 (actual displacement * material, damping factors)
-  term1 = dMat * bMat * displacementVector;
+  //term1 = (dMat * bMat) * displacementVector;
+  Matrix<Double> helpMat;
+  helpMat = dMat * bMat;
+  term1 = helpMat * displacementVector;
 
   //computation of term2 (fractional Derivative of displacement)
   // solMemory[0] is the displacement value of the previous time step -> loop from 0
@@ -474,7 +477,11 @@ void NewmarkFracDampMech::CalcStress(BaseFE * aptelem, MaterialData & matDa, Std
     fracDerivDisplacement += displacementVector *  coeff_[k+1];   
   }
 
-  term2 = aMat * betaMat * bMat * fracDerivDisplacement;
+  //term2 = aMat * betaMat * bMat * fracDerivDisplacement;
+  Matrix<Double> helpMat2;
+  helpMat = betaMat * bMat;
+  helpMat2 = aMat * helpMat;
+  term2 = helpMat2 * fracDerivDisplacement;
 
   //computation of term3 (fractional derivative of stress)
   for(UInt k=0; k< numValues_;k++) {
@@ -482,7 +489,10 @@ void NewmarkFracDampMech::CalcStress(BaseFE * aptelem, MaterialData & matDa, Std
     fracDerivStress += stressVector *  coeff_[k+1];   
   }
 
-  term3 =    aMat * alphaMat * fracDerivStress;
+  //term3 =    aMat * alphaMat * fracDerivStress;
+  helpMat = aMat * alphaMat;
+  term3 = helpMat * fracDerivStress;
+
 
   double t1,t2,t3;
     t1=0;

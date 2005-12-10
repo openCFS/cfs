@@ -226,7 +226,7 @@ namespace CoupledField {
       Vector<Double> & solvector =
         dynamic_cast<NodeStoreSol<Double>*>(PDE_.sol_)->GetAlgSysVector();
 
-      solvector *= -1;
+      solvector *= -(1.0);
       PDE_.algsys_->UpdateRHS(SYSTEM,solvector.GetPointer());
     }
 

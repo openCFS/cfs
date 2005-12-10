@@ -58,10 +58,11 @@ namespace CoupledField
     calcBMat( linBMat, ip, ptCoord);
 
     Vector<TYPE> linStrain(linBMat.GetSizeRow());
-    Matrix<TYPE>(linBMat).Mult(displVec,linStrain);
-  
-    Matrix<TYPE>(dMat).Mult(linStrain,stressVec);
-    //stressVec = MATRIX<TYPE>(dMat) * linStrain;
+    //Matrix<TYPE>(linBMat).Mult(displVec,linStrain);
+    //Matrix<TYPE>(dMat).Mult(linStrain,stressVec);
+    linStrain = linBMat * displVec;
+    stressVec = dMat * linStrain;
+
   }
 
   /// calculates green-lagrangian strains (linear part, vector notation)
@@ -85,6 +86,7 @@ namespace CoupledField
     Matrix<Double> linBMat;    
     calcBMat( linBMat, ip, ptCoord);
 
+    //strainVec = linBMat * displVec;
     strainVec.Resize(linBMat.GetSizeRow());
     Matrix<TYPE>(linBMat).Mult(displVec,strainVec);
   

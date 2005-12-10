@@ -78,14 +78,14 @@ namespace CoupledField
     bMatOneNode.Resize(linBMat.GetSizeRow(), nrDofs);
 
     
-
+    Matrix<Double> helpMat;
     for( UInt actNode=0; actNode < nrNodes; actNode++)
       {
         linBMat.GetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
 
-        bMatOneNode *= displDerivTransp;        
+        helpMat = bMatOneNode * displDerivTransp;
 
-        bMat.SetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
+        bMat.SetSubMatrix(helpMat, 0, actNode*nrDofs);
       }
 
 
@@ -277,8 +277,11 @@ namespace CoupledField
 
     // special construction: direct addition of these two terms does not work, 
     // because of temporary vectors ... :O(    
-    Vector<Double> part1(linBMat * displVec );
-    Vector<Double> part2(nLinBMat * 0.5 * displVec);
+    Vector<Double> part1;
+    part1 = (linBMat * displVec );
+    Vector<Double> part2;
+    part2 = (nLinBMat * displVec);
+    part2 *= 0.5;
     Vector<Double> nonLinStrain;
   
     nonLinStrain = part1 + part2;

@@ -716,7 +716,7 @@ namespace CoupledField
         totLoad = tempLoad;
         unitLoad = tempLoad / volume;
       } else {
-        totLoad =  tempLoad * volume;
+        totLoad =   tempLoad * volume;
         unitLoad = tempLoad;
       }
         
@@ -1124,7 +1124,8 @@ namespace CoupledField
             nSol[actNode] += sol[actDof + actNode*dofspernode_] * normal[actDof];
 
 
-        Vector<Double> forceOnElem = elemmat * nSol;  
+        Vector<Double> forceOnElem;
+        forceOnElem= elemmat * nSol;  
       
         for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++)
           {

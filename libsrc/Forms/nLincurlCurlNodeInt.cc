@@ -102,7 +102,7 @@ namespace CoupledField
             derivReluctivity = 0;
           else {          
             //Newton method
-            Vector<Double> eB(2); eB = B * 1/Babs;
+            Vector<Double> eB(2); eB = B * (1/Babs);
             dHfield = nlinFnc_->EvaluatePrimeInv(Babs);
             derivReluctivity = (dHfield*Babs - Hfield) / (Babs*Babs);
             for (UInt p=0;  p<nrNodes; p++)

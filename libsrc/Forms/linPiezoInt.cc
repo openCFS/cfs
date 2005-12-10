@@ -494,7 +494,8 @@ namespace CoupledField {
     Matrix<Double> linBMat;    
     calcBMat( linBMat, ip, ptCoord);
 
-    Vector<Double> linStrainElec(linBMat * solVec );
+    Vector<Double> linStrainElec;
+    linStrainElec = (linBMat * solVec );
 
     // | c Bmech u - e^T Belec V |
     // | e Bmech u + eps Belec V |
@@ -526,7 +527,8 @@ namespace CoupledField {
     dMat[idx][idx] = 0.0;
     //    std::cout << "Mat:\n" << dMat << std::endl;
 
-    Vector<Double> linStrainElec(linBMat * solVec );
+    Vector<Double> linStrainElec;
+    linStrainElec = (linBMat * solVec );
 
     // | c Bmech u - e^T Belec V |
     // | e Bmech u + eps Belec V |

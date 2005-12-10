@@ -89,7 +89,8 @@ namespace CoupledField
                     normsReached = FALSE;
                 
                   //copy values of new solution to old one
-                  *oldVal = *val;
+                  dynamic_cast<Vector<Double>&>(*oldVal) = 
+                    dynamic_cast<Vector<Double>&>(*val);
 
                 } // end of if 
               counter++;            
@@ -190,7 +191,9 @@ namespace CoupledField
                   if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
                     normsReached = FALSE;
                   
-                  *oldVal = *val;
+                  dynamic_cast<Vector<Double>&>(*oldVal) = 
+                    dynamic_cast<Vector<Double>&>(*val);
+                  //*oldVal = *val;
                 } // end if
               counter++;              
             }

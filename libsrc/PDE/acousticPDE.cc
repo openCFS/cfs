@@ -982,13 +982,14 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         ptElem -> GetShFncAtIp(shapeFnc, actIntPt);
 
         if (isaxi_) {
-          Vector<Double> coordAtIP = ptCoord * shapeFnc;
-          forceAtIPs += shapeFnc * intWeights[actIntPt-1] * jacDet
-            * 2 * PI * coordAtIP[0] * valueElem;
+          Vector<Double> coordAtIP;
+            coordAtIP = ptCoord * shapeFnc;
+            forceAtIPs +=  (intWeights[actIntPt-1] * jacDet
+                            * 2 * PI) * coordAtIP[0] * (valueElem * shapeFnc);
         }
         else {
-          forceAtIPs += shapeFnc * intWeights[actIntPt-1] * jacDet 
-            * valueElem;
+          forceAtIPs +=  intWeights[actIntPt-1] * jacDet 
+            * (shapeFnc * valueElem);
         }
       }
 
