@@ -227,8 +227,7 @@ namespace CoupledField {
         mechStressOp->CalcStressVec(TempMechStress,1,Coord);
 
         elemStress.Init(0);
-        TempDField = Matrix<TYPE>(piezoCouplingMatT)*TempE;
-        // \sigma = c^E S - e^T E
+        TempDField = piezoCouplingMatT*TempE;
         elemStress = TempMechStress-TempDField;
 
         pde1_->sortStresses(elemStress,sortedStress);
@@ -393,17 +392,14 @@ namespace CoupledField {
               DField.Resize(2);
               piezoCouplTimesStrain.Resize(2);
             }
-
-          Matrix<TYPE>(piezoCouplingMat).Mult(TempBu,piezoCouplTimesStrain);
-          Matrix<TYPE>(permittivityMat).Mult(TempE,DField);
+          
+          piezoCouplTimesStrain = piezoCouplingMat * TempBu;
+          DField = permittivityMat * TempE;
           DField+=piezoCouplTimesStrain;
 
           ptGrid_->CalcSurfNormal(normal, *surfElems[iel]);
           normal *= normSign;
-          elemNormalD = 0.0;
-          for ( UInt iDof = 0; iDof < normal.GetSize(); iDof++ ) {
-            elemNormalD += normal[iDof] * DField[iDof];
-          }
+          elemNormalD = normal * DField;
 
           // Integrate over DField * normal
           chargeOp->CalcElemCharge(charge, surfElems[iel], 
