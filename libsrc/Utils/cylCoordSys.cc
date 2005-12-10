@@ -147,11 +147,13 @@ namespace CoupledField{
     //        z'-Axis
     //    y': implicitly given by cross product of z' and  x' (right hand rule)
     z = hAxis_ - origin_;
-    z = z / z.NormL2();
+    z /= z.NormL2();
 
-    r_dot = ((rAxis_- origin_) * z) / hAxis_.NormL2();
-    x = (rAxis_ - origin_)  - ((hAxis_ *r_dot) / hAxis_.NormL2());
-    x = x / x.NormL2();
+    Vector<Double> temp;
+    temp = rAxis_- origin_;
+    r_dot = (temp * z) / hAxis_.NormL2();
+    x = temp  - ((hAxis_ *r_dot) / hAxis_.NormL2());
+    x /= x.NormL2();
 
     y[0] = z[1]*x[2] - z[2]*x[1];
     y[1] = z[2]*x[0] - z[0]*x[2];
