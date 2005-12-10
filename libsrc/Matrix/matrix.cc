@@ -5,10 +5,7 @@
 #include <iomanip>
 
 #include "matrix.hh"
-// #ifdef USE_LAPACK
-// #include "matrixLapackSupport.hh"
-// #endif
-#include <Utils/vector.hh>
+#include "Utils/vector.hh"
 
 namespace CoupledField
 {      
@@ -63,7 +60,9 @@ namespace CoupledField
 #ifdef CHECK_INDEX
     for (k=1; k < size_row_; k++)
     
-      { if (x[k].size_!=size_col_)  Error(" Not all vectors for initialization have the same size",__FILE__,__LINE__);
+      { if (x[k].size_!=size_col_)  
+          Error(" Not all vectors for initialization have the same size",
+                __FILE__,__LINE__);
       }
 #endif
   
@@ -78,7 +77,8 @@ namespace CoupledField
     ENTER_FCN("Matrix::Matrix");
 
 #ifdef CHECK_INITIALIZED
-    if (x.size_row_ == 0 || x.size_col_ == 0)  Error("undefined Matrix",__FILE__,__LINE__);
+    if (x.size_row_ == 0 || x.size_col_ == 0)  
+      Error("undefined Matrix",__FILE__,__LINE__);
 #endif
 
  
@@ -196,7 +196,7 @@ namespace CoupledField
   }
 
 
-
+#ifndef EXPR_TEMPLATES
 
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator=(const Matrix<TYPE> &x)
@@ -204,7 +204,8 @@ namespace CoupledField
     ENTER_IFCN("Matrix::operator=");
 
 #ifdef CHECK_INITIALIZED
-    if (x.size_row_ == 0 || x.size_col_ == 0) Error("undefined Matrix",__FILE__,__LINE__);
+    if (x.size_row_ == 0 || x.size_col_ == 0) 
+      Error("undefined Matrix",__FILE__,__LINE__);
 #endif  
 
     if (this == &x)  return *this;
@@ -241,33 +242,14 @@ namespace CoupledField
   {
     ENTER_IFCN("Matrix::operator+");
 #ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) Error("undefined Matrix",__FILE__,__LINE__);
+    if (size_row_ == 0 || size_col_ == 0) 
+      Error("undefined Matrix",__FILE__,__LINE__);
 #endif
 
     return *this;
   }
 
-  template<class TYPE>
-  Matrix<TYPE> Matrix<TYPE>::operator+(const Matrix<TYPE> &x) const
-  {
-    ENTER_IFCN("Matrix::operator+");
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) Error("undefined Matrix",__FILE__,__LINE__);
-#endif 
-
-#ifdef CHECK_INDEX
-    if (size_row_ != x.size_row_ || size_col_ != x.size_col_)
-      Error("incompatible dimension",__FILE__,__LINE__);
-#endif
-  
-    Matrix<TYPE> z(size_row_,size_col_);
-  
-    UInt k;
-    for ( k = 0; k < size_row_*size_col_; k++)
-      z [0][k] = x.data_ [0][k]+data_[0][k];
-  
-    return z;
-  }
+ 
 
   template<class TYPE>
   Matrix<TYPE> &Matrix<TYPE>::operator+=(const Matrix<TYPE> &x)
@@ -310,30 +292,7 @@ namespace CoupledField
     return z;
   }
 
-  template<class TYPE>
-  Matrix<TYPE> Matrix<TYPE>::operator-(const Matrix<TYPE> &x) const
-  {
-    ENTER_IFCN("Matrix::operator-");
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0 || 
-        x.size_row_ == 0 || x.size_col_ == 0)
-      Error("undefined Matrix",__FILE__,__LINE__);
-#endif
-  
-#ifdef CHECK_INDEX  
-    if (size_row_ != x.size_row_ || size_col_ != x.size_col_)
-      Error("incompatible dimension for +",__FILE__,__LINE__); 
-#endif
-  
-    Matrix<TYPE> z(size_row_,size_col_);
-  
-    UInt k;
-    for ( k = 0; k < size_row_*size_col_; k++)
-      z[0][k] = -x.data_[0][k]+data_[0][k];
-  
-    return z;
-  }
+ 
 
   template<class TYPE>
   Matrix<TYPE> & Matrix<TYPE>::operator-=(const Matrix<TYPE> &x)
@@ -356,6 +315,87 @@ namespace CoupledField
   
     return *this;
   }
+
+
+
+
+  template<class TYPE>
+  Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE &x)
+  {
+    ENTER_IFCN("Matrix::operator*=");
+
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0) 
+      Error("undefined Matrix",__FILE__,__LINE__);
+#endif
+  
+    TYPE y=x;
+  
+    UInt i;
+    for (i = 0; i < size_row_*size_col_; i++)
+      data_ [0][i] *= y;
+  
+    return *this;
+  }
+
+ template<class TYPE>
+  Matrix<TYPE> & Matrix<TYPE>::operator*=(const Matrix<TYPE> &x)
+  {   
+    ENTER_IFCN("Matrix::operator*=");    
+ 
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0 || 
+        x.size_row_ == 0 || x.size_col_ == 0)
+      Error("undefined Matrix",__FILE__,__LINE__);
+#endif
+
+#ifdef CHECK_INDEX  
+    if (size_col_ != x.size_row_)
+      Error("incompatible dimension",__FILE__,__LINE__);
+#endif
+ 
+    TYPE    a;
+    Matrix  z (size_row_, x.size_col_);
+  
+    UInt i,j; 
+    for (i = 0; i < size_row_; i++)
+      for (j = 0; j < x.size_col_; j++)
+        {       
+          a = data_ [i] [0] * x.data_ [0] [j];
+          for (UInt k = 1; k < size_col_; k++)
+            a += data_ [i] [k] * x.data_ [k] [j];
+          z.data_ [i] [j] = a;
+        }
+  
+    *this = z;
+    return *this;
+
+
+
+
+  }
+
+  template<class TYPE>
+  Matrix<TYPE> &Matrix<TYPE>::operator/= (const TYPE &x)
+  {
+    ENTER_IFCN("Matrix::operator/=");
+
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0) 
+      Error("undefined Matrix",__FILE__,__LINE__);
+#endif
+
+    TYPE y=x;
+  
+    UInt i;
+    for (i = 0; i < size_row_*size_col_; i++)
+      data_ [0][i] /= y;
+  
+    return *this;
+  }
+
+
+#endif // EXPR_TEMPLATES
 
   template<class TYPE>
   Boolean Matrix<TYPE>::operator== (const Matrix<TYPE> &x) const
@@ -394,102 +434,7 @@ namespace CoupledField
     return TRUE;
   }
 
-  template<class TYPE>
-  Matrix<TYPE> Matrix<TYPE>::operator* (const TYPE &x) const 
-  { 
-    ENTER_IFCN("Matrix::operator*");
-  
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      Error("undefined Matrix",__FILE__,__LINE__);
-#endif
-  
-    UInt k;
-  
-    Matrix<TYPE> z(size_row_,size_col_);
-  
-    for ( k = 0; k < size_row_*size_col_; k++)
-      z [0][k] = data_[0][k]*x;
-  
-    return z;
-  }
-
-  template<class TYPE>
-  Vector<TYPE> Matrix<TYPE>::operator*(const Vector<TYPE> &x) const
-  {
-    ENTER_IFCN("Matrix::operator*");
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      Error("undefined Matrix",__FILE__,__LINE__);
-    if (x.size_ == 0) Error("undefined Vector",__FILE__,__LINE__);
-#endif
-
-#ifdef CHECK_INDEX
-    if (size_col_ != x.size_) Error("incompatible dimension",__FILE__,__LINE__);
-#endif
-  
-    Vector<TYPE> z(size_row_);
-  
-    UInt k,kk;
-    for ( k = 0; k < size_row_; k++)
-      for ( kk = 0; kk < size_col_; kk++)
-        z.data_[k] += data_[k][kk]*x.data_[kk];
-  
-    return z;
-  }
-
-  template<class TYPE>
-  Matrix<TYPE> Matrix<TYPE>::operator*(const Matrix<TYPE> &x) const
-  {
-    ENTER_IFCN("Matrix::operator*");
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0 || 
-        x.size_row_ == 0 || x.size_col_ == 0)
-      Error("undefined Matrix",__FILE__,__LINE__);
-#endif
-
-#ifdef CHECK_INDEX  
-    if (size_col_ != x.size_row_)
-      Error("incompatible dimension",__FILE__,__LINE__);
-#endif
  
-    TYPE    a;
-    Matrix  z (size_row_, x.size_col_);
-  
-    UInt i,j; 
-    for (i = 0; i < size_row_; i++)
-      for (j = 0; j < x.size_col_; j++)
-        {       
-          a = data_ [i] [0] * x.data_ [0] [j];
-          for (UInt k = 1; k < size_col_; k++)
-            a += data_ [i] [k] * x.data_ [k] [j];
-          z.data_ [i] [j] = a;
-        }
-  
-    return z;
-  }
-
-
-  template<class TYPE>
-  Matrix<TYPE> &Matrix<TYPE>::operator*= (const TYPE &x)
-  {
-    ENTER_IFCN("Matrix::operator*=");
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      Error("undefined Matrix",__FILE__,__LINE__);
-#endif
-  
-    TYPE y=x;
-  
-    UInt i;
-    for (i = 0; i < size_row_*size_col_; i++)
-      data_ [0][i] *= y;
-  
-    return *this;
-  }
 
   // Perform a matrix-vector multiplication rvec = this*mvec
   template<class TYPE>
@@ -512,8 +457,10 @@ namespace CoupledField
 #endif
 
 #ifdef CHECK_INDEX
-    if (size_col_ != size_mvec) Error("incompatible dimension",__FILE__,__LINE__);
-    if (size_row_ != size_rvec) Error("incompatible dimension",__FILE__,__LINE__);
+    if (size_col_ != size_mvec) 
+      Error("incompatible dimension",__FILE__,__LINE__);
+    if (size_row_ != size_rvec) 
+      Error("incompatible dimension",__FILE__,__LINE__);
 #endif
    
     UInt k,kk;
@@ -637,33 +584,7 @@ namespace CoupledField
   }
 
 
-  template<class TYPE>
-  Matrix<TYPE> & Matrix<TYPE>::operator*=(const Matrix<TYPE> &x)
-  {   
-    ENTER_IFCN("Matrix::operator*=");    
-    *this = *this * x;
-  
-    return *this;
-  }
-
-  template<class TYPE>
-  Matrix<TYPE> &Matrix<TYPE>::operator/= (const TYPE &x)
-  {
-    ENTER_IFCN("Matrix::operator/=");
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      Error("undefined Matrix",__FILE__,__LINE__);
-#endif
-
-    TYPE y=x;
-  
-    UInt i;
-    for (i = 0; i < size_row_*size_col_; i++)
-      data_ [0][i] /= y;
-  
-    return *this;
-  }
+ 
 
 
   template<class TYPE>
@@ -1286,7 +1207,7 @@ namespace CoupledField
 
   /// gets the diagonal elements of a  matrix in a one column matrix
   template<class TYPE>
-  void Matrix<TYPE>::GetDiagInMatrix(Matrix<TYPE>& columnMat) 
+  void Matrix<TYPE>::GetDiagInMatrix(Matrix<TYPE>& columnMat) const
   {
     ENTER_FCN("Matrix::GetDiagInMatrix");
 
