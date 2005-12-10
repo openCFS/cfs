@@ -2,394 +2,628 @@
 #define FILE_MATRIX_2004
 
 #include "cfsmatrix.hh"
+#include "Utils/promote.hh"
+
 #ifdef USE_LAPACK
 #include "matrixLapackSupport.hh"
+#endif
+
+#ifdef EXPR_TEMPLATES
+#include "Utils/exprt/xpr2.hh"
 #endif
 
 namespace CoupledField
 {      
 
-  //! Overloading << for class Matrix
+  //! Forward class declaration
   template<class TYPE> class Vector;
+  
 
   //! Concrete implementation of a dense matrix
   template<class TYPE>
-  class Matrix: public CFSMatrix
+#ifdef EXPR_TEMPLATES
+  class Matrix: public CFSMatrix, public Dim2<TYPE, Matrix<TYPE> >
+#else
+  class Matrix: public CFSMatrix 
+#endif
   {
   public:
-
-    // Friend declarations
+    
+    //! Friend declaration for vector
     friend class Vector<TYPE>;
-  
-    //! Constructor 
-    //! creates an empty matrix of size 0x0
-    Matrix();
 
-    //! Constructor
-    //! creates a matrix of size nRows x nCols, initalized
+    // =======================================================================
+    // CONSTRUCTION, DESTRUCTION, INITIALIZATION, RESIZING
+    // =======================================================================
+    
+    //! \name Construction, Destruction, Initialization and Resizing
+
+    //@{ 
+    //! Default constructor 
+    
+    //! Creates an empty matrix of size 0x0
+    Matrix( );
+    
+    //! Constructor for matrix with given size
+    
+    //! Creates a matrix of size nRows x nCols, initialized
     //! with zeroes
-    /*! 
-      \param nRows (input) Number of rows
-      \param nCols (input) Number of columns)
-    */
-    Matrix (const UInt nRows, const UInt nCols);
+    //! \param nRows (input) Number of rows
+    //! \param nCols (input) Number of columns)
+    Matrix( const UInt nRows, const UInt nCols );
 
-    //! Constructor (number of vectors, array of vectors(colomn))
-    Matrix (const UInt, const Vector<TYPE> * const);
+    //! Constructor from array of column-vectors
 
-    //! Default Copy Construcctor
-    Matrix(const Matrix &);
+    //! Creates a matrix from an array of column vectors.
+    //! The number of rows will be the number of entries of one vector
+    //! and the number of columns will be \a numVec.
+    //! \param numVec number of column vector contained in vecs
+    Matrix( const UInt numVec, const Vector<TYPE> * const vecs );
 
-    //! Special copy constructor (e.g. convert double to complex)
+    //! Default copy constructor
+    Matrix( const Matrix & );
+
+    //! Templatized copy constructor
+
+    //! Generalized copy constructor. It is only implemented 
+    //! to create a complex-valued matrix from a given real-valued one.
     template<class T2> 
-    Matrix(const Matrix<T2> &);
+    Matrix( const Matrix<T2> &  );
 
-    //! Destructor
-    ~Matrix();
+      //! Destructor
+    virtual ~Matrix( );
+    
+    //! Initialize matrix with a given scalar entry.
 
-    //! Hard coded query if values are complex
+    //! Initializes the matrix with a given scalar entry
+    //! If no entry given, it gets initialized with zeroes.
+    //! \param val (input,opt.) Entry the matrix gets initialized with
+    //! \note This method does not change the size of the matrix
+    void Init( const TYPE val = TYPE() );
+
+    //! Change the size of the matrix
+
+    //! Change size of general matrix 
+    //! \param nRows (input) Number of rows
+    //! \param nCols (input) Number of columns
+    //! \note The matrix contains afterwards only zeroes
+    void Resize(const UInt nRows, const UInt nCols );
+
+    //! Changes the size so that the matrix gets quadratic
+    
+    //! Changes the size of the matrix according to \a size.
+    //! \param size (input) Number of rows / columns
+    //! \note The matrix contains afterwards only zeroes
+    void Resize( const UInt size );
+
+    //@}
+    
+    // =======================================================================
+    // GENERAL INFORMATION
+    // =======================================================================
+    
+    //! \name General Matrix Information
+    
+    //@{
+    //! Return true, if matrix contains complex entries
     Boolean IsComplex() const;
 
-    //! Initialize matrix with a given entry.
-    //! If no entry given, it gets initalized with zeroes
-    /*!
-      \param val (input,opt.) Entry the matrix gets initalized with
-    */
-    //! \note This method does not change the size of the matrix
-    void Init(const TYPE val = TYPE());
+    //! Check if the matrix is symmetric
 
-    //! Change size of quadratic matrix
-    /*!
-      \param size (input) Number of rows / columns
-    */
-    //! \note the matrix contains afterwards only zeroes
-    void Resize(const UInt size);
-  
-    //! Change size of general matrix 
-    /*!
-      \param nRows (input) Number of rows
-      \param nCols (input) Number of columns)
-    */
-    //! \note the matrix contains afterwards only zeroes
-    void Resize(const UInt nRows, const UInt nCols);
+    //! Return true, if the matrix is symmetric
+    //! \note The results might be incorrect due to numeric rounding errors
+    bool IsSymmetric() const;
 
     //! Get the number of rows
     UInt GetSizeRow() const;
-  
+    
     //! Get the number of columns
     UInt GetSizeCol() const;
-  
-    //! Set the entry 'val' at position (row,col) in the matrix
-    /*!
-      \param row (input) Row of entry
-      \param col (input) Column of entry
-      \param val (input) Value to be set
-    */
-    void SetEntry( const UInt row, const UInt col, const TYPE val ) {
-      data_[row][col] = val;
-    }
-  
-    //! Add'val' to the matrix entry at position (row,col) in the matrix
-    /*!
-      \param row (input) Row of entry
-      \param col (input) Column of entry
-      \param val (input) Value to be added
-    */
-    void AddToEntry(const UInt row, const UInt col, const TYPE val);
-   
-    //! Get the entry 'val' at position (row,col) in the matrix
 
+    //@}
+
+    // =======================================================================
+    // OBTAIN / MANIPULATE MATRIX ENTRIES
+    // =======================================================================
+    
+    //! \name Obtain / Manipulate Matrix Entries
+
+    //@{
+    //! General access operator
+
+    //! Access operator of one entries
+    //! \param row (input) Row number
+    //! \param col (input) Column number
+    inline TYPE & operator()( UInt row, UInt col) {
+      return data_[row][col];
+    }
+
+    //! General access operator (const)
+
+    //! Access operator of one entries
+    //! \param row (input) Row number
+    //! \param col (input) Column number
+    inline TYPE operator()( UInt row, UInt col ) const {
+      return data_[row][col];
+    }
+    
+    //! Returns pointer to row \a row
+    inline TYPE * operator[]( const UInt row ) const;
+
+    //! Returns pointer to raw data
+
+    //! Returns pointer to continuous chunk of data
+    inline TYPE ** GetRowPointer() const;
+
+    //! Returns pointer to array of elements in matrix, row by row
+    inline TYPE * GetDataPointer() const { return data_[0];}
+    
+    //! Get the entry 'val' at position (row,col) in the matrix
+    
+    //! Return entry at position (\a row, \a col) in the matrix
     //! \param row (input) row index of entry
     //! \param col (input) column index of entry
     //! \param val (output) on return contains value of entry
-    void GetEntry(const UInt row, const UInt col, TYPE & val) const {
+    inline void GetEntry( const UInt row, const UInt col, 
+                          TYPE & val ) const {
       val = *( data_[0] + row * size_col_ + col ); 
     }
+     
+    //! Set the entry 'val' at position (\a row, \a col) in the matrix
+    
+    //! Set the entry 'val' at position (\a row, \a col) in the matrix
+    //! \param row (input) Row of entry
+    //! \param col (input) Column of entry
+    //! \param val (input) Value to be set
+    inline void SetEntry( const UInt row, const UInt col, const TYPE val ) {
+      data_[row][col] = val;
+    }
 
-    //! Calculates the determinant (up to size 3)
-    /*!
-      \param val (output) Return value of the method
-    */
-    void Determinant(TYPE & val) const;
+    //! Add'val' to the matrix entry at position (row,col) in the matrix
+    
+    //! Add'val' to the matrix entry at position (\a row, \a col) in the 
+    //! matrix
+    //! \param row (input) Row of entry
+    //! \param col (input) Column of entry
+    //! \param val (input) Value to be added
+    void AddToEntry( const UInt row, const UInt col, const TYPE val );
+    
+    //! Gets the diagonal elements of a  matrix in a one column matrix
+    void GetDiagInMatrix( Matrix<TYPE>& columnMat ) const;
 
-    //! Invert the matrix and store it in 'inv' (up to size 3)
-    /*!
-      \param inv (output) Inverse of the matrix
-    */
-    void Invert(CFSMatrix & inv) const {
-      Error( "!!! IMPLEMENT !!!", __FILE__, __LINE__ );
-    };
+    //@}
+
+    // =======================================================================
+    // NAMED ARITHMETIC OPERATIONS
+    // =======================================================================
+    
+    //! \name Named Arithmetic Operations
+    //@{
+
+    //! Add the multiple of another matrix this = fac * mat
+    void Add( const TYPE fac, const CFSMatrix & mat) {
+      Error( "Not implemented yet!", __FILE__, __LINE__ );
+    }
+    
+    //! Perform a matrix-matrix multiplication rMat = this*mMat
+    void Mult(const CFSMatrix & mMat, CFSMatrix & rMat) const;
+
+    //! Perform a matrix-vector multiplication rvec = this*mvec
+    void Mult( const CFSVector & mvec, CFSVector & rvec ) const;
+
+    //! Perform a matrix(Double)-vector(Complex) multiplication 
+    //! rvec = this*mvec where the matrix is supposed to be of
+    //! type Double, rvec and mvec are complex valued
+    //! \deprecated Due to type promotion, this interface should
+    //!             not be used anymore
+    void MatVecMult_DC( const Vector<Complex> & mvec, 
+                        Vector<Complex> & rvec ) const;
+
+    //! Perform a matrix(Complex)-vector(Double) multiplication
+    //! rvec = this*mvec where the matrix is supposed to be of
+    //! type Complex as well as rvec; mvec is of type Double
+    //! \deprecated Due to type promotion, this interface should
+    //!             not be used anymore
+    void MatVecMult_CD( const Vector<Double> & mvec, 
+                        Vector<Complex> & rvec ) const;
+
+    //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
+    void MultT( const CFSVector & mvec, CFSVector & rvec ) const {;};
   
-    //! Transpose the matrix and store it in 'trans'
-    /*!
-      \param trans (output) Transposed matrix
-    */
+    //! Perform a matrix-vector multiplication rvec += this*mvec
+    void MultAdd( const CFSVector & mvec, CFSVector & rvec ) const {;};
+  
+    //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
+    void MultTAdd( const CFSVector & mvec, CFSVector& rvec ) const {;};
+  
+    //! Perform a matrix-vector multiplication rvec -= this*mvec
+    void MultSub( const CFSVector & mvec, CFSVector & rvec ) const {;};
+
+    //! Assign the matrix the dyadic product of a vector with itself
+    
+    //! Assigns the matrix itself the dyadic product of a vector vec1 
+    //! with itself
+    //!\param vec1 (input) Vector which gets multiplied with itself
+    //!  \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    //!  m_{21} & m_{22} & \cdots \\
+    //!  \cdots & \cdots & \cdots 
+    //!  \end{array} \right) 
+    //!  =
+    //!  \left( \begin{array}{c} v_1  \\ v_2 \\ \cdots \end{array} \right) 
+    //!  \cdot
+    //!  \left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
+    //!  \f]
+    void DyadicMult( const CFSVector & vec1 );  
+  
+    //! Assign the matrix the dyadic product of two vectors
+
+    //! Assigns the matrix itself the dyadic product of a vector vec1 
+    //! with a vector vec2
+    //! \param vec1 (input) Vector which gets multiplied with itself
+    //! \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    //! m_{21} & m_{22} & \cdots \\
+    //! \cdots & \cdots & \cdots 
+    //! \end{array} \right) 
+    //!  =
+    //!  \left( \begin{array}{c} v_1  \\ v_2 \\ \cdots \end{array} \right) 
+    //!  \cdot
+    //!  \left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
+    //!  \f]
+    void DyadicMult( const CFSVector & vec1, const CFSVector & vec2 ); 
+
+    //! Calculate the Determinant (up to size 3)
+
+    //! Calculates the determinant for a square matrix up to size 3x3.
+    //! For larger matrices an error is returned.
+    //! \param val (output) Return value of the method
+    void Determinant( TYPE & val ) const;
+
+    //@}
+
+    //@{
+    //! Invert the matrix and store it in 'inv' (up to size 3)
+    void Invert( CFSMatrix & inv ) const {
+      Error( "!!! IMPLEMENT !!!", __FILE__, __LINE__ );
+    }
+    void Invert ( Matrix <TYPE> & inv ) const;
+    //@}
+    
+    //@{
+    //! Transpose the matrix and store the result in \a transposedMat
     //! \note The matrix itself gets not changed.
     //! \note If the transposed of a matrix is needed for a operation
     //! with a vector, the according function like 'MultT' should be used
-    void Transpose(CFSMatrix & trans) const {
+    void Transpose( Matrix<TYPE> & transposedMat ) const;  
+    void Transpose( CFSMatrix & transposedMat ) const {
       Error("!!! IMPLEMENT !!!", __FILE__, __LINE__ );
-    };
+    }
+    //@}
 
+    
+#ifdef EXPR_TEMPLATES
+    // =======================================================================
+    // INTERFACE TO EXPRESSION TEMPLATES
+    // =======================================================================
+        
+    //@{ 
+    //! \name Interface To Expression Template Headers
 
-    //! Solves a small system of equations (Ax=b) directly
-    /*!
-      \param x (output) solution vector
-      \param b (input) right-hand-side vector
-    */
-    //! Solves directly a small system of equations of the form Ax=b
-    //! using LU - decomposition (without pivoting!)
-    //! \note The Matrix A=LU contains afterwards the the values of L 
-    //! in the lower triangular, and the values of U in the upper part.
-    void DirectSolve(CFSVector & x, CFSVector & b);
+    //! Matrix assignment operator using expression templates
+    inline Matrix<TYPE>& operator=( const Matrix<TYPE>& rhs ) { 
+      return assignFrom( rhs ); 
+    }
+    
+    //! Scalar assignment operator using expression templates
+    inline Matrix<TYPE>& operator=( TYPE rhs ) { 
+      return assignFrom( rhs ); 
+    }
+    
+    //! Matrix-Expression assignment operator using expression templates
+    template <class X> inline Matrix<TYPE>& 
+    operator=( const Xpr2<TYPE,X>& rhs ) {
+      return assignFrom( rhs );
+    }
+    
+    //! Abstract matrix assignment operator
+    template <class M> inline Matrix<TYPE>& 
+    operator=( const Dim2<TYPE,M>& rhs ) {
+      return assignFrom(rhs);
+    }
+    
+    
+    //! Return number of rows
+    inline int rows() const { return size_row_; }
+    
+    //! Return number of columns
+    inline int cols() const { return size_col_; }
+    
+    //@}
+#else
+    // =======================================================================
+    // MATHEMATICAL OPERATORS
+    // =======================================================================
+
+    //! \name Mathematical Operators
+    //! \note Due to problems in Doxygen the binary operators +,-,*,/ 
+    //!       (which use type promotion) are not shown, although they exist!
+    //@{
+    
+    //! Assignment operator
+    Matrix<TYPE> & operator=( const Matrix &y );
+    
+    //! Unary plus operator (this = +this)
+    Matrix<TYPE> operator+() const;
+
+    //! Create new matrix by addition (new = this + y)(type promotion)
+    template <class TYPE2>
+    Matrix<PROMOTE(TYPE,TYPE2)> operator+( const Matrix<TYPE2> &y ) const;
+
+    //! Add a second matrix to own one (this += y)
+    Matrix<TYPE> & operator+=(const Matrix<TYPE> &y );
+
+    //! Unary minus operator (this = -this)
+    Matrix<TYPE> operator-() const;
+
+    //! Create new matrix by subtraction (new = this - y) (type promotion)
+    template <class TYPE2> Matrix<PROMOTE(TYPE,TYPE2)> 
+    operator-( const Matrix<TYPE2> &y ) const;
+
+    //! Subtract a second matrix from own one (this -= y)
+    Matrix<TYPE> & operator-=( const Matrix<TYPE> &y );
+
+    //! Create new matrix by multiplication with scalar value 
+    //!(type promotion)    
+    template <class TYPE2>
+    Matrix<PROMOTE(TYPE,TYPE2)> operator* ( const TYPE2 &y ) const;
+
+    //! Create new vector by matrix-vector multiplication (type promotion)
+    template <class TYPE2>
+    Vector<PROMOTE(TYPE,TYPE2)> operator* ( const Vector<TYPE2> &y ) const;
+
+    //! Create new matrix by Matrix- matrix multiplication (type promotion)
+    template <class TYPE2>
+    Matrix<PROMOTE(TYPE,TYPE2)> operator*( const Matrix<TYPE2> &y ) const;
+
+    //! Multiply matrix by a scalar (this *= y)
+    Matrix<TYPE> & operator*=( const TYPE &y );
+
+    //! Perform matrix-matrix multiplication (this = this * arg)
+    Matrix<TYPE> & operator*=( const Matrix<TYPE> &y );
+
+    //! Divide matrix  by a scalar value
+    Matrix<TYPE>  & operator/=( const TYPE &y );
+
+    //@}
+
+#endif // EXPR_TEMPLATES
+    
+    // =======================================================================
+    // BOOLEAN OPERATORS
+    // =======================================================================
+
+    //! \name Boolean operators
+
+    //@{
+    
+    //! Returns true if \a mat has the same entries as own matrix
+    Boolean operator ==( const Matrix<TYPE> & mat ) const;
+
+    //! Returns true if \a mat has different entries than own matrix
+    Boolean operator!=( const Matrix<TYPE> & mat ) const;
+ 
+    //@}
 
 #ifdef USE_LAPACK
+    // =======================================================================
+    // LAPACK INTERFACE
+    // =======================================================================
+
+    //! \name LAPACK Interface
+
+    //@{
+    //! Solves system of algebraic equation AX = B
+
     //! Solves system of algebraic equation AX=B
     //! where A is a quadratic matrix, and B a collection of 
-    //! right hans side vectors which will be replaced by the 
+    //! right hand side vectors which will be replaced by the 
     //! solution vectors. The enumeration LAPACK_MATRIX_TYPE
     //! describes the qualities of the system matrix A, 
     //! like symmetric, hermitian or general
     //! Compile with LAPACK - Support (USE_LAPACK = yes)
-    void solveWithLapack(Matrix<Complex> & b1,
-                         lapackSysMatType & LAPACK_MATRIX_TYPE);
-
+    void solveWithLapack( Matrix<Complex> & b1,
+                          lapackSysMatType & LAPACK_MATRIX_TYPE );
+    
     //! Computes eigenvalues of an hermitian matrix
     void eigenvaluesWithLapack(Vector<Double> & b1);
 
-    //! Converts a fortran 77 matrix to C++ complex
+    //! Converts a fortran 77 complex to a C++ complex
     void F772CC( const F77complex16 &v, std::complex<double> &val ) {
       std::complex<double> aux(v.real,v.imag);
       val = aux;
     }
 
-    void F772CC( const F77real8 &v, double &val ) {
-      val = (double)v;
-    }
-
-    //! Converts cfs data to fortran 77 format
+    //! Converts a C++ complex to a fortan 77 one
     void CC2F77( const std::complex<double> &v, F77complex16 &val ) {
       val.real = (F77real8)v.real();
       val.imag = (F77real8)v.imag();
     }
+    
+    //! Converts a fortran 77 double to a C++ double
+    void F772CC( const F77real8 &v, double &val ) {
+      val = (double)v;
+    }
+    //! Converts a C++ double to a fortran 77 double
     void CC2F77( const double &v, F77real8 &val ) {
       val = (F77real8)v;
     }
+    //@}
 #endif
   
-    //! Assignes the matrix itself the dyadic product of a vector vec1 
-    //! with itself
-    /*!
-      \param vec1 (input) Vector which gets multiplied with itself
-      \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
-      m_{21} & m_{22} & \cdots \\
-      \cdots & \cdots & \cdots 
-      \end{array} \right) 
-      =
-      \left( \begin{array}{c} v_1  \\ v_2 \\ \cdots \end{array} \right) 
-      \cdot
-      \left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
-      \f]
-    */                    
-    void DyadicMult(const CFSVector & vec1);  
-  
-    //! Assignes the matrix itself the dyadic product of a vector vec1 
-    //! with a vector vec2
-    /*!
-      \param vec1 (input) Vector which gets multiplied with itself
-      \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
-      m_{21} & m_{22} & \cdots \\
-      \cdots & \cdots & \cdots 
-      \end{array} \right) 
-      =
-      \left( \begin{array}{c} v_1  \\ v_2 \\ \cdots \end{array} \right) 
-      \cdot
-      \left( \begin{array}{ccc} v_1 & v_2 & \cdots  \end{array} \right)
-      \f]
-    */          
-    void DyadicMult(const CFSVector & vec1, const CFSVector & vec2); 
-  
-    //! copies a submatrix at the position (row, col) into subMat, 
-    //! the amount of copied elements depends on the size of subMat
+    // =======================================================================
+    // MISCELLANEOUS METHODS
+    // =======================================================================
+
+    //! \name Miscellaneous methods
+
+    //@{
+
+    //! Solves a small system of equations (Ax=b) directly
+
+    //! Solves directly a small system of equations of the form Ax=b
+    //! using LU - decomposition (without pivoting!)
+    //! \param x (output) solution vector      
+    //! \param b (input) right-hand-side vector
+    //! \note The Matrix A=LU contains afterwards the the values of L 
+    //! in the lower triangular, and the values of U in the upper part.
+    void DirectSolve( CFSVector & x, CFSVector & b );
+
+
+    //! scales the diagonal elements of a  matrix by a factor
+    void ScaleDiagElems( const TYPE factor );
+    
+    //! Add a row to Matrix at position i
+    void AddRow( const Vector<TYPE> & x, const UInt pos );
+    
+    //! Add a column to Matrix at position i
+    void AddColumn( const Vector<TYPE> & x, const UInt pos ); 
+    
+    //! Return a sub-part of the own matrix
+
+    //! Copies a sub-matrix at the position (row, col) into subMat. 
+    //! The amount of copied elements depends on the size of subMat.
     void GetSubMatrix( CFSMatrix &subMat, const UInt nRows,
                        const UInt nCols ) const {
       Error( "!!! IMPLEMENT !!!", __FILE__, __LINE__ );
     };
+
+    //! Return a sub-part of the own matrix
+    
+    //! Copies a sub-matrix at the position (row, col) into subMat, 
+    //! the amount of copied elements depends on the size of subMat
+    void GetSubMatrix( Matrix<TYPE>& subMat, UInt row, UInt col ) const;
   
-    //! overwrites the matrix elements at the position (row, col) with subMat
-    //! in a rectangular (submatrix) way
-    void SetSubMatrix(const CFSMatrix & subMat, const UInt nRows,
-                      const UInt nCols) {
+    //! Set a sub-part of the matrix
+    
+    //! Overwrites the matrix elements at the position (row, col) with subMat
+    //! in a rectangular (submatrix) way.
+    void SetSubMatrix( const CFSMatrix & subMat, const UInt nRows,
+                       const UInt nCols ) {
       Error("!!! IMPLEMENT !!!", __FILE__, __LINE__ );
     };
-  
-    //! scales the diagonal elements of a  matrix by a factor
-    void ScaleDiagElems(const TYPE factor);
-
-    //!
-    void Add(const TYPE fac, const CFSMatrix & mat){};
-
-    //! Perform a matrix-matrix multiplication rMat = this*mMat
-    void Mult(const CFSMatrix & mMat, CFSMatrix & rMat) const ;
-  
-    //! Perform a matrix-vector multiplication rvec = this*mvec
-    void Mult(const CFSVector & mvec, CFSVector & rvec) const;
 
 
-    //! Perform a matrix(Double)-vector(Complex) multiplication 
-    //! rvec = this*mvec where the matrix is supposed to be of
-    //! type Double, rvec and mvec are complex valued
-    void MatVecMult_DC(const Vector<Complex> & mvec, 
-                       Vector<Complex> & rvec) const;
+    //! Set a sub-part of the matrix
+    
+    //! Overwrites the matrix elements at the position (row, col) with subMat
+    //! in a rectangular (submatrix) way
+    void SetSubMatrix( const Matrix<TYPE>& subMat, UInt row, UInt col );
 
-    //! Perform a matrix(Complex)-vector(Double) multiplication
-    //! rvec = this*mvec where the matrix is supposed to be of
-    //! type Complex as well as rvec; mvec is of type Double
-    void MatVecMult_CD(const Vector<Double> & mvec, 
-                       Vector<Complex> & rvec) const;
+    //! Converts a matrix into a vector, by appending successively all rows
+    void ConvertToVec_AppendRows( CFSVector& vec ) const;
 
-    //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
-    void MultT(const CFSVector & mvec, CFSVector & rvec) const {;};
-  
-    //! Perform a matrix-vector multiplication rvec += this*mvec
-    void MultAdd(const CFSVector & mvec, CFSVector & rvec)const {;};
-  
-    //! Perform a matrix-vector multiplication rvec += transpose(this)*mvec
-    void MultTAdd(const CFSVector & mvec, CFSVector& rvec) const {;};
-  
-    //! Perform a matrix-vector multiplication rvec -= this*mvec
-    void MultSub(const CFSVector & mvec, CFSVector & rvec) const {;};
+    //! Converts a matrix into a vector, by appending successively all cols
+    void ConvertToVec_AppendCols( CFSVector& vec ) const;
 
-    //! Check if the matrix is symmetric
-    bool IsSymmetric() const;
-
-    //////////////////////////////////////
-    // Functions for working with other //
-    // Matrix<Type> and Vector<TYPE>    //
-    //////////////////////////////////////
-
-    //! Assignment operator
-    Matrix<TYPE> & operator= (const Matrix &);
-
-    //! Return pointer to row number []
-    inline TYPE * operator[] (const UInt) const;
-
-    //! fast inversion for matrices smaller than size 3
-    void Invert (Matrix <TYPE> & inv) const;
-
-    //! returns pointer to continuos chunck of data
-    TYPE ** GetRowPointer() const;
-
-    //! return pointer to array of elements in matrix, row by row
-    inline TYPE * GetDataPointer() const { return data_[0];}
-
-    //! Overloading of operations
-
-    //! Access operator
-    /*!
-      \param row (Input) Row number
-      \param col (Input) Column number
-    */
-    TYPE & operator()(const UInt row , const UInt col);
-
-    //! 
-    Matrix<TYPE> operator+() const;
-
-    //!
-    Matrix<TYPE> operator+(const Matrix<TYPE> &) const;
-
-    //!
-    Matrix<TYPE> & operator+=(const Matrix<TYPE> &);
-
-    //!
-    Matrix<TYPE> operator-() const;
-
-    //!
-    Matrix<TYPE> operator-(const Matrix<TYPE> &) const;
-
-    //!
-    Matrix<TYPE> & operator-=(const Matrix<TYPE> &);
-
-    //! multiplication with scalar value
-    Matrix<TYPE> operator* (const TYPE &) const;
-
-    //!
-    Vector<TYPE> operator* (const Vector<TYPE> &) const;
-
-    //!
-    Matrix<TYPE> operator*(const Matrix<TYPE> &) const;
-
-    //!
-    Matrix<TYPE> & operator*=(const TYPE &);
-
-
-    //!
-    Matrix<TYPE> & operator*=(const Matrix<TYPE> &);
-
-    //!
-    Matrix<TYPE> & operator/=(const TYPE &);
-    //!
-    Boolean operator ==(const Matrix<TYPE> &) const;
-
-    //!
-    Boolean operator!=(const Matrix<TYPE> &) const;
- 
-
-    //  //! Cut part of matrix (left index row, right, upper index col, low )
-    //   //   Matrix    part    (const UInt, const UInt,
-    //   //                          const UInt, const UInt) const;
-  
-    //   //! Cut row number i, colomn number j from matrix
-    //   //void cut(const UInt i, const UInt j);
-
-    //! Add a row to Matrix at position i
-    void AddRow(const Vector<TYPE> & x, const UInt pos );
-
-    //! Add a colomn to Matrix at position i
-    void AddColumn(const Vector<TYPE> & x, const UInt pos ); 
-
-    /// Transpose actual matrix
-    void Transpose (Matrix<TYPE> &transposedMat) const;  
-
-    /// copies a submatrix at the position (row, col) into subMat, 
-    /// the amount of copied elements depends on the size of subMat
-    void GetSubMatrix(Matrix<TYPE>& subMat, UInt row, UInt col) const;
-
-    /// overwrites the matrix elements at the position (row, col) with subMat
-    /// in a rectangular (submatrix) way
-    void SetSubMatrix(const Matrix<TYPE>& subMat, UInt row, UInt col);
-
-    /// converts a matrix into a vector, by appending successively all rows
-    void ConvertToVec_AppendRows(CFSVector& vec) const;
-
-    /// converts a matrix into a vector, by appending successively all cols
-    void ConvertToVec_AppendCols(CFSVector& vec) const;
-
-    /// gets the diagonal elements of a  matrix in a one column matrix
-    void GetDiagInMatrix(Matrix<TYPE>& columnMat);
-    //Matrix<TYPE> GetDiagInMatrix();
+    //@}
 
   private:
 
-    //! calculates the adjunct of the matrix at position (i,j)
+    //! Calculates the adjunct of the matrix at position (i,j)
     TYPE Adjunct (UInt i, UInt j) const;
 
-    //! number of rows 
+    //! Number of rows 
     UInt size_row_;
   
-    //! number of columns
+    //! Number of columns
     UInt size_col_;
 
-    //! data of the matrix
+    //! Data of the matrix
     TYPE** data_;
-
 
   };
 
-  /////////////////////////////
-  // Inline member functions //
-  /////////////////////////////
+#ifdef DOXYGEN_DETAILED_DOC
 
+  // =========================================================================
+  //     Detailed description of the class 
+  // =========================================================================
+  //! \class Matrix
+  //! 
+  //! \purpose This class implements a general, templatized dense matrix with 
+  //! the following additional features:
+  //! - If the macro USE_EXPR_TEMPLATES is defined, it utilizes an expression
+  //! template library, which evaluates mathematical expression at compile 
+  //! time.
+  //! In this case, the operators(+,-,*,/,-=,+=,...) do not have to be defined
+  //! in this class, but are evaluated by the expression template library.
+  //! The used library is a modified version of the MET-library 
+  //! (<a href="http://met.sourceforge.net">met.sourceforge.net</a>).
+  //! - In order to be able to handle mixed Double-Complex valued mathematical
+  //! expressions, the concept of Type Promotion / Traits is utilized (see also
+  //! <a href="http://osl.iu.edu/~tveldhui/papers/techniques/"> Techniques for
+  //! Scientific C++ </a>). This means, expressions like
+  //! \verbatim
+  //! Matrix<Double> realMat1;
+  //! Matrix<Complex> complexMat1, complexMat2;
+  //! Vector<Double> realVec1;
+  //! Vector<Double> complexVec1, complexVec2;
+  //! Double realFactor = 1.0;
+  //! Complex complexFactor = Complex(1.0, 1.0);
+  //!
+  //! complexMat1 = realMat1 * complexFactor;
+  //! complexMat2 = complexMat1 * realFactor;
+  //! complexMat1 = complexMat2 + realMat1;
+  //!
+  //! complexVec1 = realMat1 * complexVec2;
+  //! complexVec2 = complexMat1 * realVec1;
+  //! \endverbatim
+  //! can be written and the conversion is done automatically.
+  //! \note - Multiple Double <-> Complex conversion in one statement are
+  //!       not possible!
+  //! 
+  //! \note -If expression templates are used, statements like
+  //! \verbatim
+  //! Matrix<Double> mat = mat1 * 5.0;
+  //! \endverbatim 
+  //! have to be replaced by
+  //! \verbatim
+  //! Matrix<Double> mat;
+  //! Double factor = 5.0;
+  //! mat = mat1 * factor;
+  //! \endverbatim 
+  //! 
+  //! \collab The Matrix class can be used together with the templatized Vector
+  //! class.
+  //! 
+  //! \implement This class uses the concept of type promotion / traits and
+  //! can additionally utilize expression templates.
+  //! 
+  //! \status In use
+  //! 
+  //! \unused 
+  //! 
+  //! \improve 
+  //! - Check 'const'-correctness of class!
+  //! - Add safety checks for initialization
+  //! 
+
+#endif
+  
+
+
+  // =======================================================================
+  // RELATED FUNCTIONS
+  // =======================================================================
+  //! \relates Matrix
+  //! Output operator for std::ostream
+  template<class TYPE>  std::ostream& operator << ( std::ostream & , 
+                                                    const Matrix<TYPE> &);
+
+
+
+  // =======================================================================
+  // INLINE MEMBER IMPLEMENTATION
+  // =======================================================================
 
   template<class TYPE>
   inline void Matrix<TYPE>::Init(const TYPE val)
@@ -398,21 +632,16 @@ namespace CoupledField
     for (i=0; i<size_row_*size_col_; i++) 
       data_[0][i]=val;
   }
-
+  
   template<class TYPE>
   inline void Matrix<TYPE>::AddToEntry ( const UInt i, const UInt j,
                                          const TYPE value ) {
     data_[i][j]+=value;
   }
 
-  template<class TYPE>
-  inline TYPE & Matrix<TYPE>::operator()(const UInt row, const UInt col) 
-  {
-    return data_[row][col];
-  }
 
   template<class TYPE>
-  inline TYPE * Matrix<TYPE>::operator[] (const UInt i) const
+  inline TYPE *  Matrix<TYPE>::operator[] (const UInt i) const
   { 
     ENTER_IFCN("Matrix::operator[]");
 
@@ -467,18 +696,15 @@ namespace CoupledField
       case 2: ret =   data_[0][0]*data_[1][1]-data_[0][1]*data_[1][0];
         break;
       case 3: ret = data_[0][0]*data_[1][1]*data_[2][2] +
-                data_[0][1]*data_[1][2]*data_[2][0] +
-                data_[0][2]*data_[1][0]*data_[2][1] -
-                data_[0][2]*data_[1][1]*data_[2][0] -
-                data_[0][1]*data_[1][0]*data_[2][2] -
-                data_[0][0]*data_[1][2]*data_[2][1];
+          data_[0][1]*data_[1][2]*data_[2][0] +
+          data_[0][2]*data_[1][0]*data_[2][1] -
+          data_[0][2]*data_[1][1]*data_[2][0] -
+          data_[0][1]*data_[1][0]*data_[2][2] -
+          data_[0][0]*data_[1][2]*data_[2][1];
         break;
       default: Error("Dimension larger than 3!",__FILE__,__LINE__);
       }
   }
-
-  template<class TYPE>  std::ostream& operator << ( std::ostream & , 
-                                                    const Matrix<TYPE> &);
 
 
 
@@ -531,6 +757,146 @@ namespace CoupledField
       }
     }
   }
+
+  // =======================================================================
+  //  Inline part for all operators using type promotion
+  //  rr being defined only in non-template-expression case
+  // =======================================================================
+
+#ifndef EXPR_TEMPLATES
+
+  template<class TYPE> template<class TYPE2>
+  Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
+  operator+(const Matrix<TYPE2> &x) const
+  {
+    ENTER_IFCN("Matrix::operator+");
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0) 
+      Error("undefined Matrix",__FILE__,__LINE__);
+#endif 
+    
+#ifdef CHECK_INDEX
+    if (size_row_ != x.GetSizeRow() || size_col_ != x.GetSizeCol())
+      Error("incompatible dimension",__FILE__,__LINE__);
+#endif
+  
+    Matrix<PROMOTE(TYPE,TYPE2)> z(size_row_,size_col_);
+  
+    UInt k;
+    for ( k = 0; k < size_row_*size_col_; k++)
+      z [0][k] = x[0][k]+data_[0][k];
+  
+    return z;
+  }
+
+  
+  template<class TYPE> template<class TYPE2>
+  Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
+  operator-(const Matrix<TYPE2> &x) const
+  {
+    ENTER_IFCN("Matrix::operator-");
+
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0 || 
+        x.GetSizeRow() == 0 || x.GetSizeCol() == 0)
+      Error("undefined Matrix",__FILE__,__LINE__);
+#endif
+  
+#ifdef CHECK_INDEX  
+    if (size_row_ != x.GetSizeRow() || size_col_ != x.GetSizeCol())
+      Error("incompatible dimension for +",__FILE__,__LINE__); 
+#endif
+  
+    Matrix<PROMOTE(TYPE,TYPE2)> z(size_row_,size_col_);
+  
+    UInt k;
+    for ( k = 0; k < size_row_*size_col_; k++)
+      z[0][k] = -x[0][k]+data_[0][k];
+  
+    return z;
+  }
+
+  template<class TYPE> template<class TYPE2>
+  Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
+  operator* (const TYPE2 &x) const 
+  { 
+    ENTER_IFCN("Matrix::operator*");
+  
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0) 
+      Error("undefined Matrix",__FILE__,__LINE__);
+#endif
+  
+    UInt k;
+  
+    Matrix<PROMOTE(TYPE,TYPE2)> z(size_row_,size_col_);
+  
+    for ( k = 0; k < size_row_*size_col_; k++)
+      z [0][k] = data_[0][k]*x;
+  
+    return z;
+  }
+
+  template<class TYPE>  template<class TYPE2>
+  Vector<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
+  operator*(const Vector<TYPE2> &x) const
+  {
+    ENTER_IFCN("Matrix::operator*");
+
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0) 
+      Error("undefined Matrix",__FILE__,__LINE__);
+    if (x.GetSize() == 0) Error("undefined Vector",__FILE__,__LINE__);
+#endif
+
+#ifdef CHECK_INDEX
+    if (size_col_ != x.GetSize()) Error("incompatible dimension",
+                                        __FILE__,__LINE__);
+#endif
+  
+    Vector<PROMOTE(TYPE,TYPE2)> z(size_row_);
+  
+    UInt k,kk;
+    for ( k = 0; k < size_row_; k++)
+      for ( kk = 0; kk < size_col_; kk++)
+        z[k] += data_[k][kk] * x[kk];
+  
+    return z;
+  }
+
+  template<class TYPE> template<class TYPE2>
+  Matrix<PROMOTE(TYPE,TYPE2)> Matrix<TYPE>::
+  operator*(const Matrix<TYPE2> &x) const
+  {
+    ENTER_IFCN("Matrix::operator*");
+
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0 || 
+        x.GetSizeRow() == 0 || x.GetSizeCol()== 0)
+      Error("undefined Matrix",__FILE__,__LINE__);
+#endif
+
+#ifdef CHECK_INDEX  
+    if (size_col_ != x.GetSizeRow())
+      Error("incompatible dimension",__FILE__,__LINE__);
+#endif
+ 
+    PROMOTE(TYPE,TYPE2) a;
+    Matrix<PROMOTE(TYPE,TYPE2)>  z (size_row_, x.GetSizeCol());
+  
+    UInt i,j; 
+    for (i = 0; i < size_row_; i++)
+      for (j = 0; j < x.GetSizeCol(); j++)
+        {       
+          a = data_ [i] [0] * x[0][j];
+          for (UInt k = 1; k < size_col_; k++)
+            a += data_ [i] [k] * x[k][j];
+          z(i,j) = a;
+        }
+  
+    return z;
+  }
+#endif //EXPR_TEMPLATES
 
 #if defined(__GNUC__) 
   template class Matrix<Double>;
