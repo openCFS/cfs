@@ -291,7 +291,7 @@ clean-library:
           fi); \
          done 
 clean-prog:
-	-rm *.o
+	-rm -f *.o
 
 cleanall: cleanall-library cleanall-files
 	@echo clean all
