@@ -167,6 +167,10 @@ DATABASE = no
 # switch for use of tcl interface, enabling dynamic interaction with cfs
 TCL_INTERFACE = no
 
+# switch for activating the use of expression template for the matrix
+# and vector class. 
+USE_EXPR_TEMPLATES = yes
+
 # -----------------------------------------------------------------------------
 # EXTERNAL PACKAGES required by OLAS interface
 #
@@ -378,10 +382,18 @@ else
   MACRO_TCL_INTERFACE = 
 endif
 
+# EXPRESSION TEMPLATES
+ifeq "$(USE_EXPR_TEMPLATES)" "yes"
+  MACRO_EXPR_TEMPLATES = -DEXPR_TEMPLATES
+else
+  MACRO_EXPR_TEMPLATES =
+endif
+
 # Combine everything
 COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
                  $(MACRO_GSI) $(MACRO_XERCES) $(MACRO_TVMET) $(MACRO_METIS)\
-		 $(MACRO_LAPACK) $(MACRO_GIDPOST) $(MACRO_TCL_INTERFACE)
+                 $(MACRO_LAPACK) $(MACRO_GIDPOST) $(MACRO_TCL_INTERFACE)\
+		 $(MACRO_EXPR_TEMPLATES)
 
 
 # -----------------------------------------------------------------------------
