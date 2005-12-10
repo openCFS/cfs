@@ -19,7 +19,10 @@ TetraFE::TetraFE()
     NumFaces_ = 4;
     NumCorners_ = 4;
     numChilds_ = 8;
-    MidPoint_ = 1./4, 1./4, 1./4;
+    MidPoint_.Resize(3);
+    MidPoint_[0] = 1./4;
+    MidPoint_[1] = 1./4;
+    MidPoint_[2] = 1./4;
     
     std::string integtype;
     params->Get( "type", integtype, "integRules", "tetra" );

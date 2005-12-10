@@ -20,8 +20,10 @@ namespace CoupledField
     NumFaces_   = 5;
     NumCorners_ = 5;
     //    numChilds_ = 8;
-    MidPoint_ = 0.0, 0.0, 1./4;
-
+    MidPoint_.Resize(3);
+    MidPoint_[0] = 0.0;
+    MidPoint_[1] = 0.0;
+    MidPoint_[2] = 1./4;
   
     std::string integtype;
     params->Get( "type", integtype, "integRules", "pyra" );

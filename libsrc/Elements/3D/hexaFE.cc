@@ -19,7 +19,10 @@ namespace CoupledField
     NumFaces_   = 6;
     NumCorners_ = 8;
     numChilds_  = 8;
-    MidPoint_   = 0.0, 0.0, 0.0;
+    MidPoint_.Resize(3);
+    MidPoint_[0] = 0.0;
+    MidPoint_[1] = 0.0;
+    MidPoint_[2] = 0.0;
     
     std::string integtype;
     params->Get( "type", integtype, "integRules", "hexa" );
