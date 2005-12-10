@@ -155,24 +155,25 @@ namespace CoupledField
     ENTER_IFCN("Vector::Resize");
 
 #ifdef CHECK_INDEX
-    if (size <= 0) 
-      Warning("invalid dimension for Resize", __FILE__, __LINE__);
+    if (size < 0) 
+      Error("invalid dimension for Resize", __FILE__, __LINE__);
 #endif  
   
-    if (memBelongsToMe_ == FALSE ) {
-      (*error) << "Refusing to resize vector, since memory does not " 
-               << "belong to me!";
-      Error( __FILE__, __LINE__ );
-    }
 
     if (size != size_)
       {
+        if (memBelongsToMe_ == FALSE ) {
+          (*error) << "Refusing to resize vector, since memory does not " 
+                   << "belong to me!";
+          Error( __FILE__, __LINE__ );
+        }  
+        
         if (data_) delete[] data_;
-      
+        
         size_=size;
         data_ = new TYPE[size_];
       }
-  
+    
     for (UInt i = 0; i < size_; i++)
       data_ [i] = TYPE();
   }
@@ -348,13 +349,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
       result += data_[i] * vec.data_[i];
   }
 
-
-
-
-  //*************************************************
-  //* old interface which is ocmpatible to previous *
-  //* version of Vector<TYPE>                          *
-  //*************************************************
+#ifndef EXPR_TEMPLATES
 
 
   template<class TYPE>
@@ -385,62 +380,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
     return *this;
   }
 
-  template<class TYPE>
-  CFSVector & Vector<TYPE>::operator= (const CFSVector & vec)
-  {
-    ENTER_IFCN( "Vector::operator=(const CFSVector)");
-
-    Vector<TYPE> const & temp = dynamic_cast<const Vector<TYPE>&>(vec);
-  
-    if (this == &temp)
-      return *this;
-  
-    if (size_ != temp.size_)
-      {   
-        if (memBelongsToMe_ == FALSE ) {
-          (*error) << "Refusing to resize vector, since memory does not " 
-                   << "belong to me!";
-          Error( __FILE__, __LINE__ );
-        }
-      
-        if (data_)
-          delete [] data_;
-      
-        size_ = temp.size_;
-        data_ = new TYPE [size_];
-      }
-  
-    for (UInt i = 0; i < size_; i++)
-      data_ [i] = temp.data_[i];
-  
-    return dynamic_cast<CFSVector &>(*this);
-
-  }
-
-  template<class TYPE>
-  Vector<TYPE> Vector<TYPE>::operator+(const Vector<TYPE> &x) const
-  {       
-    ENTER_IFCN( "Vector::operator+" );
-
-#ifdef CHECK_INITIALIZED
-    if ((size_ == 0) || (x.size_ == 0))
-      Warning("Vector: undefined Vector in operator +(vector)",
-              __FILE__, __LINE__);
-#endif  
-  
-#ifdef CHECK_INDEX
-    if (size_ != x.size_)
-      Warning("Vector: incompatible dimension for operator +(vector)",
-            __FILE__, __LINE__);
-#endif
-  
-    Vector ret(size_);
-  
-    for (UInt i = 0; i < size_; i++)
-      ret.data_[i] = data_[i] + x.data_ [i];
-  
-    return ret;
-  }
+ 
 
 
   template<class TYPE>
@@ -483,27 +423,19 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   }
 
   template<class TYPE>
-  Vector<TYPE> Vector<TYPE>::operator-(const Vector<TYPE> &x) const
+  Vector<TYPE> Vector<TYPE>::operator+ () const
   {
-    ENTER_IFCN( "Vector::operator-" );
+    ENTER_IFCN( "Vector::operator+" );
 #ifdef CHECK_INITIALIZED
-    if ((size_ == 0) || (x.size_ == 0))
-      Warning("Vector: undefined Vector in operator -(vector)",
-              __FILE__, __LINE__);
-#endif  
-  
-#ifdef CHECK_INDEX
-    if (size_ != x.size_)
-      Warning("Vector: incompatible dimension for operator -(vector)",
-            __FILE__, __LINE__);
+    if (size_ == 0)
+      Warning("Vector: undefined Vector in oprator +()",__FILE__, __LINE__); 
 #endif
-    Vector ret(size_);
-
-    for (UInt i = 0; i < size_; i++)
-      ret.data_ [i] = data_[i] - x.data_ [i];
-  
-    return ret;
+    
+    return *this;
+    
   }
+
+ 
 
   template<class TYPE>
   Vector<TYPE> &Vector<TYPE>::operator-=(const Vector<TYPE> &x)
@@ -528,41 +460,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   }
 
 
-  template<class TYPE>
-  Vector<TYPE> Vector<TYPE>::operator* (const TYPE &x) const
-  {
-    ENTER_IFCN( "Vector::operator*" );
-#ifdef CHECK_INITIALIZED
-    if (size_ == 0)
-      Warning("Vector: undefined Vector in operator *(number)",
-              __FILE__, __LINE__); 
-#endif
-  
-    Vector ret(size_);
-  
-    for (UInt i = 0; i < size_; i++)
-      ret.data_[i] = data_[i] * x;
-  
-    return ret;
-  }
-
-  template<class TYPE>
-  Vector<TYPE> Vector<TYPE>::operator/ (const TYPE &x) const
-  {
-    ENTER_IFCN( "Vector::operator/" );
-#ifdef CHECK_INITIALIZED
-    if (size_ == 0)
-      Warning("Vector: undefined Vector in operator /(number)",
-              __FILE__, __LINE__); 
-#endif
-  
-    Vector ret(size_);
-  
-    for (UInt i = 0; i < size_; i++)
-      ret.data_[i] = data_[i] / x;
-  
-    return ret;
-  }
+ 
 
   template<class TYPE>
   Vector<TYPE> &Vector<TYPE>::operator/= (const TYPE &x)
@@ -580,90 +478,6 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
       data_[i] /= y;
   
     return *this;
-  }
-
-  template<class TYPE>
-  TYPE Vector<TYPE>::operator* (const Vector<TYPE> &x) const
-  {
-    ENTER_IFCN( "Vector::operator*" );
-#ifdef CHECK_INITIALIZED
-    if ((size_ == 0) || (x.size_ == 0))
-      Warning("Vector: undefined Vector in operator *(vector)",
-              __FILE__, __LINE__);
-#endif  
-  
-#ifdef CHECK_INDEX
-    if (size_ != x.size_)
-      Warning("Vector: incompatible dimension for operator *(vector)", 
-            __FILE__, __LINE__);
-#endif
-
-    TYPE ret;
- 
-    ret = data_[0] * x.data_[0];
-    for (UInt i = 1; i < size_; i++)
-      ret += data_[i] * x.data_[i];
-  
-    return ret;
-  }
-
-  template<class TYPE>
-  Vector<TYPE> Vector<TYPE>::operator*(const Matrix<TYPE> &x) const
-  {
-    ENTER_IFCN( "Vector::operator*" );
-#ifdef CHECK_INITIALIZED
-    if (size_ == 0)
-      Warning("Vector: undefined Vector in operator *(Matrix)",
-              __FILE__, __LINE__);
-    if (!x.data_)
-      Warning("Vector: undefined Matrix in operator *(Matrix)",
-              __FILE__, __LINE__);
-#endif  
-  
-#ifdef CHECK_INDEX
-    if (size_ != x.size_row_)
-      Warning("Vector: incompatible dimension for operator *(Matrix)",
-            __FILE__, __LINE__);
-#endif
-
-    TYPE  a;
-    Vector ret(x.size_col_);
-  
-    for (UInt i = 0; i < x.size_col_; i++)
-      {   
-        a = data_ [0] * x.data_ [0] [i];
-        for (UInt j = 1; j < size_; j++)
-          a += data_ [j] * x.data_ [j] [i];
-        ret.data_ [i] = a;
-      }
-  
-    return ret;
-  }
-
-  template<class TYPE>
-  Vector<TYPE> Vector<TYPE>::operator=(const Matrix<TYPE> &x) const
-  {       
-    ENTER_IFCN( "Vector::operator=(const Matrix)" );
-#ifdef CHECK_INITIALIZED
-    if (size_ == 0)
-      Warning( "undefined Vector in operator =", __FILE__, __LINE__);
-#endif
-
-#ifdef CHECK_INDEX
-    if (!x.data_)
-      Warning( "undefined Matrix in operator = ", __FILE__, __LINE__);
-
-    if (x.size_col_ != 1)
-      Warning( "matrix has more tha one row. No assignment to vector possible ", 
-             __FILE__, __LINE__);
-#endif
-  
-    Vector ret(x.size_row_);
-  
-    for (UInt i = 0; i < x.size_col_; i++)
-      ret.data_[i] = x[i][0];
-
-    return ret;
   }
 
 
@@ -684,15 +498,8 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
     return *this;
   }
 
-  template<class TYPE>
 
-  Vector<TYPE> &Vector<TYPE>::operator*=(const Matrix<TYPE> &x)
-  {       
-    ENTER_IFCN( "Vector::operator*=" );
-    *this = *this * x;
-  
-    return *this;
-  }
+#endif
 
   template<class TYPE>
   Boolean Vector<TYPE>::operator== (const Vector<TYPE> &x) const
@@ -773,13 +580,22 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   Double Vector<TYPE>::NormL2() const
   {
     ENTER_IFCN( "Vector::NormL2" );
+    (*error) << "Vector<TPYE>::NormL2 only defined for TYPE=Complex/Double";
+    Error( __FILE__, __LINE__ );
+    return TYPE();
+  }
+
+ template<>
+  Double Vector<Double>::NormL2() const
+  {
+    ENTER_IFCN( "Vector::NormL2" );
 #ifdef CHECK_INITIALIZED
     if (size_ == 0)
       Warning("Vector: undefined Vector in function norm_2()",  
               __FILE__, __LINE__);
 #endif
         
-    TYPE ret = (*this)*(*this);
+    Double ret = (*this)*(*this);
     return sqrt ((Double)ret);
   }
 
