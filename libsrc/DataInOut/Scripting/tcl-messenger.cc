@@ -2,7 +2,6 @@
 #include <string.h>
 #include <sstream>
 
-#include <tk.h>
 
 
 namespace CoupledField {
