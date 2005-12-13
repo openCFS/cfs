@@ -607,6 +607,7 @@ libsrc/makefilemach/make.mach.LINUXPAR -text
 libsrc/makefilemach/make.mach.LINUXg -text
 libsrc/makefilemach/make.mach.LINUXmpi -text
 libsrc/makefilemach/make.mach.MPCCI -text
+libsrc/makefilemach/make.mach.MPCCI_IA64 -text
 libsrc/makefilemach/make.mach.MPCCIg -text
 libsrc/makefilemach/make.mach.SUN -text
 main/Makefile -text
