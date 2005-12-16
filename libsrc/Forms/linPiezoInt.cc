@@ -558,13 +558,13 @@ namespace CoupledField {
     Vector<Complex> linStrainElec; // (linBMat * solVec );
     linStrainElec.Resize(linBMat.GetSizeRow());
 
-    linBMat.MatVecMult_DC(solVec,linStrainElec);
 
+    linStrainElec=linBMat*solVec;
+   
     // | c Bmech u - e^T Belec V |
     // | e Bmech u + eps Belec V |
    
-    stressElecVec.Resize(dMat.GetSizeRow());
-    dMat.MatVecMult_DC(linStrainElec, stressElecVec);
+    stressElecVec=dMat*linStrainElec;
 
   }
 
