@@ -70,8 +70,7 @@ namespace CoupledField
       // read real parts of piezo Material
       ReadPiezo( fin, &material, matC );
 
-      if( params->HasValue( "type", "imagMaterialParameter", "piezo",
-                            "materialDataType" ) ) {
+      if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ) {
 
         matC = TRUE;
         std::string matNameImag = matName + "-imag";
@@ -83,7 +82,7 @@ namespace CoupledField
         // SSCANF( buffer, "%*d%s", charMatType );
         SSCANF( buffer, "%*d%*s" );
 
-        // Read imaginary parts of piezo Material
+         // Read imaginary parts of piezo Material
         ReadPiezo( fin, &material, matC );
       }
 
