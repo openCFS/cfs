@@ -523,68 +523,6 @@ namespace CoupledField
   // } 
 
 
-  // Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
-  // where the matrix is supposed to be of type Double, rvec and mvec are complex valued
-  template<>
-  void Matrix<Double>::MatVecMult_DC(const Vector<Complex> & mvec, Vector<Complex> & rvec) const {
-    ENTER_IFCN("Matrix::MatVecMult_DC");
-  
-    UInt size_mvec = mvec.GetSize();
-    UInt size_rvec = rvec.GetSize();
- 
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      Error("undefined Matrix",__FILE__,__LINE__);
-    if (size_mvec == 0) 
-      Error("undefined Vector",__FILE__,__LINE__);
-    if (size_rvec == 0) 
-      Error("undefined Vector",__FILE__,__LINE__);
-#endif
-
-#ifdef CHECK_INDEX
-    if (size_col_ != size_mvec) Error("incompatible dimension",__FILE__,__LINE__);
-    if (size_row_ != size_rvec) Error("incompatible dimension",__FILE__,__LINE__);
-#endif
-   
-    UInt k,kk;
-    for ( k = 0; k < size_row_; k++)
-      for ( kk = 0; kk < size_col_; kk++)
-        rvec[k] += data_[k][kk]*mvec[kk];
-
-  }
-
-  // Perform a matrix(Double)-vector(Complex) multiplication rvec = this*mvec
-  // where the matrix is supposed to be of type Double, rvec and mvec are complex valued
-  template<>
-  void Matrix<Complex>::MatVecMult_CD(const Vector<Double> & mvec, Vector<Complex> & rvec) const {
-    ENTER_IFCN("Matrix::MatVecMult_CD");
-
-    UInt size_mvec = mvec.GetSize();
-    UInt size_rvec = rvec.GetSize();
- 
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      Error("undefined Matrix",__FILE__,__LINE__);
-    if (size_mvec == 0) 
-      Error("undefined Vector",__FILE__,__LINE__);
-    if (size_rvec == 0) 
-      Error("undefined Vector",__FILE__,__LINE__);
-#endif
-
-#ifdef CHECK_INDEX
-    if (size_col_ != size_mvec) Error("incompatible dimension",__FILE__,__LINE__);
-    if (size_row_ != size_rvec) Error("incompatible dimension",__FILE__,__LINE__);
-#endif
-   
-    UInt k,kk;
-    for ( k = 0; k < size_row_; k++)
-      for ( kk = 0; kk < size_col_; kk++)
-        rvec[k] += data_[k][kk]*mvec[kk];
-
-  }
-
-
- 
 
 
   template<class TYPE>
