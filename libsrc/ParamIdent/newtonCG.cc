@@ -140,8 +140,6 @@ namespace CoupledField
       for (UInt i=0;i<parameter.GetSize();i++)
         scaling[i]=1.0;
 
-      //JacobiMatrix.MatVecMult_CD(step,JMats); // is not neccessary, since we start with s_i=0;
-      //res = res0-JMats;
       
       //       normres2 = norm2Real(res);
 
@@ -180,7 +178,7 @@ namespace CoupledField
           nrCGIter++;
 
         
-          JacobiMatrix.MatVecMult_CD(bas,basbar);
+          basbar=JacobiMatrix*bas;
         
           //      std::cout<<"\nbasbar = F' bas:  "<<std::endl;
           //      for (UInt i=0;i<basbar.GetSize();i++){
@@ -1025,7 +1023,8 @@ namespace CoupledField
 //         std::cout<<"\n CG Iteration " << nrCGIter << std::endl;
 //         nrCGIter++;
 
-//         JacobiMatrix.MatVecMult_CD(bas_old,bas_bar);
+//         
+//         bas_bar=JacobiMatrix*bas_old;
 
 //         for (i=0;i<bas_bar.GetSize();i++)
 //           std::cout<<"bas_bar="<<bas_bar[i]<<"; ";
