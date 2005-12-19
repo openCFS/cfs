@@ -13,6 +13,25 @@ namespace CoupledField
 
   public:
 
+    //! Helper struct for defining a general impedance
+    struct Impedance {
+
+      //! Constructor
+      Impedance() : 
+        node1(0), node2(0), resistance(0.0),
+        inductance(0.0), capacitance(0.0) {};
+      
+      //@{
+      //! Node numbers the impedance is connected with
+      UInt node1, node2;
+      //@}
+
+      //@{
+      //! Defining quantities of the impedance
+      Double resistance, inductance, capacitance;
+      //@}
+    };
+
     //! Constructor. here we read integration parameters
     /*!
       \param 
@@ -37,6 +56,9 @@ namespace CoupledField
 
     //! Nothing to do
     virtual void SetTimeStep(const Double dt) {;};
+
+    //! Read special boundary conditions
+    void ReadSpecialBCs();
 
 
     // ======================================================
@@ -83,6 +105,18 @@ namespace CoupledField
     //! piezo-coupled simulation, because the coupled electrostatic block
     //! is negative compared to the normal one
     void SetPiezoCoupling();
+
+    // ======================================================
+    // METHODS FORS ASSEMBLING
+    // ======================================================
+
+    //! add special nodes to the matrix graph (additional equations)
+    void SetupMatrixGraphSpecial();
+    
+    //! Assemble special equations (network coupling)
+    void AssembleSpecial( );
+
+
     
 
   protected:
@@ -121,6 +155,9 @@ namespace CoupledField
 
     //! Contains electric charges
     BaseElemStoreSol * charges_;
+
+    //! Electric impedances
+    StdVector<Impedance> impedances_;
 
   private:
 
