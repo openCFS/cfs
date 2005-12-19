@@ -415,6 +415,7 @@ namespace CoupledField {
 
     if ( reset ) {
       PDE_.AssembleMatrices( );
+      PDE_.AssembleSpecial( );
     }
 
 
