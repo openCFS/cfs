@@ -217,6 +217,10 @@ namespace CoupledField {
   // **************************
   void DirectCoupledPDE::WriteGeneralPDEdefines() {
     ENTER_FCN( "DirectCoupledPDE::WriteGeneralPDEdefines" );
+
+    for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+      singlePDEs_[i]->WriteGeneralPDEdefines();
+    }
   }
 
 
@@ -516,6 +520,15 @@ namespace CoupledField {
       }
   }
 
+  void DirectCoupledPDE::AssembleSpecial( ) {
+    ENTER_FCN( "DirectCoupledPDE::AssembleSpecial" );
+    
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) 
+      {
+        singlePDEs_[i]->AssembleSpecial( );
+      }
+  }
+  
   void DirectCoupledPDE::InitNonLinMatrices() {
     ENTER_FCN( "DirectCoupledPDE::InitNonLinMatrices" );
 
@@ -554,7 +567,6 @@ namespace CoupledField {
     // nothing to do here, since this method gets only called for 
     // SinglePDEs
   }
-
 
   void DirectCoupledPDE::DefineSolveStep() {
     ENTER_FCN( "DirectCoupledPDE::DefineSolveStep" );

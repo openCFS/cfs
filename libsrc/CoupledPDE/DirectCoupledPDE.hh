@@ -133,7 +133,10 @@ namespace CoupledField {
   
     //!  assemble a spring into the system matrix
     void AssembleSprings(const Double time=0);
-  
+
+    //! assemble special equations into the system (done by the PDE)
+    void AssembleSpecial( );
+
     //! Initialize all matrices with nonlinear behavior
     void InitNonLinMatrices();
   
