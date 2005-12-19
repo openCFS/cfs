@@ -101,6 +101,82 @@ namespace CoupledField {
     solveStep_ = new SolveStepElec(*this);
   }
 
+  void ElecPDE::ReadSpecialBCs( ) {
+    ENTER_FCN( "ElecPDE::ReadSpecialBCs" );
+   
+    StdVector<UInt> nodes;
+    std::string aux;
+
+    // Get values from parameter file
+    StdVector<std::string> keyVec, attrVec, valVec;
+    StdVector<std::string> node1, node2;
+    StdVector<Double> resistance, capacitance, inductance;
+    attrVec = "", "tag", "";
+    valVec = "", bcSequenceTag_, "";
+    
+    keyVec = pdename_, "bcsAndLoads", "impedance", "node1";
+    params->GetList( keyVec, attrVec, valVec, node1 ) ;
+
+    keyVec = pdename_, "bcsAndLoads", "impedance", "node2";
+    params->GetList( keyVec, attrVec, valVec, node2 ) ;
+
+    keyVec = pdename_, "bcsAndLoads", "impedance", "resistance";
+    params->GetList( keyVec, attrVec, valVec, resistance ) ;
+
+    keyVec = pdename_, "bcsAndLoads", "impedance", "capacitance";
+    params->GetList( keyVec, attrVec, valVec, capacitance ) ;
+
+    keyVec = pdename_, "bcsAndLoads", "impedance", "inductance";
+    params->GetList( keyVec, attrVec, valVec, inductance ) ;
+
+    // Check, that all vectors have the same length
+    if ( node1.GetSize() != node2.GetSize() ||
+         node1.GetSize() != resistance.GetSize() ||
+         node1.GetSize() != capacitance.GetSize() ||
+         node1.GetSize() != inductance.GetSize() ) {
+      (*error) << "Inconsistent definition of impedances!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // Make sure that we are in harmonic mode
+    if ( node1.GetSize() != 0 && analysistype_ != HARMONIC) {
+      (*error) << "Impedances are only available in harmonic simulation "
+               << "at the moment!";
+      Error( __FILE__, __LINE__ );
+    }
+    
+    // Create impedances
+    impedances_.Resize( node1.GetSize() );
+    std::ostringstream out;
+    for ( UInt i = 0; i < impedances_.GetSize(); i++ ) {
+
+      ptgrid_->GetNodesByName( nodes, node1[i] );
+      impedances_[i].node1 = nodes[0];
+
+      ptgrid_->GetNodesByName( nodes, node2[i] );
+      impedances_[i].node2 = nodes[0];
+      
+      impedances_[i].resistance = resistance[i];
+      impedances_[i].capacitance = capacitance[i];
+      impedances_[i].inductance = inductance[i];
+      
+      out.clear();
+      out.str("");
+      out << "Impedance defined between node " << impedances_[i]. node1
+          << " and node " << impedances_[i].node2  << " with:\n";
+      Info->PrintF( pdename_, out.str().c_str() );
+      out.clear();
+      out.str("");
+      out << "\tR = " << impedances_[i].resistance 
+          << "\tL = " << impedances_[i].inductance         
+          << "\tC = " << impedances_[i].capacitance << std::endl;
+      Info->PrintF( pdename_, out.str().c_str() );
+      Info->PrintF( pdename_, "\n" );
+    }
+}
+
+
+
 
 
   // ======================================================
@@ -315,7 +391,6 @@ namespace CoupledField {
   void ElecPDE::PostProcess() {
 
     ENTER_FCN( "ElecPDE::PostProcess" );
-
 
     // *** Electric Field Intensity ***
     if (calcEfield_.GetSize() !=0 ){
@@ -767,6 +842,94 @@ namespace CoupledField {
   
     isPiezoCoupled_ = TRUE;
 
+  }
+
+  void ElecPDE::AssembleSpecial( ) {
+
+    ENTER_FCN( "ElecPDE::AssembleSpecial" );
+
+    Double omega, temp;
+    Complex factorR, factorL, factorC, factorAll;
+
+    // Iterate over all impedances
+    for ( UInt i = 0; i < impedances_.GetSize(); i++ ) {
+      
+      // Calculate parameters
+      omega = solveStep_->GetActFreq() * 2.0 *PI;
+
+      // *** Resistance ***
+      if ( impedances_[i].resistance > EPS ) {
+        temp = - ( omega / (omega*omega * impedances_[i].resistance) );
+      } else {
+        temp = 0.0;
+      }
+      factorR = Complex( 0, temp );
+      
+      // *** Inductance ***
+      if ( impedances_[i].inductance > EPS ) {
+        temp = - 1.0 / ( omega * omega * impedances_[i].inductance );
+      } else {
+        temp = 0.0;
+      }
+      factorL = Complex( temp, 0.0 );
+      
+      // *** Capcitance ***
+      factorC = Complex( impedances_[i].capacitance, 0.0 );
+      
+      factorAll = factorR + factorL + factorC;
+      
+      // Set Factors
+      Integer eqn1, eqn2;
+      UInt eqnDof1, eqnDof2;
+      Complex oldEntry;
+      eqnData_->Node2EQN( impedances_[i].node1, 1, eqn1, eqnDof1);
+      eqnData_->Node2EQN( impedances_[i].node2, 1, eqn2, eqnDof2);
+      
+      // -- Diagonal part --
+      algsys_->GetMatrixEntry( SYSTEM, pdeId_, eqn1, 1, pdeId_, eqn1, 1,
+                               oldEntry);
+      algsys_->SetMatrixEntry( SYSTEM, pdeId_, eqn1, 1, pdeId_, eqn1, 1,
+                               oldEntry - factorAll, true);      
+      
+      algsys_->GetMatrixEntry( SYSTEM, pdeId_, eqn2, 1, pdeId_, eqn2, 1,
+                               oldEntry);
+      algsys_->SetMatrixEntry( SYSTEM, pdeId_, eqn2, 1, pdeId_, eqn2, 1,
+                               oldEntry - factorAll, true);      
+
+      // -- Off diagonal part --
+      algsys_->GetMatrixEntry( SYSTEM, pdeId_, eqn1, 1, pdeId_, eqn2, 1,
+                               oldEntry );
+      algsys_->SetMatrixEntry( SYSTEM, pdeId_, eqn2, 1, pdeId_, eqn2, 1,
+                               oldEntry + factorAll, true );
+    }
+
+
+
+  }
+  
+  void ElecPDE::SetupMatrixGraphSpecial( ) {
+    ENTER_FCN( "ElecPDE::SetupMatrixGraphSpecial" );
+
+    Integer eqn1, eqn2;
+    UInt eqnDof1, eqnDof2;
+    StdVector<Integer> connect;
+    
+    for ( UInt i = 0; i < impedances_.GetSize(); i++ ) {
+      
+      eqnData_->Node2EQN( impedances_[i].node1, 1, eqn1, eqnDof1);
+      eqnData_->Node2EQN( impedances_[i].node2, 1, eqn2, eqnDof2);
+      
+      // Set element positions
+      connect.Clear();
+      connect.Push_back(eqn1);
+      connect.Push_back(eqn2);
+      
+      algsys_->SetElementPos( pdeId_, connect.GetPointer(), 2,
+                              pdeId_, connect.GetPointer(), 2,
+                              true);  
+    }
+
+    
   }
 
   // ***********************************************************************
