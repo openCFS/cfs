@@ -411,6 +411,8 @@ namespace CoupledField {
     // which relates nodes/dofs to equation numbers
     eqnData_->SetHomoDirichletBCs ( bcs_hd_, homDirichDof_  );
     eqnData_->SetInhomDirichletBCs( bcs_id_, inhomDirichDof_);
+    eqnData_->SetConstraints( constraints_ );
+   
     SETPROFILE("Before Equation Mapping");
     eqnData_->CalcMapping();
     SETPROFILE("After Equation Mapping");
@@ -572,6 +574,11 @@ namespace CoupledField {
 
       Info->WriteInHomBC( pdename_, bcs_id_[i], val_id_[i], fncnames_id_[i],
                           dof );        
+    }
+
+    // Constraints
+    for (UInt i=0; i<constraints_.GetSize(); i++ ) {
+      Info->WriteConstraints(pdename_, constraints_[i]);      
     }
 
     // Loads
@@ -989,6 +996,19 @@ namespace CoupledField {
     for ( UInt i = 0; i < bcs_id_.GetSize(); i++) {
       numDirichletBCs_ += ptgrid_->GetNumNodes(bcs_id_[i]);
     }
+
+    // =====================================================================
+    // Constraint Conditions
+    // =====================================================================
+
+     // read name of constraints
+    keyVec.Clear();
+    attrVec.Clear();
+    valVec.Clear();
+    keyVec = pdename_, "bcsAndLoads", "constraint", "name";
+    attrVec = "",     "tag", "";
+    valVec = "", bcSequenceTag_, "";
+    params->GetList( keyVec, attrVec, valVec, constraints_ );
   }
 
 
@@ -1125,12 +1145,14 @@ namespace CoupledField {
                             eqnData_->GetNumLastFreeDof() );
 
       assemble_->SetPDEId( pdeId_ );
-
       solveStep_->SetPDEId( pdeId_ );
       
       
       // trigger the creation and assembly of the matrix graph
+      algsys_->AssembleInit( pdeId_, pdeId_, false );
       assemble_->SetupMatrixGraph();
+      this->SetupMatrixGraphSpecial();
+      algsys_->AssembleDone( pdeId_, pdeId_, false );      
     
       // finish the assembly of the matrix graph
       algsys_->GraphSetupDone();
@@ -1181,7 +1203,10 @@ namespace CoupledField {
   // constructs the matrix graph by providing to the algebraic system
   // the element connectivities
   void  SinglePDE::SetupMatrixGraph() {
+    algsys_->AssembleInit( pdeId_, pdeId_, false );
     assemble_->SetupMatrixGraph();
+    this->SetupMatrixGraphSpecial();
+    algsys_->AssembleDone( pdeId_, pdeId_, false );
   }
 
   void SinglePDE::SetFrequency(Double actFreq) {

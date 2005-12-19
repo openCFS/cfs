@@ -43,7 +43,7 @@ namespace CoupledField {
 
     startFreq_ = 0.0;
     matArray_  = NULL;
-
+    
   }
 
 
@@ -1190,12 +1190,12 @@ namespace CoupledField {
 
     // By default we currently assume that also the "transpose" coupling
     // object will be required in the long run
-    if ( pdeId1_ != pdeId2_ ) {
-      algsys_->AssembleInit( pdeId1_, pdeId2_, true );
-    }
-    else {
-      algsys_->AssembleInit( pdeId2_, pdeId1_, false );
-    }
+   //  if ( pdeId1_ != pdeId2_ ) {
+//       algsys_->AssembleInit( pdeId1_, pdeId2_, true );
+//     }
+//     else {
+//       algsys_->AssembleInit( pdeId2_, pdeId1_, false );
+//     }
 
     // set the graph - connectivity matrix
     BaseFE * ptElem; 
@@ -1204,8 +1204,8 @@ namespace CoupledField {
     StdVector<UInt> connecth;
     StdVector<Integer> connect_PDE1, connect_PDE2;
 
-    // First, assemble connectivity for all volume
-    // elements
+    // ****** VOLUME INTEGRATORS ******
+
     for (nsub=0; nsub<subdoms_.GetSize(); nsub++) {
       StdVector<Elem*> elemssd;
       ptgrid_->GetElems(elemssd,subdoms_[nsub]);
@@ -1231,6 +1231,7 @@ namespace CoupledField {
       }
     }
     
+    // ****** SURFACE INTEGRATORS *******
     for (nsub=0; nsub<surfdoms_.GetSize(); nsub++) {
       StdVector<SurfElem*> elemssd;
       ptgrid_->GetSurfElems(elemssd,surfdoms_[nsub]);
@@ -1252,20 +1253,23 @@ namespace CoupledField {
                                 connect_PDE2.GetSize(),
                                 insertCounterPart );
       }
+      
+      
     }
     
+    
     SETPROFILE( "After SetupMatrixGraph" );
-
+    
     // finish assembling procedure (see note for AssembleInit(), above)
-    if ( pdeId1_ != pdeId2_ ) {
-      algsys_->AssembleDone( pdeId1_, pdeId2_, true );
-    }
-    else {
-      algsys_->AssembleDone( pdeId1_, pdeId2_, false );
-    }
+    //   if ( pdeId1_ != pdeId2_ ) {
+    //       algsys_->AssembleDone( pdeId1_, pdeId2_, true );
+    //     }
+    //     else {
+    //       algsys_->AssembleDone( pdeId1_, pdeId2_, false );
+    //     }
     SETPROFILE( "After AssembleDone" );
   }
-
+  
 
   //set all FE-Elements to reduced integration  
   void Assemble::SetFE2ReducedInt() {

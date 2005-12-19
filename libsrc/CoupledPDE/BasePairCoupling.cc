@@ -244,7 +244,9 @@ namespace CoupledField {
   // ======================================================
   
   void BasePairCoupling::SetupMatrixGraph() {
+    algsys_->AssembleInit( GetPdeId1(), GetPdeId2(), true );
     assemble_->SetupMatrixGraph();
+    algsys_->AssembleDone( GetPdeId1(), GetPdeId2(), true );
   }
 
   void BasePairCoupling::AssembleMatrices() {

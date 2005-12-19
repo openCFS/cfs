@@ -250,12 +250,18 @@ namespace CoupledField {
     //!  assemble a spring into the system matrix
     virtual void AssembleSprings( const Double time = 0.0) = 0;
 
+    //! assemble special equations into the system (done by the PDE)
+    virtual void AssembleSpecial( ) {;};
+
     //! Initialize all matrices with nonlinear behavior
     virtual void InitNonLinMatrices() = 0;
 
     //! constructes the matrix graph by providing to the algebraic 
     //! system the element connectivities
     virtual void SetupMatrixGraph() = 0;
+
+    //! add special nodes to the matrix graph (additional equations)
+    virtual void SetupMatrixGraphSpecial() {;};
 
     //! trigger the reassmbling of the matrices
     virtual void SetReassemble() = 0;
@@ -444,6 +450,9 @@ namespace CoupledField {
 
     //! number of dirichlet boundary conditions
     UInt numDirichletBCs_;
+
+    //! names of nodes with constraint condition
+    StdVector<std::string> constraints_;
 
     //@}
 
