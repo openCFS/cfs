@@ -76,8 +76,7 @@ namespace CoupledField {
     //! Returns true, if block mapping is applied
     inline Boolean IsBlockMapped() const {return isBlockMapped_;}
 
-    //! Set the node numbers and dofs 
-    //! with homogeneous Dirchlet BC
+    //! Set the node numbers and dofs with homogeneous Dirchlet BC
     void SetHomoDirichletBCs(const StdVector<std::string> & nodeNrs,
                              const StdVector<std::string> & dofs);
 
@@ -85,11 +84,8 @@ namespace CoupledField {
     void SetInhomDirichletBCs( const StdVector<std::string> & nodeNrs,
                                const StdVector<std::string> & dofs );
 
-    //! Set the node numbers and dofs which are
-    //! slave nodes w.r.t. to constraints
-    void SetConstraints(const StdVector<UInt> & slaveNodeNrs,
-                        const StdVector<UInt> & masterodeNrs,
-                        const StdVector<std::string> & dofs);
+    //! Set the name of the nodes with constraint conditions
+    void SetConstraints( const StdVector<std::string> & csNodeNames );
                               
     //! Calculate the mapping after Dirichlet and
     //! constraint nodes were set

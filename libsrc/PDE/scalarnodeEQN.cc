@@ -190,7 +190,8 @@ namespace CoupledField {
     // information
     isInitialized_ = TRUE;
     numEqns_ = eqnCounter;
-    numDroppedDofs_ = numPDENodes_ - numEqns_ + multipleBCs;
+    numDroppedDofs_ = numPDENodes_ + multipleBCs 
+      - constraintSlaveNodes_.GetSize() - numEqns_;
 
     // Print mapping to LAS-file
     if ( commandLine->GetShowEqnMap() == true ) {

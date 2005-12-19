@@ -96,22 +96,28 @@ namespace CoupledField {
   // ******************
   //   SetConstraints
   // ******************
-  void BaseEQN::SetConstraints( const StdVector<UInt> &slaveNodeNrs,
-                                const StdVector<UInt> &masterNodeNrs,
-                                const StdVector<std::string> &dofs ) {
+  void BaseEQN::SetConstraints( const StdVector<std::string> 
+                                & csNodeNames ) {
 
     ENTER_FCN( "BaseEQN::SetConstraints" );
 
-    constraintSlaveNodes_ = slaveNodeNrs;
-    constraintMasterNodes_ = masterNodeNrs;
+    // constraints are only possible for scalar valued 
+    // equations at the moment
+    if ( dofsPerNode_ > 1 && csNodeNames.GetSize() > 0 ) {
+      (*warning) << "Constraints are only implemented for scalar valued "
+                 << "problems. Constraints will be neglected!\n";
+      Warning( __FILE__, __LINE__ );
+    }
+    
+    StdVector<UInt> nodeNrs;
+    for ( UInt i = 0; i < csNodeNames.GetSize(); i++ ) {
+    
+      ptGrid_->GetNodesByName( nodeNrs, csNodeNames[i] );
 
-    if ( dofsPerNode_ > 1 ) {
-      constraintDofs_.Resize(dofs.GetSize());
-
-      for ( UInt i = 0; i < dofs.GetSize(); i++ ) {
-        constraintDofs_[i] =
-          domain->GetCoordSystem()->GetVecComponent(dofs[i]);
-      }
+      for ( UInt iNode = 1; iNode < nodeNrs.GetSize(); iNode++ ) {
+        constraintMasterNodes_.Push_back( nodeNrs[0] );
+        constraintSlaveNodes_.Push_back( nodeNrs[iNode] );
+      } 
     }
   }
 
