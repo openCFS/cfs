@@ -56,7 +56,9 @@
                 <xsd:element name="dirichletHom"   type="DT_ElecHD"   />
                 <xsd:element name="dirichletInhom" type="DT_ElecID"   />
                 <xsd:element name="neumannInhom"   type="DT_ElecIN"   />
+                <xsd:element name="constraint"     type="DT_ElecCS"   />
                 <xsd:element name="load"           type="DT_ElecLoad" />
+                <xsd:element name="impedance"      type="DT_ElecImpedance" />
               </xsd:choice>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
@@ -112,11 +114,39 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- Element type for constraint condition -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_ElecCS">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
   <!-- Element type for specifying loads -->
   <!-- Identical to that of inhomogeneous Dirichlet case -->
   <xsd:complexType name="DT_ElecLoad">
     <xsd:complexContent>
       <xsd:extension base="DT_ElecID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying a simple impedance, connected in -->
+  <!-- series with a pair of given nodes -->
+  <xsd:complexType name="DT_ElecImpedance">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="node1" type="xsd:token" use="required"/>
+        <xsd:attribute name="node2" type="xsd:token" use="required"/>
+        <xsd:attribute name="resistance" type="xsd:double"
+          use="optional" default="0.0"/>
+        <xsd:attribute name="inductance" type="xsd:double"
+        use="optional" default="0.0"/>
+        <xsd:attribute name="capacitance" type="xsd:double" use="optional"
+          default="0.0"/>
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
