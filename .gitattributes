@@ -18,6 +18,10 @@ Doc/auxilliaries/LaTeX/lsepaper.sty -text
 Doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
 Doc/makedoc.sh svneol=native#text/plain
+Doc/matFile/coupledPDEs.tex svneol=native#text/plain
+Doc/matFile/matRef.tex svneol=native#text/plain
+Doc/matFile/matintro.tex svneol=native#text/plain
+Doc/matFile/singlePDEs.tex svneol=native#text/plain
 Doc/xmlFile/BCsLoads.tex svneol=native#text/plain
 Doc/xmlFile/Savings.tex svneol=native#text/plain
 Doc/xmlFile/basicCommands.tex svneol=native#text/plain
