@@ -698,6 +698,23 @@ namespace CoupledField {
     }
   }
 
+  // ********************
+  //   WriteConstraints
+  // ********************
+  void WriteInfo::WriteConstraints( const std::string& pdeName,
+                                    const std::string& subDom, UInt dof ) {
+    ENTER_FCN( "WriteInfo::WriteConstraints" );
+    
+    if (cfsInfo) {
+      *cfsInfo << pdeName << "-PDE: Constraints on \"" << subDom
+               << "\"";
+      if (dof) {
+        *cfsInfo << " with DOF number " << dof;
+      }
+      *cfsInfo << myEndl;
+    }
+  }
+
 
   void WriteInfo::WriteLoad(const std::string& pdeName,
                             const std::string& subDom, 

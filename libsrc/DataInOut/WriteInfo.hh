@@ -120,6 +120,10 @@ namespace CoupledField {
     void WriteInHomBC(const std::string& pdeName,const std::string& subDom, 
                       const Double& val, const std::string & fnc, const UInt& dof);
 
+    /// writes domain and dof of constraints
+    void WriteConstraints(const std::string& pdeName, 
+                          const std::string& subDom, UInt dof=0);
+
     /// writes domain, value and dof of a load conditon
     void WriteLoad(const std::string& pdeName, const std::string& subDom, 
                    Double value, const std::string & fnc, UInt dof=0);
