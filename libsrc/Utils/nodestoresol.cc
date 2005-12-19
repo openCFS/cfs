@@ -286,7 +286,7 @@ namespace CoupledField {
     ptEQN_->Node2EQN(node+1,dof+1,eqnNr,eqnDof);
 
     if (eqnNr > 0)
-      return data_[abs(eqnNr-1)+eqnDof-1];
+      return data_[abs(eqnNr)-1+eqnDof-1];
     else
       Error("NodeStoreSol::operator(): This operator gives only writing access to non-BC nodes.",
             __FILE__, __LINE__);
@@ -312,7 +312,7 @@ namespace CoupledField {
 
     Warning ("Is this operator ever be used?", __FILE__, __LINE__);
     if (eqnNr > 0)
-      return data_[abs(eqnNr-1)+eqnDof-1];
+      return data_[abs(eqnNr)-1+eqnDof-1];
     else
       return TYPE();
   }
@@ -353,7 +353,7 @@ namespace CoupledField {
         else if (eqnNr == 0)
           temp[(globNode-1)*dof + iDof] = TYPE();
         else
-          Error("Constraints not yet implemented!",__FILE__,__LINE__);
+          temp[(globNode-1)*dof + iDof] = data_[(abs(eqnNr)-1) * dofsPerEQN + (eqnDof-1)];
         
       }
     } 
@@ -500,9 +500,8 @@ namespace CoupledField {
     Integer eqnNr;
     UInt eqnDof;
     ptEQN_->Node2EQN( nodeNr + 1, dof + 1, eqnNr, eqnDof );
-
     if ( eqnNr != 0 ) {
-      ret = data_[ abs( eqnNr - 1) + eqnDof - 1];
+      ret = data_[ abs(eqnNr)- 1 + eqnDof - 1];
     }
     else {
       ret =  TYPE();
@@ -531,7 +530,7 @@ namespace CoupledField {
     ptEQN_->Node2EQN(nodeNr+1,offset+dof+1,eqnNr,eqnDof);
 
     if (eqnNr != 0)
-      ret = data_[abs(eqnNr-1)+eqnDof-1];
+      ret = data_[abs(eqnNr)-1+eqnDof-1];
     else
       ret =  TYPE();
   }
@@ -694,7 +693,7 @@ namespace CoupledField {
           ptEQN_->Node2EQN(connect[iNode],iDof+1,eqnNr,eqnDof);
           if (eqnNr != 0)
             //temp[iDof][iNode] = data_[totalDofs_*(connect[iNode]-1) + iDof];
-            temp[iDof+iNode*totalDofs_] = data_[abs(eqnNr-1)*eqnDofs_ + eqnDof-1];
+            temp[iDof+iNode*totalDofs_] = data_[(abs(eqnNr)-1)*eqnDofs_ + eqnDof-1];
           else
             temp[iDof + iNode*totalDofs_] = TYPE();
         }
@@ -724,7 +723,7 @@ namespace CoupledField {
         {
           ptEQN_->Node2EQN(connect[iNode],iDof+1,eqnNr,eqnDof);
           if (eqnNr != 0){
-            temp[iDof][iNode] = data_[abs(eqnNr-1)*eqnDofs_ + eqnDof-1];
+            temp[iDof][iNode] = data_[(abs(eqnNr)-1)*eqnDofs_ + eqnDof-1];
             //      std::cout<<data_[abs(eqnNr-1)*eqnDofs_+eqnDof-1]<<"; ";
           }
           else
@@ -752,7 +751,7 @@ namespace CoupledField {
         {
           ptEQN_->Node2EQN(nodeNumbers[iNode], iDof+1, eqnNr, eqnDof);
           if (eqnNr != 0)
-            temp.data_[iNode*totalDofs_ + iDof] = data_[abs((eqnNr-1)*eqnDofs_ + eqnDof-1)];
+            temp.data_[iNode*totalDofs_ + iDof] = data_[abs((eqnNr)-1)*eqnDofs_ + eqnDof-1];
           else
             temp.data_[iNode*totalDofs_ + iDof] = TYPE();
         }
