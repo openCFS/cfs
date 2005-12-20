@@ -67,11 +67,11 @@
 \end{verbatim}
 
 
-\item Compressibility
+\item Compression Modulus
 \begin{verbatim}
-<acousticCompressibility>
+<CompressionModulus>
  2.25000E+09
-</acousticCompressibility>
+</CompressionModulus>
 \end{verbatim}
 
 
@@ -82,17 +82,24 @@
   <beta>   1E-08 </beta>
   <freq>   1E6   </freq>
 <acousticDamping>
+\end{verbatim}
+Fractional and thermoviscous damping are defined with the equation
+$$ \alpha = \alpha_0 | \omega |^y  $$ 
+For thermoviscous damping the exponent $y$ is equal to $2$ and need not be specified.
+\begin{verbatim}
+<acousticDamping type="thermoViscous">
+  <alpha0>  1E-16 </alpha0>
+<acousticDamping>
 <acousticDamping type="fractional">
-  <alg>             blank </alg>
-  <memory>          10    </memory>
-  <interpolation>   lin1p </interpolation>
+  <alpha0>  1E-08 </alpha0>
+  <y>       1.1   </y>
 <acousticDamping>
 \end{verbatim}
 
 \item Nonlinearity
 \begin{verbatim}
 <acousticNonlinear>
-  <BoverA>  0.1 </BoverA>
+  <BoverA>  5 </BoverA>
 </acousticNonlinear>
 \end{verbatim}
 \end{itemize}
@@ -156,13 +163,6 @@
 
 \section{Heat}
 \begin{itemize}
-\item Conductivity
-\begin{verbatim}
-<heatConductivity>
-  5.800E2
-</heatConductivity>
-\end{verbatim}
-
 \item Density
 \begin{verbatim}
 <density>
@@ -170,13 +170,20 @@
 </density>
 \end{verbatim}
 
-
 \item Capacity
 \begin{verbatim}
 <heatCapacity>
   0.3
 </heatCapacity>
 \end{verbatim}
+
+\item Conductivity
+\begin{verbatim}
+<thermalConductivity>
+  5.800E2
+</thermalConductivity>
+\end{verbatim}
+
 
 \end{itemize}
 
