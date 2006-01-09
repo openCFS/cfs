@@ -252,6 +252,7 @@
       <xsd:enumeration value="magnetic"/>
       <xsd:enumeration value="piezo"/>
       <xsd:enumeration value="acoustic"/>
+      <xsd:enumeration value="acousticXYZ"/>
       <xsd:enumeration value="electrostatic"/>
       <xsd:enumeration value="smooth"/>
       <xsd:enumeration value="mpcci"/>
