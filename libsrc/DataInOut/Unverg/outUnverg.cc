@@ -458,7 +458,7 @@ namespace CoupledField {
       {
         sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
         title = SolutionTypeToString(solTypes[iSol]);
-     
+
         NodeElemDataTransient(55,title, globalSolution, step, 
                               time, numNodes ,sol.GetDof(solTypes[iSol]));
       }
@@ -581,6 +581,10 @@ namespace CoupledField {
       case ACOU_POTENTIAL:
         return "fluid potential";
         break;
+      case ACOU_PRESSUREXYZ:
+        return "displacement";
+        break;
+
       case ACOU_RHSVAL:
         return "fluid potential";
         break;

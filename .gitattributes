@@ -396,6 +396,8 @@ libsrc/Estimator/spaceerror.hh svneol=native#text/plain
 libsrc/Forms/Makefile -text
 libsrc/Forms/PMLInt.cc svneol=native#text/plain
 libsrc/Forms/PMLInt.hh svneol=native#text/plain
+libsrc/Forms/PMLTransXYZInt.cc svneol=native#text/plain
+libsrc/Forms/PMLTransXYZInt.hh svneol=native#text/plain
 libsrc/Forms/abcInt.cc svneol=native#text/plain
 libsrc/Forms/abcInt.hh svneol=native#text/plain
 libsrc/Forms/acouMechInt.cc svneol=native#text/plain
@@ -505,6 +507,8 @@ libsrc/PDE/acouFlowNoise.cc svneol=native#text/plain
 libsrc/PDE/acouFlowNoise.hh svneol=native#text/plain
 libsrc/PDE/acousticPDE.cc svneol=native#text/plain
 libsrc/PDE/acousticPDE.hh svneol=native#text/plain
+libsrc/PDE/acousticXYZPDE.cc svneol=native#text/plain
+libsrc/PDE/acousticXYZPDE.hh svneol=native#text/plain
 libsrc/PDE/baseEQN.cc svneol=native#text/plain
 libsrc/PDE/baseEQN.hh svneol=native#text/plain
 libsrc/PDE/basePDE.cc svneol=native#text/plain

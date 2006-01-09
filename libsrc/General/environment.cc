@@ -376,6 +376,8 @@ namespace CoupledField {
       out = ACOU_POTENTIAL_DERIV_2;
     else if (in == "acouRHSval")
       out = ACOU_RHSVAL;
+    else if (in == "acouPressureXYZ")
+      out = ACOU_PRESSUREXYZ;
       
     //magnetics
     else if (in == "magPotential")
@@ -482,6 +484,9 @@ namespace CoupledField {
         break;
       case ACOU_RHSVAL:
         out = "acouRHSval";
+        break;
+      case ACOU_PRESSUREXYZ:
+        out = "acouPressureXYZ";
         break;
  
         //magnetics  

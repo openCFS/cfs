@@ -41,12 +41,22 @@ namespace CoupledField{
     
     UInt component = 0;
     
+    //for mechanic PDE
     if ( dof == "ux" )
       component = 1;
     if ( dof == "uy" )
       component = 2;
     if ( dof == "uz" )
       component = 3;
+
+    //for splitted acoustic PDE
+    if ( dof == "px" )
+      component = 1;
+    if ( dof == "py" )
+      component = 2;
+    if ( dof == "pz" )
+      component = 3;
+
 
     // --- DOF for piezo - HARD CODED -
     if ( dof == "ep" )
