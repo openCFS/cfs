@@ -103,10 +103,20 @@
   </xsd:complexType>
 
   <!-- Element type for specifying inhomogeneous neumann conditions -->
-  <!-- Identical to that of inhomogeneous Dirichlet case -->
   <xsd:complexType name="DT_HeatIN">
     <xsd:complexContent>
-      <xsd:extension base="DT_HeatID"/>
+      <xsd:extension base="DT_HeatHD">
+        <xsd:attribute name="value" type="xsd:double" use="optional"
+          default="0.0"/>
+        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
+          default="none"/>
+        <xsd:attribute name="heatTransferCoefficient" type="xsd:double" use="optional"
+          default="0.0"/>
+        <xsd:attribute name="tempSolid" type="xsd:double" use="optional"
+          default="0.0"/>
+        <xsd:attribute name="tempFluid" type="xsd:double" use="optional"
+          default="0.0"/>
+      </xsd:extension>    
     </xsd:complexContent>
   </xsd:complexType>
 
