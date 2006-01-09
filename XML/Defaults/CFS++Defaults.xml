@@ -156,6 +156,20 @@
     </acoustic> 
 
 
+
+    <!-- ***************************************************************** -->
+    <!-- Template for acousticXYZ PDE -->
+    <!-- ***************************************************************** -->
+    <acousticXYZ>
+  
+      <region name="dummyRegion">
+       <damping/>
+      </region>
+      <timeSteppingFormulation/>
+
+    </acousticXYZ> 
+
+
     <!-- ***************************************************************** -->
     <!-- Template for smooth PDE -->
     <!-- ***************************************************************** -->
@@ -195,6 +209,11 @@
   
   <linearSystems>
     <system name="acoustic">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="acousticXYZ">
       <setup/>
       <matrix/>
       <solver><stoppingRule/></solver>

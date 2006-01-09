@@ -45,6 +45,7 @@
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="acoustic"/>
+          <xsd:enumeration value="acousticXYZ"/>
           <xsd:enumeration value="direct"/>
           <xsd:enumeration value="electrostatic"/>
           <xsd:enumeration value="magnetic"/>

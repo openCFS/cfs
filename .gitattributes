@@ -51,6 +51,7 @@ XML/Schemas/CFS_LinearSystem.xsd -text
 XML/Schemas/CFS_Misc.xsd -text
 XML/Schemas/CFS_MpCCI.xsd -text
 XML/Schemas/CFS_PDEacoustic.xsd -text
+XML/Schemas/CFS_PDEacousticXYZ.xsd -text
 XML/Schemas/CFS_PDEbasic.xsd -text
 XML/Schemas/CFS_PDEelectrostatic.xsd -text
 XML/Schemas/CFS_PDEheatConduction.xsd -text
