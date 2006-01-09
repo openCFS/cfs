@@ -542,7 +542,17 @@ namespace CoupledField {
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-    Error("Not implemented here", __FILE__,__LINE__);
+    //    Error("Not implemented here", __FILE__,__LINE__);
+
+    UInt offset = (*solOffset_.find(type)).second;
+
+    Integer eqnNr;
+    UInt  eqnDof;
+  
+    ptEQN_->Node2EQN(nodeNr+1,offset+dof+1,eqnNr,eqnDof);
+
+    if (eqnNr != 0)
+      data_[abs(eqnNr-1)+eqnDof-1] = val;
   }
 
   template<class TYPE>

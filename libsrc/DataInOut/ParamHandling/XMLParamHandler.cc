@@ -85,7 +85,7 @@ namespace CoupledField {
       Error( __FILE__, __LINE__ );
     }
     inFile.close();
-
+ 
     // Generate parser and parse XML parameter file
     rootElem_ = ParseFile( &parser_, fname );
 

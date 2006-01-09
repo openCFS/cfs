@@ -691,6 +691,7 @@ namespace CoupledField {
       if ( dofspernode_ > 1 ) {
         std::string doftype = bcs_id_[i]; 
         dof = domain->GetCoordSystem()->GetVecComponent(inhomDirichDof_[i]);
+	//	std::cout << "dof:" << inhomDirichDof_[i] << " num=" << dof << std::endl;
       }
       
       ptgrid_->GetNodesByName( nodes, bcs_id_[i] ); 

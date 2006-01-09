@@ -23,4 +23,6 @@
 #include "linViscoElastInt.hh"
 #include "PMLInt.hh"
 #include "bdInt.hh"
+#include "laplaceXYZInt.hh"
+#include "PMLTransXYZInt.hh"
 #endif

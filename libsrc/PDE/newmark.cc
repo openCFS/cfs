@@ -17,7 +17,7 @@ namespace CoupledField
     damping_ = FALSE;
 
     alpha_ = 0.0;
-    //alpha_ = -1/3;
+    //    alpha_ = -1/3;
     beta_ = (1-alpha_)*(1-alpha_) / 4.0;
     gamma_ = (1 - 2*alpha_) / 2.0;
 

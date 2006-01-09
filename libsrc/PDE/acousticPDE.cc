@@ -1519,9 +1519,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
 
-        sol_->SetSolutionType(ACOU_PRESSURE);
-        sol_->SetNumDofs(1);
-        sol_->Init();
+	  sol_->SetSolutionType(ACOU_PRESSURE);
+	  sol_->SetNumDofs(1);
+	  sol_->Init();
         }
       }
     }

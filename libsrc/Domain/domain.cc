@@ -404,6 +404,9 @@ namespace CoupledField {
         else
           ptSinglePde_[i]=new AcousticPDE(ptgrid_,ptTimeFunc_,OutFile_);
       }
+      else if (pdeNames[i] == "acousticXYZ")
+        ptSinglePde_[i]=new AcousticXYZPDE(ptgrid_,ptTimeFunc_,OutFile_);
+
       // else if (pdeNames[i] == "acouflownoise")
       // ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
       

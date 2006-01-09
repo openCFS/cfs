@@ -12,6 +12,7 @@
 #include "acouFlowNoise.hh"
 #include "mpcciPDE.hh"
 #include "heatCondPDE.hh"
+#include "acousticXYZPDE.hh"
 
 
 #endif
