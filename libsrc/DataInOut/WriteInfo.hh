@@ -97,8 +97,9 @@ namespace CoupledField {
     void PrintCoil( Coil &coil, AnalysisType &analysistype );
 
     /// prints the process of a nonlinear iteration
-    void WriteNonLinIter(const std::string& pdeName, const UInt iterationCounter,    
-                         const Double residualErr, const Double incrementalErr, double etaLineSearch=0);
+    void WriteNonLinIter(const std::string& pdeName, const UInt iterationCounter,
+                         const Double residualErr, const Double incrementalErr,
+                         double etaLineSearch=0);
 
     /// prints the process of a mulitSequence Analysis
     void WriteMultiSequenceStep(const UInt sequenceStep, 
@@ -112,13 +113,16 @@ namespace CoupledField {
     void WriteHarmonicStep(const std::string& pdeName, const UInt freqStep,    
                            const Double frequency);
 
-    /// writes domain and dof of homogenous boundary conditions
-    void WriteHomBC(const std::string& pdeName, 
-                    const std::string& subDom, UInt dof=0);
+    /// writes domain and dof of homogenous Dirichlet boundary conditions
+    void WriteHomDirBC(const std::string& pdeName, 
+                       const std::string& subDom, UInt dof=0);
 
-    /// writes domain and dof of inhomogenous boundary conditions
-    void WriteInHomBC(const std::string& pdeName,const std::string& subDom, 
-                      const Double& val, const std::string & fnc, const UInt& dof);
+    /// writes domain and dof of inhomogenous Dirichlet boundary conditions
+    void WriteInhomDirBC(const std::string& pdeName,const std::string& subDom, 
+                         const Double& val, const std::string & fnc, const UInt& dof);
+
+    /// writes domain and dof of inhomogenous Neumann boundary conditions
+    void WriteInhomNeuBC(const std::string& pdeName,const std::string& subDom); 
 
     /// writes domain and dof of constraints
     void WriteConstraints(const std::string& pdeName, 
@@ -130,13 +134,15 @@ namespace CoupledField {
     
 
     /// write Result values
-    void WriteResult(std::string pdename, std::string resulttype, StdVector<std::string> & subdoms,
-                     Vector<Double> & results, std::string unit, std::string analysis,
-                     Double analysisVal);
+    void WriteResult(std::string pdename, std::string resulttype,
+                     StdVector<std::string> & subdoms,
+                     Vector<Double> & results, std::string unit, 
+                     std::string analysis, Double analysisVal);
 
-    void WriteResult(std::string pdename, std::string resulttype, StdVector<std::string> & subdoms,
-                     Vector<Complex> & results, std::string unit, std::string analysis,
-                     Double analysisVal);
+    void WriteResult(std::string pdename, std::string resulttype, 
+                     StdVector<std::string> & subdoms,
+                     Vector<Complex> & results, std::string unit, 
+                     std::string analysis, Double analysisVal);
 
     /// just prints a vector
     void PrintVec(Vector<Complex>& vec);
