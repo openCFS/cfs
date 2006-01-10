@@ -623,7 +623,7 @@ namespace CoupledField {
     }
     if ( filename ) {
       std::cerr << "\n\n This error message was brought to you by\n "
-		<< filename << ", line " << numline;
+                << filename << ", line " << numline;
     }
 
 #ifdef TRACE
@@ -662,8 +662,8 @@ namespace CoupledField {
   // **************
   //   WriteHomBC
   // **************
-  void WriteInfo::WriteHomBC( const std::string& pdeName,
-                              const std::string& subDom, UInt dof ) {
+  void WriteInfo::WriteHomDirBC( const std::string& pdeName,
+                                 const std::string& subDom, UInt dof ) {
     ENTER_FCN( "WriteInfo::WriteHomBC" );
     
     if (cfsInfo) {
@@ -680,10 +680,10 @@ namespace CoupledField {
   // ****************
   //   WriteInHomBC
   // ****************
-  void WriteInfo::WriteInHomBC( const std::string& pdeName,
-                                const std::string& subDom, 
-                                const Double& val, const std::string & fnc,
-                                const UInt& dof ) {
+  void WriteInfo::WriteInhomDirBC( const std::string& pdeName,
+                                   const std::string& subDom, 
+                                   const Double& val, const std::string & fnc,
+                                   const UInt& dof ) {
 
     ENTER_FCN( "WriteInfo::WriteInHomBC" );
     
@@ -697,6 +697,22 @@ namespace CoupledField {
       *cfsInfo << myEndl;
     }
   }
+
+  // *******************
+  //   WriteInhomNeuBC
+  // *******************
+  void WriteInfo::WriteInhomNeuBC( const std::string& pdeName,
+                                   const std::string& subDom) { 
+    
+    ENTER_FCN( "WriteInfo::WriteInHomNeuBC" );
+    
+    if (cfsInfo) {
+      *cfsInfo << pdeName << "-PDE: Inhomogenous Neumann BC on \""
+               << subDom  << "\"";
+      *cfsInfo << myEndl;
+    }
+  }
+
 
   // ********************
   //   WriteConstraints
