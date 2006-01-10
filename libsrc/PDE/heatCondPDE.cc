@@ -6,6 +6,7 @@
 #include "heatCondPDE.hh"
 
 #include "Forms/forms_header.hh"
+#include "Forms/heatNeumannInt.hh"
 
 #include "PDE/scalarnodeEQN.hh"
 #include "PDE/trapezoidal.hh"
@@ -44,6 +45,32 @@ namespace CoupledField {
 
   }
 
+  void HeatCondPDE::ReadSpecialBCs() {
+    ENTER_FCN( "HeatCondPDE::ReadSpecialBCs" );
+
+    // Construct vectors for restricted search parameter
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    attrVec = "", "", "";
+    valVec  = "", "", "";
+    keyVec = pdename_,"bcsAndLoads","neumannInhom","heatTransferCoefficient";
+    params->GetList(keyVec, attrVec, valVec, htc_);
+
+    keyVec = pdename_, "bcsAndLoads", "neumannInhom", "tempSolid";
+    params->GetList(keyVec, attrVec, valVec, tSolid_);
+
+    keyVec = pdename_, "bcsAndLoads", "neumannInhom", "tempFluid";
+    params->GetList(keyVec, attrVec, valVec, tFluid_);
+
+    UInt ctr = htc_.GetSize();
+    if ( (tSolid_.GetSize() != ctr) || (tFluid_.GetSize() != ctr) ) {
+      (*error) << "Specify heatTransferCoefficient, tempSolid and tempFluid!";
+      Error( __FILE__, __LINE__ );
+    }
+  }
+
   void HeatCondPDE::DefineIntegrators() {
     ENTER_FCN( "HeatCondPDE::DefineIntegerators" );
 
@@ -52,13 +79,13 @@ namespace CoupledField {
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
-      density =  materialData_[actSD].GetDensity();
-      heatCapacity =  materialData_[actSD].GetHeatCapacity();
-      thermalConductivity =  materialData_[actSD].GetThermalConductivity();
+      density = materialData_[actSD].GetDensity();
+      heatCapacity = materialData_[actSD].GetHeatCapacity();
+      thermalConductivity = materialData_[actSD].GetThermalConductivity();
 
       // stiffness integrator
       coeffstiff = thermalConductivity;
-      BaseForm * bilinearStiff = new LaplaceInt(coeffstiff,isaxi_);        
+      BaseForm * bilinearStiff = new LaplaceInt(coeffstiff,isaxi_);
       IntegratorDescriptor * stiffIntDescr = 
         new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
@@ -75,10 +102,35 @@ namespace CoupledField {
 
       // Finally add the standard integrators
       assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
-      assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]); 
+      assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]);
 
 
     }
+
+    // Neumann boundary condition
+    StdVector<RegionIdType> IdVec;
+    ptgrid_->RegionNameToId( IdVec, bcs_ni_ );
+    for (UInt Id = 0; Id < bcs_ni_.GetSize(); Id++) {
+
+      // we assume the surface normal points out of the domain,
+      //  but we want to take heat flux into the domain positive
+      Double factor = -1.0 * val_ni_[Id];
+      if (htc_[Id] != 0) {
+        factor = htc_[Id] * ( tSolid_[Id] - tFluid_[Id] );
+        
+        Info->PrintF( pdename_, "For inhomogeneous Neumann BC use \
+\n  heat transfer coefficient: %f \n  TempSolid:  %f \n  TempFluid: %f\n\n",
+                      htc_[Id], tSolid_[Id], tFluid_[Id] );
+      }
+      LinearSurfForm *neumannBC = new HeatNeumannInt( factor, isaxi_ );
+      neumannBC->SetVoluInfo( subdoms_, materialData_ );
+
+      assemble_->AddRhsSrcSurfIntegrator( neumannBC,
+                                          IdVec[Id],
+                                          fncnames_ni_[Id],
+                                          nonLin_ );
+    }
+
   }
 
   void HeatCondPDE::DefineSolveStep() {
@@ -116,7 +168,7 @@ namespace CoupledField {
     
     // Intialize the memory of the coupling values
     for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
-      if (ptCoupling_->GetOutputQuantity(i) == HEAT_TEMPERATURE)    {
+      if (ptCoupling_->GetOutputQuantity(i) == HEAT_TEMPERATURE) {
         ptCoupling_->CreateCouplingVector(i,isComplex_);
         
         // now since we need a incremental formulation, 
