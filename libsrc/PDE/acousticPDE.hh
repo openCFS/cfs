@@ -102,7 +102,9 @@ namespace CoupledField {
                               UInt couplingdof );
 
     //! calculate the heat source term for heatConduction PDE
-    void CalcHeatCouplingRHS( );
+    void CalcHeatCouplingRHS( Vector<Double> & energy, 
+                              StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
+                              UInt actCoupling, UInt numCouplingNodes );
   
     //! 
     void SetMechanicCoupling() {
@@ -141,6 +143,13 @@ namespace CoupledField {
     // solving of nonlinear acoustics
     NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
     Vector<Double> RhsLinVal_;
+
+
+    // ========================
+    // coupling
+    // ========================
+    //! assigns each coupling element node the according Coupling Node number
+    StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; 
 
 
     // ========================

@@ -385,205 +385,205 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       params->GetList( keyVec, attrVec, valVec, pmlInfo);
 
       if (pmlInfo.GetSize() > 0) {
-	//read data for PML layer
+        //read data for PML layer
 
-	//type of PML damping
-	std::string dampingTypePML;
+        //type of PML damping
+        std::string dampingTypePML;
 
-	// inner / outer region
-	Matrix<Double> inner;
-	Matrix<Double> outer;
+        // inner / outer region
+        Matrix<Double> inner;
+        Matrix<Double> outer;
 
-	//damping factor
-	Double dampPML;
+        //damping factor
+        Double dampPML;
 
-	ReadDataPML(dampingTypePML, inner, dampPML, actRegion);
-	dampPML *= c0;
+        ReadDataPML(dampingTypePML, inner, dampPML, actRegion);
+        dampPML *= c0;
 
-	GetPMLLayerData(inner, outer, actSD);
+        GetPMLLayerData(inner, outer, actSD);
 
-	//====================================================================
-	//	 stiffness integrator for PML
-	//====================================================================
+        //====================================================================
+        //	 stiffness integrator for PML
+        //====================================================================
 
-	std::string formsType = "laplaceInt";
+        std::string formsType = "laplaceInt";
 
-	//set real part
-	BaseForm * bilinearStiffReal = 
-	  new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
+        //set real part
+        BaseForm * bilinearStiffReal = 
+          new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
 
-	bilinearStiffReal->SetPosPML(inner,outer);
-	piezoMaterialType matType = REALMATERIALPARAMETER;
-	bilinearStiffReal->SetPiezoMaterialType(matType);
+        bilinearStiffReal->SetPosPML(inner,outer);
+        piezoMaterialType matType = REALMATERIALPARAMETER;
+        bilinearStiffReal->SetPiezoMaterialType(matType);
 
-	IntegratorDescriptor * stiffIntDescrReal = 
-	  new IntegratorDescriptor(bilinearStiffReal, STIFFNESS);
+        IntegratorDescriptor * stiffIntDescrReal = 
+          new IntegratorDescriptor(bilinearStiffReal, STIFFNESS);
 
-	stiffIntDescrReal->SetPDEIds(this, this);
-	stiffIntDescrReal->SetPiezoMaterialType(matType);
-	assemble_->AddIntegrator(stiffIntDescrReal, subdoms_[actSD]);
+        stiffIntDescrReal->SetPDEIds(this, this);
+        stiffIntDescrReal->SetPiezoMaterialType(matType);
+        assemble_->AddIntegrator(stiffIntDescrReal, subdoms_[actSD]);
 
-	//set imaginary part
-	BaseForm * bilinearStiffImag = 
-	  new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
+        //set imaginary part
+        BaseForm * bilinearStiffImag = 
+          new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
 
-	bilinearStiffImag->SetPosPML(inner,outer);
-	matType = IMAGMATERIALPARAMETER;
-	bilinearStiffImag->SetPiezoMaterialType(matType);
+        bilinearStiffImag->SetPosPML(inner,outer);
+        matType = IMAGMATERIALPARAMETER;
+        bilinearStiffImag->SetPiezoMaterialType(matType);
 
-	IntegratorDescriptor * stiffIntDescrImag = 
-	  new IntegratorDescriptor(bilinearStiffImag, STIFFNESS);
-
-
-	stiffIntDescrImag->SetPDEIds(this, this);
-	stiffIntDescrImag->SetPiezoMaterialType(matType);
-	assemble_->AddIntegrator(stiffIntDescrImag, subdoms_[actSD]);
+        IntegratorDescriptor * stiffIntDescrImag = 
+          new IntegratorDescriptor(bilinearStiffImag, STIFFNESS);
 
 
-	//====================================================================
-	//	 mass integrator for PML
-	//====================================================================
-	formsType = "massInt";
+        stiffIntDescrImag->SetPDEIds(this, this);
+        stiffIntDescrImag->SetPiezoMaterialType(matType);
+        assemble_->AddIntegrator(stiffIntDescrImag, subdoms_[actSD]);
 
-	//	Double dampMass = (2.0/3.0)*density/c0;
-	Double massFactor = density/(c0*c0);
 
-	//set real part
-	BaseForm * bilinearMassReal = 
-	  new PMLInt(formsType, massFactor, dampingTypePML, dampPML, isaxi_);
+        //====================================================================
+        //	 mass integrator for PML
+        //====================================================================
+        formsType = "massInt";
 
-	bilinearMassReal->SetPosPML(inner,outer);
-	matType = REALMATERIALPARAMETER;
-	bilinearMassReal->SetPiezoMaterialType(matType);
+        //	Double dampMass = (2.0/3.0)*density/c0;
+        Double massFactor = density/(c0*c0);
 
-	IntegratorDescriptor * massIntDescrReal = 
-	  new IntegratorDescriptor(bilinearMassReal, MASS);
+        //set real part
+        BaseForm * bilinearMassReal = 
+          new PMLInt(formsType, massFactor, dampingTypePML, dampPML, isaxi_);
 
-	massIntDescrReal->SetPDEIds(this, this);
-	massIntDescrReal->SetPiezoMaterialType(matType);
-	assemble_->AddIntegrator(massIntDescrReal, subdoms_[actSD]);
+        bilinearMassReal->SetPosPML(inner,outer);
+        matType = REALMATERIALPARAMETER;
+        bilinearMassReal->SetPiezoMaterialType(matType);
 
-	//set imaginary part
-	BaseForm * bilinearMassImag = 
-	  new PMLInt(formsType, massFactor, dampingTypePML, dampPML, isaxi_);
+        IntegratorDescriptor * massIntDescrReal = 
+          new IntegratorDescriptor(bilinearMassReal, MASS);
 
-	bilinearMassImag->SetPosPML(inner,outer);
-	matType = IMAGMATERIALPARAMETER;
-	bilinearMassImag->SetPiezoMaterialType(matType);
+        massIntDescrReal->SetPDEIds(this, this);
+        massIntDescrReal->SetPiezoMaterialType(matType);
+        assemble_->AddIntegrator(massIntDescrReal, subdoms_[actSD]);
 
-	IntegratorDescriptor * massIntDescrImag = 
-	  new IntegratorDescriptor(bilinearMassImag, MASS);
+        //set imaginary part
+        BaseForm * bilinearMassImag = 
+          new PMLInt(formsType, massFactor, dampingTypePML, dampPML, isaxi_);
 
-	massIntDescrImag->SetPDEIds(this, this);
-	massIntDescrImag->SetPiezoMaterialType(matType);
-	assemble_->AddIntegrator(massIntDescrImag, subdoms_[actSD]);
+        bilinearMassImag->SetPosPML(inner,outer);
+        matType = IMAGMATERIALPARAMETER;
+        bilinearMassImag->SetPiezoMaterialType(matType);
+
+        IntegratorDescriptor * massIntDescrImag = 
+          new IntegratorDescriptor(bilinearMassImag, MASS);
+
+        massIntDescrImag->SetPDEIds(this, this);
+        massIntDescrImag->SetPiezoMaterialType(matType);
+        assemble_->AddIntegrator(massIntDescrImag, subdoms_[actSD]);
       }
 
       else {
-	// stiffness integrator 
-	BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);        
-	stiffIntDescr = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+        // stiffness integrator 
+        BaseForm * bilinearStiff = new LaplaceInt(density,isaxi_);        
+        stiffIntDescr = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 
-	stiffIntDescr->SetPDEIds(this, this);
+        stiffIntDescr->SetPDEIds(this, this);
 
-	// mass integrator
-	coeffmass = density / (c0*c0);
+        // mass integrator
+        coeffmass = density / (c0*c0);
 
-	BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
-	IntegratorDescriptor * massIntDescr = 
-	  new IntegratorDescriptor(bilinearMass, MASS);
+        BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
+        IntegratorDescriptor * massIntDescr = 
+          new IntegratorDescriptor(bilinearMass, MASS);
 
-	massIntDescr->SetPDEIds(this, this);
+        massIntDescr->SetPDEIds(this, this);
       
 
-	// ********************************************************************
-	//   Additional terms for damping
-	// ********************************************************************
+        // ********************************************************************
+        //   Additional terms for damping
+        // ********************************************************************
 
-	if ( dampingList_.size() > 0 ) {
+        if ( dampingList_.size() > 0 ) {
 	  
-	  // We check, if damping has been specified for all regions.
-	  if ( dampingList_.size() != subdoms_.GetSize() ) {
-	    (*warning) << "Mismatch between dampingList_ and subdoms_!"
-		       << "Size(dampingList_): " << dampingList_.size()
-		       << "Size(subdoms_): " << subdoms_.GetSize();
-	    Warning(__FILE__, __LINE__);  
-	  }
+          // We check, if damping has been specified for all regions.
+          if ( dampingList_.size() != subdoms_.GetSize() ) {
+            (*warning) << "Mismatch between dampingList_ and subdoms_!"
+                       << "Size(dampingList_): " << dampingList_.size()
+                       << "Size(subdoms_): " << subdoms_.GetSize();
+            Warning(__FILE__, __LINE__);  
+          }
 	  
-	  if (dampingList_[subdoms_[actSD]] == RAYLEIGH) {
-	    // This works even after assemble_->AddIntegrator() is executed
-	    //   because of the pointers...
+          if (dampingList_[subdoms_[actSD]] == RAYLEIGH) {
+            // This works even after assemble_->AddIntegrator() is executed
+            //   because of the pointers...
 	    
-	    // stiffness part
-	    stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
+            // stiffness part
+            stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
 	    
-	    // mass part
-	    massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
-	  }
+            // mass part
+            massIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
+          }
 	  
 	  
-	  else if ( dampingList_[subdoms_[actSD]] == THERMOVISCOUS ) {
-	    coeffdamp  =  density * 2.0 * alpha * c0;
-	    BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
-	    IntegratorDescriptor * dampIntDescr = 
-	      new IntegratorDescriptor(bilinearStiff, DAMPING);
+          else if ( dampingList_[subdoms_[actSD]] == THERMOVISCOUS ) {
+            coeffdamp  =  density * 2.0 * alpha * c0;
+            BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
+            IntegratorDescriptor * dampIntDescr = 
+              new IntegratorDescriptor(bilinearStiff, DAMPING);
 	    
-	    dampIntDescr->SetPDEIds(this, this);   
-	    assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
-	  }
+            dampIntDescr->SetPDEIds(this, this);   
+            assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+          }
 	  
-	  else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
-		    dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ) {
-	    coeffdamp = - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
+          else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
+                    dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ) {
+            coeffdamp = - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
 
-	    BaseForm * bilinearDamp  = 
-	      new MassInt(coeffdamp, dofspernode_, isaxi_);
-	    bilinearDamp->SetFracDamping();
-	    // formulation using DAMPING matrix
-	    // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
-	    // IntegratorDescriptor * dampIntDescr = 
-	    //   new IntegratorDescriptor(bilinearDamp, DAMPING);
+            BaseForm * bilinearDamp  = 
+              new MassInt(coeffdamp, dofspernode_, isaxi_);
+            bilinearDamp->SetFracDamping();
+            // formulation using DAMPING matrix
+            // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
+            // IntegratorDescriptor * dampIntDescr = 
+            //   new IntegratorDescriptor(bilinearDamp, DAMPING);
 	    
-	    // two matrices formulation
-	    // added to STIFFNESS matrix because, because 
-	    //   matrix_factors[STIFFNESS] = 1.0
-	    IntegratorDescriptor * dampIntDescr = 
-	      new IntegratorDescriptor(bilinearDamp, STIFFNESS);
+            // two matrices formulation
+            // added to STIFFNESS matrix because, because 
+            //   matrix_factors[STIFFNESS] = 1.0
+            IntegratorDescriptor * dampIntDescr = 
+              new IntegratorDescriptor(bilinearDamp, STIFFNESS);
 	    
-	    dampIntDescr->SetPDEIds(this, this);
-	    assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
-	  }
+            dampIntDescr->SetPDEIds(this, this);
+            assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+          }
 	  
-	  else if  ( dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
-		     dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT ) {
-	    coeffdamp =  - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
-	    // prefactor of blank alg
-	    coeffdamp *= exp(-gammaln(1.0- (beta- 1.0)) ); 
-	    // weight factor of index 0
-	    coeffdamp *= 1.0/(1.0- (beta- 1.0));           
-	    BaseForm * bilinearDamp  = 
-	      new MassInt(coeffdamp, dofspernode_, isaxi_);
-	    bilinearDamp->SetFracDamping();
-	    // formulation using DAMPING matrix
-	    // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
-	    // IntegratorDescriptor * dampIntDescr = 
-	    //   new IntegratorDescriptor(bilinearDamp, DAMPING);
+          else if  ( dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
+                     dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT ) {
+            coeffdamp =  - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
+            // prefactor of blank alg
+            coeffdamp *= exp(-gammaln(1.0- (beta- 1.0)) ); 
+            // weight factor of index 0
+            coeffdamp *= 1.0/(1.0- (beta- 1.0));           
+            BaseForm * bilinearDamp  = 
+              new MassInt(coeffdamp, dofspernode_, isaxi_);
+            bilinearDamp->SetFracDamping();
+            // formulation using DAMPING matrix
+            // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
+            // IntegratorDescriptor * dampIntDescr = 
+            //   new IntegratorDescriptor(bilinearDamp, DAMPING);
 	    
-	    // two matrices formulation
-	    // added to STIFFNESS matrix because, because 
-	    //   matrix_factors[STIFFNESS] = 1.0
-	    IntegratorDescriptor * dampIntDescr = 
-	      new IntegratorDescriptor(bilinearDamp, STIFFNESS);
+            // two matrices formulation
+            // added to STIFFNESS matrix because, because 
+            //   matrix_factors[STIFFNESS] = 1.0
+            IntegratorDescriptor * dampIntDescr = 
+              new IntegratorDescriptor(bilinearDamp, STIFFNESS);
 	    
-	    dampIntDescr->SetPDEIds(this, this);
-	    assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
+            dampIntDescr->SetPDEIds(this, this);
+            assemble_->AddIntegrator(dampIntDescr, subdoms_[actSD]);
 
-	  }
-	}
+          }
+        }
 
-	// Finally add the stiffness/mass integrators
-	assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
-	assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]); 
+        // Finally add the stiffness/mass integrators
+        assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
+        assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]); 
       }
     }
   
@@ -682,9 +682,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
 
 
-  // ======================================================
+  // =========================================================================
   // COUPLING SECTION
-  // ======================================================
+  // =========================================================================
 
   void AcousticPDE::InitCoupling(PDECoupling * Coupling) {
     
@@ -692,16 +692,78 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     
     isIterCoupled_ = TRUE;
     ptCoupling_   = Coupling;
+
+    const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
+
+    StdVector<StdVector<UInt> > elemNodeToCouplingNode_tmp;
+    elemNodeToCouplingNode_.Resize(numCouplings);
     
-    // Intialize the memory of the coupling values
-    for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
-      if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE)    {
-        ptCoupling_->CreateCouplingVector(i,isComplex_);
-        
+    for (UInt i = 0; i < numCouplings; i++) {
+
+      // Intialize the memory of the coupling values
+      ptCoupling_->CreateCouplingVector(i,isComplex_);
+
+      if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE) {
         // now since we need a incremental formulation, 
         //  initialize some necessary vectors
         isIncrFormulation_ = TRUE;
       }
+      else if (ptCoupling_->GetOutputQuantity(i) == ACOU_POWERDENSITY) {
+
+        //get the element-node to coupling node matching
+        StdVector<std::string> couplRegions;
+        ptCoupling_->GetOutputRegions(i, couplRegions);
+        StdVector<RegionIdType> regionIds;
+        ptgrid_->RegionNameToId( regionIds, couplRegions );
+
+        //Get total number of coupling elements
+        UInt totalCouplingElems = ptgrid_->GetNumElems( regionIds );
+        
+        elemNodeToCouplingNode_tmp.Clear();
+        elemNodeToCouplingNode_tmp.Resize(totalCouplingElems);
+
+        UInt offset = 0;
+        for ( UInt reg = 0; reg < couplRegions.GetSize(); reg++ ) {
+
+          // find subdomain index = SDidx
+          Integer SDidx = subdoms_.Find( regionIds[reg] );
+          if (SDidx==-1) {
+            (*error) << "AcousticPDE: Coupling region is not within the "
+                     << "subdomains of the PDE!";
+            Error( __FILE__, __LINE__ );
+          }
+
+          // get elements belonging to subdomain
+          StdVector<Elem*> elemssd;
+          ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);
+
+          StdVector<UInt> * couplingnodes = NULL;
+          ptCoupling_->GetOutputNodes(i, couplingnodes);
+          if ( couplingnodes == NULL ) {
+            (*error) << "The pointer 'couplingnodes' is NULL!";
+            Error( __FILE__, __LINE__ );
+          }
+
+          for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
+            StdVector<UInt> & connecth = elemssd[actEl]->connect;
+            elemNodeToCouplingNode_tmp[offset+actEl].Resize(connecth.GetSize());
+
+            for ( UInt elnode = 0; elnode < connecth.GetSize(); elnode++ ) {
+              for (UInt cnode=0; cnode<(*couplingnodes).GetSize(); cnode++) {
+
+                if (connecth[elnode] == (*couplingnodes)[cnode] ) {
+                  elemNodeToCouplingNode_tmp[offset+actEl][elnode] = cnode;
+                  break;
+                }
+              }
+            }
+          }
+          //in the case, that we have more than one coupling region!
+          offset = elemssd.GetSize();
+        }
+        elemNodeToCouplingNode_[i]  = elemNodeToCouplingNode_tmp;
+      }
+
     }
   }
   
@@ -715,6 +777,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     StdVector<Elem*> * couplingElems = NULL;
     StdVector<UInt> * couplingNodes = NULL;
     CFSVector * temp_values = NULL;
+    UInt regionCount = 0;
   
     // at first, check if this PDE is iterative coupled
     if (isIterCoupled_ == FALSE)
@@ -722,6 +785,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
     // loop over all output coupling quantities
     for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
+
       quantity = ptCoupling_->GetOutputQuantity(i);
       ptCoupling_->GetOutputValues(i, temp_values);
 
@@ -730,16 +794,21 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
 
       switch(ptCoupling_->GetOutputType(i)) {
-
       case NODE:
+        
+        ptCoupling_->GetOutputNodes(i, couplingNodes);
+        
         if (quantity == ACOU_FORCE) {
-          ptCoupling_->GetOutputElements(i, couplingElems);
-          ptCoupling_->GetOutputNodes(i, couplingNodes);
-          dof = ptCoupling_->GetOutputDof(i);
-          
 
-          CalcMechCouplingRHS(couplingElems, *couplingNodes,
-                              *values, dof);                              
+          ptCoupling_->GetOutputElements(i, couplingElems);
+          dof = ptCoupling_->GetOutputDof(i);
+          CalcMechCouplingRHS(couplingElems, *couplingNodes, *values, dof);
+        }
+        else if (quantity == ACOU_POWERDENSITY) {
+        
+          CalcHeatCouplingRHS(*values, elemNodeToCouplingNode_[regionCount],
+                              i, couplingNodes->GetSize());
+          regionCount++;
         }
         break;
 
@@ -807,8 +876,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       // Assign correct density
       density = materialData_[matIndex].GetDensity();
       
-      
-      
       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
       bilinear_mass->CalcElementMatrix(ptCoord, elemMat);
       delete bilinear_mass;     
@@ -822,8 +889,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       
       // the normal vector points outwards of the MECHANICAL domain
       // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
-      // ptgrid_->CalcSurfNormalOutOfVol(n, *actCoupleElem, 
-      // *(*interfaceVolElems)[actElem]); 
       ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
       normal *= sign;
 
@@ -843,31 +908,84 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     }
   }
 
-  void AcousticPDE::CalcHeatCouplingRHS( ) {
+  void AcousticPDE::
+  CalcHeatCouplingRHS(Vector<Double> & energy, 
+                      StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
+                      UInt actCoupling, UInt numCouplingNodes) {
+
     ENTER_FCN( "AcousticPDE::CalcHeatCouplingRHS" );
+    
+    // get solution and first time derivative
+    NodeStoreSol<Double> * soltmp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    
+    // prepare first derivative of solution, because solDeriv1_ is not
+    //  created, if not specified for output in the xml-file
+    solDeriv1_.SetNumSolutions(1);
+    solDeriv1_.SetNumNodes(numPDENodes_);
+    solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
+    solDeriv1_.SetNumDofs(1);
+    solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_); 
+    solDeriv1_.Init(0);
+    // get the vector
+    solDeriv1_.SetAlgSysVector(getS1());
 
+    // get the coupling regions
+    StdVector<std::string> couplRegions;
+    ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
+    StdVector<RegionIdType> regionIds;
+    ptgrid_->RegionNameToId( regionIds, couplRegions );
 
+    // Operator for calculating energy density
+    AcouEnergyOp *EnergyOp;
+    EnergyOp = new AcouEnergyOp( ptgrid_, this, eqnData_, isaxi_ );
 
+    // initialize output vector
+    energy.Init(0.0);
 
+    Vector<Double> elemEnergy;
+    
+    UInt offset = 0;
+    for (UInt reg=0; reg<couplRegions.GetSize(); reg++) {
+      
+      // find subdomain index
+      Integer SDidx = subdoms_.Find( regionIds[reg] );
+      Double density =  materialData_[SDidx].GetDensity();
+      
+      // get elements belonging to subdomain
+      StdVector<Elem*> elemssd;
+      ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);
+      
+      for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
 
+        EnergyOp->CalcElemEnergy(elemEnergy, elemssd[actEl], density);
 
+        // Add the element energy to the according coupling node
+        StdVector<UInt> connecth = elemssd[actEl]->connect;
+        for (UInt elnode=0; elnode<connecth.GetSize(); elnode++) {
+
+          energy[elemNodeToCouplingNode[actEl+offset][elnode]]
+            += elemEnergy[elnode];
+        }
+      }
+      
+      //in the case, that we have more than one coupling region!
+      offset = elemssd.GetSize();
+    }
   }
-
-
-
-
 
   Boolean AcousticPDE::HasOutput(SolutionType output) {
     ENTER_FCN( "AcousticPDE::HasOutput" );
-    if (output == ACOU_FORCE) {
+    if ((output == ACOU_FORCE) || (output == ACOU_POWERDENSITY)) {
       return TRUE;
     }
     return FALSE;
   }
 
-  // ======================================================
+
+
+  // =========================================================================
   // POSTPROCESSING SECTION
-  // ======================================================
+  // =========================================================================
 
   void AcousticPDE::PostProcess() {
     ENTER_FCN( "AcousticPDE::PostProcess" );
@@ -973,7 +1091,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       const UInt nrIntPts= ptElem->GetNumIntPoints();
       const Vector<Double> & intWeights = ptElem->GetIntWeights();
 
-      Double forceAtIPs=0; // force value at integration point
+      Vector<Double> forceElem(1); // is defined as vector, because 
+      // the method SetElemResult can only handle Vector<Double>
+      forceElem[0] = 0;
       Double jacDet;
       for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
 
@@ -984,28 +1104,21 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         if (isaxi_) {
           Vector<Double> coordAtIP;
             coordAtIP = ptCoord * shapeFnc;
-            forceAtIPs +=  (intWeights[actIntPt-1] * jacDet
+            forceElem[0] +=  (intWeights[actIntPt-1] * jacDet
                             * 2 * PI) * coordAtIP[0] * (valueElem * shapeFnc);
         }
         else {
-          forceAtIPs +=  intWeights[actIntPt-1] * jacDet 
+          forceElem[0] +=  intWeights[actIntPt-1] * jacDet 
             * (shapeFnc * valueElem);
         }
       }
 
-      // get normal of surface element
-      //Vector<Double> normal;
-      //ptgrid_->CalcSurfNormal(normal,*actSaveElem);
-      //normal *= (Double) actSaveElem->normalSign;
-
-      Vector<Double> forceEntry(1);
-      forceEntry = forceAtIPs;
       // map element result back in global set of results
       UInt pdeElem;
       pdeElem = eqnData_->Mesh2PDEElem(actSaveElem->elemNum);
-      acouForce_.SetElemResult(pdeElem-1,forceEntry);
+      acouForce_.SetElemResult(pdeElem-1,forceElem);
 
-      forceVec[actEl] = forceAtIPs;
+      forceVec[actEl] = forceElem[0];
     }
 
     sumAcouForce_ = 0;
@@ -1519,9 +1632,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
 
-	  sol_->SetSolutionType(ACOU_PRESSURE);
-	  sol_->SetNumDofs(1);
-	  sol_->Init();
+          sol_->SetSolutionType(ACOU_PRESSURE);
+          sol_->SetNumDofs(1);
+          sol_->Init();
         }
       }
     }
@@ -1584,7 +1697,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
   void AcousticPDE::ReadDataPML(std::string& dampingTypePML, Matrix<Double>& inner, 
-				Double& dampPML, RegionIdType actRegion) {
+                                Double& dampPML, RegionIdType actRegion) {
   
     ENTER_FCN( "AcousticPDE::ReadDataPML" );
 
@@ -1651,7 +1764,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
   void AcousticPDE::GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,
-				    UInt actSD)  {  
+                                    UInt actSD)  {  
 
     ENTER_FCN( "AcousticPDE::GetPMLLayerData" );
 
@@ -1674,33 +1787,33 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       Matrix<Double> ptCoord;
       GetElemCoords(connecth, ptCoord);
       for (UInt i=0; i< ptCoord.GetSizeCol(); i++) {
-	//minXPML
-	if ( ptCoord[0][i] < outer[0][0] )
-	  outer[0][0] = ptCoord[0][i];
+        //minXPML
+        if ( ptCoord[0][i] < outer[0][0] )
+          outer[0][0] = ptCoord[0][i];
 
-	//minYPML
-	if ( ptCoord[1][i] < outer[0][1] )
-	  outer[0][1] = ptCoord[1][i];
+        //minYPML
+        if ( ptCoord[1][i] < outer[0][1] )
+          outer[0][1] = ptCoord[1][i];
 
-	if (inner.GetSizeCol() > 2 ) {
-	  //minZPML
-	  if ( ptCoord[2][i] < outer[0][2] )
-	    outer[0][2] = ptCoord[2][i];
-	}
+        if (inner.GetSizeCol() > 2 ) {
+          //minZPML
+          if ( ptCoord[2][i] < outer[0][2] )
+            outer[0][2] = ptCoord[2][i];
+        }
 
-	//maxXPML
-	if ( ptCoord[0][i] > outer[1][0] )
-	  outer[1][0] = ptCoord[0][i];
+        //maxXPML
+        if ( ptCoord[0][i] > outer[1][0] )
+          outer[1][0] = ptCoord[0][i];
 
-	//maxYPML
-	if ( ptCoord[1][i] > outer[1][1] )
-	  outer[1][1] = ptCoord[1][i];
+        //maxYPML
+        if ( ptCoord[1][i] > outer[1][1] )
+          outer[1][1] = ptCoord[1][i];
 
-	if (inner.GetSizeCol() > 2 ) {
-	  //maxZPML
-	  if ( ptCoord[2][i] > outer[1][2] )
-	    outer[1][2] = ptCoord[2][i];
-	}
+        if (inner.GetSizeCol() > 2 ) {
+          //maxZPML
+          if ( ptCoord[2][i] > outer[1][2] )
+            outer[1][2] = ptCoord[2][i];
+        }
       }
 
     }

@@ -22,6 +22,9 @@ namespace CoupledField {
     //! Destructor
     virtual ~HeatCondPDE(){};
 
+    //! Read special boundary conditions
+    void ReadSpecialBCs();
+
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
@@ -66,10 +69,10 @@ namespace CoupledField {
     //! Init the time stepping
     void InitTimeStepping();
 
-
-
-
-
+    // variation of inhomogeneous Neumann boundary condition    
+    StdVector<Double> htc_; //!< heat transfer coefficient
+    StdVector<Double> tSolid_; //!< initial temperature of body
+    StdVector<Double> tFluid_; //!< ambient temperature 
 
 
 

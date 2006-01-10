@@ -550,7 +550,7 @@ namespace CoupledField {
     
     ENTER_FCN( "SinglePDE::WriteGeneralPDEdefines" );
     
-    //BC-section
+    // Boundary condition section
     for (UInt i=0; i< bcs_hd_.GetSize(); i++) {
       UInt dof;
       std::string doftype = bcs_hd_[i];
@@ -559,9 +559,8 @@ namespace CoupledField {
       else
         dof = 1;
       
-      Info->WriteHomBC(pdename_, bcs_hd_[i], dof);      
+      Info->WriteHomDirBC(pdename_, bcs_hd_[i], dof);      
     }
-    
     for (UInt i=0; i< bcs_id_.GetSize(); i++) {
       UInt dof;
       std::string doftype = bcs_id_[i];
@@ -572,9 +571,13 @@ namespace CoupledField {
         dof = 1;
       }
 
-      Info->WriteInHomBC( pdename_, bcs_id_[i], val_id_[i], fncnames_id_[i],
-                          dof );        
+      Info->WriteInhomDirBC( pdename_, bcs_id_[i], val_id_[i],
+                             fncnames_id_[i], dof );        
     }
+    for (UInt i=0; i< bcs_ni_.GetSize(); i++) {
+      Info->WriteInhomNeuBC( pdename_, bcs_ni_[i] );        
+    }
+
 
     // Constraints
     for (UInt i=0; i<constraints_.GetSize(); i++ ) {
