@@ -52,12 +52,12 @@ namespace CoupledField
     /*!
       \param elemField (output) Element vector of gradient field
       \param ptElem (input) Pointer to element
-      \param LCoord (input) Local coordinates of evaluation point
+      \param lCoord (input) Local coordinates of evaluation point
       \param factor (input) Scaling factor (e.g. permittivity for E-Field)
     */
     virtual void CalcElemGradField(CFSVector & elemField,
                                    const Elem * ptElement,
-                                   const Vector<Double> & LCoord,
+                                   const Vector<Double> & lCoord,
                                    const Double factor);
   
 
