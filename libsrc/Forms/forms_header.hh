@@ -25,4 +25,5 @@
 #include "bdInt.hh"
 #include "laplaceXYZInt.hh"
 #include "PMLTransXYZInt.hh"
+#include "acouPowerDensityOp.hh"
 #endif
