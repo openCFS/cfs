@@ -909,9 +909,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
   }
 
   void AcousticPDE::
-  CalcHeatCouplingRHS(Vector<Double> & energy, 
+  CalcHeatCouplingRHS(Vector<Double> & sourceValue, 
                       StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
-                      UInt actCoupling, UInt numCouplingNodes) {
+                      UInt actCoupling,
+                      UInt numCouplingNodes) {
 
     ENTER_FCN( "AcousticPDE::CalcHeatCouplingRHS" );
     
@@ -936,13 +937,13 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     ptgrid_->RegionNameToId( regionIds, couplRegions );
 
     // Operator for calculating energy density
-    AcouEnergyOp *EnergyOp;
-    EnergyOp = new AcouEnergyOp( ptgrid_, this, eqnData_, isaxi_ );
+    AcouPowerDensityOp *SourceOp;
+    SourceOp = new AcouPowerDensityOp( ptgrid_, this, eqnData_, isaxi_ );
 
     // initialize output vector
-    energy.Init(0.0);
+    sourceValue.Init(0.0);
 
-    Vector<Double> elemEnergy;
+    Vector<Double> elemPowerDensity;
     
     UInt offset = 0;
     for (UInt reg=0; reg<couplRegions.GetSize(); reg++) {
@@ -957,14 +958,14 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       
       for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
 
-        EnergyOp->CalcElemEnergy(elemEnergy, elemssd[actEl], density);
+        SourceOp->CalcElemPD(elemPowerDensity, elemssd[actEl], density);
 
         // Add the element energy to the according coupling node
         StdVector<UInt> connecth = elemssd[actEl]->connect;
         for (UInt elnode=0; elnode<connecth.GetSize(); elnode++) {
 
-          energy[elemNodeToCouplingNode[actEl+offset][elnode]]
-            += elemEnergy[elnode];
+          sourceValue[elemNodeToCouplingNode[actEl+offset][elnode]]
+            += elemPowerDensity[elnode];
         }
       }
       
@@ -1696,8 +1697,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
   // ***********************************************************************
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
-  void AcousticPDE::ReadDataPML(std::string& dampingTypePML, Matrix<Double>& inner, 
-                                Double& dampPML, RegionIdType actRegion) {
+  void AcousticPDE::ReadDataPML(std::string& dampingTypePML, 
+                                Matrix<Double>& inner, 
+                                Double& dampPML, 
+                                RegionIdType actRegion) {
   
     ENTER_FCN( "AcousticPDE::ReadDataPML" );
 
@@ -1763,7 +1766,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
   // ***********************************************************************
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
-  void AcousticPDE::GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,
+  void AcousticPDE::GetPMLLayerData(Matrix<Double>& inner, 
+                                    Matrix<Double>& outer,
                                     UInt actSD)  {  
 
     ENTER_FCN( "AcousticPDE::GetPMLLayerData" );
