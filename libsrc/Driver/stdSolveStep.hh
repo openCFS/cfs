@@ -49,7 +49,7 @@ namespace CoupledField
     virtual void StepStaticNonLin( const Boolean reset )
     {Error("StepStaticNonLin not implemented!",__FILE__,__LINE__);};
     
-    //! routine for acttions after the SolveStep-method
+    //! routine for actions after the SolveStep-method
     virtual void PostStepStatic() {;};
 
 

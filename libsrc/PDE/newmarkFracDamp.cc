@@ -262,6 +262,12 @@ beta and gamma!\n" );
 
     solderiv2_ = (solnew - solpred_) * a2_;
     solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
+  }
+
+
+  void NewmarkFracDamp::AdvanceTimestep(Vector<Double>& solnew)
+  {
+    ENTER_FCN( "NewmarkFracDamp::AdvanceTimestep" );
 
     // store function values, reverse storing!!!!
     // solMemory_[0]=p_n

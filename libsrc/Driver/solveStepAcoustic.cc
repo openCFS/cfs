@@ -148,8 +148,8 @@ namespace CoupledField {
       }
         
       // boolean variable, holds condition if another iteration step
-      //   is necessary
-      performOneMoreStep =    (incrementalErr > incStopCrit_);
+      //  is necessary
+      performOneMoreStep = (incrementalErr > incStopCrit_);
       
     } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 

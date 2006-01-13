@@ -154,11 +154,11 @@ namespace CoupledField {
 
     // /DELETE
     // if (PDE_.laststepcalc_ == kstep && kstep != 1) {
-//       PDE_.recalc_ = TRUE;
-//     }
-//     else {
-//       PDE_.laststepcalc_= kstep;
-//     }
+    //       PDE_.recalc_ = TRUE;
+    //     }
+    //     else {
+    //       PDE_.laststepcalc_= kstep;
+    //     }
 
     if (PDE_.nonLin_) {
       StepTransNonLin(reset);
@@ -277,30 +277,23 @@ namespace CoupledField {
 
       PDE_.SaveSolution(actSol_.GetPointer(), length);
     }
-    else 
-      {
-        //PDE_.sol_->CopyFromAlgSysDataPointer(ptsol);
-        length = algsys_->GetSolutionVal(ptsol);
-        PDE_.SaveSolution(ptsol,length);
-      }
-    
-
-    
-    if (!PDE_.isIterCoupled_) {
-      Vector<Double> & solHelp = 
-        dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
-       PDE_.TS_alg_->Corrector(solHelp);
+    else {
+      length = algsys_->GetSolutionVal(ptsol);
+      PDE_.SaveSolution(ptsol,length);
     }
-    
-    // if (!PDE_.isIterCoupled_) {
-//       std::cerr << "Doing Corrector step of PDE " << PDE_.GetName() << std::endl;
-//       length = algsys_->GetSolutionVal(ptsol);
-//       solVec.Replace( length, ptsol, FALSE );
-//       PDE_.TS_alg_->Corrector(solVec);
-//     }
-    
 
-     
+
+    Vector<Double> & solHelp = 
+      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+
+    //std::cerr << "Doing Corrector step of PDE " << PDE_.GetName() << std::endl;
+    PDE_.TS_alg_->Corrector(solHelp);
+
+     if ( PDE_.isIterCoupled_ ) {
+      PDE_.iterCoupledCounter_++;
+    }
+
+
   }
 
 
@@ -320,7 +313,7 @@ namespace CoupledField {
 
     //perform predictor step
     Vector<Double> & solHelp1 = 
-        dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
     PDE_.TS_alg_->Predictor(solHelp1);
 
     if ( actStep_ == 1) {
@@ -363,13 +356,13 @@ namespace CoupledField {
   void StdSolveStep::PostStepTrans( ) {
 
     ENTER_FCN( "StdSolveStep::PostStepTrans" );
-         
-    if ( PDE_.isIterCoupled_ ) {
-      PDE_.iterCoupledCounter_++;
-      Vector<Double> & solHelp = 
-        dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
-      PDE_.TS_alg_->Corrector(solHelp);
-    }
+
+    Vector<Double> & solHelp = 
+      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+
+    // Following method is essential for fractional damping model
+    PDE_.TS_alg_->AdvanceTimestep(solHelp);
+  
   }
 
 
@@ -653,16 +646,16 @@ namespace CoupledField {
   }
 
   void StdSolveStep::TransformSol4Slice(UInt & shiftFactor, UInt & nodeShift,
-		UInt & elemgrid, Double &  meshsize, const UInt flag) {
+                                        UInt & elemgrid, Double &  meshsize, const UInt flag) {
     ENTER_FCN( "StdSolveStep::TransformSol4Slice" );
     
     PDE_.TransformSol4Slice(shiftFactor, nodeShift,
-		elemgrid, meshsize, flag); 
+                            elemgrid, meshsize, flag); 
   }
 
   void StdSolveStep::SaveNodes(const UInt shiftFactor, const Double timeStep,
-		   const UInt numShift, const Integer nodeShift, 
-			       const UInt maxnumelemz_) {
+                               const UInt numShift, const Integer nodeShift, 
+                               const UInt maxnumelemz_) {
 
     ENTER_FCN( "StdSolveStep::SaveNodes" );
     
