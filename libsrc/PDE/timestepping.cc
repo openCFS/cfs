@@ -9,17 +9,16 @@ namespace CoupledField {
 
   TimeStepping::TimeStepping(BaseSystem * algebraicsystem, UInt rhsSize )
   {
-
     ENTER_FCN( "TimeStepping::TimeStepping" );
 
     algsys_  = algebraicsystem;
     rhsSize_ = rhsSize;
   }
 
-  TimeStepping::~TimeStepping() {
-
-    ENTER_FCN( "TimeStepping::~TimeStepping" )
-      }
+  TimeStepping::~TimeStepping()
+  {
+    ENTER_FCN( "TimeStepping::~TimeStepping" );
+  }
 
 
 } // end of namespace

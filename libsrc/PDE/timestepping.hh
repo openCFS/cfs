@@ -43,6 +43,10 @@ namespace CoupledField {
     virtual void UpdateRHS(Vector<Double>& actSol)
     {Error("Error not implemented!",__FILE__,__LINE__);};
 
+    //! perform calculations at end of timestep different from above methods 
+    //! e.g. when fractional damping is used, store current in memory
+    virtual void AdvanceTimestep(Vector<Double>& solnew){;};
+
     //! set vector with first derivative
     virtual void SetDeriv1(const Vector<Double> & deriv1)
     {solderiv1_ = deriv1;}

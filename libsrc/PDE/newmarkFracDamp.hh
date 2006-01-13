@@ -50,6 +50,9 @@ namespace CoupledField {
     //! perform an update to RHS
     void UpdateRHS();
 
+    //! store current value to memory
+    void AdvanceTimestep(Vector<Double>& solnew);
+
     //! compute parameters for multiplication
     void CalcParameters(Double dt);
 

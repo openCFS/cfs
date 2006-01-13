@@ -26,7 +26,7 @@ namespace CoupledField
   }
 
 
-  //----------------------- STATIC---------------------------------------
+  //----------------------- STATIC--------------------------------------------
 
   void IterSolveStep::SolveStepStatic( const Boolean updatesysmat ) {
 
@@ -39,78 +39,81 @@ namespace CoupledField
     std::string quantityConv;
 
 
-    while (iter < rPDE_.maxiter_ &&  (! normsReached))
-      {
-        if (rPDE_.nonLinLogging_)
-          {
-            Info->PrintF(rPDE_.pdename_,"\n"); 
-            Info->PrintF(rPDE_.pdename_, " COUPLED ITERATION %i =================================\n", 
-                         iter+1);
-          }
+    while (iter < rPDE_.maxiter_ &&  (! normsReached)) {
+
+      if (rPDE_.nonLinLogging_) {
         
-        counter = 0;
-        normsReached = TRUE;
-      
-        for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
-          {
-            if (rPDE_.nonLinLogging_)
-              Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
-                           (rPDE_.PDEs_[i]->GetName()).c_str());
-
-            // Only solve current PDE, if the corresponding
-            // flag in 'solvePDE_' is set to TRUE
-            if (rPDE_.solvePDE_[i] == TRUE) {
-              rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
-              rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
-              rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic(updatesysmat);
-              rPDE_.PDEs_[i]->CalcInputCoupling();
-              rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(updatesysmat);
-              rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
-              rPDE_.PDEs_[i]->CalcOutputCoupling();
-
-              // Calculate Norms
-              for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
-                {
-                  rCouplings_[i]->GetOutputValues(k, val);
-                  rCouplings_[i]->GetOutputOldValues(k, oldVal);
-                  
-                  rPDE_.norms_[counter] = CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
-
-                  if (rPDE_.nonLinLogging_)
-                    {
-                      Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
-                      Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-                                   (rCouplings_[i]->GetPDE()->GetName()).c_str(),
-                                    quantityConv.c_str(), rPDE_.norms_[counter]);
-                    }
-                  
-                  if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k) && 
-                      rCouplings_[i]->GetOutputNormType(k) != NO_NORM)
-                    normsReached = FALSE;
-                
-                  //copy values of new solution to old one
-                  dynamic_cast<Vector<Double>&>(*oldVal) = 
-                    dynamic_cast<Vector<Double>&>(*val);
-
-                } // end of if 
-              counter++;            
-            }
-          }
-
-        iter++;
-        
-        if(rPDE_.nonLinLogging_)
-          Info->PrintF(rPDE_.pdename_, "\n"); 
+        Info->PrintF(rPDE_.pdename_,"\n"); 
+        Info->PrintF(rPDE_.pdename_, 
+                     " COUPLED ITERATION %i =================================\n",
+                     iter+1);
       }
+      
+      counter = 0;
+      normsReached = TRUE;
+      
+      for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+        
+        if (rPDE_.nonLinLogging_)
+          Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
+                       (rPDE_.PDEs_[i]->GetName()).c_str());
+        
+        // Only solve current PDE, if the corresponding
+        // flag in 'solvePDE_' is set to TRUE
+        if (rPDE_.solvePDE_[i] == TRUE) {
+          rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
+          rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+          rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic(updatesysmat);
+          rPDE_.PDEs_[i]->CalcInputCoupling();
+          rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(updatesysmat);
+          rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
+          rPDE_.PDEs_[i]->CalcOutputCoupling();
+
+          // Calculate Norms
+          for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++) {
+
+            rCouplings_[i]->GetOutputValues(k, val);
+            rCouplings_[i]->GetOutputOldValues(k, oldVal);
+            
+            rPDE_.norms_[counter] = 
+              CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
+
+            if (rPDE_.nonLinLogging_) {
+              
+              Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
+              Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
+                           (rCouplings_[i]->GetPDE()->GetName()).c_str(),
+                           quantityConv.c_str(), rPDE_.norms_[counter]);
+            }
+            
+            if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k) && 
+                rCouplings_[i]->GetOutputNormType(k) != NO_NORM)
+              normsReached = FALSE;
+                
+            //copy values of new solution to old one
+            dynamic_cast<Vector<Double>&>(*oldVal) = 
+              dynamic_cast<Vector<Double>&>(*val);
+
+          }
+          counter++;            
+        }
+      } // end of for-loop
+      
+      iter++;
+      
+      if(rPDE_.nonLinLogging_)
+        Info->PrintF(rPDE_.pdename_, "\n");
+
+    } // end of while-loop
 
     // now we are converged and can compute any postprocessing-quantities
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
       rPDE_.PDEs_[i]->PostProcess();
-
+    
   }
 
 
-  //----------------------- TRANSIENT---------------------------------------
+  //----------------------- TRANSIENT-----------------------------------------
   void IterSolveStep::SolveStepTrans( const Boolean updatesysmat )
   {
     ENTER_FCN( "IterSolveStep::SolveStepTrans" );
@@ -122,96 +125,103 @@ namespace CoupledField
     
     // In the beginning of each time step
     // the coupling data has to be reseted
-    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
-      {
-        rPDE_.PDEs_[i]->ResetCoupling();
-        rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep_);
-      }
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      
+      rPDE_.PDEs_[i]->ResetCoupling();
+      rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep_);
+    }
 
    
-    while (iter < rPDE_.maxiter_ &&  (! normsReached))
-      {
-        if (rPDE_.nonLinLogging_)
-          {
-            Info->PrintF(rPDE_.pdename_,"\n"); 
-            Info->PrintF(rPDE_.pdename_, " COUPLED ITERATION %i =================================\n", 
-                         iter+1);
-          }
-
-        UInt counter = 0;
-        normsReached = TRUE;
-
-#ifdef MpCCI
-	// whenever iter == 0 the old time step has converged
-	// in CalcInputCoupling of mpcciPDE CFS++ tells with the 
-	// flag converged_==true that a new time step begins
-	//For the first iteration of the first time step this is ignored 
-	//because of the flag flagFirstTime in CalcInputCoupling of mpcciPDE
-	if (iter == 0)
-	  rPDE_.PDEs_[0]->converged_ = TRUE; 
-	else
-	  rPDE_.PDEs_[0]->converged_ = FALSE; 
-#endif
-
+    while (iter < rPDE_.maxiter_ &&  (! normsReached)) {
       
-        for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
-          {
+      if (rPDE_.nonLinLogging_) {
+        
+        Info->PrintF(rPDE_.pdename_,"\n"); 
+        Info->PrintF(rPDE_.pdename_,
+                     " COUPLED ITERATION %i =================================\n", 
+                     iter+1);
+      }
 
-
-            if (rPDE_.nonLinLogging_)
-              Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
-                           (rPDE_.PDEs_[i]->GetName()).c_str());
-
-            // Only solve current PDE, if the corresponding
-            // flag in 'solvePDE_' is set to TRUE
-            if (rPDE_.solvePDE_[i] == TRUE) {
-              rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
-              rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
-              rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans( updatesysmat );
-              rPDE_.PDEs_[i]->CalcInputCoupling();
-              rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans( updatesysmat );
-              rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
-              rPDE_.PDEs_[i]->CalcOutputCoupling();
-              
-              // Calculate Norms
-              for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++)
-                {
-                  CFSVector *val, *oldVal;
-                  rCouplings_[i]->GetOutputValues(k, val);
-                  rCouplings_[i]->GetOutputOldValues(k, oldVal);
-                  rPDE_.norms_[counter] = CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
-
-                  if (rPDE_.nonLinLogging_)
-                    {
-                      Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
-                      Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
-                                   (rCouplings_[i]->GetPDE()->GetName()).c_str(),
-                                   quantityConv.c_str(), rPDE_.norms_[counter]);
-                    }
-                  if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
-                    normsReached = FALSE;
-                  
-                  dynamic_cast<Vector<Double>&>(*oldVal) = 
-                    dynamic_cast<Vector<Double>&>(*val);
-                  //*oldVal = *val;
-                } // end if
-              counter++;              
-            }
-          }
-
-        iter++;
-        if (rPDE_.nonLinLogging_)
-          Info->PrintF(rPDE_.pdename_, "\n"); 
-      } // end while
+      UInt counter = 0;
+      normsReached = TRUE;
 
 #ifdef MpCCI
-    if (actStep_==numTimeStep_)
-      {
-	rPDE_.PDEs_[0]->converged_ = TRUE;
-	rPDE_.PDEs_[0]->CalcInputCoupling();
-      }
+      // whenever iter == 0 the old time step has converged
+      // in CalcInputCoupling of mpcciPDE CFS++ tells with the 
+      // flag converged_==true that a new time step begins
+      //For the first iteration of the first time step this is ignored 
+      //because of the flag flagFirstTime in CalcInputCoupling of mpcciPDE
+      if (iter == 0)
+        rPDE_.PDEs_[0]->converged_ = TRUE; 
+      else
+        rPDE_.PDEs_[0]->converged_ = FALSE; 
 #endif
 
+      for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+        
+        
+        if (rPDE_.nonLinLogging_)
+          Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
+                       (rPDE_.PDEs_[i]->GetName()).c_str());
+
+        // Only solve current PDE, if the corresponding
+        // flag in 'solvePDE_' is set to TRUE
+        if (rPDE_.solvePDE_[i] == TRUE) {
+          
+          rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
+          rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+          rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans( updatesysmat );
+          rPDE_.PDEs_[i]->CalcInputCoupling();
+          rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans( updatesysmat );
+
+          rPDE_.PDEs_[i]->CalcOutputCoupling();
+              
+          // Calculate Norms
+          for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++) {
+            
+            CFSVector *val, *oldVal;
+            rCouplings_[i]->GetOutputValues(k, val);
+            rCouplings_[i]->GetOutputOldValues(k, oldVal);
+            rPDE_.norms_[counter] = 
+              CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
+            
+            if (rPDE_.nonLinLogging_) {
+              
+              Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
+              Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
+                           (rCouplings_[i]->GetPDE()->GetName()).c_str(),
+                           quantityConv.c_str(), rPDE_.norms_[counter]);
+            }
+            if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
+              normsReached = FALSE;
+                  
+            dynamic_cast<Vector<Double>&>(*oldVal) = 
+              dynamic_cast<Vector<Double>&>(*val);
+                  //*oldVal = *val;
+          }
+          counter++;              
+        }
+      } // end of for-loop
+
+      iter++;
+      if (rPDE_.nonLinLogging_)
+        Info->PrintF(rPDE_.pdename_, "\n"); 
+
+    } // end of while-loop
+
+    // now we are converged and can compute any postprocessing-quantities
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
+      rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
+
+
+#ifdef MpCCI
+    if (actStep_==numTimeStep_) {
+      
+      rPDE_.PDEs_[0]->converged_ = TRUE;
+      rPDE_.PDEs_[0]->CalcInputCoupling();
+    }
+#endif
+    
   } 
   
   //----------------------- HARMONIC---------------------------------------
@@ -259,7 +269,8 @@ namespace CoupledField
       rPDE_.PDEs_[i]->GetSolveStep()->SetTimeStep(dt);
   }
 
-  Double IterSolveStep::CalcNorm(NormType normtype, CFSVector & val, CFSVector & oldval)
+  Double IterSolveStep::CalcNorm(NormType normtype, CFSVector & val,
+                                 CFSVector & oldval)
   {
     ENTER_FCN( "IterSolveStep::CalcNorm" );
 
