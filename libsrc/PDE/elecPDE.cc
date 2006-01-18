@@ -647,13 +647,13 @@ namespace CoupledField {
 
             Vector<TYPE> elpot;
             sol_->GetElemSolution(elpot, connecth);
-            help = elemmat * elpot;
+            help = elemmat * elpot * 0.5;
             energy[i] += help * elpot;
 
             delete bilinear_stiff;          
           }  
 
-        totalE += 0.5*energy[i];
+        totalE += energy[i];
       }
 
     std::string unit = "(Ws)";
