@@ -15,7 +15,7 @@ namespace CoupledField
   {
   public:
 
-    //!
+    //!  
     AcouFlowNoise(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut);
 
     //!
@@ -31,7 +31,14 @@ namespace CoupledField
     void ReadFlowData(const char * aname, const UInt timestep,
                       Matrix<Double> &nodedata );
 
+  void VortexAnalytical(Double & press, const Double x,
+                                       const Double y, const Double t, 
+                        const UInt outType);
+    
 
+    Double JJ2(const Double x);
+    Double YY2(const Double x);
+    
 
   private:
 
@@ -41,33 +48,35 @@ namespace CoupledField
 
     //Flow Data
     Matrix<Double> flowdata_;
-    //!< name of subdomain to be coupled with MpCCI
-    StdVector<RegionIdType> couplSubDomId_; 
 
     //!type of FlowData
     Boolean nodalSrc_;
-
-
-    //  BaseNodeStoreSol * rhs_;        //!< For eventual saving of rhs as sol
+    //!flag when using vortex source
+    Boolean vortexSrc_;
+    //!flag to verify if analysis harmonic
+    Boolean isHarmonic_;
+     //!< name of subdomain to be coupled with MpCCI or where vortex is applied
+     StdVector<RegionIdType> couplSubDomId_; 
+    //!< mapping of linear nodes only (3D MpCCI allows only linear elements)
+     StdVector<UInt> mapSD_onlyLinNodes_; 
+    //<! mapping containing all nodes of coupled region
+     StdVector<UInt> mapSD_allNodes_;
     
     //!MpCCI
 #ifdef MpCCI
-
-    StdVector<UInt> mapSD_;
-    StdVector<UInt> mapSD_allNodes_;
-    MpCCIexch * ptMpCCIexch_;
-    Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
-    Integer meshId_;
-    Integer partId_;
-    Integer nNodeIds_;
-    Integer *nodeIds_;
-    Integer GlobalDim_;
-    Integer nElemIds_;
-    Integer *elemIds_;
-    Integer nElemTypes_;
-    Integer *nNodesPerElem_;
-    Integer *elemTypes_;
-    Integer MpCCIprocess_;
+     MpCCIexch * ptMpCCIexch_;
+     Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
+//     //    Integer meshId_;
+//     //    Integer partId_;
+//     //    Integer nNodeIds_;
+//     //Integer *nodeIds_;
+//     //Integer GlobalDim_;
+//     //Integer nElemIds_;
+//     //Integer *elemIds_;
+//     //Integer nElemTypes_;
+//     //Integer *nNodesPerElem_;
+//     //Integer *elemTypes_;
+//     //Integer MpCCIprocess_;
 
 #endif
 

@@ -9,6 +9,7 @@
 #include "acouFlowNoise.hh"
 
 #include "DataInOut/Unverg/outUnverg.hh"
+//#include "DataInOut/freqfunc.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "Forms/forms_header.hh"
 #include "MpCCIcpl/MpCCIexch.hh"
@@ -33,11 +34,17 @@ namespace CoupledField
     nodalSrc_ = FALSE;
     vortexSrc_ = FALSE;
     plotRHS_ = FALSE;  
-  
+    isHarmonic_=FALSE;
+
     if( params->IsSet( "valRHS","pdeList" ,"acoustic" ) ) {
       plotRHS_ = TRUE;
       Info->PrintF(pdename_, "Writing RHS as solution of problem\n" );
     }
+
+    StdVector<Elem*> elemssd;
+    StdVector<std::string> regionNames, coupledRegionNames;
+
+
 
 #ifdef MpCCI
     //check type of flow data
@@ -45,8 +52,7 @@ namespace CoupledField
       nodalSrc_ = TRUE;
       Info->PrintF(pdename_, " Using FlowData as RHS nodal source\n" );
     }
-    StdVector<Elem*> elemssd;
-    StdVector<std::string> regionNames, coupledRegionNames;
+
     params->GetList( "name", regionNames, pdename_, "region" );
     params->GetList( "name", coupledRegionNames,  "MpCCI-flownoise",
                      "coupledregion" );
@@ -72,14 +78,14 @@ namespace CoupledField
                   { //TO SEND ONLY LINEAR TETRAS TO MPCCI SINCE NO QUAD TETRAS
                     //ARE ALLOWED
                     ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
-                    ptgrid_->GetNodesOfElemList(mapSD_, elemssd, OnlyLinNodes);
-                    ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_);
+                    ptgrid_->GetNodesOfElemList(mapSD_onlyLinNodes_, elemssd, OnlyLinNodes);
+                    ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_onlyLinNodes_);
                   }
                 else
                   {
-                    ptgrid_->GetNodesOfElemList(mapSD_, elemssd, FALSE);
+                    ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
                     //ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
-                    ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_);
+                    ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_allNodes_);
                   }
 		
                 Find=TRUE;
@@ -93,18 +99,15 @@ namespace CoupledField
         msg+="is not in list of PDE subdoms. Please, check .xml-file";
         Error(msg.c_str(),__FILE__,__LINE__);
       }
-    // This is due to workaround from quad to lin elements for MpCCI
-    if (dim_ == 3)
-      MpCCInodes_=mapSD_allNodes_.GetSize();
-    else
-      MpCCInodes_=mapSD_.GetSize();
+    // On CFS side we always used the complete coupled region and later give a zero src to the
+    // quadratic (or mid) nodes in case of 3D quadratric acoustic grid.
+    MpCCInodes_=mapSD_allNodes_.GetSize();
+    
     
     ptMpCCIexch_->PutExchangeGrid2MpCCI(couplSubDomId_);
 #else
     if( params->HasValue( "type", "vortexSrc", pdename_, "flowData" ) ) {
       vortexSrc_ = TRUE;
-      StdVector<Elem*> elemssd;
-      StdVector<std::string> regionNames, coupledRegionNames;
       params->GetList( "name", regionNames, pdename_, "region" );
       params->GetList( "name", coupledRegionNames,  "MpCCI-flownoise",
                        "coupledregion" );
@@ -114,8 +117,69 @@ namespace CoupledField
       std::cerr << "CoupledSubdoms:\n" << couplSubDomId_  << std::endl;
       Info->PrintF(pdename_, " Using Vortex function as RHS nodal source\n" );
     }
-    else
-      Error( "No MpCCI coupling, need to define VortexSrc", __FILE__, __LINE__ );    
+    else 
+      {
+        if( params->HasValue( "type", "nodalSrc", pdename_, "flowData" ) ) {
+          nodalSrc_ = TRUE;
+          // Now verify that the type of analysis is HARMONIC
+          // Determine type of analysis
+          std::string analysis;
+          AnalysisType analysisType;
+          params->Get( "type", analysis, "analysis" );
+          String2Enum( analysis, analysisType );
+          if (analysis=="HARMONIC")
+            {
+              isHarmonic_=TRUE;
+              Info->PrintF(pdename_, "Using FlowData from dataset as RHS nodal source\n" );
+              Info->PrintF(pdename_, "Computing using nodal frequency files (No MpCCI used)\n" );
+
+
+
+              // Now getting the correct size of coupled domain. It must have the same
+              // numbering as the nodal frequency file, if not freqfunc will complain!!
+
+              params->GetList( "name", regionNames, pdename_, "region" );
+              params->GetList( "name", coupledRegionNames, pdename_, "coupledRegion" );
+              ptgrid_->RegionNameToId( subdoms_, regionNames );
+              ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
+
+              Boolean Find=FALSE;
+              std::cerr << "Subdoms:\n" << subdoms_ << std::endl;
+              std::cerr << "CoupledSubdoms:\n" << couplSubDomId_  << std::endl;
+    
+
+              for (int i=0; i<subdoms_.GetSize(); i++)
+                {
+                  for (int j=0; j<couplSubDomId_.GetSize(); j++)
+                    {
+                      if (couplSubDomId_[j] == subdoms_[i])
+                        {
+                          ptgrid_->GetVolElems(elemssd,couplSubDomId_[j]);
+                          ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
+                          Find=TRUE;
+                        }
+                    }
+                }
+              if (!Find) 
+                {
+                  std::string msg="Subdom to be coupled with NodalFreqFilesSet ";
+                  msg+="is not in list of PDE subdoms. Please, check .xml-file";
+                  Error(msg.c_str(),__FILE__,__LINE__);
+                }
+              Integer CoupledNodes=mapSD_allNodes_.GetSize();
+              flowdata_.Resize(1, CoupledNodes);
+            }
+          else
+            {
+              Error( "Only Nodal Frequency Sources or Vortex Source are allowed if not using MpCCI"
+                     , __FILE__, __LINE__ );
+            }
+        }
+        
+      }
+
+
+
 
     //     if (vortexSrc_)
     //       {
@@ -131,6 +195,7 @@ namespace CoupledField
     //       }
     //     else
     //       Error( "No MpCCI coupling, need to define VortexSrc", __FILE__, __LINE__ );    
+
 
 #endif
 
@@ -179,7 +244,7 @@ namespace CoupledField
     StdVector<Elem*> ObstSurf;
     BaseFE * ptEl;
     Double actTime;
-
+    Double actFreq;   
     UInt j;
     UInt elsize = 0;
     StdVector<Elem*> elemssd;     
@@ -228,7 +293,7 @@ namespace CoupledField
 //     params->Get( "type", analysis, "analysis" );
 
 //     if ( analysis=="harmonic" ) {
-//       Double actFreq;   
+//       
 //       actFreq = solveStep_->GetActFreq();
 //     }
 
@@ -463,7 +528,6 @@ namespace CoupledField
     }
     
     else {
-
       UInt eqnDof, node, dof;
       Integer eqnNr;
       StdVector<UInt> connect(1);
@@ -472,52 +536,81 @@ namespace CoupledField
      
       eqnDof = 1;
       dof    = 1;
-      for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
-        Double val = flowdata_[0][idx];
-        node = idx + 1;
 
-        // Ramping before adding to RHS vector (NOW IT MAKES ZERO THE RHS ENTRY!)
-        Matrix<Double> ptCoordNodes;
-        connecth.Resize(1);
-        connecth[0] = node;
-        ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);         
+      if (!isHarmonic_)
+        {
+          for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++)
+            {
+              Double val = flowdata_[0][idx];
+              node = idx + 1;
 
-        if (ptCoordNodes[0][0]<bndoffsetXmin)
-          //val -= val*(ptCoordNodes[0][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
-          val = 0;
-        else
-          if (ptCoordNodes[0][0]>bndoffsetXmax)
-            //val -= val*(ptCoordNodes[0][0]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
-            val = 0;
-        if (ptCoordNodes[1][0]<bndoffsetYmin)
-          //val -= val*(ptCoordNodes[1][0]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
-          val = 0;
-        else      
-          if (ptCoordNodes[1][0]>bndoffsetYmax)
-            //val -= val*(ptCoordNodes[1][0]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
-            val = 0;
-        if(dim_==3)
-          {
-            if (ptCoordNodes[2][0]<bndoffsetZmin)
-              //val -= val*(ptCoordNodes[2][0]-bndoffsetZmin)/(zfmin-bndoffsetZmin);
-              val = 0;
-            else      
-              if (ptCoordNodes[2][0]>bndoffsetZmax)
-                //val -= val*(ptCoordNodes[2][0]-bndoffsetZmax)/(zfmax-bndoffsetZmax);
-                val = 0;
-          }
-        //end ramping
+              ///////////////////////////////////////////////////////////////////////
+                // Ramping before adding to RHS vector (NOW IT MAKES ZERO THE RHS ENTRY!)
+                Matrix<Double> ptCoordNodes;
+                connecth.Resize(1);
+                connecth[0] = node;
+                ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);         
 
-        val*=valmult;
+                if (ptCoordNodes[0][0]<bndoffsetXmin)
+                  //val -= val*(ptCoordNodes[0][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
+                  val = 0;
+                else
+                  if (ptCoordNodes[0][0]>bndoffsetXmax)
+                    //val -= val*(ptCoordNodes[0][0]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+                    val = 0;
+                if (ptCoordNodes[1][0]<bndoffsetYmin)
+                  //val -= val*(ptCoordNodes[1][0]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
+                  val = 0;
+                else      
+                  if (ptCoordNodes[1][0]>bndoffsetYmax)
+                    //val -= val*(ptCoordNodes[1][0]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
+                    val = 0;
+                if(dim_==3)
+                  {
+                    if (ptCoordNodes[2][0]<bndoffsetZmin)
+                      //val -= val*(ptCoordNodes[2][0]-bndoffsetZmin)/(zfmin-bndoffsetZmin);
+                      val = 0;
+                    else      
+                      if (ptCoordNodes[2][0]>bndoffsetZmax)
+                        //val -= val*(ptCoordNodes[2][0]-bndoffsetZmax)/(zfmax-bndoffsetZmax);
+                        val = 0;
+                  }
+                //end ramping
+                /////////////////////////////////////////////////////////////////////////
 
-        //add to RHS
-        eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
-        algsys_->SetNodeRHS(val, pdeId_, eqnNr, eqnDof);      
-      }
+                  val*=valmult;
 
+                  //add to RHS
+                  eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+                  algsys_->SetNodeRHS(val, pdeId_, eqnNr, eqnDof);      
+            }
+      
+        } 
+      //      else
+        //        {
+//           FreqFunc * ptFreqFunc = new FreqFunc();
+//           StdVector<Double> Ampl_Phase;
+//           Ampl_Phase.Resize(2);
+
+//           //Getting current freq
+//           actFreq = solveStep_->GetActFreq();
+//           for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
+//             node = idx + 1;       
+//             Ampl_Phase=ptFreqFunc->NodalFreqFuncAtFreq(actFreq,"freqsrcfile.node",idx);
+            
+//             Double valAmpl = flowdata_[0][idx];
+//             Double valPhase = flowdata_[0][idx];
+
+//             valAmpl*=valmult;
+//             Complex complexValue( valAmpl * cos( valPhase / 180 * PI ),
+//                                   valAmpl * sin( valPhase / 180 * PI ) );
+//             //add to RHS
+//             eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+//             algsys_->SetNodeRHS(complexValue, pdeId_, eqnNr, eqnDof);      
+//          }
+//        }//end else for frequency analysis
+    }//end else in case nodalSrc is TRUE
     
-    
-    }
 #ifdef MpCCI
     endtime = CCI_Wtime();
 #endif    
