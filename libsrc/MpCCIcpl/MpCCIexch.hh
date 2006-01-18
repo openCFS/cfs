@@ -46,7 +46,7 @@ public:
   /////////////////////////////////////////////////////////////////
 
   //! Performs the coupled computation phase
-  void CouplCompPhase(Matrix<Double> & flowdata, Integer timestep);
+  void CouplCompPhase(Matrix<Double> & flowdata, Double acttime);
   
   //! Receive values of all partitions/subdomains
   void RecvAllPartitions(std::string couplingType);
@@ -70,6 +70,14 @@ private:
   ShortInt Dim_;         //!< space dimension of pde  
   StdVector<UInt> mapSD_;//!< local vector containing coupled domain
   StdVector<RegionIdType> couplSubDomId_; 
+  Boolean  writeGridFile_; //!<flags to write grid with coupled vals in file
+  Boolean  writeSrcFileperTS_; //!<flags to write coarse srcs in time step files
+  Boolean  writeSrcFileperNode_; //!<flags to write coarse srcs in nodal files
+  //!Objects for topology files
+  std::ofstream * outelemfile_;
+  std::ofstream * outnodefile_;
+  //!Object to file for storing src in time step files (NrFiles=NrTimeSteps)
+  std::ofstream * outsrcfile_;
 
   //!MpCCI
   UInt MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
