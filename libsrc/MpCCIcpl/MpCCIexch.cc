@@ -38,6 +38,34 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
   //To activate storage of node numbers in an array
   nNodeIds_=MpCCInodes_;
 
+  // For writing the grid definition and the interpolated 
+  // source values in files
+      writeGridFile_ = FALSE;
+      writeSrcFileperTS_ = FALSE;
+      writeSrcFileperNode_ = FALSE;
+    if( params->IsSet( "writeCoupledGrid","pdeList" ,"acoustic" ) ) {
+      writeGridFile_ = TRUE;
+      Info->PrintF("acoustic","Writing grid def. file of coupled domain\n");
+    }
+    if( params->IsSet( "writeSrcFileperTS","pdeList" ,"acoustic" ) ) {
+      writeSrcFileperTS_ = TRUE;
+      Info->PrintF("acoustic","Writing coarse sources of coupled domain in time files (NrFiles=NrTimeSteps)\n");
+    }
+    if( params->IsSet( "writeSrcFileperNode","pdeList" ,"acoustic" ) ) {
+      writeSrcFileperNode_ = TRUE;
+      Info->PrintF("acoustic","Writing coarse transient sources in single nodal files (NrFiles=NrNodes)\n");
+    }
+    if (writeGridFile_)
+      {
+        std::string filename;
+        filename = "elemfile";
+        filename.append( ".elem" );
+        outelemfile_ = new std::ofstream(filename.c_str());
+        filename = "nodefile";
+        filename.append( ".node" );
+        outnodefile_ = new std::ofstream(filename.c_str());
+      }
+
 }
   //constructer used for FSI
   MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<RegionIdType>  subdoms)
@@ -56,7 +84,13 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
 
 MpCCIexch::~MpCCIexch()
 {
-if (nodeIds_)  delete [] nodeIds_;
+  if (nodeIds_)  delete [] nodeIds_;
+ if (outelemfile_)
+   delete outelemfile_;
+ if (outnodefile_)
+   delete outnodefile_;
+ if (outsrcfile_) 
+      delete outsrcfile_;
 }
 
 void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
@@ -84,10 +118,15 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
   Point<2> ptNodalCoord2D;      
   Point<3> ptNodalCoord3D;      
 
+  if (writeGridFile_)
+    {
+      (*outnodefile_) <<MpCCInodes_<<std::endl;
+    }
+
   for (i=0; i<(coupledsubdoms.GetSize()); i++)
       {
         // This is part of workaround for 3D quadratic elements
-	for (Integer n=0; n<(mapSD_.GetSize()); n++)
+	for (UInt n=0; n<(mapSD_.GetSize()); n++)
 	  {
 	    nodeIds_[n] = (int)mapSD_[n];
 //   	    std::cout<<"nodeIds["<<n<<"]= "<<nodeIds_[n]<<std::endl;
@@ -98,6 +137,10 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
                 NODEDATA[3*n]=ptNodalCoord2D[0];		      
                 NODEDATA[3*n+1]=ptNodalCoord2D[1];  
                 NODEDATA[3*n+2]= 0.0; // z-component for the 2d case is zero
+                if (writeGridFile_)
+                {
+                  (*outnodefile_) << NODEDATA[3*n]<<" "<< NODEDATA[3*n+1]<<std::endl;
+                }	      
               }
             else
               {
@@ -123,8 +166,12 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
 	  elsize=4;
 	}
 
-      
       TOPOLOGYDATA[i]=new int[elsize*elemssd.GetSize()];	  
+
+      if (writeGridFile_)
+        {
+          (*outelemfile_) << elemssd.GetSize()<<" "<<elsize<< std::endl;
+        }
 
       int k=0;
       for (j=0; j< elemssd.GetSize(); j++)
@@ -164,13 +211,25 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
 			      }
 			    }
 			}
-		  }
+                }
 	      else
-		  TOPOLOGYDATA[i][k]=connecth[ii];
-	      
+                TOPOLOGYDATA[i][k]=connecth[ii];
               
+              if (writeGridFile_ && (ii<(elsize-1)))
+                {
+                  (*outelemfile_) << TOPOLOGYDATA[i][k]<<" ";
+                }	      
+              else
+                {
+                  if (writeGridFile_)
+                  (*outelemfile_) << TOPOLOGYDATA[i][k];
+                }
             }
-        }
+          if (writeGridFile_)
+               {
+                 (*outelemfile_) << std::endl;
+               }	     
+        } // loop over all elements
       }
 
   //define the nodes
@@ -180,7 +239,6 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
      {
        ptgrid_->GetElems(elemssd,coupledsubdoms[i]);
        //ptgrid_->GetVolElems(elemssd,coupledsubdoms[i]);
-       int k=0;
       nElemIds_=0;
       UInt nElemSD=elemssd.GetSize();
       elemIds_ = new Integer[nElemSD];
@@ -255,7 +313,9 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
   //Close the definition phase; contact detection.
   //i take part in the coupling
   MpCCIprocess_ = 1;
+    SETPROFILE("Before CCI_Close_setup()");
   CCI_Close_setup(MpCCIprocess_);
+    SETPROFILE("After CCI_Close_setup()");
 
 if (NODEDATA)  delete [] NODEDATA;
 if (TOPOLOGYDATA)  delete [] TOPOLOGYDATA; 
@@ -264,6 +324,10 @@ if (elemIds_)  delete [] elemIds_;
 if ( nNodesPerElem_)  delete [] nNodesPerElem_;
 if (elemTypes_)  delete [] elemTypes_;
 
+//  if (outelemfile_)
+//    delete [] outelemfile_;
+//  if (outnodefile_)
+//    delete [] outnodefile_;
 }
     
 void MpCCIexch::DefMpcciPartition(UInt meshId, UInt partId)
@@ -465,9 +529,10 @@ void MpCCIexch::FinishMpcciSetup(std::string couplingType)
   if (elemTypes_) delete [] elemTypes_;
 }
 
-void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
+void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
 {
   ENTER_FCN("entering MpCCIexch::CouplCompPhase");
+
 
   //Coupling parameters for MpCCI
   Integer nQuantityIds;
@@ -527,7 +592,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
     Integer k = 0;
 
 
-  Boolean nodalSrc;
+    Boolean nodalSrc=FALSE;
     //check type of flow data
     if( params->HasValue( "type", "nodalSrc", "acoustic", "flowData" ) ) {
       nodalSrc = TRUE;
@@ -537,26 +602,92 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
 
     std::cout<<"flowdata length= "<<flowdata.GetSizeCol()<<std::endl;
     if (nodalSrc == TRUE)
-      for (UInt inode=0; inode<MpCCInodes_; inode++)
-	{
-	  // Getting first column (no node identifier)
-	  // flowdata[0][inode] = value_Press[inode];
-	  // Getting first column as INT(dTdxdw)
-	  flowdata[0][nodeIds_[inode]-1] = value_Press[inode]; 
-	  // std::cout<<"flowdata[0]["<<nodeIds_[inode]-1<<"]= "<<value_Press[inode]<<std::endl;
-	  // std::cout<<"value_Press["<<inode<<"]= "<<value_Press[inode]<<std::endl;
-	}
-      else
-	{
-	  for (UInt inode=0; inode<MpCCInodes_; inode++)
-	    {
-	      flowdata[0][inode] = value_Press[inode];
-	      for(Integer i=0;i<Dim_;i++)
-		flowdata[i+1][inode] = value_VxVy[k+i];
-	      
-	      k = k+3;
-	    }
-	}
+      {
+        if (writeSrcFileperTS_)
+          {
+            // static variable for suffix of output src file
+            static Integer filenum=1;
+            std::string filename;
+            filename = "srcfile";
+            filename.append( ".ts" );
+            if ( filenum < 10 ) filename.append( "000" );
+            else if ( filenum < 100 ) filename.append( "00" );
+            else if ( filenum < 1000 ) filename.append( "0" );
+            else if ( filenum > 10000 ) {
+              Info->Error( "Number of src file exceeds 9999!",
+                           __FILE__, __LINE__ );
+            }
+            filename.append( Info->GenStr( filenum ) );
+            filenum++;
+            outsrcfile_ = new std::ofstream(filename.c_str());
+          }
+        
+        static Integer TimeStepCtr=1;
+        for (UInt inode=0; inode<MpCCInodes_; inode++)
+          {
+            // Getting first column (no node identifier)
+            // flowdata[0][inode] = value_Press[inode];
+            
+            // Getting first column as INT(dTdxdw) with node identifier
+            flowdata[0][nodeIds_[inode]-1] = value_Press[inode];
+
+            // std::cout<<"flowdata[0]["<<nodeIds_[inode]-1<<"]= "<<value_Press[inode]<<std::endl;
+            // std::cout<<"value_Press["<<inode<<"]= "<<value_Press[inode]<<std::endl;
+            if (writeSrcFileperTS_)
+              {
+                (*outsrcfile_) <<  value_Press[inode]<<std::endl;
+                // !!!!THIS IS ONLY TO ALLOW Flemming (Stuttgart) test his reading of the data
+                // we assign the nodal index as output to the nodal value just for checking!!!
+                //(*outsrcfile_) << nodeIds_[inode] <<std::endl;
+              }
+            if (writeSrcFileperNode_)
+              {
+                std::string filename;
+                std::ofstream outsrcnodalfile;
+                filename = "srcfile";
+                filename.append( ".node" );
+                filename.append( Info->GenStr( nodeIds_[inode] ) );
+                //create the file if it doesn't exist yet
+                
+                if (TimeStepCtr==1)
+                  {
+                    std::cout<<"In first time step"<<std::endl;
+                    outsrcnodalfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
+                  }
+                else
+                  {
+                    outsrcnodalfile.open(filename.c_str(), std::ios::app);
+                  }
+
+                if (!outsrcnodalfile) 
+                  {
+                    std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
+                      ") In MpCCIexch: Can't open src nodal file for output:" << filename.c_str() << std::endl;
+                    exit(1);
+                  }
+
+                outsrcnodalfile<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
+                               << acttime << " " << value_Press[inode] << std::endl;
+                // !!!!THIS IS ONLY TO test reading of the data
+                // we assign the nodal index as output to the nodal value just for checking!!!
+                //outsrcnodalfile << nodeIds_[inode] <<std::endl;
+
+                outsrcnodalfile.close();
+              }
+          }
+    TimeStepCtr++;
+      }
+    else
+      {
+        for (UInt inode=0; inode<MpCCInodes_; inode++)
+          {
+            flowdata[0][inode] = value_Press[inode];
+            for(Integer i=0;i<Dim_;i++)
+              flowdata[i+1][inode] = value_VxVy[k+i];
+            
+            k = k+3;
+          }
+      }
       
  
     //check covergence: do another time step or not!
@@ -567,6 +698,11 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Integer timestep)
 if (quantityIds)  delete [] quantityIds;
 if (value_Press)  delete [] value_Press;
 if (value_VxVy)  delete []  value_VxVy;
+
+// if (outsrcfile_) 
+//      delete outsrcfile_;
+
+
     std::cout<<"Leaving CplCompPhase"<<std::endl;
 }
 
