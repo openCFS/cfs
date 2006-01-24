@@ -436,6 +436,8 @@ namespace CoupledField {
       else if (pdeNames[i] == "heatConduction")
         ptSinglePde_[i]=new HeatCondPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
+      else if (pdeNames[i] == "stokesFluid")
+        ptSinglePde_[i]=new StokesFluidPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
       else {
         std::string msg=pdeNames[i]+" - this type of pdes is unknown";
