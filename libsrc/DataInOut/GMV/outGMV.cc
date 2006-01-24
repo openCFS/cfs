@@ -861,7 +861,7 @@ namespace CoupledField {
                    << Info->GenStr(sol.GetDof(solTypes[iSol]))
                    << " degrees of freedom!";
         Warning(__FILE__, __LINE__);
-        return;
+        //return;
       }
         
       // Iterate over all degrees of freedom
