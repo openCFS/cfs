@@ -226,6 +226,10 @@ namespace CoupledField {
     /// returns the vector of the solution belonging to all nodes of the actual element
     void GetSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
     
+    /// returns the vector of the stokesFluid pressure solution
+    ///belonging to all nodes of the actual element
+    void GetPresSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
+    
     /// returns the vector of time derivative of the solution belonging to all nodes of the actual element
     void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
     
