@@ -160,7 +160,10 @@ namespace CoupledField {
                MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY,
                HEAT_TEMPERATURE,
                MPCCI, FLUID_FORCE,
-	       ACOU_PRESSUREXYZ} SolutionType;
+	           ACOU_PRESSUREXYZ,
+	           STOKESFLUID_VEL_PRES_VORT, STOKESFLUID_VELOCITY,
+	           STOKESFLUID_PRESSURE, STOKESFLUID_VORTICITY,
+	           STOKESFLUID_FORCE} SolutionType;
 
   //! Enumberation for coupling method\n
   //! NO_COUPLING          = No coupling at all
