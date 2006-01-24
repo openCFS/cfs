@@ -25,7 +25,8 @@ src =   basePDE.cc\
 	newmarkFracDampMech.cc \
 	mpcciPDE.cc \
 	heatCondPDE.cc \
-	acousticXYZPDE.cc 
+	acousticXYZPDE.cc \
+    stokesFluidPDE.cc
 
 #
 lib = pde

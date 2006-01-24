@@ -13,6 +13,7 @@
 #include "mpcciPDE.hh"
 #include "heatCondPDE.hh"
 #include "acousticXYZPDE.hh"
+#include "stokesFluidPDE.hh"
 
 
 #endif
