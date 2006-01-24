@@ -182,6 +182,45 @@ namespace CoupledField
     }
   }
 
+  void StokesFluidPDE::GetPresSolVecOfElement( Vector<Double>& elemSol,
+                                       StdVector<UInt>& connecth ) {
+
+    ENTER_FCN( "StokesFluidPDE::GetPresSolVecOfElement" );
+
+    // stokesFluid pressure of element nodes
+    elemSol.Resize(1 * connecth.GetSize());
+    elemSol.Init(0);
+    Integer eqnNr; 
+    UInt eqnDof;
+    UInt presDof;
+    UInt dofsPerEQN = eqnData_->GetNumDofsPerEQN();
+
+    NodeStoreSol<Double> * solhelp = 
+      dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    Vector<Double> sol = solhelp->GetAlgSysVector();
+
+    if (subType_ == "plane" || subType_ == "axi")
+      {
+        presDof = 3;
+      }
+    else if (subType_ == "3d")
+      {
+        presDof = 8;
+      }
+    else 
+      Info->Error("Unknown PDE subtype! ",__FILE__,__LINE__);
+
+  
+    for(UInt actNode=0; actNode<connecth.GetSize(); actNode++) {
+      eqnData_->Node2EQN(connecth[actNode],presDof,eqnNr,eqnDof);
+      if (eqnNr!= 0) {
+        elemSol[actNode] = sol[eqnDof-1 + dofsPerEQN*(abs(eqnNr-1))];
+      }
+      else {
+        elemSol[actNode] = 0.0;
+      }
+    }
+  }
 
   void StokesFluidPDE::CalcOutputCoupling()
   {

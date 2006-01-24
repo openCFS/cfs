@@ -114,6 +114,11 @@ namespace CoupledField
 
   private:
 
+    /// returns the vector of the stokesFluid pressure solution
+    ///belonging to all nodes of the actual element
+    void GetPresSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
+    
+
     //! calculate the vector of coupling forces to the mechanical PDE
     void CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
                               StdVector<UInt> & couplingNodes,
