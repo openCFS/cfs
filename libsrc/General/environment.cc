@@ -403,6 +403,18 @@ namespace CoupledField {
     else if (in == "fluidForce")
       out = FLUID_FORCE;
 
+    //stokesFluid
+    else if (in == "stokesFluidVelPresVort")
+      out = STOKESFLUID_VEL_PRES_VORT;
+    else if (in == "stokesFluidVelocity")
+      out = STOKESFLUID_VELOCITY;
+    else if (in == "stokesFluidPressure")
+      out = STOKESFLUID_PRESSURE;
+    else if (in == "stokesFluidVorticity")
+      out = STOKESFLUID_VORTICITY;
+    else if (in == "stokesFluidForce")
+      out = STOKESFLUID_FORCE;
+	           
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
                << "'SolutionType'!";
@@ -522,6 +534,23 @@ namespace CoupledField {
         //mpcci PDE  
       case FLUID_FORCE:
         out = "fluidForce";
+        break;
+
+        //stokesFluid
+      case STOKESFLUID_VEL_PRES_VORT:
+        out = "stokesFluidVelPresVort";
+        break;
+      case STOKESFLUID_VELOCITY:
+        out = "stokesFluidVelocity";
+        break;
+      case STOKESFLUID_PRESSURE:
+        out = "stokesFluidPressure";
+        break;
+      case STOKESFLUID_VORTICITY:
+        out = "stokesFluidVorticity";
+        break;
+      case STOKESFLUID_FORCE:
+        out = "stokesFluidForce";
         break;
       
       default:
