@@ -57,6 +57,23 @@ namespace CoupledField{
     if ( dof == "pz" )
       component = 3;
 
+    //for stokesFluid PDE
+    if ( dof == "vx" )
+      component = 1;
+    if ( dof == "vy" )
+      component = 2;
+    if ( dof == "vz" )
+      component = 3;
+    if ( dof == "phi" )
+      component = 4;
+    if ( dof == "omegax" )
+      component = 5;
+    if ( dof == "omegay" )
+      component = 6;
+    if ( dof == "omegaz" )
+      component = 7;
+    if ( dof == "p" )
+      component = 8;
 
     // --- DOF for piezo - HARD CODED -
     if ( dof == "ep" )
