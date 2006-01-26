@@ -30,7 +30,8 @@ namespace CoupledField
 
   
 
-  //! Driver class for an inverse problem: The identification of material parameters in a piezoelectric body.
+  //! Driver class for an inverse problem: 
+  //! The identification of material parameters in a piezoelectric body.
   class piezoParamIdent : public SingleDriver
   {
 
@@ -51,47 +52,54 @@ namespace CoupledField
     //! Destructor
     ~piezoParamIdent();
 
-    std::ifstream * allMeasuredData; // Contains selected measurements & further steering parameters
-    std::ifstream * mess; // contains whole set of measurements
+    //! input file, here problem specific details will be set
+    std::ifstream * allMeasuredData; 
+    //! input file, reads set of measurements, frequencies, re(Z), im(z)
+    std::ifstream * mess; 
+    //! output file, simulated impedance curve
     std::ofstream * impedCurve;
+    //! output file, norm of residue, 
     std::ofstream * piezoLog;
+    //! output file, norm of residue and parameters
     std::ofstream * parLog;
+    //! output file, finally calculated parameters
     std::ofstream * parFinal;
+    //! output file, mechanical displacement at spec.node and dof
     std::ofstream * mechDispl;
+    //! output file, set  of frequencies for optimal exp. design
     std::ofstream * optimalFreqs;
+    //! output file, contains parameters and their confidence intervals
     std::ofstream * confInterval;
+    //! output file, function rho(j) in optimal exp. design 
     std::ofstream * rhosOut;
+    //! output file, writes synthetically created impedance curve
     std::ofstream * synMess;
-    //  std::ofstream impedCurve("impedCurve.dat");
-    //  std::ofstream impedCurve("impedCurve.dat");
 
     //! Starts parameter identification
     void SolveProblem();
-
-
 
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
     //! \param F_hat - contains calculated charge, each entry belongs to different frequency 
     void createF(MaterialData * ptMaterial, Vector<Complex> & F_hat, Boolean typeOut);
 
-    // ! like create F but the frequencies are specified with Vector frequencies
+    //! like create F but the frequencies are specified with Vector frequencies
     void createFVec(Complex & F_hat, Boolean typeOut,
-                 Double frequency);
+                    Double frequency);
 
-    // ! inverts a Matrix
+    //! inverts a Matrix
     void invert(Matrix<Complex> & data);
 
-    // ! inverts a Matrix with Lapacks ZGESV
+    //! inverts a Matrix with Lapacks ZGESV
     void invertWithLapack(Matrix<Complex> & data);
     
-    // Descent Method for functional J(w)
+    //! Descent Method for functional J(w)
     void descentMethod(Complex & functional);
 
-    //  Descent Method for functional J(rho) with constraints
+    //!  Descent Method for functional J(rho) with constraints
     void descentMethodRho(Complex & functional);
 
-    // gradient of J(\rho)
+    //! gradient of J(\rho)
     void createGradientRho(Vector<Complex> & grad, Double dOmega);
 
 
@@ -118,8 +126,8 @@ namespace CoupledField
 
     //! Calculates an approximation of the Jacobi Matrix of parameter to solution operator F 
     //! \param Jacobi Matrix - approximation of F'
-  //   void createJacobiMatrix(MaterialData * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
-//                             Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
+    //   void createJacobiMatrix(MaterialData * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
+    // Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
     //! Creates special Jacobi Matrix, for optimal experiment design
     void createJacobian(Vector<Complex> & jacobi, Double omega);
@@ -130,12 +138,12 @@ namespace CoupledField
     //! Determines variance - covariance Matrix 
     void createCovA(Complex &J, Boolean writeOutCov);
 
+    //! writes Out Sum (cov(i)(i)) for frequencies selected by
+    //! optimal experiment design with var. number of freqs 
+    void writeOutConfInterval();
+
     //! Determines J(omega) in case of flexible number of frequencies
     void createJRho(Complex &J, Boolean writeOutCov);
-
-    //! Not in use in this version
-//     void createJacobiMatrix2(Matrix<Complex> & JacobiMatrix);
-//     void createJacobiMatrixC(Matrix<Complex> & JacobiMatrix);
 
     //! Calculates explicitely the Adjoint operator of F'
     void createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix, Matrix<Complex> & adjJacobiMatrix);
@@ -162,39 +170,26 @@ namespace CoupledField
     //! Calculates the impedance curve of piezo-simulation, writes results to file imped.dat
     void calcAbsImped(Complex & charge, Double & freq, UInt & fstep, Boolean typeOut);
 
+    //! Calculates and writes out impedance curve into file imped.dat
+    //! Start - and stopfrequency will be specified in xml - file
     void calcImpedanceCurve();
 
+    // calculates mech. Deformation at one selected node and dof and writes it into file mech.dat
     void calcMechDisplCurve();
-
-    void updateRHS(Vector<Complex> & solElecPot, Vector<Complex> & mechDisplacement, Double omega);
-
-    void updateRHS(Vector<Complex> & RHSsol);
-
-    void updateRHS2(Vector<Complex> & RHSsol);
 
     //! types out nodal results of elecPot and mechanical displacement
     void typeOutSolutionOnScreen(Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
-    void calcInitialResidual(Vector<Complex> & res, Vector<Complex> & y_hat, Vector<Complex> & PHI_p, UInt fstep,
-                             Vector<Complex> & solElecPot, Double & meanValueMechDeformation);
-
-    void measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, 
-                                             Double & meanValueMechDeformation, UInt dof);
-   
+    
+    //     void measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, 
+    //                                              Double & meanValueMechDeformation, UInt dof);
+    
+    //! calculates l2 norm of residue   
     void calcNorm2Resid(Vector<Complex> &res, Double & anorm, UInt nrMeasuredData);
 
+    //! square root of sum of all squared entires in matrix
     Double calcEuclidianMatrixNorm(Matrix<Complex> & mat);
     
-  
-    //! see SFBReport F013 for details ;-)
-  //   void NewtonCG();
-
-//     //! The version from 10.12.04 ...
-//     void NewtonCG1();
-
-//     //! see SFBReport F013 for details ;-)
-//     void NewtonCG2();
-
     //! see SFBReport F013 for details ;-)
     void NewtonCG3();
 
@@ -207,20 +202,19 @@ namespace CoupledField
     //! Iterative Method to determine complex valued material parameter
     void NewtonLandweberC();
 
-
-    // ! nu - methods, semiiterative methods with optimal rate of convergence
+    //! nu - methods, semiiterative methods with optimal rate of convergence
     void nuMethods();
 
-    // ! nu - methods, semiiterative method, complex version
+    //! nu - methods, semiiterative method, complex version
     void nuMethodsC();
 
-    // ! nu - methods, complex version - uses weighted norms
+    //! nu - methods, complex version - uses weighted norms
     void nuMethodsC2();
 
     //! methods which determines a set of parameters for an optimal experiment design
     void optimalExpDesign();
 
-    // ! To be removed ... is now a kind of multilevel algo ...
+    //! To be removed ... is now a kind of multilevel algo ...
     void optimalExpDesignDiffNumberFreqs();
 
     //! methods which determines a set of parameters for an optimal experiment design
@@ -249,10 +243,12 @@ namespace CoupledField
     //! Calculates Euclidian norm of only real-parts of vec
     Double norm2Real(Vector<Complex> &vec);
 
+    //! function in which user specified norms (file:measuredData.dat) will be calculated
     void norm(Vector<Complex> &  vec, Double & norm, Double & norm2,Vector<Complex> & q_meas);
 
     void maxAndEuclNorm(Vector<Complex> & vec, Double & maxNorm, Double & euclNorm);
 
+    //! calculates norm of logarithmic value of residue
     void logNorm(Vector<Complex> & vec, Double & logNorm);
   
     void maxAndWeightedResNorm(Vector<Complex> & vec, Double & maxNorm, Double & wNorm, Vector<Complex> & q_meas);
@@ -268,11 +264,12 @@ namespace CoupledField
                           MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
                           Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
+    //! approximates Jacobian by a second order FDM
     void testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
                            MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
                            Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
-
+    //! approximates Jacobian by a second order FDM for real and complex values
     void testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
                            MaterialData * ptMaterial);
     // ! The following methods serve for the determination of eigenvalues ...
@@ -324,7 +321,6 @@ namespace CoupledField
     UInt newtonCounter;
     Double inner_eta;
 
-
     // optimal experiment design:
     Double residuumParIdent;
     Double residuumParIdentOld;
@@ -332,7 +328,10 @@ namespace CoupledField
     Double normGradient;
     Double normGradientOld;
     Vector<Double> omegaDiffVec;
-
+    Matrix<Complex> globalCov;
+    Vector<UInt> globalIndexSet;
+    Vector<Complex> globalJacobi;
+    Vector<Complex> globalJacobiH;
 
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;
@@ -376,6 +375,9 @@ namespace CoupledField
     Double overall_res;
     Vector<Complex> overall_res0;
     Vector<Double> rhos; // rhos in optimalExpDesignVarNrFreqs
+
+    Double resonanceFrequency_;
+    Double antiResonanceFrequency_;
 
     Matrix<Complex> completeSolOf_F;
     Matrix<Complex> allElemsVec;

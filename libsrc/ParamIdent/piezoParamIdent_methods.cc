@@ -124,19 +124,14 @@ namespace CoupledField
 
     //    Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
 
+    Double maxImpedance=0.0;
+    Double minImpedance=1.0e+10;
+    Integer freqAtMaxImpedance=0;
+    Integer freqAtMinImpedance=0;
+
     for (UInt fstep = 0; fstep < freqs.GetSize(); fstep++) { 
 
-      //       if (reset){
-      //         ptAlgsys->InitMatrix();
-      //         ptAssemble->SetReassemble();
-      //         }
-      //       ptAssemble->CreateMatrices();
-      //  reset=TRUE;
-
-      // harmonic solver for different frequency - values
-      
-      //        Info->WriteHarmonicStep(ptMyPDE_->GetName(), fstep, freqs[fstep]);
-      
+          
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
@@ -158,11 +153,16 @@ namespace CoupledField
       Complex charge=Complex(0.0,0.0);
 	
       for (UInt i=0;i<chargeVec.GetSize();i++){
-        charge+=chargeVec[i];
+       charge+=chargeVec[i];
       }
-      //    calcAbsImped(charge, freqs[fstep], fstep);   // calculates |Z| and writes results in File
-      //    charge=-charge/Complex(chargeVec.GetSize());
-
+      if (std::abs(charge)==0){
+        std::cout<<"! WARNING: Calculated charge equals zero."<<std::endl;
+        std::cout<<" Impedance cannot be calculated"<<std::endl;
+        std::cout<<" please check your xml and mesh file for surface charges"<<std::endl;
+        std::cout<<" press any key to continue"<<std::endl;
+        getchar();
+      }
+    
       Double imped, phase;
       Complex impedC;
 	
@@ -183,48 +183,24 @@ namespace CoupledField
       *impedCurve <<"\n" << freqs[fstep] << " " << imped << "  " << phase << "  " 
                   << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
       synMess->setf(std::ios::fixed); // output should by in fixed point numbers,i.e. 100.23 instead of 1.0023e+2
+
       *synMess <<freqs[fstep]<<"\t"<<imped<<"\t"<<phase<<"\t"<<fstep<<std::endl;
 
-	
-	
-      // 	BaseNodeStoreSol * ptSol = ptPDE_->getPDESolution();
-      // 	NodeStoreSol<Complex> * ptNodeStoreSol;
-      // 	ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
-	
-      
-      // 	ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
-      // 	ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
+      // determine resonance and antiresonance frequency
+      if (imped>maxImpedance){
+        maxImpedance=imped;
+        antiResonanceFrequency_=freqs[fstep];
+      }
 
-      // 	Vector<Double> coords;
-      // 	Point<3> surfaceNode;
-      // 	ptGrid->GetCoordinateNode(mechDisplAtNode,0,surfaceNode);
-      // 	std::cout<<"surfaceNode"<<std::endl;
-      // 	std::cout<<surfaceNode[0]<<std::endl;
-      // 	std::cout<<surfaceNode[1]<<std::endl;
-
-	
-      // 	Vector<Complex> nodeSol;
-      //  	Vector<Complex> nodeResult(4);
-      //  	ptNodeStoreSol->Get(mechDisplAtNode,dofOfMechDispl,nodeResult[0]);	
-
-      //  	Double umax;
-      //  	Complex u;
-
-      //  	umax = std::sqrt(nodeResult[0].real()*nodeResult[0].real() + nodeResult[0].imag()*nodeResult[0].imag());
-      //  	std::cout<< " u_max= " << umax<< std::endl;
-      //  	u=Complex(umax,0.0)*(std::cos(nodeResult[0].imag()) +  im*std::sin(nodeResult[0].imag()))*std::exp(2.0*im*PI);
-      //  	std::cout<<" u " << u << std::endl;
-
-
-      // // 	ptNodeStoreSol->Get(351,1,nodeResult[1]);	
-      // // 	ptNodeStoreSol->Get(389,3,nodeResult[2]);	
-      // // 	ptNodeStoreSol->Get(390,3,nodeResult[3]);	
-	
-      // 	*mechDispl<< freqs[fstep] << "  "<< std::abs(u) << "  " << u.real()<<"  " <<u.imag()<<std::endl;
-
-      //      ptPDE_->PostProcess();   
+      if (imped<minImpedance){
+        minImpedance=imped;
+        resonanceFrequency_=freqs[fstep];
+      }
 
     } //  end loop over freqs
+
+    std::cout<<"++ Resonance lies at " << resonanceFrequency_ <<" Hz with |Z| = " << minImpedance<<std::endl;
+    std::cout<<"++ Antiresonance lies at " << antiResonanceFrequency_ <<" Hz with |Z| = " << maxImpedance<<std::endl;
 
   } // end calcImpedance Curve
 
@@ -512,7 +488,10 @@ namespace CoupledField
 
   }// end testJacobiMatrix
 
-  void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter, MaterialData * ptMaterial,Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl){
+  void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix,
+                                          Vector<Double> & parameter, MaterialData * ptMaterial,
+                                          Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,
+                                          Vector<Complex> &solMechDispl){
     ENTER_FCN("piezoParamIdent::testJacobiMatrix");
 
     Vector<Complex> F_hat_incr(F_hat.GetSize());
@@ -535,13 +514,13 @@ namespace CoupledField
     for (UInt ind_param=0;ind_param<nrParameter;ind_param++){ 
       if (whichParameterToUpdate[ind_param]==1){
 
-        parameter_incr[ind_param]=1.001*parameter[ind_param];
+        parameter_incr[ind_param]=1.00001*parameter[ind_param];
         //      std::cout<<parameter_incr<<std::endl
         updateMaterialData(parameter_incr,ptMaterial);
         createF(ptMaterial,F_hat_incr,FALSE);
 
 
-        parameter_incr2[ind_param]=0.999*parameter[ind_param];  
+        parameter_incr2[ind_param]=0.99999*parameter[ind_param];  
         //      std::cout<<parameter_incr2<<std::endl;
         updateMaterialData(parameter_incr2,ptMaterial);
         createF(ptMaterial,F_hat_incr2,FALSE);
@@ -550,12 +529,6 @@ namespace CoupledField
         for (UInt j=0;j<nrMeasuredData;j++)
           approxJacobiMatrix[j][parInd]=0.5*(F_hat_incr[j]-F_hat_incr2[j])/
             ((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
-
-
-        // forth order FD approximation
-        //      for (UInt j=0;j<nrMeasuredData;j++)
-        //        approxJacobiMatrix[j][parInd]=1.0/6.0*(8.0*F_hat_incr3[j]-8.0*F_hat_incr4[j]-F_hat_incr[j]+F_hat_incr2[j])/((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
-
 
         parInd++;
         //  std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
@@ -566,9 +539,6 @@ namespace CoupledField
 
       }
     }
-    //    std::cout<<"\n Here we see the approx. Jacobian and the created Jacobian Matrix:"<<std::endl;
-  
-    // JacobiMatrix=approxJacobiMatrix;
 
   }// end testJacobiMatrix
 
@@ -657,7 +627,8 @@ namespace CoupledField
 
 
 
-  void piezoParamIdent::createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix, Matrix<Complex> & adjJacobiMatrix){
+  void piezoParamIdent::createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix,
+                                                  Matrix<Complex> & adjJacobiMatrix){
     ENTER_FCN("piezoParamIdent::createAdjointJacobiMatrix");
     //    std::cout<<"\n Adjoint Jacobian will be created ... "<<std::endl;
     adjJacobiMatrix.Resize(JacobiMatrix.GetSizeCol(),JacobiMatrix.GetSizeRow());

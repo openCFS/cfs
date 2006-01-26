@@ -14,29 +14,68 @@ namespace CoupledField
 
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-     nrMeasuredData=11;
+     nrMeasuredData=24;
      Vector<Double> freqs5;
-     freqs5.Resize(11);
+     freqs5.Resize(24);
 
-       freqs5[0]=2.5e+06;
-       freqs5[1]=3.5e+06;
-       freqs5[2]=4.0e+06;
-       freqs5[3]=4.2e+06;
-       freqs5[4]=4.5e+06;
-       freqs5[5]=5.7e+06;
-       freqs5[6]=5.9e+06;
-       freqs5[7]=6.2e+06;
-       freqs5[8]=6.5e+06;
-       freqs5[9]=6.9e+06;
-       freqs5[10]=7.5e+06;
-       freqs=freqs5;
+//         freqs5[0]=2.5e+06;
+//         freqs5[1]=3.5e+06;
+//         freqs5[2]=4.5e+06;
+//         freqs5[3]=5.5e+06;
+//         freqs5[4]=6.0e+06;
+//         freqs5[5]=6.2e+06;
+//         freqs5[6]=6.4e+06;
+//         freqs5[7]=6.95e+06;
+//         freqs5[8]=7.1e+06;
+//         freqs5[9]=7.4e+06;
+//         freqs5[10]=7.75e+06;
+//         freqs5[11]=8.0e+06;
+        //  freqs5[12]=9.5e+06;
+        //    freqs5[13]=14.0e+06;
+
+
+     freqs5[0]=2.6e+06;
+     freqs5[1]=3.0e+06;
+     freqs5[2]=3.5e+06;
+     freqs5[3]=5.0e+06;
+     freqs5[4]=6.0e+06;
+     freqs5[5]=6.1e+06;
+     freqs5[6]=6.2e+06;
+     freqs5[7]=6.3e+06;
+     freqs5[8]=6.4e+06;
+     freqs5[9]=6.5e+06;
+     freqs5[10]=6.6e+06;
+     freqs5[11]=6.7e+06;
+     freqs5[12]=6.9e+06;
+     freqs5[13]=7.1e+06;
+     freqs5[14]=8.2e+06;
+     freqs5[15]=9.9e+06;
+     freqs5[16]=10.0e+06;
+     freqs5[17]=10.5e+06;
+     freqs5[18]=10.8e+06;
+     freqs5[19]=11.4e+06;
+     freqs5[20]=11.5e+06;
+     freqs5[21]=13.0e+06;
+     freqs5[22]=13.5e+06;
+     freqs5[23]=14.0e+06;
+    //  freqs5[8]=6.9e+06;
+//      freqs5[9]=9.0e+06;
+//      freqs5[10]=10.0e+06;
+//      freqs5[11]=10.7e+06;
+//      freqs5[12]=11.0e+06;
+//      freqs5[13]=12.3e+06;
+//      //  freqs[14]=12.5e+06;
+
+// ;
 
 //       freqs5[0]=2.0e+06;
 //       freqs5[1]=3.5e+06;
 //       freqs5[2]=4.5e+06;
 //       freqs5[3]=5.8e+06;
 //       freqs5[4]=6.9e+06;
-//       freqs=freqs5;
+
+
+       freqs=freqs5;
 
 
      Vector<Complex> F_y(nrMeasuredData);
@@ -51,10 +90,13 @@ namespace CoupledField
      Integer indParC=0;
      Double lambda=1.0;
      Boolean negFlag=FALSE;      
+
+     std::cout<<"Before read in Measuerment"<<std::endl;
   
-
-
     readInMeasurement(newFreqs);
+
+    std::cout<<"newFreqs:"<<std::endl;
+    std::cout<<newFreqs<<std::endl;
 
     calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
 
@@ -98,7 +140,7 @@ namespace CoupledField
 
       for (UInt par=0;par<nrParameter;par++)
         if (whichParameterToUpdate[par]==1){
-          parameter[par]=1.0001*parameter[par];
+          parameter[par]=1.000001*parameter[par];
           
           updateMaterialData(parameter,ptMaterial);
           
@@ -117,7 +159,7 @@ namespace CoupledField
 
           if (whichParameterToUpdateC[par]==1){
 
-            parameterC[par]=1.0001*parameterC[par];
+            parameterC[par]=1.000001*parameterC[par];
 
             updateMaterialData(parameter,ptMaterial);
 

@@ -18,10 +18,15 @@ namespace CoupledField
     UInt nLandweber=0;
     Double theta, eta_acc;
 
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-    updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
+    MaterialData * ptMaterial;
+    
+    if(directCoupling==TRUE)
+      ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+    else
+      ptMaterial=ptMyPDE_->getPDEMaterialData();
 
-    ptAlgsys = ptMyPDE_->getPDE_algsys();                       //Pointer to AlgebraicSystem
+    // Pointer to MaterialData
+    updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
     Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer;
     Matrix<Complex> Identity(actNrParameter, actNrParameter);
@@ -68,11 +73,17 @@ namespace CoupledField
       s.Resize(actNrParameter);
       s_old.Resize(maxNumberInnerLoops,actNrParameter);
    
-
       // Create the Matrices F, F', F*
       createF(ptMaterial, F_hat,FALSE);
+      testJacobiMatrix2(F_hat, JacobiMatrix, parameter,
+                        ptMaterial,parameterIncrement, 
+                        solElecPot, solMechDispl);
+      JacobiMatrix=approxJacobiMatrix;
+
       //      createJacobiMatrix2(JacobiMatrix);
       createAdjointJacobiMatrix(JacobiMatrix,adjJacobiMatrix);
+      std::cout<<JacobiMatrix<<std::endl;
+      getchar();
 
       // TEST MAT_MULT 
 
@@ -160,7 +171,7 @@ namespace CoupledField
         if (TRUE){
           for(UInt i=0;i<actNrParameter;i++){
             s[i]=s[i]-100.0*w*adjFF_res[i];
-            //std::cout<<"s("<<i<<")= "<<s[i]<<"; "<<std::endl;
+            std::cout<<"s("<<i<<")= "<<s[i]<<"; "<<std::endl;
           }
         }
         //       std::cout<<"\n Landweber 6.4"<<std::endl;
@@ -223,7 +234,14 @@ namespace CoupledField
       // backtracking(et , theta, s, old_resid2, new_resid2); 
 
       theta = 1.0;
-      Matrix<Double> *matMat = ptMaterial->GetMatrix();
+      Matrix<Double> *matMat;
+      
+      if(directCoupling==TRUE)
+        ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+      else
+        ptMaterial=ptMyPDE_->getPDEMaterialData();
+      
+      matMat = ptMaterial->GetMatrix();
       
       scaling[0]=1.0/((*matMat)[0][0]); 
       scaling[1]=1.0/((*matMat)[2][2]);
@@ -296,8 +314,6 @@ namespace CoupledField
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
     updateMaterialData(parameterC, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
-
-    ptAlgsys = ptMyPDE_->getPDE_algsys();                       //Pointer to AlgebraicSystem
 
     Double normJacMat, old_res_outer, new_res_inner, old_res_inner, new_res_outer;
     Matrix<Complex> Identity(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);

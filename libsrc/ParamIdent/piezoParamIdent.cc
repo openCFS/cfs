@@ -28,6 +28,8 @@ namespace CoupledField
     ptDomain = adomain;
     ptMyPDE_ = NULL;
     residuumParIdent=1.0;
+    resonanceFrequency_=0;
+    antiResonanceFrequency_=0;
     tau=1.0;
     StdVector<std::string> pdeList;
       params->GetPDEList( pdeList );
@@ -58,7 +60,6 @@ namespace CoupledField
     if (!synMess){
       std::cerr << "\n syMess.dat could not be initialized" << std::endl;
     }
-
 
     std::string filenameLog= "piezoLog.dat";
     piezoLog = new std::ofstream(filenameLog.c_str(),std::basic_ios<char>::out);
@@ -102,12 +103,11 @@ namespace CoupledField
       std::cerr << "\n rhosOut.dat could not be initialized" << std::endl;
     }
 
-
-    Char* measuremets="mess.dat";
-    mess = new std::ifstream(measuremets, std::basic_ios<char>::in);
-    if (!mess){
-      std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
-    }
+   //  std::string measurements="mess.dat";
+//     mess = new std::ifstream(measurements.c_str(), std::basic_ios<char>::in);
+//     if (!mess){
+//       std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
+//     }
 
     // in future, several parameters wwill be taken from the xml - file ...
     StdVector<std::string> keyVec, attrVec, valVec;
@@ -166,6 +166,22 @@ namespace CoupledField
       piezoLog->close();
     if(parLog)
       parLog->close();
+    if(synMess)
+      synMess->close();
+    if(piezoLog)
+      piezoLog->close();
+    if(mechDispl)
+      mechDispl->close();
+    if(optimalFreqs)
+      optimalFreqs->close();
+    if(confInterval)
+      confInterval->close();
+    if(rhosOut)
+      rhosOut->close();
+    if(mess)
+      mess->close();
+
+
 #ifdef USE_LAPACK
     if(lp_af77)
       DeleteArray(lp_af77);
@@ -282,7 +298,10 @@ namespace CoupledField
       ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     
-    Matrix<Double> *matMat = ptMaterial->GetMatrix();	
+    Matrix<Double> *matMat = ptMaterial->GetMatrix();
+    updateMaterialData(parameter, ptMaterial);
+    matMat=ptMaterial->GetMatrix();
+
     Matrix<Double> *matMatC = ptMaterial->GetMatrixC();	
     parameterIncrement=parameter;
 
@@ -322,6 +341,14 @@ namespace CoupledField
 
     updateMaterialData(parameter,ptMaterial);
     updateComplexMaterialData(parameterC,ptMaterial);
+    matMatC = ptMaterial->GetMatrixC();	
+
+    std::cout<<"+ The parameter identification will be started with the following parameters"<<std::endl;
+    std::cout<<*matMat<<std::endl;
+    std::cout<<*matMatC<<std::endl;
+
+
+
   
 
     Matrix<Double> matMatStart(10,10); // = ptMaterial->GetMatrix();
@@ -617,7 +644,7 @@ namespace CoupledField
     }
 
     else if (whichNewtonCG==12){
-      std::cout<<"++ Optimal experiment Design - variable number of frequencies"<<std::endl;
+      std::cout<<"++ Least square fitting"<<std::endl;
       leastSquare();
     }
 
@@ -808,7 +835,7 @@ namespace CoupledField
           getchar();
         }
         Double stepWidth=0.0;
-        stepWidth=std::abs(0.5*freqs[std::min(i+1,actNrParameter)]-freqs[std::max((Integer)i-1,1)]);
+        stepWidth=0.5*std::abs(freqs[std::min(i+1,freqs.GetSize())]-freqs[std::max((Integer)i-1,0)]);
         stepWidth/=1.0e+06;
         //wNorm = wNorm+stepWidth*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
         wNorm = wNorm + omegaDiffVec[i]*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
@@ -877,39 +904,8 @@ namespace CoupledField
   }
 
 
-  void piezoParamIdent::measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, Double & meanValueMechDeformation, UInt dof){
-    ENTER_FCN("piezoParamIdent::measureMechDeformationInZ_Direction");
-    meanValueMechDeformation=0.0;
-
-    UInt spacedim = ptMyPDE_->getPDE_spaceDim();
-
-    StdVector<UInt> bcs_list;
-    std::string BCName="ep-top";
-
-    
-    ptdomain_->GetGrid()->GetNodesByName(bcs_list,BCName);
-    if (spacedim==3){
-      for (UInt iNode=0; iNode<bcs_list.GetSize(); iNode++ ) 
-        {
-          //    std::cout<<"\n MECHDISPL "<< mechDisplacement[(*it)*(dof-1)-1]<< " & it " << (*it)*(dof-1)-1 << std::endl;
-          //meanValueMechDeformation+=std::abs(mechDisplacement[(*it)*(dofs-1)-1]);
-          meanValueMechDeformation+=mechDisplacement[bcs_list[iNode]*(dof-1)-1].real();
-        }
-      meanValueMechDeformation=meanValueMechDeformation/(PI*Radius*Radius*mechDisplacement.GetSize()/(dof-1));
-    }
-
-    else if (spacedim==2){
-      for (UInt iNode=0; iNode<bcs_list.GetSize(); iNode++ ) 
-        {
-          //std::cout<<"\n MECHDISPL "<< mechDisplacement[(*it)*(dof-1)-1]<< " & it " << (*it)*(dof-1)-1 << std::endl;
-          meanValueMechDeformation+=mechDisplacement[bcs_list[iNode]*(dof-1)-1].real();
-        }
-      meanValueMechDeformation=meanValueMechDeformation/(Radius*mechDisplacement.GetSize()/(dof-1));
-    }
-  } // end measureMechDeformationInZDirection
-
-
-  void piezoParamIdent::typeOutSolutionOnScreen(Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl){
+  void piezoParamIdent::typeOutSolutionOnScreen(Vector<Complex> & solElecPot,
+                                                Vector<Complex> & solMechDispl){
     ENTER_FCN("piezoParamIdent::typeOutSolutionOnScreen");
     Double sol_real, sol_imag;
     //    std::cout<<"\nElecPot: Amplitude & Phase:"<<std::endl;
@@ -917,7 +913,8 @@ namespace CoupledField
       //      sol_real=solElecPot[i].real();
       //      sol_imag=solElecPot[i].imag();
       //   std::cout << "solElecPot("<< i<< ")=" << sol_real << " + " << sol_imag <<" i " <<std::endl;
-      std::cout<<"ElecPot: Amplitude ("<< i <<") = "<< std::abs(solElecPot[i])<< ";  Phase ("<< i <<") = "<< std::arg(solElecPot[i])*180/PI<<std::endl;
+      std::cout<<"ElecPot: Amplitude ("<< i <<") = "<< std::abs(solElecPot[i])
+               << ";  Phase ("<< i <<") = "<< std::arg(solElecPot[i])*180/PI<<std::endl;
     }
     for(UInt i=0;i<solMechDispl.GetSize();i++){
       sol_real=solMechDispl[i].real();
@@ -927,18 +924,22 @@ namespace CoupledField
     }
   }// end typeOutSolutionOnSreen
 
-  void piezoParamIdent::calcInitialResidual(Vector<Complex> & res, Vector<Complex> & y_hat, Vector<Complex> & PHI_p, UInt fstep, Vector<Complex> & solElecPot, Double & meanValueMechDeformation){
-    StdVector<UInt> bcs_list;
-    ptdomain_->GetGrid()->GetNodesByName(bcs_list,"ep-top"); // for cube3dharmonic; zero, because level=0
-    //bcs_list=ptBCs->GetNodesLevel("pot", 0); // for cubexi, zero, because level=0
-    PHI_p[fstep]=solElecPot[bcs_list[0]];
-    res[fstep]=y_hat[fstep]-PHI_p[fstep];
-    res[y_hat.GetSize()+fstep]=meanValueMechDeformation;
-    std::cout << "residual ( " << fstep << ")=" << res[fstep].real() << " + " << res[fstep].imag()<<" i " <<std::endl;
-  }
+//   void piezoParamIdent::calcInitialResidual(Vector<Complex> & res, Vector<Complex>
+  //  & y_hat, Vector<Complex> & PHI_p, UInt fstep, Vector<Complex> & solElecPot, Double & meanValueMechDeformation){
+//     StdVector<UInt> bcs_list;
+//     ptdomain_->GetGrid()->GetNodesByName(bcs_list,"ep-top"); // for cube3dharmonic; zero, because level=0
+//     //bcs_list=ptBCs->GetNodesLevel("pot", 0); // for cubexi, zero, because level=0
+//     PHI_p[fstep]=solElecPot[bcs_list[0]];
+//     res[fstep]=y_hat[fstep]-PHI_p[fstep];
+//     res[y_hat.GetSize()+fstep]=meanValueMechDeformation;
+//     std::cout << "residual ( " << fstep << ")=" << res[fstep].real() << " + " << res[fstep].imag()<<" i " <<std::endl;
+//   }
 
 
-  void piezoParamIdent::createMaterialTensorMatrices(Vector<Double> & parameter, Matrix<Double> & couplingMatrix, Matrix<Double> & dielectricMatrix, UInt spaceDim){
+  void piezoParamIdent::createMaterialTensorMatrices(Vector<Double> & parameter, 
+                                                     Matrix<Double> & couplingMatrix, 
+                                                     Matrix<Double> & dielectricMatrix, 
+                                                     UInt spaceDim){
     ENTER_FCN("piezoParamIdent::createMaterialTensorMatrices");
     if (spaceDim==2){ // the rotational symmetric case;  couplingMatrix = e
       couplingMatrix[1][0] = couplingMatrix[1][3] = parameter[6]; //e_31
@@ -957,7 +958,14 @@ namespace CoupledField
   } // end createMaterialTensorMatrix
 
 
-  void piezoParamIdent::readMeasuredData(Vector<Double> & freqs, Vector<Double> & real, Vector<Double> & imag ,Vector<Double> & parameter, Double & voltage, UInt & nrMeasuredData, Double & thickness, Double & radius,  Double & delta){
+  void piezoParamIdent::readMeasuredData(Vector<Double> & freqs, 
+                                         Vector<Double> & real,
+                                         Vector<Double> & imag ,
+                                         Vector<Double> & parameter, 
+                                         Double & voltage,
+                                         UInt & nrMeasuredData, 
+                                         Double & thickness, Double & radius,
+                                         Double & delta){
     ENTER_FCN( "piezoParamIdent::readMeasuredData" );
     char mDataRow[256], helpChar[64];
     UInt i=0, j=0, k=0;
@@ -979,7 +987,6 @@ namespace CoupledField
           }
         }
         nrMeasuredData = j;
-        //        std::cout<<"Nr_of_measured_Data in readMeasuredData = "<< nrMeasuredData<<std::endl;
         }
       else if (mDataRow[0]=='2'){
         i=2;j=0;k=0;
@@ -1186,8 +1193,8 @@ namespace CoupledField
   //! Updates material data & updates system matrices!!
   void piezoParamIdent::updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial){
     ENTER_FCN("piezoParamIdent::updateMaterialData");    
-    // std::cout<<"updateMaterialData"<<std::endl;
-    // std::cout<<parameter<<std::endl;
+    //  std::cout<<"updateMaterialData"<<std::endl;
+//      std::cout<<parameter<<std::endl;
 
 
     for(UInt i=0;i<9;i++)
@@ -1500,7 +1507,11 @@ namespace CoupledField
 
   } // end updateMaterialData
 
-  void piezoParamIdent::setNewParameterSet(Vector<Double> & par,Vector<Double> &  par_new,Vector<Double> & scaling,Double & theta,Vector<Double> & uStep, Vector<UInt> & whichParameterToUpdate){
+  void piezoParamIdent::setNewParameterSet(Vector<Double> & par,
+                                           Vector<Double> &  par_new,
+                                           Vector<Double> & scaling,
+                                           Double & theta,Vector<Double> & uStep,
+                                           Vector<UInt> & whichParameterToUpdate){
     UInt helpInd=0;
     for (UInt i=0;i<nrParameter;i++){
       //      std::cout<<"\n setNewParameterSet " << whichParameterToUpdate[i]<<", ";
