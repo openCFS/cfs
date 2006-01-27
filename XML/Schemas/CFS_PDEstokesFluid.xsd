@@ -1,0 +1,260 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for PDE description for an stokesFluid PDE
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of element for stokesFluid PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="stokesFluid" type="DT_PDEStokesFluid"
+    substitutionGroup="PDEBasic">
+    <xsd:unique name="CS_StokesFluidRegion">
+      <xsd:selector xpath="cfs:region"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+  </xsd:element>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for stokesFluid PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_PDEStokesFluid">
+    <xsd:complexContent>
+      <xsd:extension base="DT_PDEBasic">
+        <xsd:sequence>
+
+          <!-- Regions the PDE lives on (including optional damping model) -->
+          <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="nonLinear" type="DT_StokesFluidNonLin"
+                use="optional" default="no"/>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- Surface regions on which results as force are calculated -->
+          <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="name" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Time Stepping Formulation (optional)-->
+          <xsd:element name="timeSteppingFormulation"
+            type="DT_StokesFluidTimeStep" minOccurs="0"
+            default="effStiffMatrix"/>
+
+          <!-- Boundary Conditions & Loads (optional) -->
+          <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="dirichletHom"   type="DT_StokesFluidHD"  />
+                <xsd:element name="dirichletInhom" type="DT_StokesFluidID"  />
+                <xsd:element name="neumannInhom"   type="DT_StokesFluidIN"  />
+              </xsd:choice>
+              <xsd:attribute name="tag" type="xsd:token" use="optional"
+                default="anyTag"/>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Desired solution values (optional) -->
+          <!-- Currently this is not supported, since it is difficult
+          to define in the acoustics case since it depends on the
+          boundary conditions -->
+          <xsd:element name="storeResults" type="DT_StokesFluidStoreResults"
+            minOccurs="0" maxOccurs="1"/>
+
+        </xsd:sequence>
+
+        <!-- Type of acoustic pde -->
+        <xsd:attribute name="subType" use="optional">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="3d"/>
+              <xsd:enumeration value="plane"/>
+              <xsd:enumeration value="axi"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of enumeration type describing the degrees of freedom  -->
+  <!-- ******************************************************************* -->
+
+  <xsd:simpleType name="DT_StokesFluidDOF">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="vx"/>
+      <xsd:enumeration value="vy"/>
+      <xsd:enumeration value="vz"/>
+      <xsd:enumeration value="phi"/>
+      <xsd:enumeration value="omegax"/>
+      <xsd:enumeration value="omegay"/>
+      <xsd:enumeration value="omegaz"/>
+      <xsd:enumeration value="p"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of the boundary condition types for acoustics -->
+  <!-- ******************************************************************* -->
+
+  <!-- Element type for homogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the base type -->
+  <xsd:complexType name="DT_StokesFluidHD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BCBasic">
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="DT_StokesFluidDOF" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
+  <!-- We derive it by extending the homogeneous case -->
+  <xsd:complexType name="DT_StokesFluidID">
+    <xsd:complexContent>
+      <xsd:extension base="DT_StokesFluidHD">
+        <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
+          default="none"/>
+	<xsd:attribute name="fileName" type="xsd:token" use="optional"
+          default="none"/>
+	<xsd:attribute name="interpolType" type="xsd:token" use="optional"
+          default="NNB"/>
+	<xsd:attribute name="noNodes" type="xsd:token" use="optional"
+          default="-1"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Element type for specifying inhomogeneous neumann conditions -->
+  <!-- Identical to that of inhomogeneous Dirichlet case -->
+  <xsd:complexType name="DT_StokesFluidIN">
+    <xsd:complexContent>
+      <xsd:extension base="DT_StokesFluidID"/>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for time stepping formulation -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_StokesFluidTimeStep">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="effMassMatrix"/>
+      <xsd:enumeration value="effStiffMatrix"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of syntax for specifying output quantities of CFS -->
+  <!-- ******************************************************************* -->
+
+  <!-- What data can a single node have in an acoustic PDE -->
+  <xsd:simpleType name="DT_StokesFluidNodeData">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="stokesFluidVelocity"/>
+      <xsd:enumeration value="stokesFluidVorticity"/>
+      <xsd:enumeration value="stokesFluidPressure"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- What data can a single element have in an acoustic PDE -->  
+  <xsd:simpleType name="DT_StokesFluidElemData">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="stokesFluidForce"/>
+      <xsd:enumeration value="stokesFluidPressure"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Data type for describing final node values to be stored -->
+  <xsd:complexType name="DT_StokesFluidNodeResults">
+    <xsd:attribute name="type" type="DT_StokesFluidNodeData" use="required"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of node values to be stored -->
+  <xsd:complexType name="DT_StokesFluidNodeHistory">
+    <xsd:attribute name="type" type="DT_StokesFluidNodeData" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="format" use="optional" default="complete">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="complete"/>
+          <xsd:enumeration value="maxVal"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of node values to be stored -->
+  <xsd:complexType name="DT_StokesFluidSpecialNodes">
+    <xsd:attribute name="type" type="DT_StokesFluidNodeData" use="required"/>
+    <xsd:attribute name="saveNodes" type="xsd:token" use="required"/>
+    <xsd:attribute name="file" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing final element values to be stored -->
+  <xsd:complexType name="DT_StokesFluidElemResults">
+    <xsd:attribute name="type" type="DT_StokesFluidElemData" use="required"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
+  
+  <!-- Data type for describing history of element values to be stored -->
+  <xsd:complexType name="DT_StokesFluidElemHistory">
+    <xsd:attribute name="type" type="DT_StokesFluidElemData" use="required"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
+  </xsd:complexType>  
+
+  <!-- Global type for specifying the desired acoustic output quantities -->
+  <xsd:complexType name="DT_StokesFluidStoreResults">
+    <xsd:sequence>
+      <xsd:element name="nodeResults" type="DT_StokesFluidNodeResults"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="nodeHistory" type="DT_StokesFluidNodeHistory"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="specialNodes" type="DT_StokesFluidSpecialNodes"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="elemResults" type="DT_StokesFluidElemResults"
+        minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="elemHistory" type="DT_StokesFluidElemHistory"
+        minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for non-linearity in stokesFluid PDEs -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_StokesFluidNonLin">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="no"/>
+      <xsd:enumeration value="convection"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+</xsd:schema>

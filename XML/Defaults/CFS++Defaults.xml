@@ -187,6 +187,13 @@
 
     </mpcci>
 
+    <!-- ***************************************************************** -->
+    <!-- Template for mpcci PDE -->
+    <!-- ***************************************************************** -->
+    <stokesFluid>
+      <region name="dummyRegion"/>
+    </stokesFluid>
+
   </pdeList>
 
   <harmonic>
@@ -254,6 +261,11 @@
       <solver><stoppingRule/></solver>
     </system>
     <system name="heatConduction">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="stokesFluid">
       <setup/>
       <matrix/>
       <solver><stoppingRule/></solver>

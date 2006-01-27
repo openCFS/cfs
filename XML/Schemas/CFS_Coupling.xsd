@@ -136,6 +136,7 @@
               <xsd:enumeration value="magForceLorentz"/>
               <xsd:enumeration value="acouForce"/>
               <xsd:enumeration value="fluidForce"/>
+              <xsd:enumeration value="stokesFluidForce"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -268,6 +269,33 @@
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
+
+  <!-- StokesFluid PDE -->
+  <xsd:complexType name="DT_CouplingStokesFluid">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <!--<xsd:enumeration value="node"/>-->
+              <xsd:enumeration value="region"/>
+              <!--xsd:enumeration value="interface"/>-->
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="quantity" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <!--<xsd:enumeration value="mechForce"/>-->
+              <xsd:enumeration value="smoothDisplacement"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
   
   <!--nonlinear (concerning iterative coupling) part -->
   <xsd:complexType name="DT_Nonlinear">
@@ -284,6 +312,7 @@
                 <xsd:enumeration value="smoothDisplacement"/>
                 <xsd:enumeration value="magForceVWP"/>
                 <xsd:enumeration value="magForceLorentz"/>
+                <xsd:enumeration value="stokesFluidForce"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -461,6 +490,89 @@
                 <xsd:sequence>
                   <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingHeat"
                     maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+          <xsd:attribute name="method" type="DT_IterCouplingMethod" use="required"/>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+
+
+  <!-- StokesFluid-Mechanics coupling -->
+  <xsd:element name="stokesFluidMech" substitutionGroup="PDEBasicIterCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicIterCoupling">
+          <xsd:sequence>
+            <xsd:element name="stokesFluid">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingStokesFluid"
+                               maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="mechanic">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingMech"
+                               maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="smooth" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling" type="DT_CouplingSmooth"
+                               maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+          <xsd:attribute name="method" type="DT_IterCouplingMethod" use="required"/>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+  
+  <!-- StokesFluid-Mechanics-Acoustic coupling -->
+  <xsd:element name="stokesFluidMechAcou" substitutionGroup="PDEBasicIterCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicIterCoupling">
+          <xsd:sequence>
+            <xsd:element name="stokesFluid">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingStokesFluid"
+                               maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="mechanic">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingMech"
+                               maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="acoustic">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingAcou"
+                               maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="smooth" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling" type="DT_CouplingSmooth"
+                               maxOccurs="unbounded" />
                 </xsd:sequence>
               </xsd:complexType>
             </xsd:element>
