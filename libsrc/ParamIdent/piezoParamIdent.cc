@@ -241,6 +241,15 @@ namespace CoupledField
     }
     else
       ptMyPDE_->WriteGeneralPDEdefines();
+    
+    // DirectCoupledPDE *  ptDirectCoupledPDE = 
+//       dynamic_cast<DirectCoupledPDE *>(ptPDE_);
+
+//     PiezoCoupling * ptPiezoCoupling = 
+//       dynamic_cast<PiezoCoupling *>(ptDirectCoupledPDE);
+
+    //  PdeIdType pdeIdeOne = ptPiezoCoupling->GetPDEId1(); 
+
 
 
     //ptMyPDE_->WriteGeneralPDEdefines();
@@ -291,21 +300,28 @@ namespace CoupledField
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
 
+    MaterialData * ptMaterial1;
+    MaterialData * ptMaterial2;
 
-    if(directCoupling==TRUE)
+    if(directCoupling==TRUE){
       ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+      ptMaterial2=ptPDE2_->getPDEMaterialData();   // Pointer to MaterialData
+    }
     else
       ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-    
-    Matrix<Double> *matMat = ptMaterial->GetMatrix();
+
+    Matrix<Double> *matMat = ptMaterial1->GetMatrix();
     updateMaterialData(parameter, ptMaterial);
+
+    if(directCoupling==TRUE){
+      updateMaterialData(parameter, ptMaterial2);
+    }
     matMat=ptMaterial->GetMatrix();
 
     Matrix<Double> *matMatC = ptMaterial->GetMatrixC();	
     parameterIncrement=parameter;
 
-     
    //  //Generates ansys code for stack actuator
 //     if (FALSE){
 //       UInt numOfLayers=200;
@@ -343,13 +359,15 @@ namespace CoupledField
     updateComplexMaterialData(parameterC,ptMaterial);
     matMatC = ptMaterial->GetMatrixC();	
 
+    if(directCoupling==TRUE){
+      updateMaterialData(parameter, ptMaterial2);
+    }
+    
+
     std::cout<<"++ The parameter identification will be started with the following parameters"<<std::endl;
     std::cout<<*matMat<<std::endl;
     std::cout<<*matMatC<<std::endl;
 
-
-
-  
 
     Matrix<Double> matMatStart(10,10); // = ptMaterial->GetMatrix();
     Matrix<Double> matMatCStart(10,10); // = ptMaterial->GetMatrixC();
@@ -1208,7 +1226,7 @@ namespace CoupledField
       subdoms=ptMyPDE_->getPDE_subdoms();
     
     if (subdoms.GetSize()==1){
-         
+        
       ptMaterial[0].SetPiezoMatrixData(0,0, parameter[0]);
       ptMaterial[0].SetPiezoMatrixData(1,1, parameter[0]);
       ptMaterial[0].SetPiezoMatrixData(2,2, parameter[1]);
@@ -1220,7 +1238,6 @@ namespace CoupledField
       ptMaterial[0].SetPiezoMatrixData(2,1, parameter[3]);
       ptMaterial[0].SetPiezoMatrixData(3,3, parameter[4]);
       ptMaterial[0].SetPiezoMatrixData(4,4, parameter[4]);
-      // std::cout<<"updateMaterialData Set Data 44"<<std::endl;
       ptMaterial[0].SetPiezoMatrixData(5,5, 0.5*(parameter[0]-parameter[2]));
       ptMaterial[0].SetPiezoMatrixData(6,4, parameter[5]);
       ptMaterial[0].SetPiezoMatrixData(7,3, parameter[5]);
@@ -1236,8 +1253,8 @@ namespace CoupledField
       ptMaterial[0].SetPiezoMatrixData(7,7, parameter[8]);
       ptMaterial[0].SetPiezoMatrixData(8,8, parameter[9]);
     }
-    else{
 
+    else{
       ptMaterial[0].SetPiezoMatrixData(0,0, parameter[0]);
       ptMaterial[0].SetPiezoMatrixData(1,1, parameter[0]);
       ptMaterial[0].SetPiezoMatrixData(2,2, parameter[1]);
@@ -1318,14 +1335,23 @@ namespace CoupledField
       ptMaterial[2].SetPiezoMatrixData(8,8, parameter[9]);
     }
 
-    if(directCoupling==TRUE)
+    if(directCoupling==TRUE){
       ptAssemble = ptPDE1_->getPDE_assemble();
-    else
+      ptAssemble2 = ptPDE2_->getPDE_assemble();
+
+      ptAssemble->SetAlternatingMaterial(TRUE);
+      ptAssemble->SetMaterialPointer(ptMaterial);
+
+      ptAssemble2->SetAlternatingMaterial(TRUE);
+      ptAssemble2->SetMaterialPointer(ptMaterial);
+    }
+
+    else{
       ptAssemble = ptMyPDE_->getPDE_assemble();
-    
-    ptAssemble->SetAlternatingMaterial(TRUE);
-    ptAssemble->SetMaterialPointer(ptMaterial);
-    //   std::cout<< parameter <<std::endl;
+      ptAssemble->SetAlternatingMaterial(TRUE);
+      ptAssemble->SetMaterialPointer(ptMaterial);
+    }
+      //   std::cout<< parameter <<std::endl;
 
     // Consider poling of piezoelectric body
     Double a1, a2, a3;
@@ -1501,9 +1527,16 @@ namespace CoupledField
     if(directCoupling==TRUE)
       ptAssemble = ptPDE1_->getPDE_assemble();
     else
-      ptAssemble = ptMyPDE_->getPDE_assemble();
+      ptAssemble = ptMyPDE_->getPDE_assemble()
+;
     ptAssemble->SetAlternatingMaterial(TRUE);
     ptAssemble->SetMaterialPointer(ptMaterial);
+
+    Matrix<Double> *matMat = ptMaterial->GetMatrix();
+    //    updateMaterialData(parameter, ptMaterial);
+    matMat=ptMaterial->GetMatrix();
+
+
 
   } // end updateMaterialData
 

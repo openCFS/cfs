@@ -23,6 +23,8 @@ class SinglePDE;
 class StdPDE;
 class SingleDriver;
 class PiezoPDE;
+class PiezoCoupling;
+class DirectCoupledPDE;
 
 
 namespace CoupledField 
@@ -90,8 +92,10 @@ namespace CoupledField
     //! inverts a Matrix
     void invert(Matrix<Complex> & data);
 
+#ifdef USE_LAPACK
     //! inverts a Matrix with Lapacks ZGESV
-    //    void invertWithLapack(Matrix<Complex> & data);
+    void invertWithLapack(Matrix<Complex> & data);
+#endif
     
     //! Descent Method for functional J(w)
     void descentMethod(Complex & functional);
@@ -311,6 +315,7 @@ namespace CoupledField
     Grid * ptGrid;
     NodeEQN * ptNodeEqn;
     Assemble * ptAssemble;
+    Assemble * ptAssemble2;
     StdVector<RegionIdType> subdoms;
     BaseNodeStoreSol * sol;
     Domain * ptDomain;
@@ -337,6 +342,8 @@ namespace CoupledField
     Vector<Complex> solMechDispl;
     Vector<Complex> algSysSolVector;
     MaterialData * ptMaterial;
+    MaterialData * ptMaterial1;
+    MaterialData * ptMaterial2;
 
     Vector<Double> parameter;
     Vector<Double> parameterC;
