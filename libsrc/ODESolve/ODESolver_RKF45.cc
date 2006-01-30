@@ -45,11 +45,11 @@ namespace CoupledField
       y[i] = yInitOut[i];
     }
 
-    // *** Test ************************************
-    if (t+h-tStop > 0.0) {
-      h = tStop-t;
-    }
-    // *********************************************
+//     // *** Test ************************************
+//     if (t+h-tStop > 0.0) {
+//       h = tStop-t;
+//     }
+//     // *********************************************
 
     for (nstp=0; nstp<maxSteps_; nstp++){
       myODE.CompDeriv(t,y,dydt);
@@ -61,9 +61,9 @@ namespace CoupledField
 
       // *** Test ************************************
       // //If stepsize can overshoot, decrease
-      //if ((t+h-tStop)*(t+h-tInit) > 0.0){
-      //  h = tStop-t;
-      //}
+      if ((t+h-tStop)*(t+h-tInit) > 0.0){
+        h = tStop-t;
+      }
       // *********************************************
 
       RKAdaptiveStepsize(y,dydt,t,h,yScal,hDid,hNext,myODE);
@@ -76,7 +76,7 @@ namespace CoupledField
       } 
       //Did we get the final value for tStop?
       // *** MODIFIED testing case, added second condition*******
-      if (((t-tStop)*(tStop-tInit) >= 0.0) || (t+hNext-tStop > 0.0)){
+      if (((t-tStop)*(tStop-tInit) >= 0.0)){;// || (t+hNext-tStop > 0.0)){
 	for (i=0; i<nvar; i++){
 	  yInitOut[i] = y[i];
 	}
@@ -146,7 +146,12 @@ namespace CoupledField
     StdVector<Double> yError(n);
     StdVector<Double> yTemp(n);
 
+
+
+
     for(;;){
+
+
 
       RKCashKarp(y, dydt, t, h, yTemp, yError, myODE); //Take one step
 
@@ -155,22 +160,22 @@ namespace CoupledField
 	errMax = ( errMax >fabs(yError[i]/yScal[i])
 		   ? errMax : (fabs(yError[i]/yScal[i])) );
       }
-
+      
       errMax /= eps_;             //Scale relative to required tolernace
       if (errMax <= 1.0) {
 	break;                    //Step succeeded. Compute size of next step
       }
-
+      
       hTemp = safetyFac_ * h * std::pow(errMax,powerShrink);
       //Truncation error too large, reduce stepsize, no more than factor 10
       h = ( h >= 0.0 ?
-      	    (hTemp > 0.1*h ? hTemp: 0.1*h ):(hTemp <0.1*h ? hTemp: 0.1*h ));
+	            (hTemp > 0.1*h ? hTemp: 0.1*h ):(hTemp <0.1*h ? hTemp: 0.1*h ));
       tNew = t + h;
       if (tNew == t){
 	//	Double dummyp;
 	//	Double dummydpdt;
 	//	Double testr;
-
+	
 	//	try {
 	//	  //KellerMiksis &theODE = dynamic_cast<KellerMiksis&>(myODE);
 	//	  Gilmore &theODE = dynamic_cast<Gilmore&>(myODE);
