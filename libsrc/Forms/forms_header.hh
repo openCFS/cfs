@@ -31,4 +31,5 @@
 #include "stokesFluid3DInt.hh"
 #include "stokesFluidPlaneInt.hh"
 #include "stokesFluidAxiInt.hh"
+#include "nLinStokesFluidInt.hh"
 #endif

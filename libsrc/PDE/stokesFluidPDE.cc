@@ -79,6 +79,68 @@ namespace CoupledField
     ENTER_FCN( "StokesFluidPDE::~StokesFluidPDE" );
   }
 
+  
+  void StokesFluidPDE::InitNonLin()
+  {
+    ENTER_FCN( "StokesFluidPDE::InitNonLin");
+
+    // ==============================================================
+    // NOTE: Currently we can only treat convective non-linearity and
+    //       we assume that for a stokes fluid PDE all regions either
+    //       are linear or non-linear!
+    // ==============================================================
+    StdVector<std::string> nonLinRegion;
+    params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
+    // Should not happen with validating parser, but beware!
+    if ( nonLinRegion.GetSize() == 0 ) {
+      nonLin_ = FALSE;
+    }
+    else {
+      for ( UInt k = 1; k < nonLinRegion.GetSize(); k++ ) {
+        if ( nonLinRegion[k] != nonLinRegion[0] ) {
+          Info->Error( "Non-linearity should be the same for all regions!",
+                       __FILE__, __LINE__ );
+        }
+      }
+      nonLin_ = nonLinRegion[0] == "convection" ? TRUE : FALSE;
+    }
+
+    // In non-linear case determine type of line search strategy
+    if ( nonLin_ == TRUE ) {
+
+      Info->PrintF( pdename_, "Non-linearity in %d regions\n",
+                    nonLinRegion.GetSize() );
+
+      // type of line search
+      params->Get( "type", lineSearch_, pdename_, "lineSearch" );
+
+      if ( lineSearch_ == "none" ) {
+        Info->PrintF( pdename_, "Performing no line search\n" );
+      }
+      else {
+        Info->PrintF( pdename_, "Will perform line search\n" );
+      }
+
+    }
+
+    // If no non-linearity we do not perform line search anyhow
+    else {
+      lineSearch_ = "none";
+    }
+
+    if( nonLin_ == TRUE )
+      {
+        // incremental stopping criterion
+        params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
+
+        // residual stopping criterion
+        params->Get( "resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
+        
+        // maximal number of NL-iterations
+        params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
+      }
+  }
+
   void StokesFluidPDE::DefineIntegrators()
   {
     ENTER_FCN( "StokesFluidPDE::DefineIntegerators" );
@@ -109,6 +171,40 @@ namespace CoupledField
     
       assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
 
+      // ==============  add nonlinear stiffness ============================
+      if (nonLin_)
+        {
+          BaseForm *nLinPart = NULL;
+
+          if (subType_ == "3d")
+            {   
+              nLinPart = 
+                new nLinStokesFluid3DInt_Convective(density, dynamicViscosity);    
+            }
+          else if (subType_ == "plane")
+            {
+              nLinPart = 
+                new nLinStokesFluidPlaneInt_Convective(density, dynamicViscosity);    
+            }
+          else if (subType_ == "axi")
+            {
+              Info->Error("StokesFluid with convection needs to be implemented for axisymmetry! ",__FILE__,__LINE__);
+              //nLinPart =
+              //  new nLinStokesFluidAxiInt_Convective(density, dynamicViscosity);    
+            }
+          IntegratorDescriptor * stiffNLDescr = 
+	        new IntegratorDescriptor(nLinPart, STIFFNESS, nonLin_);
+
+	      stiffNLDescr->SetPDEIds(this, this);
+	      assemble_->AddIntegrator(stiffNLDescr, subdoms_[actSD]);
+        }
+        // ==================== RHS ===========================================
+        if (nonLin_)
+          {
+            BaseForm * rhsSource = 
+              new nLinStokesFluid_linFormInt(density, dynamicViscosity, isaxi_);
+            assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
+          }
       }
   }
 
@@ -230,7 +326,7 @@ namespace CoupledField
     StdVector<Elem*> * couplingElems = NULL;
     StdVector<UInt> * couplingNodes = NULL;
     CFSVector * temp_values = NULL;
-    UInt regionCount = 0;
+    //UInt regionCount = 0;
   
     // at first, check if this PDE is iterative coupled
     if (isIterCoupled_ == FALSE)

@@ -12,14 +12,6 @@ namespace CoupledField
     ENTER_FCN( "StokesFluidInt::StokesFluidInt" );
   }
 
-  StokesFluidInt::StokesFluidInt()
-    : BaseForm()
-  {
-    ENTER_FCN( "StokesFluidInt::StokesFluidInt" );
-  }
-
-
- 
   StokesFluidInt::~StokesFluidInt()
   {
     ENTER_FCN( "StokesFluidInt::~StokesFluidInt" );

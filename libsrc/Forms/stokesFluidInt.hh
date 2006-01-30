@@ -13,9 +13,6 @@ public:
   /// Constructor
   StokesFluidInt(Double density, Double dynamicViscosity);
 
-  /// Constructor
-  StokesFluidInt();
-
   /// 
   virtual ~StokesFluidInt();
 
