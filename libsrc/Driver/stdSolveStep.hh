@@ -15,6 +15,7 @@ namespace CoupledField
   class BaseNodeStoreSol;
   class NodeEQN;
   class TimeStepping;
+  class WriteResults;
   
   //! Derived class for step-wise solving of StdPDEs
 
@@ -100,10 +101,6 @@ namespace CoupledField
     //!  routine for actions after the SolveStep-method
     //! \param reset TRUE: perfrom new assembly, etc
     virtual void PostStepHarmonic( const Boolean reset ) {;};
-
-
-    //! 
-    virtual void WriteResults(UInt actStep, Double actTime) {;};
 
     //----------------------- helpfull methods--------------------------------------
 
@@ -191,7 +188,7 @@ namespace CoupledField
     BaseNodeStoreSol * sol_;         //!< pointer to solution object
     NodeEQN * eqnData_;              //!< pointer to equation object
     Assemble * assemble_;            //!< pointer to assemble object  
-
+    WriteResults * outFile_;         //!< pointer to result file
     //! factors for computingn effective system matrix
     std::map<FEMatrixType,Double> matrix_factor_;   
     
