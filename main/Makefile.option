@@ -154,7 +154,7 @@ MpCCI = no
 # Use of GSI output format
 # NOTE: On the SGI IRIX the signal handling used in the GSI writer
 # does not work, so the option must be "no" there
-GSI = yes
+GSI = no
 
 # Use of GiD output format
 # Enables CFS++ to write native GiD mesh and postprocessing files
@@ -181,10 +181,10 @@ USE_EXPR_TEMPLATES = yes
 # -----------------------------------------------------------------------------
 
 # Was OLAS compiled with support for hypre?
-HYPRE = yes
+HYPRE = no
 
 # Was OLAS compiled with support for LAPACK?
-LAPACK = yes
+LAPACK = no
 
 # Was OLAS compiled with support for TVMET?
 TVMET = no
@@ -193,7 +193,7 @@ TVMET = no
 PARDISO = no
 
 # Was OLAS compiled with support for Metis?
-METIS = yes
+METIS = no 
 
 
 # -----------------------------------------------------------------------------

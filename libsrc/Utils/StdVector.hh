@@ -176,14 +176,14 @@ namespace CoupledField {
   template<class TYPE>
   TYPE & StdVector<TYPE>::operator[] (const UInt i)
   {     
-#ifdef CHECK_INDEX
+    #ifdef CHECK_INDEX
     if (i >= size_){
       (*warning) <<  "Vector: invalid access to element "
                  << i+1
                  << " \n Length of vector: " << size_;
       Warning(__FILE__,__LINE__);
     }
-#endif
+    #endif
     return  data_[i];
   }
 

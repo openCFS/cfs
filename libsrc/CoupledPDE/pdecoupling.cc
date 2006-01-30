@@ -328,19 +328,25 @@ namespace CoupledField
 
           index = myPDE_->subdoms_.Find(myElem.ptVolElem1->regionId);
 
-          if ( index == -1 ) {
+          if ( index == -1 && (myElem.ptVolElem2!=NULL)) {
             index = myPDE_->subdoms_.Find(myElem.ptVolElem2->regionId);
           }
         
-          if ( index == -1 ) {
+          if ( index == -1 && (myElem.ptVolElem2!=NULL)) {
             (*error) << "PDECoupling::AddOutput: For Surface element Nr. " 
 
                      << myElem.elemNum << " I found no according region in PDE '"
                      << myPDE_->GetName() << "'!";
             Error( __FILE__, __LINE__ );
           }
+          //In case we have only one volume elem neighbor we assume same mat index
+          if ( index == -1 && (myElem.ptVolElem2==NULL)) {
           myInterface->oppositePdeMaterials[iElem] = 
-            &(myPDE_->materialData_[index]);
+            &(myPDE_->materialData_[0]);
+          }
+          else
+            myInterface->oppositePdeMaterials[iElem] = 
+              &(myPDE_->materialData_[index]);
         
         }
       

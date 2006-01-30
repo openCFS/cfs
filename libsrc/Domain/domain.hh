@@ -204,6 +204,7 @@ namespace CoupledField
 
     //! dimension of the problem
     UInt dim_;
+
   };
 
 }

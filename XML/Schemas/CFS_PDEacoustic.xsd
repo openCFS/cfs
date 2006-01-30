@@ -46,7 +46,7 @@
                 use="optional" default="no"/>
             </xsd:complexType>
           </xsd:element>
-          
+
           <!-- Surface regions on which results as force are calculated -->
           <xsd:element name="surface" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
@@ -54,7 +54,34 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- To define coupled region in flownoise case (optional) -->
+          <xsd:element name="coupledRegion" minOccurs="0" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:complexContent>
+                <xsd:restriction base="xsd:anyType">
+                  <xsd:attribute name="name" type="xsd:string" use="optional"
+                    default="none"/>
+                </xsd:restriction>
+              </xsd:complexContent>
+            </xsd:complexType>
+          </xsd:element>
+
           <xsd:element name="valRHS" type="DT_CFSBool" minOccurs="0"
+            maxOccurs="1" default="no"/>
+
+          <!--  Parameter to check if we are using nrbc -->
+          <xsd:element name="isCoupledNrbc" type="DT_CFSBool" minOccurs="0"
+            maxOccurs="1" default="no"/>
+
+          <!--  Three parameters are to activate the write out of the
+          grid and coupled values (optional) -->
+          <xsd:element name="writeCoupledGrid" type="DT_CFSBool" minOccurs="0"
+            maxOccurs="1" default="no"/>
+
+          <xsd:element name="writeSrcFileperTS" type="DT_CFSBool" minOccurs="0"
+            maxOccurs="1" default="no"/>
+
+          <xsd:element name="writeSrcFileperNode" type="DT_CFSBool" minOccurs="0"
             maxOccurs="1" default="no"/>
 
           <!-- Type of FlowData (optional) -->
@@ -64,6 +91,7 @@
                 <xsd:simpleType>
                   <xsd:restriction base="xsd:token">
                     <xsd:enumeration value="nodalSrc"/>
+                    <xsd:enumeration value="vortexSrc"/>
                   </xsd:restriction>
                 </xsd:simpleType>
               </xsd:attribute>
@@ -133,6 +161,19 @@
               </xsd:choice>
               <xsd:attribute name="tag" type="xsd:token" use="optional"
                 default="anyTag"/>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- Data type to define parameters of vortex source -->
+          <xsd:element name="vortexSrc" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="p0Phys"       type="DT_NonNegFloat"/>
+                <xsd:element name="rho0Phys"       type="DT_NonNegFloat"/>
+                <xsd:element name="r_0Phys"       type="DT_NonNegFloat"/>
+                <xsd:element name="GammaZirkPhys"       type="DT_NonNegFloat"/>
+                <xsd:element name="Equationgamma" type="DT_NonNegFloat"/>
+              </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
 

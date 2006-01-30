@@ -404,18 +404,17 @@ namespace CoupledField {
         else
           ptSinglePde_[i]=new AcousticPDE(ptgrid_,ptTimeFunc_,OutFile_);
       }
+      
       else if (pdeNames[i] == "acousticXYZ")
         ptSinglePde_[i]=new AcousticXYZPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
-      // else if (pdeNames[i] == "acouflownoise")
-      // ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
+      else if (pdeNames[i] == "nrbc")
+        {
+          ptSinglePde_[i]=new nrbcPDE(ptgrid_,ptTimeFunc_,OutFile_, "nrbc", NRBC_PHI);
+        }
       
-
       else if (pdeNames[i] == "smooth")
         ptSinglePde_[i]=new SmoothPDE(ptgrid_,ptTimeFunc_,OutFile_);
-
-      // else if (pdeNames[i] == "smoothlaplace") 
-      // ptSinglePde_[i]=new SmoothLaPlacePDE(ptgrid_,ptTimeFunc_,OutFile_); 
 
       else if (pdeNames[i] == "magnetic") {
         if (dim_ == 2)

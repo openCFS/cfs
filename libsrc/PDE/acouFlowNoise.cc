@@ -9,7 +9,7 @@
 #include "acouFlowNoise.hh"
 
 #include "DataInOut/Unverg/outUnverg.hh"
-//#include "DataInOut/freqfunc.hh"
+#include "DataInOut/freqfunc.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "Forms/forms_header.hh"
 #include "MpCCIcpl/MpCCIexch.hh"
@@ -35,6 +35,7 @@ namespace CoupledField
     vortexSrc_ = FALSE;
     plotRHS_ = FALSE;  
     isHarmonic_=FALSE;
+    //    ComputeRHSforHarm_=FALSE;    
 
     if( params->IsSet( "valRHS","pdeList" ,"acoustic" ) ) {
       plotRHS_ = TRUE;
@@ -65,9 +66,9 @@ namespace CoupledField
     std::cerr << "CoupledSubdoms:\n" << couplSubDomId_  << std::endl;
     
 
-    for (int i=0; i<subdoms_.GetSize(); i++)
+    for (UInt i=0; i<subdoms_.GetSize(); i++)
       {
-        for (int j=0; j<couplSubDomId_.GetSize(); j++)
+        for (UInt j=0; j<couplSubDomId_.GetSize(); j++)
           {
             if (couplSubDomId_[j] == subdoms_[i])
               {
@@ -127,9 +128,10 @@ namespace CoupledField
           AnalysisType analysisType;
           params->Get( "type", analysis, "analysis" );
           String2Enum( analysis, analysisType );
-          if (analysis=="HARMONIC")
+          if ( analysisType==HARMONIC )
             {
               isHarmonic_=TRUE;
+              ComputeRHSforHarm_=TRUE;    
               Info->PrintF(pdename_, "Using FlowData from dataset as RHS nodal source\n" );
               Info->PrintF(pdename_, "Computing using nodal frequency files (No MpCCI used)\n" );
 
@@ -148,9 +150,9 @@ namespace CoupledField
               std::cerr << "CoupledSubdoms:\n" << couplSubDomId_  << std::endl;
     
 
-              for (int i=0; i<subdoms_.GetSize(); i++)
+              for (UInt i=0; i<subdoms_.GetSize(); i++)
                 {
-                  for (int j=0; j<couplSubDomId_.GetSize(); j++)
+                  for (UInt j=0; j<couplSubDomId_.GetSize(); j++)
                     {
                       if (couplSubDomId_[j] == subdoms_[i])
                         {
@@ -179,6 +181,7 @@ namespace CoupledField
       }
 
 
+    
 
 
     //     if (vortexSrc_)
@@ -220,6 +223,7 @@ namespace CoupledField
   {
     ENTER_FCN( "AcouFlowNoise::ComputeRHS" );
 
+  
     Vector<Double> coeffMass, coeffDamp;
     Vector<Double> elemvec, nodalval;
 
@@ -248,12 +252,12 @@ namespace CoupledField
     UInt j;
     UInt elsize = 0;
     StdVector<Elem*> elemssd;     
- 
+             std::cout<<"Aqui en AcouFlowNoiseComputeRHS "<<std::endl;
 
     Double valmult;
 
     //Getting current time
-    actTime = solveStep_->GetActTime();
+    //actTime = solveStep_->GetActTime();
 
     //  std::cout<<"timestep counter in ComputeRHS: "<<timestep<<std::endl;
 
@@ -340,7 +344,7 @@ namespace CoupledField
     bndoffsetZmin=facRampZmin*zfmin;
     bndoffsetZmax=facRampZmax*zfmax;
       }
-    
+
 
     // Correct valmult value is -1.0, 
     // if plugging in source (ddTij/dxidxj) directly in weak form then 1.0
@@ -586,36 +590,37 @@ namespace CoupledField
             }
       
         } 
-      //      else
-        //        {
-//           FreqFunc * ptFreqFunc = new FreqFunc();
-//           StdVector<Double> Ampl_Phase;
-//           Ampl_Phase.Resize(2);
+      else
+        {
+          FreqFunc * ptFreqFunc = new FreqFunc();
+          StdVector<Double> Ampl_Phase;
+          Ampl_Phase.Resize(2);
 
-//           //Getting current freq
-//           actFreq = solveStep_->GetActFreq();
-//           for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
-//             node = idx + 1;       
-//             Ampl_Phase=ptFreqFunc->NodalFreqFuncAtFreq(actFreq,"freqsrcfile.node",idx);
+          //Getting current freq (received as atime)
+          actFreq = atime;
+          for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
+            node = idx + 1;       
+            Ampl_Phase=ptFreqFunc->NodalFreqFuncAtFreq(actFreq,"freqsrcfile.node",node);
             
-//             Double valAmpl = flowdata_[0][idx];
-//             Double valPhase = flowdata_[0][idx];
-
-//             valAmpl*=valmult;
-//             Complex complexValue( valAmpl * cos( valPhase / 180 * PI ),
-//                                   valAmpl * sin( valPhase / 180 * PI ) );
-//             //add to RHS
-//             eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
-//             algsys_->SetNodeRHS(complexValue, pdeId_, eqnNr, eqnDof);      
-//          }
-//        }//end else for frequency analysis
+            Double valAmpl = Ampl_Phase[0];
+            Double valPhase = Ampl_Phase[1];
+            //            std::cout<<"Aqui en AcouFlowNoise. (valAmpl, valPhase): "<< Ampl_Phase<<std::endl;
+            
+            valAmpl*=valmult;
+            Complex complexValue( valAmpl * cos( valPhase / 180 * PI ),
+                                  valAmpl * sin( valPhase / 180 * PI ) );
+            //add to RHS
+            eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+            algsys_->SetNodeRHS(complexValue, pdeId_, eqnNr, eqnDof);      
+         }
+       }//end else for frequency analysis
     }//end else in case nodalSrc is TRUE
     
 #ifdef MpCCI
     endtime = CCI_Wtime();
 #endif    
   
-    if (plotRHS_){
+    if (plotRHS_ && !isHarmonic_){
       ///////// For plotting the RHS as solution for analysing it
 
       rhs_.SetNumSolutions(1);
@@ -624,7 +629,7 @@ namespace CoupledField
       rhs_.SetNumDofs(1);
       rhs_.SetPtrEQNData(eqnData_, ptgrid_);
       rhs_.Init(0.0);
-        
+      
       Double *ptRHS;
       algsys_->GetRHSVal( ptRHS );
       rhs_.CopyFromAlgSysDataPointer(ptRHS);

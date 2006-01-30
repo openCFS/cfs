@@ -50,6 +50,7 @@ namespace CoupledField {
     fracDamping_ = FALSE;
 
     isMechCoupled_ = FALSE;
+    isNrbcCoupled_ = FALSE;
     saveRHSval_ = FALSE;
     saveRHSvalHist_ = FALSE;
 
@@ -85,6 +86,11 @@ namespace CoupledField {
 
     // axisymmetric setup    
     isaxi_ = params->HasValue( "type", "axi", "geometry" );
+
+    //To check if acoustic is coupled with nrbc and set isNrbcCoupled
+    if( params->IsSet( "isCoupledNrbc","pdeList" ,"acoustic" ) ) {
+      isNrbcCoupled_=TRUE;
+    }
 
     // ===========================
     // DODO GridAdaption
@@ -621,7 +627,11 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         if ( isMechCoupled_ == TRUE ) {
           bilinear_damp->SetFactor(-1.0);
         }
-
+        // In the case of acou-nrbc coupling we have to multiply the 
+        // abc-Integrator matrix with C0 and multiply it by nrbcBeta0
+        if ( isNrbcCoupled_ == TRUE ) {
+          bilinear_damp->SetFactor(sqrt( compressibility / density ));
+        }
         IntegratorDescriptor * abcDescr = 
           new IntegratorDescriptor(bilinear_damp, DAMPING);
         abcDescr->SetPDEIds(this, this);     
@@ -708,6 +718,15 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         //  initialize some necessary vectors
         isIncrFormulation_ = TRUE;
       }
+
+      else if (ptCoupling_->GetOutputQuantity(i) == ACOU_POT_NRBC)    {
+        ptCoupling_->CreateCouplingVector(i,isComplex_);
+        
+         // now since we need a incremental formulation, 
+         //  initialize some necessary vectors
+         isIncrFormulation_ = TRUE;
+      }
+
       else if (ptCoupling_->GetOutputQuantity(i) == ACOU_POWERDENSITY) {
 
         //get the element-node to coupling node matching
@@ -810,6 +829,15 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
                               i, couplingNodes->GetSize());
           regionCount++;
         }
+        else if (quantity == ACOU_POT_NRBC) {
+          ptCoupling_->GetOutputElements(i, couplingElems);
+          ptCoupling_->GetOutputNodes(i, couplingNodes);
+          dof = ptCoupling_->GetOutputDof(i);
+          
+          ///Here this call gives the values to phi0 in nrbcPDE
+          CalcNRBCCouplingRHS(couplingElems, *couplingNodes,
+                              *values, dof);                              
+        }
         break;
 
       case ELEM:
@@ -908,11 +936,160 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     }
   }
 
+
+
+  void AcousticPDE::
+  CalcNRBCCouplingRHS( StdVector<Elem*> * couplingElems, 
+                       StdVector<UInt> & couplingNodes,
+                       Vector<Double>& elemCouplingSols,
+                       UInt couplingdof ) {
+    
+    ENTER_FCN( "AcousticPDE::CalcNRBCCouplingRHS" );
+
+    Double density = 0.0;
+    Double sign = 0.0;
+    Double coeff_Pmass, coeff_Qstiff;
+    UInt nrbcMatType=0; // 1=Rmat, 2=pmat, 3=Qmat
+    Integer matIndex = -1;
+    Elem * ptVolElem = NULL;
+    Matrix<Double> ptCoord, elemMat;
+    Vector<Double> sol, deriv2sol, Qmat_x_sol, Pmat_x_2derSol, normal;
+    
+    elemCouplingSols.Init(0.0);
+    
+    for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
+      
+      // Perform cast from volume element to surface element, since
+      // nrbc-acou coupling makes only sense on surface elements
+      SurfElem * actSurfCoupleElem = 
+        dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
+
+      if (actSurfCoupleElem == NULL) {
+        Error( "No elements found for coupling!", __FILE__, __LINE__ );
+      }
+      
+      BaseFE * ptElem = actSurfCoupleElem->ptElem;
+      StdVector<UInt> & connecth = actSurfCoupleElem->connect;
+      GetElemCoords(connecth, ptCoord);
+      
+      // Try to find according region for first neighbouring volume
+      // element of the surface element
+      matIndex = subdoms_.Find(actSurfCoupleElem->ptVolElem1->regionId);
+      
+      // If first volume element does not belong to acoustic PDE, try the
+      // second one
+      if ( matIndex == -1 ) {
+        matIndex = subdoms_.Find(actSurfCoupleElem->ptVolElem2->regionId);
+        ptVolElem = actSurfCoupleElem->ptVolElem2;
+        //        sign = actSurfCoupleElem->normalSign;
+      } else {
+        ptVolElem = actSurfCoupleElem->ptVolElem1;
+        //        sign = -1.0 * actSurfCoupleElem->normalSign;
+      }
+      
+      if ( matIndex == -1) {
+        (*error) << "AcousticPDE::CalcNRBCCouplingRHS: The two volume "
+                 << "element neighbours of surface element Nr. "
+                 << actSurfCoupleElem->elemNum << " do not belong to my regions!";
+        Error( __FILE__, __LINE__ );
+      }
+      
+      // Density set to 1 since for this mass integrator no fac is needed
+      density = 1.0;
+      ///////////////////////!!!!!!!!!!!!!!!USE PTELEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      // FIRST WE COMPUTE THE "Qmat_x_sol" RHS term
+    // Standard "mass" matrix shape so using default constructor
+        coeff_Qstiff=1.0;
+        nrbcMatType=3;
+        NrbcInt * bilinear_Qstiff  = 
+          new NrbcInt(ptElem, coeff_Qstiff, nrbcMatType, isaxi_);
+        
+        // Now we get the Q matrix with tangential derivatives 
+        bilinear_Qstiff->CalcElementMatrix(ptCoord, elemMat);
+        
+        //std::cout<<"%%%%%%----ACOUSTIC-PDE COUPLING OUTPUT----%%%%%"<<std::endl;
+        // std::cout<<"Qmatrix= "<<std::endl;
+        // std::cout<<elemMat<<std::endl;
+        
+        delete  bilinear_Qstiff;
+        GetSolVecOfElement(sol, connecth);
+//          for(UInt k=0; k<sol.GetSize(); k++)
+//           if (abs(sol[k])<=5e-16)
+//             sol[k]=0;
+        
+         // std::cout<<"AcouSolution= "<<std::endl;
+         // std::cout<<sol<<std::endl;
+        Qmat_x_sol = elemMat * sol;
+        
+        // std::cout<<"Qmat_x_sol= "<<std::endl;
+        // std::cout<<Qmat_x_sol<<std::endl;
+        //  Q_x_sol has to be added on RHS of nrbcPDE1 with negative sign
+        
+        Qmat_x_sol *= - 1.0;
+        //END OF "Qmat_x_sol" Computation   
+        
+        //NOW WE COMPUTE "Pmat_x_Deriv2Sol" RHS term 
+        coeff_Pmass=1.0;
+        nrbcMatType=2;
+        NrbcInt * bilinear_Pmass  = 
+          new NrbcInt(ptElem, coeff_Pmass, nrbcMatType, isaxi_);
+
+        bilinear_Pmass->CalcElementMatrix(ptCoord, elemMat);
+        
+        //std::cout<<"Pmatrix= "<<std::endl;
+        // std::cout<<elemMat<<std::endl;
+
+        delete  bilinear_Pmass;
+
+        GetDeriv2SolVecOfElement(deriv2sol, connecth);
+        
+        // std::cout<<"Acou2ndDerivSolution= "<<std::endl;
+        // std::cout<<deriv2sol<<std::endl;
+
+        Pmat_x_2derSol = elemMat * deriv2sol;
+        // Computation of alpha factor (like in nrbcPDE)
+        Double c0, alphaNRBC, Cj, density, compressibility;
+        //actSD is 0 since there is only one acoustic domain
+        density         = materialData_[0].GetDensity();
+        density=1;
+        compressibility = materialData_[0].GetCompressibility();
+        c0 = sqrt(compressibility/density);
+        Cj = 1.0;
+        alphaNRBC = (1/(Cj*Cj) - 1/(c0*c0));
+        Pmat_x_2derSol *= alphaNRBC;
+        
+        // std::cout<<"Pmat_x_2derSol= "<<std::endl;
+        // std::cout<<Pmat_x_2derSol<<std::endl;
+        
+        // END OF "Pmat_x_2derSol" Computation   
+
+         for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
+          UInt nodePos = 0;
+          while(connecth[actNode] != couplingNodes[nodePos] &&
+                nodePos < couplingNodes.GetSize()) {
+            nodePos++;
+          }
+          
+         elemCouplingSols[nodePos*couplingdof] = 
+              (Qmat_x_sol[actNode] + Pmat_x_2derSol[actNode]);
+         
+         // std::cout<<"elemCouplingSols["<<(nodePos*couplingdof)<<"]= "<<elemCouplingSols[nodePos*couplingdof]<<std::endl;
+          
+        }
+         //        std::cout<<"elemCouplingSols = "<<elemCouplingSols<<std::endl;
+         
+         //std::cout<<"%%%--END ACOUSTIC-PDE COUPLING OUTPUT INFO----%%%%"<<std::endl;                  
+    
+    }
+  }
+
+
   void AcousticPDE::
   CalcHeatCouplingRHS(Vector<Double> & sourceValue, 
                       StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
                       UInt actCoupling,
                       UInt numCouplingNodes) {
+
 
     ENTER_FCN( "AcousticPDE::CalcHeatCouplingRHS" );
     
@@ -974,9 +1151,13 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     }
   }
 
+
   Boolean AcousticPDE::HasOutput(SolutionType output) {
     ENTER_FCN( "AcousticPDE::HasOutput" );
     if ((output == ACOU_FORCE) || (output == ACOU_POWERDENSITY)) {
+      return TRUE;
+    }
+    if (output == ACOU_POT_NRBC) {
       return TRUE;
     }
     return FALSE;

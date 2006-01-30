@@ -4,7 +4,7 @@
 C_DIR=../..
 include ../../main/Makefile.option
 #
-src = filetype.cc timefunc.cc writeresults.cc MaterialData.cc\
+src = filetype.cc timefunc.cc freqfunc.cc writeresults.cc MaterialData.cc\
 	LoadMaterialData.cc LoadMaterialDataFile.cc WriteInfo.cc\
 	MHMaterialDataFile.cc MHMaterialData.cc
 #

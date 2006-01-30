@@ -53,7 +53,6 @@ namespace CoupledField
 
   }
 
-
   void Line1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                          const Vector<Double> & LCoord)
   {

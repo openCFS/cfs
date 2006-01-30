@@ -143,7 +143,6 @@ namespace CoupledField {
     StdVector<std::string> regionNames, surfaceNames;
     params->GetList( "name", regionNames, pdename_, "region" );
     ptgrid_->RegionNameToId( subdoms_, regionNames );
-
     params->GetList( "name", surfaceNames, pdename_, "surface" );
     ptgrid_->RegionNameToId( surfdoms_, surfaceNames );
 
@@ -688,8 +687,8 @@ namespace CoupledField {
     
     Double phase = 0.0;
     Double dirVal;
-
-    for ( UInt i = 0; i < bcs_id_.GetSize(); i++ ) {
+    StdVector<Double>  val_tfunc_vec, dirVal_vec;
+    for ( UInt i = 0; i < bcs_id_.GetSize(); i++ ) {//loop over bcs groups
       dof = 1;
       if ( dofspernode_ > 1 ) {
         std::string doftype = bcs_id_[i]; 
@@ -703,12 +702,23 @@ namespace CoupledField {
       val_tfunc = 1.0;
       if ( ptTimeFunc_->GetmaxTimeFnc() > 0 &&
            (analysistype_ != HARMONIC || analysistype_ != MULTIHARMONIC) ) {
-        val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
+        if (fncnames_id_[i]!="spc_dependent_fnc")
+          val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
+        else
+          {
+            //   std::cout<<"fncnames_id_[i]: "<<fncnames_id_[i]<<std::endl;
+            //         StdVector<Double>  val_tfunc_vec, dirVal_vec;
+            val_tfunc_vec.Resize(nodes.GetSize());
+            dirVal_vec.Resize(nodes.GetSize());
+            val_tfunc_vec=ptTimeFunc_->TimeSpcFuncAtTime(time,fncnames_id_[i],nodes, ptgrid_);  
+            for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ )
+              dirVal_vec[iNode]    =  val_id_[i] * val_tfunc_vec[iNode];
+          }
       }
 
       val    =  val_id_[i] * val_tfunc;
       dirVal = val;
-
+      
       for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
@@ -763,9 +773,24 @@ namespace CoupledField {
 
         // Transform Dirichlet boundary conditions for effmass-formulation
         if (effectiveMass_) {
-          val = dirVal;
-          val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+          if (fncnames_id_[i]=="spc_dependent_fnc")
+            {
+                     std::cout<<" function val in SinglePDE, dirVal_vec["<<iNode<<"]: "<<dirVal_vec[iNode]<<std::endl;
+              val = dirVal_vec[iNode];
+              val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+            }
+          else
+            {
+              val = dirVal;
+              val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+            }
         }
+
+        if (fncnames_id_[i]=="spc_dependent_fnc")
+          {
+            //            std::cout<<" function val in SinglePDE, dirVal_vec["<<iNode<<"]: "<<dirVal_vec[iNode]<<std::endl;
+            val = dirVal_vec[iNode];
+          }
 
         // Case of complex-valued entries
         if (analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC) {

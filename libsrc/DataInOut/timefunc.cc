@@ -1,7 +1,11 @@
 #include <iostream>
 #include <string>
 #include <fstream>
+#include <math.h>
 
+#include "Domain/grid.hh"
+#include "Domain/GridCFS/interface_gridcfs.hh"
+#include "Domain/GridStruct/interface_gridstruct.hh"
 #include "timefunc.hh"
 #include "WriteInfo.hh"
 #include "ParamHandling/BaseParamHandler.hh"
@@ -59,59 +63,66 @@ namespace CoupledField {
 
       std::ifstream timefile;
 
-      timefile.open( fnc_names_[i].c_str() );
-      if ( !timefile ) {
-        (*error) << "Failed to open file '" << fnc_names_[i]
-                 << "' containing data of time function";
-        Error( __FILE__, __LINE__ );
-      }
-
-      timefile.clear(); // clear flags
-
-      // we don't trust .eof() =)
-      timefile.seekg(0,std::ios::end);
-      std::string::size_type pos = 0, pos_end = timefile.tellg(),
-        line_end_pos , line_start_pos = 0;
-
-      timefile.seekg(0,std::ios::beg); // start from the beginning
-      std::string     buf;
-      Double          timeT, valT;
-
-      while( pos <= pos_end ) {         
-        buf = "";
-        line_start_pos = timefile.tellg();
-        std::getline(timefile,buf,'\n');
-        line_end_pos = timefile.tellg();
-        
-        // big choice of signs for comment's
-        if (buf.length() != 0 &&
-            buf[0] != '#' &&
-            buf[0] != '%' && 
-            buf[0] != '!') {
-          timefile.seekg(line_start_pos); // rewind
-          timefile >> timeT >> valT ;                    
-
-          valTF_[i].push_back(valT);
-          timeTF_[i].push_back(timeT);
-          timefile.ignore(100,'\n');
-          
+      if ((fnc_names_[i])=="spc_dependent_fnc")
+        {
+          std::cout<<"time-space dependent function '"
+                   <<fnc_names_[i].c_str()<<"' chosen."<<std::endl;
         }
-
-        pos = timefile.tellg();  // and, where we are ?    
-          
-        if( pos != line_end_pos)
-          {
-            errMsg  = "The time data file '";
-            errMsg += fnc_names_[i];
-            errMsg += "' is not correctly formatted.\n";
-            errMsg += "Please correct it!";
-            Error(errMsg.c_str(), __FILE__, __LINE__);
+      else
+        {
+          timefile.open( fnc_names_[i].c_str() );
+          if ( !timefile ) {
+            (*error) << "Failed to open file '" << fnc_names_[i]
+                     << "' containing data of time function";
+            Error( __FILE__, __LINE__ );
           }
-          
-      }
-      
-      timefile.close();
 
+          timefile.clear(); // clear flags
+
+          // we don't trust .eof() =)
+          timefile.seekg(0,std::ios::end);
+          std::string::size_type pos = 0, pos_end = timefile.tellg(),
+            line_end_pos , line_start_pos = 0;
+
+          timefile.seekg(0,std::ios::beg); // start from the beginning
+          std::string     buf;
+          Double          timeT, valT;
+
+          while( pos <= pos_end ) {         
+            buf = "";
+            line_start_pos = timefile.tellg();
+            std::getline(timefile,buf,'\n');
+            line_end_pos = timefile.tellg();
+        
+            // big choice of signs for comment's
+            if (buf.length() != 0 &&
+                buf[0] != '#' &&
+                buf[0] != '%' && 
+                buf[0] != '!') {
+              timefile.seekg(line_start_pos); // rewind
+              timefile >> timeT >> valT ;                    
+
+              valTF_[i].push_back(valT);
+              timeTF_[i].push_back(timeT);
+              timefile.ignore(100,'\n');
+          
+            }
+
+            pos = timefile.tellg();  // and, where we are ?    
+          
+            if( pos != line_end_pos)
+              {
+                errMsg  = "The time data file '";
+                errMsg += fnc_names_[i];
+                errMsg += "' is not correctly formatted.\n";
+                errMsg += "Please correct it!";
+                Error(errMsg.c_str(), __FILE__, __LINE__);
+              }
+          
+          }
+      
+          timefile.close();
+        }
     } // loop over fncs
   }
 
@@ -121,11 +132,11 @@ namespace CoupledField {
   
     Integer numfnc;
  
-    //if name of time function not defined, than a constant time function with value
+    //if name of time function not defined, then a constant time function with value
     //1.0 is assumed 
     if (fncname == "none")
       return 1.0;
-
+      
     //get correct time function
     numfnc = fnc_names_.Find(fncname);
 
@@ -168,6 +179,47 @@ namespace CoupledField {
     return hlp2;
  
   }
+
+  StdVector<Double> TimeFunc::TimeSpcFuncAtTime(const Double time, 
+                                                const std::string fncname,
+                                                StdVector<UInt> nodes, 
+                                                Grid * ptgrid)
+  {
+    ENTER_FCN( "TimeFunc::TimeSpcFuncAtTime" );
+  
+    StdVector<Double> fncVal;
+    fncVal.Resize(nodes.GetSize());
+    Double PI=3.1415926535; 
+    //Specific parameter values for space dependent function
+      Double y0 = 0;
+      Double r = 1.5;
+      Double t0 = 0.5;
+ 
+    for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+      Vector<Double> ptCoordNode;
+      ptgrid->GetNodeCoordinate(ptCoordNode, nodes[iNode]);
+      Double x, y, z;
+      x = ptCoordNode[0];
+      y = ptCoordNode[1];
+      z = ptCoordNode[2];
+      // Here an switch instruction could be used to add additional functions.
+      // At the moment only one is hard coded (for benchmark test with paper
+      // Finite Element analysis of semi-infinite wave guides with high-order
+      // boundary treatment (Int. J. Numer. Meth. 2003, 58:1955-1983)
+      
+      if ( (abs(y-y0) <= r) && (0<=time) && (time<=t0) )
+        {
+          fncVal[iNode]=cos( (PI/(2*r)) * (y-y0) );
+        }
+      else
+        {
+          fncVal[iNode]=0;
+        } 
+    }
+    return  fncVal;
+  }
+  
+
 
   TimeFunc :: ~TimeFunc()
   {
