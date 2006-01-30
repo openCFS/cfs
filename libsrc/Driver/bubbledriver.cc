@@ -14,7 +14,8 @@
 #include "ODEDescr/KellerMiksis.hh"
 #include "ODEDescr/Gilmore.hh"
 #include "ODEDescr/Gilmoredimlos.hh"
-
+#include "ODEDescr/LinearKellerMiksis.hh"
+#include "ODEDescr/RPNNP.hh"
 
 
 namespace CoupledField {
@@ -125,10 +126,18 @@ namespace CoupledField {
     switch(bubbleDynType_){
 
     case KELLERMIKSIS:
-      ptBubble_ = new KellerMiksis(initRadius_, density_, 
-				   sonicVel_, pStatic_, 
-				   pVapour_, surfaceTension_, 
-				   polytrop_, viscosity_);
+//       ptBubble_ = new KellerMiksis(initRadius_, density_, 
+//  				   sonicVel_, pStatic_, 
+//  				   pVapour_, surfaceTension_, 
+//  				   polytrop_, viscosity_);
+      // Should be expanded in XML-File, such that one
+      // can choose linearised KellerMiksis Model
+      // ----------------------------------------------------
+      ptBubble_ = new LinearKellerMiksis(initRadius_,density_, 
+					 sonicVel_, pStatic_, 
+					 pVapour_, surfaceTension_, 
+					 polytrop_, viscosity_);
+      // -----------------------------------------------------
       break;
     case GILMORE:
 //       ptBubble_ = new Gilmore(initRadius_,density_, 
@@ -145,6 +154,17 @@ namespace CoupledField {
 				    pVapour_, surfaceTension_, 
  				    polytrop_, viscosity_);
       // -----------------------------------------------------
+
+      // Should be expanded in XML-File, such that one
+      // can choose RPNNP-Model
+      // ----------------------------------------------------
+//       ptBubble_ = new RPNNP(initRadius_,density_, 
+// 			    sonicVel_, pStatic_, 
+// 			    pVapour_, surfaceTension_, 
+// 			    polytrop_, viscosity_);
+      // -----------------------------------------------------
+
+
 
       break;
 
@@ -181,10 +201,11 @@ namespace CoupledField {
     delete[] auxfile;
 
     // Write file header
-    fprintf( fp, "# Time\t\tPressure\t\tRadius\t\tVelocity\n" );
+    fprintf( fp, "# Time\t\tPressure\t\tRadius\t\tVelocity\t\tKlammerRHS\t\tRHS\n" );
 
     // First line with initial values
-    fprintf( fp, "0\t0\t%10.6e\t%10.6e\n", y_[0], y_[1] );
+    fprintf( fp, "0\t0\t%10.6e\t%10.6e\t0\t0\n", y_[0], y_[1] );
+    //    fprintf( fp, "0\t%10.6e\t%10.6e\n", y_[0], y_[1] );
 
     // **************************************************
     //   Generate ODE solver object
@@ -219,6 +240,8 @@ namespace CoupledField {
     UInt stepsave  = isavebegin_;
     Double  dt = firstdt_;
 
+    Double KlammerRHS, rhs,ndichte;
+
     UInt nstep;
 
     // Two alternatives to be chosen here in method 
@@ -228,7 +251,14 @@ namespace CoupledField {
 
     Double tEnd = 1.0e-3;  // should mayby included in XML-File
     Double h1;             // Startvalue for adaptive stepping
-    h1 = 1e-8;
+    h1 = 1e-10;
+
+    StdVector<Double> dydtaussen(2);
+    dydtaussen[0] = 0.0;
+    dydtaussen[1] = 0.0;
+    ndichte = 1e8;
+
+
 
     //Dimlos Case ---------------------------
 
@@ -251,8 +281,8 @@ namespace CoupledField {
 
 
 
-    //for (nstep = 1; nstep <= numstep_; nstep++){
-    // tEnd = steptime + dt;
+    for (nstep = 1; nstep <= numstep_; nstep++){
+      tEnd = steptime + dt;
 
       // a) forward the actual pressure values to BubbleODE object
       //    - therefore read the values from input file 
@@ -261,11 +291,11 @@ namespace CoupledField {
 
 
       // In case of self-computed pressure---------------------------------
-      // pressure_ = - pressureAmpl_ * sin( 2 * PI * frequency_ * (steptime+dt));
-      // dpresdt_  = - pressureAmpl_ * (2 * PI * frequency_ ) * 
-      // cos( 2 * PI * frequency_ * (steptime+dt));     
-      // ptBubble_->SetP(pressure_);
-      // ptBubble_->SetDpdt(dpresdt_);
+       pressure_ = - pressureAmpl_ * sin( 2 * PI * frequency_ * (steptime+dt));
+       dpresdt_  = - pressureAmpl_ * (2 * PI * frequency_ ) * 
+	 cos( 2 * PI * frequency_ * (steptime+dt));     
+       ptBubble_->SetP(pressure_);
+       ptBubble_->SetDpdt(dpresdt_);
 
       // In case of input file---------------------------------------
       //Double val_tfunc;
@@ -280,30 +310,40 @@ namespace CoupledField {
 
       //ptBubble_->SetP(val_tfunc);
       //ptBubble_->SetDpdt(val_tfuncDerv);
-
+       //------------------------------------------------------------
 
       // Call for ODESolver
       ptODESolver_->Solve( steptime, tEnd, y_, *ptBubble_, h1, 0, dt);
 	  
-      // steptime += dt;
+      steptime += dt;
 
 
       // writing results of bubbledynamic in output file
       if (nstep == stepsave && (nstep <= isaveend_)) {
 	//dimensionless---------------------------------------
-// 	ydim[0] = y_[0] * initRadius_ ;
-// 	ydim[1] = y_[1] * sqrt( pStatic_/ density_); 
-// 	tdim = tEnd *  initRadius_ / (sqrt( pStatic_/ density_));
+	ydim[0] = y_[0] * initRadius_ ;
+  	ydim[1] = y_[1] * sqrt( pStatic_/ density_); 
+ 	tdim = tEnd *  initRadius_ / (sqrt( pStatic_/ density_));
+
+
+
+    ptBubble_->CompDeriv(tEnd, y_, dydtaussen);
+    dydtaussen[1] = dydtaussen[1] * pStatic_ / ( density_ * initRadius_ );
+    KlammerRHS = 6.0*ydim[0]*ydim[1]*ydim[1]+3.0*ydim[0]*ydim[0]*dydtaussen[1];
+    // Achtung hier ist zwei Mal die Dichte eingefügt, damit man mit dem gekoppleten Output vergleichen kann.
+    rhs = 4.0/3.0*(M_PI)* ndichte * KlammerRHS* 998.0*998.0;
+
+
 	
-	//	fprintf(fp, "%10.6e\t%10.6e\t%10.6e\n", tdim,ydim[0],ydim[1]);
+	fprintf(fp, "%10.6e\t%10.6e\t%10.6e\t%10.6e\t%16.10e\t%16.10e\n", tdim,pressure_*pStatic_,ydim[0],ydim[1], KlammerRHS, rhs);
 	// ---------------------------------------------------
 
 	//fprintf( fp, "%10.6e\t%10.6e\t%10.6e\t%10.6e\n", steptime,
 	//		 pressure_ ,y_[0],y_[1]);
-	// 	stepsave+=isaveincr_;
+	stepsave+=isaveincr_;
          }
 
-      // }
+    }
 
 
     // Close output file
