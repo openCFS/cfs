@@ -192,9 +192,7 @@ namespace CoupledField {
         mechStressOp = new MechStressStrainAxi<TYPE>(mat);
       
       else if (subType_ == "3d") 
-        mechStressOp = new MechStressStrain3D<TYPE>(mat);
-
-          
+        mechStressOp = new MechStressStrain3D<TYPE>(mat);          
 
       piezoCouplingMat.Transpose(piezoCouplingMatT);
           
@@ -416,10 +414,24 @@ namespace CoupledField {
           
       }
 
+    
+    //  Writes result to StdPDE for later retrieval in SinglePDEs 
+    // (required by piezoParamIdent)
+    std::string analysis;
+    params->Get( "type", analysis, "analysis" );
+    if(analysis == "paramIdent") {  
+
+      Vector<Complex> helpChargeSD(chargeSD.GetSize());
+      for (UInt iC=0;iC<chargeSD.GetSize();iC++)
+        helpChargeSD[iC] = (Complex) chargeSD[iC];
+      pde1_->setPDE_complexValuedCharge(helpChargeSD);
+      pde2_->setPDE_complexValuedCharge(helpChargeSD);
+      }    
+    
+    
     Info->PrintF(couplingName_, "Computed surface charge: ");
     Info->PrintVec(chargeSD);
     
-   
     delete FieldOp2;
     
   } // end CalcCharges
@@ -686,9 +698,7 @@ namespace CoupledField {
         actComplexIntDescrStiff->SetPiezoMaterialType(matType);
         bilinearStiffC->SetPiezoMaterialType(matType);
         assemble_->AddIntegrator(actComplexIntDescrStiff, subdoms_[actSD]);
-        //        delete actComplexIntDescrStiff;
       }
-      //      delete actIntDescrStiff;      
 
     }
   }
