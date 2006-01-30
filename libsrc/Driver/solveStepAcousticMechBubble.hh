@@ -115,7 +115,7 @@ namespace CoupledField
     //! Suggested step size for ODESolver
     Double hTry_;
    
-    MaterialData * materialData_ ;
+
 
     DirectCoupledPDE* directPDE_;
 

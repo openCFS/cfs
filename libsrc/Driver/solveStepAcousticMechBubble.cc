@@ -22,7 +22,7 @@ namespace CoupledField {
     : StdSolveStep(apde) 
   {
     ENTER_FCN( "SolveStepAcousticMechBubble::SolveStepAcousticMechBubble" );
-//     std::cerr << ":SolveStepAcousticMechBubble" << std::endl;
+     std::cerr << ":SolveStepAcousticMechBubble" << std::endl;
   
     directPDE_ = &apde;
     
@@ -69,7 +69,7 @@ namespace CoupledField {
 
     UInt numeq = directPDE_->GetTotalUnknowns();
 
-//     std::cout << "numPDEEQs =" << numeq << std::endl;
+
     Double * ptsol;
     UInt job;
 
@@ -98,13 +98,13 @@ namespace CoupledField {
     //perform predictor and update RHS according to time stepping algorithm
     //NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     //Vector<Double> & sol4pred= solhelp->GetAlgSysVector();
-//     std::cout << "Assemble ok" << std::endl;
+
  
    Vector<Double> & sol4pred = 
       dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
     TS_alg_->Predictor(sol4pred);
 
-//    std::cout << "Pred ok" << std::endl;
+
  
     //set old solution  
     oldSol = sol4pred;
@@ -113,7 +113,16 @@ namespace CoupledField {
     //do nonlinear iteration
     UInt iterationCounter=0;
     Boolean performOneMoreStep;
-    do {
+
+
+
+
+     do {
+
+    //  std::cerr<<"schleife "<<  iterationCounter<<std::endl;
+
+
+
       iterationCounter++;
       // for every time step write out number of iteration loops to standard out
       //    if (iterationCounter == 1)
@@ -134,9 +143,9 @@ namespace CoupledField {
       algsys_->InitRHS();
     
       //compute source term due to bubble ODE
-      //   ComputeBubbleRHS();
+        ComputeBubbleRHS();
 
-//       std::cout << "ComputeBubbleRHS() ok" << std::endl;
+
 
       algsys_->GetRHSVal( ptsol );
       for (UInt i=0; i<nlRhsNew.GetSize(); i++) {
@@ -145,7 +154,6 @@ namespace CoupledField {
      
       //      StoreAlgsysToVec(nlRhsNew, ptsol );       
 
-//       std::cout << "TStoreAlgsysToVec" << std::endl;
 
       //compute norm
       Double normRhs=0.0;
@@ -171,7 +179,7 @@ namespace CoupledField {
       //acoust for time stepping
       TS_alg_->UpdateRHS();
     
-//       std::cout << "TS_alg_->UpdateRHS()" << std::endl;
+
 
       SetBCs(actTime_);
 
@@ -198,18 +206,19 @@ namespace CoupledField {
         dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
        TS_alg_->Corrector(solHelp);
 
-
+       newSol = solHelp;
       // perform corrector step, if effective mass formulation is used,
       //   we need the Corrector step before we store newsol to sol_,
       //   because newsol is second time derivative at first!
       //TS_alg_->Corrector(newSol);
-   
+
+          newSol = solHelp;
       // compute L2-Norm of error between last incremental solution and
       //   actual incremental solution
       Double solIncrL2Norm=0;
-      for (UInt i=0; i<newSol.GetSize(); i++)
+      for (UInt i=0; i<newSol.GetSize(); i++){
         solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
-    
+      }
       solIncrL2Norm = sqrt(solIncrL2Norm);
       Double actSolL2Norm = newSol.NormL2();
     
@@ -219,13 +228,15 @@ namespace CoupledField {
       else
         incrementalErr = solIncrL2Norm;
 
+
+
       // output of norms and data
       if ( nonLinLogging_ == TRUE ) {
 	Info->WriteNonLinIter(pdename_, iterationCounter, nlRhsNorm,
 			      incrementalErr );
       }
     
-//       std::cout << "Solve AM ok" << std::endl;
+
 
       //store new solution to old one;
       oldSol = newSol;
@@ -315,8 +326,8 @@ namespace CoupledField {
 	  //set numEl to ODE-Solver
 	  ptODESolver_->SetNumEl(numEl);
 	
-	  //  ptODESolver_->Solve(steptime, tNoDim_, yNoDim_, *ptBubble_[numEl], hTry_,
-	  //	      0, dt);
+	  ptODESolver_->Solve(steptime, tNoDim_, yNoDim_, *ptBubble_[numEl], hTry_,
+			      0, dt);
 	
 	  //set the new values
 	  radiusWork_[numEl]   = yNoDim_[0] * initRadius_;
@@ -357,9 +368,11 @@ namespace CoupledField {
       }
 
       //check if we have reached the accuracy!
-      performOneMoreStep =    (incrementalErr > incStopCrit_) || (nlRhsNorm > incStopCrit_) ;
+      performOneMoreStep =    (incrementalErr > incStopCrit_);// || (nlRhsNorm > incStopCrit_) ;
 
-    } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+
+
+       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
 
 
@@ -422,6 +435,7 @@ namespace CoupledField {
     //Set bubbledensity
     params->Get( "bubbleNumDensity", bubbleDensity_, "acoustic", "bubbles" );
 
+
     Info->PrintF ("", "The following paramters and methods were used\n");
     Info->PrintF ("", "to compute the bubble behaviour:\n\n");
     Info->PrintF ("", "Initial Radius of the bubbles:\t %10.6e\n", initRadius_);
@@ -436,6 +450,21 @@ namespace CoupledField {
     Info->PrintF ("", "Viscosity of the fluid:\t %10.6e\n\n", viscosity_);
 
     Info->PrintF ("", "\nAnfangsschrittweite:\t %10.6e\n", hTry_);
+
+
+
+    //Set the nonlinear parameters for the iteration between bubble and pressure
+      // perform logging?
+      nonLinLogging_ = params->IsSet( "logging", "acoustic", "nonLinear" );
+      // incremental stopping criterion
+      params->Get("incStopCrit", incStopCrit_, "acoustic", "nonLinear" );
+      // residual stopping criterion
+      params->Get("resStopCrit", residualStopCrit_, "acoustic", "nonLinear" );
+      // maximal number of NL-iterations
+      params->Get("maxNumIters", nonLinMaxIter_, "acoustic", "nonLinear");
+
+    Info->PrintF ("", "Incrementelle Abbruchbedingung:\t %10.6e\n" , incStopCrit_);
+    Info->PrintF ("", "Maximale Anzahl von Iterationen:\t %10.6e\n", nonLinMaxIter_);
 
     for (UInt el=0; el<numPDEElems; el++) {
       // Choice which bubbledynamical method is used and 
@@ -484,8 +513,6 @@ namespace CoupledField {
     // Info->PrintF( pdename_, "which approximation of the jacobian\n");
 
 
-    // Zwischenloesung, bis alles über bilinear und linear forms laeuft
-    //   materialData_ = new MaterialData[subdoms_.GetSize()];
 
   }
 
@@ -508,8 +535,7 @@ namespace CoupledField {
     for (UInt actDom=0; actDom <  subdoms->GetSize(); actDom++) {      
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd, (*subdoms)[actDom]);
-
-      //     fluidDensity= materialData_[actDom].GetDensity();    
+    
 
       for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++)    {              
         BaseFE * ptEl = elemssd[actEl]->ptElem;
@@ -526,32 +552,32 @@ namespace CoupledField {
 	// New rhs for cavitational fluid
 	// rho0 * 4/3 * pi* n * ( 3 * R^2 * d^2R/dt^2 + 6 * R * (dR/dt)^2) 
 	if (actStep_ == 1) 
-	  beta2 = 4*PI*bubbleDensity_
+	  beta2 =density_ * density_   *  4.0/3.0*PI*bubbleDensity_
 	    *6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]; 
 	else {
 	  StdVector<Double> dydt(2);
 	  dydt[0]=0;
 	  dydt[1]=0;
-	  //	  std::cerr<<"fluidDensity  "<<fluidDensity<<std::endl;
+
 	  // dimensionless**************************************
 	  yNoDim_[0] = bubbleValues_[0] / initRadius_;
 	  yNoDim_[1] = bubbleValues_[1] / (sqrt( pStatic_/ density_));
-	  tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
-	  // ptBubble_[numEl]->CompDeriv(tNoDim_, yNoDim_, dydt);
-	  // dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
-	  beta2 =4*PI*bubbleDensity_*
+          tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
+	  ptBubble_[numEl]->CompDeriv(tNoDim_, yNoDim_, dydt);
+	  dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
+	  beta2 =density_ * density_   *  4.0/3.0*PI*bubbleDensity_*
 	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
 	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
 	  // dimensionless**************************************
 
 	  //Normal case+++++++++++++++++++++++++++++++++++++++
 	  //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues_, dydt);
-	  //	  beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*
+	  //	  beta2 = density_ * density_   * 4.0/3.0*PI*bubbleDensity_*
 	  //	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
 	  //	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
 	  //Normal case+++++++++++++++++++++++++++++++++++++++
 	}
-	std::cout<<"beta2:   "<<beta2<<std::endl;
+
 
 	rhsForm->SetFactor(beta2);            
 	rhsForm->SetElemPtr(ptEl);
