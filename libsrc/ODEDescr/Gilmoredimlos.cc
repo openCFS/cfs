@@ -34,14 +34,14 @@ namespace CoupledField
     viscosity_  = viscosity;
 
     n_ = 7.0;
-    // A_ = 3.001e8;
-    // B_ = 3e8;
+     A_ = 3.001e8;
+    B_ = 3e8;
     // The following constants can be determined 
     // as in the paper of C. Church
     // or one uses the above values, which are
     // approximations made of experience
-    A_ = sonicVel_ * sonicVel_ * density_ / n_;
-    B_ = A_ - pStatic_;
+//      A_ = sonicVel_ * sonicVel_ * density_ / n_;
+    //B_ = A_ - pStatic_;
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //Compute dimensionless constants needed in CompDeriv
@@ -76,27 +76,26 @@ namespace CoupledField
 
     // For testing only:-------------------------------------------
 
-//     Double tdim;
-//     StdVector<Double> ydim(2);
-//     Double ampl, freq;
+//      Double tdim;
+//      StdVector<Double> ydim(2);
+//      Double ampl, freq;
 
 
-//     ydim[0] = y[0] * RadiusInit_ ;
-//     ydim[1] = y[1] * sqrt(pStatic_ / density_); 
-//     tdim = t * RadiusInit_ / (sqrt( pStatic_ / density_));
-//     printf("%10.6e \t %10.6e \t %10.6e \n",tdim, ydim[0],ydim[1]);
+//      ydim[0] = y[0] * RadiusInit_ ;
+//      ydim[1] = y[1] * sqrt(pStatic_ / density_); 
+//      tdim = t * RadiusInit_ / (sqrt( pStatic_ / density_));
+//      printf("%10.6e \t %10.6e \t %10.6e \n",tdim, ydim[0],ydim[1]);
 
-//     ampl  = 24.0e5;            //Anregungsamplitude
-//     freq  = 27000.0;           //Anregungsfrequenz
-//     ampl  = ampl / pStatic_;
-//     freq  = freq *  RadiusInit_ / (sqrt( pStatic_ / density_));
-//     p_    = -ampl *sin(2 * (PI) *freq * (t));                        
-//     dpdt_ = -ampl *(2 *(PI) * freq)* cos(2 * (PI) *freq * (t));
+//      ampl  = 24.0e5;            //Anregungsamplitude
+//      freq  = 27000.0;           //Anregungsfrequenz
+//      ampl  = ampl / pStatic_;
+//      freq  = freq *  RadiusInit_ / (sqrt( pStatic_ / density_));
+//      p_    = -ampl *sin(2 * (PI) *freq * (t));                        
+//      dpdt_ = -ampl *(2 *(PI) * freq)* cos(2 * (PI) *freq * (t));
     // -------------------------------------------------------------
 
 
     // Dimensionless Gilmore model 
-
 
 
 
