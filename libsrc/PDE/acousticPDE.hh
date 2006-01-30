@@ -101,17 +101,25 @@ namespace CoupledField {
                               Vector<Double>& elemCouplingSols,
                               UInt couplingdof );
 
+    //! calculate the vector of coupling surface nodes to the nrbcPDE  
+    void CalcNRBCCouplingRHS( StdVector<Elem*> * couplingElems, 
+                       StdVector<UInt> & couplingNodes,
+                       Vector<Double>& elemCouplingSols,
+                            UInt couplingdof );
+
+
     //! calculate the heat source term for heatConduction PDE
     void CalcHeatCouplingRHS( Vector<Double> & energy, 
                               StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
                               UInt actCoupling, UInt numCouplingNodes );
-  
     //! 
     void SetMechanicCoupling() {
       isMechCoupled_ = TRUE;
     }
-  
-
+    //! 
+    void SetNrbcCoupling() {
+      isNrbcCoupled_ = TRUE;
+    }
 
   protected:
 
@@ -126,6 +134,10 @@ namespace CoupledField {
     UInt size_; //!< total number of unknowns (equations)
 
     SolutionType formulation_; //!< variable in which PDE is formulated
+
+
+    //! indicator for mechanic coupling
+    Boolean isNrbcCoupled_;    
 
     StdVector<RegionIdType> absBCs_; //!< subdomains, which form absorbing BCs
 

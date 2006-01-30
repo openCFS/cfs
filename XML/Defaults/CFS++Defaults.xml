@@ -260,6 +260,11 @@
       <matrix/>
       <solver><stoppingRule/></solver>
     </system>
+    <system name="nrbc">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
     <system name="heatConduction">
       <setup/>
       <matrix/>

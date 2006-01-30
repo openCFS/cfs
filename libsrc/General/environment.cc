@@ -376,6 +376,10 @@ namespace CoupledField {
       out = ACOU_POTENTIAL_DERIV_2;
     else if (in == "acouRHSval")
       out = ACOU_RHSVAL;
+    else if (in == "acouPotNRBC")
+      out = ACOU_POT_NRBC;
+    else if (in == "nrbcPhi")
+      out = NRBC_PHI;
     else if (in == "acouPressureXYZ")
       out = ACOU_PRESSUREXYZ;
     else if (in == "acouPowerDensity")
@@ -498,6 +502,12 @@ namespace CoupledField {
         break;
       case ACOU_RHSVAL:
         out = "acouRHSval";
+        break;
+      case ACOU_POT_NRBC:
+        out = "acouPotNRBC";
+        break;
+      case NRBC_PHI:
+        out = "nrbcPhi";
         break;
       case ACOU_PRESSUREXYZ:
         out = "acouPressureXYZ";

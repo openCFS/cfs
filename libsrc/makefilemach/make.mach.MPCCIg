@@ -47,6 +47,7 @@ ARFLAGS = r
 # STANDARD .... the rest
 # -----------------------------------------------------------------------------
 
+PROFILE  = -DPROFILING
 # MODDEBUG = -DDEBUG_XMLPARAMHANDLER
 MODEDEBUG =
 DEBUG    = -Wno-long-long -Wno-comment -DTRACE=10 -ggdb -pg \
@@ -54,7 +55,7 @@ DEBUG    = -Wno-long-long -Wno-comment -DTRACE=10 -ggdb -pg \
 STANDARD = -ansi -Wall -pedantic
 
 CFLAG_EXE      =
-CFLAGS_MACHINE = $(STANDARD) $(DEBUG) $(MODEDEBUG)
+CFLAGS_MACHINE = $(STANDARD) $(DEBUG) $(MODEDEBUG) $(PROFILE)
 
 
 # -----------------------------------------------------------------------------
@@ -81,6 +82,19 @@ LIBDIR_MPCCI = -L$(CCI_HOME)/lib
 LIBDIR_MPICH = -L$(MPIROOTDIR)/lib
 
 # -----------------------------------------------------------------------------
+# PARDISO
+#
+# Stuff for linking against Pardiso library
+# -----------------------------------------------------------------------------
+ifeq "$(LINK_PARDISO)" "yes"
+LIBDIR_PARDISO = -L$(PARDISO_ROOT)/lib
+LIB_PARDISO    = -lpardiso_GNU_IA32
+else
+LIBDIR_PARDISO =
+LIB_PARDISO    =
+endif
+
+# -----------------------------------------------------------------------------
 # LINKING
 #
 # Assemble machine-dependent linker flags (LFLAGS_MACHINE) and system libraries
@@ -89,5 +103,5 @@ LIBDIR_MPICH = -L$(MPIROOTDIR)/lib
 # -----------------------------------------------------------------------------
 
 syslib = -lm -lc $(BLASLAPACK) -lcci -lmpich -lg2c
-LFLAGS_MACHINE = -pg $(LIBDIR_MPCCI) $(LIBDIR_MPICH) 
+LFLAGS_MACHINE = -pg $(LIBDIR_MPCCI) $(LIBDIR_MPICH) $(LIBDIR_PARDISO) $(LIB_PARDISO)
 LFLAGS_EXE =

@@ -787,8 +787,8 @@ namespace CoupledField {
     // ---------------------------
     // Section for new time step
     // ----------------------------
-  
-    // Write Only if time time step has changed
+    
+    // Write Only if time step has changed
     // since last write of grid
     if (currStep_ != lastStep_) { 
 
@@ -1127,7 +1127,7 @@ namespace CoupledField {
   // ********
   void WriteResultsGMV::Init( Grid *aptgrid ) {
 
-    ENTER_FCN( "WriteResultsGMV::OpenFile" );
+    ENTER_FCN( "WriteResultsGMV::Init" );
 
     ptGrid_ = aptgrid;
 

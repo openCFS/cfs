@@ -42,8 +42,8 @@
     substitutionGroup="MpCCI"> 
   </xsd:element>
 
-  <!-- Data type for transient section, i.e. parameters required for
-       performing a transient analysis -->
+  <!-- Data type for MpCCI section, i.e. parameters required for
+       performing a MpCCI coupled computation -->
   <xsd:complexType name="DT_MpCCIFlowNoise">
     <xsd:complexContent>
       <xsd:extension base="DT_MpCCI">
@@ -60,12 +60,16 @@
           </xsd:element>
     	  <xsd:element name="xfmin"       type="xsd:float"/>
     	  <xsd:element name="yfmin"       type="xsd:float"/>
+    	  <xsd:element name="zfmin"       type="xsd:float"/>
     	  <xsd:element name="xfmax"       type="xsd:float"/>
     	  <xsd:element name="yfmax"       type="xsd:float"/>
+    	  <xsd:element name="zfmax"       type="xsd:float"/>
     	  <xsd:element name="facrampXmin" type="xsd:float"/>
     	  <xsd:element name="facrampYmin" type="xsd:float"/>
+    	  <xsd:element name="facrampZmin" type="xsd:float"/> 
     	  <xsd:element name="facrampXmax" type="xsd:float"/>
     	  <xsd:element name="facrampYmax" type="xsd:float"/>
+    	  <xsd:element name="facrampZmax" type="xsd:float"/>
 
     	  <xsd:element name="meshId" type="xsd:nonNegativeInteger"/>
           <xsd:element name="partId" type="xsd:nonNegativeInteger"/>

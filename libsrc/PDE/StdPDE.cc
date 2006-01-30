@@ -31,6 +31,7 @@ namespace CoupledField {
       isComplex_(FALSE),
       sol_(NULL),     
       isIncrFormulation_(FALSE),
+      ComputeRHSforHarm_(FALSE),
       solveStep_(NULL) {
 
     ENTER_FCN( "StdPDE::StdPDE");

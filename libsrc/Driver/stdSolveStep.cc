@@ -415,6 +415,14 @@ namespace CoupledField {
     //this has to be done each time!
     PDE_.AssembleSrcRHS( actFreq_ );
 
+
+    if (PDE_.ComputeRHSforHarm_)
+      {
+        // Evaluating RHS with nodal srcs for harmonic flownoise problems
+        PDE_.ComputeRHS(actFreq_);
+      }
+    
+    
     if ( reset ) {
 
       //account for bcs

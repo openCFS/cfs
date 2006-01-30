@@ -240,6 +240,14 @@ namespace CoupledField
       Error( "BaseFE::GetLocalIntPoints4Surface: Not implemented here", 
              __FILE__, __LINE__);}
 
+    virtual void CoordTrans( const Matrix<Double> &ptCoord, 
+			     Matrix<Double> &TransMat, 
+                             Matrix<Double> &ShellCoord );
+
+    virtual void CoordTrans2D( const Matrix<Double> &ptCoord, 
+			     Matrix<Double> &TransMat, 
+                             Matrix<Double> &ShellCoord );
+
     //! Return space dimension
     UInt GetDim() const {return Dim_;}
  

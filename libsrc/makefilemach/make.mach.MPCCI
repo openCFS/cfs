@@ -44,11 +44,12 @@ ARFLAGS = r
 # Makefile.option.
 # -----------------------------------------------------------------------------
 
+PROFILE  = -DPROFILING
 OPT      = -O3 -mcpu=pentium
 STANDARD = -ansi -pedantic -Wno-long-long -Wno-comments
 
 CFLAG_EXE      = $(OPT)
-CFLAGS_MACHINE = $(OPT) $(STANDARD)
+CFLAGS_MACHINE = $(OPT) $(STANDARD) $(PROFILE)
 
 
 # -----------------------------------------------------------------------------
@@ -71,8 +72,24 @@ BLASLAPACK =
 endif
 endif
 
+#LIBDIR_MPCCI = -L/opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/lib
+#LIBDIR_MPICH = -L/opt/mpich-1.2.5.2/lib
 LIBDIR_MPCCI = -L$(CCI_HOME)/lib
 LIBDIR_MPICH = -L$(MPIROOTDIR)/lib
+
+# -----------------------------------------------------------------------------
+# PARDISO
+#
+# Stuff for linking against Pardiso library
+# -----------------------------------------------------------------------------
+ifeq "$(LINK_PARDISO)" "yes"
+LIBDIR_PARDISO = -L$(PARDISO_ROOT)/lib
+LIB_PARDISO    = -lpardiso_GNU_IA32
+else
+LIBDIR_PARDISO =
+LIB_PARDISO    =
+endif
+
 
 # -----------------------------------------------------------------------------
 # LINKING
@@ -83,5 +100,5 @@ LIBDIR_MPICH = -L$(MPIROOTDIR)/lib
 # -----------------------------------------------------------------------------
 
 syslib = -lm -lc $(BLASLAPACK) -lcci -lmpich -lg2c
-LFLAGS_MACHINE = $(LIBDIR_MPCCI) $(LIBDIR_MPICH)
+LFLAGS_MACHINE = $(LIBDIR_MPCCI) $(LIBDIR_MPICH) $(LIBDIR_PARDISO) $(LIB_PARDISO)
 LFLAGS_EXE =

@@ -189,7 +189,7 @@ namespace CoupledField {
                                Matrix< Double > &coordMat );
   
     //!
-    //! \todo What is the purpose of this function?
+    //! \for computing and adding RHS to PDE in case of special sources 
     virtual void ComputeRHS(const Double atime) {;};
   
     //! set boundary condition
@@ -562,7 +562,9 @@ namespace CoupledField {
     //! checks, if we have for the coupling a incremental solution
     Boolean isIncrFormulation_;    
     
-    
+    //! flag for knowing if we have to call ComputeRHS() in the harmonic driver
+    Boolean ComputeRHSforHarm_;    
+   
     //! PDEMemento
     PDEMemento memento_;
 

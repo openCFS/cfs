@@ -290,7 +290,10 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
 	case 6:
 	  {
 	    nNodesPerElem_[0] = 6;
-	    elemTypes_[0] = CCI_ELEM_PRISM;
+	    if (Dim_==3)
+	      elemTypes_[0] = CCI_ELEM_PRISM;
+	    else
+	      elemTypes_[0] = CCI_ELEM_TRIANGLE6;
 	    break;
 	  }
 	case 8:
@@ -644,13 +647,16 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
               {
                 std::string filename;
                 std::ofstream outsrcnodalfile;
-                filename = "srcfile";
+                filename = "nodalSrcs/timesrcfile";
                 filename.append( ".node" );
                 filename.append( Info->GenStr( nodeIds_[inode] ) );
                 //create the file if it doesn't exist yet
                 
                 if (TimeStepCtr==1)
                   {
+                    // Create directory to save in the source files
+                    std::string S="mkdir -p nodalSrcs";
+                    system(S.c_str());
                     std::cout<<"In first time step"<<std::endl;
                     outsrcnodalfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
                   }

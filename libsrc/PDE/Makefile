@@ -24,10 +24,10 @@ src =   basePDE.cc\
 	newmarkFracDamp.cc \
 	newmarkFracDampMech.cc \
 	mpcciPDE.cc \
+	nrbcPDE.cc \
 	heatCondPDE.cc \
 	acousticXYZPDE.cc \
     stokesFluidPDE.cc
-
 #
 lib = pde
 CFLAGS3 =

@@ -444,4 +444,150 @@ namespace CoupledField
     return elemVol;
   }
 
+  /////////////////////////////////////////////////////////////////////
+  /////// For geometrical transformation using direction cosines //////
+
+  void BaseFE::CoordTrans( const Matrix<Double> &ptCoord, 
+			     Matrix<Double> &TransMat, 
+			     Matrix<Double> &ShellCoord )
+  {
+    ENTER_FCN( "BaseFE::CoordTrans" );
+
+    // Method based on book XXX and Master thesis from Xiong //
+    const Integer spaceDim = 3;
+    std::vector<Double> Vx, Vy, Vz;
+    const Integer row = ptCoord.GetSizeRow();
+    const Integer col = ptCoord.GetSizeCol();
+
+    TransMat.Resize(spaceDim);
+    TransMat.Init();
+
+    Matrix<Double> NewCoord, temp;
+    NewCoord.Resize( row, col );
+    NewCoord.Init();
+    temp.Resize( row, col );
+    temp.Init();
+
+    ShellCoord.Resize( row - 1, col );
+    ShellCoord.Init();
+
+    Double length;
+
+    Vx.push_back( ptCoord[0][1] - ptCoord[0][0] );
+    Vx.push_back( ptCoord[1][1] - ptCoord[1][0] );
+    Vx.push_back( ptCoord[2][1] - ptCoord[2][0] );
+
+    length = 1.0 / sqrt( Vx[0] * Vx[0] + Vx[1] * Vx[1] + Vx[2] * Vx[2] );
+ 
+    //   cos(x_,x), cos(x_,y), cos(x_,z)
+    TransMat[0][0] = Vx[0] * length;
+    TransMat[0][1] = Vx[1] * length;
+    TransMat[0][2] = Vx[2] * length;
+
+    Vy.push_back( ptCoord[0][2] - ptCoord[0][0] );
+    Vy.push_back( ptCoord[1][2] - ptCoord[1][0] );
+    Vy.push_back( ptCoord[2][2] - ptCoord[2][0] );
+
+    Vz.push_back( Vx[1] * Vy[2] - Vx[2] * Vy[1] );
+    Vz.push_back( Vx[2] * Vy[0] - Vx[0] * Vy[2] );
+    Vz.push_back( Vx[0] * Vy[1] - Vx[1] * Vy[0] );
+
+    length = 1.0 / sqrt( Vz[0] * Vz[0] + Vz[1] * Vz[1] + Vz[2] * Vz[2] );
+
+    TransMat[2][0] = Vz[0] * length;
+    TransMat[2][1] = Vz[1] * length;
+    TransMat[2][2] = Vz[2] * length;
+
+    TransMat[1][0] = TransMat[0][2] * TransMat[2][1] - TransMat[0][1] 
+      * TransMat[2][2];
+    TransMat[1][1] = TransMat[0][0] * TransMat[2][2] - TransMat[0][2] 
+      * TransMat[2][0];
+    TransMat[1][2] = TransMat[0][1] * TransMat[2][0] - TransMat[0][0] 
+      * TransMat[2][1];
+
+    // transform geometry from real(global) coordinate to standard(local) 
+    // coordinate
+
+    for( int i = row - 1; i >= 0; i-- )
+      for( int j = col - 1; j >= 0; j-- )
+	//transform
+	temp[i][j] = ptCoord[i][j] - ptCoord[i][0];
+
+//     std::cout << "The new coordinate is\n" << temp << std::endl;
+
+//     std::cout << "The base TransMatrix is\n" << TransMat << std::endl;
+
+    NewCoord = TransMat * temp;
+
+//     std::cout << "The 3D LocalCoord matrix is\n" << NewCoord << std::endl;
+
+    //rotate
+    for( int i = 0; i < row - 1; i++)
+      for( int j = 0; j < col; j++)
+	ShellCoord[i][j] = NewCoord[i][j];
+
+  }
+
+  void BaseFE::CoordTrans2D( const Matrix<Double> &ptCoord, 
+			     Matrix<Double> &TransMat, 
+			     Matrix<Double> &ShellCoord )
+  {
+    ENTER_FCN( "BaseFE::CoordTrans2D" );
+
+    // Method based on book XXX and Master thesis from Xiong //
+    const Integer spaceDim = 2;
+    std::vector<Double> Vx, Vy;
+    const Integer row = ptCoord.GetSizeRow();
+    const Integer col = ptCoord.GetSizeCol();
+
+    TransMat.Resize(spaceDim);
+    TransMat.Init();
+
+    Matrix<Double> NewCoord, temp;
+    NewCoord.Resize( row, col );
+    NewCoord.Init();
+    temp.Resize( row, col );
+    temp.Init();
+
+    ShellCoord.Resize( row - 1, col );
+    ShellCoord.Init();
+
+    Double length;
+
+    Vx.push_back( ptCoord[0][1] - ptCoord[0][0] );
+    Vx.push_back( ptCoord[1][1] - ptCoord[1][0] );
+ 
+
+    length = 1.0 / sqrt( Vx[0] * Vx[0] + Vx[1] * Vx[1] );
+ 
+    //   cos(x_,x), cos(x_,y), cos(y_,x), cos(y_,y)
+    TransMat[0][0] = Vx[0] * length;
+    TransMat[0][1] = Vx[1] * length;
+    TransMat[1][0] = Vx[1] * length;
+    TransMat[1][1] = Vx[0] * length;
+
+
+    // transform geometry from real(global) coordinate to standard(local) 
+    // coordinate
+
+    for( int i = row - 1; i >= 0; i-- )
+      for( int j = col - 1; j >= 0; j-- )
+	//transform
+	temp[i][j] = ptCoord[i][j] - ptCoord[i][0];
+
+     std::cout << "The new coordinate is\n" << temp << std::endl;
+
+     std::cout << "The base TransMatrix is\n" << TransMat << std::endl;
+
+    NewCoord = TransMat * temp;
+
+     std::cout << "The 2D LocalCoord matrix is\n" << NewCoord << std::endl;
+
+    //rotate
+    for( int i = 0; i < row - 1; i++)
+      for( int j = 0; j < col; j++)
+	ShellCoord[i][j] = NewCoord[i][j];
+
+  }
+
 } // end namespace CoupledField
