@@ -25,10 +25,10 @@ namespace CoupledField
 
 
     // optimalExpDesignDiffNumberFreqs();
-    nrMeasuredData=15;
+    nrMeasuredData=13;
     Vector<Double> freqs5;
-    freqs5.Resize(15);
-    freqs.Resize(15);
+    freqs5.Resize(13);
+    freqs.Resize(13);
    
     //    freqs5[0]=1.6e+06;
     //    freqs5[1]=2.0e+06;
@@ -44,34 +44,35 @@ namespace CoupledField
     //    freqs5[11]=9.1e+06;
    
     //initial guesses suggested by optExpDesignVarNr ...
-    //    freqs5[0]=1.1e+06;
-    //    freqs5[1]=1.3e+06;
-    //    freqs5[2]=1.4e+06;
-    //    freqs5[3]=1.5e+06;
-    //    freqs5[4]=1.6e+06;
-    //    freqs5[5]=1.8e+06;
-    //    freqs5[6]=2.4e+06;
-    //    freqs5[7]=2.5e+06;
-    //    freqs5[8]=2.7e+06;
-    //    freqs5[9]=3.3e+06;
-    //    freqs5[10]=3.4e+06;
-    //    freqs5[11]=3.8e+06;
+        freqs5[0]=1.1e+06;
+        freqs5[1]=1.3e+06;
+        freqs5[2]=1.4e+06;
+        freqs5[3]=1.5e+06;
+        freqs5[4]=1.6e+06;
+        freqs5[5]=1.8e+06;
+        freqs5[6]=2.4e+06;
+        freqs5[7]=2.5e+06;
+        freqs5[8]=2.7e+06;
+        freqs5[9]=2.9e+06;
+        freqs5[10]=3.3e+06;
+        freqs5[11]=3.4e+06;
+        freqs5[12]=3.8e+06;
 
-    freqs5[0]=1.1e+06;
-    freqs5[1]=1.3e+06;
-    freqs5[2]=1.5e+06;
-    freqs5[3]=1.6e+06;
-    freqs5[4]=1.7e+06;
-    freqs5[5]=1.8e+06;
-    freqs5[6]=2.5e+06;
-    freqs5[7]=2.7e+06;
-    freqs5[8]=3.0e+06;
-    freqs5[9]=3.1e+06;
-    freqs5[10]=3.2e+06;
-    freqs5[11]=3.4e+06;
-    freqs5[12]=3.6e+06;
-    freqs5[13]=3.8e+06;
-    freqs5[14]=3.95e+06;
+  //   freqs5[0]=1.1e+06;
+//     freqs5[1]=1.3e+06;
+//     freqs5[2]=1.5e+06;
+//     freqs5[3]=1.6e+06;
+//     freqs5[4]=1.7e+06;
+//     freqs5[5]=1.8e+06;
+//     freqs5[6]=2.5e+06;
+//     freqs5[7]=2.7e+06;
+//     freqs5[8]=3.0e+06;
+//     freqs5[9]=3.1e+06;
+//     freqs5[10]=3.2e+06;
+//     freqs5[11]=3.4e+06;
+//     freqs5[12]=3.6e+06;
+//     freqs5[13]=3.8e+06;
+//     freqs5[14]=3.95e+06;
 
     freqs=freqs5;
    
@@ -112,11 +113,7 @@ namespace CoupledField
 
     // fr = 4000m/s / 2*thickness
 
-    fr_=resonanceFrequency_;
-    // minus 5 percent
-    fr_=0.93*fr_;
-    // fa = 1/thickness * sqrt(c_33/rho)
-   
+  
     Double rho;
     Vector<Complex> jacobi;
     Complex functional;
@@ -124,8 +121,13 @@ namespace CoupledField
     rho = ptMaterial->GetDensity();
 
     // fa_ = 1.0/(2*thickness) * std::sqrt(1.3e+11/rho);
+
     fa_=antiResonanceFrequency_;
-    fa_=1.2*fa_;
+    fa_=1.1*fa_;
+
+    fr_=resonanceFrequency_;
+    fr_=0.9*fr_;
+    // fa = 1/thickness * sqrt(c_33/rho)
 
     std::cout<<"++ Bounds for resonance and antiresonace frequency: "<<std::endl;
     std::cout<<"fr= "<< fr_ <<std::endl;
@@ -167,6 +169,17 @@ namespace CoupledField
 
         newtonCounter++;
       }
+      calcImpedanceCurve();
+      fa_=antiResonanceFrequency_;
+      fa_=1.1*fa_;
+      
+      fr_=resonanceFrequency_;
+      fr_=0.9*fr_;
+      std::cout<<"++ New bounds for resonance and antiresonace frequency: "<<std::endl;
+      std::cout<<"fr= "<< fr_ <<std::endl;
+      std::cout<<"fa= "<< fa_ <<std::endl;
+
+
       residuumParIdentOld = residuumParIdent;
       
     } // end nrOptExpSteps
@@ -283,7 +296,7 @@ namespace CoupledField
     if (actNrParameter==3)
       lambda = 0.00002; // for three parameter
     else if (actNrParameter==10||actNrParameter==9)
-      lambda=0.025;
+      lambda=0.25;
     //      lambda= 0.002; // for 10 parameters with StepWidth
     // lambda = 0.000002; // for nine parameter
     else if (actNrParameter==6)
@@ -740,32 +753,31 @@ namespace CoupledField
 
   } // end create Gradient
 
-  void piezoParamIdent::invertWithLapack(Matrix<Complex> & data){
-    ENTER_FCN("piezoParamIdent::invertWithLapack");
+// #ifdef USE_LAPACK
+//   void piezoParamIdent::invertWithLapack(Matrix<Complex> & data){
+//     ENTER_FCN("piezoParamIdent::invertWithLapack");
 
-#ifndef USE_LAPACK
-    std::cout<<"Optimum experiment design works with LAPACK Routines"<<std::endl;
-    std::cout<<"Please set LAPACK = yes in your Makefile.option (CFS & OLAS)" <<std::endl;
-#endif
+//     std::cout<<"Optimum experiment design works with LAPACK Routines"<<std::endl;
+//     std::cout<<"Please set LAPACK = yes in your Makefile.option (CFS & OLAS)" <<std::endl;
 
-#ifdef USE_LAPACK
+//     Matrix<Complex> cov;
+//     cov.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
+//     cov=data;
 
-    Matrix<Complex> cov;
-    cov.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
-    cov=data;
+//     Matrix<Complex> rhsMat;
+//     rhsMat.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
+//     for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
+//       rhsMat[i][i]=Complex(1.0,0.0);
 
-    Matrix<Complex> rhsMat;
-    rhsMat.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
-    for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
-      rhsMat[i][i]=Complex(1.0,0.0);
+//     lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
+//     data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
 
-    lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
-    data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
-#endif 
 
-    data=rhsMat;
+//     data=rhsMat;
 
-  } // end invertWithLapack
+//   } // end invertWithLapack
+
+// #endif 
 
   void piezoParamIdent::invert(Matrix<Complex> & data)  {
 

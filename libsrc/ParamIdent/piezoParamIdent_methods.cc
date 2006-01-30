@@ -206,107 +206,99 @@ namespace CoupledField
 
   void piezoParamIdent::calcMechDisplCurve(){
     ENTER_FCN("PiezoParamIdent::calcMechDisplCurve");
+
+        std::cout<<"++ Calculate mechanical displacement at selected nodes ..."<<std::endl;
     
       if(directCoupling==TRUE)      
         ptMaterial = ptPDE1_->getPDEMaterialData(); // Vector wich contains charges for each element !
       else
         ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-    //    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
-
-    Boolean reset = TRUE;
-
+      //    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
+      
+      Boolean reset = TRUE;
+      
       if(directCoupling==TRUE)      
         ptAssemble = ptPDE1_->getPDE_assemble(); // Vector wich contains charges for each element !
       else
         ptAssemble = ptMyPDE_->getPDE_assemble();
-   
-    
-    updateMaterialData(parameter,ptMaterial);
-    updateComplexMaterialData(parameterC,ptMaterial);
-    
-    // Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
-   
-    for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { 
-            
-      ////////////////////////////////////////////////////////
-      //                   SOLVES PDE                      //
-      ///////////////////////////////////////////////////////  
-
       
-      ptPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
-      ptPDE_->GetSolveStep()->SetActStep(fstep); 
-      ptPDE_->GetSolveStep()->PreStepHarmonic(reset); 
-
-      ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
       
-      ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
+      updateMaterialData(parameter,ptMaterial);
+      updateComplexMaterialData(parameterC,ptMaterial);
       
-      ptPDE_->PostProcess();   
+      // Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
 
-      //ptMyPDE_->WriteResultsInFile();
+      for (UInt fstep = 0; fstep < freqs.GetSize(); fstep++) {       
+        
+        ////////////////////////////////////////////////////////
+        //                   SOLVES PDE                      //
+        ///////////////////////////////////////////////////////  
+        
+        ptPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
+        ptPDE_->GetSolveStep()->SetActStep(fstep); 
+        ptPDE_->GetSolveStep()->PreStepHarmonic(reset);         
+        ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);        
+        ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
+        ptPDE_->PostProcess();   
+        
+        //ptMyPDE_->WriteResultsInFile();
+        
+        BaseNodeStoreSol * ptSol;
+        if(directCoupling==TRUE)      
+          ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !
+        else
+          ptSol = ptMyPDE_->getPDESolution();
+
+        NodeStoreSol<Complex> * ptNodeStoreSol;
+        ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
+        
+                //      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
+        ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
+        
+        Vector<Complex> nodeSol;
+        Vector<Complex> nodeResult(12);
+        
+        StdVector<std::string> keyVec, attrVec, valVec;
+        attrVec = "tag";
+        valVec = "paramIdent";
+        UInt node1, node2, node3, node4;
+        
+        keyVec = "paramIdent", "mechDisplAtNode1";
+        params->Get( keyVec, attrVec, valVec, node1 );
+        keyVec = "paramIdent", "mechDisplAtNode2";
+        params->Get( keyVec, attrVec, valVec, node2 );
+        keyVec = "paramIdent", "mechDisplAtNode3";
+        params->Get( keyVec, attrVec, valVec, node3 );
+        keyVec = "paramIdent", "mechDisplAtNode4";
+        params->Get( keyVec, attrVec, valVec, node4 );
+        
+        ptNodeStoreSol->Get(node1,1,nodeResult[0]);	
+        ptNodeStoreSol->Get(node1,2,nodeResult[1]);	
+        ptNodeStoreSol->Get(node1,3,nodeResult[2]);	
+        ptNodeStoreSol->Get(node2,1,nodeResult[3]);	
+        ptNodeStoreSol->Get(node2,2,nodeResult[4]);	
+        ptNodeStoreSol->Get(node2,3,nodeResult[5]);	
+        ptNodeStoreSol->Get(node3,1,nodeResult[6]);	
+        ptNodeStoreSol->Get(node3,2,nodeResult[7]);	
+        ptNodeStoreSol->Get(node3,3,nodeResult[8]);	
+        ptNodeStoreSol->Get(node4,1,nodeResult[9]);	
+        ptNodeStoreSol->Get(node4,2,nodeResult[10]);	
+        ptNodeStoreSol->Get(node4,3,nodeResult[11]);	
+
+        std::cout<<"Mechanical displacement al selected nodes at frequency "
+                 <<freqs[fstep]<< std::endl;
+
+        std::cout<<nodeResult<<std::endl;
+
+        *mechDispl<<freqs[fstep];
+        for(UInt imech=0;imech<nodeResult.GetSize();imech++)
+          *mechDispl<<"  "<<nodeResult[imech].real();
+        *mechDispl<<std::endl;
+        std::cout<<"test 5 "<<std::endl;
 
         
-      Vector<Complex> chargeVec;
-      if(directCoupling==TRUE)      
-        chargeVec = ptPDE1_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
-      else
-        chargeVec = ptMyPDE_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
-
-
-      BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
-      NodeStoreSol<Complex> * ptNodeStoreSol;
-      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
-      
-      
-      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
-      ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
-
-      Complex charge=Complex(0.0,0.0);
-
-      Vector<Complex> nodeSol;
-      Vector<Complex> nodeResult(4);
-      ptNodeStoreSol->Get(353,3,nodeResult[0]);	
-      ptNodeStoreSol->Get(352,3,nodeResult[1]);	
-      ptNodeStoreSol->Get(389,3,nodeResult[2]);	
-      ptNodeStoreSol->Get(390,3,nodeResult[3]);	
-
-      for (UInt i=0;i<chargeVec.GetSize();i++){
-        charge+=chargeVec[i];
-      }
-      //    calcAbsImped(charge, freqs[fstep], fstep);   // calculates |Z| and writes results in File
-      //    charge=-charge/Complex(chargeVec.GetSize());
-
-      //    *mechDispl<< freqs[fstep] << "  " << nodeResult[1].real()<<"  " <<nodeResult[1].imag()<<std::endl;
-
-      Double imped, phase;
-      Complex impedC;
-
-      //       std::cout<<"nodeResult"<<std::endl;
-      //       std::cout<<nodeResult<<std::endl;
-      //       getchar();
-
-      if (!impedCurve)
-        std::cerr<<"Error opening 'ImpedCurve.dat' "<<std::endl;
-
-
-      //       std::cout<<"solMechDispl.GetSize()"<<std::endl;
-      //       std::cout<<solMechDispl.GetSize()<<std::endl;
-
-
-      Complex im=Complex(0.0,1);
-      impedC=voltage/(charge*2.0*PI*freqs[fstep]*im);
-      imped = std::abs(voltage/(charge*2.0*PI*freqs[fstep]*im)); 
-      //    phase = 180.0/PI*(std::arg(charge));
-      phase = 180.0/PI*(std::arg(impedC));
-      std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< std::log(imped) 
-                << ";\t Phase: " << phase <<";\t Volt = "<<voltage<<";\t Charge = "<< charge<< std::endl;
-      *impedCurve <<"\n" << freqs[fstep] << " " << std::log(imped) << "  " << phase << "  " 
-                  << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
-
-      //       getchar();
-	
-     
-    } //  end loop over freqs
+        
+      } //  end loop over freqs
   }
 
 

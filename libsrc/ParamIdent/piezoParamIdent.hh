@@ -91,7 +91,7 @@ namespace CoupledField
     void invert(Matrix<Complex> & data);
 
     //! inverts a Matrix with Lapacks ZGESV
-    void invertWithLapack(Matrix<Complex> & data);
+    //    void invertWithLapack(Matrix<Complex> & data);
     
     //! Descent Method for functional J(w)
     void descentMethod(Complex & functional);

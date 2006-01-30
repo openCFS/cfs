@@ -133,8 +133,8 @@ namespace CoupledField
     CalcMechDisplCurve = params->IsSet("calcMechDisplCurve",  "paramIdent");
 
     // at which node should the mechDisplCurve be calculated?
-    keyVec="paramIdent", "mechDisplAtNode";
-    params->Get(keyVec, attrVec, valVec, mechDisplAtNode);
+//     keyVec="paramIdent", "mechDisplAtNode";
+//     params->Get(keyVec, attrVec, valVec, mechDisplAtNode);
 
     // DOF of mechDispl.
     keyVec="paramIdent", "dofOfMechDispl";
@@ -343,7 +343,7 @@ namespace CoupledField
     updateComplexMaterialData(parameterC,ptMaterial);
     matMatC = ptMaterial->GetMatrixC();	
 
-    std::cout<<"+ The parameter identification will be started with the following parameters"<<std::endl;
+    std::cout<<"++ The parameter identification will be started with the following parameters"<<std::endl;
     std::cout<<*matMat<<std::endl;
     std::cout<<*matMatC<<std::endl;
 
@@ -405,7 +405,7 @@ namespace CoupledField
       scaling.Resize(nrParameter);
       F_hat.Resize(nrMeasuredData);
       overall_res0.Resize(nrMeasuredData);      //    nrMeasuredData=1.0/2.0*nrMeasuredData;
-      std::cout<<"\n NRMEASURED DATA = " <<nrMeasuredData<<std::endl;
+      //      std::cout<<"\n NRMEASURED DATA = " <<nrMeasuredData<<std::endl;
     }
 
     // <<<<<<<<<<<<<< for a hopefully nice imped curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
