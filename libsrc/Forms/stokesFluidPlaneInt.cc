@@ -6,12 +6,11 @@
 namespace CoupledField
 {
 
-  StokesFluidPlaneInt::StokesFluidPlaneInt(Double aVal, Double bVal)
-    : StokesFluidInt()
+  StokesFluidPlaneInt::StokesFluidPlaneInt(Double density,
+                                           Double dynamicViscosity)
+    : StokesFluidInt(density, dynamicViscosity)
   {
     ENTER_FCN( "StokesFluidPlaneInt::StokesFluidPlaneInt" );
-    density_ = aVal;
-    dynamicViscosity_ = bVal;
   }
 
 

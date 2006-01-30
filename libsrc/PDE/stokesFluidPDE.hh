@@ -25,6 +25,9 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~StokesFluidPDE();
 
+    //! Initialize NonLinearities
+    virtual void InitNonLin();
+
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( );
 
