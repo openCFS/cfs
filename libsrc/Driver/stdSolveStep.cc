@@ -28,6 +28,7 @@ namespace CoupledField {
     sol_          = PDE_.sol_;
     eqnData_      = PDE_.eqnData_;
     assemble_     = PDE_.assemble_;
+    outFile_      = PDE_.outFile_;
 
     TS_alg_        = PDE_.TS_alg_;
 
