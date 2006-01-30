@@ -507,25 +507,6 @@ namespace CoupledField
   void StokesFluidPDE::PostProcess() {
     ENTER_FCN( "StokesFluidPDE::PostProcess" );
   }
-
-    // Last but no least trigger setting of BC from script file
-#ifdef TCL_INTERFACE
-    StdVector<std::string> context;
-    context.Push_back( pdename_ );
-    context.Push_back( Info->GenStr(solveStep_->GetActStep() ) );
-    
-    if ( analysistype_ == TRANSIENT || analysistype_ == STATIC ) 
-    {
-      context.Push_back( Info->GenStr(solveStep_->GetActTime() ) );
-    }
-    else
-    {
-      context.Push_back( Info->GenStr(solveStep_->GetActFreq() ) );
-    }
-    messenger->TriggerEvent( CFSMessenger::CFS_PostProcess, 
-                             context );
-#endif
-
 } // end namespace CoupledField
 
 
