@@ -753,31 +753,28 @@ namespace CoupledField
 
   } // end create Gradient
 
-// #ifdef USE_LAPACK
-//   void piezoParamIdent::invertWithLapack(Matrix<Complex> & data){
-//     ENTER_FCN("piezoParamIdent::invertWithLapack");
-
-//     std::cout<<"Optimum experiment design works with LAPACK Routines"<<std::endl;
-//     std::cout<<"Please set LAPACK = yes in your Makefile.option (CFS & OLAS)" <<std::endl;
-
-//     Matrix<Complex> cov;
-//     cov.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
-//     cov=data;
-
-//     Matrix<Complex> rhsMat;
-//     rhsMat.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
-//     for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
-//       rhsMat[i][i]=Complex(1.0,0.0);
-
-//     lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
-//     data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
-
-
-//     data=rhsMat;
-
-//   } // end invertWithLapack
-
-// #endif 
+#ifdef USE_LAPACK
+  void piezoParamIdent::invertWithLapack(Matrix<Complex> & data){
+    ENTER_FCN("piezoParamIdent::invertWithLapack");
+    
+    std::cout<<"Optimum experiment design works with LAPACK Routines"<<std::endl;
+    std::cout<<"Please set LAPACK = yes in your Makefile.option (CFS & OLAS)" <<std::endl;
+    
+    Matrix<Complex> cov;
+     cov.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
+     cov=data;
+     
+     Matrix<Complex> rhsMat;
+     rhsMat.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
+     for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
+       rhsMat[i][i]=Complex(1.0,0.0);
+     lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
+     data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
+     data=rhsMat;
+     
+  } // end invertWithLapack
+  
+#endif 
 
   void piezoParamIdent::invert(Matrix<Complex> & data)  {
 

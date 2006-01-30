@@ -106,8 +106,10 @@ namespace CoupledField
     ENTER_FCN("PiezoParamIdent::caclImpedanceCurve");
 
     
-    if(directCoupling==TRUE)
+    if(directCoupling==TRUE){
       ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+      ptMaterial2=ptPDE2_->getPDEMaterialData();   // Pointer to MaterialData
+    }
     else
       ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     Boolean reset = TRUE;
@@ -115,14 +117,16 @@ namespace CoupledField
     //     ptAssemble = ptPDE1_->getPDE_assemble();
 
     // ptAlgsys->InitMatrix();
-    // ptAssemble->SetReassemble();
    
     updateMaterialData(parameter,ptMaterial);
     updateComplexMaterialData(parameterC,ptMaterial);
 
-    //    ptMaterial->RotateMaterialMatrix(1,0,1);
-
-    //    Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
+    if(directCoupling==TRUE){
+      updateMaterialData(parameter, ptMaterial);
+      updateMaterialData(parameter, ptMaterial2);
+      updateComplexMaterialData(parameterC,ptMaterial);
+      //      updateComplexMaterialData(parameterC,ptMaterial2);
+    }
 
     Double maxImpedance=0.0;
     Double minImpedance=1.0e+10;
@@ -135,6 +139,8 @@ namespace CoupledField
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
+
+      ptAssemble->SetReassemble();
       ptPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep); 
       ptPDE_->GetSolveStep()->PreStepHarmonic(reset); 
@@ -322,16 +328,15 @@ namespace CoupledField
     F_hat.Resize(nrMeasuredData);
 
     Boolean reset = TRUE;
-
         
     ptAlgsys->InitMatrix();
     ptAssemble->SetReassemble();
     ptAlgsys->InitRHS();
      
     // updateMaterialData(parameter,ptMaterial);
-    //     updateComplexMaterialData(parameterC,ptMaterial);
+    // updateComplexMaterialData(parameterC,ptMaterial);
     
-    
+   
     for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
 
           ////////////////////////////////////////////////////////
@@ -457,8 +462,13 @@ namespace CoupledField
     parameter_incr=parameter;
 
     updateMaterialData(parameter, ptMaterial);
-    createF(ptMaterial, F_hat, FALSE);
 
+    if(directCoupling==TRUE){
+      updateMaterialData(parameter, ptMaterial);
+      updateMaterialData(parameter, ptMaterial2);
+    }
+    
+    createF(ptMaterial, F_hat, FALSE);
 
     for (UInt ind_param=0;ind_param<nrParameter;ind_param++){
 
