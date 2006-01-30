@@ -7,6 +7,7 @@
 #include "ODEDescr/Gilmoredimlos.hh"
 #include "ODESolve/ODESolver_RKF45.hh"
 #include "ODESolve/ODESolver_Rosenbrock.hh"
+#include "Utils/elemstoresol.hh"
 
 namespace CoupledField
 {
@@ -34,6 +35,7 @@ namespace CoupledField
     //! solves for one nonlinear transient step 
     //! \param reset TRUE: perfrom new assembly, etc
     void StepTransBubble( const Boolean reset );
+
 
     //!
     void ComputeBubbleRHS();
@@ -107,8 +109,12 @@ namespace CoupledField
 
     //! Suggested step size for ODESolver
     Double hTry_;
-   
-    MaterialData * materialData_ ;
+
+    //! Element solution of bubble rhs
+    ElemStoreSol<Double> bubbleRHS_;
+
+    //! Flag for writing the bubble RHS
+    Boolean storeRHS_;   
 
   };
 
