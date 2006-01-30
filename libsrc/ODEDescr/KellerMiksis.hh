@@ -4,6 +4,7 @@
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
 #include "BubbleODE.hh"
+#include "Matrix/matrix.hh"
 
 namespace CoupledField{
 
@@ -44,6 +45,11 @@ namespace CoupledField{
     void CompDeriv(const Double &t,
                    const StdVector<Double> &y,
                    StdVector<Double> &dydt);
+
+    void  Jacobi(StdVector<Double> &y,
+		 Matrix<Double> &dfdy,
+		 Double &t);
+
 
     //! Get the pressure used in this class
     Double GetP (){
