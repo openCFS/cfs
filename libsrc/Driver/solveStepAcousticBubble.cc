@@ -6,10 +6,13 @@
 #include "assemble.hh"
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/writeresults.hh"
 #include "Forms/forms_header.hh"
 #include "General/environment.hh"
 #include "PDE/timestepping.hh"
 #include "PDE/StdPDE.hh"
+#include "ODEDescr/LinearKellerMiksis.hh"
+#include "ODEDescr/RPNNP.hh"
 
 namespace CoupledField {
 
@@ -18,16 +21,31 @@ namespace CoupledField {
     : StdSolveStep(apde) 
   {
     ENTER_FCN( "SolveStepAcousticBubble::SolveStepAcousticBubble" );
+    std::cerr << ":SolveStepAcousticBubble" << std::endl;
 
     bubbleDynType_ = bubbleDynType;
+    storeRHS_ = FALSE;
   
     if( bubbleDynType_ != NOBUBBLETYPE ) {
       SetupBubbleDynamics();
+
+      // Read, if solution should be stored
+      std::string rhs;
+      params->Get( "valRHS", rhs, "pdeList", "acoustic" );
+      if( rhs == "yes" ) {
+        storeRHS_ = TRUE;
+        bubbleRHS_.SetNumSolutions(1);
+        bubbleRHS_.SetSolutionType(MAG_FLUX_DENSITY);
+        bubbleRHS_.SetNumElems(eqnData_->GetNumLocalElems());
+        bubbleRHS_.SetNumDofs(ptgrid_->GetDim());
+        bubbleRHS_.SetPtrEQNData(eqnData_, ptgrid_);
+        bubbleRHS_.Init(); 
+      }
     }
-  
-
+    
+    
   }
-
+  
   SolveStepAcousticBubble::~SolveStepAcousticBubble() {
     ENTER_FCN( "SolveStepAcousticBubble::~SolveStepAcousticBubble" );
     delete[] materialData_;
@@ -66,6 +84,7 @@ namespace CoupledField {
     Vector<Double> nlRhsNew(numPDENodes_);
     Vector<Double> nlRhsOld(numPDENodes_);
     nlRhsOld.Init();
+
 
     //check for assembling of matrices
     job = 3;
@@ -272,7 +291,6 @@ namespace CoupledField {
 	
           ptODESolver_->Solve(steptime, tNoDim_, yNoDim_, *ptBubble_[numEl], hTry_,
                               0, dt);
-	
           //set the new values
           radiusWork_[numEl]   = yNoDim_[0] * initRadius_;
           velocityWork_[numEl] = yNoDim_[1] * sqrt( pStatic_/ density_);
@@ -312,16 +330,22 @@ namespace CoupledField {
       }
 
       //check if we have reached the accuracy!
-      performOneMoreStep =    (incrementalErr > incStopCrit_) || (nlRhsNorm > incStopCrit_) ;
+      performOneMoreStep =    (incrementalErr > incStopCrit_);//|| (nlRhsNorm > incStopCrit_) ;
 
-    } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
-
+    // Write element vector to result file
+    if ( storeRHS_ == TRUE ) {
+      outFile_->WriteElemSolutionTransient(bubbleRHS_, actStep_, actTime_ );
+    }
 
     radius_   = radiusWork_;
     velocity_ = velocityWork_;
 
   }
+
+
+
 
   // ======================================================================
   //   Setup structure for bubbly dynamics
@@ -387,17 +411,40 @@ namespace CoupledField {
     Info->PrintF ("", "Polytropic exponent of the fluid:\t %10.6e\n", polytrop_);
     Info->PrintF ("", "Viscosity of the fluid:\t %10.6e\n\n", viscosity_);
 
+    Info->PrintF ("", "\nAnfangsschrittweite:\t %10.6e\n", hTry_);
+
+
+
+    //Set the nonlinear parameters for the iteration between bubble and pressure
+      // perform logging?
+      nonLinLogging_ = params->IsSet( "logging", "acoustic", "nonLinear" );
+      // incremental stopping criterion
+      params->Get("incStopCrit", incStopCrit_, "acoustic", "nonLinear" );
+      // residual stopping criterion
+      params->Get("resStopCrit", residualStopCrit_, "acoustic", "nonLinear" );
+      // maximal number of NL-iterations
+      params->Get("maxNumIters", nonLinMaxIter_, "acoustic", "nonLinear");
+
+    Info->PrintF ("", "Incrementelle Abbruchbedingung:\t %10.6e\n" , incStopCrit_);
+    Info->PrintF ("", "Maximale Anzahl von Iterationen:\t %10.6e\n", nonLinMaxIter_);
+
     for (UInt el=0; el<numPDEElems_; el++) {
       // Choice which bubbledynamical method is used and 
       // creation of pointer to choosen class
       // so far method is chosen in cfs program call with -bubbletyp
       switch(bubbleDynType_){
       case KELLERMIKSIS:
-        ptBubble_[el] = new KellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
+//         ptBubble_[el] = new KellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
+//                                          pVapour_, surfaceTension_, polytrop_, viscosity_);
+//         if (el == 0){
+//           Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
+//         }
+        ptBubble_[el] = new LinearKellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
                                          pVapour_, surfaceTension_, polytrop_, viscosity_);
         if (el == 0){
-          Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
+          Info->PrintF( pdename_, "Using Linear-Keller-Miksis-Bubble-Model\n");
         }
+
         break;
      
 
@@ -433,8 +480,7 @@ namespace CoupledField {
     // Info->PrintF( pdename_, "which approximation of the jacobian\n");
 
 
-    // Zwischenloesung, bis alles über bilinear und linear forms laeuft
-    materialData_ = new MaterialData[subdoms_.GetSize()];
+
 
   }
 
@@ -452,7 +498,7 @@ namespace CoupledField {
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
     
-      fluidDensity= materialData_[actDom].GetDensity();    
+   
 
       for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++)    {              
         BaseFE * ptEl = elemssd[actEl]->ptElem;
@@ -462,7 +508,7 @@ namespace CoupledField {
         GetElemCoords(connecth, ptCoord);
         
         Double beta2 = 1;
-                
+        Double Rpp = 0;        
 
         bubbleValues_[0] = radiusWork_[numEl];
         bubbleValues_[1] = velocityWork_[numEl];
@@ -470,8 +516,16 @@ namespace CoupledField {
         // New rhs for cavitational fluid
         // rho0 * 4/3 * pi* n * ( 3 * R^2 * d^2R/dt^2 + 6 * R * (dR/dt)^2) 
         if (actStep_ == 1) 
-          beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*6*bubbleValues_[0]
+          beta2 =density_*density_* 4/3*PI*bubbleDensity_*6*bubbleValues_[0]
             *bubbleValues_[1]*bubbleValues_[1]; 
+
+
+// 	  //Vereinfachte RHS Siehe Commander
+// 	  beta2=0.0;
+
+
+
+
         else {
           StdVector<Double> dydt(2);
 
@@ -482,26 +536,43 @@ namespace CoupledField {
           tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
           ptBubble_[numEl]->CompDeriv(tNoDim_, yNoDim_, dydt);
           dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
-          beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*
+          beta2 =density_*density_*4/3*PI*bubbleDensity_*
             (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
              + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
+
+
+// 	  //Vereinfachte RHS Siehe Commander
+// 	  beta2= density_*density_*4.0*PI*bubbleDensity_*initRadius_ *initRadius_*dydt[1];
+
+
           // dimensionless**************************************
 
           //Normal case+++++++++++++++++++++++++++++++++++++++
           //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues_, dydt);
-          //	  beta2 =fluidDensity * fluidDensity * 4*PI*bubbleDensity_*
+          //	  beta2 =density_*density_* 4/3*PI*bubbleDensity_*
           //	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
           //	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
           //Normal case+++++++++++++++++++++++++++++++++++++++
+	  
+	  Rpp=dydt[1];
         }
 
 
         rhsForm->SetFactor(beta2);            
         rhsForm->SetElemPtr(ptEl);
       
-        Vector<Double> elemVec;
+        Vector<Double> elemVec, helpVec;
         rhsForm->CalcElemVector(ptCoord, elemVec);
 
+	// store element result
+        if ( storeRHS_ == TRUE ) {
+          helpVec.Resize( ptgrid_->GetDim() );
+          helpVec[0] = beta2;
+          helpVec[1] = Rpp;
+          UInt locElemNum = eqnData_->Mesh2PDEElem(elemssd[actEl]->elemNum);
+          bubbleRHS_.SetElemResult(locElemNum-1, helpVec);
+        }
+	
         // map connect to PDE node numbers
         StdVector<Integer> connect_PDE;
         eqnData_->Node2EQN(connecth, connect_PDE);
@@ -511,6 +582,11 @@ namespace CoupledField {
         numEl++;
       }
     }
+
+//     // Write element vector to result file
+//     if ( storeRHS_ == TRUE ) {
+//       outFile_->WriteElemSolutionTransient(bubbleRHS_, actStep_, actTime_ );
+//     }
 
     delete rhsForm;
   
