@@ -274,7 +274,6 @@ namespace CoupledField {
 
     if ( auxVec.GetSize() == 1 ) {
       String2Enum( auxVec[0], bubbleDynType_ );
-
       //Set bubbledensity
       keyVec = pdename_, "bubbles", "bubbleNumDensity";
       params->Get(keyVec, attrVec, valVec, bubbleDensity_);
@@ -1651,9 +1650,13 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
         saveSol_ = TRUE;
         hasOutput_ = TRUE;
+
+	// Note: If errors occur using the acoustic pressure formulation,
+	// just comment out the following three lines
         sol_->SetSolutionType(ACOU_PRESSURE);
         sol_->SetNumDofs(1);
         sol_->Init();
+
       }
     }
     
