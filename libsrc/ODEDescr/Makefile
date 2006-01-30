@@ -2,7 +2,7 @@
 C_DIR= ../..
 include ../../main/Makefile.option
 #
-src = KellerMiksis.cc Gilmore.cc Gilmoredimlos.cc
+src = KellerMiksis.cc Gilmore.cc Gilmoredimlos.cc RPNNP.cc LinearKellerMiksis.cc
 #
 lib = odedescr
 CFLAGS3 =
