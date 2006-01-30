@@ -510,7 +510,11 @@ libsrc/ODEDescr/Gilmoredimlos.cc svneol=native#text/plain
 libsrc/ODEDescr/Gilmoredimlos.hh svneol=native#text/plain
 libsrc/ODEDescr/KellerMiksis.cc svneol=native#text/plain
 libsrc/ODEDescr/KellerMiksis.hh svneol=native#text/plain
+libsrc/ODEDescr/LinearKellerMiksis.cc svneol=native#text/plain
+libsrc/ODEDescr/LinearKellerMiksis.hh svneol=native#text/plain
 libsrc/ODEDescr/Makefile -text
+libsrc/ODEDescr/RPNNP.cc svneol=native#text/plain
+libsrc/ODEDescr/RPNNP.hh svneol=native#text/plain
 libsrc/ODESolve/BaseODESolver.hh svneol=native#text/plain
 libsrc/ODESolve/Makefile -text
 libsrc/ODESolve/ODESolver_ExplEuler.cc svneol=native#text/plain
