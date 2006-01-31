@@ -148,6 +148,11 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
                 NODEDATA[3*n]=ptNodalCoord3D[0];		      
                 NODEDATA[3*n+1]=ptNodalCoord3D[1];
                 NODEDATA[3*n+2]=ptNodalCoord3D[2];
+                if (writeGridFile_)
+                {
+                  (*outnodefile_) << NODEDATA[3*n]<<" "<< NODEDATA[3*n+1]
+                                  <<" "<< NODEDATA[3*n+2]<<std::endl;
+                }	    
               }
 	  }
     
