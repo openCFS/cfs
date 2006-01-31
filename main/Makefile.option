@@ -165,7 +165,7 @@ GIDPOST = yes
 DATABASE = no
 
 # switch for use of tcl interface, enabling dynamic interaction with cfs
-TCL_INTERFACE = no
+TCL_INTERFACE = yes
 
 # switch for activating the use of expression template for the matrix
 # and vector class. 
@@ -181,10 +181,10 @@ USE_EXPR_TEMPLATES = yes
 # -----------------------------------------------------------------------------
 
 # Was OLAS compiled with support for hypre?
-HYPRE = no
+HYPRE = yes
 
 # Was OLAS compiled with support for LAPACK?
-LAPACK = no
+LAPACK = yes
 
 # Was OLAS compiled with support for TVMET?
 TVMET = no
@@ -193,7 +193,7 @@ TVMET = no
 PARDISO = no
 
 # Was OLAS compiled with support for Metis?
-METIS = no 
+METIS = yes
 
 
 # -----------------------------------------------------------------------------
