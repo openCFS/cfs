@@ -307,6 +307,9 @@ namespace CoupledField {
    
     Vector<Complex> getPDE_complexValuedCharge()
     {return complexValuedCharge_;};
+    
+    Boolean getPDE_geoUpdate()
+    {return geoUpdate_;};
 
     virtual void setBCs_id_phase_(UInt i, Double & phase);
     
