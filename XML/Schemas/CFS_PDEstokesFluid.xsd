@@ -66,10 +66,10 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Section for specifying non-linear parameters (optional) -->
+          <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
+
           <!-- Desired solution values (optional) -->
-          <!-- Currently this is not supported, since it is difficult
-          to define in the acoustics case since it depends on the
-          boundary conditions -->
           <xsd:element name="storeResults" type="DT_StokesFluidStoreResults"
             minOccurs="0" maxOccurs="1"/>
 
@@ -170,6 +170,7 @@
   <!-- What data can a single node have in an acoustic PDE -->
   <xsd:simpleType name="DT_StokesFluidNodeData">
     <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="stokesFluidVelPresVort"/>
       <xsd:enumeration value="stokesFluidVelocity"/>
       <xsd:enumeration value="stokesFluidVorticity"/>
       <xsd:enumeration value="stokesFluidPressure"/>
