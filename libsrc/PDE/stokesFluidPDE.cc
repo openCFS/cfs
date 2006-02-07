@@ -440,7 +440,7 @@ namespace CoupledField
       ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
       normal *= sign;
 
-      for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
+      for (UInt actNode=0; actNode<ptCoord.GetSizeCol(); actNode++) {
         UInt nodePos = 0;
           
         while(connecth[actNode] != couplingNodes[nodePos] &&
@@ -564,7 +564,7 @@ namespace CoupledField
     attrVec = "", "", "type";  
 
     // --- StokesFluidVelocity ---
-    Enum2String(STOKESFLUID_VELOCITY, quantity);
+    Enum2String(STOKESFLUID_VEL_PRES_VORT, quantity);
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
     if (nodeValues.GetSize() > 0) {
@@ -581,7 +581,7 @@ namespace CoupledField
     attrVec = "", "", "type";
 
     // --- StokesFluidVelocity ---
-    Enum2String(STOKESFLUID_VELOCITY, quantity);
+    Enum2String(STOKESFLUID_VEL_PRES_VORT, quantity);
     valVec  = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
