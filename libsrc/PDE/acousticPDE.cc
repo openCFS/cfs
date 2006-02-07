@@ -919,7 +919,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
       normal *= sign;
 
-      for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
+      for (UInt actNode=0; actNode<ptCoord.GetSizeCol(); actNode++) {
         UInt nodePos = 0;
           
         while(connecth[actNode] != couplingNodes[nodePos] &&
