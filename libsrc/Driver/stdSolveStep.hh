@@ -203,7 +203,6 @@ namespace CoupledField
     std::string lineSearch_;   //!< switch for lineSearch
     Boolean nonLin_;           //!< flag for nonlinear calculations
     Boolean isHyst_;           //!< flag for hystersis modeling
-    Boolean geoUpdate_;        //!< flag for geometric update
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
