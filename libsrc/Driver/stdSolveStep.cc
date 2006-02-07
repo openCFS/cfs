@@ -35,7 +35,6 @@ namespace CoupledField {
     lineSearch_       = PDE_.lineSearch_;
     nonLin_           = PDE_.nonLin_;
     isHyst_           = PDE_.isHysteresis_;
-    geoUpdate_        = PDE_.geoUpdate_;
     incStopCrit_      = PDE_.incStopCrit_;
     residualStopCrit_ = PDE_.residualStopCrit_;
     nonLinMaxIter_    = PDE_.nonLinMaxIter_;

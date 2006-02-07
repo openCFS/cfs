@@ -40,7 +40,7 @@ namespace CoupledField {
     if (isIterCoupled_)     
       algsys_->InitSol();
 
-    if (geoUpdate_) {
+    if ( PDE_.getPDE_geoUpdate() ) {
       algsys_->InitSol();
       algsys_->InitMatrix();
       assemble_->SetReassemble();   
