@@ -260,7 +260,14 @@ namespace CoupledField
         ptelem->GetShFncAtIp(xi, actIntPt);
         ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord, jacDet);
 
-//  __                                                            __
+//  __ Sucessive-Substitution                                                          __
+//  |  0                   1                   2   3 |
+// 0   0                   0                   0   0 |
+// 1|  u0*xiDx + v0*xiDy   0                   0   0 |
+// 2|  0                   u0*xiDx + v0*xiDy   0   0 |
+// 3|  0                   0                   0   0 |
+
+//  __ Newton-Verfahren                                                           __
 //  |  0                          1                          2   3 |
 // 0   0                          0                          0   0 |
 // 1|  u0*xiDx + v0*xiDy + u0Dx   u0Dy    0                  0   0 |
@@ -269,6 +276,9 @@ namespace CoupledField
 
         Matrix<Double>  velocityDeriv;  
         velocityDeriv = elemVelocity_ * xiDxDyDz;
+
+        //Matrix<Double>  velocityInt;  
+        //velocityInt = elemVelocity_ * xi;
 
         // we need transposed of velocity 
         Matrix<Double> velocityTransp;
@@ -281,15 +291,23 @@ namespace CoupledField
         partElemAMat.Resize(N,nrNodes*N); partElemAMat.Init();
         for (j=0; j<nrNodes; j++)
           {
+//          Sucessive Substitution
             partElemAMat[1][j]   =           velocityTransp[j][0]*xiDxDyDz[j][0]
-                                           + velocityTransp[j][1]*xiDxDyDz[j][1]
-                                           + velocityDerivTransp[j][0];
-            partElemAMat[1][j+1*nrNodes] =   velocityDerivTransp[j][1];
+                                           + velocityTransp[j][1]*xiDxDyDz[j][1];
             
-            partElemAMat[2][j]          =    velocityDerivTransp[j+1*nrNodes][0];
             partElemAMat[2][j+1*nrNodes] =   velocityTransp[j][0]*xiDxDyDz[j][0]
-                                           + velocityTransp[j][1]*xiDxDyDz[j][1]
-                                           + velocityDerivTransp[j+1*nrNodes][1];
+                                           + velocityTransp[j][1]*xiDxDyDz[j][1];
+
+//            Newton-Verfahren
+//            partElemAMat[1][j]   =           velocityTransp[j][0]*xiDxDyDz[j][0]
+//                                           + velocityTransp[j][1]*xiDxDyDz[j][1]
+//                                           + velocityDerivTransp[j][0];
+//            partElemAMat[1][j+1*nrNodes] =   velocityDerivTransp[j][1];
+//            
+//            partElemAMat[2][j]          =    velocityDerivTransp[j+1*nrNodes][0];
+//            partElemAMat[2][j+1*nrNodes] =   velocityTransp[j][0]*xiDxDyDz[j][0]
+//                                           + velocityTransp[j][1]*xiDxDyDz[j][1]
+//                                           + velocityDerivTransp[j+1*nrNodes][1];
           }
 
         partElemAMat *= intWeights[actIntPt-1] * jacDet;
@@ -415,14 +433,6 @@ namespace CoupledField
     elemVec.Resize(nrNodes*N);
     elemVec *= 0;    // set elems to 0
   
-//    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-//      {    
-//        partElemVec *= jacDet * intWeights[actIntPt-1];
-//        elemVec +=  partElemVec;
-//      }
-      
-      
-      
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
@@ -450,7 +460,11 @@ namespace CoupledField
         xiDxDyDz.Transpose(xiDxDyTransp); 
         
         Matrix<Double>  velocityDeriv;  
-        velocityDeriv = elemVelocity_ * xiDxDyDz;
+        velocityDeriv = elemVelocity_ * xiDxDyDz; // hier gibts ein Problem:
+        // die Velocity ist an jedem Knoten gegeben und aBleitungungen gibts nur
+        // zu jedem Integrationspunkt.
+        // Wenn Also Die Anzahl an Knoten und Integrationspunkte nicht
+        //übereinstimmt gibts ein Problem!
 
         // we need transposed of velocity 
         Matrix<Double> velocityTransp;
@@ -462,23 +476,24 @@ namespace CoupledField
 
         for (UInt j=0; j<nrNodes; j++)
           {
-            partElemVec[j*N+1]   =  velocityTransp[j][0]*velocityDerivTransp[j][0]
-                              + velocityTransp[j][1]*velocityDerivTransp[j][1];
-//                              + velocityTransp[j][2]*velocityDerivTransp[j][2];
-  
-            partElemVec[j*N+2]   =  velocityTransp[j][0]*velocityDerivTransp[j+nrNodes][0]
-                                + velocityTransp[j][1]*velocityDerivTransp[j+nrNodes][1];
-//                              + velocityTransp[j][2]*velocityDerivTransp[j+1*nrNodes][2];
-
-//            partElemVec[j+2*nrNodes]   =  velocityTransp[j][1]*velocityTransp[j][0]*xiDxDyDz[j][0]
-//                              + velocityTransp[j][1]*velocityTransp[j][1]*xiDxDyDz[j][1]
-//                              + velocityTransp[j][2]*velocityTransp[j][1]*xiDxDyDz[j][2];
+//            partElemVec[j*N+1]   =  velocityTransp[j][0]*velocityDerivTransp[j][0]
+//                              + velocityTransp[j][1]*velocityDerivTransp[j][1];
+////                              + velocityTransp[j][2]*velocityDerivTransp[j][2];
+//  
+//            partElemVec[j*N+2]   =  velocityTransp[j][0]*velocityDerivTransp[j+nrNodes][0]
+//                                + velocityTransp[j][1]*velocityDerivTransp[j+nrNodes][1];
+////                              + velocityTransp[j][2]*velocityDerivTransp[j+1*nrNodes][2];
+//
+////            partElemVec[j+2*nrNodes]   =  velocityTransp[j][1]*velocityTransp[j][0]*xiDxDyDz[j][0]
+////                              + velocityTransp[j][1]*velocityTransp[j][1]*xiDxDyDz[j][1]
+////                              + velocityTransp[j][2]*velocityTransp[j][1]*xiDxDyDz[j][2];
 
             
           }
 
         partElemVec *= intWeights[actIntPt-1] * jacDet;
-        elemVec +=  partElemVec;
+        // Funzt noch net!!!
+        //elemVec +=  partElemVec; 
       }
       
       
