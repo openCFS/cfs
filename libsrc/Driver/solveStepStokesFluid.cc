@@ -38,7 +38,7 @@ namespace CoupledField {
     if (isIterCoupled_)     
       algsys_->InitSol();
 
-    if (geoUpdate_) {
+    if ( PDE_.getPDE_geoUpdate() ) {
       algsys_->InitSol();
       algsys_->InitMatrix();
       assemble_->SetReassemble();   
@@ -55,7 +55,9 @@ namespace CoupledField {
   
     Vector<Double>  actSol = solHelp.GetAlgSysVector();
 
-     Vector<Double> solIncrement;
+    Vector<Double> newSol;
+    Vector<Double> solIncrement;
+    newSol.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
     solIncrement.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
 
     PDE_.SetBCs(0);
@@ -64,120 +66,119 @@ namespace CoupledField {
     Double loadFactor = 1.0;
     Double extForcesL2Norm = SetLinRHS(loadFactor); 
 
-    PDE_.AssembleNLRHS();
+    //PDE_.AssembleNLRHS();
 
-   std::cout << "In SolveStepStaticNonLin" << std::endl;
+    std::cout << "In SolveStepStaticNonLin" << std::endl;
     do
       {
-    iterationCounter++;
+        iterationCounter++;
 
-    std::cout << std::endl << "Nonlinear Convective Stokes Fluid: Perform internal loop nr. " 
-          << iterationCounter << std::endl;      
+        std::cout << std::endl << "Nonlinear Convective Stokes Fluid: Perform internal loop nr. " 
+                  << iterationCounter << std::endl;      
 
 #ifdef DEBUG
-    *debug << std::endl
-           << "====================================================== "
-           << std::endl
-           << "Nonlinear Convective Stokes Fluid: Perform internal loop nr. "
-           << iterationCounter << std::endl;
+        *debug << std::endl
+               << "====================================================== "
+               << std::endl
+               << "Nonlinear Convective Stokes Fluid: Perform internal loop nr. "
+               << iterationCounter << std::endl;
 #endif
 
 
-    // setup and solve new system (rhs is already set) =====================
-    PDE_.InitNonLinMatrices();
-    PDE_.AssembleMatrices();
+        // setup and solve new system (rhs is already set) =====================
+        PDE_.InitNonLinMatrices();
+        PDE_.AssembleMatrices();
       
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
-    algsys_->BuildInDirichlet();
+        algsys_->BuildInDirichlet();
 
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
 
-    algsys_->Solve();   
+        algsys_->Solve();   
 
-    // new solution is only an increment of the full solution =============
-    Double *solPtr;
-    algsys_->GetSolutionVal( solPtr );
-    StoreAlgsysToVec(solIncrement, solPtr);
+        // new solution is only an increment of the full solution =============
+        Double *solPtr;
+        algsys_->GetSolutionVal( solPtr );
+        StoreAlgsysToVec(newSol, solPtr);
 
-    Double residualL2Norm = 0;
-    Double etaLineSearch=0;
+        solIncrement = actSol-newSol;
 
-    if ( lineSearch_ == "none" )
-      actSol = solIncrement;
-    else
-      // TRUE is for transient simulation
-      residualL2Norm = LineSearch(solIncrement, actSol, etaLineSearch);
+        Double residualL2Norm = 0;
+
+        actSol = newSol;
       
-    sol_->SetAlgSysVector(actSol);
+        sol_->SetAlgSysVector(actSol);
 
-    // recalculate RHS with new values to get new residual (f^(k+1))========
-    algsys_->InitRHS(RhsLinVal_.GetPointer());
+        // recalculate RHS with new values to get new residual (f^(k+1))========
+        //algsys_->InitRHS(RhsLinVal_.GetPointer());
 
-    PDE_.AssembleNLRHS();  // inner forces due to nonlin formulation
+        //PDE_.AssembleNLRHS();  // inner forces due to nonlin formulation
 
 
-    // =====================================================================
-    // calculation of error norms
-    // =====================================================================
-    if ( lineSearch_ == "none" )
-      {
-        Vector<Double> actRHS;
-        algsys_->GetRHSVal(solPtr);
-        StoreAlgsysToVec(actRHS, solPtr );       
-          
+        // =====================================================================
+        // calculation of error norms
+        // =====================================================================
+
         // calculation of residual error =======================================
-        residualL2Norm = RhsL2Norm(actRHS); // L2Norm of  ( f_i^(k+1) - f_a )
-      }
+        //Double residualErr = residualL2Norm / extForcesL2Norm;
+        Double residualErr = residualL2Norm;
 
 
-    // calculation of residual error =======================================
-    //Double residualErr = residualL2Norm / extForcesL2Norm;
-    Double residualErr = residualL2Norm;
-
-
-    // calculate incremental error ========================================
-    Double solIncrL2Norm = solIncrement.NormL2();
-    Double actSolL2Norm  = actSol.NormL2();
+        // calculate incremental error ========================================
+        Double solIncrL2Norm = solIncrement.NormL2();
+        Double actSolL2Norm  = actSol.NormL2();
       
-    Double incrementalErr;
+        Double incrementalErr;
+        Double solAuxU, incAuxU;
+
+        solAuxU=0.0;
+        incAuxU=0.0;
+        
+        for (UInt i=0; i<actSol.GetSize(); i+=4)
+          {
+            solAuxU+=(actSol[i]*actSol[i]);
+            incAuxU+=(solIncrement[i]*solIncrement[i]);
+          }
+        solAuxU = sqrt(solAuxU);  
+        incAuxU = sqrt(incAuxU);  
+
+        Double relAuxU = incAuxU/solAuxU;  
+
+        if (actSolL2Norm)
+          incrementalErr = solIncrL2Norm / actSolL2Norm;
+        else
+          {
+            incrementalErr = solIncrL2Norm;
+            Warning("Zero solution vector!! ", __FILE__,__LINE__);      
+          }
       
-    if (actSolL2Norm)
-      incrementalErr = solIncrL2Norm / actSolL2Norm;
-    else
-      {
-        incrementalErr = solIncrL2Norm;
-        Warning("Zero solution vector!! ", __FILE__,__LINE__);      
-      }
-      
 
 
-    // =====================================================================
-    // output of norms and data
-    // =====================================================================
+        // =====================================================================
+        // output of norms and data
+        // =====================================================================
 
 
-    WriteClaNlNorms(iterationCounter, residualL2Norm, extForcesL2Norm, residualErr,  
-            solIncrL2Norm, actSolL2Norm, incrementalErr);
+//        WriteClaNlNorms(iterationCounter, residualL2Norm, extForcesL2Norm, residualErr,  
+//                        solIncrL2Norm, actSolL2Norm, incrementalErr);
 
       
-    Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr, 
-                  etaLineSearch);
+//        Info->WriteNonLinIter(pdename_, iterationCounter, residualErr, incrementalErr, 
+//                              etaLineSearch);
 
 
-    // boolean variable, holds condition if another iteration step is necessary
-    performOneMoreStep = 
-      (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);      
+        // boolean variable, holds condition if another iteration step is necessary
+        performOneMoreStep = 
+          (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);      
       
       
-    if (!(performOneMoreStep && iterationCounter < nonLinMaxIter_))
-      mycout << "incrementalErr " << incrementalErr << myendl 
-         << "incStopCrit_ " << incStopCrit_ << myendl
-         << "residualErr " << residualErr  << myendl
-         << "residualStopCrit_ " << residualStopCrit_ << myendl;
+//        if (!(performOneMoreStep && iterationCounter < nonLinMaxIter_))
+          mycout << "solAuxU " << solAuxU << myendl 
+                 << "incAuxU " << incAuxU << myendl
+                 << "relAuxU " << relAuxU << myendl;
 
       }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
-
   }
 
   void SolveStepStokesFluid::PostStepStatic()
