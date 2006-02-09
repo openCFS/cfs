@@ -1,0 +1,3469 @@
+format 22
+"CoupledPDE" // Current Classes::CoupledPDE
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 128037 "CoupledPDE"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 128037 "AcouMechCoupling"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Implements the definition of the pairwise acoustic-mechanic"
+      classrelation 128037 // <generalisation>
+	relation 128037 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 128037 // <generalisation>
+	  b parent class_ref 128165 // BasePairCoupling
+      end
+
+      operation 128037 "AcouMechCoupling"
+	public explicit_return_type ""
+	nparams 2
+	  param inout name "pde1" type class_ref 128293 // SinglePDE
+	  param inout name "pde2" type class_ref 128293 // SinglePDE
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}, ${t1} * ${p1}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}, ${t1} * ${p1}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor
+! \\param pde1 pointer to first coupling PDE
+! \\param pde2 pointer to second coupling PDE"
+      end
+
+      operation 128165 "~AcouMechCoupling"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 128293 "PostProcess"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Trigger calculation of postprocessing results"
+      end
+
+      operation 128421 "WriteResultsInFile"
+	public explicit_return_type "void"
+	nparams 4
+	  param in name "kstep" type class_ref 128421 // UInt
+	  param in name "asteptime" type class_ref 128549 // Double
+	  param in name "stepOffset" type class_ref 128421 // UInt
+	  param in name "timeOffset" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 128549 "ReadStoreResults"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Obtain information on desired output quantities from parameter file
+! This method is used to query the parameter handling object for the
+! desired output quantities and translate their literal description into
+! the internal format by setting the corresponding class attributes."
+      end
+
+      operation 128677 "DefineIntegrators"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Definition of the (bi)linear forms"
+      end
+
+      operation 128805 "ReadMaterialData"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Method for obtaingin material data
+! This method is overwritten here, since the material of the 
+! acoustic domain is already written in."
+      end
+    end
+
+    class 128165 "BasePairCoupling"
+      abstract 
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Base class for pairwise direct coupling of two pdes"
+      operation 128933 "~BasePairCoupling"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 129061 "Init"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "sequenceStep" type class_ref 128421 // UInt
+	    defaultvalue " 0"
+	  param in name "bcSequenceTag" explicit_type "std::string"
+	    defaultvalue " \"anyTag\""
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Initialization method"
+      end
+
+      operation 129189 "PostProcess"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Trigger calculation of postprocessing results"
+      end
+
+      operation 129317 "WriteResultsInFile"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "kstep" type class_ref 128421 // UInt
+	  param in name "asteptime" type class_ref 128549 // Double
+	  param in name "stepOffset" type class_ref 128421 // UInt
+	  param in name "timeOffse" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Write solutions of postprocessing into gmv/unv ... files"
+      end
+
+      operation 129445 "GetName"
+	cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return couplingName_; };
+"
+	
+	
+	comment " ======================================================
+ GET / SET METHODS
+ ======================================================
+! Return coupling name"
+      end
+
+      operation 129573 "SetAlgSys"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "algSys" explicit_type "BaseSystem"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract} { algsys_ = algSys;};
+"
+	
+	
+	comment "! Set pointer to algsys"
+      end
+
+      operation 129701 "GetPde1"
+	cpp_inline public return_type class_ref 128293 // SinglePDE
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return pde1_;
+    };
+"
+	
+	
+	comment "! Return pointer to first PDE"
+      end
+
+      operation 129829 "GetPde2"
+	cpp_inline public return_type class_ref 128293 // SinglePDE
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return pde2_;};
+"
+	
+	
+	comment "! Return pointer to second PDE"
+      end
+
+      operation 129957 "GetElemCoords"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "connect" explicit_type "StdVector< UInt >"
+	  param inout name "coordMat" explicit_type "Matrix< Double >"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! computes the coordinates of an element including the delta
+! \\param connect (input) global node numbers of element
+! \\param ptCoord (output) coordinates of the element nodes
+!                (nrNodes \\f$\\times\\f$ spaceDim);"
+      end
+
+      operation 130085 "GetPdeId1"
+	public explicit_return_type "PdeIdType"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Return identifier of first PDE"
+      end
+
+      operation 130213 "GetPdeId2"
+	public explicit_return_type "PdeIdType"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Return identifier of second PDE"
+      end
+
+      operation 130341 "SetupMatrixGraph"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " ======================================================
+ METHODS FOR ASSEMBLING
+ ======================================================
+! constructes the matrix graph by providing to the algebraic system the element connectivities"
+      end
+
+      operation 130469 "AssembleMatrices"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! specify type of system matrix for AlgebraicSystem"
+      end
+
+      operation 130597 "AssembleSrcRHS"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "time" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! setup source term"
+      end
+
+      operation 130725 "AssembleNLRHS"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "time" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "!  assemble a nonlinear RHS part"
+      end
+
+      operation 130853 "AssembleSprings"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "time" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "!  assemble a spring into the system matrix"
+      end
+
+      operation 130981 "SetFrequency"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "actFreq" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! sets the actual frequency (just needed for harmonic analysis)"
+      end
+
+      operation 131109 "SetReassemble"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! trigger the reassembling of the matrices"
+      end
+
+      operation 131237 "BasePairCoupling"
+	protected explicit_return_type ""
+	nparams 2
+	  param inout name "pde1" type class_ref 128293 // SinglePDE
+	  param inout name "pde2" type class_ref 128293 // SinglePDE
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}, ${t1} * ${p1}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}, ${t1} * ${p1}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor"
+      end
+
+      operation 131365 "DefineIntegrators"
+	abstract cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Definition of the (bi)linear forms"
+      end
+
+      operation 131493 "ReadStoreResults"
+	abstract cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Obtain information on desired output quantities from parameter file
+! This method is used to query the parameter handling object for the
+! desired output quantities and translate their literal description into
+! the internal format by setting the corresponding class attributes."
+      end
+
+      operation 131621 "ReadMaterialData"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! read material data"
+      end
+
+      classrelation 128165 // sol_ (<unidirectional association>)
+	relation 128165 --->
+	  a role_name "sol_" multiplicity "" protected
+	    comment "!< solution"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 128165 // sol_ (<unidirectional association>)
+	  b parent class_ref 128933 // BaseNodeStoreSol
+      end
+
+      classrelation 128293 // isaxi_ (<directional aggregation by value>)
+	relation 128293 *-->
+	  a role_name "isaxi_" multiplicity "" protected
+	    comment "!< TRUE: axisymmetric problem"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 128293 // isaxi_ (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      classrelation 128421 // deltCoords_ (<directional aggregation by value>)
+	relation 128421 *-->
+	  stereotype "Matrix"
+	  a role_name "deltCoords_" multiplicity "" protected
+	    comment "!< offset to grid coordinates"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 128421 // deltCoords_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 128549 // geoUpdate_ (<directional aggregation by value>)
+	relation 128549 *-->
+	  a role_name "geoUpdate_" multiplicity "" protected
+	    comment "!< flag for geometric update"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 128549 // geoUpdate_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      attribute 128037 "bcSequenceTag_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 128677 // bcSequenceIndex_ (<directional aggregation by value>)
+	relation 128677 *-->
+	  a role_name "bcSequenceIndex_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 128677 // bcSequenceIndex_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 128805 // saveSol_ (<directional aggregation by value>)
+	relation 128805 *-->
+	  a role_name "saveSol_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 128805 // saveSol_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 128933 // saveDeriv1_ (<directional aggregation by value>)
+	relation 128933 *-->
+	  a role_name "saveDeriv1_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 128933 // saveDeriv1_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 129061 // saveDeriv2_ (<directional aggregation by value>)
+	relation 129061 *-->
+	  a role_name "saveDeriv2_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 129061 // saveDeriv2_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 129189 // complexValuedCharge_ (<directional aggregation by value>)
+	relation 129189 *-->
+	  stereotype "Vector"
+	  a role_name "complexValuedCharge_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 129189 // complexValuedCharge_ (<directional aggregation by value>)
+	  b parent class_ref 129317 // Complex
+      end
+
+      classrelation 129317 // complexValuedEfield_ (<directional aggregation by value>)
+	relation 129317 *-->
+	  stereotype "Vector"
+	  a role_name "complexValuedEfield_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 129317 // complexValuedEfield_ (<directional aggregation by value>)
+	  b parent class_ref 129317 // Complex
+      end
+
+      classrelation 129445 // solVec_ (<unidirectional association>)
+	relation 129445 --->
+	  a role_name "solVec_" multiplicity "" protected
+	    comment "! needed in iterative coupled computation "
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 129445 // solVec_ (<unidirectional association>)
+	  b parent class_ref 129445 // CFSVector
+      end
+
+      classrelation 129573 // solTypes_ (<directional aggregation by value>)
+	relation 129573 *-->
+	  stereotype "StdVector"
+	  a role_name "solTypes_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 129573 // solTypes_ (<directional aggregation by value>)
+	  b parent class_ref 129573 // SolutionType
+      end
+
+      classrelation 129701 // solDofs_ (<directional aggregation by value>)
+	relation 129701 *-->
+	  stereotype "StdVector"
+	  a role_name "solDofs_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 129701 // solDofs_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 129829 // materialData_ (<unidirectional association>)
+	relation 129829 --->
+	  a role_name "materialData_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 129829 // materialData_ (<unidirectional association>)
+	  b parent class_ref 129701 // MaterialData
+      end
+
+      attribute 128165 "materialClass_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 129957 // subdoms_ (<directional aggregation by value>)
+	relation 129957 *-->
+	  stereotype "StdVector"
+	  a role_name "subdoms_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 129957 // subdoms_ (<directional aggregation by value>)
+	  b parent class_ref 129829 // RegionIdType
+      end
+
+      classrelation 130085 // surfRegions_ (<directional aggregation by value>)
+	relation 130085 *-->
+	  stereotype "StdVector"
+	  a role_name "surfRegions_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 130085 // surfRegions_ (<directional aggregation by value>)
+	  b parent class_ref 129829 // RegionIdType
+      end
+
+      attribute 128293 "couplingName_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 128421 "matrixTypes_"
+	protected explicit_type "std::set<FEMatrixType>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 130213 // pde1_ (<unidirectional association>)
+	relation 130213 --->
+	  a role_name "pde1_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 130213 // pde1_ (<unidirectional association>)
+	  b parent class_ref 128293 // SinglePDE
+      end
+
+      classrelation 130341 // pde2_ (<unidirectional association>)
+	relation 130341 --->
+	  a role_name "pde2_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 130341 // pde2_ (<unidirectional association>)
+	  b parent class_ref 128293 // SinglePDE
+      end
+
+      classrelation 130469 // assemble_ (<unidirectional association>)
+	relation 130469 --->
+	  a role_name "assemble_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 130469 // assemble_ (<unidirectional association>)
+	  b parent class_ref 129957 // Assemble
+      end
+
+      classrelation 130597 // ptGrid_ (<unidirectional association>)
+	relation 130597 --->
+	  a role_name "ptGrid_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 130597 // ptGrid_ (<unidirectional association>)
+	  b parent class_ref 130085 // Grid
+      end
+
+      attribute 128549 "algsys_"
+	protected explicit_type "BaseSystem"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 130725 // eqnData_ (<unidirectional association>)
+	relation 130725 --->
+	  a role_name "eqnData_" multiplicity "" protected
+	    comment "!< equation handling"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 130725 // eqnData_ (<unidirectional association>)
+	  b parent class_ref 130213 // NodeEQN
+      end
+
+      classrelation 130853 // dofspernode_ (<directional aggregation by value>)
+	relation 130853 *-->
+	  a role_name "dofspernode_" multiplicity "" protected
+	    comment "!< number of unknowns per node"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 130853 // dofspernode_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 130981 // numPDENodes_ (<directional aggregation by value>)
+	relation 130981 *-->
+	  a role_name "numPDENodes_" multiplicity "" protected
+	    comment "!< number of nodes in subdomains"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 130981 // numPDENodes_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 131109 // numElems_ (<directional aggregation by value>)
+	relation 131109 *-->
+	  a role_name "numElems_" multiplicity "" protected
+	    comment "!< number of elements in subdomains"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 131109 // numElems_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 131237 // dim_ (<directional aggregation by value>)
+	relation 131237 *-->
+	  a role_name "dim_" multiplicity "" protected
+	    comment "!< space dimension of pde"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 131237 // dim_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      attribute 128677 "subType_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 130341 "CoupledPDEDef"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for composing coupled PDEs out of single field PDEs"
+      operation 131749 "CoupledPDEDef"
+	public explicit_return_type ""
+	nparams 1
+	  param inout name "aptGrid" type class_ref 130085 // Grid
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor"
+      end
+
+      operation 131877 "~CoupledPDEDef"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 132005 "CreateCoupling"
+	cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param inout name "OrderedPDEs" explicit_type "StdVector<StdPDE*>"
+	  param inout name "Couplings" explicit_type "StdVector<PDECoupling*>"
+	  param inout name "UnorderedPDEs" explicit_type "StdVector<StdPDE*>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Creates coupling between PDEs
+!
+      \\param OrderedPDEs (output) vector of PDEs in right ordering for solving
+      \\param Couplings (output) vector with coupling objects
+      \\param UnorderedPDEs (inpu) unordered vector with PDEs for coupling
+    "
+      end
+
+      operation 132133 "DefineOrdering"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Defines the possible orderings and coupling possibilities of PDEs
+! Note: Explicit definition in 'coupledPDE.conf'"
+      end
+
+      classrelation 131365 // ptGrid_ (<unidirectional association>)
+	relation 131365 --->
+	  a role_name "ptGrid_" multiplicity "" protected
+	    comment "!< pointer to grid"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 131365 // ptGrid_ (<unidirectional association>)
+	  b parent class_ref 130085 // Grid
+      end
+
+      classrelation 131493 // CoupledPDEs_ (<directional aggregation by value>)
+	relation 131493 *-->
+	  stereotype "StdVector"
+	  a role_name "CoupledPDEs_" multiplicity "" protected
+	    comment "!< vector with coupling definitons"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 131493 // CoupledPDEs_ (<directional aggregation by value>)
+	  b parent class_ref 130469 // Definition
+      end
+    end
+
+    class 130469 "Definition"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment " end of class definition
+! Helper class (of CoupledPDEDef) for defining ordering of PDEs and coupling terms"
+      operation 132261 "Definition"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! constructor"
+      end
+
+      operation 132389 "~Definition"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! destructor"
+      end
+
+      operation 132517 "AddPDE"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! adds a PDE to definition"
+      end
+
+      operation 132645 "AddInputCoupling"
+	cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "PDEName" explicit_type "std::string"
+	  param in name "InType" type class_ref 130597 // CouplingInputType
+	  param in name "Quantity" type class_ref 129573 // SolutionType
+	  param in name "optional" type class_ref 129189 // Boolean
+	    defaultvalue "FALSE"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! adds input coupling quantities
+!
+      \\param PDEName (input) name of PDE
+      \\param InType (input) type of input coupluing (coordinates, RHS, ..)
+      \\param Quantity (input) name of input coupling quantity (e.g. 'elecforce')
+    "
+      end
+
+      operation 132773 "GetNumPDEs"
+	cpp_virtual cpp_inline public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return NumPDEs_;};
+"
+	
+	
+	comment "! return number of pdes"
+      end
+
+      operation 132901 "GetNamePDEs"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "NamePDEs" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {NamePDEs = PDEs_;};
+"
+	
+	
+	comment "! return vector with name of PDEs
+!
+      \\param NamePDEs (output) vector containg names of PDEs
+    "
+      end
+
+      operation 133029 "GetCouplingType"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "PDEName" explicit_type "std::string"
+	  param inout name "InputType" explicit_type "StdVector<CouplingInputType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract} {InputType = InputCouplingTypes_[PDEName];};
+"
+	
+	
+	comment "! return vector with coupling types
+!
+      \\param PDEName (input) name of PDE
+      \\param InputType (output) vector containing input coupling types of PDE
+    "
+      end
+
+      operation 133157 "GetCouplingQuantity"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "PDEName" explicit_type "std::string"
+	  param inout name "InputQuantities" explicit_type "StdVector<SolutionType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract} {InputQuantities = InputCouplingQuantities_[PDEName];};
+"
+	
+	
+	comment "! return vector with coupling quantities
+!
+      \\param PDEName (input) name of PDE
+      \\param InputType (output) vector containing input coupling quantities of PDE
+    "
+      end
+
+      operation 133285 "GetCouplingOptionality"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "PDEName" explicit_type "std::string"
+	  param inout name "optionality" explicit_type "StdVector<Boolean>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract} {optionality = optionalCoupling_[PDEName];};
+"
+	
+	
+	comment "! return vector with coupling types
+!
+      \\param PDEName (input) name of PDE
+      \\param InputType (output) vector containing input coupling types of PDE
+    "
+      end
+
+      classrelation 131621 // NumPDEs_ (<directional aggregation by value>)
+	relation 131621 *-->
+	  a role_name "NumPDEs_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 131621 // NumPDEs_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      attribute 128805 "PDEs_"
+	protected explicit_type "StdVector< std::string>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 128933 "InputCouplingTypes_"
+	protected explicit_type "std::map<std::string, StdVector<CouplingInputType> >"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 129061 "InputCouplingQuantities_"
+	protected explicit_type "std::map<std::string, StdVector<SolutionType> >"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 129189 "optionalCoupling_"
+	protected explicit_type "std::map<std::string, StdVector<Boolean> >"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 130725 "CouplingMemento"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for saving the internal state of a PDECoupling object"
+      classrelation 131749 // <dependency>
+	relation 131749 -_->
+	  stereotype "friend"
+	  a protected
+	    cpp default "Generated"
+	    classrelation_ref 131749 // <dependency>
+	  b parent class_ref 130853 // PDECoupling
+      end
+
+      operation 133413 "CouplingMemento"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor"
+      end
+
+      operation 133541 "CouplingMemento"
+	cpp_inline public explicit_return_type ""
+	nparams 1
+	  param in name "x" type class_ref 130725 // CouplingMemento
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} & ${p0}${)}${volatile}${throw} {
+      Error( \"CouplingMemento: Copy constructor not implemented\",
+             __FILE__, __LINE__ );
+    };
+"
+	
+	
+	comment "! Copy Constructor"
+      end
+
+      operation 133669 "~CouplingMemento"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 133797 "Clear"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Clear all data"
+      end
+
+      operation 133925 "IsSet"
+	cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return isSet_;};
+"
+	
+	
+	comment "! Query if information is saved"
+      end
+
+      classrelation 131877 // isSet_ (<directional aggregation by value>)
+	relation 131877 *-->
+	  a role_name "isSet_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 131877 // isSet_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 132005 // inputTypes_ (<directional aggregation by value>)
+	relation 132005 *-->
+	  stereotype "StdVector"
+	  a role_name "inputTypes_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 132005 // inputTypes_ (<directional aggregation by value>)
+	  b parent class_ref 130597 // CouplingInputType
+      end
+
+      classrelation 132133 // inputQuantities_ (<directional aggregation by value>)
+	relation 132133 *-->
+	  stereotype "StdVector"
+	  a role_name "inputQuantities_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 132133 // inputQuantities_ (<directional aggregation by value>)
+	  b parent class_ref 129573 // SolutionType
+      end
+
+      classrelation 132261 // inputInterfaces_ (<directional aggregation by value>)
+	relation 132261 *-->
+	  stereotype "StdVector"
+	  a role_name "inputInterfaces_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 132261 // inputInterfaces_ (<directional aggregation by value>)
+	  b parent class_ref 130981 // CouplingInterface
+      end
+    end
+
+    class 130853 "PDECoupling"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! This class holds information about itertive Coupling terms"
+      class 130981 "CouplingInterface"
+	visibility public stereotype "struct"
+	
+	cpp_decl "${comment}${template}struct ${name}${inherit} {
+${members}};
+${inlines}
+"
+	java_decl ""
+	idl_decl ""
+	explicit_switch_type ""
+	
+	operation 139941 "CouplingInterface"
+	  public explicit_return_type ""
+	  nparams 0
+	  cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	  cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	  
+	  
+	  comment "! constructor"
+	end
+
+	operation 140069 "CouplingInterface"
+	  public explicit_return_type ""
+	  nparams 1
+	    param in name "x" type class_ref 130981 // CouplingInterface
+	  cpp_decl "    ${comment}${inline}${name}${(}const ${t0} & ${p0}${)}${volatile}${throw};
+"
+	  cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} & ${p0}${)}${throw}{
+${body}}
+"
+	  
+	  
+	  comment "! copy constructor"
+	end
+
+	operation 140197 "~CouplingInterface"
+	  public explicit_return_type ""
+	  nparams 0
+	  cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	  cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	  
+	  
+	  comment "! destructor"
+	end
+
+	operation 140325 "operator ="
+	  public return_type class_ref 130981 // CouplingInterface
+	  nparams 1
+	    param in name "x" type class_ref 130981 // CouplingInterface
+	  cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} & ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	  cpp_def "${comment}${inline}${type} & ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	  
+	  
+	  comment "! assignement operator"
+	end
+
+	attribute 129445 "regions"
+	  public explicit_type "StdVector<std::string>"
+	  cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	classrelation 134565 // regionType (<directional aggregation by value>)
+	  relation 134565 *-->
+	    a role_name "regionType" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	      classrelation_ref 134565 // regionType (<directional aggregation by value>)
+	    b parent class_ref 132261 // CouplingRegionType
+	end
+
+	classrelation 134693 // nodes (<directional aggregation by value>)
+	  relation 134693 *-->
+	    stereotype "StdVector"
+	    a role_name "nodes" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	      classrelation_ref 134693 // nodes (<directional aggregation by value>)
+	    b parent class_ref 128421 // UInt
+	end
+
+	classrelation 134821 // elements (<directional aggregation by value>)
+	  relation 134821 *-->
+	    stereotype "StdVector"
+	    a role_name "elements" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	      classrelation_ref 134821 // elements (<directional aggregation by value>)
+	    b parent class_ref 132389 // Elem
+	end
+
+	attribute 129573 "neighInputRegions"
+	  public explicit_type "StdVector<std::string>"
+	  cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	classrelation 134949 // materials (<directional aggregation by value>)
+	  relation 134949 *-->
+	    stereotype "StdVector"
+	    a role_name "materials" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	      classrelation_ref 134949 // materials (<directional aggregation by value>)
+	    b parent class_ref 129701 // MaterialData
+	end
+
+	classrelation 135077 // oppositePdeMaterials (<directional aggregation by value>)
+	  relation 135077 *-->
+	    stereotype "StdVector"
+	    a role_name "oppositePdeMaterials" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	      classrelation_ref 135077 // oppositePdeMaterials (<directional aggregation by value>)
+	    b parent class_ref 129701 // MaterialData
+	end
+
+	classrelation 135205 // values (<unidirectional association>)
+	  relation 135205 --->
+	    a role_name "values" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	      classrelation_ref 135205 // values (<unidirectional association>)
+	    b parent class_ref 129445 // CFSVector
+	end
+
+	classrelation 135333 // oldValues (<unidirectional association>)
+	  relation 135333 --->
+	    a role_name "oldValues" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	      classrelation_ref 135333 // oldValues (<unidirectional association>)
+	    b parent class_ref 129445 // CFSVector
+	end
+
+	classrelation 135461 // dof (<directional aggregation by value>)
+	  relation 135461 *-->
+	    a role_name "dof" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	      classrelation_ref 135461 // dof (<directional aggregation by value>)
+	    b parent class_ref 128421 // UInt
+	end
+
+	classrelation 135589 // numNodes (<directional aggregation by value>)
+	  relation 135589 *-->
+	    a role_name "numNodes" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	      classrelation_ref 135589 // numNodes (<directional aggregation by value>)
+	    b parent class_ref 128421 // UInt
+	end
+
+	classrelation 135717 // numElems (<directional aggregation by value>)
+	  relation 135717 *-->
+	    a role_name "numElems" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	      classrelation_ref 135717 // numElems (<directional aggregation by value>)
+	    b parent class_ref 128421 // UInt
+	end
+
+	classrelation 135845 // normtype (<directional aggregation by value>)
+	  relation 135845 *-->
+	    a role_name "normtype" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	      classrelation_ref 135845 // normtype (<directional aggregation by value>)
+	    b parent class_ref 132517 // NormType
+	end
+
+	classrelation 135973 // epsilon (<directional aggregation by value>)
+	  relation 135973 *-->
+	    a role_name "epsilon" multiplicity "" public
+	      cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	      classrelation_ref 135973 // epsilon (<directional aggregation by value>)
+	    b parent class_ref 128549 // Double
+	end
+      end
+
+      classrelation 134437 // <dependency>
+	relation 134437 -_->
+	  stereotype "friend"
+	  a protected
+	    cpp default "Generated"
+	    classrelation_ref 134437 // <dependency>
+	  b parent class_ref 130725 // CouplingMemento
+      end
+
+      operation 140453 "PDECoupling"
+	public explicit_return_type ""
+	nparams 1
+	  param inout name "aptgrid" type class_ref 130085 // Grid
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! constructor"
+      end
+
+      operation 140581 "~PDECoupling"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! destructor"
+      end
+
+      operation 140709 "RegisterInput"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "InType" type class_ref 130597 // CouplingInputType
+	  param in name "quantity" type class_ref 129573 // SolutionType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! register coupling input (used for definition)
+!
+      \\param InType (input) type of input coupling
+      \\param, Quantity (input) name of input coupling quantity (e.g. 'elecforce')
+    "
+      end
+
+      operation 140837 "AddInput"
+	cpp_virtual public explicit_return_type "void"
+	nparams 7
+	  param in name "quantity" type class_ref 129573 // SolutionType
+	  param inout name "interfaceNames" explicit_type "StdVector<std::string>"
+	  param in name "regionType" type class_ref 132261 // CouplingRegionType
+	  param inout name "neighRegions" explicit_type "StdVector<std::string>"
+	  param in name "epsilon" type class_ref 128549 // Double
+	  param in name "normtype" type class_ref 132517 // NormType
+	  param inout name "couplings" explicit_type "StdVector<PDECoupling*>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} & ${p1}, ${t2} ${p2}, ${t3} & ${p3}, ${t4} ${p4}, ${t5} ${p5}, ${t6} & ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} & ${p1}, ${t2} ${p2}, ${t3} & ${p3}, ${t4} ${p4}, ${t5} ${p5}, ${t6} & ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! add coupling input
+!
+      \\param numCoupling (input) number of Couplinginterface
+      \\param Quantity (input) name of input coupling quantity
+      \\param interfaceNames (input) names of input coupling interfaces
+      \\param RegionType (input) type of input coupling interfaces
+      \\param epsilon (input) tolerance for quantity
+      \\param normtype (input) normtype of epsilon
+      \\param Couplings (input) vector with all Couplingobjects of coupledpde
+    "
+      end
+
+      operation 140965 "SetPDE"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "aPDE" type class_ref 131237 // StdPDE
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! set PDE"
+      end
+
+      operation 141093 "SetOutputDof"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "dof" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! set coupling output dof"
+      end
+
+      operation 141221 "SetOutputNumNodes"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "size" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! set output coupling nodes size"
+      end
+
+      operation 141349 "SetOutputNumElems"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "size" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! set output coupling elements size"
+      end
+
+      operation 141477 "GetPDE"
+	cpp_virtual public return_type class_ref 131237 // StdPDE
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! get pointer to PDE"
+      end
+
+      operation 141605 "GetNumInputCouplings"
+	cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! get number of input couplings"
+      end
+
+      operation 141733 "GetNumOutputCouplings"
+	cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! get number of output couplings"
+      end
+
+      operation 141861 "CreateCouplingVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "isComplex" type class_ref 129189 // Boolean
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! creates a new CFSVector-object for the 
+! couplingvalues.
+! This method has to be called from the according
+! PDE in the method 'InitCoupling'
+!
+      \\param i (input) Number of Couplinginterface
+      \\param solType (input) Type of Solution (ref. Enum-type)
+      \\param isComplex (inut) True if values are complex
+    "
+      end
+
+      operation 141989 "GetInputType"
+	cpp_virtual cpp_inline public return_type class_ref 130597 // CouplingInputType
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return inputTypes_[i];};
+"
+	
+	
+	comment " ------------ input coupling -----------
+! get input coupling type"
+      end
+
+      operation 142117 "GetInputQuantity"
+	cpp_virtual cpp_inline public return_type class_ref 129573 // SolutionType
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return inputQuantities_[i]; };
+"
+	
+	
+	comment "! get input coupling quantity"
+      end
+
+      operation 142245 "GetInputRegions"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "regions" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract} { regions = inputInterfaces_[i]->regions; };
+"
+	
+	
+	comment "! get input coupling region"
+      end
+
+      operation 142373 "GetInputRegionType"
+	cpp_virtual cpp_inline public return_type class_ref 132261 // CouplingRegionType
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return inputInterfaces_[i]->regionType; };
+"
+	
+	
+	comment "! get input coupling regiontype"
+      end
+
+      operation 142501 "GetInputNodes"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "nodes" explicit_type "StdVector<UInt>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { nodes  = &(inputInterfaces_[i]->nodes);};
+"
+	
+	
+	comment "! get input coupling region nodes"
+      end
+
+      operation 142629 "GetInputElements"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "elements" explicit_type "StdVector<Elem *>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { elements = &(inputInterfaces_[i]->elements);};
+"
+	
+	
+	comment "! get input coupling region elements"
+      end
+
+      operation 142757 "GetInputNeighbourRegion"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "regions" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { regions = &(inputInterfaces_[i]->neighInputRegions);};
+"
+	
+	
+	comment "! get input neighbour region"
+      end
+
+      operation 142885 "GetInputValues"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "values" type class_ref 129445 // CFSVector
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { values = (inputInterfaces_[i]->values);};
+"
+	
+	
+	comment "! get input coupling values"
+      end
+
+      operation 143013 "GetInputOldValues"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "values" type class_ref 129445 // CFSVector
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { values = (inputInterfaces_[i]->oldValues);};
+"
+	
+	
+	comment "! get input coupling values"
+      end
+
+      operation 143141 "GetInputDof"
+	cpp_virtual cpp_inline public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return inputInterfaces_[i]->dof; };
+"
+	
+	
+	comment "! get input coupling values dof"
+      end
+
+      operation 143269 "GetInputNumNodes"
+	cpp_virtual cpp_inline public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return inputInterfaces_[i]->numNodes; };
+"
+	
+	
+	comment "! get input coupling nodes size"
+      end
+
+      operation 143397 "GetInputNumElems"
+	cpp_virtual cpp_inline public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return inputInterfaces_[i]->numElems; };
+"
+	
+	
+	comment "! get input coupling elems size"
+      end
+
+      operation 143525 "GetInputNormType"
+	cpp_virtual cpp_inline public return_type class_ref 132517 // NormType
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return inputInterfaces_[i]->normtype; };
+"
+	
+	
+	comment "! get input coupling norm type"
+      end
+
+      operation 143653 "GetInputEpsilon"
+	cpp_virtual cpp_inline public return_type class_ref 128549 // Double
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return inputInterfaces_[i]->epsilon; };
+"
+	
+	
+	comment "! get input coupling epsilon"
+      end
+
+      operation 143781 "GetOutputType"
+	cpp_virtual cpp_inline public return_type class_ref 132645 // CouplingOutputType
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return outputTypes_[i];};
+"
+	
+	
+	comment " ------------- output coupling -----------
+! get output coupling type"
+      end
+
+      operation 143909 "GetOutputQuantity"
+	cpp_virtual cpp_inline public return_type class_ref 129573 // SolutionType
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return outputQuantities_[i]; };
+"
+	
+	
+	comment "! get output coupling quantity"
+      end
+
+      operation 144037 "GetOutputRegions"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "regions" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract} { regions = outputInterfaces_[i]->regions; };
+"
+	
+	
+	comment "! get output coupling region"
+      end
+
+      operation 144165 "GetOutputRegionType"
+	cpp_virtual cpp_inline public return_type class_ref 132261 // CouplingRegionType
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return outputInterfaces_[i]->regionType; };
+"
+	
+	
+	comment "! get output coupling regiontype"
+      end
+
+      operation 144293 "GetOutputNodes"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "nodes" explicit_type "StdVector<UInt>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { nodes  = &(outputInterfaces_[i]->nodes);};
+"
+	
+	
+	comment "! get output coupling region nodes"
+      end
+
+      operation 144421 "GetOutputElements"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "elements" explicit_type "StdVector<Elem *>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { elements = &(outputInterfaces_[i]->elements);};
+"
+	
+	
+	comment "! get output coupling region elements"
+      end
+
+      operation 144549 "GetOutputNeighbourRegion"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "regions" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { regions = &(outputInterfaces_[i]->neighInputRegions);};
+"
+	
+	
+	comment "! get output neighbour elements
+virtual void GetOutputNeighbourElems(UInt i, StdVector<Elem *>*  &elements)
+{ elements = &(outputInterfaces_[i]->neighbours);}
+! get output neighbour region"
+      end
+
+      operation 144677 "GetMaterials"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "mat" explicit_type "StdVector<MaterialData *>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { mat = &(outputInterfaces_[i]->materials);};
+"
+	
+	
+	comment "! get output coupling region materials"
+      end
+
+      operation 144805 "GetOppositeMaterials"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "mat" explicit_type "StdVector<MaterialData *>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { mat = &(outputInterfaces_[i]->oppositePdeMaterials);};
+"
+	
+	
+	comment "! get output coupling region materials of opposite pde"
+      end
+
+      operation 144933 "GetOutputValues"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "values" type class_ref 129445 // CFSVector
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { values = (outputInterfaces_[i]->values);};
+"
+	
+	
+	comment "! get output coupling values"
+      end
+
+      operation 145061 "GetOutputOldValues"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param inout name "values" type class_ref 129445 // CFSVector
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} * & ${p1}${)}${const}${volatile}${throw}${abstract} { values = (outputInterfaces_[i]->oldValues);};
+"
+	
+	
+	comment "! get old output coupling values"
+      end
+
+      operation 145189 "GetOutputDof"
+	cpp_virtual cpp_inline public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return outputInterfaces_[i]->dof; };
+"
+	
+	
+	comment "! get output coupling values dof"
+      end
+
+      operation 145317 "GetOutputNumNodes"
+	cpp_virtual cpp_inline public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return outputInterfaces_[i]->numNodes; };
+"
+	
+	
+	comment "! get output coupling number nodes"
+      end
+
+      operation 145445 "GetOutputNumElems"
+	cpp_virtual cpp_inline public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return outputInterfaces_[i]->numElems; };
+"
+	
+	
+	comment "! get output coupling number elems"
+      end
+
+      operation 145573 "GetOutputNormType"
+	cpp_virtual cpp_inline public return_type class_ref 132517 // NormType
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return outputInterfaces_[i]->normtype; };
+"
+	
+	
+	comment "! get output coupling norm type"
+      end
+
+      operation 145701 "GetOutputEpsilon"
+	cpp_virtual cpp_inline public return_type class_ref 128549 // Double
+	nparams 1
+	  param in name "i" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { return outputInterfaces_[i]->epsilon; };
+"
+	
+	
+	comment "! get output coupling epsilon"
+      end
+
+      operation 145829 "GetMemento"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "memento" type class_ref 130725 // CouplingMemento
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " ------------- memento operations  -----------
+! get the encapsulated state of the Coupling object
+! returns the current state of the Coupling object.
+! This is needed to
+! enable full MultiSequence simulation, where from one step to 
+! another the coupling values have to be passed.
+! The CouplingMemento object encapsulates this information. 
+! Later on the information can be given back to the Coupling object
+! with the method SetMemento();
+! \\param memento (output) Object where the current state gets saved"
+      end
+
+      operation 145957 "SetMemento"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "memento" type class_ref 130725 // CouplingMemento
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! set the encapsulated state of the Coupling object
+! Set the saved state of the Coupling obejct, which was previously
+! stored in a CouplingMemento object. This is needed to
+! enable full MultiSequence simulation, where from one step to 
+! another the coupling values have to be passed.
+! The CouplingMemento object encapsulates this information. 
+! \\param memento (input) Previously saved state of the coupling object"
+      end
+
+      operation 146085 "AddOutput"
+	cpp_virtual protected return_type class_ref 130981 // CouplingInterface
+	nparams 4
+	  param in name "outputType" type class_ref 132645 // CouplingOutputType
+	  param in name "quantity" type class_ref 129573 // SolutionType
+	  param inout name "region" explicit_type "StdVector<std::string>"
+	  param in name "regionType" type class_ref 132261 // CouplingRegionType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} & ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} & ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! add coupling output
+!
+      \\param OutputType (input) type of output coupling
+      \\param Quantity (input) name of output coupling quantity
+      \\param region (input) name of output coupling region
+      \\param RegionType (input) type of input coupling region
+    "
+      end
+
+      operation 146213 "Input2OutputType"
+	cpp_virtual protected return_type class_ref 132645 // CouplingOutputType
+	nparams 1
+	  param in name "inputType" type class_ref 130597 // CouplingInputType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! maps input coupling types to output coupling types"
+      end
+
+      classrelation 136101 // myPDE_ (<unidirectional association>)
+	relation 136101 --->
+	  a role_name "myPDE_" multiplicity "" protected
+	    comment "!< pointer to PDE"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 136101 // myPDE_ (<unidirectional association>)
+	  b parent class_ref 131237 // StdPDE
+      end
+
+      classrelation 136229 // ptGrid_ (<unidirectional association>)
+	relation 136229 --->
+	  a role_name "ptGrid_" multiplicity "" protected
+	    comment "!< pointer to grid"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 136229 // ptGrid_ (<unidirectional association>)
+	  b parent class_ref 130085 // Grid
+      end
+
+      classrelation 136357 // outputTypes_ (<directional aggregation by value>)
+	relation 136357 *-->
+	  stereotype "StdVector"
+	  a role_name "outputTypes_" multiplicity "" protected
+	    comment "!< vector containing types of coupling output"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 136357 // outputTypes_ (<directional aggregation by value>)
+	  b parent class_ref 132645 // CouplingOutputType
+      end
+
+      classrelation 136485 // outputQuantities_ (<directional aggregation by value>)
+	relation 136485 *-->
+	  stereotype "StdVector"
+	  a role_name "outputQuantities_" multiplicity "" protected
+	    comment "!< vector containing quantities of coupling output"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 136485 // outputQuantities_ (<directional aggregation by value>)
+	  b parent class_ref 129573 // SolutionType
+      end
+
+      classrelation 136613 // outputInterfaces_ (<directional aggregation by value>)
+	relation 136613 *-->
+	  stereotype "StdVector"
+	  a role_name "outputInterfaces_" multiplicity "" protected
+	    comment "!< vector containing pointer to coupling interfaces"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 136613 // outputInterfaces_ (<directional aggregation by value>)
+	  b parent class_ref 130981 // CouplingInterface
+      end
+
+      classrelation 136741 // inputTypes_ (<directional aggregation by value>)
+	relation 136741 *-->
+	  stereotype "StdVector"
+	  a role_name "inputTypes_" multiplicity "" protected
+	    comment "!< vector containing types of coupling input"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 136741 // inputTypes_ (<directional aggregation by value>)
+	  b parent class_ref 130597 // CouplingInputType
+      end
+
+      classrelation 136869 // inputQuantities_ (<directional aggregation by value>)
+	relation 136869 *-->
+	  stereotype "StdVector"
+	  a role_name "inputQuantities_" multiplicity "" protected
+	    comment "!< vector conatining quantities of coupling input"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 136869 // inputQuantities_ (<directional aggregation by value>)
+	  b parent class_ref 129573 // SolutionType
+      end
+
+      classrelation 136997 // inputInterfaces_ (<directional aggregation by value>)
+	relation 136997 *-->
+	  stereotype "StdVector"
+	  a role_name "inputInterfaces_" multiplicity "" protected
+	    comment "!< vector containing pointer to coupling interfaces"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 136997 // inputInterfaces_ (<directional aggregation by value>)
+	  b parent class_ref 130981 // CouplingInterface
+      end
+
+      classrelation 137125 // defaultEpsilon (<directional aggregation by value>)
+	relation 137125 *-->
+	  a role_name "defaultEpsilon" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 137125 // defaultEpsilon (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 137253 // defaultNormType (<directional aggregation by value>)
+	relation 137253 *-->
+	  a role_name "defaultNormType" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 137253 // defaultNormType (<directional aggregation by value>)
+	  b parent class_ref 132517 // NormType
+      end
+    end
+
+    class 131109 "DirectCoupledPDE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! This class implements the direct coupling of StdPDEs."
+      classrelation 132389 // <generalisation>
+	relation 132389 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 132389 // <generalisation>
+	  b parent class_ref 131237 // StdPDE
+      end
+
+      operation 134053 "DirectCoupledPDE"
+	public explicit_return_type ""
+	nparams 3
+	  param inout name "aptgrid" type class_ref 130085 // Grid
+	  param inout name "aOutFile" type class_ref 131365 // WriteResults
+	  param inout name "aTimeFunc" type class_ref 131493 // TimeFunc
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}, ${t1} * ${p1}, ${t2} * ${p2}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}, ${t1} * ${p1}, ${t2} * ${p2}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor
+!
+      \\param aptgrid pointer to grid
+      \\param aOutFile  pointer to class WriteResults. output data.
+      \\param aTimeFunc pointer to class TimeFunc
+    "
+      end
+
+      operation 134181 "~DirectCoupledPDE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 134309 "SetSinglePDEs"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "pdes" explicit_type "StdVector<SinglePDE*>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set SinglePDEs"
+      end
+
+      operation 134437 "GetSinglePDEs"
+	cpp_inline public explicit_return_type "StdVector<SinglePDE*>"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} & ${name}${(}${)}${const}${volatile}${throw}${abstract} { return singlePDEs_;};
+"
+	
+	
+	comment "! returns all single PDEs"
+      end
+
+      operation 134565 "GetTotalUnknowns"
+	cpp_inline public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return totalUnknowns_;};
+"
+	
+	
+	comment " get total number of unknowns"
+      end
+
+      operation 134693 "SetCouplings"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "couplings" explicit_type "StdVector<BasePairCoupling*>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set Coupling objects"
+      end
+
+      operation 134821 "Init"
+	public explicit_return_type "void"
+	nparams 2
+	  param in name "sequenceStep" type class_ref 128421 // UInt
+	    defaultvalue " 0"
+	  param in name "bcSequenceTag" explicit_type "std::string"
+	    defaultvalue " \"anyTag\""
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Initialization routine"
+      end
+
+      operation 134949 "WriteGeneralPDEdefines"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write general defines (BCs, loads, etc.) to info-file"
+      end
+
+      operation 135077 "SetBCs"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "atimestep" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! set boundary condition
+! \\param atimestep         time step of claculation"
+      end
+
+      operation 135205 "DefineAlgSys"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! define algebraic system "
+      end
+
+      operation 135333 "GetNumRestraints"
+	public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! return number of restraints"
+      end
+
+      operation 135461 "SaveSolution"
+	public explicit_return_type "void"
+	nparams 2
+	  param in name "ptSol" type class_ref 128549 // Double
+	  param in name "size" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@{
+! store the new solution returned by the algebraic system
+! \\param ptSol pointer to solution array
+! \\param size legnth of solution array"
+      end
+
+      operation 135589 "SaveSolution"
+	public explicit_return_type "void"
+	nparams 2
+	  param in name "ptSol" type class_ref 129317 // Complex
+	  param in name "size" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 135717 "InitTimeStepping"
+	cpp_virtual public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+!"
+      end
+
+      operation 135845 "PostProcess"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " ======================================================
+ POSTPROC SECTION
+ ======================================================
+@{
+! \\name Methods performing post-processing
+! Do Postprocessing as descriped in conf file"
+      end
+
+      operation 135973 "WriteResultsInFile"
+	public explicit_return_type "void"
+	nparams 4
+	  param in name "kstep" type class_ref 128421 // UInt
+	    defaultvalue " 0"
+	  param in name "asteptime" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	  param in name "stepOffset" type class_ref 128421 // UInt
+	    defaultvalue " 0"
+	  param in name "timeOffset" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write results in file
+! \\param stepOffset offset for starting (time)step
+! \\param timeOffset offset for starting time  "
+      end
+
+      operation 136101 "WriteHistoryInFile"
+	public explicit_return_type "void"
+	nparams 4
+	  param in name "kstep" type class_ref 128421 // UInt
+	    defaultvalue " 0"
+	  param in name "asteptime" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	  param in name "stepOffset" type class_ref 128421 // UInt
+	    defaultvalue " 0"
+	  param in name "timeOffset" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write history of nodes/elements to file"
+      end
+
+      operation 136229 "InitCoupling"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "Coupling" type class_ref 130853 // PDECoupling
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ ======================================================
+ COUPLING SECTION
+ ======================================================
+! initalize PDE coupling (only done once)"
+      end
+
+      operation 136357 "ResetCoupling"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! reset coupling counters and data (done after each timestep)"
+      end
+
+      operation 136485 "CalcInputCoupling"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Fill in input coupling terms"
+      end
+
+      operation 136613 "CalcOutputCoupling"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculate coupling terms"
+      end
+
+      operation 136741 "AssembleMatrices"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " ======================================================
+ METHODS FOR ASSEMBLING
+ ======================================================
+! specify type of system matrix for AlgebraicSystem"
+      end
+
+      operation 136869 "AssembleSrcRHS"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "time" type class_ref 128549 // Double
+	    defaultvalue "0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! setup source term"
+      end
+
+      operation 136997 "AssembleNLRHS"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "time" type class_ref 128549 // Double
+	    defaultvalue "0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "!  assemble a nonlinear RHS part"
+      end
+
+      operation 137125 "AssembleSprings"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "time" type class_ref 128549 // Double
+	    defaultvalue "0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "!  assemble a spring into the system matrix"
+      end
+
+      operation 137253 "AssembleSpecial"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! assemble special equations into the system (done by the PDE)"
+      end
+
+      operation 137381 "InitNonLinMatrices"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Initialize all matrices with nonlinear behavior"
+      end
+
+      operation 137509 "SetupMatrixGraph"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! constructes the matrix graph by providing to the algebraic system the element connectivities"
+      end
+
+      operation 137637 "SetFrequency"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "actFreq" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! sets the actual frequency (just needed for harmonic analysis)"
+      end
+
+      operation 137765 "SetReassemble"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! trigger the reassmbling of the matrices"
+      end
+
+      operation 137893 "IncorporateReordering"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Auxilliary method for building re-ordering into BaseEQN objects
+! This auxilliary method is used to obtain the permutation vector
+! for the equation numbers from the algebraic system and pass it on
+! to the BaseEQN data objects associated with the individual directly
+! coupled PDEs. The algebraic system passes the pointer and also the
+! responsibility for handling the memory associated with the
+! permutation vector to CFS. After the BaseEQN data object has
+! incorporated the new ordering, we should, thus, delete the
+! permutation vector.
+! \\note The correct place to call this method depends on the type
+! of algebraic system employed. In the case of a StandardSystem this
+! method must be called only after assemble of the graph has completed.
+! In the case of an SBM_System the method must be called <b>after</b>
+! all PDEs have assembled their sub-graphs and <b>before</b> the
+! coupling objects start the assembly of their sub-graphs."
+      end
+
+      operation 138021 "DefineSolveStep"
+	cpp_virtual private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! define the SolutionStep-Driver"
+      end
+
+      classrelation 132517 // singlePDEs_ (<directional aggregation by value>)
+	relation 132517 *-->
+	  stereotype "StdVector"
+	  a role_name "singlePDEs_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 132517 // singlePDEs_ (<directional aggregation by value>)
+	  b parent class_ref 128293 // SinglePDE
+      end
+
+      classrelation 132645 // couplings_ (<directional aggregation by value>)
+	relation 132645 *-->
+	  stereotype "StdVector"
+	  a role_name "couplings_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 132645 // couplings_ (<directional aggregation by value>)
+	  b parent class_ref 128165 // BasePairCoupling
+      end
+
+      classrelation 132773 // totalUnknowns_ (<directional aggregation by value>)
+	relation 132773 *-->
+	  a role_name "totalUnknowns_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 132773 // totalUnknowns_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+    end
+
+    class 131621 "IterCoupledPDE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! This class iteratively solve a list of given SinglePDEs "
+      classrelation 132901 // <generalisation>
+	relation 132901 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 132901 // <generalisation>
+	  b parent class_ref 131749 // BasePDE
+      end
+
+      classrelation 133029 // <dependency>
+	relation 133029 -_->
+	  stereotype "friend"
+	  a protected
+	    cpp default "Generated"
+	    classrelation_ref 133029 // <dependency>
+	  b parent class_ref 131877 // IterSolveStep
+      end
+
+      operation 138149 "IterCoupledPDE"
+	public explicit_return_type ""
+	nparams 4
+	  param inout name "PDEs" explicit_type "StdVector<StdPDE*>"
+	  param inout name "sinlgePDEs" explicit_type "StdVector<SinglePDE*>"
+	  param inout name "Couplings" explicit_type "StdVector<PDECoupling*>"
+	  param in name "sequenceTag" explicit_type "std::string"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, ${t3} ${p3}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, ${t3} ${p3}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor"
+      end
+
+      operation 138277 "~IterCoupledPDE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 138405 "InitCoupling"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates coupling interfaces"
+      end
+
+      operation 138533 "WriteGeneralPDEdefines"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write general defines (BCs, loads, etc.) to info-file"
+      end
+
+      operation 138661 "getPDE_assemble"
+	cpp_inline public return_type class_ref 129957 // Assemble
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      Error( \"Get Assemble-Object makes no sense for itercoupledPDE\",
+             __FILE__, __LINE__ );
+      return NULL;
+    };
+"
+	
+	
+      end
+
+      operation 138789 "GetSolveStep"
+	public return_type class_ref 132005 // BaseSolveStep
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Return pointer to the SolveStep object"
+      end
+
+      operation 138917 "DefineSolvingPDEs"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "pdes" explicit_type "StdVector<StdPDE*>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Defines, which of the coupled PDEs are currently solved
+! and which are neglected. This method is mainly needed
+! for multiSequenceAnalysis, where in different steps
+! only a subset of all coupled PDEs is solved.
+! \\param pdes (input) Unsorted list of PDEs which
+! are currently solved "
+      end
+
+      operation 139045 "WriteRestart"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "nstep" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Solve static step
+void SolveStepStatic(const UInt kstep, const Double asteptime, 
+           const Boolean updatesysmat);
+! solve transient step
+void SolveStepTrans(const UInt kstep, const Double asteptime,
+                  const Boolean updatesysmat);
+! write a restart file \"simname_pdename.restart\""
+      end
+
+      operation 139173 "ReadRestart"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "startStep" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! read a restart file \"simname_pdename.restart\""
+      end
+
+      operation 139301 "WriteResultsInFile"
+	public explicit_return_type "void"
+	nparams 4
+	  param in name "kstep" type class_ref 128421 // UInt
+	    defaultvalue " 0"
+	  param in name "asteptime" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	  param in name "stepOffset" type class_ref 128421 // UInt
+	    defaultvalue " 0"
+	  param in name "timeOffset" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write results in file"
+      end
+
+      operation 139429 "WriteHistoryInFile"
+	public explicit_return_type "void"
+	nparams 4
+	  param in name "kstep" type class_ref 128421 // UInt
+	    defaultvalue " 0"
+	  param in name "asteptime" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	  param in name "stepOffset" type class_ref 128421 // UInt
+	    defaultvalue " 0"
+	  param in name "timeOffset" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write history of nodes/elements to file"
+      end
+
+      operation 139557 "SetTimeStep"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "dt" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! set time step
+! \\param dt Current time step"
+      end
+
+      operation 139685 "PostProcess"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Do Postprocessing as descriped in conf file"
+      end
+
+      operation 139813 "WriteCouplingInfo"
+	protected explicit_return_type "void"
+	nparams 1
+	  param inout name "out" explicit_type "std::ostream"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Write information about coupling interfaces
+! and coupling setup into ostream"
+      end
+
+      classrelation 133157 // maxiter_ (<directional aggregation by value>)
+	relation 133157 *-->
+	  a role_name "maxiter_" multiplicity "" protected
+	    comment "!< maximum number of iterations per time step"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 133157 // maxiter_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 133285 // norms_ (<directional aggregation by value>)
+	relation 133285 *-->
+	  stereotype "StdVector"
+	  a role_name "norms_" multiplicity "" protected
+	    comment "!< norm of coupling values"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 133285 // norms_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 133413 // solveStep_ (<unidirectional association>)
+	relation 133413 --->
+	  a role_name "solveStep_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 133413 // solveStep_ (<unidirectional association>)
+	  b parent class_ref 131877 // IterSolveStep
+      end
+
+      classrelation 133541 // nonLinLogging_ (<directional aggregation by value>)
+	relation 133541 *-->
+	  a role_name "nonLinLogging_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 133541 // nonLinLogging_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 133669 // analysistype_ (<directional aggregation by value>)
+	relation 133669 *-->
+	  a role_name "analysistype_" multiplicity "" protected
+	    comment "!< type of analysis"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 133669 // analysistype_ (<directional aggregation by value>)
+	  b parent class_ref 132133 // AnalysisType
+      end
+
+      classrelation 133797 // PDEs_ (<directional aggregation by value>)
+	relation 133797 *-->
+	  stereotype "StdVector"
+	  a role_name "PDEs_" multiplicity "" protected
+	    comment "!< list of belonging PDEs"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 133797 // PDEs_ (<directional aggregation by value>)
+	  b parent class_ref 131237 // StdPDE
+      end
+
+      classrelation 133925 // singlePDEs_ (<directional aggregation by value>)
+	relation 133925 *-->
+	  stereotype "StdVector"
+	  a role_name "singlePDEs_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 133925 // singlePDEs_ (<directional aggregation by value>)
+	  b parent class_ref 128293 // SinglePDE
+      end
+
+      classrelation 134053 // Couplings_ (<directional aggregation by value>)
+	relation 134053 *-->
+	  stereotype "StdVector"
+	  a role_name "Couplings_" multiplicity "" protected
+	    comment "!< vector of coupling objects"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 134053 // Couplings_ (<directional aggregation by value>)
+	  b parent class_ref 130853 // PDECoupling
+      end
+
+      classrelation 134181 // NumPDEs_ (<directional aggregation by value>)
+	relation 134181 *-->
+	  a role_name "NumPDEs_" multiplicity "" protected
+	    comment "!< number of PDEs "
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 134181 // NumPDEs_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      attribute 129317 "sequenceTag_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+	comment "!< tag for current multisequence step"
+      end
+
+      classrelation 134309 // solvePDE_ (<directional aggregation by value>)
+	relation 134309 *-->
+	  stereotype "StdVector"
+	  a role_name "solvePDE_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 134309 // solvePDE_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+    end
+
+    class 132773 "PiezoCoupling"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Implements the definition of pairwise piezo-coupling"
+      classrelation 137381 // <generalisation>
+	relation 137381 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 137381 // <generalisation>
+	  b parent class_ref 128165 // BasePairCoupling
+      end
+
+      operation 146341 "PiezoCoupling"
+	public explicit_return_type ""
+	nparams 2
+	  param inout name "pde1" type class_ref 128293 // SinglePDE
+	  param inout name "pde2" type class_ref 128293 // SinglePDE
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}, ${t1} * ${p1}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}, ${t1} * ${p1}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor
+! \\param pde1 pointer to first coupling PDE
+! \\param pde2 pointer to second coupling PDE"
+      end
+
+      operation 146469 "~PiezoCoupling"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 146597 "PostProcess"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Trigger calculation of postprocessing results"
+      end
+
+      operation 146725 "calcMaterialMatrices"
+	stereotype "template"
+	public explicit_return_type "void"
+	nparams 5
+	  param inout name "sMat" explicit_type "Matrix<TYPE>"
+	  param inout name "cMat" explicit_type "Matrix<TYPE>"
+	  param inout name "pMat" explicit_type "Matrix<TYPE>"
+	  param inout name "matDat" explicit_type "Matrix<Double>"
+	  param inout name "complexMatDat" explicit_type "Matrix<Complex>"
+	cpp_decl "    ${comment}template<class TYPE>
+  ${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, ${t3} * ${p3}, ${t4} * ${p4}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, ${t3} * ${p3}, ${t4} * ${p4}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 146853 "WriteResultsInFile"
+	public explicit_return_type "void"
+	nparams 4
+	  param in name "kstep" type class_ref 128421 // UInt
+	  param in name "asteptime" type class_ref 128549 // Double
+	  param in name "stepOffset" type class_ref 128421 // UInt
+	  param in name "timeOffset" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write results in file
+! \\param stepOffset offset for starting (time)step
+! \\param timeOffset offset for starting time  "
+      end
+
+      operation 146981 "ReadStoreResults"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Obtain information on desired output quantities from parameter file
+! This method is used to query the parameter handling object for the
+! desired output quantities and translate their literal description into
+! the internal format by setting the corresponding class attributes."
+      end
+
+      operation 147109 "DefineIntegrators"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Definition of the (bi)linear forms"
+      end
+
+      operation 147237 "GetStiffIntegrator"
+	protected return_type class_ref 132901 // BaseForm
+	nparams 3
+	  param inout name "actSDMat" type class_ref 129701 // MaterialData
+	  param in name "reducedInt" type class_ref 129189 // Boolean
+	    defaultvalue " FALSE "
+	  param in name "isdamping" type class_ref 129189 // Boolean
+	    defaultvalue " FALSE "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${t0} * ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${t0} * ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get correct stiffness integrator"
+      end
+
+      classrelation 137509 // hasOutput_ (<directional aggregation by value>)
+	relation 137509 *-->
+	  a role_name "hasOutput_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 137509 // hasOutput_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 137637 // analysistype_ (<directional aggregation by value>)
+	relation 137637 *-->
+	  a role_name "analysistype_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 137637 // analysistype_ (<directional aggregation by value>)
+	  b parent class_ref 132133 // AnalysisType
+      end
+
+      classrelation 137765 // calcDfield_ (<directional aggregation by value>)
+	relation 137765 *-->
+	  stereotype "StdVector"
+	  a role_name "calcDfield_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 137765 // calcDfield_ (<directional aggregation by value>)
+	  b parent class_ref 129829 // RegionIdType
+      end
+
+      classrelation 137893 // Dfield_ (<unidirectional association>)
+	relation 137893 --->
+	  a role_name "Dfield_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 137893 // Dfield_ (<unidirectional association>)
+	  b parent class_ref 133029 // BaseElemStoreSol
+      end
+
+      classrelation 138021 // calcStress_ (<directional aggregation by value>)
+	relation 138021 *-->
+	  stereotype "StdVector"
+	  a role_name "calcStress_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 138021 // calcStress_ (<directional aggregation by value>)
+	  b parent class_ref 129829 // RegionIdType
+      end
+
+      classrelation 138149 // stress_ (<unidirectional association>)
+	relation 138149 --->
+	  a role_name "stress_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 138149 // stress_ (<unidirectional association>)
+	  b parent class_ref 133029 // BaseElemStoreSol
+      end
+
+      classrelation 138277 // charges_ (<unidirectional association>)
+	relation 138277 --->
+	  a role_name "charges_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 138277 // charges_ (<unidirectional association>)
+	  b parent class_ref 133029 // BaseElemStoreSol
+      end
+
+      classrelation 138405 // chargeNeighborRegion_ (<directional aggregation by value>)
+	relation 138405 *-->
+	  stereotype "StdVector"
+	  a role_name "chargeNeighborRegion_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 138405 // chargeNeighborRegion_ (<directional aggregation by value>)
+	  b parent class_ref 129829 // RegionIdType
+      end
+
+      classrelation 138533 // calcCharge_ (<directional aggregation by value>)
+	relation 138533 *-->
+	  stereotype "StdVector"
+	  a role_name "calcCharge_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 138533 // calcCharge_ (<directional aggregation by value>)
+	  b parent class_ref 129829 // RegionIdType
+      end
+
+      classrelation 138661 // solDeriv1_ (<directional aggregation by value>)
+	relation 138661 *-->
+	  stereotype "NodeStoreSol"
+	  a role_name "solDeriv1_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 138661 // solDeriv1_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 138789 // solDeriv2_ (<directional aggregation by value>)
+	relation 138789 *-->
+	  stereotype "NodeStoreSol"
+	  a role_name "solDeriv2_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 138789 // solDeriv2_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      operation 147365 "CalcStress"
+	stereotype "template"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}template<class TYPE>
+  ${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! computes stresses, i.e. \\sigma = cBu + e \\grad \\phi"
+      end
+
+      operation 147493 "CalcCharges"
+	stereotype "template"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}template<class TYPE>
+  ${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculate Charges"
+      end
+    end
+  end
+
+  deploymentview 128037 "CoupledPDE"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 128037 "AcouMechCoupling"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 128037 // AcouMechCoupling
+      end
+    end
+
+    artifact 128165 "BasePairCoupling"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 128165 // BasePairCoupling
+      end
+    end
+
+    artifact 128293 "CoupledPDEDef"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 130341 // CoupledPDEDef
+      end
+    end
+
+    artifact 128421 "Definition"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 130469 // Definition
+      end
+    end
+
+    artifact 128549 "CouplingMemento"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 130725 // CouplingMemento
+      end
+    end
+
+    artifact 128677 "DirectCoupledPDE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 131109 // DirectCoupledPDE
+      end
+    end
+
+    artifact 128805 "IterCoupledPDE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 131621 // IterCoupledPDE
+      end
+    end
+
+    artifact 128933 "PDECoupling"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 130853 // PDECoupling
+      end
+    end
+
+    artifact 129061 "PiezoCoupling"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 132773 // PiezoCoupling
+      end
+    end
+  end
+end

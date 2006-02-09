@@ -1,0 +1,297 @@
+format 22
+"Gridlib" // Current Classes::Domain::Gridlib
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 131237 "Gridlib"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 149157 "InterfaceGridlib"
+      
+      nformals 1
+      formal name "Dim" type "class" explicit_default_value ""
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "/ Class for working with grid"
+      classrelation 166821 // <generalisation>
+	relation 166821 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 166821 // <generalisation>
+	  b parent class_ref 130085 // Grid
+      end
+
+      operation 343461 "InterfaceGridlib"
+	public explicit_return_type ""
+	nparams 1
+	  param inout name "aptFileType" type class_ref 133157 // FileType
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * const ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * const ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "/ Constructor with parameter - pointer to FileType for reading initial grid"
+      end
+
+      operation 343589 "~InterfaceGridlib"
+	cpp_virtual cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} { if (ptGoMesh ) delete ptGoMesh ;};
+"
+	
+	
+	comment "/ Deconstructor"
+      end
+
+      operation 343717 "SubdivideUniform"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "level" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Uniform subdivision of domain"
+      end
+
+      operation 343845 "GetCoordOfNodesElem"
+	cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "numElem" type class_ref 129061 // Integer
+	  param in name "numlevel" type class_ref 129061 // Integer
+	  param in name "numnodes" type class_ref 129061 // Integer
+	  param inout name "ptCoordElem" explicit_type "Dim"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, ${t3} * ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, ${t3} * ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Get coordinates of all nodes which belong to element"
+      end
+
+      operation 343973 "GetCoordinateNode"
+	cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param in name "inode" type class_ref 129061 // Integer
+	  param in name "numlevel" type class_ref 129061 // Integer
+	  param inout name "rfPoint" explicit_type "Dim"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Get coordinates of node with global number inode"
+      end
+
+      operation 344101 "GetConnection"
+	cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param inout name "result" type class_ref 129061 // Integer
+	  param in name "level" type class_ref 129061 // Integer
+	  param in name "numElem" type class_ref 129061 // Integer
+	  param in name "numnodesPerElem" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Get connection of element"
+      end
+
+      operation 344229 "GetMaxnumnodes"
+	cpp_virtual cpp_inline public return_type class_ref 129061 // Integer
+	nparams 1
+	  param in name "numlevel" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { 
+    return ptGoMesh->getNumVertices(numlevel);
+  };
+"
+	
+	
+	comment "/ Return maximum number of nodes"
+      end
+
+      operation 344357 "GetMaxnumElem"
+	cpp_virtual cpp_inline public return_type class_ref 129061 // Integer
+	nparams 1
+	  param in name "numlevel" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract} {
+    return ptGoMesh->getNumElements(numlevel);
+  };
+"
+	
+	
+	comment "/ Return maximum number of elements "
+      end
+
+      operation 344485 "GetNumNodesPerElem"
+	cpp_virtual cpp_inline public return_type class_ref 129061 // Integer
+	nparams 2
+	  param in name "iElem" type class_ref 129061 // Integer
+	  param in name "level" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract} { 
+    return ptGoMesh->getElement(iElem, level)->getNumVertices();
+  };
+"
+	
+	
+	comment "/ Return num of nodes per element i"
+      end
+
+      operation 344613 "PrintCoordinate"
+	const cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "level" type class_ref 129061 // Integer
+	  param inout name "out" explicit_type "std::ostream"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${abstract} { Error(\"Not implemented yet  PrintCoordinate\"); };
+"
+	
+	
+	comment "/ Print coordinates of grid in out"
+      end
+
+      operation 344741 "Read"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Put information about grid"
+      end
+
+      operation 344869 "GetNumSubdomains"
+	const cpp_virtual cpp_inline public return_type class_ref 129061 // Integer
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { Error(\"Not implemented\"); return 0;};
+"
+	
+	
+	comment "! Put global numbers of nodes with boundary condition in Vector
+  void GetNodesBoundaryCondition(Vector<Integer> & nodesDirBC, const Integer level);
+! Get number of subdomains"
+      end
+
+      operation 344997 "GetElemSubdomain"
+	const cpp_virtual cpp_inline public return_type class_ref 129061 // Integer
+	nparams 2
+	  param in name "num" type class_ref 129061 // Integer
+	  param in name "level" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract} { Error(\"Not implemented\"); return NULL;};
+"
+	
+	
+	comment "! Get pointer to array with nodes, that belongs to subdomain number num"
+      end
+
+      operation 345125 "getptArrayElem"
+	const cpp_virtual cpp_inline public explicit_return_type "BaseElem"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * * ${name}${(}${)}${const}${volatile}${throw}${abstract} { Error(\"Not implemented\"); return NULL;};
+"
+	
+	
+	comment "! Get pointer to array "
+      end
+
+      classrelation 166949 // ptFileType (<unidirectional association>)
+	relation 166949 --->
+	  a role_name "ptFileType" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 166949 // ptFileType (<unidirectional association>)
+	  b parent class_ref 133157 // FileType
+      end
+
+      attribute 159653 "ptGoMesh"
+	private explicit_type "GoMesh"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 167077 // DoesGridSubdivide (<directional aggregation by value>)
+	relation 167077 *-->
+	  a role_name "DoesGridSubdivide" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 167077 // DoesGridSubdivide (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+    end
+  end
+
+  deploymentview 130853 "Gridlib"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 141349 "InterfaceGridlib"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 149157 // InterfaceGridlib
+      end
+    end
+  end
+end

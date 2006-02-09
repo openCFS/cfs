@@ -1,0 +1,2739 @@
+format 22
+"CommandLine" // Current Classes::DataInOut::CommandLine
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 129829 "CommandLine"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 135717 "BaseCommandLineHandler"
+      abstract 
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Base class for handling parameters specified on the command line
+! This class is the base class for all classes that implement the handling
+! of parameters specified on the command line. The class specifies a set
+! of pure virtual methods that define the public query methods a command
+! line handler for CFS++ must provide. These are also the only methods
+! which other CFS classes should call on a command line handler. This
+! will allow for easy exchangebility of a concrete implementation of the
+! command line handler concept. Another part of the concept is that the
+! command line parameters are made available to all parts of CFS++ by
+! a global pointer to an instance of this object called ::commandLine .
+!
+! Besides this, the class defines for each parameter a short and a long
+! version for setting it on the command line (e.g. -h and --help). These
+! are denoted as markers and stored as strings (e.g. markerHelp_ and
+! markerLongHelp_). Derived classes should only work using theses strings,
+! so that the definition of the marker is restricted to this base class.
+! In addition the class defines for for each parameter a short description
+! in string format (e.g. helpHelp_) that is used for generating the usage
+! information and may also be employed in message generation in a derived
+! class.
+!
+! The class requires that for each allowed command line parameter (with
+! the exception of --help) a corresponding query method must be provided
+! in the derived class.
+! The assignment of default values for parameters that are not explicitely
+! assigned on the command line is also done in this base class via
+! methods like e.g. DefaultMeshFile(). Derived classes should again make
+! use of these methods for assigning default values.
+!
+! The following table gives an overview of the
+! allowed parameters, their types and the associated query method.
+! \\n\\n
+! <center>
+!   <table border=\"1\" width=\"80%\" cellpadding=\"10\">
+!     <tr>
+!       <td colspan=\"5\" align=\"center\">
+!         <b>Overview of CFS++ command line parameters</b>
+!       </td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\"><b>command line parameter</b></td>
+!       <td align=\"center\"><b>parameter type</b></td>
+!       <td align=\"center\"><b>description</b></td>
+!       <td align=\"center\"><b>default value</b></td>
+!       <td align=\"center\"><b>query method</b></td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\">\\<simName\\></td>
+!       <td align=\"center\">string</td>
+!       <td><em>name of the simulation run</em><br>
+!       <td align=\"center\">---</td>
+!       <td align=\"center\">%GetSimName()</td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\">-m / --meshFile = \\<meshFileName\\></td>
+!       <td align=\"center\">string</td>
+!       <td><em>name of mesh file</em></td>
+!       <td align=\"center\">\\<simName\\>.mesh</td>
+!       <td align=\"center\">%GetMeshFile()</td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\">-s / --schemaPath = \\<schemaPath\\></td>
+!       <td align=\"center\">string</td>
+!       <td><em>path to the XML schema file</em></td>
+!       <td align=\"center\">(assigned during compilation)</td>
+!       <td align=\"center\">%GetSchemaPath()</td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\">-p / --paramFile = \\<xmlFileName\\></td>
+!       <td align=\"center\">string</td>
+!       <td><em>name of XML parameter file</em></td>
+!       <td align=\"center\">\\<simName\\>.xml</td>
+!       <td align=\"center\">%GetParamFile()</td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\">-w / --writeSkeleton</td>
+!       <td align=\"center\">flag / boolean</td>
+!       <td><em>write skeleton of XML file for subsequent
+!           simulation</em></td>
+!       <td align=\"center\">false = not set</td>
+!       <td align=\"center\">%GetWriteSkeleton()</td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\">-t / --traceDepth = \\<traceDepth\\></td>
+!       <td align=\"center\">non-negative integer</td>
+!       <td><em>depth of function tracing</em></td>
+!       <td align=\"center\">0</td>
+!       <td align=\"center\">%GetTraceDepth()</td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\">-g / --printGrid</td>
+!       <td align=\"center\">flag / boolean</td>
+!       <td><em>only read grid from mesh-file and write it to
+!           output file</em></td>
+!       <td align=\"center\">false = not set</td>
+!       <td align=\"center\">%GetPrintGrid()</td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\">-e / --showEqnMap</td>
+!       <td align=\"center\">flag / boolean</td>
+!       <td><em>print the dof to equation number mapping to OLAS report
+!           file</em></td>
+!       <td align=\"center\">false = not set</td>
+!       <td align=\"center\">%GetShowEqnMap()</td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\">-d / --doProfile</td>
+!       <td align=\"center\">flag / boolean</td>
+!       <td><em>do use system calls for generating profiling
+!           information</em></td>
+!       <td align=\"center\">false = not set</td>
+!       <td align=\"center\">%GetDoProfile()</td>
+!     </tr>
+!
+!     <tr>
+!       <td align=\"center\">-h / --help</td>
+!       <td align=\"center\">flag / boolean</td>
+!       <td><em>print usage information</em></td>
+!       <td align=\"center\">false = not set</td>
+!       <td align=\"center\">---</td>
+!     </tr>
+!   </table>
+! </center>"
+      operation 181285 "~BaseCommandLineHandler"
+	cpp_virtual cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {
+      ENTER_FCN( \"BaseCommandLineHandler::~BaseCommandLineHandler\" );
+    };
+"
+	
+	
+	comment "! Virtual destructor
+! The destructor is made virtual
+! for inheritance purposes."
+      end
+
+      operation 181413 "GetSimName"
+	abstract const cpp_virtual public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment " =======================================================================
+ QUERY METHODS FOR PARAMETERS
+ =======================================================================
+@{
+! \\name Query methods for command line parameters
+! For each command line parameter there exists an associated query
+! method. If no command line value was specified than the query method
+! will return the corresponding default, if it exists.
+! Return base name of simulation run
+! This method can be used to query the name of the current simulation
+! run, which may be something like e.g. plate3D. This name is used by
+! CFS++ internally as basename for the generation of several (default)
+! names for input and output files."
+      end
+
+      operation 181541 "GetParamFile"
+	abstract const cpp_virtual public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return name of XML parameter file
+! This method can be used to query the name of the parameter file in
+! XML format that contains the steering parameters for the simulation."
+      end
+
+      operation 181669 "GetScriptFileName"
+	abstract const cpp_virtual public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return (optional) name of scripting file
+! This method returns the full name of an (optional) scripting file,
+! e.g. a TCL-script that contains routines provided by the user to
+! interact dynamically with CFS++. If no filename was provided an
+! empty string is returned."
+      end
+
+      operation 181797 "GetSchemaPath"
+	abstract const cpp_virtual public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return path to XML schema file
+! This method can be used to query the path to the XML schema file
+! used by validating XML parsers to verify the formal correctness
+! of the XML parameter file.
+! \\note
+! - There is currently no way to specify the name of the schema
+!   file itself. This must be called CFS.xsd!
+! - This path is also used to locate the default XML-file that is
+!   currently still needed by the XMLParamHandler."
+      end
+
+      operation 181925 "GetMeshFile"
+	abstract const cpp_virtual public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return name of mesh file
+! This method can be used to query the name of the mesh file containing
+! the description of the FEM mesh for the simulation."
+      end
+
+      operation 182053 "GetPrintGrid"
+	abstract const cpp_virtual public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return printGrid flag
+! This method can be used to query the status of the printGrid flag.
+! By specifying this flag one instructs the executable to do not
+! perform an actual simulation, but to only import the grid and
+! re-export it to an output file in the format specified in the XML
+! parameter file."
+      end
+
+      operation 182181 "GetShowEqnMap"
+	abstract const cpp_virtual public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return showEqnMap flag
+! This method can be used to query the status of the showEqnMap flag.
+! By specifying this flag one instructs the executable to report the
+! maps that relates global to region-local node numbers and node number
+! to equation number in the algebraic system. The maps are written to
+! the standard OLAS report file."
+      end
+
+      operation 182309 "GetDoProfile"
+	abstract const cpp_virtual public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return doProfile flag
+! This method can be used to query the status of the doProfile flag.
+! By specifying this flag one instructs the executable to generate
+! profiling information. By default system calls are used (under Linux)
+! to obtain information on things like e.g. memory footprint of the
+! simulation run.
+! \\note The flag is only of use in the case that profiling was enabled
+!       during compilation by defining the PROFILING macro."
+      end
+
+      operation 182437 "GetRestart"
+	abstract const cpp_virtual public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return Restart flag
+! This method can be used to query the status of the restart flag.
+! If this flag is true the simulation restarts from an previous state."
+      end
+
+      operation 182565 "GetWriteSkeleton"
+	abstract const cpp_virtual public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return writeSkeleton flag
+! This method can be used to query the status of the writeSkeleton flag.
+! As a convenience for the CFS++ user it is possible to let the
+! executable write a skeleton XML parameter file that must then be
+! filled out by the user for a subsequent simulation run."
+      end
+
+      operation 182693 "GetTraceDepth"
+	abstract const cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return depth of function tracing
+! This method can be used to query the depth desired for generating
+! function trace information.
+! \\note Function tracing is a time-consuming process that can easily
+!       lead to the generation of a tremendously large output file
+!       containing the trace information. Thus, tracing must explicitely
+!       be compiled into the executable by turning on the respective
+!       option in <em>Makefile.option</em>. Specifying a trace depth of
+!       zero avoids generation of the trace file, but does not remove
+!       the work associated with function tracing."
+      end
+
+      attribute 134693 "helpSimName_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 134821 "helpParamFile_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 134949 "helpScriptFileName_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 135077 "helpMeshFile_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 135205 "helpTraceDepth_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 135333 "helpWriteSkeleton_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 135461 "helpPrintGrid_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 135589 "helpHelp_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 135717 "helpSchemaPath_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 135845 "helpShowEqnMap_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 135973 "helpDoProfile_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 136101 "helpRestart_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 136229 "markerParamFile_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 136357 "markerMeshFile_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 136485 "markerScriptFileName_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 136613 "markerTraceDepth_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 136741 "markerWriteSkeleton_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 136869 "markerPrintGrid_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 136997 "markerHelp_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 137125 "markerSchemaPath_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 137253 "markerDoProfile_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 137381 "markerRestart_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 137509 "markerLongParamFile_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 137637 "markerLongMeshFile_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 137765 "markerLongScriptFileName_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 137893 "markerLongTraceDepth_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 138021 "markerLongWriteSkeleton_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 138149 "markerLongPrintGrid_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 138277 "markerLongHelp_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 138405 "markerLongSchemaPath_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 138533 "markerLongShowEqnMap_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 138661 "markerLongDoProfile_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 138789 "markerLongRestart_"
+	class_attribute const_attribute public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      operation 182821 "DefaultTraceDepth"
+	const cpp_inline public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return 0;
+    };
+"
+	
+	
+	comment "@}
+ =======================================================================
+ ASSIGNMENT OF DEFAULT VALUES
+ =======================================================================
+@{
+! \\name Setting default values for command line parameters
+!       These methods provide default values for the allowed command
+!       line parameters. Derived classes should use calls to these
+!       methods for handling of defaults in their implementation of the
+!       query methods instead of providing their own defaults.
+! Returns default value for --traceDepth parameter
+! This method returns the default value for --traceDepth parameter.
+! The current default is 0, which indicates no function tracing.
+! \\return 0"
+      end
+
+      operation 182949 "DefaultParamFile"
+	const cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return GetSimName() + \".xml\";
+    };
+"
+	
+	
+	comment "! Returns default value for --paramFile parameter
+! This method returns the default value for --paramFile parameter.
+! The current default is to compose the name of the parameter file, by
+! adding a <em>.xml</em> postfix to the name of the current simulation
+! run
+! \\return \\<simName\\>.xml"
+      end
+
+      operation 183077 "DefaultMeshFile"
+	const cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return GetSimName() + \".mesh\";
+    };
+"
+	
+	
+	comment "! Returns default value for --meshFile parameter
+! This method returns the default value for --meshFile parameter.
+! The current default is to compose the name of the parameter file, by
+! adding a <em>.mesh</em> postfix to the name of the current simulation
+! run
+! \\return \\<simName\\>.mesh"
+      end
+
+      operation 183205 "DefaultPrintGrid"
+	const cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return FALSE;
+    };
+"
+	
+	
+	comment "! Returns default value for --printGrid parameter
+! This method returns the default value for --printGrid parameter.
+! The current default is to perform a full simulation and to not only
+! print the grid.
+! \\return FALSE"
+      end
+
+      operation 183333 "DefaultShowEqnMap"
+	const cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return FALSE;
+    };
+"
+	
+	
+	comment "! Returns default value for --showEqnMap parameter
+! This method returns the default value for the --showEqnMap parameter.
+! The current default is not to report the node number <-> equation
+! number mapping.
+! \\return FALSE"
+      end
+
+      operation 183461 "DefaultWriteSkeleton"
+	const cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return FALSE;
+    };
+"
+	
+	
+	comment "! Returns default value for --writeSkeleton parameter
+! This method returns the default value for --writeSkeleton parameter.
+! The current default is to perform a full simulation and to not only
+! write a skeleton XML-file.
+! \\return FALSE"
+      end
+
+      operation 183589 "DefaultSchemaPath"
+	const cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return XMLSCHEMA;
+    };
+"
+	
+	
+	comment "! Returns default value for --schemaPath parameter
+! This method returns the default value for --schemaPath parameter.
+! The default name and location of the XML schema file is hard-coded
+! during compile time making use of the \\<XMLSCHEMA\\> compile macro.
+! \\return \\<XMLSCHEMA\\>"
+      end
+
+      operation 183717 "DefaultDoProfile"
+	const cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return FALSE;
+    };
+"
+	
+	
+	comment "! Returns default value for --doProfile parameter
+! This method returns the default value for --doProfile parameter.
+! The default is not to generate profile information via system calls,
+! since this can considerable slow down run-time.
+! \\return FALSE"
+      end
+
+      operation 183845 "DefaultRestart"
+	const cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return FALSE;
+    };
+"
+	
+	
+	comment "! Returns default value for --Restart parameter
+! This method returns the default value for --Restart parameter.
+! \\return FALSE"
+      end
+
+      operation 183973 "PrintUsage"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ =======================================================================
+ AUXILLIARY METHODS FOR OUTPUTTING INFORMATION
+ =======================================================================
+@{ \\name Auxilliary methods for outputting information
+! Print summary of possible command line parameters
+! Calling this method will print a summary of the possible command line
+! parameters to the standard output."
+      end
+
+      operation 184101 "PrintParams"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "out" explicit_type "std::ostream"
+	  param in name "colorise" type class_ref 129189 // Boolean
+	    defaultvalue " TRUE "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Print a summary of the values of the command line parameters
+! Calling this method will print a summary of the values of the command
+! line parameters to the specified output stream. The values include
+! the parameters supplied on the command line and the default values for
+! those parameters where no value was supplied."
+      end
+    end
+
+    class 135845 "CommandLineHandlerSetting"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Command line handler built on Settings library by Uwe Fabricius"
+      classrelation 146597 // <generalisation>
+	relation 146597 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 146597 // <generalisation>
+	  b parent class_ref 135717 // BaseCommandLineHandler
+      end
+
+      operation 184229 "CommandLineHandlerSetting"
+	public explicit_return_type ""
+	nparams 2
+	  param in name "argc" type class_ref 129061 // Integer
+	  param in name "argv" explicit_type "char"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} ${p0}, const ${t1} * * ${p1}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} ${p0}, const ${t1} * * ${p1}${)}${throw}{
+${body}}
+"
+	
+	
+	comment " =======================================================================
+ CONSTRUCTIION and DESTRUCTION
+ =======================================================================
+@{
+! \\name Methods for construction, destruction and setup
+! The constructor requires passing of the command line arguments"
+      end
+
+      operation 184357 "~CommandLineHandlerSetting"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {
+      ENTER_FCN( \"CommandLineHandlerSetting::~CommandLineHandlerSetting\" );
+    };
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 184485 "GetSimName"
+	const cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetSimName\" );
+      return simName_;
+    };
+"
+	
+	
+	comment "@}
+ =======================================================================
+ QUERY METHODS FOR PARAMETERS
+ =======================================================================
+@{
+! \\name Query methods for command line parameters
+! For each command line parameter there exists an associated query
+! method. If no command line value was specified than the query method
+! will return the corresponding default, if it exists.
+! Return base name of simulation run
+! This method can be used to query the name of the current simulation
+! run, which may be something like e.g. plate3D. This name is used by
+! CFS++ internally as basename for the generation of several (default)
+! names for input and output files."
+      end
+
+      operation 184613 "GetParamFile"
+	const cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetParamFile\" );
+      std::string paramFile = DefaultParamFile();
+      Setting *aux = commandLine_.getSetting( markerLongParamFile_.c_str() );
+      if ( aux != NULL ) {
+        paramFile = aux->getString();
+      }
+      return paramFile;
+    };
+"
+	
+	
+	comment "! Return name of XML parameter file
+! This method can be used to query the name of the parameter file in
+! XML format that contains the steering parameters for the simulation."
+      end
+
+      operation 184741 "GetScriptFileName"
+	const cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetParamFile\" );
+      std::string fileName = \"\";
+      Setting *aux = commandLine_.getSetting( markerLongScriptFileName_.c_str() );
+      if ( aux != NULL ) {
+        fileName = aux->getString();
+      }
+      return fileName;
+    };
+"
+	
+	
+	comment "! Return (optional) name of scripting file
+! This method returns the full name of an (optional) scripting file,
+! e.g. a TCL-script that contains routines provided by the user to
+! interact dynamically with CFS++. If no filename was provided an
+! empty string is returned."
+      end
+
+      operation 184869 "GetSchemaPath"
+	const cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetSchemaPath\" );
+      std::string schemaPath = DefaultSchemaPath();
+      Setting *aux = commandLine_.getSetting( markerLongSchemaPath_.c_str() );
+      if ( aux != NULL ) {
+        schemaPath = aux->getString();
+      }
+      return schemaPath;
+    };
+"
+	
+	
+	comment "! Return path to XML schema file
+! This method can be used to query the path to the XML schema file
+! used by validating XML parsers to verify the formal correctness
+! of the XML parameter file.
+! \\note
+! - There is currently no way to specify the name of the schema
+!   file itself. This must be called CFS.xsd!
+! - This path is also used to locate the default XML-file that is
+!   currently still needed by the XMLParamHandler."
+      end
+
+      operation 184997 "GetMeshFile"
+	const cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetMeshFile\" );
+      std::string meshFile = DefaultMeshFile();
+      Setting *aux = commandLine_.getSetting( markerLongMeshFile_.c_str() );
+      if ( aux != NULL ) {
+        meshFile = aux->getString();
+      }
+      return meshFile;
+    };
+"
+	
+	
+	comment "! Return name of mesh file
+! This method can be used to query the name of the mesh file containing
+! the description of the FEM mesh for the simulation."
+      end
+
+      operation 185125 "GetPrintGrid"
+	const cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetPrintGrid\" );
+      Boolean retVal = DefaultPrintGrid();
+      Setting *aux = commandLine_.getSetting( markerLongPrintGrid_.c_str() );
+      if ( aux != NULL ) {
+        retVal = TRUE;
+      }
+      return retVal;
+    };
+"
+	
+	
+	comment "! Return printGrid flag
+! This method can be used to query the status of the printGrid flag.
+! By specifying this flag one instructs the executable to do not
+! perform an actual simulation, but to only import the grid and
+! re-export it to an output file in the format specified in the XML
+! parameter file."
+      end
+
+      operation 185253 "GetShowEqnMap"
+	const cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetShowEqnMap\" );
+      Boolean retVal = DefaultShowEqnMap();
+      Setting *aux = commandLine_.getSetting( markerLongShowEqnMap_.c_str() );
+      if ( aux != NULL ) {
+        retVal = TRUE;
+      }
+      return retVal;
+    };
+"
+	
+	
+	comment "! Return showEqnMap flag
+! This method can be used to query the status of the shwoEqnMap flag.
+! By specifying this flag one instructs the executable to report the
+! maps that relates global to region-local node numbers and node
+! numbers to equation numbers in the algebraic system. The maps are
+! written to the standard OLAS report file."
+      end
+
+      operation 185381 "GetDoProfile"
+	const cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetDoProfile\" );
+      Boolean retVal = DefaultDoProfile();
+      Setting *aux = commandLine_.getSetting( markerLongDoProfile_.c_str() );
+      if ( aux != NULL ) {
+        retVal = TRUE;
+      }
+      return retVal;
+    };
+"
+	
+	
+	comment "! Return doProfile flag
+! This method can be used to query the status of the doProfile flag.
+! By specifying this flag one instructs the executable to generate
+! profiling information. By default system calls are used (under Linux)
+! to obtain information on things like e.g. memory footprint of the
+! simulation run.
+! \\note The flag is only of use in the case that profiling was enabled
+!       during compilation by defining the PROFILING macro."
+      end
+
+      operation 185509 "GetRestart"
+	const cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetRestart\" );
+      Boolean retVal = DefaultRestart();
+      Setting *aux = commandLine_.getSetting( markerLongRestart_.c_str() );
+      if ( aux != NULL ) {
+        retVal = TRUE;
+      }
+      return retVal;
+    };
+"
+	
+	
+	comment "! Return Restart flag
+! This method can be used to query the status of the restart flag.
+! If this flag is true the simulation restarts from an previous state."
+      end
+
+      operation 185637 "GetWriteSkeleton"
+	const cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetWriteSkeleton\" );
+      Boolean retVal = DefaultWriteSkeleton();
+      Setting *aux = commandLine_.getSetting( markerLongWriteSkeleton_.c_str() );
+      if ( aux != NULL ) {
+        retVal = TRUE;
+      }
+      return retVal;
+    };
+"
+	
+	
+	comment "! Return writeSkeleton flag
+! This method can be used to query the status of the writeSkeleton flag.
+! As a convenience for the CFS++ user it is possible to let the
+! executable write a skeleton XML parameter file that must then be
+! filled out by the user for a subsequent simulation run."
+      end
+
+      operation 185765 "GetTraceDepth"
+	const cpp_inline public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"CommandLineHandlerSetting::GetTraceDepth\" );
+      Setting *aux = commandLine_.getSetting( markerLongTraceDepth_.c_str() );
+      UInt retVal = DefaultTraceDepth();
+      if ( aux != NULL ) {
+        retVal = (UInt)(aux->getInt());
+      }
+      return retVal;
+    };
+"
+	
+	
+	comment "! Return depth of function tracing
+! This method can be used to query the depth desired for generating
+! function trace information.
+! \\note Function tracing is a time-consuming process that can easily
+!       lead to the generation of a tremendously large output file
+!       containing the trace information. Thus, tracing must explicitely
+!       be compiled into the executable by turning on the respective
+!       option in <em>Makefile.option</em>. Specifying a trace depth of
+!       zero avoids generation of the trace file, but does not remove
+!       the work associated with function tracing."
+      end
+
+      classrelation 146725 // commandLine_ (<directional aggregation by value>)
+	relation 146725 *-->
+	  a role_name "commandLine_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 146725 // commandLine_ (<directional aggregation by value>)
+	  b parent class_ref 135973 // SettingDataBase
+      end
+
+      attribute 138917 "simName_"
+	private explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 135973 "SettingDataBase"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "*********************************************************
+   * ProgramSettings
+   *********************************************************
+! class for reading settings from command line and configuration files
+! This is the class, you work with, if you want read the settings from
+   *  the command line or a configuration file. <br>
+   *  Create an instance of SettingDataBase with the constructor (optionally
+   *  specifying the verbosity flag) and call readSettings, either the
+   *  version for data files or the one for the command line options. You
+   *  can use the same array of SettingDef objects for both versions of
+   *  readSettings. This allows to read settings either from the command
+   *  line or from a configuration file or from both. If you read the same
+   *  settings from the command line <b>and</b> you can specify by the
+   *  boolean parameter <code>overwrite</code>, if already set settings
+   *  should be overwritten. <br>
+   *  Both versions of readSettings are quite fault-tolerant. Even if there
+   *  are some not readable settings in the source, the functions print
+   *  out an error message, but continue reading setting as far as possible.
+   *  Only in case of really heavy errors the return value will reflect
+   *  this in a false. So by only checking the return value the calling
+   *  routine cannot decide if really <b>everything</b> was fine. But
+   *  readSettings take an optional parameter bool* pickySuccess. This
+   *  pointer is passed all through the whole process of reading and
+   *  interpreting settings and the variable refered by this pointer is
+   *  initialized with true and set to false, whenever a slight error
+   *  occures, even if this error does not harm the processing of the
+   *  functions and does not cause a false as return value. So by passing
+   *  this optional parameter one can still react on small faults.
+   *  <br><br>
+   *  <b>SYNTAX</b> of the configuration file:
+   *   - one setting per line
+   *   - everything after a '#' in a line is comment (including the '#')
+   *   - ONLY and ALL directive lines start with \">>\"
+   *   - spaces are ignored, exept, if the separate parameters
+   *   - doublequotes to define a string containing spaces, commas or
+   *     hashes are recognised (see example)
+   *   - overlapping parameters for a setting are ignored (remove comment
+   *     in \"family\" line of the sample file
+   *   - a backslash, that is not in included in quoting, causes a line
+   *     break. There is no character inserted to separate the items
+   *     befor and after this backslash. So you can continue a string
+   *     over more that one line. For example (| symbolizes the left
+   *     boundary of the text file):
+   *     <br><br>
+   * \\code
+   * |age = 10 20 \\ this text is not recognized
+   * |30
+   * |height = 120 190\\
+   * |230
+   * \\endcode
+   *     <br>
+   *     This configuration file will cause: <br>
+   *       age[0] = 10, age[1] = 20, age[2] = 30
+   *       heigth[0] = 120, height[1] = 190230 
+   *
+   *  <br><br>
+   *  <b>DIRECTIVES</b> <br>
+   *  The syntax of the configuration files provides directives, that
+   *  means key words, that influence the reading of the file dynamically.
+   *  All directives lines must start with the first two characters \">>\".
+   *  Possible directives
+   *   - >>section_enter<< sectionname        <br>
+   *     >>section_leave<< sectionname        <br>
+   *       Enter and leave a section the reading is restricted to. For
+   *       setting and resetting use functions \"restrictToSection\" and
+   *       and \"removeSection\". If the SettingDataBase class is restricted
+   *       to a section \"sectionname\", only settings braced by these two
+   *       directives are read.
+   *   - >>end<<    <br>
+   *       Reading stops immidiately. This directive might be usefull in
+   *       developing states to hide developing rubbish without the need
+   *       of repeated (un)commenting. Section restriction is stronger
+   *       than \">>end<<\", i.e. if the class is restricted to a section
+   *       \">>end<<\" is only respected, if placed inside this section.
+   *
+   *  <br><br>
+   *  <b>PARAMETER MAPPING</b> <br>
+   *  Often one wants a string parameter of a setting beeing mapped to
+   *  another type, e.g. a enum constant. This means alway the same code
+   *  of a strcmp inside a loop ... The functions mapStringParameter and
+   *  mapStringToIndex do exactly that.
+   *
+   *  <br><br>
+   *  <b>PATH EXPANSION</b> <br>
+   *  A setting of type STRING might represent a certain path in the file
+   *  system. Therefore it may contain start with the abreviation '~' for
+   *  the home path of the current user or for example \"~homer\" the home
+   *  path of user \"homer\". Using such a path inside your program to open
+   *  a file will not work, since the '~' or \"~user\" is expanded by the
+   *  shell, if you use it in the terminal, but there is no shell inside
+   *  your programm. You have to expand it manually in your program. class
+   *  SettingDataBase provides this expansion with its method expandPaths.
+   "
+      operation 189477 "SettingDataBase"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "verbose" explicit_type "bool"
+	    defaultvalue " true  "
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! constructor"
+      end
+
+      operation 189605 "~SettingDataBase"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! destructor"
+      end
+
+      operation 189733 "getSettings"
+	const cpp_inline public return_type class_ref 136101 // Setting
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_Settings; };
+"
+	
+	
+	comment " member access
+! returns the first member of the settings list"
+      end
+
+      operation 189861 "getSetting"
+	const public return_type class_ref 136101 // Setting
+	nparams 1
+	  param in name "IDString" explicit_type "char"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! returns a pointer to the setting with the passed ID string"
+      end
+
+      operation 189989 "getSetting"
+	const public return_type class_ref 136101 // Setting
+	nparams 1
+	  param in name "index" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! returns setting [i] in the list (who needs that?)"
+      end
+
+      operation 190117 "getNumParameters"
+	const public explicit_return_type "int"
+	nparams 1
+	  param in name "IDString" explicit_type "char"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! returns the number of parameters of setting \"IDString\""
+      end
+
+      operation 190245 "getSection"
+	const cpp_inline public explicit_return_type "char"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_activeSection; };
+"
+	
+	
+	comment "! returns a pointer to the name of the current restriction"
+      end
+
+      operation 190373 "isRestricted"
+	const cpp_inline public explicit_return_type "bool"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_activeSection != NULL; };
+"
+	
+	
+	comment "! returns true, if a restriction is currently active"
+      end
+
+      operation 190501 "expandPaths"
+	public explicit_return_type "bool"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! expands all paths from '~'
+! Inspects all settings of type Setting::STRING, whether they
+     *  start with a '~'. Such a string is recognized as a path and
+     *  is tried to be expanded to a full path, no longer containing
+     *  the abreviation '~'. For the expansion of selected strings
+     *  use methods Setting::expandPathString and Setting::expandAllPathStrings
+     *  after a call of SettingDataBase::getSetting.
+     *  \\return true, if all paths could be expanded, otherwise false
+     "
+      end
+
+      operation 190629 "mapStringParameter"
+	stereotype "template"
+	const public explicit_return_type "bool"
+	nparams 5
+	  param in name "ID" explicit_type "char"
+	  param in name "map" explicit_type "SettingStringMap<T>"
+	  param inout name "value" explicit_type "T"
+	  param in name "iparameter" explicit_type "int"
+	    defaultvalue " 0"
+	  param in name "verbose" explicit_type "bool"
+	    defaultvalue " false "
+	cpp_decl "    ${comment}template<class T>
+  ${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}, const ${t1} * const ${p1}, ${t2} & ${p2}, const ${t3} ${p3}, const ${t4} ${p4}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}, const ${t1} * const ${p1}, ${t2} & ${p2}, const ${t3} ${p3}, const ${t4} ${p4}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! translate a setting string into another parameter
+! Often one wants a string parameter of a setting beeing mapped
+     *  to another type, e.g. a enum constant. This means alway the
+     *  same code of a strcmp inside a loop ... The function
+     *  SettingDataBase::mapStringSetting does exactly that. Code
+     *  example:
+     *
+     *  \\code
+     *  SettingStringMap<int> map[] =
+     *  {
+     *      SettingStringMap<int>( \"homer\",  0 ),
+     *      SettingStringMap<int>( \"lisa\",   6 ),
+     *      SettingStringMap<int>( \"bart\",  -6 ),
+     *      SettingStringMap<int>( )
+     *  };
+     *
+     *  int familyvalue;
+     *  settings.mapStringParameter( \"family\", map,
+     *                               familyvalue, 1, true );
+     *  \\endcode
+     *
+     * Such a mapping often could be reduced to simply returning
+     * the index of an array, the possible strings are contained
+     * in (see example). To prevent the creation of SettingStringMap
+     * arrays, that contain in the m_Value entry simply the index
+     * in the array, this mapping is supported explicitly by the
+     * function SettingDataBase::mapStringToIndex.
+     *
+     *  \\param ID the ID string of the setting you want to map
+     *  \\param map an array of Type SettingStringMap<T>, that contains
+     *         the mapping of type STRING to type T. Like the arrays
+     *         of SettingDef this array must end with one element
+     *         created with the standard constructor (to get
+     *         m_String == NULL).
+     *  \\param value address of a variable of type T, the mapped value
+     *         should be stored in
+     *  \\param iparameter index of the parameter string of the setting
+     *         that should be mapped. In most cases these settings
+     *         just take one parameter (e.g. runningmode = server),
+     *         where iparameter == 0. Therefore the default value of
+     *         iparameter is 0.
+     *  \\param verbose print some informations, if mapping did not
+     *         succeed.
+     *  \\return true, if \"value\" constains valid data after the call
+     "
+      end
+
+      operation 190757 "mapStringToIndex"
+	const public explicit_return_type "int"
+	nparams 4
+	  param in name "ID" explicit_type "char"
+	  param in name "SettingStrings" explicit_type "char"
+	  param in name "stringIndex" explicit_type "int"
+	    defaultvalue " 0"
+	  param in name "verbose" explicit_type "bool"
+	    defaultvalue " false "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}, const ${t1} * * const ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}, const ${t1} * * const ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! maps a string to its index in an array of strings
+! maps a string to its index in an array of strings <br>
+     *  Code example:
+     *
+     *  \\code
+     *  enum { HOMER = 0, MARGE, MAGGY, BART,
+     *         LISA, FAMILY_SIZE );
+     *  const char* enumStrings[FAMILY_SIZE + 1] = {
+     *      \"HOMER\", \"MARGE\", \"MAGGY\",
+     *      \"BART\",  \"LISA\",   NULL
+     *  };
+     *  settings.mapStringToIndex( \"athome\", enumStrings, 0, true );
+     *  \\endcode
+     *
+     *  \\param ID the ID string of the setting you want to map
+     *  \\param SettingStrings array containing the possible strings.
+     *         This array <b>must</b> be terminated with a NULL
+     *         string.
+     *  \\param stringIndex index of the parameter string of the
+     *         setting that should be mapped. In most cases these
+     *         settings just take one parameter (e.g. runningmode
+     *         = server), where iparameter == 0.
+     *  \\param verbose print some informations, if mapping did not
+     *         succeed.
+     *  \\param stringIndex of SettingStrings, where the string could
+     *         be found
+     "
+      end
+
+      operation 190885 "readSettings"
+	public explicit_return_type "bool"
+	nparams 4
+	  param in name "settingdef" type class_ref 136485 // SettingDef
+	  param in name "FileName" explicit_type "char"
+	  param in name "overwrite" explicit_type "bool"
+	    defaultvalue " true"
+	  param inout name "pickySuccess" explicit_type "bool"
+	    defaultvalue " NULL "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}, ${t3} * const ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}, ${t3} * const ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! read settings from a file
+! Read settings from an configuration file
+     *  \\param settingdef array of SettingDef defining the accepted
+     *         settings. The last element in this array <b>must</b> be
+     *         one with IDString == NULL, i.e. simply created with
+     *         the constructor using only default arguments.
+     *  \\param FileName name of the configuration file
+     *  \\param overwrite if true, all in the class already present
+     *         settings are overwritten, if one with the same
+     *         ID-String is read. This flag allows for example a
+     *         hierarchy of configuration sources, that are read
+     *         one after the other.
+     *  \\param pickySuccess: pointer to a boolean, where the success
+     *         is indicated in, in a pickier way
+     *  \\return true, if all settings could be read
+     "
+      end
+
+      operation 191013 "readSettings"
+	public explicit_return_type "bool"
+	nparams 6
+	  param in name "settingdef" type class_ref 136485 // SettingDef
+	  param in name "CommandLine" explicit_type "char"
+	  param in name "nargs" explicit_type "int"
+	  param in name "overwrite" explicit_type "bool"
+	    defaultvalue " true"
+	  param in name "expectDashesInCommandLine" explicit_type "bool"
+	    defaultvalue " true"
+	  param inout name "pickySuccess" explicit_type "bool"
+	    defaultvalue " NULL "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}, const ${t1} * * const ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, ${t5} * const ${p5}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}, const ${t1} * * const ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, ${t5} * const ${p5}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! read settings from the command line passed as int and char**
+!
+     *  \\param settingdef array of SettingDef defining the accepted
+     *         settings
+     *  \\param CommandLine pointer to the command line, just the
+     *         first parameter passed to the main function
+     *  \\param nargs number of arguments in the command line, just
+     *         the second parameter passed to the main function
+     *  \\param overwrite if true, all in the class already present
+     *         settings are overwritten, if one with the same
+     *         ID-String is read. This flag allows for example a
+     *         hierarchy of configuration sources, that are read
+     *         one after the other.
+     *  \\param pickySuccess pointer to a boolean, where the success
+     *         is indicated in, in a pickier way
+     *  \\param expectDashesInCommandLine : if true, additionally,
+     *         not in m_IDString present, a \"-\" is demanded for a
+     *         setting in the command line.
+     "
+      end
+
+      operation 191141 "printHelp"
+	const public explicit_return_type "void"
+	nparams 1
+	  param in name "settingdef" type class_ref 136485 // SettingDef
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! print out help using the definitions in settingdef
+! This function generates a standard help output for all
+     *  settings in the array at settingdef. This array must be
+     *  terminated by an empty SettingDef object (generated with
+     *  with the standard constructor). For each setting the ID
+     *  strings are printed, the storage type, limits for number of
+     *  parameters, and the help string, if specified
+     *  (-> SettingDef::SettingDef).
+     "
+      end
+
+      operation 191269 "finalCheck"
+	const public explicit_return_type "bool"
+	nparams 1
+	  param in name "settingdef" type class_ref 136485 // SettingDef
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! finally check the results of readSettings"
+      end
+
+      operation 191397 "restrictToSection"
+	public explicit_return_type "bool"
+	nparams 1
+	  param in name "section" explicit_type "char"
+	    defaultvalue " NULL "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " set read restriction
+! restricst reading of the config file to the passed section
+! \\param section Zero-terminated name of the section the
+     *         reading of the configuration file should be restricted
+     *         to (see also <b>DIRECTIVES</b> in documentation of
+     *         class SettingDataBase). If NULL is passed, the current
+     *         restriction will be removed (-> removeSection)
+     *  \\return true, if the registration of the restriction was
+     *          successfull, false, otherwise
+     "
+      end
+
+      operation 191525 "removeSection"
+	cpp_inline public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { restrictToSection(NULL); };
+"
+	
+	
+	comment "! Removes the restriction to a section.
+! In the implementation this is simply a call of
+     *  restrictToSection(NULL).
+     "
+      end
+
+      operation 191653 "printLineError"
+	class_operation public explicit_return_type "void"
+	nparams 3
+	  param in name "FunctionName" explicit_type "char"
+	  param in name "FileName" explicit_type "char"
+	    defaultvalue " NULL"
+	  param in name "LineNumber" explicit_type "int"
+	    defaultvalue " -1 "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " static function"
+      end
+
+      operation 191781 "readLine"
+	protected explicit_return_type "int"
+	nparams 4
+	  param inout name "file" explicit_type "FILE"
+	  param inout name "line" explicit_type "char"
+	  param in name "FileName" explicit_type "char"
+	  param in name "LineNumber" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}, ${t1} * * ${p1}, const ${t2} * const ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}, ${t1} * * ${p1}, const ${t2} * const ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " reads one line of a file into the buffer"
+      end
+
+      operation 191909 "prescanLine"
+	protected explicit_return_type "int"
+	nparams 4
+	  param in name "line" explicit_type "char"
+	  param in name "length" explicit_type "int"
+	  param in name "FileName" explicit_type "char"
+	  param in name "LineNumber" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}, const ${t1} ${p1}, const ${t2} * const ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}, const ${t1} ${p1}, const ${t2} * const ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " prescan line"
+      end
+
+      operation 192037 "findMatchingSetting"
+	protected explicit_return_type "int"
+	nparams 7
+	  param inout name "line" explicit_type "char"
+	  param in name "linelength" explicit_type "int"
+	  param in name "settingdefs" type class_ref 136485 // SettingDef
+	  param in name "FileName" explicit_type "char"
+	    defaultvalue " NULL"
+	  param in name "LineNumber" explicit_type "int"
+	    defaultvalue " -1"
+	  param in name "quiet" explicit_type "bool"
+	    defaultvalue " false"
+	  param inout name "pickySuccess" explicit_type "bool"
+	    defaultvalue " NULL "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}, const ${t1} ${p1}, const ${t2} * const ${p2}, const ${t3} * const ${p3}, const ${t4} ${p4}, const ${t5} ${p5}, ${t6} * const ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}, const ${t1} ${p1}, const ${t2} * const ${p2}, const ${t3} * const ${p3}, const ${t4} ${p4}, const ${t5} ${p5}, ${t6} * const ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " process the raw line read from a file"
+      end
+
+      operation 192165 "identifySettingInCommandLine"
+	protected explicit_return_type "int"
+	nparams 6
+	  param in name "settingdef" type class_ref 136485 // SettingDef
+	  param in name "CommandLine" explicit_type "char"
+	  param in name "i" explicit_type "int"
+	  param in name "expectDashesInCommandLine" explicit_type "bool"
+	  param in name "quiet" explicit_type "bool"
+	    defaultvalue " true"
+	  param inout name "pickySuccess" explicit_type "bool"
+	    defaultvalue " NULL "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}, const ${t1} * * const ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, ${t5} * const ${p5}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}, const ${t1} * * const ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, ${t5} * const ${p5}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " find the next candidate for a setting in the command line"
+      end
+
+      operation 192293 "buildConfigLineFromCommandLine"
+	protected explicit_return_type "int"
+	nparams 5
+	  param in name "CommandLine" explicit_type "char"
+	  param in name "istart" explicit_type "int"
+	  param in name "iend" explicit_type "int"
+	  param inout name "line" explicit_type "char"
+	  param in name "expectDashesInCommandLine" explicit_type "bool"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * * const ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, ${t3} * * ${p3}, const ${t4} ${p4}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * * const ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, ${t3} * * ${p3}, const ${t4} ${p4}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " build a line like in a config file from the command line"
+      end
+
+      operation 192421 "integrateSetting"
+	protected explicit_return_type "bool"
+	nparams 3
+	  param inout name "setting" type class_ref 136101 // Setting
+	  param in name "override" explicit_type "bool"
+	  param inout name "pickySuccess" explicit_type "bool"
+	    defaultvalue " NULL "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * const ${p0}, const ${t1} ${p1}, ${t2} * const ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * const ${p0}, const ${t1} ${p1}, ${t2} * const ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " integrate the new setting in the list at \"m_Settings\""
+      end
+
+      operation 192549 "enlargeLineBuffer"
+	protected explicit_return_type "char"
+	nparams 1
+	  param inout name "line" explicit_type "char"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " enlarge buffer by one granularity"
+      end
+
+      attribute 141605 "m_verbose"
+	protected explicit_type "bool"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 147237 // m_Settings (<unidirectional association>)
+	relation 147237 --->
+	  a role_name "m_Settings" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 147237 // m_Settings (<unidirectional association>)
+	  b parent class_ref 136101 // Setting
+      end
+
+      attribute 141733 "m_activeSection"
+	protected explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 141861 "m_insideSection"
+	protected explicit_type "bool"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 141989 "m_currentLineLength"
+	protected explicit_type "int"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      class 136741 "anonymous2"
+	visibility public stereotype "enum"
+	
+	cpp_decl "${comment}enum  {
+${items}
+};
+"
+	java_decl ""
+	idl_decl ""
+	explicit_switch_type ""
+	
+	attribute 142117 "DIRECTIVE_SECTION_ENTER"
+	  public explicit_type ""
+	  init_value " 0"
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 142245 "DIRECTIVE_SECTION_LEAVE"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 142373 "DIRECTIVE_END"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 142501 "N_DIRECTIVES"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+      end
+
+      attribute 142629 "m_directives"
+	class_attribute const_attribute protected explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * const ${name}[N_DIRECTIVES]${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 136101 "Setting"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "********************************************************
+! class to store <b>one</b> setting including its parameters
+! This class represents one single setting beloning to class
+   *  SettingDataBase, consisting of an ID-string and the setting's
+   *  parameters. The parameters may be of type int, bool, float,
+   *  string, or simply used as a flag, but only one type per setting.
+   *  A setting is created from an object of type class SettingDef.
+   *
+   *  <br><br>
+   *  <b>PATH EXPANSION</b> <br>
+   *  A setting of type STRING might represent a certain path in the file
+   *  system. Therefore it may contain start with the abreviation '~' for
+   *  the home path of the current user or for example \"~homer\" the home
+   *  path of user \"homer\". Using such a path inside your program to open
+   *  a file will not work, since the '~' or \"~user\" is expanded by the
+   *  shell, if you use it in the terminal, but there is no shell inside
+   *  your programm. You have to expand it manually in your program. class
+   *  Setting provides this expansion with the methods expandPathString
+   *  and expandAllPathStrings. Setting::expandPathString expands a single
+   *  specified string in the setting, Setting::expandAllPathStrings expands
+   *  all strings in the setting.
+   "
+      class 136229 "type"
+	visibility public stereotype "enum"
+	
+	cpp_decl "${comment}enum ${name} {
+${items}
+};
+"
+	java_decl ""
+	idl_decl ""
+	explicit_switch_type ""
+	
+	attribute 139045 "FLAG"
+	  public explicit_type ""
+	  init_value " 0"
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 139173 "BOOL"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 139301 "INT"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 139429 "FLOAT"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 139557 "STRING"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+      end
+
+      class 136357 "anonymous1"
+	visibility public stereotype "enum"
+	
+	cpp_decl "${comment}enum  {
+${items}
+};
+"
+	java_decl ""
+	idl_decl ""
+	explicit_switch_type ""
+	
+	attribute 139685 "COMMA_SEPARATED"
+	  public explicit_type ""
+	  init_value " 1<<0"
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 139813 "EXPLICIT_ASSIGNMENT"
+	  public explicit_type ""
+	  init_value " 1<<1"
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 139941 "MANDATORY"
+	  public explicit_type ""
+	  init_value " 1<<2"
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 140069 "COMMAND_LINE_ONLY"
+	  public explicit_type ""
+	  init_value " 1<<3"
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 140197 "CONFIG_FILE_ONLY"
+	  public explicit_type ""
+	  init_value " 1<<4 "
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+      end
+
+      operation 185893 "Setting"
+	public explicit_return_type ""
+	nparams 2
+	  param in name "settingdef" type class_ref 136485 // SettingDef
+	  param in name "verbose" explicit_type "bool"
+	    defaultvalue " true "
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} & ${p0}, ${t1} ${p1}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} & ${p0}, ${t1} ${p1}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! creates a Setting object from a object of type SettingDef"
+      end
+
+      operation 186021 "~Setting"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 186149 "getNumParameters"
+	const cpp_inline public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_nParameters; };
+"
+	
+	
+	comment "! \\name data access
+@{
+! returns the number of present parameters"
+      end
+
+      operation 186277 "getType"
+	const cpp_inline public return_type class_ref 136229 // type
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_Type; };
+"
+	
+	
+	comment "! returns the type of the setting (see the enumeration types)"
+      end
+
+      operation 186405 "getBool"
+	const public explicit_return_type "bool"
+	nparams 1
+	  param in name "i" explicit_type "int"
+	    defaultvalue " 0 "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! returns the boolean nr. i in the setting"
+      end
+
+      operation 186533 "getInt"
+	const public explicit_return_type "int"
+	nparams 1
+	  param in name "i" explicit_type "int"
+	    defaultvalue " 0 "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! returns the integer nr. i in the setting"
+      end
+
+      operation 186661 "getString"
+	const public explicit_return_type "char"
+	nparams 1
+	  param in name "i" explicit_type "int"
+	    defaultvalue " 0 "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! returns the string nr. i in the setting"
+      end
+
+      operation 186789 "getFloat"
+	const public explicit_return_type "float"
+	nparams 1
+	  param in name "i" explicit_type "int"
+	    defaultvalue " 0 "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! returns the float nr. i in the setting"
+      end
+
+      operation 186917 "getIDString"
+	const cpp_inline public explicit_return_type "char"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_IDString; };
+"
+	
+	
+	comment "! direct access to the array"
+      end
+
+      operation 187045 "getBoolPtr"
+	const cpp_inline public explicit_return_type "bool"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_bool; };
+"
+	
+	
+	comment "! direct access to the array"
+      end
+
+      operation 187173 "getIntPtr"
+	const cpp_inline public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_int; };
+"
+	
+	
+	comment "! direct access to the array"
+      end
+
+      operation 187301 "getStringPtr"
+	const cpp_inline public explicit_return_type "char"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return (char **const)m_string; };
+"
+	
+	
+	comment "! direct access to the array"
+      end
+
+      operation 187429 "getFloatPtr"
+	const cpp_inline public explicit_return_type "float"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_float; };
+"
+	
+	
+	comment "! direct access to the array"
+      end
+
+      operation 187557 "expandPathString"
+	public explicit_return_type "bool"
+	nparams 1
+	  param in name "i" explicit_type "int"
+	    defaultvalue " 0 "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+! \\name data manipulation
+@{
+! expands home path from '~'
+! String settings often represent a file or directory path.
+     *  This path may be passed relatively to the home directory of
+     *  a user, abreviated by '~', more precise by \"~/\" for the
+     *  current user's home directory or \"~homer/\" for the home
+     *  directory of the user \"homer\". Setting::expandPathString
+     *  checks, if a string parameters starts with a '~' and tries
+     *  to expand the string using the full path of the according
+     *  home directory (so the string is changed irreversibly).
+     *  Therefore the method uses the content of the environment
+     *  variable \"HOME\" or the corresponding entry in \"/etc/passwd\".
+     *  The necessary functions are declared in the standard library
+     *  header \"pwd.h\". You can switch of this feature by
+     *  <i>#defining</i> NO_HOME_PATH_EXPANSION. Then the method can
+     *  still be called, but with no effect, and will return false
+     *  whenever the string starts with a '~'.
+     *  \\param i index of the string in this setting, that should be
+     *         expanded
+     *  \\return true, if the expansion was successfull. This also
+     *          includes the case that the string did not start with
+     *          a '~'. <br> false, if the string started with a '~'
+     *          but could not be expanded, including due to a defined
+     *          NO_HOME_PATH_EXPANSION.
+     "
+      end
+
+      operation 187685 "expandAllPathStrings"
+	public explicit_return_type "bool"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! expands home path form '~' in all strings
+! This function expands all present strings in this setting.
+     *  So it is simply a loop of expandPathString(const int) over
+     *  all strings.
+     *  \\return true, if all calls of expandPathString(const int)
+     *          returned true, otherwise false
+     "
+      end
+
+      operation 187813 "operator ="
+	public return_type class_ref 136101 // Setting
+	nparams 1
+	  param in name "setting" type class_ref 136101 // Setting
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} & ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} & ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ operators"
+      end
+
+      operation 187941 "readParametersFromRawLine"
+	public explicit_return_type "bool"
+	nparams 4
+	  param inout name "line" explicit_type "char"
+	  param in name "FileName" explicit_type "char"
+	    defaultvalue " NULL"
+	  param in name "LineNumber" explicit_type "int"
+	    defaultvalue "   -1"
+	  param inout name "pickySuccess" explicit_type "bool"
+	    defaultvalue " NULL "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * const ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}, ${t3} * const ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * const ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}, ${t3} * const ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " reading parameters
+ read parameters from one configuration line"
+      end
+
+      operation 188069 "append"
+	public return_type class_ref 136101 // Setting
+	nparams 1
+	  param in name "pSetting" type class_ref 136101 // Setting
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! \\name administration routines for the linked list of Settings
+@{"
+      end
+
+      operation 188197 "getLast"
+	const public return_type class_ref 136101 // Setting
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 188325 "getNext"
+	const cpp_inline public return_type class_ref 136101 // Setting
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_next; };
+"
+	
+	
+      end
+
+      operation 188453 "separateParametersInRawLine"
+	protected explicit_return_type "int"
+	nparams 4
+	  param inout name "line" explicit_type "char"
+	  param in name "FileName" explicit_type "char"
+	  param in name "LineNumber" explicit_type "int"
+	  param inout name "pickySuccess" explicit_type "bool"
+	    defaultvalue " NULL "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * const ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}, ${t3} * const ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * const ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}, ${t3} * const ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ separate the parameters in a line by 0 characters"
+      end
+
+      operation 188581 "readParametersFromPreparedLine"
+	protected explicit_return_type "bool"
+	nparams 5
+	  param in name "nStrings" explicit_type "int"
+	  param in name "line" explicit_type "char"
+	  param in name "FileName" explicit_type "char"
+	  param in name "LineNumber" explicit_type "int"
+	  param inout name "pickySuccess" explicit_type "bool"
+	    defaultvalue " NULL "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, const ${t1} * const ${p1}, const ${t2} * const ${p2}, const ${t3} ${p3}, ${t4} * const ${p4}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, const ${t1} * const ${p1}, const ${t2} * const ${p2}, const ${t3} ${p3}, ${t4} * const ${p4}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " read parameters of a setting in a prepared, i.e zero-separated line"
+      end
+
+      operation 188709 "expandHomePath"
+	protected explicit_return_type "bool"
+	nparams 1
+	  param inout name "path" explicit_type "char"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * * ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * * ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " expand a home directory path from '~'"
+      end
+
+      classrelation 146853 // m_Type (<directional aggregation by value>)
+	relation 146853 *-->
+	  a role_name "m_Type" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 146853 // m_Type (<directional aggregation by value>)
+	  b parent class_ref 136229 // type
+      end
+
+      attribute 140325 "m_IDString"
+	protected explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 140453 "m_verbose"
+	protected explicit_type "bool"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 140581 "m_bool"
+	protected explicit_type "bool"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 140709 "m_int"
+	protected explicit_type "int"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 140837 "m_float"
+	protected explicit_type "float"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 140965 "m_string"
+	protected explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 146981 // m_next (<unidirectional association>)
+	relation 146981 --->
+	  a role_name "m_next" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 146981 // m_next (<unidirectional association>)
+	  b parent class_ref 136101 // Setting
+      end
+
+      operation 188837 "checkIndexRange"
+	const private explicit_return_type "bool"
+	nparams 3
+	  param in name "i" explicit_type "int"
+	  param in name "FunctionName" explicit_type "char"
+	  param in name "pointer" explicit_type "void"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} * const ${p1}, const ${t2} * const ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} * const ${p1}, const ${t2} * const ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+    end
+
+    class 136485 "SettingDef"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "*********************************************************
+   * Class only needed as parameter for Setting::Setting(..)
+   *********************************************************
+! class representing the definition of a setting
+! This class is used in combination with class SettingDataBase.
+   *  In principal an object of this class only exists to get passed to
+   *  to the constructor of class Setting. The user of the settings
+   *  framework only will use this class to create an array of SettingDef
+   *  objects, that will be passed to the two versions of function
+   *  SettingDataBase::readSettings.
+   "
+      operation 188965 "operator <<"
+	friend private explicit_return_type "std::ostream"
+	nparams 2
+	  param inout name "" explicit_type "std::ostream"
+	  param in name "" type class_ref 136485 // SettingDef
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} & ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} & ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 189093 "SettingDef"
+	public explicit_return_type ""
+	nparams 7
+	  param in name "IDString" explicit_type "char"
+	    defaultvalue " NULL"
+	  param in name "altIDString" explicit_type "char"
+	    defaultvalue " NULL"
+	  param in name "Type" type class_ref 136229 // type
+	    defaultvalue " Setting::FLAG"
+	  param in name "minNumParams" explicit_type "int"
+	    defaultvalue " -1"
+	  param in name "maxNumParams" explicit_type "int"
+	    defaultvalue " -1"
+	  param in name "Attributes" explicit_type "int"
+	    defaultvalue "  0"
+	  param in name "HelpString" explicit_type "char"
+	    defaultvalue " NULL "
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * const ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}, const ${t6} * const ${p6}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} * const ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}, const ${t6} * const ${p6}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! constructor
+! Since all parameters have a default value, it is possible
+     *  to create a SettingDef object with the standard constructor.
+     *  This should only be used to create an empty object to
+     *  terminate the definition array, that is passed to the
+     *  functions SettingDataBase::readSettings.
+     *  \\param IDString first identification string of a setting
+     *  \\param alternative IDString first identification string of
+     *         a setting (optional)
+     *  \\param Type the type of the setting (see documentation of
+     *         enumeration type Setting::type).
+     *  \\param minNumParams minimal number of parameters, that should
+     *         be passed with this setting
+     *  \\param minNumParams maximal number of parameters, that should
+     *         be passed with this setting. Default value -1 means
+     *         <i>unlimited</i>
+     *  \\param attributes for the setting (combination of anonymous
+     *         enumeration constants in class Setting)
+     *  \\param HelpString a string containing the text, that should
+     *         be printed out as documentation of the accordingly
+     *         generated Setting (also see SettingDataBase::printHelp)
+     "
+      end
+
+      operation 189221 "~SettingDef"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      classrelation 147109 // m_Type (<directional aggregation by value>)
+	relation 147109 *-->
+	  a role_name "m_Type" multiplicity "" const_relation public
+	    comment "! storage type"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 147109 // m_Type (<directional aggregation by value>)
+	  b parent class_ref 136229 // type
+      end
+
+      attribute 141093 "m_Attributes"
+	const_attribute public explicit_type "int"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+	comment "! attributes"
+      end
+
+      attribute 141221 "m_HelpString"
+	const_attribute public explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * const ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+	comment "! string for help"
+      end
+    end
+
+    class 136613 "SettingStringMap"
+      
+      nformals 1
+      formal name "T" type "class" explicit_default_value ""
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "*********************************************************
+   * Small class for the mapping of string parameters to other values.
+   *********************************************************
+! class for the mapping of a string to another type"
+      operation 189349 "SettingStringMap"
+	cpp_inline public explicit_return_type ""
+	nparams 2
+	  param in name "string" explicit_type "char"
+	    defaultvalue " 0"
+	  param in name "value" explicit_type "T"
+	    defaultvalue " 0  "
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * const ${p0}, ${t1} ${p1}${)}${volatile}${throw} : m_String(string),
+        m_Value(value) {};
+"
+	
+	
+      end
+
+      attribute 141349 "m_String"
+	const_attribute public explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * const ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 141477 "m_Value"
+	public explicit_type "T"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+  end
+
+  deploymentview 128677 "CommandLine"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 130981 "BaseCommandLineHandler"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 135717 // BaseCommandLineHandler
+      end
+    end
+
+    artifact 131109 "CommandLineHandlerSetting"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 135845 // CommandLineHandlerSetting
+      end
+    end
+
+    artifact 131237 "Setting"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 136101 // Setting
+      end
+    end
+
+    artifact 131365 "SettingDef"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 136485 // SettingDef
+      end
+    end
+
+    artifact 131493 "SettingStringMap"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 136613 // SettingStringMap
+      end
+    end
+
+    artifact 131621 "SettingDataBase"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 135973 // SettingDataBase
+      end
+    end
+  end
+end

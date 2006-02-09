@@ -1,0 +1,179 @@
+class Element
+!!!267173.cpp!!!	isRegular() : bool
+  if (tag&ELEMENT_TYPE_NEG)
+    return false;
+  else
+    return true;
+!!!267301.cpp!!!	isRefined() : bool
+  return (tag&ELEMENT_TYPE_REFINED);
+!!!267429.cpp!!!	isIrregular() : bool
+  return (tag&ELEMENT_TYPE_IRREGULAR);
+!!!267557.cpp!!!	isClosure() : bool
+  return (tag&ELEMENT_TYPE_CLOSURE);
+!!!267685.cpp!!!	setRegular() : void
+  tag |= ELEMENT_TYPE_REGULAR;
+  if (tag&ELEMENT_TYPE_REFINED)
+    tag ^=ELEMENT_TYPE_REFINED;
+  if (tag&ELEMENT_TYPE_IRREGULAR)
+    tag ^=ELEMENT_TYPE_IRREGULAR;
+  if (tag&ELEMENT_TYPE_CLOSURE)
+    tag ^=ELEMENT_TYPE_CLOSURE;
+!!!267813.cpp!!!	setRefined() : void
+  tag |= ELEMENT_TYPE_REFINED;
+  if (tag&ELEMENT_TYPE_REGULAR)
+    tag ^=ELEMENT_TYPE_REGULAR;
+  if (tag&ELEMENT_TYPE_IRREGULAR)
+    tag ^=ELEMENT_TYPE_IRREGULAR;
+  if (tag&ELEMENT_TYPE_CLOSURE)
+    tag ^=ELEMENT_TYPE_CLOSURE;
+!!!267941.cpp!!!	setIrregular() : void
+  tag |=ELEMENT_TYPE_IRREGULAR;
+  if (tag&ELEMENT_TYPE_REGULAR)
+    tag ^=ELEMENT_TYPE_REGULAR;
+  if (tag&ELEMENT_TYPE_REFINED)
+    tag ^= ELEMENT_TYPE_REFINED;
+  if (tag&ELEMENT_TYPE_CLOSURE)
+    tag ^=ELEMENT_TYPE_CLOSURE;
+!!!268069.cpp!!!	setClosure() : void
+  tag |=ELEMENT_TYPE_CLOSURE;
+  if (tag&ELEMENT_TYPE_REGULAR)
+    tag ^=ELEMENT_TYPE_REGULAR;
+  if (tag&ELEMENT_TYPE_REFINED)
+    tag ^= ELEMENT_TYPE_REFINED;
+  if (tag&ELEMENT_TYPE_IRREGULAR)
+    tag ^=ELEMENT_TYPE_IRREGULAR;
+!!!268197.cpp!!!	isMarkedForRefinement() : bool
+  return (tag&ELEMENT_MARK_REFINE);
+!!!268325.cpp!!!	isMarkedForCoarsening() : bool
+  return (tag&ELEMENT_MARK_COARSEN);
+!!!268453.cpp!!!	markForRefinement() : void
+  tag |= ELEMENT_MARK_REFINE;
+  if (tag&ELEMENT_MARK_COARSEN)
+    tag ^= ELEMENT_MARK_COARSEN;
+!!!268581.cpp!!!	markForCoarsening() : void
+  tag |= ELEMENT_MARK_COARSEN;
+  if (tag&ELEMENT_MARK_REFINE)
+    tag ^= ELEMENT_MARK_REFINE;
+!!!268709.cpp!!!	markParentForRefinement() : void
+  if (parent) parent->markForRefinement();
+!!!268837.cpp!!!	markChildrenForCoarsening() : void
+  for (int nn = 0; nn < chcount; nn++)
+  {
+    child[nn]->markForCoarsening();
+  }
+!!!268965.cpp!!!	unmarkForRefinement() : void
+  if (tag&ELEMENT_MARK_REFINE)
+    tag ^= ELEMENT_MARK_REFINE;
+!!!269093.cpp!!!	unmarkForCoarsening() : void
+  if (tag&ELEMENT_MARK_COARSEN)
+    tag ^= ELEMENT_MARK_COARSEN;
+!!!269221.cpp!!!	unsetAllRefinementMarks() : void
+  // unmark for refinement
+  if (tag&ELEMENT_MARK_REFINE)
+    tag ^= ELEMENT_MARK_REFINE;
+  // unmark for coarsening
+  if (tag&ELEMENT_MARK_COARSEN)
+    tag ^= ELEMENT_MARK_COARSEN;
+!!!269349.cpp!!!	unsetChildrenRefinementMarks() : void
+  for (int i = 0; i < static_cast<int>(chcount); i++)
+    child[i]->unsetAllRefinementMarks();
+!!!269477.cpp!!!	ref() : void
+  tag |= ELEMENT_MARK_REFERENCE;
+!!!269605.cpp!!!	unref() : void
+  if (tag&ELEMENT_MARK_REFERENCE)
+    tag ^= ELEMENT_MARK_REFERENCE;
+!!!269733.cpp!!!	queryRef() : bool
+  return (tag&ELEMENT_MARK_REFERENCE);
+!!!269861.cpp!!!	mark() : void
+  tag |= ELEMENT_MARK_GENERAL;
+!!!269989.cpp!!!	unmark() : void
+  if (tag&ELEMENT_MARK_GENERAL)
+    tag ^= ELEMENT_MARK_GENERAL;
+!!!270117.cpp!!!	queryMark() : bool
+  return (tag&ELEMENT_MARK_GENERAL);
+!!!270245.cpp!!!	resetAllMarks() : void
+  tag = 0;
+!!!270757.cpp!!!	close() : void
+  tag ^=ELEMENT_TYPE_IRREGULAR;
+  if (tag&ELEMENT_TYPE_REGULAR)
+    tag ^= ELEMENT_TYPE_REGULAR;
+  if (tag&ELEMENT_TYPE_REFINED)
+    tag ^= ELEMENT_TYPE_REFINED;
+  if (tag&ELEMENT_TYPE_CLOSURE)
+    tag ^=ELEMENT_TYPE_CLOSURE;
+!!!271013.cpp!!!	getParent() : Element
+  return parent;
+!!!271141.cpp!!!	setParent(inout theParent : Element) : void
+  parent = theParent;
+!!!271269.cpp!!!	getNoOfChildren() : int
+  return (static_cast<int>(chcount));
+!!!271397.cpp!!!	getChild(in ch : int) : Element
+  return child[ch];
+!!!271525.cpp!!!	resetPointerToChildren() : void
+  if (isRefined() || isIrregular())
+  {
+    if (child)
+    {
+      // for (int nn = 0; nn < static_cast<int>(chcount); nn++)
+      // {
+      //   child[nn]->setParent(0);
+      // }
+      // delete the pointer
+      delete [] child;
+    }
+  }
+
+  // set no. of children
+  chcount = 0;
+  // set pointer to zero
+  child = 0;
+!!!271909.cpp!!!	queryChildrenRefinement() : bool
+  if(isRefined())
+  {
+    for (int i = 0; i < static_cast<int>(chcount); i++)
+    {
+      if (child[i]->isRefined())
+        return true;
+    }
+  }
+  return false;
+!!!272037.cpp!!!	queryChildrenMarks() : bool
+  int i;
+  int counter = 0;
+  int noOfChildren = static_cast<int>(chcount);
+  int minNoOfMarkedChildren = 1; //noOfChildren*refinementPolicy;
+
+  if (isRegular())
+    return false;
+
+  for (i = 0; i < noOfChildren; i++)
+  {
+    if (child[i]->isMarkedForCoarsening())
+    {
+      bool edgFlag = true;
+      for (int nn = 0; nn < child[i]->getNoOfEdges(); nn++)
+      {
+        Edge* edg = child[i]->getEdge(nn);
+        if (edg->isRefined())
+        {
+          edgFlag = false;
+          break;
+        }
+      }
+      if (edgFlag)
+        counter++;
+    }
+  }
+  // set back children makrs
+  if (counter < minNoOfMarkedChildren)
+  {
+    for (int i = 0; i < noOfChildren; i++)
+      child[i]->unmarkForCoarsening();
+    return false;
+  }
+  else
+    return true;
+!!!274981.cpp!!!	setValue(in val : int) : void
+  value = (char)val;
+!!!275109.cpp!!!	getValue() : int
+  return value;

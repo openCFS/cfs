@@ -1,0 +1,42 @@
+class TetrahedronGeometry
+!!!321701.cpp!!!	getGlobalCoords(in t : Element, in lc : double, inout coord : double) : void
+  double* pos[4];
+
+  double l0 = lc[0];
+  double l1 = lc[1];
+  double l2 = lc[2];
+  double l3 = 1.0 - l0 - l1 - l2;
+
+
+  pos[0] = (t->getVertex(0))->getPosition();
+  pos[1] = (t->getVertex(1))->getPosition();
+  pos[2] = (t->getVertex(2))->getPosition();
+  pos[3] = (t->getVertex(3))->getPosition();
+
+  coord[0] = l0*pos[0][0] + l1*pos[1][0] + l2*pos[2][0] + l3*pos[3][0];
+  coord[1] = l0*pos[0][1] + l1*pos[1][1] + l2*pos[2][1] + l3*pos[3][1];
+  coord[2] = l0*pos[0][2] + l1*pos[1][2] + l2*pos[2][2] + l3*pos[3][2];
+!!!321829.cpp!!!	getJacobian(in t : Element, inout Jac : Jacobian) : void
+  double* pos[4];
+  pos[0] = (t->getVertex(0))->getPosition();
+  pos[1] = (t->getVertex(1))->getPosition();
+  pos[2] = (t->getVertex(2))->getPosition();
+  pos[3] = (t->getVertex(3))->getPosition();
+
+  Jac(0,0) = pos[0][0] - pos[3][0];
+  Jac(0,1) = pos[0][1] - pos[3][1];
+  Jac(0,2) = pos[0][2] - pos[3][2];
+
+  Jac(1,0) = pos[1][0] - pos[3][0];
+  Jac(1,1) = pos[1][1] - pos[3][1];
+  Jac(1,2) = pos[1][2] - pos[3][2];
+
+  Jac(2,0) = pos[2][0] - pos[3][0];
+  Jac(2,1) = pos[2][1] - pos[3][1];
+  Jac(2,2) = pos[2][2] - pos[3][2];
+!!!321957.cpp!!!	getVolume(in t : Element) : double
+  Jacobian jac;
+  getJacobian(t,jac);
+  double vol = jac.getDeterminant();
+  vol *= 1.0/6.0;
+  return vol;

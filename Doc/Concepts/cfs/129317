@@ -1,0 +1,1958 @@
+format 22
+"Database" // Current Classes::DataInOut::Database
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 129189 "Database"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 133797 "Database"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 192677 "Database"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Default constructor"
+      end
+
+      operation 192805 "~Database"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Default destructor"
+      end
+
+      operation 192933 "Connect"
+	public explicit_return_type "int"
+	nparams 5
+	  param in name "hostname" explicit_type "std::string"
+	  param in name "port" explicit_type "uint"
+	  param in name "user" explicit_type "std::string"
+	  param in name "passwd" explicit_type "std::string"
+	  param in name "db" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}, ${t4} ${p4}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} ${p2}, ${t3} ${p3}, ${t4} ${p4}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Connect to specified database
+!
+      \\param hostname Hostname of database server
+      \\param port TCP/IP-Port of database server
+      \\param user Username of MySQL-user
+      \\param passwd Password of chosen user
+      \\param db Name of database
+    "
+      end
+
+      operation 193061 "Connect"
+	public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Connect to database defined before"
+      end
+
+      operation 193189 "Close"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Close connection to database"
+      end
+
+      operation 193317 "Query"
+	public explicit_return_type "int"
+	nparams 1
+	  param in name "statement" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Send query to database
+!
+      \\param statement SQL-statement
+    "
+      end
+
+      classrelation 147365 // IsConnected (<directional aggregation by value>)
+	relation 147365 *-->
+	  a role_name "IsConnected" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 147365 // IsConnected (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      operation 193445 "SetMultipleTuple"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "n" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Use INSERT-Statement with multiple Tuple (MySQL only). After final statement the number is set to 1 automatically
+!
+      \\param n Number of tupel per statement
+    "
+      end
+
+      operation 193573 "Lock"
+	public return_type class_ref 129189 // Boolean
+	nparams 1
+	  param in name "tablename" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Lock table. ATTENTION: Nobody else can use table until unlock() is used
+!
+      \\param tablename Table to lock
+    "
+      end
+
+      operation 193701 "Unlock"
+	public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Unlock all tables after use of lock()"
+      end
+
+      operation 193829 "Insert"
+	public explicit_return_type "int"
+	nparams 1
+	  param inout name "d" type class_ref 136869 // dbLineData
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Insert data in specified table
+!
+      \\param d Dataset with the data to insert into table
+    "
+      end
+
+      operation 193957 "InsertAndGetIndex"
+	public explicit_return_type "int"
+	nparams 1
+	  param inout name "d" type class_ref 136869 // dbLineData
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Insert data and get Index
+!
+      \\param d Dataset with the data to insert into table
+    "
+      end
+
+      operation 194085 "EscapeString"
+	public explicit_return_type "std::string"
+	nparams 1
+	  param in name "source" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Convert string to escaped string (use for strings with special characters
+!
+      \\param source String to mask with escape characters if needed
+    "
+      end
+
+      operation 194213 "GetTable"
+	public return_type class_ref 129189 // Boolean
+	nparams 2
+	  param inout name "matrix" type class_ref 136997 // dbMatrix
+	  param in name "tablename" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get table with given name from database
+!
+      \\param matrix [Out] Matrix to store the table
+      \\param tablename [In] Name of table
+    "
+      end
+
+      operation 194341 "GetNoOfResultFields"
+	public explicit_return_type "uint"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get number of fields of last query"
+      end
+
+      operation 194469 "GetNoOfResultLines"
+	public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get number of resulting lines of last query"
+      end
+
+      operation 194597 "SelectFrom"
+	public return_type class_ref 129189 // Boolean
+	nparams 3
+	  param in name "fields" explicit_type "std::string"
+	  param in name "table" explicit_type "std::string"
+	  param in name "where" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Select fields from table. Call FetchFields afterwards to get the table
+!
+      \\param fields Fields to receive from database (comma separated, * for all)
+      \\param table Table name
+      \\param where Special selection (e.g. 'idx=123')
+    "
+      end
+
+      operation 194725 "FetchFields"
+	public return_type class_ref 129189 // Boolean
+	nparams 1
+	  param inout name "matrix" type class_ref 136997 // dbMatrix
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Fetch results of last SQL statement
+!
+      \\param matrix [Out] Matrix to store the table
+    "
+      end
+
+      operation 194853 "Update"
+	public return_type class_ref 129189 // Boolean
+	nparams 3
+	  param in name "table" explicit_type "std::string"
+	  param in name "set" explicit_type "std::string"
+	  param in name "where" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Update selected fields
+!
+      \\param table Table name
+      \\param set Variables to set (e.g: \"value=3\")
+      \\param where Selection (e.g: \"idx=123\")
+    "
+      end
+
+      attribute 142757 "Conn_"
+	protected explicit_type "MYSQL"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 142885 "Hostname_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 143013 "Port_"
+	protected explicit_type "uint"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 143141 "User_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 143269 "Passwd_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 143397 "Db_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 147493 // ResultStored_ (<directional aggregation by value>)
+	relation 147493 *-->
+	  a role_name "ResultStored_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 147493 // ResultStored_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      attribute 143525 "Result_"
+	protected explicit_type "MYSQL_RES"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      operation 194981 "StoreResults"
+	protected return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Store the results of the last query"
+      end
+
+      attribute 143653 "Fields_"
+	protected explicit_type "MYSQL_FIELD"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 147621 // FieldsStored_ (<directional aggregation by value>)
+	relation 147621 *-->
+	  a role_name "FieldsStored_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 147621 // FieldsStored_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      operation 195109 "StoreFields"
+	protected return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Store field information of last query"
+      end
+
+      operation 195237 "FreeResult"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Free memory used for results"
+      end
+
+      classrelation 147749 // TupleNo_ (<directional aggregation by value>)
+	relation 147749 *-->
+	  a role_name "TupleNo_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 147749 // TupleNo_ (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      classrelation 147877 // PendTupleNo_ (<directional aggregation by value>)
+	relation 147877 *-->
+	  a role_name "PendTupleNo_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 147877 // PendTupleNo_ (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      operation 195365 "ResetMultipleTuple"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Just used intern as block counter for tuples per INSERT statement"
+      end
+
+      classrelation 148005 // CurTuple (<directional aggregation by value>)
+	relation 148005 *-->
+	  a role_name "CurTuple" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 148005 // CurTuple (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      attribute 143781 "InsertField_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 143909 "InsertValues_"
+	protected explicit_type "std::stringstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 144037 "InsertTableName_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 136869 "dbLineData"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 197285 "dbLineData"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "tname" explicit_type "std::string"
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} & ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} & ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Default constructor
+! 
+      \\param tname Table name
+    "
+      end
+
+      operation 197413 "~dbLineData"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Default destructor"
+      end
+
+      operation 197541 "Set"
+	stereotype "template"
+	cpp_inline public explicit_return_type "int"
+	nparams 3
+	  param in name "fieldname" explicit_type "char"
+	  param in name "val" explicit_type "T"
+	  param in name "quoted" type class_ref 129189 // Boolean
+	    defaultvalue "TRUE"
+	cpp_decl "    ${comment}template<class T>
+  ${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_IFCN(\"dbLineData::Set\"); 
+      Integer fnamelength = strlen(fieldname);
+      Integer curFLength  = strlen(fields);
+      if (curFLength+fnamelength>=fieldlength)    // Allocate new memory
+        {
+          char *newFields;
+          if (strlen(fieldname)<fieldlength)
+            {
+              newFields = new char[2*fieldlength];
+              fieldlength=fieldlength*2;
+            }
+          else
+            {
+              newFields = new char[fieldlength+2*strlen(fieldname)];
+              fieldlength += 2*strlen(fieldname);
+            }
+          strcpy(newFields,fields);
+          delete[] fields;
+          fields = newFields;
+        }
+      if (curFLength>0)
+        strcat(fields,\",\");
+      strcat(fields,fieldname); 
+
+      Integer valstrlen = ELEMENTBLOCKSIZE;
+      char *valstr = new char[valstrlen];
+      toString(val,valstr,valstrlen);
+      Integer vallength = strlen(valstr);
+      Integer curVLength= strlen(values);
+      if (curVLength+vallength>=valuelength)      // Allocate new memory
+        {
+          char *newValues; 
+          if (strlen(valstr)<valuelength)
+            {
+              newValues = new char[2*valuelength];
+              valuelength=2*valuelength;
+            }
+          else
+            {
+              newValues = new char[valuelength+2*strlen(valstr)];
+              valuelength += 2*strlen(valstr);
+            }
+          strcpy(newValues,values);
+          delete[] values;
+          values = newValues;
+        }
+      if (curVLength>0)
+        strcat(values,\",\");
+      if (quoted)
+        strcat(values,\"'\");
+      strcat(values,valstr);
+      delete[] valstr;
+      if (quoted)
+        strcat(values,\"'\");
+    };
+"
+	
+	
+	comment "! Set field to value
+!
+      \\param fieldname Field name
+      \\param val Value
+      \\param quoted If value is sent to database quoted or unquoted
+    "
+      end
+
+      operation 197669 "Size"
+	public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get size of vector"
+      end
+
+      operation 197797 "Clear"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Clear vector"
+      end
+
+      operation 197925 "SetTableName"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "tname" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set table name"
+      end
+
+      attribute 144421 "tablename"
+	public explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      operation 198053 "GetFieldNames"
+	public explicit_return_type "char"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get field name
+!
+      \\param idx Index
+    "
+      end
+
+      operation 198181 "GetValues"
+	public explicit_return_type "char"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get value (as string)
+!
+      \\param idx Index
+    "
+      end
+
+      attribute 144549 "fields"
+	public explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 144677 "values"
+	public explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      operation 198309 "toString"
+	stereotype "template"
+	cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param in name "val" explicit_type "T"
+	  param inout name "dst" explicit_type "char"
+	  param inout name "strsize" explicit_type "int"
+	cpp_decl "    ${comment}template<class T>
+  ${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, ${t1} * & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_IFCN(\"dbLineData::toString(class T, char*)\");
+      std::stringstream sstream;
+      sstream<<val;
+      Integer len = sstream.str().length();
+      if (len>=strsize)
+        {
+          delete[] dst;
+          strsize = len+1;
+          dst = new char[strsize];
+        }
+      strcpy(dst,sstream.str().c_str());
+    };
+"
+	
+	
+	comment "! Convert any type to a C-string
+!
+      \\param val [In] Value to convert
+      \\param dst [Out] Where to store the string
+    "
+      end
+
+      attribute 144805 "fieldlength"
+	public explicit_type "int"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 144933 "valuelength"
+	public explicit_type "int"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      operation 198437 "dbLineData"
+	cpp_inline private explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw} {};
+"
+	
+	
+	comment "! Empty default constructor - use dbLineData(std::string) instead"
+      end
+
+      operation 198565 "dbLineData"
+	cpp_inline private explicit_return_type ""
+	nparams 1
+	  param in name "x" type class_ref 136869 // dbLineData
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} & ${p0}${)}${volatile}${throw} {
+      ENTER_FCN(\"dbLineData::copy-constructor\");
+      Error(\"dbLineData copy constructor not implemented - should not be used at all\",__FILE__,__LINE__);
+    };
+"
+	
+	
+	comment "! Copy constructor - not implemented - should not be used at all"
+      end
+    end
+
+    class 136997 "dbMatrix"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 198693 "~dbMatrix"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Default destructor, frees table"
+      end
+
+      operation 198821 "appendIntColumn"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "colname" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Appends one column for integer values
+!
+      \\param colname Name of column
+    "
+      end
+
+      operation 198949 "appendDoubleColumn"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "colname" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Appends one column for double values
+!
+      \\param colname Name of column
+    "
+      end
+
+      operation 199077 "appendStringColumn"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "colname" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Appends one column for string values
+!
+      \\param colname Name of column
+    "
+      end
+
+      operation 199205 "operator []"
+	public return_type class_ref 137125 // dbColumn
+	nparams 1
+	  param in name "colname" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Returns column of table with given column name
+!
+      \\param colname column name
+    "
+      end
+
+      operation 199333 "operator []"
+	public return_type class_ref 137125 // dbColumn
+	nparams 1
+	  param in name "i" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Returns i-th column of table
+!
+      \\param i i-th column
+    "
+      end
+
+      operation 199461 "getFieldType"
+	public explicit_return_type "int"
+	nparams 1
+	  param in name "i" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Returns type of i-th column
+!
+      \\param i i-th column
+    "
+      end
+
+      operation 199589 "getFieldName"
+	public explicit_return_type "std::string"
+	nparams 1
+	  param in name "i" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Returns name of i-th column
+!
+      \\param i i-th column
+    "
+      end
+
+      operation 199717 "getNoOfColumn"
+	public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get number of columns"
+      end
+
+      operation 199845 "getNoOfRow"
+	public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get number of rows"
+      end
+
+      operation 199973 "printMatrixDebug"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! print matrix in debug file (only #ifdef DEBUG)"
+      end
+
+      classrelation 148389 // table (<directional aggregation by value>)
+	relation 148389 *-->
+	  stereotype "std::vector"
+	  a role_name "table" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 148389 // table (<directional aggregation by value>)
+	  b parent class_ref 137125 // dbColumn
+      end
+
+      attribute 145061 "field_name"
+	private explicit_type "std::vector<std::string>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 145189 "field_type"
+	private explicit_type "std::vector<int>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 137125 "dbColumn"
+      abstract 
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 195493 "append"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "v" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Append value to the end of the integer-vector. Implemented in dbIntColumn and dbDoubleColumn only.
+!
+      \\param v Value to append at the end
+    "
+      end
+
+      operation 195621 "append"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "v" explicit_type "double"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Append value to the end of the double-vector. Implemented in dbDoubleColumn only.
+!
+      \\param v Value to append at the end
+    "
+      end
+
+      operation 195749 "append"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "v" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Append string to the end of the string-vector. Implemented in dbStringColumn only.
+!
+      \\param v Value to append at the end
+    "
+      end
+
+      operation 195877 "get"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "result" explicit_type "int"
+	  param in name "idx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get value at idx and store it in result. Implemented in dbIntColumn only.
+!
+      \\param result [Out] Pointer, where to store the result
+      \\param idx [In] Index of vector
+    "
+      end
+
+      operation 196005 "get"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "result" explicit_type "double"
+	  param in name "idx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get value at idx and store it in result. Implemented in dbDoubleColumn only.
+!
+      \\param result [Out] Pointer, where to store the result
+      \\param idx [In] Index of vector
+    "
+      end
+
+      operation 196133 "get"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "result" explicit_type "std::string"
+	  param in name "idx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get value at idx and store it in result. Implemented in dbStringColumn only.
+!
+      \\param result [Out] Pointer, where to store the result
+      \\param idx [In] Index of vector
+    "
+      end
+
+      operation 196261 "size"
+	abstract cpp_virtual public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get size of vector"
+      end
+    end
+
+    class 137253 "dbDoubleColumn"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 148133 // <generalisation>
+	relation 148133 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 148133 // <generalisation>
+	  b parent class_ref 137125 // dbColumn
+      end
+
+      operation 196389 "append"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "v" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Append value to the end of the integer-vector. 
+!
+      \\param v Value to append at the end
+    "
+      end
+
+      operation 196517 "append"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "v" explicit_type "double"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Append value to the end of the double-vector. 
+!
+      \\param v Value to append at the end
+    "
+      end
+
+      operation 196645 "get"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "result" explicit_type "double"
+	  param in name "idx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get value at idx and store it in result. 
+!
+      \\param result Pointer, where to store the result
+      \\param idx Index of vector
+    "
+      end
+
+      operation 196773 "size"
+	public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Return size of vector"
+      end
+
+      attribute 144165 "value"
+	private explicit_type "std::vector<double>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 137381 "dbIntColumn"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 148261 // <generalisation>
+	relation 148261 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 148261 // <generalisation>
+	  b parent class_ref 137125 // dbColumn
+      end
+
+      operation 196901 "append"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "v" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Append value to the end of the integer-vector. 
+!
+      \\param v Value to append at the end
+    "
+      end
+
+      operation 197029 "get"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "result" explicit_type "int"
+	  param in name "idx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get value at idx and store it in result. 
+!
+      \\param result Pointer, where to store the result
+      \\param idx Index of vector
+    "
+      end
+
+      operation 197157 "size"
+	public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get size of vector"
+      end
+
+      attribute 144293 "value"
+	private explicit_type "std::vector<int>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 137509 "dbStringColumn"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 148517 // <generalisation>
+	relation 148517 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 148517 // <generalisation>
+	  b parent class_ref 137125 // dbColumn
+      end
+
+      operation 200101 "append"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "v" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Append string to the end of the string-vector. 
+!
+      \\param v Value to append at the end
+    "
+      end
+
+      operation 200229 "get"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "result" explicit_type "std::string"
+	  param in name "idx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get value at idx and store it in result. Implemented in dbStringColumn only.
+!
+      \\param result Pointer, where to store the result
+      \\param idx Index of vector
+    "
+      end
+
+      operation 200357 "size"
+	public explicit_return_type "int"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Return size of vector"
+      end
+
+      attribute 145317 "value"
+	private explicit_type "std::vector<std::string>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 137637 "WriteResultsDatabase"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for writing output-information(grid,results) into a database"
+      classrelation 148645 // <generalisation>
+	relation 148645 ---|>
+	  a public
+	    cpp virtual default "Generated"
+	    classrelation_ref 148645 // <generalisation>
+	  b parent class_ref 131365 // WriteResults
+      end
+
+      operation 200485 "WriteResultsDatabase"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "filename" type class_ref 133285 // Char
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * const ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} * const ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Default constructor"
+      end
+
+      operation 200613 "~WriteResultsDatabase"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor "
+      end
+
+      operation 200741 "Init"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "aptgrid" type class_ref 130085 // Grid
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Initialization with grid"
+      end
+
+      operation 200869 "WriteBasisData"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Write basis information (Calculation parameter, configuration file..)"
+      end
+
+      operation 200997 "WriteGrid"
+	cpp_virtual public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write information about grid on level i in database"
+      end
+
+      operation 201125 "WriteNodeSolutionTransient"
+	cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param in name "sol" explicit_type "NodeStoreSol<Double>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "time" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write nodal solution vector
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param time time of calculation
+      \\param title name for the data    
+    "
+      end
+
+      operation 201253 "WriteElemSolutionTransient"
+	cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param in name "sol" explicit_type "ElemStoreSol<Double>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "time" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write element solution vector
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param time time of calculation
+      \\param title name for the data    
+    "
+      end
+
+      operation 201381 "WriteNodeSolutionHarmonic"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 4
+	  param in name "data" explicit_type "NodeStoreSol<Complex>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract} {Warning(\"WriteNodeSolutionHarmonic not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! write element solution vector 
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param frequency frequency of exciting function
+      \\param format format for writing complex solution (real-imag/amplitude-phase)
+    "
+      end
+
+      operation 201509 "WriteElemSolutionHarmonic"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 4
+	  param in name "data" explicit_type "ElemStoreSol<Complex>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract} {Warning(\"WriteElemSolutionHarmonic not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! write element solution vector
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param frequency frequency of exciting function
+      \\param format format for writing complex solution (real-imag/amplitude-phase)
+    "
+      end
+
+      operation 201637 "WriteNodeHistoryTransient"
+	cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param in name "data" explicit_type "NodeStoreSol<Double>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "time" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"WriteNodeHistoryTransient not yet implemented.\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! write node history vector (transient/static)
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param time time of calculation
+    "
+      end
+
+      operation 201765 "WriteNodeHistoryHarmonic"
+	cpp_inline public explicit_return_type "void"
+	nparams 4
+	  param in name "data" explicit_type "NodeStoreSol<Complex>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract} {Error(\"WriteNodeHistoryHarmonic not yet implemented.\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! write nodal history vector (harmonic)
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param frequency frequency of exciting function
+      \\param frequencyStep step of calculation
+      \\param format format for writing complex solution (real-imag/amplitude-phase)
+    "
+      end
+
+      operation 201893 "WriteConfFile"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Store config-file in database"
+      end
+
+      classrelation 148773 // Db_ (<directional aggregation by value>)
+	relation 148773 *-->
+	  a role_name "Db_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 148773 // Db_ (<directional aggregation by value>)
+	  b parent class_ref 133797 // Database
+      end
+
+      operation 202021 "InitHistoryFiles"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Dummy function"
+      end
+
+      operation 202149 "SolutionTypeToString"
+	const protected explicit_return_type "std::string"
+	nparams 1
+	  param in name "type" type class_ref 129573 // SolutionType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Convertes enum SolutionType to string"
+      end
+
+      operation 202277 "WriteElementNodes"
+	protected explicit_return_type "long"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Save information of finite/boundary elements"
+      end
+
+      operation 202405 "WriteNodeCoordinates"
+	protected explicit_return_type "long"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Save coordinates of the used grid"
+      end
+
+      operation 202533 "WriteNodalResult"
+	protected explicit_return_type "void"
+	nparams 6
+	  param in name "title" explicit_type "std::string"
+	  param in name "x" explicit_type "Vector<Double>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "time" type class_ref 128549 // Double
+	  param in name "nrNodes" type class_ref 129061 // Integer
+	  param in name "nrDofs" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Save nodal results
+!
+      \\param title Title of the results
+      \\param x Array with cell results
+      \\param step Number of the step of the calculation
+      \\param time Time of the calculation
+      \\param nrDofs Number of degrees of freedom
+    "
+      end
+
+      operation 202661 "WriteElementResult"
+	protected explicit_return_type "void"
+	nparams 6
+	  param in name "title" explicit_type "std::string"
+	  param in name "x" explicit_type "Vector<Double>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "time" type class_ref 128549 // Double
+	  param in name "nrNodes" type class_ref 129061 // Integer
+	  param in name "nrDofs" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Save elements results
+!
+      \\param title Title of the results
+      \\param x Array with cell results
+      \\param step Number of the step of the calculation
+      \\param time Time of the calculation
+      \\param nrDofs Number of degrees of freedom
+    "
+      end
+
+      attribute 145445 "InputParamIdx_"
+	protected explicit_type "ulong"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 145573 "ResultIdx_"
+	protected explicit_type "ulong"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 145701 "CalculationIdx_"
+	protected explicit_type "ulong"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+  end
+
+  deploymentview 128805 "Database"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 131749 "Database"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 133797 // Database
+      end
+    end
+
+    artifact 131877 "dbColumn"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 137125 // dbColumn
+      end
+    end
+
+    artifact 132005 "dbDoubleColumn"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 137253 // dbDoubleColumn
+      end
+    end
+
+    artifact 132133 "dbIntColumn"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 137381 // dbIntColumn
+      end
+    end
+
+    artifact 132261 "dbLineData"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 136869 // dbLineData
+      end
+    end
+
+    artifact 132389 "dbMatrix"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 136997 // dbMatrix
+      end
+    end
+
+    artifact 132517 "dbStringColumn"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 137509 // dbStringColumn
+      end
+    end
+
+    artifact 132645 "WriteResultsDatabase"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 137637 // WriteResultsDatabase
+      end
+    end
+  end
+end

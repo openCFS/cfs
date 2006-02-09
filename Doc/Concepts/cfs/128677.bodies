@@ -1,0 +1,37 @@
+class StdVector
+!!!626341.cpp!!!	operator =(in x : TYPE) : StdVectorListInitializer<TYPE>
+    Clear();
+    Push_back(x);
+    return StdVectorListInitializer<TYPE>(this);
+  
+!!!626597.cpp!!!	operator [](in i : UInt) : TYPE
+     
+    #ifdef CHECK_INDEX
+    if (i >= size_){
+      (*warning) <<  "Vector: invalid access to element "
+                 << i+1
+                 << " \n Length of vector: " << size_;
+      Warning(__FILE__,__LINE__);
+    }
+    #endif
+    return  data_[i];
+  
+!!!626725.cpp!!!	operator [](in i : UInt) : TYPE
+     
+#ifdef CHECK_INDEX
+     if (i >= size_){
+      (*warning) <<  "Vector: invalid access to element "
+                 << i+1
+                 << " \n Length of vector: " << size_;
+      Warning(__FILE__,__LINE__);
+    }
+#endif
+    return  data_[i];
+  
+!!!626853.cpp!!!	GetPointer() : TYPE
+#ifdef CHECK_MEMORY
+    if (!data_)
+      Warning("Vector: undefined Vector",__FILE__,__LINE__);
+#endif
+    return data_;
+  

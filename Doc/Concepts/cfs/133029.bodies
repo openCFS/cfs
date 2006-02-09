@@ -1,0 +1,25 @@
+class BaseElemStoreSol
+!!!593573.cpp!!!	GetTotalNumDofs() : UInt
+ 
+    ENTER_IFCN( "BaseElemStoreSol::GetTotalNumDofs" );
+    return totalDofs_; 
+  
+!!!593701.cpp!!!	GetDof(in solType : SolutionType =  NO_SOLUTION_TYPE) : UInt
+    ENTER_IFCN( "BaseElemStoreSol::GetDof" );
+    if (numSolutions_ == 1 && solType == NO_SOLUTION_TYPE)
+      return (*solDofs_.begin()).second;
+    else
+      return (*solDofs_.find(solType)).second;
+  
+!!!593829.cpp!!!	GetNumElems() : UInt
+    ENTER_IFCN( "BaseElemStoreSol::GetNumElems" );
+    return numElems_;
+  
+!!!593957.cpp!!!	GetSize() : UInt
+    ENTER_IFCN( "BaseElemStoreSol::GetSize()" );
+    return length_;
+  
+!!!594085.cpp!!!	GetNumSolutions() : UInt
+    ENTER_IFCN( "BaseElemStoreSol::GetNumSolutions()" );
+    return numSolutions_;
+  

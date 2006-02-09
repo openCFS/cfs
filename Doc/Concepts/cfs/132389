@@ -1,0 +1,720 @@
+format 22
+"ODESolve" // Current Classes::ODESolve
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 131749 "ODESolve"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 150949 "BaseODESolver"
+      abstract 
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Base class from which all ODE solvers are derived"
+      operation 513189 "BaseODESolver"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw} {
+      ENTER_FCN( \"BaseODESolver::BaseODESolver\" );
+      successLastSolve_     = false;
+      numStepsLastSolve_    = 0;
+      numBadStepsLastSolve_ = 0;
+      eps_                  = 1e-6;
+      maxSteps_             = 40000000;
+      safetyFac_            = 0.5;
+    };
+"
+	
+	
+	comment "! Default Constructor"
+      end
+
+      operation 513317 "~BaseODESolver"
+	cpp_virtual cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {
+      ENTER_FCN( \"BaseODESolver::~BaseODESolver\" );
+    };
+"
+	
+	
+	comment "! Default Destructor"
+      end
+
+      operation 513445 "Solve"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 7
+	  param in name "tInit" type class_ref 128549 // Double
+	  param in name "tStop" type class_ref 128549 // Double
+	  param inout name "y" explicit_type "StdVector<Double>"
+	  param inout name "myODE" type class_ref 171685 // BaseODEProblem
+	  param inout name "hInit" type class_ref 128549 // Double
+	  param in name "hMin" type class_ref 128549 // Double
+	    defaultvalue " -1.0"
+	  param in name "hMax" type class_ref 128549 // Double
+	    defaultvalue " -1.0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} & ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Compute the solution of the initial value problem
+! \\param tInit     initial time
+! \\param tStop     final time
+! \\param y         containing on input the initial values and on output
+!                  the solution
+! \\param myODE     object containing information on the right hand side
+!                  function of the ODE
+! \\param hInit     Suggestion for size of first time step
+! \\param hMin      Minimal allowed size for time step
+! \\param hMax      Maximal allowed size for time step"
+      end
+
+      operation 513573 "GetStatus"
+	cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param inout name "success" explicit_type "bool"
+	  param inout name "numSteps" type class_ref 129061 // Integer
+	  param inout name "numBadSteps" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_FCN( \"BaseODESolver::GetStatus\" );
+      success     = successLastSolve_;
+      numSteps    = numStepsLastSolve_;
+      numBadSteps = numBadStepsLastSolve_;
+    };
+"
+	
+	
+	comment "! Query status information on last solve
+! \\param success     Was the last solve successful?
+! \\param numSteps    Number of time steps for last solve
+! \\param numBadSteps Number of rejected time steps in last solve"
+      end
+
+      operation 513701 "GetEps"
+	cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return eps_;};
+"
+	
+	
+      end
+
+      operation 513829 "SetEps"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "epsNew" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} {eps_ = epsNew;};
+"
+	
+	
+      end
+
+      operation 513957 "GetMaxSteps"
+	cpp_inline public return_type class_ref 129061 // Integer
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return maxSteps_;};
+"
+	
+	
+      end
+
+      operation 514085 "SetMaxSteps"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "maxStepsNew" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_IFCN( \"BaseODESolver::SetMaxSteps\" );
+      maxSteps_ = maxStepsNew;
+    };
+"
+	
+	
+      end
+
+      operation 514213 "GetSafetyFac"
+	cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return safetyFac_;};
+"
+	
+	
+      end
+
+      operation 514341 "SetSafetyFac"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "safetyFacNew" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} {safetyFac_ = safetyFacNew;};
+"
+	
+	
+      end
+
+      operation 514469 "SetNumEl"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "numEl" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} {
+      ENTER_IFCN( \"ODESolver_RKF45::SetNumEl\" );
+      numEl_ = numEl;
+    };
+"
+	
+	
+      end
+
+      classrelation 244517 // numEl_ (<directional aggregation by value>)
+	relation 244517 *-->
+	  a role_name "numEl_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 244517 // numEl_ (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      attribute 190373 "successLastSolve_"
+	protected explicit_type "bool"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 244645 // numStepsLastSolve_ (<directional aggregation by value>)
+	relation 244645 *-->
+	  a role_name "numStepsLastSolve_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 244645 // numStepsLastSolve_ (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      classrelation 244773 // numBadStepsLastSolve_ (<directional aggregation by value>)
+	relation 244773 *-->
+	  a role_name "numBadStepsLastSolve_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 244773 // numBadStepsLastSolve_ (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      classrelation 244901 // eps_ (<directional aggregation by value>)
+	relation 244901 *-->
+	  a role_name "eps_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 244901 // eps_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 245029 // maxSteps_ (<directional aggregation by value>)
+	relation 245029 *-->
+	  a role_name "maxSteps_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 245029 // maxSteps_ (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      classrelation 245157 // safetyFac_ (<directional aggregation by value>)
+	relation 245157 *-->
+	  a role_name "safetyFac_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 245157 // safetyFac_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+    end
+
+    class 172453 "ODESolver_ExplEuler"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Explizit Euler method to solve ODEs"
+      classrelation 245285 // <generalisation>
+	relation 245285 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 245285 // <generalisation>
+	  b parent class_ref 150949 // BaseODESolver
+      end
+
+      operation 514597 "ODESolver_ExplEuler"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw} {
+      ENTER_FCN( \"ODESolver_ExplEuler::ODESolver_ExplEuler\" );
+    };
+"
+	
+	
+	comment "! Default Constructor"
+      end
+
+      operation 514725 "~ODESolver_ExplEuler"
+	cpp_virtual cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {
+      ENTER_FCN( \"ODESolver_ExplEuler::~ODESolver_ExplEuler\" );
+    };
+"
+	
+	
+	comment "! Default Destructor"
+      end
+
+      operation 514853 "Solve"
+	public explicit_return_type "void"
+	nparams 7
+	  param in name "tInit" type class_ref 128549 // Double
+	  param in name "tStop" type class_ref 128549 // Double
+	  param inout name "y" explicit_type "StdVector<Double>"
+	  param inout name "myODE" type class_ref 171685 // BaseODEProblem
+	  param in name "hInit" type class_ref 128549 // Double
+	    defaultvalue " -1.0"
+	  param in name "hMin" type class_ref 128549 // Double
+	    defaultvalue " -1.0"
+	  param in name "hMax" type class_ref 128549 // Double
+	    defaultvalue " -1.0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Compute the solution of the initial value problem
+! \\param tInit     initial time
+! \\param tStop     final time
+! \\param y         containing on input the initial values and on output
+!                  the solution
+! \\param myODE     object containing information on the right hand side
+!                  function of the ODE
+! \\param hInit     Suggestion for size of first time step
+! \\param hMin      Minimal allowed size for time step
+! \\param hMax      Maximal allowed size for time step"
+      end
+    end
+
+    class 172581 "ODESolver_RKF45"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Runge-Kutta solver for systems of first order ode's."
+      classrelation 245413 // <generalisation>
+	relation 245413 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 245413 // <generalisation>
+	  b parent class_ref 150949 // BaseODESolver
+      end
+
+      operation 514981 "ODESolver_RKF45"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw} {
+      ENTER_FCN( \"ODESolver_RKF45::ODESolver_RKF45\" );
+    };
+"
+	
+	
+	comment "! Default Constructor"
+      end
+
+      operation 515109 "~ODESolver_RKF45"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {
+      ENTER_FCN( \"ODESolver_RKF45::~ODESolver_RKF45\" );
+    };
+"
+	
+	
+	comment "! Default Destructor"
+      end
+
+      operation 515237 "Solve"
+	public explicit_return_type "void"
+	nparams 7
+	  param in name "tInit" type class_ref 128549 // Double
+	  param in name "tStop" type class_ref 128549 // Double
+	  param inout name "yInitOut" explicit_type "StdVector<Double>"
+	  param inout name "myODE" type class_ref 171685 // BaseODEProblem
+	  param inout name "hInit" type class_ref 128549 // Double
+	  param in name "hMin" type class_ref 128549 // Double
+	    defaultvalue " 0.0"
+	  param in name "hMax" type class_ref 128549 // Double
+	    defaultvalue " -1.0 "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} & ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} & ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Compute the solution of the initial value problem
+! \\param tInit     initial time
+! \\param tStop     final time
+! \\param yIintOut  containing on input the initial values and on output
+!                  the solution
+! \\param myODE     object containing information on the right hand side
+!                  function of the ODE
+! \\param hInit     Suggestion for size of first time step
+! \\param hMin      Minimal allowed size for time step
+! \\param hMax      Maximal allowed size for time step"
+      end
+
+      operation 515365 "RKAdaptiveStepsize"
+	private explicit_return_type "void"
+	nparams 8
+	  param inout name "y" explicit_type "StdVector<Double>"
+	  param inout name "dydt" explicit_type "StdVector<Double>"
+	  param inout name "t" type class_ref 128549 // Double
+	  param in name "hTry" type class_ref 128549 // Double
+	  param in name "yScal" explicit_type "StdVector<Double>"
+	  param inout name "hDid" type class_ref 128549 // Double
+	  param inout name "hNext" type class_ref 128549 // Double
+	  param inout name "myODE" type class_ref 171685 // BaseODEProblem
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, const ${t3} ${p3}, const ${t4} & ${p4}, ${t5} & ${p5}, ${t6} & ${p6}, ${t7} & ${p7}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, const ${t3} ${p3}, const ${t4} & ${p4}, ${t5} & ${p5}, ${t6} & ${p6}, ${t7} & ${p7}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "   void SetNumEl (Integer numEl){
+ENTER_IFCN( \"ODESolver_RKF45::SetNumEl\" );
+ numEl_ = numEl;
+}
+ Integer numEl_ ;
+! Controlls RKF45 step by monitoring local truncation error
+! and adjusting stepsize
+! \\param y         containing on input the initial values and on output
+!                  the solution
+! \\param dydt      containing the known derivatives of y at time t
+! \\param t         current time
+! \\param htry      Suggested step size
+! \\param vector    yscal: vector against which the error is scaled 
+! \\param hdid      Stepsize that was actually accomplished
+! \\param hnext     Estimation for next time step
+! \\param myODE     object containing information on the right hand side
+!                  function of the ODE "
+      end
+
+      operation 515493 "RKCashKarp"
+	private explicit_return_type "void"
+	nparams 7
+	  param in name "y" explicit_type "StdVector<Double>"
+	  param in name "dydt" explicit_type "StdVector<Double>"
+	  param in name "t" type class_ref 128549 // Double
+	  param in name "h" type class_ref 128549 // Double
+	  param inout name "yOut" explicit_type "StdVector<Double>"
+	  param inout name "yError" explicit_type "StdVector<Double>"
+	  param inout name "myODE" type class_ref 171685 // BaseODEProblem
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, ${t4} & ${p4}, ${t5} & ${p5}, ${t6} & ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, ${t4} & ${p4}, ${t5} & ${p5}, ${t6} & ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Compute one Cash-Karp Runge-Kutta step
+! \\param y         containing the given value at time t
+! \\param dydt      containing the known derivatives of y at time t
+! \\param t         current time
+! \\param h         step size
+! \\param vector    yout contains the incremented output values
+! \\param vector    yerror Estimation of local truncation error in yerror
+! \\param myODE     object containing information on the right hand side
+!                  function of the ODE "
+      end
+    end
+
+    class 172709 "ODESolver_Rosenbrock"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Implicit Rosenbrock solver for systems of first order ode's."
+      classrelation 245541 // <generalisation>
+	relation 245541 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 245541 // <generalisation>
+	  b parent class_ref 150949 // BaseODESolver
+      end
+
+      operation 515621 "ODESolver_Rosenbrock"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw} {
+      ENTER_FCN( \"ODESolver_Rosenbrock::ODESolver_Rosenbrock\" );
+
+
+    };
+"
+	
+	
+	comment "! Default Constructor"
+      end
+
+      operation 515749 "~ODESolver_Rosenbrock"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {
+      ENTER_FCN( \"ODESolver_Rosenbrock::~ODESolver_Rosenbrock\" );
+    };
+"
+	
+	
+	comment "! Default Destructor"
+      end
+
+      operation 515877 "Solve"
+	public explicit_return_type "void"
+	nparams 7
+	  param in name "tInit" type class_ref 128549 // Double
+	  param in name "tStop" type class_ref 128549 // Double
+	  param inout name "yInitOut" explicit_type "StdVector<Double>"
+	  param inout name "myODE" type class_ref 171685 // BaseODEProblem
+	  param inout name "hInit" type class_ref 128549 // Double
+	  param in name "hMin" type class_ref 128549 // Double
+	    defaultvalue " -1.0"
+	  param in name "hMax" type class_ref 128549 // Double
+	    defaultvalue " -1.0 "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} & ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} & ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Compute the solution of the initial value problem
+! \\param tInit     initial time
+! \\param tStop     final time
+! \\param yIintOut  containing on input the initial values and on output
+!                  the solution
+! \\param myODE     object containing information on the right hand side
+!                  function of the ODE
+! \\param hInit     Suggestion for size of first time step
+! \\param hMin      Minimal allowed size for time step
+! \\param hMax      Maximal allowed size for time step"
+      end
+
+      operation 516005 "RosenbAdaptiveStepsize"
+	private explicit_return_type "void"
+	nparams 8
+	  param inout name "y" explicit_type "StdVector<Double>"
+	  param inout name "dydt" explicit_type "StdVector<Double>"
+	  param inout name "t" type class_ref 128549 // Double
+	  param in name "hTry" type class_ref 128549 // Double
+	  param in name "yScal" explicit_type "StdVector<Double>"
+	  param inout name "hDid" type class_ref 128549 // Double
+	  param inout name "hNext" type class_ref 128549 // Double
+	  param inout name "myODE" type class_ref 171685 // BaseODEProblem
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, const ${t3} ${p3}, const ${t4} & ${p4}, ${t5} & ${p5}, ${t6} & ${p6}, ${t7} & ${p7}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, const ${t3} ${p3}, const ${t4} & ${p4}, ${t5} & ${p5}, ${t6} & ${p6}, ${t7} & ${p7}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Computes and controlls Rosenbrock step by monitoring local 
+! truncation error and adjusting stepsize
+! \\param y         containing on input the initial values and on output
+!                  the solution
+! \\param dydt      containing the known derivatives of y at time t
+! \\param t         current time
+! \\param htry      Suggested step size
+! \\param vector    yscal: vector against which the error is scaled 
+! \\param hdid      Stepsize that was actually accomplished
+! \\param hnext     Estimation for next time step
+! \\param myODE     object containing information on the right hand side
+!                  function of the ODE "
+      end
+
+      operation 516133 "LUDecomposition"
+	private explicit_return_type "void"
+	nparams 4
+	  param inout name "a" explicit_type "Matrix<Double>"
+	  param in name "n" type class_ref 128421 // UInt
+	  param inout name "indx" explicit_type "StdVector<UInt>"
+	  param inout name "d" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " LU-Decomposition"
+      end
+
+      operation 516261 "LUBackSub"
+	private explicit_return_type "void"
+	nparams 4
+	  param inout name "a" explicit_type "Matrix<Double>"
+	  param in name "n" type class_ref 128421 // UInt
+	  param inout name "indx" explicit_type "StdVector<UInt>"
+	  param inout name "b" explicit_type "StdVector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " LU-BAcksubstitution"
+      end
+    end
+  end
+
+  deploymentview 132901 "ODESolve"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 167077 "BaseODESolver"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 150949 // BaseODESolver
+      end
+    end
+
+    artifact 167205 "ODESolver_ExplEuler"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 172453 // ODESolver_ExplEuler
+      end
+    end
+
+    artifact 167333 "ODESolver_RKF45"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 172581 // ODESolver_RKF45
+      end
+    end
+
+    artifact 167461 "ODESolver_Rosenbrock"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 172709 // ODESolver_Rosenbrock
+      end
+    end
+  end
+end

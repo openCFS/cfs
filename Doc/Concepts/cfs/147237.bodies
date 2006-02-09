@@ -1,0 +1,66 @@
+class TetrahedronMeasure
+!!!322853.cpp!!!	getArea(in face : int, inout t : Element) : double
+  Vertex* v0 = t->getVertexAtFace(face,0);
+  Vertex* v1 = t->getVertexAtFace(face,1);
+  Vertex* v2 = t->getVertexAtFace(face,2);
+
+  double x1[3];
+  double x2[3];
+
+  for (int i = 0; i < 3; i++)
+  {
+    x1[i] = (*v1)[i] - (*v0)[i];
+    x2[i] = (*v2)[i] - (*v0)[i];
+  }
+
+  double normal[3];
+  grd::crossProduct(normal,x1,x2);
+  double area = fabs(grd::length(normal)) * 0.5;
+
+  return area;
+!!!322981.cpp!!!	print(inout filename : char) : void
+  ofstream theFile;
+
+  theFile.open(filename);
+
+  // initialize
+  for (unsigned int i = 0; i < measure.size(); i++)
+  {
+    theFile << i << "   " << (measure[i]) << '\n';
+  }
+
+  // open parameter file
+  theFile.close();
+!!!323109.cpp!!!	getTetMeasure(inout t : Element) : void
+  double area;
+  double volume;
+  double edgeSize;
+  Jacobian jac;
+  Edge* eg = new Edge;
+  TetrahedronGeometry tetGeo;
+
+  // Get Area
+  area = 0.0;
+  for (int face = 0; face < 4; face++)
+  {
+    area += getArea(face,t);
+  }
+
+  // Get volume
+  tetGeo.getJacobian(t,jac);
+  volume = jac.getDeterminant();
+  volume = fabs(volume);
+
+  // get largest edge
+  edgeSize = 0.0;
+  for (int edge = 0; edge < 6; edge++)
+  {
+    eg->setVertex(0,t->getVertexAtEdge(edge,0));
+    eg->setVertex(1,t->getVertexAtEdge(edge,1));
+    double val = eg->length();
+    edgeSize = (edgeSize > val) ? edgeSize : val;
+  }
+
+  double res = edgeSize*area / volume;
+  measure.push_back(res);
+
