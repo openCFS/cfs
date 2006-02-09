@@ -1,0 +1,351 @@
+format 22
+"NetGen" // Current Classes::Domain::NetGen
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 131493 "NetGen"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 149541 "InterfaceNetGen"
+      
+      nformals 1
+      formal name "Dim" type "class" explicit_default_value ""
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "/ Interface to library NetGen"
+      classrelation 170149 // <generalisation>
+	relation 170149 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 170149 // <generalisation>
+	  b parent class_ref 130085 // Grid
+      end
+
+      operation 355365 "InterfaceNetGen"
+	public explicit_return_type ""
+	nparams 1
+	  param inout name "aptFileType" type class_ref 133157 // FileType
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * const ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * const ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "/ Constructor with parameter - pointer to FileType for reading initial grid"
+      end
+
+      operation 355493 "~InterfaceNetGen"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "/ Deconstructor"
+      end
+
+      operation 355621 "SubdivideUniform"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "level" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Uniform subdivision of domain"
+      end
+
+      operation 355749 "GetCoordOfNodesElem"
+	cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "numElem" type class_ref 129061 // Integer
+	  param in name "numlevel" type class_ref 129061 // Integer
+	  param in name "numnodes" type class_ref 129061 // Integer
+	  param inout name "ptCoordElem" explicit_type "Dim"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, ${t3} * ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, ${t3} * ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Get coordinates of all nodes which belong to element"
+      end
+
+      operation 355877 "GetCoordinateNode"
+	cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param in name "inode" type class_ref 129061 // Integer
+	  param in name "numlevel" type class_ref 129061 // Integer
+	  param inout name "rfPoint" explicit_type "Dim"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Get coordinates of node with global number inode"
+      end
+
+      operation 356005 "GetConnection"
+	cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param inout name "connect" explicit_type "Vector<Integer>"
+	  param in name "iElem" type class_ref 129061 // Integer
+	  param in name "level" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Get connection of element"
+      end
+
+      operation 356133 "GetMaxnumnodes"
+	cpp_virtual public return_type class_ref 129061 // Integer
+	nparams 1
+	  param in name "numlevel" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Return maximum number of nodes"
+      end
+
+      operation 356261 "GetMaxnumElem"
+	cpp_virtual public return_type class_ref 129061 // Integer
+	nparams 1
+	  param in name "numlevel" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Return maximum number of elements "
+      end
+
+      operation 356389 "GetNumNodesPerElem"
+	public return_type class_ref 129061 // Integer
+	nparams 2
+	  param in name "iElem" type class_ref 129061 // Integer
+	  param in name "level" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Return num of nodes per element i"
+      end
+
+      operation 356517 "Read"
+	cpp_virtual public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Put information about initial grid in mesh"
+      end
+
+      operation 356645 "GetptElem"
+	cpp_virtual public explicit_return_type "BaseElem"
+	nparams 1
+	  param in name "iElem" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/"
+      end
+
+      operation 356773 "GetDim"
+	cpp_virtual cpp_inline public return_type class_ref 129061 // Integer
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return dim_; };
+"
+	
+	
+	comment "/"
+      end
+
+      operation 356901 "SetRefinementFlag"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "ei" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " mesh.GetDimension();}
+! Here we mark elements for refinement: ei - number of elem"
+      end
+
+      operation 357029 "SetRefinementFlag"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "ei" explicit_type "std::vector<Integer>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 357157 "Refine"
+	cpp_virtual public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Do refinement of elements, which we mark through function SetRefinementFlag"
+      end
+
+      classrelation 170277 // ptFileType (<unidirectional association>)
+	relation 170277 --->
+	  a role_name "ptFileType" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 170277 // ptFileType (<unidirectional association>)
+	  b parent class_ref 133157 // FileType
+      end
+
+      attribute 161445 "mesh"
+	private explicit_type "Mesh"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 170405 // dim_ (<directional aggregation by value>)
+	relation 170405 *-->
+	  a role_name "dim_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 170405 // dim_ (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      operation 357285 "Init"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "!"
+      end
+
+      classrelation 170533 // DoesGridSubdivide (<directional aggregation by value>)
+	relation 170533 *-->
+	  a role_name "DoesGridSubdivide" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 170533 // DoesGridSubdivide (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      attribute 161573 "allptElem"
+	private explicit_type "std::vector<BaseElem*>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+  end
+
+  deploymentview 131109 "NetGen"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 141733 "InterfaceNetGen"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 149541 // InterfaceNetGen
+      end
+    end
+  end
+end

@@ -1,0 +1,4071 @@
+format 22
+"DataInOut" // Current Classes::DataInOut
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 128677 "DataInOut"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 129701 "MaterialData"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for Material Data
+! 
+    Interface class for getting material data
+  "
+      classrelation 139557 // density (<directional aggregation by value>)
+	relation 139557 *-->
+	  a role_name "density" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 139557 // density (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 139685 // compressibility (<directional aggregation by value>)
+	relation 139685 *-->
+	  a role_name "compressibility" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 139685 // compressibility (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 139813 // damp_alfa (<directional aggregation by value>)
+	relation 139813 *-->
+	  a role_name "damp_alfa" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 139813 // damp_alfa (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 139941 // damp_beta (<directional aggregation by value>)
+	relation 139941 *-->
+	  a role_name "damp_beta" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 139941 // damp_beta (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 140069 // BoverA (<directional aggregation by value>)
+	relation 140069 *-->
+	  a role_name "BoverA" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 140069 // BoverA (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 140197 // heatCapacity (<directional aggregation by value>)
+	relation 140197 *-->
+	  a role_name "heatCapacity" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 140197 // heatCapacity (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 140325 // thermalConductivity (<directional aggregation by value>)
+	relation 140325 *-->
+	  a role_name "thermalConductivity" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 140325 // thermalConductivity (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 140453 // eModule (<directional aggregation by value>)
+	relation 140453 *-->
+	  a role_name "eModule" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 140453 // eModule (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 140581 // nu (<directional aggregation by value>)
+	relation 140581 *-->
+	  a role_name "nu" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 140581 // nu (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 140709 // LameLambda (<directional aggregation by value>)
+	relation 140709 *-->
+	  a role_name "LameLambda" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 140709 // LameLambda (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 140837 // LameMu (<directional aggregation by value>)
+	relation 140837 *-->
+	  a role_name "LameMu" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 140837 // LameMu (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 140965 // Esat (<directional aggregation by value>)
+	relation 140965 *-->
+	  a role_name "Esat" multiplicity "" private
+	    comment "electric field intensity value for satuaration"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 140965 // Esat (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 141093 // Psat (<directional aggregation by value>)
+	relation 141093 *-->
+	  a role_name "Psat" multiplicity "" private
+	    comment "electric polarization value for satuaration"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 141093 // Psat (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 141221 // aJiles_ (<directional aggregation by value>)
+	relation 141221 *-->
+	  a role_name "aJiles_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 141221 // aJiles_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 141349 // alphaJiles_ (<directional aggregation by value>)
+	relation 141349 *-->
+	  a role_name "alphaJiles_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 141349 // alphaJiles_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 141477 // kJiles_ (<directional aggregation by value>)
+	relation 141477 *-->
+	  a role_name "kJiles_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 141477 // kJiles_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 141605 // cJiles_ (<directional aggregation by value>)
+	relation 141605 *-->
+	  a role_name "cJiles_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 141605 // cJiles_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 141733 // dirPol (<directional aggregation by value>)
+	relation 141733 *-->
+	  a role_name "dirPol" multiplicity "" private
+	    comment "direction of polarization"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 141733 // dirPol (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      attribute 130469 "hystType_"
+	private explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 141861 // scaledMatDat (<directional aggregation by value>)
+	relation 141861 *-->
+	  a role_name "scaledMatDat" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 141861 // scaledMatDat (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      attribute 130597 "name"
+	private explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 130725 "bhCurveFile_"
+	private explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+	comment "!< name of BH-Curve datafile"
+      end
+
+      attribute 130853 "piezoMatrix_"
+	private explicit_type "Matrix<Double>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 130981 "piezoMatrixC_"
+	private explicit_type "Matrix<Double>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 131109 "permeaMatrix"
+	private explicit_type "Matrix<Double>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 131237 "conducMatrix"
+	private explicit_type "Matrix<Double>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 131365 "complexPiezoMatrix_"
+	private explicit_type "Matrix<Complex>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 141989 // stiffnessMatrix_ (<directional aggregation by value>)
+	relation 141989 *-->
+	  stereotype "Matrix"
+	  a role_name "stiffnessMatrix_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 141989 // stiffnessMatrix_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 142117 // complexStiffnessMatrix_ (<directional aggregation by value>)
+	relation 142117 *-->
+	  stereotype "Matrix"
+	  a role_name "complexStiffnessMatrix_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 142117 // complexStiffnessMatrix_ (<directional aggregation by value>)
+	  b parent class_ref 129317 // Complex
+      end
+
+      classrelation 142245 // matNr (<directional aggregation by value>)
+	relation 142245 *-->
+	  a role_name "matNr" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 142245 // matNr (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 142373 // nonlin (<directional aggregation by value>)
+	relation 142373 *-->
+	  a role_name "nonlin" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 142373 // nonlin (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      operation 156069 "MaterialData"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Default constructor"
+      end
+
+      operation 156197 "MaterialData"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "mat" type class_ref 129701 // MaterialData
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} & ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} & ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Copy constructor"
+      end
+
+      operation 156325 "~MaterialData"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 156453 "GetStiffnessMatrix"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "stiffMat" explicit_type "Matrix<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {
+      stiffMat =  stiffnessMatrix_;};
+"
+	
+	
+      end
+
+      operation 156581 "GetStiffnessMatrix"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "stiffMat" explicit_type "Matrix<Complex>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {
+      stiffMat = complexStiffnessMatrix_;};
+"
+	
+	
+      end
+
+      operation 156709 "SetMatNr"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "MatNr" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {matNr = MatNr; };
+"
+	
+	
+	comment "/ set the material number "
+      end
+
+      operation 156837 "SetEModule"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "EModule" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {eModule = EModule;};
+"
+	
+	
+	comment "/ set the e-module"
+      end
+
+      operation 156965 "SetNu"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "Nu" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {nu = Nu;};
+"
+	
+	
+	comment "/ set nu"
+      end
+
+      operation 157093 "SetDensity"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "Density" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {density = Density;};
+"
+	
+	
+	comment "/ set density of the material"
+      end
+
+      operation 157221 "SetLambda"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "lambda" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {LameLambda = lambda;};
+"
+	
+	
+	comment "/ set Lame-Paramter lambda"
+      end
+
+      operation 157349 "SetMu"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "mu" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {LameMu = mu;};
+"
+	
+	
+	comment "/ set Lame-Paramter mu"
+      end
+
+      operation 157477 "SetBHCurveFileName"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "filename" type class_ref 133285 // Char
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}${)}${const}${volatile}${throw}${abstract} {
+      bhCurveFile_.assign( filename );
+    };
+"
+	
+	
+	comment "/ set permeability of the material
+  void SetPermeability(const Double& aPerm){permeability = aPerm;}
+/ set nonlinearity datafile for BH-curve for magnetic material"
+      end
+
+      operation 157605 "SetCompressibility"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "compr" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {compressibility = compr;};
+"
+	
+	
+	comment "/ set compressibility of the material"
+      end
+
+      operation 157733 "SetDampingCoeffs"
+	cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "Damp_alfa" type class_ref 128549 // Double
+	  param in name "Damp_beta" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract} {damp_alfa=Damp_alfa; damp_beta=Damp_beta;};
+"
+	
+	
+	comment "/ set damping coefficients"
+      end
+
+      operation 157861 "SetBoverA"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "BA" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {BoverA = BA;};
+"
+	
+	
+	comment "/ set BoverA (nonlinearity parameter in nonlinear acoustics)"
+      end
+
+      operation 157989 "SetThermic"
+	cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "HeatCapacity" type class_ref 128549 // Double
+	  param in name "ThermalConductivity" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract} {heatCapacity = HeatCapacity; thermalConductivity = ThermalConductivity;};
+"
+	
+	
+	comment "/ set parameters for heat conduction"
+      end
+
+      operation 158117 "SetEsat"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "val" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {Esat = val;};
+"
+	
+	
+	comment "/ set electric field value for saturation"
+      end
+
+      operation 158245 "SetPsat"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "val" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {Psat = val;};
+"
+	
+	
+	comment "/ set electric polarization value for saturation"
+      end
+
+      operation 158373 "SetDirPol"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "val" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {dirPol = val;};
+"
+	
+	
+	comment "/ set direction of electric polarization"
+      end
+
+      operation 158501 "SetHysteresisType"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "atype" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {hystType_ = atype;};
+"
+	
+	
+	comment "/ set type of hysteresis"
+      end
+
+      operation 158629 "SetJiles_a"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "val" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {aJiles_ = val;};
+"
+	
+	
+	comment "/ "
+      end
+
+      operation 158757 "SetJiles_alpha"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "val" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {alphaJiles_ = val;};
+"
+	
+	
+	comment "/ "
+      end
+
+      operation 158885 "SetJiles_k"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "val" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {kJiles_ = val;};
+"
+	
+	
+	comment "/ "
+      end
+
+      operation 159013 "SetJiles_c"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "val" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {cJiles_ = val;};
+"
+	
+	
+	comment "/ "
+      end
+
+      operation 159141 "SetPermMag"
+	cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param in name "mX" type class_ref 128549 // Double
+	  param in name "mY" type class_ref 128549 // Double
+	  param in name "mZ" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract} {permMx=mX, permMy=mY, permMz=mZ;};
+"
+	
+	
+	comment "/ set values of permanent magnetization"
+      end
+
+      operation 159269 "GetPermMag"
+	cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param inout name "mX" type class_ref 128549 // Double
+	  param inout name "mY" type class_ref 128549 // Double
+	  param inout name "mZ" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract} {mX=permMx, mY=permMy, mZ=permMz;};
+"
+	
+	
+	comment "/ get values of permanent magnetization"
+      end
+
+      operation 159397 "GetBHCurveFileName"
+	cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} & ${name}${(}${)}${const}${volatile}${throw}${abstract} { return bhCurveFile_; };
+"
+	
+	
+	comment "/ get nonlinearity datafile name for BH-curve for magnetic material"
+      end
+
+      operation 159525 "SetPiezoMatrixData"
+	cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "j" type class_ref 128421 // UInt
+	  param in name "value" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract} {(*piezoMatrix_)(i,j) = value;
+      (*complexPiezoMatrix_)[i][j]=Complex(value,(*complexPiezoMatrix_)[i][j].imag());
+    };
+"
+	
+	
+	comment "/ set one value of the data-matrix on position (i,j)"
+      end
+
+      operation 159653 "SetPiezoMatrixDataC"
+	cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "j" type class_ref 128421 // UInt
+	  param in name "value" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract} {(*piezoMatrixC_)(i,j) = value;
+      (*complexPiezoMatrix_)[i][j]=Complex((*complexPiezoMatrix_)[i][j].real(),value);
+    };
+"
+	
+	
+	comment "/ set one value of the data-matrix on position (i,j)"
+      end
+
+      operation 159781 "GetPiezoMatrixData"
+	cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "j" type class_ref 128421 // UInt
+	  param inout name "value" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract} {value = (*piezoMatrix_)(i,j);};
+"
+	
+	
+	comment "/ get the value of the data-matrix on position (i,j)"
+      end
+
+      operation 159909 "GetPiezoMatrixDataC"
+	cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "j" type class_ref 128421 // UInt
+	  param inout name "value" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract} {value = (*piezoMatrixC_)(i,j);};
+"
+	
+	
+	comment "/ get the value of the data-matrix on position (i,j)"
+      end
+
+      operation 160037 "GetMatrixC"
+	cpp_inline public explicit_return_type "Matrix<Double>"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} {return piezoMatrixC_;};
+"
+	
+	
+	comment "/ returns a pointer to the imaginary part of data-matrix"
+      end
+
+      operation 160165 "GetMatrix"
+	cpp_inline public explicit_return_type "Matrix<Double>"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} {return piezoMatrix_;};
+"
+	
+	
+	comment "/ returns a pointer to the real part of data-matrix"
+      end
+
+      operation 160293 "GetComplexMaterialMatrix"
+	cpp_inline public explicit_return_type "Matrix<Complex>"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return complexPiezoMatrix_;
+    };
+"
+	
+	
+	comment "/ returns pointer to complex material matrix"
+      end
+
+      operation 160421 "RotateMaterialMatrix"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "a1" type class_ref 128549 // Double
+	  param in name "a2" type class_ref 128549 // Double
+	  param in name "a3" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Rotates piezo Material Matrix. 
+/ Input are the three solid angels (radian measure)
+! Rotates the piezoelectric material matrix. 
+! Input are the three solid angels (radian measure).
+! Special case: The choice of 1 for one of the angels,
+!  rotates piezo matrix in that way
+! that it is polarized in the given direction. 
+! The choice of 0 does not performs any rotation
+! Poling in z - direction (a3=1) is given by default."
+      end
+
+      operation 160549 "SetPermeability"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "j" type class_ref 128421 // UInt
+	  param in name "value" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! set one value of the permeability-matrix on position (i,j)"
+      end
+
+      operation 160677 "GetPermeability"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "j" type class_ref 128421 // UInt
+	  param inout name "value" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! get the value of the permeability-matrix on position (i,j)"
+      end
+
+      operation 160805 "GetPermeaMatrix"
+	cpp_inline public explicit_return_type "Matrix<Double>"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} {return permeaMatrix;};
+"
+	
+	
+	comment "! return a pointer to the permeability matrix"
+      end
+
+      operation 160933 "SetConductivity"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "j" type class_ref 128421 // UInt
+	  param in name "value" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! set one value of the permeability-matrix on position (i,j)"
+      end
+
+      operation 161061 "GetConductivity"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "j" type class_ref 128421 // UInt
+	  param inout name "value" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! get the value of the permeability-matrix on position (i,j)"
+      end
+
+      operation 161189 "GetConducMatrix"
+	cpp_inline public explicit_return_type "Matrix<Double>"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} {return conducMatrix;};
+"
+	
+	
+	comment "! return a pointer to the permeability matrix"
+      end
+
+      operation 161317 "DefFull3dMatrix"
+	cpp_inline public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      piezoMatrix_ = new Matrix<Double>; 
+      piezoMatrix_->Resize(GetNrElems3d(), GetNrElems3d() );
+      piezoMatrixC_ = new Matrix<Double>; 
+      piezoMatrixC_->Resize(GetNrElems3d(), GetNrElems3d() );
+      complexPiezoMatrix_ = new Matrix<Complex>;
+      complexPiezoMatrix_->Resize(GetNrElems3d(), GetNrElems3d() );};
+"
+	
+	
+	comment "/ set size of data-matrix in x and y direction to nrElems3d x nrElems3d
+/ this matrix includes the stiffness, piezoelectric coupling and permitivity matrix"
+      end
+
+      operation 161445 "SetConductivity"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "Conductivity" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ set conductivity of the material"
+      end
+
+      operation 161573 "SetName"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "Name" explicit_type "char"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ set name of the material"
+      end
+
+      operation 161701 "SetScaledFlag"
+	cpp_inline public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {scaledMatDat = 1;};
+"
+	
+	
+	comment "/ "
+      end
+
+      operation 161829 "IsMatDatScaled"
+	cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return scaledMatDat;};
+"
+	
+	
+      end
+
+      operation 161957 "GetNrElems3d"
+	const cpp_inline public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return 9; };
+"
+	
+	
+	comment " is material nonlinear?
+  UInt GetNonlin() const { return nonlin; };
+/ get nr of elems of the matrix in the 3d case"
+      end
+
+      operation 162085 "GetNrElems2d"
+	const cpp_inline public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return 5; };
+"
+	
+	
+	comment "/ get nr of elems of the matrix in the 2d case"
+      end
+
+      operation 162213 "GetMatNr"
+	const cpp_inline public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return matNr; };
+"
+	
+	
+	comment "/ get number of the matNr"
+      end
+
+      operation 162341 "GetEModule"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return eModule; };
+"
+	
+	
+	comment "/ get E-Module"
+      end
+
+      operation 162469 "GetDensity"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return density;};
+"
+	
+	
+	comment "/ get density"
+      end
+
+      operation 162597 "GetLameLambda"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return LameLambda;};
+"
+	
+	
+	comment "/ get LameLambda"
+      end
+
+      operation 162725 "GetLameMu"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return LameMu;};
+"
+	
+	
+	comment "/ get LameMu"
+      end
+
+      operation 162853 "GetPermittivity"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 2
+	  param in name "i" type class_ref 128421 // UInt
+	  param in name "j" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract} {return (*piezoMatrix_)[i+6][j+6];};
+"
+	
+	
+	comment "/ get permittivity"
+      end
+
+      operation 162981 "GetCompressibility"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return compressibility;};
+"
+	
+	
+	comment "/ get compressibility"
+      end
+
+      operation 163109 "GetDampingAlfa"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return damp_alfa;};
+"
+	
+	
+	comment "/ get permeability of the material
+  Double GetPermeability() const {return permeability;};
+/ get alfa damping coefficient"
+      end
+
+      operation 163237 "GetDampingBeta"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return damp_beta;};
+"
+	
+	
+	comment "/ get beta damping coefficient"
+      end
+
+      operation 163365 "GetBoverA"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return BoverA;};
+"
+	
+	
+	comment "/ get BoverA for nonlinear acoustics"
+      end
+
+      operation 163493 "GetHeatCapacity"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return heatCapacity;};
+"
+	
+	
+	comment "/ get heatConduction"
+      end
+
+      operation 163621 "GetThermalConductivity"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return thermalConductivity;};
+"
+	
+	
+	comment "/ get thermalConductivity"
+      end
+
+      operation 163749 "GetNu"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return nu; };
+"
+	
+	
+	comment "/ get nu"
+      end
+
+      operation 163877 "GetEsat"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return Esat;};
+"
+	
+	
+	comment "/ get saturated electric field value"
+      end
+
+      operation 164005 "GetPsat"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return Psat;};
+"
+	
+	
+	comment "/ get saturated electric polarization value"
+      end
+
+      operation 164133 "GetDirPol"
+	const cpp_inline public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return dirPol;};
+"
+	
+	
+	comment "/ get direction of polarization"
+      end
+
+      operation 164261 "GetHysteresisType"
+	const cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return hystType_;};
+"
+	
+	
+	comment "/ get hysteresis type"
+      end
+
+      operation 164389 "GetJiles_a"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return aJiles_;};
+"
+	
+	
+	comment "/ "
+      end
+
+      operation 164517 "GetJiles_alpha"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return alphaJiles_;};
+"
+	
+	
+	comment "/ "
+      end
+
+      operation 164645 "GetJiles_k"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return kJiles_;};
+"
+	
+	
+	comment "/ "
+      end
+
+      operation 164773 "GetJiles_c"
+	const cpp_inline public return_type class_ref 128549 // Double
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return cJiles_;};
+"
+	
+	
+	comment "/ "
+      end
+
+      operation 164901 "GetMaterialName"
+	public explicit_return_type "char"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ get conductivity
+  Double GetConductivity() const {return conductivity; };
+/ get name of the material"
+      end
+
+      operation 165029 "IsComplex"
+	cpp_inline public explicit_return_type "bool"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      std::string matName( name );
+      UInt tail = matName.size() - 5;
+      bool retVal = true;
+      if ( matName.size() <= 5 || matName.substr(tail) != \"-imag\" ) {
+        retVal = false;
+      }
+      return retVal;
+    };
+"
+	
+	
+	comment "! Check whether material has imaginary part"
+      end
+    end
+
+    class 131365 "WriteResults"
+      abstract 
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Base class for writing results"
+      class 134693 "entityType"
+	visibility public stereotype "enum"
+	
+	cpp_decl "${comment}enum ${name} {
+${items}
+};
+"
+	java_decl ""
+	idl_decl ""
+	explicit_switch_type ""
+	
+	attribute 132645 "NO_ENTITIY"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 132773 "ELEMENT"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 132901 "NODE"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+      end
+
+      operation 171685 "WriteResults"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "filename" type class_ref 133285 // Char
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * const ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} * const ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor"
+      end
+
+      operation 171813 "Init"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "aptgrid" type class_ref 130085 // Grid
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! initialization with grid
+! \\param ptgrid pointer to grid object"
+      end
+
+      operation 171941 "~WriteResults"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Default destructor"
+      end
+
+      operation 172069 "WriteGrid"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! write information about grid  in file"
+      end
+
+      operation 172197 "WriteNodeSolutionTransient"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param in name "data" explicit_type "NodeStoreSol<Double>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "time" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment " *************************
+     TRANSIENT SECTION
+ *************************
+! write element solution vector (transient/static)
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param time time of calculation
+    "
+      end
+
+      operation 172325 "WriteElemSolutionTransient"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param in name "data" explicit_type "ElemStoreSol<Double>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "time" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! write element solution vector (transient/static)
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param time time of calculation
+    "
+      end
+
+      operation 172453 "WriteNodeHistoryTransient"
+	cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param in name "data" explicit_type "NodeStoreSol<Double>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "time" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write node history vector (transient/static)
+!
+      \\param data vector with data (ex. value of an error for the node)
+      \\param step step of calculation
+      \\param time time of calculation
+    "
+      end
+
+      operation 172581 "WriteElemHistoryTransient"
+	cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param in name "data" explicit_type "ElemStoreSol<Double>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "time" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write element history vector (transient/static)
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param time time of calculation
+    "
+      end
+
+      operation 172709 "WriteNodeSolutionHarmonic"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "data" explicit_type "NodeStoreSol<Complex>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment " *************************
+     HARMONIC SECTION
+ *************************
+! write element solution vector (harmonic)
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param frequency frequency of exciting function
+      \\param format format for writing complex solution
+      (real-imag/amplitude-phase)
+    "
+      end
+
+      operation 172837 "WriteElemSolutionHarmonic"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "data" explicit_type "ElemStoreSol<Complex>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! write element solution vector (harmonic)
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param frequency frequency of exciting function
+      \\param frequencyStep step of calculation
+      \\param format format for writing complex solution
+      (real-imag/amplitude-phase)
+    "
+      end
+
+      operation 172965 "WriteNodeHistoryHarmonic"
+	public explicit_return_type "void"
+	nparams 4
+	  param in name "data" explicit_type "NodeStoreSol<Complex>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write nodal history vector (harmonic)
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param frequency frequency of exciting function
+      \\param frequencyStep step of calculation
+      \\param format format for writing complex solution
+      (real-imag/amplitude-phase)
+    "
+      end
+
+      operation 173093 "WriteElemHistoryHarmonic"
+	cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "data" explicit_type "ElemStoreSol<Complex>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write element history vector (harmonic)
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param frequency frequency of exciting function
+      \\param frequencyStep step of calculation
+      \\param format format for writing complex solution
+      (real-imag/amplitude-phase)
+    "
+      end
+
+      operation 173221 "OpenFile"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "number" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { Error(\"Not implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! to open new file for printing results only for GMV
+! \\param number number for output-file (ex. result.gmv001)"
+      end
+
+      operation 173349 "WriteSolMatrix"
+	public explicit_return_type "void"
+	nparams 4
+	  param inout name "ptgrid" type class_ref 130085 // Grid
+	  param in name "sol" explicit_type "Vector<Double>"
+	  param in name "matFileName" explicit_type "std::string"
+	  param in name "nrDofs" type class_ref 128421 // UInt
+	    defaultvalue "1"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! writes a matrix of the form ptCoordX ptCoorY ptCoordZ SolDof1 SolDof2 ...
+!
+      \\param nrDofs nr of degrees of freedom in solution
+    "
+      end
+
+      operation 173477 "InitHistoryData"
+	protected explicit_return_type "void"
+	nparams 4
+	  param inout name "quantities" explicit_type "StdVector<SolutionType>"
+	  param inout name "entitiesPerQuant" explicit_type "StdVector<StdVector<UInt> >"
+	  param inout name "histEntFiles" explicit_type "StdVector<StdVector<std::ofstream*> >"
+	  param in name "entType" type class_ref 134693 // entityType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Initializes the history data"
+      end
+
+      operation 173605 "SolutionTypeToString"
+	const cpp_virtual cpp_inline protected explicit_return_type "std::string"
+	nparams 1
+	  param in name "type" type class_ref 129573 // SolutionType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract} {
+      Error( \"Not implemented here\", __FILE__, __LINE__ );
+      return \"badluck\";
+    };
+"
+	
+	
+	comment "! Convertes enum SolutionType to string"
+      end
+
+      attribute 133029 "namefile_"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 144293 // ptGrid_ (<unidirectional association>)
+	relation 144293 --->
+	  a role_name "ptGrid_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 144293 // ptGrid_ (<unidirectional association>)
+	  b parent class_ref 130085 // Grid
+      end
+
+      classrelation 144421 // NeedHistory_ (<directional aggregation by value>)
+	relation 144421 *-->
+	  a role_name "NeedHistory_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 144421 // NeedHistory_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 144549 // totalNumHistFiles_ (<directional aggregation by value>)
+	relation 144549 *-->
+	  a role_name "totalNumHistFiles_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 144549 // totalNumHistFiles_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 144677 // histNodeQuantities_ (<directional aggregation by value>)
+	relation 144677 *-->
+	  stereotype "StdVector"
+	  a role_name "histNodeQuantities_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 144677 // histNodeQuantities_ (<directional aggregation by value>)
+	  b parent class_ref 129573 // SolutionType
+      end
+
+      attribute 133157 "histNodesPerQuant_"
+	protected explicit_type "StdVector<StdVector<UInt> >"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 133285 "histNodeFiles_"
+	protected explicit_type "StdVector<StdVector<std::ofstream*> >"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 144805 // histElemQuantities_ (<directional aggregation by value>)
+	relation 144805 *-->
+	  stereotype "StdVector"
+	  a role_name "histElemQuantities_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 144805 // histElemQuantities_ (<directional aggregation by value>)
+	  b parent class_ref 129573 // SolutionType
+      end
+
+      attribute 133413 "histElemsPerQuant_"
+	protected explicit_type "StdVector<StdVector<UInt> >"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 133541 "histElemFiles_"
+	protected explicit_type "StdVector<StdVector<std::ofstream*> >"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      operation 173733 "InitHistoryFiles"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! intialize the management of history files"
+      end
+    end
+
+    class 131493 "TimeFunc"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class we store information about given time function
+!
+    This class stores information about given time function. 
+  "
+      operation 166437 "TimeFunc"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor"
+      end
+
+      operation 166565 "~TimeFunc"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 166693 "TimeFuncAtTime"
+	public return_type class_ref 128549 // Double
+	nparams 2
+	  param in name "time" type class_ref 128549 // Double
+	  param in name "fncname" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! return value of time function with number <em>num</em> at the time <em>time</em>
+!
+      \\param time in: time
+      \\param fncname in: name of time function
+    "
+      end
+
+      operation 166821 "TimeSpcFuncAtTime"
+	public explicit_return_type "StdVector<Double>"
+	nparams 4
+	  param in name "time" type class_ref 128549 // Double
+	  param in name "fncname" explicit_type "std::string"
+	  param in name "nodes" explicit_type "StdVector<UInt>"
+	  param inout name "ptgrid" type class_ref 130085 // Grid
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} * ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}, ${t3} * ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! return values of time and space dependent function with number <em>num</em>
+! at the time <em>time</em>.
+! At the moment only one is allowed ('spc_dependent_fnc').
+! That means that this function is called if 'spc_dependent_fnc' 
+! is given as name of function data file in XML parameter file.
+!
+      \\param time in: time
+      \\param fncname in: name of time-space function ('spc_dependent_fnc')
+      \\param nodes in: vector containing nodes where IDBC is to be applied
+      \\param ptgrid in: pointer to grid to get coordinates of nodes
+    "
+      end
+
+      operation 166949 "Print"
+	const public explicit_return_type "void"
+	nparams 1
+	  param inout name "outfile" explicit_type "std::ostream"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Print values of time function in stream outfile"
+      end
+
+      operation 167077 "SetStartTimeVector"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "numBcs" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "Set StartVector for structured Grid"
+      end
+
+      operation 167205 "GetmaxTimeFnc"
+	cpp_inline public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return maxnumTF_;
+    };
+"
+	
+	
+	comment "! return the number of time functions"
+      end
+
+      operation 167333 "ReadTimeFuncs"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! read time functions from different dat-file"
+      end
+
+      classrelation 143525 // maxnumTF_ (<directional aggregation by value>)
+	relation 143525 *-->
+	  a role_name "maxnumTF_" multiplicity "" private
+	    comment "<! number of time functions"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 143525 // maxnumTF_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      attribute 132133 "timeTF_"
+	private explicit_type "std::list<Double>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+	comment "<! time "
+      end
+
+      attribute 132261 "valTF_"
+	private explicit_type "std::list<Double>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+	comment "!< val"
+      end
+
+      attribute 132389 "fnc_names_"
+	private explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 143653 // timeFncDatFiles_ (<directional aggregation by value>)
+	relation 143653 *-->
+	  a role_name "timeFncDatFiles_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 143653 // timeFncDatFiles_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 143781 // startTime_ (<directional aggregation by value>)
+	relation 143781 *-->
+	  stereotype "StdVector"
+	  a role_name "startTime_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 143781 // startTime_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+    end
+
+    class 133157 "FileType"
+      abstract 
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Abstract class for reading in mesh data
+! This class defines an abstract interface for accessing 
+! files containing geometric mesh information. 
+!
+! \\note All mesh and geometric entities are counted one-based,
+! whereas the acces to the C++ built in datatypes is zero-based!"
+      operation 147621 "FileType"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "afilename" type class_ref 133285 // Char
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * const ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} * const ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment " ========================================================================
+ CONSTRUCTION AND INTIIALIZATION
+ ========================================================================
+@{ \\name Constructor / Initialization
+! Constructor with name of mesh-file"
+      end
+
+      operation 147749 "~FileType"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 147877 "GetDim"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "@}
+ ========================================================================
+ GENERAL MESH INFORMATION
+ ========================================================================
+@{ \\name General Mesh Information
+! Get dimension of the mesh"
+      end
+
+      operation 148005 "GetNumNodes"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get total number of nodes in mesh"
+      end
+
+      operation 148133 "GetNumElems"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "dim" type class_ref 128421 // UInt
+	    defaultvalue " 0 "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get total number of elements in mesh"
+      end
+
+      operation 148261 "GetNumRegions"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get total number of regions"
+      end
+
+      operation 148389 "GetNumNamedNodes"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get total number of named nodes"
+      end
+
+      operation 148517 "GetNumNamedElems"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get total number of named elements"
+      end
+
+      operation 148645 "GetAllRegionNames"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "regionNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "@}
+ =========================================================================
+ ENTITY NAME ACCESS
+ =========================================================================
+@{ \\name Entity Name Access
+! Get vector with all region names in mesh
+! Returns a vector with the names of regions in the mesh of all
+! dimensions.
+! \\param regionNames (output) vector containing names of regions
+! \\note Since the RegionIdType is guaranteed to be defined by
+! a number type (UInt, UInt), the regionId of an element can
+! be directly used as index to the regionNames-vector"
+      end
+
+      operation 148773 "GetRegionNamesOfDim"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "regionNames" explicit_type "StdVector<std::string>"
+	  param in name "dim" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get vector with region names of given dimension
+! Returns a vector with the names of regions of a given dimension.
+! This makes it possible to get for example all names of 
+! 3D, 2D or 1D elements.
+! \\param regionNames (output) vector containing names of regions
+! \\param dim (input) dimension of the region (1,2, or 3)"
+      end
+
+      operation 148901 "GetNodeNames"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "nodeNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get vector with all names of named nodes
+! Returns a vector which contains all names of named nodes.
+! \\param nodeNames (output) vector with names of named nodes"
+      end
+
+      operation 149029 "GetElemNames"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "elemNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get vector with all names of named elements
+! Returns a vector which contains all names of named elements.
+! \\param elemNames (output) vector with names of named elements"
+      end
+
+      operation 149157 "GetCoordinates"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "nodeCoords" explicit_type "StdVector<Point<3> >"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "@}
+ =========================================================================
+ ENTITY ACCESS
+ =========================================================================
+@{ \\name Entity Access
+! Get all nodal coordinates from 3D grid
+! This method reads all nodal coordinates into a vector of 3D-Points.
+! \\param nodeCoords (output) vector containing nodal coordinates"
+      end
+
+      operation 149285 "GetCoordinates"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "nodeCoords" explicit_type "StdVector<Point<2> >"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get all nodal coordinates from 2D grid
+! This method reads all nodal coordinates into a vector of 2D-Points.
+! \\param nodeCoords (output) vector containing nodal coordinates"
+      end
+
+      operation 149413 "GetNodesOfRegions"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "nodes" explicit_type "StdVector<StdVector<UInt> >"
+	  param in name "regionId" explicit_type "StdVector<RegionIdType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get vector of nodes for each region
+! This method reads the node numbers of each region into a 
+! separate vector. 
+! \\param nodes (output) vector containing the node numbers for each
+!                       region. The access is like \\c elems 
+!                       \\c [regionNr] \\c [nodeNr]
+! \\param regionId (output) vector containing the region Ids of the
+!                          nodes corresponding to the outer index in the
+!                          nodes vector"
+      end
+
+      operation 149541 "GetElements"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param inout name "elems" explicit_type "StdVector< StdVector<Elem*> >"
+	  param inout name "regionId" explicit_type "StdVector<RegionIdType>"
+	  param in name "dim" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Read all elements of given dimension
+! This method reads all elements of a given dimension (1D, 2D or 3D).
+! The output is a vector of vectors, where the outer index corresponds
+! to the different regions and the inner one to the different elements
+! per region.
+! \\param elems (output) vector containing vectors of pointers to elements
+!                       per region. The access is like \\c elems 
+!                       \\c [regionNr] \\c [elemeNr]
+! \\param regionId (output) vector containing the region Ids of the
+!                          elements corresponding to the outer index in 
+!                          the elems vector
+! \\param dim (input) dimension of the elements to be read (1,2 or 3)"
+      end
+
+      operation 149669 "GetNamedNodes"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "nodes" explicit_type "StdVector<StdVector<UInt> >"
+	  param inout name "nodeNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Read all named nodes
+! This method reads in all named nodes with their according names.
+! \\param nodes (output) vector containing node numbers for each region.
+!                       The access is like \\c nodes \\c [nameNr] 
+!                       \\c [nodeNr]
+! \\param nodeNames (output) vector containing the corresponding
+!                           node names "
+      end
+
+      operation 149797 "GetNamedElems"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "elems" explicit_type "StdVector<StdVector<UInt> >"
+	  param inout name "elemNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Read all named elements
+! This method reads in all named elements with their according names.
+! \\param elems (output) vector containing node numbers for each region.
+!                       The access is like \\c elems \\c [nameNr] 
+!                       \\c [elemNr]
+! \\param elemNames (output) vector containing the corresponding
+!                           element names "
+      end
+
+      classrelation 138917 // filename (<unidirectional association>)
+	relation 138917 --->
+	  a role_name "filename" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 138917 // filename (<unidirectional association>)
+	  b parent class_ref 133285 // Char
+      end
+    end
+
+    class 133413 "FreqFunc"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class interpolates and retrieves information from given nodal freq functions
+!
+    This class interpolates and retrieves information from given nodal freq functions. 
+  "
+      operation 149925 "FreqFunc"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor"
+      end
+
+      operation 150053 "~FreqFunc"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 150181 "NodalFreqFuncAtFreq"
+	public explicit_return_type "StdVector<Double>"
+	nparams 3
+	  param in name "freq" type class_ref 128549 // Double
+	  param in name "fncname" explicit_type "std::string"
+	  param in name "nodeNumber" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! return ampl. and phase of nodal freq function with number <em>num</em> at the freq <em>freq</em>
+!
+      \\param freq in: freq
+      \\param fncname in: name of freq function
+      \\param nodeNumber in: node from which its ampl. and phase are to be retrieved from its nodal freq. file
+    "
+      end
+
+      operation 150309 "GetmaxFreqFnc"
+	cpp_inline public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return maxnumFF_;
+    };
+"
+	
+	
+	comment "! return the number of freq functions"
+      end
+
+      operation 150437 "ReadFreqFuncs"
+	private explicit_return_type "void"
+	nparams 1
+	  param in name "nodeNumber" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! read a nodal freq function file from a set files under ./nodalSrcs/
+! directory having common root names and <em>nodeNumber</em> as suffix"
+      end
+
+      classrelation 139045 // maxnumFF_ (<directional aggregation by value>)
+	relation 139045 *-->
+	  a role_name "maxnumFF_" multiplicity "" private
+	    comment "<! number of freq functions"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 139045 // maxnumFF_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      attribute 129701 "freqFF_"
+	private explicit_type "std::list<Double>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+	comment "<! freq "
+      end
+
+      attribute 129829 "valFF_"
+	private explicit_type "std::list<Double>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+	comment "!< ampplitude"
+      end
+
+      attribute 129957 "phaseFF_"
+	private explicit_type "std::list<Double>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+	comment "!< phase"
+      end
+
+      attribute 130085 "fnc_names_"
+	private explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 139173 // freqFncDatFiles_ (<directional aggregation by value>)
+	relation 139173 *-->
+	  a role_name "freqFncDatFiles_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 139173 // freqFncDatFiles_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 139301 // startFreq_ (<directional aggregation by value>)
+	relation 139301 *-->
+	  stereotype "StdVector"
+	  a role_name "startFreq_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 139301 // startFreq_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+    end
+
+    class 133541 "LoadMaterialData"
+      abstract 
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for reading material data file
+! 
+    Includes all functions for reading material data out of file
+  "
+      operation 150565 "LoadMaterialData"
+	cpp_inline public explicit_return_type ""
+	nparams 1
+	  param in name "fileName" explicit_type "char"
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * ${p0}${)}${volatile}${throw} {};
+"
+	
+	
+	comment "/ constructor: loads all materials defined in the parserfile from the materialfile \"filename\"
+    LoadMaterialData(const std::string fileName);"
+      end
+
+      operation 150693 "GetMaterial"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param inout name "material" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matType" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "/ private constructor, loads all materials defined in the parserfile from the materialfile \"filename\""
+      end
+    end
+
+    class 133669 "LoadMaterialDataDatabase"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for reading material data file
+! 
+    Includes all functions for reading material data out of file
+  "
+      operation 150821 "InitializeDatabase"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Establish connection to database"
+      end
+
+      operation 150949 "ReadPiezo"
+	private explicit_return_type "void"
+	nparams 2
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read piezo material data"
+      end
+
+      operation 151077 "ReadStiffnessLinear"
+	private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read piezo material linear stiffness data"
+      end
+
+      operation 151205 "ReadStiffnessNonlinear_S"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Nonlinear piezo matrix not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read piezo material nonlinear stiffness data f(S) - not yet implemented"
+      end
+
+      operation 151333 "ReadStiffnessHysteresis_S"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Piezo hysteresis not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read piezo material stiffness data, hysteresis f(S)  - not yet implemented"
+      end
+
+      operation 151461 "ReadCouplingLinear"
+	private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read piezo material linear coupling data"
+      end
+
+      operation 151589 "ReadCouplingNonlinear_E"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Nonlinear coupling not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read piezo material nonlinear coupling data f(E) - not yet implemented"
+      end
+
+      operation 151717 "ReadCouplingNonlinear_S"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Nonlinear coupling not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read piezo material nonlinear coupling data f(S) - not yet implemented"
+      end
+
+      operation 151845 "ReadCouplingHysteresis_E"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Coupling hysteresis not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read piezo material coupling data, hysteresis f(S)  - not yet implemented"
+      end
+
+      operation 151973 "ReadCouplingHysteresis_S"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Coupling hysteresis not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read piezo material coupling data, hysteresis f(S)  - not yet implemented"
+      end
+
+      operation 152101 "ReadDielectricLinear"
+	private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read piezo material linear dielectric data"
+      end
+
+      operation 152229 "ReadDielectricNonlinear_E"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Nonlinear dielectricity not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read piezo material nonlinear coupling data f(E) - not yet implemented"
+      end
+
+      operation 152357 "ReadDielectricHysteresis_E"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Dielectricity hysteresis not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read piezo material coupling data, hysteresis f(S)  - not yet implemented"
+      end
+
+      operation 152485 "ReadConductivityLinear"
+	private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read material linear conductivity data"
+      end
+
+      operation 152613 "ReadConductivityNonlinear_T"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Nonlinear conductivity not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read material nonlinear conductivity data f(T) - not yet implemented"
+      end
+
+      operation 152741 "ReadConductivityNonlinear_B"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Nonlinear conducitvity not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read material nonlinear conductivity data f(B) - not yet implemented"
+      end
+
+      operation 152869 "ReadConductivityHysteresis_T"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Conductivity hysteresis not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read material conductivity data, hysteresis f(T)  - not yet implemented"
+      end
+
+      operation 152997 "ReadConductivityHysteresis_B"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Conductivity hysteresis not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read material conductivity data, hysteresis f(B)  - not yet implemented"
+      end
+
+      operation 153125 "ReadPermeabilityLinear"
+	private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read material linear permeability data"
+      end
+
+      operation 153253 "ReadPermeabilityNonlinear_T"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Nonlinear permeability not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read material nonlinear permeability data f(T) - not yet implemented"
+      end
+
+      operation 153381 "ReadPermeabilityNonlinear_B"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Nonlinear permeability not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read material nonlinear permeability data f(B) - not yet implemented"
+      end
+
+      operation 153509 "ReadPermeabilityHysteresis_T"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Permeability hysteresis not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read material permeability data, hysteresis f(T)  - not yet implemented"
+      end
+
+      operation 153637 "ReadPermeabilityHysteresis_B"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Permeability hysteresis not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read material permeability data, hysteresis f(B)  - not yet implemented"
+      end
+
+      operation 153765 "ReadMagnetisationLinear"
+	private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read material linear dielectric data"
+      end
+
+      operation 153893 "ReadMagnetisationNonlinear_B"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Nonlinear magnetisation not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read material nonlinear magnetisation data f(B) - not yet implemented"
+      end
+
+      operation 154021 "ReadMagnetisationHysteresis_B"
+	cpp_inline private explicit_return_type "void"
+	nparams 3
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matidx" explicit_type "int"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {Error(\"Magnetisation hysteresis not yet implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Read material magnetisation data, hysteresis f(B)  - not yet implemented"
+      end
+
+      operation 154149 "ReadFluid"
+	private explicit_return_type "void"
+	nparams 2
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read fluid material data"
+      end
+
+      operation 154277 "ReadMagnetic"
+	private explicit_return_type "void"
+	nparams 2
+	  param inout name "matData" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read magnetic material data"
+      end
+
+      classrelation 139429 // Db_ (<directional aggregation by value>)
+	relation 139429 *-->
+	  a role_name "Db_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 139429 // Db_ (<directional aggregation by value>)
+	  b parent class_ref 133797 // Database
+      end
+
+      operation 154405 "LoadMaterialDataDatabase"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Default constructor"
+      end
+
+      operation 154533 "LoadMaterialDataDatabase"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "fileName" explicit_type "char"
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} * ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Overloaded constructor for the same use as in LoadMaterial and LoadMaterialFile"
+      end
+
+      operation 154661 "~LoadMaterialDataDatabase"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Default destructor (to close database connection)"
+      end
+
+      operation 154789 "GetMaterial"
+	public explicit_return_type "void"
+	nparams 3
+	  param inout name "material" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matType" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ private constructor, loads all materials defined in the parserfile from the materialfile \"filename\""
+      end
+    end
+
+    class 133925 "LoadMaterialDataFile"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for reading material data file
+! 
+    Includes all functions for reading material data out of file
+  "
+      attribute 130213 "filename"
+	const_attribute private explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 130341 "scaleMatDat"
+	private explicit_type "int"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      operation 154917 "ReadPiezo"
+	private explicit_return_type "void"
+	nparams 3
+	  param inout name "fin" explicit_type "std::ifstream"
+	  param inout name "material" type class_ref 129701 // MaterialData
+	  param inout name "matC" type class_ref 129189 // Boolean
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} * ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} * ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " read nonlinear magnetic record
+ void ReadMagNonLin(std::ifstream & fin, MaterialData * material);
+/ read piezolectric material data"
+      end
+
+      operation 155045 "ReadFluid"
+	private explicit_return_type "void"
+	nparams 2
+	  param inout name "fin" explicit_type "std::ifstream"
+	  param inout name "material" type class_ref 129701 // MaterialData
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ read fluid material data"
+      end
+
+      operation 155173 "ReadThermic"
+	private explicit_return_type "void"
+	nparams 2
+	  param inout name "fin" explicit_type "std::ifstream"
+	  param inout name "material" type class_ref 129701 // MaterialData
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ read thermic material data -> e.g. for heat conduction simulation"
+      end
+
+      operation 155301 "ReadMagnetic"
+	private explicit_return_type "void"
+	nparams 2
+	  param inout name "fin" explicit_type "std::ifstream"
+	  param inout name "material" type class_ref 129701 // MaterialData
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ read linear magnetic material data (could be also done by ReadMagNonLin -> is only here for compatibility)"
+      end
+
+      operation 155429 "ReadLine"
+	private explicit_return_type "void"
+	nparams 2
+	  param inout name "fin" explicit_type "std::ifstream"
+	  param inout name "buffer" explicit_type "char"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ read next line of materialfile"
+      end
+
+      operation 155557 "FindMat"
+	private explicit_return_type "void"
+	nparams 4
+	  param inout name "fin" explicit_type "std::ifstream"
+	  param in name "matName" explicit_type "char"
+	  param inout name "buffer" explicit_type "char"
+	  param in name "matType" explicit_type "char"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} * ${p1}, ${t2} * ${p2}, const ${t3} * ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} * ${p1}, ${t2} * ${p2}, const ${t3} * ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Find next datarecord with materialname matName, material type matType in the current line (if found) is written into buffer"
+      end
+
+      operation 155685 "EulerAnglesRotate"
+	private explicit_return_type "void"
+	nparams 2
+	  param inout name "material" type class_ref 129701 // MaterialData
+	  param in name "eulerAngles" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ rotate into decired euler angles"
+      end
+
+      operation 155813 "LoadMaterialDataFile"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "fileName" explicit_type "char"
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} * ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "/ constructor: loads all materials defined in the parserfile from the materialfile \"filename\"
+    LoadMaterialData(const std::string fileName);"
+      end
+
+      operation 155941 "GetMaterial"
+	public explicit_return_type "void"
+	nparams 3
+	  param inout name "material" type class_ref 129701 // MaterialData
+	  param in name "matName" explicit_type "std::string"
+	  param in name "matType" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ private constructor, loads all materials defined in the parserfile from the materialfile \"filename\""
+      end
+    end
+
+    class 134181 "MHMaterialData"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for Material Data
+! 
+    Interface class for getting material data
+  "
+      operation 165157 "MHMaterialData"
+	public explicit_return_type ""
+	nparams 1
+	  param inout name "ptMaterial" type class_ref 129701 // MaterialData
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment " private:"
+      end
+
+      operation 165285 "~MHMaterialData"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "MHMaterialData(const MaterialData& mat);"
+      end
+
+      operation 165413 "updateMaterialData"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "parameter" explicit_type "Vector<Complex>"
+	  param inout name "ptMaterial" type class_ref 129701 // MaterialData
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 165541 "calcParameterCurveAtElement"
+	public explicit_return_type "void"
+	nparams 6
+	  param inout name "parameter" explicit_type "Vector<Complex>"
+	  param inout name "parameterCoeff_" explicit_type "Matrix<Double>"
+	  param in name "element" type class_ref 128421 // UInt
+	  param in name "N" type class_ref 128421 // UInt
+	  param in name "delta" type class_ref 129061 // Integer
+	  param in name "pMax" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} ${p2}, ${t3} ${p3}, ${t4} ${p4}, ${t5} ${p5}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} ${p2}, ${t3} ${p3}, ${t4} ${p4}, ${t5} ${p5}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " Domain * ptDomain;"
+      end
+
+      classrelation 142501 // parameter_ (<directional aggregation by value>)
+	relation 142501 *-->
+	  stereotype "Vector"
+	  a role_name "parameter_" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 142501 // parameter_ (<directional aggregation by value>)
+	  b parent class_ref 129317 // Complex
+      end
+
+      classrelation 142629 // parameterR_ (<directional aggregation by value>)
+	relation 142629 *-->
+	  stereotype "Vector"
+	  a role_name "parameterR_" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 142629 // parameterR_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 142757 // parameterC_ (<directional aggregation by value>)
+	relation 142757 *-->
+	  stereotype "Vector"
+	  a role_name "parameterC_" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 142757 // parameterC_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 142885 // parameterCoeff_ (<directional aggregation by value>)
+	relation 142885 *-->
+	  stereotype "Matrix"
+	  a role_name "parameterCoeff_" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 142885 // parameterCoeff_ (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 143013 // ptMaterial_ (<unidirectional association>)
+	relation 143013 --->
+	  a role_name "ptMaterial_" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 143013 // ptMaterial_ (<unidirectional association>)
+	  b parent class_ref 129701 // MaterialData
+      end
+
+      classrelation 143141 // ptMHMaterialDataFile (<unidirectional association>)
+	relation 143141 --->
+	  a role_name "ptMHMaterialDataFile" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 143141 // ptMHMaterialDataFile (<unidirectional association>)
+	  b parent class_ref 134309 // MHMaterialDataFile
+      end
+    end
+
+    class 134309 "MHMaterialDataFile"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 165669 "MHMaterialDataFile"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor"
+      end
+
+      operation 165797 "~MHMaterialDataFile"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      attribute 131493 "indexSetFile"
+	public explicit_type "std::ofstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 131621 "indexSetCountFile"
+	public explicit_type "std::ofstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 131749 "indexSetFileIn"
+	public explicit_type "std::ifstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 131877 "indexSetCountFileIn"
+	public explicit_type "std::ifstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 132005 "allMeasuredData"
+	public explicit_type "std::ifstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      operation 165925 "readData"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      classrelation 143269 // parameter (<directional aggregation by value>)
+	relation 143269 *-->
+	  stereotype "Vector"
+	  a role_name "parameter" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 143269 // parameter (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      classrelation 143397 // parameterC (<directional aggregation by value>)
+	relation 143397 *-->
+	  stereotype "Vector"
+	  a role_name "parameterC" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 143397 // parameterC (<directional aggregation by value>)
+	  b parent class_ref 128549 // Double
+      end
+
+      operation 166053 "createFiles"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 166181 "computeIndexSet"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "PP" type class_ref 129061 // Integer
+	  param in name "PPmax" type class_ref 128421 // UInt
+	  param in name "nrMultHarms_" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Generates and writes an index set to file"
+      end
+
+      operation 166309 "getExponentArray"
+	public explicit_return_type "void"
+	nparams 5
+	  param inout name "exponent" explicit_type "Matrix<Integer>"
+	  param inout name "count" explicit_type "Matrix<Integer>"
+	  param in name "pp" type class_ref 128421 // UInt
+	  param in name "p" type class_ref 128421 // UInt
+	  param in name "delta" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} ${p2}, ${t3} ${p3}, ${t4} ${p4}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} ${p2}, ${t3} ${p3}, ${t4} ${p4}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Retrieves values from index file and provides array of exponents"
+      end
+    end
+
+    class 134437 "WriteInfo"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for writing formatted output to the info-file."
+      attribute 132517 "cfsInfo"
+	private explicit_type "std::ofstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 143909 // warningOccured_ (<directional aggregation by value>)
+	relation 143909 *-->
+	  a role_name "warningOccured_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 143909 // warningOccured_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 144037 // progressRunning_ (<directional aggregation by value>)
+	relation 144037 *-->
+	  a role_name "progressRunning_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 144037 // progressRunning_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 144165 // needAck_ (<directional aggregation by value>)
+	relation 144165 *-->
+	  a role_name "needAck_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 144165 // needAck_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      operation 167461 "WriteInfo"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "/ constructor"
+      end
+
+      operation 167589 "~WriteInfo"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "/ destructor"
+      end
+
+      operation 167717 "GetInfoStreamPointer"
+	cpp_inline public explicit_return_type "std::ostream"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      std::ostream *ofs = NULL;
+      ofs = dynamic_cast<std::ostream*>( cfsInfo );
+      if ( ofs == NULL ) {
+        (*error) << \"GetInfoStreamPointer: Some weird shit happened!\";
+        CoupledField::Error( __FILE__, __LINE__ );
+      }
+      return ofs;
+    };
+"
+	
+	
+	comment "! Obtain a pointer to the logfile stream"
+      end
+
+      operation 167845 "CreateFile"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Open output file
+! Calling this method triggers the generation/opening of a file for
+! logging status messages into. The name of the file is compiled by
+! adding an <em>.info</em> postfix to the name of the current simulation
+! run. The latter is obtained from the global pointer to the
+! BaseCommandLineHandler object.
+! \\note Calling this method twice results in an error, since it will
+!       refuse to open the file another time."
+      end
+
+      operation 167973 "PrintHeader"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Prints header for both info-file and standard out"
+      end
+
+      operation 168101 "PrintPiezoMat"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "material" type class_ref 129701 // MaterialData
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints full data of a piezo material"
+      end
+
+      operation 168229 "PrintFluidMat"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "material" type class_ref 129701 // MaterialData
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints all fluid data"
+      end
+
+      operation 168357 "PrintThermicMat"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "material" type class_ref 129701 // MaterialData
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints all thermic data"
+      end
+
+      operation 168485 "PrintMagMat"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "material" type class_ref 129701 // MaterialData
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints all magnetic data"
+      end
+
+      operation 168613 "PrintCoil"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "coil" type class_ref 134565 // Coil
+	  param inout name "analysistype" type class_ref 132133 // AnalysisType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints all data of a coil (e.g. current, area, magnetization, ...)"
+      end
+
+      operation 168741 "WriteNonLinIter"
+	public explicit_return_type "void"
+	nparams 5
+	  param in name "pdeName" explicit_type "std::string"
+	  param in name "iterationCounter" type class_ref 128421 // UInt
+	  param in name "residualErr" type class_ref 128549 // Double
+	  param in name "incrementalErr" type class_ref 128549 // Double
+	  param in name "etaLineSearch" explicit_type "double"
+	    defaultvalue "0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, ${t4} ${p4}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, ${t4} ${p4}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints the process of a nonlinear iteration"
+      end
+
+      operation 168869 "WriteMultiSequenceStep"
+	public explicit_return_type "void"
+	nparams 2
+	  param in name "sequenceStep" type class_ref 128421 // UInt
+	  param in name "analysis" type class_ref 132133 // AnalysisType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints the process of a mulitSequence Analysis"
+      end
+
+      operation 168997 "WriteTimeStep"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "pdeName" explicit_type "std::string"
+	  param in name "timeStep" type class_ref 128421 // UInt
+	  param in name "time" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints the process of a transient analysis"
+      end
+
+      operation 169125 "WriteHarmonicStep"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "pdeName" explicit_type "std::string"
+	  param in name "freqStep" type class_ref 128421 // UInt
+	  param in name "frequency" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints the process of a harmonic analysis"
+      end
+
+      operation 169253 "WriteHomDirBC"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "pdeName" explicit_type "std::string"
+	  param in name "subDom" explicit_type "std::string"
+	  param in name "dof" type class_ref 128421 // UInt
+	    defaultvalue "0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ writes domain and dof of homogenous Dirichlet boundary conditions"
+      end
+
+      operation 169381 "WriteInhomDirBC"
+	public explicit_return_type "void"
+	nparams 5
+	  param in name "pdeName" explicit_type "std::string"
+	  param in name "subDom" explicit_type "std::string"
+	  param in name "val" type class_ref 128549 // Double
+	  param in name "fnc" explicit_type "std::string"
+	  param in name "dof" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}, const ${t3} & ${p3}, const ${t4} & ${p4}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}, const ${t3} & ${p3}, const ${t4} & ${p4}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ writes domain and dof of inhomogenous Dirichlet boundary conditions"
+      end
+
+      operation 169509 "WriteInhomNeuBC"
+	public explicit_return_type "void"
+	nparams 2
+	  param in name "pdeName" explicit_type "std::string"
+	  param in name "subDom" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ writes domain and dof of inhomogenous Neumann boundary conditions"
+      end
+
+      operation 169637 "WriteConstraints"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "pdeName" explicit_type "std::string"
+	  param in name "subDom" explicit_type "std::string"
+	  param in name "dof" type class_ref 128421 // UInt
+	    defaultvalue "0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ writes domain and dof of constraints"
+      end
+
+      operation 169765 "WriteLoad"
+	public explicit_return_type "void"
+	nparams 5
+	  param in name "pdeName" explicit_type "std::string"
+	  param in name "subDom" explicit_type "std::string"
+	  param in name "value" type class_ref 128549 // Double
+	  param in name "fnc" explicit_type "std::string"
+	  param in name "dof" type class_ref 128421 // UInt
+	    defaultvalue "0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}, const ${t3} & ${p3}, ${t4} ${p4}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}, const ${t3} & ${p3}, ${t4} ${p4}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ writes domain, value and dof of a load conditon"
+      end
+
+      operation 169893 "WriteResult"
+	public explicit_return_type "void"
+	nparams 7
+	  param in name "pdename" explicit_type "std::string"
+	  param in name "resulttype" explicit_type "std::string"
+	  param inout name "subdoms" explicit_type "StdVector<std::string>"
+	  param inout name "results" explicit_type "Vector<Double>"
+	  param in name "unit" explicit_type "std::string"
+	  param in name "analysis" explicit_type "std::string"
+	  param in name "analysisVal" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ write Result values"
+      end
+
+      operation 170021 "WriteResult"
+	public explicit_return_type "void"
+	nparams 7
+	  param in name "pdename" explicit_type "std::string"
+	  param in name "resulttype" explicit_type "std::string"
+	  param inout name "subdoms" explicit_type "StdVector<std::string>"
+	  param inout name "results" explicit_type "Vector<Complex>"
+	  param in name "unit" explicit_type "std::string"
+	  param in name "analysis" explicit_type "std::string"
+	  param in name "analysisVal" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, ${t4} ${p4}, ${t5} ${p5}, ${t6} ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 170149 "PrintVec"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "Vector<Complex>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ just prints a vector"
+      end
+
+      operation 170277 "PrintVec"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ just prints a vector"
+      end
+
+      operation 170405 "PrintVec"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "StdVector<Integer>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints a standard vector"
+      end
+
+      operation 170533 "PrintVec"
+	public explicit_return_type "void"
+	nparams 2
+	  param in name "comment" explicit_type "char"
+	  param inout name "vec" explicit_type "StdVector<Integer>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints a standard vector with a leading comment"
+      end
+
+      operation 170661 "PrintVec"
+	public explicit_return_type "void"
+	nparams 2
+	  param in name "comment" explicit_type "char"
+	  param inout name "vec" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints a standard vector of strings, each string in a new line"
+      end
+
+      operation 170789 "PrintMatrix"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "comment" explicit_type "std::string"
+	  param in name "mat" explicit_type "Matrix<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints a matrix with a leading commnet"
+      end
+
+      operation 170917 "PrintF"
+	public explicit_return_type "void"
+	nparams 2
+	  param in name "pdeName" explicit_type "std::string"
+	  param in name "formatStr" explicit_type "char"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} * ${p1} ...${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} * ${p1} ...${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ does a formatted print leaded by the PDE name, equal to std::printf(...)"
+      end
+
+      operation 171045 "Warning"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "text" explicit_type "std::string"
+	  param in name "filename" type class_ref 133285 // Char
+	    defaultvalue "NULL"
+	  param in name "numline" type class_ref 128421 // UInt
+	    defaultvalue "0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints warning to info-file and std::cerr"
+      end
+
+      operation 171173 "Error"
+	public explicit_return_type "void"
+	nparams 3
+	  param in name "text" explicit_type "std::string"
+	  param in name "filename" type class_ref 133285 // Char
+	  param in name "numline" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} * const ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ prints error to both std::out and info-file"
+      end
+
+      operation 171301 "StartProgress"
+	public explicit_return_type "void"
+	nparams 2
+	  param in name "name" explicit_type "std::string"
+	  param in name "needAck" type class_ref 129189 // Boolean
+	    defaultvalue " TRUE"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ generates a message, that a certain action has started"
+      end
+
+      operation 171429 "FinishProgress"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "success" type class_ref 129189 // Boolean
+	    defaultvalue " TRUE"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ generates a message, that the last action has finished"
+      end
+
+      operation 171557 "GenStr"
+	stereotype "template"
+	cpp_inline public explicit_return_type "std::string"
+	nparams 1
+	  param in name "value" explicit_type "T"
+	cpp_decl "    ${comment}template<class T>
+  ${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} {
+      std::ostringstream mystream;
+      mystream << value;
+      return mystream.str();
+    };
+"
+	
+	
+	comment "! Convert anything to a standard string
+! This auxilliary method can convert any data type to a standard string,
+! if the << operator has been overloaded for the respective type."
+      end
+    end
+  end
+
+  deploymentview 128165 "DataInOut"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 129189 "FileType"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 133157 // FileType
+      end
+    end
+
+    artifact 129317 "FreqFunc"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 133413 // FreqFunc
+      end
+    end
+
+    artifact 129445 "LoadMaterialData"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 133541 // LoadMaterialData
+      end
+    end
+
+    artifact 129573 "LoadMaterialDataDatabase"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 133669 // LoadMaterialDataDatabase
+      end
+    end
+
+    artifact 129701 "LoadMaterialDataFile"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 133925 // LoadMaterialDataFile
+      end
+    end
+
+    artifact 129829 "MaterialData"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 129701 // MaterialData
+      end
+    end
+
+    artifact 129957 "MHMaterialData"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 134181 // MHMaterialData
+      end
+    end
+
+    artifact 130085 "MHMaterialDataFile"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 134309 // MHMaterialDataFile
+      end
+    end
+
+    artifact 130213 "TimeFunc"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 131493 // TimeFunc
+      end
+    end
+
+    artifact 130341 "WriteInfo"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 134437 // WriteInfo
+      end
+    end
+
+    artifact 130469 "WriteResults"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 131365 // WriteResults
+      end
+    end
+  end
+
+  package_ref 129317 // Database
+
+  package_ref 129445 // AnsysFile
+
+  package_ref 129701 // AnsysOut
+
+  package_ref 129829 // cfsRST
+
+  package_ref 129957 // CommandLine
+
+  package_ref 130085 // DefineFiles
+
+  package_ref 130213 // GiD
+
+  package_ref 130341 // GMV
+
+  package_ref 130469 // GSI
+
+  package_ref 130853 // ParamHandling
+
+  package_ref 130981 // Scripting
+
+  package_ref 131109 // Unverg
+end

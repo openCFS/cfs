@@ -1,0 +1,299 @@
+format 22
+"Estimator" // Current Classes::Estimator
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 132261 "Estimator"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 157349 "SpaceErrorEstimator"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! class for space error estimation"
+      operation 421925 "SpaceErrorEstimator"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! constructor "
+      end
+
+      operation 422053 "~SpaceErrorEstimator"
+	cpp_virtual cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "//   //! form list of faces for the elem
+//   void FormFacesForElem(const Elem * ptelem, std::vector<Elem*> & afaces);
+//   //! find neighbours elems for elem
+//   void FormNeighForFace(Elem ** neighFcs, Grid * grid, Elem * face);
+
+${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 422181 "Init"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "aptPDE" type class_ref 131749 // BasePDE
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract} { ptPDE_=aptPDE;};
+"
+	
+	
+	comment "! Init pointer to PDE
+!
+      \\param aptPDE pointer to the class of the PDE
+    "
+      end
+
+      operation 422309 "CalcErrorMap"
+	public explicit_return_type "void"
+	nparams 6
+	  param in name "sol" explicit_type "Vector<Double>"
+	  param inout name "subdoms" explicit_type "std::vector<std::string>"
+	  param inout name "ptgrid" type class_ref 130085 // Grid
+	  param inout name "relErrorMap" explicit_type "Vector<Double>"
+	  param inout name "atotalErr" type class_ref 128549 // Double
+	  param in name "level" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, ${t1} & ${p1}, ${t2} * ${p2}, ${t3} & ${p3}, ${t4} & ${p4}, const ${t5} ${p5}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, ${t1} & ${p1}, ${t2} * ${p2}, ${t3} & ${p3}, ${t4} & ${p4}, const ${t5} ${p5}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculation of error map
+!
+      \\param sol solution 
+      \\param subdoms vector with names of subdomains, on which we do calculation
+      \\param ptgrid pointer to the Grid
+      \\param errorMap out: vector with calculated relative error for each element.
+      \\f$\\|\\mbox{grad}_{\\mbox{SPR}} - \\mbox{grad}_{\\mbox{FEM}}\\|_{L2}\\f$
+      \\param  atotalErr out: total error.\\f$\\|\\mbox{grad}_{\\mbox{SPR}}\\|_{L2}\\f$
+    "
+      end
+
+      operation 422437 "CalcErrorMapHarmonic"
+	public explicit_return_type "void"
+	nparams 7
+	  param in name "solRe" explicit_type "Vector<Double>"
+	  param in name "solIm" explicit_type "Vector<Double>"
+	  param inout name "subdoms" explicit_type "std::vector<std::string>"
+	  param inout name "ptgrid" type class_ref 130085 // Grid
+	  param inout name "relErrorMap" explicit_type "Vector<Double>"
+	  param inout name "atotalErr" type class_ref 128549 // Double
+	  param in name "level" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} & ${p2}, ${t3} * ${p3}, ${t4} & ${p4}, ${t5} & ${p5}, const ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, ${t2} & ${p2}, ${t3} * ${p3}, ${t4} & ${p4}, ${t5} & ${p5}, const ${t6} ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculation of error map for harmonic analysis of acoustic equation
+!
+      \\param sol solution 
+      \\param subdoms vector with names of subdomains, on which we do calculation
+      \\param ptgrid pointer to the Grid
+      \\param errorMap out: vector with calculated relative error for each element.
+      \\f$\\|\\mbox{grad}_{\\mbox{SPR}} - \\mbox{grad}_{\\mbox{FEM}}\\|_{L2}\\f$
+      \\param  atotalErr out: total error.\\f$\\|\\mbox{grad}_{\\mbox{SPR}}\\|_{L2}\\f$
+    "
+      end
+
+      operation 422565 "RecoveryProcedure4ElemsPatch"
+	public explicit_return_type "void"
+	nparams 7
+	  param in name "Elems" explicit_type "std::vector<Elem*>"
+	  param inout name "ptgrid" type class_ref 130085 // Grid
+	  param in name "sol" explicit_type "Vector<Double>"
+	  param in name "aComponent" type class_ref 129061 // Integer
+	  param inout name "result" explicit_type "Vector<Double>"
+	  param inout name "locations" explicit_type "std::vector<Integer>"
+	  param in name "level" type class_ref 129061 // Integer
+	    defaultvalue "0"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, ${t1} * ${p1}, const ${t2} & ${p2}, const ${t3} ${p3}, ${t4} & ${p4}, ${t5} & ${p5}, const ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, ${t1} * ${p1}, const ${t2} & ${p2}, const ${t3} ${p3}, ${t4} & ${p4}, ${t5} & ${p5}, const ${t6} ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! recovery procedure for the elements-patch
+!
+      \\param Elems vector with information about elements
+      \\param ptgrid pointer to the Grid
+      \\param sol solution 
+      \\param aComponent number of component of gradient 
+      \\param result (output) result
+      \\param locations (output) global numbers of nodes in patch. needful for the vector with result
+    "
+      end
+
+      classrelation 203429 // ptPDE_ (<unidirectional association>)
+	relation 203429 --->
+	  a role_name "ptPDE_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 203429 // ptPDE_ (<unidirectional association>)
+	  b parent class_ref 131749 // BasePDE
+      end
+
+      classrelation 203557 // ptGrid_ (<unidirectional association>)
+	relation 203557 --->
+	  a role_name "ptGrid_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 203557 // ptGrid_ (<unidirectional association>)
+	  b parent class_ref 130085 // Grid
+      end
+
+      operation 422693 "CalcErrorForElem"
+	protected explicit_return_type "void"
+	nparams 7
+	  param in name "elem" type class_ref 132389 // Elem
+	  param in name "SPRgrad" explicit_type "Vector<Double>"
+	  param inout name "error" type class_ref 128549 // Double
+	  param inout name "normGradSPR" type class_ref 128549 // Double
+	  param in name "sol" explicit_type "Vector<Double>"
+	  param inout name "ptgrid" type class_ref 130085 // Grid
+	  param in name "level" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} * ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, const ${t4} & ${p4}, ${t5} * ${p5}, const ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} * ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, const ${t4} & ${p4}, ${t5} * ${p5}, const ${t6} ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculation error for one element
+!
+      \\param elem pointer to the element
+      \\param SPRgrad (output) returned calculated SPR gradient 
+      \\param error (output) retuned value of the error
+      \\param normGradSPR (output) L2-norm of SPR gradient
+      \\param sol (input) solution
+      \\param ptgrid pointer to Grid
+      \\param level level in grid hierarchy
+    "
+      end
+
+      operation 422821 "CalcErrorForElemHarmonic"
+	protected explicit_return_type "void"
+	nparams 9
+	  param in name "elem" type class_ref 132389 // Elem
+	  param in name "SPRgrad" explicit_type "Vector<Double>"
+	  param in name "SPRgradIm" explicit_type "Vector<Double>"
+	  param inout name "error" type class_ref 128549 // Double
+	  param inout name "normGradSPR" type class_ref 128549 // Double
+	  param in name "sol" explicit_type "Vector<Double>"
+	  param in name "solIm" explicit_type "Vector<Double>"
+	  param inout name "ptgrid" type class_ref 130085 // Grid
+	  param in name "level" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} * ${p1}, const ${t2} * ${p2}, ${t3} & ${p3}, ${t4} & ${p4}, const ${t5} & ${p5}, const ${t6} & ${p6}, ${t7} * ${p7}, const ${t8} ${p8}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} * ${p1}, const ${t2} * ${p2}, ${t3} & ${p3}, ${t4} & ${p4}, const ${t5} & ${p5}, const ${t6} & ${p6}, ${t7} * ${p7}, const ${t8} ${p8}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculation error for one element
+!
+      \\param elem pointer to the element
+      \\param SPRgrad (output) returned calculated SPR gradient 
+      \\param error (output) retuned value of the error
+      \\param normGradSPR (output) L2-norm of SPR gradient
+      \\param sol (input) solution
+      \\param ptgrid pointer to Grid
+      \\param level level in grid hierarchy
+    "
+      end
+
+      operation 422949 "CalcNumberOfNodesInPatch"
+	private return_type class_ref 129061 // Integer
+	nparams 1
+	  param in name "patch" explicit_type "std::vector<Elem*>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! auxiliary function for calculation of Kelly error
+  Double IntegralOverRegularFace_KellyError(const Elem * ptElem, Elem ** ptNeighborsOfFace);
+! auxialary procedure for calculating number of nodes in patch
+ direct calculating is implemented "
+      end
+    end
+  end
+
+  deploymentview 131877 "Estimator"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 149029 "SpaceErrorEstimator"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 157349 // SpaceErrorEstimator
+      end
+    end
+  end
+end

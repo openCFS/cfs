@@ -1,0 +1,36 @@
+class Hexahedron
+!!!283173.cpp!!!	getFaceVertex(in face : int) : Vertex
+  int childIndex;
+  Vertex* theVertex;
+
+  childIndex = hexChildOfParentFace[face][0];
+  theVertex = child[childIndex]->getVertex(hexChildVertexOfParentFace[face]);
+  return theVertex;
+!!!283301.cpp!!!	getFaceVertex(inout theNeighbor : Element) : Vertex
+  int face;
+  int childIndex;
+  Vertex* theVertex;
+
+  for (face = 0; face < 6; face++) {
+    if (n[face] == theNeighbor) {
+      childIndex = hexChildOfParentFace[face][0];
+      theVertex = child[childIndex]->getVertex(hexChildVertexOfParentFace[face]);
+      return theVertex;
+    }
+  }
+
+  return 0;
+!!!285989.cpp!!!	getRefinementPattern(inout vt : Vertex) : int
+  int i;
+  int refMask = 1;
+  int refPattern = 0;
+
+  for (i = 0; i < 12; i++) {
+    if (e[i]->isRefined()) {
+      refPattern = (refPattern | refMask);
+      vt[i] = e[i]->getMidPoint();
+    }
+    refMask = (refMask<<1);
+  }
+
+  return refPattern;

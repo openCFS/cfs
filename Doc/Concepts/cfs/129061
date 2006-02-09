@@ -1,0 +1,1643 @@
+format 22
+"Domain" // Current Classes::Domain
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 128933 "Domain"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 130085 "Grid"
+      abstract 
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class representing geometrical entities (elements, nodes, ...) of a
+! FE simulation.
+! This class represents an abstract interface to the geometrical entities 
+! (elements, nodes, ...) in a FE simulation.
+! It allows access to elements, nodes and coordinates.
+! The underlying structure is hidden by the according interface classes.
+!
+! \\note Some General Remarks:
+! - Node and element numbers are always counted one-based
+! - The Type \\c regionIdType is guraranteed to be of a countable type,
+! e.g. \\c Integer or \\c short \\c int. Therefore it is always zero-based
+! and can be directly used as a index for vectors / arrays.
+! - The region identifiers are used for surface AND volume elements"
+      classrelation 156837 // <generalisation>
+	relation 156837 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 156837 // <generalisation>
+	  b parent class_ref 142245 // Scriptable
+      end
+
+      operation 256933 "Grid"
+	public explicit_return_type ""
+	nparams 1
+	  param inout name "aptFileType" type class_ref 133157 // FileType
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment " =======================================================================
+ CONSTRUCTION AND INTIIALIZATION
+ =======================================================================
+@{ \\name Constructor / Initialization
+! Constructor 
+! Standard Constructor 
+! \\param aptFileType pointer to FileType for reading initial grid"
+      end
+
+      operation 257061 "~Grid"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 257189 "Read"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Reads the grid from input file"
+      end
+
+      operation 257317 "IsQuadratic"
+	abstract cpp_virtual public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "@}
+ =======================================================================
+ GENERAL GRID INFORMATION
+ =======================================================================
+@{ \\name General Grid Information
+! Return if grid uses quadratic elements"
+      end
+
+      operation 257445 "GetNumElemOfType"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "type" type class_ref 143013 // FEType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return number of elements of a given type
+! \\param type Type of finite element (LINE, TRIA, ...)"
+      end
+
+      operation 257573 "GetDim"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return dimension of mesh
+! Returns the geometrical dimension of the mesh. Currently only
+! two- and three-dimensional meshes are supported."
+      end
+
+      operation 257701 "GetNumNodes"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return maximum number of nodes
+! Returns the maximum node number in the finite element grid."
+      end
+
+      operation 257829 "GetNumNodes"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "regions" explicit_type "StdVector<RegionIdType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Returns the number of nodes contained in given region"
+      end
+
+      operation 257957 "GetNumNodes"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "nodesName" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Returns the number of nodes in the given nodelist"
+      end
+
+      operation 258085 "GetNumElems"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Returns the total number of elements in the grid"
+      end
+
+      operation 258213 "GetNumVolElems"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Return maximum number of volume elements 
+! Returns the total number of volume elements in the finite element grid"
+      end
+
+      operation 258341 "GetNumSurfElems"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Returns the total number of surface elements in the grid "
+      end
+
+      operation 258469 "GetNumElems"
+	abstract cpp_virtual public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "regions" explicit_type "StdVector<RegionIdType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Returns number of element contained in one region
+! Returns the number of element, which belong to a list of given
+! regions.
+! \\param regions (in) contains the regionIds of "
+      end
+
+      operation 258597 "GetRegionIds"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "regions" explicit_type "StdVector<RegionIdType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get vector with all (surface and volume) region identifiers
+! Return a vector with names of all region identifiers in the
+! current mesh (surface and volume)
+! \\param volRegions (out) vector with region identifiers"
+      end
+
+      operation 258725 "GetVolRegionIds"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "volRegions" explicit_type "StdVector<RegionIdType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get vector with all volume region identifiers
+! Return a vector with names of all volume region identifiers in the
+! current mesh.
+! \\param volRegions (out) vector with volume region identifiers"
+      end
+
+      operation 258853 "GetSurfRegionIds"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "surfRegions" explicit_type "StdVector<RegionIdType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get vector with all surface region identifiers
+! Return a vector with names of all surface region identifiers in the
+! current mesh.
+! \\param surfRegions (out) vector with volume region identifiers"
+      end
+
+      operation 258981 "GetListNodeNames"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "nodeNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get list with names of all named nodes
+! Get a list with names of all named nodes in the grid
+! \\param nodeNames list of names of nodes"
+      end
+
+      operation 259109 "GetListElemNames"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "elemNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get list with names of all named elements
+! Get a list with names of all named elements in the grid
+! \\param elemNames list of names of elements"
+      end
+
+      operation 259237 "GetNodesByName"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "nodeList" explicit_type "StdVector<UInt>"
+	  param in name "name" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "@}
+ =======================================================================
+ NODE ACCESS FUNCTIONS
+ =======================================================================
+@{ \\name Node Access Functions
+! Get list of nodes by their name
+! Returns a list of nodes, which are defined by a name.
+! These names can specify e.g. boundary nodes or nodes for
+! saving results.
+! \\param nodeList (out) list with node numbers
+! \\param name (in) name of nodes"
+      end
+
+      operation 259365 "GetNodesByRegion"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "nodeList" explicit_type "StdVector<UInt>"
+	  param in name "regionId" type class_ref 129829 // RegionIdType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get list of nodes contained in a region
+! Returns a list of all nodes, which are contained in a 
+! volume- or surface-region.
+! \\param nodeList (out) list with node numbers
+! \\param regionId (in) region identifier "
+      end
+
+      operation 259493 "GetNodeCoordinate"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param inout name "rfPoint" explicit_type "Point<2>"
+	  param in name "inode" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract} { Error( \"Not implemented\", __FILE__, __LINE__ ); };
+"
+	
+	
+	comment "! Get coordinates of node with global number inode
+! \\param rfPoint (out) coordinates of point 2D
+! \\param inode (in) node number"
+      end
+
+      operation 259621 "GetNodeCoordinate"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param inout name "rfPoint" explicit_type "Point<3>"
+	  param in name "inode" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract} { Error( \"Not implemented\", __FILE__, __LINE__ ); };
+"
+	
+	
+	comment "! Get coordinates of node with global number inode
+! \\param rfPoint (out) coordinates of point 3D
+! \\param inode (in) node number"
+      end
+
+      operation 259749 "GetNodeCoordinate"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "rfPoint" explicit_type "Vector<Double>"
+	  param in name "inode" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get coordinates of node with global number inode as vector
+! \\param rfPoint (out) coordinates of point 3D
+! \\param inode (in) node number"
+      end
+
+      operation 259877 "GetElem"
+	abstract cpp_virtual public return_type class_ref 132389 // Elem
+	nparams 1
+	  param in name "elemNr" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}const ${type} * ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "@}
+ =======================================================================
+ ELEMENT ACCESS FUNCTIONS
+ =======================================================================
+@{ \\name Element Access Functions
+! Get element with given element number
+! Returns a single element with the given element number
+! \\param elemNr element number"
+      end
+
+      operation 260005 "GetElems"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "elems" explicit_type "StdVector<Elem*>"
+	  param in name "regionId" type class_ref 129829 // RegionIdType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get list of elements (surface / volumes)
+! Returns all elems for a given surface / volume region. If the desired 
+! region consists of surface elements, they are up-casted into Elem*.
+! \\param elems (out) vector with elements for given regionId
+! \\param regionId (in) region identifier"
+      end
+
+      operation 260133 "GetVolElems"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "elems" explicit_type "StdVector<Elem*>"
+	  param in name "regionId" type class_ref 129829 // RegionIdType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get list of volume elements
+! Returns all elements for a given volume region.
+! \\param elems (out) vector with elements for given regionId
+! \\param regionId (in) region identifier"
+      end
+
+      operation 260261 "GetSurfElems"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "surfElems" explicit_type "StdVector<SurfElem*>"
+	  param in name "regionId" type class_ref 129829 // RegionIdType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get list of surface elements
+! Returns all elements for a given surface region 
+! \\param surfElems (out) vector with elements for given regionId
+! \\param regionId (in) region identifier"
+      end
+
+      operation 260389 "GetElemsByName"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "elems" explicit_type "StdVector<Elem*>"
+	  param in name "elemsName" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get list of elements by their name"
+      end
+
+      operation 260517 "GetElemNodes"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "connect" explicit_type "StdVector<UInt>"
+	  param in name "iElem" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get node numbers of given element
+! Returns the node numbers of a  given element.
+! \\param connect (out) contains global node numbers
+! \\param iElem (in) element number"
+      end
+
+      operation 260645 "GetElemNodesCoord"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "coordMat" explicit_type "Matrix<Double>"
+	  param in name "connect" explicit_type "StdVector<UInt>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get coordinates of element nodes
+! Returns the coordinates of all nodes of one element.
+! \\param coordMat (out) coordinates of the element nodes 
+!                         (spaceDim \\f$\\times\\f$ nrNodes);
+! \\param connect (in) global node numbers of element"
+      end
+
+      operation 260773 "GetElemsNextToNodes"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param inout name "elemList" explicit_type "StdVector<Elem*>"
+	  param in name "nodeList" explicit_type "StdVector<UInt>"
+	  param in name "regionIds" explicit_type "StdVector<RegionIdType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get elements associated with given nodes
+! Returns a list of elements, which have one or more of the given
+! common. The elements are taken out of a given list of regions.
+! \\param elemList (out) elements which have one or more nodes 
+!                          of nodeList
+! \\param nodeList (in) list of nodes for which neighbouring elements
+!                      are needed
+! \\param regionIds (in) identifiers for the regions, where the 
+!                       neihgbouring elements are searched in"
+      end
+
+      operation 260901 "GetElemsNextToSurface"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param inout name "neighbours" explicit_type "StdVector<Elem*>"
+	  param in name "surfElems" explicit_type "StdVector<Elem*>"
+	  param in name "neighRegions" explicit_type "StdVector<RegionIdType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Get volume elements lying next to given surface elements
+! Returns for a given list of surface elements those (volume) elements, 
+! which are neighbouring / have a face in common and are within a given 
+! listof regions. This can be used to determine interfaces.
+! \\note A surface element is considered to be a neighbour of a volume
+! element only, if all nodes of the surface element are common with 
+! a volume element
+! \\param neighbours (out) vector of neighbouring elements
+! \\param surfElems (in) vector of surface elements
+! \\param neighRegions (in) region ids, where the volume elems must lie
+! \\note If not each surface element was assigned to EXACTLY ONE volume
+! element, an error is thrown. If the search was successfull, the
+! i-th entry in the surfElems-vector corresponds to the i-th
+! entry in the volElems-vector"
+      end
+
+      operation 261029 "CalcSurfNormal"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "n" explicit_type "Vector<Double>"
+	  param in name "surfElem" type class_ref 132389 // Elem
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "@}
+ =======================================================================
+ GEOMETRY CALCULATION
+ =======================================================================
+@{ \\name Geometry Calculation
+! Returns surface element normal without defined orientation
+! This method calculates the normal of an surface element. The direction
+! is unspecified and dependend on the order or nodes of the element.
+! However, each surface element stores a flag \\a normalSign, which 
+! indicates the direction of the resulting normal w.r.t. its first
+! volume element pointer.
+! \\param n (out) vector containing surface normal
+! \\param surfElem (in) reference to surface element"
+      end
+
+      operation 261157 "CalcSurfNormalOutOfVol"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param inout name "n" explicit_type "Vector<Double>"
+	  param in name "surfElem" type class_ref 132389 // Elem
+	  param in name "volElem" type class_ref 132389 // Elem
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Returns surface element normal with defined orientation
+! Calculates the surface normal pointing OUT OF the neighbouring
+! volume element
+! \\param n (out) normal vector
+! \\param surfElem (in) surface element
+! \\param volElem (in) volume element"
+      end
+
+      operation 261285 "CalcVolumeOfRegion"
+	abstract cpp_virtual public return_type class_ref 128549 // Double
+	nparams 2
+	  param in name "regionId" type class_ref 129829 // RegionIdType
+	  param in name "isaxi" type class_ref 129189 // Boolean
+	    defaultvalue " FALSE "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Returns the volume of a given region
+! This method returns the volume of a given region by iterating over
+! all elements (volume / surface) and summing up their volume. 
+! 'Volume' here means, that for 2D elements the third dimension is 
+! assumed to be 1m.
+! \\param regionId (in) region identifier 
+! \\param isaxi (in) flag indicating axial symmetry"
+      end
+
+      operation 261413 "ProlongSol"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param in name "sol_coarse" explicit_type "Vector<Double>"
+	  param inout name "sol" explicit_type "Vector<Double>"
+	  param in name "alevel" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, ${t1} & ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} { Error( \"Not implemented\", __FILE__, __LINE__); };
+"
+	
+	
+	comment "@}
+ =======================================================================
+ ADAPTIVITY SECTION
+ =======================================================================
+@{ \\name Mesh Adaptivity
+! Prolongation of solution
+! \\param sol_coarse (in) solution on coarse grid
+! \\param sol (out) contains the solution on the new grid (fine grid)
+! \\param alevel (in) index in multilevel hierarchy"
+      end
+
+      operation 261541 "Refine"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "numLoops" type class_ref 128421 // UInt
+	    defaultvalue " 1"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { Error( \"This fnc is valid only for adaptgrid. Change your config-file\",
+             __FILE__ ,__LINE__); };
+"
+	
+	
+	comment "! Do refinement of elements, which we mark through function 
+! SetRefinementFlag"
+      end
+
+      operation 261669 "RefineUniform"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { Error( \"Not implemented\", __FILE__, __LINE__); };
+"
+	
+	
+	comment "! Do uniform refinement of elements, which we mark through function 
+! 'SetRefinementFlag'"
+      end
+
+      operation 261797 "UpdateBCs"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param inout name "bcs" explicit_type "std::list<UInt>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract} { Error( \"Not implemented\", __FILE__, __LINE__); };
+"
+	
+	
+	comment "! Update nodes for boundary conditions
+! \\param bcs list of boundary nodes"
+      end
+
+      operation 261925 "GetNeighboursOfElem"
+	cpp_virtual cpp_inline public explicit_return_type "StdVector<Elem*>"
+	nparams 2
+	  param in name "noOfElem" type class_ref 128421 // UInt
+	  param in name "color" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract} { 
+      Error(\" Not implemented\",__FILE__,__LINE__);
+      StdVector<Elem*> *dummy = NULL;
+      return dummy;
+    };
+"
+	
+	
+	comment "! Return vector of element-neighbors for the element with number noOfElem
+! \\param noOfElem (in) element level
+! \\param color (in) subdomain"
+      end
+
+      operation 262053 "GetNeighboursOfNode"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 2
+	  param in name "noOfNode" type class_ref 128421 // UInt
+	  param inout name "neighbours" explicit_type "StdVector<Elem*>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, ${t1} * ${p1}${)}${const}${volatile}${throw}${abstract} { Error(\" Not implemented\",__FILE__,__LINE__);};
+"
+	
+	
+	comment "! Return vector of element-neighbors for the node with number noOfNode
+! \\param noOfNode (in) global number of node
+! \\param neighbours (out) list with neighbors"
+      end
+
+      operation 262181 "Script_Eval"
+	public return_type class_ref 129189 // Boolean
+	nparams 3
+	  param in name "args" explicit_type "StdVector<std::string>"
+	  param inout name "argOffset" type class_ref 128421 // UInt
+	  param inout name "retVal" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ ======================================================
+ METHODS FOR SCRIPTING INTERFACE
+ ======================================================
+@{ \\name Scripting Interface
+! Central method vor evaluating a given scripting command
+! This method evaluates the given arguments, beginning from an offset 
+! prescribed by argOffset. If it is successful, it returns TRUE and the
+! as a vector of strings.
+! \\param args Vector of arguments in string format to be evaluated
+! \\param argOffset Offset for starting position in args vector
+! \\param retVal Vector of return values in string format
+! \\return TRUE, if evaluation was successful"
+      end
+
+      operation 262309 "Script_GetCommands"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "commands" explicit_type "StdVector<std::string>"
+	  param inout name "argOffset" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get list of all available commands of this object
+! This method returns a list of all available scripting commands
+! offered by the particular class.
+! \\param commands Vector of available commands of this class
+! \\param argOffset Offset for start position in args vector"
+      end
+
+      operation 262437 "RegionIdToName"
+	public explicit_return_type "std::string"
+	nparams 1
+	  param in name "regionId" type class_ref 129829 // RegionIdType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ =======================================================================
+ MISCELLANEOUS
+ =======================================================================
+@{ \\name Miscellaneous  
+! Returns for a given region identifier the associated name"
+      end
+
+      operation 262565 "RegionNameToId"
+	public return_type class_ref 129829 // RegionIdType
+	nparams 1
+	  param in name "regionName" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Returns for a given region name the associated identifier"
+      end
+
+      operation 262693 "RegionIdToName"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "regionNames" explicit_type "StdVector<std::string>"
+	  param in name "regionId" explicit_type "StdVector<RegionIdType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Returns for a list of region identifiers the associated names"
+      end
+
+      operation 262821 "RegionNameToId"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "regionIds" explicit_type "StdVector<RegionIdType>"
+	  param in name "regionName" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Returns for a list of region names  the associated identifiers"
+      end
+
+      operation 262949 "GetNodesOfElemList"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param inout name "nodeList" explicit_type "StdVector<UInt>"
+	  param in name "elemList" explicit_type "StdVector<Elem*>"
+	  param in name "onlyLinNodes" type class_ref 129189 // Boolean
+	    defaultvalue " FALSE "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "! Returns node numbers of a list of Elements
+! This method returns the unique node numbers of
+! a list of given elements. Ther are no duplicate entries.
+! \\param nodeList (out) list of unique node numbers in elemList
+! \\param elemList (in) list of elements
+! \\param onlyLinNodes (in) if true, only the corner nodes are retrieved"
+      end
+
+      operation 263077 "SetIntTypeAllElems"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "aIntType" type class_ref 143141 // IntegrationType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Resets the integration type of all known elements
+! \\deprecated Does anyone need this function?"
+      end
+
+      operation 263205 "GenGridStruct"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 3
+	  param in name "elemx" type class_ref 128421 // UInt
+	  param in name "elemy" type class_ref 128421 // UInt
+	  param in name "elemz" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract} {;};
+"
+	
+	
+	comment "@}
+ =======================================================================
+ Methods just needed for StructGrid-Class
+ =======================================================================
+@{ \\name StructGrid  
+! reads the grid"
+      end
+
+      operation 263333 "TransformGridStruct"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 5
+	  param inout name "shiftFactor" type class_ref 128421 // UInt
+	  param inout name "nodeShift" type class_ref 128421 // UInt
+	  param inout name "elemgrid" type class_ref 128421 // UInt
+	  param inout name "meshsize" type class_ref 128549 // Double
+	  param in name "flag" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}, ${t3} & ${p3}, const ${t4} ${p4}${)}${const}${volatile}${throw}${abstract} {;};
+"
+	
+	
+	comment "! Transforms the grid"
+      end
+
+      operation 263461 "GetMaxElem"
+	cpp_virtual cpp_inline public return_type class_ref 129061 // Integer
+	nparams 1
+	  param in name "dir" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { Error(\"GetMaxElem in Grid-Class not implemented\",__FILE__, __LINE__); 
+      return 1;};
+"
+	
+	
+	comment "! Returns maximum number of elements in x,y,z-direction"
+      end
+
+      operation 263589 "GetAllRegionNames"
+	abstract cpp_virtual protected explicit_return_type "void"
+	nparams 1
+	  param inout name "regionNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment "@}
+! Get vector containing all region names
+! Get a vecor which contains all region nodes. The order is in that way,
+! that one can access directly the elements of the vector by using a
+! RegionId and get the according entry of the vector."
+      end
+
+      classrelation 156965 // ptFileType (<unidirectional association>)
+	relation 156965 --->
+	  a role_name "ptFileType" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 156965 // ptFileType (<unidirectional association>)
+	  b parent class_ref 133157 // FileType
+      end
+
+      attribute 150693 "regionNames_"
+	protected explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 132389 "Elem"
+       stereotype "struct"
+      
+      cpp_decl "${comment}${template}struct ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for description of a volume finite element
+! This class describes a volume finite element, where volume means the 
+! highest dimensional element entities in the current mesh.
+! It has to be very lightweight, since this object is created many times.
+! It relates the geometric information of an element (node numbers)
+! with the mathematical / computational one (reference finite element).
+! The finite element is described by:
+! - corner node numbers
+! - pointer to reference finite element
+! - element number
+! - element subdomain identifier
+! - refinement flag / number"
+      operation 256421 "Elem"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw} {;};
+"
+	
+	
+	comment "! Dummy constructor"
+      end
+
+      operation 256549 "~Elem"
+	cpp_virtual cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {;};
+"
+	
+	
+	comment "! Dummy destructor"
+      end
+
+      classrelation 156069 // elemNum (<directional aggregation by value>)
+	relation 156069 *-->
+	  a role_name "elemNum" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 156069 // elemNum (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 156197 // regionId (<directional aggregation by value>)
+	relation 156197 *-->
+	  a role_name "regionId" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 156197 // regionId (<directional aggregation by value>)
+	  b parent class_ref 129829 // RegionIdType
+      end
+
+      classrelation 156325 // connect (<directional aggregation by value>)
+	relation 156325 *-->
+	  stereotype "StdVector"
+	  a role_name "connect" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 156325 // connect (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 156453 // refinementFlag (<directional aggregation by value>)
+	relation 156453 *-->
+	  a role_name "refinementFlag" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 156453 // refinementFlag (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      classrelation 156581 // refinementNumber (<directional aggregation by value>)
+	relation 156581 *-->
+	  a role_name "refinementNumber" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 156581 // refinementNumber (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 156709 // ptElem (<unidirectional association>)
+	relation 156709 --->
+	  a role_name "ptElem" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 156709 // ptElem (<unidirectional association>)
+	  b parent class_ref 135333 // BaseFE
+      end
+
+      operation 256677 "operator ="
+	cpp_inline public return_type class_ref 132389 // Elem
+	nparams 1
+	  param in name "t" type class_ref 132389 // Elem
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} & ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "//@}
+
+${comment}${inline}${type} & ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ ======================================================
+ HELPER METHODS
+ ======================================================
+@{ \\name Helper Methods
+! overloading operator ="
+      end
+
+      operation 256805 "diameter"
+	cpp_inline public return_type class_ref 128549 // Double
+	nparams 1
+	  param in name "ptArrayOfNodes" explicit_type "Point<2>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * const ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculation of diameter of element"
+      end
+    end
+
+    class 142629 "Domain"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! This class defines the computational domain.
+! This class contains information about the geometrical domain,
+! creates the (coupled) PDE objects, manages the handling of
+! time functions (used for boundary and load conditions) and
+! holds the pointers to the input mesh-file and the output data-file."
+      operation 254245 "Domain"
+	public explicit_return_type ""
+	nparams 3
+	  param inout name "aptFileType" type class_ref 133157 // FileType
+	  param inout name "ptOut" type class_ref 131365 // WriteResults
+	  param inout name "aptTimeFunc" type class_ref 131493 // TimeFunc
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * const ${p0}, ${t1} * ${p1}, ${t2} * ${p2}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * const ${p0}, ${t1} * ${p1}, ${t2} * ${p2}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor
+!
+      \\param aptFileType (input) input file (mesh-data)
+      \\param ptOut (input) output file
+      \\param aptTimeFunc (input) time function data base
+    "
+      end
+
+      operation 254373 "~Domain"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 254501 "PrintGrid"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Trigger output of the grid"
+      end
+
+      operation 254629 "InitPDEs"
+	public explicit_return_type "void"
+	nparams 3
+	  param inout name "pdeNames" explicit_type "StdVector<std::string>"
+	  param in name "sequenceStep" type class_ref 128421 // UInt
+	  param in name "tags" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " ======================================================
+ INIT AND UPDATE ROUTINES
+ ======================================================
+@{
+! \\name Methods for initialization and update
+! Initialize all PDEs
+! \\param pdes vector of pointers to pdes
+! \\param sequenceStep step index in MultiSequenceSimulation
+! \\param tags tags for each PDE "
+      end
+
+      operation 254757 "ResetPDEs"
+	public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Delete pointer to PDEs and create them new"
+      end
+
+      operation 254885 "GetBasePDE"
+	public return_type class_ref 131749 // BasePDE
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ ======================================================
+ SET / GETTER METHODS
+ ======================================================
+@{
+! \\name Methods for setting / getting data
+! Get pointer to basePDE
+! If only one PDE is defined, this method returns the pointer to it.
+! In the iterative coupled case, the pointer to the coupled PDE is 
+! returned"
+      end
+
+      operation 255013 "GetStdPDE"
+	public return_type class_ref 131237 // StdPDE
+	nparams 1
+	  param in name "pdename" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get pointer to StdPDE by name"
+      end
+
+      operation 255141 "GetSinglePDE"
+	public return_type class_ref 128293 // SinglePDE
+	nparams 1
+	  param in name "pdename" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get pointer to SinglePDE by name"
+      end
+
+      operation 255269 "GetInFile"
+	cpp_inline public return_type class_ref 133157 // FileType
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return InFile_;};
+"
+	
+	
+	comment "! Get pointer to input-file"
+      end
+
+      operation 255397 "GetOutFile"
+	cpp_inline public return_type class_ref 131365 // WriteResults
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return OutFile_;};
+"
+	
+	
+	comment "! Get pointer to output-file"
+      end
+
+      operation 255525 "GetGrid"
+	cpp_inline public return_type class_ref 130085 // Grid
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} { return ptgrid_;};
+"
+	
+	
+	comment "! Get pointer to grid object"
+      end
+
+      operation 255653 "GetTimeFncPointer"
+	cpp_inline public return_type class_ref 131493 // TimeFunc
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract} {return ptTimeFunc_;};
+"
+	
+	
+	comment "! Get time pointer to function"
+      end
+
+      operation 255781 "GetCoordSystem"
+	public return_type class_ref 142757 // CoordSystem
+	nparams 1
+	  param in name "name" explicit_type "std::string"
+	    defaultvalue " std::string(\"default\") "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Return local coordinate system by name"
+      end
+
+      operation 255909 "CreateSinglePDEs"
+	private explicit_return_type "void"
+	nparams 1
+	  param inout name "pdeNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ ======================================================
+ CREATION METHODS
+ ======================================================
+@{
+! \\name Methods for creating (coupled) PDE objects
+! Create the SinglePDE objects
+! Create the SinglePDE objects
+! \\param pdeNames Vector of names of PDEs"
+      end
+
+      operation 256037 "CreateDirectCoupledPDEs"
+	private explicit_return_type "void"
+	nparams 1
+	  param inout name "sequenceTags" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Initialize direct coupled pde(s)
+! Initialize direct coupled pde(s)
+! \\param sequenceTag Tag specifying the current coupling section"
+      end
+
+      operation 256165 "CreateIterCoupledPDE"
+	private explicit_return_type "void"
+	nparams 1
+	  param inout name "sequenceTags" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Initialize iterative coupled pde
+! Initialize iterative coupled pde
+! \\param sequenceTag Tag specifying the current coupling section"
+      end
+
+      operation 256293 "CreateCoordinateSystems"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Initialize local coordinate systems
+! Initialize local coordinate systems as read in from the parameter file"
+      end
+
+      classrelation 154405 // numSinglePde_ (<directional aggregation by value>)
+	relation 154405 *-->
+	  a role_name "numSinglePde_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 154405 // numSinglePde_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 154533 // numDirectCoupledPde_ (<directional aggregation by value>)
+	relation 154533 *-->
+	  a role_name "numDirectCoupledPde_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 154533 // numDirectCoupledPde_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 154661 // numIterCoupledStdPde_ (<directional aggregation by value>)
+	relation 154661 *-->
+	  a role_name "numIterCoupledStdPde_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 154661 // numIterCoupledStdPde_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 154789 // ptSinglePde_ (<directional aggregation by value>)
+	relation 154789 *-->
+	  stereotype "StdVector"
+	  a role_name "ptSinglePde_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 154789 // ptSinglePde_ (<directional aggregation by value>)
+	  b parent class_ref 128293 // SinglePDE
+      end
+
+      classrelation 154917 // ptDirectCoupledPde_ (<directional aggregation by value>)
+	relation 154917 *-->
+	  stereotype "StdVector"
+	  a role_name "ptDirectCoupledPde_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 154917 // ptDirectCoupledPde_ (<directional aggregation by value>)
+	  b parent class_ref 131109 // DirectCoupledPDE
+      end
+
+      classrelation 155045 // ptIterCoupledPde_ (<unidirectional association>)
+	relation 155045 --->
+	  a role_name "ptIterCoupledPde_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 155045 // ptIterCoupledPde_ (<unidirectional association>)
+	  b parent class_ref 131621 // IterCoupledPDE
+      end
+
+      classrelation 155173 // couplings_ (<directional aggregation by value>)
+	relation 155173 *-->
+	  stereotype "StdVector"
+	  a role_name "couplings_" multiplicity "" private
+	    comment "!<pointer to coupling objects"
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*> ${name}${value};"
+	    classrelation_ref 155173 // couplings_ (<directional aggregation by value>)
+	  b parent class_ref 130853 // PDECoupling
+      end
+
+      classrelation 155301 // isDirectCoupled_ (<directional aggregation by value>)
+	relation 155301 *-->
+	  stereotype "std::map"
+	  a role_name "isDirectCoupled_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}*,Boolean> ${name}${value};"
+	    classrelation_ref 155301 // isDirectCoupled_ (<directional aggregation by value>)
+	  b parent class_ref 128293 // SinglePDE
+      end
+
+      classrelation 155429 // ptgrid_ (<unidirectional association>)
+	relation 155429 --->
+	  a role_name "ptgrid_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 155429 // ptgrid_ (<unidirectional association>)
+	  b parent class_ref 130085 // Grid
+      end
+
+      classrelation 155557 // ptTimeFunc_ (<unidirectional association>)
+	relation 155557 --->
+	  a role_name "ptTimeFunc_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 155557 // ptTimeFunc_ (<unidirectional association>)
+	  b parent class_ref 131493 // TimeFunc
+      end
+
+      classrelation 155685 // InFile_ (<unidirectional association>)
+	relation 155685 --->
+	  a role_name "InFile_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 155685 // InFile_ (<unidirectional association>)
+	  b parent class_ref 133157 // FileType
+      end
+
+      classrelation 155813 // OutFile_ (<unidirectional association>)
+	relation 155813 --->
+	  a role_name "OutFile_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 155813 // OutFile_ (<unidirectional association>)
+	  b parent class_ref 131365 // WriteResults
+      end
+
+      attribute 150565 "coordSys_"
+	private explicit_type "std::map<std::string, CoordSystem*>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 155941 // dim_ (<directional aggregation by value>)
+	relation 155941 *-->
+	  a role_name "dim_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 155941 // dim_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+    end
+
+    class 143269 "SurfElem"
+       stereotype "struct"
+      
+      cpp_decl "${comment}${template}struct ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for description of a surface finite element
+! This class describes a surface finite element, which means that its
+! dimension is one smaller than the highest dimensional objects in the grid.
+! A surface element has all the properties of a volume element (geometric 
+! and computational ones), which means that it has an element number, a 
+! region identifier, a reference finite element for computation and
+! all other properties of a volume element.
+!
+! But since a surface element has at least one volume element neighbour,
+! it also holds references to its neighbouring volume element(s).
+! As surface elements are almost always used for surface integration 
+! purpose, a normal vector with defined sign is needed. Therefore this 
+! class has also a flag, indicating the direction of the normal.
+! This can be understand as follows: 
+! A vector perpendicular to the element's surface can simply be found by
+! calculating the (degenerated) cross-procduct of two vectors lying in 
+! the surface ( = connecting corner points). However, the sign of the 
+! resulting vector will be dependend on the ordering of the connectivity
+! of the element. Therefore the flag \\a normalSign defines a factor
+! (either 1 or -1) by which the resulting vector has to be multiplied, to
+! point in the direction of the first volume element.
+! 
+! Here is a snipplet of example code to demonstrate the calculation of 
+! the surface normal:
+! 
+! First, get the surface normal of the element without defined sign:
+! \\verbatim
+! Vector<Double> normalUndefSign, normalDefSign;
+! SurfElem surfElem;
+! Grid * ptGrid;
+!
+! ptGrid->CalcSurfNormal(normalUndefSign, surfElem);
+! \\endverbatim
+! Now, in order to get a defined direction of the normal,
+! multiply the normal with the \\a normalSign:
+! \\verbatim
+! normalDefSign = normalUndefSign * surfElem.normalSign;
+! \\endverbatim
+! Now \\c normalDefSign points in the direction of
+! \\c surfElem.ptVolElem1 !"
+      classrelation 157093 // <generalisation>
+	relation 157093 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 157093 // <generalisation>
+	  b parent class_ref 132389 // Elem
+      end
+
+      operation 263717 "SurfElem"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw} {
+      ptVolElem1 = NULL;
+      ptVolElem2 = NULL;
+      normalSign = 0;
+    };
+"
+	
+	
+	comment "! Default Constructor"
+      end
+
+      classrelation 157221 // ptVolElem1 (<unidirectional association>)
+	relation 157221 --->
+	  a role_name "ptVolElem1" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 157221 // ptVolElem1 (<unidirectional association>)
+	  b parent class_ref 132389 // Elem
+      end
+
+      classrelation 157349 // ptVolElem2 (<unidirectional association>)
+	relation 157349 --->
+	  a role_name "ptVolElem2" multiplicity "" public
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 157349 // ptVolElem2 (<unidirectional association>)
+	  b parent class_ref 132389 // Elem
+      end
+
+      attribute 150821 "normalSign"
+	public explicit_type "char"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+  end
+
+  deploymentview 130085 "Domain"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 136997 "Domain"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 142629 // Domain
+      end
+    end
+
+    artifact 137125 "Elem"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 132389 // Elem
+      end
+    end
+
+    artifact 137253 "Grid"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 130085 // Grid
+      end
+    end
+
+    artifact 137381 "SurfElem"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 143269 // SurfElem
+      end
+    end
+  end
+
+  package_ref 131237 // AdaptGrid
+
+  package_ref 131621 // GridAdaption
+
+  package_ref 131749 // GridCFS
+
+  package_ref 131877 // Gridlib
+
+  package_ref 132005 // GridStruct
+
+  package_ref 132133 // NetGen
+end

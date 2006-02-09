@@ -1,0 +1,685 @@
+format 22
+"AnsysFile" // Current Classes::DataInOut::AnsysFile
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 129317 "AnsysFile"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 135205 "AnsysFile"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class for reading in a mesh created by the ANSYS mkmesh-extension.
+! Class, that is derived from class FileType for reading mesh-input data,
+! which is produced by Ansys mkmesh-interface. "
+      classrelation 144933 // <generalisation>
+	relation 144933 ---|>
+	  a public
+	    cpp virtual default "Generated"
+	    classrelation_ref 144933 // <generalisation>
+	  b parent class_ref 133157 // FileType
+      end
+
+      operation 173861 "AnsysFile"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "afilename" type class_ref 133285 // Char
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * const ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} * const ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment " =======================================================================
+ CONSTRUCTION AND INTIIALIZATION
+ =======================================================================
+@{ \\name Constructor / Initialization
+! Constructor with name of mesh-file"
+      end
+
+      operation 173989 "~AnsysFile"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 174117 "GetDim"
+	public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ =======================================================================
+ GENERAL MESH INFORMATION
+ =======================================================================
+@{ \\name General Mesh Information
+! Return dimension of the mesh"
+      end
+
+      operation 174245 "GetNumNodes"
+	public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get total number of nodes in mesh"
+      end
+
+      operation 174373 "GetNumElems"
+	public return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "dim" type class_ref 128421 // UInt
+	    defaultvalue " 0 "
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get total number of elements in mesh"
+      end
+
+      operation 174501 "GetNumRegions"
+	public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get total number of regions"
+      end
+
+      operation 174629 "GetNumNamedNodes"
+	public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get total number of named nodes"
+      end
+
+      operation 174757 "GetNumNamedElems"
+	public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get total number of named elements"
+      end
+
+      operation 174885 "GetAllRegionNames"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "regionNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ =======================================================================
+ ENTITY NAME ACCESS
+ =======================================================================
+@{ \\name Entity Name Access
+! Get vector with all region names in mesh
+! Returns a vector with the names of regions in the mesh of all
+! dimensions.
+! \\param regionNames (output) vector containing names of regions
+! \\note Since the RegionIdType is guaranteed to be defined by
+! a number type (UInt, UInt), the regionId of an element can
+! be directly used as index to the regions-vector"
+      end
+
+      operation 175013 "GetRegionNamesOfDim"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "regionNames" explicit_type "StdVector<std::string>"
+	  param in name "dim" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get vector with region names of given dimension
+! Returns a vector with the names of regions of a given dimension.
+! This makes it possible to get for example all names of 
+! 3D, 2D or 1D elements
+! \\param regionNames (output) vector containing names of regions
+! \\param dim (input) dimension of the region (1,2, or 3)"
+      end
+
+      operation 175141 "GetNodeNames"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "nodeNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get vector with all names of named nodes
+! Returns a vector which contains all names of named nodes.
+! \\param nodeNames (output) vector with names of named nodes"
+      end
+
+      operation 175269 "GetElemNames"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "elemNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get vector with all names of named elements
+! Returns a vector which contains all names of named elements.
+! \\param elemNames (output) vector with names of named elements"
+      end
+
+      operation 175397 "GetCoordinates"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "nodeCoords" explicit_type "StdVector<Point<3> >"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "@}
+ =======================================================================
+ ENTITY ACCESS
+ =======================================================================
+@{ \\name Entity Access
+! Get all nodal coordinates from 3D grid
+! This method reads all nodal coordinates into a vector of 3D-Points.
+! \\param nodeCoords (output) vector containing nodal coordinates"
+      end
+
+      operation 175525 "GetCoordinates"
+	public explicit_return_type "void"
+	nparams 1
+	  param inout name "nodeCoords" explicit_type "StdVector<Point<2> >"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get all nodal coordinates from 2D grid
+! This method reads all nodal coordinates into a vector of 2D-Points.
+! \\param nodeCoords (output) vector containing nodal coordinates"
+      end
+
+      operation 175653 "GetNodesOfRegions"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "nodes" explicit_type "StdVector<StdVector<UInt> >"
+	  param in name "regionId" explicit_type "StdVector<RegionIdType>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Get vector of nodes for each region
+! This method reads the node numbers of each region into a 
+! separate vector. 
+! \\param nodes (output) vector containing the node numbers for each
+!                       region. The access is like \\c elems 
+!                       \\c [regionNr] \\c [nodeNr]
+! \\param regionId (output) vector containing the region Ids of the
+!                          nodes corresponding to the outer index in the
+!                          nodes vector"
+      end
+
+      operation 175781 "GetElements"
+	public explicit_return_type "void"
+	nparams 3
+	  param inout name "elems" explicit_type "StdVector< StdVector<Elem*> >"
+	  param inout name "regionId" explicit_type "StdVector<RegionIdType>"
+	  param in name "dim" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read all elements of given dimension
+! This method reads all elements of a given dimension (1D, 2D or 3D).
+! The output is a vector of vectors, where the outer index corresponds
+! to the different regions and the inner one to the different elements
+! per region.
+! \\param elems (output) vector containing vectors of pointers to elements
+!                       per region. The access is like \\c elems 
+!                       \\c [regionNr] \\c [elemeNr]
+! \\param regionId (output) vector containing the region Ids of the
+!                          elements corresponding to the outer index in 
+!                          the elems vector
+! \\param dim (input) dimension of the elements to be read (1,2 or 3)"
+      end
+
+      operation 175909 "GetNamedNodes"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "nodes" explicit_type "StdVector<StdVector<UInt> >"
+	  param inout name "nodeNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read all named nodes
+! This method reads in all named nodes with their according names.
+! \\param nodes (output) vector containing node numbers for each region.
+!                       The access is like \\c nodes \\c [nameNr] 
+!                       \\c [nodeNr]
+! \\param nodeNames (output) vector containing the corresponding
+!                           node names "
+      end
+
+      operation 176037 "GetNamedElems"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "elems" explicit_type "StdVector<StdVector<UInt> >"
+	  param inout name "elemNames" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read all named elements
+! This method reads in all named elements with their according names.
+! \\param elems (output) vector containing node numbers for each region.
+!                       The access is like \\c elems \\c [nameNr] 
+!                       \\c [elemNr]
+! \\param elemNames (output) vector containing the corresponding
+!                           element names "
+      end
+
+      operation 176165 "ReadGrid_RG"
+	public explicit_return_type "void"
+	nparams 3
+	  param inout name "elems" explicit_type "StdVector<grd::Element*>"
+	  param inout name "vertex" explicit_type "StdVector<grd::Vertex*>"
+	  param in name "sd" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} * ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} * ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read the mesh from mesh-file for Grid_RG
+! \\param elems out: vector with elements
+! \\param vertex out: vector with vertices
+! \\param sd in: vector with color of subdomains which is put in Grid_RG"
+      end
+
+      operation 176293 "ReadBCs_GridRG"
+	public explicit_return_type "void"
+	nparams 2
+	  param inout name "idBCs" explicit_type "StdVector<UInt>"
+	  param inout name "colorBCs" explicit_type "StdVector<UInt>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Read the mesh from mesh-file for Grid_RG
+! \\param elems out: vector with elements
+! \\param vertex out: vector with vertices
+! \\param sd in: vector with color of subdomains which is put in Grid_RG"
+      end
+
+      operation 176421 "GetInteger"
+	protected return_type class_ref 128421 // UInt
+	nparams 1
+	  param in name "seekexp" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " =======================================================================
+ AUXILLIARY METHODS
+ =======================================================================
+@{
+! \\name Auxilliary Methods
+! Returns a single integer next to a string
+! This method searches in the mesh file for the expression \\a seekexp
+! and returns the number right next to it as integer value
+! \\param seekexp (input) expression next to a integer value in the mesh"
+      end
+
+      operation 176549 "IsNextLineEmpty"
+	protected return_type class_ref 129189 // Boolean
+	nparams 1
+	  param in name "actPos" explicit_type "std::string::size_type"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Test the next line, if it is empty
+! This method looks in the mesh file, if the following line to a given
+! position is empty,
+! \\param actPos (input) last position of file pointer before next line"
+      end
+
+      operation 176677 "GetPosLine"
+	protected explicit_return_type "void"
+	nparams 2
+	  param in name "seekexp" explicit_type "std::string"
+	  param inout name "pos" explicit_type "std::string::size_type"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Returns the position of a new line right after a given expression
+! This method returns the position  after line with \\a seekexp and 
+! comments lines
+! \\param seekexp (input) string which is searched for
+! \\param pos (output) positition of the beginning of a the line next
+!                     to the one containing \\a seekexp"
+      end
+
+      operation 176805 "GetPosition"
+	protected explicit_return_type "void"
+	nparams 2
+	  param in name "seekexp" explicit_type "std::string"
+	  param inout name "pos" explicit_type "std::string::size_type"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Returns the position immediately after a given expression
+! This method returns the position immediately after a given expression.
+! \\param seekexp (input) expression which is looked for
+! \\param pos (output) position right after \\a seekexp"
+      end
+
+      operation 176933 "ObtainRegionId"
+	protected return_type class_ref 129829 // RegionIdType
+	nparams 2
+	  param in name "regionName" explicit_type "std::string"
+	  param in name "dim" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Returns a region identifier for a given region
+! This method takes the name of a region and its dimension and returns
+! the according identifier. 
+! \\param regionName (input) name of region 
+! \\param dim (input) dimension of the elements (1, 2 or 3)"
+      end
+
+      operation 177061 "Type2ptElem"
+	protected return_type class_ref 135333 // BaseFE
+	nparams 1
+	  param in name "itype" type class_ref 128421 // UInt
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Transform type of elem in pointer to base class BaseFE
+! This method maps the type number of an element - as given in the 
+! mesh file - to a pointer to a reference finite element.
+! \\param itype (input) element type number as read in from the mesh"
+      end
+
+      classrelation 145061 // dim_ (<directional aggregation by value>)
+	relation 145061 *-->
+	  a role_name "dim_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 145061 // dim_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 145189 // maxNumElems_ (<directional aggregation by value>)
+	relation 145189 *-->
+	  a role_name "maxNumElems_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 145189 // maxNumElems_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 145317 // maxNumNodes_ (<directional aggregation by value>)
+	relation 145317 *-->
+	  a role_name "maxNumNodes_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 145317 // maxNumNodes_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      attribute 133669 "regionNames_"
+	protected explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 145445 // regionDim_ (<directional aggregation by value>)
+	relation 145445 *-->
+	  stereotype "StdVector"
+	  a role_name "regionDim_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 145445 // regionDim_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 145573 // elemDimReadIn_ (<directional aggregation by value>)
+	relation 145573 *-->
+	  stereotype "StdVector"
+	  a role_name "elemDimReadIn_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${stereotype}<${type}> ${name}${value};"
+	    classrelation_ref 145573 // elemDimReadIn_ (<directional aggregation by value>)
+	  b parent class_ref 129189 // Boolean
+      end
+
+      attribute 133797 "regionNodes_"
+	protected explicit_type "StdVector<std::set<UInt> >"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 133925 "inFile_"
+	protected explicit_type "std::ifstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 134053 "pos_end"
+	protected explicit_type "std::string::size_type"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      operation 177189 "ReadEl4AdaptGrid2d"
+	protected explicit_return_type "void"
+	nparams 3
+	  param inout name "elems" explicit_type "StdVector<grd::Element*>"
+	  param inout name "vertices" explicit_type "StdVector<grd::Vertex*>"
+	  param in name "sd" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} * ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} * ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! read 2d elements from the input mesh-file for the Grid_RG "
+      end
+
+      operation 177317 "ReadEl4AdaptGrid3d"
+	protected explicit_return_type "void"
+	nparams 3
+	  param inout name "elems" explicit_type "StdVector<grd::Element*>"
+	  param inout name "vertices" explicit_type "StdVector<grd::Vertex*>"
+	  param in name "sd" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} * ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} * ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! read 3d elements from the input mesh-file for the Grid_RG "
+      end
+
+      operation 177445 "SetNumSD"
+	protected explicit_return_type "void"
+	nparams 3
+	  param inout name "ptEl" explicit_type "grd::Element"
+	  param in name "namesd" explicit_type "std::string"
+	  param in name "sd" explicit_type "StdVector<std::string>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! for each element of the mesh in format of Grid_RG set value:
+! color of subdomain
+! \\param namesd name of the subdomain
+! \\param sd vector with colors of all subdomains"
+      end
+    end
+  end
+
+  deploymentview 128293 "AnsysFile"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 130597 "AnsysFile"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 135205 // AnsysFile
+      end
+    end
+  end
+end

@@ -1,0 +1,1779 @@
+format 22
+"3D" // Current Classes::Elements::3D
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 132133 "3D"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 155813 "Hexa1FE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with  description of hexahedral element"
+      classrelation 201893 // <generalisation>
+	relation 201893 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 201893 // <generalisation>
+	  b parent class_ref 155941 // HexaFE
+      end
+
+      operation 412325 "Hexa1FE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 412453 "~Hexa1FE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 412581 "Init"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Define variables of this class"
+      end
+
+      operation 412709 "SetCornerCoords"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set local corner coordinates"
+      end
+
+      operation 412837 "CalcShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LShape" explicit_type "Vector<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the shape functions at an arbitrary local point
+!
+      \\param Shape (output) Vector of shape fnc values \\f$ (N_{1},\\cdots\\,N_{NumNodes})^T \\f$
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+
+      operation 412965 "CalcLocalDerivShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LDeriv" explicit_type "Matrix<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the local derivatives of shape functions at an arbitrary local point
+!
+      \\param LDeriv (output) Matrix with local derivatives of all shape functions
+      \\f[ \\left( \\begin{array}{ccc} N_{1,d\\xi} & N_{1,d\\eta} & \\cdots \\\\
+      N_{2,d\\xi} & N_{2,d\\eta} & \\cdots \\\\
+      \\cdots     & \\cdots      & \\cdots \\end{array}\\right) \\f]
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+    end
+
+    class 155941 "HexaFE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with general description of hexahedral element
+! This class is derived from BaseFE. It stores general procedures for each
+! type of finite element based on <em>hexahedra</em>, such as information
+! on integration points and integration weights"
+      classrelation 202149 // <generalisation>
+	relation 202149 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 202149 // <generalisation>
+	  b parent class_ref 135333 // BaseFE
+      end
+
+      operation 413861 "HexaFE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 413989 "~HexaFE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 414117 "feType"
+	cpp_virtual cpp_inline public return_type class_ref 143013 // FEType
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return HEX;
+    };
+"
+	
+	
+	comment "! return FE-Type"
+      end
+
+      operation 414245 "GetLocalIntPoints4Surface"
+	public explicit_return_type "void"
+	nparams 4
+	  param in name "surfConnect" explicit_type "StdVector<UInt>"
+	  param in name "volConnect" explicit_type "StdVector<UInt>"
+	  param in name "surfIntPoint" explicit_type "Vector<Double>"
+	  param inout name "volIntPoint" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}, ${t3} & ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}, ${t3} & ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Calculates corresponding volume point of neighbouring surface
+! For a given surface element and a neighbouring volume element this
+! mehtod calculates the local volume-coordinates out of the given
+! local surface-coordinates, which have one less dimension.
+! This can be used to get the corrsponding volume coordinates of 
+! the integration points of a surface. Therefore it calculates 
+! on which side of the volume element the surface elemente lies
+! and creates the according volume point.
+!
+      \\param surfConnect (input) Node numbers of surface element
+      \\param volConnect (input) Node numbers of colume element
+      \\param surfIntPoint (input) Surface integration point, which gets mapped
+      onto the volume element
+      \\param volIntPoint (output) Corresponding volume integration point
+    "
+      end
+
+      operation 414373 "GetMaxMinEdgeLength"
+	public explicit_return_type "void"
+	nparams 3
+	  param inout name "ptCoord" explicit_type "Matrix<Double>"
+	  param inout name "Lmax" type class_ref 128549 // Double
+	  param inout name "Lmin" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} & ${p1}, ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! compute length of edge with maximal size"
+      end
+
+      operation 414501 "SetIntPoints"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set integration points"
+      end
+    end
+
+    class 156069 "Hexa2FE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with  description of hexahedral element"
+      classrelation 202021 // <generalisation>
+	relation 202021 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 202021 // <generalisation>
+	  b parent class_ref 155941 // HexaFE
+      end
+
+      operation 413093 "Hexa2FE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 413221 "~Hexa2FE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 413349 "Init"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Define variables of this class"
+      end
+
+      operation 413477 "SetCornerCoords"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set local corner coordinates"
+      end
+
+      operation 413605 "CalcShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LShape" explicit_type "Vector<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the shape functions at an arbitrary local point
+!
+      \\param Shape (output) Vector of shape fnc values \\f$ (N_{1},\\cdots\\,N_{NumNodes})^T \\f$
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+
+      operation 413733 "CalcLocalDerivShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LDeriv" explicit_type "Matrix<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the local derivatives of shape functions at an arbitrary local point
+!
+      \\param LDeriv (output) Matrix with local derivatives of all shape functions
+      \\f[ \\left( \\begin{array}{ccc} N_{1,d\\xi} & N_{1,d\\eta} & \\cdots \\\\
+      N_{2,d\\xi} & N_{2,d\\eta} & \\cdots \\\\
+      \\cdots     & \\cdots      & \\cdots \\end{array}\\right) \\f]
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+    end
+
+    class 156197 "Pyra1FE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with  description of pyramidal element"
+      classrelation 202277 // <generalisation>
+	relation 202277 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 202277 // <generalisation>
+	  b parent class_ref 156325 // PyraFE
+      end
+
+      operation 414629 "Pyra1FE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 414757 "~Pyra1FE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 414885 "Init"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Define variables of this class"
+      end
+
+      operation 415013 "SetCornerCoords"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set local corner coordinates"
+      end
+
+      operation 415141 "CalcShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LShape" explicit_type "Vector<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the shape functions at an arbitrary local point
+!
+      \\param Shape (output) Vector of shape fnc values \\f$ (N_{1},\\cdots\\,N_{NumNodes})^T \\f$
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+
+      operation 415269 "CalcLocalDerivShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LDeriv" explicit_type "Matrix<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the local derivatives of shape functions at an arbitrary local point
+!
+      \\param LDeriv (output) Matrix with local derivatives of all shape functions
+      \\f[ \\left( \\begin{array}{ccc} N_{1,d\\xi} & N_{1,d\\eta} & \\cdots \\\\
+      N_{2,d\\xi} & N_{2,d\\eta} & \\cdots \\\\
+      \\cdots     & \\cdots      & \\cdots \\end{array}\\right) \\f]
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+    end
+
+    class 156325 "PyraFE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with general description of pyramidal element
+! This class is derived from BaseFE. It stores general procedures for each
+! type of finite element based on <em>pyramids</em>, such as information
+! on integration points and integration weights"
+      classrelation 202533 // <generalisation>
+	relation 202533 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 202533 // <generalisation>
+	  b parent class_ref 135333 // BaseFE
+      end
+
+      operation 416165 "PyraFE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 416293 "~PyraFE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 416421 "feType"
+	cpp_virtual cpp_inline public return_type class_ref 143013 // FEType
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return PYR;
+    };
+"
+	
+	
+	comment "! return FE-Type for OLAS"
+      end
+
+      operation 416549 "SetIntPoints"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set integration points"
+      end
+    end
+
+    class 156453 "Pyra2FE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with  description of pyramidal element"
+      classrelation 202405 // <generalisation>
+	relation 202405 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 202405 // <generalisation>
+	  b parent class_ref 156325 // PyraFE
+      end
+
+      operation 415397 "Pyra2FE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 415525 "~Pyra2FE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 415653 "Init"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Define variables of this class"
+      end
+
+      operation 415781 "SetCornerCoords"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set local corner coordinates"
+      end
+
+      operation 415909 "CalcShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LShape" explicit_type "Vector<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the shape functions at an arbitrary local point
+!
+    \\param Shape (output) Vector of shape fnc values \\f$ (N_{1},\\cdots\\,N_{NumNodes})^T \\f$
+    \\param LCoord (input) Local coordinates of evalutation point 
+  "
+      end
+
+      operation 416037 "CalcLocalDerivShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LDeriv" explicit_type "Matrix<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the local derivatives of shape functions at an arbitrary local point
+!
+    \\param LDeriv (output) Matrix with local derivatives of all shape functions
+    \\f[ \\left( \\begin{array}{ccc} N_{1,d\\xi} & N_{1,d\\eta} & \\cdots \\\\
+                                  N_{2,d\\xi} & N_{2,d\\eta} & \\cdots \\\\
+                                  \\cdots     & \\cdots      & \\cdots \\end{array}\\right) \\f]
+    \\param LCoord (input) Local coordinates of evalutation point 
+  "
+      end
+    end
+
+    class 156581 "Tetra1FE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with  description of tetrahedral element"
+      classrelation 202661 // <generalisation>
+	relation 202661 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 202661 // <generalisation>
+	  b parent class_ref 156709 // TetraFE
+      end
+
+      operation 416677 "Tetra1FE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 416805 "~Tetra1FE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 416933 "Init"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Define variables of this class"
+      end
+
+      operation 417061 "SetCornerCoords"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set local corner coordinates"
+      end
+
+      operation 417189 "CalcShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LShape" explicit_type "Vector<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the shape functions at an arbitrary local point
+!
+      \\param Shape (output) Vector of shape fnc values \\f$ (N_{1},\\cdots\\,N_{NumNodes})^T \\f$
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+
+      operation 417317 "CalcLocalDerivShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LDeriv" explicit_type "Matrix<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the local derivatives of shape functions at an arbitrary local point
+!
+      \\param LDeriv (output) Matrix with local derivatives of all shape functions
+      \\f[ \\left( \\begin{array}{ccc} N_{1,d\\xi} & N_{1,d\\eta} & \\cdots \\\\
+      N_{2,d\\xi} & N_{2,d\\eta} & \\cdots \\\\
+      \\cdots     & \\cdots      & \\cdots \\end{array}\\right) \\f]
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+
+      operation 417445 "CalcEdgeShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 3
+	  param inout name "shape" explicit_type "Matrix<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	  param in name "CornerCoords" explicit_type "Matrix<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " ============================= methods for edge elements =======================
+ ===============================================================================
+! calculates the vectorial shape functions at an arbitrary local point
+!
+      \\param shape (output) Matrix of shape function values 
+      \\f[ \\left( \\begin{array}{c} E_1 \\\\ E_2 \\\\ \\cdots \\end{array} \\right) = 
+      \\left( \\begin{array}{ccc} N_{1\\xi} & N_{1\\eta} & N_{1\\zeta} \\\\
+      N_{2\\xi} & N_{2\\eta} & N_{2\\zeta} \\\\
+      \\cdots     & \\cdots      & \\cdots 
+      \\end{array}\\right) \\f]
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+
+      operation 417573 "GetEdgeGlobalDerivShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 3
+	  param inout name "deriv" explicit_type "Vector<Matrix<Double>* >"
+	  param in name "lCoord" explicit_type "Vector<Double>"
+	  param in name "CornerCoords" explicit_type "Matrix<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the local derivatives of the edge shape functions at an arbitrary local point
+!
+      \\param deriv (output) Vector of matrices with local derivatives of all shape functions.
+      Every matrix stores a complete set of global derivations.
+      \\f[ deriv[edge1] = \\left( \\begin{array}{ccc} N_{1\\xi,d\\xi} & N_{1\\xi,d\\eta} & N_{1\\xi,d\\zeta}\\\\
+      N_{1\\eta,d\\xi} & N_{1\\eta,d\\eta} & N_{1\\eta,d\\zeta}\\\\
+      N_{1\\zeta,d\\xi} & N_{1\\zeta,d\\eta} & N_{1\\zeta,d\\zeta}
+      \\end{array}\\right) \\f]
+      \\param lCoord (input) Local coordinates of evalutation point 
+    "
+      end
+
+      operation 417701 "SetEdgeVertices"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ defines the connected nodes with every edge "
+      end
+    end
+
+    class 156709 "TetraFE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with general description of tetrahedral element
+! This class is derived from BaseFE. It stores general procedures for each
+! type of finite element based on <em>tetrahedra</em>, such as information
+! on integration points and integration weights"
+      classrelation 202917 // <generalisation>
+	relation 202917 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 202917 // <generalisation>
+	  b parent class_ref 135333 // BaseFE
+      end
+
+      operation 418981 "TetraFE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 419109 "~TetraFE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 419237 "feType"
+	cpp_virtual cpp_inline public return_type class_ref 143013 // FEType
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return TET;
+    };
+"
+	
+	
+	comment "! return FE-Type"
+      end
+
+      operation 419365 "GetLocalIntPoints4Surface"
+	cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "surfConnect" explicit_type "StdVector<UInt>"
+	  param in name "volConnect" explicit_type "StdVector<UInt>"
+	  param in name "surfIntPoint" explicit_type "Vector<Double>"
+	  param inout name "volIntPoint" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}, ${t3} & ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}, ${t3} & ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Calculates corresponding volume point of neighbouring surface
+! For a given surface element and a neighbouring volume element this
+! mehtod calculates the local volume-coordinates out of the given
+! local surface-coordinates, which have one less dimension.
+! This can be used to get the corrsponding volume coordinates of 
+! the integration points of a surface. Therefore it calculates 
+! on which side of the volume element the surface elemente lies
+! and creates the according volume point.
+!
+      \\param surfConnect (input) Node numbers of surface element
+      \\param volConnect (input) Node numbers of colume element
+      \\param surfIntPoint (input) Surface integration point, which gets mapped
+      onto the volume element
+      \\param volIntPoint (output) Corresponding volume integration point
+    "
+      end
+
+      operation 419493 "SetIntPoints"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set integration points"
+      end
+
+      operation 419621 "CorrectIntWeights"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ Corrects the integration weights due to volume unequal 1"
+      end
+    end
+
+    class 156837 "Tetra2FE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with  description of tetrahedral element"
+      classrelation 202789 // <generalisation>
+	relation 202789 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 202789 // <generalisation>
+	  b parent class_ref 156709 // TetraFE
+      end
+
+      operation 417829 "Tetra2FE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 417957 "~Tetra2FE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 418085 "Init"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Define variables of this class"
+      end
+
+      operation 418213 "SetCornerCoords"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set local corner coordinates"
+      end
+
+      operation 418341 "CalcShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LShape" explicit_type "Vector<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the shape functions at an arbitrary local point
+!
+    \\param Shape (output) Vector of shape fnc values \\f$ (N_{1},\\cdots\\,N_{NumNodes})^T \\f$
+    \\param LCoord (input) Local coordinates of evalutation point 
+  "
+      end
+
+      operation 418469 "CalcLocalDerivShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LDeriv" explicit_type "Matrix<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the local derivatives of shape functions at an arbitrary local point
+!
+    \\param LDeriv (output) Matrix with local derivatives of all shape functions
+    \\f[ \\left( \\begin{array}{ccc} N_{1,d\\xi} & N_{1,d\\eta} & \\cdots \\\\
+                                  N_{2,d\\xi} & N_{2,d\\eta} & \\cdots \\\\
+                                  \\cdots     & \\cdots      & \\cdots \\end{array}\\right) \\f]
+    \\param LCoord (input) Local coordinates of evalutation point 
+  "
+      end
+
+      operation 418597 "CalcEdgeShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 3
+	  param inout name "shape" explicit_type "Matrix<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	  param in name "CornerCoords" explicit_type "Matrix<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " ============================= methods for edge elements =======================
+ ===============================================================================
+! calculates the vectorial shape functions at an arbitrary local point
+!
+    \\param shape (output) Matrix of shape function values 
+   \\f[ \\left( \\begin{array}{c} E_1 \\\\ E_2 \\\\ \\cdots \\end{array} \\right) = 
+   \\left( \\begin{array}{ccc} N_{1\\xi} & N_{1\\eta} & N_{1\\zeta} \\\\
+                             N_{2\\xi} & N_{2\\eta} & N_{2\\zeta} \\\\
+                             \\cdots     & \\cdots      & \\cdots 
+	  \\end{array}\\right) \\f]
+    \\param LCoord (input) Local coordinates of evalutation point 
+  "
+      end
+
+      operation 418725 "GetEdgeGlobalDerivShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 3
+	  param inout name "deriv" explicit_type "Vector<Matrix<Double>* >"
+	  param in name "lCoord" explicit_type "Vector<Double>"
+	  param in name "CornerCoords" explicit_type "Matrix<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the local derivatives of the edge shape functions at an arbitrary local point
+!
+    \\param deriv (output) Vector of matrices with local derivatives of all shape functions.
+                  Every matrix stores a complete set of global derivations.
+    \\f[ deriv[edge1] = \\left( \\begin{array}{ccc} N_{1\\xi,d\\xi} & N_{1\\xi,d\\eta} & N_{1\\xi,d\\zeta}\\\\
+                                             N_{1\\eta,d\\xi} & N_{1\\eta,d\\eta} & N_{1\\eta,d\\zeta}\\\\
+					     N_{1\\zeta,d\\xi} & N_{1\\zeta,d\\eta} & N_{1\\zeta,d\\zeta}
+					     \\end{array}\\right) \\f]
+    \\param lCoord (input) Local coordinates of evalutation point 
+  "
+      end
+
+      operation 418853 "SetEdgeVertices"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "/ defines the connected nodes with every edge "
+      end
+    end
+
+    class 156965 "Wedge1FE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with  description of six-node wedge element"
+      classrelation 203045 // <generalisation>
+	relation 203045 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 203045 // <generalisation>
+	  b parent class_ref 157093 // WedgeFE
+      end
+
+      operation 419749 "Wedge1FE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 419877 "~Wedge1FE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 420005 "Init"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Define variables of this class"
+      end
+
+      operation 420133 "SetCornerCoords"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set local corner coordinates"
+      end
+
+      operation 420261 "CalcShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LShape" explicit_type "Vector<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the shape functions at an arbitrary local point
+!
+      \\param Shape (output) Vector of shape fnc values \\f$ (N_{1},\\cdots\\,N_{NumNodes})^T \\f$
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+
+      operation 420389 "CalcLocalDerivShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LDeriv" explicit_type "Matrix<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the local derivatives of shape functions at an arbitrary local point
+!
+      \\param LDeriv (output) Matrix with local derivatives of all shape functions
+      \\f[ \\left( \\begin{array}{ccc} N_{1,d\\xi} & N_{1,d\\eta} & \\cdots \\\\
+      N_{2,d\\xi} & N_{2,d\\eta} & \\cdots \\\\
+      \\cdots     & \\cdots      & \\cdots \\end{array}\\right) \\f]
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+    end
+
+    class 157093 "WedgeFE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with general description of six-node wedge element
+! This class is derived from BaseFE. It stores general procedures for each
+! type of finite element based on <em>wedges</em>, such as information
+! on integration points and integration weights"
+      classrelation 203301 // <generalisation>
+	relation 203301 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 203301 // <generalisation>
+	  b parent class_ref 135333 // BaseFE
+      end
+
+      operation 421285 "WedgeFE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 421413 "~WedgeFE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Destructor"
+      end
+
+      operation 421541 "feType"
+	cpp_virtual cpp_inline public return_type class_ref 143013 // FEType
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      return WED;
+    };
+"
+	
+	
+	comment "! return FE-Type"
+      end
+
+      operation 421669 "GetLocalIntPoints4Surface"
+	public explicit_return_type "void"
+	nparams 4
+	  param in name "surfConnect" explicit_type "StdVector<Integer>"
+	  param in name "volConnect" explicit_type "StdVector<Integer>"
+	  param in name "surfIntPoint" explicit_type "Vector<Double>"
+	  param inout name "volIntPoint" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}, ${t3} & ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} & ${p2}, ${t3} & ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Calculates corresponding volume point of neighbouring surface
+! For a given surface element and a neighbouring volume element this
+! mehtod calculates the local volume-coordinates out of the given
+! local surface-coordinates, which have one less dimension.
+! This can be used to get the corrsponding volume coordinates of 
+! the integration points of a surface. Therefore it calculates 
+! on which side of the volume element the surface elemente lies
+! and creates the according volume point.
+!
+      \\param surfConnect (input) Node numbers of surface element
+      \\param volConnect (input) Node numbers of colume element
+      \\param surfIntPoint (input) Surface integration point, which gets mapped
+      onto the volume element
+      \\param volIntPoint (output) Corresponding volume integration point
+    "
+      end
+
+      operation 421797 "SetIntPoints"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set integration points"
+      end
+    end
+
+    class 157221 "Wedge2FE"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! Class with  description of 15-node wedge element (see Dhatt, p. 121)"
+      classrelation 203173 // <generalisation>
+	relation 203173 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 203173 // <generalisation>
+	  b parent class_ref 157093 // WedgeFE
+      end
+
+      operation 420517 "Wedge2FE"
+	public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor with type of integration rule"
+      end
+
+      operation 420645 "~Wedge2FE"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 420773 "Init"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Define variables of this class"
+      end
+
+      operation 420901 "SetCornerCoords"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Set local corner coordinates"
+      end
+
+      operation 421029 "CalcShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LShape" explicit_type "Vector<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the shape functions at an arbitrary local point
+!
+      \\param Shape (output) Vector of shape fnc values \\f$ (N_{1},\\cdots\\,N_{NumNodes})^T \\f$
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+
+      operation 421157 "CalcLocalDerivShapeFnc"
+	cpp_virtual protected explicit_return_type "void"
+	nparams 2
+	  param inout name "LDeriv" explicit_type "Matrix<Double>"
+	  param in name "LCoord" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, const ${t1} & ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! calculates the local derivatives of shape functions at an arbitrary local point
+!
+      \\param LDeriv (output) Matrix with local derivatives of all shape functions
+      \\f[ \\left( \\begin{array}{ccc} N_{1,d\\xi} & N_{1,d\\eta} & \\cdots \\\\
+      N_{2,d\\xi} & N_{2,d\\eta} & \\cdots \\\\
+      \\cdots     & \\cdots      & \\cdots \\end{array}\\right) \\f]
+      \\param LCoord (input) Local coordinates of evalutation point 
+    "
+      end
+    end
+  end
+
+  deploymentview 131749 "3D"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 147493 "Hexa1FE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 155813 // Hexa1FE
+      end
+    end
+
+    artifact 147621 "Hexa2FE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 156069 // Hexa2FE
+      end
+    end
+
+    artifact 147749 "HexaFE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 155941 // HexaFE
+      end
+    end
+
+    artifact 147877 "Pyra1FE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 156197 // Pyra1FE
+      end
+    end
+
+    artifact 148005 "Pyra2FE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 156453 // Pyra2FE
+      end
+    end
+
+    artifact 148133 "PyraFE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 156325 // PyraFE
+      end
+    end
+
+    artifact 148261 "Tetra1FE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 156581 // Tetra1FE
+      end
+    end
+
+    artifact 148389 "Tetra2FE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 156837 // Tetra2FE
+      end
+    end
+
+    artifact 148517 "TetraFE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 156709 // TetraFE
+      end
+    end
+
+    artifact 148645 "Wedge1FE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 156965 // Wedge1FE
+      end
+    end
+
+    artifact 148773 "Wedge2FE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 157221 // Wedge2FE
+      end
+    end
+
+    artifact 148901 "WedgeFE"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 157093 // WedgeFE
+      end
+    end
+  end
+end

@@ -1,0 +1,2985 @@
+format 22
+"GSI" // Current Classes::DataInOut::GSI
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "GridlibSocketInterface"
+  classview 130341 "GSI"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 138277 "BaseIO"
+      abstract 
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 207397 "BaseIO"
+	cpp_inline public explicit_return_type ""
+	nparams 2
+	  param inout name "fr" explicit_type "FILE"
+	  param inout name "fw" explicit_type "FILE"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}, ${t1} * ${p1}${)}${volatile}${throw} : file_read( fr ), file_write( fw ), sock_(NULL), timeout_(-1) {};
+"
+	
+	
+	comment "! Constructor for file IO"
+      end
+
+      operation 207525 "BaseIO"
+	cpp_inline public explicit_return_type ""
+	nparams 2
+	  param inout name "sock" type class_ref 138405 // Socket
+	  param in name "timeout" type class_ref 138533 // int32
+	    defaultvalue " -1"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}, ${t1} ${p1}${)}${volatile}${throw} : file_read( NULL ), file_write( NULL ), sock_(sock), timeout_(timeout) {};
+"
+	
+	
+	comment "! Constructor for socket IO"
+      end
+
+      operation 207653 "~BaseIO"
+	cpp_virtual cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {};
+"
+	
+	
+      end
+
+      class 138661 "SeekPos"
+	visibility public stereotype "enum"
+	
+	cpp_decl "${comment}enum ${name} {
+${items}
+};
+"
+	java_decl ""
+	idl_decl ""
+	explicit_switch_type ""
+	
+	attribute 146213 "SET"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 146341 "CUR"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+
+	attribute 146469 "END"
+	  public explicit_type ""
+	  cpp_decl "  ${name}${value},${comment}"
+	  java_decl ""
+	  idl_decl ""
+	end
+      end
+
+      operation 207781 "TellRead"
+	abstract cpp_virtual public return_type class_ref 138533 // int32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment " tell the current stream position"
+      end
+
+      operation 207909 "TellWrite"
+	abstract cpp_virtual public return_type class_ref 138533 // int32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 208037 "SeekRead"
+	abstract cpp_virtual public return_type class_ref 138533 // int32
+	nparams 2
+	  param in name "offset" type class_ref 138533 // int32
+	  param in name "whence" type class_ref 138661 // SeekPos
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+	comment " seek the position"
+      end
+
+      operation 208165 "SeekWrite"
+	abstract cpp_virtual public return_type class_ref 138533 // int32
+	nparams 2
+	  param in name "offset" type class_ref 138533 // int32
+	  param in name "whence" type class_ref 138661 // SeekPos
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 208293 "EOFRead"
+	abstract cpp_virtual public return_type class_ref 138533 // int32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 208421 "ReadMsg"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "s" explicit_type "std::string"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 208549 "ReadShort"
+	abstract cpp_virtual public return_type class_ref 138917 // int16
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 208677 "ReadShortVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<int16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 208805 "ReadUShort"
+	abstract cpp_virtual public return_type class_ref 139045 // uint16
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 208933 "ReadUShortVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<uint16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 209061 "ReadInt"
+	abstract cpp_virtual public return_type class_ref 138533 // int32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 209189 "ReadIntVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<int32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 209317 "ReadUInt"
+	abstract cpp_virtual public return_type class_ref 139173 // uint32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 209445 "ReadUIntVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<uint32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 209573 "ReadFloat"
+	abstract cpp_virtual public return_type class_ref 139301 // real32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 209701 "ReadFloatVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<real32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 209829 "ReadDouble"
+	abstract cpp_virtual public return_type class_ref 139429 // real64
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 209957 "ReadDoubleVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<real64>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 210085 "WriteMsg"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "s" explicit_type "std::string"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 210213 "WriteShort"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 138917 // int16
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 210341 "WriteShortArray"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 138917 // int16
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 210469 "WriteShortVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<int16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 210597 "WriteUShort"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 139045 // uint16
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 210725 "WriteUShortArray"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139045 // uint16
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 210853 "WriteUShortVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<uint16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 210981 "WriteInt"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 211109 "WriteIntArray"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 138533 // int32
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 211237 "WriteIntVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<int32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 211365 "WriteUInt"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 139173 // uint32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 211493 "WriteUIntArray"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139173 // uint32
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 211621 "WriteUIntVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<uint32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 211749 "WriteFloat"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 139301 // real32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 211877 "WriteFloatArray"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139301 // real32
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 212005 "WriteFloatVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<real32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 212133 "WriteDouble"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 139429 // real64
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 212261 "WriteDoubleArray"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139429 // real64
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 212389 "WriteDoubleVector"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<real64>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 212517 "ioOK"
+	cpp_virtual cpp_inline public return_type class_ref 138533 // int32
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {return io_ok;};
+"
+	
+	
+      end
+
+      operation 212645 "Write"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "data" explicit_type "void"
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      operation 212773 "Read"
+	abstract cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "data" explicit_type "void"
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	
+	
+      end
+
+      attribute 146597 "file_read"
+	protected explicit_type "FILE"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 146725 "file_write"
+	protected explicit_type "FILE"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 150949 // desc_read (<directional aggregation by value>)
+	relation 150949 *-->
+	  a role_name "desc_read" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 150949 // desc_read (<directional aggregation by value>)
+	  b parent class_ref 138533 // int32
+      end
+
+      classrelation 151077 // desc_write (<directional aggregation by value>)
+	relation 151077 *-->
+	  a role_name "desc_write" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 151077 // desc_write (<directional aggregation by value>)
+	  b parent class_ref 138533 // int32
+      end
+
+      classrelation 151205 // timeout_ (<directional aggregation by value>)
+	relation 151205 *-->
+	  a role_name "timeout_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 151205 // timeout_ (<directional aggregation by value>)
+	  b parent class_ref 138533 // int32
+      end
+
+      classrelation 151333 // io_ok (<directional aggregation by value>)
+	relation 151333 *-->
+	  a role_name "io_ok" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 151333 // io_ok (<directional aggregation by value>)
+	  b parent class_ref 138533 // int32
+      end
+
+      classrelation 151461 // sock_ (<unidirectional association>)
+	relation 151461 --->
+	  a role_name "sock_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 151461 // sock_ (<unidirectional association>)
+	  b parent class_ref 138405 // Socket
+      end
+
+      operation 212901 "is_valid"
+	cpp_inline protected explicit_return_type "void"
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {
+      if(sock_ == NULL)
+        {
+          if((file_read == NULL) && (file_write == NULL))
+            throw IOException(\"Read/Write Streams not valid!\");
+        }
+      else
+        {
+#ifndef WIN32
+          if(!sock_->is_valid())
+            throw IOException(\"Socket not valid!\");
+#else
+          return;
+#endif
+        }
+      
+    };
+"
+	
+	
+	comment "  virtual bool mayRead() throw(IOException) = 0;
+  virtual bool mayWrite() throw(IOException) = 0;"
+      end
+    end
+
+    class 138405 "Socket"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 220453 "Socket"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "timeout" type class_ref 138533 // int32
+	    defaultvalue "-1"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 220581 "~Socket"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 220709 "create"
+	public explicit_return_type "bool"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " Server initialization"
+      end
+
+      operation 220837 "bind"
+	public explicit_return_type "bool"
+	nparams 1
+	  param in name "port" type class_ref 138533 // int32
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 220965 "listen"
+	const public explicit_return_type "bool"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 221093 "accept"
+	public return_type class_ref 138533 // int32
+	nparams 1
+	  param inout name "" type class_ref 138405 // Socket
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 221221 "connect"
+	public explicit_return_type "bool"
+	nparams 2
+	  param in name "host" explicit_type "std::string"
+	  param in name "port" type class_ref 138533 // int32
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " Client initialization"
+      end
+
+      operation 221349 "getReadHandle"
+	public explicit_return_type "FILE"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 221477 "getWriteHandle"
+	public explicit_return_type "FILE"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 221605 "set_non_blocking"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "" explicit_type "bool"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 221733 "is_valid"
+	const cpp_inline public explicit_return_type "bool"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_sock != -1; };
+"
+	
+	
+      end
+
+      operation 221861 "read"
+	public return_type class_ref 138533 // int32
+	nparams 3
+	  param inout name "buf" explicit_type "void"
+	  param in name "nbytes" type class_ref 138533 // int32
+	  param in name "timeout" type class_ref 138533 // int32
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 221989 "write"
+	public return_type class_ref 138533 // int32
+	nparams 3
+	  param inout name "buf" explicit_type "void"
+	  param in name "nbytes" type class_ref 138533 // int32
+	  param in name "timeout" type class_ref 138533 // int32
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      classrelation 152229 // m_sock (<directional aggregation by value>)
+	relation 152229 *-->
+	  a role_name "m_sock" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 152229 // m_sock (<directional aggregation by value>)
+	  b parent class_ref 138533 // int32
+      end
+
+      attribute 147109 "m_addr"
+	private explicit_type "sockaddr_in"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 147237 "file_read"
+	private explicit_type "FILE"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 147365 "file_write"
+	private explicit_type "FILE"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      operation 222117 "cleanup"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 222245 "shutdownServer"
+	protected explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 222373 "mayDoIO"
+	protected return_type class_ref 138533 // int32
+	nparams 2
+	  param in name "type" type class_ref 138533 // int32
+	  param in name "timeout" type class_ref 138533 // int32
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 222501 "sock_to_file"
+	protected explicit_return_type "FILE"
+	nparams 2
+	  param in name "sock" type class_ref 138533 // int32
+	  param in name "mode" type class_ref 140197 // int8
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} * ${name}${(}${t0} ${p0}, const ${t1} * ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} * ${class}::${name}${(}${t0} ${p0}, const ${t1} * ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      classrelation 152357 // timeout_ (<directional aggregation by value>)
+	relation 152357 *-->
+	  a role_name "timeout_" multiplicity "" protected
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 152357 // timeout_ (<directional aggregation by value>)
+	  b parent class_ref 138533 // int32
+      end
+    end
+
+    class 138533 "int32"
+       stereotype "typedef" explicit_base_type "int"
+      
+      cpp_decl "${comment}typedef ${type}             ${name};
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 138789 "IOException"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 151717 // <generalisation>
+	relation 151717 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 151717 // <generalisation>
+	  b parent class_ref 139685 // Exception
+      end
+
+      operation 213797 "IOException"
+	cpp_inline public explicit_return_type ""
+	nparams 1
+	  param in name "s" explicit_type "std::string"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} ${p0}${)}${volatile}${throw} : Exception(s) {};
+"
+	
+	
+      end
+
+      operation 213925 "~IOException"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {};
+"
+	
+	
+      end
+
+      operation 214053 "GetErrno"
+	cpp_inline public return_type class_ref 138533 // int32
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return errno_; };
+"
+	
+	
+      end
+
+      operation 214181 "SetErrno"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "err" type class_ref 138533 // int32
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}${)}${const}${volatile}${throw}${abstract} { errno_ = err; };
+"
+	
+	
+      end
+
+      operation 214309 "GetErrorString"
+	public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      classrelation 151845 // errno_ (<directional aggregation by value>)
+	relation 151845 *-->
+	  a role_name "errno_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 151845 // errno_ (<directional aggregation by value>)
+	  b parent class_ref 138533 // int32
+      end
+    end
+
+    class 138917 "int16"
+       stereotype "typedef" explicit_base_type "short"
+      
+      cpp_decl "${comment}typedef ${type}           ${name};
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 139045 "uint16"
+       stereotype "typedef" explicit_base_type "unsigned short"
+      
+      cpp_decl "${comment}typedef ${type}  ${name};
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 139173 "uint32"
+       stereotype "typedef" explicit_base_type "unsigned int"
+      
+      cpp_decl "${comment}typedef ${type}    ${name};
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 139301 "real32"
+       stereotype "typedef" explicit_base_type "float"
+      
+      cpp_decl "${comment}typedef ${type}           ${name};
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 139429 "real64"
+       stereotype "typedef" explicit_base_type "double"
+      
+      cpp_decl "${comment}typedef ${type}          ${name};
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 139557 "ClientSocket"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 151589 // <generalisation>
+	relation 151589 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 151589 // <generalisation>
+	  b parent class_ref 138405 // Socket
+      end
+
+      operation 213029 "ClientSocket"
+	public explicit_return_type ""
+	nparams 2
+	  param in name "host" explicit_type "std::string"
+	  param in name "port" type class_ref 138533 // int32
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 213157 "~ClientSocket"
+	cpp_virtual cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {};
+"
+	
+	
+      end
+    end
+
+    class 139685 "Exception"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      operation 213285 "Exception"
+	cpp_inline public explicit_return_type ""
+	nparams 1
+	  param in name "s" explicit_type "std::string"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} ${p0}${)}${volatile}${throw} :  m_s(s) { };
+"
+	
+	
+      end
+
+      operation 213413 "~Exception"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {};
+"
+	
+	
+      end
+
+      operation 213541 "GetDescription"
+	cpp_inline public explicit_return_type "std::string"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return m_s; };
+"
+	
+	
+      end
+
+      operation 213669 "SetDescription"
+	cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "descr" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract} { m_s = descr; };
+"
+	
+	
+      end
+
+      attribute 146853 "m_s"
+	protected explicit_type "std::string"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 139813 "RawIO"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 151973 // <generalisation>
+	relation 151973 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 151973 // <generalisation>
+	  b parent class_ref 138277 // BaseIO
+      end
+
+      operation 214437 "RawIO"
+	public explicit_return_type ""
+	nparams 3
+	  param inout name "file_read" explicit_type "FILE"
+	  param inout name "file_write" explicit_type "FILE"
+	  param in name "bigendian" explicit_type "bool"
+	    defaultvalue " true"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}, ${t1} * ${p1}, ${t2} ${p2}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}, ${t1} * ${p1}, ${t2} ${p2}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 214565 "RawIO"
+	public explicit_return_type ""
+	nparams 3
+	  param inout name "sock" type class_ref 138405 // Socket
+	  param in name "timeout" type class_ref 138533 // int32
+	    defaultvalue " -1"
+	  param in name "bigendian" explicit_type "bool"
+	    defaultvalue " true"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 214693 "TellRead"
+	cpp_virtual public return_type class_ref 138533 // int32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " tell the current stream position"
+      end
+
+      operation 214821 "TellWrite"
+	cpp_virtual public return_type class_ref 138533 // int32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 214949 "SeekRead"
+	cpp_virtual public return_type class_ref 138533 // int32
+	nparams 2
+	  param in name "offset" type class_ref 138533 // int32
+	  param in name "whence" explicit_type "SeekPos"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " seek the position"
+      end
+
+      operation 215077 "SeekWrite"
+	cpp_virtual public return_type class_ref 138533 // int32
+	nparams 2
+	  param in name "offset" type class_ref 138533 // int32
+	  param in name "whence" explicit_type "SeekPos"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 215205 "EOFRead"
+	cpp_virtual public return_type class_ref 138533 // int32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 215333 "ReadMsg"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "s" explicit_type "std::string"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "  int32 EOFWrite();"
+      end
+
+      operation 215461 "ReadShort"
+	cpp_virtual public return_type class_ref 138917 // int16
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 215589 "ReadShortVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<int16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 215717 "ReadUShort"
+	cpp_virtual public return_type class_ref 139045 // uint16
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 215845 "ReadUShortVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<uint16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 215973 "ReadInt"
+	cpp_virtual public return_type class_ref 138533 // int32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 216101 "ReadIntVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<int32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 216229 "ReadUInt"
+	cpp_virtual public return_type class_ref 139173 // uint32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 216357 "ReadUIntVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<uint32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 216485 "ReadFloat"
+	cpp_virtual public return_type class_ref 139301 // real32
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 216613 "ReadFloatVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<real32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 216741 "ReadDouble"
+	cpp_virtual public return_type class_ref 139429 // real64
+	nparams 0
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 216869 "ReadDoubleVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<real64>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 216997 "WriteMsg"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "s" explicit_type "std::string"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 217125 "WriteShort"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 138917 // int16
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 217253 "WriteShortArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 138917 // int16
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 217381 "WriteShortVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<int16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 217509 "WriteUShort"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 139045 // uint16
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 217637 "WriteUShortArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139045 // uint16
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 217765 "WriteUShortVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<uint16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 217893 "WriteInt"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 218021 "WriteIntArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 138533 // int32
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 218149 "WriteIntVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<int32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 218277 "WriteUInt"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 139173 // uint32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 218405 "WriteUIntArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139173 // uint32
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 218533 "WriteUIntVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<uint32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 218661 "WriteFloat"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 139301 // real32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 218789 "WriteFloatArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139301 // real32
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 218917 "WriteFloatVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<real32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 219045 "WriteDouble"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "buff" type class_ref 139429 // real64
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 219173 "WriteDoubleArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139429 // real64
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 219301 "WriteDoubleVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<real64>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 219429 "Write"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "data" explicit_type "void"
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 219557 "Read"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param inout name "data" explicit_type "void"
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 219685 "SetBigEndianOn"
+	cpp_inline public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {bigendian_ = true;};
+"
+	
+	
+      end
+
+      operation 219813 "SetLittleEndianOn"
+	cpp_inline public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} {bigendian_ = false;};
+"
+	
+	
+      end
+
+      attribute 146981 "bigendian_"
+	protected explicit_type "bool"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+
+    class 139941 "ServerSocket"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 152101 // <generalisation>
+	relation 152101 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 152101 // <generalisation>
+	  b parent class_ref 138405 // Socket
+      end
+
+      operation 219941 "ServerSocket"
+	public explicit_return_type ""
+	nparams 2
+	  param in name "port" type class_ref 138533 // int32
+	  param in name "timeout" type class_ref 138533 // int32
+	    defaultvalue " -1 "
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} ${p0}, ${t1} ${p1}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 220069 "ServerSocket"
+	cpp_inline public explicit_return_type ""
+	nparams 1
+	  param in name "timeout" type class_ref 138533 // int32
+	    defaultvalue " -1 "
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} ${p0}${)}${volatile}${throw} : Socket(timeout) {};
+"
+	
+	
+      end
+
+      operation 220197 "~ServerSocket"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 220325 "accept"
+	public return_type class_ref 138533 // int32
+	nparams 2
+	  param inout name "" type class_ref 139941 // ServerSocket
+	  param in name "single" type class_ref 138533 // int32
+	    defaultvalue " 0 "
+	nexceptions 1
+	  exception class_ref 140069 // SocketException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}, ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+    end
+
+    class 140069 "SocketException"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 152485 // <generalisation>
+	relation 152485 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 152485 // <generalisation>
+	  b parent class_ref 139685 // Exception
+      end
+
+      operation 222629 "SocketException"
+	cpp_inline public explicit_return_type ""
+	nparams 1
+	  param in name "s" explicit_type "std::string"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} ${p0}${)}${volatile}${throw} : Exception(s) {};
+"
+	
+	
+      end
+
+      operation 222757 "~SocketException"
+	cpp_inline public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw} {};
+"
+	
+	
+      end
+    end
+
+    class 140197 "int8"
+       stereotype "typedef" explicit_base_type "char"
+      
+      cpp_decl "${comment}typedef ${type}            ${name};
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+    end
+
+    class 140325 "uint8"
+       stereotype "typedef" explicit_base_type "unsigned char"
+      
+      cpp_decl "${comment}typedef ${type}   ${name};
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment " This file has to be adapted according to the software
+ package in which GSI will be used."
+    end
+
+    class 140453 "XDRIO"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      classrelation 152613 // <generalisation>
+	relation 152613 ---|>
+	  a public
+	    cpp default "Generated"
+	    classrelation_ref 152613 // <generalisation>
+	  b parent class_ref 139813 // RawIO
+      end
+
+      operation 222885 "XDRIO"
+	public explicit_return_type ""
+	nparams 3
+	  param inout name "file_read" explicit_type "FILE"
+	  param inout name "file_write" explicit_type "FILE"
+	  param in name "bigendian" explicit_type "bool"
+	    defaultvalue " true"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}, ${t1} * ${p1}, ${t2} ${p2}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}, ${t1} * ${p1}, ${t2} ${p2}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 223013 "XDRIO"
+	public explicit_return_type ""
+	nparams 3
+	  param inout name "sock" type class_ref 138405 // Socket
+	  param in name "timeout" type class_ref 138533 // int32
+	    defaultvalue " -1"
+	  param in name "bigendian" explicit_type "bool"
+	    defaultvalue " true"
+	cpp_decl "    ${comment}${inline}${name}${(}${t0} * ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${t0} * ${p0}, ${t1} ${p1}, ${t2} ${p2}${)}${throw}{
+${body}}
+"
+	
+	
+      end
+
+      operation 223141 "ReadMsg"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "s" explicit_type "std::string"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 223269 "ReadShortVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<int16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 223397 "ReadUShortVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<uint16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 223525 "ReadIntVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<int32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 223653 "ReadUIntVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<uint32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 223781 "ReadFloatVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<real32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 223909 "ReadDoubleVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "vec" explicit_type "std::vector<real64>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 224037 "WriteMsg"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "s" explicit_type "std::string"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 224165 "WriteShortArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 138917 // int16
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 224293 "WriteShortVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<int16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 224421 "WriteUShortArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139045 // uint16
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 224549 "WriteUShortVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<uint16>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 224677 "WriteIntArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 138533 // int32
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 224805 "WriteIntVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<int32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 224933 "WriteUIntArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139173 // uint32
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 225061 "WriteUIntVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<uint32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 225189 "WriteFloatArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139301 // real32
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 225317 "WriteFloatVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<real32>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 225445 "WriteDoubleArray"
+	cpp_virtual public explicit_return_type "void"
+	nparams 2
+	  param in name "array" type class_ref 139429 // real64
+	  param in name "size" type class_ref 138533 // int32
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      operation 225573 "WriteDoubleVector"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param in name "vec" explicit_type "std::vector<real64>"
+	nexceptions 1
+	  exception class_ref 138789 // IOException
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+    end
+
+    class 140581 "WriteResultsGSI"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! This class provides an interface for writing files in GSI-format"
+      classrelation 152741 // <generalisation>
+	relation 152741 ---|>
+	  a public
+	    cpp virtual default "Generated"
+	    classrelation_ref 152741 // <generalisation>
+	  b parent class_ref 131365 // WriteResults
+      end
+
+      operation 225701 "WriteResultsGSI"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "filename" type class_ref 133285 // Char
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * const ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} * const ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor"
+      end
+
+      operation 225829 "~WriteResultsGSI"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 225957 "Init"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "aptgrid" type class_ref 130085 // Grid
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! initialization with grid
+!
+      \\param aptgrid pointer to class Grid
+    "
+      end
+
+      operation 226085 "WriteGrid"
+	cpp_virtual public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write information about grid in file"
+      end
+
+      operation 226213 "WriteNodeSolutionTransient"
+	cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param in name "data" explicit_type "NodeStoreSol<Double>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "time" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write node solution vector
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param time time of calculation
+    "
+      end
+
+      operation 226341 "WriteElemSolutionTransient"
+	cpp_virtual public explicit_return_type "void"
+	nparams 3
+	  param in name "data" explicit_type "ElemStoreSol<Double>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "time" type class_ref 128549 // Double
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write node solution vector
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param time time of calculation
+      \\param title name for the data
+    "
+      end
+
+      operation 226469 "WriteNodeSolutionHarmonic"
+	cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "data" explicit_type "NodeStoreSol<Complex>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write element solution vector 
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param frequency frequency of exciting function
+      \\param format format for writing complex solution
+      (real-imag/amplitude-phase)
+    "
+      end
+
+      operation 226597 "WriteElemSolutionHarmonic"
+	cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "data" explicit_type "ElemStoreSol<Complex>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write element solution vector
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param frequency frequency of exciting function
+      \\param format format for writing complex solution
+      (real-imag/amplitude-phase)
+    "
+      end
+
+      operation 226725 "DoCompute"
+	public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! \\todo document me"
+      end
+
+      operation 226853 "TransferGrid"
+	public return_type class_ref 128421 // UInt
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! \\todo document me"
+      end
+
+      classrelation 152869 // currstep_ (<directional aggregation by value>)
+	relation 152869 *-->
+	  a role_name "currstep_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 152869 // currstep_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      classrelation 152997 // maxnumnodes_ (<directional aggregation by value>)
+	relation 152997 *-->
+	  a role_name "maxnumnodes_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 152997 // maxnumnodes_ (<directional aggregation by value>)
+	  b parent class_ref 128421 // UInt
+      end
+
+      operation 226981 "Dataset666"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! dataset 666. "
+      end
+
+      operation 227109 "Dataset781"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! dataset 781"
+      end
+
+      operation 227237 "Dataset780"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! dataset 780"
+      end
+
+      operation 227365 "Dataset55_Transient"
+	private explicit_return_type "void"
+	nparams 6
+	  param in name "title" explicit_type "std::string"
+	  param in name "x" explicit_type "Vector<Double>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "time" type class_ref 128549 // Double
+	  param in name "nrNodes" type class_ref 128421 // UInt
+	  param in name "nrDofs" type class_ref 128421 // UInt
+	    defaultvalue "1"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! for printing nodal results of simulation (static/transient)
+!
+      \\param title title of the results.
+      \\param x array with nodal results
+      \\param step number of the step of the calculation
+      \\param time time of the calculation
+    "
+      end
+
+      operation 227493 "Dataset55_Harmonic"
+	private explicit_return_type "void"
+	nparams 7
+	  param in name "title" explicit_type "std::string"
+	  param in name "x" explicit_type "Vector<Complex>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	  param in name "nrNodes" type class_ref 128421 // UInt
+	  param in name "nrDofs" type class_ref 128421 // UInt
+	    defaultvalue "1"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}, const ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}, const ${t6} ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! for printing nodal results of simulation (harmonic)
+!
+      \\param title title of the results.
+      \\param x array with nodal results
+      \\param freuqncy exciting frequency of current result
+      \\param format output format for complex numbers
+    "
+      end
+
+      operation 227621 "Dataset56_Transient"
+	private explicit_return_type "void"
+	nparams 6
+	  param in name "title" explicit_type "std::string"
+	  param in name "x" explicit_type "Vector<Double>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "time" type class_ref 128549 // Double
+	  param in name "numElems" type class_ref 128421 // UInt
+	  param in name "nrDofs" type class_ref 128421 // UInt
+	    defaultvalue "1"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! for printing cell results of simulation (transient / static)
+!
+      \\param title title of the results.
+      \\param x array with cell results
+      \\param step number of the step of the calculation
+      \\param time time of the calculation
+    "
+      end
+
+      operation 227749 "Dataset56_Harmonic"
+	private explicit_return_type "void"
+	nparams 7
+	  param in name "title" explicit_type "std::string"
+	  param in name "x" explicit_type "Vector<Complex>"
+	  param in name "step" type class_ref 128421 // UInt
+	  param in name "frequency" type class_ref 128549 // Double
+	  param in name "format" type class_ref 135077 // ComplexFormat
+	  param in name "numElems" type class_ref 128421 // UInt
+	  param in name "nrDofs" type class_ref 128421 // UInt
+	    defaultvalue "1"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}, const ${t6} ${p6}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} & ${p1}, const ${t2} ${p2}, const ${t3} ${p3}, const ${t4} ${p4}, const ${t5} ${p5}, const ${t6} ${p6}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! for printing cell results of simulation (harmonic)
+!
+      \\param title title of the results.
+      \\param x array with cell results
+      \\param step number of the step of the calculation
+      \\param time time of the calculation
+    "
+      end
+
+      operation 227877 "SolutionTypeToString"
+	const private explicit_return_type "std::string"
+	nparams 1
+	  param in name "type" type class_ref 129573 // SolutionType
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! Convertes enum SolutionType to string"
+      end
+
+      operation 228005 "WriteMsg"
+	private explicit_return_type "void"
+	nparams 1
+	  param in name "msg" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+      end
+
+      attribute 147493 "io_"
+	private explicit_type "GridlibSocketInterface::BaseIO"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 147621 "fp_"
+	private explicit_type "FILE"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+    end
+  end
+
+  deploymentview 129317 "GSI"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 133157 "BaseIO"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 138277 // BaseIO
+      end
+    end
+
+    artifact 133285 "ClientSocket"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 139557 // ClientSocket
+      end
+    end
+
+    artifact 133413 "Exception"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 139685 // Exception
+      end
+    end
+
+    artifact 133541 "IOException"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 138789 // IOException
+      end
+    end
+
+    artifact 133669 "RawIO"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 139813 // RawIO
+      end
+    end
+
+    artifact 133797 "ServerSocket"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 139941 // ServerSocket
+      end
+    end
+
+    artifact 133925 "Socket"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 138405 // Socket
+      end
+    end
+
+    artifact 134053 "SocketException"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 140069 // SocketException
+      end
+    end
+
+    artifact 135205 "XDRIO"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 140453 // XDRIO
+      end
+    end
+  end
+
+  package_ref 130597 // GSI
+
+  package_ref 130725 // CoupledField
+end

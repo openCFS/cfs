@@ -1,0 +1,394 @@
+format 22
+"AnsysOut" // Current Classes::DataInOut::AnsysOut
+  // class settings
+  //class diagram settings
+  draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+  //use case diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  //sequence diagram settings
+  show_full_operations_definition default write_horizontally default drawing_language default
+  //collaboration diagram settings
+  show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+  //component diagram settings
+  package_name_in_tab default show_context default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //deployment diagram settings
+  package_name_in_tab default show_context default write_horizontally default auto_label_position default
+  draw_component_as_icon default show_component_req_prov default show_component_rea default
+  //state diagram settings
+  package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+  show_activities default region_horizontally default drawing_language default
+  
+  cpp_namespace "CoupledField"
+  classview 129573 "AnsysOut"
+    //class diagram settings
+    draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
+    //col diagram settings
+    show_full_operations_definition default show_hierarchical_rank default write_horizontally default drawing_language default
+    //seq diagram settings
+    show_full_operations_definition default write_horizontally default drawing_language default
+    //state diagram settings
+    package_name_in_tab default show_context default auto_label_position default write_trans_label_horizontally default
+    show_activities default region_horizontally default drawing_language default
+    //class settings
+    class 135461 "WriteResultsAnsys"
+      
+      
+      cpp_decl "${comment}${template}class ${name}${inherit} {
+${members}};
+${inlines}
+"
+      java_decl ""
+      idl_decl ""
+      explicit_switch_type ""
+      
+      comment "! This class provides an interface for writing files in ansys-format"
+      classrelation 145701 // <generalisation>
+	relation 145701 ---|>
+	  a public
+	    cpp virtual default "Generated"
+	    classrelation_ref 145701 // <generalisation>
+	  b parent class_ref 131365 // WriteResults
+      end
+
+      operation 177573 "WriteResultsAnsys"
+	public explicit_return_type ""
+	nparams 1
+	  param in name "filename" type class_ref 133285 // Char
+	cpp_decl "    ${comment}${inline}${name}${(}const ${t0} * const ${p0}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}const ${t0} * const ${p0}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Constructor"
+      end
+
+      operation 177701 "~WriteResultsAnsys"
+	cpp_virtual public explicit_return_type ""
+	nparams 0
+	cpp_decl "    ${comment}${inline}${virtual}${name}${(}${)}${volatile}${throw};
+"
+	cpp_def "${comment}${inline}${class}::${name}${(}${)}${throw}{
+${body}}
+"
+	
+	
+	comment "! Deconstructor"
+      end
+
+      operation 177829 "Init"
+	cpp_virtual public explicit_return_type "void"
+	nparams 1
+	  param inout name "aptgrid" type class_ref 130085 // Grid
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${t0} * ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! initialization with grid
+!
+      \\param aptgrid pointer to class Grid
+    "
+      end
+
+      operation 177957 "WriteGrid"
+	cpp_virtual public explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write information about grid with level in file"
+      end
+
+      operation 178085 "WriteNodeSolution"
+	cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "sol" explicit_type "Vector<Double>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "time" type class_ref 128549 // Double
+	  param in name "title" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write information about the solution
+!
+      \\param sol solution
+      \\param step number of step of the calculation
+      \\param time time of the calculation
+      \\param title name for the solution
+    "
+      end
+
+      operation 178213 "WriteElemSolution"
+	cpp_virtual public explicit_return_type "void"
+	nparams 4
+	  param in name "data" explicit_type "Vector<Double>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "time" type class_ref 128549 // Double
+	  param in name "title" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} & ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write cell data
+!
+      \\param data vector with data (ex. value of an error for the cell)
+      \\param step step of calculation
+      \\param time time of calculation
+      \\param title name for the data
+    "
+      end
+
+      operation 178341 "WriteVecDataOnCell"
+	public explicit_return_type "void"
+	nparams 4
+	  param in name "vec" explicit_type "Vector<Double>"
+	  param in name "step" type class_ref 129061 // Integer
+	  param in name "time" type class_ref 128549 // Double
+	  param in name "title" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}, const ${t2} ${p2}, const ${t3} ${p3}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write vectors-data on cells
+!
+      \\param vec pointer to vector with data
+      \\param step step of calculation
+      \\param time time of calculation
+      \\param title name for the data
+    "
+      end
+
+      operation 178469 "WriteComments"
+	cpp_virtual cpp_inline public explicit_return_type "void"
+	nparams 1
+	  param in name "comments" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract} {;};
+"
+	
+	
+	comment "! write comments
+!
+      \\param comments string with comments
+    "
+      end
+
+      operation 178597 "IsGMV"
+	cpp_virtual cpp_inline public return_type class_ref 129189 // Boolean
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract} { return FALSE;};
+"
+	
+	
+	comment "! check, is it the gmv-output file"
+      end
+
+      operation 178725 "OpenFile"
+	public explicit_return_type "void"
+	nparams 1
+	  param in name "numstep" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! open files for writing grid"
+      end
+
+      attribute 134181 "out_nodes_"
+	private explicit_type "std::ofstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 134309 "out_cells_"
+	private explicit_type "std::ofstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      attribute 134437 "out_res_"
+	private explicit_type "std::ofstream"
+	cpp_decl "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	java_decl ""
+	idl_decl ""
+      end
+
+      classrelation 145829 // namedir_ (<unidirectional association>)
+	relation 145829 --->
+	  a role_name "namedir_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 145829 // namedir_ (<unidirectional association>)
+	  b parent class_ref 133285 // Char
+      end
+
+      classrelation 145957 // currnum_ (<directional aggregation by value>)
+	relation 145957 *-->
+	  a role_name "currnum_" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} ${name}${value};
+"
+	    classrelation_ref 145957 // currnum_ (<directional aggregation by value>)
+	  b parent class_ref 129061 // Integer
+      end
+
+      classrelation 146085 // ptgrid (<unidirectional association>)
+	relation 146085 --->
+	  a role_name "ptgrid" multiplicity "" private
+	    cpp default "    ${comment}${static}${mutable}${volatile}${const}${type} * ${name}${value};
+"
+	    classrelation_ref 146085 // ptgrid (<unidirectional association>)
+	  b parent class_ref 130085 // Grid
+      end
+
+      operation 178853 "OpenFileRes"
+	private explicit_return_type "void"
+	nparams 1
+	  param in name "title" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment " open files with results output"
+      end
+
+      operation 178981 "WriteNodes"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write number of nodes and coordinates of them"
+      end
+
+      operation 179109 "WriteCells"
+	private explicit_return_type "void"
+	nparams 0
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write cell description "
+      end
+
+      operation 179237 "WriteVariableNode"
+	private explicit_return_type "void"
+	nparams 1
+	  param in name "var" explicit_type "Vector<Double>"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write variable information
+!
+      \\param var vector with data
+    "
+      end
+
+      operation 179365 "WriteVariableCell"
+	private explicit_return_type "void"
+	nparams 2
+	  param in name "var" explicit_type "Vector<Double>"
+	  param in name "title" explicit_type "std::string"
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} ${p0}, const ${t1} ${p1}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write variable information
+!
+      \\param var vector with data
+    "
+      end
+
+      operation 179493 "WriteVelocity"
+	private explicit_return_type "void"
+	nparams 3
+	  param in name "var" explicit_type "Vector<Double>"
+	  param in name "name" explicit_type "std::string"
+	  param in name "dataType" type class_ref 129061 // Integer
+	cpp_decl "    ${comment}${friend}${static}${inline}${virtual}${type} ${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${abstract};
+"
+	cpp_def "${comment}${inline}${type} ${class}::${name}${(}const ${t0} * ${p0}, const ${t1} ${p1}, const ${t2} ${p2}${)}${const}${volatile}${throw}${staticnl}{
+${body}}
+"
+	
+	
+	comment "! write vector-variable information
+!
+      \\param dataType data type of the var: 0.. cell data, 1.. node data, 2.. face data
+      \\param var pointer to vector with output data
+      \\param name name of output-data
+    "
+      end
+    end
+  end
+
+  deploymentview 128421 "AnsysOut"
+    //deployment diagram settings
+    package_name_in_tab default show_context default write_horizontally default auto_label_position default
+    draw_component_as_icon default show_component_req_prov default show_component_rea default
+    artifact 130725 "WriteResultsAnsys"
+      stereotype "source"
+      cpp_h "#ifndef _${NAME}_H
+#define _${NAME}_H
+
+${comment}
+${includes}
+${declarations}
+${namespace_start}
+${definition}
+${namespace_end}
+#endif
+"
+      cpp_src "${comment}
+${includes}
+${namespace_start}
+${members}
+${namespace_end}"
+      associated_classes
+	class_ref 135461 // WriteResultsAnsys
+      end
+    end
+  end
+end

@@ -1,0 +1,5 @@
+class SpaceErrorEstimator
+!!!422053.cpp!!!	~SpaceErrorEstimator()
+    ENTER_FCN( "SpaceErrorEstimator::~SpaceErrorEstimator" );
+    ;
+  
