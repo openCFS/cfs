@@ -86,7 +86,8 @@ namespace CoupledField {
   //! enumeration with material parameter formats (real / complex)
   typedef enum {REALMATERIALPARAMETER=0,IMAGMATERIALPARAMETER=1}  piezoMaterialType;
 
-  typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTIHARMONIC, MULTI_SEQUENCE,
+  typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTIHARMONIC, 
+                TRANSIENTHARMONIC, MULTI_SEQUENCE,
                 BUBBLEDYNAMIC, TRANSIENT4SLICE} AnalysisType;
 
   //! specifications of Lapack routines for different types of system matrices in 

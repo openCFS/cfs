@@ -62,7 +62,7 @@ namespace CoupledField {
     Vector<Double> CoordAtIp;
 
     Vector<Double> solGradAtIp, solDeriv1GradAtIp;
-    Double solAtIp;
+    Double solDeriv1AtIp;
 
     Double N1;
     Vector<Double> N2;
@@ -88,21 +88,21 @@ namespace CoupledField {
       solDeriv1GradAtIp = xiDxTransp * elemSolDeriv1;
         
       // get 1st derivartive of solution at integration point
-      solAtIp     = ShpFncAtIp * elemSol;
+      solDeriv1AtIp     = ShpFncAtIp * elemSolDeriv1;
 
         
       N1 = 0;
       for (UInt j=0; j<xiDx.GetSizeCol(); j++)
         N1 += solGradAtIp[j] * solDeriv1GradAtIp[j];
 
-      N2 = solDeriv1GradAtIp * solAtIp;
+      N2 = solGradAtIp * solDeriv1AtIp;
 
       for (UInt i=0; i< nrNodes; i++) {
 
         elemPD[i] += ShpFncAtIp[i] * N1;
 
         for (UInt j=0; j<xiDx.GetSizeCol(); j++)
-          elemPD[i] += xiDx[i][j] * N2[j];
+          elemPD[i] -= xiDx[i][j] * N2[j];
       }
       elemPD *= jacDet * density;  
     }

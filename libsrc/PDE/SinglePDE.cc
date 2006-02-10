@@ -239,16 +239,43 @@ namespace CoupledField {
       analysistype_ = TRANSIENT;
     }
 
-    else if ( analysis=="harmonic" || analysis == "paramIdent" ) {
+    else if ( analysisHelp == HARMONIC ) {
       isComplex_ = TRUE;
       assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
       analysistype_ = HARMONIC;
     }
 
-    else if (analysis == "multiHarmonic"){
+    else if (analysisHelp == MULTIHARMONIC ){
       isComplex_ = TRUE;
       assemble_ = new MHassemble(algsys_,ptgrid_);
       analysistype_ = MULTIHARMONIC;
+    }
+
+    else if ( analysisHelp == TRANSIENTHARMONIC ) {
+
+      keyVec = "transientHarmonic", "analysis", "type";
+      attrVec = "", "pdeName";
+      valVec = "", pdename_;
+
+      params->Get(keyVec, attrVec, valVec, analysis);
+
+      String2Enum(analysis, analysistype_);
+
+      if ( analysistype_ == TRANSIENT ) {
+        isComplex_ = FALSE;
+        assemble_ = new TransientAssemble(algsys_, ptgrid_);
+      }
+      else if ( analysistype_ = HARMONIC ) {
+        isComplex_ = TRUE;
+        assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
+      }
+    }
+
+    // Better see environment.cc to understand the following assignments...
+    else if ( analysis == "paramIdent" ) {
+      isComplex_ = TRUE;
+      assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
+      analysistype_ = HARMONIC;
     }
 
     else if ( analysisHelp == MULTI_SEQUENCE ) {
@@ -260,14 +287,12 @@ namespace CoupledField {
       keyVec = "multiSequence", "step", "pde", "analysis";
       params->Get(keyVec, attrVec, valVec, analysis);
 
-
       String2Enum(analysis, analysistype_);
 
-      if ( isAlwaysStatic_ == TRUE &&
-           analysistype_ == TRANSIENT ) {
+      if ( isAlwaysStatic_ == TRUE && analysistype_ == TRANSIENT ) {
         analysistype_ = STATIC;
-      }      
-
+      }
+      
       if ( analysistype_ == STATIC ) {
         assemble_ = new StaticAssemble(algsys_, ptgrid_);
         isComplex_ = FALSE;
@@ -276,15 +301,13 @@ namespace CoupledField {
         isComplex_ = FALSE;
         assemble_ = new TransientAssemble(algsys_, ptgrid_);
       }
-      else if ( analysis=="harmonic" ) {
+      else if ( analysistype_ == HARMONIC ) {
         isComplex_ = TRUE;
         assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
-        analysistype_ = HARMONIC;
       }
-      else if ( analysis=="multiHarmonic" ) {
+      else if ( analysistype_ == MULTIHARMONIC ) {
         isComplex_ = TRUE;
         assemble_ = new MHassemble(algsys_, ptgrid_);
-        analysistype_ = MULTIHARMONIC;
       }
       else {
         (*error) << "SinglePDE::Init: AnalysisType '" << analysis
@@ -693,7 +716,7 @@ namespace CoupledField {
       if ( dofspernode_ > 1 ) {
         std::string doftype = bcs_id_[i]; 
         dof = domain->GetCoordSystem()->GetVecComponent(inhomDirichDof_[i]);
-	//	std::cout << "dof:" << inhomDirichDof_[i] << " num=" << dof << std::endl;
+        //	std::cout << "dof:" << inhomDirichDof_[i] << " num=" << dof << std::endl;
       }
       
       ptgrid_->GetNodesByName( nodes, bcs_id_[i] ); 
@@ -775,7 +798,7 @@ namespace CoupledField {
         if (effectiveMass_) {
           if (fncnames_id_[i]=="spc_dependent_fnc")
             {
-                     std::cout<<" function val in SinglePDE, dirVal_vec["<<iNode<<"]: "<<dirVal_vec[iNode]<<std::endl;
+              std::cout<<" function val in SinglePDE, dirVal_vec["<<iNode<<"]: "<<dirVal_vec[iNode]<<std::endl;
               val = dirVal_vec[iNode];
               val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
             }
@@ -1030,7 +1053,7 @@ namespace CoupledField {
     // Constraint Conditions
     // =====================================================================
 
-     // read name of constraints
+    // read name of constraints
     keyVec.Clear();
     attrVec.Clear();
     valVec.Clear();
@@ -1539,7 +1562,7 @@ namespace CoupledField {
     
   }
 
-   void SinglePDE::SetIDBC( std::string name, double value ) {
+  void SinglePDE::SetIDBC( std::string name, double value ) {
     ENTER_FCN("SinglePDE::SetIDBC");
     
     StdVector<UInt> nodes;
@@ -1569,38 +1592,38 @@ namespace CoupledField {
                                   StdVector<std::string> & retVals ) {
     ENTER_FCN( "SinglePDE::Script_Eval");
 
-     if (args.GetSize()-argOffset < 1) {
-       errMsg_ << pdename_ << ": Need at least one additional argument!";
-       return FALSE;
-     }
+    if (args.GetSize()-argOffset < 1) {
+      errMsg_ << pdename_ << ": Need at least one additional argument!";
+      return FALSE;
+    }
 
-     // ** IDBC **
-     if (args[argOffset] == "idbc") {
-       if (args.GetSize()-argOffset < 3) {
+    // ** IDBC **
+    if (args[argOffset] == "idbc") {
+      if (args.GetSize()-argOffset < 3) {
         errMsg_ << "Wrong nr. arguments. Usage: idbc <nodenames> <value>";
-         return FALSE;
-       }
-       SetIDBC( args[argOffset+1], String2Double(args[argOffset+2]) );
-     } else if (args[argOffset] == "value") {
+        return FALSE;
+      }
+      SetIDBC( args[argOffset+1], String2Double(args[argOffset+2]) );
+    } else if (args[argOffset] == "value") {
        
-       if (args.GetSize()-argOffset < 2) {
-         errMsg_ << "Wrong nr. arguments. Usage:  value <nodenames> ";
-         return FALSE;
-       }
-       // get node names
-       StdVector<UInt> nodeNrs;
-       ptgrid_->GetNodesByName( nodeNrs, args[argOffset+1]);
-       for (UInt i=0; i<nodeNrs.GetSize(); i++) {
-         Double val;
-         sol_->Get(nodeNrs[i]-1,0,val);
-         retVals.Push_back(Info->GenStr(val));
-       }
-     }else {
-       errMsg_ << "Unknown command: " << args[argOffset];
-       return FALSE;
-     }
-     // ** Values **
-     return TRUE;
+      if (args.GetSize()-argOffset < 2) {
+        errMsg_ << "Wrong nr. arguments. Usage:  value <nodenames> ";
+        return FALSE;
+      }
+      // get node names
+      StdVector<UInt> nodeNrs;
+      ptgrid_->GetNodesByName( nodeNrs, args[argOffset+1]);
+      for (UInt i=0; i<nodeNrs.GetSize(); i++) {
+        Double val;
+        sol_->Get(nodeNrs[i]-1,0,val);
+        retVals.Push_back(Info->GenStr(val));
+      }
+    }else {
+      errMsg_ << "Unknown command: " << args[argOffset];
+      return FALSE;
+    }
+    // ** Values **
+    return TRUE;
      
   }
   void SinglePDE::Script_GetCommands( StdVector<std::string> & commands,
