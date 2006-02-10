@@ -265,7 +265,7 @@ namespace CoupledField {
         isComplex_ = FALSE;
         assemble_ = new TransientAssemble(algsys_, ptgrid_);
       }
-      else if ( analysistype_ = HARMONIC ) {
+      else if ( analysistype_ == HARMONIC ) {
         isComplex_ = TRUE;
         assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
       }
