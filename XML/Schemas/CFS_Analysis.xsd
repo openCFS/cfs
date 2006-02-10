@@ -21,6 +21,7 @@
               <xsd:enumeration value="static"/>
               <xsd:enumeration value="harmonic"/>
               <xsd:enumeration value="transient"/>
+              <xsd:enumeration value="transientHarmonic"/>
               <xsd:enumeration value="paramIdent"/>
               <xsd:enumeration value="multiSequence"/>
               <xsd:enumeration value="bubbleDynamic"/>
@@ -136,12 +137,10 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> 
-
-
+  
   <!-- ******************************************************************* -->
   <!--   Definition of element paramIdent -->
   <!-- ******************************************************************* -->
-
   <xsd:element name="paramIdent" type="DT_AnalysisParamIdent"
     substitutionGroup="AnalysisBasic"/>
 
@@ -171,7 +170,6 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType> 
-
 
   <!-- ******************************************************************* -->
   <!--   Definition of element AnalysisMultiHarmonic -->
@@ -366,5 +364,36 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of element AnalysisTransientHarmonic -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="transientHarmonic" type="DT_AnalysisTransientHarmonic"
+    substitutionGroup="AnalysisBasic"> 
+  </xsd:element>
+
+  <!-- Data type for transientHarmonic section, i.e. parameters required for
+       performing a transientHarmonic analysis -->
+  <xsd:complexType name="DT_AnalysisTransientHarmonic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>       
+          <xsd:element name="analysis" minOccurs="2" maxOccurs="unbounded">
+            <xsd:complexType>  
+              <xsd:attribute name="type" use="required">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="harmonic"/>
+                    <xsd:enumeration value="transient"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
+              <xsd:attribute name="pdeName" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType> 
 
 </xsd:schema>
