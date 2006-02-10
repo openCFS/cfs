@@ -91,7 +91,7 @@ namespace CoupledField {
       out = STATIC;
     else if (in == "transient")
       out = TRANSIENT;
-   else if (in == "transient4Slice")
+    else if (in == "transient4Slice")
       out = TRANSIENT4SLICE;
     else if (in == "harmonic")
       out = HARMONIC;
@@ -106,6 +106,8 @@ namespace CoupledField {
       out = MULTIHARMONIC;
     else if(in == "bubbleDynamic")
       out = BUBBLEDYNAMIC;
+    else if (in=="transientHarmonic")
+      out = TRANSIENTHARMONIC;
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
                << "'AnalysisType'!";
@@ -133,6 +135,9 @@ namespace CoupledField {
       break;
     case MULTI_SEQUENCE:
       out = "multiSequence";
+      break;
+    case TRANSIENTHARMONIC:
+      out = "transientHarmonic";
       break;
     default:  
       Error("No conversion found for your 'AnalysisType'", __FILE__, __LINE__);
