@@ -4,6 +4,7 @@
 #include <Driver/basedriver.hh>
 #include <Driver/singleDriver.hh>
 #include <Driver/harmonicDriver.hh>
+#include <Driver/eigenFrequencyDriver.hh>
 #include <Driver/transientdriver.hh>
 #include <Driver/staticdriver.hh>
 #include <Driver/staticAdaptSpaceDriver.hh>

@@ -233,6 +233,12 @@ namespace CoupledField {
       analysistype_ = TRANSIENT;
     }
 
+    else if ( analysisHelp == EIGENFREQUENCY ) {
+      isComplex_ = FALSE;
+      assemble_ = new TransientAssemble(algsys_, ptgrid_);
+      analysistype_ = EIGENFREQUENCY;
+    }
+
     else if ( analysisHelp == TRANSIENT4SLICE ) {
       isComplex_ = FALSE;
       assemble_ = new TransientAssemble(algsys_, ptgrid_);

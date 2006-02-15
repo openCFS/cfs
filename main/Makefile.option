@@ -18,14 +18,15 @@
 #       |  3 | xerces-c    |   yes    |    yes   | XERCES_ROOT   |
 #       |  4 | BLAS        |   yes    |     no   |      (a)      |
 #       |  5 | LAPACK      |   yes    |     no   |      (a)      |
-#       |  6 | mysql       |   yes    |    yes   |      (d)      |
-#       |  7 | tvmet       |    no    |    yes   | TVMET_ROOT    |
-#       |  8 | Pardiso     |   yes    |     no   | PARDISO_ROOT  | (e)
-#       |  9 | Metis       |   yes    |     no   | METIS_ROOT    |
-#       | 10 | gidpost     |   yes    |    yes   | GIDPOST_ROOT  |
-#       ¦ 11 | tcl         |   yes    |    yes   | TCL_ROOT      | 
+#       |  6 | ARPACK      |   yes    |     no   | ARPACK_ROOT   |
+#       |  7 | mysql       |   yes    |    yes   |      (d)      |
+#       |  8 | tvmet       |    no    |    yes   | TVMET_ROOT    |
+#       |  9 | Pardiso     |   yes    |     no   | PARDISO_ROOT  | (e)
+#       | 10 | Metis       |   yes    |     no   | METIS_ROOT    |
+#       | 11 | gidpost     |   yes    |    yes   | GIDPOST_ROOT  |
+#       ¦ 12 | tcl         |   yes    |    yes   | TCL_ROOT      | 
 #       |--------------------------------------------------------|
-#       | 12 | XML Schemas |         (b)         | SCHEMA_ROOT   |
+#       | 13 | XML Schemas |         (b)         | SCHEMA_ROOT   |
 #       ---------------------------------------------------------
 #
 #  (a) The Basic Linear Algebra Subroutines (BLAS) and the Linear Algebra
@@ -95,6 +96,7 @@
 # XERCES_ROOT
 # METIS_ROOT
 # SCHEMA_ROOT
+# ARPACK_ROOT
 # GIDPOST_ROOT
 # TCL_ROOT
 #
@@ -122,6 +124,10 @@ endif
 
 ifeq ("$(SCHEMA_ROOT)","")
 SCHEMA_ROOT = $(addsuffix /$(C_DIR)/XML,$(PWD))
+endif
+
+ifeq ("$(ARPACK_ROOT)","")
+ARPACK_ROOT = /home/data/libraries/ARPACK
 endif
 
 ifeq ("$(GIDPOST_ROOT)","")
@@ -154,7 +160,7 @@ MpCCI = no
 # Use of GSI output format
 # NOTE: On the SGI IRIX the signal handling used in the GSI writer
 # does not work, so the option must be "no" there
-GSI = no
+GSI = yes
 
 # Use of GiD output format
 # Enables CFS++ to write native GiD mesh and postprocessing files
@@ -185,6 +191,9 @@ HYPRE = yes
 
 # Was OLAS compiled with support for LAPACK?
 LAPACK = yes
+
+# Was OLAS compiled with support for ARPACK(++)?
+ARPACK = yes
 
 # Was OLAS compiled with support for TVMET?
 TVMET = no
@@ -406,6 +415,7 @@ COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
 #  - HYPRE
 #  - XERCES
 #  - METIS
+#  - ARPACK
 #  - DATABASE
 #  - GIDPOST
 #  - TCL_INTERFACE
@@ -444,6 +454,15 @@ else
    LIB_METIS =
 endif
 
+# ARPACK
+ifeq "$(ARPACK)" "yes"
+   LIBDIR_ARPACK = -L$(ARPACK_ROOT)/$(ARCH)/
+   LIB_ARPACK = -larpack
+else
+   LIBDIR_ARPACK =
+   LIB_ARPACK =
+endif
+
 # DATABASE
 ifeq ($(DATABASE),yes)
    LIBDIR_DATABASE = -L$(MYSQL_ROOT)/mysql
@@ -474,8 +493,9 @@ endif
 
 # Combine everything
 LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) $(LIBDIR_METIS) \
-$(LIBDIR_GIDPOST) $(LIBDIR_TCL_INTERFACE) $(LIB_OLAS) $(LIB_HYPRE) \
-$(LIB_XERCES) $(LIB_METIS) $(LIB_GIDPOST) $(LIB_TCL_INTERFACE)
+$(LIBDIR_ARPACK) $(LIBDIR_GIDPOST) $(LIBDIR_TCL_INTERFACE) $(LIB_OLAS) \
+$(LIB_HYPRE) $(LIB_XERCES) $(LIB_METIS) $(LIB_ARPACK) $(LIB_GIDPOST) \
+$(LIB_TCL_INTERFACE)
 
 # -----------------------------------------------------------------------------
 # LAPACK and BLAS
@@ -489,6 +509,11 @@ LINK_BLAS   := no
 LINK_LAPACK := no
 
 ifeq "$(LAPACK)" "yes"
+LINK_BLAS   := yes
+LINK_LAPACK := yes
+endif
+
+ifeq "$(ARPACK)" "yes"
 LINK_BLAS   := yes
 LINK_LAPACK := yes
 endif

@@ -64,6 +64,23 @@ namespace CoupledField
     static void SetSolverParams( std::string pdename, BaseParamHandler *cfs,
                                  OLAS_Params *olas, SolverType sType );
 
+    //! Set parameters for eigenvalue solver for linear system
+
+    //! This routine queries the BaseParamHandler object for the parameters
+    //! belonging to the eigenvalue solver for the linear system associated to
+    //! the PDE specified via the pdename input parameter and inserts them 
+    //! into rhe olasParams object.
+    //! \note The solver parameters in the XML file are optional. This routine
+    //!       relies on GetList() to determine, whether a parameter is set.
+    //!       If there is exactly one occurence, i.e. GetList() returns a
+    //!       vector of length 1, then the parameter is set to the value found
+    //!       in the XML file. If there is no match or a multiple match, then
+    //!       the parameter is not set. The case of multiple matches can only
+    //!       occur, if a non-validating parser is used, since the Schema
+    //!       definitions require the parameters to be unique.
+    static void SetEigenSolverParams( std::string pdename, BaseParamHandler *cfs,
+                                      OLAS_Params *olas, EigenSolverType sType );    
+
     //! Set parameters for preconditioner for linear system
 
     //! This routine queries the BaseParamHandler object for the parameters

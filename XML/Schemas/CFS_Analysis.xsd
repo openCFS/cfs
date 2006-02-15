@@ -21,6 +21,7 @@
               <xsd:enumeration value="static"/>
               <xsd:enumeration value="harmonic"/>
               <xsd:enumeration value="transient"/>
+              <xsd:enumeration value="eigenFrequency"/>
               <xsd:enumeration value="transientHarmonic"/>
               <xsd:enumeration value="paramIdent"/>
               <xsd:enumeration value="multiSequence"/>
@@ -138,6 +139,29 @@
     </xsd:complexContent>
   </xsd:complexType> 
   
+  <!-- ******************************************************************* -->
+  <!--   Definition of element AnalysisMultiHarmonic -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="eigenFrequency" type="DT_AnalysisEigenFrequency"
+    substitutionGroup="AnalysisBasic"/>
+
+  <!-- Data type for performing an eigenfrequency analysis -->
+  <xsd:complexType name="DT_AnalysisEigenFrequency">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="numModes" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="shiftMode" type="DT_CFSBool"/>
+          <xsd:element name="freqShift" type="DT_NonNegFloat"/>
+          <xsd:element name="writeModes" type="DT_CFSBool"/>
+        </xsd:sequence>
+        <xsd:attribute name="tag"  type="xsd:string" use="optional"
+          default="anyTag"/> 
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType> 
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of element paramIdent -->
   <!-- ******************************************************************* -->

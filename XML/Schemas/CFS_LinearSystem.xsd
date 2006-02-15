@@ -35,6 +35,9 @@
         </xsd:complexType>
       </xsd:element>
 
+      <!-- Description of eigensolver properties -->
+      <xsd:element name="eigenSolver" type="DT_EigenSolverSpec" minOccurs="0"/>
+
       <!-- Description of solver properties -->
       <xsd:element name="solver" type="DT_SolverSpec" minOccurs="0"/>
 
@@ -142,6 +145,26 @@
       </xsd:simpleType>
     </xsd:attribute>
 
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for EigenSolver specification -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_EigenSolverSpec">
+   <!-- Parameters for solver (optional) -->
+    <xsd:sequence>
+      <xsd:element ref="EigenSolverBasic" minOccurs="0"/>
+    </xsd:sequence>
+    <xsd:attribute name="type" use="optional" default="expertsChoice">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="expertsChoice"/>
+          <xsd:enumeration value="subspace"/>
+          <xsd:enumeration value="arpack"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
   </xsd:complexType>
 
 
