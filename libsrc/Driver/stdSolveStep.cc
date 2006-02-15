@@ -369,7 +369,7 @@ namespace CoupledField {
 
   // ======================================================
   // Solve Step Harmonic  SECTION  
-  // ======================================================
+  // ======================================================w
 
   void StdSolveStep::PreStepHarmonic( const Boolean reset ) {
 
@@ -449,6 +449,57 @@ namespace CoupledField {
     PDE_.SaveSolution(ptSol,length);
   }
 
+  // ======================================================
+  // METHODS FOR EIGENVALUE COMPUTATION
+  // ======================================================
+  
+  UInt StdSolveStep::CalcEigenFrequencies( Vector<Double> & frequencies,
+                                           UInt numFreq, Double shift,
+                                           Boolean shiftMode ) {
+    ENTER_FCN( "StdSolveStep::CalcEigenFrequencies" );
+    
+    // If the geometry has changed or the system matrix
+    // is calculated for the first time,
+    // the matrices have to be reassembled and therfore
+    // the preconditioner has to be recalculated
+    PDE_.algsys_->InitRHS();
+    PDE_.algsys_->InitSol();
+    PDE_.algsys_->InitMatrix();
+    
+    PDE_.AssembleMatrices();
+
+    // Setup solver
+    PDE_.algsys_->SetupEigenSolver( numFreq, shift, shiftMode);
+
+    // Calculate eigenfrequencies
+    const Double * val = NULL;
+    UInt numConverged = PDE_.algsys_->CalcEigenFrequencies( val);
+
+    // Copy eigenvalues into vector
+    frequencies.Resize( numConverged );
+    for ( UInt i = 0; i < numConverged; i++ ) {
+      frequencies[i] = val[i];
+    }
+
+    return numConverged;
+  }
+
+  void StdSolveStep::CalcEigenMode( UInt numMode ) {
+    
+    ENTER_FCN( "StdSolveStep::CalcEigenMode" );
+
+    Double * ptSol = NULL;
+    UInt size = 0;
+    
+    algsys_->CalcEigenMode( numMode );
+
+    // Get the solution and store it
+    size = PDE_.algsys_->GetSolutionVal(ptSol);
+    PDE_.SaveSolution(ptSol,size);
+  }
+
+
+  
 
   // ======================================================
   // METHODS FOR NONLINEAR ANALYSIS

@@ -66,6 +66,19 @@ namespace CoupledField {
 
     OLAS::String2Enum( pTypeString, pType );
 
+    // Now determine, if we are running an eigenfrequency analysis and if
+    // yes, get the type of eigenvalue solver
+    std::string esTypeString;
+    EigenSolverType esType = NOEIGENSOLVER;
+    
+    if ( analysisType == EIGENFREQUENCY ) {
+      keyVec  = "linearSystems", "system", "eigenSolver", "type";
+      attrVec = "", "name", "";
+      valVec  = "", pdename, "";
+      cfs->Get( keyVec, attrVec, valVec, esTypeString );
+      OLAS::String2Enum( esTypeString, esType );
+    }
+
     // Before we try to determine matrix properties, we first should
     // find out, what type of linear system we are using. We do this
     // by trying to determine the symmetry attribute of the sbmMatrix
@@ -165,6 +178,7 @@ namespace CoupledField {
     // Insert information into OLAS_Params object
     olas->SetValue( "Solver"                 , sType        );
     olas->SetValue( "Precond"                , pType        );
+    olas->SetValue( "EigenSolver"            , esType       );
     olas->SetValue( "MatrixStructureType"    , STDMATRIX    );
     olas->SetValue( "MatrixStorageType"      , mType        );
     olas->SetValue( "MatrixEntryType"        , eType        );
@@ -176,6 +190,7 @@ namespace CoupledField {
     // Set special parameters for solver and preconditioner
     CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );
     CFSOLASParams::SetPrecondParams( pdename, cfs, olas, pType );
+    CFSOLASParams::SetEigenSolverParams( pdename, cfs, olas, esType );
 
     // For debugging (please do not delete)
     // olas->ShowPool( OLAS_Params::INT_POOL     , std::cerr );
@@ -893,6 +908,90 @@ namespace CoupledField {
       // If this point is reached, it indicates that something is broken.
       // Probably not all preconditioners that SetParams allows are yet
       // implemented here?
+    default:
+      Error( "Internal error. Maybe a missing implementation of a case?",
+             __FILE__, __LINE__ );
+      break;
+    }
+  }
+
+   // *******************
+  //   SetEigenSolverParams
+  // *******************
+  void CFSOLASParams::SetEigenSolverParams( std::string pdename, 
+                                            BaseParamHandler *cfs,
+                                            OLAS_Params *olas, 
+                                            EigenSolverType sType ) {
+    
+    ENTER_FCN( "CFSOLASParams::SetEigenSolverParams" );
+
+    // We need three vectors for our parameter queries
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    
+    // Basic part of query will always be the same
+    keyVec  = "linearSystems", "system", "", "";
+    attrVec = "", "name", "";
+    valVec  = "", pdename, "";
+
+    // Determine which parameters have been set by the user
+    // and insert them into the olasParams object.
+    StdVector<std::string> list;
+
+    switch (sType) {
+    case ARPACK:
+      keyVec[2] = "arpack";
+      
+      // tolerance
+      keyVec[3] = "tolerance";
+      cfs->GetList( keyVec, attrVec, valVec, list );
+      if( list.GetSize() == 1 ) {
+        olas->SetValue( "ARPACK_tolerance", atof(list[0].c_str()) );
+      }
+
+      // maximum number of iterations
+      keyVec[3] = "maxIt";
+      cfs->GetList( keyVec, attrVec, valVec, list );
+      if( list.GetSize() == 1 ) {
+        olas->SetValue( "ARPACK_maxIt", atoi(list[0].c_str()) );
+      }
+
+      // number of arnoldi vectors
+      keyVec[3] = "numVec";
+      cfs->GetList( keyVec, attrVec, valVec, list );
+      if( list.GetSize() == 1 ) {
+        olas->SetValue( "ARPACK_numVec", atoi(list[0].c_str()) );
+      }
+
+      // which eigenvalues / vectorss
+      keyVec[3] = "which";
+      cfs->GetList( keyVec, attrVec, valVec, list );
+      if( list.GetSize() == 1 ) {
+        olas->SetValue( "ARPACK_which", list[0] );
+      }
+
+      // logging
+      keyVec[3] = "logging";
+      cfs->GetList( keyVec, attrVec, valVec, list );
+      if( list.GetSize() == 1 ) {
+        olas->SetValue( "ARPACK_logging", (list[0] == "yes") );
+      }
+
+      break;
+
+    case SUBSPACE :
+      // Not yet implemented
+      break;
+
+    case NOEIGENSOLVER :
+      // Nothing to do here
+      break;
+      
+      // If this point is reached, it indicates that something is broken.
+      // Probably not all solvers that SetParams allows are yet implemented
+      // here?
+
     default:
       Error( "Internal error. Maybe a missing implementation of a case?",
              __FILE__, __LINE__ );

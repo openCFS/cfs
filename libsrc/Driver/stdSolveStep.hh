@@ -101,7 +101,19 @@ namespace CoupledField
     //!  routine for actions after the SolveStep-method
     //! \param reset TRUE: perfrom new assembly, etc
     virtual void PostStepHarmonic( const Boolean reset ) {;};
+    
 
+    //----------------------- HARMONIC ---------------------------------------
+
+    //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
+    UInt CalcEigenFrequencies( Vector<Double> & frequencies, 
+                               UInt numFreq, Double shift, Boolean shiftMode );
+
+    //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
+    //! Therefore, previously CalcEigenFrequencies() has to be called.
+    void CalcEigenMode( UInt numMode );
+    
+    
     //----------------------- helpfull methods--------------------------------------
 
     //! Set the current time step

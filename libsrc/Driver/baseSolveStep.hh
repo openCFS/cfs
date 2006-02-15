@@ -90,6 +90,20 @@ namespace CoupledField
     */
     virtual void PostStepHarmonic(const Boolean reset) = 0;
 
+    //----------------------- HARMONIC ---------------------------------------
+
+    //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
+    virtual UInt CalcEigenFrequencies( Vector<Double> & frequencies, 
+                                       UInt numFreq, Double shift, Boolean shiftMode ) {
+      Error( "Not implemented her!", __FILE__, __LINE__ );
+    }
+    
+    //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
+    //! Therefore, previously CalcEigenFrequencies() has to be called.
+    virtual void CalcEigenMode( UInt numMode ) {
+      Error( "Not implemented her!", __FILE__, __LINE__ );
+    }
+
 
     //----------------------- SPECIAL FUNCTIONS ------------------------------
     //! transform solution and derivatives due to slicing technique

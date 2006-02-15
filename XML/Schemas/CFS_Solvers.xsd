@@ -29,6 +29,23 @@
   <!-- by the derived specialised Solver elements -->
   <xsd:element name="SolverBasic" type="DT_SolverBasic" abstract="true"/>
 
+  <!-- ******************************************************************* -->
+  <!--   Definition of basic EigenSolver data type -->
+  <!-- ******************************************************************* -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_EigenSolverBasic" abstract="true"/>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of basic EigenSolver element -->
+  <!-- ******************************************************************* -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised Solver elements -->
+  <xsd:element name="EigenSolverBasic" type="DT_EigenSolverBasic" abstract="true"/>
+    
 
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
@@ -426,6 +443,54 @@
           <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- =================================================================== -->
+  <!-- ==                                                               == -->
+  <!-- ==                    ARPACK EIGENVALUE SOLVER                   == -->
+  <!-- ==                                                               == -->
+  <!-- =================================================================== -->
+
+
+  <!-- ******************************************************************* -->
+  <!-- Definition of element for ARPACK Eigenvalue Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="arpack" type="DT_EigenSolverARPACK"
+    substitutionGroup="EigenSolverBasic"/>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of data type for ARPACK Eigenvalue Solver -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_EigenSolverARPACK">
+    <xsd:complexContent>
+      <xsd:extension base="DT_EigenSolverBasic">
+
+        <xsd:sequence>
+          <xsd:element name="tolerance" type="DT_PosFloat" minOccurs="0"/>
+          <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <xsd:element name="numVec" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="which" minOccurs="0">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="LA"/>
+                <xsd:enumeration value="SA"/>
+                <xsd:enumeration value="LM"/>
+                <xsd:enumeration value="SM"/>
+                <xsd:enumeration value="LR"/>
+                <xsd:enumeration value="SR"/>
+                <xsd:enumeration value="LI"/>
+                <xsd:enumeration value="SI"/>
+                <xsd:enumeration value="BE"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+      
     </xsd:complexContent>
   </xsd:complexType>
 

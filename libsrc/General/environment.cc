@@ -95,7 +95,7 @@ namespace CoupledField {
       out = TRANSIENT4SLICE;
     else if (in == "harmonic")
       out = HARMONIC;
-    else if (in == "eigenfrequency")
+    else if (in == "eigenFrequency")
       out = EIGENFREQUENCY;
     else if(in == "multiSequence")
       out = MULTI_SEQUENCE;
@@ -131,7 +131,7 @@ namespace CoupledField {
       out = "multiHarmonic";
       break;
     case EIGENFREQUENCY:
-      out = "eigenfrequency";
+      out = "eigenFrequency";
       break;
     case MULTI_SEQUENCE:
       out = "multiSequence";

@@ -388,12 +388,20 @@ namespace CoupledField {
     SETPROFILE("After CreatLinSys()");
     algsys_->InitMatrix();
     
-    // create solver and preconditioner
-    SETPROFILE("Before CreateSolver()");
-    algsys_->CreateSolver();
-    SETPROFILE("Before CreatePrecond()");
-    algsys_->CreatePrecond();
-
+    // Check for analysistype
+    if ( analysistype_ != EIGENFREQUENCY ) {
+      
+      // create solver and preconditioner
+      SETPROFILE("Before CreateSolver()");
+      algsys_->CreateSolver();
+      SETPROFILE("Before CreatePrecond()");
+      algsys_->CreatePrecond();
+      
+    } else {
+      // crate eigenvalue solver
+      algsys_->CreateEigenSolver();
+    }
+        
     // now reset AlgebraicSystem 
     algsys_->InitRHS();
     algsys_->InitSol();
