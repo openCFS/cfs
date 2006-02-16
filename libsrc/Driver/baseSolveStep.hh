@@ -96,6 +96,7 @@ namespace CoupledField
     virtual UInt CalcEigenFrequencies( Vector<Double> & frequencies, 
                                        UInt numFreq, Double shift, Boolean shiftMode ) {
       Error( "Not implemented her!", __FILE__, __LINE__ );
+      return 0;
     }
     
     //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
