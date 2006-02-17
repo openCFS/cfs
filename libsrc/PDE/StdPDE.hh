@@ -225,13 +225,17 @@ namespace CoupledField {
     
     /// returns the vector of the solution belonging to all nodes of the actual element
     void GetSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
+    void GetSolVecOfElement(Vector<Complex>& sol, StdVector<UInt>& connect_PDE);
     
-    /// returns the vector of time derivative of the solution belonging to all nodes of the actual element
+    /// returns the vector of time derivative of the solution belonging 
+    /// to all nodes of the actual element
     void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
+    void GetDerivSolVecOfElement(Vector<Complex>& sol, StdVector<UInt>& connect_PDE);
     
     /// returns the vector of 2nd time derivative of the solution belonging to all nodes 
     /// of the actual element
     void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
+    void GetDeriv2SolVecOfElement(Vector<Complex>& sol, StdVector<UInt>& connect_PDE);
     
     
     // ======================================================
@@ -432,6 +436,9 @@ namespace CoupledField {
   
     //! values of phases at inhomogeneous Dirichlet boundaries
     StdVector<Double> bcs_id_phase_;
+
+    //! values of phases at inhomogeneous von Neumann boundaries
+    StdVector<Double> bcs_ni_phase_;
   
     //! names of the time functions for inhomogeneous Dirichlet BCs
     StdVector<std::string> fncnames_id_;
