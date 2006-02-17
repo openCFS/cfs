@@ -607,10 +607,18 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       LinearSurfForm *neumannBC = new AcouNeumannInt( factor, isaxi_ );
       neumannBC->SetVoluInfo( subdoms_, materialData_ );
 
+      if (analysistype_ == TRANSIENT ) {
       assemble_->AddRhsSrcSurfIntegrator( neumannBC,
                                           IdVec[actSD],
                                           fncnames_ni_[actSD],
                                           nonLin_ );
+      }
+      else if (analysistype_ == HARMONIC ) {
+	assemble_->AddRhsSrcSurfIntegrator( neumannBC,
+					    IdVec[actSD],
+					    bcs_ni_phase_[actSD],
+					    nonLin_ );
+      }
     }
 
     // **********************************************************************
@@ -1181,14 +1189,20 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     }
 
     // compute force from pressure/acoustic potential at surface element
-    if (saveElemForceHist_.GetSize() != 0) {
+    if (saveElemForceHist_.GetSize() != 0 && isComplex_ == FALSE ) {
       CalcForce(saveElems);
     }
 
     // compute pressure from acoustic potential
     if (calcElemPressure_.GetSize() != 0) {
-      CalcElemPressure();
+      if ( isComplex_ == FALSE) {
+        CalcElemPressure<Double>();
+      } 
+      else {
+        CalcElemPressure<Complex>();
+      }
     }
+     
 
     // Last but no least trigger postprocessing fromt within script-file
 #ifdef TCL_INTERFACE
@@ -1308,6 +1322,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     }
   }
 
+  template <class TYPE>
   void AcousticPDE::CalcElemPressure( ) {  
     ENTER_FCN( "AcousticPDE::CalcElemPressure" );
 
@@ -1341,16 +1356,28 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
         // retrieve 1st derivative and multiply with density, 
         //  since p = rho * dpsi/dt
-        Vector<Double> valueElem;
-        GetDerivSolVecOfElement(valueElem, connect);
+        Vector<TYPE> valueElem;
+	GetDerivSolVecOfElement(valueElem, connect);
+
         valueElem *= density;
-        Vector<Double> pressureElem(1);
+        Vector<TYPE> pressureElem(1);
         pressureElem[0] = valueElem * shapeFnc;
 
         // map element result back in global set of results
         UInt pdeElem;
         pdeElem = eqnData_->Mesh2PDEElem(elemsSD[actEl]->elemNum);
-        acouPressure_.SetElemResult(pdeElem-1,pressureElem);
+
+	if ( isComplex_ == TRUE ) {
+	  ElemStoreSol<Complex> & pressure = 
+	    dynamic_cast<ElemStoreSol<Complex>&>(*acouPressure_);
+	  pressure.SetElemResult(pdeElem-1,pressureElem);
+	}
+	else {
+	  ElemStoreSol<Double> & pressure = 
+	    dynamic_cast<ElemStoreSol<Double>&>(*acouPressure_);
+	  pressure.SetElemResult(pdeElem-1,pressureElem);
+	}
+
       }
     }
   }
@@ -1383,6 +1410,13 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         if (saveSol_)
           outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actStep, 
                                               actTime, complexFormat_);
+
+        if (calcElemPressure_.GetSize() != 0 ) {
+	  ElemStoreSol<Complex> & pressureConverted = 
+	    dynamic_cast<ElemStoreSol<Complex>&>(*acouPressure_);
+          outFile_->WriteElemSolutionHarmonic(pressureConverted, actStep,
+					       actTime, complexFormat_);
+        }
       }
       else {  
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
@@ -1410,7 +1444,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         }
 
         if (calcElemPressure_.GetSize() != 0 ) {
-          outFile_->WriteElemSolutionTransient(acouPressure_,actStep,actTime);
+	  ElemStoreSol<Double> & pressureConverted = 
+	    dynamic_cast<ElemStoreSol<Double>&>(*acouPressure_);
+          outFile_->WriteElemSolutionTransient(pressureConverted,actStep,actTime);
         }
 
       }
@@ -1532,7 +1568,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         }
 
         if (saveElemPressureHist_.GetSize() != 0) {
-          outFile_->WriteElemHistoryTransient(acouPressure_, actStep, actTime);
+	  ElemStoreSol<Double> & pressureConverted = 
+	    dynamic_cast<ElemStoreSol<Double>&>(*acouPressure_);
+          outFile_->WriteElemHistoryTransient(pressureConverted, actStep, 
+					      actTime);
         }
 
       }
@@ -1597,7 +1636,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
       valVec = "", "", quantity;
       params->GetList( keyVec, attrVec, valVec, nodeValues);
-      if (nodeValues.GetSize() > 0) {
+      if (nodeValues.GetSize() > 0 && analysistype_ != HARMONIC ) {
         saveDeriv1_ = TRUE;
         hasOutput_ = TRUE;
         // intialize corresponding storesolution object
@@ -1613,7 +1652,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       Enum2String(ACOU_POTENTIAL_DERIV_2, quantity);
       valVec = "", "", quantity;
       params->GetList( keyVec, attrVec, valVec, nodeValues);
-      if (nodeValues.GetSize() > 0) {
+      if (nodeValues.GetSize() > 0 && analysistype_ != HARMONIC) {
         saveDeriv2_ = TRUE;
         hasOutput_ = TRUE;
 
@@ -1688,12 +1727,20 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
           Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
         }
-        acouPressure_.SetNumSolutions(1);
-        acouPressure_.SetSolutionType(ACOU_PRESSURE);
-        acouPressure_.SetNumElems(numElems_);
-        acouPressure_.SetNumDofs(1);
-        acouPressure_.SetPtrEQNData(eqnData_, ptgrid_);
-        acouPressure_.Init();
+
+	if (analysistype_ == HARMONIC ) {
+	  acouPressure_ = new ElemStoreSol<Complex>;
+	} 
+	else {
+	  acouPressure_ = new ElemStoreSol<Double>;
+	}
+
+        acouPressure_->SetNumSolutions(1);
+        acouPressure_->SetSolutionType(ACOU_PRESSURE);
+        acouPressure_->SetNumElems(numElems_);
+        acouPressure_->SetNumDofs(1);
+        acouPressure_->SetPtrEQNData(eqnData_, ptgrid_);
+        acouPressure_->Init();
       }
     } 
 
@@ -1861,12 +1908,12 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
       if (saveElemPressureHist_.GetSize() > 0) {
         hasOutput_ = TRUE;
-        acouPressure_.SetNumSolutions(1);
-        acouPressure_.SetSolutionType(ACOU_PRESSURE);
-        acouPressure_.SetNumElems(numElems_);
-        acouPressure_.SetNumDofs(1);
-        acouPressure_.SetPtrEQNData(eqnData_, ptgrid_);
-        acouPressure_.Init();
+        acouPressure_->SetNumSolutions(1);
+        acouPressure_->SetSolutionType(ACOU_PRESSURE);
+        acouPressure_->SetNumElems(numElems_);
+        acouPressure_->SetNumDofs(1);
+        acouPressure_->SetPtrEQNData(eqnData_, ptgrid_);
+        acouPressure_->Init();
 
         Info->PrintF( pdename_, "Saving acouPressure for Elements:\n" );
         for ( UInt k = 0; k < saveElemPressureHist_.GetSize(); k++ ) {

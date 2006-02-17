@@ -1008,6 +1008,10 @@ namespace CoupledField {
       keyVec = pdename_, "bcsAndLoads", "neumannInhom", "dynamics";
       params->GetList(keyVec, attrVec, valVec, fncnames_ni_);
     }
+    else if (analysistype_ == HARMONIC||analysistype_ == MULTIHARMONIC) {
+      keyVec = pdename_, "bcsAndLoads", "neumannInhom", "phase";
+      params->GetList(keyVec, attrVec, valVec, bcs_ni_phase_);
+    }
 
     // =====================================================================
     // Check consistency

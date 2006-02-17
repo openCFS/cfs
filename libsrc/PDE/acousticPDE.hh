@@ -50,6 +50,7 @@ namespace CoupledField {
     void CalcForce( StdVector<Elem*> & saveElems );
 
     //! calculate pressure from acoustic potential
+    template <class TYPE>
     void CalcElemPressure();
 
     //! write results in file
@@ -178,7 +179,9 @@ namespace CoupledField {
 
     // calculate pressure from acoustic potential
     StdVector<RegionIdType> calcElemPressure_; //!< contains the regions
-    ElemStoreSol<Double>  acouPressure_; //!< conatins acoustic pressure
+
+    //! Contains pressure results
+    BaseElemStoreSol * acouPressure_; //!< conatins acoustic pressure
     StdVector<std::string> saveElemPressureHist_;//!< name of elements
 
     //! Attribute describing model for bubble dynamics

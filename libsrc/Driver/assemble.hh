@@ -371,6 +371,14 @@ namespace CoupledField
     //! sets the actual frequency (just needed for harmonic analysis)
     virtual void SetFrequency(Double actFreq) {;};
 
+    //! get the actual frequency (just needed for harmonic analysis)
+    virtual Double GetActFrequency() {
+      Error("Frequency can just be obtained in Harmonic analysis", __FILE__,
+	    __LINE__);
+      return 1.0;
+    };
+
+
     //! transform element matrix to account for spezial RHS during parameter Identification process
     virtual void TransformMatrix2HarmonicRHS_for_paramIdent(Vector<Double>& harmMat,
                                                             Matrix<Double> origMat) {;};
@@ -610,6 +618,11 @@ namespace CoupledField
 
     //!
     virtual void SetFrequency(Double actFreq);
+
+    //!
+    virtual Double GetActFrequency() {
+      return actFreq_;
+    };
 
     //! transform element matrix to account for harmonic analysis
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
