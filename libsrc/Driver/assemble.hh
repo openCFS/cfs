@@ -301,48 +301,8 @@ namespace CoupledField
     // STUFF BELONGING TO ALGSYS (matrices, graphs, ...)
     // ======================================================
   
-
-    // TODO: Delete the following mathod
-    //! deletes the algebraic system 
-    //void DeleteAlgSys(){if (algsys_) delete algsys_;};
-
-    
-    // TODO: Delete the following mathod
-    /// Initialize all necessary matrices 
-    //void InitMatrices();
-
-
     /// Initialize all matrices with nonlinear behavior
     void InitNonLinMatrices();
-
-
-    // TODO: Delete the following mathod
-    /// establish matrices
-    //void CreateMatrices();
-
-
-    //Matrix<Double> GetElemMat(){return elemmat;};
-    
-
-
-    //! define discrete PDE
-    virtual void MatrixSettings() = 0;
-
-    //! define entry type of matrices (DOUBLE, COMPLEX)
-    virtual void SetMatrixEntryType(MatrixEntryType etype)
-    {entryType_ = etype;};
-    
-    //! return entry type of the matrix
-    MatrixEntryType GetMatrixEntryType()
-    {return entryType_;};
-    
-    //! define storage type of matrices (SPARSE_SYM, SPARSE_NONSYM, ...)
-    virtual void SetMatrixStorageType(MatrixStorageType stype)
-    {storageType_ = stype;};
-
-    //! return storage type of the matrix
-    MatrixStorageType GetMatrixStorageType()
-    {return storageType_;};
 
     //! Generates the matrix graph
 
@@ -412,13 +372,7 @@ namespace CoupledField
     NodeEQN * ptEQN2_;                    //!< pointer to equation data of pde2
     Vector<Double> harmonicRHSVec;       //! special right Hand Side Vector needed for calc
     Matrix<Double> elemmat;
-    OLAS_Params * olasParams_;               //!< pointer to parameter object of OLAS
-    OLAS_Report * olasReport_;               //!< pointer ro report object of OLAS
 
-    //! paramters for discrete PDE
-    MatrixStructureType structuretype_;  //!< type of Matrix (SuperBlockMarix=SBM, Standard)
-    MatrixEntryType entryType_;          //!< type of matrix entries (double, complex)
-    MatrixStorageType storageType_;      //!< storage type of matrix (sparse, symmetric,..)
 
     //! set defining which type of matrices (stiffness, mass,...) is used
     std::set<FEMatrixType> matrixTypes_;
