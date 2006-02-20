@@ -65,7 +65,7 @@ namespace CoupledField {
     Vector( const Point<3> & p );
 
     //! Destructor
-    ~Vector();  
+    virtual ~Vector();  
     
     //! Set the length of the vector
 
@@ -94,15 +94,17 @@ namespace CoupledField {
     
     //@{
 
+    //! Get entry type of vector
+    EntryType::ScalarType GetEntryType() const {
+      return  EntryTypeMap<TYPE>::S_TYPE;
+    }
+
     //! Get the length of the vector
     inline UInt GetSize() const { return size_; }
     
     //! Return size of space memory of this vector
     UInt Memory() const;
 
-    //! Hard coded query if values are complex
-    Boolean IsComplex();
-  
     //@}
     
 
@@ -648,15 +650,8 @@ namespace CoupledField {
   
     return ret;
   }
-
 #endif // EXPR_TEMPLATE
 
-  // Template instantiation for used vectors
-  template class Vector<Integer>;
-  template class Vector<Double>;
-  template class Vector<UInt>;
-  template class Vector<Complex>;
- 
 } // end of namespace
 
 #endif

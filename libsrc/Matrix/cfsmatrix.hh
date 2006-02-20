@@ -43,8 +43,8 @@ namespace CoupledField{
     //! Destructor
     virtual ~CFSMatrix(){ENTER_IFCN("CFSMatrix::CFSMatrix");};
 
-    //! Hard coded query if values are complex
-    virtual Boolean IsComplex() const = 0;
+    //! Get entry type of matrix
+    virtual EntryType::ScalarType GetEntryType() = 0;
 
     //! Initialize matrix with a given entry.
     //! If no entry given, it gets initalized with zeroes
