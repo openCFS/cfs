@@ -37,7 +37,7 @@ namespace CoupledField {
 
     // Determine the type of solver for this PDE
     std::string sTypeString;
-    SolverType sType;
+    OLAS::SolverType sType;
 
     keyVec  = "linearSystems", "system", "solver", "type";
     attrVec = "", "name", "";
@@ -57,7 +57,7 @@ namespace CoupledField {
 
     // Now determine the type of preconditioner for this PDE
     std::string pTypeString;
-    PrecondType pType;
+    OLAS::PrecondType pType;
 
     keyVec  = "linearSystems", "system", "solver", "precond";
     attrVec = "", "name", "";
@@ -69,7 +69,7 @@ namespace CoupledField {
     // Now determine, if we are running an eigenfrequency analysis and if
     // yes, get the type of eigenvalue solver
     std::string esTypeString;
-    EigenSolverType esType = NOEIGENSOLVER;
+    OLAS::EigenSolverType esType = OLAS::NOEIGENSOLVER;
     
     if ( analysisType == EIGENFREQUENCY ) {
       keyVec  = "linearSystems", "system", "eigenSolver", "type";
@@ -107,7 +107,7 @@ namespace CoupledField {
 
     // Determine matrix entry type
     std::string eMatString;
-    MatrixEntryType eType;
+   OLAS:: MatrixEntryType eType;
 
     keyVec  = "linearSystems", "system", matElement, "entry";
     attrVec = "", "name", "";
@@ -115,15 +115,15 @@ namespace CoupledField {
     cfs->Get( keyVec, attrVec, valVec, eMatString );
 
     if ( eMatString == "double" ) {
-      eType = DOUBLE;
+      eType = OLAS::DOUBLE;
     }
     else if ( eMatString == "complex" ) {
-      eType = COMPLEX;
+      eType = OLAS::COMPLEX;
     }
 
     // Following stuff only for required for standard systems
-    MatrixStorageType mType  = NOSTORAGETYPE;
-    ReorderingType orderType = NOREORDERING;
+    OLAS::MatrixStorageType mType  = OLAS::NOSTORAGETYPE;
+    OLAS::ReorderingType orderType = OLAS::NOREORDERING;
     bool allowChangeOfReordering = false;
 
     if ( stdSystem == true ) {
@@ -176,16 +176,16 @@ namespace CoupledField {
     }
 
     // Insert information into OLAS_Params object
-    olas->SetValue( "Solver"                 , sType        );
-    olas->SetValue( "Precond"                , pType        );
-    olas->SetValue( "EigenSolver"            , esType       );
-    olas->SetValue( "MatrixStructureType"    , STDMATRIX    );
-    olas->SetValue( "MatrixStorageType"      , mType        );
-    olas->SetValue( "MatrixEntryType"        , eType        );
-    olas->SetValue( "GRAPH_reordering"       , orderType    );
-    olas->SetValue( "UsingPenaltyFormulation", usingPenalty );
-    olas->SetValue( "SystemName"             , pdename      );
-    olas->SetValue( "SBM_Symmetry"           , sbmSymmetry  );
+    olas->SetValue( "Solver"                 , sType              );
+    olas->SetValue( "Precond"                , pType              );
+    olas->SetValue( "EigenSolver"            , esType             );
+    olas->SetValue( "MatrixStructureType"    , OLAS::STDMATRIX    );
+    olas->SetValue( "MatrixStorageType"      , mType              );
+    olas->SetValue( "MatrixEntryType"        , eType              );
+    olas->SetValue( "GRAPH_reordering"       , orderType          );
+    olas->SetValue( "UsingPenaltyFormulation", usingPenalty       );
+    olas->SetValue( "SystemName"             , pdename            );
+    olas->SetValue( "SBM_Symmetry"           , sbmSymmetry        );
 
     // Set special parameters for solver and preconditioner
     CFSOLASParams::SetSolverParams( pdename, cfs, olas, sType );
@@ -251,8 +251,8 @@ namespace CoupledField {
   // *******************
   void CFSOLASParams::SetSolverParams( std::string pdename,
                                        BaseParamHandler *cfs,
-                                       OLAS_Params *olas,
-                                       SolverType sType ) {
+                                       OLAS::OLAS_Params *olas,
+                                       OLAS::SolverType sType ) {
 
     ENTER_FCN( "CFSOLASParams::SetSolverParams" );
 
@@ -272,7 +272,7 @@ namespace CoupledField {
 
     switch( sType ) {
 
-    case CG:
+    case OLAS::CG:
       keyVec[2] = "cg";
 
       keyVec[3] = "tol";
@@ -294,7 +294,7 @@ namespace CoupledField {
       }
       break;
 
-    case GMRES:
+    case OLAS::GMRES:
       keyVec[2] = "gmres";
 
       keyVec[3] = "tol";
@@ -322,7 +322,7 @@ namespace CoupledField {
       }
       break;
 
-    case MINRES:
+    case OLAS::MINRES:
       keyVec[2] = "gmres";
 
       keyVec[3] = "tol";
@@ -344,7 +344,7 @@ namespace CoupledField {
       }
       break;
 
-    case HYPRE_PCG:
+    case OLAS::HYPRE_PCG:
       keyVec[2] = "hyprePCG";
 
       keyVec[3] = "tol";
@@ -378,7 +378,7 @@ namespace CoupledField {
       }
       break;
 
-    case HYPRE_GMRES:
+    case OLAS::HYPRE_GMRES:
       keyVec[2] = "hypreGMRES";
 
       keyVec[3] = "tol";
@@ -412,7 +412,7 @@ namespace CoupledField {
       }
       break;
 
-    case HYPRE_BICGSTAB:
+    case OLAS::HYPRE_BICGSTAB:
       keyVec[2] = "hypreBICGSTAB";
 
       keyVec[3] = "tol";
@@ -440,7 +440,7 @@ namespace CoupledField {
       }
       break;
 
-    case LAPACK_LU:
+    case OLAS::LAPACK_LU:
       keyVec[2] = "lapackLU";
 
       keyVec[3] = "tryScaling";
@@ -462,7 +462,7 @@ namespace CoupledField {
       }
       break;
 
-    case LAPACK_LL:
+    case OLAS::LAPACK_LL:
       keyVec[2] = "lapackLL";
 
       keyVec[3] = "logging";
@@ -472,7 +472,7 @@ namespace CoupledField {
       }
       break;
 
-    case LU_SOLVER:
+    case OLAS::LU_SOLVER:
       keyVec[2] = "directLU";
 
       keyVec[3] = "logging";
@@ -489,7 +489,7 @@ namespace CoupledField {
       }
       break;
 
-    case LDL_SOLVER:
+    case OLAS::LDL_SOLVER:
       keyVec[2] = "directLDL";
 
       keyVec[3] = "itRefSteps";
@@ -523,7 +523,7 @@ namespace CoupledField {
       }
       break;
 
-    case PARDISO:
+    case OLAS::PARDISO:
       keyVec[2] = "pardiso";
 
       keyVec[3] = "posDef";
@@ -547,7 +547,7 @@ namespace CoupledField {
       keyVec[3] = "ordering";
       cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
-        ReorderingType ordering;
+        OLAS::ReorderingType ordering;
         OLAS::String2Enum( list[0], ordering );
         olas->SetValue( "PARDISO_ordering", ordering );
       }
@@ -581,7 +581,7 @@ namespace CoupledField {
     valVec  = "", pdename, "", "";
     std::string stopCrit;
     cfs->Get( keyVec, attrVec, valVec, stopCrit );
-    StopCritType stopRule;
+    OLAS::StopCritType stopRule;
     OLAS::String2Enum( stopCrit, stopRule );
     olas->SetValue( "StoppingCriterion", stopRule );
   }
@@ -592,8 +592,8 @@ namespace CoupledField {
   // ********************
   void CFSOLASParams::SetPrecondParams( std::string pdename,
                                         BaseParamHandler *cfs,
-                                        OLAS_Params *olas,
-                                        PrecondType pType ) {
+                                        OLAS::OLAS_Params *olas,
+                                        OLAS::PrecondType pType ) {
 
     ENTER_FCN( "CFSOLASParams::SetPrecondParams" );
 
@@ -614,15 +614,15 @@ namespace CoupledField {
     switch( pType ) {
 
       // The easiest cases. No parameters exist.
-    case ID:
-    case NOPRECOND:
-    case JACOBI:
-    case ILU0:
-    case IC0:
-    case HYPRE_JACOBI:
+    case OLAS::ID:
+    case OLAS::NOPRECOND:
+    case OLAS::JACOBI:
+    case OLAS::ILU0:
+    case OLAS::IC0:
+    case OLAS::HYPRE_JACOBI:
       break;
 
-    case HYPRE_ILU:
+    case OLAS::HYPRE_ILU:
       keyVec[2] = "hypreILU";
 
       keyVec[3] = "level";
@@ -645,7 +645,7 @@ namespace CoupledField {
       }
       break;
 
-    case HYPRE_SPAI:
+    case OLAS::HYPRE_SPAI:
       keyVec[2] = "hypreSPAI";
 
       keyVec[3] = "thresh";
@@ -687,7 +687,7 @@ namespace CoupledField {
       }
       break;
 
-    case HYPRE_AMG:
+    case OLAS::HYPRE_AMG:
       keyVec[2] = "hypreAMG";
 
       keyVec[3] = "maxLevels";
@@ -716,7 +716,7 @@ namespace CoupledField {
       }
       break;
 
-    case MG:
+    case OLAS::MG:
       keyVec[2] = "MG";
 
       keyVec[3] = "maxCoarseDepend";
@@ -771,16 +771,16 @@ namespace CoupledField {
       cfs->GetList( keyVec, attrVec, valVec, list );
       if( list.GetSize() == 1 ) {
         if ( list[0] == "lapackLU" ) {
-          olas->SetValue( "AMG_DirectSolver", LAPACK_LU );
+          olas->SetValue( "AMG_DirectSolver", OLAS::LAPACK_LU );
         }
         else if ( list[0] == "directLDL" ) {
-          olas->SetValue( "AMG_DirectSolver", LDL_SOLVER );
+          olas->SetValue( "AMG_DirectSolver", OLAS::LDL_SOLVER );
         }
         else if ( list[0] == "pardiso" ) {
-          olas->SetValue( "AMG_DirectSolver", PARDISO );
+          olas->SetValue( "AMG_DirectSolver", OLAS::PARDISO );
         }
         else {
-          olas->SetValue( "AMG_DirectSolver", NOSOLVER );
+          olas->SetValue( "AMG_DirectSolver", OLAS::NOSOLVER );
         }
       }
 
@@ -791,7 +791,7 @@ namespace CoupledField {
       }
       break;
 
-    case ILUK:
+    case OLAS::ILUK:
       keyVec[2] = "ILUK";
 
       keyVec[3] = "level";
@@ -814,7 +814,7 @@ namespace CoupledField {
       }
       break;
 
-    case ILDLK:
+    case OLAS::ILDLK:
       keyVec[2] = "ILDLK";
 
       keyVec[3] = "level";
@@ -842,7 +842,7 @@ namespace CoupledField {
       }
       break;
 
-    case ILDLTP:
+    case OLAS::ILDLTP:
       keyVec[2] = "ILDLTP";
 
       keyVec[3] = "threshold";
@@ -876,7 +876,7 @@ namespace CoupledField {
       }
       break;
 
-    case ILDLCN:
+    case OLAS::ILDLCN:
       keyVec[2] = "ILDLCN";
 
       keyVec[3] = "threshold";
@@ -920,8 +920,8 @@ namespace CoupledField {
   // *******************
   void CFSOLASParams::SetEigenSolverParams( std::string pdename, 
                                             BaseParamHandler *cfs,
-                                            OLAS_Params *olas, 
-                                            EigenSolverType sType ) {
+                                            OLAS::OLAS_Params *olas, 
+                                            OLAS::EigenSolverType sType ) {
     
     ENTER_FCN( "CFSOLASParams::SetEigenSolverParams" );
 
@@ -940,7 +940,7 @@ namespace CoupledField {
     StdVector<std::string> list;
 
     switch (sType) {
-    case ARPACK:
+    case OLAS::ARPACK:
       keyVec[2] = "arpack";
       
       // tolerance
@@ -980,11 +980,11 @@ namespace CoupledField {
 
       break;
 
-    case SUBSPACE :
+    case OLAS::SUBSPACE :
       // Not yet implemented
       break;
 
-    case NOEIGENSOLVER :
+    case OLAS::NOEIGENSOLVER :
       // Nothing to do here
       break;
       
@@ -1005,11 +1005,11 @@ namespace CoupledField {
   // *******************
   void CFSOLASParams::Expert( BaseParamHandler *cfs,
                               std::string pdename,
-                              SolverType &sType,
-                              PrecondType &pType,
-                              MatrixStorageType &mType,
-                              MatrixEntryType &eType,
-                              ReorderingType &rType,
+                              OLAS::SolverType &sType,
+                              OLAS::PrecondType &pType,
+                              OLAS::MatrixStorageType &mType,
+                              OLAS::MatrixEntryType &eType,
+                              OLAS::ReorderingType &rType,
                               AnalysisType analysisType,
                               bool allowChangeOfReordering ) {
 
@@ -1023,9 +1023,9 @@ namespace CoupledField {
 
     // If no solver was specified use a direct one
     // Currently always use LU until LDL is available
-    if ( sType == NOSOLVER ) {
+    if ( sType == OLAS::NOSOLVER ) {
       // sType = LU_SOLVER;
-      sType = LDL_SOLVER;
+      sType = OLAS::LDL_SOLVER;
     }
 
 
@@ -1034,26 +1034,27 @@ namespace CoupledField {
     // =======================
 
     // For direct solver we need no preconditioner
-    if ( sType == DIRECT || sType == LAPACK_LU && pType != NOPRECOND ) {
+    if ( sType == OLAS::DIRECT || sType == OLAS::LAPACK_LU 
+         && pType != OLAS::NOPRECOND ) {
       warn = "Expert: Re-setting preconditioner type to 'NOPRECOND'";
       Info->Warning( warn );
-      pType = NOPRECOND;
+      pType = OLAS::NOPRECOND;
     }
  
     // Hypre solvers only work together with hypre preconditioners
-    if ( (sType == HYPRE_PCG || sType == HYPRE_GMRES ||
-          sType == HYPRE_BICGSTAB)
+    if ( (sType == OLAS::HYPRE_PCG || sType == OLAS::HYPRE_GMRES ||
+          sType == OLAS::HYPRE_BICGSTAB)
 
-         && !( pType == NOPRECOND    ||
-               pType == ID           ||
-               pType == HYPRE_JACOBI ||
-               pType == HYPRE_SPAI   ||
-               pType == HYPRE_ILU    ||
-               pType == HYPRE_AMG ) ) {
+         && !( pType == OLAS::NOPRECOND    ||
+               pType == OLAS::ID           ||
+               pType == OLAS::HYPRE_JACOBI ||
+               pType == OLAS::HYPRE_SPAI   ||
+               pType == OLAS::HYPRE_ILU    ||
+               pType == OLAS::HYPRE_AMG ) ) {
 
       warn = "Expert: Re-setting preconditioner type to 'ID'";
       Info->Warning( warn );
-      pType = ID;
+      pType = OLAS::ID;
     }
 
     // ===============
@@ -1061,9 +1062,9 @@ namespace CoupledField {
     // ===============
 
     // Lapack solvers want their own matrix format
-    if ( sType == LAPACK_LU ) {
-      if ( mType != LAPACK_GBMATRIX ) {
-        if ( mType != NOSTORAGETYPE ) {
+    if ( sType == OLAS::LAPACK_LU ) {
+      if ( mType !=OLAS:: LAPACK_GBMATRIX ) {
+        if ( mType != OLAS::NOSTORAGETYPE ) {
           warn = "Expert: Re-setting matrix storage type to ";
           warn += "'LAPACK_GBMATRIX'";
           Info->Warning( warn );
@@ -1072,14 +1073,14 @@ namespace CoupledField {
           Info->PrintF( pdename,
                         "Expert: Using LAPACK_GBMATRIX as storage type\n" );
         }
-        mType = LAPACK_GBMATRIX;
+        mType = OLAS::LAPACK_GBMATRIX;
       }
     }
 
     // The direct solver LU_SOLVER expects a CRS matrix
-    else if ( sType == LU_SOLVER ) {
-      if ( mType != SPARSE_NONSYM ) {
-        if ( mType != NOSTORAGETYPE ) {
+    else if ( sType == OLAS::LU_SOLVER ) {
+      if ( mType != OLAS::SPARSE_NONSYM ) {
+        if ( mType != OLAS::NOSTORAGETYPE ) {
           (*warning) << "Expert: Changing matrix storage type from "
                      << Enum2String( mType ) << " to SPARSE_NONSYM for "
                      << Enum2String( sType ) << " solver";
@@ -1089,14 +1090,14 @@ namespace CoupledField {
           Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
                         "type for direct solver\n" );
         }
-        mType = SPARSE_NONSYM;
+        mType = OLAS::SPARSE_NONSYM;
       }
     }
 
     // The direct solver LDL_SOLVER expects an SCRS matrix
-    else if ( sType == LDL_SOLVER ) {
-      if ( mType != SPARSE_SYM ) {
-        if ( mType != NOSTORAGETYPE ) {
+    else if ( sType == OLAS::LDL_SOLVER ) {
+      if ( mType != OLAS::SPARSE_SYM ) {
+        if ( mType != OLAS::NOSTORAGETYPE ) {
           (*warning) << "Expert: Changing matrix storage type from "
                      << Enum2String( mType ) << " to SPARSE_SYM for "
                      << Enum2String( sType ) << " solver";
@@ -1106,15 +1107,15 @@ namespace CoupledField {
           Info->PrintF( pdename, "Expert: Using SPARSE_SYM as storage "
                         "type for directLDL solver\n" );
         }
-        mType = SPARSE_SYM;
+        mType = OLAS::SPARSE_SYM;
       }
     }
 
     // Hypre solvers want their own matrix format
-    else if ( sType == HYPRE_PCG || sType == HYPRE_GMRES ||
-              sType == HYPRE_BICGSTAB ) {
-      if ( mType != HYPRE_MATRIX ) {
-        if ( mType != NOSTORAGETYPE ) {
+    else if ( sType == OLAS::HYPRE_PCG || sType == OLAS::HYPRE_GMRES ||
+              sType == OLAS::HYPRE_BICGSTAB ) {
+      if ( mType != OLAS::HYPRE_MATRIX ) {
+        if ( mType != OLAS::NOSTORAGETYPE ) {
           warn = "Expert: Re-setting matrix storage type to 'HYPRE_MATRIX'\n";
           Info->Warning( warn );
         }
@@ -1122,19 +1123,19 @@ namespace CoupledField {
           Info->PrintF( pdename, "Expert: Using HYPRE_MATRIX as storage "
                         "type\n" );
         }
-        mType = HYPRE_MATRIX;
+        mType = OLAS::HYPRE_MATRIX;
       }
-      if ( eType != DOUBLE ) {
+      if ( eType != OLAS::DOUBLE ) {
         warn = "Expert: Re-setting matrix entry type to DOUBLE\n";
         Info->Warning( warn );
-        eType = DOUBLE;
+        eType = OLAS::DOUBLE;
       }
     }
 
     // ILU-type preconditioners expect CRS matrices
-    if ( pType == ILU0 || pType == ILUK ) {
-      if ( mType != SPARSE_NONSYM ) {
-        if ( mType != NOSTORAGETYPE ) {
+    if ( pType == OLAS::ILU0 || pType == OLAS::ILUK ) {
+      if ( mType != OLAS::SPARSE_NONSYM ) {
+        if ( mType != OLAS::NOSTORAGETYPE ) {
           (*warning) << "Expert: Changing matrix storage type from "
                      << Enum2String( mType ) << " to SPARSE_NONSYM for "
                      << Enum2String( pType ) << " preconditioner";
@@ -1144,14 +1145,14 @@ namespace CoupledField {
           Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
                         "type for preconditioner\n" );
         }
-        mType = SPARSE_NONSYM;
+        mType = OLAS::SPARSE_NONSYM;
       }
     }
 
     // ILDL-type preconditioners expect SCRS matrices
-    if ( pType == ILDLK ) {
-      if ( mType != SPARSE_SYM ) {
-        if ( mType != NOSTORAGETYPE ) {
+    if ( pType == OLAS::ILDLK ) {
+      if ( mType != OLAS::SPARSE_SYM ) {
+        if ( mType != OLAS::NOSTORAGETYPE ) {
           (*warning) << "Expert: Changing matrix storage type from "
                      << Enum2String( mType ) << " to SPARSE_SYM for "
                      << Enum2String( pType ) << " preconditioner";
@@ -1161,14 +1162,14 @@ namespace CoupledField {
           Info->PrintF( pdename, "Expert: Using SPARSE_SYM as storage "
                         "type for preconditioner\n" );
         }
-        mType = SPARSE_SYM;
+        mType = OLAS::SPARSE_SYM;
       }
     }
 
     // The MG preconditioner requires a CRS matrix
-    if ( pType == MG ) {
-      if ( mType != SPARSE_NONSYM ) {
-        if ( mType != NOSTORAGETYPE ) {
+    if ( pType == OLAS::MG ) {
+      if ( mType != OLAS::SPARSE_NONSYM ) {
+        if ( mType != OLAS::NOSTORAGETYPE ) {
           (*warning) << "Expert: Changing matrix storage type from "
                      << Enum2String( mType ) << " to SPARSE_NONSYM for "
                      << Enum2String( pType ) << " preconditioner";
@@ -1178,13 +1179,13 @@ namespace CoupledField {
           Info->PrintF( pdename, "Expert: Using SPARSE_NONSYM as storage "
                         "type for MG preconditioner\n" );
         }
-        mType = SPARSE_NONSYM;
+        mType = OLAS::SPARSE_NONSYM;
       }
     }
 
     // If no storage type was yet assigned use plain SCRS
-    if ( mType == NOSTORAGETYPE ) {
-      mType = SPARSE_SYM;
+    if ( mType == OLAS::NOSTORAGETYPE ) {
+      mType = OLAS::SPARSE_SYM;
       Info->PrintF( pdename, "Expert: Using SPARSE_SYM as matrix "
                     "storage type\n" );
     }
@@ -1194,28 +1195,29 @@ namespace CoupledField {
     std::string analysis;
     cfs->Get( "type", analysis, "analysis" );
     if ( analysis == "harmonic"
-         && eType != COMPLEX ) {
-      eType = COMPLEX;
+         && eType != OLAS::COMPLEX ) {
+      eType = OLAS::COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
                     "for HARMONIC analysis\n" );
     }
 
-    if ( analysis == "paramIdent" && eType != COMPLEX ) {
-      eType = COMPLEX;
+    if ( analysis == "paramIdent" && eType != OLAS::COMPLEX ) {
+      eType = OLAS::COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
                     "for parameter identification\n" );
     }
 
-    if ( analysis == "multiHarmonic" && eType != COMPLEX ) {
-      eType = COMPLEX;
+    if ( analysis == "multiHarmonic" && eType != OLAS::COMPLEX ) {
+      eType = OLAS::COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
                     "for parameter identification\n" );
     }
 
     if ( analysis == "multiSequence" ) {
-      if (( analysisType == HARMONIC||analysisType==MULTIHARMONIC) &&
-          eType != COMPLEX ) {
-        eType = COMPLEX;
+      if (( analysisType == HARMONIC
+            ||analysisType == MULTIHARMONIC) &&
+          eType != OLAS::COMPLEX ) {
+        eType = OLAS::COMPLEX;
         Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type, "
                       "harmonic part of multi-sequence analysis\n" );
       }
@@ -1235,52 +1237,52 @@ namespace CoupledField {
       // re-ordering if available and SLOAN otherwise
 
 #ifdef USE_METIS
-      if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
-        if ( rType == NOREORDERING ) {
+      if ( sType == OLAS::LU_SOLVER || sType == OLAS::LDL_SOLVER ) {
+        if ( rType == OLAS::NOREORDERING ) {
           Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                         "'METIS'\n" );
-          rType = METIS;
+          rType = OLAS::METIS;
         }
         else {
           Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                         "to METIS\n" );
-          rType = METIS;
+          rType = OLAS::METIS;
         }
       }
 #else
-      if ( sType == LU_SOLVER || sType == LDL_SOLVER ) {
-        if ( rType == NOREORDERING ) {
+      if ( sType == OLAS::LU_SOLVER || sType == OLAS::LDL_SOLVER ) {
+        if ( rType == OLAS::NOREORDERING ) {
           Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                         "'SLOAN'\n" );
-          rType = SLOAN;
+          rType = OLAS::SLOAN;
         }
         else {
           Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                         "to SLOAN\n" );
-          rType = SLOAN;
+          rType = OLAS::SLOAN;
         }
       }
 #endif
 
       // For the LAPACK solvers use SLOAN re-ordering
-      if ( sType == LAPACK_LU || sType == LAPACK_LL ) {
-        if ( rType == NOREORDERING ) {
+      if ( sType == OLAS::LAPACK_LU || sType ==OLAS:: LAPACK_LL ) {
+        if ( rType == OLAS::NOREORDERING ) {
           Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                         "'SLOAN'\n" );
-          rType = SLOAN;
+          rType = OLAS::SLOAN;
         }
         else {
           Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                         "to SLOAN\n" );
-          rType = SLOAN;
+          rType = OLAS::SLOAN;
         }
       }
 
       // For Pardiso do not re-order (since Pardiso does this better itself)
-      if ( sType == PARDISO && rType != NOREORDERING ) {
+      if ( sType == OLAS::PARDISO && rType != OLAS::NOREORDERING ) {
         Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                       "'NOREORDERING'\n" );
-        rType = NOREORDERING;
+        rType = OLAS::NOREORDERING;
       }
 
 
@@ -1289,25 +1291,27 @@ namespace CoupledField {
       // ================================
 
       // For all advanced ILU type preconditioners use SLOAN re-ordering
-      if ( pType == ILUK || pType == ILDLK || pType == HYPRE_ILU ) {
-        if ( rType == NOREORDERING ) {
+      if ( pType == OLAS::ILUK || pType == OLAS::ILDLK 
+           || pType == OLAS::HYPRE_ILU ) {
+        if ( rType == OLAS::NOREORDERING ) {
           Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                         "'SLOAN'\n" );
-          rType = SLOAN;
+          rType = OLAS::SLOAN;
         }
         else {
           Info->PrintF( pdename, "Expert: Re-setting re-ordering strategy "
                         "to SLOAN\n" );
-          rType = SLOAN;
+          rType = OLAS::SLOAN;
         }
       }
 
       // For ILU0 and JACOBI we do not use re-ordering.
-      else if ( ( pType == ILU0 || pType == JACOBI || pType == HYPRE_JACOBI )
-                && rType != NOREORDERING ) {
+      else if ( ( pType == OLAS::ILU0 || pType == OLAS::JACOBI 
+                  || pType == OLAS::HYPRE_JACOBI )
+                && rType != OLAS::NOREORDERING ) {
         Info->PrintF( pdename, "Expert: Setting re-ordering strategy to "
                       "'NOREORDERING'\n" );
-        rType = NOREORDERING;
+        rType = OLAS::NOREORDERING;
       }
     }
   }

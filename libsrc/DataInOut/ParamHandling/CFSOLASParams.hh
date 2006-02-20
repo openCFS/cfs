@@ -62,7 +62,7 @@ namespace CoupledField
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
     static void SetSolverParams( std::string pdename, BaseParamHandler *cfs,
-                                 OLAS_Params *olas, SolverType sType );
+                                 OLAS_Params *olas, OLAS::SolverType sType );
 
     //! Set parameters for eigenvalue solver for linear system
 
@@ -78,8 +78,10 @@ namespace CoupledField
     //!       the parameter is not set. The case of multiple matches can only
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
-    static void SetEigenSolverParams( std::string pdename, BaseParamHandler *cfs,
-                                      OLAS_Params *olas, EigenSolverType sType );    
+    static void SetEigenSolverParams( std::string pdename, 
+                                      BaseParamHandler *cfs,
+                                      OLAS_Params *olas, 
+                                      OLAS::EigenSolverType sType );    
 
     //! Set parameters for preconditioner for linear system
 
@@ -96,13 +98,16 @@ namespace CoupledField
     //!       occur, if a non-validating parser is used, since the Schema
     //!       definitions require the parameters to be unique.
     static void SetPrecondParams( std::string pdename, BaseParamHandler *cfs,
-                                  OLAS_Params *olas, PrecondType pType );
+                                  OLAS_Params *olas, 
+                                  OLAS::PrecondType pType );
 
     //! Expert routine for correcting parameter inconsistencies
     static void Expert( BaseParamHandler *cfs,
-                        std::string pdename, SolverType &sType,
-                        PrecondType &pType, MatrixStorageType &mType,
-                        MatrixEntryType &eType, ReorderingType &rType,
+                        std::string pdename, OLAS::SolverType &sType,
+                        OLAS::PrecondType &pType, 
+                        OLAS::MatrixStorageType &mType,
+                        OLAS::MatrixEntryType &eType, 
+                        OLAS::ReorderingType &rType,
                         AnalysisType analysisType,
                         bool allowChangeOfReordering );
 
