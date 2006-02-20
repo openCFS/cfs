@@ -484,18 +484,8 @@ namespace CoupledField {
     // =====================================================================
     assemble_->SetPtr2EQNData(eqnData_); 
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-
     assemble_->SetGeneralParams(pdename_, dofspernode_, 
                                 subdoms_, surfdoms_, bcSequenceTag_);
-    
-    if (isComplex_) {
-      assemble_->SetMatrixEntryType( OLAS::COMPLEX );
-    }
-    else {
-      assemble_->SetMatrixEntryType(OLAS::DOUBLE);
-      assemble_->SetMatrixStorageType(OLAS::SPARSE_NONSYM);
-    }
-
     assemble_->SetPtr2Sol(sol_);
 
     // =====================================================================
