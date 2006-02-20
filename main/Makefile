@@ -195,6 +195,8 @@ clean-datainout:
 	$(MAKE) clean
 	@cd $(LIBSRC_DIR)/DataInOut/CommandLine && \
 	$(MAKE) clean
+	@cd $(LIBSRC_DIR)/DataInOut/Scripting && \
+	$(MAKE) clean
 clean-ansys:
 	@cd $(LIBSRC_DIR)/DataInOut/AnsysFile && \
         $(MAKE) clean
