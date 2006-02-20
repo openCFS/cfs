@@ -63,7 +63,7 @@ namespace CoupledField {
   template<class TYPE>
   struct EntryTypeMap {
     //! Associated enum representation of entry type
-    static const EntryType::ScalarType S_TYPE = NOENTRYTYPE;
+    static const EntryType::ScalarType S_TYPE = EntryType::NOENTRYTYPE;
   };
   
   // Explicit sepcialization for scalar entry types
