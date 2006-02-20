@@ -421,16 +421,6 @@ namespace CoupledField{
     
   };
 
- 
-  // ======================================================
-  // EXPLICIT TEMPLATE INSTANTIATION
-  // ======================================================
-#if defined(__GNUC__)
-  template class NodeStoreSol<Double>;
-  template class NodeStoreSol<Complex>;
-  //template class NodeStoreSol<Integer>;
-#endif 
-
 } //end of namespace
 
 #endif

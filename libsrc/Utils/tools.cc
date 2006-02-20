@@ -125,11 +125,6 @@ namespace CoupledField {
       (*out)<< "   " << point[i];
   }
 
-#ifdef __GNUC__
-  template void PrintPoint(Point<2>, std::ostream *);
-  template void PrintPoint(Point<3>, std::ostream *);
-#endif
-
   template<UInt dim>
   Point<dim> & Point<dim>::operator=(const Point<dim>&t) {
     UInt i;
@@ -188,6 +183,12 @@ namespace CoupledField {
   }
 
 #ifdef __GNUC__
+  template class Point<2>;
+  template class Point<3>;
+
+  template void PrintPoint(Point<2>, std::ostream *);
+  template void PrintPoint(Point<3>, std::ostream *);
+
   template Double dist(Point<2>,Point<2>);
   template Double dist(Point<3>,Point<3>);
 #endif

@@ -804,6 +804,12 @@ namespace CoupledField {
   }
 
   // explicit template instantiation for SGI compiler
+#ifdef __GNUC__
+  template class NodeStoreSol<Double>;
+  template class NodeStoreSol<Complex>;
+#endif 
+
+  // explicit template instantiation for SGI compiler
 #ifdef __sgi
 #pragma instantiate NodeStoreSol<Double>
 #pragma instantiate NodeStoreSol<Complex>
