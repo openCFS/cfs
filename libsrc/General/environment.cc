@@ -310,6 +310,59 @@ namespace CoupledField {
     }
   }
 
+  // ScalarType
+  template<>
+  void Enum2String<EntryType::ScalarType>( const EntryType::ScalarType &in,
+                                           std::string &out ) {
+    
+    switch(in) {
+    case EntryType::NOENTRYTYPE:
+      out = "No Entry Type";
+      break;
+    case EntryType::DOUBLE:
+      out = "Double";
+      break;
+    case EntryType::COMPLEX:
+      out = "Complex";
+      break;
+    case EntryType::INTEGER:
+      out = "Integer";
+      break;
+    case EntryType::UINT:
+      out = "Unsigned Integer";
+      break;
+    default:
+      Error("No conversion found for your 'EntryType::ScalarType'"
+            , __FILE__, __LINE__);
+    }
+  }
+
+  template<>
+  void String2Enum<EntryType::ScalarType>( const std::string &in,  
+                                           EntryType::ScalarType &out ) {
+    
+    if ( in == "No Entry Type" ) {
+      out = EntryType::NOENTRYTYPE;
+    }
+    else if ( in == "Double" ) {
+      out = EntryType::DOUBLE;
+    }
+    else if ( in == "Complex" ) {
+      out = EntryType::COMPLEX;
+    }
+    else if ( in == "Integer" ) {
+      out = EntryType::INTEGER;
+    }
+    else if ( in == "Unsigned Integer" ) {
+      out = EntryType::UINT;
+    }
+    else {
+      (*error) << "'" << in << "' cannot be converted into an '"
+               << "EntryType::ScalarType' item!";
+      Error( __FILE__, __LINE__);
+    }
+  }
+  
   template<>
   void Enum2String<NormType>(const NormType &in, std::string &out) {
 
@@ -678,5 +731,7 @@ namespace CoupledField {
       Error( __FILE__, __LINE__ );
     }
   }
+
+ 
 
 }

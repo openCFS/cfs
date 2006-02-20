@@ -53,7 +53,33 @@ namespace CoupledField {
 #define FALSE 0
 #define TRUE 1
 
+  //! Define Enum types for numerical entries of vectors and matrices
+  struct EntryType {
+    typedef enum {NOENTRYTYPE, DOUBLE, FLOAT, COMPLEX, INTEGER, 
+                  UINT, SHORTINT} ScalarType;
+  };
 
+  //! Define assignment of numerical types to their enum-representation
+  template<class TYPE>
+  struct EntryTypeMap {
+    //! Associated enum representation of entry type
+    static const EntryType::ScalarType S_TYPE = NOENTRYTYPE;
+  };
+  
+  // Explicit sepcialization for scalar entry types
+#define DEFINE_SCALAR_TYPE(TYPE,TYPE_ENUM)                    \
+ template<>                                                   \
+  struct EntryTypeMap<TYPE> {                                 \
+    static const EntryType::ScalarType S_TYPE = TYPE_ENUM;    \
+  }
+  DEFINE_SCALAR_TYPE( Double   , EntryType::DOUBLE);
+  DEFINE_SCALAR_TYPE( Float    , EntryType::FLOAT);
+  DEFINE_SCALAR_TYPE( Complex  , EntryType::COMPLEX);
+  DEFINE_SCALAR_TYPE( Integer  , EntryType::INTEGER);
+  DEFINE_SCALAR_TYPE( UInt     , EntryType::UINT);
+  DEFINE_SCALAR_TYPE( ShortInt , EntryType::SHORTINT);
+#undef DEFINE_SCALAR_TYPE
+  
   // Type definitions for regions
   typedef int RegionIdType;
 #define NO_REGION_ID 0
@@ -329,8 +355,8 @@ namespace CoupledField {
   // Instantiation for all known enum types;
 #if defined (__GNUC__)
 #define DEFINE_ENUM_CONVERSION(TYPE)                                  \
-  template<class TYPE> void String2Enum(const std::string &in, TYPE &out); \
-  template<class TYPE> void Enum2String(const TYPE &in, std::string &out);
+  template<typename TYPE> void String2Enum(const std::string &in, TYPE &out); \
+  template<typename TYPE> void Enum2String(const TYPE &in, std::string &out);
 
   DEFINE_ENUM_CONVERSION(AnalysisType)
   DEFINE_ENUM_CONVERSION(FreqSamplingType)
@@ -341,6 +367,7 @@ namespace CoupledField {
   DEFINE_ENUM_CONVERSION(ComplexFormat)
   DEFINE_ENUM_CONVERSION(EQNType)
   DEFINE_ENUM_CONVERSION(FEType)
+  DEFINE_ENUM_CONVERSION(EntryType::ScalarType)
 #endif
 
 } // end of namespace
