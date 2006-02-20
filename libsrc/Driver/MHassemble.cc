@@ -36,9 +36,6 @@ namespace CoupledField
     deltaCoords_ = NULL;
     alternateMaterialData_=FALSE;
 
-    olasParams_ = algsys_->GetOLASParams();
-    olasReport_ = algsys_->GetOLASReport(); 
-
     startFreq_ = 0.0;
     //    matArray_  = NULL;
 
