@@ -11,10 +11,10 @@ struct Trait2 {
   template<> struct Trait2<A,B> {                 \
     typedef C T_PROMOTE;\
 };
-DECLARE_TRAIT2(Complex,Double,Complex);
-DECLARE_TRAIT2(Double,Complex,Complex);
-DECLARE_TRAIT2(Double,Double,Double);
-DECLARE_TRAIT2(Complex,Complex,Complex);
+DECLARE_TRAIT2(Complex,Double,Complex)
+DECLARE_TRAIT2(Double,Complex,Complex)
+DECLARE_TRAIT2(Double,Double,Double)
+DECLARE_TRAIT2(Complex,Complex,Complex)
 
 // DEFINE for type promotion
 #define PROMOTE(P,P2) typename Trait2<P,P2>::T_PROMOTE
