@@ -164,11 +164,6 @@ namespace CoupledField {
     Double p[dim];
   };
 
-#if defined(__GNUC__) 
-  template class Point<2>;
-  template class Point<3>;
-#endif
-
   //! calculate distance between two points
   template<UInt dim>
   Double dist(Point<dim> a, Point<dim> b);

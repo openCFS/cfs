@@ -431,6 +431,13 @@ namespace CoupledField{
     Error( "ElemStoreSol::Print() not implemented", __FILE__, __LINE__ );
   }
 
+  // explicit template instantiation for GCC compiler
+#ifdef __GNUC__
+  template class ElemStoreSol<Double>;
+  template class ElemStoreSol<Complex>;
+#endif 
+
+
   // explicit template instantiation for SGI compiler
 #ifdef __sgi
 #pragma instantiate ElemStoreSol<Double>
