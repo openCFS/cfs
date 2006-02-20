@@ -85,13 +85,6 @@ namespace CoupledField
     SolutionType solType_;
   };
 
-#ifdef __GNUC__
-  // Template instantiation for used vectors
-  template class GradientFieldOp<Double>;
-  template class GradientFieldOp<Complex>;
-#endif
-
-
 } // end of namespace
 
 #endif

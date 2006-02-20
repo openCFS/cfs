@@ -94,15 +94,15 @@ namespace CoupledField
 
   
   template <class TYPE>
-  void ElecChargeOp<TYPE>::CalcElemCharges(CFSVector & charges,
+  void ElecChargeOp<TYPE>::CalcElemCharges(Vector<TYPE> & charges,
                                      const StdVector<Elem*> & surfElems,
                                      const Vector<Double> & lCoord,
-                                     const CFSVector & eNormalFluxDensity)
+                                     const Vector<TYPE> & eNormalFluxDensity)
   {
     ENTER_FCN( "ElecChargeOp::CalcElemCharges" );
   
-    Double jacDet, charge, helpNormalFluxDensityD;
-    Complex chargeComplex,helpNormalFluxDensity;
+    Double jacDet; 
+    TYPE charge,helpNormalFluxDensity;
     Vector<Double> shFnc, globCoord;
     Matrix<Double> coordMat;
     BaseFE * ptElem;
@@ -121,31 +121,13 @@ namespace CoupledField
       
         ptPDE_->GetElemCoords(surfElems[iElem]->connect, coordMat);
         ptElem->GetShFnc(shFnc, lCoord);
-        if (charges.IsComplex()){
+        // if (charges.IsComplex()){
           for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
             {
               jacDet = ptElem->CalcJacobianDet(lCoord, coordMat);
-              chargeComplex = shFnc[actIntPt] *intWeights[actIntPt];
+              charge = shFnc[actIntPt] *intWeights[actIntPt] * jacDet;
               eNormalFluxDensity.GetEntry(iElem,helpNormalFluxDensity);
-              chargeComplex *= jacDet * helpNormalFluxDensity;
-              if (isaxi_)
-                {
-                  globCoord = coordMat * shFnc;
-                  chargeComplex *= 2 * PI * globCoord[0];
-                }
-          
-              //          charges[iElem] += charge;
-              charges.AddEntry(iElem,chargeComplex);      
-
-            }
-        }
-        else {
-          for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-            {
-              jacDet = ptElem->CalcJacobianDet(lCoord, coordMat);
-              charge = shFnc[actIntPt] *intWeights[actIntPt];
-              eNormalFluxDensity.GetEntry(iElem,helpNormalFluxDensityD);
-              charge *= jacDet * helpNormalFluxDensityD;
+              charge *=  helpNormalFluxDensity;
               if (isaxi_)
                 {
                   globCoord = coordMat * shFnc;
@@ -153,14 +135,36 @@ namespace CoupledField
                 }
           
               //          charges[iElem] += charge;
-              charges.AddEntry(iElem,charge);     
+              charges.AddEntry(iElem,charge);      
 
             }
+//         }
+//         else {
+//           for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+//             {
+//               jacDet = ptElem->CalcJacobianDet(lCoord, coordMat);
+//               charge = shFnc[actIntPt] *intWeights[actIntPt];
+//               eNormalFluxDensity.GetEntry(iElem,helpNormalFluxDensityD);
+//               charge *= jacDet * helpNormalFluxDensityD;
+//               if (isaxi_)
+//                 {
+//                   globCoord = coordMat * shFnc;
+//                   charge *= 2 * PI * globCoord[0];
+//                 }
+          
+//               //          charges[iElem] += charge;
+//               charges.AddEntry(iElem,charge);     
+
+//             }
 
 
-        }
+//       }
       }
   }
-
-
+  
+  // Explicit template instantiation
+#ifdef __GNUC__
+  template class ElecChargeOp<Double>;
+  template class ElecChargeOp<Complex>;
+#endif
 } // end of namespace

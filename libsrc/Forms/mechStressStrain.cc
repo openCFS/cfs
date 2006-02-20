@@ -86,9 +86,9 @@ namespace CoupledField
     Matrix<Double> linBMat;    
     calcBMat( linBMat, ip, ptCoord);
 
-    //strainVec = linBMat * displVec;
-    strainVec.Resize(linBMat.GetSizeRow());
-    Matrix<TYPE>(linBMat).Mult(displVec,strainVec);
+    strainVec = linBMat * displVec;
+    //strainVec.Resize(linBMat.GetSizeRow());
+    //Matrix<TYPE>(linBMat).Mult(displVec,strainVec);
   
   }
 
@@ -151,7 +151,7 @@ namespace CoupledField
   {
     ENTER_FCN( "MechStressStrainAxi::MechStressStrainAxi" );
 
-    isaxi_ = TRUE;
+    this->isaxi_ = TRUE;
   }
 
   template <class TYPE>
@@ -159,7 +159,7 @@ namespace CoupledField
     : MechStressStrain<TYPE>(matData)
   {
     ENTER_FCN( "MechStressStrainAxi::MechStressStrainAxi" );
-    isaxi_ = TRUE;
+    this->isaxi_ = TRUE;
   }
 
   template <class TYPE>
@@ -173,7 +173,7 @@ namespace CoupledField
   {
     ENTER_FCN( "MechStressStrainAxi::calcMaterialDMat" );
 
-    linElastInt::CalcAxiMaterialMat(dMat,actOrientation);
+    linElastInt::CalcAxiMaterialMat(dMat,this->actOrientation);
   }
 
 
@@ -206,8 +206,22 @@ namespace CoupledField
   {
     ENTER_FCN( "MechStressStrainPlaneStrain::calcMaterialDMat" );
 
-    linElastInt::CalcPlaneStrainMaterialMat(dMat,actOrientation);
+    linElastInt::CalcPlaneStrainMaterialMat(dMat,this->actOrientation);
   }
 
+#ifdef __GNUC__
+  // Explicite template instantiation
+  template class MechStressStrain<Double>;
+  template class MechStressStrain<Complex>;
+
+  template class MechStressStrain3D<Double>;
+  template class MechStressStrain3D<Complex>;
+
+  template class MechStressStrainPlaneStrain<Double>;
+  template class MechStressStrainPlaneStrain<Complex>;
+
+  template class MechStressStrainAxi<Double>;
+  template class MechStressStrainAxi<Complex>;
+#endif
 
 } // end namespace CoupledField

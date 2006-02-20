@@ -3,6 +3,7 @@
 
 #include "Domain/grid.hh"
 #include "grid_cfs.hh"
+#include "grid_cfs.cc"
 
 namespace CoupledField
 {
@@ -283,6 +284,7 @@ namespace CoupledField
   template class GridInterfaceCFS<3>;
   template class GridInterfaceCFS<2>;
 #endif
+
 
 } // end of namespace
 #endif // FILE_GRID

@@ -3,6 +3,7 @@
 
 #include "Domain/grid.hh"
 #include "grid_struct.hh"
+#include "grid_struct.cc"
 
 namespace CoupledField
 {
