@@ -84,12 +84,6 @@ namespace CoupledField
     StdPDE * ptPDE_;
   };
 
-#ifdef __GNUC__
-  // Template instantiation for used vectors
-  template class LinStrainOp<Double>;
-  template class LinStrainOp<Complex>;
-#endif
-
 
 } // end of namespace
 

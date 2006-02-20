@@ -144,19 +144,6 @@ namespace CoupledField
     virtual UInt getDimD(){return 4;};
   };
   
-
-  // Explicite template instantiation
-  template class MechStressStrain<Double>;
-  template class MechStressStrain<Complex>;
-
-  template class MechStressStrain3D<Double>;
-  template class MechStressStrain3D<Complex>;
-
-  template class MechStressStrainPlaneStrain<Double>;
-  template class MechStressStrainPlaneStrain<Complex>;
-
-  template class MechStressStrainAxi<Double>;
-  template class MechStressStrainAxi<Complex>;
 } //end namespace
 
 #endif // FILE_XXX

@@ -137,6 +137,12 @@ namespace CoupledField
       }
   }
 
+  // explicit teplate instantiation for gcc compiler
+#ifdef __GNUC__
+template class GradientFieldOp<Double>;
+template class GradientFieldOp<Complex>;
+#endif
+
   // explicit template instantiation for SGI compiler
 #ifdef __sgi
 #pragma instantiate GradientFieldOp<Double>

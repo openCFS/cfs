@@ -1041,6 +1041,14 @@ namespace CoupledField
     }
   }
 
+
+  // explicit template instantiation for gcc compiler
+#ifdef __GNUC__
+  template class GridStruct<3>;
+  template class GridStruct<2>;
+#endif
+
+  // explicit template instantiation for sgi compiler
 #ifdef __sgi
 #pragma instantiate GridStruct<3>
 #pragma instantiate GridStruct<2>

@@ -435,10 +435,5 @@ namespace CoupledField
 
   };
 
-#ifdef __GNUC__
-  template class GridStruct<3>;
-  template class GridStruct<2>;
-#endif
-
 } // end of namespace
 #endif // FILE_GRID_Struct

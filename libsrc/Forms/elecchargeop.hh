@@ -65,20 +65,13 @@ namespace CoupledField {
       \param eFluxDensity (input) Vector of normal components of 
       Flux density in lCoord
     */
-    virtual void CalcElemCharges(CFSVector & charges,
+    virtual void CalcElemCharges(Vector<TYPE> & charges,
                                  const StdVector<Elem*> & surfElems,
                                  const Vector<Double> & lCoord,
-                                 const CFSVector & eNormalFluxDensity);
+                                 const Vector<TYPE> & eNormalFluxDensity);
   protected:
   
   };
-
-#ifdef __GNUC__
-  // Template instantiation for used vectors
-  template class ElecChargeOp<Double>;
-  template class ElecChargeOp<Complex>;
-#endif
-
 
 } // end of namespace
 

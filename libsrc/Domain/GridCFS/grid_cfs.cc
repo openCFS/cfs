@@ -1997,7 +1997,13 @@ namespace CoupledField
   //     return dummy;
   //   }
 
+  // ecplicit template instantiation for gcc
+#ifdef __GNUC__
+  template class GridCFS<3>;
+  template class GridCFS<2>;
+#endif
 
+  // explicit template instantitation for sgi
 #ifdef __sgi
 #pragma instantiate GridCFS<3>
 #pragma instantiate GridCFS<2>

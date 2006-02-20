@@ -65,8 +65,7 @@ namespace CoupledField
     Matrix<Double> linBMat;    
     calcBMat( linBMat, ptElement->ptElem, ip, lCoord);
 
-    Matrix<TYPE> linBMatTemp = linBMat;
-    helpElemField=linBMatTemp * actDispl;
+    helpElemField=linBMat * actDispl;
     
   }
 
@@ -174,6 +173,14 @@ namespace CoupledField
      Error( "LinStrainOp::CalcSDLinearStrain: Not working yet", __FILE__, __LINE__);
 
   }
+
+  // explicit template instantiation for GCC compiler
+#ifdef __GNUC__
+  // Template instantiation for used vectors
+  template class LinStrainOp<Double>;
+  template class LinStrainOp<Complex>;
+#endif
+
 
   // explicit template instantiation for SGI compiler
 #ifdef __sgi

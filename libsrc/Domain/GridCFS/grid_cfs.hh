@@ -493,11 +493,5 @@ namespace CoupledField
 
   };
 
-
-#ifdef __GNUC__
-  template class GridCFS<3>;
-  template class GridCFS<2>;
-#endif
-
 } // end of namespace
 #endif // FILE_GRID_CFS
