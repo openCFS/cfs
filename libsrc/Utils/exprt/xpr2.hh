@@ -105,7 +105,7 @@ template <class P, class I>
 class Dim2 {
 private:
   void error(const char *msg) const {
-    cerr << "Dim2 error: " << msg << endl;
+    std::cerr << "Dim2 error: " << msg << std::endl;
     exit(1);
   }
 
@@ -176,11 +176,12 @@ public:
     I *me = static_cast<I*>(this);
     //int rsz = me->rows(), csz = me->cols(),
     //min = ( rsz < csz ) ? rsz : csz ;
-    for (int i=0; i<me->rows(); i++) me->operator()(i,i) += rhs;
+    for (int i=0; i<me->rows(); i++) me->operator()(i,i) += this->rhs;
     return *me;
   }
  
   template <class X> Dim2<P,I>& operator-=(const Xpr2<P,X>& rhs) {
+    I *me = static_cast<I*>(this);
     for (int i=0; i<me->rows(); i++) {
       for (int j=0; j<me->cols(); j++) me->operator()(i,j) -= rhs(i,j);
     }
@@ -198,7 +199,7 @@ public:
     I *me = static_cast<I*>(this);
     //int rsz = me->rows(), csz = me->cols(),
     //min = ( rsz < csz ) ? rsz : csz ;
-    for (int i=0; i<me->rows(); i++) me->operator()(i,i) -= rhs;
+    for (int i=0; i<me->rows(); i++) me->operator()(i,i) -= this->rhs;
     return *me;
   }
  
@@ -223,8 +224,8 @@ template <class T,class A>
 std::ostream& operator<<(std::ostream& s, const Dim2<T,A>& a) {
   for (int i=0; i< a.rows(); i++) {
     for (int j=0; j< a.cols(); j++)
-      s << setw(6) << setprecision(3) << a(i,j);
-    s << endl;
+      s << std::setw(6) << std::setprecision(3) << a(i,j);
+    s << std::endl;
   }
   return s;
 }
