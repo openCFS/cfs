@@ -142,7 +142,7 @@ template <class P, class I>
 class Dim1 {
 private:
   void error(const char *msg) const {
-    cerr << "Dim1 error: " << msg << endl;
+    std::cerr << "Dim1 error: " << msg << std::endl;
     exit(1);
   }
 
@@ -243,7 +243,7 @@ public:
 template <class T,class A>
 std::ostream& operator<<(std::ostream& s, const Dim1<T,A>& a) {
   for (int i=0; i< a.size(); i++)
-    s << setw(6) << setprecision(3) << a(i) << endl;
+    s << std::setw(6) << std::setprecision(3) << a(i) << std::endl;
   return s;
 }
 
