@@ -88,15 +88,17 @@ namespace CoupledField
     virtual void SetActElemSol(CFSMatrix& disp){
       ENTER_FCN("linPiezoInt::SetActElemSol 3");
       
-      if(disp.IsComplex())
-        //        Matrix<Complex> & elemSolComplex_ = 
-        // dynamic_cast <Matrix<Complex>&> (disp);
+      if(disp.GetEntryType() == EntryType::COMPLEX) {
         elemSol_ = dynamic_cast<Matrix<Complex>*> (&disp);
-      else
+      } else if(disp.GetEntryType() == EntryType::DOUBLE) {
         elemSol_ = dynamic_cast<Matrix<Double>*>(&disp);
-      //     Matrix<Double> & elemSol_ = dynamic_cast <Matrix<Double>&> (disp);
-
-
+      } else {
+        std::string out;
+        Enum2String( disp.GetEntryType(), out );
+        (*error) << "Can not cast CFSMatrix of type "
+                 << out << "!";
+        Error( __FILE__, __LINE__ );
+      }
     };
 
     //! set multiplicative factor for matrix
