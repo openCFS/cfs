@@ -108,54 +108,6 @@ namespace CoupledField
       }
   }
 
-  template<class TYPE> template<class T2>
-  Matrix<TYPE>::Matrix ( const Matrix<T2> &x ) {
-    (*error) << "The conversion constructor for Matrix<T> is only "
-	     << "implemented for Double -> Complex, yet.";
-    Error( __FILE__, __LINE__ );
-  }
-
-  template<> template<>
-  Matrix<Complex>::Matrix( const Matrix<Double> &x ) {
-    
-    // Do conversion
-    ENTER_FCN("Matrix::Matrix");
-    
-#ifdef CHECK_INITIALIZED
-    if (x.GetSizeRow() == 0 || 
-        x.GetSizeCol() == 0)  Error("undefined Matrix",__FILE__,__LINE__);
-#endif
-    
-    
-    size_row_ = x.GetSizeRow();
-    size_col_ = x.GetSizeCol();
-    
-    data_ = new Complex * [size_row_];
-    data_[0]=new Complex[size_row_ * size_col_];
- 
- 
-    UInt k;
- 
-    for (k=0; k < size_row_*size_col_; k++)  
-      data_[0][k]=x[0][k];
-    for (k=1; k < size_row_; k++) 
-      data_[k]=data_[k-1]+size_col_;    
-  }
-
-
-  template<class TYPE>
-  Boolean Matrix<TYPE>::IsComplex() const
-  {
-    return FALSE;
-  }
-
-  template<>
-  Boolean Matrix<Complex>::IsComplex() const
-  {
-    return TRUE;
-  }
-
-
 
   template<class TYPE>
   void Matrix<TYPE> :: Resize(const UInt nRows, const UInt nCols)
@@ -1204,7 +1156,59 @@ namespace CoupledField
   //   return amSymm;
   // }
 
-  // explicit template instantiation for SGI compiler
+  
+
+// #ifdef __GNUC__
+
+// #define MATRIX_INST(TYPE)        \
+// template Matrix<TYPE>::Matrix( );                                             \
+// template Matrix<TYPE>::Matrix( const UInt nRows, const UInt nCols );          \
+// template Matrix<TYPE>::Matrix( const UInt numVec,                             \
+//                                const Vector<TYPE> * const vecs );             \
+// template Matrix<TYPE>::Matrix( const Matrix & );                              \ 
+// template Matrix<TYPE>::~Matrix( );                                            \
+// template void Matrix<TYPE>::Resize(const UInt nRows, const UInt nCols );      \
+// template void Matrix<TYPE>::Resize( const UInt size );                        \
+// template bool Matrix<TYPE>::IsSymmetric() const;                              \
+// template void Matrix<TYPE>::GetDiagInMatrix( Matrix<TYPE>& columnMat ) const; \
+// template void Matrix<TYPE>::Mult( const CFSVector & mvec,                     \
+//                                   CFSVector & rvec ) const;                   \  
+// template void Matrix<TYPE>::DyadicMult( const CFSVector & vec1 );             \
+// template void Matrix<TYPE>::DyadicMult( const CFSVector & vec1,               \
+//                                         const CFSVector & vec2 );             \
+// template void Matrix<TYPE>::Invert ( Matrix <TYPE> & inv ) const;             \
+// template void Matrix<TYPE>::Transpose( Matrix<TYPE> & transposedMat ) const;  \
+// template Boolean Matrix<TYPE>::operator ==( const Matrix<TYPE> & mat ) const; \
+// template Boolean Matrix<TYPE>::operator!=( const Matrix<TYPE> & mat ) const;  \
+// template void Matrix<TYPE>::DirectSolve( CFSVector & x, CFSVector & b );      \
+// template void Matrix<TYPE>::ScaleDiagElems( const TYPE factor );              \
+// template void Matrix<TYPE>::AddRow( const Vector<TYPE> & x, const UInt pos ); \
+// template void Matrix<TYPE>::AddColumn( const Vector<TYPE> & x,                \
+//                                        const UInt pos );                      \
+// template void Matrix<TYPE>::GetSubMatrix( Matrix<TYPE>& subMat, UInt row,     \
+//                                           UInt col ) const;                   \
+// template void Matrix<TYPE>::SetSubMatrix( const Matrix<TYPE>& subMat,         \
+//                                           UInt row, UInt col );               \
+// template void Matrix<TYPE>::ConvertToVec_AppendRows( CFSVector& vec ) const; \
+// template void Matrix<TYPE>::ConvertToVec_AppendCols( CFSVector& vec ) const;
+
+//   MATRIX_INST(Double)
+//   MATRIX_INST(Integer)
+//   MATRIX_INST(UInt)
+//   MATRIX_INST(Complex)
+
+
+// #endif
+
+// explicit template instantiation for GCC compiler
+#ifdef __GNUC__
+  template class Matrix<Double>;
+  template class Matrix<Integer>;
+  template class Matrix<UInt>;
+  template class Matrix<Complex>;
+#endif
+
+// explicit template instantiation for SGI compiler
 #ifdef __sgi
 #pragma instantiate Matrix<UInt>
 #pragma instantiate Matrix<Integer>

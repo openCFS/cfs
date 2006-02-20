@@ -105,18 +105,6 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  Boolean Vector<TYPE>::IsComplex()
-  {
-    return FALSE;
-  }
-
-  template<>
-  Boolean Vector<Complex>::IsComplex()
-  {
-    return TRUE;
-  }
-
-  template<class TYPE>
   void Vector<TYPE>::Init(const TYPE entry)
   {
     ENTER_IFCN("Vector::Init");
@@ -828,13 +816,17 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
     return out;
   }
 
-#ifdef __GNUC__
+// explicit template instantiation for GCC compiler
+#if defined(__GNUC__) 
+  template class Vector<Integer>;
+  template class Vector<Double>;
+  template class Vector<UInt>;
+  template class Vector<Complex>;
   template std::ostream & operator<<<UInt> (std::ostream & , const Vector<UInt> &);
   template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
   template std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &);
   template std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> &);
 #endif
-
 
   // explicit template instantiation for SGI compiler
 #ifdef __sgi

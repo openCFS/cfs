@@ -67,12 +67,12 @@ namespace CoupledField
 
     //! Generalized copy constructor. It is only implemented 
     //! to create a complex-valued matrix from a given real-valued one.
-    template<class T2> 
-    Matrix( const Matrix<T2> &  );
+    //    template<class T2> 
+    //    Matrix( const Matrix<T2> &  );
 
       //! Destructor
     virtual ~Matrix( );
-    
+      
     //! Initialize matrix with a given scalar entry.
 
     //! Initializes the matrix with a given scalar entry
@@ -105,8 +105,11 @@ namespace CoupledField
     //! \name General Matrix Information
     
     //@{
-    //! Return true, if matrix contains complex entries
-    Boolean IsComplex() const;
+
+    //! Get entry type of matrix
+    EntryType::ScalarType GetEntryType() {
+      return  EntryTypeMap<TYPE>::S_TYPE;
+    }
 
     //! Check if the matrix is symmetric
 
@@ -881,13 +884,6 @@ namespace CoupledField
     return z;
   }
 #endif //EXPR_TEMPLATES
-
-#if defined(__GNUC__) 
-  template class Matrix<Double>;
-  template class Matrix<Integer>;
-  template class Matrix<UInt>;
-  template class Matrix<Complex>;
-#endif
 
 } //end of namespace
 

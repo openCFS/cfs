@@ -30,8 +30,8 @@ namespace CoupledField
     //! Default destructor
     virtual ~CFSVector(){};
 
-    //! Hard coded query if values are complex
-    virtual Boolean IsComplex() = 0;
+    //! Get entry type of vector
+    virtual EntryType::ScalarType GetEntryType() const = 0;
 
     //! Return the length of the vector
     virtual UInt GetSize() const = 0;
