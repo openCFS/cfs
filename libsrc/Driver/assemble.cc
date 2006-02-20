@@ -260,7 +260,7 @@ namespace CoupledField {
 
           dampTransform = 1.0;
           if ( ( actDescriptor->GetIntegrator()->IsRaylDamping() 
-                 || actDescriptor->GetOrigSecMatrixType() != NOTYPE ) 
+                 || actDescriptor->GetSecondaryMat() != NOTYPE ) 
                && startFreq_ > 0 ) {
 
             // Obtain frequency value to which the damping parameters
@@ -1505,8 +1505,10 @@ namespace CoupledField {
   IntegratorDescriptor::IntegratorDescriptor()
     :BaseIntDescriptor(),
      piezoMaterialType_(REALMATERIALPARAMETER),
-     destinationMatrix(SYSTEM),
-     secondaryMatrix(NOTYPE),
+     destinationMatrix_(SYSTEM),
+     secondaryMatrix_(NOTYPE),
+     origMatrixType_(NOTYPE),
+     origSecondMatrixType_(NOTYPE),
      secMatFac(0.0)
   
   {
@@ -1521,8 +1523,8 @@ namespace CoupledField {
                                              const Boolean aNonLin)
     :BaseIntDescriptor(aIntegrator, aNonLin),
      piezoMaterialType_(REALMATERIALPARAMETER),
-     destinationMatrix(aDestMat),
-     secondaryMatrix(NOTYPE),
+     destinationMatrix_(aDestMat),
+     secondaryMatrix_(NOTYPE),
      secMatFac(0.0)
   {
     ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
@@ -1548,12 +1550,12 @@ namespace CoupledField {
           Error(error_msg.c_str(), __FILE__, __LINE__ );
         }
       SetOrigSecMatrixType(aSecMat);
-      secondaryMatrix = MatType;
+      secondaryMatrix_ = MatType;
       secMatFac = aSecMatFac;
     }
 
     else if ( analysisType == TRANSIENT ) {
-      secondaryMatrix = MatType;
+      secondaryMatrix_ = MatType;
       secMatFac = aSecMatFac;
     }
 

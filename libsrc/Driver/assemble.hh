@@ -3,7 +3,7 @@
 
 /**************************************************************************/
 /* File:   analysis.hh                                                    */
-/* Author: Fred Hofei                                                     */
+/* Author: Fred Hofer                                                     */
 /* Date:   24. Nov. 2003                                                  */
 /*                                                                        */
 /* Handles the assembling of the various integrators to the appropriate   */
@@ -110,18 +110,18 @@ namespace CoupledField
     virtual ~IntegratorDescriptor();
 
     /// returns the destination matrix
-    FEMatrixType DestMat() {return destinationMatrix;}; 
+    FEMatrixType DestMat() {return destinationMatrix_;}; 
 
     /// sets the destination matrix
     void SetDestMat(FEMatrixType destMat)
-    {destinationMatrix = destMat;};
+    {destinationMatrix_ = destMat;};
 
     /// defines a secondary destination for the calculated element marices of an integrator      
     void SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac,
                          AnalysisType analysisType);
 
     // returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
-    FEMatrixType GetSecondaryMat() const {return secondaryMatrix;} 
+    FEMatrixType GetSecondaryMat() const {return secondaryMatrix_;} 
 
     /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
     Double GetSecMatFac() const {return secMatFac;} 
@@ -150,10 +150,10 @@ namespace CoupledField
   private:
 
     /// holds the destination matrix
-    FEMatrixType destinationMatrix;
+    FEMatrixType destinationMatrix_;
 
     /// holds the secondary destination matrix
-    FEMatrixType secondaryMatrix;
+    FEMatrixType secondaryMatrix_;
 
     //! hold the original matrix types (just used in harmonic analysis!!)
     FEMatrixType origMatrixType_;
@@ -161,7 +161,7 @@ namespace CoupledField
     //! hold the original secondary matrix types (just used in harmonic analysis!!)
     FEMatrixType origSecondMatrixType_;
 
-    /// holds the matrix factor for secondaryMatrix
+    /// holds the matrix factor for secondaryMatrix__
     Double secMatFac;
 
   };
