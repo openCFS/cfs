@@ -39,7 +39,7 @@ namespace CoupledField
     materials = x.materials;
 
     if (x.values != NULL) {
-      if (x.values->IsComplex()) {
+      if (x.values->GetEntryType() == EntryType::COMPLEX) {
         std::cerr << "IM FALSCHEN TEIL" << std::endl;
         Error( "Sorry, wrong branch :)", __FILE__, __LINE__ );
         values = new Vector<Complex>(dynamic_cast<Vector<Complex>&>(*(x.values)));
@@ -736,13 +736,14 @@ namespace CoupledField
             (memento.inputInterfaces_[iMem].numElems  == 
              inputInterfaces_[iOwn]->numElems) &&
           
-            (memento.inputInterfaces_[iMem].values->IsComplex() == 
-             inputInterfaces_[iOwn]->values->IsComplex()))
+            (memento.inputInterfaces_[iMem].values->GetEntryType() == 
+             inputInterfaces_[iOwn]->values->GetEntryType()))
           {
           
             // This section is reached, if the two couplings
             // are the same
-            if (inputInterfaces_[iOwn]->values->IsComplex()){
+            if (inputInterfaces_[iOwn]->values->GetEntryType()
+                == EntryType::COMPLEX){
             
               // --- Complex values --
               dynamic_cast<Vector<Complex>&> (*(inputInterfaces_[iOwn]->values)) 
