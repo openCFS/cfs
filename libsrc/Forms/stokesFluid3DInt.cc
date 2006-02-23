@@ -57,15 +57,15 @@ namespace CoupledField
         ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord, jacDet);
 
 //  __                                                                    __
-//  |  0      1     2      3     4         5        6        7                     |
-// 0|  0      0     0      0     0        -mu*xiDz  mu*xiDy  xiDx          |
-// 1|  0      0     0      0     mu*xiDz   0       -mu*xiDx  xiDy          |
-// 2|  0      0     0      0    -mu*xiDy   mu*xiDx  0        xiDz          |
-// 3|  0      0     0      0     xiDx     xiDy      xiDz     0             |
-// 4|  0     -xiDz  xiDy   xiDx -xi       0         0        0             |
-// 5|  xiDz   0    -xiDx   xiDy  0       -xi        0        0             |
-// 6| -xiDy   xiDx  0      xiDz  0        0        -xi       0             |
-// 7|  xiDx   xiDy  xiDz   0     0        0         0        0             |
+//  |  0      1     2      3     4         5        6        7             |   
+// 0|  0      0     0      0     0        -mu*xiDz  mu*xiDy  xiDx          |   u
+// 1|  0      0     0      0     mu*xiDz   0       -mu*xiDx  xiDy          |   v
+// 2|  0      0     0      0    -mu*xiDy   mu*xiDx  0        xiDz          |   w
+// 3|  0      0     0      0     xiDx     xiDy      xiDz     0             |   phi
+// 4|  0     -xiDz  xiDy   xiDx -xi       0         0        0             |   omx
+// 5|  xiDz   0    -xiDx   xiDy  0       -xi        0        0             |   omy
+// 6| -xiDy   xiDx  0      xiDz  0        0        -xi       0             |   omy
+// 7|  xiDx   xiDy  xiDz   0     0        0         0        0             |   p
 //  |_ 0      1     2      3     4         5        6        7           __|
 
 
