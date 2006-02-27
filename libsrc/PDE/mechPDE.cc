@@ -1579,7 +1579,7 @@ namespace CoupledField
   void MechPDE::CalcStresses() {
     ENTER_FCN( "MechPDE::CalcStresses" );
     
-    //get the correct bilinearform
+    //get the correct bilinear form
     Vector<Double> intPoint;
     // Resize solution arrays
   
