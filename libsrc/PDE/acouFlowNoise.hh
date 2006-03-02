@@ -27,11 +27,14 @@ namespace CoupledField
     //!
     void ComputeRHS(const Double atime);
 
+    //! Computes RHS using VortexAnalytical() to get source values
+    void ComputeRHSwithVortexSource(const Double atime);
+
     //! Reads at every time the flowdatafile from the Fluid's Computation
     void ReadFlowData(const char * aname, const UInt timestep,
                       Matrix<Double> &nodedata );
 
-  void VortexAnalytical(Double & press, const Double x,
+    void VortexAnalytical(Double & press, Vector<Double>& dTij_di, const Double x,
                                        const Double y, const Double t, 
                         const UInt outType);
     
