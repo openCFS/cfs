@@ -681,6 +681,133 @@ namespace CoupledField {
   
   } // end of method
 
+void LinearFlowNoiseInt::CalcElemVec_withdTijdi(const Matrix<Double>& ptCoord,
+                                                 const Matrix<Double>& dTijdi,
+                                                 Vector<Double> & Result)
+  {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector_withdTijdi" << std::endl;
+#endif
+
+    // This functions computes the element RHS vector by integrating 
+    // the gradient of the shape function times the divergence of the tensor T.
+  
+    // Source term =  integral(grad[Sf].div[T])
+
+    Integer l = ptelem->GetNumIntPoints(); 
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetSizeRow();
+
+    Matrix<Double> xiDx;      
+    Vector<Double>  Sf;
+
+    Vector<Double>  dTijdiAtIP;
+    
+    Double jacDet;
+    Integer actInt;
+    Double density=1.0;
+
+    Result.Resize(n);
+    for (Integer i=0; i<n; i++)
+      Result[i]=0.0;
+
+    Vector<Double> partResult;
+    partResult.Resize(n);
+    
+   // Loop over all integration points 
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	ptelem->GetShFncAtIp(Sf, actInt);
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet);
+
+	// dTijdi at integration point: (dTijdx  dTijdy)^T  (2x1)
+	dTijdiAtIP =  dTijdi * Sf;
+        
+        dTijdiAtIP *= density;
+        
+        // Multiplication with the derivatives of the shape functions
+	partResult  = xiDx * dTijdiAtIP;        
+        partResult *= jacDet;
+        Result     += partResult;
+      }
+
+  } // end of method
+
+
+void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord,
+                                                 const Matrix<Double> & NodalVel,
+                                                 Vector<Double> & Result)
+  {
+#ifdef TRACE
+    (*trace) << "entering LinearFlowNoiseInt::CalcElemVector_withVortexVel" << std::endl;
+#endif
+
+    //std::cout << "NodalVel:\n" << NodalVel << std::endl;
+
+    // This functions computes the element RHS vector by integrating 
+    // the gradient of the shape function times the divergence of the tensor T.
+  
+    // Source term =  integral(grad[Sf].div[T])
+
+    Integer l = ptelem->GetNumIntPoints(); 
+    Integer n = ptelem->GetNumNodes();
+    Integer dimelem = ptCoord.GetSizeRow();
+
+    Matrix<Double> xiDx;      
+    Vector<Double>  Sf;
+
+    Vector<Double>  VelAtIP;
+    Matrix<Double> VelDerAtIP;
+    VelDerAtIP.Resize(dimelem);  
+
+    Double jacDet;
+    Integer actInt;
+    Double density=1.0;
+
+    Result.Resize(n);
+    for (Integer i=0; i<n; i++)
+      Result[i]=0.0;
+
+    Vector<Double> partResult;
+    partResult.Resize(n);
+    
+    Vector<Double> helpVec;
+    helpVec.Resize(dimelem);
+
+    
+    // Loop over all integration points 
+    for (actInt=1; actInt<=l; actInt++)
+      {
+	ptelem->GetShFncAtIp(Sf, actInt);
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet);
+
+	// velocity at integration point: (vx  vy)^T  (2x1)
+	VelAtIP = NodalVel * Sf;
+
+	//first derivative of velocity at integration point: (2x2)
+	//  vx,x   vx,y
+        //  vy,x   vy,y
+	//
+        VelDerAtIP = NodalVel * xiDx;
+
+	helpVec[0] = 2.0 * VelAtIP[0] * VelDerAtIP[0][0] 
+	  + VelAtIP[1] *  VelDerAtIP[0][1] 
+	  + VelAtIP[0] *  VelDerAtIP[1][1]; 
+
+	helpVec[1] = 2.0 * VelAtIP[1] * VelDerAtIP[1][1] 
+	  + VelAtIP[0] *  VelDerAtIP[1][0] 
+	  + VelAtIP[1] *  VelDerAtIP[0][0]; 
+	  
+	helpVec *= density;
+        
+        // Multiplication with the derivatives of the shape functions
+	partResult  = xiDx * helpVec;        
+        partResult *= jacDet;
+        Result     += partResult;
+      }
+    //    std::cout<<"ElemVect computed with test velocities: "<<std::endl;
+    //    std::cout<<Result<<std::endl;
+  } // end of method
 
   void LinearFlowNoiseInt::CalcElemVector4Quad(Matrix<Double>& ptCoord,
                                                const StdVector<UInt> & connecth,
@@ -688,6 +815,9 @@ namespace CoupledField {
                                                Vector<Double> & Result)
   {
     ENTER_FCN( "LinearFlowNoiseInt::CalcElemVector4Quad" );
+
+    // This is used if we get the interpolated velocity components with MpCCI 
+    // from a fluid computation
 
     UInt l=ptelem->GetNumIntPoints();
     UInt n=ptelem->GetNumNodes();
@@ -795,11 +925,15 @@ namespace CoupledField {
         VelAtIP=elVel*Sf;
         
 
-        VelDerAtIP=(elVelAtIP*xiDx);
+        //VelDerAtIP=(elVelAtIP*xiDx);
+        VelDerAtIP=(elVel*xiDx);
+
         //VelDerAtIP*=jacDet; 
 
         VelDerAtIP.GetDiagInMatrix(VelDerFromDiag);
         VelDerFromDiag.ConvertToVec_AppendRows(helpVect);
+
+        //B_vector of derivation
         dTij_di=(VelDerAtIP*VelAtIP);
         
         for (int k=0;k<(dimelem);k++)

@@ -261,6 +261,16 @@ public:
                           Vector<Double> & Result, 
                           const Vector<Double> gradN_x_P);
 
+  /// Calculation of vector of right hand side using a dTijdi vector given by another program 
+  void CalcElemVec_withdTijdi(const Matrix<Double>& ptCoord,
+                              const Matrix<Double>& dTijdi,
+                              Vector<Double> & Result);
+
+  /// Calculation of Lighthills tensor diverg. (dTijdi) using velocity values from vortex source
+  void CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord,
+                                 const Matrix<Double> & NodalVel,
+                                 Vector<Double> & Result);
+  
   /// Calculation of vector of right hand side given from quadrupole contribution
   void CalcElemVector4Quad(Matrix<Double>& ptCoord, 
                            const StdVector<UInt> & connecth,
