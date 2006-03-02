@@ -62,8 +62,8 @@ namespace CoupledField
 
     Boolean OnlyLinNodes=TRUE;
     Boolean Find=FALSE;
-    std::cerr << "Subdoms:\n" << subdoms_ << std::endl;
-    std::cerr << "CoupledSubdoms:\n" << couplSubDomId_  << std::endl;
+    //    std::cerr << "\nName of all regions:\n" << regionNames << std::endl;
+    //    std::cerr << "Coupled regions:\n" << coupledRegionNames  << std::endl;
     
 
     for (UInt i=0; i<subdoms_.GetSize(); i++)
@@ -114,8 +114,8 @@ namespace CoupledField
                        "coupledregion" );
       ptgrid_->RegionNameToId( subdoms_, regionNames );
       ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
-      std::cerr << "Subdoms:\n" << subdoms_ << std::endl;
-      std::cerr << "CoupledSubdoms:\n" << couplSubDomId_  << std::endl;
+      std::cerr << "\nSubdoms:\n" << regionNames << std::endl;
+      std::cerr << "CoupledSubdoms:\n" << coupledRegionNames << std::endl;
       Info->PrintF(pdename_, " Using Vortex function as RHS nodal source\n" );
     }
     else 
@@ -146,8 +146,8 @@ namespace CoupledField
               ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
 
               Boolean Find=FALSE;
-              std::cerr << "Subdoms:\n" << subdoms_ << std::endl;
-              std::cerr << "CoupledSubdoms:\n" << couplSubDomId_  << std::endl;
+              //              std::cerr << "Name of all regions:\n" << regionNames << std::endl;
+              //              std::cerr << "Coupled regions:\n" << coupledRegionNames  << std::endl;
     
 
               for (UInt i=0; i<subdoms_.GetSize(); i++)
@@ -158,6 +158,9 @@ namespace CoupledField
                         {
                           ptgrid_->GetVolElems(elemssd,couplSubDomId_[j]);
                           ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
+                          //TRUE returns only the corner nodes (for 3D MpCCI linear coupling)
+                          if (dim_==3)
+                            ptgrid_->GetNodesOfElemList(mapSD_onlyLinNodes_, elemssd, TRUE);
                           Find=TRUE;
                         }
                     }
@@ -168,7 +171,11 @@ namespace CoupledField
                   msg+="is not in list of PDE subdoms. Please, check .xml-file";
                   Error(msg.c_str(),__FILE__,__LINE__);
                 }
-              Integer CoupledNodes=mapSD_allNodes_.GetSize();
+              Integer CoupledNodes;
+              if (dim_==3)
+                CoupledNodes=mapSD_onlyLinNodes_.GetSize();
+              else 
+                CoupledNodes=mapSD_allNodes_.GetSize();
               flowdata_.Resize(1, CoupledNodes);
             }
           else
@@ -224,47 +231,27 @@ namespace CoupledField
     ENTER_FCN( "AcouFlowNoise::ComputeRHS" );
 
   
-    Vector<Double> coeffMass, coeffDamp;
     Vector<Double> elemvec, nodalval;
-
     UInt i;
-
-//     // get maximum number of elements from grid
-//     UInt maxnumelem=ptgrid_->GetNumElems(subdoms_);
-
-//     Double val;
     Matrix<Double> ptCoordNodes;
-    // For ObstSurf
-    Matrix<Double> ptCoordNodSurf;
-    // For set of elements corresponding to surface elements
-    Matrix<Double> ptCoordNodBelongSE;
-    Matrix<Double> deriv;
     StdVector<UInt> connecth;
     // For changing connecth to PDE
     StdVector<Integer> connect_PDE; 
-    Vector<UInt> connObstSurf; // For ObstSurf
-    Vector<UInt> connBelongSE;
-    // vector of 1D-elements (ObstSurf) from mesh-file
-    StdVector<Elem*> ObstSurf;
     BaseFE * ptEl;
-    Double actTime;
     Double actFreq;   
     UInt j;
     UInt elsize = 0;
     StdVector<Elem*> elemssd;     
-             std::cout<<"Aqui en AcouFlowNoiseComputeRHS "<<std::endl;
-
     Double valmult;
 
-    //Getting current time
-    //actTime = solveStep_->GetActTime();
+
 
     //  std::cout<<"timestep counter in ComputeRHS: "<<timestep<<std::endl;
 
 #ifdef MpCCI
     double starttime, endtime;
-    std::cout<<"MpCCInodes_: "<< MpCCInodes_ << " dimension: " 
-             << dim_ << std::endl;
+    //std::cout<<"MpCCInodes_: "<< MpCCInodes_ << " dimension: " 
+    //             << dim_ << std::endl;
     if (nodalSrc_ == TRUE)
       //we get already the integrated acoustic source term
       flowdata_.Resize(1, MpCCInodes_);
@@ -273,16 +260,18 @@ namespace CoupledField
 
     starttime = CCI_Wtime();
       
-
     Integer timestep = 0;
-    ptMpCCIexch_->CouplCompPhase(flowdata_, actTime);
+    ptMpCCIexch_->CouplCompPhase(flowdata_, atime);
 
 
     endtime = CCI_Wtime();
       
 
-    std::cout<<"Transfer of Data CouplCompPhase() for 1 time step took: "
-             <<(endtime-starttime)<<" seconds"<<std::endl;
+    //    std::cout<<"Transfer of Data CouplCompPhase() for 1 time step took: "
+    //         <<(endtime-starttime)<<" seconds"<<std::endl;
+
+    // Quadrupole computation
+    std::cout << "Receiving "<<MpCCInodes_<<" acoustic nodal sources for time t = "<< atime<<"s"<< std::endl;
 
 
 #else
@@ -293,34 +282,14 @@ namespace CoupledField
 //     conf->get("acousrc_file",flowdata);
 //     // ReadFlowData(flowdata.c_str(), timestep, flowdata_); 
 
-//     std::string analysis;
-//     params->Get( "type", analysis, "analysis" );
-
-//     if ( analysis=="harmonic" ) {
-//       
-//       actFreq = solveStep_->GetActFreq();
-//     }
-
-
-
-//     // Calling to get load (RHS acoustic source) either in time or frequency domain
-//     // So step can be a time or a frequency value
-//     ReadFlowData(flowdata.c_str(), actFreq, flowdata_); 
-
 #endif 
 
 
-
-  
-    // Quadrupole computation
-    std::cout << "Processing RHS volume elems for quadrupole... "<< std::endl;
-
-
-    // Variables for ramping
+// Variables for ramping
     Double xfmin, yfmin, zfmin, xfmax, yfmax, zfmax, facRampXmin, facRampYmin, 
       facRampZmin, facRampXmax, facRampYmax, facRampZmax;
     Double bndoffsetXmin, bndoffsetYmin, bndoffsetZmin, bndoffsetXmax, bndoffsetYmax, bndoffsetZmax ;
-
+#ifdef MpCCI
     params->Get("xfmin",xfmin, "MpCCI-flownoise");
     params->Get("yfmin",yfmin, "MpCCI-flownoise");
     params->Get("xfmax",xfmax, "MpCCI-flownoise");
@@ -344,7 +313,7 @@ namespace CoupledField
     bndoffsetZmin=facRampZmin*zfmin;
     bndoffsetZmax=facRampZmax*zfmax;
       }
-
+#endif 
 
     // Correct valmult value is -1.0, 
     // if plugging in source (ddTij/dxidxj) directly in weak form then 1.0
@@ -355,115 +324,10 @@ namespace CoupledField
       
       if (vortexSrc_ == TRUE)
         {
-          for (i=0; i<couplSubDomId_.GetSize(); i++)
-            {
-              std::cerr << atime;
-              ptgrid_->GetVolElems(elemssd,couplSubDomId_[i]);
-              for (j=0; j< elemssd.GetSize(); j++)
-                {
-                  UInt ii;
-                  elsize=(elemssd[j]->connect).GetSize();
-                  elemvec.Resize(elsize);
-                  nodalval.Resize(elsize);
-                  connecth.Resize(elsize);
-                  for (ii=0; ii<elsize; ii++)
-                    connecth[ii]=(elemssd[j]->connect)[ii];
-                  Matrix<Double> ptCoordNodes;
-                  ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);   
-                  for (ii=0; ii<elsize; ii++)
-                    {
-                      Double r_sqr=((ptCoordNodes[0][ii])*(ptCoordNodes[0][ii])+
-                                    (ptCoordNodes[1][ii])*(ptCoordNodes[1][ii]));
-
-                      //For square 100times100 domain                      
-//                       if (r_sqr<=((1000./81.)*(1000./81.)))
-//                         {
-//                           nodalval[ii]=0;
-//                         }
-                      
-                      if (r_sqr<=((200./81.)*(200./81.)))
-                        {
-                          nodalval[ii]=0;
-                        }
-                      else
-                        {
-                          Double press=0;
-                          //std::cout << "In else before calling VortexAnalytical"<<std::endl;
-                          VortexAnalytical(press, ptCoordNodes[0][ii],
-                                           ptCoordNodes[1][ii], actTime, 2);
-                          //std::cout << "In else after calling VortexAnalytical, press= "<<press<<std::endl;
-//                           //For debugging the quadratic middle nodes
-//                           if ((j+1)==467)
-//                           if (connecth[ii]==1708)
-//                             {
-//                               std::cerr <<"  "<< press;
-//                             }
-//                           if ((j+1)==464)
-//                           if (connecth[ii]==1356)
-//                             {
-//                               std::cerr <<"  "<< press;
-//                             }                          
-//                           if ((j+1)==434)
-//                           if (connecth[ii]==1354)
-//                             {
-//                               std::cerr <<"  "<< press;
-//                             }    
-//                           if ((j+1)==437)
-//                           if (connecth[ii]==1706)
-//                             {
-//                               std::cerr <<"  "<< press;
-//                             }    
-
-                          nodalval[ii]=press;
-                          //nodalval[ii]=1;
-                        }
-                      }
-
-
-                  // Here the RHS integration of the nodal forces takes place
-                  Vector<Double>  Sf;
-                  ptEl=elemssd[j]->ptElem;
-                  const UInt nrIntPts= ptEl->GetNumIntPoints();
-                  const Vector<Double> & intWeights = ptEl->GetIntWeights();
-                  Vector<Double> valueAtIP;
-                  valueAtIP.Resize(nrIntPts);
-                  
-                  for (UInt actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
-                    {
-                      ptEl->GetShFncAtIp(Sf, actIntPt);
-                      valueAtIP[actIntPt-1]= nodalval*Sf;
-                    }
-
-                  Double jacDet;
-                  for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
-                    
-                    jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoordNodes);
-                    ptEl -> GetShFncAtIp(Sf, actIntPt);
-                    
-                    if (isaxi_) {
-                      Vector<Double> coordAtIP;
-                      coordAtIP = ptCoordNodes * Sf;
-                      elemvec += Sf * (coordAtIP[0] * valueAtIP[actIntPt-1]* intWeights[actIntPt-1]
-                                       * 2 * PI * jacDet);
-                    }
-                    else {
-                      elemvec += Sf * intWeights[actIntPt-1] 
-                        * valueAtIP[actIntPt-1]*jacDet;
-                    }
-                  }
-                  eqnData_->Node2EQN(connecth, connect_PDE);
-                  algsys_->SetElementRHS(&elemvec[0], pdeId_, 
-                                         connect_PDE.GetPointer(), connect_PDE.GetSize());
-
-
-                }
-              //ALSO TO FINISH THE OUTPUT OF CONTROL DATA 
-              std::cerr <<std::endl;
-            }
-
+          std::cout<<"Calling ComputeRHSwithVortexSource(atime)"<<std::endl;
+          ComputeRHSwithVortexSource(atime);
         }
       else
-
         {
           valmult=-1.0;
       
@@ -531,7 +395,7 @@ namespace CoupledField
         }
     }
     
-    else {
+    else {     //for assigning nodal source
       UInt eqnDof, node, dof;
       Integer eqnNr;
       StdVector<UInt> connect(1);
@@ -592,27 +456,74 @@ namespace CoupledField
         } 
       else
         {
+          std::cout << "Using frequency source files..."<< std::endl;
           FreqFunc * ptFreqFunc = new FreqFunc();
           StdVector<Double> Ampl_Phase;
           Ampl_Phase.Resize(2);
 
           //Getting current freq (received as atime)
-          actFreq = atime;
           for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
-            node = idx + 1;       
-            Ampl_Phase=ptFreqFunc->NodalFreqFuncAtFreq(actFreq,"freqsrcfile.node",node);
-            
+          actFreq = atime;
+            if (dim_==3)
+              node = mapSD_onlyLinNodes_[idx];
+            else
+              node = mapSD_allNodes_[idx];    
+          
+              Ampl_Phase=ptFreqFunc->NodalFreqFuncAtFreq(actFreq,"freqsrcfile.node",
+                                                         node);              
             Double valAmpl = Ampl_Phase[0];
             Double valPhase = Ampl_Phase[1];
-            //            std::cout<<"Aqui en AcouFlowNoise. (valAmpl, valPhase): "<< Ampl_Phase<<std::endl;
-            
+#ifdef MpCCI            
+              ///////////////////////////////////////////////////////////////////////
+                // Ramping before adding to RHS vector (NOW IT MAKES ZERO THE RHS ENTRY!)
+                Matrix<Double> ptCoordNodes;
+                connecth.Resize(1);
+                connecth[0] = node;
+                ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);         
+
+                if (ptCoordNodes[0][0]<bndoffsetXmin)
+                  //valAmpl -= valAmpl*(ptCoordNodes[0][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
+                  valAmpl = 0;
+                else
+                  if (ptCoordNodes[0][0]>bndoffsetXmax)
+                    //valAmpl -= valAmpl*(ptCoordNodes[0][0]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+                    valAmpl = 0;
+                if (ptCoordNodes[1][0]<bndoffsetYmin)
+                  //valAmpl -= valAmpl*(ptCoordNodes[1][0]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
+                  valAmpl = 0;
+                else      
+                  if (ptCoordNodes[1][0]>bndoffsetYmax)
+                    //valAmpl -= valAmpl*(ptCoordNodes[1][0]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
+                    valAmpl = 0;
+                if(dim_==3)
+                  {
+                    if (ptCoordNodes[2][0]<bndoffsetZmin)
+                      //valAmpl -= valAmpl*(ptCoordNodes[2][0]-bndoffsetZmin)/(zfmin-bndoffsetZmin);
+                      valAmpl = 0;
+                    else      
+                      if (ptCoordNodes[2][0]>bndoffsetZmax)
+                        //valAmpl -= valAmpl*(ptCoordNodes[2][0]-bndoffsetZmax)/(zfmax-bndoffsetZmax);
+                        valAmpl = 0;
+                  }
+                //end ramping
+                /////////////////////////////////////////////////////////////////////////
+#endif
             valAmpl*=valmult;
             Complex complexValue( valAmpl * cos( valPhase / 180 * PI ),
                                   valAmpl * sin( valPhase / 180 * PI ) );
             //add to RHS
-            eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
-            algsys_->SetNodeRHS(complexValue, pdeId_, eqnNr, eqnDof);      
-         }
+            //it was: eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+            //Now to try, since there is no sequential order of nodes:
+            if (dim_ == 3)
+              {
+                eqnData_->Node2EQN(mapSD_onlyLinNodes_[idx],dof,eqnNr,eqnDof);
+                //std::cout<<"EqnDOF= "<<eqnDof<<" EqnNr= "<<eqnNr<<" dof= "<<dof
+                //         <<" NodeNumber= "<<mapSD_onlyLinNodes_[idx]<<" Ampl= "<<Ampl_Phase[0]<<std::endl;
+              }
+            else
+              eqnData_->Node2EQN(mapSD_allNodes_[idx],dof,eqnNr,eqnDof);
+            algsys_->SetNodeRHS(complexValue, pdeId_, eqnNr, eqnDof);  
+          }
        }//end else for frequency analysis
     }//end else in case nodalSrc is TRUE
     
@@ -640,6 +551,242 @@ namespace CoupledField
 
   } 
 
+
+ void AcouFlowNoise::ComputeRHSwithVortexSource(const Double atime)
+ {
+   ENTER_FCN( "AcouFlowNoise::ComputeRHSwithVortexSource" );
+
+   Matrix<Double> Src_Matrix;
+   Vector<Double> elemvec, nodalval;
+   UInt j, i;
+   UInt elsize = 0;
+   StdVector<Elem*> elemssd;  
+   StdVector<UInt> connecth;
+   // For changing connecth to PDE
+   StdVector<Integer> connect_PDE; 
+   BaseFE * ptEl; 
+    
+   for (i=0; i<couplSubDomId_.GetSize(); i++)
+     {
+       std::cerr << "Current time: "<<atime;
+       std::cerr <<std::endl;
+       ptgrid_->GetVolElems(elemssd,couplSubDomId_[i]);
+       Boolean GetAnalyPress=FALSE; //FLAG!!
+       if (GetAnalyPress==TRUE) //Getting Analytical solution
+         {
+           UInt eqnDof, node, dof;
+           Integer eqnNr;
+           StdVector<UInt> connect(1);
+           eqnDof = 1;
+           dof    = 1;
+
+           ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
+           for (UInt idx=0; idx<mapSD_allNodes_.GetSize() ; idx++)
+             {
+               Double val = mapSD_allNodes_[idx];
+               node = idx + 1;
+
+               Matrix<Double> ptCoordNodes;
+               connecth.Resize(1);
+               connecth[0] = node;
+               ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);         
+               
+               Double P_ak;
+               Vector<Double> dTijdi;
+               VortexAnalytical(P_ak, dTijdi, ptCoordNodes[0][0],ptCoordNodes[1][0] , atime, 1);
+               //std::cout<<"After getting P_ak in ComputeRHSwithVortexSource(), P_ak= "<<P_ak<<std::endl;
+               val=P_ak;
+               
+               //add to RHS
+               eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+               algsys_->SetNodeRHS(val, pdeId_, eqnNr, eqnDof);      
+             }  
+         }
+       else
+         { //Using Vortex Analytical with potential function
+           
+       for (j=0; j< elemssd.GetSize(); j++)
+         {
+           UInt ii;
+           elsize=(elemssd[j]->connect).GetSize();
+           elemvec.Resize(elsize);
+           nodalval.Resize(elsize);
+           connecth.Resize(elsize);
+           for (ii=0; ii<elsize; ii++)
+             connecth[ii]=(elemssd[j]->connect)[ii];
+           Matrix<Double> ptCoordNodes;
+           ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);   
+           UInt VortexFlag=4; // 1: Pak, 2: -dPdt, 3: dTijdi vector, 4: Only vel. vals
+
+           if (VortexFlag==3 || VortexFlag==4)
+             {
+               Src_Matrix.Resize(dim_,elsize);
+               for (UInt i=0;i<elsize;i++)
+                 for (UInt j=0;j<dim_;j++)
+                   Src_Matrix[j][i]=0.0;
+             }
+                  
+                  
+           for (ii=0; ii<elsize; ii++)
+             {
+               Double r_sqr=((ptCoordNodes[0][ii])*(ptCoordNodes[0][ii])+
+                             (ptCoordNodes[1][ii])*(ptCoordNodes[1][ii]));
+
+               //For square 100times100 domain                      
+               //                       if (r_sqr<=((1000./81.)*(1000./81.)))
+               //                         {
+               //                           nodalval[ii]=0;
+               //                         }
+                      
+               if (r_sqr<=((200./81.)*(200./81.)))
+                 {
+                   //  if (VortexFlag==2)
+                   //                             nodalval[ii]=0;
+                   //                           else if (VortexFlag==3)
+                   nodalval[ii]=0; 
+                   Src_Matrix[0][ii]=0;
+                   Src_Matrix[1][ii]=0;
+                 }
+               else
+                 {
+                   Double srcVal=0;
+                   Vector<Double> dTijdi;
+                   //std::cout << "In else before calling VortexAnalytical"<<std::endl;
+                   VortexAnalytical(srcVal, dTijdi, ptCoordNodes[0][ii],
+                                    ptCoordNodes[1][ii], atime, VortexFlag);
+
+                   //std::cout << "In else after calling VortexAnalytical, srcVal= "<<srcVal<<std::endl;
+                   //                           //For debugging the quadratic middle nodes
+                   //                           if ((j+1)==467)
+                   //                           if (connecth[ii]==1708)
+                   //                             {
+                   //                               std::cerr <<"  "<< srcVal;
+                   //                             }
+                   //                           if ((j+1)==464)
+                   //                           if (connecth[ii]==1356)
+                   //                             {
+                   //                               std::cerr <<"  "<< srcVal;
+                   //                             }                          
+                   //                           if ((j+1)==434)
+                   //                           if (connecth[ii]==1354)
+                   //                             {
+                   //                               std::cerr <<"  "<< srcVal;
+                   //                             }    
+                   //                           if ((j+1)==437)
+                   //                           if (connecth[ii]==1706)
+                   //                             {
+                   //                               std::cerr <<"  "<< srcVal;
+                   //                             }    
+
+                   if (VortexFlag==3 || VortexFlag==4)
+                     {
+                       for (UInt j=0;j<dim_;j++)
+                         {
+                           Src_Matrix[j][ii] = dTijdi[j];
+                           //std::cout<<"Src_Matrix["<<ii<<"]["<<j<<"]= "<<Src_Matrix[ii][j]<<std::endl;
+                         }
+                     }
+                   else
+                     nodalval[ii]=srcVal;
+                   //nodalval[ii]=1;
+                 }
+             }
+
+           if (VortexFlag==3 || VortexFlag==4) //Computing element vector using dTijdi from VortexAnalytical
+             {
+               ptEl=elemssd[j]->ptElem;
+               LinearFlowNoiseInt * linear_load = new LinearFlowNoiseInt(ptEl);
+               
+               //To test implementation of CalcElemVec_withVortexVel()
+//                Matrix<Double>  ptCoordtotest;
+//                Matrix<Double>  NodalVel;
+//                ptCoordtotest.Resize(2,4);
+//                NodalVel.Resize(2,4);
+//                ptCoordtotest[0][0] =  -1;
+//                ptCoordtotest[1][0] =  -1;
+//                ptCoordtotest[0][1] = 1;
+//                ptCoordtotest[1][1] =  -1;
+//                ptCoordtotest[0][2] = 1;
+//                ptCoordtotest[1][2] = 1;
+//                ptCoordtotest[0][3] = -1;
+//                ptCoordtotest[1][3] = 1;
+   
+//                NodalVel[0][0] = 10.0;
+//                NodalVel[0][1] = 8.5;
+//                NodalVel[0][2] = 9.0;
+//                NodalVel[0][3] = 8.0;
+//                NodalVel[1][0] = 0.0;
+//                NodalVel[1][1] = 1.0;
+//                NodalVel[1][2] = 2.0;
+//                NodalVel[1][3] = 1.5;
+      
+               if (VortexFlag==3)
+                 linear_load->CalcElemVec_withdTijdi(ptCoordNodes,Src_Matrix, elemvec);
+               else
+                 {
+                   //To test with test vels:
+                   //linear_load->CalcElemVec_withVortexVel(ptCoordtotest,NodalVel, elemvec);
+                   // Original
+                   linear_load->CalcElemVec_withVortexVel(ptCoordNodes,Src_Matrix, elemvec);
+                 }
+      
+               eqnData_->Node2EQN(connecth, connect_PDE);
+
+               //std::cout<<"Elem vector obtained using Src_Matrix from VortexAnalytical: "<<std::endl;
+               //std::cout<<elemvec<<std::endl;
+                  
+               algsys_->SetElementRHS(&elemvec[0], pdeId_, 
+                                      connect_PDE.GetPointer(), connect_PDE.GetSize());
+                  
+               delete linear_load;
+             }
+           else
+             {
+               // Here the RHS integration of the nodal forces takes place
+               Vector<Double>  Sf;
+               ptEl=elemssd[j]->ptElem;
+               const UInt nrIntPts= ptEl->GetNumIntPoints();
+               const Vector<Double> & intWeights = ptEl->GetIntWeights();
+               Vector<Double> valueAtIP;
+               valueAtIP.Resize(nrIntPts);
+                      
+               for (UInt actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
+                 {
+                   ptEl->GetShFncAtIp(Sf, actIntPt);
+                   valueAtIP[actIntPt-1]= nodalval*Sf;
+                 }
+                      
+               Double jacDet;
+               for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
+                        
+                 jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoordNodes);
+                 ptEl -> GetShFncAtIp(Sf, actIntPt);
+                        
+                 if (isaxi_) {
+                   Vector<Double> coordAtIP;
+                   coordAtIP = ptCoordNodes * Sf;
+                   elemvec += Sf * (coordAtIP[0] * valueAtIP[actIntPt-1]* intWeights[actIntPt-1]
+                                    * 2 * PI * jacDet);
+                 }
+                 else {
+                   elemvec += Sf * intWeights[actIntPt-1] 
+                     * valueAtIP[actIntPt-1]*jacDet;
+                 }
+               }
+               eqnData_->Node2EQN(connecth, connect_PDE);
+               algsys_->SetElementRHS(&elemvec[0], pdeId_, 
+                                      connect_PDE.GetPointer(), connect_PDE.GetSize());
+             }
+         }
+       //ALSO TO FINISH THE OUTPUT OF CONTROL DATA 
+       std::cerr <<std::endl;
+         }
+     }
+   
+
+}
+
+  
 
   void AcouFlowNoise::ReadFlowData(const Char * aname, UInt timestep,
                                    Matrix<Double> &flowdata_)
@@ -737,7 +884,7 @@ namespace CoupledField
         testflowf.close();*/
   }
 
-  void AcouFlowNoise::VortexAnalytical(Double &press, const Double x,
+  void AcouFlowNoise::VortexAnalytical(Double &srcVal, Vector<Double>& dTij_di, const Double x,
                                        const Double y, const Double t, 
                                        const UInt outType)
   {
@@ -750,7 +897,7 @@ namespace CoupledField
     Double      tPhys, XPhys, YPhys, arg;
     Double      p0Phys, rho0Phys, r_0Phys, GammaZirkPhys;
     Double      c0Phys, MaRot, iMaRot, qPhys, omegaPhys, akkPhys;
-    Double Equationgamma; // before it was EQN%gamma
+    Double      Equationgamma; // before it was EQN%gamma
      
     Double      U_inc;                         // Variablen, Stroemungs-
     Double      V_inc;                         // groessen aus Potential-
@@ -773,14 +920,14 @@ namespace CoupledField
     Double      r, theta;                      // Polarkoordinaten r, theta
     //std::complex <double>    z, b;                          // Kompl.Koordinate z, 
     // Wirbelbahn b
-    std::complex<double>    zq_bq;                         // z**2-b**2
+    //std::complex<double>    zq_bq;                         // z**2-b**2
     //std::complex<double>    Im;                            // i defined below
-    std::complex<double>    w;                             // Komplexe Potential-
+    //std::complex<double>    w;                             // Komplexe Potential-
     // funktion
-    std::complex<double>    w_z, w_t, w_zz, w_zt;          // und ihre Ableitungen
-    std::complex<double>    w_zzz, w_tt, w_ttt, w_ztt;
-    std::complex<double>    w_zzt;
-    std::complex<double>    H2_2;
+    //std::complex<double>    w_z, w_t, w_zz, w_zt;          // und ihre Ableitungen
+    //std::complex<double>    w_zzz, w_tt, w_ttt, w_ztt;
+    //std::complex<double>    w_zzt;
+    //std::complex<double>    H2_2;
     // dimensionsbehaftete Var. die noch nicht in common definiert sind
     Double     KappaPhys, T_umlaufPhys, lambdaPhys;                    
 
@@ -797,7 +944,8 @@ namespace CoupledField
     rho0Phys      = 1.;                        // Umgeb.dichte     [kg/m^3]
     r_0Phys       = 1.;                           // halb. Wirbelabst. [  m  ]
     GammaZirkPhys = 1.003;                          // Zirkulation       [m^2/s]
-    Equationgamma = 1.4;                        // Need to be defined here as well
+    //Equationgamma = 1.4;                        // Need to be defined here as well
+    Equationgamma = 1.003;                        // Need to be defined here as well
 
     params->Get("p0Phys", p0Phys, "vortexSrc");
     params->Get("rho0Phys", rho0Phys, "vortexSrc");
@@ -839,22 +987,22 @@ namespace CoupledField
     std::complex<Double> b( r_0Phys * cos(arg) ,           
               r_0Phys * sin(arg)  );        // Komplexe Bahn des Wirbelpaars
 
-    zq_bq = pow(z, 2) - pow(b, 2);
+    std::complex<double> zq_bq(pow(z, 2) - pow(b, 2));
     
     // Komplexe Potentialfunktion
                                   
-    w = GammaZirkPhys/(2.*PI*Im) * log(zq_bq);
+    std::complex<double> w(GammaZirkPhys/(2.*PI*Im) * log(zq_bq));
     
     // Ableitungen nach z, 1. Ordnung
                                   
-    w_z    = GammaZirkPhys*z/(PI*Im*zq_bq);
+    std::complex<double> w_z(GammaZirkPhys*z/(PI*Im*zq_bq));
     U_inc  =    real(w_z);                    
     V_inc  = - imag(w_z);  
     
 
     // Ableitungen nach z, 2. Ordnung
                                   
-    w_zz  = -GammaZirkPhys*(pow(z,2) + pow(b,2)) / (PI*Im*pow(zq_bq,2));
+    std::complex<double> w_zz(-GammaZirkPhys*(pow(z,2) + pow(b,2)) / (PI*Im*pow(zq_bq,2)));
     U_x   =   real(w_zz);
     V_x   = -imag(w_zz);
     U_y   =  V_x;
@@ -862,7 +1010,7 @@ namespace CoupledField
     
     // Ableitungen nach z, 3. Ordnung
                                   
-    w_zzz = -GammaZirkPhys*(-2.*pow(z,3) - 6.*z*pow(b,2))/(PI*Im*pow(zq_bq,3));
+    std::complex<double> w_zzz(-GammaZirkPhys*(-2.*pow(z,3) - 6.*z*pow(b,2))/(PI*Im*pow(zq_bq,3)));
     U_xx =  real( w_zzz);
     U_xy = -imag(w_zzz);
     
@@ -874,28 +1022,28 @@ namespace CoupledField
     
     // Ableitungen nach z, nach t, 2. Ordnung
                                   
-    w_zt  =  2.* omegaPhys* GammaZirkPhys* z* pow((b),2) / (PI*pow((zq_bq),2));
+    std::complex<double> w_zt(2.* omegaPhys* GammaZirkPhys* z* pow((b),2) / (PI*pow((zq_bq),2)));
     U_t  =  real( w_zt);
     V_t  = -imag(w_zt);
     
     // Ableitungen nach t, 1. und 2. und 3. Ordnung
                                   
-    w_t     = -omegaPhys*GammaZirkPhys * pow(b,2) / ( PI*zq_bq );
+    std::complex<double> w_t(-omegaPhys*GammaZirkPhys * pow(b,2) / ( PI*zq_bq ));
     Phi_t   = real(w_t);
     
-    w_tt    = -(2.*Im*pow(omegaPhys,2)*GammaZirkPhys/PI)*pow(b,2)*pow(z,2)/pow(zq_bq,2);
+    std::complex<double> w_tt(-(2.*Im*pow(omegaPhys,2)*GammaZirkPhys/PI)*pow(b,2)*pow(z,2)/pow(zq_bq,2));
     Phi_tt  = real(w_tt);
     
-    w_ttt   = (4*pow(omegaPhys,3)*GammaZirkPhys/PI)*pow(b,2)*pow(z,2)*(pow(z,2)+pow(b,2))/pow(zq_bq,3);
+    std::complex<double> w_ttt( (4*pow(omegaPhys,3)*GammaZirkPhys/PI)*pow(b,2)*pow(z,2)*(pow(z,2)+pow(b,2))/pow(zq_bq,3));
     Phi_ttt = real(w_ttt);
     
     // Ableitungen nach z, nach t, Gesamtordnung 3
                                   
-    w_ztt     = (4.*Im*pow(omegaPhys,2)*GammaZirkPhys/PI)*(pow(b,2)*pow(z,3) + z*pow(b,4))/pow(zq_bq,3);
+    std::complex<double> w_ztt( (4.*Im*pow(omegaPhys,2)*GammaZirkPhys/PI)*(pow(b,2)*pow(z,3) + z*pow(b,4))/pow(zq_bq,3));
     U_tt =  real( w_ztt);
     V_tt = -imag(w_ztt);
     
-    w_zzt     = -(2.*omegaPhys*GammaZirkPhys/PI)*(3.*(pow(b,2))*(pow(z,2)) + pow(b,4))/pow(zq_bq,3);
+    std::complex<double> w_zzt( -(2.*omegaPhys*GammaZirkPhys/PI)*(3.*(pow(b,2))*(pow(z,2)) + pow(b,4))/pow(zq_bq,3));
     U_xt =  real(w_zzt);
     U_yt =  real(w_zzt*Im);
     V_xt = -imag(w_zzt);
@@ -917,59 +1065,91 @@ namespace CoupledField
 
 
 
+    //Calculation of Lighthill's RHS term
+    //Case 1: 
+    //Using weak formulation of Lighthill's quadrupole term
+    //
+    //This is only a 2D implementation!!
 
+    //std::vector<Double> dTij_di;
 
-    
-
-
-
-
-    //-----------------Berechne den akkustischen Druck--------------------------
-
-    if (outType == 1) 
-      {              // Wenn outAkk gleich 1, dann soll der
-        // akkustische Druck ausgegeben werden
-        
-        // Akustischer Druck
-        if (r > 0.5)
-          { 
-            if (abs(x)<1e-8) 
-              {
-                if (y>0.0)
-                  {
-                    theta = PI/2.;
-                  }
-                else
-                  {
-                    theta = 3.*PI/2.;
-                  }
-              }
-            else
-              {
-                theta = atan(y / x);   // Polarkoordinaten r, theta
-              }
-            
-            // Hankel Funktion 2.Ordg. und 2. Art H2_2
-            // mit Bessel Funkt. 2.Ordg., 1.Art JJ2 und 2.Art YY2
-            
-            H2_2      = ( JJ2(akkPhys*r), -YY2(akkPhys*r) ) ;
-            
-            P_ak = std::real( (-Im * rho0Phys * (GammaZirkPhys*GammaZirkPhys*GammaZirkPhys
-                                                 *GammaZirkPhys)    * H2_2
-                          * exp(Im * 2. * (omegaPhys * tPhys-theta)))   
-                              /(64. * (PI*PI*PI) * (r_0Phys*r_0Phys*
-                                                    r_0Phys*r_0Phys) * (c0Phys*c0Phys))          );
-          }
-        else
-          {
-            P_ak = 0.;
-          }
-        press=P_ak;
-      }
-    else
+    switch( outType ) 
       {
-        P_ak = 0.;
-        press=-P_t;
+        //-----------------Berechne den akkustischen Druck--------------------------
+      case 1: 
+        {
+          // Wenn outAkk gleich 1, dann soll der
+          // akkustische Druck ausgegeben werden
+        
+              // Akustischer Druck
+              if (r > 0.5)
+                { 
+                  if (abs(x)<1e-8) 
+                    {
+                      if (y>0.0)
+                        {
+                          theta = PI/2.;
+                        }
+                      else
+                        {
+                          theta = 3.*PI/2.;
+                        }
+                    }
+                  else
+                    {
+                      theta = atan(y / x);   // Polarkoordinaten r, theta
+                    }
+            
+                  // Hankel Funktion 2.Ordg. und 2. Art H2_2
+                  // mit Bessel Funkt. 2.Ordg., 1.Art JJ2 und 2.Art YY2
+            
+                  std::complex<Double> H2_2( JJ2(akkPhys*r), -YY2(akkPhys*r) ) ;
+            
+                  P_ak = std::real( (-Im * rho0Phys * (GammaZirkPhys*GammaZirkPhys*GammaZirkPhys
+                                                       *GammaZirkPhys)    * H2_2
+                                     * exp(Im * 2. * (omegaPhys * tPhys-theta)))   
+                                    /(64. * (PI*PI*PI) * (r_0Phys*r_0Phys*
+                                                          r_0Phys*r_0Phys) * (c0Phys*c0Phys))          );
+                }
+              else
+                {
+                  P_ak = 0.;
+                }
+              srcVal=P_ak;
+          break;
+        }
+      case 3:
+        {
+          // Sending back the complete divergence of T
+          dTij_di.Resize(2);   
+          dTij_di[0] = 2.0 * U_inc * U_x + V_inc * U_y + U_inc * V_y; 
+          dTij_di[1] = 2.0 * V_inc * V_y + U_inc * V_x + V_inc * U_x; 
+          Double density=1.0;
+          //dTij_di*= density
+          break;
+        }
+      case 4:
+        {
+          // Sending back only the velocity components for evaluation of
+          // dTijdi in linearForm.cc
+          dTij_di.Resize(2);   
+          dTij_di[0] = U_inc; 
+          dTij_di[1] = V_inc; 
+          Double density=1.0;
+          //dTij_di*= density
+          break;
+        }   
+      case 2:
+        {
+          P_ak = 0.;
+          srcVal=-P_t;
+          //srcVal = 0.;
+          break;
+        }
+      default:
+        (*error) << "Need to give an outType value between 1 and 4 "
+                 << "Current outType value: " << outType;
+        Error( __FILE__,__LINE__ );
       }
     
 
