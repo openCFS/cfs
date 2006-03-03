@@ -29,6 +29,7 @@ namespace CoupledField {
       isAlwaysStatic_(FALSE),
       isaxi_(FALSE),
       isComplex_(FALSE),
+      fracDamping_(FALSE),
       sol_(NULL),     
       isIncrFormulation_(FALSE),
       ComputeRHSforHarm_(FALSE),
@@ -398,7 +399,7 @@ namespace CoupledField {
       algsys_->CreatePrecond();
       
     } else {
-      // crate eigenvalue solver
+      // create eigenvalue solver
       algsys_->CreateEigenSolver();
     }
         

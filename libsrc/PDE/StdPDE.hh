@@ -177,6 +177,10 @@ namespace CoupledField {
 	virtual UInt GetFracMemory() {
 	  return fracMemory_;
 	}
+    virtual Boolean GetFracDamping() {
+      return fracDamping_;
+    }
+
 	virtual Boolean GetIsaxi() {
 	  return isaxi_;
 	}
@@ -563,8 +567,8 @@ namespace CoupledField {
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;
 
-    //! number of old time steps to be saved (for fractional damping)
-    UInt fracMemory_;
+    Boolean fracDamping_; //!< TRUE: fractional damping model
+    UInt fracMemory_;     //!< number of old time steps to be saved (for fractional damping)
     
     //! type of interpolation (for fractional damping)
     InterpolType inType_;

@@ -193,23 +193,28 @@ namespace CoupledField {
       return;
 
     // loop over all output coupling quantities
-    for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
-      quantity = ptCoupling_->GetOutputQuantity(i);
-      ptCoupling_->GetOutputValues(i, temp_values);
+//     for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
+      
+//       quantity = ptCoupling_->GetOutputQuantity(i);
+//       ptCoupling_->GetOutputValues(i, temp_values);
 
-      // hard coded cast, since coupling is only possible with
-      // real valued entries
-      Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
+//       // hard coded cast, since coupling is only possible with
+//       // real valued entries
+//       Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
 
-      switch(ptCoupling_->GetOutputType(i)) {
+//       switch(ptCoupling_->GetOutputType(i)) {
+        
+//       case NODE:
 
-      case NODE:
-
-        break;
-      case ELEM:
-        Error("No Element coupling output", __FILE__,__LINE__);
-      }
-    }
+//         ptCoupling_->GetOutputNodes(i, couplingNodes);
+//         ptCoupling_->GetOutputElements(i, couplingElems);
+//         dof = ptCoupling_->GetOutputDof(i);    
+  
+//         break;
+//       case ELEM:
+//         Error("No Element coupling output", __FILE__,__LINE__);
+//       }
+//     }
 
   }
 
