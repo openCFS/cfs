@@ -1192,28 +1192,28 @@ namespace CoupledField {
 
     // In case of a harmonic analysis or parameter identification
     // we assume complex matrix entries by default
-    std::string analysis;
-    cfs->Get( "type", analysis, "analysis" );
-    if ( analysis == "harmonic"
+    if ( analysisType == HARMONIC
          && eType != OLAS::COMPLEX ) {
       eType = OLAS::COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
                     "for HARMONIC analysis\n" );
     }
 
+    std::string analysis;
+    cfs->Get( "type", analysis, "analysis" );
     if ( analysis == "paramIdent" && eType != OLAS::COMPLEX ) {
       eType = OLAS::COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
                     "for parameter identification\n" );
     }
 
-    if ( analysis == "multiHarmonic" && eType != OLAS::COMPLEX ) {
+    if ( analysisType == MULTIHARMONIC && eType != OLAS::COMPLEX ) {
       eType = OLAS::COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
                     "for parameter identification\n" );
     }
 
-    if ( analysis == "multiSequence" ) {
+    if ( analysisType == MULTIHARMONIC ) {
       if (( analysisType == HARMONIC
             ||analysisType == MULTIHARMONIC) &&
           eType != OLAS::COMPLEX ) {
