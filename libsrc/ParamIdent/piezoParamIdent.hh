@@ -76,6 +76,8 @@ namespace CoupledField
     std::ofstream * rhosOut;
     //! output file, writes synthetically created impedance curve
     std::ofstream * synMess;
+    //! output file, writes synthetically created impedance curve
+    std::ofstream * nrOfFreqs;
 
     //! Starts parameter identification
     void SolveProblem();
