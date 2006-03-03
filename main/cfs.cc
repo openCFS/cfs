@@ -353,6 +353,10 @@ int main( int argc, const char **argv ) {
       ptdriver = new HarmonicDriver( domain );
     break;
 
+  case TRANSIENTHARMONIC:
+    ptdriver = new TransientHarmonicDriver( domain );
+    break;
+
   case EIGENFREQUENCY:
     ptdriver = new EigenFrequencyDriver( domain );
     break;
