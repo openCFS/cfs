@@ -1,5 +1,5 @@
-#ifndef FILE_ACOUENERGYOP
-#define FILE_ACOUENERGYOP
+#ifndef FILE_ACOUPOWERDENSITYOP
+#define FILE_ACOUPOWERDENSITYOP
 
 #include "Forms/baseoperator.hh"
 
@@ -17,6 +17,7 @@ namespace CoupledField {
   //! This operator class calculates the acoustic power density per
   //! element for a acoustic PDE formulation in velocity potential
 
+  template<class TYPE>
   class AcouPowerDensityOp : public BaseOperator
   {
 
@@ -45,28 +46,35 @@ namespace CoupledField {
       \param density (input) multiplicative factor
     */
     virtual void CalcElemPD(Vector<Double> & elemPD,
-                                const Elem * ptElement,
-                                const Double density);
+                            const Elem * ptElement,
+                            const Double density);
     
 
-    //! Calculate acoustic power density for elements in subdomains
-    /*!
-      \param elemPD (output) Vector containing
-      \param SD (input) Identifier of the subdomain
-      \param density (input) multiplicative factor
-    */
-    virtual void CalcSubdomPD(Vector<Double> & elemPD,
-                              const StdVector<RegionIdType> & SD,
-                              const Double density);
+//     //! Calculate acoustic power density for elements in subdomains
+//     /*!
+//       \param elemPD (output) Vector containing
+//       \param SD (input) Identifier of the subdomain
+//       \param density (input) multiplicative factor
+//     */
+//     virtual void CalcSubdomPD(Vector<Double> & elemPD,
+//                               const StdVector<RegionIdType> & SD,
+//                               const Double density);
                                                        
 
   protected:
   
-    //NodeStoreSol<Double> * sol_;
-    //NodeStoreSol<Double> * solDeriv1_;
-    //SolutionType solType_; //!< Soltution type
-
     Boolean isaxi_;
+    Double dimensions_;
+
+  private:
+
+    //! Calculate first product for transient(Double) and harmonic(Complex) case
+    Double ComputeN1( Vector<TYPE> solGrAtIp,
+                      Vector<TYPE> solD1GrAtIp );
+
+    //! Calculate second product for transient(Double) and harmonic(Complex) case
+    Vector<Double> ComputeN2( Vector<TYPE> solGrAtIp,
+                              TYPE solD1AtIp );
   };
 
 
