@@ -155,13 +155,14 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->PreStepTrans(updatesysmat);
       ptPDE_->GetSolveStep()->SolveStepTrans(updatesysmat);
       ptPDE_->GetSolveStep()->PostStepTrans();
-   
+
+      ptPDE_->PostProcess();   
       //write history data
       ptPDE_->WriteHistoryInFile(nstep, steptime, stepOffset_, timeOffset_);
     
       // writing results in output-file
+
       if (nstep == stepsave && (nstep <= isaveend_)) { 
-        ptPDE_->PostProcess();
         ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
         stepsave+=isaveincr_;
       }

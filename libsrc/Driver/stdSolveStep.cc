@@ -357,11 +357,19 @@ namespace CoupledField {
 
     ENTER_FCN( "StdSolveStep::PostStepTrans" );
 
-    Vector<Double> & solHelp = 
-      dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+//     std::string type_str;
+//     Enum2String( PDE_.GetSolutionVector()->GetEntryType(), type_str);
+//     std::cout << " In StdSolveStep::PostStepTrans the solution vector of"
+//               << pdename_ << "computation is of type: "
+//               << type_str << std::endl << std::endl;
 
-    // Following method is essential for fractional damping model
-    PDE_.TS_alg_->AdvanceTimestep(solHelp);
+    if ( PDE_.GetFracDamping() ) {
+      Vector<Double> & solHelp = 
+        dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
+
+      // Following method is essential for fractional damping model
+      PDE_.TS_alg_->AdvanceTimestep(solHelp);
+    }
   
   }
 

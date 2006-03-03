@@ -15,6 +15,7 @@
 #include <Driver/multiHarmonicDriver.hh>
 #include <ParamIdent/piezoParamIdent.hh>
 #include <Driver/transient4SliceDriver.hh>
+#include <Driver/transientHarmonicDriver.hh>
 
 //#include <Driver/transientAdaptSpaceDriver.hh>
 
