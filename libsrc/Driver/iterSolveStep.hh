@@ -68,9 +68,25 @@ namespace CoupledField
     //! \param reset TRUE: perfrom new assembly, etc
     virtual void PostStepHarmonic( const Boolean reset ) {;};
 
+    //----------------------- TRANSIENTHARMONIC------------------------------
+
+    //! routine for initilizations befor execution the SolveStep-method
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void PreStepTransHarmonic( const Boolean reset ) {;};
+
+
+    //! base method for solving one transient step 
+    //! \param reset TRUE: perfrom new assembly, etc
+    virtual void SolveStepTransHarmonic( const Boolean updatesysmat );
+    
+    //! routine for actions after the SolveStep-method
+    virtual void PostStepTransHarmonic() {;};
+
+
+    //----------------------- SET/GET METHODS--------------------------------
+    
     //! Set actual time
     virtual void SetActTime( const Double actTime );
-    
 
     //! Set actual frequency
     virtual void SetActFreq( const Double actFreq );
@@ -81,6 +97,11 @@ namespace CoupledField
     //! Set the current time step value
     void SetTimeStep( Double dt );
 
+    //! Set number of time steps
+    virtual void SetNumTimeSteps (UInt numTimeStep);
+    
+    //! Set restart time / frequency step
+    virtual void SetStartStep (const UInt startStep);
 
   protected:
 
@@ -93,6 +114,9 @@ namespace CoupledField
 
     //! reference to coupling
     StdVector<PDECoupling*> & rCouplings_;
+
+    //! analysis type of all iteratively coupled PDEs is retrieved
+    AnalysisType actAnalysisType_;
 
   };
 

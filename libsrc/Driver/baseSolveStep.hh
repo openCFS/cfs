@@ -35,15 +35,12 @@ namespace CoupledField
     virtual void SolveStepStatic( const Boolean reset) = 0;
 
     //! routine for acttions after the SolveStep-method
-    /*!
-       \param asteptime current time
-    */  
     virtual void PostStepStatic()  = 0;
 
 
 
     //----------------------- TRANSIENT---------------------------------------
-    //! routine for initilizations befor execution the SolveStep-method
+    //! routine for initilizations before execution of the SolveStep-method
     /*!
        \param reset TRUE: perfrom new assembly, etc
     */  
@@ -63,14 +60,10 @@ namespace CoupledField
     {Error("SolveStepTrans4Slice not implemented!",__FILE__,__LINE__);};
 
     //! routine for actions after the SolveStep-method
-    /*!
-      \param kstep time step counter
-      \param asteptime current time
-    */  
     virtual void PostStepTrans() = 0;
     
     //----------------------- HARMONIC---------------------------------------
-    //! routine for initilizations befor execution the SolveStep-method
+    //! routine for initilizations before execution of the SolveStep-method
     /*!
       \param reset TRUE: perfrom new assembly, etc
     */   
@@ -84,14 +77,11 @@ namespace CoupledField
 
     //!  routine for actions after the SolveStep-method
     /*!
-      \param freqStep frequency step counter
-      \param frequency current frequency
       \param reset TRUE: perfrom new assembly, etc
     */
     virtual void PostStepHarmonic(const Boolean reset) = 0;
 
     //----------------------- HARMONIC ---------------------------------------
-
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
     virtual UInt CalcEigenFrequencies( Vector<Double> & frequencies, 
                                        UInt numFreq, Double shift, Boolean shiftMode ) {
@@ -104,6 +94,25 @@ namespace CoupledField
     virtual void CalcEigenMode( UInt numMode ) {
       Error( "Not implemented her!", __FILE__, __LINE__ );
     }
+
+    //----------------------- TRANSIENTHARMONIC------------------------------
+    //! routine for initilizations before execution of the SolveStep-method
+    /*!
+       \param reset TRUE: perfrom new assembly, etc
+    */  
+    virtual void PreStepTransHarmonic( const Boolean reset)
+    {Error("PreStepTransHarmonic not implemented!",__FILE__,__LINE__);};
+
+    //! base method for solving one transient-harmonic coupled step 
+    /*!
+       \param reset TRUE: perfrom new assembly, etc
+    */
+    virtual void SolveStepTransHarmonic(const Boolean reset)
+    {Error("SolveStepTransHarmonic not implemented!",__FILE__,__LINE__);};
+
+    //! routine for actions after the SolveStep-method
+    virtual void PostStepTransHarmonic()
+    {Error("PostStepTransHarmonic not implemented!",__FILE__,__LINE__);};
 
 
     //----------------------- SPECIAL FUNCTIONS ------------------------------

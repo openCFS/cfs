@@ -19,17 +19,16 @@ namespace CoupledField
 
   }
 
-  IterSolveStep::~IterSolveStep() {
-    
+  IterSolveStep::~IterSolveStep()
+  {
     ENTER_FCN( "IterSolveStep::~IterSolveStep" );
-
   }
 
 
   //----------------------- STATIC--------------------------------------------
 
-  void IterSolveStep::SolveStepStatic( const Boolean updatesysmat ) {
-
+  void IterSolveStep::SolveStepStatic( const Boolean updatesysmat )
+  {
     ENTER_FCN ( "IterSolveStep::SolveStepStatic" );
   
     CFSVector *val, *oldVal;
@@ -223,51 +222,217 @@ namespace CoupledField
 #endif
     
   } 
+
+  //----------------------- TRANSIENTHARMONIC---------------------------------
+  void IterSolveStep::SolveStepTransHarmonic( const Boolean updatesysmat )
+  {
+    ENTER_FCN( "IterSolveStep::SolveStepTransHarmonic" );
+
+
+    // In the beginning of each time step the coupling data has to be reseted
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      
+      rPDE_.PDEs_[i]->ResetCoupling();
+
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+      // definition of startStep_ in constuctor
+      if ( actAnalysisType_ == TRANSIENT )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep_);
+    }
+
+
+    Boolean normsReached = FALSE;
+    std::string quantityConv;
+
+    UInt iter = 0;   
+    while (iter < rPDE_.maxiter_ &&  (! normsReached)) {
+      
+      if (rPDE_.nonLinLogging_) {
+        
+        Info->PrintF(rPDE_.pdename_,"\n"); 
+        Info->PrintF(rPDE_.pdename_,
+                     " COUPLED ITERATION %i =================================\n", 
+                     iter+1);
+      }
+
+      UInt counter = 0;
+      normsReached = TRUE;
+
+      for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+
+        actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+        
+        if (rPDE_.nonLinLogging_)
+          Info->PrintF(rPDE_.pdename_, " Processing PDE %s\n", 
+                       (rPDE_.PDEs_[i]->GetName()).c_str());
+
+        // Only solve current PDE, if the corresponding
+        // flag in 'solvePDE_' is set to TRUE
+        if (rPDE_.solvePDE_[i] == TRUE) {
+
+          std::string mypdename;
+          mypdename = rPDE_.PDEs_[i]->GetName();
+
+          if ( actAnalysisType_ == TRANSIENT ) {
+
+            rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
+            rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+            rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans( updatesysmat );
+            rPDE_.PDEs_[i]->CalcInputCoupling();
+            rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans( updatesysmat );
+            rPDE_.PDEs_[i]->CalcOutputCoupling();
+          }
+          else if ( actAnalysisType_ == HARMONIC ) {
+
+            rPDE_.PDEs_[i]->GetSolveStep()->SetActFreq( actFreq_ );
+            rPDE_.PDEs_[i]->GetSolveStep()->SetActStep( 1 );
+            rPDE_.PDEs_[i]->GetSolveStep()->PreStepHarmonic( TRUE );
+            rPDE_.PDEs_[i]->CalcInputCoupling();
+            rPDE_.PDEs_[i]->GetSolveStep()->SolveStepHarmonic( TRUE );
+            rPDE_.PDEs_[i]->CalcOutputCoupling();
+          }
+
+              
+          // Calculate Norms
+          for (UInt k=0; k<rCouplings_[i]->GetNumOutputCouplings(); k++) {
+            
+            CFSVector *val, *oldVal;
+            rCouplings_[i]->GetOutputValues(k, val);
+            rCouplings_[i]->GetOutputOldValues(k, oldVal);
+            rPDE_.norms_[counter] = 
+              CalcNorm(rCouplings_[i]->GetOutputNormType(k), *val, *oldVal);
+            
+            if (rPDE_.nonLinLogging_) {
+              
+              Enum2String(rCouplings_[i]->GetOutputQuantity(k), quantityConv);
+              Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
+                           (rCouplings_[i]->GetPDE()->GetName()).c_str(),
+                           quantityConv.c_str(), rPDE_.norms_[counter]);
+            }
+            if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
+              normsReached = FALSE;
+                  
+            dynamic_cast<Vector<Double>&>(*oldVal) = 
+              dynamic_cast<Vector<Double>&>(*val);
+                  //*oldVal = *val;
+          }
+          counter++;              
+        }
+      } // end of for-loop
+
+      iter++;
+      if (rPDE_.nonLinLogging_)
+        Info->PrintF(rPDE_.pdename_, "\n"); 
+
+    } // end of while-loop
+
+    // now we are converged and can compute any postprocessing-quantities
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+      if ( actAnalysisType_ == TRANSIENT ) {
+        rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
+      }
+      else if ( actAnalysisType_ == HARMONIC ) {
+        rPDE_.PDEs_[i]->GetSolveStep()->PostStepHarmonic( TRUE );
+      }
+    }
+    
+  } 
+
+
   
   //----------------------- HARMONIC---------------------------------------
-  void IterSolveStep::SolveStepHarmonic( const Boolean reset ) {
-
+  void IterSolveStep::SolveStepHarmonic( const Boolean reset )
+  {
     ENTER_FCN( "IterSolveStep::SolveStepHarmonic" );
-
+    
     Error( "Harmonic iterative coupling is not yet implemented", 
            __FILE__, __LINE__);
   }
 
 
-  void IterSolveStep::SetActTime( const Double actTime ) {
-    ENTER_FCN( "IterSolveStep::SetActTime() ");
+  void IterSolveStep::SetActTime( const Double actTime )
+  {
+    ENTER_FCN( "IterSolveStep::SetActTime");
+
     actTime_ = actTime;
 
-    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
-      rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime);
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == TRANSIENT )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime);
+    }
   }
 
-  void IterSolveStep::SetActFreq( const Double actFreq ) {
-    ENTER_FCN( "IterSolveStep::SetActFreq() ");
+  void IterSolveStep::SetActFreq( const Double actFreq )
+  {
+    ENTER_FCN( "IterSolveStep::SetActFreq");
 
     actFreq_ = actFreq;
     
-    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
-      rPDE_.PDEs_[i]->GetSolveStep()->SetActFreq(actFreq);
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == HARMONIC )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActFreq(actFreq);
+    }
   }
 
-  void IterSolveStep::SetActStep( const UInt actStep ) {
-    ENTER_FCN( "IterSolveStep::SetActStep() ");
+  void IterSolveStep::SetActStep( const UInt actStep )
+  {
+    ENTER_FCN( "IterSolveStep::SetActStep");
     
     actStep_ = actStep;
 
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
-      rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep);
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == TRANSIENT )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep);
+      // Dirty Hack!!
+      else if ( actAnalysisType_ == HARMONIC )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(1);
     }
   }
 
 
-  void IterSolveStep::SetTimeStep( Double dt) {
-    ENTER_FCN( "->GetSolveStep() ");
+  void IterSolveStep::SetTimeStep( Double dt)
+  {
+    ENTER_FCN( "IterSolveStep::SetTimeStep");
 
-    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
-      rPDE_.PDEs_[i]->GetSolveStep()->SetTimeStep(dt);
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == TRANSIENT )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetTimeStep(dt);
+    }
   }
+
+  void IterSolveStep::SetNumTimeSteps( UInt numTimeStep)
+  {
+    ENTER_FCN( "IterSolveStep::SetNumTimeSteps");
+
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == TRANSIENT )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetNumTimeSteps(numTimeStep);
+    }
+  }
+
+  void IterSolveStep::SetStartStep( const UInt startStep )
+  {
+    ENTER_FCN( "IterSolveStep::SetStartStep");
+    
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == TRANSIENT )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep);
+    }
+  }
+
 
   Double IterSolveStep::CalcNorm(NormType normtype, CFSVector & val,
                                  CFSVector & oldval)
@@ -278,18 +443,25 @@ namespace CoupledField
     // will be changed as soon as dynamic type information
     // is available
 
-    Vector<Double> delta;
+    CFSVector * delta = NULL;
  
     Double norm, valNorm2;
   
+    // Distinguish complex and real case
+    if ( val.GetEntryType() == EntryType::COMPLEX ) {
 
-    Vector<Double> & val_vec =\
-      dynamic_cast<Vector<Double>& >(val);
+      delta = new Vector<Complex>;
+    } else {
+      delta = new Vector<Double>;
+    }
+    delta->Resize( val.GetSize() );
+    
+    // Calculate difference
+    delta->Add(1.0, val, -1.0, oldval );
 
-    Vector<Double> & oldval_vec =\
-      dynamic_cast<Vector<Double>& >(oldval);
-  
-    delta = val_vec - oldval_vec;
+//    Vector<Double> & val_vec = dynamic_cast<Vector<Double>& >(val);
+//    Vector<Double> & oldval_vec = dynamic_cast<Vector<Double>& >(oldval);
+//    delta = val_vec - oldval_vec;
 
     switch (normtype)
       {
@@ -298,18 +470,21 @@ namespace CoupledField
         break;
       
       case L2ABS:
-        norm = delta.NormL2();
+        norm = delta->NormL2();
         break;
 
       case L2REL:
-        valNorm2 =  val_vec.NormL2();
+        valNorm2 =  val.NormL2();
         if (valNorm2 > 0)
-          norm = delta.NormL2() / valNorm2;
+          norm = delta->NormL2() / valNorm2;
         else
-          norm = delta.NormL2();
+          norm = delta->NormL2();
 
         break;
       }
+
+    // Delete delta-vector
+    delete delta;
 
     return norm;
   }
