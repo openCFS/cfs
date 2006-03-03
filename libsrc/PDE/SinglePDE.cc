@@ -259,19 +259,24 @@ namespace CoupledField {
 
     else if ( analysisHelp == TRANSIENTHARMONIC ) {
 
-      keyVec = "transientHarmonic", "analysis", "type";
+      keyVec = "transientHarmonic", "analysisPart", "type";
       attrVec = "", "pdeName";
       valVec = "", pdename_;
 
       params->Get(keyVec, attrVec, valVec, analysis);
-
       String2Enum(analysis, analysistype_);
 
       if ( analysistype_ == TRANSIENT ) {
+        Info->PrintF( pdename_ , "Transient Assembling of %sPDE \n", 
+                      pdename_.c_str() );
+
         isComplex_ = FALSE;
         assemble_ = new TransientAssemble(algsys_, ptgrid_);
       }
       else if ( analysistype_ == HARMONIC ) {
+        Info->PrintF( pdename_ , "Harmonic Assembling of %sPDE \n",
+                      pdename_.c_str());
+
         isComplex_ = TRUE;
         assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
       }

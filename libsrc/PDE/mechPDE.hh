@@ -184,7 +184,7 @@ namespace CoupledField
     UInt stressDim_;
     
     //! Flag indicating the use of fractional damping
-    Boolean fracDamping_;
+    //Boolean fracDamping_;
 
     //!
     StdVector<RegionIdType> preStressDomain_;

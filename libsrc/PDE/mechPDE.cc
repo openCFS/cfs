@@ -26,7 +26,6 @@ namespace CoupledField
 
   MechPDE::MechPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut)
     :SinglePDE(aptgrid, aptOut, aptTimeFunc), 
-     fracDamping_(FALSE),
      preStressVal_(0.0),
      lambdaMat(NULL),
      mueMat(NULL)
@@ -36,7 +35,7 @@ namespace CoupledField
 
     pdename_          = "mechanic";
     pdematerialclass_ = "piezo";
-
+    fracDamping_ = FALSE;
 
     // ****************************
     // DETERMINE GEOMETRY

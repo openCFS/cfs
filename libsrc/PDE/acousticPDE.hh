@@ -104,12 +104,12 @@ namespace CoupledField {
 
     //! calculate the vector of coupling surface nodes to the nrbcPDE  
     void CalcNRBCCouplingRHS( StdVector<Elem*> * couplingElems, 
-                       StdVector<UInt> & couplingNodes,
-                       Vector<Double>& elemCouplingSols,
-                            UInt couplingdof );
-
-
+                              StdVector<UInt> & couplingNodes,
+                              Vector<Double>& elemCouplingSols,
+                              UInt couplingdof );
+    
     //! calculate the heat source term for heatConduction PDE
+    template <class TYPE>
     void CalcHeatCouplingRHS( Vector<Double> & energy, 
                               StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
                               UInt actCoupling, UInt numCouplingNodes );
@@ -144,7 +144,7 @@ namespace CoupledField {
 
     Boolean absorbingBCs_; //!< switch for absorbing BCs     
     
-    Boolean fracDamping_; //!< switch indicating use of fractional damping
+    //Boolean fracDamping_; //!< switch indicating use of fractional damping
     
     //! switch for special bcs in combination with slicing technique
     Boolean m_bWriteSpecialBCs;

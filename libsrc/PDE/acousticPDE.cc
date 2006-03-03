@@ -255,7 +255,7 @@ namespace CoupledField {
 
     if ( absBCs_.GetSize() ) {
       absorbingBCs_ = TRUE;
-      Info->PrintF( pdename_, " Apply Absorbing Boundary Conditions\n" );
+      Info->PrintF( pdename_, "Apply Absorbing Boundary Conditions\n" );
     }
  
     // **************************************************
@@ -608,16 +608,16 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       neumannBC->SetVoluInfo( subdoms_, materialData_ );
 
       if (analysistype_ == TRANSIENT ) {
-      assemble_->AddRhsSrcSurfIntegrator( neumannBC,
-                                          IdVec[actSD],
-                                          fncnames_ni_[actSD],
-                                          nonLin_ );
+        assemble_->AddRhsSrcSurfIntegrator( neumannBC,
+                                            IdVec[actSD],
+                                            fncnames_ni_[actSD],
+                                            nonLin_ );
       }
       else if (analysistype_ == HARMONIC ) {
-	assemble_->AddRhsSrcSurfIntegrator( neumannBC,
-					    IdVec[actSD],
-					    bcs_ni_phase_[actSD],
-					    nonLin_ );
+        assemble_->AddRhsSrcSurfIntegrator( neumannBC,
+                                            IdVec[actSD],
+                                            bcs_ni_phase_[actSD],
+                                            nonLin_ );
       }
     }
 
@@ -717,24 +717,31 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     
     for (UInt i = 0; i < numCouplings; i++) {
 
-      // Intialize the memory of the coupling values
-      ptCoupling_->CreateCouplingVector(i,isComplex_);
-
       if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE) {
+        // Intialize the memory of the coupling values
+        ptCoupling_->CreateCouplingVector(i,isComplex_);
+
         // now since we need a incremental formulation, 
         //  initialize some necessary vectors
         isIncrFormulation_ = TRUE;
       }
 
       else if (ptCoupling_->GetOutputQuantity(i) == ACOU_POT_NRBC)    {
+        // Intialize the memory of the coupling values
         ptCoupling_->CreateCouplingVector(i,isComplex_);
         
-         // now since we need a incremental formulation, 
-         //  initialize some necessary vectors
-         isIncrFormulation_ = TRUE;
+        // now since we need a incremental formulation, 
+        //  initialize some necessary vectors
+        isIncrFormulation_ = TRUE;
       }
 
       else if (ptCoupling_->GetOutputQuantity(i) == ACOU_POWERDENSITY) {
+        // Intialize the memory of the coupling values
+        // DIRTY HACK ALARM!
+        // =================
+        // In case of transient-transient coupling coupling vector is Double.
+        // In case of harmonic-transient coupling we also want a Double vector!
+        ptCoupling_->CreateCouplingVector(i,FALSE);
 
         //get the element-node to coupling node matching
         StdVector<std::string> couplRegions;
@@ -817,31 +824,37 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
       // hard coded cast, since coupling is only possible with
       // real valued entries
+
       Vector<Double> * values = dynamic_cast<Vector<Double>*>(temp_values);
 
       switch(ptCoupling_->GetOutputType(i)) {
+        
       case NODE:
-        
         ptCoupling_->GetOutputNodes(i, couplingNodes);
-        
         if (quantity == ACOU_FORCE) {
-
+          
           ptCoupling_->GetOutputElements(i, couplingElems);
           dof = ptCoupling_->GetOutputDof(i);
           CalcMechCouplingRHS(couplingElems, *couplingNodes, *values, dof);
         }
         else if (quantity == ACOU_POWERDENSITY) {
-        
-          CalcHeatCouplingRHS(*values, elemNodeToCouplingNode_[regionCount],
-                              i, couplingNodes->GetSize());
+          if ( isComplex_ == FALSE ) {
+            CalcHeatCouplingRHS<Double>( *values, 
+                                         elemNodeToCouplingNode_[regionCount],
+                                         i, couplingNodes->GetSize() );
+          } 
+          else {
+            CalcHeatCouplingRHS<Complex>(*values, 
+                                         elemNodeToCouplingNode_[regionCount],
+                                         i, couplingNodes->GetSize() );
+          }        
           regionCount++;
         }
         else if (quantity == ACOU_POT_NRBC) {
           ptCoupling_->GetOutputElements(i, couplingElems);
-          ptCoupling_->GetOutputNodes(i, couplingNodes);
           dof = ptCoupling_->GetOutputDof(i);
           
-          ///Here this call gives the values to phi0 in nrbcPDE
+          // Here this call gives the values to phi0 in nrbcPDE
           CalcNRBCCouplingRHS(couplingElems, *couplingNodes,
                               *values, dof);                              
         }
@@ -1003,94 +1016,97 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       
       // Density set to 1 since for this mass integrator no fac is needed
       density = 1.0;
-      ///////////////////////!!!!!!!!!!!!!!!USE PTELEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      
+      // !!!!!!!!!!!!!!!USE PTELEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       // FIRST WE COMPUTE THE "Qmat_x_sol" RHS term
-    // Standard "mass" matrix shape so using default constructor
-        coeff_Qstiff=1.0;
-        nrbcMatType=3;
-        NrbcInt * bilinear_Qstiff  = 
-          new NrbcInt(ptElem, coeff_Qstiff, nrbcMatType, isaxi_);
+      // Standard "mass" matrix shape so using default constructor
+      coeff_Qstiff=1.0;
+      nrbcMatType=3;
+      NrbcInt * bilinear_Qstiff  = 
+        new NrbcInt(ptElem, coeff_Qstiff, nrbcMatType, isaxi_);
+      
+      // Now we get the Q matrix with tangential derivatives 
+      bilinear_Qstiff->CalcElementMatrix(ptCoord, elemMat);
+      
+      //std::cout<<"%%%%%%----ACOUSTIC-PDE COUPLING OUTPUT----%%%%%"<<std::endl;
+      // std::cout<<"Qmatrix= "<<std::endl;
+      // std::cout<<elemMat<<std::endl;
+      
+      delete  bilinear_Qstiff;
+      GetSolVecOfElement(sol, connecth);
+      //          for(UInt k=0; k<sol.GetSize(); k++)
+      //           if (abs(sol[k])<=5e-16)
+      //             sol[k]=0;
         
-        // Now we get the Q matrix with tangential derivatives 
-        bilinear_Qstiff->CalcElementMatrix(ptCoord, elemMat);
+      // std::cout<<"AcouSolution= "<<std::endl;
+      // std::cout<<sol<<std::endl;
+      Qmat_x_sol = elemMat * sol;
+      
+      // std::cout<<"Qmat_x_sol= "<<std::endl;
+      // std::cout<<Qmat_x_sol<<std::endl;
+      //  Q_x_sol has to be added on RHS of nrbcPDE1 with negative sign
+      
+      Qmat_x_sol *= - 1.0;
+      //END OF "Qmat_x_sol" Computation   
+      
+      //NOW WE COMPUTE "Pmat_x_Deriv2Sol" RHS term 
+      coeff_Pmass=1.0;
+      nrbcMatType=2;
+      NrbcInt * bilinear_Pmass  = 
+        new NrbcInt(ptElem, coeff_Pmass, nrbcMatType, isaxi_);
+      
+      bilinear_Pmass->CalcElementMatrix(ptCoord, elemMat);
         
-        //std::cout<<"%%%%%%----ACOUSTIC-PDE COUPLING OUTPUT----%%%%%"<<std::endl;
-        // std::cout<<"Qmatrix= "<<std::endl;
-        // std::cout<<elemMat<<std::endl;
-        
-        delete  bilinear_Qstiff;
-        GetSolVecOfElement(sol, connecth);
-//          for(UInt k=0; k<sol.GetSize(); k++)
-//           if (abs(sol[k])<=5e-16)
-//             sol[k]=0;
-        
-         // std::cout<<"AcouSolution= "<<std::endl;
-         // std::cout<<sol<<std::endl;
-        Qmat_x_sol = elemMat * sol;
-        
-        // std::cout<<"Qmat_x_sol= "<<std::endl;
-        // std::cout<<Qmat_x_sol<<std::endl;
-        //  Q_x_sol has to be added on RHS of nrbcPDE1 with negative sign
-        
-        Qmat_x_sol *= - 1.0;
-        //END OF "Qmat_x_sol" Computation   
-        
-        //NOW WE COMPUTE "Pmat_x_Deriv2Sol" RHS term 
-        coeff_Pmass=1.0;
-        nrbcMatType=2;
-        NrbcInt * bilinear_Pmass  = 
-          new NrbcInt(ptElem, coeff_Pmass, nrbcMatType, isaxi_);
-
-        bilinear_Pmass->CalcElementMatrix(ptCoord, elemMat);
-        
-        //std::cout<<"Pmatrix= "<<std::endl;
-        // std::cout<<elemMat<<std::endl;
-
-        delete  bilinear_Pmass;
-
-        GetDeriv2SolVecOfElement(deriv2sol, connecth);
-        
-        // std::cout<<"Acou2ndDerivSolution= "<<std::endl;
-        // std::cout<<deriv2sol<<std::endl;
-
-        Pmat_x_2derSol = elemMat * deriv2sol;
-        // Computation of alpha factor (like in nrbcPDE)
-        Double c0, alphaNRBC, Cj, density, compressibility;
-        //actSD is 0 since there is only one acoustic domain
-        density         = materialData_[0].GetDensity();
-        density=1;
-        compressibility = materialData_[0].GetCompressibility();
-        c0 = sqrt(compressibility/density);
-        Cj = 1.0;
-        alphaNRBC = (1/(Cj*Cj) - 1/(c0*c0));
-        Pmat_x_2derSol *= alphaNRBC;
-        
-        // std::cout<<"Pmat_x_2derSol= "<<std::endl;
-        // std::cout<<Pmat_x_2derSol<<std::endl;
-        
-        // END OF "Pmat_x_2derSol" Computation   
-
-         for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
-          UInt nodePos = 0;
-          while(connecth[actNode] != couplingNodes[nodePos] &&
-                nodePos < couplingNodes.GetSize()) {
-            nodePos++;
-          }
-          
-         elemCouplingSols[nodePos*couplingdof] = 
-              (Qmat_x_sol[actNode] + Pmat_x_2derSol[actNode]);
-         
-         // std::cout<<"elemCouplingSols["<<(nodePos*couplingdof)<<"]= "<<elemCouplingSols[nodePos*couplingdof]<<std::endl;
-          
+      //std::cout<<"Pmatrix= "<<std::endl;
+      // std::cout<<elemMat<<std::endl;
+      
+      delete  bilinear_Pmass;
+      
+      GetDeriv2SolVecOfElement(deriv2sol, connecth);
+      
+      // std::cout<<"Acou2ndDerivSolution= "<<std::endl;
+      // std::cout<<deriv2sol<<std::endl;
+      
+      Pmat_x_2derSol = elemMat * deriv2sol;
+      // Computation of alpha factor (like in nrbcPDE)
+      Double c0, alphaNRBC, Cj, density, compressibility;
+      //actSD is 0 since there is only one acoustic domain
+      density         = materialData_[0].GetDensity();
+      density=1;
+      compressibility = materialData_[0].GetCompressibility();
+      c0 = sqrt(compressibility/density);
+      Cj = 1.0;
+      alphaNRBC = (1/(Cj*Cj) - 1/(c0*c0));
+      Pmat_x_2derSol *= alphaNRBC;
+      
+      // std::cout<<"Pmat_x_2derSol= "<<std::endl;
+      // std::cout<<Pmat_x_2derSol<<std::endl;
+      
+      // END OF "Pmat_x_2derSol" Computation   
+      
+      for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
+        UInt nodePos = 0;
+        while(connecth[actNode] != couplingNodes[nodePos] &&
+              nodePos < couplingNodes.GetSize()) {
+          nodePos++;
         }
-         //        std::cout<<"elemCouplingSols = "<<elemCouplingSols<<std::endl;
-         
-         //std::cout<<"%%%--END ACOUSTIC-PDE COUPLING OUTPUT INFO----%%%%"<<std::endl;                  
-    
+        
+        elemCouplingSols[nodePos*couplingdof] = 
+          (Qmat_x_sol[actNode] + Pmat_x_2derSol[actNode]);
+        
+        // std::cout <<"elemCouplingSols["<<(nodePos*couplingdof)<<"]= "
+        //           <<elemCouplingSols[nodePos*couplingdof]<<std::endl;
+        
+      }
+      // std::cout<<"elemCouplingSols = "<<elemCouplingSols<<std::endl;
+      
+      //std::cout <<"%%%--END ACOUSTIC-PDE COUPLING OUTPUT INFO----%%%%"
+      //          <<std::endl;                  
+      
     }
   }
-
-
+  
+  template <class TYPE>
   void AcousticPDE::
   CalcHeatCouplingRHS(Vector<Double> & sourceValue, 
                       StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
@@ -1100,20 +1116,6 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
     ENTER_FCN( "AcousticPDE::CalcHeatCouplingRHS" );
     
-    // get solution and first time derivative
-    NodeStoreSol<Double> * soltmp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-    
-    // prepare first derivative of solution, because solDeriv1_ is not
-    //  created, if not specified for output in the xml-file
-    solDeriv1_.SetNumSolutions(1);
-    solDeriv1_.SetNumNodes(numPDENodes_);
-    solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
-    solDeriv1_.SetNumDofs(1);
-    solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_); 
-    solDeriv1_.Init(0);
-    // get the vector
-    solDeriv1_.SetAlgSysVector(getS1());
-
     // get the coupling regions
     StdVector<std::string> couplRegions;
     ptCoupling_->GetOutputRegions(actCoupling, couplRegions);
@@ -1121,11 +1123,11 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     ptgrid_->RegionNameToId( regionIds, couplRegions );
 
     // Operator for calculating energy density
-    AcouPowerDensityOp *SourceOp;
-    SourceOp = new AcouPowerDensityOp( ptgrid_, this, eqnData_, isaxi_ );
+    AcouPowerDensityOp<TYPE> *SourceOp = 
+      new AcouPowerDensityOp<TYPE>( ptgrid_, this, eqnData_, isaxi_ );
 
     // initialize output vector
-    sourceValue.Init(0.0);
+    sourceValue.Init();
 
     Vector<Double> elemPowerDensity;
     
@@ -1298,8 +1300,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
         if (isaxi_) {
           Vector<Double> coordAtIP;
-            coordAtIP = ptCoord * shapeFnc;
-            forceElem[0] +=  (intWeights[actIntPt-1] * jacDet
+          coordAtIP = ptCoord * shapeFnc;
+          forceElem[0] +=  (intWeights[actIntPt-1] * jacDet
                             * 2 * PI) * coordAtIP[0] * (valueElem * shapeFnc);
         }
         else {
@@ -1357,7 +1359,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         // retrieve 1st derivative and multiply with density, 
         //  since p = rho * dpsi/dt
         Vector<TYPE> valueElem;
-	GetDerivSolVecOfElement(valueElem, connect);
+        GetDerivSolVecOfElement(valueElem, connect);
 
         valueElem *= density;
         Vector<TYPE> pressureElem(1);
@@ -1367,16 +1369,16 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         UInt pdeElem;
         pdeElem = eqnData_->Mesh2PDEElem(elemsSD[actEl]->elemNum);
 
-	if ( isComplex_ == TRUE ) {
-	  ElemStoreSol<Complex> & pressure = 
-	    dynamic_cast<ElemStoreSol<Complex>&>(*acouPressure_);
-	  pressure.SetElemResult(pdeElem-1,pressureElem);
-	}
-	else {
-	  ElemStoreSol<Double> & pressure = 
-	    dynamic_cast<ElemStoreSol<Double>&>(*acouPressure_);
-	  pressure.SetElemResult(pdeElem-1,pressureElem);
-	}
+        if ( isComplex_ == TRUE ) {
+          ElemStoreSol<Complex> & pressure = 
+            dynamic_cast<ElemStoreSol<Complex>&>(*acouPressure_);
+          pressure.SetElemResult(pdeElem-1,pressureElem);
+        }
+        else {
+          ElemStoreSol<Double> & pressure = 
+            dynamic_cast<ElemStoreSol<Double>&>(*acouPressure_);
+          pressure.SetElemResult(pdeElem-1,pressureElem);
+        }
 
       }
     }
@@ -1412,10 +1414,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
                                               actTime, complexFormat_);
 
         if (calcElemPressure_.GetSize() != 0 ) {
-	  ElemStoreSol<Complex> & pressureConverted = 
-	    dynamic_cast<ElemStoreSol<Complex>&>(*acouPressure_);
+          ElemStoreSol<Complex> & pressureConverted = 
+            dynamic_cast<ElemStoreSol<Complex>&>(*acouPressure_);
           outFile_->WriteElemSolutionHarmonic(pressureConverted, actStep,
-					       actTime, complexFormat_);
+                                              actTime, complexFormat_);
         }
       }
       else {  
@@ -1444,8 +1446,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         }
 
         if (calcElemPressure_.GetSize() != 0 ) {
-	  ElemStoreSol<Double> & pressureConverted = 
-	    dynamic_cast<ElemStoreSol<Double>&>(*acouPressure_);
+          ElemStoreSol<Double> & pressureConverted = 
+            dynamic_cast<ElemStoreSol<Double>&>(*acouPressure_);
           outFile_->WriteElemSolutionTransient(pressureConverted,actStep,actTime);
         }
 
@@ -1568,10 +1570,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         }
 
         if (saveElemPressureHist_.GetSize() != 0) {
-	  ElemStoreSol<Double> & pressureConverted = 
-	    dynamic_cast<ElemStoreSol<Double>&>(*acouPressure_);
+          ElemStoreSol<Double> & pressureConverted = 
+            dynamic_cast<ElemStoreSol<Double>&>(*acouPressure_);
           outFile_->WriteElemHistoryTransient(pressureConverted, actStep, 
-					      actTime);
+                                              actTime);
         }
 
       }
@@ -1690,8 +1692,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         saveSol_ = TRUE;
         hasOutput_ = TRUE;
 
-	// Note: If errors occur using the acoustic pressure formulation,
-	// just comment out the following three lines
+        // Note: If errors occur using the acoustic pressure formulation,
+        // just comment out the following three lines
         sol_->SetSolutionType(ACOU_PRESSURE);
         sol_->SetNumDofs(1);
         sol_->Init();
@@ -1728,12 +1730,12 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
         }
 
-	if (analysistype_ == HARMONIC ) {
-	  acouPressure_ = new ElemStoreSol<Complex>;
-	} 
-	else {
-	  acouPressure_ = new ElemStoreSol<Double>;
-	}
+        if (analysistype_ == HARMONIC ) {
+          acouPressure_ = new ElemStoreSol<Complex>;
+        } 
+        else {
+          acouPressure_ = new ElemStoreSol<Double>;
+        }
 
         acouPressure_->SetNumSolutions(1);
         acouPressure_->SetSolutionType(ACOU_PRESSURE);
