@@ -25,56 +25,132 @@ namespace CoupledField
 
 
     // optimalExpDesignDiffNumberFreqs();
-    nrMeasuredData=13;
+    nrMeasuredData=15;
     Vector<Double> freqs5;
-    freqs5.Resize(13);
-    freqs.Resize(13);
+    freqs5.Resize(15);
+    freqs.Resize(15);
    
-    //    freqs5[0]=1.6e+06;
-    //    freqs5[1]=2.0e+06;
-    //    freqs5[2]=2.5e+06;
-    //    freqs5[3]=3.0e+06;
-    //    freqs5[4]=3.25e+06;
-    //    freqs5[5]=3.4e+06;
-    //    freqs5[6]=5.0e+06;
-    //    freqs5[7]=5.5e+06;
-    //    freqs5[8]=6.0e+06;
-    //    freqs5[9]=7.1e+06;
-    //    freqs5[10]=8.2e+06;
-    //    freqs5[11]=9.1e+06;
+  
    
-    //initial guesses suggested by optExpDesignVarNr ...
-        freqs5[0]=1.1e+06;
-        freqs5[1]=1.3e+06;
-        freqs5[2]=1.4e+06;
-        freqs5[3]=1.5e+06;
-        freqs5[4]=1.6e+06;
-        freqs5[5]=1.8e+06;
-        freqs5[6]=2.4e+06;
-        freqs5[7]=2.5e+06;
-        freqs5[8]=2.7e+06;
-        freqs5[9]=2.9e+06;
-        freqs5[10]=3.3e+06;
-        freqs5[11]=3.4e+06;
-        freqs5[12]=3.8e+06;
+    //initial guesses suggested by optExpDesignVarNr ...for thickness mode
+    // Thicknes = 0.1mm
+    if (FALSE){
+      freqs5[0]=1.1e+06;
+      freqs5[1]=1.3e+06;
+      freqs5[2]=1.4e+06;
+      freqs5[3]=1.5e+06;
+      freqs5[4]=1.6e+06;
+      freqs5[5]=1.7e+06;
+      freqs5[6]=1.8e+06;
+      freqs5[7]=2.5e+06;
+      freqs5[8]=2.7e+06;
+      freqs5[9]=3.0e+06;
+      freqs5[10]=3.2e+06;
+      freqs5[11]=3.4e+06;
+      freqs5[12]=3.6e+06;
+      freqs5[13]=3.8e+06;
+    }
 
-  //   freqs5[0]=1.1e+06;
-//     freqs5[1]=1.3e+06;
-//     freqs5[2]=1.5e+06;
-//     freqs5[3]=1.6e+06;
-//     freqs5[4]=1.7e+06;
-//     freqs5[5]=1.8e+06;
-//     freqs5[6]=2.5e+06;
-//     freqs5[7]=2.7e+06;
-//     freqs5[8]=3.0e+06;
-//     freqs5[9]=3.1e+06;
-//     freqs5[10]=3.2e+06;
-//     freqs5[11]=3.4e+06;
-//     freqs5[12]=3.6e+06;
-//     freqs5[13]=3.8e+06;
-//     freqs5[14]=3.95e+06;
+    //initial guesses suggested by optExpDesignVarNr ...for thickness mode
+    // Thicknes = 0.05mm
+    if (FALSE){
+      freqs5[0]=2550000;
+      freqs5[1]=2733330;
+      freqs5[2]=2916670;
+      freqs5[3]=3100000;
+      freqs5[4]=3283330;
+      freqs5[5]=3466670;
+      freqs5[6]=3650000;
+      freqs5[7]=3690500;
+      freqs5[8]=3705000;
+      freqs5[9]=5200000;
+      freqs5[10]=5236880;
+      freqs5[11]=5300000;
+      freqs5[12]=5483330;
+      freqs5[13]=6.0e+06;
+    }
+
+
+    // Fitting an CeramTecMaterial, 5V Vorspannung, Radius 11mm, Dicke 1mm
+    if (FALSE){
+      freqs5[0]=0.2e+05;
+      freqs5[1]=0.35e+05;
+      freqs5[2]=0.45e+05;
+      freqs5[3]=0.55e+05;
+      freqs5[4]=0.6e+05;
+      freqs5[5]=0.7e+05;
+      freqs5[6]=0.8e+05;
+      freqs5[7]=1.15e+05;
+      freqs5[8]=1.25e+05;
+      freqs5[9]=1.3e+05;
+      freqs5[10]=1.4e+05;
+    }
+
+    // Fitting an CeramTecMaterial, 5V Vorspannung, Radius 11mm, Dicke 1mm
+    if (TRUE){
+      freqs5[0]=0.2e+05;
+      freqs5[1]=0.35e+05;
+      freqs5[2]=0.45e+05;
+      freqs5[3]=0.55e+05;
+      freqs5[4]=0.6e+05;
+      freqs5[5]=0.69e+05;
+      freqs5[6]=0.72e+05;
+      freqs5[7]=0.82e+05;
+      freqs5[8]=1.15e+05;
+      freqs5[9]=1.25e+05;
+      freqs5[10]=1.3e+05;
+      freqs5[11]=1.4e+05;
+      freqs5[12]=1.6e+05;
+      freqs5[13]=1.8e+05;
+      freqs5[14]=2.0e+05;
+    }
+
+
+    //initial guesses for planar, radial mode
+    if (FALSE){
+      freqs5[0]=0.31e+5;
+      freqs5[1]=0.3e+5;
+      freqs5[2]=0.45e+5;
+      freqs5[3]=0.55e+5;
+      freqs5[4]=0.65e+5;
+      freqs5[5]=0.7e+5;
+      freqs5[6]=0.8e+5;
+      freqs5[7]=0.85e+5;
+      freqs5[8]=1.45e+5;
+      freqs5[9]=1.5e+5;
+      freqs5[10]=1.6e+5;
+      freqs5[11]=1.65e+5;
+      freqs5[12]=1.7e+5;
+      freqs5[13]=1.75e+5;
+      freqs5[14]=1.8e+5;
+    }
+      
+
+    //   freqs5[0]=1.1e+06;
+    //     freqs5[1]=1.3e+06;
+    //     freqs5[2]=1.5e+06;
+    //     freqs5[3]=1.6e+06;
+    //     freqs5[4]=1.7e+06;
+    //     freqs5[5]=1.8e+06;
+    //     freqs5[6]=2.5e+06;
+    //     freqs5[7]=2.7e+06;
+    //     freqs5[8]=3.0e+06;
+    //     freqs5[9]=3.1e+06;
+    //     freqs5[10]=3.2e+06;
+    //     freqs5[11]=3.4e+06;
+    //     freqs5[12]=3.6e+06;
+    //     freqs5[13]=3.8e+06;
+    //     freqs5[14]=3.95e+06;
 
     freqs=freqs5;
+
+    //Writes out initial guesses of optimalFreqs
+
+    *optimalFreqs<< 0 <<"  "<< 0 <<"  ";      
+    
+    for(UInt fr=0;fr<nrMeasuredData;fr++)
+      *optimalFreqs<< freqs[fr]<<"  ";
+    *optimalFreqs<<std::endl;         
    
 
     projGradientFlags.Resize(nrMeasuredData);
@@ -95,9 +171,9 @@ namespace CoupledField
     std::cout<<"++ Frequencies taken from file mess.dat:"<<std::endl;
     std::cout<<newFreqs<<std::endl;
 
-    for(UInt fr=0;fr<nrMeasuredData;fr++)
-      *impedCurve<< freqs[fr]<<"  ";
-    *impedCurve<<std::endl;
+//     for(UInt fr=0;fr<nrMeasuredData;fr++)
+//       *impedCurve<< freqs[fr]<<"  ";
+//     *impedCurve<<std::endl;
 
     calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
 
@@ -133,14 +209,13 @@ namespace CoupledField
     std::cout<<"fr= "<< fr_ <<std::endl;
     std::cout<<"fa= "<< fa_ <<std::endl;
 
-
     for (UInt nrOptExpSteps=0; nrOptExpSteps<20; nrOptExpSteps++){ 
       UInt nrNuMethods=0;
       // That at least we perform one descent step
       normGradient=2.0;
       normGradientOld=1.0;
 
-      descentMethod(functional);
+      //      descentMethod(functional);
 
       readInMeasurement(newFreqs);
 
@@ -154,7 +229,8 @@ namespace CoupledField
       calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
       newtonCounter=0;
 
-      while (nrNuMethods<maxNumberNewtonLoops && residuumParIdent > 0.2*residuumParIdentOld){
+      while (nrNuMethods<maxNumberNewtonLoops && 
+             residuumParIdent > 0.05*residuumParIdentOld){
         //while (nrNuMethods<maxNumberNewtonLoops){
         ///        nuMethodsC2();
         nuMethods();
@@ -169,12 +245,26 @@ namespace CoupledField
 
         newtonCounter++;
       }
+
+      Vector<Double> saveFreqs=freqs;
+
+      Double startFreqTemp;
+      startFreqTemp=startfreq;
+      Double freqincr=(stopfreq-startfreq)/50;
+      freqs.Resize(50);
+      for(UInt i=0;i<50;i++){
+        startFreqTemp+=freqincr;
+        freqs[i]=startFreqTemp;
+      }
       calcImpedanceCurve();
+      freqs=saveFreqs;
+
       fa_=antiResonanceFrequency_;
       fa_=1.1*fa_;
       
       fr_=resonanceFrequency_;
       fr_=0.9*fr_;
+
       std::cout<<"++ New bounds for resonance and antiresonace frequency: "<<std::endl;
       std::cout<<"fr= "<< fr_ <<std::endl;
       std::cout<<"fa= "<< fa_ <<std::endl;
@@ -292,15 +382,21 @@ namespace CoupledField
     Double lambda;
     UInt descIter=0;
     Double gradientNormUpdate;
-
+    // fitting am Dicken Mode!
     if (actNrParameter==3)
       lambda = 0.00002; // for three parameter
     else if (actNrParameter==10||actNrParameter==9)
-      lambda=0.25;
+      lambda=0.35;
     //      lambda= 0.002; // for 10 parameters with StepWidth
     // lambda = 0.000002; // for nine parameter
     else if (actNrParameter==6)
       lambda=0.025;
+
+    // Fitting mit thickness = 0.05 mm
+    lambda = 3.500e-03;
+
+    // Fitting am radial, planar Mode
+    //       lambda = 1.0e-14;
     //        Double lambda = 1.0e-5; // for ten parameter
     //    Double lambda = 1.0; // for nine parameter using M - confidence crit.
     //    Double lambda = 1.0e+7; // for nine parameter using M - confidence crit.
@@ -313,9 +409,8 @@ namespace CoupledField
     std::cout<<gradientNormUpdate<<std::endl;
 
    
-    while(descIter<maxNumberDescentIterations && gradientNormUpdate>0.1){
+    while((descIter<maxNumberDescentIterations && gradientNormUpdate>0.1)|| descIter<2){
       descIter++;
-
       //    projGradientFlags.Resize(nrMeasuredData);
       Complex J, JOld;
       Vector<Double> freqsOld;
@@ -330,154 +425,162 @@ namespace CoupledField
         //        getchar();
       }
 
-          normGradientOld=normGradient;
+      normGradientOld=normGradient;
       //overwrites normGradient!
       createGradient(gradient,1.0e-5);
       gradientNormUpdate = std::abs(normGradient - normGradientOld)/normGradientOld;
 
-      std::cout<<"gradientNormOld"<<std::endl;
-      std::cout<<normGradientOld<<std::endl;
-      std::cout<<"gradientNorm"<<std::endl;
-      std::cout<<normGradient<<std::endl;
+      //       std::cout<<"gradientNormOld"<<std::endl;
+      //       std::cout<<normGradientOld<<std::endl;
+      //       std::cout<<"gradientNorm"<<std::endl;
+      //       std::cout<<normGradient<<std::endl;
 
-      std::cout<<"gradientNormUpdate"<<std::endl;
-      std::cout<<gradientNormUpdate<<std::endl;
+      //       std::cout<<"gradientNormUpdate"<<std::endl;
+      //       std::cout<<gradientNormUpdate<<std::endl;
 
-      lambda = 1.15*lambda;
+      lambda = 1*lambda;
 
       std::cout<<"gradient"<<std::endl;
       std::cout<<gradient<<std::endl;
     
       UInt innerCounter=0;
       //      while(innerCounter<1){
-      while(JOld.real()<=J.real()){
-        innerCounter ++;
-      
-        for(UInt fr=0;fr<nrMeasuredData;fr++){
+      while(JOld.real()<=J.real()){      
+        for(UInt fr=0;fr<nrMeasuredData;fr++)
           freqs[fr]=freqs[fr]-lambda*gradient[fr].real();
     
-        if (innerCounter>40)
-          break;
-
         for(UInt fr=0;fr<nrMeasuredData;fr++)
-          if (freqs[fr]<=0.0)
+          if (freqs[fr]<=0.0){
             std::cout<<"! Frequency "<< fr << " is negative " <<std::endl;
-
-
+            std::cout<<"! Frequency "<< fr << " will be reset to previous value " <<std::endl;
+            freqs[fr]=freqs[fr]+lambda*gradient[fr].real();
+          }
+        
+        std::cout<<"freqs after update by -lambda*GradJ:"<<std::endl;
+        std::cout<<freqs<<std::endl;
+      
         createCovA(J,FALSE);
 
-    
+        
         if (J.real()>JOld.real()){
-    
-          lambda=0.5*lambda;
+          lambda=0.1*lambda;
           freqs=freqsOld;
           std::cout<<"! Reduced lambda in descent method ... lambda =  " << lambda<<std::endl;
           if (J.real()>=JOld.real())
-            std::cout<<"  -> because JOld <= J " << JOld.real()<<" <= " <<J.real() << std::endl;
+            std::cout<<"  -> because JOld = " << JOld.real()<<" <= JNew = " <<J.real() << std::endl;
+          innerCounter ++;
+          if (innerCounter>10)
+            break;
+        
         }
-      }
-      for(UInt fr=0;fr<nrMeasuredData;fr++){
-
-        if(TRUE){
-          if ((freqs[fr]<=fa_)&&(freqs[fr]>=fr_)){
-            if(freqs[fr]<(fr_+fa_)/2){
-              freqs[fr]=fr_;
-              projGradientFlags[fr]=freqs[fr];
-              std::cout<<"! Frequency "<< fr <<" to close to fr, fixed it at f= " << freqs[fr]<< std::endl;
-              if (fr>=1)
-                if (freqs[fr]==freqs[fr-1]){
-                  freqs[fr]=0.95*freqs[fr];
-                  std::cout<<"Frequency "<< fr <<" (fr) coincides with previos one( " << freqs[fr-1] <<" ), set freq= " << freqs[fr]<<std::endl;
-                }
-              projGradientFlags[fr]=freqs[fr];
-            }
-            else{
-              freqs[fr]=fa_;
-              projGradientFlags[fr]=freqs[fr];
-              std::cout<<"! Frequency "<< fr <<" to close to fa, fixed it at f= " << freqs[fr]<< std::endl;
-              if (fr>=1)
-                if (freqs[fr]==freqs[fr-1]){
-                  freqs[fr]=1.05*fa_;
-                  std::cout<<"Frequency "<< fr <<" (fr) coincides with previos one, set freq= " << freqs[fr]<<std::endl;
-                }
-            }
-          } 
-        }
+        else 
+          std::cout<< "JNew is smaller than JOld ... continue with lambda = " << lambda <<std::endl;
+        
+        for(UInt fr=0;fr<nrMeasuredData;fr++){
           
-        if (freqs[fr]< startfreq){
-          std::cout<<"! There are no measurements for frequency ("<<fr<<") = " << freqs[fr]  <<std::endl;
-          std::cout<<"! Fixed frequency at " <<startfreq<< std::endl;
-          freqs[fr]=startfreq;
-          if (fr>=1)
-            if (freqs[fr]==freqs[fr-1]){
-              freqs[fr]=startfreq+fr*0.1*startfreq;
-              std::cout<<"! Frequency "<< fr <<" to close to startfreq and coincides with previous one, fixed it at f= " << freqs[fr]<< std::endl;
-            }
-          projGradientFlags[fr]=freqs[fr];
-        }
-        if(freqs[fr]>stopfreq){
-          std::cout<<"! There are no measurements for frequency (" << fr<< ") = " <<freqs[fr] <<std::endl;
-          std::cout<<"! Fixed frequency at  " <<stopfreq<<std::endl;
-          freqs[fr]=stopfreq;
-          if (fr>=1)
-            if (freqs[fr]==freqs[fr-1]){
-              freqs[fr]=stopfreq-fr*0.1*startfreq;
-              std::cout<<"! Frequency "<< fr <<" to close to stopfreq and coincides with previous one, fixed it at f= " << freqs[fr]<< std::endl;
-            }
-
-          projGradientFlags[fr]=freqs[fr];
-        }
-            
-            
-      }// end in freqs[fr]<=fa_ ...
-
-      std::cout<<" frequencies before final check of coincidences:" <<std::endl;
-      std::cout<<freqs<<std::endl;
-
-
-      // check if two frequencies coincide:
-      // if they do so reduce them by 5 per cent
-
-      Boolean flag=TRUE;
-
-      while(flag){
-        for(UInt i=0;i<freqs.GetSize();i++){
-          for(UInt j=0;j<freqs.GetSize();j++){
-            if((freqs[i]==freqs[j]) && (i!=j))
-              if (i<freqs.GetSize()-1)
-                freqs[j]=1.025*freqs[j];
-              else
-                freqs[j]=0.975*freqs[j];
-            else
-              flag=FALSE;
+          if(TRUE){
+            if ((freqs[fr]<=fa_)&&(freqs[fr]>=fr_)){
+              if(freqs[fr]<(fr_+fa_)/2){
+                freqs[fr]=fr_;
+                projGradientFlags[fr]=freqs[fr];
+                std::cout<<"! Frequency "<< fr <<" to close to fr, fixed it at f= " << freqs[fr]<< std::endl;
+                if (fr>=1)
+                  if (freqs[fr]==freqs[fr-1]){
+                    freqs[fr]=0.95*freqs[fr];
+                    std::cout<<"Frequency "<< fr <<" (fr) coincides with previos one( " << freqs[fr-1] <<" ), set freq= " << freqs[fr]<<std::endl;
+                  }
+                projGradientFlags[fr]=freqs[fr];
+              }
+              else{
+                freqs[fr]=fa_;
+                projGradientFlags[fr]=freqs[fr];
+                std::cout<<"! Frequency "<< fr <<" to close to fa, fixed it at f= " << freqs[fr]<< std::endl;
+                if (fr>=1)
+                  if (freqs[fr]==freqs[fr-1]){
+                    freqs[fr]=1.05*fa_;
+                    std::cout<<"Frequency "<< fr <<" (fr) coincides with previos one, set freq= " << freqs[fr]<<std::endl;
+                  }
+              }
+            } 
+          } // end if FALSE/TRUE
+          
+          if (freqs[fr]< startfreq){
+            std::cout<<"! There are no measurements for frequency ("<<fr<<") = " << freqs[fr]  <<std::endl;
+            std::cout<<"! Fixed frequency at " <<startfreq<< std::endl;
+            freqs[fr]=startfreq;
+            if (fr>=1)
+              if (freqs[fr]==freqs[fr-1]){
+                freqs[fr]=startfreq+fr*0.1*startfreq;
+                std::cout<<"! Frequency "<< fr <<" to close to startfreq and coincides with previous one, fixed it at f= " << freqs[fr]<< std::endl;
+              }
+            projGradientFlags[fr]=freqs[fr];
           }
-          // check if frequencies are out of range        
-          while(freqs[i]>stopfreq)
-            freqs[i]=0.98*freqs[i];
-          while(freqs[i]<startfreq)
-            freqs[i]=1.02*freqs[i];             
+          if(freqs[fr]>stopfreq){
+            std::cout<<"! There are no measurements for frequency (" << fr<< ") = " <<freqs[fr] <<std::endl;
+            std::cout<<"! Fixed frequency at  " <<stopfreq<<std::endl;
+            freqs[fr]=stopfreq;
+            if (fr>=1)
+              if (freqs[fr]==freqs[fr-1]){
+                freqs[fr]=stopfreq-fr*0.1*startfreq;
+                std::cout<<"! Frequency "<< fr <<" to close to stopfreq and coincides with previous one, fixed it at f= " << freqs[fr]<< std::endl;
+              }
+
+            projGradientFlags[fr]=freqs[fr];
+          }
+            
+            
+        }// end in freqs[fr]<=fa_ ...
+
+        //   std::cout<<" frequencies before final check of coincidences:" <<std::endl;
+        //       std::cout<<freqs<<std::endl;
+
+
+        // check if two frequencies coincide:
+        // if they do so reduce them by 5 per cent
+
+        Boolean flag=TRUE;
+
+        while(flag){
+          for(UInt i=0;i<freqs.GetSize();i++){
+            for(UInt j=0;j<freqs.GetSize();j++){
+              if((freqs[i]==freqs[j]) && (i!=j))
+                if (i<freqs.GetSize()-1)
+                  freqs[j]=1.025*freqs[j];
+                else
+                  freqs[j]=0.975*freqs[j];
+              else
+                flag=FALSE;
+            }
+            // check if frequencies are out of range        
+            while(freqs[i]>stopfreq)
+              freqs[i]=0.98*freqs[i];
+            while(freqs[i]<startfreq)
+              freqs[i]=1.02*freqs[i];             
+          }
         }
-      }
          
+        createCovA(J,FALSE);         
+        // end while ....         
+      }      
 
-      createCovA(J,TRUE);
-
+      // will write also confidence intervals if we found a smaller  J
+      // if JNew>Jold after 10 inner loops, we might assume, that there is no improvement for 
+      // the location of the frequencies and therefore write nothing into confidence intervals
+      if (innerCounter<10)
+        createCovA(J,TRUE);
       std::cout<<" Value J(w) calculated with projected gradient "<< J <<std::endl;
       std::cout<<" frequencies at end of descent Method:" <<std::endl;
       std::cout<<freqs<<std::endl;
-          
-      // end while ....
 
       *optimalFreqs<< descIter <<"  "<< J.real() <<"  ";      
 
       for(UInt fr=0;fr<nrMeasuredData;fr++)
         *optimalFreqs<< freqs[fr]<<"  ";
-      *optimalFreqs<<std::endl;    
-          
-    }      
+      *optimalFreqs<<std::endl;               
+    } // while descIter<max Number
+
 
   }// descentMethod
-  }
 
 
   void piezoParamIdent::createCovA(Complex &J, Boolean writeOutCov){
@@ -539,6 +642,11 @@ namespace CoupledField
     //      getchar();
 
     invert(cov);
+
+    // std::cout<<"cov:"<<std::endl;
+    //     std::cout<<cov<<std::endl;
+    //     getchar();
+
    
     data1=data*cov;
     Complex diagC=Complex(0.0,0.0);
@@ -561,7 +669,7 @@ namespace CoupledField
       J=Complex(JJ,0.0);
     }
 
-    // A - Criterion
+    // A - Criterion for all parameters
     if(TRUE){
       Vector<Double> covDiag(actNrParameter+actNrParameterC);
       for(UInt i=0; i<actNrParameter+actNrParameterC; i++){
@@ -575,7 +683,19 @@ namespace CoupledField
       JReal = JReal/actNrParameter+actNrParameterC;
       J=J/Complex(actNrParameter+actNrParameterC,0.0);
 
+      //optimality criterion just for one parameter, namely eps_11!
+      if(FALSE){
+        J=cov[7][7].real();
+      }
+      //optimality criterion just for four parameter, namely eps_11, e15, e13, c13!
+      if(FALSE){
+        J=cov[7][7].real()+cov[2][2].real()+cov[4][4].real()+cov[5][5].real();
+        J=J/Complex(4.0,0.0);
+      }
+
+
          
+      //      writeOutCov=TRUE;
       if (writeOutCov==TRUE){
    
         if (actNrParameter==3){      
@@ -644,8 +764,12 @@ namespace CoupledField
           for (UInt ii=0;ii<10;ii++){
             if(ii<=1){
               *confInterval<<parameter[ii]+parameterInitial[ii]*sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+              //              std::cout<<parameter[ii]+parameterInitial[ii]*sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
               *confInterval<<parameter[ii]<<"  ";
+              //              std::cout<<parameter[ii]<<std::endl;
               *confInterval<<parameter[ii]-parameterInitial[ii]*sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+              //              std::cout<<parameter[ii]-parameterInitial[ii]*sqrt(cov[ii][ii].real()*2.5*2.5)<<"  ";
+              //              getchar();
             }
             else if (ii>2){
               *confInterval<<parameter[ii]+parameterInitial[ii]*sqrt(cov[ii-1][ii-1].real()*2.5*2.5)<<"  ";
@@ -741,6 +865,7 @@ namespace CoupledField
         createCovA(J2,FALSE);
         for(UInt i=0; i<actNrParameter+actNrParameterC;i++)
           grad[j]= (J2-J1)* voltage*voltage / (dOmega*freqs[j]) ;
+        //grad[j]= (J2-J1) / (dOmega*freqs[j]) ;
         freqs[j]=freqsOld[j];
       }
 
@@ -761,16 +886,16 @@ namespace CoupledField
     std::cout<<"Please set LAPACK = yes in your Makefile.option (CFS & OLAS)" <<std::endl;
     
     Matrix<Complex> cov;
-     cov.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
-     cov=data;
+    cov.Resize(actNrParameter+actNrParameterC,actNrParameter+actNrParameterC);
+    cov=data;
      
-     Matrix<Complex> rhsMat;
-     rhsMat.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
-     for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
-       rhsMat[i][i]=Complex(1.0,0.0);
-     lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
-     data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
-     data=rhsMat;
+    Matrix<Complex> rhsMat;
+    rhsMat.Resize(actNrParameter+actNrParameterC, actNrParameter+actNrParameterC);
+    for(UInt i=0;i<actNrParameter+actNrParameterC;i++)
+      rhsMat[i][i]=Complex(1.0,0.0);
+    lapackSysMatType LAPACK_SYS_MAT_TYPE = ZGESV;
+    data.solveWithLapack(rhsMat,LAPACK_SYS_MAT_TYPE);
+    data=rhsMat;
      
   } // end invertWithLapack
   
@@ -961,14 +1086,13 @@ namespace CoupledField
       std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
     }
    
-    std::cout<<"++ open and read file mess.dat ...1 " <<std::endl;    
-    
+   
     char mDataRow[256], helpChar[64];
     UInt i=0, j=0;
     Double newFreq, amplitude,phase;
 
     while(mess->getline(mDataRow, 265)){
-      //    std::cout<<mDataRow<<std::endl;
+      //  std::cout<<mDataRow<<std::endl;
       i=0;j=0;
       while (mDataRow[i]!='\t'){
         helpChar[j]=mDataRow[i];
@@ -1007,6 +1131,7 @@ namespace CoupledField
     freqs.Resize(nrMeasuredData);
     freqs=frequencies;   
     mess->close();
+    std::cout<<"++ open and read file finished ... " <<std::endl;    
   }// end readInMeasurements
       
 } // end namespace

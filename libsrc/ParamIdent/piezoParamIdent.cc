@@ -103,6 +103,13 @@ namespace CoupledField
       std::cerr << "\n rhosOut.dat could not be initialized" << std::endl;
     }
 
+    std::string filenamenrOfFreqs = "nrOfFreqs.dat";
+    nrOfFreqs = new std::ofstream(filenamenrOfFreqs.c_str(),std::basic_ios<char>::out);
+    if (!rhosOut){
+      std::cerr << "\n nrOfFreqs.dat could not be initialized" << std::endl;
+    }
+
+
    //  std::string measurements="mess.dat";
 //     mess = new std::ifstream(measurements.c_str(), std::basic_ios<char>::in);
 //     if (!mess){
@@ -382,10 +389,10 @@ namespace CoupledField
     //xxxxxxxxxxxxxxxx Initialize and resize all matrices and vectors involved xxxxxxxxxx
 
 
-    freqs.Part(0,nrMeasuredData);
-    real.Part(0,nrMeasuredData);
-    imag.Part(0,nrMeasuredData);
-    amplitude_phase.Part(0,nrMeasuredData);
+  //   freqs.Part(0,nrMeasuredData);
+//     real.Part(0,nrMeasuredData);
+//     imag.Part(0,nrMeasuredData);
+//     amplitude_phase.Part(0,nrMeasuredData);
  
     y_hat.Resize(2*nrMeasuredData);
     s_0.Resize(actNrParameter+actNrParameterC);    

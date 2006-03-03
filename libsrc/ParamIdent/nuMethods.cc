@@ -39,7 +39,7 @@ namespace CoupledField
     Vector<Complex> JacFs_res(nrMeasuredData);
     Matrix<Complex> ImgSpaceScalingMat(nrMeasuredData,nrMeasuredData);
     Vector<Double> parameter_old(nrParameter);
-    std::cout<< "piezoParamIdent::nuMethods() - nrMeasuredData = " << nrMeasuredData<<std::endl;
+    //    std::cout<< "piezoParamIdent::nuMethods() - nrMeasuredData = " << nrMeasuredData<<std::endl;
 
 
     updateMaterialData(parameter, ptMaterial);        
@@ -192,13 +192,16 @@ namespace CoupledField
         
       nu=1.5;
 
+      // fitting am dicken mode
       relax=10.0;
-
+     
       if (newtonCounter>=25)
         relax=5.0;
-      //      if (newtonCounter>=30)
-      //        relax=5.0;
+      if (newtonCounter>=30)
+        relax=5.0;
 
+      // fitting am radial mode
+      relax=100.0;
 
       eta_acc = ((nNuMethods-1)*(2*nNuMethods-3)*(2*nNuMethods+2*nu-1))/
         ((nNuMethods+2*nu-1)*(2*nNuMethods+4*nu-1)*(2*nNuMethods+2*nu-3));
@@ -236,20 +239,21 @@ namespace CoupledField
       //  if (new_res_inner>1.15*old_res_inner){
       if (new_res_inner>1.15*old_res_inner){
         //      std::cout << " \n !! New_res_inner is worse than old_res_inner -> break of inner Loop! "<< std::endl;
-        std::cout<<"\n Nr of nuMethods during "<< newtonCounter << " Newton-step = " << nNuMethods <<std::endl;
+        std::cout<<"\n " <<  nNuMethods <<" inner iterations during Newton-step  " 
+                 << newtonCounter <<" with " << nrMeasuredData<< " nrMeasuredData"<<std::endl;
         //      getchar();
-
+        
         // The following part prevents stagnation of algorithm in case that
         // no better update was found during the first iteration step.
         
         Complex sum=Complex(0.0,0.0);
-        for (UInt i=0;i<s_old.GetSize();i++)
-          sum+=s_old[i];
-        if(std::abs(sum)!=0.0)
-          s=s_old;
-        else
-          for (UInt i=0;i<s_old.GetSize();i++)
-            s[i]=0.1*s[i];
+         for (UInt i=0;i<s_old.GetSize();i++)
+           sum+=s_old[i];
+         if(std::abs(sum)!=0.0)
+           s=s_old;
+         else
+           for (UInt i=0;i<s_old.GetSize();i++)
+             s[i]=0.1*s[i];
 
         break;
       }
@@ -277,7 +281,7 @@ namespace CoupledField
     for (UInt i=0;i<actNrParameter;i++)
       stepR[i]=s[i].real();
 
-    theta=1.0;
+    theta=0.2;
 
     parameter_old=parameter;
     std::cout<<"stepR"<<std::endl;
@@ -291,25 +295,32 @@ namespace CoupledField
 
     norm(act_res,new_res_outer,maxres_inner,y_hat);
 
+    std::cout<<"new_res_outer:"<<std::endl;
+    std::cout<<new_res_outer<<std::endl;
+
     Integer lineSearchCount=0;
 
-    //    while (new_res_outer>=res_outer){
-    //        theta = 0.5*theta;
-    //        std::cout<<"theta = "<<theta<<std::endl;
-    //        parameter=parameter_old;
-    //        setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
-    //        updateMaterialData(parameter, ptMaterial);
-    //        createF(ptMaterial, F_hat,FALSE);
+    while (new_res_outer>old_res_outer){
+      theta = 0.5*theta;
+      std::cout<<"theta = "<<theta<<std::endl;
+      parameter=parameter_old;
+      setNewParameterSet(parameter, parameter, scaling, theta, stepR, whichParameterToUpdate);
+      updateMaterialData(parameter, ptMaterial);
+      createF(ptMaterial, F_hat,FALSE);
       
-    //        for (UInt i=0;i<nrMeasuredData;i++)
-    //          act_res[i]=y_hat[i]-F_hat[i];
+      for (UInt i=0;i<nrMeasuredData;i++)
+        act_res[i]=y_hat[i]-F_hat[i];
     // //       //Norm ersetzt:
     // //       //      std::cout<<act_res<<std::endl;
-    //        norm(act_res,new_res_outer,maxres_inner,y_hat);
-    //        std::cout<<"new_res_outer = " << new_res_outer <<std::endl;
-    //        std::cout<<"res_outer = " << res_outer <<std::endl;
-     
-    //        lineSearchCount++;
+      norm(act_res,new_res_outer,maxres_inner,y_hat);
+      std::cout<<"new_res_outer = " << new_res_outer <<std::endl;
+      std::cout<<"res_outer = " << res_outer <<std::endl;
+      
+      lineSearchCount++;
+      if (lineSearchCount>10)
+        break;
+
+    }
 
     //        if (lineSearchCount>=1){
     //          //         theta=1.0;  
@@ -359,7 +370,7 @@ namespace CoupledField
     //        *parLog<<"  "<< parameter[i]/parameterIncrement[i];
     //       *parLog<<std::endl;
 
-    if(new_res_outer<=1.0e-4)
+    if(new_res_outer<=1.0e-12)
       getchar();
 
     //       while (new_res_outer>old_res_outer){

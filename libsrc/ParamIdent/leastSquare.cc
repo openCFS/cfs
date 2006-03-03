@@ -14,84 +14,121 @@ namespace CoupledField
 
     MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-     nrMeasuredData=24;
-     Vector<Double> freqs5;
-     freqs5.Resize(24);
+    nrMeasuredData=20;
+    Vector<Double> freqs5;
+    freqs5.Resize(20);
 
-//         freqs5[0]=2.5e+06;
-//         freqs5[1]=3.5e+06;
-//         freqs5[2]=4.5e+06;
-//         freqs5[3]=5.5e+06;
-//         freqs5[4]=6.0e+06;
-//         freqs5[5]=6.2e+06;
-//         freqs5[6]=6.4e+06;
-//         freqs5[7]=6.95e+06;
-//         freqs5[8]=7.1e+06;
-//         freqs5[9]=7.4e+06;
-//         freqs5[10]=7.75e+06;
-//         freqs5[11]=8.0e+06;
-        //  freqs5[12]=9.5e+06;
-        //    freqs5[13]=14.0e+06;
+    //         freqs5[0]=2.5e+06;
+    //         freqs5[1]=3.5e+06;
+    //         freqs5[2]=4.5e+06;
+    //         freqs5[3]=5.5e+06;
+    //         freqs5[4]=6.0e+06;
+    //         freqs5[5]=6.2e+06;
+    //         freqs5[6]=6.4e+06;
+    //         freqs5[7]=6.95e+06;
+    //         freqs5[8]=7.1e+06;
+    //         freqs5[9]=7.4e+06;
+    //         freqs5[10]=7.75e+06;
+    //         freqs5[11]=8.0e+06;
+    //  freqs5[12]=9.5e+06;
+    //    freqs5[13]=14.0e+06;
+    if (FALSE){
+      freqs5[0]=0.2e+05;
+      freqs5[1]=0.35e+05;
+      freqs5[2]=0.45e+05;
+      freqs5[3]=0.55e+05;
+      freqs5[4]=0.6e+05;
+      freqs5[5]=0.69e+05;
+      freqs5[6]=0.72e+05;
+      freqs5[7]=0.82e+05;
+      freqs5[8]=1.15e+05;
+      freqs5[9]=1.25e+05;
+      freqs5[10]=1.3e+05;
+      freqs5[11]=1.4e+05;
+      freqs5[12]=1.6e+05;
+      freqs5[13]=1.8e+05;
+      freqs5[14]=2.0e+05;
+    }
+    // 10 V
+    if (FALSE){
+      freqs5[0]=0.2e+05;
+      freqs5[1]=0.35e+05;
+      freqs5[2]=0.45e+05;
+      freqs5[3]=0.55e+05;
+      freqs5[4]=0.6e+05;
+      freqs5[5]=0.69e+05;
+      freqs5[6]=0.72e+05;
+      freqs5[7]=0.75e+05;
+      freqs5[8]=0.82e+05;
+      freqs5[9]=0.78e+05;
+      freqs5[10]=0.85e+05;
+      freqs5[11]=0.9e+05;
+      freqs5[12]=1.0e+05;
+      freqs5[13]=1.1e+05;
+      freqs5[14]=1.2e+05;
+      freqs5[15]=1.3e+05;
+      freqs5[16]=1.4e+05;
+      freqs5[17]=1.6e+05;
+      freqs5[18]=1.8e+05;
+      freqs5[19]=2.0e+05;
+    } 
+    // 100V
+    if (TRUE){
+      nrMeasuredData=15;
+      freqs5.Resize(15);
 
 
-     freqs5[0]=2.6e+06;
-     freqs5[1]=3.0e+06;
-     freqs5[2]=3.5e+06;
-     freqs5[3]=5.0e+06;
-     freqs5[4]=6.0e+06;
-     freqs5[5]=6.1e+06;
-     freqs5[6]=6.2e+06;
-     freqs5[7]=6.3e+06;
-     freqs5[8]=6.4e+06;
-     freqs5[9]=6.5e+06;
-     freqs5[10]=6.6e+06;
-     freqs5[11]=6.7e+06;
-     freqs5[12]=6.9e+06;
-     freqs5[13]=7.1e+06;
-     freqs5[14]=8.2e+06;
-     freqs5[15]=9.9e+06;
-     freqs5[16]=10.0e+06;
-     freqs5[17]=10.5e+06;
-     freqs5[18]=10.8e+06;
-     freqs5[19]=11.4e+06;
-     freqs5[20]=11.5e+06;
-     freqs5[21]=13.0e+06;
-     freqs5[22]=13.5e+06;
-     freqs5[23]=14.0e+06;
-    //  freqs5[8]=6.9e+06;
-//      freqs5[9]=9.0e+06;
-//      freqs5[10]=10.0e+06;
-//      freqs5[11]=10.7e+06;
-//      freqs5[12]=11.0e+06;
-//      freqs5[13]=12.3e+06;
-//      //  freqs[14]=12.5e+06;
+      freqs5[0]=0.2e+05;
+      freqs5[1]=0.35e+05;
+      freqs5[2]=0.45e+05;
+      freqs5[3]=0.55e+05;
+      freqs5[4]=0.6e+05;
+      freqs5[5]=0.69e+05;
+      freqs5[6]=0.72e+05;
+      freqs5[7]=0.75e+05;
+//       freqs5[8]=0.82e+05;
+//       freqs5[9]=0.78e+05;
+//       freqs5[10]=0.85e+05;
+//       freqs5[11]=0.9e+05;
+//       freqs5[12]=1.0e+05;
+      freqs5[8]=1.1e+05;
+      freqs5[9]=1.2e+05;
+      freqs5[10]=1.3e+05;
+      freqs5[11]=1.4e+05;
+      freqs5[12]=1.6e+05;
+      freqs5[13]=1.8e+05;
+      freqs5[14]=2.0e+05;
 
-// ;
+    }
 
-//       freqs5[0]=2.0e+06;
-//       freqs5[1]=3.5e+06;
-//       freqs5[2]=4.5e+06;
-//       freqs5[3]=5.8e+06;
-//       freqs5[4]=6.9e+06;
+    if(FALSE){
+      Integer numMeasPoints=35;
+      Double fmin=0.2e+5;
+      Double fmax=2.0e+5;
+      Double fincr=(fmax-fmin)/numMeasPoints;
+      freqs5.Resize(numMeasPoints);
+      nrMeasuredData=numMeasPoints;
+      for(UInt i=0;i<numMeasPoints;i++)
+        freqs5[i]=fmin+i*fincr;
+    }
+      
+    freqs=freqs5;
 
 
-       freqs=freqs5;
+    Vector<Complex> F_y(nrMeasuredData);
+    Vector <Double> parameter_old(10);
+    Vector <Double> parameter_oldC(10);
+    Vector <Double> gradP(actNrParameter+actNrParameterC);
+    Vector<Double> newFreqs;
+    parameter_old=parameter;
+    parameter_oldC=parameterC;
+    Double normFy, maxres, normFy0,normFy1;
+    Integer indPar=0;
+    Integer indParC=0;
+    Double lambda=1.0;
+    Boolean negFlag=FALSE;      
 
-
-     Vector<Complex> F_y(nrMeasuredData);
-     Vector <Double> parameter_old(10);
-     Vector <Double> parameter_oldC(10);
-     Vector <Double> gradP(actNrParameter+actNrParameterC);
-     Vector<Double> newFreqs;
-     parameter_old=parameter;
-     parameter_oldC=parameterC;
-     Double normFy, maxres, normFy0,normFy1;
-     Integer indPar=0;
-     Integer indParC=0;
-     Double lambda=1.0;
-     Boolean negFlag=FALSE;      
-
-     std::cout<<"Before read in Measuerment"<<std::endl;
+    std::cout<<"Before read in Measuerment"<<std::endl;
   
     readInMeasurement(newFreqs);
 
@@ -111,11 +148,11 @@ namespace CoupledField
         F_y[i]=F_hat[i]-y_hat[i];
       
 
-//       std::cout<<"F_hat:"<<std::endl;
-//       std::cout<<F_hat<<std::endl;
+      //       std::cout<<"F_hat:"<<std::endl;
+      //       std::cout<<F_hat<<std::endl;
 
-//       std::cout<<"y_hat:"<<std::endl;
-//       std::cout<<y_hat<<std::endl;
+      //       std::cout<<"y_hat:"<<std::endl;
+      //       std::cout<<y_hat<<std::endl;
 
       norm(F_y,normFy0,maxres,y_hat);
       
@@ -126,11 +163,11 @@ namespace CoupledField
       for (UInt par=0;par<nrParameter;par++)
         if (whichParameterToUpdate[par]==1){
           *parLog<<parameter[par]<<"  ";
-          }
+        }
       for (UInt par=0;par<nrParameter;par++)
         if (whichParameterToUpdateC[par]==1){
           *parLog<<parameterC[par]<<"  ";
-          }
+        }
 
       *parLog<<std::endl;
 
@@ -205,8 +242,8 @@ namespace CoupledField
       scalingC[8]=1.0/((*matMatC)[6][6]); 
       scalingC[9]=1.0/((*matMatC)[8][8]);
 
-//     for (UInt par=0;par<nrParameter;par++)
-//       gradP[par]=gradP[par]/scaling[par];
+      //     for (UInt par=0;par<nrParameter;par++)
+      //       gradP[par]=gradP[par]/scaling[par];
       
       std::cout<<"gradP: "<<std::endl;
       std::cout<<gradP<<std::endl;
@@ -296,8 +333,8 @@ namespace CoupledField
 
       *parFinal<<std::endl;
             
-//       std::cout<<"parameter_old:"<<std::endl;
-//       std::cout<<parameter_old<<std::endl;
+      //       std::cout<<"parameter_old:"<<std::endl;
+      //       std::cout<<parameter_old<<std::endl;
       parameter_old=parameter;
       parameter_oldC=parameterC;
     } // end iter index
