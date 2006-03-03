@@ -402,7 +402,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>       
-          <xsd:element name="analysis" minOccurs="2" maxOccurs="unbounded">
+          <xsd:element name="analysisPart" minOccurs="2" maxOccurs="unbounded">
             <xsd:complexType>  
               <xsd:attribute name="type" use="required">
                 <xsd:simpleType>
