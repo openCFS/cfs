@@ -151,6 +151,9 @@ namespace CoupledField
     UInt bcSequenceIndex_;
     //@}
 
+    //! Type of current analysis
+    AnalysisType analysisType_;
+
     //! TRUE, if solution should be written to result file
     Boolean saveSol_;
 
