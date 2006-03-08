@@ -171,13 +171,13 @@ namespace CoupledField {
     //! Method for doing experimental stuff
     void tryStuff();
 
-    void process( SchemaGrammar *sg );
-    void processAttributes( XMLAttDefList& attList, bool margin = false );
-    void processDatatypeValidator( const DatatypeValidator* dtValidator,
+    void process( xercesc::SchemaGrammar *sg );
+    void processAttributes( xercesc::XMLAttDefList& attList, bool margin = false );
+    void processDatatypeValidator( const xercesc::DatatypeValidator* dtValidator,
                                    bool margin = false );
-    void processContentSpecNode( const ContentSpecNode* cSpecNode,
+    void processContentSpecNode( const xercesc::ContentSpecNode* cSpecNode,
                                  bool margin = false );
-
+    
   };
 
 }
