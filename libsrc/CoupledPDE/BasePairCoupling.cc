@@ -67,6 +67,10 @@ namespace CoupledField {
     bcSequenceTag_ = bcSequenceTag;
     bcSequenceIndex_ = bcSequenceStep;
 
+    // Determine analysistype
+    analysisType_ = pde1_->GetAnalysisType();
+ 
+    
     // get subdomains of coupling object
     StdVector<std::string> keyVec, attrVec, valVec, regionNames, regionTypes;
     StdVector<RegionIdType> regionIds;

@@ -56,13 +56,9 @@ namespace CoupledField {
     ENTER_FCN( "PiezoCoupling::PostProcess" );
 
     //calc charges
-    std::string analysis;
-    params->Get( "type", analysis, "analysis" );
-    String2Enum(analysis,analysistype_);
-
     if (calcCharge_.GetSize() !=0 ) {
       
-      if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC){
+      if (analysisType_ == HARMONIC || analysisType_== MULTIHARMONIC){
         CalcCharges<Complex>();
       }
       else{
@@ -72,7 +68,7 @@ namespace CoupledField {
 
     // calc stresses
     if (calcStress_.GetSize() !=0 ) {
-      if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC)
+      if (analysisType_ == HARMONIC || analysisType_==MULTIHARMONIC)
         CalcStress<Complex>();
       else
         CalcStress<Double>();
@@ -80,7 +76,7 @@ namespace CoupledField {
 
     
     //     if (calcDfield_.GetSize() !=0 ) {
-    //       if (analysistype_==HARMONIC || analysistype_==MULTIHARMONIC){
+    //       if (analysisType_==HARMONIC || analysisType_==MULTIHARMONIC){
     //         std::cout<<"PiezoCoupling::PostProces DField -- needs further implementation! "<<std::endl;
     //         //        CalcComplexValuedDfie();
     //       }
@@ -759,7 +755,7 @@ namespace CoupledField {
     //!< pointer to output file
     WriteResults * outFile = pde1_->getPDE_outFile();
         
-    if (analysistype_ == STATIC || analysistype_==TRANSIENT) {
+    if (analysisType_ == STATIC || analysisType_==TRANSIENT) {
 
       if (calcStress_.GetSize() !=0 ) {
         ElemStoreSol<Double> & stressConverted = 
@@ -777,7 +773,7 @@ namespace CoupledField {
       } 
     }
    
-    else if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+    else if (analysisType_ == HARMONIC || analysisType_==MULTIHARMONIC) {
      
       //element results
       if (calcCharge_.GetSize() !=0 ) {
@@ -810,12 +806,7 @@ namespace CoupledField {
     StdVector<std::string> valVec;
     StdVector<std::string> regionNames;
     std::string quantity;
-
-    std::string analysis;
-    params->Get( "type", analysis, "analysis" );
-    String2Enum(analysis,analysistype_);
-
-
+    
     // *****************************
     // Determine nodal results
     // ***************************** 
@@ -844,7 +835,7 @@ namespace CoupledField {
       }
       Info->PrintF( "", "\n" );
 
-      if( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+      if( analysisType_ == HARMONIC || analysisType_==MULTIHARMONIC) {
         stress_ = new ElemStoreSol<Complex>;
       } else {
         stress_ = new ElemStoreSol<Double>;
@@ -889,7 +880,7 @@ namespace CoupledField {
       Info->PrintF( "", "\n" );
       
       // Resize solution arrays
-      if( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+      if( analysisType_ == HARMONIC || analysisType_==MULTIHARMONIC) {
         charges_ = new ElemStoreSol<Complex>;
       } else {
         charges_ = new ElemStoreSol<Double>;
@@ -912,9 +903,9 @@ namespace CoupledField {
     //         }
     //         Info->PrintF( "", "\n" );
 
-    //         std::cout<<"analysistype_"<<std::endl;
-    //         std::cout<<analysistype_<<std::endl;
-    //         if ( analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+    //         std::cout<<"analysisType_"<<std::endl;
+    //         std::cout<<analysisType_<<std::endl;
+    //         if ( analysisType_ == HARMONIC || analysisType_==MULTIHARMONIC) {
     //           std::cout<<" Resize solution arrays ... harmonic case"<<std::endl;
 
     //           DfieldComplex_.SetNumSolutions(1);

@@ -67,7 +67,6 @@ namespace CoupledField
 
   private:
     
-    AnalysisType analysistype_;
 
     //! Postprocession section
 
