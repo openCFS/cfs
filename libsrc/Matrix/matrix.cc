@@ -1040,6 +1040,29 @@ namespace CoupledField
 
 
 
+  // adds subMat to the matrix elements at the position (row, col)
+  // in a rectangular (submatrix) way
+  template<class TYPE>
+  void Matrix<TYPE>::AddSubMatrix(const Matrix<TYPE>& subMat, UInt startRow, UInt startCol)
+  {
+    ENTER_FCN("Matrix::AddSubMatrix");
+#ifdef CHECK_INITIALIZED
+    if (subMat.size_row_ == 0 || subMat.size_col_ == 0 || size_col_ == 0 || size_row_ == 0 ) 
+      Error("undefined matrix",__FILE__,__LINE__);
+#endif
+  
+#ifdef CHECK_INDEX
+    if ((subMat.size_row_ + startRow > size_row_) || (subMat.size_col_ + startCol > size_col_) )
+      Error("Submatrix to be read is to large! ",__FILE__,__LINE__);
+#endif
+  
+    for( UInt actRow=0; actRow < subMat.size_row_; actRow++)
+      for( UInt actCol=0; actCol < subMat.size_col_; actCol++)
+        data_[actRow + startRow][actCol + startCol] += subMat[actRow][actCol];
+  }
+
+
+
   /// converts a matrix into a vector, by appending successively all rows
   template<class TYPE>
   void Matrix<TYPE>::ConvertToVec_AppendRows(CFSVector & v) const

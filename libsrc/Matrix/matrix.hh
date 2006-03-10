@@ -505,6 +505,10 @@ namespace CoupledField
     //! in a rectangular (submatrix) way
     void SetSubMatrix( const Matrix<TYPE>& subMat, UInt row, UInt col );
 
+    //! Adds a subMat to the matrix elements at the position (row, col)
+    //! in a rectangular (submatrix) way
+    void AddSubMatrix( const Matrix<TYPE>& subMat, UInt row, UInt col );
+
     //! Converts a matrix into a vector, by appending successively all rows
     void ConvertToVec_AppendRows( CFSVector& vec ) const;
 
