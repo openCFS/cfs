@@ -35,8 +35,11 @@ namespace CoupledField {
     //       for transient analysis ;-)
     algsys_->InitRHS();
 
-    if (isIterCoupled_)     
+    if (isIterCoupled_) {
       algsys_->InitSol();
+      algsys_->InitMatrix();
+      assemble_->SetReassemble();
+    }
 
     if ( PDE_.getPDE_geoUpdate() ) {
       algsys_->InitSol();
@@ -195,14 +198,13 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepStokesFluid::StepTransNonLin( const Boolean reset ) {
-    ENTER_FCN( "SolveStepStokesFluid::StepTransNonLin" );
-  }
+  //  void SolveStepStokesFluid::StepTransNonLin( const Boolean reset ) {
+  //    ENTER_FCN( "SolveStepStokesFluid::StepTransNonLin" );
+  //  }
 
 
   void SolveStepStokesFluid::AddNonLinRHS() {
     ENTER_FCN( "SolveStepStokesFluid::AddNonLinRHS" );
-
   }
 
 
