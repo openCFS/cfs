@@ -303,7 +303,7 @@
         <xsd:attribute name="type" use="required">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
-              <!--<xsd:enumeration value="node"/>-->
+              <xsd:enumeration value="node"/>
               <xsd:enumeration value="region"/>
               <!--xsd:enumeration value="interface"/>-->
             </xsd:restriction>
@@ -314,6 +314,7 @@
             <xsd:restriction base="xsd:token">
               <!--<xsd:enumeration value="mechForce"/>-->
               <xsd:enumeration value="smoothDisplacement"/>
+              <xsd:enumeration value="mechVelocity"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
