@@ -147,7 +147,7 @@ namespace CoupledField
     Vector<Double>  xi;
     Vector<Double> ShpFncAtIp;
 
-    N = 8; // 8 DOFs per Node
+    N = 7; // 7 DOFs per Node
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrNodes*N); elemMat.Init();
@@ -160,6 +160,7 @@ namespace CoupledField
         ptelem->GetShFncAtIp(xi, actIntPt);
         ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord, jacDet);
 
+//  __ Sucessive-Substitution                                                          __
 //  __                                                                                       __
 //  |  0                       1                        2                      3  4  5  6  7  |
 
@@ -169,44 +170,67 @@ namespace CoupledField
 // 3|  0                       0                        0                      0  0  0  0  0  |
 // 4|  0                       0                        0                      0  0  0  0  0  |
 // 5|  0                       0                        0                      0  0  0  0  0  |
-// 6|  0                       0                        0                      0  0  0  0  0  |
-// 7|  0                       0                        0                      0  0  0  0  0 _|
+// 6|  0                       0                        0                      0  0  0  0  0 _|
 
-        Matrix<Double>  velocityDeriv;  
-        velocityDeriv = elemVelocity_ * xiDxDyDz;
+        Matrix<Double>  vxM, vyM, vzM, vxDxDyDzAtIP, vyDxDyDzAtIP, vzDxDyDzAtIP;  
+        Vector<Double>  vxAtIP, vyAtIP, vzAtIP;
 
-        // we need transposed of velocity 
-        Matrix<Double> velocityTransp;
-        elemVelocity_.Transpose(velocityTransp);  
+        vxM.Resize(nrNodes,1);
+        vyM.Resize(nrNodes,1);
+        vzM.Resize(nrNodes,1);
 
-        // we need transposed of velocity derivatives
-        Matrix<Double> velocityDerivTransp;
-        velocityDeriv.Transpose(velocityDerivTransp);  
+        for (UInt i=0; i<nrNodes; i++) {
+            vxM[i][0]=elemVelocity_[0][i];
+            vyM[i][0]=elemVelocity_[1][i];
+            vzM[i][0]=elemVelocity_[2][i];
+        }
+
+        vxAtIP     = vxM * xi;
+        vyAtIP     = vyM * xi;
+        vzAtIP     = vzM * xi;
+
+        //vxDxDyDzAtIP = vxM * xiDxDyDz;
+        //vyDxDyDzAtIP = vyM * xiDxDyDz;
+        //vzDxDyDzAtIP = vzM * xiDxDyDz;
 
         partElemAMat.Resize(N,nrNodes*N); partElemAMat.Init();
         for (j=0; j<nrNodes; j++)
           {
-            partElemAMat[0][j]   =           velocityTransp[j][0]*xiDxDyDz[j][0]
-                                           + velocityTransp[j][1]*xiDxDyDz[j][1]
-                                           + velocityTransp[j][2]*xiDxDyDz[j][2]
-                                           + velocityDerivTransp[j][0]; //v_xDx;
-            partElemAMat[0][j+1*nrNodes] =   velocityDerivTransp[j][1]; //v_xDy;
-            partElemAMat[0][j+2*nrNodes] =   velocityDerivTransp[j][2]; //v_xDz;
+//          Sucessive-Substitution                                                 
+            partElemAMat[0][j]   =           vxAtIP[j]*xiDxDyDz[j][0]
+                                           + vyAtIP[j]*xiDxDyDz[j][1]
+                                           + vzAtIP[j]*xiDxDyDz[j][2];
+
+            partElemAMat[1][j+1*nrNodes] =   vxAtIP[j]*xiDxDyDz[j][0]
+                                           + vyAtIP[j]*xiDxDyDz[j][1]
+                                           + vzAtIP[j]*xiDxDyDz[j][2];
             
-            partElemAMat[1][j]          =    velocityDerivTransp[j+1*nrNodes][0]; //v_yDx;
-            partElemAMat[1][j+1*nrNodes] =   velocityTransp[j][0]*xiDxDyDz[j][0]
-                                           + velocityTransp[j][1]*xiDxDyDz[j][1]
-                                           + velocityTransp[j][2]*xiDxDyDz[j][2]
-                                           + velocityDerivTransp[j+1*nrNodes][1];
-            partElemAMat[1][j+2*nrNodes] =   velocityDerivTransp[j+1*nrNodes][2]; //v_yDz;
+            partElemAMat[2][j+2*nrNodes] =   vxAtIP[j]*xiDxDyDz[j][0]
+                                           + vyAtIP[j]*xiDxDyDz[j][1]
+                                           + vzAtIP[j]*xiDxDyDz[j][2];
+
+//             Newton-Method
+//             partElemAMat[0][j]   =           vxAtIP[j]*xiDxDyDz[j][0]
+//                                            + vyAtIP[j]*xiDxDyDz[j][1]
+//                                            + vzAtIP[j]*xiDxDyDz[j][2]
+
+//             partElemAMat[0][j+1*nrNodes] =   velocityDerivTransp[j][1]; //v_xDy;
+//             partElemAMat[0][j+2*nrNodes] =   velocityDerivTransp[j][2]; //v_xDz;
+            
+//             partElemAMat[1][j]          =    velocityDerivTransp[j+1*nrNodes][0]; //v_yDx;
+//             partElemAMat[1][j+1*nrNodes] =   velocityTransp[j][0]*xiDxDyDz[j][0]
+//                                            + velocityTransp[j][1]*xiDxDyDz[j][1]
+//                                            + velocityTransp[j][2]*xiDxDyDz[j][2]
+//                                            + velocityDerivTransp[j+1*nrNodes][1];
+//             partElemAMat[1][j+2*nrNodes] =   velocityDerivTransp[j+1*nrNodes][2]; //v_yDz;
             
 
-            partElemAMat[2][j]          =    velocityDerivTransp[j+2*nrNodes][0]; //v_zDx;
-            partElemAMat[2][j+1*nrNodes] =   velocityDerivTransp[j+2*nrNodes][1]; //v_zDy;
-            partElemAMat[2][j+2*nrNodes] =   velocityTransp[j][0]*xiDxDyDz[j][0]
-                                           + velocityTransp[j][1]*xiDxDyDz[j][1]
-                                           + velocityTransp[j][2]*xiDxDyDz[j][2]
-                                           + velocityDerivTransp[j+2*nrNodes][2]; //v_zDz;
+//             partElemAMat[2][j]          =    velocityDerivTransp[j+2*nrNodes][0]; //v_zDx;
+//             partElemAMat[2][j+1*nrNodes] =   velocityDerivTransp[j+2*nrNodes][1]; //v_zDy;
+//             partElemAMat[2][j+2*nrNodes] =   velocityTransp[j][0]*xiDxDyDz[j][0]
+//                                            + velocityTransp[j][1]*xiDxDyDz[j][1]
+//                                            + velocityTransp[j][2]*xiDxDyDz[j][2]
+//                                            + velocityDerivTransp[j+2*nrNodes][2]; //v_zDz;
           }
 
         partElemAMat *= intWeights[actIntPt-1] * jacDet;
@@ -242,7 +266,7 @@ namespace CoupledField
 
     // derivation of shape functions after global coordinates 
     Matrix<Double> partElemAMat, partElemATMat, locElemMat;
-    Matrix<Double> xiDxDyDz;
+    Matrix<Double> xiDxDy;
 
     Vector<Double>  xi;
     Vector<Double> ShpFncAtIp;
@@ -258,7 +282,7 @@ namespace CoupledField
         jacDet = 0;
         
         ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, ptCoord, jacDet);
 
 //  __ Sucessive-Substitution                                                          __
 //  |  0                   1                   2   3 |
@@ -274,40 +298,44 @@ namespace CoupledField
 // 2|  v0Dx                       u0*xiDx + v0*xiDy + v0Dy   0   0 |
 // 3|  0                          0                          0   0 |
 
-        Matrix<Double>  velocityDeriv;  
-        velocityDeriv = elemVelocity_ * xiDxDyDz;
+        Matrix<Double>  vxM, vyM, vxDxDyAtIP, vyDxDyAtIP;  
+        Vector<Double>  vxAtIP, vyAtIP;
 
-        //Matrix<Double>  velocityInt;  
-        //velocityInt = elemVelocity_ * xi;
+        vxM.Resize(nrNodes,1);
+        vyM.Resize(nrNodes,1);
 
-        // we need transposed of velocity 
-        Matrix<Double> velocityTransp;
-        elemVelocity_.Transpose(velocityTransp);  
+        for (UInt i=0; i<nrNodes; i++) {
+            vxM[i][0]=elemVelocity_[0][i];
+            vyM[i][0]=elemVelocity_[1][i];
+        }
 
-        // we need transposed of velocity derivatives
-        Matrix<Double> velocityDerivTransp;
-        velocityDeriv.Transpose(velocityDerivTransp);  
+        vxAtIP     = vxM * xi;
+        vyAtIP     = vyM * xi;
+        //vxDxDyAtIP = vxM * xiDxDy;
+        //vyDxDyAtIP = vyM * xiDxDy;
 
         partElemAMat.Resize(N,nrNodes*N); partElemAMat.Init();
         for (j=0; j<nrNodes; j++)
           {
 //          Sucessive Substitution
-            partElemAMat[1][j]   =           velocityTransp[j][0]*xiDxDyDz[j][0]
-                                           + velocityTransp[j][1]*xiDxDyDz[j][1];
-            
-            partElemAMat[2][j+1*nrNodes] =   velocityTransp[j][0]*xiDxDyDz[j][0]
-                                           + velocityTransp[j][1]*xiDxDyDz[j][1];
+           partElemAMat[1][j]   =           vxAtIP[j]*xiDxDy[j][0]
+                                          + vyAtIP[j]*xiDxDy[j][1];
+           
+           partElemAMat[2][j+1*nrNodes] =   vxAtIP[j]*xiDxDy[j][0]
+                                          + vyAtIP[j]*xiDxDy[j][1];
 
 //            Newton-Verfahren
-//            partElemAMat[1][j]   =           velocityTransp[j][0]*xiDxDyDz[j][0]
-//                                           + velocityTransp[j][1]*xiDxDyDz[j][1]
-//                                           + velocityDerivTransp[j][0];
-//            partElemAMat[1][j+1*nrNodes] =   velocityDerivTransp[j][1];
-//            
-//            partElemAMat[2][j]          =    velocityDerivTransp[j+1*nrNodes][0];
-//            partElemAMat[2][j+1*nrNodes] =   velocityTransp[j][0]*xiDxDyDz[j][0]
-//                                           + velocityTransp[j][1]*xiDxDyDz[j][1]
-//                                           + velocityDerivTransp[j+1*nrNodes][1];
+//             partElemAMat[1][j]   =           vxAtIP[j]*xiDxDy[j][0]
+//                                            + vyAtIP[j]*xiDxDy[j][1]
+//                                            + vxDxDyAtIP[j][0];
+
+//             partElemAMat[1][j+1*nrNodes] =   vxDxDyAtIP[j][1];
+
+//             partElemAMat[2][j]          =    vyDxDyAtIP[j][0];
+
+//             partElemAMat[2][j+1*nrNodes] =   vxAtIP[j]*xiDxDy[j][0]
+//                                            + vyAtIP[j]*xiDxDy[j][1]
+//                                            + vyDxDyAtIP[j][1];
           }
 
         partElemAMat *= intWeights[actIntPt-1] * jacDet;
