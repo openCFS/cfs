@@ -970,6 +970,12 @@ namespace CoupledField
             ptCoupling_->CreateCouplingVector(i,isComplex_);
           }
 
+        if (ptCoupling_->GetOutputQuantity(i) == MECH_VELOCITY)
+          {
+            // Intialize the memory of the coupling values
+            ptCoupling_->CreateCouplingVector(i,isComplex_);
+          }
+
         if (ptCoupling_->GetOutputQuantity(i) == MECH_FORCE)
           {
             // Intialize the memory of the coupling values
@@ -999,7 +1005,6 @@ namespace CoupledField
     StdVector<MaterialData*> * materials = NULL;
     StdVector<std::string> outputRegions;
   
-
     // at first, check if this PDE is iterative coupled
     if (isIterCoupled_ == FALSE)
       return;
@@ -1022,6 +1027,14 @@ namespace CoupledField
                       
                 sol_->NodeSolutionToCoupling(*values, *couplingnodes);
               }
+          
+
+            if (quantity == MECH_VELOCITY)
+              {
+                ptCoupling_->GetOutputNodes(i, couplingnodes);
+                solDeriv1_.SetAlgSysVector(getS1());     
+                solDeriv1_.NodeSolutionToCoupling(*values, *couplingnodes);
+	      }
           
 
             if (quantity == MECH_FORCE)
@@ -1143,7 +1156,7 @@ namespace CoupledField
   {
     ENTER_FCN( "MechPDE::HasOutput" );
 
-    if (output == MECH_DISPLACEMENT || output == MECH_FORCE)
+    if (output == MECH_DISPLACEMENT || output == MECH_VELOCITY || output == MECH_FORCE)
       return TRUE;
 
     return FALSE;
