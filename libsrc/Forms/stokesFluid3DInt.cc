@@ -31,57 +31,56 @@ namespace CoupledField
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
+    Double W1=1.0, W2=1.0, W3=1.0;
     UInt j, N;  // DOFs per Node
 
     // derivation of shape functions after global coordinates 
     Matrix<Double> partElemAMat, partElemATMat, locElemMat;
 
-    Matrix<Double> A, A_1, A_2, A_3;
-    Matrix<Double> B1, B1_1, B1_2, B1_3, B1_4;
-    Matrix<Double> B2, B2_1, B2_2, B2_3, B2_4;
-    Matrix<Double> B3, B3_1, B3_2, B3_3, B3_4;
-    Matrix<Double> C1, C1_1, C1_2;
-    Matrix<Double> C1T;
-    Matrix<Double> C2, C2_1, C2_2;
-    Matrix<Double> C2T;
-    Matrix<Double> C3, C3_1, C3_2;
-    Matrix<Double> C3T;
-    Matrix<Double> D1, mD1;
-    Matrix<Double> D2, mD2;
-    Matrix<Double> D3, mD3;
-    Matrix<Double> E1, mE1;
-    Matrix<Double> E2, mE2;
-    Matrix<Double> E3, mE3;
-    Matrix<Double> F1, F1_1, F1_2;
-    Matrix<Double> F2, F2_1, F2_2;
-    Matrix<Double> F3, F3_1, F3_2;
-    Matrix<Double> G1, G1_1, G1_2;
-    Matrix<Double> G2, G2_1, G2_2;
-    Matrix<Double> G3, G3_1, G3_2;
-    Matrix<Double> H1, H1_1, H1_2;
-    Matrix<Double> H2, H2_1, H2_2;
-    Matrix<Double> H3, H3_1, H3_2;
-    Matrix<Double> I1, I1_1, I1_2;
-    Matrix<Double> I2, I2_1, I2_2;
-    Matrix<Double> I3, I3_1, I3_2;
+//     Matrix<Double> A, A_1, A_2, A_3;
+//     Matrix<Double> B1, B1_1, B1_2, B1_3, B1_4;
+//     Matrix<Double> B2, B2_1, B2_2, B2_3, B2_4;
+//     Matrix<Double> B3, B3_1, B3_2, B3_3, B3_4;
+//     Matrix<Double> C1, C1_1, C1_2;
+//     Matrix<Double> C1T;
+//     Matrix<Double> C2, C2_1, C2_2;
+//     Matrix<Double> C2T;
+//     Matrix<Double> C3, C3_1, C3_2;
+//     Matrix<Double> C3T;
+//     Matrix<Double> D1, mD1;
+//     Matrix<Double> D2, mD2;
+//     Matrix<Double> D3, mD3;
+//     Matrix<Double> E1, mE1;
+//     Matrix<Double> E2, mE2;
+//     Matrix<Double> E3, mE3;
+//     Matrix<Double> F1, F1_1, F1_2;
+//     Matrix<Double> F2, F2_1, F2_2;
+//     Matrix<Double> F3, F3_1, F3_2;
+//     Matrix<Double> G1, G1_1, G1_2;
+//     Matrix<Double> G2, G2_1, G2_2;
+//     Matrix<Double> G3, G3_1, G3_2;
+//     Matrix<Double> H1, H1_1, H1_2;
+//     Matrix<Double> H2, H2_1, H2_2;
+//     Matrix<Double> H3, H3_1, H3_2;
+//     Matrix<Double> I1, I1_1, I1_2;
+//     Matrix<Double> I2, I2_1, I2_2;
+//     Matrix<Double> I3, I3_1, I3_2;
 
     Matrix<Double> xiDxDyDz;
 
-    Vector<Double>  xi, xiDx, xiDy, xiDz;
+    //Vector<Double>  xiDx, xiDy, xiDz;
 
-    Vector<Double> ShpFncAtIp;
+    Vector<Double> xi;
 
-//    Vector<Double> CoordAtIP;
-
-    N = 8; // 8 DOFs per Node
+    N = 7; // 7 DOFs per Node
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrNodes*N); elemMat.Init(0.0);
     locElemMat.Resize(nrNodes*N); locElemMat.Init(0.0);
 
-    xiDx.Resize(nrNodes);
-    xiDy.Resize(nrNodes);
-    xiDz.Resize(nrNodes);
+    //xiDx.Resize(nrNodes);
+    //xiDy.Resize(nrNodes);
+    //xiDz.Resize(nrNodes);
 
     //std::cerr << "nrIntPts=" << nrIntPts << std::endl;
     
@@ -289,7 +288,7 @@ namespace CoupledField
 //        locElemMat.AddSubMatrix(I1      ,  3*nrNodes,  6*nrNodes);
 //        locElemMat.AddSubMatrix(I2      ,  4*nrNodes,  6*nrNodes);
 //        locElemMat.AddSubMatrix(I3      ,  5*nrNodes,  6*nrNodes);
-
+//
 /////////////////////////////////////////////////////////////////////
 //      A-Matrix for 8 unknowns
 /////////////////////////////////////////////////////////////////////
@@ -309,101 +308,101 @@ namespace CoupledField
 //      A-Matrix for 7 unknowns
 /////////////////////////////////////////////////////////////////////
 //  __                                                              __
-//  |  0      1     2      3         4        5        6             |
-// 0|  0      0     0      0        -mu*xiDz  mu*xiDy  xiDx          |   u
-// 1|  0      0     0      mu*xiDz   0       -mu*xiDx  xiDy          |   v
-// 2|  0      0     0     -mu*xiDy   mu*xiDx  0        xiDz          |   w
-// 3|  0      0     0      xiDx     xiDy      xiDz     0             |   omx
-// 4|  0     -xiDz  xiDy  -xi       0         0        0             |   omy
-// 5|  xiDz   0    -xiDx   0       -xi        0        0             |   omz
-// 6| -xiDy   xiDx  0      0        0        -xi       0             |   p
-// 7|  xiDx   xiDy  xiDz   0        0         0        0             |
-//  |_ 0      1     2      3         4        5        6           __|
+//  |  0         1        2         3         4         5        6             |
+// 0|  0         0        0         0        -mu*xiDz   mu*xiDy  xiDx          |   u
+// 1|  0         0        0         mu*xiDz   0        -mu*xiDx  xiDy          |   v
+// 2|  0         0        0        -mu*xiDy   mu*xiDx   0        xiDz          |   w
+// 3|  0         0        0         W1*xiDx   W1*xiDy   W1*xiDz  0             |   omx
+// 4|  0        -W3*xiDz  W3*xiDy  -W3*       0         0        0             |   omy
+// 5|  W3*xiDz   0       -W3*xiDx   0        -W3*xi     0        0             |   omz
+// 6| -W3*xiDy   W3*xiDx  0         0         0        -W3*xi    0             |   p
+// 7|  W2*xiDx   W2*xiDy  W2*xiDz   0         0         0        0             |
+//  |_ 0         1        2         3         4         5        6           __|
 
 /////////////////////////////////////////////////////////////////////
 //      A-Matrix for 8 unknowns
 /////////////////////////////////////////////////////////////////////
-        partElemAMat.Resize(N,nrNodes*N); partElemAMat.Init();
+//        partElemAMat.Resize(N,nrNodes*N); partElemAMat.Init();
 /////////////////////////////////////////////////////////////////////
 //      A-Matrix for 7 unknowns
 /////////////////////////////////////////////////////////////////////
-        //partElemAMat.Resize(N+1,nrNodes*N); partElemAMat.Init(0.0);
-
+        partElemAMat.Resize(N+1,nrNodes*N); partElemAMat.Init(0.0);
+//
         for (j=0; j<nrNodes; j++)
           {
-/////////////////////////////////////////////////////////////////////
-//      A-Matrix for 8 unknowns
-/////////////////////////////////////////////////////////////////////
-            partElemAMat[0][j+5*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][2];
-            partElemAMat[0][j+6*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][1];
-            partElemAMat[0][j+7*nrNodes]   =  xiDxDyDz[j][0];
-            
-            partElemAMat[1][j+4*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][2];
-            partElemAMat[1][j+6*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][0];
-            partElemAMat[1][j+7*nrNodes]   =  xiDxDyDz[j][1];
-
-            partElemAMat[2][j+4*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][1];
-            partElemAMat[2][j+5*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][0];
-            partElemAMat[2][j+7*nrNodes]   =  xiDxDyDz[j][2];
-
-            partElemAMat[3][j+4*nrNodes]   =  xiDxDyDz[j][0];
-            partElemAMat[3][j+5*nrNodes]   =  xiDxDyDz[j][1];
-            partElemAMat[3][j+6*nrNodes]   =  xiDxDyDz[j][2];
-
-            partElemAMat[4][j+1*nrNodes]   = -xiDxDyDz[j][2];
-            partElemAMat[4][j+2*nrNodes]   =  xiDxDyDz[j][1];
-            partElemAMat[4][j+3*nrNodes]   =  xiDxDyDz[j][0];
-            partElemAMat[4][j+4*nrNodes]   = -xi[j];
-
-            partElemAMat[5][j]             =  xiDxDyDz[j][2];
-            partElemAMat[5][j+2*nrNodes]   = -xiDxDyDz[j][0];
-            partElemAMat[5][j+3*nrNodes]   =  xiDxDyDz[j][1];
-            partElemAMat[5][j+5*nrNodes]   = -xi[j];
-
-            partElemAMat[6][j]             = -xiDxDyDz[j][1];
-            partElemAMat[6][j+1*nrNodes]   =  xiDxDyDz[j][0];
-            partElemAMat[6][j+3*nrNodes]   =  xiDxDyDz[j][2];
-            partElemAMat[6][j+6*nrNodes]   = -xi[j];
-
-            partElemAMat[7][j]             =  xiDxDyDz[j][0];
-            partElemAMat[7][j+1*nrNodes]   =  xiDxDyDz[j][1];
-            partElemAMat[7][j+2*nrNodes]   =  xiDxDyDz[j][2];
-
-
+///////////////////////////////////////////////////////////////////////
+////      A-Matrix for 8 unknowns
+///////////////////////////////////////////////////////////////////////
+//            partElemAMat[0][j+5*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][2];
+//            partElemAMat[0][j+6*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][1];
+//            partElemAMat[0][j+7*nrNodes]   =  xiDxDyDz[j][0];
+//            
+//            partElemAMat[1][j+4*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][2];
+//            partElemAMat[1][j+6*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][0];
+//            partElemAMat[1][j+7*nrNodes]   =  xiDxDyDz[j][1];
+//
+//            partElemAMat[2][j+4*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][1];
+//            partElemAMat[2][j+5*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][0];
+//            partElemAMat[2][j+7*nrNodes]   =  xiDxDyDz[j][2];
+//
+//            partElemAMat[3][j+4*nrNodes]   =  xiDxDyDz[j][0];
+//            partElemAMat[3][j+5*nrNodes]   =  xiDxDyDz[j][1];
+//            partElemAMat[3][j+6*nrNodes]   =  xiDxDyDz[j][2];
+//
+//            partElemAMat[4][j+1*nrNodes]   = -xiDxDyDz[j][2];
+//            partElemAMat[4][j+2*nrNodes]   =  xiDxDyDz[j][1];
+//            partElemAMat[4][j+3*nrNodes]   =  xiDxDyDz[j][0];
+//            partElemAMat[4][j+4*nrNodes]   = -xi[j];
+//
+//            partElemAMat[5][j]             =  xiDxDyDz[j][2];
+//            partElemAMat[5][j+2*nrNodes]   = -xiDxDyDz[j][0];
+//            partElemAMat[5][j+3*nrNodes]   =  xiDxDyDz[j][1];
+//            partElemAMat[5][j+5*nrNodes]   = -xi[j];
+//
+//            partElemAMat[6][j]             = -xiDxDyDz[j][1];
+//            partElemAMat[6][j+1*nrNodes]   =  xiDxDyDz[j][0];
+//            partElemAMat[6][j+3*nrNodes]   =  xiDxDyDz[j][2];
+//            partElemAMat[6][j+6*nrNodes]   = -xi[j];
+//
+//            partElemAMat[7][j]             =  xiDxDyDz[j][0];
+//            partElemAMat[7][j+1*nrNodes]   =  xiDxDyDz[j][1];
+//            partElemAMat[7][j+2*nrNodes]   =  xiDxDyDz[j][2];
+//
+//
 /////////////////////////////////////////////////////////////////////
 //      A-Matrix for 7 unknowns
 /////////////////////////////////////////////////////////////////////
-//             partElemAMat[0][j+4*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][2];
-//             partElemAMat[0][j+5*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][1];
-//             partElemAMat[0][j+6*nrNodes]   =  xiDxDyDz[j][0];
+             partElemAMat[0][j+4*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][2];
+             partElemAMat[0][j+5*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][1];
+             partElemAMat[0][j+6*nrNodes]   =  xiDxDyDz[j][0];
 
-//             partElemAMat[1][j+3*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][2];
-//             partElemAMat[1][j+5*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][0];
-//             partElemAMat[1][j+6*nrNodes]   =  xiDxDyDz[j][1];
+             partElemAMat[1][j+3*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][2];
+             partElemAMat[1][j+5*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][0];
+             partElemAMat[1][j+6*nrNodes]   =  xiDxDyDz[j][1];
 
-//             partElemAMat[2][j+3*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][1];
-//             partElemAMat[2][j+4*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][0];
-//             partElemAMat[2][j+6*nrNodes]   =  xiDxDyDz[j][2];
+             partElemAMat[2][j+3*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][1];
+             partElemAMat[2][j+4*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][0];
+             partElemAMat[2][j+6*nrNodes]   =  xiDxDyDz[j][2];
 
-//             partElemAMat[3][j+3*nrNodes]   =  xiDxDyDz[j][0];
-//             partElemAMat[3][j+4*nrNodes]   =  xiDxDyDz[j][1];
-//             partElemAMat[3][j+5*nrNodes]   =  xiDxDyDz[j][2];
+             partElemAMat[3][j+3*nrNodes]   =  W1*xiDxDyDz[j][0];
+             partElemAMat[3][j+4*nrNodes]   =  W1*xiDxDyDz[j][1];
+             partElemAMat[3][j+5*nrNodes]   =  W1*xiDxDyDz[j][2];
 
-//             partElemAMat[4][j+1*nrNodes]   = -xiDxDyDz[j][2];
-//             partElemAMat[4][j+2*nrNodes]   =  xiDxDyDz[j][1];
-//             partElemAMat[4][j+3*nrNodes]   = -xi[j];
+             partElemAMat[4][j+1*nrNodes]   = -W3*xiDxDyDz[j][2];
+             partElemAMat[4][j+2*nrNodes]   =  W3*xiDxDyDz[j][1];
+             partElemAMat[4][j+3*nrNodes]   = -W3*xi[j];
 
-//             partElemAMat[5][j]             =  xiDxDyDz[j][2];
-//             partElemAMat[5][j+2*nrNodes]   = -xiDxDyDz[j][0];
-//             partElemAMat[5][j+4*nrNodes]   = -xi[j];
+             partElemAMat[5][j]             =  W3*xiDxDyDz[j][2];
+             partElemAMat[5][j+2*nrNodes]   = -W3*xiDxDyDz[j][0];
+             partElemAMat[5][j+4*nrNodes]   = -W3*xi[j];
 
-//             partElemAMat[6][j]             = -xiDxDyDz[j][1];
-//             partElemAMat[6][j+1*nrNodes]   =  xiDxDyDz[j][0];
-//             partElemAMat[6][j+5*nrNodes]   = -xi[j];
+             partElemAMat[6][j]             = -W3*xiDxDyDz[j][1];
+             partElemAMat[6][j+1*nrNodes]   =  W3*xiDxDyDz[j][0];
+             partElemAMat[6][j+5*nrNodes]   = -W3*xi[j];
 
-//             partElemAMat[7][j]             =  xiDxDyDz[j][0];
-//             partElemAMat[7][j+1*nrNodes]   =  xiDxDyDz[j][1];
-//             partElemAMat[7][j+2*nrNodes]   =  xiDxDyDz[j][2];
+             partElemAMat[7][j]             =  W2*xiDxDyDz[j][0];
+             partElemAMat[7][j+1*nrNodes]   =  W2*xiDxDyDz[j][1];
+             partElemAMat[7][j+2*nrNodes]   =  W2*xiDxDyDz[j][2];
           }
 
         partElemAMat *= intWeights[actIntPt-1] * jacDet;
@@ -414,9 +413,9 @@ namespace CoupledField
 //                   << partElemAMat << std::endl;
 //         std::cout << "partElemATMat:" << std::endl
 //                   << partElemATMat << std::endl;
-
-
-        // assemble element matrix
+//
+//
+//        // assemble element matrix
         locElemMat += (partElemATMat * partElemAMat);
       }
     ResortElementMatrix(elemMat, locElemMat, nrNodes, N);
