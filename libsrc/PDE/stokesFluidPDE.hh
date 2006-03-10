@@ -45,6 +45,9 @@ namespace CoupledField
     //! initalize PDE coupling
     virtual void InitCoupling(PDECoupling * Coupling);
 
+    //! Fill in input coupling terms
+    virtual void CalcInputCoupling();
+  
     //! calculate coupling terms
     virtual void CalcOutputCoupling();
   
@@ -139,7 +142,8 @@ namespace CoupledField
     /// returns the solution matrix belonging to all nodes of the actual element
     void GetSolOfElement( Matrix<Double>& elDisp, StdVector<UInt>& connect_PDE);
 
-    
+    /// flag for reduced Integration for each subdomain
+    StdVector<std::string> reducedIntegration_;
 
     //! Contains the regions above which the deformed volume is computed
     StdVector<RegionIdType> volAboveDefSurfRegions_;
@@ -152,6 +156,12 @@ namespace CoupledField
     // ========================
     //! assigns each coupling element node the according Coupling Node number
     StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; 
+
+    //! TRUE, if solution should be written to result file
+    Boolean saveSolVel_;
+    Boolean saveSolPres_;
+    Boolean saveSolVort_;
+
 
   };
 
