@@ -64,16 +64,16 @@ namespace CoupledField{
       component = 2;
     if ( dof == "vz" )
       component = 3;
-    if ( dof == "phi" )
-      component = 4;
+//    if ( dof == "phi" )
+//      component = 4;
     if ( dof == "omegax" )
-      component = 5;
+      component = 4;
     if ( dof == "omegay" )
-      component = 6;
+      component = 5;
     if ( dof == "omegaz" )
-      component = 7;
+      component = 6;
     if ( dof == "p" )
-      component = 8;
+      component = 7;
 
     // --- DOF for piezo - HARD CODED -
     if ( dof == "ep" )
