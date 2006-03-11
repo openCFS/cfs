@@ -65,6 +65,15 @@ namespace CoupledField
     //<! mapping containing all nodes of coupled region
      StdVector<UInt> mapSD_allNodes_;
     
+  Boolean  writeGridFile_; //!<flags to write grid with coupled vals in file
+  Boolean  writeSrcFileperTS_; //!<flags to write coarse srcs in time step files
+  //!Objects for topology files
+  std::ofstream * outelemfile_;
+  std::ofstream * outnodefile_;
+  //!Object to file for storing src in time step files (NrFiles=NrTimeSteps)
+  std::ofstream * outsrcfile_;
+
+
     //!MpCCI
 #ifdef MpCCI
      MpCCIexch * ptMpCCIexch_;
