@@ -1443,6 +1443,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
         if (saveRHSval_){
           outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
+          if (plotRHSVel_==TRUE)
+            outFile_->WriteNodeSolutionTransient(rhs2_, actStep, actTime);
         }
 
         if (calcElemPressure_.GetSize() != 0 ) {
@@ -1560,6 +1562,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
         if (saveRHSvalHist_){
           outFile_->WriteNodeHistoryTransient(rhs_, actStep, actTime); 
+          if (plotRHSVel_==TRUE)
+            outFile_->WriteNodeHistoryTransient(rhs2_, actStep, actTime); 
         }
 
         if (saveElemForceHist_.GetSize() != 0) {
