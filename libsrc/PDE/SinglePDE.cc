@@ -223,37 +223,37 @@ namespace CoupledField {
 
     if ( analysisHelp == STATIC ) {
       isComplex_ = FALSE;
-      assemble_ = new StaticAssemble(algsys_, ptgrid_);
+      assemble_ = new StaticAssemble( algsys_, ptgrid_, bcSequenceTag_ );
       analysistype_ = STATIC;
     }
 
     else if ( analysisHelp == TRANSIENT ) {
       isComplex_ = FALSE;
-      assemble_ = new TransientAssemble(algsys_, ptgrid_);
+      assemble_ = new TransientAssemble( algsys_, ptgrid_, bcSequenceTag_ );
       analysistype_ = TRANSIENT;
     }
 
     else if ( analysisHelp == EIGENFREQUENCY ) {
       isComplex_ = FALSE;
-      assemble_ = new TransientAssemble(algsys_, ptgrid_);
+      assemble_ = new TransientAssemble( algsys_, ptgrid_, bcSequenceTag_ );
       analysistype_ = EIGENFREQUENCY;
     }
 
     else if ( analysisHelp == TRANSIENT4SLICE ) {
       isComplex_ = FALSE;
-      assemble_ = new TransientAssemble(algsys_, ptgrid_);
+      assemble_ = new TransientAssemble( algsys_, ptgrid_, bcSequenceTag_ );
       analysistype_ = TRANSIENT;
     }
 
     else if ( analysisHelp == HARMONIC ) {
       isComplex_ = TRUE;
-      assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
+      assemble_ = new HarmonicAssemble( algsys_, ptgrid_, bcSequenceTag_ );
       analysistype_ = HARMONIC;
     }
 
     else if (analysisHelp == MULTIHARMONIC ){
       isComplex_ = TRUE;
-      assemble_ = new MHassemble(algsys_,ptgrid_);
+      assemble_ = new MHassemble(algsys_,ptgrid_, bcSequenceTag_ );
       analysistype_ = MULTIHARMONIC;
     }
 
@@ -271,21 +271,21 @@ namespace CoupledField {
                       pdename_.c_str() );
 
         isComplex_ = FALSE;
-        assemble_ = new TransientAssemble(algsys_, ptgrid_);
+        assemble_ = new TransientAssemble( algsys_, ptgrid_, bcSequenceTag_ );
       }
       else if ( analysistype_ == HARMONIC ) {
         Info->PrintF( pdename_ , "Harmonic Assembling of %sPDE \n",
                       pdename_.c_str());
 
         isComplex_ = TRUE;
-        assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
+        assemble_ = new HarmonicAssemble( algsys_, ptgrid_, bcSequenceTag_ );
       }
     }
 
     // Better see environment.cc to understand the following assignments...
     else if ( analysis == "paramIdent" ) {
       isComplex_ = TRUE;
-      assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
+      assemble_ = new HarmonicAssemble( algsys_, ptgrid_, bcSequenceTag_ );
       analysistype_ = HARMONIC;
     }
 
@@ -305,20 +305,20 @@ namespace CoupledField {
       }
       
       if ( analysistype_ == STATIC ) {
-        assemble_ = new StaticAssemble(algsys_, ptgrid_);
+        assemble_ = new StaticAssemble(algsys_, ptgrid_, bcSequenceTag_ );
         isComplex_ = FALSE;
       }
       else if ( analysistype_ == TRANSIENT ) {
         isComplex_ = FALSE;
-        assemble_ = new TransientAssemble(algsys_, ptgrid_);
+        assemble_ = new TransientAssemble( algsys_, ptgrid_, bcSequenceTag_ );
       }
       else if ( analysistype_ == HARMONIC ) {
         isComplex_ = TRUE;
-        assemble_ = new HarmonicAssemble(algsys_, ptgrid_);
+        assemble_ = new HarmonicAssemble( algsys_, ptgrid_, bcSequenceTag_ );
       }
       else if ( analysistype_ == MULTIHARMONIC ) {
         isComplex_ = TRUE;
-        assemble_ = new MHassemble(algsys_, ptgrid_);
+        assemble_ = new MHassemble( algsys_, ptgrid_, bcSequenceTag_ );
       }
       else {
         (*error) << "SinglePDE::Init: AnalysisType '" << analysis
@@ -489,8 +489,8 @@ namespace CoupledField {
     // =====================================================================
     assemble_->SetPtr2EQNData(eqnData_); 
     assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-    assemble_->SetGeneralParams(pdename_, dofspernode_, 
-                                subdoms_, surfdoms_, bcSequenceTag_);
+    assemble_->SetGeneralParams( pdename_, dofspernode_, 
+                                 subdoms_, surfdoms_ );
     assemble_->SetPtr2Sol(sol_);
 
     // =====================================================================

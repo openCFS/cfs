@@ -16,8 +16,9 @@
 namespace CoupledField
 {
   
-  MHassemble :: MHassemble(BaseSystem * algsys, Grid * agrid)
-    :Assemble(algsys, agrid)
+  MHassemble :: MHassemble(BaseSystem * algsys, Grid * agrid,
+                           const std::string bcSequenceTag )
+    :Assemble(algsys, agrid, bcSequenceTag )
   {
     
     ENTER_FCN( "MHassemble::MHassemble" );

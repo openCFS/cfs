@@ -22,7 +22,8 @@ namespace CoupledField
  class MHassemble : public Assemble
   {
   public:
-    MHassemble(BaseSystem * algsys, Grid * agrid);
+    MHassemble(BaseSystem * algsys, Grid * agrid, 
+               const std::string bcSequenceTag );
     
     virtual ~MHassemble();
 
