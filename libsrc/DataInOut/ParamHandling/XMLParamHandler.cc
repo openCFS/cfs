@@ -1557,10 +1557,10 @@ namespace CoupledField {
     // Convert element values to strings and append to list
     else if ( elem_match == true ) {
       for ( unsigned int i = 0; i < elem_matches->GetSize(); i++ ) {
-        auxString = GetElementValue( (*elem_matches)[i] );
-        value.assign( auxString );
-        list.Push_back( value );
-        FreeC( &auxString );
+        GetElementValue( (*elem_matches)[i], list );
+        //value.assign( auxString );
+        //list.Push_back( value );
+        //FreeC( &auxString );
       }
     }
 
@@ -1794,7 +1794,8 @@ namespace CoupledField {
   // ===========================
   //   Get value of an element
   // ===========================
-  char* XMLParamHandler::GetElementValue( DOMElement *elem ) {
+  void XMLParamHandler::GetElementValue( DOMElement *elem,
+                                       StdVector<std::string> &values ) {
 
     ENTER_IFCN( "XMLParamHandler::GetElementValue" );
 
@@ -1807,24 +1808,28 @@ namespace CoupledField {
         (*error) << "GetElementValue: Encountered element without child!";
       }
       else {
-        (*error) << "GetElementValue: Encountered element with multiple "
-                 << "children!";
+        for ( UInt i = 0; i < children->getLength(); i++ ) {
+          DOMNode *child = children->item(i);
+          if ( child->getNodeType() == DOMNode::ELEMENT_NODE ) {
+            values.Push_back( std::string( X2C( child->getNodeName() ) ) );
+          }
+        }
       }
-      (*error) << "\n       GetElementValue: Element tag is '"
-               << elem->getNodeName() << "'";
-      Error( __FILE__, __LINE__ );
+    } else {
+      
+      // Make sure that child is a text node or an element node
+      DOMNode *child = children->item(0);
+      if ( child->getNodeType() == DOMNode::TEXT_NODE ) {
+        values.Push_back( std::string (X2C (child->getNodeValue() ) ) );
+      } else if ( child->getNodeType() == DOMNode::ELEMENT_NODE ) {
+        values.Push_back( std::string( X2C( child->getNodeName() ) ) );
+      } else {
+        (*error) << "GetElementValue: Child of element is neither a TEXT_NODE "
+                 << "nor an ELEMENT_NODE!";
+        Error( __FILE__, __LINE__ );
+      }
     }
-
-    // Make sure that child is a text node
-    DOMNode *child = children->item(0);
-    if ( child->getNodeType() != DOMNode::TEXT_NODE ) {
-      Info->Error( "GetElementValue: Child of element is no TEXT_NODE!",
-                   __FILE__, __LINE__ );
-    }
-    
-    // Convert value of element to character array
-    return X2C( child->getNodeValue() );
-  }
+}
 
 
   // =======================================

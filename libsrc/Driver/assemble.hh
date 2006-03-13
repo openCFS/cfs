@@ -174,7 +174,7 @@ namespace CoupledField
   public:
     
     //!  Constructor
-    Assemble(BaseSystem * algsys, Grid * aptgrid);
+    Assemble(BaseSystem * algsys, Grid * aptgrid, const std::string bcSequenceTag );
     
     //!  Deconstructor
     virtual ~Assemble();
@@ -254,8 +254,7 @@ namespace CoupledField
     void SetGeneralParams(const std::string & pdename, 
                           const UInt dofsPerNode,
                           const StdVector<RegionIdType> & subdoms,
-                          const StdVector<RegionIdType> & surfdoms,
-                          const std::string bcSequenceId);
+                          const StdVector<RegionIdType> & surfdoms );
     
     
 
@@ -508,7 +507,7 @@ namespace CoupledField
   class StaticAssemble : public Assemble
   {
   public:
-    StaticAssemble(BaseSystem * algsys, Grid * agrid);
+    StaticAssemble(BaseSystem * algsys, Grid * agrid, const std::string bcSequenceTag );
     
     virtual ~StaticAssemble(){};
 
@@ -535,7 +534,8 @@ namespace CoupledField
   {
     
   public:
-    TransientAssemble(BaseSystem * algsys, Grid * agrid);
+    TransientAssemble(BaseSystem * algsys, Grid * agrid,  
+                      const std::string bcSequenceTag );
     
     virtual ~TransientAssemble() {
       ENTER_FCN( "TransientAssemble::~TransientAssemble" );
@@ -560,7 +560,7 @@ namespace CoupledField
   class HarmonicAssemble : public Assemble
   {
   public:
-    HarmonicAssemble(BaseSystem * algsys, Grid * agrid);
+    HarmonicAssemble(BaseSystem * algsys, Grid * agrid,  const std::string bcSequenceTag );
     
     virtual ~HarmonicAssemble(){};
 

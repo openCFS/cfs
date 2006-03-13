@@ -695,7 +695,8 @@ namespace CoupledField {
     //! will be issued. 
     //! Note that it is the caller's responsibility to free the dynamically
     //! allocate array via the FreeC() method.
-    Char* GetElementValue( xercesc::DOMElement *elem );
+    void GetElementValue( xercesc::DOMElement *elem,
+                             StdVector<std::string> &values );
 
     //! Obtain the value of an elements attribute
 

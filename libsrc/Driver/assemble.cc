@@ -19,7 +19,8 @@
 
 namespace CoupledField {
   
-  Assemble::Assemble(BaseSystem * algsys, Grid * aptgrid)
+  Assemble::Assemble(BaseSystem * algsys, Grid * aptgrid,  
+                     const std::string bcSequenceTag )
     :algsys_(algsys),
      ptgrid_(aptgrid),
      integrators_(0),
@@ -40,6 +41,8 @@ namespace CoupledField {
 
     startFreq_ = 0.0;
     matArray_  = NULL;
+    
+    bcSequenceTag_ = bcSequenceTag;
     
   }
 
@@ -274,12 +277,12 @@ namespace CoupledField {
             else {
               matDataFreq = startFreq_;
             }
-
+            
             // get multiplicative pre factor depending on frequency
             if ( matDataFreq > 0 && actFreq_ > 0 ) {
               FEMatrixType destMat =
                 actDescriptor->GetIntegrator()->GetBaseType();
-
+              
               if ( destMat == STIFFNESS ) {
                 dampTransform = matDataFreq / actFreq_;
                 if(analysis != "paramIdent")
@@ -293,7 +296,7 @@ namespace CoupledField {
                                 dampTransform );
               }
             }
-
+            
             if ( actDescriptor->GetIntegrator()->IsRaylDamping() ) {
               actDescriptor->GetIntegrator()->SetFactor(dampTransform);
             }
@@ -952,8 +955,7 @@ namespace CoupledField {
   void Assemble::SetGeneralParams(const std::string & pdename, 
                                   const UInt dofsPerNode,
                                   const StdVector<RegionIdType> & subdoms,
-                                  const StdVector<RegionIdType> & surfdoms,
-                                  const std::string bcSequenceTag)
+                                  const StdVector<RegionIdType> & surfdoms )
   {
     ENTER_FCN( "Assemble::SetGeneralParams" );
 
@@ -961,7 +963,6 @@ namespace CoupledField {
     dofsPerNode_   = dofsPerNode;
     subdoms_       = subdoms;
     surfdoms_      = surfdoms;
-    bcSequenceTag_ = bcSequenceTag;
  
 
 
@@ -1368,8 +1369,9 @@ namespace CoupledField {
   // ==========================================================
 
 
-  StaticAssemble::StaticAssemble(BaseSystem * algsys, Grid * agrid)
-    :Assemble(algsys, agrid)
+  StaticAssemble::StaticAssemble( BaseSystem * algsys, Grid * agrid,
+                                  const std::string bcSequenceTag )
+    :Assemble( algsys, agrid, bcSequenceTag )
   {
     ENTER_FCN( "StaticAssemble::StaticAssemble" );
     SetAnalysisType(STATIC);
@@ -1415,8 +1417,9 @@ namespace CoupledField {
   // ==========================================================
 
 
-  TransientAssemble::TransientAssemble(BaseSystem * algsys, Grid * agrid)
-    :Assemble(algsys, agrid)
+  TransientAssemble::TransientAssemble( BaseSystem * algsys, Grid * agrid,
+                                        const std::string bcSequenceTag )
+    :Assemble(algsys, agrid, bcSequenceTag)
   {
     ENTER_FCN( "TransientAssemble::TransientAssemble" );
     SetAnalysisType(TRANSIENT);
@@ -1575,24 +1578,15 @@ namespace CoupledField {
   // ==========================================================
 
 
-  HarmonicAssemble::HarmonicAssemble(BaseSystem * algsys, Grid * agrid)
-    :Assemble(algsys, agrid)
+  HarmonicAssemble::HarmonicAssemble(BaseSystem * algsys, Grid * agrid,
+                                     const std::string bcSequenceTag
+)
+    :Assemble(algsys, agrid, bcSequenceTag)
   {
     ENTER_FCN( "HarmonicAssemble::HarmonicAssemble" );
     SetAnalysisType(HARMONIC);
 
-    //get start frequency of harmonic analysis
-    StdVector<std::string> keyVec, attrVec, valVec;
-    Double freq;
-
-    attrVec = "tag";
-    valVec  = "anyTag";
-  
-    // Get time stepping information from parameter object
-    keyVec = "harmonic", "startFreq";
-    params->Get( keyVec, attrVec, valVec, freq );
-
-    startFreq_ = 2*PI*freq;
+    
   }
 
   /// set actual frequency (already multiplied by 2*pi)
@@ -1601,7 +1595,18 @@ namespace CoupledField {
     ENTER_FCN( "HarmonicAssemble::SetFrequency" );
 
     actFreq_ = 2*PI*frequency;
+    //get start frequency of harmonic analysis
+    StdVector<std::string> keyVec, attrVec, valVec;
+    Double freq;
 
+    attrVec = "tag";
+    valVec  = bcSequenceTag_;
+  
+    // Get time stepping information from parameter object
+    keyVec = "harmonic", "startFreq";
+    params->Get( keyVec, attrVec, valVec, freq );
+
+    startFreq_ = 2*PI*freq;
   } 
 
 

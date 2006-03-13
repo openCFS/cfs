@@ -25,19 +25,7 @@ namespace CoupledField
     NumPDEs_ = PDEs.GetSize();
     sequenceTag_ = sequenceTag;
     solveStep_ = NULL;
-    
-    
-    // get analysis type
-    //std::string analysis;
-    //params->Get( "type", analysis, "analysis" );
-    //if (analysis=="static") 
-    //  analysistype_ = STATIC;
-    //else if (analysis=="transient")
-    //  analysistype_ = TRANSIENT;
-    //else
-    // Error("Analysis Type not supported",__FILE__,__LINE__);
-    
-
+   
     // Concatenate PDE name strings for output in info-file
     pdename_ = "CoupledPDE: ";
     for (UInt actPDE=0; actPDE < PDEs.GetSize()-1; actPDE++)

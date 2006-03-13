@@ -137,16 +137,16 @@ namespace CoupledField {
     switch ( (*pde1_).analysistype_ ) {
 
     case STATIC:
-      assemble_ = new StaticAssemble( algsys_, ptGrid_ );
+      assemble_ = new StaticAssemble( algsys_, ptGrid_, bcSequenceTag_ );
       break;
     case TRANSIENT:
-      assemble_ = new TransientAssemble( algsys_, ptGrid_ );
+      assemble_ = new TransientAssemble( algsys_, ptGrid_, bcSequenceTag_ );
       break;
     case HARMONIC:
-      assemble_ = new HarmonicAssemble( algsys_, ptGrid_ );
+      assemble_ = new HarmonicAssemble( algsys_, ptGrid_, bcSequenceTag_ );
       break;
     case MULTIHARMONIC:
-      assemble_ = new MHassemble( algsys_, ptGrid_ );
+      assemble_ = new MHassemble( algsys_, ptGrid_, bcSequenceTag_ );
       break;
     default:
       std::string myType;
@@ -159,7 +159,7 @@ namespace CoupledField {
 
     // Set general parameter of assemble class
     assemble_->SetGeneralParams(couplingName_, 1, subdoms_,
-                                surfRegions_, bcSequenceTag );
+                                surfRegions_ );
                                 
     // set PDE Ids to assemble object
     PdeIdType id1 = (*pde1_).pdeId_;
