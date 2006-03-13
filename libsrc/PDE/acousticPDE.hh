@@ -171,6 +171,8 @@ namespace CoupledField {
     NodeStoreSol<Double> solDeriv1_; //!< contains 1st derivative of solution
     NodeStoreSol<Double> solDeriv2_; //!< contains 2nd derivative of solution
     NodeStoreSol<Double> rhs_; //!< right hand side vector
+    //!< right hand side vector if we have a multi-dim RHS (e.g. vel)
+    NodeStoreSol<Double> rhs2_;
 
     // force calculation on surface elements
     ElemStoreSol<Double> acouForce_; //!< contains force on surface elements
@@ -190,6 +192,7 @@ namespace CoupledField {
     Double bubbleDensity_;
 
     Boolean plotRHS_; //!< Flag for saving of rhs for output
+    Boolean plotRHSVel_; //!< Flag for saving of rhs as a vector field
 
     // DODO
     // the grid adaption object

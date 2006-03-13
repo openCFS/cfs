@@ -73,6 +73,8 @@ namespace CoupledField
   //!Object to file for storing src in time step files (NrFiles=NrTimeSteps)
   std::ofstream * outsrcfile_;
 
+    UInt vortexFlag_;//!
+
 
     //!MpCCI
 #ifdef MpCCI

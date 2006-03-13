@@ -33,9 +33,10 @@ namespace CoupledField
     pdematerialclass_ = "fluid";
     nodalSrc_ = FALSE;
     vortexSrc_ = FALSE;
-    plotRHS_ = FALSE;  
+    plotRHS_ = FALSE; 
+    plotRHSVel_= FALSE;
     isHarmonic_=FALSE;
-    //    ComputeRHSforHarm_=FALSE;    
+    vortexFlag_=0;
 
     if( params->IsSet( "valRHS","pdeList" ,"acoustic" ) ) {
       plotRHS_ = TRUE;
@@ -551,9 +552,9 @@ namespace CoupledField
     endtime = CCI_Wtime();
 #endif    
   
-    if (plotRHS_ && !isHarmonic_){
+    if (plotRHS_ && !isHarmonic_ && vortexFlag_!=6){
       ///////// For plotting the RHS as solution for analysing it
-
+      std::cout<<"Init rhs_ in ComputeRHS(). vortexFlag="<<vortexFlag_<<std::endl;
       rhs_.SetNumSolutions(1);
       rhs_.SetNumNodes(numPDENodes_);
       rhs_.SetSolutionType(ACOU_RHSVAL);
@@ -641,7 +642,7 @@ namespace CoupledField
                   if (timestep==1)
                   {
                       ptgrid_->GetNodeCoordinate(ptNodalCoord2D, node);
-                      (*outnodefile_) << ptNodalCoord2D[0]<<" "<< ptNodalCoord2D[1]<<std::endl;
+                      (*outnodefile_) << ptNodalCoord2D[0]<<" "<< ptNodalCoord2D[1]<<" "<<0.0<<std::endl;
                       //    std::cout<<"x: "<<ptNodalCoord2D[0]<<", y: "<<ptNodalCoord2D[1]<<std::endl; 
                   }
                   eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
@@ -676,15 +677,16 @@ namespace CoupledField
    StdVector<Integer> connect_PDE; 
    BaseFE * ptEl; 
     
-   UInt VortexFlag=10; // 1: Pak, 2: -dPdt, 3: dTijdi vector, 4: Only vel. vals
-   params->Get("outType", VortexFlag, "vortexSrc");
+   // vortexFlag_: 1: Pak, 2: -dPdt, 3: dTijdi vector, 4: Only vel. vals
+   params->Get("outType", vortexFlag_, "vortexSrc");
 
    for (UInt i=0; i<couplSubDomId_.GetSize(); i++)
      {
        std::cerr << "Current time: "<<atime;
        std::cerr <<std::endl;
        ptgrid_->GetVolElems(elemssd,couplSubDomId_[i]);
-       if (VortexFlag==1 || VortexFlag==5) //Getting Analytical solution (P_ak) or Tangential velocity (arg) as RHSval
+       if (vortexFlag_==1 || vortexFlag_==5 || vortexFlag_==6)
+         //Getting Analytical solution (P_ak) or Tangential velocity (arg) as RHSval
          {
            std::cout<<"Getting Analytical solution (P_ak) or Tangential velocity (arg) as RHSval"<<std::endl;
            UInt eqnDof, node, dof;
@@ -692,6 +694,25 @@ namespace CoupledField
            StdVector<UInt> connect(1);
            eqnDof = 1;
            dof    = 1;
+           if (vortexFlag_==6)
+             {
+               plotRHSVel_= TRUE;
+               std::cout<<"Init rhs_ for putting vel vector field in RHSval for visualization"<<std::endl;
+               rhs_.SetNumSolutions(1);
+               rhs_.SetNumNodes(numPDENodes_);
+               rhs_.SetSolutionType(ACOU_RHSVAL);
+               rhs_.SetNumDofs(1);
+               rhs_.SetPtrEQNData(eqnData_, ptgrid_);
+               rhs_.Init(0.0);
+               
+               rhs2_.SetNumSolutions(1);
+               rhs2_.SetNumNodes(numPDENodes_);
+               rhs2_.SetSolutionType(ACOU_POT_NRBC);
+               rhs2_.SetNumDofs(1);
+               rhs2_.SetPtrEQNData(eqnData_, ptgrid_);
+               rhs2_.Init(0.0);
+
+             }
 
            ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
            for (UInt idx=0; idx<mapSD_allNodes_.GetSize() ; idx++)
@@ -705,15 +726,27 @@ namespace CoupledField
                ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);         
                
                Double P_ak;
-               Vector<Double> dTijdi;
-               VortexAnalytical(P_ak, dTijdi, ptCoordNodes[0][0],ptCoordNodes[1][0] , atime, VortexFlag);
+               Vector<Double> vectorVal;
+               VortexAnalytical(P_ak, vectorVal, ptCoordNodes[0][0],ptCoordNodes[1][0] , atime, vortexFlag_);
                //std::cout<<"After getting P_ak in ComputeRHSwithVortexSource(), P_ak= "<<P_ak<<std::endl;
                val=P_ak;
+               Vector<Double>tempVelX, tempVelY;
+               tempVelX.Resize(1);
+               tempVelY.Resize(1);
+               tempVelX[0]=vectorVal[0];
+               tempVelY[0]=vectorVal[1];
                
                //add to RHS
                eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
-               algsys_->SetNodeRHS(val, pdeId_, eqnNr, eqnDof);      
-             }  
+               algsys_->SetNodeRHS(val, pdeId_, eqnNr, eqnDof); 
+                             
+               if (vortexFlag_==6)
+                 {
+                   //std::cout<<"eqnNr: "<<eqnNr<<std::endl;
+                   rhs_.SetNodalResult(eqnNr,tempVelX);
+                   rhs2_.SetNodalResult(eqnNr,tempVelY);
+                 }
+             }
          }
        else
          { //Using Vortex Analytical with potential function
@@ -730,7 +763,7 @@ namespace CoupledField
                Matrix<Double> ptCoordNodes;
                ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);
 
-//                if (VortexFlag==3 || VortexFlag==4)
+//                if (vortexFlag_==3 || vortexFlag_==4)
 //                  {
                    Src_Matrix.Resize(dim_,elsize);
                    for (UInt i=0;i<elsize;i++)
@@ -751,9 +784,9 @@ namespace CoupledField
                    //                         }
                       
                    //Original core (about 2.5m)  //Give also shifted results (above zero)
-                   if (r_sqr<=((200./81.)*(200./81.)))
+                   //if (r_sqr<=((200./81.)*(200./81.)))
                      //Smaller core source (about 1.5m core)  // Give better results
-                   //if (r_sqr<=((140./81.)*(140./81.))) 
+                   if (r_sqr<=((140./81.)*(140./81.))) 
                    //Bigger core (about 12m)
                    //if (r_sqr<=((1000./81.)*(1000./81.))) //Give shifted results (above zero)
                    //Full core   // Gives very high amplitudes
@@ -766,10 +799,10 @@ namespace CoupledField
                    else
                      {
                        Double srcVal=0;
-                       Vector<Double> dTijdi;
+                       Vector<Double> vectorVal;
                        //std::cout << "In else before calling VortexAnalytical"<<std::endl;
-                       VortexAnalytical(srcVal, dTijdi, ptCoordNodes[0][ii],
-                                        ptCoordNodes[1][ii], atime, VortexFlag);
+                       VortexAnalytical(srcVal, vectorVal, ptCoordNodes[0][ii],
+                                        ptCoordNodes[1][ii], atime, vortexFlag_);
 
                        //std::cout << "In else after calling VortexAnalytical, srcVal= "<<srcVal<<std::endl;
                        //                           //For debugging the quadratic middle nodes
@@ -794,11 +827,11 @@ namespace CoupledField
                        //                               std::cerr <<"  "<< srcVal;
                        //                             }    
 
-                       if (VortexFlag==3 || VortexFlag==4)
+                       if (vortexFlag_==3 || vortexFlag_==4)
                          {
                            for (UInt j=0;j<dim_;j++)
                              {
-                               Src_Matrix[j][ii] = dTijdi[j];
+                               Src_Matrix[j][ii] = vectorVal[j];
                                //std::cout<<"Src_Matrix["<<ii<<"]["<<j<<"]= "<<Src_Matrix[ii][j]<<std::endl;
                              }
                          }
@@ -808,7 +841,7 @@ namespace CoupledField
                      }
                  }
 
-               if (VortexFlag==3 || VortexFlag==4) //Computing element vector using dTijdi from VortexAnalytical
+               if (vortexFlag_==3 || vortexFlag_==4) //Computing element vector using dTijdi from VortexAnalytical
                  {
                    ptEl=elemssd[j]->ptElem;
                    LinearFlowNoiseInt * linear_load = new LinearFlowNoiseInt(ptEl);
@@ -836,7 +869,7 @@ namespace CoupledField
                    //                NodalVel[1][2] = 2.0;
                    //                NodalVel[1][3] = 1.5;
       
-                   if (VortexFlag==3)
+                   if (vortexFlag_==3)
                      linear_load->CalcElemVec_withdTijdi(ptCoordNodes,Src_Matrix, elemvec);
                    else
                      {
@@ -1273,6 +1306,16 @@ namespace CoupledField
           P_ak = 0.;
           //srcVal=omegaPhys*r;
           srcVal=sqrt(U_inc*U_inc+V_inc*V_inc);
+          break;
+        }
+      case 6:
+        {// Sending back the tangential velocity as srcVal
+          srcVal=sqrt(U_inc*U_inc+V_inc*V_inc);
+          P_ak = 0.;
+          //srcVal=omegaPhys*r;
+          dTij_di.Resize(2);   
+          dTij_di[0] = U_inc; 
+          dTij_di[1] = V_inc; 
           break;
         }
       default:
