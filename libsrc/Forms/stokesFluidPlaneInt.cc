@@ -99,9 +99,9 @@ namespace CoupledField
         A5 += A1*dynamicViscosity_*dynamicViscosity_;
         //****************************************************************
 	//vvA1_A5 = A1*dynamicViscosity_*dynamicViscosity_ + A5;
-        A2n     = (-1.0)*A2;
-        vA2     = (dynamicViscosity_)*A2;
-        vA2n    = ((-1.0)*dynamicViscosity_)*A2;
+        A2n     = -A2;
+        vA2     =  A2 * dynamicViscosity_;
+        vA2n    = -A2 * dynamicViscosity_;
 
         //****************************************************************
 	locElemMat.AddSubMatrix(A1       ,  0,          0);
