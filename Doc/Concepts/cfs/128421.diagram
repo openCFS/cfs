@@ -77,7 +77,7 @@ classcanvas 128037 class_ref 129957 // Assemble
     operation_ref 366757 // SurfDomIndex
     operation_ref 366885 // TransformMatrix2Harmonic
     operation_ref 367013 // TransformVector2Harmonic
-  xyz 539 28 2000
+  xyz 550 31 2000
 classcanvas 128165 class_ref 128293 // SinglePDE
   draw_all_relations default hide_attributes default hide_operations default show_members_full_definition default show_members_visibility default package_name_in_tab default class_drawing_mode default drawing_language default show_context_mode default auto_label_position default
   hidden_operations
@@ -195,7 +195,7 @@ classcanvas 128421 class_ref 149797 // IntegratorDescriptor
     operation_ref 360357 // GetOrigMatrixType
     operation_ref 360485 // SetOrigSecMatrixType
     operation_ref 360613 // GetOrigSecMatrixType
-  xyz -601 -186 2000
+  xyz -600 -185 2000
 note 128677 "for r in all Regions {
   BaseForm * b = new BaseForm(r);
   IntegratorDescriptor * d = new
@@ -222,12 +222,12 @@ classcanvas 129701 class_ref 149797 // IntegratorDescriptor
     operation_ref 360357 // GetOrigMatrixType
     operation_ref 360485 // SetOrigSecMatrixType
     operation_ref 360613 // GetOrigSecMatrixType
-  xyz 426 201 2000
+  xyz 466 210 2000
 textcanvas 131109 "The Idea is the following:
   * BaseForm represents the calculation scheme of the bilinear forms
   * IntegratorDescriptor is the wrapper, which determines ON WHICH Matrix the element matrix gets assembled to
   * Assemble performs the loop over all IntegratorDescriptors of all regions"
-  font small_bold  xyzwh -21 -25 2000 698 163
+  font small_bold  xyzwh -351 -97 2000 698 163
 note 131237 "for i in all integrators_ {
   BaseForm * b = integrators_[i]->GetIntegrator();
   destMat = integrators_[i]->GetDestMat();
@@ -239,9 +239,9 @@ note 131237 "for i in all integrators_ {
   "
   xyzwh 529 386 2000 277 204
 relationcanvas 129957 relation_ref 311845 // integrators_
-  from ref 128037 z 1999 label "integrators_" italic xyz 489 134 1999 stereotype "<<stdVector>>" xyz 487 154 3000 to ref 129701
+  from ref 128037 z 1999 label "integrators_" italic xyz 515 140 1999 stereotype "<<stdVector>>" xyz 513 160 3000 to ref 129701
   no_role_a no_role_b
-  multiplicity_a_pos 590 178 3000 multiplicity_b_pos 594 130 3000
+  multiplicity_a_pos 592 189 3000 multiplicity_b_pos 592 115 3000
 relationcanvas 130725 relation_ref 312101 // <unidirectional association>
   from ref 128165 z 1999 to ref 128293
   no_role_a no_role_b
@@ -256,7 +256,7 @@ line 128933 -_-_
   line 129061 z 1999 to ref 128677
 line 131877 -_-_
   from ref 131237 z 1999 to point 792 401
-  line 132005 z 1999 to point 791 150
-  line 132133 z 1999 to point 685 115
+  line 132005 z 1999 to point 793 96
+  line 132133 z 1999 to point 673 96
   line 132261 z 1999 to ref 128037
 end

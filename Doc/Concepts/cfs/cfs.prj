@@ -29,6 +29,8 @@ format 22
 
   mark_for_import
   
+  ncouples 1
+  key "html dir" value "C:/Dokumente und Einstellungen/ahauck/My Documents/BOUML-HTML/"
   package_ref 128037 // Current Classes
 
   package_ref 134437 // Existing Concepts
