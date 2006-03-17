@@ -94,14 +94,14 @@ namespace CoupledField {
       if ( mesh2PDENode_[ homoDirichletNodes_[i] - 1 ] - 1 < 0 ) {
         (*warning) << "BlockNodeEQN::CalcMapping: Homogen. Dirichlet node "
                    << " nr. "
-                   << Info->GenStr(homoDirichletNodes_[i])
+                   << GenStr(homoDirichletNodes_[i])
                    << " is not contained in any of the regions for this PDE";
         Warning( __FILE__, __LINE__ );
       }
       else if ( numDirichletDofsPerNode[ mesh2PDENode_[homoDirichletNodes_[i]-1]-1]
                  > dofsPerNode_) {
           errMsg  = "BlockNodeEQN::CalcMapping: Homogen. Dirichlet node nr. ";
-          errMsg += Info->GenStr(homoDirichletNodes_[i]);
+          errMsg += GenStr(homoDirichletNodes_[i]);
           errMsg += " is not contained in any of the regions for this PDE";
           Warning(errMsg.c_str(), __FILE__, __LINE__);
         

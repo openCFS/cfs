@@ -15,12 +15,14 @@ namespace CoupledField {
   public: 
 
     //! Constructor
-    //! \param scriptFileName Script file to be evaluated
-    TCL_CFSMessenger( const std::string & scriptFileName );
+    TCL_CFSMessenger( );
     
     //! Destructor
     virtual ~TCL_CFSMessenger();
 
+    //! Trigger reading from script-file
+    //! \param fileName Script file to be evaluated
+    void ReadScriptFile ( const std::string & fileName );
 
     //! This method triggers the call of a related event procedure.
     //! \param event Type of event function to be called
@@ -30,17 +32,21 @@ namespace CoupledField {
     Boolean TriggerEvent( const EventType event, 
                           const StdVector<std::string> & context);
     
+    //! Trigger the writing of a warning message
+    virtual void Warning( const Char * msg, const Char * const filename,
+                          const UInt numline);
+    
+    //! Trigger the abortion of the program with a given error message
+    virtual void Error( const Char * msg, const Char * const filename,
+                        const UInt numline);
+
     // ===================================================
     // T C L  -  I N T E R F A C E 
     // ===================================================
 
-    //! TLC version of set function of base class
-    static int TCL_Set(ClientData clientdata, Tcl_Interp *interp,
-                       int argc, const char *argv[]);
-
-    //! TCL version of get function of base class
-    static int TCL_Get(ClientData clientdata, Tcl_Interp *interp,
-                       int argc, const char *argv[]);
+    //! TLC version of eval function of base class
+    static int TCL_CFSEval( ClientData clientdata, Tcl_Interp *interp,
+                            int argc, const char *argv[]);
 
   protected:
     
@@ -59,6 +65,12 @@ namespace CoupledField {
     //! Map from event enumeration type to string representation
     std::map<EventType, std::string> eventNames_;
     
+
+    //! Store current parameters for tracing purpose
+    static StdVector<std::string> curParams_;
+
+    //! Store current Event for tracing purpose
+    std::string curEvent_;
   };
   
   

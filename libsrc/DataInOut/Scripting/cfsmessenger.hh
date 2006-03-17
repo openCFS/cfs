@@ -24,6 +24,9 @@ namespace CoupledField {
 
     //! Destructor
     virtual ~CFSMessenger();
+
+    //! Trigger reading from script-file
+    virtual void ReadScriptFile ( const std::string & fileName );
     
     //! Call event procedure in target interface language
 
@@ -38,26 +41,31 @@ namespace CoupledField {
     //! Returns TRUE, if a script command is evaluated at the moment
     Boolean IsEvaluating() {return isEvaluating_;}
     
+    //! Trigger the writing of a warning message
+    virtual void Warning( const Char * msg, const Char * const filename,
+                          const UInt numline);
+    
+    //! Trigger the abortion of the program with a given error message
+    virtual void Error( const Char * msg, const Char * const filename,
+                        const UInt numline);
+    
     // ===================================================
     // INTERFACE FUNCTIONS PROVIDED BY CFS++
     // ===================================================
     
-    //! Set function
-    static Boolean Set( const StdVector<std::string> & args );
-    
-    //! Get function
-    static Boolean Get( const StdVector<std::string> & args,
-                        StdVector<std::string> & retVal );
+    //! Evaluate expression
+    static Boolean CFSEval( const StdVector<std::string> & args,
+                            StdVector<std::string> & retVal );
     
   protected:
     
     //! Error Message of central parsing function
     static std::string errMsg_;
-
+    
     //! Flag indicating if a scripting command is evaluated at the moment
     Boolean isEvaluating_;
-
-    //! Map containing for each Event the number of parameters to be passed
+    
+    //! Map containing for each event the number of parameters to be passed
     std::map<EventType, UInt> eventNumParams_;
   };
   

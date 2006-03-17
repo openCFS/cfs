@@ -6,12 +6,25 @@
 
 #include "General/environment.hh"
 
+//! \file tools.hh
+//! Defines various methods and classes:
+//! - Error / Warning Handling
+//! - String conversion functions
+//! - Geometric Poin<> class and related helper functions
+
 namespace CoupledField {
 
   template<class TYPE> class Matrix; 
   template<class TYPE> class Vector;
   template<class TYPE> class StdVector;
 
+  // =========================================================================
+  //     ERROR / WARNING HANDLING
+  // =========================================================================
+  
+  //@{
+  //! \name Error / Warning Handling 
+  
   //! Function for issuing an error message and terminating program execution.
 
   //! This function can be used to issue an error message and terminate
@@ -88,6 +101,22 @@ namespace CoupledField {
   //!                 the call.
   void Warning( const Char *const filename, const UInt numline );
 
+  //@}
+
+  // =========================================================================
+  //     STRING CONVERSION FUNCTIONS
+  // =========================================================================
+  //@{
+  //! \name String conversion functions
+
+   //! Convert anything to a standard string
+  //! This auxilliary method can convert any data type to a standard string,
+  //! if the << operator has been overloaded for the respective type.
+  template<class T> std::string GenStr( const T &value ) {
+    std::ostringstream mystream;
+    mystream << value;
+    return mystream.str();
+  }
 
   //! Function for splitting a string into a vector of single entries
 
@@ -102,8 +131,71 @@ namespace CoupledField {
   //! \param delimiter (input)  character used as delimiter
   void SplitStringList( std::string list, StdVector<std::string> &strVec,
                         Char delimiter = ',' );
+  
+  //! Converts a string into a double value
+  Double String2Double( const std::string & val); 
+  
+  //! Converts a string into an integer value
+  Integer String2Int( const std::string & val); 
+  
+  //! Converts a string into an unsigned integer value
+  UInt String2UInt( const std::string & val);
+  
+  //! Converts a string StdVector into a double StdVector
+  void String2Double( StdVector<Double> & retVal, 
+                      const StdVector<std::string> & val ); 
 
+  //! Converts a string StdVector into a double vector
+  void String2Double( Vector<Double> & retVal, 
+                      const StdVector<std::string> & val ); 
+  
+  //! Converts a double StdVector into a string StdVector
+  void Double2String( StdVector<std::string> & retVal, 
+                      const StdVector<Double> & val );
 
+  //! Converts a double Vector into a string StdVector
+  void Double2String( StdVector<std::string> & retVal, 
+                      const Vector<Double> & val );
+
+  //! Converts a string StdVector into an integer StdVector
+  void String2Int( StdVector<Integer> & retVal, 
+                   const StdVector<std::string> & val );
+
+  //! Converts a string StdVector into an integer Vector
+  void String2Int( Vector<Integer> & retVal, 
+                   const StdVector<std::string> & val );
+
+  //! Converts an integer StdVector into a string StdVector
+  void Int2String( StdVector<std::string> & retVal, 
+                   const StdVector<Integer> & val );
+  
+  //! Converts an integer Vector into a string StdVector
+  void Int2String( StdVector<std::string> & retVal, 
+                   const Vector<Integer> & val );
+  
+  //! Converts a string vector into an unsigned integer vector
+  void String2UInt( StdVector<UInt> & retVal, 
+                    const StdVector<std::string> & val );
+
+  //! Converts a string StdVector into an unsigned integer StdVector
+  void String2UInt( Vector<UInt> & retVal, 
+                    const StdVector<std::string> & val );
+  
+  //! Converts an unsigned integer StdVector into a string StdVector
+  void UInt2String( StdVector<std::string> & retVal, 
+                    const StdVector<UInt> & val );
+  
+  //! Converts an unsigned integer Vector into a string StdVector
+  void UInt2String( StdVector<std::string> & retVal, 
+                    const Vector<UInt> & val );
+
+  //@}
+
+  // =========================================================================
+  //     VARIOUS OTHER METHODS AND CLASSES
+  // =========================================================================
+
+  
   //! Reader of Fnc from conf-file
   /*!
     \param namefnc name of the reading function
@@ -122,12 +214,12 @@ namespace CoupledField {
   template<class T>
   T pow(T x, UInt power) 
   { T p=x;
-  if (!power)
-    return 1;
+    if (!power)
+      return 1;
  
-  for (UInt i=2; i<=power; i++)
-    p*=x;
-  return p;
+    for (UInt i=2; i<=power; i++)
+      p*=x;
+    return p;
   }
 
   //! class for working with points. 
@@ -187,7 +279,7 @@ namespace CoupledField {
 
   // define number of refinement for the element
   UInt defineRefinements(const Double tolElem, const Double tolTotal,
-                            const UInt noOfChilds);
+                         const UInt noOfChilds);
 
   //! calculate the normal to line with following orientation: a-->b
   /*!
@@ -232,39 +324,6 @@ namespace CoupledField {
   /// prints formatted header including name, version, date
   void PrintCFSHeader(std::ostream & out);
 
-  // ***************** Conversion Functions *******************
-  //! Converts a string into a double value
-  Double String2Double( const std::string & val);
-  
-  //! Converts a string into an integer value
-  Integer String2Int( const std::string & val);
-  
-  //! Converts a string into an unsigned integer value
-  UInt String2UInt( const std::string & val);
-  
-  //! Converts a string vector into a double vector
-  void String2Double( StdVector<Double> & retVal, 
-                      const StdVector<std::string> & val );
-  
-  //! Converts a double vector into a string vector
-  void Double2String( StdVector<std::string> & retVal, 
-                      const StdVector<Double> & val );
-  
-  //! Converts a string vector into an integer vector
-  void String2Int( StdVector<Integer> & retVal, 
-                   const StdVector<std::string> & val );
-  
-  //! Converts an integer vector into a string vector
-  void Int2String( StdVector<std::string> & retVal, 
-                   const StdVector<Integer> & val );
-  
-  //! Converts a string vector into an unsigned integer vector
-  void String2UInt( StdVector<UInt> & retVal, 
-                    const StdVector<std::string> & val );
-  
-  //! Converts an unsigned integer vector into a string vector
-  void UInt2String( StdVector<std::string> & retVal, 
-                    const StdVector<UInt> & val );
   
   
 } // end of CoupledField

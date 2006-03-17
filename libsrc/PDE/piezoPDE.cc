@@ -135,8 +135,8 @@ namespace CoupledField {
     // Check consistency
     if ( pressSurf_.GetSize() != pressVals_.GetSize() ) {
       std::string errmsg = "PressureLoads: ";
-      errmsg += "#name = " + Info->GenStr(pressSurf_.GetSize());
-      errmsg += ", #value = " + Info->GenStr(pressVals_.GetSize());
+      errmsg += "#name = " + GenStr(pressSurf_.GetSize());
+      errmsg += ", #value = " + GenStr(pressVals_.GetSize());
       errmsg += ", #dynamics = " + pressFnc_.GetSize() + '\n';
       Info->Error( errmsg, __FILE__, __LINE__ );
     }

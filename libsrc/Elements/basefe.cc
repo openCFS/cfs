@@ -384,10 +384,10 @@ namespace CoupledField
     for (UInt j=0; j<coordMat.GetSizeCol(); j++) {
       ret += "(";
       for (UInt i=0; i<coordMat.GetSizeRow()-1; i++) {
-        ret += Info->GenStr(coordMat[i][j]);
+        ret += GenStr(coordMat[i][j]);
         ret += ", ";
       }
-      ret += Info->GenStr(coordMat[coordMat.GetSizeRow()-1][j]);
+      ret += GenStr(coordMat[coordMat.GetSizeRow()-1][j]);
       ret +=")\n";
     }
     return ret;

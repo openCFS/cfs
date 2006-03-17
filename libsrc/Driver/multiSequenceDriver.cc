@@ -233,7 +233,7 @@ namespace CoupledField {
    
 
     for (UInt iStep=0; iStep<numSteps_; iStep++) {
-      stepString = Info->GenStr(iStep+1);
+      stepString = GenStr(iStep+1);
       //params->GetList("tag", tagsAux, "step", "pde");
       valVec  = "", stepString, "";
 
@@ -359,13 +359,13 @@ namespace CoupledField {
             errMsg  = "MultiSequenceDriver::Init(): The PDE '";
             errMsg += pdesPerStep_[iStep][kPDE];
             errMsg += "' occured more than one time in step ";
-            errMsg += Info->GenStr(iStep+1);
+            errMsg += GenStr(iStep+1);
             Error(errMsg.c_str(), __FILE__, __LINE__); 
           }
           if (analysisPerStep_[iStep][iPDE] != analysisPerStep_[iStep][kPDE]) {
             errMsg  = "MultiSequenceDriver::Init(): There were different "; 
             errMsg += "analysisypes defined for multi-Sequence step ";
-            errMsg += Info->GenStr(iStep+1);
+            errMsg += GenStr(iStep+1);
             errMsg += ". Please correct parameter file!";
             Error(errMsg.c_str(), __FILE__, __LINE__); 
 
@@ -409,7 +409,7 @@ namespace CoupledField {
             errMsg += "' with the tag '";
             errMsg += tagsPerStep_[iStep][iPDE];
             errMsg += "' was not found in step ";
-            errMsg += Info->GenStr(iStep+1);
+            errMsg += GenStr(iStep+1);
             Error(errMsg.c_str(), __FILE__, __LINE__);
           }
           

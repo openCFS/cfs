@@ -582,7 +582,7 @@ namespace CoupledField
               Info->Error( "Number of src file exceeds 9999!",
                            __FILE__, __LINE__ );
             }
-            filename.append( Info->GenStr( filenum ) );
+            filename.append( GenStr( filenum ) );
             filename.append( ".dat" );
             filenum++;
             outsrcfile_ = new std::ofstream(filename.c_str());

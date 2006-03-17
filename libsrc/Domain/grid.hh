@@ -370,36 +370,6 @@ namespace CoupledField
     { Error(" Not implemented",__FILE__,__LINE__);}
     //@}
 
-    // ======================================================
-    // METHODS FOR SCRIPTING INTERFACE
-    // ======================================================
-    //@{ \name Scripting Interface
-
-    //! Central method vor evaluating a given scripting command
-
-    //! This method evaluates the given arguments, beginning from an offset 
-    //! prescribed by argOffset. If it is successful, it returns TRUE and the
-    //! as a vector of strings.
-    //! \param args Vector of arguments in string format to be evaluated
-    //! \param argOffset Offset for starting position in args vector
-    //! \param retVal Vector of return values in string format
-    //! \return TRUE, if evaluation was successful
-    Boolean Script_Eval( const StdVector<std::string> & args,
-                         UInt & argOffset,
-                         StdVector<std::string> & retVal);
-    
-    //! Get list of all available commands of this object
-
-    //! This method returns a list of all available scripting commands
-    //! offered by the particular class.
-    //! \param commands Vector of available commands of this class
-    //! \param argOffset Offset for start position in args vector
-    void Script_GetCommands( StdVector<std::string> & commands,
-                             UInt & argOffset);
-    
-   
-    //@}
-    
 
     // =======================================================================
     // MISCELLANEOUS
@@ -460,8 +430,32 @@ namespace CoupledField
 
      //@}
 
+
   
   protected:
+
+    // =======================================================================
+    // Method wrappers for function tracing
+    // =======================================================================
+    //@{ \name Scripting wrapper functions
+    
+    //! Trigger function registering
+    void RegisterFunctions();
+
+    void Wrap_GetNodeCoordinate();
+    void Wrap_GetNodesByName();
+    void Wrap_GetNodesByRegion();
+    void Wrap_GetListNodeNames();
+    void Wrap_GetListElemNames();
+    void Wrap_GetRegionNames();
+    void Wrap_GetNumNodes();
+    void Wrap_GetNumElems();
+    void Wrap_GetNumSurfElems();
+    void Wrap_GetNumVolElems();
+    void Wrap_GetNumNodesOfRegion();
+    void Wrap_GetNumElemsOfRegion();
+    //@}
+
 
     //! Get vector containing all region names
 

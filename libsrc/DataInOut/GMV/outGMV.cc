@@ -858,7 +858,7 @@ namespace CoupledField {
       if (sol.GetDof(solTypes[iSol]) > 3){
         (*warning) << "OutGMV::WriteNodeSolutionTransient: GMV can only "
                    << "visualize 3 dimensional data.\n Your solution has "
-                   << Info->GenStr(sol.GetDof(solTypes[iSol]))
+                   << GenStr(sol.GetDof(solTypes[iSol]))
                    << " degrees of freedom!";
         Warning(__FILE__, __LINE__);
         //return;
@@ -909,7 +909,7 @@ namespace CoupledField {
     if (data.GetDof() > 3){
       (*warning) << "OutGMV::WriteElemSolutionTransient: GMV can only "
                  << "visualize 3 dimensional data.\n Your solution has "
-                 << Info->GenStr(data.GetDof())
+                 << GenStr(data.GetDof())
                  << " degrees of freedom!";
       Warning(__FILE__, __LINE__);
       return;
@@ -962,7 +962,7 @@ namespace CoupledField {
       if (sol.GetDof(solTypes[iSol]) > 3){
         (*warning) << "OutGMV::WriteElemSolutionTransient: GMV can only "
                    << "visualize 3 dimensional data.\n Your solution has "
-                   << Info->GenStr(sol.GetDof(solTypes[iSol]))
+                   << GenStr(sol.GetDof(solTypes[iSol]))
                    << " degrees of freedom!";
         Warning(__FILE__, __LINE__);
         return;
@@ -1016,7 +1016,7 @@ namespace CoupledField {
     if (sol.GetDof() > 3){
       (*warning) << "OutGMV::WriteElemSolutionTransient: GMV can only "
                  << "visualize 3 dimensional data.\n Your solution has "
-                 << Info->GenStr(sol.GetDof())
+                 << GenStr(sol.GetDof())
                  << " degrees of freedom!";
       Warning(__FILE__, __LINE__);
       return;
@@ -1070,7 +1070,7 @@ namespace CoupledField {
         Info->Error( "Number of gmv file exceeds 9999!",
                      __FILE__, __LINE__ );
       }
-      filename.append( Info->GenStr( num ) );
+      filename.append( GenStr( num ) );
     }
 
     // If file was already open, write end of variables

@@ -1068,10 +1068,10 @@ namespace CoupledField {
          loadDom_.GetSize() != loadVals_.GetSize() ||  
          loadDom_.GetSize() != loadPhase_.GetSize() ) {
       std::string errmsg = "Loads: ";
-      errmsg += "#name = " + Info->GenStr(loadDom_.GetSize());
-      errmsg += ", #dof = " + Info->GenStr(loadDof_.GetSize());
-      errmsg += ", #value = " + Info->GenStr(loadVals_.GetSize());
-      errmsg += ", #phase = " + Info->GenStr(loadPhase_.GetSize());
+      errmsg += "#name = " + GenStr(loadDom_.GetSize());
+      errmsg += ", #dof = " + GenStr(loadDof_.GetSize());
+      errmsg += ", #value = " + GenStr(loadVals_.GetSize());
+      errmsg += ", #phase = " + GenStr(loadPhase_.GetSize());
       errmsg += ", #dynamics = " + fncname_loads_.GetSize() + '\n';
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
@@ -1082,11 +1082,11 @@ namespace CoupledField {
          springDom_.GetSize() != springDampVals_.GetSize() ||
          springDom_.GetSize() != springStiffVals_.GetSize() ) {
       std::string errmsg = "Springs: ";
-      errmsg += "#name = " + Info->GenStr(springDom_.GetSize());
-      errmsg += ", #dof = " + Info->GenStr(springDof_.GetSize());
-      errmsg += ", #mass value = " + Info->GenStr(springMassVals_.GetSize());
-      errmsg += ", #damping value = " + Info->GenStr(springDampVals_.GetSize());
-      errmsg += ", #stiffness value = " + Info->GenStr(springStiffVals_.GetSize());
+      errmsg += "#name = " + GenStr(springDom_.GetSize());
+      errmsg += ", #dof = " + GenStr(springDof_.GetSize());
+      errmsg += ", #mass value = " + GenStr(springMassVals_.GetSize());
+      errmsg += ", #damping value = " + GenStr(springDampVals_.GetSize());
+      errmsg += ", #stiffness value = " + GenStr(springStiffVals_.GetSize());
       errmsg += ", #dynamics = " + fncname_springs_.GetSize() + '\n';
       Info->Error( errmsg, __FILE__, __LINE__ );
     }

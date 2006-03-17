@@ -16,6 +16,14 @@ namespace CoupledField {
     eventNumParams_[CFS_PostProcess] = 3;
   }
   
+  CFSMessenger::~CFSMessenger() {
+
+  }
+  
+  void CFSMessenger::ReadScriptFile( const std::string & fileName ) {
+    ENTER_FCN( "CFSMessenger::ReadScriptFile" );
+  }
+
   Boolean CFSMessenger::
   TriggerEvent( const EventType event, 
                 const StdVector<std::string> & context) {
@@ -26,112 +34,74 @@ namespace CoupledField {
     return TRUE;
   }
   
-  CFSMessenger::~CFSMessenger() {}
-  Boolean CFSMessenger::Set( const StdVector<std::string> & args ) {
-    ENTER_FCN( "CFSMessenger::Set" );
+  void CFSMessenger::Error( const Char * msg, const Char * const filename,
+                            const UInt numline) {
+    // trick: Pretend, that no script is executing and simply
+    // pass the error back to the global function
+    isEvaluating_ = FALSE;
+    Error( msg, filename, numline );
     
-    StdVector<std::string> ret;
-    UInt argOffset = 1;
-    Boolean success = FALSE;
-
-    if ( args.GetSize() == 0 ) {
-      errMsg_ = "No arguments given";
-      return FALSE;
-    } 
-
-    // Dispatch command invocation
-    // -- PDEs --
-    if ( args[0] == "electrostatic" ) {      
-      success = domain->GetSinglePDE("electrostatic")->
-        Script_Eval(args, argOffset, ret);
-
-    } else if ( args[0] == "mechanic" ) {
-      success = domain->GetSinglePDE("mechanic")->
-        Script_Eval(args, argOffset, ret);
-
-    } else if ( args[0] == "acoustic" ) {
-      success = domain->GetSinglePDE("acoustic")->
-        Script_Eval(args, argOffset, ret);
-
-    } else if ( args[0] == "magnetic" ) {
-      success = domain->GetSinglePDE("magnetic")->
-        Script_Eval(args, argOffset, ret);
-
-    } else if ( args[0] == "heatConduction" ) {
-      success = domain->GetSinglePDE("heatConduction")->
-        Script_Eval(args, argOffset, ret);
-
-    // -- Grid --
-    } else if ( args[0] == "grid" ) {
-      success = domain->GetGrid()->Script_Eval(args, argOffset, ret);
-      
-    } else {
-      success = FALSE;
-    }
-
-    // Check, if operation was successful
-    if ( errMsg_ != std::string() ) {
-      Scriptable::Script_GetError( errMsg_ );
-    } else {
-      std::ostringstream msg;
-      msg << "Command '" << args[0] << "' is not known!";
-      errMsg_ = msg.str();
-    }
-
-    return success;
+  }
+  
+  void CFSMessenger::Warning( const Char * msg, const Char * const filename,
+                            const UInt numline) {
+    // trick: Pretend, that no script is executing and simply
+    // pass the error back to the global function
+    isEvaluating_ = FALSE;
+    Warning( msg, filename, numline );
+    
   }
     
-  Boolean CFSMessenger::Get(const StdVector<std::string> & args,
-                            StdVector<std::string> & retVal ) {
-    ENTER_FCN( "CFSMessenger::Set" );
+  Boolean CFSMessenger::CFSEval( const StdVector<std::string> & args,
+                                 StdVector<std::string> & retVal ) {
+    ENTER_FCN( "CFSMessenger::CFSEval" );
 
-    UInt argOffset = 1;
+    UInt argOffset = 2;
     Boolean success = FALSE;
     
-    if ( args.GetSize() == 0 ) {
+    if ( args.GetSize() == 1 ) {
       errMsg_ = "No arguments given";
       return FALSE;
     } 
 
     // Dispatch function call
     // -- PDEs --
-    if ( args[0] == "electrostatic" ) {      
+    if ( args[1] == "electrostatic" ) {      
       success = domain->GetSinglePDE("electrostatic")->
         Script_Eval(args, argOffset, retVal);
 
-    } else if ( args[0] == "mechanic" ) {
+    } else if ( args[1] == "mechanic" ) {
       success = domain->GetSinglePDE("mechanic")->
         Script_Eval(args, argOffset, retVal);
 
-    } else if ( args[0] == "acoustic" ) {
+    } else if ( args[1] == "acoustic" ) {
       success = domain->GetSinglePDE("acoustic")->
         Script_Eval(args, argOffset, retVal);
 
-    } else if ( args[0] == "magnetic" ) {
+    } else if ( args[1] == "magnetic" ) {
       success = domain->GetSinglePDE("magnetic")->
         Script_Eval(args, argOffset, retVal);
 
-    } else if ( args[0] == "heatConduction" ) {
+    } else if ( args[1] == "heatConduction" ) {
       success = domain->GetSinglePDE("heatConduction")->
         Script_Eval(args, argOffset, retVal);
 
       // -- Grid --
-    } else if ( args[0] == "grid" ) {
+    } else if ( args[1] == "grid" ) {
       success = domain->GetGrid()->Script_Eval(args, argOffset, retVal);
 
     } else {
       success = FALSE;
-    }
-
-    // Check, if operation was successful
-    if ( errMsg_ != std::string() ) {
-      Scriptable::Script_GetError( errMsg_ );
-    } else {
       std::ostringstream msg;
-      msg << "Command '" << args[0] << "' is not known!";
+      msg << "Command '" << args[1] << "' is not known!";
       errMsg_ = msg.str();
     }
 
+    // Check, if operation was successful
+    if ( errMsg_ == std::string() ) {
+      Scriptable::Script_GetError( errMsg_ );
+    }
+    
     return success;
   }
 

@@ -32,6 +32,10 @@ namespace CoupledField
   ptWedge1 = new Wedge1FE();
   ptWedge2 = new Wedge2FE();
 
+#ifdef TCL_INTERFACE
+  // Register functions
+  RegisterFunctions();
+#endif
 
   }
 
@@ -76,10 +80,6 @@ namespace CoupledField
   }
 
 
-
-
-
-
   Grid::~Grid()
   {
     ENTER_FCN( "Grid::~Grid" );
@@ -101,55 +101,6 @@ namespace CoupledField
   }
 
 
-  Boolean Grid::Script_Eval( const StdVector<std::string> & args,
-                             UInt & argOffset,
-                             StdVector<std::string> & retVal) {
-    ENTER_FCN( "Grid::Script_Eval" );
-
-    if (args.GetSize()-argOffset < 1) {
-       errMsg_ << "Grid: Need at least one additional argument!";
-       return FALSE;
-     }
-
-     // -- nodeCoordinate --
-     if (args[argOffset] == "nodeCoordinate") {
-       if (args.GetSize()-argOffset < 2) {
-         errMsg_ << "Wrong nr. arguments. Usage: nodeCoordinate <nodeNr>";
-         return FALSE;
-       }
-
-       Vector<Double> coords;
-       GetNodeCoordinate( coords, String2UInt(args[argOffset+1]) ) ;
-       for ( UInt i = 0; i < coords.GetSize(); i++ ) {
-         retVal.Push_back( Info->GenStr(coords[i]) );
-       }
-
-       // -- nodesByName --
-     } else if (args[argOffset] == "nodesByName") {
-       
-       if (args.GetSize()-argOffset < 2) {
-         errMsg_ << "Wrong nr. arguments. Usage: nodesByName <name> ";
-         return FALSE;
-       }
-       StdVector<UInt> nodeNrs;
-       GetNodesByName( nodeNrs, args[argOffset+1] );
-       UInt2String( retVal, nodeNrs );
-       
-     }else {
-       errMsg_ << "Unknown command: " << args[argOffset];
-       return FALSE;
-     }
-
-     return TRUE;
-
-
-
-  }
-
-  void Grid::Script_GetCommands( StdVector<std::string> & commands,
-                                 UInt & argOffset) {
-    ENTER_FCN( "Grid::Script_GetCommands") ;
-  }
 
 
   RegionIdType Grid::RegionNameToId( const std::string & regionName ) {
@@ -215,5 +166,161 @@ namespace CoupledField
     else
       return regionNames_[regionId];
   }
+  
 
+
+
+  // =======================================================================
+  // Method wrappers for scripting
+  // =======================================================================
+    
+  void Grid::Wrap_GetNodesByName() {
+    SCRIPT_GET(std::string, name);
+    StdVector<UInt> nodeNrs;
+    GetNodesByName( nodeNrs, name);
+    UInt2String(SCRIPT_RETVAL, nodeNrs); 
+  }
+  
+  void Grid::Wrap_GetNodeCoordinate() {
+    SCRIPT_GET(UInt, nodeNr);
+    Vector<Double> coord;
+    GetNodeCoordinate(coord, nodeNr );
+    Double2String(SCRIPT_RETVAL, coord);
+  }
+
+  void Grid::Wrap_GetNodesByRegion() {
+    SCRIPT_GET(std::string, name);
+    StdVector<UInt> nodeNrs;
+    GetNodesByRegion(nodeNrs, RegionNameToId(name) );
+    UInt2String(SCRIPT_RETVAL, nodeNrs);
+  }
+  void Grid::Wrap_GetListNodeNames() {
+    GetListNodeNames( SCRIPT_RETVAL );
+  }
+
+  void Grid::Wrap_GetListElemNames() {
+    GetListElemNames( SCRIPT_RETVAL );
+  }
+
+  void Grid::Wrap_GetRegionNames() {
+    StdVector<RegionIdType> regionIds;
+    GetRegionIds( regionIds );
+    RegionIdToName( SCRIPT_RETVAL, regionIds );
+
+  }
+
+  void Grid::Wrap_GetNumNodes() {
+    SCRIPT_RETVAL.Push_back( GenStr( GetNumNodes() ) );
+  }
+
+  void Grid::Wrap_GetNumElems() {
+    SCRIPT_RETVAL.Push_back( GenStr( GetNumElems() ) );
+
+  }
+
+  void Grid::Wrap_GetNumSurfElems() {
+    SCRIPT_RETVAL.Push_back( GenStr( GetNumSurfElems() ) );
+
+  }
+
+  void Grid::Wrap_GetNumVolElems() {
+    SCRIPT_RETVAL.Push_back( GenStr( GetNumVolElems() ) );
+  }
+
+  void Grid::Wrap_GetNumNodesOfRegion() {
+    SCRIPT_GET(std::string, name);
+    StdVector<RegionIdType> ids;
+    ids.Push_back( RegionNameToId (name ) );
+    SCRIPT_RETVAL.Push_back( GenStr( GetNumNodes ( ids ) ) );
+  }
+
+  void Grid::Wrap_GetNumElemsOfRegion() {
+    SCRIPT_GET(std::string, name);             
+    StdVector<RegionIdType> ids;
+    ids.Push_back( RegionNameToId (name ) );
+    SCRIPT_RETVAL.Push_back( GenStr( GetNumElems (ids ) ) );
+  }
+  
+  
+  void Grid::RegisterFunctions() {
+    ENTER_FCN( "Grid::RegisterFunctions" );
+
+    typedef FctPointer<Grid> FCPT;
+    StdVector<ArgList> a;
+    StdVector<FCPT*> pt;
+    StdVector<std::string> name;
+    
+    // --- GetNodesByName ---
+    a.Push_back();
+    a.Last().RegisterParam("name", ArgList::STRING);
+    pt.Push_back( new FCPT(this,&Grid::Wrap_GetNodesByName) );
+    name.Push_back( "getNodesByName" );
+    
+    // --- GetNodeCoordinate ---
+    a.Push_back();
+    a.Last().RegisterParam("nodeNr", ArgList::UINT);
+    pt.Push_back(new FCPT(this, &Grid::Wrap_GetNodeCoordinate) );
+    name.Push_back( "getNodeCoordinate" );
+
+    // --- GetNodesByRegion ---
+    a.Push_back();
+    a.Last().RegisterParam("name", ArgList::STRING);
+    pt.Push_back(new FCPT(this, &Grid::Wrap_GetNodesByRegion) );
+    name.Push_back( "getNodesByRegion" );
+    
+    // --- GetListNodeNames ---
+    a.Push_back();
+    pt.Push_back(new FCPT(this, &Grid::Wrap_GetListNodeNames) );
+    name.Push_back( "getNodeNames" );
+    
+    // --- GetListElemNames ---
+    a.Push_back();
+    pt.Push_back(new FCPT(this, &Grid::Wrap_GetListElemNames) );
+    name.Push_back( "getElemNames" );
+    
+    // --- GetRegionNames---
+    a.Push_back();
+    pt.Push_back(new FCPT(this, &Grid::Wrap_GetRegionNames) );
+    name.Push_back( "getRegionNames" );
+    
+    // --- GetNumNodes ---
+    a.Push_back();
+    pt.Push_back(new FCPT(this, &Grid::Wrap_GetNumNodes) );
+    name.Push_back( "getNumNodes" );
+    
+    // --- GetNumElems ---
+    a.Push_back();
+    pt.Push_back(new FCPT(this, &Grid::Wrap_GetNumElems) );
+    name.Push_back( "getNumElems" );
+    
+    // --- GetNumSurfElems ---
+    a.Push_back();
+    pt.Push_back(new FCPT(this, &Grid::Wrap_GetNumSurfElems) );
+    name.Push_back( "getNumSurfElems" );
+    
+    // --- GetNumVolElems ---
+    a.Push_back();
+    pt.Push_back(new FCPT(this, &Grid::Wrap_GetNumVolElems) );
+    name.Push_back( "getNumVolElems" );
+    
+    // --- GetNumNodesOfRegion ---
+    a.Push_back();
+    a.Last().RegisterParam("name", ArgList::STRING);
+    pt.Push_back(new FCPT(this, &Grid::Wrap_GetNumNodesOfRegion) );
+    name.Push_back( "getNumNodesOfRegion" );
+
+    // --- GetNumElemsOfRegion ---
+    a.Push_back();
+    a.Last().RegisterParam("name", ArgList::STRING);
+    pt.Push_back( new FCPT(this, &Grid::Wrap_GetNumElemsOfRegion) );
+    name.Push_back( "getNumElemsOfRegion" );
+    
+    // Now register all functions with scripting 
+    for (UInt i = 0; i < pt.GetSize(); i++ ) {
+      Script_RegisterFct(name[i], pt[i], a[i] );
+    }
+        
+  }
+  
+  
 } // end of namespace

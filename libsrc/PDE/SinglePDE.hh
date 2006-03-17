@@ -134,6 +134,11 @@ namespace CoupledField
     //! set boundary condition
     //! \param atimestep         time step of claculation
     void SetBCs(const Double atimestep);
+
+    //! Method for modifying an inhomogeneous boundary condition
+    void SetIDBC( const std::string & name,
+                  UInt dof, Double value, 
+                  Double phase = 0.0 );
   
     //! write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
@@ -175,34 +180,6 @@ namespace CoupledField
     ElemStoreSol<Double> charges_;
     ElemStoreSol<Complex> chargesComplex_;
     StdVector<RegionIdType> chargeNeighborRegion_;
-
-    // ======================================================
-    // METHODS FOR SCRIPTING INTERFACE
-    // ======================================================
-
-    //! Central method vor evaluating a given scripting command
-
-    //! This method evaluates the given arguments, beginning from an offset 
-    //! prescribed by argOffset. If it is successful, it returns TRUE and the
-    //! as a vector of strings.
-    //! \param args Vector of arguments in string format to be evaluated
-    //! \param argOffset Offset for starting position in args vector
-    //! \param retVal Vector of return values in string format
-    //! \return TRUE, if evaluation was successful
-    Boolean Script_Eval( const StdVector<std::string> & args,
-                         UInt & argOffset,
-                         StdVector<std::string> & retVal);
-    
-    //! Get list of all available commands of this object
-
-    //! This method returns a list of all available scripting commands
-    //! offered by the particular class.
-    //! \param commands Vector of available commands of this class
-    //! \param argOffset Offset for start position in args vector
-    void Script_GetCommands( StdVector<std::string> & commands,
-                             UInt & argOffset);
-    
-    
 
 
   protected:
@@ -274,9 +251,24 @@ namespace CoupledField
     //@}
 
 
-    //! Internal method for setting an inhomogeneous dirichlet condition
-    void SetIDBC( std::string nodes, double value);
+    // ======================================================
+    // SCRIPTING SECTION
+    // ======================================================
+    //@{
+    //! \name Scripting Methods
+    
+    //! Register scriptable functions
+    virtual void RegisterFunctions();
 
+    //! Wrapper for setting an inhomogeneous boundary condition
+    void Wrap_IDBC();
+
+    //! Wrapper for getting the nodal result
+    void Wrap_GetValue();
+
+
+    //@}
+    
     // ======================================================
     // DATA SECTION
     // ======================================================

@@ -15,6 +15,10 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 
+#ifdef TCL_INTERFACE
+#include "DataInOut/Scripting/cfsmessenger.hh"
+#endif
+
 #define CFS_VERSION  "0.2"
 
 #define PROGRESS_TEXT_WIDTH 62
@@ -555,6 +559,12 @@ namespace CoupledField {
 
     ENTER_FCN( "WriteInfo::Warning" );
 
+#ifdef TCL_INTERFACE
+    if ( messenger->IsEvaluating() ) {
+      messenger->Warning( Text.c_str(), filename, numline );
+    }
+#endif
+
     if ( progressRunning_ == TRUE ) {
       std::cout << std::endl;
     }
@@ -604,6 +614,13 @@ namespace CoupledField {
                          const UInt numline ) {
 
     ENTER_FCN( "WriteInfo::Error" );
+
+#ifdef TCL_INTERFACE
+    if ( messenger->IsEvaluating() ) {
+      messenger->Error( Text.c_str(), filename, numline );
+    }
+#endif
+    
 
     // If a progress part is still there, then finish it with
     // a failure

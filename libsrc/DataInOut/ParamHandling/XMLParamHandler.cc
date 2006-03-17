@@ -1632,7 +1632,7 @@ namespace CoupledField {
     else {
       errmsg  = "Internal Error: MultipleMatchHandler called with ";
       errmsg += "nmatches = ";
-      errmsg += Info->GenStr(nmatches);
+      errmsg += GenStr(nmatches);
       errmsg += "!\n This should not have happened!\n";
     }
 

@@ -351,7 +351,7 @@ namespace CoupledField {
         } else {
           totalName += "-node-";
         }
-        totalName += Info->GenStr(entitiesPerQuant[iQuant][iEntity]);
+        totalName += GenStr(entitiesPerQuant[iQuant][iEntity]);
         totalName += namePostfix;
 
         // Open output file

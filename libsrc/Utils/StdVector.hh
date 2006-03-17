@@ -79,6 +79,13 @@ namespace CoupledField {
     //! Build vector from std::vector
     StdVector & operator= (const std::vector<TYPE> & vec);
   
+    //! Returns las entry of vector
+    inline TYPE & Last();
+
+    //! Returns last entry of vector (read-only)
+    inline TYPE Last() const;
+ 
+
     //! General access operator
     inline TYPE &operator[] (const UInt i);
 
@@ -96,7 +103,7 @@ namespace CoupledField {
     void Insert(const TYPE & y, UInt pos, UInt numCopies);
 
     //! Add element of the same type at the end of the vector
-    void Push_back(const TYPE & y);
+    void Push_back(const TYPE & y = TYPE() );
 
     //! Delete element from vector on position pos
     void Erase (const UInt pos);
@@ -223,6 +230,23 @@ namespace CoupledField {
     return data_;
   }
 
+  template<class TYPE>
+  TYPE &StdVector<TYPE>::Last() {
+#ifdef CHECK_INITIALIZED
+    if ( size_ == 0)
+      Error("Vector: undefined Vector",__FILE__,__LINE__);
+#endif
+      return data_[size_-1] ;
+  }
+  
+  template<class TYPE>
+  TYPE StdVector<TYPE>::Last() const {
+#ifdef CHECK_INITIALIZED
+    if ( size_ == 0)
+      Error("Vector: undefined Vector",__FILE__,__LINE__);
+#endif
+    return data_[size_-1] ;
+  }
 
   // ******************************************************
   // * Additional functions related with handling vectors *

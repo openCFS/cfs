@@ -105,7 +105,8 @@ int main( int argc, const char **argv ) {
     Info->StartProgress( msg.str() );
 
     // Create new central messenger object (up to now only tcl available)
-    messenger = new TCL_CFSMessenger( scriptFileName );
+    messenger = new TCL_CFSMessenger();
+    messenger->ReadScriptFile(scriptFileName );
     
     // Call intialization procedure
     StdVector<std::string> context;
