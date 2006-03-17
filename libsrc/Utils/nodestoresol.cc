@@ -407,9 +407,9 @@ namespace CoupledField {
     if (dof > solDof)
       {
         errMsg = "NodeStoreSol::GetSolVectorSingleDof: Desired dof ";
-        errMsg += Info->GenStr(dof);
+        errMsg += GenStr(dof);
         errMsg += " is higher than dofs of solution = ";
-        errMsg += Info->GenStr(solDof);
+        errMsg += GenStr(solDof);
         Error (errMsg.c_str(), __FILE__, __LINE__);
       }
 #endif

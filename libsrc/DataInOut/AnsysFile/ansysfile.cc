@@ -75,7 +75,7 @@ namespace CoupledField {
       numElems += GetNumElems(1);
     }  
     else if ( dim >=1 && dim <= 3 ) {
-      search = "Num" + Info->GenStr(dim) + "DElements";
+      search = "Num" + GenStr(dim) + "DElements";
       numElems = GetInteger(search);
     }
     else {
@@ -346,7 +346,7 @@ namespace CoupledField {
 
     // Position ourselves in the correct setion
     searchString.clear();
-    searchString = Info->GenStr(dim) + "D Elements";
+    searchString = GenStr(dim) + "D Elements";
     GetPosLine( searchString, pos );
     inFile_.seekg( pos, std::ios::beg );
 

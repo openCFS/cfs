@@ -1,12 +1,15 @@
 #ifndef FILE_NEWBASEMECHPDE
 #define FILE_NEWBASEMECHPDE
 
+#include <map>
+
 #include "SinglePDE.hh"
  
 namespace CoupledField
 {
 
-
+  // forward class declarations
+  class MechVolForceInt;
 
   //! Class for mechanic equation (no adaptivity)
   class MechPDE: public SinglePDE
@@ -37,11 +40,13 @@ namespace CoupledField
     //! define the SoltionStep-Driver
     virtual void DefineSolveStep();
 
+    //! Read special boundary conditions
+    void ReadSpecialBCs();
+
     /// returns a stiffness integrator appropriate to the actual problem (e.g.3D)
     BaseForm * GetStiffIntegrator(MaterialData& actSDMat,
                                   Boolean reducedInt=FALSE);
   
-
     // ======================================================
     // COUPLING SECTION
     // ======================================================
@@ -92,6 +97,16 @@ namespace CoupledField
     //computes mechanical stresses
     template <class TYPE>
     void CalcStresses();
+
+    // ======================================================
+    // SCRIPTING SECTION
+    // ======================================================
+    //@{
+    //! \name Scripting Methods
+    
+    //! Register scriptable functions
+    void RegisterFunctions();
+    //@}
     
     //! Obtain information on desired output quantities from parameter file
   
@@ -162,7 +177,52 @@ namespace CoupledField
     void ReadPreStressing();
 
     //! read in volume sources
-    void DefineRegionLoads();
+    void ReadRegionLoads();
+
+    //! Class defining data needed for region loads
+    class RegionLoad {
+
+    public:
+
+      //! Constructor
+      RegionLoad( UInt dim, Boolean isaxi );
+
+      //! Print region definition to info-file
+      void Print( Boolean onlyHeader, std::string pdeName );
+      
+      //! Returns the RHS-integrator
+      MechVolForceInt *  GetIntegrator();
+      
+      // ----------------------------
+      //   Data members
+      // ----------------------------
+
+      //@{
+      // \name Data members
+      
+      //! Name of region
+      std::string name;
+
+      //! Value of load (total)
+      Vector<Double>  unitValue;
+      
+      //! Reference to time dynamics file
+      std::string dynamics;
+
+      //! Name of reference coordinate system
+      std::string refCoord;
+
+      //! Volume of region
+      Double volume;
+
+      //! Flag for axisymmetry
+      Boolean isAxi_;
+      //@}
+
+    };
+    
+    //! List of region loads
+    std::map<RegionIdType, RegionLoad> regionLoads_;
 
     /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
     void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,

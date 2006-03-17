@@ -425,13 +425,13 @@ namespace CoupledField {
 #ifdef TCL_INTERFACE
     StdVector<std::string> context;
     context.Push_back( pdename_ );
-    context.Push_back( Info->GenStr(solveStep_->GetActStep() ) );
+    context.Push_back( GenStr(solveStep_->GetActStep() ) );
     
     if ( analysistype_ == TRANSIENT ||
          analysistype_ == STATIC ) {
-      context.Push_back( Info->GenStr(solveStep_->GetActTime() ) );
+      context.Push_back( GenStr(solveStep_->GetActTime() ) );
     } else {
-      context.Push_back( Info->GenStr(solveStep_->GetActFreq() ) );
+      context.Push_back( GenStr(solveStep_->GetActFreq() ) );
     }
     messenger->TriggerEvent( CFSMessenger::CFS_PostProcess, 
                              context );
@@ -596,7 +596,7 @@ namespace CoupledField {
         }
     }
     std::string outstring = "Sum of electric charges:\n";
-    outstring += Info->GenStr(sumOfCharges);
+    outstring += GenStr(sumOfCharges);
     Info->PrintF(pdename_, outstring.c_str());
 
     delete chargeOp;

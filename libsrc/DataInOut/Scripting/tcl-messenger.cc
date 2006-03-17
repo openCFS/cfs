@@ -6,11 +6,12 @@
 
 namespace CoupledField {
   
+  // Declare static functions
+   StdVector<std::string> TCL_CFSMessenger::curParams_;
 
+  
 
-
-
-  TCL_CFSMessenger::TCL_CFSMessenger( const std::string & scriptFileName ) {
+  TCL_CFSMessenger::TCL_CFSMessenger(  ) {
     ENTER_FCN( "CFSMessenger::TCL_CFSMessenger" );
     
     // create new interpreter object
@@ -22,16 +23,22 @@ namespace CoupledField {
     // register (dummy) event procedures
     RegisterEvents();
 
+    
+
+  }
+  void TCL_CFSMessenger::ReadScriptFile( const std::string & fileName ) {
     // evaluate script file
-    int code = Tcl_EvalFile( tcl_, scriptFileName.c_str() );
+    isEvaluating_ = TRUE;
+    int code = Tcl_EvalFile( tcl_, fileName.c_str() );
     if ( code != TCL_OK ) {
-      std::string error = "CFS_Messenger::EvalFil: ";
+      std::string error = "Error in TCL file:\n ";
       if ( *tcl_->result != 0 )
         error += tcl_->result;
       Error( error.c_str(), __FILE__, __LINE__ );
     }
-
+    isEvaluating_ = FALSE;
   }
+  
   
   TCL_CFSMessenger::~TCL_CFSMessenger() {
     ENTER_FCN( "TCL_CFSMessenger::~TCL_CFSMessenger()" );
@@ -41,24 +48,72 @@ namespace CoupledField {
     tcl_ = NULL;
   }
   
+  void TCL_CFSMessenger::Warning( const Char * msg, const Char * const filename,
+                                  const UInt numline) {
+    
+    std::stringstream warn;
+    warn <<  "TCL warning in function '"  << curEvent_ << "':\n";
+    for (UInt i = 0; i < curParams_.GetSize(); i++ ) {
+      warn << curParams_[i] << " ";
+    }
+    warn << ": "<< msg;
+
+    // After having generated the correct error string,
+    // the bucket is passed back to the global error handler
+    isEvaluating_ = FALSE;
+    ::Warning( warn.str().c_str(), filename, numline );
+    isEvaluating_ = TRUE;
+  }
+
+
+  void TCL_CFSMessenger::Error( const Char * msg, const Char * const filename,
+                                const UInt numline) {
+    std::stringstream error;
+
+    // Generate more accureate error message, if error occurs during
+    // calling of a event procedure
+    if (curEvent_ != std::string() ) {
+      error <<  "TCL error in function '"  << curEvent_ << "':\n\n ";
+      for (UInt i = 0; i < curParams_.GetSize(); i++ ) {
+        error  << curParams_[i] << " ";
+      }
+      error << ": " << msg;
+    } else {
+      error << msg;
+    }
+
+    // After having generated the correct error string,
+    // the bucket is passed back to the global error handler
+    isEvaluating_ = FALSE;
+    ::Error( error.str().c_str(), filename, numline );
+                                              
+  } 
+
+  
   Boolean TCL_CFSMessenger::TriggerEvent( const EventType event, 
                                           const StdVector<std::string> & context) {
     ENTER_FCN( "TCL_CFSMessenger::TriggerEvent" );
     
-    // call related procedure in TCL interpreter
+    // get name of event
+    curEvent_ = eventNames_[event];
+
     std::stringstream procName;
     procName << eventNames_[event];
     for ( UInt i=0; i<context.GetSize(); i++ ) {
       procName << " " << context[i];
     }
     
+    isEvaluating_ = TRUE;
     int code = Tcl_Eval( tcl_, procName.str().c_str() );
-    
+    isEvaluating_ = FALSE;
+
     if ( code != TCL_OK ) {
-      std::string error = "CFS_Messenger::TriggerEvent: ";
+      std::string error = "TCL error in function '";
+      error+= eventNames_[event];
+      error+= "':\n\n ";
       if ( *tcl_->result != 0 )
         error += tcl_->result;
-      Error( error.c_str(), __FILE__, __LINE__ );
+      ::Error( error.c_str(), __FILE__, __LINE__ );
       return FALSE;
     }
     return TRUE;
@@ -68,12 +123,8 @@ namespace CoupledField {
   void TCL_CFSMessenger::RegisterFunctions() {
     ENTER_FCN( "TCL_CFSMessenger::RegisterFunctions") ;
 
-    // regier Set-function
-    Tcl_CreateCommand( tcl_, "cfs_set", TCL_CFSMessenger::TCL_Set,
-                       (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
-    
-    // register Get-function
-    Tcl_CreateCommand( tcl_, "cfs_get", TCL_CFSMessenger::TCL_Get,
+    // register Eval-function
+    Tcl_CreateCommand( tcl_, "cfs", TCL_CFSMessenger::TCL_CFSEval,
                        (ClientData) NULL, (Tcl_CmdDeleteProc *) NULL);
   }
   
@@ -93,7 +144,7 @@ namespace CoupledField {
       (*error) << "Size of eventNumParams_ and eventNames_ "
                << "mismatch!\n Please ensure, that for each "
                << "event the number of parameters is defined!";
-      Error( __FILE__, __LINE__ );
+      ::Error( __FILE__, __LINE__ );
     }
     
     // Register all possible events
@@ -115,59 +166,31 @@ namespace CoupledField {
     
   }
 
-  int TCL_CFSMessenger::TCL_Set(ClientData clientdata, Tcl_Interp *interp,
-                                int argc, const char *argv[]) {
-    ENTER_FCN( "TCL_CFSMessenger::TCL_Set") ;
-
-    Boolean success;
-
-    // count number of arguments
-    if (argc < 2 ) { 
-      errMsg_ = "set needs at least 2 arguments!";
-      success = FALSE;
-    } else {
-      
-      // convert arguments into std::strings
-      StdVector<std::string> args;
-      args.Resize(argc-1); 
-      for (UInt i=0; i<args.GetSize(); i++ ) {
-        args[i] = argv[i+1];
-      }
-      
-      // Call global set function
-      success = Set( args );
-    }
+  int TCL_CFSMessenger::TCL_CFSEval(ClientData clientdata, Tcl_Interp *interp,
+                                    int argc, const char *argv[]) {
+    ENTER_FCN( "TCL_CFSMessenger::TCL_CFSEval");
     
-    if ( success == TRUE ) {
-      return TCL_OK;
-    } else {
-      Tcl_SetResult(interp, strdup(errMsg_.c_str()), TCL_DYNAMIC);
-      return TCL_ERROR;
-    }
-  }   
-
-  int TCL_CFSMessenger::TCL_Get(ClientData clientdata, Tcl_Interp *interp,
-                                int argc, const char *argv[]) {
-    ENTER_FCN( "TCL_CFSMessenger::TCL_Get");
-
     Boolean success;
     StdVector<std::string> retVal;
 
     // count number of arguments
     if (argc < 2 ) { 
-      errMsg_ = "set needs at least 2 arguments!";
+      errMsg_ = "cfs needs at least 2 arguments!";
       success = FALSE;
     } else {
       
       // convert arguments into std::strings
       StdVector<std::string> args; 
-      args.Resize(argc-1); 
+      args.Resize(argc); 
       for (UInt i=0; i<args.GetSize(); i++ ) {
-        args[i] = argv[i+1];
+        args[i] = argv[i];
       }
       
-      // Call global set function
-      success = Get( args, retVal);
+      // Save arguments to curent argument list
+      curParams_ = args;
+      
+      // Call language independend CFSEval function
+      success = CFSMessenger::CFSEval( args, retVal);
     }
     
     if ( success == TRUE ) {

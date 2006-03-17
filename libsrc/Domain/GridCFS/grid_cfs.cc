@@ -890,7 +890,7 @@ namespace CoupledField
     Info->PrintF("", "-------------------\n");
     
     for( UInt i = 0; i < regionNames_.GetSize(); i++ ) {
-      help = Info->GenStr(i);
+      help = GenStr(i);
       help += "\t| ";
       help += regionNames_[i];
       help += '\n';
@@ -1907,7 +1907,7 @@ namespace CoupledField
   //    if (!FoundNd)
   //      {
   //        errMsg  = "GridCFS::GetVolNeighboursForSurf: For the surface element with Nr. ";
-  //        errMsg += Info->GenStr(surfElems[ise]->elemNum);
+  //        errMsg += GenStr(surfElems[ise]->elemNum);
   //        errMsg += " an according volume element was not ";
   //        errMsg += "found in the regions '";
   //        for (Integer j=0; j<neighRegions.GetSize()-1; j++) 

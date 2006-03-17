@@ -97,7 +97,9 @@ namespace CoupledField {
     pdeId_ = NO_PDE_ID;
     isDirectCoupled_  = FALSE;
     m_bReadSpecialBCs = FALSE;
-			
+
+    // Register functions for scripting
+    RegisterFunctions();
   }
 
 
@@ -291,7 +293,7 @@ namespace CoupledField {
 
     else if ( analysisHelp == MULTI_SEQUENCE ) {
 
-      stepString = Info->GenStr(bcSequenceIndex_);
+      stepString = GenStr(bcSequenceIndex_);
       attrVec = "", "index", "type";
       valVec = "", stepString, pdename_;
 
@@ -838,13 +840,13 @@ namespace CoupledField {
 #ifdef TCL_INTERFACE
     StdVector<std::string> context;
     context.Push_back( pdename_ );
-    context.Push_back( Info->GenStr(solveStep_->GetActStep() ) );
+    context.Push_back( GenStr(solveStep_->GetActStep() ) );
 
     if ( analysistype_ == TRANSIENT ||
          analysistype_ == STATIC ) {
-      context.Push_back( Info->GenStr(solveStep_->GetActTime() ) );
+      context.Push_back( GenStr(solveStep_->GetActTime() ) );
     } else {
-      context.Push_back( Info->GenStr(solveStep_->GetActFreq() ) );
+      context.Push_back( GenStr(solveStep_->GetActFreq() ) );
     }
     messenger->TriggerEvent( CFSMessenger::CFS_SetBCs, context );
 #endif
@@ -1014,8 +1016,8 @@ namespace CoupledField {
     if ( bcs_id_.GetSize() != val_id_.GetSize() ||
          fncnames_id_.GetSize() > bcs_id_.GetSize() ) {
       std::string errmsg = "dirichletInhom: ";
-      errmsg += "#names of node sets = " + Info->GenStr(bcs_id_.GetSize());
-      errmsg += ", #values = " + Info->GenStr(val_id_.GetSize());
+      errmsg += "#names of node sets = " + GenStr(bcs_id_.GetSize());
+      errmsg += ", #values = " + GenStr(val_id_.GetSize());
       errmsg += ", #dynamics = " + fncnames_id_.GetSize() + '\n';
       Info->Error( errmsg, __FILE__, __LINE__ );
     }
@@ -1033,9 +1035,9 @@ namespace CoupledField {
 
         std::string errmsg = "Inconsistent definition of homogeneous ";
         errmsg += "Dirichlet Boundary Conditions\n";
-        errmsg += " bcs_hd_.GetSize() = " + Info->GenStr( bcs_hd_.GetSize() );
+        errmsg += " bcs_hd_.GetSize() = " + GenStr( bcs_hd_.GetSize() );
         errmsg += "\n homDirichDof_.GetSize() = "
-          + Info->GenStr( homDirichDof_.GetSize() ) + '\n';
+          + GenStr( homDirichDof_.GetSize() ) + '\n';
         Info->Error( errmsg, __FILE__, __LINE__ );
       }
       if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) {
@@ -1567,8 +1569,11 @@ namespace CoupledField {
     
   }
 
-  void SinglePDE::SetIDBC( std::string name, double value ) {
+  void SinglePDE::SetIDBC( const std::string & name,
+                           UInt dof, Double value, 
+                           Double phase ) {
     ENTER_FCN("SinglePDE::SetIDBC");
+
     
     StdVector<UInt> nodes;
     UInt eqnDof;
@@ -1591,49 +1596,55 @@ namespace CoupledField {
     }
   }
 
+  
+  // ======================================================
+  // SCRIPTING SECTION
+  // ======================================================
 
-  Boolean SinglePDE::Script_Eval( const StdVector<std::string> & args,
-                                  UInt & argOffset,
-                                  StdVector<std::string> & retVals ) {
-    ENTER_FCN( "SinglePDE::Script_Eval");
+  void SinglePDE::RegisterFunctions() {
+    typedef FctPointer<SinglePDE> FCPT;
+    StdVector<ArgList> a;
+    StdVector<FCPT*> pt;
+    StdVector<std::string> name;
 
-    if (args.GetSize()-argOffset < 1) {
-      errMsg_ << pdename_ << ": Need at least one additional argument!";
-      return FALSE;
+    // --- IDBC ---
+    a.Push_back();
+    a.Last().RegisterParam("name", ArgList::STRING );
+    a.Last().RegisterParam("value", ArgList::DOUBLE );
+    a.Last().RegisterParam("dof", ArgList::UINT );
+    pt.Push_back( new FCPT( this, &SinglePDE::Wrap_IDBC) );
+    name.Push_back( "setIdbc" );
+                  
+
+    // --- GetValue ---
+    a.Push_back();
+    a.Last().RegisterParam( "name", ArgList::STRING );
+    pt.Push_back( new FCPT( this, &SinglePDE::Wrap_GetValue) );
+    name.Push_back( "getValue" );
+    
+    // Now register all functions with scripting 
+    for (UInt i = 0; i < pt.GetSize(); i++ ) {
+      Script_RegisterFct(name[i], pt[i], a[i] );
     }
-
-    // ** IDBC **
-    if (args[argOffset] == "idbc") {
-      if (args.GetSize()-argOffset < 3) {
-        errMsg_ << "Wrong nr. arguments. Usage: idbc <nodenames> <value>";
-        return FALSE;
-      }
-      SetIDBC( args[argOffset+1], String2Double(args[argOffset+2]) );
-    } else if (args[argOffset] == "value") {
-       
-      if (args.GetSize()-argOffset < 2) {
-        errMsg_ << "Wrong nr. arguments. Usage:  value <nodenames> ";
-        return FALSE;
-      }
-      // get node names
-      StdVector<UInt> nodeNrs;
-      ptgrid_->GetNodesByName( nodeNrs, args[argOffset+1]);
-      for (UInt i=0; i<nodeNrs.GetSize(); i++) {
-        Double val;
-        sol_->Get(nodeNrs[i]-1,0,val);
-        retVals.Push_back(Info->GenStr(val));
-      }
-    }else {
-      errMsg_ << "Unknown command: " << args[argOffset];
-      return FALSE;
-    }
-    // ** Values **
-    return TRUE;
-     
   }
-  void SinglePDE::Script_GetCommands( StdVector<std::string> & commands,
-                                      UInt & argOffset) {
-    ENTER_FCN( "SinglePDE::Script_GetCommands" );
+  
+  void SinglePDE::Wrap_IDBC() {
+    SCRIPT_GET( std::string, name );
+    SCRIPT_GET( UInt, dof );    
+    SCRIPT_GET( Double, value );
+    
+    SetIDBC(name, dof, value, 0.0 );
+  }
+  
+  void SinglePDE::Wrap_GetValue() {
+    SCRIPT_GET( std::string, name );
+    StdVector<UInt> nodeNrs;
+    ptgrid_->GetNodesByName( nodeNrs, name );
+    for (UInt i=0; i<nodeNrs.GetSize(); i++) {
+      Double val;
+      sol_->Get(nodeNrs[i]-1,0,val);
+      SCRIPT_RETVAL.Push_back(GenStr(val));
+    }
   }
   
 } // end of namespace

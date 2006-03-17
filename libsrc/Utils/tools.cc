@@ -324,92 +324,88 @@ namespace CoupledField {
     }
     return retVal;
   }
-
-   //! Converts a string vector into a double vector
-  void String2Double( StdVector<Double> & retVal, 
-                      const StdVector<std::string> & val ) { 
-    retVal.Resize( val.GetSize() );
-    
-    for ( UInt i = 0; i < val.GetSize(); i++ ) {
-      if ( std::sscanf ( val[i].c_str(), "%lf", &retVal[i]) != 1 ) {
-        (*error) << "Could not convert '" << val 
-                 << "' into a double!";
-        Error( __FILE__, __LINE__ );
-      }
-      
+#undef DEF_VEC_CONVERSION
+#define DEF_VEC_CONVERSION(VECTYPE)                                     \
+  void String2Double( VECTYPE<Double> & retVal,                         \
+                      const StdVector<std::string> & val ) {            \
+    retVal.Resize( val.GetSize() );                                     \
+                                                                        \
+    for ( UInt i = 0; i < val.GetSize(); i++ ) {                        \
+      if ( std::sscanf ( val[i].c_str(), "%lf", &retVal[i]) != 1 ) {    \
+        (*error) << "Could not convert '" << val                        \
+                 << "' into a double!";                                 \
+        Error( __FILE__, __LINE__ );                                    \
+      }                                                                 \
+                                                                        \
+    }                                                                   \
+  }                                                                     \
+  void Double2String( StdVector<std::string> & retVal,                  \
+                      const VECTYPE<Double> & val ) {                   \
+                                                                        \
+    retVal.Resize( val.GetSize() );                                     \
+    std::ostringstream mystream;                                        \
+                                                                        \
+    for ( UInt i = 0; i < val.GetSize(); i++ ) {                        \
+      mystream << val[i];                                               \
+      retVal[i] = mystream.str();                                       \
+      mystream.str("");                                                 \
+    }                                                                   \
+  }                                                                     \
+                                                                        \
+    void String2Int( VECTYPE<Integer> & retVal,                         \
+                     const StdVector<std::string> & val ) {             \
+      retVal.Resize( val.GetSize() );                                   \
+                                                                        \
+      for ( UInt i = 0; i < val.GetSize(); i++ ) {                      \
+        if ( std::sscanf ( val[i].c_str(), "%d", &retVal[i]) != 1 ) {   \
+          (*error) << "Could not convert '" << val                      \
+                   << "' into an integer!";                             \
+          Error( __FILE__, __LINE__ );                                  \
+        }                                                               \
+      }                                                                 \
+    }                                                                   \
+                                                                        \
+    void Int2String( StdVector<std::string> & retVal,                   \
+                     const VECTYPE<Integer> & val ) {                   \
+                                                                        \
+      retVal.Resize( val.GetSize() );                                   \
+      std::ostringstream mystream;                                      \
+                                                                        \
+      for ( UInt i = 0; i < val.GetSize(); i++ ) {                      \
+        mystream << val[i];                                             \
+        retVal[i] = mystream.str();                                     \
+        mystream.str("");                                               \
+      }                                                                 \
+    }                                                                   \
+                                                                        \
+    void String2UInt( VECTYPE<UInt> & retVal,                           \
+                      const StdVector<std::string> & val ) {            \
+      retVal.Resize( val.GetSize() );                                   \
+                                                                        \
+      for ( UInt i = 0; i < val.GetSize(); i++ ) {                      \
+        if ( std::sscanf ( val[i].c_str(), "%u", &retVal[i]) != 1 ) {   \
+          (*error) << "Could not convert '" << val                      \
+                   << "' into an unsigned integer!";                    \
+          Error( __FILE__, __LINE__ );                                  \
+        }                                                               \
+      }                                                                 \
+    }                                                                   \
+                                                                        \
+    void UInt2String( StdVector<std::string> & retVal,                  \
+                      const VECTYPE<UInt> & val ) {                     \
+      retVal.Resize( val.GetSize() );                                   \
+      std::ostringstream mystream;                                      \
+                                                                        \
+      for ( UInt i = 0; i < val.GetSize(); i++ ) {                      \
+        mystream << val[i];                                             \
+        retVal[i] = mystream.str();                                     \
+        mystream.str("");                                               \
+      }                                                                 \
     }
-  }
-    
-
-  //! Converts a double vector into a string vector
-  void Double2String( StdVector<std::string> & retVal, 
-                      const StdVector<Double> & val ) {
-
-    retVal.Resize( val.GetSize() );
-    std::ostringstream mystream;
-
-    for ( UInt i = 0; i < val.GetSize(); i++ ) {
-      mystream << val[i];
-      retVal[i] = mystream.str();
-      mystream.str("");
-    }
-  }
   
-  //! Converts a string vector into an integer vector
-  void String2Int( StdVector<Integer> & retVal, 
-                   const StdVector<std::string> & val ) {
-    retVal.Resize( val.GetSize() );
-    
-    for ( UInt i = 0; i < val.GetSize(); i++ ) {
-      if ( std::sscanf ( val[i].c_str(), "%d", &retVal[i]) != 1 ) {
-        (*error) << "Could not convert '" << val 
-                 << "' into an integer!";
-        Error( __FILE__, __LINE__ );
-      }
-      
-    }
-  }
-  
-  //! Converts an integer vector into a string vector
-  void Int2String( StdVector<std::string> & retVal, 
-                   const StdVector<Integer> & val ) {
-    
-    retVal.Resize( val.GetSize() );
-    std::ostringstream mystream;
-    
-    for ( UInt i = 0; i < val.GetSize(); i++ ) {
-      mystream << val[i];
-      retVal[i] = mystream.str();
-      mystream.str("");
-    }
-  }
-  
-  //! Converts a string vector into an unsigned integer vector
-  void String2UInt( StdVector<UInt> & retVal, 
-                    const StdVector<std::string> & val ) {
-    retVal.Resize( val.GetSize() );
-    
-    for ( UInt i = 0; i < val.GetSize(); i++ ) {
-      if ( std::sscanf ( val[i].c_str(), "%u", &retVal[i]) != 1 ) {
-        (*error) << "Could not convert '" << val 
-                 << "' into an unsigned integer!";
-        Error( __FILE__, __LINE__ );
-      }
-    }
-  }
-  
-  //! Converts an unsigned integer vector into a string vector
-  void UInt2String( StdVector<std::string> & retVal, 
-                    const StdVector<UInt> & val ) {
-    retVal.Resize( val.GetSize() );
-    std::ostringstream mystream;
-    
-    for ( UInt i = 0; i < val.GetSize(); i++ ) {
-      mystream << val[i];
-      retVal[i] = mystream.str();
-      mystream.str("");
-    }
-  }
+  DEF_VEC_CONVERSION(Vector)
+  DEF_VEC_CONVERSION(StdVector)
+   
 
   // explicit template instantiation for SGI compiler
 #ifdef __sgi

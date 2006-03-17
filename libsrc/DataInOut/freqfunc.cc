@@ -49,7 +49,7 @@ namespace CoupledField {
 
   
       nodalFilename=fnc_names_[i];
-      nodalFilename.append( Info->GenStr( nodeNumber ) );
+      nodalFilename.append( GenStr( nodeNumber ) );
       pathAndFilename="nodalSrcs/" + nodalFilename;
       freqfile.open( pathAndFilename.c_str() );
       if ( !freqfile ) {
