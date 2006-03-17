@@ -8,10 +8,12 @@
 #include "Domain/GridStruct/interface_gridstruct.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/writeresults.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/cylCoordSys.hh"
 #include "Utils/defaultCoordSys.hh"
+#include "DataInOut/Scripting/cfsmessenger.hh"
 
 #include "PDE/pdes_header.hh"
 #include "PDE/basePDE.hh"
@@ -327,6 +329,14 @@ namespace CoupledField {
     
     // create direct coupled pde(s)
     CreateDirectCoupledPDEs(tags);
+
+#ifdef TCL_INTERFACE
+
+    // Call intialization procedure
+    StdVector<std::string> context;
+    context.Push_back( commandLine->GetSimName() );
+    messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
+#endif
 
     // intialize single pde(s)
 
