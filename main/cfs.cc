@@ -376,14 +376,6 @@ int main( int argc, const char **argv ) {
 
   Info->FinishProgress();
 
-#ifdef TCL_INTERFACE
-
-    // Call intialization procedure
-    StdVector<std::string> context;
-    context.Push_back( commandLine->GetSimName() );
-    messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
-#endif
-
   // =========================================================================
   // SOLUTION PHASE
   // =========================================================================
