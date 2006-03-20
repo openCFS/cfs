@@ -103,7 +103,9 @@ namespace CoupledField
 
     //! Expert routine for correcting parameter inconsistencies
     static void Expert( BaseParamHandler *cfs,
-                        std::string pdename, OLAS::SolverType &sType,
+                        std::string pdename, 
+                        OLAS::EigenSolverType &esType,
+                        OLAS::SolverType &sType,
                         OLAS::PrecondType &pType, 
                         OLAS::MatrixStorageType &mType,
                         OLAS::MatrixEntryType &eType, 

@@ -228,6 +228,7 @@
     <system name="direct">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="electrostatic">
@@ -243,6 +244,7 @@
     <system name="mechanic">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="mpcci">
