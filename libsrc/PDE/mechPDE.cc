@@ -615,6 +615,7 @@ namespace CoupledField
       Integer index = -1;
     
     // Check, if function was called by a scripting command
+#ifdef TCL_INTERFACE
     if ( messenger->IsEvaluating() == TRUE ) {
       
       // obtain parameters from messenger object
@@ -640,6 +641,7 @@ namespace CoupledField
       tempType.Push_back( type );
       
     } else {
+#endif
       // obtain parameters from ParamHandler
       // Note: Here all region loads are read (in contrast
       // when called by an external script)
@@ -669,7 +671,9 @@ namespace CoupledField
       // get load type (total / unit)
       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "type";
       params->GetList(keyVec, attrVec, valVec, tempType);
+#ifdef TCL_INTERFACE
     }
+#endif
 
     // --- Common part for scripting and parameter file ---
 
