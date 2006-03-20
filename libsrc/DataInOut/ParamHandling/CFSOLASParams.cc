@@ -76,6 +76,16 @@ namespace CoupledField {
       attrVec = "", "name", "";
       valVec  = "", pdename, "";
       cfs->Get( keyVec, attrVec, valVec, esTypeString );
+      if ( esTypeString == "expertsChoice" ) {
+        if ( overrideExpert ) {
+          (*error) << "You cannot specify expertsChoice as EigenSolver type "
+                   << "and at the same time specify overrideExpert! "
+                   << "This would leave the solver type undefined!";
+          Error( __FILE__, __LINE__ );
+        }
+      esTypeString = "no eigensolver";
+    }
+
       OLAS::String2Enum( esTypeString, esType );
     }
 
@@ -170,7 +180,7 @@ namespace CoupledField {
 
     // Let expert module modify the settings
     if ( overrideExpert == false && stdSystem == true ) {
-      CFSOLASParams::Expert( cfs, pdename, sType, pType, mType, eType,
+      CFSOLASParams::Expert( cfs, pdename, esType, sType, pType, mType, eType,
                              orderType, analysisType,
                              allowChangeOfReordering );
     }
@@ -1005,6 +1015,7 @@ namespace CoupledField {
   // *******************
   void CFSOLASParams::Expert( BaseParamHandler *cfs,
                               std::string pdename,
+                              OLAS::EigenSolverType &esType,
                               OLAS::SolverType &sType,
                               OLAS::PrecondType &pType,
                               OLAS::MatrixStorageType &mType,
@@ -1016,6 +1027,14 @@ namespace CoupledField {
     ENTER_FCN( "CFSOLASParams::Expert" );
 
     std::string warn;
+    // ==============
+    //  EigenSolver stuff
+    // ==============
+    // If no eigenvalue solver was specified, use arpack
+    if ( esType == OLAS::NOEIGENSOLVER ) {
+      esType = OLAS::ARPACK;
+    }
+
 
     // ==============
     //  Solver stuff
