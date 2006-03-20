@@ -322,9 +322,9 @@ libclean:
 # -----------------------------------------------------------------------------
 .PHONY: doc clean-doc
 doc:
-	cd $(C_DIR)/Doc; ./makedoc.sh
+	cd $(C_DIR)/Doc/developer; ./makedoc.sh
 clean-doc:
-	@cd $(C_DIR)/Doc; rm -rf ./html
+	@cd $(C_DIR)/Doc/developer; rm -rf ./html
 
 # -----------------------------------------------------------------------------
 # DEPENDENCIES

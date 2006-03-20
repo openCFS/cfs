@@ -62,38 +62,38 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = ../Doc/DoxygenConfig/mainpage.txt \
-                         ../libsrc/DataInOut \
-                         ../libsrc/DataInOut/AnsysFile \
-                         ../libsrc/DataInOut/AnsysOut \
-                         ../libsrc/DataInOut/Database \
-                         ../libsrc/DataInOut/DefineFiles \
-                         ../libsrc/DataInOut/GMV \
-                         ../libsrc/DataInOut/GSI \
-                         ../libsrc/DataInOut/GiD \
-                         ../libsrc/DataInOut/Scripting \
-                         ../libsrc/DataInOut/ParamHandling \
-                         ../libsrc/DataInOut/CommandLine \
-                         ../libsrc/DataInOut/Unverg \
-                         ../libsrc/Domain/ \
-                         ../libsrc/Domain/GridCFS \
-                         ../libsrc/Domain/AdaptGrid \
-                         ../libsrc/Driver \
-                         ../libsrc/ParamIdent \
-                         ../libsrc/Elements \
-                         ../libsrc/Elements/1D \
-                         ../libsrc/Elements/2D \
-                         ../libsrc/Elements/3D \
-                         ../libsrc/Forms \
-                         ../libsrc/PDE \
-                         ../libsrc/Matrix \
-                         ../libsrc/Estimator \
-                         ../libsrc/Utils \
-                         ../libsrc/General \
-                         ../libsrc/CoupledPDE \
-                         ../libsrc/MpCCIcpl \
-                         ../libsrc/ODEDescr \
-                         ../libsrc/ODESolve
+INPUT                  = ../../Doc/developer/DoxygenConfig/mainpage.txt \
+                         ../../libsrc/DataInOut \
+                         ../../libsrc/DataInOut/AnsysFile \
+                         ../../libsrc/DataInOut/AnsysOut \
+                         ../../libsrc/DataInOut/Database \
+                         ../../libsrc/DataInOut/DefineFiles \
+                         ../../libsrc/DataInOut/GMV \
+                         ../../libsrc/DataInOut/GSI \
+                         ../../libsrc/DataInOut/GiD \
+                         ../../libsrc/DataInOut/Scripting \
+                         ../../libsrc/DataInOut/ParamHandling \
+                         ../../libsrc/DataInOut/CommandLine \
+                         ../../libsrc/DataInOut/Unverg \
+                         ../../libsrc/Domain/ \
+                         ../../libsrc/Domain/GridCFS \
+                         ../../libsrc/Domain/AdaptGrid \
+                         ../../libsrc/Driver \
+                         ../../libsrc/ParamIdent \
+                         ../../libsrc/Elements \
+                         ../../libsrc/Elements/1D \
+                         ../../libsrc/Elements/2D \
+                         ../../libsrc/Elements/3D \
+                         ../../libsrc/Forms \
+                         ../../libsrc/PDE \
+                         ../../libsrc/Matrix \
+                         ../../libsrc/Estimator \
+                         ../../libsrc/Utils \
+                         ../../libsrc/General \
+                         ../../libsrc/CoupledPDE \
+                         ../../libsrc/MpCCIcpl \
+                         ../../libsrc/ODEDescr \
+                         ../../libsrc/ODESolve
 FILE_PATTERNS          = *.hh
 RECURSIVE              = NO
 EXCLUDE                = 
@@ -145,7 +145,7 @@ TREEVIEW_WIDTH         = 250
 #---------------------------------------------------------------------------
 GENERATE_LATEX         = NO
 LATEX_OUTPUT           = ./latex
-LATEX_CMD_NAME         = pdflatex
+LATEX_CMD_NAME         = latex
 MAKEINDEX_CMD_NAME     = makeindex
 COMPACT_LATEX          = NO
 PAPER_TYPE             = a4wide
