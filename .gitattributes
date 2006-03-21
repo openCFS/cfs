@@ -100,6 +100,12 @@ Doc/user/matFile/coupledPDEs.tex svneol=native#text/plain
 Doc/user/matFile/matRef.tex svneol=native#text/plain
 Doc/user/matFile/matintro.tex svneol=native#text/plain
 Doc/user/matFile/singlePDEs.tex svneol=native#text/plain
+Doc/user/scripting/commands.tex svneol=native#text/plain
+Doc/user/scripting/events.tex svneol=native#text/plain
+Doc/user/scripting/intro.tex svneol=native#text/plain
+Doc/user/scripting/pics/program-flow.cdr -text
+Doc/user/scripting/pics/program-flow.png -text svneol=unset#image/png
+Doc/user/scripting/scripting.tex svneol=native#text/plain
 Doc/user/xmlFile/BCsLoads.tex svneol=native#text/plain
 Doc/user/xmlFile/Savings.tex svneol=native#text/plain
 Doc/user/xmlFile/basicCommands.tex svneol=native#text/plain

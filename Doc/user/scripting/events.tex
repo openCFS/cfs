@@ -1,0 +1,62 @@
+\chapter{Event Procedures}
+During the execution of CFS++ there are defined points ({\em events})
+when interaction between CFS++ and Tcl is possible. These points are
+defined by event procedures, which will be called in the .tcl
+file. For example, after initialization of the PDEs, the method
+\begin{verbatim}
+proc CFS_Init {problemName} {
+  # put own code here
+  # .....
+}
+\end{verbatim}
+will be called, with the name of the problem as input parameter. 
+\newline
+In CFS there are the following event procedures which are called
+during program execution:
+
+\begin{center}
+\begin{longtable}{llp{0.5\textwidth}}
+\hline\noalign{\smallskip}
+procedure & parameters & meaning\\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\verb#CFS_Init# & \verb#problemName# (string) 
+                & Name of the problem, i.e. basename
+                 of the .xml file. \\
+\noalign{\smallskip}\hline\noalign{\smallskip}
+\verb#CFS_ReadBCs# & \verb#pdeName# (string)  
+                   & Name of the PDE (e.g. mechanic,
+                   electrostatic, direct, acoustic, etc.). Corresponds to the name
+                   written in .log-file.\\
+\noalign{\smallskip}\hline
+\verb#CFS_SetBCs# & \verb#pdeName# (string)  
+                  & Name of the PDE (e.g. mechanic,
+                  electrostatic, direct, acoustic, etc.). Corresponds to the name
+                  written in .log-file.\\
+                  & \verb#actStep# (unsigned int) 
+                  & Current time/frequency step of simulation. \\
+                  & \verb#time/frequency# (double)  
+                  & Current time/frequency  (dependent on analysis ) \\
+\noalign{\smallskip}\hline
+\verb#CFS_PostProcess# & \verb#pdeName# (string)  
+                       & Name of the PDE (e.g. mechanic,
+                       electrostatic, direct, acoustic, etc.). Corresponds to the name
+                       written in .log-file.\\
+\caption{Overview of Tcl event procedures}
+\label{tab:tcl-events}
+\end{longtable}
+
+\end{center}
+
+Some notes about the event procedures:
+\begin{itemize}
+\item By default, all event procedures are defined as empty
+functions. Only the ones overwritten / defined in the .tcl file will
+actually perform any {\em real} operation.
+\item Be careful to specify the correct number of parameters as given
+  in table \ref{tab:tcl-events} as otherwise the method will not be
+  recognized as event procedure!
+\item Event procedures will generally be called {\bf after} the
+  parameters from the .xml file are read. For example, the method
+  {\em CFS\_ReadBCs} will be called after the parameters were read from
+  the .xml file.
+\end{itemize}
