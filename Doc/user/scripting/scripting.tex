@@ -1,0 +1,76 @@
+\documentclass[12pt]{report}
+%
+\usepackage{graphicx}
+\graphicspath{{../../auxilliaries/Pics/}}
+%
+%
+\usepackage{../../auxilliaries/LaTeX/lsepaper}
+\usepackage{ifthen}
+\usepackage[isolatin]{inputenc}
+\usepackage{subfigure}
+\usepackage{amssymb}
+\usepackage{array}
+\usepackage{longtable}
+%
+% =============================================================================
+% PDF STUFF
+% =============================================================================
+%
+\ifx\pdfoutput\undefined
+\else
+\typeout{--> PDF: Output mode detected}
+\typeout{--> PDF: Setting general document info}
+%
+\usepackage{thumbpdf}
+%
+\usepackage[pdftex,bookmarks=true]{hyperref}
+\hypersetup{pdfpagemode=UseThumbs}
+\hypersetup{colorlinks=true}
+\hypersetup{linkcolor=red}
+\hypersetup{citecolor=blue}
+%
+\hypersetup{pdfauthor=cfs-devel} 
+\hypersetup{pdftitle={CFS++ --- TCL-Scripting Manual}}
+\hypersetup{pdfsubject={User's Guide}}
+\fi
+%
+% =============================================================================
+%
+% Special Commands related to Tcl documentation 
+%
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{3}
+\def\tcl-command#1{\subsubsection {#1}}
+\newcommand{\param}[3]{ & {\bf #1} (#2) & #3  \\ }
+\newcommand{\paramlist}{Parameters:\\}
+\newcommand{\returnlist}{Return:\\}
+\newenvironment{tcl-params}{\newline \begin{tabular}{p{0.2\textwidth}
+      p{0.35\textwidth}
+      p{0.4\textwidth}}
+    \hline\noalign{\smallskip}}
+  {\hline\noalign{\smallskip} \end{tabular}}
+% 
+% =============================================================================
+\begin{document}
+% =============================================================================
+%
+%
+\LSETITLE{CFS++ --- TCL-Scripting Manual}{cfs--devel}{User's Guide}
+%
+%
+\tableofcontents
+%
+%
+\clearpage
+\pagestyle{headings}
+\pagenumbering{arabic}
+%
+%
+\include{intro}
+\include{events}
+\include{commands}
+%
+%
+% =============================================================================
+\end{document}
+% =============================================================================
