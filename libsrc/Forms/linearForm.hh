@@ -4,6 +4,7 @@
 #include "baseForm.hh"
 #include "Forms/nLinElastInt.hh"
 #include "Utils/ApproxData.hh"
+#include "Utils/mathParser.hh"
 
 namespace CoupledField
 {
@@ -486,22 +487,31 @@ private:
     //! Set the volume force vector
     //! \param volForce vector with volume force w.r.t. coordSys
     //! \param coordSys pointer to reference coordinate system
-    void SetVolForceVector(Vector<Double> & volForce, const CoordSystem * coordSys);
+    void SetVolForceVector(StdVector<std::string> & volForce, const CoordSystem * coordSys,
+                           Boolean isUnit, Double volume);
     
     //! Calculation of vector of right hand side 
     void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
     
   protected:
     
-    //! number of degrees of freedom
+    //! Number of degrees of freedom
     UInt numDofs_;
     
-    //! vector with volume force (local coordinate system)
-    Vector<Double> locForce_;
+    //! Vector with volume force (local coordinate system)
+    StdVector<std::string> locForce_;
 
-    //! reference coordinate system
+    //! Reference coordinate system
     const CoordSystem * coordSys_;
+
+    //! Volume of region
+    Double volume_;
+
+    //! Flag if force is unit value
+    Boolean isUnitValue_;
     
+    //! Handler for MathParser object
+    MathParser::HandlerType mHandler_;
   };
 
 } // end of namespace

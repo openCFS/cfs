@@ -180,6 +180,10 @@ namespace CoupledField {
       // Determine next frequency value
       actFreq_ = ComputeNextFrequency( fstep );
 
+      // Set curent frequency value in the mathParser
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "f", actFreq_ );
+
       // Log info for this frequency
       Info->WriteHarmonicStep( ptPDE_->GetName(), fstep, actFreq_ );
 

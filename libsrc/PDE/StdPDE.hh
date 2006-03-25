@@ -433,16 +433,16 @@ namespace CoupledField {
     StdVector<std::string> bcs_ri_;
   
     //! values of solution/magnitude at inhomogeneous Dirichlet boundaries
-    StdVector<Double> val_id_;
+    StdVector<std::string> val_id_;
 
     //! values of solution/magnitude at inhomogeneous von Neumann boundaries
     StdVector<Double> val_ni_;
   
     //! values of phases at inhomogeneous Dirichlet boundaries
-    StdVector<Double> bcs_id_phase_;
+    StdVector<std::string> bcs_id_phase_;
 
     //! values of phases at inhomogeneous von Neumann boundaries
-    StdVector<Double> bcs_ni_phase_;
+    StdVector<std::string> bcs_ni_phase_;
   
     //! names of the time functions for inhomogeneous Dirichlet BCs
     StdVector<std::string> fncnames_id_;

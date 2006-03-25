@@ -118,7 +118,8 @@ namespace CoupledField {
 
     /// writes domain and dof of inhomogenous Dirichlet boundary conditions
     void WriteInhomDirBC(const std::string& pdeName,const std::string& subDom, 
-                         const Double& val, const std::string & fnc, const UInt& dof);
+                         const std::string& val, const std::string & fnc, 
+                         const UInt& dof);
 
     /// writes domain and dof of inhomogenous Neumann boundary conditions
     void WriteInhomNeuBC(const std::string& pdeName,const std::string& subDom); 
@@ -129,7 +130,7 @@ namespace CoupledField {
 
     /// writes domain, value and dof of a load conditon
     void WriteLoad(const std::string& pdeName, const std::string& subDom, 
-                   Double value, const std::string & fnc, UInt dof=0);
+                   std::string value, const std::string & fnc, UInt dof=0);
     
 
     /// write Result values

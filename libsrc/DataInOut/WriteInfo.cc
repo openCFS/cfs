@@ -699,7 +699,7 @@ namespace CoupledField {
   // ****************
   void WriteInfo::WriteInhomDirBC( const std::string& pdeName,
                                    const std::string& subDom, 
-                                   const Double& val, const std::string & fnc,
+                                   const std::string& val, const std::string & fnc,
                                    const UInt& dof ) {
 
     ENTER_FCN( "WriteInfo::WriteInHomBC" );
@@ -751,7 +751,7 @@ namespace CoupledField {
 
   void WriteInfo::WriteLoad(const std::string& pdeName,
                             const std::string& subDom, 
-                            Double value, const std::string & fnc,
+                            std::string value, const std::string & fnc,
                             UInt dof)
   {
     ENTER_FCN( "WriteInfo::WriteLoad" );

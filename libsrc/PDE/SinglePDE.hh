@@ -11,6 +11,7 @@
 #include "Domain/GridAdaption/GridAdaption.hh"
 
 #include "DataInOut/Scripting/scriptable.hh"
+#include "Utils/mathParser.hh"
 
 
 namespace CoupledField
@@ -49,7 +50,7 @@ namespace CoupledField
     {return assemble_->loadDof_;};
   
     //! returns the load values
-    StdVector<Double>& GetLoadVals()
+    StdVector<std::string>& GetLoadVals()
     {return assemble_->loadVals_;};
   
     //!returns the load functions
@@ -372,6 +373,10 @@ namespace CoupledField
   
     //! flag for direct coupling
     Boolean isDirectCoupled_;
+
+    //! Handler for MathParser object
+    MathParser::HandlerType mHandler_;
+
     //@}
   };
 

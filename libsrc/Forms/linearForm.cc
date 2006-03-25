@@ -4,6 +4,7 @@
 
 #include "forms_header.hh"
 #include "Utils/coordSystem.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField {
 
@@ -1271,7 +1272,10 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     
     isaxi_ = isaxi;
     numDofs_ = numDof;
-    
+
+    // Obtain mathParser handler
+    mHandler_ = domain->GetMathParser()->GetNewHandler();
+
   }
     
   MechVolForceInt::~MechVolForceInt() {
@@ -1280,13 +1284,16 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
 
   }
     
-  void MechVolForceInt::SetVolForceVector(Vector<Double> & volForce, 
-                                          const CoordSystem * coordSys) {
+  void MechVolForceInt::SetVolForceVector(StdVector<std::string> & volForce, 
+                                          const CoordSystem * coordSys,
+                                          Boolean isUnit, Double volume ) {
 
     ENTER_FCN( "MechVolForceInt::SetVolForceVector" );
 
     locForce_ = volForce;
     coordSys_ = coordSys;
+    isUnitValue_ = isUnit;
+    volume_ = volume;
     
   }
     
@@ -1300,12 +1307,31 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Vector<Double> shapeFnc, CoordAtIP, globVec;
 
+    // get global coordinate system and math parser
+    MathParser * parser = domain->GetMathParser();
+
     // First, map force to global coordinate system
     Vector<Double> globMidPoint, locMidPoint;
 
     ptelem->GetCoordMidPoint(locMidPoint);
     ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, ptCoord);
-    coordSys_->Local2GlobalVector(globVec, locForce_, globMidPoint);
+
+    // Update variables for mathParser
+    parser->SetCoordinates( mHandler_, *coordSys_, globMidPoint );
+
+    // Now evaluate each entry 
+    Vector<Double> locLoadVec( numDofs_ );
+    for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
+      locLoadVec[i] = parser->Eval( mHandler_, locForce_[i] );
+    }
+
+    // If load is not unit load, divide by volume
+    if ( isUnitValue_ == FALSE ) {
+      locLoadVec /= volume_;
+    }
+    
+    // Map local load vector to global one
+    coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
 
     // Then, calculate element vector
     elemVec.Resize(nrNodes * numDofs_);
@@ -1321,9 +1347,8 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
         CoordAtIP = ptCoord * shapeFnc;
         jacDet *= 2 * PI * CoordAtIP[0];
       }
-      
+          
       factor = intWeights[actIntPt-1] * jacDet;
-
       for (UInt iNode = 0; iNode < nrNodes; iNode++) {
         for (UInt iDof = 0; iDof < numDofs_; iDof++) {
           elemVec[iNode*numDofs_ + iDof] += 

@@ -131,8 +131,15 @@ namespace CoupledField {
     }
 
     UInt nstep;
+
+    // Out loop over all timesteps
     for (nstep = startStep; nstep <= numstep_; nstep++) {
+      
+      // Set curent value of timestep in the mathParser
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "t", steptime );
     
+      // Determine when to write logging information on terminal
       if ( numstep_ <= 50 )
         Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
                             steptime+timeOffset_);
@@ -149,14 +156,16 @@ namespace CoupledField {
           percentCounter += timeStepPercent;
         }
       }
-
+      
+      // Perform actions
       ptPDE_->GetSolveStep()->SetActTime(steptime);
       ptPDE_->GetSolveStep()->SetActStep(nstep);
       ptPDE_->GetSolveStep()->PreStepTrans(updatesysmat);
       ptPDE_->GetSolveStep()->SolveStepTrans(updatesysmat);
       ptPDE_->GetSolveStep()->PostStepTrans();
 
-      ptPDE_->PostProcess();   
+      ptPDE_->PostProcess();  
+      
       //write history data
       ptPDE_->WriteHistoryInFile(nstep, steptime, stepOffset_, timeOffset_);
     
