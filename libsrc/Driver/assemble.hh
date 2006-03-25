@@ -17,6 +17,7 @@
 #include "DataInOut/timefunc.hh"
 #include "Utils/nodestoresol.hh"
 #include "Utils/elemstoresol.hh"
+#include "Utils/mathParser.hh"
 #include "PDE/nodeEQN.hh"
 
 #include "olas.hh"
@@ -387,17 +388,17 @@ namespace CoupledField
 
     StdVector<std::string> loadDom_;  //!< load subdomains
     StdVector<std::string> loadDof_;  //!< dofs of loads
-    StdVector<Double>      loadVals_; //!< values of the load condition
-    StdVector<Double>      loadPhase_; //!< values of the phase of the load condition
+    StdVector<std::string> loadVals_; //!< values of the load condition
+    StdVector<std::string> loadPhase_; //!< values of the phase of the load condition
     StdVector<std::string> fncname_loads_; //!< function names of the loads
     StdVector<std::string> fncname_rhs_; //!< function names for RHS integrators
     StdVector<std::string> fncname_rhsSurf_; //!< function names for RHS surface integrators
 
     StdVector<std::string> springDom_;  //!< spring subdomains
     StdVector<std::string> springDof_;  //!< dofs of springs
-    StdVector<Double>      springMassVals_; //!< values of the spring mass
-    StdVector<Double>      springDampVals_; //!< values of the spring damping
-    StdVector<Double>      springStiffVals_; //!< values of the spring stiffness
+    StdVector<std::string> springMassVals_; //!< values of the spring mass
+    StdVector<std::string> springDampVals_; //!< values of the spring damping
+    StdVector<std::string> springStiffVals_; //!< values of the spring stiffness
     StdVector<std::string> fncname_springs_; //!< function names of the loads
 
     StdVector<Double> rhsSrcPhase_;      //!< contains the phase values in harmonic case;
@@ -491,6 +492,9 @@ namespace CoupledField
 
     //!
     Matrix<Double>* matArray_;
+
+    //! Handler for MathParser object
+    MathParser::HandlerType mHandler_;
 
 
   private:

@@ -203,14 +203,17 @@ namespace CoupledField
       //! Name of region
       std::string name;
 
-      //! Value of load (total)
-      Vector<Double>  unitValue;
-      
+      //! Value of load
+      StdVector<std::string>  value;
+
       //! Reference to time dynamics file
       std::string dynamics;
 
       //! Name of reference coordinate system
       std::string refCoord;
+
+      //! Type of load (total/unit)
+      std::string type;
 
       //! Volume of region
       Double volume;

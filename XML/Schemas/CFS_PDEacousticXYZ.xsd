@@ -139,10 +139,10 @@
   <xsd:complexType name="DT_AcousticXYZID">
     <xsd:complexContent>
       <xsd:extension base="DT_AcousticXYZHD">
-        <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="value" type="xsd:token" use="required"/>
         <xsd:attribute name="dynamics" type="xsd:token" use="optional"
           default="none"/>
-        <xsd:attribute name="phase" type="xsd:double" use="optional"
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
           default="0.0"/>
 	<xsd:attribute name="fileName" type="xsd:token" use="optional"
           default="none"/>

@@ -604,15 +604,14 @@ namespace CoupledField
     ENTER_FCN ( "MechPDE::ReadRegionLoads" );
     
     StdVector<std::string> keyVec, attrVec, valVec;
-    StdVector<std::string> names, dofs, dynamics, refCoord, type;
-    StdVector<std::string> tempNames, tempDofs, tempDynamics;
+    StdVector<std::string> names, dofs, dynamics, refCoord, type, mathExpr;
+    StdVector<std::string> tempNames, tempDofs, tempDynamics, tempMathExpr;
     StdVector<std::string>  tempRefCoord, tempType;
     StdVector<RegionIdType> regionIds;
     StdVector<UInt> vecComp;
-    StdVector<Double> loadVec, tempLoadVec;
-    Vector<Double> unitLoad(dim_), totLoad(dim_), tempLoad(dim_);
+    StdVector<std::string> loadVec, tempLoadVec, tempLoad(dim_);
     UInt locDof = 0;
-      Integer index = -1;
+    Integer index = -1;
     
     // Check, if function was called by a scripting command
 #ifdef TCL_INTERFACE
@@ -622,7 +621,7 @@ namespace CoupledField
       // Note: If scripting is used, only one region load
       // can be specified per call
       SCRIPT_GET( std::string,name);
-      SCRIPT_GET( Double, value );
+      SCRIPT_GET( std::string, value );
       SCRIPT_GET( std::string, dof );
       SCRIPT_GET( std::string, refCoordSys );
       SCRIPT_GET( std::string, type );
@@ -655,6 +654,10 @@ namespace CoupledField
       // get value
       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "value";
       params->GetList(keyVec, attrVec, valVec, tempLoadVec);
+
+      // get mathExpr
+      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "mathExpr";
+      params->GetList(keyVec, attrVec, valVec, tempMathExpr);
      
       // get dynamics
       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dynamics";
@@ -703,6 +706,7 @@ namespace CoupledField
       for (UInt iEntry = 0; iEntry < tempNames.GetSize(); iEntry++ ) {
         if ( names[i] == tempNames[iEntry] ) {
           loadVec.Push_back(tempLoadVec[iEntry]);
+          mathExpr.Push_back(tempMathExpr[iEntry]);
           dynamics.Push_back(tempDynamics[iEntry]);
           dofs.Push_back(tempDofs[iEntry]);
           refCoord.Push_back(tempRefCoord[iEntry]);
@@ -762,11 +766,8 @@ namespace CoupledField
       for (UInt iDim=0; iDim < loadVec.GetSize(); iDim++) {
         locDof = domain->GetCoordSystem(refCoord[iDim])->
           GetVecComponent(dofs[iDim]);
-        if ( type[iDim] == "total" ) {
-          curLoad->unitValue[locDof-1] = loadVec[iDim] / curLoad->volume;
-        } else {
-          curLoad->unitValue[locDof-1] = loadVec[iDim];
-        }
+        curLoad->value[locDof-1] = loadVec[iDim];
+        curLoad->type = type[iDim];
       }
     }
   }
@@ -1079,7 +1080,7 @@ namespace CoupledField
 
     Double actTime = asteptime + timeOffset;
     UInt actStep = kstep + stepOffset;
-    
+
 #ifdef WRITE_RHS
     NodeStoreSol<Double> rhs;
     rhs.SetNumSolutions(1);
@@ -1660,7 +1661,7 @@ namespace CoupledField
     // --- ReadRegionLoad ---
     a.Push_back();
     a.Last().RegisterParam( "name", ArgList::STRING );
-    a.Last().RegisterParam( "value", ArgList::DOUBLE );
+    a.Last().RegisterParam( "value", ArgList::STRING );
     a.Last().RegisterParam( "dof", ArgList::STRING );
     a.Last().RegisterParam( "refCoordSys", ArgList::STRING );
     a.Last().RegisterParam( "type", ArgList::STRING );
@@ -1680,17 +1681,28 @@ namespace CoupledField
   // ========================== RegionLoads ==========================
   MechPDE::RegionLoad::RegionLoad( UInt dim, Boolean isAxi ) {
     
-    unitValue.Resize( dim );
+    value.Resize( dim );
+    value.Init( "0.0");
+    
     isAxi_ = isAxi;
     volume = 0.0;
     
   }
 
   MechVolForceInt * MechPDE::RegionLoad::GetIntegrator() {
-    MechVolForceInt * forceInt = new MechVolForceInt( unitValue.GetSize(),
+    MechVolForceInt * forceInt = new MechVolForceInt( value.GetSize(),
                                                       isAxi_);
-    forceInt->SetVolForceVector( unitValue, 
-                                 domain->GetCoordSystem( refCoord) );
+
+    // Check, if type is "unit"
+    Boolean isUnit;
+    if ( type == "total" ) {
+      isUnit = FALSE;
+    } else {
+      isUnit = TRUE;
+    }
+    forceInt->SetVolForceVector( value,
+                                 domain->GetCoordSystem( refCoord),
+                                 isUnit, volume );
     
     return forceInt;
     
@@ -1707,8 +1719,8 @@ namespace CoupledField
             << std::setw(15) << "refCoordSys" << " | "
             << std::setw(15) << "dynamics" << " | "
             << std::setw(11) << "volume" << " | "
-            << std::setw(11) << "tot. load" << " | "
-            << std::setw(11) << "unit load" <<std::endl;
+            << std::setw(6) << "type" << " | "
+            << std::setw(11) << "load" <<std::endl;
         Info->PrintF(pdeName, out.str().c_str());
         out.str("");
         out << std::setw(90) << std::setfill('-') << "" 
@@ -1719,23 +1731,24 @@ namespace CoupledField
   
         
         // write logging information into info file
-        for (UInt k = 0; k < unitValue.GetSize(); k++ ) {
+        for (UInt k = 0; k < value.GetSize(); k++ ) {
           out.str("");
           if ( k == 0) {
             out << std::setw(15) << name << " | " 
                 << std::setw(15) << refCoord << " | "
                 << std::setw(15) << dynamics << " | "
-                << std::setw(11) << volume << " | ";
+                << std::setw(11) << volume << " | "
+                << std::setw(6) << type << "|";
           } else {
             out << std::setw(15) << "" << " | " 
                 << std::setw(15) << "" << " | "
                 << std::setw(15) << "" << " | "
-                << std::setw(11) << "" << " | ";
+                << std::setw(11) << "" << " | "
+                << std::setw(6) << "" << " | ";
             
           }
           
-          out << std::setw(11) << unitValue[k]*volume << " | "
-              << std::setw(11) << unitValue[k] << std::endl;
+          out << std::setw(11) << value[k] << std::endl;
           
           Info->PrintF(pdeName,out.str().c_str());
         }

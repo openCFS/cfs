@@ -155,10 +155,10 @@
   <xsd:complexType name="DT_MechID">
     <xsd:complexContent>
       <xsd:extension base="DT_MechHD">
-        <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="value" type="xsd:token" use="required"/>
         <xsd:attribute name="dynamics" type="xsd:token" use="optional"
           default="none"/>
-        <xsd:attribute name="phase" type="xsd:double" use="optional"
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
           default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
@@ -200,9 +200,9 @@
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
         <xsd:attribute name="dof" type="DT_MechDOF" use="required"/>
-        <xsd:attribute name="massValue" type="xsd:double" use="required"/>
-        <xsd:attribute name="dampingValue" type="xsd:double" use="required"/>
-        <xsd:attribute name="stiffnessValue" type="xsd:double"
+        <xsd:attribute name="massValue" type="xsd:token" use="required"/>
+        <xsd:attribute name="dampingValue" type="xsd:token" use="required"/>
+        <xsd:attribute name="stiffnessValue" type="xsd:token"
           use="required"/>
         <xsd:attribute name="dynamics" type="xsd:token" use="optional"
           default="none"/>
@@ -215,6 +215,8 @@
   <xsd:complexType name="DT_MechRegionLoad">
     <xsd:complexContent>
       <xsd:extension base="DT_MechLoad">
+        <xsd:attribute name="mathExpr" type="xsd:string"
+          use="optional" default="1"/>
         <xsd:attribute name="refCoordSys" type="xsd:token"
           use="optional" default="default"/>
         <xsd:attribute name="type" use="optional" default="total">

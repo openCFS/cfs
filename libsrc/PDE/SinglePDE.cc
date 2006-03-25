@@ -35,6 +35,8 @@
 #include <mpi.h>
 #endif
 
+#include "muParser.h"
+
 namespace CoupledField {
 
 
@@ -97,6 +99,9 @@ namespace CoupledField {
     pdeId_ = NO_PDE_ID;
     isDirectCoupled_  = FALSE;
     m_bReadSpecialBCs = FALSE;
+
+    // Obtain mathParser handler
+    mHandler_ = domain->GetMathParser()->GetNewHandler();
 
     // Register functions for scripting
     RegisterFunctions();
@@ -575,6 +580,7 @@ namespace CoupledField {
     
     ENTER_FCN( "SinglePDE::WriteGeneralPDEdefines" );
     
+
     // Boundary condition section
     for (UInt i=0; i< bcs_hd_.GetSize(); i++) {
       UInt dof;
@@ -612,15 +618,15 @@ namespace CoupledField {
     // Loads
     StdVector<std::string> loadDom = GetLoadDom();
     StdVector<std::string> loadDof = GetLoadDof();
-    StdVector<Double> loadVals = GetLoadVals();
+    StdVector<std::string> loadVals = GetLoadVals();
     StdVector<std::string> loadfncs = GetLoadFncs();
-
+    
     for( UInt i = 0; i < loadDom.GetSize(); i++ ) {
       UInt dof;
       std::string doftype = loadDom[i];
       if (dofspernode_ > 1) {
         dof = domain->GetCoordSystem()->GetVecComponent(loadDof[i]);
-      }
+        }
       else {
         dof = 1;
       }
@@ -645,6 +651,13 @@ namespace CoupledField {
     UInt bcNum = 0;
     Integer eqnNr; 
     UInt eqnDof;
+
+     Vector<Double> globCoord;
+
+    // get global coordinate system and math parser
+    CoordSystem * coosy = domain->GetCoordSystem();
+    MathParser * parser = domain->GetMathParser();
+    
 
     if ( isIterCoupled_ ) {
       bcNum = couplingBCsCounter_;
@@ -712,14 +725,13 @@ namespace CoupledField {
     // ---------------------------
     
     Double phase = 0.0;
-    Double dirVal;
     StdVector<Double>  val_tfunc_vec, dirVal_vec;
+
     for ( UInt i = 0; i < bcs_id_.GetSize(); i++ ) {//loop over bcs groups
       dof = 1;
       if ( dofspernode_ > 1 ) {
         std::string doftype = bcs_id_[i]; 
         dof = domain->GetCoordSystem()->GetVecComponent(inhomDirichDof_[i]);
-        //	std::cout << "dof:" << inhomDirichDof_[i] << " num=" << dof << std::endl;
       }
       
       ptgrid_->GetNodesByName( nodes, bcs_id_[i] ); 
@@ -737,17 +749,28 @@ namespace CoupledField {
             val_tfunc_vec.Resize(nodes.GetSize());
             dirVal_vec.Resize(nodes.GetSize());
             val_tfunc_vec=ptTimeFunc_->TimeSpcFuncAtTime(time,fncnames_id_[i],nodes, ptgrid_);  
-            for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ )
-              dirVal_vec[iNode]    =  val_id_[i] * val_tfunc_vec[iNode];
+            for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+
+              // Get coordinates of node and set correct context for parser
+              ptgrid_->GetNodeCoordinate( globCoord, nodes[iNode]  );
+              parser->SetCoordinates( mHandler_, *coosy, globCoord );
+              dirVal_vec[iNode] =  parser->Eval( mHandler_, val_id_[i]  ) 
+                *  val_tfunc_vec[iNode];
+            }
           }
       }
-
-      val    =  val_id_[i] * val_tfunc;
-      dirVal = val;
+      
       
       for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 
         eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
+
+        // Get node coordinate
+        ptgrid_->GetNodeCoordinate( globCoord, nodes[iNode] );
+        parser->SetCoordinates( mHandler_, *coosy, globCoord );
+        
+        // Now evaluate value of IDBC
+        val = parser->Eval( mHandler_, val_id_[i] ) * val_tfunc;
 
         // DODO GridAdaption
         // interpolate acoustic pressure at current node?
@@ -773,9 +796,6 @@ namespace CoupledField {
             }
           }
 	  
-          if(effectiveMass_) {
-            dirVal = val;
-          }
         }
 
         // Sanity check. This should not happen, but might appear
@@ -807,7 +827,6 @@ namespace CoupledField {
             }
           else
             {
-              val = dirVal;
               val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
             }
         }
@@ -817,11 +836,11 @@ namespace CoupledField {
             //            std::cout<<" function val in SinglePDE, dirVal_vec["<<iNode<<"]: "<<dirVal_vec[iNode]<<std::endl;
             val = dirVal_vec[iNode];
           }
-
+        
         // Case of complex-valued entries
         if (analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC) {
 
-          phase = bcs_id_phase_[i];
+          phase = parser->Eval( mHandler_, bcs_id_phase_[i] );
           //Complex complexValue( val * std::cos( phase / 180 * PI ),
           //                      val * std::sin( phase / 180 * PI ) );
           Complex complexValue( val * cos( phase / 180 * PI ),
@@ -850,7 +869,7 @@ namespace CoupledField {
     }
     messenger->TriggerEvent( CFSMessenger::CFS_SetBCs, context );
 #endif
-  }
+ }
 
  
   void SinglePDE::SetTimeStepping(TimeStepping *timeStepping) {

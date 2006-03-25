@@ -4,6 +4,7 @@
 #include <map>
 
 #include "Utils/StdVector.hh"
+#include "Utils/mathParser.hh"
 
 namespace CoupledField
 {
@@ -104,6 +105,9 @@ namespace CoupledField
     CoordSystem * GetCoordSystem( const std::string & name 
                                   = std::string("default") );
 
+    //! Return Math Parser object for evaluating math expressions
+    MathParser * GetMathParser() { return &mathParser_; }
+
     //@}
 
 
@@ -201,6 +205,9 @@ namespace CoupledField
 
     //! Mapping between name and coordinate sysem pointer
     std::map<std::string, CoordSystem*> coordSys_;
+
+    //! Mathematic parser object
+    MathParser mathParser_;
 
     //! dimension of the problem
     UInt dim_;

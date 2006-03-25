@@ -30,6 +30,9 @@ namespace CoupledField {
       return name_;
     }
 
+    //! Return number of dimensions
+    UInt GetDim( ) const { return dim_; }
+    
     //! Transform local into global coordinate
 
     //! This method transforms a point given in local coordinates into a

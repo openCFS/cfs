@@ -43,6 +43,9 @@ namespace CoupledField {
     matArray_  = NULL;
     
     bcSequenceTag_ = bcSequenceTag;
+
+    // Obtain a new mathParser handler
+    mHandler_ = domain->GetMathParser()->GetNewHandler();
     
   }
 
@@ -737,8 +740,14 @@ namespace CoupledField {
     
     Integer eqnNr = 0;
     UInt eqnDof = 0;
-    Double phase = 0;
-    
+    Double phase = 0.0;
+    Double val = 0.0;
+    Vector<Double> globCoord;
+
+    // get global coordinate system and math parser
+    CoordSystem * coosy = domain->GetCoordSystem();
+    MathParser * parser = domain->GetMathParser();
+
     for (UInt actDom=0; actDom < loadDom_.GetSize(); actDom++) {
       std::string doftype = loadDom_[actDom];
 
@@ -748,7 +757,6 @@ namespace CoupledField {
 
       StdVector<UInt> nodes;
       ptgrid_->GetNodesByName( nodes,loadDom_[actDom]);
-      Double val = loadVals_[actDom];
 
       Double val_tfunc = 1.0;
       if (ptTimeFunc_->GetmaxTimeFnc() > 0 )
@@ -757,13 +765,18 @@ namespace CoupledField {
 
       for ( UInt i=0;  i<nodes.GetSize(); i++) {
         UInt node = nodes[i];
-            
-        val = loadVals_[actDom] * val_tfunc;
+           
+        // Get coordinates of node
+        ptgrid_->GetNodeCoordinate( globCoord, node );
+        parser->SetCoordinates( mHandler_, *coosy, globCoord );
+   
+        // Evaluate load value
+        val = parser->Eval(mHandler_, loadVals_[actDom]) * val_tfunc;
 
         ptEQN1_->Node2EQN(node,dof,eqnNr,eqnDof);
 
         if (analysisType_ == HARMONIC || analysisType_ == MULTIHARMONIC) {
-          phase = loadPhase_[actDom];
+          phase = parser->Eval( mHandler_, loadPhase_[actDom] );
           Complex complexValue( val * cos( phase / 180 * PI ),
                                 val * sin( phase / 180 * PI ) );
           algsys_->SetNodeRHS(complexValue, pdeId1_, eqnNr, eqnDof);    
@@ -847,6 +860,11 @@ namespace CoupledField {
     
     UInt eqnDof;
     Integer eqnNr;
+    Vector<Double> globCoord;
+
+    // get global coordinate system and math parser
+    CoordSystem * coosy = domain->GetCoordSystem();
+    MathParser * parser = domain->GetMathParser();
     
     for (UInt actDom=0; actDom < springDom_.GetSize(); actDom++) {
       std::string doftype = springDom_[actDom];
@@ -859,9 +877,9 @@ namespace CoupledField {
       StdVector<UInt> nodes;
       ptgrid_->GetNodesByName(nodes, springDom_[actDom]);
         
-      Double massValue_ = springMassVals_[actDom];
-      Double dampingValue_ = springDampVals_[actDom];
-      Double stiffnessValue_ = springStiffVals_[actDom];
+      Double massValue = 0.0;
+      Double dampingValue = 0.0;
+      Double stiffnessValue = 0.0;
 
       Double val_tfunc = 1.0;
       if ( ptTimeFunc_->GetmaxTimeFnc() > 0 ) {
@@ -872,47 +890,56 @@ namespace CoupledField {
       for ( UInt i = 0; i < nodes.GetSize(); i++ ) {
 
         UInt node = nodes[i];
+        
+        // Get coordinates of node
+        ptgrid_->GetNodeCoordinate( globCoord, node );
+        parser->SetCoordinates( mHandler_, *coosy, globCoord );
+        
+        // Evaluate values
+        massValue = parser->Eval( mHandler_, springMassVals_[actDom]);
+        dampingValue = parser->Eval( mHandler_, springDampVals_[actDom]);
+        stiffnessValue = parser->Eval( mHandler_, springStiffVals_[actDom]);
 
-        massValue_      = springMassVals_[actDom]  * val_tfunc;
-        dampingValue_   = springDampVals_[actDom]  * val_tfunc;
-        stiffnessValue_ = springStiffVals_[actDom] * val_tfunc;
-
+        massValue *= val_tfunc;
+        dampingValue *= val_tfunc;
+        stiffnessValue *= val_tfunc;
+        
         ptEQN1_->Node2EQN( node, dof, eqnNr, eqnDof );
 
         if ( analysisType_ == TRANSIENT ) {
-          if ( abs(massValue_) > 1e-30 ) {
+          if ( abs(massValue) > 1e-30 ) {
             Info->PrintF( "", "Adding value %e to the mass matrix\n",
-                          massValue_ );
+                          massValue );
             algsys_->AddToDiagMatrixEntry( MASS, pdeId1_, eqnNr, eqnDof,
-                                           &massValue_ );
+                                           &massValue );
           }
-          if ( abs(dampingValue_) > 1e-30 ) {
+          if ( abs(dampingValue) > 1e-30 ) {
 
             // if (!dampingMatrix_)
             // Error("The damping value of a spring can only be added to 
             // the damping matrix when there exist one! ",__FILE__,__LINE__);
 
             Info->PrintF( "", "Adding value %e to the damping matrix\n",
-                          dampingValue_ );
+                          dampingValue );
             algsys_->AddToDiagMatrixEntry( DAMPING, pdeId1_, eqnNr, eqnDof,
-                                           &dampingValue_ );
+                                           &dampingValue );
           }
-          if ( abs(stiffnessValue_) > 1e-30 ) {
+          if ( abs(stiffnessValue) > 1e-30 ) {
             Info->PrintF( "", "Adding value %e to the stiffness matrix\n",
-                          stiffnessValue_ );
+                          stiffnessValue );
             algsys_->AddToDiagMatrixEntry( STIFFNESS, pdeId1_, eqnNr, eqnDof,
-                                           &stiffnessValue_ );
+                                           &stiffnessValue );
           }
         }
 
         else if( analysisType_ == STATIC ) {
-          if ( abs(stiffnessValue_) > 1e-30 ) {
+          if ( abs(stiffnessValue) > 1e-30 ) {
             Info->PrintF( "", "Adding value %e to the system matrix\n",
-                          stiffnessValue_ );
+                          stiffnessValue );
             algsys_->AddToDiagMatrixEntry( SYSTEM, pdeId1_, eqnNr, eqnDof,
-                                           &stiffnessValue_ );
+                                           &stiffnessValue );
           }
-          if ( abs(dampingValue_) > 1e-30 || abs(massValue_) > 1e-30 ) {
+          if ( abs(dampingValue) > 1e-30 || abs(massValue) > 1e-30 ) {
             (*error) << "The damping and mass value of a spring will not "
                      << "be considered in an static analysis!";
             Error( __FILE__, __LINE__ );
