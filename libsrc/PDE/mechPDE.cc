@@ -604,8 +604,8 @@ namespace CoupledField
     ENTER_FCN ( "MechPDE::ReadRegionLoads" );
     
     StdVector<std::string> keyVec, attrVec, valVec;
-    StdVector<std::string> names, dofs, dynamics, refCoord, type, mathExpr;
-    StdVector<std::string> tempNames, tempDofs, tempDynamics, tempMathExpr;
+    StdVector<std::string> names, dofs, dynamics, refCoord, type;
+    StdVector<std::string> tempNames, tempDofs, tempDynamics;
     StdVector<std::string>  tempRefCoord, tempType;
     StdVector<RegionIdType> regionIds;
     StdVector<UInt> vecComp;
@@ -654,10 +654,6 @@ namespace CoupledField
       // get value
       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "value";
       params->GetList(keyVec, attrVec, valVec, tempLoadVec);
-
-      // get mathExpr
-      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "mathExpr";
-      params->GetList(keyVec, attrVec, valVec, tempMathExpr);
      
       // get dynamics
       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dynamics";
@@ -706,7 +702,6 @@ namespace CoupledField
       for (UInt iEntry = 0; iEntry < tempNames.GetSize(); iEntry++ ) {
         if ( names[i] == tempNames[iEntry] ) {
           loadVec.Push_back(tempLoadVec[iEntry]);
-          mathExpr.Push_back(tempMathExpr[iEntry]);
           dynamics.Push_back(tempDynamics[iEntry]);
           dofs.Push_back(tempDofs[iEntry]);
           refCoord.Push_back(tempRefCoord[iEntry]);
