@@ -215,8 +215,6 @@
   <xsd:complexType name="DT_MechRegionLoad">
     <xsd:complexContent>
       <xsd:extension base="DT_MechLoad">
-        <xsd:attribute name="mathExpr" type="xsd:string"
-          use="optional" default="1"/>
         <xsd:attribute name="refCoordSys" type="xsd:token"
           use="optional" default="default"/>
         <xsd:attribute name="type" use="optional" default="total">
