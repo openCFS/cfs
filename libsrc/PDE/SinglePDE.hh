@@ -137,9 +137,11 @@ namespace CoupledField
     void SetBCs(const Double atimestep);
 
     //! Method for modifying an inhomogeneous boundary condition
-    void SetIDBC( const std::string & name,
-                  UInt dof, Double value, 
-                  Double phase = 0.0 );
+    void SetIDBC( const std::string &name,
+                  const std::string &dofString, 
+                  const std::string &value, 
+                  const std::string &phase,
+                  const std::string &dynamics );
   
     //! write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
