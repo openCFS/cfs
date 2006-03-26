@@ -643,6 +643,21 @@ namespace CoupledField {
     
     ENTER_FCN( "SinglePDE::SetBCs" );
     
+    // Trigger setting of BC from script file
+#ifdef TCL_INTERFACE
+    StdVector<std::string> context;
+    context.Push_back( pdename_ );
+    context.Push_back( GenStr(solveStep_->GetActStep() ) );
+
+    if ( analysistype_ == TRANSIENT ||
+         analysistype_ == STATIC ) {
+      context.Push_back( GenStr(solveStep_->GetActTime() ) );
+    } else {
+      context.Push_back( GenStr(solveStep_->GetActFreq() ) );
+    }
+    messenger->TriggerEvent( CFSMessenger::CFS_SetBCs, context );
+#endif
+    
     UInt dof;
     Double val, val_tfunc;
     
@@ -855,20 +870,7 @@ namespace CoupledField {
       }
     }
 
-    // Last but not least trigger setting of BC from script file
-#ifdef TCL_INTERFACE
-    StdVector<std::string> context;
-    context.Push_back( pdename_ );
-    context.Push_back( GenStr(solveStep_->GetActStep() ) );
 
-    if ( analysistype_ == TRANSIENT ||
-         analysistype_ == STATIC ) {
-      context.Push_back( GenStr(solveStep_->GetActTime() ) );
-    } else {
-      context.Push_back( GenStr(solveStep_->GetActFreq() ) );
-    }
-    messenger->TriggerEvent( CFSMessenger::CFS_SetBCs, context );
-#endif
  }
 
  
@@ -1576,6 +1578,8 @@ namespace CoupledField {
         Error( "Not implemented yet", __FILE__, __LINE__ );
         break;
 
+
+
       }
     }
   }
@@ -1588,31 +1592,69 @@ namespace CoupledField {
     
   }
 
-  void SinglePDE::SetIDBC( const std::string & name,
-                           UInt dof, Double value, 
-                           Double phase ) {
+  void SinglePDE::SetIDBC( const std::string &name,
+                           const std::string &dofString, 
+                           const std::string &value, 
+                           const std::string &phase,
+                           const std::string &dynamics) {
     ENTER_FCN("SinglePDE::SetIDBC");
 
-    
-    StdVector<UInt> nodes;
-    UInt eqnDof;
-    Integer eqnNr;
-    
-    // Check, if name was is already set in list of IDBC nodes
-    Integer index = bcs_id_.Find(name);
-    if ( index == -1 ) {
-      (*error) << "Nodes '" << name << "' are not declared as "
-               << "inhom. dirichlet nodes!";
-      Error( __FILE__, __LINE__ );
-    }
 
-    ptgrid_->GetNodesByName(nodes, name);
-    
-    for (UInt i=0; i<nodes.GetSize(); i++ ) {
-      
-      eqnData_->Node2EQN( nodes[i], 1, eqnNr, eqnDof );
-      algsys_->SetDirichlet( i+1, pdeId_, eqnNr, value, eqnDof );
+    // Try ro find existing entry in IDBC vector
+    Integer index = -1;
+
+    for ( UInt i = 0; i < bcs_id_.GetSize(); i++ ) {
+
+      if ( bcs_id_[i] == name ) {
+        if ( dofspernode_ > 1 ) {
+          if ( inhomDirichDof_[i] == dofString ) {
+            index = i;
+            break;
+          }
+        } else {
+          index = i;
+          break;
+        }
+      }
     }
+    
+    // If entry was already defined, we can always change
+    // the value of the boundary condition
+    if ( index != -1 ) {
+      val_id_[index] = value;
+      if (analysistype_ == HARMONIC
+          ||analysistype_ == MULTIHARMONIC) {
+        bcs_id_phase_[index] = phase;
+      }
+    } else {
+      // Entry was not yet defined. We can only add a new
+      // idbc entry, if eqnData was not yet initialized / created
+      if (eqnData_ == NULL) {
+        bcs_id_.Push_back( name );
+        val_id_.Push_back( value );
+        if ( dofspernode_ > 1 ) {
+          inhomDirichDof_.Push_back( dofString );
+        }
+        if (analysistype_ == HARMONIC
+            ||analysistype_ == MULTIHARMONIC) {
+          bcs_id_phase_.Push_back( phase );
+        } else {
+          fncnames_id_.Push_back( dynamics );
+        }
+
+        // Re-calculate the correct number of boundary condition entries
+        for ( UInt i = 0; i < bcs_id_.GetSize(); i++) {
+          numDirichletBCs_ += ptgrid_->GetNumNodes(bcs_id_[i]);
+        }
+        
+      } else {
+        (*error) << "No new ihom. Dirichlet BC can be defined " 
+                 << "at this point, as the equation numbering "
+                 << "was already performed!";
+        Error( __FILE__, __LINE__ );
+      }
+    } 
+
   }
 
   
@@ -1629,8 +1671,10 @@ namespace CoupledField {
     // --- IDBC ---
     a.Push_back();
     a.Last().RegisterParam("name", ArgList::STRING );
-    a.Last().RegisterParam("value", ArgList::DOUBLE );
-    a.Last().RegisterParam("dof", ArgList::UINT );
+    a.Last().RegisterParam("dof", ArgList::STRING );
+    a.Last().RegisterParam("value", ArgList::STRING );
+    a.Last().RegisterParam("phase", ArgList::STRING );
+    a.Last().RegisterParam("dynamics", ArgList::STRING );
     pt.Push_back( new FCPT( this, &SinglePDE::Wrap_IDBC) );
     name.Push_back( "setIdbc" );
                   
@@ -1649,10 +1693,14 @@ namespace CoupledField {
   
   void SinglePDE::Wrap_IDBC() {
     SCRIPT_GET( std::string, name );
-    SCRIPT_GET( UInt, dof );    
-    SCRIPT_GET( Double, value );
-    
-    SetIDBC(name, dof, value, 0.0 );
+    SCRIPT_GET( std::string, dof );    
+    SCRIPT_GET( std::string, value );
+    SCRIPT_GET( std::string, phase );
+    SCRIPT_GET( std::string, dynamics );
+    if ( dynamics == "" ) {
+      dynamics = "none";
+    }
+    SetIDBC(name, dof, value, phase, dynamics );
   }
   
   void SinglePDE::Wrap_GetValue() {

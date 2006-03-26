@@ -158,12 +158,17 @@ Returns the nodal unknown(s) of a specified node.
 \subsection{Boundary Conditions / Loads}
 
 \tcl-command{setIdbc}
-Allows one so set the value of (previously defined) inhomogeneous
-Dirichlet boundary nodes, identiefied by their name.
+Allows one add or change an inhomogeneous boundary condition. Note
+that a new boundary condition may only be defined in the method
+\verb#CFS_ReadBCS#, as lateron the number of boundary conditions is
+not allowed to change. Therefore one can only change already existing
+boundary conditions in the event method \verb#CFS_SetBCs#.
 \begin{tcl-params}
   \paramlist
   \param{name}{string}{Name of nodes}
-  \param{value}{double}{Inhom. Dirichlet boundary value}
   \param{dof}{string}{Degree of freedom to be set (ux,uy,uz...)}
+  \param{value}{string}{Inhom. Dirichlet boundary value}
+  \param{phase}{string}{Inhom. Dirichlet boundary phase (only harmonic)}
+  \param{dynamics}{string}{Name of file timedata file}
 \end{tcl-params}
 
