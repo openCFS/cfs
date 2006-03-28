@@ -3,7 +3,7 @@
 
 #include <Elements/basefe.hh>
 #include <Forms/bdbInt.hh>
-#include <DataInOut/MaterialData.hh>
+#include <Materials/baseMaterial.hh>
 
 namespace CoupledField
 {
@@ -13,119 +13,40 @@ namespace CoupledField
 class SmoothInt : public BDBInt
 {
 public:
-  /// Constructor
-  SmoothInt(BaseFE * aptelem, MaterialData & matData);
 
-  /// Constructor
-  SmoothInt(MaterialData & matData);
+  //! Constructor
+  SmoothInt(BaseMaterial* matData, SubTensorType type = FULL);
   
-  /// Destructor
+  //! Destructor
   virtual ~SmoothInt();
   
 protected:    
   
-  /// returns B - matrix for BDB
+  //! returns B - matrix for BDB
   virtual void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
 
-  //  /// orientation of calculation plane in 2D 
-  //   //  (especially important for anisotropic simulations)
-  //   enum orientation2D {xy, xz, yz};
-
-  orientation2D actOrientation_;
-};
-  
-  
-
-
-
-
-  /// class for calculation of smoothanical plain strain state
-class smoothPlainStrainInt : public SmoothInt
-{  
-public:
-  /// Constructor
-  smoothPlainStrainInt(BaseFE * aptelem, MaterialData & matDat);
-
-  /// Constructor
-  smoothPlainStrainInt(MaterialData & matDat);
-  
-  
-  /// Deconstructor
-  virtual ~smoothPlainStrainInt();
-  
-  
-protected:
-  
-  /// calculate the data-matrix for 2D plain-strain
+  //! calculate the data-matrix for 2D plain-strain
   virtual void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
 
-  /// returns dimension of D matrix
-  virtual UInt getDimD(){return 3;};
+  //! returns dimension of D matrix
+  virtual UInt getDimD() {
+    return dimD_; 
+  };
   
-  /// returns nr. of degrees of freedom
-  virtual UInt getNrDofs(){return 2;};
+  //! returns nr. of degrees of freedom
+  virtual UInt getNrDofs() {
+    return nrDofs_;
+  };
+
+  private:
+
+  //dimension of Dmatrix
+  UInt dimD_;
+
+  //! number of degrees 
+  UInt nrDofs_;
 };
-
-
-
-
-/// class for calculation of smoothing axisymmetric state
-class SmoothAxiInt : public SmoothInt
-{  
-public:
-  /// Constructor
-  SmoothAxiInt(BaseFE * aptelem, MaterialData & matDat);
-
-  /// Constructor
-  SmoothAxiInt(MaterialData & matDat);
   
-  
-  /// Deconstructor
-  virtual ~SmoothAxiInt();
-  
-  
-protected:
-  
-  /// calculate the data-matrix for 2D axi
-  virtual void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
-
-  /// returns dimension of D matrix
-  virtual UInt getDimD(){return 4;};
-  
-  /// returns nr. of degrees of freedom
-  virtual UInt getNrDofs(){return 2;};
-};
-
-
-
-
-/// class for calculation of smoothanical plain strain state
-class smooth3DInt : public SmoothInt
-{  
-public:
-  /// Constructor
-  smooth3DInt(BaseFE * aptelem, MaterialData & matDat);
-
-  /// Constructor
-  smooth3DInt(MaterialData & matDat);
-  
-  /// Deconstructor
-  virtual ~smooth3DInt();
-
-  
-protected:
-  
-  /// returns D - matrix for BDB
-  virtual void calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord);
-
-  /// returns dimension of D matrix
-  virtual UInt getDimD(){return 6;};
-  
-  /// returns nr. of degrees of freedom
-  virtual UInt getNrDofs(){return 3;};  
-};
-
-
 } //end namespace
 
 #endif // FILE_SMOOTHINT

@@ -34,7 +34,7 @@ namespace CoupledField {
     solTypes_ = MAG_POTENTIAL;
     solDofs_ = 1;
     pdename_          = "magnetic";
-    pdematerialclass_ = "magnetic";
+    pdematerialclass_ = ELECTROMAGNETIC;
 
     // ---------------------------------------------------------
     //   Get special geometry
@@ -138,20 +138,12 @@ namespace CoupledField {
 
       // Get reluctivity for this domain and perform consistency check
       Double reluctivity;
-      materialData_[actSD].GetPermeability(2,2,reluctivity);
-
-      if ( reluctivity == 0 ) {
-        Info->Error( "Region '" + ptgrid_->RegionIdToName(subdoms_[actSD]) 
-                     + "' has zero" +
-                     " permeability!", __FILE__, __LINE__ );
-      }
-      
-      reluctivity = 1/reluctivity;
+      materialData_[actSD]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
  
       if ( nonLinType_[actSD] != "no" ) {
 
         //read in the BH-curve data and compute the approximation
-        std::string nlfnc = materialData_[actSD].GetBHCurveFileName();
+        std::string nlfnc = materialData_[actSD]->GetNonlinFileName();
         ApproxData *nlinFnc = new SmoothSpline(nlfnc);
         //ApproxData *nlinFnc = new LinInterpolate(nlfnc);
         nlinFnc->CalcBestParameter();
@@ -190,7 +182,7 @@ namespace CoupledField {
 
       // Mass matrix
       Double conductivity;
-      materialData_[actSD].GetConductivity(2,2,conductivity);
+      materialData_[actSD]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
       BaseForm *bilinear_mass = new MassInt(conductivity, dofspernode_,isaxi_);
 
       IntegratorDescriptor * massDescr = 
@@ -453,7 +445,7 @@ namespace CoupledField {
         // Get the right material parameter for actual subdomain
         for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++)
           if (subdoms_[iSD] == calcEddy_[actSD])
-            materialData_[iSD].GetConductivity(2,2,conductivity);
+	    materialData_[iSD]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
 
         // loop over elements of subdomain
         for ( UInt actEl=0; actEl< elemssd.GetSize();
@@ -546,8 +538,8 @@ namespace CoupledField {
 
     for (i=0; i<calcEnergy_.GetSize(); i++) {
 
-      //reads eps33 (matrix notation starts with 0)
-      Double eps33 = materialData_[i].GetPermittivity(2,2);
+      Double reluctivity;
+      materialData_[i]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
 
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems( elemssd,calcEnergy_[i] );
@@ -556,7 +548,7 @@ namespace CoupledField {
       for (j=0; j < elemssd.GetSize(); j++) {
 
         ptElem=elemssd[j]->ptElem;
-        BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
+        BaseForm *bilinear_stiff = new CurlCurlNode2DInt(ptElem,reluctivity, isaxi_);
 
         connecth=elemssd[j]->connect;
         GetElemCoords(connecth, ptCoord);
@@ -1165,7 +1157,7 @@ namespace CoupledField {
       }
 
       Double conductivity;
-      materialData_[SDidx].GetConductivity(2,2,conductivity);      
+      materialData_[SDidx]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);      
       
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);

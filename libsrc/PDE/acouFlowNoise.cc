@@ -30,7 +30,7 @@ namespace CoupledField
 
     // pdename_ is also acoustic for this case
     pdename_          = "acoustic";
-    pdematerialclass_ = "fluid";
+    pdematerialclass_ = FLUID;
     nodalSrc_ = FALSE;
     vortexSrc_ = FALSE;
     plotRHS_ = FALSE; 

@@ -2,7 +2,7 @@
 #include <fstream>
 #include <string>
 
-#include "environment.hh"
+#include "environment.hh"Lame
 #include "Utils/tools.hh"
 #include "Domain/domain.hh"
 
@@ -732,6 +732,423 @@ namespace CoupledField {
     }
   }
 
- 
+  template<> 
+  void Enum2String<DataType>(const DataType &in, std::string &out) {
+    switch(in) {
+    case COMPLEX:
+      out = "Complex";
+      break;
+    case REAL:
+      out = "Real";
+      break;
+    case IMAG:
+      out = "ImaginaryPart";
+      break;
+    default:  
+      Error("No conversion found for your 'DataType'", __FILE__, __LINE__);
+    }
+  }
 
+
+  template<>
+  void String2Enum<DataType>( const std::string &in, DataType &out ) {
+
+    if ( in == "Complex" ) {
+      out = COMPLEX;
+    }
+    else if ( in == "Real" ) {
+      out = REAL;
+    }
+    else if ( in == "ImaginaryPart" ) {
+      out = IMAG;
+    }
+    else {
+      (*error) << "'" << in << "' cannot be converted into an '"
+               << "DataType' item!";
+      Error( __FILE__, __LINE__);
+    }
+  }
+
+  template<> 
+  void Enum2String<MaterialType>(const MaterialType &in, std::string &out) {
+    switch(in) {
+    case NO_MATERIAL:
+      out = "noMaterial";
+      break;
+    case MAG_PERMEABILITY:
+      out = "Magnetic_permability";
+      break;
+    case MAG_RELUCTIVITY:
+      out = "Magnetic_reluctivity";
+      break;
+    case MAG_CONDUCTIVITY:
+      out = "Magnetic_Conductiuvity";
+      break;
+    case ELEC_PERMITTIVITY:
+      out = "Electric_Permittivity";
+      break;
+    case MECH_STIFFNESS_TENSOR:
+      out = "MechanicStiffnessTensor";
+      break;
+    case MECH_EMODULUS:
+      out = "Mechanic_Emodulus";
+      break;
+    case MECH_POISSON:
+      out = "Mechanic_PoissonRation";
+      break;
+    case MECH_KMODULUS:
+      out = "Mechanic_Kmodulus";
+      break;
+    case MECH_GMODULUS:
+      out = "Mechanic_Gmodulus";
+      break;
+    case MECH_LAME_MU:
+      out = "Mechanic_LameMu";
+      break;
+    case MECH_LAME_LAMBDA:
+      out = "Mechanic_LameLambda";
+      break;
+    case RAYLEIGH_ALPHA:
+      out = "Rayleigh_Alpha";
+      break;
+    case RAYLEIGH_BETA:
+      out = "Rayleigh_Beta";
+      break;
+    case RAYLEIGH_FREQUENCY:
+      out = "Rayleigh_Frequency";
+      break;
+    case RAYLEIGH_DELTA_FREQ:
+      out = "Rayleigh_DeltaFreq";
+      break;
+    case LOSS_TANGENS_DELTA:
+      out = "Loss_TangensDelta";
+      break;
+     case DENSITY:
+      out = "Density";
+      break;
+    case ACOU_BULK_MODULUS:
+      out = "AcousticBulkModulus";
+      break;
+    case ACOU_SOUND_SPEED:
+      out = "Acoustic_SoundSpeed";
+      break;
+    case ACOU_ALPHA:
+      out = "AcousticAlpha";
+      break;
+    case FRACTIONAL_ALG:
+      out = "FractionalAlg";
+      break;
+    case FRACTIONAL_MEMORY:
+      out = "FractionalMemory";
+      break;
+    case FRACTIONAL_INTERPOL:
+      out = "FractionalInterpol";
+      break;
+    case FRACTIONAL_EXPONENT:
+      out = "FractionalExponent";
+      break;
+    case HEAT_CONDUCTIVITY:
+      out = "HeatConductivity";
+      break;
+    case HEAT_CAPACITY:
+      out = "HeatCapacity";
+      break;
+    case DYNAMIC_VISCOSITY:
+      out = "dynamicViscosity";
+      break;
+    case PIEZO_TENSOR:
+      out = "PiezoTensor";
+      break;
+    case E_SATURATION:
+      out = "Esaturation";
+      break;
+    case P_SATURATION:
+      out = "Psaturation";
+      break;
+    case P_FUNCTION:
+      out = "Pfunction";
+      break;
+    case A_JILES:
+      out = "aJiles";
+      break;
+    case ALPHA_JILES:
+      out = "alphaJiles";
+      break;
+    case K_JILES:
+      out = "kJiles";
+      break;
+    case C_JILES:
+      out = "cJiles";
+      break;
+    case P_DIRECTION:
+      out = "Pdirection";
+      break;
+    case HYST_MODEL:
+      out = "hystModel";
+      break;
+    case NONLIN_COEFFICIENT:
+      out = "nonLinCoefficient";
+      break;
+    case NONLIN_DEPENDENCY:
+      out = "nonLinDependency";
+      break;
+    case NONLIN_APPROXIMATION_TYPE:
+      out = "nonLinApproximationType";
+      break;
+    case NONLIN_DATA_NAME:
+      out = "nonLinDataName";
+      break;
+    default:  
+      Error("No conversion found for your 'DataType'", __FILE__, __LINE__);
+    }
+  }
+
+  template<> 
+  void String2Enum<MaterialType>( const std::string &in, MaterialType &out ) {
+    if ( in == "noMaterial" ) {
+      out = NO_MATERIAL;
+    }
+    else if ( in == "Magnetic_permability" ) {
+      out = MAG_PERMEABILITY;
+    }
+    else if ( in == "Magnetic_permability" ) {
+      out = MAG_PERMEABILITY;
+    }
+    else if ( in == "Magnetic_reluctivity" ) {
+      out = MAG_RELUCTIVITY;
+    }
+    else if ( in == "Magnetic_Conductiuvity" ) {
+      out = MAG_CONDUCTIVITY;
+    }
+    else if ( in == "Electric_Permittivity" ) {
+      out = ELEC_PERMITTIVITY;
+    }
+    else if ( in == "MechanicStiffnessTensor" ) {
+      out = MECH_STIFFNESS_TENSOR;
+    }
+    else if ( in == "Mechanic_Emodulus" ) {
+      out = MECH_EMODULUS;
+    }
+    else if ( in == "Mechanic_PoissonRation" ) {
+      out = MECH_POISSON;
+    }
+    else if ( in == "Mechanic_Kmodulus" ) {
+      out = MECH_KMODULUS;
+    }
+    else if ( in == "Mechanic_Gmodulus" ) {
+      out = MECH_GMODULUS;
+    }
+    else if ( in == "Mechanic_LameMu" ) {
+      out = MECH_LAME_MU;
+    }
+    else if ( in == "Mechanic_LameLambda" ) {
+      out = MECH_LAME_LAMBDA;
+    }
+    else if ( in == "Rayleigh_Alpha" ) {
+      out = RAYLEIGH_ALPHA;
+    }
+    else if ( in == "Rayleigh_Beta" ) {
+      out = RAYLEIGH_BETA;
+    }
+    else if ( in == "Rayleigh_Frequency" ) {
+      out = RAYLEIGH_FREQUENCY;
+    }
+    else if ( in == "Rayleigh_DeltaFreq" ) {
+      out = RAYLEIGH_DELTA_FREQ;
+    }
+    else if ( in == "Loss_TangensDelta" ) {
+      out = LOSS_TANGENS_DELTA;
+    }
+    else if ( in == "Density" ) {
+      out = DENSITY;
+    }
+    else if ( in == "AcousticBulkModulus" ) {
+      out = ACOU_BULK_MODULUS;
+    }
+    else if ( in == "Acoustic_SoundSpeed" ) {
+      out = ACOU_SOUND_SPEED;
+    }
+    else if ( in == "AcousticAlpha" ) {
+      out = ACOU_ALPHA;
+    }
+    else if ( in == "FractionalAlg" ) {
+      out = FRACTIONAL_ALG;
+    }
+    else if ( in == "FractionalMemory" ) {
+      out = FRACTIONAL_MEMORY;
+    }
+    else if ( in == "FractionalInterpol" ) {
+      out = FRACTIONAL_INTERPOL;
+    }
+    else if ( in == "FractionalExponent" ) {
+      out = FRACTIONAL_EXPONENT;
+    }
+    else if ( in == "HeatConductivity" ) {
+      out = HEAT_CONDUCTIVITY;
+    }
+    else if ( in == "HeatCapacity" ) {
+      out = HEAT_CAPACITY;
+    }
+    else if ( in == "dynamicViscosity" ) {
+      out = DYNAMIC_VISCOSITY;
+    }
+    else if ( in == "PiezoTensor" ) {
+      out = PIEZO_TENSOR;
+    }
+    else if ( in == "Esaturation" ) {
+      out = E_SATURATION;
+    }
+    else if ( in == "Psaturation" ) {
+      out = P_SATURATION;
+    }
+    else if ( in == "Pfunction" ) {
+      out = P_FUNCTION;
+    }
+    else if ( in == "aJiles" ) {
+      out = A_JILES;
+    }
+    else if ( in == "alphaJiles" ) {
+      out = ALPHA_JILES;
+    }
+    else if ( in == "kJiles" ) {
+      out = K_JILES;
+    }
+    else if ( in == "cJiles" ) {
+      out = C_JILES;
+    }
+    else if ( in == "Pdirection" ) {
+      out = P_DIRECTION;
+    }
+    else if ( in == "hystModel" ) {
+      out = HYST_MODEL;
+    }
+    else if ( in == "nonLinCoefficient" ) {
+      out = NONLIN_COEFFICIENT;
+    }
+    else if ( in == "nonLinDependency" ) {
+      out = NONLIN_DEPENDENCY;
+    }
+    else if ( in == "nonLinApproximationType" ) {
+      out = NONLIN_APPROXIMATION_TYPE;
+    }
+    else if ( in == "nonLinDataName" ) {
+      out = NONLIN_DATA_NAME;
+    }
+    else {
+      Error("No conversion from string to 'MaterialType' found", __FILE__, __LINE__);
+    }
+  }
+
+
+  template<> 
+  void Enum2String<SubTensorType>(const SubTensorType &in, std::string &out) {
+    switch(in) {
+    case PLANE_STRAIN:
+      out = "planeStrain";
+      break;
+    case PLANE_STRESS:
+      out = "planeStress";
+      break;
+    case AXI:
+      out = "axi";
+      break;
+    case FULL:
+      out = "3d";
+      break;
+    default:  
+      Error("No conversion found for your 'SubTensorType'", __FILE__, __LINE__);
+    }
+  }
+
+  template<> 
+  void String2Enum<SubTensorType>( const std::string &in, SubTensorType &out ) {
+    if ( in == "planeStrain" ) {
+      out = PLANE_STRAIN;
+    }
+    else if ( in == "planeStress" ) {
+      out = PLANE_STRESS;
+    }
+    else if ( in == "axi" ) {
+      out = AXI;
+    }
+    else if ( in == "3d" ) {
+      out = FULL;
+    }
+    else {
+      Error("No conversion from string to 'SubTensorType' found", 
+            __FILE__, __LINE__);
+    }
+  }
+  
+  template<> 
+  void Enum2String<MaterialClass>(const MaterialClass &in, 
+                                  std::string &out) {
+    switch(in) {
+    case NO_CLASS:
+      out = "No MaterialClass";
+      break;
+    case ELECTROMAGNETIC:
+      out = "electromagnetic";
+      break;
+    case ELECTROSTATIC:
+      out = "electrostatic";
+      break;
+    case FLUID:
+      out = "fluid";
+      break;
+    case FLOW:
+      out = "flow";
+      break;
+    case MECHANIC:
+      out = "mechanic";
+      break;
+    case PIEZO:
+      out = "piezo";
+      break;
+    case THERMIC:
+      out = "thermic";
+      break;
+      
+    default:  
+      Error("No conversion found for your 'MaterialClass'", 
+            __FILE__, __LINE__);
+    }
+  }
+  
+  template<> 
+  void String2Enum<MaterialClass>( const std::string &in, MaterialClass &out ) {
+    
+    if ( in == "No MaterialClass" ) {
+      out = NO_CLASS;
+    }
+    else if ( in == "electromagnetic" ) {
+      out = ELECTROMAGNETIC;
+    }    
+    else if ( in == "electrostatic" ) {
+      out = ELECTROSTATIC;
+    }
+    else if ( in == "electromagnetic" ) {
+      out = ELECTROMAGNETIC;
+    }
+    else if ( in == "fluid" ) {
+      out = FLUID;
+    }
+    else if ( in == "flow" ) {
+      out = FLOW;
+    }
+    else if ( in == "mechanic" ) {
+      out = MECHANIC;
+    }
+    else if ( in == "piezo" ) {
+      out = PIEZO;
+    }
+    else if ( in == "thermic" ) {
+      out = THERMIC;
+    }
+    else {
+      (*error) << "'" << in << "' cannot be converted into an '"
+               << "MaterialClass' item!";
+      Error( __FILE__, __LINE__);
+    }
+  }
 }

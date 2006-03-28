@@ -14,10 +14,10 @@ namespace CoupledField {
     BDBInt();
     
     //! Constructor with pointer to BaseElem
-    BDBInt(BaseFE *aptelem, MaterialData &matData);
+    BDBInt(BaseFE *aptelem, BaseMaterial* matData);
 
     //! Constructor with pointer to BaseElem
-    BDBInt(MaterialData &matData);
+    BDBInt(BaseMaterial* matData, SubTensorType type = FULL);
 
     //! Destructor
     virtual ~BDBInt();

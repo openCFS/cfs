@@ -18,7 +18,8 @@ namespace CoupledField
   // ========================================================================
 
   
-  void piezoParamIdent::calc_measuredCharge(Vector<Double> freqs, Vector<Double> & absZ, Vector<Double> & phi, Vector<Complex> & y_hat){
+  void piezoParamIdent::calc_measuredCharge(Vector<Double> freqs, Vector<Double> & absZ, 
+					    Vector<Double> & phi, Vector<Complex> & y_hat){
     ENTER_FCN("piezoParamIdent::calc_measuredCharge");
     Complex Z,j;
     Double x, y;
@@ -308,7 +309,8 @@ namespace CoupledField
   }
 
 
-  void piezoParamIdent::createF(MaterialData * ptMaterial,  Vector<Complex> & F_hat, Boolean typeOut){
+  void piezoParamIdent::createF(StdVector<BaseMaterial*>& ptMaterial,  Vector<Complex> & F_hat, 
+				Boolean typeOut){
     ENTER_FCN("PiezoParamIdent:createF");
     //   std::cout<<"\nF wil be created ..."<<std::endl;
 
@@ -453,7 +455,12 @@ namespace CoupledField
   // ___________________________________________________________________________________________
 
 
-  void piezoParamIdent::testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,MaterialData * ptMaterial,Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl){
+  void piezoParamIdent::testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, 
+					 Vector<Double> & parameter, 
+					 StdVector<BaseMaterial*>& ptMaterial,
+					 Vector<Double> & parameterIncrement, 
+					 Vector<Complex>& solElecPot,
+					 Vector<Complex> &solMechDispl){
     ENTER_FCN("piezoParamIdent::testJacobiMatrix");
 
     Vector<Complex> F_hat_incr(F_hat.GetSize());
@@ -491,7 +498,7 @@ namespace CoupledField
   }// end testJacobiMatrix
 
   void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix,
-                                          Vector<Double> & parameter, MaterialData * ptMaterial,
+                                          Vector<Double> & parameter, StdVector<BaseMaterial*>& ptMaterial,
                                           Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,
                                           Vector<Complex> &solMechDispl){
     ENTER_FCN("piezoParamIdent::testJacobiMatrix");
@@ -546,7 +553,7 @@ namespace CoupledField
 
 
   void piezoParamIdent::testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, 
-                                          Vector<Double> & parameter,MaterialData * ptMaterial){
+                                          Vector<Double> & parameter, StdVector<BaseMaterial*>& ptMaterial){
     ENTER_FCN("piezoParamIdent::testJacobiMatrix");
 
     Vector<Complex> F_hat_incr(F_hat.GetSize());

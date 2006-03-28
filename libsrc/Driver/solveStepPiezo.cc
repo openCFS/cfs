@@ -65,22 +65,23 @@ namespace CoupledField {
           ptgrid_->GetVolElems(elemssd,subdoms_[iSD]);
           numSDElems = elemssd.GetSize(); 
 
-          std::string hystType = materialData_[iSD].GetHysteresisType();
+          std::string hystType;
+	  materialData_[iSD]->GetScalar(hystType, HYST_MODEL);
           if ( hystType == "preisach" ) {
-            Esat = materialData_[iSD].GetEsat();
-            Psat = materialData_[iSD].GetPsat();
-            dir  = materialData_[iSD].GetDirPol();
+            materialData_[iSD]->GetScalar(Esat,E_SATURATION,REAL);
+            materialData_[iSD]->GetScalar(Psat,P_SATURATION,REAL);
+            materialData_[iSD]->GetScalar((Integer)dir,P_DIRECTION,INTEGER);
             isVirgin = TRUE; 
 
             hyst_[iSD] = new Preisach(numSDElems, Esat, Psat, Ec, isVirgin);
           }
           else if (hystType == "jiles") {
             Double a, alpha, k, c;
-            a     =  materialData_[iSD].GetJiles_a();
-            alpha =  materialData_[iSD].GetJiles_alpha();
-            k     =  materialData_[iSD].GetJiles_k();
-            c     =  materialData_[iSD].GetJiles_c();
-            Psat = materialData_[iSD].GetPsat();
+	    materialData_[iSD]->GetScalar(a,A_JILES,REAL);
+	    materialData_[iSD]->GetScalar(alpha,ALPHA_JILES,REAL);
+	    materialData_[iSD]->GetScalar(k,K_JILES,REAL);
+	    materialData_[iSD]->GetScalar(c,C_JILES,REAL);
+	    materialData_[iSD]->GetScalar(Psat,P_SATURATION,REAL);
 
             hyst_[iSD] = new Jiles(numSDElems, Psat, a, alpha, k, c);
             hyst_[iSD]->SetTimeStepVal(TS_alg_->GetTimeStep());
@@ -294,7 +295,8 @@ namespace CoupledField {
       ptgrid_->GetVolElems(elemssd,subdoms_[isd]);
       
       //get direction of polarization
-      comp = materialData_[isd].GetDirPol() - 1;
+      materialData_[isd]->GetScalar((Integer)comp,P_DIRECTION,INTEGER);
+      comp -= 1;
 
       // loop over elements of subdomain
       for (UInt iel=0; iel< elemssd.GetSize(); iel++)        {
@@ -346,7 +348,8 @@ namespace CoupledField {
       ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
     
       //get direction of polarization
-      comp =  materialData_[actSD].GetDirPol() - 1;
+      materialData_[actSD]->GetScalar((Integer)comp,P_DIRECTION,INTEGER);
+      comp -= 1;
     
       for (UInt iel=0; iel < elemssd.GetSize(); iel++) {
 
@@ -370,7 +373,7 @@ namespace CoupledField {
         dE = Ecomp - Eprevious_[pdeElem-1];
         dD = Dval - Dprevious_[pdeElem-1];
         if ( (abs(dD) < 1e-12) || (abs(dE) < 1e-10) ) {
-          eps = materialData_[actSD].GetPermittivity(2,2);
+          materialData_[actSD]->GetScalar(eps,ELEC_PERMITTIVITY,REAL);
           if (eps < 8.854e-12) {
             eps = 8.854e-12;
           }

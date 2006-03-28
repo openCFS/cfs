@@ -51,7 +51,7 @@ namespace CoupledField {
     solTypes_ = ELEC_POTENTIAL;
     solDofs_ = 1;
     pdename_          = "electrostatic";
-    pdematerialclass_ = "piezo"; 
+    pdematerialclass_ = ELECTROSTATIC;
  
     geoUpdate_ = FALSE;
     nonLin_    = FALSE;
@@ -556,7 +556,7 @@ namespace CoupledField {
           for (UInt i=0; i<subdoms_.GetSize(); i++)
             {
               if (subdoms_[i] == ptVolElem->regionId)
-                permittivity  = materialData_[i].GetPermittivity(2,2);
+                materialData_[i]->GetScalar(permittivity,ELEC_PERMITTIVITY,REAL);
             }
         
           // Calc electric flux density
@@ -622,7 +622,8 @@ namespace CoupledField {
     for (i=0; i<subdoms_.GetSize(); i++)
       {
         //reads eps33 (matrix notation starts with 0)
-        Double eps33 = materialData_[i].GetPermittivity(2,2);
+	Double eps33;
+	materialData_[i]->GetScalar(eps33,ELEC_PERMITTIVITY,REAL);
 
         StdVector<Elem*> elemssd;
         ptgrid_->GetVolElems( elemssd,subdoms_[i] );

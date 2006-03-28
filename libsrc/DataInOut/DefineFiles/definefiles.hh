@@ -3,6 +3,7 @@
 
 #include "DataInOut/filetype.hh"
 #include "DataInOut/writeresults.hh"
+#include "DataInOut/MaterialHandler.hh"
 
 namespace CoupledField
 { 
@@ -38,6 +39,9 @@ namespace CoupledField
     //! of the WriteResults according to the specification of the conf-file.
     WriteResults* Create_ptWriteResults();
 
+    //! create pointer to Materialfile Handler
+    MaterialHandler* CreateMaterialHandler();
+
   private:
 
     //! pointer to a class for reading input mesh-data
@@ -45,6 +49,9 @@ namespace CoupledField
 
     //! pointer to a class for writing output data
     WriteResults *ptWriteResults_;
+
+    //! pointer to MaterialHandler
+    MaterialHandler * ptMaterialHandler_;
 
   };
 

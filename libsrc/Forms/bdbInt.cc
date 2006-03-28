@@ -5,8 +5,7 @@
 
 namespace CoupledField {
 
-
-  // New version seems to be buggy
+// New version seems to be buggy
 #define BDB_NEW_VERSION
 
 
@@ -135,7 +134,6 @@ namespace CoupledField {
       // Setup material matrix once and for all
       calcDMat( dMat );
 
-
       // Loop over all integration points
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
@@ -180,7 +178,6 @@ namespace CoupledField {
           }
         }
       }
-
     }
 
 
@@ -368,7 +365,7 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  BDBInt::BDBInt( BaseFE *aptelem, MaterialData &matData )
+  BDBInt::BDBInt( BaseFE *aptelem, BaseMaterial* matData )
     : BaseForm(aptelem, matData), updateDMatInEveryIP_(0) {
     ENTER_FCN( "BDBInt::BDBInt" );
     baseType_ = STIFFNESS;
@@ -378,8 +375,8 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  BDBInt::BDBInt( MaterialData &matData ) 
-    : BaseForm(matData), updateDMatInEveryIP_(0) {
+  BDBInt::BDBInt( BaseMaterial* matData, SubTensorType type ) 
+    : BaseForm(matData,type), updateDMatInEveryIP_(0) {
     ENTER_FCN( "BDBInt::BDBInt" );
     baseType_ = STIFFNESS;
   }

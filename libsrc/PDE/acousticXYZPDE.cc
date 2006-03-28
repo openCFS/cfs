@@ -67,7 +67,7 @@ namespace CoupledField {
 
     solDofs_ = dofspernode_;
     pdename_          = "acousticXYZ";
-    pdematerialclass_ = "fluid";
+    pdematerialclass_ = FLUID;
 
     solTypes_ = ACOU_PRESSUREXYZ;
 
@@ -156,13 +156,14 @@ namespace CoupledField {
       //   In AcousticXYZPDE ALL integrators are multiplied with density!
       // ********************************************************************
 
-      density         = materialData_[actSD].GetDensity();
-      compressibility = materialData_[actSD].GetCompressibility();
-      c0 = sqrt(compressibility/density);
-      alpha  = materialData_[actSD].GetDampingAlfa();
-      beta   = materialData_[actSD].GetDampingBeta();
-      BoverA = materialData_[actSD].GetBoverA();
+      materialData_[actSD]->GetScalar(density,DENSITY,REAL);
+      materialData_[actSD]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
 
+      c0 = sqrt(compressibility/density);
+
+      materialData_[actSD]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+      materialData_[actSD]->GetScalar(beta,RAYLEIGH_BETA,REAL);
+      materialData_[actSD]->GetScalar(BoverA,BOVERA,REAL);
 
       // ********************************************************************
       //   Linear wave equation

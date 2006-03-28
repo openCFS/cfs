@@ -29,7 +29,7 @@ namespace CoupledField {
     }
 
     //! Constructor with material data
-    linElecInt2D( MaterialData & matData, Boolean isAxi)  :
+    linElecInt2D( BaseMaterial* matData, Boolean isAxi)  :
       BDBInt( matData )
     {
       ENTER_FCN( "linElecInt2D::linElecInt2D" );
@@ -123,20 +123,9 @@ namespace CoupledField {
     //! where \f$\epsilon\f$ is the local tensor of dielectric constants.
     void calcDMat( Matrix<Double> &dMat ) {
       ENTER_FCN( "linElecInt2D::calcDMat" );
-      dMat.Resize( 2, 2 );
-      Matrix<Double> *matMatrix = ptMaterial->GetMatrix();
-      
-      // copy electric part of material matrix, which 
-      // is the lower-right sub-diagonal block
-      // d[8-9][8-9]
-      UInt startRow = 7;
-      UInt startCol = 7;
-      for( UInt i = 0; i < 2; i++ ) {
-        for ( UInt j = 0; j < 2; j++ ) {
-          dMat[i][j] = factor_ *
-            (*matMatrix)[startRow+i][startCol+j];
-        }
-      }
+      // if plane strain or axi: there is no difference!!
+      ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,REAL,PLANE_STRAIN);
+      dMat *= factor_;
     }
     
     //! Returns dimension of D matrix

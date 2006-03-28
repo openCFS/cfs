@@ -4,9 +4,10 @@
 C_DIR=../..
 include ../../main/Makefile.option
 #
-src = filetype.cc timefunc.cc freqfunc.cc writeresults.cc MaterialData.cc\
-	LoadMaterialData.cc LoadMaterialDataFile.cc WriteInfo.cc\
-	MHMaterialDataFile.cc MHMaterialData.cc
+src = filetype.cc timefunc.cc freqfunc.cc writeresults.cc \
+	XMLMaterialHandler.cc PlainMaterialHandler.cc WriteInfo.cc\
+	MHMaterialDataFile.cc \
+
 #
 ifeq ($(DATABASE),yes)
   src := $(src) LoadMaterialDataDatabase.cc

@@ -52,7 +52,9 @@ namespace CoupledField {
     //! the steering parameters. The file has to be in XML format. The
     //! constructor will parse and validate the file and generate an internal
     //! DOM tree containing the parameters.
-    XMLParamHandler( const char *fname );
+    XMLParamHandler( const char * fname, 
+                     const char * schema = NULL,
+                     const char * defaultFile = NULL );
 
     //! Default destructor
 
@@ -229,6 +231,15 @@ namespace CoupledField {
               const StdVector<std::string> &attrVec,
               const StdVector<std::string> &valVec,
               UInt &value );
+
+    //! Perform search and return values of matches as Doubles.
+    void GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                             const StdVector<std::string> &attrVec,
+                             const StdVector<std::string> &valVec,
+                             const unsigned int &dim1,
+                             const unsigned int &dim2,
+                             Matrix<Double> &matr );
+
     //@}
 
 
@@ -257,6 +268,11 @@ namespace CoupledField {
                    const std::string section = "",
                    const std::string subsection = "" );
 
+
+    Boolean ContainElem( const StdVector<std::string> &keyVec,
+                         const StdVector<std::string> &attrVec,
+                         const StdVector<std::string> &valVec );
+
     Boolean HasValue( const std::string key,
                       const std::string value,
                       const std::string section = "",
@@ -274,13 +290,14 @@ namespace CoupledField {
 
     //! Parsing of XML file
 
-    //! This method generates a validating parser and parses the XML input
+    //! This method generates a parser and parses the XML input
     //! file with filename xmlFile. A pointer to the generated parser is
     //! assigned to the parser input parameter and a pointer to the root
     //! element of the DOM tree representing the contents of the XML file
-    //! is returned.
+    //! is returned. If no schema is specified, no validation is performed.
     xercesc::DOMElement* ParseFile( xercesc::XercesDOMParser **parser,
-                                    const char *xmlFile );
+                                    const char *xmlFile,
+                                    const char *schema = NULL );
 
     //! Print search parameters to an output stream
 
@@ -408,6 +425,16 @@ namespace CoupledField {
     //! corresponding error message and sends this to the error method of
     //! the WriteInfo class.
     void NoMatchErrorReporter( const StdVector<std::string> &keyVec,
+                               const StdVector<std::string> &attrVec,
+                               const StdVector<std::string> &valVec );
+
+    //! Warning reporter for the case that we have no match at all
+
+    //! This method is called by the methods handling the no match case, if
+    //! no default value was found either. The method assembles a
+    //! corresponding warning message and sends this to the
+    //! the WriteInfo class.
+    void NoMatchWarningReporter( const StdVector<std::string> &keyVec,
                                const StdVector<std::string> &attrVec,
                                const StdVector<std::string> &valVec );
 
@@ -811,28 +838,8 @@ namespace CoupledField {
     //! is defined and to 'false' otherwise.
     bool beVerbose_;
 
-    //! Location of main Schema file for validated parsing
-
-    //! We use a validating parser. Thus, we must specify a Schema against
-    //! which the input xml-file can be tested. This attribute stores the
-    //! location of the main Schema definition file. Its value is derived from
-    //! the value of the XMLSCHEMA macro as
-    //! <b>http://www.cfs++.org XMLSCHEMA/CFS.xsd</b>.
-    std::string cfsSchema_;
-
-    //! Location of XML file for handling of default parameters
-
-    //! In the current implementation we specify default values for parameters
-    //! in the main Schema description. However, due to the fact that default
-    //! values for optional elements are only incorporated into the parsing
-    //! result, if the element appears and is empty, but not, if the element
-    //! does not appear at all, we make use of a sort of skeleton xml file
-    //! for forcing appearance of the default values. This attribute stores
-    //! the location of this defaults file which is parsed to generate the
-    //! default parameter tree, see also rootElemDefaults_. The value of this
-    //! attribute is derived from the macro XMLSCHEMA as
-    //! <b>XMLSCHEMA/Defaults/CFS++Defaults.xml</b>.
-    std::string cfsDefaults_;
+    //! Flag indicating if a secondary default-xml file should be used
+    bool useDefaults_;
 
   };
 

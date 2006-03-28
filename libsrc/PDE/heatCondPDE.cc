@@ -35,7 +35,7 @@ namespace CoupledField {
     solTypes_ = HEAT_TEMPERATURE;
     solDofs_ = 1;
     pdename_          = "heatConduction";
-    pdematerialclass_ = "thermic";
+    pdematerialclass_ = THERMIC;
 
     nonLin_    = FALSE;
 
@@ -79,9 +79,9 @@ namespace CoupledField {
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
-      density = materialData_[actSD].GetDensity();
-      heatCapacity = materialData_[actSD].GetHeatCapacity();
-      thermalConductivity = materialData_[actSD].GetThermalConductivity();
+      materialData_[actSD]->GetScalar(density,DENSITY,REAL);
+      materialData_[actSD]->GetScalar(heatCapacity,HEAT_CAPACITY,REAL);
+      materialData_[actSD]->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,REAL);
 
       // stiffness integrator
       coeffstiff = thermalConductivity;

@@ -57,6 +57,12 @@ namespace CoupledField {
   }
 
   
+    //! Destructor
+  StdSolveStep::~StdSolveStep() {
+    ENTER_FCN( "StdSolveStep::~StdSolveStep" );
+
+  }
+
   // ======================================================
   // Solve Step Static SECTION  
   // ======================================================
@@ -727,15 +733,6 @@ namespace CoupledField {
     ENTER_FCN( "StdSolveStep::SaveNodes" );
     
     PDE_.SaveNodes(shiftFactor, timeStep, numShift, nodeShift, maxnumelemz_);
-  }
-
-
-  //   Default Destructor
-  // **********************
-  StdSolveStep::~StdSolveStep() {
-
-    ENTER_FCN( "StdSolveStep::~StdSolveStep" );
- 
   }
 
 

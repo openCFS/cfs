@@ -220,12 +220,12 @@ namespace CoupledField
       }    
   }
 
-  BDInt::BDInt(BaseFE * aptelem, MaterialData & matData, std::string geomType,Double timeStep)
+  BDInt::BDInt(BaseFE * aptelem, BaseMaterial* matData, std::string geomType,Double timeStep)
     : BaseForm(aptelem, matData), updateDMatInEveryIP_(0)
   {
     ENTER_FCN( "BDInt::BDInt" );
-   geomType_ = geomType;
-   dampAlpha_  = ptMaterial->GetDampingAlfa();
+    geomType_ = geomType;
+    ptMaterial->GetScalar(dampAlpha_,RAYLEIGH_ALPHA,REAL);
 
     StdVector<Double> fracDerivList_;
     params->GetList( "fracDeriv", fracDerivList_, "mechanic", "damping" );
@@ -235,13 +235,12 @@ namespace CoupledField
   }
 
 
-  BDInt::BDInt(MaterialData & matData,std::string geomType, Double timeStep)
+  BDInt::BDInt(BaseMaterial* matData,std::string geomType, Double timeStep)
     : BaseForm(matData), updateDMatInEveryIP_(0)
   {
     ENTER_FCN( "BDInt::BDInt" );
-   geomType_ = geomType;
-
-   dampAlpha_  = ptMaterial->GetDampingAlfa();
+    geomType_ = geomType;
+    ptMaterial->GetScalar(dampAlpha_,RAYLEIGH_ALPHA,REAL);
 
    StdVector<Double> fracDerivList_;
    params->GetList( "fracDeriv", fracDerivList_, "mechanic", "damping" );

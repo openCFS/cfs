@@ -1,0 +1,66 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of an magnetic material
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for magnetic PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MatMagnetic">
+    <xsd:sequence>
+      <xsd:element name="electricConductivity" type="DT_NonNegFloat"/>
+      <xsd:element name="magneticPermeability" type="DT_MagnPermeability"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of magnetic permeability-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MagnPermeability">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_LinMagnPermeability"/>
+      <xsd:element name="nonlinear" type="DT_NonLinMagnPermeability"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of linear magnetic permeability-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_LinMagnPermeability">
+    <xsd:sequence>
+      <xsd:element name="isotropic" type="DT_NonNegFloat"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of non linear magnetic permeability-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_NonLinMagnPermeability">
+    <xsd:sequence>
+      <xsd:element name="isotropic" type="DT_IsotrNonLinMagnPermeability"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of isotropic non linear magnetic permeability-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_IsotrNonLinMagnPermeability">
+    <xsd:sequence>
+      <xsd:element name="dependency" type="xsd:string"/>
+      <xsd:element name="approxType" type="xsd:string"/>
+      <xsd:element name="dataName" type="xsd:string"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  
+</xsd:schema>

@@ -70,8 +70,8 @@ namespace CoupledField {
   // =========================================
   //   Split a string into a list of strings
   // =========================================
-  void SplitStringList( std::string list, StdVector<std::string> &strVec,
-                        Char delimiter ) {
+  void SplitStringList( const std::string &list, StdVector<std::string> &strVec,
+                        const Char delimiter ) {
 
     UInt lastDelim = 0;
     strVec.Clear();

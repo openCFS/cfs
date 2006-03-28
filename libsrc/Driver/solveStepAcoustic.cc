@@ -180,10 +180,10 @@ namespace CoupledField {
       ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
         
       // get material data
-      density         = materialData_[actSD].GetDensity();
-      compressibility = materialData_[actSD].GetCompressibility();
+      materialData_[actSD]->GetScalar(density,DENSITY,REAL);
+      materialData_[actSD]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
       c0 = sqrt(compressibility/density);
-      BoverA = materialData_[actSD].GetBoverA();
+      materialData_[actSD]->GetScalar(BoverA,BOVERA,REAL);
 
       if ( nonLinPDEName_[actSD] == WESTERVELT ) {
         rhsInt = new nLinWesterveltRHSInt(1.0, isaxi_);

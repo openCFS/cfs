@@ -50,7 +50,13 @@ namespace CoupledField {
   // =========================================
   //   Constructor for XMLParamHandler class
   // =========================================
-  XMLParamHandler::XMLParamHandler( const char *fname ): parser_(NULL) {
+  XMLParamHandler::XMLParamHandler( const char *fname, 
+                                    const char * schema ,
+                                    const char * defaultFile) 
+    : parser_(NULL), 
+      parserDefaults_(NULL), 
+      rootElem_(NULL),
+      rootElemDefaults_(NULL) {
 
     ENTER_FCN( "XMLParamHandler::XMLParamHandler" );
 
@@ -68,7 +74,7 @@ namespace CoupledField {
 
 #ifdef DEBUG
     std::cout << "\n\n XML parsers uses the Schema: http://www.cfs++.org\n "
-              << commandLine->GetSchemaPath() << "/CFS.xsd" << std::endl;
+              << schema << std::endl;
 #endif
 
 
@@ -87,12 +93,16 @@ namespace CoupledField {
     inFile.close();
  
     // Generate parser and parse XML parameter file
-    rootElem_ = ParseFile( &parser_, fname );
+    rootElem_ = ParseFile( &parser_, fname, schema );
 
-    // Generate parser and parse XML defaults file
-    cfsDefaults_ = commandLine->GetSchemaPath();
-    cfsDefaults_ += "/Defaults/CFS++Defaults.xml";
-    rootElemDefaults_ = ParseFile( &parserDefaults_, cfsDefaults_.c_str() );
+    // Generate parser and parse XML defaults file, if provided
+    if ( defaultFile != NULL ) {
+      useDefaults_ = true;
+      rootElemDefaults_ = ParseFile( &parserDefaults_, defaultFile, schema );
+    } else {
+      useDefaults_ = false;
+      rootElemDefaults_ = NULL;
+    }
 
     // Toggle verbosity
 #ifdef DEBUG_XMLPARAMHANDLER
@@ -566,6 +576,7 @@ namespace CoupledField {
     // First determine all matches as strings
     StdVector<std::string> matches;
     FindAllMatches( keyVec, attrVec, valVec, matches, rootElem_ );
+    //std::cerr << "matches" << std::endl << matches << std::endl; 
 
     // Now perform conversion
     for ( unsigned int i = 0; i < matches.GetSize(); i++ ) {
@@ -620,6 +631,57 @@ namespace CoupledField {
     // Now perform conversion
     for ( unsigned int i = 0; i < matches.GetSize(); i++ ) {
       list.Push_back( String2UInt( matches[i] ) );
+    }
+  }
+
+  // ===================================================
+  //   Return Double vector matching a keyword
+  // ===================================================
+  void XMLParamHandler::GetDim1xDim2Tensor(  const StdVector<std::string> &keyVec,
+                                             const StdVector<std::string> &attrVec,
+                                             const StdVector<std::string> &valVec,
+                                             const unsigned int &dim1,
+                                             const unsigned int &dim2,
+                                             Matrix<Double> &matr ) {
+
+    ENTER_FCN( "XMLParamHandler::Get6x6Tensor" );
+
+    // Initialize matrix
+    matr.Init();
+
+    // First determine all matches as strings
+    StdVector<std::string> matches;
+    FindAllMatches( keyVec, attrVec, valVec, matches, rootElem_ );
+
+    // If there was no unique match, call problem handler
+    if ( matches.GetSize() > 1 ) {
+      MultipleMatchHandler( keyVec, attrVec, valVec, matches.GetSize() );
+    }
+
+    // If there was no match at all, call problem handler
+    else if ( matches.GetSize() == 0 ) {
+      NoMatchWarningReporter( keyVec, attrVec, valVec );
+    }
+    
+    // There was a unique match, so convert detected value
+    else {
+      StdVector<std::string> strVec;
+      SplitStringList( matches[0], strVec, ' ' );
+
+      if (strVec.GetSize() == dim1*dim2)
+        // Now perform conversion
+        for ( unsigned int i = 0; i < dim1; i++ ) {
+          for ( unsigned int j = 0; j < dim2; j++ ) {
+            matr[i][j]=( String2Double( strVec[i*dim2+j] ) );
+          }
+        }
+      else{
+        (*error) << "Wrong size of " << keyVec[4] << " " 
+                 << keyVec[2] << " " << keyVec[3] << " for "<< keyVec[1] 
+                 <<" material " << valVec[0] << "!"; 
+        Error( __FILE__, __LINE__ );
+      }
+
     }
   }
 
@@ -1089,6 +1151,47 @@ namespace CoupledField {
 
     // So, there is a matching parameter. Thus, test its value
     else if ( matches[0] == "yes" ) {
+      flagStatus = TRUE;
+    }
+
+    // Parameter value is not "yes"
+    else {
+      flagStatus = FALSE;
+    }
+
+    // we are done
+    return flagStatus;
+
+  }
+
+
+  // =============================================================
+  //   Query wether a spec element is set with side constraints
+  // =============================================================
+  Boolean XMLParamHandler::ContainElem( const StdVector<std::string> &keyVec,
+                                        const StdVector<std::string> &attrVec,
+                                        const StdVector<std::string> &valVec ) {
+
+    ENTER_FCN( "XMLParamHandler::ContainElem" );
+
+    Boolean flagStatus = FALSE;
+
+    // Find all elements/values matching keyword in (restricted) tree
+    StdVector<std::string> matches;
+    GetList( keyVec, attrVec, valVec, matches );
+
+    // If there is no match, return false
+    if ( matches.GetSize() == 0 ) {
+      flagStatus = FALSE;
+    }
+
+    // If there is a match, but it is not unique, call problem handler
+    else if ( matches.GetSize() > 1 ) {
+      MultipleMatchHandler( keyVec, attrVec, valVec, matches.GetSize() );
+    }
+
+    // So, there is a matching parameter. Thus, test its value
+    else if ( matches.GetSize() == 1 ) {
       flagStatus = TRUE;
     }
 
@@ -1684,6 +1787,26 @@ namespace CoupledField {
 
 
   // =================================
+  //   Report with a warning that there is no match
+  // =================================
+  void XMLParamHandler::
+  NoMatchWarningReporter( const StdVector<std::string> &keyVec,
+                          const StdVector<std::string> &attrVec,
+                          const StdVector<std::string> &valVec ) {
+
+    ENTER_IFCN( "XMLParamHandler::NoMatchWarningReporter" );
+
+    fprintf( stderr, "\n\n XMLParamHandler:\n No match and no default" );
+    fprintf( stderr, " found while searching for:\n\n" );
+    PrintSearchParams( keyVec, attrVec, valVec, stderr );
+
+    std::string msg;
+    msg += "No match and no default found!";
+    Info->Warning( msg );
+  }
+
+
+  // =================================
   //   Check for default parameter
   // =================================
   Boolean
@@ -1695,6 +1818,12 @@ namespace CoupledField {
     ENTER_IFCN( "XMLParamHandler::CheckForDefault" );
 
     Boolean defaultFound = FALSE;
+    
+    // Check, if a default file should be used
+    if ( useDefaults_ != true ) {
+      return false;
+    }
+
     StdVector<std::string> newValVec( valVec );
 
     // Check if string is empty. If not issue a warning
@@ -1886,7 +2015,8 @@ namespace CoupledField {
   //   Parse XML parameter file
   // ============================
   DOMElement* XMLParamHandler::ParseFile( XercesDOMParser **parser,
-                                          const char *xmlFile ) {
+                                          const char *xmlFile,
+                                          const char *schema ) {
 
     // Root element of DOMTree built by parser
     DOMElement *rootElem = NULL;
@@ -1894,17 +2024,22 @@ namespace CoupledField {
     // Create the parser, force validation using full schema checking with
     // namespaces and tell it to drop irrelevant white space
     (*parser) = new XercesDOMParser();
-    (*parser)->setValidationScheme(XercesDOMParser::Val_Always);
-    (*parser)->setDoNamespaces(true);
-    (*parser)->setDoSchema(true);
-    (*parser)->setValidationSchemaFullChecking(true);
     (*parser)->setIncludeIgnorableWhitespace(false);
+    (*parser)->setDoNamespaces(true);
 
-    // We may separate the schema file from the instance file
-    cfsSchema_ = "http://www.cfs++.org ";
-    cfsSchema_ += commandLine->GetSchemaPath();
-    cfsSchema_ += "/CFS.xsd";
-    (*parser)->setExternalSchemaLocation( cfsSchema_.c_str() );
+    //  Check if validation is desired and a schema file was provided
+    if ( schema != NULL ) {
+      (*parser)->setValidationScheme(XercesDOMParser::Val_Always);
+      (*parser)->setDoSchema(true);
+      (*parser)->setValidationSchemaFullChecking(true);
+      std::string completeSchema;
+      completeSchema = "http://www.cfs++.org ";
+      completeSchema += schema;
+      (*parser)->setExternalSchemaLocation( completeSchema.c_str() );
+    } else {
+      (*parser)->setDoSchema(false);
+      (*parser)->setValidationSchemaFullChecking(false);      
+    }
     
     // Have not yet understood what an entity reference node is,
     // but it seems we do not need them

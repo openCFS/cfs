@@ -47,7 +47,8 @@ namespace CoupledField
       Error( __FILE__, __LINE__ );
     }
 
-    Double density = materials_[index].GetDensity();
+    Double density;
+    materials_[index]->GetScalar(density,DENSITY,REAL);
 
     Double value = 0.0;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)

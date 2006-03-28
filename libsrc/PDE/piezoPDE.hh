@@ -42,7 +42,7 @@ namespace CoupledField
     virtual void DefineSolveStep( );
 
     /// returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
-    BaseForm * GetStiffIntegrator(MaterialData& actSDMat, Boolean reducedInt=FALSE, 
+    BaseForm * GetStiffIntegrator(BaseMaterial& actSDMat, Boolean reducedInt=FALSE, 
                                   Boolean isdamping=FALSE);
 
     //! do PostProcessing step

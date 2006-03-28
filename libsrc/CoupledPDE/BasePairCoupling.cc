@@ -3,10 +3,9 @@
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "PDE/SinglePDE.hh"
-#include "DataInOut/MaterialData.hh"
-#include "DataInOut/LoadMaterialData.hh"
-#include "DataInOut/LoadMaterialDataFile.hh"
-
+#include "Domain/domain.hh"
+#include "DataInOut/PlainMaterialHandler.hh"
+#include "Materials/piezoMaterial.hh"
 
 namespace CoupledField {
 
@@ -52,7 +51,10 @@ namespace CoupledField {
     // We generated assemble object, so we also must delete it
     delete assemble_;
     
-    delete[] materialData_;
+    for ( UInt i = 0; i < materialData_.GetSize(); i++ ) {
+      delete (materialData_[i]);
+    }
+    materialData_.Clear();
   }
 
 
@@ -183,7 +185,7 @@ namespace CoupledField {
 
     // define which solution types have to be saved
     ReadStoreResults();
-    
+
   }
 
   void BasePairCoupling::ReadMaterialData() {
@@ -196,8 +198,23 @@ namespace CoupledField {
     std::string matFileName;
 
     // Allocate space to hold material data for each subdomain of this PDE
-    materialData_ = new MaterialData[subdoms_.GetSize()];
-  
+    materialData_.Resize(subdoms_.GetSize());
+
+    if ( materialClass_  == PIEZO ) {
+      for (UInt k=0; k<subdoms_.GetSize();k++) {
+	materialData_[k] = new PiezoMaterial();
+      }
+    }
+    else {
+      std::string msg = "Material Class for coupled PDE " + couplingName_ 
+	              + " not available";
+      Error(msg.c_str(),__FILE__,__LINE__);
+    }
+
+    // Obtain pointer to materialHandler
+    MaterialHandler * matLoader = NULL;
+    matLoader = domain->GetMaterialHandler();
+    
     // Get list of subdomains and materials
     StdVector< std::string > subdomName;
     StdVector< RegionIdType> subdomId;
@@ -205,20 +222,14 @@ namespace CoupledField {
     params->GetList( "name", subdomName, "domain", "region" );
     params->GetList( "material", subdomMaterial, "domain", "region" );
     ptGrid_->RegionNameToId( subdomId, subdomName );
-        
-    // Query name of file with material data
-    params->Get( "file", matFileName, "materialData" );
-    
-    // Generate new material reader
-    LoadMaterialDataFile loadMaterialFile( matFileName.c_str() );
     
     // Load material data for subdomains on which this PDE lives
     // from data file
     for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
       for( UInt k = 0; k <= subdomName.GetSize(); k++ ) {
         if( subdoms_[i] == subdomId[k] ){
-          loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
-                                        materialClass_ );
+          matLoader->GetMaterial( materialData_[i], subdomMaterial[k],
+                                  materialClass_ );
           break;
         }
       }

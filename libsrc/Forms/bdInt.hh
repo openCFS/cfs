@@ -13,10 +13,10 @@ namespace CoupledField {
     BDInt();
     
     //! Constructor with pointer to BaseElem
-    BDInt(BaseFE *aptelem, MaterialData &matData,std::string geomType,Double timeStep);
+    BDInt(BaseFE *aptelem, BaseMaterial* matData,std::string geomType,Double timeStep);
 
     //! Constructor with pointer to BaseElem
-    BDInt(MaterialData &matData,std::string geomType, Double timeStep);
+    BDInt(BaseMaterial* matData,std::string geomType, Double timeStep);
 
     //! Destructor
     virtual ~BDInt();

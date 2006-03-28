@@ -290,7 +290,7 @@ namespace CoupledField {
     //!  identification process! Maybe one day a more to CFS++ consistent 
     //!  nomenclature would be nice ...
 
-    MaterialData * getPDEMaterialData()
+    StdVector<BaseMaterial*> getPDEMaterialData()
     {return materialData_;};
     
     BaseNodeStoreSol * getPDESolution() {return sol_;};
@@ -495,10 +495,8 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes handling info on material data
-    // Char * charMaterialFileName_;    //!< name of material file
-    // LoadMaterialData *loadMaterial_; //!< material reader
-    MaterialData *materialData_;     //!< material data structure
-    std::string pdematerialclass_;    //!< material class
+    StdVector<BaseMaterial*> materialData_;     //!< material data structure
+    MaterialClass pdematerialclass_;    //!< material class
   
     //! Data Type which decides wheather material is real or complex
     piezoMaterialType piezoMaterialType_;

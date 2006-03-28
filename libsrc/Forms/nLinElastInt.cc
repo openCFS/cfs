@@ -13,7 +13,7 @@ namespace CoupledField
   // =============================================================================
 
   // base class for nonlinear calculation of elasticity
-  nLinElastInt::nLinElastInt(BaseFE * aptelem, MaterialData & matData) 
+  nLinElastInt::nLinElastInt(BaseFE * aptelem, BaseMaterial* matData) 
     : linElastInt(aptelem, matData)
   {
     ENTER_FCN( "nLinElastInt::nLinElastInt" );
@@ -21,7 +21,7 @@ namespace CoupledField
 
 
   // base class for nonlinear calculation of elasticity
-  nLinElastInt::nLinElastInt(MaterialData & matData) 
+  nLinElastInt::nLinElastInt(BaseMaterial*  matData) 
     : linElastInt(matData)
   {
     ENTER_FCN( "nLinElastInt::nLinElastInt" );
@@ -115,58 +115,12 @@ namespace CoupledField
   }
   
 
-
-
-  void nLinElastInt::
-  Calc2DMaterialMatrix(Matrix<Double> & dMat, enum orientation2D actOrientation)
-  {  
-    ENTER_FCN( "nLinElastInt::Calc2DMaterialMatrix" );
-    const UInt nrElems2d = 3;
-  
-    UInt rowPtrXY[] = {1,2,6};  // indices of rows and lines for xy-plane
-    UInt rowPtrYZ[] = {2,3,4};  // indices of rows and lines for yz-plane
-    UInt rowPtrXZ[] = {1,3,5};  // indices of rows and lines for xz-plane
-    UInt * rowPtr;
-    UInt i,j;
-  
-    switch(actOrientation)
-      { 
-      case xy: 
-        {
-          rowPtr = rowPtrXY;
-          break;
-        }
-      case xz: 
-        {
-          rowPtr = rowPtrXZ;
-          break;
-        }
-      
-      case yz: 
-        {
-          rowPtr = rowPtrYZ;    
-          break;
-        }
-      }    
-  
-    Matrix<Double> const & matMatrix =  *(ptMaterial->GetMatrix());
-  
-    dMat.Resize(nrElems2d);
-  
-    for (i=0; i<nrElems2d; i++)
-      for (j=0; j<nrElems2d; j++)
-        dMat[i][j] = matMatrix[rowPtr[i]-1][rowPtr[j]-1];       
-  }
-
-
-
-
   // =============================================================================
   // 3D nonlinear mechanics (part with nonlinear B-mat)
   // =============================================================================
 
 
-  nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
+  nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin(BaseFE * aptelem, BaseMaterial* matData) 
     : nLinElastInt(aptelem, matData)
   {
     ENTER_FCN( "nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin" );
@@ -175,7 +129,7 @@ namespace CoupledField
   }
 
 
-  nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin(MaterialData & matData) 
+  nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin(BaseMaterial* matData) 
     : nLinElastInt(matData)
   {
     ENTER_FCN( "nLinMech3dInt_BNonLin::nLinMech3dInt_BNonLin" );
@@ -193,16 +147,7 @@ namespace CoupledField
   void nLinMech3dInt_BNonLin::calcDMat(Matrix<Double> & dMat)
   {
     ENTER_FCN( "nLinMech3dInt_BNonLin::calcDMat" );
-
-    const UInt nrElems3d = getDimD();
-    
-    Matrix<Double> const & matMatrix = *(ptMaterial->GetMatrix());
-    
-    dMat.Resize(nrElems3d);
-
-    for (UInt i=0; i<nrElems3d; i++)
-      for (UInt j=0; j<nrElems3d; j++)
-        dMat[i][j] = matMatrix[i][j];   
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL);
   }
   
 
@@ -214,7 +159,7 @@ namespace CoupledField
   // 3D nonlinear mechanics (part of Piola-Kirchhoff stress)
   // =============================================================================
 
-  nLinMechInt_PiolaStress::nLinMechInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
+  nLinMechInt_PiolaStress::nLinMechInt_PiolaStress(BaseFE * aptelem, BaseMaterial* matData) 
     : nLinElastInt(aptelem, matData)
 
   {
@@ -227,7 +172,7 @@ namespace CoupledField
 
 
 
-  nLinMechInt_PiolaStress::nLinMechInt_PiolaStress(MaterialData & matData) 
+  nLinMechInt_PiolaStress::nLinMechInt_PiolaStress(BaseMaterial* matData) 
     : nLinElastInt(matData)
   {
     ENTER_FCN( "nLinMechInt_PiolaStress::nLinMechInt_PiolaStress" );
@@ -294,17 +239,11 @@ namespace CoupledField
   void nLinMechInt_PiolaStress::
   calcMaterialDMat(Matrix<Double> & dMat)
   {
-    ENTER_FCN( "mech3DInt_PiolaStress::calcMaterialDMat" );
+    ENTER_FCN( "nLinMechInt_PiolaStress::calcMaterialDMat" );
 
-    const UInt nrElems3d = getMaterialDMatSize();
-  
-    Matrix<Double> const &  matMatrix = (*ptMaterial->GetMatrix());
-  
-    dMat.Resize(nrElems3d);
-  
-    for (UInt i=0; i<nrElems3d; i++)
-      for (UInt j=0; j<nrElems3d; j++)
-        dMat[i][j] = matMatrix[i][j];   
+    //full matrix, axi as well as plane case overwrites this method
+
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL);
   }
 
 
@@ -371,9 +310,6 @@ namespace CoupledField
   }
 
 
-
-
-
   // calculates the D-matrix needed for the Piola-Kirchhoff-Stress part
   // This matrix is equal to a block diagonal matrix with Piola-Stresses in tensor 
   // notation used as diagonal blocks (nrDim times)
@@ -403,9 +339,6 @@ namespace CoupledField
       for (UInt i=0; i<nrDofs; i++)
         dMat.SetSubMatrix(stressTensor, i*nrDofs, i*nrDofs);    
   }
-
-
-
 
 
 
@@ -451,22 +384,12 @@ namespace CoupledField
   }
 
 
-
-
-
-
-
-
-
-
   // =============================================================================
   // class for nonlinear 3d piola stresses
   // =============================================================================
 
-
-
-
-  nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
+  nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress(BaseFE * aptelem, 
+						       BaseMaterial* matData) 
     :nLinMechInt_PiolaStress(aptelem, matData)
 
   {
@@ -479,7 +402,7 @@ namespace CoupledField
 
 
 
-  nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress(MaterialData & matData) 
+  nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress(BaseMaterial* matData) 
     :nLinMechInt_PiolaStress(matData)
   {
     ENTER_FCN( "nLinMech3dInt_PiolaStress::nLinMech3dInt_PiolaStress");
@@ -496,18 +419,14 @@ namespace CoupledField
   }
 
 
-
-
-
-
-
   // =============================================================================
   // class regarding mechanical prestresses
   // =============================================================================
 
 
   // base class for regarding prestress
-  PreStressInt::PreStressInt(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal)
+  PreStressInt::PreStressInt(BaseFE * aptelem, BaseMaterial* matData, 
+			     Vector<Double> aPreStressVal)
     : nLinMechInt_PiolaStress(aptelem, matData), preStressVal_(aPreStressVal)
   {
     ENTER_FCN( "PreStressInt::PreStressInt" );
@@ -518,7 +437,7 @@ namespace CoupledField
   }
  
   // base class for regarding prestress
-  PreStressInt::PreStressInt(MaterialData & matData, Vector<Double> aPreStressVal) 
+  PreStressInt::PreStressInt(BaseMaterial* matData, Vector<Double> aPreStressVal) 
     : nLinMechInt_PiolaStress(matData), preStressVal_(aPreStressVal)
   {
     ENTER_FCN( "PreStressInt::PreStressInt" );
@@ -552,20 +471,20 @@ namespace CoupledField
     Matrix<Double> matData;
     if (isaxi_) {
       //axi
-      CalcAxiMaterialMat(matData, actOrientation);
+      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,REAL,AXI);
       preStrainVec[0]= preStressVal_[0] / matData[0][0];
       preStrainVec[1]= preStressVal_[1] / matData[1][1];
     }
     else if (getNrDofs() == 3) {
       //3D
-      calcMaterialDMat(matData);
+      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,REAL);
       preStrainVec[0]= preStressVal_[0] / matData[0][0];
       preStrainVec[1]= preStressVal_[1] / matData[1][1];
       preStrainVec[2]= preStressVal_[2] / matData[2][2];
     }
     else {
       //2D-plane strain
-      Calc2DMaterialMatrix(matData, actOrientation);
+      ptMaterial->GetTensor(matData,MECH_STIFFNESS_TENSOR,REAL, PLANE_STRAIN);
       preStrainVec[0]= preStressVal_[0] / matData[0][0];
       preStrainVec[1]= preStressVal_[1] / matData[1][1];
     }
@@ -646,14 +565,14 @@ namespace CoupledField
 
 
   // class for regarding 3d prestress
-  PreStressInt3D::PreStressInt3D(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal)
+  PreStressInt3D::PreStressInt3D(BaseFE * aptelem, BaseMaterial* matData, Vector<Double> aPreStressVal)
     : PreStressInt(aptelem, matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressInt3D::PreStressInt3D" );
   }
  
   // class for regarding 3d prestress
-  PreStressInt3D::PreStressInt3D(MaterialData & matData, Vector<Double> aPreStressVal)
+  PreStressInt3D::PreStressInt3D(BaseMaterial* matData, Vector<Double> aPreStressVal)
     : PreStressInt(matData, aPreStressVal)
   {
     ENTER_FCN( "PreStressInt3D::PreStressInt3D" );
@@ -686,7 +605,8 @@ namespace CoupledField
 
 
   // class for regarding 2d prestress in plane strain case
-  PreStressIntPlaneStrain::PreStressIntPlaneStrain(BaseFE * aptelem, MaterialData & matData, 
+  PreStressIntPlaneStrain::PreStressIntPlaneStrain(BaseFE * aptelem, 
+						   BaseMaterial* matData, 
                                                    Vector<Double> aPreStressVal)
     : PreStressInt(aptelem, matData, aPreStressVal)
   {
@@ -694,7 +614,7 @@ namespace CoupledField
   }
  
   // class for regarding 2d prestress in plane strain case
-  PreStressIntPlaneStrain::PreStressIntPlaneStrain(MaterialData & matData, 
+  PreStressIntPlaneStrain::PreStressIntPlaneStrain(BaseMaterial* matData, 
                                                    Vector<Double> aPreStressVal)
     : PreStressInt(matData, aPreStressVal)
   {
@@ -729,7 +649,7 @@ namespace CoupledField
 
 
   // class for regarding 2d axi prestress 
-  PreStressIntAxi::PreStressIntAxi(BaseFE * aptelem, MaterialData & matData, 
+  PreStressIntAxi::PreStressIntAxi(BaseFE * aptelem, BaseMaterial* matData, 
                                    Vector<Double> aPreStressVal)   
     : PreStressInt(aptelem, matData, aPreStressVal)
   {
@@ -738,7 +658,7 @@ namespace CoupledField
   }
  
   // class for regarding 2d axi prestress 
-  PreStressIntAxi::PreStressIntAxi(MaterialData & matData, 
+  PreStressIntAxi::PreStressIntAxi(BaseMaterial* matData, 
                                    Vector<Double> aPreStressVal)
     : PreStressInt(matData, aPreStressVal)
   {
@@ -790,8 +710,7 @@ namespace CoupledField
   {
     ENTER_FCN( "mechPlainStrainNLinIntInt::calcDMat" );
 
-    Calc2DMaterialMatrix(dMat, actOrientation);
-  
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL,PLANE_STRAIN);
   }
 
   
@@ -803,7 +722,7 @@ namespace CoupledField
   {
     ENTER_FCN( "mechPlaneStraneInt_PiolaStress::calcMaterialDMat" );
 
-    Calc2DMaterialMatrix(dMat, actOrientation);
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL,PLANE_STRAIN);
   }
 
 
@@ -830,11 +749,6 @@ namespace CoupledField
   }
 
 
-
-
-
-
-
   // =============================================================================
   // 2D nonlinear axisymmetric mechanics
   // =============================================================================
@@ -845,12 +759,13 @@ namespace CoupledField
   {
     ENTER_FCN( "mechPlainStrainNLinIntInt::calcDMat" );
 
-    CalcAxiMaterialMat(dMat, actOrientation);
+     ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL,AXI);
   }
 
 
 
-  nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
+  nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress(BaseFE * aptelem, 
+							 BaseMaterial* matData) 
     : nLinMechInt_PiolaStress(aptelem, matData)
   {
     ENTER_FCN( "nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress" );
@@ -863,7 +778,7 @@ namespace CoupledField
 
 
   // nonlinear calculation of elasticity for axi 
-  nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress(MaterialData & matData) 
+  nLinMechAxiInt_PiolaStress::nLinMechAxiInt_PiolaStress(BaseMaterial* matData) 
     : nLinMechInt_PiolaStress(matData)
 
   {
@@ -887,7 +802,8 @@ namespace CoupledField
   {
     ENTER_FCN( "nLinMechAxiInt_PiolaStress::calcMaterialDMat" );
 
-    CalcAxiMaterialMat(dMat, actOrientation);
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL,AXI);
+ 
   }
 
 
@@ -919,20 +835,12 @@ namespace CoupledField
   }
 
 
-
-
-
-
-
-
-
-
-
   // ===================================================================================
   // nonlinear calculation of elasticity in plane strain state 
   // ===================================================================================
 
-  nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
+  nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin(BaseFE * aptelem, 
+								 BaseMaterial* matData) 
     : nLinElastInt(aptelem, matData)
   {
     ENTER_FCN( "nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin" );
@@ -941,7 +849,7 @@ namespace CoupledField
   }
 
 
-  nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin(MaterialData & matData) 
+  nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin(BaseMaterial* matData) 
     : nLinElastInt(matData)
   {
     ENTER_FCN( "nLinMechPlaneStrainInt_BNonLin::nLinMechPlaneStrainInt_BNonLin" );
@@ -960,7 +868,9 @@ namespace CoupledField
 
 
 
-  nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress(BaseFE * aptelem, MaterialData & matData) 
+  nLinMechPlaneStrainInt_PiolaStress::
+  nLinMechPlaneStrainInt_PiolaStress(BaseFE * aptelem, 
+				     BaseMaterial* matData) 
     : nLinMechInt_PiolaStress(aptelem, matData)
   {
     ENTER_FCN( "nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress" );
@@ -973,7 +883,8 @@ namespace CoupledField
 
 
   // nonlinear calculation of elasticity in 3d
-  nLinMechPlaneStrainInt_PiolaStress::nLinMechPlaneStrainInt_PiolaStress(MaterialData & matData) 
+  nLinMechPlaneStrainInt_PiolaStress::
+  nLinMechPlaneStrainInt_PiolaStress(BaseMaterial* matData) 
     : nLinMechInt_PiolaStress(matData)
 
   {
@@ -996,7 +907,7 @@ namespace CoupledField
   // axisymmetric nonlinear calculation of elasticity
   // ===================================================================================
 
-  nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin(BaseFE * aptelem, MaterialData & matData) 
+  nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin(BaseFE * aptelem, BaseMaterial* matData) 
     : nLinElastInt(aptelem, matData)
   {
     ENTER_FCN( "nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin" );
@@ -1006,7 +917,7 @@ namespace CoupledField
   }
 
 
-  nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin(MaterialData & matData) 
+  nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin(BaseMaterial* matData) 
     : nLinElastInt(matData)
   {
     ENTER_FCN( "nLinMechAxiInt_BNonLin::nLinMechAxiInt_BNonLin" );

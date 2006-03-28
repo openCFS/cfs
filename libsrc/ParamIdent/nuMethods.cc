@@ -17,7 +17,7 @@ namespace CoupledField
     UInt nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
-    MaterialData * ptMaterial;
+    StdVector<BaseMaterial*> ptMaterial;
 
     if(directCoupling==TRUE)
       ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
@@ -264,7 +264,8 @@ namespace CoupledField
 
     nNuMethods=0;
 
-    Matrix<Double> *matMat = ptMaterial->GetMatrix();
+    Error("Not working",__FILE__,__LINE__);
+    Matrix<Double> *matMat; // = ptMaterial->GetMatrix();
       
     scaling[0]=1.0/((*matMat)[0][0]); 
     scaling[1]=1.0/((*matMat)[2][2]);
@@ -486,7 +487,7 @@ namespace CoupledField
     Double theta, eta_acc, nu, omega;
 
 
-    MaterialData * ptMaterial;
+    StdVector<BaseMaterial*> ptMaterial;
 
     if(directCoupling==TRUE)
       ptMaterial= ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
@@ -678,8 +679,10 @@ namespace CoupledField
 
     // backtracking(et , theta, s, old_resid2, new_resid2); 
 
-    Matrix<Double> *matMat = ptMaterial->GetMatrix();
-    Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+    Error("Not working",__FILE__,__LINE__);
+
+    Matrix<Double> *matMat; // = ptMaterial->GetMatrix();
+    Matrix<Double> *matMatC; // = ptMaterial->GetMatrixC();
       
     scaling[0]=1.0/((*matMat)[0][0]); 
     scaling[1]=1.0/((*matMat)[2][2]);
@@ -774,7 +777,7 @@ namespace CoupledField
     UInt nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
-    MaterialData * ptMaterial;
+    StdVector<BaseMaterial*> ptMaterial;
     if(directCoupling==TRUE)
       ptMaterial= ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
     else
@@ -995,8 +998,9 @@ namespace CoupledField
 
     // backtracking(et , theta, s, old_resid2, new_resid2); 
 
-    Matrix<Double> *matMat = ptMaterial->GetMatrix();
-    Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+    Error("Not working",__FILE__,__LINE__);
+    Matrix<Double> *matMat; // = ptMaterial->GetMatrix();
+    Matrix<Double> *matMatC; // = ptMaterial->GetMatrixC();
       
     scaling[0]=1.0/((*matMat)[0][0]); 
     scaling[1]=1.0/((*matMat)[2][2]);

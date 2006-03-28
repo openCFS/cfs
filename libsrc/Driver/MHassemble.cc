@@ -10,7 +10,7 @@
 
 #include "olas.hh"
 #include "assemble.hh"
-#include "DataInOut/MHMaterialData.hh"
+#include "Materials/MHMaterialData.hh"
 #include "MHassemble.hh"
 
 namespace CoupledField
@@ -104,7 +104,7 @@ namespace CoupledField
               actDescriptor->GetIntegrator()->SetSubdomain(actDom);
 
               if (alternateMaterialData_ == TRUE)
-                actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_);
+                actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_[actDom]);
                     
               // assemble only if nonlinear or first time
               if (reassembleMat_[actDescriptor->DestMat()] ||firstTime_) {

@@ -47,7 +47,8 @@ namespace CoupledField
       Error( __FILE__, __LINE__ );
     }
 
-    Double k = materials_[index].GetThermalConductivity ();
+    Double k;
+    materials_[index]->GetScalar(k,HEAT_CONDUCTIVITY,REAL);
 
     Double value = 0.0;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)

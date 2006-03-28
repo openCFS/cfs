@@ -8,7 +8,7 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "basePDE.hh"
-#include "DataInOut/MaterialData.hh"
+#include "Materials/baseMaterial.hh"
 #include "Utils/mathfunctions.hh"
 
 namespace CoupledField {
@@ -164,11 +164,11 @@ namespace CoupledField {
     fracDerivStressVec_.Resize(getDim());
     stressVector.Resize(getDim());
 
-    MaterialData    *mymaterialData;
+    StdVector<BaseMaterial*> mymaterialData;
     mymaterialData = ptStdPDE_->getPDEMaterialData();
 
-    dampAlpha_ = mymaterialData[0].GetDampingAlfa();
-    dampBeta_ = mymaterialData[0].GetDampingBeta();   
+    mymaterialData[0]->GetScalar(dampAlpha_,ACOU_ALPHA,REAL);
+    mymaterialData[0]->GetScalar(dampBeta_,FRACTIONAL_EXPONENT,REAL);
 
     StdVector<Double> fracDerivList_;
     params->GetList( "fracDeriv", fracDerivList_, "mechanic", "damping" );
@@ -207,8 +207,12 @@ namespace CoupledField {
         StdVector<Elem*> elemssd;
         ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
         
+	//transform the type
+	SubTensorType type;
+	String2Enum(subType_,type);
+
         BDBInt * rhsViscoMat = new LinViscoElastInt(mymaterialData[actSD],
-                                                    subType_,
+                                                    type,
                                                     "MatDepRHSMatrix",
                                                     GetTimeStep() );
 
@@ -330,8 +334,9 @@ namespace CoupledField {
     stressVec.Resize(getDim());
     displacementVec.Resize(numEQNs * dofs_);  
 
-    MaterialData *mymaterialData;
+    StdVector<BaseMaterial*> mymaterialData;
     BaseFE         * ptElem;
+
     mymaterialData = ptStdPDE_->getPDEMaterialData();
 
     if( (actStep_ % modulo_) == 0) {
@@ -361,7 +366,8 @@ namespace CoupledField {
           
           GetElemSolution(solMemory_[0], displacementVec, connect_PDE);
           
-          CalcStress( ptElem, mymaterialData[actSD], connect_PDE, ptCoord,  stressVec, displacementVec, el);
+          CalcStress( ptElem, mymaterialData[actSD], connect_PDE, ptCoord,  
+		      stressVec, displacementVec, el);
           
           InsertStressVector(stressVec,el,0);		
         }
@@ -423,9 +429,13 @@ namespace CoupledField {
     }
   }
 
-void NewmarkFracDampMech::CalcStress(BaseFE * aptelem, MaterialData & matDa, StdVector<Integer> connect_PDE, 
-				      Matrix<Double> & ptCoord, Vector<Double> & stressVector,
-				      Vector<Double> &displacementVector, Integer elemNr)
+void NewmarkFracDampMech::CalcStress(BaseFE * aptelem, 
+				     BaseMaterial* matDa, 
+				     StdVector<Integer> connect_PDE, 
+				     Matrix<Double> & ptCoord, 
+				     Vector<Double> & stressVector,
+				      Vector<Double> &displacementVector, 
+				     Integer elemNr)
 {
   ENTER_FCN( "NewmarkFracDampMech::CalcStress" );
   
@@ -443,8 +453,13 @@ void NewmarkFracDampMech::CalcStress(BaseFE * aptelem, MaterialData & matDa, Std
 
   const Integer nrNodes  = aptelem->GetNumNodes();
 
-  BDBInt * viscoIntegrator = new LinViscoElastInt(aptelem,matDa,subType_,
-    							"modifiedStiffness",timeStep );
+  //transform the type
+  SubTensorType type;
+  String2Enum(subType_,type);
+
+  BDBInt * viscoIntegrator = new LinViscoElastInt(aptelem, matDa, type,
+						  "modifiedStiffness",timeStep );
+
   Vector<Double> fracDerivStress, fracDerivDisplacement;
   Vector<Double> term1, term2,term3;
 
@@ -568,28 +583,22 @@ void NewmarkFracDampMech::GetAlphaMat(Matrix<Double> & alphaMat)
    }
 
 
-void NewmarkFracDampMech::GetBetaMat(Matrix<Double>& betaMat,  Double E, MaterialData & matData)
+void NewmarkFracDampMech::GetBetaMat(Matrix<Double>& betaMat,  Double E, 
+				     BaseMaterial* matData)
    { 
     ENTER_FCN( "NewmarkFracDampMech::GetBetaMat" );
 
      double val = 0.0;
-     
-     if(subType_ == "axi") {	 
-       BDBInt * matMat = new mechAxiInt(matData);
-       matMat->GetDMat(betaMat);
-     }
-       
-     else if(subType_ == "planeStrain") {
-       BDBInt * matMat = new mechPlainStrainInt(matData);
-       matMat->GetDMat(betaMat);
-     }
-     else if(subType_ == "3d") {
-       BDBInt * matMat = new mech3DInt(matData);
-       matMat->GetDMat(betaMat);
-     }     
-     
-     val = (dampBeta_/(E)) * timeStepPowerFracDeriv_;
-     betaMat  = (betaMat *  val);
+
+     //transform the type
+    SubTensorType tensorType;
+    String2Enum(subType_,tensorType);
+
+    BDBInt * matMat = new linElastInt(matData, tensorType);
+    matMat->GetDMat(betaMat);
+
+    val = (dampBeta_/(E)) * timeStepPowerFracDeriv_;
+    betaMat  = (betaMat *  val);
    }
 
   

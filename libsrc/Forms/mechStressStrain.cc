@@ -12,8 +12,9 @@ namespace CoupledField
 
   // base class for calculation of mechanical stresses
   template <class TYPE>
-  MechStressStrain<TYPE>::MechStressStrain(BaseFE * aptelem, MaterialData & matData) 
-    : linElastInt(aptelem, matData)
+  MechStressStrain<TYPE>::MechStressStrain(BaseFE * aptelem, BaseMaterial* matData,
+					   SubTensorType type) 
+    : linElastInt(aptelem, matData, type)
 
   {
     ENTER_FCN( "MechStressStrain::MechStressStrain" );
@@ -21,8 +22,8 @@ namespace CoupledField
 
 
   template <class TYPE>
-  MechStressStrain<TYPE>::MechStressStrain(MaterialData & matData) 
-    : linElastInt(matData)
+  MechStressStrain<TYPE>::MechStressStrain(BaseMaterial* matData, SubTensorType type) 
+    : linElastInt(matData, type)
   {
     ENTER_FCN( "MechStressStrain::MechStressStrain" );
   }
@@ -46,7 +47,7 @@ namespace CoupledField
     ENTER_FCN( "MechStressStrain::calcPiolaStressTensor" );
 
     Matrix<Double> dMat;
-    calcDMat(dMat);
+    linElastInt::calcDMat(dMat);
   
     // convert displacement of all elem nodes into one vector: 
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
@@ -75,7 +76,7 @@ namespace CoupledField
     ENTER_FCN( "MechStressStrain::CalcStrainVec" );
 
     Matrix<Double> dMat;
-    calcDMat(dMat);
+    linElastInt::calcDMat(dMat);
   
     // convert displacement of all elem nodes into one vector: 
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
@@ -107,121 +108,11 @@ namespace CoupledField
 
 
 
-  // =============================================================================
-  // class for 3d stresses
-  // =============================================================================
-
-  template <class TYPE> 
-  MechStressStrain3D<TYPE>::MechStressStrain3D(BaseFE * aptelem, MaterialData & matData) 
-    : MechStressStrain<TYPE>(aptelem, matData)
-  {
-    ENTER_FCN( "mechStressStrain3D::mechStressStrain3D" );
-  }
-
-  template <class TYPE>
-  MechStressStrain3D<TYPE>::MechStressStrain3D(MaterialData & matData) 
-    :MechStressStrain<TYPE>(matData)
-  {
-    ENTER_FCN( "mechStressStrain3D::mechStressStrain3D");
-  }
- 
-  template <class TYPE>
-  MechStressStrain3D<TYPE>::~MechStressStrain3D()
-  {
-    ENTER_FCN( "mechStressStrain3D::~mechStressStrain3D" );
-
-  }
-
-  template <class TYPE>
-  void MechStressStrain3D<TYPE>::calcDMat(Matrix<Double> & dMat)
-  {
-    ENTER_FCN( "MechStressStrain3D::calcMaterialDMat" );
-
-    linElastInt::Calc3DMaterialMat(dMat);
-  }
-
-
-  // =============================================================================
-  // 2D axi case
-  // =============================================================================
-
-  template <class TYPE>
-  MechStressStrainAxi<TYPE>::MechStressStrainAxi(BaseFE * aptelem, MaterialData & matData) 
-    : MechStressStrain<TYPE>(aptelem, matData)
-  {
-    ENTER_FCN( "MechStressStrainAxi::MechStressStrainAxi" );
-
-    this->isaxi_ = TRUE;
-  }
-
-  template <class TYPE>
-  MechStressStrainAxi<TYPE>::MechStressStrainAxi(MaterialData & matData) 
-    : MechStressStrain<TYPE>(matData)
-  {
-    ENTER_FCN( "MechStressStrainAxi::MechStressStrainAxi" );
-    this->isaxi_ = TRUE;
-  }
-
-  template <class TYPE>
-  MechStressStrainAxi<TYPE>::~MechStressStrainAxi()
-  {
-    ENTER_FCN( "MechStressStrainAxi::~MechStressStrainAxi" );
-  }
-
-  template <class TYPE>
-  void MechStressStrainAxi<TYPE>::calcDMat(Matrix<Double> & dMat)
-  {
-    ENTER_FCN( "MechStressStrainAxi::calcMaterialDMat" );
-
-    linElastInt::CalcAxiMaterialMat(dMat,this->actOrientation);
-  }
-
-
-  // ===================================================================================
-  // plane strain case
-  // ===================================================================================
-
-  template <class TYPE> MechStressStrainPlaneStrain<TYPE>::
-  MechStressStrainPlaneStrain(BaseFE * aptelem, MaterialData & matData) 
-    : MechStressStrain<TYPE>(aptelem, matData)
-  {
-    ENTER_FCN( "MechStressStrainPlaneStrain::MechStressStrainPlaneStrain" );
-  }
-
-  template <class TYPE>  MechStressStrainPlaneStrain<TYPE>::
-  MechStressStrainPlaneStrain(MaterialData & matData) 
-    : MechStressStrain<TYPE>(matData)
-  {
-    ENTER_FCN( "MechStressStrainPlaneStrain::MechStressStrainPlaneStrain" );
-  }
-
-  template <class TYPE>
-  MechStressStrainPlaneStrain<TYPE>::~MechStressStrainPlaneStrain()
-  {
-    ENTER_FCN( "MechStressStrainPlaneStrain::~MechStressStrainPlaneStrain" );
-  }
-
-  template <class TYPE>
-  void MechStressStrainPlaneStrain<TYPE>::calcDMat(Matrix<Double> & dMat)
-  {
-    ENTER_FCN( "MechStressStrainPlaneStrain::calcMaterialDMat" );
-
-    linElastInt::CalcPlaneStrainMaterialMat(dMat,this->actOrientation);
-  }
 
 #ifdef __GNUC__
   // Explicite template instantiation
   template class MechStressStrain<Double>;
   template class MechStressStrain<Complex>;
-
-  template class MechStressStrain3D<Double>;
-  template class MechStressStrain3D<Complex>;
-
-  template class MechStressStrainPlaneStrain<Double>;
-  template class MechStressStrainPlaneStrain<Complex>;
-
-  template class MechStressStrainAxi<Double>;
-  template class MechStressStrainAxi<Complex>;
 #endif
 
 } // end namespace CoupledField

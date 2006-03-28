@@ -8,7 +8,7 @@
 #include "Matrix/matrix.hh"
 #include "PDE/StdPDE.hh"
 #include "Utils/elemstoresol.hh"
-#include "DataInOut/MaterialData.hh"
+#include "Materials/baseMaterial.hh"
 
 namespace CoupledField
 {
@@ -18,7 +18,7 @@ namespace CoupledField
                            NodeEQN * ptEQN,
                            NodeStoreSol<Double> & sol,
                            UInt dim,
-                           MaterialData* &matData,
+                           StdVector<BaseMaterial*> &matData,
                            StdVector<RegionIdType> & allSubdoms,
                            Boolean isaxi) 
     : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, isaxi)
@@ -53,8 +53,8 @@ namespace CoupledField
   {
     ENTER_FCN( "ElecForceOp::GetMatVal" );
 
-    Double epsilon = materialData_[actSD].GetPermittivity(2,2); 
-
+    Double epsilon;
+    materialData_[actSD]->GetScalar(epsilon,ELEC_PERMITTIVITY,REAL);
     return epsilon;
   } 
 

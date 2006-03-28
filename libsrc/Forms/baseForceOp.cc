@@ -8,7 +8,7 @@
 #include "Matrix/matrix.hh"
 #include "PDE/StdPDE.hh"
 #include "Utils/elemstoresol.hh"
-#include "DataInOut/MaterialData.hh"
+#include "Materials/baseMaterial.hh"
 
 namespace CoupledField
 {
@@ -18,7 +18,7 @@ namespace CoupledField
                            NodeEQN * ptEQN,
                            NodeStoreSol<Double> & sol,
                            UInt dim,
-                           MaterialData* &matData,
+                           StdVector<BaseMaterial*> &matData,
                            StdVector<RegionIdType> & allSubdoms,
                            Boolean isaxi) 
     : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)

@@ -15,7 +15,7 @@ namespace CoupledField
     UInt nrNewtonIterations=0;
     UInt backtrackIterator=0;
 
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    StdVector<BaseMaterial*> ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     Double eta_max, eta_new, t, theta_min, theta_max, gamma, al, eta_min;
     Double alpha, beta, tau;
@@ -294,7 +294,9 @@ namespace CoupledField
 
         parameter_new=parameter; // no update for other parameters
 
-        Matrix<Double> *matMat = ptMaterial->GetMatrix();
+	Error("Not working",__FILE__,__LINE__);
+
+        Matrix<Double> *matMat; // = ptMaterial->GetMatrix();
 
         scaling[0]=1.0/((*matMat)[0][0]); 
         scaling[1]=1.0/((*matMat)[2][2]);
@@ -528,7 +530,7 @@ namespace CoupledField
     UInt nrNewtonIterations=0;
     UInt backtrackIterator=0;
 
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    StdVector<BaseMaterial*> ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     Double eta_max, eta_new, t, aa,b,c, theta_min, theta_max, gamma, al;
     Double alpha, beta, tau;
@@ -730,8 +732,10 @@ namespace CoupledField
       parameter_new=parameter; 
       parameter_newC=parameterC;
 
-      Matrix<Double> *matMat = ptMaterial->GetMatrix();
-      Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+      Error("Not working",__FILE__,__LINE__);
+
+      Matrix<Double> *matMat; //= ptMaterial->GetMatrix();
+      Matrix<Double> *matMatC; // = ptMaterial->GetMatrixC();
 
       scaling[0]=1.0/((*matMat)[0][0]); 
       scaling[1]=1.0/((*matMat)[2][2]);

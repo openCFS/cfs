@@ -77,8 +77,8 @@ namespace CoupledField
     ENTER_FCN("Matrix::Matrix");
 
 #ifdef CHECK_INITIALIZED
-    if (x.size_row_ == 0 || x.size_col_ == 0)  
-      Error("undefined Matrix",__FILE__,__LINE__);
+//     if (x.size_row_ == 0 || x.size_col_ == 0)  
+//       Error("undefined Matrix",__FILE__,__LINE__);
 #endif
 
  
@@ -985,13 +985,108 @@ namespace CoupledField
     TYPE adj = (TYPE) pow(-1,i+j) * 
       ( data_[iVec[0]][jVec[0]] * data_[iVec[1]][jVec[1]] - 
         data_[iVec[0]][jVec[1]] * data_[iVec[1]][jVec[0]]);
-
-
+    
+    
     return adj;
+    
+  }
   
+  template<class TYPE>
+  Matrix<Double> Matrix<TYPE>::GetPart(  DataType part ) const {
+    Error( "Matrix::GetPart: Only Implemented for Real and Complex matrices!", 
+           __FILE__, __LINE__ );
+    Matrix<Double> temp;
+    return temp;
   }
 
+  
+  template<>
+  Matrix<Double> Matrix<Double>::GetPart(  DataType part ) const {
+    ENTER_FCN( "Matrix<Double>::GetPart" )
+    
+    if ( part != REAL ) {
+      Error("Matrix<Double>::GetPart: Only possible for REAL part.",__FILE__, __LINE__ );
+    }
+      return *this;
+    
+  }
 
+  template<>
+  Matrix<Double> Matrix<Complex>::GetPart(  DataType part ) const {
+    ENTER_FCN( "Matrix<Complex>::GetPart" );
+    
+    Matrix<Double> ret;
+    if ( part == REAL ) {
+      ret.Resize( size_row_, size_col_ );
+      for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
+        for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
+          ret[iRow][iCol]  = data_[iRow][iCol].real();
+        }
+      }
+    } else if ( part == IMAG ) {
+      ret.Resize( size_row_, size_col_ );
+      for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
+        for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
+          ret[iRow][iCol]  = data_[iRow][iCol].imag();
+        }
+      }
+    } else {
+      Error("Matrix<Complex>::GetPart: Only possible for REAL or IMAG part!" , 
+	    __FILE__, __LINE__ );
+    }
+    
+    return ret;
+  }
+  
+
+  template<class TYPE>
+  void Matrix<TYPE>::SetPart( DataType part, const Matrix<Double> & partMatrix ) {
+    Error( "Matrix::SetPart: Only Implemented for Real and Complex matrices!", 
+           __FILE__, __LINE__ );
+  }
+  
+  template<>
+  void Matrix<Double>::SetPart( DataType part, const Matrix<Double> & partMatrix ) {
+    
+    if ( size_col_ != partMatrix.GetSizeCol() ||
+	 size_row_ != partMatrix.GetSizeRow () ) {
+      Error( "Matrix<Double>::SetPart: Dimension of matrices do not match!", __FILE__, __LINE__ );
+    }
+ 
+    if ( part != REAL ) {
+      Error( "Matrix<Double>::SetPart: Only possible for REAL part.", __FILE__, __LINE__ );
+    }
+    *this = partMatrix;
+  }
+
+  template<>
+  void Matrix<Complex>::SetPart( DataType part, const Matrix<Double> & partMatrix ) {
+
+    if ( size_col_ != partMatrix.GetSizeCol() ||
+         size_row_ != partMatrix.GetSizeRow () ) {
+      Error( "Matrix<Complex>::SetPart: Dimension of matrices do not match!", __FILE__, __LINE__ );
+    }
+        
+    if ( part == REAL ) {
+      for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
+        for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
+          data_[iRow][iCol]  = Complex( partMatrix[iRow][iCol], 
+                                        data_[iRow][iCol].imag() );
+        }
+      }
+    } else if ( part == IMAG ) {
+      for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
+        for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
+          data_[iRow][iCol]  = Complex( data_[iRow][iCol].real(),
+                                        partMatrix[iRow][iCol] );
+        }
+      }
+    } else {
+      Error( "Matrix<Complex>::SetPart: Only possible for REAL or IMAG part!",
+	     __FILE__, __LINE__ );
+    }
+  }
+ 
 
   // copies a submatrix at the position (row, col) into subMat, 
   // the amount of copied elements depends on the size of subMat
@@ -1178,50 +1273,6 @@ namespace CoupledField
   //   }
   //   return amSymm;
   // }
-
-  
-
-// #ifdef __GNUC__
-
-// #define MATRIX_INST(TYPE)        \
-// template Matrix<TYPE>::Matrix( );                                             \
-// template Matrix<TYPE>::Matrix( const UInt nRows, const UInt nCols );          \
-// template Matrix<TYPE>::Matrix( const UInt numVec,                             \
-//                                const Vector<TYPE> * const vecs );             \
-// template Matrix<TYPE>::Matrix( const Matrix & );                              \ 
-// template Matrix<TYPE>::~Matrix( );                                            \
-// template void Matrix<TYPE>::Resize(const UInt nRows, const UInt nCols );      \
-// template void Matrix<TYPE>::Resize( const UInt size );                        \
-// template bool Matrix<TYPE>::IsSymmetric() const;                              \
-// template void Matrix<TYPE>::GetDiagInMatrix( Matrix<TYPE>& columnMat ) const; \
-// template void Matrix<TYPE>::Mult( const CFSVector & mvec,                     \
-//                                   CFSVector & rvec ) const;                   \  
-// template void Matrix<TYPE>::DyadicMult( const CFSVector & vec1 );             \
-// template void Matrix<TYPE>::DyadicMult( const CFSVector & vec1,               \
-//                                         const CFSVector & vec2 );             \
-// template void Matrix<TYPE>::Invert ( Matrix <TYPE> & inv ) const;             \
-// template void Matrix<TYPE>::Transpose( Matrix<TYPE> & transposedMat ) const;  \
-// template Boolean Matrix<TYPE>::operator ==( const Matrix<TYPE> & mat ) const; \
-// template Boolean Matrix<TYPE>::operator!=( const Matrix<TYPE> & mat ) const;  \
-// template void Matrix<TYPE>::DirectSolve( CFSVector & x, CFSVector & b );      \
-// template void Matrix<TYPE>::ScaleDiagElems( const TYPE factor );              \
-// template void Matrix<TYPE>::AddRow( const Vector<TYPE> & x, const UInt pos ); \
-// template void Matrix<TYPE>::AddColumn( const Vector<TYPE> & x,                \
-//                                        const UInt pos );                      \
-// template void Matrix<TYPE>::GetSubMatrix( Matrix<TYPE>& subMat, UInt row,     \
-//                                           UInt col ) const;                   \
-// template void Matrix<TYPE>::SetSubMatrix( const Matrix<TYPE>& subMat,         \
-//                                           UInt row, UInt col );               \
-// template void Matrix<TYPE>::ConvertToVec_AppendRows( CFSVector& vec ) const; \
-// template void Matrix<TYPE>::ConvertToVec_AppendCols( CFSVector& vec ) const;
-
-//   MATRIX_INST(Double)
-//   MATRIX_INST(Integer)
-//   MATRIX_INST(UInt)
-//   MATRIX_INST(Complex)
-
-
-// #endif
 
 // explicit template instantiation for GCC compiler
 #ifdef __GNUC__

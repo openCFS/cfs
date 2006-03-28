@@ -48,7 +48,7 @@ namespace CoupledField {
   
   SolveStepAcousticBubble::~SolveStepAcousticBubble() {
     ENTER_FCN( "SolveStepAcousticBubble::~SolveStepAcousticBubble" );
-    delete[] materialData_;
+    //    delete[] materialData_;
   }
  
   // ======================================================

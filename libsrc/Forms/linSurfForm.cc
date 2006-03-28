@@ -8,9 +8,7 @@ namespace CoupledField
     ENTER_FCN( "LinearSurfForm::LinearSurfForm" );
 
     factor_ = 0.0;
-    actElem_ = NULL;
-    materials_ = NULL;
-    
+    actElem_ = NULL;   
   }
 
   
@@ -34,11 +32,14 @@ namespace CoupledField
     
   
   void LinearSurfForm::SetVoluInfo( const StdVector<RegionIdType> & regionIds,
-                                    const MaterialData* materials ) {
+                                    const StdVector<BaseMaterial*>& materials ) {
     ENTER_FCN( "LinearSurfForm::SetVoluInfo" );
 
     regionIds_ = regionIds;
-    materials_ = materials;
+    materials_.Resize(materials.GetSize());
+    for ( UInt k=0; k<materials.GetSize(); k++ ) {
+      materials_[k] = materials[k];
+    }    
   }
     
   

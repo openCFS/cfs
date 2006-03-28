@@ -82,7 +82,7 @@ namespace CoupledField
                NodeEQN * ptEQN,
                NodeStoreSol<Double> & sol,
                UInt dim,
-               MaterialData* &matData,
+               StdVector<BaseMaterial*>& matData,
                StdVector<RegionIdType>& allSubdoms,
                Boolean isaxi);
 

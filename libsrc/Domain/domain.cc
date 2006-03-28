@@ -7,6 +7,7 @@
 #include "Domain/GridCFS/interface_gridcfs.hh"
 #include "Domain/GridStruct/interface_gridstruct.hh"
 #include "DataInOut/WriteInfo.hh"
+#include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/writeresults.hh"
@@ -47,7 +48,7 @@ namespace CoupledField {
   //   Construtor
   // **************
   Domain:: Domain(FileType * const aptFileType, WriteResults * ptOut,
-                  TimeFunc * aptTimeFunc) {
+                  TimeFunc * aptTimeFunc, MaterialHandler * ptMat) {
 
     ENTER_FCN( "Domain::Domain" );
 
@@ -63,6 +64,7 @@ namespace CoupledField {
     // assign pointers
     InFile_ = aptFileType; 
     OutFile_ = ptOut;
+    ptMatHandler_ = ptMat;
     ptTimeFunc_ = aptTimeFunc;
     ptIterCoupledPde_ = NULL;
 

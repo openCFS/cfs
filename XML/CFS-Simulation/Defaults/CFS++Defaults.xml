@@ -1,0 +1,292 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org">
+
+<!-- ==========================================================================
+     NOTE: Despite its name, this file is NOT the place for setting default
+           parameters. This file is used to bring ELEMENTS which have default
+           values or optional attributes into EXISTENCE. The default values
+           themselves are set in the Schema definition
+=========================================================================== -->
+
+  <analysis type="static"/>
+  <geometry type="3d"/>
+  <input/>
+  <output/>
+  <database>
+    <hostName/>
+    <port/>
+    <databaseName/>
+    <materialDatabaseName/>
+    <userName/>
+    <password/>
+  </database>
+  <gmv>
+    <fixedGrid/>
+    <binaryFormat/>
+  </gmv>
+  <materialData/>
+
+  <domain>
+    <region name="dummyRegion" material="dummyMaterial"/>
+  </domain>
+
+  <pdeList>
+
+
+    <!-- ***************************************************************** -->
+    <!-- Template for mechanics PDE -->
+    <!-- ***************************************************************** -->
+    <mechanic>
+  
+      <region name="dummyRegion"/>
+
+      <nonLinear>
+        <lineSearch/>
+        <incStopCrit>1</incStopCrit>
+        <resStopCrit>1</resStopCrit>
+        <maxNumIters>1</maxNumIters>
+      </nonLinear>
+  
+    </mechanic>
+
+
+    <!-- ***************************************************************** -->
+    <!-- Template for electrostatics PDE -->
+    <!-- ***************************************************************** -->
+    <electrostatic>
+      <region name="dummyRegion"/>
+
+      <nonLinear>
+        <lineSearch/>
+        <incStopCrit>1</incStopCrit>
+        <resStopCrit>1</resStopCrit>
+        <maxNumIters>1</maxNumIters>
+      </nonLinear>
+
+    </electrostatic>
+
+
+    <!-- ***************************************************************** -->
+    <!-- Template for piezo PDE -->
+    <!-- ***************************************************************** -->
+    <piezo>
+  
+      <region name="dummyRegion"/>
+
+      <nonLinear>
+        <lineSearch/>
+        <incStopCrit>1</incStopCrit>
+        <resStopCrit>1</resStopCrit>
+        <maxNumIters>1</maxNumIters>
+      </nonLinear>
+
+    </piezo>
+
+
+    <!-- ***************************************************************** -->
+    <!-- Template for magnetics PDE -->
+    <!-- ***************************************************************** -->
+    <magnetic>
+      <region name="dummyRegion"/>
+
+      <coils>
+
+        <measurementCoil2d name="dummyRegion">
+          <windingCrossSection>1</windingCrossSection>
+          <saveFileL/>
+          <saveFileU/>
+          <id>1</id>
+        </measurementCoil2d>
+
+        <measurementCoil3d name="dummyRegion">
+          <windingCrossSection>1</windingCrossSection>
+          <saveFileL/>
+          <saveFileU/>
+        </measurementCoil3d>
+
+        <currentCoil2d name="dummyRegion">
+          <windingCrossSection>  1 </windingCrossSection>
+          <value> 1 </value>
+          <dynamics/>
+          <phase/>
+          <id>    1 </id>
+        </currentCoil2d>
+
+        <currentCoil3d name="dummyRegion">
+          <windingCrossSection>  1 </windingCrossSection>
+          <value> 1 </value>
+          <dynamics/>
+          <phase/>
+          <currentFlow>yDir</currentFlow>
+        </currentCoil3d>
+
+        <voltageCoil2d name="dummyRegion">
+          <windingCrossSection>  1 </windingCrossSection>
+          <value> 1 </value>
+          <dynamics/>
+          <phase/>
+          <resistance>1</resistance>
+          <id>    1 </id>
+        </voltageCoil2d>
+
+        <voltageCoil3d name="dummyRegion">
+          <windingCrossSection>  1 </windingCrossSection>
+          <value> 1 </value>
+          <dynamics/>
+          <phase/>
+          <resistance>1</resistance>
+        </voltageCoil3d>
+
+      </coils>
+
+    </magnetic>
+
+
+    <!-- ***************************************************************** -->
+    <!-- Template for acoustic PDE -->
+    <!-- ***************************************************************** -->
+    <acoustic>
+  
+      <region name="dummyRegion">
+       <damping/>
+      </region>
+      <timeSteppingFormulation/>
+
+    </acoustic> 
+
+
+
+    <!-- ***************************************************************** -->
+    <!-- Template for acousticXYZ PDE -->
+    <!-- ***************************************************************** -->
+    <acousticXYZ>
+  
+      <region name="dummyRegion">
+       <damping/>
+      </region>
+      <timeSteppingFormulation/>
+
+    </acousticXYZ> 
+
+
+    <!-- ***************************************************************** -->
+    <!-- Template for smooth PDE -->
+    <!-- ***************************************************************** -->
+    <smooth>
+      <region name="dummyRegion"/>
+    </smooth>
+
+
+    <!-- ***************************************************************** -->
+    <!-- Template for mpcci PDE -->
+    <!-- ***************************************************************** -->
+    <mpcci>
+  
+      <region name="dummyRegion" type="solid"/>
+
+    </mpcci>
+
+    <!-- ***************************************************************** -->
+    <!-- Template for mpcci PDE -->
+    <!-- ***************************************************************** -->
+    <stokesFluid>
+      <region name="dummyRegion"/>
+    </stokesFluid>
+
+  </pdeList>
+
+  <harmonic>
+    <numFreq>   10 </numFreq>
+    <startFreq> 10 </startFreq>
+    <stopFreq>  10 </stopFreq>
+    <sampling/>
+    <adjustDamping/>
+  </harmonic>
+
+   <transient>    
+     <numSteps>        10    </numSteps>       
+     <firstDt>         1e-3 </firstDt>        
+     <stepSaveBeg>     1      </stepSaveBeg>    
+     <stepSaveEnd>     10    </stepSaveEnd>    
+     <stepSaveInc>     1      </stepSaveInc>    
+     <writeRestartInc> 0     </writeRestartInc>
+   </transient>
+
+  
+  <linearSystems>
+    <system name="acoustic">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="acousticXYZ">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="direct">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="electrostatic">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="magnetic">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="mechanic">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="mpcci">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="piezo">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="smooth">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="nrbc">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="heatConduction">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+    <system name="stokesFluid">
+      <setup/>
+      <matrix/>
+      <solver><stoppingRule/></solver>
+    </system>
+  </linearSystems>
+
+  <integRules>
+    <line      />
+    <rectangle />
+    <triangle  />
+    <hexa      />
+    <pyra      />
+    <tetra     />
+    <wedge     />
+  </integRules>
+
+  <expert/>
+
+</cfsSimulation>

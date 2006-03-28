@@ -96,6 +96,11 @@ namespace CoupledField {
       delete rhsSrcSurfIntegrators_[i];
     }
     rhsSrcIntegrators_.Clear();
+
+    for ( UInt i = 0; i < ptMaterial_.GetSize(); i++ ) {
+      delete (ptMaterial_[i]);
+    }
+    ptMaterial_.Clear();
   }
 
 
@@ -247,7 +252,7 @@ namespace CoupledField {
         actDescriptor->GetIntegrator()->SetSubdomain(actDom);
 
         if (alternateMaterialData_ == TRUE)
-          actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_);
+          actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_[actDom]);
 
         // assemble only if nonlinear or first time
         if (reassembleMat_[actDescriptor->DestMat()] || firstTime_) {
@@ -1200,7 +1205,7 @@ namespace CoupledField {
       surfintegrators_[i]       = new StdVector<IntegratorDescriptor *>;
       rhsSrcSurfIntegrators_[i] = new StdVector<BaseIntDescriptor *>;
     }
-    
+    rhsSrcSurfPhase_.Resize(surfdoms_.GetSize());
   }
   
 
@@ -1386,7 +1391,6 @@ namespace CoupledField {
     ENTER_FCN( "Assemble::AddRhsSrcSurfIntegrator" );
     BaseIntDescriptor * actRhsID = new  BaseIntDescriptor(integrator, nonLin);
     rhsSrcSurfIntegrators_[SurfDomIndex(regionId)]->Push_back(actRhsID);
-    rhsSrcSurfPhase_.Resize(1);
     rhsSrcSurfPhase_[SurfDomIndex(regionId)] = phaseval;
   }
 

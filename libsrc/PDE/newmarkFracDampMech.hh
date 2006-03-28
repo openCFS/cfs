@@ -67,7 +67,7 @@ namespace CoupledField {
     //! compute Weights for Gruenwald-Letnikov formula
     void GLWeights(UInt memory, Double y);
 
-    void CalcStress(BaseFE * aptelem, MaterialData & matDa, StdVector<Integer> connect_PDE, 
+    void CalcStress(BaseFE * aptelem, BaseMaterial* matDa, StdVector<Integer> connect_PDE, 
                     Matrix<Double> & ptCoord, Vector<Double> & stressVector,
                     Vector<Double> &displacementVector, Integer elemNr);
 
@@ -79,7 +79,7 @@ namespace CoupledField {
 
     void GetAlphaMat(Matrix<Double> & alphaMat);
 
-    void GetBetaMat(Matrix<Double> & betaMat, Double E, MaterialData & matData);
+    void GetBetaMat(Matrix<Double> & betaMat, Double E, BaseMaterial* matData);
 
     UInt getStressDim();
 

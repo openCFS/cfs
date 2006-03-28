@@ -1,0 +1,177 @@
+#ifndef BASEMATERIAL_DATA
+#define BASEMATERIAL_DATA
+
+#include <General/environment.hh>
+#include <Matrix/matrix.hh>
+#include <Utils/vector.hh>
+
+namespace CoupledField {
+
+  //! Class for Material Data
+  /*! 
+    Base class for handling material data
+  */
+
+  class BaseMaterial {
+    typedef std::map<MaterialType, Matrix<Complex> > tensorMap;
+    typedef std::map<MaterialType, Complex > scalarMap;
+
+  public:
+
+    //! Default constructor
+    BaseMaterial();
+
+    //! Destructor
+    virtual ~BaseMaterial();
+
+    //! set the name of the material set
+    void SetName(const Char* name) {
+      matFileName_.assign( name ) ;
+    }
+
+    // returns the name of the material file
+    std::string& GetName() {
+      return matFileName_;
+    }
+
+    //! returns the name of the material database
+    std::string& GetMaterialDatabaseName() {
+      return materialDatabaseName_;
+    }
+
+    //! set file name containing the nonlinear data
+    void SetNonlinFileName( const Char *filename) {
+      nonlinFileName_.assign( filename );
+    }
+
+    //! get nonlinear file name
+    std::string& GetNonlinFileName() {
+      return nonlinFileName_;
+    }
+
+
+   //! set a scalar string material parameter
+    virtual void SetScalar( std::string& param, const MaterialType& matType) {
+      Error("SetScalar not implemented",__FILE__,__LINE__); };
+
+    //! set a scalar integer material parameter
+    virtual void SetScalar( Integer& param, const MaterialType& matType ) {
+      Error("SetScalar not implemented",__FILE__,__LINE__); };
+
+    //! set a scalar real material parameter
+    virtual void SetScalar( Double& param, const MaterialType& matType,
+			    const DataType& dataType ) {
+      Error("SetScalar not implemented",__FILE__,__LINE__); };
+
+
+    //! set a scalar complex material parameter
+    virtual void SetScalar( Complex& param, const MaterialType& matType, 
+			    const DataType& dataType ) {
+      Error("SetScalar not implemented",__FILE__,__LINE__); };
+
+
+    //! set a real material tensor
+    virtual void SetTensor( Matrix<Double>& param, const MaterialType& matType,
+			    const DataType& dataType ){
+      Error("SetTensor not implemented",__FILE__,__LINE__); };
+
+
+    //! set a complex material tensor
+    virtual void SetTensor( Matrix<Complex>& param, const MaterialType& matType,
+			    const DataType& dataType ) {
+      Error("SetTensor not implemented",__FILE__,__LINE__); };
+
+   //! get a string material parameter
+    void GetScalar( std::string& param, const MaterialType& matType) const {
+     Error("GetScalar not implemented",__FILE__,__LINE__); };
+
+    //! get a string material parameter
+    void GetScalar( Integer& param, const MaterialType& matType, 
+		    const DataType& dataType) const {
+     Error("GetScalar not implemented",__FILE__,__LINE__); };
+
+    //! get a scalar real material parameter
+    virtual void GetScalar( Double& param, const MaterialType& matType, 
+			    const DataType& dataType ) const {
+      Error("GetScalar not implemented",__FILE__,__LINE__); };
+
+
+    //! get a scalar complex material parameter
+    virtual void GetScalar( Complex& param, const MaterialType& matType, 
+			    const DataType& dataType ) const {
+      Error("GetScalar not implemented",__FILE__,__LINE__); };
+
+
+    //! get a real material tensor
+    virtual void GetTensor( Matrix<Double>& param, const MaterialType& matType,
+			    const DataType& dataType, 
+			    const SubTensorType = FULL ) const {
+      Error("GetTensor not implemented",__FILE__,__LINE__); };
+
+    //! get a complex material tensor
+    virtual void GetTensor( Matrix<Complex>& param, const MaterialType& matType,
+			    const DataType& dataType,
+			    const SubTensorType = FULL ) const {
+      Error("GetTensor not implemented",__FILE__,__LINE__); };
+
+  protected:
+
+    //! Error for material type not defined
+    void matTypeNotAllowed( const MaterialType& matType, 
+			    std::string dim ) const;
+
+    //! data type not allowed in set/get-function
+    void dataTypeNotAllowed4SetGet( const DataType& datType, 
+				    const std::string msg ) const;
+
+    //! Error for data type not allowed
+    void dataTypeNotAllowed( const DataType& datType, 
+			     const MaterialType& matType ) const;
+
+    //! Error for material type not in file
+    void matTypeNotInDataBase( const MaterialType& matType, std::string dim ) const;
+
+    //! data type not allowed in set-function
+
+    void setMakesNoSense( const DataType& datType, std::string msg ) const;
+
+    //! Error for not available subtype of tensor
+    void subTensorNotAvailable( const MaterialType& matType, 
+			      const SubTensorType subTensor ) const;
+
+    //! name of material database
+    std::string materialDatabaseName_;
+
+    //! name of material file
+    std::string matFileName_;
+
+    //! name of file containing the nonlinear data
+    std::string nonlinFileName_;
+
+    //! set, which knows about the allowed material parameters for a material class
+    std::set<MaterialType> isAllowed_;
+
+    //! map, which knows about the scalar material parameters being set during read in 
+    std::map<MaterialType, Complex> scalarParams_;
+
+    //! map, which knows about the tensorial material parameters being set during read in 
+    std::map<MaterialType, Matrix<Complex> > tensorParams_;
+
+    //! material data is scalar
+    Boolean isScalar;
+
+    //! material data is isotrop
+    Boolean isIsotrop;
+
+    //! material data is orthotrop
+    Boolean isOrthotrop;
+
+
+    //! material data is a tensor
+    Boolean isTensor;
+
+  };
+
+} // end of namespace
+
+#endif

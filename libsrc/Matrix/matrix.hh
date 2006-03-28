@@ -474,6 +474,12 @@ namespace CoupledField
     //! Add a column to Matrix at position i
     void AddColumn( const Vector<TYPE> & x, const UInt pos ); 
     
+    //! Return a special part ( real, imag, amplitude, phase) of a matrix
+    Matrix<Double> GetPart(  DataType part ) const;
+
+    //! Set special part ( real, imag, amplitude, phase) of a matrix
+    void SetPart( DataType part, const Matrix<Double> & partMatrix );
+
     //! Return a sub-part of the own matrix
 
     //! Copies a sub-matrix at the position (row, col) into subMat. 

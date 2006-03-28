@@ -5,7 +5,7 @@
 #include "Utils/vector.hh"
 #include "Matrix/matrix.hh"
 #include "PDE/StdPDE.hh"
-#include "DataInOut/MaterialData.hh"
+#include "Materials/baseMaterial.hh"
 
 namespace CoupledField
 {
@@ -137,7 +137,7 @@ namespace CoupledField
                          NodeEQN * ptEQN,
                          NodeStoreSol<Double> & sol,
                          UInt dim,
-                         MaterialData* &matData,
+                         StdVector<BaseMaterial*>& matData,
                          StdVector<RegionIdType>& allSubdoms,
                          Boolean isaxi) 
     : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, isaxi)
@@ -172,10 +172,10 @@ namespace CoupledField
   {
     ENTER_FCN( "MagForceOp::GetMatVal" );
 
-    Double permeability;
-    materialData_[actSD].GetPermeability(2,2,permeability); 
+    Double reluctivity;
+    materialData_[actSD]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
 
-    return 1.0/permeability;
+    return reluctivity;
   } 
 
 
