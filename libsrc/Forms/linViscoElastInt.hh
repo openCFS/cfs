@@ -11,10 +11,12 @@ class LinViscoElastInt : public linElastInt
 {  
 public:
   /// Constructor
-  LinViscoElastInt(BaseFE * aptelem, MaterialData & matDat, std::string geomType, std::string matrixType,Double timeStep);
+  LinViscoElastInt(BaseFE * aptelem, BaseMaterial* matDat, SubTensorType type, 
+		   std::string matrixType,Double timeStep);
 
   /// Constructor
-  LinViscoElastInt(MaterialData & matDat, std::string geomType, std::string matrixType, Double timeStep);
+  LinViscoElastInt(BaseMaterial* matDat, SubTensorType type, std::string matrixType, 
+		   Double timeStep);
 
   /// Destructor
   virtual ~LinViscoElastInt();
@@ -25,11 +27,18 @@ protected:
   /// returns D - matrix for linViscoElastInt
   virtual void calcDMat(Matrix<Double> & dMat);
 
-  /// returns dimension of D matrix
-  virtual UInt getDimD();
+  //! set dimensions
+  virtual void SetDimensions(SubTensorType type);
   
-  /// returns nr. of degrees of freedom
-  virtual UInt getNrDofs();  
+  //! returns dimension of D matrix
+  virtual UInt getDimD() {
+    return dimD_; 
+  };
+  
+  //! returns nr. of degrees of freedom
+  virtual UInt getNrDofs() {
+    return nrDofs_;
+  };
 
 private:
   void  GetModifiedMaterialMat(Matrix<Double>& cMat);
@@ -38,7 +47,6 @@ private:
 
 
   BaseFE * aptelem_;
-  std::string geomType_;
   std::string matrixType_;
   Double timeStep_;
 
@@ -46,6 +54,12 @@ private:
 private:
   Double dampAlpha_, dampBeta_, fracDeriv_, timeStepPowerFracDeriv_,elastModule_;
 
+  //dimension of Dmatrix
+  UInt dimD_;
+    
+  //! number of degrees 
+  UInt nrDofs_;
+    
 };
 
 } //end namespace

@@ -9,18 +9,21 @@
 namespace CoupledField
 {
 
-  LinViscoElastInt::LinViscoElastInt(BaseFE * aptelem, MaterialData & matData, std::string geomType, std::string matrixType, Double timeStep) 
-    : linElastInt(aptelem, matData)
+  LinViscoElastInt::LinViscoElastInt(BaseFE * aptelem, BaseMaterial* matData, 
+				     SubTensorType type, std::string matrixType, 
+				     Double timeStep) 
+    : linElastInt(aptelem, matData, type)
   {
     ENTER_FCN( "LinViscoElastInt::LinViscoElastInt" );
 
+    SetDimensions(type);
+
     aptelem_ = aptelem;
-    geomType_ = geomType;
     matrixType_ = matrixType;
     timeStep_ = timeStep;
 
-    dampAlpha_ = ptMaterial->GetDampingAlfa();
-    dampBeta_  = ptMaterial->GetDampingBeta();
+    ptMaterial->GetScalar(dampAlpha_,RAYLEIGH_ALPHA,REAL);
+    ptMaterial->GetScalar(dampBeta_,RAYLEIGH_BETA,REAL);
 
     StdVector<Double> fracDerivList_;
     params->GetList( "fracDeriv", fracDerivList_, "mechanic", "damping" );
@@ -35,17 +38,20 @@ namespace CoupledField
   }
 
 
-  LinViscoElastInt::LinViscoElastInt(MaterialData & matData, std::string geomType, std::string matrixType, Double timeStep) 
-    : linElastInt(matData)
+  LinViscoElastInt::LinViscoElastInt(BaseMaterial* matData, SubTensorType type, 
+				     std::string matrixType, Double timeStep) 
+    : linElastInt(matData, type)
   {
     ENTER_FCN( "LinViscoElastInt::LinViscoElastInt" );
 
-    geomType_ = geomType;
+    SetDimensions(type);
+
     matrixType_ = matrixType;
     timeStep_ = timeStep;
 
-    dampAlpha_  = ptMaterial->GetDampingAlfa();
-    dampBeta_  = ptMaterial->GetDampingBeta();
+    ptMaterial->GetScalar(dampAlpha_,RAYLEIGH_ALPHA,REAL);
+    ptMaterial->GetScalar(dampBeta_,RAYLEIGH_BETA,REAL);
+
     StdVector<Double> fracDerivList_;
     params->GetList( "fracDeriv", fracDerivList_, "mechanic", "damping" );
     fracDeriv_ = fracDerivList_[0];
@@ -88,20 +94,8 @@ namespace CoupledField
         aMat.SetEntry(i,i,1.0/(val+1.0)); // The entries are so implemented that the A mtrix is already invers
       }     
   
-    // get the material matrix in the right dimension, depending on the geometric type
-    if(geomType_ == "axi")
-      {
-        CalcAxiMaterialMat( cMat,  actOrientation);	
-      }
-    else if(geomType_ == "planeStrain")
-      {
-        //   std::cerr << "TEST-FRACTIONAL 1 - orientation " << actOrientation <<  std::endl;
-        CalcPlaneStrainMaterialMat( cMat,  actOrientation);	 
-      }
-    else if(geomType_ == "3d")
-      {
-        Calc3DMaterialMat(cMat);	
-      }      
+    // compute material tensor
+    calcDMat ( cMat );
 	
     // differentiate, whether the modified stiffness martrix 
     // or the damping matrix for the right hand side is needed
@@ -139,21 +133,8 @@ void LinViscoElastInt::GetModifiedMaterialMat(Matrix<Double>& cMat)
      keyVec = "pdeList", "mechanic","region","damping","typeDampBeta";    
      params->Get(keyVec,typeDampBeta);    
 
-
-     
-     if(geomType_ == "axi")
-       {
-	 CalcAxiMaterialMat( cMat,  actOrientation);	
-       }
-     else if(geomType_ == "planeStrain")
-	  {
-	    //   std::cerr << "TEST-FRACTIONAL 1 - orientation " << actOrientation <<  std::endl;
-	    CalcPlaneStrainMaterialMat( cMat,  actOrientation);	 	    
-	  }
-     else if(geomType_ == "3d")
-       {
-	 Calc3DMaterialMat( cMat);	
-       }      
+     // compute material tensor
+     calcDMat ( cMat );
      
      if(typeDampBeta == "CMat")
       {
@@ -196,50 +177,27 @@ void LinViscoElastInt::GetModifiedMaterialMat(Matrix<Double>& cMat)
   } 
 
 
+  void LinViscoElastInt::SetDimensions(SubTensorType type) {
 
-  UInt LinViscoElastInt::getDimD()
-  {
-    ENTER_FCN( "LinViscoElastInt::getDimD" );
-    
-    if(geomType_ == "axi")
-      {
-    	return 4;
-      }
-    else if(geomType_ == "planeStrain")
-      {
-    	return 3;   	
-      }
-    else if(geomType_ == "3d")
-      {
-    	return 6;   	
-      }
-    else
-      {
-	Error("wrongh geomType(axi,planeStrein,3d) specified", __FILE__, __LINE__);  
-      }
-    return 0;
-  }
+    ENTER_FCN( "linElastInt::SetDimensions" );
 
-  /// returns nr. of degrees of freedom
-  UInt LinViscoElastInt::getNrDofs()
-  {
-    ENTER_FCN( "LinViscoElastInt::getNrDofs" );
-   
-    if(geomType_ == "axi" || geomType_ == "planeStrain")
-      {
-    	return 2;
-      }
-    else if(geomType_ == "3d")
-      {
-    	return 3;   	
-      }
-    else 
-      {
-	Error("wrongh geomType(axi,planeStrein,3d) specified", __FILE__, __LINE__);  
-      }    
-    return 0;
+    if ( type == FULL ) {
+      dimD_   = 6;
+      nrDofs_ = 3;
+    }
+    else if ( type == PLANE_STRAIN ) {
+      dimD_   = 3;
+      nrDofs_ = 2;
+    }
+    else if ( type == AXI ) {
+      dimD_   = 4;
+      nrDofs_ = 2;
+      isaxi_  = TRUE;
+    }
+    else {
+      Error("wrongh Type(axi,planeStrein,3d) specified", __FILE__, __LINE__);  
+    }
   }
- 
 
 } // end namespace CoupledField
 

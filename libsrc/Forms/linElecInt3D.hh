@@ -27,7 +27,7 @@ namespace CoupledField {
     }
 
     //! Constructor with material data
-    linElecInt3D( MaterialData & matData)  :
+    linElecInt3D( BaseMaterial* matData)  :
       BDBInt(matData)
     {
       ENTER_FCN( "linElecInt3D::linElecInt3D" );
@@ -115,20 +115,9 @@ namespace CoupledField {
     //! where \f$\epsilon\f$ is the local tensor of dielectric constants
     void calcDMat( Matrix<Double> &dMat ) {
       ENTER_FCN( "linElecInt3D::calcDMat" );
-      dMat.Resize( 3, 3 );
-      Matrix<Double> *matMatrix = ptMaterial->GetMatrix();
       
-      // copy electric part of material matrix, which 
-      // is the lower-right sub-diagonal block
-      // d[7-9][7-9]
-      UInt startRow = 6;
-      UInt startCol = 6;
-      for( UInt i = 0; i < 3; i++ ) {
-        for ( UInt j = 0; j < 3; j++ ) {
-          dMat[i][j] = factor_ *
-            (*matMatrix)[startRow+i][startCol+j];
-        }
-      }
+      ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,REAL);
+      dMat *= factor_;
     }
     
     //! Returns dimension of D matrix

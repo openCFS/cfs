@@ -32,7 +32,7 @@ namespace CoupledField
     isAlwaysStatic_ = TRUE;
 
     pdename_          = "stokesFluid";
-    pdematerialclass_ = "fluid";
+    pdematerialclass_ = FLOW;
 
 
     // ****************************
@@ -160,8 +160,8 @@ namespace CoupledField
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
 
-      density          = materialData_[actSD].GetDensity();
-      dynamicViscosity = materialData_[actSD].GetCompressibility();
+      materialData_[actSD]->GetScalar(density,DENSITY,REAL);
+      materialData_[actSD]->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
       //dynamicViscosity = 1.85e-5;
       
       Info->PrintF( pdename_, "density = %e\n", density);
@@ -626,8 +626,8 @@ namespace CoupledField
       }
       
       // Assign correct density and dynamicViscosity
-      density = materialData_[matIndex].GetDensity();
-      dynamicViscosity = materialData_[matIndex].GetCompressibility();
+      materialData_[matIndex]->GetScalar(density,DENSITY,REAL);
+      materialData_[matIndex]->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
       //dynamicViscosity = 1.85e-5;
       
       BaseForm * bilinear_mass = new MassInt(ptElem, 1.0, isaxi_);

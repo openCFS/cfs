@@ -2,7 +2,7 @@
 #define FILE_MECHSTRESSSTRAIN_04
 
 #include <Elements/basefe.hh>
-#include <DataInOut/MaterialData.hh>
+#include <Materials/baseMaterial.hh>
 
 #include <Forms/linElastInt.hh>
 #include <General/environment.hh>
@@ -17,10 +17,10 @@ namespace CoupledField
   public:
 
     /// Constructor
-    MechStressStrain(BaseFE * aptelem, MaterialData & matData);
+    MechStressStrain(BaseFE * aptelem, BaseMaterial* matData, SubTensorType type);
 
     /// Constructor
-    MechStressStrain(MaterialData & matData);
+    MechStressStrain(BaseMaterial* matData, SubTensorType type);
   
     /// Destructor
     virtual ~MechStressStrain();  
@@ -53,97 +53,12 @@ namespace CoupledField
     virtual void calcBMat(Matrix<Double> & bMat, UInt ip, 
                           Matrix<Double> & ptCoord);
 
-    /// returns nr. of degrees of freedom
-    virtual UInt getNrDofs()=0;  
-
     /// displacement of all nodes of actual element
     Matrix<TYPE> elemDisp_;
 
   };
   
 
-  //! 3D Cauchy stresses, linear strains
-  template <class TYPE>
-  class MechStressStrain3D : public MechStressStrain<TYPE>
-  {
-  public:
-
-    /// Constructor
-    MechStressStrain3D(BaseFE * aptelem, MaterialData & matData);
-
-    /// Constructor
-    MechStressStrain3D(MaterialData & matData);
-  
-    /// Destructor
-    virtual ~MechStressStrain3D();  
-  
-  protected:  
-    /// returns D - matrix (material matrix)
-    virtual void calcDMat(Matrix<Double> & dMat);
-
-    /// returns nr. of degrees of freedom
-    virtual UInt getNrDofs(){return 3;};
-
-    /// returns the size of the material d-matrix
-    virtual UInt getDimD(){return 6;};
-
-  };
-  
-
-
-
-  // second part: regarding internal stresses
-  template <class TYPE>
-  class MechStressStrainPlaneStrain : public MechStressStrain<TYPE>
-  {
-  public:
-    /// Constructor
-    MechStressStrainPlaneStrain(BaseFE * aptelem, MaterialData & matData);
-
-    /// Constructor
-    MechStressStrainPlaneStrain(MaterialData & matData);
-  
-    /// Destructor
-    virtual ~MechStressStrainPlaneStrain();  
-  
-  protected:  
-    /// returns D - matrix (material matrix)
-    virtual void calcDMat(Matrix<Double> & dMat);
-
-    /// returns nr. of degrees of freedom
-    virtual UInt getNrDofs(){return 2;};  
-
-    /// returns the size of the material d-matrix
-    virtual UInt getDimD(){return 3;};
-
-  };
-  
-
-  // second part: regarding internal stresses
-  template <class TYPE>
-  class MechStressStrainAxi : public MechStressStrain<TYPE>
-  {
-  public:
-    /// Constructor
-    MechStressStrainAxi(BaseFE * aptelem, MaterialData & matData);
-
-    /// Constructor
-    MechStressStrainAxi(MaterialData & matData);
-  
-    /// Destructor
-    virtual ~MechStressStrainAxi();  
-  
-  protected:  
-    /// returns D - matrix (material matrix)
-    virtual void calcDMat(Matrix<Double> & dMat);
-
-    /// returns nr. of degrees of freedom
-    virtual UInt getNrDofs(){return 2;};  
-
-    /// returns the size of the material d-matrix
-    virtual UInt getDimD(){return 4;};
-  };
-  
 } //end namespace
 
 #endif // FILE_XXX

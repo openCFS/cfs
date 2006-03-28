@@ -2,7 +2,6 @@
 #define FILE_NLINSTOKESFLUIDINT
 
 #include <Elements/basefe.hh>
-#include <DataInOut/MaterialData.hh>
 
 #include <Forms/stokesFluidInt.hh>
 #include <General/environment.hh>

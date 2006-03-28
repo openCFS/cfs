@@ -6,7 +6,7 @@
 #include "General/environment.hh"
 #include "Utils/vector.hh"
 #include "Utils/StdVector.hh"
-#include "DataInOut/MaterialData.hh"
+#include "Materials/baseMaterial.hh"
 
 namespace CoupledField
 {
@@ -59,11 +59,11 @@ namespace CoupledField
       StdVector<std::string> neighInputRegions; 
     
       //! vector of materials at coupling interface
-      StdVector<MaterialData*> materials; 
+      StdVector<BaseMaterial*> materials; 
 
       //! vector with materials for opposite PDE
       //! ( = pde, which uses this interface as input )
-      StdVector<MaterialData*>  oppositePdeMaterials;         
+      StdVector<BaseMaterial*>  oppositePdeMaterials;         
 
       //! array containing coupling values
       CFSVector * values;
@@ -248,11 +248,11 @@ namespace CoupledField
     { regions = &(outputInterfaces_[i]->neighInputRegions);}
     
     //! get output coupling region materials
-    virtual void GetMaterials(UInt i, StdVector<MaterialData *>* &mat)
+    virtual void GetMaterials(UInt i, StdVector<BaseMaterial *>* &mat)
     { mat = &(outputInterfaces_[i]->materials);} 
   
     //! get output coupling region materials of opposite pde
-    virtual void GetOppositeMaterials(UInt i, StdVector<MaterialData *>* &mat)
+    virtual void GetOppositeMaterials(UInt i, StdVector<BaseMaterial *>* &mat)
     { mat = &(outputInterfaces_[i]->oppositePdeMaterials);}
 
     //! get output coupling values

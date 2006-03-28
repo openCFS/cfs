@@ -1,2 +1,0 @@
-I am here to prevent that 'cvs update -P' prunes libsrc/AlgebraicSystem, since
-there is no longer any other CVS controlled file in this directory.

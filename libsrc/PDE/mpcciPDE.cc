@@ -31,7 +31,7 @@ namespace CoupledField {
     solTypes_ = MPCCI;
     solDofs_ = 1;
     pdename_          = "mpcci";
-    pdematerialclass_ = "piezo"; 
+    pdematerialclass_ = PIEZO;
     flagFirstTimeStep_= TRUE;
     converged_=FALSE;
 

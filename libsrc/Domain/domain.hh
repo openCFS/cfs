@@ -21,6 +21,7 @@ namespace CoupledField
   class FileType;
   class WriteResults;
   class CoordSystem;
+  class MaterialHandler;
 
   //! This class defines the computational domain.
 
@@ -39,7 +40,7 @@ namespace CoupledField
       \param aptTimeFunc (input) time function data base
     */
     Domain(FileType * const aptFileType, WriteResults * ptOut, 
-           TimeFunc * aptTimeFunc);
+           TimeFunc * aptTimeFunc, MaterialHandler * ptMat );
     
     //! Destructor
     virtual ~Domain();
@@ -94,6 +95,9 @@ namespace CoupledField
 
     //! Get pointer to output-file
     WriteResults * GetOutFile(){ return OutFile_;}
+
+    //! Get pointer to material handler
+    MaterialHandler * GetMaterialHandler() {return ptMatHandler_; }
 
     //! Get pointer to grid object
     Grid * GetGrid(){ return ptgrid_;}
@@ -202,6 +206,9 @@ namespace CoupledField
 
     //!  Pointer to object handling output file 
     WriteResults * OutFile_;
+
+    //! Pointer to material handler
+    MaterialHandler * ptMatHandler_;
 
     //! Mapping between name and coordinate sysem pointer
     std::map<std::string, CoordSystem*> coordSys_;

@@ -42,10 +42,10 @@ namespace CoupledField {
     };
 
     //! Constructor expecting reference to a material data object
-    ADBInt( MaterialData &matData ) : BaseForm( matData ) {
-      ENTER_FCN( "ADBInt::ADBInt" );
-      baseType_ = STIFFNESS;
-    };
+//     ADBInt( BaseMaterial* matData ) : BaseForm( matData ) {
+//       ENTER_FCN( "ADBInt::ADBInt" );
+//       baseType_ = STIFFNESS;
+//     };
 
     //! Destructor
     virtual ~ADBInt() {

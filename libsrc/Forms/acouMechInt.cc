@@ -17,7 +17,7 @@ namespace CoupledField {
   }
 
   void AcouMechInt::CalcElementMatrix(Matrix<Double>& ptCoord, 
-                                           Matrix<Double> & elemMat) {
+				      Matrix<Double> & elemMat) {
     ENTER_FCN( "AcouMechInt::CalcElementMatrix" );
     
     UInt j = 0;
@@ -32,17 +32,23 @@ namespace CoupledField {
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     
     Integer index = -1;
-    
+
     const StdVector<RegionIdType> * acouRegionIds;
-    const MaterialData * acouMaterials;
-    
+    StdVector<BaseMaterial*> acouMaterials;
+   
     // determine correct material list and regionIds
     if ( firstPDEName_ == "acoustic" ) {
       acouRegionIds = &firstRegionIds_; 
-      acouMaterials = firstMaterials_;
+      acouMaterials.Resize(firstMaterials_.GetSize());
+      for ( UInt k=0; k<firstMaterials_.GetSize(); k++ ) {
+	acouMaterials[k] = firstMaterials_[k];
+      }    
     } else {
       acouRegionIds = &secondRegionIds_; 
-      acouMaterials = secondMaterials_;
+      acouMaterials.Resize(secondMaterials_.GetSize());
+      for ( UInt k=0; k<secondMaterials_.GetSize(); k++ ) {
+	acouMaterials[k] = secondMaterials_[k];
+      }    
     }
     
     index = acouRegionIds->Find(actElem_->ptVolElem1->regionId);
@@ -52,7 +58,7 @@ namespace CoupledField {
       normal_ *= -1.0;
     }
 
-    density = acouMaterials[index].GetDensity();
+    acouMaterials[index]->GetScalar(density,DENSITY,REAL);
     if (formulation_ == ACOU_PRESSURE && firstPDEName_ == "acoustic" ) {
       //multiplicative factor in case of pressure formulation
       density *= -density;

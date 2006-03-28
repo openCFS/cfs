@@ -272,7 +272,7 @@ namespace CoupledField {
   // ==================================================================
 
   nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(BaseFE * aptelem, 
-                                                     MaterialData & matData,
+                                                     BaseMaterial* matData,
                                                      Boolean isaxi) 
     : LinearForm(aptelem), matData_(matData)
   {
@@ -350,7 +350,7 @@ namespace CoupledField {
 
 
   nLinMech_linFormInt::nLinMech_linFormInt(BaseFE * aptelem, 
-                                           MaterialData & matData, 
+                                           BaseMaterial* matData, 
                                            Boolean isaxi) 
     : LinearForm(aptelem), matData_(matData)
   {
@@ -359,7 +359,7 @@ namespace CoupledField {
   }
 
 
-  nLinMech_linFormInt::nLinMech_linFormInt(MaterialData & matData,
+  nLinMech_linFormInt::nLinMech_linFormInt(BaseMaterial* matData,
                                            Boolean isaxi) 
     : LinearForm(), matData_(matData)
   {
@@ -520,7 +520,7 @@ namespace CoupledField {
   // ==================================================================
 
   PreStressLinFormInt::PreStressLinFormInt(BaseFE * aptelem, 
-                                           MaterialData & mat, 
+                                           BaseMaterial* mat, 
                                            Double aPreStressVal, 
                                            Directions stressDir) 
     :nLinMech_linFormInt(aptelem, mat), 

@@ -193,6 +193,27 @@ namespace CoupledField {
 	           STOKESFLUID_PRESSURE, STOKESFLUID_VORTICITY,
 	           STOKESFLUID_FORCE} SolutionType;
 
+  //! describes the possible material types
+  typedef enum{NO_MATERIAL, MAG_PERMEABILITY, MAG_RELUCTIVITY, MAG_CONDUCTIVITY, 
+               ELEC_PERMITTIVITY, MECH_STIFFNESS_TENSOR, MECH_EMODULUS,
+               MECH_POISSON, MECH_KMODULUS, MECH_GMODULUS,
+               MECH_LAME_MU, MECH_LAME_LAMBDA,
+               RAYLEIGH_ALPHA, RAYLEIGH_BETA, RAYLEIGH_FREQUENCY, RAYLEIGH_DELTA_FREQ, 
+               BOVERA, LOSS_TANGENS_DELTA,
+               DENSITY, ACOU_BULK_MODULUS, ACOU_SOUND_SPEED, 
+               ACOU_ALPHA, FRACTIONAL_ALG, FRACTIONAL_MEMORY, FRACTIONAL_INTERPOL,
+               FRACTIONAL_EXPONENT,
+               HEAT_CONDUCTIVITY, HEAT_CAPACITY, PIEZO_TENSOR,
+               E_SATURATION, P_SATURATION, P_FUNCTION, A_JILES, ALPHA_JILES, K_JILES,
+               C_JILES, P_DIRECTION, HYST_MODEL, 
+               NONLIN_COEFFICIENT, NONLIN_DEPENDENCY, NONLIN_APPROXIMATION_TYPE,
+               NONLIN_DATA_NAME, DYNAMIC_VISCOSITY} MaterialType;
+
+  typedef enum{FULL, PLANE_STRAIN, PLANE_STRESS, AXI} SubTensorType;
+
+  typedef enum{ NO_CLASS, ELECTROMAGNETIC, ELECTROSTATIC, FLUID, FLOW,
+                MECHANIC, PIEZO, THERMIC } MaterialClass;
+
   //! Enumberation for coupling method\n
   //! NO_COUPLING          = No coupling at all
   //! DIRECT_COUPLING      = Direct Coupling via matrix\n
@@ -238,6 +259,11 @@ namespace CoupledField {
 
   //! output format for complex numbers
   typedef enum {REAL_IMAG, AMPLITUDE_PHASE} ComplexFormat;
+
+
+  //! type of data
+  typedef enum {INTEGER, REAL, IMAG, COMPLEX} DataType;
+
 
   //! Data type for specification of frequency sampling approach
 
@@ -368,6 +394,8 @@ namespace CoupledField {
   DEFINE_ENUM_CONVERSION(EQNType)
   DEFINE_ENUM_CONVERSION(FEType)
   DEFINE_ENUM_CONVERSION(EntryType::ScalarType)
+  DEFINE_ENUM_CONVERSION(DataType)
+  DEFINE_ENUM_CONVERSION(MaterialClass);
 #endif
 
 } // end of namespace

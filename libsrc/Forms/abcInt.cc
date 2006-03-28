@@ -34,16 +34,21 @@ namespace CoupledField {
     
     
     const StdVector<RegionIdType> * acouRegionIds;
-    const MaterialData * acouMaterials;
-    
-    
+    StdVector<BaseMaterial*> acouMaterials;
+   
     // determine correct material list and regionIds
     if ( firstPDEName_ == "acoustic" ) {
       acouRegionIds = &firstRegionIds_; 
-      acouMaterials = firstMaterials_;
+      acouMaterials.Resize(firstMaterials_.GetSize());
+      for ( UInt k=0; k<firstMaterials_.GetSize(); k++ ) {
+	acouMaterials[k] = firstMaterials_[k];
+      }    
     } else {
       acouRegionIds = &secondRegionIds_; 
-      acouMaterials = secondMaterials_;
+      acouMaterials.Resize(secondMaterials_.GetSize());
+      for ( UInt k=0; k<secondMaterials_.GetSize(); k++ ) {
+	acouMaterials[k] = secondMaterials_[k];
+      }    
     }
     
     index = acouRegionIds->Find(actElem_->ptVolElem1->regionId);
@@ -51,8 +56,8 @@ namespace CoupledField {
       index = acouRegionIds->Find(actElem_->ptVolElem2->regionId);
     } 
 
-    density = acouMaterials[index].GetDensity();
-    compressibility = acouMaterials[index].GetCompressibility();
+    acouMaterials[index]->GetScalar(density,DENSITY,REAL);
+    acouMaterials[index]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
     factor = factor_ * density / sqrt( compressibility / density );
 
     // 2) Calculate a normal mass matrix

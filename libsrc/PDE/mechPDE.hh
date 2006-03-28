@@ -44,7 +44,7 @@ namespace CoupledField
     void ReadSpecialBCs();
 
     /// returns a stiffness integrator appropriate to the actual problem (e.g.3D)
-    BaseForm * GetStiffIntegrator(MaterialData& actSDMat,
+    BaseForm * GetStiffIntegrator(BaseMaterial* actSDMat,
                                   Boolean reducedInt=FALSE);
   
     // ======================================================
@@ -153,7 +153,7 @@ namespace CoupledField
   
     /// calc rhs coupling to acoustic pde
     void CalcAcousticCouplingRHS( StdVector<Elem*> * couplingElems, 
-                                  StdVector<MaterialData*> & materials, 
+                                  StdVector<BaseMaterial*> & materials, 
                                   StdVector<UInt>& couplingNodes,
                                   Vector<Double> & forceOnElem,
                                   UInt couplingdof );
@@ -227,10 +227,6 @@ namespace CoupledField
     //! List of region loads
     std::map<RegionIdType, RegionLoad> regionLoads_;
 
-    /// calculates matrices D^_ and D^__ (see Hughes p. 217) for reduced integration
-    void CalcReducedMat(MaterialData& lambdaMat, MaterialData& mueMat,
-                        MaterialData& mat);
-
     /// stores an algsys_ vector into a StdVector and returns that L2-norm
     void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
 
@@ -262,12 +258,6 @@ namespace CoupledField
     /// direction of prestress
     Directions preStressDir_;
   
-    /// material data for reduced integration
-    MaterialData * lambdaMat;
-
-    /// material data for reduced integration
-    MaterialData * mueMat;
-
     /// external forces (for nonlin simulations)
     Vector<Double> extForces_;
 

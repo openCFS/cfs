@@ -18,7 +18,7 @@ namespace CoupledField
     UInt nLandweber=0;
     Double theta, eta_acc;
 
-    MaterialData * ptMaterial;
+    StdVector<BaseMaterial*> ptMaterial;
     
     if(directCoupling==TRUE)
       ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
@@ -241,7 +241,9 @@ namespace CoupledField
       else
         ptMaterial=ptMyPDE_->getPDEMaterialData();
       
-      matMat = ptMaterial->GetMatrix();
+      Error("Not working",__FILE__,__LINE__);
+
+      //     matMat = ptMaterial->GetMatrix();
       
       scaling[0]=1.0/((*matMat)[0][0]); 
       scaling[1]=1.0/((*matMat)[2][2]);
@@ -311,7 +313,7 @@ namespace CoupledField
     UInt nLandweber=0;
     Double theta, eta_acc;
 
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    StdVector<BaseMaterial*> ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
     updateMaterialData(parameterC, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 
@@ -501,8 +503,10 @@ namespace CoupledField
       // backtracking(et , theta, s, old_resid2, new_resid2); 
 
       theta = 1.0;
-      matMat = ptMaterial->GetMatrix();
-      matMatC = ptMaterial->GetMatrixC();
+      Error("Not working",__FILE__,__LINE__);
+
+      //      matMat = ptMaterial->GetMatrix();
+      //      matMatC = ptMaterial->GetMatrixC();
       
       scaling[0]=1.0/((*matMat)[0][0]); 
       scaling[1]=1.0/((*matMat)[2][2]);

@@ -21,7 +21,7 @@ namespace CoupledField
     ENTER_FCN( "SmoothPDE::SmoothPDE" );
   
     pdename_ = "smooth";
-    pdematerialclass_ = "piezo";
+    pdematerialclass_ = MECHANIC;
     firstTurn_ = TRUE;
 
     // No time step algorithm for this PDE
@@ -80,22 +80,19 @@ namespace CoupledField
     for (UInt i=0; i<factor_.GetSize(); i++)
       factor_[i] = 1.0;
 
+    //transform the type
+    SubTensorType type;
+    String2Enum(subType_,type);
+
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
         // ==============  add stiffness ===========================================
 
-        MaterialData actSDMat(materialData_[actSD]);
+        BaseMaterial* actSDMat = materialData_[actSD];
 
         // ==============  add "standard" stiffness ===============================
         BaseForm * bilinearStiff;
-        if (subType_ == "planeStrain")
-          bilinearStiff = new smoothPlainStrainInt(actSDMat);
-        else if (subType_ == "3d")
-          bilinearStiff = new smooth3DInt(actSDMat);
-        else if (subType_ == "axi")
-          bilinearStiff = new SmoothAxiInt(actSDMat);
-        else 
-          Error("Unknown subtype in smooth PDE! ",__FILE__,__LINE__);
+	bilinearStiff = new SmoothInt(actSDMat, type);
 
 	IntegratorDescriptor * stiffDescr = 
 	  new IntegratorDescriptor(bilinearStiff, STIFFNESS);

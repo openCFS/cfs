@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<cfsMaterialDataBase xmlns="http://www.cfs++.org">
+  <material name="iron">
+    <electric>
+      <permittivity> 
+        8.854000E-12
+      </permittivity>
+    </electric>
+  </material>
+</cfsMaterialDataBase>

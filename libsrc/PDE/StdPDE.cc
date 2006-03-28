@@ -566,8 +566,10 @@ namespace CoupledField {
     Double coeff;
 
     // pre factor of fractional derivative (same for all algorithms)
-    Double y  = materialData_[actSD].GetDampingBeta();
     Double dt = TS_alg_->GetTimeStep();
+    Double y;
+    materialData_[actSD]->GetScalar(y,FRACTIONAL_EXPONENT,REAL);
+
     coeff = std::exp(-(y-1.0) * std::log(dt));
 
     // needed for formulation with only MASS and STIFFNESS matrix

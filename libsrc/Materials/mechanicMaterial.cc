@@ -1,0 +1,334 @@
+#include <stdlib.h>
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <math.h>
+#include <limits.h>
+#include <string>
+
+#include "mechanicMaterial.hh"
+
+
+
+namespace CoupledField
+{
+
+  // ***********************
+  //   Default Constructor
+  // ***********************
+  MechanicMaterial::MechanicMaterial() : BaseMaterial() {
+
+    ENTER_FCN("BaseMaterial::BaseMaterial");
+    materialDatabaseName_ = "Mechanics";
+
+    //set the allowed material parameters
+    isAllowed_.insert( DENSITY );
+    isAllowed_.insert( MECH_STIFFNESS_TENSOR );
+    isAllowed_.insert( MECH_EMODULUS );
+    isAllowed_.insert( MECH_POISSON );
+    isAllowed_.insert( RAYLEIGH_ALPHA );
+    isAllowed_.insert( RAYLEIGH_BETA );
+    isAllowed_.insert( RAYLEIGH_FREQUENCY);
+    isAllowed_.insert( LOSS_TANGENS_DELTA);
+    isAllowed_.insert( ACOU_ALPHA );
+    isAllowed_.insert( FRACTIONAL_EXPONENT );
+
+}
+
+  MechanicMaterial::~MechanicMaterial() {
+
+    ENTER_FCN("BaseMaterial::~BaseMaterial");
+
+  }
+
+  void MechanicMaterial::SetScalar( Integer& param, const MaterialType& matType) {
+
+    ENTER_FCN( "AcousticMaterial::SetScalar" );
+    Error("SetScalar for 'Integer' not implemented",__FILE__,__LINE__);
+  }
+
+  void MechanicMaterial::SetScalar( std::string& param, const MaterialType& matType) {
+
+    ENTER_FCN( "AcousticMaterial::SetScalar" );
+    Error("SetScalar for 'String' not implemented",__FILE__,__LINE__);
+  }
+
+
+  void MechanicMaterial::SetScalar( Double& param, const MaterialType& matType, 
+				    const DataType& dataType ) {
+
+    ENTER_FCN( "MechanicMaterial::SetScalar" );
+
+    //check, if allowed
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotAllowed( matType, dim );
+    }
+    else {
+      Complex val;
+      if ( dataType == REAL ) {
+	val = Complex ( param, 0.0 );
+      }
+      else if (dataType == IMAG ) {
+	val = Complex ( 0.0, param );
+      }
+      else {
+	std::string msg = "SetScalar-Double";
+	dataTypeNotAllowed4SetGet ( dataType, msg );
+      }
+      
+      scalarParams_[matType] = val;
+    }
+  }
+
+
+  void MechanicMaterial::SetScalar( Complex& param, const MaterialType& matType, 
+				    const DataType& dataType ) {
+
+    ENTER_FCN( "MechanicMaterial::SetScalar" );
+
+    //check, if allowed
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotAllowed( matType, dim );
+    }
+    else {
+      Complex val;
+      if ( dataType == REAL ) {
+	val = param.real();
+      }
+      else if (dataType == IMAG ) {
+	val = param.imag();
+      }
+      else if ( dataType == COMPLEX ) {
+	val = param;
+      }
+      
+      scalarParams_[matType] = val;
+    }
+  }
+
+  void MechanicMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
+				    const DataType& dataType ) {
+    
+    ENTER_FCN( "MechanicMaterial::SetTensor" );
+
+    //check, if allowed
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+      std::string dim = "tensor";
+      matTypeNotAllowed( matType, dim );
+    }
+    else {
+      if ( dataType == REAL || dataType == IMAG ) {
+	tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	tensorParams_[matType].SetPart( dataType, param );
+      }
+      else {
+	std::string msg = "SetTensor-Double";
+	dataTypeNotAllowed4SetGet ( dataType, msg );
+      }
+    }
+  }
+
+  void MechanicMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
+				    const DataType& dataType ) {
+    
+    ENTER_FCN( "MechanicMaterial::SetTensor" );
+
+    //check, if allowed
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+      std::string dim = "tensor";
+      matTypeNotAllowed( matType, dim );
+    }
+    else {
+      if ( dataType != COMPLEX ) {
+	std::string msg = "SetTensor with Matrix<Complex>";
+	setMakesNoSense( dataType, msg );
+      }
+      else {
+	tensorParams_[matType] = param;
+      }
+    }
+  }
+
+
+  void MechanicMaterial::GetScalar( Double& param, const MaterialType& matType, 
+				    const DataType& dataType )  const {
+
+    ENTER_FCN( "MechanicMaterial::GetScalar" );
+
+    scalarMap::const_iterator pos;
+    pos = scalarParams_.find( matType );
+
+    if ( pos == scalarParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      Complex val = pos->second;
+      if ( dataType == REAL ) {
+	param = val.real();
+      }
+      else if ( dataType == IMAG ) {
+	param = val.imag();
+      }
+      else {
+	std::string msg = "GetScalar-Double";
+	dataTypeNotAllowed4SetGet( dataType, msg );
+      }
+    }    
+  }
+
+  void MechanicMaterial::GetScalar( Complex& param, const MaterialType& matType, 
+				    const DataType& dataType )  const {
+
+    ENTER_FCN( "MechanicMaterial::GetScalar" );
+    scalarMap::const_iterator pos;
+    pos = scalarParams_.find( matType );
+
+    if ( pos == scalarParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      Complex val = pos->second;
+      if ( dataType == REAL ) {
+	Complex valReal = Complex (val.real(), 0.0);
+	param = valReal;
+      }
+      else if ( dataType == IMAG ) {
+	Complex valImag = Complex (0.0, val.imag());
+	param = valImag;
+      }
+      else if ( dataType == COMPLEX ) {
+	param = val;
+      }
+    }    
+  }
+
+  void MechanicMaterial::GetTensor( Matrix<Double>& param, 
+				    const MaterialType& matType, 
+				    const DataType& dataType,
+				    const SubTensorType subTensor ) const {
+    
+    ENTER_FCN( "MechanicMaterial::GetTensor" );
+
+    tensorMap::const_iterator pos;
+    pos = tensorParams_.find( matType );
+
+    if ( pos == tensorParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      Matrix<Complex> matTensor;
+      if ( subTensor == FULL ) {
+	matTensor = pos->second;
+      }
+      else {
+	ComputeSubTensor(matTensor, matType, subTensor);
+      }
+
+      if ( dataType == REAL || dataType == IMAG) {
+	param = matTensor.GetPart( dataType );
+      }
+      else {
+	std::string msg = "GetTensor-Double";
+	dataTypeNotAllowed4SetGet( dataType, msg );
+      }
+    }
+  }
+
+  void MechanicMaterial::GetTensor( Matrix<Complex>& param, 
+				    const MaterialType& matType, 
+				    const DataType& dataType,
+				    const SubTensorType subTensor ) const {	
+    
+    ENTER_FCN( "MechanicMaterial::GetTensor" );
+
+    tensorMap::const_iterator pos;
+    pos = tensorParams_.find( matType );
+
+    if ( pos == tensorParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      Matrix<Complex> matTensor;
+      if ( subTensor == FULL ) {
+	matTensor = pos->second;
+      }
+      else {
+	ComputeSubTensor(matTensor, matType, subTensor);
+      }
+
+      if ( dataType == REAL || dataType == IMAG) {
+	Matrix<Double> help; 
+	help = matTensor.GetPart( dataType );
+	param.Resize( matTensor.GetSizeRow(), matTensor.GetSizeCol() );
+	param.SetPart( dataType, help );
+      }
+      else if ( dataType == COMPLEX ) {
+	param = matTensor;
+      }
+    }
+  }
+  
+
+  void MechanicMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
+					  const MaterialType& matType, 
+					  const SubTensorType& subTensor) const {
+
+    ENTER_FCN( "MechanicMaterial::ComputeSubTensor" );
+
+    tensorMap::const_iterator pos;
+    pos = tensorParams_.find( matType );
+
+    Matrix<Complex> const &mat = pos->second;
+
+    if ( subTensor == AXI ) {
+      UInt nrElemsAxi = 4;
+      matMatrix.Resize( nrElemsAxi, nrElemsAxi );
+
+      UInt rowPtr[] = {2,3,4,1};  // indices of rows and lines for yz-plane
+      for ( UInt i=0; i<nrElemsAxi; i++ )
+	for ( UInt j=0; j<nrElemsAxi; j++ )
+	  matMatrix[i][j] = mat[rowPtr[i]-1][rowPtr[j]-1];
+    }
+    else if ( subTensor == PLANE_STRAIN ) {
+      UInt nrElems = 3;
+      matMatrix.Resize( nrElems, nrElems    );
+
+      UInt rowPtr[] = {2,3,4};  // indices of rows and lines for yz-plane
+      for ( UInt i=0; i<nrElems; i++ )
+	for ( UInt j=0; j<nrElems; j++ )
+	  matMatrix[i][j] = mat[rowPtr[i]-1][rowPtr[j]-1];
+    }
+    else if ( subTensor == PLANE_STRESS ) {
+      UInt nrElems = 3;
+      matMatrix.Resize( nrElems, nrElems );
+
+      if ( abs(mat[0][0]) < 1.09E-15 ) {
+	Error("Singular material tensor when computing plane stress case",
+	      __FILE__,__LINE__);
+      }
+
+      //explicite computation
+      matMatrix[0][0] = mat[1][1] - mat[0][1]*mat[1][0]/mat[0][0];
+      matMatrix[0][1] = mat[1][2] - mat[0][2]*mat[1][0]/mat[0][0];
+      matMatrix[0][2] = mat[1][3] - mat[0][3]*mat[1][0]/mat[0][0];
+      matMatrix[1][0] = mat[2][1] - mat[0][1]*mat[2][0]/mat[0][0];
+      matMatrix[1][1] = mat[2][2] - mat[0][2]*mat[2][0]/mat[0][0];
+      matMatrix[1][2] = mat[2][3] - mat[0][3]*mat[2][0]/mat[0][0];
+      matMatrix[2][0] = mat[3][1] - mat[0][1]*mat[3][0]/mat[0][0];
+      matMatrix[2][1] = mat[3][2] - mat[0][2]*mat[3][0]/mat[0][0];
+      matMatrix[2][2] = mat[3][3] - mat[0][3]*mat[3][0]/mat[0][0];
+      //std::cout << "MatMatrix:\n" << matMatrix << std::endl;
+    }
+    else {
+      subTensorNotAvailable( matType, subTensor );
+    }
+  }
+ 
+ 
+}

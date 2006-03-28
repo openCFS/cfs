@@ -1,0 +1,27 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of an heat conduction material
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for heat conduction PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MatHeatConduction">
+    <xsd:sequence>
+      <xsd:element name="density" type="DT_NonNegFloat"/>
+      <xsd:element name="heatCapacity" type="DT_NonNegFloat"/>
+      <xsd:element name="thermalConductivity" type="DT_NonNegFloat"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+</xsd:schema>

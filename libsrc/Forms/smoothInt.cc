@@ -72,142 +72,52 @@ namespace CoupledField
   }
   
 
-  
-  // calculated the D-matrix for the plain strain state
-  void smoothPlainStrainInt::calcDMat(Matrix<Double> & dMat, 
-                                      UInt ip, 
-                                      Matrix<Double> & ptCoord)
-  {
-    ENTER_FCN( "smoothPlainStrainInt::calcDMat" );
-
-    const UInt nrElems2d = getDimD();
-    
-    UInt rowPtrXY[] = {1,2,6,7,8};  // indices of rows and lines for xy-plane
-    UInt rowPtrYZ[] = {2,3,4,8,9};  // indices of rows and lines for yz-plane
-    UInt rowPtrXZ[] = {1,3,5,7,9};  // indices of rows and lines for xz-plane
-    UInt * rowPtr;
-    UInt i,j;
-
-    switch(actOrientation_)
-      { 
-      case xy: 
-        {
-          rowPtr = rowPtrXY;
-          break;
-        }
-      case xz: 
-        {
-          rowPtr = rowPtrXZ;
-          break;
-        }
-
-      case yz: 
-        {
-          rowPtr = rowPtrYZ;    
-          break;
-        }
-      }    
-        
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    dMat.Resize(nrElems2d);
-
-    Double jacDetInv;
-    jacDetInv = 1.0/ptelem->CalcJacobianDetAtIp(ip,ptCoord);
-
-    for (i=0; i<nrElems2d; i++)
-      for (j=0; j<nrElems2d; j++)
-        dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1]*jacDetInv;  
-
-  }
-
-
-
-  // calculated the D-matrix for the axisymmetric state
-  void SmoothAxiInt::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
-  {
-    ENTER_FCN( "SmoothAxiInt::calcDMat" );
-    
-    const UInt nrElemsAxi = 4;
-    
-    UInt rowPtrXY[] = {1,2,6,3};  // indices of rows and lines for xy-plane
-    UInt rowPtrYZ[] = {2,3,4,1};  // indices of rows and lines for yz-plane
-    UInt rowPtrXZ[] = {1,3,5,2};  // indices of rows and lines for xz-plane
-    UInt * rowPtr;
-
-    switch(actOrientation_)
-      { 
-      case xy: 
-        {
-          rowPtr = rowPtrXY;
-          break;
-        }
-      case xz: 
-        {
-          rowPtr = rowPtrXZ;
-          break;
-        }
-
-      case yz: 
-        {
-          rowPtr = rowPtrYZ;    
-          break;
-        }
-      }    
-        
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    
-    dMat.Resize(nrElemsAxi);
-
-    Double jacDetInv;
-    jacDetInv = 1.0/ptelem->CalcJacobianDetAtIp(ip,ptCoord);
-
-    for (UInt i=0; i<nrElemsAxi; i++)
-      for (UInt j=0; j<nrElemsAxi; j++)
-        dMat[i][j] = (*matMatrix)[rowPtr[i]-1][rowPtr[j]-1] * jacDetInv;
-  }
-
-
-
-  // calculates the D-matrix of a 3d-problem 
-  void smooth3DInt::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
+  // calculates the D-matrix 
+  void SmoothInt::calcDMat(Matrix<Double> & dMat, UInt ip, Matrix<Double> & ptCoord)
   {
     ENTER_FCN( "smooth3DInt::calcDMat" );
 
     const UInt nrElems3d = getDimD();
     
-    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-    dMat.Resize(nrElems3d);
+    Matrix<Double> matMatrix;
+    ptMaterial->GetTensor(matMatrix,MECH_STIFFNESS_TENSOR,REAL,subTensorType_);
+    UInt dimRow = matMatrix.GetSizeRow();
+    UInt dimCol = matMatrix.GetSizeCol();
+
+    dMat.Resize(dimRow, dimCol);
 
     Double jacDetInv;
     jacDetInv = 1.0/ptelem->CalcJacobianDetAtIp(ip,ptCoord);
 
-    for (UInt i=0; i<nrElems3d; i++)
-      for (UInt j=0; j<nrElems3d; j++)
-        dMat[i][j] = (*matMatrix)[i][j] * jacDetInv;    
+    for (UInt i=0; i<dimRow; i++)
+      for (UInt j=0; j<dimCol; j++)
+        dMat[i][j] = matMatrix[i][j] * jacDetInv;    
   }
-
-
 
 
   // ===================================================================================
   // =================== standard con- and destructors (just for tracing) ==============
   // ===================================================================================
 
-  // calculate (for 2D problems) by default in the xy-plane
-  SmoothInt::SmoothInt(BaseFE * aptelem, MaterialData & matData) 
-    : BDBInt(aptelem, matData), actOrientation_(xy)
+  SmoothInt::SmoothInt(BaseMaterial* matData, SubTensorType type) 
+    : BDBInt(matData, type) 
   {
     ENTER_FCN( "SmoothInt::SmoothInt" );
     updateDMatInEveryIP_ = 1;
-  }
 
-
-  // calculate (for 2D problems) by default in the xy-plane
-  SmoothInt::SmoothInt(MaterialData & matData) 
-    : BDBInt(matData), actOrientation_(xy)
-  {
-    ENTER_FCN( "SmoothInt::SmoothInt" );
-    updateDMatInEveryIP_ = 1;
+    if ( type == FULL ) {
+      dimD_   = 6;
+      nrDofs_ = 3;
+    }
+    else if ( type == PLANE_STRAIN ) {
+      dimD_   = 3;
+      nrDofs_ = 2;
+    }
+    else if ( type == AXI ) {
+      dimD_   = 4;
+      nrDofs_ = 2;
+      isaxi_  = TRUE;
+    }
   }
  
 
@@ -216,73 +126,5 @@ namespace CoupledField
     ENTER_FCN( "SmoothInt::~SmoothInt" );
   }
 
-
-
-  smoothPlainStrainInt::smoothPlainStrainInt(BaseFE * aptelem, MaterialData & matData) 
-    : SmoothInt(aptelem, matData)
-  {
-    ENTER_FCN( "smoothPlainStrainInt::smoothPlainStrainInt" );
-
-    ptelem=aptelem;
-  }
-
-
-  smoothPlainStrainInt::smoothPlainStrainInt(MaterialData & matData) 
-    : SmoothInt(matData)
-  {
-    ENTER_FCN( "smoothPlainStrainInt::smoothPlainStrainInt" );
-  }
- 
-
-  smoothPlainStrainInt::~smoothPlainStrainInt()
-  {
-    ENTER_FCN( "smoothPlainStrainInt::~smoothPlainStrainInt" );
-  }
-
-
-  SmoothAxiInt::SmoothAxiInt(BaseFE * aptelem, MaterialData & matData) 
-    : SmoothInt(aptelem, matData)
-  {
-    ENTER_FCN( "SmoothAxiInt::SmoothAxiInt" );
-    isaxi_ = TRUE;
-    ptelem=aptelem;
-  }
-
-
-  SmoothAxiInt::SmoothAxiInt(MaterialData & matData) 
-    : SmoothInt(matData)
-  {
-    ENTER_FCN( "SmoothAxiInt::SmoothAxiInt" );
-    isaxi_ = TRUE;
-  }
- 
-
-  SmoothAxiInt::~SmoothAxiInt()
-  {
-    ENTER_FCN( "SmoothAxiInt::~SmoothAxiInt" );
-  }
-
-
-
-
-
-  smooth3DInt::smooth3DInt(BaseFE * aptelem, MaterialData & matData) 
-    : SmoothInt(aptelem, matData)
-  {
-    ENTER_FCN( "smooth3DInt::smooth3DInt" );
-  }
-
-
-  smooth3DInt::smooth3DInt(MaterialData & matData) 
-    : SmoothInt(matData)
-  {
-    ENTER_FCN( "smooth3DInt::smooth3DInt" );
-  }
- 
-
-  smooth3DInt::~smooth3DInt()
-  {
-    ENTER_FCN( "smooth3DInt::~smooth3DInt" );
-  }
 
 } // end namespace CoupledField

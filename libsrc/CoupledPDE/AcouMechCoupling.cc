@@ -2,8 +2,7 @@
 
 
 #include "Driver/assemble.hh"
-#include "DataInOut/MaterialData.hh"
-#include "DataInOut/LoadMaterialData.hh"
+#include "Materials/baseMaterial.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "PDE/SinglePDE.hh"
 
@@ -24,7 +23,7 @@ namespace CoupledField {
     ENTER_FCN( "AcouMechCoupling::AcouMechCoupling" );
 
     couplingName_ = "acouMechDirect";
-    materialClass_ = "fluid";
+    materialClass_ = FLUID;
   }
 
 

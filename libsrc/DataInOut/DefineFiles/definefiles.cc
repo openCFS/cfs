@@ -19,7 +19,8 @@
 #include "DataInOut/GiD/outGiD.hh"
 #endif
 
-
+#include "DataInOut/PlainMaterialHandler.hh"
+#include "DataInOut/XMLMaterialHandler.hh"
 
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
@@ -76,6 +77,7 @@ namespace CoupledField
     // Initialise internal pointers
     ptWriteResults_ = NULL;
     infileType_ = NULL;
+    ptMaterialHandler_ = NULL;
 
   }
  
@@ -107,6 +109,9 @@ namespace CoupledField
 
     delete infileType_;
     infileType_ = NULL;
+
+    delete ptMaterialHandler_;
+    ptMaterialHandler_ = NULL;
 
   }
 
@@ -174,6 +179,33 @@ namespace CoupledField
       Error("Can't open file for output results",__FILE__,__LINE__);
   
     return ptWriteResults_;
+  }
+
+
+  // ================================
+  //   Generate output file pointer
+  // ================================
+  MaterialHandler *
+  DefineInOutFiles::CreateMaterialHandler() {
+    ENTER_FCN( "DefineInOutFiles::CreateMaterialHandler" );
+
+    std::string fileName, format;    
+
+    // Determine filename and format
+    params->Get( "file", fileName, "materialData" );
+    params->Get( "format", format, "materialData" );
+
+    if ( format == "dat" ) {
+      ptMaterialHandler_ = new PlainMaterialHandler( fileName );
+    } else if ( format == "xml" ) {
+      ptMaterialHandler_ = new XMLMaterialHandler( fileName );
+    } else {
+      (*error) << "CreateMaterialHandler: Format '" << format
+               << "' is not recognized!";
+      Error( __FILE__, __LINE__ );
+    }
+    return ptMaterialHandler_;
+
   }
 
 

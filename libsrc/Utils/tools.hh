@@ -129,8 +129,8 @@ namespace CoupledField {
   //!                           separated by a 'delimiter'
   //! \param strVec    (output) vector of the single substrings
   //! \param delimiter (input)  character used as delimiter
-  void SplitStringList( std::string list, StdVector<std::string> &strVec,
-                        Char delimiter = ',' );
+  void SplitStringList( const std::string &list, StdVector<std::string> &strVec,
+                        const Char delimiter = ',' );
   
   //! Converts a string into a double value
   Double String2Double( const std::string & val); 

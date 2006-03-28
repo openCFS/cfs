@@ -6,8 +6,9 @@
 namespace CoupledField
 {
 
-  BaseForm::BaseForm(BaseFE * aptelem, MaterialData & matData)
-    : ptelem(aptelem), isaxi_(FALSE),
+  BaseForm::BaseForm(BaseFE * aptelem, BaseMaterial* matData,
+		     SubTensorType type) 
+    : ptelem(aptelem), isaxi_(FALSE), subTensorType_(type),
       isFracDamping_(FALSE), isRaylDamping_(FALSE), dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
@@ -15,7 +16,8 @@ namespace CoupledField
     piezoMatType_ = REALMATERIALPARAMETER;
 
     // We generate the object, so we will delete it
-    ptMaterial = new MaterialData(matData);
+    //    Error("Copy constructor not implemented",__FILE__,__LINE__);
+    ptMaterial = matData;
     delMatDataAtEnd_ = true;
 
     baseType_ = NOTYPE;
@@ -23,13 +25,13 @@ namespace CoupledField
     softeningModel_ = "no";
   }
 
-  BaseForm::BaseForm(MaterialData & matData)
-    :isaxi_(FALSE), isFracDamping_(FALSE), isRaylDamping_(FALSE), 
-     dofzero_(0)
+  BaseForm::BaseForm(BaseMaterial* matData, SubTensorType type)
+    :isaxi_(FALSE), subTensorType_(type), isFracDamping_(FALSE), 
+     isRaylDamping_(FALSE), dofzero_(0)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
-    ptMaterial = new MaterialData(matData);
+    ptMaterial = matData;
 
     // We generate the object, so we will delete it
     piezoMatType_ = REALMATERIALPARAMETER;
@@ -82,16 +84,16 @@ namespace CoupledField
   BaseForm::~BaseForm() {
     ENTER_FCN( "BaseForm::~BaseForm" );
 
-    if ( delMatDataAtEnd_ == true ) {
-      delete ptMaterial;
-    }
+//     if ( delMatDataAtEnd_ == true ) {
+//       delete ptMaterial;
+//     }
   }
 
 
   // ***************
   //   SetMaterial
   // ***************
-  void BaseForm::SetMaterial( MaterialData *matPtr ) {
+  void BaseForm::SetMaterial( BaseMaterial *matPtr ) {
 
     ENTER_FCN( "BaseForm::SetMaterial" );
 
@@ -151,20 +153,26 @@ namespace CoupledField
 
   void SurfForm::SetFirstVoluInfo( const std::string & name,
                                    const StdVector<RegionIdType> & regionIds,
-                                   const MaterialData* materials ) {
+                                   const StdVector<BaseMaterial*>& materials ) {
     
     firstPDEName_ = name;
     firstRegionIds_ = regionIds;
-    firstMaterials_ = materials;
+    firstMaterials_.Resize(materials.GetSize());
+    for ( UInt k=0; k<materials.GetSize(); k++ ) {
+      firstMaterials_[k] = materials[k];
+    }
   }
 
   void SurfForm::SetSecondVoluInfo( const std::string & name,
                                     const StdVector<RegionIdType> & regionIds,
-                                    const MaterialData* materials ) {
+                                    const StdVector<BaseMaterial*>& materials ) {
     
     secondPDEName_ = name;
     secondRegionIds_ = regionIds;
-    secondMaterials_ = materials;
+    secondMaterials_.Resize(materials.GetSize());
+    for ( UInt k=0; k<materials.GetSize(); k++ ) {
+      secondMaterials_[k] = materials[k];
+    }    
   }
 
   void SurfForm::SetFactor( Double factor ) {

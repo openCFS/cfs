@@ -10,7 +10,7 @@
 #include "Domain/domain.hh"
 #include "PDE/StdPDE.hh"
 #include "PDE/piezoPDE.hh"
-#include "DataInOut/MaterialData.hh"
+#include "Materials/baseMaterial.hh"
 #include "Utils/elemstoresol.hh"
 
 
@@ -137,13 +137,13 @@ namespace CoupledField
     ptMyPDE_->WriteGeneralPDEdefines();
     //    pdeId_ = ptMyPDE_->GetPDEId();
 
-    MaterialData * ptMaterial;
+    StdVector<BaseMaterial*> ptMaterial;
 
-    ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    ptMaterial = ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     Assemble * ptAssemble_;
 
-    ptAssemble_=ptMyPDE_->getPDE_assemble();
+    ptAssemble_ = ptMyPDE_->getPDE_assemble();
 
     ptAssemble_->SetMaterialPointer(ptMaterial);
 
@@ -296,7 +296,7 @@ namespace CoupledField
         //      std::cout<<elSolVec<<std::endl;
         //        getchar();
         
-        MaterialData actSDMat(*ptMaterial);
+        StdVector<BaseMaterial*> actSDMat = ptMaterial;
         //        Boolean isdamping=TRUE;
       }
       

@@ -8,14 +8,22 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 
+// header for materials
+#include "Materials/electroMagneticMaterial.hh"
+#include "Materials/electrostaticMaterial.hh"
+#include "Materials/heatMaterial.hh"
+#include "Materials/acousticMaterial.hh"
+#include "Materials/mechanicMaterial.hh"
+#include "Materials/piezoMaterial.hh"
+#include "Materials/flowMaterial.hh"
+
 // header for scripting
 #ifdef TCL_INTERFACE
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
 // header for Materialhandling
-#include "DataInOut/LoadMaterialData.hh"
-#include "DataInOut/LoadMaterialDataFile.hh"
+#include "DataInOut/MaterialHandler.hh"
 #ifdef USE_DATABASE
 #include "DataInOut/LoadMaterialDataDatabase.hh"
 #endif
@@ -128,7 +136,10 @@ namespace CoupledField {
     delete solVec_;
     delete eqnData_;
 
-    delete[] materialData_;
+    for ( UInt i = 0; i < materialData_.GetSize(); i++ ) {
+      delete (materialData_[i]);
+    }
+    materialData_.Clear();
   }
 
 
@@ -1102,8 +1113,45 @@ namespace CoupledField {
     std::string outformat="unverg";
     std::string matFileName;
 
+
+    materialData_.Resize(subdoms_.GetSize());
+
     // Allocate space to hold material data for each subdomain of this PDE
-    materialData_ = new MaterialData[subdoms_.GetSize()];
+    if ( pdematerialclass_ == ELECTROMAGNETIC ) {
+      for (UInt k=0; k<subdoms_.GetSize();k++) {
+	materialData_[k] = new ElectroMagneticMaterial();
+      }
+    }
+    else if ( pdematerialclass_ == FLUID ) {
+      for (UInt k=0; k<subdoms_.GetSize();k++) {
+	materialData_[k] = new AcousticMaterial();
+      }
+    }
+    else if ( pdematerialclass_ == THERMIC ) {
+      for (UInt k=0; k<subdoms_.GetSize();k++) {
+	materialData_[k] = new HeatMaterial();
+      }
+    }
+    else if ( pdematerialclass_ == ELECTROSTATIC ) {
+      for (UInt k=0; k<subdoms_.GetSize();k++) {
+	materialData_[k] = new ElectroStaticMaterial();
+      }
+    }
+    else if ( pdematerialclass_ == MECHANIC ) {
+      for (UInt k=0; k<subdoms_.GetSize();k++) {
+	materialData_[k] = new MechanicMaterial();
+      }
+    }
+    else if ( pdematerialclass_ == FLOW ) {
+      for (UInt k=0; k<subdoms_.GetSize();k++) {
+	materialData_[k] = new FlowMaterial();
+      }
+    }
+    else {
+      std::string msg = "Material Class for PDE " + pdename_ + " not available";
+      Error(msg.c_str(),__FILE__,__LINE__);
+    }
+  
 
     // Get list of subdomains and materials
     StdVector< std::string > subdomName;
@@ -1119,11 +1167,9 @@ namespace CoupledField {
 
     if ( outformat != "database" ) {
 
-      // Query name of file with material data
-      params->Get( "file", matFileName, "materialData" );
-    
-      // Generate new material reader
-      LoadMaterialDataFile loadMaterialFile( matFileName.c_str() );
+      // Obtain pointer to materialHandler
+      MaterialHandler * matLoader = NULL;
+      matLoader = domain->GetMaterialHandler();
       
       // Load material data for subdomains on which this PDE lives
       // from data file
@@ -1131,7 +1177,6 @@ namespace CoupledField {
       for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
         for( UInt k = 0; k <= subdomId.GetSize(); k++ ) {
           if( subdoms_[i] == subdomId[k] ){
-
             // Be verbose
             actRegionName = ptgrid_->RegionIdToName( subdomId[k] );
             Info->PrintF( pdename_, "Material '%s' for region '%s' (ID = %d) "
@@ -1139,8 +1184,8 @@ namespace CoupledField {
                           actRegionName.c_str(), subdomId[k] );
 
             // Read data
-            loadMaterialFile.GetMaterial( materialData_[i], subdomMaterial[k],
-                                          pdematerialclass_ );
+            matLoader->GetMaterial( materialData_[i], subdomMaterial[k],
+                                   pdematerialclass_ );
             break;
           }
         }

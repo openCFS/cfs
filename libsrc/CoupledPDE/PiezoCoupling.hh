@@ -13,7 +13,7 @@ namespace CoupledField
 
   // Forward declarations
   class BaseForm;
-  class MaterialData;
+  class BaseMaterial;
   class SinglePDE;
 
   //! Implements the definition of pairwise piezo-coupling
@@ -31,12 +31,12 @@ namespace CoupledField
     //! Trigger calculation of postprocessing results
     void PostProcess();
 
-    template <class TYPE>
-    void calcMaterialMatrices(Matrix<TYPE> &sMat, 
-                              Matrix<TYPE>&cMat,
-                              Matrix<TYPE> &pMat,
-                              Matrix<Double> *matDat,
-                              Matrix<Complex> *complexMatDat);
+//     template <class TYPE>
+//     void calcMaterialMatrices(Matrix<TYPE> &sMat, 
+//                               Matrix<TYPE>&cMat,
+//                               Matrix<TYPE> &pMat,
+//                               Matrix<Double> *matDat,
+//                               Matrix<Complex> *complexMatDat);
 
     //! write results in file
     //! \param stepOffset offset for starting (time)step
@@ -58,7 +58,7 @@ namespace CoupledField
     void DefineIntegrators();
     
     //! Get correct stiffness integrator
-    BaseForm * GetStiffIntegrator( MaterialData * actSDMat,
+    BaseForm * GetStiffIntegrator( BaseMaterial* actSDMat,
                                    Boolean reducedInt = FALSE ,
                                    Boolean isdamping = FALSE );
 

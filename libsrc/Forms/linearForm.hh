@@ -132,7 +132,7 @@ class nLinMagNode2D_linFormInt : public LinearForm
 {
 public:
   /// constructor
-  nLinMagNode2D_linFormInt(BaseFE * aptelem, MaterialData & matData, Boolean axi=FALSE);
+  nLinMagNode2D_linFormInt(BaseFE * aptelem, BaseMaterial* matData, Boolean axi=FALSE);
 
   /// constructor
   nLinMagNode2D_linFormInt(ApproxData *nlinFnc, Double startVal, Boolean axi=FALSE);
@@ -152,7 +152,7 @@ public:
   
 protected:
   /// material data
-  MaterialData matData_;
+  BaseMaterial* matData_;
 
   Double startmatVal_;
   ApproxData *nlinFnc_;
@@ -171,10 +171,10 @@ class nLinMech_linFormInt : public LinearForm
 {
 public:
   /// constructor
-  nLinMech_linFormInt(BaseFE * aptelem, MaterialData & matData, Boolean axi=FALSE);
+  nLinMech_linFormInt(BaseFE * aptelem, BaseMaterial* matData, Boolean axi=FALSE);
 
   /// constructor
-  nLinMech_linFormInt(MaterialData & matData, Boolean axi=FALSE);
+  nLinMech_linFormInt(BaseMaterial* matData, Boolean axi=FALSE);
 
   /// destructor
   virtual ~nLinMech_linFormInt();
@@ -209,7 +209,7 @@ protected:
   virtual UInt getNrDofs(){return 3;};
 
   /// material data
-  MaterialData matData_;
+  BaseMaterial* matData_;
 
   /// displacement of all nodes of actual element
   Matrix<Double> elemDisp_;
@@ -221,7 +221,7 @@ class PreStressLinFormInt : public nLinMech_linFormInt
 public:
   /// constructor
   PreStressLinFormInt(BaseFE * aptelem, 
-                      MaterialData & matData, 
+                      BaseMaterial* matData, 
                       Double aPreStressVal, 
                       Directions stressDir);
   

@@ -16,7 +16,7 @@ namespace CoupledField
   class MHassemble;
   class BaseSystem;
   class Grid;
-  class MaterialData;
+  class BaseMaterial;
   class BaseNodeStoreSol;
 
   //! Base class for pairwise direct coupling of two pdes
@@ -185,10 +185,10 @@ namespace CoupledField
     //! \name Attributes handling info on material data
 
     //! material data structure
-    MaterialData *materialData_;     
+    StdVector<BaseMaterial*> materialData_;     
     
     //! material class
-    std::string materialClass_;
+    MaterialClass materialClass_;
   
     //@}
     

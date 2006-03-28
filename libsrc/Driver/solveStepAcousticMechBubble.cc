@@ -42,7 +42,6 @@ namespace CoupledField {
 
   SolveStepAcousticMechBubble::~SolveStepAcousticMechBubble() {
     ENTER_FCN( "SolveStepAcousticMechBubble::~SolveStepAcousticMechBubble" );
-    delete[] materialData_;
   }
  
   // ======================================================

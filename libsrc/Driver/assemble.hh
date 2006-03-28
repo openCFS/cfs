@@ -319,7 +319,7 @@ namespace CoupledField
     //! set information for algebraic system about PDE. set matrix factors
     virtual void SetMatrixFactors()=0;
 
-    void SetMaterialPointer(MaterialData * ptMat){ptMaterial_ = ptMat;};    
+    void SetMaterialPointer(StdVector<BaseMaterial*> ptMat){ptMaterial_ = ptMat;};    
 
     void SetAlternatingMaterial(Boolean boolVar){alternateMaterialData_=boolVar;};
 
@@ -406,7 +406,7 @@ namespace CoupledField
          
     TimeFunc * ptTimeFunc_;             //!< ptr to time function
     
-    MaterialData * ptMaterial_;              //!< pointer to material
+    StdVector<BaseMaterial*> ptMaterial_;              //!< pointer to material
     
     
     /// vector of all needed integrators (every subdomain needs one "list of integrators")

@@ -537,7 +537,7 @@ namespace CoupledField {
         dE = Ecomp - Eprevious_[pdeElem-1];
         dD = Dval - Dprevious_[pdeElem-1];
         if ( (abs(dD) < 1e-12) || (abs(dE) < 1e-10) ) {
-          eps = materialData_[actSD].GetPermittivity(2,2);
+          materialData_[actSD]->GetScalar(eps,ELEC_PERMITTIVITY,REAL);
           if (eps < 8.854e-12) {
             eps = 8.854e-12;
           }

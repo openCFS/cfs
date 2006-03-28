@@ -8,7 +8,7 @@
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "basePDE.hh"
-#include "DataInOut/MaterialData.hh"
+#include "Materials/baseMaterial.hh"
 #include "Utils/mathfunctions.hh"
 
 namespace CoupledField {
@@ -148,7 +148,7 @@ beta and gamma!\n" );
     StdVector<UInt> connecth;
     Vector<Double>  rhsAssemble, rhsvec, elemsol;
     Double          density, compressibility, c0, alpha0, y, factor;
-    MaterialData    *mymaterialData;
+    StdVector<BaseMaterial*> mymaterialData;
     mymaterialData = ptStdPDE_->getPDEMaterialData();
 
     for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
@@ -164,17 +164,16 @@ beta and gamma!\n" );
         algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
       }
       else {
+	mymaterialData[actSD]->GetScalar(density,DENSITY,REAL);
+	mymaterialData[actSD]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
+	mymaterialData[actSD]->GetScalar(alpha0,ACOU_ALPHA,REAL);
+	mymaterialData[actSD]->GetScalar(y,FRACTIONAL_EXPONENT,REAL);
 
-        density         = mymaterialData[actSD].GetDensity();
-        compressibility = mymaterialData[actSD].GetCompressibility();
-        c0 = sqrt(compressibility/density);
-        alpha0 = mymaterialData[actSD].GetDampingAlfa();
-        y      = mymaterialData[actSD].GetDampingBeta();
+	c0 = sqrt(compressibility/density);
 
         // factor: pre factor in Newmark timestepping scheme
         //         times pre factor of damping term
         factor = a2_ * density * 2.0 * alpha0 / c0 / sin((y-1.0)*PI/2.0);
-
 
         // coeff_: weight factors in BDF
         if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ) {

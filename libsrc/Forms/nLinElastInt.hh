@@ -2,7 +2,7 @@
 #define FILE_NLINELASTINT_03
 
 #include <Elements/basefe.hh>
-#include <DataInOut/MaterialData.hh>
+#include <Materials/baseMaterial.hh>
 
 #include <Forms/linElastInt.hh>
 #include <General/environment.hh>
@@ -21,10 +21,10 @@ class nLinElastInt : public linElastInt
 {
 public:
   /// Constructor
-  nLinElastInt(BaseFE * aptelem, MaterialData & matData);
+  nLinElastInt(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
-  nLinElastInt(MaterialData & matData);
+  nLinElastInt(BaseMaterial* matData);
   
   /// Destructor
   virtual ~nLinElastInt();  
@@ -55,10 +55,6 @@ protected:
   /// returns B - matrix for BDB
   virtual void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
 
-  /// calcs the material matrix for the 2d case
-  virtual void Calc2DMaterialMatrix(Matrix<Double> & dMat, enum orientation2D actOrientation);
-
-
   /// displacement of all nodes of actual element
   Matrix<Double> elemDisp_;
 
@@ -81,10 +77,10 @@ class nLinMech3dInt_BNonLin : public nLinElastInt
 public:
 
   /// Constructor
-  nLinMech3dInt_BNonLin(BaseFE * aptelem, MaterialData & matData);
+  nLinMech3dInt_BNonLin(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
-  nLinMech3dInt_BNonLin(MaterialData & matData);
+  nLinMech3dInt_BNonLin(BaseMaterial* matData);
 
   
   /// Destructor
@@ -113,10 +109,10 @@ public:
   
 
   /// Constructor
-  nLinMechInt_PiolaStress(BaseFE * aptelem, MaterialData & matData);
+  nLinMechInt_PiolaStress(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
-  nLinMechInt_PiolaStress(MaterialData & matData);
+  nLinMechInt_PiolaStress(BaseMaterial* matData);
   
   /// Destructor
   virtual ~nLinMechInt_PiolaStress();  
@@ -175,10 +171,10 @@ class nLinMech3dInt_PiolaStress : public nLinMechInt_PiolaStress
 public:
 
   /// Constructor
-  nLinMech3dInt_PiolaStress(BaseFE * aptelem, MaterialData & matData);
+  nLinMech3dInt_PiolaStress(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
-  nLinMech3dInt_PiolaStress(MaterialData & matData);
+  nLinMech3dInt_PiolaStress(BaseMaterial* matData);
   
   /// Destructor
   virtual ~nLinMech3dInt_PiolaStress();  
@@ -212,10 +208,10 @@ class nLinMechPlaneStrainInt_BNonLin : public nLinElastInt
 public:
 
   /// Constructor
-  nLinMechPlaneStrainInt_BNonLin(BaseFE * aptelem, MaterialData & matData);
+  nLinMechPlaneStrainInt_BNonLin(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
-  nLinMechPlaneStrainInt_BNonLin(MaterialData & matData);
+  nLinMechPlaneStrainInt_BNonLin(BaseMaterial* matData);
 
   
   /// Destructor
@@ -241,10 +237,10 @@ class nLinMechPlaneStrainInt_PiolaStress : public nLinMechInt_PiolaStress
 {
 public:
   /// Constructor
-  nLinMechPlaneStrainInt_PiolaStress(BaseFE * aptelem, MaterialData & matData);
+  nLinMechPlaneStrainInt_PiolaStress(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
-  nLinMechPlaneStrainInt_PiolaStress(MaterialData & matData);
+  nLinMechPlaneStrainInt_PiolaStress(BaseMaterial* matData);
   
   /// Destructor
   virtual ~nLinMechPlaneStrainInt_PiolaStress();  
@@ -284,10 +280,10 @@ class nLinMechAxiInt_BNonLin : public nLinElastInt
 public:
 
   /// Constructor
-  nLinMechAxiInt_BNonLin(BaseFE * aptelem, MaterialData & matData);
+  nLinMechAxiInt_BNonLin(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
-  nLinMechAxiInt_BNonLin(MaterialData & matData);
+  nLinMechAxiInt_BNonLin(BaseMaterial* matData);
 
   
   /// Destructor
@@ -313,10 +309,10 @@ class nLinMechAxiInt_PiolaStress : public nLinMechInt_PiolaStress
 {
 public:
   /// Constructor
-  nLinMechAxiInt_PiolaStress(BaseFE * aptelem, MaterialData & matData);
+  nLinMechAxiInt_PiolaStress(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
-  nLinMechAxiInt_PiolaStress(MaterialData & matData);
+  nLinMechAxiInt_PiolaStress(BaseMaterial* matData);
   
   /// Destructor
   virtual ~nLinMechAxiInt_PiolaStress();  
@@ -359,10 +355,10 @@ public:
   friend class PreStressLinFormInt;
   
   /// Constructor
-  PreStressInt(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal);
+  PreStressInt(BaseFE * aptelem, BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   //! Constructor
-  PreStressInt(MaterialData & matData, Vector<Double> aPreStressVal);
+  PreStressInt(BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   /// Destructor
   virtual ~PreStressInt();  
@@ -420,10 +416,10 @@ class PreStressInt3D : public PreStressInt
 {
 public:
   /// Constructor
-  PreStressInt3D(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal);
+  PreStressInt3D(BaseFE * aptelem, BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   //! Constructor
-  PreStressInt3D(MaterialData & matData, Vector<Double> aPreStressVal);
+  PreStressInt3D(BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   /// Destructor
   virtual ~PreStressInt3D();  
@@ -452,10 +448,10 @@ class PreStressIntPlaneStrain : public PreStressInt
 {
 public:
   /// Constructor
-  PreStressIntPlaneStrain(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal);
+  PreStressIntPlaneStrain(BaseFE * aptelem, BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   //! Constructor
-  PreStressIntPlaneStrain(MaterialData & matData, Vector<Double> aPreStressVal);
+  PreStressIntPlaneStrain(BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   /// Destructor
   virtual ~PreStressIntPlaneStrain();  
@@ -484,10 +480,10 @@ class PreStressIntAxi : public PreStressInt
 {
 public:
   /// Constructor
-  PreStressIntAxi(BaseFE * aptelem, MaterialData & matData, Vector<Double> aPreStressVal);
+  PreStressIntAxi(BaseFE * aptelem, BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   //! Constructor
-  PreStressIntAxi(MaterialData & matData, Vector<Double> aPreStressVal);
+  PreStressIntAxi(BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   /// Destructor
   virtual ~PreStressIntAxi();  

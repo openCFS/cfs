@@ -25,7 +25,7 @@ namespace CoupledField
     
     //! Set information of related volume region
     void SetVoluInfo( const StdVector<RegionIdType> & regionIds,
-                      const MaterialData* materials );
+                      const StdVector<BaseMaterial*>& materials );
     
     //! set additional multiplicative factor for matrix
     void SetFactor(Double factor); 
@@ -42,7 +42,7 @@ namespace CoupledField
     StdVector<RegionIdType> regionIds_;
 
     //! Materials of volume regions
-    const MaterialData * materials_;
+    StdVector<BaseMaterial*> materials_;
 
     //! Multiplicative factor for vector
     Double factor_;

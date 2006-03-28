@@ -20,7 +20,7 @@ namespace CoupledField {
 
 
   // Forward declarations
-  class MaterialData;
+  class BaseMaterial;
   template <class TYPE> class Vector;
   template <class TYPE> class StdVector;
 
@@ -80,17 +80,25 @@ namespace CoupledField {
 
     
     /// prints full data of a piezo material
-    void PrintPiezoMat(MaterialData& material);
+    void PrintPiezoMat(BaseMaterial* material, Boolean imag);
 
+    /// prints full data of a piezo material
+    void PrintMechanicMat(BaseMaterial* material, Boolean imag);
     
-    /// prints all fluid data
-    void PrintFluidMat(MaterialData& material);
+    /// prints all acoustic data
+    void PrintAcousticMat(BaseMaterial* material);
+
+    /// prints all flow data
+    void PrintFlowMat(BaseMaterial* material);
 
     /// prints all thermic data
-    void PrintThermicMat(MaterialData& material);
+    void PrintThermicMat(BaseMaterial* material);
 
     /// prints all magnetic data
-    void PrintMagMat(MaterialData& material);
+    void PrintMagMat(BaseMaterial* material);
+
+    /// prints full data of a piezo material
+    void PrintElectrostaticMat(BaseMaterial* material, Boolean imag);
 
     /// prints all data of a coil (e.g. current, area, magnetization, ...)
     void PrintCoil( Coil &coil, AnalysisType &analysistype );

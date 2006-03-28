@@ -5,7 +5,7 @@
 #include "Utils/vector.hh"
 #include "Elements/basefe.hh"
 #include "Domain/surfElem.hh"
-#include "DataInOut/MaterialData.hh"
+#include "Materials/baseMaterial.hh"
 
 namespace CoupledField
 {
@@ -16,10 +16,11 @@ namespace CoupledField
   public:
 
     //! Constructor
-    BaseForm(BaseFE * aptelem, MaterialData & matData);
+    BaseForm(BaseFE * aptelem, BaseMaterial* matData, 
+	     SubTensorType subTensor = FULL );
 
     //! Constructor
-    BaseForm(MaterialData & matData);
+    BaseForm(BaseMaterial* matData, SubTensorType subTensor = FULL);
 
     //! Constructor
     BaseForm(BaseFE * aptelem);
@@ -97,10 +98,10 @@ namespace CoupledField
     void SetElemPtr(BaseFE * elemPtr){ptelem = elemPtr;};
 
     //! sets pointer to actual material
-    void SetMaterial( MaterialData *matPtr );
+    void SetMaterial( BaseMaterial* matPtr );
 
     //! query pointer to actual material
-    MaterialData *GetMaterial() {
+    BaseMaterial* GetMaterial() {
       ENTER_FCN( "BaseForm::GetMaterial" );
       return ptMaterial;
     }
@@ -180,10 +181,13 @@ namespace CoupledField
     BaseFE  * ptelem;   
     
     //! pointer to material data
-    MaterialData * ptMaterial ;
+    BaseMaterial* ptMaterial ;
 
     //! true for axisymmetric setup
     Boolean isaxi_;
+
+    //! type of tensor (plabeStrain, ..)
+    SubTensorType subTensorType_;
 
     //
     Vector<Double> intPoint_;
@@ -252,12 +256,12 @@ namespace CoupledField
     //! Set information of first interface side
     void SetFirstVoluInfo( const std::string & name,
                            const StdVector<RegionIdType> & regionIds,
-                           const MaterialData* materials );
+                           const StdVector<BaseMaterial*>& materials );
 
     //! Set information for second interface side
     void SetSecondVoluInfo( const std::string & name,
                             const StdVector<RegionIdType> & regionIds,
-                            const MaterialData* materials );
+                            const StdVector<BaseMaterial*>& materials );
 
     //! set additional multiplicative factor for matrix
     void SetFactor(Double factor); 
@@ -287,10 +291,10 @@ namespace CoupledField
     StdVector<RegionIdType> secondRegionIds_;
 
     //! Materials on first interface side
-    const MaterialData * firstMaterials_;
+    StdVector<BaseMaterial*> firstMaterials_;
 
     //! Materials on second interface side
-    const MaterialData * secondMaterials_;
+    StdVector<BaseMaterial*> secondMaterials_;
 
     //! Multiplicative factor for matrix
     Double factor_;

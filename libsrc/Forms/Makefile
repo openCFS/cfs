@@ -5,10 +5,10 @@ src = baseForm.cc laplaceInt.cc bdbInt.cc bdInt.cc massInt.cc baseoperator.cc\
       linViscoElastInt.cc linElastInt.cc nLinElastInt.cc\
       gradfieldop.cc elecforceop.cc curlCurlEdgeInt.cc massEdgeInt.cc\
       linearForm.cc curlfieldop.cc\
-      smoothInt.cc curlCurlNodeInt.cc linPiezoInt.cc nLincurlCurlNodeInt.cc\
+      smoothInt.cc curlCurlNodeInt.cc nLincurlCurlNodeInt.cc\
       mechStressStrain.cc linStrainOp.cc\
       elecchargeop.cc magforceop.cc adbInt.cc\
-      linPiezoCoupling3D.cc linPiezoCoupling2DAxi.cc linPressureInt.cc\
+      linPiezoCoupling.cc linPressureInt.cc\
       baseForceOp.cc acouMechInt.cc abcInt.cc nrbcInt.cc linSurfForm.cc acouNeumannInt.cc \
       heatNeumannInt.cc PMLInt.cc laplaceXYZInt.cc PMLTransXYZInt.cc \
       acouPowerDensityOp.cc stokesFluidInt.cc stokesFluid3DInt.cc \

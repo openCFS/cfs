@@ -29,7 +29,7 @@ namespace CoupledField
                 NodeEQN * ptEQN,
                 NodeStoreSol<Double> & sol,
                 UInt dim,
-                MaterialData* &matData,
+                StdVector<BaseMaterial*> &matData,
                 StdVector<RegionIdType> & allSubdoms,
                 Boolean isaxi);
 
@@ -91,7 +91,7 @@ namespace CoupledField
     UInt dim_;
 
     //! material data
-    MaterialData* materialData_;
+    StdVector<BaseMaterial*> materialData_;
 
     //! all subdomains belonging to the PDE
     StdVector<RegionIdType> PDEsubdoms_;

@@ -9,7 +9,7 @@
 #include "WriteInfo.hh"
 #include "Utils/tools.hh"
 #include "Utils/Coil.hh"
-#include "MaterialData.hh"
+#include "Materials/baseMaterial.hh"
 #include "PDE/pdes_header.hh"
 #include "Utils/vector.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
@@ -113,89 +113,189 @@ namespace CoupledField {
   // *****************
   //   PrintPiezoMat
   // *****************
-  void WriteInfo::PrintPiezoMat( MaterialData &material ) {
+  void WriteInfo::PrintPiezoMat( BaseMaterial* material, Boolean imag ) {
 
     ENTER_FCN( "WriteInfo::PrintPiezoMat" );
 
-    Matrix<Double> *myMat = NULL;
-
-    // Check for real or imaginary part of material description
-    if ( material.IsComplex() == false ) {
-      myMat = material.GetMatrix();
-    }
-    else {
-      myMat = material.GetMatrixC();
-    }
+    Matrix<Double> myMat;
 
     if ( cfsInfo != NULL ) {
-      *cfsInfo  << "FULL PIEZO DATAMATRIX OF " << material.GetMaterialName()
-                << ":\n\n" << *myMat << std::endl
-                << "density = " << material.GetDensity() << std::endl
-                << "damping coefficient alfa = " << material.GetDampingAlfa()
-                << std::endl
-                << "damping coefficient beta = " << material.GetDampingBeta()
-                << std::endl <<  std::endl;
+      if ( imag ) {
+	material->GetTensor(myMat,PIEZO_TENSOR,IMAG);
+	*cfsInfo  << "PIEZO-TENSOR (imaginary part)" << material->GetName()
+		  << ":\n\n" << myMat << std::endl
+		  << std::endl <<  std::endl;
+      }
+      else {
+	material->GetTensor(myMat,PIEZO_TENSOR,REAL);
+	*cfsInfo  << "PIEZO-TENSOR (real part)" << material->GetName()
+		  << ":\n\n" << myMat << std::endl
+		  << std::endl <<  std::endl;
+      }
+    }
+  }
+
+  // *****************
+  //   PrintMechanicMat
+  // *****************
+  void WriteInfo::PrintMechanicMat( BaseMaterial* material, Boolean imag ) {
+
+    ENTER_FCN( "WriteInfo::PrintMechanicMat" );
+
+    Matrix<Double> myMat;
+
+    if ( cfsInfo != NULL ) {
+      if (imag ) {
+	material->GetTensor(myMat,MECH_STIFFNESS_TENSOR,IMAG);
+	*cfsInfo  << "MECHANIC STIFFNESS TENSOR (imaginary part) OF " << material->GetName()
+		  << ":\n\n" << myMat
+		  << std::endl <<  std::endl;
+      }
+      else {
+	Double density, alpha, beta;
+	material->GetTensor(myMat,MECH_STIFFNESS_TENSOR,REAL);
+	material->GetScalar(density,DENSITY,REAL);
+	material->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+	material->GetScalar(beta,RAYLEIGH_BETA,REAL);
+	
+	*cfsInfo  << "MECHANIC STIFFNESS TENSOR (real part) OF " << material->GetName()
+		  << ":\n\n" << myMat << std::endl
+		  << "density = " << density << std::endl
+		  << "damping coefficient alfa = " << alpha
+		  << std::endl
+		  << "damping coefficient beta = " << beta
+		  << std::endl <<  std::endl;
+      }
     }
   }
 
 
   // *****************
-  //   PrintFluidMat
+  //   PrintAcousticMat
   // *****************
-  void WriteInfo::PrintFluidMat( MaterialData &material ) {
-    ENTER_FCN( "WriteInfo::PrintFluidMat" );
+  void WriteInfo::PrintAcousticMat( BaseMaterial* material ) {
+    ENTER_FCN( "WriteInfo::PrintAcousticMat" );
 
-    if (cfsInfo)
-      *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":"
+    if (cfsInfo) {
+      Double compress, density, alpha, beta, BoverA, acousticAlpha, fracExp;
+      material->GetScalar(compress,ACOU_BULK_MODULUS,REAL);
+      material->GetScalar(density,DENSITY,REAL);
+      material->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+      material->GetScalar(beta,RAYLEIGH_BETA,REAL);
+      material->GetScalar(BoverA,BOVERA,REAL);
+      material->GetScalar(acousticAlpha, ACOU_ALPHA, REAL);    
+      material->GetScalar(fracExp, FRACTIONAL_EXPONENT, REAL);
+
+      *cfsInfo << "MATERIAL DATA OF " << material->GetName() << ":"
                << std::endl 
                << "compression modulus [N/m^2] = "
-               << material.GetCompressibility() << std::endl
+               << compress << std::endl
                << "density [kg/m^3]            = " 
-               << material.GetDensity() << std::endl
-               << "alpha / alpha_0 [Np/m]      = " 
-               << material.GetDampingAlfa() << std::endl
-               << "beta  / y                   = " 
-               << material.GetDampingBeta() << std::endl
+               << density << std::endl
+               << "alpha                       = " 
+               << alpha << std::endl
+               << "beta                        = " 
+               << beta << std::endl
                << "B/A                         = " 
-               << material.GetBoverA() << std::endl << std::endl;
+               << BoverA << std::endl
+               << "Acoustic alpha [Np/m]  = " 
+               << acousticAlpha << std::endl
+               << "fractional exponent         = " 
+               << fracExp << std::endl << std::endl;
+    }
   }
   
-  void WriteInfo::PrintThermicMat( MaterialData &material ) {
+
+  // *****************
+  //   PrintFlowMat
+  // *****************
+  void WriteInfo::PrintFlowMat( BaseMaterial* material ) {
+    ENTER_FCN( "WriteInfo::PrintFlowMat" );
+
+    if (cfsInfo) {
+      Double density, dynViscosity;
+      material->GetScalar(density,DENSITY,REAL);
+      material->GetScalar(dynViscosity,DYNAMIC_VISCOSITY,REAL);
+
+      *cfsInfo << "MATERIAL DATA OF " << material->GetName() << ":"
+               << std::endl 
+               << "density [kg/m^3]            = " 
+               << density << std::endl
+               << "dynamic Viscosity      = " 
+               << dynViscosity << std::endl << std::endl;
+    }
+  }
+  
+
+  void WriteInfo::PrintThermicMat( BaseMaterial* material ) {
     ENTER_FCN( "WriteInfo::PrintThermicMat" );
 
-    if (cfsInfo)
-      *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":"
+    if (cfsInfo) {
+      Double density, capacity, conductivity;
+      material->GetScalar(density,DENSITY,REAL);
+      material->GetScalar(capacity,HEAT_CAPACITY,REAL);
+      material->GetScalar(conductivity,HEAT_CONDUCTIVITY,REAL);
+
+      *cfsInfo << "MATERIAL DATA OF " << material->GetName() << ":"
                << std::endl
                << "density [kg/m^3]             = " 
-               << material.GetDensity() << std::endl
+               << density << std::endl
                << "heat capacity [J/kg K]       = " 
-               << material.GetHeatCapacity() << std::endl
+               << capacity << std::endl
                << "thermal conductivity [W/m K] = " 
-               << material.GetThermalConductivity() << std::endl << std::endl;
+               << conductivity << std::endl << std::endl;
+    }
   }
 
-  void WriteInfo::PrintMagMat(MaterialData& material)
+  void WriteInfo::PrintMagMat(BaseMaterial* material)
   {
     ENTER_FCN( "WriteInfo::PrintMagMat" );
 
-    Double mX, mY, mZ;
-    material.GetPermMag(mX, mY, mZ);
-    Double perm,cond;
-    material.GetPermeability(2,2,perm);
-    material.GetConductivity(2,2,cond);
+    if (cfsInfo) {
+      //      Double mX, mY, mZ;
+      //      material.GetPermMag(mX, mY, mZ);
+      Double perm,cond;
+      material->GetScalar(perm,MAG_PERMEABILITY,REAL);
+      material->GetScalar(cond,MAG_CONDUCTIVITY,REAL);
 
-
-    *cfsInfo << "MATERIAL DATA OF " << material.GetMaterialName() << ":" 
-             << std::endl
-             << "conductivity:            " << cond
-             << std::endl
-             << "permeability:            " << perm
-             << std::endl
-             << "vector of magnetiziation: (" << mX << ", " << mY << ", "
-             << mZ <<")" 
-             << std::endl << std::endl;
+      *cfsInfo << "MATERIAL DATA OF " << material->GetName() << ":" 
+	       << std::endl
+	       << "conductivity:            " << cond
+	       << std::endl
+	       << "permeability:            " << perm
+	       << std::endl
+	//	       << "vector of magnetiziation: (" << mX << ", " << mY << ", "
+	//	       << mZ <<")" 
+	       << std::endl << std::endl;
+    }
   }
   
+  // ************************
+  //   PrintElectrostaticMat
+  // ************************
+  void WriteInfo::PrintElectrostaticMat( BaseMaterial* material, Boolean imag ) {
+
+    ENTER_FCN( "WriteInfo::PrintElectrostaticMat" );
+
+    Matrix<Double> myMat;
+
+    material->GetTensor(myMat,ELEC_PERMITTIVITY,REAL);
+
+    if ( cfsInfo != NULL ) {
+      if ( imag ) {
+	material->GetTensor(myMat,ELEC_PERMITTIVITY,IMAG);
+	*cfsInfo  << "PERMITTIVITY TENSOR (imaginray part) OF " << material->GetName()
+		  << ":\n\n" << myMat << std::endl
+		  << std::endl;
+      }
+      else {
+	material->GetTensor(myMat,ELEC_PERMITTIVITY,REAL);
+	*cfsInfo  << "PERMITTIVITY TENSOR (real part) OF " << material->GetName()
+		  << ":\n\n" << myMat << std::endl
+		  << std::endl;
+      }
+    }
+  }
 
 
   void WriteInfo::WriteNonLinIter(const std::string& pdeName,

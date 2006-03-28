@@ -46,7 +46,7 @@ namespace CoupledField {
     dofspernode_ = 1;
     solDofs_ = 1;
     pdename_          = "acoustic";
-    pdematerialclass_ = "fluid";
+    pdematerialclass_ = FLUID;
     fracDamping_ = FALSE;
 
     isMechCoupled_ = FALSE;
@@ -349,7 +349,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
 
-    Double density, compressibility, c0, alpha, beta, BoverA;
+    Double density, compressibility, c0;
     Double coeffmass, coeffdamp;
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
@@ -359,12 +359,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       //   In AcousticPDE ALL integrators are multiplied with density!
       // ********************************************************************
 
-      density         = materialData_[actSD].GetDensity();
-      compressibility = materialData_[actSD].GetCompressibility();
+      materialData_[actSD]->GetScalar(density,DENSITY,REAL);
+      materialData_[actSD]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
       c0 = sqrt(compressibility/density);
-      alpha  = materialData_[actSD].GetDampingAlfa();
-      beta   = materialData_[actSD].GetDampingBeta();
-      BoverA = materialData_[actSD].GetBoverA();
 
       // if pde couples with mechanic, we have to multiply the density by -1
       if ( isMechCoupled_ == TRUE && formulation_ !=  ACOU_PRESSURE) {
@@ -518,7 +515,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           if (dampingList_[subdoms_[actSD]] == RAYLEIGH) {
             // This works even after assemble_->AddIntegrator() is executed
             //   because of the pointers...
-	    
+	    Double alpha, beta;
+	    materialData_[actSD]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+	    materialData_[actSD]->GetScalar(beta,RAYLEIGH_BETA,REAL);
+    
             // stiffness part
             stiffIntDescr->SetSecondaryMat(DAMPING, beta, analysistype_);
 	    
@@ -528,7 +528,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 	  
 	  
           else if ( dampingList_[subdoms_[actSD]] == THERMOVISCOUS ) {
-            coeffdamp  =  density * 2.0 * alpha * c0;
+	    Double viscousAlpha;
+	    materialData_[actSD]->GetScalar(viscousAlpha, ACOU_ALPHA,REAL);
+
+            coeffdamp  =  density * 2.0 * viscousAlpha * c0;
             BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
             IntegratorDescriptor * dampIntDescr = 
               new IntegratorDescriptor(bilinearStiff, DAMPING);
@@ -539,11 +542,17 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 	  
           else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
                     dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ) {
-            coeffdamp = - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
+
+	    Double fracAlpha, fracExp;
+	    materialData_[actSD]->GetScalar(fracAlpha,ACOU_ALPHA,REAL);
+	    materialData_[actSD]->GetScalar(fracExp,FRACTIONAL_EXPONENT,REAL);
+
+            coeffdamp = - density * 2.0 * fracAlpha / c0 / sin((fracExp-1.0)*PI/2.0);
 
             BaseForm * bilinearDamp  = 
               new MassInt(coeffdamp, dofspernode_, isaxi_);
             bilinearDamp->SetFracDamping();
+
             // formulation using DAMPING matrix
             // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
             // IntegratorDescriptor * dampIntDescr = 
@@ -561,11 +570,16 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 	  
           else if  ( dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
                      dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT ) {
-            coeffdamp =  - density * 2.0 * alpha / c0 / sin((beta-1.0)*PI/2.0);
+
+	    Double fracAlpha, fracExp;
+	    materialData_[actSD]->GetScalar(fracAlpha,ACOU_ALPHA,REAL);
+	    materialData_[actSD]->GetScalar(fracExp,FRACTIONAL_EXPONENT,REAL);
+
+            coeffdamp =  - density * 2.0 * fracAlpha / c0 / sin((fracExp-1.0)*PI/2.0);
             // prefactor of blank alg
-            coeffdamp *= exp(-gammaln(1.0- (beta- 1.0)) ); 
+            coeffdamp *= exp(-gammaln(1.0- (fracExp- 1.0)) ); 
             // weight factor of index 0
-            coeffdamp *= 1.0/(1.0- (beta- 1.0));           
+            coeffdamp *= 1.0/(1.0- (fracExp- 1.0));           
             BaseForm * bilinearDamp  = 
               new MassInt(coeffdamp, dofspernode_, isaxi_);
             bilinearDamp->SetFracDamping();
@@ -575,7 +589,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
             //   new IntegratorDescriptor(bilinearDamp, DAMPING);
 	    
             // two matrices formulation
-            // added to STIFFNESS matrix because, because 
+            // added to STIFFNEss matrix because, because 
             //   matrix_factors[STIFFNESS] = 1.0
             IntegratorDescriptor * dampIntDescr = 
               new IntegratorDescriptor(bilinearDamp, STIFFNESS);
@@ -922,7 +936,7 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       }
       
       // Assign correct density
-      density = materialData_[matIndex].GetDensity();
+      materialData_[matIndex]->GetScalar(density,DENSITY,REAL);
       
       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
       bilinear_mass->CalcElementMatrix(ptCoord, elemMat);
@@ -955,9 +969,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       }
     }
   }
-
-
-
+  
+  
   void AcousticPDE::
   CalcNRBCCouplingRHS( StdVector<Elem*> * couplingElems, 
                        StdVector<UInt> & couplingNodes,
@@ -1071,9 +1084,9 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       // Computation of alpha factor (like in nrbcPDE)
       Double c0, alphaNRBC, Cj, density, compressibility;
       //actSD is 0 since there is only one acoustic domain
-      density         = materialData_[0].GetDensity();
+      materialData_[0]->GetScalar( density, DENSITY, REAL );
       density=1;
-      compressibility = materialData_[0].GetCompressibility();
+      materialData_[0]->GetScalar( compressibility, ACOU_BULK_MODULUS, REAL );
       c0 = sqrt(compressibility/density);
       Cj = 1.0;
       alphaNRBC = (1/(Cj*Cj) - 1/(c0*c0));
@@ -1104,7 +1117,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       //          <<std::endl;                  
       
     }
-  }
+    }
+
   
   template <class TYPE>
   void AcousticPDE::
@@ -1136,7 +1150,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       
       // find subdomain index
       Integer SDidx = subdoms_.Find( regionIds[reg] );
-      Double density =  materialData_[SDidx].GetDensity();
+      Double density;
+      materialData_[SDidx]->GetScalar(density,DENSITY,REAL);
       
       // get elements belonging to subdomain
       StdVector<Elem*> elemssd;
@@ -1272,7 +1287,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         }
       
         // Assign correct density
-        Double density = materialData_[matIndex].GetDensity();
+        Double density;
+	materialData_[matIndex]->GetScalar(density,DENSITY,REAL);
 		
         // retrieve 1st derivative, since F = rho * dpsi/dt * A
         GetDerivSolVecOfElement(valueElem, connect);
@@ -1336,7 +1352,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
       ptgrid_->GetVolElems( elemsSD, calcElemPressure_[actSD] );
 
       // density of elements in subdomain
-      Double density = materialData_[calcElemPressure_[actSD]].GetDensity();
+      Double density;
+      materialData_[actSD]->GetScalar(density,DENSITY,REAL);
 
       // loop over all elements of subdomain
       for (UInt actEl=0; actEl< elemsSD.GetSize(); actEl++) {

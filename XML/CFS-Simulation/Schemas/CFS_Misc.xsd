@@ -1,0 +1,284 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description for all things that did not fit elsewhere
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic data output type -->
+  <!-- ******************************************************************** -->
+
+  <!-- This is an abstract basic type so that it cannot appear in an -->
+  <!-- instance document -->
+  <xsd:complexType name="DT_OutputBasic" abstract="true"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic data output element -->
+  <!-- ******************************************************************** -->
+
+  <!-- This element is abstract in order to force substitution -->
+  <!-- by the derived specialised PDE elements -->
+  <xsd:element name="OutputBasic" type="DT_OutputBasic" abstract="true"/>
+
+
+  <!-- Data type for general geometry specification -->
+  <xsd:complexType name="DT_Geometry">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="optional" default="3d">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="plane"/>
+              <xsd:enumeration value="axi"/>
+              <xsd:enumeration value="3d"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_Input">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="format" use="optional" default="mesh">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="mesh"/>
+              <xsd:enumeration value="dat"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="meshLibrary" use="optional" default="cfsGrid">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="cfsGrid"/>
+              <xsd:enumeration value="adaptGrid"/>
+              <xsd:enumeration value="structGrid"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- Data type for specification of output file format -->
+  <xsd:complexType name="DT_Output">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="format" use="optional" default="unv">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="unv"/>
+              <xsd:enumeration value="gmv"/>
+              <xsd:enumeration value="gsi"/>
+              <xsd:enumeration value="gid"/>
+              <xsd:enumeration value="database"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element GMV output -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="gmv" type="DT_OutputGMV"
+       substitutionGroup="OutputBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for GMV output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputGMV">
+    <xsd:complexContent>
+      <xsd:extension base="DT_OutputBasic">
+        <xsd:sequence>
+          <xsd:element name="fixedGrid" type="DT_CFSBool" minOccurs="0"
+                       maxOccurs="1" default="yes"/>
+          <xsd:element name="binaryFormat" type="DT_CFSBool" minOccurs="0"
+                       maxOccurs="1" default="no"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element GSI output -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="gsi" type="DT_OutputGSI"
+       substitutionGroup="OutputBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for GSI output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputGSI">
+    <xsd:complexContent>
+      <xsd:extension base="DT_OutputBasic">
+        <xsd:sequence>
+          <xsd:element name="binaryFormat" type="DT_CFSBool" minOccurs="0"
+                       maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+ <!-- ******************************************************************** -->
+  <!--   Definition of element GiD output -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="gid" type="DT_OutputGiD"
+       substitutionGroup="OutputBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for GiD output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputGiD">
+    <xsd:complexContent>
+      <xsd:extension base="DT_OutputBasic">
+        <xsd:sequence>
+          <xsd:element name="binaryFormat" type="DT_CFSBool" minOccurs="0"
+                       maxOccurs="1"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element Database output -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="database" type="DT_OutputDatabase"
+       substitutionGroup="OutputBasic"/>
+
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for Database output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputDatabase">
+    <xsd:complexContent>
+      <xsd:extension base="DT_OutputBasic">
+        <xsd:sequence>
+          <xsd:element name="hostName"  type="xsd:string" minOccurs="0"
+                       maxOccurs="1" default="localhost"/>
+          <xsd:element name="port"  type="xsd:nonNegativeInteger" minOccurs="0"
+                       maxOccurs="1" default="3306"/>
+          <xsd:element name="databaseName"  type="xsd:string" minOccurs="1"
+                       maxOccurs="1" default=""/>
+          <xsd:element name="materialDatabaseName" type="xsd:string"
+                       minOccurs="0" maxOccurs="1" default="cfs_material"/>
+          <xsd:element name="userName"  type="xsd:string" minOccurs="1"
+                       maxOccurs="1" default=""/>
+          <xsd:element name="password"  type="xsd:string" minOccurs="0"
+                       maxOccurs="1" default=""/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+
+  <!-- Data type for name of file containing material data -->
+  <xsd:complexType name="DT_MatFile">
+    <xsd:attribute name="file" type="xsd:string" use="optional"
+      default="mat.dat"/>
+    <xsd:attribute name="format" use="optional" default="dat">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="dat"/>
+          <xsd:enumeration value="xml"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
+  
+
+  <!-- Data type for positive floating point numbers -->
+  <xsd:simpleType name="DT_PosFloat">
+    <xsd:restriction base="xsd:float">
+      <xsd:minExclusive value="0"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for non-negative floating point numbers -->
+  <xsd:simpleType name="DT_NonNegFloat">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for floating point numbers in [0,1] -->
+  <xsd:simpleType name="DT_FloatUnitInterval">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="1"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for specifying an angle in degrees (DEG) -->
+  <xsd:simpleType name="DT_DegAngle">
+    <xsd:restriction base="xsd:float">
+      <xsd:minInclusive value="0"/>
+      <xsd:maxInclusive value="360"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for setting flags -->
+  <xsd:simpleType name="DT_CFSBool">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="yes"/>
+      <xsd:enumeration value="no"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+
+  <!-- Data type for distinguishing the different PDEs in multiSequence -->
+  <xsd:simpleType name="DT_PDEType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="mechanic"/>
+      <xsd:enumeration value="magnetic"/>
+      <xsd:enumeration value="piezo"/>
+      <xsd:enumeration value="acoustic"/>
+      <xsd:enumeration value="acousticXYZ"/>
+      <xsd:enumeration value="electrostatic"/>
+      <xsd:enumeration value="smooth"/>
+      <xsd:enumeration value="mpcci"/>
+      <xsd:enumeration value="nrbc"/>
+      <xsd:enumeration value="heatConduction"/>
+      <xsd:enumeration value="stokesFluid"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+
+  <!-- Data type for describing a point either by a node name or a -->
+  <!-- position vector -->
+  <xsd:complexType name="DT_PointType">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="node" type="xsd:token" use="optional" default="none"/>
+        <xsd:attribute name="x" type="xsd:float" use="optional" default="0.0"/>
+        <xsd:attribute name="y" type="xsd:float" use="optional" default="0.0"/>
+        <xsd:attribute name="z" type="xsd:float" use="optional" default="0.0"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+</xsd:schema>
+

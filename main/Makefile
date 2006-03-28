@@ -45,7 +45,7 @@ SUBLIBDIR = Driver PDE CoupledPDE \
             DataInOut \
             DataInOut/Database\
             Utils Matrix General ODESolve ODEDescr \
-	    ParamIdent\
+	    ParamIdent Materials \
             $(EXTRA_MODULES)
 
 PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
@@ -62,7 +62,7 @@ mylibrary = driver domain pde coupledpde forms  \
             elements3d elements2d elements1d elements \
             gridadaption gridcfs gridstruct adaptgrid definefiles gmv unverg \
 	    cfsRST ansysfile scripting datainout paramhandling commandline \
-            driver datainout\
+            driver datainout materials \
             utils matrix general odesolve odedescr \
 	    paramIdent \
             $(EXTRA_CFSLIBS)
@@ -161,6 +161,8 @@ utils:
 	@cd $(LIBSRC_DIR)/Utils; $(MAKE) -f Makefile
 matrix:
 	@cd $(LIBSRC_DIR)/Matrix; $(MAKE) -f Makefile
+materials:
+	@cd $(LIBSRC_DIR)/Materials; $(MAKE) -f Makefile
 general:
 	@cd $(LIBSRC_DIR)/General; $(MAKE) -f Makefile
 mpccicpl:
@@ -197,6 +199,8 @@ clean-datainout:
 	$(MAKE) clean
 	@cd $(LIBSRC_DIR)/DataInOut/Scripting && \
 	$(MAKE) clean
+	@cd $(LIBSRC_DIR)/Materials && \
+        $(MAKE) clean
 clean-ansys:
 	@cd $(LIBSRC_DIR)/DataInOut/AnsysFile && \
         $(MAKE) clean

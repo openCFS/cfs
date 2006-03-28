@@ -4,7 +4,7 @@
 #include "DataInOut/DefineFiles/definefiles.hh"
 #include "DataInOut/timefunc.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "DataInOut/WriteInfo.hh"
+#include "DataInOut/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
@@ -218,9 +218,15 @@ int main( int argc, const char **argv ) {
   // Generate parameter handler and pass address to global pointer
   std::string xmlFile = commandLine->GetParamFile();
 #ifdef USE_XERCES
-  params = new XMLParamHandler( xmlFile.c_str() );
+  std::string cfsSchema = commandLine->GetSchemaPath();
+  cfsSchema += "/CFS-Simulation/CFS.xsd";
+  
+  std::string defaults = commandLine->GetSchemaPath();
+  defaults += "/CFS-Simulation/Defaults/CFS++Defaults.xml";
+  params = new XMLParamHandler( xmlFile.c_str(), cfsSchema.c_str(), 
+                                defaults.c_str() );
 #else
-  params = new PlainXMLParamHandler( xmlFile.c_str() );
+  params = new PlainXMLParamHandler( xmlFile );
 #endif
 
 
@@ -244,6 +250,12 @@ int main( int argc, const char **argv ) {
     Info->FinishProgress();
   }
 
+  // generate material handler
+  MaterialHandler * ptMatHandler;
+  Info->StartProgress( "Generating material reader");
+  ptMatHandler = FileHandler.CreateMaterialHandler();
+  Info->FinishProgress();
+  
   Info->StartProgress( "Generating remaining output files" );
 
   // Open file for status reports by CFS++
@@ -268,7 +280,7 @@ int main( int argc, const char **argv ) {
   TimeFunc myTimeFunc;
 
   SETPROFILE("Before Creation of Domain");
-  domain = new  Domain( ptInputfile, ptOut, &myTimeFunc );
+  domain = new  Domain( ptInputfile, ptOut, &myTimeFunc, ptMatHandler );
   SETPROFILE("After Creation of Domain");
 
 

@@ -11,7 +11,7 @@ namespace CoupledField
   void piezoParamIdent::leastSquare(){ 
     ENTER_FCN("piezoParamIdent::leastSquare");    
 
-    MaterialData * ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    StdVector<BaseMaterial*> ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     nrMeasuredData=20;
     Vector<Double> freqs5;
@@ -268,7 +268,9 @@ namespace CoupledField
           }
         }
       
-      Matrix<Double> *matMat = ptMaterial->GetMatrix();
+      Error("Not working",__FILE__,__LINE__);
+
+      Matrix<Double> *matMat; // = ptMaterial->GetMatrix();
       scaling[0]=1.0/((*matMat)[0][0]); 
       scaling[1]=1.0/((*matMat)[2][2]);
       scaling[2]=1.0/((*matMat)[1][0]);
@@ -280,7 +282,7 @@ namespace CoupledField
       scaling[8]=1.0/((*matMat)[6][6]); 
       scaling[9]=1.0/((*matMat)[8][8]);
 
-      Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
+      Matrix<Double> *matMatC; // = ptMaterial->GetMatrixC();
       scalingC[0]=1.0/((*matMatC)[0][0]); 
       scalingC[1]=1.0/((*matMatC)[2][2]);
       scalingC[2]=1.0/((*matMatC)[1][0]);

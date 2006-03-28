@@ -85,7 +85,8 @@ namespace CoupledField
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
     //! \param F_hat - contains calculated charge, each entry belongs to different frequency 
-    void createF(MaterialData * ptMaterial, Vector<Complex> & F_hat, Boolean typeOut);
+    void createF(StdVector<BaseMaterial*>& ptMaterial, Vector<Complex> & F_hat, 
+		 Boolean typeOut);
 
     //! like create F but the frequencies are specified with Vector frequencies
     void createFVec(Complex & F_hat, Boolean typeOut,
@@ -132,7 +133,7 @@ namespace CoupledField
 
     //! Calculates an approximation of the Jacobi Matrix of parameter to solution operator F 
     //! \param Jacobi Matrix - approximation of F'
-    //   void createJacobiMatrix(MaterialData * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
+    //   void createJacobiMatrix(BaseMaterial * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
     // Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
     //! Creates special Jacobi Matrix, for optimal experiment design
@@ -165,13 +166,17 @@ namespace CoupledField
     //! updates the piezoMatrix in MaterialData parameter = 
     //! \f$(c_11, c_33, c_12, c_13, c_44, e_15, e_31, e_33, eps_11, eps_33)\f$
     //! \param parameter - new set of piezoelectric material parameters
-    void updateMaterialData(Vector<Double> & parameter, MaterialData * ptMaterial);
+    void updateMaterialData(Vector<Double> & parameter, StdVector<BaseMaterial*>& ptMaterial);
 
-    void updateComplexMaterialData(Vector<Double> & parameterC, MaterialData * ptMaterial);
+    void updateComplexMaterialData(Vector<Double> & parameterC, StdVector<BaseMaterial*>& ptMaterial);
 
     //! overwrites values in paramter_new with paramter+step if whichParamterToUpdate ==1
-    void setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,
-                            Vector<Double> & step, Vector<UInt> & whichParameterToUpdate);
+    void setNewParameterSet(Vector<Double> & parameter,
+			    Vector<Double> &  parameter_new,
+			    Vector<Double> & scaling,
+			    Double & theta,
+                            Vector<Double> & step, 
+			    Vector<UInt> & whichParameterToUpdate);
 
     //! Calculates the impedance curve of piezo-simulation, writes results to file imped.dat
     void calcAbsImped(Complex & charge, Double & freq, UInt & fstep, Boolean typeOut);
@@ -267,17 +272,17 @@ namespace CoupledField
 
     //! Tests, if JacobiMatrix is more or less approximated by F(p)-F(p+delta)/delta
     void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-                          MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
+                          StdVector<BaseMaterial*>& ptMaterial, Vector<Double> & parameterIncrement, 
                           Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
     //! approximates Jacobian by a second order FDM
     void testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-                           MaterialData * ptMaterial, Vector<Double> & parameterIncrement, 
+                           StdVector<BaseMaterial*>& ptMaterial, Vector<Double> & parameterIncrement, 
                            Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
     //! approximates Jacobian by a second order FDM for real and complex values
     void testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-                           MaterialData * ptMaterial);
+                           StdVector<BaseMaterial*>& ptMaterial);
     // ! The following methods serve for the determination of eigenvalues ...
 
     //    void sort_array(UInt ndim, UInt l_sort, Vector<Double> & d);
@@ -343,9 +348,9 @@ namespace CoupledField
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;
     Vector<Complex> algSysSolVector;
-    MaterialData * ptMaterial;
-    MaterialData * ptMaterial1;
-    MaterialData * ptMaterial2;
+    StdVector<BaseMaterial*> ptMaterial;
+    StdVector<BaseMaterial*> ptMaterial1;
+    StdVector<BaseMaterial*> ptMaterial2;
 
     Vector<Double> parameter;
     Vector<Double> parameterC;

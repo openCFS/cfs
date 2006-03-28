@@ -61,7 +61,7 @@ namespace CoupledField {
 //     std::strcpy(auxpdeName_,pdename_.c_str());
 //     std::strcat(auxpdeName_,auxChar);
     
-    pdematerialclass_ = "fluid";
+    pdematerialclass_ = FLUID;
 
     isAcouCoupled_ = FALSE;
     saveRHSval_ = FALSE;
