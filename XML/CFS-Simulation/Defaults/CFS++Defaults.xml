@@ -218,61 +218,73 @@
     <system name="acoustic">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="acousticXYZ">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="direct">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="electrostatic">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="magnetic">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="mechanic">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="mpcci">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="piezo">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="smooth">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="nrbc">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="heatConduction">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
     <system name="stokesFluid">
       <setup/>
       <matrix/>
+      <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
   </linearSystems>
