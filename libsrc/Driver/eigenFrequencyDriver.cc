@@ -107,7 +107,7 @@ namespace CoupledField {
       
       for ( UInt i = 0 ; i < numConverged; i++ ) {
         ptPDE_->GetSolveStep()->CalcEigenMode( i );
-        ptPDE_->WriteResultsInFile(i, eigenFreqs[i], 
+        ptPDE_->WriteResultsInFile(i+1, eigenFreqs[i], 
                                    stepOffset_, timeOffset_);
       }
     }
