@@ -97,10 +97,10 @@
   <xsd:complexType name="DT_ElecID">
     <xsd:complexContent>
       <xsd:extension base="DT_ElecHD">
-        <xsd:attribute name="value" type="xsd:double" use="required"/>
+        <xsd:attribute name="value" type="xsd:token" use="required"/>
         <xsd:attribute name="dynamics" type="xsd:token" use="optional"
           default="none"/>
-        <xsd:attribute name="phase" type="xsd:double" use="optional"
+        <xsd:attribute name="phase" type="xsd:token" use="optional"
           default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
