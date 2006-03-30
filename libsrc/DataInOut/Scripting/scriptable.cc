@@ -118,9 +118,10 @@ namespace CoupledField
     // Call Function object
     fctIt->second->Call();
     
-    // Save Return value of argList object
+    // Save Return value of argList object and delete it afterwars
     retVal = currentArgs_->GetRetVal();
-    
+    currentArgs_->GetRetVal().Clear();
+
     // Empty pointer to argList and reset status flag
     currentArgs_ = NULL;
     isExecuting_ = FALSE;
