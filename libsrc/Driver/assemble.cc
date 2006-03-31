@@ -1192,6 +1192,7 @@ namespace CoupledField {
     rhsSrcIntegrators_.Resize(subdoms_.GetSize());
     fncname_rhs_.Resize(subdoms_.GetSize());
     rhsIntegrators_.Resize(subdoms_.GetSize());
+    rhsSrcPhase_.Resize(subdoms_.GetSize() );
     for (UInt i=0; i<subdoms_.GetSize();i++) {
       integrators_[i]      = new StdVector<IntegratorDescriptor *>;
       rhsSrcIntegrators_[i]     = new StdVector<BaseIntDescriptor *>;
@@ -1786,18 +1787,21 @@ namespace CoupledField {
   }
 
 
-
   void  HarmonicAssemble::TransformVector2Harmonic(Vector<Double>& harmVec, 
                                                    Vector<Double> origVec, 
-                                                   const Double valPhase)
+                                                   const Double valPhaseGrad)
   {
     ENTER_FCN( "HarmonicAssemble::TransformVector2Harmonic" );
 
     Integer size = origVec.GetSize();
     harmVec.Resize(2*size);
 
-    Double valReal = cos(valPhase);
-    Double valImag = sin(valPhase);
+    // Note: Since valPhaseGrad is in °(grad), we have to transform it into
+    // rad-value
+    Double valPhaseRad = valPhaseGrad / 180 * PI;
+    
+    Double valReal = cos(valPhaseRad);
+    Double valImag = sin(valPhaseRad);
 
     Integer k=0;
     //real part
