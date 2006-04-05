@@ -405,26 +405,12 @@ namespace CoupledField
              partElemAMat[7][j+2*nrNodes]   =  W2*xiDxDyDz[j][2];
           }
 
-        partElemAMat *= intWeights[actIntPt-1] * jacDet;
-
         partElemAMat.Transpose(partElemATMat);
 
-//         std::cout << "partElemAMat:" << std::endl
-//                   << partElemAMat << std::endl;
-//         std::cout << "partElemATMat:" << std::endl
-//                   << partElemATMat << std::endl;
-//
-//
 //        // assemble element matrix
-        locElemMat += (partElemATMat * partElemAMat);
+        locElemMat += (partElemATMat * partElemAMat) * intWeights[actIntPt-1] * jacDet;
       }
     ResortElementMatrix(elemMat, locElemMat, nrNodes, N);
-//    std::cerr << "locElemMat:" << std::endl
-//              << locElemMat << std::endl;
-//    std::cerr << "elemMat:" << std::endl
-//              << elemMat << std::endl;
-    
   }
-
 
 } // end namespace CoupledField
