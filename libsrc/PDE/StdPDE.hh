@@ -321,11 +321,11 @@ namespace CoupledField {
 
     virtual void setBCs_id_phase_(UInt i, Double & phase);
     
-    void setPDE_piezoMaterialType(piezoMaterialType & pMatType){
-      piezoMaterialType_ = pMatType;};
+    void setPDE_MatDataType(DataType & pMatType){
+      matDataType_ = pMatType;};
   
-    piezoMaterialType getPDE_piezoMaterialType()
-    {return piezoMaterialType_;}
+    DataType getPDE_MatDataType()
+    {return matDataType_;}
 
     WriteResults * getPDE_outFile(){return outFile_;};
 
@@ -499,7 +499,7 @@ namespace CoupledField {
     MaterialClass pdematerialclass_;    //!< material class
   
     //! Data Type which decides wheather material is real or complex
-    piezoMaterialType piezoMaterialType_;
+    DataType  matDataType_;
     //! contains element results of complex valued charge 
     Vector<Complex> complexValuedCharge_;
     Vector<Complex> complexValuedEfield_;

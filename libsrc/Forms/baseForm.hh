@@ -149,8 +149,8 @@ namespace CoupledField
     {dofzero_ = posdof; };
 
     //!
-    void SetPiezoMaterialType(piezoMaterialType & pMatType)
-    { piezoMatType_=pMatType; };
+    void SetMatDataType(DataType & pMatType)
+    { matDataType_=pMatType; };
 
     //!
     void SetMaterialArray(Matrix<Double>* mat)
@@ -194,7 +194,7 @@ namespace CoupledField
     //
     Boolean isSetIntPoint_;
 
-    piezoMaterialType piezoMatType_;     //! default = realMaterialParamter, piezoMatType_ = imagMaterialParamter if we consider complex-valued material Paramter;
+    DataType matDataType_;     //! default = realMaterialParamter, piezoMatType_ = imagMaterialParamter if we consider complex-valued material Paramter;
 
     Boolean isFracDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor
     Boolean isRaylDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor

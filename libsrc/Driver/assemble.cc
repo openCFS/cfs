@@ -355,13 +355,14 @@ namespace CoupledField {
             actDescriptor->GetIntegrator()->
               CalcElementMatrix(ptCoord, elemmat);
 
-            piezoMaterialType matType = actDescriptor->GetPiezoMaterialType();
-            actDescriptor->SetPiezoMaterialType(matType);
+            DataType matType = actDescriptor->GetMatDataType();
+	    //            actDescriptor->SetMatDataType(matType);
 
             if (analysisType_ == HARMONIC) {
+	      std::cout << "Transform type:" << actDescriptor->GetMatDataType() << std::endl;
               TransformMatrix2Harmonic(harmonicVec,elemmat, 
                                        actDescriptor->GetOrigMatrixType(),
-                                       actDescriptor->GetPiezoMaterialType());
+                                       actDescriptor->GetMatDataType());
 
               algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
                                          pdeId1, connect_PDE1.GetPointer(), 
@@ -422,7 +423,7 @@ namespace CoupledField {
               if (analysisType_ == HARMONIC) {
                 TransformMatrix2Harmonic(harmonicVec,elemmat,
                                          actDescriptor->GetOrigSecMatrixType(),
-                                         actDescriptor->GetPiezoMaterialType());
+                                         actDescriptor->GetMatDataType());
 
                 algsys_->SetElementMatrix(destMat, &harmonicVec[0], 
                                           pdeId1, connect_PDE1.GetPointer(),
@@ -542,7 +543,7 @@ namespace CoupledField {
               if (analysisType_ == HARMONIC) {
                 TransformMatrix2Harmonic(harmonicVec,elemmat, 
                                          actDescriptor->GetOrigMatrixType(),
-                                         actDescriptor->GetPiezoMaterialType());
+                                         actDescriptor->GetMatDataType());
 
                 algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
                                            pdeId1, connect_PDE1.GetPointer(), 
@@ -566,7 +567,7 @@ namespace CoupledField {
                 if (analysisType_ == HARMONIC) {
                   TransformMatrix2Harmonic(harmonicVec,elemmat,
                                            actDescriptor->GetOrigSecMatrixType(),
-                                           actDescriptor->GetPiezoMaterialType());
+                                           actDescriptor->GetMatDataType());
                   
                   algsys_->SetElementMatrix( destMat, &harmonicVec[0], 
                                              pdeId1, connect_PDE1.GetPointer(), 
@@ -1539,7 +1540,7 @@ namespace CoupledField {
 
   IntegratorDescriptor::IntegratorDescriptor()
     :BaseIntDescriptor(),
-     piezoMaterialType_(REALMATERIALPARAMETER),
+     matDataType_(REAL),
      destinationMatrix_(SYSTEM),
      secondaryMatrix_(NOTYPE),
      origMatrixType_(NOTYPE),
@@ -1548,7 +1549,6 @@ namespace CoupledField {
   
   {
     ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
-    //    piezoMaterialType_=realMaterialParameter;
   }
 
 
@@ -1557,13 +1557,12 @@ namespace CoupledField {
                                              const FEMatrixType aDestMat,
                                              const Boolean aNonLin)
     :BaseIntDescriptor(aIntegrator, aNonLin),
-     piezoMaterialType_(REALMATERIALPARAMETER),
+     matDataType_(REAL),
      destinationMatrix_(aDestMat),
      secondaryMatrix_(NOTYPE),
      secMatFac(0.0)
   {
     ENTER_FCN( "IntegratorDescriptor::IntegratorDescriptor" );
-    //   piezoMaterialType_=realMaterialParameter;
   }
 
   // defines a secondary destination for the calculated element marices of an
@@ -1689,7 +1688,7 @@ namespace CoupledField {
   TransformMatrix2Harmonic( Vector<Double>& harmMat,
                             Matrix<Double> origMat,
                             const FEMatrixType matrixType,
-                            const piezoMaterialType piezoMatType ) {
+                            const DataType matType ) {
 
     ENTER_FCN( "HarmonicAssemble::TransformMatrix2Harmonic" );
 
@@ -1699,7 +1698,7 @@ namespace CoupledField {
 
     Integer k=0;
 
-    if (piezoMatType == REALMATERIALPARAMETER) {
+    if (matType == REAL) {
 
       if (matrixType == STIFFNESS) {
         //	std::cout << "Assemble real stiff\n" << std::endl;
@@ -1735,13 +1734,12 @@ namespace CoupledField {
               k++;
             }
         }
-    } // end, if piezoMatType == real...
+    } // end, if matatType == real...
 
-    else if(piezoMatType == IMAGMATERIALPARAMETER){  // the "imaginary parts"
+    else if(matType == IMAG){  // the "imaginary parts"
    
       if (matrixType == STIFFNESS)
         {
-          //          std::cout<<"Assmble imag_stiff\n"<< std::endl;
           k=numRow*numCol;
           for (Integer row=0; row<numRow; row++)
             for (Integer col=0; col<numCol; col++) {
@@ -1753,8 +1751,6 @@ namespace CoupledField {
     
       else if (matrixType == MASS)
         {
-          //          std::cout<<"Assemble imag_mass\n"<<std::endl;
-
           Double factor = -actFreq_*actFreq_;
 	  k=numRow*numCol;
           for (Integer row=0; row<numRow; row++)
@@ -1767,8 +1763,6 @@ namespace CoupledField {
       else if (matrixType == DAMPING)
         {
           Double factor = actFreq_;
-          //    std::cout<<"comlex_damping"<<std::endl;
-        
           k=0;  
           for (Integer row=0; row<numRow; row++)
             for (Integer col=0; col<numCol; col++) {
@@ -1777,10 +1771,10 @@ namespace CoupledField {
             }
         }
 
-    } // end if piezoMatType == imag
+    } // end if matType == imag
 
     else {
-      (*error) <<"\n piezoMaterialType" << piezoMatType 
+      (*error) <<"\n DataType" << matType 
                << "not specified "<<std::endl;
       Error( __FILE__, __LINE__ );
     }

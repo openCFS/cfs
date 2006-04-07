@@ -109,9 +109,6 @@ namespace CoupledField {
   typedef Double (*pfn2var)(const Double, const Double);
   typedef Double (*pfn3var)(const Double, const Double, const Double);
 
-  //! enumeration with material parameter formats (real / complex)
-  typedef enum {REALMATERIALPARAMETER=0,IMAGMATERIALPARAMETER=1}  piezoMaterialType;
-
   typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTIHARMONIC, 
                 TRANSIENTHARMONIC, MULTI_SEQUENCE,
                 BUBBLEDYNAMIC, TRANSIENT4SLICE} AnalysisType;

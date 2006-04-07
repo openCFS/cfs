@@ -10,8 +10,7 @@
 // integrator (bi-)linear forms
 #include "Forms/linPiezoCoupling.hh"
 #include "Forms/forms_header.hh"
-#include "Forms/linElecInt2D.hh"
-#include "Forms/linElecInt3D.hh"
+#include "Forms/linElecInt.hh"
 
 #include "Utils/elemstoresol.hh"
 
@@ -439,7 +438,7 @@ namespace CoupledField {
 
     ENTER_FCN( "PiezoCoupling::DefineIntegrators" );
     
-    piezoMaterialType matType = REALMATERIALPARAMETER;
+    DataType matType = REAL;
 
    //transform the type
     SubTensorType tensorType;
@@ -457,16 +456,16 @@ namespace CoupledField {
       IntegratorDescriptor *actIntDescrStiff =
         new IntegratorDescriptor( bilinearStiff, STIFFNESS );
 
-      bilinearStiff->SetPiezoMaterialType( matType );
+      bilinearStiff->SetMatDataType( matType );
 
-      actIntDescrStiff->SetPiezoMaterialType( matType );
+      actIntDescrStiff->SetMatDataType( matType );
       actIntDescrStiff->SetPDEIds( pde1_, pde2_ );
       assemble_->AddIntegrator( actIntDescrStiff, subdoms_[actSD] );
 
       // check for complex valued material parameter
       if( params->HasValue( "type", "imagMaterialParameter", 
                             "materialDataType" ) ) {
-        matType = IMAGMATERIALPARAMETER; 
+        matType = IMAG; 
 
         BaseForm * bilinearStiffC = new linPiezoCoupling(tensorType);
 	bilinearStiffC->SetMaterial( materialData_[actSD] );
@@ -475,51 +474,12 @@ namespace CoupledField {
         IntegratorDescriptor *actComplexIntDescrStiff = 
           new IntegratorDescriptor(bilinearStiffC, STIFFNESS);
         actComplexIntDescrStiff->SetPDEIds(pde1_, pde2_);
-        actComplexIntDescrStiff->SetPiezoMaterialType(matType);
-        bilinearStiffC->SetPiezoMaterialType(matType);
+        actComplexIntDescrStiff->SetMatDataType(matType);
+        bilinearStiffC->SetMatDataType(matType);
         assemble_->AddIntegrator(actComplexIntDescrStiff, subdoms_[actSD]);
       }
 
     }
-  }
-
-
-  // **********************
-  //   GetStiffIntegrator
-  // **********************
-  BaseForm* PiezoCoupling::GetStiffIntegrator( BaseMaterial *actSDMat,
-                                               Boolean reducedInt,
-                                               Boolean isdamping ) {
-
-    ENTER_FCN( "PiezoCoupling::GetStiffIntegrator" );
-
-    // Get problem geometry and mechanic subtype
-//     std::string probGeo, subType;
-//     params->Get( "subType", subType, "mechanic" );
-//     params->Get( "type", probGeo, "geometry" );
-
-//     BaseForm *bilinearStiff=NULL;
-
-//     if (subType == "planeStrain") {
-//       bilinearStiff = new linPiezoCoupling2DPlaneStrain();
-//     }
-//     else if (subType == "axi") { 
-//       bilinearStiff = new linPiezoCoupling2DAxi();
-//     }
-//     else if (subType == "3d") {
-//       bilinearStiff = new linPiezoCoupling3D(); 
-//     }
-//     else {
-//       (*error) << "PiezoCoupling::GetStiffIntegrator:\n "
-//                << "Don't kn  ow how to handle subType = "
-//                << subType;
-//       Error( __FILE__, __LINE__ );
-//     }
-
-//     // Set pointer to material type
-//     bilinearStiff->SetMaterial( actSDMat );
-
-//    return bilinearStiff;
   }
 
 

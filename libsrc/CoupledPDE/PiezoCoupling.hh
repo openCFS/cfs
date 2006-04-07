@@ -57,11 +57,6 @@ namespace CoupledField
     //! Definition of the (bi)linear forms
     void DefineIntegrators();
     
-    //! Get correct stiffness integrator
-    BaseForm * GetStiffIntegrator( BaseMaterial* actSDMat,
-                                   Boolean reducedInt = FALSE ,
-                                   Boolean isdamping = FALSE );
-
     // Data section
     Boolean hasOutput_;
 
