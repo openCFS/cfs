@@ -415,14 +415,14 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
 
         bilinearStiffReal->SetPosPML(inner,outer);
-        piezoMaterialType matType = REALMATERIALPARAMETER;
-        bilinearStiffReal->SetPiezoMaterialType(matType);
+        DataType matType = REAL;
+        bilinearStiffReal->SetMatDataType(matType);
 
         IntegratorDescriptor * stiffIntDescrReal = 
           new IntegratorDescriptor(bilinearStiffReal, STIFFNESS);
 
         stiffIntDescrReal->SetPDEIds(this, this);
-        stiffIntDescrReal->SetPiezoMaterialType(matType);
+        stiffIntDescrReal->SetMatDataType(matType);
         assemble_->AddIntegrator(stiffIntDescrReal, subdoms_[actSD]);
 
         //set imaginary part
@@ -430,15 +430,15 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           new PMLInt(formsType, density, dampingTypePML, dampPML, isaxi_);
 
         bilinearStiffImag->SetPosPML(inner,outer);
-        matType = IMAGMATERIALPARAMETER;
-        bilinearStiffImag->SetPiezoMaterialType(matType);
+        matType = IMAG;
+        bilinearStiffImag->SetMatDataType(matType);
 
         IntegratorDescriptor * stiffIntDescrImag = 
           new IntegratorDescriptor(bilinearStiffImag, STIFFNESS);
 
 
         stiffIntDescrImag->SetPDEIds(this, this);
-        stiffIntDescrImag->SetPiezoMaterialType(matType);
+        stiffIntDescrImag->SetMatDataType(matType);
         assemble_->AddIntegrator(stiffIntDescrImag, subdoms_[actSD]);
 
 
@@ -455,14 +455,14 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           new PMLInt(formsType, massFactor, dampingTypePML, dampPML, isaxi_);
 
         bilinearMassReal->SetPosPML(inner,outer);
-        matType = REALMATERIALPARAMETER;
-        bilinearMassReal->SetPiezoMaterialType(matType);
+        matType = REAL;
+        bilinearMassReal->SetMatDataType(matType);
 
         IntegratorDescriptor * massIntDescrReal = 
           new IntegratorDescriptor(bilinearMassReal, MASS);
 
         massIntDescrReal->SetPDEIds(this, this);
-        massIntDescrReal->SetPiezoMaterialType(matType);
+        massIntDescrReal->SetMatDataType(matType);
         assemble_->AddIntegrator(massIntDescrReal, subdoms_[actSD]);
 
         //set imaginary part
@@ -470,14 +470,14 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
           new PMLInt(formsType, massFactor, dampingTypePML, dampPML, isaxi_);
 
         bilinearMassImag->SetPosPML(inner,outer);
-        matType = IMAGMATERIALPARAMETER;
-        bilinearMassImag->SetPiezoMaterialType(matType);
+        matType = IMAG;
+        bilinearMassImag->SetMatDataType(matType);
 
         IntegratorDescriptor * massIntDescrImag = 
           new IntegratorDescriptor(bilinearMassImag, MASS);
 
         massIntDescrImag->SetPDEIds(this, this);
-        massIntDescrImag->SetPiezoMaterialType(matType);
+        massIntDescrImag->SetMatDataType(matType);
         assemble_->AddIntegrator(massIntDescrImag, subdoms_[actSD]);
       }
 

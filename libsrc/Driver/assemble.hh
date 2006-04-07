@@ -127,14 +127,14 @@ namespace CoupledField
     /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
     Double GetSecMatFac() const {return secMatFac;} 
 
-    /// piezoMaterialType_ contains information wheather real
+    /// contains information wheather real
     /// or complex valued material parameters will be considered
-    piezoMaterialType piezoMaterialType_;
+    DataType matDataType_;
 
-    piezoMaterialType GetPiezoMaterialType(){return piezoMaterialType_;};
+    DataType GetMatDataType(){return matDataType_;};
 
-    void SetPiezoMaterialType(piezoMaterialType &pMatType){
-      piezoMaterialType_ = pMatType;};
+    void SetMatDataType(DataType &pMatType){
+      matDataType_ = pMatType;};
 
     void SetOrigMatrixType(FEMatrixType matType)
     {origMatrixType_ = matType;};
@@ -472,7 +472,7 @@ namespace CoupledField
     void TransformMatrix2Harmonic(Vector<Double>& harmMat,
                                   Matrix<Double> origMat,
                                   const FEMatrixType matrixType,
-                                  const piezoMaterialType piezoMatType)
+                                  const DataType matDataType)
     {;};
 
     //! transform element vector to account for harmonic analysis
@@ -586,8 +586,7 @@ namespace CoupledField
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
                                           Matrix<Double> origMat,
                                           const FEMatrixType matrixType,
-                                          const piezoMaterialType 
-                                          piezoMatType);
+                                          const DataType matType);
 
     //! transform element vector to account for harmonic analysis
     virtual void TransformVector2Harmonic(Vector<Double>& harmMat, 

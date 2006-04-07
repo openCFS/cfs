@@ -276,7 +276,7 @@ namespace CoupledField
     if ( formsType_ == "laplaceInt") {
       if (numVals == 3) {
 
-	if (piezoMatType_ == REALMATERIALPARAMETER) {
+	if (matDataType_ == REAL) {
 	  //x-part
 	  val = factors[1]*factors[2] / factors[0];
 	  factorsPML[0] = val.real();
@@ -287,7 +287,7 @@ namespace CoupledField
 	  val = factors[0]*factors[1] / factors[2];
 	  factorsPML[2] = val.real();
 	}
-	else if (piezoMatType_ == IMAGMATERIALPARAMETER) {
+	else if (matDataType_ == IMAG) {
 	  //x-part
 	  val = factors[1]*factors[2] / factors[0];
 	  factorsPML[0] = val.imag();
@@ -301,7 +301,7 @@ namespace CoupledField
       }
       
       else {
-	if (piezoMatType_ == REALMATERIALPARAMETER) {
+	if (matDataType_ == REAL) {
 	  //x-part
 	  val = factors[1] / factors[0];
 	  factorsPML[0] = val.real();
@@ -309,7 +309,7 @@ namespace CoupledField
 	  val = factors[0] / factors[1];
 	  factorsPML[1] = val.real();
 	}
-	else if (piezoMatType_ == IMAGMATERIALPARAMETER) {
+	else if (matDataType_ == IMAG) {
 	  //x-part
 	  val = factors[1] / factors[0];
 	  factorsPML[0] = val.imag();
@@ -323,20 +323,20 @@ namespace CoupledField
       //PML factor for mass integrator
       if (numVals == 3) {
 	val = factors[0]*factors[1]*factors[2];
-	if (piezoMatType_ == REALMATERIALPARAMETER) {
+	if (matDataType_ == REAL) {
 	  factorsPML[0] = val.real();
 	}
-	else if (piezoMatType_ == IMAGMATERIALPARAMETER) {
+	else if (matDataType_ == IMAG) {
 	  factorsPML[0] = val.imag();
 	}
       }
       
       else {
 	val = factors[0]*factors[1];
-	if (piezoMatType_ == REALMATERIALPARAMETER) {
+	if (matDataType_ == REAL) {
 	  factorsPML[0] = val.real();
 	}
-	else if (piezoMatType_ == IMAGMATERIALPARAMETER) {
+	else if (matDataType_ == IMAG) {
 	  factorsPML[0] = val.imag();
 	}
       }
@@ -486,7 +486,7 @@ namespace CoupledField
 //     if ( formsType_ == "laplaceInt") {
 //       if (numVals == 3) {
 
-// 	if (piezoMatType_ == REALMATERIALPARAMETER) {
+// 	if (matDataType_ == REAL) {
 // 	  //x-part
 // 	  val = factors[1]*factors[2] / factors[0];
 // 	  factorsPML[0] = val.real();
@@ -497,7 +497,7 @@ namespace CoupledField
 // 	  val = factors[0]*factors[1] / factors[2];
 // 	  factorsPML[2] = val.real();
 // 	}
-// 	else if (piezoMatType_ == IMAGMATERIALPARAMETER) {
+// 	else if (matDataType_ == IMAG) {
 // 	  //x-part
 // 	  val = factors[1]*factors[2] / factors[0];
 // 	  factorsPML[0] = val.imag();
@@ -511,7 +511,7 @@ namespace CoupledField
 //       }
       
 //       else {
-// 	if (piezoMatType_ == REALMATERIALPARAMETER) {
+// 	if (matDataType_ == REAL) {
 // 	  //x-part
 // 	  val = factors[1] / factors[0];
 // 	  factorsPML[0] = val.real();
@@ -519,7 +519,7 @@ namespace CoupledField
 // 	  val = factors[0] / factors[1];
 // 	  factorsPML[1] = val.real();
 // 	}
-// 	else if (piezoMatType_ == IMAGMATERIALPARAMETER) {
+// 	else if (matDataType_ == IMAG) {
 // 	  //x-part
 // 	  val = factors[1] / factors[0];
 // 	  factorsPML[0] = val.imag();
@@ -539,20 +539,20 @@ namespace CoupledField
 //       //PML factor for mass integrator
 //       if (numVals == 3) {
 // 	val = factors[0]*factors[1]*factors[2];
-// 	if (piezoMatType_ == REALMATERIALPARAMETER) {
+// 	if (matDataType_ == REAL) {
 // 	  factorsPML[0] = val.real();
 // 	}
-// 	else if (piezoMatType_ == IMAGMATERIALPARAMETER) {
+// 	else if (matDataType_ == IMAG) {
 // 	  factorsPML[0] = val.imag();
 // 	}
 //       }
       
 //       else {
 // 	val = factors[0]*factors[1];
-// 	if (piezoMatType_ == REALMATERIALPARAMETER) {
+// 	if (matDataType_ == REAL) {
 // 	  factorsPML[0] = val.real();
 // 	}
-// 	else if (piezoMatType_ == IMAGMATERIALPARAMETER) {
+// 	else if (matDataType_  == IMAG) {
 // 	  factorsPML[0] = val.imag();
 // 	}
 //       }

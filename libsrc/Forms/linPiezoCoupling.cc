@@ -168,9 +168,9 @@ namespace CoupledField {
 
     ENTER_FCN( "linPiezoCoupling::calcDMat" );
     Matrix<Double> matMatrix;
-    ptMaterial->GetTensor(matMatrix,PIEZO_TENSOR,REAL,subTensorType_);
-
+    ptMaterial->GetTensor(matMatrix,PIEZO_TENSOR,matDataType_,subTensorType_);
     matMatrix.Transpose(dMat);
+    //    std::cout << "dMat:\n" << dMat << std::endl;
   }
 
 

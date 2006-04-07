@@ -139,7 +139,9 @@ namespace CoupledField
     }
     else {
       if ( dataType == REAL || dataType == IMAG ) {
-	tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
+	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	}
 	tensorParams_[matType].SetPart( dataType, param );
       }
       else {

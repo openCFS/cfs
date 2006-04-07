@@ -6,8 +6,7 @@
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
 #include "Forms/forms_header.hh"
-#include "Forms/linElecInt3D.hh"
-#include "Forms/linElecInt2D.hh"
+#include "Forms/linElecInt.hh"
 #include "Estimator/spaceerror.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "Driver/assemble.hh"
@@ -60,6 +59,7 @@ namespace CoupledField {
 
     //check, if problem is axisymmetric
     if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
+
   }
   
 
@@ -68,8 +68,23 @@ namespace CoupledField {
   {
     ENTER_FCN( "ElecPDE::DefineIntegerators" );
 
-    BaseForm *form;
+    BaseForm *form, *formC;
 
+   //transform the type
+    SubTensorType tensorType;
+
+    if ( dim_ == 3 ) {
+      tensorType = FULL;
+    }
+    else {
+      if ( isaxi_ == TRUE ) {
+	tensorType = AXI;
+      }
+      else {
+	// 2d: plane case
+	tensorType = PLANE_STRAIN;
+      }
+    }
 
     // if the pde is piezo-coupled, the electrostatic entries
     // have to multiplied with -1
@@ -78,20 +93,31 @@ namespace CoupledField {
       factor *= -1.0;  
   
     for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
-      if (dim_ == 3) {
-        form = new linElecInt3D( materialData_[actSD] );
-        form->SetFactor( factor );
-      }
-      else {
-        form = new linElecInt2D( materialData_[actSD], isaxi_ );
-        form->SetFactor( factor );
-      }
+      form = new linElecInt( materialData_[actSD], tensorType );
+      form->SetFactor( factor );
 
       IntegratorDescriptor * stiffIntDescr = 
         new IntegratorDescriptor(form, STIFFNESS, nonLin_);
 
       stiffIntDescr->SetPDEIds(this, this);
       assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
+
+      // check for complex valued material parameter
+      if( params->HasValue( "type", "imagMaterialParameter", 
+                            "materialDataType" ) ) {
+        DataType matType = IMAG; 
+
+        formC = new linElecInt( materialData_[actSD], tensorType );
+	formC->SetFactor( factor );
+	formC->SetMatDataType(matType);
+
+	IntegratorDescriptor * stiffIntDescrC = 
+	  new IntegratorDescriptor(formC, STIFFNESS, nonLin_);
+
+	stiffIntDescrC->SetPDEIds(this, this);
+	stiffIntDescrC->SetMatDataType(matType);
+	assemble_->AddIntegrator(stiffIntDescrC, subdoms_[actSD]);
+      }
 
     }
   }

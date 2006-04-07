@@ -354,6 +354,11 @@ namespace CoupledField
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
 
+
+    // check for complex valued material parameter
+    Boolean complexMaterial = 
+      params->HasValue( "type", "imagMaterialParameter", "materialDataType" );
+
      //voulme integrators
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
@@ -375,22 +380,38 @@ namespace CoupledField
 	if (softeningInfo.GetSize() > 0)
 	  bilinearStiff->SetSofteningModel(softeningInfo[0]);
 	
-	
 	IntegratorDescriptor * actIntDescrStiff =
 	  new IntegratorDescriptor(bilinearStiff, STIFFNESS);
 	
 	actIntDescrStiff->SetPDEIds(this, this);
 	
-	
-	
 	//check for damping
-	if ( dampingList_[subdoms_[actSD]] == RAYLEIGH ) {
+	if ( dampingList_[subdoms_[actSD]] == RAYLEIGH && complexMaterial == FALSE ) {
 	  Double beta;
 	  actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
 	  actIntDescrStiff->SetSecondaryMat(DAMPING, beta,analysistype_);
 	}
 	
 	assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);
+
+	// check for complex valued material parameter
+	if( complexMaterial ) {
+	  BaseForm * bilinearStiffImag = GetStiffIntegrator(materialData_[actSD]);
+
+	  DataType matType = IMAG; 
+	  bilinearStiffImag->SetMatDataType(matType);
+
+	  if (softeningInfo.GetSize() > 0)
+	    bilinearStiffImag->SetSofteningModel(softeningInfo[0]);
+	
+	  IntegratorDescriptor * actIntDescrStiffImag =
+	    new IntegratorDescriptor(bilinearStiffImag, STIFFNESS);
+	
+	  actIntDescrStiffImag->SetPDEIds(this, this);
+	  actIntDescrStiffImag->SetMatDataType(matType);
+
+	  assemble_->AddIntegrator(actIntDescrStiffImag, subdoms_[actSD]);
+	}
 
 
 	//for prestressing

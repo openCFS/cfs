@@ -13,7 +13,7 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
-    piezoMatType_ = REALMATERIALPARAMETER;
+    matDataType_ = REAL;
 
     // We generate the object, so we will delete it
     //    Error("Copy constructor not implemented",__FILE__,__LINE__);
@@ -34,7 +34,7 @@ namespace CoupledField
     ptMaterial = matData;
 
     // We generate the object, so we will delete it
-    piezoMatType_ = REALMATERIALPARAMETER;
+    matDataType_ = REAL;
     delMatDataAtEnd_ = true;
 
     baseType_ = NOTYPE;
@@ -48,7 +48,7 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
-    piezoMatType_ = REALMATERIALPARAMETER;
+    matDataType_ = REAL;
 
     // We do not generate the object, so we will not delete it
     ptMaterial = NULL;
@@ -65,7 +65,7 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseForm::BaseForm" );
     isSetIntPoint_ = FALSE;
-    piezoMatType_ = REALMATERIALPARAMETER;
+    matDataType_ = REAL;
 
     // We do not generate the object, so we will not delete it
     ptMaterial = NULL;

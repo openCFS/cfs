@@ -134,7 +134,6 @@ namespace CoupledField
 					 const DataType& dataType ) {
     
     ENTER_FCN( "ElectroStaticMaterial::SetTensor" );
-    std::cout << "in SetTensor" << std::endl;
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
@@ -143,7 +142,9 @@ namespace CoupledField
     }
     else {
       if ( dataType == REAL || dataType == IMAG ) {
-	tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
+	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	}
 	tensorParams_[matType].SetPart( dataType, param );
 
 	// to be consistent to old structure

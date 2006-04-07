@@ -242,13 +242,13 @@ namespace CoupledField
 //                 std::cout<<elemmat<<std::endl;
 //                 getchar();
                   
-                piezoMaterialType matType = actDescriptor->GetPiezoMaterialType();
-                actDescriptor->SetPiezoMaterialType(matType);
+                DataType matType = actDescriptor->GetMatDataType();
+                actDescriptor->SetMatDataType(matType);
 
                 if (TRUE){
                   TransformMatrix2Harmonic(harmonicVec,elemmat, 
                                            actDescriptor->GetOrigMatrixType(),
-                                           actDescriptor->GetPiezoMaterialType());
+                                           actDescriptor->GetMatDataType());
                   //                  std::cout<<"Transformation to harmonic vec went fine "<<std::endl;
                   //                  std::cout<<harmonicVec<<std::endl;
                     
@@ -282,7 +282,7 @@ namespace CoupledField
 
                      TransformMatrix2Harmonic(harmonicVec,elemmat,
                                               actDescriptor->GetOrigSecMatrixType(),
-                                              actDescriptor->GetPiezoMaterialType());
+                                              actDescriptor->GetMatDataType());
         
                      algsys_->SetElementMatrix(destFEMMat, &harmonicVec[0], 
                                                pdeId1_, connect_PDE1.GetPointer(),
@@ -379,7 +379,7 @@ namespace CoupledField
   void MHassemble :: TransformMatrix2Harmonic( Vector<Double>& harmMat,
                             Matrix<Double> origMat,
                             const FEMatrixType matrixType,
-                            const piezoMaterialType piezoMatType ) {
+                            const DataType piezoMatType ) {
 
     ENTER_FCN( "MHAssemble::TransformMatrix2Harmonic" );
 
@@ -389,7 +389,7 @@ namespace CoupledField
 
     Integer k=0;
 
-    if (piezoMatType == REALMATERIALPARAMETER) {
+    if (piezoMatType == REAL) {
 
       if (matrixType == STIFFNESS) {
 
@@ -427,7 +427,7 @@ namespace CoupledField
         }
     } // end, if piezoMatType == real...
 
-    else if(piezoMatType == IMAGMATERIALPARAMETER){  // the "imaginary parts"
+    else if(piezoMatType == IMAG){  // the "imaginary parts"
    
       if (matrixType == STIFFNESS)
         {

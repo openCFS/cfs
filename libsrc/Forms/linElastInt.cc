@@ -136,7 +136,7 @@ namespace CoupledField
   {
     ENTER_FCN( "linElastInt::calcDMat" );
     
-    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL, subTensorType_);
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
 
      //check for softening model
     if ( subTensorType_ == AXI ) {
@@ -244,6 +244,8 @@ namespace CoupledField
 	}
       }
     }
+
+    //    std::cout << "dMat:\n" << dMat << std::endl;
     
   }
 

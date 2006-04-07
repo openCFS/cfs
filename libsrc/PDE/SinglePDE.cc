@@ -759,7 +759,9 @@ namespace CoupledField {
         std::string doftype = bcs_id_[i]; 
         dof = domain->GetCoordSystem()->GetVecComponent(inhomDirichDof_[i]);
       }
-      
+
+      //      std::cout << "BC-Name: " <<    bcs_id_[i] << std::endl;
+    
       ptgrid_->GetNodesByName( nodes, bcs_id_[i] ); 
       
       // Get the correct time function value
@@ -875,6 +877,7 @@ namespace CoupledField {
                                  eqnDof );
         }
         else {
+	  //	  std::cout << "IHDBC val=" << val << std::endl;
           algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, val, eqnDof );
         }
         bcNum++;

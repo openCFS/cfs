@@ -541,8 +541,8 @@ libsrc/Forms/laplaceXYZInt.cc svneol=native#text/plain
 libsrc/Forms/laplaceXYZInt.hh svneol=native#text/plain
 libsrc/Forms/linElastInt.cc svneol=native#text/plain
 libsrc/Forms/linElastInt.hh svneol=native#text/plain
-libsrc/Forms/linElecInt2D.hh svneol=native#text/plain
-libsrc/Forms/linElecInt3D.hh svneol=native#text/plain
+libsrc/Forms/linElecInt.cc -text
+libsrc/Forms/linElecInt.hh -text
 libsrc/Forms/linPiezoCoupling.cc -text
 libsrc/Forms/linPiezoCoupling.hh -text
 libsrc/Forms/linPressureInt.cc svneol=native#text/plain

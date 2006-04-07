@@ -51,8 +51,7 @@ namespace CoupledField
     virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
                                           Matrix<Double> origMat,
                                           const FEMatrixType matrixType,
-                                          const piezoMaterialType 
-                                          piezoMatType);
+                                          const DataType matDataType);
 
     /// adds integrators to the pde
     virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
