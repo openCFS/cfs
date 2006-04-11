@@ -291,16 +291,17 @@ namespace CoupledField
   {
     ENTER_IFCN("Vector::Add");  
 
-    const Vector<TYPE> & vec = dynamic_cast<const Vector<TYPE>&>(y);
+    const Vector<TYPE> & yvec = dynamic_cast<const Vector<TYPE>&>(y);
+    const Vector<TYPE> & zvec = dynamic_cast<const Vector<TYPE>&>(z);
 
 #ifdef CHECK_INDEX
-    if (size_ != vec.size_)
+    if (size_ != yvec.size_ || size_ != zvec.size_)
       Warning("Vector: incompatible dimension for operator \
 Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 #endif
 
     for (UInt i=0; i<size_; i++)
-      data_[i] = a*data_[i]+ b*vec.data_[i];
+      data_[i] = a*yvec.data_[i]+ b*zvec.data_[i];
   }
 
   template<class TYPE> 
