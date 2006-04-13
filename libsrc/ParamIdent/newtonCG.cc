@@ -15,7 +15,7 @@ namespace CoupledField
     UInt nrNewtonIterations=0;
     UInt backtrackIterator=0;
 
-    StdVector<BaseMaterial*> ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialMap ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     Double eta_max, eta_new, t, theta_min, theta_max, gamma, al, eta_min;
     Double alpha, beta, tau;
@@ -530,7 +530,7 @@ namespace CoupledField
     UInt nrNewtonIterations=0;
     UInt backtrackIterator=0;
 
-    StdVector<BaseMaterial*> ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialMap ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     Double eta_max, eta_new, t, aa,b,c, theta_min, theta_max, gamma, al;
     Double alpha, beta, tau;

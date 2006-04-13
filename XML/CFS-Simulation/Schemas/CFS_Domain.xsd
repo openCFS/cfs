@@ -17,7 +17,8 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DomainRegion">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
-    <xsd:attribute name="material" type="xsd:token" use="required"/>
+    <xsd:attribute name="material" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="composite" type="xsd:token" use="optional" default=""/>
   </xsd:complexType>
 
 
@@ -43,6 +44,30 @@
     <xsd:attribute name="name" type="xsd:token" use="required"/>
   </xsd:complexType>
   
+
+  <!-- ******************************************************************** -->
+  <!-- Data type for specifying a composite material, defined by several -->
+  <!-- layers -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_DomainComposite">
+    <xsd:sequence>
+      <xsd:element name="startHeight" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+      <xsd:sequence>
+        <xsd:element name="lamina" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:attribute name="material" type="xsd:token"
+            use="required"/>
+            <xsd:attribute name="thickness" type="DT_NonNegFloat" use="required"/>
+            <xsd:attribute name="orientation" type="xsd:double"   
+              use="optional" default="0.0"/>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:sequence>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
+
   <!-- ******************************************************************** -->
   <!--   Definition of basic CoordSys data type -->
   <!-- ******************************************************************** -->
@@ -104,6 +129,8 @@
       <xsd:element name="nodes" type="DT_DomainNodes" minOccurs="0"
         maxOccurs="unbounded"/>
       <xsd:element name="elements" type="DT_DomainElems" minOccurs="0"
+        maxOccurs="unbounded"/>
+      <xsd:element name="composite" type="DT_DomainComposite" minOccurs="0"
         maxOccurs="unbounded"/>
       <xsd:element name="coordSys" minOccurs="0" maxOccurs="unbounded">
         <xsd:complexType>

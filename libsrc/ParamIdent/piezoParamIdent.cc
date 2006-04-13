@@ -232,13 +232,13 @@ namespace CoupledField
 
   //! Updates material data & updates system matrices!!
   void piezoParamIdent::updateMaterialData(Vector<Double> & parameter, 
-					   StdVector<BaseMaterial*>& ptMaterial) {
+					   MaterialMap& ptMaterial) {
     ENTER_FCN("piezoParamIdent::updateMaterialData");    
 
   } // end updateMaterialData
 
   void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC, 
-						  StdVector<BaseMaterial*>& ptMaterial) {
+						  MaterialMap& ptMaterial) {
 
     ENTER_FCN("piezoParamIdent::updateComplexMaterialData");    
     //    std::cout<<"updateComplexMaterialData"<<std::endl;

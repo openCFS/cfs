@@ -18,7 +18,7 @@ namespace CoupledField
     UInt nLandweber=0;
     Double theta, eta_acc;
 
-    StdVector<BaseMaterial*> ptMaterial;
+    MaterialMap ptMaterial;
     
     if(directCoupling==TRUE)
       ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
@@ -313,7 +313,7 @@ namespace CoupledField
     UInt nLandweber=0;
     Double theta, eta_acc;
 
-    StdVector<BaseMaterial*> ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialMap ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     updateMaterialData(parameter, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
     updateMaterialData(parameterC, ptMaterial);         //Writes initial guesses of parameters (read from MeasuredData.dat) to system
 

@@ -35,14 +35,16 @@ namespace CoupledField {
     
 
     // calculcate correct orientation of normal
-    Integer index = regionIds_.Find( actElem_->ptVolElem1->regionId );
-    if ( index == -1 && actElem_->ptVolElem2 != NULL ) {
-      index = regionIds_.Find( actElem_->ptVolElem2->regionId );
+    std::map<RegionIdType, BaseMaterial*>::iterator it = 
+      materials_.find( actElem_->ptVolElem1->regionId );
+
+    if ( it == materials_.end() && actElem_->ptVolElem2 != NULL ) {
+      it = materials_.find( actElem_->ptVolElem2->regionId );
     } else {
       normal_ *= -1;
     }
     
-    if( index == -1 ) {
+    if( it == materials_.end() ) {
       (*error) << "PressureLinForm: Surface element number " << actElem_->elemNum
                << " has no mechanic volume element neighbour!";
       Error( __FILE__, __LINE__ );

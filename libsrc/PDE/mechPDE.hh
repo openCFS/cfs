@@ -45,6 +45,7 @@ namespace CoupledField
 
     /// returns a stiffness integrator appropriate to the actual problem (e.g.3D)
     BaseForm * GetStiffIntegrator(BaseMaterial* actSDMat,
+                                  RegionIdType regionId,
                                   Boolean reducedInt=FALSE);
   
     // ======================================================

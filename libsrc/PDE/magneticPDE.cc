@@ -138,12 +138,12 @@ namespace CoupledField {
 
       // Get reluctivity for this domain and perform consistency check
       Double reluctivity;
-      materialData_[actSD]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
+      materials_[subdoms_[actSD]]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
  
       if ( nonLinType_[actSD] != "no" ) {
 
         //read in the BH-curve data and compute the approximation
-        std::string nlfnc = materialData_[actSD]->GetNonlinFileName();
+        std::string nlfnc = materials_[subdoms_[actSD]]->GetNonlinFileName();
         ApproxData *nlinFnc = new SmoothSpline(nlfnc);
         //ApproxData *nlinFnc = new LinInterpolate(nlfnc);
         nlinFnc->CalcBestParameter();
@@ -182,7 +182,7 @@ namespace CoupledField {
 
       // Mass matrix
       Double conductivity;
-      materialData_[actSD]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+      materials_[subdoms_[actSD]]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
       BaseForm *bilinear_mass = new MassInt(conductivity, dofspernode_,isaxi_);
 
       IntegratorDescriptor * massDescr = 
@@ -445,7 +445,7 @@ namespace CoupledField {
         // Get the right material parameter for actual subdomain
         for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++)
           if (subdoms_[iSD] == calcEddy_[actSD])
-	    materialData_[iSD]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+	    materials_[subdoms_[iSD]]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
 
         // loop over elements of subdomain
         for ( UInt actEl=0; actEl< elemssd.GetSize();
@@ -539,7 +539,7 @@ namespace CoupledField {
     for (i=0; i<calcEnergy_.GetSize(); i++) {
 
       Double reluctivity;
-      materialData_[i]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
+      materials_[calcEnergy_[i]]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
 
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems( elemssd,calcEnergy_[i] );
@@ -866,7 +866,7 @@ namespace CoupledField {
       //initialize the force operator
       NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
       ForceOpVWP_ = new  MagForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, 
-                                    materialData_, subdoms_,  isaxi_);
+                                    materials_,  isaxi_);
       
       keyVec  = pdename_, "storeResults", "nodeResults", "region";
       attrVec = "", "", "type";
@@ -1157,7 +1157,7 @@ namespace CoupledField {
       }
 
       Double conductivity;
-      materialData_[SDidx]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);      
+      materials_[subdoms_[SDidx]]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);      
       
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);

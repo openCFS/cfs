@@ -24,8 +24,7 @@ namespace CoupledField
     void SetVoluNormal( Vector<Double> & n );
     
     //! Set information of related volume region
-    void SetVoluInfo( const StdVector<RegionIdType> & regionIds,
-                      const StdVector<BaseMaterial*>& materials );
+    void SetVoluInfo( std::map<RegionIdType, BaseMaterial*> & materials );
     
     //! set additional multiplicative factor for matrix
     void SetFactor(Double factor); 
@@ -39,10 +38,7 @@ namespace CoupledField
     Vector<Double> normal_;
 
     //! Region Ids of associated volume regions
-    StdVector<RegionIdType> regionIds_;
-
-    //! Materials of volume regions
-    StdVector<BaseMaterial*> materials_;
+    std::map<RegionIdType, BaseMaterial *> materials_;
 
     //! Multiplicative factor for vector
     Double factor_;

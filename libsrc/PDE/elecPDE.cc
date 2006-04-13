@@ -93,7 +93,7 @@ namespace CoupledField {
       factor *= -1.0;  
   
     for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
-      form = new linElecInt( materialData_[actSD], tensorType );
+      form = new linElecInt( materials_[subdoms_[actSD]], tensorType );
       form->SetFactor( factor );
 
       IntegratorDescriptor * stiffIntDescr = 
@@ -107,7 +107,7 @@ namespace CoupledField {
                             "materialDataType" ) ) {
         DataType matType = IMAG; 
 
-        formC = new linElecInt( materialData_[actSD], tensorType );
+        formC = new linElecInt( materials_[subdoms_[actSD]], tensorType );
 	formC->SetFactor( factor );
 	formC->SetMatDataType(matType);
 
@@ -579,12 +579,14 @@ namespace CoupledField {
 
 
           // Get the right material parameter for actual volume element
-          for (UInt i=0; i<subdoms_.GetSize(); i++)
-            {
-              if (subdoms_[i] == ptVolElem->regionId)
-                materialData_[i]->GetScalar(permittivity,ELEC_PERMITTIVITY,REAL);
-            }
-        
+//           for (UInt i=0; i<subdoms_.GetSize(); i++)
+//             {
+//               if (subdoms_[i] == ptVolElem->regionId)
+//                 materialData_[i]->GetScalar(permittivity,ELEC_PERMITTIVITY,REAL);
+//             }
+          BaseMaterial * myMat = materials_[ptVolElem->regionId];
+          myMat->GetScalar(permittivity,ELEC_PERMITTIVITY,REAL);
+
           // Calc electric flux density
           dFieldOp->CalcElemGradField(elemDField, ptVolElem, 
                                       lCoordVol,permittivity);
@@ -649,7 +651,7 @@ namespace CoupledField {
       {
         //reads eps33 (matrix notation starts with 0)
 	Double eps33;
-	materialData_[i]->GetScalar(eps33,ELEC_PERMITTIVITY,REAL);
+	materials_[subdoms_[i]]->GetScalar(eps33,ELEC_PERMITTIVITY,REAL);
 
         StdVector<Elem*> elemssd;
         ptgrid_->GetVolElems( elemssd,subdoms_[i] );
@@ -755,8 +757,7 @@ namespace CoupledField {
           NodeStoreSol<Double> * solhelp = 
             dynamic_cast<NodeStoreSol<Double> *>(sol_);
           ForceOp_ = new  ElecForceOp(ptgrid_, this, eqnData_, 
-                                      *solhelp, dim_, materialData_,
-                                      subdoms_, isaxi_);
+                                      *solhelp, dim_, materials_, isaxi_);
 
           ptCoupling_->GetOutputNeighbourRegion(actCoupling, nRegions);
           ptgrid_->RegionNameToId(nRegionIds,*nRegions);

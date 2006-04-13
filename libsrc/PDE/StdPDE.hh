@@ -8,6 +8,7 @@
 
 #include "PDE/timestepping.hh"
 #include "nodeEQN.hh"
+#include "Domain/Composite.hh"
 
 namespace CoupledField {
 
@@ -290,8 +291,8 @@ namespace CoupledField {
     //!  identification process! Maybe one day a more to CFS++ consistent 
     //!  nomenclature would be nice ...
 
-    StdVector<BaseMaterial*> getPDEMaterialData()
-    {return materialData_;};
+    std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
+    {return materials_;};
     
     BaseNodeStoreSol * getPDESolution() {return sol_;};
     
@@ -495,8 +496,15 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes handling info on material data
-    StdVector<BaseMaterial*> materialData_;     //!< material data structure
-    MaterialClass pdematerialclass_;    //!< material class
+
+    //! Maps regions and (simple) materials
+    std::map<RegionIdType, BaseMaterial*> materials_;    
+    
+    //! Maps regions and composite materials
+    std::map<RegionIdType, Composite> compositeMaterials_;
+
+    //! material class
+    MaterialClass pdematerialclass_;   
   
     //! Data Type which decides wheather material is real or complex
     DataType  matDataType_;

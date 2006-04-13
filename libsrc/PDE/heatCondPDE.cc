@@ -79,9 +79,10 @@ namespace CoupledField {
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
-      materialData_[actSD]->GetScalar(density,DENSITY,REAL);
-      materialData_[actSD]->GetScalar(heatCapacity,HEAT_CAPACITY,REAL);
-      materialData_[actSD]->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,REAL);
+      BaseMaterial * actMat = materials_[subdoms_[actSD]];
+      actMat->GetScalar(density,DENSITY,REAL);
+      actMat->GetScalar(heatCapacity,HEAT_CAPACITY,REAL);
+      actMat->GetScalar(thermalConductivity,HEAT_CONDUCTIVITY,REAL);
 
       // stiffness integrator
       coeffstiff = thermalConductivity;
@@ -123,7 +124,7 @@ namespace CoupledField {
                       htc_[Id], tSolid_[Id], tFluid_[Id] );
       }
       LinearSurfForm *neumannBC = new HeatNeumannInt( factor, isaxi_ );
-      neumannBC->SetVoluInfo( subdoms_, materialData_ );
+      neumannBC->SetVoluInfo( materials_ );
 
       assemble_->AddRhsSrcSurfIntegrator( neumannBC,
                                           IdVec[Id],

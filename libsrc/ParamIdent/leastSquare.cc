@@ -11,7 +11,7 @@ namespace CoupledField
   void piezoParamIdent::leastSquare(){ 
     ENTER_FCN("piezoParamIdent::leastSquare");    
 
-    StdVector<BaseMaterial*> ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+    MaterialMap ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
     nrMeasuredData=20;
     Vector<Double> freqs5;

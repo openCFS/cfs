@@ -21,7 +21,6 @@ namespace CoupledField {
     // initialize pointers
     sol_          = NULL;
     solVec_       = NULL;
-    materialData_ = NULL;
     pde1_         = NULL;
     pde2_         = NULL;
     ptGrid_       = NULL;
@@ -51,10 +50,12 @@ namespace CoupledField {
     // We generated assemble object, so we also must delete it
     delete assemble_;
     
-    for ( UInt i = 0; i < materialData_.GetSize(); i++ ) {
-      delete (materialData_[i]);
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      delete it->second;
     }
-    materialData_.Clear();
+    materials_.clear();
+
   }
 
 
@@ -197,20 +198,6 @@ namespace CoupledField {
 
     std::string matFileName;
 
-    // Allocate space to hold material data for each subdomain of this PDE
-    materialData_.Resize(subdoms_.GetSize());
-
-    if ( materialClass_  == PIEZO ) {
-      for (UInt k=0; k<subdoms_.GetSize();k++) {
-	materialData_[k] = new PiezoMaterial();
-      }
-    }
-    else {
-      std::string msg = "Material Class for coupled PDE " + couplingName_ 
-	              + " not available";
-      Error(msg.c_str(),__FILE__,__LINE__);
-    }
-
     // Obtain pointer to materialHandler
     MaterialHandler * matLoader = NULL;
     matLoader = domain->GetMaterialHandler();
@@ -222,14 +209,14 @@ namespace CoupledField {
     params->GetList( "name", subdomName, "domain", "region" );
     params->GetList( "material", subdomMaterial, "domain", "region" );
     ptGrid_->RegionNameToId( subdomId, subdomName );
-    
+
     // Load material data for subdomains on which this PDE lives
     // from data file
     for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
       for( UInt k = 0; k <= subdomName.GetSize(); k++ ) {
         if( subdoms_[i] == subdomId[k] ){
-          matLoader->GetMaterial( materialData_[i], subdomMaterial[k],
-                                  materialClass_ );
+          materials_[subdoms_[i]] = matLoader->
+            LoadMaterial( subdomMaterial[k],materialClass_ );
           break;
         }
       }

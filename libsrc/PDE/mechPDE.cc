@@ -5,6 +5,7 @@
 
 #include "Forms/forms_header.hh"
 #include "Forms/linElastInt.hh"
+#include "Forms/FlatShellInt.hh"
 #include "Forms/massInt.hh"
 #include "Forms/linPressureInt.hh"
 #include "DataInOut/writeresults.hh"
@@ -61,11 +62,18 @@ namespace CoupledField
       dofspernode_ = 2;
       stressDim_ = 3;
       Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
-    }
+      }
+      
     else if ( subType_ == "planeStress" && probGeo == "plane" ) {
       dofspernode_ = 2;
       stressDim_ = 3;
       Info->PrintF("", "=== PLANE STRESS PROBLEM\n");
+    }
+
+    else if ( subType_ == "flatShell" && probGeo == "3d" ) {
+      dofspernode_ = 6;
+      stressDim_ = 3;
+      Info->PrintF("", "=== FLAT SHELL PROBLEM\n");
     }
     else
       {
@@ -353,165 +361,171 @@ namespace CoupledField
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
-
-
+    RegionIdType actRegion;
+    BaseMaterial * actSDMat = NULL;
+    
+    
     // check for complex valued material parameter
     Boolean complexMaterial = 
       params->HasValue( "type", "imagMaterialParameter", "materialDataType" );
+    
+    //voulme integrators
 
-     //voulme integrators
-    for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++)
-      {
-	BaseMaterial * actSDMat = materialData_[actSD];
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
 
-	// ==============  add "standard" stiffness ===========================
-	BaseForm * bilinearStiff = GetStiffIntegrator(materialData_[actSD]);
-	
-	//check  for softening!
-	RegionIdType actRegion = subdoms_[actSD];
-	std::string actRegionName;
-	actRegionName = ptgrid_->RegionIdToName( actRegion );
-	keyVec = "mechanic" , "region" , "softening" , "type";
-	attrVec= ""         , "name"   , "";
-	valVec = ""         , actRegionName, "";
-	StdVector<std::string> softeningInfo;
-	params->GetList( keyVec, attrVec, valVec, softeningInfo);
-	
-	if (softeningInfo.GetSize() > 0)
-	  bilinearStiff->SetSofteningModel(softeningInfo[0]);
-	
-	IntegratorDescriptor * actIntDescrStiff =
-	  new IntegratorDescriptor(bilinearStiff, STIFFNESS);
-	
-	actIntDescrStiff->SetPDEIds(this, this);
-	
-	//check for damping
-	if ( dampingList_[subdoms_[actSD]] == RAYLEIGH && complexMaterial == FALSE ) {
-	  Double beta;
-	  actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
-	  actIntDescrStiff->SetSecondaryMat(DAMPING, beta,analysistype_);
-	}
-	
-	assemble_->AddIntegrator(actIntDescrStiff, subdoms_[actSD]);
-
-	// check for complex valued material parameter
-	if( complexMaterial ) {
-	  BaseForm * bilinearStiffImag = GetStiffIntegrator(materialData_[actSD]);
-
-	  DataType matType = IMAG; 
-	  bilinearStiffImag->SetMatDataType(matType);
-
-	  if (softeningInfo.GetSize() > 0)
-	    bilinearStiffImag->SetSofteningModel(softeningInfo[0]);
-	
-	  IntegratorDescriptor * actIntDescrStiffImag =
-	    new IntegratorDescriptor(bilinearStiffImag, STIFFNESS);
-	
-	  actIntDescrStiffImag->SetPDEIds(this, this);
-	  actIntDescrStiffImag->SetMatDataType(matType);
-
-	  assemble_->AddIntegrator(actIntDescrStiffImag, subdoms_[actSD]);
-	}
-
-
-	//for prestressing
-	for ( UInt preStr=0; preStr<preStressDomain_.GetSize(); preStr++ ) {
-	  if ( subdoms_[actSD] == preStressDomain_[preStr]) {
-	    Vector<Double> preStrVal(3);
-	    preStrVal[0] = preStressValX_[preStr];
-	    preStrVal[1] = preStressValY_[preStr];
-	    preStrVal[2] = preStressValZ_[preStr];
-	    
-	    BaseForm * bilinearPreStress;
-	    if (subType_ == "planeStrain")
-	      bilinearPreStress = new PreStressIntPlaneStrain(actSDMat, preStrVal);
-	    else if (subType_ == "axi")
-	      bilinearPreStress = new PreStressIntAxi(actSDMat, preStrVal);
-	    else if (subType_ == "3d")
-	      bilinearPreStress = new PreStressInt3D(actSDMat, preStrVal);
-	    else 
-	      Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);               
-	    
-	    IntegratorDescriptor * actIntDescrPre =
-	      new IntegratorDescriptor(bilinearPreStress, STIFFNESS);
-	    actIntDescrPre->SetPDEIds(this, this);
-	    
-	    assemble_->AddIntegrator(actIntDescrPre, subdoms_[actSD]);
-	  }
-	}
-       
-
-	// ==============  add nonlinear stiffness ============================
-	if (nonLin_)
-	  {
-	    BaseForm *nLinPart1 = NULL;
-	    BaseForm *nLinPart2 = NULL;
-	    
-	    if (subType_ == "3d")
-	      {   
-		nLinPart1 = new nLinMech3dInt_BNonLin(actSDMat);    
-		nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
-	      }
-	    
-	    else if (subType_ == "planeStrain")
-	      {
-		nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
-		nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
-		
-	      }
-	    else if (subType_ == "axi")
-	      {
-		nLinPart1 = new nLinMechAxiInt_BNonLin(actSDMat);    
-		nLinPart2 = new nLinMechAxiInt_PiolaStress(actSDMat);
-		
-	      }
-	    
-	    IntegratorDescriptor * stiffNL1Descr = 
-	      new IntegratorDescriptor(nLinPart1, STIFFNESS, nonLin_);
-	    
-	    stiffNL1Descr->SetPDEIds(this, this);
-	    assemble_->AddIntegrator(stiffNL1Descr, subdoms_[actSD]);
-	    
-	    IntegratorDescriptor * stiffNL2Descr = 
-	      new IntegratorDescriptor(nLinPart2, STIFFNESS, nonLin_);
-	    
-	    stiffNL2Descr->SetPDEIds(this, this);
-	    assemble_->AddIntegrator(stiffNL2Descr, subdoms_[actSD]);
-	    
-	    // assemble prestress, if in config-file given
-	    //    if (preStressVal_)
-	    //      AssemblePreStressMat(ptEl, connect_PDE, ptCoord,
-	    //      actMatData, elDisp);
-	  }
-	
-	
-	// ==============  add mass ===========================================
-	double density;
-	actSDMat->GetScalar(density,DENSITY,REAL);
-	BaseForm * bilinearMass  = new MassInt(density, dofspernode_, isaxi_);
-	
-	IntegratorDescriptor * actIntDescr =
-	  new IntegratorDescriptor(bilinearMass, MASS);
-	actIntDescr->SetPDEIds(this, this);
-	
-	//check for damping (mass part)
-	
-	if ( dampingList_[subdoms_[actSD]] == RAYLEIGH ) {
-	  Double alpha;
-	  actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-	  actIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
-	}
-	
-	assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
-	
-	
-	// ==================== RHS ===========================================
-	if (nonLin_)
-	  {
-	    BaseForm * rhsSource = new nLinMech_linFormInt(actSDMat, isaxi_);
-	    assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
-	  }
+      // Get current region and material
+      actRegion = it->first;
+      actSDMat = it->second;
+      
+      // ==============  add "standard" stiffness ===========================
+      BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat, actRegion);
+      
+      //check  for softening!
+      std::string actRegionName;
+      actRegionName = ptgrid_->RegionIdToName( actRegion );
+      keyVec = "mechanic" , "region" , "softening" , "type";
+      attrVec= ""         , "name"   , "";
+      valVec = ""         , actRegionName, "";
+      StdVector<std::string> softeningInfo;
+      params->GetList( keyVec, attrVec, valVec, softeningInfo);
+      
+      if (softeningInfo.GetSize() > 0)
+        bilinearStiff->SetSofteningModel(softeningInfo[0]);
+      
+      IntegratorDescriptor * actIntDescrStiff =
+        new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+      
+      actIntDescrStiff->SetPDEIds(this, this);
+      
+      //check for damping
+      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == FALSE ) {
+        Double beta;
+        actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
+        actIntDescrStiff->SetSecondaryMat(DAMPING, beta,analysistype_);
       }
+      
+      assemble_->AddIntegrator(actIntDescrStiff, actRegion);
+        
+      // check for complex valued material parameter
+      if( complexMaterial ) {
+        BaseForm * bilinearStiffImag = GetStiffIntegrator(actSDMat, 
+                                                          actRegion);
+          
+        DataType matType = IMAG; 
+        bilinearStiffImag->SetMatDataType(matType);
+          
+        if (softeningInfo.GetSize() > 0)
+          bilinearStiffImag->SetSofteningModel(softeningInfo[0]);
+          
+        IntegratorDescriptor * actIntDescrStiffImag =
+          new IntegratorDescriptor(bilinearStiffImag, STIFFNESS);
+          
+        actIntDescrStiffImag->SetPDEIds(this, this);
+        actIntDescrStiffImag->SetMatDataType(matType);
+          
+        assemble_->AddIntegrator(actIntDescrStiffImag, actRegion );
+      }
+        
+        
+      //for prestressing
+      for ( UInt preStr=0; preStr<preStressDomain_.GetSize(); preStr++ ) {
+        if ( actRegion == preStressDomain_[preStr]) {
+          Vector<Double> preStrVal(3);
+          preStrVal[0] = preStressValX_[preStr];
+          preStrVal[1] = preStressValY_[preStr];
+          preStrVal[2] = preStressValZ_[preStr];
+            
+          BaseForm * bilinearPreStress;
+          if (subType_ == "planeStrain")
+            bilinearPreStress = new PreStressIntPlaneStrain(actSDMat, preStrVal);
+          else if (subType_ == "axi")
+            bilinearPreStress = new PreStressIntAxi(actSDMat, preStrVal);
+          else if (subType_ == "3d")
+            bilinearPreStress = new PreStressInt3D(actSDMat, preStrVal);
+          else 
+            Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);               
+	    
+          IntegratorDescriptor * actIntDescrPre =
+            new IntegratorDescriptor(bilinearPreStress, STIFFNESS);
+          actIntDescrPre->SetPDEIds(this, this);
+	    
+          assemble_->AddIntegrator(actIntDescrPre, actRegion);
+        }
+      }
+      
+      
+      // ==============  add nonlinear stiffness ============================
+      if (nonLin_)
+        {
+          BaseForm *nLinPart1 = NULL;
+          BaseForm *nLinPart2 = NULL;
+	    
+          if (subType_ == "3d")
+            {   
+              nLinPart1 = new nLinMech3dInt_BNonLin(actSDMat);    
+              nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
+            }
+	    
+          else if (subType_ == "planeStrain")
+            {
+              nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
+              nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
+		
+            }
+          else if (subType_ == "axi")
+            {
+              nLinPart1 = new nLinMechAxiInt_BNonLin(actSDMat);    
+              nLinPart2 = new nLinMechAxiInt_PiolaStress(actSDMat);
+		
+            }
+	    
+          IntegratorDescriptor * stiffNL1Descr = 
+            new IntegratorDescriptor(nLinPart1, STIFFNESS, nonLin_);
+	    
+          stiffNL1Descr->SetPDEIds(this, this);
+          assemble_->AddIntegrator(stiffNL1Descr, actRegion);
+	    
+          IntegratorDescriptor * stiffNL2Descr = 
+            new IntegratorDescriptor(nLinPart2, STIFFNESS, nonLin_);
+	    
+          stiffNL2Descr->SetPDEIds(this, this);
+          assemble_->AddIntegrator(stiffNL2Descr, actRegion);
+	    
+          // assemble prestress, if in config-file given
+          //    if (preStressVal_)
+          //      AssemblePreStressMat(ptEl, connect_PDE, ptCoord,
+          //      actMatData, elDisp);
+        }
+	
+	
+      // ==============  add mass ===========================================
+      double density;
+      actSDMat->GetScalar(density,DENSITY,REAL);
+      BaseForm * bilinearMass  = new MassInt(density, dofspernode_, isaxi_);
+	
+      IntegratorDescriptor * actIntDescr =
+        new IntegratorDescriptor(bilinearMass, MASS);
+      actIntDescr->SetPDEIds(this, this);
+	
+      //check for damping (mass part)
+	
+      if ( dampingList_[actRegion] == RAYLEIGH ) {
+        Double alpha;
+        actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+        actIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
+      }
+	
+      assemble_->AddIntegrator(actIntDescr, actRegion);
+	
+	
+      // ==================== RHS ===========================================
+      if (nonLin_)
+        {
+          BaseForm * rhsSource = new nLinMech_linFormInt(actSDMat, isaxi_);
+          assemble_->AddRhsIntegrator(rhsSource, actRegion, nonLin_);
+        }
+    }
     
   
    
@@ -520,7 +534,7 @@ namespace CoupledField
     Boolean nonlin = FALSE;
     for (UInt actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
       LinearSurfForm * rhsSrcSurf = new PressureLinForm(pressVals_[actSF], isaxi_);
-      rhsSrcSurf->SetVoluInfo( subdoms_, materialData_ );
+      rhsSrcSurf->SetVoluInfo( materials_ );
       assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], pressFnc_[actSF],
 					 nonlin);
     }
@@ -528,46 +542,83 @@ namespace CoupledField
     
     // Add integrators for region loads
     MechVolForceInt * forceInt;
-    std::map<RegionIdType, RegionLoad>::iterator it = regionLoads_.begin();
-    (*it).second.Print(TRUE, pdename_ );
-    for( it = regionLoads_.begin(); it != regionLoads_.end(); it++ ) {
-      forceInt = (*it).second.GetIntegrator();
-      assemble_->AddRhsSrcIntegrator( forceInt, (*it).first,
-                                      (*it).second.dynamics, nonLin_ );
-      (*it).second.Print(FALSE, pdename_);
+    std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads_.begin();
+    if (regionLoads_.size() != 0 ) {
+      (*loadIt).second.Print(TRUE, pdename_ );
+    }
+    for( loadIt = regionLoads_.begin(); loadIt != regionLoads_.end(); loadIt++ ) {
+      forceInt = (*loadIt).second.GetIntegrator();
+      assemble_->AddRhsSrcIntegrator( forceInt, (*loadIt).first,
+                                      (*loadIt).second.dynamics, nonLin_ );
+      (*loadIt).second.Print(FALSE, pdename_);
 
     }
 
   }
 
 
-  BaseForm *
-  MechPDE::GetStiffIntegrator(BaseMaterial* actSDMat, Boolean reducedInt)
-  {
-
-    ENTER_FCN( "MechPDE::GetStiffIntegrator" );
-
-   //transform the type
-    SubTensorType tensorType;
-    String2Enum(subType_,tensorType);
-  
-    BaseForm * bilinearStiff = NULL;
-
-    if( fracDamping_ == FALSE ) {
-      bilinearStiff = new linElastInt(actSDMat, tensorType);
-    } 
-    else {
-      StdVector<std::string> keyVec, attrVec, valVec;
-      keyVec = "transient", "firstDt";
-      attrVec = "tag";
-      valVec  =  bcSequenceTag_;
-      Double dt = 0.0;
-      params->Get(keyVec,attrVec,valVec,dt);
-      bilinearStiff = new LinViscoElastInt(actSDMat,tensorType, "modifiedStiffness",dt );
-    }
+   BaseForm *
+   MechPDE::GetStiffIntegrator(BaseMaterial* actSDMat, 
+                               RegionIdType regionId,
+                               Boolean reducedInt)
+   {
+     ENTER_FCN( "MechPDE::GetStiffIntegrator" );
     
-    return bilinearStiff;
-  }
+    // Construct vectors for restricted search parameter
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    // Get region name
+    std::string regionName = ptgrid_->RegionIdToName( regionId );
+    attrVec = "", "", "name";
+    valVec = "", "", regionName;
+    
+     BaseForm * bilinearStiff = NULL;
+     
+     // Check for FlatShellIntegrator, as this one is a special sub-type,
+     // not handled by the SubTensorType
+     if (subType_ == "flatShell" ) {
+       FlatShellInt * myInt = new FlatShellInt(actSDMat);
+       
+       // Get thickness of region
+       Double thickness;
+       keyVec = "pdeList", "mechanic", "region", "thickness";
+       params->Get( keyVec, attrVec, valVec, thickness );
+       myInt->SetThickness( thickness );
+       std::cerr << "Thickness of region " << regionName << " is " << thickness << std::endl;
+       
+       // Get penalty value for drilling dof of region
+       Double penaltyDof;
+       keyVec = "pdeList", "mechanic", "region", "penaltyDof";
+       params->Get( keyVec, attrVec, valVec, penaltyDof );
+       myInt->SetPenaltyDof( penaltyDof );
+       std::cerr << "PenaltyDof of region " << regionName << " is " << penaltyDof << std::endl;
+       
+       bilinearStiff = myInt;
+       myInt = NULL;
+     } else { 
+       
+       //transform the type
+       SubTensorType tensorType;
+       String2Enum(subType_,tensorType);
+       
+       if( fracDamping_ == FALSE ) {
+         bilinearStiff = new linElastInt(actSDMat, tensorType);
+       } 
+       else {
+         StdVector<std::string> keyVec, attrVec, valVec;
+         keyVec = "transient", "firstDt";
+         attrVec = "tag";
+         valVec  =  bcSequenceTag_;
+         Double dt = 0.0;
+         params->Get(keyVec,attrVec,valVec,dt);
+         bilinearStiff = new LinViscoElastInt(actSDMat,tensorType, "modifiedStiffness",dt );
+       }
+     } // if "flatShell"
+
+     return bilinearStiff;
+   }
   
   
   void MechPDE::ReadRegionLoads( ) {
@@ -1404,7 +1455,7 @@ namespace CoupledField
     // loop over all subdomains
     for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
       
-      BaseMaterial* actSDMat = materialData_[isd];
+      BaseMaterial* actSDMat = materials_[subdoms_[isd]];
       MechStressStrain<TYPE> *stress = new MechStressStrain<TYPE>(actSDMat,type);
       
       // get vector of Elements of subdomains
@@ -1523,12 +1574,12 @@ namespace CoupledField
       ptgrid_->GetVolElems( elemssd,subdoms_[i] );
 
       //get material
-      BaseMaterial* actSDMat = materialData_[i];
+      BaseMaterial* actSDMat = materials_[subdoms_[i]];
     
       energy[i] = 0;
       for (j=0; j < elemssd.GetSize(); j++) {  
         ptElem=elemssd[j]->ptElem;
-	BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat);
+	BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat, subdoms_[i]);
 
         connecth=elemssd[j]->connect;
         GetElemCoords(connecth, ptCoord);

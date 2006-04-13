@@ -18,16 +18,14 @@ namespace CoupledField
                            NodeEQN * ptEQN,
                            NodeStoreSol<Double> & sol,
                            UInt dim,
-                           StdVector<BaseMaterial*> &matData,
-                           StdVector<RegionIdType> & allSubdoms,
+                           std::map<RegionIdType,BaseMaterial*>& matData,
                            Boolean isaxi) 
     : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
   {
     ENTER_FCN( "BaseForceOp::BaseForceOp" );
 
     dim_ = dim;
-    materialData_ = matData;
-    PDEsubdoms_ = allSubdoms;
+    materials_ = matData;
 
   }
 
@@ -88,11 +86,7 @@ namespace CoupledField
         // Get Material Parameter
         Double matVal;
       
-        for (UInt i=0; i<PDEsubdoms_.GetSize(); i++)   {
-          if (interfaceElems_[ielem]->regionId == PDEsubdoms_[i]) {
-            matVal = GetMatVal(i); 
-          }
-        }
+        matVal = GetMatVal (interfaceElems_[ielem]->regionId );
       
         CalcElemElecForce( force_temp, interfaceElems_[ielem], matVal, isBoundaryNode_[ielem]);
       

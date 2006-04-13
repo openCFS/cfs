@@ -178,7 +178,7 @@ namespace CoupledField
     calc_measuredCharge(freqs, real, imag, y_hat); // out of new measurements
 
     //  actNrParameterC=0;
-    StdVector<BaseMaterial*> ptMaterial;
+    MaterialMap ptMaterial;
 
     if(directCoupling==TRUE)
       ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
@@ -194,7 +194,7 @@ namespace CoupledField
     Vector<Complex> jacobi;
     Complex functional;
 
-    ptMaterial[0]->GetScalar(rho,DENSITY,REAL);
+    ptMaterial.begin()->second->GetScalar(rho,DENSITY,REAL);
 
     // fa_ = 1.0/(2*thickness) * std::sqrt(1.3e+11/rho);
 
@@ -947,7 +947,7 @@ namespace CoupledField
     Integer parInd=0;
     jacobi.Resize(actNrParameter+actNrParameterC);
 
-    StdVector<BaseMaterial*> ptMaterial;
+    MaterialMap ptMaterial;
 
     if(directCoupling==TRUE)
       ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData

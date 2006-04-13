@@ -17,7 +17,7 @@ namespace CoupledField
     UInt nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
-    StdVector<BaseMaterial*> ptMaterial;
+    MaterialMap ptMaterial;
 
     if(directCoupling==TRUE)
       ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
@@ -487,7 +487,7 @@ namespace CoupledField
     Double theta, eta_acc, nu, omega;
 
 
-    StdVector<BaseMaterial*> ptMaterial;
+    MaterialMap ptMaterial;
 
     if(directCoupling==TRUE)
       ptMaterial= ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
@@ -777,7 +777,7 @@ namespace CoupledField
     UInt nNuMethods=0;
     Double theta, eta_acc, nu, omega;
 
-    StdVector<BaseMaterial*> ptMaterial;
+    MaterialMap ptMaterial;
     if(directCoupling==TRUE)
       ptMaterial= ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
     else

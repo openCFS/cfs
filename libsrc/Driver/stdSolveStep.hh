@@ -195,7 +195,10 @@ namespace CoupledField
     UInt numPDEElems_;            //!< number of elements belonging to PDE
     Boolean isaxi_;                  //!< TRUE: axisymmetric problem
     StdVector<RegionIdType> subdoms_;//!< subdomain-levels belonging to PDE
-    StdVector<BaseMaterial*> materialData_;    //!< pointer to material data of PDE
+
+    //! Pointer to material data of PDE
+    std::map<RegionIdType, BaseMaterial*> materialData_;  
+
     Grid * ptgrid_;                  //!< pointer to grid object
     BaseSystem* algsys_;             //!< pointer to algsys object
     BaseNodeStoreSol * sol_;         //!< pointer to solution object

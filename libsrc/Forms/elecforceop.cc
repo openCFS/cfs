@@ -18,10 +18,9 @@ namespace CoupledField
                            NodeEQN * ptEQN,
                            NodeStoreSol<Double> & sol,
                            UInt dim,
-                           StdVector<BaseMaterial*> &matData,
-                           StdVector<RegionIdType> & allSubdoms,
+                           std::map<RegionIdType,BaseMaterial*>& matData,
                            Boolean isaxi) 
-    : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, isaxi)
+    : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, isaxi)
   {
     ENTER_FCN( "ElecForceOp::ElecForceOp" );
 
@@ -49,12 +48,12 @@ namespace CoupledField
 
   } 
 
-  Double ElecForceOp::GetMatVal(UInt actSD)
+  Double ElecForceOp::GetMatVal(RegionIdType actRegion)
   {
     ENTER_FCN( "ElecForceOp::GetMatVal" );
 
     Double epsilon;
-    materialData_[actSD]->GetScalar(epsilon,ELEC_PERMITTIVITY,REAL);
+    materials_[actRegion]->GetScalar(epsilon,ELEC_PERMITTIVITY,REAL);
     return epsilon;
   } 
 

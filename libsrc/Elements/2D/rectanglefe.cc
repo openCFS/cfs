@@ -228,7 +228,7 @@ namespace CoupledField
       
         for(UInt i=0; i<NumIntPoints_; i++)
           {
-            IntWeights_[i]=1;
+            IntWeights_[i]=4;
             IntPoints_[i].Resize(Dim_);
           }
       

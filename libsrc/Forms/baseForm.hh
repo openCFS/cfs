@@ -33,7 +33,7 @@ namespace CoupledField
 
     //! Virtual function, implemented in derived classes
     virtual void CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> & StiffMat);
-
+    
     //! Virtual function, implemented in derived classes
     virtual void CalcComplexElementMatrix(Matrix<Double>& ptCoord,
                                           Matrix<Complex> & StiffMat,
@@ -255,13 +255,13 @@ namespace CoupledField
 
     //! Set information of first interface side
     void SetFirstVoluInfo( const std::string & name,
-                           const StdVector<RegionIdType> & regionIds,
-                           const StdVector<BaseMaterial*>& materials );
+                           const std::map<RegionIdType, BaseMaterial*>
+                           & materials );
 
     //! Set information for second interface side
     void SetSecondVoluInfo( const std::string & name,
-                            const StdVector<RegionIdType> & regionIds,
-                            const StdVector<BaseMaterial*>& materials );
+                            const std::map<RegionIdType, BaseMaterial*>
+                            & materials );
 
     //! set additional multiplicative factor for matrix
     void SetFactor(Double factor); 
@@ -284,18 +284,12 @@ namespace CoupledField
     //! Name of PDE on second interface side
     std::string secondPDEName_;
 
-    //! Region Ids on first interface side
-    StdVector<RegionIdType> firstRegionIds_;
-
-    //! Region ids on second interface side
-    StdVector<RegionIdType> secondRegionIds_;
-
     //! Materials on first interface side
-    StdVector<BaseMaterial*> firstMaterials_;
+    std::map<RegionIdType, BaseMaterial *> firstMaterials_;
 
     //! Materials on second interface side
-    StdVector<BaseMaterial*> secondMaterials_;
-
+    std::map<RegionIdType, BaseMaterial *> secondMaterials_;
+    
     //! Multiplicative factor for matrix
     Double factor_;
 

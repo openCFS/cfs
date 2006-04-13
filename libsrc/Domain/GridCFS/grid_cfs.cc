@@ -850,33 +850,40 @@ namespace CoupledField
 
         // check, if each surface element has at least one volume neighbour
         if ( surfElems_[iRegion][iSurfElem]->ptVolElem1 == NULL ) {
-          (*error) << "Pointer to first volume element is NULL for surface"
-                   << " element no. "  
-                   << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
-                   << "Please check your mesh-file!";
-          Error( __FILE__, __LINE__ );
-        }
 
-        CalcSurfNormal( normalUndefSign, *surfElems_[iRegion][iSurfElem] );
-        CalcSurfNormalOutOfVol( normalDefSign, 
-                                *surfElems_[iRegion][iSurfElem],
-                                *surfElems_[iRegion][iSurfElem]->ptVolElem1 );
-
-
-        // Check if all entries have the same sign by calulating
-        // a scalar product between both vectors.
-        // If it is positive, they point in the smae direction,
-        // otherwise an angle of 180° lies in between.
-        sign = normalUndefSign * normalDefSign;
-        
-        if ( sign > 0.0 ) {
-          surfElems_[iRegion][iSurfElem]->normalSign = 1;
+          // Note: The following lines were commented out, in order to get
+          // shell and plate elements work, as they will be treated as surface
+          // elements with no volume neighbour
+//            (*error) << "Pointer to first volume element is NULL for surface"
+//                    << " element no. "  
+//                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
+//                    << "Please check your mesh-file!";
+//           Error( __FILE__, __LINE__ );
+//         }
+          surfElems_[iRegion][iSurfElem]->normalSign = 0;
         } else {
-          surfElems_[iRegion][iSurfElem]->normalSign = -1;
+          
+          CalcSurfNormal( normalUndefSign, *surfElems_[iRegion][iSurfElem] );
+          CalcSurfNormalOutOfVol( normalDefSign, 
+                                  *surfElems_[iRegion][iSurfElem],
+                                  *surfElems_[iRegion][iSurfElem]->ptVolElem1 );
+          
+          
+          // Check if all entries have the same sign by calulating
+          // a scalar product between both vectors.
+          // If it is positive, they point in the same direction,
+          // otherwise an angle of 180 lies in between.
+          sign = normalUndefSign * normalDefSign;
+          
+          if ( sign > 0.0 ) {
+            surfElems_[iRegion][iSurfElem]->normalSign = 1;
+          } else {
+            surfElems_[iRegion][iSurfElem]->normalSign = -1;
+          }
         }
       }
     }
-
+    
   }
 
   template<UInt DIM>

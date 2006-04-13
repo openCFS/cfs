@@ -88,7 +88,7 @@ namespace CoupledField
       {
         // ==============  add stiffness ===========================================
 
-        BaseMaterial* actSDMat = materialData_[actSD];
+        BaseMaterial* actSDMat = materials_[subdoms_[actSD]];
 
         // ==============  add "standard" stiffness ===============================
         BaseForm * bilinearStiff;

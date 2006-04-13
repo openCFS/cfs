@@ -37,6 +37,9 @@ namespace CoupledField
   class piezoParamIdent : public SingleDriver
   {
 
+    // typedef for materialmap
+    typedef std::map<RegionIdType, BaseMaterial*> MaterialMap;
+
   public:
 
     //! constructor
@@ -85,7 +88,7 @@ namespace CoupledField
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
     //! \param F_hat - contains calculated charge, each entry belongs to different frequency 
-    void createF(StdVector<BaseMaterial*>& ptMaterial, Vector<Complex> & F_hat, 
+    void createF(MaterialMap& ptMaterial, Vector<Complex> & F_hat, 
 		 Boolean typeOut);
 
     //! like create F but the frequencies are specified with Vector frequencies
@@ -166,9 +169,9 @@ namespace CoupledField
     //! updates the piezoMatrix in MaterialData parameter = 
     //! \f$(c_11, c_33, c_12, c_13, c_44, e_15, e_31, e_33, eps_11, eps_33)\f$
     //! \param parameter - new set of piezoelectric material parameters
-    void updateMaterialData(Vector<Double> & parameter, StdVector<BaseMaterial*>& ptMaterial);
+    void updateMaterialData(Vector<Double> & parameter, MaterialMap& ptMaterial);
 
-    void updateComplexMaterialData(Vector<Double> & parameterC, StdVector<BaseMaterial*>& ptMaterial);
+    void updateComplexMaterialData(Vector<Double> & parameterC, MaterialMap& ptMaterial);
 
     //! overwrites values in paramter_new with paramter+step if whichParamterToUpdate ==1
     void setNewParameterSet(Vector<Double> & parameter,
@@ -272,17 +275,17 @@ namespace CoupledField
 
     //! Tests, if JacobiMatrix is more or less approximated by F(p)-F(p+delta)/delta
     void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-                          StdVector<BaseMaterial*>& ptMaterial, Vector<Double> & parameterIncrement, 
+                          MaterialMap& ptMaterial, Vector<Double> & parameterIncrement, 
                           Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
     //! approximates Jacobian by a second order FDM
     void testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-                           StdVector<BaseMaterial*>& ptMaterial, Vector<Double> & parameterIncrement, 
+                           MaterialMap& ptMaterial, Vector<Double> & parameterIncrement, 
                            Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
     //! approximates Jacobian by a second order FDM for real and complex values
     void testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-                           StdVector<BaseMaterial*>& ptMaterial);
+                           MaterialMap& ptMaterial);
     // ! The following methods serve for the determination of eigenvalues ...
 
     //    void sort_array(UInt ndim, UInt l_sort, Vector<Double> & d);
@@ -348,9 +351,9 @@ namespace CoupledField
     Vector<Complex> solElecPot;
     Vector<Complex> solMechDispl;
     Vector<Complex> algSysSolVector;
-    StdVector<BaseMaterial*> ptMaterial;
-    StdVector<BaseMaterial*> ptMaterial1;
-    StdVector<BaseMaterial*> ptMaterial2;
+    std::map<RegionIdType, BaseMaterial*> ptMaterial;
+    std::map<RegionIdType, BaseMaterial*> ptMaterial1;
+    std::map<RegionIdType, BaseMaterial*> ptMaterial2;
 
     Vector<Double> parameter;
     Vector<Double> parameterC;

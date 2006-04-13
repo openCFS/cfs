@@ -31,15 +31,11 @@ namespace CoupledField
   }
     
   
-  void LinearSurfForm::SetVoluInfo( const StdVector<RegionIdType> & regionIds,
-                                    const StdVector<BaseMaterial*>& materials ) {
+  void LinearSurfForm::SetVoluInfo( std::map<RegionIdType, BaseMaterial*> 
+                                    & materials ) {
     ENTER_FCN( "LinearSurfForm::SetVoluInfo" );
 
-    regionIds_ = regionIds;
-    materials_.Resize(materials.GetSize());
-    for ( UInt k=0; k<materials.GetSize(); k++ ) {
-      materials_[k] = materials[k];
-    }    
+    materials_ = materials;
   }
     
   

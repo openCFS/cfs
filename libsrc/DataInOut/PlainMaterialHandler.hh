@@ -28,16 +28,16 @@ namespace CoupledField
     //! Constructor
     PlainMaterialHandler( const std::string & fileName );
 
-    //! Get specific material object
+    //! Loads the specified material
 
-    //! Loads the specified material into the given material object.
-    //! \param material Material object to be fille with data
+    //! This method loads the given material from the material file and
+    //! assigns it the given pointer.
+    //! \param material Empty pointer to material object
     //! \param matName Name of the material to be read
-    //! \param 
-    void GetMaterial( BaseMaterial * material, 
-                      const std::string matName, 
-                      const MaterialClass matClass );
-
+    //! \param matClass Materialclass the material belongs to
+    BaseMaterial *  LoadMaterial( const std::string matName, 
+                                  const MaterialClass matClass );
+    
   private:
     /// pointer to a vector which holds all material data
     //    Vector<MaterialData>* mat2material;
