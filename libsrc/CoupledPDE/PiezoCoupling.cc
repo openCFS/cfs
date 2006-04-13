@@ -147,23 +147,15 @@ namespace CoupledField {
 					  "materialDataType" );
 
     // get material from mechanics
-    StdVector<BaseMaterial*> mechMat = pde1_->getPDEMaterialData();
+    std::map<RegionIdType, BaseMaterial*> mechMat =    
+      pde1_->getPDEMaterialData();
 
     // loop over all subdomains
     for (UInt isd=0; isd<calcStress_.GetSize(); isd++) {
       
-      Integer regionIndex = -1;
-      regionIndex = subdoms_.Find( calcStress_[isd] );
-      if ( regionIndex == -1 ) {
-        (*error) << "PiezoPDE:CalcStress:: For the region with Name " 
-                 << ptGrid_->RegionIdToName(calcStress_[isd])
-                 << " no material data was found.!";
-        Error( __FILE__, __LINE__ );
-      }
-
       // get the materials for the subdomain
-      BaseMaterial* matPiezo = materialData_[regionIndex];
-      BaseMaterial* mechMatSD = mechMat[regionIndex];
+      BaseMaterial* matPiezo = materials_[calcStress_[isd]];
+      BaseMaterial* mechMatSD = mechMat[calcStress_[isd]];
 
       //transform the type
       SubTensorType type;
@@ -280,17 +272,19 @@ namespace CoupledField {
 
     if (subType_ == "axi") 
       isaxi_=TRUE;
-
+    
     // check for complex material data
     Boolean isComplex = params->HasValue( "type", "imagMaterialParameter", 
 					  "materialDataType" );
-
-
-   // get material from mechanics
-    StdVector<BaseMaterial*> mechMat = pde1_->getPDEMaterialData();
+    
+    
+    // get material from mechanics
+    std::map<RegionIdType, BaseMaterial*> mechMat = 
+      pde1_->getPDEMaterialData();
 
    // get material from electrostatics
-    StdVector<BaseMaterial*> elecMat = pde2_->getPDEMaterialData();
+    std::map<RegionIdType, BaseMaterial*>elecMat = 
+      pde2_->getPDEMaterialData();
 
     //transform the type
     SubTensorType type;
@@ -341,9 +335,9 @@ namespace CoupledField {
             Error( __FILE__, __LINE__ );
           }
 
-	  BaseMaterial* matPiezo  = materialData_[regionIndex];
-	  BaseMaterial* mechMatSD = mechMat[regionIndex];
-	  BaseMaterial* elecMatSD = elecMat[regionIndex];
+	  BaseMaterial* matPiezo  = materials_[ptVolElem->regionId];
+	  BaseMaterial* mechMatSD = mechMat[ptVolElem->regionId];
+	  BaseMaterial* elecMatSD = elecMat[ptVolElem->regionId];
 
           // 1.) calculate electric field
           FieldOp2->CalcElemGradField(TempE, ptVolElem, lCoordVol,1);
@@ -449,9 +443,9 @@ namespace CoupledField {
       
       // add stiffness
       BaseForm *bilinearStiff = new linPiezoCoupling(tensorType);
-      bilinearStiff->SetMaterial( materialData_[actSD] );
+      bilinearStiff->SetMaterial( materials_[subdoms_[actSD]] );
 
-      //GetStiffIntegrator( materialData_[actSD] );
+      //GetStiffIntegrator( materials_[actSD] );
 
       IntegratorDescriptor *actIntDescrStiff =
         new IntegratorDescriptor( bilinearStiff, STIFFNESS );
@@ -468,7 +462,7 @@ namespace CoupledField {
         matType = IMAG; 
 
         BaseForm * bilinearStiffC = new linPiezoCoupling(tensorType);
-	bilinearStiffC->SetMaterial( materialData_[actSD] );
+	bilinearStiffC->SetMaterial( materials_[subdoms_[actSD]] );
 
 	//GetStiffIntegrator(materialData_[actSD]);
         IntegratorDescriptor *actComplexIntDescrStiff = 

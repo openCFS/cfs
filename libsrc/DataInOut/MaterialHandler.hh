@@ -24,15 +24,15 @@ namespace CoupledField
     //! Destructor
     virtual ~MaterialHandler() {};
     
-    //! Get specific material object
+    //! Loads the specified material
     
-    //! Loads the specified material into the given material ovject.
-    //! \param material Material object to be fille with data
+    //! This method loads the given material from the material file and
+    //! assigns it the given pointer.
+    //! \param material Empty pointer to material object
     //! \param matName Name of the material to be read
-    //! \param 
-    virtual void GetMaterial( BaseMaterial * material, 
-                              const std::string matName, 
-                              const MaterialClass matClass ) = 0;
+    //! \param matClass Materialclass the material belongs to
+    virtual BaseMaterial *  LoadMaterial( const std::string matName, 
+                                          const MaterialClass matClass ) = 0;
 
   protected:
     

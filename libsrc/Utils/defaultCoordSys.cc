@@ -48,6 +48,13 @@ namespace CoupledField{
       component = 2;
     if ( dof == "uz" )
       component = 3;
+    if ( dof == "tx" )
+      component = 4;
+    if ( dof == "ty" )
+      component = 5;
+    if ( dof == "tz" )
+      component = 6;
+      
 
     //for splitted acoustic PDE
     if ( dof == "px" )

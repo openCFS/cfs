@@ -97,10 +97,11 @@ namespace CoupledField {
     }
     rhsSrcIntegrators_.Clear();
 
-    for ( UInt i = 0; i < ptMaterial_.GetSize(); i++ ) {
-      delete (ptMaterial_[i]);
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = ptMaterial_.begin(); it != ptMaterial_.end(); it++ ) {
+      delete it->second;
     }
-    ptMaterial_.Clear();
+    ptMaterial_.clear();
   }
 
 
@@ -252,7 +253,7 @@ namespace CoupledField {
         actDescriptor->GetIntegrator()->SetSubdomain(actDom);
 
         if (alternateMaterialData_ == TRUE)
-          actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_[actDom]);
+          actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_[subdoms_[actDom]]);
 
         // assemble only if nonlinear or first time
         if (reassembleMat_[actDescriptor->DestMat()] || firstTime_) {

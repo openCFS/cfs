@@ -22,7 +22,7 @@ namespace CoupledField {
     numPDEElems_  = PDE_.numElems_;
     isaxi_        = PDE_.isaxi_;
     subdoms_      = PDE_.subdoms_;
-    materialData_ = PDE_.materialData_;
+    materialData_ = PDE_.materials_;
     ptgrid_       = PDE_.ptgrid_;
     algsys_       = PDE_.algsys_;
     sol_          = PDE_.sol_;

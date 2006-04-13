@@ -29,8 +29,7 @@ namespace CoupledField
                 NodeEQN * ptEQN,
                 NodeStoreSol<Double> & sol,
                 UInt dim,
-                StdVector<BaseMaterial*> &matData,
-                StdVector<RegionIdType> & allSubdoms,
+                std::map<RegionIdType, BaseMaterial*>& materials,
                 Boolean isaxi);
 
     //! Destructor
@@ -66,7 +65,7 @@ namespace CoupledField
     Double CalcDetJDr(Matrix<Double> &J, Matrix<Double> &Jdr, UInt dim);
 
     //! returns the scalar material value, used for force computation
-    virtual Double GetMatVal(UInt actSD)=0;
+    virtual Double GetMatVal(RegionIdType regionId)=0;
 
     //! computes the field quantity
     virtual void ComputeField(Vector<Double> & Field, const Elem * ptElement,
@@ -90,11 +89,8 @@ namespace CoupledField
     //! dimension
     UInt dim_;
 
-    //! material data
-    StdVector<BaseMaterial*> materialData_;
-
-    //! all subdomains belonging to the PDE
-    StdVector<RegionIdType> PDEsubdoms_;
+    //! material data of all subdomains
+    std::map<RegionIdType, BaseMaterial*> materials_;
 
     //! solution type;
     SolutionType solType_;

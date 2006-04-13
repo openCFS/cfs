@@ -4,6 +4,15 @@
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 
+// header for materials
+#include "Materials/electroMagneticMaterial.hh"
+#include "Materials/electrostaticMaterial.hh"
+#include "Materials/heatMaterial.hh"
+#include "Materials/acousticMaterial.hh"
+#include "Materials/mechanicMaterial.hh"
+#include "Materials/piezoMaterial.hh"
+#include "Materials/flowMaterial.hh"
+
 namespace CoupledField {
 
   XMLMaterialHandler::XMLMaterialHandler( const std::string & fileName )
@@ -24,36 +33,46 @@ namespace CoupledField {
       delete parser_;
   }
   
-  void XMLMaterialHandler::GetMaterial( BaseMaterial * material, 
-                                        const std::string matName, 
-                                        const MaterialClass matClass ) {
-    ENTER_FCN( "XMLMaterialHandler::GetMaterial");
-
+  BaseMaterial * XMLMaterialHandler::
+  LoadMaterial( const std::string matName, 
+               const MaterialClass matClass ) {
+    ENTER_FCN( "XMLMaterialHandler::LoadMaterial");
+    
+    BaseMaterial * material = NULL;
+    
     if ( matClass == PIEZO ) {
+      material = new PiezoMaterial();
       ReadPiezo( material, matName);
     }
     else if ( matClass == MECHANIC ) {
+      material = new MechanicMaterial();
       ReadMechanic( material, matName );
     }    
     else if ( matClass == FLUID ) {
+      material = new AcousticMaterial();
       ReadAcoustic( material, matName );
     }
     else if ( matClass == ELECTROMAGNETIC ) {
+      material = new ElectroMagneticMaterial();
       ReadMagnetic( material, matName );
     }
     else if ( matClass == ELECTROSTATIC ) {
+      material = new ElectroStaticMaterial();
       ReadElectrostatic( material, matName );
     }
     else if ( matClass == THERMIC ) {
+      material = new HeatMaterial();
       ReadThermic( material, matName );
     }
     else if ( matClass == FLOW ) {
+      material = new FlowMaterial();
       ReadFlow( material, matName );
     }
     else {
       (*error) << "Warning: material type:" << matClass << " not defined ";
       Error( __FILE__, __LINE__ );
     }
+    return material;
   }
 //**********************************************************************
 //*************  READ PIEZO ********************************************

@@ -137,10 +137,9 @@ namespace CoupledField
                          NodeEQN * ptEQN,
                          NodeStoreSol<Double> & sol,
                          UInt dim,
-                         StdVector<BaseMaterial*>& matData,
-                         StdVector<RegionIdType>& allSubdoms,
+                         std::map<RegionIdType,BaseMaterial*>& matData,
                          Boolean isaxi) 
-    : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, allSubdoms, isaxi)
+    : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, isaxi)
   {
     ENTER_FCN( "MagForceOp::MagForceOp" );
 
@@ -168,12 +167,12 @@ namespace CoupledField
     curlFieldOp_->CalcElemCurlNode(Field, ptElement, lCoord);
   } 
 
-  Double MagForceOp::GetMatVal(UInt actSD)
+  Double MagForceOp::GetMatVal(RegionIdType actRegion)
   {
     ENTER_FCN( "MagForceOp::GetMatVal" );
 
     Double reluctivity;
-    materialData_[actSD]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
+    materials_[actRegion]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
 
     return reluctivity;
   } 

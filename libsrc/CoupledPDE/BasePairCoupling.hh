@@ -184,9 +184,9 @@ namespace CoupledField
     //@{
     //! \name Attributes handling info on material data
 
-    //! material data structure
-    StdVector<BaseMaterial*> materialData_;     
-    
+    //! Maps regions and (simple) materials
+    std::map<RegionIdType, BaseMaterial*> materials_;    
+
     //! material class
     MaterialClass materialClass_;
   

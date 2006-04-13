@@ -148,7 +148,7 @@ beta and gamma!\n" );
     StdVector<UInt> connecth;
     Vector<Double>  rhsAssemble, rhsvec, elemsol;
     Double          density, compressibility, c0, alpha0, y, factor;
-    StdVector<BaseMaterial*> mymaterialData;
+    std::map<RegionIdType, BaseMaterial*> mymaterialData;
     mymaterialData = ptStdPDE_->getPDEMaterialData();
 
     for ( UInt actSD=0; actSD < subdoms_.GetSize(); actSD++ ) {
@@ -164,10 +164,10 @@ beta and gamma!\n" );
         algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
       }
       else {
-	mymaterialData[actSD]->GetScalar(density,DENSITY,REAL);
-	mymaterialData[actSD]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
-	mymaterialData[actSD]->GetScalar(alpha0,ACOU_ALPHA,REAL);
-	mymaterialData[actSD]->GetScalar(y,FRACTIONAL_EXPONENT,REAL);
+	mymaterialData[subdoms_[actSD]]->GetScalar(density,DENSITY,REAL);
+	mymaterialData[subdoms_[actSD]]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
+	mymaterialData[subdoms_[actSD]]->GetScalar(alpha0,ACOU_ALPHA,REAL);
+	mymaterialData[subdoms_[actSD]]->GetScalar(y,FRACTIONAL_EXPONENT,REAL);
 
 	c0 = sqrt(compressibility/density);
 

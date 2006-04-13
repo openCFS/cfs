@@ -12,7 +12,10 @@
 #include "WriteInfo.hh"
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+
+// material header
 #include "Materials/electroMagneticMaterial.hh"
+#include "Materials/electrostaticMaterial.hh"
 #include "Materials/heatMaterial.hh"
 #include "Materials/acousticMaterial.hh"
 #include "Materials/mechanicMaterial.hh"
@@ -40,9 +43,9 @@ namespace CoupledField
 
   // method for loading  material information from file "filename"
 
-  void PlainMaterialHandler::GetMaterial( BaseMaterial* material,
-                                          const std::string matName,
-                                          const MaterialClass matType ) {
+  BaseMaterial * PlainMaterialHandler::
+  LoadMaterial( const std::string matName,
+                const MaterialClass matType ) {
 
     ENTER_FCN( "PlainMaterialHandler::GetMaterial" );
     // Open data file and check for errors
@@ -61,27 +64,35 @@ namespace CoupledField
 #endif
 
     //to be conform to old material file
+    BaseMaterial * material = NULL;
     std::string matTypeOld;
     if ( matType == PIEZO ) {
       matTypeOld = "piezo";
+      material = new PiezoMaterial();
     }
     else if ( matType == MECHANIC ) {
       matTypeOld = "piezo";
+      material = new MechanicMaterial();
     }    
     else if ( matType == FLUID ) {
       matTypeOld = "fluid";
+      material = new AcousticMaterial();
     }
     else if ( matType == ELECTROMAGNETIC ) {
       matTypeOld = "magnetic";
+      material = new ElectroMagneticMaterial();
     }
     else if ( matType == ELECTROSTATIC ) {
       matTypeOld = "piezo";
+      material = new ElectroStaticMaterial();
     }
     else if ( matType == THERMIC ) {
       matTypeOld = "thermic";
+      material = new HeatMaterial();
     }
     else if ( matType == FLOW ) {
       matTypeOld = "fluid";
+      material = new FlowMaterial();
     }
 
     char buffer[bufLength];
@@ -160,6 +171,9 @@ namespace CoupledField
 
     // Close data file
     fin.close();
+
+    // Return material data
+    return material;
   }
 
 

@@ -8,14 +8,7 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
 
-// header for materials
-#include "Materials/electroMagneticMaterial.hh"
-#include "Materials/electrostaticMaterial.hh"
-#include "Materials/heatMaterial.hh"
-#include "Materials/acousticMaterial.hh"
-#include "Materials/mechanicMaterial.hh"
-#include "Materials/piezoMaterial.hh"
-#include "Materials/flowMaterial.hh"
+
 
 // header for scripting
 #ifdef TCL_INTERFACE
@@ -136,10 +129,13 @@ namespace CoupledField {
     delete solVec_;
     delete eqnData_;
 
-    for ( UInt i = 0; i < materialData_.GetSize(); i++ ) {
-      delete (materialData_[i]);
+
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      delete it->second;
     }
-    materialData_.Clear();
+    materials_.clear();
+
   }
 
 
@@ -1109,63 +1105,20 @@ namespace CoupledField {
   void SinglePDE::ReadMaterialData() {
     ENTER_FCN( "SinglePDE::ReadMaterialData" );
 
-    // -------------------
-    // XMLPARAMS
-    // -------------------
-
     std::string outformat="unverg";
     std::string matFileName;
 
 
-    materialData_.Resize(subdoms_.GetSize());
-
-    // Allocate space to hold material data for each subdomain of this PDE
-    if ( pdematerialclass_ == ELECTROMAGNETIC ) {
-      for (UInt k=0; k<subdoms_.GetSize();k++) {
-	materialData_[k] = new ElectroMagneticMaterial();
-      }
-    }
-    else if ( pdematerialclass_ == FLUID ) {
-      for (UInt k=0; k<subdoms_.GetSize();k++) {
-	materialData_[k] = new AcousticMaterial();
-      }
-    }
-    else if ( pdematerialclass_ == THERMIC ) {
-      for (UInt k=0; k<subdoms_.GetSize();k++) {
-	materialData_[k] = new HeatMaterial();
-      }
-    }
-    else if ( pdematerialclass_ == ELECTROSTATIC ) {
-      for (UInt k=0; k<subdoms_.GetSize();k++) {
-	materialData_[k] = new ElectroStaticMaterial();
-      }
-    }
-    else if ( pdematerialclass_ == MECHANIC ) {
-      for (UInt k=0; k<subdoms_.GetSize();k++) {
-	materialData_[k] = new MechanicMaterial();
-      }
-    }
-    else if ( pdematerialclass_ == FLOW ) {
-      for (UInt k=0; k<subdoms_.GetSize();k++) {
-	materialData_[k] = new FlowMaterial();
-      }
-    }
-    else {
-      std::string msg = "Material Class for PDE " + pdename_ + " not available";
-      Error(msg.c_str(),__FILE__,__LINE__);
-    }
-  
-
     // Get list of subdomains and materials
-    StdVector< std::string > subdomName;
-    StdVector< std::string > subdomMaterial;
+    StdVector< std::string > subdomName, keyVec, attrVec, valVec;
+    StdVector< std::string > subdomMaterial, subdomComposite;
     StdVector< RegionIdType > subdomId;
     params->GetList( "name", subdomName, "domain", "region" );
     params->GetList( "material", subdomMaterial, "domain", "region" );
+    params->GetList( "composite", subdomComposite, "domain", "region" );
     
     // Convert region names to Ids
     ptgrid_->RegionNameToId( subdomId, subdomName );
-
     params->Get("format", outformat, "output");
 
     if ( outformat != "database" ) {
@@ -1173,47 +1126,132 @@ namespace CoupledField {
       // Obtain pointer to materialHandler
       MaterialHandler * matLoader = NULL;
       matLoader = domain->GetMaterialHandler();
+      std::string actRegionName;      
       
-      // Load material data for subdomains on which this PDE lives
-      // from data file
-      std::string actRegionName;
+      // -------------------
+      // NORMAL MATERIALS
+      // -------------------
       for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
-        for( UInt k = 0; k <= subdomId.GetSize(); k++ ) {
+        for( UInt k = 0; k < subdomId.GetSize(); k++ ) {
           if( subdoms_[i] == subdomId[k] ){
-            // Be verbose
-            actRegionName = ptgrid_->RegionIdToName( subdomId[k] );
-            Info->PrintF( pdename_, "Material '%s' for region '%s' (ID = %d) "
-                          "follows\n", subdomMaterial[k].c_str(),
-                          actRegionName.c_str(), subdomId[k] );
 
-            // Read data
-            matLoader->GetMaterial( materialData_[i], subdomMaterial[k],
-                                   pdematerialclass_ );
-            break;
+            // Check if region contains a material
+            if ( subdomMaterial[k] != "" ) {
+              
+              // Be verbose
+              actRegionName = ptgrid_->RegionIdToName( subdomId[k] );
+              Info->PrintF( pdename_, "Material '%s' for region '%s' (ID = %d) "
+                            "follows\n", subdomMaterial[k].c_str(),
+                            actRegionName.c_str(), subdomId[k] );
+              
+              // Read data
+              materials_[subdoms_[i]] = matLoader->
+                LoadMaterial( subdomMaterial[k], pdematerialclass_ );
+              break;
+            }
           }
         }
       }
+
+      // -------------------
+      // COMPOSITE MATERIALS
+      // -------------------
+      Double startHeight;
+      StdVector<std::string> compMaterials;
+      StdVector<Double> compOrient, compThick;
+
+      std::ostringstream out;
+      for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+        for( UInt k = 0; k < subdomId.GetSize(); k++ ) {
+          if( subdoms_[i] == subdomId[k] ){
+
+            // Check if region contains a material
+            if ( subdomComposite[k] != "" ) {
+
+              actRegionName = ptgrid_->RegionIdToName( subdomId[k] );
+              out << "Composite material '" << subdomComposite[k] << "' for "
+                  << "region '" << actRegionName << "' (ID = " << subdomId[k]
+                  << ") follows:\n";
+              Info->PrintF( pdename_, out.str().c_str());
+              out.str("");
+              
+              // Read data from parameter file
+
+              // StartHeight
+              keyVec = "domain", "composite", "startHeight";
+              attrVec = "", "name";
+              valVec = "", subdomComposite[k];
+              params->Get( keyVec, attrVec, valVec, startHeight );
+              
+              // materials of laminae
+              attrVec = "", "name", "";
+              valVec = "", subdomComposite[k], "";
+              keyVec = "domain", "composite", "lamina", "material";
+              params->GetList( keyVec, attrVec, valVec, compMaterials );
+
+              // thickness of laminae
+              keyVec = "domain", "composite", "lamina", "thickness";
+              params->GetList( keyVec, attrVec, valVec, compThick );
+
+              // orientation of laminae
+              keyVec = "domain", "composite", "lamina", "orientation";
+              params->GetList( keyVec, attrVec, valVec, compOrient );
+              
+              // Check, if all vectors have same length
+              if ( compMaterials.GetSize() != compThick.GetSize() ||
+                   compMaterials.GetSize() != compOrient.GetSize() ) {
+                Error( "Inconsistent definition of composite material",
+                       __FILE__, __LINE__ );
+              }
+              
+              // Create new lamina and fill ine materials and thicknesses
+              Composite & myMat = compositeMaterials_[subdomId[k]];
+              UInt numLaminae = compMaterials.GetSize();
+              myMat.name = subdomComposite[k];
+              myMat.zStart = startHeight;
+              myMat.thickness = compThick;
+              myMat.orientation = compOrient;
+
+              // Read single materials and print data
+              myMat.materials.Resize( numLaminae );
+              for ( UInt iLam = 0; iLam < numLaminae; iLam++ ) {
+
+                // Print information
+                out << " --- Lamina " << iLam+1 << ": thickness = " 
+                    << compThick[iLam]
+                    << " m, orientation = " << compOrient[iLam] << "° ---\n";
+                Info->PrintF( pdename_, out.str().c_str());
+                out.str("");
+
+                myMat.materials[iLam] = matLoader->
+                  LoadMaterial( compMaterials[iLam], pdematerialclass_ );
+              } // over  laminae
+            }
+          }
+        }
+      }
+
     }
     else {
 
-#ifdef USE_DATABASE
-      LoadMaterialDataDatabase loadMaterialDB;
+// #ifdef USE_DATABASE
+//       LoadMaterialDataDatabase loadMaterialDB;
     
-      // Load material data for subdomains on which this PDE lives
-      // from data file
-      for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
-        for( UInt k = 0; k <= subdomName.GetSize(); k++ ) {
-          if( subdoms_[i] == subdomName[k] ) {
-            loadMaterialDB.GetMaterial( materialData_[i], subdomMaterial[k],
-                                        pdematerialclass_ );
-            break;
-          }
-        }
-      }
-#else  // No Database
+//       // Load material data for subdomains on which this PDE lives
+//       // from data file
+//       for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+//         for( UInt k = 0; k <= subdomName.GetSize(); k++ ) {
+//           if( subdoms_[i] == subdomName[k] ) {
+//             loadMaterialDB.GetMaterial( materials_[i], subdomMaterial[k],
+//                                         pdematerialclass_ );
+//             break;
+//           }
+//         }
+//       }
+// #else  // No Database
       (*error) << "Re-compile with DATABASE = yes to get database support";
       Error( __FILE__, __LINE__ );
-#endif
+// #endif
     }
   }
 

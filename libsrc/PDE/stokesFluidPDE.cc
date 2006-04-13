@@ -159,10 +159,10 @@ namespace CoupledField
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++)
       {
-
-      materialData_[actSD]->GetScalar(density,DENSITY,REAL);
-      materialData_[actSD]->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
-      //dynamicViscosity = 1.85e-5;
+        BaseMaterial * actMat = materials_[subdoms_[actSD]];
+        actMat->GetScalar(density,DENSITY,REAL);
+        actMat->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
+        //dynamicViscosity = 1.85e-5;
       
       Info->PrintF( pdename_, "density = %e\n", density);
       Info->PrintF( pdename_, "dynamic Viscosity = %e\n", dynamicViscosity);
@@ -626,8 +626,10 @@ namespace CoupledField
       }
       
       // Assign correct density and dynamicViscosity
-      materialData_[matIndex]->GetScalar(density,DENSITY,REAL);
-      materialData_[matIndex]->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
+      materials_[subdoms_[matIndex]]->
+        GetScalar(density,DENSITY,REAL);
+      materials_[subdoms_[matIndex]]->
+        GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
       //dynamicViscosity = 1.85e-5;
       
       BaseForm * bilinear_mass = new MassInt(ptElem, 1.0, isaxi_);

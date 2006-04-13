@@ -19,7 +19,6 @@ namespace CoupledField
     ENTER_FCN( "AcouNeumannInt::~AcouNeumannInt" );
 
     actElem_ = NULL;
-    materials_ = NULL;
     
   }
 
@@ -36,19 +35,21 @@ namespace CoupledField
     elemVec.Init();
   
     // Get density of relating volume neighbour region
-    Integer index = regionIds_.Find( actElem_->ptVolElem1->regionId );
-    if ( index == -1 && actElem_->ptVolElem2 != NULL ) {
-      index = regionIds_.Find( actElem_->ptVolElem2->regionId );
+    std::map<RegionIdType, BaseMaterial*>::iterator it = 
+      materials_.find(actElem_->ptVolElem1->regionId );
+
+    if ( it == materials_.end() && actElem_->ptVolElem2 != NULL ) {
+      it = materials_.find( actElem_->ptVolElem2->regionId );
     } 
     
-    if( index == -1 ) {
+    if( it == materials_.end() ) {
       (*error) << "AcouNeumannInt: Surface element number " << actElem_->elemNum
                << " has no acoustic volume element neighbour!";
       Error( __FILE__, __LINE__ );
     }
 
     Double density;
-    materials_[index]->GetScalar(density,DENSITY,REAL);
+    it->second->GetScalar(density,DENSITY,REAL);
 
     Double value = 0.0;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)

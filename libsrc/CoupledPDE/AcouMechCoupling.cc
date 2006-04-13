@@ -88,10 +88,10 @@ namespace CoupledField {
 	massInt1->SetFormulation(formulation);
 
 	// Set information about two neighbouring volume regions
-	massInt1->SetFirstVoluInfo(pde1_->GetName(), pde1_->getPDE_subdoms(), 
-				  pde1_->getPDEMaterialData());
-	massInt1->SetSecondVoluInfo(pde2_->GetName(), pde2_->getPDE_subdoms(), 
-				   pde2_->getPDEMaterialData());
+	massInt1->SetFirstVoluInfo(pde1_->GetName(), 
+                                   pde1_->getPDEMaterialData());
+	massInt1->SetSecondVoluInfo(pde2_->GetName(), 
+                                    pde2_->getPDEMaterialData());
 	
 	IntegratorDescriptor * massDescr1 = 
 	  new IntegratorDescriptor(massInt1, STIFFNESS, FALSE);
@@ -105,10 +105,10 @@ namespace CoupledField {
 	massInt2->SetFormulation(formulation);
 
 	// Set information about two neighbouring volume regions
-	massInt2->SetFirstVoluInfo(pde2_->GetName(), pde2_->getPDE_subdoms(), 
-				  pde2_->getPDEMaterialData());
-	massInt2->SetSecondVoluInfo(pde1_->GetName(), pde1_->getPDE_subdoms(), 
-				   pde1_->getPDEMaterialData());
+	massInt2->SetFirstVoluInfo(pde2_->GetName(), 
+                                   pde2_->getPDEMaterialData());
+	massInt2->SetSecondVoluInfo(pde1_->GetName(),
+                                    pde1_->getPDEMaterialData());
 	
 	IntegratorDescriptor * massDescr2 = 
 	  new IntegratorDescriptor(massInt2, MASS, FALSE);
@@ -125,9 +125,9 @@ namespace CoupledField {
 	SurfForm * massInt = new AcouMechInt(dofs,isAxi);
 	
 	// Set information about two neighbouring volume regions
-	massInt->SetFirstVoluInfo(pde1_->GetName(), pde1_->getPDE_subdoms(), 
+	massInt->SetFirstVoluInfo(pde1_->GetName(), 
 				  pde1_->getPDEMaterialData());
-	massInt->SetSecondVoluInfo(pde2_->GetName(), pde2_->getPDE_subdoms(), 
+	massInt->SetSecondVoluInfo(pde2_->GetName(),
 				   pde2_->getPDEMaterialData());
 	
 	IntegratorDescriptor * massDescr = 

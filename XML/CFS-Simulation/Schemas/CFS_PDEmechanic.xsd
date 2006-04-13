@@ -48,7 +48,11 @@
                 use="optional" default="no"/>
               <xsd:attribute name="reducedInt" type="DT_CFSBool"
                 use="optional" default="no"/>
-            </xsd:complexType>
+              <xsd:attribute name="thickness" type="DT_NonNegFloat"
+                use="optional" default="0.0"/>
+		<xsd:attribute name="penaltyDof" type="DT_NonNegFloat"
+                use="optional" default="0.0"/>
+	    </xsd:complexType>
           </xsd:element>
 
           <!-- Surface regions (e.g.for prestressing) -->
@@ -108,6 +112,8 @@
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="planeStrain"/>
+              <xsd:enumeration value="planeStress"/>
+	      <xsd:enumeration value="flatShell"/>
               <xsd:enumeration value="3d"/>
               <xsd:enumeration value="axi"/>
             </xsd:restriction>
@@ -128,6 +134,9 @@
       <xsd:enumeration value="ux"/>
       <xsd:enumeration value="uy"/>
       <xsd:enumeration value="uz"/>
+      <xsd:enumeration value="tx"/>
+      <xsd:enumeration value="ty"/>
+      <xsd:enumeration value="tz"/>
       <xsd:enumeration value="urad"/>
       <xsd:enumeration value="uax"/>
       <xsd:enumeration value="uphi"/>

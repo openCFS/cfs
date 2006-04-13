@@ -22,7 +22,6 @@ namespace CoupledField {
       nonLin_(FALSE),
       incStopCrit_(1e-2), 
       residualStopCrit_(1e-3),
-      materialData_(NULL),
       TS_alg_(NULL),
       effectiveMass_(FALSE),
       firstTimeStepStatic_(TRUE),
@@ -568,7 +567,7 @@ namespace CoupledField {
     // pre factor of fractional derivative (same for all algorithms)
     Double dt = TS_alg_->GetTimeStep();
     Double y;
-    materialData_[actSD]->GetScalar(y,FRACTIONAL_EXPONENT,REAL);
+    materials_[subdoms_[actSD]]->GetScalar(y,FRACTIONAL_EXPONENT,REAL);
 
     coeff = std::exp(-(y-1.0) * std::log(dt));
 

@@ -151,19 +151,21 @@ namespace CoupledField {
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
 
+      BaseMaterial * actMat = materials_[subdoms_[actSD]];
+
       // ********************************************************************
       //   Attention:
       //   In AcousticXYZPDE ALL integrators are multiplied with density!
       // ********************************************************************
 
-      materialData_[actSD]->GetScalar(density,DENSITY,REAL);
-      materialData_[actSD]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
+      actMat->GetScalar(density,DENSITY,REAL);
+      actMat->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
 
       c0 = sqrt(compressibility/density);
 
-      materialData_[actSD]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-      materialData_[actSD]->GetScalar(beta,RAYLEIGH_BETA,REAL);
-      materialData_[actSD]->GetScalar(BoverA,BOVERA,REAL);
+      actMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+      actMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
+      actMat->GetScalar(BoverA,BOVERA,REAL);
 
       // ********************************************************************
       //   Linear wave equation

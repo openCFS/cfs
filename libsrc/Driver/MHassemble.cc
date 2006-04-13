@@ -104,7 +104,7 @@ namespace CoupledField
               actDescriptor->GetIntegrator()->SetSubdomain(actDom);
 
               if (alternateMaterialData_ == TRUE)
-                actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_[actDom]);
+                actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_[subdoms_[actDom]]);
                     
               // assemble only if nonlinear or first time
               if (reassembleMat_[actDescriptor->DestMat()] ||firstTime_) {
@@ -215,8 +215,12 @@ namespace CoupledField
                   //  getchar();
 
 //                   //                  if (= TRUE)
-                  ptMaterial_ = actDescriptor->GetIntegrator()->GetMaterial();
-                  ptMHMat_ = new MHMaterialData(ptMaterial_);
+
+                  Error("Tom, I commented out the following lines, as they make no sense!(Andreas)",
+                        __FILE__, __LINE__ );
+                  //ptMaterial_ = actDescriptor->GetIntegrator()->GetMaterial();
+                  //ptMHMat_ = new MHMaterialData(ptMaterial_);
+                  
 
 //                   std::cout<<" parameter before calcParameterCurveAtEl .... "<<ptMHMat_->parameter_<<std::endl;
 //                   std::cout<<ptMHMat_->parameter_<<std::endl;
@@ -227,8 +231,9 @@ namespace CoupledField
 
 //                   std::cout<<" parameter after calcParameterCurveAtEl .... "<<std::endl;
 //                   std::cout<<ptMHMat_->parameter_<<std::endl;
-                  
-                  ptMHMat_->updateMaterialData(ptMHMat_->parameter_,ptMaterial_);
+                  Error("Tom, I commented out the following lines, as they make no sense!(Andreas)",
+                        __FILE__, __LINE__ );
+                  //ptMHMat_->updateMaterialData(ptMHMat_->parameter_,ptMaterial_);
 //                   //              SetAlternatingMaterial(TRUE);
                   
                 }

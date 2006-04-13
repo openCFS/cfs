@@ -21,7 +21,6 @@ namespace CoupledField {
     ENTER_FCN( "AbsorbingBCsInt::CalcElementMatrix" );
     
     UInt j = 0;
-    Integer index = -1;
     Double jacDet, factor, density, compressibility;
     
     Vector<Double> shapeFncAtIp;
@@ -32,32 +31,23 @@ namespace CoupledField {
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     
-    
-    const StdVector<RegionIdType> * acouRegionIds;
-    StdVector<BaseMaterial*> acouMaterials;
-   
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    std::map<RegionIdType, BaseMaterial*> * acouMaterials;    
+
     // determine correct material list and regionIds
     if ( firstPDEName_ == "acoustic" ) {
-      acouRegionIds = &firstRegionIds_; 
-      acouMaterials.Resize(firstMaterials_.GetSize());
-      for ( UInt k=0; k<firstMaterials_.GetSize(); k++ ) {
-	acouMaterials[k] = firstMaterials_[k];
-      }    
-    } else {
-      acouRegionIds = &secondRegionIds_; 
-      acouMaterials.Resize(secondMaterials_.GetSize());
-      for ( UInt k=0; k<secondMaterials_.GetSize(); k++ ) {
-	acouMaterials[k] = secondMaterials_[k];
-      }    
+      acouMaterials = &firstMaterials_;
+    } else {      
+      acouMaterials = &secondMaterials_;
     }
     
-    index = acouRegionIds->Find(actElem_->ptVolElem1->regionId);
-    if ( index == -1 ) {
-      index = acouRegionIds->Find(actElem_->ptVolElem2->regionId);
+    it = acouMaterials->find(actElem_->ptVolElem1->regionId);
+    if ( it == acouMaterials->end() ) {
+      it = acouMaterials->find(actElem_->ptVolElem2->regionId);
     } 
 
-    acouMaterials[index]->GetScalar(density,DENSITY,REAL);
-    acouMaterials[index]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
+    it->second->GetScalar(density,DENSITY,REAL);
+    it->second->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
     factor = factor_ * density / sqrt( compressibility / density );
 
     // 2) Calculate a normal mass matrix

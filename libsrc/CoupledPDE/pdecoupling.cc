@@ -342,11 +342,11 @@ namespace CoupledField
           //In case we have only one volume elem neighbor we assume same mat index
           if ( index == -1 && (myElem.ptVolElem2==NULL)) {
           myInterface->oppositePdeMaterials[iElem] = 
-            (myPDE_->materialData_[0]);
+            (myPDE_->materials_.begin()->second);
           }
           else
             myInterface->oppositePdeMaterials[iElem] = 
-              (myPDE_->materialData_[index]);
+              (myPDE_->materials_[myPDE_->subdoms_[index]]);
         
         }
       

@@ -137,7 +137,7 @@ namespace CoupledField
     ptMyPDE_->WriteGeneralPDEdefines();
     //    pdeId_ = ptMyPDE_->GetPDEId();
 
-    StdVector<BaseMaterial*> ptMaterial;
+    std::map<RegionIdType, BaseMaterial*> ptMaterial;
 
     ptMaterial = ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
@@ -296,7 +296,7 @@ namespace CoupledField
         //      std::cout<<elSolVec<<std::endl;
         //        getchar();
         
-        StdVector<BaseMaterial*> actSDMat = ptMaterial;
+        std::map<RegionIdType, BaseMaterial*> actSDMat = ptMaterial;
         //        Boolean isdamping=TRUE;
       }
       

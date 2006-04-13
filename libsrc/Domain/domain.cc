@@ -95,7 +95,7 @@ namespace CoupledField {
       params->Get( "type", probGeo, "geometry" );
       if ( !(probGeo == "3d"    && dim_ == 3 ||
              probGeo == "axi"   && dim_ == 2 ||
-             probGeo == "plane" && dim_ == 2 ) ) {
+             probGeo == "plane" && dim_ == 2  ) ) {
         (*error) << "Dimensions in parameter file and geometry file "
                  << "do not match!";
         Error( __FILE__, __LINE__ );

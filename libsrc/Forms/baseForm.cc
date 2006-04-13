@@ -120,8 +120,7 @@ namespace CoupledField
     ENTER_FCN( "BaseForm::CalcComplexElemMatrix" );
     Error(" Function BaseForm::CalcComplexElementMatrix is virtual. You can use it for derived classes.",__FILE__,__LINE__);
   }
-
-
+  
   void BaseForm::Print(std::ostream * out, const Matrix<Double> Result) const
   {
     ENTER_FCN( "BaseForm::Print" );
@@ -152,27 +151,17 @@ namespace CoupledField
   }
 
   void SurfForm::SetFirstVoluInfo( const std::string & name,
-                                   const StdVector<RegionIdType> & regionIds,
-                                   const StdVector<BaseMaterial*>& materials ) {
+                                   const std::map<RegionIdType, BaseMaterial*>& materials ) {
     
     firstPDEName_ = name;
-    firstRegionIds_ = regionIds;
-    firstMaterials_.Resize(materials.GetSize());
-    for ( UInt k=0; k<materials.GetSize(); k++ ) {
-      firstMaterials_[k] = materials[k];
-    }
+    firstMaterials_ = materials;
   }
 
   void SurfForm::SetSecondVoluInfo( const std::string & name,
-                                    const StdVector<RegionIdType> & regionIds,
-                                    const StdVector<BaseMaterial*>& materials ) {
+                                    const std::map<RegionIdType, BaseMaterial*>& materials ) {                         
     
     secondPDEName_ = name;
-    secondRegionIds_ = regionIds;
-    secondMaterials_.Resize(materials.GetSize());
-    for ( UInt k=0; k<materials.GetSize(); k++ ) {
-      secondMaterials_[k] = materials[k];
-    }    
+    secondMaterials_ = materials;
   }
 
   void SurfForm::SetFactor( Double factor ) {

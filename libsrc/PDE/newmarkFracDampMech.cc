@@ -164,11 +164,13 @@ namespace CoupledField {
     fracDerivStressVec_.Resize(getDim());
     stressVector.Resize(getDim());
 
-    StdVector<BaseMaterial*> mymaterialData;
+    std::map<RegionIdType, BaseMaterial*> mymaterialData;
     mymaterialData = ptStdPDE_->getPDEMaterialData();
 
-    mymaterialData[0]->GetScalar(dampAlpha_,ACOU_ALPHA,REAL);
-    mymaterialData[0]->GetScalar(dampBeta_,FRACTIONAL_EXPONENT,REAL);
+    BaseMaterial * firstMat = mymaterialData.begin()->second;
+
+    firstMat->GetScalar(dampAlpha_,ACOU_ALPHA,REAL);
+    firstMat->GetScalar(dampBeta_,FRACTIONAL_EXPONENT,REAL);
 
     StdVector<Double> fracDerivList_;
     params->GetList( "fracDeriv", fracDerivList_, "mechanic", "damping" );
@@ -211,12 +213,12 @@ namespace CoupledField {
 	SubTensorType type;
 	String2Enum(subType_,type);
 
-        BDBInt * rhsViscoMat = new LinViscoElastInt(mymaterialData[actSD],
+        BDBInt * rhsViscoMat = new LinViscoElastInt(mymaterialData[subdoms_[actSD]],
                                                     type,
                                                     "MatDepRHSMatrix",
                                                     GetTimeStep() );
 
-        BDInt * bdInt = new BDInt(mymaterialData[actSD],
+        BDInt * bdInt = new BDInt(mymaterialData[subdoms_[actSD]],
                                   subType_, 
                                   GetTimeStep());
 
@@ -334,7 +336,7 @@ namespace CoupledField {
     stressVec.Resize(getDim());
     displacementVec.Resize(numEQNs * dofs_);  
 
-    StdVector<BaseMaterial*> mymaterialData;
+    std::map<RegionIdType, BaseMaterial*> mymaterialData;
     BaseFE         * ptElem;
 
     mymaterialData = ptStdPDE_->getPDEMaterialData();
@@ -366,7 +368,7 @@ namespace CoupledField {
           
           GetElemSolution(solMemory_[0], displacementVec, connect_PDE);
           
-          CalcStress( ptElem, mymaterialData[actSD], connect_PDE, ptCoord,  
+          CalcStress( ptElem, mymaterialData[subdoms_[actSD]], connect_PDE, ptCoord,  
 		      stressVec, displacementVec, el);
           
           InsertStressVector(stressVec,el,0);		

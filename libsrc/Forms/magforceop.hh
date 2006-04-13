@@ -82,8 +82,7 @@ namespace CoupledField
                NodeEQN * ptEQN,
                NodeStoreSol<Double> & sol,
                UInt dim,
-               StdVector<BaseMaterial*>& matData,
-               StdVector<RegionIdType>& allSubdoms,
+               std::map<RegionIdType, BaseMaterial*>& materials,
                Boolean isaxi);
 
     //! Destructor
@@ -93,7 +92,7 @@ namespace CoupledField
   protected:
   
     //! returns the scalar material value, used for force computation
-    virtual Double GetMatVal(UInt actSD);
+    virtual Double GetMatVal(RegionIdType actRegion);
 
     //! computes the field quantity
     virtual void ComputeField(Vector<Double> & Field, const Elem * ptElement,
