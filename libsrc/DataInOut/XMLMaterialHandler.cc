@@ -69,7 +69,7 @@ namespace CoupledField {
       ReadFlow( material, matName );
     }
     else {
-      (*error) << "Warning: material type:" << matClass << " not defined ";
+      (*error) << "Error: material type:" << matClass << " not defined ";
       Error( __FILE__, __LINE__ );
     }
     return material;
@@ -166,6 +166,13 @@ namespace CoupledField {
     Integer     inteValue;
     std::string striValue;
 
+    Boolean     flagEModulReal=FALSE;
+    Boolean     flagPoissonReal=FALSE;
+    Boolean     flagEModulImag=FALSE;
+    Boolean     flagPoissonImag=FALSE;
+    Boolean     flagElastTensorReal=FALSE;
+    Boolean     flagElastTensorImag=FALSE;
+
     Matrix<Double> elasticityTensor(6,6);
 
     // Construct vectors for restricted search parameter
@@ -192,6 +199,7 @@ namespace CoupledField {
       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
                                    dim1, dim2, elasticityTensor );
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
+      flagElastTensorReal=TRUE;
       std::cerr << "real elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
 
@@ -203,6 +211,7 @@ namespace CoupledField {
       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
                                    dim1, dim2, elasticityTensor );
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, IMAG ); 
+      flagElastTensorImag=TRUE;
       std::cerr << "imaginary elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
 
@@ -213,6 +222,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS, REAL ); 
+      flagEModulReal=TRUE;
       std::cerr << "elasticityModulus=" << doubValue << std::endl;
     }
 
@@ -223,87 +233,8 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS, IMAG ); 
+      flagEModulImag=TRUE;
       std::cerr << "imaginary elasticityModulus=" << doubValue << std::endl;
-    }
-
-    //read shear modulus
-    keyVec = "material","mechanical","elasticity","isotropic","real","shearModulus";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_GMODULUS, REAL ); 
-      std::cerr << "shearModulus=" << doubValue << std::endl;
-    }
-
-    //read imaginary shear modulus
-    keyVec = "material","mechanical","elasticity","isotropic","imag","shearModulus";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_GMODULUS, IMAG ); 
-      std::cerr << "imaginary shearModulus=" << doubValue << std::endl;
-    }
-
-    //read compression modulus
-    keyVec = "material","mechanical","elasticity","isotropic","real","compressionModulus";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_KMODULUS, REAL ); 
-      std::cerr << "compressionModulus=" << doubValue << std::endl;
-    }
-
-    //read imaginary compression modulus
-    keyVec = "material","mechanical","elasticity","isotropic","imag","compressionModulus";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_KMODULUS, IMAG ); 
-      std::cerr << "imaginary compressionModulus=" << doubValue << std::endl;
-    }
-
-    //read Lame parameter mu
-    keyVec = "material","mechanical","elasticity","isotropic","real","lameParameterMu";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_LAME_MU, REAL ); 
-      std::cerr << "Lame parameter mu=" << doubValue << std::endl;
-    }
-
-    //read imaginary Lame parameter mu
-    keyVec = "material","mechanical","elasticity","isotropic","imag","lameParameterMu";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_LAME_MU, IMAG ); 
-      std::cerr << "imaginary lameParameterMu=" << doubValue << std::endl;
-    }
-
-    //read Lame parameter lambda
-    keyVec = "material","mechanical","elasticity","isotropic","real","lameParameterLamda";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_LAME_LAMBDA, REAL ); 
-      std::cerr << "Lame parameter lamda=" << doubValue << std::endl;
-    }
-
-    //read imaginary Lame parameter lamda
-    keyVec = "material","mechanical","elasticity","isotropic","imag","lameParameterLambda";
-    attrVec= "name"    ,""          ,""          ,""         ,"";
-    valVec =  matName  ,""          ,""          ,""         ,"";
-    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, doubValue );
-      material->SetScalar( doubValue, MECH_LAME_LAMBDA, IMAG ); 
-      std::cerr << "imaginary lameParameterLambda=" << doubValue << std::endl;
     }
 
     //read Poisson number
@@ -313,6 +244,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON, REAL ); 
+      flagPoissonReal=TRUE;
       std::cerr << "poissonNumber=" <<  doubValue << std::endl;
     }
 
@@ -323,8 +255,45 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON, IMAG ); 
+      flagPoissonImag=TRUE;
       std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
     }
+
+    if (flagEModulReal==TRUE && 
+        flagPoissonReal==TRUE && 
+        flagElastTensorReal==FALSE) {
+      Double EModul, PoissonNumber;
+      material->GetScalar( EModul, MECH_EMODULUS, REAL ); 
+      material->GetScalar( PoissonNumber, MECH_POISSON, REAL ); 
+      ComputeIsoMechStiffnesTensor(EModul,PoissonNumber,elasticityTensor);
+      material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
+      std::cerr << "real isotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
+    }
+    else if (flagEModulReal==FALSE && 
+        flagPoissonReal==FALSE && 
+        flagElastTensorReal==TRUE) {
+      //stiffness tensor is already set
+    }
+    else if (flagEModulReal==TRUE && 
+        flagPoissonReal==TRUE && 
+        flagElastTensorReal==TRUE) {
+      (*error) << "Error: mechanical stiffness tensor is over determined."
+               << " You specified the tensor as well as E-Modul and Poisson number";
+      Error( __FILE__, __LINE__ );
+    }
+    else if (flagEModulReal==FALSE && 
+        flagPoissonReal==FALSE && 
+        flagElastTensorReal==FALSE) {
+      (*error) << "Error: mechanical stiffness must be specified somehow.";
+      Error( __FILE__, __LINE__ );
+    }
+    else {
+      (*error) << "Error: mechanical stiffness tensor can not be computed.";
+      Error( __FILE__, __LINE__ );
+    }
+    //*********************************************************************
+    //******* end of stiffness tensor definition **************************
+    //*********************************************************************
 
     //read nonlinearity of a elasticity coefficient
     keyVec = "material" ,"mechanical" , "elasticityCoefficient", "entry";
@@ -445,6 +414,31 @@ namespace CoupledField {
       material->SetScalar( striValue, FRACTIONAL_INTERPOL ); 
       std::cerr << "Fractional damping interpolation=" << striValue << std::endl;
     }
+  }
+
+  void XMLMaterialHandler::ComputeIsoMechStiffnesTensor(Double EModul, 
+                                                        Double PoissonNumber,
+                                                        Matrix<Double> elasticityTensor){
+    Double LameLambda, LameMu;
+    elasticityTensor.Resize(6,6);
+    elasticityTensor.Init();
+    LameLambda = (PoissonNumber*EModul)/((1.0+PoissonNumber)*(1.0-2.0*PoissonNumber));
+    LameMu    = (EModul)/(2.0*(1.0+PoissonNumber));
+
+    elasticityTensor[0][0]=LameLambda+2.0*LameMu;
+    elasticityTensor[1][1]=LameLambda+2.0*LameMu;
+    elasticityTensor[2][2]=LameLambda+2.0*LameMu;
+
+    elasticityTensor[0][1]=LameLambda;
+    elasticityTensor[0][2]=LameLambda;
+    elasticityTensor[1][0]=LameLambda;
+    elasticityTensor[1][2]=LameLambda;
+    elasticityTensor[2][0]=LameLambda;
+    elasticityTensor[2][1]=LameLambda;
+
+    elasticityTensor[3][3]=LameMu;
+    elasticityTensor[4][4]=LameMu;
+    elasticityTensor[5][5]=LameMu;
   }
 
 //**********************************************************************
