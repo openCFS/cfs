@@ -267,6 +267,7 @@ namespace CoupledField {
       material->GetScalar( PoissonNumber, MECH_POISSON, REAL ); 
       ComputeIsoMechStiffnesTensor(EModul,PoissonNumber,elasticityTensor);
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
+      std::cerr << "E=" << EModul << " nu=" << PoissonNumber << std::endl;
       std::cerr << "real isotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
     else if (flagEModulReal==FALSE && 
@@ -418,12 +419,13 @@ namespace CoupledField {
 
   void XMLMaterialHandler::ComputeIsoMechStiffnesTensor(Double EModul, 
                                                         Double PoissonNumber,
-                                                        Matrix<Double> elasticityTensor){
+                                                        Matrix<Double>& elasticityTensor){
     Double LameLambda, LameMu;
     elasticityTensor.Resize(6,6);
     elasticityTensor.Init();
-    LameLambda = (PoissonNumber*EModul)/((1.0+PoissonNumber)*(1.0-2.0*PoissonNumber));
+    LameLambda = (PoissonNumber*EModul)/((1.0 + PoissonNumber)*(1.0 - 2.0*PoissonNumber));
     LameMu    = (EModul)/(2.0*(1.0+PoissonNumber));
+    std::cerr << "LameLambda=" << LameLambda << "\nLameMu=" << LameMu << std::endl;
 
     elasticityTensor[0][0]=LameLambda+2.0*LameMu;
     elasticityTensor[1][1]=LameLambda+2.0*LameMu;
@@ -471,7 +473,7 @@ namespace CoupledField {
     valVec =  matName  , "";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
-      //material->SetScalar( doubValue, ACOU_BULK_MODULUS, REAL );  ???
+      material->SetScalar( doubValue, ACOU_BULK_MODULUS, REAL );
       std::cerr << "compressionModulus=" << doubValue << std::endl;
     }
 

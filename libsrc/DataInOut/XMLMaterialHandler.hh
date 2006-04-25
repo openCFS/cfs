@@ -53,7 +53,7 @@ namespace CoupledField {
     //! \param elasticityTensor isotropic stiffness tensor, which will be computed
     void ComputeIsoMechStiffnesTensor(Double EModul, 
                                       Double PoissonNumber,
-                                      Matrix<Double> elasticityTensor);
+                                      Matrix<Double>& elasticityTensor);
 
     //! Reads acoustic material.
     //! \param material Material object to be filled with data
