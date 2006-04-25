@@ -46,6 +46,15 @@ namespace CoupledField {
     void ReadMechanic(BaseMaterial *material,
                       const std::string matName);
 
+    //! computes the 6x6 stiffness tensor of a isotropic
+    //! mechanical material based on E-Modul and Poisson number.
+    //! \param EModul isotropic elasticity modulus
+    //! \param PoissonNumber isotropic Poisson number
+    //! \param elasticityTensor isotropic stiffness tensor, which will be computed
+    void ComputeIsoMechStiffnesTensor(Double EModul, 
+                                      Double PoissonNumber,
+                                      Matrix<Double> elasticityTensor);
+
     //! Reads acoustic material.
     //! \param material Material object to be filled with data
     //! \param matName Name of the material to be read
