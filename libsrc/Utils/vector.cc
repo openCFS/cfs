@@ -44,7 +44,13 @@ namespace CoupledField
 
     size_ = vec.size_;
     capacity_ = size_;
-    data_ = new TYPE [vec.size_];
+    
+    if ( size_ > 0 ) {
+      data_ = new TYPE [vec.size_];
+    } else {
+      data_ = NULL;
+    }
+    
     memBelongsToMe_ = TRUE;
   
     for (UInt i = 0; i < size_; i++)
