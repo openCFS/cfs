@@ -235,7 +235,7 @@ namespace CoupledField {
     // ATTENTION:
     // The errorMap should be assigned as a StoreSolution, not as a 
     // Vector. This is only temporary!
-    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
+    if ( !isComplex_ ) {
 
       // Down-cast
       NodeStoreSol<Double> *solConverted;
@@ -1013,7 +1013,7 @@ namespace CoupledField {
       for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
-      if ( analysistype_ == TRANSIENT ||  analysistype_ == STATIC ) {
+      if ( !isComplex_ ) {
         E_ = new ElemStoreSol<Double>;
           } else {
         E_ = new ElemStoreSol<Complex>;
@@ -1071,7 +1071,7 @@ namespace CoupledField {
         for ( UInt k = 0; k < temp.GetSize(); k++ ) {
           Info->PrintF( pdename_, " %s\n", temp[k].c_str() );
         } 
-        if ( analysistype_ == TRANSIENT ||  analysistype_ == STATIC ) {
+        if ( !isComplex_ ) {
           charges_ = new ElemStoreSol<Double>;
         } else {
           charges_ = new ElemStoreSol<Complex>;

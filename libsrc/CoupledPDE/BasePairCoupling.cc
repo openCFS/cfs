@@ -148,6 +148,9 @@ namespace CoupledField {
     case HARMONIC:
       assemble_ = new HarmonicAssemble( algsys_, ptGrid_, bcSequenceTag_ );
       break;
+    case EIGENFREQUENCY:
+      assemble_ = new TransientAssemble( algsys_, ptGrid_, bcSequenceTag_ );
+      break;
     case MULTIHARMONIC:
       assemble_ = new MHassemble( algsys_, ptGrid_, bcSequenceTag_ );
       break;
