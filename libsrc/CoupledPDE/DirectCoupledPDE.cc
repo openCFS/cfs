@@ -147,6 +147,9 @@ namespace CoupledField {
     else if ( analysisTypes.find(HARMONIC) != analysisTypes.end() ) {
       analysistype_ = HARMONIC;
     }
+    else if ( analysisTypes.find(EIGENFREQUENCY) != analysisTypes.end() ) {
+      analysistype_ = EIGENFREQUENCY;
+    }
     else {
       (*error) << "I was not able to determine the correct analysistype for "
                << "your set of PDEs!";
