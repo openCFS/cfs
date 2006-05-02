@@ -84,9 +84,14 @@ namespace CoupledField
  
     size_row_ = x.size_row_;
     size_col_ = x.size_col_;
- 
-    data_ = new TYPE * [size_row_];
-    data_[0]=new TYPE[size_row_ * size_col_];
+
+    if (size_row_ > 0 &&
+        size_col_ > 0 ) {
+      data_ = new TYPE * [size_row_];
+      data_[0]=new TYPE[size_row_ * size_col_];
+    } else {
+      data_ = NULL;
+    }
  
  
     UInt k;

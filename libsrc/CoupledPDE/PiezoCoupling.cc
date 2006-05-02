@@ -150,9 +150,10 @@ namespace CoupledField {
     std::map<RegionIdType, BaseMaterial*> mechMat =    
       pde1_->getPDEMaterialData();
 
+
     // loop over all subdomains
     for (UInt isd=0; isd<calcStress_.GetSize(); isd++) {
-      
+
       // get the materials for the subdomain
       BaseMaterial* matPiezo = materials_[calcStress_[isd]];
       BaseMaterial* mechMatSD = mechMat[calcStress_[isd]];
@@ -210,11 +211,11 @@ namespace CoupledField {
 
       }
       // Delete integrator again (Stressabbau ;-)
-
+    }
       delete mechStressOp;
       delete FieldOp2;
 
-    }
+    
   
   }
 
