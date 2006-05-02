@@ -61,7 +61,9 @@ namespace CoupledField {
 		    const DataType& dataType,
 		    const SubTensorType = FULL ) const;	
 
-
+    //! Print material definition to given output stream
+    void Print(std::ostream & out) const;
+    
   private:
 
 

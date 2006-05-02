@@ -100,7 +100,7 @@ namespace CoupledField {
       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
                                    dim1, dim2, couplingTensor );
       material->SetTensor( couplingTensor, PIEZO_TENSOR, REAL ); 
-      std::cerr << "real couplingTensor=" << std::endl << couplingTensor << std::endl;
+      //std::cerr << "real couplingTensor=" << std::endl << couplingTensor << std::endl;
     }
 
     //read imaginary piezo coupling tensor
@@ -111,7 +111,7 @@ namespace CoupledField {
       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
                                    dim1, dim2, couplingTensor );
       material->SetTensor( couplingTensor, PIEZO_TENSOR, IMAG ); 
-      std::cerr << "imaginary couplingTensor=" << std::endl << couplingTensor << std::endl;
+      //std::cerr << "imaginary couplingTensor=" << std::endl << couplingTensor << std::endl;
     }
 
     //read nonlinearity of a coupling coefficient
@@ -121,7 +121,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, inteValue );
       material->SetScalar( inteValue, NONLIN_COEFFICIENT ); 
-      std::cerr << "entry=" << inteValue << std::endl;
+      //std::cerr << "entry=" << inteValue << std::endl;
     }
 
     //read non linear dependency of a coupling coefficient
@@ -131,7 +131,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      std::cerr << "dependency=" << striValue << std::endl;
+      //std::cerr << "dependency=" << striValue << std::endl;
     }
 
     //read non linear approxType of a coupling coefficient
@@ -141,7 +141,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      std::cerr << "approxType=" << striValue << std::endl;
+      //std::cerr << "approxType=" << striValue << std::endl;
     }
 
     //read non linear data name of a coupling coefficient
@@ -151,8 +151,11 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      std::cerr << "dataName=" << striValue << std::endl;
+      //std::cerr << "dataName=" << striValue << std::endl;
     }
+
+    // Print material information to .info-file
+    Info->PrintPiezoMat(material,false );
   }
 
 //**********************************************************************
@@ -187,7 +190,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, DENSITY, REAL ); 
-      std::cerr << "density=" << doubValue << std::endl;
+      //std::cerr << "density=" << doubValue << std::endl;
     }
 
     //read real elasticity tensor
@@ -200,7 +203,7 @@ namespace CoupledField {
                                    dim1, dim2, elasticityTensor );
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
       flagElastTensorReal=TRUE;
-      std::cerr << "real elasticityTensor=" << std::endl << elasticityTensor << std::endl;
+      //std::cerr << "real elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
 
     //read imaginary elasticity tensor
@@ -212,7 +215,7 @@ namespace CoupledField {
                                    dim1, dim2, elasticityTensor );
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, IMAG ); 
       flagElastTensorImag=TRUE;
-      std::cerr << "imaginary elasticityTensor=" << std::endl << elasticityTensor << std::endl;
+      // std::cerr << "imaginary elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
 
     //read elasticity modulus
@@ -223,7 +226,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS, REAL ); 
       flagEModulReal=TRUE;
-      std::cerr << "elasticityModulus=" << doubValue << std::endl;
+      // std::cerr << "elasticityModulus=" << doubValue << std::endl;
     }
 
     //read imaginary elasticity modulus
@@ -234,7 +237,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS, IMAG ); 
       flagEModulImag=TRUE;
-      std::cerr << "imaginary elasticityModulus=" << doubValue << std::endl;
+      // std::cerr << "imaginary elasticityModulus=" << doubValue << std::endl;
     }
 
     //read Poisson number
@@ -245,7 +248,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON, REAL ); 
       flagPoissonReal=TRUE;
-      std::cerr << "poissonNumber=" <<  doubValue << std::endl;
+      // std::cerr << "poissonNumber=" <<  doubValue << std::endl;
     }
 
     //read imaginary Poisson number
@@ -256,7 +259,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON, IMAG ); 
       flagPoissonImag=TRUE;
-      std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
+      // std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
     }
 
     if (flagEModulReal==TRUE && 
@@ -267,8 +270,8 @@ namespace CoupledField {
       material->GetScalar( PoissonNumber, MECH_POISSON, REAL ); 
       ComputeIsoMechStiffnesTensor(EModul,PoissonNumber,elasticityTensor);
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
-      std::cerr << "E=" << EModul << " nu=" << PoissonNumber << std::endl;
-      std::cerr << "real isotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
+      // std::cerr << "E=" << EModul << " nu=" << PoissonNumber << std::endl;
+      // std::cerr << "real isotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
     else if (flagEModulReal==FALSE && 
         flagPoissonReal==FALSE && 
@@ -303,7 +306,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, inteValue );
       material->SetScalar( inteValue, NONLIN_COEFFICIENT ); 
-      std::cerr << "entry=" << inteValue << std::endl;
+      // std::cerr << "entry=" << inteValue << std::endl;
     }
 
     //read non linear dependency of a elasticity coefficient
@@ -313,7 +316,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      std::cerr << "dependency=" << striValue << std::endl;
+      // std::cerr << "dependency=" << striValue << std::endl;
     }
 
     //read non linear approxType of a elasticity coefficient
@@ -323,7 +326,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      std::cerr << "approxType=" << striValue << std::endl;
+      // std::cerr << "approxType=" << striValue << std::endl;
     }
 
     //read non linear data name of a elasticity coefficient
@@ -333,7 +336,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      std::cerr << "dataName=" << striValue << std::endl;
+      // std::cerr << "dataName=" << striValue << std::endl;
     }
 
     //read alpha of Rayleigh damping
@@ -343,7 +346,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, RAYLEIGH_ALPHA, REAL ); 
-      std::cerr << "Rayleigh damping alpha=" << doubValue << std::endl;
+      // std::cerr << "Rayleigh damping alpha=" << doubValue << std::endl;
     }
 
     //read beta of Rayleigh damping
@@ -353,7 +356,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, RAYLEIGH_BETA, REAL ); 
-      std::cerr << "Rayleigh damping beta=" << doubValue << std::endl;
+      // std::cerr << "Rayleigh damping beta=" << doubValue << std::endl;
     }
 
     //read loss tangens delta of Rayleigh damping
@@ -363,7 +366,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, LOSS_TANGENS_DELTA, REAL ); 
-      std::cerr << "Rayleigh lossTangensDelta=" << doubValue << std::endl;
+      // std::cerr << "Rayleigh lossTangensDelta=" << doubValue << std::endl;
     }
 
     //read frequency of Rayleigh damping
@@ -373,7 +376,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, RAYLEIGH_FREQUENCY, REAL ); 
-      std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
+      // std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
     }
 
     //read delta frequency of Rayleigh damping
@@ -383,7 +386,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       //material->SetScalar( doubValue, RAYLEIGH_DELTA_FREQ, REAL ); 
-      std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
+      // std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
     }
 
     //read algorithm of fractional damping
@@ -393,7 +396,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, FRACTIONAL_ALG ); 
-      std::cerr << "Fractional damping algorithm=" << striValue << std::endl;
+      // std::cerr << "Fractional damping algorithm=" << striValue << std::endl;
     }
 
     //read memory of fractional damping
@@ -403,7 +406,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, inteValue );
       material->SetScalar( inteValue, FRACTIONAL_MEMORY ); 
-      std::cerr << "Fractional damping memory=" << inteValue << std::endl;
+      // std::cerr << "Fractional damping memory=" << inteValue << std::endl;
     }
 
     //read interpolation of fractional damping
@@ -413,8 +416,11 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, FRACTIONAL_INTERPOL ); 
-      std::cerr << "Fractional damping interpolation=" << striValue << std::endl;
+      // std::cerr << "Fractional damping interpolation=" << striValue << std::endl;
     }
+
+    // Print information to info file
+    Info->PrintMechanicMat( material, false);
   }
 
   void XMLMaterialHandler::ComputeIsoMechStiffnesTensor(Double EModul, 
@@ -425,7 +431,7 @@ namespace CoupledField {
     elasticityTensor.Init();
     LameLambda = (PoissonNumber*EModul)/((1.0 + PoissonNumber)*(1.0 - 2.0*PoissonNumber));
     LameMu    = (EModul)/(2.0*(1.0+PoissonNumber));
-    std::cerr << "LameLambda=" << LameLambda << "\nLameMu=" << LameMu << std::endl;
+    // std::cerr << "LameLambda=" << LameLambda << "\nLameMu=" << LameMu << std::endl;
 
     elasticityTensor[0][0]=LameLambda+2.0*LameMu;
     elasticityTensor[1][1]=LameLambda+2.0*LameMu;
@@ -464,7 +470,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, DENSITY, REAL ); 
-      std::cerr << "density=" << doubValue << std::endl;
+      // std::cerr << "density=" << doubValue << std::endl;
     }
 
     //read compression modulus
@@ -474,7 +480,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, ACOU_BULK_MODULUS, REAL );
-      std::cerr << "compressionModulus=" << doubValue << std::endl;
+      // std::cerr << "compressionModulus=" << doubValue << std::endl;
     }
 
     //read alpha of Rayleigh damping
@@ -484,7 +490,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, RAYLEIGH_ALPHA, REAL ); 
-      std::cerr << "Rayleigh damping alpha=" << doubValue << std::endl;
+      // std::cerr << "Rayleigh damping alpha=" << doubValue << std::endl;
     }
 
     //read bata of Rayleigh damping
@@ -494,7 +500,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, RAYLEIGH_BETA, REAL ); 
-      std::cerr << "Rayleigh damping beta=" << doubValue << std::endl;
+      // std::cerr << "Rayleigh damping beta=" << doubValue << std::endl;
     }
 
     //read loss tangens delta of Rayleigh damping
@@ -504,7 +510,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, LOSS_TANGENS_DELTA, REAL ); 
-      std::cerr << "Rayleigh lossTangensDelta=" << doubValue << std::endl;
+      // std::cerr << "Rayleigh lossTangensDelta=" << doubValue << std::endl;
     }
 
     //read frequency of Rayleigh damping
@@ -514,7 +520,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, RAYLEIGH_FREQUENCY, REAL ); 
-      std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
+      // std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
     }
 
     //read delta frequency of Rayleigh damping
@@ -524,7 +530,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       //material->SetScalar( doubValue, RAYLEIGH_DELTA_FREQ, REAL ); 
-      std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
+      // std::cerr << "Rayleigh damping freq=" << doubValue << std::endl;
     }
 
     //read alpha0 of thermo viscous damping
@@ -534,7 +540,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, ACOU_ALPHA, REAL ); 
-      std::cerr << "thermo viscous alpha0=" << doubValue << std::endl;
+      // std::cerr << "thermo viscous alpha0=" << doubValue << std::endl;
     }
 
     //read alpha0 of fractional damping
@@ -544,7 +550,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, ACOU_ALPHA, REAL ); 
-      std::cerr << "fractional alpha0=" << doubValue << std::endl;
+      // std::cerr << "fractional alpha0=" << doubValue << std::endl;
     }
 
     //read exponent of fractional damping
@@ -554,7 +560,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, FRACTIONAL_EXPONENT, REAL ); 
-      std::cerr << "fractional exponent=" << doubValue << std::endl;
+      // std::cerr << "fractional exponent=" << doubValue << std::endl;
     }
 
     //read acoustic non linearity
@@ -564,8 +570,11 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, BOVERA, REAL ); 
-      std::cerr << "bOverA=" << doubValue << std::endl;
+      // std::cerr << "bOverA=" << doubValue << std::endl;
     }
+
+    // Print material information to info-file
+    Info->PrintAcousticMat( material );
   }
 
 //**********************************************************************
@@ -594,7 +603,7 @@ namespace CoupledField {
       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
                                    dim1, dim2, permittivityTensor );
       material->SetTensor( permittivityTensor, ELEC_PERMITTIVITY, REAL ); 
-      std::cerr << "real permittivityTensor=" << std::endl << permittivityTensor << std::endl;
+      // std::cerr << "real permittivityTensor=" << std::endl << permittivityTensor << std::endl;
     }
 
     //read imaginary permittivity tensor
@@ -605,7 +614,7 @@ namespace CoupledField {
       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
                                    dim1, dim2, permittivityTensor );
       material->SetTensor( permittivityTensor, ELEC_PERMITTIVITY, IMAG ); 
-      std::cerr << "imaginary permittivityTensor=" << std::endl << permittivityTensor << std::endl;
+      // std::cerr << "imaginary permittivityTensor=" << std::endl << permittivityTensor << std::endl;
     }
 
     //read isotropic permittivity
@@ -615,7 +624,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       //material->SetScalar( doubValue, ELEC_PERMITTIVITY, REAL ); 
-      std::cerr << "isotropic electric permittivity=" << doubValue << std::endl;
+      // std::cerr << "isotropic electric permittivity=" << doubValue << std::endl;
     }
 
     //read imaginary isotropic permittivity
@@ -625,7 +634,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       //material->SetScalar( doubValue, ELEC_PERMITTIVITY, IMAG ); 
-      std::cerr << "imaginary isotropic electric permittivity=" << doubValue << std::endl;
+      // std::cerr << "imaginary isotropic electric permittivity=" << doubValue << std::endl;
     }
 
     //read nonlinearity of a permittivity coefficient
@@ -635,7 +644,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, inteValue );
       material->SetScalar( inteValue, NONLIN_COEFFICIENT ); 
-      std::cerr << "entry=" << inteValue << std::endl;
+      // std::cerr << "entry=" << inteValue << std::endl;
     }
 
     //read non linear dependency of a permittivity coefficient
@@ -645,7 +654,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      std::cerr << "dependency=" << striValue << std::endl;
+      // std::cerr << "dependency=" << striValue << std::endl;
     }
 
     //read non linear approxType of a permittivity coefficient
@@ -655,7 +664,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      std::cerr << "approxType=" << striValue << std::endl;
+      // std::cerr << "approxType=" << striValue << std::endl;
     }
 
     //read non linear data name of a permittivity coefficient
@@ -665,7 +674,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      std::cerr << "dataName=" << striValue << std::endl;
+      // std::cerr << "dataName=" << striValue << std::endl;
     }
 
     //read non linear hysterese model of a permittivity coefficient
@@ -675,7 +684,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, HYST_MODEL ); 
-      std::cerr << "hysterese model=" << striValue << std::endl;
+      // std::cerr << "hysterese model=" << striValue << std::endl;
     }
 
     //read e saturation of non linear hysterese model for a permittivity coefficient
@@ -685,7 +694,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, E_SATURATION, REAL ); 
-      std::cerr << "eSat=" << doubValue << std::endl;
+      // std::cerr << "eSat=" << doubValue << std::endl;
     }
 
     //read p saturation of non linear hysterese model for a permittivity coefficient
@@ -695,7 +704,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, P_SATURATION, REAL ); 
-      std::cerr << "eSat=" << doubValue << std::endl;
+      // std::cerr << "eSat=" << doubValue << std::endl;
     }
 
     //read p function of non linear hysterese model for a permittivity coefficient
@@ -705,9 +714,11 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, P_FUNCTION ); 
-      std::cerr << "pFunction=" << striValue << std::endl;
+      // std::cerr << "pFunction=" << striValue << std::endl;
     }
 
+    // Print information to info file
+    Info->PrintElectrostaticMat( material, false);
 
   }
 
@@ -733,7 +744,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       //material->SetScalar( doubValue, MAG_CONDUCTIVITY, REAL ); ???
-      std::cerr << "electricConductivity=" << doubValue << std::endl;
+      // std::cerr << "electricConductivity=" << doubValue << std::endl;
     }
 
     //read magnetic permeability
@@ -743,7 +754,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MAG_PERMEABILITY, REAL ); 
-      std::cerr << "magneticPermeability=" << doubValue << std::endl;
+      // std::cerr << "magneticPermeability=" << doubValue << std::endl;
     }
 
     //read nonlinear dependency of magnetic permeability
@@ -753,7 +764,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      std::cerr << "nonlinear dependency of magneticPermeability=" << striValue << std::endl;
+      // std::cerr << "nonlinear dependency of magneticPermeability=" << striValue << std::endl;
     }
 
     //read nonlinear approxType of magnetic permeability
@@ -763,7 +774,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      std::cerr << "nonlinear approxType of magneticPermeability=" << striValue << std::endl;
+      // std::cerr << "nonlinear approxType of magneticPermeability=" << striValue << std::endl;
     }
 
     //read nonlinear dataName of magnetic permeability
@@ -773,8 +784,12 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      std::cerr << "nonlinear dataName of magneticPermeability=" << striValue << std::endl;
+      // std::cerr << "nonlinear dataName of magneticPermeability=" << striValue << std::endl;
     }
+
+    // Print information to info file
+    Info->PrintMagMat( material ); 
+    
   }
 
 //**********************************************************************
@@ -798,7 +813,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, DENSITY, REAL );
-      std::cerr << "density=" << doubValue << std::endl;
+      // std::cerr << "density=" << doubValue << std::endl;
     }
 
     //read heat capacity
@@ -808,7 +823,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, HEAT_CAPACITY, REAL );
-      std::cerr << "heatCapacity=" << doubValue << std::endl;
+      // std::cerr << "heatCapacity=" << doubValue << std::endl;
     }
 
     //read thermal conductivity
@@ -818,8 +833,11 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, HEAT_CONDUCTIVITY, REAL );
-      std::cerr << "thermalConductivity=" << doubValue << std::endl;
+      // std::cerr << "thermalConductivity=" << doubValue << std::endl;
     }
+
+    // Print information to info file
+    Info->PrintThermicMat( material );
   }
 
 //**********************************************************************
@@ -843,7 +861,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, DENSITY, REAL );
-      std::cerr << "density=" << doubValue << std::endl;
+      // std::cerr << "density=" << doubValue << std::endl;
     }
 
     //read density
@@ -853,9 +871,11 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       //material->SetScalar( doubValue, DYNAMIC_VISCOSITY, REAL );
-      std::cerr << "dynamicViscosity=" << doubValue << std::endl;
+      // std::cerr << "dynamicViscosity=" << doubValue << std::endl;
     }
 
+    // Print information to info file
+    Info->PrintFlowMat( material );
   }
 
 }

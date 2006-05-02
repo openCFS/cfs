@@ -37,6 +37,21 @@ namespace CoupledField
 
   }
 
+  bool BaseMaterial::IsSet( MaterialType matType ) const {
+    ENTER_FCN(" BaseMaterial::IsSet" );
+
+    bool found = false;
+    scalarMap::const_iterator scalarIt = scalarParams_.find( matType );
+    tensorMap::const_iterator tensorIt = tensorParams_.find( matType );
+
+    if( scalarIt != scalarParams_.end() || 
+        tensorIt != tensorParams_.end() ) {
+      found = true;
+    }
+
+    return found;
+  }
+
   void  BaseMaterial::matTypeNotAllowed( const MaterialType& matType, 
 					 std::string dim ) const {
     ENTER_FCN("BaseMaterial::matTypeNotAllowed");

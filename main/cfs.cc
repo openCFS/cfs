@@ -90,7 +90,7 @@ int main( int argc, const char **argv ) {
 
 
   // =========================================================================
-  // GENERATE CENTRAL MESSENGER OBHJECT (CURRENTLY ONLY TCL)
+  // GENERATE CENTRAL MESSENGER OBJECT (CURRENTLY ONLY TCL)
   // =========================================================================
 #ifdef TCL_INTERFACE
 
@@ -217,6 +217,12 @@ int main( int argc, const char **argv ) {
 
   // Generate parameter handler and pass address to global pointer
   std::string xmlFile = commandLine->GetParamFile();
+
+  // Write information to command line
+  std::stringstream msg;
+  msg << "Reading parameters from file '" << xmlFile << "'";
+  Info->StartProgress( msg.str() );
+  
 #ifdef USE_XERCES
   std::string cfsSchema = commandLine->GetSchemaPath();
   cfsSchema += "/CFS-Simulation/CFS.xsd";
@@ -228,6 +234,8 @@ int main( int argc, const char **argv ) {
 #else
   params = new PlainXMLParamHandler( xmlFile );
 #endif
+
+  Info->FinishProgress();
 
 
   // =========================================================================

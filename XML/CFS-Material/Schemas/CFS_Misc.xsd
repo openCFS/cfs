@@ -84,8 +84,8 @@
           <xsd:element name="tanDelta" type="DT_NonNegFloat"/>
         </xsd:sequence>
       </xsd:choice>
-      <xsd:element name="freq" type="DT_NonNegFloat"/>
-      <xsd:element name="deltaFreq" type="DT_NonNegFloat"/>
+      <xsd:element name="freq" type="DT_NonNegFloat" minOccurs="0"/>
+      <xsd:element name="deltaFreq" type="DT_NonNegFloat" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
   

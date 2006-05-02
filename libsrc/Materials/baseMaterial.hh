@@ -49,6 +49,8 @@ namespace CoupledField {
       return nonlinFileName_;
     }
 
+    //! Query if a given parameter is set
+    virtual bool IsSet( MaterialType matType ) const;
 
    //! set a scalar string material parameter
     virtual void SetScalar( std::string& param, const MaterialType& matType) {
@@ -114,6 +116,10 @@ namespace CoupledField {
 			    const SubTensorType = FULL ) const {
       Error("GetTensor not implemented",__FILE__,__LINE__); };
 
+
+    //! Print material definition to given output stream
+    virtual void Print(std::ostream & out) const = 0;
+    
   protected:
 
     //! Error for material type not defined
