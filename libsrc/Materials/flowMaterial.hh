@@ -51,7 +51,9 @@ namespace CoupledField {
     void GetScalar( Complex& param, const MaterialType& matType, 
 		    const DataType& dataType ) const;
 
-
+    //! Print material definition to given output stream
+    void Print(std::ostream & out) const;
+    
   private:
 
     Double density_;

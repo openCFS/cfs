@@ -35,6 +35,8 @@
         <xsd:element name="material" minOccurs="1" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:sequence>
+              <xsd:element name="mechanical" type="DT_MatMechanical"
+	        minOccurs="0" maxOccurs="1"/>
               <xsd:element name="acoustic" type="DT_MatAcoustic"
                 minOccurs="0" maxOccurs="1"/>
               <xsd:element name="electric" type="DT_MatElectric"
@@ -45,9 +47,7 @@
 	        minOccurs="0" maxOccurs="1"/>
               <xsd:element name="magnetic" type="DT_MatMagnetic"
 	        minOccurs="0" maxOccurs="1"/>
-              <xsd:element name="mechanical" type="DT_MatMechanical"
-	        minOccurs="0" maxOccurs="1"/>
-              <xsd:element name="piezo" type="DT_MatPiezo"
+                            <xsd:element name="piezo" type="DT_MatPiezo"
 	        minOccurs="0" maxOccurs="1"/>
             </xsd:sequence>
             <xsd:attribute name="name" type="xsd:token"/>

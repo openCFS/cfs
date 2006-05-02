@@ -131,4 +131,8 @@ namespace CoupledField
     dataTypeNotAllowed( dataType, matType );    
   }
 
+  void FlowMaterial::Print(std::ostream & out) const {
+    ENTER_FCN( "FlowMaterial::Print" );
+  }
+  
 }

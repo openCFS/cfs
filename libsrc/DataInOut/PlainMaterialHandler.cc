@@ -403,7 +403,7 @@ namespace CoupledField
 
       material->SetScalar(Psat,P_SATURATION,REAL);
       material->SetScalar(Esat,E_SATURATION,REAL);
-      material->SetScalar((Integer)dirPol,P_DIRECTION);
+      material->SetScalar((Integer&)dirPol,P_DIRECTION);
       material->SetScalar(hystType,HYST_MODEL);
 
 
@@ -784,7 +784,7 @@ namespace CoupledField
 	
 	material->SetScalar(Psat,P_SATURATION,REAL);
 	material->SetScalar(Esat,E_SATURATION,REAL);
-	material->SetScalar((Integer)dirPol,P_DIRECTION);
+	material->SetScalar((Integer&)dirPol,P_DIRECTION);
 	material->SetScalar(hystType,HYST_MODEL);
 	
 	

@@ -157,10 +157,15 @@ namespace CoupledField {
     skelfile_->close();
 
     // Generate parser and parse XML defaults file
-    std::string cfsDefaults = XMLSCHEMA;
-    cfsDefaults += "/Defaults/CFS++Defaults.xml";
+    std::string cfsDefaults = commandLine->GetSchemaPath();
+    cfsDefaults += "/CFS-Simulation/Defaults/CFS++Defaults.xml";
+
+    std::string cfsSchema = commandLine->GetSchemaPath();
+  cfsSchema += "/CFS-Simulation/CFS.xsd";
+
+    std::cerr << "--> Using defaults " << cfsDefaults << std::endl;
 #ifdef USE_XERCES
-    params = new XMLParamHandler( cfsDefaults.c_str() );
+    params = new XMLParamHandler( cfsDefaults.c_str(), cfsSchema.c_str());
 #else
     params = new PlainXMLParamHandler( cfsDefaults.c_str() );
 #endif
@@ -331,42 +336,31 @@ namespace CoupledField {
       << "   <!-- For coupled simulation, uncomment the following lines -->";
     (*skelfile_) 
       << myendl  
-      << "   <!--<couplingList>                                     " 
-      << myendl
-      << "     <iterative>                                      " 
-      << myendl 
-      << "       <XXX1XXX2 method=\"RHS\">                        " 
-      << myendl
-      << "         <XXX1>                                       " 
-      << myendl
-      << "           <coupling type=\"XXX\" quantity=\"XXX\"        " 
-      << myendl
-      << "                     name=\"XXX\"/>                     " 
-      << myendl
-      << "         </XXX1>                                      " 
-      << myendl
-      << "         <XXX2>                                       " 
-      << myendl
-      << "           <coupling type=\"XXX\" quantity=\"XXX\"        " 
-      << myendl
-      << "                     name=\"XXX\"/>                    " 
-      << myendl
-      << "         </XXX2>                                      " 
-      << myendl 
-      << "       </XXX1XXX2>                                    " 
-      << myendl << myendl
-      << "       <nonLinear logging=\"yes\">                      " 
-      << myendl
-      << "         <stopCrit value=\"1e-3\" quantity=\"XXX\"        " 
-      << myendl
-      << "                   l2Norm=\"rel\"/                      " 
-      << myendl << myendl 
-      << "         <maxNumIters> 10 </maxNumIters>          " 
-      << myendl
-      << "       </nonLinear>                                   " 
-      << myendl
-      << "     </iterative>                                     " 
-      << myendl
+      << "   <!--<couplingList>                                 \n" 
+      << "     <direct>                                         \n"
+      << "       <XXXDirect>                                    \n"
+      << "         <coupling type=\"XXX\" name=\"XXX\"/>        \n"
+      << "         <storeResults/>                              \n"
+      << "       </XXXDirect>                                   \n"
+      << "     </direct>                                        \n"
+      << "\n"
+      << "     <iterative>                                      \n" 
+      << "       <XXX1XXX2 method=\"RHS\">                      \n" 
+      << "         <XXX1>                                       \n" 
+      << "           <coupling type=\"XXX\" quantity=\"XXX\"    \n" 
+      << "                     name=\"XXX\"/>                   \n" 
+      << "         </XXX1>                                      \n" 
+      << "         <XXX2>                                       \n" 
+      << "           <coupling type=\"XXX\" quantity=\"XXX\"    \n" 
+      << "                     name=\"XXX\"/>                   \n" 
+      << "         </XXX2>                                      \n" 
+      << "       </XXX1XXX2>                                    \n" 
+      << "       <nonLinear logging=\"yes\">                    \n" 
+      << "         <stopCrit value=\"1e-3\" quantity=\"XXX\"    \n" 
+      << "                   l2Norm=\"rel\"/                    \n" 
+      << "         <maxNumIters> 10 </maxNumIters>              \n" 
+      << "       </nonLinear>                                   \n" 
+      << "     </iterative>                                     \n" 
       << "   </couplingList>                                 -->" 
       << myendl << myendl << myendl;
   }

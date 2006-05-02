@@ -176,4 +176,7 @@ namespace CoupledField
     }
   }
 
+  void HeatMaterial::Print(std::ostream & out) const {
+    ENTER_FCN( "HeatMaterial::Print" );
+  }
 }

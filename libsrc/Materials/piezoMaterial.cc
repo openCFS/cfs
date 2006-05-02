@@ -353,5 +353,9 @@ namespace CoupledField
       subTensorNotAvailable( matType, subTensor );
     }
   }
+  
+  void PiezoMaterial::Print(std::ostream & out) const {
+    ENTER_FCN( "PiezoMaterial::Print" );
+  }
 
 }

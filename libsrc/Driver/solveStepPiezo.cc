@@ -70,7 +70,7 @@ namespace CoupledField {
           if ( hystType == "preisach" ) {
             materialData_[iSD]->GetScalar(Esat,E_SATURATION,REAL);
             materialData_[iSD]->GetScalar(Psat,P_SATURATION,REAL);
-            materialData_[iSD]->GetScalar((Integer)dir,P_DIRECTION,INTEGER);
+            materialData_[iSD]->GetScalar((Integer&)dir,P_DIRECTION,INTEGER);
             isVirgin = TRUE; 
 
             hyst_[iSD] = new Preisach(numSDElems, Esat, Psat, Ec, isVirgin);
@@ -295,7 +295,7 @@ namespace CoupledField {
       ptgrid_->GetVolElems(elemssd,subdoms_[isd]);
       
       //get direction of polarization
-      materialData_[isd]->GetScalar((Integer)comp,P_DIRECTION,INTEGER);
+      materialData_[isd]->GetScalar((Integer&)comp,P_DIRECTION,INTEGER);
       comp -= 1;
 
       // loop over elements of subdomain
@@ -348,7 +348,7 @@ namespace CoupledField {
       ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
     
       //get direction of polarization
-      materialData_[actSD]->GetScalar((Integer)comp,P_DIRECTION,INTEGER);
+      materialData_[actSD]->GetScalar((Integer&)comp,P_DIRECTION,INTEGER);
       comp -= 1;
     
       for (UInt iel=0; iel < elemssd.GetSize(); iel++) {

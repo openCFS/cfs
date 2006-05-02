@@ -155,16 +155,26 @@ namespace CoupledField {
 	Double density, alpha, beta;
 	material->GetTensor(myMat,MECH_STIFFNESS_TENSOR,REAL);
 	material->GetScalar(density,DENSITY,REAL);
-	material->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-	material->GetScalar(beta,RAYLEIGH_BETA,REAL);
-	
 	*cfsInfo  << "MECHANIC STIFFNESS TENSOR (real part) OF " << material->GetName()
 		  << ":\n\n" << myMat << std::endl
-		  << "density = " << density << std::endl
-		  << "damping coefficient alfa = " << alpha
-		  << std::endl
-		  << "damping coefficient beta = " << beta
-		  << std::endl <<  std::endl;
+		  << "density = " << density << std::endl;
+        
+        // Check, if damping was specified
+        if( material->IsSet( RAYLEIGH_ALPHA) &&
+            material->IsSet( RAYLEIGH_BETA) ) {
+          
+          
+          material->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+          material->GetScalar(beta,RAYLEIGH_BETA,REAL);
+          
+
+          *cfsInfo << "damping coefficient alfa = " << alpha
+                   << std::endl
+                   << "damping coefficient beta = " << beta
+		   << std::endl <<  std::endl;
+        } else {
+          *cfsInfo << "damping: not defined"<< std::endl << std::endl;
+        }
       }
     }
   }

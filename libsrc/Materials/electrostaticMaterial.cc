@@ -352,6 +352,8 @@ namespace CoupledField
     pos->second.GetSubMatrix(matMatrix, 1, 1);
   }
 
-
-
+  
+  void ElectroStaticMaterial::Print(std::ostream & out) const {
+    ENTER_FCN( "ElectroStaticMaterial::Print" );
+  }
 }

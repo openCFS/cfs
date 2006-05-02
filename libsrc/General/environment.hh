@@ -392,7 +392,7 @@ namespace CoupledField {
   DEFINE_ENUM_CONVERSION(FEType)
   DEFINE_ENUM_CONVERSION(EntryType::ScalarType)
   DEFINE_ENUM_CONVERSION(DataType)
-  DEFINE_ENUM_CONVERSION(MaterialClass);
+  DEFINE_ENUM_CONVERSION(MaterialClass)
 #endif
 
 } // end of namespace

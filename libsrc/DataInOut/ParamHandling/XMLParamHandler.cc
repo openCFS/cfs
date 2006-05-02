@@ -78,11 +78,6 @@ namespace CoupledField {
 #endif
 
 
-    // Generate progress report (tell user what we are doing)
-    std::stringstream msg;
-    msg << "Reading parameters from file '" << fname << "'";
-    Info->StartProgress( msg.str() );
-
     // Check if file exists
     std::ifstream inFile;
     inFile.open( fname );
@@ -111,10 +106,7 @@ namespace CoupledField {
     beVerbose_ = false;
 #endif
 
-    // That's it
-    Info->FinishProgress();
-
-  }
+   }
 
 
   // ========================================

@@ -337,5 +337,8 @@ namespace CoupledField
     }
   }
   
+   void ElectroMagneticMaterial::Print(std::ostream & out) const {
+    ENTER_FCN( "ElectroMagneticMaterial::Print" );
+  }
   
 }

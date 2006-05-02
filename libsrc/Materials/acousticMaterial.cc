@@ -139,4 +139,8 @@ namespace CoupledField
     dataTypeNotAllowed( dataType, matType );    
   }
 
+  void AcousticMaterial::Print(std::ostream & out) const {
+    ENTER_FCN( "AcousticMaterial::Print" );
+  }
+  
 }

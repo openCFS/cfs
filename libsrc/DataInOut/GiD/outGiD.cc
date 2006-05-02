@@ -505,18 +505,48 @@ namespace CoupledField {
         GiD_WriteScalar( iEnt, var[iEnt-1]); 
       }
     } else {
-      GiD_BeginResultHeader( name.c_str(), "transient", time,
-                             GiD_Vector, entType, dummy );
-      const char *names[] = {"x", "y", "z"};
-      GiD_ResultComponents( 3, names );
-      
+      // Special treatment for mechanic stresses:
+      // As up to now we can not determine, if the result is of stress type
+      // we have to determine this by hand from the xml-file
+      std::string stressName, subType;
+      GiD_ResultType type = GiD_Vector;
+      UInt numEntries = 3;
+      Enum2String( MECH_STRESS, stressName );
+      if ( name == stressName ) {
+        GiD_BeginResultHeader( name.c_str(), "transient", time,
+                               GiD_Matrix, entType, dummy );
+        // Check which mechanic subtype we have to treat
+        params->Get( "subType", subType, "mechanic" );
+        
+        if( subType == "3D" ) {
+          const char *names[] = {"xx", "yy", "zz", "yz", "xz", "xy"};
+          GiD_ResultComponents( 6, names );
+        } else if( subType == "planeStrain" ) {
+          const char *names[] = {"_", "__", "xx", "___", "xy", "yy"};
+          GiD_ResultComponents( 6, names );
+        } else if( subType == "axi" ) {
+          const char *names[] = {"phiphi", "_", "rr", "__", "rz", "zz"};
+          GiD_ResultComponents( 6, names );
+        } else {
+          Error (" subType not known", __FILE__, __LINE__ );
+        }
+      } else {
+        GiD_BeginResultHeader( name.c_str(), "transient", time,
+                               type, entType, dummy );
+        const char *names[] = {"x", "y", "z"};
+        GiD_ResultComponents( 3, names );
+      }
+        
       GiD_ResultValues();
-          
+     
       // write results
       UInt offset = 0;
       for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
         offset = (iEnt-1) * dof;
-        if ( dof == 3 ) {
+        if ( dof == 6 ) {
+          GiD_Write3DMatrix( iEnt, var[offset], var[offset+1], var[offset+2],
+                             var[offset+3], var[offset+4],var[offset+5]  );
+        } else if ( dof == 3 ) {
           GiD_WriteVector( iEnt, var[offset], var[offset+1], var[offset+2] );
         } else { 
           GiD_WriteVector( iEnt, var[offset], var[offset+1], 0.0);

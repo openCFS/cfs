@@ -332,5 +332,8 @@ namespace CoupledField
     }
   }
  
- 
+
+  void MechanicMaterial::Print(std::ostream & out) const {
+    ENTER_FCN( "MechanicMaterial::Print" );
+  }
 }
