@@ -213,9 +213,10 @@ namespace CoupledField {
 
       }
       // Delete integrator again (Stressabbau ;-)
-    }
       delete mechStressOp;
-      delete FieldOp2;
+    }
+    
+    delete FieldOp2;
 
     
   
