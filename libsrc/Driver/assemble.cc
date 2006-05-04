@@ -357,10 +357,8 @@ namespace CoupledField {
               CalcElementMatrix(ptCoord, elemmat);
 
             DataType matType = actDescriptor->GetMatDataType();
-	    //            actDescriptor->SetMatDataType(matType);
 
             if (analysisType_ == HARMONIC) {
-              //	      std::cout << "Transform type:" << actDescriptor->GetMatDataType() << std::endl;
               TransformMatrix2Harmonic(harmonicVec,elemmat, 
                                        actDescriptor->GetOrigMatrixType(),
                                        actDescriptor->GetMatDataType());

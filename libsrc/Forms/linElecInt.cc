@@ -61,8 +61,6 @@ namespace CoupledField {
     ENTER_FCN( "linElecInt::calcDMat" );
     ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
     dMat *= factor_;
-    //    std::cout << "dMat:\n" << dMat << std::endl;
-
   }
 
 
