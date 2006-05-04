@@ -46,9 +46,9 @@ namespace CoupledField
   {
     ENTER_FCN( "MechStressStrain::calcPiolaStressTensor" );
 
-    Matrix<Double> dMat;
+    Matrix<TYPE> dMat;
     linElastInt::calcDMat(dMat);
-  
+
     // convert displacement of all elem nodes into one vector: 
     // (uNode1X, uNode1Y, uNode2X, uNode2Y, ...)
     Vector<TYPE> displVec;

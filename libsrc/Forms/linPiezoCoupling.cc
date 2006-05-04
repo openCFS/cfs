@@ -170,7 +170,6 @@ namespace CoupledField {
     Matrix<Double> matMatrix;
     ptMaterial->GetTensor(matMatrix,PIEZO_TENSOR,matDataType_,subTensorType_);
     matMatrix.Transpose(dMat);
-    //    std::cout << "dMat:\n" << dMat << std::endl;
   }
 
 

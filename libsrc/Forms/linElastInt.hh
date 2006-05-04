@@ -33,6 +33,9 @@ namespace CoupledField {
      //! calculates the material data 
     void calcDMat( Matrix<Double> &dMat );
 
+     //! calculates the material data 
+    void calcDMat( Matrix<Complex> &dMat );
+
     //! returns B - matrix for BDB
     virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
                            Matrix<Double> &ptCoord );

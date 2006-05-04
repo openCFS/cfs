@@ -244,9 +244,20 @@ namespace CoupledField
 	}
       }
     }
+  }
 
-    //    std::cout << "dMat:\n" << dMat << std::endl;
+
+  void linElastInt:: calcDMat(Matrix<Complex> & dMat)
+  {
+    ENTER_FCN( "linElastInt::calcDMat" );
     
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,COMPLEX,subTensorType_);
+
+    //check for softening model
+    if (softeningModel_ != "no" ) {
+      Error("Softening Model just supported for real valed material data",
+	    __FILE__,__LINE__);
+    }
   }
 
 

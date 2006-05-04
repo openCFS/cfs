@@ -34,6 +34,10 @@ namespace CoupledField {
     couplingName_ = "piezoDirect";
     materialClass_ = PIEZO;
     params->Get( "subType", subType_, "mechanic");
+
+    if (subType_ == "axi") 
+      isaxi_ = TRUE;
+
   }
 
 
@@ -138,13 +142,16 @@ namespace CoupledField {
     Matrix<TYPE> permittivityMat;
     Matrix<TYPE> elemDisp;
     
-
-    if (subType_ == "axi") 
-      isaxi_=TRUE;
-
     // check for complex material data
     Boolean isComplex = params->HasValue( "type", "imagMaterialParameter", 
 					  "materialDataType" );
+    DataType dataType;
+    if ( isComplex ) {
+      dataType = COMPLEX;
+    }
+    else {
+      dataType = REAL;
+    }
 
     // get material from mechanics
     std::map<RegionIdType, BaseMaterial*> mechMat =    
@@ -164,12 +171,7 @@ namespace CoupledField {
 
       // get correct mechanical stress operator and piezoelectric tensor
       mechStressOp = new MechStressStrain<TYPE>(mechMatSD, type);
-      if ( isComplex ) {
-	matPiezo->GetTensor(piezoCouplingMat,PIEZO_TENSOR,COMPLEX,type);
-      }
-      else {
-	matPiezo->GetTensor(piezoCouplingMat,PIEZO_TENSOR,REAL,type);
-      }
+      matPiezo->GetTensor(piezoCouplingMat,PIEZO_TENSOR,dataType,type);
 
       //transpose the piezoelectric tensor
       piezoCouplingMat.Transpose(piezoCouplingMatT);
@@ -271,9 +273,6 @@ namespace CoupledField {
     Matrix<TYPE> permittivityMat;
     Matrix<Complex>*complexMatMatrix=NULL;
 
-    if (subType_ == "axi") 
-      isaxi_=TRUE;
-    
     // check for complex material data
     Boolean isComplex = params->HasValue( "type", "imagMaterialParameter", 
 					  "materialDataType" );
@@ -282,6 +281,14 @@ namespace CoupledField {
     // get material from mechanics
     std::map<RegionIdType, BaseMaterial*> mechMat = 
       pde1_->getPDEMaterialData();
+
+    DataType dataType;
+    if ( isComplex ) {
+      dataType = COMPLEX;
+    }
+    else {
+      dataType = REAL;
+    }
 
    // get material from electrostatics
     std::map<RegionIdType, BaseMaterial*>elecMat = 
@@ -346,14 +353,8 @@ namespace CoupledField {
         
           // 2.) calculate linear mechanical strains
 	  mechStrainOp = new MechStressStrain<TYPE>(mechMatSD, type);
-	  if ( isComplex ) {
-	    matPiezo->GetTensor(piezoCouplingMat,PIEZO_TENSOR,COMPLEX,type);
-	    elecMatSD->GetTensor(permittivityMat,ELEC_PERMITTIVITY,COMPLEX,type);
-	  }
-	  else {
-	    matPiezo->GetTensor(piezoCouplingMat,PIEZO_TENSOR,REAL,type);
-	    elecMatSD->GetTensor(permittivityMat,ELEC_PERMITTIVITY,REAL,type);
-	  }
+	  matPiezo->GetTensor(piezoCouplingMat,PIEZO_TENSOR,dataType,type);
+	  elecMatSD->GetTensor(permittivityMat,ELEC_PERMITTIVITY,dataType,type);
 
           Matrix<Double> Coord;
           pde1_->GetElemCoords(volConnect, Coord);
