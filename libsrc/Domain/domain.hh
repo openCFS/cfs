@@ -90,6 +90,11 @@ namespace CoupledField
     //! Get pointer to SinglePDE by name
     SinglePDE * GetSinglePDE(const std::string pdename);
 
+
+    //! Get pointer to CoupledPDE
+    DirectCoupledPDE* GetDirectCoupledPDE()
+    { return ptDirectCoupledPde_[0]; };
+
     //! Get pointer to input-file
     FileType * GetInFile(){ return InFile_;}
 
