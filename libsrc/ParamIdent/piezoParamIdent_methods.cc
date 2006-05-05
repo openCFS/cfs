@@ -18,8 +18,10 @@ namespace CoupledField
   // ========================================================================
 
   
-  void piezoParamIdent::calc_measuredCharge(Vector<Double> freqs, Vector<Double> & absZ, 
-					    Vector<Double> & phi, Vector<Complex> & y_hat){
+  void piezoParamIdent::calc_measuredCharge(Vector<Double> freqs_, 
+                                            Vector<Double> & absZ, 
+                                            Vector<Double> & phi, 
+                                            Vector<Complex> & y_hat){
     ENTER_FCN("piezoParamIdent::calc_measuredCharge");
     Complex Z,j;
     Double x, y;
@@ -27,10 +29,7 @@ namespace CoupledField
     Double phase;
     Double randFactor=0.0;
 
-    // freqs.Part(0,nrMeasuredData);
-    //     absZ.Part(0,nrMeasuredData);
-    //     phi.Part(0,nrMeasuredData);
-    y_hat.Resize(nrMeasuredData);
+    y_hat_.Resize(nrMeasuredData);
 
     Vector<Complex> rand(nrMeasuredData);
     for (UInt i=0; i<nrMeasuredData; i++){
@@ -39,42 +38,33 @@ namespace CoupledField
       Z=Complex(x,y);
       phase = 180.0/PI*std::arg(Z);
     
-      y_hat[i]=sign*voltage/(2.0*PI*std::log(Z)*freqs[i]*j);
-      //       std::cout<<y_hat<<std::endl;
-      //       std::cout<<"This is y_hat!!"<<std::endl;
-      //      getchar();
+      y_hat_[i]=sign_*voltage_/(2.0*PI*std::log(Z)*freqs_[i]*j);
 
-      //       std::cout<<"\n Frequenz; " << freqs[i] << ", messZ: " << absZ[i] << ", phase: " << phi[i] << std::endl;
-      //       std::cout<<" Frequenz; " << freqs[i] << ", calcZ: " << std::abs(Z) << ", phase: " << phase << std::endl << std::endl;
-     
-      //       std::cout<<i<<") = " << phi[i] << ",\t "<< freqs[i] <<",\t q = y_hat = " << y_hat[i]<<",\t Z= " << Z << " phase " << phase << std::endl;
     }
    
-    if (TRUE){
+    if (TRUE){ // generates synthetically created radom noise
       for (UInt i=0;i<nrMeasuredData;i++){
         rand[i] = Complex(2.0*Double(std::rand())/RAND_MAX-1);
         if (randFactor<std::abs(rand[i]))
-          randFactor = delta/std::abs(rand[i]);
+          randFactor = delta_/std::abs(rand[i]);
       }
       for (UInt i=0;i<nrMeasuredData;i++)
-        rand[i]=Complex(randFactor*rand[i])*y_hat[i];
-      if(delta!=0.0)
-        std::cout<<"\n Random noise with data error delta = "<< delta<<std::endl;
+        rand[i]=Complex(randFactor*rand[i])*y_hat_[i];
+      if(delta_!=0.0)
+        std::cout<<"\n Random noise with data error delta_ = "<< delta_<<std::endl;
       //    std::cout<<rand<<std::endl;
-      //       std::cout<<y_hat<<std::endl;
+      //       std::cout<<y_hat_<<std::endl;
      
       for (UInt i=0;i<nrMeasuredData;i++)
-        y_hat[i]=y_hat[i]+rand[i];
+        y_hat_[i]=y_hat_[i]+rand[i];
     
       Double average_error=0.0;
       for (UInt i=0;i<nrMeasuredData;i++)
-        average_error+=std::abs((y_hat[i]-rand[i])/y_hat[i]);
+        average_error+=std::abs((y_hat_[i]-rand[i])/y_hat_[i]);
       average_error/=nrMeasuredData;
-      if(delta!=0.0){
-        //std::cout<<"\n average_error = " <<average_error<<std::endl;
-        std::cout<<"\n The average data error is about ~ " << std::abs(average_error-1.0)*100<<" % " << std::endl;
-        //   std::cout<<"\n Press any key to continue ... " <<std::endl;
-        //         getchar();
+      if(delta_!=0.0){
+        std::cout<<"\n The average data error is about ~ " << 
+          std::abs(average_error-1.0)*100<<" % " << std::endl;
       }
       
     }
@@ -82,78 +72,68 @@ namespace CoupledField
   }// end calc_measuredCharge()
 
 
-  void piezoParamIdent::calcSyntheticData(Vector<Complex> & y_hat){
+  void piezoParamIdent::calcSyntheticData(Vector<Complex> & y_hat_){
     ENTER_FCN("piezoParamIdent::calcSyntheticData");
-    //   std::cout<<"\n We are generating synthetic data, i.e. we solve the piezo-equation with exact material - parameters"<<std::endl;
-    //    std::cout<<"and alienate the results by alternating +-10Percent"<<std::endl;
+    //   std::cout<<"\n We are generating synthetic data, i.e. 
+    //   we solve the piezo-equation with exact material - parameters"<<std::endl;
+    //   std::cout<<"and alienate the results by alternating +-10Percent"<<std::endl;
 
-    if(directCoupling==TRUE)
-      ptMaterial= ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
-    else
-      ptMaterial= ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+//     if(directCoupling_==TRUE)
+//       ptMaterial_= ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
+//     else
+//       ptMaterial_= ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
      
-    createF(ptMaterial, y_hat,TRUE); // calculates only forward problems over all omegas
+    createF(y_hat_,TRUE); // calculates only forward problems over all omegas_
 
-    for (UInt i=0;i<y_hat.GetSize();i++){
+    for (UInt i=0;i<y_hat_.GetSize();i++){
       if (i%2==0)
-        y_hat[i]*=1.01;
+        y_hat_[i]*=1.01;
       else
-        y_hat[i]*=0.99;
+        y_hat_[i]*=0.99;
     }
   }// end calcSyntheticData
 
 
   void piezoParamIdent::calcImpedanceCurve(){
     ENTER_FCN("PiezoParamIdent::caclImpedanceCurve");
-
     
-    if(directCoupling==TRUE){
-      ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
-      ptMaterial2=ptPDE2_->getPDEMaterialData();   // Pointer to MaterialData
-    }
-    else
-      ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
     Boolean reset = TRUE;
-    //     ptAssemble = ptMyPDE_->getPDE_assemble();
-    //     ptAssemble = ptPDE1_->getPDE_assemble();
-
-    // ptAlgsys->InitMatrix();
-   
-    updateMaterialData(parameter,ptMaterial);
-    updateComplexMaterialData(parameterC,ptMaterial);
-
-    if(directCoupling==TRUE){
-      updateMaterialData(parameter, ptMaterial);
-      updateMaterialData(parameter, ptMaterial2);
-      updateComplexMaterialData(parameterC,ptMaterial);
-      //      updateComplexMaterialData(parameterC,ptMaterial2);
-    }
+     
+    updateMaterialData(parameter_);
+    updateComplexMaterialData(parameterC_);
 
     Double maxImpedance=0.0;
     Double minImpedance=1.0e+10;
     Integer freqAtMaxImpedance=0;
     Integer freqAtMinImpedance=0;
 
-    for (UInt fstep = 0; fstep < freqs.GetSize(); fstep++) { 
+
+    for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) { 
 
           
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
 
-      ptAssemble->SetReassemble();
-      ptPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
+      //    ptAssemble_->SetReassemble();
+
+      // Set curent frequency value in the mathParser
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "f", actFreq_ );
+
+      ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep); 
       ptPDE_->GetSolveStep()->PreStepHarmonic(reset); 
       ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
       ptPDE_->GetSolveStep()->PostStepHarmonic( reset);
       ptPDE_->PostProcess();   
       
-      //    ptPDE_->WriteResultsInFile(fstep,freqs[fstep]);
+      //    ptPDE_->WriteResultsInFile(fstep,freqs_[fstep]);
 
       Vector<Complex> chargeVec;
-      if(directCoupling==TRUE)      
-        chargeVec = ptPDE1_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
+      // Vector wich contains charges for each element !
+      if(directCoupling_==TRUE)      
+        chargeVec = ptPDE1_->getPDE_complexValuedCharge(); 
       else
         chargeVec = ptMyPDE_->getPDE_complexValuedCharge();
       
@@ -162,6 +142,7 @@ namespace CoupledField
       for (UInt i=0;i<chargeVec.GetSize();i++){
        charge+=chargeVec[i];
       }
+
       if (std::abs(charge)==0){
         std::cout<<"! WARNING: Calculated charge equals zero."<<std::endl;
         std::cout<<" Impedance cannot be calculated"<<std::endl;
@@ -173,75 +154,68 @@ namespace CoupledField
       Double imped, phase;
       Complex impedC;
 	
-      if (!impedCurve)
-        std::cerr<<"Error opening 'ImpedCurve.dat' "<<std::endl;
-	
-	
       Complex im=Complex(0.0,1);
-      impedC=voltage/(charge*2.0*PI*freqs[fstep]*im);
-      imped = std::abs(voltage/(charge*2.0*PI*freqs[fstep]*im)); 
+      impedC=voltage_/(charge*2.0*PI*freqs_[fstep]*im);
+      imped = std::abs(voltage_/(charge*2.0*PI*freqs_[fstep]*im)); 
       //    phase = 180.0/PI*(std::arg(charge));
       phase = 180.0/PI*(std::arg(impedC));
 
-      std::cout << fstep <<");\t Frequenz: " << freqs[fstep] << ";\t Impedanz: "<< imped
-                << ";\t Phase: " << phase <<";\t Volt = "<<voltage<<";\t Charge = "<< charge<< std::endl;
-      // 	*impedCurve <<"\n" << freqs[fstep] << " " << std::log(imped) << "  " << phase << "  " 
-      // 		      << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
-      *impedCurve <<"\n" << freqs[fstep] << " " << imped << "  " << phase << "  " 
-                  << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()<< "  " << charge.imag()<< std::endl;
-      synMess->setf(std::ios::fixed); // output should by in fixed point numbers,i.e. 100.23 instead of 1.0023e+2
+      std::cout << fstep <<");\t Frequenz: " << freqs_[fstep] << ";\t Impedanz: "<< imped
+                << ";\t Phase: " << phase <<";\t Volt = "<<voltage_<<";\t Ladung = "<< charge<< std::endl;
+    
+      *impedCurve <<"\n" << freqs_[fstep] << " " << imped << "  " << phase << "  " 
+                  << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()
+                  << "  " << charge.imag()<< std::endl;
 
-      *synMess <<freqs[fstep]<<"\t"<<imped<<"\t"<<phase<<"\t"<<fstep<<std::endl;
+      synMess->setf(std::ios::fixed); // output should by in fixed point numbers,
+                                      // i.e. 100.23 instead of 1.0023e+2
+
+      *synMess <<freqs_[fstep]<<"\t"<<imped<<"\t"<<phase<<"\t"<<fstep<<std::endl;
 
       // determine resonance and antiresonance frequency
       if (imped>maxImpedance){
         maxImpedance=imped;
-        antiResonanceFrequency_=freqs[fstep];
+        antiResonanceFrequency_=freqs_[fstep];
       }
 
       if (imped<minImpedance){
         minImpedance=imped;
-        resonanceFrequency_=freqs[fstep];
+        resonanceFrequency_=freqs_[fstep];
       }
 
     } //  end loop over freqs
 
-    std::cout<<"++ Resonance lies at " << resonanceFrequency_ <<" Hz with |Z| = " << minImpedance<<std::endl;
-    std::cout<<"++ Antiresonance lies at " << antiResonanceFrequency_ <<" Hz with |Z| = " << maxImpedance<<std::endl;
+    std::cout<<"++ Resonance lies at " << resonanceFrequency_ 
+             <<" Hz with |Z| = " << minImpedance<<std::endl;
+    std::cout<<"++ Antiresonance lies at " << antiResonanceFrequency_ 
+             <<" Hz with |Z| = " << maxImpedance<<std::endl;
 
   } // end calcImpedance Curve
 
   void piezoParamIdent::calcMechDisplCurve(){
     ENTER_FCN("PiezoParamIdent::calcMechDisplCurve");
 
-        std::cout<<"++ Calculate mechanical displacement at selected nodes ..."<<std::endl;
     
-      if(directCoupling==TRUE)      
-        ptMaterial = ptPDE1_->getPDEMaterialData(); // Vector wich contains charges for each element !
-      else
-        ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-      //    ptBCs = ptMyPDE_->getPDE_BCs();                             // Pointer to BCs
-      
       Boolean reset = TRUE;
       
-      if(directCoupling==TRUE)      
-        ptAssemble = ptPDE1_->getPDE_assemble(); // Vector wich contains charges for each element !
+      if(directCoupling_==TRUE)      
+        ptAssemble_ = ptPDE1_->getPDE_assemble(); // Vector wich contains charges for each element !
       else
-        ptAssemble = ptMyPDE_->getPDE_assemble();
+        ptAssemble_ = ptMyPDE_->getPDE_assemble();
       
       
-      updateMaterialData(parameter,ptMaterial);
-      updateComplexMaterialData(parameterC,ptMaterial);
+      updateMaterialData(parameter_);
+      updateComplexMaterialData(parameterC_);
       
       // Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
 
-      for (UInt fstep = 0; fstep < freqs.GetSize(); fstep++) {       
+      for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) {       
         
         ////////////////////////////////////////////////////////
         //                   SOLVES PDE                      //
         ///////////////////////////////////////////////////////  
         
-        ptPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
+        ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
         ptPDE_->GetSolveStep()->SetActStep(fstep); 
         ptPDE_->GetSolveStep()->PreStepHarmonic(reset);         
         ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);        
@@ -251,7 +225,7 @@ namespace CoupledField
         //ptMyPDE_->WriteResultsInFile();
         
         BaseNodeStoreSol * ptSol;
-        if(directCoupling==TRUE)      
+        if(directCoupling_==TRUE)      
           ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !
         else
           ptSol = ptMyPDE_->getPDESolution();
@@ -259,8 +233,8 @@ namespace CoupledField
         NodeStoreSol<Complex> * ptNodeStoreSol;
         ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
         
-                //      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
-        ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
+                //      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot_);
+        ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);
         
         Vector<Complex> nodeSol;
         Vector<Complex> nodeResult(12);
@@ -293,15 +267,12 @@ namespace CoupledField
         ptNodeStoreSol->Get(node4,3,nodeResult[11]);	
 
         std::cout<<"Mechanical displacement al selected nodes at frequency "
-                 <<freqs[fstep]<< std::endl;
+                 <<freqs_[fstep]<< std::endl;   
 
-        std::cout<<nodeResult<<std::endl;
-
-        *mechDispl<<freqs[fstep];
+        *mechDispl<<freqs_[fstep];
         for(UInt imech=0;imech<nodeResult.GetSize();imech++)
           *mechDispl<<"  "<<nodeResult[imech].real();
         *mechDispl<<std::endl;
-        std::cout<<"test 5 "<<std::endl;
 
         
         
@@ -309,34 +280,21 @@ namespace CoupledField
   }
 
 
-  void piezoParamIdent::createF(MaterialMap& ptMaterial,  Vector<Complex> & F_hat, 
-				Boolean typeOut){
+  void piezoParamIdent::createF(Vector<Complex> & F_hat_, Boolean typeOut){
     ENTER_FCN("PiezoParamIdent:createF");
     //   std::cout<<"\nF wil be created ..."<<std::endl;
 
 
-    if(directCoupling==TRUE){
-      ptMaterial=ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
-      ptAssemble = ptPDE1_->getPDE_assemble();
-      ptAlgsys = ptPDE1_->getPDE_algsys();
-    }
-    else{
-      ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-      ptAssemble = ptMyPDE_->getPDE_assemble();
-      ptAlgsys = ptMyPDE_->getPDE_algsys();
-    }
+    ptAssemble_ = ptPDE1_->getPDE_assemble();
+    ptAlgsys_ = ptPDE1_->getPDE_algsys();
 
-    Grid * ptGrid =   ptdomain_->GetGrid();
-    F_hat.Resize(nrMeasuredData);
+
+    F_hat_.Resize(nrMeasuredData);
 
     Boolean reset = TRUE;
         
-    ptAlgsys->InitMatrix();
-    ptAssemble->SetReassemble();
-    ptAlgsys->InitRHS();
-     
-    // updateMaterialData(parameter,ptMaterial);
-    // updateComplexMaterialData(parameterC,ptMaterial);
+    // updateMaterialData(parameter_);
+    // updateComplexMaterialData(parameterC_);
     
    
     for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
@@ -350,7 +308,7 @@ namespace CoupledField
       //      std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;
 
       reset=TRUE;
-      ptPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
+      ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep);       
       ptPDE_->GetSolveStep()->PreStepHarmonic(reset); 
          
@@ -368,81 +326,37 @@ namespace CoupledField
       //////////////////////////////////////////////////////////
       //Retrieves & stores Solution for further calculations  //
       /////////////////////////////////////////////////////////
-
-//         BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
-//         NodeStoreSol<Complex> * ptNodeStoreSol;
-//         ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
-
-//         if (considerMechDeformation==TRUE){
-//           ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
-//           ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
-//           typeOutSolutionOnScreen(solElecPot, solMechDispl);              //member function of piezoParamIdent
-//           meanValueMechDeformation=0.0;
-//           measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs); 
-//           //          std::cout<<"meanValueMechDef: "<< meanValueMechDeformation <<std::endl; 
-//           F_hat[fstep + nrMeasuredData]=meanValueMechDeformation;
-//         }
-
-        Vector<Complex> chargeVec;
-        if(directCoupling==TRUE)      
-          chargeVec = ptPDE1_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
-        else
-          chargeVec = ptMyPDE_->getPDE_complexValuedCharge();
         
-        //        Vector<Complex> chargeVec =   ptMyPDE_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
-
+        Vector<Complex> chargeVec;
+      
+        chargeVec = ptPDE1_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
+             
         Complex charge=Complex(0.0,0.0);
          
         for (UInt i=0;i<chargeVec.GetSize();i++){
           charge+=chargeVec[i];
         }
 
-        Double x=real[fstep]*cos(PI/180*imag[fstep]);
-        Double y=real[fstep]*sin(PI/180*imag[fstep]);
+        Double x=real_[fstep]*cos(PI/180*imag_[fstep]);
+        Double y=real_[fstep]*sin(PI/180*imag_[fstep]);
         Complex Z=Complex(x,y);
 
-        //F_hat[fstep]=charge;
-
+        //F_hat_[fstep]=charge;
 
         // Logarithmic value of F
-        F_hat[fstep]=(sign*charge*Z)/std::log(Z); // without minus --- classical way ...
-        //	F_hat[fstep]=-(sign*charge*Z)/std::log(Z); // the "-" became important within the stack
+        F_hat_[fstep]=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...
+        //	F_hat_[fstep]=-(sign_*charge*Z)/std::log(Z); // the "-" became important within the stack
 
 
-//         StdVector<Elem*> elemssd;
-//         subdoms = ptMyPDE_->getPDE_subdoms();
-//         //      std::cout<<"PDE_SUBDOM[0] = "<< subdoms[0]; 
-//         ptGrid->GetVolElems(elemssd,subdoms[0]);
-
-     
-//         if (fstep==0)
-//           allElemsVec.Resize(nrMeasuredData,elemssd.GetSize()*dofs*numNodes);
-//         for (UInt actEl=0;actEl<elemssd.GetSize();actEl++){
-//           StdVector<UInt> connecth = elemssd[actEl]->connect;
-
-//           Vector<Complex> elSolVec; 
-//           ptNodeStoreSol->GetElemSolution(elSolVec,connecth);
-//           Matrix<Double> coordinateMatrix;
-//           //      std::cout<<elSolVec<<std::endl;
-
-//           //    ptMyPDE_->GetElemCoords(connecth, coordinateMatrix,0);
-//           //    std::cout<<"\n coordinateMatrix:" <<std::endl;
-//           //    std::cout<<coordinateMatrix<<std::cout;
-
-//           for (UInt k=0;k<elSolVec.GetSize();k++)
-//             allElemsVec[fstep][actEl*elSolVec.GetSize()+k] = elSolVec[k];
 //      } // end loop over elements
-        calcAbsImped(charge, freqs[fstep], fstep,typeOut);   // calculates |Z| and writes results in File
+        calcAbsImped(charge, freqs_[fstep], fstep,typeOut);   // calculates |Z| and writes results in File
 
     } // end of loop over all frequencies
-    //std::cout<<"\n Number of Integrators in CreateF: " << ptAssemble->integrators_[0]->GetSize()<< std::endl;
-
 
 
     if (typeOut==TRUE){
-      //      std::cout<<"\nFinished to create F ... here it is:"<<std::endl;
-      for (UInt i=0;i<F_hat.GetSize();i++)
-        std::cout<<"F("<<i<<")="<<F_hat[i]<<"; \t";
+      for (UInt i=0;i<F_hat_.GetSize();i++)
+        std::cout<<"F("<<i<<")="<<F_hat_[i]<<"; \t";
       std::cout<<"\n ------------------------------- " <<std::endl;
       
     }
@@ -455,96 +369,96 @@ namespace CoupledField
   // ___________________________________________________________________________________________
 
 
-  void piezoParamIdent::testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, 
-					 Vector<Double> & parameter, 
-					 MaterialMap& ptMaterial,
-					 Vector<Double> & parameterIncrement, 
-					 Vector<Complex>& solElecPot,
-					 Vector<Complex> &solMechDispl){
+  void piezoParamIdent::testJacobiMatrix(Vector<Complex> & F_hat_, 
+                                         Matrix<Complex> & JacobiMatrix_, 
+                                         Vector<Double> & parameter_,
+                                         Vector<Double> & parameterIncrement_, 
+                                         Vector<Complex>& solElecPot_,
+                                         Vector<Complex> &solMechDispl_){
     ENTER_FCN("piezoParamIdent::testJacobiMatrix");
 
-    Vector<Complex> F_hat_incr(F_hat.GetSize());
-    approxJacobiMatrix.Resize(JacobiMatrix.GetSizeRow(), JacobiMatrix.GetSizeCol());
-    Vector<Double> parameter_incr(parameter.GetSize());
-    parameter_incr=parameter;
+    Vector<Complex> F_hat__incr(F_hat_.GetSize());
+    approxJacobiMatrix_.Resize(JacobiMatrix_.GetSizeRow(), JacobiMatrix_.GetSizeCol());
+    Vector<Double> parameter_incr(parameter_.GetSize());
+    parameter_incr=parameter_;
 
-    updateMaterialData(parameter, ptMaterial);
+    updateMaterialData(parameter_);
 
-    if(directCoupling==TRUE){
-      updateMaterialData(parameter, ptMaterial);
-      updateMaterialData(parameter, ptMaterial2);
+    if(directCoupling_==TRUE){
+      updateMaterialData(parameter_);
+      updateMaterialData(parameter_);
     }
     
-    createF(ptMaterial, F_hat, FALSE);
+    createF(F_hat_, FALSE);
 
-    for (UInt ind_param=0;ind_param<nrParameter;ind_param++){
+    for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){
 
-      parameter_incr[ind_param]=1.0001*parameter[ind_param];
+      parameter_incr[ind_param]=1.0001*parameter_[ind_param];
       //  std::cout<<parameter_incr[ind_param]<<std::endl;
-      updateMaterialData(parameter_incr,ptMaterial);
+      updateMaterialData(parameter_incr);
 
-      createF(ptMaterial, F_hat_incr,FALSE);
+      createF(F_hat__incr,FALSE);
 
       for (UInt j=0;j<nrMeasuredData;j++)
-        approxJacobiMatrix[j][ind_param]=-(F_hat[j]-F_hat_incr[j])/((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
+        approxJacobiMatrix_[j][ind_param]=-(F_hat_[j]-F_hat__incr[j])/((parameter_incr[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
 
-      parameter_incr[ind_param]=parameter[ind_param];
+      parameter_incr[ind_param]=parameter_[ind_param];
     }
     //     std::cout<<"\n Here we see the approx. Jacobian and the created Jacobian Matrix:"<<std::endl;
-    //     std::cout<<approxJacobiMatrix<<std::endl;
-    //     std::cout<<JacobiMatrix<<std::endl;
+    //     std::cout<<approxJacobiMatrix_<<std::endl;
+    //     std::cout<<JacobiMatrix_<<std::endl;
     // getchar();   
 
   }// end testJacobiMatrix
 
-  void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix,
-                                          Vector<Double> & parameter, MaterialMap& ptMaterial,
-                                          Vector<Double> & parameterIncrement, Vector<Complex>& solElecPot,
-                                          Vector<Complex> &solMechDispl){
+  void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat_, Matrix<Complex> & JacobiMatrix_,
+                                          Vector<Double> & parameter_,
+                                          Vector<Double> & parameterIncrement_, Vector<Complex>& solElecPot_,
+                                          Vector<Complex> &solMechDispl_){
     ENTER_FCN("piezoParamIdent::testJacobiMatrix");
 
-    Vector<Complex> F_hat_incr(F_hat.GetSize());
-    Vector<Complex> F_hat_incr2(F_hat.GetSize());
-    Vector<Complex> F_hat_incr3(F_hat.GetSize());
-    Vector<Complex> F_hat_incr4(F_hat.GetSize());
-    approxJacobiMatrix.Resize(nrMeasuredData,actNrParameter);
-    Vector<Double> parameter_incr(nrParameter);
-    Vector<Double> parameter_incr2(nrParameter);
-    Vector<Double> parameter_incr3(nrParameter);
-    Vector<Double> parameter_incr4(nrParameter);
+    Vector<Complex> F_hat__incr(F_hat_.GetSize());
+    Vector<Complex> F_hat__incr2(F_hat_.GetSize());
+    Vector<Complex> F_hat__incr3(F_hat_.GetSize());
+    Vector<Complex> F_hat__incr4(F_hat_.GetSize());
+    approxJacobiMatrix_.Resize(nrMeasuredData,actNrParameter);
+    Vector<Double> parameter_incr(nrParameter_);
+    Vector<Double> parameter_incr2(nrParameter_);
+    Vector<Double> parameter_incr3(nrParameter_);
+    Vector<Double> parameter_incr4(nrParameter_);
 
-    parameter_incr=parameter;
-    parameter_incr2=parameter;
+    parameter_incr=parameter_;
+    parameter_incr2=parameter_;
     UInt parInd=0;
 
-    updateMaterialData(parameter, ptMaterial);
-    createF(ptMaterial, F_hat, FALSE);
+    updateMaterialData(parameter_);
+    createF(F_hat_, FALSE);
 
-    for (UInt ind_param=0;ind_param<nrParameter;ind_param++){ 
-      if (whichParameterToUpdate[ind_param]==1){
+    for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){ 
+      if (whichParameterToUpdate_[ind_param]==1){
 
-        parameter_incr[ind_param]=1.00001*parameter[ind_param];
+        parameter_incr[ind_param]=1.00001*parameter_[ind_param];
         //      std::cout<<parameter_incr<<std::endl
-        updateMaterialData(parameter_incr,ptMaterial);
-        createF(ptMaterial,F_hat_incr,FALSE);
+        updateMaterialData(parameter_incr);
+        createF(F_hat__incr,FALSE);
 
 
-        parameter_incr2[ind_param]=0.99999*parameter[ind_param];  
+        parameter_incr2[ind_param]=0.99999*parameter_[ind_param];  
         //      std::cout<<parameter_incr2<<std::endl;
-        updateMaterialData(parameter_incr2,ptMaterial);
-        createF(ptMaterial,F_hat_incr2,FALSE);
+        updateMaterialData(parameter_incr2);
+        createF(F_hat__incr2,FALSE);
 
         // second order FD approximation
         for (UInt j=0;j<nrMeasuredData;j++)
-          approxJacobiMatrix[j][parInd]=0.5*(F_hat_incr[j]-F_hat_incr2[j])/
-            ((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
+          approxJacobiMatrix_[j][parInd]=0.5*(F_hat__incr[j]-F_hat__incr2[j])/
+            ((parameter_incr[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
 
         parInd++;
         //  std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
-        parameter_incr[ind_param]=parameter[ind_param];
-        parameter_incr2[ind_param]=parameter[ind_param];
-        parameter_incr3[ind_param]=parameter[ind_param];
-        parameter_incr4[ind_param]=parameter[ind_param];
+        parameter_incr[ind_param]=parameter_[ind_param];
+        parameter_incr2[ind_param]=parameter_[ind_param];
+        parameter_incr3[ind_param]=parameter_[ind_param];
+        parameter_incr4[ind_param]=parameter_[ind_param];
 
       }
     }
@@ -552,82 +466,82 @@ namespace CoupledField
   }// end testJacobiMatrix
 
 
-  void piezoParamIdent::testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, 
-                                          Vector<Double> & parameter, MaterialMap& ptMaterial){
+  void piezoParamIdent::testJacobiMatrixC(Vector<Complex> & F_hat_, Matrix<Complex> & JacobiMatrix_, 
+                                          Vector<Double> & parameter_){
     ENTER_FCN("piezoParamIdent::testJacobiMatrix");
 
-    Vector<Complex> F_hat_incr(F_hat.GetSize());
-    Vector<Complex> F_hat_incr2(F_hat.GetSize());
-    Vector<Complex> F_hat_incr3(F_hat.GetSize());
-    Vector<Complex> F_hat_incr4(F_hat.GetSize());
-    approxJacobiMatrix.Resize(nrMeasuredData,actNrParameter+actNrParameterC);
-    Vector<Double> parameter_incr(nrParameter);
-    Vector<Double> parameter_incr2(nrParameter);
-    Vector<Double> parameter_incr3(nrParameter);
-    Vector<Double> parameter_incr4(nrParameter);
+    Vector<Complex> F_hat__incr(F_hat_.GetSize());
+    Vector<Complex> F_hat__incr2(F_hat_.GetSize());
+    Vector<Complex> F_hat__incr3(F_hat_.GetSize());
+    Vector<Complex> F_hat__incr4(F_hat_.GetSize());
+    approxJacobiMatrix_.Resize(nrMeasuredData,actNrParameter+actNrParameterC);
+    Vector<Double> parameter_incr(nrParameter_);
+    Vector<Double> parameter_incr2(nrParameter_);
+    Vector<Double> parameter_incr3(nrParameter_);
+    Vector<Double> parameter_incr4(nrParameter_);
 
-    parameter_incr=parameter;
-    parameter_incr2=parameter;
+    parameter_incr=parameter_;
+    parameter_incr2=parameter_;
     UInt parInd=0;
 
-    updateMaterialData(parameter, ptMaterial);
-    createF(ptMaterial, F_hat, FALSE);
+    updateMaterialData(parameter_);
+    createF(F_hat_, FALSE);
 
-    for (UInt ind_param=0;ind_param<nrParameter;ind_param++){ 
-      if (whichParameterToUpdate[ind_param]==1){
+    for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){ 
+      if (whichParameterToUpdate_[ind_param]==1){
 
-        parameter_incr[ind_param]=1.001*parameter[ind_param];
+        parameter_incr[ind_param]=1.001*parameter_[ind_param];
         //      std::cout<<parameter_incr<<std::endl
-        updateMaterialData(parameter_incr,ptMaterial);
-        createF(ptMaterial,F_hat_incr,FALSE);
+        updateMaterialData(parameter_incr);
+        createF(F_hat__incr,FALSE);
 
-        parameter_incr2[ind_param]=0.999*parameter[ind_param];  
+        parameter_incr2[ind_param]=0.999*parameter_[ind_param];  
         //      std::cout<<parameter_incr2<<std::endl;
-        updateMaterialData(parameter_incr2,ptMaterial);
-        createF(ptMaterial,F_hat_incr2,FALSE);
+        updateMaterialData(parameter_incr2);
+        createF(F_hat__incr2,FALSE);
 
         // second order FD approximation
 
         for (UInt j=0;j<nrMeasuredData;j++)
-          approxJacobiMatrix[j][parInd]=0.5*(F_hat_incr[j]-F_hat_incr2[j])/
-            ((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
+          approxJacobiMatrix_[j][parInd]=0.5*(F_hat__incr[j]-F_hat__incr2[j])/
+            ((parameter_incr[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
 
         parInd++;
         //  std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
-        parameter_incr[ind_param]=parameter[ind_param];
-        parameter_incr2[ind_param]=parameter[ind_param];
-        parameter_incr3[ind_param]=parameter[ind_param];
-        parameter_incr4[ind_param]=parameter[ind_param];
+        parameter_incr[ind_param]=parameter_[ind_param];
+        parameter_incr2[ind_param]=parameter_[ind_param];
+        parameter_incr3[ind_param]=parameter_[ind_param];
+        parameter_incr4[ind_param]=parameter_[ind_param];
 
       }
     }
 
     parInd=0;
-    for (UInt ind_param=0;ind_param<nrParameter;ind_param++){ 
-      if (whichParameterToUpdateC[ind_param]==1){
+    for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){ 
+      if (whichParameterToUpdateC_[ind_param]==1){
 
-        parameter_incr[ind_param]=1.001*parameterC[ind_param];
+        parameter_incr[ind_param]=1.001*parameterC_[ind_param];
         //      std::cout<<parameter_incr<<std::endl
 
-        updateComplexMaterialData(parameter_incr,ptMaterial);
-        createF(ptMaterial,F_hat_incr,FALSE);
+        updateComplexMaterialData(parameter_incr);
+        createF(F_hat__incr,FALSE);
 
-        parameter_incr2[ind_param]=0.999*parameterC[ind_param]; 
+        parameter_incr2[ind_param]=0.999*parameterC_[ind_param]; 
         //      std::cout<<parameter_incr2<<std::endl;
-        updateComplexMaterialData(parameter_incr2,ptMaterial);
-        createF(ptMaterial,F_hat_incr2,FALSE);
+        updateComplexMaterialData(parameter_incr2);
+        createF(F_hat__incr2,FALSE);
 
         // second order FD approximation
         for (UInt j=0;j<nrMeasuredData;j++)
-          approxJacobiMatrix[j][actNrParameter+parInd]=0.5*(F_hat_incr[j]-F_hat_incr2[j])/
-            ((parameter_incr[ind_param]-parameter[ind_param])*scaling[ind_param]);
+          approxJacobiMatrix_[j][actNrParameter+parInd]=0.5*(F_hat__incr[j]-F_hat__incr2[j])/
+            ((parameter_incr[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
 
         parInd++;
         //  std::cout<<"\n Performed second order FD Approx of Jacobian"<<std::endl;
-        parameter_incr[ind_param]=parameterC[ind_param];
-        parameter_incr2[ind_param]=parameterC[ind_param];
-        parameter_incr3[ind_param]=parameterC[ind_param];
-        parameter_incr4[ind_param]=parameterC[ind_param];
+        parameter_incr[ind_param]=parameterC_[ind_param];
+        parameter_incr2[ind_param]=parameterC_[ind_param];
+        parameter_incr3[ind_param]=parameterC_[ind_param];
+        parameter_incr4[ind_param]=parameterC_[ind_param];
 
       }
     }
@@ -636,831 +550,19 @@ namespace CoupledField
 
 
 
-  void piezoParamIdent::createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix,
-                                                  Matrix<Complex> & adjJacobiMatrix){
+  void piezoParamIdent::createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix_,
+                                                  Matrix<Complex> & adjJacobiMatrix_){
     ENTER_FCN("piezoParamIdent::createAdjointJacobiMatrix");
     //    std::cout<<"\n Adjoint Jacobian will be created ... "<<std::endl;
-    adjJacobiMatrix.Resize(JacobiMatrix.GetSizeCol(),JacobiMatrix.GetSizeRow());
-    for (UInt i=0;i<JacobiMatrix.GetSizeCol();i++)
-      for (UInt j=0;j<JacobiMatrix.GetSizeRow();j++){
-        //adjJacobiMatrix[i][j] = JacobiMatrix[j][i];
-        adjJacobiMatrix[i][j] = std::conj(JacobiMatrix[j][i]);
-        //std::cout<<"F*("<<i<<")("<<j<<")= "<< adjJacobiMatrix[i][j]<<";\t ";
+    adjJacobiMatrix_.Resize(JacobiMatrix_.GetSizeCol(),JacobiMatrix_.GetSizeRow());
+    for (UInt i=0;i<JacobiMatrix_.GetSizeCol();i++)
+      for (UInt j=0;j<JacobiMatrix_.GetSizeRow();j++){
+        //adjJacobiMatrix_[i][j] = JacobiMatrix_[j][i];
+        adjJacobiMatrix_[i][j] = std::conj(JacobiMatrix_[j][i]);
+        //std::cout<<"F*("<<i<<")("<<j<<")= "<< adjJacobiMatrix_[i][j]<<";\t ";
       }
   } // end createAdjointJacobiMatrix
 
-
-
-  //   void piezoParamIdent::createAndSetRHSforJacobian(UInt & fstep)
-  //   { 
-  //     ENTER_FCN("piezoParamIdent::createAndSetRHSforJacobian");
-  //     //    std::cout<<"piezoParamIdent::createAndSetRHSforJacobian 1 "<< std::endl; 
-  //     UInt spaceDim = ptMyPDE_->getPDE_spaceDim();
-  //     //    Double * ptsol;
-  //     StdVector<Elem*> elemssd;
-  //     subdoms = ptMyPDE_->getPDE_subdoms();
-  //     ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-  //     ptGrid->GetVolElems(elemssd,subdoms[0]); // gets element list elemssd
-
-  //     BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
-  //     NodeStoreSol<Complex> * ptNodeStoreSol;
-  //     ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
-  //     Vector<Complex> algSysSolVector;
-  //     algSysSolVector=ptNodeStoreSol->GetAlgSysVector();
-  //     Vector<Complex> RHSVec(algSysSolVector.GetSize());
-  //     StdVector<Integer> connect_PDE;                 
-        
-  //     //loop over elements
-  //     for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-  //       BaseFE * ptEl = elemssd[actEl]->ptElem;
-  //       StdVector<UInt> connecth = elemssd[actEl]->connect;
-                             
-  //       Matrix<Double> ptCoord;
-  //       ptGrid->GetElemNodesCoord(ptCoord, connecth);
-                    
-  //       // map connect to PDE node numbers
-
-  //       ptNodeEqn->Node2EQN(connecth, connect_PDE);
-
-  //       Vector<Complex> elSolVec; 
-  //       ptNodeStoreSol->GetElemSolution(elSolVec,connecth);
-
-  //       MaterialData actSDMat(*ptMaterial);
-  //       Boolean isdamping=TRUE;
-             
-  //       // Create new Integrator, with this calculate elemMat for sysmat in RHS 
-  //       BaseForm * bilinearStiff;
-
-  //       if (spaceDim==3)
-  //         bilinearStiff =  new linPiezo3DInt(actSDMat,isdamping);
-  //       else if (spaceDim==2)
-  //         bilinearStiff = new piezoAxiInt(actSDMat, isdamping);
-
-  //       //      IntegratorDescriptor *actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
-  //       bilinearStiff->SetElemPtr(ptEl);
-  //       Matrix<Complex> elemMat;
-  //       //      Double damp_beta =1.0e-9; // in future, beta will be dependent of omega_l ...
-  //       Double damp_beta = ptMaterial->GetDampingBeta();
-  //       //     std::cout<<"\n DampingBeta = " << damp_beta << std::endl;
-  //       Double omega_temp = 2*PI*freqs[fstep];
-  //       bilinearStiff->CalcComplexElementMatrix(ptCoord,elemMat,damp_beta,omega_temp);
-
-  //       /*      std::cout <<"\n ELEMENT - MATRIX " << std::endl;
-  //               for (int i=0;i<elemMat.GetSizeRow();i++)
-  //               for (int j=0;j<elemMat.GetSizeCol();j++){
-  //               std::cout<<elemMat[i][j]<<"; ";
-  //               if (j==elemMat.GetSizeCol()-1)
-  //               std::cout<<"\n";
-  //               }*/
-
-  //       //hardcoded temp = elemmat*elemvec;
-  //       Complex sum=0.0;
-  //       Vector<Complex> temp;
-  //       temp.Resize(elemMat.GetSizeRow());
-  //       for (UInt i=0; i<elemMat.GetSizeRow();i++){
-  //         for (UInt j=0; j<elemMat.GetSizeCol();j++)
-  //           sum=sum+elemMat[i][j]*allElemsVec[fstep][fstep*elemMat.GetSizeRow()+j];  
-  //         temp[i]=sum;
-  //         sum=Complex(0,0);
-  //       }
-  //       // save values like it was done in transformElemMat2harmonic (see assemle.cc) ...
-  //       Vector<Double> tempHarm(2*temp.GetSize());
-  //       for (UInt i=0; i<temp.GetSize();i++){
-  //         tempHarm[i]=temp[i].real();
-  //         tempHarm[i+temp.GetSize()]=RHSVec[i].imag();
-  //       } 
-
-  //       ptAlgsys->SetElementRHS(&tempHarm[0], pdeId_, connect_PDE.GetPointer(), 
-  //                               connect_PDE.GetSize());
-
-  //     } // end for elemssd 
-
-  //   } // end createAndSetRHSforJacobian();
-
-
-
-  //   void piezoParamIdent::createJacobiMatrix(MaterialData * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement, Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl){
-  //     ENTER_FCN("piezoParamIdent::createJacobiMatrix");
-  //     std::cout<<"JacobiMatrix will be created"<<std::endl;
-  //     Vector<Double> IncrementedRHSMatrix;   
-  
-  //     //    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-  //     ptAlgsys = ptMyPDE_->getPDE_algsys();
-  //     Boolean reset = TRUE;
-  //     ptGrid = ptMyPDE_->getPDE_grid();
-  //     ptNodeEqn = ptMyPDE_->getPDE_eqnData();
-  //     ptAssemble = ptMyPDE_->getPDE_assemble();
-  //     //UInt nrMeasuredData = freqs.GetSize();
-  //     //    UInt numElems_ = ptMyPDE_->getPDE_numElems();
-  //     nrParameter=parameter.GetSize();
-
-  //     UInt job;
-
-  //     JacobiMatrix.Resize(2*nrMeasuredData,nrParameter);
-  //     if (considerMechDeformation==FALSE)
-  //       JacobiMatrix.Resize(nrMeasuredData,nrParameter);
-
-  //     Vector<Double> dparameter(nrParameter);
-
-  //     for(UInt ind_param=0; ind_param<nrParameter;ind_param++){ // loop over different parameter increments
-      
-  //       //-------------       first strategy --------------------------------------
-  //       parameter[ind_param]+= 1.0/(scaling[ind_param]);       // we are incrementing one parameter after another with 1.0/scale
-  //       if (ind_param>0)
-  //         parameter[ind_param-1]-=1.0/(scaling[ind_param-1]);
-  //       updateMaterialData(parameter, ptMaterial);         //member function of piezoParamIdent, recalculates stiffness, etc. ...
-
-  //       if (ind_param==nrParameter-1)
-  //         parameter[ind_param]-=1.0/scaling[ind_param];
-
-  //       //std::cout<<"\n"<<std::endl;
-  //       //for(UInt i=0;i<parameter.GetSize();i++)
-  //       //   std::cout<<parameter[i]<<"; ";
-      
-  //       //------------------------------------------------------------
-
-  //       // ~~~~~~~~~~~~~~~~~~~~~  second strategy ~~~~~~~~~~~~~~~~~~~~~~~~~
-  //       //        dparameter[ind_param]=1.0/scaling[ind_param];
-  //       //        if (ind_param>0)
-  //       //        dparameter[ind_param-1]=0.0; 
-  //       //        updateMaterialData(dparameter, ptMaterial);    
-  //       //        if (ind_param==nrParameter-1)
-  //       //        dparameter[ind_param-1]=0.0; 
-
-  //       //       std::cout<<"\n"<<std::endl;
-  //       //       for(UInt i=0;i<parameter.GetSize();i++)
-  //       //                std::cout<<dparameter[i]<<"; ";
-
-  //       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-
-  //       //      ptMyPDE_->DefineIntegrators(0);
-
-  //       for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
-  //         reset = TRUE;
-
-  //         ptMyPDE_-> setBCs_id_phase_(0, imag[fstep]);
-
-  //         //      Info->WriteHarmonicStep(ptMyPDE_->GetName(), fstep, freqs[fstep]);
-        
-  //         ptMyPDE_->WriteGeneralPDEdefines();
-  //         ptMyPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
-  //         ptMyPDE_->GetSolveStep()->SetActStep(fstep); 
-  //         ptMyPDE_->GetSolveStep()->PreStepHarmonic(reset);
-        
-  //         //      Cannot use SolveStepHarmonic, since it overwrites RHS ...
-  //         //      for this, I have copied the method StepHarmonicLin to this place 
-  //         //      void BasePDE::StepHarmonicLin(const UInt freqStep, const Double frequency, const Boolean reset)
-        
-  //         ptAssemble->AssembleMatrices();
-       
-  //         // The folowing method creates and calculates the RHS for harmonic Problems in CreateJacobian ...
-  //         createAndSetRHSforJacobian(fstep);
-
-  //         //this has to be done each time!
-  //         ptAssemble->AssembleSrcRHS(freqs[fstep]);
-
-  //         Double * ptsol;
-  //         BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
-  //         NodeStoreSol<Complex> * ptNodeStoreSol;
-  //         ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
-                
-  //         ptMyPDE_-> setBCs_id_phase_(0, imag[fstep]);
-
-  //         if (reset)
-  //           {
-  //             //account for bcs
-  //             ptMyPDE_->SetBCs(freqs[fstep]);
-  //             job = 1; // calc new preconditioner
-  //           }
-  //         else
-  //           job = 3;
-  //         //        std::cout<<"SetBcs ..."<<std::endl;
-
-  //         ptAlgsys->BuildInDirichlet();
-  //         if ( job == 1 ) {
-  //           ptAlgsys->SetupPrecond();
-  //           ptAlgsys->SetupSolver();
-  //         }
-
-  //         ptAlgsys->Solve();
-  //         ptAlgsys->GetSolutionVal( ptsol );
-  //         ptSol->CopyFromAlgSysDataPointer(ptsol);
-
-
-
-  //         if (considerMechDeformation==TRUE){       
-  //           //    ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
-  //           ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
-  //           //      typeOutSolutionOnScreen(solElecPot, solMechDispl);              //member function of piezoParamIdent
-  //           measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs); // Braucht üÜberarbeitung!!
-  //           JacobiMatrix[fstep + nrMeasuredData][ind_param]=meanValueMechDeformation;    
-  //         }
-  //         ptMyPDE_->GetSolveStep()->PostStepHarmonic(reset);
-  //         ptMyPDE_->PostProcess();
-  //         ptMyPDE_->GetSolveStep()->PostStepHarmonic( reset);
-  //         Vector<Complex> chargeVec =  ptMyPDE_->getPDE_complexValuedCharge();
-
-  //         Complex charge=Complex(0.0,0.0);
-
-
-  //         for (UInt i=0; i<chargeVec.GetSize();i++){
-  //           charge=charge+chargeVec[i];
-
-  //         }
-       
-  //         //      mean_value_charge = mean_value_charge/(Double(chargeVec.GetSize()));
-  //         //      std::cout<<"\nCHARGE VEC SIZE = "<< chargeVec.GetSize()<<"mean-value-charge = " << mean_value_charge << std::endl;
-
-  //         JacobiMatrix[fstep][ind_param]=sign*charge; //ptMyPDE_->getPDE_complexValuedCharge();    
-
-
-  //         //   Info->PrintPiezoMat(*ptMaterial);
-  //         //     ptMyPDE_->WriteResultsInFile();     
-     
-  //       }         // end for over all frequencies
-  //       std::cout << " \nCreateJacobian Line " << ind_param  <<std::endl;
-  //       //for (UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
-  //       //        std::cout<<"F'("<<i<<")("<<ind_param<<")= "<< JacobiMatrix[i][ind_param]<<"; ";
-
-
-  //     } //end loop over paramters
-    
-  //     std::cout<<"JACOBI - MATRIX 1: " <<std::endl;
-  //     for(UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
-  //       for (UInt j=0; j<JacobiMatrix.GetSizeCol();j++){
-  //         //      std::cout<<JacobiMatrix[i][j].real()<<"+"<<JacobiMatrix[i][j].imag()<<"i"<< ", ";
-  //         std::cout<<"F'("<<i<<")("<<j<<")= "<< JacobiMatrix[i][j]<<"; \t";
-  //         if (j==JacobiMatrix.GetSizeCol()-1)
-  //           std::cout<<";\n";
-  //       }
-
-  //   }            //end CreateJacobiMatrix
-
-  
-  // void piezoParamIdent::createJacobiMatrixC(Matrix<Complex> & JacobiMatrix){
-//     ENTER_FCN("piezoParamIdent::createJacobiMatrixC");
-//     std::cout<<"JacobiMatrixC will be created"<<std::endl;
-  
-//     //    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-//     Boolean reset = TRUE;
-
-//     ptAlgsys = ptMyPDE_->getPDE_algsys();
-//     ptGrid = ptMyPDE_->getPDE_grid();
-//     ptNodeEqn = ptMyPDE_->getPDE_eqnData();
-//     ptAssemble = ptMyPDE_->getPDE_assemble();
-//     //UInt nrMeasuredData = freqs.GetSize();
-//     //    nrParameter=parameter.GetSize();
-//     UInt job;
-
-//     IntegratorDescriptor *actIntDescrStiff;
-//     IntegratorDescriptor *actIntDescrStiffC;
-    
-    
-//     UInt spaceDim = ptMyPDE_->getPDE_spaceDim();
-//     Double * ptsol;
-//     StdVector<Elem*> elemssd;
-//     subdoms = ptMyPDE_->getPDE_subdoms();
-//     ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-//     ptGrid->GetVolElems(elemssd,subdoms[0]); // gets element list elemssd
-
-//     BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
-//     NodeStoreSol<Complex> * ptNodeStoreSol;
-//     ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
-   
-//     Vector<Complex> algSysSolVector;
-
-//     algSysSolVector=ptNodeStoreSol->GetAlgSysVector();
-
-//     Vector<Complex> RHSVec(algSysSolVector.GetSize());
-   
-
-//     JacobiMatrix.Resize(2*nrMeasuredData,actNrParameter+actNrParameterC);
-//     if (considerMechDeformation==FALSE)
-//       JacobiMatrix.Resize(nrMeasuredData,actNrParameter+actNrParameterC);
-   
-
-//     Vector<Double> dparameter(nrParameter);
-//     Vector<Double> dparameterC(nrParameter);
-
-//     piezoMaterialType realMatPar = REALMATERIALPARAMETER; 
-//     piezoMaterialType imagMatPar = IMAGMATERIALPARAMETER; 
-
-//     Vector<Double> tempHarm;
-//     StdVector<Integer> connect_PDE;                 
-
-//     Matrix<Double> *matMat = ptMaterial->GetMatrix();
-//     Matrix<Double> *matMatC = ptMaterial->GetMatrixC();
-
-//     scaling[0]=1.0/((*matMat)[0][0]); 
-//     scaling[1]=1.0/((*matMat)[2][2]);
-//     scaling[2]=1.0/((*matMat)[1][0]);
-//     scaling[3]=1.0/((*matMat)[0][2]);
-//     scaling[4]=1.0/((*matMat)[3][3]); 
-//     scaling[5]=1.0/((*matMat)[6][4]);
-//     scaling[6]=std::abs(1.0/((*matMat)[8][0]));
-//     scaling[7]=1.0/((*matMat)[8][2]);
-//     scaling[8]=1.0/((*matMat)[6][6]); 
-//     scaling[9]=1.0/((*matMat)[8][8]);
-
-//     scalingC[0]=1.0/((*matMatC)[0][0]); 
-//     scalingC[1]=1.0/((*matMatC)[2][2]);
-//     scalingC[2]=1.0/((*matMatC)[1][0]);
-//     scalingC[3]=1.0/((*matMatC)[0][2]);
-//     scalingC[4]=1.0/((*matMatC)[3][3]); 
-//     scalingC[5]=1.0/((*matMatC)[6][4]);
-//     scalingC[6]=std::abs(1.0/((*matMatC)[8][0]));
-//     scalingC[7]=1.0/((*matMatC)[8][2]);
-//     scalingC[8]=1.0/((*matMatC)[6][6]); 
-//     scalingC[9]=1.0/((*matMatC)[8][8]);
-
-//     UInt parIndex=0;
-
-//     for(UInt ind_param=0; ind_param<2*nrParameter;ind_param++){ // loop over different parameter increments
-
-//       // ~~~~~~~~~~~~~~~~~~~~~  second strategy ~~~~~~~~~~~~~~~~~~~~~~~~~
-//       if (whichParameterToUpdateRC[ind_param]==1){   
-//         if (ind_param<nrParameter){
-//           dparameter[ind_param]=relaxParameter/scaling[ind_param]*basC[parIndex].real(); // 1.0/scaling[ind_param];
-//         }
-//         else if (ind_param>=nrParameter){
-//           //  std::cout<<"indParam-nrParamerer "<<ind_param-nrParameter<<std::endl;
-//           dparameterC[ind_param-nrParameter]=100.0*relaxParameter/scalingC[ind_param-nrParameter]*basC[parIndex-actNrParameter].real(); //    
-
-//           updateMaterialData(dparameter, ptMaterial);    
-//           updateComplexMaterialData(dparameterC, ptMaterial);
-
-//           //      ptMyPDE_->DefineIntegratorsWithMatInfo(ptMaterial);  
-
-
-//           if(FALSE){
-//             std::cout<<"\n"<<std::endl;
-//             for(UInt i=0;i<nrParameter;i++)
-//               std::cout<<dparameter[i]<<"; ";
-//             std::cout<<"\n"<<std::endl;
-//             for(UInt i=0;i<nrParameter;i++)
-//               std::cout<<dparameterC[i]<<"; ";
-//             std::cout<<"\n"<<std::endl;
-//           }     
-
-
-//           // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//           //       ptMyPDE_->DefineIntegrators(0);
-
-//           for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
-//             reset = TRUE;
-
-//             ptAlgsys->InitRHS();
-
-//             //   ptMyPDE_-> setBCs_id_phase_(0, imag[fstep]);
-        
-//             //loop over elements
-//             for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-//               BaseFE * ptEl = elemssd[actEl]->ptElem;
-//               StdVector<UInt> connecth = elemssd[actEl]->connect;
-                             
-//               Matrix<Double> ptCoord;
-//               ptGrid->GetElemNodesCoord(ptCoord, connecth );
-                    
-//               // map connect to PDE node numbers
-
-//               ptNodeEqn->Node2EQN(connecth, connect_PDE);
-
-//               //Vector<Complex> elSolVec; 
-//               // ptNodeStoreSol->GetElemSolution(elSolVec,connecth);
-
-//               MaterialData actSDMat(*ptMaterial);
-//               Boolean isdamping=TRUE;
-             
-//               // Create new Integrator, with this calculate elemMat for sysmat in RHS 
-//               BaseForm * bilinearStiff;
-//               BaseForm * bilinearStiffC;
-
-//               if (spaceDim==3){
-//                 bilinearStiff =  new linPiezo3DInt(actSDMat,isdamping);
-//                 bilinearStiffC =  new linPiezo3DInt(actSDMat,isdamping);
-//               }
-//               else if (spaceDim==2){
-//                 bilinearStiff = new piezoAxiInt(actSDMat, isdamping);
-//                 bilinearStiffC = new piezoAxiInt(actSDMat, isdamping);
-//               }
-
-//               updateMaterialData(dparameter,ptMaterial);
-//               updateComplexMaterialData(dparameterC,ptMaterial);
-//               //      ptMyPDE_->DefineIntegratorsWithMatInfo(ptMaterial);  
-
-          
-//               actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
-//               actIntDescrStiffC = new IntegratorDescriptor(bilinearStiffC, STIFFNESS);
-
-
-//               bilinearStiff->SetPiezoMaterialType(realMatPar);
-//               actIntDescrStiff->SetPiezoMaterialType(realMatPar);
-
-//               bilinearStiffC->SetPiezoMaterialType(imagMatPar);
-//               actIntDescrStiffC->SetPiezoMaterialType(imagMatPar);
-
-//               bilinearStiff->SetElemPtr(ptEl);
-//               bilinearStiffC->SetElemPtr(ptEl);
-
-//               Matrix<Complex> elemMat;
-//               Matrix<Complex>elemMatC;
-//               //      Double damp_beta =1.0e-9; // in future, beta will be dependent of omega_l ...
-//               Double damp_beta = ptMaterial->GetDampingBeta();
-
-//               Double omega = 2.0*PI*freqs[fstep];
-
-//               bilinearStiff->CalcComplexElementMatrix(ptCoord,elemMat,damp_beta,omega);
-//               bilinearStiffC->CalcComplexElementMatrix(ptCoord,elemMatC,damp_beta,omega);
-
-
-//               elemMat+=elemMatC;
-
-//               Complex sum=Complex(0.0,0.0);
-//               Vector<Complex> temp;
-//               temp.Resize(elemMat.GetSizeRow());
-
-//               for (UInt i=0; i<elemMat.GetSizeRow();i++){
-//                 for (UInt j=0; j<elemMat.GetSizeCol();j++)
-//                   sum=sum+elemMat[i][j]*allElemsVec[fstep][actEl*elemMat.GetSizeRow()+j];  
-//                 temp[i]=sum;
-//                 sum=Complex(0.0,0.0);
-//               }
-
-//               // save values like it was done in transformElemMat2harmonic (see assemle.cc) ...
-//               tempHarm.Resize(2*temp.GetSize());
-//               for (UInt i=0; i<temp.GetSize();i++){
-//                 tempHarm[i]=-temp[i].real();
-//                 tempHarm[i+temp.GetSize()]=-temp[i].imag();
-//               } 
-
-//               ptAlgsys->SetElementRHS(&tempHarm[0], pdeId_, connect_PDE.GetPointer(), 
-//                                       connect_PDE.GetSize());
-
-//               //  if (spaceDim==3){
-//               delete  bilinearStiff;
-//               delete bilinearStiffC;
-//             } // end for over all Elems
-
-          
-//             updateMaterialData(parameter,ptMaterial);
-//             updateComplexMaterialData(parameterC,ptMaterial);
-//             //      ptMyPDE_->DefineIntegratorsWithMatInfo(ptMaterial);  
-
-//             // the following lines are the content of: PreStepHarmonic:
-//             // ptMyPDE_->PreStepHarmonic(fstep, freqs[fstep], reset);
-
-
-//             ptMyPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
-//             ptMyPDE_->GetSolveStep()->SetActStep(fstep); 
-//             ptAssemble->SetFrequency(freqs[fstep]);
-
-
-//             if (reset){
-//               ptAlgsys->InitMatrix();
-//               ptAssemble->SetReassemble();
-//             }
-                  
-//             ptAssemble->AssembleMatrices();
-               
-//             // The folowing method creates and calculates the RHS for harmonic Problems in CreateJacobian ...
-                
-//             ptAssemble->AssembleSrcRHS( freqs[fstep]);
-//             ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
-                
-//             if (reset)
-//               {
-//                 //account for bcs
-//                 ptMyPDE_->SetBCs(freqs[fstep]);
-//                 job = 1; // calc new preconditioner
-//               }
-//             else
-//               job = 3;
-
-//             ptAlgsys->BuildInDirichlet();
-//             if ( job == 1 ) {
-//               ptAlgsys->SetupSolver();
-//               ptAlgsys->SetupPrecond();
-//             }
-
-//             ptAlgsys->Solve();
-
-//             ptAlgsys->GetSolutionVal(ptsol);
-//             ptSol->CopyFromAlgSysDataPointer(ptsol);
-
-//             if (considerMechDeformation==TRUE){
-//               //      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
-//               ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
-//               //    typeOutSolutionOnScreen(solElecPot, solMechDispl);              //member function of piezoParamIdent
-//               measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs); // Braucht üÜberarbeitung!!
-//               JacobiMatrix[fstep + nrMeasuredData][parIndex]=meanValueMechDeformation;    
-//             }
-
-//             ptMyPDE_->GetSolveStep()->PostStepHarmonic(reset);
-//             ptMyPDE_->PostProcess();
-
-//             Vector<Complex> chargeVec =  ptMyPDE_->getPDE_complexValuedCharge();
-
-//             Complex charge=Complex(0.0,0.0);
-
-//             for (UInt i=0; i<chargeVec.GetSize();i++)
-//               charge=charge+chargeVec[i];
-    
-//             JacobiMatrix[fstep][parIndex]=sign*charge; //ptMyPDE_->getPDE_complexValuedCharge();    
-     
-//           }               // end for over all frequencies
-//           if (ind_param<nrParameter)
-//             dparameter[ind_param]=0.0;// parameter[ind_param]; 
-
-//           if (ind_param>=nrParameter)
-//             dparameterC[ind_param-nrParameter]=0.0;// parameterC[ind_param-1-nrParameter];
-
-//           parIndex++;
-//         } // end if whichParameterToUpdateRC==1
-
-//       } //end loop over paramters
-
-//     }            //end CreateJacobiMatrix 2
-//   }
-
-//   // ___________________________________________________________________________________________
-//   //
-//   /////////////////////// JacobiMatrix for real-valued parameter ///////////////////////////////
-//   // ___________________________________________________________________________________________
-
-
-//   void piezoParamIdent::createJacobiMatrix2(Matrix<Complex> & JacobiMatrix){
-//     ENTER_FCN("piezoParamIdent::createJacobiMatrix2");
-//     //    std::cout<<"JacobiMatrix2 will be created"<<std::endl;
-  
-//     //    Matrix<Double> * matMatrix =  ptMaterial->GetMatrix();
-//     ptAlgsys = ptMyPDE_->getPDE_algsys();
-//     Boolean reset = TRUE;
-//     ptGrid = ptMyPDE_->getPDE_grid();
-//     ptNodeEqn = ptMyPDE_->getPDE_eqnData();
-//     ptAssemble = ptMyPDE_->getPDE_assemble();
-//     UInt job;
-    
-//     UInt spaceDim = ptMyPDE_->getPDE_spaceDim();
-//     Double * ptsol;
-//     StdVector<Elem*> elemssd;
-//     subdoms = ptMyPDE_->getPDE_subdoms();
-//     ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-//     ptGrid->GetVolElems(elemssd,subdoms[0]); // gets element list elemssd
-
-//     BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
-//     NodeStoreSol<Complex> * ptNodeStoreSol;
-//     ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
-//     Vector<Complex> algSysSolVector;
-//     algSysSolVector=ptNodeStoreSol->GetAlgSysVector();
-//     Vector<Complex> RHSVec(algSysSolVector.GetSize());
-
-//     //    JacobiMatrix.Resize(2*nrMeasuredData,actNrParameter);
-//     //   if (considerMechDeformation==FALSE)
-//     JacobiMatrix.Resize(nrMeasuredData,actNrParameter);
-
-//     Vector<Double> dparameter(nrParameter);
-  
-//     StdVector<Integer> connect_PDE;                 
-//     ptMyPDE_->WriteGeneralPDEdefines();
-
-//     Matrix<Double> *matMat = ptMaterial->GetMatrix();
-
-    
-//     scaling[0]=1.0/((*matMat)[0][0]); 
-//     scaling[1]=1.0/((*matMat)[2][2]);
-//     scaling[2]=1.0/((*matMat)[1][0]);
-//     scaling[3]=1.0/((*matMat)[0][2]);
-//     scaling[4]=1.0/((*matMat)[3][3]); 
-//     scaling[5]=1.0/((*matMat)[6][4]);
-//     scaling[6]=std::abs(1.0/((*matMat)[8][0]));
-//     scaling[7]=1.0/((*matMat)[8][2]);
-//     scaling[8]=1.0/((*matMat)[6][6]); 
-//     scaling[9]=1.0/((*matMat)[8][8]);
-//     UInt parIndex=0;
-
-//     for(UInt ind_param=0; ind_param<nrParameter;ind_param++){ // loop over different parameter increments
-//       if (whichParameterToUpdate[ind_param]==1){
-      
-//         // ~~~~~~~~~~~~~~~~~~~~~  second strategy ~~~~~~~~~~~~~~~~~~~~~~~~~
-//         //              dparameter[ind_param]=1.2/scaling[ind_param];
-//         //     dparameter[ind_param]=1.3/scaling[ind_param]*bas[ind_param]; // 1.0/scaling[ind_param];
-//         if (whichNewtonCG==3)
-//           //          dparameter[ind_param]=relaxParameter/scaling[ind_param]*bas[parIndex]; // 1.0/scaling[ind_param];
-//           dparameter[ind_param]=1.3/scaling[ind_param]*bas[parIndex]; // 1.0/scaling[ind_param];
-//         else 
-//           dparameter[ind_param]=relaxParameter/scaling[ind_param];
-        
-//         //        std::cout<<whichParToUpInd<<std::endl;
-//         //        std::cout<<"\n parIndex "<<parIndex<<", ind_param: "<<ind_param <<", whichParToUpInd[parIndex] " <<whichParToUpInd[parIndex] <<std::endl;
-
-      
-//         if (parIndex>0){
-//           dparameter[whichParToUpInd[parIndex-1]]=0.0; 
-//           //dparameter[ind_param-1]=0.0;
-//         }
-
-//         updateMaterialData(dparameter, ptMaterial);  
-//         // ptMyPDE_->DefineIntegratorsWithMatInfo(ptMaterial);  
-
-//         if(FALSE){
-//           std::cout<<"\n"<<std::endl;
-//           for(UInt i=0;i<parameter.GetSize();i++)
-//             std::cout<<dparameter[i]<<"; ";
-//           std::cout<<"\n"<<std::endl;
-//         }
-
-      
-//         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//         //       ptMyPDE_->DefineIntegrators(0);
-
-//         for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
-//           reset = TRUE;
-
-//           ptAlgsys->InitRHS();
-//           ptAlgsys->InitMatrix();
-//           ptAssemble->SetReassemble();
-        
-
-//           //   ptMyPDE_-> setBCs_id_phase_(0, imag[fstep]);
-        
-//           //loop over elements
-//           for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-//             BaseFE * ptEl = elemssd[actEl]->ptElem;
-//             StdVector<UInt> connecth = elemssd[actEl]->connect;
-                             
-//             Matrix<Double> ptCoord;
-//             ptGrid->GetElemNodesCoord(ptCoord, connecth);
-//             //        std::cout<<ptCoord<<std::endl;
-//             //  std::cout<<connecth<<std::endl;
-                    
-//             // map connect to PDE node numbers
-
-//             ptNodeEqn->Node2EQN(connecth, connect_PDE);
-//             //        std::cout<<"nodeToEquation:"<<std::endl;
-//             //        std::cout<<connect_PDE<<std::endl;
-
-//             //Vector<Complex> elSolVec; 
-//             // ptNodeStoreSol->GetElemSolution(elSolVec,connecth);
-
-//             Boolean isdamping=TRUE;
-             
-//             // Create new Integrator, with this calculate elemMat for sysmat in RHS 
-//             BaseForm * bilinearStiff;
-
-//             //        updateMaterialData(dparameter,ptMaterial);      
-
-//             if (spaceDim==3)
-//               bilinearStiff =  new linPiezo3DInt(*ptMaterial,isdamping);
-//             else if (spaceDim==2)     
-//               bilinearStiff = new piezoAxiInt(*ptMaterial, isdamping);
-
-//             //                std::cout<<"matMat 2"<<std::endl;
-//             //        matMat = ptMaterial->GetMatrix();
-//             //        std::cout<<*matMat<<std::endl;
-
-//             updateMaterialData(dparameter,ptMaterial);
-
-//             //        std::cout<<"matMat 3"<<std::endl;
-//             //        matMat = ptMaterial->GetMatrix();
-//             //        std::cout<<*matMat<<std::endl;
-
-          
-//             //        IntegratorDescriptor *actIntDescrStiff = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
-
-//             bilinearStiff->SetElemPtr(ptEl);
-//             Matrix<Complex> elemMat;
-//             //      Double damp_beta =1.0e-9; // in future, beta will be dependent of omega_l ...
-//             Double damp_beta = ptMaterial->GetDampingBeta();
-
-//             if (params->IsSet("adjustDamping",  "harmonic"))
-//               if (freqs[0] > 0 && fstep > 0 ) {
-//                 damp_beta = damp_beta*freqs[0] / freqs[fstep];
-//                 //              std::cout<<"damp-beta = " << damp_beta << std::endl;
-//               }
-                
-
-//             Double omega = 2.0*PI*freqs[fstep];
-//             bilinearStiff->CalcComplexElementMatrix(ptCoord,elemMat,damp_beta,omega);
-//             //        std::cout<<"\n dparam = " << ind_param<<"; actEl = "<<actEl<< std::endl;
-//             //                std::cout<<elemMat<<std::endl;
-//             //        std::cout<<"\n Size of allElemsVec = "<<allElemsVec.GetSizeCol()<<std::endl;
-
-//             Complex sum=Complex(0.0,0.0);
-//             Vector<Complex> tempSolution;
-//             tempSolution.Resize(elemMat.GetSizeRow());
-//             for (UInt i=0; i<elemMat.GetSizeRow();i++){
-//               for (UInt j=0; j<elemMat.GetSizeCol();j++)
-//                 sum=sum+elemMat[i][j]*allElemsVec[fstep][actEl*elemMat.GetSizeRow()+j];  
-//               tempSolution[i]=sum;
-//               sum=Complex(0.0,0.0);
-//             }
-//             // save values like it was done in transformElemMat2harmonic (see assemle.cc) ...
-//             Vector<Double> tempHarm;
-//             tempHarm.Resize(2*tempSolution.GetSize());
-//             for (UInt i=0; i<tempSolution.GetSize();i++){
-//               tempHarm[i]=-tempSolution[i].real();
-//               tempHarm[i+tempSolution.GetSize()]=-tempSolution[i].imag();
-//             } 
-//             //        std::cout<<tempHarm<<std::endl;
-
-        
-//             ptAlgsys->SetElementRHS(&tempHarm[0], pdeId_, connect_PDE.GetPointer(), 
-//                                     connect_PDE.GetSize());
-//             delete bilinearStiff;  
-
-//           } // end for over all Elems
-
-//           updateMaterialData(parameter,ptMaterial);
-//           //          ptMyPDE_->DefineIntegratorsWithMatInfo(ptMaterial);
-
-//           // the following lines are the content of: PreStepHarmonic:
-//           // ptMyPDE_->PreStepHarmonic(fstep, freqs[fstep], reset);
-//           ptMyPDE_->GetSolveStep()->SetActFreq(freqs[fstep]); 
-//           ptMyPDE_->GetSolveStep()->SetActStep(fstep); 
-
-
-//           ptAssemble->SetFrequency(freqs[fstep]);
-//           //        updateMaterialData(parameter, ptMaterial);    // is neccessary, since otherwise we wouldd solve PDE with sparse Mat-Data
-//           //        ptMyPDE_->DefineIntegratorsWithMatInfo(ptMaterial);
-
-//           if (reset) {
-//             ptAlgsys->InitMatrix();
-//             ptAssemble->SetReassemble();
-//           }
-        
-//           ptAssemble->AssembleMatrices();
-               
-//           // The folowing method creates and calculates the RHS for harmonic Problems in CreateJacobian ...
-                
-//           ptAssemble->AssembleSrcRHS(freqs[fstep]);
-
-//           ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
-                
-//           if (reset)
-//             {
-//               //account for bcs
-//               ptMyPDE_->SetBCs(freqs[fstep]);
-//               job = 1; // calc new preconditioner
-//             }
-//           else
-//             job = 3;
-
-//           ptAlgsys->BuildInDirichlet();
-//           if ( job == 1 ) {
-//             ptAlgsys->SetupPrecond();
-//             ptAlgsys->SetupSolver();
-//           }
-
-//           ptAlgsys->Solve();
-//           ptAlgsys->GetSolutionVal( ptsol );
-//           ptSol->CopyFromAlgSysDataPointer(ptsol);
-
-//           if (considerMechDeformation==TRUE){
-//             //      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot);
-//             ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl);
-//             //        typeOutSolutionOnScreen(solElecPot, solMechDispl);              //member function of piezoParamIdent
-//             measureMechDeformationInZ_Direction(solMechDispl,radius,meanValueMechDeformation,dofs); // Braucht üÜberarbeitung!!
-//             JacobiMatrix[fstep + nrMeasuredData][ind_param]=meanValueMechDeformation;    
-//           }
-
-//           ptMyPDE_->GetSolveStep()->PostStepHarmonic(reset);
-//           ptMyPDE_->PostProcess();
-        
-//           Vector<Complex> chargeVec =  ptMyPDE_->getPDE_complexValuedCharge();
-
-//           Complex charge=Complex(0.0,0.0);
-
-//           for (UInt i=0; i<chargeVec.GetSize();i++)
-//             charge=charge+chargeVec[i];
-    
-//           JacobiMatrix[fstep][parIndex]=sign*charge; //ptMyPDE_->getPDE_complexValuedCharge();    
-     
-//         }           // end for over all frequencies
-
-//         if (ind_param==nrParameter-1){
-//           dparameter[ind_param-1]=0.0;
-//         }
-//         parIndex++;
-//       } // end if whichParameterToUpdate==1
-
-//     } //end loop over paramters
-
-//     if(FALSE){
-//       for(UInt i=0;i<JacobiMatrix.GetSizeRow();i++)
-//         for (UInt j=0; j<JacobiMatrix.GetSizeCol();j++){
-//           //std::cout<<JacobiMatrix[i][j].real()<<"+"<<JacobiMatrix[i][j].imag()<<"i"<< ", ";
-//           std::cout<<"F'("<<i<<")("<<j<<")= "<< JacobiMatrix[i][j]<<"; \t";
-//           //    std::cout<<std::setprecision(10);
-//           if (j==JacobiMatrix.GetSizeCol()-1)
-//             std::cout<<";\n";
-//         }
-//     }
-
-//   }            //end CreateJacobiMatrix 2
 
 
 

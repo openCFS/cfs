@@ -37,9 +37,6 @@ namespace CoupledField
   class piezoParamIdent : public SingleDriver
   {
 
-    // typedef for materialmap
-    typedef std::map<RegionIdType, BaseMaterial*> MaterialMap;
-
   public:
 
     //! constructor
@@ -88,8 +85,7 @@ namespace CoupledField
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
     //! \param F_hat - contains calculated charge, each entry belongs to different frequency 
-    void createF(MaterialMap& ptMaterial, Vector<Complex> & F_hat, 
-		 Boolean typeOut);
+    void createF(Vector<Complex> & F_hat, Boolean typeOut);
 
     //! like create F but the frequencies are specified with Vector frequencies
     void createFVec(Complex & F_hat, Boolean typeOut,
@@ -136,7 +132,7 @@ namespace CoupledField
 
     //! Calculates an approximation of the Jacobi Matrix of parameter to solution operator F 
     //! \param Jacobi Matrix - approximation of F'
-    //   void createJacobiMatrix(BaseMaterial * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
+    //   void createJacobiMatrix(MaterialData * ptMaterial, Vector<Complex> & F_hat, Vector<Double> & parameterIncrement,
     // Matrix<Complex> & JacobiMatrix, Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
 
     //! Creates special Jacobi Matrix, for optimal experiment design
@@ -169,17 +165,13 @@ namespace CoupledField
     //! updates the piezoMatrix in MaterialData parameter = 
     //! \f$(c_11, c_33, c_12, c_13, c_44, e_15, e_31, e_33, eps_11, eps_33)\f$
     //! \param parameter - new set of piezoelectric material parameters
-    void updateMaterialData(Vector<Double> & parameter, MaterialMap& ptMaterial);
-
-    void updateComplexMaterialData(Vector<Double> & parameterC, MaterialMap& ptMaterial);
+    void updateMaterialData(Vector<Double> & parameter);
+    
+    void updateComplexMaterialData(Vector<Double> & parameterC);
 
     //! overwrites values in paramter_new with paramter+step if whichParamterToUpdate ==1
-    void setNewParameterSet(Vector<Double> & parameter,
-			    Vector<Double> &  parameter_new,
-			    Vector<Double> & scaling,
-			    Double & theta,
-                            Vector<Double> & step, 
-			    Vector<UInt> & whichParameterToUpdate);
+    void setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,
+                            Vector<Double> & step, Vector<UInt> & whichParameterToUpdate);
 
     //! Calculates the impedance curve of piezo-simulation, writes results to file imped.dat
     void calcAbsImped(Complex & charge, Double & freq, UInt & fstep, Boolean typeOut);
@@ -204,25 +196,26 @@ namespace CoupledField
     //! square root of sum of all squared entires in matrix
     Double calcEuclidianMatrixNorm(Matrix<Complex> & mat);
     
+    //! currently not supported:
     //! see SFBReport F013 for details ;-)
-    void NewtonCG3();
+    //    void NewtonCG3();
 
+    //! currently not supported:
     //! The version schich is supposed to treat complex-valued material Parameter
-    void NewtonCG4();
+    //    void NewtonCG4();
 
+    //! currently not supported:
     //! Iterative Method to determine material parameter
-    void NewtonLandweber();
+    //    void NewtonLandweber();
 
+    //! currently not supported:
     //! Iterative Method to determine complex valued material parameter
-    void NewtonLandweberC();
+    //    void NewtonLandweberC();
 
     //! nu - methods, semiiterative methods with optimal rate of convergence
     void nuMethods();
 
-    //! nu - methods, semiiterative method, complex version
-    void nuMethodsC();
-
-    //! nu - methods, complex version - uses weighted norms
+     //! nu - methods, complex version - uses weighted norms
     void nuMethodsC2();
 
     //! methods which determines a set of parameters for an optimal experiment design
@@ -275,17 +268,16 @@ namespace CoupledField
 
     //! Tests, if JacobiMatrix is more or less approximated by F(p)-F(p+delta)/delta
     void testJacobiMatrix(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-                          MaterialMap& ptMaterial, Vector<Double> & parameterIncrement, 
+                          Vector<Double> & parameterIncrement, 
                           Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
     //! approximates Jacobian by a second order FDM
     void testJacobiMatrix2(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-                           MaterialMap& ptMaterial, Vector<Double> & parameterIncrement, 
+                           Vector<Double> & parameterIncrement, 
                            Vector<Complex>& solElecPot,Vector<Complex> &solMechDispl);
 
     //! approximates Jacobian by a second order FDM for real and complex values
-    void testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter,
-                           MaterialMap& ptMaterial);
+    void testJacobiMatrixC(Vector<Complex> & F_hat, Matrix<Complex> & JacobiMatrix, Vector<Double> & parameter);
     // ! The following methods serve for the determination of eigenvalues ...
 
     //    void sort_array(UInt ndim, UInt l_sort, Vector<Double> & d);
@@ -302,87 +294,94 @@ namespace CoupledField
 #endif
 
     Double fa_, fr_;
-    Boolean CalcImpedanceCurve;
-    Boolean CalcMechDisplCurve;
-    Boolean directCoupling;
-    UInt whichNewtonCG;
-    UInt maxNumberInnerLoops;
-    UInt maxNumberNewtonLoops;
-    UInt mechDisplAtNode;
-    UInt dofOfMechDispl;
-    UInt whichNorm;
-    Boolean considerMechDeformation;
-    Vector<UInt> whichParameterToUpdate;
-    Vector<UInt> whichParameterToUpdateC;
-    Vector<UInt> whichParameterToUpdateRC;
-    Vector<UInt> whichParToUpInd;
-    Vector<UInt> whichParToUpIndC;
-    Double sign;
-    Matrix<Double> * piezoMatrix;
-    UInt dofs;
-    UInt numNodes;
-    BaseSystem * ptAlgsys;
-    Grid * ptGrid;
-    NodeEQN * ptNodeEqn;
-    Assemble * ptAssemble;
-    Assemble * ptAssemble2;
-    StdVector<RegionIdType> subdoms;
-    BaseNodeStoreSol * sol;
-    Domain * ptDomain;
-    Double startfreq;
-    Double stopfreq;
-    UInt nrfreq;
-    Double finalnorm;
-    UInt newtonCounter;
-    Double inner_eta;
+    Boolean CalcImpedanceCurve_;
+    Boolean CalcMechDisplCurve_;
+    Boolean directCoupling_;
+    UInt whichNewtonCG_;
+    UInt maxNumberInnerLoops_;
+    UInt maxNumberNewtonLoops_;
+    UInt mechDisplAtNode_;
+    UInt dofOfMechDispl_;
+
+    UInt whichNorm_;
+    Boolean considerMechDeformation_;
+    Vector<UInt> whichParameterToUpdate_;
+    Vector<UInt> whichParameterToUpdateC_;
+    Vector<UInt> whichParToUpInd_;
+    Vector<UInt> whichParToUpIndC_;
+    Double sign_;
+
+    BaseSystem * ptAlgsys_;
+    Assemble * ptAssemble_;
+    Assemble * ptAssemble2_;
+
+    StdVector<RegionIdType> subdoms_;
+    Domain * ptDomain_;
+    Double startfreq_;
+    Double stopfreq_;
+    UInt nrfreq_;
+    UInt newtonCounter_;
+    Double inner_eta_;
 
     // optimal experiment design:
-    Double residuumParIdent;
-    Double residuumParIdentOld;
-    Vector<Double> projGradientFlags;
-    Double normGradient;
-    Double normGradientOld;
-    Vector<Double> omegaDiffVec;
-    Matrix<Complex> globalCov;
-    Vector<UInt> globalIndexSet;
-    Vector<Complex> globalJacobi;
-    Vector<Complex> globalJacobiH;
+    Double residuumParIdent_;
+    Double residuumParIdentOld_;
+    Vector<Double> projGradientFlags_;
+    Double normGradient_;
+    Double normGradientOld_;
+    Vector<Double> omegaDiffVec_;
+    Matrix<Complex> globalCov_;
+    Vector<UInt> globalIndexSet_;
+    Vector<Complex> globalJacobi_;
+    Vector<Complex> globalJacobiH_;
 
-    Vector<Complex> solElecPot;
-    Vector<Complex> solMechDispl;
-    Vector<Complex> algSysSolVector;
-    std::map<RegionIdType, BaseMaterial*> ptMaterial;
-    std::map<RegionIdType, BaseMaterial*> ptMaterial1;
-    std::map<RegionIdType, BaseMaterial*> ptMaterial2;
+    Vector<Complex> solElecPot_;
+    Vector<Complex> solMechDispl_;
+    //   Vector<Complex> algSysSolVector_;
 
-    Vector<Double> parameter;
-    Vector<Double> parameterC;
-    Vector<Double> parameter_new;
-    Vector<Double> parameter_newC;
-    Vector<Double> parameterIncrement;
-    Vector<Double> parameterInitial;
-    Vector<Double> omegas;
-    Vector<Double> freqs;
-    Vector<Double> real, imag;
+    std::map<RegionIdType, BaseMaterial*> ptMaterialMech_;
+    std::map<RegionIdType, BaseMaterial*> ptMaterialElec_;
+    std::map<RegionIdType, BaseMaterial*> ptMaterialPiezo_;
+
+    //    BaseMaterial * ptMaterial_;
+    BaseMaterial * ptMaterial1_;
+    BaseMaterial * ptMaterial2_;
+
+    Vector<Double> parameter_;
+    Vector<Double> parameterC_;
+
+    Vector<Double> parameter_new_;
+    Vector<Double> parameter_newC_;
+    Vector<Double> parameterIncrement_;
+    Vector<Double> parameterInitial_;
+    Vector<Double> omegas_;
+
+
+    Vector<Double> freqs_;
+    Vector<Double> real_, imag_;
     Vector<Complex> amplitude_phase;
-    Vector<Complex> F_hat;
-    Vector<Complex> y_hat;
-    Vector<Complex> s_0;    
+    Vector<Complex> F_hat_;
+    Vector<Complex> y_hat_;
+
     Vector<Double> bas;
     Vector<Complex> basC;
     Vector<Complex> res_NE, res_NE_new, lin_res;
     Vector<Complex> res;
     Vector<Complex> bas_bar;
     Vector<Complex> s;
-    Vector<Double> scaling;
-    Vector<Double> scalingC;
-    Double alpha_m, beta_m;
-    Matrix<Complex> JacobiMatrix;
-    Matrix<Complex> adjJacobiMatrix;
-    Matrix<Complex> approxJacobiMatrix;
-    Double voltage, thickness, radius, delta, meanValueMechDeformation, anorm, tau;
+
+    Vector<Double> scaling_;
+    Vector<Double> scalingC_;
+
+    Matrix<Complex> JacobiMatrix_;
+    Matrix<Complex> adjJacobiMatrix_;
+    Matrix<Complex> approxJacobiMatrix_;
+
+    Double voltage_, thickness_, radius_, delta_;
+    Double anorm_, tau_;
+
     UInt nrMeasuredData;
-    UInt nrParameter;
+    UInt nrParameter_;
     UInt actNrParameter;
     UInt actNrParameterC;
     Double relaxParameter;
@@ -406,7 +405,7 @@ namespace CoupledField
     //! with a PiezoPDE, which is of the latter type.
     SinglePDE * ptMyPDE_;
 
-    //! Pointer to mechanic pde while direct-coupled
+    //! Pointer to mechanic pde while direct-coulped
     SinglePDE * ptPDE1_; 
 
     //! Pointer to electrostatic pde while direct-coupled
