@@ -43,6 +43,10 @@ namespace CoupledField {
     //! Set Coupling objects
     void SetCouplings( const StdVector<BasePairCoupling*> &couplings);
 
+    //! Get couplings object
+    StdVector<BasePairCoupling*>& GetCouplingsObject() 
+    { return couplings_;};
+
     //! Initialization routine
     void Init(UInt sequenceStep = 0,
               std::string  bcSequenceTag = "anyTag");
