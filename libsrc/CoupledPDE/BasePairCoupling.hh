@@ -62,6 +62,11 @@ namespace CoupledField
     SinglePDE* GetPde2()
     { return pde2_;}
 
+    //! Get material data object
+    std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
+    {return materials_;};
+
+
     //! computes the coordinates of an element including the delta
     //! \param connect (input) global node numbers of element
     //! \param ptCoord (output) coordinates of the element nodes
