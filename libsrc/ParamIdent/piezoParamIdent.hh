@@ -56,8 +56,7 @@ namespace CoupledField
 
     //! input file, here problem specific details will be set
     std::ifstream * allMeasuredData; 
-    //! input file, reads set of measurements, frequencies, re(Z), im(z)
-    std::ifstream * mess; 
+
     //! output file, simulated impedance curve
     std::ofstream * impedCurve;
     //! output file, norm of residue, 
@@ -169,6 +168,9 @@ namespace CoupledField
     
     void updateComplexMaterialData(Vector<Double> & parameterC);
 
+    //! writes vector scaling_ which consists of reciprocals of all parameters
+    void computeScaling();
+
     //! overwrites values in paramter_new with paramter+step if whichParamterToUpdate ==1
     void setNewParameterSet(Vector<Double> & parameter,Vector<Double> &  parameter_new,Vector<Double> & scaling,Double & theta,
                             Vector<Double> & step, Vector<UInt> & whichParameterToUpdate);
@@ -182,13 +184,6 @@ namespace CoupledField
 
     // calculates mech. Deformation at one selected node and dof and writes it into file mech.dat
     void calcMechDisplCurve();
-
-    //! types out nodal results of elecPot and mechanical displacement
-    void typeOutSolutionOnScreen(Vector<Complex> & solElecPot,Vector<Complex> & solMechDispl);
-
-    
-    //     void measureMechDeformationInZ_Direction(Vector<Complex> & mechDisplacement, Double & Radius, 
-    //                                              Double & meanValueMechDeformation, UInt dof);
     
     //! calculates l2 norm of residue   
     void calcNorm2Resid(Vector<Complex> &res, Double & anorm, UInt nrMeasuredData);
@@ -196,22 +191,6 @@ namespace CoupledField
     //! square root of sum of all squared entires in matrix
     Double calcEuclidianMatrixNorm(Matrix<Complex> & mat);
     
-    //! currently not supported:
-    //! see SFBReport F013 for details ;-)
-    //    void NewtonCG3();
-
-    //! currently not supported:
-    //! The version schich is supposed to treat complex-valued material Parameter
-    //    void NewtonCG4();
-
-    //! currently not supported:
-    //! Iterative Method to determine material parameter
-    //    void NewtonLandweber();
-
-    //! currently not supported:
-    //! Iterative Method to determine complex valued material parameter
-    //    void NewtonLandweberC();
-
     //! nu - methods, semiiterative methods with optimal rate of convergence
     void nuMethods();
 
@@ -315,7 +294,8 @@ namespace CoupledField
     Assemble * ptAssemble_;
     Assemble * ptAssemble2_;
 
-    StdVector<RegionIdType> subdoms_;
+    StdVector<RegionIdType> subdomsMech_;
+    StdVector<RegionIdType> subdomsElec_;
     Domain * ptDomain_;
     Double startfreq_;
     Double stopfreq_;

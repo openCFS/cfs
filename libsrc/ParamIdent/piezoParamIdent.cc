@@ -49,6 +49,12 @@ namespace CoupledField
       std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
     }
 
+    //     filenameMeasuredData="mess.dat";
+    //     mess = new std::ifstream(filenameMeasuredData.c_str(), std::basic_ios<char>::in);
+    //     if (!mess){
+    //       std::cerr << "\n File mess.dat does not exist!" << std::endl;
+    //     }
+
     Info->StartProgress( "\n Opening output files \n imped.dat, piezoLog.dat, parLog.dat, mechDispl.dat, parFinal.dat ... " );
 
     std::string filename= "imped.dat";
@@ -112,11 +118,7 @@ namespace CoupledField
     }
 
     Info->FinishProgress();
-    //  std::string measurements="mess.dat";
-    //     mess = new std::ifstream(measurements.c_str(), std::basic_ios<char>::in);
-    //     if (!mess){
-    //       std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
-    //     }
+
 
     // in future, several parameters wwill be taken from the xml - file ...
     StdVector<std::string> keyVec, attrVec, valVec;
@@ -187,8 +189,8 @@ namespace CoupledField
       confInterval->close();
     if(rhosOut)
       rhosOut->close();
-    if(mess)
-      mess->close();
+    //     if(mess)
+    //       mess->close();
 
 
 #ifdef USE_LAPACK
@@ -209,8 +211,30 @@ namespace CoupledField
   void piezoParamIdent :: SolveProblem() {
     ENTER_FCN( "piezoParamIdent::SolveProblem" );
 
+
     UInt highestAssumableNrOfMeasData=25;
-    nrParameter_ = 10;
+    
+    ptDomain_->PrintGrid();
+    GetMyPDEs();
+    DirectCoupledPDE* ptCoupledPDE =  ptDomain_->GetDirectCoupledPDE();
+    Info->StartProgress ("Starting to solve problem", FALSE);
+  
+    ptPDE1_=ptDomain_-> GetSinglePDE("mechanic");
+    ptPDE2_=ptDomain_-> GetSinglePDE("electrostatic");
+
+    subdomsMech_ = ptPDE1_->getPDE_subdoms();
+    subdomsElec_ = ptPDE1_->getPDE_subdoms();
+
+    if(subdomsMech_.GetSize()==1){
+      nrParameter_ = 10;
+      actNrParameter = 10;
+      actNrParameterC = 10;
+    }
+    else if (subdomsMech_.GetSize()>1){
+    nrParameter_ = 14;
+    actNrParameter = 14;
+    actNrParameterC = 14;
+    }
 
     parameter_.Resize(nrParameter_);
     parameterC_.Resize(nrParameter_);
@@ -231,6 +255,12 @@ namespace CoupledField
     readMeasuredData(freqs_, real_, imag_, parameter_, voltage_, 
                      nrMeasuredData, thickness_, radius_, delta_);
 
+    Vector<Double> freqsTemp = freqs_;
+    freqs_.Resize(nrMeasuredData);
+
+    for(UInt i=0;i<nrMeasuredData;i++)
+      freqs_[i]=freqsTemp[i];
+
     y_hat_.Resize(2*nrMeasuredData);
     //    bas.Resize(nrParameter_);
     res_NE_new.Resize(actNrParameter+actNrParameterC);
@@ -245,21 +275,13 @@ namespace CoupledField
     overall_res0.Resize(2*nrMeasuredData);
     parameter_new_.Resize(nrParameter_);
 
-     
-    ptDomain_->PrintGrid();
-    GetMyPDEs();
-    DirectCoupledPDE* ptCoupledPDE =  ptDomain_->GetDirectCoupledPDE();
-    std::cerr << "ptCoupledPDE = " << ptCoupledPDE << std::endl;
-
-    Info->StartProgress ("Starting to solve problem", FALSE);
-
-    ptPDE1_=ptDomain_-> GetSinglePDE("mechanic");
-    ptPDE2_=ptDomain_-> GetSinglePDE("electrostatic");
-
-    ptPDE_->WriteGeneralPDEdefines();
-
     actNrParameter=0;
     actNrParameterC=0;
+
+
+ 
+
+    ptPDE_->WriteGeneralPDEdefines();
 
     // how many parameters are there actually to set?
     for (UInt i=0;i<whichParameterToUpdate_.GetSize();i++)
@@ -298,44 +320,68 @@ namespace CoupledField
     // Communication with BasePDE ... gets i.G. pointers to objects involved  *
     // ************************************************************************
 
+
+
+    StdVector<BasePairCoupling*> ptCoupling = ptCoupledPDE->GetCouplingsObject();
+    
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
 
     
-    StdVector<BasePairCoupling*> ptCoupling = ptCoupledPDE->GetCouplingsObject();
-    std::cerr << "Name of coupled PDE:" << ptCoupledPDE->GetName()
-              << std::endl;
-
-    ptMaterialMech_  = ptPDE1_->getPDEMaterialData();   // Pointer to mech. MaterialData
-    ptMaterialElec_  = ptPDE2_->getPDEMaterialData();   // Pointer to elec. MaterialData
+    ptMaterialMech_  = ptPDE1_[0].getPDEMaterialData();   // Pointer to mech. MaterialData
+    ptMaterialElec_  = ptPDE2_[0].getPDEMaterialData();   // Pointer to elec. MaterialData
     ptMaterialPiezo_ = ptCoupling[0]->getPDEMaterialData();   // Pointer to piezo MaterialData
-
+    
     //get the material tensors
-    Matrix<Double> piezoMat,stiffMat, permMat;
+    Matrix<Double> piezoMat,stiffMat, stiffMatAlu, stiffMatSteel, permMat;
     Matrix<Complex> piezoMatC, stiffMatC, permMatC;
-      
-    //    if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
-      ptMaterialPiezo_[0]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
-      ptMaterialMech_[0]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
-      ptMaterialElec_[0]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
-      std::cout<< " Mech-Tensor\n" << stiffMatC  << std::endl;
-      std::cout<< " Elec-Tensor\n" << permMatC   << std::endl;
-      std::cout<< " Piezo-Tensor\n" << piezoMatC << std::endl;
-      //    }
-      //    else{
+    
+  
+    //     if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
+    //       std::cerr << "should not be here " <<std::endl;
+    //       ptMaterialPiezo_[0]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
+    //       ptMaterialMech_[0]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
+    //       ptMaterialElec_[0]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
+    //       std::cout<< " Mech-Tensor (Imag) \n" << stiffMatC  << std::endl;
+    //       std::cout<< " Elec-Tensor (Imag) \n" << permMatC   << std::endl;
+    //       std::cout<< " Piezo-Tensor (Imag) \n" << piezoMatC << std::endl;
+    //     }
+
+
+    if (subdomsMech_.GetSize()==1){
       ptMaterialPiezo_[0]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
       ptMaterialMech_[0]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
       ptMaterialElec_[0]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
-      std::cout<< " Mech-Tensor\n" << stiffMat  << std::endl;
-      std::cout<< " Elec-Tensor\n" << permMat   << std::endl;
-      std::cout<< " Piezo-Tensor\n" << piezoMat << std::endl;
-      // }
+    }
+    else {      
+      ptMaterialMech_[1]->GetTensor(stiffMatAlu,MECH_STIFFNESS_TENSOR, REAL,FULL);
 
+      ptMaterialPiezo_[2]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
+      ptMaterialMech_[2]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
+      ptMaterialElec_[2]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
+      
+      ptMaterialMech_[3]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
+
+      //ptMaterialMech_[4]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
+      ptMaterialMech_[5]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
+
+      std::cout<< " Mech-Tensor Steel (Real) \n" << stiffMatSteel   << std::endl;
+      std::cout<< " Mech-Tensor Alu (Real) \n" << stiffMatAlu << std::endl;
+
+    }
+    std::cout<< " Mech-Tensor (Real) \n" << stiffMat  << std::endl;
+    std::cout<< " Elec-Tensor (Real) \n" << permMat   << std::endl;
+    std::cout<< " Piezo-Tensor (Real) \n" << piezoMat << std::endl;
+
+    
     updateMaterialData(parameter_);
-    updateComplexMaterialData(parameter_);
+
+    if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
+      updateComplexMaterialData(parameterC_);
+
     parameterIncrement_=parameter_;
 
-
+    
     // <<<<<<<<<<<<<< calc mechanical displacement curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     if (CalcMechDisplCurve_ == TRUE){
@@ -353,6 +399,7 @@ namespace CoupledField
       std::cout<<"\n Press any key to continue ... "<<std::endl;
       getchar();
     }
+
 
     // <<<<<<<<<<<<<< calc impedance curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
      
@@ -373,56 +420,20 @@ namespace CoupledField
     }
    
 
-    // <<<<<<<<<<<<<<<<<<<<<<<< now we have it ... <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-  
-    //     matMat = ptMaterial_->GetMatrix();
-    //     matMatC = ptMaterial_->GetMatrixC();
-
-    //     std::cout<<"We start the calculation with the following material!"<<std::endl;
-    //     std::cout<<*matMat<<std::endl;
-    //    std::cout<<matMatC<<std::endl;
-
-    scaling_[0]=1.0/(stiffMat[0][0]); 
-    scaling_[1]=1.0/(stiffMat[2][2]);
-    scaling_[2]=1.0/(stiffMat[1][0]);
-    scaling_[3]=1.0/(stiffMat[0][2]);
-    scaling_[4]=1.0/(stiffMat[3][3]); 
-    scaling_[5]=1.0/(piezoMat[1][3]);
-    scaling_[6]=std::abs(1.0/((piezoMat)[2][0]));
-    scaling_[7]=1.0/((piezoMat)[2][2]);
-    scaling_[8]=1.0/((permMat)[0][0]); 
-    scaling_[9]=1.0/((permMat)[2][2]);
-
-    scalingC_[0]=1.0/(stiffMatC[0][0].imag()); 
-    scalingC_[1]=1.0/(stiffMatC[2][2].imag());
-    scalingC_[2]=1.0/(stiffMatC[1][0].imag());
-    scalingC_[3]=1.0/(stiffMatC[0][2].imag());
-    scalingC_[4]=1.0/(stiffMatC[3][3].imag()); 
-    scalingC_[5]=1.0/(piezoMatC[1][3].imag());
-    scalingC_[6]=std::abs(1.0/((piezoMatC)[2][0].imag()));
-    scalingC_[7]=1.0/((piezoMatC)[2][2].imag());
-    scalingC_[8]=1.0/((permMatC)[0][0].imag()); 
-    scalingC_[9]=1.0/((permMatC)[2][2].imag());
-
-
-
-    Vector<Double> c33history(500);
-    Vector<Double> e33history(500);
-    Vector<Double> eps33history(500);
-    Vector<Double> c33historyC(500);
-    Vector<Double> e33historyC(500);
-    Vector<Double> eps33historyC(500);
-
-    // if we do not wanna scale ..
-    //  for (UInt i=0;i<nrParameter_;i++)
-    //scaling_[i]=1.0;
+    computeScaling();
   
 
     // xxxxxxxxxxxxxxxxxxxxxxx Choose different regularizing solvers here xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
     
 
     if (whichNewtonCG_==7){
+      if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
+        std::cerr<<" This version of nuMethods only works for real valued paraeters " <<std::endl;
+        std::cerr<<" Choose either nuMethods=8 in your input file or " <<std::endl;
+        std::cerr<<" use only real - valued parameters " <<std::endl;
+        getchar();
+      }
+      std::cout<<"++ Newton - nu Methods " <<std::endl;
       UInt nrNuMethods=0;
       newtonCounter_=0;
       inner_eta_=1.0;
@@ -445,6 +456,7 @@ namespace CoupledField
     }
 
     else if (whichNewtonCG_==8){
+      std::cout<<"++ Newton - nu MethodsC " <<std::endl;
 
       Vector<Double> newFreqs;
       readInMeasurement(newFreqs);
@@ -472,7 +484,7 @@ namespace CoupledField
     }
 
     else if (whichNewtonCG_==9){
-      std::cout<<"++ Optimal experiment Design"<<std::endl;
+      std::cout<<"++ Opimtal experiment Design"<<std::endl;
       optimalExpDesign();
     }
 
@@ -487,6 +499,13 @@ namespace CoupledField
     }
 
     else if (whichNewtonCG_==12){
+      Vector<Double> newFreqs;
+      readInMeasurement(newFreqs);
+
+      std::cout<<" we red in the following frequencies " <<std::endl;
+      std::cout<<freqs_ <<std::endl;
+
+      calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
       std::cout<<"++ Least square fitting"<<std::endl;
       leastSquare();
     }
@@ -512,8 +531,6 @@ namespace CoupledField
       *parFinal<<"/"<<std::endl;
     }
 
-    //    std::cout<<matMatStart<<std::endl;
-    //std::cout<<matMatCStart<<std::endl;
 
     // <<<<<<<<<<<<<< for a hopefully nice imped curve after identification !! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -533,503 +550,27 @@ namespace CoupledField
     
   }// End solveProblem
 
-
-
+  
   // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxx - now some methods are following ...
-
-  void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, UInt & fstep, Boolean typeOut){
-    Double imped, phase;
-    Complex impedC;
-
-    if (!impedCurve)
-      std::cerr<<"Error opening 'ImpedCurve.dat' "<<std::endl;
-
-    Complex im=Complex(0.0,1);
-    impedC=voltage_/(charge*2.0*PI*freq*im);
-    // We need the following line for a comparison with CAPA
-    //    imped = std::abs(voltage_/(charge*2.0*PI*freq*im)); phase = -90 - 180.0/PI*(std::arg(charge));
-    // This line makes sense in this routine!
-
-    imped = std::abs(voltage_/(charge*2.0*PI*freq*im));
-    phase = 180/PI*(std::arg(impedC));
-
-
-    if(typeOut==TRUE){
-      std::cout<<std::setprecision(10);
-      //    std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
-      std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
-      *impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
-    }
-
-
-
-  }  // end calcAbsImped 
-
-  void piezoParamIdent::norm(Vector<Complex> &  vec, Double & norm, Double & norm2,Vector<Complex> & q_meas){
-    ENTER_FCN("piezoParamIdent::norm");
-
-    Vector<Complex> y_comp(nrParameter_);
-    Vector<Complex> y_temp(nrParameter_);
-
-    switch (whichNorm_){
-
-    case 1:
-      norm = a2norm(vec);
-      //       std::cout<<"\n l2-Norm = "<<norm<<std::endl;
-      break;
-    case 2:
-      maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
-      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
-      break;
-    case 3:
-      maxAndEuclNorm(vec,norm,norm2);
-      //       std::cout<<"\n max-Norm = "<<norm<<std::endl;
-      break;
-    case 4:
-      //       std::cout<<"\n weighted - logarithmic Norm will be determined ..."<< std::endl;
-      for(UInt i=0;i<nrParameter_;i++){
-        y_comp[i]=q_meas[i] - vec[i];
-        y_comp[i]=std::log(y_comp[i]);
-        y_temp[i]=std::log(q_meas[i]);
-        vec[i]= std::abs(y_comp[i]-y_temp[i]);
-      }
-      //       norm=std::sqrt(a2norm(vec));
-      maxAndWeightedResNorm(vec,norm2,norm,y_temp);
-      // std::cout<<"\n weighted - logarithmic Norm = "<< norm <<std::endl;
-      break;
-
-    case 5:
-      maxAndWeightedResNorm(vec,norm2,norm, q_meas);  // for complex valued problem
-      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
-      break;
-    case 6:
-      maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
-      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
-
-    case 7:
-      logNorm(vec, norm);
-      break;
-
-    default:
-      norm=a2norm(vec);
-
-    }
-  } // end norm
-  
-  
-
-  Double piezoParamIdent::calcEuclidianMatrixNorm(Matrix<Complex> & mat){
-    ENTER_FCN("piezoParamIdent::calcEuclidianMatrixNorm");
-
-    Double norm=0.0;
-    for (UInt i=0;i<mat.GetSizeRow();i++)
-      for (UInt j=0;j<mat.GetSizeCol();j++)
-        norm+=std::abs(mat[i][j])*std::abs(mat[i][j]);
-    norm=sqrt(norm);
-    return norm;
-
-  } // end calcEuclidianMatrixNorm
-
-  void piezoParamIdent::maxAndEuclNorm(Vector<Complex> & vec,
-                                       Double & maxNorm, Double & euclNorm){
-    ENTER_FCN("piezoParamIdent::maxAndEuclNorm");
-    Double maxNormTemp = 0.0;
-    maxNorm=0.0;
-    euclNorm=0.0;
-
-    for (UInt i=0;i<vec.GetSize();i++){
-      maxNormTemp=std::abs(vec[i]);
-      euclNorm += maxNormTemp*maxNormTemp;
-      if (maxNormTemp>maxNorm)
-        maxNorm=maxNormTemp;
-    }
-    //    euclNorm=std::sqrt(euclNorm);
-
-  } // end maxAndEuclNorm
-
-  void piezoParamIdent::logNorm(Vector<Complex> & vec, Double & logNorm){
-    ENTER_FCN("piezoParamIdent::logNorm");
-    logNorm=0.0;
-    for (UInt i=0;i<vec.GetSize();i++){
-      logNorm = logNorm + std::pow(std::log(std::abs(std::abs(vec[i]))),2);
-    }
-    //    euclNorm=std::sqrt(euclNorm);
-  } // end logNorm
-
-
-
-  void piezoParamIdent::maxAndWeightedResNorm(Vector<Complex> & vec,
-                                              Double & maxNorm, Double & wNorm,
-                                              Vector<Complex> & q_meas){
-    ENTER_FCN("piezoParamIdent::maxAndWeightedResNorm");
-    Double maxNormTemp = 0.0;
-    maxNorm=0.0;
-    wNorm=0.0;
-    Double Denominator=0.0;
-
-    for (UInt i=0;i<vec.GetSize();i++){
-      maxNormTemp=std::abs(vec[i]);
-      Denominator = std::abs(q_meas[i])*std::abs(q_meas[i]);
-      if (whichNorm_==2){
-        //      wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real(); 
-        // this is a good running version!
-        wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-        //std::cout<<"\n WeightedResNorm = " << std::abs(vec[i])*std::abs(vec[i])<< std::endl;
-        //      std::cout<<wNorm<<std::endl;
-      }
-      else if (whichNorm_==5)
-        wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-      else if (whichNorm_==6){
-        if (whichNewtonCG_!=11){
-          std::cout<<"This choice of norm is not valid for your case "<<std::endl;
-          std::cout<<"Set Norm in measuredData.dat = 2"<<std::endl;
-          getchar();
-        }
-        Double stepWidth=0.0;
-        stepWidth=0.5*std::abs(freqs_[std::min(i+1,freqs_.GetSize())]-
-                               freqs_[std::max((Integer)i-1,0)]);
-        stepWidth/=1.0e+06;
-        //wNorm = wNorm+stepWidth*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-        wNorm = wNorm + 
-          omegaDiffVec_[i]*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-        //        wNorm = wNorm+rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
-        //      getchar();
-      }
-      
-      if (maxNormTemp>maxNorm)
-        maxNorm=maxNormTemp;
-    }
-
-    //wNorm=std::sqrt(wNorm);
-  } // end maxAndWeightedNorm
-
-
-  void piezoParamIdent::calcNorm2Resid(Vector<Complex> &res,
-                                       Double & anorm_, 
-                                       UInt nrMeasuredData){
-    ENTER_FCN("piezoParamIdent::calcNorm2Resid");
-    anorm_=0.0;
-    for (UInt i=0;i<2*nrMeasuredData;i++){
-      anorm_+=res[i].real()*res[i].real()+ res[i].imag()*res[i].imag();
-      anorm_=sqrt(anorm_);
-    }
-  } // end calcNorm2Resid
-
-  Double piezoParamIdent::norm2Real(Vector<Complex> &vec){
-    ENTER_FCN("piezoParamIdent::realA2norm");
-    Double result=0.0; 
-    //      Double real_result;
-    for(UInt i=0;i<vec.GetSize();i++)
-      result+=vec[i].real()*vec[i].real();
-    result=sqrt(result);
-    return result;
-  }
-
-  Double piezoParamIdent::realA2norm(Vector<Complex> &vec){
-    ENTER_FCN("piezoParamIdent::realA2norm");
-    Double result=0.0; 
-    Complex resultC = Complex(0.0,0.0);
-    //      Double real_result;
-    for(UInt i=0;i<vec.GetSize();i++)
-      resultC+=vec[i]*vec[i];
-    result=resultC.real();
-    //    std::cout <<" \n Result in realA2norm = " << result << std::endl;
-    //    result=sqrt(result);
-    return result;
-  }
-
-  Double piezoParamIdent::a2norm(Vector<Complex> &vec){
-    ENTER_FCN("piezoParamIdent::a2norm");
-    Double result=0.0; //Complex(0.0,0.0);
-    //      Double real_result;
-    for(UInt i=0;i<vec.GetSize();i++)
-      result+=std::abs(vec[i])*std::abs(vec[i]);
-    result=sqrt(result);
-    return result;
-  }
-
-  Double piezoParamIdent::a2norm(Vector<Double> &vec){
-    ENTER_FCN("piezoParamIdent::a2norm");
-    Double result=0.0; //Complex(0.0,0.0);
-    //      Double real_result;
-    for(UInt i=0;i<vec.GetSize();i++)
-      result+=std::abs(vec[i])*std::abs(vec[i]);
-    result=sqrt(result);
-    return result;
-  }
-
-
-  void piezoParamIdent::typeOutSolutionOnScreen(Vector<Complex> & solElecPot_,
-                                                Vector<Complex> & solMechDispl_){
-    ENTER_FCN("piezoParamIdent::typeOutSolutionOnScreen");
-    Double sol_real, sol_imag;
-    //    std::cout<<"\nElecPot: Amplitude & Phase:"<<std::endl;
-    for(UInt i=0;i<solElecPot_.GetSize();i++){
-      //      sol_real=solElecPot_[i].real();
-      //      sol_imag=solElecPot_[i].imag();
-      //   std::cout << "solElecPot_("<< i<< ")=" << sol_real << " + " << sol_imag <<" i " <<std::endl;
-      std::cout<<"ElecPot: Amplitude ("<< i <<") = "<< std::abs(solElecPot_[i])
-               << ";  Phase ("<< i <<") = "<< std::arg(solElecPot_[i])*180/PI<<std::endl;
-    }
-    for(UInt i=0;i<solMechDispl_.GetSize();i++){
-      sol_real=solMechDispl_[i].real();
-      sol_imag=solMechDispl_[i].imag();
-      std::cout<<"\nMechDispl: Real & Imag :"<<std::endl;
-      std::cout << "solMechDispl_( " << i<< ")=" << sol_real << " + " << sol_imag <<" i " <<std::endl;
-    }
-  }// end typeOutSolutionOnSreen
-
-
-
-  void piezoParamIdent::readMeasuredData(Vector<Double> & freqs_, 
-                                         Vector<Double> & real_,
-                                         Vector<Double> & imag_ ,
-                                         Vector<Double> & parameter_, 
-                                         Double & voltage_,
-                                         UInt & nrMeasuredData, 
-                                         Double & thickness_, Double & radius_,
-                                         Double & delta_){
-    ENTER_FCN( "piezoParamIdent::readMeasuredData" );
-    char mDataRow[256], helpChar[64];
-    UInt i=0, j=0, k=0;
-    while(allMeasuredData->getline(mDataRow, 265)){
-      if (mDataRow[0]=='1')
-        {i=2;
-          while(mDataRow){
-            if (mDataRow[i]=='/')
-              break;
-            if(mDataRow[i]!=','){
-              helpChar[k]=mDataRow[i];
-              k++; i++;
-            }
-            else{
-              freqs_[j]=atof(helpChar);
-              for(UInt l=0;l<=k;l++)
-                helpChar[l]=0;
-              j++; i++; k=0;
-            }
-          }
-          nrMeasuredData = j;
-        }
-      else if (mDataRow[0]=='2'){
-        i=2;j=0;k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          if(mDataRow[i]!=','){
-            helpChar[k]=mDataRow[i];
-            k++; i++;
-          }
-          else{
-            real_[j]=atof(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
-          }
-        }
-      }
-      else if (mDataRow[0]=='3'){
-        i=2; k=0; j=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          if(mDataRow[i]!=','){
-            helpChar[k]=mDataRow[i];
-            k++; i++;
-          }
-          else{
-            imag_[j]=atof(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
-          }
-        }
-      }
-      else if (mDataRow[0]=='4'){
-        i=2; k=0; j=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          if(mDataRow[i]!=','){
-            helpChar[k]=mDataRow[i];
-            k++; i++;
-          }
-          else{
-            parameter_[j]=atof(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
-          }
-        }
-      }
-      else if (mDataRow[0]=='i'){
-        i=2; k=0; j=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          if(mDataRow[i]!=','){
-            helpChar[k]=mDataRow[i];
-            k++; i++;
-          }
-          else{
-            parameterC_[j]=atof(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
-          }
-        }
-      }
-      else if (mDataRow[0]=='P'){
-        i=2; k=0; j=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          if(mDataRow[i]!=','){
-            helpChar[k]=mDataRow[i];
-            k++; i++;
-          }
-          else{
-            whichParameterToUpdate_[j]=atoi(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
-          }
-        }
-      }
-      else if (mDataRow[0]=='Q'){
-        i=2; k=0; j=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          if(mDataRow[i]!=','){
-            helpChar[k]=mDataRow[i];
-            k++; i++;
-          }
-          else{
-            whichParameterToUpdateC_[j]=atoi(helpChar);
-            for(UInt l=0;l<=k;l++)
-              helpChar[l]=0;
-            j++; i++; k=0;
-          }
-        }
-      }
-      else if (mDataRow[0]=='5'){
-        i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        voltage_=atof(helpChar);
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='6'){
-        i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        thickness_=atof(helpChar);
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='I'){
-        i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        CalcImpedanceCurve_=atoi(helpChar);
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-     
-      else if (mDataRow[0]=='M'){
-        i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        whichNewtonCG_=atoi(helpChar); 
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='N'){
-        i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        whichNorm_=atoi(helpChar); 
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='r'){
-        i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        relaxParameter=atof(helpChar); 
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='7'){
-        i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        radius_=atof(helpChar);  
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-      else if (mDataRow[0]=='8'){
-        i=2; k=0;
-        while(mDataRow){
-          if (mDataRow[i]=='/')
-            break;
-          helpChar[k]=mDataRow[i];
-          k++; i++;
-        }
-        delta_=atof(helpChar); // delta - Fehlerniveau
-        for (UInt l=0;l<=k;l++)
-          helpChar[l]=0;
-      }
-    }
-  } // end read MeasuredData
 
   //! Updates material data & updates system matrices!!
   void piezoParamIdent::updateMaterialData(Vector<Double> & parameter_){
     ENTER_FCN("piezoParamIdent::updateMaterialData");    
     
-    Matrix<Double> stiffTensor;
+    Matrix<Double> stiffTensor,stiffTensorSteel,stiffTensorAlu;
     Matrix<Double> piezoTensor;
     Matrix<Double> permTensor;
 
     stiffTensor.Resize(6,6);
+    stiffTensorSteel.Resize(6,6);
+    stiffTensorAlu.Resize(6,6);
+
     piezoTensor.Resize(3,6);
     permTensor.Resize(3,3);
 
+    subdomsMech_ = ptPDE1_->getPDE_subdoms();
 
-    subdoms_ = ptPDE1_->getPDE_subdoms();
-    
-    if (subdoms_.GetSize()==1){
-        
+    if (subdomsMech_.GetSize()==1){         
       stiffTensor[0][0] = parameter_[0]; //c_11
       stiffTensor[1][1] = parameter_[0]; //c_11
       stiffTensor[2][2] = parameter_[1]; //c_33
@@ -1048,60 +589,128 @@ namespace CoupledField
       piezoTensor[2][0]=parameter_[6]; //e_31
       piezoTensor[2][1]=parameter_[6]; //e_31
       piezoTensor[2][2]=parameter_[7]; // e_33
-
+      
       permTensor[0][0] = parameter_[8]; //eps_11
       permTensor[1][1] = parameter_[8]; //eps_11
       permTensor[2][2] = parameter_[9]; //eps_33
 
-    }
-
-    ptAssemble_ = ptPDE1_->getPDE_assemble();
-    ptAssemble2_ = ptPDE2_->getPDE_assemble();
-
-//     ptAssemble_->SetAlternatingMaterial(TRUE);
-//     ptAssemble2_->SetAlternatingMaterial(TRUE);
+      Double a1, a2, a3;
+      a1=a2=a3=0;
       
-    
-    // Consider poling of piezoelectric body
-    Double a1, a2, a3;
-    a1=a2=a3=0;
+      if( params->HasValue( "x", "1", "piezo", "polingDirection" ) )
+        a1=1;
+      
+      if( params->HasValue( "y", "1", "piezo", "polingDirection" ) )
+        a2=1;
+      
+      if( params->HasValue( "z", "1", "piezo", "polingDirection" ) )
+        a3=1;
+      
+      if (a1==0&&a2==0&&a3==0)
+        a3=1.0;    // if no poling direction is specified, the z-direction is chosen by default 
+      
+      //     ptMaterial_[2].RotateMaterialMatrix(a1,a2,a3); //?
 
-    if( params->HasValue( "x", "1", "piezo", "polingDirection" ) )
-      a1=1;
-    
-    if( params->HasValue( "y", "1", "piezo", "polingDirection" ) )
-      a2=1;
-    
-    if( params->HasValue( "z", "1", "piezo", "polingDirection" ) )
-      a3=1;
-    
-    if (a1==0&&a2==0&&a3==0)
-      a3=1.0;    // if no poling direction is specified, the z-direction is chosen by default 
-    
-    //     ptMaterial_[2].RotateMaterialMatrix(a1,a2,a3); //?
+      ptMaterialPiezo_[0]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
+      ptMaterialMech_[0]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
+      ptMaterialElec_[0]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
+    }
+    else if (subdomsMech_.GetSize()>1){
 
-    ptMaterialPiezo_[0]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
-    ptMaterialMech_[0]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
-    ptMaterialElec_[0]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
-   
+      stiffTensor[0][0] = parameter_[0]; //c_11
+      stiffTensor[1][1] = parameter_[0]; //c_11
+      stiffTensor[2][2] = parameter_[1]; //c_33
+      stiffTensor[0][1] = parameter_[2]; //c_12
+      stiffTensor[1][0] = parameter_[2]; //c_12
+      stiffTensor[0][2] = parameter_[3]; //c_13
+      stiffTensor[2][0] = parameter_[3]; //c_13
+      stiffTensor[1][2] = parameter_[3]; //c_13
+      stiffTensor[2][1] = parameter_[3]; //c_13
+      stiffTensor[3][3] = parameter_[4]; //c_44
+      stiffTensor[4][4] = parameter_[4]; //c_44
+      stiffTensor[5][5] = 0.5*(parameter_[0]-parameter_[2]); //c_66
+      
+      piezoTensor[1][3]=parameter_[5];  //e_15
+      piezoTensor[0][4]=parameter_[5];  //e_15
+      piezoTensor[2][0]=parameter_[6]; //e_31
+      piezoTensor[2][1]=parameter_[6]; //e_31
+      piezoTensor[2][2]=parameter_[7]; // e_33
+      
+      permTensor[0][0] = parameter_[8]; //eps_11
+      permTensor[1][1] = parameter_[8]; //eps_11
+      permTensor[2][2] = parameter_[9]; //eps_33
+
+      // par[10] - nu
+      // par[11] - lambda
+     
+      // steel
+      Double lambda2nu=parameter_[11]+2*parameter_[10];
+
+      stiffTensorSteel[0][0] = lambda2nu; //c_11 
+      stiffTensorSteel[1][1] = lambda2nu; //c_11
+      stiffTensorSteel[2][2] = lambda2nu; //c_33
+      stiffTensorSteel[0][1] = parameter_[11]; //c_12
+      stiffTensorSteel[1][0] = parameter_[11]; //c_12
+      stiffTensorSteel[0][2] = parameter_[11]; //c_13
+      stiffTensorSteel[2][0] = parameter_[11]; //c_13
+      stiffTensorSteel[1][2] = parameter_[11]; //c_13
+      stiffTensorSteel[2][1] = parameter_[11]; //c_13
+      stiffTensorSteel[3][3] = parameter_[10]; //c_44
+      stiffTensorSteel[4][4] = parameter_[10]; //c_44
+      stiffTensorSteel[5][5] = parameter_[10]; //c_66
+
+      // Aluminium
+      lambda2nu=parameter_[13]+2*parameter_[12];
+
+      stiffTensorAlu[0][0] = lambda2nu; //c_11 
+      stiffTensorAlu[1][1] = lambda2nu; //c_11
+      stiffTensorAlu[2][2] = lambda2nu; //c_33
+      stiffTensorAlu[0][1] = parameter_[13]; //c_12
+      stiffTensorAlu[1][0] = parameter_[13]; //c_12
+      stiffTensorAlu[0][2] = parameter_[13]; //c_13
+      stiffTensorAlu[2][0] = parameter_[13]; //c_13
+      stiffTensorAlu[1][2] = parameter_[13]; //c_13
+      stiffTensorAlu[2][1] = parameter_[13]; //c_13
+      stiffTensorAlu[3][3] = parameter_[12]; //c_44
+      stiffTensorAlu[4][4] = parameter_[12]; //c_44
+      stiffTensorAlu[5][5] = parameter_[12]; //c_66
+
+    
+      // alu
+      ptMaterialMech_[1]->SetTensor(stiffTensorAlu,MECH_STIFFNESS_TENSOR, REAL);
+      //piezo
+      ptMaterialPiezo_[2]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
+      ptMaterialMech_[2]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
+      ptMaterialElec_[2]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
+      ptMaterialPiezo_[3]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
+      ptMaterialMech_[3]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
+      ptMaterialElec_[3]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
+      //Steel
+      ptMaterialMech_[4]->SetTensor(stiffTensorSteel,MECH_STIFFNESS_TENSOR, REAL);
+      ptMaterialMech_[5]->SetTensor(stiffTensorSteel,MECH_STIFFNESS_TENSOR, REAL);
+
+    }
+    
    
   } // end updateMaterialData
 
   void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC_){
     ENTER_FCN("piezoParamIdent::updateComplexMaterialData");    
     
-    Matrix<Double> stiffTensorC;
+    Matrix<Double> stiffTensorC, stiffTensorAluC, stiffTensorSteelC;
     Matrix<Double> piezoTensorC;
     Matrix<Double> permTensorC;
 
+    stiffTensorAluC.Resize(6,6);
+    stiffTensorSteelC.Resize(6,6);
     stiffTensorC.Resize(6,6);
+
     piezoTensorC.Resize(3,6);
     permTensorC.Resize(3,3);
 
-
-    subdoms_ = ptPDE1_->getPDE_subdoms();
+    subdomsMech_ = ptPDE1_->getPDE_subdoms();
     
-    if (subdoms_.GetSize()==1){
+    if (subdomsMech_.GetSize()==1){
 
       stiffTensorC[0][0] = parameterC_[0]; //c_11
       stiffTensorC[1][1] = parameterC_[0]; //c_11
@@ -1121,20 +730,94 @@ namespace CoupledField
       piezoTensorC[2][0]=parameterC_[6]; //e_31
       piezoTensorC[2][1]=parameterC_[6]; //e_31
       piezoTensorC[2][2]=parameterC_[7]; // e_33
-
+      
       permTensorC[0][0] = parameterC_[8]; //eps_11
       permTensorC[1][1] = parameterC_[8]; //eps_11
       permTensorC[2][2] = parameterC_[9]; //eps_33
+  
+
+      ptMaterialPiezo_[0]->SetTensor(piezoTensorC,PIEZO_TENSOR,IMAG);
+      ptMaterialMech_[0]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR, IMAG);
+      ptMaterialElec_[0]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
 
     }
+    else if (subdomsMech_.GetSize()>1){
 
-    ptMaterialPiezo_[0]->SetTensor(piezoTensorC,PIEZO_TENSOR,IMAG);
-    ptMaterialMech_[0]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR, IMAG);
-    ptMaterialElec_[0]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
-   
+      stiffTensorC[0][0] = parameterC_[0]; //c_11
+      stiffTensorC[1][1] = parameterC_[0]; //c_11
+      stiffTensorC[2][2] = parameterC_[1]; //c_33
+      stiffTensorC[0][1] = parameterC_[2]; //c_12
+      stiffTensorC[1][0] = parameterC_[2]; //c_12
+      stiffTensorC[0][2] = parameterC_[3]; //c_13
+      stiffTensorC[2][0] = parameterC_[3]; //c_13
+      stiffTensorC[1][2] = parameterC_[3]; //c_13
+      stiffTensorC[2][1] = parameterC_[3]; //c_13
+      stiffTensorC[3][3] = parameterC_[4]; //c_44
+      stiffTensorC[4][4] = parameterC_[4]; //c_44
+      stiffTensorC[5][5] = 0.5*(parameterC_[0]-parameterC_[2]); //c_66
+      
+      piezoTensorC[1][3]=parameterC_[5];  //e_15
+      piezoTensorC[0][4]=parameterC_[5];  //e_15
+      piezoTensorC[2][0]=parameterC_[6]; //e_31
+      piezoTensorC[2][1]=parameterC_[6]; //e_31
+      piezoTensorC[2][2]=parameterC_[7]; // e_33
+      
+      permTensorC[0][0] = parameterC_[8]; //eps_11
+      permTensorC[1][1] = parameterC_[8]; //eps_11
+      permTensorC[2][2] = parameterC_[9]; //eps_33
+      //       // par[10] - nu
+      //       // par[11] - lambda
+     
+      //       // steel
+      Double lambda2nuC=parameterC_[11]+2*parameterC_[10];
 
+      stiffTensorSteelC[0][0] = lambda2nuC; //c_11 
+      stiffTensorSteelC[1][1] = lambda2nuC; //c_11
+      stiffTensorSteelC[2][2] = lambda2nuC; //c_33
+      stiffTensorSteelC[0][1] = parameterC_[11]; //c_12
+      stiffTensorSteelC[1][0] = parameterC_[11]; //c_12
+      stiffTensorSteelC[0][2] = parameterC_[11]; //c_13
+      stiffTensorSteelC[2][0] = parameterC_[11]; //c_13
+      stiffTensorSteelC[1][2] = parameterC_[11]; //c_13
+      stiffTensorSteelC[2][1] = parameterC_[11]; //c_13
+      stiffTensorSteelC[3][3] = parameterC_[10]; //c_44
+      stiffTensorSteelC[4][4] = parameterC_[10]; //c_44
+      stiffTensorSteelC[5][5] = parameterC_[10]; //c_66
 
-  } // end updateMaterialData
+      ///       // Aluminium
+        lambda2nuC=parameterC_[13]+2*parameterC_[12];
+        
+        stiffTensorAluC[0][0] = lambda2nuC; //c_11 
+        stiffTensorAluC[1][1] = lambda2nuC; //c_11
+        stiffTensorAluC[2][2] = lambda2nuC; //c_33
+        stiffTensorAluC[0][1] = parameterC_[13]; //c_12
+        stiffTensorAluC[1][0] = parameterC_[13]; //c_12
+        stiffTensorAluC[0][2] = parameterC_[13]; //c_13
+        stiffTensorAluC[2][0] = parameterC_[13]; //c_13
+        stiffTensorAluC[1][2] = parameterC_[13]; //c_13
+        stiffTensorAluC[2][1] = parameterC_[13]; //c_13
+        stiffTensorAluC[3][3] = parameterC_[12]; //c_44
+        stiffTensorAluC[4][4] = parameterC_[12]; //c_44
+        stiffTensorAluC[5][5] = parameterC_[12]; //c_66
+
+  //       // alu
+        ptMaterialMech_[1]->SetTensor(stiffTensorAluC,MECH_STIFFNESS_TENSOR,IMAG);
+        ptMaterialMech_[1]->GetTensor(stiffTensorAluC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
+        ptMaterialMech_[1]->GetTensor(stiffTensorAluC,MECH_STIFFNESS_TENSOR,REAL,FULL);
+
+        //       //piezo
+        ptMaterialPiezo_[2]->SetTensor(piezoTensorC,PIEZO_TENSOR,IMAG);
+        ptMaterialMech_[2]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR,IMAG);
+        ptMaterialElec_[2]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
+        ptMaterialPiezo_[3]->SetTensor(piezoTensorC,PIEZO_TENSOR,IMAG);
+        ptMaterialMech_[3]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR, IMAG);
+        ptMaterialElec_[3]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
+        //       //Steel
+        ptMaterialMech_[4]->SetTensor(stiffTensorSteelC,MECH_STIFFNESS_TENSOR, IMAG);
+        ptMaterialMech_[5]->SetTensor(stiffTensorSteelC,MECH_STIFFNESS_TENSOR, IMAG);
+    }
+
+  } // end updateComplexMaterialData
 
   void piezoParamIdent::setNewParameterSet(Vector<Double> & par,
                                            Vector<Double> &  par_new,
@@ -1155,6 +838,105 @@ namespace CoupledField
 
 
   } // end setNewParameterSet
+
+  void piezoParamIdent::computeScaling(){
+    ENTER_FCN("piezoParamIdent::coumputeScaling");
+
+    Matrix<Double> piezoMat,stiffMat, stiffMatAlu, stiffMatSteel, permMat;
+    Matrix<Double> piezoMatC, stiffMatAluC, stiffMatSteelC, stiffMatC, permMatC;
+    
+    if (subdomsMech_.GetSize()==1){
+      ptMaterialPiezo_[0]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
+      ptMaterialMech_[0]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
+      ptMaterialElec_[0]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
+
+      scaling_[0]=1.0/(stiffMat[0][0]); 
+      scaling_[1]=1.0/(stiffMat[2][2]);
+      scaling_[2]=1.0/(stiffMat[1][0]);
+      scaling_[3]=1.0/(stiffMat[0][2]);
+      scaling_[4]=1.0/(stiffMat[3][3]); 
+      scaling_[5]=1.0/(piezoMat[1][3]);
+      scaling_[6]=std::abs(1.0/((piezoMat)[2][0]));
+      scaling_[7]=1.0/((piezoMat)[2][2]);
+      scaling_[8]=1.0/((permMat)[0][0]); 
+      scaling_[9]=1.0/((permMat)[2][2]);
+        
+
+      if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
+        ptMaterialPiezo_[0]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
+        ptMaterialMech_[0]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
+        ptMaterialElec_[0]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
+        scalingC_[0]=1.0/(stiffMatC[0][0]); 
+        scalingC_[1]=1.0/(stiffMatC[2][2]);
+        scalingC_[2]=1.0/(stiffMatC[1][0]);
+        scalingC_[3]=1.0/(stiffMatC[0][2]);
+        scalingC_[4]=1.0/(stiffMatC[3][3]); 
+        scalingC_[5]=1.0/(piezoMatC[1][3]);
+        scalingC_[6]=std::abs(1.0/((piezoMatC)[2][0]));
+        scalingC_[7]=1.0/((piezoMatC)[2][2]);
+        scalingC_[8]=1.0/((permMatC)[0][0]); 
+        scalingC_[9]=1.0/((permMatC)[2][2]);
+      }
+    }
+
+    else{
+  
+      ptMaterialMech_[1]->GetTensor(stiffMatAlu,MECH_STIFFNESS_TENSOR, REAL,FULL);
+      ptMaterialPiezo_[2]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
+      ptMaterialMech_[2]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
+      ptMaterialElec_[2]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
+      // ptMaterialMech_[3]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
+      ptMaterialMech_[5]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
+
+      scaling_[0]=1.0/(stiffMat[0][0]); 
+      scaling_[1]=1.0/(stiffMat[2][2]);
+      scaling_[2]=1.0/(stiffMat[1][0]);
+      scaling_[3]=1.0/(stiffMat[0][2]);
+      scaling_[4]=1.0/(stiffMat[3][3]); 
+      scaling_[5]=1.0/(piezoMat[1][3]);
+      scaling_[6]=std::abs(1.0/((piezoMat)[2][0]));
+      scaling_[7]=1.0/((piezoMat)[2][2]);
+      scaling_[8]=1.0/((permMat)[0][0]); 
+      scaling_[9]=1.0/((permMat)[2][2]);
+
+      scaling_[10]=1.0/(stiffMatSteel[3][3]); 
+      scaling_[11]=1.0/(stiffMatSteel[0][1]); 
+
+      scaling_[12]=1.0/(stiffMatAlu[3][3]); 
+      scaling_[13]=1.0/(stiffMatAlu[0][1]);
+        
+      if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
+
+        ptMaterialMech_[1]->GetTensor(stiffMatAluC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
+        ptMaterialPiezo_[2]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
+        ptMaterialMech_[2]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
+        ptMaterialElec_[2]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
+        ptMaterialMech_[5]->GetTensor(stiffMatSteelC,MECH_STIFFNESS_TENSOR, IMAG,FULL);
+
+        scalingC_[0]=1.0/(stiffMatC[0][0]); 
+        scalingC_[1]=1.0/(stiffMatC[2][2]);
+        scalingC_[2]=1.0/(stiffMatC[1][0]);
+        scalingC_[3]=1.0/(stiffMatC[0][2]);
+        scalingC_[4]=1.0/(stiffMatC[3][3]); 
+        scalingC_[5]=1.0/(piezoMatC[1][3]);
+        scalingC_[6]=std::abs(1.0/((piezoMatC)[2][0]));
+        scalingC_[7]=1.0/((piezoMatC)[2][2]);
+        scalingC_[8]=1.0/((permMatC)[0][0]); 
+        scalingC_[9]=1.0/((permMatC)[2][2]);
+          
+        scalingC_[10]=1.0/(stiffMatSteelC[3][3]); 
+        scalingC_[11]=1.0/(stiffMatSteelC[0][1]); 
+          
+        scalingC_[12]=1.0/(stiffMatAluC[3][3]); 
+        scalingC_[13]=1.0/(stiffMatAluC[0][1]);                
+      }
+    }
+
+}//end compute scaling
+
+
+
+
 
 } // end namespace CoupledField
 

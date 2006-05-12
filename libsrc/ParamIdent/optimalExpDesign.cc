@@ -1067,70 +1067,7 @@ namespace CoupledField
         }
 
   } // end createF
-  void piezoParamIdent::readInMeasurement(Vector<Double> & frequencies){
-
-    ENTER_FCN("piezoParamIdent::readInMeasurement");
-
-    std::cout<<"++ open and read file mess.dat ... " <<std::endl;    
-
-    frequencies.Resize(nrMeasuredData);
-    real_.Resize(nrMeasuredData);
-    imag_.Resize(nrMeasuredData);
-
-    Char* measuremets="mess.dat";
-    mess = new std::ifstream(measuremets, std::basic_ios<char>::in);
-
-    if (!mess){
-      std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
-    }
-   
-   
-    char mDataRow[256], helpChar[64];
-    UInt i=0, j=0;
-    Double newFreq, amplitude,phase;
-
-    while(mess->getline(mDataRow, 265)){
-      //  std::cout<<mDataRow<<std::endl;
-      i=0;j=0;
-      while (mDataRow[i]!='\t'){
-        helpChar[j]=mDataRow[i];
-        i++;j++;
-      }// end while madataRow
-      newFreq=atof(helpChar);
-      i++;
-      j=0;
-      for(UInt k=0;k<i;k++) // Delete content of helpChar
-        helpChar[k]='0';
-
-      while (mDataRow[i]!='\t'){
-        helpChar[j]=mDataRow[i];
-        i++;j++;
-      }// end while mdataRow
-      amplitude=atof(helpChar);
-      i++;
-      j=0;
-      for(UInt k=0;k<i;k++) // Delete content of helpChar
-        helpChar[k]='0';
-      while (mDataRow[i]!='\n'){
-        helpChar[j]=mDataRow[i];
-        i++;j++;
-      }// end while mdataRow
-      phase=atof(helpChar);
-
-      for(UInt mInd=0;mInd<nrMeasuredData;mInd++){
-        if(std::abs(freqs_[mInd]-newFreq)<std::abs(freqs_[mInd]-frequencies[mInd])){
-          frequencies[mInd]=newFreq;
-          real_[mInd]=amplitude;
-          imag_[mInd]=phase;
-        }
-      }
-    }// end while mess
-
-    freqs_.Resize(nrMeasuredData);
-    freqs_=frequencies;   
-    mess->close();
-    std::cout<<"++ open and read file finished ... " <<std::endl;    
-  }// end readInMeasurements
+ 
       
 } // end namespace
 
