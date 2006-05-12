@@ -17,181 +17,8 @@ namespace CoupledField
 
     //ptMaterial_=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-    nrMeasuredData=31;
-    Vector<Double> freqs5;
-    freqs5.Resize(31);
 
-    if(TRUE){
-      freqs5[0]=0.5e+06;
-      freqs5[1]=0.7e+06;
-      freqs5[2]=1.0e+06;
-      freqs5[3]=1.2e+06;
-      freqs5[4]=1.3e+06;
-      freqs5[5]=1.4e+06;
-    freqs5[6]=1.5e+06;
-    freqs5[7]=2.5e+06;
-    freqs5[8]=2.7e+06;
-    freqs5[9]=3.0e+06;
-    freqs5[10]=3.2e+06;
-    freqs5[11]=3.4e+06;
-    freqs5[12]=3.8e+06;
-    freqs5[13]=4.1e+06;
-    freqs5[14]=4.5e+06;
-    freqs5[15]=4.8e+06;
-    freqs5[16]=5.0e+06;
-    freqs5[17]=5.4e+06;
-    freqs5[18]=5.8e+06;
-    freqs5[19]=6.1e+06;
-    freqs5[20]=6.2e+06;
-    freqs5[21]=6.4e+06;
-    freqs5[22]=7.5e+06;
-    freqs5[23]=8.0e+06;
-    freqs5[24]=8.1e+06;
-    freqs5[25]=8.2e+06;
-    freqs5[26]=8.3e+06;
-    freqs5[27]=8.4e+06;
-    freqs5[28]=8.5e+06;
-    freqs5[29]=8.75e+06;
-    freqs5[30]=8.9e+06;
-    }
-    if(FALSE){
-
-    freqs5[0]=5.1e+06;
-    freqs5[1]=5.3e+06;
-    freqs5[2]=5.5e+06;
-    freqs5[3]=5.7e+06;
-    freqs5[4]=5.8e+06;
-    freqs5[5]=5.9e+06;
-    freqs5[6]=6.0e+06;
-    freqs5[7]=6.1e+06;
-    freqs5[8]=6.2e+06;
-    freqs5[9]=6.3e+06;
-    freqs5[10]=6.4e+06;
-    freqs5[11]=6.5e+06;
-    freqs5[12]=6.6e+06;
-    freqs5[13]=6.7e+06;
-    freqs5[14]=6.8e+06;
-    freqs5[15]=6.9e+06;
-    freqs5[16]=7.5e+06;
-    freqs5[17]=7.6e+06;
-    freqs5[18]=7.7e+06;
-    freqs5[19]=7.75e+06;
-    freqs5[20]=7.8e+06;
-    freqs5[21]=7.85e+06;
-    freqs5[22]=7.9e+06;
-    freqs5[23]=8.0e+06;
-    freqs5[24]=8.1e+06;
-    freqs5[25]=8.2e+06;
-    freqs5[26]=8.3e+06;
-    freqs5[27]=8.4e+06;
-    freqs5[28]=8.5e+06;
-    freqs5[29]=8.75e+06;
-    freqs5[30]=8.9e+06;
-    }
-
-    if (FALSE){
-      freqs5.Resize(11);
-      nrMeasuredData=11;
-      freqs5[0]=0.2e+05;
-      freqs5[1]=0.35e+05;
-      freqs5[2]=0.45e+05;
-      freqs5[3]=0.55e+05;
-      freqs5[4]=0.6e+05;
-      freqs5[5]=0.69e+05;
-      freqs5[6]=0.72e+05;
-      freqs5[7]=0.82e+05;
-      freqs5[8]=1.15e+05;
-      freqs5[9]=1.25e+05;
-       freqs5[10]=1.3e+05;     
-    }
-    // 10 V
-    if (FALSE){
-      freqs5[0]=0.2e+05;
-      freqs5[1]=0.35e+05;
-      freqs5[2]=0.45e+05;
-      freqs5[3]=0.55e+05;
-      freqs5[4]=0.6e+05;
-      freqs5[5]=0.69e+05;
-      freqs5[6]=0.72e+05;
-      freqs5[7]=0.75e+05;
-      freqs5[8]=0.82e+05;
-      freqs5[9]=0.78e+05;
-      freqs5[10]=0.82e+05;
-      freqs5[11]=0.83e+05;
-      freqs5[12]=1.1e+05;
-      freqs5[13]=1.2e+05;
-      freqs5[14]=1.3e+05;
-      freqs5[15]=1.4e+05;
-      freqs5[16]=1.5e+05;
-      freqs5[17]=1.6e+05;
-      freqs5[18]=1.8e+05;
-      freqs5[19]=2.0e+05;
-    } 
-    // 100V
-    if (FALSE){
-      nrMeasuredData=22;
-      freqs5.Resize(22);
-
-      freqs5[0]=0.2e+05;
-      freqs5[1]=0.35e+05;
-      freqs5[2]=0.45e+05;
-      freqs5[3]=0.55e+05;
-      freqs5[4]=0.6e+05;
-      freqs5[5]=0.69e+05;
-      freqs5[6]=0.72e+05;
-      freqs5[7]=0.75e+05;
-      freqs5[8]=0.77e+05;
-      freqs5[9]=0.79e+05;
-      freqs5[10]=0.81e+05;
-//       freqs5[11]=1.085e+05;
-//       freqs5[12]=1.1e+05;
-      freqs5[11]=1.11e+05;
-      freqs5[12]=1.15e+05;
-      freqs5[13]=1.2e+05;
-      freqs5[14]=1.3e+05;
-      freqs5[15]=1.4e+05;
-      freqs5[16]=1.6e+05;
-      freqs5[17]=1.8e+05;
-      freqs5[18]=1.9e+05;
-      freqs5[19]=2.0e+05;
-      freqs5[20]=2.2e+05;
-      freqs5[21]=2.5e+05;
-
-    }
-
-    // for 50V
-    if (FALSE){
-      nrMeasuredData=26;
-      freqs5.Resize(26);
-      freqs5[0]=0.2e+05;
-      freqs5[1]=0.3e+05;
-      freqs5[2]=0.4e+05;
-      freqs5[3]=0.5e+05;
-      freqs5[4]=0.6e+05;
-      freqs5[5]=0.65e+05;
-      freqs5[6]=0.7e+05;
-      freqs5[7]=0.75e+05;
-      freqs5[8]=0.77e+05;
-      freqs5[9]=0.82e+05;
-      freqs5[10]=0.85e+05;
-      freqs5[11]=1.095e+05;
-      freqs5[12]=1.1e+05;
-      freqs5[13]=1.15e+05;
-      freqs5[14]=1.18e+05;
-      freqs5[15]=1.22e+05;
-      freqs5[16]=1.28e+05;
-      freqs5[17]=1.32e+05;
-      freqs5[18]=1.4e+05;
-      freqs5[19]=1.5e+05;
-      freqs5[20]=1.6e+05;
-      freqs5[21]=1.7e+05;
-      freqs5[22]=1.8e+05;
-      freqs5[23]=2.0e+05;
-      freqs5[24]=2.2e+05;
-      freqs5[25]=2.4e+05;
-
-    }
-
+    Vector<Double>freqs5;
     if(FALSE){
       Integer numMeasPoints=25;
       Double fmin=0.2e+5;
@@ -203,7 +30,7 @@ namespace CoupledField
         freqs5[i]=fmin+i*fincr;
     }
       
-    freqs_=freqs5;
+    //    freqs_=freqs5;
 
 
     Vector<Complex> F_y(nrMeasuredData);
@@ -219,7 +46,7 @@ namespace CoupledField
     Double lambda=10.0;
     Boolean negFlag=FALSE;      
 
-    readInMeasurement(newFreqs);
+    //    readInMeasurement(newFreqs);
 
     std::cout<<"newFreqs:"<<std::endl;
     std::cout<<newFreqs<<std::endl;
@@ -230,6 +57,7 @@ namespace CoupledField
 
       updateMaterialData(parameter_);
 
+    if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
       updateComplexMaterialData(parameterC_);
 
       createF(F_hat_, FALSE);
@@ -313,7 +141,8 @@ namespace CoupledField
 
             updateMaterialData(parameter_);
 
-            updateComplexMaterialData(parameterC_);
+            if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
+              updateComplexMaterialData(parameterC_);
          
             createF(F_hat_, FALSE);
           
@@ -331,39 +160,7 @@ namespace CoupledField
           }
         }
       
-      Matrix<Double> piezoMat,stiffMat, permMat;
-      Matrix<Complex> piezoMatC, stiffMatC, permMatC;
-
-      ptMaterialPiezo_[0]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
-      ptMaterialMech_[0]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
-      ptMaterialElec_[0]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
-
-      ptMaterialPiezo_[0]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
-      ptMaterialMech_[0]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
-      ptMaterialElec_[0]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
-
-      scaling_[0]=1.0/(stiffMat[0][0]); 
-      scaling_[1]=1.0/(stiffMat[2][2]);
-      scaling_[2]=1.0/(stiffMat[1][0]);
-      scaling_[3]=1.0/(stiffMat[0][2]);
-      scaling_[4]=1.0/(stiffMat[3][3]); 
-      scaling_[5]=1.0/(piezoMat[1][3]);
-      scaling_[6]=std::abs(1.0/((piezoMat)[2][0]));
-      scaling_[7]=1.0/((piezoMat)[2][2]);
-      scaling_[8]=1.0/((permMat)[0][0]); 
-      scaling_[9]=1.0/((permMat)[2][2]);
-      
-      scalingC_[0]=1.0/(stiffMatC[0][0].imag()); 
-      scalingC_[1]=1.0/(stiffMatC[2][2].imag());
-      scalingC_[2]=1.0/(stiffMatC[1][0].imag());
-      scalingC_[3]=1.0/(stiffMatC[0][2].imag());
-      scalingC_[4]=1.0/(stiffMatC[3][3].imag()); 
-      scalingC_[5]=1.0/(piezoMatC[1][3].imag());
-      scalingC_[6]=std::abs(1.0/((piezoMatC)[2][0].imag()));
-      scalingC_[7]=1.0/((piezoMatC)[2][2].imag());
-      scalingC_[8]=1.0/((permMatC)[0][0].imag()); 
-      scalingC_[9]=1.0/((permMatC)[2][2].imag());
-      
+      computeScaling();     
           
       
       //     for (UInt par=0;par<nrParameter;par++)
@@ -395,7 +192,8 @@ namespace CoupledField
         }  
 
       updateMaterialData(parameter_);
-      updateComplexMaterialData(parameterC_);
+      if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
+        updateComplexMaterialData(parameterC_);
       createF(F_hat_, FALSE);
       for (UInt i=0;i<nrMeasuredData;i++)
         F_y[i]=F_hat_[i]-y_hat_[i];
@@ -425,7 +223,8 @@ namespace CoupledField
           }      
 
         updateMaterialData(parameter_);
-        updateComplexMaterialData(parameterC_);
+        if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
+          updateComplexMaterialData(parameterC_);
         createF(F_hat_, FALSE);
         for (UInt i=0;i<nrMeasuredData;i++)
           F_y[i]=F_hat_[i]-y_hat_[i];

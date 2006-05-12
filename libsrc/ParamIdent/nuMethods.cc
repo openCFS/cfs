@@ -212,25 +212,8 @@ namespace CoupledField
 
 
     nNuMethods=0;
+    computeScaling();
 
-    Matrix<Double> piezoMat,stiffMat, permMat;
-    Matrix<Complex> piezoMatC, stiffMatC, permMatC;
-    
-    ptMaterialPiezo_[0]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
-    ptMaterialMech_[0]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
-    ptMaterialElec_[0]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
-        
-    scaling_[0]=1.0/(stiffMat[0][0]); 
-    scaling_[1]=1.0/(stiffMat[2][2]);
-    scaling_[2]=1.0/(stiffMat[1][0]);
-    scaling_[3]=1.0/(stiffMat[0][2]);
-    scaling_[4]=1.0/(stiffMat[3][3]); 
-    scaling_[5]=1.0/(piezoMat[1][3]);
-    scaling_[6]=std::abs(1.0/((piezoMat)[2][0]));
-    scaling_[7]=1.0/((piezoMat)[2][2]);
-    scaling_[8]=1.0/((permMat)[0][0]); 
-    scaling_[9]=1.0/((permMat)[2][2]);
-  
     for (UInt i=0;i<actNrParameter;i++)
       stepR[i]=s[i].real();
 
@@ -405,7 +388,6 @@ namespace CoupledField
   void piezoParamIdent::nuMethodsC2(){
 
     ENTER_FCN("piezoParamIdent::nuMethodsC2");
-    std::cout<<"\n NU METHODSC 2 "<<std::endl;
 
     UInt nrIterations=0;
     UInt nNuMethods=0;
@@ -608,39 +590,7 @@ namespace CoupledField
 
     // backtracking(et , theta, s, old_resid2, new_resid2); 
 
-    Matrix<Double> piezoMat,stiffMat, permMat;
-    Matrix<Complex> piezoMatC, stiffMatC, permMatC;
-    
-    ptMaterialPiezo_[0]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
-    ptMaterialMech_[0]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
-    ptMaterialElec_[0]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
-    
-    ptMaterialPiezo_[0]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
-    ptMaterialMech_[0]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
-    ptMaterialElec_[0]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
-    
-    scaling_[0]=1.0/(stiffMat[0][0]); 
-    scaling_[1]=1.0/(stiffMat[2][2]);
-    scaling_[2]=1.0/(stiffMat[1][0]);
-    scaling_[3]=1.0/(stiffMat[0][2]);
-    scaling_[4]=1.0/(stiffMat[3][3]); 
-    scaling_[5]=1.0/(piezoMat[1][3]);
-    scaling_[6]=std::abs(1.0/((piezoMat)[2][0]));
-    scaling_[7]=1.0/((piezoMat)[2][2]);
-    scaling_[8]=1.0/((permMat)[0][0]); 
-    scaling_[9]=1.0/((permMat)[2][2]);
-    
-    scalingC_[0]=1.0/(stiffMatC[0][0].imag()); 
-    scalingC_[1]=1.0/(stiffMatC[2][2].imag());
-    scalingC_[2]=1.0/(stiffMatC[1][0].imag());
-    scalingC_[3]=1.0/(stiffMatC[0][2].imag());
-    scalingC_[4]=1.0/(stiffMatC[3][3].imag()); 
-    scalingC_[5]=1.0/(piezoMatC[1][3].imag());
-    scalingC_[6]=std::abs(1.0/((piezoMatC)[2][0].imag()));
-    scalingC_[7]=1.0/((piezoMatC)[2][2].imag());
-    scalingC_[8]=1.0/((permMatC)[0][0].imag()); 
-    scalingC_[9]=1.0/((permMatC)[2][2].imag());
-
+    computeScaling();
 
     Double mult=1.0;
     
@@ -683,6 +633,38 @@ namespace CoupledField
     norm(act_res, new_res_outer, max_res_inner,y_hat_);
     //      new_res_outer=(a2norm(act_res));
 
+    std::cout<<"new_res_outer:"<<std::endl;
+    std::cout<<new_res_outer<<std::endl;
+
+    Integer lineSearchCount=0;
+
+    while (new_res_outer>old_res_outer){
+      theta = 0.5*theta;
+      thetaC = 0.5*thetaC;
+      std::cout<<"theta = "<<theta<<std::endl;
+      parameter_=parameter_old;
+      parameterC_=parameter_oldC;
+
+      setNewParameterSet(parameter_, parameter_, scaling_, theta, stepR, whichParameterToUpdate_);
+      setNewParameterSet(parameterC_, parameterC_, scalingC_, thetaC, stepC, whichParameterToUpdateC_);
+
+      updateMaterialData(parameter_);
+      updateComplexMaterialData(parameterC_);
+
+      createF(F_hat_,FALSE);
+      
+      for (UInt i=0;i<nrMeasuredData;i++)
+        act_res[i]=y_hat_[i]-F_hat_[i];
+ 
+      norm(act_res,new_res_outer,maxres_inner,y_hat_);
+      std::cout<<"new_res_outer = " << new_res_outer <<std::endl;
+      
+      lineSearchCount++;
+      if (lineSearchCount>10)
+        break;
+
+    }
+
 
     *parLog<<" "<< new_res_outer<<"  "; 
 
@@ -693,6 +675,7 @@ namespace CoupledField
     *parLog<<std::endl;
 
     parameter_old=parameter_;
+    parameter_oldC=parameterC_;
     residuumParIdent_=new_res_outer;
       
    

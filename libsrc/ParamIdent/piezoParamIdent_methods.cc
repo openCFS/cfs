@@ -38,7 +38,12 @@ namespace CoupledField
       Z=Complex(x,y);
       phase = 180.0/PI*std::arg(Z);
     
+      // two criteria .. either charge
       y_hat_[i]=sign_*voltage_/(2.0*PI*std::log(Z)*freqs_[i]*j);
+      // or log imedance ...
+      y_hat_[i]=std::log(std::abs(Z));
+
+
 
     }
    
@@ -74,15 +79,7 @@ namespace CoupledField
 
   void piezoParamIdent::calcSyntheticData(Vector<Complex> & y_hat_){
     ENTER_FCN("piezoParamIdent::calcSyntheticData");
-    //   std::cout<<"\n We are generating synthetic data, i.e. 
-    //   we solve the piezo-equation with exact material - parameters"<<std::endl;
-    //   std::cout<<"and alienate the results by alternating +-10Percent"<<std::endl;
-
-//     if(directCoupling_==TRUE)
-//       ptMaterial_= ptPDE1_->getPDEMaterialData();   // Pointer to MaterialData
-//     else
-//       ptMaterial_= ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-     
+      
     createF(y_hat_,TRUE); // calculates only forward problems over all omegas_
 
     for (UInt i=0;i<y_hat_.GetSize();i++){
@@ -96,11 +93,12 @@ namespace CoupledField
 
   void piezoParamIdent::calcImpedanceCurve(){
     ENTER_FCN("PiezoParamIdent::caclImpedanceCurve");
-    
+
     Boolean reset = TRUE;
      
     updateMaterialData(parameter_);
-    updateComplexMaterialData(parameterC_);
+    if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
+      updateComplexMaterialData(parameterC_);
 
     Double maxImpedance=0.0;
     Double minImpedance=1.0e+10;
@@ -117,6 +115,7 @@ namespace CoupledField
 
       //    ptAssemble_->SetReassemble();
 
+
       // Set curent frequency value in the mathParser
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "f", actFreq_ );
@@ -128,20 +127,17 @@ namespace CoupledField
       ptPDE_->GetSolveStep()->PostStepHarmonic( reset);
       ptPDE_->PostProcess();   
       
-      //    ptPDE_->WriteResultsInFile(fstep,freqs_[fstep]);
-
-      Vector<Complex> chargeVec;
-      // Vector wich contains charges for each element !
-      if(directCoupling_==TRUE)      
-        chargeVec = ptPDE1_->getPDE_complexValuedCharge(); 
-      else
-        chargeVec = ptMyPDE_->getPDE_complexValuedCharge();
       
+      Vector<Complex> chargeVec;
+  
+      chargeVec = ptPDE1_->getPDE_complexValuedCharge(); 
+        
       Complex charge=Complex(0.0,0.0);
 	
       for (UInt i=0;i<chargeVec.GetSize();i++){
        charge+=chargeVec[i];
       }
+
 
       if (std::abs(charge)==0){
         std::cout<<"! WARNING: Calculated charge equals zero."<<std::endl;
@@ -157,7 +153,6 @@ namespace CoupledField
       Complex im=Complex(0.0,1);
       impedC=voltage_/(charge*2.0*PI*freqs_[fstep]*im);
       imped = std::abs(voltage_/(charge*2.0*PI*freqs_[fstep]*im)); 
-      //    phase = 180.0/PI*(std::arg(charge));
       phase = 180.0/PI*(std::arg(impedC));
 
       std::cout << fstep <<");\t Frequenz: " << freqs_[fstep] << ";\t Impedanz: "<< imped
@@ -198,17 +193,11 @@ namespace CoupledField
     
       Boolean reset = TRUE;
       
-      if(directCoupling_==TRUE)      
-        ptAssemble_ = ptPDE1_->getPDE_assemble(); // Vector wich contains charges for each element !
-      else
-        ptAssemble_ = ptMyPDE_->getPDE_assemble();
-      
+      ptAssemble_ = ptPDE1_->getPDE_assemble(); // Vector wich contains charges for each element !
       
       updateMaterialData(parameter_);
       updateComplexMaterialData(parameterC_);
       
-      // Boolean  adjustDamping = params->IsSet("adjustDamping",  "harmonic");
-
       for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) {       
         
         ////////////////////////////////////////////////////////
@@ -225,10 +214,9 @@ namespace CoupledField
         //ptMyPDE_->WriteResultsInFile();
         
         BaseNodeStoreSol * ptSol;
-        if(directCoupling_==TRUE)      
-          ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !
-        else
-          ptSol = ptMyPDE_->getPDESolution();
+       
+        ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !
+       
 
         NodeStoreSol<Complex> * ptNodeStoreSol;
         ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
@@ -274,8 +262,6 @@ namespace CoupledField
           *mechDispl<<"  "<<nodeResult[imech].real();
         *mechDispl<<std::endl;
 
-        
-        
       } //  end loop over freqs
   }
 
@@ -284,42 +270,21 @@ namespace CoupledField
     ENTER_FCN("PiezoParamIdent:createF");
     //   std::cout<<"\nF wil be created ..."<<std::endl;
 
-
-    ptAssemble_ = ptPDE1_->getPDE_assemble();
-    ptAlgsys_ = ptPDE1_->getPDE_algsys();
-
-
     F_hat_.Resize(nrMeasuredData);
 
     Boolean reset = TRUE;
-        
-    // updateMaterialData(parameter_);
-    // updateComplexMaterialData(parameterC_);
-    
-   
-    for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { // harmonic solver for different frequency - values
+           
+    for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { 
 
           ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
 
-      //      ptPDE_->WriteGeneralPDEdefines();   // should not be used, overwrites to much!!    
-
-      //      std::cout<<"\n piezoParam:createF PreStepHarmonic"<<std::endl;
-
-      reset=TRUE;
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep);       
       ptPDE_->GetSolveStep()->PreStepHarmonic(reset); 
-         
-      //  std::cout<<"\n piezoParam:createF SolveStepHarmonic"<<std::endl;
       ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
-      //std::cout<<"\n after SolveStepHarm " <<std::endl;
-
-      //        std::cout<<"\n piezoParam:createF PostStepHarmonic"<<std::endl;
       ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
-
-      //std::cout<<"\n piezoParam:createF PostProcess at step  "<< fstep << std::endl;
       ptPDE_->PostProcess();
 
 
@@ -332,6 +297,7 @@ namespace CoupledField
         chargeVec = ptPDE1_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
              
         Complex charge=Complex(0.0,0.0);
+        Complex im=Complex(0.0,1.0);
          
         for (UInt i=0;i<chargeVec.GetSize();i++){
           charge+=chargeVec[i];
@@ -343,13 +309,13 @@ namespace CoupledField
 
         //F_hat_[fstep]=charge;
 
-        // Logarithmic value of F
-        F_hat_[fstep]=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...
-        //	F_hat_[fstep]=-(sign_*charge*Z)/std::log(Z); // the "-" became important within the stack
 
+        // Logarithmic value of charge
+        F_hat_[fstep]=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...     
+        // logarithmic value of impedance
+        F_hat_[fstep]=std::log(std::abs(voltage_/(charge*2.0*PI*freqs_[fstep]*im)));
 
-//      } // end loop over elements
-        calcAbsImped(charge, freqs_[fstep], fstep,typeOut);   // calculates |Z| and writes results in File
+        //calcAbsImped(charge, freqs_[fstep], fstep,typeOut);   // calculates |Z| and writes results in File
 
     } // end of loop over all frequencies
 
@@ -400,20 +366,25 @@ namespace CoupledField
       createF(F_hat__incr,FALSE);
 
       for (UInt j=0;j<nrMeasuredData;j++)
-        approxJacobiMatrix_[j][ind_param]=-(F_hat_[j]-F_hat__incr[j])/((parameter_incr[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
+        approxJacobiMatrix_[j][ind_param]=
+          -(F_hat_[j]-F_hat__incr[j])/
+          ((parameter_incr[ind_param]-parameter_[ind_param])*scaling_[ind_param]);
 
       parameter_incr[ind_param]=parameter_[ind_param];
     }
-    //     std::cout<<"\n Here we see the approx. Jacobian and the created Jacobian Matrix:"<<std::endl;
+    //     std::cout<<"\n Here we see the approx. Jacobian 
+    //     and the created Jacobian Matrix:"<<std::endl;
     //     std::cout<<approxJacobiMatrix_<<std::endl;
     //     std::cout<<JacobiMatrix_<<std::endl;
     // getchar();   
 
   }// end testJacobiMatrix
 
-  void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat_, Matrix<Complex> & JacobiMatrix_,
+  void piezoParamIdent::testJacobiMatrix2(Vector<Complex> & F_hat_,
+                                          Matrix<Complex> & JacobiMatrix_,
                                           Vector<Double> & parameter_,
-                                          Vector<Double> & parameterIncrement_, Vector<Complex>& solElecPot_,
+                                          Vector<Double> & parameterIncrement_, 
+                                          Vector<Complex>& solElecPot_,
                                           Vector<Complex> &solMechDispl_){
     ENTER_FCN("piezoParamIdent::testJacobiMatrix");
 
@@ -566,4 +537,527 @@ namespace CoupledField
 
 
 
+  void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, UInt & fstep, Boolean typeOut){
+    Double imped, phase;
+    Complex impedC;
+
+    if (!impedCurve)
+      std::cerr<<"Error opening 'ImpedCurve.dat' "<<std::endl;
+
+    Complex im=Complex(0.0,1);
+    impedC=voltage_/(charge*2.0*PI*freq*im);
+    // We need the following line for a comparison with CAPA
+    //    imped = std::abs(voltage_/(charge*2.0*PI*freq*im)); phase = -90 - 180.0/PI*(std::arg(charge));
+    // This line makes sense in this routine!
+
+    imped = std::abs(voltage_/(charge*2.0*PI*freq*im));
+    phase = 180/PI*(std::arg(impedC));
+
+
+    if(typeOut==TRUE){
+      std::cout<<std::setprecision(10);
+      //    std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
+      std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
+      *impedCurve <<"\n" << freq << "  " << impedC.real()<<"  " << impedC.imag() << imped << "   " << phase << std::endl;
+    }
+
+
+
+  }  // end calcAbsImped 
+
+  void piezoParamIdent::norm(Vector<Complex> &  vec, Double & norm, Double & norm2,Vector<Complex> & q_meas){
+    ENTER_FCN("piezoParamIdent::norm");
+
+    Vector<Complex> y_comp(nrParameter_);
+    Vector<Complex> y_temp(nrParameter_);
+
+    switch (whichNorm_){
+
+    case 1:
+      norm = a2norm(vec);
+      //       std::cout<<"\n l2-Norm = "<<norm<<std::endl;
+      break;
+    case 2:
+      maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
+      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
+      break;
+    case 3:
+      maxAndEuclNorm(vec,norm,norm2);
+      //       std::cout<<"\n max-Norm = "<<norm<<std::endl;
+      break;
+    case 4:
+      //       std::cout<<"\n weighted - logarithmic Norm will be determined ..."<< std::endl;
+      for(UInt i=0;i<nrParameter_;i++){
+        y_comp[i]=q_meas[i] - vec[i];
+        y_comp[i]=std::log(y_comp[i]);
+        y_temp[i]=std::log(q_meas[i]);
+        vec[i]= std::abs(y_comp[i]-y_temp[i]);
+      }
+      //       norm=std::sqrt(a2norm(vec));
+      maxAndWeightedResNorm(vec,norm2,norm,y_temp);
+      // std::cout<<"\n weighted - logarithmic Norm = "<< norm <<std::endl;
+      break;
+
+    case 5:
+      maxAndWeightedResNorm(vec,norm2,norm, q_meas);  // for complex valued problem
+      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
+      break;
+    case 6:
+      maxAndWeightedResNorm(vec,norm2,norm, q_meas); // for real -  valued driver suitable
+      //       std::cout<<"\n weighted-Norm = "<<norm<<std::endl;
+
+    case 7:
+      logNorm(vec, norm);
+      break;
+
+    default:
+      norm=a2norm(vec);
+
+    }
+  } // end norm
+  
+  
+
+  Double piezoParamIdent::calcEuclidianMatrixNorm(Matrix<Complex> & mat){
+    ENTER_FCN("piezoParamIdent::calcEuclidianMatrixNorm");
+
+    Double norm=0.0;
+    for (UInt i=0;i<mat.GetSizeRow();i++)
+      for (UInt j=0;j<mat.GetSizeCol();j++)
+        norm+=std::abs(mat[i][j])*std::abs(mat[i][j]);
+    norm=sqrt(norm);
+    return norm;
+
+  } // end calcEuclidianMatrixNorm
+
+  void piezoParamIdent::maxAndEuclNorm(Vector<Complex> & vec,
+                                       Double & maxNorm, Double & euclNorm){
+    ENTER_FCN("piezoParamIdent::maxAndEuclNorm");
+    Double maxNormTemp = 0.0;
+    maxNorm=0.0;
+    euclNorm=0.0;
+
+    for (UInt i=0;i<vec.GetSize();i++){
+      maxNormTemp=std::abs(vec[i]);
+      euclNorm += maxNormTemp*maxNormTemp;
+      if (maxNormTemp>maxNorm)
+        maxNorm=maxNormTemp;
+    }
+    //    euclNorm=std::sqrt(euclNorm);
+
+  } // end maxAndEuclNorm
+
+  void piezoParamIdent::logNorm(Vector<Complex> & vec, Double & logNorm){
+    ENTER_FCN("piezoParamIdent::logNorm");
+    logNorm=0.0;
+    for (UInt i=0;i<vec.GetSize();i++){
+      logNorm = logNorm + std::pow(std::log(std::abs(std::abs(vec[i]))),2);
+    }
+    //    euclNorm=std::sqrt(euclNorm);
+  } // end logNorm
+
+
+
+  void piezoParamIdent::maxAndWeightedResNorm(Vector<Complex> & vec,
+                                              Double & maxNorm, Double & wNorm,
+                                              Vector<Complex> & q_meas){
+    ENTER_FCN("piezoParamIdent::maxAndWeightedResNorm");
+    Double maxNormTemp = 0.0;
+    maxNorm=0.0;
+    wNorm=0.0;
+    Double Denominator=0.0;
+
+    for (UInt i=0;i<vec.GetSize();i++){
+      maxNormTemp=std::abs(vec[i]);
+      Denominator = std::abs(q_meas[i])*std::abs(q_meas[i]);
+      if (whichNorm_==2){
+        //      wNorm = wNorm+((1.0/Denominator)*vec[i]*vec[i]).real(); 
+        // this is a good running version!
+        wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        //std::cout<<"\n WeightedResNorm = " << std::abs(vec[i])*std::abs(vec[i])<< std::endl;
+        //      std::cout<<wNorm<<std::endl;
+      }
+      else if (whichNorm_==5)
+        wNorm = wNorm+((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+      else if (whichNorm_==6){
+        if (whichNewtonCG_!=11){
+          std::cout<<"This choice of norm is not valid for your case "<<std::endl;
+          std::cout<<"Set Norm in measuredData.dat = 2"<<std::endl;
+          getchar();
+        }
+        Double stepWidth=0.0;
+        stepWidth=0.5*std::abs(freqs_[std::min(i+1,freqs_.GetSize())]-
+                               freqs_[std::max((Integer)i-1,0)]);
+        stepWidth/=1.0e+06;
+        //wNorm = wNorm+stepWidth*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        wNorm = wNorm + 
+          omegaDiffVec_[i]*rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        //        wNorm = wNorm+rhos[i]*((1.0/Denominator)*std::abs(vec[i])*std::abs(vec[i]));
+        //      getchar();
+      }
+      
+      if (maxNormTemp>maxNorm)
+        maxNorm=maxNormTemp;
+    }
+
+    //wNorm=std::sqrt(wNorm);
+  } // end maxAndWeightedNorm
+
+
+  void piezoParamIdent::calcNorm2Resid(Vector<Complex> &res,
+                                       Double & anorm_, 
+                                       UInt nrMeasuredData){
+    ENTER_FCN("piezoParamIdent::calcNorm2Resid");
+    anorm_=0.0;
+    for (UInt i=0;i<2*nrMeasuredData;i++){
+      anorm_+=res[i].real()*res[i].real()+ res[i].imag()*res[i].imag();
+      anorm_=sqrt(anorm_);
+    }
+  } // end calcNorm2Resid
+
+  Double piezoParamIdent::norm2Real(Vector<Complex> &vec){
+    ENTER_FCN("piezoParamIdent::realA2norm");
+    Double result=0.0; 
+    //      Double real_result;
+    for(UInt i=0;i<vec.GetSize();i++)
+      result+=vec[i].real()*vec[i].real();
+    result=sqrt(result);
+    return result;
+  }
+
+  Double piezoParamIdent::realA2norm(Vector<Complex> &vec){
+    ENTER_FCN("piezoParamIdent::realA2norm");
+    Double result=0.0; 
+    Complex resultC = Complex(0.0,0.0);
+    //      Double real_result;
+    for(UInt i=0;i<vec.GetSize();i++)
+      resultC+=vec[i]*vec[i];
+    result=resultC.real();
+    //    std::cout <<" \n Result in realA2norm = " << result << std::endl;
+    //    result=sqrt(result);
+    return result;
+  }
+
+  Double piezoParamIdent::a2norm(Vector<Complex> &vec){
+    ENTER_FCN("piezoParamIdent::a2norm");
+    Double result=0.0; //Complex(0.0,0.0);
+    //      Double real_result;
+    for(UInt i=0;i<vec.GetSize();i++)
+      result+=std::abs(vec[i])*std::abs(vec[i]);
+    result=sqrt(result);
+    return result;
+  }
+
+  Double piezoParamIdent::a2norm(Vector<Double> &vec){
+    ENTER_FCN("piezoParamIdent::a2norm");
+    Double result=0.0; //Complex(0.0,0.0);
+    //      Double real_result;
+    for(UInt i=0;i<vec.GetSize();i++)
+      result+=std::abs(vec[i])*std::abs(vec[i]);
+    result=sqrt(result);
+    return result;
+  }
+
+
+
+  void piezoParamIdent::readMeasuredData(Vector<Double> & freqs_, 
+                                         Vector<Double> & real_,
+                                         Vector<Double> & imag_ ,
+                                         Vector<Double> & parameter_, 
+                                         Double & voltage_,
+                                         UInt & nrMeasuredData, 
+                                         Double & thickness_, Double & radius_,
+                                         Double & delta_){
+    ENTER_FCN( "piezoParamIdent::readMeasuredData" );
+    char mDataRow[256], helpChar[64];
+    UInt i=0, j=0, k=0;
+    while(allMeasuredData->getline(mDataRow, 256)){
+      if (mDataRow[0]=='1')
+        {i=2;
+          while(mDataRow){
+            if (mDataRow[i]=='/')
+              break;
+            if(mDataRow[i]!=','){
+              helpChar[k]=mDataRow[i];
+              k++; i++;
+            }
+            else{
+              freqs_[j]=atof(helpChar);
+              for(UInt l=0;l<=k;l++)
+                helpChar[l]=0;
+              j++; i++; k=0;
+            }
+          }
+          nrMeasuredData = j;
+        }
+      else if (mDataRow[0]=='2'){
+        i=2;j=0;k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            real_[j]=atof(helpChar);
+            for(UInt l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
+      }
+      else if (mDataRow[0]=='3'){
+        i=2; k=0; j=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            imag_[j]=atof(helpChar);
+            for(UInt l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
+      }
+      else if (mDataRow[0]=='4'){
+        i=2; k=0; j=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            parameter_[j]=atof(helpChar);
+            for(UInt l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
+      }
+      else if (mDataRow[0]=='i'){
+        i=2; k=0; j=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            parameterC_[j]=atof(helpChar);
+            for(UInt l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
+      }
+      else if (mDataRow[0]=='P'){
+        i=2; k=0; j=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            whichParameterToUpdate_[j]=atoi(helpChar);
+            for(UInt l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
+      }
+      else if (mDataRow[0]=='Q'){
+        i=2; k=0; j=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          if(mDataRow[i]!=','){
+            helpChar[k]=mDataRow[i];
+            k++; i++;
+          }
+          else{
+            whichParameterToUpdateC_[j]=atoi(helpChar);
+            for(UInt l=0;l<=k;l++)
+              helpChar[l]=0;
+            j++; i++; k=0;
+          }
+        }
+      }
+      else if (mDataRow[0]=='5'){
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        voltage_=atof(helpChar);
+        for (UInt l=0;l<=k;l++)
+          helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='6'){
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        thickness_=atof(helpChar);
+        for (UInt l=0;l<=k;l++)
+          helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='I'){
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        CalcImpedanceCurve_=atoi(helpChar);
+        for (UInt l=0;l<=k;l++)
+          helpChar[l]=0;
+      }
+     
+      else if (mDataRow[0]=='M'){
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        whichNewtonCG_=atoi(helpChar); 
+        for (UInt l=0;l<=k;l++)
+          helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='N'){
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        whichNorm_=atoi(helpChar); 
+        for (UInt l=0;l<=k;l++)
+          helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='r'){
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        relaxParameter=atof(helpChar); 
+        for (UInt l=0;l<=k;l++)
+          helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='7'){
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        radius_=atof(helpChar);  
+        for (UInt l=0;l<=k;l++)
+          helpChar[l]=0;
+      }
+      else if (mDataRow[0]=='8'){
+        i=2; k=0;
+        while(mDataRow){
+          if (mDataRow[i]=='/')
+            break;
+          helpChar[k]=mDataRow[i];
+          k++; i++;
+        }
+        delta_=atof(helpChar); // delta - Fehlerniveau
+        for (UInt l=0;l<=k;l++)
+          helpChar[l]=0;
+      }
+    }
+  } // end read MeasuredData
+
+
+ void piezoParamIdent::readInMeasurement(Vector<Double> & frequencies){
+
+    ENTER_FCN("piezoParamIdent::readInMeasurement");
+
+    std::cout<<"++ open and read file mess.dat ... " <<std::endl;    
+
+    frequencies.Resize(nrMeasuredData);
+    real_.Resize(nrMeasuredData);
+    imag_.Resize(nrMeasuredData);
+
+    //! input file, reads set of measurements, frequencies, re(Z), im(z)
+    std::ifstream * mess; 
+    Char* messChar="mess.dat";
+    mess = new std::ifstream(messChar, std::basic_ios<char>::in);
+
+    if (!mess){
+      std::cerr << "\n File mess.dat does not exist!" << std::endl;
+    }
+      
+    char mDataRow[512], helpChar[64];
+    UInt i=0, j=0;
+    Double newFreq, amplitude, phase;
+
+    while(mess->getline(mDataRow, 512)){
+      //      std::cout<<mDataRow<<std::endl;
+      i=0;j=0;
+      while (mDataRow[i]!='\t'){
+        helpChar[j]=mDataRow[i];
+        i++;j++;
+      }// end while madataRow
+      newFreq=atof(helpChar);
+      i++;
+      j=0;
+      for(UInt k=0;k<i;k++) // Delete content of helpChar
+        helpChar[k]='0';
+
+      while (mDataRow[i]!='\t'){
+        helpChar[j]=mDataRow[i];
+        i++;j++;
+      }// end while mdataRow
+      amplitude=atof(helpChar);
+      i++;
+      j=0;
+      for(UInt k=0;k<i;k++) // Delete content of helpChar
+        helpChar[k]='0';
+      while (mDataRow[i]!='\n'){
+        helpChar[j]=mDataRow[i];
+        i++;j++;
+      }// end while mdataRow
+      phase=atof(helpChar);
+
+     
+      for(UInt mInd=0;mInd<nrMeasuredData;mInd++){
+        if(std::abs(freqs_[mInd]-newFreq)<std::abs(freqs_[mInd]-frequencies[mInd])){
+          frequencies[mInd]=newFreq;
+          real_[mInd]=amplitude;
+          imag_[mInd]=phase;
+        }
+      }
+    }// end while mess
+
+    freqs_=frequencies;   
+    mess->close();
+    std::cout<<"++ open and read of file mess.dat finished ... " <<std::endl;    
+  }// end readInMeasurements
+
+  
 } // end namespace
