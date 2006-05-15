@@ -1088,25 +1088,25 @@ namespace CoupledField {
       out = "No MaterialClass";
       break;
     case ELECTROMAGNETIC:
-      out = "electromagnetic";
+      out = "magnetic";
       break;
     case ELECTROSTATIC:
-      out = "electrostatic";
+      out = "electric";
       break;
     case FLUID:
-      out = "fluid";
+      out = "acoustic";
       break;
     case FLOW:
       out = "flow";
       break;
     case MECHANIC:
-      out = "mechanic";
+      out = "mechanical";
       break;
     case PIEZO:
       out = "piezo";
       break;
     case THERMIC:
-      out = "thermic";
+      out = "heatConduction";
       break;
       
     default:  

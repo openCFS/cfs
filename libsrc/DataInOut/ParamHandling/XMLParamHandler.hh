@@ -269,9 +269,9 @@ namespace CoupledField {
                    const std::string subsection = "" );
 
 
-    Boolean ContainElem( const StdVector<std::string> &keyVec,
-                         const StdVector<std::string> &attrVec,
-                         const StdVector<std::string> &valVec );
+    Boolean ContainElem( StdVector<std::string> &keyVec,
+                         StdVector<std::string> &attrVec,
+                         StdVector<std::string> &valVec );
 
     Boolean HasValue( const std::string key,
                       const std::string value,
