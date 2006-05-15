@@ -40,6 +40,25 @@ namespace CoupledField {
     
     BaseMaterial * material = NULL;
     
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    
+    std::string strMatClass;
+
+    Enum2String(matClass,strMatClass);
+    
+    //keyVec = "material", "electrostatic";
+    keyVec = "material", strMatClass;
+    attrVec= "name","";
+    valVec =  matName,"";
+
+    if (!parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      (*error) << "Error: " << strMatClass << " material " << matName 
+               <<" does not exist.";
+      Error( __FILE__, __LINE__ );
+    }
+
     if ( matClass == PIEZO ) {
       material = new PiezoMaterial();
       ReadPiezo( material, matName);
@@ -743,8 +762,8 @@ namespace CoupledField {
     valVec =  matName  ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
-      //material->SetScalar( doubValue, MAG_CONDUCTIVITY, REAL ); ???
-      // std::cerr << "electricConductivity=" << doubValue << std::endl;
+      material->SetScalar( doubValue, MAG_CONDUCTIVITY, REAL );
+      std::cerr << matName << "electricConductivity=" << doubValue << std::endl;
     }
 
     //read magnetic permeability
@@ -754,7 +773,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MAG_PERMEABILITY, REAL ); 
-      // std::cerr << "magneticPermeability=" << doubValue << std::endl;
+      std::cerr << matName << "magneticPermeability=" << doubValue << std::endl;
     }
 
     //read nonlinear dependency of magnetic permeability
@@ -763,7 +782,7 @@ namespace CoupledField {
     valVec =  matName  ,""        ,""                    ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
+      //material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
       // std::cerr << "nonlinear dependency of magneticPermeability=" << striValue << std::endl;
     }
 
@@ -773,7 +792,7 @@ namespace CoupledField {
     valVec =  matName  ,""        ,""                    ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
+      //material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
       // std::cerr << "nonlinear approxType of magneticPermeability=" << striValue << std::endl;
     }
 
@@ -783,7 +802,8 @@ namespace CoupledField {
     valVec =  matName  ,""        ,""                    ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, NONLIN_DATA_NAME ); 
+      //material->SetScalar( striValue, NONLIN_DATA_NAME ); 
+      material->SetNonlinFileName( striValue.c_str() );
       // std::cerr << "nonlinear dataName of magneticPermeability=" << striValue << std::endl;
     }
 

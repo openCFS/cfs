@@ -1160,30 +1160,43 @@ namespace CoupledField {
   // =============================================================
   //   Query wether a spec element is set with side constraints
   // =============================================================
-  Boolean XMLParamHandler::ContainElem( const StdVector<std::string> &keyVec,
-                                        const StdVector<std::string> &attrVec,
-                                        const StdVector<std::string> &valVec ) {
+  Boolean XMLParamHandler::ContainElem( StdVector<std::string> &keyVec,
+                                        StdVector<std::string> &attrVec,
+                                        StdVector<std::string> &valVec ) {
 
     ENTER_FCN( "XMLParamHandler::ContainElem" );
 
     Boolean flagStatus = FALSE;
 
     // Find all elements/values matching keyword in (restricted) tree
-    StdVector<std::string> matches;
-    GetList( keyVec, attrVec, valVec, matches );
+    StdVector<xercesc::DOMElement *>* matches = NULL;
+
+    StdVector<std::string> myKeys       = StdVector<std::string>( keyVec );
+    StdVector<std::string> attribNames  = StdVector<std::string>( attrVec);
+    StdVector<std::string> attribValues = StdVector<std::string>( valVec );
+
+    if ( attrVec.GetSize() == keyVec.GetSize()-1 &&
+         valVec.GetSize() == keyVec.GetSize()-1 ) {
+      attribNames.Push_back( "" );
+      attribValues.Push_back( "" );
+    }
+    matches = FindMatchingElements( myKeys, attribNames, attribValues, rootElem_, 1 );
+    
+
+    //GetList( keyVec, attrVec, valVec, matches );
 
     // If there is no match, return false
-    if ( matches.GetSize() == 0 ) {
+    if ( matches->GetSize() == 0 ) {
       flagStatus = FALSE;
     }
 
     // If there is a match, but it is not unique, call problem handler
-    else if ( matches.GetSize() > 1 ) {
-      MultipleMatchHandler( keyVec, attrVec, valVec, matches.GetSize() );
+    else if ( matches->GetSize() > 1 ) {
+      MultipleMatchHandler( keyVec, attrVec, valVec, matches->GetSize() );
     }
 
     // So, there is a matching parameter. Thus, test its value
-    else if ( matches.GetSize() == 1 ) {
+    else if ( matches->GetSize() == 1 ) {
       flagStatus = TRUE;
     }
 
