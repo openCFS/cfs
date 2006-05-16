@@ -2,7 +2,7 @@
 #include <fstream>
 #include <string>
 
-#include "environment.hh"Lame
+#include "environment.hh"
 #include "Utils/tools.hh"
 #include "Domain/domain.hh"
 
@@ -832,6 +832,9 @@ namespace CoupledField {
     case ACOU_SOUND_SPEED:
       out = "Acoustic_SoundSpeed";
       break;
+    case BOVERA:
+      out = "BoverA";
+      break;
     case ACOU_ALPHA:
       out = "AcousticAlpha";
       break;
@@ -967,6 +970,9 @@ namespace CoupledField {
     }
     else if ( in == "Acoustic_SoundSpeed" ) {
       out = ACOU_SOUND_SPEED;
+    }
+    else if ( in == "BoverA" ) {
+      out = BOVERA;
     }
     else if ( in == "AcousticAlpha" ) {
       out = ACOU_ALPHA;

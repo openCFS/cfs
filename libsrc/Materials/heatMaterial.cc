@@ -34,11 +34,6 @@ namespace CoupledField
 
   }
 
-  void  HeatMaterial::SetScalar( Integer& param, const MaterialType& matType) {
-
-    ENTER_FCN( "AcousticMaterial::SetScalar" );
-    Error("SetScalar for 'Integer' not implemented",__FILE__,__LINE__);
-  }
 
   void  HeatMaterial::SetScalar( std::string& param, const MaterialType& matType) {
 
@@ -58,12 +53,15 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = Complex ( param, 0.0 );
       }
       else if (dataType == IMAG ) {
 	val = Complex ( 0.0, param );
+	isComplex_.insert( matType );
       }
       else {
 	std::string msg = "SetScalar-Double";
@@ -76,7 +74,7 @@ namespace CoupledField
   }
 
   void HeatMaterial::SetScalar( Complex& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
+				const DataType& dataType ) {
 
     ENTER_FCN( "HeatMaterial::SetScalar" );
 
@@ -88,15 +86,19 @@ namespace CoupledField
       matTypeNotInDataBase( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val = pos->second;
       if ( dataType == REAL ) {
 	//	param = val.real();
       }
       else if ( dataType == IMAG ) {
 	//	param = val.imag();
+	isComplex_.insert( matType );
       }
       else if ( dataType == COMPLEX ) {
 	param = val;
+	isComplex_.insert( matType );
       }
     }
   }
@@ -176,7 +178,4 @@ namespace CoupledField
     }
   }
 
-  void HeatMaterial::Print(std::ostream & out) const {
-    ENTER_FCN( "HeatMaterial::Print" );
-  }
 }

@@ -40,11 +40,6 @@ namespace CoupledField
 
   }
 
-  void AcousticMaterial::SetScalar( Integer& param, const MaterialType& matType) {
-
-    ENTER_FCN( "AcousticMaterial::SetScalar" );
-    Error("SetScalar for 'Integer' not implemented",__FILE__,__LINE__);
-  }
 
   void AcousticMaterial::SetScalar( std::string& param, const MaterialType& matType) {
 
@@ -64,12 +59,15 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = Complex ( param, 0.0 );
       }
       else if (dataType == IMAG ) {
 	val = Complex ( 0.0, param );
+	isComplex_.insert( matType );
       }
       else {
 	std::string msg = "SetScalar-Double";
@@ -139,8 +137,4 @@ namespace CoupledField
     dataTypeNotAllowed( dataType, matType );    
   }
 
-  void AcousticMaterial::Print(std::ostream & out) const {
-    ENTER_FCN( "AcousticMaterial::Print" );
-  }
-  
 }

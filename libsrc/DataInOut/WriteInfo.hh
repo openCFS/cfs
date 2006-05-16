@@ -78,28 +78,9 @@ namespace CoupledField {
     /// Prints header for both info-file and standard out
     void PrintHeader();
 
+    /// prints full data of a material
+    void PrintMaterial(BaseMaterial* material);
     
-    /// prints full data of a piezo material
-    void PrintPiezoMat(BaseMaterial* material, Boolean imag);
-
-    /// prints full data of a piezo material
-    void PrintMechanicMat(BaseMaterial* material, Boolean imag);
-    
-    /// prints all acoustic data
-    void PrintAcousticMat(BaseMaterial* material);
-
-    /// prints all flow data
-    void PrintFlowMat(BaseMaterial* material);
-
-    /// prints all thermic data
-    void PrintThermicMat(BaseMaterial* material);
-
-    /// prints all magnetic data
-    void PrintMagMat(BaseMaterial* material);
-
-    /// prints full data of a piezo material
-    void PrintElectrostaticMat(BaseMaterial* material, Boolean imag);
-
     /// prints all data of a coil (e.g. current, area, magnetization, ...)
     void PrintCoil( Coil &coil, AnalysisType &analysistype );
 

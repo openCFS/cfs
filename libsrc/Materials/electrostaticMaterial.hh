@@ -23,9 +23,6 @@ namespace CoupledField {
     //! set a scalar string material parameter
     void SetScalar( std::string& param, const MaterialType& matType);
 
-    //! set a scalar integer material parameter
-    void SetScalar( Integer& param, const MaterialType& matType);
-
     //! set a scalar real material parameter
     void SetScalar( Double& param, const MaterialType& matType, 
 		    const DataType& dataType );
@@ -41,10 +38,6 @@ namespace CoupledField {
     //! set a complex material tensor
     void SetTensor( Matrix<Complex>& param, const MaterialType& matType,
 		    const DataType& dataType );
-
-    //! get a string material parameter
-    void GetScalar( Integer& param, const MaterialType& matType,   
-		    const DataType& dataType) const;
 
     //! get a scalar real material parameter
     void GetScalar( Double& param, const MaterialType& matType, 
@@ -64,9 +57,6 @@ namespace CoupledField {
 		    const DataType& dataType,
 		    const SubTensorType = FULL ) const;	
 
-    //! Print material definition to given output stream
-    void Print(std::ostream & out) const;
-
   private:
 
     //! compute the correct subTensor (3D, AXI, ..)
@@ -76,15 +66,6 @@ namespace CoupledField {
 
     Complex scalarPermittivity_;
 
-    // hysteresis
-    Double Esat_;
-    Double Psat_;
-    Double aJiles_;
-    Double alphaJiles_;
-    Double kJiles_;
-    Double cJiles_;
-    Integer directionP_;
-    std::string hystType_;
   };
 
 } // end of namespace

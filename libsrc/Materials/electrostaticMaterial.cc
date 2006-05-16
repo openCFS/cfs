@@ -46,7 +46,8 @@ namespace CoupledField
     ENTER_FCN( "ElectroStaticMaterial::SetScalar" );
 
     if ( matType == HYST_MODEL ) {
-      hystType_ = param;
+      stringParams_[matType] = param;
+      isSet_.insert( matType );
     }
     else {
       std::string dim = "string";
@@ -54,29 +55,9 @@ namespace CoupledField
     }
   }
 
-
-  void ElectroStaticMaterial::SetScalar( Integer& param, const MaterialType& matType) {
-
-    ENTER_FCN( "ElectroStaticMaterial::SetScalar" );
-
-    if ( matType == P_DIRECTION ) {
-      directionP_ = param;
-    }
-    else {
-      std::string dim = "integer";
-      matTypeNotAllowed( matType, dim );
-    }
-    if ( matType == HYST_MODEL ) {
-      hystType_ = param;
-    }
-    else {
-      std::string dim = "string";
-      matTypeNotAllowed( matType, dim );
-    }
-  }
 
   void ElectroStaticMaterial::SetScalar( Double& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
+					 const DataType& dataType ) {
 
     ENTER_FCN( "ElectroStaticMaterial::SetScalar" );
 
@@ -86,12 +67,15 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = Complex ( param, 0.0 );
       }
       else if (dataType == IMAG ) {
 	val = Complex ( 0.0, param );
+	isComplex_.insert( matType );
       }
       else {
 	std::string msg = "SetScalar-Double";
@@ -114,15 +98,19 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = param.real();
       }
       else if (dataType == IMAG ) {
 	val = param.imag();
+	isComplex_.insert( matType );
       }
       else if ( dataType == COMPLEX ) {
 	val = param;
+	isComplex_.insert( matType );
       }
       
       scalarParams_[matType] = val;
@@ -141,11 +129,17 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
       if ( dataType == REAL || dataType == IMAG ) {
 	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
 	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
 	}
+	if ( tensorParamsOrig_[matType].GetSizeRow() == 0 ) {
+	  tensorParamsOrig_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	}
+
 	tensorParams_[matType].SetPart( dataType, param );
+	tensorParamsOrig_[matType].SetPart( dataType, param );
 
 	// to be consistent to old structure
 	if ( dataType == REAL ) {
@@ -153,6 +147,7 @@ namespace CoupledField
 	}
 	else {
 	  scalarParams_[matType] = Complex( 0.0, param[2][2]);
+	  isComplex_.insert( matType );
 	}
       }
       else {
@@ -173,42 +168,21 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       if ( dataType != COMPLEX ) {
 	std::string msg = "SetTensor with Matrix<Complex>";
 	setMakesNoSense( dataType, msg );
       }
       else {
-	tensorParams_[matType] = param;
+	tensorParams_[matType]     = param;
+	tensorParamsOrig_[matType] = param;
 	// to be consistent to old structure
 	scalarParams_[matType] = param[2][2];
+	isComplex_.insert( matType );
       }
     }    
   }
-
-
-  void ElectroStaticMaterial::GetScalar( Integer& param, const MaterialType& matType, 
-					   const DataType& dataType )  const {
-
-    ENTER_FCN( "ElectroStaticMaterial::GetScalar" );
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      if ( matType ==  P_DIRECTION ) {
-	param = directionP_;
-      }
-      else {
-      std::string dim = "integer";
-      matTypeNotInDataBase( matType, dim );
-      }
-    }
-  }
-
 
 
   void ElectroStaticMaterial::GetScalar( Double& param, const MaterialType& matType, 
@@ -353,7 +327,4 @@ namespace CoupledField
   }
 
   
-  void ElectroStaticMaterial::Print(std::ostream & out) const {
-    ENTER_FCN( "ElectroStaticMaterial::Print" );
-  }
 }

@@ -23,9 +23,6 @@ namespace CoupledField {
    //! set a scalar string material parameter
     void SetScalar( std::string& param, const MaterialType& matType);
 
-    //! set a scalar integer material parameter
-    void SetScalar( Integer& param, const MaterialType& matType);
-
     //! set a scalar real material parameter
     void SetScalar( Double& param, const MaterialType& matType, 
 		    const DataType& dataType );
@@ -50,18 +47,8 @@ namespace CoupledField {
     void GetScalar( Complex& param, const MaterialType& matType, 
 		    const DataType& dataType ) const;
 
-    //! Print material definition to given output stream
-    void Print(std::ostream & out) const;
-
   private:
 
-    Double compressibility_;
-    Double density_;
-    Double scalarSoundSpeed_;
-    Double BoverA_;
-    Double RayleighAlpha_;
-    Double RayleighBeta_;
-    Double RayleighFrequency_;
 
   };
 
