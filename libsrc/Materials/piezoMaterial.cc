@@ -36,34 +36,15 @@ namespace CoupledField
   PiezoMaterial::~PiezoMaterial() {
 
     ENTER_FCN("BaseMaterial::~BaseMaterial");
-
   }
 
-  void PiezoMaterial::SetScalar( Integer& param, const MaterialType& matType) {
-
-    ENTER_FCN( "AcousticMaterial::SetScalar" );
-
-    if ( matType == P_DIRECTION ) {
-      directionP_ = param;
-    }
-    else {
-      std::string dim = "integer";
-      matTypeNotAllowed( matType, dim );
-    }
-    if ( matType == HYST_MODEL ) {
-      hystType_ = param;
-    }
-    else {
-      std::string dim = "string";
-      matTypeNotAllowed( matType, dim );
-    }
-  }
 
   void PiezoMaterial::SetScalar( std::string& param, const MaterialType& matType) {
 
     ENTER_FCN( "AcousticMaterial::SetScalar" );
     if ( matType == HYST_MODEL ) {
-      hystType_ = param;
+      stringParams_[matType] = param;
+      isSet_.insert( matType );
     }
     else {
       std::string dim = "string";
@@ -83,12 +64,15 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = Complex ( param, 0.0 );
       }
       else if (dataType == IMAG ) {
 	val = Complex ( 0.0, param );
+	isComplex_.insert( matType );
       }
       else {
 	std::string msg = "SetScalar-Double";
@@ -111,15 +95,19 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = param.real();
       }
       else if (dataType == IMAG ) {
 	val = param.imag();
+	isComplex_.insert( matType );
       }
       else if ( dataType == COMPLEX ) {
 	val = param;
+	isComplex_.insert( matType );
       }
       
       scalarParams_[matType] = val;
@@ -128,7 +116,7 @@ namespace CoupledField
 
 
   void PiezoMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
-					   const DataType& dataType ) {
+				 const DataType& dataType ) {
     
     ENTER_FCN( "PiezoMaterial::SetTensor" );
 
@@ -138,11 +126,20 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
       if ( dataType == REAL || dataType == IMAG ) {
 	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
 	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
 	}
+	if ( tensorParamsOrig_[matType].GetSizeRow() == 0 ) {
+	  tensorParamsOrig_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	}
+
 	tensorParams_[matType].SetPart( dataType, param );
+	tensorParamsOrig_[matType].SetPart( dataType, param );
+	if ( dataType == IMAG ) {
+	  isComplex_.insert( matType );
+	}
       }
       else {
 	std::string msg = "SetTensor-Double";
@@ -162,37 +159,19 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
       if ( dataType != COMPLEX ) {
 	std::string msg = "SetTensor with Matrix<Complex>";
 	setMakesNoSense( dataType, msg );
       }
       else {
-	tensorParams_[matType] = param;
+	tensorParams_[matType]     = param;
+	tensorParamsOrig_[matType] = param;
+	isComplex_.insert( matType );
       }
     }
   }
 
-  void PiezoMaterial::GetScalar( Integer& param, const MaterialType& matType) const {
-
-    ENTER_FCN( "PiezoMaterial::GetScalar" );
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      if ( matType ==  P_DIRECTION ) {
-	param = directionP_;
-      }
-      else {
-      std::string dim = "integer";
-      matTypeNotInDataBase( matType, dim );
-      }
-    }
-  }
 
   void PiezoMaterial::GetScalar( Double& param, const MaterialType& matType, 
 					   const DataType& dataType )  const {
@@ -354,8 +333,4 @@ namespace CoupledField
     }
   }
   
-  void PiezoMaterial::Print(std::ostream & out) const {
-    ENTER_FCN( "PiezoMaterial::Print" );
-  }
-
 }

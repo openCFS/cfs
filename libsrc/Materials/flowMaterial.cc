@@ -32,12 +32,6 @@ namespace CoupledField
 
   }
 
-  void FlowMaterial::SetScalar( Integer& param, const MaterialType& matType) {
-
-    ENTER_FCN( "FlowMaterial::SetScalar" );
-    Error("SetScalar for 'Integer' not implemented",__FILE__,__LINE__);
-  }
-
   void FlowMaterial::SetScalar( std::string& param, const MaterialType& matType) {
 
     ENTER_FCN( "FlowMaterial::SetScalar" );
@@ -56,12 +50,15 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = Complex ( param, 0.0 );
       }
       else if (dataType == IMAG ) {
 	val = Complex ( 0.0, param );
+	isComplex_.insert( matType );
       }
       else {
 	std::string msg = "SetScalar-Double";
@@ -131,8 +128,4 @@ namespace CoupledField
     dataTypeNotAllowed( dataType, matType );    
   }
 
-  void FlowMaterial::Print(std::ostream & out) const {
-    ENTER_FCN( "FlowMaterial::Print" );
-  }
-  
 }

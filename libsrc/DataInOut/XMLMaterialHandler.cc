@@ -174,7 +174,7 @@ namespace CoupledField {
     }
 
     // Print material information to .info-file
-    Info->PrintPiezoMat(material,false );
+    Info->PrintMaterial(material );
   }
 
 //**********************************************************************
@@ -439,7 +439,7 @@ namespace CoupledField {
     }
 
     // Print information to info file
-    Info->PrintMechanicMat( material, false);
+    Info->PrintMaterial( material);
   }
 
   void XMLMaterialHandler::ComputeIsoMechStiffnesTensor(Double EModul, 
@@ -593,7 +593,7 @@ namespace CoupledField {
     }
 
     // Print material information to info-file
-    Info->PrintAcousticMat( material );
+    Info->PrintMaterial( material );
   }
 
 //**********************************************************************
@@ -737,7 +737,7 @@ namespace CoupledField {
     }
 
     // Print information to info file
-    Info->PrintElectrostaticMat( material, false);
+    Info->PrintMaterial( material );
 
   }
 
@@ -808,7 +808,7 @@ namespace CoupledField {
     }
 
     // Print information to info file
-    Info->PrintMagMat( material ); 
+    Info->PrintMaterial( material ); 
     
   }
 
@@ -857,7 +857,7 @@ namespace CoupledField {
     }
 
     // Print information to info file
-    Info->PrintThermicMat( material );
+    Info->PrintMaterial( material );
   }
 
 //**********************************************************************
@@ -895,7 +895,7 @@ namespace CoupledField {
     }
 
     // Print information to info file
-    Info->PrintFlowMat( material );
+    Info->PrintMaterial( material );
   }
 
 }

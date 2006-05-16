@@ -47,7 +47,8 @@ namespace CoupledField
     ENTER_FCN( "ElectroMagneticMaterial::SetScalar" );
 
     if ( matType == HYST_MODEL ) {
-      hystType_ = param;
+      stringParams_[matType] = param;
+      isSet_.insert( matType );
     }
     else {
       std::string dim = "string";
@@ -55,19 +56,6 @@ namespace CoupledField
     }
   }
 
-
-  void ElectroMagneticMaterial::SetScalar( Integer& param, const MaterialType& matType) {
-
-    ENTER_FCN( "ElectroMagneticMaterial::SetScalar" );
-
-    if ( matType == P_DIRECTION ) {
-      directionP_ = param;
-    }
-    else {
-      std::string dim = "integer";
-      matTypeNotAllowed( matType, dim );
-    }
-  }
 
   void ElectroMagneticMaterial::SetScalar( Double& param, const MaterialType& matType, 
 					   const DataType& dataType ) {
@@ -80,12 +68,15 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = Complex ( param, 0.0 );
       }
       else if (dataType == IMAG ) {
 	val = Complex ( 0.0, param );
+	isComplex_.insert( matType );
       }
       else {
 	std::string msg = "SetScalar-Double";
@@ -120,15 +111,19 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = param.real();
       }
       else if (dataType == IMAG ) {
 	val = param.imag();
+	isComplex_.insert( matType );
       }
       else if ( dataType == COMPLEX ) {
 	val = param;
+	isComplex_.insert( matType );
       }
       
       scalarParams_[matType] = val;
@@ -159,21 +154,32 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
-      Complex val;
-      if ( dataType == REAL ) {
-	//	val = param.real();
-      }
-      else if (dataType == IMAG ) {
-	//	val = param.imag();
+      isSet_.insert( matType );
+      if ( dataType == REAL || dataType == IMAG ) {
+	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
+	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	}
+	if ( tensorParamsOrig_[matType].GetSizeRow() == 0 ) {
+	  tensorParamsOrig_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	}
+
+	tensorParams_[matType].SetPart( dataType, param );
+	tensorParamsOrig_[matType].SetPart( dataType, param );
+
+	// to be consistent to old structure
+	if ( dataType == REAL ) {
+	  scalarParams_[matType] = Complex( param[2][2], 0.0);
+	}
+	else {
+	  scalarParams_[matType] = Complex( 0.0, param[2][2]);
+	  isComplex_.insert( matType );
+	}
       }
       else {
-	std::string msg = "SetScalar-Double";
+	std::string msg = "SetTensor-Double";
 	dataTypeNotAllowed4SetGet ( dataType, msg );
       }
-
-      //      tensorParams_[matType] = val;
     }
-
   }
 
   void ElectroMagneticMaterial::SetTensor( Matrix<Complex>& param, const MaterialType& matType, 
@@ -183,47 +189,29 @@ namespace CoupledField
 
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-      std::string dim = "scalar";
+      std::string dim = "tensor";
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       if ( dataType != COMPLEX ) {
 	std::string msg = "SetTensor with Matrix<Complex>";
 	setMakesNoSense( dataType, msg );
       }
       else {
-	tensorParams_[matType] = param;
+	tensorParams_[matType]     = param;
+	tensorParamsOrig_[matType] = param;
+	isComplex_.insert( matType );
       }
     }
 
     if ( matType == ELEC_PERMITTIVITY ) {
-      // currently we assume for scalar the 3-3-component
-      scalarPermittivity_ = param[2][2];
+      // to be consistent to old structure
+      scalarParams_[matType] = param[2][2];
     }
   }
 
-
-  void ElectroMagneticMaterial::GetScalar( Integer& param, const MaterialType& matType) const {
-
-    ENTER_FCN( "ElectroStaticMaterial::GetScalar" );
-
-    scalarMap::const_iterator pos;
-    pos = scalarParams_.find( matType );
-
-    if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar";
-      matTypeNotInDataBase( matType, dim );
-    }
-    else {
-      if ( matType ==  P_DIRECTION ) {
-	param = directionP_;
-      }
-      else {
-      std::string dim = "integer";
-      matTypeNotInDataBase( matType, dim );
-      }
-    }
-  }
 
   void ElectroMagneticMaterial::GetScalar( Double& param, const MaterialType& matType, 
 					   const DataType& dataType ) const {
@@ -283,24 +271,29 @@ namespace CoupledField
   void ElectroMagneticMaterial::GetTensor( Matrix<Double>& param, 
 					   const MaterialType& matType, 
 					   const DataType& dataType,
-					   const SubTensorType ) const {
+					   const SubTensorType subTensor) const {
     
     ENTER_FCN( "ElectroMagneticMaterial::GetTensor" );
+
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
 
     if ( pos == tensorParams_.end() ) {
-      std::string dim = "scalar";
+      std::string dim = "tensor";
       matTypeNotInDataBase( matType, dim );
     }
     else {
-     Matrix<Complex> val = pos->second;
-     if ( dataType == REAL ) {
-       //	param = val.real();
+      Matrix<Complex> matTensor;
+      if ( subTensor == FULL ) {
+	matTensor = pos->second;
       }
-      else if ( dataType == IMAG ) {
-	//	param = val.imag();
+      else {
+	ComputeSubTensor(matTensor, matType, subTensor);
+      }
+
+      if ( dataType == REAL || dataType == IMAG) {
+	param = matTensor.GetPart( dataType );
       }
       else {
 	std::string msg = "GetTensor-Double";
@@ -312,7 +305,7 @@ namespace CoupledField
   void ElectroMagneticMaterial::GetTensor( Matrix<Complex>& param, 
 					   const MaterialType& matType, 
 					   const DataType& dataType,
-					   const SubTensorType ) const {
+					   const SubTensorType subTensor) const {
     
     ENTER_FCN( "ElectroMagneticMaterial::GetTensor" );
 
@@ -320,25 +313,43 @@ namespace CoupledField
     pos = tensorParams_.find( matType );
 
     if ( pos == tensorParams_.end() ) {
-      std::string dim = "scalar";
+      std::string dim = "tensor";
       matTypeNotInDataBase( matType, dim );
     }
     else {
-      Matrix<Complex> val = pos->second;
-      if ( dataType == REAL ) {
-	//	param = val.real();
+      Matrix<Complex> matTensor;
+      if ( subTensor == FULL ) {
+	matTensor = pos->second;
       }
-      else if ( dataType == IMAG ) {
-	//	param = val.imag();
+      else {
+	ComputeSubTensor(matTensor, matType, subTensor);
+      }
+
+      if ( dataType == REAL || dataType == IMAG) {
+	Matrix<Double> help; 
+	help = matTensor.GetPart( dataType );
+	param.Resize( matTensor.GetSizeRow(), matTensor.GetSizeCol() );
+	param.SetPart( dataType, help );
       }
       else if ( dataType == COMPLEX ) {
-	param = val;
+	param = matTensor;
       }
     }
   }
   
-   void ElectroMagneticMaterial::Print(std::ostream & out) const {
-    ENTER_FCN( "ElectroMagneticMaterial::Print" );
-  }
   
+  void ElectroMagneticMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix,
+						 const MaterialType& matType, 
+						 const SubTensorType& subTensor) const {
+
+    ENTER_FCN( "ElectroMagnetic::ComputeSubTensor" );
+
+    tensorMap::const_iterator pos;
+    pos = tensorParams_.find( matType );
+
+    //2D tensor axi or plane is the same
+    matMatrix.Resize(2,2);
+    pos->second.GetSubMatrix(matMatrix, 1, 1);
+  }
+
 }

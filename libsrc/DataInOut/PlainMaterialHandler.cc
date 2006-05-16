@@ -403,9 +403,8 @@ namespace CoupledField
 
       material->SetScalar(Psat,P_SATURATION,REAL);
       material->SetScalar(Esat,E_SATURATION,REAL);
-      material->SetScalar((Integer&)dirPol,P_DIRECTION);
+      //      material->SetScalar((Integer&)dirPol,P_DIRECTION);
       material->SetScalar(hystType,HYST_MODEL);
-
 
       delete strPtr;    
     }
@@ -426,8 +425,18 @@ namespace CoupledField
     //     material -> SetDensity(density);
     //     material -> SetDampingCoeffs(alfa,beta);
     
-    Info->PrintPiezoMat(material, matC);
-    
+
+    Info->PrintMaterial(material);
+
+    //just for test
+//     StdVector<Double> phi(3);
+//     phi[0] = 45;
+//     phi[1] = 0;
+//     phi[2] = 45;
+//     material->RotateTensorByRotationAngles( phi, PIEZO_TENSOR);
+
+    Info->PrintMaterial(material);
+
 
     if (scaleMatDat) {
       Info->PrintF( "", "\n!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5,"
@@ -509,8 +518,7 @@ namespace CoupledField
       material->SetScalar(beta,RAYLEIGH_BETA,REAL); 
     }
 
-    Info->PrintMechanicMat(material, matC);
-    
+    Info->PrintMaterial(material);
   }
 
   
@@ -561,7 +569,7 @@ namespace CoupledField
     material->SetScalar(acousticAlpha, ACOU_ALPHA, REAL);    
     material->SetScalar(fracExp, FRACTIONAL_EXPONENT, REAL);
 
-    Info->PrintAcousticMat(material);
+    Info->PrintMaterial(material);
   }
 
   void PlainMaterialHandler::ReadFlow( std::ifstream &fin,
@@ -595,7 +603,7 @@ namespace CoupledField
     material->SetScalar(density, DENSITY, REAL);
     material->SetScalar(dynViscosity, DYNAMIC_VISCOSITY, REAL);
 
-    Info->PrintFlowMat(material);
+    Info->PrintMaterial(material);
   }
 
 
@@ -631,7 +639,8 @@ namespace CoupledField
     material->SetScalar(heatCapacity, HEAT_CAPACITY, REAL);
     material->SetScalar(thermalConductivity, HEAT_CONDUCTIVITY, REAL);
  
-    Info->PrintThermicMat(material);
+    std::cout << "Print Material Data" << std::endl;
+    Info->PrintMaterial(material);
   }
 
 
@@ -682,7 +691,7 @@ namespace CoupledField
     material->SetScalar(permeability,MAG_PERMEABILITY, REAL);
     material->SetScalar(conductivity,MAG_CONDUCTIVITY, REAL);
 
-    Info->PrintMagMat(material);
+    Info->PrintMaterial(material);
   }
 
 
@@ -784,7 +793,7 @@ namespace CoupledField
 	
 	material->SetScalar(Psat,P_SATURATION,REAL);
 	material->SetScalar(Esat,E_SATURATION,REAL);
-	material->SetScalar((Integer&)dirPol,P_DIRECTION);
+	//	material->SetScalar((Integer&)dirPol,P_DIRECTION);
 	material->SetScalar(hystType,HYST_MODEL);
 	
 	
@@ -792,8 +801,7 @@ namespace CoupledField
       }
     }
 
-    Info->PrintElectrostaticMat(material, matC);
-    
+    Info->PrintMaterial(material);
 
     if (scaleMatDat) {
       Info->PrintF( "", "\n!!!!!! SCALING with Diag(1e-5, 1e-5, 1e-5, 1e-5,"

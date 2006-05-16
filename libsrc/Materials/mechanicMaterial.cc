@@ -41,12 +41,6 @@ namespace CoupledField
 
   }
 
-  void MechanicMaterial::SetScalar( Integer& param, const MaterialType& matType) {
-
-    ENTER_FCN( "AcousticMaterial::SetScalar" );
-    Error("SetScalar for 'Integer' not implemented",__FILE__,__LINE__);
-  }
-
   void MechanicMaterial::SetScalar( std::string& param, const MaterialType& matType) {
 
     ENTER_FCN( "AcousticMaterial::SetScalar" );
@@ -65,12 +59,15 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = Complex ( param, 0.0 );
       }
       else if (dataType == IMAG ) {
 	val = Complex ( 0.0, param );
+	isComplex_.insert( matType );
       }
       else {
 	std::string msg = "SetScalar-Double";
@@ -93,15 +90,19 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
+
       Complex val;
       if ( dataType == REAL ) {
 	val = param.real();
       }
       else if (dataType == IMAG ) {
 	val = param.imag();
+	isComplex_.insert( matType );
       }
       else if ( dataType == COMPLEX ) {
 	val = param;
+	isComplex_.insert( matType );
       }
       
       scalarParams_[matType] = val;
@@ -119,11 +120,21 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
       if ( dataType == REAL || dataType == IMAG ) {
 	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
 	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
 	}
+	if ( tensorParamsOrig_[matType].GetSizeRow() == 0 ) {
+	  tensorParamsOrig_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+	}
+
 	tensorParams_[matType].SetPart( dataType, param );
+	tensorParamsOrig_[matType].SetPart( dataType, param );
+
+	if ( dataType == IMAG ) {
+	  isComplex_.insert( matType );
+	}
       }
       else {
 	std::string msg = "SetTensor-Double";
@@ -143,12 +154,15 @@ namespace CoupledField
       matTypeNotAllowed( matType, dim );
     }
     else {
+      isSet_.insert( matType );
       if ( dataType != COMPLEX ) {
 	std::string msg = "SetTensor with Matrix<Complex>";
 	setMakesNoSense( dataType, msg );
       }
       else {
-	tensorParams_[matType] = param;
+	tensorParams_[matType]     = param;
+	tensorParamsOrig_[matType] = param;
+	isComplex_.insert( matType );
       }
     }
   }
@@ -189,7 +203,7 @@ namespace CoupledField
     pos = scalarParams_.find( matType );
 
     if ( pos == scalarParams_.end() ) {
-      std::string dim = "scalar";
+      std::string dim = "tensor";
       matTypeNotInDataBase( matType, dim );
     }
     else {
@@ -219,7 +233,7 @@ namespace CoupledField
     pos = tensorParams_.find( matType );
 
     if ( pos == tensorParams_.end() ) {
-      std::string dim = "scalar";
+      std::string dim = "tensor";
       matTypeNotInDataBase( matType, dim );
     }
     else {
@@ -332,8 +346,4 @@ namespace CoupledField
     }
   }
  
-
-  void MechanicMaterial::Print(std::ostream & out) const {
-    ENTER_FCN( "MechanicMaterial::Print" );
-  }
 }

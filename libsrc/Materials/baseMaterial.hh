@@ -15,6 +15,8 @@ namespace CoupledField {
   class BaseMaterial {
     typedef std::map<MaterialType, Matrix<Complex> > tensorMap;
     typedef std::map<MaterialType, Complex > scalarMap;
+    typedef std::map<MaterialType, std::string > stringMap;
+    typedef std::map<MaterialType, Integer > integerMap;
 
   public:
 
@@ -39,6 +41,30 @@ namespace CoupledField {
       return materialDatabaseName_;
     }
 
+    //! get info, which material parameter is set
+    std::set<MaterialType> GetIsSetInfo() const
+    { return isSet_;};
+
+    //! get infor, which material parameter is complex
+    std::set<MaterialType> GetIsComplexInfo() const
+    { return isComplex_;};
+
+    //! get the tensors
+    tensorMap GetTensorParams() const
+    { return tensorParams_;};
+
+    //! get the scalar material parameters
+    scalarMap GetScalarParams() const
+    { return scalarParams_;};
+
+    //! get the material parameters defined by a string
+    stringMap GetStringParams() const
+    { return stringParams_;};
+
+    //! get the integer material parameters 
+    integerMap GetIntegerParams() const
+    { return integerParams_;};
+
     //! set file name containing the nonlinear data
     void SetNonlinFileName( const Char *filename) {
       nonlinFileName_.assign( filename );
@@ -57,8 +83,7 @@ namespace CoupledField {
       Error("SetScalar not implemented",__FILE__,__LINE__); };
 
     //! set a scalar integer material parameter
-    virtual void SetScalar( Integer& param, const MaterialType& matType ) {
-      Error("SetScalar not implemented",__FILE__,__LINE__); };
+    virtual void SetScalar( Integer& param, const MaterialType& matType);
 
     //! set a scalar real material parameter
     virtual void SetScalar( Double& param, const MaterialType& matType,
@@ -83,14 +108,12 @@ namespace CoupledField {
 			    const DataType& dataType ) {
       Error("SetTensor not implemented",__FILE__,__LINE__); };
 
-   //! get a string material parameter
+    //! get a string material parameter
     void GetScalar( std::string& param, const MaterialType& matType) const {
      Error("GetScalar not implemented",__FILE__,__LINE__); };
 
-    //! get a string material parameter
     void GetScalar( Integer& param, const MaterialType& matType, 
-		    const DataType& dataType) const {
-     Error("GetScalar not implemented",__FILE__,__LINE__); };
+		    const DataType& dataType) const;
 
     //! get a scalar real material parameter
     virtual void GetScalar( Double& param, const MaterialType& matType, 
@@ -116,10 +139,11 @@ namespace CoupledField {
 			    const SubTensorType = FULL ) const {
       Error("GetTensor not implemented",__FILE__,__LINE__); };
 
+    //! rotate a material tensor by rotation angles given in degree
+    virtual void RotateTensorByRotationAngles( StdVector<Double>& rotAngle, 
+					       const MaterialType& matType);
 
-    //! Print material definition to given output stream
-    virtual void Print(std::ostream & out) const = 0;
-    
+
   protected:
 
     //! Error for material type not defined
@@ -145,6 +169,10 @@ namespace CoupledField {
     void subTensorNotAvailable( const MaterialType& matType, 
 			      const SubTensorType subTensor ) const;
 
+    //! rotate a tensor
+    virtual void PerformRotation( Matrix<Complex>& rotMatrix,  Matrix<Complex>& matMatrix,
+				  Matrix<Complex>& origMatMatrix);
+
     //! name of material database
     std::string materialDatabaseName_;
 
@@ -157,11 +185,26 @@ namespace CoupledField {
     //! set, which knows about the allowed material parameters for a material class
     std::set<MaterialType> isAllowed_;
 
-    //! map, which knows about the scalar material parameters being set during read in 
-    std::map<MaterialType, Complex> scalarParams_;
+    //! set, which knows, which material parameters have been set
+    std::set<MaterialType> isSet_;
 
-    //! map, which knows about the tensorial material parameters being set during read in 
-    std::map<MaterialType, Matrix<Complex> > tensorParams_;
+    //! set, which knows about if the material data is complex or just real
+    std::set<MaterialType> isComplex_;
+
+    //! map, which knows about the material data defined by strings
+    stringMap stringParams_;
+
+    //! map, which knows about the material data defined by strings
+    integerMap integerParams_;
+
+    //! map, which knows about the scalar material parameters being set during read in 
+    scalarMap scalarParams_;
+
+    //! map, which knows about the actual tensorial material parameters 
+    tensorMap tensorParams_;
+
+    //! map, which knows about the original tensorial material parameters before being rotated
+    tensorMap tensorParamsOrig_;
 
     //! material data is scalar
     Boolean isScalar;
@@ -177,6 +220,8 @@ namespace CoupledField {
     Boolean isTensor;
 
   };
+
+  std::ostream& operator << ( std::ostream & , const  BaseMaterial &);
 
 } // end of namespace
 
