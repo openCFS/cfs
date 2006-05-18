@@ -217,7 +217,7 @@ namespace CoupledField
     for (UInt i=0;i<actNrParameter;i++)
       stepR[i]=s[i].real();
 
-    theta=1.5;
+    theta=5.0;
 
     parameter_old=parameter_;
     std::cout<<"stepR"<<std::endl;
