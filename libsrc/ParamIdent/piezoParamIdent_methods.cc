@@ -39,9 +39,11 @@ namespace CoupledField
       phase = 180.0/PI*std::arg(Z);
     
       // two criteria .. either charge
-      y_hat_[i]=sign_*voltage_/(2.0*PI*std::log(Z)*freqs_[i]*j);
-      // or log imedance ...
-      y_hat_[i]=std::log(std::abs(Z));
+      if(whichNormCriteria_==1)
+        y_hat_[i]=sign_*voltage_/(2.0*PI*std::log(Z)*freqs_[i]*j);
+      
+      else if(whichNormCriteria_==2)
+        y_hat_[i]=std::log(std::abs(Z));      // or log imedance ...
 
 
 
@@ -311,9 +313,12 @@ namespace CoupledField
 
 
         // Logarithmic value of charge
-        F_hat_[fstep]=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...     
-        // logarithmic value of impedance
-        F_hat_[fstep]=std::log(std::abs(voltage_/(charge*2.0*PI*freqs_[fstep]*im)));
+
+        if (whichNormCriteria_==1)
+          F_hat_[fstep]=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...     
+        
+        else  if (whichNormCriteria_==2)         // logarithmic value of impedance
+          F_hat_[fstep]=std::log(std::abs(voltage_/(charge*2.0*PI*freqs_[fstep]*im)));
 
         //calcAbsImped(charge, freqs_[fstep], fstep,typeOut);   // calculates |Z| and writes results in File
 
@@ -912,7 +917,7 @@ namespace CoupledField
           helpChar[k]=mDataRow[i];
           k++; i++;
         }
-        thickness_=atof(helpChar);
+        whichNormCriteria_=atoi(helpChar);
         for (UInt l=0;l<=k;l++)
           helpChar[l]=0;
       }
@@ -989,6 +994,12 @@ namespace CoupledField
         for (UInt l=0;l<=k;l++)
           helpChar[l]=0;
       }
+    }
+
+    if (whichNormCriteria_!=1 && whichNormCriteria_!=2){
+      std::cout<<" Check your norm criteria selected in measuredData.dat!!" <<std::endl;
+      std::cout<<" It is at point 6) and should be 1 for log(q) and 2 for log(Z)" <<std::endl;
+      getchar();
     }
   } // end read MeasuredData
 

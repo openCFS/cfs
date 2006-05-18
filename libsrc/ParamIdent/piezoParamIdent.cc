@@ -4,6 +4,8 @@
 #include "piezoParamIdent.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
+#include "PDE/mechPDE.hh"
+#include "Forms/linPressureInt.hh"
 
 
 
@@ -331,6 +333,43 @@ namespace CoupledField
     ptMaterialMech_  = ptPDE1_[0].getPDEMaterialData();   // Pointer to mech. MaterialData
     ptMaterialElec_  = ptPDE2_[0].getPDEMaterialData();   // Pointer to elec. MaterialData
     ptMaterialPiezo_ = ptCoupling[0]->getPDEMaterialData();   // Pointer to piezo MaterialData
+
+//     StdVector<Double> pressVals = ptPDE1_[0].getPressureVals();
+
+//     std::cout<<"pressVals" <<std::endl;
+//     std::cout<<pressVals<<std::endl;
+
+//     pressVals[0]= 1.0;
+//     pressVals[1]= -1.0;
+
+//     ptPDE1_[0].setPressureVals(pressVals);
+    
+//     LinearSurfForm * ptLinSurfForm =  dynamic_cast<MechPDE*>(ptPDE1_)->getRHSSurfForm();
+
+//     PressureLinForm * ptPressLinForm = dynamic_cast<PressureLinForm*>(ptLinSurfForm);
+
+// //     ptPressLinForm[0].setLinPressure(pressVals[0]);
+// //     ptPressLinForm[1].setLinPressure(pressVals[1]);
+    
+//     StdVector<Double> pressValsNew = ptPDE1_[0].getPressureVals();
+    
+//     std::cout<<"pressValsNew" <<std::endl;
+//     std::cout<<pressValsNew<<std::endl;
+
+//     BaseIntDescriptor * actRhsID0 = 
+//       (*ptAssemble_->rhsSrcSurfIntegrators_[0])[0];
+
+//     BaseIntDescriptor * actRhsID1 = 
+//       (*ptAssemble_->rhsSrcSurfIntegrators_[1])[0];
+
+     // LinearSurfForm * myForm0 =  dynamic_cast<LinearSurfForm*>(actRhsID0->GetIntegrator());    
+     //LinearSurfForm * myForm1 =  dynamic_cast<LinearSurfForm*>(actRhsID1->GetIntegrator());
+//     PressureLinForm * ptPressLinForm0 = dynamic_cast<PressureLinForm*>(myForm0);
+//     PressureLinForm * ptPressLinForm1 = dynamic_cast<PressureLinForm*>(myForm1);
+//     ptPressLinForm0->setLinPressure(pressVals[0]);
+//     ptPressLinForm1->setLinPressure(pressVals[0]);
+
+
     
     //get the material tensors
     Matrix<Double> piezoMat,stiffMat, stiffMatAlu, stiffMatSteel, permMat;

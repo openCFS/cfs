@@ -360,6 +360,8 @@ namespace CoupledField
     Double voltage_, thickness_, radius_, delta_;
     Double anorm_, tau_;
 
+    Integer whichNormCriteria_;
+
     UInt nrMeasuredData;
     UInt nrParameter_;
     UInt actNrParameter;

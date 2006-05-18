@@ -62,7 +62,7 @@ namespace CoupledField
 
       createF(F_hat_, FALSE);
 
-      if ((iterIndex+1)%20==0){
+      if ((iterIndex+1)%5==0){
         Integer nrfreqTemp=100;
         Vector<Double> freqsTemp = freqs_;
         freqs_.Resize(nrfreqTemp);
