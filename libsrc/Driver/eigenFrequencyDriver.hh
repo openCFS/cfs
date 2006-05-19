@@ -29,14 +29,15 @@ namespace CoupledField {
     
   private:
 
+    //! Flag indicating, if a quadratic eigenvalue problem is to
+    //! be solved
+    Boolean isQuadratic_;
+    
     //! Number of eigenfrequencies to be calculated
     UInt numFreq_;
 
     //! Shift for eigenvalues
     Double freqShift_;
-
-    //! Flag for using shift-mode of the eigenvalue solver
-    Boolean shiftMode_;
 
     //! Flag for writing the eigenmods into the file
     Boolean writeModes_;

@@ -468,8 +468,8 @@ namespace CoupledField {
   // ======================================================
   
   UInt StdSolveStep::CalcEigenFrequencies( Vector<Double> & frequencies,
-                                           UInt numFreq, Double shift,
-                                           Boolean shiftMode ) {
+                                           Vector<Double> & errBounds,
+                                           UInt numFreq, Double shift ) {
     ENTER_FCN( "StdSolveStep::CalcEigenFrequencies" );
     
     // If the geometry has changed or the system matrix
@@ -483,18 +483,55 @@ namespace CoupledField {
     PDE_.AssembleMatrices();
 
     // Setup solver
-    PDE_.algsys_->SetupEigenSolver( numFreq, shift, shiftMode);
+    PDE_.algsys_->SetupEigenSolver( numFreq, shift, false );
 
     // Calculate eigenfrequencies
     const Double * val = NULL;
-    UInt numConverged = PDE_.algsys_->CalcEigenFrequencies( val);
+    const Double * err = NULL;
+    UInt numConverged = PDE_.algsys_->CalcEigenFrequencies( val, err);
 
     // Copy eigenvalues into vector
     frequencies.Resize( numConverged );
+    errBounds.Resize( numConverged );
     for ( UInt i = 0; i < numConverged; i++ ) {
       frequencies[i] = val[i];
+      errBounds[i] = err[i];
     }
 
+    return numConverged;
+  }
+
+  UInt StdSolveStep::CalcEigenFrequencies( Vector<Complex> & frequencies,
+                                           Vector<Double> & errBounds,
+                                           UInt numFreq, Double shift ) {
+    ENTER_FCN( "StdSolveStep::CalcEigenFrequencies<Complex>" );
+    
+    // If the geometry has changed or the system matrix
+    // is calculated for the first time,
+    // the matrices have to be reassembled and therfore
+    // the preconditioner has to be recalculated
+    PDE_.algsys_->InitRHS();
+    PDE_.algsys_->InitSol();
+    PDE_.algsys_->InitMatrix();
+    
+    PDE_.AssembleMatrices();
+    
+    // Setup solver
+    PDE_.algsys_->SetupEigenSolver( numFreq, shift, true );
+    
+    // Calculate eigenfrequencies
+    const  Complex* val = NULL;
+    const Double * err = NULL;
+    UInt numConverged = PDE_.algsys_->CalcEigenFrequencies( val, err);
+    
+    // Copy eigenvalues into vector
+    frequencies.Resize( numConverged );
+    errBounds.Resize( numConverged );
+    for ( UInt i = 0; i < numConverged; i++ ) {
+      frequencies[i] = val[i];
+      errBounds[i] = err[i];
+    }
+    
     return numConverged;
   }
 
