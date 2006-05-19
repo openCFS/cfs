@@ -97,6 +97,9 @@ namespace CoupledField
     ENTER_FCN("PiezoParamIdent::caclImpedanceCurve");
 
     Boolean reset = TRUE;
+
+    std::cout<<"++ Starting to compute impedance curve with " << freqs_.GetSize()  <<" steps " <<std::endl;
+    std::cout<<"++ Results are written in file imped.dat " <<std::endl;
      
     updateMaterialData(parameter_);
     if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
@@ -109,7 +112,6 @@ namespace CoupledField
 
 
     for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) { 
-
           
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
@@ -119,8 +121,8 @@ namespace CoupledField
 
 
       // Set curent frequency value in the mathParser
-      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "f", actFreq_ );
+      //    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+      //                                 "f", actFreq_ );
 
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep); 
@@ -128,7 +130,6 @@ namespace CoupledField
       ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
       ptPDE_->GetSolveStep()->PostStepHarmonic( reset);
       ptPDE_->PostProcess();   
-      
       
       Vector<Complex> chargeVec;
   
@@ -157,8 +158,8 @@ namespace CoupledField
       imped = std::abs(voltage_/(charge*2.0*PI*freqs_[fstep]*im)); 
       phase = 180.0/PI*(std::arg(impedC));
 
-      std::cout << fstep <<");\t Frequenz: " << freqs_[fstep] << ";\t Impedanz: "<< imped
-                << ";\t Phase: " << phase <<";\t Volt = "<<voltage_<<";\t Ladung = "<< charge<< std::endl;
+      std::cout << fstep <<");\t Frequency: " << freqs_[fstep] << ";\t Impedance: "<< imped
+                << ";\t Phase: " << phase <<";\t Current = "<<voltage_<<";\t Charge = "<< charge<< std::endl;
     
       *impedCurve <<"\n" << freqs_[fstep] << " " << imped << "  " << phase << "  " 
                   << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()
@@ -1008,7 +1009,7 @@ namespace CoupledField
 
     ENTER_FCN("piezoParamIdent::readInMeasurement");
 
-    std::cout<<"++ open and read file mess.dat ... " <<std::endl;    
+    std::cout<<"++ Open and read file mess.dat ... " <<std::endl;    
 
     frequencies.Resize(nrMeasuredData);
     real_.Resize(nrMeasuredData);
@@ -1022,6 +1023,8 @@ namespace CoupledField
     if (!mess){
       std::cerr << "\n File mess.dat does not exist!" << std::endl;
     }
+
+    std::cout<<"++ Found file mess.dat  ... " <<std::endl;  
       
     char mDataRow[512], helpChar[64];
     UInt i=0, j=0;
@@ -1054,8 +1057,7 @@ namespace CoupledField
         i++;j++;
       }// end while mdataRow
       phase=atof(helpChar);
-
-     
+    
       for(UInt mInd=0;mInd<nrMeasuredData;mInd++){
         if(std::abs(freqs_[mInd]-newFreq)<std::abs(freqs_[mInd]-frequencies[mInd])){
           frequencies[mInd]=newFreq;
@@ -1067,7 +1069,7 @@ namespace CoupledField
 
     freqs_=frequencies;   
     mess->close();
-    std::cout<<"++ open and read of file mess.dat finished ... " <<std::endl;    
+    std::cout<<"++ Open and read of file mess.dat finished ... " <<std::endl;    
   }// end readInMeasurements
 
   

@@ -404,13 +404,15 @@ namespace CoupledField
       //ptMaterialMech_[4]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
       ptMaterialMech_[5]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
 
-      std::cout<< " Mech-Tensor Steel (Real) \n" << stiffMatSteel   << std::endl;
-      std::cout<< " Mech-Tensor Alu (Real) \n" << stiffMatAlu << std::endl;
+      std::cout<<"++ All pointers to the material tensors are set ..." <<std::endl;
+
+      // std::cout<< " Mech-Tensor Steel (Real) \n" << stiffMatSteel   << std::endl;
+//       std::cout<< " Mech-Tensor Alu (Real) \n" << stiffMatAlu << std::endl;
 
     }
-    std::cout<< " Mech-Tensor (Real) \n" << stiffMat  << std::endl;
-    std::cout<< " Elec-Tensor (Real) \n" << permMat   << std::endl;
-    std::cout<< " Piezo-Tensor (Real) \n" << piezoMat << std::endl;
+//     std::cout<< " Mech-Tensor (Real) \n" << stiffMat  << std::endl;
+//     std::cout<< " Elec-Tensor (Real) \n" << permMat   << std::endl;
+//     std::cout<< " Piezo-Tensor (Real) \n" << piezoMat << std::endl;
 
     
     updateMaterialData(parameter_);
@@ -538,14 +540,16 @@ namespace CoupledField
     }
 
     else if (whichNewtonCG_==12){
+
+      std::cout<<"++ Least squares fitting started with maximal " << maxNumberNewtonLoops_ << " descent steps ... "<<std::endl;
       Vector<Double> newFreqs;
       readInMeasurement(newFreqs);
+      calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
+      std::cout<<"++ Fitting will be performed with the following " 
+               << nrMeasuredData << " frequencies:" <<std::endl;
 
-      std::cout<<" we red in the following frequencies " <<std::endl;
       std::cout<<freqs_ <<std::endl;
 
-      calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
-      std::cout<<"++ Least square fitting"<<std::endl;
       leastSquare();
     }
 

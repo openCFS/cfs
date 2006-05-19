@@ -13,7 +13,6 @@ namespace CoupledField
 
   void piezoParamIdent::leastSquare(){ 
     ENTER_FCN("piezoParamIdent::leastSquare");    
-    std::cout<<" Entering least square ..."<<std::endl;
 
     //ptMaterial_=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
@@ -43,13 +42,11 @@ namespace CoupledField
     Double normFy, maxres, normFy0,normFy1;
     Integer indPar=0;
     Integer indParC=0;
-    Double lambda=10.0;
+    Double lambda=20.0;
     Boolean negFlag=FALSE;      
 
     //    readInMeasurement(newFreqs);
 
-    std::cout<<"newFreqs:"<<std::endl;
-    std::cout<<newFreqs<<std::endl;
 
     calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
 
@@ -97,7 +94,7 @@ namespace CoupledField
 
       norm(F_y,normFy0,maxres,y_hat_);
       
-      std::cout<<"normF_y0 = " << normFy0<<std::endl;
+      std::cout<<"||F(p)-y|| = " << normFy0<<std::endl;
       std::cout<< "--------------------------------\n"<<std::endl;
 
       *parLog<<normFy0<<"  ";
@@ -202,7 +199,7 @@ namespace CoupledField
 
       while (normFy1>normFy0||negFlag==TRUE){
         if (negFlag==TRUE)
-          std::cout<< "reduce lambda due to negative parameters"<<std::endl;
+          std::cout<< "reduce lambda due to negative parameters or non non reduction of norm ... "<<std::endl;
         parameter_=parameter_old;
         parameterC_=parameter_oldC;
         lambda=0.5*lambda;
