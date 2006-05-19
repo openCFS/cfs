@@ -150,8 +150,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
+          <xsd:element name="isQuadratic" type="DT_CFSBool"/>
           <xsd:element name="numModes" type="xsd:nonNegativeInteger"/>
-          <xsd:element name="shiftMode" type="DT_CFSBool"/>
           <xsd:element name="freqShift" type="DT_NonNegFloat"/>
           <xsd:element name="writeModes" type="DT_CFSBool"/>
         </xsd:sequence>
