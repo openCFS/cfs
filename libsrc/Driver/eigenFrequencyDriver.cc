@@ -46,15 +46,17 @@ namespace CoupledField {
       writeModes_ = FALSE;
     }
     
-    // Get flag for shift-mode
-    keyVec = "eigenFrequency", "shiftMode";
+    // Get flag for writing out the modes
+    keyVec = "eigenFrequency", "isQuadratic";
     params->Get( keyVec, attrVec, valVec, temp );
-
+    
     if ( temp == "yes" ) {
-      shiftMode_ = TRUE;
+      isQuadratic_ = TRUE;
     } else {
-      shiftMode_ = FALSE;
+      isQuadratic_ = FALSE;
     }
+    
+    
   }
 
 
@@ -80,35 +82,102 @@ namespace CoupledField {
     }
     
     // ------------------------------
-    // Phase 1: calculate eigenvalues
+    // Phase 1: calculate eigenvalues( generalized problem)
     // ------------------------------
     
-    // Create vector for eigenvalues
-    Vector<Double> eigenFreqs( numFreq_ );
+    if ( isQuadratic_ ) {
 
-    // Trigger calculation 
-    UInt numConverged = 0;
-    ptPDE_->WriteGeneralPDEdefines();
-    numConverged = ptPDE_->GetSolveStep()->
-      CalcEigenFrequencies( eigenFreqs, numFreq_, freqShift_, shiftMode_ );
-
-    // Temporary
-    std::cout << std::endl << std::endl;
-    std::cout << "Eigenfrequencies are: \n" << eigenFreqs << std::endl;
-
-    // ------------------------------
-    // Phase 2: calculate eigenmodes
-    // ------------------------------
-    if ( writeModes_ == TRUE ) {
-
-      // Iterate over all frequencies an calculate according mode
-      if (! isPartOfSequence_)
-        ptdomain_->PrintGrid();
+      // === QUADRATIC CASE ===
+      // Create vector for eigenvalues and error bounds
+      Vector<Complex> eigenFreqs( numFreq_ );
+      Vector<Double> errBounds( numFreq_ );
       
-      for ( UInt i = 0 ; i < numConverged; i++ ) {
-        ptPDE_->GetSolveStep()->CalcEigenMode( i );
-        ptPDE_->WriteResultsInFile(i+1, eigenFreqs[i], 
-                                   stepOffset_, timeOffset_);
+      // Trigger calculation 
+      UInt numConverged = 0;
+      ptPDE_->WriteGeneralPDEdefines();
+      numConverged = ptPDE_->GetSolveStep()->
+        CalcEigenFrequencies( eigenFreqs, errBounds, 
+                              numFreq_, freqShift_ );
+      
+      // Print out eigenfrequencies
+      std::cout << std::endl << std::endl;
+      
+      std::cout << std::setw(20) << "Frequency [Hz]" << " | ";
+      std::cout << std::setw(20) << "Errorbound";
+      std::cout << "\n";
+      std::cout << std::setfill('-') << std::setw(40) << "" << std::setfill(' ');
+      std::cout << "\n";
+      
+      for( UInt i=0; i<numConverged; i++ ) {
+        std::cout << std::setw(20) << eigenFreqs[i];
+        std::cout <<" | ";
+        std::cout << std::setw(20) << errBounds[i] <<  "\n";
+        
+      }
+      
+      // ------------------------------
+      // Phase 2: calculate eigenmodes
+      // ------------------------------
+      if ( writeModes_ == TRUE ) {
+        
+        // Iterate over all frequencies an calculate according mode
+        if (! isPartOfSequence_)
+          ptdomain_->PrintGrid();
+        
+        for ( UInt i = 0 ; i < numConverged; i++ ) {
+          ptPDE_->GetSolveStep()->SetActStep(i);
+          ptPDE_->GetSolveStep()->SetActFreq(std::abs(eigenFreqs[i]));
+          ptPDE_->GetSolveStep()->CalcEigenMode( i );
+          ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]), 
+                                     stepOffset_, timeOffset_);
+        }
+      }
+    } else {
+
+      // === GENERALIZED CASE ===
+      // Create vector for eigenvalues and error bounds
+      Vector<Double> eigenFreqs( numFreq_ );
+      Vector<Double> errBounds( numFreq_ );
+      
+      // Trigger calculation 
+      UInt numConverged = 0;
+      ptPDE_->WriteGeneralPDEdefines();
+      numConverged = ptPDE_->GetSolveStep()->
+        CalcEigenFrequencies( eigenFreqs, errBounds, 
+                              numFreq_, freqShift_);
+      
+      // Print out eigenfrequencies
+      std::cout << std::endl << std::endl;
+      
+      std::cout << std::setw(20) << "Frequency [Hz]" << " | ";
+      std::cout << std::setw(20) << "Errorbound";
+      std::cout << "\n";
+      std::cout << std::setfill('-') << std::setw(40) << "" << std::setfill(' ');
+      std::cout << "\n";
+      
+      for( UInt i=0; i<numConverged; i++ ) {
+        std::cout << std::setw(20) << eigenFreqs[i];
+        std::cout <<" | ";
+        std::cout << std::setw(20) << errBounds[i] <<  "\n";
+        
+      }
+      
+      // ------------------------------
+      // Phase 2: calculate eigenmodes
+      // ------------------------------
+      if ( writeModes_ == TRUE ) {
+        
+        // Iterate over all frequencies an calculate according mode
+        if (! isPartOfSequence_)
+          ptdomain_->PrintGrid();
+        
+        for ( UInt i = 0 ; i < numConverged; i++ ) {
+          ptPDE_->GetSolveStep()->SetActStep(i);
+          ptPDE_->GetSolveStep()->SetActTime(eigenFreqs[i]);
+          ptPDE_->GetSolveStep()->CalcEigenMode( i );
+          ptPDE_->WriteResultsInFile(i+1, eigenFreqs[i], 
+                                     stepOffset_, timeOffset_);
+        }
       }
     }
     

@@ -1242,6 +1242,14 @@ namespace CoupledField {
       }
     }
 
+    // If an eigenvalue problem is solved, the entrytype of the matrices has
+    // always to be DOUBLE
+     if ( analysisType == EIGENFREQUENCY && eType != OLAS::DOUBLE ) {
+      eType = OLAS::COMPLEX;
+      Info->PrintF( pdename, "Expert: Using DOUBLE as matrix entry type "
+                    "for eigenFrequency simulation\n" );
+    }
+
 
     // NOTE: We only try to determine a re-ordering, if the caller did
     //       explicitely allow us to do so

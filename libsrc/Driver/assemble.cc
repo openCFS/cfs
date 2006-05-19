@@ -1587,7 +1587,7 @@ namespace CoupledField {
       secMatFac = aSecMatFac;
     }
 
-    else if ( analysisType == TRANSIENT ) {
+    else if ( analysisType == TRANSIENT || analysisType == EIGENFREQUENCY ) {
       secondaryMatrix_ = MatType;
       secMatFac = aSecMatFac;
     }
