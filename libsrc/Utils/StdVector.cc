@@ -48,7 +48,7 @@ namespace CoupledField {
   
     size_ = vec.size();
     capacity_ = vec.size();
-    data = new TYPE[size_];
+    data_ = new TYPE[size_];
 
     for (UInt i = 0; i < size_; i++)
       data_[i] =  vec[i];

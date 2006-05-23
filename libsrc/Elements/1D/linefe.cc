@@ -25,7 +25,11 @@ namespace CoupledField
     MidPoint_[0] = 0.0;
   
     std::string integtype;
+#ifndef INTEGLIB
     params->Get( "type", integtype, "integRules", "line" );
+#else
+    integtype="GaussOrder2";
+#endif
 
     IntegType=String2EnumIntegrationType(integtype.c_str());
   }

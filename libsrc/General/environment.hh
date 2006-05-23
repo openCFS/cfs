@@ -8,7 +8,7 @@
 #include <cmath>
 
 #include "General/defs.hh"
-#include "olas.hh"
+//#include "olas.hh"
 
 
 
@@ -293,11 +293,11 @@ namespace CoupledField {
   // NOTE: OLAS uses the namespace 'OutInfo' for writing out data into the
   // different filestreams such as (*cla), (*trace) etc. Therefore they are
   // explicitely imported into namespace CoupledField at this point
-  using OutInfo::trace;
-  using OutInfo::debug;
-  using OutInfo::cla;
-  using OutInfo::memtrace;
-  using OutInfo::data;
+//  using OutInfo::trace;
+//  using OutInfo::debug;
+//  using OutInfo::cla;
+//  using OutInfo::memtrace;
+//  using OutInfo::data;
   using OutInfo::error;
   using OutInfo::warning;
 
@@ -393,6 +393,12 @@ namespace CoupledField {
   DEFINE_ENUM_CONVERSION(EntryType::ScalarType)
   DEFINE_ENUM_CONVERSION(DataType)
   DEFINE_ENUM_CONVERSION(MaterialClass)
+#endif
+
+
+#ifdef INTEGLIB
+  typedef enum {NOTYPE, SYSTEM, STIFFNESS, DAMPING, CONVECTION, MASS}
+  FEMatrixType;
 #endif
 
 } // end of namespace

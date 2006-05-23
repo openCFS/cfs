@@ -21,6 +21,9 @@ namespace CoupledField
   public:
     // Due to (Re-) initialization of elements (e.g. in reduced integration)
     friend class Grid;
+#ifdef INTEGLIB
+    friend class ElemIntegr;
+#endif
   
     //! constructor (does nothing)
     BaseFE();

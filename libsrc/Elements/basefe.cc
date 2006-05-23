@@ -3,7 +3,9 @@
 #include <string>
 
 #include "basefe.hh"
+#ifndef INTEGLIB
 #include "olas.hh"
+#endif
 #include <Utils/tools.hh> 
 #include <Matrix/matrix.hh>
 #include <DataInOut/WriteInfo.hh> 
@@ -278,8 +280,13 @@ namespace CoupledField
       ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
 
 
-    for( UInt i=0; i<NumIntPoints_; i++ )      
+  std::cout << "Setting ShFncAtIp_ (" << NumIntPoints_ <<") "<<typeid((*this)).name() <<": ";
+    for( UInt i=0; i<NumIntPoints_; i++ )
+  {
       CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i]);
+      std::cout << ShFncAtIp_[i] << " ";
+  }
+  std::cout << std::endl;
   }
   
   void BaseFE :: SetShapeFncDerivAtIp()
