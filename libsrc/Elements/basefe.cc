@@ -280,13 +280,10 @@ namespace CoupledField
       ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
 
 
-  std::cout << "Setting ShFncAtIp_ (" << NumIntPoints_ <<") "<<typeid((*this)).name() <<": ";
     for( UInt i=0; i<NumIntPoints_; i++ )
-  {
-      CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i]);
-      std::cout << ShFncAtIp_[i] << " ";
-  }
-  std::cout << std::endl;
+    {
+        CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i]);
+    }
   }
   
   void BaseFE :: SetShapeFncDerivAtIp()
