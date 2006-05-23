@@ -1,6 +1,9 @@
 #ifndef BASEMATERIAL_DATA
 #define BASEMATERIAL_DATA
 
+#include <map>
+#include <set>
+
 #include <General/environment.hh>
 #include <Matrix/matrix.hh>
 #include <Utils/vector.hh>

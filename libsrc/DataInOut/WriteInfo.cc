@@ -10,10 +10,12 @@
 #include "Utils/tools.hh"
 #include "Utils/Coil.hh"
 #include "Materials/baseMaterial.hh"
+#ifndef INTEGLIB
 #include "PDE/pdes_header.hh"
-#include "Utils/vector.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
+#endif
+#include "Utils/vector.hh"
 
 #ifdef TCL_INTERFACE
 #include "DataInOut/Scripting/cfsmessenger.hh"
@@ -24,6 +26,7 @@
 #define PROGRESS_TEXT_WIDTH 62
 
 namespace CoupledField {
+
 
   WriteInfo::WriteInfo () {
 
@@ -43,6 +46,9 @@ namespace CoupledField {
     ENTER_FCN( "WriteInfo::~WriteInfo" );
     delete cfsInfo;
   }
+
+
+#ifndef INTEGLIB
 
 
   // **************
@@ -109,6 +115,12 @@ namespace CoupledField {
     }
   }
   
+
+
+
+
+
+
 
  // *****************
   //   Print Material Data
@@ -475,13 +487,16 @@ namespace CoupledField {
       *cfsInfo << comment << myEndl << mat << myEndl << myEndl;
   }
 
-  
+#endif //INTEGLIB
+
   // prints warning to info-file
   void WriteInfo::Warning( const std::string & Text,
                            const Char* const filename, const UInt numline ) {
 
     ENTER_FCN( "WriteInfo::Warning" );
-
+#ifdef INTEGLIB
+    std::cerr << "INTEGLIB WARNING: " << Text << std::endl;
+#else
 #ifdef TCL_INTERFACE
     if ( messenger->IsEvaluating() ) {
       messenger->Warning( Text.c_str(), filename, numline );
@@ -527,6 +542,7 @@ namespace CoupledField {
                << "!!!!!!!!!!!!!!!" << myEndl
                << myEndl;
     }
+#endif // INTEGLIB
   }
 
 
@@ -538,6 +554,9 @@ namespace CoupledField {
 
     ENTER_FCN( "WriteInfo::Error" );
 
+#ifdef INTEGLIB
+    std::cerr << "INTEGLIB ERROR: " << Text << std::endl;
+#else
 #ifdef TCL_INTERFACE
     if ( messenger->IsEvaluating() ) {
       messenger->Error( Text.c_str(), filename, numline );
@@ -593,10 +612,13 @@ namespace CoupledField {
       }
       *cfsInfo << std::endl;  
     }
-
+#endif // INTEGLIB
     // exit program
     exit(-1);
   }
+
+
+#ifndef INTEGLIB
 
 
   // **************
@@ -819,6 +841,8 @@ namespace CoupledField {
     }
   }
 
+#endif
+
 
   // ******************
   //   FinishProgress
@@ -843,5 +867,6 @@ namespace CoupledField {
     warningOccured_  = FALSE;
     progressRunning_ = FALSE;
   }
+
   
 }

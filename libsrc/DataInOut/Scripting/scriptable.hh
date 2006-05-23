@@ -1,6 +1,7 @@
 #ifndef CFS_SCRIPTABLE_HH
 #define CFS_SCRIPTABLE_HH
 
+#include <map>
 #include <string>
 
 #include "Utils/StdVector.hh"
