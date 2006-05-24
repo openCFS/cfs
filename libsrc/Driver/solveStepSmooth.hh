@@ -21,17 +21,9 @@ namespace CoupledField
 
     //----------------------- STATIC---------------------------------------
 
-    //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    void PreStepStatic( const Boolean reset );
-
     //! solves for one nonlinear static step 
     //! \param reset TRUE: perfrom new assembly, etc
     void StepStaticNonLin( const Boolean reset );
-
-    //! routine for acttions after the SolveStep-method
-    void PostStepStatic();
-
 
     //----------------------- TRANSIENT---------------------------------------  
     //! base method for solving one transient step 

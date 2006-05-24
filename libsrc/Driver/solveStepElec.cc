@@ -37,10 +37,7 @@ namespace CoupledField {
     //       for transient analysis ;-)
     algsys_->InitRHS();
 
-    if (isIterCoupled_)     
-      algsys_->InitSol();
-
-    if ( PDE_.getPDE_geoUpdate() ) {
+    if ( PDE_.IsGeoUpdate() ) {
       algsys_->InitSol();
       algsys_->InitMatrix();
       assemble_->SetReassemble();   
@@ -133,7 +130,7 @@ namespace CoupledField {
     algsys_->InitRHS();
 
     //set BCs
-    SetBCs(actTime_);
+    PDE_.SetBCs( actTime_ );
 
     //compute constant part of RHS (div D(t) )
     // ComputeConstPartRHS();
@@ -205,7 +202,7 @@ namespace CoupledField {
       Vector<Double> RHS;
       algsys_->GetRHSVal( actRHS );
       StoreAlgsysToVec(RHS, actRHS );       
-      Double residualNorm = RhsL2Norm( RHS );
+      Double residualNorm = PDE_.GetRhsL2Norm( RHS );
 
       algsys_->SetupSolver();
       algsys_->SetupPrecond();
@@ -272,45 +269,6 @@ namespace CoupledField {
   }
 
 
-  void SolveStepElec::PostStepStatic()
-  {
-    ENTER_FCN( "SolveStepElec::PostStepStatic" );
-
-    if (isIterCoupled_)
-      (*iterCoupledCounter_)++;
-
-
-#ifdef ADAPTGRID
-    if (flags->CalcErrorMap_)
-      {
-        Double         totalErr;
-        ElemStoreSol<Double>  Sol_Mesh;
-        Vector<Double> solVec;
-      
-        ptError_=new SpaceErrorEstimator();
-
-        ptError_->Init(this);
-      
-        sol_->TransformNodeSolution(Sol_Mesh,sol_,eqnData_,ptgrid_);
-
-        sol_->GetCompleteVector(solVec);
-
-        //  solVec.Resize(sol_.size());
-        //       int i;
-        //       for (i=0; i<sol_.size(); i++)
-        //        solVec[i]=sol_[0][i];
-
-        ptError_->CalcErrorMap(solVec,subdoms_,ptgrid_,errorMap_,totalErr);
-      
-        std::cout << " total error of calculation:: " << totalErr << std::endl;
-        *data << errorMap_ << std::endl;
-      }
-#endif
-  }
-
-
-
-
   void SolveStepElec::AddPolarizationToRHS() {
   
     ENTER_FCN( "SolveStepElec::AddPolarizationToRHS" );
@@ -358,7 +316,7 @@ namespace CoupledField {
 
         ptElem  = elemssd[iel]->ptElem;
         connect = elemssd[iel]->connect;
-        GetElemCoords(connect, ptCoord);
+        PDE_.GetElemCoords(connect, ptCoord);
       
         rhsInt->SetElemPtr(ptElem);
         rhsInt->SetFactor(PvalReduced);
@@ -478,7 +436,7 @@ namespace CoupledField {
         }
         ptElem  = elemssd[iel]->ptElem;
         connect = elemssd[iel]->connect;
-        GetElemCoords(connect, ptCoord);
+        PDE_.GetElemCoords(connect, ptCoord);
       
         rhsInt->SetElemPtr(ptElem);
         rhsInt->SetSrcVec(Dfield);

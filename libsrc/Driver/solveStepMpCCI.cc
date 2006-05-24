@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 
+#include "PDE/StdPDE.hh"
 #include "solveStepMpCCI.hh"
 
 
@@ -23,15 +24,6 @@ namespace CoupledField {
     ENTER_FCN( "SolveStepMpCCI::PreStepStatic" );
   }
   
-  void SolveStepMpCCI::PostStepStatic()
-  {
-    ENTER_FCN( "SolveStepMpCCI::PostStepStatic" );
-    
-    if (isIterCoupled_)
-      iterCoupledCounter_++;
-  }
-  
-
   // ======================================================
   // Solve Step Transient SECTION  
   // ======================================================

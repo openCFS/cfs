@@ -30,7 +30,6 @@ namespace CoupledField {
   public:
 
     // friend cStdlass declarations
-    friend class StdSolveStep;
     friend class PDEMemento;
     friend class PDECoupling;
 
@@ -317,9 +316,6 @@ namespace CoupledField {
     Vector<Complex> getPDE_complexValuedCharge()
     {return complexValuedCharge_;};
     
-    Boolean getPDE_geoUpdate()
-    {return geoUpdate_;};
-
     virtual void setBCs_id_phase_(UInt i, Double & phase);
     
     void setPDE_MatDataType(DataType & pMatType){
@@ -330,12 +326,65 @@ namespace CoupledField {
 
     WriteResults * getPDE_outFile(){return outFile_;};
 
+    //! get pointer to time stepping object
+    TimeStepping * getTimeStepping() { return TS_alg_;};
+
     void setPDE_complexValuedCharge(Vector<Complex> chargeVec)
     {complexValuedCharge_=chargeVec;};
 
     //!
     void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);
     void sortStresses(Vector<Complex>& unsorted, Vector<Complex>& sorted);
+
+    //@}
+
+    //@{
+    //!  Get functions concerning nonlinearity
+
+    Boolean IsNonLine() 
+    { return nonLin_;};
+
+    Boolean IsGeoUpdate() 
+    { return geoUpdate_;};
+
+    Boolean GetNonlinLogging() 
+    { return nonLinLogging_;};
+
+    Boolean IsHysteresis() 
+    { return isHysteresis_;};
+
+    Boolean IsIterCoupled() 
+    { return isIterCoupled_;};
+
+    Boolean& IsFirstTimeStepStatic()
+    { return firstTimeStepStatic_;};
+
+    Boolean IsComputeRHS4HarmSet()
+    { return ComputeRHSforHarm_;};
+
+    Double  GetIncStopCrit() 
+    { return incStopCrit_;};
+
+    Double  GetResidualStopCrit() 
+    { return residualStopCrit_;};
+
+    Double GetRhsL2Norm(Vector<Double>& actRHS) 
+    { return RhsL2Norm(actRHS);};
+
+    UInt    GetNonlinMaxIter() 
+    { return nonLinMaxIter_;};
+
+    std::string GetLineSearch() 
+    { return lineSearch_;};
+
+    std::string GetNonlinMethod()  
+    { return nonLinMethod_;};
+
+    StdVector<NonLinPDE>& GetNonlinPDEName() 
+    { return nonLinPDEName_;};
+
+    UInt& GetIterCoupledCounter() 
+    { return iterCoupledCounter_;};
 
     //@}
 

@@ -25,29 +25,6 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepStokesFluid::PreStepStatic( const Boolean reset ) {
-
-    ENTER_FCN( "SolveStepStokesFluid::PreStepStatic" );
-
-    // Set right-hand side to zero
-    //
-    // Note: Though this is PreStepStatic, this is most important
-    //       for transient analysis ;-)
-    algsys_->InitRHS();
-
-    if (isIterCoupled_) {
-      algsys_->InitSol();
-      algsys_->InitMatrix();
-      assemble_->SetReassemble();
-    }
-
-    if ( PDE_.getPDE_geoUpdate() ) {
-      algsys_->InitSol();
-      algsys_->InitMatrix();
-      assemble_->SetReassemble();   
-    }
-  }
-
   void SolveStepStokesFluid::StepStaticNonLin( const Boolean reset )
   {
     ENTER_FCN( "SolveStepStokesFluid::SolveStepStaticNonLin" );
@@ -184,16 +161,7 @@ namespace CoupledField {
       }while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
   }
 
-  void SolveStepStokesFluid::PostStepStatic()
-  {
-    ENTER_FCN( "SolveStepStokesFluid::PostStepStatic" );
 
-    if (isIterCoupled_)
-      (*iterCoupledCounter_)++;
-  }
-
-
- 
   // ======================================================
   // Solve Step Transient SECTION  
   // ======================================================

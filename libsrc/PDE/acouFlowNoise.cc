@@ -14,7 +14,7 @@
 #include "Forms/forms_header.hh"
 #include "MpCCIcpl/MpCCIexch.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "Driver/solveStepAcouFlowNoise.hh"
+#include "Driver/stdSolveStep.hh"
 
 #ifdef MpCCI
 #include <cci.h>
@@ -244,7 +244,7 @@ namespace CoupledField
   {
     ENTER_FCN( "AcouFlowNoise::DefineSolveStep" );
 
-    solveStep_ = new SolveStepAcouFlowNoise(*this);
+    solveStep_ = new StdSolveStep(*this);
   }
 
   void AcouFlowNoise::ComputeRHS(const Double atime)

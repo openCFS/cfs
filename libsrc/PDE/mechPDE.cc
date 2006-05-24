@@ -13,10 +13,10 @@
 #include "newmark.hh"
 #include "newmarkFracDampMech.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "Driver/solveStepMech.hh" 
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
+#include "Driver/stdSolveStep.hh"
 
 #ifdef TCL_INTERFACE
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -334,6 +334,10 @@ namespace CoupledField
         
         // maximal number of NL-iterations
         params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
+
+	// perform logging?
+	nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
+
       }
 
     // ------------------------------------------
@@ -793,8 +797,9 @@ namespace CoupledField
   {
     ENTER_FCN( "MechPDE::DefineSolveStep" );
 
-    solveStep_ = new SolveStepMech(*this);
+    solveStep_ = new StdSolveStep(*this);
   }
+
 
 
 

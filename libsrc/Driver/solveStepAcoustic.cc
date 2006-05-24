@@ -58,7 +58,7 @@ namespace CoupledField {
 
     // set BCs, if effective mass matrix formulation, values of BCs depend on 
     //  predictors, so predictors have to be computed beforehand
-    SetBCs(actTime_);
+    PDE_.SetBCs( actTime_ );
 
     // set old solution  
     newSol = solhelp->GetAlgSysVector();
@@ -206,11 +206,11 @@ namespace CoupledField {
 
         ptElem  = elemssd[j]->ptElem;
         connect = elemssd[j]->connect;
-        GetElemCoords(connect, ptCoord);
+	PDE_.GetElemCoords(connect, ptCoord);
 
-        GetSolVecOfElement(sol, connect);
-        GetDerivSolVecOfElement(solderiv1, connect);
-        GetDeriv2SolVecOfElement(solderiv2, connect);
+        PDE_.GetSolVecOfElement(sol, connect);
+	PDE_.GetDerivSolVecOfElement(solderiv1, connect);
+        PDE_.GetDeriv2SolVecOfElement(solderiv2, connect);
 
         rhsInt->SetElemPtr(ptElem);
 
