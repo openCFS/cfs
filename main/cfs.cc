@@ -356,10 +356,6 @@ int main( int argc, const char **argv ) {
     ptdriver = new TransientDriver( domain );
     break;
 
-  case TRANSIENT4SLICE:
-    ptdriver = new Transient4SliceDriver( domain );
-    break;
-
   case HARMONIC:
     // calls Driver for parameter identification, using harmonic analysis
     if ( analysis == "paramIdent" ) {
