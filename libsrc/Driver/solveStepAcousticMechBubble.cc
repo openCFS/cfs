@@ -178,9 +178,7 @@ namespace CoupledField {
       //acoust for time stepping
       TS_alg_->UpdateRHS();
     
-
-
-      SetBCs(actTime_);
+      PDE_.SetBCs(actTime_);
 
       if ( iterationCounter>1 ) 
         job = 3;
@@ -541,7 +539,7 @@ namespace CoupledField {
         StdVector<UInt> connecth = elemssd[actEl]->connect;
 
         Matrix<Double> ptCoord;
-        GetElemCoords(connecth, ptCoord);
+        PDE_.GetElemCoords(connecth, ptCoord);
         
         Double beta2 = 1;
 

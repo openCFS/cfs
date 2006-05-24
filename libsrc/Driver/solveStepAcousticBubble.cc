@@ -161,7 +161,7 @@ namespace CoupledField {
       TS_alg_->UpdateRHS();
     
     
-      SetBCs(actTime_);
+      PDE_.SetBCs(actTime_);
 
       if ( iterationCounter>1 ) 
         job = 3;
@@ -240,7 +240,7 @@ namespace CoupledField {
 
 	
           //get 1st derivative of pressure
-          GetDerivSolVecOfElement(elPressureDeriv,connect);
+          PDE_.GetDerivSolVecOfElement(elPressureDeriv,connect);
 	
 
           //compute average values
@@ -505,7 +505,7 @@ namespace CoupledField {
         StdVector<UInt> connecth = elemssd[actEl]->connect;
 
         Matrix<Double> ptCoord;
-        GetElemCoords(connecth, ptCoord);
+        PDE_.GetElemCoords(connecth, ptCoord);
         
         Double beta2 = 1;
         Double Rpp = 0;        

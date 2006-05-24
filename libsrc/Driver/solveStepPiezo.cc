@@ -147,7 +147,7 @@ namespace CoupledField {
     algsys_->InitRHS();
 
     //set BCs
-    SetBCs(actTime_);
+    PDE_.SetBCs(actTime_);
 
     // stores this as linear part of RHS
     algsys_->GetRHSVal( actRHS );
@@ -214,7 +214,7 @@ namespace CoupledField {
       Vector<Double> RHS;
       algsys_->GetRHSVal( actRHS );
       StoreAlgsysToVec(RHS, actRHS );       
-      Double residualNorm = RhsL2Norm( RHS );
+      Double residualNorm = PDE_.GetRhsL2Norm( RHS );
 
       algsys_->SetupSolver();
       algsys_->SetupPrecond();

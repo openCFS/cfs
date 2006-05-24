@@ -21,16 +21,6 @@ namespace CoupledField {
   // ======================================================
   // Solve Step Static SECTION  
   // ======================================================
-  void SolveStepSmooth::PreStepStatic( const Boolean reset )
-  {
-    ENTER_FCN( "SolveStepSmooth::PreStepStatic" );
-
-    algsys_->InitRHS();
-    algsys_->InitSol();
-    algsys_->InitMatrix();
-    assemble_->SetReassemble();
-
-  }
 
   void SolveStepSmooth::StepStaticNonLin( const Boolean reset )
   {
@@ -42,7 +32,7 @@ namespace CoupledField {
     assemble_->AssembleMatrices();
     assemble_->AssembleSrcRHS();
   
-    SetBCs(0);
+    PDE_.SetBCs( 0.0 );
     
     algsys_->ConstructEffectiveMatrix(matrix_factor_);
     algsys_->BuildInDirichlet();
@@ -60,13 +50,6 @@ namespace CoupledField {
     sol_->CopyFromAlgSysDataPointer(ptsol);
   }
 
-
-  void SolveStepSmooth:: PostStepStatic( )
-  {
-    ENTER_FCN( "SolveStepSmooth::PostStepStatic" );
-  
-    iterCoupledCounter_++;
-  }
 
   //   Default Destructor
   // **********************

@@ -25,9 +25,6 @@ namespace CoupledField
     //! \param reset TRUE: perfrom new assembly, etc
     void PreStepStatic( const Boolean reset );
 
-    //! routine for acttions after the SolveStep-method
-    void PostStepStatic();
-                                
 
     //! solves for one linear static step 
     //! \param reset TRUE: perfrom new assembly, etc

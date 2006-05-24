@@ -5,7 +5,6 @@
 
 // include solveStep drivers
 #include "Driver/stdSolveStep.hh"
-#include "Driver/solveStepMech.hh"
 #include "Driver/solveStepAcousticMechBubble.hh"
 // include PDE classes
 #include "PDE/SinglePDE.hh"
@@ -616,7 +615,7 @@ namespace CoupledField {
       solveStep_ = new SolveStepAcousticMechBubble(*this, GILMORE );
     }
     else{
-      solveStep_ = new SolveStepMech(*this);
+      solveStep_ = new StdSolveStep(*this);
     }
   }
 

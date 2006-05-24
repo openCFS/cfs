@@ -36,7 +36,7 @@ namespace CoupledField
 
     //! routine for initilizations befor execution the SolveStep-method
     //!\param reset TRUE: perfrom new assembly, etc
-    virtual void PreStepStatic( const Boolean reset ){;}
+    virtual void PreStepStatic( const Boolean reset );
  
     //! base method for solving one static step 
     //! \param reset TRUE: perfrom new assembly, etc
@@ -48,11 +48,10 @@ namespace CoupledField
 
     //! solves for one nonlinear static step 
     //! \param reset TRUE: perfrom new assembly, etc
-    virtual void StepStaticNonLin( const Boolean reset )
-    {Error("StepStaticNonLin not implemented!",__FILE__,__LINE__);};
+    virtual void StepStaticNonLin( const Boolean reset );
     
     //! routine for actions after the SolveStep-method
-    virtual void PostStepStatic() {;};
+    virtual void PostStepStatic();
 
 
 
@@ -65,18 +64,13 @@ namespace CoupledField
     //! \param reset TRUE: perfrom new assembly, etc
     virtual void SolveStepTrans( const Boolean updatesysmat );
 
-    //! base method for solving one transient step with slicing method 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void SolveStepTrans4Slice(const Boolean reset);
-
     //! solves for one linear transient step 
     //! \param reset TRUE: perfrom new assembly, etc
     virtual void StepTransLin( const Boolean updatesysmat );
 
     //! solves for one nonlinear transient step 
     //! \param reset TRUE: perfrom new assembly, etc
-    virtual void StepTransNonLin( const Boolean updatesysmat )
-    {Error("Nonlinear Transient Step not implemented!",__FILE__,__LINE__);};
+    virtual void StepTransNonLin( const Boolean updatesysmat );
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
@@ -136,14 +130,12 @@ namespace CoupledField
     Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
                       Double& etaLineSearch, Boolean trans=FALSE);
 
-    //! calculates L2-norm of RHS regarding entries due to penalty formulation
-    Double RhsL2Norm(Vector<Double>& stdVec);
-
     //! returns that L2-norm of an algsys vector
     Double AlgsysL2Norm(Double * pt);
 
     //! set the identification tag of the PDE
-    void SetPDEId( const PdeIdType pdeId );
+    void SetPDEId( const PdeIdType pdeId )
+    { pdeId1_ = pdeId;};
 
     //! Write nonlin iteration norms to info-file
     void WriteClaNlNorms(const UInt iterationCounter,
@@ -157,41 +149,12 @@ namespace CoupledField
       return hyst_[iSD];
     };
 
-    //! transform solution and derivatives due to slicing technique
-    virtual void TransformSol4Slice(UInt & shiftFactor, UInt & nodeShift,
-		UInt & elemgrid, Double &  meshsize, const UInt flag);
-
-    //! save solution of special nodes
-    virtual void SaveNodes(const UInt shiftFactor, const Double timeStep,
-		   const UInt numShift, const Integer nodeShift, 
-		   const UInt maxnumelemz_);
-
   protected:
 
 
     //------------- storage vectors for nonlinear analysis --------------
     Vector<Double> RhsLinVal_; //!< external forces (for nonlin simulations)
 
-
-    //---------------------------- get StdPDE-methods----------------------
-    //! set Dirichlet BCs
-    void SetBCs( const Double time );
-
-
-    //! fetches coordinates to element nodes
-    void GetElemCoords(const StdVector< UInt > connect,
-                       Matrix< Double > &coordMat );
-
-    //! returns the vector of the solution belonging to all nodes of the actual element
-    void GetSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
-
-    //! returns the vector of time derivative of the solution belonging to all nodes 
-    //!  of the actual element
-    void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
-
-    //! returns the vector of 2nd time derivative of the solution belonging to all nodes 
-    //! of the actual element
-    void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
 
     //-------------------------------- Pointers to (Copies of) StdPDE -------------------
 
@@ -218,10 +181,6 @@ namespace CoupledField
                                    //!< our solution
     Boolean recalc_;               //!< flag indicating reassembling of system matrix
 
-    Boolean isIterCoupled_;         //!< TRUE, if PDE is coupled to other ones iteratively
-    Boolean firstTimeStepStatic_;  //!< needed for coupled, iterative methods
-    UInt* iterCoupledCounter_;  //!< iteration counter for coupled PDE solution process
-
     std::string lineSearch_;   //!< switch for lineSearch
     Boolean nonLin_;           //!< flag for nonlinear calculations
     Boolean isHyst_;           //!< flag for hystersis modeling
@@ -234,8 +193,6 @@ namespace CoupledField
 
     Vector<Double> solIncr_;   //! needed in iterative coupled computation 
     Vector<Double> actSol_;    //! needed in iterative coupled computation 
-    Boolean isIncrFormulation_;//! checks, if we have for the coupling a incremental solution
-
 
     //hysteresis operator;    
     StdVector<Hysteresis *> hyst_;

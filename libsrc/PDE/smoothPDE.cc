@@ -28,7 +28,8 @@ namespace CoupledField
     isAlwaysStatic_ = TRUE;
 
   
-  
+    // Set flag that the geometry has changed
+    geoUpdate_ = TRUE;
   
     // Get problem geometry and PDE subtype
     params->Get( "subType", subType_, pdename_ );

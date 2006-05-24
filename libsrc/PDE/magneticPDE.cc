@@ -3,7 +3,7 @@
 #include "magneticPDE.hh"
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "Driver/solveStepMag.hh"
+#include "Driver/stdSolveStep.hh"
 #include "Utils/Coil.hh"
 #include "Utils/SmoothSpline.hh"
 #include "Utils/LinInterpolate.hh"
@@ -242,7 +242,7 @@ namespace CoupledField {
   {
     ENTER_FCN( "MagPDE::DefineSolveStep" );
 
-    solveStep_ = new SolveStepMag(*this);
+    solveStep_ = new StdSolveStep(*this);
   }
 
 

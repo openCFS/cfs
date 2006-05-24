@@ -38,9 +38,6 @@ namespace CoupledField
     //! \param reset TRUE: perfrom new assembly, etc
     void StepStaticNonLinEpsDiff( const Boolean reset );
 
-    //! routine for acttions after the SolveStep-method 
-    void PostStepStatic();
-
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
     //! \param reset TRUE: perfrom new assembly, etc
