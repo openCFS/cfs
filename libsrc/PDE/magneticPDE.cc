@@ -565,6 +565,7 @@ namespace CoupledField {
         
         help = elemmat * magvecpot;
         energy[i] += help * magvecpot;
+        energy[i] *= 0.5;
             
         delete bilinear_stiff;    
       }  
