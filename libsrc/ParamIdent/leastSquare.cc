@@ -42,7 +42,7 @@ namespace CoupledField
     Double normFy, maxres, normFy0,normFy1;
     Integer indPar=0;
     Integer indParC=0;
-    Double lambda=20.0;
+    Double lambda=50.0;
     Boolean negFlag=FALSE;      
 
     //    readInMeasurement(newFreqs);
@@ -199,7 +199,7 @@ namespace CoupledField
 
       while (normFy1>normFy0||negFlag==TRUE){
         if (negFlag==TRUE)
-          std::cout<< "reduce lambda due to negative parameters or non non reduction of norm ... "<<std::endl;
+          std::cout<< "reduce lambda due to negative parameters or non reduction of norm ... "<<std::endl;
         parameter_=parameter_old;
         parameterC_=parameter_oldC;
         lambda=0.5*lambda;

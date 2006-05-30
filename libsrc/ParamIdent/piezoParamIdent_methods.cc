@@ -154,8 +154,9 @@ namespace CoupledField
       Complex impedC;
 	
       Complex im=Complex(0.0,1);
-      impedC=voltage_/(charge*2.0*PI*freqs_[fstep]*im);
-      imped = std::abs(voltage_/(charge*2.0*PI*freqs_[fstep]*im)); 
+      impedC=voltage_/(charge*freqs_[fstep]*im);
+      //      imped = std::abs(voltage_/(charge*2.0*PI*freqs_[fstep]*im)); 
+      imped = std::abs(voltage_/(charge*freqs_[fstep]*im)); 
       phase = 180.0/PI*(std::arg(impedC));
 
       std::cout << fstep <<");\t Frequency: " << freqs_[fstep] << ";\t Impedance: "<< imped
@@ -187,6 +188,8 @@ namespace CoupledField
              <<" Hz with |Z| = " << minImpedance<<std::endl;
     std::cout<<"++ Antiresonance lies at " << antiResonanceFrequency_ 
              <<" Hz with |Z| = " << maxImpedance<<std::endl;
+    std::cout<<"++ Piezoelectric coupling k_t^2 = " 
+             << (antiResonanceFrequency_ -  resonanceFrequency_)/antiResonanceFrequency_ <<std::endl;
 
   } // end calcImpedance Curve
 
@@ -319,7 +322,7 @@ namespace CoupledField
           F_hat_[fstep]=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...     
         
         else  if (whichNormCriteria_==2)         // logarithmic value of impedance
-          F_hat_[fstep]=std::log(std::abs(voltage_/(charge*2.0*PI*freqs_[fstep]*im)));
+          F_hat_[fstep]=std::log(std::abs(voltage_/(charge*freqs_[fstep]*im)));
 
         //calcAbsImped(charge, freqs_[fstep], fstep,typeOut);   // calculates |Z| and writes results in File
 
