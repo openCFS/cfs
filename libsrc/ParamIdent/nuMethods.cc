@@ -252,7 +252,7 @@ namespace CoupledField
       std::cout<<"res_outer = " << res_outer <<std::endl;
       
       lineSearchCount++;
-      if (lineSearchCount>10)
+      if (lineSearchCount>12)
         break;
 
     }
