@@ -29,7 +29,7 @@
   <xsd:complexType name="DT_MagnPermeability">
     <xsd:sequence>
       <xsd:element name="linear" type="DT_LinMagnPermeability"/>
-      <xsd:element name="nonlinear" type="DT_NonLinMagnPermeability"/>
+      <xsd:element name="nonlinear" type="DT_NonLinMagnPermeability" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
   
