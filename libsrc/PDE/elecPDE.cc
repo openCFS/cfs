@@ -641,18 +641,31 @@ namespace CoupledField {
     BaseFE         * ptElem;
     TYPE totalE = 0.0;
 
+    SubTensorType tensorType;
+
+    if ( dim_ == 3 ) {
+      tensorType = FULL;
+    }
+    else {
+      if ( isaxi_ == TRUE ) {
+	tensorType = AXI;
+      }
+      else {
+	// 2d: plane case
+	tensorType = PLANE_STRAIN;
+      }
+    }
+
+
     StdVector<UInt> connecth;
     Vector<TYPE> help;
-
+    Double factor = 1.0;
     UInt i, j;
     Vector<TYPE> energy(subdoms_.GetSize());
 
     for (i=0; i<subdoms_.GetSize(); i++)
       {
-        //reads eps33 (matrix notation starts with 0)
-	Double eps33;
-	materials_[subdoms_[i]]->GetScalar(eps33,ELEC_PERMITTIVITY,REAL);
-
+        
         StdVector<Elem*> elemssd;
         ptgrid_->GetVolElems( elemssd,subdoms_[i] );
 
@@ -660,7 +673,10 @@ namespace CoupledField {
         for (j=0; j < elemssd.GetSize(); j++)
           {  
             ptElem=elemssd[j]->ptElem;
-            BaseForm * bilinear_stiff = new LaplaceInt(ptElem, eps33, isaxi_);
+            BaseForm * bilinear_stiff = 
+              new linElecInt(materials_[subdoms_[i]],tensorType);
+            bilinear_stiff->SetFactor(factor);
+            bilinear_stiff->SetElemPtr(ptElem);
 
             connecth=elemssd[j]->connect;
             GetElemCoords(connecth, ptCoord);
