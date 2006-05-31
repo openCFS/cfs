@@ -34,6 +34,7 @@
     <xsd:choice>
       <xsd:element name="tensor" type="DT_MechElastTensor"/>
       <xsd:element name="isotropic" type="DT_MechElastIsotropic"/>
+      <xsd:element name="orthotropic" type="DT_MechElastOrthotropic"/>
     </xsd:choice>
   </xsd:complexType>
 
@@ -71,6 +72,16 @@
   </xsd:complexType>
   
   <!-- ******************************************************************* -->
+  <!--   Definition of orthotropic mechanical elasticity                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElastOrthotropic">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_MechElastOrthotrRealImag"/>
+      <xsd:element name="imag" type="DT_MechElastOrthotrRealImag" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
   <!--   Definition of real and imaginery part isotropic mechanical elasticity  -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_MechElastIsotrRealImag">
@@ -96,6 +107,23 @@
         <xsd:element name="lameParameterLamda" type="DT_NonNegFloat"/>
       </xsd:sequence>
     </xsd:choice>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery part orthotropic mechanical elasticity  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElastOrthotrRealImag">
+    <xsd:sequence>
+      <xsd:element name="elasticityModulus_X" type="DT_NonNegFloat"/>
+      <xsd:element name="elasticityModulus_Y" type="DT_NonNegFloat"/>
+      <xsd:element name="elasticityModulus_Z" type="DT_NonNegFloat"/>
+      <xsd:element name="poissonNumber_XY" type="DT_FloatPoissonInterval"/>
+      <xsd:element name="poissonNumber_YZ" type="DT_FloatPoissonInterval"/>
+      <xsd:element name="poissonNumber_XZ" type="DT_FloatPoissonInterval"/>
+      <xsd:element name="shearModulus_YZ" type="DT_NonNegFloat"/>
+      <xsd:element name="shearModulus_ZX" type="DT_NonNegFloat"/>
+      <xsd:element name="shearModulus_XY" type="DT_NonNegFloat"/>
+    </xsd:sequence>
   </xsd:complexType>
   
   <!-- ******************************************************************* -->
