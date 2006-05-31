@@ -25,7 +25,16 @@ namespace CoupledField
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( MECH_STIFFNESS_TENSOR );
     isAllowed_.insert( MECH_EMODULUS );
+    isAllowed_.insert( MECH_EMODULUS_X );
+    isAllowed_.insert( MECH_EMODULUS_Y );
+    isAllowed_.insert( MECH_EMODULUS_Z );
     isAllowed_.insert( MECH_POISSON );
+    isAllowed_.insert( MECH_POISSON_XY );
+    isAllowed_.insert( MECH_POISSON_YZ );
+    isAllowed_.insert( MECH_POISSON_XZ );
+    isAllowed_.insert( MECH_GMODULUS_YZ );
+    isAllowed_.insert( MECH_GMODULUS_ZX );
+    isAllowed_.insert( MECH_GMODULUS_XY );
     isAllowed_.insert( RAYLEIGH_ALPHA );
     isAllowed_.insert( RAYLEIGH_BETA );
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
