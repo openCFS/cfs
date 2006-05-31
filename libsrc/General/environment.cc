@@ -795,14 +795,41 @@ namespace CoupledField {
     case MECH_EMODULUS:
       out = "Mechanic_Emodulus";
       break;
+    case MECH_EMODULUS_X:
+      out = "Mechanic_Emodulus_X";
+      break;
+    case MECH_EMODULUS_Y:
+      out = "Mechanic_Emodulus_Y";
+      break;
+    case MECH_EMODULUS_Z:
+      out = "Mechanic_Emodulus_Z";
+      break;
     case MECH_POISSON:
       out = "Mechanic_PoissonRation";
+      break;
+    case MECH_POISSON_XY:
+      out = "Mechanic_PoissonRation_XY";
+      break;
+    case MECH_POISSON_YZ:
+      out = "Mechanic_PoissonRation_YZ";
+      break;
+    case MECH_POISSON_XZ:
+      out = "Mechanic_PoissonRation_XZ";
       break;
     case MECH_KMODULUS:
       out = "Mechanic_Kmodulus";
       break;
     case MECH_GMODULUS:
       out = "Mechanic_Gmodulus";
+      break;
+    case MECH_GMODULUS_YZ:
+      out = "Mechanic_Gmodulus_YZ";
+      break;
+    case MECH_GMODULUS_ZX:
+      out = "Mechanic_Gmodulus_ZX";
+      break;
+    case MECH_GMODULUS_XY:
+      out = "Mechanic_Gmodulus_XY";
       break;
     case MECH_LAME_MU:
       out = "Mechanic_LameMu";
@@ -934,14 +961,41 @@ namespace CoupledField {
     else if ( in == "Mechanic_Emodulus" ) {
       out = MECH_EMODULUS;
     }
+    else if ( in == "Mechanic_Emodulus_X" ) {
+      out = MECH_EMODULUS_X;
+    }
+    else if ( in == "Mechanic_Emodulus_Y" ) {
+      out = MECH_EMODULUS_Y;
+    }
+    else if ( in == "Mechanic_Emodulus_Z" ) {
+      out = MECH_EMODULUS_Z;
+    }
     else if ( in == "Mechanic_PoissonRation" ) {
       out = MECH_POISSON;
+    }
+    else if ( in == "Mechanic_PoissonRation_XY" ) {
+      out = MECH_POISSON_XY;
+    }
+    else if ( in == "Mechanic_PoissonRation_YZ" ) {
+      out = MECH_POISSON_YZ;
+    }
+    else if ( in == "Mechanic_PoissonRation_XZ" ) {
+      out = MECH_POISSON_XZ;
     }
     else if ( in == "Mechanic_Kmodulus" ) {
       out = MECH_KMODULUS;
     }
     else if ( in == "Mechanic_Gmodulus" ) {
       out = MECH_GMODULUS;
+    }
+    else if ( in == "Mechanic_Gmodulus_YZ" ) {
+      out = MECH_GMODULUS_YZ;
+    }
+    else if ( in == "Mechanic_Gmodulus_ZX" ) {
+      out = MECH_GMODULUS_ZX;
+    }
+    else if ( in == "Mechanic_Gmodulus_XY" ) {
+      out = MECH_GMODULUS_XY;
     }
     else if ( in == "Mechanic_LameMu" ) {
       out = MECH_LAME_MU;
