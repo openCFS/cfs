@@ -55,6 +55,12 @@ namespace CoupledField {
                                       Double PoissonNumber,
                                       Matrix<Double>& elasticityTensor);
 
+    //! computes the 6x6 stiffness tensor of a orthotropic
+    //! mechanical material based on E-Moduli, Poisson numbers and shear moduli.
+    void ComputeOrthoMechStiffnesTensor(Double EX, Double EY, Double EZ, 
+                                        Double nuXY, Double nuYZ, Double nuXZ,
+                                        Double GYZ, Double GZX, Double GXY,
+                                        Matrix<Double>& elasticityTensor);
     //! Reads acoustic material.
     //! \param material Material object to be filled with data
     //! \param matName Name of the material to be read

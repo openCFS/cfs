@@ -192,6 +192,17 @@ namespace CoupledField {
     Boolean     flagPoissonReal=FALSE;
     Boolean     flagEModulImag=FALSE;
     Boolean     flagPoissonImag=FALSE;
+
+    Boolean     flagEModulXReal=FALSE;
+    Boolean     flagEModulYReal=FALSE;
+    Boolean     flagEModulZReal=FALSE;
+    Boolean     flagPoissonXYReal=FALSE;
+    Boolean     flagPoissonYZReal=FALSE;
+    Boolean     flagPoissonXZReal=FALSE;
+    Boolean     flagShearModulYZReal=FALSE;
+    Boolean     flagShearModulZXReal=FALSE;
+    Boolean     flagShearModulXYReal=FALSE;
+
     Boolean     flagElastTensorReal=FALSE;
     Boolean     flagElastTensorImag=FALSE;
 
@@ -281,6 +292,100 @@ namespace CoupledField {
       // std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
     }
 
+    //read orthotropic elasticity modulus
+    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_X";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_EMODULUS_X, REAL ); 
+      flagEModulXReal=true;
+      std::cerr << "elasticityModulus_X=" << doubValue << std::endl;
+    }
+
+    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_Y";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_EMODULUS_Y, REAL ); 
+      flagEModulYReal=true;
+      std::cerr << "elasticityModulus_Y=" << doubValue << std::endl;
+    }
+
+    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_Z";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_EMODULUS_Z, REAL ); 
+      flagEModulZReal=true;
+      std::cerr << "elasticityModulus_Z=" << doubValue << std::endl;
+    }
+
+    //read orthotropic Poisson numbers
+    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_XY";
+    attrVec= "name"     ,""         ,""          ,""         ,"";
+    valVec =  matName   ,""         ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_POISSON_XY, REAL ); 
+      flagPoissonXYReal=true;
+      std::cerr << "poissonNumber_XY=" <<  doubValue << std::endl;
+    }
+
+    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_YZ";
+    attrVec= "name"     ,""         ,""          ,""         ,"";
+    valVec =  matName   ,""         ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_POISSON_YZ, REAL ); 
+      flagPoissonYZReal=true;
+      std::cerr << "poissonNumber_YZ=" <<  doubValue << std::endl;
+    }
+
+    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_XZ";
+    attrVec= "name"     ,""         ,""          ,""         ,"";
+    valVec =  matName   ,""         ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_POISSON_XZ, REAL ); 
+      flagPoissonXZReal=true;
+      std::cerr << "poissonNumber_XZ=" <<  doubValue << std::endl;
+    }
+
+    //read orthotropic shear modulus
+    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_YZ";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_GMODULUS_YZ, REAL ); 
+      flagShearModulYZReal=true;
+      std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
+    }
+
+    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_ZX";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_GMODULUS_ZX, REAL ); 
+      flagShearModulZXReal=true;
+      std::cerr << "shearModulus_ZX=" << doubValue << std::endl;
+    }
+
+    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_XY";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_GMODULUS_XY, REAL ); 
+      flagShearModulXYReal=true;
+      std::cerr << "shearModulus_XY=" << doubValue << std::endl;
+    }
+
+
     if (flagEModulReal==TRUE && 
         flagPoissonReal==TRUE && 
         flagElastTensorReal==FALSE) {
@@ -297,6 +402,29 @@ namespace CoupledField {
         flagElastTensorReal==TRUE) {
       //stiffness tensor is already set
     }
+    else if (flagEModulXReal==TRUE && 
+             flagEModulYReal==TRUE && 
+             flagEModulZReal==TRUE && 
+             flagPoissonXYReal==TRUE && 
+             flagPoissonYZReal==TRUE && 
+             flagPoissonXZReal==TRUE && 
+             flagShearModulYZReal==TRUE &&
+             flagShearModulZXReal==TRUE &&
+             flagShearModulXYReal==TRUE) {
+      Double EX, EY, EZ, nuXY, nuYZ, nuXZ, GYZ, GZX, GXY;
+      material->GetScalar( EX, MECH_EMODULUS_X, REAL ); 
+      material->GetScalar( EY, MECH_EMODULUS_Y, REAL ); 
+      material->GetScalar( EZ, MECH_EMODULUS_Z, REAL ); 
+      material->GetScalar( nuXY, MECH_POISSON_XY, REAL ); 
+      material->GetScalar( nuYZ, MECH_POISSON_YZ, REAL ); 
+      material->GetScalar( nuXZ, MECH_POISSON_XZ, REAL ); 
+      material->GetScalar( GYZ, MECH_GMODULUS_YZ, REAL ); 
+      material->GetScalar( GZX, MECH_GMODULUS_ZX, REAL ); 
+      material->GetScalar( GXY, MECH_GMODULUS_XY, REAL ); 
+      ComputeOrthoMechStiffnesTensor(EX,EY,EZ,nuXY,nuYZ,nuXZ,GYZ,GZX,GXY,elasticityTensor);
+      material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
+      std::cerr << "real othotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
+    }
     else if (flagEModulReal==TRUE && 
         flagPoissonReal==TRUE && 
         flagElastTensorReal==TRUE) {
@@ -305,8 +433,8 @@ namespace CoupledField {
       Error( __FILE__, __LINE__ );
     }
     else if (flagEModulReal==FALSE && 
-        flagPoissonReal==FALSE && 
-        flagElastTensorReal==FALSE) {
+             flagEModulXReal==FALSE && 
+             flagElastTensorReal==FALSE) {
       (*error) << "Error: mechanical stiffness must be specified somehow.";
       Error( __FILE__, __LINE__ );
     }
@@ -314,6 +442,8 @@ namespace CoupledField {
       (*error) << "Error: mechanical stiffness tensor can not be computed.";
       Error( __FILE__, __LINE__ );
     }
+
+
     //*********************************************************************
     //******* end of stiffness tensor definition **************************
     //*********************************************************************
@@ -466,6 +596,36 @@ namespace CoupledField {
     elasticityTensor[3][3]=LameMu;
     elasticityTensor[4][4]=LameMu;
     elasticityTensor[5][5]=LameMu;
+  }
+
+  void XMLMaterialHandler::ComputeOrthoMechStiffnesTensor(Double EX, Double EY, Double EZ, 
+                                                          Double nuXY, Double nuYZ, Double nuXZ,
+                                                          Double GYZ, Double GZX, Double GXY,
+                                                          Matrix<Double>& elasticityTensor){
+    Double nuYX, nuZY, nuZX, aux;
+    nuYX=(EY/EX)*nuXY;
+    nuZY=(EZ/EY)*nuYZ;
+    nuZX=(EZ/EX)*nuXZ;
+
+    aux=(1-nuXY*nuYX-nuYZ*nuZY-nuXZ*nuZX-2.0*nuYX*nuZY*nuXZ)/(EX*EY*EZ);
+
+    elasticityTensor.Resize(6,6);
+    elasticityTensor.Init();
+
+    elasticityTensor[0][0]=(1-nuYZ*nuZY)/(EY*EZ*aux);
+    elasticityTensor[1][1]=(1-nuXZ*nuZX)/(EX*EZ*aux);
+    elasticityTensor[2][2]=(1-nuXY*nuYX)/(EX*EY*aux);
+
+    elasticityTensor[0][1]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
+    elasticityTensor[0][2]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
+    elasticityTensor[1][0]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
+    elasticityTensor[1][2]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
+    elasticityTensor[2][0]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
+    elasticityTensor[2][1]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
+
+    elasticityTensor[3][3]=GYZ;
+    elasticityTensor[4][4]=GZX;
+    elasticityTensor[5][5]=GXY;
   }
 
 //**********************************************************************
