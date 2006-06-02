@@ -8,7 +8,7 @@
 #include "DataInOut/GMV/outGMV.hh"
 #include "Forms/forms_header.hh"
 #include "Forms/abcInt.hh"
-#include "Forms/acouNeumannInt.hh"
+#include "Forms/linNeumannInt.hh"
 #include "Estimator/spaceerror.hh"
 #include "newmark.hh"
 #include "newmarkFracDamp.hh"
@@ -615,10 +615,10 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
 
       // we assume the surface normal points out of domain,
       //  but we want to take deflections into the domain positive
-      Double factor= -1.0 * val_ni_[actSD];
+      Double amplitude= -1.0 * val_ni_[actSD];
 
-      //BaseForm *neumannBC = new VolumeSrcInt( factor, isaxi_ );
-      LinearSurfForm *neumannBC = new AcouNeumannInt( factor, isaxi_ );
+      //BaseForm *neumannBC = new VolumeSrcInt( amplitude, isaxi_ );
+      LinearSurfForm *neumannBC = new LinNeumannInt( amplitude, DENSITY, isaxi_ );
       neumannBC->SetVoluInfo( materials_ );
 
       if (analysistype_ == TRANSIENT ) {
