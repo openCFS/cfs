@@ -168,6 +168,7 @@
           <xsd:element name="vortexSrc" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>
+                <xsd:element name="outType"       type="xsd:nonNegativeInteger"/>
                 <xsd:element name="p0Phys"       type="DT_NonNegFloat"/>
                 <xsd:element name="rho0Phys"       type="DT_NonNegFloat"/>
                 <xsd:element name="r_0Phys"       type="DT_NonNegFloat"/>

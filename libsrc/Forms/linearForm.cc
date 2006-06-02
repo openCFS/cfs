@@ -706,7 +706,7 @@ void LinearFlowNoiseInt::CalcElemVec_withdTijdi(const Matrix<Double>& ptCoord,
     
     Double jacDet;
     Integer actInt;
-    Double density=1.0;
+    Double density=1.204; // At 20C
 
     Result.Resize(n);
     for (Integer i=0; i<n; i++)
@@ -763,7 +763,7 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
 
     Double jacDet;
     Integer actInt;
-    Double density=1.0;
+    Double density=1.204; //at 20C
 
     Result.Resize(n);
     for (Integer i=0; i<n; i++)

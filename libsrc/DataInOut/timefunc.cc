@@ -9,6 +9,8 @@
 #include "timefunc.hh"
 #include "WriteInfo.hh"
 #include "ParamHandling/BaseParamHandler.hh"
+#include "PDE/SinglePDE.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField {
 
@@ -203,18 +205,40 @@ namespace CoupledField {
       y = ptCoordNode[1];
       z = ptCoordNode[2];
       // Here an switch instruction could be used to add additional functions.
-      // At the moment only one is hard coded (for benchmark test with paper
-      // Finite Element analysis of semi-infinite wave guides with high-order
-      // boundary treatment (Int. J. Numer. Meth. 2003, 58:1955-1983)
-      
-      if ( (abs(y-y0) <= r) && (0<=time) && (time<=t0) )
+
+      //This case is for setting the analytical pressure fluctuations P_ak 
+      //from vortex_analytical as problem solution
+      Double r_sqr=(x*x+y*y);
+      if (r_sqr<=((200./81.)*(200./81.)))
         {
+          //  if (VortexFlag==2)
+          //                             nodalval[ii]=0;
+          //                           else if (VortexFlag==3)
           fncVal[iNode]=cos( (PI/(2*r)) * (y-y0) );
-        }
-      else
-        {
-          fncVal[iNode]=0;
-        } 
+         }
+       else
+         {
+           Double P_ak=0;
+           Vector<Double> dTijdi;
+           SinglePDE * acouPDE_ = domain->GetSinglePDE("acoustic");
+           acouPDE_->VortexAnalytical(P_ak, dTijdi, x, y, time, 1);
+           //std::cout<<"After getting P_ak in timefunc.cc, P_ak= "<<P_ak<<std::endl;
+           fncVal[iNode]=P_ak;
+         } 
+
+      
+
+// For benchmark test with paper
+// Finite Element analysis of semi-infinite wave guides with high-order
+// boundary treatment (Int. J. Numer. Meth. 2003, 58:1955-1983)
+//       if ( (abs(y-y0) <= r) && (0<=time) && (time<=t0) )
+//         {
+//           fncVal[iNode]=cos( (PI/(2*r)) * (y-y0) );
+//         }
+//       else
+//         {
+//           fncVal[iNode]=0;
+//         } 
     }
     return  fncVal;
   }
