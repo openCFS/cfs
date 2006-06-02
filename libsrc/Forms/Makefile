@@ -9,8 +9,8 @@ src = baseForm.cc laplaceInt.cc bdbInt.cc bdInt.cc massInt.cc baseoperator.cc\
       mechStressStrain.cc linStrainOp.cc\
       elecchargeop.cc magforceop.cc adbInt.cc\
       linPiezoCoupling.cc linPressureInt.cc\
-      baseForceOp.cc acouMechInt.cc abcInt.cc nrbcInt.cc linSurfForm.cc acouNeumannInt.cc \
-      heatNeumannInt.cc PMLInt.cc laplaceXYZInt.cc PMLTransXYZInt.cc \
+      baseForceOp.cc acouMechInt.cc abcInt.cc nrbcInt.cc linSurfForm.cc \
+      linNeumannInt.cc PMLInt.cc laplaceXYZInt.cc PMLTransXYZInt.cc \
       acouPowerDensityOp.cc FlatShellInt.cc stokesFluidInt.cc stokesFluid3DInt.cc \
       stokesFluidPlaneInt.cc stokesFluidAxiInt.cc nLinStokesFluidInt.cc \
       linElecInt.cc

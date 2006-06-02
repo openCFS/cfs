@@ -6,7 +6,7 @@
 #include "heatCondPDE.hh"
 
 #include "Forms/forms_header.hh"
-#include "Forms/heatNeumannInt.hh"
+#include "Forms/linNeumannInt.hh"
 
 #include "PDE/scalarnodeEQN.hh"
 #include "PDE/trapezoidal.hh"
@@ -115,15 +115,17 @@ namespace CoupledField {
 
       // we assume the surface normal points out of the domain,
       //  but we want to take heat flux into the domain positive
-      Double factor = -1.0 * val_ni_[Id];
+      Double amplitude = -1.0 * val_ni_[Id];
       if (htc_[Id] != 0) {
-        factor = htc_[Id] * ( tSolid_[Id] - tFluid_[Id] );
+        amplitude = htc_[Id] * ( tSolid_[Id] - tFluid_[Id] );
         
         Info->PrintF( pdename_, "For inhomogeneous Neumann BC use \
 \n  heat transfer coefficient: %f \n  TempSolid:  %f \n  TempFluid: %f\n\n",
                       htc_[Id], tSolid_[Id], tFluid_[Id] );
       }
-      LinearSurfForm *neumannBC = new HeatNeumannInt( factor, isaxi_ );
+      LinearSurfForm *neumannBC = new LinNeumannInt( amplitude, 
+                                                     HEAT_CONDUCTIVITY,
+                                                     isaxi_ );
       neumannBC->SetVoluInfo( materials_ );
 
       assemble_->AddRhsSrcSurfIntegrator( neumannBC,

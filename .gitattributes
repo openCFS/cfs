@@ -499,8 +499,6 @@ libsrc/Forms/abcInt.cc svneol=native#text/plain
 libsrc/Forms/abcInt.hh svneol=native#text/plain
 libsrc/Forms/acouMechInt.cc svneol=native#text/plain
 libsrc/Forms/acouMechInt.hh svneol=native#text/plain
-libsrc/Forms/acouNeumannInt.cc svneol=native#text/plain
-libsrc/Forms/acouNeumannInt.hh svneol=native#text/plain
 libsrc/Forms/acouPowerDensityOp.cc svneol=native#text/plain
 libsrc/Forms/acouPowerDensityOp.hh svneol=native#text/plain
 libsrc/Forms/adbInt.cc svneol=native#text/plain
@@ -528,8 +526,6 @@ libsrc/Forms/elecforceop.hh svneol=native#text/plain
 libsrc/Forms/forms_header.hh svneol=native#text/plain
 libsrc/Forms/gradfieldop.cc svneol=native#text/plain
 libsrc/Forms/gradfieldop.hh svneol=native#text/plain
-libsrc/Forms/heatNeumannInt.cc svneol=native#text/plain
-libsrc/Forms/heatNeumannInt.hh svneol=native#text/plain
 libsrc/Forms/laplaceInt.cc svneol=native#text/plain
 libsrc/Forms/laplaceInt.hh svneol=native#text/plain
 libsrc/Forms/laplaceXYZInt.cc svneol=native#text/plain
@@ -538,6 +534,8 @@ libsrc/Forms/linElastInt.cc svneol=native#text/plain
 libsrc/Forms/linElastInt.hh svneol=native#text/plain
 libsrc/Forms/linElecInt.cc -text
 libsrc/Forms/linElecInt.hh -text
+libsrc/Forms/linNeumannInt.cc svneol=native#text/plain
+libsrc/Forms/linNeumannInt.hh svneol=native#text/plain
 libsrc/Forms/linPiezoCoupling.cc -text
 libsrc/Forms/linPiezoCoupling.hh -text
 libsrc/Forms/linPressureInt.cc svneol=native#text/plain

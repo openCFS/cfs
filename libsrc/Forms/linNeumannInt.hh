@@ -7,20 +7,23 @@ namespace CoupledField
 {
   
   //! Class implementing an inhomogeneous Neumann integrator for acoustic field
-  class AcouNeumannInt : public LinearSurfForm {
+  class LinNeumannInt : public LinearSurfForm {
 
   public:
     
     //! Standard constructor
-    AcouNeumannInt( Double factor, Boolean isaxi );
+    LinNeumannInt( Double amplitude, MaterialType materialParam, Boolean isaxi );
     
     //! Destructor
-    ~AcouNeumannInt();
+    ~LinNeumannInt();
 
     /// Calculation of vector of right hand side 
     void CalcElemVector( Matrix<Double>& ptCoord, Vector<Double> & elemVec );
     
   protected:
+
+    Double amplitude_;
+    MaterialType materialParam_;
 
   };
 
