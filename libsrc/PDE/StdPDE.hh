@@ -195,6 +195,14 @@ namespace CoupledField {
     //!
     //! \for computing and adding RHS to PDE in case of special sources 
     virtual void ComputeRHS(const Double atime) {;};
+
+    //!
+    //! \for computing vortex source both analytically and with complex 
+    //! \potential function 
+    virtual  void VortexAnalytical(Double & press, Vector<Double>& dTij_di, const Double x,
+                                   const Double y, const Double t, 
+                                   const UInt outType){
+      Error("VortexAnalytical is only implemented in acouFlowNoisePDE",__FILE__,__LINE__);};
   
     //! set boundary condition
     //! \param atimestep         time step of claculation

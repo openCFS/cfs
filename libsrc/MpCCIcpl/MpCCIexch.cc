@@ -53,6 +53,26 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
     }
     if( params->IsSet( "writeSrcFileperNode","pdeList" ,"acoustic" ) ) {
       writeSrcFileperNode_ = TRUE;
+      // Get total number of time steps information from parameter object
+      StdVector<std::string> keyVec, attrVec, valVec;
+      UInt numsteps;
+      attrVec = "tag";
+      valVec = "anyTag";
+      keyVec = "transient", "numSteps";
+      params->Get(keyVec, attrVec, valVec, numSteps_);
+      std::cout<<"Total number of TS from MpCCI class"<<numSteps_<<std::endl;
+      keyVec = "transient", "firstDt";
+      params->Get(keyVec, attrVec, valVec, firstdt_);
+      std::cout<<"TS size got from MpCCI class"<<firstdt_<<std::endl;
+
+      nodalSrcMat_=new Double*[MpCCInodes_];
+      for (UInt i=0; i<=MpCCInodes_;i++)
+        nodalSrcMat_[i]=new Double[numSteps_];
+
+      // Create directory to save in the source files
+      std::string S="mkdir -p nodalSrcs";
+      system(S.c_str());
+      
       Info->PrintF("acoustic","Writing coarse transient sources in single nodal files (NrFiles=NrNodes)\n");
     }
     if (writeGridFile_)
@@ -109,7 +129,7 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
 #define REALTYPE CCI_DOUBLE
   typedef double Realtype;
 
-  std::cout<<"Nodes: "<<MpCCInodes_<<std::endl;
+  //std::cout<<"\nCoupled Nodes: "<<MpCCInodes_;
   Realtype * NODEDATA=new Realtype[3*MpCCInodes_];
   int ** TOPOLOGYDATA;
   TOPOLOGYDATA=new int*[coupledsubdoms.GetSize()];
@@ -608,7 +628,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
     }
     
 
-    std::cout<<"flowdata length= "<<flowdata.GetSizeCol()<<std::endl;
+    //std::cout<<"flowdata length= "<<flowdata.GetSizeCol()<<std::endl;
     if (nodalSrc == TRUE)
       {
         if (writeSrcFileperTS_)
@@ -625,7 +645,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
               Info->Error( "Number of src file exceeds 9999!",
                            __FILE__, __LINE__ );
             }
-            filename.append( Info->GenStr( filenum ) );
+            filename.append( GenStr( filenum ) );
             filenum++;
             outsrcfile_ = new std::ofstream(filename.c_str());
           }
@@ -650,40 +670,46 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
               }
             if (writeSrcFileperNode_)
               {
-                std::string filename;
-                std::ofstream outsrcnodalfile;
-                filename = "nodalSrcs/timesrcfile";
-                filename.append( ".node" );
-                filename.append( Info->GenStr( nodeIds_[inode] ) );
-                //create the file if it doesn't exist yet
+                if (TimeStepCtr<=numSteps_)
+                  {
+                    nodalSrcMat_[nodeIds_[inode]][TimeStepCtr-1]= value_Press[inode];
+                    if (TimeStepCtr==numSteps_)
+                      {
+                        std::string filename;
+                        std::ofstream outsrcnodalfile;
+                        filename = "nodalSrcs/timesrcfile";
+                        filename.append( ".node" );
+                        filename.append( GenStr( nodeIds_[inode] ) );
+                        //create the file if it doesn't exist yet
                 
-                if (TimeStepCtr==1)
-                  {
-                    // Create directory to save in the source files
-                    std::string S="mkdir -p nodalSrcs";
-                    system(S.c_str());
-                    std::cout<<"In first time step"<<std::endl;
-                    outsrcnodalfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
-                  }
-                else
-                  {
-                    outsrcnodalfile.open(filename.c_str(), std::ios::app);
-                  }
+ //                        if (TimeStepCtr==1)
+//                           {
+                            outsrcnodalfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
+//                           }
+//                         else
+//                           {
+//                           outsrcnodalfile.open(filename.c_str(), std::ios::app);
+//                           }
 
-                if (!outsrcnodalfile) 
-                  {
-                    std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
-                      ") In MpCCIexch: Can't open src nodal file for output:" << filename.c_str() << std::endl;
-                    exit(1);
+                        if (!outsrcnodalfile) 
+                          {
+                            std::cerr << "ERROR(" << __FILE__ << " " << __LINE__ <<
+                              ") In MpCCIexch: Can't open src nodal file for output:" << filename.c_str() << std::endl;
+                            exit(1);
+                          }
+                        for (UInt i=0; i<numSteps_; i++)
+                          outsrcnodalfile<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
+                                         << firstdt_*(i+1) << " " << nodalSrcMat_[nodeIds_[inode]][i] << std::endl;                          
+
+                        //    outsrcnodalfile<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
+                        //               << acttime << " " << value_Press[inode] << std::endl;
+                        // !!!!THIS IS ONLY TO test reading of the data
+                        // we assign the nodal index as output to the nodal value just for checking!!!
+                        //outsrcnodalfile << nodeIds_[inode] <<std::endl;
+
+                        outsrcnodalfile.close();
+                      }
                   }
-
-                outsrcnodalfile<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
-                               << acttime << " " << value_Press[inode] << std::endl;
-                // !!!!THIS IS ONLY TO test reading of the data
-                // we assign the nodal index as output to the nodal value just for checking!!!
-                //outsrcnodalfile << nodeIds_[inode] <<std::endl;
-
-                outsrcnodalfile.close();
               }
           }
     TimeStepCtr++;
@@ -714,7 +740,7 @@ if (value_VxVy)  delete []  value_VxVy;
 //      delete outsrcfile_;
 
 
-    std::cout<<"Leaving CplCompPhase"<<std::endl;
+//    std::cout<<"Leaving CplCompPhase"<<std::endl;
 }
 
 void MpCCIexch::RecvAllPartitions(std::string couplingType)

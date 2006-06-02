@@ -522,15 +522,16 @@ namespace CoupledField {
     // =====================================================================
     ReadStoreResults();
 
+#ifndef MpCCI
     // check, if any output is calculated at all
     if ( hasOutput_ == FALSE ) {
       (*warning) << "There was no output specified at all for PDE '"
                  << pdename_
-                 << "'Please check your .xml-file, if this is really what "
+                 << "' Please check your .xml-file, if this is really what "
                  << "you want!";
       Warning( __FILE__, __LINE__ );
     }
-
+#endif
 
     // =====================================================================
     // Create time stepping algorithm
@@ -768,11 +769,10 @@ namespace CoupledField {
           val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
         else
           {
-            //   std::cout<<"fncnames_id_[i]: "<<fncnames_id_[i]<<std::endl;
-            //         StdVector<Double>  val_tfunc_vec, dirVal_vec;
             val_tfunc_vec.Resize(nodes.GetSize());
             dirVal_vec.Resize(nodes.GetSize());
             val_tfunc_vec=ptTimeFunc_->TimeSpcFuncAtTime(time,fncnames_id_[i],nodes, ptgrid_);  
+
             for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
 
               // Get coordinates of node and set correct context for parser
@@ -857,8 +857,8 @@ namespace CoupledField {
 
         if (fncnames_id_[i]=="spc_dependent_fnc")
           {
-            //            std::cout<<" function val in SinglePDE, dirVal_vec["<<iNode<<"]: "<<dirVal_vec[iNode]<<std::endl;
-            val = dirVal_vec[iNode];
+            //std::cout<<" function val in SinglePDE, dirVal_vec["<<iNode<<"]: "<<dirVal_vec[iNode]<<std::endl;
+           val = dirVal_vec[iNode];
           }
         
         // Case of complex-valued entries

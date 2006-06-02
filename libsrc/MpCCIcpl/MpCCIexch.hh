@@ -76,6 +76,9 @@ private:
   //!Objects for topology files
   std::ofstream * outelemfile_;
   std::ofstream * outnodefile_;
+  UInt numSteps_; //!< to retrieve number of time steps from xml file
+  Double firstdt_;//!< to retrieve time step size from xml file
+  Double ** nodalSrcMat_; //!< to store srcs in a nodal times numTimeSteps matrix
   //!Object to file for storing src in time step files (NrFiles=NrTimeSteps)
   std::ofstream * outsrcfile_;
 

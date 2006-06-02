@@ -97,7 +97,7 @@ namespace CoupledField
                 ptgrid_->GetVolElems(elemssd,couplSubDomId_[j]);
 		
                 if (dim_ == 3)
-                  { //TO SEND ONLY LINEAR TETRAS TO MPCCI SINCE NO QUAD TETRAS
+                  { //TO SEND ONLY LINEAR 3D ELEMS TO MPCCI SINCE NO QUADRATIC 
                     //ARE ALLOWED
                     ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
                     ptgrid_->GetNodesOfElemList(mapSD_onlyLinNodes_, elemssd, OnlyLinNodes);
@@ -121,7 +121,7 @@ namespace CoupledField
         msg+="is not in list of PDE subdoms. Please, check .xml-file";
         Error(msg.c_str(),__FILE__,__LINE__);
       }
-    // On CFS side we always used the complete coupled region and later give a zero src to the
+    // On CFS side we always use the complete coupled region and later give a zero src to the
     // quadratic (or mid) nodes in case of 3D quadratric acoustic grid.
     MpCCInodes_=mapSD_allNodes_.GetSize();
     
@@ -281,7 +281,7 @@ namespace CoupledField
 
     starttime = CCI_Wtime();
       
-    Integer timestep = 0;
+    //Integer timestep = 0;
     ptMpCCIexch_->CouplCompPhase(flowdata_, atime);
 
 
@@ -533,8 +533,8 @@ namespace CoupledField
             Complex complexValue( valAmpl * cos( valPhase / 180 * PI ),
                                   valAmpl * sin( valPhase / 180 * PI ) );
             //add to RHS
-            //it was: eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
-            //Now to try, since there is no sequential order of nodes:
+            //Since it can be that there is no sequential order of nodes
+            //we use a map with index idx
             if (dim_ == 3)
               {
                 eqnData_->Node2EQN(mapSD_onlyLinNodes_[idx],dof,eqnNr,eqnDof);
@@ -552,9 +552,9 @@ namespace CoupledField
     endtime = CCI_Wtime();
 #endif    
   
-    if (plotRHS_ && !isHarmonic_ && vortexFlag_!=6){
+    if (plotRHS_ && !isHarmonic_ && vortexFlag_!=6 && vortexFlag_!=7){
       ///////// For plotting the RHS as solution for analysing it
-      std::cout<<"Init rhs_ in ComputeRHS(). vortexFlag="<<vortexFlag_<<std::endl;
+      //std::cout<<"Init rhs_ in ComputeRHS(). vortexFlag="<<vortexFlag_<<std::endl;
       rhs_.SetNumSolutions(1);
       rhs_.SetNumNodes(numPDENodes_);
       rhs_.SetSolutionType(ACOU_RHSVAL);
@@ -566,28 +566,24 @@ namespace CoupledField
       algsys_->GetRHSVal( ptRHS );
       rhs_.CopyFromAlgSysDataPointer(ptRHS);
 
-      //For writing out the topology and RHSval (only for Vortex simulation)
-      if (writeGridFile_ && writeSrcFileperTS_)
+      //For writing out the topology and RHSval in files (only for Vortex simul.)
+      if (writeGridFile_ && writeSrcFileperTS_ && vortexSrc_)
         {
-
-
-            // static variable for suffix of output src file
-            static Integer filenum=1;
-            std::string filename;
-            filename = "srcfile_ultrafine_";
-            if ( filenum < 10 ) filename.append( "000" );
-            else if ( filenum < 100 ) filename.append( "00" );
-            else if ( filenum < 1000 ) filename.append( "0" );
-            else if ( filenum > 10000 ) {
-              Info->Error( "Number of src file exceeds 9999!",
-                           __FILE__, __LINE__ );
-            }
-            filename.append( GenStr( filenum ) );
-            filename.append( ".dat" );
-            filenum++;
-            outsrcfile_ = new std::ofstream(filename.c_str());
-
-
+          // static variable for suffix of output src file
+          static Integer filenum=1;
+          std::string filename;
+          filename = "srcfile_veryfine_";
+          if ( filenum < 10 ) filename.append( "000" );
+          else if ( filenum < 100 ) filename.append( "00" );
+          else if ( filenum < 1000 ) filename.append( "0" );
+          else if ( filenum > 10000 ) {
+            Info->Error( "Number of src file exceeds 9999!",
+                         __FILE__, __LINE__ );
+          }
+          filename.append( GenStr( filenum ) );
+          filename.append( ".dat" );
+          filenum++;
+          outsrcfile_ = new std::ofstream(filename.c_str());
 
           StdVector<Elem*> elemssd;  
           Point<2> ptNodalCoord2D;   
@@ -631,7 +627,6 @@ namespace CoupledField
               
               //Now we get the node numbers and corresponding RHS values
 
-
               ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
                                
               for (UInt idx=0; idx<mapSD_allNodes_.GetSize() ; idx++)
@@ -640,25 +635,21 @@ namespace CoupledField
                   //std::cout<<std::endl;
                   Double RHSnodalVal=0;
                   if (timestep==1)
-                  {
+                    {
                       ptgrid_->GetNodeCoordinate(ptNodalCoord2D, node);
                       (*outnodefile_) << ptNodalCoord2D[0]<<" "<< ptNodalCoord2D[1]<<" "<<0.0<<std::endl;
                       //    std::cout<<"x: "<<ptNodalCoord2D[0]<<", y: "<<ptNodalCoord2D[1]<<std::endl; 
-                  }
+                    }
                   eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
                   rhs_.Get(idx,1,RHSnodalVal);
                   (*outsrcfile_) <<  RHSnodalVal<<std::endl;
                   //std::cout<<"node: "<<node<<" eqnNr: "<<eqnNr<<" RHSnodalVal: "<<RHSnodalVal<<std::endl;
                 }
-                
-              
             }
         }
     }
     
-      
-  
-         timestep=timestep+1;
+    timestep=timestep+1;
 
   } 
 
@@ -685,7 +676,7 @@ namespace CoupledField
        std::cerr << "Current time: "<<atime;
        std::cerr <<std::endl;
        ptgrid_->GetVolElems(elemssd,couplSubDomId_[i]);
-       if (vortexFlag_==1 || vortexFlag_==5 || vortexFlag_==6)
+       if (vortexFlag_==1 || vortexFlag_==5 || vortexFlag_==6 || vortexFlag_==7)
          //Getting Analytical solution (P_ak) or Tangential velocity (arg) as RHSval
          {
            std::cout<<"Getting Analytical solution (P_ak) or Tangential velocity (arg) as RHSval"<<std::endl;
@@ -694,19 +685,22 @@ namespace CoupledField
            StdVector<UInt> connect(1);
            eqnDof = 1;
            dof    = 1;
-           if (vortexFlag_==6)
+           if (vortexFlag_==6 || vortexFlag_==7)
              {
                plotRHSVel_= TRUE;
                std::cout<<"Init rhs_ for putting vel vector field in RHSval for visualization"<<std::endl;
+               std::cout<<"numPDENodes_: "<<numPDENodes_<<std::endl;
+               std::cout<<"elemssd.GetSize(): "<<elemssd.GetSize()<<std::endl;
+               std::cout<<"couplSubDomId_[i]: "<<couplSubDomId_[i]<<std::endl;
                rhs_.SetNumSolutions(1);
-               rhs_.SetNumNodes(numPDENodes_);
+               rhs_.SetNumNodes(elemssd.GetSize());
                rhs_.SetSolutionType(ACOU_RHSVAL);
                rhs_.SetNumDofs(1);
                rhs_.SetPtrEQNData(eqnData_, ptgrid_);
                rhs_.Init(0.0);
                
                rhs2_.SetNumSolutions(1);
-               rhs2_.SetNumNodes(numPDENodes_);
+               rhs2_.SetNumNodes(elemssd.GetSize());
                rhs2_.SetSolutionType(ACOU_POT_NRBC);
                rhs2_.SetNumDofs(1);
                rhs2_.SetPtrEQNData(eqnData_, ptgrid_);
@@ -718,6 +712,7 @@ namespace CoupledField
            for (UInt idx=0; idx<mapSD_allNodes_.GetSize() ; idx++)
              {
                Double val = mapSD_allNodes_[idx];
+               //node = mapSD_allNodes_[idx];
                node = idx + 1;
 
                Matrix<Double> ptCoordNodes;
@@ -733,16 +728,16 @@ namespace CoupledField
                Vector<Double>tempVelX, tempVelY;
                tempVelX.Resize(1);
                tempVelY.Resize(1);
-               tempVelX[0]=vectorVal[0];
-               tempVelY[0]=vectorVal[1];
                
                //add to RHS
                eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
                algsys_->SetNodeRHS(val, pdeId_, eqnNr, eqnDof); 
                              
-               if (vortexFlag_==6)
+               if (vortexFlag_==6 || vortexFlag_==7)
                  {
                    //std::cout<<"eqnNr: "<<eqnNr<<std::endl;
+                   tempVelX[0]=vectorVal[0];
+                   tempVelY[0]=vectorVal[1];
                    rhs_.SetNodalResult(eqnNr,tempVelX);
                    rhs2_.SetNodalResult(eqnNr,tempVelY);
                  }
@@ -784,9 +779,9 @@ namespace CoupledField
                    //                         }
                       
                    //Original core (about 2.5m)  //Give also shifted results (above zero)
-                   //if (r_sqr<=((200./81.)*(200./81.)))
+                   if (r_sqr<=((200./81.)*(200./81.)))
                      //Smaller core source (about 1.5m core)  // Give better results
-                   if (r_sqr<=((140./81.)*(140./81.))) 
+                     //if (r_sqr<=((140./81.)*(140./81.))) 
                    //Bigger core (about 12m)
                    //if (r_sqr<=((1000./81.)*(1000./81.))) //Give shifted results (above zero)
                    //Full core   // Gives very high amplitudes
@@ -888,7 +883,6 @@ namespace CoupledField
                    //                        std::cout<<"Making elemvec["<<ii<<"] equal 0"<<std::endl;
                    //                      }
                    //                  }
-           
 
                    eqnData_->Node2EQN(connecth, connect_PDE);
 
@@ -1090,8 +1084,6 @@ namespace CoupledField
     // dimensionsbehaftete Var. die noch nicht in common definiert sind
     Double     KappaPhys, T_umlaufPhys, lambdaPhys;                    
 
- 
-
     //--------------------------------------------------------------------------
     // ...Phys kennzeichnet die dimensionsbehafteten Groessen
     // ...     (ohne Endung) sind entdimensionalisierte Groessen
@@ -1104,7 +1096,6 @@ namespace CoupledField
     r_0Phys       = 1.;                              // halb. Wirbelabst. [  m  ]
     GammaZirkPhys = 1.00531;                         // Zirkulation       [m^2/s]
     Equationgamma = 1.4;                             // Need to be defined here as well
-    
 
     params->Get("p0Phys", p0Phys, "vortexSrc");
     params->Get("rho0Phys", rho0Phys, "vortexSrc");
@@ -1235,11 +1226,20 @@ namespace CoupledField
               // Akustischer Druck
               if (r > 0.5)
                 { 
-                  if (abs(x)<1e-8) 
+                  if (abs(x)<1.e-18) 
                     {
+                      std::cout<<"In if for converting Theta in analytical MAE"<<std::endl;
+                      std::cout<<"x= "<<x<<std::endl;
+                      std::cout<<"abs(x)= "<<abs(x)<<std::endl;
+
+
+                     
+
+
                       if (y>0.0)
                         {
                           theta = PI/2.;
+
                         }
                       else
                         {
@@ -1248,7 +1248,23 @@ namespace CoupledField
                     }
                   else
                     {
-                      theta = atan(y / x);   // Polarkoordinaten r, theta
+                      theta = atan(y/x);   // Polarkoordinaten r, theta
+                      //This has been done to correct core of analytical solution!
+                      if(r<12.68)
+                        {
+//                           std::cout<<"    p0Phys        = "<<p0Phys <<std::endl;
+//                           std::cout<<"    rho0Phys      = " <<rho0Phys<<std::endl;
+//                           std::cout<<"    r_0Phys       = "<<r_0Phys<<std::endl;
+//                           std::cout<<"    GammaZirkPhys = "<<GammaZirkPhys<<std::endl;
+//                           std::cout<<"    Equationgamma = "<<Equationgamma<<std::endl;
+
+//                           std::cout<<"r= "<<r<<std::endl;
+//                           std::cout<<"PI= "<<PI<<std::endl;
+                          std::cout<<"Oldtheta= "<<theta*180./PI<<std::endl;
+                          theta = atan(y/x) - 0.25*PI;
+                          std::cout<<"theta= "<<theta*180./PI<<std::endl;
+                        }
+                      
                     }
             
                   // Hankel Funktion 2.Ordg. und 2. Art H2_2
@@ -1272,8 +1288,10 @@ namespace CoupledField
       case 2:
         {
           P_ak = 0.;
-          srcVal=-P_t;
+          //srcVal=-P_t;
           //srcVal = 0.;
+          //or the second time derivative of P_inc
+          srcVal = -P_tt;
           break;
         }
       case 3:
@@ -1283,11 +1301,11 @@ namespace CoupledField
           //
           //This is only a 2D implementation!!
           // Sending back the complete divergence of T
-          dTij_di.Resize(2);   
+          dTij_di.Resize(2);
           dTij_di[0] = 2.0 * U_inc * U_x + V_inc * U_y + U_inc * V_y; 
           dTij_di[1] = 2.0 * V_inc * V_y + U_inc * V_x + V_inc * U_x; 
-          Double density=1.0;
-          //dTij_di*= density
+          Double density=1.204;
+          dTij_di*= density;
           break;
         }
       case 4:
@@ -1309,13 +1327,33 @@ namespace CoupledField
           break;
         }
       case 6:
-        {// Sending back the tangential velocity as srcVal
+        {// Sending back the velocity field for plotting it as RHS
           srcVal=sqrt(U_inc*U_inc+V_inc*V_inc);
           P_ak = 0.;
           //srcVal=omegaPhys*r;
           dTij_di.Resize(2);   
           dTij_di[0] = U_inc; 
           dTij_di[1] = V_inc; 
+          break;
+        }
+      case 7:
+        {// Sending back the velocity field for plotting it as RHS
+          srcVal=sqrt(U_inc*U_inc+V_inc*V_inc);
+          P_ak = 0.;
+          //srcVal=omegaPhys*r;
+          dTij_di.Resize(2);   
+          if (((x<(cos(2*arg)+0.25)) && (y<(sin(2*arg)+0.25)) && (x>(cos(2*arg)-0.25)) && (y>(sin(2*arg)-0.25))) ||
+              ((x<(-cos(2*arg)+0.25)) && (y<(-sin(2*arg)+0.25)) && (x>(-sin(2*arg)-0.25)) && (y>(-sin(2*arg)-0.25))))
+            {
+              std::cout<<"aqui primera excepcion, "<<"Real b: "<<real(b)+0.25<<"Imag b: "<<imag(b)+0.25<<std::endl;
+              dTij_di[0] = 0.; 
+              dTij_di[1] = 0.; 
+            }
+          else
+            {
+              dTij_di[0] = 2.0 * U_inc * U_x + V_inc * U_y + U_inc * V_y; 
+              dTij_di[1] = 2.0 * V_inc * V_y + U_inc * V_x + V_inc * U_x;           
+            }
           break;
         }
       default:
