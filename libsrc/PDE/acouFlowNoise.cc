@@ -208,26 +208,6 @@ namespace CoupledField
         
       }
 
-
-    
-
-
-    //     if (vortexSrc_)
-    //       {
-    // //         StdVector<Elem*> elemssd;
-    // //         StdVector<std::string> regionNames, coupledRegionNames;
-    // //         params->GetList( "name", regionNames, pdename_, "region" );
-    // //         params->GetList( "name", coupledRegionNames,  "MpCCI-flownoise",
-    // //                          "coupledregion" );
-    // //         ptgrid_->RegionNameToId( subdoms_, regionNames );
-    // //         ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
-    // //         std::cerr << "Subdoms:\n" << subdoms_ << std::endl;
-    // //         std::cerr << "CoupledSubdoms:\n" << couplSubDomId_  << std::endl;
-    //       }
-    //     else
-    //       Error( "No MpCCI coupling, need to define VortexSrc", __FILE__, __LINE__ );    
-
-
 #endif
 
   }
@@ -939,8 +919,6 @@ namespace CoupledField
 
 }
 
-  
-
   void AcouFlowNoise::ReadFlowData(const Char * aname, UInt timestep,
                                    Matrix<Double> &flowdata_)
   {
@@ -1231,11 +1209,7 @@ namespace CoupledField
                       std::cout<<"In if for converting Theta in analytical MAE"<<std::endl;
                       std::cout<<"x= "<<x<<std::endl;
                       std::cout<<"abs(x)= "<<abs(x)<<std::endl;
-
-
-                     
-
-
+                      
                       if (y>0.0)
                         {
                           theta = PI/2.;
@@ -1249,17 +1223,9 @@ namespace CoupledField
                   else
                     {
                       theta = atan(y/x);   // Polarkoordinaten r, theta
-                      //This has been done to correct core of analytical solution!
+                      //This has been done to rotate PI/4 core of analytical solution!
                       if(r<12.68)
                         {
-//                           std::cout<<"    p0Phys        = "<<p0Phys <<std::endl;
-//                           std::cout<<"    rho0Phys      = " <<rho0Phys<<std::endl;
-//                           std::cout<<"    r_0Phys       = "<<r_0Phys<<std::endl;
-//                           std::cout<<"    GammaZirkPhys = "<<GammaZirkPhys<<std::endl;
-//                           std::cout<<"    Equationgamma = "<<Equationgamma<<std::endl;
-
-//                           std::cout<<"r= "<<r<<std::endl;
-//                           std::cout<<"PI= "<<PI<<std::endl;
                           std::cout<<"Oldtheta= "<<theta*180./PI<<std::endl;
                           theta = atan(y/x) - 0.25*PI;
                           std::cout<<"theta= "<<theta*180./PI<<std::endl;
