@@ -105,7 +105,7 @@ namespace CoupledField {
     
     if (bcs_id_phase_.GetSize() <= i)
       Error("no such index in Vector bcs_id_phase_",__FILE__,__LINE__);
-    bcs_id_phase_[i]=phase;
+    bcs_id_phase_[i]=GenStr(phase);
   }
 
   // ======================================================
