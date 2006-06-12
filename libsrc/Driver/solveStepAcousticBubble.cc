@@ -35,9 +35,11 @@ namespace CoupledField {
       if( rhs == "yes" ) {
         storeRHS_ = TRUE;
         bubbleRHS_.SetNumSolutions(1);
-        bubbleRHS_.SetSolutionType(MAG_FLUX_DENSITY);
+        bubbleRHS_.SetSolutionType(ELEC_FIELD_INTENSITY);
+	//        bubbleRHS_.SetSolutionType(MAG_FLUX_DENSITY);
         bubbleRHS_.SetNumElems(eqnData_->GetNumLocalElems());
-        bubbleRHS_.SetNumDofs(ptgrid_->GetDim());
+//         bubbleRHS_.SetNumDofs(ptgrid_->GetDim());
+        bubbleRHS_.SetNumDofs(3);
         bubbleRHS_.SetPtrEQNData(eqnData_, ptgrid_);
         bubbleRHS_.Init(); 
       }
@@ -68,6 +70,7 @@ namespace CoupledField {
   void SolveStepAcousticBubble::StepTransBubble( const Boolean reset ) {
 
     ENTER_FCN( "SolveStepAcousticBubble::StepTransBubble" );
+
 
     Double * ptsol;
     UInt job;
@@ -215,6 +218,7 @@ namespace CoupledField {
     
       //compute bubble ODE
     
+
       Matrix<Double> ptCoord;
       BaseFE         * ptElem;
       StdVector<UInt> connect, Eqns;  
@@ -272,13 +276,13 @@ namespace CoupledField {
           Double dt = TS_alg_->GetTimeStep();
           Double steptime = actTime_ - dt;
 
-          if ( hTry_ > dt){
-            hTry_ = dt / 3.0;
-          }
+//           if ( hTry_ [numEl]> dt){
+//             hTry_[numEl] = dt / 3.0;
+//           }
 
           steptime   = steptime / initRadius_ * (sqrt(pStatic_/ density_));
           tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
-          hTry_      = hTry_ / initRadius_ * (sqrt(pStatic_/ density_));
+          hTry_[numEl]      = hTry_[numEl] / initRadius_ * (sqrt(pStatic_/ density_));
 
           //get the current values
           bubbleValues_[0] = radius_[numEl];
@@ -289,11 +293,13 @@ namespace CoupledField {
           //set numEl to ODE-Solver
           ptODESolver_->SetNumEl(numEl);
 	
-          ptODESolver_->Solve(steptime, tNoDim_, yNoDim_, *ptBubble_[numEl], hTry_,
+          ptODESolver_->Solve(steptime, tNoDim_, yNoDim_, *ptBubble_[numEl], hTry_[numEl],
                               0, dt);
           //set the new values
           radiusWork_[numEl]   = yNoDim_[0] * initRadius_;
           velocityWork_[numEl] = yNoDim_[1] * sqrt( pStatic_/ density_);
+     	  hTry_[numEl]     = hTry_[numEl]  * initRadius_ / (sqrt(pStatic_/ density_));
+
           //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -306,8 +312,8 @@ namespace CoupledField {
           //          Double dt = TS_alg_->GetTimeStep();
           //          Double steptime = actTime_ - dt;
 
-          //	  if ( hTry_ > dt){
-          //	    hTry_ = dt / 3.0;
+	  //         //	  if ( hTry_[numEl] > dt){
+	  //         //	    hTry_[numEl] = dt / 3.0;
           //	  }
         
           //get the current values
@@ -317,7 +323,7 @@ namespace CoupledField {
         
           //set numEl to ODE-Solver
           //          ptODESolver_->SetNumEl(numEl);
-      	  //          ptODESolver_->Solve(steptime, actTime_, bubbleValues_, *ptBubble_[numEl], hTry_,
+      	  //          ptODESolver_->Solve(steptime, actTime_, bubbleValues_, *ptBubble_[numEl], hTry_[numEl],
           //                              0, dt);
         
           //set the new values
@@ -354,14 +360,16 @@ namespace CoupledField {
 
     ENTER_FCN( "SolveStepAcousticBubble::SetupBubbleDynamics" );
 
+
     ptBubble_.Resize(numPDEElems_);
     bubbleValues_.Resize(2);
     radius_.Resize(numPDEElems_);  
     velocity_.Resize(numPDEElems_);
     radiusWork_.Resize(numPDEElems_);  
     velocityWork_.Resize(numPDEElems_);
+    hTry_.Resize(numPDEElems_);
 
-    hTry_=1e-10;
+
     yNoDim_.Resize(2);
     // =============================================
     //  Query ParamHandler for material parameters
@@ -411,7 +419,7 @@ namespace CoupledField {
     Info->PrintF ("", "Polytropic exponent of the fluid:\t %10.6e\n", polytrop_);
     Info->PrintF ("", "Viscosity of the fluid:\t %10.6e\n\n", viscosity_);
 
-    Info->PrintF ("", "\nAnfangsschrittweite:\t %10.6e\n", hTry_);
+    Info->PrintF ("", "\nAnfangsschrittweite:\t %10.6e\n", hTry_[0]);
 
 
 
@@ -469,6 +477,7 @@ namespace CoupledField {
       velocity_[el]     = initVel_;
       radiusWork_[el]   = initRadius_;
       velocityWork_[el] = initVel_;
+      hTry_[el]= 1e-10;
     }
 
     // Generate ODE solver object
@@ -488,47 +497,48 @@ namespace CoupledField {
   void SolveStepAcousticBubble::ComputeBubbleRHS(){  
     ENTER_FCN( "SolveStepAcousticBubble::ComputeBubbleRHS" );
 
+
     //rhs-integrator
     Double dummy=1.0;
     BaseForm *rhsForm = new VolumeSrcInt(dummy, isaxi_);        
 
     UInt numEl = 0;
     Double fluidDensity;
+
     for (UInt actDom=0; actDom <  subdoms_.GetSize(); actDom++) {      
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems(elemssd, subdoms_[actDom]);
     
    
 
-      for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++)    {              
+      for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++)    { 
+         
         BaseFE * ptEl = elemssd[actEl]->ptElem;
         StdVector<UInt> connecth = elemssd[actEl]->connect;
 
         Matrix<Double> ptCoord;
         PDE_.GetElemCoords(connecth, ptCoord);
-        
-        Double beta2 = 1;
-        Double Rpp = 0;        
 
+	Double beta2 = 1;
+
+        Double beta2Com = 1;
+        Double Rpp = 0; 
+       
         bubbleValues_[0] = radiusWork_[numEl];
         bubbleValues_[1] = velocityWork_[numEl];
 	 
         // New rhs for cavitational fluid
         // rho0 * 4/3 * pi* n * ( 3 * R^2 * d^2R/dt^2 + 6 * R * (dR/dt)^2) 
-        if (actStep_ == 1) 
+        if (actStep_ == 1){ 
           beta2 =density_*density_* 4/3*PI*bubbleDensity_*6*bubbleValues_[0]
             *bubbleValues_[1]*bubbleValues_[1]; 
 
-
-// 	  //Vereinfachte RHS Siehe Commander
-// 	  beta2=0.0;
-
-
-
+	  //Vereinfachte RHS Siehe Commander
+	  beta2Com=0.0;
+	}
 
         else {
           StdVector<Double> dydt(2);
-
 
           // dimensionless**************************************
           yNoDim_[0] = bubbleValues_[0] / initRadius_;
@@ -540,47 +550,45 @@ namespace CoupledField {
             (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
              + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
 
-
-// 	  //Vereinfachte RHS Siehe Commander
-// 	  beta2= density_*density_*4.0*PI*bubbleDensity_*initRadius_ *initRadius_*dydt[1];
-
+	  //Vereinfachte RHS Siehe Commander
+	  beta2Com= density_*density_*4.0*PI*bubbleDensity_*initRadius_ *initRadius_*dydt[1];
 
           // dimensionless**************************************
 
-          //Normal case+++++++++++++++++++++++++++++++++++++++
+	  //Normal case+++++++++++++++++++++++++++++++++++++++
           //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues_, dydt);
           //	  beta2 =density_*density_* 4/3*PI*bubbleDensity_*
           //	    (6*bubbleValues_[0]*bubbleValues_[1]*bubbleValues_[1]
           //	     + 3*bubbleValues_[0]*bubbleValues_[0]*dydt[1] ); 
           //Normal case+++++++++++++++++++++++++++++++++++++++
 	  
-	  Rpp=dydt[1];
+ 	  Rpp=dydt[1];
         }
-
 
         rhsForm->SetFactor(beta2);            
         rhsForm->SetElemPtr(ptEl);
-      
-        Vector<Double> elemVec, helpVec;
+
+	Vector<Double> elemVec, helpVec;
         rhsForm->CalcElemVector(ptCoord, elemVec);
 
 	// store element result
         if ( storeRHS_ == TRUE ) {
-          helpVec.Resize( ptgrid_->GetDim() );
+//           helpVec.Resize( ptgrid_->GetDim() );
+          helpVec.Resize( 3 );
           helpVec[0] = beta2;
           helpVec[1] = Rpp;
+          helpVec[2] = beta2Com;
           UInt locElemNum = eqnData_->Mesh2PDEElem(elemssd[actEl]->elemNum);
           bubbleRHS_.SetElemResult(locElemNum-1, helpVec);
         }
-	
         // map connect to PDE node numbers
         StdVector<Integer> connect_PDE;
         eqnData_->Node2EQN(connecth, connect_PDE);
-
         algsys_->SetElementRHS(&elemVec[0], pdeId1_, connect_PDE.GetPointer(), 
                                connect_PDE.GetSize());
         numEl++;
       }
+
     }
 
 //     // Write element vector to result file
@@ -598,6 +606,7 @@ namespace CoupledField {
   const StdVector<Double>& SolveStepAcousticBubble::GetResultData(std::string resultType) {
 
     ENTER_FCN( "SolveStepAcousticBubble::WriteResults" );
+
 
     if ( resultType == "bubbleRadius" ) {
       return radius_;

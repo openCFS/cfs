@@ -116,7 +116,7 @@ namespace CoupledField {
 
 
 
-     do {
+    // do {
 
     //  std::cerr<<"schleife "<<  iterationCounter<<std::endl;
 
@@ -142,7 +142,7 @@ namespace CoupledField {
       algsys_->InitRHS();
     
       //compute source term due to bubble ODE
-        ComputeBubbleRHS();
+      //  ComputeBubbleRHS();
 
 
 
@@ -299,6 +299,8 @@ namespace CoupledField {
 
 	  pressureNoDim = pressure / pStatic_ ;
 	  presDerivNoDim = pressureDeriv * initRadius_ / pStatic_ / ( sqrt ( pStatic_ / density_));
+
+
 	  ptBubble_[numEl]->SetP(pressureNoDim);
 	  ptBubble_[numEl]->SetDpdt(presDerivNoDim);
 
@@ -306,13 +308,13 @@ namespace CoupledField {
 	  Double dt = TS_alg_->GetTimeStep();
 	  Double steptime = actTime_ - dt;
 
-	  if ( hTry_ > dt){
-	    hTry_ = dt / 3.0;
-	  }
+// 	  if ( hTry_[numEl] > dt){
+// 	    hTry_[numEl] = dt / 3.0;
+// 	  }
 
 	  steptime   = steptime / initRadius_ * (sqrt(pStatic_/ density_));
 	  tNoDim_    = actTime_ / initRadius_ * (sqrt(pStatic_/ density_));
-	  hTry_      = hTry_ / initRadius_ * (sqrt(pStatic_/ density_));
+	  hTry_[numEl]      = hTry_[numEl] / initRadius_ * (sqrt(pStatic_/ density_));
 
 	  //get the current values
 	  bubbleValues_[0] = radius_[numEl];
@@ -322,13 +324,18 @@ namespace CoupledField {
 
 	  //set numEl to ODE-Solver
 	  ptODESolver_->SetNumEl(numEl);
-	
-	  ptODESolver_->Solve(steptime, tNoDim_, yNoDim_, *ptBubble_[numEl], hTry_,
+
+
+	  ptODESolver_->Solve(steptime, tNoDim_, yNoDim_, *ptBubble_[numEl], hTry_[numEl],
 			      0, dt);
-	
+
+
 	  //set the new values
 	  radiusWork_[numEl]   = yNoDim_[0] * initRadius_;
 	  velocityWork_[numEl] = yNoDim_[1] * sqrt( pStatic_/ density_);
+     	  hTry_[numEl]     = hTry_[numEl]  * initRadius_ / (sqrt(pStatic_/ density_));
+
+
 	  //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 
@@ -341,9 +348,9 @@ namespace CoupledField {
 	  //          Double dt = TS_alg_->GetTimeStep();
 	  //          Double steptime = actTime_ - dt;
 
-	  //	  if ( hTry_ > dt){
-	  //	    hTry_ = dt / 3.0;
-	  //	  }
+// 	  //	  if ( hTry_[numEl] > dt){
+// 	  //	    hTry_[numEl] = dt / 3.0;
+// 	  //	  }
         
           //get the current values
 	  //          bubbleValues_[0] = radius_[numEl];
@@ -352,7 +359,7 @@ namespace CoupledField {
         
           //set numEl to ODE-Solver
 	  //          ptODESolver_->SetNumEl(numEl);
-      	  //          ptODESolver_->Solve(steptime, actTime_, bubbleValues_, *ptBubble_[numEl], hTry_,
+      	  //          ptODESolver_->Solve(steptime, actTime_, bubbleValues_, *ptBubble_[numEl], hTry_[numEl],
 	  //                              0, dt);
         
           //set the new values
@@ -369,7 +376,7 @@ namespace CoupledField {
 
 
 
-       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+      // } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
 
 
@@ -394,8 +401,8 @@ namespace CoupledField {
     velocity_.Resize(numPDEElems);
     radiusWork_.Resize(numPDEElems);  
     velocityWork_.Resize(numPDEElems);
+    hTry_.Resize(numPDEElems);
 
-    hTry_=1e-10;
     yNoDim_.Resize(2);
     // =============================================
     //  Query ParamHandler for material parameters
@@ -446,7 +453,7 @@ namespace CoupledField {
     Info->PrintF ("", "Polytropic exponent of the fluid:\t %10.6e\n", polytrop_);
     Info->PrintF ("", "Viscosity of the fluid:\t %10.6e\n\n", viscosity_);
 
-    Info->PrintF ("", "\nAnfangsschrittweite:\t %10.6e\n", hTry_);
+    Info->PrintF ("", "\nAnfangsschrittweite:\t %10.6e\n", hTry_[0]);
 
 
 
@@ -498,7 +505,7 @@ namespace CoupledField {
       velocity_[el]     = initVel_;
       radiusWork_[el]   = initRadius_;
       velocityWork_[el] = initVel_;
-   
+      hTry_[el]= 1e-10;
     }
 
     // Generate ODE solver object

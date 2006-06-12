@@ -113,6 +113,12 @@ namespace CoupledField {
     void CalcHeatCouplingRHS( Vector<Double> & energy, 
                               StdVector<StdVector<UInt> > & elemNodeToCouplingNode,
                               UInt actCoupling, UInt numCouplingNodes );
+
+    //! calculate element mean pressure and derivative for bubble PDE
+    void CalcBubblePressure( StdVector<Elem*>& couplingElems,
+                             Vector<Double>& elemCouplingSols,
+                             SolutionType solType );
+
     //! 
     void SetMechanicCoupling() {
       isMechCoupled_ = TRUE;

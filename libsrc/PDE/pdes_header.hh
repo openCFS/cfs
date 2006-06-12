@@ -14,6 +14,7 @@
 #include "heatCondPDE.hh"
 #include "acousticXYZPDE.hh"
 #include "stokesFluidPDE.hh"
+#include "bubblePDE.hh"
 
 
 #endif

@@ -59,6 +59,7 @@
           <xsd:enumeration value="nrbc"/>
           <xsd:enumeration value="heatConduction"/>
           <xsd:enumeration value="stokesFluid"/>
+          <xsd:enumeration value="bubble"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

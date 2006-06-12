@@ -1,0 +1,794 @@
+#include "bubblePDE.hh"
+
+#include "Driver/solveStepODE.hh"
+#include "ODEDescr/KellerMiksis.hh"
+#include "ODEDescr/LinearKellerMiksis.hh"
+#include "ODEDescr/Gilmore.hh"
+#include "ODEDescr/Gilmoredimlos.hh"
+#include "ODESolve/ODESolver_RKF45.hh"
+#include "ODESolve/ODESolver_Rosenbrock.hh"
+#include "DataInOut/writeresults.hh"
+
+
+#ifdef TCL_INTERFACE
+#include "DataInOut/Scripting/cfsmessenger.hh" 
+#endif
+
+namespace CoupledField {
+
+
+  // ***************
+  //   Constructor
+  // ***************
+  BubblePDE::BubblePDE(Grid * aptgrid,  TimeFunc *aptTimeFunc, WriteResults *aptOut)
+    :SinglePDE(aptgrid, aptOut, aptTimeFunc) {
+
+    ENTER_FCN( "BubblePDE::BubblePDE" );
+
+    // =====================================================================
+    // Initialize all private variables
+    // =====================================================================
+    ptODESolver_ = NULL;
+    bubbleDensity_ = 0.0;
+    bubbleDynType_ = NOBUBBLETYPE;
+    initRadius_ = 0.0;
+    initVel_ = 0.0;
+    density_ = 0.0;
+    sonicVel_ = 0.0;
+    pStatic_ = 0.0;
+    pVapour_ = 0.0;
+    surfaceTension_ = 0.0;
+    polytrop_ = 0.0;
+    viscosity_ = 0.0;
+    t_ = 0.0;
+    pressure_ = 0.0;
+    pressureDeriv_ = 0.0;  
+    pressureAmpl_ = 0.0;
+    frequency_ = 0.0;
+    dt_ = 0.0;
+    steptime_ = 0.0;
+    y_.Resize(2);
+
+
+    // =====================================================================
+    // set solution information
+    // =====================================================================
+    dofspernode_ = 1;
+    solTypes_ = BUBBLE_RADIUS;
+    solDofs_ = 1;
+    pdename_          = "bubble";
+    pdematerialclass_ = FLUID;
+ 
+    geoUpdate_ = FALSE;
+    nonLin_    = FALSE;
+    writeValues_ = FALSE;
+    writeRHS_    = FALSE;
+
+
+    //check, if problem is axisymmetric
+    if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
+
+    // **************************************************
+    //   Check what type of bubble model should be used
+    // **************************************************
+
+    // vectors for parameter handling
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    StdVector<std::string> auxVec;
+    
+    keyVec = pdename_, "bubbles", "bubbleType";
+    attrVec = "", "tag";
+    valVec =  "", bcSequenceTag_;
+    params->GetList(keyVec, attrVec, valVec, auxVec);
+  
+    if ( auxVec.GetSize() == 1 ) {
+      String2Enum( auxVec[0], bubbleDynType_ );
+
+
+      //*********Doppelt siehe unten ***
+//       //Set bubbledensity
+//       keyVec = pdename_, "bubbles", "bubbleNumDensity";
+//       params->Get(keyVec, attrVec, valVec, bubbleDensity_);
+    }
+    else if ( auxVec.GetSize() > 1 ) {
+      Error("Specification of bubble type not unique in xml-file", __FILE__,
+            __LINE__ );
+    }
+    else {
+      bubbleDynType_ = NOBUBBLETYPE;
+    }
+  }
+
+  BubblePDE::~BubblePDE() {
+    ENTER_FCN( "BubblePDE::~BubblePDE" );
+    
+    // close output stream
+    if( !isIterCoupled_ ) {
+      outValues_.close();
+
+      UInt  numElems = ptgrid_->GetNumElems( subdoms_ );
+      for( UInt iElem = 0; iElem < numElems; iElem++ ) {
+	delete ptBubble_[iElem];
+      }
+    } else {
+      delete ptBubble_[0];
+    }
+
+
+    delete ptODESolver_;
+
+  }
+  
+
+
+  void BubblePDE::DefineIntegrators()
+  {
+    ENTER_FCN( "BubblePDE::DefineIntegerators" );
+
+    // =============================================
+    //  Query ParamHandler for material parameters
+    // =============================================
+    
+
+    // First make sure that there is a section 'bubbleDynamic'
+    // We rely on params using a validating Schema parser here.
+    StdVector<Double> auxVec;
+    params->GetList( "initRadius", auxVec, "bubble","bubbleDynamic" );
+    if ( auxVec.GetSize() != 1 ) {
+      Error( "Cannot find initRadius! Assuming that section 'bubbleDynamic' "
+             "is missing in xml-file", __FILE__, __LINE__ );
+    }
+
+    //Double initRadius = auxVec[0];
+    initRadius_ = auxVec[0];
+    params->Get( "initVel", initVel_, "bubbleDynamic" );
+    params->Get( "density", density_, "bubbleDynamic" );
+    params->Get( "sonicVel", sonicVel_, "bubbleDynamic" );
+    params->Get( "pStatic", pStatic_, "bubbleDynamic" );
+    params->Get( "pVapour", pVapour_, "bubbleDynamic" );
+    params->Get( "surfaceTension", surfaceTension_, "bubbleDynamic" );
+    params->Get( "polytrop", polytrop_, "bubbleDynamic" );
+    params->Get( "viscosity", viscosity_, "bubbleDynamic" );
+
+    //Set bubbledensity
+    params->Get( "bubbleNumDensity", bubbleDensity_, pdename_, "bubbles" );
+
+    Info->PrintF ("", "The following paramters and methods were used\n");
+    Info->PrintF ("", "to compute the bubble behaviour:\n\n");
+    Info->PrintF ("", "Initial Radius of the bubbles:\t %10.6e\n", initRadius_);
+    Info->PrintF ("", "Initial Velocity of the bubble wall:\t %10.6e\n", initVel_);
+    Info->PrintF ("", "Density of bubbles per unit volume:\t %10.6e\n", bubbleDensity_);
+    Info->PrintF ("", "Density of the fluid:\t %10.6e\n", density_);
+    Info->PrintF ("", "Sound velocity of the fluid:\t %10.6e\n", sonicVel_);
+    Info->PrintF ("", "Static pressure:\t %10.6e\n", pStatic_);
+    Info->PrintF ("", "Vapour pressure of the fluid:\t %10.6e\n", pVapour_);
+    Info->PrintF ("", "Surface tension of the fluid:\t %10.6e\n", surfaceTension_);
+    Info->PrintF ("", "Polytropic exponent of the fluid:\t %10.6e\n", polytrop_);
+    Info->PrintF ("", "Viscosity of the fluid:\t %10.6e\n\n", viscosity_);
+
+    // Generate ODE solver object
+    ptODESolver_ = new ODESolver_RKF45;
+    Info->PrintF( pdename_, "Using the Runge-Kutta-Method to solve bubbledynamics\n");
+    
+    // Hack for determining iterative coupling:
+    // Check the number of PDEs defined in this step. If there is more than one,
+    // we assume iterative coupling
+    StdVector<std::string> names;
+    params->GetPDEList( names );
+    if( names.GetSize() > 1 ) {
+      isIterCoupled_ = TRUE;
+    } else {
+      isIterCoupled_ = FALSE;
+    }
+
+
+    // Check for iterative coupling
+    UInt numElems = 0;
+    if( isIterCoupled_ ) {
+      numElems = ptgrid_->GetNumElems( subdoms_ );
+
+      // Resize vectors
+      radiusOldStep_.Resize( numElems );
+      velocityOldStep_.Resize( numElems );
+
+      // Generate initial data for each element in the iteration workingcopy
+      for( UInt iElem = 0; iElem < numElems; iElem++ ) {
+      
+	// set initial data for each element
+	radiusOldStep_[iElem]    = initRadius_;
+	velocityOldStep_[iElem]  = initVel_;
+      }
+      
+
+    } else {
+      numElems = 1;
+
+      // Read additional data for pressure and requency
+      params->Get( "pressure", pressureAmpl_, pdename_, "excitation" );
+      params->Get( "frequency", frequency_,  pdename_, "excitation" );
+
+      //+++++Dimensionless case ++++++++++++
+      pressureAmpl_= pressureAmpl_ / pStatic_;
+      frequency_   = frequency_ * initRadius_ /(sqrt(pStatic_/ density_));  
+      //+++++Dimensionless case ++++++++++++
+
+      // Open output file stream
+      outValues_.open("out.dat" );
+    } 
+
+    // Resize vectors
+    radius_.Resize( numElems );
+    velocity_.Resize( numElems );
+    hTry_.Resize( numElems );
+    ptBubble_.Resize( numElems );
+
+    
+    // Generate ODE-Description and initial data for each element
+    for( UInt iElem = 0; iElem < numElems; iElem++ ) {
+      
+      // set initial data for each element
+      radius_[iElem]    = initRadius_;
+      velocity_[iElem]  = initVel_;
+      hTry_[iElem]      = 1e-10;
+      
+      // Generate ODE-Description for each element
+      switch(bubbleDynType_){
+
+      case KELLERMIKSIS:
+        //         ptBubble_[iElem] = new KellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
+        //                                          pVapour_, surfaceTension_, polytrop_, viscosity_);
+        //           Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
+        ptBubble_[iElem] = 
+          new LinearKellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
+                                 pVapour_, surfaceTension_, polytrop_, viscosity_);
+        if( iElem == 0 ) {
+          Info->PrintF( pdename_, "Using Linear-Keller-Miksis-Bubble-Model\n");
+        }
+        
+        break;
+        
+        
+      case GILMORE:
+        //ptBubble_[iElem] = new Gilmore(initRadius_,density_, sonicVel_, pStatic_, 
+        //			pVapour_, surfaceTension_, polytrop_, viscosity_);
+        // 	  Info->PrintF( pdename_, "Using Gilmore-Bubble-Model\n");
+        ptBubble_[iElem] = 
+          new Gilmoredimlos(initRadius_,density_, sonicVel_, pStatic_, 
+                            pVapour_, surfaceTension_, polytrop_, viscosity_);
+        if( iElem == 0 ) {
+          Info->PrintF( pdename_, "Using dimensionless Gilmore-Bubble-Model\n");
+        }
+        break;
+        
+      default:
+        Error("No bubblemethod specified ",__FILE__,__LINE__);
+      }
+    } // end for
+    
+  }
+
+
+
+
+  void BubblePDE::DefineSolveStep() {
+    ENTER_FCN( "BubblePDE::DefineSolveStep" );
+    solveStep_ = new SolveStepODE(*this);
+  }
+
+
+  // ======================================================
+  // SOLVING SECTION
+  // ======================================================
+  
+  void BubblePDE::Solve() {
+    ENTER_FCN( "BubblePDE::Solve" );
+   
+    // Calculate basic data
+    params->Get( "firstDt",dt_,"transient" );
+    steptime_ =  solveStep_->GetActTime() - dt_;
+    
+    
+    dt_ = dt_ / initRadius_ * (sqrt( pStatic_ / density_));
+    steptime_   = steptime_ / initRadius_ * (sqrt(pStatic_/ density_));
+    t_ = solveStep_->GetActTime() / initRadius_ * (sqrt(pStatic_/ density_));
+    
+
+    // Check if we are coupled iterative
+    if( isIterCoupled_ == TRUE ) {
+
+      if (iterCoupledCounter_ == 0){
+	radiusOldStep_   = radius_;
+	velocityOldStep_ = velocity_;
+      }
+
+      // NOTE: We are iterating over the couplingElems_ entries, which might have a 
+      // different ordering compared to the elements we obtain by calling ptGrid_->GetElems(subdoms_)!!!
+      for( UInt iElem = 0; iElem < couplElems_->GetSize(); iElem++ ) {
+        
+        // get pressure value and derivative of current element
+        pressure_ = (*pressBuf_)[iElem];
+        pressureDeriv_ = (*pressDerivBuf_)[iElem];
+
+
+
+        //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++
+
+        //Mittelwertbildung hier oder in Coupled Bereich?  
+        pressure_ = pressure_ / pStatic_ ;
+        pressureDeriv_ = pressureDeriv_ * initRadius_ / pStatic_ / ( sqrt ( pStatic_ / density_));
+        
+        //Druckübergabe
+        ptBubble_[iElem]->SetP(pressure_);
+        ptBubble_[iElem]->SetDpdt(pressureDeriv_);
+        
+        if ( hTry_ [iElem]> dt_){
+          hTry_[iElem] = dt_ / 3.0;
+        }
+
+        hTry_[iElem]      = hTry_[iElem] / initRadius_ * (sqrt(pStatic_/ density_));
+
+        //get the current values
+        y_[0] = radiusOldStep_[iElem] / initRadius_;
+        y_[1] = velocityOldStep_[iElem] / (sqrt( pStatic_/ density_));
+
+        //set iElem to ODE-Solver
+        ptODESolver_->SetNumEl(iElem);
+		  
+        ptODESolver_->Solve(steptime_, t_, y_, *ptBubble_[iElem], hTry_[iElem],
+                            0, dt_);
+        //set the new values
+        radius_[iElem]   = y_[0] * initRadius_;
+        velocity_[iElem] = y_[1] * sqrt( pStatic_/ density_);
+        hTry_[iElem]     = hTry_[iElem]  * initRadius_ / (sqrt(pStatic_/ density_));
+
+
+        //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+	iterCoupledCounter_++;
+      }
+      
+
+    } else {
+      
+      //+++++Dimensionless case ++++++++++++
+
+  
+
+
+      hTry_[0]      = hTry_[0] / initRadius_ * (sqrt(pStatic_/ density_));  // Kann man evtl. woanders machen
+      
+      pressure_ = - pressureAmpl_ * sin( 2 * PI * frequency_ * (t_));
+      pressureDeriv_  = - pressureAmpl_ * (2 * PI * frequency_ ) * 
+        cos( 2 * PI * frequency_ * (t_));   
+      ptBubble_[0]->SetP(pressure_);
+      ptBubble_[0]->SetDpdt(pressureDeriv_);
+      
+      
+      //get the current values
+      y_[0] = radius_[0] / initRadius_;
+      y_[1] = velocity_[0] / (sqrt( pStatic_/ density_));
+      
+      ptODESolver_->Solve(steptime_, t_, y_, *ptBubble_[0], hTry_[0],
+       			  0, dt_);
+      
+      //set the new values
+      radius_[0]   = y_[0] * initRadius_;
+      velocity_[0] = y_[1] * sqrt( pStatic_/ density_);
+      hTry_[0]     = hTry_[0]  * initRadius_ / (sqrt(pStatic_/ density_)); // Kann man evtl. woanders machen
+       //+++++Dimensionless case ++++++++++++ 
+       
+       //+++++Ausgabe von radius_, velocity_, berechnetem Druck, zeit ---- > 
+      outValues_ << solveStep_->GetActTime() << '\t' 
+                 << pressure_ *pStatic_ << '\t'
+                 << radius_[0] << '\t'
+                 << velocity_[0] << std::endl;
+       
+    }
+    
+  }
+
+
+  // ======================================================
+  // POSTPROCESSING SECTION
+  // ======================================================
+
+
+  // **********************
+  //   WriteResultsInFile
+  // **********************
+  void BubblePDE::WriteResultsInFile( const UInt kstep,
+                                      const Double asteptime,
+                                      UInt stepOffset,
+                                      Double timeOffset ) {
+    
+    ENTER_FCN( "BubblePDE::WriteResultsInFile" );
+
+    UInt actStep = kstep + stepOffset;
+    Double actTime = timeOffset + asteptime;
+    
+    if( writeRHS_ == TRUE ) {
+      outFile_->WriteElemSolutionTransient( addElemResult_, actStep, actTime);
+    }
+
+    if( writeValues_ == TRUE ) {
+      
+      
+      UInt numElems = couplElems_->GetSize();
+
+      for (UInt el = 0; el < numElems; el++) {
+        Vector<Double> result(3);
+            
+        result[0] = radius_[el];
+        result[1] = velocity_[el];
+        result[2] = (4.0/3.0) * PI * bubbleDensity_ * radius_[el]
+          * radius_[el] * radius_[el];
+        //        if (el == 90)
+        //std::cerr<<actTime<<"   " <<el<< "   " << result[0] << "   " 
+        // result[1] << "     " << result[2] << std::endl;
+        
+        // Map global element number to local one
+
+        UInt locElemNum = 
+          eqnData_->Mesh2PDEElem((*couplElems_)[el]->elemNum );
+        elemResult_.SetElemResult( locElemNum-1,result );
+      }
+      
+      outFile_->WriteElemSolutionTransient(elemResult_, actStep, actTime);
+    }
+
+  }
+
+
+  // **********************
+  //   WriteHistoryInFile
+  // **********************
+  void BubblePDE::WriteHistoryInFile( const UInt kstep,
+                                    const Double asteptime,
+                                    UInt stepOffset,
+                                    Double timeOffset ) {
+
+    ENTER_FCN( "BubblePDE::WriteHistoryInFile" );
+
+
+  }
+
+
+
+  // ***************
+  //   PostProcess
+  // ***************
+  void BubblePDE::PostProcess() {
+
+ 
+  }
+  
+
+
+  // ======================================================
+  // COUPLING SECTION
+  // ======================================================
+  void BubblePDE::CalcInputCoupling() {
+    ENTER_FCN( "BubblePDE::CalcInputCoupling" );
+
+    CFSVector * tempValues = NULL;
+    SolutionType quantity;
+    
+    // Outer loop over all INPUT coupling terms
+    for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++) {
+      
+      ptCoupling_->GetInputValues(i, tempValues);
+      quantity = ptCoupling_->GetInputQuantity(i);      
+
+      switch(ptCoupling_->GetInputType(i)) {
+
+      case MAT:
+
+        // get coupling elements
+        ptCoupling_->GetInputElements( i, couplElems_ );
+
+        if( quantity == ACOU_PRESSURE ) {
+          pressBuf_ = dynamic_cast<Vector<Double>*>(tempValues);
+        }
+        if( quantity == ACOU_PRESSURE_DERIV_1 ) {
+          pressDerivBuf_ = dynamic_cast<Vector<Double>*>(tempValues);
+        }
+
+        // Print values on screen
+	// for( UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
+          //std::cerr << "ElemNr: " << (*elems)[iElem]->elemNum
+          //          << ", value: " << values[iElem] << std::endl;
+        //} 
+        
+        break;
+      default :
+        Error( "This type of input coupling is not possible for BubblePDE!",
+               __FILE__, __LINE__ );
+        break;
+        
+      }
+    }
+  }
+
+
+  void BubblePDE::InitCoupling(PDECoupling * Coupling)
+  {
+    ENTER_FCN( "BubblePDE::InitCoupling" );
+  
+    isIterCoupled_ = TRUE;
+    ptCoupling_   = Coupling;
+    
+    StdVector<std::string> * nRegions;
+    StdVector<RegionIdType> nRegionIds;
+    const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
+    
+    nonLin_ = FALSE;
+
+    // Initialization of coupling helper arrays
+    std::string quantity;
+    StdVector<UInt> * couplingnodes = NULL;
+
+    for (UInt i = 0; i < numCouplings; i++) {
+      
+       if (ptCoupling_->GetOutputQuantity(i) == ACOU_BUBBLE_RHS_VAL) {
+
+         // Intialize the memory of the coupling values
+         ptCoupling_->CreateCouplingVector( i, isComplex_ );
+         
+       } 
+       
+    } 
+  }
+  
+
+
+  void BubblePDE::CalcOutputCoupling()
+  {
+    ENTER_FCN( "BubblePDE::CalcOutputCoupling" );
+
+    SolutionType quantity;
+    StdVector<UInt> * couplingNodes     = NULL;
+    CFSVector * values = 0;
+    UInt forcesCount = 0;
+    StdVector<std::string> regions;
+
+    // at first, check if this PDE is iterative coupled
+    if (isIterCoupled_ == FALSE)
+      return;
+
+    // loop over all output coupling quantities
+    for (UInt actCoupling=0; 
+         actCoupling<ptCoupling_->GetNumOutputCouplings(); 
+         actCoupling++) {
+      quantity = ptCoupling_->GetOutputQuantity(actCoupling);
+      ptCoupling_->GetOutputValues(actCoupling, values);
+      
+      Vector<Double> * temp = dynamic_cast<Vector<Double> *>(values);
+      
+      switch(ptCoupling_->GetOutputType(actCoupling)) {
+        
+      case NODE:        
+        ptCoupling_->GetOutputNodes(actCoupling, couplingNodes);
+        ptCoupling_->GetOutputRegions(actCoupling, regions);
+        
+        // Trigger calculation of RHS values
+        CalcAcouRHS( regions, *couplingNodes, *temp );
+        
+        break;
+        
+      case ELEM:
+        Error("No Element coupling output", __FILE__,__LINE__);
+        break;
+      }
+    }
+  }
+  
+  void BubblePDE::CalcAcouRHS( StdVector<std::string>& regions, 
+                               StdVector<UInt>& nodes,
+                               Vector<Double>& values ) {
+
+    ENTER_FCN( "BubblePDE::CalcAcouRHS" );
+
+    Vector<Double> bubbleValues(2);
+
+    // Initialize values vector!
+    values.Init();
+
+    // Convert region names to Ids
+    StdVector<RegionIdType> regionIds;
+    ptgrid_->RegionNameToId( regionIds, regions );
+
+    // create rhs integrator
+    Double dummy = 1.0;
+    BaseForm *rhsForm = new VolumeSrcInt(dummy, isaxi_);        
+
+    for( UInt iRegion = 0; iRegion < regionIds.GetSize(); iRegion++ ) {
+
+      StdVector<Elem*> elems;
+      ptgrid_->GetElems( elems, regionIds[iRegion] );
+
+
+
+      for( UInt iElem = 0; iElem < elems.GetSize(); iElem++ ) {
+       
+        BaseFE * ptEl = elems[iElem]->ptElem;
+        StdVector<UInt> & connecth = elems[iElem]->connect;
+
+        // Find correct index for this element in vector couplElems_
+        Integer couplIndex = -1;
+
+        for( UInt iCouplElem = 0; iCouplElem < couplElems_->GetSize(); iCouplElem++ ) {
+          if( (*couplElems_)[iCouplElem]->elemNum == elems[iElem]->elemNum ) {
+            couplIndex = iCouplElem;
+            break;
+          }
+        }
+        
+        if( couplIndex == -1 ) {
+          (*error) << "Found no matching element for coupling element Nr" 
+                   << elems[iElem]->elemNum << "!";
+          Error( __FILE__, __LINE__ );
+        }
+          
+
+        Matrix<Double> ptCoord;
+        GetElemCoords(connecth, ptCoord);
+
+	Double beta2 = 1.0;
+        Double beta2Com = 1.0;
+        Double Rpp = 0.0; 
+       
+        bubbleValues[0] = radius_[couplIndex];
+        bubbleValues[1] = velocity_[couplIndex];
+	 
+        // New rhs for cavitational fluid
+        // rho0 * 4/3 * pi* n * ( 3 * R^2 * d^2R/dt^2 + 6 * R * (dR/dt)^2) 
+        if ( solveStep_->GetActStep() == 1){ 
+
+          beta2 =density_*density_* 4/3*PI*bubbleDensity_*6*bubbleValues[0]
+            *bubbleValues[1]*bubbleValues[1]; 
+
+	  //Vereinfachte RHS Siehe Commander
+	  beta2Com=0.0;
+	}
+
+        else {
+          StdVector<Double> dydt(2);
+
+          // dimensionless**************************************
+          y_[0] = bubbleValues[0] / initRadius_;
+          y_[1] = bubbleValues[1] / (sqrt( pStatic_/ density_));
+          t_    = solveStep_->GetActTime()  / initRadius_ * (sqrt(pStatic_/ density_));
+          ptBubble_[couplIndex]->CompDeriv(t_, y_, dydt);
+          dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
+          beta2 =density_*density_*4/3*PI*bubbleDensity_*
+            (6*bubbleValues[0]*bubbleValues[1]*bubbleValues[1]
+             + 3*bubbleValues[0]*bubbleValues[0]*dydt[1] ); 
+
+	  //Vereinfachte RHS Siehe Commander
+	  beta2Com= density_*density_*4.0*PI*bubbleDensity_*initRadius_ *initRadius_*dydt[1];
+
+          // dimensionless**************************************
+
+	  //Normal case+++++++++++++++++++++++++++++++++++++++
+          //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues, dydt);
+          //	  beta2 =density_*density_* 4/3*PI*bubbleDensity_*
+          //	    (6*bubbleValues[0]*bubbleValues[1]*bubbleValues[1]
+          //	     + 3*bubbleValues[0]*bubbleValues[0]*dydt[1] ); 
+          //Normal case+++++++++++++++++++++++++++++++++++++++
+	  
+ 	  Rpp=dydt[1];
+        }
+
+        rhsForm->SetFactor(beta2);            
+        rhsForm->SetElemPtr(ptEl);
+
+	Vector<Double> elemVec, helpVec;
+        rhsForm->CalcElemVector(ptCoord, elemVec);
+
+        // Get indices in nodes-vector for the node numbers of the current element
+        for( UInt iNode = 0; iNode < connecth.GetSize(); iNode++ ) {
+          Integer nodePos = nodes.Find( connecth[iNode] );
+          values[nodePos] += elemVec[iNode];
+        }
+
+
+        // store element result
+        if ( writeRHS_ == TRUE ) {
+          helpVec.Resize( 2 );
+          helpVec[0] = beta2;
+          helpVec[1] = Rpp;
+          //helpVec[2] = beta2Com;
+          UInt locElemNum = eqnData_->Mesh2PDEElem(elems[iElem]->elemNum);
+          addElemResult_.SetElemResult(locElemNum-1, helpVec);
+        }
+        
+      }
+    }
+    // delete rhs integrator
+    delete rhsForm;
+    
+    // print values on screen
+    //std::cerr << "BubbleRHSvalues:\n" << values << std::endl << std::endl;
+  }
+
+
+  Boolean BubblePDE::HasOutput(SolutionType output)
+  {
+    ENTER_FCN( "BubblePDE::HasOutput" );
+  
+    switch (output) {
+    case ACOU_BUBBLE_RHS_VAL:
+      return TRUE;
+      break;
+    default:
+      return FALSE;
+      break;
+    }
+    return FALSE;
+  }
+
+
+  // ***********************************************************************
+  //   Obtain information on desired output quantities from parameter file
+  // ***********************************************************************
+  void BubblePDE::ReadStoreResults() {
+
+    ENTER_FCN( "BubblePDE::ReadStoreResults" );
+
+    // Construct vectors for restricted parameter search
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    StdVector<std::string> regionNames;
+    std::string quantity;
+
+    // *****************************
+    // Determine element results
+    // *****************************
+    keyVec  = pdename_, "storeResults", "elemResults", "region";
+    attrVec = "", "", "type";
+
+    // --- Main bubble Result -> MagFluxDensity  ---
+    quantity = "bubbleValues";
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, regionNames );
+
+    if ( regionNames.GetSize() > 0 ) {
+      hasOutput_ = TRUE;
+      writeValues_ = TRUE;
+      Info->PrintF( pdename_, " Storing bubbleValues to file\n" );
+
+      elemResult_.SetNumSolutions(1);
+      elemResult_.SetSolutionType(MAG_FLUX_DENSITY);
+      elemResult_.SetNumElems(eqnData_->GetNumLocalElems());
+      elemResult_.SetNumDofs(3);
+      elemResult_.SetPtrEQNData(eqnData_, ptgrid_);
+      elemResult_.Init(); 
+    }
+
+    // --- RHS bubble Result -> ElecFieldIntensity  ---
+    quantity = "bubbleValues";
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, regionNames );
+
+    if ( regionNames.GetSize() > 0 ) {
+      hasOutput_ = TRUE;
+      writeRHS_ = TRUE;
+      Info->PrintF( pdename_, " Storing bubbleRHS to file\n" );
+
+      addElemResult_.SetNumSolutions(1);
+      addElemResult_.SetSolutionType(ELEC_FIELD_INTENSITY);
+      addElemResult_.SetNumElems(eqnData_->GetNumLocalElems());
+      addElemResult_.SetNumDofs(2);
+      addElemResult_.SetPtrEQNData(eqnData_, ptgrid_);
+      addElemResult_.Init(); 
+    }
+
+    
+  }
+  
+
+} // end of namespace
+

@@ -32,6 +32,7 @@ namespace CoupledField {
                    driverTag, isPartOfSequence) {
     ENTER_FCN( "BubbleDriver:: BubbleDriver" );
 
+
     //Pointer to read timefunctions for pressure and its derivative
     ptTimeFunc_ = ptdomain_->GetTimeFncPointer();
 
@@ -235,7 +236,7 @@ namespace CoupledField {
   // Method to compute bubble behaviour 
   void  BubbleDriver::SolveProblem() {
     ENTER_FCN( " BubbleDriver::SolveProblem" );
-
+    
     Double  steptime  = 0;
     UInt stepsave  = isavebegin_;
     Double  dt = firstdt_;
@@ -249,7 +250,7 @@ namespace CoupledField {
     // b) Initial- and Endtime is given, choose steps 
     // freely, output should be defined in ODESolve
 
-    Double tEnd = 1.0e-3;  // should mayby included in XML-File
+    Double tEnd;// = 1.0e-3;  // should mayby included in XML-File
     Double h1;             // Startvalue for adaptive stepping
     h1 = 1e-10;
 
@@ -258,7 +259,70 @@ namespace CoupledField {
     dydtaussen[1] = 0.0;
     ndichte = 1e8;
 
+//     //*************************************************
+//       //TEST*****************************************
+//       StdVector<Double> druck, druckabl; 
+//       std::ifstream druckfile;
 
+
+
+
+//           druckfile.open("druck3750dim" );
+//           if ( !druckfile ) {
+//             std::cerr << "Failed to open file '' containing data of time function" <<std::endl;
+//           }
+
+//           druckfile.clear(); // clear flags
+
+//           // we don't trust .eof() =)
+//           druckfile.seekg(0,std::ios::end);
+//           std::string::size_type pos = 0, pos_end = druckfile.tellg(),
+//             line_end_pos , line_start_pos = 0;
+
+//           druckfile.seekg(0,std::ios::beg); // start from the beginning
+//           std::string     buf;
+//           Double druckT, druckablT, t;
+
+//           while( pos <= pos_end ) {         
+//             buf = "";
+//             line_start_pos = druckfile.tellg();
+//             std::getline(druckfile,buf,'\n');
+//             line_end_pos = druckfile.tellg();
+        
+//             // big choice of signs for comment's
+//             if (buf.length() != 0 &&
+//                 buf[0] != '#' &&
+//                 buf[0] != '%' && 
+//                 buf[0] != '!') {
+//               druckfile.seekg(line_start_pos); // rewind
+//               druckfile >> t >> druckT >> druckablT ;                    
+
+
+//               druck.Push_back(druckT);
+//               druckabl.Push_back(druckablT);
+
+//               druckfile.ignore(100,'\n');
+          
+//             }
+
+//             pos = druckfile.tellg();  // and, where we are ?    
+          
+//             if( pos != line_end_pos)
+//               {
+//                std::cerr << "The time data file is not correctly formatted.\n";
+//               }
+          
+//           }
+      
+//           druckfile.close();
+
+// 	  for (nstep = 1; nstep <= numstep_; nstep++){
+// 	    druck[nstep-1]=druck[nstep-1]/pStatic_;
+// 	    druckabl[nstep-1]=druckabl[nstep-1]/pStatic_* initRadius_ / (sqrt( pStatic_ / density_));
+// 	  }
+
+// 	  //*****************************************************
+// 	    //TEST*************************************************
 
     //Dimlos Case ---------------------------
 
@@ -269,15 +333,16 @@ namespace CoupledField {
     
 
     steptime   = steptime / initRadius_ * (sqrt(pStatic_/ density_));
-    tEnd       = tEnd / initRadius_ * (sqrt(pStatic_/ density_)); 
+    //tEnd       = tEnd / initRadius_ * (sqrt(pStatic_/ density_)); 
     h1         = h1 / initRadius_ * (sqrt(pStatic_/ density_)); 
 
     pressureAmpl_= pressureAmpl_ / pStatic_;
     frequency_   = frequency_ * initRadius_ /(sqrt(pStatic_/ density_)); 
-
+ 
     Double tdim;
     StdVector<Double> ydim(2);
     // ------------------------------------------------------------
+
 
 
 
@@ -296,6 +361,7 @@ namespace CoupledField {
 	 cos( 2 * PI * frequency_ * (steptime+dt));     
        ptBubble_->SetP(pressure_);
        ptBubble_->SetDpdt(dpresdt_);
+  
 
       // In case of input file---------------------------------------
       //Double val_tfunc;
@@ -312,9 +378,13 @@ namespace CoupledField {
       //ptBubble_->SetDpdt(val_tfuncDerv);
        //------------------------------------------------------------
 
+//        ptBubble_->SetP(druck[nstep-1]);
+//        ptBubble_->SetDpdt(druckabl[nstep-1]);
+
+
       // Call for ODESolver
-      ptODESolver_->Solve( steptime, tEnd, y_, *ptBubble_, h1, 0, dt);
-	  
+        ptODESolver_->Solve( steptime, tEnd, y_, *ptBubble_, h1, 0, dt);
+     	  
       steptime += dt;
 
 
@@ -333,13 +403,13 @@ namespace CoupledField {
     // Achtung hier ist zwei Mal die Dichte eingefügt, damit man mit dem gekoppleten Output vergleichen kann.
     rhs = 4.0/3.0*(M_PI)* ndichte * KlammerRHS* 998.0*998.0;
 
-
-	
-	fprintf(fp, "%10.6e\t%10.6e\t%10.6e\t%10.6e\t%16.10e\t%16.10e\n", tdim,pressure_*pStatic_,ydim[0],ydim[1], KlammerRHS, rhs);
+    //fprintf(fp, "%e\t%e\t%16.10e\n", tdim,druck[nstep-1],druckabl[nstep-1]);
+    //	fprintf(fp, "%16.10e\t%16.10e\t%16.10e\t%16.10e\n", tdim,druck[nstep-1],ydim[0],ydim[1]);		
+// fprintf(fp, "%10.6e\t%10.6e\t%10.6e\t%10.6e\t%16.10e\t%16.10e\n", tdim,pressure_*pStatic_,ydim[0],ydim[1], KlammerRHS, rhs);
 	// ---------------------------------------------------
 
-	//fprintf( fp, "%10.6e\t%10.6e\t%10.6e\t%10.6e\n", steptime,
-	//		 pressure_ ,y_[0],y_[1]);
+	fprintf( fp, "%10.6e\t%10.6e\t%10.6e\t%10.6e\n", steptime,
+		 pressure_ ,y_[0],y_[1]);
 	stepsave+=isaveincr_;
          }
 

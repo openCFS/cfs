@@ -32,6 +32,16 @@ namespace CoupledField
     StdVector<Double> y(nvar);
     StdVector<Double> dydt(nvar);
 
+    // Zu allen Abfragen wegen einem negativen Radius wuerde eine Abfrage
+    // gehoeren, die diese Teile nur inkludiert, wenn man das Kavitationsmodell
+    // berechnet, ist dies nicht der Fall, sollte man es als normalen 
+    // ODE-Loeser benutzen koennen.
+    if ( yInitOut[0] >= 0 )
+      RadiusGroesserNull_ = true;
+    else 
+     	Error("Radius is negative! ",__FILE__,__LINE__); 
+
+
     t = tInit;
     h = ((tStop-tInit) >= 0 ? 
          (hInit>= 0 ? hInit :-hInit) : (hInit>= 0 ? -hInit : hInit));
@@ -52,12 +62,14 @@ namespace CoupledField
 //     // *********************************************
 
     for (nstp=0; nstp<maxSteps_; nstp++){
+
       myODE.CompDeriv(t,y,dydt);
       //Scaling to monitor accuracy.
       //Can be modified if different yscal is needed.
       for ( i = 0; i < nvar; i++ ){
         yScal[i] = fabs(y[i])+fabs(dydt[i]*h)+tiny;
       }
+
 
       // *** Test ************************************
       // //If stepsize can overshoot, decrease
@@ -76,7 +88,7 @@ namespace CoupledField
       } 
       //Did we get the final value for tStop?
       // *** MODIFIED testing case, added second condition*******
-      if (((t-tStop)*(tStop-tInit) >= 0.0)){;// || (t+hNext-tStop > 0.0)){
+      if (((t-tStop)*(tStop-tInit) >= 0.0)){// || (t+hNext-tStop > 0.0)){
 	for (i=0; i<nvar; i++){
 	  yInitOut[i] = y[i];
 	}
@@ -87,6 +99,7 @@ namespace CoupledField
       }
       
       if (fabs(hNext) <= hMin){
+	std::cout<<"Step size in  " <<numEl_ << "  is  " << hNext <<std::endl;
 	Error("Step size too small",__FILE__,__LINE__);
 	successLastSolve_ = false;
       }
@@ -151,46 +164,56 @@ namespace CoupledField
 
     for(;;){
 
-
-
       RKCashKarp(y, dydt, t, h, yTemp, yError, myODE); //Take one step
 
-      errMax = 0.0;
-      for (i=0; i<n; i++){
-	errMax = ( errMax >fabs(yError[i]/yScal[i])
-		   ? errMax : (fabs(yError[i]/yScal[i])) );
-      }
-      
-      errMax /= eps_;             //Scale relative to required tolernace
-      if (errMax <= 1.0) {
-	break;                    //Step succeeded. Compute size of next step
-      }
-      
-      hTemp = safetyFac_ * h * std::pow(errMax,powerShrink);
-      //Truncation error too large, reduce stepsize, no more than factor 10
-      h = ( h >= 0.0 ?
-	            (hTemp > 0.1*h ? hTemp: 0.1*h ):(hTemp <0.1*h ? hTemp: 0.1*h ));
-      tNew = t + h;
-      if (tNew == t){
-	//	Double dummyp;
-	//	Double dummydpdt;
-	//	Double testr;
+       if (RadiusGroesserNull_) {
+	errMax = 0.0;
+	for (i=0; i<n; i++){
+	  errMax = ( errMax >fabs(yError[i]/yScal[i])
+		     ? errMax : (fabs(yError[i]/yScal[i])) );
+	}
 	
-	//	try {
-	//	  //KellerMiksis &theODE = dynamic_cast<KellerMiksis&>(myODE);
-	//	  Gilmore &theODE = dynamic_cast<Gilmore&>(myODE);
-	//	  dummyp = theODE.GetP();
-	//	  dummydpdt = theODE.GetDpdt();
-	//dummyp=myODE.GetP();
-	//	dummydpdt=myODE.GetDpdt();
-	//	  Info-> PrintF("","ElemNo. %d P %e Dpdt %e t %e h %e  R %e dRdt %e\n"
-	//			,numEl_,dummyp,dummydpdt,t,h,yTemp[0],yTemp[1]);
-	Error("Stepsize underflow",__FILE__,__LINE__);
-	//	}
-	//	catch (...) {
-	//	  Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
-	//		 __FILE__, __LINE__ );
-	//	}
+	errMax /= eps_;             //Scale relative to required tolernace
+
+	if (errMax <= 1.0) {
+	  break;                    //Step succeeded. Compute size of next step
+	}
+	
+	hTemp = safetyFac_ * h * std::pow(errMax,powerShrink);
+	//Truncation error too large, reduce stepsize, no more than factor 10
+	h = ( h >= 0.0 ?
+	      (hTemp > 0.1*h ? hTemp: 0.1*h ):(hTemp <0.1*h ? hTemp: 0.1*h ));
+	tNew = t + h;
+	if (tNew == t){
+	  //	Double dummyp;
+	  //	Double dummydpdt;
+	  //	Double testr;
+	  
+	  //	try {
+	  //	  //KellerMiksis &theODE = dynamic_cast<KellerMiksis&>(myODE);
+	  //	  Gilmore &theODE = dynamic_cast<Gilmore&>(myODE);
+	  //	  dummyp = theODE.GetP();
+	  //	  dummydpdt = theODE.GetDpdt();
+	  //dummyp=myODE.GetP();
+	  //	dummydpdt=myODE.GetDpdt();
+	  //	  Info-> PrintF("","ElemNo. %d P %e Dpdt %e t %e h %e  R %e dRdt %e\n"
+	  //			,numEl_,dummyp,dummydpdt,t,h,yTemp[0],yTemp[1]);
+	  std::cerr<<"Abbruch in Element Nr:"<<numEl_<<std::endl;
+	  Error("Stepsize underflow",__FILE__,__LINE__);
+	  //	}
+	  //	catch (...) {
+	  //	  Error( "myODE is not of type Gilmore. Dynamic cast failed!", 
+	  //		 __FILE__, __LINE__ );
+	  //	}
+	}
+      }
+      else{
+	//	std::cout << "Der Radius ist negative, daher wir von " << h << "  gesetzt auf hNext = ";
+	hNext = h / 50.0;
+	hDid = 0.0;	
+	//	std::cout << hNext << std::endl;
+	RadiusGroesserNull_ = true;
+	return;
       }
     }
 
@@ -239,27 +262,60 @@ namespace CoupledField
     //vectors contain intermediate function values
     StdVector<Double> ak2(n), ak3(n), ak4(n), ak5(n), ak6(n), yTemp(n);
 
+//     if (numEl_ == 3750)
+//       std::cout << "time odeCK    " << t <<"      h   "<< h << std::endl; 
+
     for ( i = 0; i < n; i++ ) {
       yTemp[i] = y[i] + b21 * h * dydt[i];
     }
+    //if (numEl_ == 45){
+        if (yTemp[0]< 0) {
+	  //	  std::cout<<"CK: ytemp1(0)<0 in Elment Nr " <<numEl_ <<std::endl;
+	  RadiusGroesserNull_ = false;
+	}
+	//}
     myODE.CompDeriv( t+a2*h, yTemp, ak2);
     for ( i = 0; i < n; i++ ) {
       yTemp[i] = y[i] + h * ( b31 * dydt[i] + b32 * ak2[i] );
     }
+    //if (numEl_ == 45){
+        if (yTemp[0]< 0) {
+	  //std::cout<<"CK: ytemp2(0)<0 in Elment Nr " <<numEl_ <<std::endl;
+	  RadiusGroesserNull_ = false;
+	}
+	//}
     myODE.CompDeriv( t+a3*h, yTemp, ak3);
     for ( i = 0; i < n; i++ ) {
       yTemp[i] = y[i] + h * ( b41 * dydt[i] + b42 * ak2[i] + b43 * ak3[i] );
     }
+    //if (numEl_ == 45){
+        if (yTemp[0]< 0){
+	  //std::cout<<"CK: ytemp3(0)<0 in Elment Nr " <<numEl_ <<std::endl;
+	  RadiusGroesserNull_ = false;
+	}
+	//}
     myODE.CompDeriv( t+a4*h, yTemp, ak4);
     for ( i = 0; i < n; i++ ) {
       yTemp[i] = y[i] + h * ( b51 * dydt[i] + b52 * ak2[i] + b53 * ak3[i] 
                               + b54 * ak4[i] );
     }
+    //if (numEl_ == 45){
+        if (yTemp[0]< 0) {
+	  // std::cout<<"CK: ytemp4(0)<0 in Elment Nr " <<numEl_ <<std::endl;
+	  RadiusGroesserNull_ = false;
+	}
+	//}
     myODE.CompDeriv( t+a5*h, yTemp, ak5);
     for ( i = 0; i < n ; i++ ) {
       yTemp[i] = y[i] + h * ( b61 * dydt[i] + b62 * ak2[i] + b63 * ak3[i]
                               + b64 * ak4[i] + b65 * ak5[i] );
     }
+    //if (numEl_ == 45){
+        if (yTemp[0]< 0){
+	  //std::cout<<"CK: ytemp5(0)<0 in Elment Nr " <<numEl_ <<std::endl;
+	  RadiusGroesserNull_ = false;
+	}
+	//}
     myODE.CompDeriv( t+a6*h, yTemp, ak6);
     //Accumulate intermediate values with proper weights
     for ( i = 0; i < n; i++ ) {

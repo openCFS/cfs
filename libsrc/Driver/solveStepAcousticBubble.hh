@@ -107,8 +107,9 @@ namespace CoupledField
     Double pressureNoDim;
     Double presDerivNoDim;  
 
-    //! Suggested step size for ODESolver
-    Double hTry_;
+    //! Suggested step size for ODESolverfor each element
+     StdVector<Double> hTry_;
+
 
     //! Element solution of bubble rhs
     ElemStoreSol<Double> bubbleRHS_;
