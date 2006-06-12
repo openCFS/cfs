@@ -225,7 +225,7 @@ namespace CoupledField
     myInterface->neighInputRegions = neighRegions;
   
     if (myInterface->elements.GetSize() != 0
-        || myInterface->regionType == SURFACE)
+        && myInterface->regionType == SURFACE)
       {
         // Set the material of the interface.
         // Since the Inputcoupling values are computed by another PDE
@@ -385,7 +385,7 @@ namespace CoupledField
     myInterface->regionType = regionType;
 
     StdVector<UInt> nodesConverted;
-    StdVector<Elem*> SD;
+    StdVector<Elem*> SD, tempSD;
     StdVector<SurfElem*> surfElems;
     StdVector<UInt> nodes;
     UInt inode = 0;
@@ -401,41 +401,56 @@ namespace CoupledField
       case REGION:
 
         ptGrid_->RegionNameToId( regionIdVec, regions );
-        numNodes = ptGrid_->GetNumNodes( regionIdVec );
-        myInterface->nodes.Reserve(numNodes);
-      
-                                      
-        for (UInt iSD=0; iSD<regions.GetSize(); iSD++)
-          {
-            ptGrid_->GetNodesByRegion(nodes, regionIdVec[iSD]);
-            for (UInt iNode=0; iNode<nodes.GetSize(); iNode++) {
-              myInterface->nodes.Push_back(nodes[iNode]);
-            }
-          }
 
-        myInterface->numNodes = myInterface->nodes.GetSize();
-
-        // Check if any nodes at all were found
-        if ( myInterface->numNodes == 0){
-          errMsg  = "Coupling::AddOutput: The region(s) ";
-          for (UInt k=0; k<regions.GetSize()-1; k++) {
-            errMsg += "'";
-            errMsg += regions[k];
-            errMsg += "', ";
-          }
-          errMsg +="'";
-          errMsg += regions[regions.GetSize()-1];
-          errMsg += "' were not found in the mesh or contain no nodes.\n";
-          errMsg += "Please check you mesh file!";
-          Error(errMsg.c_str(), __FILE__, __LINE__);
-        }
-      
-        //myInterface->values.resize(myInterface->nodes.GetSize());
-        //myInterface->oldValues.resize(myInterface->nodes.GetSize());
-        //  myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
-        //       myInterface->oldValues->SetNumNodes(myInterface->nodes.GetSize());
+        if( outputType == NODE ) {
+          numNodes = ptGrid_->GetNumNodes( regionIdVec );
+          myInterface->nodes.Reserve(numNodes);
           
+          
+          for (UInt iSD=0; iSD<regions.GetSize(); iSD++)
+            {
+              ptGrid_->GetNodesByRegion(nodes, regionIdVec[iSD]);
+              for (UInt iNode=0; iNode<nodes.GetSize(); iNode++) {
+                myInterface->nodes.Push_back(nodes[iNode]);
+              }
+            }
+          
+          myInterface->numNodes = myInterface->nodes.GetSize();
+          
+          // Check if any nodes at all were found
+          if ( myInterface->numNodes == 0){
+            errMsg  = "Coupling::AddOutput: The region(s) ";
+            for (UInt k=0; k<regions.GetSize()-1; k++) {
+              errMsg += "'";
+              errMsg += regions[k];
+              errMsg += "', ";
+            }
+            errMsg +="'";
+            errMsg += regions[regions.GetSize()-1];
+            errMsg += "' were not found in the mesh or contain no nodes.\n";
+            errMsg += "Please check you mesh file!";
+            Error(errMsg.c_str(), __FILE__, __LINE__);
+          }
       
+          //myInterface->values.resize(myInterface->nodes.GetSize());
+          //myInterface->oldValues.resize(myInterface->nodes.GetSize());
+          //  myInterface->values->SetNumNodes(myInterface->nodes.GetSize());
+          //       myInterface->oldValues->SetNumNodes(myInterface->nodes.GetSize());
+        } else {
+          
+          tempSD.Clear();
+          for (UInt iSD=0; iSD<regions.GetSize(); iSD++) {
+            ptGrid_->GetElems( tempSD, regionIdVec[iSD] );
+
+            for (UInt iElem=0; iElem<tempSD.GetSize(); iElem++) {
+              myInterface->elements.Push_back( tempSD[iElem] );
+              }
+            }
+          
+          myInterface->numElems = myInterface->elements.GetSize();
+        
+        }
+        
         break;
 
       case NODES:
@@ -607,6 +622,7 @@ namespace CoupledField
     ENTER_FCN("PDECoupling::CreateCouplingVector");
 
     UInt numNodes = outputInterfaces_[i]->numNodes;
+    UInt numElems = outputInterfaces_[i]->numElems;
     UInt dof =  outputInterfaces_[i]->dof;
 
     if (outputInterfaces_[i]->values != NULL || \
@@ -625,11 +641,25 @@ namespace CoupledField
         outputInterfaces_[i]->oldValues = new Vector<Double>;
       }
   
+    // Determine size of vector
+    UInt size = 0;
+    
+    if ( numNodes != 0 ) {
+      size = numNodes;
+    }
+    if ( numElems != 0 ) {
+      size = numElems;
+    }
+    if ( size == 0 ) {
+      Error( "Will not allocate a vector of size 0", __FILE__, __LINE__ );
+    }
+
     // resize vector with coupling values
-    outputInterfaces_[i]->values->Resize(dof*numNodes);
+    
+    outputInterfaces_[i]->values->Resize(dof*size);
   
     // resize vector with old coupling values
-    outputInterfaces_[i]->oldValues->Resize(dof*numNodes);
+    outputInterfaces_[i]->oldValues->Resize(dof*size);
 
   }
 

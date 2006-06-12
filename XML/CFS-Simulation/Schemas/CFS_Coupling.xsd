@@ -180,7 +180,7 @@
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <!--<xsd:enumeration value="node"/>-->
-              <!--<xsd:enumeration value="region"/>-->
+              <xsd:enumeration value="region"/>
               <xsd:enumeration value="interface"/>
             </xsd:restriction>
           </xsd:simpleType>
@@ -190,6 +190,7 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="mechForce"/>
               <xsd:enumeration value="nrbcPhi"/>
+              <xsd:enumeration value="acouBubbleRhsVal"/>
               <!--<xsd:enumeration value="smoothDisplacement"/>-->
             </xsd:restriction>
           </xsd:simpleType>
@@ -322,7 +323,31 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  
+  <!-- Bubble PDE -->
+  <xsd:complexType name="DT_CouplingBubble">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="type" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="region"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="quantity" use="required">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="acouPressure"/>
+              <xsd:enumeration value="acouPressureD1"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="name" type="xsd:token" use="required"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>  
+
+
   <!--nonlinear (concerning iterative coupling) part -->
   <xsd:complexType name="DT_Nonlinear">
     <xsd:complexContent>
@@ -342,6 +367,9 @@
                 <xsd:enumeration value="magForceVWP"/>
                 <xsd:enumeration value="magForceLorentz"/>
                 <xsd:enumeration value="stokesFluidForce"/>
+                <xsd:enumeration value="acouBubbleRhsVal"/>
+                <xsd:enumeration value="acouPressure"/>
+                <xsd:enumeration value="acouPressureD1"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -585,6 +613,35 @@
               <xsd:complexType>
                 <xsd:sequence>
                   <xsd:element name="coupling" type="DT_CouplingSmooth"
+                               maxOccurs="unbounded" />
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+          <xsd:attribute name="method" type="DT_IterCouplingMethod" use="required"/>
+        </xsd:extension>
+      </xsd:complexContent>
+    </xsd:complexType>
+  </xsd:element> 
+  
+  <!-- acoustic-bubble coupling -->
+  <xsd:element name="acouBubble" substitutionGroup="PDEBasicIterCoupling">
+    <xsd:complexType>
+      <xsd:complexContent>
+        <xsd:extension base="DT_BasicIterCoupling">
+          <xsd:sequence>
+            <xsd:element name="acoustic">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling" type="DT_CouplingAcou"
+                               maxOccurs="unbounded" minOccurs="0"/>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            <xsd:element name="bubble">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="coupling"  minOccurs="0" type="DT_CouplingBubble"
                                maxOccurs="unbounded" />
                 </xsd:sequence>
               </xsd:complexType>

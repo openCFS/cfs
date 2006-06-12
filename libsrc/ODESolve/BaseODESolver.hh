@@ -100,6 +100,9 @@ namespace CoupledField {
     //! \param safetyFac Safety factor for step size computation
     Double safetyFac_;
 
+
+    bool RadiusGroesserNull_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

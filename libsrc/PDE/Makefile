@@ -27,7 +27,8 @@ src =   basePDE.cc\
 	nrbcPDE.cc \
 	heatCondPDE.cc \
 	acousticXYZPDE.cc \
-    stokesFluidPDE.cc
+	stokesFluidPDE.cc \
+	bubblePDE.cc
 #
 lib = pde
 CFLAGS3 =

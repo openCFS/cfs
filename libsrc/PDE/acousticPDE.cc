@@ -749,6 +749,13 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         isIncrFormulation_ = TRUE;
       }
 
+      else if (ptCoupling_->GetOutputQuantity(i) == ACOU_PRESSURE ||
+               ptCoupling_->GetOutputQuantity(i) == ACOU_PRESSURE_DERIV_1 ) {
+        // Intialize the memory of the coupling values
+        ptCoupling_->CreateCouplingVector(i,isComplex_);
+        
+      }
+      
       else if (ptCoupling_->GetOutputQuantity(i) == ACOU_POWERDENSITY) {
         // Intialize the memory of the coupling values
         // DIRTY HACK ALARM!
@@ -875,7 +882,12 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         break;
 
       case ELEM:
-        Error("No Element coupling output", __FILE__,__LINE__);
+        ptCoupling_->GetOutputElements(i, couplingElems);
+        if ( quantity == ACOU_PRESSURE ||
+             quantity == ACOU_PRESSURE_DERIV_1 ) {
+          CalcBubblePressure( *couplingElems, *values, quantity );
+        }
+        break;
       }
     }
   }
@@ -1175,6 +1187,55 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     }
   }
 
+  void AcousticPDE::CalcBubblePressure( StdVector<Elem*> & elems,
+                                        Vector<Double>& couplVals,
+                                        SolutionType solType ) {
+
+    ENTER_FCN( "AcousticPDE::CalcBubblePressure" );
+    
+
+    // Initialize coupling values
+    couplVals.Init();
+
+    if ( solType == ACOU_PRESSURE ) {
+
+      Vector<Double> elPressure;
+      for (UInt iElem = 0; iElem < elems.GetSize(); iElem++ ) {
+        
+        StdVector<UInt> & myConnect = elems[iElem]->connect;
+        sol_->GetElemSolution( elPressure, myConnect );
+        Double pressure = 0.0;
+
+        for( UInt iNode = 0; iNode < elPressure.GetSize(); iNode++ ) {
+          pressure += elPressure[iNode];
+        }
+        pressure /= elPressure.GetSize();
+
+        // store back to vector
+        couplVals[iElem] = pressure;
+      }
+
+    } else {
+      Vector<Double> elPressureDeriv;
+      for (UInt iElem = 0; iElem < elems.GetSize(); iElem++ ) {
+        
+        StdVector<UInt> & myConnect = elems[iElem]->connect;
+        GetDerivSolVecOfElement( elPressureDeriv, myConnect );
+        Double pressureDeriv = 0.0;
+
+        for( UInt iNode = 0; iNode < elPressureDeriv.GetSize(); iNode++ ) {
+          pressureDeriv += elPressureDeriv[iNode];
+        }
+        pressureDeriv /= elPressureDeriv.GetSize();        
+
+        // store back to vector
+        couplVals[iElem] = pressureDeriv;
+      }
+    }
+    
+
+  }
+
 
   Boolean AcousticPDE::HasOutput(SolutionType output) {
     ENTER_FCN( "AcousticPDE::HasOutput" );
@@ -1183,6 +1244,15 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     }
     if (output == ACOU_POT_NRBC) {
       return TRUE;
+    }
+    
+    if ( formulation_ == ACOU_PRESSURE ) {
+      if ( output == ACOU_PRESSURE ) {
+        return TRUE;
+      }
+      if ( output == ACOU_PRESSURE_DERIV_1 ) {
+        return TRUE;
+      }
     }
     return FALSE;
   }
@@ -1500,7 +1570,8 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
     
         // Resize solution arrays
         bubbleResult.SetNumSolutions(1);
-        bubbleResult.SetSolutionType(ELEC_FIELD_INTENSITY);
+	//        bubbleResult.SetSolutionType(ELEC_FIELD_INTENSITY);
+	bubbleResult.SetSolutionType(MAG_FLUX_DENSITY);
         bubbleResult.SetNumElems(numElems_);
           
         // dimension hard coded for .unv file!
@@ -1713,11 +1784,11 @@ Kuznetsov equation!" ,__FILE__,__LINE__);
         saveSol_ = TRUE;
         hasOutput_ = TRUE;
 
-        // Note: If errors occur using the acoustic pressure formulation,
-        // just comment out the following three lines
-        sol_->SetSolutionType(ACOU_PRESSURE);
-        sol_->SetNumDofs(1);
-        sol_->Init();
+	//        // Note: If errors occur using the acoustic pressure formulation,
+	//        // just comment out the following three lines
+	//        sol_->SetSolutionType(ACOU_PRESSURE);
+	//        sol_->SetNumDofs(1);
+	//        sol_->Init();
 
       }
     }

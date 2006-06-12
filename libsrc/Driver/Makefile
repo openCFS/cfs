@@ -12,7 +12,7 @@ src =  	solveStepAcoustic.cc stdSolveStep.cc \
 	iterSolveStep.cc bubbledriver.cc multiHarmonicDriver.cc \
 	solveStepAcousticBubble.cc solveStepPiezo.cc MHassemble.cc \
 	solveStepAcousticMechBubble.cc \
-	solveStepStokesFluid.cc eigenFrequencyDriver.cc
+	solveStepStokesFluid.cc eigenFrequencyDriver.cc solveStepODE.cc
 #
 ifeq ($(Adaptivity),yes)
 
@@ -22,7 +22,7 @@ ifeq ($(Adaptivity),yes)
 	multiSequenceDriver.cc harmonicDriver.cc harmonicAdapt.cc staticAdaptSpaceDriver.cc \
 	piezoParamIdent.cc singleDriver.cc \
 	iterSolveStep.cc multiHarmonicDriver.cc solveStepAcousticBubble.cc MHassemble.cc \
-	solveStepStokesFluid.cc eigenFrequencyDriver.cc
+	solveStepStokesFluid.cc eigenFrequencyDriver.cc solveStepODE.cc
 
 
 endif

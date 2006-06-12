@@ -287,6 +287,12 @@
       <eigenSolver/>
       <solver><stoppingRule/></solver>
     </system>
+    <system name="bubble">
+      <setup/>
+      <matrix/>
+      <eigenSolver/>
+      <solver><stoppingRule/></solver>
+    </system>
   </linearSystems>
 
   <integRules>

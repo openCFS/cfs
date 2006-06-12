@@ -428,6 +428,8 @@ namespace CoupledField {
       out = ACOU_PRESSURE;
     else if (in == "acouPotential")
       out = ACOU_POTENTIAL;
+    else if (in == "acouPressureD1")
+      out = ACOU_PRESSURE_DERIV_1;
     else if (in == "acouForce")
       out = ACOU_FORCE;
     else if (in == "acouPotentialD1")
@@ -436,6 +438,8 @@ namespace CoupledField {
       out = ACOU_POTENTIAL_DERIV_2;
     else if (in == "acouRHSval")
       out = ACOU_RHSVAL;
+    else if (in == "acouBubbleRhsVal")
+      out = ACOU_BUBBLE_RHS_VAL;
     else if (in == "acouPotNRBC")
       out = ACOU_POT_NRBC;
     else if (in == "nrbcPhi")
@@ -478,6 +482,14 @@ namespace CoupledField {
       out = STOKESFLUID_VORTICITY;
     else if (in == "stokesFluidForce")
       out = STOKESFLUID_FORCE;
+
+    // bubble
+    else if (in == "bubbleRadius")
+      out = BUBBLE_RADIUS;
+    else if (in == "bubbleRadiusD1")
+      out = BUBBLE_RADIUS_DERIV_1;
+    else if (in == "bubbleVolumeFrac")
+      out = BUBBLE_VOLUME_FRAC;
 	           
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
@@ -551,6 +563,9 @@ namespace CoupledField {
       case ACOU_PRESSURE:
         out = "acouPressure";
         break;
+      case ACOU_PRESSURE_DERIV_1:
+        out = "acouPressureD1";
+        break;
       case ACOU_FORCE:
         out = "acouForce";
         break;
@@ -562,6 +577,9 @@ namespace CoupledField {
         break;
       case ACOU_RHSVAL:
         out = "acouRHSval";
+        break;
+      case ACOU_BUBBLE_RHS_VAL:
+        out = "acouBubbleRhsVal";
         break;
       case ACOU_POT_NRBC:
         out = "acouPotNRBC";
@@ -621,6 +639,17 @@ namespace CoupledField {
         break;
       case STOKESFLUID_FORCE:
         out = "stokesFluidForce";
+        break;
+
+        // bubble
+      case BUBBLE_RADIUS:
+        out = "bubbleRadius";
+        break;
+      case BUBBLE_RADIUS_DERIV_1:
+        out = "bubbleRadiusD1";
+        break;
+      case BUBBLE_VOLUME_FRAC:
+        out = "bubbleVolumeFrac";
         break;
       
       default:

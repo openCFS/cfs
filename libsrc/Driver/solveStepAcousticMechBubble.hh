@@ -112,8 +112,8 @@ namespace CoupledField
     Double pressureNoDim;
     Double presDerivNoDim;  
 
-    //! Suggested step size for ODESolver
-    Double hTry_;
+    //! Suggested step size for ODESolver for each element
+     StdVector<Double> hTry_;
    
 
 

@@ -450,6 +450,9 @@ namespace CoupledField {
       else if (pdeNames[i] == "stokesFluid")
         ptSinglePde_[i]=new StokesFluidPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
+      else if (pdeNames[i] == "bubble")
+        ptSinglePde_[i]=new BubblePDE(ptgrid_,ptTimeFunc_,OutFile_);
+
       else {
         std::string msg=pdeNames[i]+" - this type of pdes is unknown";
         Error(msg.c_str(),__FILE__,__LINE__);
@@ -553,8 +556,7 @@ namespace CoupledField {
     // since the iterCoupledPDE has to solve StdPDEs, whereas the
     // pairwise iterative couplings are defined only for 
     // SinglePDEs
-    Integer index = 0;
-    for (UInt i = 0; i<ptSinglePde_.GetSize(); i++ ) {
+    Integer index = 0; for (UInt i = 0; i<ptSinglePde_.GetSize(); i++ ) {
       if (isDirectCoupled_[ptSinglePde_[i]] == TRUE ) {
         index = orderedPdes.Find(ptSinglePde_[i]);
         

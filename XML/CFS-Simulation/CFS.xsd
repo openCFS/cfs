@@ -26,6 +26,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEnrbc.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEstokesFluid.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEbubble.xsd"/>
 
   <!-- ******************************************************************* -->
   <!--   Include definition of coupling types and elements -->
