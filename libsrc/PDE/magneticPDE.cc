@@ -532,7 +532,7 @@ namespace CoupledField {
     StdVector<UInt> connecth;
     StdVector<Integer> Eqns;  
     Vector<double> help;
-
+    BaseForm *bilinear_stiff = NULL;
     UInt i, j;
     Vector<Double> energy(calcEnergy_.GetSize());
 
@@ -541,6 +541,33 @@ namespace CoupledField {
       Double reluctivity;
       materials_[calcEnergy_[i]]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
 
+      // find related region in subdoms_
+      Integer sdIndex = subdoms_.Find( calcEnergy_[i] );
+      if( sdIndex < 0 ) {
+        (*error) << "Region " << ptgrid_->RegionIdToName(calcEnergy_[i])
+                 << " is not contained in set of regions for magnetic PDE.";
+        Error( __FILE__, __LINE__ );
+      }
+
+      // Create stiffness integrator
+      if ( nonLinType_[sdIndex] != "no" ) {
+
+        //read in the BH-curve data and compute the approximation
+        std::string nlfnc = materials_[subdoms_[sdIndex]]->GetNonlinFileName();
+        ApproxData *nlinFnc = new SmoothSpline(nlfnc);
+        nlinFnc->CalcBestParameter();
+        nlinFnc->CalcApproximation();
+        bilinear_stiff = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity,
+                                                   isaxi_);
+
+        
+        // VERY IMPORTANT: Set nonlinear-method "fixpoint", as otherwise also
+        // the Frechet part of the stiffness is calculated!
+        bilinear_stiff->SetNonLinMethod( "fixPoint" );
+      } else {
+        bilinear_stiff = new CurlCurlNode2DInt(reluctivity, isaxi_);
+      }
+
       StdVector<Elem*> elemssd;
       ptgrid_->GetVolElems( elemssd,calcEnergy_[i] );
 
@@ -548,27 +575,26 @@ namespace CoupledField {
       for (j=0; j < elemssd.GetSize(); j++) {
 
         ptElem=elemssd[j]->ptElem;
-        BaseForm *bilinear_stiff = new CurlCurlNode2DInt(ptElem,reluctivity, isaxi_);
+        bilinear_stiff->SetElemPtr( ptElem );
 
         connecth=elemssd[j]->connect;
         GetElemCoords(connecth, ptCoord);
-        bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-
-        //        EqnData_->Mesh2Eqn(Eqns,connecth);
-        //        (*debug) << "Nodes:" << connecth << std::endl;
-        //        (*debug) << "Eqns :" << Eqns << std::endl;
-
-
         Vector<Double> magvecpot;
+        sol_->GetElemSolution(magvecpot,connecth);
+        if(  nonLinType_[sdIndex] != "no" ) {
+          Matrix<Double> magPotMatrix;
+          sol_->GetElemSolutionAsMatrix( magPotMatrix,connecth);
+          bilinear_stiff->SetActElemSol( magPotMatrix );
+        }
         
+        bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
         sol_->GetElemSolution(magvecpot,connecth);
         
         help = elemmat * magvecpot;
-        energy[i] += help * magvecpot;
-        energy[i] *= 0.5;
-            
-        delete bilinear_stiff;    
+        energy[i] += 0.5 *( help * magvecpot);
+        
       }  
+      delete bilinear_stiff;    
     }
 
     std::string resulttype = "Electric Energy";
