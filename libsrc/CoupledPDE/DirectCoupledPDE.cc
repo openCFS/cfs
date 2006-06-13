@@ -573,50 +573,9 @@ namespace CoupledField {
   void DirectCoupledPDE::DefineSolveStep() {
     ENTER_FCN( "DirectCoupledPDE::DefineSolveStep" );
   
-    // HARD CODED
-    // In case of acou-mech-coupling with pressure formulation
-    // use as driver SolveStepAcousticMechBubble
-    // otherwise SolveStepMech
-    bool acouMechBubble = false;
-    std::string pdeName;
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-    StdVector<std::string> auxVec;
-    
-    for (UInt i = 0 ; i < singlePDEs_.GetSize() ; i++){
-      pdeName = singlePDEs_[i]->GetName();  
-      if ( pdeName == "acoustic" ){
-	
-	BubbleDynType bubbleDynType = NOBUBBLETYPE;
-	keyVec = "acoustic", "bubbles", "bubbleType";
-	attrVec = "", "tag";
-	valVec =  "", bcSequenceTag_;
-	params->GetList(keyVec, attrVec, valVec, auxVec);
-	if ( auxVec.GetSize() == 1 ) {
-	  String2Enum( auxVec[0], bubbleDynType );
-	}
-	else {
-	  bubbleDynType = NOBUBBLETYPE;
-	}
-	if ( bubbleDynType !=  NOBUBBLETYPE){
-	  std::string str;
-	  SolutionType formulation;
-	  params->Get( "formulation", str, "pdeList", "acoustic" );
-	  String2Enum( str, formulation );
-	  if ( formulation ==  ACOU_PRESSURE){
-	    acouMechBubble = true;
-	  }
-	}
-	break;
-      }
-    }
-    if ( acouMechBubble == true ){
-      solveStep_ = new SolveStepAcousticMechBubble(*this, GILMORE );
-    }
-    else{
+
       solveStep_ = new StdSolveStep(*this);
-    }
+
   }
 
   // *************************
