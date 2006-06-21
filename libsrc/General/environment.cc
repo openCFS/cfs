@@ -926,8 +926,8 @@ namespace CoupledField {
     case P_SATURATION:
       out = "Psaturation";
       break;
-    case P_FUNCTION:
-      out = "Pfunction";
+    case PREISACH_WEIGHTS:
+      out = "preisachWeights";
       break;
     case A_JILES:
       out = "aJiles";
@@ -1092,8 +1092,8 @@ namespace CoupledField {
     else if ( in == "Psaturation" ) {
       out = P_SATURATION;
     }
-    else if ( in == "Pfunction" ) {
-      out = P_FUNCTION;
+    else if ( in == "preisachWeights" ) {
+      out = PREISACH_WEIGHTS;
     }
     else if ( in == "aJiles" ) {
       out = A_JILES;
