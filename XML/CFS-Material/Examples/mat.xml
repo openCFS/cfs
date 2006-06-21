@@ -44,16 +44,24 @@
 	  </real>
         </isotropic> -->
       </permittivity>
-      <permittivityCoefficient nonlinear="function">
+<!--      <permittivityCoefficient nonlinear="function">
           <entry>      33            </entry>
           <dependency> elecField     </dependency>
           <approxType> smoothSplines </approxType>
           <dataName>   PZTeps33NL1   </dataName>
-<!--        <hystModel>   preisach</hystModel>
-            <eSat>       1E06     </eSat>
-            <pSat>       0.04     </pSat>
-            <pFunction>  constant </pFunction> -->
-      </permittivityCoefficient>
+      </permittivityCoefficient>  -->
+      <hystModel>
+        <preisach>
+          <eSat> 1E06 </eSat>
+          <pSat> 0.04 </pSat>
+          <dim> 3 </dim>
+	  <weights>
+            0.5 0.5 0.5
+            0.5 0.5 0.5
+            0.5 0.5 0.5
+	  </weights>
+        </preisach>
+      </hystModel>	
     </electric>
     <flow>
       <density>          2.70031E+03 </density>

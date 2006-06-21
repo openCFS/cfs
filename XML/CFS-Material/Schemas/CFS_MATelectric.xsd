@@ -21,6 +21,8 @@
       <xsd:element name="permittivity" type="DT_ElecPermittivity"/>
       <xsd:element name="permittivityCoefficient"
         type="DT_ElecNonLinPerm" minOccurs="0"/>
+      <xsd:element name="hystModel"
+        type="DT_ElecHystModel" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 
@@ -77,14 +79,32 @@
         <xsd:element name="approxType" type="xsd:string"/>
         <xsd:element name="dataName" type="xsd:string"/>
       </xsd:sequence>
-      <xsd:sequence>
-        <xsd:element name="hystModel" type="xsd:string"/>
-        <xsd:element name="eSat" type="xsd:double"/>
-        <xsd:element name="pSat" type="xsd:double"/>
-        <xsd:element name="pFunction" type="xsd:string"/>
-      </xsd:sequence>
     </xsd:choice>
     <xsd:attribute name="nonlinear" type="xsd:string" use="required"/>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of hysterese model                                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ElecHystModel">
+    <xsd:choice>
+      <xsd:element name="preisach" type="DT_ElecPreisachHystModel"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
+  <xsd:complexType name="DT_ElecPreisachHystModel">
+    <xsd:sequence>
+      <xsd:element name="eSat" type="xsd:double"/>
+      <xsd:element name="pSat" type="xsd:double"/>
+      <xsd:element name="dim"  type="xsd:nonNegativeInteger"/>
+      <xsd:element name="weights">
+        <xsd:simpleType>
+          <xsd:restriction base="doubleList">
+            <xsd:maxLength value="200"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
   </xsd:complexType>
   
 </xsd:schema>
