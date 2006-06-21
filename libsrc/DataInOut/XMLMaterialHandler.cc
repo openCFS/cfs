@@ -393,6 +393,7 @@ namespace CoupledField {
       material->GetScalar( EModul, MECH_EMODULUS, REAL ); 
       material->GetScalar( PoissonNumber, MECH_POISSON, REAL ); 
       ComputeIsoMechStiffnesTensor(EModul,PoissonNumber,elasticityTensor);
+      //material->SetIsotrop();
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
       // std::cerr << "E=" << EModul << " nu=" << PoissonNumber << std::endl;
       // std::cerr << "real isotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
@@ -422,6 +423,7 @@ namespace CoupledField {
       material->GetScalar( GZX, MECH_GMODULUS_ZX, REAL ); 
       material->GetScalar( GXY, MECH_GMODULUS_XY, REAL ); 
       ComputeOrthoMechStiffnesTensor(EX,EY,EZ,nuXY,nuYZ,nuXZ,GYZ,GZX,GXY,elasticityTensor);
+      //material-> SetOrthotrop();
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
       std::cerr << "real othotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
@@ -764,7 +766,7 @@ namespace CoupledField {
     ENTER_FCN( "XMLMaterialHandler::ReadElectrostatic" );
 
     Double      doubValue;
-    Integer     inteValue;
+    Integer     inteValue, dim;
     std::string striValue;
     Matrix<Double> permittivityTensor(3,3);
 
@@ -856,44 +858,53 @@ namespace CoupledField {
       // std::cerr << "dataName=" << striValue << std::endl;
     }
 
-    //read non linear hysterese model of a permittivity coefficient
-    keyVec = "material","electric","permittivityCoefficient","hystModel";
-    attrVec= "name"    ,""        ,"nonlinear";
-    valVec =  matName  ,""        ,"hysteresis";
+    //read Preisach hysterese model
+    keyVec = "material","electric","hystModel","preisach";
+    attrVec= "name"    ,""        ,"";
+    valVec =  matName  ,""        ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, HYST_MODEL ); 
-      // std::cerr << "hysterese model=" << striValue << std::endl;
+      striValue="preisach";
+      material->SetScalar(striValue, HYST_MODEL ); 
     }
 
-    //read e saturation of non linear hysterese model for a permittivity coefficient
-    keyVec = "material","electric","permittivityCoefficient","eSat";
-    attrVec= "name"    ,""        ,"nonlinear";
-    valVec =  matName  ,""        ,"hysteresis";
+    //read E saturation of Preisach hysterese model
+    keyVec = "material","electric","hystModel","preisach","eSat";
+    attrVec= "name"    ,""        ,""         ,"";
+    valVec =  matName  ,""        ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, E_SATURATION, REAL ); 
-      // std::cerr << "eSat=" << doubValue << std::endl;
     }
 
-    //read p saturation of non linear hysterese model for a permittivity coefficient
-    keyVec = "material","electric","permittivityCoefficient","pSat";
-    attrVec= "name"    ,""        ,"nonlinear";
-    valVec =  matName  ,""        ,"hysteresis";
+    //read P saturation of Preisach hysterese model
+    keyVec = "material","electric","hystModel","preisach","pSat";
+    attrVec= "name"    ,""        ,""         ,"";
+    valVec =  matName  ,""        ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, P_SATURATION, REAL ); 
-      // std::cerr << "eSat=" << doubValue << std::endl;
     }
 
-    //read p function of non linear hysterese model for a permittivity coefficient
-    keyVec = "material","electric","permittivityCoefficient","pFunction";
-    attrVec= "name"    ,""        ,"nonlinear";
-    valVec =  matName  ,""        ,"hysteresis";
+    //read weight dimension of Preisach hysterese model
+    keyVec = "material","electric","hystModel","preisach","dim";
+    attrVec= "name"    ,""        ,""         ,"";
+    valVec =  matName  ,""        ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, P_FUNCTION ); 
-      // std::cerr << "pFunction=" << striValue << std::endl;
+      parser_->Get( keyVec, attrVec, valVec, inteValue );
+      dim=inteValue;
+      //material->SetScalar( dim, PREISACH_DIM); 
+    }
+
+    Matrix<Double> preisachWeightTensor(dim,dim);
+
+    //read real permittivity tensor
+    keyVec = "material","electric","hystModel","preisach","weights";
+    attrVec= "name"    ,""        ,""            ,"";
+    valVec =  matName  ,""        ,""            ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
+                                   dim, dim, preisachWeightTensor );
+      material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, REAL); 
     }
 
     // Print information to info file
