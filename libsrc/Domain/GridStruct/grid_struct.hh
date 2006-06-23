@@ -310,7 +310,7 @@ namespace CoupledField
     //! \param isaxi (in) flag indicating axial symmetry
     Double CalcVolumeOfRegion( const RegionIdType regionId,
                                bool isaxi = false,
-                               bool updated ) {
+                               bool updated = false ) {
       Error("Method not supported by GridStruct-Class",__FILE__,__LINE__); 
       return -1.0;
     }

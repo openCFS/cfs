@@ -336,7 +336,7 @@ namespace CoupledField
     //! \param updated (in) flag indicating if updated geometry should be used
     Double CalcVolumeOfRegion( const RegionIdType regionId ,
                                bool isaxi = false,
-                               bool updated );
+                               bool updated = false);
     //@}
 
 
