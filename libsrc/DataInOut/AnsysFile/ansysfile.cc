@@ -35,7 +35,7 @@ namespace CoupledField {
 
     dim_ = GetDim();
     elemDimReadIn_.Resize(dim_);
-    elemDimReadIn_.Init(FALSE);
+    elemDimReadIn_.Init(false);
     maxNumElems_ = GetNumElems();
     maxNumNodes_ = GetNumNodes();
   }
@@ -139,7 +139,7 @@ namespace CoupledField {
 
     // Check if elements of desired dimension were read in. If not,
     // read them in into dummy variables
-    if ( elemDimReadIn_[dim-1] == FALSE ) {
+    if ( elemDimReadIn_[dim-1] == false ) {
       StdVector<StdVector<Elem*> > dummyElems;
       StdVector<RegionIdType> dummyId;
       GetElements(dummyElems,dummyId,dim);
@@ -180,11 +180,11 @@ namespace CoupledField {
         inFile_ >> nodalnum >> str;
         inFile_.ignore(100,'\n');
         
-        Boolean found = FALSE;
+        bool found = false;
         
         for ( j = 0; j < nodeNames.GetSize(); j++ ) {
           if ( str == nodeNames[j] ) {
-            found = TRUE;
+            found = true;
           }
         }
         if ( !found ) {
@@ -212,11 +212,11 @@ namespace CoupledField {
       inFile_ >> elemNum >> str;
       inFile_.ignore(100,'\n');
       
-      Boolean found = FALSE;
+      bool found = false;
       
       for ( j = 0; j < elemNames.GetSize(); j++ ) {
         if ( str == elemNames[j] ) {
-          found = TRUE;
+          found = true;
         }
       }
       if ( !found ) {
@@ -239,6 +239,7 @@ namespace CoupledField {
     
     UInt numNodes = GetNumNodes();
     nodeCoords.Resize(numNodes);
+    nodeCoords.Init();
 
 
     GetPosLine("[Nodes]", pos);
@@ -259,6 +260,7 @@ namespace CoupledField {
     
     UInt numNodes = GetNumNodes();
     nodeCoords.Resize(numNodes);
+    nodeCoords.Init();
     
     
     GetPosLine("[Nodes]", pos);
@@ -281,12 +283,14 @@ namespace CoupledField {
     
     
     nodes.Resize(regionId.GetSize());
+    nodes.Init();
 
     for ( iRegion = 0; iRegion < regionId.GetSize(); iRegion++ ) {
       
       iNode = 0;
       index = regionId[iRegion];
       nodes[iRegion].Resize(regionNodes_[index].size());
+      nodes[iRegion].Init();
 
       for (it = regionNodes_[index].begin();it != regionNodes_[index].end();
            it++, iNode++ ) {
@@ -442,7 +446,7 @@ namespace CoupledField {
 
     // Set flag which indicates, that elements of given dimension
     // were read in
-    elemDimReadIn_[dim-1] = TRUE;
+    elemDimReadIn_[dim-1] = true;
   }
 
 
@@ -611,23 +615,23 @@ namespace CoupledField {
     inFile_.seekg(pos, std::ios::beg);
     std::string buf;
     pos=std::string::npos;
-    Boolean found = FALSE;
+    bool found = false;
     
     std::string::size_type hpos;
     
-    while (found == FALSE && !inFile_.eof()) {
+    while (found == false && !inFile_.eof()) {
       hpos=inFile_.tellg();
       std::getline(inFile_, buf, '\n');
       pos=buf.find(seekexp);
 
       if ( pos != std::string::npos) {
-        found = TRUE;
+        found = true;
       }
     }
 
     pos=inFile_.tellg();
 
-    if (pos>=pos_end && found == FALSE) {
+    if (pos>=pos_end && found == false) {
       (*error) << "Cannot find string: " << seekexp << " in your mesh-file.";
       Error( __FILE__, __LINE__ );
     }
@@ -655,10 +659,10 @@ namespace CoupledField {
     inFile_.seekg(pos, std::ios::beg);
     std::string buf;
     pos=std::string::npos;
-    Boolean found = FALSE;
+    bool found = false;
     std::string::size_type hpos;
 
-    while ( found == FALSE && !inFile_.eof() ) {
+    while ( found == false && !inFile_.eof() ) {
       hpos=inFile_.tellg();
       std::getline(inFile_, buf, '\n');
       
@@ -666,14 +670,14 @@ namespace CoupledField {
 
 
       if ( pos != std::string::npos ) {
-        found = TRUE;
+        found = true;
       }
     }
 
 
     pos+=hpos+seekexp.length();
 
-    if ( pos>=pos_end && found == FALSE ) {
+    if ( pos>=pos_end && found == false ) {
       (*error) << "Cannot find string: " << seekexp << " in your mesh-file.";
       Error( __FILE__, __LINE__ );
     }
@@ -723,7 +727,7 @@ namespace CoupledField {
   // *******************
   //   IsNextLineEmpty
   // *******************
-  Boolean AnsysFile::IsNextLineEmpty( std::string::size_type actPos ) {
+  bool AnsysFile::IsNextLineEmpty( std::string::size_type actPos ) {
 
     ENTER_IFCN( "AnsysFile::IsNextLineEmpty" );
 
@@ -733,12 +737,12 @@ namespace CoupledField {
     std::getline(inFile_,buf,'\n');
     inFile_.seekg(actPos,std::ios::beg);  
  
-    Boolean retVal;
+    bool retVal;
     if ( buf == "" ) {
-      retVal = TRUE;
+      retVal = true;
     }
     else {
-      retVal = FALSE;
+      retVal = false;
     }
     return retVal;
   }
@@ -864,10 +868,10 @@ namespace CoupledField {
         inFile_ >> nodalnum >> str;
         inFile_.ignore(100,'\n');
         
-        Boolean Find=FALSE;
+        bool Find=false;
         for (j=0; j<levelsGetSize(); j++) {
           if (str==levels[j]) {
-            Find=TRUE;
+            Find=true;
             break;
           }
         }
@@ -1052,11 +1056,11 @@ namespace CoupledField {
 
       ENTER_FCN( "AnsysFile::SetNumSD" );
 
-      Boolean Find;
+      bool Find;
       UInt  j;
       for (j=0; j<sdGetSize(); j++)
         if (namesd == sd[j]) { ptEl->setValue(j);
-          Find=TRUE;
+          Find=true;
         }
       if (!Find) {
         (*error) << namesd << "- this level of element is not mentioned in "

@@ -22,8 +22,7 @@ namespace CoupledField
 
     //----------------------- TRANSIENT---------------------------------------
     //! solves for one nonlinear transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepTransNonLin( const Boolean reset );
+    void StepTransNonLin();
 
     //! compute nonlinear part of RHS
     void AddNonLinRHS();

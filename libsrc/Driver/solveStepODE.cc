@@ -12,7 +12,7 @@ namespace CoupledField {
     ENTER_FCN( "SolveStepODE::~SolveStepODE" );
   }
   
-  void SolveStepODE::SolveStepTrans( const Boolean reset ) {
+  void SolveStepODE::SolveStepTrans() {
 
     // Perform a cast into a BubblePDE 
     try {

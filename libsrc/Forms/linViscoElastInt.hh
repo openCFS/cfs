@@ -10,9 +10,6 @@ namespace CoupledField
 class LinViscoElastInt : public linElastInt
 {  
 public:
-  /// Constructor
-  LinViscoElastInt(BaseFE * aptelem, BaseMaterial* matDat, SubTensorType type, 
-		   std::string matrixType,Double timeStep);
 
   /// Constructor
   LinViscoElastInt(BaseMaterial* matDat, SubTensorType type, std::string matrixType, 

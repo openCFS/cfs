@@ -13,6 +13,7 @@ namespace CoupledField
   class Grid;
   class Elem;
   template<class TYPE> class ElemStoreSol;
+  template<class TYPE> class NodeStoreSol;
   template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
  
@@ -30,9 +31,10 @@ namespace CoupledField
     */
     CurlEdgeOp(Grid * ptGrid,
                StdPDE * ptPDE,
-               NodeEQN * ptEQN,
+               shared_ptr<EqnMap> eqnMap,
                NodeStoreSol<Double> & sol,
-               BaseSystem * algsys);
+               BaseSystem * algsys,
+               bool coordUpdate = false );
 
     //! Destructor
     virtual ~CurlEdgeOp();
@@ -71,13 +73,14 @@ namespace CoupledField
     //! Constructor
     CurlNodeOp(Grid * ptGrid,
                StdPDE * ptPDE,
-               NodeEQN * ptEQN,
-               NodeStoreSol<Double> & sol);
+               shared_ptr<EqnMap> eqnMap,
+               NodeStoreSol<Double> & sol,
+               bool coordUpdate = false );
 
     //! Destructor
     virtual ~CurlNodeOp();
   
-    void Set2DType(Boolean axi) { isaxi_ = axi;};
+    void Set2DType(bool axi) { isaxi_ = axi;};
 
     //! Calculate element magnetic field
     /*!

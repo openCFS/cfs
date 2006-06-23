@@ -1,5 +1,7 @@
 #include <iostream>
 #include <fstream>
+#include "Domain/domain.hh"
+
 
 #include "PMLInt.hh"
 
@@ -7,10 +9,11 @@ namespace CoupledField
 {
 
   PMLInt::PMLInt(std::string type, Double factor, std::string dampingTypePML, Double damp, 
-		 Boolean axi)
-    : BaseForm(), formsFactor_(factor), formsType_(type), dampingFactor_(damp)
+		 bool axi)
+    : BaseForm(NULL), formsFactor_(factor), formsType_(type), dampingFactor_(damp)
   {
     ENTER_FCN( "PMLInt::PMLInt" );
+    name_ = "PMLInt";
 
     //check for correct type
     if ( type == "laplaceInt" ) {
@@ -38,6 +41,9 @@ namespace CoupledField
     }
 
     isaxi_ = axi;
+
+    // Set Expression for parser
+    mParser_->SetExpr( mHandle_, "f" );
   }
 
 
@@ -49,15 +55,20 @@ namespace CoupledField
 
 
 
-  void PMLInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
+  void PMLInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                  EntityIterator& ent1, 
+                                  EntityIterator& ent2 )
   {
     ENTER_FCN( "PMLInt::CalcElementMatrix" );
   
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
     if ( formsType_ =="laplaceInt" ) {
-      CalcElementMatrixStiff(ptCoord, elemMat);
+      CalcElementMatrixStiff(ptCoord_, elemMat);
     }
     else {
-      CalcElementMatrixMass(ptCoord, elemMat);
+      CalcElementMatrixMass(ptCoord_, elemMat);
     }
     
   }
@@ -80,7 +91,8 @@ namespace CoupledField
     Vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes); elemMat.Init();
+    elemMat.Resize(nrNodes); 
+    elemMat.Init();
 
     Vector<Double> factorsPML;
     ComputeFactorPML( factorsPML, ptCoord);
@@ -136,6 +148,7 @@ namespace CoupledField
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrNodes);
+    elemMat.Init();
     
     Vector<Double> factorsPML;
     ComputeFactorPML( factorsPML, ptCoord);
@@ -181,7 +194,8 @@ namespace CoupledField
     }
 
     Vector<Complex> factors(numVals);
-    Double omegaInv = 1.0 / frequency_;
+    Double frequency = 2 * PI * mParser_->Eval( mHandle_ );
+    Double omegaInv = 1.0 / frequency;
     Double imagVal, factor;
 
     if ( pos[0] < minX_ || pos[0] > maxX_ ) {
@@ -271,6 +285,7 @@ namespace CoupledField
 //     std::cout << "factors:\n" << factors << std::endl;
 
     factorsPML.Resize(numVals);
+    factorsPML.Init();
     Complex val;
 
     if ( formsType_ == "laplaceInt") {
@@ -689,12 +704,6 @@ namespace CoupledField
 
     //    std::cout << "LayerThickness:\n" << layerThickness_ << std::endl;
 
-  }
-
-  void PMLInt::Print(std::ostream * out, const Matrix<Double> Result) const
-  {
-    ENTER_FCN( "PMLInt ::Print"); 
-    (*out)<< "Laplace stiffness matrix:" << std::endl << Result;
   }
 
 

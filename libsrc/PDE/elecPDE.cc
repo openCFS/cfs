@@ -2,26 +2,22 @@
 #include <iostream>
 #include <sstream>
 #include <math.h>
-
-#include "DataInOut/Unverg/outUnverg.hh"
-#include "DataInOut/GMV/outGMV.hh"
-#include "Forms/forms_header.hh"
-#include "Forms/linElecInt.hh"
-#include "Estimator/spaceerror.hh"
-#include "DataInOut/WriteInfo.hh"
-#include "Driver/assemble.hh"
-#include "General/defs.hh"
-
-#include <Matrix/matrix.hh>
-#include <Utils/vector.hh>
-#include <Forms/gradfieldop.hh>
-#include "elecPDE.hh"
-#include <General/defs.hh>
-#include "DataInOut/ParamHandling/BaseParamHandler.hh" 
 #include <string>
+
+#include "elecPDE.hh"
+
+#include "Forms/linElecInt.hh"
+#include "Forms/elecchargeop.hh"
+#include "Forms/laplaceInt.hh"
+#include "DataInOut/writeresults.hh"
+#include "Forms/gradfieldop.hh"
+#include "General/defs.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh" 
 #include "Utils/StdVector.hh"
 #include "Driver/solveStepElec.hh"
 #include "CoupledPDE/pdecoupling.hh"
+#include "Domain/ansatzFct.hh"
+#include "Driver/assemble.hh"
 
 #ifdef TCL_INTERFACE
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -30,6 +26,9 @@
 #ifdef PARALLEL
 #include <mpi.h>
 #endif
+
+
+
 
 
 namespace CoupledField {
@@ -46,20 +45,26 @@ namespace CoupledField {
     // =====================================================================
     // set solution information
     // =====================================================================
-    dofspernode_ = 1;
-    solTypes_ = ELEC_POTENTIAL;
-    solDofs_ = 1;
     pdename_          = "electrostatic";
     pdematerialclass_ = ELECTROSTATIC;
  
-    geoUpdate_ = FALSE;
-    nonLin_    = FALSE;
-    isAlwaysStatic_ = TRUE;
-    isPiezoCoupled_ = FALSE;
+    nonLin_    = false;
+    isAlwaysStatic_ = true;
+    isPiezoCoupled_ = false;
 
     //check, if problem is axisymmetric
-    if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
+    if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = true;
 
+    // Create new resultDof object
+    shared_ptr<ResultDof> res1(new ResultDof);
+    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    res1->resultType = ELEC_POTENTIAL;
+    res1->dofNames = "ep";
+    res1->definedOn = ResultDof::NODE;
+    res1->fctType = fct;
+    results_.Push_back( res1 );
+    
+    
   }
   
 
@@ -70,6 +75,9 @@ namespace CoupledField {
 
     BaseForm *form, *formC;
 
+    // flag for updatedLagrange formulation
+    bool upLagrangeForm = true;
+ 
    //transform the type
     SubTensorType tensorType;
 
@@ -77,7 +85,7 @@ namespace CoupledField {
       tensorType = FULL;
     }
     else {
-      if ( isaxi_ == TRUE ) {
+      if ( isaxi_ == true ) {
 	tensorType = AXI;
       }
       else {
@@ -89,37 +97,54 @@ namespace CoupledField {
     // if the pde is piezo-coupled, the electrostatic entries
     // have to multiplied with -1
     Double factor = 1.0;
-    if ( isPiezoCoupled_ == TRUE )
+    if ( isPiezoCoupled_ == true )
       factor *= -1.0;  
   
     for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
-      form = new linElecInt( materials_[subdoms_[actSD]], tensorType );
+
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( subdoms_[actSD] );
+
+      // --- standard real-valued stiffness integrator ---
+      form = new linElecInt( materials_[subdoms_[actSD]], tensorType,
+                             upLagrangeForm );
       form->SetFactor( factor );
 
-      IntegratorDescriptor * stiffIntDescr = 
-        new IntegratorDescriptor(form, STIFFNESS, nonLin_);
+      BiLinFormContext * stiffIntDescr = 
+        new BiLinFormContext(form, STIFFNESS );
 
-      stiffIntDescr->SetPDEIds(this, this);
-      assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
+      stiffIntDescr->SetPtPdes(this, this);
+      stiffIntDescr->SetResults( results_[0], results_[0],
+                                 actSDList, actSDList );
 
-      // check for complex valued material parameter
+      assemble_->AddBiLinearForm( stiffIntDescr );
+
+      
+      // --- check for complex valued material parameter ---
       if( params->HasValue( "type", "imagMaterialParameter", 
                             "materialDataType" ) ) {
         DataType matType = IMAG; 
 
-        formC = new linElecInt( materials_[subdoms_[actSD]], tensorType );
+        formC = new linElecInt( materials_[subdoms_[actSD]], tensorType,
+                                upLagrangeForm);
 	formC->SetFactor( factor );
 	formC->SetMatDataType(matType);
 
-	IntegratorDescriptor * stiffIntDescrC = 
-	  new IntegratorDescriptor(formC, STIFFNESS, nonLin_);
+	BiLinFormContext * stiffIntDescrC = 
+	  new BiLinFormContext(formC, STIFFNESS);
 
-	stiffIntDescrC->SetPDEIds(this, this);
+	stiffIntDescrC->SetPtPdes(this, this);
 	stiffIntDescrC->SetMatDataType(matType);
-	assemble_->AddIntegrator(stiffIntDescrC, subdoms_[actSD]);
+        stiffIntDescrC->SetResults( results_[0], results_[0],
+                                   actSDList, actSDList );
+	assemble_->AddBiLinearForm( stiffIntDescrC );
       }
 
+      // Give result to equation numbering class
+      eqnMap_->AddResult( *results_[0], actSDList );
     }
+
   }
 
   void ElecPDE::DefineSolveStep() {
@@ -269,7 +294,7 @@ namespace CoupledField {
         error.SetNumSolutions(1);
         error.SetNumElems(errorMap_.GetSize());
         error.SetSolutionType(NO_SOLUTION_TYPE);
-        error.SetNumDofs(dofspernode_);
+        error.SetNumDofs(1);
         error.Init(0);
 
         //Error.SetAlgSysVector(errorMap_);
@@ -295,7 +320,7 @@ namespace CoupledField {
       mySol = dynamic_cast< NodeStoreSol<Complex>* >( sol_ );
 
       // Write electric potential
-      if ( saveSol_ == TRUE ) {
+      if ( saveSol_ == true ) {
         outFile_->WriteNodeSolutionHarmonic( *mySol, actStep, actTime,
                                              complexFormat_ );
       }
@@ -320,7 +345,7 @@ namespace CoupledField {
     // different iteration and time steps. The sum was written into the .data
     // stream. Since this is not available anymore, this is commented out
 #ifdef COMMENTET_OUT
-    if (isIterCoupled_ == TRUE) {
+    if (isIterCoupled_ == true) {
       //   // TMPORARILY
       SolutionType quantity;
       StdVector<UInt> * couplingNodes     = NULL;
@@ -402,7 +427,7 @@ namespace CoupledField {
       mySol = dynamic_cast< NodeStoreSol<Complex>* >( sol_ );
 
       // Write electric potential
-      if ( saveSolHist_ == TRUE ) {
+      if ( saveSolHist_ == true ) {
         outFile_->WriteNodeHistoryHarmonic( *mySol, actStep, actTime,
                                             complexFormat_ );
       }
@@ -479,8 +504,9 @@ namespace CoupledField {
     NodeStoreSol<TYPE> & solhelp = dynamic_cast<NodeStoreSol<TYPE>&>(*sol_);
     Vector<TYPE> tempE ;
     GradientFieldOp<TYPE> * FieldOp = 
-        new GradientFieldOp<TYPE>(ptgrid_, this, eqnData_, solhelp, 
-                                  ELEC_POTENTIAL, isaxi_);
+        new GradientFieldOp<TYPE>(ptgrid_, this, 
+                                  eqnMap_, solhelp, 
+                                  ELEC_POTENTIAL, results_[0],isaxi_);
       // loop over all subdomains
     for (UInt isd=0; isd<calcEfield_.GetSize(); isd++)
       {
@@ -493,7 +519,7 @@ namespace CoupledField {
           {
             elemssd[iel]->ptElem->GetCoordMidPoint(lCoord);
             FieldOp->CalcElemGradField( tempE, elemssd[iel], lCoord, 1); 
-            pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
+            pdeElem = eqnMap_->Mesh2PdeElem( elemssd[iel]->elemNum );
             E_->SetElemResult(pdeElem-1, tempE);
           }
       }
@@ -534,11 +560,11 @@ namespace CoupledField {
   
     // Create operator for electric flux density and charge calculation
     GradientFieldOp<TYPE> * dFieldOp = 
-      new GradientFieldOp<TYPE>(ptgrid_, this, eqnData_, *solhelp,
-                                  ELEC_POTENTIAL, isaxi_);
+      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
+                                ELEC_POTENTIAL, results_[0], isaxi_);
 
     ElecChargeOp<TYPE> * chargeOp = 
-      new ElecChargeOp<TYPE>(ptgrid_, this, eqnData_, isaxi_);
+      new ElecChargeOp<TYPE>(ptgrid_, this, eqnMap_, isaxi_);
   
     // loop over all subdomains
     for (UInt iSD=0; iSD<calcCharges_.GetSize(); iSD++){
@@ -609,9 +635,9 @@ namespace CoupledField {
                                    lCoordSurf, elemNormalD);
 
           if ( outputType == "surface" ) {
-            pdeElemNum = eqnData_->Mesh2PDEElem(surfElems[iElem]->elemNum);
+            pdeElemNum = eqnMap_->Mesh2PdeElem(surfElems[iElem]->elemNum);
           } else {
-            pdeElemNum = eqnData_->Mesh2PDEElem(ptVolElem->elemNum);
+            pdeElemNum = eqnMap_->Mesh2PdeElem(ptVolElem->elemNum);
           }
         
           // Create temporary vector, since SetElemResult only
@@ -637,8 +663,6 @@ namespace CoupledField {
     ENTER_FCN( "ElecPDE::CalcEnergy" );
 
     Matrix<Double> elemmat;  
-    Matrix<Double> ptCoord;
-    BaseFE         * ptElem;
     TYPE totalE = 0.0;
 
     SubTensorType tensorType;
@@ -657,50 +681,36 @@ namespace CoupledField {
     }
 
 
-    StdVector<UInt> connecth;
+   
     Vector<TYPE> help;
     Double factor = 1.0;
-    UInt i, j;
     Vector<TYPE> energy(subdoms_.GetSize());
 
-    for (i=0; i<subdoms_.GetSize(); i++)
-      {
+    for ( UInt i=0; i<subdoms_.GetSize(); i++) {
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[i] );
+      
+      EntityIterator it = actSDList.GetIterator();
+      energy[i] = 0;
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+        BaseForm * bilinear_stiff = 
+          new linElecInt(materials_[subdoms_[i]],tensorType);
+        bilinear_stiff->SetFactor(factor);
         
-        StdVector<Elem*> elemssd;
-        ptgrid_->GetVolElems( elemssd,subdoms_[i] );
+        bilinear_stiff->CalcElementMatrix( elemmat, it, it );
 
-        energy[i] = 0;
-        for (j=0; j < elemssd.GetSize(); j++)
-          {  
-            ptElem=elemssd[j]->ptElem;
-            BaseForm * bilinear_stiff = 
-              new linElecInt(materials_[subdoms_[i]],tensorType);
-            bilinear_stiff->SetFactor(factor);
-            bilinear_stiff->SetElemPtr(ptElem);
-
-            connecth=elemssd[j]->connect;
-            GetElemCoords(connecth, ptCoord);
-            bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-
-            // Mape Mesh to PDE node numbers
-            //Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
-
-            //        EqnData_->Mesh2Eqn(Eqns,connecth);
-            //        (*debug) << "Nodes:" << connecth << std::endl;
-            //        (*debug) << "Eqns :" << Eqns << std::endl;
-
-
-            Vector<TYPE> elpot;
-            sol_->GetElemSolution(elpot, connecth);
-            help =  elemmat * elpot;
-            energy[i] += 0.5 * (help * elpot);
-
-            delete bilinear_stiff;          
-          }  
-
-        totalE += energy[i];
-      }
-
+        StdVector<UInt> const & connecth  = it.GetElem()->connect;
+        Vector<TYPE> elpot;
+        sol_->GetElemSolution(elpot, connecth);
+        help =  elemmat * elpot;
+        energy[i] += 0.5 * (help * elpot);
+        
+        delete bilinear_stiff;          
+      }  
+      
+      totalE += energy[i];
+    }
+      
     std::string unit = "(Ws)";
     std::string resulttype = "Electric Energy";
     std::string analysis;
@@ -743,14 +753,14 @@ namespace CoupledField {
   {
     ENTER_FCN( "ElecPDE::InitCoupling" );
   
-    isIterCoupled_ = TRUE;
+    isIterCoupled_ = true;
     ptCoupling_   = Coupling;
     
     StdVector<std::string> * nRegions;
     StdVector<RegionIdType> nRegionIds;
     const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
     
-    nonLin_ = FALSE;
+    nonLin_ = false;
 
     // Initialization of coupling helper arrays
     std::string quantity;
@@ -772,8 +782,9 @@ namespace CoupledField {
         if (ptCoupling_->GetOutputQuantity(actCoupling) == ELEC_FORCE_VWP) {
           NodeStoreSol<Double> * solhelp = 
             dynamic_cast<NodeStoreSol<Double> *>(sol_);
-          ForceOp_ = new  ElecForceOp(ptgrid_, this, eqnData_, 
-                                      *solhelp, dim_, materials_, isaxi_);
+          ForceOp_ = new  ElecForceOp(ptgrid_, this,  eqnMap_, 
+                                      *solhelp, dim_, materials_, 
+                                      results_[0], isaxi_, true );
 
           ptCoupling_->GetOutputNeighbourRegion(actCoupling, nRegions);
           ptgrid_->RegionNameToId(nRegionIds,*nRegions);
@@ -812,7 +823,7 @@ namespace CoupledField {
     UInt forcesCount = 0;
 
     // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == FALSE)
+    if (isIterCoupled_ == false)
       return;
 
     // loop over all output coupling quantities
@@ -854,29 +865,29 @@ namespace CoupledField {
   }
 
 
-  Boolean ElecPDE::HasOutput(SolutionType output)
+  bool ElecPDE::HasOutput(SolutionType output)
   {
     ENTER_FCN( "ElecPDE::HasOutput" );
   
     switch (output)
       {
       case ELEC_FORCE_VWP:
-        return TRUE;
+        return true;
         break;
       case ELEC_POTENTIAL:
-        return TRUE;
+        return true;
         break;
       case ELEC_FIELD_INTENSITY:
-        return TRUE;
+        return true;
         break;
       case ELEC_INTERFACE_FORCE:
-        return TRUE;
+        return true;
         break;
       default:
-        return FALSE;
+        return false;
         break;
       }
-    return FALSE;
+    return false;
   }
 
 
@@ -884,97 +895,95 @@ namespace CoupledField {
   {
     ENTER_FCN( "ElecPDE::SetPiezoCoupling" );
   
-    isPiezoCoupled_ = TRUE;
+    isPiezoCoupled_ = true;
 
   }
 
-  void ElecPDE::AssembleSpecial( ) {
+//   void ElecPDE::AssembleSpecial( ) {
 
-    ENTER_FCN( "ElecPDE::AssembleSpecial" );
+//     ENTER_FCN( "ElecPDE::AssembleSpecial" );
 
-    Double omega, temp;
-    Complex factorR, factorL, factorC, factorAll;
+//     Double omega, temp;
+//     Complex factorR, factorL, factorC, factorAll;
 
-    // Iterate over all impedances
-    for ( UInt i = 0; i < impedances_.GetSize(); i++ ) {
+//     // Iterate over all impedances
+//     for ( UInt i = 0; i < impedances_.GetSize(); i++ ) {
       
-      // Calculate parameters
-      omega = solveStep_->GetActFreq() * 2.0 *PI;
+//       // Calculate parameters
+//       omega = solveStep_->GetActFreq() * 2.0 *PI;
 
-      // *** Resistance ***
-      if ( impedances_[i].resistance > EPS ) {
-        temp = - ( omega / (omega*omega * impedances_[i].resistance) );
-      } else {
-        temp = 0.0;
-      }
-      factorR = Complex( 0, temp );
+//       // *** Resistance ***
+//       if ( impedances_[i].resistance > EPS ) {
+//         temp = - ( omega / (omega*omega * impedances_[i].resistance) );
+//       } else {
+//         temp = 0.0;
+//       }
+//       factorR = Complex( 0, temp );
       
-      // *** Inductance ***
-      if ( impedances_[i].inductance > EPS ) {
-        temp = - 1.0 / ( omega * omega * impedances_[i].inductance );
-      } else {
-        temp = 0.0;
-      }
-      factorL = Complex( temp, 0.0 );
+//       // *** Inductance ***
+//       if ( impedances_[i].inductance > EPS ) {
+//         temp = - 1.0 / ( omega * omega * impedances_[i].inductance );
+//       } else {
+//         temp = 0.0;
+//       }
+//       factorL = Complex( temp, 0.0 );
       
-      // *** Capcitance ***
-      factorC = Complex( impedances_[i].capacitance, 0.0 );
+//       // *** Capcitance ***
+//       factorC = Complex( impedances_[i].capacitance, 0.0 );
       
-      factorAll = factorR + factorL + factorC;
+//       factorAll = factorR + factorL + factorC;
       
-      // Set Factors
-      Integer eqn1, eqn2;
-      UInt eqnDof1, eqnDof2;
-      Complex oldEntry;
-      eqnData_->Node2EQN( impedances_[i].node1, 1, eqn1, eqnDof1);
-      eqnData_->Node2EQN( impedances_[i].node2, 1, eqn2, eqnDof2);
+//       // Set Factors
+//       Integer eqn1, eqn2;
+//       Complex oldEntry;
+//       eqn1 = eqnMap_->GetNodeEqn( impedances_[i].node1, 1 );
+//       eqn2 = eqnMap_->GetNodeEqn( impedances_[i].node2, 1 );
       
-      // -- Diagonal part --
-      algsys_->GetMatrixEntry( SYSTEM, pdeId_, eqn1, 1, pdeId_, eqn1, 1,
-                               oldEntry);
-      algsys_->SetMatrixEntry( SYSTEM, pdeId_, eqn1, 1, pdeId_, eqn1, 1,
-                               oldEntry - factorAll, true);      
+//       // -- Diagonal part --
+//       algsys_->GetMatrixEntry( SYSTEM, pdeId_, eqn1, 1, pdeId_, eqn1, 1,
+//                                oldEntry);
+//       algsys_->SetMatrixEntry( SYSTEM, pdeId_, eqn1, 1, pdeId_, eqn1, 1,
+//                                oldEntry - factorAll, true);      
       
-      algsys_->GetMatrixEntry( SYSTEM, pdeId_, eqn2, 1, pdeId_, eqn2, 1,
-                               oldEntry);
-      algsys_->SetMatrixEntry( SYSTEM, pdeId_, eqn2, 1, pdeId_, eqn2, 1,
-                               oldEntry - factorAll, true);      
+//       algsys_->GetMatrixEntry( SYSTEM, pdeId_, eqn2, 1, pdeId_, eqn2, 1,
+//                                oldEntry);
+//       algsys_->SetMatrixEntry( SYSTEM, pdeId_, eqn2, 1, pdeId_, eqn2, 1,
+//                                oldEntry - factorAll, true);      
 
-      // -- Off diagonal part --
-      algsys_->GetMatrixEntry( SYSTEM, pdeId_, eqn1, 1, pdeId_, eqn2, 1,
-                               oldEntry );
-      algsys_->SetMatrixEntry( SYSTEM, pdeId_, eqn2, 1, pdeId_, eqn2, 1,
-                               oldEntry + factorAll, true );
-    }
-
+//       // -- Off diagonal part --
+//       algsys_->GetMatrixEntry( SYSTEM, pdeId_, eqn1, 1, pdeId_, eqn2, 1,
+//                                oldEntry );
+//       algsys_->SetMatrixEntry( SYSTEM, pdeId_, eqn2, 1, pdeId_, eqn2, 1,
+//                                oldEntry + factorAll, true );
+//     }
 
 
-  }
+
+//   }
   
-  void ElecPDE::SetupMatrixGraphSpecial( ) {
-    ENTER_FCN( "ElecPDE::SetupMatrixGraphSpecial" );
+//   void ElecPDE::SetupMatrixGraphSpecial( ) {
+//     ENTER_FCN( "ElecPDE::SetupMatrixGraphSpecial" );
 
-    Integer eqn1, eqn2;
-    UInt eqnDof1, eqnDof2;
-    StdVector<Integer> connect;
+//     Integer eqn1, eqn2;
+//     StdVector<Integer> connect;
     
-    for ( UInt i = 0; i < impedances_.GetSize(); i++ ) {
+//     for ( UInt i = 0; i < impedances_.GetSize(); i++ ) {
       
-      eqnData_->Node2EQN( impedances_[i].node1, 1, eqn1, eqnDof1);
-      eqnData_->Node2EQN( impedances_[i].node2, 1, eqn2, eqnDof2);
+//       eqn1 = eqnMap_->GetNodeEqn( impedances_[i].node1, 1 );
+//       eqn2 = eqnMap_->GetNodeEqn( impedances_[i].node2, 1 );
       
-      // Set element positions
-      connect.Clear();
-      connect.Push_back(eqn1);
-      connect.Push_back(eqn2);
+//       // Set element positions
+//       connect.Clear();
+//       connect.Push_back(eqn1);
+//       connect.Push_back(eqn2);
       
-      algsys_->SetElementPos( pdeId_, connect.GetPointer(), 2,
-                              pdeId_, connect.GetPointer(), 2,
-                              true);  
-    }
+//       algsys_->SetElementPos( pdeId_, connect.GetPointer(), 2,
+//                               pdeId_, connect.GetPointer(), 2,
+//                               true);  
+//     }
 
     
-  }
+//   }
 
   // ***********************************************************************
   //   Obtain information on desired output quantities from parameter file
@@ -1002,8 +1011,8 @@ namespace CoupledField {
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
     if (nodeValues.GetSize() > 0) {
-      saveSol_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSol_ = true;
+      hasOutput_ = true;
     }
   
     // *****************************
@@ -1024,7 +1033,7 @@ namespace CoupledField {
     }
 
     if ( calcEfield_.GetSize() > 0 ) {
-      hasOutput_ = TRUE;
+      hasOutput_ = true;
       Info->PrintF( pdename_, " Computing electric field for regions:\n" );
       for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
@@ -1038,7 +1047,7 @@ namespace CoupledField {
       E_->SetSolutionType(ELEC_FIELD_INTENSITY);
       E_->SetNumElems(numElems_);
       E_->SetNumDofs(dim_);
-      E_->SetPtrEQNData(eqnData_, ptgrid_);
+      E_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
       E_->Init(); 
     }
 
@@ -1054,7 +1063,7 @@ namespace CoupledField {
     }
 
     if ( calcEnergy_.GetSize() > 0 ) {
-      hasOutput_ = TRUE;
+      hasOutput_ = true;
       Info->PrintF( pdename_, " Computing energy for regions:\n" );
       for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
@@ -1074,14 +1083,14 @@ namespace CoupledField {
       {
         
         // Check, if Piezo-Coupling is active
-        if ( isPiezoCoupled_ == TRUE ) {
+        if ( isPiezoCoupled_ == true ) {
           (*warning) << "The electrostatic PDE is directly piezo-coupled.\n"
                      << "Therefore the computation of charges in the "
                      << "electrostatic part will yield not the correct result!";
             Warning( __FILE__, __LINE__ );
         }
         
-        hasOutput_ = TRUE;
+        hasOutput_ = true;
         Info->PrintF( pdename_,
                       " Computing electric charges for regions:\n");
         for ( UInt k = 0; k < temp.GetSize(); k++ ) {
@@ -1097,7 +1106,7 @@ namespace CoupledField {
         charges_->SetSolutionType(ELEC_CHARGE);
         charges_->SetNumElems(numElems_);
         charges_->SetNumDofs(1);
-        charges_->SetPtrEQNData(eqnData_, ptgrid_);
+        charges_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
         charges_->Init();
       } 
   
@@ -1114,8 +1123,8 @@ namespace CoupledField {
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
     if (saveNodeHist.GetSize() > 0) {
-      saveSolHist_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSolHist_ = true;
+      hasOutput_ = true;
       Info->PrintF( pdename_, " Saving ElecPotential for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );

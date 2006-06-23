@@ -4,7 +4,6 @@
 #include <Matrix/matrix.hh>
 #include <Domain/grid.hh>
 #include <General/environment.hh>
-#include "PDE/nodeEQN.hh"
 
 namespace CoupledField
 {
@@ -34,10 +33,10 @@ public:
   void DefMpcciPartition(UInt meshId, UInt partId);
   
   //! Define Nodes belonging to a MpCCI partition and makes them known in MpCCI
-  void DefMpcciNodes(UInt  meshId, UInt partId, UInt nrNodes, UInt* Nodes, NodeEQN & eqnData);
+  void DefMpcciNodes(UInt  meshId, UInt partId, UInt nrNodes, UInt* Nodes, shared_ptr<EqnMap> eqnMap);
   
   //! Define Elements belonging to a MpCCI partition and makes them known in MpCCI
-  void DefMpcciElements(UInt meshId, UInt partId, NodeEQN & eqnData);
+  void DefMpcciElements(UInt meshId, UInt partId, shared_ptr<EqnMap> eqnMap);
   
   //! Define the communicator and call CloseSetup
   void FinishMpcciSetup(std::string couplingType);
@@ -57,7 +56,7 @@ public:
   ////////////////////////////////////////////////////////////////
   
   //! put values of one partitions/subdomain into the sending queue of MpCCI
-  void PutPartition(UInt partId, const Vector<Double>  & displData, UInt nrNodesSD, UInt* nodeIds, Boolean conv);
+  void PutPartition(UInt partId, const Vector<Double>  & displData, UInt nrNodesSD, UInt* nodeIds, bool conv);
   
   //! Sends values of all partitions/subdomains to MpCCI
   void SendAllPartitions();
@@ -70,9 +69,9 @@ private:
   ShortInt Dim_;         //!< space dimension of pde  
   StdVector<UInt> mapSD_;//!< local vector containing coupled domain
   StdVector<RegionIdType> couplSubDomId_; 
-  Boolean  writeGridFile_; //!<flags to write grid with coupled vals in file
-  Boolean  writeSrcFileperTS_; //!<flags to write coarse srcs in time step files
-  Boolean  writeSrcFileperNode_; //!<flags to write coarse srcs in nodal files
+  bool  writeGridFile_; //!<flags to write grid with coupled vals in file
+  bool  writeSrcFileperTS_; //!<flags to write coarse srcs in time step files
+  bool  writeSrcFileperNode_; //!<flags to write coarse srcs in nodal files
   //!Objects for topology files
   std::ofstream * outelemfile_;
   std::ofstream * outnodefile_;
@@ -84,7 +83,7 @@ private:
 
   //!MpCCI
   UInt MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
-  // Integer MpCCI_; //<! if TRUE: coupling via MpCCI to low simulator
+  // Integer MpCCI_; //<! if true: coupling via MpCCI to low simulator
   UInt meshId_;
   UInt partId_;
   UInt nNodeIds_;

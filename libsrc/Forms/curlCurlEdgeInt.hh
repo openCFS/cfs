@@ -11,16 +11,16 @@ class CurlCurlEdgeInt : public BaseForm
 {
 public:
   /// Constructor
-  CurlCurlEdgeInt(BaseFE * aptelem, Double laplVal);
+  CurlCurlEdgeInt(Double laplVal);
 
   /// 
   virtual ~CurlCurlEdgeInt();
 
   /// Calculation of stiffmess matrix
-  void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
-
-  virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
-
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
+  
   /// calculates the curl, if the global derivates are already given in shapeDeriv
   /*!
     \param curl (output) Matrix with curl of edge shape functions

@@ -6,19 +6,21 @@
 
 #include <list>
 
-#include "Driver/assemble.hh"
-#include "Driver/MHassemble.hh"
 #include "Domain/GridAdaption/GridAdaption.hh"
-//#include "Domain/Lamina.hh"
 #include "DataInOut/Scripting/scriptable.hh"
 #include "Utils/mathParser.hh"
-
+#include "Domain/resultDof.hh"
+#include "Utils/elemstoresol.hh"
+#include "DataInOut/timefunc.hh"
+#include "Domain/bcs.hh"
 
 namespace CoupledField
 {
   // forward class declaration
   class SpaceErrorEstimator;
   class BasePairCoupling;
+  class DirectCoupledPDE;
+  class Assemble;
   
   //! Base class for all kinds of single field problems.
 
@@ -29,8 +31,9 @@ namespace CoupledField
 
     // friend declaration
     friend class BasePairCoupling;
+    friend class DirectCoupledPDE;
 
-    Boolean BooleanComplexMaterialData_;
+    bool boolComplexMaterialData_;
  
     void Init(UInt sequenceStep = 0,
               std::string  bcSequenceTag = "anyTag");
@@ -39,23 +42,6 @@ namespace CoupledField
 
     //! destructor
     virtual ~SinglePDE();
-  
-
-    //! returns the load names
-    StdVector<std::string>& GetLoadDom()
-    {return assemble_->loadDom_;};
-  
-    //! returns the load dofs
-    StdVector<std::string>& GetLoadDof()
-    {return assemble_->loadDof_;};
-  
-    //! returns the load values
-    StdVector<std::string>& GetLoadVals()
-    {return assemble_->loadVals_;};
-  
-    //!returns the load functions
-    StdVector<std::string>& GetLoadFncs()
-    {return assemble_->fncname_loads_;};
   
     //! MpCCI gets the geometry
     virtual void PreparePDE4Computation() {;};
@@ -66,7 +52,7 @@ namespace CoupledField
   
     //! define algebraic system 
     void DefineAlgSys();
-  
+ 
   
     // ======================================================
     // ADATPTIVITY SECTION
@@ -75,8 +61,8 @@ namespace CoupledField
     //@{
     //! \name Methods used for performing adaptivity
   
-    //! test error of calculation. return TRUE, if it is more then tolerance
-    virtual Boolean TestError(const Integer level);
+    //! test error of calculation. return true, if it is more then tolerance
+    virtual bool TestError(const Integer level);
   
     //! refine mesh
     virtual void RefineMesh(const Integer level=0);
@@ -110,24 +96,15 @@ namespace CoupledField
     // GET /SET  METHODS
     // ======================================================
 
-    //! Activate the direct coupling
-    void SetDirectCoupling ();
-    
     //! get algsys identification tag of PDE
     PdeIdType GetPDEId()
     { return pdeId_; }
 
-    //! set algebraic system object
-    void SetAlgebraicSystem( BaseSystem *algSys);
-
-    //! set solveStep object
-    void SetSolveStep ( StdSolveStep *solveStep);
-
-    //! set pointer to time stepping
-    void SetTimeStepping(TimeStepping *timeStepping);
-
     //! return subtype
     virtual std::string GetSubType() {return subType_;}
+
+    //! Set Direct coupling information
+    virtual void SetDirectCoupling();
 
     //! return number of restraints
     UInt GetNumRestraints( );
@@ -145,45 +122,10 @@ namespace CoupledField
   
     //! write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
-  
-    // ======================================================
-    // METHODS FOR ASSEMBLING
-    // ======================================================
-  
-    //! specify type of system matrix for AlgebraicSystem
-    void AssembleMatrices( );
-  
-    //! setup source term
-    void AssembleSrcRHS( const Double time = 0.0 );
-  
-    //!  assemble a nonlinear RHS part
-    void AssembleNLRHS( const Double time = 0.0 );
-  
-    //!  assemble a spring into the system matrix
-    void AssembleSprings( const Double time = 0.0 );
-  
-    //! Initialize all matrices with nonlinear behavior
-    void InitNonLinMatrices();
-  
-    //! constructes the matrix graph by providing to the algebraic system the element connectivities
-    void SetupMatrixGraph();
-
-    //! sets the actual frequency (just needed for harmonic analysis)
-    void SetFrequency(Double actFreq);
-    
-    //! trigger the reassembling of the matrices
-    void SetReassemble();
 
     // ======================================================
     // METHODS & MEMBERS FOR POST PROCESSING
     // ======================================================
-
-
-    StdVector<RegionIdType> calcCharge_;
-    ElemStoreSol<Double> charges_;
-    ElemStoreSol<Complex> chargesComplex_;
-    StdVector<RegionIdType> chargeNeighborRegion_;
-
 
   protected:
 
@@ -284,54 +226,62 @@ namespace CoupledField
     //@{
     //! \name Attributes connected to storing information
     
-    //! vector containing solutiontypes of PDE
-    StdVector<SolutionType> solTypes_;
+    //! true, if at least one Result is calculated and written
+    bool hasOutput_;
 
-    //! vector containgin dofs of solutiontypes
-    StdVector<UInt> solDofs_;
+    //! true, if solution should be written to result file
+    bool saveSol_;
 
-    //! TRUE, if at least one Result is calculated and written
-    Boolean hasOutput_;
+    //! true, if RHS values should be written to result file
+    bool saveRHSval_;
 
-    //! TRUE, if solution should be written to result file
-    Boolean saveSol_;
+    //! true, if first derivative of solution should be written to result file
+    bool saveDeriv1_;
 
-    //! TRUE, if RHS values should be written to result file
-    Boolean saveRHSval_;
+    //! true, if second derivative of solution should be written to result file
+    bool saveDeriv2_;
 
-    //! TRUE, if first derivative of solution should be written to result file
-    Boolean saveDeriv1_;
+    //! true, if solution should be written to history file
+    bool saveSolHist_;
 
-    //! TRUE, if second derivative of solution should be written to result file
-    Boolean saveDeriv2_;
+    //! true, if RHS values should be written to history file
+    bool saveRHSvalHist_;
 
-    //! TRUE, if solution should be written to history file
-    Boolean saveSolHist_;
+    //! true, if first derivative of solution should be written to history file
+    bool saveDeriv1Hist_;
 
-    //! TRUE, if special nodes should be written to be used for a 2nd run
-    Boolean m_bReadSpecialBCs;
-    
-    // the grid adaption object
-    GridAdaption *m_pGridAdaption;
-
-    //! linear damping for slicing technique
-    Double m_dStartDamping_;
-    Double m_dPulseTime_;
-    Double m_dPulseOffset_;
-
-    //! TRUE, if RHS values should be written to history file
-    Boolean saveRHSvalHist_;
-
-    //! TRUE, if first derivative of solution should be written to history file
-    Boolean saveDeriv1Hist_;
-
-    //! TRUE, if second derivative of solution should be written to history file
-    Boolean saveDeriv2Hist_;
+    //! true, if second derivative of solution should be written to history file
+    bool saveDeriv2Hist_;
 
     //! outputFormat for complex numbers
     ComplexFormat complexFormat_;  
 
     //@}
+    
+    // -----------------------------------------------------------------------
+    // Boundary conditions
+    // -----------------------------------------------------------------------    
+
+    //@{
+    //! \name boundary conitions
+
+    //! Homogeneous Dirichlet boundary coniditions
+    StdVector<HomDirichletBc> hdBc_;
+
+    //! Inhomogeneous Dirichlet boundary conditions
+    StdVector<InhomDirichletBc> idBC_;
+    
+    //! Inhomogeneous Neumann boundary conditions
+    StdVector<InhomNeumannBc> inBC_;
+
+    //! Right hand side load definitions
+    LoadList loads_;
+
+    //! Number of additional in. dirichlet boundary equations due to coupling
+    UInt numCouplingBcs_;
+
+    //@}
+
 
     // -----------------------------------------------------------------------
     // Adaptivity
@@ -351,19 +301,6 @@ namespace CoupledField
     //@}
 
     // -----------------------------------------------------------------------
-    // Solver parameters
-    // -----------------------------------------------------------------------
-
-    //@{
-    //! \name Attributes connected to parameters for solver
-    UInt maxnumiter_;       //!< maximum of iterations (for iterative solver)
-    Double eps_;               //!< accuracy
-    Double dampiter_;          //!< damping parameter within iterative solution
-    Double coarsealpha_;       //!< coarsening factor (just for AMG)
-
-    //@}
-
-    // -----------------------------------------------------------------------
     // Miscellaneous paramters
     // -----------------------------------------------------------------------
 
@@ -374,10 +311,10 @@ namespace CoupledField
     PdeIdType  pdeId_;
   
     //! flag for direct coupling
-    Boolean isDirectCoupled_;
+    bool isDirectCoupled_;
 
-    //! Handler for MathParser object
-    MathParser::HandlerType mHandler_;
+    //! Handle for MathParser object
+    MathParser::HandleType mHandle_;
 
     //@}
   };

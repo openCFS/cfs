@@ -20,13 +20,21 @@ namespace CoupledField {
                              UInt stepOffset = 0,
                              Double timeOffset = 0.0,
                              std::string driverTag = "anyTag",
-                             Boolean isPartOfSequence = FALSE );
+                             bool isPartOfSequence = false );
   
     //! Default destructor
     virtual ~TransientHarmonicDriver();
 
     //! Main method, where time-stepping is implemented.
-    virtual void SolveProblem();
+    void SolveProblem();
+
+    //! Return current analysistype
+    
+    //! Returns the current analysistype. 
+    //! \param pdeName Name of the pdename in case there is a coexistence
+    //!                of two different analysistypes in one analysisstep
+    //!                (e.g. transient-harmonic)
+    AnalysisType GetAnalysisType( const std::string& pdename );
 
   protected:
 

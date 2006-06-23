@@ -1,4 +1,6 @@
 #include "linSurfForm.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
 
 namespace CoupledField 
 {
@@ -44,7 +46,25 @@ namespace CoupledField
 
     factor_ = factor;
   }
-   
+
+  void LinearSurfForm::ExtractElemInfo( EntityIterator& it) {
+    ENTER_FCN( "LinearSurfForm::ExtractElemInfo" );
+    ptelem = it.GetElem()->ptElem;
+
+ 
+    
+    if( it.GetType() == EntityList::SURF_ELEM_LIST ) {
+      actElem_ = it.GetSurfElem();
+      domain->GetGrid()->CalcSurfNormal(normal_,*actElem_ );
+      normal_ *= (Double) actElem_->normalSign;
+    }
+    
+    domain->GetGrid()->GetElemNodesCoord( ptCoord_, 
+                                          it.GetElem()->connect,
+                                          coordUpdate_ );
+    
+  }
+  
 
 } // end of namespace
 

@@ -40,19 +40,19 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
 
   // For writing the grid definition and the interpolated 
   // source values in files
-      writeGridFile_ = FALSE;
-      writeSrcFileperTS_ = FALSE;
-      writeSrcFileperNode_ = FALSE;
+      writeGridFile_ = false;
+      writeSrcFileperTS_ = false;
+      writeSrcFileperNode_ = false;
     if( params->IsSet( "writeCoupledGrid","pdeList" ,"acoustic" ) ) {
-      writeGridFile_ = TRUE;
+      writeGridFile_ = true;
       Info->PrintF("acoustic","Writing grid def. file of coupled domain\n");
     }
     if( params->IsSet( "writeSrcFileperTS","pdeList" ,"acoustic" ) ) {
-      writeSrcFileperTS_ = TRUE;
+      writeSrcFileperTS_ = true;
       Info->PrintF("acoustic","Writing coarse sources of coupled domain in time files (NrFiles=NrTimeSteps)\n");
     }
     if( params->IsSet( "writeSrcFileperNode","pdeList" ,"acoustic" ) ) {
-      writeSrcFileperNode_ = TRUE;
+      writeSrcFileperNode_ = true;
       // Get total number of time steps information from parameter object
       StdVector<std::string> keyVec, attrVec, valVec;
       UInt numsteps;
@@ -620,16 +620,16 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
     Integer k = 0;
 
 
-    Boolean nodalSrc=FALSE;
+    bool nodalSrc=false;
     //check type of flow data
     if( params->HasValue( "type", "nodalSrc", "acoustic", "flowData" ) ) {
-      nodalSrc = TRUE;
+      nodalSrc = true;
       Info->PrintF("acoustic", "In MpCCIexch Using FlowData as RHS nodal source\n" );
     }
     
 
     //std::cout<<"flowdata length= "<<flowdata.GetSizeCol()<<std::endl;
-    if (nodalSrc == TRUE)
+    if (nodalSrc == true)
       {
         if (writeSrcFileperTS_)
           {
@@ -907,7 +907,7 @@ void MpCCIexch::GetNodalValOfOnePartition(UInt partId, Vector<Double> & forceDat
 }
 
 void MpCCIexch::PutPartition(UInt partId, const Vector<Double> & displData, UInt nrNodesSD, 
-                             UInt* nodeIds, Boolean conv)
+                             UInt* nodeIds, bool conv)
 {
   ENTER_FCN("entering MpCCIexch::PutPartition");
 
@@ -952,7 +952,7 @@ void MpCCIexch::PutPartition(UInt partId, const Vector<Double> & displData, UInt
       value_disp[k]   = displData[k];
     }
 
-  if (conv == TRUE) 
+  if (conv == true) 
     {
       for (UInt k=0; k<nrNodesSD; k++)
 	{

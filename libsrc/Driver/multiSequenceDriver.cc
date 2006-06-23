@@ -67,11 +67,14 @@ namespace CoupledField {
     // Print out the grid
     ptdomain_->PrintGrid();
 
-    Info->StartProgress("Starting to solve problem",FALSE);
+    Info->StartProgress("Starting to solve problem",false);
 
     // outer loop over all single sequences
     for (UInt iStep=0; iStep<numSteps_; iStep++) {
       
+      // remeber current sequence step
+      curSequenceStep_ = iStep;
+
       Info->WriteMultiSequenceStep(iStep+1, 
                                    analysisPerStep_[iStep][0]);
 
@@ -80,12 +83,12 @@ namespace CoupledField {
       // the first entry fo analysisPerStep_
       if (analysisPerStep_[iStep][0] == STATIC) {
         actDriver = new StaticDriver(ptdomain_, actStep_, actTime_,
-                                     tagsPerStep_[iStep][0], TRUE);
+                                     tagsPerStep_[iStep][0], true);
         nextStep = actStep_ + 1;
       }
       else if (analysisPerStep_[iStep][0] == TRANSIENT) {      
         actDriver = new TransientDriver(ptdomain_, actStep_, actTime_, 
-                                        tagsPerStep_[iStep][0],TRUE);
+                                        tagsPerStep_[iStep][0],true);
 
         // the time step and the current time have to adapted 
         // after solving the first multiSequence step
@@ -103,7 +106,7 @@ namespace CoupledField {
       }
       else if (analysisPerStep_[iStep][0] == HARMONIC) {
         actDriver = new HarmonicDriver(ptdomain_, actStep_, actTime_,
-                                       tagsPerStep_[iStep][0], TRUE);
+                                       tagsPerStep_[iStep][0], true);
 
         nextStep = actStep_ + 1;
       }
@@ -180,6 +183,13 @@ namespace CoupledField {
     } // iStep
   }
 
+
+
+  AnalysisType MultiSequenceDriver::GetAnalysisType( const std::string& pdename) {
+    ENTER_FCN( "MultiSequenceDriver::GetAnalysisType" );
+    return analysisPerStep_[curSequenceStep_][0];
+
+  }
 
   // *****************
   //   Initializer
@@ -273,8 +283,8 @@ namespace CoupledField {
     // 5.) Perform final consistency checks
     
     // iterate over all steps
-    Boolean pdeFound = FALSE;
-    Boolean tagFound = FALSE;
+    bool pdeFound = false;
+    bool tagFound = false;
     StdVector<std::string> tagStrings;
     StdVector<std::string> tagsLocal;
 
@@ -296,10 +306,10 @@ namespace CoupledField {
         // ********************************
         StdVector<std::string> pdeNames;
         params->GetPDEList( pdeNames );
-        pdeFound = FALSE;
+        pdeFound = false;
         for (UInt kPDE=0; kPDE<pdeNames.GetSize(); kPDE++)
           if (pdesPerStep_[iStep][iPDE] == pdeNames[kPDE])
-            pdeFound = TRUE;
+            pdeFound = true;
 
         if (!pdeFound) {
           errMsg = "MultiSequenceDriver::Init(): The PDE '";
@@ -320,7 +330,7 @@ namespace CoupledField {
         //      std::cerr << "pdesPerStep_[iStep][iPDE] = " << pdesPerStep_[iStep][iPDE]->GetName() << std::endl;
         params->GetList(keyVec, attrVec, valVec, tagsAux);
 
-	tagFound = FALSE;
+	tagFound = false;
         
         // Iterate over all 'bcsAndLoads' occurences for this PDE
         for (UInt iTag=0; iTag<tagsAux.GetSize(); iTag++) {
@@ -333,7 +343,7 @@ namespace CoupledField {
           for (UInt iTagLocal=0; iTagLocal<tagsLocal.GetSize(); iTagLocal++)
             if (tagsPerStep_[iStep][iPDE] == tagsLocal[iTagLocal]
                 || tagsLocal[iTagLocal] == "anyTag" ) {
-              tagFound = TRUE;
+              tagFound = true;
               break;
             }
         }
@@ -389,7 +399,7 @@ namespace CoupledField {
           valVec = "";
           params->GetList(keyVec, attrVec, valVec, tagStrings);
 
-          tagFound = FALSE;       
+          tagFound = false;       
           for (UInt l=0; l<tagStrings.GetSize(); l++) {
             SplitStringList(tagStrings[l], tagsAux);
             for (UInt iTag=0; iTag<tagsAux.GetSize(); iTag++) 
@@ -397,7 +407,7 @@ namespace CoupledField {
               //                tagsAux[iTag] == tagsPerStep_[iStep][iPDE]) {
               if (tagsAux[iTag] == tagsPerStep_[iStep][iPDE] ||
                   tagsAux[iTag] == "anyTag") {
-                tagFound = TRUE;
+                tagFound = true;
                 break;
               }
           }

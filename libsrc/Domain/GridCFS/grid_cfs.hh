@@ -50,6 +50,13 @@ namespace CoupledField
     //! Reads the grid from input file
     void Read();
 
+    //! Trigger mapping of element sub-entities (edges, surfaces)
+
+    //! This method calculates global edge and surface numbers and 
+    //! makes them available in the element definitions, so they can
+    //! be used for higher order elements or edge functions.
+    void MapSubEntities();
+    
     //@}
 
 
@@ -59,7 +66,7 @@ namespace CoupledField
     //@{ \name General Grid Information
     
     //! Return if grid uses quadratic elements
-    Boolean IsQuadratic() {return isQuadratic_; }
+    bool IsQuadratic() {return isQuadratic_; }
 
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
@@ -162,15 +169,19 @@ namespace CoupledField
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 2D
     //! \param inode (in) node number
+    //! \param updated (in) flag indicating if updated geometry should be used
     void GetNodeCoordinate( Point<DIM> & rfPoint,
-                            const UInt inode );
+                            const UInt inode,
+                            bool updated);
   
 
     //! Get coordinates of node with global number inode as vector
     //! \param rfPoint (out) coordinates of point 3D
     //! \param inode (in) node number
+    //! \param updated (in) flag indicating if updated geometry should be used
     void GetNodeCoordinate( Vector<Double> & rfPoint,
-                            const UInt inode );
+                            const UInt inode,
+                            bool updated );
     //@}
 
     // =======================================================================
@@ -229,8 +240,10 @@ namespace CoupledField
     //! \param coordMat (out) coordinates of the element nodes 
     //!                         (spaceDim \f$\times\f$ nrNodes);
     //! \param connect (in) global node numbers of element
+    //! \param updated (in) flag indicating if updated geometry should be used
     void GetElemNodesCoord( Matrix<Double> & coordMat,  
-                            const StdVector<UInt> & connect );
+                            const StdVector<UInt> & connect,
+                            bool updated );
   
     //! Get elements associated with given nodes
 
@@ -293,8 +306,10 @@ namespace CoupledField
     //! volume element pointer.
     //! \param n (out) vector containing surface normal
     //! \param surfElem (in) reference to surface element
+    //! \param updated (in) flag indicating if updated geometry should be used
     void CalcSurfNormal( Vector<Double> & n, 
-                         const Elem & surfElem );
+                         const Elem & surfElem,
+                         bool updated );
 
     //! Returns surface element normal with defined orientation
 
@@ -303,9 +318,12 @@ namespace CoupledField
     //! \param n (out) normal vector
     //! \param surfElem (in) surface element
     //! \param volElem (in) volume element
+    //! \param updated (in) flag indicating if updated geometry should be used
+
     void CalcSurfNormalOutOfVol( Vector<Double> & n,
                                  const Elem & surfElem,
-                                 const Elem & volElem );
+                                 const Elem & volElem,
+                                 bool updated );
 
     //! Returns the volume of a given region
 
@@ -315,8 +333,10 @@ namespace CoupledField
     //! assumed to be 1m.
     //! \param regionId (in) region identifier 
     //! \param isaxi (in) flag indicating axial symmetry
+    //! \param updated (in) flag indicating if updated geometry should be used
     Double CalcVolumeOfRegion( const RegionIdType regionId ,
-                               Boolean isaxi = FALSE );
+                               bool isaxi = false,
+                               bool updated );
     //@}
 
 
@@ -334,7 +354,7 @@ namespace CoupledField
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
                              const StdVector<Elem*> & elemList,
-			     Boolean onlyLinNodes = FALSE);
+			     bool onlyLinNodes = false);
     
 
     //! Returns the names of all regions
@@ -342,6 +362,13 @@ namespace CoupledField
     //! This method return the names of all (surface and volume) regions.
     //! \param regionNames (out) vector containing all region Names
     void GetAllRegionNames( StdVector<std::string> & regionNames );
+    
+    //! Set offset for coordinates due to updated Lagrangian formulation
+    void SetNodeOffset( const StdVector<UInt>& nodes, 
+                        const Vector<Double>& offsets );
+
+    //! Return status of presence of nodal coordinate offsets (up. Lagrange)
+    bool HasNodalOffset();
     //@}
 
 #ifdef ADAPTGRID
@@ -395,7 +422,7 @@ namespace CoupledField
     FileType * inFile_;
 
     //! Flag for initialization status
-    Boolean isInitialized_;
+    bool isInitialized_;
 
     //! Dimension of grid
     UInt dim_;
@@ -407,7 +434,7 @@ namespace CoupledField
     UInt numElems_;
 
     //! Flag indicating use of quadratic elements
-    Boolean isQuadratic_;
+    bool isQuadratic_;
 
     //@}
 
@@ -421,6 +448,9 @@ namespace CoupledField
 
     //! Vector with nodal coordinates
     StdVector<Point<DIM> > coords_;
+
+    //! Vector with nodal coordinate offsets
+    StdVector<Point<DIM> > deltCoords_;
   
     //! Vector with elements for each volume region
     StdVector<StdVector<Elem*> > volElems_;  

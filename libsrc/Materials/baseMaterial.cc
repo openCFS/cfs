@@ -25,10 +25,10 @@ namespace CoupledField
     materialDatabaseName_ = "";
     matFileName_ = "";
     nonlinFileName_ = "";
-    isScalar    = FALSE;
-    isIsotrop   = FALSE;
-    isOrthotrop = FALSE;
-    isTensor    = FALSE;
+    isScalar    = false;
+    isIsotrop   = false;
+    isOrthotrop = false;
+    isTensor    = false;
 
   }
 
@@ -179,9 +179,9 @@ namespace CoupledField
 
     for ( iter = isSet.begin(); iter != isSet.end(); iter++ ) {
       //check, if parameter is complex
-      Boolean isComplex = FALSE;
+      bool isComplex = false;
       if (  isComplexData.find( *iter ) != isComplexData.end() ) {
-	isComplex = TRUE;
+	isComplex = true;
       }
 
       //get name of material type

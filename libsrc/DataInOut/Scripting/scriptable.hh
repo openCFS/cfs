@@ -54,19 +54,19 @@ namespace CoupledField
 
     
     //! Returns true, if currently a scripting function is evaluating
-    Boolean Script_IsExecuting() { return isExecuting_; }
+    bool Script_IsExecuting() { return isExecuting_; }
 
     
     //! Central method vor evaluating a given scripting command
 
     //! This method evaluates the given arguments, beginning from an offset 
-    //! prescribed by argOffset. If it is successful, it returns TRUE and the
+    //! prescribed by argOffset. If it is successful, it returns true and the
     //! as a vector of strings.
     //! \param args Vector of arguments in string format to be evaluated
     //! \param argOffset Offset for starting position in args vector
     //! \param retVal Vector of return values in string format
-    //! \return TRUE, if evaluation was successful
-    Boolean Script_Eval( const StdVector<std::string> & args,
+    //! \return true, if evaluation was successful
+    bool Script_Eval( const StdVector<std::string> & args,
                          UInt & argOffset,
                          StdVector<std::string> & retVal);
 
@@ -96,7 +96,7 @@ namespace CoupledField
     static std::stringstream errMsg_;
 
     //! Flag, if script is executing at the moment
-    Boolean isExecuting_;
+    bool isExecuting_;
 
     //! Map for assigning function-names to pointers
     FctPtMap fctPointers_;

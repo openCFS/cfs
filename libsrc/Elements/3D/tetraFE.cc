@@ -29,7 +29,7 @@ TetraFE::TetraFE()
 
     IntegType = String2EnumIntegrationType(integtype.c_str());
 
-    //  isSetAtCenter_=FALSE;
+    //  isSetAtCenter_=false;
   }
 
 TetraFE::~TetraFE()

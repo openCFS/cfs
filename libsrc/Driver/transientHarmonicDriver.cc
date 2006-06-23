@@ -24,12 +24,15 @@ namespace CoupledField {
                                                    UInt stepOffset,
                                                    Double timeOffset, 
                                                    std::string driverTag,
-                                                   Boolean isPartOfSequence)
+                                                   bool isPartOfSequence)
     : SingleDriver(adomain, stepOffset, timeOffset, 
                    driverTag, isPartOfSequence)
   {
     ENTER_FCN( "TransientHarmonicDriver::TransientHarmonicDriver" );
     
+    // set correct analysistype
+    analysis_ = TRANSIENTHARMONIC;
+
     // vectors for accessing parameters
     StdVector<std::string> keyVec, attrVec, valVec;
     attrVec = "tag";
@@ -135,6 +138,23 @@ namespace CoupledField {
     ENTER_FCN( "TransientHarmonicDriver::~TransientHarmonicDriver" );
   }
 
+  
+  AnalysisType TransientHarmonicDriver::
+  GetAnalysisType( const std::string& pdeName ) {
+    ENTER_FCN( "TransientHarmonicDriver::GetAnalysisType" );
+
+    StdVector<std::string> keyVec, attrVec, valVec;
+    keyVec = "transientHarmonic", "analysisPart", "type";
+    attrVec = "", "pdeName";
+    valVec = "", pdeName;
+    std::string actTypeString;
+    AnalysisType actType;
+    
+    params->Get(keyVec, attrVec, valVec, actTypeString );
+    String2Enum(actTypeString, actType);
+
+    return actType;
+  }
 
   // =================
   //   Solve Problem
@@ -148,7 +168,6 @@ namespace CoupledField {
     UInt stepsave     = isavebegin_;
     Double  dt = firstdt_;
     UInt startStep=1;
-    Boolean updatesysmat=FALSE;
 
     // harmonic settings
     actFreq_ = startFreq_; // Works for only one frequency!!
@@ -160,13 +179,13 @@ namespace CoupledField {
   
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
-    if (isPartOfSequence_ == FALSE) {
+    if (isPartOfSequence_ == false) {
 
       // writes out the grid one time
       ptdomain_->PrintGrid();
 
       GetMyPDEs();
-      Info->StartProgress ("Starting to solve problem", FALSE);
+      Info->StartProgress ("Starting to solve problem", false);
     }
 
     ptPDE_->WriteGeneralPDEdefines();
@@ -186,6 +205,12 @@ namespace CoupledField {
         percentCounter += timeStepPercent;
       }
 
+      // Set curent frequency and time value in the mathParser
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "f", actFreq_ );
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "t", steptime );
+
       // transient settings
       ptPDE_->GetSolveStep()->SetActTime(steptime);
 
@@ -194,8 +219,8 @@ namespace CoupledField {
 
       ptPDE_->GetSolveStep()->SetActStep( nstep );
 
-      ptPDE_->GetSolveStep()->PreStepTransHarmonic(updatesysmat);
-      ptPDE_->GetSolveStep()->SolveStepTransHarmonic(updatesysmat);
+      ptPDE_->GetSolveStep()->PreStepTransHarmonic();
+      ptPDE_->GetSolveStep()->SolveStepTransHarmonic();
       ptPDE_->GetSolveStep()->PostStepTransHarmonic();
 
       ptPDE_->PostProcess();   

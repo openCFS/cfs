@@ -65,8 +65,6 @@ namespace CoupledField
   {
     ENTER_FCN( "GetShFncAtIp" );
 
-    S.Resize(NumNodes_);
-
     S = ShFncAtIp_[ip-1];
   
   }
@@ -422,7 +420,7 @@ namespace CoupledField
   }
 
   Double BaseFE :: CalcVolume(const Matrix<Double> & CornerCoords, 
-                              const Boolean isaxi)
+                              const bool isaxi)
   {
     ENTER_FCN( "BaseFE::CalcVolume" );
 
@@ -460,10 +458,10 @@ namespace CoupledField
     // Method based on book XXX and Master thesis from Xiong //
     const Integer spaceDim = 3;
     std::vector<Double> Vx, Vy, Vz;
-    const Integer row = ptCoord.GetSizeRow();
-    const Integer col = ptCoord.GetSizeCol();
+    const UInt row = ptCoord.GetSizeRow();
+    const UInt col = ptCoord.GetSizeCol();
 
-    TransMat.Resize(spaceDim);
+    TransMat.Resize(spaceDim,true);
     TransMat.Init();
 
     Matrix<Double> NewCoord, temp;
@@ -526,8 +524,8 @@ namespace CoupledField
 //     std::cout << "The 3D LocalCoord matrix is\n" << NewCoord << std::endl;
 
     //rotate
-    for( int i = 0; i < row - 1; i++)
-      for( int j = 0; j < col; j++)
+    for( UInt i = 0; i < row - 1; i++)
+      for( UInt j = 0; j < col; j++)
 	ShellCoord[i][j] = NewCoord[i][j];
 
   }
@@ -541,8 +539,8 @@ namespace CoupledField
     // Method based on book XXX and Master thesis from Xiong //
     const Integer spaceDim = 2;
     std::vector<Double> Vx, Vy;
-    const Integer row = ptCoord.GetSizeRow();
-    const Integer col = ptCoord.GetSizeCol();
+    const UInt row = ptCoord.GetSizeRow();
+    const UInt col = ptCoord.GetSizeCol();
 
     TransMat.Resize(spaceDim);
     TransMat.Init();
@@ -574,8 +572,8 @@ namespace CoupledField
     // transform geometry from real(global) coordinate to standard(local) 
     // coordinate
 
-    for( int i = row - 1; i >= 0; i-- )
-      for( int j = col - 1; j >= 0; j-- )
+    for( UInt i = row - 1; i >= 0; i-- )
+      for( UInt j = col - 1; j >= 0; j-- )
 	//transform
 	temp[i][j] = ptCoord[i][j] - ptCoord[i][0];
 
@@ -588,8 +586,8 @@ namespace CoupledField
      std::cout << "The 2D LocalCoord matrix is\n" << NewCoord << std::endl;
 
     //rotate
-    for( int i = 0; i < row - 1; i++)
-      for( int j = 0; j < col; j++)
+    for( UInt i = 0; i < row - 1; i++)
+      for( UInt j = 0; j < col; j++)
 	ShellCoord[i][j] = NewCoord[i][j];
 
   }

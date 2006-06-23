@@ -10,23 +10,18 @@ namespace CoupledField
 class LaplaceXYZInt : public BaseForm
 {
 public:
-  /// Constructor
-  LaplaceXYZInt(BaseFE * aptelem, Double laplVal, Boolean axi=FALSE);
+
 
   /// Constructor
-  LaplaceXYZInt(Double laplVal, const UInt nrDofsPerNode, Boolean axi=FALSE);
+  LaplaceXYZInt(Double laplVal, const UInt nrDofsPerNode, bool axi=false);
 
   /// 
   virtual ~LaplaceXYZInt();
 
   /// Calculation of stiffmess matrix
-  void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
-
-
-  virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
-
-  
-  virtual void SetActElemSol(Matrix<Double>& disp){};
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
 
 
 private:

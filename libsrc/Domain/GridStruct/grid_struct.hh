@@ -40,6 +40,13 @@ namespace CoupledField
     //for normal Grid
     void Read();
 
+    //! Trigger mapping of element sub-entities (edges, surfaces)
+
+    //! This method calculates global edge and surface numbers and 
+    //! makes them available in the element definitions, so they can
+    //! be used for higher order elements or edge functions.
+    void MapSubEntities();
+
    // =======================================================================
     // SPECIAL METHODS for STRUCTGRID
     // =======================================================================
@@ -68,7 +75,7 @@ namespace CoupledField
     //@{ \name General Grid Information
 
     //! Return if grid uses quadratic elements
-    Boolean IsQuadratic() {return FALSE; }
+    bool IsQuadratic() {return false; }
 
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
@@ -186,15 +193,19 @@ namespace CoupledField
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 2D
     //! \param inode (in) node number
+    //! \param updated (in) flag indicating if updated geometry should be used
     void GetNodeCoordinate( Point<DIM> & rfPoint,
-                            const UInt inode );
+                            const UInt inode,
+                            bool updated );
   
 
     //! Get coordinates of node with global number inode as vector
     //! \param rfPoint (out) coordinates of point 3D
     //! \param inode (in) node number
+    //! \param updated (in) flag indicating if updated geometry should be used
     void GetNodeCoordinate( Vector<Double> & rfPoint,
-                            const UInt inode );
+                            const UInt inode,
+                            bool updated );
     //@}
 
     // =======================================================================
@@ -252,8 +263,10 @@ namespace CoupledField
     //! \param coordMat (out) coordinates of the element nodes 
     //!                         (spaceDim \f$\times\f$ nrNodes);
     //! \param connect (in) global node numbers of element
+    //! \param updated (in) flag indicating if updated geometry should be used
     void GetElemNodesCoord( Matrix<Double> & coordMat,  
-                            const StdVector<UInt> & connect );
+                            const StdVector<UInt> & connect,
+                            bool updated );
   
     //! Get elements associated with given nodes
     void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
@@ -278,12 +291,13 @@ namespace CoupledField
     
     //! Returns surface element normal without defined orientation
     void CalcSurfNormal( Vector<Double> & n, 
-                         const Elem & surfElem );
+                         const Elem & surfElem, bool updated  );
 
     //! Returns surface element normal with defined orientation
     void CalcSurfNormalOutOfVol( Vector<Double> & n,
                                  const Elem & surfElem,
-                                 const Elem & volElem )
+                                 const Elem & volElem,
+                                 bool updated )
     {Error("Method not supported by GridStruct-Class",__FILE__,__LINE__); };
 
     //! Returns the volume of a given region
@@ -295,7 +309,8 @@ namespace CoupledField
     //! \param regionId (in) region identifier 
     //! \param isaxi (in) flag indicating axial symmetry
     Double CalcVolumeOfRegion( const RegionIdType regionId,
-                               Boolean isaxi = FALSE ) {
+                               bool isaxi = false,
+                               bool updated ) {
       Error("Method not supported by GridStruct-Class",__FILE__,__LINE__); 
       return -1.0;
     }
@@ -310,7 +325,7 @@ namespace CoupledField
     //! Returns node numbers of a list of Elements
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
                              const StdVector<Elem*> & elemList,
-			     			     Boolean onlyLinNodes = FALSE)
+			     			     bool onlyLinNodes = false)
     {Error("Method not supported by GridStruct-Class"__FILE__,__LINE__); };
 
 
@@ -321,6 +336,18 @@ namespace CoupledField
     void GetAllRegionNames( StdVector<std::string> & regionNames );
     //@}
 
+    void SetNodeOffset( const StdVector<UInt>& nodes, 
+                        const Vector<Double>& offsets ) {
+      Error( "Not implemented for structured grid!",
+             __FILE__, __LINE__ );
+    }
+
+    //! Return status of presence of nodal coordinate offsets (up. Lagrange)
+    bool HasNodalOffset() {
+      return false;
+    }
+
+
   protected:
  
   private:
@@ -329,7 +356,7 @@ namespace CoupledField
     // =======================================================================
     //@{ \name General Attributes
 
-    Boolean isInitialized_;
+    bool isInitialized_;
 
     //! Dimension of grid
     UInt dim_;
@@ -426,7 +453,7 @@ namespace CoupledField
     Double pulseTime_;
     Double soundSpeed_;
     Double safetyRegion_;
-    Boolean ABC;
+    bool ABC;
 
     Integer elementsPerWavelength_;
     std::string subname_;

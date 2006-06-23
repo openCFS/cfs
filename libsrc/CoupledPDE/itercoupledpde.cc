@@ -33,12 +33,12 @@ namespace CoupledField
     pdename_ += PDEs[PDEs.GetSize()-1] -> GetName();
       
     maxiter_ = 100;
-    nonLinLogging_ = TRUE;
+    nonLinLogging_ = true;
     std::string loggingString;
     
     // Per default all PDEs are solved
     solvePDE_.Resize(PDEs_.GetSize());
-    solvePDE_.Init(TRUE);
+    solvePDE_.Init(true);
     
     // if values are defined in conf-file, take these
     StdVector<std::string> keyVec, attrVec, valVec;
@@ -51,9 +51,9 @@ namespace CoupledField
     params->Get( keyVec, attrVec, valVec, loggingString  );
     
     if (loggingString == "yes")
-      nonLinLogging_ = TRUE;
+      nonLinLogging_ = true;
     else
-      nonLinLogging_ = FALSE;
+      nonLinLogging_ = false;
     
   } 
   
@@ -174,16 +174,16 @@ namespace CoupledField
 	
       // Now merge for each coupling quantity all interface names
       // of the same type (node, interface, region)
-      Boolean found = FALSE;
+      bool found = false;
       for (UInt iQuant=0; iQuant<quantities.GetSize(); iQuant++) {
         typeAux = interfaceTypes[iQuant];
         quantityTemp = quantities[iQuant];
         nameAux = interfaceNames[iQuant];
-        found = FALSE;
+        found = false;
         for (UInt iSorted=0; iSorted<quantitiesSorted.GetSize(); iSorted++){
           if(quantityTemp == quantitiesSorted[iSorted]) {
             interfaceNamesSorted[iSorted].Push_back(nameAux);
-            found = TRUE;
+            found = true;
           }
         }
         if (!found) {
@@ -277,16 +277,16 @@ namespace CoupledField
   {
     ENTER_FCN( "IterCoupledPDE::DefineSolvingPDEs" );
 
-    solvePDE_.Init(FALSE);
-    Boolean nameFound;
+    solvePDE_.Init(false);
+    bool nameFound;
     std::string errMsg;
 
     for (UInt i=0; i<pdes.GetSize(); i++){
-      nameFound = FALSE;
+      nameFound = false;
       for (UInt j=0; j<PDEs_.GetSize(); j++)
         if (pdes[i]->GetName() == PDEs_[j]->GetName()) {
-          nameFound = TRUE;
-          solvePDE_[j] = TRUE;
+          nameFound = true;
+          solvePDE_[j] = true;
           break;}
 
       if (! nameFound){
@@ -475,12 +475,12 @@ namespace CoupledField
 
 
   // void IterCoupledPDE::SolveStepStatic(const UInt kstep, const Double aTime,
-  // 				       const Boolean updatesysmat ) {
+  // 				       const bool updatesysmat ) {
   //     ENTER_FCN ( "entering  IterCoupledPDE::SolveStepStatic" );
   //     CFSVector *val, *oldVal;
   //     UInt iter = 0;
   //     UInt counter = 0;
-  //     Boolean normsReached = FALSE;
+  //     bool normsReached = false;
   //     std::string quantityConv;
   //     while (iter < maxiter_ &&  (! normsReached))
   //       {
@@ -491,15 +491,15 @@ namespace CoupledField
   // 		     iter+1);
   // 	  }
   // 	counter = 0;
-  // 	normsReached = TRUE;
+  // 	normsReached = true;
   // 	for (UInt i=0; i<PDEs_.GetSize(); i++)
   // 	  {
   // 	    if (nonLinLogging_)
   // 	    Info->PrintF(pdename_, " Processing PDE %s\n", 
   // 			 (PDEs_[i]->GetName()).c_str());
   // 	    // Only solve current PDE, if the corresponding
-  // 	    // flag in 'solvePDE_' is set to TRUE
-  // 	    if (solvePDE_[i] == TRUE) {
+  // 	    // flag in 'solvePDE_' is set to true
+  // 	    if (solvePDE_[i] == true) {
   // 	      PDEs_[i]->GetSolveStep()->PreStepStatic(kstep,aTime,updatesysmat);
   // 	      PDEs_[i]->CalcInputCoupling();
   // 	      PDEs_[i]->GetSolveStep()->SolveStepStatic(kstep,aTime,updatesysmat);
@@ -520,7 +520,7 @@ namespace CoupledField
   // 		    }
   // 		  if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k) && 
   // 		      Couplings_[i]->GetOutputNormType(k) != NO_NORM)
-  // 		    normsReached = FALSE;
+  // 		    normsReached = false;
   // 		  //copy values of new solution to old one
   // 		  *oldVal = *val;
   // 		} // end of if 
@@ -537,12 +537,12 @@ namespace CoupledField
   //   }
 
   //   void IterCoupledPDE::SolveStepTrans(const UInt kstep, const Double asteptime, const UInt level, 
-  // 				      const Boolean updatesysmat)
+  // 				      const bool updatesysmat)
   //   {
   //     ENTER_FCN( "IterCoupledPDE::SolveStepTrans" );
   //     Double  steptime  = asteptime;
   //     UInt iter = 0;
-  //     Boolean normsReached = FALSE;
+  //     bool normsReached = false;
   //     std::string quantityConv;
   //     // In the beginning of each time step
   //     // the coupling data has to be reseted
@@ -557,15 +557,15 @@ namespace CoupledField
   // 			 iter+1);
   // 	  }
   // 	UInt counter = 0;
-  // 	normsReached = TRUE;
+  // 	normsReached = true;
   // 	for (UInt i=0; i<PDEs_.GetSize(); i++)
   // 	  {
   // 	    if (nonLinLogging_)
   // 	      Info->PrintF(pdename_, " Processing PDE %s\n", 
   // 			   (PDEs_[i]->GetName()).c_str());
   // 	    // Only solve current PDE, if the corresponding
-  // 	    // flag in 'solvePDE_' is set to TRUE
-  // 	    if (solvePDE_[i] == TRUE) {
+  // 	    // flag in 'solvePDE_' is set to true
+  // 	    if (solvePDE_[i] == true) {
   // 	      PDEs_[i]->GetSolveStep()->PreStepTrans(kstep, steptime, level, updatesysmat);
   // 	      PDEs_[i]->CalcInputCoupling();
   // 	      PDEs_[i]->GetSolveStep()->SolveStepTrans(kstep, steptime, level, updatesysmat);
@@ -586,7 +586,7 @@ namespace CoupledField
   // 				   quantityConv.c_str(), norms_[counter]);
   // 		    }
   // 		  if (norms_[counter] > Couplings_[i]->GetOutputEpsilon(k)) 
-  // 		    normsReached = FALSE;
+  // 		    normsReached = false;
   // 		  *oldVal = *val;
   // 		} // end if
   // 	      counter++;	      

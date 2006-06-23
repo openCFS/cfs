@@ -30,22 +30,6 @@ namespace CoupledField
     */
     Double TimeFuncAtTime(const Double time,  const std::string fncname);
 
-    //! return values of time and space dependent function with number <em>num</em>
-    //! at the time <em>time</em>.
-    //! At the moment only one is allowed ('spc_dependent_fnc').
-    //! That means that this function is called if 'spc_dependent_fnc' 
-    //! is given as name of function data file in XML parameter file.
-    /*!
-      \param time in: time
-      \param fncname in: name of time-space function ('spc_dependent_fnc')
-      \param nodes in: vector containing nodes where IDBC is to be applied
-      \param ptgrid in: pointer to grid to get coordinates of nodes
-    */
-    StdVector<Double> TimeSpcFuncAtTime(const Double time, 
-                                               const std::string fncname,
-                                               StdVector<UInt> nodes, Grid * ptgrid);
-    
-
     //! Print values of time function in stream outfile
     void Print(std::ostream * outfile) const;
 
@@ -76,7 +60,7 @@ namespace CoupledField
     StdVector<std::string> fnc_names_;
 
     //!
-    Boolean timeFncDatFiles_;
+    bool timeFncDatFiles_;
 
     //!
     StdVector<Double> startTime_;

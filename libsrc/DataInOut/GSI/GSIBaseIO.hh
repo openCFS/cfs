@@ -30,11 +30,13 @@ namespace GridlibSocketInterface
   public:
     
     //! Constructor for file IO
-    BaseIO(FILE* fr, FILE* fw) : file_read( fr ), file_write( fw ), sock_(NULL), timeout_(-1) {};
+    BaseIO(FILE* fr, FILE* fw) : 
+      file_read( fr ), file_write( fw ), timeout_(-1), sock_(NULL)  {};
 
 #ifndef WIN32
     //! Constructor for socket IO
-    BaseIO(Socket *sock, int32 timeout = -1) : file_read( NULL ), file_write( NULL ), sock_(sock), timeout_(timeout) {};
+    BaseIO(Socket *sock, int32 timeout = -1) : 
+      file_read( NULL ), file_write( NULL ), timeout_(timeout),sock_(sock) {};
 #endif
 
     virtual ~BaseIO() {};

@@ -23,12 +23,15 @@ namespace CoupledField {
                                   UInt stepOffset,
                                   Double timeOffset,
                                   std::string driverTag,
-                                  Boolean isPartOfSequence )
+                                  bool isPartOfSequence )
 
     : SingleDriver( adomain, stepOffset, timeOffset, driverTag,
                     isPartOfSequence ) {
 
     ENTER_FCN( " HarmonicDriver::HarmonicDriver" );
+
+    // Set correct analysistype
+    analysis_ = HARMONIC;
 
     // vectors for accessing parameters
     StdVector<std::string> keyVec, attrVec, valVec;
@@ -64,7 +67,7 @@ namespace CoupledField {
     std::string damp;
     keyVec = "harmonic", "adjustDamping";
     params->Get( keyVec, attrVec, valVec, damp );
-    adjustDamping_ = damp == "yes" ? TRUE : FALSE;
+    adjustDamping_ = damp == "yes" ? true : false;
 
     std::string sampling;
     keyVec = "harmonic", "sampling";
@@ -159,17 +162,16 @@ namespace CoupledField {
 
     ENTER_FCN( " HarmonicDriver::SolveProblem" );
 
-    Boolean reset = TRUE;
 
     // There are some special things to do in the case that we are not
     // part of a multi sequence analysis
-    if ( isPartOfSequence_ == FALSE ) {
+    if ( isPartOfSequence_ == false ) {
 
       ptdomain_->PrintGrid();
 
       // Get list of PDEs which have to be solved and intialize them
       GetMyPDEs();
-      Info->StartProgress ( "Starting to solve problem", FALSE );
+      Info->StartProgress ( "Starting to solve problem", false );
     }
 
     ptPDE_->WriteGeneralPDEdefines();
@@ -190,9 +192,9 @@ namespace CoupledField {
       // Perform steps for the solution
       ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
       ptPDE_->GetSolveStep()->SetActStep( fstep );
-      ptPDE_->GetSolveStep()->PreStepHarmonic( reset );
-      ptPDE_->GetSolveStep()->SolveStepHarmonic( reset );
-      ptPDE_->GetSolveStep()->PostStepHarmonic( reset );
+      ptPDE_->GetSolveStep()->PreStepHarmonic();
+      ptPDE_->GetSolveStep()->SolveStepHarmonic();
+      ptPDE_->GetSolveStep()->PostStepHarmonic();
 
       // Write results into output-file
       ptPDE_->PostProcess();

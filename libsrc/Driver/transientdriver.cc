@@ -24,12 +24,15 @@ namespace CoupledField {
                                    UInt stepOffset,
                                    Double timeOffset, 
                                    std::string driverTag,
-                                   Boolean isPartOfSequence) 
+                                   bool isPartOfSequence) 
     : SingleDriver(adomain, stepOffset, timeOffset, 
                    driverTag, isPartOfSequence)
   {
     ENTER_FCN( "TransientDriver::TransientDriver" );
   
+    // Set analysistype
+    analysis_ = TRANSIENT;
+
     // vecotrs for accessing parameters
     StdVector<std::string> keyVec, attrVec, valVec;
 
@@ -88,13 +91,12 @@ namespace CoupledField {
     UInt restartStep  = isavebegin_ + restartIncr_ - 1;
   
     Double  dt = firstdt_;
-    Boolean updatesysmat=FALSE;
   
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
-    if (isPartOfSequence_ == FALSE) {     
+    if (isPartOfSequence_ == false) {     
       GetMyPDEs();
-      Info->StartProgress ("Starting to solve problem", FALSE);
+      Info->StartProgress ("Starting to solve problem", false);
     }
 
     Double timeStepPercent = (double)numstep_/10;
@@ -160,8 +162,8 @@ namespace CoupledField {
       // Perform actions
       ptPDE_->GetSolveStep()->SetActTime(steptime);
       ptPDE_->GetSolveStep()->SetActStep(nstep);
-      ptPDE_->GetSolveStep()->PreStepTrans(updatesysmat);
-      ptPDE_->GetSolveStep()->SolveStepTrans(updatesysmat);
+      ptPDE_->GetSolveStep()->PreStepTrans();
+      ptPDE_->GetSolveStep()->SolveStepTrans();
       ptPDE_->GetSolveStep()->PostStepTrans();
 
       ptPDE_->PostProcess();  

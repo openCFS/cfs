@@ -17,7 +17,6 @@ namespace CoupledField {
     //! constructor
     /*!
       \param algebraicsystem pointer to algebraic system used by PDE
-      \param rhsSize size of right hand side vector
       \param apdeId Id of PDE who called NewmarkFracDampMech
       \param ptEQN
       \param aptgrid
@@ -26,9 +25,8 @@ namespace CoupledField {
       \param adampingList list damping description for subdomains
     */
     NewmarkFracDampMech( BaseSystem * algebraicsystem,
-                         UInt rhsSize,
                          const PdeIdType apdeId,
-                         NodeEQN * ptEQN, 
+                         shared_ptr<EqnMap> eqnMap,
                          Grid * aptgrid,
                          StdPDE * aptStdPDE, 
                          StdVector<RegionIdType> asubdomainList,
@@ -38,8 +36,9 @@ namespace CoupledField {
     virtual ~NewmarkFracDampMech();
   
     //! initilization
+    //! \param rhsSize size of right hand side vector
     void Init( std::map<FEMatrixType,Double> & matrix_factors, 
-               Double dt );
+               Double dt, UInt rhsSize );
     
     //! perform predictor step
     void Predictor(Vector<Double>& solold);
@@ -124,8 +123,8 @@ namespace CoupledField {
     StdPDE * ptStdPDE_;
 
     //! pointer to equation object
-    NodeEQN * ptEQN_;
-
+    shared_ptr<EqnMap> eqnMap_;
+    
     //! time step
     UInt actStep_;
    
@@ -142,7 +141,7 @@ namespace CoupledField {
     StdVector<RegionIdType> subdoms_;
 
     //! flag indicating axisymmetric model
-    Boolean isaxi_;
+    bool isaxi_;
 
     std::string geomType_;    
 

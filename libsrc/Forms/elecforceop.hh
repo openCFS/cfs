@@ -34,11 +34,13 @@ namespace CoupledField
     //!                           potential for all nodes of domain
     ElecForceOp(Grid * ptGrid, 
                 StdPDE * ptPDE,
-                NodeEQN * ptEQN,
+                shared_ptr<EqnMap> eqnMap,
                 NodeStoreSol<Double> & EPotential,
                 UInt dim,
                 std::map<RegionIdType,BaseMaterial*>& matData,
-                Boolean isaxi);
+                shared_ptr<ResultDof> result,
+                bool isaxi,
+                bool coordUpdate = false );
 
     //! Destructor
     virtual ~ElecForceOp();

@@ -83,8 +83,8 @@ namespace CoupledField{
     ~ElemStoreSol();
 
     //! Set Pointer to nodal equation object
-    void SetPtrEQNData(NodeEQN * ptNodeEQN,
-                       Grid * ptGrid);
+    void SetPtrEQNData( EqnMap * eqnMap,
+                        Grid * ptGrid);
   
     //! Deletes all data and layout information
 

@@ -402,15 +402,15 @@ namespace CoupledField
     //! The method will search the parameter tree for the parameter matching
     //! the keyword. If the keyword is found, it will be compared to the token
     //! "yes". If the keyword is found and its value matches, then the method
-    //! will return TRUE. If the keyword is not found or it does not match,
-    //! it will return FALSE. The search can be restricted to a subtree, by
+    //! will return true. If the keyword is not found or it does not match,
+    //! it will return false. The search can be restricted to a subtree, by
     //! specifying a section and subsection argument.
     //! \param key        Keyword
     //! \param section    Name of a section in which to look for keyword
     //!                   (optional)
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
-    virtual Boolean IsSet( const std::string key,
+    virtual bool IsSet( const std::string key,
                            const std::string section = "",
                            const std::string subsection = "" ) = 0;
 
@@ -419,8 +419,8 @@ namespace CoupledField
     //! The method will search the parameter tree for the parameter matching
     //! the keyword. If the keyword is found, its value will be compared to the
     //! value given by the value input parameter. If the keyword is found and
-    //! its value matches, then the method will return TRUE. If the keyword
-    //! is not found, or it does not match, it will return FALSE. The search
+    //! its value matches, then the method will return true. If the keyword
+    //! is not found, or it does not match, it will return false. The search
     //! can be restricted to a subtree, by specifying a section and subsection
     //! argument.
     //! \param key        Keyword
@@ -430,7 +430,7 @@ namespace CoupledField
     //!                   (optional)
     //! \param value      String against which to test value of parameter
     //!                   (optional)
-    virtual Boolean HasValue( const std::string key,
+    virtual bool HasValue( const std::string key,
                               const std::string value,
                               const std::string section = "",
                               const std::string subsection = "" ) = 0;

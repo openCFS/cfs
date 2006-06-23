@@ -23,12 +23,15 @@ namespace CoupledField
                                      Integer stepOffset,
                                      Double timeOffset,
                                      std::string driverTag,
-                                     Boolean isPartOfSequence)
+                                     bool isPartOfSequence)
     :SingleDriver(adomain, stepOffset, timeOffset, 
                   driverTag, isPartOfSequence){
 
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
 
+    // Set analysistype
+    analysis_ = HARMONIC;
+    
     ptDomain_ = adomain;
     ptMyPDE_ = NULL;
     residuumParIdent_=1.0;
@@ -40,9 +43,9 @@ namespace CoupledField
     params->GetPDEList( pdeList );
 
     if (pdeList[0]=="piezo")
-      directCoupling_=FALSE;
+      directCoupling_=false;
     else 
-      directCoupling_=TRUE;
+      directCoupling_=true;
 
     std::string  filenameMeasuredData="measuredData.dat";
     allMeasuredData = new std::ifstream(filenameMeasuredData.c_str(), 
@@ -219,7 +222,7 @@ namespace CoupledField
     ptDomain_->PrintGrid();
     GetMyPDEs();
     DirectCoupledPDE* ptCoupledPDE =  ptDomain_->GetDirectCoupledPDE();
-    Info->StartProgress ("Starting to solve problem", FALSE);
+    Info->StartProgress ("Starting to solve problem", false);
   
     ptPDE1_=ptDomain_-> GetSinglePDE("mechanic");
     ptPDE2_=ptDomain_-> GetSinglePDE("electrostatic");
@@ -239,18 +242,28 @@ namespace CoupledField
     }
 
     parameter_.Resize(nrParameter_);
+    parameter_.Init();
     parameterC_.Resize(nrParameter_);
+    parameterC_.Init();
     whichParameterToUpdate_.Resize(nrParameter_);
+    whichParameterToUpdate_.Init();
     whichParameterToUpdateC_.Resize(nrParameter_);
+    whichParameterToUpdateC_.Init();
 
     //     parameterIncrement.Resize(nrParameter_);
     //parameterIncrement = parameter_;
     omegas_.Resize(highestAssumableNrOfMeasData);
+    omegas_.Init();
     freqs_.Resize(highestAssumableNrOfMeasData);
+    freqs_.Init();
     real_.Resize(highestAssumableNrOfMeasData);
+    real_.Init();
     imag_.Resize(highestAssumableNrOfMeasData);
+    imag_.Init();
     amplitude_phase.Resize(highestAssumableNrOfMeasData);
+    amplitude_phase.Init();
     F_hat_.Resize(highestAssumableNrOfMeasData);
+    F_hat_.Init();
     
     // the following passage reads Data from file measuredData.dat
     // The rows are containing the values of the given frequencies, such as phase and amplitude!
@@ -264,18 +277,30 @@ namespace CoupledField
       freqs_[i]=freqsTemp[i];
 
     y_hat_.Resize(2*nrMeasuredData);
+    y_hat_.Init();
     //    bas.Resize(nrParameter_);
     res_NE_new.Resize(actNrParameter+actNrParameterC);
+    res_NE_new.Init();
     res_NE.Resize(actNrParameter+actNrParameterC);
+    res_NE.Init();
     lin_res.Resize(2*nrMeasuredData);
+    lin_res.Init();
     res.Resize(2*nrMeasuredData);
+    res.Init();
     bas_bar.Resize(2*nrMeasuredData);
+    bas_bar.Init();
     s.Resize(actNrParameter+actNrParameterC);
+    s.Init();
     scaling_.Resize(nrParameter_);
+    scaling_.Init();
     scalingC_.Resize(nrParameter_);
+    scalingC_.Init();
     F_hat_.Resize(2*nrMeasuredData);
+    F_hat_.Init();
     overall_res0.Resize(2*nrMeasuredData);
+    overall_res0.Init();
     parameter_new_.Resize(nrParameter_);
+    parameter_new_.Init();
 
     actNrParameter=0;
     actNrParameterC=0;
@@ -293,13 +318,17 @@ namespace CoupledField
     for (UInt i=0;i<whichParameterToUpdateC_.GetSize();i++)
       if (whichParameterToUpdateC_[i]==1)
         actNrParameterC++;
-    if (actNrParameter!=0)   
+    if (actNrParameter!=0) {
       whichParToUpInd_.Resize(actNrParameter);
+      whichParToUpInd_.Init();
+    }
 
     if (whichNewtonCG_==4||whichNewtonCG_==6||whichNewtonCG_==8
         ||whichNewtonCG_==10||whichNewtonCG_==12)
-      if (actNrParameterC!=0)   
+      if (actNrParameterC!=0) {
         whichParToUpIndC_.Resize(actNrParameterC);
+        whichParToUpIndC_.Init();
+      }
 
     UInt intTemp=0;
 
@@ -425,9 +454,10 @@ namespace CoupledField
     
     // <<<<<<<<<<<<<< calc mechanical displacement curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-    if (CalcMechDisplCurve_ == TRUE){
+    if (CalcMechDisplCurve_ == true){
       Vector<Double> freqsTemp = freqs_;
       freqs_.Resize(nrfreq_);
+      freqs_.Init();
       Double startFreqTemp;
       startFreqTemp=startfreq_;
       Double freqincr=(stopfreq_-startfreq_)/nrfreq_;
@@ -444,9 +474,10 @@ namespace CoupledField
 
     // <<<<<<<<<<<<<< calc impedance curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
      
-    if (CalcImpedanceCurve_ == TRUE){
+    if (CalcImpedanceCurve_ == true){
       Vector<Double> freqsTemp = freqs_;
       freqs_.Resize(nrfreq_);
+      freqs_.Init();
       Double startFreqTemp;
       startFreqTemp=startfreq_;
       Double freqincr=(stopfreq_-startfreq_)/nrfreq_;
@@ -559,7 +590,7 @@ namespace CoupledField
       std::cout<<"\n There was no valid NewtonCG method specified - see in your measuredData.dat -file "<<std::endl;
     //    tichonov();
     //  NewtonLandweber();
-    //  createF(ptMaterial_, F_hat_,FALSE); // calculates only forward problems over all omegas_
+    //  createF(ptMaterial_, F_hat_,false); // calculates only forward problems over all omegas_
 
     // xxxxxxxxxxxxxxxxxxxxxxx End of choice xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
 
@@ -578,9 +609,10 @@ namespace CoupledField
     // <<<<<<<<<<<<<< for a hopefully nice imped curve after identification !! <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
      
-    if (CalcImpedanceCurve_ == TRUE && maxNumberNewtonLoops_!=0){
+    if (CalcImpedanceCurve_ == true && maxNumberNewtonLoops_!=0){
       Vector<Double> freqsTemp = freqs_;
       freqs_.Resize(nrfreq_);
+      freqs_.Init();
       Double freqincr=(stopfreq_-startfreq_)/nrfreq_;
       for(UInt i=0;i<nrfreq_;i++){
         startfreq_+=freqincr;

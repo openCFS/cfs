@@ -33,7 +33,7 @@ namespace CoupledField
     Vector<Double> parameter_old(nrParameter_);
 
     updateMaterialData(parameter_);        
-    createF(F_hat_,FALSE);
+    createF(F_hat_,false);
 
     act_res = y_hat_-F_hat_;
     norm(act_res,new_res_outer,maxres_inner,y_hat_);
@@ -52,8 +52,11 @@ namespace CoupledField
           
     nrIterations++;
     s.Resize(actNrParameter);
+    s.Init();
     z.Resize(nrMeasuredData);
+    z.Init();
     z_old.Resize(maxNumberInnerLoops_+2,nrMeasuredData);
+    z_old.Init();
     parameter_old=parameter_;
 
       
@@ -75,7 +78,7 @@ namespace CoupledField
 
 
     // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX    
-    if (FALSE){
+    if (false){
 
       Matrix<Complex> JacobiMatrixNE(JacobiMatrix_.GetSizeCol(), JacobiMatrix_.GetSizeCol());
       Matrix<Double> JacobiMatrixR(JacobiMatrix_.GetSizeCol(), JacobiMatrix_.GetSizeCol());
@@ -116,7 +119,7 @@ namespace CoupledField
 #endif
       getchar();
 
-    } // end if TRUE/FALSE
+    } // end if true/false
 
     // XXXXXXXXXXXXXXX END SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX    
 
@@ -144,6 +147,7 @@ namespace CoupledField
         
       nNuMethods++;
       s.Resize(actNrParameter);
+      s.Init();
        old_res_inner=new_res_inner;
 
        nu=1.5;
@@ -224,7 +228,7 @@ namespace CoupledField
     std::cout<<stepR<<std::endl;
     setNewParameterSet(parameter_, parameter_, scaling_, theta, stepR, whichParameterToUpdate_);
     updateMaterialData(parameter_);
-    createF(F_hat_,FALSE);
+    createF(F_hat_,false);
     
     for (UInt i=0;i<nrMeasuredData;i++)
       act_res[i]=y_hat_[i]-F_hat_[i];
@@ -242,7 +246,7 @@ namespace CoupledField
       parameter_=parameter_old;
       setNewParameterSet(parameter_, parameter_, scaling_, theta, stepR, whichParameterToUpdate_);
       updateMaterialData(parameter_);
-      createF(F_hat_,FALSE);
+      createF(F_hat_,false);
       
       for (UInt i=0;i<nrMeasuredData;i++)
         act_res[i]=y_hat_[i]-F_hat_[i];
@@ -270,7 +274,7 @@ namespace CoupledField
     // parameter_=parameter_new_;
       
     updateMaterialData(parameter_);
-    createF(F_hat_,FALSE);
+    createF(F_hat_,false);
 
     for (UInt i=0;i<nrMeasuredData;i++)
       act_res[i]=y_hat_[i]-F_hat_[i];
@@ -289,7 +293,7 @@ namespace CoupledField
     //      inner_eta_=0.99*inner_eta_;
     //      setNewParameterSet(parameter_, parameter_, scaling_, theta, stepR, whichParameterToUpdate_);
     //      updateMaterialData(parameter_, ptMaterial_);
-    //      createF(ptMaterial_, F_hat_,FALSE);
+    //      createF(ptMaterial_, F_hat_,false);
     //      for (UInt i=0;i<y_hat_.GetSize();i++)
     //        act_res[i]=y_hat_[i]-F_hat_[i];
     //      //Norm ersetzt:
@@ -364,7 +368,7 @@ namespace CoupledField
     //       //std::cout<<parameter_<<std::endl;
                  
     //       //updateMaterialData(parameter_, ptMaterial_);
-    //       //createF(ptMaterial_, F_hat_,FALSE);
+    //       //createF(ptMaterial_, F_hat_,false);
          
     //       for (UInt i=0;i<y_hat_.GetSize();i++)
     //         act_res[i]=y_hat_[i]-F_hat_[i];
@@ -411,14 +415,16 @@ namespace CoupledField
     Vector<Double> parameter_oldC(nrParameter_);
 
     bas.Resize(actNrParameter+actNrParameterC);
+    bas.Init();
     basC.Resize(actNrParameter+actNrParameterC);
+    basC.Init();
 
     for (UInt i=0;i<actNrParameter+actNrParameterC;i++){
       bas[i]=1.0;
       basC[i]=Complex(1.0,1.0);
     }
 
-    createF(F_hat_,FALSE);
+    createF(F_hat_,false);
     act_res = y_hat_-F_hat_;
     //    new_res_outer=old_res_outer=a2norm(act_res);
     norm(act_res, new_res_outer, maxres_inner,y_hat_);
@@ -427,13 +433,16 @@ namespace CoupledField
     nrIterations++;
     std::cout<<"\n Newton NuMethodsC ... Newton-Iteration-Nr = "<<nrIterations<<std::endl;
     s.Resize(actNrParameter+actNrParameterC);
+    s.Init();
     z.Resize(nrMeasuredData);
+    z.Init();
     z_old.Resize(maxNumberInnerLoops_+2,nrMeasuredData);
+    z_old.Init();
     parameter_old = parameter_;
     parameter_oldC = parameterC_;
       
     // Create the Matrices F, F', F*
-    createF(F_hat_,FALSE);
+    createF(F_hat_,false);
     testJacobiMatrixC(F_hat_, JacobiMatrix_, parameter_);
     JacobiMatrix_=approxJacobiMatrix_;
 
@@ -451,7 +460,7 @@ namespace CoupledField
     
   
     // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    if (FALSE){
+    if (false){
 
       Matrix<Complex> JacobiMatrixNE(JacobiMatrix_.GetSizeCol(), JacobiMatrix_.GetSizeCol());
       //      Matrix<Double> JacobiMatrixR(JacobiMatrix.GetSizeCol(), JacobiMatrix_.GetSizeCol());
@@ -482,7 +491,7 @@ namespace CoupledField
 #endif
       getchar();
 
-    } // end if TRUE/FALSE
+    } // end if true/false
 
     // XXXXXXXXXXXXXXX SPECTRUM OF F'*F XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
@@ -517,6 +526,7 @@ namespace CoupledField
       //while(nnuMethods<maxNumberInnerLoops_){
       s_old=s;
       s.Resize(actNrParameter+actNrParameterC);
+      s.Init();
       //  z.Resize(nrMeasuredData);
 
       nNuMethods++;
@@ -625,7 +635,7 @@ namespace CoupledField
     updateMaterialData(parameter_);
     updateComplexMaterialData(parameterC_);
 
-    createF(F_hat_,FALSE);
+    createF(F_hat_,false);
 
     for (UInt i=0;i<nrMeasuredData;i++)
       act_res[i]=y_hat_[i]-F_hat_[i];
@@ -651,7 +661,7 @@ namespace CoupledField
       updateMaterialData(parameter_);
       updateComplexMaterialData(parameterC_);
 
-      createF(F_hat_,FALSE);
+      createF(F_hat_,false);
       
       for (UInt i=0;i<nrMeasuredData;i++)
         act_res[i]=y_hat_[i]-F_hat_[i];

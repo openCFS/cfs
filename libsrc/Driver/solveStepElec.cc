@@ -3,10 +3,10 @@
 #include <string>
 
 #include "solveStepElec.hh"
-#include "Forms/forms_header.hh"
 #include "Utils/preisach.hh"
 #include "assemble.hh"
-
+#include "Forms/linearForm.hh"
+#include "Forms/gradfieldop.hh"
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 
@@ -14,7 +14,7 @@ namespace CoupledField {
 
   SolveStepElec::SolveStepElec(StdPDE& apde) : StdSolveStep(apde) {
     ENTER_FCN( "SolveStepElec::SolveStepElec" );
-    doInit_ = TRUE;
+    doInit_ = true;
   }
   
   
@@ -27,7 +27,7 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepElec::PreStepStatic( const Boolean reset ) {
+  void SolveStepElec::PreStepStatic() {
 
     ENTER_FCN( "SolveStepElec::PreStepStatic" );
 
@@ -37,16 +37,16 @@ namespace CoupledField {
     //       for transient analysis ;-)
     algsys_->InitRHS();
 
-    if ( PDE_.IsGeoUpdate() ) {
-      algsys_->InitSol();
-      algsys_->InitMatrix();
-      assemble_->SetReassemble();   
-    }
+   //  if ( PDE_.IsGeoUpdate() ) {
+//       algsys_->InitSol();
+//       algsys_->InitMatrix();
+//       //assemble_->SetReassemble();   
+//     }
 
 
     //for hysteresis modeling
-    Boolean hystModel = FALSE;
-    //  Boolean hystModel = TRUE;
+    bool hystModel = false;
+    //  bool hystModel = true;
     UInt numElems = PDE_.getPDE_numElems();
 
     if (hystModel) {
@@ -65,10 +65,10 @@ namespace CoupledField {
         Psat_     = 0.04;
         Ec_       = 0.9e6;
         Dir_      = 2;
-        isVirgin_ = TRUE;   
+        isVirgin_ = true;   
         hyst_ = new Preisach(numElems, Esat_, Psat_, Ec_, isVirgin_);
       
-        doInit_ = FALSE;
+        doInit_ = false;
       }
       else {
         DoUpdateHyst();
@@ -80,34 +80,34 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepElec::SolveStepStatic( const Boolean reset ) {
+  void SolveStepElec::SolveStepStatic( ) {
 
     ENTER_FCN( "SolveStepElec::SolveStepStatic" );
   
-    Boolean nonLin = FALSE;
+    bool nonLin = false;
 
-    //  Boolean nonLin = TRUE;
+    //  bool nonLin = true;
     if (nonLin) {
-      StepStaticNonLinEpsDiff(reset);
+      StepStaticNonLinEpsDiff();
     }
     else {
-      StepStaticLin(reset);
+      StepStaticLin();
     }
 
   }
 
 
-  void SolveStepElec::StepStaticNonLinEpsDiff( const Boolean reset ) {
+  void SolveStepElec::StepStaticNonLinEpsDiff() {
 
     ENTER_FCN( "SolveStepElec::StepStaticNonLin" );
 
-    Boolean performOneMoreStep;
+    bool performOneMoreStep;
     UInt iterationCounter=0;
   
-    Vector<Double> newSol(eqnData_->GetNumEQNs());
-    Vector<Double> oldSol(eqnData_->GetNumEQNs());
-    Vector<Double> solPrev(eqnData_->GetNumEQNs());
-    Vector<Double> incrSol(eqnData_->GetNumEQNs());
+    Vector<Double> newSol( numEqns_ ); 
+    Vector<Double> oldSol( numEqns_ );
+    Vector<Double> solPrev( numEqns_ );
+    Vector<Double> incrSol( numEqns_ );
 
     Double* actRHS;
     Double* solPtr;
@@ -177,9 +177,11 @@ namespace CoupledField {
 
       //set up the new system-matrix
       algsys_->InitMatrix(SYSTEM);
-      assemble_->SetReassemble();   
+      //assemble_->SetReassemble();   
 
-      assemble_->SetMaterialArray( &epsDiff_ ); 
+      //assemble_->SetMaterialArray( &epsDiff_ ); 
+      Warning( "Assemble: Set MaterialArray not implemented!",
+               __FILE__, __LINE__ );
       assemble_->AssembleMatrices();
 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
@@ -241,8 +243,8 @@ namespace CoupledField {
         incrementalErr = solIncrL2Norm;
     
       // output of norms and data
-      nonLinLogging_ = TRUE;
-      if ( nonLinLogging_ == TRUE ) {
+      nonLinLogging_ = true;
+      if ( nonLinLogging_ == true ) {
         Info->WriteNonLinIter(pdename_, iterationCounter, residualNorm,
                               incrementalErr);
       }
@@ -269,6 +271,7 @@ namespace CoupledField {
   }
 
 
+
   void SolveStepElec::AddPolarizationToRHS() {
   
     ENTER_FCN( "SolveStepElec::AddPolarizationToRHS" );
@@ -276,32 +279,37 @@ namespace CoupledField {
     //we assume, that the actual solution is stored in sol_!
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-    GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
-                                                                    *solhelp, ELEC_POTENTIAL, 
-                                                                    isaxi_);
-
+    GradientFieldOp<Double> * FieldOp = 
+      new GradientFieldOp<Double>(ptgrid_, &PDE_, 
+                                  eqnMap_,
+                                  *solhelp, ELEC_POTENTIAL,
+                                  results_[0],
+                                  isaxi_);
     Vector<Double> LCoord, Efield;
     Double Ecomp, Pval, PvalReduced;
     UInt comp = Dir_ - 1;
     UInt pdeElem=1;
 
-    Matrix<Double>     ptCoord;
     Vector<Double>     sol, solderiv1, solderiv2, rhs;
     BaseFE             *ptElem;
     StdVector<UInt> connect;
     StdVector<Integer>  connect_PDE;
   
-    BaseForm * rhsInt = new  PiezoPolarizationInt(Dir_, PDE_.getPDE_dofspernode(), isaxi_);
+    BaseForm * rhsInt = new  
+      PiezoPolarizationInt(Dir_, ptgrid_->GetDim(), isaxi_);
 
     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-      StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
-    
-      for (UInt iel=0; iel < elemssd.GetSize(); iel++) {
 
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[actSD] );
+      
+      EntityIterator it = actSDList.GetIterator();
+      for ( it.Begin(); !it.IsEnd(); it++) {
+      
         //compute the electric field intensity
-        elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, elemssd[iel], LCoord, 1);
+        
+        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+        FieldOp->CalcElemGradField( Efield, it.GetElem(), LCoord, 1);
 
         //get correct component of electric field for scalar Preisach model
         Ecomp = Efield[comp]; 
@@ -314,16 +322,14 @@ namespace CoupledField {
 
         //      std::cerr << Ecomp << "  " << Pval << "  " << PvalReduced << std::endl;
 
-        ptElem  = elemssd[iel]->ptElem;
-        connect = elemssd[iel]->connect;
-        PDE_.GetElemCoords(connect, ptCoord);
-      
-        rhsInt->SetElemPtr(ptElem);
+        ptElem  = it.GetElem()->ptElem;
+        connect = it.GetElem()->connect;
+
         rhsInt->SetFactor(PvalReduced);
-        rhsInt->CalcElemVector(ptCoord, rhs);
+        rhsInt->CalcElemVector(rhs, it);
       
         //get equation numbers 
-        eqnData_->Node2EQN(connect, connect_PDE);
+        eqnMap_->GetNodeEqn( connect, connect_PDE );
 
         //assemble
         algsys_->SetElementRHS(&rhs[0],  pdeId1_, connect_PDE.GetPointer(), connect_PDE.GetSize());
@@ -339,12 +345,16 @@ namespace CoupledField {
   
     ENTER_FCN( "SolveStepElec::DoUpdateHyst" );
 
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    NodeStoreSol<Double> * solhelp = 
+      dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-    GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
-                                                                    *solhelp, ELEC_POTENTIAL, 
-                                                                    isaxi_);
-
+    GradientFieldOp<Double> * FieldOp = 
+      new GradientFieldOp<Double>(ptgrid_, &PDE_,
+                                  eqnMap_,
+                                  *solhelp, ELEC_POTENTIAL, 
+                                  results_[0],
+                                  isaxi_);
+    
     Vector<Double> LCoord, Efield;
     StdVector<Elem*> elemssd;
     UInt pdeElem=1;
@@ -353,15 +363,17 @@ namespace CoupledField {
 
     // loop over all subdomains
     for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
-      // get vector of Elem of subdomain with color: subdoms[isd]
-      ptgrid_->GetVolElems(elemssd,subdoms_[isd]);
+
+
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[isd] );
       
-      // loop over elements of subdomain
-      for (UInt iel=0; iel< elemssd.GetSize(); iel++)        {
-        elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
+      EntityIterator it = actSDList.GetIterator();
+      for ( it.Begin(); !it.IsEnd(); it++) {
+        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
 
         //compute electric field
-        FieldOp->CalcElemGradField( Efield, elemssd[iel], LCoord, 1);
+        FieldOp->CalcElemGradField( Efield, it.GetElem(), LCoord, 1);
 
         //get correct component of electric field for scalar Preisach model
         //and invoke the update MinMaxList method
@@ -388,34 +400,37 @@ namespace CoupledField {
     ENTER_FCN( "SolveStepElec::ComputeConstPartRHS" );
 
     //we assume, that the actual solution is stored in sol_!
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    NodeStoreSol<Double> * solhelp = 
+      dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-    GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
-                                                                    *solhelp, ELEC_POTENTIAL, 
-                                                                    isaxi_);
+    GradientFieldOp<Double> * FieldOp = 
+      new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
+                                  *solhelp, ELEC_POTENTIAL,
+                                  results_[0], isaxi_);
 
     Vector<Double> LCoord, Efield;
     Double Ecomp, Pval, Dval;
     Integer comp = Dir_ - 1;
     UInt pdeElem=1;
 
-    Matrix<Double>     ptCoord;
     Vector<Double>     Dfield, rhs;
     BaseFE             *ptElem;
     StdVector<UInt> connect;
     StdVector<Integer>   connect_PDE;
   
-    ElecPolarizationInt *rhsInt = new   ElecPolarizationInt(isaxi_);
+    ElecPolarizationInt *rhsInt = new ElecPolarizationInt(isaxi_);
 
     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-      StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
-    
-      for (UInt iel=0; iel < elemssd.GetSize(); iel++) {
+
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[actSD] );
+      
+      EntityIterator it = actSDList.GetIterator();
+      for ( it.Begin(); !it.IsEnd(); it++) {
 
         //compute the electric field intensity
-        elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, elemssd[iel], LCoord, 1);
+        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+        FieldOp->CalcElemGradField( Efield, it.GetElem(), LCoord, 1);
 
         //get correct component of electric field for scalar Preisach model
         Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
@@ -434,16 +449,15 @@ namespace CoupledField {
         else {
           Dfield = Efield;
         }
-        ptElem  = elemssd[iel]->ptElem;
-        connect = elemssd[iel]->connect;
-        PDE_.GetElemCoords(connect, ptCoord);
-      
-        rhsInt->SetElemPtr(ptElem);
+
+        ptElem  = it.GetElem()->ptElem;
+        connect = it.GetElem()->connect;
+          
         rhsInt->SetSrcVec(Dfield);
-        rhsInt->CalcElemVector(ptCoord, rhs);
+        rhsInt->CalcElemVector(rhs, it);
       
         //get equation numbers 
-        eqnData_->Node2EQN(connect, connect_PDE);
+        eqnMap_->GetNodeEqn( connect, connect_PDE );
 
         //assemble
         algsys_->SetElementRHS(&rhs[0], pdeId1_, connect_PDE.GetPointer(), connect_PDE.GetSize());
@@ -458,12 +472,15 @@ namespace CoupledField {
   
     ENTER_FCN( "SolveStepElec::ComputeDiffEpsilon" );
 
+    
     //we assume, that the actual solution is stored in sol_!
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+    NodeStoreSol<Double> * solhelp = 
+      dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-    GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
-                                                                    *solhelp, ELEC_POTENTIAL, 
-                                                                    isaxi_);
+    GradientFieldOp<Double> * FieldOp = 
+      new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
+                                  *solhelp, ELEC_POTENTIAL, 
+                                  results_[0], isaxi_);
 
     Vector<Double> LCoord, Efield;
     Double Ecomp, Pval, Dval, dE, dD, eps;
@@ -471,14 +488,17 @@ namespace CoupledField {
     UInt pdeElem=1;
 
     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-      StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
-    
-      for (UInt iel=0; iel < elemssd.GetSize(); iel++) {
+
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[actSD] );
+      
+      EntityIterator it = actSDList.GetIterator();
+      UInt iel = 0;
+      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
 
         //compute the electric field intensity
-        elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, elemssd[iel], LCoord, 1);
+        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+        FieldOp->CalcElemGradField( Efield, it.GetElem(), LCoord, 1);
 
         //get correct component of electric field for scalar Preisach model
         Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
@@ -513,7 +533,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepElec::StepStaticNonLin(const Boolean reset) {
+  void SolveStepElec::StepStaticNonLin() {
 
     ENTER_FCN( "SolveStepElec::StepStaticNonLin" );
 
@@ -521,7 +541,7 @@ namespace CoupledField {
     //   actTime_ = asteptime;
 
     //   UInt job;
-    //   Boolean performOneMoreStep;
+    //   bool performOneMoreStep;
     //   UInt iterationCounter=0;
   
     //   Vector<Double> newSol(numPDENodes_);
@@ -637,8 +657,8 @@ namespace CoupledField {
     //       incrementalErr = solIncrL2Norm;
     
     //     // output of norms and data
-    //     nonLinLogging_ = TRUE;
-    //     if ( nonLinLogging_ == TRUE ) {
+    //     nonLinLogging_ = true;
+    //     if ( nonLinLogging_ == true ) {
     //       Info->WriteNonLinIter(pdename_, iterationCounter, incrementalErr,
     //                          incrementalErr);
     //     }

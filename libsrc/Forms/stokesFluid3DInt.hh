@@ -17,8 +17,10 @@ public:
   virtual ~StokesFluid3DInt();
 
   /// Calculation of stiffmess matrix
-  virtual void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
- 
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
+
 };
 
 

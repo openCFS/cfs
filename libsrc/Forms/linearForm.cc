@@ -8,13 +8,8 @@
 
 namespace CoupledField {
 
-  LinearForm::LinearForm(BaseFE * aptelem) : BaseForm(aptelem)
-  {
-    ENTER_FCN( "LinearForm::LinearForm" );
-  }
 
-
-  LinearForm::LinearForm() : BaseForm()
+  LinearForm::LinearForm() : BaseForm( NULL )
   {
     ENTER_FCN( "LinearForm::LinearForm" );
   }
@@ -28,9 +23,8 @@ namespace CoupledField {
   }
 
 
-  void LinearForm::CalcElemVector(Matrix<Double>& ptCoord, 
-                                  Vector<Double> & Result)
-  {
+  void LinearForm::CalcElemVector( Vector<Double> & result,
+                                   EntityIterator& ent ) {
     ENTER_FCN( "LinearForm::CalcElemVector" );
   }
 
@@ -39,12 +33,13 @@ namespace CoupledField {
   // edge integration
   // ================================================================
 
-  LinearEdgeInt::LinearEdgeInt(BaseFE * aptelem, Double aVal, 
+  LinearEdgeInt::LinearEdgeInt(Double aVal, 
                                UInt aDirection,
                                Vector<Double> * aCoilMidPt) 
-    : LinearForm(aptelem), val_(aVal), direction_(aDirection)
+    : val_(aVal), direction_(aDirection)
   {
     ENTER_FCN( "LinearEdgeInt::LinearEdgeInt" );
+    name_ = "LinearEdgeInt";
   
     if(aCoilMidPt)
       coilMidPt_ = new Vector<Double>(*aCoilMidPt);
@@ -57,11 +52,14 @@ namespace CoupledField {
 
 
 
-  void LinearEdgeInt::CalcElemVector(Matrix<Double>& ptCoord, 
-                                     Vector<Double> & elemVec)
+  void LinearEdgeInt::CalcElemVector( Vector<Double> & elemVec,
+                                      EntityIterator& ent ) 
   {
     ENTER_FCN( "LinearEdgeInt::CalcElemVector" );
   
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrEdges  = ptelem->GetNumEdges();
     const UInt dim      = ptelem->GetDim();
@@ -77,13 +75,13 @@ namespace CoupledField {
     Matrix<Double> shapeEdge;
     Vector<Double> partElemVec;
     partElemVec.Resize(nrEdges);
+    partElemVec.Init();
   
   
     // set vector to desired size and set all elements to zero    
     elemVec.Resize(nrEdges); 
-    for (UInt i=0; i<nrEdges; i++)
-      elemVec[i] = 0;
-  
+    elemVec.Init();
+
     Vector<Double> currentVec(dim, 0);
     // is needed, if coil is curved
     Vector<Double> globCoord;
@@ -102,7 +100,7 @@ namespace CoupledField {
             break;
           
           case 4: // current in xy-plane ==> z=0
-            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord);
+            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord_);
             currentVec[xDir] = -(globCoord[yDir] - (*coilMidPt_)[yDir]);
             currentVec[yDir] = globCoord[xDir] - (*coilMidPt_)[xDir];
             currentVec[zDir] = 0;
@@ -112,7 +110,7 @@ namespace CoupledField {
             break;
 
           case 5: // current in yz-plane ==> x=0
-            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord);
+            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord_);
             currentVec[xDir] = 0;
             currentVec[yDir] = -(globCoord[zDir] - (*coilMidPt_)[zDir]);
             currentVec[zDir] = globCoord[yDir] - (*coilMidPt_)[yDir];
@@ -122,7 +120,7 @@ namespace CoupledField {
             break;
 
           case 6: // current in xz-plane ==> y=0
-            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord);
+            ptelem->GetGlobalEdgeIndicesAtIP(globCoord,actIntPt,ptCoord_);
             currentVec[xDir] = globCoord[zDir] - (*coilMidPt_)[zDir];
             currentVec[yDir] = 0;
             currentVec[zDir] = -(globCoord[xDir] - (*coilMidPt_)[xDir]);
@@ -138,11 +136,11 @@ namespace CoupledField {
             Error(errMsg.c_str(),__FILE__,__LINE__);
           }
         
-        ptelem->CalcEdgeShapeFncAtIp(shapeEdge, actIntPt, ptCoord);
+        ptelem->CalcEdgeShapeFncAtIp(shapeEdge, actIntPt, ptCoord_);
 
         partElemVec = shapeEdge * currentVec;
 
-        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
 
         for(UInt i=0; i<partElemVec.GetSize(); i++)
           elemVec[i] += partElemVec[i] * intWeights[actIntPt-1] * jacDet; 
@@ -163,11 +161,14 @@ namespace CoupledField {
   // volume source integration
   // ====================================================================
 
-  VolumeSrcInt::VolumeSrcInt(Double aVal, Boolean isaxi)
-    : LinearForm(), val_(aVal)
+  VolumeSrcInt::VolumeSrcInt(Double aVal, bool isaxi, bool coordUpdate )
+    : LinearForm(), 
+      val_(aVal)
   {
     ENTER_FCN( "VolumeSrcIntInt::VolumeSrcInt" );
+    name_ = "VolumeSrcInt";
     isaxi_ = isaxi;
+    coordUpdate_ = coordUpdate;
   }
 
 
@@ -177,10 +178,13 @@ namespace CoupledField {
   }
 
 
-  void VolumeSrcInt::CalcElemVector(Matrix<Double>& ptCoord, 
-                                    Vector<Double> & elemVec)
+  void VolumeSrcInt::CalcElemVector( Vector<Double> & elemVec,
+                                     EntityIterator& ent ) 
   {
     ENTER_FCN( "VolumeSrcInt::CalcElemVector" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
 
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
@@ -188,19 +192,19 @@ namespace CoupledField {
     Vector<Double> shapeFnc;
   
     elemVec.Resize(nrNodes);
-    elemVec *= 0;    // set elems to 0
+    elemVec.Init();
   
     Double factor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {  
         ptelem->GetShFncAtIp(shapeFnc,actIntPt);
-        factor = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord) * 
+        factor = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_) * 
           intWeights[actIntPt-1] * val_;
       
         if (isaxi_)
           {
             Vector<Double> CoordAtIP;
-            CoordAtIP = ptCoord * shapeFnc;
+            CoordAtIP = ptCoord_ * shapeFnc;
             factor *=  2 * PI * CoordAtIP[0];
           }
       
@@ -215,11 +219,15 @@ namespace CoupledField {
   // ===================================================================
 
   MagPerm2DInt::MagPerm2DInt(Vector<Double> vecVal, Double rel, 
-                             Boolean isaxi)
-    : LinearForm(), perm_(vecVal), reluctivity_(rel)
+                             bool isaxi, bool coordUpdate )
+    : LinearForm(), 
+      perm_(vecVal), 
+      reluctivity_(rel)
   {
     ENTER_FCN( "MagPerm2DInt::VolumeSrcInt" );
+    name_ = "MagPerm2DInt";
     isaxi_ = isaxi;
+    coordUpdate_ = coordUpdate;
   }
 
 
@@ -229,11 +237,14 @@ namespace CoupledField {
   }
 
 
-  void MagPerm2DInt::CalcElemVector(Matrix<Double>& ptCoord, 
-                                    Vector<Double> & elemVec)
+  void MagPerm2DInt::CalcElemVector( Vector<Double> & elemVec,
+                                     EntityIterator& ent )
   {
     ENTER_FCN( "MagPerm2DInt::CalcElemVector" );
 
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+    
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -248,12 +259,12 @@ namespace CoupledField {
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
       Double jacDet = 0;
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
 
       if (isaxi_)
         {
           ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-          CoordAtIP = ptCoord * ShpFncAtIp;
+          CoordAtIP = ptCoord_ * ShpFncAtIp;
           for (UInt i=0; i<nrNodes; i++)
             xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
         
@@ -271,48 +282,34 @@ namespace CoupledField {
   // nLinMagnetics
   // ==================================================================
 
-  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(BaseFE * aptelem, 
-                                                     BaseMaterial* matData,
-                                                     Boolean isaxi) 
-    : LinearForm(aptelem), matData_(matData)
-  {
-    ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
-    isaxi_ = isaxi;
-  }
-
   nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(ApproxData *nlinFnc, 
                                                      Double startVal, 
-                                                     Boolean axi)
+                                                     bool axi,
+                                                     bool coordUpdate)
     : LinearForm()
   {
     ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
-  
+    name_ = "nLinMagNode2D_linFormInt";
     isaxi_       = axi;
+    coordUpdate_ = coordUpdate;
     startmatVal_ = startVal;
     nlinFnc_     = nlinFnc;
+    isSolDependent_ = true;
   }
   
-  nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt(Double startVal, 
-                                                     Boolean axi)
-    : LinearForm()
-  {
-    ENTER_FCN( "nLinMagNode2D_linFormInt::nLinMagNode2D_linFormInt" );
-  
-    isaxi_       = axi;
-    startmatVal_ = startVal;
-    nlinFnc_     = NULL;   //since this is a linear subdomain
-  }
-
   nLinMagNode2D_linFormInt::~nLinMagNode2D_linFormInt()
   {
     ENTER_FCN( "nLinMagNode2D_linFormInt ::~nLinMagNode2D_linFormInt" );  
   }
 
-  void nLinMagNode2D_linFormInt::CalcElemVector(Matrix<Double>& ptCoord,
-                                                Vector<Double> & elemVec)
+  void nLinMagNode2D_linFormInt::CalcElemVector( Vector<Double> & elemVec,
+                                                 EntityIterator& ent )
   {
     ENTER_FCN("nLinMagNode2D_linFormInt :: ~CalcElemVector" );
   
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+    
     const UInt nrNodes  = ptelem->GetNumNodes();
   
     BaseForm * curlcurl2D;
@@ -325,18 +322,19 @@ namespace CoupledField {
       //important to set method to FixPoint, since we compute the RHS!!
       curlcurl2D->SetNonLinMethod("fixPoint");
         
-      //set the element solution vector to the bilinearform
-      curlcurl2D->SetActElemSol(magPotinMatrix_);
+      //set the solution class to the operator
+      curlcurl2D->SetSolution( * sol_ );
     }
 
-    //set the element-pointer
-    curlcurl2D->SetElemPtr(ptelem);
-  
     Matrix<Double> elemmat;
-    curlcurl2D->CalcElementMatrix(ptCoord, elemmat);
-  
+    curlcurl2D->CalcElementMatrix(elemmat, ent, ent);
+
+    // Get element solution
+    Vector<Double> magPot;
+    sol_->GetElemSolution( magPot, ent.GetElem()->connect );
+
     elemVec.Resize(nrNodes);
-    elemVec = -(elemmat * magPot_);
+    elemVec = -(elemmat * magPot);
 
     delete curlcurl2D;
   }
@@ -349,22 +347,15 @@ namespace CoupledField {
   // ==================================================================
 
 
-  nLinMech_linFormInt::nLinMech_linFormInt(BaseFE * aptelem, 
-                                           BaseMaterial* matData, 
-                                           Boolean isaxi) 
-    : LinearForm(aptelem), matData_(matData)
-  {
-    ENTER_FCN( "nLinMech_linFormInt::nLinMech_linFormInt" );
-    isaxi_ = isaxi;
-  }
-
 
   nLinMech_linFormInt::nLinMech_linFormInt(BaseMaterial* matData,
-                                           Boolean isaxi) 
+                                           bool isaxi) 
     : LinearForm(), matData_(matData)
   {
     ENTER_FCN( "nLinMech_linFormInt::nLinMech_linFormInt" );
+    name_ = "nLinMech_linFormInt";
     isaxi_ = isaxi;
+    isSolDependent_ = true;
   }
 
 
@@ -376,10 +367,13 @@ namespace CoupledField {
 
 
 
-  void nLinMech_linFormInt::CalcElemVector(Matrix<Double>& ptCoord, 
-                                           Vector<Double> & elemVec)
+  void nLinMech_linFormInt::CalcElemVector( Vector<Double> & elemVec,
+                                            EntityIterator& ent )
   {
     ENTER_FCN( "nLinMech_linFormInt::CalcElemVector" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
 
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
@@ -401,33 +395,34 @@ namespace CoupledField {
     // These, as friend defined bilinearforms holds the necessary 
     // differential operators
     if (ptelem->GetDim() == 2 && !isaxi_)
-      stressBiformInt = new nLinMechPlaneStrainInt_PiolaStress(ptelem,
-                                                               matData_);
+      stressBiformInt = new nLinMechPlaneStrainInt_PiolaStress(matData_);
     else if (ptelem->GetDim() == 2 && isaxi_)
-      stressBiformInt = new nLinMechAxiInt_PiolaStress(ptelem, matData_);
+      stressBiformInt = new nLinMechAxiInt_PiolaStress(matData_);
     else if (ptelem->GetDim() == 3)
-      stressBiformInt = new nLinMech3dInt_PiolaStress (ptelem, matData_);
+      stressBiformInt = new nLinMech3dInt_PiolaStress (matData_);
     else {
       Error("Wrong space dimension of elements! ",__FILE__,__LINE__);
     }  
   
-  
-    if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
-      Error("Undefined displacements! ",__FILE__,__LINE__);
-  
+    // Get element solution
+    Matrix<Double> elemDisp;
+    sol_->GetElemSolutionAsMatrix( elemDisp, ent.GetElem()->connect );
+
     partElemVec.Resize(nrNodes * nrDofs);
+    partElemVec.Init();
   
   
     elemVec.Resize(nrNodes*nrDofs);
-    elemVec *= 0;    // set elems to 0
+    elemVec.Init();
   
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {    
-        stressBiformInt->setActElemDispl(elemDisp_);
-        stressBiformInt->CalcStressVec(piolaStressVec, actIntPt,ptCoord);
-        stressBiformInt->calcNonLinBMat(nonLinBMat, actIntPt, ptCoord);
-        stressBiformInt->calcLinBMat(linBMat, actIntPt, ptCoord);
+        stressBiformInt->CalcStressVec(piolaStressVec, actIntPt,
+                                       ptelem, ptCoord_, elemDisp);
+        stressBiformInt->calcNonLinBMat(nonLinBMat, actIntPt, 
+                                        ptelem, ptCoord_, elemDisp);
+        stressBiformInt->calcLinBMat(linBMat, actIntPt, ptelem, ptCoord_);
       
         nonLinBMat += linBMat;
       
@@ -435,14 +430,14 @@ namespace CoupledField {
       
         partElemVec = transpSumB * piolaStressVec;
       
-        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
       
         if (isaxi_)
           {
             Vector<Double> shpFncAtIp;
             Vector<Double> coordAtIP;
             ptelem->GetShFncAtIp(shpFncAtIp, actIntPt);
-            coordAtIP = ptCoord * shpFncAtIp;
+            coordAtIP = ptCoord_ * shpFncAtIp;
             jacDet *= 2 * PI * coordAtIP[0];
           }
       
@@ -465,10 +460,10 @@ namespace CoupledField {
   //  recovery technique. calculation of element matrix for RHS
   // ==================================================================
 
-  RHSForRecoveryProcedure::RHSForRecoveryProcedure(BaseFE * aptelem) 
-    : LinearForm(aptelem)
+  RHSForRecoveryProcedure::RHSForRecoveryProcedure() 
   {
     ENTER_FCN( "RHSForRecoveryProcedure::RHSForRecoveryProcedure" );
+    name_ = "RHSForRecoveryProcedure";
   }
  
   RHSForRecoveryProcedure::~RHSForRecoveryProcedure()
@@ -476,7 +471,8 @@ namespace CoupledField {
     ENTER_FCN( "RHSForRecoveryProcedure::~RHSForRecoveryProcedure" );
   }
 
-  void  RHSForRecoveryProcedure::CalcElemVectorRHSForSPR(Matrix<Double>&
+  void  RHSForRecoveryProcedure::CalcElemVectorRHSForSPR(BaseFE * aptelem,
+                                                         Matrix<Double>&
                                                          ptCoord,
                                                          Vector<Double> & fncNodesElem,
                                                          const UInt aComponent,
@@ -494,6 +490,7 @@ namespace CoupledField {
     UInt             iIntPnts,iShFnc;
   
     elemVec.Resize(nrNodes);
+    elemVec.Init();
   
     for (iIntPnts=0; iIntPnts < nrIntPnts; iIntPnts ++)
       {
@@ -519,15 +516,15 @@ namespace CoupledField {
   // prestress linearform
   // ==================================================================
 
-  PreStressLinFormInt::PreStressLinFormInt(BaseFE * aptelem, 
-                                           BaseMaterial* mat, 
+  PreStressLinFormInt::PreStressLinFormInt(BaseMaterial* mat, 
                                            Double aPreStressVal, 
                                            Directions stressDir) 
-    :nLinMech_linFormInt(aptelem, mat), 
+    :nLinMech_linFormInt(mat), 
      preStressVal_(aPreStressVal), preStressDir_(stressDir)
   
   {
     ENTER_FCN( "PreStressLinFormInt::PreStressLinFormInt" );
+    name_ = "PreStressLinFormInt";
   }
 
 
@@ -540,8 +537,8 @@ namespace CoupledField {
 
 
 
-  void PreStressLinFormInt::CalcElemVector(Matrix<Double>& ptCoord, 
-                                           Vector<Double> & elemVec)
+  void PreStressLinFormInt::CalcElemVector( Vector<Double> & result,
+                                            EntityIterator& ent )
   {
     ENTER_FCN( "PreStressLinFormInt::CalcElemVector" );
     Error( "PreStressLinFormInt::CalcElemVector: not working",
@@ -607,9 +604,10 @@ namespace CoupledField {
   //==================================================================
 
   LinearFlowNoiseInt::LinearFlowNoiseInt(BaseFE * aptelem) 
-    : LinearForm(aptelem)
   {
     ENTER_FCN( "LinearFlowNoiseInt::LinearFlowNoiseInt" );
+    name_ = "LinearFlowNoiseInt";
+    ptelem = aptelem;
   }
 
   LinearFlowNoiseInt::~LinearFlowNoiseInt()
@@ -632,8 +630,7 @@ namespace CoupledField {
     Double jacDet;    
     //     Double density=1.0;
     Result.Resize(n);
-    for (i=0;i<n;i++)
-      Result[i]=0.0;
+    Result.Init();
   
     Vector<Double>  Sf;
     Double multiplier;
@@ -641,8 +638,8 @@ namespace CoupledField {
     Vector<Double> normal;
   
     normal.Resize(gradN_x_P.GetSize());
+    normal.Init();
 
-    normal*=0;
   
     switch(normal.GetSize())
       {
@@ -682,9 +679,9 @@ namespace CoupledField {
   
   } // end of method
 
-void LinearFlowNoiseInt::CalcElemVec_withdTijdi(const Matrix<Double>& ptCoord,
-                                                 const Matrix<Double>& dTijdi,
-                                                 Vector<Double> & Result)
+  void LinearFlowNoiseInt::CalcElemVec_withdTijdi(const Matrix<Double>& ptCoord,
+                                                  const Matrix<Double>& dTijdi,
+                                                  Vector<Double> & Result)
   {
 #ifdef TRACE
     (*trace) << "entering LinearFlowNoiseInt::CalcElemVector_withdTijdi" << std::endl;
@@ -697,7 +694,6 @@ void LinearFlowNoiseInt::CalcElemVec_withdTijdi(const Matrix<Double>& ptCoord,
 
     Integer l = ptelem->GetNumIntPoints(); 
     Integer n = ptelem->GetNumNodes();
-    Integer dimelem = ptCoord.GetSizeRow();
 
     Matrix<Double> xiDx;      
     Vector<Double>  Sf;
@@ -709,13 +705,13 @@ void LinearFlowNoiseInt::CalcElemVec_withdTijdi(const Matrix<Double>& ptCoord,
     Double density=1.204; // At 20C
 
     Result.Resize(n);
-    for (Integer i=0; i<n; i++)
-      Result[i]=0.0;
+    Result.Init();
 
     Vector<Double> partResult;
     partResult.Resize(n);
+    partResult.Init();
     
-   // Loop over all integration points 
+    // Loop over all integration points 
     for (actInt=1; actInt<=l; actInt++)
       {
 	ptelem->GetShFncAtIp(Sf, actInt);
@@ -735,9 +731,9 @@ void LinearFlowNoiseInt::CalcElemVec_withdTijdi(const Matrix<Double>& ptCoord,
   } // end of method
 
 
-void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord,
-                                                 const Matrix<Double> & NodalVel,
-                                                 Vector<Double> & Result)
+  void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord,
+                                                     const Matrix<Double> & NodalVel,
+                                                     Vector<Double> & Result)
   {
 #ifdef TRACE
     (*trace) << "entering LinearFlowNoiseInt::CalcElemVector_withVortexVel" << std::endl;
@@ -759,21 +755,21 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
 
     Vector<Double>  VelAtIP;
     Matrix<Double> VelDerAtIP;
-    VelDerAtIP.Resize(dimelem);  
 
     Double jacDet;
     Integer actInt;
     Double density=1.204; //at 20C
 
     Result.Resize(n);
-    for (Integer i=0; i<n; i++)
-      Result[i]=0.0;
+    Result.Init();
 
     Vector<Double> partResult;
     partResult.Resize(n);
+    partResult.Init();
     
     Vector<Double> helpVec;
     helpVec.Resize(dimelem);
+    helpVec.Init();
 
     
     // Loop over all integration points 
@@ -829,9 +825,7 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     UInt actInt;
     Double density=1.0;
     Result.Resize(n);
-
-    for (UInt i=0;i<n;i++)
-      Result[i]=0.0;
+    Result.Init();
 
     Vector<Double>  Sf;
     Vector<Double> partResult;
@@ -855,12 +849,15 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     Matrix<Double> VelDerAtIP;
     Matrix<Double> VelDerFromDiag;
     Matrix<Double> VelMatrixforMult;
-    VelMatrixforMult.Resize(dimelem); 
+    VelMatrixforMult.Resize(dimelem,true); 
+    VelMatrixforMult.Init();
 
     Vector<Double> dTij_di;
     VelAtIP.Resize(dimelem);
-    VelDerAtIP.Resize(dimelem);  
+    VelDerAtIP.Resize(dimelem,true);  
+    VelDerAtIP.Init();  
     dTij_di.Resize(dimelem);
+    dTij_di.Init();
     Vector<Double> helpVect;
 
     //     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -893,6 +890,7 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
 
     
     elVelAtIP.Resize(dimelem, l);
+    elVelAtIP.Init();
     for (actInt=1; actInt<=l; actInt++)
       {
         ptelem->GetShFncAtIp(Sf, actInt);
@@ -1000,10 +998,11 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
   // nonlinear RHS for nonlinear acoustics
   // ===================================================================
 
-  nLinKuznetsovRHSInt::nLinKuznetsovRHSInt(Double aVal, Boolean isaxi)
+  nLinKuznetsovRHSInt::nLinKuznetsovRHSInt(Double aVal, bool isaxi)
     : LinearForm(), val_(aVal)
   {
     ENTER_FCN( "nLinKuznetsovRHSInt::nLinKuznetsovRHSInt" );
+    name_ = "nLinKuznetsovRHSInt";
     isaxi_ = isaxi;
   }
 
@@ -1014,11 +1013,14 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
   }
 
 
-  void nLinKuznetsovRHSInt::CalcElemVector(Matrix<Double>& ptCoord,
-                                           Vector<Double> & elemVec)
+  void nLinKuznetsovRHSInt::CalcElemVector( Vector<Double> & elemVec,
+                                            EntityIterator& ent ) 
   {
     ENTER_FCN( "nLinKuznetsovRHSInt::CalcElemVector" );
 
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+    
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
 
@@ -1040,10 +1042,10 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
 
       jacDet = 0;
       ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
         
       if (isaxi_) {
-        CoordAtIp = ptCoord * ShpFncAtIp;
+        CoordAtIp = ptCoord_ * ShpFncAtIp;
         for (UInt i=0; i<nrNodes; i++)
           xiDx[i][0] += ShpFncAtIp[i] / CoordAtIp[0];
           
@@ -1075,10 +1077,11 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     //  std::cerr << "RHS in linearForm:\n" << elemVec << std::endl;
   }
 
-  nLinWesterveltRHSInt::nLinWesterveltRHSInt(Double aVal, Boolean isaxi)
+  nLinWesterveltRHSInt::nLinWesterveltRHSInt(Double aVal, bool isaxi)
     : LinearForm(), val_(aVal)
   {
     ENTER_FCN( "nLinWesterveltRHSInt::nLinWesterveltRHSInt" );
+    name_ = "nLinWesterveltRHSInt";
     isaxi_ = isaxi;
   }
 
@@ -1089,11 +1092,14 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
   }
 
 
-  void nLinWesterveltRHSInt::CalcElemVector(Matrix<Double>& ptCoord,
-                                            Vector<Double> & elemVec)
+  void nLinWesterveltRHSInt::CalcElemVector( Vector<Double> & elemVec,
+                                             EntityIterator& ent )
   {
     ENTER_FCN( "nLinWesterveltRHSInt::CalcElemVector" );
 
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+    
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
 
@@ -1109,11 +1115,11 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     Double totalfactor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
       ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
         
       if (isaxi_) {
-        CoordAtIp = ptCoord * ShpFncAtIp;
+        CoordAtIp = ptCoord_ * ShpFncAtIp;
         jacDet *= 2 * PI * CoordAtIp[0];
       }
         
@@ -1135,11 +1141,13 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
   // electric polarization
   // ====================================================================
 
-  ElecPolarizationInt::ElecPolarizationInt(Boolean isaxi)
-    : LinearForm() 
+  ElecPolarizationInt::ElecPolarizationInt(bool isaxi, bool coordUpdate )
+    : LinearForm()
   {
     ENTER_FCN( "ElecPolarizationInt::ElecPolarizationInt" );
+    name_ = "ElecPolarizationInt";
     isaxi_ = isaxi;
+    coordUpdate_ = coordUpdate;
   }
 
 
@@ -1149,11 +1157,14 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
   }
 
 
-  void ElecPolarizationInt::CalcElemVector(Matrix<Double>& ptCoord, 
-                                           Vector<Double> & elemVec)
+  void ElecPolarizationInt::CalcElemVector( Vector<Double> & elemVec,
+                                            EntityIterator& ent )
   {
     ENTER_FCN( "ElecPolarizationInt::CalcElemVector" );
-
+    
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+    
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -1167,11 +1178,11 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
       Double jacDet = 0;
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
 
       if (isaxi_) {
         ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-        CoordAtIP = ptCoord * ShpFncAtIp;
+        CoordAtIP = ptCoord_ * ShpFncAtIp;
         for (UInt i=0; i<nrNodes; i++)
           xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
       
@@ -1194,10 +1205,11 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
   // ==================================================================
 
   PiezoPolarizationInt::PiezoPolarizationInt(UInt dir, UInt numdof, 
-                                             Boolean isaxi)
+                                             bool isaxi)
     : LinearForm(), comp_(dir-1), numDofs_(numdof) 
   {
     ENTER_FCN( "PiezoPolarizationInt::PiezoPolarizationInt" );
+    name_ = "PiezoPolarizationInt";
     isaxi_ = isaxi;
     Pval_  = 0.0;
   }
@@ -1209,11 +1221,15 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
   }
 
 
-  void PiezoPolarizationInt::CalcElemVector(Matrix<Double>& ptCoord,
-                                            Vector<Double> & elemVec)
+  void PiezoPolarizationInt::CalcElemVector( Vector<Double> & elemVec,
+                                             EntityIterator& ent ) 
+    
   {
     ENTER_FCN( "PiezoPolarizationInt::CalcElemVector" );
 
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+    
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -1227,12 +1243,12 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
       Double jacDet = 0;
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
 
       if (isaxi_) {
         if ( comp_ == 0 ) {
           ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-          CoordAtIP = ptCoord * ShpFncAtIp;
+          CoordAtIP = ptCoord_ * ShpFncAtIp;
           for (UInt i=0; i<nrNodes; i++)
             xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
         }
@@ -1266,15 +1282,13 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
   // =========================================================================
   
   
-  MechVolForceInt::MechVolForceInt(UInt numDof, Boolean isaxi) {
+  MechVolForceInt::MechVolForceInt(UInt numDof, bool isaxi) {
 
     ENTER_FCN( "MechVolForceInt::MechVolForceInt" );
-    
+
+    name_ = "MechVolForceInt";
     isaxi_ = isaxi;
     numDofs_ = numDof;
-
-    // Obtain mathParser handler
-    mHandler_ = domain->GetMathParser()->GetNewHandler();
 
   }
     
@@ -1286,7 +1300,7 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     
   void MechVolForceInt::SetVolForceVector(StdVector<std::string> & volForce, 
                                           const CoordSystem * coordSys,
-                                          Boolean isUnit, Double volume ) {
+                                          bool isUnit, Double volume ) {
 
     ENTER_FCN( "MechVolForceInt::SetVolForceVector" );
 
@@ -1297,10 +1311,13 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     
   }
     
-  void MechVolForceInt::CalcElemVector(Matrix<Double>& ptCoord, 
-                                       Vector<Double> & elemVec) {
+  void MechVolForceInt::CalcElemVector( Vector<Double> & elemVec,
+                                        EntityIterator& ent ) {
 
     ENTER_FCN( "MechVolForceInt::CalcElemVector");
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
 
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
@@ -1314,19 +1331,20 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
     Vector<Double> globMidPoint, locMidPoint;
 
     ptelem->GetCoordMidPoint(locMidPoint);
-    ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, ptCoord);
+    ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, ptCoord_);
 
     // Update variables for mathParser
-    parser->SetCoordinates( mHandler_, *coordSys_, globMidPoint );
+    parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
 
     // Now evaluate each entry 
     Vector<Double> locLoadVec( numDofs_ );
     for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
-      locLoadVec[i] = parser->Eval( mHandler_, locForce_[i] );
+      parser->SetExpr( mHandle_, locForce_[i] );
+      locLoadVec[i] = parser->Eval( mHandle_ );
     }
 
     // If load is not unit load, divide by volume
-    if ( isUnitValue_ == FALSE ) {
+    if ( isUnitValue_ == false ) {
       locLoadVec /= volume_;
     }
     
@@ -1340,11 +1358,11 @@ void LinearFlowNoiseInt::CalcElemVec_withVortexVel(const Matrix<Double>& ptCoord
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
-      Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+      Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
       ptelem->GetShFncAtIp(shapeFnc,actIntPt);
 
       if (isaxi_) {
-        CoordAtIP = ptCoord * shapeFnc;
+        CoordAtIP = ptCoord_ * shapeFnc;
         jacDet *= 2 * PI * CoordAtIP[0];
       }
           

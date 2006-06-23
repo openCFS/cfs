@@ -18,7 +18,7 @@ namespace CoupledField
     (*trace) << "entering HarmonicAdaptSpaceDriver::HarmonicDriver" << std::endl;
 #endif
   
-    flags->adaptSpace_ = TRUE;
+    flags->adaptSpace_ = true;
 
   }
 
@@ -38,7 +38,7 @@ namespace CoupledField
 
     Integer      level=0;
     Integer      pdenumber  = 0;                      // we solve only 1 equation
-    Boolean      printMeshes;                         // output intermediate meshes or not
+    bool      printMeshes;                         // output intermediate meshes or not
     Integer      numrepeat = 0;                       // counter of adaptive steps
     Integer      maxnumrepeat = 0;                    // maximum number of loops for rifenement
     BasePDE*     ptPDE;                               // pointer to PDE

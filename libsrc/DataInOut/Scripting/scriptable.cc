@@ -15,7 +15,7 @@ namespace CoupledField
   Scriptable::Scriptable() {
     ENTER_FCN( "Scriptable::Scriptable" );
 
-    isExecuting_ = FALSE;
+    isExecuting_ = false;
     currentArgs_ = NULL;
 
     // Register function for returnin all availabe functions
@@ -61,7 +61,7 @@ namespace CoupledField
     return currentArgs_;
   }
   
-  Boolean Scriptable::Script_Eval( const StdVector<std::string> & args,
+  bool Scriptable::Script_Eval( const StdVector<std::string> & args,
                                    UInt & argOffset,
                                    StdVector<std::string> & retVal) {
     ENTER_FCN( "Scriptable::Script_Eval" );
@@ -77,7 +77,7 @@ namespace CoupledField
     if (args.GetSize() - argOffset < 1) {
       errMsg_ << argStr.str()
               <<"Need at least one additional argument!";
-      return FALSE;
+      return false;
     }
     
     // Check if function name exists
@@ -85,7 +85,7 @@ namespace CoupledField
     if( fctIt == fctPointers_.end() ) {
       errMsg_ << argStr.str()
               << "Function '" << args[argOffset] << "' does not exist!";
-      return FALSE;
+      return false;
     }
 
     // Get current argument list and save it to current list
@@ -102,7 +102,7 @@ namespace CoupledField
               << "Wrong number of arguments provided!";
       errMsg_ << "\n \n Usage: \033[31m" << args[argOffset] 
               <<  "\033[0m " << signature;
-      return FALSE;
+      return false;
     }
     
     // Copy parameters from message-list to argList
@@ -113,7 +113,7 @@ namespace CoupledField
     currentArgs_->SetParams( subArgs );
     
     // Set execution flag
-    isExecuting_ = TRUE;
+    isExecuting_ = true;
     
     // Call Function object
     fctIt->second->Call();
@@ -124,10 +124,10 @@ namespace CoupledField
 
     // Empty pointer to argList and reset status flag
     currentArgs_ = NULL;
-    isExecuting_ = FALSE;
+    isExecuting_ = false;
 
     // No error occured, so leave without errors
-    return TRUE;
+    return true;
   }
   
   

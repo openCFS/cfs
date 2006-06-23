@@ -177,7 +177,7 @@ namespace CoupledField {
     // ************************************
 
     //! indicator: print history file or not
-    Boolean NeedHistory_;
+    bool NeedHistory_;
 
     //! Total number of open history files
     UInt totalNumHistFiles_;

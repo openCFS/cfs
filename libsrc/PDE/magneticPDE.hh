@@ -36,10 +36,6 @@ namespace CoupledField
     //! define the SoltionStep-Driver
     virtual void DefineSolveStep();
 
-    //! return size of solution
-    virtual UInt getSize() const 
-    { return numPDENodes_*dofspernode_;}
-
 
     // ======================================================
     // POSTPROCESSING SECTION
@@ -90,7 +86,7 @@ namespace CoupledField
     virtual void CalcOutputCoupling();
 
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(SolutionType output);
+    virtual bool HasOutput(SolutionType output);
 
     //! computation of Lorentz force
     void CalcNodeForceLorentz(Vector<Double> & force, 

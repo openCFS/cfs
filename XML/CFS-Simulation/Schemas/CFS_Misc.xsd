@@ -254,7 +254,6 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechanic"/>
       <xsd:enumeration value="magnetic"/>
-      <xsd:enumeration value="piezo"/>
       <xsd:enumeration value="acoustic"/>
       <xsd:enumeration value="acousticXYZ"/>
       <xsd:enumeration value="electrostatic"/>
@@ -281,5 +280,29 @@
     </xsd:complexContent>
   </xsd:complexType>
   
+ <!-- Data type for describing type of entities -->
+  <xsd:simpleType name="DT_EntityType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="nodeList"/>
+      <xsd:enumeration value="elemList"/>
+      <xsd:enumeration value="surfElemList"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material data type (real or complex) -->
+  <!-- ******************************************************************* -->
+
+  <xsd:simpleType name="DT_MatDataType">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="imagMaterialParameter"/>
+      <xsd:enumeration value="realMaterialParameter"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:complexType name="DT_MatData">
+    <xsd:attribute name="type" type="DT_MatDataType" use="optional"/>
+  </xsd:complexType>
+
 </xsd:schema>
 

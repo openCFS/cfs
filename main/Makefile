@@ -22,7 +22,7 @@ src = cfs.cc
 include Makefile.option
 
 # -----------------------------------------------------------------------------
-# SUBDIRECTORIES
+# MODULES / SUBDIRECTORIES
 #
 # We generate a list of all module subdirectories. The EXTRA_MODULES variable
 # is composed in Makefile.option.
@@ -30,7 +30,7 @@ include Makefile.option
 
 C_DIR = ..
 
-SUBLIBDIR = Driver PDE CoupledPDE \
+mymodules = Driver PDE CoupledPDE \
             Forms Elements Elements/1D Elements/2D Elements/3D \
             Domain/GridCFS Domain/GridAdaption Domain/AdaptGrid Domain \
             Domain/GridStruct \
@@ -48,24 +48,9 @@ SUBLIBDIR = Driver PDE CoupledPDE \
 	    ParamIdent Materials \
             $(EXTRA_MODULES)
 
-PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(SUBLIBDIR))
+PATHSUBLIBDIR = $(addprefix $(LIBSRC_DIR)/, $(mymodules))
 TAGSPATH = $(addsuffix /*.??,$(PATHSUBLIBDIR))
 
-# -----------------------------------------------------------------------------
-# MYLIBRARIES
-#
-# We generate a list of all libraries that will be generate from the CFS++
-# source code. The EXTRA_CFSLIBS variable is composed in Makefile.option.
-# -----------------------------------------------------------------------------
-
-mylibrary = driver domain pde coupledpde forms  \
-            elements3d elements2d elements1d elements \
-            gridadaption gridcfs gridstruct adaptgrid definefiles gmv unverg \
-	    cfsRST ansysfile scripting datainout paramhandling commandline \
-            driver datainout materials \
-            utils matrix general odesolve odedescr \
-	    paramIdent \
-            $(EXTRA_CFSLIBS)
 
 # -----------------------------------------------------------------------------
 # MACHINE-DEPENDENT OPTIONS
@@ -95,86 +80,26 @@ include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
 # executable. If you wonder what the :: means, see section "4.13 Double-Colon
 # Rules" in the GNU make documentation.
 # -----------------------------------------------------------------------------
-$(program):: $(src:.cc=.o) $(mylibrary)
+.PHONY: $(program)
+$(program):: $(src:.cc=.o) $(LIB_DIR)/lib$(CFS_LIB).a
 	$(LINK) $(LFLAGS_EXE) -o $@ $(src:.cc=.o) -L$(LIB_DIR) \
-	$(LFLAGS_MACHINE) $(addprefix -l, $(mylibrary)) \
+	$(LFLAGS_MACHINE) -l$(CFS_LIB) \
 	$(LFLAGS_GLOBAL) $(syslib) 
+
+
+#
+# This target triggers compilation of the CFS library
+#
+$(LIB_DIR)/lib$(CFS_LIB).a: $(mymodules)
 
 # -----------------------------------------------------------------------------
 # MODULE TARGETS
 #
 # We define a set of targets for the individual modules/subdirectories.
 # -----------------------------------------------------------------------------
-driver:
-	@cd $(LIBSRC_DIR)/Driver; $(MAKE) -f Makefile
-paramIdent:
-	@cd $(LIBSRC_DIR)/ParamIdent; $(MAKE) -f Makefile 
-domain:
-	@cd $(LIBSRC_DIR)/Domain; $(MAKE) -f Makefile
-gridcfs:
-	@cd $(LIBSRC_DIR)/Domain/GridCFS; $(MAKE) -f Makefile
-gridstruct:
-	@cd $(LIBSRC_DIR)/Domain/GridStruct; $(MAKE) -f Makefile
-gridadaption:
-	@cd $(LIBSRC_DIR)/Domain/GridAdaption; $(MAKE) -f Makefile
-estimator:
-	@cd $(LIBSRC_DIR)/Estimator; $(MAKE) -f Makefile
-adaptgrid:
-	@cd $(LIBSRC_DIR)/Domain/AdaptGrid; $(MAKE) -f Makefile
-forms:
-	@cd $(LIBSRC_DIR)/Forms; $(MAKE) -f Makefile
-pde:
-	@cd $(LIBSRC_DIR)/PDE; $(MAKE) -f Makefile
-coupledpde:
-	@cd $(LIBSRC_DIR)/CoupledPDE; $(MAKE) -f Makefile
-elements:
-	@cd $(LIBSRC_DIR)/Elements; $(MAKE) -f Makefile
-elements1d:
-	@cd $(LIBSRC_DIR)/Elements/1D; $(MAKE) -f Makefile
-elements2d:
-	@cd $(LIBSRC_DIR)/Elements/2D; $(MAKE) -f Makefile
-elements3d:
-	@cd $(LIBSRC_DIR)/Elements/3D; $(MAKE) -f Makefile
-definefiles:
-	@cd $(LIBSRC_DIR)/DataInOut/DefineFiles; $(MAKE) -f Makefile
-datainout:
-	@cd $(LIBSRC_DIR)/DataInOut; $(MAKE) -f Makefile
-ansysfile:
-	@cd $(LIBSRC_DIR)/DataInOut/AnsysFile; $(MAKE) -f Makefile
-ansys-out:
-	@cd $(LIBSRC_DIR)/DataInOut/AnsysOut; $(MAKE) -f Makefile
-unverg:
-	@cd $(LIBSRC_DIR)/DataInOut/Unverg; $(MAKE) -f Makefile
-cfsRST:
-	@cd $(LIBSRC_DIR)/DataInOut/cfsRST; $(MAKE) -f Makefile
-gmv:
-	@cd $(LIBSRC_DIR)/DataInOut/GMV; $(MAKE) -f Makefile
-database:
-	@cd $(LIBSRC_DIR)/DataInOut/Database; $(MAKE) -f Makefile
-gsi:
-	@cd $(LIBSRC_DIR)/DataInOut/GSI; $(MAKE) -f Makefile
-gid:
-	@cd $(LIBSRC_DIR)/DataInOut/GiD; $(MAKE) -f Makefile
-scripting:
-	@cd $(LIBSRC_DIR)/DataInOut/Scripting; $(MAKE) -f Makefile
-utils:
-	@cd $(LIBSRC_DIR)/Utils; $(MAKE) -f Makefile
-matrix:
-	@cd $(LIBSRC_DIR)/Matrix; $(MAKE) -f Makefile
-materials:
-	@cd $(LIBSRC_DIR)/Materials; $(MAKE) -f Makefile
-general:
-	@cd $(LIBSRC_DIR)/General; $(MAKE) -f Makefile
-mpccicpl:
-	@cd $(LIBSRC_DIR)/MpCCIcpl; $(MAKE) -f Makefile
-paramhandling:
-	@cd $(LIBSRC_DIR)/DataInOut/ParamHandling; $(MAKE) -f Makefile
-commandline:
-	@cd $(LIBSRC_DIR)/DataInOut/CommandLine; $(MAKE) -f Makefile
-odesolve:
-	@cd $(LIBSRC_DIR)/ODESolve; $(MAKE) -f Makefile
-odedescr:
-	@cd $(LIBSRC_DIR)/ODEDescr; $(MAKE) -f Makefile
+$(mymodules):
+	@cd $(LIBSRC_DIR)/$@; $(MAKE) -f Makefile
+
 
 # -----------------------------------------------------------------------------
 # CLEANING TARGETS I
@@ -183,101 +108,11 @@ odedescr:
 # combinations thereof.
 # -----------------------------------------------------------------------------
 
-clean-adaptgrid:
-	@cd $(AdaptGrid) && $(MAKE) clean
-clean-driver:
-	@cd $(LIBSRC_DIR)/Driver && \
-	$(MAKE) clean
-clean-datainout:
-	@cd $(LIBSRC_DIR)/DataInOut&& \
-	$(MAKE) clean
-	@cd $(LIBSRC_DIR)/DataInOut/DefineFiles && \
-	$(MAKE) clean
-	@cd $(LIBSRC_DIR)/DataInOut/ParamHandling && \
-	$(MAKE) clean
-	@cd $(LIBSRC_DIR)/DataInOut/CommandLine && \
-	$(MAKE) clean
-	@cd $(LIBSRC_DIR)/DataInOut/Scripting && \
-	$(MAKE) clean
-	@cd $(LIBSRC_DIR)/Materials && \
-        $(MAKE) clean
-clean-ansys:
-	@cd $(LIBSRC_DIR)/DataInOut/AnsysFile && \
-        $(MAKE) clean
-clean-dat:
-	@cd $(LIBSRC_DIR)/DataInOut/DatFile && \
-	$(MAKE) clean
-clean-unverg:
-	@cd $(LIBSRC_DIR)/DataInOut/Unverg && \
-	$(MAKE) clean
-clean-cfsRST:
-	@cd $(LIBSRC_DIR)/DataInOut/cfsRST && \
-	$(MAKE) clean
-clean-gmv:
-	@cd $(LIBSRC_DIR)/DataInOut/GMV && \
-        $(MAKE) clean
-clean-gid:
-	@cd $(LIBSRC_DIR)/DataInOut/GiD && \
-        $(MAKE) clean
-clean-database:
-	@cd $(LIBSRC_DIR)/DataInOut/Database && \
-	$(MAKE) clean
-clean-gsi:
-	@cd $(LIBSRC_DIR)/DataInOut/GSI && \
-	$(MAKE) clean
-clean-domain:
-	@cd $(LIBSRC_DIR)/Domain&&\
-	$(MAKE) clean
-	@cd $(LIBSRC_DIR)/Domain/GridCFS&& \
-	$(MAKE) clean
-	@cd $(LIBSRC_DIR)/Domain/GridStruct&& \
-	$(MAKE) clean
-	@cd $(LIBSRC_DIR)/Domain/Gridlib&& \
-        $(MAKE) clean 
-	@cd $(LIBSRC_DIR)/Domain/AdaptGrid&& \
-        $(MAKE) clean
-	@cd $(LIBSRC_DIR)/Domain/GridAdaption&& \
-        $(MAKE) clean
-clean-general:
-	@cd $(LIBSRC_DIR)/General&&\
-	$(MAKE) clean
-clean-pde:
-	@cd $(LIBSRC_DIR)/PDE&&\
-	$(MAKE) clean
-clean-coupledpde:
-	@cd $(LIBSRC_DIR)/CoupledPDE&&\
-        $(MAKE) clean
-clean-forms:
-	@cd $(LIBSRC_DIR)/Forms&&\
-	$(MAKE) clean
-clean-elements:
-	@cd $(LIBSRC_DIR)/Elements&&\
-	$(MAKE) clean
-	@cd $(LIBSRC_DIR)/Elements/2D&&\
-        $(MAKE) clean
-	@cd $(LIBSRC_DIR)/Elements/3D&&\
-        $(MAKE) clean
-clean-estimator:
-	@cd $(LIBSRC_DIR)/Estimator && \
-        $(MAKE) clean
-clean-utils:
-	@cd $(LIBSRC_DIR)/Utils&&\
-	$(MAKE) clean
-clean-matrix:
-	@cd $(LIBSRC_DIR)/Matrix&&\
-	$(MAKE) clean
-clean-mpccicpl:
-	@cd $(LIBSRC_DIR)/MpCCIcpl&&\
-        $(MAKE) clean
-clean-odesolve:
-	@cd $(LIBSRC_DIR)/ODESolve && \
-	$(MAKE) clean
-clean-odedescr:
-	@cd $(LIBSRC_DIR)/ODEDescr && \
-	$(MAKE) clean
-clean-paramIdent:
-	@cd $(LIBSRC_DIR)/ParamIdent && \
-	$(MAKE) clean
+clean-targets = $(addprefix clean-, $(mymodules))
+
+$(clean-targets):
+	cd $(LIBSRC_DIR)/$(subst clean-,,$@) && $(MAKE) clean
+
 
 # -----------------------------------------------------------------------------
 # CLEANING TARGETS II
@@ -286,7 +121,7 @@ clean-paramIdent:
 # -----------------------------------------------------------------------------
 
 clean: clean-library clean-prog
-	@echo clean all
+
 .PHONY: clean clean-library clean-prog
 
 clean-library:
@@ -297,7 +132,7 @@ clean-library:
           fi); \
          done 
 clean-prog:
-	-rm -f *.o
+	@-rm -f *.o
 
 cleanall: cleanall-library cleanall-files
 	@echo clean all

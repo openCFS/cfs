@@ -41,11 +41,14 @@ namespace CoupledField
                                            UInt stepOffset,
                                            Double timeOffset,
                                            std::string driverTag,
-                                           Boolean isPartOfSequence)
+                                           bool isPartOfSequence)
     :SingleDriver(adomain, stepOffset, timeOffset, 
                   driverTag, isPartOfSequence){
 
     ENTER_FCN( "multiharmonic::multiharmonic" );
+
+    // set correct analysistype
+    analysis_ = MULTIHARMONIC;
 
     //  ptDomain = adomain;
     ptMyPDE_ = NULL;
@@ -70,7 +73,7 @@ namespace CoupledField
     keyVec = "multiHarmonic", "nrMultiHarmonics";
     params->Get(keyVec, attrVec, valVec, nrMultHarms_);
 
-    adjustDamping_ = FALSE;
+    adjustDamping_ = false;
     std::string damp;
     keyVec = "multiHarmonic", "adjustDamping";
     //   adjustDamping_ =  params->IsSet(keyVec, attrVec, valVec, adjustDamping_);
@@ -121,198 +124,199 @@ namespace CoupledField
   void MultiHarmonicDriver::SolveProblem() {
     ENTER_FCN( "MultiHarmonicDriver::SolveProblem" );
     
-    PiezoPDE * ptPiezoPDE;
-    if (! isPartOfSequence_)
-      ptdomain_->PrintGrid();
-    if (isPartOfSequence_ == FALSE){     
-      GetMyPDEs();
+    Error( "Not working with old structure", __FILE__, __LINE__ );
+  //   PiezoPDE * ptPiezoPDE;
+//     if (! isPartOfSequence_)
+//       ptdomain_->PrintGrid();
+//     if (isPartOfSequence_ == false){     
+//       GetMyPDEs();
     
-      //! cast pointer to BasePDE * to pointer of SinglePDE *
-      ptMyPDE_ = dynamic_cast<SinglePDE*>(ptPDE_);
+//       //! cast pointer to BasePDE * to pointer of SinglePDE *
+//       ptMyPDE_ = dynamic_cast<SinglePDE*>(ptPDE_);
 
       
-      ptPiezoPDE = dynamic_cast<PiezoPDE*>(ptPDE_);
-      Info->StartProgress ("Starting to solve problem", FALSE);
-    }
-    ptMyPDE_->WriteGeneralPDEdefines();
-    //    pdeId_ = ptMyPDE_->GetPDEId();
+//       ptPiezoPDE = dynamic_cast<PiezoPDE*>(ptPDE_);
+//       Info->StartProgress ("Starting to solve problem", false);
+//     }
+//     ptMyPDE_->WriteGeneralPDEdefines();
+//     //    pdeId_ = ptMyPDE_->GetPDEId();
 
-    std::map<RegionIdType, BaseMaterial*> ptMaterial;
+//     std::map<RegionIdType, BaseMaterial*> ptMaterial;
 
-    ptMaterial = ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+//     ptMaterial = ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
 
-    Assemble * ptAssemble_;
+//     Assemble * ptAssemble_;
 
-    ptAssemble_ = ptMyPDE_->getPDE_assemble();
+//     ptAssemble_ = ptMyPDE_->getPDE_assemble();
 
-    ptAssemble_->SetMaterialPointer(ptMaterial);
-
-
-    // ptMHFiles_->computeIndexSet(2,2,nrMultHarms_);
-    //     ptMHFiles_->computeIndexSet(3,3,nrMultHarms_);
-    //     std::cout<<"    ptMHFiles_->computeIndexSet2,2,nrMultHarms_ went fine " <<std::endl;
+//     ptAssemble_->SetMaterialPointer(ptMaterial);
 
 
-    //  MHAssembleMatrices();
+//     // ptMHFiles_->computeIndexSet(2,2,nrMultHarms_);
+//     //     ptMHFiles_->computeIndexSet(3,3,nrMultHarms_);
+//     //     std::cout<<"    ptMHFiles_->computeIndexSet2,2,nrMultHarms_ went fine " <<std::endl;
 
-    UInt element;
-    element=2;
-    //    Integer delta=3;
 
-   //  calcParameterCurveAtElement(parameter_, parameterCoeff_, element, nrMultHarms_, delta, maxP);
-//     calcParameterCurveAtElement(parameter_, parameterCoeff_, element, nrMultHarms_, 1, maxP);
+//     //  MHAssembleMatrices();
+
+//     UInt element;
+//     element=2;
+//     //    Integer delta=3;
+
+//    //  calcParameterCurveAtElement(parameter_, parameterCoeff_, element, nrMultHarms_, delta, maxP);
+// //     calcParameterCurveAtElement(parameter_, parameterCoeff_, element, nrMultHarms_, 1, maxP);
     
-    Matrix<Integer> exps;
-    Matrix<Integer> count;
+//     Matrix<Integer> exps;
+//     Matrix<Integer> count;
    
-    Boolean reset = TRUE;
+//     bool reset = true;
         
-    UInt fstep;
-    Double actFreq  = startFreq_;
-    Double freqIncr;
+//     UInt fstep;
+//     Double actFreq  = startFreq_;
+//     Double freqIncr;
     
-    if (numFreq_ > 1) {
-      freqIncr = (stopFreq_ - startFreq_) / (numFreq_-1);
-    }
-    else {
-      freqIncr = stopFreq_ - startFreq_ ;
-    }
+//     if (numFreq_ > 1) {
+//       freqIncr = (stopFreq_ - startFreq_) / (numFreq_-1);
+//     }
+//     else {
+//       freqIncr = stopFreq_ - startFreq_ ;
+//     }
     
-    std::string errMsg;
+//     std::string errMsg;
   
   
-    // branch for single PDE
-    for (fstep = 1; fstep <= numFreq_; fstep++) {
-      Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq);
+//     // branch for single PDE
+//     for (fstep = 1; fstep <= numFreq_; fstep++) {
+//       Info->WriteHarmonicStep(ptPDE_->GetName(), fstep, actFreq);
     
-      ptPDE_->GetSolveStep()->SetActFreq(actFreq);
-      ptPDE_->GetSolveStep()->SetActStep(fstep);
-      std::cout<<" Step in multiharmonicDriver =  "<< fstep <<std::endl;
-      //      std::cout<<"\n multiHarm: 1 " <<std::endl;
-      ptPDE_->GetSolveStep()->PreStepHarmonic(reset);   
-      //      std::cout<<"\n multiHarm: 2"  <<std::endl;
-      ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
-      //      std::cout<<"\n multiHarm: 3 " <<std::endl;
-      ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
+//       ptPDE_->GetSolveStep()->SetActFreq(actFreq);
+//       ptPDE_->GetSolveStep()->SetActStep(fstep);
+//       std::cout<<" Step in multiharmonicDriver =  "<< fstep <<std::endl;
+//       //      std::cout<<"\n multiHarm: 1 " <<std::endl;
+//       ptPDE_->GetSolveStep()->PreStepHarmonic(reset);   
+//       //      std::cout<<"\n multiHarm: 2"  <<std::endl;
+//       ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
+//       //      std::cout<<"\n multiHarm: 3 " <<std::endl;
+//       ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
 
-      ptMyPDE_->PostProcess();
+//       ptMyPDE_->PostProcess();
 
-      Grid * ptGrid;
-      NodeEQN * ptNodeEqn;
-      //      Assemble * ptAssemble;
-      //      Domain * ptDomain;
+//       Grid * ptGrid;
+//       shared_ptr<EqnMap> ptNodeEqn;
+//       //      Assemble * ptAssemble;
+//       //      Domain * ptDomain;
      
 
-      Boolean reset = TRUE;
-      ptGrid = ptMyPDE_->getPDE_grid();
-      ptNodeEqn = ptMyPDE_->getPDE_eqnData();
+//       bool reset = true;
+//       ptGrid = ptMyPDE_->getPDE_grid();
+//       ptNodeEqn = ptMyPDE_->GetEqnMap();
 
 
-      StdVector<Elem*> elemssd;
-      StdVector<RegionIdType>  subdoms = ptMyPDE_->getPDE_subdoms();
-      //      ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
-      ptGrid->GetVolElems(elemssd,subdoms[0]); // gets element list elemssd
+//       StdVector<Elem*> elemssd;
+//       StdVector<RegionIdType>  subdoms = ptMyPDE_->getPDE_subdoms();
+//       //      ptMaterial=ptMyPDE_->getPDEMaterialData();   // Pointer to MaterialData
+//       ptGrid->GetVolElems(elemssd,subdoms[0]); // gets element list elemssd
       
-      BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
-      NodeStoreSol<Complex> * ptNodeStoreSol;
-      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
+//       BaseNodeStoreSol * ptSol = ptMyPDE_->getPDESolution();
+//       NodeStoreSol<Complex> * ptNodeStoreSol;
+//       ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);
 
-      StdVector<Integer> connect_PDE;                 
-      //      getchar();
+//       StdVector<Integer> connect_PDE;                 
+//       //      getchar();
 
-      EfieldInZDir_.Resize(elemssd.GetSize());
-    //loop over elements
-      for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-        BaseFE * ptEl = elemssd[actEl]->ptElem;
-        StdVector<UInt> connecth = elemssd[actEl]->connect;
+//       EfieldInZDir_.Resize(elemssd.GetSize());
+//     //loop over elements
+//       for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
+//         BaseFE * ptEl = elemssd[actEl]->ptElem;
+//         StdVector<UInt> connecth = elemssd[actEl]->connect;
         
-        Matrix<Double> ptCoord;
-        ptGrid->GetElemNodesCoord(ptCoord, connecth);
+//         Matrix<Double> ptCoord;
+//         ptGrid->GetElemNodesCoord(ptCoord, connecth);
 
-//         std::cout<<" ElementNummer = " << actEl <<std::endl;
-//         std::cout<<(ptCoord)<<std::endl;        
-        // map connect to PDE node numbers
+// //         std::cout<<" ElementNummer = " << actEl <<std::endl;
+// //         std::cout<<(ptCoord)<<std::endl;        
+//         // map connect to PDE node numbers
         
-        const UInt nrIntPts = ptEl->GetNumIntPoints(); 
+//         const UInt nrIntPts = ptEl->GetNumIntPoints(); 
 
-        ptNodeEqn->Node2EQN(connecth, connect_PDE);
-//         std::cout<<connect_PDE<<std::endl;
-//         std::cout<<connecth<<std::endl;
-        Vector<Complex> elSolVec; 
-        ptNodeStoreSol->GetElemSolution(elSolVec,connecth);
-        Vector<Complex> solVecElecPot;
-        UInt dim = ptMyPDE_->getPDE_spaceDim();
+//         ptNodeEqn->GetNodeEqn(connecth, connect_PDE);
+// //         std::cout<<connect_PDE<<std::endl;
+// //         std::cout<<connecth<<std::endl;
+//         Vector<Complex> elSolVec; 
+//         ptNodeStoreSol->GetElemSolution(elSolVec,connecth);
+//         Vector<Complex> solVecElecPot;
+//         UInt dim = ptMyPDE_->getPDE_spaceDim();
         
-        if (dim==3){
-          solVecElecPot.Resize(elSolVec.GetSize()/4);
-          UInt j=0;
-          for (UInt i=3; i<elSolVec.GetSize();i=i+4){
-            solVecElecPot[j] = elSolVec[i];
-            j++;
-          }
-        }
-        else if (dim==2){
-          solVecElecPot.Resize(elSolVec.GetSize()/3);
-          UInt j=0;
-          for (UInt i=2; i<elSolVec.GetSize();i=i+3){
-            solVecElecPot[j] = elSolVec[i];
-            j++;
-          }
-        }
-//         std::cout<<"solVecElecPot:"<<std::endl;
-//         std::cout<<solVecElecPot<<std::endl;
+//         if (dim==3){
+//           solVecElecPot.Resize(elSolVec.GetSize()/4);
+//           UInt j=0;
+//           for (UInt i=3; i<elSolVec.GetSize();i=i+4){
+//             solVecElecPot[j] = elSolVec[i];
+//             j++;
+//           }
+//         }
+//         else if (dim==2){
+//           solVecElecPot.Resize(elSolVec.GetSize()/3);
+//           UInt j=0;
+//           for (UInt i=2; i<elSolVec.GetSize();i=i+3){
+//             solVecElecPot[j] = elSolVec[i];
+//             j++;
+//           }
+//         }
+// //         std::cout<<"solVecElecPot:"<<std::endl;
+// //         std::cout<<solVecElecPot<<std::endl;
 
-        //Vector<Complex> globSolVec;
+//         //Vector<Complex> globSolVec;
 
-        //        ptNodeStoreSol->GetSolVectorSingleDof(ELEC_POTENTIAL, 0, globSolVec);
-        //        std::cout<<" Globaler Solution Vector ElecPot : " <<std::endl;
-        // std::cout<<globSolVec<<std::endl;
+//         //        ptNodeStoreSol->GetSolVectorSingleDof(ELEC_POTENTIAL, 0, globSolVec);
+//         //        std::cout<<" Globaler Solution Vector ElecPot : " <<std::endl;
+//         // std::cout<<globSolVec<<std::endl;
 
-        Complex ElecFieldInDirZ;
-        ElecFieldInDirZ = Complex(0.0,0.0);
+//         Complex ElecFieldInDirZ;
+//         ElecFieldInDirZ = Complex(0.0,0.0);
 
-        for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+//         for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
-          Matrix<Double> xiDx;
-          ptEl->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord);
-//           std::cout<<"xiDx"<<std::endl;
-//           std::cout<<xiDx[actIntPt-1][1]<<std::endl;
-          ElecFieldInDirZ+=xiDx[actIntPt-1][1]*solVecElecPot[actIntPt-1];
+//           Matrix<Double> xiDx;
+//           ptEl->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord);
+// //           std::cout<<"xiDx"<<std::endl;
+// //           std::cout<<xiDx[actIntPt-1][1]<<std::endl;
+//           ElecFieldInDirZ+=xiDx[actIntPt-1][1]*solVecElecPot[actIntPt-1];
 
-          //          Matrix<Complex> 
-        }
-//         std::cout <<" ElecFieldInDirZ : " <<std::endl;
-//         std::cout << ElecFieldInDirZ  <<std::endl;
+//           //          Matrix<Complex> 
+//         }
+// //         std::cout <<" ElecFieldInDirZ : " <<std::endl;
+// //         std::cout << ElecFieldInDirZ  <<std::endl;
        
-        EfieldInZDir_[actEl]=ElecFieldInDirZ;
+//         EfieldInZDir_[actEl]=ElecFieldInDirZ;
         
-        ptNodeEqn->Node2EQN(connecth, connect_PDE);
-        //        std::cout<<connect_PDE<<std::endl;
-        // std::cout<<connecth<<std::endl;
+//         ptNodeEqn->GetNodeEqn(connecth, connect_PDE);
+//         //        std::cout<<connect_PDE<<std::endl;
+//         // std::cout<<connecth<<std::endl;
         
 
-        //        ptElemFE->GetShFncAtIp(shFnc, actIntPt);
+//         //        ptElemFE->GetShFncAtIp(shFnc, actIntPt);
 
-        //      std::cout<<elSolVec<<std::endl;
-        //        getchar();
+//         //      std::cout<<elSolVec<<std::endl;
+//         //        getchar();
         
-        std::map<RegionIdType, BaseMaterial*> actSDMat = ptMaterial;
-        //        Boolean isdamping=TRUE;
-      }
+//         std::map<RegionIdType, BaseMaterial*> actSDMat = ptMaterial;
+//         //        bool isdamping=true;
+//       }
       
-      ptPiezoPDE->SetEfieldInZDir_(EfieldInZDir_);
+//       ptPiezoPDE->SetEfieldInZDir_(EfieldInZDir_);
 
    
-    //    std::cout<<"piezoParamIdent::createAndSetRHSforJacobian 1 "<< std::endl; 
+//     //    std::cout<<"piezoParamIdent::createAndSetRHSforJacobian 1 "<< std::endl; 
    
-        ptPDE_->WriteResultsInFile( fstep, actFreq);
+//         ptPDE_->WriteResultsInFile( fstep, actFreq);
 
-        //write history data
-        ptPDE_->WriteHistoryInFile(fstep, actFreq);
+//         //write history data
+//         ptPDE_->WriteHistoryInFile(fstep, actFreq);
         
-        actFreq += freqIncr;
+//         actFreq += freqIncr;
        
-    }
+//     }
   } // end Solve
 
 }// end of namespace coupled field

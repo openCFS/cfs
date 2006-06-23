@@ -16,7 +16,7 @@ namespace CoupledField {
                  UInt stepOffset = 0,
                  Double timeOffset = 0.0,
                  std::string driverTag = "anyTag",
-                 Boolean isPartOfSequence = FALSE);
+                 bool isPartOfSequence = false);
     
     //! Destructor 
     ~EigenFrequencyDriver();
@@ -31,7 +31,7 @@ namespace CoupledField {
 
     //! Flag indicating, if a quadratic eigenvalue problem is to
     //! be solved
-    Boolean isQuadratic_;
+    bool isQuadratic_;
     
     //! Number of eigenfrequencies to be calculated
     UInt numFreq_;
@@ -40,7 +40,7 @@ namespace CoupledField {
     Double freqShift_;
 
     //! Flag for writing the eigenmods into the file
-    Boolean writeModes_;
+    bool writeModes_;
   };
 
 }

@@ -13,6 +13,7 @@
 #include <sstream>
 #include <ostream>
 #include <fstream>
+#include "Domain/bcs.hh"
 #include "General/environment.hh"
 #include "Matrix/matrix.hh"
 
@@ -36,14 +37,14 @@ namespace CoupledField {
     std::ofstream *cfsInfo;
 
     //! indicates, if a warning occured already
-    Boolean warningOccured_;
+    bool warningOccured_;
 
     //! indicates, if there`s a progress running
-    Boolean progressRunning_;
+    bool progressRunning_;
 
     //! flag for acknowledge message for progress
     //! printouts
-    Boolean needAck_;
+    bool needAck_;
 
   public:
 
@@ -101,25 +102,20 @@ namespace CoupledField {
     void WriteHarmonicStep(const std::string& pdeName, const UInt freqStep,    
                            const Double frequency);
 
-    /// writes domain and dof of homogenous Dirichlet boundary conditions
-    void WriteHomDirBC(const std::string& pdeName, 
-                       const std::string& subDom, UInt dof=0);
+    /// writes definition of homogeneous dirichet boundary conditions
+    void WriteHomDirBC( const std::string& pdeName, HdBcList& list );
 
-    /// writes domain and dof of inhomogenous Dirichlet boundary conditions
-    void WriteInhomDirBC(const std::string& pdeName,const std::string& subDom, 
-                         const std::string& val, const std::string & fnc, 
-                         const UInt& dof);
+    /// writes definition of inhomogeneous dirichet boundary conditions
+    void WriteInhomDirBC( const std::string& pdeName, IdBcList& list );
 
-    /// writes domain and dof of inhomogenous Neumann boundary conditions
-    void WriteInhomNeuBC(const std::string& pdeName,const std::string& subDom); 
+    /// writes definition of inhomogeneous neumann boundary conditions
+    void WriteInhomNeuBC( const std::string& pdeName, InBcList& list ); 
 
-    /// writes domain and dof of constraints
-    void WriteConstraints(const std::string& pdeName, 
-                          const std::string& subDom, UInt dof=0);
+    /// writes definition of constraints
+    void WriteConstraints( const std::string& pdeName, ConstraintList& list );
 
-    /// writes domain, value and dof of a load conditon
-    void WriteLoad(const std::string& pdeName, const std::string& subDom, 
-                   std::string value, const std::string & fnc, UInt dof=0);
+    /// writes definition of loads
+    void WriteLoad( const std::string& pdeName, LoadList& list );
     
 
     /// write Result values
@@ -163,11 +159,11 @@ namespace CoupledField {
                 const UInt numline );
 
     /// generates a message, that a certain action has started
-    void StartProgress(const std::string &name, Boolean needAck = TRUE);
+    void StartProgress(const std::string &name, bool needAck = true);
 
     
     /// generates a message, that the last action has finished
-    void FinishProgress(const Boolean success = TRUE);
+    void FinishProgress(const bool success = true);
 
   };
 } // end namespace CoupledField

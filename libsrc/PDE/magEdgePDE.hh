@@ -74,7 +74,7 @@ namespace CoupledField
     virtual void SolveStepStatic(const Integer level, const Double aTime=0);
 
     virtual void SolveStepTrans(const Integer kstep, const Double steptime, const Integer level, 
-                                const Boolean updatesysmat)
+                                const bool updatesysmat)
     { 
       Error("Makes no sense for Electrostatics to perform transient step",__FILE__,__LINE__);
     }
@@ -85,9 +85,6 @@ namespace CoupledField
 
     //! return pointer to vector with solution
     virtual const Array<Double>& getS() const { ;}
-
-    //! return size of solution
-    virtual Integer getSize() const { return size_;}
 
     /// calc element quantities
     void PostProcess(const Integer level);
@@ -125,7 +122,7 @@ namespace CoupledField
     //   Array<Double> Force_;  //!< stores Electric pressure force of each element
     //   Integer size_;        //!< size of solution (number of equations)
     //   Integer nElements_;
-
+    UInt dofsperedge_;  //!< number of unknowns per edge
     Vector<Double> solRe_;      //!< store real part of solution,
     Vector<Double> solIm_;      //!< store imaginary part of solution
     Integer size_;              //!< size of solution (number of edges)

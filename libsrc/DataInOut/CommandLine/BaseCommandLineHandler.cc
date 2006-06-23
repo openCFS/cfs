@@ -202,14 +202,14 @@ namespace CoupledField {
   //   PrintParams
   // ***************
   void BaseCommandLineHandler::PrintParams( std::ostream &out,
-                                            Boolean colorise ) {
+                                            bool colorise ) {
 
     ENTER_FCN( "BaseCommandLineHandler::PrintParams" );
 
     std::string colorInit = "";
     std::string colorStop = "";
 
-    if ( colorise == TRUE ) {
+    if ( colorise == true ) {
       colorInit = COLOR_INIT;
       colorStop = COLOR_STOP;
     }
@@ -251,31 +251,31 @@ namespace CoupledField {
         << ' ' << markerLongPrintGrid_ << " = "
         << colorInit
         << std::boolalpha
-        << ( GetPrintGrid() == TRUE )
+        << ( GetPrintGrid() == true )
         << colorStop << '\n'
 
         << ' ' << markerLongShowEqnMap_ << " = "
         << colorInit
         << std::boolalpha
-        << ( GetShowEqnMap() == TRUE )
+        << ( GetShowEqnMap() == true )
         << colorStop << '\n'
 
         << ' ' << markerLongDoProfile_ << " = "
         << colorInit
         << std::boolalpha
-        << ( GetDoProfile() == TRUE )
+        << ( GetDoProfile() == true )
         << colorStop << '\n'
 
         << ' ' << markerLongRestart_ << " = "
         << colorInit
         << std::boolalpha
-        << ( GetRestart() == TRUE )
+        << ( GetRestart() == true )
         << colorStop << '\n'
 
         << ' ' << markerLongWriteSkeleton_ << " = "
         << colorInit
         << std::boolalpha
-        << ( GetWriteSkeleton() == TRUE )
+        << ( GetWriteSkeleton() == true )
         << colorStop << "\n\n";
   }
 

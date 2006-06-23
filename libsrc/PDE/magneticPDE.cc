@@ -12,6 +12,8 @@
 #include "trapezoidal.hh"
 #include "DataInOut/writeresults.hh"
 #include "CoupledPDE/pdecoupling.hh"
+#include "Domain/ansatzFct.hh"
+#include "Driver/assemble.hh"
 
 #ifdef TCL_INTERFACE
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -30,22 +32,24 @@ namespace CoupledField {
     // =====================================================================
     // set solution information
     // =====================================================================
-    dofspernode_ = 1;
-    solTypes_ = MAG_POTENTIAL;
-    solDofs_ = 1;
     pdename_          = "magnetic";
     pdematerialclass_ = ELECTROMAGNETIC;
 
+    // Create new resultDof object
+    shared_ptr<ResultDof> res1(new ResultDof);
+    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    res1->resultType = MAG_POTENTIAL;
+    res1->dofNames = "mp";
+    res1->definedOn = ResultDof::NODE;
+    res1->fctType = fct;
+    results_.Push_back( res1 );
+    
     // ---------------------------------------------------------
     //   Get special geometry
     // ---------------------------------------------------------
     isaxi_ = params->HasValue( "type", "axi", "geometry" )
-      == TRUE ? TRUE : FALSE;
+      == true ? true : false;
 
-    // ---------------------------
-    //   Set coupling parameters
-    // ---------------------------
-    deltCoords_.Resize( dim_, numPDENodes_ );
   }
 
 
@@ -93,12 +97,12 @@ namespace CoupledField {
     // ------------------------------------
     StdVector<std::string> regionNames;
 
-    nonLin_ = FALSE;
+    nonLin_ = false;
     params->GetList( "nonLinear", nonLinType_, pdename_, "region" );
     
     for ( UInt k = 0; k < nonLinType_.GetSize(); k++ ) {
       if ( nonLinType_[k] != "no" ) {
-        nonLin_ = TRUE;
+        nonLin_ = true;
         break;
       }
     }
@@ -133,8 +137,16 @@ namespace CoupledField {
 
     ENTER_FCN( "MagPDE::DefineIntegerators" );
 
+
+    // flag for updatedLagrange formulation
+    bool upLagrangeForm = true;
+
     // Loop over all regions this PDE lives on
     for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
+
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( subdoms_[actSD] );
 
       // Get reluctivity for this domain and perform consistency check
       Double reluctivity;
@@ -150,56 +162,77 @@ namespace CoupledField {
         nlinFnc->CalcApproximation();
 
         BaseForm *curlcurl2D = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity,
-                                                         isaxi_);
+                                                         isaxi_, upLagrangeForm );
         curlcurl2D->SetNonLinMethod(nonLinMethod_);      
-
-	IntegratorDescriptor * stiffDescr = 
-	  new IntegratorDescriptor(curlcurl2D, STIFFNESS, TRUE);
-	stiffDescr->SetPDEIds(this, this);        
-	assemble_->AddIntegrator(stiffDescr,  subdoms_[actSD]);
+        curlcurl2D->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+	BiLinFormContext * stiffContext = 
+	  new BiLinFormContext( curlcurl2D, STIFFNESS );
+	stiffContext->SetPtPdes(this, this);   
+        stiffContext->SetResults( results_[0], results_[0],
+                                  actSDList, actSDList );     
+	assemble_->AddBiLinearForm( stiffContext);
 
         // nonlinear RHS linearform!!
-        BaseForm * rhsSource = new nLinMagNode2D_linFormInt(nlinFnc,
-                                                            reluctivity,
-                                                            isaxi_);
-        assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
+        LinearForm * rhsSource = 
+          new nLinMagNode2D_linFormInt(nlinFnc, reluctivity,
+                                       isaxi_, upLagrangeForm);
+        rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+        LinearFormContext * rhsContext = 
+          new LinearFormContext( rhsSource );
+        rhsContext->SetPtPde( this );
+        rhsContext->SetResult( results_[0], actSDList );
+        assemble_->AddLinearForm( rhsContext );
       }
       else {
-        BaseForm *curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_);
-	IntegratorDescriptor * stiffDescr = 
-	  new IntegratorDescriptor(curlcurl2D, STIFFNESS, FALSE);
-	stiffDescr->SetPDEIds(this, this);        
-	assemble_->AddIntegrator(stiffDescr,  subdoms_[actSD]);
+        BaseForm *curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_, upLagrangeForm);
+	BiLinFormContext * stiffContext = 
+	  new BiLinFormContext(curlcurl2D, STIFFNESS );
+	stiffContext->SetPtPdes(this, this);  
+        stiffContext->SetResults( results_[0], results_[0],
+                                actSDList, actSDList );      
+	assemble_->AddBiLinearForm( stiffContext );
 
-        if (nonLin_==TRUE) {
+        if (nonLin_==true) {
           // for nonlinear RHS linearform we need linear and nonlinear
           // subdomains
-          BaseForm * rhsSource = new nLinMagNode2D_linFormInt(reluctivity,
-                                                              isaxi_);
-          assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], TRUE);
+          LinearForm * rhsSource = 
+            new nLinMagNode2D_linFormInt(NULL,reluctivity, isaxi_, upLagrangeForm );
+          rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+          LinearFormContext * rhsContext = 
+            new LinearFormContext( rhsSource, true );
+          rhsContext->SetPtPde( this );
+          rhsContext->SetResult( results_[0], actSDList );
+          assemble_->AddLinearForm( rhsContext );
         }
       }
 
       // Mass matrix
       Double conductivity;
       materials_[subdoms_[actSD]]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
-      BaseForm *bilinear_mass = new MassInt(conductivity, dofspernode_,isaxi_);
+      BaseForm *bilinear_mass = 
+        new MassInt(conductivity, 1,isaxi_,  upLagrangeForm );
 
-      IntegratorDescriptor * massDescr = 
-	new IntegratorDescriptor(bilinear_mass, MASS, FALSE);
-	massDescr->SetPDEIds(this, this);        
-	assemble_->AddIntegrator(massDescr,  subdoms_[actSD]);
+      BiLinFormContext * massContext = 
+	new BiLinFormContext(bilinear_mass, MASS );
+	massContext->SetPtPdes(this, this);
+        massContext->SetResults( results_[0], results_[0],
+                                 actSDList, actSDList );        
+	assemble_->AddBiLinearForm( massContext );
 
       // If this subdomain is a coil we have to do special things
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
         if ( subdoms_[actSD] == coilRegionId_[coil] ) {
           Double factor = coilDef_[coil]->value_ /
             coilDef_[coil]->windingCrossSection_;
-          BaseForm *coilSource = new VolumeSrcInt( factor, isaxi_ );      
-          assemble_->AddRhsSrcIntegrator( coilSource,
-                                          subdoms_[actSD],
-                                          coilDef_[coil]->dynamicsFile_,
-                                          nonLin_ );
+          LinearForm *coilSource = new 
+            VolumeSrcInt( factor, isaxi_,  upLagrangeForm  );  
+
+          LinearFormContext * coilContext = 
+            new LinearFormContext( coilSource, 0.0, 
+                                   coilDef_[coil]->dynamicsFile_ );
+          coilContext->SetPtPde( this );
+          coilContext->SetResult( results_[0], actSDList );
+          assemble_->AddLinearForm( coilContext );
         }
       }
 
@@ -225,16 +258,20 @@ namespace CoupledField {
           }
           
           std::string fncname = "none";
-          Boolean nlin = FALSE;
-          BaseForm *permSource = new MagPerm2DInt(magnetization, 
-                                                  reluctivity, isaxi_ );
+          LinearForm *permSource = 
+            new MagPerm2DInt(magnetization, reluctivity, 
+                             isaxi_, upLagrangeForm );
 
-          assemble_->AddRhsSrcIntegrator( permSource,
-                                          subdoms_[actSD],
-                                          fncname,
-                                          nlin );
+          LinearFormContext * permContext = 
+            new LinearFormContext( permSource, false );
+          permContext->SetPtPde( this );
+          permContext->SetResult( results_[0], actSDList );
+          assemble_->AddLinearForm( permContext );
         }
       }
+
+      // Give result to equation numbering class
+      eqnMap_->AddResult( *results_[0], actSDList );
     }
   }
 
@@ -252,10 +289,8 @@ namespace CoupledField {
 
   void MagPDE :: InitTimeStepping() {
     ENTER_FCN( "MagPDE::InitTimeStepping" );
-    UInt rhsSize = eqnData_->GetNumEQNs() *
-      eqnData_->GetNumDofsPerEQN();
-    
-    TS_alg_ = new Trapezoidal( algsys_, rhsSize );
+
+    TS_alg_ = new Trapezoidal( algsys_ );
   }
 
 
@@ -372,8 +407,8 @@ namespace CoupledField {
 
     if (calcBfield_.GetSize() !=0 ) {
 
-      CurlNodeOp * FieldOp = new CurlNodeOp(ptgrid_, this, eqnData_,
-                                            *solhelp);
+      CurlNodeOp * FieldOp = new CurlNodeOp(ptgrid_, this, eqnMap_,
+                                            *solhelp, true );
       FieldOp->Set2DType(isaxi_);
  
       // ------ Calculation of the magnetic flux density  ------
@@ -389,7 +424,7 @@ namespace CoupledField {
       B_.SetSolutionType(MAG_FLUX_DENSITY);
       B_.SetNumElems(numElems_);
       B_.SetNumDofs(dim_);
-      B_.SetPtrEQNData(eqnData_, ptgrid_);
+      B_.SetPtrEQNData(eqnMap_.get(), ptgrid_);
       B_.Init(0);
       
       // loop over all subdomains
@@ -400,7 +435,7 @@ namespace CoupledField {
           
         // loop over elements of subdomain
         for (UInt iel=0; iel< elemssd.GetSize(); iel++,counterElems++) {
-          pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
+          pdeElem = eqnMap_->Mesh2PdeElem(elemssd[iel]->elemNum);
           elemssd[iel]->ptElem->GetCoordMidPoint( lCoord );
           FieldOp->CalcElemCurlNode( tempB, elemssd[iel], lCoord); 
           B_.SetElemResult(pdeElem-1, tempB);
@@ -433,7 +468,7 @@ namespace CoupledField {
 
       // dimension hard coded for .unv file!
       Jeddy_.SetNumDofs(3);  
-      Jeddy_.SetPtrEQNData(eqnData_, ptgrid_);
+      Jeddy_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
       Jeddy_.Init(0);
 
       // loop over all subdomains
@@ -453,7 +488,7 @@ namespace CoupledField {
           BaseFE * ptEl = elemssd[actEl]->ptElem;
           elemssd[actEl]->ptElem->GetCoordMidPoint( lCoord );
           ptEl->GetShFnc(shpFnc,lCoord);
-          pdeElem = eqnData_->Mesh2PDEElem(elemssd[actEl]->elemNum);
+          pdeElem = eqnMap_->Mesh2PdeElem(elemssd[actEl]->elemNum);
 
           connect = elemssd[actEl]->connect;
           
@@ -481,16 +516,9 @@ namespace CoupledField {
       // put information into storesol
 
       UInt actPos =  0;
-      Double sum = 0.0;
       for (UInt iNode = 0; iNode < ForceNodes_.GetSize(); iNode++) {
         for (UInt iDof = 0; iDof < dim_; iDof++) {
-          std::cerr << "Value before: " 
-                    << Force_(ForceNodes_[iNode]-1,iDof) << std::endl;
-          std::cerr << "Force(" << ForceNodes_[iNode] << ", " << iDof+1
-                    << ") = " << ForceValues[actPos] << std::endl;
           Force_(ForceNodes_[iNode]-1,iDof) = ForceValues[actPos++];
-          std::cerr << "Value afterwards: " 
-                    << Force_(ForceNodes_[iNode]-1,iDof) << std::endl;
         }
       }
 
@@ -527,19 +555,20 @@ namespace CoupledField {
 
     Matrix<Double> elemmat;  
     Matrix<Double> ptCoord;
-    BaseFE         * ptElem;
 
     StdVector<UInt> connecth;
     StdVector<Integer> Eqns;  
     Vector<double> help;
-    BaseForm *bilinear_stiff = NULL;
-    UInt i, j;
+    BaseForm *bilinear_stiff = NULL; 
+    UInt i;
+    
     Vector<Double> energy(calcEnergy_.GetSize());
 
     for (i=0; i<calcEnergy_.GetSize(); i++) {
 
       Double reluctivity;
       materials_[calcEnergy_[i]]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
+      
 
       // find related region in subdoms_
       Integer sdIndex = subdoms_.Find( calcEnergy_[i] );
@@ -560,6 +589,7 @@ namespace CoupledField {
         bilinear_stiff = new nLinCurlCurlNode2DInt(nlinFnc,reluctivity,
                                                    isaxi_);
 
+        bilinear_stiff->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
         
         // VERY IMPORTANT: Set nonlinear-method "fixpoint", as otherwise also
         // the Frechet part of the stiffness is calculated!
@@ -568,31 +598,24 @@ namespace CoupledField {
         bilinear_stiff = new CurlCurlNode2DInt(reluctivity, isaxi_);
       }
 
-      StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems( elemssd,calcEnergy_[i] );
 
       energy[i] = 0;
-      for (j=0; j < elemssd.GetSize(); j++) {
 
-        ptElem=elemssd[j]->ptElem;
-        bilinear_stiff->SetElemPtr( ptElem );
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[i] );
 
-        connecth=elemssd[j]->connect;
-        GetElemCoords(connecth, ptCoord);
-        Vector<Double> magvecpot;
+      EntityIterator it = actSDList.GetIterator();
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+        connecth=it.GetElem()->connect;
+       
+        Vector<Double> magvecpot;   
         sol_->GetElemSolution(magvecpot,connecth);
-        if(  nonLinType_[sdIndex] != "no" ) {
-          Matrix<Double> magPotMatrix;
-          sol_->GetElemSolutionAsMatrix( magPotMatrix,connecth);
-          bilinear_stiff->SetActElemSol( magPotMatrix );
-        }
-        
-        bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
-        sol_->GetElemSolution(magvecpot,connecth);
+        bilinear_stiff->CalcElementMatrix(elemmat,it,it);
         
         help = elemmat * magvecpot;
-        energy[i] += 0.5 *( help * magvecpot);
-        
+        energy[i] += 0.5 * (help * magvecpot);
+            
       }  
       delete bilinear_stiff;    
     }
@@ -624,6 +647,7 @@ namespace CoupledField {
     ENTER_FCN( "MagPDE::ComputeUI" );
 
     uiSD.Resize(coilDef_.GetSize());
+    uiSD.Init();
   
     // loop over all subdomains
     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
@@ -648,7 +672,7 @@ namespace CoupledField {
             connect = elemssd[actEl]->connect;
 
             Matrix<Double> ptCoord;
-            GetElemCoords(connect, ptCoord);
+            ptgrid_->GetElemNodesCoord( ptCoord, connect, true );
 
             Vector<Double> magVecDeriv1Elem;
             GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
@@ -694,11 +718,11 @@ namespace CoupledField {
 
     for (UInt dom=1; dom < coilDef_.GetSize(); dom++) {
 
-      Boolean isInVec = FALSE;
+      bool isInVec = false;
       
       for (UInt dom2=0; dom2 < coilIDs.GetSize(); dom2++)    
         if (abs(coilDef_[dom]->id_) == coilIDs[dom2])
-          isInVec = TRUE;
+          isInVec = true;
       
       if (!isInVec)
         coilIDs.Push_back(abs(coilDef_[dom]->id_));
@@ -844,8 +868,8 @@ namespace CoupledField {
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
     if (nodeValues.GetSize() > 0) {
-      saveSol_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSol_ = true;
+      hasOutput_ = true;
     }
 
     Enum2String(MAG_FORCE_VWP, quantity);
@@ -864,7 +888,7 @@ namespace CoupledField {
       Force_.SetNumNodes(numPDENodes_);
       Force_.SetSolutionType(MAG_FORCE_VWP);
       Force_.SetNumDofs(dim_);
-      Force_.SetPtrEQNData(eqnData_, ptgrid_); 
+      Force_.SetPtrEQNData( eqnMap_.get(), ptgrid_); 
       Force_.Init();
 
 
@@ -873,6 +897,7 @@ namespace CoupledField {
         numNodes+= ptgrid_->GetNumNodes(calcForceVWP_[i]);
 
         ForceNodes_.Resize(numNodes);
+        ForceNodes_.Init();
       
         UInt inode =0;
         StdVector<UInt> nodesConverted;
@@ -892,8 +917,8 @@ namespace CoupledField {
 
       //initialize the force operator
       NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);
-      ForceOpVWP_ = new  MagForceOp(ptgrid_, this, eqnData_, *solhelp, dim_, 
-                                    materials_,  isaxi_);
+      ForceOpVWP_ = new  MagForceOp(ptgrid_, this, eqnMap_, *solhelp, dim_, 
+                                    materials_,  isaxi_, true );
       
       keyVec  = pdename_, "storeResults", "nodeResults", "region";
       attrVec = "", "", "type";
@@ -925,7 +950,7 @@ namespace CoupledField {
     
     // Log to info file
     if ( calcBfield_.GetSize() > 0 ) {
-      hasOutput_ = TRUE;
+      hasOutput_ = true;
       Info->PrintF( pdename_,
                     "Computing magFluxDensity for regions:\n" );
       for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
@@ -947,7 +972,7 @@ namespace CoupledField {
     
     // Log to info file
     if ( calcEnergy_.GetSize() > 0 ) {
-      hasOutput_ = TRUE;    
+      hasOutput_ = true;    
       Info->PrintF( pdename_,
                     "Computing magEnergy for regions:\n" );
       for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
@@ -969,7 +994,7 @@ namespace CoupledField {
     
     // Log to info file
     if ( calcEddy_.GetSize() > 0 ) {
-      hasOutput_ =TRUE;
+      hasOutput_ =true;
       Info->PrintF( pdename_,
                     "Computing magEddyCurrent for regions:\n" );
       for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
@@ -991,8 +1016,8 @@ namespace CoupledField {
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
     if (saveNodeHist.GetSize() > 0) {
-      saveSolHist_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSolHist_ = true;
+      hasOutput_ = true;
       Info->PrintF( pdename_, "Saving magPotential for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
@@ -1028,7 +1053,7 @@ namespace CoupledField {
 
     ENTER_FCN( "MagPDE::InitCoupling" );
   
-    isIterCoupled_ = TRUE;
+    isIterCoupled_ = true;
     ptCoupling_   = Coupling;
 
     // Enable update of geometry
@@ -1036,6 +1061,7 @@ namespace CoupledField {
 
     StdVector<StdVector<UInt> > elemNodeToCouplingNode_tmp;
     elemNodeToCouplingNode_.Resize(numCouplings);
+    elemNodeToCouplingNode_.Init();
 
 
     for ( UInt actCoupling = 0; actCoupling < numCouplings; actCoupling++ ){
@@ -1054,8 +1080,8 @@ namespace CoupledField {
         //Get total number of coupling elements
         UInt totalCouplingElems = ptgrid_->GetNumElems( regionIds );
         
-        elemNodeToCouplingNode_tmp.Clear();
         elemNodeToCouplingNode_tmp.Resize(totalCouplingElems);
+        elemNodeToCouplingNode_tmp.Init();
 
         UInt offset = 0;
         for ( UInt reg = 0; reg < couplRegions.GetSize(); reg++ ) {
@@ -1086,6 +1112,7 @@ namespace CoupledField {
           for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
             StdVector<UInt> & connecth = elemssd[actEl]->connect;
             elemNodeToCouplingNode_tmp[offset+actEl].Resize(connecth.GetSize());
+            elemNodeToCouplingNode_tmp[offset+actEl].Init();
 
             for ( UInt ielemnode = 0; ielemnode < connecth.GetSize();
                   ielemnode++ ) {
@@ -1118,7 +1145,7 @@ namespace CoupledField {
     UInt forcesCount = 0;
 
     // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == FALSE)
+    if (isIterCoupled_ == false)
       return;
 
     // loop over all output coupling quantities
@@ -1166,7 +1193,8 @@ namespace CoupledField {
     ptgrid_->RegionNameToId( regionIds, couplRegions );
     MagLorentzForceOp *ForceOp; 
 
-    ForceOp  = new MagLorentzForceOp( ptgrid_, this, eqnData_, *solhelp, isaxi_ );
+    ForceOp  = new MagLorentzForceOp( ptgrid_, this,
+                                      eqnMap_, *solhelp, isaxi_, true  );
 
     force.Init(0.0);
 
@@ -1211,12 +1239,12 @@ namespace CoupledField {
     }
   }
 
-  Boolean MagPDE::HasOutput( SolutionType output ) {
+  bool MagPDE::HasOutput( SolutionType output ) {
     ENTER_FCN( "MagPDE::HasOutput" );
     if (output == MAG_FORCE_LORENTZ) {
-      return TRUE;
+      return true;
     }
-    return FALSE;
+    return false;
   }
 
 } // end of namespace

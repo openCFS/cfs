@@ -7,12 +7,15 @@ namespace CoupledField
 {
 
   PMLTransXYZInt::PMLTransXYZInt(std::string type, Double factor, std::string dampingTypePML, Double damp, 
-				 const UInt nrDofsPerNode, Boolean axi)
-    : BaseForm(), formsFactor_(factor), formsType_(type), dampingFactor_(damp),
-      nrDofsPerNode_(nrDofsPerNode) 
+				 const UInt nrDofsPerNode, bool axi)
+    : BaseForm( NULL ), 
+      nrDofsPerNode_(nrDofsPerNode), formsType_(type),formsFactor_(factor),  dampingFactor_(damp)
+       
   {
     ENTER_FCN( "PMLTransXYZInt::PMLTransXYZInt" );
 
+    name_ = "PMLTransXYZInt";
+    
     //check for correct type
     if ( type == "stiffness" ) {
       formsType_ = type;
@@ -50,10 +53,15 @@ namespace CoupledField
 
 
 
-  void PMLTransXYZInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
+  void PMLTransXYZInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                          EntityIterator& ent1, 
+                                          EntityIterator& ent2 )
   {
     ENTER_FCN( "PMLTransXYZInt::CalcElementMatrix" );
   
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -65,21 +73,23 @@ namespace CoupledField
 
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrNodes*nrDofsPerNode_);
-    singleMat.Resize(nrNodes); singleMat.Init();
+    elemMat.Init();
+    singleMat.Resize(nrNodes); 
+    singleMat.Init();
 
     Vector<Double> factorsPML;
-    ComputeFactorPML( factorsPML, ptCoord);
+    ComputeFactorPML( factorsPML, ptCoord_);
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
         
       ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
         
       partElemMat.DyadicMult(shapeFncAtIp);
         
       if (isaxi_) {
-        CoordAtIP = ptCoord * shapeFncAtIp;
+        CoordAtIP = ptCoord_ * shapeFncAtIp;
         partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * CoordAtIP[0];
       }
       else 
@@ -153,7 +163,6 @@ namespace CoupledField
     }
 
     Vector<Double> factors(numVals);
-    Double factor;
 
     if ( pos[0] < minX_ || pos[0] > maxX_ ) {
       factors[0] = ComputeDampingFactor(pos, X);
@@ -228,6 +237,7 @@ namespace CoupledField
 //     std::cout << "factors:\n" << factors << std::endl;
 
     factorsPML.Resize(numVals);
+    factorsPML.Init();
 
     if ( formsType_ == "stiffness") {
       //x-part
@@ -381,12 +391,6 @@ namespace CoupledField
 
     //    std::cout << "LayerThickness:\n" << layerThickness_ << std::endl;
 
-  }
-
-  void PMLTransXYZInt::Print(std::ostream * out, const Matrix<Double> Result) const
-  {
-    ENTER_FCN( "PMLTransXYZInt ::Print"); 
-    (*out)<< "PMLTransXYZ matrix:" << std::endl << Result;
   }
 
 

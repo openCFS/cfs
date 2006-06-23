@@ -1,5 +1,5 @@
 #ifndef CFS_TCL_MESSENGER_HH
-#define CFs_TCL_MESSENGER_HH
+#define CFS_TCL_MESSENGER_HH
 
 #include <tcl.h>
 #include <map>
@@ -28,8 +28,8 @@ namespace CoupledField {
     //! \param event Type of event function to be called
     //! \param context Additional read only parameters to be passes to the 
     //!  function
-    //! \return TRUE, if function exists and is successfully executed
-    Boolean TriggerEvent( const EventType event, 
+    //! \return true, if function exists and is successfully executed
+    bool TriggerEvent( const EventType event, 
                           const StdVector<std::string> & context);
     
     //! Trigger the writing of a warning message

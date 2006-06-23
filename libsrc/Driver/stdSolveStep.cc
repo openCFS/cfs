@@ -17,6 +17,7 @@ namespace CoupledField {
 
     ENTER_FCN( "StdSolveStep::StdSolveStep" );
  
+
     pdename_      = PDE_.GetName();
     numPDENodes_  = PDE_.getPDE_numPDENodes();
     numPDEElems_  = PDE_.getPDE_numElems();
@@ -26,14 +27,15 @@ namespace CoupledField {
     ptgrid_       = PDE_.getPDE_grid();
     algsys_       = PDE_.getPDE_algsys();
     sol_          = PDE_.getPDESolution();
-    eqnData_      = PDE_.getPDE_eqnData();
     assemble_     = PDE_.getPDE_assemble();
     TS_alg_       = PDE_.getTimeStepping();
-    outFile_      = PDE_.getPDE_outFile();
+    eqnMap_       = PDE_.GetEqnMap();
+    results_      = PDE_.GetResults();
+    numEqns_      = PDE_.GetSolutionVector()->GetSize();
 
     // nonlinear parameters
     lineSearch_       = PDE_.GetLineSearch();
-    nonLin_           = PDE_.IsNonLine();
+    nonLin_           = PDE_.IsNonLin();
     isHyst_           = PDE_.IsHysteresis();
     incStopCrit_      = PDE_.GetIncStopCrit();
     residualStopCrit_ = PDE_.GetResidualStopCrit();
@@ -45,13 +47,12 @@ namespace CoupledField {
     // for direct coupled PDEs
     pdeId1_   = NO_PDE_ID;
     pdeId2_   = NO_PDE_ID;
-    numReset_ = 0;
 
     startStep_ = 1;
   }
 
   
-    //! Destructor
+  //! Destructor
   StdSolveStep::~StdSolveStep() {
     ENTER_FCN( "StdSolveStep::~StdSolveStep" );
 
@@ -62,112 +63,90 @@ namespace CoupledField {
   // STATIC SOLVING SECTION
   // ======================================================
 
-  void StdSolveStep::PreStepStatic( const Boolean reset )
-  {
+  void StdSolveStep::PreStepStatic( ) {
     ENTER_FCN( "StdSolveStep::PreStepStatic" );
-
+    
     // init RHS at this place, because e.g. forces of other PDEs are added 
     // to RHS afterwards
     algsys_->InitRHS();        
-
-    if ( !PDE_.IsIterCoupled() ) {
-      // if PDE is coupled, the solution of the prior outer loops must be kept
-      algsys_->InitSol();
-    }
-
-    if ( PDE_.IsGeoUpdate() ) {
-      algsys_->InitSol();
-      algsys_->InitMatrix();
-      assemble_->SetReassemble();   
-    }
- 
+    
   }
 
 
   void StdSolveStep::PostStepStatic() {
     ENTER_FCN( "StdSolveStep::PostStepStatic" );
 
+    // increment coupling counter
     if ( PDE_.IsIterCoupled() ) {
       UInt& counter = PDE_.GetIterCoupledCounter();
       counter++;
     }
   }
 
-
-  // time is used for a series of static calculations
-  // don't get confused with REAL transient simulations!
-  void StdSolveStep::SolveStepStatic( const Boolean reset ) {
-
+  
+  void StdSolveStep::SolveStepStatic() {
     ENTER_FCN( "StdSolveStep::SolveStepStatic" );
-
-
+    
     if (nonLin_) {
-      StepStaticNonLin(reset);
+      StepStaticNonLin();
     }
     else {
-      StepStaticLin(reset);
+      StepStaticLin();
     }
   }
 
 
-  void StdSolveStep::StepStaticLin( const Boolean reset ) {
-
+  void StdSolveStep::StepStaticLin() {
     ENTER_FCN( "StdSolveStep::StepStaticLin" );
-
-    // If the geometry has changed or the system matrix
-    // is calculated for the first time,
-    // the matrices have to be reassembled and therfore
-    // the preconditioner has to be recalculated
-   
-    Boolean& firstTimeStepStatic = PDE_.IsFirstTimeStepStatic(); 
-    Boolean isGeoUpdate = PDE_.IsGeoUpdate();
-
-    if ( isGeoUpdate == TRUE ||  firstTimeStepStatic == TRUE) {
-      PDE_.AssembleMatrices();
-      assemble_->AssembleSprings( actTime_ );
-    }
-  
-    // The RHS-sources have to be reassembled each time
-    assemble_->AssembleSrcRHS( actTime_ );
-
+    
+    assemble_->AssembleMatrices();
+    
+    // The RHS-sources and boundary conditions 
+    // have to be reassembled each time
+    assemble_->AssembleLinRHS( actTime_ );
     PDE_.SetBCs( actTime_ );
-
-    algsys_->ConstructEffectiveMatrix( matrix_factor_ );
-
+    
+    // Only if the matrices have changed (e.g. due to updated lagrangian
+    // formulation) the system matrix has to be rebuild
+    if( assemble_->IsMatrixUpdated() ) {
+      algsys_->ConstructEffectiveMatrix( matrix_factor_ );
+    }
+    
     // Incorporate Boundary conitions and
-    // recalc the prconditioner eventually
+    // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
     SETPROFILE("Before SetupPrecond");
-    algsys_->SetupPrecond();
-    SETPROFILE("After SetupPrecond / Before SetupSolver");
-
-    algsys_->SetupSolver( );
-    SETPROFILE("After SetupSolver / Before Solve");
-
+    
+    if( assemble_->IsMatrixUpdated() ) {
+      algsys_->SetupPrecond();
+      SETPROFILE("After SetupPrecond / Before SetupSolver");
+      
+      algsys_->SetupSolver( );
+      SETPROFILE("After SetupSolver / Before Solve");
+    }
+    
     // Solve problem
     algsys_->Solve();
     SETPROFILE("After Solve");
     
-
     // Get the solution and store it
     Double * ptSol;
     UInt size = algsys_->GetSolutionVal(ptSol);
+
     PDE_.SaveSolution(ptSol,size);
 
-    firstTimeStepStatic = FALSE;
   }
 
 
-  void StdSolveStep::StepStaticNonLin( const Boolean reset )
+  void StdSolveStep::StepStaticNonLin()
   {
     ENTER_FCN( "StdSolveStep::SolveStepStaticNonLin" );
 
-    Boolean performOneMoreStep;
-    Double *solPtr;
+    bool performOneMoreStep;
  
-    Vector<Double> solInc(eqnData_->GetNumEQNs());
-    Vector<Double> actSol(eqnData_->GetNumEQNs());
+    Vector<Double> solInc( numEqns_ );
+    Vector<Double> actSol( numEqns_ );
 
     // get solution from algsys
     sol_->GetAlgSysVector(actSol);
@@ -189,7 +168,7 @@ namespace CoupledField {
       Double RhsLinL2Norm = SetLinRHS(loadFactor); 
 
       // assemble nonlinear pars to RHS
-      PDE_.AssembleNLRHS();
+      assemble_->AssembleNonLinRHS( actTime_ );
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -197,12 +176,11 @@ namespace CoupledField {
       do
 	{
 	  iterationCounter++;
-
 	  // RHS is already set up!!
 
 	  // setup and solve new system (rhs is already set) =====================
-	  PDE_.InitNonLinMatrices();
-	  PDE_.AssembleMatrices();
+	  //assemble_.InitNonLinMatrices();
+	  assemble_->AssembleMatrices();
       
 	  algsys_->ConstructEffectiveMatrix(matrix_factor_);
 	  algsys_->BuildInDirichlet();
@@ -221,7 +199,7 @@ namespace CoupledField {
 	    actSol += solInc;
 	  }
 	  else {
-	    // TRUE is for transient simulation
+	    // true is for transient simulation
 	    residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
 	  }
 
@@ -231,7 +209,7 @@ namespace CoupledField {
 	  if ( lineSearch_ == "none" ) {
 	    // recalculate RHS with new values to get new residual (f^(k+1))========
 	    algsys_->InitRHS(RhsLinVal_.GetPointer());
-	    assemble_->AssembleNLRHS();  
+	    assemble_->AssembleNonLinRHS( actTime_ );  
 
 	    // compute the norm of the residual
 	    Vector<Double> actRHS;
@@ -262,7 +240,7 @@ namespace CoupledField {
 	  }
       
 	  // output of norms and data
-	  if ( nonLinLogging_ == TRUE ) {
+	  if ( nonLinLogging_ == true ) {
 	    Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
 				  incrementalErr, etaLineSearch);
 	  }	  
@@ -282,81 +260,54 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void StdSolveStep::PreStepTrans( const Boolean reset ) {
+  void StdSolveStep::PreStepTrans() {
 
     ENTER_FCN( "StdSolveStep::PreStepTrans" );
 
     // due to coupling-pdes, the RHS has to be initialized BEFORE 
     // the coupling forces are assembled to the RHS
     algsys_->InitRHS();
-
-    if ( PDE_.IsGeoUpdate() ) {
-      algsys_->InitRHS();
-      algsys_->InitSol();
-      algsys_->InitMatrix();
-      PDE_.SetReassemble();  
-    }
+    
   }
 
 
-  void StdSolveStep::SolveStepTrans( const Boolean reset ) {
+  void StdSolveStep::SolveStepTrans() {
 
     ENTER_FCN( "StdSolveStep::SolveStepTrans" );
 
     if ( nonLin_ ) {
-      StepTransNonLin(reset);
+      StepTransNonLin();
     }
     else {
-      StepTransLin(reset);
+      StepTransLin();
     }
   }
 
 
-  void StdSolveStep::StepTransLin( const Boolean reset ) {
+  void StdSolveStep::StepTransLin() {
 
     ENTER_FCN( "StdSolveStep::StepTransLin" );
 
-    Boolean newAlgSys = FALSE;
-
     //account for RHS
-    PDE_.AssembleSrcRHS( actTime_ );
+    assemble_->AssembleLinRHS( actTime_ );
     PDE_.ComputeRHS( actTime_ );
 
     UInt& iterCoupledCounter = PDE_.GetIterCoupledCounter();
-    Boolean isIterCoupled    = PDE_.IsIterCoupled();
-    Boolean isGeoUpdate      = PDE_.IsGeoUpdate();
+    bool isIterCoupled    = PDE_.IsIterCoupled();
+  
 
-    // perform predictor step: if we have a iterative coupled 
+    // perform predictor step: if we have an iterative coupled 
     // PDE-system, we should perform the predictor state just 
     // in the first iteration
-    if ( isIterCoupled == FALSE || iterCoupledCounter == 0 ) {        
+    if ( isIterCoupled == false || iterCoupledCounter == 0 ) {        
       Vector<Double> & solHelp = 
         dynamic_cast<Vector<Double>&>(*PDE_.GetSolutionVector());
       TS_alg_->Predictor(solHelp);
     }
 
-    // generally, in the first time step (or in the first step in 
-    // a restarted simulation ( actStep_ == startStep_) we have to 
-    // setup our algebraic system
-    if ( actStep_ == 1 || actStep_ == startStep_) {
-      newAlgSys = TRUE;
+    assemble_->AssembleMatrices();
 
-      // however: we have some iterations within the first time step and
-      // we do not setup our algebraic system, if we are in an iterative
-      // step larger than 1
-      if ( isIterCoupled == TRUE && iterCoupledCounter > 0 ) {
-	newAlgSys = FALSE;
-      }
-    }
-
-    if ( isGeoUpdate == TRUE ) {
-      // in this case, we always setup our algebraic system
-      newAlgSys = TRUE;
-    }
-
-    if ( newAlgSys ) {
-      PDE_.AssembleMatrices();
-      PDE_.AssembleSprings( actTime_ );
+    if (assemble_->IsMatrixUpdated() ) {
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
     }
 
@@ -368,7 +319,7 @@ namespace CoupledField {
     PDE_.SetBCs( actTime_ );
     algsys_->BuildInDirichlet();
 
-    if ( newAlgSys ) {
+    if (assemble_->IsMatrixUpdated() ) {
       SETPROFILE("Before SetupPrecond");
       algsys_->SetupPrecond( );
       SETPROFILE("After SetupPrecond / Before SetupSolver");
@@ -391,21 +342,21 @@ namespace CoupledField {
     if ( isIterCoupled ) {
       iterCoupledCounter++;
     }
+   
   }
 
 
 
-  void StdSolveStep::StepTransNonLin( const Boolean reset ) {
+  void StdSolveStep::StepTransNonLin() {
 
     ENTER_FCN( "StdSolveStep::StepTransNonLin" );
 
     Double *solPtr;
 
-    Boolean performOneMoreStep;
-    UInt iterationCounter=0;
+    bool performOneMoreStep;
 
-    Vector<Double> solInc(eqnData_->GetNumEQNs());
-    Vector<Double> actSol(eqnData_->GetNumEQNs());
+    Vector<Double> solInc( numEqns_ );
+    Vector<Double> actSol( numEqns_ );
   
     // Cast BaseStoreSol into StoreSol<Double>,
     // since this function is only called
@@ -441,7 +392,7 @@ namespace CoupledField {
       Double RhsLinL2Norm = SetLinRHS(loadFactor); 
 
       // inner forces due to nonlin formulation
-      assemble_->AssembleNLRHS( actTime_ );  
+      assemble_->AssembleNonLinRHS( actTime_ );  
 
       //Update RHS (mass matrix on right hand side)
       TS_alg_->UpdateRHS(solhelp->GetAlgSysVector());
@@ -449,15 +400,14 @@ namespace CoupledField {
       // set iteration counter
       UInt iterationCounter=0;
 
+
       do {
 	iterationCounter++;
 
 	// RHS is already set up!!
 
-	// setup and solve new system 
-	assemble_->InitNonLinMatrices();
 	assemble_->AssembleMatrices();
-	algsys_->ConstructEffectiveMatrix(matrix_factor_);
+        algsys_->ConstructEffectiveMatrix(matrix_factor_);
 	algsys_->BuildInDirichlet();
   
 	algsys_->SetupPrecond();
@@ -490,7 +440,7 @@ namespace CoupledField {
 	  TS_alg_->UpdateRHS(actSol);
 
 	  // inner forces due to nonlin formulation
-	  assemble_->AssembleNLRHS( actTime_ );
+	  assemble_->AssembleNonLinRHS( actTime_ );
 
 	  Vector<Double> actRHS;
 	  Double *rhsPtr;
@@ -520,10 +470,10 @@ namespace CoupledField {
 	// --------------------------------------------------------------------
 	// output of norms and data
 	// --------------------------------------------------------------------
-	if ( nonLinLogging_ == TRUE ) {
+	if ( nonLinLogging_ == true ) {
 	  Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
 				incrementalErr, etaLineSearch);
-      }
+        }
 
 	// boolean variable, holds condition if another iteration step
 	// is necessary
@@ -558,56 +508,50 @@ namespace CoupledField {
   // Solve Step Harmonic  SECTION  
   // ======================================================w
 
-  void StdSolveStep::PreStepHarmonic( const Boolean reset ) {
+  void StdSolveStep::PreStepHarmonic() {
 
     ENTER_FCN( "StdSolveStep::PreStepHarmonic" );
-
   
-    PDE_.SetFrequency( actFreq_ );
     algsys_->InitRHS();
-
-    if ( reset ) {
-      algsys_->InitMatrix();
-      PDE_.SetReassemble();
-    }
   }
 
 
-  void StdSolveStep::SolveStepHarmonic(const Boolean reset ) {
+  void StdSolveStep::SolveStepHarmonic() {
 
     ENTER_FCN( "StdSolveStep::SolveStepHarmonic" );
 
     if ( nonLin_ ) {
-      StepHarmonicNonLin( reset );
+      StepHarmonicNonLin();
     }
     else {
-      StepHarmonicLin( reset );
+      StepHarmonicLin();
     }
   }
 
 
-  void StdSolveStep::StepHarmonicLin( const Boolean newAlgSys ) {
+  void StdSolveStep::StepHarmonicLin() {
 
     ENTER_FCN( "StdSolveStep::StepHarmonicLin" );
 
     //this has to be done each frequency!
-    PDE_.AssembleSrcRHS( actFreq_ );
+    assemble_->AssembleLinRHS( actFreq_ );
 
     if ( PDE_.IsComputeRHS4HarmSet() ) {
       // Evaluating RHS with nodal srcs for harmonic flownoise problems
       PDE_.ComputeRHS(actFreq_);
     }
 
-    if ( newAlgSys ) {
-      PDE_.AssembleMatrices( );
-      PDE_.AssembleSpecial( );
-    }
-
+    assemble_->AssembleMatrices( );
+    
     PDE_.SetBCs( actFreq_ );
-    algsys_->ConstructEffectiveMatrix( matrix_factor_ );
+
+    if( assemble_->IsMatrixUpdated() ) {
+      algsys_->ConstructEffectiveMatrix( matrix_factor_ );
+    }
+    
     algsys_->BuildInDirichlet();
  
-    if ( newAlgSys ) {
+    if( assemble_->IsMatrixUpdated() ) {
       algsys_->SetupPrecond();
       algsys_->SetupSolver();
     }
@@ -629,15 +573,12 @@ namespace CoupledField {
                                            UInt numFreq, Double shift ) {
     ENTER_FCN( "StdSolveStep::CalcEigenFrequencies" );
     
-    // If the geometry has changed or the system matrix
-    // is calculated for the first time,
-    // the matrices have to be reassembled and therfore
-    // the preconditioner has to be recalculated
+    // Init algsys data structures
     algsys_->InitRHS();
     algsys_->InitSol();
     algsys_->InitMatrix();
     
-    PDE_.AssembleMatrices();
+    assemble_->AssembleMatrices();
 
     // Setup solver
     algsys_->SetupEigenSolver( numFreq, shift, false );
@@ -663,15 +604,12 @@ namespace CoupledField {
                                            UInt numFreq, Double shift ) {
     ENTER_FCN( "StdSolveStep::CalcEigenFrequencies<Complex>" );
     
-    // If the geometry has changed or the system matrix
-    // is calculated for the first time,
-    // the matrices have to be reassembled and therfore
-    // the preconditioner has to be recalculated
+    // Init algsys data structures
     algsys_->InitRHS();
     algsys_->InitSol();
     algsys_->InitMatrix();
     
-    PDE_.AssembleMatrices();
+    assemble_->AssembleMatrices();
     
     // Setup solver
     algsys_->SetupEigenSolver( numFreq, shift, true );
@@ -722,7 +660,7 @@ namespace CoupledField {
 
 
     // to incorporate loads
-    assemble_->AssembleSrcRHS(actTime_); 
+    assemble_->AssembleLinRHS(actTime_); 
 
     // Stores rhs vector into extForces and returns that L2-norm
  
@@ -749,10 +687,10 @@ namespace CoupledField {
     ENTER_FCN( "StdSolveStep::StoreAlgsysToVec" );
 
     //const UInt numElems = numPDENodes_ * dofspernode_;
-    UInt numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
-    vec.Resize(numElems);
+    vec.Resize( numEqns_ );
+    vec.Init();
       
-    for (UInt i=0; i<numElems; i++) {
+    for (UInt i=0; i<numEqns_; i++) {
       vec[i] = pt[i];
     }
   }
@@ -762,13 +700,14 @@ namespace CoupledField {
     ENTER_FCN( "StdSolveStep::SetTimeStep") ;
 
     // Check if timestepping is eneabled
-    if ( TS_alg_ != NULL )
-      TS_alg_->Init( matrix_factor_, dt );
+    if ( TS_alg_ != NULL ) {
+      TS_alg_->Init( matrix_factor_, dt, numEqns_ );
+    }
   }
   
 
   Double StdSolveStep::LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
-                                  Double& etaLineSearch, Boolean trans)
+                                  Double& etaLineSearch, bool trans)
   {
     ENTER_FCN( "StdSolveStep::LineSearch" );
 
@@ -789,11 +728,11 @@ namespace CoupledField {
       algsys_->InitRHS(RhsLinVal_.GetPointer());
 
       if( trans ) {
-	assemble_->AssembleNLRHS( actTime_ );
+	assemble_->AssembleNonLinRHS( actTime_ );
 	TS_alg_->UpdateRHS(actSol);
       }
       else {
-	assemble_->AssembleNLRHS();
+	assemble_->AssembleNonLinRHS( actTime_);
       }
 
 
@@ -829,10 +768,9 @@ namespace CoupledField {
     ENTER_FCN( "StdSolveStep::AlgsysL2Norm" );
 
     //const UInt numElems = numPDENodes_ * dofspernode_;
-    UInt numElems = eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN();
     Double quadSum = 0;
   
-    for (UInt i=0; i<numElems; i++)   
+    for (UInt i=0; i<numEqns_; i++)   
       quadSum += pt[i]*pt[i];
 
     return sqrt(quadSum);
@@ -861,6 +799,8 @@ namespace CoupledField {
     *cla << "     Actual solution L2Norm: " << actSolL2Norm << std::endl;
     *cla << "     Incremental error       " << incrementalErr << std::endl;      
   }
+
+
 
 } // end of namespace
 

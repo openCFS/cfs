@@ -3,10 +3,9 @@
 #include <string>
 
 #include "solveStepAcoustic.hh"
-#include "Forms/forms_header.hh"
 
 #include "assemble.hh"
-
+#include "Forms/linearForm.hh"
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 
@@ -26,14 +25,14 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  void SolveStepAcoustic::StepTransNonLin( const Boolean reset ) {
+  void SolveStepAcoustic::StepTransNonLin() {
 
     ENTER_FCN( "SolveStepAcoustic::StepTransNonLin" );
 
     Double *solPtr;
   
     UInt job;
-    Boolean performOneMoreStep;
+    bool performOneMoreStep;
     UInt iterationCounter=0;
   
     Vector<Double> newSol(numPDENodes_);
@@ -142,7 +141,7 @@ namespace CoupledField {
         incrementalErr = solIncrL2Norm;
         
       // output of norms and data
-      if ( nonLinLogging_ == TRUE ) {
+      if ( nonLinLogging_ == true ) {
         Info->WriteNonLinIter(pdename_, iterationCounter, incrementalErr,
                               incrementalErr);
       }
@@ -160,7 +159,6 @@ namespace CoupledField {
   
     ENTER_FCN( "SolveStepAcoustic::AddNonLinRHS" );
 
-    Matrix<Double>     ptCoord;
     Vector<Double>     sol, solderiv1, solderiv2, rhs;
     BaseFE             * ptElem;
     StdVector<UInt> connect;
@@ -175,10 +173,10 @@ namespace CoupledField {
       Error("nonLinPDEName_ does not match size of subdoms_",__FILE__,__LINE__);
 
     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-
-      StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
-        
+      
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[actSD] );
+      
       // get material data
       materialData_[actSD]->GetScalar(density,DENSITY,REAL);
       materialData_[actSD]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
@@ -202,25 +200,25 @@ namespace CoupledField {
         rhsInt->SetSecondFactor(coeff2);
       }
         
-      for (UInt j=0; j < elemssd.GetSize(); j++) {
-
-        ptElem  = elemssd[j]->ptElem;
-        connect = elemssd[j]->connect;
-	PDE_.GetElemCoords(connect, ptCoord);
+      // Get iterator
+      EntityIterator it = actSDList.GetIterator();
+      for ( it.Begin(); !it.IsEnd(); it++) {
+        
+        ptElem  = it.GetElem()->ptElem;
+        connect = it.GetElem()->connect;
 
         PDE_.GetSolVecOfElement(sol, connect);
 	PDE_.GetDerivSolVecOfElement(solderiv1, connect);
         PDE_.GetDeriv2SolVecOfElement(solderiv2, connect);
 
-        rhsInt->SetElemPtr(ptElem);
-
         rhsInt->SetActElemSol(sol);
         rhsInt->SetActElemSolDeriv1(solderiv1);
         rhsInt->SetActElemSolDeriv2(solderiv2);
-        rhsInt->CalcElemVector(ptCoord, rhs);
+        rhsInt->CalcElemVector(rhs, it);
           
         //get equation numbers 
-        eqnData_->Node2EQN(connect, connect_PDE);
+        
+        eqnMap_->GetNodeEqn( connect, connect_PDE );
 
         //assemble
         algsys_->SetElementRHS(&rhs[0], pdeId1_, connect_PDE.GetPointer(), 

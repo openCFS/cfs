@@ -91,6 +91,25 @@ namespace CoupledField {
     //! \todo Specification of ReadStoreResults for HeatCondPDE!!!
     void ReadStoreResults();
 
+    //! Extend public class of inhom. Neumann boundary condition in order
+    //! account for special temperature coefficients
+    struct InhomHeatNeumannBc : public InhomNeumannBc {
+
+      //! Heat transfer coefficient
+      Double htc;
+
+      //! Initial temperature of body
+      Double tSolid;
+
+      //! Ambient temperature
+      Double tFluid;
+    };
+
+    typedef  StdVector<shared_ptr<InhomHeatNeumannBc> > HeatInBcList;
+
+    //! special neumann boundary conditions
+    HeatInBcList heatInBcs_;
+    
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

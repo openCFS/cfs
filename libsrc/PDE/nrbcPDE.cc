@@ -7,19 +7,19 @@
 #include "nrbcPDE.hh" 
 #include "DataInOut/Unverg/outUnverg.hh"
 #include "DataInOut/GMV/outGMV.hh"
-#include "Forms/forms_header.hh"
 #include "Forms/abcInt.hh"
+#include "Forms/nrbcInt.hh"
+#include "Forms/massInt.hh"
 #include "Estimator/spaceerror.hh"
 #include "newmark.hh"
 #include "newmarkFracDamp.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "PDE/scalarnodeEQN.hh"
 #include "Utils/mathfunctions.hh"
 #include "Utils/nodestoresol.hh"
 #include "Driver/solveStepAcoustic.hh"
-#include "Driver/solveStepAcousticBubble.hh"
 #include "CoupledPDE/pdecoupling.hh"
+#include "Driver/assemble.hh"
 
 #ifdef PARALLEL
 #include <mpi.h>
@@ -37,20 +37,24 @@ namespace CoupledField {
 
     ENTER_FCN( "nrbcPDE::nrbcPDE" );
 
+    Error( "Not working at the moment (-> conctact Andreas)",
+           __FILE__, __LINE__ );
+
     Double C1_, C2_, C3_, C4_, C5_;
 
-    params->Get("absorbOrder", dofspernode_, "absorParams");
+
+    params->Get("absorbOrder", order_, "absorParams");
     params->Get("C1", C1_, "absorParams");
     params->Get("C2", C2_, "absorParams");
     params->Get("C3", C3_, "absorParams");
     params->Get("C4", C4_, "absorParams");
     params->Get("C5", C5_, "absorParams");
 
-    //dofspernode_ = 5;
+    //order_ = 5;
     //    solDofs_ = 5;
 
-    solDofs_=dofspernode_;
-    //std::cout<<" dofspernode_ = "<< dofspernode_<<std::endl;
+    //solDofs_=order_;
+    //std::cout<<" order_ = "<< order_<<std::endl;
     
     //pdename_          = "nrbc";
     pdename_  = pdeNameWithIndex;
@@ -63,9 +67,9 @@ namespace CoupledField {
     
     pdematerialclass_ = FLUID;
 
-    isAcouCoupled_ = FALSE;
-    saveRHSval_ = FALSE;
-    saveRHSvalHist_ = FALSE;
+    isAcouCoupled_ = false;
+    saveRHSval_ = false;
+    saveRHSvalHist_ = false;
 
     // Same as for acoustic PDE
     // PDE formulation either in acoustic potential or pressure
@@ -78,7 +82,7 @@ namespace CoupledField {
      String2Enum( "nrbcPhi", formulation_ );
 
     // class NodeStoreSol will be initialized with auxiliar function phi.
-    solTypes_ = NRBC_PHI;
+     //solTypes_ = NRBC_PHI;
 
     // timestepping formulation
     //params->Get( "timeSteppingFormulation", str, "pdeList", pdename_ );
@@ -88,12 +92,12 @@ namespace CoupledField {
     str="effStiffMatrix";
     
     if ( str == "effMassMatrix" ) {
-      effectiveMass_ = TRUE;
+      effectiveMass_ = true;
       Info->PrintF( pdename_, 
                     "      * effective mass matrix timestepping\n");
     } 
     else {
-      effectiveMass_ = FALSE;
+      effectiveMass_ = false;
       Info->PrintF( pdename_, 
                     "      * effective stiffness matrix timestepping\n");
     }
@@ -115,7 +119,7 @@ namespace CoupledField {
     
     // specialNodes is given => set flag
     if(vecNodes.GetSize() > 0) {
-      m_bWriteSpecialBCs = TRUE;
+      m_bWriteSpecialBCs = true;
       
       // get file to store specialNodes
       vecKey = pdename_, "storeResults", "specialNodes", "file";
@@ -127,7 +131,7 @@ namespace CoupledField {
       m_pGridAdaption = new GridAdaption(strFile, aptgrid);
     }
     else {
-      m_bWriteSpecialBCs = FALSE;
+      m_bWriteSpecialBCs = false;
     }
   }
 
@@ -146,7 +150,9 @@ namespace CoupledField {
     beta = ( 1/C0 + 1/Cj );
     alpha = (1/(Cj*Cj) - 1/(C0*C0));
     
-
+    // create new entity list
+    shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+    actSDList->SetRegion( subdoms_[actSD] );
 
     //================================================== 
     //   NRBC equation
@@ -162,12 +168,15 @@ namespace CoupledField {
              << coeff_Cdamp << std::endl << std::endl;
 #endif
     // we use the mass integrator since it is the same as the damping one
-    BaseForm * bilinear_Cdamp  = new MassInt(coeff_Cdamp, dofspernode_, isaxi_);
-    IntegratorDescriptor * CdampIntDescr = 
-      new IntegratorDescriptor(bilinear_Cdamp, DAMPING);
-    //      assemble_->AddIntegrator(CmassIntDescr, subdoms_[actSD]);
+    BaseForm * bilinear_Cdamp  = new MassInt(coeff_Cdamp, order_, isaxi_);
+    BiLinFormContext * CdampContext = 
+      new BiLinFormContext(bilinear_Cdamp, DAMPING );
 
-    CdampIntDescr->SetPDEIds(this, this);
+
+    CdampContext->SetPtPdes(this, this);
+    CdampContext->SetResults( results_[0], results_[0],
+                              actSDList, actSDList );
+    //      assemble_->AddBiLinearForm(CmassIntDescr );
 
     
     //============================================
@@ -179,11 +188,13 @@ namespace CoupledField {
     (*debug) << std::endl << "coeff_Rstiff = "
              << coeff_Rstiff << std::endl << std::endl;
 #endif
-    BaseForm * bilinear_Rstiff  = new NrbcInt(coeff_Rstiff, dofspernode_,
-                                             nrbcMatType, isaxi_);
-    IntegratorDescriptor * RstiffIntDescr = 
-      new IntegratorDescriptor(bilinear_Rstiff, STIFFNESS);
-    RstiffIntDescr->SetPDEIds(this, this);
+    BaseForm * bilinear_Rstiff  = new NrbcInt(coeff_Rstiff, order_,
+                                              nrbcMatType, isaxi_);
+    BiLinFormContext * RstiffContext = 
+      new BiLinFormContext(bilinear_Rstiff, STIFFNESS );
+    RstiffContext->SetPtPdes(this, this);
+    RstiffContext->SetResults( results_[0], results_[0],
+                               actSDList, actSDList );
 
 
     // =========================================
@@ -200,12 +211,13 @@ namespace CoupledField {
              << coeff_Pmass << std::endl << std::endl;
 #endif
     BaseForm * bilinear_Pmass  = 
-      new NrbcInt(coeff_Pmass, dofspernode_,
+      new NrbcInt(coeff_Pmass, order_,
                   nrbcMatType, isaxi_);
-    IntegratorDescriptor * PmassIntDescr = 
-      new IntegratorDescriptor(bilinear_Pmass, MASS );
-    PmassIntDescr->SetPDEIds(this, this);
-
+    BiLinFormContext * PmassContext = 
+      new BiLinFormContext(bilinear_Pmass, MASS );
+    PmassContext->SetPtPdes(this, this);
+    PmassContext->SetResults( results_[0], results_[0],
+                              actSDList, actSDList );
     //==================================================
     // nrbc tangential derivatives integrator for Q matrix
     //==================================================
@@ -217,26 +229,32 @@ namespace CoupledField {
              << coeff_Qstiff << std::endl << std::endl;
 #endif
     BaseForm * bilinear_Qstiff  = 
-      new NrbcInt(coeff_Qstiff, dofspernode_,
+      new NrbcInt(coeff_Qstiff, order_,
                   nrbcMatType, isaxi_);
-    IntegratorDescriptor * QstiffIntDescr = 
-      new IntegratorDescriptor(bilinear_Qstiff, STIFFNESS);
-    QstiffIntDescr->SetPDEIds(this, this);
+    BiLinFormContext * QstiffContext = 
+      new BiLinFormContext(bilinear_Qstiff, STIFFNESS );
+    QstiffContext->SetPtPdes(this, this);
+    QstiffContext->SetResults( results_[0], results_[0],
+                               actSDList, actSDList );
 
     //Add the integrators
-    assemble_->AddIntegrator(CdampIntDescr, subdoms_[actSD]);
-    assemble_->AddIntegrator(RstiffIntDescr, subdoms_[actSD]);
-    assemble_->AddIntegrator(PmassIntDescr, subdoms_[actSD]);
-    assemble_->AddIntegrator(QstiffIntDescr, subdoms_[actSD]);
-
-  }
-
-  void nrbcPDE::DefineSolveStep() {
-    ENTER_FCN( "nrbcPDE::DefineSolveStep" );
+    assemble_->AddBiLinearForm( CdampContext );
+    assemble_->AddBiLinearForm( RstiffContext );
+    assemble_->AddBiLinearForm( PmassContext );
+    assemble_->AddBiLinearForm( QstiffContext );
     
-    solveStep_ = new SolveStepAcoustic(*this);
+    
+    // Give result to equation numbering class
+    eqnMap_->AddResult( *results_[0], actSDList );  
+    
   }
-
+  
+    void nrbcPDE::DefineSolveStep() {
+      ENTER_FCN( "nrbcPDE::DefineSolveStep" );
+      
+      solveStep_ = new SolveStepAcoustic(*this);
+    }
+    
 
 
   // ======================================================
@@ -246,18 +264,15 @@ namespace CoupledField {
   void nrbcPDE::InitTimeStepping() {
     ENTER_FCN( "nrbcPDE::InitTimeStepping" );
 
-    UInt rhsSize = eqnData_->GetNumEQNs() *
-      eqnData_->GetNumDofsPerEQN();
-
-	// this includes rayleigh and thermoviscous damping
-      if ( effectiveMass_ == FALSE ) {
-        TS_alg_ = new Newmark( algsys_, rhsSize );
-      }
-      else {
-        TS_alg_ = new NewmarkEffMass( algsys_, rhsSize );
-      }
-
-
+    // this includes rayleigh and thermoviscous damping
+    if ( effectiveMass_ == false ) {
+      TS_alg_ = new Newmark( algsys_ );
+    }
+    else {
+      TS_alg_ = new NewmarkEffMass( algsys_ );
+    }
+    
+    
   }
 
 
@@ -270,7 +285,7 @@ namespace CoupledField {
     
     ENTER_FCN( "nrbcPDE::InitCoupling" );
     
-    isIterCoupled_ = TRUE;
+    isIterCoupled_ = true;
     ptCoupling_   = Coupling;
     
     // Intialize the memory of the coupling values
@@ -280,7 +295,7 @@ namespace CoupledField {
         
         // now since we need a incremental formulation, 
 		//  initialize some necessary vectors
-        isIncrFormulation_ = TRUE;
+        isIncrFormulation_ = true;
       }
     }
   }
@@ -299,7 +314,7 @@ namespace CoupledField {
     StdVector<SolutionType> SolTypWithPDEindex;
   
     // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == FALSE)
+    if (isIterCoupled_ == false)
       return;
 
     // loop over all output coupling quantities
@@ -314,7 +329,7 @@ namespace CoupledField {
       switch(ptCoupling_->GetOutputType(i)) {
 
       case NODE:
-        if (quantity == solTypes_[0]) {
+        if (quantity == NRBC_PHI) {
           ptCoupling_->GetOutputElements(i, couplingElems);
           ptCoupling_->GetOutputNodes(i, couplingNodes);
           dof = ptCoupling_->GetOutputDof(i);
@@ -339,91 +354,91 @@ namespace CoupledField {
     
     ENTER_FCN( "nrbcPDE::CalcAcouCouplingRHS" );
     
-
-    // This function should be called only to send Phi1 to acousticPDE
-    Double density = 0.0;
-    Double sign = 0.0;
-    Integer matIndex = -1;
-    Elem * ptVolElem = NULL;
-    Matrix<Double> ptCoord, elemMat;
-    Vector<Double> sol, PHI1sol, NRBCPhi1surfelem;
+    Error( "Not working yet", __FILE__, __LINE__ );
+  //   // This function should be called only to send Phi1 to acousticPDE
+//     Double density = 0.0;
+//     Double sign = 0.0;
+//     Integer matIndex = -1;
+//     Elem * ptVolElem = NULL;
+//     Matrix<Double> ptCoord, elemMat;
+//     Vector<Double> sol, PHI1sol, NRBCPhi1surfelem;
     
-    elemCouplingSols.Init(0.0);
+//     elemCouplingSols.Init(0.0);
     
-    for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
+//     for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
       
-      // Perform cast from volume element to surface element, since
-      // mech-acou coupling makes only sense on surface elements
-      SurfElem * actCoupleElem = 
-        dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
+//       // Perform cast from volume element to surface element, since
+//       // mech-acou coupling makes only sense on surface elements
+//       SurfElem * actCoupleElem = 
+//         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
       
-      BaseFE * ptElem = actCoupleElem->ptElem;
-      StdVector<UInt> & connecth = actCoupleElem->connect;
-      GetElemCoords(connecth, ptCoord);
+//       BaseFE * ptElem = actCoupleElem->ptElem;
+//       StdVector<UInt> & connecth = actCoupleElem->connect;
+//       GetElemCoords(connecth, ptCoord);
       
-      // We have only one vol element neighbor and the whole domain is
-      // acoustic with the same mat parameters so no need to search more
-      matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
-      ptVolElem = actCoupleElem->ptVolElem1;
-      sign = -1.0 * actCoupleElem->normalSign;
+//       // We have only one vol element neighbor and the whole domain is
+//       // acoustic with the same mat parameters so no need to search more
+//       matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
+//       ptVolElem = actCoupleElem->ptVolElem1;
+//       sign = -1.0 * actCoupleElem->normalSign;
 
       
-      if ( matIndex == -1 && (actCoupleElem->ptVolElem2!=NULL)) {
-        (*error) << "nrbcPDE::CalcAcouCouplingRHS: The volume "
-                 << "element neighbour of surface element Nr. "
-                 << actCoupleElem->elemNum << " do not belong to my regions!";
-        Error( __FILE__, __LINE__ );
-      }
+//       if ( matIndex == -1 && (actCoupleElem->ptVolElem2!=NULL)) {
+//         (*error) << "nrbcPDE::CalcAcouCouplingRHS: The volume "
+//                  << "element neighbour of surface element Nr. "
+//                  << actCoupleElem->elemNum << " do not belong to my regions!";
+//         Error( __FILE__, __LINE__ );
+//       }
       
-      // Assign correct density
- //      density = materialData_[matIndex].GetDensity();
-      density=1.0;
+//       // Assign correct density
+//  //      density = materialData_[matIndex].GetDensity();
+//       density=1.0;
       
-      BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
-      bilinear_mass->CalcElementMatrix(ptCoord, elemMat);
-      delete bilinear_mass;     
+//       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
+//       bilinear_mass->CalcElementMatrix(ptCoord, elemMat);
+//       delete bilinear_mass;     
       
-      GetSolVecOfElement(sol, connecth);
-//       for(UInt k=0; k<sol.GetSize(); k++)
-//         if (abs(sol[k])<=5e-17)
-//           sol[k]=0;
-      // solution for J=1 which is the one to be sent to acouPDE
-      PHI1sol.Resize(connecth.GetSize());
+//       GetSolVecOfElement(sol, connecth);
+// //       for(UInt k=0; k<sol.GetSize(); k++)
+// //         if (abs(sol[k])<=5e-17)
+// //           sol[k]=0;
+//       // solution for J=1 which is the one to be sent to acouPDE
+//       PHI1sol.Resize(connecth.GetSize());
 
-      //std::cout<<"dofspernode_= "<<dofspernode_<<std::endl;
+//       //std::cout<<"order_= "<<order_<<std::endl;
 
-      for (UInt actNode=0; actNode < connecth.GetSize(); actNode++)
-        for (UInt actDof=0; actDof<1; actDof++)//only for PHI_x,1 (J=1)
-          PHI1sol[actNode] = sol[actDof + actNode*dofspernode_];
+//       for (UInt actNode=0; actNode < connecth.GetSize(); actNode++)
+//         for (UInt actDof=0; actDof<1; actDof++)//only for PHI_x,1 (J=1)
+//           PHI1sol[actNode] = sol[actDof + actNode*order_];
       
-      //std::cout<<"---NRBC-PDE COUPLING OUTPUT----------------"<<std::endl;
-      //   std::cout<<"PHI1sol = "<<std::endl;
-      //   std::cout<<PHI1sol<<std::endl;
+//       //std::cout<<"---NRBC-PDE COUPLING OUTPUT----------------"<<std::endl;
+//       //   std::cout<<"PHI1sol = "<<std::endl;
+//       //   std::cout<<PHI1sol<<std::endl;
      
-      NRBCPhi1surfelem = elemMat * PHI1sol; //surface elem vector
+//       NRBCPhi1surfelem = elemMat * PHI1sol; //surface elem vector
 
-//         std::cout<<"elemMat = "<<std::endl;
-//          std::cout<<elemMat<<std::endl;
+// //         std::cout<<"elemMat = "<<std::endl;
+// //          std::cout<<elemMat<<std::endl;
 
-//          std::cout<<"NRBCPhi1surfelem = "<<std::endl;
-//          std::cout<<NRBCPhi1surfelem<<std::endl;
+// //          std::cout<<"NRBCPhi1surfelem = "<<std::endl;
+// //          std::cout<<NRBCPhi1surfelem<<std::endl;
 
-      for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
-        UInt nodePos = 0;
+//       for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
+//         UInt nodePos = 0;
         
-        while(connecth[actNode] != couplingNodes[nodePos] &&
-              nodePos < couplingNodes.GetSize()) {
-          nodePos++;
-        }
-        elemCouplingSols[nodePos] += NRBCPhi1surfelem[actNode];
+//         while(connecth[actNode] != couplingNodes[nodePos] &&
+//               nodePos < couplingNodes.GetSize()) {
+//           nodePos++;
+//         }
+//         elemCouplingSols[nodePos] += NRBCPhi1surfelem[actNode];
 
-//          std::cout<<"elemCouplingNRBCPhi1 = "<<std::endl;
-//          std::cout<<elemCouplingSols<<std::endl;
+// //          std::cout<<"elemCouplingNRBCPhi1 = "<<std::endl;
+// //          std::cout<<elemCouplingSols<<std::endl;
 
-      }   
-    }
+//       }   
+//     }
 
-    //std::cout<<"---------END NRBC-PDE COUPLING OUTPUT INFO---------"<<std::endl;     
+//     //std::cout<<"---------END NRBC-PDE COUPLING OUTPUT INFO---------"<<std::endl;     
 
   }
 
@@ -431,12 +446,12 @@ namespace CoupledField {
 
 
 
-  Boolean nrbcPDE::HasOutput(SolutionType output) {
+  bool nrbcPDE::HasOutput(SolutionType output) {
     ENTER_FCN( "nrbcPDE::HasOutput" );
-    if (output == solTypes_[0]) {
-      return TRUE;
+    if (output == NRBC_PHI) {
+      return true;
     }
-    return FALSE;
+    return false;
   }
 
 
@@ -618,8 +633,8 @@ namespace CoupledField {
       valVec = "", "", quantity;
       params->GetList( keyVec, attrVec, valVec, nodeValues);
       if (nodeValues.GetSize() > 0) {
-        saveSol_ = TRUE;
-        hasOutput_ = TRUE;
+        saveSol_ = true;
+        hasOutput_ = true;
       }
 
       // --- acoustic rhsval ---
@@ -627,8 +642,8 @@ namespace CoupledField {
       valVec = "", "", quantity;
       params->GetList( keyVec, attrVec, valVec, nodeValues);
       if (nodeValues.GetSize() > 0) {
-	saveRHSval_ = TRUE;
-	hasOutput_ = TRUE;
+	saveRHSval_ = true;
+	hasOutput_ = true;
       }
 
 
@@ -650,8 +665,8 @@ namespace CoupledField {
         sol_->SetSolutionType(ACOU_PRESSURE);
         sol_->SetNumDofs(1);
         sol_->Init();
-        saveSol_ = TRUE;
-        hasOutput_ = TRUE;
+        saveSol_ = true;
+        hasOutput_ = true;
       }
     }
     
@@ -688,8 +703,8 @@ namespace CoupledField {
       params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
       if (saveNodeHist.GetSize() > 0) {
-        saveSolHist_ = TRUE;
-        hasOutput_ = TRUE;
+        saveSolHist_ = true;
+        hasOutput_ = true;
         Info->PrintF( pdename_, "Saving acouPotential for Nodes:\n" );
         for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
@@ -704,8 +719,8 @@ namespace CoupledField {
       params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
       if (saveNodeHist.GetSize() > 0) {
-        saveRHSvalHist_ = TRUE;
-        hasOutput_ = TRUE;
+        saveRHSvalHist_ = true;
+        hasOutput_ = true;
         Info->PrintF( pdename_, "Saving acouRHSval for Nodes:\n" );
         for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
@@ -736,8 +751,8 @@ results in acoustic potential.", __FILE__,__LINE__);
         sol_->SetSolutionType(ACOU_PRESSURE);
         sol_->SetNumDofs(1);
         sol_->Init();
-        saveSolHist_ = TRUE;
-        hasOutput_ = TRUE;
+        saveSolHist_ = true;
+        hasOutput_ = true;
         Info->PrintF( pdename_, "Saving acouPotential for Nodes:\n" );
         for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );

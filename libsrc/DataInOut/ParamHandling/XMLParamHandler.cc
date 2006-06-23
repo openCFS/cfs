@@ -755,14 +755,14 @@ namespace CoupledField {
     // the specfifed sequenceTag
     DOMElement *auxElem = NULL;
     DOMElement *currentCouplingSec = NULL;
-    Boolean sectionFound = FALSE;
+    bool sectionFound = false;
 
     for (unsigned int i=0; i<coupledSections->getLength(); i++) {      
       auxElem = Node2Elem( coupledSections->item(i) );
       if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
         // Ensure that only one section matches
-        if ( sectionFound == FALSE ) {
-          sectionFound = TRUE;
+        if ( sectionFound == false ) {
+          sectionFound = true;
           currentCouplingSec = auxElem;
         }
         else {
@@ -775,7 +775,7 @@ namespace CoupledField {
     }
 
     // Print error if specified coupling section was not found
-    if ( sectionFound == FALSE ) {
+    if ( sectionFound == false ) {
       (*error) << "The coupling section with tag '" << sequenceTag
                << "' was not found in the parameter file!";
       Error( __FILE__, __LINE__ );
@@ -828,7 +828,7 @@ namespace CoupledField {
         }
 
         // Now get hold of tags, convert them to strings and assemble vector
-        Boolean found = FALSE;
+        bool found = false;
         for ( unsigned int k = 0; k < iterPDElist->getLength(); k++ ) {
  
           // Only treat element children and not comments!
@@ -840,10 +840,10 @@ namespace CoupledField {
             if ( *pdename != "nonLinear" ) {
 
               // Now ensure, that each PDEname occurs only one time
-              found = FALSE;
+              found = false;
               for ( unsigned int j = 0; j < list.GetSize(); j++ ) {
                 if ( *pdename == list[j] ) {
-                  found = TRUE;
+                  found = true;
                   break;
                 }
               }
@@ -883,14 +883,14 @@ namespace CoupledField {
     // the specfifed sequenceTag
     DOMElement *auxElem = NULL;
     DOMElement *currentCouplingSec = NULL;
-    Boolean sectionFound = FALSE;
+    bool sectionFound = false;
     
     for ( unsigned int i = 0; i < coupledSections->getLength(); i++) {
       auxElem = Node2Elem( coupledSections->item(i) );
       if (AttribHasValue( auxElem, "tag", sequenceTag, false) ) {
         // Ensure that only one section matches
-        if ( sectionFound == FALSE ) {
-          sectionFound = TRUE;
+        if ( sectionFound == false ) {
+          sectionFound = true;
           currentCouplingSec = auxElem;
         }
         else {
@@ -902,7 +902,7 @@ namespace CoupledField {
     }
      
     // Print error if specified coupling section was not found
-    if ( sectionFound == FALSE ) {
+    if ( sectionFound == false ) {
       (*error) << "The coupling section with tag '" << sequenceTag
                << "' was not found in the parameter file!";
       Error( __FILE__, __LINE__ );
@@ -1113,13 +1113,13 @@ namespace CoupledField {
   // ========================================
   //   Query on/off status of a flag/switch
   // ========================================
-  Boolean XMLParamHandler::IsSet( const std::string key,
+  bool XMLParamHandler::IsSet( const std::string key,
                                   const std::string section,
                                   const std::string subsection ) {
 
     ENTER_FCN( "XMLParamHandler::IsSet" );
 
-    Boolean flagStatus = FALSE;
+    bool flagStatus = false;
 
     // Generate vectors of keywords and side-constraints
     StdVector<std::string> keyVec;
@@ -1133,7 +1133,7 @@ namespace CoupledField {
 
     // If there is no match, return false
     if ( matches.GetSize() == 0 ) {
-      flagStatus = FALSE;
+      flagStatus = false;
     }
 
     // If there is a match, but it is not unique, call problem handler
@@ -1143,12 +1143,12 @@ namespace CoupledField {
 
     // So, there is a matching parameter. Thus, test its value
     else if ( matches[0] == "yes" ) {
-      flagStatus = TRUE;
+      flagStatus = true;
     }
 
     // Parameter value is not "yes"
     else {
-      flagStatus = FALSE;
+      flagStatus = false;
     }
 
     // we are done
@@ -1160,13 +1160,13 @@ namespace CoupledField {
   // =============================================================
   //   Query wether a spec element is set with side constraints
   // =============================================================
-  Boolean XMLParamHandler::ContainElem( StdVector<std::string> &keyVec,
+  bool XMLParamHandler::ContainElem( StdVector<std::string> &keyVec,
                                         StdVector<std::string> &attrVec,
                                         StdVector<std::string> &valVec ) {
 
     ENTER_FCN( "XMLParamHandler::ContainElem" );
 
-    Boolean flagStatus = FALSE;
+    bool flagStatus = false;
 
     // Find all elements/values matching keyword in (restricted) tree
     StdVector<xercesc::DOMElement *>* matches = NULL;
@@ -1187,7 +1187,7 @@ namespace CoupledField {
 
     // If there is no match, return false
     if ( matches->GetSize() == 0 ) {
-      flagStatus = FALSE;
+      flagStatus = false;
     }
 
     // If there is a match, but it is not unique, call problem handler
@@ -1197,12 +1197,12 @@ namespace CoupledField {
 
     // So, there is a matching parameter. Thus, test its value
     else if ( matches->GetSize() == 1 ) {
-      flagStatus = TRUE;
+      flagStatus = true;
     }
 
     // Parameter value is not "yes"
     else {
-      flagStatus = FALSE;
+      flagStatus = false;
     }
 
     // we are done
@@ -1214,14 +1214,14 @@ namespace CoupledField {
   // =================================================
   //   Query whether a parameter has a certain value
   // =================================================
-  Boolean XMLParamHandler::HasValue( const std::string key,
+  bool XMLParamHandler::HasValue( const std::string key,
                                      const std::string value,
                                      const std::string section,
                                      const std::string subsection ) {
 
     ENTER_FCN( "XMLParamHandler::HasValue" );
 
-    Boolean flagStatus = FALSE;
+    bool flagStatus = false;
 
     // Generate vectors of keywords and side-constraints
     StdVector<std::string> keyVec;
@@ -1240,9 +1240,9 @@ namespace CoupledField {
 
       // If there is a default, then test its value.
       // If it does not match, then re-set status
-      if ( flagStatus == TRUE ) {
+      if ( flagStatus == true ) {
         if ( defaultValue != value ) {
-          flagStatus = FALSE;
+          flagStatus = false;
         }
       }
     }
@@ -1254,12 +1254,12 @@ namespace CoupledField {
 
     // So, there is a matching parameter. Thus, test its value
     else if ( matches[0] == value ) {
-      flagStatus = TRUE;
+      flagStatus = true;
     }
 
     // Parameter value is unequal to speficied value
     else {
-      flagStatus = FALSE;
+      flagStatus = false;
     }
 
     // we are done
@@ -1761,11 +1761,11 @@ namespace CoupledField {
     ENTER_IFCN( "XMLParamHandler::NoMatchHandler" );
 
     // Test, whether a default value is specified for the parameter
-    Boolean defaultExists = CheckForDefault( keyVec, attrVec, valVec,
+    bool defaultExists = CheckForDefault( keyVec, attrVec, valVec,
                                              defaultValue );
 
     // If no default could be found, cry out!
-    if( defaultExists == FALSE ) {
+    if( defaultExists == false ) {
       NoMatchErrorReporter( keyVec, attrVec, valVec );
     }
   }
@@ -1814,7 +1814,7 @@ namespace CoupledField {
   // =================================
   //   Check for default parameter
   // =================================
-  Boolean
+  bool
   XMLParamHandler::CheckForDefault( const StdVector<std::string> &keyVec,
                                     const StdVector<std::string> &attrVec,
                                     const StdVector<std::string> &valVec,
@@ -1822,7 +1822,7 @@ namespace CoupledField {
 
     ENTER_IFCN( "XMLParamHandler::CheckForDefault" );
 
-    Boolean defaultFound = FALSE;
+    bool defaultFound = false;
     
     // Check, if a default file should be used
     if ( useDefaults_ != true ) {
@@ -1880,14 +1880,14 @@ namespace CoupledField {
 
       // values agree
       else {
-        defaultFound = TRUE;
+        defaultFound = true;
         defaultValue = matches[0];
       }
     }
 
     // Check, if a default was found
     if ( matches.GetSize() == 1 ) {
-      defaultFound = TRUE;
+      defaultFound = true;
       defaultValue = matches[0];
     }
 
@@ -1896,19 +1896,19 @@ namespace CoupledField {
     else {
 
       if( keyVec[keyVec.GetSize()-1] == "preStressVal" ) {
-        defaultFound = TRUE;
+        defaultFound = true;
         defaultValue = "0";
       }
 
       if( keyVec[keyVec.GetSize()-1] == "effMass" ) {
-        defaultFound = TRUE;
+        defaultFound = true;
         defaultValue = "no";
       }
 
     }
 
     // Tell what we found
-    if ( beVerbose_ == true && defaultFound == TRUE ) {
+    if ( beVerbose_ == true && defaultFound == true ) {
       std::string msg = "CheckForDefault: Default for parameter '" +
         keyVec[keyVec.GetSize()-1];
       msg += "' is '" + defaultValue + "'";
@@ -1969,7 +1969,7 @@ namespace CoupledField {
   // =======================================
   //   Get value of an element's attribute
   // =======================================
-  Boolean XMLParamHandler::GetElementAttribute( DOMElement* element,
+  bool XMLParamHandler::GetElementAttribute( DOMElement* element,
                                                 const std::string keyword,
                                                 std::string &attrVal ) {
 
@@ -2010,9 +2010,9 @@ namespace CoupledField {
 
     // Finished
     if ( hasAttr ) {
-      return TRUE;
+      return true;
     }
-    return FALSE;
+    return false;
   }
 
 

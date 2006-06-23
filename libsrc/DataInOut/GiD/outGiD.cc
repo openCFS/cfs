@@ -20,15 +20,15 @@ namespace CoupledField {
 
     // Initialize variables
     dim_ = GiD_2D;
-    isAscii_ = TRUE;
-    degen3DElems_ = TRUE;
+    isAscii_ = true;
+    degen3DElems_ = true;
 
     // Determine, if binary result file should be written
     isAscii_ = !params->IsSet( "binaryFormat", "gid" );
 
     // Open result file
     std::string postFileName = namefile_;
-    if ( isAscii_ == TRUE) {
+    if ( isAscii_ == true) {
       postFileName += ".post.res";
       GiD_OpenPostResultFile( postFileName.c_str(), GiD_PostAscii );
     } else {
@@ -52,7 +52,7 @@ namespace CoupledField {
     ENTER_FCN( "WriteResultsGiD::WriteGrid" );
     
     // open mesh file (only needed in ASCII case
-    if ( isAscii_ == TRUE) {
+    if ( isAscii_ == true) {
       std::string meshFileName = namefile_ + ".post.msh";
       GiD_OpenPostMeshFile( meshFileName.c_str(), GiD_PostAscii );
     }
@@ -68,7 +68,7 @@ namespace CoupledField {
       GiD_BeginGaussPoint( "mid-2D", GiD_Quadrilateral, NULL, 1, 1, 1);
       GiD_EndGaussPoint();
     } else {
-      if ( degen3DElems_ == TRUE ) {
+      if ( degen3DElems_ == true ) {
         GiD_BeginGaussPoint( "mid-3D", GiD_Hexahedra, NULL, 1, 1, 1);
       } else {
         GiD_BeginGaussPoint( "mid-3D", GiD_Tetrahedra, NULL, 1, 1, 1);
@@ -77,7 +77,7 @@ namespace CoupledField {
     }
       
     // close mesh file (only needed in ASCII case)
-    if ( isAscii_ == TRUE ) {
+    if ( isAscii_ == true ) {
       GiD_ClosePostMeshFile();
     }
 
@@ -140,29 +140,29 @@ namespace CoupledField {
       // determine element type and number of nodes
       if ( elemVec[0]->ptElem->GetDim() == 1 ) {
         eType = GiD_Linear;
-        if ( ptGrid_->IsQuadratic() == TRUE ) {
+        if ( ptGrid_->IsQuadratic() == true ) {
           numElemNodes = 3;
         } else {
           numElemNodes = 2;
         }
       } else if ( elemVec[0]->ptElem->GetDim() == 2 ) {
         eType = GiD_Quadrilateral;
-        if ( ptGrid_->IsQuadratic() == TRUE ) {
+        if ( ptGrid_->IsQuadratic() == true ) {
           numElemNodes = 8;
         } else {
           numElemNodes = 4;
         }
       } else if ( elemVec[0]->ptElem->GetDim() == 3 ) {
-        if ( degen3DElems_ == TRUE ) {
+        if ( degen3DElems_ == true ) {
           eType = GiD_Hexahedra;
-          if ( ptGrid_->IsQuadratic() == TRUE ) {
+          if ( ptGrid_->IsQuadratic() == true ) {
             numElemNodes = 20;
           } else {
             numElemNodes = 8;
           }
         } else {
           eType = GiD_Tetrahedra;
-          if ( ptGrid_->IsQuadratic() == TRUE ) {
+          if ( ptGrid_->IsQuadratic() == true ) {
             numElemNodes = 10;
           } else {
             numElemNodes = 4;
@@ -238,12 +238,12 @@ namespace CoupledField {
     StdVector<UInt> connectM;
     
     // --- LINEAR ELEMENTS ---
-    if ( ptGrid_->IsQuadratic() == FALSE ) {
+    if ( ptGrid_->IsQuadratic() == false ) {
       if ( ptFE == ptTr1 ) {
         connectM = connect;
         connectM.Push_back(connectM[2]);
       } else  if ( ptFE == ptTet1 ) {
-        if ( degen3DElems_ == TRUE ) {
+        if ( degen3DElems_ == true ) {
           connectM.Resize(8);
           connectM[0]= connect[0];
           connectM[1]= connect[1];
@@ -293,7 +293,7 @@ namespace CoupledField {
         connectM[6]= connect[2];
         connectM[7]= connect[5];
       } else  if ( ptFE == ptTet2 ) {
-        if ( degen3DElems_ == TRUE ) {
+        if ( degen3DElems_ == true ) {
           connectM.Resize(20);
           connectM[0]= connect[0];
           connectM[1]= connect[1];
@@ -510,7 +510,6 @@ namespace CoupledField {
       // we have to determine this by hand from the xml-file
       std::string stressName, subType;
       GiD_ResultType type = GiD_Vector;
-      UInt numEntries = 3;
       Enum2String( MECH_STRESS, stressName );
       if ( name == stressName ) {
         GiD_BeginResultHeader( name.c_str(), "transient", time,
@@ -753,7 +752,7 @@ namespace CoupledField {
            ptGrid_->GetNumElemOfType( HEX ) ==  0  &&
            ptGrid_->GetNumElemOfType( PYR ) ==  0  &&
            ptGrid_->GetNumElemOfType( WED ) ==  0  ) {
-        degen3DElems_ = FALSE;
+        degen3DElems_ = false;
       }
     }
     

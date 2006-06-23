@@ -5,7 +5,9 @@
 
 #include "Domain/elem.hh"
 #include "Domain/surfElem.hh"
+#include "Domain/entityList.hh"
 #include "DataInOut/Scripting/scriptable.hh"
+
 
 namespace CoupledField
 {
@@ -49,6 +51,13 @@ namespace CoupledField
     //! Reads the grid from input file
     virtual void Read()=0;
 
+    //! Trigger mapping of element sub-entities (edges, surfaces)
+
+    //! This method calculates global edge and surface numbers and 
+    //! makes them available in the element definitions, so they can
+    //! be used for higher order elements or edge functions.
+    virtual void MapSubEntities() = 0;
+
     //@}
 
     // =======================================================================
@@ -57,7 +66,7 @@ namespace CoupledField
     //@{ \name General Grid Information
 
     //! Return if grid uses quadratic elements
-    virtual Boolean IsQuadratic() = 0;
+    virtual bool IsQuadratic() = 0;
 
     //! Return number of elements of a given type
     //! \param type Type of finite element (LINE, TRIA, ...)
@@ -136,6 +145,22 @@ namespace CoupledField
 
     //@}
 
+    // =======================================================================
+    // ENTITIYLIST ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Entity Access Functions 
+    
+    //! Get element list of given type with given entities
+
+    //! Returns an EntityList (elements, surface-elements, nodes ) of  the 
+    //! specified type and with the given name
+    //! \param type Type of EntityList to be created
+    //! \param name Name of the elements (region) or nodes
+    shared_ptr<EntityList> GetEntityList( EntityList::Type type, 
+                                          const std::string& name );
+
+
+    //@}
 
     // =======================================================================
     // NODE ACCESS FUNCTIONS
@@ -164,22 +189,28 @@ namespace CoupledField
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 2D
     //! \param inode (in) node number
+    //! \param updated (in) flag indicating if updated geometry should be used
     virtual void GetNodeCoordinate( Point<2> & rfPoint,
-                                    const UInt inode )
+                                    const UInt inode,
+                                    bool updated = false )
     { Error( "Not implemented", __FILE__, __LINE__ ); }  
 
     //! Get coordinates of node with global number inode
     //! \param rfPoint (out) coordinates of point 3D
     //! \param inode (in) node number
+    //! \param updated (in) flag indicating if updated geometry should be used
     virtual void GetNodeCoordinate( Point<3> & rfPoint,
-                                    const UInt inode )
+                                    const UInt inode,
+                                    bool updated = false )
     { Error( "Not implemented", __FILE__, __LINE__ ); }  
 
     //! Get coordinates of node with global number inode as vector
     //! \param rfPoint (out) coordinates of point 3D
     //! \param inode (in) node number
+    //! \param updated (in) flag indicating if updated geometry should be used
     virtual void GetNodeCoordinate( Vector<Double> & rfPoint,
-                                    const UInt inode ) = 0;
+                                    const UInt inode,
+                                    bool updated = false ) = 0;
   
     //@}
 
@@ -239,8 +270,10 @@ namespace CoupledField
     //! \param coordMat (out) coordinates of the element nodes 
     //!                         (spaceDim \f$\times\f$ nrNodes);
     //! \param connect (in) global node numbers of element
+    //! \param updated (in) flag indicating if updated geometry should be used
     virtual void GetElemNodesCoord( Matrix<Double> & coordMat,  
-                                    const StdVector<UInt> & connect ) = 0;
+                                    const StdVector<UInt> & connect,
+                                    bool updated = false ) = 0;
   
     //! Get elements associated with given nodes
 
@@ -279,6 +312,24 @@ namespace CoupledField
     
     //@}
 
+
+    // =======================================================================
+    // SURFACE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Surface Access Functions
+
+    //virtual Surface& GetSurface( UInt surfNr);
+
+    //@}
+
+    // =======================================================================
+    // EDGE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Edge Access Functions
+          
+    //virtual Edge& GetEdge( UInt edgeNr );
+    //@}
+
     // =======================================================================
     // GEOMETRY CALCULATION
     // =======================================================================
@@ -293,8 +344,10 @@ namespace CoupledField
     //! volume element pointer.
     //! \param n (out) vector containing surface normal
     //! \param surfElem (in) reference to surface element
+    //! \param updated (in) flag indicating if updated geometry should be used
     virtual void CalcSurfNormal( Vector<Double> & n, 
-                                 const Elem & surfElem ) = 0;
+                                 const Elem & surfElem,
+                                 bool updated = false ) = 0;
 
     //! Returns surface element normal with defined orientation
 
@@ -303,9 +356,11 @@ namespace CoupledField
     //! \param n (out) normal vector
     //! \param surfElem (in) surface element
     //! \param volElem (in) volume element
+    //! \param updated (in) flag indicating if updated geometry should be used
     virtual void CalcSurfNormalOutOfVol( Vector<Double> & n,
                                          const Elem & surfElem,
-                                         const Elem & volElem ) = 0;
+                                         const Elem & volElem,
+                                         bool updated = false ) = 0;
 
     //! Returns the volume of a given region
 
@@ -315,8 +370,10 @@ namespace CoupledField
     //! assumed to be 1m.
     //! \param regionId (in) region identifier 
     //! \param isaxi (in) flag indicating axial symmetry
+    //! \param updated (in) flag indicating if updated geometry should be used
     virtual Double CalcVolumeOfRegion( const RegionIdType regionId,
-                                       Boolean isaxi = FALSE ) = 0;
+                                       bool isaxi = false,
+                                       bool updated = false ) = 0;
     //@}
 
 
@@ -401,11 +458,18 @@ namespace CoupledField
     //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
     virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
                                      const StdVector<Elem*> & elemList,
-				     Boolean onlyLinNodes = FALSE ) = 0;
+				     bool onlyLinNodes = false ) = 0;
   
     //! Resets the integration type of all known elements
     //! \deprecated Does anyone need this function?
     void SetIntTypeAllElems( IntegrationType aIntType );
+
+    //! Set offset for coordinates due to updated Lagrangian formulation
+    virtual void SetNodeOffset( const StdVector<UInt>& nodes, 
+                                const Vector<Double>& offsets ) = 0;
+
+    //! Return status of presence of nodal coordinate offsets (up. Lagrange)
+    virtual bool HasNodalOffset() = 0;
 
     //@}
   

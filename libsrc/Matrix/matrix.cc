@@ -115,7 +115,7 @@ namespace CoupledField
 
 
   template<class TYPE>
-  void Matrix<TYPE> :: Resize(const UInt nRows, const UInt nCols)
+  void Matrix<TYPE> :: Resize(const UInt nRows, const UInt nCols )
   {
     ENTER_FCN("Matrix::Resize");
   
@@ -137,16 +137,19 @@ namespace CoupledField
       
         for (k=1; k < size_row_; k++) 
           data_[k]=data_[k-1]+size_col_;
+
       }
   
-    // initialize values to 0
-    for ( k = 0; k < size_row_ * size_col_; k++) 
-      data_[0][k]=0;
+    // // initialize values to 0
+//     if( init == true ) {
+//       for ( k = 0; k < size_row_ * size_col_; k++) 
+//         data_[0][k]=0;
+    //}
   }
 
 
   template<class TYPE>
-  void Matrix<TYPE>::Resize(const UInt col)
+  void Matrix<TYPE>::Resize(const UInt col )
   {
     ENTER_FCN("Matrix::Resize");
     Resize(col,col);  
@@ -165,13 +168,17 @@ namespace CoupledField
       Error("undefined Matrix",__FILE__,__LINE__);
 #endif  
 
-    if (this == &x)  return *this;
+    if (this == &x)  {
+      std::cerr << "--->Matrices are the same!\n";
+      return *this;
+    }
   
     UInt k;
   
     if (size_row_ != x.size_row_ || size_col_ != x.size_col_ )
       {
       
+        std::cerr << "--->Matrix: deleting old data!\n";
         if (data_)
           {
             delete[] data_[0];
@@ -355,7 +362,7 @@ namespace CoupledField
 #endif // EXPR_TEMPLATES
 
   template<class TYPE>
-  Boolean Matrix<TYPE>::operator== (const Matrix<TYPE> &x) const
+  bool Matrix<TYPE>::operator== (const Matrix<TYPE> &x) const
   {
     ENTER_IFCN("Matrix::operator==");
 
@@ -368,13 +375,13 @@ namespace CoupledField
     UInt k;
   
     for (k = 0; k < size_row_*size_col_; k++)
-      if (data_ [0][k] != x.data_[0][k]) return FALSE;
+      if (data_ [0][k] != x.data_[0][k]) return false;
   
-    return TRUE;
+    return true;
   }
 
   template<class TYPE>
-  Boolean Matrix<TYPE>::operator!= (const Matrix<TYPE> &x) const
+  bool Matrix<TYPE>::operator!= (const Matrix<TYPE> &x) const
   {
     ENTER_IFCN("Matrix::operator!=");
 
@@ -386,9 +393,9 @@ namespace CoupledField
   
     UInt k;
     for (k = 0; k < size_row_*size_col_; k++)
-      if (data_ [0][k] != x.data_[0][k]) return FALSE;
+      if (data_ [0][k] != x.data_[0][k]) return false;
   
-    return TRUE;
+    return true;
   }
 
  
@@ -814,15 +821,18 @@ namespace CoupledField
     // array contains ev in ascending order
     //    Vector<Double> lp_w;
     lp_w.Resize(size_row_);
+    lp_w.Init();
     Integer lp_lworkf77=99;
       
     // workspace array - complex 16 array
     Vector<Complex> lp_work;
     lp_work.Resize(lp_lworkf77);
+    lp_work.Init();
       
     // workspace array - double precission
     Vector<Double> lp_rwork;
     lp_rwork.Resize(3*size_row_-2);
+    lp_rwork.Init();
       
     Integer lp_infof77;
     F77complex16 auxValC;
@@ -1234,6 +1244,7 @@ namespace CoupledField
 #endif
 
     columnMat.Resize(size_row_, 1);
+    columnMat.Init();
   
     UInt i;
     for (i = 0; i < size_row_; i++)
@@ -1285,6 +1296,7 @@ namespace CoupledField
   template class Matrix<Integer>;
   template class Matrix<UInt>;
   template class Matrix<Complex>;
+  template class Matrix<bool>;
 #endif
 
 // explicit template instantiation for SGI compiler
@@ -1293,6 +1305,7 @@ namespace CoupledField
 #pragma instantiate Matrix<Integer>
 #pragma instantiate Matrix<Double>
 #pragma instantiate Matrix<Complex>
+#pragme instantiate Matrix<bool>
 #endif
 
 } // end of namespace

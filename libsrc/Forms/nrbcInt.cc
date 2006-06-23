@@ -5,25 +5,14 @@
 
 namespace CoupledField {
 
-  NrbcInt::NrbcInt(BaseFE * aptelem, Double aDensity, UInt nrbcMatType, Boolean axi)
-    : BaseForm(aptelem), 
-      density_(aDensity), 
-      nrDofsPerNode_(1),
-      nrbcMatType_(nrbcMatType)
-  {
-    ENTER_FCN( "NrbcInt::NrbcInt" );
-
-    factor_ = 1.0;
-    isaxi_ = axi;
-    baseType_ = MASS;
-  }
-
-  NrbcInt::NrbcInt(const Double aDensity,  const UInt nrDofsPerNode, Boolean axi)
-    : BaseForm(), 
+  NrbcInt::NrbcInt(const Double aDensity,  const UInt nrDofsPerNode, bool axi)
+    : BaseForm( NULL ), 
       density_(aDensity), 
       nrDofsPerNode_(nrDofsPerNode)
   {
     ENTER_FCN( "NrbcInt::NrbcInt" );
+
+    name_ = "NrbcInt";
 
     factor_ = 1.0;
     isaxi_ = axi;
@@ -32,14 +21,15 @@ namespace CoupledField {
   }
 
   NrbcInt::NrbcInt(const Double aDensity,  const UInt nrDofsPerNode, UInt nrbcMatType,
-                   Boolean axi)
-    : BaseForm(), 
+                   bool axi)
+    : BaseForm( NULL ), 
       density_(aDensity), 
       nrDofsPerNode_(nrDofsPerNode),
       nrbcMatType_(nrbcMatType)
   {
     ENTER_FCN( "NrbcInt::NrbcInt" );
 
+    name_ = "NrbcInt";
     factor_ = 1.0;
     isaxi_ = axi;
 
@@ -55,11 +45,15 @@ namespace CoupledField {
     ENTER_FCN( "NrbcInt::~NrbcInt" );
   }
 
-  void NrbcInt::CalcElementMatrix(Matrix<Double> & ptCoord,
-                                  Matrix<Double> & elemMat)
+  void NrbcInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                   EntityIterator& ent1, 
+                                   EntityIterator& ent2 )
   {
     ENTER_FCN( "NrbcInt::CalcElemMatrix" );
-  
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+    
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -72,6 +66,7 @@ namespace CoupledField {
     // set matrix to desired size and set all elements to zero
     //    partElemMat.Resize(nrNodes);
     elemMat.Resize(nrNodes);
+    elemMat.Init();
 
      Matrix<Double> TransMattotest;    
 //     //to test coord transformation in 3d surf
@@ -106,22 +101,23 @@ namespace CoupledField {
         Vector<Double> normal;
         for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
           
-          jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+          jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
           
           //ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
-          if(ptCoord.GetSizeRow()==3)
+          if(ptCoord_.GetSizeRow()==3)
             {
               Matrix<Double> ptCoord_onXY;
               Matrix<Double> TransMat;
-              ptelem->CoordTrans( ptCoord, TransMattotest, ptCoord_onXY );
+              ptelem->CoordTrans( ptCoord_, TransMattotest, ptCoord_onXY );
               ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_onXY, jacDet);
             }
           else
             {
               Matrix<Double> ptCoord_onXline;              
-               Double length=dist_Mat(ptCoord);
+               Double length=dist_Mat(ptCoord_);
                 //sqrt(pow((ptCoord[0][1]-ptCoord[0][0]),2)+pow((ptCoord[1][1]-ptCoord[1][0]),2));
-              ptCoord_onXline.Resize(1,2);
+               ptCoord_onXline.Resize(1,2);
+               ptCoord_onXline.Init();
               ptCoord_onXline[0][0]=0.;
               ptCoord_onXline[0][1]=length;
               //              ptCoord_onXline[1][0]=0.;
@@ -162,7 +158,7 @@ namespace CoupledField {
           elemMat += partElemMat;
         }
 
-        if(ptCoord.GetSizeRow()==3)
+        if(ptCoord_.GetSizeRow()==3)
           {
             LocaltoGlob( elemMat, TransMattotest  );
           }
@@ -174,14 +170,14 @@ namespace CoupledField {
       {
         for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
           
-          jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+          jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
           
           ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
           
           partElemMat.DyadicMult(shapeFncAtIp);
           
           if (isaxi_) {
-            CoordAtIP = ptCoord * shapeFncAtIp;
+            CoordAtIP = ptCoord_ * shapeFncAtIp;
             partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor_* jacDet * CoordAtIP[0];
           }
           else 
@@ -210,12 +206,6 @@ namespace CoupledField {
       }
 
   }
-
-  void NrbcInt::Print(std::ostream * out, const Matrix<Double> Result) const
-   {
-    ENTER_FCN( "NrbcInt::Print" );
-  }
-
 
   void NrbcInt::NRBCMultiDof(Matrix<Double>& nrbcMultDof, 
                              const Matrix<Double>& nrbcMatSingleDof,  const UInt nrDofs)

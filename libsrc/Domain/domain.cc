@@ -206,7 +206,7 @@ namespace CoupledField {
   StdPDE * Domain::GetStdPDE(const std::string pdeName)
   {
     ENTER_IFCN( "Domain::GetStdDPE" );
-    Boolean pdeFound = FALSE;
+    bool pdeFound = false;
     UInt i;
     std::string errMsg;
 
@@ -215,7 +215,7 @@ namespace CoupledField {
     // *** IMPLEMENT ***
 
     // search the single pdes
-    std::map<SinglePDE*,Boolean>::iterator it;
+    std::map<SinglePDE*,bool>::iterator it;
       
     for (i=0; i<ptSinglePde_.GetSize(); i++) {
       
@@ -231,17 +231,17 @@ namespace CoupledField {
           Error( __FILE__, __LINE__ );
         }
         
-        //         if ( (*it).second == FALSE ) {
-        //           pdeFound = TRUE;
+        //         if ( (*it).second == false ) {
+        //           pdeFound = true;
         //           break;
         //         }
-        pdeFound = TRUE;
+        pdeFound = true;
         break;
       }
     }
 
     
-    if (pdeFound == TRUE)
+    if (pdeFound == true)
       return ptSinglePde_[i];
     else {
       errMsg = "Domain:GetPDE: PDE with name '";
@@ -255,18 +255,18 @@ namespace CoupledField {
   SinglePDE * Domain::GetSinglePDE(const std::string pdeName)
   {
     ENTER_IFCN( "Domain::GetSingleDPE" );
-    Boolean pdeFound = FALSE;
+    bool pdeFound = false;
     UInt i;
     std::string errMsg;
 
     for (i=0; i<ptSinglePde_.GetSize(); i++) {
       if (ptSinglePde_[i]->GetName() == pdeName) {
-        pdeFound = TRUE;
+        pdeFound = true;
         break;
       }
     }
     
-    if (pdeFound == TRUE)
+    if (pdeFound == true)
       return ptSinglePde_[i];
     else {
       errMsg = "Domain:GetSinglePDE: PDE with name '";
@@ -344,11 +344,11 @@ namespace CoupledField {
 
     // Initialize those PDEs which are not
     // directly coupled
-    std::map<SinglePDE*,Boolean>::iterator it;
+    std::map<SinglePDE*,bool>::iterator it;
 
     for (UInt i=0; i<numSinglePde_; i++) {
       it = isDirectCoupled_.find( ptSinglePde_[i] );
-      if ( (*it).second == FALSE) {
+      if ( (*it).second == false) {
         //std::cerr << "Domain: Init() of " 
         //<< ptSinglePde_[i]->GetName() << std::endl;
         ptSinglePde_[i]->Init(sequenceStep,tags[i]);
@@ -380,7 +380,7 @@ namespace CoupledField {
     // of those SinglePDEs, which are not directly coupled
     for (UInt i = 0; i < numSinglePde_; i++ ) {
       it = isDirectCoupled_.find( ptSinglePde_[i] );
-      if ( (*it).second == FALSE) {
+      if ( (*it).second == false) {
         ptSinglePde_[i]->DefineAlgSys();
       }
     }
@@ -396,8 +396,8 @@ namespace CoupledField {
 
     numSinglePde_ = pdeNames.GetSize();
 
-    ptSinglePde_.Clear();
     ptSinglePde_.Resize(numSinglePde_);
+    ptSinglePde_.Init();
 
     for (UInt i=0;i< pdeNames.GetSize();i++) {
       Info->StartProgress("Creating PDE '" + pdeNames[i] + "'");
@@ -438,9 +438,6 @@ namespace CoupledField {
                  __FILE__, __LINE__);
       }
       
-      else if (pdeNames[i] == "piezo")
-        ptSinglePde_[i]=new PiezoPDE(ptgrid_,ptTimeFunc_,OutFile_);
-
       else if (pdeNames[i] == "mpcci")
         ptSinglePde_[i]=new MpcciPDE(ptgrid_,ptTimeFunc_,OutFile_);
 
@@ -459,7 +456,7 @@ namespace CoupledField {
       }     
 
       // by default, not single pde is directly coupled
-      isDirectCoupled_[ptSinglePde_[i]] = FALSE;
+      isDirectCoupled_[ptSinglePde_[i]] = false;
       
       // Initialize current PDE
       // -> This step has now moved to method InitPDEs
@@ -557,7 +554,7 @@ namespace CoupledField {
     // pairwise iterative couplings are defined only for 
     // SinglePDEs
     Integer index = 0; for (UInt i = 0; i<ptSinglePde_.GetSize(); i++ ) {
-      if (isDirectCoupled_[ptSinglePde_[i]] == TRUE ) {
+      if (isDirectCoupled_[ptSinglePde_[i]] == true ) {
         index = orderedPdes.Find(ptSinglePde_[i]);
         
         if ( index != -1 ) {
@@ -642,8 +639,8 @@ namespace CoupledField {
       }
       
       // set flag for direct coupling
-      isDirectCoupled_[pde1] = TRUE;
-      isDirectCoupled_[pde2] = TRUE;
+      isDirectCoupled_[pde1] = true;
+      isDirectCoupled_[pde2] = true;
 
       // add single PDEs and couplings into collections
       setSinglePDEs.insert( pde1->GetName() );
@@ -673,12 +670,12 @@ namespace CoupledField {
     numDirectCoupledPde_ = 1;
 
     // now determine, how many SinglePDEs are coupling directly
-    std::map<SinglePDE*,Boolean>::iterator it = isDirectCoupled_.begin();
+    std::map<SinglePDE*,bool>::iterator it = isDirectCoupled_.begin();
 
     numIterCoupledStdPde_ = numDirectCoupledPde_;
 
     while (it != isDirectCoupled_.end() ) {
-      if ( (*it).second == FALSE )
+      if ( (*it).second == false )
         numIterCoupledStdPde_++;
       it++;
     }

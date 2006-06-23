@@ -1,610 +1,165 @@
-#ifndef FILE_ANALYSIS
-#define FILE_ANALYSIS
+#ifndef CFS_ASSEMBLE_HH
+#define CFS_ASSEMBLE_HH
 
-/**************************************************************************/
-/* File:   analysis.hh                                                    */
-/* Author: Fred Hofer                                                     */
-/* Date:   24. Nov. 2003                                                  */
-/*                                                                        */
-/* Handles the assembling of the various integrators to the appropriate   */
-/* matrices and initiates the basic analysis "stepping"                   */
-/**************************************************************************/
+#include <set>
+#include <map>
 
-
-#include "Utils/StdVector.hh"
-#include "Forms/baseForm.hh" 
-#include "Forms/linSurfForm.hh"
-#include "DataInOut/timefunc.hh"
-#include "Utils/nodestoresol.hh"
-#include "Utils/elemstoresol.hh"
+#include "formsContext.hh"
+#include "Domain/bcs.hh"
 #include "Utils/mathParser.hh"
-#include "PDE/nodeEQN.hh"
 
-#include "olas.hh"
+namespace CoupledField {
 
-namespace CoupledField
-{
 
-  // Forward declaration of StdPDE
-  class StdPDE;
-  class SinglePDE;
+  // Forward class declarations
+  class TimeFunc;
 
-  //! additional information for every integrator
-  class BaseIntDescriptor {
-
-  public:
-
-    /// constructor
-    BaseIntDescriptor();
-      
-    /// constructor
-    BaseIntDescriptor(BaseForm * aIntegrator, const Boolean aNonLin=FALSE);
-  
-    /// destructor
-    virtual ~BaseIntDescriptor();
-  
-    /// is the integrator nonlinear?
-    Boolean IsNonLin() {return nonLin;};
-
-    /// is the integrator set to reduced integration?
-    Boolean IsReducedInt() {return reducedIntegration_;};
-
-    /// set the integrator to reduced integration
-    void SetReducedInt() {reducedIntegration_ = TRUE;};
-  
-    /// returns the integrator
-    BaseForm * GetIntegrator(){return integrator;};
-
-    //!
-    void SetPDEIds(SinglePDE * aPDE1, SinglePDE * aPDE2) {
-      myPDE1_ = aPDE1;
-      myPDE2_ = aPDE2;
-    }
-
-    //! returns pointer to PDE1
-    SinglePDE * GetPDE1 () 
-    { return myPDE1_; };
-
-    //! returns pointer to PDE2
-    SinglePDE * GetPDE2 () 
-    { return myPDE2_; };
-
-    //! set function for SetCounterPart
-    void SetCounterPart(bool setCounterPart) 
-    { setCounterPart_ = setCounterPart; };
-
-    //! check, if element matrix has to be assembled to upper and lower part of global matrix
-    bool IsSetCounterPart() {return setCounterPart_; };
-
-  protected:
-
-    /// pointer to integrator
-    BaseForm * integrator;
-  
-    /// is the integrator a nonlinear one?
-    Boolean nonLin;
-
-    //! reduced integration flag
-    Boolean reducedIntegration_;
-
-    SinglePDE * myPDE1_;                    //!< pointer to PDE 1
-    SinglePDE * myPDE2_;                    //!< pointer to PDE 2
-
-    //! TRUE: add to upper and lower part of global matrix
-    bool setCounterPart_;
-  };
-  
-
-  /// additional information for every integrator
-  class IntegratorDescriptor : public BaseIntDescriptor {
-
-  public:
-
-    /// constructor
-    IntegratorDescriptor();
-
-    /// constructor
-    IntegratorDescriptor(BaseForm * aIntegrator, FEMatrixType aDestMat,
-                         const Boolean aNonLin=FALSE);
-
-    /// destructor
-    virtual ~IntegratorDescriptor();
-
-    /// returns the destination matrix
-    FEMatrixType DestMat() {return destinationMatrix_;}; 
-
-    /// sets the destination matrix
-    void SetDestMat(FEMatrixType destMat)
-    {destinationMatrix_ = destMat;};
-
-    /// defines a secondary destination for the calculated element marices of an integrator      
-    void SetSecondaryMat(FEMatrixType aSecMat, Double aSecMatFac,
-                         AnalysisType analysisType);
-
-    // returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
-    FEMatrixType GetSecondaryMat() const {return secondaryMatrix_;} 
-
-    /// returns matrix type of the secondary matrix (if there is any, otherwise NOTYPE=0)
-    Double GetSecMatFac() const {return secMatFac;} 
-
-    /// contains information wheather real
-    /// or complex valued material parameters will be considered
-    DataType matDataType_;
-
-    DataType GetMatDataType(){return matDataType_;};
-
-    void SetMatDataType(DataType &pMatType){
-      matDataType_ = pMatType;};
-
-    void SetOrigMatrixType(FEMatrixType matType)
-    {origMatrixType_ = matType;};
-
-    FEMatrixType GetOrigMatrixType()
-    {return origMatrixType_;};
-
-    void SetOrigSecMatrixType(FEMatrixType matType)
-    {origSecondMatrixType_ = matType;};
-
-    FEMatrixType GetOrigSecMatrixType()
-    {return origSecondMatrixType_;};
-      
-  private:
-
-    /// holds the destination matrix
-    FEMatrixType destinationMatrix_;
-
-    /// holds the secondary destination matrix
-    FEMatrixType secondaryMatrix_;
-
-    //! hold the original matrix types (just used in harmonic analysis!!)
-    FEMatrixType origMatrixType_;
-
-    //! hold the original secondary matrix types (just used in harmonic analysis!!)
-    FEMatrixType origSecondMatrixType_;
-
-    /// holds the matrix factor for secondaryMatrix__
-    Double secMatFac;
-
-  };
-  
- 
-    
-  //! Class for anaylsis handling
+  //! Class for assembling element/entities matrices and RHS vectors
   class Assemble {
-    
+
   public:
-    
-    //!  Constructor
-    Assemble(BaseSystem * algsys, Grid * aptgrid, const std::string bcSequenceTag );
-    
-    //!  Deconstructor
-    virtual ~Assemble();
-    
-    /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr,
-                               const RegionIdType subdomain)=0;
 
-    /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(IntegratorDescriptor * intDescr,
-                               const RegionIdType subdomain)=0;
-    
-    //! specify type of system matrix for AlgebraicSystem
-    virtual void AssembleMatrices();
-    
+    //! Constructor
+    Assemble( BaseSystem* algsys, AnalysisType analysis,
+              TimeFunc * aPtTimeFunc);
 
-    /// setup source term
-    void AssembleSrcRHS(const Double time=0.0);
-    
-
-    /// assemble integral sources
-    void AssembleRHSIntegralSources(const Double time = 0.0);
-
-
-    /// assembling nodal sources
-    void AssembleRHSNodalSources(const Double time = 0.0);
-    
-
-    ///  assemble a nonlinear RHS part
-    void AssembleNLRHS(const Double time = 0.0);
-
-    ///  assemble a spring into the system matrix
-    void AssembleSprings(const Double time = 0.0);
-
-    //! computes the coordinates of an element including the delta
-    /*!
-      \param connect (input) global node numbers of element
-      \param ptCoord (output) coordinates of the element nodes (nrNodes \f$\times\f$ spaceDim);
-    */
-    void GetElemCoords(const StdVector<UInt> connect, 
-                       Matrix<Double> &coordMat); 
-
-
-
-    //! set boundary condition
-    /*!
-      \param update indicator: do we update boundary condition in algebraic system or set new
-      \param atimestep time step of calculation
-    */
-    virtual void SetBCs(const Boolean update, const Double atimestep){};
-
-
-
-    
-    //!
-    //     void SetPtrDeltaCoordinates(Array<Double>* deltCoords)
-    void SetPtrDeltaCoordinates(Matrix<Double> * deltCoords)
-    {deltaCoords_ = deltCoords;};
-
-    Matrix<Double> * GetPtrDeltaCoordinates(){return deltaCoords_;}
-
-    void SetNonlinGeo()
-    { nonLinGeo = TRUE;};
-
-
-    /// sets the number of nodes in the pde    
-    void SetNumberPDENodes(UInt aNumPDENodes)
-    { numPDENodes_=aNumPDENodes; };
-
-
-    //! compute rhs
-    /*! \param atime time of calculation    */
-    virtual void ComputeRHS(const Double atime) {;};
-    
-
-    /// parameters set by PDE
-    void SetGeneralParams(const std::string & pdename, 
-                          const UInt dofsPerNode,
-                          const StdVector<RegionIdType> & subdoms,
-                          const StdVector<RegionIdType> & surfdoms );
-    
-    
-
-    /// define RHS integrators
-    void AddRhsIntegrator(BaseForm * integrator, const RegionIdType regionId, 
-                          const Boolean nonLin=FALSE);
-
-    /// define RHS integrators (static and transient case)
-    void AddRhsSrcIntegrator(BaseForm * integrator, const RegionIdType regionId,                       
-                             const std::string fncname="---not-defined--",
-                             const Boolean nonLin=FALSE);
-
-    /// define RHS surface integrators (static and transient case)
-    void AddRhsSrcSurfIntegrator(BaseForm * integrator, const RegionIdType regionId,
-                                 const std::string fncname="---not-defined--",
-                                 const Boolean nonLin=FALSE);
-
-    /// define RHS integrators (harmonic case)
-    void AddRhsSrcIntegrator(BaseForm * integrator, const RegionIdType regionId,
-                             const Double phaseval, const Boolean nonLin=FALSE);
-
-    /// define RHS surface integrators (harmonic case)
-    void AddRhsSrcSurfIntegrator(BaseForm * integrator, const RegionIdType regionId,
-                                 const Double phaseval, const Boolean nonLin=FALSE);  
-
-    /// set ptr to time function
-    void SetPtr2TimeFnc(TimeFunc * aPtTimeFunc)
-    {ptTimeFunc_ = aPtTimeFunc;};
-
-    // set ptr to equation data
-    void SetPtr2EQNData(NodeEQN * aPtNodeEQN1,
-                        NodeEQN * aPtNodeEQN2 = NULL );
-
-    //! set the identification tag of the pde
-    //! \param id1 identification tag for PDE 1
-    //! \param id2 identification tag for PDE 2 (only in coupled case)
-    void SetPDEId( const PdeIdType id1,
-                   const PdeIdType id2 = NO_PDE_ID );
-
-  
+    //! Destructor
+    ~Assemble();
 
     // ======================================================
-    // STUFF BELONGING TO ALGSYS (matrices, graphs, ...)
+    //  REGISTRATION METHODS
+    // ======================================================    
+    
+    //! Add a bilinearform, wrapped in a BilinFormContext
+    void AddBiLinearForm( BiLinFormContext* biLinContext );
+
+    //! Add a linearform, wrapped in a LinearFormContext
+    void AddLinearForm( LinearFormContext* linContext );
+
+    //! Add right hand side load definitions
+    void AddLoads( LoadList& loads );
+
     // ======================================================
-  
-    /// Initialize all matrices with nonlinear behavior
-    void InitNonLinMatrices();
+    //  ASSEMBLING METHODS
+    // ======================================================
 
-    //! Generates the matrix graph
+    //! Assemble matrix graph of given pair of pdes
+    void SetupMatrixGraph( PdeIdType pdeId1, PdeIdType pdeId2 );
 
-    //! The method generates the matrix graph by passing the element
-    //! connectivities to the algebraic system.
-    //! \param insertCounterPart by default we always insert the complete
-    //!                          connectivity of an for a PDE coupling, i.e.
-    //!                          for forward and backward coupling; setting
-    //!                          this flag to false will only insert the
-    //!                          forward coupling
-    void SetupMatrixGraph( bool insertCounterPart = true );
+    //! Trigger assembly of the matrices
+    void AssembleMatrices();
+
+    //! Trigger assembly of all linear right hand side terms
+    void AssembleLinRHS( Double actTimeFreq );
+
+    //! Trigger assenbly of all non-linear right hand side terms
+    void AssembleNonLinRHS( Double actTimeFreq );
 
 
-    //! set information for algebraic system about PDE. set matrix factors
-    virtual void SetMatrixFactors()=0;
+    // ======================================================
+    //  MISCELLANEOUS METHODS
+    // ======================================================
 
-    void SetMaterialPointer(std::map<RegionIdType, BaseMaterial*> ptMat)
-    {ptMaterial_ = ptMat;};    
-
-    void SetAlternatingMaterial(Boolean boolVar){alternateMaterialData_=boolVar;};
-
+    //! Returns true, if matrices have changed since last call of
+    //! AssembleMatrices
+    bool IsMatrixUpdated(){ return matrixUpdated_;}
     
-    /// set solution 
-    void SetPtr2Sol(BaseNodeStoreSol * aSol){sol_ = aSol;};
-    
-
-    //! sets the actual frequency (just needed for harmonic analysis)
-    virtual void SetFrequency(Double actFreq) {;};
-
-    //! get the actual frequency (just needed for harmonic analysis)
-    virtual Double GetActFrequency() {
-      Error("Frequency can just be obtained in Harmonic analysis", __FILE__,
-	    __LINE__);
-      return 1.0;
-    };
-
-
-    //! transform element matrix to account for spezial RHS during parameter Identification process
-    virtual void TransformMatrix2HarmonicRHS_for_paramIdent(Vector<Double>& harmMat,
-                                                            Matrix<Double> origMat) {;};
-
-    //sets all finite elements to reduced integration
-    void SetFE2ReducedInt();
-
-
-    //sets all finite elements back to standard integration
-    void SetFE2StandardInt();
-
-    //! set the PDE pointer
-    void SetPDEPointer(StdPDE * aptPDE)
-    {ptPDE_ = aptPDE;};
-
-    //! returns private variable matArray_
-    Matrix<Double>* GetPDEMatArray (){
-      return   matArray_;
-    }
-
-    // ====================================================
-    // DATA SECTION 
-    // ====================================================
-
-        
-    StdPDE * ptPDE_;                    //!< pointer to class StdPDE
-    
-    BaseSystem * algsys_;                //!< pointer to algebraic system  
-    Grid * ptgrid_;                      //!< pointer to Grid
-    NodeEQN * ptEQN1_;                    //!< pointer to equation data of pde1
-    NodeEQN * ptEQN2_;                    //!< pointer to equation data of pde2
-    Vector<Double> harmonicRHSVec;       //! special right Hand Side Vector needed for calc
-    Matrix<Double> elemmat;
-
-
-    //! set defining which type of matrices (stiffness, mass,...) is used
-    std::set<FEMatrixType> matrixTypes_;
-
-    UInt dofsPerNode_;                //!< number of unknowns per node
-    UInt numPDENodes_;                //!< number of nodes in pde
-
-    std::string pdename_;                //!< name of calling pde
-    std::string bcSequenceTag_;          //!< name of tag for loads/boundary condition
-  
-    StdVector<RegionIdType> subdoms_;  //!< subdomain-levels belongig to PDE
-    StdVector<RegionIdType> surfdoms_; //!< surface-domain-levels belongig to PDE
-
-    StdVector<std::string> loadDom_;  //!< load subdomains
-    StdVector<std::string> loadDof_;  //!< dofs of loads
-    StdVector<std::string> loadVals_; //!< values of the load condition
-    StdVector<std::string> loadPhase_; //!< values of the phase of the load condition
-    StdVector<std::string> fncname_loads_; //!< function names of the loads
-    StdVector<std::string> fncname_rhs_; //!< function names for RHS integrators
-    StdVector<std::string> fncname_rhsSurf_; //!< function names for RHS surface integrators
-
-    StdVector<std::string> springDom_;  //!< spring subdomains
-    StdVector<std::string> springDof_;  //!< dofs of springs
-    StdVector<std::string> springMassVals_; //!< values of the spring mass
-    StdVector<std::string> springDampVals_; //!< values of the spring damping
-    StdVector<std::string> springStiffVals_; //!< values of the spring stiffness
-    StdVector<std::string> fncname_springs_; //!< function names of the loads
-
-    StdVector<Double> rhsSrcPhase_;      //!< contains the phase values in harmonic case;
-    StdVector<Double> rhsSrcSurfPhase_;  //!< contains the phase values in harmonic case;
-         
-    TimeFunc * ptTimeFunc_;             //!< ptr to time function
-    
-    std::map<RegionIdType, BaseMaterial*> ptMaterial_;              //!< pointer to material
-    
-    
-    /// vector of all needed integrators (every subdomain needs one "list of integrators")
-    StdVector< StdVector<IntegratorDescriptor *>* > integrators_;
-
-    /// vector of all needed surface integrators (every surface needs one "list of surfaceintegrators")
-    StdVector< StdVector<IntegratorDescriptor *>* > surfintegrators_;
-
-    /// vector of all needed integrators (every subdomain needs one "list of integrators")
-    StdVector< StdVector<BaseIntDescriptor *>* > rhsIntegrators_;
-
-    /// vector of all needed RHS src-intergators (not every subdomain needs a "list of rhs_source_integrators")
-    StdVector< StdVector<BaseIntDescriptor *>* > rhsSrcIntegrators_;
-
-    /// vector of all needed RHS src-surfaceintergators (not every subdomain needs a "list of rhs_source_integrators")
-    StdVector< StdVector<BaseIntDescriptor *>* > rhsSrcSurfIntegrators_;
-
-    /// ptr to solution
-
-    BaseNodeStoreSol * sol_;
-    Matrix<Double> * deltaCoords_;
-
-    //! nonlinear parameters;
-    Boolean firstTime_;
-    Boolean oneIntIsNonlin_;
-    UInt nrMatrices_;
-    StdVector<Boolean> reassembleMat_;
-    Boolean nonLinGeo;
-
-    //! Default = FALSE, if content of ptMaterial changes, set TRUE
-    Boolean alternateMaterialData_;
-
-    Double actFreq_; //!< contains the frequency multiplied by 2*pi
-    Double startFreq_; //!< contains the starting frequency multiplied by 2*pi within a harmonic analysis
-
-    //!
-    void SetReassemble()
-    {firstTime_ = TRUE;};
-
-    //!
-    void SetAnalysisType(AnalysisType analysis)
-    {analysisType_ = analysis;};
-
-    // ==============================================
-    // AUXILIARY METHODS
-    // ==============================================
-
-    //! set material parameter array used in forms
-    void SetMaterialArray(Matrix<Double>* matOfElements) 
-    { matArray_ = matOfElements;};
+    //! Print information about registered (bi)linearforms and general data
+    void PrintInfo( std::ostream& out );
 
   protected:
-    //! calculates the index of the subdoman 
-    //! with name "subDomName" in the subdomain-list
-    UInt SubDomIndex(const RegionIdType subDomName);
 
-    //! calculates the index of the surfdoman 
-    //! with name "surfDomName" in the surface-domain-list
-    UInt SurfDomIndex(const RegionIdType surfDomName);
+    //! Assemble linearForms of right hand side
+    void AssembleRHSLinForms( Double actTimeFreq, bool nonLin );
 
-    //! transform element matrix to account for harmonic analysis
-    virtual 
-    void TransformMatrix2Harmonic(Vector<Double>& harmMat,
-                                  Matrix<Double> origMat,
-                                  const FEMatrixType matrixType,
-                                  const DataType matDataType)
-    {;};
+    //! Assemble noda load values of right hand side
+    void AssembleRHSLoads( Double actTimeFreq);
 
-    //! transform element vector to account for harmonic analysis
-    virtual void TransformVector2Harmonic(Vector<Double>& harmMat,
-                                          Vector<Double> origVec,
-                                          const Double valPhase) {;};
+    //! Transform real-valued element matrix to harmonic representation
+    void Matrix2Harmonic( Vector<Double>& harmMat,
+                          Matrix<Double>& origMat,
+                          FEMatrixType matrixType,
+                          DataType matDataType,
+                          Double freq );
+      
+    //! Transform real-valued vector to harmonic representation
+    void Vector2Harmonic( Vector<Double>& harmVec,
+                          Vector<Double>& origVec,
+                          Double valPhase );
+                         
+    //! Create map for mapping general FEMatrixtype to analysis-specific ones
+    void CreateMatrixMap();
 
-    //! identifier for the first PDE
+    //! Modify damping factor in harmonic case
+    void AdjustDamping( BiLinFormContext& context );
 
-    //! needed to identify the PDE uniquely in the algebraic system
-    PdeIdType pdeId1_;
-
-    //! identifier for the second PDE
-
-    //! needed to identify the PDE uniquely in the algebraic system
-    PdeIdType pdeId2_;
-
-    //!
-    Matrix<Double>* matArray_;
-
-    //! Handler for MathParser object
-    MathParser::HandlerType mHandler_;
+    //! Insert matrix into algebraic system and adapt harmonic matrices
+    void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
+                       Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
+                       StdVector<Integer>& eqnVec2,
+                       PdeIdType pdeId1, PdeIdType pdeId2 );
 
 
-  private:
+    //! Insert vector onto RHS of algebraic system and adapt harmonic entries
+    void InsertVector( LinearFormContext& context, Vector<Double>& elemVec,
+                       StdVector<Integer>& eqnVec, PdeIdType pdeId );
 
-    //! set analysis type
+    //! Check which integrator is non-linear due to solution-dependent
+    //! non-linearities or updated lagrangian formulation
+    void CheckNonLinearities();
+
+    // ======================================================
+    //  DATA MEMBERS
+    // ======================================================
+
+    //! Pointer to algebraic system
+    BaseSystem* algsys_;
+
+    //! Pointer to time data funcion class
+    TimeFunc* timeFunc_;
+
+    //! Analysistype
     AnalysisType analysisType_;
 
+    //! Flag indicating if system was already assembled
+    bool isFirstTime_;
+
+    //! Map from general FEMatrixType to analysis specific one
+    std::map<FEMatrixType,FEMatrixType> matrixMap_;
+
+    //! List of bilinear integrator contexts
+    std::set<BiLinFormContext*> biLinForms_;
+
+    //! List of linear integrator contexts
+    std::set<LinearFormContext*> linForms_;
+
+    //! Map with flags if FE matrix has to be reassembled
+    std::map<FEMatrixType, bool> matReassemble_;
+    
+    // ======================================================
+    //  BOUNDARIES AND LOADS
+    // ======================================================
+    
+    //! List of right hand side nodal values
+    LoadList loads_;
+    
+    // ======================================================
+    //  DAMPING SPECIFIC DATA
+    // ======================================================
+
+    //! Current (adjusted) Rayleigh damping factor
+    Double raylDampFactor_;
+    
+    // ======================================================
+    //  MISCELLANEOUS DATA
+    // ======================================================
+
+    //! flag indicating if matrices have changed since 
+    //! last call of AssembleMatrices
+    bool matrixUpdated_;
+
+    //! Handle for MathParser object
+    MathParser::HandleType mHandle_;
   };
-    
-      
-
-
-
-  class StaticAssemble : public Assemble
-  {
-  public:
-    StaticAssemble(BaseSystem * algsys, Grid * agrid, const std::string bcSequenceTag );
-    
-    virtual ~StaticAssemble(){};
-
-    //! define discrete PDE
-    virtual void MatrixSettings(){};
-
-    //! set information for algebraic system about PDE. set matrix factors
-    virtual void SetMatrixFactors(){};
-
-    /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
-                               const RegionIdType subdomain);
-
-    /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(IntegratorDescriptor * intDescr, 
-				   const RegionIdType subdomain);
-
-  };
-
-
-
-
-  class TransientAssemble : public Assemble
-  {
-    
-  public:
-    TransientAssemble(BaseSystem * algsys, Grid * agrid,  
-                      const std::string bcSequenceTag );
-    
-    virtual ~TransientAssemble() {
-      ENTER_FCN( "TransientAssemble::~TransientAssemble" );
-    }
-
-    //! define discrete PDE
-    virtual void MatrixSettings(){};
-
-    //! set information for algebraic system about PDE. set matrix factors
-    virtual void SetMatrixFactors(){};  
-    
-    /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
-                               const RegionIdType subdomain);
-
-    /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(IntegratorDescriptor * intDescr, 
-                               const RegionIdType subdomain);
-  };
-
-
-  class HarmonicAssemble : public Assemble
-  {
-  public:
-    HarmonicAssemble(BaseSystem * algsys, Grid * agrid,  const std::string bcSequenceTag );
-    
-    virtual ~HarmonicAssemble(){};
-
-    //! define discrete PDE
-    virtual void MatrixSettings(){};
-
-    //! set information for algebraic system about PDE. set matrix factors
-    virtual void SetMatrixFactors(){};
-
-    //!
-    virtual void SetFrequency(Double actFreq);
-
-    //!
-    virtual Double GetActFrequency() {
-      return actFreq_;
-    };
-
-    //! transform element matrix to account for harmonic analysis
-    virtual void TransformMatrix2Harmonic(Vector<Double>& harmMat,
-                                          Matrix<Double> origMat,
-                                          const FEMatrixType matrixType,
-                                          const DataType matType);
-
-    //! transform element vector to account for harmonic analysis
-    virtual void TransformVector2Harmonic(Vector<Double>& harmMat, 
-                                          Vector<Double> origVec,
-                                          const Double valPhase);
-
-    /// adds integrators to the pde
-    virtual void AddIntegrator(IntegratorDescriptor * intDescr, 
-                               const RegionIdType subdomain);
-
-    /// adds surface integrators to the pde
-    virtual void AddSurfIntegrator(IntegratorDescriptor * intDescr, 
-				   const RegionIdType subdomain);
-
-  };
-
-
-} // end of namespace
-
+}
 #endif

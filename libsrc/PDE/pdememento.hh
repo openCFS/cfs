@@ -34,7 +34,7 @@ namespace CoupledField
     void Clear();
   
     //! Query if information is saved
-    Boolean IsSet() {return isSet_;};
+    bool IsSet() {return isSet_;};
 
     //! Set the size of the memento (length of all vectors)
     void SetSize(UInt size) {size_ = size;};
@@ -47,8 +47,8 @@ namespace CoupledField
 
   protected:
 
-    //! TRUE, if information is saved
-    Boolean isSet_;
+    //! true, if information is saved
+    bool isSet_;
 
     //! Set the size of the memento (length of all vectors)
     UInt size_;

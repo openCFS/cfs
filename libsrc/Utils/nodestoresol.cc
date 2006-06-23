@@ -68,13 +68,13 @@ namespace CoupledField {
   //   IsComplex
   // *************
   template<class TYPE>
-  Boolean NodeStoreSol<TYPE>::IsComplex() {
-    return FALSE;
+  bool NodeStoreSol<TYPE>::IsComplex() {
+    return false;
   }
 
   template<>
-  Boolean NodeStoreSol<Complex>::IsComplex() {
-    return TRUE;
+  bool NodeStoreSol<Complex>::IsComplex() {
+    return true;
   }
 
 
@@ -102,10 +102,11 @@ namespace CoupledField {
   //   SetPtrEQNData
   // *****************
   template<class TYPE>
-  void NodeStoreSol<TYPE>::SetPtrEQNData( NodeEQN *ptNodeEQN, Grid *ptGrid ) {
+  void NodeStoreSol<TYPE>::SetPtrEQNData( EqnMap * eqnMap,
+                                          Grid *ptGrid ) {
     ENTER_FCN( "NodeStoreSol::SetPtrEQNData" );
-    ptEQN_ = ptNodeEQN;
     ptGrid_ = ptGrid;
+    eqnMap_ = eqnMap;
   }
 
 
@@ -159,22 +160,14 @@ namespace CoupledField {
       length_ = totalDofs_ * numNodes_;
 
       // Check for NULL-Pointer
-      if ( ptEQN_ == NULL ) {
+      if ( eqnMap_ == NULL ) {
         Error("NodeStoreSol::Init: Pointer to EQN is NULL!",
               __FILE__, __LINE__);
       }
       
-      // Determine the 'real' length of
-      // the solution vector, which depends on the 
-      // type of equation mapping
-      if ( ptEQN_->IsBlockMapped() ) {
-        lengthVector_ = ptEQN_->GetNumEQNs() * totalDofs_;
-        eqnDofs_ = totalDofs_;
-      } 
-      else {
-        lengthVector_ = ptEQN_->GetNumEQNs();
-        eqnDofs_ = 1;
-      }
+      // Determine the length of the solution vector
+      lengthVector_ = eqnMap_->GetNumEqns();
+      eqnDofs_ = 1;
 
       data_.Resize(lengthVector_);
       data_.Init(val);
@@ -282,11 +275,10 @@ namespace CoupledField {
       Error("NodeStoreSol:operator(): Only defined objects with one type of solution!",__FILE__,__LINE__);
 #endif
     Integer eqnNr;
-    UInt eqnDof;  
-    ptEQN_->Node2EQN(node+1,dof+1,eqnNr,eqnDof);
+    eqnNr = eqnMap_->GetNodeEqn( node+1, dof+1 );
 
     if (eqnNr > 0)
-      return data_[abs(eqnNr)-1+eqnDof-1];
+      return data_[abs(eqnNr)-1];
     else
       Error("NodeStoreSol::operator(): This operator gives only writing access to non-BC nodes.",
             __FILE__, __LINE__);
@@ -307,12 +299,11 @@ namespace CoupledField {
 #endif
   
     Integer eqnNr;
-    UInt eqnDof;  
-    ptEQN_->Node2EQN(node+1,dof+1,eqnNr,eqnDof);
+    eqnNr = eqnMap_->GetNodeEqn( node+1,dof+1 );
 
     Warning ("Is this operator ever be used?", __FILE__, __LINE__);
     if (eqnNr > 0)
-      return data_[abs(eqnNr)-1+eqnDof-1];
+      return data_[abs(eqnNr)-1];
     else
       return TYPE();
   }
@@ -329,34 +320,72 @@ namespace CoupledField {
 #endif
 
 
-    UInt offset = (*solOffset_.find(type)).second;
     UInt dof = (*solDofs_.find(type)).second;
 
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
 
-    Integer eqnNr;
-    UInt   eqnDof, dofsPerEQN;
     UInt globNumNodes = ptGrid_->GetNumNodes();
 
     temp.Resize(globNumNodes *dof);
-    dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
+    temp.Init();
 
-    UInt numLocNodes = ptEQN_->GetNumLocalNodes();
-    UInt globNode = 0;
-    for (UInt iNode=0; iNode<numLocNodes; iNode++) {
-      for (UInt iDof=0; iDof<dof; iDof++) {
-        globNode = ptEQN_->PDE2MeshNode(iNode+1);
-        ptEQN_->Node2EQN(globNode,iDof+1+offset,eqnNr,eqnDof);
+    UInt numDofs = result_->dofNames.GetSize();
+    StdVector<Integer> eqns;
+    
+    // Iterate over all entities
+    for( UInt i = 0; i < elems_.GetSize(); i++ ) {
+      
+      // Get iterator
+      EntityIterator it = elems_[i]->GetIterator();
+
+      for (it.Begin(); !it.IsEnd(); it++ ) {
+
+        // Get connectivity
+        StdVector<UInt> const & nodes  = it.GetElem()->connect;
+
+        // Get related equation numbers
+        eqnMap_->GetEqns( eqns, *result_, it );
+
+        // Iterate over all nodes
+        for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+          Integer globNode = nodes[iNode];
+          // Iterate over all dofs
+          for (UInt iDof = 0; iDof < numDofs; iDof++ ) {
+            
+            Integer eqnNr = eqns[iNode*numDofs+iDof];
+
+            if( eqnNr > 0 ) {
+              temp[(globNode-1)*numDofs + iDof] = data_[eqnNr-1];
+            } else if ( eqnNr == 0 ) {
+              temp[(globNode-1)*numDofs + iDof] = TYPE();
+            }
+          }
+        }
         
-        if (eqnNr > 0) 
-          temp[(globNode-1)*dof + iDof] = data_[(eqnNr-1) * dofsPerEQN + (eqnDof-1)];
-        else if (eqnNr == 0)
-          temp[(globNode-1)*dof + iDof] = TYPE();
-        else
-          temp[(globNode-1)*dof + iDof] = data_[(abs(eqnNr)-1) * dofsPerEQN + (eqnDof-1)];
-        
+
       }
-    } 
+    }
+    
+
+    // OLD-version
+//     dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
+
+//     UInt numLocNodes = ptEQN_->GetNumLocalNodes();
+//     UInt globNode = 0;
+//     for (UInt iNode=0; iNode<numLocNodes; iNode++) {
+//       for (UInt iDof=0; iDof<dof; iDof++) {
+//         globNode = ptEQN_->PDE2MeshNode(iNode+1);
+//         ptEQN_->Node2EQN(globNode,iDof+1+offset,eqnNr,eqnDof);
+        
+//         if (eqnNr > 0) 
+//           temp[(globNode-1)*dof + iDof] = data_[(eqnNr-1) * dofsPerEQN + (eqnDof-1)];
+//         else if (eqnNr == 0)
+//           temp[(globNode-1)*dof + iDof] = TYPE();
+//         else
+//           temp[(globNode-1)*dof + iDof] = data_[(abs(eqnNr)-1) * dofsPerEQN + (eqnDof-1)];
+        
+//       }
+//     } 
   }
 
 
@@ -415,22 +444,20 @@ namespace CoupledField {
 #endif
   
     UInt offset = (*solOffset_.find(type)).second;
-    UInt dofs = (*solDofs_.find(type)).second;
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
     
     Integer eqnNr;
-    UInt eqnDof, dofsPerEQN;
     UInt globNumNodes = ptGrid_->GetNumNodes();
     temp.Resize(globNumNodes);
-    dofsPerEQN = ptEQN_->GetNumDofsPerEQN();
-    UInt numLocNodes = ptEQN_->GetNumLocalNodes();
+    temp.Init();
+    UInt numLocNodes = eqnMap_->GetNumLocalNodes();
     UInt globNode = 0;
     for (UInt iNode=0; iNode<numLocNodes; iNode++) {
-      globNode = ptEQN_->PDE2MeshNode(iNode+1);
-      ptEQN_->Node2EQN(globNode,dof+1+offset,eqnNr,eqnDof);
+      globNode = eqnMap_->Pde2MeshNode(iNode+1);
+      eqnNr = eqnMap_->GetNodeEqn( globNode, dof+1+offset ); 
  
       if (eqnNr > 0) 
-        temp[globNode-1] = data_[(eqnNr-1) * dofsPerEQN + (eqnDof-1)];
+        temp[globNode-1] = data_[(eqnNr-1)];
       else if (eqnNr == 0)
         temp[globNode-1] = TYPE();
       else
@@ -450,7 +477,7 @@ namespace CoupledField {
     }
 #endif
   
-    Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
+    //Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
  
     Error ("Not working properly at the moment", __FILE__, __LINE__);
 
@@ -498,10 +525,9 @@ namespace CoupledField {
 #endif
 
     Integer eqnNr;
-    UInt eqnDof;
-    ptEQN_->Node2EQN( nodeNr + 1, dof + 1, eqnNr, eqnDof );
+    eqnNr = eqnMap_->GetNodeEqn( nodeNr + 1, dof + 1 );
     if ( eqnNr != 0 ) {
-      ret = data_[ abs(eqnNr)- 1 + eqnDof - 1];
+      ret = data_[ abs(eqnNr)- 1];
     }
     else {
       ret =  TYPE();
@@ -522,15 +548,13 @@ namespace CoupledField {
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
-    UInt offset = (*solOffset_.find(type)).second;
 
     Integer eqnNr;
-    UInt  eqnDof;
   
-    ptEQN_->Node2EQN(nodeNr+1,offset+dof+1,eqnNr,eqnDof);
+    eqnNr = eqnMap_->GetNodeEqn( *result_, nodeNr+1, dof+1);
 
     if (eqnNr != 0)
-      ret = data_[abs(eqnNr)-1+eqnDof-1];
+      ret = data_[abs(eqnNr)-1];
     else
       ret =  TYPE();
   }
@@ -547,12 +571,11 @@ namespace CoupledField {
     UInt offset = (*solOffset_.find(type)).second;
 
     Integer eqnNr;
-    UInt  eqnDof;
   
-    ptEQN_->Node2EQN(nodeNr+1,offset+dof+1,eqnNr,eqnDof);
+    eqnNr = eqnMap_->GetNodeEqn( nodeNr+1, offset+dof+1 );
 
     if (eqnNr != 0)
-      data_[abs(eqnNr-1)+eqnDof-1] = val;
+      data_[abs(eqnNr-1)] = val;
   }
 
   template<class TYPE>
@@ -654,7 +677,8 @@ namespace CoupledField {
   {
     ENTER_FCN("NodeStoreSol::SetAlgSysDataPointer");
   
-    data_.Replace( size, ptr, FALSE );
+    data_.Replace( size, ptr, false );
+
   }
 
 
@@ -679,6 +703,7 @@ namespace CoupledField {
 #endif
 
     Error("Not implemented here",__FILE__,__LINE__);
+    return NULL;
   }
 
 
@@ -691,19 +716,20 @@ namespace CoupledField {
   {
     ENTER_FCN( "NodeStoreSol::GetElemSolution" );
     Integer eqnNr;
-    UInt eqnDof;
 
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(elemSol);
   
     temp.Resize(totalDofs_*connect.GetSize());
+    temp.Init();
 
     for (UInt iDof=0; iDof<totalDofs_; iDof++)
       for (UInt iNode=0; iNode<connect.GetSize(); iNode++)
         {
-          ptEQN_->Node2EQN(connect[iNode],iDof+1,eqnNr,eqnDof);
+          eqnNr = eqnMap_->GetNodeEqn( connect[iNode], iDof+1 );
+
           if (eqnNr != 0)
             //temp[iDof][iNode] = data_[totalDofs_*(connect[iNode]-1) + iDof];
-            temp[iDof+iNode*totalDofs_] = data_[(abs(eqnNr)-1)*eqnDofs_ + eqnDof-1];
+            temp[iDof+iNode*totalDofs_] = data_[(abs(eqnNr)-1)*eqnDofs_];
           else
             temp[iDof + iNode*totalDofs_] = TYPE();
         }
@@ -720,20 +746,20 @@ namespace CoupledField {
 #endif
   
     Integer eqnNr;
-    UInt eqnDof;
     Matrix<TYPE> & temp = dynamic_cast<Matrix<TYPE>&>(elemSol);
 
     // Matrix<Double> & temp = dynamic_cast<Matrix<Double&>(elemSol);
 
     temp.Resize(totalDofs_,connect.GetSize());
+    temp.Init();
     //  std::cout<<"NodeStoreSol::GetElemSolAsMatrix"<<std::endl;
 
     for (UInt iDof=0; iDof<totalDofs_; iDof++)
       for (UInt iNode=0; iNode<connect.GetSize(); iNode++)
         {
-          ptEQN_->Node2EQN(connect[iNode],iDof+1,eqnNr,eqnDof);
+          eqnNr = eqnMap_->GetNodeEqn( connect[iNode], iDof+1);
           if (eqnNr != 0){
-            temp[iDof][iNode] = data_[(abs(eqnNr)-1)*eqnDofs_ + eqnDof-1];
+            temp[iDof][iNode] = data_[(abs(eqnNr)-1)];
             //      std::cout<<data_[abs(eqnNr-1)*eqnDofs_+eqnDof-1]<<"; ";
           }
           else
@@ -753,15 +779,14 @@ namespace CoupledField {
 
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(couplingSol);
     Integer eqnNr;
-    UInt eqnDof;
 
     temp.Resize(nodeNumbers.GetSize() * totalDofs_);
     for (UInt iNode=0; iNode<nodeNumbers.GetSize(); iNode++)
       for (UInt iDof=0; iDof<totalDofs_; iDof++)
         {
-          ptEQN_->Node2EQN(nodeNumbers[iNode], iDof+1, eqnNr, eqnDof);
+          eqnNr = eqnMap_->GetNodeEqn( nodeNumbers[iNode], iDof+1 );
           if (eqnNr != 0)
-            temp.data_[iNode*totalDofs_ + iDof] = data_[abs((eqnNr)-1)*eqnDofs_ + eqnDof-1];
+            temp.data_[iNode*totalDofs_ + iDof] = data_[abs((eqnNr)-1)];
           else
             temp.data_[iNode*totalDofs_ + iDof] = TYPE();
         }
@@ -774,6 +799,7 @@ namespace CoupledField {
   {
     ENTER_FCN("NodeStoreSol::operator=(const NodeStoreSol &");
     Error("Not implemented here", __FILE__,__LINE__); 
+    return *this;
   }
 
   template<class TYPE>

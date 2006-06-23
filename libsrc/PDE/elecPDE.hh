@@ -1,7 +1,6 @@
 #ifndef FILE_ELECPDE_NEW
 #define FILE_ELECPDE_NEW
 
-#include "scalarnodeEQN.hh"
 #include "SinglePDE.hh" 
 #include "Forms/elecforceop.hh"
 
@@ -97,7 +96,7 @@ namespace CoupledField
     void CalcOutputCoupling();
 
     //! Returns if PDE can compute the quantity
-    Boolean HasOutput(SolutionType output);
+    bool HasOutput(SolutionType output);
   
     //! Turn the piezo coupling on
 
@@ -106,18 +105,6 @@ namespace CoupledField
     //! is negative compared to the normal one
     void SetPiezoCoupling();
 
-    // ======================================================
-    // METHODS FORS ASSEMBLING
-    // ======================================================
-
-    //! add special nodes to the matrix graph (additional equations)
-    void SetupMatrixGraphSpecial();
-    
-    //! Assemble special equations (network coupling)
-    void AssembleSpecial( );
-
-
-    
 
   protected:
     
@@ -196,7 +183,7 @@ namespace CoupledField
     void ReadStoreResults();
 
     //! flag for piezo-coupling
-    Boolean isPiezoCoupled_;
+    bool isPiezoCoupled_;
 
     //! force operator (for coupling as well as postprocessing)
     ElecForceOp* ForceOp_;

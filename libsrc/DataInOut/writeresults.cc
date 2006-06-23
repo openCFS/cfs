@@ -20,7 +20,7 @@ namespace CoupledField {
     ENTER_FCN( "WriteResults::WriteResults" );
 
     namefile_ = filename;
-    NeedHistory_ = FALSE;
+    NeedHistory_ = false;
     ptGrid_ = NULL;
     totalNumHistFiles_ = 0;
     
@@ -126,7 +126,7 @@ namespace CoupledField {
     // Check if there are any history entites at all
     // and set NeedHistory_ flag accordingly
     if ( quantVec.GetSize() > 0 ) {
-      NeedHistory_ = TRUE;
+      NeedHistory_ = true;
     } else {
       return;
     }
@@ -286,6 +286,7 @@ namespace CoupledField {
 
     // Resize number of history files
     histEntFiles.Resize(quantities.GetSize());
+    histEntFiles.Init();
 
     // Iterate over all output quantities
     std::string quantityName;
@@ -338,6 +339,7 @@ namespace CoupledField {
 
       // For each node there will be one history file
       histEntFiles[iQuant].Resize(entitiesPerQuant[iQuant].GetSize());
+      histEntFiles[iQuant].Init();
 
       for ( UInt iEntity = 0; iEntity <entitiesPerQuant[iQuant].GetSize();
             iEntity++ ) {

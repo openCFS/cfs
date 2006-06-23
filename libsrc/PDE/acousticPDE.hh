@@ -73,13 +73,9 @@ namespace CoupledField {
                             UInt stepOffset = 0,
                             Double timeOffset = 0.0);
 
-    //! return size of solution
-    UInt getSize() const 
-    { return size_;}
-
 #ifdef ADAPTGRID
     //! test error of computation
-    virtual Boolean TestError(const UInt level);
+    virtual bool TestError(const UInt level);
 #endif
 
 
@@ -94,7 +90,7 @@ namespace CoupledField {
     void CalcOutputCoupling();
 
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(SolutionType output);
+    virtual bool HasOutput(SolutionType output);
   
     //! calculate the vector of coupling forces to the mechanical PDE
     void CalcMechCouplingRHS( StdVector<Elem*> * couplingElems, 
@@ -121,11 +117,11 @@ namespace CoupledField {
 
     //! 
     void SetMechanicCoupling() {
-      isMechCoupled_ = TRUE;
+      isMechCoupled_ = true;
     }
     //! 
     void SetNrbcCoupling() {
-      isNrbcCoupled_ = TRUE;
+      isNrbcCoupled_ = true;
     }
 
   protected:
@@ -136,26 +132,20 @@ namespace CoupledField {
     // ========================
     // set solution information
     // ========================    
-    Boolean isMechCoupled_; //!< indicator for mechanic coupling
+    bool isMechCoupled_; //!< indicator for mechanic coupling
     
-    UInt size_; //!< total number of unknowns (equations)
-
     SolutionType formulation_; //!< variable in which PDE is formulated
 
 
     //! indicator for mechanic coupling
-    Boolean isNrbcCoupled_;    
+    bool isNrbcCoupled_;    
 
     StdVector<RegionIdType> absBCs_; //!< subdomains, which form absorbing BCs
 
-    Boolean absorbingBCs_; //!< switch for absorbing BCs     
+    bool absorbingBCs_; //!< switch for absorbing BCs     
     
-    //Boolean fracDamping_; //!< switch indicating use of fractional damping
+    //bool fracDamping_; //!< switch indicating use of fractional damping
     
-    //! switch for special bcs in combination with slicing technique
-    Boolean m_bWriteSpecialBCs;
-
-
     // ========================
     // time stepping
     // ========================
@@ -197,8 +187,8 @@ namespace CoupledField {
     //! bubbledensity
     Double bubbleDensity_;
 
-    Boolean plotRHS_; //!< Flag for saving of rhs for output
-    Boolean plotRHSVel_; //!< Flag for saving of rhs as a vector field
+    bool plotRHS_; //!< Flag for saving of rhs for output
+    bool plotRHSVel_; //!< Flag for saving of rhs as a vector field
 
     // DODO
     // the grid adaption object

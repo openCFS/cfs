@@ -21,7 +21,7 @@
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
-#define CFS_VERSION  "0.2"
+#define CFS_VERSION  "0.5"
 
 #define PROGRESS_TEXT_WIDTH 62
 
@@ -31,9 +31,9 @@ namespace CoupledField {
   WriteInfo::WriteInfo () {
 
     ENTER_FCN( "WriteInfo::WriteInfo");
-    warningOccured_ = FALSE;
-    progressRunning_ = FALSE;
-    needAck_ = FALSE;
+    warningOccured_ = false;
+    progressRunning_ = false;
+    needAck_ = false;
 
     cfsInfo = NULL;
   }
@@ -503,13 +503,13 @@ namespace CoupledField {
     }
 #endif
 
-    if ( progressRunning_ == TRUE ) {
+    if ( progressRunning_ == true ) {
       std::cout << std::endl;
     }
 
     std::cerr << "\n \033[31mWARNING:\033[0m\n " << Text << myEndl;
 
-    warningOccured_ = TRUE;
+    warningOccured_ = true;
 
     if (filename) {
       std::cerr <<" (" << filename <<" ";
@@ -567,7 +567,7 @@ namespace CoupledField {
     // If a progress part is still there, then finish it with
     // a failure
     if ( progressRunning_ ) {
-      FinishProgress( FALSE );
+      FinishProgress( false );
     }
 
     std::cerr << std::endl << " \033[31mERROR:\033[0m\n" << myEndl;
@@ -625,15 +625,24 @@ namespace CoupledField {
   //   WriteHomBC
   // **************
   void WriteInfo::WriteHomDirBC( const std::string& pdeName,
-                                 const std::string& subDom, UInt dof ) {
+                                 HdBcList& list ) {
+                                 
     ENTER_FCN( "WriteInfo::WriteHomBC" );
-    
-    if (cfsInfo) {
-      *cfsInfo << pdeName << "-PDE: Homogenous Dirichlet BC on \"" << subDom
-               << "\"";
-      if (dof) {
-        *cfsInfo << " with DOF number " << dof;
+    std::string prefix = pdeName + "-PDE: ";
+
+    if (cfsInfo && list.GetSize() > 0) {
+      *cfsInfo << prefix << "Homogeneous Dirichlet BC defined on \n";
+      
+      for( UInt i = 0; i < list.GetSize(); i++ ) {
+        HomDirichletBc const & actBc = *list[i];
+        EntityList const & actList = *actBc.entities;
+        *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
+                 <<  EntityList::TypeToString( actList.GetType() )
+                 << "), dof = " 
+                 << actBc.result->GetDofName(actBc.dof)
+                 << std::endl;
       }
+
       *cfsInfo << myEndl;
     }
   }
@@ -642,20 +651,29 @@ namespace CoupledField {
   // ****************
   //   WriteInHomBC
   // ****************
-  void WriteInfo::WriteInhomDirBC( const std::string& pdeName,
-                                   const std::string& subDom, 
-                                   const std::string& val, const std::string & fnc,
-                                   const UInt& dof ) {
-
+  void WriteInfo::WriteInhomDirBC( const std::string& pdeName, 
+                                   IdBcList& list ) {
+    
     ENTER_FCN( "WriteInfo::WriteInHomBC" );
     
-    if (cfsInfo) {
-      *cfsInfo << pdeName << "-PDE: Inhomogenous Dirichlet BC on \""
-               << subDom  << "\"";
-      if (dof) {
-        *cfsInfo << " with DOF number " << dof;
+    std::string prefix = pdeName + "-PDE: ";
+
+    if (cfsInfo && list.GetSize() > 0 ) {
+      *cfsInfo << prefix << "Inhomogeneous Dirichlet BC defined on \n";
+      
+      for( UInt i = 0; i < list.GetSize(); i++ ) {
+        InhomDirichletBc const & actBc = *list[i];
+        EntityList const & actList = *actBc.entities;
+        *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
+                 <<  EntityList::TypeToString( actList.GetType() )
+                 << "), dof = " 
+                 << actBc.result->GetDofName(actBc.dof)
+                 << ", value = " << actBc.value
+                 << ", phase = " << actBc.phase 
+                 << ", dynamics = " << actBc.dynamics 
+                 << std::endl;
       }
-      *cfsInfo << ", value = " <<  val << ", FncName: " << fnc; 
+
       *cfsInfo << myEndl;
     }
   }
@@ -663,54 +681,90 @@ namespace CoupledField {
   // *******************
   //   WriteInhomNeuBC
   // *******************
-  void WriteInfo::WriteInhomNeuBC( const std::string& pdeName,
-                                   const std::string& subDom) { 
+  void WriteInfo::WriteInhomNeuBC( const std::string& pdeName, 
+                                   InBcList& list ) {
     
     ENTER_FCN( "WriteInfo::WriteInHomNeuBC" );
+    std::string prefix = pdeName + "-PDE: ";
     
-    if (cfsInfo) {
-      *cfsInfo << pdeName << "-PDE: Inhomogenous Neumann BC on \""
-               << subDom  << "\"";
-      *cfsInfo << myEndl;
+    if (cfsInfo && list.GetSize() > 0 ) {
+      *cfsInfo << prefix << "Inhomogeneous Neumann BC defined on \n";
+      
+      for( UInt i = 0; i < list.GetSize(); i++ ) {
+        InhomNeumannBc const & actBc = *list[i];
+        EntityList const & actList = *actBc.entities;
+        *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
+                 <<  EntityList::TypeToString( actList.GetType() )
+                 << "), dof = " 
+                 << actBc.result->GetDofName(actBc.dof)
+                 << ", value = " << actBc.value
+                 << ", phase = " << actBc.phase 
+                 << ", dynamics = " << actBc.dynamics 
+                 << std::endl;
+      }
     }
+    *cfsInfo << myEndl;
   }
 
 
   // ********************
   //   WriteConstraints
   // ********************
-  void WriteInfo::WriteConstraints( const std::string& pdeName,
-                                    const std::string& subDom, UInt dof ) {
+  void WriteInfo::WriteConstraints(  const std::string& pdeName, 
+                                     ConstraintList& list ) {
     ENTER_FCN( "WriteInfo::WriteConstraints" );
     
-    if (cfsInfo) {
-      *cfsInfo << pdeName << "-PDE: Constraints on \"" << subDom
-               << "\"";
-      if (dof) {
-        *cfsInfo << " with DOF number " << dof;
+   std::string prefix = pdeName + "-PDE: ";
+    
+    if (cfsInfo && list.GetSize() > 0 ) {
+      *cfsInfo << prefix << "Constraints defined on \n";
+      
+      for( UInt i = 0; i < list.GetSize(); i++ ) {
+        Constraint const & actBc = *list[i];
+        EntityList const & masterList = *actBc.masterEntities;
+        EntityList const & slaveList = *actBc.masterEntities;
+        *cfsInfo << prefix << "\tMaster: '" << masterList.GetName() 
+                 << "' (" 
+                 <<  EntityList::TypeToString( masterList.GetType() )
+                 << "), dof = " 
+                 << actBc.result->GetDofName(actBc.masterDof)
+                 << "\tSlave: '"<< slaveList.GetName() 
+                 << "' (" 
+                 <<  EntityList::TypeToString( slaveList.GetType() )
+                 << "), dof = " 
+                 << actBc.result->GetDofName(actBc.slaveDof)
+          
+                 << std::endl;
       }
-      *cfsInfo << myEndl;
     }
+    *cfsInfo << myEndl;
+
   }
 
 
-  void WriteInfo::WriteLoad(const std::string& pdeName,
-                            const std::string& subDom, 
-                            std::string value, const std::string & fnc,
-                            UInt dof)
-  {
+  void WriteInfo::WriteLoad(const std::string& pdeName, 
+                            LoadList& list ) {
     ENTER_FCN( "WriteInfo::WriteLoad" );
-
-    if (cfsInfo)
-      {
-        *cfsInfo << pdeName << "-PDE: Loads on \"" << subDom << "\"";
-        
-        if (dof)
-          *cfsInfo << " with DOF number " << dof;
-        
-        *cfsInfo << ", Value=" << value <<  ", FncName: " << fnc <<  myEndl
-                 << myEndl;
+    
+    std::string prefix = pdeName + "-PDE: ";
+    
+    if (cfsInfo && list.GetSize() > 0 ) {
+      *cfsInfo << prefix << "Load defined on \n";
+      
+      for( UInt i = 0; i < list.GetSize(); i++ ) {
+        LoadBc const & actBc = *list[i];
+        EntityList const & actList = *actBc.entities;
+        *cfsInfo << prefix << "\t'" << actList.GetName() << "' (" 
+                 <<  EntityList::TypeToString( actList.GetType() )
+                 << "), dof = " 
+                 << actBc.result->GetDofName(actBc.dof)
+                 << ", value = " << actBc.value
+                 << ", phase = " << actBc.phase 
+                 << ", dynamics = " << actBc.dynamics 
+                 << std::endl;
       }
+    }
+    *cfsInfo << myEndl;
   }
   
 
@@ -819,7 +873,7 @@ namespace CoupledField {
   // *****************
   //   StartProgress
   // *****************
-  void WriteInfo::StartProgress( const std::string &name, Boolean needAck ) {
+  void WriteInfo::StartProgress( const std::string &name, bool needAck ) {
 
     ENTER_IFCN( "WriteInfo::StartProgress" );
    
@@ -833,8 +887,8 @@ namespace CoupledField {
               << std::flush;
 
     if ( needAck ) {
-      warningOccured_ = FALSE;
-      progressRunning_ = TRUE;
+      warningOccured_ = false;
+      progressRunning_ = true;
     }
     else {
       std::cout << std::endl;
@@ -847,16 +901,16 @@ namespace CoupledField {
   // ******************
   //   FinishProgress
   // ******************
-  void WriteInfo::FinishProgress( const Boolean success ) {
+  void WriteInfo::FinishProgress( const bool success ) {
 
     ENTER_IFCN( "WriteInfo::StartProgress" );
 
-    bool okay = ( warningOccured_ == FALSE ) && ( success == TRUE );
+    bool okay = ( warningOccured_ == false ) && ( success == true );
 
     if ( okay == true ) {
       std::cout << std::setw(10) << "\033[32mOK\033[0m" << std::endl;
     }
-    else if ( success == FALSE ) {
+    else if ( success == false ) {
       std::cout << std::setw(10) << "\033[31mFAILED\033[0m" << std::endl;
     }
     else {
@@ -864,8 +918,8 @@ namespace CoupledField {
     }
 
     // re-set flags
-    warningOccured_  = FALSE;
-    progressRunning_ = FALSE;
+    warningOccured_  = false;
+    progressRunning_ = false;
   }
 
   

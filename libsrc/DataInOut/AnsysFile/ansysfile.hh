@@ -204,7 +204,7 @@ namespace CoupledField {
     //! This method looks in the mesh file, if the following line to a given
     //! position is empty,
     //! \param actPos (input) last position of file pointer before next line
-    Boolean IsNextLineEmpty(const std::string::size_type actPos);
+    bool IsNextLineEmpty(const std::string::size_type actPos);
   
 
     //! Returns the position of a new line right after a given expression
@@ -263,7 +263,7 @@ namespace CoupledField {
     StdVector<UInt> regionDim_;
     
     //! Array indicating if elems of given dimension were read in
-    StdVector<Boolean> elemDimReadIn_;
+    StdVector<bool> elemDimReadIn_;
 
     //! Vectpr with nodal numbers for each region
     StdVector<std::set<UInt> > regionNodes_;

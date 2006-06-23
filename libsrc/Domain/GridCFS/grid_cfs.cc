@@ -21,8 +21,8 @@ namespace CoupledField
 
     inFile_ = aptFileType;
 
-    isInitialized_ = FALSE;
-    isQuadratic_ = FALSE;
+    isInitialized_ = false;
+    isQuadratic_ = false;
     dim_ = 0;
     numNodes_ = 0;
     numElems_ = 0;
@@ -97,7 +97,7 @@ namespace CoupledField
 
         // Check, if quadratic elements are in the grid
         if  ( ptFE->GetNumCorners() < ptFE->GetNumNodes() ) {
-          isQuadratic_ = TRUE;
+          isQuadratic_ = true;
         }
         
         // Add type of FE to map
@@ -151,9 +151,17 @@ namespace CoupledField
     FormNeighborsLists();
 #endif
 
-    isInitialized_ = TRUE;
+    isInitialized_ = true;
   }
 
+
+ template<UInt DIM>
+ void GridCFS<DIM>::MapSubEntities() {
+   ENTER_FCN( "GridCFS::MapSubEntities" );
+   std::cerr << "In GridCFS::MapSubEntities\n";
+
+
+ }
 
   // ======================================================
   // GENERAL GRID INFORMATION
@@ -398,7 +406,8 @@ namespace CoupledField
   
   template<UInt DIM>
   void GridCFS<DIM>::GetNodeCoordinate( Point<DIM> & rfPoint,
-                                        const UInt inode ) {
+                                        const UInt inode, 
+                                        bool updated ) {
     ENTER_FCN( "GridCFS::GetNodeCoordinate" );
     
     if ( inode > numNodes_ || inode < 0 ) {
@@ -407,13 +416,20 @@ namespace CoupledField
                << "node number " << inode <<". Go check your mesh file!";
       Error( __FILE__, __LINE__ );
     }
-    
+
     rfPoint = coords_[inode-1];
+    
+    if( updated == true && deltCoords_.GetSize() != 0 ) {
+      rfPoint += deltCoords_[inode-1];
+    }
+
+
   }
   
   template<UInt DIM>
   void GridCFS<DIM>::GetNodeCoordinate( Vector<Double> & rfPoint,
-                                        const UInt inode ) {
+                                        const UInt inode, 
+                                        bool updated ) {
     ENTER_FCN( "GridCFS::GetNodeCoordinate" );
 
     if ( inode > numNodes_ || inode < 0 ) {
@@ -423,6 +439,11 @@ namespace CoupledField
       Error( __FILE__, __LINE__ );
     }
     rfPoint = coords_[inode-1];
+    if( updated == true && deltCoords_.GetSize() != 0 ) {
+      for( UInt iDim = 0; iDim < DIM; iDim++ ) {
+        rfPoint[iDim] += deltCoords_[inode-1][iDim];
+      }
+    }
   }
     
   // ======================================================
@@ -584,13 +605,28 @@ namespace CoupledField
 
   template<UInt DIM>
   void GridCFS<DIM>::GetElemNodesCoord( Matrix<Double> & coordMat,  
-                                        const StdVector<UInt> & connect ) {
+                                        const StdVector<UInt> & connect,
+                                        bool updated ) {
     ENTER_FCN( "GridCFS::GetElemNodesCoord" );
 
     coordMat.Resize(dim_, connect.GetSize());
-    for (UInt k=0; k < connect.GetSize(); k++)    
-      for (UInt actDim=0; actDim < dim_; actDim++)
-        coordMat[actDim][k] = coords_[connect[k]-1][actDim];
+
+    if( updated == true && deltCoords_.GetSize() != 0 ) {
+      for (UInt k=0; k < connect.GetSize(); k++) {
+        for (UInt actDim=0; actDim < dim_; actDim++) {
+          coordMat[actDim][k] = coords_[connect[k]-1][actDim];
+          //std::cerr << "\n coordMat before:\n" << coordMat << "\n\n";
+          coordMat[actDim][k] += deltCoords_[connect[k]-1][actDim];
+          //std::cerr << "\n coordMat after:\n" << coordMat << "\n\n";
+        }
+      }
+    } else {
+      for (UInt k=0; k < connect.GetSize(); k++)    
+        for (UInt actDim=0; actDim < dim_; actDim++)
+          coordMat[actDim][k] = coords_[connect[k]-1][actDim];
+    }
+
+
   }
   
   template<UInt DIM>
@@ -599,7 +635,7 @@ namespace CoupledField
                                           const StdVector<RegionIdType> 
                                           & regionIds ) {
     ENTER_FCN( "GridCFS::GetElemsNextToNodes" );
-    Boolean belongs2Interface;
+    bool belongs2Interface;
 
     StdVector<UInt> map;
     Integer index = 0;
@@ -663,7 +699,7 @@ namespace CoupledField
   template<UInt DIM>
   void GridCFS<DIM>::GetNodesOfElemList( StdVector<UInt> & nodeList,
                                          const StdVector<Elem*> & elemList,
-					 Boolean onlyLinNodes) {
+					 bool onlyLinNodes) {
     ENTER_FCN( "GridCFS::GetNodesOfElemList" );
 
     std::set<UInt> elemNodes;
@@ -674,7 +710,7 @@ namespace CoupledField
     for ( iElem = 0; iElem < elemList.GetSize(); iElem++ ) {
       StdVector<UInt> const & connecth = elemList[iElem]->connect;
       
-      if (onlyLinNodes == TRUE)
+      if (onlyLinNodes == true)
 	numElemCorners = elemList[iElem]->ptElem->GetNumCorners();
       else
 	numElemCorners = connecth.GetSize();
@@ -701,6 +737,38 @@ namespace CoupledField
     
   }
 
+  template<UInt DIM>
+  void GridCFS<DIM>::SetNodeOffset( const StdVector<UInt>& nodes, 
+                                    const Vector<Double>& offsets ) {
+    ENTER_FCN( "GridCFS::SetNodeOffset" );
+
+    // Check if node offsets were already set
+    if( deltCoords_.GetSize() == 0 ) {
+      deltCoords_.Resize( coords_.GetSize() );
+      deltCoords_.Init();
+    }
+
+    // Set delta coordinates
+    for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+      Point<DIM> actOffset;
+      for( UInt iDim = 0; iDim < DIM; iDim++ ) {
+        actOffset[iDim] = offsets[iNode*DIM + iDim];
+      }
+      deltCoords_[nodes[iNode]-1] = actOffset;
+    }
+  }
+
+  template<UInt DIM>
+  bool GridCFS<DIM>::HasNodalOffset() {
+    ENTER_FCN( "GridCFS::HasNodalOffset()" );
+
+    if( deltCoords_.GetSize() != 0 ) {
+      return true;
+    } else {
+      return false;
+    }
+     
+  }
 
   // =======================================================================
   // Helper Methods
@@ -715,6 +783,7 @@ namespace CoupledField
     UInt nrNodes, iRegion, iElem;
     Elem * ptVolElem = NULL;
     elemNrPerNode.Resize(numNodes_);
+    elemNrPerNode.Init();
 
     // 2.) Iterate over all volume elements and add for each
     //     element node the element number 
@@ -738,10 +807,12 @@ namespace CoupledField
     // surface elements
     SurfElem *myElem;
     surfElems_.Resize(elems.GetSize());
+    surfElems_.Init();
     
     for ( UInt iRegion = 0; iRegion < elems.GetSize(); iRegion++ ) {
 
       surfElems_[iRegion].Resize(elems[iRegion].GetSize());
+      surfElems_[iRegion].Init();
 
       for (UInt iSurfElem = 0; iSurfElem < elems[iRegion].GetSize();
            iSurfElem++ ) {
@@ -863,10 +934,11 @@ namespace CoupledField
           surfElems_[iRegion][iSurfElem]->normalSign = 0;
         } else {
           
-          CalcSurfNormal( normalUndefSign, *surfElems_[iRegion][iSurfElem] );
+          CalcSurfNormal( normalUndefSign, *surfElems_[iRegion][iSurfElem], false );
           CalcSurfNormalOutOfVol( normalDefSign, 
                                   *surfElems_[iRegion][iSurfElem],
-                                  *surfElems_[iRegion][iSurfElem]->ptVolElem1 );
+                                  *surfElems_[iRegion][iSurfElem]->ptVolElem1,
+                                  false );
           
           
           // Check if all entries have the same sign by calulating
@@ -907,13 +979,14 @@ namespace CoupledField
   
   template<UInt DIM>
   void GridCFS<DIM>::CalcSurfNormal( Vector<Double> & n, 
-                                     const Elem & surfElem ) {
+                                     const Elem & surfElem,
+                                     bool updated ) {
     ENTER_FCN( "GridCFS::CalcSurfNormal" );
     
     //compute normal vector
     Matrix<Double>  ptCoord;
 
-    GetElemNodesCoord(ptCoord, surfElem.connect);
+    GetElemNodesCoord(ptCoord, surfElem.connect, updated );
     UInt surfCorners = surfElem.ptElem->GetNumCorners();
  
     // Check for dimension:
@@ -956,7 +1029,8 @@ namespace CoupledField
   template<UInt DIM>
   void GridCFS<DIM>::CalcSurfNormalOutOfVol(Vector<Double> & n,
                                             const Elem & surfElem,
-                                            const Elem & volElem)
+                                            const Elem & volElem,
+                                            bool updated )
   {
     ENTER_IFCN( "GridCFS::CalcSurfNormalOutOfVol" );
 
@@ -964,11 +1038,11 @@ namespace CoupledField
     Matrix<Double>  ptVolCoord, ptSurfCoord;
 
     // First, calculate undefined normal
-    CalcSurfNormal(n, surfElem);
+    CalcSurfNormal(n, surfElem, updated );
 
-    GetElemNodesCoord(ptSurfCoord, surfElem.connect);
-    GetElemNodesCoord(ptVolCoord, volElem.connect);
-  
+    GetElemNodesCoord(ptSurfCoord, surfElem.connect, updated );
+    GetElemNodesCoord(ptVolCoord, volElem.connect, updated );
+    
 
     UInt volCorners = volElem.ptElem->GetNumCorners();
  
@@ -995,8 +1069,8 @@ namespace CoupledField
     
     
       // counterclockwise orientation of nodes (difference of node indizes is +1)
-      if ( (indexNode2-indexNode1 == -1 || 
-            (indexNode2-indexNode1)- volCorners == -1 ) ) {
+      if ( ( indexNode2-indexNode1  == -1 || 
+            (indexNode2-indexNode1)- (Integer) volCorners == -1 ) ) {
         n *= -1;
       }
     
@@ -1047,7 +1121,8 @@ namespace CoupledField
   }
   template<UInt DIM>
   Double GridCFS<DIM>::CalcVolumeOfRegion( const RegionIdType regionId,
-                                           Boolean isaxi) {
+                                           bool isaxi,
+                                           bool updated ) {
     ENTER_FCN( "GridCFS::GetVolumeOfRegion" );
 
     StdVector<Elem*> elems;
@@ -1057,7 +1132,7 @@ namespace CoupledField
     GetElems(elems,regionId);
 
     for( UInt i = 0; i < elems.GetSize(); i++ ) {
-      GetElemNodesCoord(cornerCoords, elems[i]->connect);
+      GetElemNodesCoord(cornerCoords, elems[i]->connect, updated );
       volume += elems[i]->ptElem->CalcVolume(cornerCoords, isaxi);
     }
 
@@ -1571,7 +1646,7 @@ namespace CoupledField
     Integer i,j;
     for (i=0; i<sd_.GetSize(); i++) {
       for (j=0; j<elems_[i].GetSize(); j++) {
-        elems_[i][j]->refinementFlag=TRUE;
+        elems_[i][j]->refinementFlag=true;
       }
     }
   }
@@ -1632,7 +1707,7 @@ namespace CoupledField
   //        Elem* ptel = vtNeighbors_[id-1][n];           
 
   //        if (ptel != elems_[i][j]) {           // check that this element is not the same element for which we are looking for neighbors
-  //          Boolean flag = false;
+  //          bool flag = false;
   //          for (m = 0; m < (*elNeighbors_[i])[j].GetSize(); m++) { // check that this element is new in list of neighbors
   //            Elem* ptel_tmp = (*elNeighbors_[i])[j][m];
   //            if (ptel_tmp == ptel)
@@ -1740,7 +1815,7 @@ namespace CoupledField
   //     for (ise=0; ise<noOfSurfElems; ise++) 
   //       { // loop over surface elements
       
-  //    Boolean FoundNd=FALSE;
+  //    bool FoundNd=false;
   //    Elem * ptAuxElem;
       
   //    StdVector<Integer> &connectSE=elemsSurf[ise]->connect;
@@ -1766,12 +1841,12 @@ namespace CoupledField
   //          Integer verSE=connectSE[je];
             
   //          //loop over vertices of the element
-  //          FoundNd=FALSE;
+  //          FoundNd=false;
   //          StdVector<Integer> &vertices=ptAuxElem->connect;
   //          Integer ivt;
   //          for(ivt=0;ivt<vertices.GetSize();ivt++) {
   //            if (verSE==vertices[ivt]) {
-  //              FoundNd=TRUE;
+  //              FoundNd=true;
   //              break;
   //            }
   //          } // end of loop over vertices of neigh-element
@@ -1793,31 +1868,31 @@ namespace CoupledField
 //   template<UInt DIM> void
 //   GridCFS<DIM>::CalcNumberOfNodesInPatch(const StdVector<Elem*> & patch,
 // 					 StdVector<Integer> & map, 
-// 					 Boolean OnlyLinNodes)
+// 					 bool OnlyLinNodes)
 //   {
 //     ENTER_FCN( "GridCFS::CalcNumberOfNodesInPatch" );
 
 //     Integer iels,ivc,imp;
 //     StdVector<Integer> vec_connect;
-//     Boolean NewNode;
+//     bool NewNode;
 
 //     for (iels=0; iels<patch.GetSize(); iels++) // loop over elements in patch
 //       {
      
 // 	vec_connect=patch[iels]->connect;
 // 	Integer numElemCorners;
-// 	if (OnlyLinNodes == TRUE)
+// 	if (OnlyLinNodes == true)
 // 	  numElemCorners = patch[iels]->ptElem->GetNumCorners();
 // 	else
 // 	  numElemCorners = vec_connect.GetSize();
 	
 // 	for (ivc=0; ivc<numElemCorners; ivc++) {
-// 	  NewNode=TRUE;
+// 	  NewNode=true;
 // 	  // loop over vector with global nodes for previous elements
 // 	  for (imp=0; imp<map.GetSize(); imp++) {
 // 	    // check that this node is not new
 // 	    if (map[imp] == vec_connect[ivc]) { 
-// 	      NewNode=FALSE;
+// 	      NewNode=false;
 // 	    }	 
 // 	  }
 
@@ -1867,7 +1942,7 @@ namespace CoupledField
   //     for (ise=0; ise<noOfSurfElems; ise++) 
   //       { // loop over surface elements
         
-  //    Boolean FoundNd=FALSE;
+  //    bool FoundNd=false;
   //    Elem * ptAuxElem;
         
   //    StdVector<Integer> &connectSE=surfElems[ise]->connect;
@@ -1893,12 +1968,12 @@ namespace CoupledField
   //          Integer verSE=connectSE[je];
               
   //          //loop over vertices of the element
-  //          FoundNd=FALSE;
+  //          FoundNd=false;
   //          StdVector<Integer> &vertices=ptAuxElem->connect;
   //          Integer ivt;
   //          for(ivt=0;ivt<vertices.GetSize();ivt++) {
   //            if (verSE==vertices[ivt]) {
-  //              FoundNd=TRUE;
+  //              FoundNd=true;
   //              break;
   //            }
   //          } // end of loop over vertices of neigh-element

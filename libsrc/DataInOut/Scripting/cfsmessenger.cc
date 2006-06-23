@@ -1,5 +1,6 @@
 #include "cfsmessenger.hh"
 
+#include "PDE/SinglePDE.hh"
 namespace CoupledField {
 
 
@@ -15,7 +16,7 @@ namespace CoupledField {
     eventNumParams_[CFS_SetBCs] = 3;
     eventNumParams_[CFS_PostProcess] = 3;
 
-    isEvaluating_ = FALSE;
+    isEvaluating_ = false;
     
   }
   
@@ -27,21 +28,21 @@ namespace CoupledField {
     ENTER_FCN( "CFSMessenger::ReadScriptFile" );
   }
 
-  Boolean CFSMessenger::
+  bool CFSMessenger::
   TriggerEvent( const EventType event, 
                 const StdVector<std::string> & context) {
     ENTER_FCN( "CFSMessenger::TriggerEvent" );
 
     // Nothing to do here, since we do not perform any scripting from
     // within c++ itself (...)
-    return TRUE;
+    return true;
   }
   
   void CFSMessenger::Error( const Char * msg, const Char * const filename,
                             const UInt numline) {
     // trick: Pretend, that no script is executing and simply
     // pass the error back to the global function
-    isEvaluating_ = FALSE;
+    isEvaluating_ = false;
     Info->Error( msg, filename, numline );
     
   }
@@ -50,21 +51,21 @@ namespace CoupledField {
                             const UInt numline) {
     // trick: Pretend, that no script is executing and simply
     // pass the error back to the global function
-    isEvaluating_ = FALSE;
+    isEvaluating_ = false;
     Info->Warning( msg, filename, numline );
     
   }
     
-  Boolean CFSMessenger::CFSEval( const StdVector<std::string> & args,
+  bool CFSMessenger::CFSEval( const StdVector<std::string> & args,
                                  StdVector<std::string> & retVal ) {
     ENTER_FCN( "CFSMessenger::CFSEval" );
 
     UInt argOffset = 2;
-    Boolean success = FALSE;
+    bool success = false;
     
     if ( args.GetSize() == 1 ) {
       errMsg_ = "No arguments given";
-      return FALSE;
+      return false;
     } 
 
     // Dispatch function call
@@ -94,7 +95,7 @@ namespace CoupledField {
       success = domain->GetGrid()->Script_Eval(args, argOffset, retVal);
 
     } else {
-      success = FALSE;
+      success = false;
       std::ostringstream msg;
       msg << "Command '" << args[1] << "' is not known!";
       errMsg_ = msg.str();

@@ -11,31 +11,35 @@ namespace CoupledField
   class Domain;
   class WriteResults;
 
-  //! a base class for driving classes where we implemented time-stepping
+  //! Base class for driving classes where we implemented time-stepping
   class BaseDriver
   {
   public:
-    //! constructor
-    /*!
-      \param adomain pointer to class Domain
-    */
+
+    //! Constructor
+    //! \param adomain pointer to class Domain
     BaseDriver(Domain * adomain);
 
-    //! deconstructor
+    //! Destructor
     virtual ~BaseDriver();
-
-    //! main method, where time-stepping is implemented. it is for transient and static problem
+    
+    //! Main method for solvin the problem
     virtual void SolveProblem()=0;
 
-    //! to setup matrices of PDE. we call according method of class PDE for setup matrices of PDE in assembling procedure.
-    /*!
-      \param pdenumber number of PDE
-      \param matrixtype type of matrix
-    */
-    virtual void SetupMatricesPDE(UInt pdenumber, const FEMatrixType matrixtype)
-    { Error("SetupMatricesPDE not implemented in base class!",__FILE__,__LINE__); };
+    //! Return current analysistype
+
+    //! Returns the current analysistype. 
+    //! \param pdeName Name of the pdename in case there is a coexistence
+    //!                of two different analysistypes in one analysisstep
+    //!                (e.g. transient-harmonic)
+    virtual AnalysisType GetAnalysisType( const std::string& pdename) { 
+      return analysis_; }
   
   protected:
+    
+    //! type of analysis
+    AnalysisType analysis_;
+
     //! pointer to class Domain
     Domain * ptdomain_;
 
@@ -50,7 +54,7 @@ namespace CoupledField
     void PrintSeqMeshes();
 
     //! auxiliary function for computation with adaptivity: open files for printing sequence of refined meshes with error map 
-    Boolean printMeshesOrNot();
+    bool printMeshesOrNot();
   
   private:
   

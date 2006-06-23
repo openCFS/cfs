@@ -214,7 +214,7 @@ namespace CoupledField {
     //! perform an actual simulation, but to only import the grid and
     //! re-export it to an output file in the format specified in the XML
     //! parameter file.
-    virtual Boolean GetPrintGrid() const = 0;
+    virtual bool GetPrintGrid() const = 0;
 
     //! Return showEqnMap flag
 
@@ -223,7 +223,7 @@ namespace CoupledField {
     //! maps that relates global to region-local node numbers and node number
     //! to equation number in the algebraic system. The maps are written to
     //! the standard OLAS report file.
-    virtual Boolean GetShowEqnMap() const = 0;
+    virtual bool GetShowEqnMap() const = 0;
 
     //! Return doProfile flag
 
@@ -234,14 +234,14 @@ namespace CoupledField {
     //! simulation run.
     //! \note The flag is only of use in the case that profiling was enabled
     //!       during compilation by defining the PROFILING macro.
-    virtual Boolean GetDoProfile() const = 0;
+    virtual bool GetDoProfile() const = 0;
 
 
     //! Return Restart flag
 
     //! This method can be used to query the status of the restart flag.
     //! If this flag is true the simulation restarts from an previous state.
-    virtual Boolean GetRestart() const = 0;
+    virtual bool GetRestart() const = 0;
 
     //! Return writeSkeleton flag
 
@@ -249,7 +249,7 @@ namespace CoupledField {
     //! As a convenience for the CFS++ user it is possible to let the
     //! executable write a skeleton XML parameter file that must then be
     //! filled out by the user for a subsequent simulation run.
-    virtual Boolean GetWriteSkeleton() const = 0;
+    virtual bool GetWriteSkeleton() const = 0;
 
     //! Return depth of function tracing
 
@@ -371,9 +371,9 @@ namespace CoupledField {
     //! This method returns the default value for --printGrid parameter.
     //! The current default is to perform a full simulation and to not only
     //! print the grid.
-    //! \return FALSE
-    Boolean DefaultPrintGrid() const {
-      return FALSE;
+    //! \return false
+    bool DefaultPrintGrid() const {
+      return false;
     }
 
     //! Returns default value for --showEqnMap parameter
@@ -381,9 +381,9 @@ namespace CoupledField {
     //! This method returns the default value for the --showEqnMap parameter.
     //! The current default is not to report the node number <-> equation
     //! number mapping.
-    //! \return FALSE
-    Boolean DefaultShowEqnMap() const {
-      return FALSE;
+    //! \return false
+    bool DefaultShowEqnMap() const {
+      return false;
     }
 
     //! Returns default value for --writeSkeleton parameter
@@ -391,9 +391,9 @@ namespace CoupledField {
     //! This method returns the default value for --writeSkeleton parameter.
     //! The current default is to perform a full simulation and to not only
     //! write a skeleton XML-file.
-    //! \return FALSE
-    Boolean DefaultWriteSkeleton() const {
-      return FALSE;
+    //! \return false
+    bool DefaultWriteSkeleton() const {
+      return false;
     }
 
     //! Returns default value for --schemaPath parameter
@@ -411,17 +411,17 @@ namespace CoupledField {
     //! This method returns the default value for --doProfile parameter.
     //! The default is not to generate profile information via system calls,
     //! since this can considerable slow down run-time.
-    //! \return FALSE
-    Boolean DefaultDoProfile() const {
-      return FALSE;
+    //! \return false
+    bool DefaultDoProfile() const {
+      return false;
     }
 
     //! Returns default value for --Restart parameter
 
     //! This method returns the default value for --Restart parameter.
-    //! \return FALSE
-    Boolean DefaultRestart() const {
-      return FALSE;
+    //! \return false
+    bool DefaultRestart() const {
+      return false;
     }
 
     //@}
@@ -445,7 +445,7 @@ namespace CoupledField {
     //! line parameters to the specified output stream. The values include
     //! the parameters supplied on the command line and the default values for
     //! those parameters where no value was supplied.
-    void PrintParams( std::ostream &out, Boolean colorise = TRUE );
+    void PrintParams( std::ostream &out, bool colorise = true );
 
     //@}
   };

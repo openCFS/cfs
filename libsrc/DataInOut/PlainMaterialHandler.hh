@@ -46,11 +46,11 @@ namespace CoupledField
     int scaleMatDat;
         
     /// read piezolectric material data
-    void ReadPiezo(std::ifstream & fin, BaseMaterial * material, Boolean & matC);
+    void ReadPiezo(std::ifstream & fin, BaseMaterial * material, bool & matC);
 
     /// read mechanic material data
     void ReadMechanic(std::ifstream & fin, BaseMaterial * material, 
-		      Boolean & matC);
+		      bool & matC);
 
     /// read fluid material data
     void ReadAcoustic(std::ifstream & fin, BaseMaterial* material);
@@ -65,7 +65,7 @@ namespace CoupledField
     void ReadMagnetic(std::ifstream & fin, BaseMaterial * material);
 
     /// read linear electrostatic material data
-    void ReadElectrostatic(std::ifstream & fin, BaseMaterial * material,  Boolean & matC);
+    void ReadElectrostatic(std::ifstream & fin, BaseMaterial * material,  bool & matC);
 
     /// read next line of materialfile
     void ReadLine(std::ifstream & fin, char* buffer);

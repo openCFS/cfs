@@ -15,17 +15,20 @@ namespace CoupledField
  
   ElecForceOp::ElecForceOp(Grid * ptGrid,
                            StdPDE * ptPDE,
-                           NodeEQN * ptEQN,
+                           shared_ptr<EqnMap> eqnMap,
                            NodeStoreSol<Double> & sol,
                            UInt dim,
                            std::map<RegionIdType,BaseMaterial*>& matData,
-                           Boolean isaxi) 
-    : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, isaxi)
+                           shared_ptr<ResultDof> result,
+                           bool isaxi, bool coordUpdate ) 
+    : BaseForceOp(ptGrid, ptPDE, eqnMap, sol, dim, 
+                  matData, isaxi, coordUpdate)
   {
     ENTER_FCN( "ElecForceOp::ElecForceOp" );
 
-    gradFieldOp_ = new GradientFieldOp<Double>(ptGrid, ptPDE, ptEQN, 
-                                               sol, ELEC_POTENTIAL, isaxi);
+    gradFieldOp_ = new GradientFieldOp<Double>(ptGrid, ptPDE, eqnMap, 
+                                               sol, ELEC_POTENTIAL, result,isaxi,
+                                               coordUpdate);
     solType_ = ELEC_FORCE_VWP;
     sign_    = 1.0;
   }

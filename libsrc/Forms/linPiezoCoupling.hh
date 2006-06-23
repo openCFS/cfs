@@ -26,7 +26,7 @@ namespace CoupledField {
     //@{ \name Construction and destruction
 
     //! Default constructor
-    linPiezoCoupling(SubTensorType type); 
+    linPiezoCoupling(BaseMaterial* matData, SubTensorType type); 
 
     //! Destructor
     ~linPiezoCoupling() {

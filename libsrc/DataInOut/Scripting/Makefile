@@ -7,8 +7,6 @@ else
   src = scriptable.cc cfsmessenger.cc
 endif
 #
-lib = scripting
-libpath = libsrc/DataInOut/Scripting
 CFLAGS3 =
 #
 include ../../makefile.inc

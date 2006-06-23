@@ -13,7 +13,7 @@ namespace CoupledField {
     
     //! Default constructor
     //! \param isAxi flag indicating axi-symmetrix geometry
-    AbsorbingBCsInt( Boolean isAxi );
+    AbsorbingBCsInt( bool isAxi );
 
     //! Default destructor
     virtual ~AbsorbingBCsInt();
@@ -27,8 +27,9 @@ namespace CoupledField {
 
     //! This method calculates the element matrix for absorbing boundary
     //! conditions of first order. 
-    void CalcElementMatrix(Matrix<Double>& ptCoord, 
-                           Matrix<Double> & StiffMat);
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
 
   private:
     

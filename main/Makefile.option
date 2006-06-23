@@ -235,6 +235,9 @@ LIBRARY_TYPE = static
 #
 # We define some parameters for handling internal paths correctly.
 # -----------------------------------------------------------------------------
+
+# Name of static cfs library
+CFS_LIB = cfs
 LIBSRC_DIR = $(C_DIR)/libsrc
 LIB_DIR    = $(C_DIR)/lib/$(MACHINE)
 

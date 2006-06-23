@@ -5,7 +5,6 @@
 
 #include "General/environment.hh"
 #include "Utils/nodestoresol.hh"
-#include "PDE/nodeEQN.hh"
 
 namespace CoupledField {
 
@@ -20,15 +19,16 @@ namespace CoupledField {
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    //! \param rhsSIze total number of entries in the rhs vector
-    TimeStepping( BaseSystem * algebraicsystem, UInt rhsSize );
+
+    TimeStepping( BaseSystem * algebraicsystem );
 
     //! deconstructor
     virtual ~TimeStepping();
   
     //! initialization
+    //! \param rhsSIze total number of entries in the rhs vector
     virtual void Init( std::map<FEMatrixType,Double> & matrix_factors, 
-                       Double dt ) = 0;
+                       Double dt, UInt rhsSize ) = 0;
 
     //! perform predictor step
     virtual void Predictor(Vector<Double>& solold)=0;

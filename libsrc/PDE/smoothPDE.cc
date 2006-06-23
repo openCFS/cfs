@@ -3,13 +3,13 @@
 #include <string>
 #include <math.h>
 
-#include <DataInOut/Unverg/outUnverg.hh>
-#include <DataInOut/GMV/outGMV.hh>
-#include <Forms/forms_header.hh>
-#include <Estimator/spaceerror.hh>
-#include "blocknodeEQN.hh"
+#include "DataInOut/Unverg/outUnverg.hh"
+#include "DataInOut/GMV/outGMV.hh"
+#include "Forms/forms_header.hh"
+#include "Estimator/spaceerror.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "Driver/solveStepSmooth.hh"
+#include "Driver/assemble.hh"
+#include "Driver/stdSolveStep.hh"
 #include "smoothPDE.hh" 
 
 namespace CoupledField
@@ -22,59 +22,44 @@ namespace CoupledField
   
     pdename_ = "smooth";
     pdematerialclass_ = MECHANIC;
-    firstTurn_ = TRUE;
+    firstTurn_ = true;
 
     // No time step algorithm for this PDE
-    isAlwaysStatic_ = TRUE;
+    isAlwaysStatic_ = true;
 
   
     // Set flag that the geometry has changed
-    geoUpdate_ = TRUE;
   
     // Get problem geometry and PDE subtype
     params->Get( "subType", subType_, pdename_ );
     std::string probGeo;
     params->Get( "type", probGeo, "geometry" );
-  
-    // Set number of degrees of freedom and
-    // ensure that subtype fits to problem geometry
-    if ( subType_ == "3d" && probGeo == "3d" ) {
-      dofspernode_ = 3;
-    }
-    else if ( subType_ == "axi" && probGeo == "axi" ) {
-      isaxi_ = TRUE;
-      dofspernode_ = 2;
-    }
-    else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
-      dofspernode_ = 2;
-    }
-    else
-      {
-        std::string errmsg = "Subtype '" + subType_;
-        errmsg += "' of PDE '" + pdename_ + "' does not fit to problem ";
-        errmsg += "geometry '" + probGeo + "'\n";
-        Info->Error( errmsg, __FILE__, __LINE__ );
-      }
 
     // =====================================================================
     // set solution information
     // =====================================================================
-    
-    solTypes_ = SMOOTH_DISPLACEMENT;
-    solDofs_ = dofspernode_;
-  
+    shared_ptr<ResultDof> res1(new ResultDof);
+    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    res1->resultType = SMOOTH_DISPLACEMENT;
+    if( dim_ == 3 ) {
+      res1->dofNames = "ux", "uy", "uz";
+    } else {
+      res1->dofNames = "ux", "uy";
+    }
+    res1->definedOn = ResultDof::NODE;
+    res1->fctType = fct;
+    results_.Push_back( res1 );
+      
     method_ = "mechanic";
 
     //is a nonlinear PDE, since in each iteration, we have to setup the matrices new!
-    nonLin_ = TRUE;
+    //nonLin_ = true;
   }
 
 
   void SmoothPDE::DefineIntegrators()
   {
     ENTER_FCN( "SmoothPDE::DefineIntegerators" );
-
-    Boolean nonLin = FALSE;
 
     // Weigthening factors for smoothening 
     factor_.Resize(numElems_);
@@ -85,21 +70,29 @@ namespace CoupledField
     SubTensorType type;
     String2Enum(subType_,type);
 
-    for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++)
-      {
-        // ==============  add stiffness ===========================================
-
-        BaseMaterial* actSDMat = materials_[subdoms_[actSD]];
-
-        // ==============  add "standard" stiffness ===============================
-        BaseForm * bilinearStiff;
-	bilinearStiff = new SmoothInt(actSDMat, type);
-
-	IntegratorDescriptor * stiffDescr = 
-	  new IntegratorDescriptor(bilinearStiff, STIFFNESS);
-	stiffDescr->SetPDEIds(this, this);        
-	assemble_->AddIntegrator(stiffDescr,  subdoms_[actSD]);
-      }
+    for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
+      
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( subdoms_[actSD] );
+      
+      // ==============  add stiffness ======================================
+      
+      BaseMaterial* actSDMat = materials_[subdoms_[actSD]];
+      
+      BaseForm * bilinearStiff;
+      bilinearStiff = new SmoothInt(actSDMat, type, true );
+      
+      BiLinFormContext * stiffContext = 
+        new BiLinFormContext( bilinearStiff, STIFFNESS );
+      stiffContext->SetPtPdes(this, this);
+      stiffContext->SetResults( results_[0], results_[0],
+                                actSDList, actSDList );  
+      assemble_->AddBiLinearForm( stiffContext );
+      
+      // Give result to equation numbering class
+      eqnMap_->AddResult( *results_[0], actSDList );
+    }
   }
 
 
@@ -107,7 +100,7 @@ namespace CoupledField
   {
     ENTER_FCN( "SmoothPDE::DefineSolveStep" );
     
-    solveStep_ = new SolveStepSmooth(*this); 
+    solveStep_ = new StdSolveStep(*this); 
   }
 
 
@@ -115,18 +108,20 @@ namespace CoupledField
   {
     ENTER_FCN( "SmoothPDE::Initcoupling" );
 
-    isIterCoupled_ = TRUE;
+    isIterCoupled_ = true;
     ptCoupling_   = coupling; 
+    StdVector<UInt> * nodes = NULL;
+    UInt dofspernode  = results_[0]->dofNames.GetSize();
 
     // input couplings
     for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
       {
+        
         // check for input mechanic displacement
         if (ptCoupling_->GetInputQuantity(i) == MECH_DISPLACEMENT)
           {
-            numDirichletBCs_ += (dofspernode_ * ptCoupling_->GetInputNumNodes(i));
+            numCouplingBcs_ += (dofspernode * ptCoupling_->GetInputNumNodes(i));
           }
-
       }
 
     // output couplings
@@ -152,7 +147,7 @@ namespace CoupledField
     CFSVector * values;
 
     // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == FALSE)
+    if (isIterCoupled_ == false)
       return;
 
     // loop over all output coupling quantities
@@ -216,14 +211,14 @@ namespace CoupledField
   
   }
 
-  Boolean SmoothPDE::HasOutput(SolutionType output)
+  bool SmoothPDE::HasOutput(SolutionType output)
   {
     ENTER_FCN( "SmoothPDE::HasOutput" );
   
     if (output == SMOOTH_DISPLACEMENT)
-      return TRUE;
+      return true;
 
-    return FALSE;
+    return false;
   }
 
   void SmoothPDE::ReadStoreResults()
@@ -245,8 +240,8 @@ namespace CoupledField
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
     if (nodeValues.GetSize() > 0) {
-      saveSol_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSol_ = true;
+      hasOutput_ = true;
     }
 
   }

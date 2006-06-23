@@ -4,10 +4,8 @@
 
 #include <PDE/SinglePDE.hh>
 #include "piezoParamIdent.hh"
-#include "PDE/piezoPDE.hh"
 #include "Domain/domain.hh"
-#include "Forms/forms_header.hh"
-
+#include "Driver/stdSolveStep.hh"
 
 
 namespace CoupledField
@@ -30,6 +28,7 @@ namespace CoupledField
     Double randFactor=0.0;
 
     y_hat_.Resize(nrMeasuredData);
+    y_hat_.Init();
 
     Vector<Complex> rand(nrMeasuredData);
     for (UInt i=0; i<nrMeasuredData; i++){
@@ -49,7 +48,7 @@ namespace CoupledField
 
     }
    
-    if (TRUE){ // generates synthetically created radom noise
+    if (true){ // generates synthetically created radom noise
       for (UInt i=0;i<nrMeasuredData;i++){
         rand[i] = Complex(2.0*Double(std::rand())/RAND_MAX-1);
         if (randFactor<std::abs(rand[i]))
@@ -82,7 +81,7 @@ namespace CoupledField
   void piezoParamIdent::calcSyntheticData(Vector<Complex> & y_hat_){
     ENTER_FCN("piezoParamIdent::calcSyntheticData");
       
-    createF(y_hat_,TRUE); // calculates only forward problems over all omegas_
+    createF(y_hat_,true); // calculates only forward problems over all omegas_
 
     for (UInt i=0;i<y_hat_.GetSize();i++){
       if (i%2==0)
@@ -96,7 +95,6 @@ namespace CoupledField
   void piezoParamIdent::calcImpedanceCurve(){
     ENTER_FCN("PiezoParamIdent::caclImpedanceCurve");
 
-    Boolean reset = TRUE;
 
     std::cout<<"++ Starting to compute impedance curve with " << freqs_.GetSize()  <<" steps " <<std::endl;
     std::cout<<"++ Results are written in file imped.dat " <<std::endl;
@@ -126,9 +124,9 @@ namespace CoupledField
 
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep); 
-      ptPDE_->GetSolveStep()->PreStepHarmonic(reset); 
-      ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
-      ptPDE_->GetSolveStep()->PostStepHarmonic( reset);
+      ptPDE_->GetSolveStep()->PreStepHarmonic(); 
+      ptPDE_->GetSolveStep()->SolveStepHarmonic();
+      ptPDE_->GetSolveStep()->PostStepHarmonic();
       ptPDE_->PostProcess();   
       
       Vector<Complex> chargeVec;
@@ -197,7 +195,6 @@ namespace CoupledField
     ENTER_FCN("PiezoParamIdent::calcMechDisplCurve");
 
     
-      Boolean reset = TRUE;
       
       ptAssemble_ = ptPDE1_->getPDE_assemble(); // Vector wich contains charges for each element !
       
@@ -212,9 +209,9 @@ namespace CoupledField
         
         ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
         ptPDE_->GetSolveStep()->SetActStep(fstep); 
-        ptPDE_->GetSolveStep()->PreStepHarmonic(reset);         
-        ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);        
-        ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
+        ptPDE_->GetSolveStep()->PreStepHarmonic();         
+        ptPDE_->GetSolveStep()->SolveStepHarmonic();        
+        ptPDE_->GetSolveStep()->PostStepHarmonic();
         ptPDE_->PostProcess();   
         
         //ptMyPDE_->WriteResultsInFile();
@@ -272,13 +269,13 @@ namespace CoupledField
   }
 
 
-  void piezoParamIdent::createF(Vector<Complex> & F_hat_, Boolean typeOut){
+  void piezoParamIdent::createF(Vector<Complex> & F_hat_, bool typeOut){
     ENTER_FCN("PiezoParamIdent:createF");
     //   std::cout<<"\nF wil be created ..."<<std::endl;
 
     F_hat_.Resize(nrMeasuredData);
+    F_hat_.Init();
 
-    Boolean reset = TRUE;
            
     for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { 
 
@@ -288,9 +285,9 @@ namespace CoupledField
 
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep);       
-      ptPDE_->GetSolveStep()->PreStepHarmonic(reset); 
-      ptPDE_->GetSolveStep()->SolveStepHarmonic(reset);
-      ptPDE_->GetSolveStep()->PostStepHarmonic(reset);
+      ptPDE_->GetSolveStep()->PreStepHarmonic(); 
+      ptPDE_->GetSolveStep()->SolveStepHarmonic();
+      ptPDE_->GetSolveStep()->PostStepHarmonic();
       ptPDE_->PostProcess();
 
 
@@ -329,7 +326,7 @@ namespace CoupledField
     } // end of loop over all frequencies
 
 
-    if (typeOut==TRUE){
+    if (typeOut==true){
       for (UInt i=0;i<F_hat_.GetSize();i++)
         std::cout<<"F("<<i<<")="<<F_hat_[i]<<"; \t";
       std::cout<<"\n ------------------------------- " <<std::endl;
@@ -354,17 +351,18 @@ namespace CoupledField
 
     Vector<Complex> F_hat__incr(F_hat_.GetSize());
     approxJacobiMatrix_.Resize(JacobiMatrix_.GetSizeRow(), JacobiMatrix_.GetSizeCol());
+    approxJacobiMatrix_.Init();
     Vector<Double> parameter_incr(parameter_.GetSize());
     parameter_incr=parameter_;
 
     updateMaterialData(parameter_);
 
-    if(directCoupling_==TRUE){
+    if(directCoupling_==true){
       updateMaterialData(parameter_);
       updateMaterialData(parameter_);
     }
     
-    createF(F_hat_, FALSE);
+    createF(F_hat_, false);
 
     for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){
 
@@ -372,7 +370,7 @@ namespace CoupledField
       //  std::cout<<parameter_incr[ind_param]<<std::endl;
       updateMaterialData(parameter_incr);
 
-      createF(F_hat__incr,FALSE);
+      createF(F_hat__incr,false);
 
       for (UInt j=0;j<nrMeasuredData;j++)
         approxJacobiMatrix_[j][ind_param]=
@@ -402,6 +400,7 @@ namespace CoupledField
     Vector<Complex> F_hat__incr3(F_hat_.GetSize());
     Vector<Complex> F_hat__incr4(F_hat_.GetSize());
     approxJacobiMatrix_.Resize(nrMeasuredData,actNrParameter);
+    approxJacobiMatrix_.Init();
     Vector<Double> parameter_incr(nrParameter_);
     Vector<Double> parameter_incr2(nrParameter_);
     Vector<Double> parameter_incr3(nrParameter_);
@@ -412,7 +411,7 @@ namespace CoupledField
     UInt parInd=0;
 
     updateMaterialData(parameter_);
-    createF(F_hat_, FALSE);
+    createF(F_hat_, false);
 
     for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){ 
       if (whichParameterToUpdate_[ind_param]==1){
@@ -420,13 +419,13 @@ namespace CoupledField
         parameter_incr[ind_param]=1.00001*parameter_[ind_param];
         //      std::cout<<parameter_incr<<std::endl
         updateMaterialData(parameter_incr);
-        createF(F_hat__incr,FALSE);
+        createF(F_hat__incr,false);
 
 
         parameter_incr2[ind_param]=0.99999*parameter_[ind_param];  
         //      std::cout<<parameter_incr2<<std::endl;
         updateMaterialData(parameter_incr2);
-        createF(F_hat__incr2,FALSE);
+        createF(F_hat__incr2,false);
 
         // second order FD approximation
         for (UInt j=0;j<nrMeasuredData;j++)
@@ -455,6 +454,7 @@ namespace CoupledField
     Vector<Complex> F_hat__incr3(F_hat_.GetSize());
     Vector<Complex> F_hat__incr4(F_hat_.GetSize());
     approxJacobiMatrix_.Resize(nrMeasuredData,actNrParameter+actNrParameterC);
+    approxJacobiMatrix_.Init();
     Vector<Double> parameter_incr(nrParameter_);
     Vector<Double> parameter_incr2(nrParameter_);
     Vector<Double> parameter_incr3(nrParameter_);
@@ -465,7 +465,7 @@ namespace CoupledField
     UInt parInd=0;
 
     updateMaterialData(parameter_);
-    createF(F_hat_, FALSE);
+    createF(F_hat_, false);
 
     for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){ 
       if (whichParameterToUpdate_[ind_param]==1){
@@ -473,12 +473,12 @@ namespace CoupledField
         parameter_incr[ind_param]=1.001*parameter_[ind_param];
         //      std::cout<<parameter_incr<<std::endl
         updateMaterialData(parameter_incr);
-        createF(F_hat__incr,FALSE);
+        createF(F_hat__incr,false);
 
         parameter_incr2[ind_param]=0.999*parameter_[ind_param];  
         //      std::cout<<parameter_incr2<<std::endl;
         updateMaterialData(parameter_incr2);
-        createF(F_hat__incr2,FALSE);
+        createF(F_hat__incr2,false);
 
         // second order FD approximation
 
@@ -504,12 +504,12 @@ namespace CoupledField
         //      std::cout<<parameter_incr<<std::endl
 
         updateComplexMaterialData(parameter_incr);
-        createF(F_hat__incr,FALSE);
+        createF(F_hat__incr,false);
 
         parameter_incr2[ind_param]=0.999*parameterC_[ind_param]; 
         //      std::cout<<parameter_incr2<<std::endl;
         updateComplexMaterialData(parameter_incr2);
-        createF(F_hat__incr2,FALSE);
+        createF(F_hat__incr2,false);
 
         // second order FD approximation
         for (UInt j=0;j<nrMeasuredData;j++)
@@ -535,6 +535,7 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::createAdjointJacobiMatrix");
     //    std::cout<<"\n Adjoint Jacobian will be created ... "<<std::endl;
     adjJacobiMatrix_.Resize(JacobiMatrix_.GetSizeCol(),JacobiMatrix_.GetSizeRow());
+    adjJacobiMatrix_.Init();
     for (UInt i=0;i<JacobiMatrix_.GetSizeCol();i++)
       for (UInt j=0;j<JacobiMatrix_.GetSizeRow();j++){
         //adjJacobiMatrix_[i][j] = JacobiMatrix_[j][i];
@@ -546,7 +547,7 @@ namespace CoupledField
 
 
 
-  void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, UInt & fstep, Boolean typeOut){
+  void piezoParamIdent::calcAbsImped(Complex & charge, Double & freq, UInt & fstep, bool typeOut){
     Double imped, phase;
     Complex impedC;
 
@@ -563,7 +564,7 @@ namespace CoupledField
     phase = 180/PI*(std::arg(impedC));
 
 
-    if(typeOut==TRUE){
+    if(typeOut==true){
       std::cout<<std::setprecision(10);
       //    std::cout<<"\n Frequency - Impendace - Phase: "<<std::endl;
       std::cout <<"\n Frequency: "<< freq << ", |Z|: "<< std::abs(impedC) << "; Phase: "<< phase << std::endl;
@@ -1015,8 +1016,11 @@ namespace CoupledField
     std::cout<<"++ Open and read file mess.dat ... " <<std::endl;    
 
     frequencies.Resize(nrMeasuredData);
+    frequencies.Init();
     real_.Resize(nrMeasuredData);
+    real_.Init();
     imag_.Resize(nrMeasuredData);
+    imag_.Init();
 
     //! input file, reads set of measurements, frequencies, re(Z), im(z)
     std::ifstream * mess; 

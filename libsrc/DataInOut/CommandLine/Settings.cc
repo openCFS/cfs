@@ -127,7 +127,7 @@ namespace CoupledField {
    **********************************************************/
 
   bool Setting::getBool( const int i ) const {
-    return checkIndexRange(i,"getBoolean",m_bool) ? m_bool[i] : false;
+    return checkIndexRange(i,"getbool",m_bool) ? m_bool[i] : false;
   }
   int Setting::getInt( const int i ) const {
     return checkIndexRange(i,"getInt",m_int) ? m_int[i] : -1;

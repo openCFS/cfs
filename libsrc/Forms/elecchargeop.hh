@@ -38,8 +38,9 @@ namespace CoupledField {
     */
     ElecChargeOp(Grid * ptGrid,
                  StdPDE * ptPDE,
-                 NodeEQN * ptEQN,
-                 Boolean isaxi=FALSE);
+                 shared_ptr<EqnMap> eqnMap,
+                 bool isaxi=false,
+                 bool coordUpdate = false );
 
     //! Destructor
     virtual ~ElecChargeOp();

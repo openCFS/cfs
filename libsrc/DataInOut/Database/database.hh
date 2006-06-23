@@ -49,7 +49,7 @@ namespace CoupledField
     int Query (std::string statement);
 
     //! Is connected to database?
-    Boolean IsConnected;
+    bool IsConnected;
 
     //! Use INSERT-Statement with multiple Tuple (MySQL only). After final statement the number is set to 1 automatically
     /*!
@@ -61,10 +61,10 @@ namespace CoupledField
     /*!
       \param tablename Table to lock
     */
-    Boolean Lock (std::string tablename);
+    bool Lock (std::string tablename);
 
     //! Unlock all tables after use of lock()
-    Boolean Unlock ();
+    bool Unlock ();
 
 
     //! Insert data in specified table
@@ -90,7 +90,7 @@ namespace CoupledField
       \param matrix [Out] Matrix to store the table
       \param tablename [In] Name of table
     */
-    Boolean GetTable(dbMatrix &matrix, std::string tablename);
+    bool GetTable(dbMatrix &matrix, std::string tablename);
 
     //! Get number of fields of last query
     unsigned int GetNoOfResultFields();
@@ -104,13 +104,13 @@ namespace CoupledField
       \param table Table name
       \param where Special selection (e.g. 'idx=123')
     */
-    Boolean SelectFrom(std::string fields, std::string table, std::string where);
+    bool SelectFrom(std::string fields, std::string table, std::string where);
 
     //! Fetch results of last SQL statement
     /*!
       \param matrix [Out] Matrix to store the table
     */
-    Boolean FetchFields(dbMatrix &matrix);
+    bool FetchFields(dbMatrix &matrix);
 
     //! Update selected fields
     /*!
@@ -118,7 +118,7 @@ namespace CoupledField
       \param set Variables to set (e.g: "value=3")
       \param where Selection (e.g: "idx=123")
     */
-    Boolean Update (std::string table,
+    bool Update (std::string table,
                     std::string set,
                     std::string where);
 
@@ -142,22 +142,22 @@ namespace CoupledField
     std::string Db_;
 
     //! Are the results of the last query stored?
-    Boolean ResultStored_;
+    bool ResultStored_;
 
     //! Results of last query
     MYSQL_RES *Result_;
 
     //! Store the results of the last query
-    Boolean StoreResults();
+    bool StoreResults();
 
     //! Field information of last query
     MYSQL_FIELD *Fields_;
 
     //! Are the field information stored?
-    Boolean FieldsStored_;
+    bool FieldsStored_;
 
     //! Store field information of last query
-    Boolean StoreFields();
+    bool StoreFields();
 
     //! Free memory used for results
     void FreeResult();

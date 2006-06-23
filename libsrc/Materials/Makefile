@@ -6,8 +6,6 @@ src = acousticMaterial.cc baseMaterial.cc electroMagneticMaterial.cc \
       MaterialData.cc mechanicMaterial.cc MHMaterialData.cc \
       piezoMaterial.cc
 #
-lib = materials
-libpath = libsrc/Materials
 CFLAGS3 =
 #
 include ../makefile.inc

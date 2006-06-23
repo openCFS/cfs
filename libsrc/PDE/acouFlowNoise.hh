@@ -53,11 +53,11 @@ namespace CoupledField
     Matrix<Double> flowdata_;
 
     //!type of FlowData
-    Boolean nodalSrc_;
+    bool nodalSrc_;
     //!flag when using vortex source
-    Boolean vortexSrc_;
+    bool vortexSrc_;
     //!flag to verify if analysis harmonic
-    Boolean isHarmonic_;
+    bool isHarmonic_;
      //!< name of subdomain to be coupled with MpCCI or where vortex is applied
      StdVector<RegionIdType> couplSubDomId_; 
     //!< mapping of linear nodes only (3D MpCCI allows only linear elements)
@@ -65,8 +65,8 @@ namespace CoupledField
     //<! mapping containing all nodes of coupled region
      StdVector<UInt> mapSD_allNodes_;
     
-  Boolean  writeGridFile_; //!<flags to write grid with coupled vals in file
-  Boolean  writeSrcFileperTS_; //!<flags to write coarse srcs in time step files
+  bool  writeGridFile_; //!<flags to write grid with coupled vals in file
+  bool  writeSrcFileperTS_; //!<flags to write coarse srcs in time step files
   //!Objects for topology files
   std::ofstream * outelemfile_;
   std::ofstream * outnodefile_;

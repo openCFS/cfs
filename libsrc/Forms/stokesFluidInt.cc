@@ -7,9 +7,11 @@ namespace CoupledField
 {
 
   StokesFluidInt::StokesFluidInt(Double aVal, Double bVal)
-    : BaseForm(),density_ (aVal),dynamicViscosity_ (bVal)
+    : BaseForm(NULL),density_ (aVal),dynamicViscosity_ (bVal)
   {
     ENTER_FCN( "StokesFluidInt::StokesFluidInt" );
+
+    name_ = "stokesFluidInt";
   }
 
   StokesFluidInt::~StokesFluidInt()
@@ -34,8 +36,10 @@ namespace CoupledField
     Matrix<Double> auxMat;
 
     dofPerElem = nrOfNodes * dofPerNode;
-    sortedElemMat.Resize(dofPerElem); sortedElemMat.Init();
-    auxMat.Resize(dofPerElem); auxMat.Init();
+    sortedElemMat.Resize(dofPerElem); 
+    sortedElemMat.Init();
+    auxMat.Resize(dofPerElem); 
+    auxMat.Init();
 
 
     for (j=0; j<dofPerElem; j+=dofPerNode)
@@ -61,11 +65,5 @@ namespace CoupledField
      }
   }
 
-
-  void StokesFluidInt::Print(std::ostream * out, const Matrix<Double> Result) const
-  {
-    ENTER_FCN( "StokesFluidInt::Print"); 
-    (*out)<< "StokesFluid  stiffness matrix:" << std::endl << Result;
-  }
 
 } // end namespace CoupledField

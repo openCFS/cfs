@@ -31,8 +31,11 @@ namespace CoupledField
     
   protected:
 
+    //! Get reference element and coordinates from element iterator
+    void ExtractElemInfo( EntityIterator& it);
+
     //! Current surface element
-    SurfElem * actElem_;
+    const SurfElem * actElem_;
 
     //! Normal pointing out of first volume element
     Vector<Double> normal_;

@@ -321,7 +321,7 @@ void SPHandler::processDatatypeValidator( const DatatypeValidator* dtValidator,
   case DatatypeValidator::QName:          std::cout << "QName";       break;
   case DatatypeValidator::Name:           std::cout << "Name";        break;
   case DatatypeValidator::NCName:         std::cout << "NCName";      break;
-  case DatatypeValidator::Boolean:        std::cout << "Boolean";     break;
+  case DatatypeValidator::bool:        std::cout << "bool";     break;
   case DatatypeValidator::Float:          std::cout << "Float";       break;
   case DatatypeValidator::Double:         std::cout << "Double";      break;
   case DatatypeValidator::Decimal:        std::cout << "Decimal";     break;

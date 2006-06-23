@@ -6,10 +6,11 @@
 namespace CoupledField
 {
 
-  CurlCurlEdgeInt::CurlCurlEdgeInt(BaseFE * aptelem, Double aVal)
-    : BaseForm(aptelem), reluctivity_ (aVal)
+  CurlCurlEdgeInt::CurlCurlEdgeInt(Double aVal)
+    : BaseForm( NULL ), reluctivity_ (aVal)
   {
     ENTER_FCN( "CurlCurlEdgeInt::CurlCurlEdgeInt" );
+    name_ = "CurlCurlEdgeInt";
   }
 
 
@@ -21,9 +22,13 @@ namespace CoupledField
 
 
 
-  void CurlCurlEdgeInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
-  {
+  void CurlCurlEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                           EntityIterator& ent1, 
+                                           EntityIterator& ent2 ) {
     ENTER_FCN( "CurlCurlEdgeInt::CalcElementMatrix" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
   
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrEdges = ptelem->GetNumEdges();
@@ -45,14 +50,14 @@ namespace CoupledField
   
   
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrEdges); 
+    elemMat.Resize(nrEdges,true); 
     elemMat.Init();
   
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         // calc glob derivs of shape functions and jacobian determinante
-        ptelem->GetEdgeGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord);
+        ptelem->GetEdgeGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_);
       
         CalcEdgeCurl(curl, xiDx);
       
@@ -60,7 +65,7 @@ namespace CoupledField
       
         partElemMat = curlTransp * curl;
       
-        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
       
         partElemMat *= intWeights[actIntPt-1] * jacDet * reluctivity_;
       
@@ -94,11 +99,5 @@ namespace CoupledField
     
   }
   
-
-  void CurlCurlEdgeInt::Print(std::ostream * out, const Matrix<Double> Result) const
-  {
-    ENTER_FCN( "CurlCurlEdgeInt::Print" );
-    (*out)<< "CurlCurlEdge stiffness matrix:" << std::endl << Result;
-  }
 
 } // end namespace CoupledField

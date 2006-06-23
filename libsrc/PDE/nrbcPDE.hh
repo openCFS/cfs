@@ -29,7 +29,7 @@ namespace CoupledField {
     //! Destructor
     virtual ~nrbcPDE(){};
 
-	//! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
     void ReadDampingInformation( Grid *aptgrid );
 
     //! define all (bilinearform) integrators needed for this pde
@@ -45,9 +45,9 @@ namespace CoupledField {
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
     void WriteResultsInFile(const UInt kstep,
-                                    const Double asteptime,
-                                    UInt stepOffset = 0,
-                                    Double timeOffset = 0.0);
+                            const Double asteptime,
+                            UInt stepOffset = 0,
+                            Double timeOffset = 0.0);
     //! write history results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
@@ -56,13 +56,10 @@ namespace CoupledField {
                             UInt stepOffset = 0,
                             Double timeOffset = 0.0);
 
-    //! return size of solution
-    UInt getSize() const 
-    { return size_;}
 
 #ifdef ADAPTGRID
     //! test error of computation
-    virtual Boolean TestError(const UInt level);
+    virtual bool TestError(const UInt level);
 #endif
 
 
@@ -77,7 +74,7 @@ namespace CoupledField {
     void CalcOutputCoupling();
 
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(SolutionType output);
+    virtual bool HasOutput(SolutionType output);
   
     //! calculate the vector of coupling RHS term to the acoustic PDE
     void CalcAcouCouplingRHS( StdVector<Elem*> * couplingElems, 
@@ -87,7 +84,7 @@ namespace CoupledField {
   
     //! 
     void SetAcouCoupling() {
-      isAcouCoupled_ = TRUE;
+      isAcouCoupled_ = true;
     }
   
 
@@ -97,20 +94,21 @@ namespace CoupledField {
     //! Init the time stepping
     void InitTimeStepping();
 
+    //! order of absorbtion
+    UInt order_;
+
     //! indicator for mechanic coupling
-    Boolean isAcouCoupled_;
-
-	//! total number of unknowns (equations)
-    UInt size_;
-	//! variable in which PDE is formulated
+    bool isAcouCoupled_;
+    
+    //! variable in which PDE is formulated
     SolutionType formulation_;
-
-	//! list of boundaries( for absorbing BCs)
+    
+    //! list of boundaries( for absorbing BCs)
     StdVector<RegionIdType> absBCs_;
-	//! switch for absorbing boundary conditions
-    Boolean absorbingBCs_;                
+    //! switch for absorbing boundary conditions
+    bool absorbingBCs_;                
 
-    Boolean m_bWriteSpecialBCs;            //!< switch for special bcs in combination with slicing technique
+    bool m_bWriteSpecialBCs;            //!< switch for special bcs in combination with slicing technique
 
     // solving of nonlinear acoustics
     NodeStoreSol<Double> sol_der1Array_, sol_der2Array_;
@@ -127,7 +125,7 @@ namespace CoupledField {
     //! bubbledensity
     Double bubbleDensity_;
 
-    Boolean plotRHS_; //!< Flag for saving of rhs for output
+    bool plotRHS_; //!< Flag for saving of rhs for output
 
     // DODO
     // the grid adaption object

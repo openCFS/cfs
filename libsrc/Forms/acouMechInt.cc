@@ -4,9 +4,10 @@
 namespace CoupledField {
   
   
-  AcouMechInt::AcouMechInt( UInt dofsPerNode, Boolean isAxi) {
+  AcouMechInt::AcouMechInt( UInt dofsPerNode, bool isAxi) {
     ENTER_FCN( "AcouMechInt::AcouMechInt" );
 
+    name_ = "AcouMechInt";
     isaxi_ = isAxi;
     dofs_ = dofsPerNode;
     
@@ -16,10 +17,14 @@ namespace CoupledField {
     ENTER_FCN( "AcouMechInt::~AcouMechInt" );
   }
 
-  void AcouMechInt::CalcElementMatrix(Matrix<Double>& ptCoord, 
-				      Matrix<Double> & elemMat) {
+  void AcouMechInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                       EntityIterator& ent1, 
+                                       EntityIterator& ent2 ) {
     ENTER_FCN( "AcouMechInt::CalcElementMatrix" );
     
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
     UInt j = 0;
     Double jacDet, density;
     
@@ -59,9 +64,10 @@ namespace CoupledField {
     
     // 2) Calculate a normal mass matrix
     helpMat.Resize(nrNodes);
+    helpMat.Init();
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
         
       ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt);
         
@@ -71,7 +77,7 @@ namespace CoupledField {
         // For the entry 1/r things are more complicated
         coordAtIp = 0.0;
         for( j = 0; j < nrNodes; j++ ) {
-          coordAtIp += ptCoord[0][j] * shapeFncAtIp[j];
+          coordAtIp += ptCoord_[0][j] * shapeFncAtIp[j];
         }
         partHelpMat *= 2 * PI * intWeights[actIntPt-1] 
           * density * jacDet * coordAtIp;

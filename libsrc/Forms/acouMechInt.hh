@@ -17,7 +17,7 @@ namespace CoupledField {
     //! Constructor
     //! \param dofsPerNode unknowns per node
     //! \param isAxi flag for axisymmetrix setup
-    AcouMechInt( UInt dofsPerNode, Boolean isAxi );
+    AcouMechInt( UInt dofsPerNode, bool isAxi );
 
     //! Default destructor
     virtual ~AcouMechInt();
@@ -50,8 +50,9 @@ namespace CoupledField {
     //! \f]
     //! where \f$n\f$ is the number of nodes of the element. The whole
     //! element matrix \f$C\f$ is of dimension \f$ (n*dim) \times n\f$.
-    void CalcElementMatrix(Matrix<Double>& ptCoord, 
-                           Matrix<Double> & StiffMat);
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
 
   private:
     

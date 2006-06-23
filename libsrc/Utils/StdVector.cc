@@ -1,6 +1,8 @@
 #ifndef FILE_STDVECTOR_IMPLEMENTATION_2004
 #define FILE_STDVECTOR_IMPLEMENTATION_2004
 
+#include "DataInOut/WriteInfo.hh"
+
 namespace CoupledField {
 
   template<class TYPE>
@@ -134,8 +136,8 @@ namespace CoupledField {
         data_ = new TYPE[size_];
       }
   
-    for (UInt i = 0; i < size_; i++)
-      data_ [i] = TYPE();
+//     for (UInt i = 0; i < size_; i++)
+//       data_ [i] = TYPE();
   }
 
 
@@ -379,7 +381,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  Boolean StdVector<TYPE>::operator== (const StdVector<TYPE> & vec) const
+  bool StdVector<TYPE>::operator== (const StdVector<TYPE> & vec) const
   {
     ENTER_IFCN( "StdVector::operator==" );
     // #ifdef CHECK_INITIALIZED 
@@ -388,30 +390,21 @@ namespace CoupledField {
     // #endif
 
     if (size_ == 0 && vec.size_ == 0)
-      return TRUE;
+      return true;
   
     for (UInt i = 0; i < size_; i++)
       if (data_[i] != vec.data_ [i])
-        return FALSE;
+        return false;
   
-    return TRUE;
+    return true;
   }
   
 
   template<class TYPE>
-  Boolean StdVector<TYPE>::operator!= (const StdVector<TYPE> & vec) const
+  bool StdVector<TYPE>::operator!= (const StdVector<TYPE> & vec) const
   {
     ENTER_IFCN( "StdVector::operator!=" );
-#ifdef CHECK_INITIALIZED
-    if ((size_ == 0) || (vec.size_ == 0))
-      Warning("Vector: undefined Vector in operator !=", __FILE__, __LINE__);
-#endif
-  
-    for (UInt i = 0; i < size_; i++)
-      if (data_[i] != vec.data_[i])
-        return FALSE;
-  
-    return TRUE;
+    return ! ( *this==vec );
   }
   
   template <class S> 

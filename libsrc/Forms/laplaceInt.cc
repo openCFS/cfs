@@ -2,25 +2,21 @@
 #include <fstream>
 
 #include "laplaceInt.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
 
 namespace CoupledField
 {
 
-  LaplaceInt::LaplaceInt(BaseFE * aptelem, Double aVal, Boolean axi)
-    : BaseForm(aptelem),laplVal_ (aVal)
-  {
-    ENTER_FCN( "LaplaceInt::LaplaceInt");
 
-    isaxi_ = axi;
-  }
-
-
-  LaplaceInt::LaplaceInt(Double aVal, Boolean axi)
-    : BaseForm(),laplVal_ (aVal)
+  LaplaceInt::LaplaceInt(Double aVal, bool axi, bool coordUpdate )
+    : BaseForm(NULL),laplVal_ (aVal)
   {
     ENTER_FCN( "LaplaceInt::LaplaceInt" );
 
+    name_ = "LaplaceInt";
     isaxi_ = axi;
+    coordUpdate_ = coordUpdate;
   }
 
 
@@ -32,10 +28,15 @@ namespace CoupledField
 
 
 
-  void LaplaceInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
-  {
-    ENTER_FCN( "LaplaceInt::CalcElementMatrix" );
+  void LaplaceInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                      EntityIterator& ent1, 
+                                      EntityIterator& ent2 ) {
   
+    ENTER_FCN( "LaplaceInt::CalcElementMatrix" );
+   
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+   
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -50,19 +51,20 @@ namespace CoupledField
     Vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes); elemMat.Init();
+    elemMat.Resize(nrNodes); 
+    elemMat.Init();
 
-//     //check for material value
-//     if (materialArray_ != NULL) {
-//       laplVal_ = (*materialArray_)[actSD_][actElemNr_];
-//     }
+    //     //check for material value
+    //     if (materialArray_ != NULL) {
+    //       laplVal_ = (*materialArray_)[actSD_][actElemNr_];
+    //     }
 
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
 
         xiDx.Transpose(xiDxTransp);
 
@@ -71,8 +73,9 @@ namespace CoupledField
         if (isaxi_)
           {
             ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-            CoordAtIP = ptCoord * ShpFncAtIp;
-            partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * laplVal_ * CoordAtIP[0];
+            CoordAtIP = ptCoord_ * ShpFncAtIp;
+            partElemMat *= 2 * PI * intWeights[actIntPt-1] 
+              * jacDet * laplVal_ * CoordAtIP[0];
 
           }
         else 
@@ -85,11 +88,5 @@ namespace CoupledField
   }
 
 
-
-  void LaplaceInt::Print(std::ostream * out, const Matrix<Double> Result) const
-  {
-    ENTER_FCN( "LaplaceInt::Print"); 
-    (*out)<< "Laplace stiffness matrix:" << std::endl << Result;
-  }
 
 } // end namespace CoupledField

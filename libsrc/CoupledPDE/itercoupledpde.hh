@@ -55,11 +55,11 @@ namespace CoupledField
 
     //! Solve static step
     //void SolveStepStatic(const UInt kstep, const Double asteptime, 
-    //           const Boolean updatesysmat);
+    //           const bool updatesysmat);
   
     //! solve transient step
     //void SolveStepTrans(const UInt kstep, const Double asteptime,
-    //                  const Boolean updatesysmat);
+    //                  const bool updatesysmat);
   
     //! write a restart file "simname_pdename.restart"
     void WriteRestart(const UInt nstep);
@@ -103,7 +103,7 @@ namespace CoupledField
     IterSolveStep * solveStep_;
 
     //! Flag for nonlinear logging
-    Boolean nonLinLogging_;
+    bool nonLinLogging_;
   
     // general PDE parameters
     AnalysisType analysistype_;         //!< type of analysis
@@ -118,7 +118,7 @@ namespace CoupledField
     //! vector of flags indicating if specified
     //! PDE gets solved. The ordering corresponds
     //! to that of PDEs_ in the base class.
-    StdVector<Boolean> solvePDE_;
+    StdVector<bool> solvePDE_;
 
   };
 

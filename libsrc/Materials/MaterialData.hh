@@ -51,7 +51,7 @@ namespace CoupledField {
     UInt dirPol; //direction of polarization
     std::string hystType_;
 
-    Boolean scaledMatDat;
+    bool scaledMatDat;
     char * name; 
     //char name[stringLength]; 
     std::string bhCurveFile_; //!< name of BH-Curve datafile
@@ -245,7 +245,7 @@ namespace CoupledField {
     /// 
     void SetScaledFlag(){scaledMatDat = 1;};
 
-    Boolean IsMatDatScaled(){return scaledMatDat;};
+    bool IsMatDatScaled(){return scaledMatDat;};
 
     // is material nonlinear?
     //  UInt GetNonlin() const { return nonlin; };

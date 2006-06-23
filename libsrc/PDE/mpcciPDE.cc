@@ -27,13 +27,13 @@ namespace CoupledField {
     // =====================================================================
     // set solution information
     // =====================================================================
-    dofspernode_ = 1;
-    solTypes_ = MPCCI;
-    solDofs_ = 1;
+    //dofspernode_ = 1;
+    //solTypes_ = MPCCI;
+    //solDofs_ = 1;
     pdename_          = "mpcci";
     pdematerialclass_ = PIEZO;
-    flagFirstTimeStep_= TRUE;
-    converged_=FALSE;
+    flagFirstTimeStep_= true;
+    converged_=false;
 
     params->GetList( "type", MpCCIType_, pdename_ , "region");
 
@@ -81,10 +81,11 @@ namespace CoupledField {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
  
-    eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_, FALSE );
-    eqnData_->CalcMpcciMapping();
-    numPDENodes_ = eqnData_->GetNumLocalNodes();
-    numElems_ = eqnData_->GetNumLocalElems();
+    Error( "CalcMpcciMapping not yet implemented", __FILE__, __LINE__ );
+    //eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_, false );
+    //eqnData_->CalcMpcciMapping();
+    numPDENodes_ = eqnMap_->GetNumLocalNodes();
+    numElems_ = eqnMap_->GetNumLocalElems();
 
     PreparePDE4Computation();
   }
@@ -116,8 +117,8 @@ namespace CoupledField {
       for (UInt j=0; j<subdoms_.GetSize(); j++)
 	{
 	  ptMpCCIexch_->DefMpcciPartition(meshId_[i], j+1);
-	  ptMpCCIexch_->DefMpcciNodes(meshId_[i], j+1, numOfNodesInSD_[j], localNodes_[j], *eqnData_);
-	  ptMpCCIexch_->DefMpcciElements(meshId_[i], j+1, *eqnData_);
+	  ptMpCCIexch_->DefMpcciNodes(meshId_[i], j+1, numOfNodesInSD_[j], localNodes_[j], eqnMap_);
+	  ptMpCCIexch_->DefMpcciElements(meshId_[i], j+1, eqnMap);
 	  //possible alternative:
 	  //ptMpCCIexch_->DefMpcciPartNodeElem(i+1, MpCCInodes_,*eqnData_);
 	}
@@ -175,13 +176,13 @@ namespace CoupledField {
   {
     ENTER_FCN( "MpcciPDE::InitCoupling" );
   
-    isIterCoupled_ = TRUE;
+    isIterCoupled_ = true;
     ptCoupling_   = Coupling;
 
     const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
   
 
-    nonLin_ = FALSE;
+    nonLin_ = false;
 
     // Initialization of coupling helper arrays
     std::string quantity;
@@ -191,8 +192,11 @@ namespace CoupledField {
 //     StdVector<std::string> * neighRegions = NULL;
     StdVector<StdVector<UInt> > elemNodeToCouplingNode_tmp;
     F_Interface_.Resize(numCouplings);
+    F_Interface_.Init();
     isBoundaryNode_.Resize(numCouplings);
+    isBoundaryNode_.Init();
     elemNodeToCouplingNode_.Resize(numCouplings);
+    elemNodeToCouplingNode_.Init();
 
     for (UInt actCoupling=0; actCoupling<numCouplings; actCoupling++)
       {
@@ -210,16 +214,17 @@ namespace CoupledField {
             // Intialize the memory of the coupling values
             ptCoupling_->CreateCouplingVector(actCoupling,isComplex_);
 
-            isBoundaryNode_tmp.Clear();
             isBoundaryNode_tmp.Resize(interface_tmp.GetSize());
-            elemNodeToCouplingNode_tmp.Clear();
+            isBoundaryNode_tmp.Init();
             elemNodeToCouplingNode_tmp.Resize(interface_tmp.GetSize());
-         
+            elemNodeToCouplingNode_tmp.Init();
           
             for (UInt ielem=0; ielem<interface_tmp.GetSize(); ielem++)
               {
                 isBoundaryNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
+                isBoundaryNode_tmp[ielem].Init();
                 elemNodeToCouplingNode_tmp[ielem].Resize(interface_tmp[ielem]->connect.GetSize());
+                elemNodeToCouplingNode_tmp[ielem].Init();
 
                 // Determine Boundary Nodes
                 for (UInt ielemnode=0; ielemnode<isBoundaryNode_tmp[ielem].GetSize(); ielemnode++)
@@ -287,7 +292,7 @@ namespace CoupledField {
 
                 for (UInt j=0; j<nodes->GetSize(); j++)
                   {
-                    pdeNode = eqnData_->Mesh2PDENode((*nodes)[j]);
+                    pdeNode = eqnMap_->Mesh2PdeNode((*nodes)[j]);
 
                     // begin FASTEST NETZ CHECK
                     Point<3> ptPoint;
@@ -297,7 +302,7 @@ namespace CoupledField {
 
                     //Info->PrintF( pdename_, "pdeNode=%d \t (*nodes)[%d]=%d\n", pdeNode, j, (*nodes)[j] );
                   
-                    if(NodeBelongsToSD_(pdeNode,ii)==TRUE)
+                    if(NodeBelongsToSD_(pdeNode,ii)==true)
                       {
                         nodeIds[k]=pdeNode;
                         for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
@@ -314,7 +319,7 @@ namespace CoupledField {
                   }
                 //Info->PrintF(pdename_, "k =%d \t  numOfNodesInSD_[%d]=%d \n", k, ii, numOfNodesInSD_[ii]);
       
-                if (flagFirstTimeStep_== TRUE) {;} // do nothing
+                if (flagFirstTimeStep_== true) {;} // do nothing
                 else
 #ifdef MpCCI
                   ptMpCCIexch_->PutPartition(ii+1, displ, numOfNodesInSD_[ii], nodeIds, converged_);
@@ -322,11 +327,11 @@ namespace CoupledField {
                 if(nodeIds) delete [] nodeIds;
               } // end for ii
 
-            if (flagFirstTimeStep_== TRUE)
+            if (flagFirstTimeStep_== true)
               {
                 //for the first iteration of the first time step 
                 //do not call ptMpCCIexch_->SendAllPartitions();
-                flagFirstTimeStep_=FALSE;
+                flagFirstTimeStep_=false;
               }
 #ifdef MpCCI
             // Send the displacements to FASTEST-3D
@@ -411,7 +416,7 @@ namespace CoupledField {
                       {
                         for (UInt j=0; j<couplingNodes->GetSize(); j++)
                           {
-                            pdeNode = eqnData_->Mesh2PDENode((*couplingNodes)[j]);
+                            pdeNode = eqnMap_->Mesh2PdeNode((*couplingNodes)[j]);
                          
                             if(pdeNode==localNodes_[ii][k])
                               {
@@ -433,20 +438,20 @@ namespace CoupledField {
   }
 
 
-  Boolean MpcciPDE::HasOutput(SolutionType output)
+  bool MpcciPDE::HasOutput(SolutionType output)
   {
     ENTER_FCN( "MpcciPDE::HasOutput" );
   
     switch (output)
       {
       case FLUID_FORCE:
-        return TRUE;
+        return true;
         break;
       default:
-        return FALSE;
+        return false;
         break;
       }
-    return FALSE;
+    return false;
   }
 
 
@@ -478,7 +483,7 @@ namespace CoupledField {
 	localNodes_[i]  =new UInt[numOfNodesInSD_[i]];
 	for (j=0; j<numOfNodesInSD_[i]; j++)
 	  {
-	    localPDENode = eqnData_->Mesh2PDENode(globalNodes[j]);
+	    localPDENode = eqnMap_->Mesh2PdeNode(globalNodes[j]);
 	    localNodes_[i][j]=localPDENode;
 	  }
       }
@@ -492,7 +497,7 @@ namespace CoupledField {
     UInt numOfSubdom=subdoms_.GetSize();
 
     NodeBelongsToSD_.Resize(numPDENodes_+1, numOfSubdom);
-    NodeBelongsToSD_.Init(FALSE);
+    NodeBelongsToSD_.Init(false);
 
     for (i=1; i<=numPDENodes_; i++)
       {
@@ -502,7 +507,7 @@ namespace CoupledField {
 	      {
 		if(i==localNodes_[j][k])
 		  {
-		    NodeBelongsToSD_(i,j)=TRUE;
+		    NodeBelongsToSD_(i,j)=true;
 		    Info->PrintF( pdename_, "pdeNode:%d is in SD %d \t", i, j );
 		    break;
 		  }

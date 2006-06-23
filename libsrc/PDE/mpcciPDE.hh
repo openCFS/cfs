@@ -1,7 +1,6 @@
 #ifndef FILE_MPCCIPDE_NEW
 #define FILE_MPCCIPDE_NEW
 
-#include "scalarnodeEQN.hh"
 #include "SinglePDE.hh" 
 
 #ifdef MpCCI
@@ -40,10 +39,6 @@ namespace CoupledField
 
     //! define the SoltionStep-Driver
     virtual void DefineSolveStep();
-
-    //! return size of solution
-    virtual UInt getSize() const 
-    { return numPDENodes_*dofspernode_;}
 
     //! initialize time stepping: 
     //! nothing to do in mpcci!
@@ -94,7 +89,7 @@ namespace CoupledField
     virtual void CalcOutputCoupling();
 
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(SolutionType output);
+    virtual bool HasOutput(SolutionType output);
   
 
   protected:
@@ -119,7 +114,7 @@ namespace CoupledField
     // *****************
 
     // for check: own solver
-    Boolean SolverCFS_; //<! parameter indicator: TRUE, if you want to use Solver CFS. reading from config-file
+    bool SolverCFS_; //<! parameter indicator: true, if you want to use Solver CFS. reading from config-file
     Matrix<Double> sysmat_;
     Vector<Double> vecrhs_;
 
@@ -131,7 +126,7 @@ namespace CoupledField
 #ifdef MpCCI
     MpCCIexch * ptMpCCIexch_;
 #endif
-    Boolean flagFirstTimeStep_; // flag for first time stewp
+    bool flagFirstTimeStep_; // flag for first time stewp
     UInt MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
     void ReadStoreResults();
     StdVector<std::string> MpCCIType_; // <! Coupling Type: shell:= pressure from bioth sides; solid:= pressure from one side
@@ -139,7 +134,7 @@ namespace CoupledField
     // Matrix containig the local PDE node numbers of all subdomains of the PDE
     UInt ** localNodes_;
     UInt * numOfNodesInSD_;
-    Matrix<Boolean> NodeBelongsToSD_;
+    Matrix<bool> NodeBelongsToSD_;
 
   };
 

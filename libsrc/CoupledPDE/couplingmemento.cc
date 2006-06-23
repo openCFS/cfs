@@ -6,7 +6,7 @@ namespace CoupledField{
   {
     ENTER_IFCN( "CouplingMemento::CouplingMemento");
   
-    isSet_ = FALSE;
+    isSet_ = false;
   
   }
 

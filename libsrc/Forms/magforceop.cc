@@ -12,14 +12,14 @@ namespace CoupledField
  
   MagLorentzForceOp::MagLorentzForceOp(Grid * ptGrid,
                                        StdPDE * ptPDE,
-                                       NodeEQN * ptEQN,
+                                       shared_ptr<EqnMap> eqnMap,
                                        NodeStoreSol<Double> & magPotential,
-                                       Boolean isaxi) 
-    : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
+                                       bool isaxi, bool coordUpdate) 
+    : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
     ENTER_FCN( "MagLorentzForceOp::MagLorentzForceOp" );
 
-    curlFieldOp_ = new  CurlNodeOp(ptGrid, ptPDE, ptEQN,magPotential);
+    curlFieldOp_ = new  CurlNodeOp(ptGrid, ptPDE, eqnMap,magPotential, coordUpdate);
     curlFieldOp_->Set2DType(isaxi);
     if ( ptGrid->GetDim() != 2 ) {
       Error( "Currently MagLorentzForceOp just working for 2D problems",
@@ -59,7 +59,8 @@ namespace CoupledField
     F.Init(0);
 
     // Get element coordinates
-    ptPDE_->GetElemCoords(ptElement->connect, CornerCoords);
+    ptGrid_->GetElemNodesCoord( CornerCoords, ptElement->connect, 
+                                coordUpdate_ );
 
     //just for testing with CAPA
     //   Vector<Double> LCoord;
@@ -126,7 +127,6 @@ namespace CoupledField
         }
 
       } // loop over integration points
-  
   }
 
 
@@ -134,16 +134,17 @@ namespace CoupledField
   //---------------------------- VWP ----------------------------------------------------- 
   MagForceOp::MagForceOp(Grid * ptGrid,
                          StdPDE * ptPDE,
-                         NodeEQN * ptEQN,
+                         shared_ptr<EqnMap> eqnMap,
                          NodeStoreSol<Double> & sol,
                          UInt dim,
                          std::map<RegionIdType,BaseMaterial*>& matData,
-                         Boolean isaxi) 
-    : BaseForceOp(ptGrid, ptPDE, ptEQN, sol, dim, matData, isaxi)
+                         bool isaxi, bool coordUpdate ) 
+    : BaseForceOp(ptGrid, ptPDE,  eqnMap, sol, dim, 
+                  matData, isaxi, coordUpdate )
   {
     ENTER_FCN( "MagForceOp::MagForceOp" );
 
-    curlFieldOp_ = new CurlNodeOp(ptGrid, ptPDE, ptEQN, sol);
+    curlFieldOp_ = new CurlNodeOp(ptGrid, ptPDE, eqnMap, sol);
     curlFieldOp_->Set2DType(isaxi);
 
     solType_ = MAG_FORCE_VWP;

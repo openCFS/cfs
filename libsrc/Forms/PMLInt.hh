@@ -13,22 +13,21 @@ class PMLInt : public BaseForm
 public:
 
   //! Constructor
-  PMLInt(std::string type, Double factor, std::string dampingTypePML, Double damp, 
-	 Boolean axi=FALSE);
+  PMLInt(std::string type, Double factor, std::string dampingTypePML, 
+         Double damp, bool axi=false);
 
   /// 
   virtual ~PMLInt();
 
   //! Calculation of stiffmess matrix
-  void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
 
   //! set min/max of x,y,z coordinates form where PML starts and ends
   void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
-
-  virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
-
   
-  virtual void SetActElemSol(Matrix<Double>& disp){};
+  void SetActElemSol(Matrix<Double>& disp){};
 
 
 private:
@@ -45,11 +44,11 @@ private:
   //! calculates the damping factor
   Double ComputeDampingFactor(Vector<Double>& pos, Directions dir);
 
-  //! type of bilinear form
-  std::string formsType_;
-
   //! multiplicative factor for forms
   Double formsFactor_;
+
+ //! type of bilinear form
+  std::string formsType_;
 
   //! type of PML damping
   std::string dampingTypePML_;

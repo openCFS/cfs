@@ -20,7 +20,7 @@ namespace CoupledField {
 
     maxnumTF_  = 0;
 
-    timeFncDatFiles_=FALSE;
+    timeFncDatFiles_=false;
     std::string nametf;
 
     // Determine type of analysis and, if adaptivity is to be used
@@ -29,14 +29,12 @@ namespace CoupledField {
     params->Get( "type", analysis, "analysis" );
     String2Enum( analysis, analysisType );
 
-    if (analysisType == TRANSIENT4SLICE) {
-      params->GetList( "name", fnc_names_, "transient4Slice", "timeDataFile" );
-    } else {
-      params->GetList( "name", fnc_names_, "transient", "timeDataFile" );
-    }
+    // Get all names of time-data files to be opened
+    params->GetList( "name", fnc_names_, "transient", "timeDataFile" );
+    
 
     if (fnc_names_.GetSize())
-      timeFncDatFiles_ = TRUE;
+      timeFncDatFiles_ = true;
 
     //read in the time functions
     if (timeFncDatFiles_)  
@@ -182,69 +180,6 @@ namespace CoupledField {
  
   }
 
-  StdVector<Double> TimeFunc::TimeSpcFuncAtTime(const Double time, 
-                                                const std::string fncname,
-                                                StdVector<UInt> nodes, 
-                                                Grid * ptgrid)
-  {
-    ENTER_FCN( "TimeFunc::TimeSpcFuncAtTime" );
-  
-    StdVector<Double> fncVal;
-    fncVal.Resize(nodes.GetSize());
-    Double PI=3.1415926535; 
-    //Specific parameter values for space dependent function
-      Double y0 = 0;
-      Double r = 1.5;
-      Double t0 = 0.5;
- 
-    for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-      Vector<Double> ptCoordNode;
-      ptgrid->GetNodeCoordinate(ptCoordNode, nodes[iNode]);
-      Double x, y, z;
-      x = ptCoordNode[0];
-      y = ptCoordNode[1];
-      z = ptCoordNode[2];
-      // Here an switch instruction could be used to add additional functions.
-
-      //This case is for setting the analytical pressure fluctuations P_ak 
-      //from vortex_analytical as problem solution
-      Double r_sqr=(x*x+y*y);
-      if (r_sqr<=((200./81.)*(200./81.)))
-        {
-          //  if (VortexFlag==2)
-          //                             nodalval[ii]=0;
-          //                           else if (VortexFlag==3)
-          fncVal[iNode]=cos( (PI/(2*r)) * (y-y0) );
-         }
-       else
-         {
-           Double P_ak=0;
-           Vector<Double> dTijdi;
-           SinglePDE * acouPDE_ = domain->GetSinglePDE("acoustic");
-           acouPDE_->VortexAnalytical(P_ak, dTijdi, x, y, time, 1);
-           //std::cout<<"After getting P_ak in timefunc.cc, P_ak= "<<P_ak<<std::endl;
-           fncVal[iNode]=P_ak;
-         } 
-
-      
-
-// For benchmark test with paper
-// Finite Element analysis of semi-infinite wave guides with high-order
-// boundary treatment (Int. J. Numer. Meth. 2003, 58:1955-1983)
-//       if ( (abs(y-y0) <= r) && (0<=time) && (time<=t0) )
-//         {
-//           fncVal[iNode]=cos( (PI/(2*r)) * (y-y0) );
-//         }
-//       else
-//         {
-//           fncVal[iNode]=0;
-//         } 
-    }
-    return  fncVal;
-  }
-  
-
-
   TimeFunc :: ~TimeFunc()
   {
     ENTER_FCN( "TimeFunc::~TimeFunc" );
@@ -351,6 +286,7 @@ namespace CoupledField {
 
 	// Init StartTime
 	startTime_.Resize(nuOfBcsNodes);
+        startTime_.Init();
 	startTime_[0] = 0.0;
 	startTime_[nuOfBcsNodes-1] = 0.0;
 	x=nL;
@@ -388,6 +324,7 @@ namespace CoupledField {
 	//std::cerr << "Welcome to timefunc.cc 3D" << std::endl;
 	// The mastertime, is the node, that needs the longest time to reach the focus
 	startTime_.Resize((maxnumelemx_+1)*(maxnumelemy_+1));
+        startTime_.Init();
 	Integer abs1 = (Integer) (maxnumelemx_+1) - (maxnumelemx_+1)/2;
 	//std::cout << "abs1" << abs1 << std::endl;
 	Integer abs2 = (Integer) (maxnumelemy_+1) - (maxnumelemx_+1)/2;

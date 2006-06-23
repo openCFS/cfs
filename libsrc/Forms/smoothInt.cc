@@ -21,6 +21,7 @@ namespace CoupledField
     
     
     bMat.Resize(getDimD(), nrNodes * nrDofs);
+    bMat.Init();
     
     // local shape functions derived after global coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
@@ -77,8 +78,6 @@ namespace CoupledField
   {
     ENTER_FCN( "smooth3DInt::calcDMat" );
 
-    const UInt nrElems3d = getDimD();
-    
     Matrix<Double> matMatrix;
     ptMaterial->GetTensor(matMatrix,MECH_STIFFNESS_TENSOR,REAL,subTensorType_);
     UInt dimRow = matMatrix.GetSizeRow();
@@ -99,11 +98,15 @@ namespace CoupledField
   // =================== standard con- and destructors (just for tracing) ==============
   // ===================================================================================
 
-  SmoothInt::SmoothInt(BaseMaterial* matData, SubTensorType type) 
+  SmoothInt::SmoothInt(BaseMaterial* matData, SubTensorType type,
+                       bool coordUpdate ) 
     : BDBInt(matData, type) 
   {
     ENTER_FCN( "SmoothInt::SmoothInt" );
+
+    name_ = "SmoothInt";
     updateDMatInEveryIP_ = 1;
+    coordUpdate_ = coordUpdate;
 
     if ( type == FULL ) {
       dimD_   = 6;
@@ -116,7 +119,7 @@ namespace CoupledField
     else if ( type == AXI ) {
       dimD_   = 4;
       nrDofs_ = 2;
-      isaxi_  = TRUE;
+      isaxi_  = true;
     }
   }
  

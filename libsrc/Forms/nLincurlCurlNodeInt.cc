@@ -2,27 +2,25 @@
 #include <fstream>
 
 #include "Utils/SmoothSpline.hh"
+#include "Utils/nodestoresol.hh"
 #include "nLincurlCurlNodeInt.hh"
 
 namespace CoupledField
 {
 
-  nLinCurlCurlNode2DInt::nLinCurlCurlNode2DInt(BaseFE * aptelem, Double aVal, Boolean axi)
-    : BaseForm(aptelem),startmatVal_ (aVal)
+
+  nLinCurlCurlNode2DInt::
+  nLinCurlCurlNode2DInt(ApproxData *nlinFnc, Double aVal, 
+                        bool axi, bool coordUpdate )
+    : BaseForm( NULL ),
+      startmatVal_ (aVal)
   {
     ENTER_FCN( "nLinCurlCurlNode2DInt::nLinCurlCurlNode2DInt");
 
+    name_ = "nLinCurlCurlNode2DInt";
     isaxi_      = axi;
-    nonLinType_ = NEWTON;
-  }
-
-
-  nLinCurlCurlNode2DInt::nLinCurlCurlNode2DInt(ApproxData *nlinFnc, Double aVal, Boolean axi)
-    : BaseForm(),startmatVal_ (aVal)
-  {
-    ENTER_FCN( "nLinCurlCurlNode2DInt::nLinCurlCurlNode2DInt");
-
-    isaxi_      = axi;
+    coordUpdate_ = coordUpdate;
+    isSolDependent_ = true;
     nonLinType_ = NEWTON;
 
     //set pointer to nonlinear function
@@ -36,14 +34,25 @@ namespace CoupledField
   }
 
 
-  void nLinCurlCurlNode2DInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
+  void nLinCurlCurlNode2DInt:: CalcElementMatrix( Matrix<Double>& elemMat,
+                                                  EntityIterator& ent1, 
+                                                  EntityIterator& ent2 )
   {
     ENTER_FCN( "nLinCurlCurlNode2DInt::CalcElementMatrix");
-  
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );  
+
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
+
+
+    // get solution of current element
+    Matrix<Double> temp;
+    sol_->GetElemSolutionAsMatrix( temp, ent1.GetElem()->connect );
+    temp.ConvertToVec_AppendRows( magPot_ );
 
 
     // derivation of shape functions after global coordinates 
@@ -64,12 +73,12 @@ namespace CoupledField
       {
         jacDet = 0;
         
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
 
         if (isaxi_)
           {
             ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-            CoordAtIP = ptCoord * ShpFncAtIp;
+            CoordAtIP = ptCoord_ * ShpFncAtIp;
             for (UInt i=0; i<nrNodes; i++)
               xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
             
@@ -132,12 +141,5 @@ namespace CoupledField
     
   }
 
-
-  void nLinCurlCurlNode2DInt::Print(std::ostream * out, const Matrix<Double> Result) const
-  {
-    ENTER_FCN( "nLinCurlCurlNode2DInt::Print");
-
-    (*out)<< "CurlCurlNode2D stiffness matrix:" << std::endl << Result;
-  }
 
 } // end namespace CoupledField

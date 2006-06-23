@@ -22,21 +22,18 @@ namespace CoupledField
 
     //----------------------- STATIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    void PreStepStatic( const Boolean reset ) {
+    void PreStepStatic() {
       Error( "An ODE can not be solved statically!", __FILE__, __LINE__ );
 
     }
 
     //! base method for solving one static step 
-    //!\param reset TRUE: perfrom new assembly, etc
-    void SolveStepStatic( const Boolean reset ) {
+    void SolveStepStatic() {
       Error( "An ODE can not be solved statically!", __FILE__, __LINE__ );
     }
 
     //! solves for one nonlinear static step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepStaticNonLin( const Boolean reset ) {
+    void StepStaticNonLin() {
       Error( "An ODE can not be solved statically!", __FILE__, __LINE__ );
     }
   
@@ -47,48 +44,40 @@ namespace CoupledField
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    void PreStepTrans( const Boolean reset ) {; };
+    void PreStepTrans() {; };
 
     //! base method for solving one transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void SolveStepTrans( const Boolean reset );
+    void SolveStepTrans();
 
     //! solves for one linear transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepTransLin( const Boolean reset ) {;};
+    void StepTransLin() {;};
 
     //! routine for actions after the SolveStep-method
      void PostStepTrans() {;};
 
     //----------------------- HARMONIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void PreStepHarmonic( const Boolean reset ) {
+    virtual void PreStepHarmonic() {
       Error( "An ODE can not be solved harmonically!", __FILE__, __LINE__ );
     }
 
     //!  base method for solving one harmonic step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void SolveStepHarmonic( const Boolean reset ) {
+    virtual void SolveStepHarmonic() {
       Error( "An ODE can not be solved harmonically!", __FILE__, __LINE__ );
     }
     
     //! solves for one linear frequency step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void StepHarmonicLin( const Boolean reset ) {
+    virtual void StepHarmonicLin() {
       Error( "An ODE can not be solved harmonically!", __FILE__, __LINE__ );
     }
 
     //! solves for one nonlinear frequency step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void StepHarmonicNonLin( const Boolean reset ) {
+    virtual void StepHarmonicNonLin() {
       Error( "An ODE can not be solved harmonically!", __FILE__, __LINE__ );
     }
 
     //!  routine for actions after the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void PostStepHarmonic( const Boolean reset ) {
+    virtual void PostStepHarmonic() {
       Error( "An ODE can not be solved harmonically!", __FILE__, __LINE__ );
     }
 

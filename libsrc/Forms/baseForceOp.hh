@@ -2,7 +2,7 @@
 #define FILE_BASEFORCEOP_2005
 
 #include "Forms/baseoperator.hh"
-
+#include "Utils/nodestoresol.hh"
 
 namespace CoupledField
 {
@@ -26,11 +26,11 @@ namespace CoupledField
     //!                           potential for all nodes of domain
     BaseForceOp(Grid * ptGrid, 
                 StdPDE * ptPDE,
-                NodeEQN * ptEQN,
+                shared_ptr<EqnMap> eqnMap,
                 NodeStoreSol<Double> & sol,
                 UInt dim,
                 std::map<RegionIdType, BaseMaterial*>& materials,
-                Boolean isaxi);
+                bool isaxi, bool coordUpdate = false);
 
     //! Destructor
     virtual ~BaseForceOp();

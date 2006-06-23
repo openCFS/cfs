@@ -7,10 +7,12 @@ namespace CoupledField {
   // =================================================================
 
 
-  PressureLinForm::PressureLinForm(Double aVal, Boolean isaxi)
+  PressureLinForm::PressureLinForm(Double aVal, bool isaxi)
     : LinearSurfForm(), multiplier_(aVal)
   {
     ENTER_FCN( "PressureLinForm::PressureLinForm" );
+
+    name_ = "PressureLinForm";
     isaxi_ = isaxi;
   }
 
@@ -22,14 +24,17 @@ namespace CoupledField {
   }
 
 
-  void PressureLinForm::CalcElemVector(Matrix<Double>& ptCoord, 
-                                       Vector<Double> & elemVec)
+  void PressureLinForm::CalcElemVector(Vector<Double> & elemVec,  
+                                       EntityIterator& ent ) 
   {
     ENTER_FCN( "PressureLinForm::CalcElemVector" );
+    
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
 
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
-    const UInt dim      = ptCoord. GetSizeRow();
+    const UInt dim      = ptCoord_.GetSizeRow();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
     Vector<Double> shapeFnc;
     
@@ -50,27 +55,19 @@ namespace CoupledField {
       Error( __FILE__, __LINE__ );
     };
 
-    UInt zerodim = 0;
-    if (dofzero_ >0) {
-      //now ndDofs = dim + 1 for electric potential
-      elemVec.Resize(nrNodes*(dim+1));
-      zerodim = 1;
-    }
-    else
-      elemVec.Resize(nrNodes*dim);
-
-    elemVec.Init(0);    // set elems to 0
+    elemVec.Resize(nrNodes*dim);
+    elemVec.Init(0);
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         ptelem->GetShFncAtIp(shapeFnc, actIntPt);
-        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
         Double factor = multiplier_ * intWeights[actIntPt-1] * jacDet;
 
         if (isaxi_)
           {
             Vector<Double> CoordAtIP;
-            CoordAtIP = ptCoord * shapeFnc;
+            CoordAtIP = ptCoord_ * shapeFnc;
             factor *=  2 * PI * CoordAtIP[0];
           }
       
@@ -84,7 +81,7 @@ namespace CoupledField {
             //to get the x-,y-,z-component
             helpVec = shapeFnc * normal_[i];
             for (UInt j=0; j<helpVec.GetSize(); j++) {
-              idx = j*(dim+zerodim) +i;
+              idx = j*(dim) +i;
               elemVec[idx] -= helpVec[j];
             }
           }

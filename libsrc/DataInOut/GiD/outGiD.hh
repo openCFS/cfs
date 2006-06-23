@@ -109,10 +109,10 @@ namespace CoupledField
     GiD_Dimension dim_;
 
     //! Flag for binary file format
-    Boolean isAscii_;
+    bool isAscii_;
 
     //! Flag for use of degenerated elements
-    Boolean degen3DElems_;
+    bool degen3DElems_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

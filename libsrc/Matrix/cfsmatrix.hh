@@ -59,16 +59,14 @@ namespace CoupledField{
     /*!
       \param size (input) Number of rows / columns
     */
-    //! \note the matrix contains afterwards only zeroes
-    virtual void Resize(const UInt size) = 0;
+    virtual void Resize(const UInt size ) = 0;
   
     //! Change size of general matrix 
     /*!
       \param nRows (input) Number of rows
       \param nCols (input) Number of columns)
     */
-    //! \note the matrix contains afterwards only zeroes
-    virtual void Resize(const UInt nRows, const UInt nCols) = 0;
+    virtual void Resize(const UInt nRows, const UInt nCols ) = 0;
  
     //! Get the number of rows
     virtual UInt GetSizeRow() const = 0;

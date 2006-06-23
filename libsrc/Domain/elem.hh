@@ -45,9 +45,15 @@ namespace CoupledField
 
     //! array with node numbers
     StdVector<UInt> connect;
+
+    //! array with edge numbers
+    StdVector<Integer> edges;
+
+    //! array with surface numbers
+    StdVector<Integer> surfaces;
   
     //! flag for refinement
-    Boolean refinementFlag; 
+    bool refinementFlag; 
   
     //! number of refinement for the element
     UInt refinementNumber; 

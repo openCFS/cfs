@@ -16,12 +16,15 @@ namespace CoupledField {
                              UInt stepOffset,
                              Double timeOffset,
                              std::string driverTag,
-                             Boolean isPartOfSequence) 
+                             bool isPartOfSequence) 
     : SingleDriver(adomain, stepOffset, timeOffset, 
                    driverTag, isPartOfSequence) {
     ENTER_FCN( "EigenFrequencyDriver::EigenFrequencyDriver" );
 
-    // vecotrs for accessing parameters
+    // set correct analysistype
+    analysis_ = EIGENFREQUENCY;
+
+    // vectors for accessing parameters
     StdVector<std::string> keyVec, attrVec, valVec;
 
     attrVec = "tag";
@@ -41,9 +44,9 @@ namespace CoupledField {
     params->Get( keyVec, attrVec, valVec, temp );
 
     if ( temp == "yes" ) {
-      writeModes_ = TRUE;
+      writeModes_ = true;
     } else {
-      writeModes_ = FALSE;
+      writeModes_ = false;
     }
     
     // Get flag for writing out the modes
@@ -51,9 +54,9 @@ namespace CoupledField {
     params->Get( keyVec, attrVec, valVec, temp );
     
     if ( temp == "yes" ) {
-      isQuadratic_ = TRUE;
+      isQuadratic_ = true;
     } else {
-      isQuadratic_ = FALSE;
+      isQuadratic_ = false;
     }
     
     
@@ -76,9 +79,9 @@ namespace CoupledField {
 
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
-    if (isPartOfSequence_ == FALSE){     
+    if (isPartOfSequence_ == false){     
              GetMyPDEs();
-             Info->StartProgress ("Starting to solve problem", FALSE);
+             Info->StartProgress ("Starting to solve problem", false);
     }
     
     // ------------------------------
@@ -118,7 +121,7 @@ namespace CoupledField {
       // ------------------------------
       // Phase 2: calculate eigenmodes
       // ------------------------------
-      if ( writeModes_ == TRUE ) {
+      if ( writeModes_ == true ) {
         
         // Iterate over all frequencies an calculate according mode
         if (! isPartOfSequence_)
@@ -165,7 +168,7 @@ namespace CoupledField {
       // ------------------------------
       // Phase 2: calculate eigenmodes
       // ------------------------------
-      if ( writeModes_ == TRUE ) {
+      if ( writeModes_ == true ) {
         
         // Iterate over all frequencies an calculate according mode
         if (! isPartOfSequence_)

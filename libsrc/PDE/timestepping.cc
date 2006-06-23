@@ -7,12 +7,12 @@
 
 namespace CoupledField {
 
-  TimeStepping::TimeStepping(BaseSystem * algebraicsystem, UInt rhsSize )
+  TimeStepping::TimeStepping(BaseSystem * algebraicsystem )
   {
     ENTER_FCN( "TimeStepping::TimeStepping" );
 
     algsys_  = algebraicsystem;
-    rhsSize_ = rhsSize;
+    rhsSize_ = 0 ;
   }
 
   TimeStepping::~TimeStepping()

@@ -31,11 +31,11 @@ namespace CoupledField
     void Clear();
   
     //! Query if information is saved
-    Boolean IsSet() {return isSet_;};
+    bool IsSet() {return isSet_;};
   protected:
 
-    //! TRUE, if information is saved
-    Boolean isSet_;
+    //! true, if information is saved
+    bool isSet_;
   
     //! vector containing types of coupling input
     StdVector<CouplingInputType> inputTypes_;        

@@ -23,7 +23,7 @@ namespace CoupledField {
                  UInt stepOffset = 0, 
                  Double timeOffset = 0.0, 
                  std::string driverTag ="anyTag",
-                 Boolean isPartOfSequence = FALSE);
+                 bool isPartOfSequence = false);
     
     //! Default destructor
     virtual ~SingleDriver();
@@ -33,14 +33,6 @@ namespace CoupledField {
     
     //! main method, where time-stepping is implemented. it is for transient and static problem
     virtual void SolveProblem()=0;
-    
-    //! to setup matrices of PDE. we call according method of class PDE for setup matrices of PDE in assembling procedure.
-    //! \param pdenumber number of PDE
-    //! \param matrixtype type of matrix
-    virtual void SetupMatricesPDE(UInt pdenumber, const FEMatrixType matrixtype){
-      Error( "SetupMatricesPDE must be implemented by derived class!",
-             __FILE__, __LINE__ );
-    };
   
     //! return the actual frequency within a harmonic analysis
     virtual Double GetActFrequency() {return actFreq_; };
@@ -57,7 +49,7 @@ namespace CoupledField {
     BasePDE * ptPDE_;
 
     //! true, if driver is part of a multiSequence
-    Boolean isPartOfSequence_;
+    bool isPartOfSequence_;
 
     //! tag for driver section
     std::string driverTag_;

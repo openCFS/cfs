@@ -19,13 +19,16 @@ namespace CoupledField {
                      UInt stepOffset = 0,
                      Double timeOffset = 0.0,
                      std::string driverTag = "anyTag",
-                     Boolean isPartOfSequence = FALSE );
+                     bool isPartOfSequence = false );
   
     //! Default destructor
     virtual ~TransientDriver();
 
     //! main method, where time-stepping is implemented. it is for transient and static problem
     virtual void SolveProblem();
+
+    //! Return time step
+    Double GetTimeStep() { return firstdt_;}
 
   protected:
 

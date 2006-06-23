@@ -23,36 +23,29 @@ namespace CoupledField
 
     //----------------------- STATIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    void PreStepStatic( const Boolean reset );
+    void PreStepStatic( );
 
     //! base method for solving one static step 
-    //!\param reset TRUE: perfrom new assembly, etc
-    void SolveStepStatic( const Boolean reset );
+    void SolveStepStatic( );
 
     //! solves for one nonlinear static step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepStaticNonLin( const Boolean reset );
+    void StepStaticNonLin( );
 
     //! solves for one nonlinear static step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepStaticNonLinEpsDiff( const Boolean reset );
+    void StepStaticNonLinEpsDiff( );
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    void PreStepTrans( const Boolean reset )
-    {PreStepStatic(reset);};
+    void PreStepTrans( )
+    {PreStepStatic();};
 
     //! base method for solving one transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void SolveStepTrans( const Boolean reset )
-    {SolveStepStatic(reset);};
+    void SolveStepTrans( )
+    {SolveStepStatic();};
 
     //! solves for one linear transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepTransLin( const Boolean reset )
-    {StepStaticLin(reset);};
+    void StepTransLin( )
+    {StepStaticLin();};
 
     //! routine for actions after the SolveStep-method
      void PostStepTrans()
@@ -72,7 +65,7 @@ namespace CoupledField
 
   private:
 
-    Boolean doInit_;
+    bool doInit_;
 
     Hysteresis * hyst_;
 
@@ -80,7 +73,7 @@ namespace CoupledField
     Double Psat_;
     Double Ec_;
     UInt Dir_;
-    Boolean isVirgin_;
+    bool isVirgin_;
 
     //for differential permittivity
     Vector<Double> Eprevious_;

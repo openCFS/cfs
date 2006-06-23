@@ -8,9 +8,13 @@ namespace CoupledField
 {
 
 
-  void BDInt::calcElementVector(Matrix<Double>& ptCoord, Vector<Double> & resultStressVector,Vector<Double> & fracDerivStress)
-  {
+  void BDInt::calcElementVector(Vector<Double> & resultStressVector,
+                                EntityIterator& ent,
+                                Vector<Double> & fracDerivStress)  {
     ENTER_FCN( "BDInt::CalcElementMatrix" );
+    
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
 
     const Integer nrIntPts = ptelem->GetNumIntPoints();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
@@ -33,12 +37,12 @@ namespace CoupledField
 
     for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
       {
-	calcBMat(bMat, actIntPt, ptCoord);	
+	calcBMat(bMat, actIntPt, ptCoord_);	
 	bMat.Transpose(bTrans);
 	
 	temp = bTrans * fracDerivStress;
 
-	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
+	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord_);
 
 	if (jacDet < 0)
 	  Error("Negative Jacobian determinant!", __FILE__, __LINE__);
@@ -49,7 +53,7 @@ namespace CoupledField
 	    Vector<Double> CoordAtIP;
 	    ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
 
-	    CoordAtIP = ptCoord * ShpFncAtIp;
+	    CoordAtIP = ptCoord_ * ShpFncAtIp;
             jacDet *= 2 * PI * CoordAtIP[0];
 	  }	
 
@@ -57,26 +61,27 @@ namespace CoupledField
       }
   }
 
-  void BDInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord)
+  void BDInt::calcBMat(Matrix<Double> & bMat, Integer ip, Matrix<Double> & ptCoord_)
   {
     ENTER_FCN( "BDInt::calcBMat" );
 
-    const Integer nrNodes  = ptelem->GetNumNodes();
-    const Integer spaceDim = ptelem->GetDim();  
-    const Integer nrDofs   = getNrDofs();  
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const UInt spaceDim = ptelem->GetDim();  
+    const UInt nrDofs   = getNrDofs();  
 
-    Integer actDim, actNode, j, k;
+    UInt actDim, actNode, j, k;
     
     
     bMat.Resize(getDim(), nrNodes * nrDofs);
+    bMat.Init();
     
     // local shape functions derived after global coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
 
     if (isSetIntPoint_) 
-      ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord);
+      ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord_);
     else
-      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord_);
 
     for(actDim=0; actDim < spaceDim; actDim++)
       for(actNode=0; actNode < nrNodes; actNode++)
@@ -105,7 +110,7 @@ namespace CoupledField
 	    else
 	      ptelem->GetShFncAtIp(ShpFncAtIp,ip);
 
-	    CoordAtIP = ptCoord * ShpFncAtIp;
+	    CoordAtIP = ptCoord_ * ShpFncAtIp;
 
 	    for (actNode = 0; actNode < nrNodes; actNode++)	     
 	      bMat[idxtheta-1][actNode * spaceDim] = ShpFncAtIp[actNode] / CoordAtIP[0];
@@ -137,7 +142,7 @@ namespace CoupledField
 	break;
       }
 
-    isSetIntPoint_ = FALSE;
+    isSetIntPoint_ = false;
   }
 
   void BDInt::calcAlphaMat(Matrix<Double> & aMat)
@@ -146,6 +151,7 @@ namespace CoupledField
 
     // compute matrix A,  same entries, 
     aMat.Resize(getDim());
+    aMat.Init();
     
     // set entries on the diagonal
     val = timeStepPowerFracDeriv_ * dampAlpha_ ;
@@ -165,6 +171,7 @@ namespace CoupledField
     double val = 0.0;
     // compute matrix A,  same entries, 
     aMat.Resize(getDim());
+    aMat.Init();
     
     // set entries on the diagonal
     val = timeStepPowerFracDeriv_ * dampAlpha_ ;
@@ -220,25 +227,12 @@ namespace CoupledField
       }    
   }
 
-  BDInt::BDInt(BaseFE * aptelem, BaseMaterial* matData, std::string geomType,Double timeStep)
-    : BaseForm(aptelem, matData), updateDMatInEveryIP_(0)
-  {
-    ENTER_FCN( "BDInt::BDInt" );
-    geomType_ = geomType;
-    ptMaterial->GetScalar(dampAlpha_,RAYLEIGH_ALPHA,REAL);
-
-    StdVector<Double> fracDerivList_;
-    params->GetList( "fracDeriv", fracDerivList_, "mechanic", "damping" );
-    Double fracDeriv_ = fracDerivList_[0];
-    timeStepPowerFracDeriv_ = std::pow(timeStep,-fracDeriv_);
-
-  }
-
 
   BDInt::BDInt(BaseMaterial* matData,std::string geomType, Double timeStep)
-    : BaseForm(matData), updateDMatInEveryIP_(0)
-  {
+    : BaseForm(matData), updateDMatInEveryIP_(0) {
     ENTER_FCN( "BDInt::BDInt" );
+
+    name_ = "BDInt";
     geomType_ = geomType;
     ptMaterial->GetScalar(dampAlpha_,RAYLEIGH_ALPHA,REAL);
 

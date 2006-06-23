@@ -6,9 +6,7 @@
 #include "Domain/domain.hh"
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
-#include "PDE/SinglePDE.hh"
 #include "scriptable.hh"
-
 namespace CoupledField {
   
   //! Central instance of message dispatcher for CFS++
@@ -34,12 +32,12 @@ namespace CoupledField {
     //! \param event Type of event function to be called
     //! \param context Additional read only parameters to be passes to the 
     //!  function
-    //! \return TRUE, if function exists and is successfully executed
-    virtual Boolean TriggerEvent( const EventType event, 
+    //! \return true, if function exists and is successfully executed
+    virtual bool TriggerEvent( const EventType event, 
                                   const StdVector<std::string> & context);
     
-    //! Returns TRUE, if a script command is evaluated at the moment
-    Boolean IsEvaluating() {return isEvaluating_;}
+    //! Returns true, if a script command is evaluated at the moment
+    bool IsEvaluating() {return isEvaluating_;}
     
     //! Trigger the writing of a warning message
     virtual void Warning( const Char * msg, const Char * const filename,
@@ -54,7 +52,7 @@ namespace CoupledField {
     // ===================================================
     
     //! Evaluate expression
-    static Boolean CFSEval( const StdVector<std::string> & args,
+    static bool CFSEval( const StdVector<std::string> & args,
                             StdVector<std::string> & retVal );
     
   protected:
@@ -63,7 +61,7 @@ namespace CoupledField {
     static std::string errMsg_;
     
     //! Flag indicating if a scripting command is evaluated at the moment
-    Boolean isEvaluating_;
+    bool isEvaluating_;
     
     //! Map containing for each event the number of parameters to be passed
     std::map<EventType, UInt> eventNumParams_;

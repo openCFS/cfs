@@ -10,7 +10,9 @@ namespace CoupledField
   Jacobian<dim>::Jacobian()
   {
     J.Resize(dim,dim);
+    J.Init();
     Jinv.Resize(dim,dim);
+    Jinv.Init();
   }
 
   template<UInt dim>

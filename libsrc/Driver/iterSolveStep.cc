@@ -27,14 +27,14 @@ namespace CoupledField
 
   //----------------------- STATIC--------------------------------------------
 
-  void IterSolveStep::SolveStepStatic( const Boolean updatesysmat )
+  void IterSolveStep::SolveStepStatic()
   {
     ENTER_FCN ( "IterSolveStep::SolveStepStatic" );
   
     CFSVector *val, *oldVal;
     UInt iter = 0;
     UInt counter = 0;
-    Boolean normsReached = FALSE;
+    bool normsReached = false;
     std::string quantityConv;
 
 
@@ -49,7 +49,7 @@ namespace CoupledField
       }
       
       counter = 0;
-      normsReached = TRUE;
+      normsReached = true;
       
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
         
@@ -58,13 +58,13 @@ namespace CoupledField
                        (rPDE_.PDEs_[i]->GetName()).c_str());
         
         // Only solve current PDE, if the corresponding
-        // flag in 'solvePDE_' is set to TRUE
-        if (rPDE_.solvePDE_[i] == TRUE) {
+        // flag in 'solvePDE_' is set to true
+        if (rPDE_.solvePDE_[i] == true) {
           rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
           rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
-          rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic(updatesysmat);
+          rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
           rPDE_.PDEs_[i]->CalcInputCoupling();
-          rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(updatesysmat);
+          rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic();
           rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
           rPDE_.PDEs_[i]->CalcOutputCoupling();
 
@@ -87,7 +87,7 @@ namespace CoupledField
             
             if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k) && 
                 rCouplings_[i]->GetOutputNormType(k) != NO_NORM)
-              normsReached = FALSE;
+              normsReached = false;
                 
             //copy values of new solution to old one
             dynamic_cast<Vector<Double>&>(*oldVal) = 
@@ -113,13 +113,13 @@ namespace CoupledField
 
 
   //----------------------- TRANSIENT-----------------------------------------
-  void IterSolveStep::SolveStepTrans( const Boolean updatesysmat )
+  void IterSolveStep::SolveStepTrans()
   {
     ENTER_FCN( "IterSolveStep::SolveStepTrans" );
 
     UInt iter = 0;
 
-    Boolean normsReached = FALSE;
+    bool normsReached = false;
     std::string quantityConv;
     
     // In the beginning of each time step
@@ -142,7 +142,7 @@ namespace CoupledField
       }
 
       UInt counter = 0;
-      normsReached = TRUE;
+      normsReached = true;
 
 #ifdef MpCCI
       // whenever iter == 0 the old time step has converged
@@ -151,9 +151,9 @@ namespace CoupledField
       //For the first iteration of the first time step this is ignored 
       //because of the flag flagFirstTime in CalcInputCoupling of mpcciPDE
       if (iter == 0)
-        rPDE_.PDEs_[0]->converged_ = TRUE; 
+        rPDE_.PDEs_[0]->converged_ = true; 
       else
-        rPDE_.PDEs_[0]->converged_ = FALSE; 
+        rPDE_.PDEs_[0]->converged_ = false; 
 #endif
 
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
@@ -164,14 +164,14 @@ namespace CoupledField
                        (rPDE_.PDEs_[i]->GetName()).c_str());
 
         // Only solve current PDE, if the corresponding
-        // flag in 'solvePDE_' is set to TRUE
-        if (rPDE_.solvePDE_[i] == TRUE) {
+        // flag in 'solvePDE_' is set to true
+        if (rPDE_.solvePDE_[i] == true) {
           
           rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
           rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
-          rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans( updatesysmat );
+          rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
           rPDE_.PDEs_[i]->CalcInputCoupling();
-          rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans( updatesysmat );
+          rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans();
 
           rPDE_.PDEs_[i]->CalcOutputCoupling();
               
@@ -192,7 +192,7 @@ namespace CoupledField
                            quantityConv.c_str(), rPDE_.norms_[counter]);
             }
             if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
-              normsReached = FALSE;
+              normsReached = false;
                   
             dynamic_cast<Vector<Double>&>(*oldVal) = 
               dynamic_cast<Vector<Double>&>(*val);
@@ -216,7 +216,7 @@ namespace CoupledField
 #ifdef MpCCI
     if (actStep_==numTimeStep_) {
       
-      rPDE_.PDEs_[0]->converged_ = TRUE;
+      rPDE_.PDEs_[0]->converged_ = true;
       rPDE_.PDEs_[0]->CalcInputCoupling();
     }
 #endif
@@ -224,7 +224,7 @@ namespace CoupledField
   } 
 
   //----------------------- TRANSIENTHARMONIC---------------------------------
-  void IterSolveStep::SolveStepTransHarmonic( const Boolean updatesysmat )
+  void IterSolveStep::SolveStepTransHarmonic()
   {
     ENTER_FCN( "IterSolveStep::SolveStepTransHarmonic" );
 
@@ -241,7 +241,7 @@ namespace CoupledField
     }
 
 
-    Boolean normsReached = FALSE;
+    bool normsReached = false;
     std::string quantityConv;
 
     UInt iter = 0;   
@@ -256,7 +256,7 @@ namespace CoupledField
       }
 
       UInt counter = 0;
-      normsReached = TRUE;
+      normsReached = true;
 
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
 
@@ -267,8 +267,8 @@ namespace CoupledField
                        (rPDE_.PDEs_[i]->GetName()).c_str());
 
         // Only solve current PDE, if the corresponding
-        // flag in 'solvePDE_' is set to TRUE
-        if (rPDE_.solvePDE_[i] == TRUE) {
+        // flag in 'solvePDE_' is set to true
+        if (rPDE_.solvePDE_[i] == true) {
 
           std::string mypdename;
           mypdename = rPDE_.PDEs_[i]->GetName();
@@ -277,18 +277,18 @@ namespace CoupledField
 
             rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
             rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
-            rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans( updatesysmat );
+            rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
             rPDE_.PDEs_[i]->CalcInputCoupling();
-            rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans( updatesysmat );
+            rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans();
             rPDE_.PDEs_[i]->CalcOutputCoupling();
           }
           else if ( actAnalysisType_ == HARMONIC ) {
 
             rPDE_.PDEs_[i]->GetSolveStep()->SetActFreq( actFreq_ );
             rPDE_.PDEs_[i]->GetSolveStep()->SetActStep( 1 );
-            rPDE_.PDEs_[i]->GetSolveStep()->PreStepHarmonic( TRUE );
+            rPDE_.PDEs_[i]->GetSolveStep()->PreStepHarmonic();
             rPDE_.PDEs_[i]->CalcInputCoupling();
-            rPDE_.PDEs_[i]->GetSolveStep()->SolveStepHarmonic( TRUE );
+            rPDE_.PDEs_[i]->GetSolveStep()->SolveStepHarmonic();
             rPDE_.PDEs_[i]->CalcOutputCoupling();
           }
 
@@ -310,7 +310,7 @@ namespace CoupledField
                            quantityConv.c_str(), rPDE_.norms_[counter]);
             }
             if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
-              normsReached = FALSE;
+              normsReached = false;
                   
             dynamic_cast<Vector<Double>&>(*oldVal) = 
               dynamic_cast<Vector<Double>&>(*val);
@@ -333,7 +333,7 @@ namespace CoupledField
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
       }
       else if ( actAnalysisType_ == HARMONIC ) {
-        rPDE_.PDEs_[i]->GetSolveStep()->PostStepHarmonic( TRUE );
+        rPDE_.PDEs_[i]->GetSolveStep()->PostStepHarmonic();
       }
     }
     
@@ -342,7 +342,7 @@ namespace CoupledField
 
   
   //----------------------- HARMONIC---------------------------------------
-  void IterSolveStep::SolveStepHarmonic( const Boolean reset )
+  void IterSolveStep::SolveStepHarmonic()
   {
     ENTER_FCN( "IterSolveStep::SolveStepHarmonic" );
     
@@ -451,10 +451,14 @@ namespace CoupledField
     if ( val.GetEntryType() == EntryType::COMPLEX ) {
 
       delta = new Vector<Complex>;
+      delta->Resize( val.GetSize() );
+      delta->Init( Complex(0.0,0.0) );
     } else {
       delta = new Vector<Double>;
+      delta->Resize( val.GetSize() );
+      delta->Init( 0.0);
     }
-    delta->Resize( val.GetSize() );
+   
     
     // Calculate difference
     delta->Add(1.0, val, -1.0, oldval );

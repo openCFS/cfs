@@ -22,7 +22,7 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepSmooth::StepStaticNonLin( const Boolean reset )
+  void SolveStepSmooth::StepStaticNonLin( const bool reset )
   {
     ENTER_FCN( "SolveStepSmooth::StepStaticNonLin" );
 
@@ -30,7 +30,7 @@ namespace CoupledField {
     Double * ptsol;
 
     assemble_->AssembleMatrices();
-    assemble_->AssembleSrcRHS();
+    assemble_->AssembleLinRHS( actTime_ );
   
     PDE_.SetBCs( 0.0 );
     

@@ -3,7 +3,7 @@
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
-#include "PDE/nodeEQN.hh"
+#include "PDE/eqnMap.hh"
 
 namespace CoupledField
 {
@@ -23,8 +23,9 @@ namespace CoupledField
     //! Constructor
     BaseOperator(Grid * ptGrid, 
                  StdPDE * ptPDE,  
-                 NodeEQN * ptEQN, 
-                 Boolean isaxi=FALSE);
+                 shared_ptr<EqnMap> eqnMap,
+                 bool isaxi=false,
+                 bool coordUpdate_ = false );
   
     //! Destructor
     virtual ~BaseOperator() = 0;
@@ -33,8 +34,9 @@ namespace CoupledField
 
     Grid * ptGrid_;     //!< pointer to grid
     StdPDE * ptPDE_;   //!< pointer to PDE
-    NodeEQN * ptEQN_;   //!< pointer to Equation object
-    Boolean isaxi_;
+    shared_ptr<EqnMap> eqnMap_;
+    bool isaxi_;
+    bool coordUpdate_;
   };
 
 } // end of namespace

@@ -34,7 +34,7 @@ namespace CoupledField
     */
     template<class T> int Set (const char *fieldname, 
                                const T val, 
-                               Boolean quoted=TRUE)
+                               bool quoted=true)
     {
       ENTER_IFCN("dbLineData::Set"); 
       Integer fnamelength = strlen(fieldname);

@@ -9,12 +9,12 @@
 namespace CoupledField
 {
 
-  Newmark::Newmark(BaseSystem * algebraicsystem, UInt rhsSize )
-    :TimeStepping(algebraicsystem, rhsSize)
+  Newmark::Newmark(BaseSystem * algebraicsystem )
+    :TimeStepping(algebraicsystem )
   {
     ENTER_FCN( "Newmark::Newmark" );
 
-    damping_ = FALSE;
+    damping_ = false;
 
     alpha_ = 0.0;
     //    alpha_ = -1/3;
@@ -30,6 +30,41 @@ namespace CoupledField
     //  if(analysis != "paramIdent")
     //    Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
 
+  }
+
+  Newmark::~Newmark()
+  {
+    ENTER_FCN( "Newmark::~Newmark" );
+
+  }
+
+  void Newmark::Init( std::map<FEMatrixType,Double> & matrix_factors,
+                      Double dt, UInt rhsSize ) {
+    ENTER_FCN( "Newmark::Init" );
+
+    rhsSize_ = rhsSize;
+
+    // Check if a damping matrix is present
+    std::set<FEMatrixType> matTypes;    
+    algsys_->GetFEMatrixTypes(matTypes);
+
+    if ( matTypes.find(DAMPING) != matTypes.end() )
+      damping_ = true;
+    
+    // Calculate parameters and store it in matrix_factors
+    dt_ = dt;
+    CalcParameters(dt_);
+        
+    matrix_factors[STIFFNESS] = (1.0 + alpha_);
+    matrix_factors[MASS] = 1.0*a2_;   
+    matrix_factors[CONVECTION] = 0.0; 
+
+    if ( damping_ == true ) {
+      matrix_factors[DAMPING] = 1.0*a4_;
+    } else {
+      matrix_factors[DAMPING] = 0.0;     
+    }
+
     //get the memory
     solderiv1_.Resize(rhsSize_);
     solderiv1_.Init();
@@ -40,39 +75,6 @@ namespace CoupledField
     solpred_.Init();
     solderiv1pred_.Resize(rhsSize_);
     solderiv1pred_.Init();
-
-  }
-
-  Newmark::~Newmark()
-  {
-    ENTER_FCN( "Newmark::~Newmark" );
-
-  }
-
-  void Newmark::Init( std::map<FEMatrixType,Double> & matrix_factors,
-                      Double dt ) {
-    ENTER_FCN( "Newmark::Init" );
-
-    // Check if a damping matrix is present
-    std::set<FEMatrixType> matTypes;    
-    algsys_->GetFEMatrixTypes(matTypes);
-
-    if ( matTypes.find(DAMPING) != matTypes.end() )
-      damping_ = TRUE;
-    
-    // Calculate parameters and store it in matrix_factors
-    dt_ = dt;
-    CalcParameters(dt_);
-        
-    matrix_factors[STIFFNESS] = (1.0 + alpha_);
-    matrix_factors[MASS] = 1.0*a2_;   
-    matrix_factors[CONVECTION] = 0.0; 
-
-    if ( damping_ == TRUE ) {
-      matrix_factors[DAMPING] = 1.0*a4_;
-    } else {
-      matrix_factors[DAMPING] = 0.0;     
-    }
 
 
   }
@@ -184,12 +186,12 @@ namespace CoupledField
   // Effective Mass Matrix Formulation
   // ====================================================
 
-  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem, UInt rhsSize)
-    :TimeStepping(algebraicsystem, rhsSize)
+  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem)
+    :TimeStepping(algebraicsystem)
   { 
     ENTER_FCN( "NewmarkEffMass::NewmarkEffMass" );
 
-    damping_ = FALSE;
+    damping_ = false;
 
     alpha_ = 0.0;
     beta_  = 0.25;
@@ -201,20 +203,6 @@ namespace CoupledField
     if(analysis != "paramIdent")
       Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
 
-    //get the memory
-    sol_.Resize(rhsSize_);
-    sol_.Init();
-    solpred_.Resize(rhsSize_);
-    solpred_.Init();
-
-    solderiv1_.Resize(rhsSize_);
-    solderiv1_.Init();
-    solderiv2_.Resize(rhsSize_);
-    solderiv2_.Init();
-
-  
-    solderiv1pred_.Resize(rhsSize_);
-    solderiv1pred_.Init();
   }
 
   NewmarkEffMass::~NewmarkEffMass()
@@ -224,16 +212,18 @@ namespace CoupledField
   }
 
   void NewmarkEffMass::Init( std::map<FEMatrixType,Double> & matrix_factors,
-                             Double dt ) 
+                             Double dt, UInt rhsSize ) 
   {
     ENTER_FCN( "NewmarkEffMass::Init" );
+
+    rhsSize_ = rhsSize;
 
     // Check if a damping matrix is present
     std::set<FEMatrixType> matTypes;    
     algsys_->GetFEMatrixTypes(matTypes);
 
     if ( matTypes.find(DAMPING) != matTypes.end() )
-      damping_ = TRUE;
+      damping_ = true;
 
     
     // Calculate parameters and store it in matrix_factors
@@ -250,6 +240,21 @@ namespace CoupledField
     } else {
       matrix_factors[DAMPING] = 0.0; 
     }
+    
+    //get the memory
+    sol_.Resize(rhsSize_);
+    sol_.Init();
+    solpred_.Resize(rhsSize_);
+    solpred_.Init();
+
+    solderiv1_.Resize(rhsSize_);
+    solderiv1_.Init();
+    solderiv2_.Resize(rhsSize_);
+    solderiv2_.Init();
+
+  
+    solderiv1pred_.Resize(rhsSize_);
+    solderiv1pred_.Init();
 
   }
 

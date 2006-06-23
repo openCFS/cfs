@@ -7,8 +7,6 @@ src =   myclock.cc nodestoresol.cc elemstoresol.cc tools.cc vector.cc\
 	mathfunctions.cc hysteresis.cc preisach.cc LinInterpolate.cc jiles.cc \
 	profiler.cc coordSystem.cc cylCoordSys.cc defaultCoordSys.cc mathParser.cc
 #
-lib = utils
-libpath = libsrc/Utils
 CFLAGS3 =
 #
 include ../makefile.inc

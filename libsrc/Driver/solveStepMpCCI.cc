@@ -19,7 +19,7 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepMpCCI:: PreStepStatic( const Boolean reset )
+  void SolveStepMpCCI:: PreStepStatic()
   {
     ENTER_FCN( "SolveStepMpCCI::PreStepStatic" );
   }

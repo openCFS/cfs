@@ -19,12 +19,15 @@ namespace CoupledField
     ENTER_FCN("MHMaterialData::MHMaterialData");
   
     ptMaterial_.Resize(ptMaterial.GetSize());
+    ptMaterial_.Init();
 
     UInt maxP=3;
     
 
     parameterCoeff_.Resize(10,maxP);
+    parameterCoeff_.Init();
     parameter_.Resize(10);
+    parameter_.Init();
 
     parameterCoeff_[0][0]=0.5; // c_11, a_0=1, andere a_i=0, somit konstant
     parameterCoeff_[1][0]=1.0; // c_33, a_0=1

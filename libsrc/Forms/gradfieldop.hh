@@ -37,13 +37,17 @@ namespace CoupledField
       \param potential (input) NodeStoreSol containing nodal potential
       \param solType (input) SolutionType of the potentialField
       \param isaxi (input) Flag for axi-symmetric geomtetry
+      \param coordUpdate (input) flag indicating updated Lagrangian 
+                                 formulation
     */
     GradientFieldOp(Grid * ptGrid,
                     StdPDE * ptPDE,
-                    NodeEQN * ptEQN,
+                    shared_ptr<EqnMap> eqnMap,
                     NodeStoreSol<TYPE> & potential,
                     const SolutionType solType,
-                    Boolean isaxi=FALSE);
+                    shared_ptr<ResultDof> result,
+                    bool isaxi=false,
+                    bool coordUpdate = false );
  
     //! Destructor
     virtual ~GradientFieldOp();
@@ -83,6 +87,7 @@ namespace CoupledField
 
     //! Soltution type of the potential field
     SolutionType solType_;
+    shared_ptr<ResultDof> result_;
   };
 
 } // end of namespace

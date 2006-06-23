@@ -224,7 +224,7 @@ namespace CoupledField {
 
     // check that there are elements
     if (s_elems.GetSize())
-      match_elems = TRUE;
+      match_elems = true;
 
     // ++++++++++++++++++++
     // 2. Look for the keywords as attributes of the element
@@ -239,7 +239,7 @@ namespace CoupledField {
 
         // check that there are attributes
         if (s_elems.GetSize()) {
-          match_attrs = TRUE;
+          match_attrs = true;
         }
         else {
           std::string errmsg = "There are not elements nor attributes '";
@@ -318,7 +318,7 @@ namespace CoupledField {
 
     // check that there are elements
     if (s_elems.GetSize())
-      match_elems = TRUE;
+      match_elems = true;
 
     // ++++++++++++++++++++
     // 2. Look for the keywords as attributes of the element
@@ -333,7 +333,7 @@ namespace CoupledField {
 
         // check that there are attributes
         if (s_elems.GetSize()) {
-          match_attrs = TRUE;
+          match_attrs = true;
         }
         else {
           std::string errmsg = "There are not elements or attributes '";
@@ -483,7 +483,7 @@ namespace CoupledField {
   // ========================================
   //   Query on/off status of a flag/switch
   // ========================================
-  Boolean PlainXMLParamHandler::IsSet( const std::string key,
+  bool PlainXMLParamHandler::IsSet( const std::string key,
                                        const std::string section,
                                        const std::string subsection )
   {
@@ -502,7 +502,7 @@ namespace CoupledField {
   // =================================================
   //   Query whether a parameter has a certain value
   // =================================================
-  Boolean PlainXMLParamHandler::HasValue( const std::string key,
+  bool PlainXMLParamHandler::HasValue( const std::string key,
                                           const std::string value,
                                           const std::string section,
                                           const std::string subsection )
@@ -703,7 +703,7 @@ namespace CoupledField {
     pos = findPos('<'+key, start);
 
     // indicator whether our found key is enclosed in section, subsection, etc.
-    bool put=TRUE;
+    bool put=true;
 
     // we've found the key
     if (pos < pos_end_)
@@ -778,7 +778,7 @@ namespace CoupledField {
       int i;
       for (i=0; i<s_section.GetSize(); i++)
         if ((pos < s_section[i]) || (pos > e_section[i]))
-          next = FALSE;
+          next = false;
       
       // find end position of the element
       posEEl = findEndPosElementType2(pos+element.size()+1);
@@ -791,9 +791,9 @@ namespace CoupledField {
 
       // check that the attribute is enclosed in the element
       if (posEEl > pos)
-        next = TRUE;
+        next = true;
       else
-        next = FALSE;
+        next = false;
       
       if (next) {
         // find the end of the attribute
@@ -858,6 +858,7 @@ namespace CoupledField {
 
     // resize list for the resultes
     list.Resize(s_elems.GetSize());
+    list.Init();
 
     // loop over list with given initial and final positions of the elements
     UInt i;
@@ -895,6 +896,7 @@ namespace CoupledField {
     char tchar;
     
     list.Resize(s_elems.GetSize());
+    list.Init();
     
     UInt i;
     for (i=0; i<s_elems.GetSize(); i++) {
@@ -956,7 +958,7 @@ namespace CoupledField {
   // =================================================
   //   To test, whether this line contains tag
   // =================================================
-  Boolean PlainXMLParamHandler::is_tag( const std::string buf)
+  bool PlainXMLParamHandler::is_tag( const std::string buf)
   {
 
     ENTER_FCN( "PlainXMLParamHandler::is_tag" );
@@ -967,9 +969,9 @@ namespace CoupledField {
     pos1 = buf.find('>');
 
     if (pos != std::string::npos && pos1 != std::string::npos)
-      return TRUE;
+      return true;
     else
-      return FALSE;
+      return false;
 
   }
 

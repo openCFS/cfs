@@ -93,7 +93,7 @@ void Tetra2FE::SetCornerCoords()
 void Tetra2FE :: SetEdgeVertices()
 {
   ENTER_IFCN( "SetEdgeVertices" );
-  const Integer nrNodesPerEdge = 3;
+  const UInt nrNodesPerEdge = 3;
 
   edgeVertices_.Resize(NumEdges_, nrNodesPerEdge);
 

@@ -11,6 +11,8 @@ namespace CoupledField
     : StokesFluidInt(density, dynamicViscosity)
   {
     ENTER_FCN( "StokesFluidAxiInt::StokesFluidAxiInt" );
+
+    name_ = "StokesFluidAxiInt";
   }
 
 
@@ -22,11 +24,15 @@ namespace CoupledField
 
 
 
-  void StokesFluidAxiInt::CalcElementMatrix(Matrix<Double> & ptCoord, 
-                                           Matrix<Double> & elemMat)
+  void StokesFluidAxiInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 )
   {
     ENTER_FCN( "StokesFluidAxiInt::CalcElementMatrix" );
   
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -45,8 +51,10 @@ namespace CoupledField
     N = 4; // 4 DOFs per Node
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*N); elemMat.Init();
-    locElemMat.Resize(nrNodes*N); locElemMat.Init();
+    elemMat.Resize(nrNodes*N); 
+    elemMat.Init();
+    locElemMat.Resize(nrNodes*N); 
+    locElemMat.Init();
 
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -54,7 +62,7 @@ namespace CoupledField
         jacDet = 0;
         
         ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, ptCoord_, jacDet);
 
 //        xiDx = xiDxDy.get_col(0);
 //        xiDy = xiDxDy.get_col(1);

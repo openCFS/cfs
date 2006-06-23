@@ -9,37 +9,36 @@ namespace CoupledField
   // =====================
   //   CalcElementMatrix
   // =====================
-  void linElastInt::CalcElementMatrix( Matrix<Double> &ptCoord,
-				       Matrix<Double> &elemMat ) {
-
+  void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                       EntityIterator& ent1, 
+                                       EntityIterator& ent2 ) {
     ENTER_FCN( "linElastInt::CalcElementMatrix" );
 
-    Boolean Softening;
 
     if (softeningModel_=="BK1") {
       softeningPart_ = "bendingBK1";
-      BDBInt::CalcElementMatrix(ptCoord, elemMat);
+      BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
       Matrix<Double> helpMat = elemMat;
       // std::cout << "Bending Mat:\n" << helpMat << std::endl;
 
       softeningPart_ = "shearBK1";
-      BDBInt::CalcElementMatrix(ptCoord, elemMat);
+      BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
       elemMat += helpMat;
       //     std::cout << "Total Mat:\n" << elemMat << std::endl;
     }
     else if (softeningModel_=="SRI") {
       softeningPart_ = "bendingSRI";
-      BDBInt::CalcElementMatrix(ptCoord, elemMat);
+      BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
       Matrix<Double> helpMat = elemMat;
       // std::cout << "Bending Mat:\n" << helpMat << std::endl;
 
       softeningPart_ = "shearSRI";
-      BDBInt::CalcElementMatrix(ptCoord, elemMat);
+      BDBInt::CalcElementMatrix( elemMat, ent1, ent2);
       elemMat += helpMat;
       //     std::cout << "Total Mat:\n" << elemMat << std::endl;
     }
     else {
-      BDBInt::CalcElementMatrix(ptCoord, elemMat);
+      BDBInt::CalcElementMatrix( elemMat, ent1, ent2);
     }
   }
 
@@ -57,6 +56,7 @@ namespace CoupledField
     
     
     bMat.Resize(getDimD(), nrNodes * nrDofs);
+    bMat.Init();
     
     // local shape functions derived after global coords
     // (format: nrNodes x spaceDim)
@@ -129,13 +129,13 @@ namespace CoupledField
         break;
       }
 
-    isSetIntPoint_ = FALSE;
+    isSetIntPoint_ = false;
   }
 
   void linElastInt:: calcDMat(Matrix<Double> & dMat)
   {
     ENTER_FCN( "linElastInt::calcDMat" );
-    
+
     ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,matDataType_,subTensorType_);
 
      //check for softening model
@@ -276,7 +276,7 @@ namespace CoupledField
     else if ( type == AXI ) {
       dimD_   = 4;
       nrDofs_ = 2;
-      isaxi_  = TRUE;
+      isaxi_  = true;
     }
   }
 
@@ -291,20 +291,11 @@ namespace CoupledField
     BDBInt(matData,type) {
     ENTER_FCN( "linElastInt::linElastInt" );
 
+    name_ = "linElastInt";
     subTensorType_ = type;
     SetDimensions(type);
   }
 
-  linElastInt::linElastInt( BaseFE *aptelem, BaseMaterial* matData, 
-			    SubTensorType type) :
-    BDBInt(matData,type) {
-
-    ENTER_FCN( "linElastInt::linElastInt" );
-
-    subTensorType_ = type;
-    ptelem=aptelem;
-    SetDimensions(type);
-  }
 
   linElastInt::~linElastInt() {
     ENTER_FCN( "linElastInt::~linElastInt" );

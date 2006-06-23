@@ -26,6 +26,7 @@ namespace CoupledField
     NumNodes_ = 4;
     SetIntPoints();
     SetCornerCoords();
+    SetEdgeIndices();
     SetShapeFncAtIp();
     SetShapeFncDerivAtIp(); 
   }
@@ -46,6 +47,25 @@ namespace CoupledField
     LCornerCoords_[1][3] = 1;
 
 
+  }
+
+  void Quad1FE :: SetEdgeIndices() {
+    ENTER_IFCN( "Quad1FE::SetEdgeIndices" );
+    
+    edgeIndices_ = new StdVector<UInt>[NumEdges_];
+    for (UInt i=0; i<NumEdges_; i++) {
+      edgeIndices_[i].Resize(2);
+    }
+
+    edgeIndices_[0][0] = 1;
+    edgeIndices_[0][1] = 2;
+    edgeIndices_[1][0] = 2;
+    edgeIndices_[1][1] = 3;
+    edgeIndices_[2][0] = 3;
+    edgeIndices_[2][1] = 4;
+    edgeIndices_[3][0] = 4;
+    edgeIndices_[3][1] = 1;
+        
   }
 
   void Quad1FE :: CalcShapeFnc(Vector<Double> & Shape, 

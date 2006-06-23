@@ -20,7 +20,7 @@ namespace CoupledField
     data_ = NULL;
     size_ = 0;
     capacity_ = 0;
-    memBelongsToMe_ = TRUE;
+    memBelongsToMe_ = true;
   }
 
   template<class TYPE> 
@@ -31,7 +31,7 @@ namespace CoupledField
     size_ = size;
     capacity_ = size;
     data_ = new TYPE [size];
-    memBelongsToMe_ = TRUE;
+    memBelongsToMe_ = true;
 
     for (UInt i = 0; i < size; i++)
       data_ [i] = entry;
@@ -51,7 +51,7 @@ namespace CoupledField
       data_ = NULL;
     }
     
-    memBelongsToMe_ = TRUE;
+    memBelongsToMe_ = true;
   
     for (UInt i = 0; i < size_; i++)
       data_ [i] =  vec.data_[i];
@@ -64,7 +64,7 @@ namespace CoupledField
     size_ = 2;
     capacity_ = 2;
     data_ = new TYPE[2];
-    memBelongsToMe_ = TRUE;
+    memBelongsToMe_ = true;
     data_[0] = (TYPE) p[0];
     data_[1] = (TYPE) p[1];
   }
@@ -76,7 +76,7 @@ namespace CoupledField
     size_ = 3;
     capacity_ = 3;
     data_ = new TYPE[3];
-    memBelongsToMe_ = TRUE;
+    memBelongsToMe_ = true;
     data_[0] = (TYPE) p[0];
     data_[1] = (TYPE) p[1];
     data_[2] = (TYPE) p[2];
@@ -87,7 +87,7 @@ namespace CoupledField
   Vector<TYPE>::~Vector()
   {
     ENTER_IFCN("Vector::~Vector");
-    if (data_ && memBelongsToMe_ == TRUE )
+    if (data_ && memBelongsToMe_ == true )
       delete[] data_;
   }
 
@@ -97,7 +97,7 @@ namespace CoupledField
   {
     ENTER_IFCN( "Vector::Clear()" );
   
-    if (memBelongsToMe_ == FALSE ) {
+    if (memBelongsToMe_ == false ) {
       (*error) << "Refusing to clear vector, since memory does not " 
                << "belong to me!";
       Error( __FILE__, __LINE__ );
@@ -125,12 +125,12 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  void Vector<TYPE>::Replace( UInt length, TYPE* entries, Boolean transferMem ) {
+  void Vector<TYPE>::Replace( UInt length, TYPE* entries, bool transferMem ) {
   
     ENTER_FCN( "Vector::Replace" );
 
     // De-allocate old array, if required
-    if ( memBelongsToMe_ == TRUE ) {
+    if ( memBelongsToMe_ == true ) {
       delete[] data_ ;
     }
 
@@ -156,7 +156,7 @@ namespace CoupledField
 
     if (size != size_)
       {
-        if (memBelongsToMe_ == FALSE ) {
+        if (memBelongsToMe_ == false ) {
           (*error) << "Refusing to resize vector, since memory does not " 
                    << "belong to me!";
           Error( __FILE__, __LINE__ );
@@ -168,8 +168,8 @@ namespace CoupledField
         data_ = new TYPE[size_];
       }
     
-    for (UInt i = 0; i < size_; i++)
-      data_ [i] = TYPE();
+ //    for (UInt i = 0; i < size_; i++)
+//       data_ [i] = TYPE();
   }
 
 
@@ -357,7 +357,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
     if (size_ != x.size_)
       {   
-        if (memBelongsToMe_ == FALSE ) {
+        if (memBelongsToMe_ == false ) {
           (*error) << "Refusing to resize vector, since memory does not " 
                    << "belong to me!";
           Error( __FILE__, __LINE__ );
@@ -497,7 +497,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 #endif
 
   template<class TYPE>
-  Boolean Vector<TYPE>::operator== (const Vector<TYPE> &x) const
+  bool Vector<TYPE>::operator== (const Vector<TYPE> &x) const
   {       
 #ifdef CHECK_INITIALIZED 
     if ((size_ == 0) || (x.size_ == 0))
@@ -507,13 +507,13 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
     for (UInt i = 0; i < size_; i++)
       if (data_[i] != x.data_ [i])
-        return FALSE;
+        return false;
   
-    return TRUE;
+    return true;
   }
 
   template<class TYPE>
-  Boolean Vector<TYPE>::operator!= (const Vector<TYPE> &x) const
+  bool Vector<TYPE>::operator!= (const Vector<TYPE> &x) const
   {
     ENTER_IFCN( "Vector::operator!=" );
 #ifdef CHECK_INITIALIZED
@@ -524,9 +524,9 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
     for (UInt i = 0; i < size_; i++)
       if (data_[i] != x.data_[i])
-        return FALSE;
+        return false;
   
-    return TRUE;
+    return true;
   }
 
   template<class TYPE>
@@ -626,7 +626,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
       Warning("Vector::AddElemen(): Index out of bounds", __FILE__, __LINE__);
 #endif
   
-    if (memBelongsToMe_ == FALSE ) {
+    if (memBelongsToMe_ == false ) {
       (*error) << "Refusing to resize vector, since memory does not " 
                << "belong to me!";
       Error( __FILE__, __LINE__ );
@@ -665,7 +665,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
             __FILE__, __LINE__);
 #endif
   
-    if (memBelongsToMe_ == FALSE ) {
+    if (memBelongsToMe_ == false ) {
       (*error) << "Refusing to resize vector, since memory does not " 
                << "belong to me!";
       Error( __FILE__, __LINE__ );
@@ -704,7 +704,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
       Warning("Invalid index for cut");
 #endif
    
-    if (memBelongsToMe_ == FALSE ) {
+    if (memBelongsToMe_ == false ) {
       (*error) << "Refusing to resize vector, since memory does not " 
                << "belong to me!";
       Error( __FILE__, __LINE__ );
@@ -739,7 +739,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
             __FILE__, __LINE__);
 #endif
  
-    if (memBelongsToMe_ == FALSE ) {
+    if (memBelongsToMe_ == false ) {
       (*error) << "Refusing to resize vector, since memory does not " 
                << "belong to me!";
       Error( __FILE__, __LINE__ );
@@ -829,6 +829,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   template class Vector<Double>;
   template class Vector<UInt>;
   template class Vector<Complex>;
+  template class Vector<bool>;
   template std::ostream & operator<<<UInt> (std::ostream & , const Vector<UInt> &);
   template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
   template std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &);
@@ -841,6 +842,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 #pragma instantiate Vector<Integer>
 #pragma instantiate Vector<Double>
 #pragma instantiate Vector<Complex>
+#pragme instantiate Vector<bool>;
 #pragma instantiate std::ostream & operator<<<UInt> (std::ostream & , const Vector<UInt> &)
 #pragma instantiate std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &)
 #pragma instantiate std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &)

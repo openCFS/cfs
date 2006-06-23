@@ -7,7 +7,7 @@ namespace CoupledField{
     ENTER_IFCN( "PDEMemento::PDEMemento");
   
     sol_       = NULL;
-    isSet_ = FALSE;
+    isSet_ = false;
   }
 
   PDEMemento::~PDEMemento()
@@ -63,8 +63,11 @@ namespace CoupledField{
     Vector<Double> solIn_;
 
     solIn_.Resize(mem.size_);
+    solIn_.Init();
     mem.solDeriv1_.Resize(mem.size_);
+    mem.solDeriv1_.Init();
     mem.solDeriv2_.Resize(mem.size_);
+    mem.solDeriv2_.Init();
 
     // set reading position to the beginning of the file
     in.seekg(0, std::ios_base::beg);
@@ -86,7 +89,7 @@ namespace CoupledField{
     }
 
     mem.sol_ = new Vector<Double>(solIn_);
-    mem.isSet_ = TRUE;
+    mem.isSet_ = true;
 
     return in;
   }

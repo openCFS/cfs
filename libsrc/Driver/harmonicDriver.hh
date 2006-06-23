@@ -21,7 +21,7 @@ namespace CoupledField
                    UInt stepOffset = 0,
                    Double timeOffset = 0.0,
                    std::string driverTag = "anyTag",
-                   Boolean isPartOfSequence = FALSE);
+                   bool isPartOfSequence = false);
 
     //! Detructor 
     virtual ~HarmonicDriver();
@@ -56,7 +56,7 @@ namespace CoupledField
 
     //! If we have frequency dependend damping, then for each new frequency
     //! the damping must be adapted2
-    Boolean adjustDamping_;
+    bool adjustDamping_;
   };
 
 }

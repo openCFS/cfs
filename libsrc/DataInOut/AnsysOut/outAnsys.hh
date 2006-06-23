@@ -61,7 +61,7 @@ namespace CoupledField
     virtual void WriteComments(const std::string comments){;}
 
     //! check, is it the gmv-output file
-    virtual Boolean IsGMV(){ return FALSE;}
+    virtual bool IsGMV(){ return false;}
 
     //! open files for writing grid
     void OpenFile(const Integer numstep);

@@ -5,7 +5,8 @@
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
-#include "PDE/nodeEQN.hh"
+#include "Utils/vector.hh"
+#include "PDE/eqnMap.hh"
 
 namespace CoupledField
 {
@@ -23,7 +24,10 @@ namespace CoupledField
   class BasePairCoupling
   {
   public:
-    
+
+    // public typedefs
+    typedef StdVector<shared_ptr<ResultDof> > ResultList;
+
     //! Destructor
     virtual ~BasePairCoupling();
     
@@ -52,6 +56,10 @@ namespace CoupledField
     void SetAlgSys( BaseSystem *algSys)
     { algsys_ = algSys;}
 
+    //! Set pointer to assemble class
+    void SetAssemble( Assemble* assemble ) 
+    { assemble_ = assemble; }
+
     //! Return pointer to first PDE
     SinglePDE* GetPde1() {
       return pde1_;
@@ -67,45 +75,12 @@ namespace CoupledField
     {return materials_;};
 
 
-    //! computes the coordinates of an element including the delta
-    //! \param connect (input) global node numbers of element
-    //! \param ptCoord (output) coordinates of the element nodes
-    //!                (nrNodes \f$\times\f$ spaceDim);
-    virtual void GetElemCoords(const StdVector< UInt > connect,
-                               Matrix< Double > &coordMat );
-
-
     //! Return identifier of first PDE
     PdeIdType GetPdeId1();
 
     //! Return identifier of second PDE
     PdeIdType GetPdeId2();
 
-    
-    // ======================================================
-    // METHODS FOR ASSEMBLING
-    // ======================================================
-
-    //! constructes the matrix graph by providing to the algebraic system the element connectivities
-    void SetupMatrixGraph();
-
-    //! specify type of system matrix for AlgebraicSystem
-    void AssembleMatrices();
-    
-    //! setup source term
-    void AssembleSrcRHS(const Double time = 0.0);
-    
-    //!  assemble a nonlinear RHS part
-    void AssembleNLRHS(const Double time = 0.0);
-
-    //!  assemble a spring into the system matrix
-    void AssembleSprings(const Double time = 0.0);
-
-    //! sets the actual frequency (just needed for harmonic analysis)
-    void SetFrequency(Double actFreq);
-    
-    //! trigger the reassembling of the matrices
-    void SetReassemble();
 
   protected:
 
@@ -130,11 +105,9 @@ namespace CoupledField
 
     BaseNodeStoreSol * sol_;    //!< solution
 
-    Integer isaxi_;             //!< TRUE: axisymmetric problem
+    bool isaxi_;             //!< true: axisymmetric problem
 
-    Matrix<Double> deltCoords_;    //!< offset to grid coordinates
-
-    Boolean geoUpdate_;        //!< flag for geometric update
+    bool geoUpdate_;        //!< flag for geometric update
 
     // ======================================================
     // DATA SECTION
@@ -159,14 +132,14 @@ namespace CoupledField
     //! Type of current analysis
     AnalysisType analysisType_;
 
-    //! TRUE, if solution should be written to result file
-    Boolean saveSol_;
+    //! true, if solution should be written to result file
+    bool saveSol_;
 
-    //! TRUE, if first derivative of solution should be written to result file
-    Boolean saveDeriv1_;
+    //! true, if first derivative of solution should be written to result file
+    bool saveDeriv1_;
 
-    //! TRUE, if second derivative of solution should be written to result file
-    Boolean saveDeriv2_;
+    //! true, if second derivative of solution should be written to result file
+    bool saveDeriv2_;
 
     //! contains element results of complex valued charge 
     Vector<Complex> complexValuedCharge_;
@@ -224,7 +197,17 @@ namespace CoupledField
     //! Pointer to algebraic system
     BaseSystem * algsys_;
 
-    NodeEQN * eqnData_;         //!< equation handling
+    //! Pointer to equation map of first PDE
+    shared_ptr<EqnMap> eqnMap1_;
+
+    //! Pointer to equation map of second PDE
+    shared_ptr<EqnMap> eqnMap2_;
+
+    //! Results of first PDE
+    ResultList results1_;
+
+    //! Results of second PDE
+    ResultList results2_;
 
     // -----------------------------------------------------------------------
     // Geometry & node numbering

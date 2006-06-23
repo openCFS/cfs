@@ -6,11 +6,10 @@
 
 #include "Utils/StdVector.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "PDE/nodeEQN.hh"
 #include "General/environment.hh"
 #include "Utils/tools.hh"
 #include "Utils/vector.hh"
-#include "PDE/nodeEQN.hh"
+#include "PDE/eqnMap.hh"
 
 
 namespace CoupledField{
@@ -75,11 +74,21 @@ namespace CoupledField{
     virtual BaseNodeStoreSol & operator= (const BaseNodeStoreSol & x) = 0;
 
     //! Set Pointer to nodal equation object
-    virtual void SetPtrEQNData(NodeEQN * ptNodeEQN,
-                               Grid *ptGrid) = 0;
-  
+    virtual void SetPtrEQNData( EqnMap * eqnMap,
+                                Grid *ptGrid) = 0;
+    
+    virtual void SetResult( shared_ptr<ResultDof>& result ) {
+      result_ = result; }
+    
+    virtual void SetRegions( StdVector<RegionIdType> regions ) {
+      for( UInt i=0; i<regions.GetSize(); i++ ) {
+        elems_.Push_back(shared_ptr<ElemList> (new ElemList( ptGrid_ ) ) );
+        elems_.Last()->SetRegion( regions[i] );
+      }
+    }
+          
     //! Hard coded query if values are complex
-    virtual Boolean IsComplex() = 0;
+    virtual bool IsComplex() = 0;
 
     //! Deletes all data and layout information
 
@@ -432,8 +441,14 @@ namespace CoupledField{
     //! Pointer to grid class
     Grid * ptGrid_;
 
-    //! Pointer to equation class
-    NodeEQN * ptEQN_;
+    //! Pointer to equation map
+    EqnMap * eqnMap_;
+
+    //! Type of result
+    shared_ptr<ResultDof> result_;   
+
+    //! Element list
+    StdVector<shared_ptr<ElemList> >elems_;
   
     //! Number of nodes
     UInt numNodes_;

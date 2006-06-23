@@ -9,10 +9,10 @@ namespace CoupledField
     Conn_ = mysql_init(NULL);
     if (Conn_==NULL)
       Error("Database::Database() mysql_init failed",__FILE__,__LINE__);
-    IsConnected = FALSE;
+    IsConnected = false;
     Port_ = 0;
-    ResultStored_ = FALSE;
-    FieldsStored_ = FALSE;
+    ResultStored_ = false;
+    FieldsStored_ = false;
     TupleNo_      = 1;
     CurTuple      = 0;
     PendTupleNo_  = 0;
@@ -54,7 +54,7 @@ namespace CoupledField
     (*debug) << "userName     = " << User_ << std::endl;
     (*debug) << std::endl;
 #endif
-    IsConnected = TRUE;
+    IsConnected = true;
     return (0);
   }
 
@@ -68,7 +68,7 @@ namespace CoupledField
   int Database::Query (std::string statement)
   {
     ENTER_FCN("Database::Query(string)");
-    if (IsConnected==FALSE)
+    if (IsConnected==false)
       exit (-1);
 #ifdef DEBUG
     (*debug) << "Database::Query : " << statement << std::endl;   
@@ -79,32 +79,32 @@ namespace CoupledField
         Error("Query failed",__FILE__,__LINE__);
         return (-1);
       }
-    ResultStored_=FALSE;
+    ResultStored_=false;
     return (0);
   }
 
 
-  Boolean Database::Lock (std::string tablename)
+  bool Database::Lock (std::string tablename)
   {
     std::stringstream qstream;
     qstream<<"LOCK TABLE "<<tablename<<" WRITE";
     Query(qstream.str());
   }
 
-  Boolean Database::Unlock ()
+  bool Database::Unlock ()
   {
     Query("UNLOCK TABLES");
   }
 
 
   // Not for use with tables with binary data or special characters like binary zero
-  Boolean Database::GetTable(dbMatrix &matrix, std::string tablename)
+  bool Database::GetTable(dbMatrix &matrix, std::string tablename)
   {
     ENTER_FCN("Database::GetTable");
     SelectFrom("*",tablename,"");
 
     FetchFields(matrix);
-    return TRUE;
+    return true;
   }
 
   unsigned int Database::GetNoOfResultFields()
@@ -124,11 +124,11 @@ namespace CoupledField
   }
 
   // Not for use with tables with binary data or special characters like binary zero
-  Boolean Database::FetchFields(dbMatrix &matrix)
+  bool Database::FetchFields(dbMatrix &matrix)
   {
     ENTER_FCN("Database::FetchFields");
     if (!StoreResults())
-      return FALSE;
+      return false;
     unsigned int numfields = GetNoOfResultFields();
     MYSQL_FIELD *fields;
     fields = mysql_fetch_fields(Result_);
@@ -184,7 +184,7 @@ namespace CoupledField
     //#ifdef DEBUG
     //  matrix.printMatrixDebug();
     //#endif
-    return TRUE;
+    return true;
   }
 
 
@@ -274,7 +274,7 @@ namespace CoupledField
     return to;
   }
 
-  Boolean Database::SelectFrom(std::string fields, 
+  bool Database::SelectFrom(std::string fields, 
                                std::string table, 
                                std::string where)
   {
@@ -284,19 +284,19 @@ namespace CoupledField
     if (where.size()>0)
       statement<<" WHERE "<<where;
     if (Query(statement.str())==-1)
-      return FALSE;
-    return TRUE;
+      return false;
+    return true;
   }
 
-  Boolean Database::Update (std::string table, 
+  bool Database::Update (std::string table, 
                             std::string set, 
                             std::string where)
   {
     std::stringstream querystr;
     querystr<<"UPDATE "<<table<<" SET "<<set<<" WHERE "<<where;
     if (Query(querystr.str())==-1)
-      return FALSE;
-    return TRUE;
+      return false;
+    return true;
   }
 
   int Database::InsertAndGetIndex (dbLineData &d) 
@@ -306,33 +306,33 @@ namespace CoupledField
     return mysql_insert_id(Conn_);
   }
 
-  Boolean Database::StoreResults()
+  bool Database::StoreResults()
   {
     ENTER_FCN("Database::StoreResults");
     if (ResultStored_)
       {
-        return TRUE;
+        return true;
       }
     Result_ = mysql_store_result(Conn_);
     if (Result_==(MYSQL_RES*)NULL)
       {
         Warning ("mysql_store_result-error",__FILE__,__LINE__);
-        return FALSE;
+        return false;
       }
-    ResultStored_=TRUE;
-    return TRUE;
+    ResultStored_=true;
+    return true;
   }
 
-  Boolean Database::StoreFields()
+  bool Database::StoreFields()
   {
     ENTER_FCN("Database::StoreFields");
     if (FieldsStored_)
-      return TRUE;
+      return true;
     if (!StoreResults())
-      return FALSE;
+      return false;
     Fields_ = mysql_fetch_fields(Result_);
-    FieldsStored_=TRUE;
-    return TRUE;
+    FieldsStored_=true;
+    return true;
   }
 
   void Database::FreeResult()

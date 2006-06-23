@@ -65,7 +65,7 @@ namespace CoupledField {
 
 #ifdef ADAPTGRID
     //! test error of computation
-    virtual Boolean TestError(const UInt level);
+    virtual bool TestError(const UInt level);
 #endif
 
 
@@ -82,8 +82,7 @@ namespace CoupledField {
     {Error("CalcOutputCoupling not implemented",__FILE__,__LINE__);};
 
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(SolutionType output)
-    {Error("HasOutput not implemented",__FILE__,__LINE__);};
+    virtual bool HasOutput(SolutionType output) { return false; }
 
 
   protected:
@@ -130,10 +129,10 @@ namespace CoupledField {
 			 UInt actSD);
 
     //!
-    Boolean savePress_;
+    bool savePress_;
 
     //!
-    Boolean savePressHist_;
+    bool savePressHist_;
 
   };
 

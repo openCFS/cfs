@@ -11,7 +11,7 @@ namespace CoupledField
 
     ENTER_FCN("piezoParamIdent::optimalDesignVarNrFreqs");
 
-    Boolean firstTime=TRUE;
+    bool firstTime=true;
     parameterInitial_ = parameter_;
     //    std::cout<<"parameter_"<<std::endl;
     //     std::cout<<parameter_<<std::endl;
@@ -33,12 +33,14 @@ namespace CoupledField
 
         Double hOmega = (stopfreq_-startfreq_)/nrfreq_;
         freqs_.Resize(nrfreq_);
+        freqs_.Init();
         nrMeasuredData=nrfreq_;
 
         // writes out confidence intervals for maximal number of frequencies
-        if (FALSE){
+        if (false){
           Double dOmega = 0.0001;
           rhos.Resize(nrfreq_);      
+          rhos.Init();
           for(UInt i=0;i<nrfreq_;i++)
             rhos[i]=1.0;
           for (UInt actFreq=0;actFreq<nrfreq_;actFreq++)
@@ -57,11 +59,12 @@ namespace CoupledField
 
         // to compare write out confidence interval for twelve arbitrarily,
         // but equidistantly chosen frequencies        
-        if (FALSE){
+        if (false){
           std::cout<<"message 00 " <<std::endl;
           UInt nrfreqOld = nrfreq_;
           hOmega = (stopfreq_-startfreq_)/12;
           freqs_.Resize(nrfreq_);
+          freqs_.Init();
           nrMeasuredData=12;
           nrfreq_=12;
           std::cout<<"message 0 " <<std::endl;
@@ -78,6 +81,7 @@ namespace CoupledField
           nrfreq_=nrfreqOld;
           hOmega = (stopfreq_-startfreq_)/nrfreq_;
           freqs_.Resize(nrfreq_);
+          freqs_.Init();
           nrMeasuredData=nrfreq_;
         }
 
@@ -91,10 +95,10 @@ namespace CoupledField
         //        std::cout<<newFreqs<<std::endl;
         calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
         
-        if (firstTime==TRUE){
+        if (firstTime==true){
           std::cout<<"++ Calculate weighting function rho(omega) for the following frequencies"<<std::endl;
           std::cout<<newFreqs<<std::endl;
-          firstTime=FALSE;
+          firstTime=false;
         }
         
         UInt maxNrBreakpoints = nrfreq_;
@@ -102,6 +106,7 @@ namespace CoupledField
         
         Double dOmega = 0.0001;
         rhos.Resize(nrfreq_);
+        rhos.Init();
         
         for(UInt i=0;i<nrfreq_;i++)
           rhos[i]=0.01;
@@ -127,9 +132,12 @@ namespace CoupledField
         UInt maxIndex;
         Double sumRhos=0.0;
         highestFreqs.Resize(nrfreq_);
+        highestFreqs.Init();
         highestRhos.Resize(nrfreq_);
+        highestRhos.Init();
         
         omegaDiffVec_.Resize(nrfreq_);
+        omegaDiffVec_.Init();
         
         for (UInt i=0;i<nrfreq_;i++){
           maxIndex=0;
@@ -172,6 +180,7 @@ namespace CoupledField
         } // end for i ...
             
         globalIndexSet_.Resize(nrfreq_);
+        globalIndexSet_.Init();
         
         Integer howManyFreqs=0;
         for (UInt i=0;i<nrfreq_;i++)
@@ -220,8 +229,12 @@ namespace CoupledField
         nrMeasuredData=howManyFreqs;
         //      rhos.Resize(howManyFreqs);
         freqs_.Resize(howManyFreqs);
+        freqs_.Init();
         real_.Resize(howManyFreqs);
+        real_.Init();
         imag_.Resize(howManyFreqs);
+        imag_.Init();
+        
 
         for (UInt j=0;j<nrfreq_;j++){
           freqs_[j]=highestFreqs[j];
@@ -237,7 +250,7 @@ namespace CoupledField
         
         for(UInt fr=0;fr<freqs_.GetSize();fr++){
 
-          if(TRUE){
+          if(true){
             if ((freqs_[fr]<=fa_)&&(freqs_[fr]>=fr_)){
               if(freqs_[fr]<(fr_+fa_)/2){
                 freqs_[fr]=fr_;
@@ -296,7 +309,7 @@ namespace CoupledField
         // check if two frequencies coincide:
         // if they do so reduce them by 5 per cent
 
-        Boolean flag=TRUE;
+        bool flag=true;
 
         while(flag){
           for(UInt i=0;i<freqs_.GetSize();i++){
@@ -307,7 +320,7 @@ namespace CoupledField
                 else
                   freqs_[j]=0.975*freqs_[j];
               else
-                flag=FALSE;
+                flag=false;
             }
             // check if frequencies are out of range        
             while(freqs_[i]>stopfreq_)
@@ -343,6 +356,7 @@ namespace CoupledField
         //        getchar();
         
         projGradientFlags_.Resize(nrMeasuredData);
+        projGradientFlags_.Init();
         parameterInitial_ = parameter_;
         //        residuumParIdentOld_ = residuumParIdent_=0.5;
        
@@ -426,6 +440,7 @@ namespace CoupledField
       // std::cout<<freqs_<<std::endl;
       createJacobian(jacobi, freqs_[actFreq]);
       jacobiH.Resize(actNrParameter+actNrParameterC);
+      jacobiH.Init();
       if(actFreq==0){
         std::cout<<"jacobi:"<<std::endl;
         std::cout<<jacobi<<std::endl;
@@ -529,7 +544,7 @@ namespace CoupledField
     
   } // end writeOutConfInterval
 
-  void piezoParamIdent::createJRho(Complex &J, Boolean writeOutCov){
+  void piezoParamIdent::createJRho(Complex &J, bool writeOutCov){
     ENTER_FCN("piezoParamIdent::createJRho");
 
     Double  hOmega = (stopfreq_-startfreq_)/nrfreq_;
@@ -581,6 +596,7 @@ namespace CoupledField
       createJacobian(jacobi, freqs_[actFreq]);
 
       jacobiH.Resize(actNrParameter+actNrParameterC);
+      jacobiH.Init();
        
       //       std::cout<<jacobi<<std::endl;
       for (UInt i=0;i<jacobi.GetSize();i++)
@@ -650,7 +666,7 @@ namespace CoupledField
         getchar();
       }
       else
-        if(k==0&&writeOutCov==TRUE)
+        if(k==0&&writeOutCov==true)
           std::cout<<"inversion of cov-Matrix went fine" <<std::endl;
     // data=cov;
     //   invert(covWithOutWeight);
@@ -658,7 +674,7 @@ namespace CoupledField
 
     J=Complex(0.0,0.0);
 
-    if (writeOutCov==TRUE){
+    if (writeOutCov==true){
       // cov=covWithOutWeight;
 
       if (actNrParameter==3){      
@@ -727,13 +743,13 @@ namespace CoupledField
 
 
     // Averaged criterion for all parameters
-    if(FALSE){
+    if(false){
       for(UInt parInd=0;parInd<actNrParameter+actNrParameterC;parInd++)
         J+=cov[parInd][parInd];
       J/=(actNrParameter+actNrParameterC);
     }
     // Criterion just for one parameter, here eps_11
-    if(TRUE)
+    if(true)
       J=cov[7][7];
 
     //   Double sum1=0.0;
@@ -761,16 +777,18 @@ namespace CoupledField
     ENTER_FCN("piezoParamIdent::createGradientRho");
 
     Complex J1, J2;
-    createJRho(J1,FALSE);
+    createJRho(J1,false);
     std::cout<<"Value of J1 = "<<J1 <<std::endl;
     Vector<Double> rhosTemp;
     rhosTemp.Resize(nrfreq_);
+    rhosTemp.Init();
     grad.Resize(nrfreq_);
+    grad.Init();
     rhosTemp=rhos;
 
     for(UInt actFreq=0; actFreq<nrMeasuredData; actFreq ++){
       rhos[actFreq] = 1.000001*rhos[actFreq];
-      createJRho(J2,FALSE);
+      createJRho(J2,false);
       grad[actFreq]=(J2-J1)/(rhos[actFreq]-rhosTemp[actFreq]);
       rhos=rhosTemp;
     }
@@ -808,7 +826,7 @@ namespace CoupledField
     Double dOmega=0.0001;
     for (UInt descIter=0;descIter<maxNumberDescentIterations;descIter++){
 
-      createJRho(J_old,FALSE);
+      createJRho(J_old,false);
       
       J=J_old;
       
@@ -827,7 +845,7 @@ namespace CoupledField
           //           else if (rhos[fr]<0.0)
           //             rhos[fr]=0.0;
         }
-        createJRho(J,FALSE);
+        createJRho(J,false);
         std::cout<<"NEW Functional J = "<<J.real()<<std::endl;
         std::cout<<"OLD Functional J = "<<J_old.real()<<std::endl;
 

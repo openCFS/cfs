@@ -8,6 +8,8 @@
 #include <cmath>
 
 #include "General/defs.hh"
+#include "boost/shared_ptr.hpp"
+
 #ifndef INTEGLIB
 #include "olas.hh"
 #endif
@@ -34,6 +36,9 @@ namespace OutInfo {
 
 namespace CoupledField {
 
+  // Import Boost's namespace
+  using namespace boost;
+
 
   // forward class declaration
   class Domain;
@@ -47,10 +52,6 @@ namespace CoupledField {
   typedef double Double;
   typedef std::complex<Double> Complex;
   typedef char Char;
-  typedef int Boolean;
-
-#define FALSE 0
-#define TRUE 1
 
   //! Define Enum types for numerical entries of vectors and matrices
   struct EntryType {
@@ -109,8 +110,7 @@ namespace CoupledField {
   typedef Double (*pfn3var)(const Double, const Double, const Double);
 
   typedef enum {STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, MULTIHARMONIC, 
-                TRANSIENTHARMONIC, MULTI_SEQUENCE,
-                BUBBLEDYNAMIC, TRANSIENT4SLICE} AnalysisType;
+                TRANSIENTHARMONIC, MULTI_SEQUENCE } AnalysisType;
 
   //! specifications of Lapack routines for different types of system matrices in 
   //! matrix.solveWithLapack
@@ -122,7 +122,7 @@ namespace CoupledField {
   
 
   //! print grid only and then exit
-  extern Boolean PrintGridOnly;
+  extern bool PrintGridOnly;
 
 #ifdef PROFILING
   //! Global memtrace pointer
@@ -164,7 +164,7 @@ namespace CoupledField {
 				   FRACTIONAL_GL_INT=7, FRACTIONAL_BLANK_INT=8};
 
   //! Interpolation type used in fractional damping model
-  enum InterpolType{NOTUSED=0, TRUEVAL=1, LIN1PT=2};
+  enum InterpolType{NOTUSED=0, trueVAL=1, LIN1PT=2};
 
   //! Identifier, if there are different PDE formulations for one field e.g. acoustics
   enum NonLinPDE{WESTERVELT=0, KUZNETSOV=1};
@@ -345,12 +345,12 @@ namespace CoupledField {
   {
   public:
     Flags()
-    { CalcErrorMap_=FALSE;
-    adaptSpace_ = FALSE;
+    { CalcErrorMap_=false;
+    adaptSpace_ = false;
     }
  
-    Boolean CalcErrorMap_;
-    Boolean adaptSpace_;
+    bool CalcErrorMap_;
+    bool adaptSpace_;
   };
   
   extern Flags * flags;

@@ -11,26 +11,22 @@ namespace CoupledField
 class nLinCurlCurlNode2DInt : public BaseForm
 {
 public:
-  /// Constructor
-  nLinCurlCurlNode2DInt(BaseFE * aptelem, Double laplVal, Boolean axi=FALSE);
+
 
   /// Constructor
-  nLinCurlCurlNode2DInt(ApproxData *nlinFnc, Double startVal, Boolean axi=FALSE);
+  nLinCurlCurlNode2DInt(ApproxData *nlinFnc, Double startVal, 
+                        bool axi=false, bool coordUpdate = false );
 
   /// 
   virtual ~nLinCurlCurlNode2DInt();
 
   /// Calculation of stiffmess matrix
-  void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
-
+  void CalcElementMatrix( Matrix<Double>& stiffMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
+    
   //
   virtual void SetNonLinMethod(std::string atype);
-  
-  //
-  virtual void SetActElemSol(Matrix<Double>& magPot) 
-  { magPot.ConvertToVec_AppendRows(magPot_);};
-
-  virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
 protected: 
 private:

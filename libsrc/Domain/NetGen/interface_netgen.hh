@@ -74,8 +74,8 @@ private:
   //!
   void Init();  
 
-  //! if we do subdivision, then this variable is TRUE
-  Boolean DoesGridSubdivide;
+  //! if we do subdivision, then this variable is true
+  bool DoesGridSubdivide;
 
   //! array of pointers to BaseElem
   std::vector<BaseElem*> allptElem;
@@ -90,7 +90,7 @@ private:
 #endif
 
     ptFileType=aptFileType;
-    DoesGridSubdivide=FALSE;
+    DoesGridSubdivide=false;
     lastlevel_=0; 
 
     Init();

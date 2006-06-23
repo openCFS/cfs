@@ -8,8 +8,6 @@ else
 src = 
 endif
 #
-lib = database
-libpath = libsrc/DataInOut/Database
 CFLAGS3 =
 #
 include ../../makefile.inc

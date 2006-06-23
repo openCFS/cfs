@@ -28,7 +28,7 @@ namespace CoupledField {
   }
   void TCL_CFSMessenger::ReadScriptFile( const std::string & fileName ) {
     // evaluate script file
-    isEvaluating_ = TRUE;
+    isEvaluating_ = true;
     int code = Tcl_EvalFile( tcl_, fileName.c_str() );
     if ( code != TCL_OK ) {
       std::string error = "Error in TCL file:\n ";
@@ -36,7 +36,7 @@ namespace CoupledField {
         error += tcl_->result;
       Error( error.c_str(), __FILE__, __LINE__ );
     }
-    isEvaluating_ = FALSE;
+    isEvaluating_ = false;
   }
   
   
@@ -60,9 +60,9 @@ namespace CoupledField {
 
     // After having generated the correct error string,
     // the bucket is passed back to the global error handler
-    isEvaluating_ = FALSE;
+    isEvaluating_ = false;
     ::Warning( warn.str().c_str(), filename, numline );
-    isEvaluating_ = TRUE;
+    isEvaluating_ = true;
   }
 
 
@@ -70,7 +70,7 @@ namespace CoupledField {
                                 const UInt numline) {
     std::stringstream error;
 
-    // Generate more accureate error message, if error occurs during
+    // Generate more accurate error message, if error occurs during
     // calling of a event procedure
     if (curEvent_ != std::string() ) {
       error <<  "TCL error in function '"  << curEvent_ << "':\n\n ";
@@ -84,13 +84,13 @@ namespace CoupledField {
 
     // After having generated the correct error string,
     // the bucket is passed back to the global error handler
-    isEvaluating_ = FALSE;
+    isEvaluating_ = false;
     ::Error( error.str().c_str(), filename, numline );
                                               
   } 
 
   
-  Boolean TCL_CFSMessenger::TriggerEvent( const EventType event, 
+  bool TCL_CFSMessenger::TriggerEvent( const EventType event, 
                                           const StdVector<std::string> & context) {
     ENTER_FCN( "TCL_CFSMessenger::TriggerEvent" );
     
@@ -103,9 +103,9 @@ namespace CoupledField {
       procName << " " << context[i];
     }
     
-    isEvaluating_ = TRUE;
+    isEvaluating_ = true;
     int code = Tcl_Eval( tcl_, procName.str().c_str() );
-    isEvaluating_ = FALSE;
+    isEvaluating_ = false;
 
     if ( code != TCL_OK ) {
       std::string error = "TCL error in function '";
@@ -114,9 +114,9 @@ namespace CoupledField {
       if ( *tcl_->result != 0 )
         error += tcl_->result;
       ::Error( error.c_str(), __FILE__, __LINE__ );
-      return FALSE;
+      return false;
     }
-    return TRUE;
+    return true;
     
   }
 
@@ -170,13 +170,13 @@ namespace CoupledField {
                                     int argc, const char *argv[]) {
     ENTER_FCN( "TCL_CFSMessenger::TCL_CFSEval");
     
-    Boolean success;
+    bool success;
     StdVector<std::string> retVal;
 
     // count number of arguments
     if (argc < 2 ) { 
       errMsg_ = "cfs needs at least 2 arguments!";
-      success = FALSE;
+      success = false;
     } else {
       
       // convert arguments into std::strings
@@ -193,7 +193,7 @@ namespace CoupledField {
       success = CFSMessenger::CFSEval( args, retVal);
     }
     
-    if ( success == TRUE ) {
+    if ( success == true ) {
       
       // Append result to interpreter result
       Tcl_ResetResult( interp );

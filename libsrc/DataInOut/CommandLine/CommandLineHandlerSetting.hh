@@ -125,12 +125,12 @@ namespace CoupledField {
     //! perform an actual simulation, but to only import the grid and
     //! re-export it to an output file in the format specified in the XML
     //! parameter file.
-    Boolean GetPrintGrid() const {
+    bool GetPrintGrid() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetPrintGrid" );
-      Boolean retVal = DefaultPrintGrid();
+      bool retVal = DefaultPrintGrid();
       Setting *aux = commandLine_.getSetting( markerLongPrintGrid_.c_str() );
       if ( aux != NULL ) {
-        retVal = TRUE;
+        retVal = true;
       }
       return retVal;
     };
@@ -142,12 +142,12 @@ namespace CoupledField {
     //! maps that relates global to region-local node numbers and node
     //! numbers to equation numbers in the algebraic system. The maps are
     //! written to the standard OLAS report file.
-    Boolean GetShowEqnMap() const {
+    bool GetShowEqnMap() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetShowEqnMap" );
-      Boolean retVal = DefaultShowEqnMap();
+      bool retVal = DefaultShowEqnMap();
       Setting *aux = commandLine_.getSetting( markerLongShowEqnMap_.c_str() );
       if ( aux != NULL ) {
-        retVal = TRUE;
+        retVal = true;
       }
       return retVal;
     };
@@ -161,12 +161,12 @@ namespace CoupledField {
     //! simulation run.
     //! \note The flag is only of use in the case that profiling was enabled
     //!       during compilation by defining the PROFILING macro.
-    Boolean GetDoProfile() const {
+    bool GetDoProfile() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetDoProfile" );
-      Boolean retVal = DefaultDoProfile();
+      bool retVal = DefaultDoProfile();
       Setting *aux = commandLine_.getSetting( markerLongDoProfile_.c_str() );
       if ( aux != NULL ) {
-        retVal = TRUE;
+        retVal = true;
       }
       return retVal;
     };
@@ -175,12 +175,12 @@ namespace CoupledField {
 
     //! This method can be used to query the status of the restart flag.
     //! If this flag is true the simulation restarts from an previous state.
-    Boolean GetRestart() const {
+    bool GetRestart() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetRestart" );
-      Boolean retVal = DefaultRestart();
+      bool retVal = DefaultRestart();
       Setting *aux = commandLine_.getSetting( markerLongRestart_.c_str() );
       if ( aux != NULL ) {
-        retVal = TRUE;
+        retVal = true;
       }
       return retVal;
     };
@@ -191,12 +191,12 @@ namespace CoupledField {
     //! As a convenience for the CFS++ user it is possible to let the
     //! executable write a skeleton XML parameter file that must then be
     //! filled out by the user for a subsequent simulation run.
-    Boolean GetWriteSkeleton() const {
+    bool GetWriteSkeleton() const {
       ENTER_FCN( "CommandLineHandlerSetting::GetWriteSkeleton" );
-      Boolean retVal = DefaultWriteSkeleton();
+      bool retVal = DefaultWriteSkeleton();
       Setting *aux = commandLine_.getSetting( markerLongWriteSkeleton_.c_str() );
       if ( aux != NULL ) {
-        retVal = TRUE;
+        retVal = true;
       }
       return retVal;
     };

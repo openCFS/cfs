@@ -153,7 +153,7 @@ namespace CoupledField
       \param isComplex (inut) True if values are complex
     */
     virtual void CreateCouplingVector(UInt i,
-                                      Boolean isComplex);
+                                      bool isComplex);
   
     // ------------ input coupling -----------
 
