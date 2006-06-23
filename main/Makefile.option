@@ -26,8 +26,9 @@
 #       | 11 | gidpost     |   yes    |    yes   | GIDPOST_ROOT  |
 #       | 12 | tcl         |   yes    |    yes   | TCL_ROOT      |
 #       | 13 | muparser    |   yes    |    yes   | MUPARSER_ROOT | 
+#       | 14 | boost       |    no    |    yes   | BOOST_ROOT    |
 #       |--------------------------------------------------------|
-#       | 14 | XML Schemas |         (b)         | SCHEMA_ROOT   |
+#       | 15 | XML Schemas |         (b)         | SCHEMA_ROOT   |
 #       ---------------------------------------------------------
 #
 #  (a) The Basic Linear Algebra Subroutines (BLAS) and the Linear Algebra
@@ -101,6 +102,7 @@
 # GIDPOST_ROOT
 # TCL_ROOT
 # MUPARSER_ROOT
+# BOOS_ROOT
 #
 # -----------------------------------------------------------------------------
 
@@ -142,6 +144,10 @@ endif
 
 ifeq ("$(MUPARSER_ROOT)","")
 MUPARSER_ROOT = /home/data/libraries/muparser
+endif
+
+ifeq ("$(BOOST_ROOT)","")
+BOOST_ROOT = /home/data/libraries/boost
 endif
 
 # -----------------------------------------------------------------------------
@@ -257,6 +263,7 @@ LIB_DIR    = $(C_DIR)/lib/$(MACHINE)
 # - GIDPOST
 # - TCL_INTERFACE
 # - MUPARSER
+# - BOOST
 #
 # These will be combined into a COMPILE_INCDIRS parameter
 # -----------------------------------------------------------------------------
@@ -310,10 +317,13 @@ endif
 # MUPARSER
 INCDIR_MUPARSER = -I$(MUPARSER_ROOT)/$(ARCH)/include
 
+# BOOST
+INCDIR_BOOST = -I$(BOOST_ROOT)/$(ARCH)/include
+
 # Combine everything
 COMPILE_INCDIRS = $(INCDIR_OLAS) $(INCDIR_HYPRE) $(INCDIR_XERCES) \
 $(INCDIR_ADAPTIVITY) $(INCDIR_TVMET) $(INCDIR_GIDPOST) \
-$(INCDIR_TCL_INTERFACE) $(INCDIR_MUPARSER)
+$(INCDIR_TCL_INTERFACE) $(INCDIR_MUPARSER) $(INCDIR_BOOST)
 
 
 # -----------------------------------------------------------------------------
