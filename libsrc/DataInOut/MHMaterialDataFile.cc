@@ -65,6 +65,7 @@ namespace CoupledField
     Matrix<Integer> count;
 
     count.Resize(PPmax+1, 4*nrMultHarms_+2);
+    count.Init();
 
     countmax = pow(2*nrMultHarms_+1,PPmax);
 
@@ -456,6 +457,7 @@ namespace CoupledField
     
     char cChar[2];
     count.Resize(PP+1,4*nrMultHarms_+2);
+    count.Init();
     for (UInt pInd=0;pInd<=PP;pInd++){
       indexSetCountFileIn->getline(mDataRow,265);
       for(Integer jj=0;jj<4*nrMultHarms_+2;jj++){
@@ -481,6 +483,7 @@ namespace CoupledField
           Integer cCounter=0;
           std::cout<<count[p][delta+2*nrMultHarms_]<<", "<<2*nrMultHarms_+1<<std::endl;
           exponent.Resize(count[p][delta+2*nrMultHarms_],2*nrMultHarms_+1);
+          exponent.Init();
           std::cout<<" Resized count successfully ... "<<std::endl;
           std::cout<<"exponent:"<<std::endl;
           std::cout<<exponent<<std::endl;
@@ -525,7 +528,9 @@ namespace CoupledField
     char mDataRow[256], helpChar[64];
     UInt i=0, j=0, k=0;
     parameter.Resize(10);
+    parameter.Init();
     parameterC.Resize(10);
+    parameterC.Init();
 
     while(allMeasuredData->getline(mDataRow, 265)){
       if (mDataRow[0]=='1'){

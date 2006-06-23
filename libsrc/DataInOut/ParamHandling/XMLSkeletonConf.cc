@@ -83,7 +83,7 @@ namespace CoupledField {
   {
     ENTER_FCN("SkeletonConf::WriteConf");
 
-    Info->StartProgress("Writing skeleton file to disc", FALSE);
+    Info->StartProgress("Writing skeleton file to disc", false);
 
     WriteGeneral();
     WriteSubdomains(); 
@@ -157,15 +157,14 @@ namespace CoupledField {
     skelfile_->close();
 
     // Generate parser and parse XML defaults file
+    std::string cfsSchema = commandLine->GetSchemaPath();
+    cfsSchema += "/CFS-Simulation/CFS.xsd";
+    
     std::string cfsDefaults = commandLine->GetSchemaPath();
     cfsDefaults += "/CFS-Simulation/Defaults/CFS++Defaults.xml";
 
-    std::string cfsSchema = commandLine->GetSchemaPath();
-  cfsSchema += "/CFS-Simulation/CFS.xsd";
-
-    std::cerr << "--> Using defaults " << cfsDefaults << std::endl;
 #ifdef USE_XERCES
-    params = new XMLParamHandler( cfsDefaults.c_str(), cfsSchema.c_str());
+    params = new XMLParamHandler( cfsDefaults.c_str(), cfsSchema.c_str() );
 #else
     params = new PlainXMLParamHandler( cfsDefaults.c_str() );
 #endif

@@ -11,6 +11,8 @@ namespace CoupledField
     : StokesFluidInt(density, dynamicViscosity)
   {
     ENTER_FCN( "StokesFluid3DInt::StokesFluid3DInt" );
+
+    name_ = "StokesFluid3DInt";
   }
 
 
@@ -22,11 +24,15 @@ namespace CoupledField
 
 
 
-  void StokesFluid3DInt::CalcElementMatrix(Matrix<Double> & ptCoord, 
-                                           Matrix<Double> & elemMat)
+  void StokesFluid3DInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 )
   {
     ENTER_FCN( "StokesFluid3DInt::CalcElementMatrix" );
   
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -89,7 +95,7 @@ namespace CoupledField
         jacDet = 0;
         
         ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord_, jacDet);
 
 /////////////////////////////////////////////////////////////////////
 //      Submatrix for 7 unknowns
@@ -326,7 +332,7 @@ namespace CoupledField
 /////////////////////////////////////////////////////////////////////
 //      A-Matrix for 7 unknowns
 /////////////////////////////////////////////////////////////////////
-        partElemAMat.Resize(N+1,nrNodes*N); partElemAMat.Init(0.0);
+          partElemAMat.Resize(N+1,nrNodes*N); partElemAMat.Init(0.0);
 //
         for (j=0; j<nrNodes; j++)
           {

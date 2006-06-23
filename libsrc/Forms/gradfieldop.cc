@@ -17,15 +17,18 @@ namespace CoupledField
   template<class TYPE>
   GradientFieldOp<TYPE>::GradientFieldOp(Grid * ptGrid, 
                                          StdPDE * ptPDE,
-                                         NodeEQN * ptEQN,
+                                         shared_ptr<EqnMap> eqnMap,
                                          NodeStoreSol<TYPE> & potential,
                                          const SolutionType solType,
-                                         Boolean isaxi)
-    : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
+                                         shared_ptr<ResultDof> result,
+                                         bool isaxi,
+                                         bool coordUpdate)
+    : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
     ENTER_FCN( "GradientFieldOp::GradientFieldOp" );  
     this->potential_ = &potential;
     solType_ = solType;
+    result_ = result;
  
   }
 
@@ -59,7 +62,7 @@ namespace CoupledField
     const StdVector<UInt> & connect = ptElement->connect;
   
     Matrix<Double> CornerCoords; 
-    ptPDE_->GetElemCoords(connect, CornerCoords);
+    ptGrid_->GetElemNodesCoord( CornerCoords, connect, coordUpdate_ );
 
     Matrix<Double> GlobalGradient;
 
@@ -105,6 +108,7 @@ namespace CoupledField
     dim = ptGrid_->GetDim();
 
     elemField.Resize(maxelem * dim);
+    elemField.Init( (TYPE) 0.0);
     //elemField.SetNumSolutions(1);
     //elemField.SetNumNodes(maxelem);
     //elemField.SetNumDofs(dim);
@@ -119,7 +123,7 @@ namespace CoupledField
           {
             nShFnc = subDomain[k]->ptElem->GetNumNodes();
           
-            ptPDE_->GetElemCoords( subDomain[k]->connect, cornerCoords );
+            ptGrid_->GetElemNodesCoord( cornerCoords,subDomain[k]->connect, coordUpdate_ );
           
             subDomain[k]->ptElem->GetGlobDerivShFnc(globalGradient, lCoord, cornerCoords);
           

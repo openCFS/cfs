@@ -23,6 +23,7 @@ namespace CoupledField {
 
     // Set correct size of matrix A and initialise with zeros
     aMat.Resize( numNodes * numDofsA_, matDimRow_ );
+    aMat.Init();
 
     // Get derivatives of local shape functions with respect to global coords
     // (format: nrNodes x spaceDim)
@@ -123,6 +124,7 @@ namespace CoupledField {
 
     // Set correct size of matrix B and initialise with zeros
     bMat.Resize( numDofsA_, numNodes );
+    bMat.Init();
 
     // Get derivatives of local shape functions with respect to global coords
     // (format: nrNodes x spaceDim)
@@ -176,10 +178,12 @@ namespace CoupledField {
   // ============
   //   Constructor
   // ============
-  linPiezoCoupling::linPiezoCoupling(SubTensorType type) {
+  linPiezoCoupling::linPiezoCoupling(BaseMaterial* matData,
+                                     SubTensorType type) 
+    : ADBInt( matData, type ) {
     ENTER_FCN( "linPiezoCoupling::linPiezoCoupling" );
 
-    subTensorType_ = type;
+    name_ = "linPiezoCoupling";
 
     if ( type == FULL ) {
       numDofsA_  = 3;
@@ -198,7 +202,7 @@ namespace CoupledField {
       numDofsB_  = 1;
       matDimRow_ = 4;
       matDimCol_ = 2;
-      isaxi_     = TRUE;
+      isaxi_     = true;
     }
   }
 

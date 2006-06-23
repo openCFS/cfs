@@ -27,35 +27,35 @@ namespace CoupledField
   }
 
   // for computation with adaptivity
-  Boolean BaseDriver::printMeshesOrNot() {
+  bool BaseDriver::printMeshesOrNot() {
 
     ENTER_FCN( "BaseDriver::DefinePrintMeshesOrNot" );
   
     Error( "Currently not working, need change to XML-Standard",
            __FILE__, __LINE__ );
   
-    Boolean meshesInfo=FALSE;
+    bool meshesInfo=false;
     //   std::string typeForMeshesInfo;
     //   if (conf->ifget("print_meshes",typeForMeshesInfo))
     //     if (typeForMeshesInfo=="ansys")
     //       {
     //      system("rm -rf ./mesh_ansys");
     //      //      ptMeshes_=new WriteResultsAnsys("mesh");
-    //      meshesInfo = TRUE;
+    //      meshesInfo = true;
     //       }
     //    else
     //      if (typeForMeshesInfo=="gmv")
     //        {
     //       system("rm -rf ./mesh_gmv");  
     //       ptMeshes_=new WriteResultsGMV("mesh");
-    //       meshesInfo = TRUE;
+    //       meshesInfo = true;
     //        }
     //      else
     //        if (typeForMeshesInfo=="unverg")
     //        {
     //       //      system("rm -rf ./mesh_unv");  
     //       ptMeshes_=new WriteResultsUnverg("mesh");
-    //       meshesInfo = TRUE;
+    //       meshesInfo = true;
     //        }
   
     return meshesInfo;

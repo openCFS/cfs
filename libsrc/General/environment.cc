@@ -31,7 +31,7 @@ namespace OutInfo{
 namespace CoupledField {
 
 
-  Boolean PrintGridOnly = FALSE;
+  bool PrintGridOnly = false;
 
 #ifdef PROFILING
   Profiler * profiler = NULL;
@@ -93,8 +93,6 @@ namespace CoupledField {
       out = STATIC;
     else if (in == "transient")
       out = TRANSIENT;
-    else if (in == "transient4Slice")
-      out = TRANSIENT4SLICE;
     else if (in == "harmonic")
       out = HARMONIC;
     else if (in == "eigenFrequency")
@@ -106,8 +104,6 @@ namespace CoupledField {
       out = HARMONIC;
     else if (in=="multiHarmonic")
       out = MULTIHARMONIC;
-    else if(in == "bubbleDynamic")
-      out = BUBBLEDYNAMIC;
     else if (in=="transientHarmonic")
       out = TRANSIENTHARMONIC;
     else {

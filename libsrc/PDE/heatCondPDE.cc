@@ -5,19 +5,19 @@
 
 #include "heatCondPDE.hh"
 
-#include "Forms/forms_header.hh"
+#include "Forms/laplaceInt.hh"
+#include "Forms/massInt.hh"
 #include "Forms/linNeumannInt.hh"
 
-#include "PDE/scalarnodeEQN.hh"
 #include "PDE/trapezoidal.hh"
 
 #include "DataInOut/writeresults.hh"
-#include "DataInOut/Unverg/outUnverg.hh"
-#include "DataInOut/GMV/outGMV.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "Domain/ansatzFct.hh"
 
 #include "Driver/stdSolveStep.hh"
+#include "Driver/assemble.hh"
 
 
 namespace CoupledField {
@@ -31,17 +31,23 @@ namespace CoupledField {
     :SinglePDE(aptgrid,aptOut,aptTimeFunc) {
     ENTER_FCN( "HeatCondPDE::HeatCondPDE" );
 
-    dofspernode_ = 1;
-    solTypes_ = HEAT_TEMPERATURE;
-    solDofs_ = 1;
     pdename_          = "heatConduction";
     pdematerialclass_ = THERMIC;
 
-    nonLin_    = FALSE;
+    nonLin_    = false;
+
+    // Create new resultDof object
+    shared_ptr<ResultDof> res1(new ResultDof);
+    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    res1->resultType = HEAT_TEMPERATURE;
+    res1->dofNames = "t";
+    res1->definedOn = ResultDof::NODE;
+    res1->fctType = fct;
+    results_.Push_back( res1 );
 
     //check, if problem is axisymmetric
     if ( params->HasValue( "type", "axi", "geometry" ) )
-      isaxi_ = TRUE;
+      isaxi_ = true;
 
   }
 
@@ -53,21 +59,70 @@ namespace CoupledField {
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
 
-    attrVec = "", "", "";
-    valVec  = "", "", "";
-    keyVec = pdename_,"bcsAndLoads","neumannInhom","heatTransferCoefficient";
-    params->GetList(keyVec, attrVec, valVec, htc_);
+    attrVec = "", "tag", "";
+    valVec = "", bcSequenceTag_, "";
 
-    keyVec = pdename_, "bcsAndLoads", "neumannInhom", "tempSolid";
-    params->GetList(keyVec, attrVec, valVec, tSolid_);
+    // First, delete all of the "normal" boundary conditions
+    inBcs_.Clear();
+    
 
-    keyVec = pdename_, "bcsAndLoads", "neumannInhom", "tempFluid";
-    params->GetList(keyVec, attrVec, valVec, tFluid_);
 
-    UInt ctr = htc_.GetSize();
-    if ( (tSolid_.GetSize() != ctr) || (tFluid_.GetSize() != ctr) ) {
-      (*error) << "Specify heatTransferCoefficient, tempSolid and tempFluid!";
-      Error( __FILE__, __LINE__ );
+    StdVector<std::string> inName, inDof, inValue, inPhase, inDynamics;
+    StdVector<std::string> inType;
+    StdVector<Double> inHtc, inTSolid, inTFluid;
+    
+    // Get names of node sets, values and filenames for inhomogenous
+    // Neumann boundary conditions
+    keyVec = pdename_, "bcsAndLoads", "neumannInhom", "name";
+    params->GetList(keyVec, attrVec, valVec, inName);
+
+    keyVec.Last() = "entityType";
+    params->GetList(keyVec, attrVec, valVec, inType);
+
+    keyVec.Last() = "value";
+    params->GetList(keyVec, attrVec, valVec, inValue);
+
+    keyVec.Last() = "dof";
+    params->GetList(keyVec, attrVec, valVec, inDof);
+    
+    keyVec.Last() = "dynamics";
+    params->GetList(keyVec, attrVec, valVec, inDynamics);
+
+    keyVec.Last() = "phase";
+    params->GetList(keyVec, attrVec, valVec, inPhase);
+
+    keyVec.Last() = "heatTransferCoefficient";
+    params->GetList(keyVec, attrVec, valVec, inHtc);
+
+    keyVec.Last() = "tempSolid";
+    params->GetList(keyVec, attrVec, valVec, inTSolid );
+
+    keyVec.Last() = "tempFluid";
+    params->GetList(keyVec, attrVec, valVec, inTFluid);
+
+    // Create inhomogeneous heat Neumann boundary conditions
+    for( UInt i = 0; i < inName.GetSize(); i++ ) {
+      shared_ptr<InhomHeatNeumannBc> actBc ( new InhomHeatNeumannBc );
+      shared_ptr<EntityList> actList =
+        ptgrid_->GetEntityList( EntityList::StringToType(inType[i]), 
+                                inName[i] );
+      actBc->entities = actList;
+      actBc->result = results_[0];
+      actBc->eqnMap = eqnMap_;
+      if( inDof.GetSize() == 0 ) {
+        actBc->dof = 1;
+      } else {
+        actBc->dof = results_[0]->GetDofIndex( inDof[i] );
+      }
+      actBc->value = inValue[i];
+      actBc->phase = inPhase[i];
+      actBc->dynamics = inDynamics[i];
+      actBc->htc = inHtc[i];
+      actBc->tSolid = inTSolid[i];
+      actBc->tFluid = inTFluid[i];
+
+      // add definition
+      heatInBcs_.Push_back( actBc );
     }
   }
 
@@ -78,6 +133,10 @@ namespace CoupledField {
     Double coeffmass, coeffstiff;
 
     for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
+      
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( subdoms_[actSD] );
 
       BaseMaterial * actMat = materials_[subdoms_[actSD]];
       actMat->GetScalar(density,DENSITY,REAL);
@@ -86,52 +145,63 @@ namespace CoupledField {
 
       // stiffness integrator
       coeffstiff = thermalConductivity;
-      BaseForm * bilinearStiff = new LaplaceInt(coeffstiff,isaxi_);
-      IntegratorDescriptor * stiffIntDescr = 
-        new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+      BaseForm * bilinearStiff = new LaplaceInt(coeffstiff,isaxi_, true );
+      BiLinFormContext * stiffContext = 
+        new BiLinFormContext(bilinearStiff, STIFFNESS );
 
-      stiffIntDescr->SetPDEIds(this, this);
+      stiffContext->SetPtPdes(this, this);
+      stiffContext->SetResults( results_[0], results_[0],
+                                 actSDList, actSDList );
 
       // mass integrator
       coeffmass = density * heatCapacity;
-      BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
-      IntegratorDescriptor * massIntDescr = 
-        new IntegratorDescriptor(bilinearMass, MASS);
+      BaseForm * bilinearMass  = new MassInt(coeffmass, 1, isaxi_, true );
+      BiLinFormContext * massContext = 
+        new BiLinFormContext(bilinearMass, MASS );
 
-      massIntDescr->SetPDEIds(this, this);
+      massContext->SetPtPdes(this, this);
+      massContext->SetResults( results_[0], results_[0],
+                           actSDList, actSDList );
 
 
       // Finally add the standard integrators
-      assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
-      assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]);
-
-
+      assemble_->AddBiLinearForm( stiffContext );
+      assemble_->AddBiLinearForm( massContext );
+      
+      // Give result to equation numbering class
+      eqnMap_->AddResult( *results_[0], actSDList );
     }
 
     // Neumann boundary condition
-    StdVector<RegionIdType> IdVec;
-    ptgrid_->RegionNameToId( IdVec, bcs_ni_ );
-    for (UInt Id = 0; Id < bcs_ni_.GetSize(); Id++) {
+    for( UInt iBc = 0; iBc < heatInBcs_.GetSize(); iBc++ ) {
+      
+      // get current Bc
+      InhomHeatNeumannBc const & actBc = *heatInBcs_[iBc];
 
       // we assume the surface normal points out of the domain,
-      //  but we want to take heat flux into the domain positive
-      Double amplitude = -1.0 * val_ni_[Id];
-      if (htc_[Id] != 0) {
-        amplitude = htc_[Id] * ( tSolid_[Id] - tFluid_[Id] );
+      // but we want to take heat flux into the domain positive
+      Double amplitude = -1.0 * String2Double(actBc.value);
+      if (actBc.htc  != 0) {
+        amplitude = actBc.htc  * ( actBc.tSolid - actBc.tFluid );
         
         Info->PrintF( pdename_, "For inhomogeneous Neumann BC use \
-\n  heat transfer coefficient: %f \n  TempSolid:  %f \n  TempFluid: %f\n\n",
-                      htc_[Id], tSolid_[Id], tFluid_[Id] );
+ \n  heat transfer coefficient: %f \n  TempSolid:  %f \n  TempFluid: %f\n\n",
+                      actBc.htc, actBc.tSolid , actBc.tFluid );
       }
       LinearSurfForm *neumannBC = new LinNeumannInt( amplitude, 
                                                      HEAT_CONDUCTIVITY,
                                                      isaxi_ );
       neumannBC->SetVoluInfo( materials_ );
-
-      assemble_->AddRhsSrcSurfIntegrator( neumannBC,
-                                          IdVec[Id],
-                                          fncnames_ni_[Id],
-                                          nonLin_ );
+      
+      LinearFormContext * neumannContext =
+        new LinearFormContext( neumannBC );
+      neumannContext->SetPtPde( this );
+      neumannContext->SetResult( actBc.result, actBc.entities );
+      
+      assemble_->AddLinearForm( neumannContext );
+      
+      // Give result to equation numbering class
+      eqnMap_->AddResult( *actBc.result, actBc.entities );
     }
 
   }
@@ -150,12 +220,9 @@ namespace CoupledField {
   void HeatCondPDE::InitTimeStepping() {
     ENTER_FCN( "HeatCondPDE::InitTimeStepping" );
     
-    UInt rhsSize = eqnData_->GetNumEQNs() *
-      eqnData_->GetNumDofsPerEQN();
-
     // Until now no effective mass formulation in the trapezoidal 
     //  integration scheme is implemented!
-    TS_alg_ = new Trapezoidal( algsys_, rhsSize );
+    TS_alg_ = new Trapezoidal( algsys_ );
 
   }
 
@@ -166,7 +233,7 @@ namespace CoupledField {
   void HeatCondPDE::InitCoupling(PDECoupling * Coupling) {
     ENTER_FCN( "HeatCondPDE::InitCoupling" );
     
-    isIterCoupled_ = TRUE;
+    isIterCoupled_ = true;
     ptCoupling_   = Coupling;
     
     // Intialize the memory of the coupling values
@@ -176,7 +243,7 @@ namespace CoupledField {
         
         // now since we need a incremental formulation, 
         //  initialize some necessary vectors
-        isIncrFormulation_ = TRUE;
+        isIncrFormulation_ = true;
       }
     }
   }
@@ -185,15 +252,15 @@ namespace CoupledField {
   void HeatCondPDE::CalcOutputCoupling() {
     ENTER_FCN( "HeatCondPDE::CalcOutputCoupling" );
 
-    UInt dof;
-    SolutionType quantity;
-    StdVector<Elem*> * couplingElems = NULL;
-    StdVector<UInt> * couplingNodes = NULL;
-    CFSVector * temp_values = NULL;
+   //  UInt dof;
+//     SolutionType quantity;
+//     StdVector<Elem*> * couplingElems = NULL;
+//     StdVector<UInt> * couplingNodes = NULL;
+//     CFSVector * temp_values = NULL;
   
-    // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == FALSE)
-      return;
+//     // at first, check if this PDE is iterative coupled
+//     if (isIterCoupled_ == false)
+//       return;
 
     // loop over all output coupling quantities
 //     for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
@@ -254,7 +321,6 @@ namespace CoupledField {
 
     NodeStoreSol<Double> solIm_mesh;
     NodeStoreSol<Double> * solTransient;
-    NodeStoreSol<Complex> * solHarmonic;
     
       
     Double actTime = asteptime + timeOffset;
@@ -290,8 +356,8 @@ namespace CoupledField {
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
     if (nodeValues.GetSize() > 0) {
-      saveSol_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSol_ = true;
+      hasOutput_ = true;
     }
 
     // *****************************
@@ -306,8 +372,8 @@ namespace CoupledField {
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
     if (saveNodeHist.GetSize() > 0) {
-      saveSolHist_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSolHist_ = true;
+      hasOutput_ = true;
       Info->PrintF( pdename_, "Saving temperature for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );

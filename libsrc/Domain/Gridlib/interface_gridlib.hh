@@ -84,8 +84,8 @@ private:
   //! 
   GoMesh * ptGoMesh;
 
-  //! if we do subdivision, then this variable is TRUE
-  Boolean DoesGridSubdivide;
+  //! if we do subdivision, then this variable is true
+  bool DoesGridSubdivide;
 };
 
   template<class Dim>
@@ -94,7 +94,7 @@ private:
   {
     ENTER_FCN( "InterfaceGridlib<Dim>::InterfaceCFS<Dim>" )
       ptFileType=aptFileType;
-    DoesGridSubdivide=FALSE;
+    DoesGridSubdivide=false;
     lastlevel_=0;
   }
 

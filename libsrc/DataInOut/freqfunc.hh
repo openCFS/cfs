@@ -59,7 +59,7 @@ namespace CoupledField
     StdVector<std::string> fnc_names_;
 
     //!
-    Boolean freqFncDatFiles_;
+    bool freqFncDatFiles_;
 
     //!
     StdVector<Double> startFreq_;

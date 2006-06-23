@@ -17,7 +17,7 @@ namespace CoupledField {
     //! constructor
     /*!
       \param algebraicsystem pointer to algebraic system used by PDE
-      \param rhsSize size of right hand side vector
+
       \param apdeId Id of PDE who called NewmarkFracDamp
       \param ptEQN
       \param aptgrid
@@ -26,20 +26,20 @@ namespace CoupledField {
       \param adampingList list damping description for subdomains
     */
     NewmarkFracDamp( BaseSystem * algebraicsystem,
-                     UInt rhsSize,
                      const PdeIdType apdeId,
-                     NodeEQN * ptEQN, 
+                     shared_ptr<EqnMap> eqnMap,
                      Grid * aptgrid,
                      StdPDE * aptStdPDE, 
                      StdVector<RegionIdType> asubdomainList,
                      std::map<RegionIdType,DampingType> adampingList);
   
-    //! deconstructor
+    //! destructor
     virtual ~NewmarkFracDamp();
   
     //! initilization
+    //! \param rhsSize size of right hand side vector
     void Init( std::map<FEMatrixType,Double> & matrix_factors, 
-               Double dt );
+               Double dt, UInt rhsSize );
     
     //! perform predictor step
     void Predictor(Vector<Double>& solold);
@@ -71,7 +71,7 @@ namespace CoupledField {
     void GLWeights(UInt memory, Double y);
 
     //! compute Weights for Luise Blanks frac diff spline collocation formula
-    void BlankWeights(UInt memory, Double y, Boolean full);
+    void BlankWeights(UInt memory, Double y, bool full);
 
     //! integrate interpolation of past function values in weight vector
     void CompressWeights();
@@ -108,7 +108,7 @@ namespace CoupledField {
     StdPDE * ptStdPDE_;
 
     //! pointer to equation object
-    NodeEQN * ptEQN_;
+    shared_ptr<EqnMap> eqnMap_;
 
     //! time step
     UInt actStep_;
@@ -126,7 +126,7 @@ namespace CoupledField {
     StdVector<RegionIdType> subdoms_;
 
     //! flag indicating axisymmetric model
-    Boolean isaxi_;
+    bool isaxi_;
 
     //@{ \name Fractional Damping Model
 

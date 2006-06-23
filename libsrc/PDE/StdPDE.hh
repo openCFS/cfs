@@ -7,7 +7,6 @@
 #include <set>
 
 #include "PDE/timestepping.hh"
-#include "nodeEQN.hh"
 #include "Domain/Composite.hh"
 
 namespace CoupledField {
@@ -19,9 +18,9 @@ namespace CoupledField {
   class TimeStepping;
   class TimeFunc;
   class BaseNodeStoreSol;
-  class NodeEQN;
   class StdSolveStep;
   class PDECoupling;
+  class EqnMap;
   
   //! Base class for all single-field and direct-coupled problems
 
@@ -32,6 +31,10 @@ namespace CoupledField {
     // friend cStdlass declarations
     friend class PDEMemento;
     friend class PDECoupling;
+
+    // public typedefs
+    typedef StdVector<shared_ptr<ResultDof> > ResultList;
+
 
     //! Virtual destructor
     virtual ~StdPDE();
@@ -131,9 +134,9 @@ namespace CoupledField {
                    
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
-    
-    //! return number of restraints
-    virtual UInt GetNumRestraints( ) = 0;
+
+    //! Return vector with result types
+    ResultList& GetResults() { return results_;}
 
     virtual UInt GetTimeStepCounter();
    
@@ -147,10 +150,10 @@ namespace CoupledField {
     }
   
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(SolutionType output)
+    virtual bool HasOutput(SolutionType output)
     {
       Error("not implemented",__FILE__,__LINE__);
-      return FALSE;
+      return false;
     }
   
     //! return pointer to vector with first derivative of solution
@@ -158,40 +161,20 @@ namespace CoupledField {
   
     //! return pointer to vector with first derivative of solution
     virtual const Vector<Double> & getS2() const;
-  
-    //! return size of solution
-    virtual UInt getSize() const 
-    {
-      Error("Function getSize is not overloaded in this class",__FILE__,
-            __LINE__);
-      return 0;
 
+    //! Also for fractional damping model do obtain
+    virtual UInt GetFracMemory() {
+      return fracMemory_;
     }
-
-    //! Get coefficient for damping matrix in fractional damping model
-    //! \todo This function has to be removed when the fractional
-    //! damping model gets implemented in a separate Forms-class
-    virtual Double GetFracDampMatrixCoeff(UInt actSD);
-
-	//! Also for fractional damping model do obtain
-	virtual UInt GetFracMemory() {
-	  return fracMemory_;
-	}
-    virtual Boolean GetFracDamping() {
+    
+    virtual bool GetFracDamping() {
       return fracDamping_;
     }
 
-	virtual Boolean GetIsaxi() {
-	  return isaxi_;
-	}
+    virtual bool GetIsaxi() {
+      return isaxi_;
+    }
 
-    //! computes the coordinates of an element including the delta
-    //! \param connect (input) global node numbers of element
-    //! \param ptCoord (output) coordinates of the element nodes
-    //!                (nrNodes \f$\times\f$ spaceDim);
-    virtual void GetElemCoords(const StdVector< UInt > connect,
-                               Matrix< Double > &coordMat );
-  
     //!
     //! \for computing and adding RHS to PDE in case of special sources 
     virtual void ComputeRHS(const Double atime) {;};
@@ -207,18 +190,6 @@ namespace CoupledField {
     //! set boundary condition
     //! \param atimestep         time step of claculation
     virtual  void SetBCs( const Double atimestep ) = 0;
-  
-  
-    //! transform solution and derivatives due to slicing technique
-    //void TransformSol4Slice(UInt & nodeShift, UInt & shiftFactor, 
-    //		    const UInt flag);
-    void TransformSol4Slice(UInt & shiftFactor, UInt & nodeShift,
-                            UInt & elemgrid, Double &  meshsize, const UInt flag);
-
-    //! save solution of special nodes
-    void SaveNodes(const UInt shiftFactor, const Double timeStep,
-                   const UInt numShift, const Integer nodeShift, 
-                   const UInt maxnumelemz_);
 
 
     //@{
@@ -248,42 +219,6 @@ namespace CoupledField {
     /// of the actual element
     void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
     void GetDeriv2SolVecOfElement(Vector<Complex>& sol, StdVector<UInt>& connect_PDE);
-    
-    
-    // ======================================================
-    // METHODS FOR ASSEMBLING
-    // ======================================================
-
-    //! specify type of system matrix for AlgebraicSystem
-    virtual void AssembleMatrices( ) = 0;
-    
-    //! setup source term
-    virtual void AssembleSrcRHS( const Double time = 0.0 ) = 0;
-    
-    //!  assemble a nonlinear RHS part
-    virtual void AssembleNLRHS( const Double time = 0.0) = 0;
-
-    //!  assemble a spring into the system matrix
-    virtual void AssembleSprings( const Double time = 0.0) = 0;
-
-    //! assemble special equations into the system (done by the PDE)
-    virtual void AssembleSpecial( ) {;};
-
-    //! Initialize all matrices with nonlinear behavior
-    virtual void InitNonLinMatrices() = 0;
-
-    //! constructes the matrix graph by providing to the algebraic 
-    //! system the element connectivities
-    virtual void SetupMatrixGraph() = 0;
-
-    //! add special nodes to the matrix graph (additional equations)
-    virtual void SetupMatrixGraphSpecial() {;};
-
-    //! trigger the reassmbling of the matrices
-    virtual void SetReassemble() = 0;
-
-    //! sets the actual frequency (just needed for harmonic analysis)
-    virtual void SetFrequency(Double actFreq) = 0;
 
     //! Init the time stepping
     virtual void InitTimeStepping()
@@ -298,6 +233,8 @@ namespace CoupledField {
     //!  identification process! Maybe one day a more to CFS++ consistent 
     //!  nomenclature would be nice ...
 
+    shared_ptr<EqnMap> GetEqnMap() { return eqnMap_; }
+
     std::map<RegionIdType, BaseMaterial*>  getPDEMaterialData()
     {return materials_;};
     
@@ -307,13 +244,9 @@ namespace CoupledField {
   
     UInt getPDE_numElems(){return numElems_;};
 
-    UInt getPDE_dofspernode(){return dofspernode_;};
-  
     UInt getPDE_numPDENodes(){return numPDENodes_;};
   
     UInt getPDE_spaceDim(){return dim_;};
-  
-    NodeEQN * getPDE_eqnData(){return eqnData_;}; 
   
     Grid * getPDE_grid(){return ptgrid_;};  
   
@@ -323,8 +256,6 @@ namespace CoupledField {
    
     Vector<Complex> getPDE_complexValuedCharge()
     {return complexValuedCharge_;};
-    
-    virtual void setBCs_id_phase_(UInt i, Double & phase);
     
     void setPDE_MatDataType(DataType & pMatType){
       matDataType_ = pMatType;};
@@ -349,25 +280,22 @@ namespace CoupledField {
     //@{
     //!  Get functions concerning nonlinearity
 
-    Boolean IsNonLine() 
+    bool IsNonLin() 
     { return nonLin_;};
 
-    Boolean IsGeoUpdate() 
-    { return geoUpdate_;};
-
-    Boolean GetNonlinLogging() 
+    bool GetNonlinLogging() 
     { return nonLinLogging_;};
 
-    Boolean IsHysteresis() 
+    bool IsHysteresis() 
     { return isHysteresis_;};
 
-    Boolean IsIterCoupled() 
+    bool IsIterCoupled() 
     { return isIterCoupled_;};
 
-    Boolean& IsFirstTimeStepStatic()
+    bool& IsFirstTimeStepStatic()
     { return firstTimeStepStatic_;};
 
-    Boolean IsComputeRHS4HarmSet()
+    bool IsComputeRHS4HarmSet()
     { return ComputeRHSforHarm_;};
 
     Double  GetIncStopCrit() 
@@ -422,6 +350,11 @@ namespace CoupledField {
     //! calculates L2-norm of RHS regarding entries due to penalty formulation
     Double RhsL2Norm(Vector<Double>& stdVec);
 
+    //! Get coefficient for damping matrix in fractional damping model
+    //! \todo This function has to be removed when the fractional
+    //! damping model gets implemented in a separate Forms-class
+    virtual Double GetFracDampMatrixCoeff(RegionIdType region);
+
 
     // ======================================================
     // DATA SECTION
@@ -440,12 +373,6 @@ namespace CoupledField {
   
     //! surface-domain-levels belongig to PDE
     StdVector<RegionIdType> surfdoms_;
-  
-    StdVector<RegionIdType> pressSurf_;  //!< surface of pressure loads
-    StdVector<Double>      pressVals_;  //!< values of the pressure loads
-    StdVector<Double>      pressPhase_;  //!< phase of the pressure loads 
-    //!(in case of harmonic analysis)
-    StdVector<std::string> pressFnc_;   //!< function names of pressure loads
 
     //@}
 
@@ -456,8 +383,6 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes related to geometry and node numbering
-    UInt dofspernode_;  //!< number of unknowns per node
-    UInt dofsperedge_;  //!< number of unknowns per edge
     UInt numPDENodes_;  //!< number of nodes in subdomains
     UInt numElems_;     //!< number of elements in subdomains
   
@@ -472,59 +397,17 @@ namespace CoupledField {
     //@{
     //! \name Attributes connected to the handling of boundary conditions
   
-    //! names of interfaces with homogeneous Dirichlet boundary conditions
-    StdVector<std::string> bcs_hd_;
-  
-    //! names of interfaces with inhomogeneous Dirichlet boundary conditions
-    StdVector<std::string> bcs_id_;
-  
-    //! names of surfaces with homogeneous von Neumann boundary conditions
-    StdVector<std::string> bcs_nh_;
-  
-    //! names of surfaces with inhomogeneous von Neumann boundary conditions
-    StdVector<std::string> bcs_ni_;
-  
-    //! names of surfaces with inhomogeneous Robin boundary conditions
-    StdVector<std::string> bcs_rh_;
-  
-    //! names of surfaces with inhomogeneous Robin boundary conditions
-    StdVector<std::string> bcs_ri_;
-  
-    //! values of solution/magnitude at inhomogeneous Dirichlet boundaries
-    StdVector<std::string> val_id_;
+    //! List of homogeneous Dirichlet boundary conditions
+    HdBcList hdBcs_;
 
-    //! values of solution/magnitude at inhomogeneous von Neumann boundaries
-    StdVector<Double> val_ni_;
-  
-    //! values of phases at inhomogeneous Dirichlet boundaries
-    StdVector<std::string> bcs_id_phase_;
+    //! List of inhomogeneous Dirichlet boundary conditions
+    IdBcList idBcs_;
+    
+    //! List of inhomogeneous Nuemann boundary conditions
+    InBcList inBcs_;
 
-    //! values of phases at inhomogeneous von Neumann boundaries
-    StdVector<std::string> bcs_ni_phase_;
-  
-    //! names of the time functions for inhomogeneous Dirichlet BCs
-    StdVector<std::string> fncnames_id_;
-
-    //! names of the time functions for inhomogeneous von Neumann BCs
-    StdVector<std::string> fncnames_ni_;
-  
-    //! degrees of freedom (e.g. ux) of homogenous Dirichlet BC
-  
-    //! This is a vector of strings, which describe the degrees of freedom
-    //! (e.g. ux) that are fixed at a certain interface by the homogenous
-    //! Dirichlet boundary conditions.
-    StdVector<std::string> homDirichDof_;
-  
-    //! This is a vector of strings, which describe the degrees of freedom
-    //! (e.g. ux) that are fixed at a certain interface by the inhomogenous
-    //! Dirichlet boundary conditions.
-    StdVector<std::string> inhomDirichDof_;
-
-    //! number of dirichlet boundary conditions
-    UInt numDirichletBCs_;
-
-    //! names of nodes with constraint condition
-    StdVector<std::string> constraints_;
+    //! List of constraints
+    ConstraintList constraints_;
 
     //@}
 
@@ -534,14 +417,13 @@ namespace CoupledField {
 
     //@{
     //! \name Attributes connected to nonlinearity
-    Boolean nonLin_;           //!< flag for nonlinear calculations
-    Boolean geoUpdate_;        //!< flag for geometric update
+    bool nonLin_;           //!< flag for nonlinear calculations
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
-    Boolean nonLinLogging_;    //!< log progress of non-linear iterations
-    Boolean isHysteresis_;     //!< flag for hysteresis
+    bool nonLinLogging_;    //!< log progress of non-linear iterations
+    bool isHysteresis_;     //!< flag for hysteresis
 
     std::string lineSearch_;   //!< switch for lineSearch
     StdVector<NonLinPDE> nonLinPDEName_;//!< some PDEs carry a name (->acoustics!)
@@ -577,10 +459,9 @@ namespace CoupledField {
   
     //@{
     //! \name Attributes connected to handling PDE coupling
-    Boolean isIterCoupled_;        //!< PDE couples with others
-    Matrix<Double> deltCoords_;    //!< offset to grid coordinates
+    bool isIterCoupled_;        //!< PDE couples with others
     Vector<Double> matParam_;      //!< change to material parameter
-    Boolean updateCouplingBCs_ ;  //!< flag if coupling BC were already set
+    bool updateCouplingBCs_ ;  //!< flag if coupling BC were already set
     UInt couplingBCsCounter_;  //!< counter for number of coupling BCs
     PDECoupling *ptCoupling_;     //!< pointer to coupling object
   
@@ -602,8 +483,8 @@ namespace CoupledField {
     //@{
     //! \name Attributes connected to time stepping
     TimeStepping * TS_alg_;       //!< handles the time stepping
-    Boolean effectiveMass_;       //!< use effective mass formulation for transient analysis
-    Boolean firstTimeStepStatic_; //!< needed for coupled, iterative methods
+    bool effectiveMass_;       //!< use effective mass formulation for transient analysis
+    bool firstTimeStepStatic_; //!< needed for coupled, iterative methods
 
     //@}
 
@@ -617,12 +498,15 @@ namespace CoupledField {
 
     //@{
     //! \name Miscellaneous attributes
+    //! Vector containing the results calculated by this PDE
+    ResultList results_;
+
     AnalysisType analysistype_; //!< analysis type
-    Boolean isAlwaysStatic_;    //!< flag for static PDEs (like electrostatic)
+    bool isAlwaysStatic_;    //!< flag for static PDEs (like electrostatic)
     UInt dim_;                  //!< space dimension of pde
-    Boolean isaxi_;             //!< TRUE: axisymmetric problem
-    Boolean isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
-    NodeEQN * eqnData_;         //!< equation handling
+    bool isaxi_;             //!< true: axisymmetric problem
+    bool isComplex_;         //!< true, if some part of PDE is complex (Material, solution)
+    shared_ptr<EqnMap> eqnMap_; //!< new equation handling
 
     BaseNodeStoreSol * sol_;    //!< solution
     CFSVector * solVec_;        //! needed in iterative coupled computation 
@@ -630,17 +514,19 @@ namespace CoupledField {
     //! list of damping types for all regions
     std::map<RegionIdType,DampingType> dampingList_;
 
-    Boolean fracDamping_; //!< TRUE: fractional damping model
+    bool fracDamping_; //!< true: fractional damping model
     UInt fracMemory_;     //!< number of old time steps to be saved (for fractional damping)
     
+
+
     //! type of interpolation (for fractional damping)
     InterpolType inType_;
     
     //! checks, if we have for the coupling a incremental solution
-    Boolean isIncrFormulation_;    
+    bool isIncrFormulation_;    
     
     //! flag for knowing if we have to call ComputeRHS() in the harmonic driver
-    Boolean ComputeRHSforHarm_;    
+    bool ComputeRHSforHarm_;    
    
     //! PDEMemento
     PDEMemento memento_;

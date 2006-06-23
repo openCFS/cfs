@@ -17,11 +17,12 @@ namespace CoupledField {
                              UInt stepOffset,
                              Double timeOffset,
                              std::string driverTag,
-                             Boolean isPartOfSequence) 
+                             bool isPartOfSequence) 
     : SingleDriver(adomain, stepOffset, timeOffset, 
                    driverTag, isPartOfSequence) {
     ENTER_FCN( "StaticDriver::StaticDriver" );
 
+    analysis_ = STATIC;
   }
 
 
@@ -41,21 +42,20 @@ namespace CoupledField {
 
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
-    if (isPartOfSequence_ == FALSE){     
+    if (isPartOfSequence_ == false){     
       GetMyPDEs();
-      Info->StartProgress ("Starting to solve problem", FALSE);
+      Info->StartProgress ("Starting to solve problem", false);
     }
 
     // Initialize 'TimeStepping'
     const UInt nstep = 1;
     Double  steptime = 0.0;
-    Boolean reset = FALSE;
 
     ptPDE_->GetSolveStep()->SetActTime(steptime);
     ptPDE_->GetSolveStep()->SetActStep(nstep);
     ptPDE_->WriteGeneralPDEdefines();
-    ptPDE_->GetSolveStep()->PreStepStatic(reset);
-    ptPDE_->GetSolveStep()->SolveStepStatic(reset);
+    ptPDE_->GetSolveStep()->PreStepStatic();
+    ptPDE_->GetSolveStep()->SolveStepStatic();
     ptPDE_->GetSolveStep()->PostStepStatic();
 
     ptPDE_->PostProcess();

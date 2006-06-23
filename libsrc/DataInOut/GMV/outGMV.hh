@@ -103,7 +103,7 @@ namespace CoupledField
     Double lastTime_;
 
     //! indicator of type for data
-    Boolean ascii_;
+    bool ascii_;
 
     //! size of character string to be written out
     UInt charOutSize_;
@@ -112,10 +112,10 @@ namespace CoupledField
     Char * strBuffer_;
 
     //! indicator of adaptive grid or not
-    Boolean fixedgrid_; 
+    bool fixedgrid_; 
 
     //! True, if grid was already written one time
-    Boolean firstGridWritten_;
+    bool firstGridWritten_;
 
     //! name of gridfile
     std::string nameGridFile_;

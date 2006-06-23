@@ -17,14 +17,14 @@ namespace CoupledField {
 
     maxnumFF_  = 0;
 
-    freqFncDatFiles_=FALSE;
+    freqFncDatFiles_=false;
 
 
     params->GetList( "name", fnc_names_, "harmonic", "freqDataFile" );
     
 
     if (fnc_names_.GetSize())
-      freqFncDatFiles_ = TRUE;
+      freqFncDatFiles_ = true;
 
 
   }

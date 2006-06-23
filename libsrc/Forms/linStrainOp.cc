@@ -16,11 +16,11 @@ namespace CoupledField
   template<class TYPE>
   LinStrainOp<TYPE>::LinStrainOp(Grid * ptGrid, 
                                  StdPDE * ptPDE,
-                                 NodeEQN * ptEQN,
+                                 shared_ptr<EqnMap> eqnMap,
                                  NodeStoreSol<TYPE> & displacement,
                                  const SolutionType solType,
-                                 Boolean isaxi)
-    : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
+                                 bool isaxi)
+    : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi)
   {
     ENTER_FCN( "LinStrainOp::LinStrainOp" );  
     this->displacement_ = &displacement;
@@ -76,7 +76,7 @@ namespace CoupledField
 
     const UInt nrNodes  = ptelem->GetNumNodes();
     const UInt spaceDim = ptelem->GetDim();  
-    const UInt nrDofs   = ptPDE_->getPDE_dofspernode();  
+    const UInt nrDofs   = spaceDim;
 
     UInt actDim, actNode, j, k;
     if (spaceDim==2)
@@ -87,6 +87,7 @@ namespace CoupledField
     else // 3d
       bMat.Resize(6, nrNodes*nrDofs);
     
+    bMat.Init();
     // local shape functions derived after global coords
     // (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
@@ -158,7 +159,7 @@ namespace CoupledField
         break;
       }
 
-    //    isSetIntPoint_ = FALSE;
+    //    isSetIntPoint_ = false;
 
   
   } // end calcBMat

@@ -15,14 +15,13 @@ namespace CoupledField {
 
   NewmarkFracDampMech::
   NewmarkFracDampMech( BaseSystem * algebraicsystem,
-                       UInt rhsSize, 
                        const PdeIdType apdeId,
-                       NodeEQN * ptEQN,
+                       shared_ptr<EqnMap> eqnMap,
                        Grid * aptgrid,
                        StdPDE * aptStdPDE,
                        StdVector<RegionIdType> asubdomainList,
                        std::map<RegionIdType,DampingType> adampingList) 
-    :TimeStepping( algebraicsystem, rhsSize ){
+    :TimeStepping( algebraicsystem){
     
     ENTER_FCN( "NewmarkFracDampMech::NewmarkFracDampMech" );
     
@@ -30,7 +29,7 @@ namespace CoupledField {
     pdeId_       = apdeId;
     ptgrid_      = aptgrid;
     ptStdPDE_    = aptStdPDE;
-    ptEQN_       = ptEQN;
+    eqnMap_      = eqnMap;
 
     params->Get( "subType", subType_, pdename_ );
 	
@@ -40,9 +39,6 @@ namespace CoupledField {
     inType_ = NOTUSED;
     geomType_    = "3d"; //ptStdPDE_->GetSubType();
     isaxi_       = ptStdPDE_->GetIsaxi();
-
-    UInt numElems = ptgrid_->GetNumElems(subdoms_);
-    UInt dimStressVector = getStressDim();
   
     alpha_ = 0.0;
     beta_  = 0.25;
@@ -54,33 +50,6 @@ namespace CoupledField {
     if(analysis != "paramIdent")
       Info->PrintF( pdename_, "NewmarkFracDampMech: Using defaults for alpha, \
                                beta and gamma!\n" );
-    // get the memory
-    solderiv1_.Resize(rhsSize_);  
-    solderiv1_.Init();
-    solderiv2_.Resize(rhsSize_);  
-    solderiv2_.Init();
-  
-
-    solpred_.Resize(rhsSize_); 
-    solpred_.Init();
-    solderiv1pred_.Resize(rhsSize_); 
-    solderiv1pred_.Init();
-  
-    if ( fracMemory_ <= 1 )
-      Error("Damping model needs frac_memory larger than 1",
-            __FILE__,__LINE__);
-    else {
-      // get the memory
-      solMemory_  = new Vector<Double>[fracMemory_];
-      stressHistoryEl_ = new Vector<Double>[fracMemory_];
-
-      for (UInt i=0; i<fracMemory_; i++) {
-        solMemory_[i].Resize(rhsSize_);  
-        solMemory_[i].Init();
-        stressHistoryEl_[i].Resize(numElems*dimStressVector);
-        stressHistoryEl_[i].Init();
-      }
-    }
   }
 
 
@@ -90,11 +59,12 @@ namespace CoupledField {
   }
 
   void NewmarkFracDampMech::Init( std::map<FEMatrixType,Double> & matrix_factors,
-                              Double dt ) {
+                                  Double dt, UInt rhsSize ) {
 	
     ENTER_FCN( "NewmarkFracDampMech::Init" );
 
     dt_ = dt;
+    rhsSize_ = rhsSize;
     CalcParameters(dt_);
 
     //elastModule_ = 1.0;  
@@ -119,6 +89,40 @@ namespace CoupledField {
     matrix_factors[DAMPING] = 1.0*a4_; // needed for thermoviscous damping
     matrix_factors[CONVECTION] = 0.0;
     matrix_factors[MASS] = 1.0*a2_;
+
+
+    // get the memory
+    solderiv1_.Resize(rhsSize_);  
+    solderiv1_.Init();
+    solderiv2_.Resize(rhsSize_);  
+    solderiv2_.Init();
+  
+
+    solpred_.Resize(rhsSize_); 
+    solpred_.Init();
+    solderiv1pred_.Resize(rhsSize_); 
+    solderiv1pred_.Init();
+  
+    if ( fracMemory_ <= 1 )
+      Error("Damping model needs frac_memory larger than 1",
+            __FILE__,__LINE__);
+    else {
+
+      //UInt numElems = ptgrid_->GetNumElems(subdoms_);
+      UInt numElems = eqnMap_->GetNumLocalElems();
+      UInt dimStressVector = getStressDim();
+
+      // get the memory
+      solMemory_  = new Vector<Double>[fracMemory_];
+      stressHistoryEl_ = new Vector<Double>[fracMemory_];
+
+      for (UInt i=0; i<fracMemory_; i++) {
+        solMemory_[i].Resize(rhsSize_);  
+        solMemory_[i].Init();
+        stressHistoryEl_[i].Resize(numElems*dimStressVector);
+        stressHistoryEl_[i].Init();
+      }
+    }
   }
 
 
@@ -135,7 +139,7 @@ namespace CoupledField {
     // determine number of past values stored in solMemory_
     numTrueValues_ = 0;
     for ( UInt i=0; i < numValues_; i++ ) {
-      if ( solMemoryVal_[i] == TRUEVAL )
+      if ( solMemoryVal_[i] == trueVAL )
 	numTrueValues_++;
     }
 
@@ -155,7 +159,7 @@ namespace CoupledField {
     algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
 
     // damping part
-    Matrix<Double>  elemmat,ptCoord;
+    Matrix<Double>  elemmat;
     BaseFE          * ptElem;
     StdVector<UInt> connecth;
     Vector<Double>  rhsAssemble, rhsvec, elemsol;
@@ -205,10 +209,7 @@ namespace CoupledField {
           GLWeights(numValues_ + 1, fracDeriv_); // calclimit_+1 because the coeffcients in the loop start with i+1
         }
             
-        // get elements belonging to actual subdomain   
-        StdVector<Elem*> elemssd;
-        ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
-        
+         
 	//transform the type
 	SubTensorType type;
 	String2Enum(subType_,type);
@@ -222,8 +223,14 @@ namespace CoupledField {
                                   subType_, 
                                   GetTimeStep());
 
-        for (UInt actEl=0; actEl < elemssd.GetSize(); actEl++) {
-          ptElem=elemssd[actEl]->ptElem;
+
+        ElemList actSDList(ptgrid_ );
+        actSDList.SetRegion( subdoms_[actSD] );
+        
+        EntityIterator it = actSDList.GetIterator();
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          ptElem=it.GetElem()->ptElem;
           const UInt nrNodes  = ptElem->GetNumNodes();
           dofs_ = ptElem->GetDim();
           
@@ -231,20 +238,15 @@ namespace CoupledField {
           rhsvec.Resize(nrNodes * dofs_);
           rhsvec.Init();
               
-          rhsViscoMat->SetElemPtr(ptElem);
-          bdInt->SetElemPtr(ptElem);
-              
-          connecth=elemssd[actEl]->connect;
-          ptgrid_->GetElemNodesCoord(ptCoord,connecth);
+          connecth=it.GetElem()->connect;
           
-          rhsViscoMat->CalcElementMatrix(ptCoord, elemmat);
+          rhsViscoMat->CalcElementMatrix(elemmat,it,it);
           
           // map connect to PDE node numbers
           StdVector<Integer> connect_PDE;
-          ptEQN_->Node2EQN(connecth, connect_PDE);
+          eqnMap_->GetNodeEqn(connecth, connect_PDE);
 
 #ifdef DEBUG
-          //UInt elemNum = elemssd[actEl]->elemNum;
           // output matrix with which BDF is computed
           (*debug) << "fractional Damping matrix of Element" << std::endl;
           (*debug) << elemmat << std::endl;
@@ -253,7 +255,7 @@ namespace CoupledField {
 #endif
               
           for (UInt i=1; i<=numValues_; i++) {
-            if ( solMemoryVal_[i-1] == TRUEVAL )
+            if ( solMemoryVal_[i-1] == trueVAL )
               {
                 GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
                 rhsvec += elemsol * coeff_[i];	     
@@ -280,11 +282,12 @@ namespace CoupledField {
           resultStressVector.Init();
           
           for (UInt i=1; i<numValues_; i++) {	     
-            GetStressVector(stressVector,actEl,i-1);
+            Integer localElemNum = eqnMap_->Mesh2PdeElem(it.GetElem()->elemNum); 
+            GetStressVector(stressVector,localElemNum,i-1);
             fracDerivStressVec_ += stressVector * coeff_[i+1];
           }
               
-          bdInt->calcElementVector(ptCoord,resultStressVector,fracDerivStressVec_);
+          bdInt->calcElementVector(resultStressVector,it,fracDerivStressVec_);
           
           //                   double t1,t2;
           //                   t1=0;
@@ -328,12 +331,13 @@ namespace CoupledField {
     solderiv2_ = (solnew - solpred_) * a2_;
     solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
 
-    Integer numEQNs = ptEQN_->GetNumEQNs();
+    Integer numEQNs = eqnMap_->GetNumEqns();
     StdVector<UInt> connecth, connect_PDE;
     Vector<Double> stressVec, displacementVec;
     Matrix<Double> ptCoord;
 
     stressVec.Resize(getDim());
+    stressVec.Init();
     displacementVec.Resize(numEQNs * dofs_);  
 
     std::map<RegionIdType, BaseMaterial*> mymaterialData;
@@ -349,8 +353,8 @@ namespace CoupledField {
       solMemory_[0] = solnew; //- solpred_;
       
       if ((actStep_ / modulo_)  <=  fracMemory_) {
-        solMemoryVal_.insert( solMemoryVal_.begin(),TRUEVAL);
-        // when solMemoryVal_ reaches size fracMemory_ , all entries are TRUEVAL
+        solMemoryVal_.insert( solMemoryVal_.begin(),trueVAL);
+        // when solMemoryVal_ reaches size fracMemory_ , all entries are trueVAL
         //  and stay the same for all time for
       }
       
@@ -364,14 +368,14 @@ namespace CoupledField {
           connecth=elemssd[el]->connect;
           ptgrid_->GetElemNodesCoord(ptCoord,connecth);
           StdVector<Integer> connect_PDE;
-          ptEQN_->Node2EQN(connecth, connect_PDE);
+          eqnMap_->GetNodeEqn(connecth, connect_PDE);
           
           GetElemSolution(solMemory_[0], displacementVec, connect_PDE);
           
           CalcStress( ptElem, mymaterialData[subdoms_[actSD]], connect_PDE, ptCoord,  
-		      stressVec, displacementVec, el);
-          
-          InsertStressVector(stressVec,el,0);		
+		      stressVec, displacementVec, elemssd[el]->elemNum);
+          Integer localElemNum = eqnMap_->Mesh2PdeNode( elemssd[el]->elemNum );
+          InsertStressVector(stressVec,localElemNum,0);		
         }
       }
     }
@@ -395,12 +399,13 @@ namespace CoupledField {
 
 
   void NewmarkFracDampMech::GetElemSolution ( const Vector<Double>& sol, 
-                    Vector<Double>& elemsol,
-                    const StdVector<Integer> & connectPDE ) {
+                                              Vector<Double>& elemsol,
+                                              const StdVector<Integer> & connectPDE ) {
 
     ENTER_FCN( "NewmarkFracDampMech::GetElemSolution" );
    
     elemsol.Resize(connectPDE.GetSize());
+    elemsol.Init();
 
     for (UInt eqn=0; eqn<connectPDE.GetSize(); eqn++) {
       if (connectPDE[eqn]>=1)
@@ -448,81 +453,85 @@ void NewmarkFracDampMech::CalcStress(BaseFE * aptelem,
   Matrix<Double> aMat;
 
 
-  double timeStep = GetTimeStep();
+  //double timeStep = GetTimeStep();
 
-  Integer dimStressVec = getDim();
+  //Integer dimStressVec = getDim();
   //Integer numEQNs = ptEQN_->GetNumEQNs();
 
-  const Integer nrNodes  = aptelem->GetNumNodes();
+  //const Integer nrNodes  = aptelem->GetNumNodes();
 
   //transform the type
   SubTensorType type;
   String2Enum(subType_,type);
 
-  BDBInt * viscoIntegrator = new LinViscoElastInt(aptelem, matDa, type,
-						  "modifiedStiffness",timeStep );
+  Error( "Not working at the moment (-> contact Andreas)",
+         __FILE__, __LINE__ );
+  
+//   BDBInt * viscoIntegrator = new LinViscoElastInt(matDa, type,
+//                                                 "modifiedStiffness",timeStep );
 
-  Vector<Double> fracDerivStress, fracDerivDisplacement;
-  Vector<Double> term1, term2,term3;
+//   Vector<Double> fracDerivStress, fracDerivDisplacement;
+//   Vector<Double> term1, term2,term3;
 
-  fracDerivStress.Resize(dimStressVec);
-  stressVector.Resize(dimStressVec);
-  fracDerivDisplacement.Resize(nrNodes * dofs_);
-  term1.Resize(dimStressVec);
-  term2.Resize(dimStressVec);
-  term3.Resize(dimStressVec);
+//   fracDerivStress.Resize(dimStressVec);
+//   stressVector.Resize(dimStressVec);
+//   fracDerivDisplacement.Resize(nrNodes * dofs_);
+//   term1.Resize(dimStressVec);
+//   term2.Resize(dimStressVec);
+//   term3.Resize(dimStressVec);
 
-  fracDerivStress.Init();
-  fracDerivDisplacement.Init();
+//   fracDerivStress.Init();
+//   fracDerivDisplacement.Init();
 
-  viscoIntegrator->GetDMat(dMat);
-  viscoIntegrator->GetBMat(bMat,ptCoord);
-  GetBetaMat(betaMat,elastModule_, matDa);
-  GetAlphaMat(alphaMat);
-  GetAMat(aMat);
+//   viscoIntegrator->GetDMat(dMat);
+//   viscoIntegrator->GetBMat(bMat,ptCoord);
+//   GetBetaMat(betaMat,elastModule_, matDa);
+//   GetAlphaMat(alphaMat);
+//   GetAMat(aMat);
 
-  //computation of the term1 (actual displacement * material, damping factors)
-  //term1 = (dMat * bMat) * displacementVector;
-  Matrix<Double> helpMat;
-  helpMat = dMat * bMat;
-  term1 = helpMat * displacementVector;
+//   //computation of the term1 (actual displacement * material, damping factors)
+//   //term1 = (dMat * bMat) * displacementVector;
+//   Matrix<Double> helpMat;
+//   helpMat = dMat * bMat;
+//   term1 = helpMat * displacementVector;
 
-  //computation of term2 (fractional Derivative of displacement)
-  // solMemory[0] is the displacement value of the previous time step -> loop from 0
-  for(UInt k=0; k< numValues_;k++) {
-    GetElemSolution(solMemory_[k], displacementVector, connect_PDE);	
-    fracDerivDisplacement += displacementVector *  coeff_[k+1];   
-  }
+//   //computation of term2 (fractional Derivative of displacement)
+//   // solMemory[0] is the displacement value of the previous time step -> loop from 0
+//   for(UInt k=0; k< numValues_;k++) {
+//     GetElemSolution(solMemory_[k], displacementVector, connect_PDE);	
+//     fracDerivDisplacement += displacementVector *  coeff_[k+1];   
+//   }
 
-  //term2 = aMat * betaMat * bMat * fracDerivDisplacement;
-  Matrix<Double> helpMat2;
-  helpMat = betaMat * bMat;
-  helpMat2 = aMat * helpMat;
-  term2 = helpMat2 * fracDerivDisplacement;
+//   //term2 = aMat * betaMat * bMat * fracDerivDisplacement;
+//   Matrix<Double> helpMat2;
+//   helpMat = betaMat * bMat;
+//   helpMat2 = aMat * helpMat;
+//   term2 = helpMat2 * fracDerivDisplacement;
 
-  //computation of term3 (fractional derivative of stress)
-  for(UInt k=0; k< numValues_;k++) {
-    GetStressVector(stressVector, elemNr,k);	
-    fracDerivStress += stressVector *  coeff_[k+1];   
-  }
+//   //computation of term3 (fractional derivative of stress)
+//   for(UInt k=0; k< numValues_;k++) {
+//     Integer locElemNum = eqnMap_->Mesh2PdeNode( elemNr );
+//     GetStressVector(stressVector, localElemNum,k);	
+//     fracDerivStress += stressVector *  coeff_[k+1];   
+//   }
 
-  //term3 =    aMat * alphaMat * fracDerivStress;
-  helpMat = aMat * alphaMat;
-  term3 = helpMat * fracDerivStress;
+//   //term3 =    aMat * alphaMat * fracDerivStress;
+//   helpMat = aMat * alphaMat;
+//   term3 = helpMat * fracDerivStress;
 
 
-  double t1,t2,t3;
-    t1=0;
-    t2=0;
-    t3=0;
+//   double t1,t2,t3;
+//     t1=0;
+//     t2=0;
+//     t3=0;
 
-    for (UInt i=0;i<term1.GetSize();i++) {
-      t1 += term1[i];
-      t2 += term2[i];
-      t3 += term3[i];
-    }
+//     for (UInt i=0;i<term1.GetSize();i++) {
+//       t1 += term1[i];
+//       t2 += term2[i];
+//       t3 += term3[i];
+//     }
     
-    stressVector = term1 + term2 - term3;  
+//     stressVector = term1 + term2 - term3;  
 }
 
   void NewmarkFracDampMech::GetStressVector(Vector<Double> &stressVec,UInt elemNr,UInt memory)
@@ -552,7 +561,8 @@ void NewmarkFracDampMech::GetAMat(Matrix<Double> & aMat)
      double val = 0.0;
      
      // compute matrix A,  same entries, 
-     aMat.Resize(getDim());
+     aMat.Resize(getDim(),true);
+     aMat.Init();
      // set entries on the diagonal
       val = (timeStepPowerFracDeriv_)  * dampAlpha_ ;
 	
@@ -573,7 +583,8 @@ void NewmarkFracDampMech::GetAlphaMat(Matrix<Double> & alphaMat)
      double val = 0.0;
      
      // compute matrix A,  same entries, 
-     alphaMat.Resize(getDim());
+     alphaMat.Resize(getDim(),true);
+     alphaMat.Init();
      // set entries on the diagonal
       val = (timeStepPowerFracDeriv_)  * dampAlpha_ ;
 	

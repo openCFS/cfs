@@ -24,6 +24,7 @@ namespace CoupledField
   class WriteResults;
   class CoordSystem;
   class MaterialHandler;
+  class BaseDriver;
 
   //! This class defines the computational domain.
 
@@ -92,6 +93,11 @@ namespace CoupledField
     //! Get pointer to SinglePDE by name
     SinglePDE * GetSinglePDE(const std::string pdename);
 
+    //! Set driver object
+    void SetDriver( BaseDriver * driver ) { ptDriver_ = driver;}
+
+    //! Get driver object
+    BaseDriver * GetDriver() { return ptDriver_;}
 
     //! Get pointer to CoupledPDE
     DirectCoupledPDE* GetDirectCoupledPDE()
@@ -133,8 +139,10 @@ namespace CoupledField
     // ======================================================
 
     //@{
-    //! \name Methods for creating (coupled) PDE objects
+    //! \name Methods for creating various objects
   
+    //! Create driver object
+    
     //! Create the SinglePDE objects
     
     //! Create the SinglePDE objects
@@ -200,7 +208,7 @@ namespace CoupledField
 
     //! Flagfield, which indicates, if a SinglePDE is direct coupled
     //! or not
-    std::map<SinglePDE*,Boolean> isDirectCoupled_;
+    std::map<SinglePDE*,bool> isDirectCoupled_;
 
     //@}
 
@@ -209,6 +217,9 @@ namespace CoupledField
 
     //! Pointer to object handling time functions
     TimeFunc * ptTimeFunc_;
+
+    //! Pointer to driver
+    BaseDriver   *ptDriver_;
 
     //! Pointer to object handling input file (mesh data)
     FileType *InFile_;

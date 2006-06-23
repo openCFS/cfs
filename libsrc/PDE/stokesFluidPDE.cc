@@ -15,6 +15,7 @@
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
+#include "Driver/assemble.hh"
 
 #ifdef TCL_INTERFACE
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -29,7 +30,7 @@ namespace CoupledField
   {
     ENTER_FCN( "StokesFluidPDE::StokesFluidPDE" );
 
-    isAlwaysStatic_ = TRUE;
+    isAlwaysStatic_ = true;
 
     pdename_          = "stokesFluid";
     pdematerialclass_ = FLOW;
@@ -46,17 +47,18 @@ namespace CoupledField
 
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
+    UInt dofspernode = 0;
     if ( subType_ == "3d" && probGeo == "3d" ) {
-      dofspernode_ = 7;
+      dofspernode = 7;
       Info->PrintF("", "=== 3D PROBLEM\n");
     }
     else if ( subType_ == "axi" && probGeo == "axi" ) {
-      isaxi_ = TRUE;
-      dofspernode_ = 4;
+      isaxi_ = true;
+      dofspernode = 4;
       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
     else if ( subType_ == "plane" && probGeo == "plane" ) {
-      dofspernode_ = 4;
+      dofspernode = 4;
       Info->PrintF("", "=== PLANE PROBLEM\n");
     }
     else
@@ -70,8 +72,24 @@ namespace CoupledField
     // =====================================================================
     // set solution information
     // =====================================================================
-    solTypes_ = STOKESFLUID_VEL_PRES_VORT;
-    solDofs_ = dofspernode_;
+
+    // Create new resultDof object
+    shared_ptr<ResultDof> res1(new ResultDof);
+    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    res1->resultType = STOKESFLUID_VEL_PRES_VORT;
+    res1->definedOn = ResultDof::NODE;
+    res1->fctType = fct;
+    if( subType_ == "3d" ) {
+      res1->dofNames = "vx", "vy", "vz", "omegax", "omegay", "omegaz", "p";
+    } else if ( subType_ == "axi" ) {
+      res1->dofNames = "vr", "vphi", "omega", "p";
+    } else if( subType_ == "plane") {
+      res1->dofNames = "vx", "vy", "p", "omega";
+    } else {
+      (*error) << "StokesFluidPDE: subType '" << subType_ << "' not known!";
+      Error( __FILE__, __LINE__ );
+    }
+    results_.Push_back( res1 );
    }
 
   StokesFluidPDE::~StokesFluidPDE()
@@ -93,7 +111,7 @@ namespace CoupledField
     params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
     // Should not happen with validating parser, but beware!
     if ( nonLinRegion.GetSize() == 0 ) {
-      nonLin_ = FALSE;
+      nonLin_ = false;
     }
     else {
       for ( UInt k = 1; k < nonLinRegion.GetSize(); k++ ) {
@@ -102,11 +120,11 @@ namespace CoupledField
                        __FILE__, __LINE__ );
         }
       }
-      nonLin_ = nonLinRegion[0] == "convection" ? TRUE : FALSE;
+      nonLin_ = nonLinRegion[0] == "convection" ? true : false;
     }
 
     // In non-linear case determine type of line search strategy
-    if ( nonLin_ == TRUE ) {
+    if ( nonLin_ == true ) {
 
       Info->PrintF( pdename_, "Non-linearity in %d regions\n",
                     nonLinRegion.GetSize() );
@@ -128,7 +146,7 @@ namespace CoupledField
       lineSearch_ = "none";
     }
 
-    if( nonLin_ == TRUE )
+    if( nonLin_ == true )
       {
         // incremental stopping criterion
         params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
@@ -157,27 +175,32 @@ namespace CoupledField
     // ------------------------------------------
     params->GetList( "reducedInt", reducedIntegration_, pdename_, "region" );
 
-    for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++)
-      {
-        BaseMaterial * actMat = materials_[subdoms_[actSD]];
-        actMat->GetScalar(density,DENSITY,REAL);
-        actMat->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
-        //dynamicViscosity = 1.85e-5;
+    for (UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++) {
+
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( subdoms_[actSD] );
+      
+      BaseMaterial * actMat = materials_[subdoms_[actSD]];
+      actMat->GetScalar(density,DENSITY,REAL);
+      actMat->GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
+      //dynamicViscosity = 1.85e-5;
       
       Info->PrintF( pdename_, "density = %e\n", density);
       Info->PrintF( pdename_, "dynamic Viscosity = %e\n", dynamicViscosity);
       
       // ==============  add stiffness ======================================
       BaseForm * bilinearStiff = GetStiffIntegrator(density, dynamicViscosity);
+      
+      BiLinFormContext * actContext =
+        new BiLinFormContext(bilinearStiff, STIFFNESS );
 
-      IntegratorDescriptor * actIntDescr =
-        new IntegratorDescriptor(bilinearStiff, STIFFNESS);
-
-      actIntDescr->SetPDEIds(this, this);
-
-      //actIntDescr->SetReducedInt();    
+      actContext->SetPtPdes(this, this);
+      actContext->SetResults( results_[0], results_[0],
+                               actSDList, actSDList );
+      //actContext->SetReducedInt();    
 	  
-      assemble_->AddIntegrator(actIntDescr, subdoms_[actSD]);
+      assemble_->AddBiLinearForm( actContext );
 
       // ==============  add nonlinear stiffness ============================
       if (nonLin_)
@@ -200,20 +223,32 @@ namespace CoupledField
               //nLinPart =
               //  new nLinStokesFluidAxiInt_Convective(density, dynamicViscosity);    
             }
-          IntegratorDescriptor * stiffNLDescr = 
-	        new IntegratorDescriptor(nLinPart, STIFFNESS, nonLin_);
-
-	      stiffNLDescr->SetPDEIds(this, this);
-	      assemble_->AddIntegrator(stiffNLDescr, subdoms_[actSD]);
+          BiLinFormContext * stiffNLContext = 
+            new BiLinFormContext(nLinPart, STIFFNESS );
+          
+          stiffNLContext->SetPtPdes(this, this);
+          stiffNLContext->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );
+          assemble_->AddBiLinearForm( stiffNLContext );
         }
         // ==================== RHS ===========================================
-        if (nonLin_)
-          {
-            BaseForm * rhsSource = 
-              new nLinStokesFluid_linFormInt(density, dynamicViscosity, isaxi_);
-            assemble_->AddRhsIntegrator(rhsSource, subdoms_[actSD], nonLin_);
-          }
-      }
+        if (nonLin_) {
+          (*error) <<  "Not working -> Gerhard has to derive the "
+                   <<  " 'nLinStokesFluid_linFormInt' from LinearForm!";
+          Error( __FILE__, __LINE__ );
+          
+          // LinearForm * rhsSource = 
+//             new nLinStokesFluid_linFormInt(density, dynamicViscosity, isaxi_);
+//           LinearFormContext * rhsContext = 
+//             new LinearFormContext( rhsSource, nonLin_ );
+//           rhsContext->SetPtPde( this );
+//           rhsContext->SetResult( results_[0], actSDList );
+//           assemble_->AddLinearForm( rhsContext );
+        }
+        
+        // Give result to equation numbering class
+      eqnMap_->AddResult( *results_[0], actSDList );
+    }
   }
 
 
@@ -264,7 +299,7 @@ namespace CoupledField
   {
     ENTER_FCN( "StokesFluidPDE::InitCoupling" );
 
-    isIterCoupled_ = TRUE;
+    isIterCoupled_ = true;
     ptCoupling_   = Coupling;
     UInt velocityDofEndSpec;
 
@@ -272,6 +307,7 @@ namespace CoupledField
 
     StdVector<StdVector<UInt> > elemNodeToCouplingNode_tmp;
     elemNodeToCouplingNode_.Resize(numCouplings);
+    elemNodeToCouplingNode_.Init();
 
     if ( subType_ == "3d" ) {
       velocityDofEndSpec=3;
@@ -287,11 +323,13 @@ namespace CoupledField
     // input couplings
     for (UInt i=0; i<ptCoupling_->GetNumInputCouplings(); i++)
       {
-        // check for input mechanic velocity
-        if (ptCoupling_->GetInputQuantity(i) == MECH_VELOCITY)
-          {
-            numDirichletBCs_ += (velocityDofEndSpec * ptCoupling_->GetInputNumNodes(i));
-          }
+        Warning( "Not sure if this statement is needed (Andreas)!",
+                 __FILE__, __LINE__ );
+       //  // check for input mechanic velocity
+//         if (ptCoupling_->GetInputQuantity(i) == MECH_VELOCITY)
+//           {
+//             numDirichletBCs_ += (velocityDofEndSpec * ptCoupling_->GetInputNumNodes(i));
+//           }
       }
 
     for (UInt i = 0; i < numCouplings; i++) {
@@ -302,7 +340,7 @@ namespace CoupledField
       if (ptCoupling_->GetOutputQuantity(i) == STOKESFLUID_FORCE) {
         // now since we need a incremental formulation, 
         //  initialize some necessary vectors
-        isIncrFormulation_ = TRUE;
+        isIncrFormulation_ = true;
       }
     }
   }
@@ -314,16 +352,14 @@ namespace CoupledField
     std::string errMsg;
     StdVector<UInt> * nodes;
     CFSVector * val;
-    UInt pdeNode, eqnDof;
     Integer eqnNr;
     UInt couplingDof;
-    Boolean clearCoords = TRUE;
     UInt velocityDofEndSpec;
     // Determine maximal allowed equation number for algebraic system
     Integer maxAllowedEqn = (Integer)algsys_->GetDimension();
 
     // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == FALSE)
+    if (isIterCoupled_ == false)
       return;
 
     // Reset counter for boundary conditions
@@ -349,27 +385,11 @@ namespace CoupledField
       case COORD: 
         
         // Set flag that the geometry has changed
-        geoUpdate_ = TRUE;
-        assemble_->SetNonlinGeo();
 
         ptCoupling_->GetInputNodes(i, nodes);
-
-        // Resize + clear coordinate updates
-        // only the first time
-        if (clearCoords == TRUE) {
-          deltCoords_.Resize(dim_, numPDENodes_);
-          clearCoords = FALSE;
-        }
-          
-        // set ptr of deltCoords to assembly-object
-        assemble_->SetPtrDeltaCoordinates(&deltCoords_);
-          
-        for (UInt j=0; j<nodes->GetSize(); j++)
-          for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++) {
-            pdeNode = eqnData_->Mesh2PDENode((*nodes)[j]);
-            deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
-
-          }
+        ptgrid_->SetNodeOffset( *nodes , help );
+      
+      
         break;
 
         // -------------------
@@ -381,10 +401,10 @@ namespace CoupledField
         //for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
         for ( UInt dof = 0; dof < couplingDof; dof++ ) {
           for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
-            eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
+            eqnNr = eqnMap_->GetNodeEqn((*nodes)[j],dof+1);
             if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
               algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
-                                   eqnNr, eqnDof );
+                                   eqnNr, 1);
             }
 
 #ifdef DEBUG
@@ -441,7 +461,7 @@ namespace CoupledField
         }
 
         // Set flag that the boundary conditions have to be incorporated
-        updateCouplingBCs_ = TRUE;
+        updateCouplingBCs_ = true;
 
         ptCoupling_->GetInputNodes(i, nodes);
 
@@ -462,7 +482,7 @@ namespace CoupledField
           for ( UInt j = 0; j < nodes->GetSize();
                 j++, couplingBCsCounter_++) {
 
-            eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
+            eqnNr = eqnMap_->GetNodeEqn((*nodes)[j],dof+1 );
 
             if (eqnNr==0) {
               Error( "The specified coupling node has no equation number",
@@ -474,7 +494,7 @@ namespace CoupledField
             //                        dof+j*velocityDofEndSpec, help[dof+j*velocityDofEndSpec]);
 	    
             algsys_->SetDirichlet( couplingBCsCounter_ + 1, pdeId_, eqnNr,
-                                   help[dof+j*velocityDofEndSpec], eqnDof );
+                                   help[dof+j*velocityDofEndSpec], 1 );
           }
         }
         break;
@@ -497,9 +517,7 @@ namespace CoupledField
     elemSol.Resize(1 * connecth.GetSize());
     elemSol.Init(0);
     Integer eqnNr; 
-    UInt eqnDof;
     UInt presDof;
-    UInt dofsPerEQN = eqnData_->GetNumDofsPerEQN();
 
     NodeStoreSol<Double> * solhelp = 
       dynamic_cast<NodeStoreSol<Double>*>(sol_);
@@ -518,9 +536,9 @@ namespace CoupledField
 
   
     for(UInt actNode=0; actNode<connecth.GetSize(); actNode++) {
-      eqnData_->Node2EQN(connecth[actNode],presDof,eqnNr,eqnDof);
+      eqnNr = eqnMap_->GetNodeEqn(connecth[actNode],presDof);
       if (eqnNr!= 0) {
-        elemSol[actNode] = sol[eqnDof-1 + dofsPerEQN*(abs(eqnNr-1))];
+        elemSol[actNode] = sol[(abs(eqnNr-1))];
       }
       else {
         elemSol[actNode] = 0.0;
@@ -539,7 +557,7 @@ namespace CoupledField
     //UInt regionCount = 0;
   
     // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == FALSE)
+    if (isIterCoupled_ == false)
       return;
 
     // loop over all output coupling quantities
@@ -578,105 +596,106 @@ namespace CoupledField
     
     ENTER_FCN( "StokesFluidPDE::CalcMechCouplingRHS" );
     
-    Double density = 0.0;
-    Double dynamicViscosity = 0.0;
-    Double sign = 0.0;
-    Integer matIndex = -1;
-    Elem * ptVolElem = NULL;
-    Matrix<Double> ptCoord, elemMat;
-    Vector<Double> sol, forceOnElem, normal;
+    Error( "Not working yet", __FILE__, __LINE__ );
+//     Double density = 0.0;
+//     Double dynamicViscosity = 0.0;
+//     Double sign = 0.0;
+//     Integer matIndex = -1;
+//     Elem * ptVolElem = NULL;
+//     Matrix<Double> ptCoord, elemMat;
+//     Vector<Double> sol, forceOnElem, normal;
     
-    elemCouplingSols.Init(0.0);
+//     elemCouplingSols.Init(0.0);
     
-    for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
+//     for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
       
-      // Perform cast from volume element to surface element, since
-      // mech-acou coupling makes only sense on surface elements
-      SurfElem * actCoupleElem = 
-        dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
+//       // Perform cast from volume element to surface element, since
+//       // mech-acou coupling makes only sense on surface elements
+//       SurfElem * actCoupleElem = 
+//         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
 
-      if (actCoupleElem == NULL) {
-        Error( "No elements found for coupling!", __FILE__, __LINE__ );
-      }
+//       if (actCoupleElem == NULL) {
+//         Error( "No elements found for coupling!", __FILE__, __LINE__ );
+//       }
       
-      BaseFE * ptElem = actCoupleElem->ptElem;
-      StdVector<UInt> & connecth = actCoupleElem->connect;
-      GetElemCoords(connecth, ptCoord);
+//       BaseFE * ptElem = actCoupleElem->ptElem;
+//       StdVector<UInt> & connecth = actCoupleElem->connect;
+//       GetElemCoords(connecth, ptCoord);
       
-      // Try to find according region for first neighbouring volume
-      // element of the surface element
-      matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
+//       // Try to find according region for first neighbouring volume
+//       // element of the surface element
+//       matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
       
-      // If first volume element does not belong to stokesFluid PDE, try the
-      // second one
-      if ( matIndex == -1 ) {
-        matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
-        ptVolElem = actCoupleElem->ptVolElem2;
-        sign = actCoupleElem->normalSign;
-      } else {
-        ptVolElem = actCoupleElem->ptVolElem1;
-        sign = -1.0 * actCoupleElem->normalSign;
-      }
+//       // If first volume element does not belong to stokesFluid PDE, try the
+//       // second one
+//       if ( matIndex == -1 ) {
+//         matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
+//         ptVolElem = actCoupleElem->ptVolElem2;
+//         sign = actCoupleElem->normalSign;
+//       } else {
+//         ptVolElem = actCoupleElem->ptVolElem1;
+//         sign = -1.0 * actCoupleElem->normalSign;
+//       }
       
-      if ( matIndex == -1) {
-        (*error) << "StokesFluidPDE::CalcMechCouplingRHS: The two volume "
-                 << "element neighbours of surface element Nr. "
-                 << actCoupleElem->elemNum << " do not belong to my regions!";
-        Error( __FILE__, __LINE__ );
-      }
+//       if ( matIndex == -1) {
+//         (*error) << "StokesFluidPDE::CalcMechCouplingRHS: The two volume "
+//                  << "element neighbours of surface element Nr. "
+//                  << actCoupleElem->elemNum << " do not belong to my regions!";
+//         Error( __FILE__, __LINE__ );
+//       }
       
-      // Assign correct density and dynamicViscosity
-      materials_[subdoms_[matIndex]]->
-        GetScalar(density,DENSITY,REAL);
-      materials_[subdoms_[matIndex]]->
-        GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
-      //dynamicViscosity = 1.85e-5;
+//       // Assign correct density and dynamicViscosity
+//       materials_[subdoms_[matIndex]]->
+//         GetScalar(density,DENSITY,REAL);
+//       materials_[subdoms_[matIndex]]->
+//         GetScalar(dynamicViscosity,DYNAMIC_VISCOSITY,REAL);
+//       //dynamicViscosity = 1.85e-5;
       
-      BaseForm * bilinear_mass = new MassInt(ptElem, 1.0, isaxi_);
-      bilinear_mass->CalcElementMatrix(ptCoord, elemMat);
-      delete bilinear_mass;     
+//       BaseForm * bilinear_mass = new MassInt(ptElem, 1.0, isaxi_);
+//       bilinear_mass->CalcElementMatrix(ptCoord, elemMat);
+//       delete bilinear_mass;     
 
-      // acoustic
-      //GetDerivSolVecOfElement(sol, connecth);
+//       // acoustic
+//       //GetDerivSolVecOfElement(sol, connecth);
 
-      //stokesFluid      
-      GetPresSolVecOfElement(sol, connecth);
+//       //stokesFluid      
+//       GetPresSolVecOfElement(sol, connecth);
      
       
-      forceOnElem = elemMat * sol;
+//       forceOnElem = elemMat * sol;
       
-      // force has to be added on RHS with negative sign
-      forceOnElem *= - 1.0;
+//       // force has to be added on RHS with negative sign
+//       forceOnElem *= - 1.0;
       
-      // the normal vector points outwards of the MECHANICAL domain
-      // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
-      ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
-      normal *= sign;
+//       // the normal vector points outwards of the MECHANICAL domain
+//       // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
+//       ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
+//       normal *= sign;
 
-      for (UInt actNode=0; actNode<ptCoord.GetSizeCol(); actNode++) {
-        UInt nodePos = 0;
+//       for (UInt actNode=0; actNode<ptCoord.GetSizeCol(); actNode++) {
+//         UInt nodePos = 0;
           
-        while(connecth[actNode] != couplingNodes[nodePos] &&
-              nodePos < couplingNodes.GetSize()) {
-          nodePos++;
-        }
+//         while(connecth[actNode] != couplingNodes[nodePos] &&
+//               nodePos < couplingNodes.GetSize()) {
+//           nodePos++;
+//         }
           
-        for (UInt actDof=0; actDof < couplingdof ; actDof++) {
-          elemCouplingSols[nodePos*couplingdof +actDof] += 
-            forceOnElem[actNode] * normal[actDof];
-        }
-      }
-    }
+//         for (UInt actDof=0; actDof < couplingdof ; actDof++) {
+//           elemCouplingSols[nodePos*couplingdof +actDof] += 
+//             forceOnElem[actNode] * normal[actDof];
+//         }
+//       }
+//     }
   }
 
-  Boolean StokesFluidPDE::HasOutput(SolutionType output)
+  bool StokesFluidPDE::HasOutput(SolutionType output)
   {
     ENTER_FCN( "StokesFluidPDE::HasOutput" );
 
     if (output == STOKESFLUID_FORCE)
-      return TRUE;
+      return true;
 
-    return FALSE;
+    return false;
   }
 
 
@@ -716,7 +735,7 @@ namespace CoupledField
     rhs.SetNumNodes(numPDENodes_);
     rhs.SetSolutionType(MECH_RHSVAL);
     rhs.SetNumDofs(dim_);
-    rhs.SetPtrEQNData(eqnData_, ptgrid_);
+    rhs.SetPtrEQNData(eqnMap_, ptgrid_);
     rhs.Init(0.0);
     
     Double *ptRHS;
@@ -725,10 +744,10 @@ namespace CoupledField
     outFile_->WriteNodeSolutionTransient(rhs, actStep, actTime);
 #endif
 
-    if ( isComplex_ == FALSE ) {
+    if ( isComplex_ == false ) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     
-      if (saveSol_ == TRUE ) 
+      if (saveSol_ == true ) 
         outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
     } 
   }
@@ -746,10 +765,10 @@ namespace CoupledField
     Double actTime = asteptime + timeOffset;
     UInt actStep = kstep + stepOffset;
     
-    if ( isComplex_ == FALSE ) {
+    if ( isComplex_ == false ) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
       
-      if (saveSolHist_ == TRUE)
+      if (saveSolHist_ == true)
         outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
     }
   }
@@ -780,8 +799,8 @@ namespace CoupledField
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
     if (nodeValues.GetSize() > 0) {
-      saveSol_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSol_ = true;
+      hasOutput_ = true;
     }
 
     // -------------------------
@@ -797,8 +816,8 @@ namespace CoupledField
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
     if (saveNodeHist.GetSize() > 0) {
-      saveSolHist_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSolHist_ = true;
+      hasOutput_ = true;
       Info->PrintF( pdename_, " Saving StokesFluidVelocity for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );

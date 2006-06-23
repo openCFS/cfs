@@ -130,9 +130,11 @@ namespace CoupledField
       if ( dataType == REAL || dataType == IMAG ) {
 	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
 	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+          tensorParams_[matType].Init();
 	}
 	if ( tensorParamsOrig_[matType].GetSizeRow() == 0 ) {
 	  tensorParamsOrig_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+          tensorParamsOrig_[matType].Init();
 	}
 
 	tensorParams_[matType].SetPart( dataType, param );
@@ -288,6 +290,7 @@ namespace CoupledField
 	Matrix<Double> help; 
 	help = matTensor.GetPart( dataType );
 	param.Resize( matTensor.GetSizeRow(), matTensor.GetSizeCol() );
+        param.Init();
 	param.SetPart( dataType, help );
       }
       else if ( dataType == COMPLEX ) {

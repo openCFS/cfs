@@ -316,6 +316,7 @@ namespace CoupledField
   
     Integer numnodes=grid_.getNoOfVertices();
     sol.Resize(numnodes);
+    sol.Init();
     Integer i;
     for (i=0; i < sol_coarse.size(); i++) {
       sol[i]=sol_coarse[i];

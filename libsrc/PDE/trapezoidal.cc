@@ -7,8 +7,8 @@
 namespace CoupledField
 {
 
-  Trapezoidal :: Trapezoidal( BaseSystem * algebraicsystem,  UInt numEqns )
-    :TimeStepping( algebraicsystem, numEqns )
+  Trapezoidal :: Trapezoidal( BaseSystem * algebraicsystem)
+    :TimeStepping( algebraicsystem )
   {
     ENTER_FCN( "Trapezoidal::Trapezoidal" );
 
@@ -19,12 +19,7 @@ namespace CoupledField
     //check if integration parameters are defined in conf-file
     //Info->Warning( "Trapezoidal: Using defaults for gamma!" );
 
-    //get the memory
-    solderiv1_.Resize(rhsSize_);  
-    solderiv1_.Init();
 
-    solpred_.Resize(rhsSize_); 
-    solpred_.Init();
   }
 
   Trapezoidal :: ~Trapezoidal()
@@ -34,10 +29,12 @@ namespace CoupledField
   }
 
   void Trapezoidal::Init( std::map<FEMatrixType,Double> & matrix_factors,
-                          Double dt ) {
+                          Double dt, UInt rhsSize ) {
     ENTER_FCN( "Trapezoidal::Init" );
     
     dt_ = dt;
+    rhsSize_ = rhsSize;
+    
     CalcParameters(dt_);
 
     matrix_factors[STIFFNESS] = 1.0;
@@ -46,6 +43,13 @@ namespace CoupledField
     //not used matrices
     matrix_factors[CONVECTION] = 0.0; 
     matrix_factors[DAMPING] = 0.0;       
+
+    //get the memory
+    solderiv1_.Resize(rhsSize_);  
+    solderiv1_.Init();
+
+    solpred_.Resize(rhsSize_); 
+    solpred_.Init();
   }
 
 

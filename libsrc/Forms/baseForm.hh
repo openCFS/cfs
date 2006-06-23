@@ -6,6 +6,9 @@
 #include "Elements/basefe.hh"
 #include "Domain/surfElem.hh"
 #include "Materials/baseMaterial.hh"
+#include "Domain/entityList.hh"
+#include "Utils/mathParser.hh"
+
 
 namespace CoupledField
 {
@@ -16,55 +19,37 @@ namespace CoupledField
   public:
 
     //! Constructor
-    BaseForm(BaseFE * aptelem, BaseMaterial* matData, 
-	     SubTensorType subTensor = FULL );
-
-    //! Constructor
-    BaseForm(BaseMaterial* matData, SubTensorType subTensor = FULL);
-
-    //! Constructor
-    BaseForm(BaseFE * aptelem);
-
-    //! Constructor
-    BaseForm();
+    BaseForm(BaseMaterial* matData, SubTensorType subTensor = FULL,
+             bool coordUpdate = false );
 
     //! Deconstructor
     virtual ~BaseForm();
 
-    //! Virtual function, implemented in derived classes
-    virtual void CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double> & StiffMat);
+    //! Return the name of this (bi)linearform
+    const std::string& GetName() const { return name_;}
+
+    //! Return true if element vector/matrix depends on solution 
+    //! or its derivatives
+    bool IsSolDependent() { return isSolDependent_; }
+
+    //! Virtual function
+    virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
+                                    EntityIterator& ent1, 
+                                    EntityIterator& ent2 ){
+      
+      Error( "Not implemented here", __FILE__, __LINE__ );}
     
     //! Virtual function, implemented in derived classes
-    virtual void CalcComplexElementMatrix(Matrix<Double>& ptCoord,
-                                          Matrix<Complex> & StiffMat,
-                                          Double & beta, Double & omega);
+    virtual void CalcComplexElementMatrix( Matrix<Complex> & StiffMat,
+                                           EntityIterator& ent1, 
+                                           EntityIterator& ent2,
+                                           Double & beta, Double & omega) {
+      Error( "Not implemented here", __FILE__, __LINE__ );}
   
     /// Calculation of vector of right hand side 
-    virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result)
+    virtual void CalcElemVector( Vector<Double> & result,
+                                 EntityIterator& ent )
     {Error("CalcElemVector not implemented!",__FILE__,__LINE__);};
-
-    virtual void CalcElemVector4Dip(Matrix<Double>& ptCoord, 
-                                    const StdVector<UInt> & connecth, 
-                                    Vector<Double> & Result, 
-                                    const Vector<Double> gradN_x_P)
-    { Error(" CalcElemVector4Dip is not implemented for this class",__FILE__,__LINE__);};
-
-    /// Calculation of vector of right hand side given from quadrupole contribution
-    virtual void CalcElemVector4Quad(Matrix<Double>& ptCoord,
-                                     const StdVector<UInt> & connecth,
-                                     const Matrix<Double> & FlowData, 
-                                     Vector<Double> & Result)
-    { Error(" CalcElemVector4Quad is not implemented for this class",__FILE__,__LINE__);};
-
-    /// Extraction of element velocity values from total flowdata matrix to a matrix (connecth, dim)
-    virtual void GetQttiesOfElement(Matrix<Double>& elVec,
-                                    const Matrix<Double>& FlowData,
-                                    const StdVector<UInt>& connecth, 
-                                    UInt matrixRow)
-    { Error(" GetQttiesOfElement is not implemented for this class",__FILE__,__LINE__);};
-
-    //! Prints the bilinear form
-    virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
     //
     virtual void SetNonLinMethod(std::string atype) {;};
@@ -76,17 +61,8 @@ namespace CoupledField
     virtual void UnsetFracDamping() {;};
 
     //! needed for fractional damping model
-    virtual Boolean IsFracDamping()
+    virtual bool IsFracDamping()
     {return isFracDamping_;};
-
-    //! needed for fractional damping model
-    virtual void SetRaylDamping() 
-    { isRaylDamping_ = TRUE; };
-
-
-    //! needed for fractional damping model
-    virtual Boolean IsRaylDamping()
-    {return isRaylDamping_;};
 
     //! set additional multiplicative factor for matrix
     virtual void SetFactor(Double factor) {;};
@@ -94,21 +70,28 @@ namespace CoupledField
     //! set second multiplicative factor for matrix
     virtual void SetSecondFactor(Double factor) {;};
 
-    //! sets pointer to actual element
-    void SetElemPtr(BaseFE * elemPtr){ptelem = elemPtr;};
-
     //! sets pointer to actual material
     void SetMaterial( BaseMaterial* matPtr );
 
+    bool IsCoordUpdate() { return coordUpdate_; }
+    
     //! query pointer to actual material
     BaseMaterial* GetMaterial() {
       ENTER_FCN( "BaseForm::GetMaterial" );
       return ptMaterial;
     }
 
-    //! get base type of biliearform: STIFFNESS, DAMPING, MASS
-    virtual FEMatrixType GetBaseType() 
-    { return baseType_; };
+    //! Set solution class for non-linear integrators
+    void SetSolution( NodeStoreSol<Double>& sol ) {
+      sol_ = &sol; }
+
+    //! Set first time derivative of solution for non-linear integrators
+    void SetSolDeriv1( NodeStoreSol<Double>& solDeriv1 ) {
+      solDeriv1_ = &solDeriv1; }
+
+    //! Set second time derivative of solution for non-linear integrators
+    void SetSolDeriv2( NodeStoreSol<Double>& solDeriv2 ) {
+      solDeriv2_ = &solDeriv2; }
 
     //! sets actual element solution
     virtual void SetActElemSol(Matrix<Double>& disp)
@@ -142,70 +125,67 @@ namespace CoupledField
 
     //! set the integration point
     void SetIntPoint(Vector<Double> point)
-    { intPoint_ = point; isSetIntPoint_ = TRUE;};
-
-    //!
-    void SetDofZero(UInt posdof)
-    {dofzero_ = posdof; };
+    { intPoint_ = point; isSetIntPoint_ = true;};
 
     //!
     void SetMatDataType(DataType & pMatType)
     { matDataType_=pMatType; };
-
-    //!
-    void SetMaterialArray(Matrix<Double>* mat)
-    { materialArray_ = mat; };
 
     //! set softening type for forms
     void SetSofteningModel(std::string type) {
       softeningModel_ = type;
     }
 
-    //!
-    void SetSubdomain(UInt sd)
-    {actSD_ = sd; };
-
-    //!
-    void SetElemNr(UInt nr)
-    {actElemNr_ = nr; };
-
     //! set min/max of x,y,z coordinates form where PML starts
     virtual void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer) {;};
 
-    void SetFrequency(Double freq)
-    {frequency_ = freq;};
+  
+
+    
 
   protected:
+    
+    //! Get reference element and coordinates from element iterator
+    virtual void ExtractElemInfo( EntityIterator& it);
+    
+    //! Current entities of the base form
+    EntityIterator ent1_, ent2_;
 
     //! pointer to reference element
     BaseFE  * ptelem;   
+
+    //! flag indicating updated lagrangian formulation
+    bool coordUpdate_;
+
+    //! flag indicating of value of element matrix/vector depends on
+    //! its solution or its derivatives
+    bool isSolDependent_;
+
+    //! matrix with coordinates of current element
+    Matrix<Double> ptCoord_;
     
     //! pointer to material data
-    BaseMaterial* ptMaterial ;
+    BaseMaterial* ptMaterial;
 
     //! true for axisymmetric setup
-    Boolean isaxi_;
+    bool isaxi_;
 
     //! type of tensor (plabeStrain, ..)
     SubTensorType subTensorType_;
 
+    //! name of (bi)linearform
+    std::string name_;
+
     //
     Vector<Double> intPoint_;
     //
-    Boolean isSetIntPoint_;
+    bool isSetIntPoint_;
 
     DataType matDataType_;     //! default = realMaterialParamter, piezoMatType_ = imagMaterialParamter if we consider complex-valued material Paramter;
 
-    Boolean isFracDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor
-    Boolean isRaylDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor
-    UInt dofzero_;   //!< for multidof-handling, where one dof is zero (e.g. piezoelectric PDE)
+    bool isFracDamping_;   //!< if true Assemble::AssembleMatrices will retrieve an additional multiplicative factor
 
     FEMatrixType baseType_;  // base type: STIFFNESS, DAMPING, MASS
-
-    Matrix<Double>* materialArray_;
-
-    UInt actSD_;
-    UInt actElemNr_;
 
     // specifies model of softening
     std::string softeningModel_;
@@ -219,8 +199,20 @@ namespace CoupledField
     //minimal length of an edge within an element
     Double minEdgeLength_;
 
-    //! current frequency
-    Double frequency_;
+    //! Handle for MathParser object
+    MathParser::HandleType mHandle_;
+
+    //! Pointer to MathParser object
+    MathParser * mParser_;
+
+    //! solution vector
+    NodeStoreSol<Double>* sol_;
+
+    //! first derivative of solution
+    NodeStoreSol<Double>* solDeriv1_;
+
+    //! second derivative of solution
+    NodeStoreSol<Double>* solDeriv2_;
 
   private:
 
@@ -272,8 +264,11 @@ namespace CoupledField
 
   protected:
 
+    //! Get reference element and coordinates from element iterator
+    void ExtractElemInfo( EntityIterator& it);
+
     //! Current surface element
-    SurfElem * actElem_;
+    const SurfElem * actElem_;
 
     //! Normal pointing out of first volume element
     Vector<Double> normal_;

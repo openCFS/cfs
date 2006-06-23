@@ -3,8 +3,8 @@
 #include <string>
 #include <cmath>
 
-#include "Forms/forms_header.hh"
 #include "newmarkFracDamp.hh"
+#include "Forms/massInt.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "basePDE.hh"
@@ -14,14 +14,13 @@
 namespace CoupledField {
 
   NewmarkFracDamp::NewmarkFracDamp( BaseSystem * algebraicsystem,
-                                    UInt rhsSize, 
                                     const PdeIdType apdeId,
-                                    NodeEQN * ptEQN,
+                                    shared_ptr<EqnMap> eqnMap,
                                     Grid * aptgrid,
                                     StdPDE * aptStdPDE,
                                     StdVector<RegionIdType> asubdomainList,
                                     std::map<RegionIdType,DampingType> adampingList) 
-    :TimeStepping( algebraicsystem, rhsSize ){
+    :TimeStepping( algebraicsystem ){
 	
     ENTER_FCN( "NewmarkFracDamp::NewmarkFracDamp" );
   
@@ -29,24 +28,24 @@ namespace CoupledField {
     pdeId_       = apdeId;
     ptgrid_      = aptgrid;
     ptStdPDE_    = aptStdPDE;
-    ptEQN_       = ptEQN;
+    eqnMap_      = eqnMap;
 	
     subdoms_     = asubdomainList;
     dampingList_ = adampingList;
     fracMemory_  = aptStdPDE->GetFracMemory();
 
-    Boolean found = FALSE;
+    bool found = false;
     std::map<RegionIdType,DampingType>::iterator it;
     for ( it = dampingList_.begin(); it != dampingList_.end(); it++ ) {
       
       if ( (*it).second == FRACTIONAL_GL ||
            (*it).second == FRACTIONAL_BLANK ) {
-        found = TRUE;
+        found = true;
         break;
       }
     }
     
-    if ( found == TRUE ) {
+    if ( found == true ) {
       inType_ = NOTUSED;
     } else {
       inType_ = LIN1PT;
@@ -64,6 +63,29 @@ namespace CoupledField {
     if(analysis != "paramIdent")
       Info->PrintF( pdename_, "NewmarkFracDamp: Using defaults for alpha, \
 beta and gamma!\n" );
+
+ 
+  }
+
+  NewmarkFracDamp::~NewmarkFracDamp() {
+
+    ENTER_FCN( "NewmarkFracDamp::~NewmarkFracDamp" );
+  }
+
+  void NewmarkFracDamp::Init( std::map<FEMatrixType,Double> & matrix_factors,
+                              Double dt, UInt rhsSize ) {
+	
+    ENTER_FCN( "NewmarkFracDamp::Init" );
+
+    rhsSize_ = rhsSize;
+    dt_ = dt;
+    CalcParameters(dt_);
+
+    matrix_factors[STIFFNESS] = 1.0;
+    matrix_factors[DAMPING] = 1.0*a4_; // needed for thermoviscous damping
+    matrix_factors[CONVECTION] = 0.0;
+    matrix_factors[MASS] = 1.0*a2_;
+
 
     // get the memory
     solderiv1_.Resize(rhsSize_);  
@@ -90,25 +112,6 @@ beta and gamma!\n" );
     }
   }
 
-  NewmarkFracDamp::~NewmarkFracDamp() {
-
-    ENTER_FCN( "NewmarkFracDamp::~NewmarkFracDamp" );
-  }
-
-  void NewmarkFracDamp::Init( std::map<FEMatrixType,Double> & matrix_factors,
-                              Double dt ) {
-	
-    ENTER_FCN( "NewmarkFracDamp::Init" );
-
-    dt_ = dt;
-    CalcParameters(dt_);
-
-    matrix_factors[STIFFNESS] = 1.0;
-    matrix_factors[DAMPING] = 1.0*a4_; // needed for thermoviscous damping
-    matrix_factors[CONVECTION] = 0.0;
-    matrix_factors[MASS] = 1.0*a2_;
-  }
-
 
   void NewmarkFracDamp::Predictor(Vector<Double>& solold) {
 
@@ -123,7 +126,7 @@ beta and gamma!\n" );
     // determine number of past values stored in solMemory_
     numTrueValues_ = 0;
     for ( UInt i=0; i < numValues_; i++ ) {
-      if ( solMemoryVal_[i] == TRUEVAL )
+      if ( solMemoryVal_[i] == trueVAL )
         numTrueValues_++;
     }
 
@@ -144,7 +147,6 @@ beta and gamma!\n" );
 
     // damping part
     Matrix<Double>  elemmat,ptCoord;
-    BaseFE          * ptElem;
     StdVector<UInt> connecth;
     Vector<Double>  rhsAssemble, rhsvec, elemsol;
     Double          density, compressibility, c0, alpha0, y, factor;
@@ -191,36 +193,34 @@ beta and gamma!\n" );
           factor *= std::exp(-(y - 1.0)*std::log(dt_)) 
             * std::exp(-gammaln(1.0- (y - 1.0)) );
 
-          BlankWeights(numValues_, y, TRUE);
+          BlankWeights(numValues_, y, true);
         }
         else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT ) {
           factor *= std::exp(-(y - 1.0)*std::log(dt_)) 
             * std::exp(-gammaln(1.0- (y - 1.0)) );
 
-          BlankWeights(numValues_, y, TRUE);
+          BlankWeights(numValues_, y, true);
           CompressWeights();
         }
 
-        // get elements belonging to actual subdomain   
-        StdVector<Elem*> elemssd;
-        ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
+        ElemList actSDList(ptgrid_ );
+        actSDList.SetRegion( subdoms_[actSD] );
         
-        for (UInt actEl=0; actEl < elemssd.GetSize(); actEl++) {
-          // pointer to element
-          ptElem=elemssd[actEl]->ptElem;
-          BaseForm * bilinear_mass = new MassInt(ptElem, factor, isaxi_);
+        EntityIterator it = actSDList.GetIterator();
+
+        BaseForm * bilinear_mass = new MassInt(factor, isaxi_);
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          connecth=it.GetElem()->connect;
           
-          connecth=elemssd[actEl]->connect;
-          ptgrid_->GetElemNodesCoord(ptCoord,connecth);
-          
-          bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+          bilinear_mass->CalcElementMatrix(elemmat,it,it);
           
           // map connect to PDE node numbers
           StdVector<Integer> connect_PDE;
-          ptEQN_->Node2EQN(connecth, connect_PDE);
+          eqnMap_->GetNodeEqn(connecth, connect_PDE);
 
 #ifdef DEBUG
-          UInt elemNum = elemssd[actEl]->elemNum;
+          UInt elemNum = it.GetElem()->elemNum;
 		  
           // output matrix with which BDF is computed
           (*debug) << "Damping   matrix (fractional Damping) of Element " 
@@ -236,6 +236,7 @@ beta and gamma!\n" );
             GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
             rhsvec += elemsol * coeff_[i];
           }
+
           rhsAssemble = elemmat * rhsvec;
 
 #ifdef DEBUG
@@ -247,9 +248,8 @@ beta and gamma!\n" );
           algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, 
                                  connect_PDE.GetPointer(),
                                  connect_PDE.GetSize());
-          
-          delete bilinear_mass;
         }
+        delete bilinear_mass;
       }
     }
   }
@@ -283,8 +283,8 @@ beta and gamma!\n" );
       solMemory_[0] = solnew - solpred_;
 
       if (actStep_ <= fracMemory_)
-        solMemoryVal_.insert( solMemoryVal_.begin(),TRUEVAL);
-      // when solMemoryVal_ reaches size fracMemory_ , all entries are TRUEVAL
+        solMemoryVal_.insert( solMemoryVal_.begin(),trueVAL);
+      // when solMemoryVal_ reaches size fracMemory_ , all entries are trueVAL
       //  and stay the same for all time steps
 
     }
@@ -295,14 +295,14 @@ beta and gamma!\n" );
         for (UInt i=fracMemory_-1; i>=1; i--)
           solMemory_[i] = solMemory_[i-1];
 
-        solMemoryVal_.insert( solMemoryVal_.begin(),TRUEVAL);
+        solMemoryVal_.insert( solMemoryVal_.begin(),trueVAL);
       }
       else if ( (actStep_ > fracMemory_) 
                 && (actStep_ < 2*fracMemory_) ) {
         for (UInt i=(2*fracMemory_-actStep_-1); i>=1; i--)
           solMemory_[i] = solMemory_[i-1];
 		
-        solMemoryVal_[0] = TRUEVAL;
+        solMemoryVal_[0] = trueVAL;
         solMemoryVal_.insert( (solMemoryVal_.begin()
                                + 2*fracMemory_-actStep_),LIN1PT);
       }
@@ -313,7 +313,7 @@ beta and gamma!\n" );
 
           solMemoryVal_.pop_back();
           solMemoryVal_.pop_back();
-          solMemoryVal_.insert(solMemoryVal_.begin(), TRUEVAL);
+          solMemoryVal_.insert(solMemoryVal_.begin(), trueVAL);
         }
         else if ( (actStep_%2)==1 )
           solMemoryVal_.insert( (solMemoryVal_.begin()+1), LIN1PT);
@@ -345,7 +345,6 @@ beta and gamma!\n" );
                     const StdVector<Integer> & connectPDE ) {
 
     ENTER_FCN( "NewmarkFracDamp::GetElemSolution" );
-   
     elemsol.Resize(connectPDE.GetSize());
     for (UInt eqn=0; eqn<connectPDE.GetSize(); eqn++) 
       elemsol[eqn] = sol[connectPDE[eqn]-1];
@@ -365,7 +364,7 @@ beta and gamma!\n" );
   }
 
 
-  void NewmarkFracDamp::BlankWeights(UInt memory, Double y, Boolean full) {
+  void NewmarkFracDamp::BlankWeights(UInt memory, Double y, bool full) {
 
     ENTER_FCN( "NewmarkFracDamp::BlankWeights" );
  
@@ -412,7 +411,7 @@ beta and gamma!\n" );
     UInt noInt = 0;  // counts number of interpolated values
     for ( UInt i=1; i < coeff_.size(); i++) {
 
-      if ( solMemoryVal_[i-1] == TRUEVAL ) {
+      if ( solMemoryVal_[i-1] == trueVAL ) {
         newCoeff[i - noInt] += coeff_[i];
       }
       else if (solMemoryVal_[i-1] == LIN1PT ) {
@@ -444,7 +443,7 @@ beta and gamma!\n" );
     for (UInt i=0; i<solMemoryVal_.size(); i++) {
       if ( solMemoryVal_[i] == NOTUSED )
         msg += " N";
-      else if ( solMemoryVal_[i] == TRUEVAL )
+      else if ( solMemoryVal_[i] == trueVAL )
         msg += " T";
       else if ( solMemoryVal_[i] ==  LIN1PT )
         msg += " L";

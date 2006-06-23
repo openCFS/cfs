@@ -6,20 +6,12 @@
 namespace CoupledField
 {
 
-  LaplaceXYZInt::LaplaceXYZInt(BaseFE * aptelem, Double aVal, Boolean axi)
-    : BaseForm(aptelem),laplVal_ (aVal)
-  {
-    ENTER_FCN( "LaplaceXYZInt::LaplaceXYZInt");
-
-    Error("This LaplaceXYZInt-Constructor is no longer allowed",__FILE__,__LINE__);
-  }
-
-
-  LaplaceXYZInt::LaplaceXYZInt(Double aVal, const UInt nrDofsPerNode, Boolean axi)
-    : BaseForm(),laplVal_ (aVal),nrDofsPerNode_(nrDofsPerNode)
+  LaplaceXYZInt::LaplaceXYZInt(Double aVal, const UInt nrDofsPerNode, bool axi)
+    : BaseForm( NULL ),nrDofsPerNode_(nrDofsPerNode),laplVal_ (aVal)
   {
     ENTER_FCN( "LaplaceXYZInt::LaplaceXYZInt" );
-
+    
+    name_ = "LaplaceXYZInt";
     
     isaxi_ = axi;
   }
@@ -33,10 +25,15 @@ namespace CoupledField
 
 
 
-  void LaplaceXYZInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
+  void LaplaceXYZInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                         EntityIterator& ent1, 
+                                         EntityIterator& ent2 )
   {
     ENTER_FCN( "LaplaceXYZInt::CalcElementMatrix" );
-  
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+    
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -51,7 +48,7 @@ namespace CoupledField
 
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*nrDofsPerNode_); elemMat.Init();
+    elemMat.Resize(nrNodes*nrDofsPerNode_,true); elemMat.Init();
 
     //(Kx, Ky, Kz)^T
     elemMatXYZ.Resize(nrNodes*nrDofsPerNode_,nrNodes); elemMatXYZ.Init();
@@ -60,11 +57,11 @@ namespace CoupledField
       {
         jacDet = 0;
         
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
       
         if (isaxi_) {
 	  ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-	  CoordAtIP = ptCoord * ShpFncAtIp;
+	  CoordAtIP = ptCoord_ * ShpFncAtIp;
 	  factor = 2 * PI * intWeights[actIntPt-1] * jacDet * laplVal_ * CoordAtIP[0];
 	}
         else {
@@ -93,14 +90,6 @@ namespace CoupledField
 
     //    std::cout << "ElemMatLaplace:\n" << elemMatXYZ << std::endl;
     //    std::cout << "ElemMatLaplaceXYZ:\n" << elemMat << std::endl;
-  }
-
-
-
-  void LaplaceXYZInt::Print(std::ostream * out, const Matrix<Double> Result) const
-  {
-    ENTER_FCN( "LaplaceXYZInt::Print"); 
-    (*out)<< "LaplaceXYZ stiffness matrix:" << std::endl << Result;
   }
 
 } // end namespace CoupledField

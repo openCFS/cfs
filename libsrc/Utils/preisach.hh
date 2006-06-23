@@ -12,7 +12,7 @@ namespace CoupledField {
   {
   public:
     Preisach(Integer numElem, Double xSat, Double ysat, Double xRem,
-             Boolean isVirgin);
+             bool isVirgin);
 
     //!
     virtual ~Preisach();
@@ -43,7 +43,7 @@ namespace CoupledField {
     Double YSaturated_;
     Double YRemnant_;
 
-    Boolean isVirgin_;
+    bool isVirgin_;
     Integer actElem_;
 
     Vector<Double> lastVal_;

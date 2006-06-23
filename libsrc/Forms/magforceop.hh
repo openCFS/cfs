@@ -29,9 +29,9 @@ namespace CoupledField
     //!                           potential for all nodes of domain
     MagLorentzForceOp(Grid * ptGrid, 
                       StdPDE * ptPDE,
-                      NodeEQN * ptEQN,
+                      shared_ptr<EqnMap> eqnMap,
                       NodeStoreSol<Double> & magPotential,
-                      Boolean isaxi);
+                      bool isaxi, bool coordUpdate = false);
 
     //! Destructor
     virtual ~MagLorentzForceOp();
@@ -79,11 +79,12 @@ namespace CoupledField
     //!                           vector potential for all nodes of domain
     MagForceOp(Grid * ptGrid, 
                StdPDE * ptPDE,
-               NodeEQN * ptEQN,
+               shared_ptr<EqnMap> eqnMap,
                NodeStoreSol<Double> & sol,
                UInt dim,
                std::map<RegionIdType, BaseMaterial*>& materials,
-               Boolean isaxi);
+               bool isaxi,
+               bool coordUpdate = false );
 
     //! Destructor
     virtual ~MagForceOp();

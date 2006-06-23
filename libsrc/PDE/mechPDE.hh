@@ -10,6 +10,7 @@ namespace CoupledField
 
   // forward class declarations
   class MechVolForceInt;
+  class BaseForm;
 
   //! Class for mechanic equation (no adaptivity)
   class MechPDE: public SinglePDE
@@ -46,7 +47,7 @@ namespace CoupledField
     /// returns a stiffness integrator appropriate to the actual problem (e.g.3D)
     BaseForm * GetStiffIntegrator(BaseMaterial* actSDMat,
                                   RegionIdType regionId,
-                                  Boolean reducedInt=FALSE);
+                                  bool reducedInt=false);
   
     // ======================================================
     // COUPLING SECTION
@@ -59,7 +60,7 @@ namespace CoupledField
     virtual void CalcOutputCoupling();
   
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(SolutionType output);
+    virtual bool HasOutput(SolutionType output);
 
     /// setup source term
     void SetupRHS( );
@@ -163,7 +164,7 @@ namespace CoupledField
 
     /// does a line search and returns the optimal residual norm
     Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
-                      Double& etaLineSearch, Boolean trans=FALSE);
+                      Double& etaLineSearch, bool trans=false);
 
 
     /// Write nonlin iteration norms to the cla-file
@@ -186,10 +187,10 @@ namespace CoupledField
     public:
 
       //! Constructor
-      RegionLoad( UInt dim, Boolean isaxi );
+      RegionLoad( UInt dim, bool isaxi );
 
       //! Print region definition to info-file
-      void Print( Boolean onlyHeader, std::string pdeName );
+      void Print( bool onlyHeader, std::string pdeName );
       
       //! Returns the RHS-integrator
       MechVolForceInt *  GetIntegrator();
@@ -220,13 +221,16 @@ namespace CoupledField
       Double volume;
 
       //! Flag for axisymmetry
-      Boolean isAxi_;
+      bool isAxi_;
       //@}
 
     };
     
     //! List of region loads
     std::map<RegionIdType, RegionLoad> regionLoads_;
+
+    //! Read information about springs and define related integrators
+    void DefineSprings();
 
     /// stores an algsys_ vector into a StdVector and returns that L2-norm
     void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
@@ -244,14 +248,26 @@ namespace CoupledField
     UInt stressDim_;
     
     //! Flag indicating the use of fractional damping
-    //Boolean fracDamping_;
+    //bool fracDamping_;
+
+    //! surface of pressure loads
+    StdVector<RegionIdType> pressSurf_;  
+
+    //! values of the pressure loads
+    StdVector<Double>      pressVals_; 
+
+    //! phase of the pressure loads  
+    StdVector<Double>      pressPhase_; 
+
+    //! dynamics of pressure loads
+    StdVector<std::string> pressFnc_;
+
 
     //!
     StdVector<RegionIdType> preStressDomain_;
     StdVector<Double> preStressValX_; //! orientation in x
     StdVector<Double> preStressValY_; //! orientation in y
     StdVector<Double> preStressValZ_; //! orientation in z
-
 
     /// value of prestress
     Double preStressVal_;

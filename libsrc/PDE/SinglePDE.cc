@@ -17,17 +17,11 @@
 
 // header for Materialhandling
 #include "DataInOut/MaterialHandler.hh"
-#ifdef USE_DATABASE
-#include "DataInOut/LoadMaterialDataDatabase.hh"
-#endif
 
-// header for equation numbering
-#include "blocknodeEQN.hh"
-#include "scalarblockEQN.hh"
-#include "scalarnodeEQN.hh"
-
-// header for Solvestep
+// header for Solvestep and assemble
 #include "Driver/stdSolveStep.hh"
+#include "Driver/assemble.hh"
+#include "Driver/basedriver.hh"
 
 // header for iterative coupling
 #include "CoupledPDE/pdecoupling.hh"
@@ -47,7 +41,7 @@ namespace CoupledField {
   
     ENTER_FCN( "BasePDE::BasePDE" );
   
-    nonLin_ = FALSE;
+    nonLin_ = false;
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
   
@@ -57,52 +51,38 @@ namespace CoupledField {
     ptTimeFunc_ = aptTimeFunc;
     assemble_   = NULL;
     algsys_     = NULL;
-    eqnData_    = NULL;
 
     // =====================================================================
     // set analysis parameters
     // =====================================================================
     complexFormat_ = AMPLITUDE_PHASE; // or REAL_IMAG
     couplingBCsCounter_ = 0;
-    numDirichletBCs_ = 0;
-    updateCouplingBCs_ = FALSE;
+    updateCouplingBCs_ = false;
     dim_ = ptgrid_->GetDim();
-    geoUpdate_ = FALSE;
     iterCoupledCounter_ = 0;
-    effectiveMass_ = FALSE;
-
-    // =====================================================================
-    // set solver parameters
-    // =====================================================================
-    eps_         = 1.0e-8;
-    dampiter_    = 1.0;
-    maxnumiter_  = 500;
-    coarsealpha_ = 0.1; // in acousticPDE.cc set to 0.01
-  
-    // savederiv1_ = FALSE;
-    // savederiv2_ = FALSE;
+    effectiveMass_ = false;
 
     // =====================================================================
     // set postprocessing parameters
     // =====================================================================
-    hasOutput_      = FALSE;
-    saveSol_        = FALSE;
-    saveDeriv1_     = FALSE;
-    saveDeriv2_     = FALSE;
-    saveSolHist_    = FALSE;
-    saveDeriv1Hist_ = FALSE;
-    saveDeriv2Hist_ = FALSE;
+    hasOutput_      = false;
+    saveSol_        = false;
+    saveDeriv1_     = false;
+    saveDeriv2_     = false;
+    saveSolHist_    = false;
+    saveDeriv1Hist_ = false;
+    saveDeriv2Hist_ = false;
 
 
     // =====================================================================
     // set miscellaneous parameters
     // =====================================================================
     pdeId_ = NO_PDE_ID;
-    isDirectCoupled_  = FALSE;
-    m_bReadSpecialBCs = FALSE;
+    isDirectCoupled_  = false;
+    numCouplingBcs_ = 0;
 
     // Obtain mathParser handler
-    mHandler_ = domain->GetMathParser()->GetNewHandler();
+    mHandle_ = domain->GetMathParser()->GetNewHandle();
 
     // Register functions for scripting
     RegisterFunctions();
@@ -118,16 +98,16 @@ namespace CoupledField {
 
     // Delete algebraic system only if
     // PDE is not direct coupled
-    if ( isDirectCoupled_ == FALSE ) {
+    if ( isDirectCoupled_ == false ) {
       delete algsys_;
       delete solveStep_;
       delete TS_alg_;
+      delete assemble_;
     }
 
-    delete assemble_;
+
     delete sol_;
     delete solVec_;
-    delete eqnData_;
 
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -184,7 +164,7 @@ namespace CoupledField {
 
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
-    if ( isDirectCoupled_ == FALSE ) {
+    if ( isDirectCoupled_ == false ) {
       algsys_ = new StandardSystem();
     }
 
@@ -219,136 +199,45 @@ namespace CoupledField {
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
-    std::string stepString;
-    std::string analysis;
 
-    params->Get( "type", analysis, "analysis" );
-
-    AnalysisType analysisHelp;
-    StdVector<std::string> tags, analysisTypes, pdenames;
-    String2Enum(analysis,analysisHelp);
+    analysistype_ = domain->GetDriver()->GetAnalysisType( pdename_ );
 
     // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
     //       and must be re-designed
-    if ( isAlwaysStatic_ == TRUE &&
-         analysisHelp == TRANSIENT ) {
-      analysisHelp = STATIC;
-    }
-
-    if ( analysisHelp == STATIC ) {
-      isComplex_ = FALSE;
-      assemble_ = new StaticAssemble( algsys_, ptgrid_, bcSequenceTag_ );
+    if ( isAlwaysStatic_ == true &&
+         analysistype_ == TRANSIENT ) {
       analysistype_ = STATIC;
     }
 
-    else if ( analysisHelp == TRANSIENT ) {
-      isComplex_ = FALSE;
-      assemble_ = new TransientAssemble( algsys_, ptgrid_, bcSequenceTag_ );
-      analysistype_ = TRANSIENT;
-    }
+    switch( analysistype_ ) {
+    case STATIC:
+      isComplex_ = false;
+      break;
 
-    else if ( analysisHelp == EIGENFREQUENCY ) {
-      isComplex_ = FALSE;
-      assemble_ = new TransientAssemble( algsys_, ptgrid_, bcSequenceTag_ );
-      analysistype_ = EIGENFREQUENCY;
-    }
-
-    else if ( analysisHelp == TRANSIENT4SLICE ) {
-      isComplex_ = FALSE;
-      assemble_ = new TransientAssemble( algsys_, ptgrid_, bcSequenceTag_ );
-      analysistype_ = TRANSIENT;
-    }
-
-    else if ( analysisHelp == HARMONIC ) {
-      isComplex_ = TRUE;
-      assemble_ = new HarmonicAssemble( algsys_, ptgrid_, bcSequenceTag_ );
-      analysistype_ = HARMONIC;
-    }
-
-    else if (analysisHelp == MULTIHARMONIC ){
-      isComplex_ = TRUE;
-      assemble_ = new MHassemble(algsys_,ptgrid_, bcSequenceTag_ );
-      analysistype_ = MULTIHARMONIC;
-    }
-
-    else if ( analysisHelp == TRANSIENTHARMONIC ) {
-
-      keyVec = "transientHarmonic", "analysisPart", "type";
-      attrVec = "", "pdeName";
-      valVec = "", pdename_;
-
-      params->Get(keyVec, attrVec, valVec, analysis);
-      String2Enum(analysis, analysistype_);
-
-      if ( analysistype_ == TRANSIENT ) {
-        Info->PrintF( pdename_ , "Transient Assembling of %sPDE \n", 
-                      pdename_.c_str() );
-
-        isComplex_ = FALSE;
-        assemble_ = new TransientAssemble( algsys_, ptgrid_, bcSequenceTag_ );
-      }
-      else if ( analysistype_ == HARMONIC ) {
-        Info->PrintF( pdename_ , "Harmonic Assembling of %sPDE \n",
-                      pdename_.c_str());
-
-        isComplex_ = TRUE;
-        assemble_ = new HarmonicAssemble( algsys_, ptgrid_, bcSequenceTag_ );
-      }
-    }
-
-    // Better see environment.cc to understand the following assignments...
-    else if ( analysis == "paramIdent" ) {
-      isComplex_ = TRUE;
-      assemble_ = new HarmonicAssemble( algsys_, ptgrid_, bcSequenceTag_ );
-      analysistype_ = HARMONIC;
-    }
-
-    else if ( analysisHelp == MULTI_SEQUENCE ) {
-
-      stepString = GenStr(bcSequenceIndex_);
-      attrVec = "", "index", "type";
-      valVec = "", stepString, pdename_;
-
-      keyVec = "multiSequence", "step", "pde", "analysis";
-      params->Get(keyVec, attrVec, valVec, analysis);
-
-      String2Enum(analysis, analysistype_);
-
-      if ( isAlwaysStatic_ == TRUE && analysistype_ == TRANSIENT ) {
-        analysistype_ = STATIC;
-      }
+    case TRANSIENT:
+      isComplex_ = false;
+      break;
       
-      if ( analysistype_ == STATIC ) {
-        assemble_ = new StaticAssemble(algsys_, ptgrid_, bcSequenceTag_ );
-        isComplex_ = FALSE;
-      }
-      else if ( analysistype_ == TRANSIENT ) {
-        isComplex_ = FALSE;
-        assemble_ = new TransientAssemble( algsys_, ptgrid_, bcSequenceTag_ );
-      }
-      else if ( analysistype_ == HARMONIC ) {
-        isComplex_ = TRUE;
-        assemble_ = new HarmonicAssemble( algsys_, ptgrid_, bcSequenceTag_ );
-      }
-      else if ( analysistype_ == MULTIHARMONIC ) {
-        isComplex_ = TRUE;
-        assemble_ = new MHassemble( algsys_, ptgrid_, bcSequenceTag_ );
-      }
-      else {
-        (*error) << "SinglePDE::Init: AnalysisType '" << analysis
-                 << "' is not supported";
-        Error( __FILE__, __LINE__ );
-      }
-    }
-    else {
-      (*error) << "SinglePDE::Init: AnalysisType '" << analysisHelp
+    case HARMONIC:
+      isComplex_ = true;
+      break;
+      
+    case EIGENFREQUENCY:
+      isComplex_ = false;
+      break;
+      
+    default:
+      
+      (*error) << "SinglePDE::Init: AnalysisType '" << analysistype_
                << "' is not supported";
       Error( __FILE__, __LINE__ );
     }
-    
-    // Give pde Id to assemble
-    assemble_->SetPDEId ( pdeId_ );
-    
+
+    // Create new assemble class with according analysistype
+    if( isDirectCoupled_ == false ) {
+      assemble_ = new Assemble( algsys_, analysistype_, ptTimeFunc_ );
+    }
+        
     // Determine if solution is of complex type or not
     if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
       sol_ = new NodeStoreSol<Complex>;
@@ -374,19 +263,6 @@ namespace CoupledField {
     // =====================================================================
     ReadDampingInformation( );
       
-    // =====================================================================
-    // read in boundary conditions
-    // =====================================================================
-    ReadBCs();
-    ReadSpecialBCs();
-    //
-#ifdef TCL_INTERFACE
-    // Trigger event for scripting 
-    StdVector<std::string> args;
-    args.Push_back( pdename_ );
-    messenger->TriggerEvent( CFSMessenger::CFS_ReadBCs, args );
-#endif   
-    
 
     // =====================================================================
     // read in NonLinearities
@@ -394,11 +270,16 @@ namespace CoupledField {
     InitNonLin();
 
     // =====================================================================
+    // read in material data
+    // =====================================================================
+    ReadMaterialData();
+
+    // =====================================================================
     // initialize EQN-object and Storeresults class
     // =====================================================================
 
     // Name of linear system depends of coupling type
-    if ( isDirectCoupled_ == FALSE ) {
+    if ( isDirectCoupled_ == false ) {
       valVec  = "", pdename_, "";
     }
     else {
@@ -422,72 +303,86 @@ namespace CoupledField {
       Info->PrintF( pdename_, "Treating IDBCs using '%s' approach\n",
                     aux.c_str() );
     }
+    
+    // Create a new equation map
+    eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, !usePenalty ));
 
-    // Assemble a system matrix with scalar complex or double entries
-    if ( typeOfNumbering == "scalar" ) {
-      if ( dofspernode_ == 1 ) {
-        eqnData_ = new ScalarNodeEQN( ptgrid_, allIDs, dofspernode_,
-                                      !usePenalty );
-      }
-      else {
-        eqnData_ = new ScalarBlockEQN( ptgrid_, allIDs, dofspernode_,
-                                       !usePenalty );
-      }
-      Info->PrintF( pdename_, "Using scalar equation numbering\n" );
+
+    // =====================================================================
+    // read in boundary conditions
+    // =====================================================================
+    ReadBCs();
+    ReadSpecialBCs();
+    //
+#ifdef TCL_INTERFACE
+    // Trigger event for scripting 
+    StdVector<std::string> args;
+    args.Push_back( pdename_ );
+    messenger->TriggerEvent( CFSMessenger::CFS_ReadBCs, args );
+#endif   
+
+    // =====================================================================
+    // Create time stepping algorithm
+    // =====================================================================
+    if ( analysistype_ == TRANSIENT && 
+         isDirectCoupled_ == false) {
+      SETPROFILE("Before Definition of Timestepping");
+      InitTimeStepping();
+      SETPROFILE("After Definition of TimeStepping");
     }
 
-    // Treat all dofs of a node together and assemble a system matrix with
-    // small square matrices as entries
-    else if ( typeOfNumbering == "block" ) {
-      if ( dofspernode_ == 1 ) {
-        (*warning) << "dofspernode = " << dofspernode_
-                   << "so 'block' numbering identical to 'scalar'";
-        Warning( __FILE__, __LINE__ );
-        eqnData_ = new ScalarNodeEQN( ptgrid_, allIDs, dofspernode_,
-                                      usePenalty );
-        Info->PrintF( pdename_, "Using scalar equation numbering\n" );
-      }
-      else {
-        eqnData_ = new BlockNodeEQN( ptgrid_, allIDs, dofspernode_,
-                                     usePenalty );
-        Info->PrintF( pdename_, "Using block equation numbering\n" );
-      }
-    }
+    // =====================================================================
+    // define the integrators for PDE and initialize eqn object
+    // =====================================================================
 
-    // Build in Dirichlet boundary conditions and compute the mapping
-    // which relates nodes/dofs to equation numbers
-    eqnData_->SetHomoDirichletBCs ( bcs_hd_, homDirichDof_  );
-    eqnData_->SetInhomDirichletBCs( bcs_id_, inhomDirichDof_);
-    eqnData_->SetConstraints( constraints_ );
-   
-    SETPROFILE("Before Equation Mapping");
-    eqnData_->CalcMapping();
-    SETPROFILE("After Equation Mapping");
+    // Call initialization of (bi)linear integrators
+    DefineIntegrators();
 
-    // Report results to logfile
-    Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
-                  eqnData_->GetNumEQNs() );
-
+    // Print information about defined integrators
 #ifdef DEBUG
-    eqnData_->Print(*debug);
+    if( !isDirectCoupled_ ) {
+      assemble_->PrintInfo( *debug );
+    }
 #endif
 
-    numPDENodes_ = eqnData_->GetNumLocalNodes();
-    numElems_ = eqnData_->GetNumLocalElems();
+    // Finish equation mapping
+    eqnMap_->SetHomoDirichletBCs ( hdBcs_ );
+    eqnMap_->SetInhomDirichletBCs( idBcs_ );
+    eqnMap_->SetConstraints( constraints_ );
+    eqnMap_->Finalize();
+    
+     // Report results to logfile
+    Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
+                  eqnMap_->GetNumEqns() );
+
+#ifdef DEBUG
+    eqnMap_->Print(*debug);
+#endif
+    numPDENodes_ = eqnMap_->GetNumLocalNodes();
+    numElems_ = eqnMap_->GetNumLocalElems();
 
     // Initialize Storesolution class
-    sol_->SetNumSolutions(solTypes_.GetSize());
+    sol_->SetNumSolutions(results_.GetSize());
     sol_->SetNumNodes(numPDENodes_);
-    for (UInt iSol=0; iSol<solTypes_.GetSize(); iSol++) {
-      sol_->SetSolutionType(solTypes_[iSol],iSol);
-      sol_->SetNumDofs(solDofs_[iSol], solTypes_[iSol]);
+    for (UInt iSol=0; iSol<results_.GetSize(); iSol++) {
+      sol_->SetSolutionType(results_[iSol]->resultType,iSol);
+      sol_->SetNumDofs( results_[iSol]->dofNames.GetSize(), 
+                        results_[iSol]->resultType );
     }
-    sol_->SetPtrEQNData(eqnData_, ptgrid_);
+
+    // Note: this is only a temporary solution
+    sol_->SetPtrEQNData(eqnMap_.get(), ptgrid_);
+    sol_->SetRegions( subdoms_ );
     sol_->Init(); 
     
 
     SETPROFILE("Before Resizing StoreSol");
-    solVec_->Resize( eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN() );
+    solVec_->Resize( eqnMap_->GetNumEqns() );
+    if( isComplex_ ) {
+      solVec_->Init( Complex(0.0,0.0) );
+    } else {
+      solVec_->Init( 0.0 );
+    }
     SETPROFILE("After Resizing StoreSol");
     if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
       sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
@@ -498,24 +393,6 @@ namespace CoupledField {
 
     }
     
-    // =====================================================================
-    // initialize assemble object
-    // =====================================================================
-    assemble_->SetPtr2EQNData(eqnData_); 
-    assemble_->SetPtr2TimeFnc(ptTimeFunc_);
-    assemble_->SetGeneralParams( pdename_, dofspernode_, 
-                                 subdoms_, surfdoms_ );
-    assemble_->SetPtr2Sol(sol_);
-
-    // =====================================================================
-    // read in material data
-    // =====================================================================
-    ReadMaterialData();
-
-    // =====================================================================
-    // define the integrators for PDE
-    // =====================================================================
-    DefineIntegrators();
 
     // =====================================================================
     // define which solution types have to be saved
@@ -524,7 +401,7 @@ namespace CoupledField {
 
 #ifndef MpCCI
     // check, if any output is calculated at all
-    if ( hasOutput_ == FALSE ) {
+    if ( hasOutput_ == false ) {
       (*warning) << "There was no output specified at all for PDE '"
                  << pdename_
                  << "' Please check your .xml-file, if this is really what "
@@ -533,20 +410,15 @@ namespace CoupledField {
     }
 #endif
 
-    // =====================================================================
-    // Create time stepping algorithm
-    // =====================================================================
-    if ( analysistype_ == TRANSIENT && 
-         isDirectCoupled_ == FALSE) {
-      SETPROFILE("Before Definition of Timestepping");
-      InitTimeStepping();
-      SETPROFILE("After Definition of TimeStepping");
-    }
+
+    // Set information at sol_ object
+    sol_->SetResult( results_[0] );
+
 
     PreparePDE4Computation();
 
     //! Define step solution driver
-    if ( isDirectCoupled_ == FALSE ) {
+    if ( isDirectCoupled_ == false ) {
       DefineSolveStep();
     }
 
@@ -588,59 +460,21 @@ namespace CoupledField {
     
     ENTER_FCN( "SinglePDE::WriteGeneralPDEdefines" );
     
-
-    // Boundary condition section
-    for (UInt i=0; i< bcs_hd_.GetSize(); i++) {
-      UInt dof;
-      std::string doftype = bcs_hd_[i];
-      if (dofspernode_ > 1) 
-        dof = domain->GetCoordSystem()->GetVecComponent(homDirichDof_[i]);
-      else
-        dof = 1;
-      
-      Info->WriteHomDirBC(pdename_, bcs_hd_[i], dof);      
-    }
-    for (UInt i=0; i< bcs_id_.GetSize(); i++) {
-      UInt dof;
-      std::string doftype = bcs_id_[i];
-      if (dofspernode_ > 1) {
-        dof = domain->GetCoordSystem()->GetVecComponent(inhomDirichDof_[i]);
-      }
-      else {
-        dof = 1;
-      }
-
-      Info->WriteInhomDirBC( pdename_, bcs_id_[i], val_id_[i],
-                             fncnames_id_[i], dof );        
-    }
-    for (UInt i=0; i< bcs_ni_.GetSize(); i++) {
-      Info->WriteInhomNeuBC( pdename_, bcs_ni_[i] );        
-    }
-
-
-    // Constraints
-    for (UInt i=0; i<constraints_.GetSize(); i++ ) {
-      Info->WriteConstraints(pdename_, constraints_[i]);      
-    }
-
-    // Loads
-    StdVector<std::string> loadDom = GetLoadDom();
-    StdVector<std::string> loadDof = GetLoadDof();
-    StdVector<std::string> loadVals = GetLoadVals();
-    StdVector<std::string> loadfncs = GetLoadFncs();
+    // 1.) Homogeneous boundary condition
+    Info-> WriteHomDirBC( pdename_, hdBcs_ );
     
-    for( UInt i = 0; i < loadDom.GetSize(); i++ ) {
-      UInt dof;
-      std::string doftype = loadDom[i];
-      if (dofspernode_ > 1) {
-        dof = domain->GetCoordSystem()->GetVecComponent(loadDof[i]);
-        }
-      else {
-        dof = 1;
+    // 2.) Inhomogeneous boundary conditions
+    Info->WriteInhomDirBC( pdename_, idBcs_ );
+
+    // 3.) Inhom. Neumann boundary conditions
+    Info->WriteInhomNeuBC( pdename_, inBcs_ );
+    
+    // 4.) Constraints
+    Info->WriteConstraints( pdename_, constraints_ );
+
+    // 5.) Loads
+    Info->WriteLoad( pdename_, loads_ );
       }
-      Info->WriteLoad(pdename_, loadDom[i], loadVals[i], loadfncs[i], dof);
-    }
-  }
 
 
 
@@ -649,246 +483,125 @@ namespace CoupledField {
   // **********
   void SinglePDE::SetBCs( const Double time ) {
     
-    ENTER_FCN( "SinglePDE::SetBCs" );
-    
-    // Trigger setting of BC from script file
-#ifdef TCL_INTERFACE
-    StdVector<std::string> context;
-    context.Push_back( pdename_ );
-    context.Push_back( GenStr(solveStep_->GetActStep() ) );
+     ENTER_FCN( "SinglePDE::SetBCs" );
+  
+     // Trigger setting of BC from script file
+ #ifdef TCL_INTERFACE
+     StdVector<std::string> context;
+     context.Push_back( pdename_ );
+     context.Push_back( GenStr(solveStep_->GetActStep() ) );
 
-    if ( analysistype_ == TRANSIENT ||
-         analysistype_ == STATIC ) {
-      context.Push_back( GenStr(solveStep_->GetActTime() ) );
-    } else {
-      context.Push_back( GenStr(solveStep_->GetActFreq() ) );
-    }
-    messenger->TriggerEvent( CFSMessenger::CFS_SetBCs, context );
-#endif
-    
-    UInt dof;
-    Double val, val_tfunc;
-    
-    StdVector<UInt> nodes;
-
-    UInt bcNum = 0;
-    Integer eqnNr; 
-    UInt eqnDof;
-
+     if ( analysistype_ == TRANSIENT ||
+          analysistype_ == STATIC ) {
+       context.Push_back( GenStr(solveStep_->GetActTime() ) );
+     } else {
+       context.Push_back( GenStr(solveStep_->GetActFreq() ) );
+     }
+     messenger->TriggerEvent( CFSMessenger::CFS_SetBCs, context );
+ #endif
+  
+     UInt dof;
+     Double val, val_tfunc;
+     StdVector<UInt> nodes;
+     UInt bcNum = 0;
+     Integer eqnNr; 
      Vector<Double> globCoord;
+   
+     // get global coordinate system and math parser
+     CoordSystem * coosy = domain->GetCoordSystem();
+     MathParser * parser = domain->GetMathParser();
+  
+     // set offset due to IDBC comming from input coupling
+     if ( isIterCoupled_ ) {
+       bcNum = couplingBCsCounter_;
+     }
+     else {
+       bcNum = 0;
+     }
+     
+     // ---------------------------
+     // INHOMOGENEOUS DIRICHLET BC
+     // ---------------------------
+  
+     Double phase = 0.0;
+     StdVector<Double>  val_tfunc_vec, dirVal_vec;
+     
+     for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
+       
+       // Get grip of actual idBC
+       InhomDirichletBc const & actBc = *(idBcs_[i]);
 
-    // get global coordinate system and math parser
-    CoordSystem * coosy = domain->GetCoordSystem();
-    MathParser * parser = domain->GetMathParser();
-    
+       dof = actBc.dof;
+       std::string const & dynamics = actBc.dynamics;
+       
+       // Get the correct time function value
+       val_tfunc = 1.0;
+       if ( ptTimeFunc_->GetmaxTimeFnc() > 0 &&
+            (analysistype_ != HARMONIC || analysistype_ != MULTIHARMONIC) ) {
+           val_tfunc=ptTimeFunc_->TimeFuncAtTime(time, dynamics);
+       }
+       
+       // Get EntityIterator
+       EntityIterator it = actBc.entities->GetIterator();
 
-    if ( isIterCoupled_ ) {
-      bcNum = couplingBCsCounter_;
-    }
-    else {
-      bcNum = 0;
-    }
+       for ( it.Begin(); !it.IsEnd(); it++ ) {
 
-
-    // ---------------------------
-    // HOMOGENEOUS DIRICHLET BC
-    // ---------------------------
-
-    // Notes:
-    //
-    // 1.) We only need the following part, if we perform dof-blocking
-    //
-    // 2.) Dof-blocking is currently only supported for real-valued problems
-
-    // What type of equation numbering does the user want?
-    std::string typeOfNumbering;
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-
-    keyVec = "linearSystems", "system", "setup", "eqnNumbering";
-    attrVec = "", "name", "";
-    valVec  = "", pdename_, "";
-
-    params->Get( keyVec, attrVec, valVec, typeOfNumbering );
-
-    if ( typeOfNumbering == "block" ) {
-
-      val = 0;
-      for ( UInt i = 0; i < bcs_hd_.GetSize(); i++ )   {  
-        dof = 1;
-        if ( dofspernode_ == 1 ) {
-          (*error) << "dofspernode_ = 1, but I assumed dof-blocking???";
-          Error( __FILE__, __LINE__ );
-        }
-        std::string doftype = bcs_hd_[i];
-        dof = domain->GetCoordSystem()->GetVecComponent(homDirichDof_[i]);
-        ptgrid_->GetNodesByName( nodes, bcs_hd_[i] );
+         eqnNr = eqnMap_->GetEqn( *actBc.result, it, dof );
       
-        for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-          eqnData_->Node2EQN( nodes[iNode], dof, eqnNr, eqnDof );
-          if (eqnNr > 0) {
-            if ( analysistype_ == HARMONIC ||
-                 analysistype_ == MULTIHARMONIC) {
-              (*error) << "Dof-blocking for complex systems is not "
-                       << "supported, yet!";
-              Error( __FILE__, __LINE__ );
-            }
-            else {
-              algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, val, eqnDof );
-            }
-            bcNum++;
-          }
-        }
-      }
-    }
 
-    // ---------------------------
-    // INHOMOGENEOUS DIRICHLET BC
-    // ---------------------------
-    
-    Double phase = 0.0;
-    StdVector<Double>  val_tfunc_vec, dirVal_vec;
+         // If iterator points to a node, pass the current coordinate
+         // to the parser
+         if( it.GetType() == EntityList::NODE_LIST ) {
+           
+           // Get node coordinate
+           ptgrid_->GetNodeCoordinate( globCoord, it.GetNode() );
+           parser->SetCoordinates( mHandle_, *coosy, globCoord );
+         }
+         
+         // Now evaluate value of IDBC
+         parser->SetExpr( mHandle_, actBc.value );
+         val = parser->Eval( mHandle_ ) * val_tfunc;
 
-    for ( UInt i = 0; i < bcs_id_.GetSize(); i++ ) {//loop over bcs groups
-      dof = 1;
-      if ( dofspernode_ > 1 ) {
-        std::string doftype = bcs_id_[i]; 
-        dof = domain->GetCoordSystem()->GetVecComponent(inhomDirichDof_[i]);
-      }
+         // Sanity check. This should not happen, but might appear
+         // in the case that the same node/dof belongs to a region
+         // with hom. and a region with inhom. Dirichlet BCs. This
+         // problem was already encountered!
+         if (eqnNr == 0) {
 
-      //      std::cout << "BC-Name: " <<    bcs_id_[i] << std::endl;
-    
-      ptgrid_->GetNodesByName( nodes, bcs_id_[i] ); 
-      
-      // Get the correct time function value
-      val_tfunc = 1.0;
-      if ( ptTimeFunc_->GetmaxTimeFnc() > 0 &&
-           (analysistype_ != HARMONIC || analysistype_ != MULTIHARMONIC) ) {
-        if (fncnames_id_[i]!="spc_dependent_fnc")
-          val_tfunc=ptTimeFunc_->TimeFuncAtTime(time,fncnames_id_[i]);
-        else
-          {
-            val_tfunc_vec.Resize(nodes.GetSize());
-            dirVal_vec.Resize(nodes.GetSize());
-            val_tfunc_vec=ptTimeFunc_->TimeSpcFuncAtTime(time,fncnames_id_[i],nodes, ptgrid_);  
+           (*error) << "Got eqn number 0 for inhom Dirichlet BC! "
+                    << "Probably you have a node/dof that belongs to both "
+                    << "a region with hom. and one with inhom. Dirichlet BCs."
+                    << " Go check your .mesh file!";
+           Error( __FILE__, __LINE__ );
+         }
 
-            for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+         // Transform Dirichlet boundary conditions for effmass-formulation
+         if (effectiveMass_) {
+           val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
+         }
+         
+         // Case of complex-valued entries
+         if (analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC) {
 
-              // Get coordinates of node and set correct context for parser
-              ptgrid_->GetNodeCoordinate( globCoord, nodes[iNode]  );
-              parser->SetCoordinates( mHandler_, *coosy, globCoord );
-              dirVal_vec[iNode] =  parser->Eval( mHandler_, val_id_[i]  ) 
-                *  val_tfunc_vec[iNode];
-            }
-          }
-      }
-      
-      
-      for ( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-
-        eqnData_->Node2EQN(nodes[iNode], dof, eqnNr, eqnDof);
-
-        // Get node coordinate
-        ptgrid_->GetNodeCoordinate( globCoord, nodes[iNode] );
-        parser->SetCoordinates( mHandler_, *coosy, globCoord );
-        
-        // Now evaluate value of IDBC
-        val = parser->Eval( mHandler_, val_id_[i] ) * val_tfunc;
-
-        // DODO GridAdaption
-        // interpolate acoustic pressure at current node?
-        if(m_bReadSpecialBCs) {
-          Point<3> pt;
-          UInt ibcNode = nodes[iNode];
-          m_pGridAdaption->GetCoordinatesFromGridNode(ptgrid_, ibcNode, pt);
-	  
-          Double x, y, z;
-          x = pt[0];
-          y = pt[1];
-          z = pt[2];
-	  
-          // perform interpolation with previously set interpolation scheme
-          val = m_pGridAdaption->GetAt(x, y, z, time);
-	  
-          // linear damping
-          if(m_dStartDamping_ > 0) {
-            Double dRelTime = time - m_dPulseOffset_;
-            Double dStopTime = m_dPulseTime_ + m_dPulseOffset_;
-	        if(dRelTime > m_dStartDamping_ && time < dStopTime) {
-              val *= sqrt(1 - dRelTime/m_dPulseTime_);
-            }
-          }
-	  
-        }
-
-        // Sanity check. This should not happen, but might appear
-        // in the case that the same node/dof belongs to a region
-        // with hom. and a region with inhom. Dirichlet BCs. This
-        // problem was already encountered!
-        if (eqnNr == 0) {
-
-          std::cout << "Node | dof | eqnNr | eqnDof\n"
-                    << nodes[iNode]  << " | "
-                    << dof   << " | "
-                    << eqnNr << " | "
-                    << eqnDof << std::endl;
-
-          (*error) << "Got eqn number 0 for inhom Dirichlet BC! "
-                   << "Probably you have a node/dof that belongs to both "
-                   << "a region with hom. and one with inhom. Dirichlet BCs."
-                   << " Go check your .mesh file!";
-          Error( __FILE__, __LINE__ );
-        }
-
-        // Transform Dirichlet boundary conditions for effmass-formulation
-        if (effectiveMass_) {
-          if (fncnames_id_[i]=="spc_dependent_fnc")
-            {
-              std::cout<<" function val in SinglePDE, dirVal_vec["<<iNode<<"]: "<<dirVal_vec[iNode]<<std::endl;
-              val = dirVal_vec[iNode];
-              val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
-            }
-          else
-            {
-              val = TS_alg_->DirichletBC4EffMassMatrix(val,eqnNr);
-            }
-        }
-
-        if (fncnames_id_[i]=="spc_dependent_fnc")
-          {
-            //std::cout<<" function val in SinglePDE, dirVal_vec["<<iNode<<"]: "<<dirVal_vec[iNode]<<std::endl;
-           val = dirVal_vec[iNode];
-          }
-        
-        // Case of complex-valued entries
-        if (analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC) {
-
-          phase = parser->Eval( mHandler_, bcs_id_phase_[i] );
-          //Complex complexValue( val * std::cos( phase / 180 * PI ),
-          //                      val * std::sin( phase / 180 * PI ) );
-          Complex complexValue( val * cos( phase / 180 * PI ),
-                                val * sin( phase / 180 * PI ) );
-          algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, complexValue,
-                                 eqnDof );
-        }
-        else {
-	  //	  std::cout << "IHDBC val=" << val << std::endl;
-          algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, val, eqnDof );
-        }
-        bcNum++;
-      }
-    }
-
-
- }
-
- 
-  void SinglePDE::SetTimeStepping(TimeStepping *timeStepping) {
-    ENTER_FCN( "SinglePDE::SetTimeStepping" );
-    TS_alg_ = timeStepping;
+           parser->SetExpr( mHandle_, actBc.phase );
+           phase = parser->Eval( mHandle_ );
+           //Complex complexValue( val * std::cos( phase / 180 * PI ),
+           //                      val * std::sin( phase / 180 * PI ) );
+           Complex complexValue( val * cos( phase / 180 * PI ),
+                                 val * sin( phase / 180 * PI ) );
+           algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, complexValue,
+                                  1 );
+         }
+         else {
+ 	  //	  std::cout << "IHDBC val=" << val << std::endl;
+           algsys_->SetDirichlet( bcNum + 1, pdeId_, eqnNr, val, 1 );
+         }
+         bcNum++;
+       }
+     }
   }
 
+ 
 
   void SinglePDE::ReadBCs() {
 
@@ -902,206 +615,216 @@ namespace CoupledField {
     // =====================================================================
     // homogeneous Dirichlet BC
     // =====================================================================
- 
+    StdVector<std::string> names, dofs, entTypes;
+    
     // Get names of node sets for homogeneous Dirichlet boundary conditions
     //   params->GetList( "name", bcs_hd_, pdename_, "dirichletHom"   );
     keyVec = pdename_, "bcsAndLoads", "dirichletHom", "name";
     attrVec = "", "tag", "";
     valVec = "", bcSequenceTag_, "";
-    params->GetList(keyVec, attrVec, valVec, bcs_hd_);
+    params->GetList(keyVec, attrVec, valVec, names);
+
+    keyVec.Last() = "dof";
+    params->GetList(keyVec, attrVec, valVec, dofs);
+
+    keyVec.Last() = "entityType";
+    params->GetList(keyVec, attrVec, valVec, entTypes);
+
+    // Create homogeneous boundary conditions
+    for( UInt i = 0; i < names.GetSize(); i++ ) {
+      shared_ptr<HomDirichletBc> actBc ( new HomDirichletBc );
+      shared_ptr<EntityList> actList =
+        ptgrid_->GetEntityList( EntityList::StringToType(entTypes[i]), 
+                                names[i] );
+      actBc->entities = actList;
+      actBc->result = results_[0];
+      actBc->eqnMap = eqnMap_;
+      if( dofs.GetSize() == 0 ) {
+        actBc->dof = 1; 
+      } else {
+        actBc->dof = results_[0]->GetDofIndex( dofs[i] );
+      }
+
+      // add definition
+      hdBcs_.Push_back( actBc );
+    }
 
     // =====================================================================
     // inhomogeneous Dirichlet BC
     // =====================================================================
-
+    StdVector<std::string> idName, idDof, idValue, idPhase, idDynamics;
+    StdVector<std::string> idType;
+    
     // Get names of node sets, values and filenames for inhomogenous
     // Dirichlet boundary conditions
     keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "name";
-    params->GetList(keyVec, attrVec, valVec, bcs_id_);
+    params->GetList(keyVec, attrVec, valVec, idName);
 
-    keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "value";
-    params->GetList(keyVec, attrVec, valVec, val_id_);
+    keyVec.Last() = "entityType";
+    params->GetList(keyVec, attrVec, valVec, idType);
 
-    if (dofspernode_ > 1) {
-      keyVec = pdename_, "bcsAndLoads", "dirichletHom", "dof";
-      params->GetList(keyVec, attrVec, valVec, homDirichDof_);
-      
-      keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dof";
-      params->GetList(keyVec, attrVec, valVec, inhomDirichDof_);
-    }
+    keyVec.Last() = "value";
+    params->GetList(keyVec, attrVec, valVec, idValue);
 
-    if (analysistype_ == TRANSIENT || analysistype_ == STATIC) {
-      keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "dynamics";
-      params->GetList(keyVec, attrVec, valVec, fncnames_id_);
-
-      // DODO
-      // determine filename for reading boundary conditions calculated before
-      std::string strFileName = "none"; // default
-      keyVec  = pdename_, "bcsAndLoads", "dirichletInhom", "fileName";
-      attrVec = "", "", "";
-      valVec  = "", "", "";
-      StdVector<std::string> vecFiles;
-      params->GetList(keyVec, attrVec, valVec, vecFiles);
-      //params->Get(keyVec, strFileName);
-
-      if(vecFiles.GetSize() > 0) {
-        strFileName = vecFiles[0];
-      }
-
-      // if attribute "fileName" is set, we're in "post" mode, i.e. set flag
-      // to use interpolation techqnique
-      if(strFileName != "none") {
-        m_bReadSpecialBCs = TRUE;
-
-        // create new adaption object
-        m_pGridAdaption = new GridAdaption();
-
-        // determine no of nodes to use for interpolation
-        keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "noNodes";
-        std::string strNoNodes;
-        params->Get(keyVec, strNoNodes);
-
-        // how many? atoi() strips percentage sign
-        Integer nNodes = atoi(strNoNodes.c_str());
-
-        // check if to use percentage, atoi() takes care of conversion
-        bool bPercent = false;
-        if(strNoNodes[strNoNodes.length()-1] == '%') {
-          bPercent = true;
-        }
-        m_pGridAdaption->SetInfluencingNodes(nNodes, bPercent);
-
-        // default interpolation type is nearest neighbor
-        GridAdaption::INTERPOLATION_TYPE it = GridAdaption::NNB;
-
-        // now check for interpolation type, if given
-        StdVector<std::string> vecInterpolType;
-        std::string strInterpolType;
-        keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "interpolType";
-        params->Get(keyVec, strInterpolType);
-
-        // check interpolation type, if other than NNB
-        if(strInterpolType == "IDW") {
-          it = GridAdaption::IDW;
-        }
-        else if(strInterpolType == "SHP") {
-          it = GridAdaption::SHP;
-        }
-
-        // now set type, default is NNB
-        m_pGridAdaption->SetInterpolationType(it);
-
-        // now parse given data file
-        m_pGridAdaption->ReadFile(strFileName);
-      }
-
-      StdVector<Double> value;
-      attrVec = "", "";
-      valVec = "", "";
-
-      //first of all, do a test, if slicing data is defined
-      keyVec = pdename_, "sliceData", "pulseStartDamping";
-      params->GetList(keyVec, attrVec, valVec, value); 
-
-      if (value.GetSize() > 0 ) {      
-        keyVec = pdename_, "sliceData", "pulseStartDamping";
-        params->Get(keyVec, m_dStartDamping_);
-
-        keyVec = pdename_, "sliceData", "pulseTime";
-        params->Get(keyVec, m_dPulseTime_);
-        
-        keyVec = pdename_, "sliceData", "pulseOffset";
-        params->Get(keyVec, m_dPulseOffset_);
-      }
-    }
-    else if (analysistype_ == HARMONIC||analysistype_ == MULTIHARMONIC) {
-      keyVec = pdename_, "bcsAndLoads", "dirichletInhom", "phase";
-      params->GetList(keyVec, attrVec, valVec, bcs_id_phase_);
-    }
-
-    // =====================================================================
-    // inhomogeneous von Neumann BC
-    // =====================================================================
-    attrVec = "", "tag", "";
-    valVec = "", bcSequenceTag_, "";
+    keyVec.Last() = "dof";
+    params->GetList(keyVec, attrVec, valVec, idDof);
     
-    // Get names of node sets, values and filenames
+    keyVec.Last() = "dynamics";
+    params->GetList(keyVec, attrVec, valVec, idDynamics);
+
+    keyVec.Last() = "phase";
+    params->GetList(keyVec, attrVec, valVec, idPhase);
+
+    // Create inhomogeneous boundary conditions
+    for( UInt i = 0; i < idName.GetSize(); i++ ) {
+      shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
+      shared_ptr<EntityList> actList =
+        ptgrid_->GetEntityList( EntityList::StringToType(idType[i]), 
+                                idName[i] );
+      actBc->entities = actList;
+      actBc->result = results_[0];
+      actBc->eqnMap = eqnMap_;
+      if( idDof.GetSize() == 0 ) {
+        actBc->dof = 1;
+      } else {
+        actBc->dof = results_[0]->GetDofIndex( idDof[i] );
+      }
+      actBc->value = idValue[i];
+      actBc->phase = idPhase[i];
+      actBc->dynamics = idDynamics[i];
+
+      // add definition
+      idBcs_.Push_back( actBc );
+    }
+
+
+
+    // =====================================================================
+    // inhomogeneous Neumann BC
+    // =====================================================================
+    StdVector<std::string> inName, inDof, inValue, inPhase, inDynamics;
+    StdVector<std::string> inType;
+    
+    // Get names of node sets, values and filenames for inhomogenous
+    // Neumann boundary conditions
     keyVec = pdename_, "bcsAndLoads", "neumannInhom", "name";
-    params->GetList(keyVec, attrVec, valVec, bcs_ni_);
+    params->GetList(keyVec, attrVec, valVec, inName);
 
-    keyVec = pdename_, "bcsAndLoads", "neumannInhom", "value";
-    params->GetList(keyVec, attrVec, valVec, val_ni_);
+    keyVec.Last() = "entityType";
+    params->GetList(keyVec, attrVec, valVec, inType);
 
-    if (analysistype_ == TRANSIENT || analysistype_ == STATIC) {
-      keyVec = pdename_, "bcsAndLoads", "neumannInhom", "dynamics";
-      params->GetList(keyVec, attrVec, valVec, fncnames_ni_);
-    }
-    else if (analysistype_ == HARMONIC||analysistype_ == MULTIHARMONIC) {
-      keyVec = pdename_, "bcsAndLoads", "neumannInhom", "phase";
-      params->GetList(keyVec, attrVec, valVec, bcs_ni_phase_);
-    }
+    keyVec.Last() = "value";
+    params->GetList(keyVec, attrVec, valVec, inValue);
 
-    // =====================================================================
-    // Check consistency
-    // =====================================================================
-    if ( bcs_id_.GetSize() != val_id_.GetSize() ||
-         fncnames_id_.GetSize() > bcs_id_.GetSize() ) {
-      std::string errmsg = "dirichletInhom: ";
-      errmsg += "#names of node sets = " + GenStr(bcs_id_.GetSize());
-      errmsg += ", #values = " + GenStr(val_id_.GetSize());
-      errmsg += ", #dynamics = " + fncnames_id_.GetSize() + '\n';
-      Info->Error( errmsg, __FILE__, __LINE__ );
-    }
-
-    // We need not have as many function/filenames as boundary conditions!
-    for ( UInt k = fncnames_id_.GetSize(); k < bcs_id_.GetSize(); k++ ) {
-      fncnames_id_.Push_back( "none" );
-    }
+    keyVec.Last() = "dof";
+    params->GetList(keyVec, attrVec, valVec, inDof);
     
-    // =====================================================================
-    // if pde has more than one dof, initialize dof of boundary conditions
-    // =====================================================================
-    if ( dofspernode_ > 1 ) {
-      if (bcs_hd_.GetSize() != homDirichDof_.GetSize()) {
+    keyVec.Last() = "dynamics";
+    params->GetList(keyVec, attrVec, valVec, inDynamics);
 
-        std::string errmsg = "Inconsistent definition of homogeneous ";
-        errmsg += "Dirichlet Boundary Conditions\n";
-        errmsg += " bcs_hd_.GetSize() = " + GenStr( bcs_hd_.GetSize() );
-        errmsg += "\n homDirichDof_.GetSize() = "
-          + GenStr( homDirichDof_.GetSize() ) + '\n';
-        Info->Error( errmsg, __FILE__, __LINE__ );
-      }
-      if (bcs_id_.GetSize() != inhomDirichDof_.GetSize()) {
-        std::string errmsg = "Inconsistent definition of inhomogeneous ";
-        errmsg += "Dirichlet Boundary Conditions";
-        Info->Error( errmsg, __FILE__, __LINE__ );
-      }
-    }
+    keyVec.Last() = "phase";
+    params->GetList(keyVec, attrVec, valVec, inPhase);
 
-    // Calculate correct number of boundary conditions
-    for ( UInt i = 0; i < bcs_hd_.GetSize(); i++ ) {
-      numDirichletBCs_ += ptgrid_->GetNumNodes(bcs_hd_[i]);
-    }
-    
-    for ( UInt i = 0; i < bcs_id_.GetSize(); i++) {
-      numDirichletBCs_ += ptgrid_->GetNumNodes(bcs_id_[i]);
+    // Create inhomogeneous Neumann boundary conditions
+    for( UInt i = 0; i < inName.GetSize(); i++ ) {
+      shared_ptr<InhomNeumannBc> actBc ( new InhomNeumannBc );
+      shared_ptr<EntityList> actList =
+        ptgrid_->GetEntityList( EntityList::StringToType(inType[i]), 
+                                inName[i] );
+      actBc->entities = actList;
+      actBc->result = results_[0];
+      actBc->eqnMap = eqnMap_;
+      if( inDof.GetSize() == 0 ) {
+        actBc->dof = 1;
+      } else {
+        actBc->dof = results_[0]->GetDofIndex( inDof[i] );
+      }
+      actBc->value = inValue[i];
+      actBc->phase = inPhase[i];
+      actBc->dynamics = inDynamics[i];
+
+      // add definition
+      inBcs_.Push_back( actBc );
     }
 
     // =====================================================================
     // Constraint Conditions
     // =====================================================================
+    StdVector<std::string> csName, csEntityType;
+
 
     // read name of constraints
-    keyVec.Clear();
-    attrVec.Clear();
-    valVec.Clear();
     keyVec = pdename_, "bcsAndLoads", "constraint", "name";
-    attrVec = "",     "tag", "";
+    params->GetList( keyVec, attrVec, valVec, csName );
+
+    keyVec.Last() = "entityType";
+    params->GetList(keyVec, attrVec, valVec, csEntityType);
+
+    // Create constraint condition
+    for( UInt i = 0; i < csName.GetSize(); i++ ) {
+      shared_ptr<Constraint> actBc ( new Constraint );
+      shared_ptr<EntityList> actList =
+        ptgrid_->GetEntityList( EntityList::StringToType(csEntityType[i]), 
+                                csName[i] );
+      actBc->masterEntities = actList;
+      actBc->slaveEntities = actList;
+      actBc->masterDof = 1;
+      actBc->slaveDof = 1;
+      actBc->result = results_[0];
+      actBc->eqnMap = eqnMap_;
+
+      // add definition
+      constraints_.Push_back( actBc );
+    }
+
+    // =====================================================================
+    // Load definitions
+    // =====================================================================
+    
+    StdVector<std::string> name, dof, value, phase, dynamics, type;
+
+    attrVec = "", "tag", "";
     valVec = "", bcSequenceTag_, "";
-    params->GetList( keyVec, attrVec, valVec, constraints_ );
+  
+    keyVec = pdename_, "bcsAndLoads", "load", "name";
+    params->GetList(keyVec, attrVec, valVec, name);
+
+    keyVec.Last() = "entityType";
+    params->GetList(keyVec, attrVec, valVec, type);
+
+    keyVec.Last() = "dof";
+    params->GetList(keyVec, attrVec, valVec, dof);
+
+    keyVec.Last() =  "value";
+    params->GetList(keyVec, attrVec, valVec, value);
+
+    keyVec.Last() = "phase";
+    params->GetList(keyVec, attrVec, valVec, phase);
+
+    keyVec.Last() =  "dynamics";
+    params->GetList(keyVec, attrVec, valVec, dynamics);
+
+    for( UInt i=0; i<name.GetSize(); i++ ) {
+    
+      shared_ptr<LoadBc> actLoad( new LoadBc );
+      shared_ptr<EntityList> actList =
+        ptgrid_->GetEntityList( EntityList::StringToType(type[i]),
+                                name[i] );
+
+      actLoad->entities = actList;
+      actLoad->result = results_[0];
+      actLoad->eqnMap = eqnMap_;
+      actLoad->dof = 
+        results_[0]->GetDofIndex(dof[i]);
+      actLoad->value = value[i];
+      actLoad->phase = phase[i];
+      actLoad->dynamics = dynamics[i];
+      loads_.Push_back( actLoad);
+    }
+    assemble_->AddLoads( loads_ );    
   }
-
-
+  
+  
   void SinglePDE::ReadMaterialData() {
     ENTER_FCN( "SinglePDE::ReadMaterialData" );
 
@@ -1121,147 +844,116 @@ namespace CoupledField {
     ptgrid_->RegionNameToId( subdomId, subdomName );
     params->Get("format", outformat, "output");
 
-    if ( outformat != "database" ) {
-
-      // Obtain pointer to materialHandler
-      MaterialHandler * matLoader = NULL;
-      matLoader = domain->GetMaterialHandler();
-      std::string actRegionName;      
-      
-      // -------------------
-      // NORMAL MATERIALS
-      // -------------------
-      for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
-        for( UInt k = 0; k < subdomId.GetSize(); k++ ) {
-          if( subdoms_[i] == subdomId[k] ){
-
-            // Check if region contains a material
-            if ( subdomMaterial[k] != "" ) {
-              
-              // Be verbose
-              actRegionName = ptgrid_->RegionIdToName( subdomId[k] );
-              Info->PrintF( pdename_, "Material '%s' for region '%s' (ID = %d) "
-                            "follows\n", subdomMaterial[k].c_str(),
-                            actRegionName.c_str(), subdomId[k] );
-              
-              // Read data
-              materials_[subdoms_[i]] = matLoader->
-                LoadMaterial( subdomMaterial[k], pdematerialclass_ );
-              break;
-            }
+    // Obtain pointer to materialHandler
+    MaterialHandler * matLoader = NULL;
+    matLoader = domain->GetMaterialHandler();
+    std::string actRegionName;      
+    
+    // -------------------
+    // NORMAL MATERIALS
+    // -------------------
+    for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+      for( UInt k = 0; k < subdomId.GetSize(); k++ ) {
+        if( subdoms_[i] == subdomId[k] ){
+          
+          // Check if region contains a material
+          if ( subdomMaterial[k] != "" ) {
+            
+            // Be verbose
+            actRegionName = ptgrid_->RegionIdToName( subdomId[k] );
+            Info->PrintF( pdename_, "Material '%s' for region '%s' (ID = %d) "
+                          "follows\n", subdomMaterial[k].c_str(),
+                          actRegionName.c_str(), subdomId[k] );
+            
+            // Read data
+            materials_[subdoms_[i]] = matLoader->
+              LoadMaterial( subdomMaterial[k], pdematerialclass_ );
+            break;
           }
         }
       }
+    }
+    
+    // -------------------
+    // COMPOSITE MATERIALS
+    // -------------------
+    Double startHeight;
+    StdVector<std::string> compMaterials;
+    StdVector<Double> compOrient, compThick;
+    
+    std::ostringstream out;
+    for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+      for( UInt k = 0; k < subdomId.GetSize(); k++ ) {
+        if( subdoms_[i] == subdomId[k] ){
+          
+          // Check if region contains a material
+          if ( subdomComposite[k] != "" ) {
+            
+            actRegionName = ptgrid_->RegionIdToName( subdomId[k] );
+            out << "Composite material '" << subdomComposite[k] << "' for "
+                << "region '" << actRegionName << "' (ID = " << subdomId[k]
+                << ") follows:\n";
+            Info->PrintF( pdename_, out.str().c_str());
+            out.str("");
+            
+            // Read data from parameter file
 
-      // -------------------
-      // COMPOSITE MATERIALS
-      // -------------------
-      Double startHeight;
-      StdVector<std::string> compMaterials;
-      StdVector<Double> compOrient, compThick;
-
-      std::ostringstream out;
-      for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
-        for( UInt k = 0; k < subdomId.GetSize(); k++ ) {
-          if( subdoms_[i] == subdomId[k] ){
-
-            // Check if region contains a material
-            if ( subdomComposite[k] != "" ) {
-
-              actRegionName = ptgrid_->RegionIdToName( subdomId[k] );
-              out << "Composite material '" << subdomComposite[k] << "' for "
-                  << "region '" << actRegionName << "' (ID = " << subdomId[k]
-                  << ") follows:\n";
+            // StartHeight
+            keyVec = "domain", "composite", "startHeight";
+            attrVec = "", "name";
+            valVec = "", subdomComposite[k];
+            params->Get( keyVec, attrVec, valVec, startHeight );
+            
+            // materials of laminae
+            attrVec = "", "name", "";
+            valVec = "", subdomComposite[k], "";
+            keyVec = "domain", "composite", "lamina", "material";
+            params->GetList( keyVec, attrVec, valVec, compMaterials );
+            
+            // thickness of laminae
+            keyVec = "domain", "composite", "lamina", "thickness";
+            params->GetList( keyVec, attrVec, valVec, compThick );
+            
+            // orientation of laminae
+            keyVec = "domain", "composite", "lamina", "orientation";
+            params->GetList( keyVec, attrVec, valVec, compOrient );
+            
+            // Check, if all vectors have same length
+            if ( compMaterials.GetSize() != compThick.GetSize() ||
+                 compMaterials.GetSize() != compOrient.GetSize() ) {
+              Error( "Inconsistent definition of composite material",
+                     __FILE__, __LINE__ );
+            }
+            
+            // Create new lamina and fill ine materials and thicknesses
+            Composite & myMat = compositeMaterials_[subdomId[k]];
+            UInt numLaminae = compMaterials.GetSize();
+            myMat.name = subdomComposite[k];
+            myMat.zStart = startHeight;
+            myMat.thickness = compThick;
+            myMat.orientation = compOrient;
+            
+            // Read single materials and print data
+            myMat.materials.Resize( numLaminae );
+            for ( UInt iLam = 0; iLam < numLaminae; iLam++ ) {
+              
+              // Print information
+              out << " --- Lamina " << iLam+1 << ": thickness = " 
+                  << compThick[iLam]
+                  << " m, orientation = " << compOrient[iLam] << "° ---\n";
               Info->PrintF( pdename_, out.str().c_str());
               out.str("");
               
-              // Read data from parameter file
-
-              // StartHeight
-              keyVec = "domain", "composite", "startHeight";
-              attrVec = "", "name";
-              valVec = "", subdomComposite[k];
-              params->Get( keyVec, attrVec, valVec, startHeight );
-              
-              // materials of laminae
-              attrVec = "", "name", "";
-              valVec = "", subdomComposite[k], "";
-              keyVec = "domain", "composite", "lamina", "material";
-              params->GetList( keyVec, attrVec, valVec, compMaterials );
-
-              // thickness of laminae
-              keyVec = "domain", "composite", "lamina", "thickness";
-              params->GetList( keyVec, attrVec, valVec, compThick );
-
-              // orientation of laminae
-              keyVec = "domain", "composite", "lamina", "orientation";
-              params->GetList( keyVec, attrVec, valVec, compOrient );
-              
-              // Check, if all vectors have same length
-              if ( compMaterials.GetSize() != compThick.GetSize() ||
-                   compMaterials.GetSize() != compOrient.GetSize() ) {
-                Error( "Inconsistent definition of composite material",
-                       __FILE__, __LINE__ );
-              }
-              
-              // Create new lamina and fill ine materials and thicknesses
-              Composite & myMat = compositeMaterials_[subdomId[k]];
-              UInt numLaminae = compMaterials.GetSize();
-              myMat.name = subdomComposite[k];
-              myMat.zStart = startHeight;
-              myMat.thickness = compThick;
-              myMat.orientation = compOrient;
-
-              // Read single materials and print data
-              myMat.materials.Resize( numLaminae );
-              for ( UInt iLam = 0; iLam < numLaminae; iLam++ ) {
-
-                // Print information
-                out << " --- Lamina " << iLam+1 << ": thickness = " 
-                    << compThick[iLam]
-                    << " m, orientation = " << compOrient[iLam] << "° ---\n";
-                Info->PrintF( pdename_, out.str().c_str());
-                out.str("");
-
-                myMat.materials[iLam] = matLoader->
-                  LoadMaterial( compMaterials[iLam], pdematerialclass_ );
-              } // over  laminae
-            }
+              myMat.materials[iLam] = matLoader->
+                LoadMaterial( compMaterials[iLam], pdematerialclass_ );
+            } // over  laminae
           }
         }
       }
-
-    }
-    else {
-
-// #ifdef USE_DATABASE
-//       LoadMaterialDataDatabase loadMaterialDB;
-    
-//       // Load material data for subdomains on which this PDE lives
-//       // from data file
-//       for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
-//         for( UInt k = 0; k <= subdomName.GetSize(); k++ ) {
-//           if( subdoms_[i] == subdomName[k] ) {
-//             loadMaterialDB.GetMaterial( materials_[i], subdomMaterial[k],
-//                                         pdematerialclass_ );
-//             break;
-//           }
-//         }
-//       }
-// #else  // No Database
-      (*error) << "Re-compile with DATABASE = yes to get database support";
-      Error( __FILE__, __LINE__ );
-// #endif
     }
   }
 
 
-  UInt SinglePDE::GetNumRestraints() {
-    
-    ENTER_FCN( "SinglePDE::GetNumRestraints" );
-    
-    return numDirichletBCs_;
-  }
   
   // ======================================================
   // GET /SET  METHODS
@@ -1272,18 +964,9 @@ namespace CoupledField {
                            
     ENTER_FCN( "SinglePDE::SetDirectCoupling" );
     
-    isDirectCoupled_ = TRUE;          
+    isDirectCoupled_ = true;          
   }
 
-  void SinglePDE::SetAlgebraicSystem( BaseSystem *algSys) {
-    ENTER_FCN( "SinglePDE::SetAlgebraicSystem" );
-    algsys_ = algSys;
-  }
-
-  void SinglePDE::SetSolveStep ( StdSolveStep *solveStep) {
-    ENTER_FCN( "SinglePDE::SetSolveStep" );
-    solveStep_ = solveStep;
-  }
 
 
   // ======================================================
@@ -1298,7 +981,7 @@ namespace CoupledField {
     // at the algebraic system and obtain an Id. 
     // Afterwards the matrix-graph has to be set up
     SETPROFILE("Before GraphSetupInit()");
-    if ( isDirectCoupled_ == FALSE ) {
+    if ( isDirectCoupled_ == false ) {
 
       // Set linear system parameters for OLAS
       ReadOlasParams( pdename_ );
@@ -1306,18 +989,16 @@ namespace CoupledField {
       // Initialize the matrix graph object
       algsys_->GraphSetupInit(1);
 
-      // obtain PDE identification tag from algebraic system
-      algsys_->RegisterPDE( pdeId_, eqnData_->GetNumEQNs(),
-                            eqnData_->GetNumLastFreeDof() );
+      algsys_->RegisterPDE( pdeId_, eqnMap_->GetNumEqns(),
+                            eqnMap_->GetNumLastFreeDof() );
 
-      assemble_->SetPDEId( pdeId_ );
+      //assemble_->SetPDEId( pdeId_ );
       solveStep_->SetPDEId( pdeId_ );
       
       
       // trigger the creation and assembly of the matrix graph
       algsys_->AssembleInit( pdeId_, pdeId_, false );
-      assemble_->SetupMatrixGraph();
-      this->SetupMatrixGraphSpecial();
+      assemble_->SetupMatrixGraph(pdeId_, pdeId_);
       algsys_->AssembleDone( pdeId_, pdeId_, false );      
     
       // finish the assembly of the matrix graph
@@ -1325,63 +1006,23 @@ namespace CoupledField {
       
       // obtain reordering of the matrix graph and pass it to the EQN-object.
       Integer *newOrder = algsys_->GetReordering( pdeId_ );
-      eqnData_->ReorderMapping( &newOrder );
+      eqnMap_->ReorderMapping( &newOrder );
     }
 
     // pass information about dofs, number of dirichlet equations
     // and constraints to the algebraic system
-    algsys_->SetBlockSize( pdeId_, eqnData_->GetNumDofsPerEQN() );
+    algsys_->SetBlockSize( pdeId_, 1 );
 
-    UInt numDir = GetNumRestraints() - eqnData_->GetNumDroppedDofs();
+    UInt numDir = eqnMap_->GetNumInHomDirichletEqns() + numCouplingBcs_;
     algsys_->SetNumDirichletBCs(pdeId_, numDir );
 
     // create matrices and solver object, if PDE is not direct coupled
-    if ( isDirectCoupled_ == FALSE ) {
+    if ( isDirectCoupled_ == false ) {
       CreateMatrices_Solver();
     }
 
   }
 
-  // ======================================================
-  // METHODS FOR ASSEMBLING
-  // ======================================================
-  
-  void  SinglePDE::AssembleMatrices() {
-    assemble_->AssembleMatrices();
-  }
-  
-  void  SinglePDE::AssembleSrcRHS(const Double time) {
-    assemble_->AssembleSrcRHS(time);
-  }
-  
-  void SinglePDE::AssembleNLRHS(const Double time) {
-    assemble_->AssembleNLRHS(time);
-  }
-  
-  void  SinglePDE::AssembleSprings(const Double time) {
-    assemble_->AssembleSprings(time);
-  }
-  
-  void  SinglePDE::InitNonLinMatrices() {
-    assemble_->InitNonLinMatrices();
-  }
-  
-  // constructs the matrix graph by providing to the algebraic system
-  // the element connectivities
-  void  SinglePDE::SetupMatrixGraph() {
-    algsys_->AssembleInit( pdeId_, pdeId_, false );
-    assemble_->SetupMatrixGraph();
-    this->SetupMatrixGraphSpecial();
-    algsys_->AssembleDone( pdeId_, pdeId_, false );
-  }
-
-  void SinglePDE::SetFrequency(Double actFreq) {
-    assemble_->SetFrequency(actFreq);
-  }
-
-  void SinglePDE::SetReassemble() {
-    assemble_->SetReassemble();
-  }
 
   
   // ======================================================
@@ -1412,6 +1053,7 @@ namespace CoupledField {
     // if element is marked, then value of the array's element is equal 1,
     // else 0.
     markingElems_.Resize(numElems);
+    marlingElems_.Init();
 
     if (!conf->ifget("safety_factor_for_space_adaptivity",theta_s)) {
       theta_s=1.0;
@@ -1456,7 +1098,7 @@ namespace CoupledField {
   }
 
 
-  Boolean SinglePDE::TestError(const Integer level) {
+  bool SinglePDE::TestError(const Integer level) {
 
     ENTER_FCN( "SinglePDE::TestError" );
 
@@ -1477,8 +1119,8 @@ namespace CoupledField {
     std::cout << " space error: " << totalErr <<
       " tolerance: " << tolSpaceErr_ << std::endl;
 
-    if (totalErr > tolSpaceErr_) return TRUE;
-    else return FALSE;
+    if (totalErr > tolSpaceErr_) return true;
+    else return false;
   }
 
 
@@ -1512,16 +1154,14 @@ namespace CoupledField {
     std::string errMsg;
     StdVector<UInt> * nodes;
     CFSVector * val;
-    UInt pdeNode, eqnDof;
     Integer eqnNr;
     UInt couplingDof;
-    Boolean clearCoords = TRUE;
 
     // Determine maximal allowed equation number for algebraic system
     Integer maxAllowedEqn = (Integer)algsys_->GetDimension();
 
     // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == FALSE)
+    if (isIterCoupled_ == false)
       return;
 
     // Reset counter for boundary conditions
@@ -1545,29 +1185,10 @@ namespace CoupledField {
         // COORDINATE COUPLING
         // -------------------
       case COORD: 
-        
-        // Set flag that the geometry has changed
-        geoUpdate_ = TRUE;
-        assemble_->SetNonlinGeo();
 
         ptCoupling_->GetInputNodes(i, nodes);
+        ptgrid_->SetNodeOffset( *nodes , help );
 
-        // Resize + clear coordinate updates
-        // only the first time
-        if (clearCoords == TRUE) {
-          deltCoords_.Resize(dim_, numPDENodes_);
-          clearCoords = FALSE;
-        }
-          
-        // set ptr of deltCoords to assembly-object
-        assemble_->SetPtrDeltaCoordinates(&deltCoords_);
-          
-        for (UInt j=0; j<nodes->GetSize(); j++)
-          for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++) {
-            pdeNode = eqnData_->Mesh2PDENode((*nodes)[j]);
-            deltCoords_(dof,pdeNode-1) = help[dof + j*dim_];
-
-          }
         break;
 
         // -------------------
@@ -1576,13 +1197,12 @@ namespace CoupledField {
       case RHS:
         ptCoupling_->GetInputNodes(i, nodes);
           
-        //for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
         for ( UInt dof = 0; dof < couplingDof; dof++ ) {
           for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
-            eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
+            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
             if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
               algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
-                                   eqnNr, eqnDof );
+                                   eqnNr, 1 );
             }
 
 #ifdef DEBUG
@@ -1639,7 +1259,7 @@ namespace CoupledField {
         }
 
         // Set flag that the boundary conditions have to be incorporated
-        updateCouplingBCs_ = TRUE;
+        updateCouplingBCs_ = true;
 
         ptCoupling_->GetInputNodes(i, nodes);
 
@@ -1647,7 +1267,7 @@ namespace CoupledField {
           for ( UInt j = 0; j < nodes->GetSize();
                 j++, couplingBCsCounter_++) {
 
-            eqnData_->Node2EQN((*nodes)[j],dof+1,eqnNr,eqnDof);
+            eqnNr = eqnMap_->GetNodeEqn( (*nodes)[j], dof+1 );
 
             if (eqnNr==0) {
               Error( "The specified coupling node has no equation number",
@@ -1655,7 +1275,7 @@ namespace CoupledField {
             }
 
             algsys_->SetDirichlet( couplingBCsCounter_ + 1, pdeId_, eqnNr,
-                                   help[dof+j*couplingDof], eqnDof );
+                                   help[dof+j*couplingDof], 1 );
           }
         }
         break;
@@ -1685,61 +1305,63 @@ namespace CoupledField {
                            const std::string &dynamics) {
     ENTER_FCN("SinglePDE::SetIDBC");
 
+    Warning( "Not working yet!", __FILE__, __LINE__ );
+  //   // Try ro find existing entry in IDBC vector
+//     Integer index = -1;
+//     UInt dofspernode = results_[0]->dofNames.GetSize();
 
-    // Try ro find existing entry in IDBC vector
-    Integer index = -1;
-
-    for ( UInt i = 0; i < bcs_id_.GetSize(); i++ ) {
-
-      if ( bcs_id_[i] == name ) {
-        if ( dofspernode_ > 1 ) {
-          if ( inhomDirichDof_[i] == dofString ) {
-            index = i;
-            break;
-          }
-        } else {
-          index = i;
-          break;
-        }
-      }
-    }
     
-    // If entry was already defined, we can always change
-    // the value of the boundary condition
-    if ( index != -1 ) {
-      val_id_[index] = value;
-      if (analysistype_ == HARMONIC
-          ||analysistype_ == MULTIHARMONIC) {
-        bcs_id_phase_[index] = phase;
-      }
-    } else {
-      // Entry was not yet defined. We can only add a new
-      // idbc entry, if eqnData was not yet initialized / created
-      if (eqnData_ == NULL) {
-        bcs_id_.Push_back( name );
-        val_id_.Push_back( value );
-        if ( dofspernode_ > 1 ) {
-          inhomDirichDof_.Push_back( dofString );
-        }
-        if (analysistype_ == HARMONIC
-            ||analysistype_ == MULTIHARMONIC) {
-          bcs_id_phase_.Push_back( phase );
-        } else {
-          fncnames_id_.Push_back( dynamics );
-        }
+//     for ( UInt i = 0; i < bcs_id_.GetSize(); i++ ) {
 
-        // Re-calculate the correct number of boundary condition entries
-        for ( UInt i = 0; i < bcs_id_.GetSize(); i++) {
-          numDirichletBCs_ += ptgrid_->GetNumNodes(bcs_id_[i]);
-        }
+//       if ( bcs_id_[i] == name ) {
+//         if ( dofspernode > 1 ) {
+//           if ( inhomDirichDof_[i] == dofString ) {
+//             index = i;
+//             break;
+//           }
+//         } else {
+//           index = i;
+//           break;
+//         }
+//       }
+//     }
+    
+//     // If entry was already defined, we can always change
+//     // the value of the boundary condition
+//     if ( index != -1 ) {
+//       val_id_[index] = value;
+//       if (analysistype_ == HARMONIC
+//           ||analysistype_ == MULTIHARMONIC) {
+//         bcs_id_phase_[index] = phase;
+//       }
+//     } else {
+//       // Entry was not yet defined. We can only add a new
+//       // idbc entry, if eqnData was not yet initialized / created
+//       if ( eqnMap_.get() == NULL) {
+//         bcs_id_.Push_back( name );
+//         val_id_.Push_back( value );
+//         if ( dofspernode > 1 ) {
+//           inhomDirichDof_.Push_back( dofString );
+//         }
+//         if (analysistype_ == HARMONIC
+//             ||analysistype_ == MULTIHARMONIC) {
+//           bcs_id_phase_.Push_back( phase );
+//         } else {
+//           fncnames_id_.Push_back( dynamics );
+//         }
+
+//         // Re-calculate the correct number of boundary condition entries
+//         for ( UInt i = 0; i < bcs_id_.GetSize(); i++) {
+//           numDirichletBCs_ += ptgrid_->GetNumNodes(bcs_id_[i]);
+//         }
         
-      } else {
-        (*error) << "No new ihom. Dirichlet BC can be defined " 
-                 << "at this point, as the equation numbering "
-                 << "was already performed!";
-        Error( __FILE__, __LINE__ );
-      }
-    } 
+//       } else {
+//         (*error) << "No new ihom. Dirichlet BC can be defined " 
+//                  << "at this point, as the equation numbering "
+//                  << "was already performed!";
+//         Error( __FILE__, __LINE__ );
+//       }
+//     } 
 
   }
 

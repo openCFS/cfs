@@ -10,20 +10,19 @@ namespace CoupledField
 class CurlCurlNode2DInt : public BaseForm
 {
 public:
-  /// Constructor
-  CurlCurlNode2DInt(BaseFE * aptelem, Double laplVal, Boolean axi=FALSE);
 
   /// Constructor
-  CurlCurlNode2DInt(Double laplVal, Boolean axi=FALSE);
+  CurlCurlNode2DInt(Double laplVal, bool axi=false, 
+                    bool coordUpdate = false );
 
   /// 
   virtual ~ CurlCurlNode2DInt();
 
   /// Calculation of stiffmess matrix
-  void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
-
-  virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
-
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
+  
 protected: 
 private:
   /// multiplicative value for laplace integration 

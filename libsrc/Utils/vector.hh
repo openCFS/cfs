@@ -159,7 +159,7 @@ namespace CoupledField {
     //!                    the new vector entries
     //! \param transferMem flag signaling transfer of responsibility for
     //!                    memory management
-    void Replace( UInt length, TYPE* entries, Boolean transferMem );
+    void Replace( UInt length, TYPE* entries, bool transferMem );
 
     //! Set the entry i of the vector to the given value (x[i] = s)
    
@@ -277,10 +277,10 @@ namespace CoupledField {
     }
     
     //! Returns the number of entries
-    inline int size() const { return size_; }
+    inline unsigned int size() const { return size_; }
     
     //! Access operator used for expression templates (const)
-    inline TYPE &  operator()( int i ) { 
+    inline TYPE &  operator()( unsigned i ) { 
       return data_[i]; 
     }
 
@@ -351,15 +351,15 @@ namespace CoupledField {
     // BOOLEAN OPERATORS
     // =======================================================================
 
-    //! \name Boolean operators
+    //! \name bool operators
 
     //@{
     
     //! Overloading of operation equal for Vector
-    Boolean operator==( const Vector<TYPE> & ) const;
+    bool operator==( const Vector<TYPE> & ) const;
     
     //! Overloading of operation not equal for Vector
-    Boolean operator!=( const Vector<TYPE> & ) const;
+    bool operator!=( const Vector<TYPE> & ) const;
     
     //@}
     
@@ -411,7 +411,7 @@ namespace CoupledField {
     //! This attribute is used to keep track on the fact whether the object
     //! is responsible for managing the memory of the data_ array, especially
     //! its deallocation.
-    Boolean memBelongsToMe_;
+    bool memBelongsToMe_;
   
   };
 #ifdef DOXYGEN_DETAILED_DOC
@@ -503,9 +503,9 @@ namespace CoupledField {
   inline TYPE & Vector<TYPE>::operator[] ( const UInt i ) {
 #ifdef CHECK_INDEX
     if ( i >= size_ ) {
-      (*error) << "Vector: Invalid access, index " << i
+      (*warning) << "Vector: Invalid access, index " << i
                << " not in range [0," << size_ - 1 << "]";
-      Error( __FILE__, __LINE__ );
+      Warning( __FILE__, __LINE__ );
     }
 #endif
     return  data_[i];
@@ -515,9 +515,9 @@ namespace CoupledField {
   inline TYPE Vector<TYPE>::operator[] ( const UInt i ) const {
 #ifdef CHECK_INDEX
     if ( i >= size_ ) {
-      (*error) << "Vector: Invalid access, index " << i
+      (*warning) << "Vector: Invalid access, index " << i
                << " not in range [0," << size_ - 1 << "]";
-      Error( __FILE__, __LINE__ );
+      Warning( __FILE__, __LINE__ );
     }
 #endif
     return  data_[i];

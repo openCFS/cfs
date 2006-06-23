@@ -22,30 +22,26 @@ namespace CoupledField
 
     //----------------------- STATIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    void PreStepStatic( const Boolean reset );
+    void PreStepStatic( );
 
 
     //! solves for one linear static step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepStaticLin( const Boolean reset )
+    void StepStaticLin( )
     { ENTER_FCN( "SolveStepMpCCI::StepStaticLin");};
 
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-     void PreStepTrans( const Boolean reset )
+     void PreStepTrans( )
     { ENTER_FCN( "SolveStepMpCCI::PreStepTrans");};
     
     //! base method for solving one transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void SolveStepTrans( const Boolean reset )
+    void SolveStepTrans( )
     { ENTER_FCN( "SolveStepMpCCI::SolveStepTrans"); };
 
     //! solves for one linear transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepTransLin( const Boolean reset )
+    //! \param reset true: perfrom new assembly, etc
+    void StepTransLin( )
     { ENTER_FCN( "SolveStepMpCCI::StepTransLin");};
 
     //! routine for actions after the SolveStep-method

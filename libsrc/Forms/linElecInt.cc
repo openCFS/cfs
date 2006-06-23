@@ -14,13 +14,14 @@ namespace CoupledField {
   void linElecInt::calcBMat( Matrix<Double> &bMat, UInt ip,
 			     Matrix<Double> &ptCoord ) {
 
-    ENTER_FCN( "linElecInt::calcAMat" );
+    ENTER_FCN( "linElecInt::calcBMat" );
 
     // Obtain info on number of element's nodes
     const UInt numNodes = ptelem->GetNumNodes();
 
     // Set correct size of matrix B and initialise with zeros
     bMat.Resize( dim_, numNodes );
+    bMat.Init();
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
@@ -70,30 +71,13 @@ namespace CoupledField {
   // ================
 
 
-  linElecInt::linElecInt(SubTensorType type) {
-    ENTER_FCN( "linElecInt::linElecInt" );
-
-    subTensorType_ = type;
-    factor_  = 1.0;
-
-    if ( type == FULL ) {
-      dim_ = 3;
-    }
-    else {
-      dim_ = 2;
-    }
-
-    if ( type == AXI ) {
-      isaxi_     = TRUE;
-    }
-  }
-
-  linElecInt::linElecInt(BaseMaterial* matData, SubTensorType type) 
-             : BDBInt(matData) {
+  linElecInt::linElecInt(BaseMaterial* matData, SubTensorType type,
+                         bool coordUpdate ) 
+    : BDBInt(matData, type, coordUpdate ) {
 
     ENTER_FCN( "linElecInt::linElecInt" );
 
-    subTensorType_ = type;
+    name_ = "linElecInt";
     factor_ = 1.0;
 
     if ( type == FULL ) {
@@ -104,7 +88,7 @@ namespace CoupledField {
     }
 
     if ( type == AXI ) {
-      isaxi_     = TRUE;
+      isaxi_     = true;
     }
   }
 

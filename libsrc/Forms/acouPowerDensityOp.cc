@@ -16,9 +16,9 @@ namespace CoupledField {
   template<class TYPE>  
   AcouPowerDensityOp<TYPE>::AcouPowerDensityOp(Grid * ptGrid, 
                                                StdPDE * ptPDE,
-                                               NodeEQN * ptEQN,
-                                               Boolean isaxi)
-    : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
+                                               shared_ptr<EqnMap> eqnMap,
+                                               bool isaxi)
+    : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi)
   {
     ENTER_FCN( "AcouPowerDensityOp::AcouPowerDensityOp" );
     
@@ -47,9 +47,9 @@ namespace CoupledField {
     elemPD.Resize(nrNodes);
     elemPD.Init(0.0);
 
-    StdVector<UInt> connect = ptElement->connect;
+    StdVector<UInt>  connect = ptElement->connect;
     Matrix<Double> ptCoord;
-    ptPDE_->GetElemCoords(connect, ptCoord);
+    ptGrid_->GetElemNodesCoord(ptCoord, connect, coordUpdate_ );
 
     // derivation of shape functions after global coordinates 
     Matrix<Double> xiDx, xiDxTransp;

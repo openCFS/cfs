@@ -10,36 +10,34 @@ namespace CoupledField
   class MassInt : public BaseForm
   {
   public:
-    // Constructor
-    MassInt(BaseFE * aptelemt, Double aDensity, Boolean axi=FALSE);
 
     // Constructor
-    MassInt(const Double aDensity, const UInt nrDofsPerNode=1, Boolean axi=FALSE);
-
-    // Constructor
-    MassInt(const Double aDensity, const UInt nrDofsPerNode, UInt dofzero, Boolean axi);
+    MassInt(const Double aDensity, const UInt nrDofsPerNode=1, 
+            bool axi=false, bool coordUpdate = false );
 
     // Destructor
     virtual ~MassInt();
 
-    //! Calculation of stiffmess matrix
-    void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMa);
+    // Calculation of element matrix
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+      
 
     //! for fractional damping model, is called in AcousticPDE::DefineIntegrators
     void SetFracDamping() 
-    {isFracDamping_ = TRUE;};
+    {isFracDamping_ = true;};
 
     //! for fractional damping model, is called in AcousticPDE::DefineIntegrators
     void UnsetFracDamping() 
-    {isFracDamping_ = FALSE;};
+    {isFracDamping_ = false;};
   
     //! set additional multiplicative factor of mass matrix
     void SetFactor(Double aFactor) 
     {factor_ = aFactor;};
    
-    virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
-
   protected:
+    
     //! generates a multi-dof-matrix with similar entries for all dofs
     virtual void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  
                               const UInt nrDofs);
@@ -47,13 +45,11 @@ namespace CoupledField
     virtual void MassMultiDofZero(Matrix<Double>& massMultDofZero, 
                                   const Matrix<Double>& massMatSingleDof);
   
-
   private:
 
     Double density_;          //!< multiplicative value for mass integrator
     Double factor_;           //!< yet another multiplicative value for mass integrator
     UInt nrDofsPerNode_;   //!< degrees of freedom per node
-    UInt dofzero_;
   
   };
 

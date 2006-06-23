@@ -50,7 +50,7 @@ namespace CoupledField
     ENTER_FCN( "PlainMaterialHandler::GetMaterial" );
     // Open data file and check for errors
     std::ifstream fin( fileName_.c_str() );
-    Boolean matC = FALSE;
+    bool matC = false;
 
     if ( !fin.good() ) {
       std::cerr << "File " << fileName_ << " does not exist!" << std::endl;
@@ -110,7 +110,7 @@ namespace CoupledField
 
       //read imaginary part
       if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ) {
-        matC = TRUE;
+        matC = true;
         std::string matNameImag = matName + "-imag";
 	fin.seekg(0,std::ios::end);
         FindMat( fin, matNameImag.c_str(), buffer, matTypeOld.c_str() );
@@ -126,7 +126,7 @@ namespace CoupledField
 
       //read imaginary part
       if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ) {
-        matC = TRUE;
+        matC = true;
         std::string matNameImag = matName + "-imag";
 	fin.seekg(0,std::ios::end);
         FindMat( fin, matNameImag.c_str(), buffer, matTypeOld.c_str() );
@@ -147,7 +147,7 @@ namespace CoupledField
 
       //read imaginary part
       if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ) {
-        matC = TRUE;
+        matC = true;
         std::string matNameImag = matName + "-imag";
 	fin.seekg(0,std::ios::end);
         FindMat( fin, matNameImag.c_str(), buffer, matTypeOld.c_str() );
@@ -186,12 +186,12 @@ namespace CoupledField
 
     ENTER_FCN( "PlainMaterialHandler::ReadLine" );
 
-    Boolean found = FALSE;
+    bool found = false;
 
     while ( !found && !fin.eof() ) {
       fin.getline( buffer, bufLength, '\n' );
       if ( strchr(buffer,'#') == NULL ) {
-        found = TRUE;
+        found = true;
         if ( fin.eof() ) {
           buffer = NULL;
           //std::cout << std::endl << " ReadLine: Unexpected end of file! "
@@ -213,7 +213,7 @@ namespace CoupledField
 
     std::string errMsg;
 
-    Boolean found = FALSE;
+    bool found = false;
     Integer pos;
     char tempMatName[bufLength];
     char tempMatType[bufLength];
@@ -231,7 +231,7 @@ namespace CoupledField
 
       if ( strcmp(matName,tempMatName) == 0 &&
            strcmp(matType,tempMatType) == 0 ) {
-        found = TRUE;
+        found = true;
         fin.seekg(pos, std::ios::beg);
       }
     }
@@ -249,7 +249,7 @@ namespace CoupledField
 
   void PlainMaterialHandler::ReadPiezo(std::ifstream &fin,
                                        BaseMaterial *material,
-                                       Boolean &matC ) {
+                                       bool &matC ) {
 
     ENTER_FCN( "PlainMaterialHandler::ReadPiezo" );
 
@@ -271,6 +271,7 @@ namespace CoupledField
     // read stiffness matrix not necessary for direct coupled PDE
     Matrix<Double> realC;
     realC.Resize(6,6);
+    realC.Init();
 
     for (i=1; i<=6; i++) {
       ReadLine(fin,buffer);
@@ -281,6 +282,7 @@ namespace CoupledField
     // read piezoelectric coupling terms
     Matrix<Double> realP;
     realP.Resize(3,6);
+    realP.Init();
 
     for ( i = 1; i <= 3; i++ ) {
       ReadLine(fin,buffer);
@@ -448,7 +450,7 @@ namespace CoupledField
 
   void PlainMaterialHandler::ReadMechanic(std::ifstream &fin,
                                           BaseMaterial* material,
-                                          Boolean &matC ) {
+                                          bool &matC ) {
 
     ENTER_FCN( "PlainMaterialHandler::ReadMechanic" );
 
@@ -470,6 +472,7 @@ namespace CoupledField
     // read stiffness matrix not necessary for direct coupled PDE
     Matrix<Double> realC;
     realC.Resize(6,6);
+    realC.Init();
 
     for (i=1; i<=6; i++) {
       ReadLine(fin,buffer);
@@ -639,7 +642,6 @@ namespace CoupledField
     material->SetScalar(heatCapacity, HEAT_CAPACITY, REAL);
     material->SetScalar(thermalConductivity, HEAT_CONDUCTIVITY, REAL);
  
-    std::cout << "Print Material Data" << std::endl;
     Info->PrintMaterial(material);
   }
 
@@ -697,7 +699,7 @@ namespace CoupledField
 
   void PlainMaterialHandler::ReadElectrostatic(std::ifstream &fin,
                                                BaseMaterial *material,
-                                               Boolean &matC ) {
+                                               bool &matC ) {
 
     ENTER_FCN( "PlainMaterialHandler::ReadElectrostatic" );
 

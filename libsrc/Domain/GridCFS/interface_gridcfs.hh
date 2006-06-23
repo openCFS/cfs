@@ -34,6 +34,11 @@ namespace CoupledField
       ptGridCFS->GetAllRegionNames(regionNames_);
     }
 
+    //! Map element sub-entities
+    void MapSubEntities() {
+      ptGridCFS->MapSubEntities();
+    }
+
 
     // ======================================================
     // GENERAL GRID INFORMATION
@@ -41,7 +46,7 @@ namespace CoupledField
     //@{ \name General Grid Information
 
     //! Return if grid uses quadratic elements
-    Boolean IsQuadratic() {
+    bool IsQuadratic() {
       return ptGridCFS->IsQuadratic();
     }
 
@@ -138,16 +143,16 @@ namespace CoupledField
     //! \param rfPoint (output) coordinates of point 2D
     //! \param inode (input) node number
     void GetNodeCoordinate( Point<DIM> & rfPoint,
-                            const UInt inode ) {
-      ptGridCFS->GetNodeCoordinate(rfPoint, inode);
+                            const UInt inode, bool updated = false ) {
+      ptGridCFS->GetNodeCoordinate(rfPoint, inode, updated);
     }
 
     //! Get coordinates of node with global number inode as vector
     //! \param rfPoint (output) coordinates of point 2D
     //! \param inode (input) node number
     void GetNodeCoordinate( Vector<Double> & rfPoint,
-                            const UInt inode ) {
-      ptGridCFS->GetNodeCoordinate(rfPoint, inode);
+                            const UInt inode,  bool updated = false ) {
+      ptGridCFS->GetNodeCoordinate(rfPoint, inode, updated);
     }
     //@}
   
@@ -194,8 +199,9 @@ namespace CoupledField
   
     //! Get coordinates of element nodes
     void GetElemNodesCoord( Matrix<Double> & coordMat,  
-                            const StdVector<UInt> & connect ) {
-      ptGridCFS->GetElemNodesCoord(coordMat, connect);
+                            const StdVector<UInt> & connect,
+                            bool updated = false ) {
+      ptGridCFS->GetElemNodesCoord(coordMat, connect, updated);
     }
   
     //! Get elements associated with given nodes
@@ -226,22 +232,25 @@ namespace CoupledField
     //! Returns surface element normal without defined orientation
 
     void CalcSurfNormal( Vector<Double> & n, 
-                         const Elem & surfElem ) {
-      ptGridCFS->CalcSurfNormal(n, surfElem);
+                         const Elem & surfElem,
+                         bool updated = false ) {
+      ptGridCFS->CalcSurfNormal(n, surfElem, updated );
     }
     
     //! Returns surface element normal with defined orientation
     
     void CalcSurfNormalOutOfVol( Vector<Double> & n,
                                  const Elem & surfElem,
-                                 const Elem & volElem ) {
-      ptGridCFS->CalcSurfNormalOutOfVol(n, surfElem, volElem);
+                                 const Elem & volElem,
+                                 bool updated = false ) {
+      ptGridCFS->CalcSurfNormalOutOfVol(n, surfElem, volElem, updated );
     }
 
     //! Returns the volume of a given region
     Double CalcVolumeOfRegion( const RegionIdType regionId, 
-                               Boolean isaxi) {
-      return ptGridCFS->CalcVolumeOfRegion(regionId, isaxi);
+                               bool isaxi,
+                               bool updated = false ) {
+      return ptGridCFS->CalcVolumeOfRegion(regionId, isaxi, updated );
     }
       
     //@}
@@ -256,10 +265,20 @@ namespace CoupledField
     //! Returns node numbers of a list of Elements
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
                              const StdVector<Elem*> & elemList,
-			     Boolean onlyLinNodes = FALSE) {
+			     bool onlyLinNodes = false) {
       ptGridCFS->GetNodesOfElemList(nodeList, elemList, onlyLinNodes);
     }
-    
+
+    //! Set offset for coordinates due to updated Lagrangian formulation
+    void SetNodeOffset( const StdVector<UInt>& nodes, 
+                        const Vector<Double>& offsets ) {
+      ptGridCFS->SetNodeOffset( nodes, offsets );
+    }
+
+    //! Return status of presence of nodal coordinate offsets (up. Lagrange)
+    bool HasNodalOffset() {
+      return ptGridCFS->HasNodalOffset(); 
+    }
   
   protected:
 

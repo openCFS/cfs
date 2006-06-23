@@ -11,7 +11,7 @@ namespace CoupledField{
                              UInt stepOffset, 
                              Double timeOffset, 
                              std::string driverTag,
-                             Boolean isPartOfSequence)
+                             bool isPartOfSequence)
     : BaseDriver(adomain)
       
   {

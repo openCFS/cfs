@@ -155,6 +155,8 @@
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
         <xsd:attribute name="dof" type="DT_MechDOF" use="required"/>
+        <xsd:attribute name="entityType" type="DT_EntityType"
+          use="optional" default="nodeList"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -213,8 +215,6 @@
         <xsd:attribute name="dampingValue" type="xsd:double" use="required"/>
         <xsd:attribute name="stiffnessValue" type="xsd:double"
           use="required"/>
-        <xsd:attribute name="dynamics" type="xsd:token" use="optional"
-          default="none"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

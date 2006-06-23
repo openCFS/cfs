@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
   Double  xSat  = 1;
   Double  ySat  = 1;
   Double  xCoer = 1;
-  Boolean isVirgin = TRUE;
+  bool isVirgin = true;
 
   Hysteresis * hyst;
   hyst = new Preisach(numEl, xSat, ySat, xCoer, isVirgin);

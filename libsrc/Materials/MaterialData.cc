@@ -16,7 +16,7 @@ namespace CoupledField
   // ***********************
   //   Default Constructor
   // ***********************
-  MaterialData::MaterialData() : scaledMatDat(FALSE) {
+  MaterialData::MaterialData() : scaledMatDat(false) {
 
     ENTER_FCN("MaterialData::MaterialData");
 
@@ -136,18 +136,25 @@ namespace CoupledField
     ENTER_FCN("MaterialData::RotateMaterialMatrix");
     Matrix<Double> R;
     R.Resize(3,3);   // Rotation Matrix
+    R.Init();
     Matrix<Double> Q;
     Q.Resize(6,6);  // Composed Rotation Matrix
+    Q.Init();
     Matrix<Double> c;
     c.Resize(6,6);
+    c.Init();
     Matrix<Double> e; 
     e.Resize(6,3);
+    e.Init();
     Matrix<Double> eps;
     eps.Resize(3,3);
+    eps.Init();
     Matrix<Double> QT;
     QT.Resize(6,6);
+    QT.Init();
     Matrix<Double> RT;
     RT.Resize(3,3);
+    RT.Init();
 
     // X-dIRECTION
     if(a1==0)

@@ -29,13 +29,14 @@ namespace CoupledField
     MHpdeId2_=pdeId2_;
 
     // SetAnalysisType(HARMONIC);
-    firstTime_ = TRUE;
-    oneIntIsNonlin_ = FALSE;
+    firstTime_ = true;
+    oneIntIsNonlin_ = false;
     nrMatrices_ = 5+1;  // 5 matrices, but index starts with 1!
     reassembleMat_.Resize(nrMatrices_);
-    nonLinGeo = FALSE;
+    reassembleMAt_.Init();
+    nonLinGeo = false;
     deltaCoords_ = NULL;
-    alternateMaterialData_=FALSE;
+    alternateMaterialData_=false;
 
     startFreq_ = 0.0;
     //    matArray_  = NULL;
@@ -79,7 +80,7 @@ namespace CoupledField
           
         if(firstTime_)
           for (UInt actMat=0; actMat < nrMatrices_; actMat++)
-            reassembleMat_[actMat] = TRUE;
+            reassembleMat_[actMat] = true;
         
         for (UInt actDom=0; actDom < subdoms_.GetSize(); actDom++) {     
           StdVector<Elem*> elemssd;
@@ -103,7 +104,7 @@ namespace CoupledField
 
               actDescriptor->GetIntegrator()->SetSubdomain(actDom);
 
-              if (alternateMaterialData_ == TRUE)
+              if (alternateMaterialData_ == true)
                 actDescriptor->GetIntegrator()->SetMaterial(ptMaterial_[subdoms_[actDom]]);
                     
               // assemble only if nonlinear or first time
@@ -196,8 +197,8 @@ namespace CoupledField
                 // this matrix is nonlinear and, therefore, 
                 // has to be reassembled next time
                 if (actDescriptor->IsNonLin()) {
-                  oneIntIsNonlin_ = TRUE;
-                  reassembleMat_[actDescriptor->DestMat()] = TRUE;
+                  oneIntIsNonlin_ = true;
+                  reassembleMat_[actDescriptor->DestMat()] = true;
                   sol_->GetElemSolutionAsMatrix(elSol, connecth);
                   actDescriptor->GetIntegrator()->SetActElemSol(elSol);
                 }       
@@ -214,7 +215,7 @@ namespace CoupledField
                   std::cout<<" New Material will be calculated ... " <<std::endl;
                   //  getchar();
 
-//                   //                  if (= TRUE)
+//                   //                  if (= true)
 
                   Error("Tom, I commented out the following lines, as they make no sense!(Andreas)",
                         __FILE__, __LINE__ );
@@ -234,7 +235,7 @@ namespace CoupledField
                   Error("Tom, I commented out the following lines, as they make no sense!(Andreas)",
                         __FILE__, __LINE__ );
                   //ptMHMat_->updateMaterialData(ptMHMat_->parameter_,ptMaterial_);
-//                   //              SetAlternatingMaterial(TRUE);
+//                   //              SetAlternatingMaterial(true);
                   
                 }
                 //                std::cout<<"geht es hier weiter ? "<<std::endl;
@@ -250,7 +251,7 @@ namespace CoupledField
                 DataType matType = actDescriptor->GetMatDataType();
                 actDescriptor->SetMatDataType(matType);
 
-                if (TRUE){
+                if (true){
                   TransformMatrix2Harmonic(harmonicVec,elemmat, 
                                            actDescriptor->GetOrigMatrixType(),
                                            actDescriptor->GetMatDataType());
@@ -362,6 +363,7 @@ namespace CoupledField
 
     Integer size = origVec.GetSize();
     harmVec.Resize(2*size);
+    harmVec.Init();
 
     Double valReal = cos(valPhase);
     Double valImag = sin(valPhase);
@@ -391,6 +393,7 @@ namespace CoupledField
     Integer numRow = origMat.GetSizeRow();
     Integer numCol = origMat.GetSizeCol();
     harmMat.Resize(2*numRow*numCol);
+    harmMat.Init();
 
     Integer k=0;
 

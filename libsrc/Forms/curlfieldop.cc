@@ -16,10 +16,10 @@ namespace CoupledField
 
   CurlEdgeOp::CurlEdgeOp(Grid * ptGrid, 
                          StdPDE * ptPDE,
-                         NodeEQN * ptEQN,
+                         shared_ptr<EqnMap> eqnMap,
                          NodeStoreSol<Double> & aSol,
-                         BaseSystem * algsys) 
-    : BaseOperator(ptGrid, ptPDE, ptEQN), algsys_(algsys)
+                         BaseSystem * algsys, bool coordUpdate) 
+    : BaseOperator(ptGrid, ptPDE, eqnMap, coordUpdate ), algsys_(algsys)
   {
     ENTER_FCN( "CurlEdgeOp::CurlEdgeOp" );
 
@@ -180,9 +180,10 @@ namespace CoupledField
 
   CurlNodeOp::CurlNodeOp(Grid * ptGrid, 
                          StdPDE * ptPDE,
-                         NodeEQN * ptEQN,
-                         NodeStoreSol<Double> & aSol) 
-    : BaseOperator(ptGrid, ptPDE, ptEQN, FALSE)
+                         shared_ptr<EqnMap> eqnMap,
+                         NodeStoreSol<Double> & aSol,
+                         bool coordUpdate) 
+    : BaseOperator(ptGrid, ptPDE , eqnMap, false, coordUpdate )
   {
     ENTER_FCN( "CurlNodeOp::CurlNodeOp" );
 
@@ -213,7 +214,8 @@ namespace CoupledField
         nShFnc = ptElement->ptElem->GetNumNodes();
       
         Matrix<Double> CornerCoords; 
-        ptPDE_->GetElemCoords(ptElement->connect, CornerCoords);
+        ptGrid_->GetElemNodesCoord( CornerCoords, ptElement->connect, 
+                                    coordUpdate_ );
       
         Matrix<Double> GlobalGradient;
       

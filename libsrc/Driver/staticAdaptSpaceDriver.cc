@@ -17,7 +17,7 @@ namespace CoupledField
   {
     ENTER_FCN( "StaticAdaptSpaceDriver::StaticDriver" );
   
-    flags->adaptSpace_ = TRUE;
+    flags->adaptSpace_ = true;
 
   }
 
@@ -40,7 +40,7 @@ namespace CoupledField
       maxnumrepeat=10;
 
     // print all stages of mesh 
-    Boolean meshesInfo=printMeshesOrNot();
+    bool meshesInfo=printMeshesOrNot();
   
     if (meshesInfo)
       { // print info about mesh in mesh-info-file

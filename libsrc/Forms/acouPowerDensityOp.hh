@@ -33,8 +33,8 @@ namespace CoupledField {
     */
     AcouPowerDensityOp(Grid * ptGrid,
                        StdPDE * ptPDE,
-                       NodeEQN * ptEQN,
-                       Boolean isaxi=FALSE);
+                       shared_ptr<EqnMap> eqnMap,
+                       bool isaxi=false);
     
     //! Destructor
     virtual ~AcouPowerDensityOp();
@@ -63,7 +63,7 @@ namespace CoupledField {
 
   protected:
   
-    Boolean isaxi_;
+    bool isaxi_;
     Double dimensions_;
 
   private:

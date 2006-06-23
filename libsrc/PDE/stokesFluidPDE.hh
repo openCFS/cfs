@@ -6,6 +6,8 @@
 namespace CoupledField
 {
 
+  //! Forward class declarations
+  class BaseForm;
 
 
   //! Class for mechanic equation (no adaptivity)
@@ -52,7 +54,7 @@ namespace CoupledField
     virtual void CalcOutputCoupling();
   
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(SolutionType output);
+    virtual bool HasOutput(SolutionType output);
 
 
     // ======================================================
@@ -157,10 +159,10 @@ namespace CoupledField
     //! assigns each coupling element node the according Coupling Node number
     StdVector<StdVector<StdVector<UInt> > > elemNodeToCouplingNode_; 
 
-    //! TRUE, if solution should be written to result file
-    Boolean saveSolVel_;
-    Boolean saveSolPres_;
-    Boolean saveSolVort_;
+    //! true, if solution should be written to result file
+    bool saveSolVel_;
+    bool saveSolPres_;
+    bool saveSolVort_;
 
 
   };

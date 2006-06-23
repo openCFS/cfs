@@ -23,8 +23,8 @@ namespace CoupledField
     dim_     = adim;
     pdename_ = "acoustic";
 
-    isInitialized_ = FALSE;
-    ABC = FALSE;
+    isInitialized_ = false;
+    ABC = false;
     /*
       DEFINED IN BASEPARAMHANDLER.hh && XMLPARAMHANDLER.hh
       The method will try to find the specified keyword in the parameter tree and will
@@ -55,7 +55,7 @@ namespace CoupledField
     else if ( abcBCs.GetSize() == 1 ) {
       numRegions = 2;
       regionNames_.Push_back(abcBCs[0]);
-      ABC = TRUE;
+      ABC = true;
 
       //we just allow one surface region
       //therefore, we can hardcode the Ids level
@@ -66,7 +66,7 @@ namespace CoupledField
       Error("Just one ABC-region allowed",__FILE__,__LINE__);
     }
 
-    for (Integer k=0; k<regionNames_.GetSize(); k++) {
+    for (UInt k=0; k<regionNames_.GetSize(); k++) {
       std::cout << "Name: " << k << "  " << regionNames_[k] << std::endl;
     }
 
@@ -149,9 +149,15 @@ namespace CoupledField
       } 
     } 
 
-    isInitialized_ = TRUE;
+    isInitialized_ = true;
   }
 
+
+  template<UInt DIM>
+  void GridStruct<DIM>::MapSubEntities() {
+    ENTER_FCN( "GridStruct::MapSubEntities" );
+    Error( "Not defined", __FILE__, __LINE__ );
+  }
 
   template<UInt DIM>
   void GridStruct<DIM> :: GenGridStruct(const UInt elemx, const UInt elemy,
@@ -236,7 +242,9 @@ namespace CoupledField
 
     //allocate for one region 
     volElems_.Resize(1);  
+    volElems_.Init();
     surfElems_.Resize(1); 
+    surfElems_.Init();
 
 
     //Init
@@ -269,6 +277,7 @@ namespace CoupledField
           el->ptElem   = ptQ1;
           el->regionId = volRegionIds_[0] ;
           el->connect.Resize(innodes_);
+          el->connect.Init();
 
           el->connect[0] = 1+ k;		 	     //Connect elements
           el->connect[3] = 1+ k +     (maxnumelemy_+1);//Connect elements
@@ -374,6 +383,7 @@ namespace CoupledField
             el->  regionId = volRegionIds_[0] ;
 
             el -> connect.Resize(innodes_);
+            el -> connect.Init();
             el->connect[0] = j+i*(maxnumelemy_+1)+l*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
             el->connect[1] = j+i*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
             el->connect[2] = j+(i+1)*(maxnumelemy_+1)+(l+1)*(maxnumelemy_+1)*(maxnumelemx_+1)+1;
@@ -553,7 +563,9 @@ namespace CoupledField
  
     //inhomogeneous Dirichlet boundary conditions
     namedNodes_.Resize(1);
+    namedNodes_.Init();
     namedNodeNames_.Resize(1);   
+    namedNodeNames_.Init();
     namedNodeNames_[0] = bcs_id[0];
 
     UInt numbc;
@@ -598,11 +610,12 @@ namespace CoupledField
     Integer shiftfactor_;	//
     Double a,b,x,y,z,shiftLength, sliceLength;
     Double meshsizez_;	//
-    Double meshsizey_;	//
-    Double meshsize_;	// it should be enough to have one variable meshsize,
+    //Double meshsizey_;	//
+    //Double meshsize_;	// it should be enough to have one variable meshsize,
                         // because the grid we are using is structured.
-    Integer i,j,k,m;		//Index
-    Double start_;
+    Integer k;		//Index
+    // Integer i,j;
+    // Double start_;
 
     k=0;
     x=0.0;
@@ -852,7 +865,8 @@ namespace CoupledField
   
   template<UInt DIM>
   void GridStruct<DIM>::GetNodeCoordinate( Point<DIM> & rfPoint,
-                                        const UInt inode ) {
+                                           const UInt inode,
+                                           bool updated ) {
     ENTER_FCN( "GridStruct::GetNodeCoordinate" );
     
     if ( inode > numNodes_ || inode < 0 ) {
@@ -867,7 +881,8 @@ namespace CoupledField
   
   template<UInt DIM>
   void GridStruct<DIM>::GetNodeCoordinate( Vector<Double> & rfPoint,
-                                        const UInt inode ) {
+                                           const UInt inode,
+                                           bool updated ) {
     ENTER_FCN( "GridStruct::GetNodeCoordinate" );
 
     if ( inode > numNodes_ || inode < 0 ) {
@@ -1013,7 +1028,8 @@ namespace CoupledField
 
   template<UInt DIM>
   void GridStruct<DIM>::GetElemNodesCoord( Matrix<Double> & coordMat,  
-                                        const StdVector<UInt> & connect ) {
+                                           const StdVector<UInt> & connect,
+                                           bool updated ) {
     ENTER_FCN( "GridStruct::GetElemNodesCoord" );
 
     coordMat.Resize(dim_, connect.GetSize());
@@ -1024,7 +1040,8 @@ namespace CoupledField
 
   template<UInt DIM>
   void GridStruct<DIM>::CalcSurfNormal( Vector<Double> & n, 
-                                     const Elem & surfElem ) {
+                                        const Elem & surfElem,
+                                        bool updated ) {
     ENTER_FCN( "GridStruct::CalcSurfNormal" );
     
     //compute normal vector

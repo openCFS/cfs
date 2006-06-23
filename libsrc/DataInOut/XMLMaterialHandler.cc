@@ -188,23 +188,23 @@ namespace CoupledField {
     Integer     inteValue;
     std::string striValue;
 
-    Boolean     flagEModulReal=FALSE;
-    Boolean     flagPoissonReal=FALSE;
-    Boolean     flagEModulImag=FALSE;
-    Boolean     flagPoissonImag=FALSE;
+    bool     flagEModulReal=false;
+    bool     flagPoissonReal=false;
+    bool     flagEModulImag=false;
+    bool     flagPoissonImag=false;
 
-    Boolean     flagEModulXReal=FALSE;
-    Boolean     flagEModulYReal=FALSE;
-    Boolean     flagEModulZReal=FALSE;
-    Boolean     flagPoissonXYReal=FALSE;
-    Boolean     flagPoissonYZReal=FALSE;
-    Boolean     flagPoissonXZReal=FALSE;
-    Boolean     flagShearModulYZReal=FALSE;
-    Boolean     flagShearModulZXReal=FALSE;
-    Boolean     flagShearModulXYReal=FALSE;
+    bool     flagEModulXReal=false;
+    bool     flagEModulYReal=false;
+    bool     flagEModulZReal=false;
+    bool     flagPoissonXYReal=false;
+    bool     flagPoissonYZReal=false;
+    bool     flagPoissonXZReal=false;
+    bool     flagShearModulYZReal=false;
+    bool     flagShearModulZXReal=false;
+    bool     flagShearModulXYReal=false;
 
-    Boolean     flagElastTensorReal=FALSE;
-    Boolean     flagElastTensorImag=FALSE;
+    bool     flagElastTensorReal=false;
+    bool     flagElastTensorImag=false;
 
     Matrix<Double> elasticityTensor(6,6);
 
@@ -232,7 +232,7 @@ namespace CoupledField {
       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
                                    dim1, dim2, elasticityTensor );
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
-      flagElastTensorReal=TRUE;
+      flagElastTensorReal=true;
       //std::cerr << "real elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
 
@@ -244,7 +244,7 @@ namespace CoupledField {
       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
                                    dim1, dim2, elasticityTensor );
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, IMAG ); 
-      flagElastTensorImag=TRUE;
+      flagElastTensorImag=true;
       // std::cerr << "imaginary elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
 
@@ -255,7 +255,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS, REAL ); 
-      flagEModulReal=TRUE;
+      flagEModulReal=true;
       // std::cerr << "elasticityModulus=" << doubValue << std::endl;
     }
 
@@ -266,7 +266,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS, IMAG ); 
-      flagEModulImag=TRUE;
+      flagEModulImag=true;
       // std::cerr << "imaginary elasticityModulus=" << doubValue << std::endl;
     }
 
@@ -277,7 +277,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON, REAL ); 
-      flagPoissonReal=TRUE;
+      flagPoissonReal=true;
       // std::cerr << "poissonNumber=" <<  doubValue << std::endl;
     }
 
@@ -288,7 +288,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON, IMAG ); 
-      flagPoissonImag=TRUE;
+      flagPoissonImag=true;
       // std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
     }
 
@@ -386,9 +386,9 @@ namespace CoupledField {
     }
 
 
-    if (flagEModulReal==TRUE && 
-        flagPoissonReal==TRUE && 
-        flagElastTensorReal==FALSE) {
+    if (flagEModulReal==true && 
+        flagPoissonReal==true && 
+        flagElastTensorReal==false) {
       Double EModul, PoissonNumber;
       material->GetScalar( EModul, MECH_EMODULUS, REAL ); 
       material->GetScalar( PoissonNumber, MECH_POISSON, REAL ); 
@@ -398,20 +398,20 @@ namespace CoupledField {
       // std::cerr << "E=" << EModul << " nu=" << PoissonNumber << std::endl;
       // std::cerr << "real isotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
-    else if (flagEModulReal==FALSE && 
-        flagPoissonReal==FALSE && 
-        flagElastTensorReal==TRUE) {
+    else if (flagEModulReal==false && 
+        flagPoissonReal==false && 
+        flagElastTensorReal==true) {
       //stiffness tensor is already set
     }
-    else if (flagEModulXReal==TRUE && 
-             flagEModulYReal==TRUE && 
-             flagEModulZReal==TRUE && 
-             flagPoissonXYReal==TRUE && 
-             flagPoissonYZReal==TRUE && 
-             flagPoissonXZReal==TRUE && 
-             flagShearModulYZReal==TRUE &&
-             flagShearModulZXReal==TRUE &&
-             flagShearModulXYReal==TRUE) {
+    else if (flagEModulXReal==true && 
+             flagEModulYReal==true && 
+             flagEModulZReal==true && 
+             flagPoissonXYReal==true && 
+             flagPoissonYZReal==true && 
+             flagPoissonXZReal==true && 
+             flagShearModulYZReal==true &&
+             flagShearModulZXReal==true &&
+             flagShearModulXYReal==true) {
       Double EX, EY, EZ, nuXY, nuYZ, nuXZ, GYZ, GZX, GXY;
       material->GetScalar( EX, MECH_EMODULUS_X, REAL ); 
       material->GetScalar( EY, MECH_EMODULUS_Y, REAL ); 
@@ -427,16 +427,16 @@ namespace CoupledField {
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
       std::cerr << "real othotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
-    else if (flagEModulReal==TRUE && 
-        flagPoissonReal==TRUE && 
-        flagElastTensorReal==TRUE) {
+    else if (flagEModulReal==true && 
+        flagPoissonReal==true && 
+        flagElastTensorReal==true) {
       (*error) << "Error: mechanical stiffness tensor is over determined."
                << " You specified the tensor as well as E-Modul and Poisson number";
       Error( __FILE__, __LINE__ );
     }
-    else if (flagEModulReal==FALSE && 
-             flagEModulXReal==FALSE && 
-             flagElastTensorReal==FALSE) {
+    else if (flagEModulReal==false && 
+             flagEModulXReal==false && 
+             flagElastTensorReal==false) {
       (*error) << "Error: mechanical stiffness must be specified somehow.";
       Error( __FILE__, __LINE__ );
     }

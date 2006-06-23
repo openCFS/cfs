@@ -49,7 +49,7 @@ namespace CoupledField
                     Integer stepOffset = 0,
                     Double timeOffset = 0.0,
                     std::string driverTag = "anyTag",
-                    Boolean isPartOfSequence = FALSE);
+                    bool isPartOfSequence = false);
 
     //! Destructor
     ~piezoParamIdent();
@@ -84,10 +84,10 @@ namespace CoupledField
   protected:
     //! Calculates the parameter to soution map F(p^k) at Newton iteration step k
     //! \param F_hat - contains calculated charge, each entry belongs to different frequency 
-    void createF(Vector<Complex> & F_hat, Boolean typeOut);
+    void createF(Vector<Complex> & F_hat, bool typeOut);
 
     //! like create F but the frequencies are specified with Vector frequencies
-    void createFVec(Complex & F_hat, Boolean typeOut,
+    void createFVec(Complex & F_hat, bool typeOut,
                     Double frequency);
 
     //! inverts a Matrix
@@ -141,14 +141,14 @@ namespace CoupledField
     void createGradient(Vector<Complex> & grad, Double dOmega);
 
     //! Determines variance - covariance Matrix 
-    void createCovA(Complex &J, Boolean writeOutCov);
+    void createCovA(Complex &J, bool writeOutCov);
 
     //! writes Out Sum (cov(i)(i)) for frequencies selected by
     //! optimal experiment design with var. number of freqs 
     void writeOutConfInterval();
 
     //! Determines J(omega) in case of flexible number of frequencies
-    void createJRho(Complex &J, Boolean writeOutCov);
+    void createJRho(Complex &J, bool writeOutCov);
 
     //! Calculates explicitely the Adjoint operator of F'
     void createAdjointJacobiMatrix(Matrix<Complex> & JacobiMatrix, Matrix<Complex> & adjJacobiMatrix);
@@ -176,7 +176,7 @@ namespace CoupledField
                             Vector<Double> & step, Vector<UInt> & whichParameterToUpdate);
 
     //! Calculates the impedance curve of piezo-simulation, writes results to file imped.dat
-    void calcAbsImped(Complex & charge, Double & freq, UInt & fstep, Boolean typeOut);
+    void calcAbsImped(Complex & charge, Double & freq, UInt & fstep, bool typeOut);
 
     //! Calculates and writes out impedance curve into file imped.dat
     //! Start - and stopfrequency will be specified in xml - file
@@ -273,9 +273,9 @@ namespace CoupledField
 #endif
 
     Double fa_, fr_;
-    Boolean CalcImpedanceCurve_;
-    Boolean CalcMechDisplCurve_;
-    Boolean directCoupling_;
+    bool CalcImpedanceCurve_;
+    bool CalcMechDisplCurve_;
+    bool directCoupling_;
     UInt whichNewtonCG_;
     UInt maxNumberInnerLoops_;
     UInt maxNumberNewtonLoops_;
@@ -283,7 +283,7 @@ namespace CoupledField
     UInt dofOfMechDispl_;
 
     UInt whichNorm_;
-    Boolean considerMechDeformation_;
+    bool considerMechDeformation_;
     Vector<UInt> whichParameterToUpdate_;
     Vector<UInt> whichParameterToUpdateC_;
     Vector<UInt> whichParToUpInd_;

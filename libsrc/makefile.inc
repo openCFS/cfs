@@ -3,28 +3,12 @@
 #
 include $(C_DIR)/main/Makefile.option
 #
-ifeq "$(AdaptivLib)" "yes"
-	ADAPT = -DADAPTGRID
-endif
+
 
 include $(LIBSRC_DIR)/makefilemach/make.mach.$(MACHINE)
-#
-#ifeq ($(MpCCI),yes)
-#  CC=/opt/MpCCI/mpcci-3.0.0-sdk-linux-glibc23-gcc33/bin/cciCC
-#  CFLAGSMpCCI = -DMpCCI
-#endif
 
-ARFLAGS = r 
 #
-ifeq "$(LIBRARY_TYPE)" "shared"
-	LIBB := $(LIB_DIR)/lib$(lib).so
-else
-	LIBB := $(LIB_DIR)/lib$(lib).a 
-endif
-
-ifeq "$(PETSc)" "yes"
-	CFLAGSPETSc = -D USE_PETSC
-endif
+LIBB := $(LIB_DIR)/lib$(CFS_LIB).a 
 
 #
 .SUFFIXES: .f .cc .cpp .o
@@ -36,34 +20,31 @@ libgoal: $(LIB_DIR) $(LIBB)
 #
 #################### to make library
 #
-ifeq "$(LIBRARY_TYPE)" "shared"
 
+
+#.PHONY: $(LIBB)
+#$(LIBB): 
+.PRECIOUS: $(LIBB)
 $(LIBB): $(src:.cc=.o)
-	$(CC) $(FLAG_MKSHLIB) -o $@ $(?:.cc=.o) 
-else
-$(LIBB): $(src:.cc=.o)
-	@$(AR) $(ARFLAGS) $@ $(?:.cc=.o); 
+	$(AR) $(ARFLAGS) $@ $(src:.cc=.o)
 	-@$(RANLIB) $@
-endif
-#
+
 $(LIB_DIR) :
 	-@mkdir $(C_DIR)/lib
 	@mkdir $(LIB_DIR)
 #
-########## Make clean for each directory
+########## Make clean for each directory and its subdirectories
 #
 clean:
-	-rm -f *.o && rm -f $(LIBB);
-allclean:
-	-rm *.o && -rm *~; 
+	@for f in '$(shell find -name "*.o")'; do \
+	(rm -f $$f; \
+	$(AR) -d $(LIBB) $$f); done
+
+allclean: clean
+	@for f in '$(shell find -name "*.*~")'; do \
+	(rm -f $$f); done
 #
-########## Make link to include
-#
-make-include: $(src:.cc=.hh) $(src_h) 
-	@for n in $(src:.cc=.hh); do \
-        (ln -sf $$n $(Include)/$$n) ;\
-        done
-#
+
 ######### Make depend 
 #
 depend:

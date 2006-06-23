@@ -58,7 +58,7 @@ namespace CoupledField
     void DefineIntegrators();
     
     // Data section
-    Boolean hasOutput_;
+    bool hasOutput_;
 
   private:
     

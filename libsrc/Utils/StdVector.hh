@@ -48,7 +48,7 @@ namespace CoupledField {
     void Init(const TYPE entry = TYPE());
 
     //! True, if vector is empty
-    inline Boolean IsEmpty() const {return (size_? FALSE : TRUE);}
+    inline bool IsEmpty() const {return (size_? false : true);}
   
     //! Returns capacity of the vector
     inline UInt Capacity() const {return capacity_;}
@@ -119,10 +119,10 @@ namespace CoupledField {
     Integer Find(const TYPE &x) const;
 
     //! Overloading of operation equal for Vector
-    Boolean operator== (const StdVector &) const;
+    bool operator== (const StdVector &) const;
   
     //! Overloading of operation not equal for Vector
-    Boolean operator!= (const StdVector &) const;
+    bool operator!= (const StdVector &) const;
   
 
     // ******************************************************

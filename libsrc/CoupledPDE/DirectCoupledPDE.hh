@@ -62,10 +62,6 @@ namespace CoupledField {
     //! define algebraic system 
     void DefineAlgSys();
 
-    //! return number of restraints
-    UInt GetNumRestraints();
-  
-
     //@{
     //! store the new solution returned by the algebraic system
     //! \param ptSol pointer to solution array
@@ -120,38 +116,6 @@ namespace CoupledField {
   
     //! calculate coupling terms
     void CalcOutputCoupling();
-
-  
-    // ======================================================
-    // METHODS FOR ASSEMBLING
-    // ======================================================
-  
-    //! specify type of system matrix for AlgebraicSystem
-    void AssembleMatrices();
-  
-    //! setup source term
-    void AssembleSrcRHS(const Double time=0);
-  
-    //!  assemble a nonlinear RHS part
-    void AssembleNLRHS(const Double time=0);
-  
-    //!  assemble a spring into the system matrix
-    void AssembleSprings(const Double time=0);
-
-    //! assemble special equations into the system (done by the PDE)
-    void AssembleSpecial( );
-
-    //! Initialize all matrices with nonlinear behavior
-    void InitNonLinMatrices();
-  
-    //! constructes the matrix graph by providing to the algebraic system the element connectivities
-    void SetupMatrixGraph();
-
-    //! sets the actual frequency (just needed for harmonic analysis)
-    void SetFrequency(Double actFreq);
-    
-    //! trigger the reassmbling of the matrices
-    void SetReassemble();
 
   private:
 

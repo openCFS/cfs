@@ -15,7 +15,8 @@ class SmoothInt : public BDBInt
 public:
 
   //! Constructor
-  SmoothInt(BaseMaterial* matData, SubTensorType type = FULL);
+  SmoothInt(BaseMaterial* matData, SubTensorType type = FULL,
+            bool coordUpdate = false );
   
   //! Destructor
   virtual ~SmoothInt();

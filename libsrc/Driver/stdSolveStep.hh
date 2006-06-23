@@ -14,16 +14,18 @@ namespace CoupledField
   class StdPDE;
   class Assemble;
   class BaseNodeStoreSol;
-  class NodeEQN;
   class TimeStepping;
   class WriteResults;
+  class EqnMap;
+  class ResultDof;
   
   //! Derived class for step-wise solving of StdPDEs
-
-  class StdSolveStep : public BaseSolveStep
-  {
+  class StdSolveStep : public BaseSolveStep {
 
   public:
+
+    // public typedefs
+    typedef StdVector<shared_ptr<ResultDof> > ResultList;
 
     //! Constructor
     StdSolveStep(StdPDE& apde);
@@ -35,20 +37,16 @@ namespace CoupledField
     //----------------------- STATIC---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    //!\param reset TRUE: perfrom new assembly, etc
-    virtual void PreStepStatic( const Boolean reset );
+    virtual void PreStepStatic();
  
     //! base method for solving one static step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void SolveStepStatic( const Boolean reset );
+    virtual void SolveStepStatic();
 
     //! solves for one linear static step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void StepStaticLin( const Boolean reset );
+    virtual void StepStaticLin();
 
     //! solves for one nonlinear static step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void StepStaticNonLin( const Boolean reset );
+    virtual void StepStaticNonLin();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepStatic();
@@ -57,45 +55,36 @@ namespace CoupledField
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void PreStepTrans( const Boolean reset );
+    virtual void PreStepTrans();
     
     //! base method for solving one transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void SolveStepTrans( const Boolean updatesysmat );
+    virtual void SolveStepTrans();
 
     //! solves for one linear transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void StepTransLin( const Boolean updatesysmat );
+    virtual void StepTransLin();
 
     //! solves for one nonlinear transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void StepTransNonLin( const Boolean updatesysmat );
+    virtual void StepTransNonLin();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
 
     //----------------------- HARMONIC---------------------------------------
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void PreStepHarmonic( const Boolean reset );
+    virtual void PreStepHarmonic();
 
     //!  base method for solving one harmonic step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void SolveStepHarmonic( const Boolean reset );
+    virtual void SolveStepHarmonic();
     
     //! solves for one linear frequency step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void StepHarmonicLin( const Boolean reset );
+    virtual void StepHarmonicLin();
 
     //! solves for one nonlinear frequency step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void StepHarmonicNonLin( const Boolean reset )
+    virtual void StepHarmonicNonLin()
     {Error("Harmonic step not implemented!",__FILE__,__LINE__);};
     
     //!  routine for actions after the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void PostStepHarmonic( const Boolean reset ) {;};
+    virtual void PostStepHarmonic() {;};
     
 
     //----------------------- HARMONIC ---------------------------------------
@@ -128,7 +117,7 @@ namespace CoupledField
 
     //! does a line search and returns the optimal residual norm
     Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
-                      Double& etaLineSearch, Boolean trans=FALSE);
+                      Double& etaLineSearch, bool trans=false);
 
     //! returns that L2-norm of an algsys vector
     Double AlgsysL2Norm(Double * pt);
@@ -149,6 +138,7 @@ namespace CoupledField
       return hyst_[iSD];
     };
 
+
   protected:
 
 
@@ -162,7 +152,7 @@ namespace CoupledField
     std::string pdename_;            //!< name of PDE 
     UInt numPDENodes_;            //!< number of nodes belonging to the PDE
     UInt numPDEElems_;            //!< number of elements belonging to PDE
-    Boolean isaxi_;                  //!< TRUE: axisymmetric problem
+    bool isaxi_;                  //!< true: axisymmetric problem
     StdVector<RegionIdType> subdoms_;//!< subdomain-levels belonging to PDE
 
     //! Pointer to material data of PDE
@@ -171,26 +161,29 @@ namespace CoupledField
     Grid * ptgrid_;                  //!< pointer to grid object
     BaseSystem* algsys_;             //!< pointer to algsys object
     BaseNodeStoreSol * sol_;         //!< pointer to solution object
-    NodeEQN * eqnData_;              //!< pointer to equation object
+    shared_ptr<EqnMap> eqnMap_;
+    ResultList results_;
     Assemble * assemble_;            //!< pointer to assemble object  
-    WriteResults * outFile_;         //!< pointer to result file
     //! factors for computingn effective system matrix
     std::map<FEMatrixType,Double> matrix_factor_;   
     
     TimeStepping * TS_alg_;        //!< pointer to time-stepping object
                                    //!< our solution
-    Boolean recalc_;               //!< flag indicating reassembling of system matrix
+    bool recalc_;               //!< flag indicating reassembling of system matrix
 
     std::string lineSearch_;   //!< switch for lineSearch
-    Boolean nonLin_;           //!< flag for nonlinear calculations
-    Boolean isHyst_;           //!< flag for hystersis modeling
+    bool nonLin_;           //!< flag for nonlinear calculations
+    bool isHyst_;           //!< flag for hystersis modeling
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
-    Boolean nonLinLogging_;    //!< log progress of non-linear iterations
+    bool nonLinLogging_;    //!< log progress of non-linear iterations
     StdVector<NonLinPDE> nonLinPDEName_;//!< some PDEs carry a name (->acoustics!)
 
+    //! size of rhs and algsys vector
+    UInt numEqns_;
+    
     Vector<Double> solIncr_;   //! needed in iterative coupled computation 
     Vector<Double> actSol_;    //! needed in iterative coupled computation 
 
@@ -204,9 +197,6 @@ namespace CoupledField
 
     //! Identification tag for second PDE (coupled case)
     PdeIdType pdeId2_;
-
-    //! counts the number of resets
-    UInt numReset_;
 
   };
 

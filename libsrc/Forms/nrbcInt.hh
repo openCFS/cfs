@@ -12,26 +12,24 @@ namespace CoupledField
   {
   public:
     // Constructor
-    NrbcInt(BaseFE * aptelemt, Double aDensity, UInt nrbcMatType, Boolean axi=FALSE);
+    NrbcInt(const Double aDensity, const UInt nrDofsPerNode=1, bool axi=false);
 
     // Constructor
-    NrbcInt(const Double aDensity, const UInt nrDofsPerNode=1, Boolean axi=FALSE);
-
-    // Constructor
-    NrbcInt(const Double aDensity, const UInt nrDofsPerNode, UInt nrbcMatType, Boolean axi=FALSE);
+    NrbcInt(const Double aDensity, const UInt nrDofsPerNode, UInt nrbcMatType, bool axi=false);
 
     // Destructor
     virtual ~NrbcInt();
 
     //! Calculation of stiffmess matrix
-    void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMa);
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+      
   
     //! set additional multiplicative factor of nrbc matrix
     void SetFactor(Double aFactor) 
     {factor_ = aFactor;};
    
-    virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
-
   protected:
     //! generates a multi-dof-matrix with similar entries for all dofs
     virtual void NRBCMultiDof(Matrix<Double>& nrbcMultDof,

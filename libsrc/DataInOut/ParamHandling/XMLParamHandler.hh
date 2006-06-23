@@ -264,16 +264,16 @@ namespace CoupledField {
     void GetCoilType( std::string &coilType, const std::string coilName,
                       const std::string pde ="" );
 
-    Boolean IsSet( const std::string key,
+    bool IsSet( const std::string key,
                    const std::string section = "",
                    const std::string subsection = "" );
 
 
-    Boolean ContainElem( StdVector<std::string> &keyVec,
+    bool ContainElem( StdVector<std::string> &keyVec,
                          StdVector<std::string> &attrVec,
                          StdVector<std::string> &valVec );
 
-    Boolean HasValue( const std::string key,
+    bool HasValue( const std::string key,
                       const std::string value,
                       const std::string section = "",
                       const std::string subsection = "" );
@@ -442,11 +442,11 @@ namespace CoupledField {
 
     //! This method will try to determine, whether for a given set of search
     //! parameters a default value exists. If this is the case, then the
-    //! method will return TRUE and defaultValue will contain the default
+    //! method will return true and defaultValue will contain the default
     //! value of the parameter in string format. If there is no default
-    //! parameter specified, then the method will return FALSE and
+    //! parameter specified, then the method will return false and
     //! defaultValue will be set to the empty string.
-    Boolean CheckForDefault(  const StdVector<std::string> &keyVec,
+    bool CheckForDefault(  const StdVector<std::string> &keyVec,
                               const StdVector<std::string> &attrVec,
                               const StdVector<std::string> &valVec,
                               std::string &defaultValue );
@@ -730,11 +730,11 @@ namespace CoupledField {
     //! This method will determine the value of the specified attribute of a
     //! given element as standard string. If the element does not posses an
     //! attribute with the specified keyword, the return string is empty and
-    //! the method returns FALSE.
+    //! the method returns false.
     //! \param element  The element
     //! \param keyword  Name of element's attribute
     //! \param attrVal  Value of element's attribute
-    Boolean GetElementAttribute( xercesc::DOMElement* element,
+    bool GetElementAttribute( xercesc::DOMElement* element,
                                  const std::string keyword,
                                  std::string &attrVal );
 

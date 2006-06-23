@@ -40,10 +40,10 @@ namespace CoupledField
     */
     LinStrainOp(Grid * ptGrid,
                 StdPDE * ptPDE,
-                NodeEQN * ptEQN,
+                shared_ptr<EqnMap> eqnMap,
                 NodeStoreSol<TYPE> & displacement_,
                 const SolutionType solType,
-                Boolean isaxi=FALSE);
+                bool isaxi=false);
  
     //! Destructor
     virtual ~LinStrainOp();

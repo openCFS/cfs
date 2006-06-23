@@ -11,14 +11,14 @@ namespace CoupledField {
   public:
     
     //! Standard constructor
-    PressureLinForm( Double aVal, Boolean isaxi );
+    PressureLinForm( Double aVal, bool isaxi );
     
     //! Destructor
     virtual ~PressureLinForm();
     
     //! Calculation of vector of right hand side 
-    virtual void CalcElemVector(Matrix<Double>& ptCoord, 
-                                Vector<Double> & elemVec);
+    void CalcElemVector( Vector<Double> & elemVec,
+                         EntityIterator& ent );
     
   protected:
     

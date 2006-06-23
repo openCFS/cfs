@@ -43,11 +43,11 @@ namespace CoupledField
       \param subsubsection etc.
     */
 
-    Boolean ifget(const std::string keyword, std::string & val, const std::string section="", const std::string subsection="", 
+    bool ifget(const std::string keyword, std::string & val, const std::string section="", const std::string subsection="", 
                   const std::string subsubsection="");
-    Boolean ifget(const std::string keyword, Integer & val, const std::string section="", const std::string subsection="", 
+    bool ifget(const std::string keyword, Integer & val, const std::string section="", const std::string subsection="", 
                   const std::string subsubsection="");
-    Boolean ifget(const std::string keyword, Double & val,const std::string section="", const std::string subsection="", 
+    bool ifget(const std::string keyword, Double & val,const std::string section="", const std::string subsection="", 
                   const std::string subsubsection="");
 
 
@@ -75,24 +75,24 @@ namespace CoupledField
     void getCoilData(coilDefStruct &acoil, const std::string section, const std::string subsection);
 
 
-    //! use only in cases when value of keyword is yes/no. if the keyword is absent in file, then return FALSE
+    //! use only in cases when value of keyword is yes/no. if the keyword is absent in file, then return false
     /*!
       \param keyword keyword for the value in config-file
       \param section name of a section in which keyword there is
       \param subsection name of a subsection of the section in which keyword there is
       \param subsubsection etc.
     */
-    Boolean get_option(const std::string keyword, const std::string section="", 
+    bool get_option(const std::string keyword, const std::string section="", 
                        const std::string subsection = "", const std::string subsubsection = "");
 
-    //! use only in cases when value of keyword is yes/no. if the keyword is absent in file, then return FALSE; if value of keyword is no, return TRUE
+    //! use only in cases when value of keyword is yes/no. if the keyword is absent in file, then return false; if value of keyword is no, return true
     /*!
       \param keyword keyword for the value in config-file
       \param section name of a section in which keyword there is
       \param subsection name of a subsection of the section in which keyword there is
       \param subsubsection etc.
     */
-    Boolean get_optionNo(const std::string keyword, const std::string section="", 
+    bool get_optionNo(const std::string keyword, const std::string section="", 
                          const std::string subsection = "", const std::string subsubsection = "");
 
 
@@ -141,7 +141,7 @@ namespace CoupledField
       \param section name of a section in which keyword is there. can be omitted
       \param subsection name of a subsection of the section in which keyword is there. can be omitted
     */
-    Boolean ifgetliststr(const std::string seekexp, StdVector<std::string> & pdes, 
+    bool ifgetliststr(const std::string seekexp, StdVector<std::string> & pdes, 
                          const std::string section="", const std::string subsection="");
 
     //! get list of subdomains for an equation, which is defined in a section 
@@ -175,15 +175,15 @@ namespace CoupledField
     //! get position in conf-file
     std::string::size_type getpos(const std::string keyword, 
                                   const std::string::size_type startpos=0, 
-                                  Boolean inSection=FALSE,
-                                  Boolean inSubSection=FALSE,
-                                  Boolean writeErr=TRUE);
+                                  bool inSection=false,
+                                  bool inSubSection=false,
+                                  bool writeErr=true);
   
     //! get position of section in conf-file
-    std::string::size_type getsectionpos(const std::string keyword, const std::string::size_type startpos=0, Boolean writeErr=TRUE);
+    std::string::size_type getsectionpos(const std::string keyword, const std::string::size_type startpos=0, bool writeErr=true);
 
     //! get poistion of subsection in conf-file
-    std::string::size_type getsubsectionpos(const std::string keyword, const std::string::size_type startpos=0, Boolean writeErr=TRUE);
+    std::string::size_type getsubsectionpos(const std::string keyword, const std::string::size_type startpos=0, bool writeErr=true);
   
 
 

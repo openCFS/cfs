@@ -2,79 +2,47 @@
 #include <fstream>
 
 #include "baseForm.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
 
 namespace CoupledField
 {
 
-  BaseForm::BaseForm(BaseFE * aptelem, BaseMaterial* matData,
-		     SubTensorType type) 
-    : ptelem(aptelem), isaxi_(FALSE), subTensorType_(type),
-      isFracDamping_(FALSE), isRaylDamping_(FALSE), dofzero_(0)
-  {
-    ENTER_FCN( "BaseForm::BaseForm" );
-    isSetIntPoint_ = FALSE;
-    matDataType_ = REAL;
-
-    // We generate the object, so we will delete it
-    //    Error("Copy constructor not implemented",__FILE__,__LINE__);
-    ptMaterial = matData;
-    delMatDataAtEnd_ = true;
-
-    baseType_ = NOTYPE;
-    materialArray_ = NULL;
-    softeningModel_ = "no";
-  }
-
-  BaseForm::BaseForm(BaseMaterial* matData, SubTensorType type)
-    :isaxi_(FALSE), subTensorType_(type), isFracDamping_(FALSE), 
-     isRaylDamping_(FALSE), dofzero_(0)
-  {
-    ENTER_FCN( "BaseForm::BaseForm" );
-    isSetIntPoint_ = FALSE;
-    ptMaterial = matData;
-
-    // We generate the object, so we will delete it
-    matDataType_ = REAL;
-    delMatDataAtEnd_ = true;
-
-    baseType_ = NOTYPE;
-    materialArray_ = NULL;
-    softeningModel_ = "no";   
-  }
-
-  BaseForm::BaseForm(BaseFE * aptelem)
-    : ptelem(aptelem), isaxi_(FALSE), isFracDamping_(FALSE), 
-      isRaylDamping_(FALSE), dofzero_(0)
-  {
-    ENTER_FCN( "BaseForm::BaseForm" );
-    isSetIntPoint_ = FALSE;
-    matDataType_ = REAL;
-
-    // We do not generate the object, so we will not delete it
-    ptMaterial = NULL;
-    delMatDataAtEnd_ = false;
-
-    baseType_ = NOTYPE;
-    materialArray_ = NULL;
-    softeningModel_ = "no";
-  }
  
-  BaseForm::BaseForm()
-    : isaxi_(FALSE), isFracDamping_(FALSE), 
-      isRaylDamping_(FALSE), dofzero_(0)
+
+
+  BaseForm::BaseForm(BaseMaterial* matData, SubTensorType type, 
+                     bool coordUpdate )
+    : coordUpdate_( coordUpdate),
+      isaxi_(false), 
+      subTensorType_(type), 
+      isFracDamping_(false)
   {
     ENTER_FCN( "BaseForm::BaseForm" );
-    isSetIntPoint_ = FALSE;
-    matDataType_ = REAL;
+    isSetIntPoint_ = false;
+    ptMaterial = matData;
+    ptelem = NULL;
+    sol_ = NULL;
+    solDeriv1_ = NULL;
+    solDeriv2_ = NULL;
 
-    // We do not generate the object, so we will not delete it
-    ptMaterial = NULL;
-    delMatDataAtEnd_ = false;
+    // We generate the object, so we will delete it
+    matDataType_ = REAL;
+    delMatDataAtEnd_ = true;
 
     baseType_ = NOTYPE;
-    materialArray_ = NULL;
-    softeningModel_ = "no";
+    isSolDependent_ = false;
+    softeningModel_ = "no";   
+
+    // Get grip of a new math parser object.
+    // This object has per default the variable
+    // f (harmonic) or t (transient) registered with the
+    // current value
+    mHandle_ =  domain->GetMathParser()->GetNewHandle();
+    mParser_ = domain->GetMathParser();
   }
+
+ 
  
 
 
@@ -83,6 +51,9 @@ namespace CoupledField
   // **************
   BaseForm::~BaseForm() {
     ENTER_FCN( "BaseForm::~BaseForm" );
+
+    // Release math parser object
+    mParser_->ReleaseHandle( mHandle_ );
 
 //     if ( delMatDataAtEnd_ == true ) {
 //       delete ptMaterial;
@@ -107,30 +78,20 @@ namespace CoupledField
     delMatDataAtEnd_ = false;
   }
 
-
-  void BaseForm::CalcElementMatrix(Matrix<Double>& ptCoord, Matrix<Double>& elemMat) 
-  {
-    ENTER_FCN( "BaseForm::CalcElemMatrix" );
-    Error(" Function BaseForm::CalcElementMatrix is virtual. You can use it for derived classes.",__FILE__,__LINE__);
-  }
-
-
-  void BaseForm::CalcComplexElementMatrix(Matrix<Double>& ptCoord, Matrix<Complex>& elemMat, Double & beta, Double & omega) 
-  {
-    ENTER_FCN( "BaseForm::CalcComplexElemMatrix" );
-    Error(" Function BaseForm::CalcComplexElementMatrix is virtual. You can use it for derived classes.",__FILE__,__LINE__);
-  }
+ 
   
-  void BaseForm::Print(std::ostream * out, const Matrix<Double> Result) const
-  {
-    ENTER_FCN( "BaseForm::Print" );
-    Error(" Function BaseForm::Print is virtual. You can use it for derived classes.",__FILE__,__LINE__);
+  void BaseForm::ExtractElemInfo( EntityIterator& it ) {
+    ptelem = it.GetElem()->ptElem;
+    
+    domain->GetGrid()->GetElemNodesCoord( ptCoord_, 
+                                          it.GetElem()->connect,
+                                          coordUpdate_ );
   }
-
 
   // ------------- SURFACE BILINEAR FORMS -------------
 
-  SurfForm::SurfForm() {
+  SurfForm::SurfForm() 
+    : BaseForm( NULL ){
     ENTER_FCN( "SurfForm::SurfForm" );
 
     factor_ = 1.0;
@@ -168,4 +129,17 @@ namespace CoupledField
     factor_ = factor;
   } 
   
+  void SurfForm::ExtractElemInfo( EntityIterator& it ) {
+    ptelem = it.GetElem()->ptElem;
+    
+    if( it.GetType() == EntityList::SURF_ELEM_LIST ) {
+      actElem_ = it.GetSurfElem();
+      domain->GetGrid()->CalcSurfNormal(normal_,*actElem_ );
+      normal_ *= (Double) actElem_->normalSign;
+    }
+
+    domain->GetGrid()->GetElemNodesCoord( ptCoord_, 
+                                          it.GetElem()->connect,
+                                          coordUpdate_ );
+  }
 }

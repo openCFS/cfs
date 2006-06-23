@@ -4,9 +4,10 @@
 namespace CoupledField {
   
   
-  AbsorbingBCsInt::AbsorbingBCsInt(Boolean isAxi) {
+  AbsorbingBCsInt::AbsorbingBCsInt(bool isAxi) {
     ENTER_FCN( "AbsorbingBCsInt::AbsorbingBCsInt" );
 
+    name_ = "AbsorbingBCsInt";
     isaxi_ = isAxi;
     factor_ = 1.0;
     
@@ -16,10 +17,14 @@ namespace CoupledField {
     ENTER_FCN( "AbsorbingBCsInt::~AbsorbingBCsInt" );
   }
 
-  void AbsorbingBCsInt::CalcElementMatrix(Matrix<Double>& ptCoord, 
-                                          Matrix<Double> & elemMat) {
+  void AbsorbingBCsInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                           EntityIterator& ent1, 
+                                           EntityIterator& ent2 ) {
     ENTER_FCN( "AbsorbingBCsInt::CalcElementMatrix" );
-    
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
     UInt j = 0;
     Double jacDet, factor, density, compressibility;
     
@@ -52,10 +57,11 @@ namespace CoupledField {
 
     // 2) Calculate a normal mass matrix
     elemMat.Resize(nrNodes);
+    elemMat.Init();
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
         
       ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt);
         
@@ -65,7 +71,7 @@ namespace CoupledField {
         // For the entry 1/r things are more complicated
         coordAtIp = 0.0;
         for( j = 0; j < nrNodes; j++ ) {
-          coordAtIp += ptCoord[0][j] * shapeFncAtIp[j];
+          coordAtIp += ptCoord_[0][j] * shapeFncAtIp[j];
         }
         partElemMat *= 2 * PI * intWeights[actIntPt-1] 
           * factor * jacDet * coordAtIp;

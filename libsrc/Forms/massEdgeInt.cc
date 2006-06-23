@@ -7,9 +7,14 @@ namespace CoupledField
 {
 
 
-  void MassEdgeInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
-  {
+  void MassEdgeInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                       EntityIterator& ent1, 
+                                       EntityIterator& ent2 ) {
     ENTER_FCN( "MassEdgeInt::CalcElemMatrix" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrEdges  = ptelem->GetNumEdges();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -24,13 +29,14 @@ namespace CoupledField
   
     // set matrix to desired size and set all elements to zero
     elemMat.Resize(nrEdges);
+    elemMat.Init();
   
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
-        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
       
-        ptelem->CalcEdgeShapeFncAtIp(shapeEdge, actIntPt, ptCoord);
+        ptelem->CalcEdgeShapeFncAtIp(shapeEdge, actIntPt, ptCoord_);
       
         shapeEdge.Transpose(shapeEdgeTransp);
       
@@ -44,17 +50,13 @@ namespace CoupledField
   }
 
 
-  void MassEdgeInt::Print(std::ostream * out, const Matrix<Double> Result) const
-  {
-    ENTER_FCN( "MassEdgeInt::Print" );
-    (*out)<< "Mass matrix:" << std::endl << Result;
-  }
 
-
-  MassEdgeInt::MassEdgeInt(BaseFE * aptelem, Double acond)
-    : BaseForm(aptelem), conductivity_(acond)
+  MassEdgeInt::MassEdgeInt( Double acond )
+    : BaseForm( NULL ), conductivity_(acond)
   {
     ENTER_FCN( "MassEdgeInt::MassEdgeInt" );
+
+    name_ = "MassEdgeInt";
   }
 
 

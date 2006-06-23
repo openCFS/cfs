@@ -4,7 +4,6 @@ include ../../main/Makefile.option
 #
 src = ODESolver_RKF45.cc ODESolver_ExplEuler.cc  ODESolver_Rosenbrock.cc
 #
-lib = odesolve
 CFLAGS3 =
 #
 include ../makefile.inc

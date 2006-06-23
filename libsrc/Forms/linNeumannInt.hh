@@ -12,13 +12,14 @@ namespace CoupledField
   public:
     
     //! Standard constructor
-    LinNeumannInt( Double amplitude, MaterialType materialParam, Boolean isaxi );
+    LinNeumannInt( Double amplitude, MaterialType materialParam, bool isaxi );
     
     //! Destructor
     ~LinNeumannInt();
 
     /// Calculation of vector of right hand side 
-    void CalcElemVector( Matrix<Double>& ptCoord, Vector<Double> & elemVec );
+    void CalcElemVector( Vector<Double> & elemVec,
+                         EntityIterator& ent );
     
   protected:
 

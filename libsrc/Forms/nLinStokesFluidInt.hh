@@ -17,8 +17,6 @@ namespace CoupledField
 class nLinStokesFluidInt : public StokesFluidInt
 {
 public:
-  /// Constructor
-  //nLinStokesFluidInt(BaseFE * aptelem, Double density, Double dynamicViscosity);
 
   /// Constructor
   nLinStokesFluidInt(Double density, Double dynamicViscosity);
@@ -48,12 +46,6 @@ public:
 
 
 protected:    
-  /// Calculation of stiffmess matrix
-  virtual void CalcElementMatrix(Matrix<Double> & ptCoord, 
-                                 Matrix<Double> & elemMat) {
-    Error( "nLinStokesFluidInt::CalcElementMatrix() not correctly overwritten!",
-             __FILE__, __LINE__);
-  };
 
   /// element matrix containing the convective term (v*dv/dx)
 //  virtual void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
@@ -61,8 +53,6 @@ protected:
   /// displacement of all nodes of actual element
   Matrix<Double> elemVelocity_;
 
-
-  char * className;
 };
   
   // =============================================================================
@@ -76,10 +66,6 @@ class nLinStokesFluid3DInt_Convective : public nLinStokesFluidInt
 public:
 
   /// Constructor
-//  nLinStokesFluid3DInt_Convective(BaseFE * aptelem, 
-//                                  Double density, Double dynamicViscosity);
-
-  /// Constructor
   nLinStokesFluid3DInt_Convective(Double density, Double dynamicViscosity);
 
   
@@ -87,9 +73,10 @@ public:
   virtual ~nLinStokesFluid3DInt_Convective();  
   
 protected:  
-/// Calculation of stiffmess matrix
-  virtual void CalcElementMatrix(Matrix<Double> & ptCoord,
-                                 Matrix<Double> & elemMat); 
+  /// Calculation of stiffmess matrix
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
                                  
   /// returns nr. of degrees of freedom
   virtual UInt getNrDofs(){return 8;};
@@ -114,9 +101,10 @@ public:
   virtual ~nLinStokesFluidPlaneInt_Convective();  
   
 protected:  
-/// Calculation of stiffmess matrix
-  virtual void CalcElementMatrix(Matrix<Double> & ptCoord,
-                                 Matrix<Double> & elemMat); 
+  /// Calculation of stiffmess matrix
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
                                  
   /// returns nr. of degrees of freedom
   virtual UInt getNrDofs(){return 4;};  
@@ -142,9 +130,10 @@ public:
   virtual ~nLinStokesFluidAxiInt_Convective();  
   
 protected:  
-/// Calculation of stiffmess matrix
-  virtual void CalcElementMatrix(Matrix<Double> & ptCoord,
-                                 Matrix<Double> & elemMat); 
+  /// Calculation of stiffmess matrix
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
                                  
   /// returns nr. of degrees of freedom
   virtual UInt getNrDofs(){return 4;};  
@@ -157,13 +146,13 @@ public:
   /// constructor
   nLinStokesFluid_linFormInt(Double density,
                              Double dynamicViscosity,
-                             Boolean axi=FALSE);
+                             bool axi=false);
 
   /// destructor
   virtual ~nLinStokesFluid_linFormInt();
 
   /// Calculation of vector of right hand side 
-  virtual void CalcElemVector(Matrix<Double>& ptCoord, Vector<Double> & result);
+  virtual void CalcElemVector(Vector<Double> & elemVec, EntityIterator& it);
 
   /// in nonlinear calculations, the actual velocity of the element is needed
   /*!

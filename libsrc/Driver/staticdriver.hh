@@ -19,7 +19,7 @@ namespace CoupledField {
                  UInt stepOffset = 0,
                  Double timeOffset = 0.0,
                  std::string driverTag = "anyTag",
-                 Boolean isPartOfSequence = FALSE);
+                 bool isPartOfSequence = false);
 
     //! Destructor 
     ~StaticDriver();

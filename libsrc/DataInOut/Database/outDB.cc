@@ -52,7 +52,7 @@ namespace CoupledField
 
     dbLineData d("Calculation");
     d.Set("idx","0");
-    d.Set("stamp","NULL",FALSE);
+    d.Set("stamp","NULL",false);
     d.Set("inputparam_idx",InputParamIdx_);
     d.Set("solution_type","1");
     d.Set("analysis_type","1");
@@ -490,7 +490,7 @@ namespace CoupledField
     d.Set("filename",filename);
     std::stringstream moddatestr;
     moddatestr<<"FROM_UNIXTIME("<<seconds<<")";
-    d.Set("date_modified", moddatestr.str(),FALSE);
+    d.Set("date_modified", moddatestr.str(),false);
     d.Set("file",configstring);
     InputParamIdx_ = Db_.InsertAndGetIndex(d);
   }

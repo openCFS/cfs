@@ -10,10 +10,13 @@ namespace CoupledField {
   // =====================
   //   CalcElementMatrix
   // =====================
-  void ADBInt::CalcElementMatrix( Matrix<Double> &ptCoord,
-                                  Matrix<Double> &elemMat ) {
-
+  void ADBInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                  EntityIterator& ent1, 
+                                  EntityIterator& ent2 ) {
     ENTER_FCN( "ADBInt::CalcElementMatrix" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
 
     const UInt nrIntPts = ptelem->GetNumIntPoints(); 
     const UInt nrNodes  = ptelem->GetNumNodes();   
@@ -27,6 +30,7 @@ namespace CoupledField {
     Double aux;
 
     elemMat.Resize( nrNodes * getNumDofsA(), nrNodes * getNumDofsB() );
+    elemMat.Init();
 
 
     // **************************************************
@@ -40,13 +44,13 @@ namespace CoupledField {
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
       // Setup the A matrix for current integration point
-      calcAMat( aMat, actIntPt, ptCoord );
+      calcAMat( aMat, actIntPt, ptCoord_ );
 
       // Setup the B matrix for current integration point
-      calcBMat( bMat, actIntPt, ptCoord );
+      calcBMat( bMat, actIntPt, ptCoord_ );
 
       // Compute Jacobian for integration point
-      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord );
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_ );
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
@@ -68,7 +72,7 @@ namespace CoupledField {
         Double aux = 0.0;
         
         for ( UInt i = 0; i < nrNodes; i++ ) {
-          aux += ptCoord[0][i] * ShpFncAtIp[i];
+          aux += ptCoord_[0][i] * ShpFncAtIp[i];
         }
         
         jacDet *= 2.0 * PI * aux;

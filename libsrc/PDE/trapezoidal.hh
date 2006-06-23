@@ -15,15 +15,15 @@ namespace CoupledField
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    //! \param rhsSIze total number of entries in the rhs vector
-    Trapezoidal(  BaseSystem * algebraicsystem, UInt rhsSize );
+    Trapezoidal(  BaseSystem * algebraicsystem );
 
     //! destructor
     virtual ~Trapezoidal();
   
     //! initilization
+    //! \param rhsSIze total number of entries in the rhs vector
     void Init( std::map<FEMatrixType,Double> & matrix_factors, 
-               Double dt );
+               Double dt, UInt rhsSize );
 
     //! perform predictor step
     void Predictor(Vector<Double>& solold);

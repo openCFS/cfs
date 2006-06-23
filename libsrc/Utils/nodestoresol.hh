@@ -84,7 +84,7 @@ namespace CoupledField{
     virtual ~NodeStoreSol();
 
     //! Hard coded query if values are complex
-    virtual Boolean IsComplex();
+    virtual bool IsComplex();
   
     //! Deletes all data and layout information
 
@@ -95,8 +95,8 @@ namespace CoupledField{
     void Clear();
  
     //! Set Pointer to nodal equation object
-    void SetPtrEQNData(NodeEQN * ptNodeEQN,
-                       Grid * ptGrid);  
+    void SetPtrEQNData( EqnMap * eqnMap,
+                        Grid * ptGrid );  
 
     //! Initialization of the StoreSolution-object with 0-element(REQUIRED)
   

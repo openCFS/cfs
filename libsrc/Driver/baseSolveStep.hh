@@ -23,16 +23,10 @@ namespace CoupledField
     //----------------------- STATIC---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    /*!
-       \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepStatic( const Boolean reset) = 0;
+    virtual void PreStepStatic( ) = 0;
     
     //! base method for solving one static step 
-    /*!
-       \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepStatic( const Boolean reset) = 0;
+    virtual void SolveStepStatic( ) = 0;
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic()  = 0;
@@ -41,22 +35,13 @@ namespace CoupledField
 
     //----------------------- TRANSIENT---------------------------------------
     //! routine for initilizations before execution of the SolveStep-method
-    /*!
-       \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepTrans( const Boolean reset) = 0;
+    virtual void PreStepTrans( ) = 0;
 
-    //! base method for solving one transient step 
-    /*!
-       \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepTrans(const Boolean reset) = 0;
+    //! base method for solving one transient step
+    virtual void SolveStepTrans() = 0;
 
-    //! base method for solving one transient step with slicing method 
-    /*!
-       \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepTrans4Slice(const Boolean reset)
+    //! base method for solving one transient step with slicing method
+    virtual void SolveStepTrans4Slice()
     {Error("SolveStepTrans4Slice not implemented!",__FILE__,__LINE__);};
 
     //! routine for actions after the SolveStep-method
@@ -64,22 +49,13 @@ namespace CoupledField
     
     //----------------------- HARMONIC---------------------------------------
     //! routine for initilizations before execution of the SolveStep-method
-    /*!
-      \param reset TRUE: perfrom new assembly, etc
-    */   
-    virtual void PreStepHarmonic(const Boolean reset) = 0;
+    virtual void PreStepHarmonic() = 0;
 
-    //!  base method for solving one harmonic step 
-    /*!
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepHarmonic(const Boolean reset) = 0;
+    //!  base method for solving one harmonic step
+    virtual void SolveStepHarmonic() = 0;
 
     //!  routine for actions after the SolveStep-method
-    /*!
-      \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void PostStepHarmonic(const Boolean reset) = 0;
+    virtual void PostStepHarmonic() = 0;
 
     //----------------------- HARMONIC ---------------------------------------
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
@@ -106,40 +82,16 @@ namespace CoupledField
 
     //----------------------- TRANSIENTHARMONIC------------------------------
     //! routine for initilizations before execution of the SolveStep-method
-    /*!
-       \param reset TRUE: perfrom new assembly, etc
-    */  
-    virtual void PreStepTransHarmonic( const Boolean reset)
+    virtual void PreStepTransHarmonic( )
     {Error("PreStepTransHarmonic not implemented!",__FILE__,__LINE__);};
 
-    //! base method for solving one transient-harmonic coupled step 
-    /*!
-       \param reset TRUE: perfrom new assembly, etc
-    */
-    virtual void SolveStepTransHarmonic(const Boolean reset)
+    //! base method for solving one transient-harmonic coupled step
+    virtual void SolveStepTransHarmonic()
     {Error("SolveStepTransHarmonic not implemented!",__FILE__,__LINE__);};
 
     //! routine for actions after the SolveStep-method
     virtual void PostStepTransHarmonic()
     {Error("PostStepTransHarmonic not implemented!",__FILE__,__LINE__);};
-
-
-    //----------------------- SPECIAL FUNCTIONS ------------------------------
-    //! transform solution and derivatives due to slicing technique
-    virtual void TransformSol4Slice(UInt & shiftFactor, UInt & nodeShift,
-		UInt & elemgrid, Double &  meshsize, const UInt flag)
-    {Error("TransformSol4Slice not implemented", __FILE__, __LINE__); };
-
-    //! save important nodes for the a post analysis
-    //! \param shiftFactor number of nodes in x and y direction
-    //! \param numShift how many shifts have been made
-    //! \param nodeShift how many nodes have been shifted
-    //! save solution of special nodes
-    virtual void SaveNodes(const UInt shiftFactor, const Double timeStep,
-		   const UInt numShift, const Integer nodeShift, 
-		   const UInt maxnumelemz_)
-    {Error("TransformSol4Slice not implemented",__FILE__, __LINE__); };
-
 
 
     //----------------------- SET/ GET METHODS--------------------------------

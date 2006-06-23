@@ -14,15 +14,15 @@ namespace CoupledField
   public:
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    //! \param rhsSize total number of entries in the rhs vector
-    Newmark( BaseSystem * algebraicsystem, UInt rhsSize );
+    Newmark( BaseSystem * algebraicsystem );
 
     //! destructor
     virtual ~Newmark();
   
     //! initilization
+    //! \param rhsSize total number of entries in the rhs vector
     void Init( std::map<FEMatrixType,Double> & matrix_factors,
-               Double dt );
+               Double dt, UInt rhsSize );
 
     //! perform predictor step
     void Predictor(Vector<Double>& solold);
@@ -54,7 +54,7 @@ namespace CoupledField
     //@}
 
     //! flag indicating if damping matrix is needed
-    Boolean damping_;
+    bool damping_;
 
     //! predictor for nodal solution
     Vector<Double> solpred_;
@@ -72,15 +72,15 @@ namespace CoupledField
     //! constructor
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    //! \param rhsSIze total number of entries in the rhs vector
-    NewmarkEffMass( BaseSystem * algebraicsystem, UInt rhsSize );
+    NewmarkEffMass( BaseSystem * algebraicsystem );
 
     //! destructor
     virtual ~NewmarkEffMass();
   
     //! initilization
+    //! \param rhsSIze total number of entries in the rhs vector
     void Init( std::map<FEMatrixType,Double> & matrix_factors, 
-               Double dt );
+               Double dt, UInt rhsSize );
     
     //! perform predictor step
     void Predictor(Vector<Double>& solold);
@@ -118,7 +118,7 @@ namespace CoupledField
     //@}
 
     //! flag indicating if damping matrix is needed
-    Boolean damping_;
+    bool damping_;
     
     //! nodal solution
     Vector<Double> sol_;

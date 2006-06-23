@@ -87,8 +87,9 @@ namespace CoupledField
     StdVector<CouplingInputType>  InputType;
     StdVector<SolutionType> InputQuantity;
     StdVector<SolutionType> couplingTermsConv;
-    StdVector<Boolean> inputOptionality;
+    StdVector<bool> inputOptionality;
     Couplings.Resize(MyCoupledPDE->GetNumPDEs());
+    Couplings.Init( NULL );
 
     StdVector<std::string> keyVec, attrVec, valVec;
     StdVector<std::string> couplingTerms;
@@ -119,10 +120,10 @@ namespace CoupledField
               for (UInt k=0; k<couplingTerms.GetSize(); k++)
                 String2Enum(couplingTerms[k],couplingTermsConv[k]);
 
-              Boolean found = FALSE;
+              bool found = false;
               for (UInt k=0; k<couplingTermsConv.GetSize(); k++)
                 if (couplingTermsConv[k] == InputQuantity[j])
-                  found = TRUE;
+                  found = true;
 
               if (found) {
                 Couplings[i]->RegisterInput(InputType[j], InputQuantity[j]);
@@ -164,7 +165,7 @@ namespace CoupledField
   void Definition::AddInputCoupling(std::string PDEName, 
                                     CouplingInputType InType, 
                                     SolutionType Quantity,
-                                    Boolean optionalCoupling) //"optionalCoupling" is by default FALSE
+                                    bool optionalCoupling) //"optionalCoupling" is by default false
   {
     ENTER_FCN( "Definition::AddCoupling" );
 

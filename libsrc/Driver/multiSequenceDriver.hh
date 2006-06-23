@@ -38,6 +38,14 @@ namespace CoupledField
     //! it is for transient and static problem
     void SolveProblem();
 
+    //! Return current analysistype
+    
+    //! Returns the current analysistype. 
+    //! \param pdeName Name of the pdename in case there is a coexistence
+    //!                of two different analysistypes in one analysisstep
+    //!                (e.g. transient-harmonic)
+    AnalysisType GetAnalysisType( const std::string& pdename );
+
   private:
 
     //! initializes the multiStepSequence
@@ -46,7 +54,10 @@ namespace CoupledField
     //! number of sequence steps
     UInt numSteps_;
 
-    //! current time step
+    //! current sequence step
+    UInt curSequenceStep_;
+
+    //! current time/frequency step
     UInt actStep_;
   
     //! current time

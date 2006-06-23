@@ -210,17 +210,17 @@ namespace CoupledField {
     tensorMap tensorParamsOrig_;
 
     //! material data is scalar
-    Boolean isScalar;
+    bool isScalar;
 
     //! material data is isotrop
-    Boolean isIsotrop;
+    bool isIsotrop;
 
     //! material data is orthotrop
-    Boolean isOrthotrop;
+    bool isOrthotrop;
 
 
     //! material data is a tensor
-    Boolean isTensor;
+    bool isTensor;
 
   };
 

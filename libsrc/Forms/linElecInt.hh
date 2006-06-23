@@ -24,11 +24,9 @@ namespace CoupledField {
 
     //@{ \name Construction and destruction
 
-    //! Default constructor
-    linElecInt(SubTensorType type = FULL);
-
     //! Constructor with material data
-    linElecInt( BaseMaterial* matData, SubTensorType type = FULL);
+    linElecInt( BaseMaterial* matData, SubTensorType type = FULL,
+                bool geoUpdate = false );
 
     //! Destructor
     ~linElecInt() {

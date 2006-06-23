@@ -31,15 +31,15 @@ namespace CoupledField
     // pdename_ is also acoustic for this case
     pdename_          = "acoustic";
     pdematerialclass_ = FLUID;
-    nodalSrc_ = FALSE;
-    vortexSrc_ = FALSE;
-    plotRHS_ = FALSE; 
-    plotRHSVel_= FALSE;
-    isHarmonic_=FALSE;
+    nodalSrc_ = false;
+    vortexSrc_ = false;
+    plotRHS_ = false; 
+    plotRHSVel_= false;
+    isHarmonic_=false;
     vortexFlag_=0;
 
     if( params->IsSet( "valRHS","pdeList" ,"acoustic" ) ) {
-      plotRHS_ = TRUE;
+      plotRHS_ = true;
       Info->PrintF(pdename_, "Writing RHS as solution of problem\n" );
     }
 
@@ -47,14 +47,14 @@ namespace CoupledField
     StdVector<std::string> regionNames, coupledRegionNames;
 
     //For writing fine vortex flow field in files for later MpCCI exchange
-      writeGridFile_ = FALSE;
-      writeSrcFileperTS_ = FALSE;
+      writeGridFile_ = false;
+      writeSrcFileperTS_ = false;
     if( params->IsSet( "writeCoupledGrid","pdeList" ,"acoustic" ) ) {
-      writeGridFile_ = TRUE;
+      writeGridFile_ = true;
       Info->PrintF("acoustic","Writing grid def. file of coupled domain\n");
     }
     if( params->IsSet( "writeSrcFileperTS","pdeList" ,"acoustic" ) ) {
-      writeSrcFileperTS_ = TRUE;
+      writeSrcFileperTS_ = true;
       Info->PrintF("acoustic","Writing coarse sources of coupled domain in time files (NrFiles=NrTimeSteps)\n");
     }
     if (writeGridFile_)
@@ -71,7 +71,7 @@ namespace CoupledField
 #ifdef MpCCI
     //check type of flow data
     if( params->HasValue( "type", "nodalSrc", pdename_, "flowData" ) ) {
-      nodalSrc_ = TRUE;
+      nodalSrc_ = true;
       Info->PrintF(pdename_, " Using FlowData as RHS nodal source\n" );
     }
 
@@ -81,8 +81,8 @@ namespace CoupledField
     ptgrid_->RegionNameToId( subdoms_, regionNames );
     ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
 
-    Boolean OnlyLinNodes=TRUE;
-    Boolean Find=FALSE;
+    bool OnlyLinNodes=true;
+    bool Find=false;
     //    std::cerr << "\nName of all regions:\n" << regionNames << std::endl;
     //    std::cerr << "Coupled regions:\n" << coupledRegionNames  << std::endl;
     
@@ -99,18 +99,18 @@ namespace CoupledField
                 if (dim_ == 3)
                   { //TO SEND ONLY LINEAR 3D ELEMS TO MPCCI SINCE NO QUADRATIC 
                     //ARE ALLOWED
-                    ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
+                    ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, false);
                     ptgrid_->GetNodesOfElemList(mapSD_onlyLinNodes_, elemssd, OnlyLinNodes);
                     ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_onlyLinNodes_);
                   }
                 else
                   {
-                    ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
+                    ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, false);
                     //ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_.GetSize() );
                     ptMpCCIexch_ = new MpCCIexch(ptgrid_,mapSD_allNodes_);
                   }
 		
-                Find=TRUE;
+                Find=true;
 
               }
           }
@@ -129,7 +129,7 @@ namespace CoupledField
     ptMpCCIexch_->PutExchangeGrid2MpCCI(couplSubDomId_);
 #else
     if( params->HasValue( "type", "vortexSrc", pdename_, "flowData" ) ) {
-      vortexSrc_ = TRUE;
+      vortexSrc_ = true;
       params->GetList( "name", regionNames, pdename_, "region" );
       params->GetList( "name", coupledRegionNames,  "MpCCI-flownoise",
                        "coupledregion" );
@@ -142,7 +142,7 @@ namespace CoupledField
     else 
       {
         if( params->HasValue( "type", "nodalSrc", pdename_, "flowData" ) ) {
-          nodalSrc_ = TRUE;
+          nodalSrc_ = true;
           // Now verify that the type of analysis is HARMONIC
           // Determine type of analysis
           std::string analysis;
@@ -151,8 +151,8 @@ namespace CoupledField
           String2Enum( analysis, analysisType );
           if ( analysisType==HARMONIC )
             {
-              isHarmonic_=TRUE;
-              ComputeRHSforHarm_=TRUE;    
+              isHarmonic_=true;
+              ComputeRHSforHarm_=true;    
               Info->PrintF(pdename_, "Using FlowData from dataset as RHS nodal source\n" );
               Info->PrintF(pdename_, "Computing using nodal frequency files (No MpCCI used)\n" );
 
@@ -166,7 +166,7 @@ namespace CoupledField
               ptgrid_->RegionNameToId( subdoms_, regionNames );
               ptgrid_->RegionNameToId( couplSubDomId_, coupledRegionNames );
 
-              Boolean Find=FALSE;
+              bool Find=false;
               //              std::cerr << "Name of all regions:\n" << regionNames << std::endl;
               //              std::cerr << "Coupled regions:\n" << coupledRegionNames  << std::endl;
     
@@ -178,11 +178,11 @@ namespace CoupledField
                       if (couplSubDomId_[j] == subdoms_[i])
                         {
                           ptgrid_->GetVolElems(elemssd,couplSubDomId_[j]);
-                          ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
-                          //TRUE returns only the corner nodes (for 3D MpCCI linear coupling)
+                          ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, false);
+                          //true returns only the corner nodes (for 3D MpCCI linear coupling)
                           if (dim_==3)
-                            ptgrid_->GetNodesOfElemList(mapSD_onlyLinNodes_, elemssd, TRUE);
-                          Find=TRUE;
+                            ptgrid_->GetNodesOfElemList(mapSD_onlyLinNodes_, elemssd, true);
+                          Find=true;
                         }
                     }
                 }
@@ -192,12 +192,13 @@ namespace CoupledField
                   msg+="is not in list of PDE subdoms. Please, check .xml-file";
                   Error(msg.c_str(),__FILE__,__LINE__);
                 }
-              Integer CoupledNodes;
+              UInt CoupledNodes;
               if (dim_==3)
                 CoupledNodes=mapSD_onlyLinNodes_.GetSize();
               else 
                 CoupledNodes=mapSD_allNodes_.GetSize();
               flowdata_.Resize(1, CoupledNodes);
+              flowdata_.Init();
             }
           else
             {
@@ -253,11 +254,13 @@ namespace CoupledField
     double starttime, endtime;
     //std::cout<<"MpCCInodes_: "<< MpCCInodes_ << " dimension: " 
     //             << dim_ << std::endl;
-    if (nodalSrc_ == TRUE)
+    if (nodalSrc_ == true)
       //we get already the integrated acoustic source term
       flowdata_.Resize(1, MpCCInodes_);
     else
       flowdata_.Resize(1+dim_, MpCCInodes_);
+
+    flowdata_.Init();
 
     starttime = CCI_Wtime();
       
@@ -287,8 +290,8 @@ namespace CoupledField
 
 
 // Variables for ramping
-    Double xfmin, yfmin, zfmin, xfmax, yfmax, zfmax, facRampXmin, facRampYmin, 
-      facRampZmin, facRampXmax, facRampYmax, facRampZmax;
+//     Double xfmin, yfmin, zfmin, xfmax, yfmax, zfmax, facRampXmin, facRampYmin, 
+//       facRampZmin, facRampXmax, facRampYmax, facRampZmax;
     Double bndoffsetXmin, bndoffsetYmin, bndoffsetZmin, bndoffsetXmax, bndoffsetYmax, bndoffsetZmax ;
 #ifdef MpCCI
     params->Get("xfmin",xfmin, "MpCCI-flownoise");
@@ -321,9 +324,9 @@ namespace CoupledField
 #ifdef MpCCI
     starttime = CCI_Wtime();
 #endif 
-    if (nodalSrc_ == FALSE) {
+    if (nodalSrc_ == false) {
       
-      if (vortexSrc_ == TRUE)
+      if (vortexSrc_ == true)
         {
           std::cout<<"Calling ComputeRHSwithVortexSource(atime)"<<std::endl;
           ComputeRHSwithVortexSource(atime);
@@ -339,7 +342,8 @@ namespace CoupledField
               for (j=0; j< elemssd.GetSize(); j++)
                 {
                   ptEl=elemssd[j]->ptElem;
-                  BaseForm * linear_load = new LinearFlowNoiseInt(ptEl);
+                  LinearFlowNoiseInt * linear_load = 
+                    new LinearFlowNoiseInt(ptEl);
                   
                   UInt ii;
                   elsize=(elemssd[j]->connect).GetSize();
@@ -381,7 +385,7 @@ namespace CoupledField
                   
                   // CHANGE connecth
                   //Mesh2PDENode(connect_PDE,connecth,mesh2PDENode_);
-                  eqnData_->Node2EQN(connecth, connect_PDE);
+                  eqnMap_->GetNodeEqn(connecth, connect_PDE);
                   // for setting with homogeneous rhs       
                   //linear_load->CalcElemVector(ptCoordNodes, elemvec); 
                   
@@ -397,13 +401,12 @@ namespace CoupledField
     }
     
     else {     //for assigning nodal source
-      UInt eqnDof, node, dof;
+      UInt node, dof;
       Integer eqnNr;
       StdVector<UInt> connect(1);
  
       valmult=-1.0;    
      
-      eqnDof = 1;
       dof    = 1;
 
       if (!isHarmonic_)
@@ -450,8 +453,8 @@ namespace CoupledField
                   val*=valmult;
 
                   //add to RHS
-                  eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
-                  algsys_->SetNodeRHS(val, pdeId_, eqnNr, eqnDof);      
+                  eqnNr = eqnMap_->GetNodeEqn(node,dof );
+                  algsys_->SetNodeRHS(val, pdeId_, eqnNr, 1);      
             }
       
         } 
@@ -461,6 +464,7 @@ namespace CoupledField
           FreqFunc * ptFreqFunc = new FreqFunc();
           StdVector<Double> Ampl_Phase;
           Ampl_Phase.Resize(2);
+          Ampl_Phase.Init();
 
           //Getting current freq (received as atime)
           for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
@@ -517,16 +521,16 @@ namespace CoupledField
             //we use a map with index idx
             if (dim_ == 3)
               {
-                eqnData_->Node2EQN(mapSD_onlyLinNodes_[idx],dof,eqnNr,eqnDof);
+                eqnNr = eqnMap_->GetNodeEqn(mapSD_onlyLinNodes_[idx],dof );
                 //std::cout<<"EqnDOF= "<<eqnDof<<" EqnNr= "<<eqnNr<<" dof= "<<dof
                 //         <<" NodeNumber= "<<mapSD_onlyLinNodes_[idx]<<" Ampl= "<<Ampl_Phase[0]<<std::endl;
               }
             else
-              eqnData_->Node2EQN(mapSD_allNodes_[idx],dof,eqnNr,eqnDof);
-            algsys_->SetNodeRHS(complexValue, pdeId_, eqnNr, eqnDof);  
+              eqnNr = eqnMap_->GetNodeEqn(mapSD_allNodes_[idx],dof );
+            algsys_->SetNodeRHS(complexValue, pdeId_, eqnNr, 1);  
           }
        }//end else for frequency analysis
-    }//end else in case nodalSrc is TRUE
+    }//end else in case nodalSrc is true
     
 #ifdef MpCCI
     endtime = CCI_Wtime();
@@ -539,7 +543,7 @@ namespace CoupledField
       rhs_.SetNumNodes(numPDENodes_);
       rhs_.SetSolutionType(ACOU_RHSVAL);
       rhs_.SetNumDofs(1);
-      rhs_.SetPtrEQNData(eqnData_, ptgrid_);
+      rhs_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
       rhs_.Init(0.0);
       
       Double *ptRHS;
@@ -569,9 +573,8 @@ namespace CoupledField
           Point<2> ptNodalCoord2D;   
           for (UInt i=0; i<couplSubDomId_.GetSize(); i++)
             {
-              UInt eqnDof, node, dof;
+              UInt node, dof;
               Integer eqnNr;
-              eqnDof = 1;
               dof    = 1;
               UInt elsize = 0;
               //First we get the elem definitions
@@ -583,6 +586,7 @@ namespace CoupledField
                     {
                       elsize=(elemssd[j]->connect).GetSize();
                       connecth.Resize(elsize);
+                      connecth.Init();
                       for (UInt ii=0; ii<elsize; ii++)
                         {
                           connecth[ii]=(elemssd[j]->connect)[ii];
@@ -607,7 +611,7 @@ namespace CoupledField
               
               //Now we get the node numbers and corresponding RHS values
 
-              ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
+              ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, false);
                                
               for (UInt idx=0; idx<mapSD_allNodes_.GetSize() ; idx++)
                 {
@@ -620,7 +624,7 @@ namespace CoupledField
                       (*outnodefile_) << ptNodalCoord2D[0]<<" "<< ptNodalCoord2D[1]<<" "<<0.0<<std::endl;
                       //    std::cout<<"x: "<<ptNodalCoord2D[0]<<", y: "<<ptNodalCoord2D[1]<<std::endl; 
                     }
-                  eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
+                  eqnNr = eqnMap_->GetNodeEqn(node,dof );
                   rhs_.Get(idx,1,RHSnodalVal);
                   (*outsrcfile_) <<  RHSnodalVal<<std::endl;
                   //std::cout<<"node: "<<node<<" eqnNr: "<<eqnNr<<" RHSnodalVal: "<<RHSnodalVal<<std::endl;
@@ -660,14 +664,13 @@ namespace CoupledField
          //Getting Analytical solution (P_ak) or Tangential velocity (arg) as RHSval
          {
            std::cout<<"Getting Analytical solution (P_ak) or Tangential velocity (arg) as RHSval"<<std::endl;
-           UInt eqnDof, node, dof;
+           UInt node, dof;
            Integer eqnNr;
            StdVector<UInt> connect(1);
-           eqnDof = 1;
            dof    = 1;
            if (vortexFlag_==6 || vortexFlag_==7)
              {
-               plotRHSVel_= TRUE;
+               plotRHSVel_= true;
                std::cout<<"Init rhs_ for putting vel vector field in RHSval for visualization"<<std::endl;
                std::cout<<"numPDENodes_: "<<numPDENodes_<<std::endl;
                std::cout<<"elemssd.GetSize(): "<<elemssd.GetSize()<<std::endl;
@@ -676,19 +679,19 @@ namespace CoupledField
                rhs_.SetNumNodes(elemssd.GetSize());
                rhs_.SetSolutionType(ACOU_RHSVAL);
                rhs_.SetNumDofs(1);
-               rhs_.SetPtrEQNData(eqnData_, ptgrid_);
+               rhs_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
                rhs_.Init(0.0);
                
                rhs2_.SetNumSolutions(1);
                rhs2_.SetNumNodes(elemssd.GetSize());
                rhs2_.SetSolutionType(ACOU_POT_NRBC);
                rhs2_.SetNumDofs(1);
-               rhs2_.SetPtrEQNData(eqnData_, ptgrid_);
+               rhs2_.SetPtrEQNData(eqnMap_.get(),ptgrid_);
                rhs2_.Init(0.0);
 
              }
 
-           ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, FALSE);
+           ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, false);
            for (UInt idx=0; idx<mapSD_allNodes_.GetSize() ; idx++)
              {
                Double val = mapSD_allNodes_[idx];
@@ -710,8 +713,8 @@ namespace CoupledField
                tempVelY.Resize(1);
                
                //add to RHS
-               eqnData_->Node2EQN(node,dof,eqnNr,eqnDof);
-               algsys_->SetNodeRHS(val, pdeId_, eqnNr, eqnDof); 
+               eqnNr = eqnMap_->GetNodeEqn(node,dof );
+               algsys_->SetNodeRHS(val, pdeId_, eqnNr, 1 ); 
                              
                if (vortexFlag_==6 || vortexFlag_==7)
                  {
@@ -731,7 +734,9 @@ namespace CoupledField
                UInt ii;
                elsize=(elemssd[j]->connect).GetSize();
                elemvec.Resize(elsize);
+               elemvec.Init();
                nodalval.Resize(elsize);
+               nodalval.Init();
                connecth.Resize(elsize);
                for (ii=0; ii<elsize; ii++)
                  connecth[ii]=(elemssd[j]->connect)[ii];
@@ -864,7 +869,7 @@ namespace CoupledField
                    //                      }
                    //                  }
 
-                   eqnData_->Node2EQN(connecth, connect_PDE);
+                   eqnMap_->GetNodeEqn(connecth, connect_PDE);
 
                    //std::cout<<"Elem vector obtained using Src_Matrix from VortexAnalytical: "<<std::endl;
                    //std::cout<<elemvec<<std::endl;
@@ -906,7 +911,7 @@ namespace CoupledField
                          * valueAtIP[actIntPt-1]*jacDet;
                      }
                    }
-                   eqnData_->Node2EQN(connecth, connect_PDE);
+                   eqnMap_->GetNodeEqn(connecth, connect_PDE);
                    algsys_->SetElementRHS(&elemvec[0], pdeId_, 
                                           connect_PDE.GetPointer(), connect_PDE.GetSize());
                  }
@@ -983,6 +988,7 @@ namespace CoupledField
     flowdatafile >> ibuf >> maxnumqtts >> maxnumnodes >> ibuf;
 
     flowdata_.Resize(maxnumqtts,maxnumnodes);
+    flowdata_.Init();
     UInt i,j;
 
     UInt buffernodenum = 0;

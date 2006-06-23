@@ -17,16 +17,14 @@ public:
   virtual ~StokesFluidInt();
 
   /// Calculation of stiffmess matrix
-  virtual void CalcElementMatrix(Matrix<Double> & ptCoord, 
-                                 Matrix<Double> & elemMat) {
+  void CalcElementMatrix( Matrix<Double>& stiffMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 ) {
     Error( "StokesFluidInt::CalcElementMatrix() not correctly overwritten!",
              __FILE__, __LINE__);
   };
 
 
-  virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
-
-  
   virtual void SetActElemSol(Matrix<Double>& disp){};
 
 protected: 

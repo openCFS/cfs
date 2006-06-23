@@ -242,9 +242,11 @@ namespace CoupledField {
     //!
     Point & operator=(const Point & t);
     //!
-    Point & operator+(const Point & t);
+    Point & operator+=( const Point & t );
     //!
-    Point & operator-(const Point & t); 
+    Point  operator+(const Point & t);
+    //!
+    Point  operator-(const Point & t); 
 
     //! return coordinate number i
     Double &operator[](UInt i){return p[i];} 

@@ -7,7 +7,7 @@ namespace CoupledField
 { 
 
   Preisach :: Preisach(Integer numElem, Double xSat, Double ySat, Double xRem,
-                       Boolean isVirgin) 
+                       bool isVirgin) 
     : Hysteresis(numElem)
   {
     ENTER_FCN("Preisach::Preisach" );
@@ -24,6 +24,7 @@ namespace CoupledField
     isVirgin_    = isVirgin;
 
     lastVal_.Resize(numElem);
+    lastVal_.Init();
     preisachSum_.Resize(numElem);
     preisachSum_.Init(0);
 
@@ -100,7 +101,7 @@ namespace CoupledField
     //array starts at 0!!
     nrEl -= 1;
 
-    if ((isMinMax_[nrEl].size() == 0) && (isVirgin_ == TRUE) ) {
+    if ((isMinMax_[nrEl].size() == 0) && (isVirgin_ == true) ) {
       //list of minimums and maximums is empty
       extremaList_[nrEl].push_back(newX);
       if (newX > 0) {
@@ -268,11 +269,11 @@ namespace CoupledField
 
     std::cout << "ExtremaList before wipout: " << extremaList.size() << std::endl;
 
-    Boolean kill = TRUE;
+    bool kill = true;
     if ( lastMinMax == 1 ) {
       //last value is a maximum
   
-      Boolean minFound = FALSE;
+      bool minFound = false;
 
       while ( kill ) {
         std::cout << "kill=" << kill << std::endl;
@@ -300,17 +301,17 @@ namespace CoupledField
           endDeleteExtremList = iterExtremalList;
           endDeleteMinMax     = iterMinMax;
 
-          while ( kill == TRUE && minFound == FALSE ) {
+          while ( kill == true && minFound == false ) {
             std::cout << "actPos=" << actPos << std::endl;
             if ( actPos >= 0) {
               if ( isMinMax[actPos] == 2 || isMinMax[actPos] == -2 ) {
-                kill = FALSE;
+                kill = false;
               }
               else if ( isMinMax[actPos] == 1 && extremaList[actPos] > extremaList[actPosMax]) {
-                kill = FALSE;
+                kill = false;
               }
               else if ( isMinMax[actPos] == -1 && extremaList[actPos] < extremaList[actPosMin]) {
-                minFound = TRUE;
+                minFound = true;
               }
 
               lastPos = actPos;
@@ -318,26 +319,26 @@ namespace CoupledField
               --iterExtremalList;
               --iterMinMax;
 
-              //if minFound = TRUE, then iterExtremalList (iterMinMax) points to
+              //if minFound = true, then iterExtremalList (iterMinMax) points to
               //the first element, which will be wiped out
               startDeleteExtremList = iterExtremalList;
               startDeleteMinMax     = iterMinMax;
             }
             else {
-              kill = FALSE;
+              kill = false;
             }
           }
 
-          if ( (kill = TRUE) && (minFound == TRUE) ) {
+          if ( (kill = true) && (minFound == true) ) {
             // kill all extrema in between
             extremaList.erase(startDeleteExtremList,endDeleteExtremList);
             isMinMax.erase(startDeleteMinMax,endDeleteMinMax);
-            minFound = FALSE;
+            minFound = false;
           }
         }
 
         else {
-          kill = FALSE;
+          kill = false;
         }
    
       }
@@ -347,7 +348,7 @@ namespace CoupledField
     else if ( lastMinMax == -1 ) {
       //last value is a minimum
       
-      Boolean maxFound = FALSE;
+      bool maxFound = false;
       while ( kill ) {
         std::cout << "kill=" << kill << std::endl;
 
@@ -377,44 +378,44 @@ namespace CoupledField
           endDeleteExtremList = iterExtremalList;
           endDeleteMinMax     = iterMinMax;
 
-          while ( kill == TRUE && maxFound == FALSE ) {
+          while ( kill == true && maxFound == false ) {
             std::cout << "In while, actPos=" << actPos << std::endl;
 
             if ( actPos >= 0) {
               if ( isMinMax[actPos] == 2 || isMinMax[actPos] == -2 ) {
-                kill = FALSE;
+                kill = false;
               }
               else if ( isMinMax[actPos] == -1 && extremaList[actPos] < extremaList[actPosMin]) {
-                kill = FALSE;
+                kill = false;
               }
               else if ( isMinMax[actPos] == 1 && extremaList[actPos] > extremaList[actPosMax]) {
-                maxFound = TRUE;
+                maxFound = true;
               }
               lastPos = actPos;
               actPos -= 1;
               --iterExtremalList;
               --iterMinMax;
 
-              //if maxFound = TRUE, then iterExtremalList (iterMinMax) points to
+              //if maxFound = true, then iterExtremalList (iterMinMax) points to
               //the first element, which will be wiped out
               startDeleteExtremList = iterExtremalList;
               startDeleteMinMax     = iterMinMax;
             }
             else {
-              kill = FALSE;
+              kill = false;
             }
           }
 
-          if ( (kill = TRUE) && (maxFound == TRUE) ) {
+          if ( (kill = true) && (maxFound == true) ) {
             // kill all extrema in between
             extremaList.erase(startDeleteExtremList,endDeleteExtremList);
             isMinMax.erase(startDeleteMinMax,endDeleteMinMax);
-            maxFound = FALSE;
+            maxFound = false;
           }
         }
 
         else {
-          kill = FALSE;
+          kill = false;
         }
    
       }

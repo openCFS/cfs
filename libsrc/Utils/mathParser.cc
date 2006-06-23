@@ -26,7 +26,10 @@ namespace CoupledField {
     ENTER_FCN( "MathParser::MathParser" );
 
     // Create global math parser and initialize it
-    InitParser( parsers_[GLOB_HANDLER], TRUE );
+    InitParser( parsers_[GLOB_HANDLER], true );
+
+    // Add global handle to activeHandles
+    activeHandles_.insert(GLOB_HANDLER);
 
   }
 
@@ -49,12 +52,21 @@ namespace CoupledField {
     
   }
 
-  MathParser::HandlerType MathParser::GetNewHandler() {
-    ENTER_FCN( "MathParser::GetNewHandler" );
+  MathParser::HandleType MathParser::GetNewHandle() {
+    ENTER_FCN( "MathParser::GetNewHandle" );
     
+    // Obtain new handle
+    HandleType newHandle = *(activeHandles_.end()) + 1;
+
+    while( activeHandles_.find( newHandle) != activeHandles_.end() ) {
+      newHandle++;
+    }
+    
+    // Insert new handle
+    activeHandles_.insert( newHandle );
+
     // Create new parser
-    HandlerType newHandle = parsers_.size();
-    InitParser( parsers_[newHandle], FALSE );
+    InitParser( parsers_[newHandle], false );
 
     // Create new entry in variable pool
     pools_[newHandle] = VarPool();
@@ -64,7 +76,31 @@ namespace CoupledField {
 
   }
 
-  void MathParser::SetValue( HandlerType handler,
+  void MathParser::ReleaseHandle( HandleType handle) {
+    ENTER_FCN( "MathParser::ReleaseHandle" );
+
+    // Check if handle is the global one
+    if( handle == GLOB_HANDLER ) {
+      Error( "Can not dynamically release the GLOBAL handle!",
+             __FILE__, __LINE__ );
+    }
+
+    // Check if handle exists
+    if( activeHandles_.find(handle) == activeHandles_.end() ) {
+      (*error) << "MathParser handle '" << handle 
+               << "' is not registered!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // Release variable pool
+    pools_.erase( handle );
+    parsers_.erase( handle );
+
+    // Remove handle from set
+    activeHandles_.erase( handle );
+  }
+
+  void MathParser::SetValue( HandleType handler,
                              const std::string & varName,
                              Double val) {
     ENTER_FCN( "MathParser::RegisterVariable" );
@@ -112,7 +148,7 @@ namespace CoupledField {
   }
 
 
-  void MathParser::SetCoordinates( HandlerType handler,
+  void MathParser::SetCoordinates( HandleType handler,
                                    const CoordSystem & coosy,
                                    const Vector<Double> & globCoord ) {
     ENTER_FCN( "MathParser::SetCoordinates" );
@@ -136,9 +172,16 @@ namespace CoupledField {
 
   }
 
+  void MathParser::SetExpr( HandleType handler, const std::string & expr) {
+    ENTER_FCN( "MathParser::SetExpr" );
 
-  Double MathParser::Eval( HandlerType handler,
-                           const std::string & expr) {
+    // Get parser related to handler
+    mu::Parser & myParser = GetParser( handler );
+    MATHPARSER_EXEC( myParser.SetExpr(expr) );
+  }
+
+
+  Double MathParser::Eval( HandleType handler ) {
     ENTER_FCN( "MathParser::Eval" );
 
     // Get parser related to handler
@@ -146,14 +189,13 @@ namespace CoupledField {
 
     // Evaluate expression with error checking
     Double ret = 0.0;
-    MATHPARSER_EXEC( myParser.SetExpr(expr) );
     MATHPARSER_EXEC( ret = myParser.Eval() );
 
 
     return ret;
   }
 
-  void MathParser::InitParser( mu::Parser &parser, Boolean isGlobal ) {
+  void MathParser::InitParser( mu::Parser &parser, bool isGlobal ) {
     ENTER_FCN( "MathParser::InitParser" );
     
     // Register alias functions for >, >=, <=, <
@@ -167,7 +209,7 @@ namespace CoupledField {
     //parser.SetVarFactory( AddVariable );
 
     // Check if parser is non-global one
-    if ( isGlobal != TRUE ) {
+    if ( isGlobal != true ) {
 
       // Register each global variable also within the local 
       // parser context
@@ -189,7 +231,7 @@ namespace CoupledField {
   
   
 
-  mu::Parser& MathParser::GetParser( HandlerType handler ) {
+  mu::Parser& MathParser::GetParser( HandleType handler ) {
     
     ParserMap::iterator it = parsers_.find( handler );
 

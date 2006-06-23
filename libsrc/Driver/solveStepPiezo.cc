@@ -3,11 +3,10 @@
 #include <string>
 
 #include "solveStepPiezo.hh"
-#include "Forms/forms_header.hh"
 #include "Utils/preisach.hh"
 #include "Utils/jiles.hh"
 #include "assemble.hh"
-
+#include "Forms/gradfieldop.hh"
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
 
@@ -17,7 +16,7 @@ namespace CoupledField {
   {
 
     ENTER_FCN( "SolveStepPiezo::SolveStepPiezo" );
-    doInit_ = TRUE;
+    doInit_ = true;
   }
 
 
@@ -30,7 +29,7 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepPiezo:: PreStepTrans( const Boolean reset )
+  void SolveStepPiezo:: PreStepTrans()
   {
     ENTER_FCN( "SolveStepPiezo::PreStepStatic" );
 
@@ -54,8 +53,9 @@ namespace CoupledField {
       if (doInit_) {
         //set the Preisach values; should be obtained from the xml_file
         StdVector<Elem*> elemssd;
-        Boolean isVirgin;
+        bool isVirgin;
         hyst_.Resize(subdoms_.GetSize());
+        hyst_.Init(NULL);
 
         for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++) {
           Double Esat, Psat;
@@ -71,7 +71,7 @@ namespace CoupledField {
             materialData_[iSD]->GetScalar(Esat,E_SATURATION,REAL);
             materialData_[iSD]->GetScalar(Psat,P_SATURATION,REAL);
             materialData_[iSD]->GetScalar((Integer&)dir,P_DIRECTION,INTEGER);
-            isVirgin = TRUE; 
+            isVirgin = true; 
 
             hyst_[iSD] = new Preisach(numSDElems, Esat, Psat, Ec, isVirgin);
           }
@@ -87,7 +87,7 @@ namespace CoupledField {
             hyst_[iSD]->SetTimeStepVal(TS_alg_->GetTimeStep());
           }
         }
-        doInit_ = FALSE;
+        doInit_ = false;
       }
       else {
         //   std::cout << "Do Update in PreStep" << std::endl;
@@ -100,31 +100,32 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepPiezo::SolveStepTrans( const Boolean reset ) {
+  void SolveStepPiezo::SolveStepTrans() {
 
     ENTER_FCN( "SolveStepPiezo::SolveStepTrans" );
   
     if (isHyst_) {
-      StepTransNonLinEpsDiff(reset);
+      StepTransNonLinEpsDiff();
     }
     else {
-      StepTransLin(reset);
+      StepTransLin();
     }
 
   }
 
 
-  void SolveStepPiezo::StepTransNonLinEpsDiff( const Boolean reset ) {
+  void SolveStepPiezo::StepTransNonLinEpsDiff() {
 
     ENTER_FCN( "SolveStepPiezo::StepTransNonLinEpsDiff" );
 
-    Boolean performOneMoreStep;
+    bool performOneMoreStep;
     UInt iterationCounter=0;
   
-    Vector<Double> newSol(eqnData_->GetNumEQNs());
-    Vector<Double> oldSol(eqnData_->GetNumEQNs());
-    Vector<Double> solPrev(eqnData_->GetNumEQNs());
-    Vector<Double> incrSol(eqnData_->GetNumEQNs());
+    UInt numEqns = eqnMap_->GetNumEqns();
+    Vector<Double> newSol(numEqns);
+    Vector<Double> oldSol(numEqns);
+    Vector<Double> solPrev(numEqns);
+    Vector<Double> incrSol(numEqns);
 
     Double* actRHS;
     Double* solPtr;
@@ -191,9 +192,11 @@ namespace CoupledField {
 
       //set up the new matrices
       algsys_->InitMatrix();
-      assemble_->SetReassemble();   
+      //assemble_->SetReassemble();   
 
-      assemble_->SetMaterialArray( &epsDiff_ ); 
+      //assemble_->SetMaterialArray( &epsDiff_ ); 
+      Warning( "Assemble::SetMaterialArray not implemented!",
+               __FILE__, __LINE__ );
       assemble_->AssembleMatrices();
 
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
@@ -252,7 +255,7 @@ namespace CoupledField {
         incrementalErr = solIncrL2Norm;
     
       // output of norms and data
-      if ( nonLinLogging_ == TRUE ) {
+      if ( nonLinLogging_ == true ) {
         Info->WriteNonLinIter(pdename_, iterationCounter, residualNorm,
                               incrementalErr);
       }
@@ -279,9 +282,11 @@ namespace CoupledField {
 
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-    GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
+    // Get correct result-type
+    GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_,
+                                                                    eqnMap_,
                                                                     *solhelp, ELEC_POTENTIAL, 
-                                                                    isaxi_);
+                                                                    results_[0], isaxi_);
 
     Vector<Double> LCoord, Efield;
     StdVector<Elem*> elemssd;
@@ -334,9 +339,11 @@ namespace CoupledField {
     //we assume, that the actual solution is stored in sol_!
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
-    GradientFieldOp<Double> * FieldOp = new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnData_,
-                                                                    *solhelp, ELEC_POTENTIAL, 
-                                                                    isaxi_);
+    
+    GradientFieldOp<Double> * FieldOp = 
+      new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
+                                  *solhelp, ELEC_POTENTIAL, 
+                                  results_[0],isaxi_);
 
     Vector<Double> LCoord, Efield;
     Double Ecomp, Pval, Dval, dE, dD, eps;

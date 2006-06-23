@@ -13,10 +13,8 @@ src = baseForm.cc laplaceInt.cc bdbInt.cc bdInt.cc massInt.cc baseoperator.cc\
       linNeumannInt.cc PMLInt.cc laplaceXYZInt.cc PMLTransXYZInt.cc \
       acouPowerDensityOp.cc FlatShellInt.cc stokesFluidInt.cc stokesFluid3DInt.cc \
       stokesFluidPlaneInt.cc stokesFluidAxiInt.cc nLinStokesFluidInt.cc \
-      linElecInt.cc
+      linElecInt.cc singleEntryInt.cc
 #
-lib = forms
-libpath = libsrc/Forms
 CFLAGS3 =
 #
 include ../makefile.inc

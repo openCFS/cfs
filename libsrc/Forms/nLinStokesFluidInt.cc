@@ -17,6 +17,8 @@ namespace CoupledField
     : StokesFluidInt(density, dynamicViscosity)
   {
     ENTER_FCN( "nLinStokesFluidInt::nLinStokesFluidInt" );
+
+    name_ = "nLinStokesFluidInt";
   }
 
 
@@ -118,7 +120,7 @@ namespace CoupledField
   {
     ENTER_FCN( "nLinStokesFluid3DInt_Convective::nLinStokesFluid3DInt_Convective" );
 
-    className = "nLinStokesFluid3DInt_Convective";
+    name_ = "nLinStokesFluid3DInt_Convective";
   }
 
   nLinStokesFluid3DInt_Convective::~nLinStokesFluid3DInt_Convective()
@@ -126,10 +128,15 @@ namespace CoupledField
     ENTER_FCN( "nLinStokesFluid3DInt_Convective::~nLinStokesFluid3DInt_Convective" );
   }
 
-  void nLinStokesFluid3DInt_Convective::CalcElementMatrix(Matrix<Double> & ptCoord, 
-                                                          Matrix<Double> & elemMat)
+  void nLinStokesFluid3DInt_Convective::CalcElementMatrix( Matrix<Double>& elemMat,
+                                                           EntityIterator& ent1, 
+                                                           EntityIterator& ent2 ) 
+    
   {
     ENTER_FCN( "nLinStokesFluid3DInt_Convective::CalcElementMatrix" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
 
     if (!elemVelocity_.GetSizeRow() || !elemVelocity_.GetSizeCol()) 
       Error("Undefined velocities! ",__FILE__,__LINE__);
@@ -150,15 +157,17 @@ namespace CoupledField
     N = 7; // 7 DOFs per Node
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*N); elemMat.Init();
-    locElemMat.Resize(nrNodes*N); locElemMat.Init();
+    elemMat.Resize(nrNodes*N); 
+    elemMat.Init();
+    locElemMat.Resize(nrNodes*N); 
+    locElemMat.Init();
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
         ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord_, jacDet);
 
 //  __ Sucessive-Substitution                                                          __
 //  __                                                                                       __
@@ -193,7 +202,8 @@ namespace CoupledField
         //vyDxDyDzAtIP = vyM * xiDxDyDz;
         //vzDxDyDzAtIP = vzM * xiDxDyDz;
 
-        partElemAMat.Resize(N,nrNodes*N); partElemAMat.Init();
+        partElemAMat.Resize(N,nrNodes*N); 
+        partElemAMat.Init();
         for (j=0; j<nrNodes; j++)
           {
 //          Sucessive-Substitution                                                 
@@ -250,11 +260,15 @@ namespace CoupledField
 
   
 
-  void nLinStokesFluidPlaneInt_Convective::CalcElementMatrix(Matrix<Double> & ptCoord, 
-                                                             Matrix<Double> & elemMat)
+  void nLinStokesFluidPlaneInt_Convective::CalcElementMatrix( Matrix<Double>& elemMat,
+                                                              EntityIterator& ent1, 
+                                                              EntityIterator& ent2 )
   {
     ENTER_FCN( "nLinStokesFluidPlaneInt_Convective::CalcElementMatrix" );
   
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
     if (!elemVelocity_.GetSizeRow() || !elemVelocity_.GetSizeCol()) 
       Error("Undefined velocities! ",__FILE__,__LINE__);
   
@@ -274,15 +288,17 @@ namespace CoupledField
     N = 4; // 4 DOFs per Node
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*N); elemMat.Init();
-    locElemMat.Resize(nrNodes*N); locElemMat.Init();
+    elemMat.Resize(nrNodes*N); 
+    elemMat.Init();
+    locElemMat.Resize(nrNodes*N); 
+    locElemMat.Init();
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
         ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, ptCoord_, jacDet);
 
 //  __ Sucessive-Substitution                                                          __
 //  |  0                   1                   2   3 |
@@ -314,7 +330,8 @@ namespace CoupledField
         //vxDxDyAtIP = vxM * xiDxDy;
         //vyDxDyAtIP = vyM * xiDxDy;
 
-        partElemAMat.Resize(N,nrNodes*N); partElemAMat.Init();
+        partElemAMat.Resize(N,nrNodes*N); 
+        partElemAMat.Init();
         for (j=0; j<nrNodes; j++)
           {
 //          Sucessive Substitution
@@ -354,10 +371,14 @@ namespace CoupledField
   // =============================================================================
  
   // calculated the D-matrix for the axi state
-  void  nLinStokesFluidAxiInt_Convective::CalcElementMatrix(Matrix<Double> & ptCoord, 
-                                                             Matrix<Double> & elemMat)
+  void  nLinStokesFluidAxiInt_Convective::CalcElementMatrix( Matrix<Double>& stiffMat,
+                                                             EntityIterator& ent1, 
+                                                             EntityIterator& ent2 )
   {
     ENTER_FCN( "nLinStokesFluidAxiInt_Convective::CalcElementMatrix" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
   }
 
 
@@ -365,12 +386,14 @@ namespace CoupledField
   // nonlinear calculation of elasticity in plane strain state 
   // ===================================================================================
 
-  nLinStokesFluidPlaneInt_Convective::nLinStokesFluidPlaneInt_Convective(Double density, Double dynamicViscosity) 
+  nLinStokesFluidPlaneInt_Convective::
+  nLinStokesFluidPlaneInt_Convective(Double density, 
+                                     Double dynamicViscosity) 
     : nLinStokesFluidInt(density, dynamicViscosity)
   {
     ENTER_FCN( "nLinStokesFluidPlaneInt_Convective::nLinStokesFluidPlaneInt_Convective" );
 
-    className = "nLinStokesFluidPlaneInt_Convective";
+    name_ = "nLinStokesFluidPlaneInt_Convective";
   }
 
   nLinStokesFluidPlaneInt_Convective::~nLinStokesFluidPlaneInt_Convective()
@@ -388,8 +411,8 @@ namespace CoupledField
   {
     ENTER_FCN( "nLinStokesFluidAxiInt_Convective::nLinStokesFluidAxiInt_Convective" );
 
-    isaxi_ = TRUE;
-    className = "nLinStokesFluidAxiInt_Convective";    
+    name_ = "nLinStokesFluid3DInt_Convective";
+    isaxi_ = true;
   }
 
   nLinStokesFluidAxiInt_Convective::~nLinStokesFluidAxiInt_Convective()
@@ -405,10 +428,12 @@ namespace CoupledField
 
   nLinStokesFluid_linFormInt::nLinStokesFluid_linFormInt(Double density,
                                                          Double dynamicViscosity,
-                                                         Boolean isaxi) 
+                                                         bool isaxi) 
     : nLinStokesFluidInt(density, dynamicViscosity)
   {
     ENTER_FCN( "nLinStokesFluid_linFormInt::nLinStokesFluid_linFormInt" );
+
+    name_ = "nLinStokesFluid_linFormInt";
     isaxi_ = isaxi;
   }
 
@@ -421,10 +446,13 @@ namespace CoupledField
 
 
 
-  void nLinStokesFluid_linFormInt::CalcElemVector(Matrix<Double>& ptCoord, 
-                                           Vector<Double> & elemVec)
+  void nLinStokesFluid_linFormInt::CalcElemVector(Vector<Double> & elemVec,
+                                                  EntityIterator& ent )
   {
     ENTER_FCN( "nLinStokesFluid_linFormInt::CalcElemVector" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
 
     Matrix<Double> xiDxDyDz;
 
@@ -457,16 +485,17 @@ namespace CoupledField
        Error("Undefined velocities! ",__FILE__,__LINE__);
   
     partElemVec.Resize(nrNodes * N);
+    partElemVec.Init();
 
     elemVec.Resize(nrNodes*N);
-    elemVec *= 0;    // set elems to 0
+    elemVec.Init();
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
         //ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord_, jacDet);
 
 //   __                                            __                                                                   __
 // 0|  v_x*(v_x*xiDx)+v_y*(v_x*xiDy)+v_z*(v_x*xiDz)  |

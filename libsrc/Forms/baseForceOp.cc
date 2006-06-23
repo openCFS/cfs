@@ -15,12 +15,12 @@ namespace CoupledField
  
   BaseForceOp::BaseForceOp(Grid * ptGrid,
                            StdPDE * ptPDE,
-                           NodeEQN * ptEQN,
+                           shared_ptr<EqnMap> eqnMap,
                            NodeStoreSol<Double> & sol,
                            UInt dim,
                            std::map<RegionIdType,BaseMaterial*>& matData,
-                           Boolean isaxi) 
-    : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
+                           bool isaxi, bool coordUpdate ) 
+    : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
     ENTER_FCN( "BaseForceOp::BaseForceOp" );
 
@@ -50,14 +50,18 @@ namespace CoupledField
 
     //get memory
     isBoundaryNode_.Resize(interfaceElems_.GetSize());
+    isBoundaryNode_.Init();
     elemNodeToCouplingNode_.Resize(interfaceElems_.GetSize());
+    elemNodeToCouplingNode_.Init();
   
   
     for (UInt ielem=0; ielem<interfaceElems_.GetSize(); ielem++)
       {
         isBoundaryNode_[ielem].Resize(interfaceElems_[ielem]->connect.GetSize());
+        isBoundaryNode_[ielem].Init();
         elemNodeToCouplingNode_[ielem].Resize(interfaceElems_[ielem]->connect.GetSize());
-      
+        elemNodeToCouplingNode_[ielem].Init();
+        
         // Determine Boundary Nodes
         for (UInt ielemnode=0; ielemnode<isBoundaryNode_[ielem].GetSize(); ielemnode++) {
           for (UInt inodes=0; inodes<couplingnodes.GetSize(); inodes++) {
@@ -101,13 +105,12 @@ namespace CoupledField
 
 
     totalForce.Resize(dim_);
+    totalForce.Init();
   
     for (UInt i=0; i<couplingNodes_.GetSize(); i++)
       for (UInt dim=0; dim<dim_; dim++)
         totalForce[dim] += force[i*dim_+dim];
 
-    //std::cerr << "Sum of E-Force:" << std::endl << sum << std::endl;
-  
   }
 
 
@@ -132,7 +135,8 @@ namespace CoupledField
     Ip = ptElement->ptElem->GetIntPoints();
  
     // Get element coordinates for calculation of J
-    ptPDE_->GetElemCoords(ptElement->connect, CornerCoords);
+    ptGrid_->GetElemNodesCoord( CornerCoords, ptElement->connect, 
+                                coordUpdate_ );
   
     F.SetNumSolutions(1);
     F.SetNumElems(IsBoundaryNode.GetSize());

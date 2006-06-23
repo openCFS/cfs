@@ -38,21 +38,21 @@ template <class P>
 class Identity {
 public:
   static inline P apply(const P& a) { return a; }
-  static inline int size() {return 1;}
+  static inline unsigned int size() {return 1;}
 };
 
 template <class P>
 class UnaryMinus {
 public:
   static inline P apply(const P& a) { return -a; }
-  static inline int size()  {return 1;}
+  static inline unsigned int size()  {return 1;}
 };
 
 template <class P>
 class Exp {
 public:
   static inline P apply(const P& a) { return P( exp(a) ); }
-  static inline int size()  {return 1;}
+  static inline unsigned int size()  {return 1;}
 };
 
 template <class P, class A, class F>
@@ -60,8 +60,8 @@ class Xpr1Func {
   A a;
 public:
   inline Xpr1Func(const A& a_) : a(a_) {}
-  inline P operator()(int n) const { return F::apply( a(n) ); }
-  inline int size() const {return a.size();}
+  inline P operator()(unsigned int n) const { return F::apply( a(n) ); }
+  inline unsigned int size() const {return a.size();}
 };
 
 
@@ -72,7 +72,7 @@ public:
 class ap {\
 public:\
   static inline PROMOTE(P,P2) apply(const P& a, const P2& b) { return a op b; }       \
-  static inline int size() {return 1;}\
+  static inline unsigned int size() {return 1;}\
 };
 XXX(OpAdd,+)
 XXX(OpSub,-)
@@ -86,8 +86,8 @@ class Xpr1BinOp {
   B b;
 public:
   inline Xpr1BinOp(const A& a_, const B& b_) : a(a_), b(b_) {}
-  inline P operator() (int n) const { return Op::apply( a(n), b(n) ); }
-  inline int size() const {return a.size() ;}
+  inline P operator() (unsigned int n) const { return Op::apply( a(n), b(n) ); }
+  inline unsigned int size() const {return a.size() ;}
 
 };
 
@@ -98,8 +98,8 @@ class Xpr1OpScalar {
   P b;
 public:
   inline Xpr1OpScalar(const A& a_, const P& b_) : a(a_), b(b_) {}
-  inline PROMOTE(P,P2) operator() (int n) const { return Op::apply( a(n), b ); }
-  inline int size() const {return a.size();}
+  inline PROMOTE(P,P2) operator() (unsigned int n) const { return Op::apply( a(n), b ); }
+  inline unsigned int size() const {return a.size();}
 
 };
 
@@ -110,8 +110,8 @@ class Xpr1ScalarOp {
   B b;
 public:
   inline Xpr1ScalarOp(const P& a_, const B& b_) : a(a_), b(b_) {}
-  inline PROMOTE(P,P2) operator() (int n) const { return Op::apply( a, b(n) ); }
-  inline int size() const {return b.size();}
+  inline PROMOTE(P,P2) operator() (unsigned int n) const { return Op::apply( a, b(n) ); }
+  inline unsigned int size() const {return b.size();}
 };
 
 template <class P, class V>
@@ -119,8 +119,8 @@ class ConstRef1 {
   const V& v;
 public:
   inline ConstRef1(const V& v_) : v(v_) {}
-  inline P operator()(int n) const { return v(n); }
-  inline int size() const {return v.size();}
+  inline P operator()(unsigned int n) const { return v(n); }
+  inline unsigned int size() const {return v.size();}
 };
 
 
@@ -130,11 +130,11 @@ private:
   E e;
 public:
   inline Xpr1(const E& e_) : e(e_) {}
-  inline P operator() (int n) const { return e(n); }
-  inline int size() const {return e.size();}
+  inline P operator() (unsigned int n) const { return e(n); }
+  inline unsigned int size() const {return e.size();}
 };
 
-//template <int N, class P, class I> class TDim1;
+//template <unsigned int N, class P, class I> class TDim1;
 
 // 1 Dimensional Array Base Class
 // for Glommable Expression Templates
@@ -148,22 +148,22 @@ private:
 
 public:
   explicit Dim1() {}
-  int size() const {
+  unsigned int size() const {
     return static_cast<const I*>(this)->size();
   }
 
-  void resize(unsigned int n) const {
+  void resize( unsigned int n) const {
     static_cast<const I*>(this)->Resize(n);
   }
 
-  P operator() (int n) const {
+  P operator() (unsigned int n) const {
     return static_cast<const I*>(this)->operator()(n);
   }
   template <class E> I& 
   assignFrom(const Xpr1<P,E>& x) {
     I *me = static_cast<I*>(this);
     me->Resize(x.size());
-    for (int i=0; i < me->size(); i++) me->operator()(i) = x(i);
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) = x(i);
     return *me;
   }
   template <class V> 
@@ -171,56 +171,56 @@ public:
     I *me = static_cast<I*>(this);
     me->Resize(x.size());
 
-    for (int i=0; i < me->size(); i++) me->operator()(i) = x(i);
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) = x(i);
     return *me;
   }
   I& assignFrom(P x) {
     I *me = static_cast<I*>(this);
-    for (int i=0; i < me->size(); i++) me->operator()(i) = x;
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) = x;
     return *me;
   }
   template <class E> Dim1<P,I>& operator+=(const Xpr1<P,E>& x) {
     I* me = static_cast<I*>(this);
 
-    for (int i=0; i < me->size(); i++) me->operator()(i) += x(i);
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) += x(i);
     return *me;
   }
   template <class V> Dim1<P,I>& operator+=(const Dim1<P,V>& x) {
     I *me = static_cast<I*>(this);
 
-    for (int i=0; i < me->size(); i++) me->operator()(i) += x(i);
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) += x(i);
     return *me;
   }
   Dim1<P,I>& operator+=(P x) {
     I *me = static_cast<I*>(this);
-    for (int i=0; i < me->size(); i++) me->operator()(i) += x;
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) += x;
     return *me;
   }
   template <class E> Dim1<P,I>& operator-=(const Xpr1<P,E>& x) {
     I* me = static_cast<I*>(this);
 
-    for (int i=0; i < me->size(); i++) me->operator()(i) -= x(i);
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) -= x(i);
     return *me;
   }
   template <class V> Dim1<P,I>& operator-=(const Dim1<P,V>& x) {
     I *me = static_cast<I*>(this);
 
-    for (int i=0; i < me->size(); i++) me->operator()(i) -= x(i);
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) -= x(i);
     return *me;
   }
   Dim1<P,I>& operator-=(P x) {
     I *me = static_cast<I*>(this);
-    for (int i=0; i < me->size(); i++) me->operator()(i) -= x;
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) -= x;
     return *me;
   }
   Dim1<P,I>& operator*=(P x) {
     I *me = static_cast<I*>(this);
-    for (int i=0; i < me->size(); i++) me->operator()(i) *= x;
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) *= x;
     return *me;
   }
   Dim1<P,I>& operator/=(P x) {
     I *me = static_cast<I*>(this);
-    for (int i=0; i < me->size(); i++) me->operator()(i) /= x;
+    for (unsigned int i=0; i < me->size(); i++) me->operator()(i) /= x;
     return *me;
   }
   
@@ -228,21 +228,21 @@ public:
     double sum = 0.0;
     const I* me = static_cast<const I*>(this);
 
-    for (int i=0; i < me->size(); i++) sum += me->operator()(i) * x(i);
+    for (unsigned int i=0; i < me->size(); i++) sum += me->operator()(i) * x(i);
     return sum;
   }
   template <class V> double in(const Dim1<P,V>& x) const {
     double sum = 0.0;
     const I* me = static_cast<const I*>(this);
 
-    for (int i=0; i < me->size(); i++) sum += me->operator()(i) * x(i);
+    for (unsigned int i=0; i < me->size(); i++) sum += me->operator()(i) * x(i);
     return sum;
   }
 };
 
 template <class T,class A>
 std::ostream& operator<<(std::ostream& s, const Dim1<T,A>& a) {
-  for (int i=0; i< a.size(); i++)
+  for (unsigned int i=0; i< a.size(); i++)
     s << std::setw(6) << std::setprecision(3) << a(i) << std::endl;
   return s;
 }

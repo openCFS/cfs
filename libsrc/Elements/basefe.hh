@@ -201,9 +201,9 @@ namespace CoupledField
     //! Calculation the volume (area, length) of an element
     /*! 
       \param CornerCoords (input)
-      \param isaxi (TRUE: axisymmetric formulation)
+      \param isaxi (true: axisymmetric formulation)
     */
-    virtual Double CalcVolume(const Matrix<Double> & CornerCoords, const Boolean isaxi);
+    virtual Double CalcVolume(const Matrix<Double> & CornerCoords, const bool isaxi);
 
 
     //! Calculates a measure for the geometric distortion of an element
@@ -372,6 +372,14 @@ namespace CoupledField
     virtual void GetEdgeVertices(Matrix<UInt> & edges){edges = edgeVertices_;};
 
 
+    //! Get the indices in the connect array belonging to given edge
+    virtual void GetEdgeIndices( StdVector<UInt>& indices, UInt edgeNr ) {
+      indices = edgeIndices_[edgeNr]; }
+
+    //! Get the indices in the connect array belonging to given surface
+    virtual void GetSurfIndices( StdVector<UInt>& indices, UInt surfNr ) {
+      indices = surfIndices_[surfNr]; }
+
     //! Get global edge numbers
     /*! 
       \param edges (output) Vector of global edge numbers
@@ -466,6 +474,12 @@ namespace CoupledField
     Vector<Double> * IntPoints_;      //!< integration points
     Vector<Double> IntWeights_;       //!< integration weights
     UInt numChilds_;               //!< number of children for element in refinement
+
+    //! Vectors with node indices of each edge
+    StdVector<UInt> * edgeIndices_;
+
+    //! Vectors with node indices of each surface
+    StdVector<UInt> * surfIndices_;
 
     enum IntegrationType IntegType;
   

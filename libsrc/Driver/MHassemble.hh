@@ -8,7 +8,6 @@
 #include "DataInOut/timefunc.hh"
 #include "Utils/nodestoresol.hh"
 #include "Utils/elemstoresol.hh"
-#include "PDE/nodeEQN.hh"
 #include "PDE/SinglePDE.hh"
 
 #include "olas.hh"
@@ -81,10 +80,10 @@ namespace CoupledField
 
     Integer nrMultHarms_;
 
-//     Boolean systemMatrix_;               //!< need system matrix (TRUE/FALSE)
-//     Boolean stiffnessMatrix_;            //!< need stiffness matrix (TRUE/FALSE)
-//     Boolean massMatrix_;                 //!< need mass matrix (TRUE/FALSE)
-//     Boolean convectionMatrix_;           //!< need convective matrix (TRUE/FALSE)
+//     bool systemMatrix_;               //!< need system matrix (true/false)
+//     bool stiffnessMatrix_;            //!< need stiffness matrix (true/false)
+//     bool massMatrix_;                 //!< need mass matrix (true/false)
+//     bool convectionMatrix_;           //!< need convective matrix (true/false)
 
     //  StdVector< StdVector<IntegratorDescriptor *>* > integrators_;
 

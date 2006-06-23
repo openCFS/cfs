@@ -350,7 +350,7 @@ namespace CoupledField
     if (ptGoMesh)
       {
         GbSubdivideUniform((*ptGoMesh),level);
-        DoesGridSubdivide=TRUE;
+        DoesGridSubdivide=true;
       }
     lastlevel_=level;
   }

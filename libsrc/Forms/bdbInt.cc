@@ -2,10 +2,12 @@
 #include <fstream>
 
 #include "bdbInt.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
 
 namespace CoupledField {
 
-// New version seems to be buggy
+  // New version seems to be buggy
 #define BDB_NEW_VERSION
 
 
@@ -14,6 +16,8 @@ namespace CoupledField {
   // *********************
   //   CalcElementMatrix
   // *********************
+
+
   void BDBInt::CalcElementMatrix( Matrix<Double> &ptCoord,
                                   Matrix<Double> &elemMat ) {
 
@@ -32,12 +36,12 @@ namespace CoupledField {
     Matrix<Double> partElemMat;
   
     elemMat.Resize(nrNodes * nrDofs);
-    // elemMat.Init();
+    elemMat.Init();
     dB.Resize( getDimD(), nrNodes * nrDofs );
 
     // If the material parameters are constant within the element
     // we can compute the D matrix once and for all
-    if ( updateDMatInEveryIP_ == FALSE ) {
+    if ( updateDMatInEveryIP_ == false ) {
       calcDMat( dMat );
     }
 
@@ -46,7 +50,7 @@ namespace CoupledField {
 
       // Check if D matrix must be re-determined for
       // the current integration point
-      if ( updateDMatInEveryIP_ == TRUE ) {
+      if ( updateDMatInEveryIP_ == true ) {
         calcDMat( dMat, actIntPt, ptCoord );
       }
 
@@ -83,16 +87,14 @@ namespace CoupledField {
   }
 
 #else
-
-
-  // =====================
-  //   CalcElementMatrix
-  // =====================
-  void BDBInt::CalcElementMatrix( Matrix<Double> &ptCoord,
-                                  Matrix<Double> &elemMat ) {
+  void BDBInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                  EntityIterator& ent1, 
+                                  EntityIterator& ent2 ) {
 
     ENTER_FCN( "BDBInt::CalcElementMatrix" );
 
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
 
     const UInt nrNodes  = ptelem->GetNumNodes();   
     const UInt nrDofs   = getNrDofs();  
@@ -104,16 +106,14 @@ namespace CoupledField {
     Matrix<Double> dbMat; 
     Double aux, fac, *ptr1, *ptr2;
 
-    elemMat.Resize( nrNodes * nrDofs );
-    elemMat.Init(0);
-    // elemMat.Init(); <- done by resize anyway
+    elemMat.Resize( nrNodes * nrDofs);
+    elemMat.Init();
 
-    dbMat.Resize( getDimD(), nrNodes * nrDofs );
-
+    dbMat.Resize( getDimD(), nrNodes * nrDofs);
 
     //if softening, get maximal/minimal edge lenght
     if ( softeningPart_ == "bendingBK1" ) {
-      ptelem->GetMaxMinEdgeLength(ptCoord,maxEdgeLength_,minEdgeLength_);
+      ptelem->GetMaxMinEdgeLength(ptCoord_,maxEdgeLength_,minEdgeLength_);
     }
 
     if ( softeningPart_ == "shearBK1" ||  softeningPart_ == "shearSRI" ) {
@@ -128,7 +128,7 @@ namespace CoupledField {
     // **************************************************
     //  Material matrix independent of integration point
     // **************************************************
-    if ( updateDMatInEveryIP_ == FALSE ) {
+    if ( updateDMatInEveryIP_ == false ) {
 
 
       // Setup material matrix once and for all
@@ -138,10 +138,10 @@ namespace CoupledField {
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
         // Setup the B matrix for current integration point
-        calcBMat( bMat, actIntPt, ptCoord );
+        calcBMat( bMat, actIntPt, ptCoord_ );
 
         // Compute Jacobian for integration point
-        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord );
+        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_ );
 
         // Perform a safety check
         if ( jacDet < 0.0 ) {
@@ -156,7 +156,7 @@ namespace CoupledField {
           Vector<Double> CoordAtIP;
           ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
 
-          CoordAtIP = ptCoord * ShpFncAtIp;
+          CoordAtIP = ptCoord_ * ShpFncAtIp;
           jacDet *= 2 * PI * CoordAtIP[0];
         }
 
@@ -190,13 +190,13 @@ namespace CoupledField {
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
         // Setup material matrix for current integration point
-        calcDMat( dMat, actIntPt, ptCoord );
+        calcDMat( dMat, actIntPt, ptCoord_ );
 
         // Setup the B matrix for current integration point
-        calcBMat( bMat, actIntPt, ptCoord );
+        calcBMat( bMat, actIntPt, ptCoord_ );
 
         // Compute Jacobian for integration point
-        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord );
+        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_ );
 
         // Perform a safety check
         if ( jacDet < 0.0 ) {
@@ -211,7 +211,7 @@ namespace CoupledField {
           Vector<Double> CoordAtIP;
           ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
 
-          CoordAtIP = ptCoord * ShpFncAtIp;
+          CoordAtIP = ptCoord_ * ShpFncAtIp;
           jacDet *= 2 * PI * CoordAtIP[0];
         }
 
@@ -250,41 +250,45 @@ namespace CoupledField {
   // ****************************
   //   CalcComplexElementMatrix
   // ****************************
-  void BDBInt::CalcComplexElementMatrix( Matrix<Double> &ptCoord,
-                                         Matrix<Complex> &elemMat,
-                                         Double &beta, Double &omega ) {
-
+  void BDBInt:: CalcComplexElementMatrix( Matrix<Complex> & elemMat,
+                                          EntityIterator& ent1, 
+                                          EntityIterator& ent2,
+                                          Double & beta, Double & omega) {
+    
     ENTER_FCN( "BDBInt::CalcComplexElementMatrix" );
-
+    
+    // Get pointer to reference element and its coordinates
+    ExtractElemInfo( ent1 );
+    
     const UInt nrIntPts = ptelem->GetNumIntPoints(); 
     const UInt nrNodes  = ptelem->GetNumNodes();   
     const UInt nrDofs   = getNrDofs();  
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     double jacDet;
- 
+    
     Matrix<Double> bMat; 
     Matrix<Complex> dMat; 
     Matrix<Complex> dB; 
     Matrix<Double> bTrans; 
     Matrix<Complex> partElemMat;
-  
-    elemMat.Resize(nrNodes * nrDofs);
-    // elemMat.Init(); <- done by resize anyway
+    
+    elemMat.Resize(nrNodes * nrDofs,true);
+    elemMat.Init(); 
     
     calcDMaterialMatWithComplexDamping( dMat, beta, omega );
     
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
-
+      
       if (updateDMatInEveryIP_) {
         calcDMaterialMatWithComplexDamping(dMat,beta,omega);
       }
-
-      calcBMat(bMat, actIntPt, ptCoord);
+      
+      calcBMat(bMat, actIntPt, ptCoord_);
       
       //   hardcoded dB = dMat * bMat;
       dB.Resize(dMat.GetSizeRow(), bMat.GetSizeCol());
       Complex a;
-
+      
       for ( UInt i = 0; i < dMat.GetSizeRow(); i++ ) {
         for ( UInt j = 0; j < bMat.GetSizeCol(); j++ ) {       
           a = dMat[i][0] * bMat[0][j];
@@ -309,7 +313,7 @@ namespace CoupledField {
         }
       }
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord_);
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
@@ -323,7 +327,7 @@ namespace CoupledField {
         Vector<Double> CoordAtIP;
         ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
 
-        CoordAtIP = ptCoord * ShpFncAtIp;
+        CoordAtIP = ptCoord_ * ShpFncAtIp;
         jacDet *= 2 * PI * CoordAtIP[0];
       }
 
@@ -337,47 +341,30 @@ namespace CoupledField {
   }
 
 
- void BDBInt::GetDMat(Matrix<Double> &dMat) {
-   ENTER_FCN( "BDBInt::GetDMat" );
-   calcDMat(dMat);
- }
+  void BDBInt::GetDMat(Matrix<Double> &dMat) {
+    ENTER_FCN( "BDBInt::GetDMat" );
+    calcDMat(dMat);
+  }
 
- void BDBInt::GetBMat(Matrix<Double> &bMat, Matrix<Double> & ptCoord) {
-   ENTER_FCN( "BDBInt::GetBMat" );
-   const Integer nrIntPts = ptelem->GetNumIntPoints(); 
+  void BDBInt::GetBMat(Matrix<Double> &bMat, Matrix<Double> & ptCoord_) {
+    ENTER_FCN( "BDBInt::GetBMat" );
+    const Integer nrIntPts = ptelem->GetNumIntPoints(); 
    
-   for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++) {
-     calcBMat(bMat, actIntPt, ptCoord);     
-   }
- }
-
-
-
-  // ***************
-  //   Constructor
-  // ***************
-  BDBInt::BDBInt() {
-    ENTER_FCN( "BDBInt::BDBInt" );
-    baseType_ = STIFFNESS;
+    for (Integer actIntPt=1; actIntPt<=nrIntPts; actIntPt++) {
+      calcBMat(bMat, actIntPt, ptCoord_);     
+    }
   }
 
 
-  // ***************
-  //   Constructor
-  // ***************
-  BDBInt::BDBInt( BaseFE *aptelem, BaseMaterial* matData )
-    : BaseForm(aptelem, matData), updateDMatInEveryIP_(0) {
-    ENTER_FCN( "BDBInt::BDBInt" );
-    baseType_ = STIFFNESS;
-  }
-
 
   // ***************
   //   Constructor
   // ***************
-  BDBInt::BDBInt( BaseMaterial* matData, SubTensorType type ) 
-    : BaseForm(matData,type), updateDMatInEveryIP_(0) {
+  BDBInt::BDBInt( BaseMaterial* matData, SubTensorType type,
+                  bool geoUpdate ) 
+    : BaseForm(matData,type, geoUpdate ), updateDMatInEveryIP_(0) {
     ENTER_FCN( "BDBInt::BDBInt" );
+    name_ = "BDBInt";
     baseType_ = STIFFNESS;
   }
 

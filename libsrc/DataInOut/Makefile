@@ -14,8 +14,6 @@ ifeq ($(DATABASE),yes)
 endif
 #
 #
-lib = datainout
-libpath = libsrc/DataInOut
 CFLAGS3 =
 #
 include ../makefile.inc

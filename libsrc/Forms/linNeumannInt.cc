@@ -6,7 +6,7 @@ namespace CoupledField
   
   LinNeumannInt::LinNeumannInt( Double amplitude,
                                 MaterialType materialParam,
-                                Boolean isaxi ) 
+                                bool isaxi ) 
     : LinearSurfForm() {
     ENTER_FCN( "LinNeumannInt::LinNeumannInt" );
 
@@ -24,9 +24,12 @@ namespace CoupledField
     
   }
 
-  void LinNeumannInt::CalcElemVector( Matrix<Double>& ptCoord, 
-                                      Vector<Double> & elemVec ) {
+  void LinNeumannInt::CalcElemVector( Vector<Double> & elemVec,
+                                      EntityIterator& ent) {
     ENTER_FCN( "LinNeumannInt::CalcElemVector" );
+    
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
     
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
@@ -65,13 +68,13 @@ namespace CoupledField
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
       
       ptelem->GetShFncAtIp(shapeFnc,actIntPt);
-      value = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord) * 
+      value = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_) * 
         intWeights[actIntPt-1] * amplitude_ * factor;
       
       if (isaxi_) {
         
         Vector<Double> CoordAtIP;
-        CoordAtIP = ptCoord * shapeFnc;
+        CoordAtIP = ptCoord_ * shapeFnc;
         value *=  2 * PI * CoordAtIP[0];
       }
       

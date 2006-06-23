@@ -17,7 +17,7 @@ namespace CoupledField {
   Profiler::Profiler() {
 
     // Determine whether profiling should be performed
-    doProfiling_ = commandLine->GetDoProfile() == TRUE;
+    doProfiling_ = commandLine->GetDoProfile() == true;
 
     if ( doProfiling_ == true ) {
 

@@ -108,13 +108,22 @@ namespace CoupledField {
 
   }
 
-
   template<UInt dim>
-  Point<dim> & Point<dim>::operator+(const Point<dim>&t) {
+  Point<dim> & Point<dim>::operator+=(const Point<dim>&t) {
     UInt i;
     for (i=0; i<dim; i++)
       p[i]+=t.p[i];     
     return *this;
+  }
+
+
+  template<UInt dim>
+  Point<dim>  Point<dim>::operator+(const Point<dim>&t) {
+    UInt i;
+    Point<dim> ret;
+    for (i=0; i<dim; i++)
+      ret.p[i] = t.p[i] + p[i];     
+    return ret;
   }
 
 
@@ -134,7 +143,7 @@ namespace CoupledField {
   }
 
   template<UInt dim>
-  Point<dim> & Point<dim>::operator-(const Point<dim>&t) {
+  Point<dim>  Point<dim>::operator-(const Point<dim>&t) {
     UInt i;
     for (i=0; i<dim; i++)
       p[i]-=t.p[i];     

@@ -9,11 +9,6 @@ namespace CoupledField {
   class BDInt : public BaseForm {
 
   public:
-    //! Constructor with pointer to BaseElem
-    BDInt();
-    
-    //! Constructor with pointer to BaseElem
-    BDInt(BaseFE *aptelem, BaseMaterial* matData,std::string geomType,Double timeStep);
 
     //! Constructor with pointer to BaseElem
     BDInt(BaseMaterial* matData,std::string geomType, Double timeStep);
@@ -22,7 +17,8 @@ namespace CoupledField {
     virtual ~BDInt();
 
     //! Function for calculation bd vector 
-    virtual void calcElementVector(Matrix<Double> &ptCoord, Vector<Double> & resultStressVector,
+    virtual void calcElementVector(Vector<Double> & resultStressVector,
+                                   EntityIterator& ent,
 				   Vector<Double> & fracDerivStress);
 
 

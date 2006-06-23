@@ -243,7 +243,6 @@ namespace CoupledField {
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
   
     UInt maxnumelem;
-    UInt dim=ptGrid_->GetDim();
   
     UInt elmsgrp;
   
@@ -255,7 +254,7 @@ namespace CoupledField {
     std::vector<int> subdomains;
     std::vector<int> indexe;
 
-    UInt i, j, k, l;
+    UInt i, k, l;
 
     elmsgrp=1;
     ptGrid_->GetVolRegionIds(subdoms);
@@ -320,7 +319,7 @@ namespace CoupledField {
     if (!ptGrid_)
       Error("ptGrid_ is not initialized", __FILE__,__LINE__);
 
-    UInt i,j,n;
+    UInt i,n;
     std::vector<float> vec;
 
     n = x.GetSize();
@@ -765,6 +764,7 @@ namespace CoupledField {
                  << "implemented for this type of solution";
         Error( __FILE__, __LINE__ );
       }
+    return "";
   }
 
 } // end of namespace

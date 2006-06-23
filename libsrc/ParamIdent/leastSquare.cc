@@ -18,7 +18,7 @@ namespace CoupledField
 
 
     Vector<Double>freqs5;
-    if(FALSE){
+    if(false){
       Integer numMeasPoints=25;
       Double fmin=0.2e+5;
       Double fmax=2.2e+5;
@@ -43,7 +43,7 @@ namespace CoupledField
     Integer indPar=0;
     Integer indParC=0;
     Double lambda=50.0;
-    Boolean negFlag=FALSE;      
+    bool negFlag=false;      
 
     //    readInMeasurement(newFreqs);
 
@@ -57,12 +57,13 @@ namespace CoupledField
     if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
       updateComplexMaterialData(parameterC_);
 
-      createF(F_hat_, FALSE);
+      createF(F_hat_, false);
 
       if ((iterIndex+1)%5==0){
         Integer nrfreqTemp=100;
         Vector<Double> freqsTemp = freqs_;
         freqs_.Resize(nrfreqTemp);
+        freqs_.Init();
         Double startFreqTemp;
         startFreqTemp=startfreq_;
         Double freqincr=(stopfreq_-startfreq_)/nrfreqTemp;
@@ -119,7 +120,7 @@ namespace CoupledField
           
           updateMaterialData(parameter_);
           
-          createF(F_hat_, FALSE);
+          createF(F_hat_, false);
           
           for (UInt i=0;i<nrMeasuredData;i++)
             F_y[i]=F_hat_[i]-y_hat_[i];
@@ -141,7 +142,7 @@ namespace CoupledField
             if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
               updateComplexMaterialData(parameterC_);
          
-            createF(F_hat_, FALSE);
+            createF(F_hat_, false);
           
             for (UInt i=0;i<nrMeasuredData;i++)
               F_y[i]=F_hat_[i]-y_hat_[i];
@@ -185,26 +186,26 @@ namespace CoupledField
         if (parameter_[par]<0.0&&par!=6){
           //  parameter[par]=parameter_old[par];
           std::cout<<"parameter( " << par << " ) was negative " <<std::endl;
-          negFlag=TRUE;
+          negFlag=true;
         }  
 
       updateMaterialData(parameter_);
       if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
         updateComplexMaterialData(parameterC_);
-      createF(F_hat_, FALSE);
+      createF(F_hat_, false);
       for (UInt i=0;i<nrMeasuredData;i++)
         F_y[i]=F_hat_[i]-y_hat_[i];
       norm(F_y,normFy1,maxres,y_hat_);
 
 
-      while (normFy1>normFy0||negFlag==TRUE){
-        if (negFlag==TRUE)
+      while (normFy1>normFy0||negFlag==true){
+        if (negFlag==true)
           std::cout<< "reduce lambda due to negative parameters or non reduction of norm ... "<<std::endl;
         parameter_=parameter_old;
         parameterC_=parameter_oldC;
         lambda=0.5*lambda;
         std::cout<<"lambda = " << lambda <<std::endl;
-        negFlag=FALSE;
+        negFlag=false;
         
         indPar=0;
         for (UInt par=0;par<nrParameter_;par++)
@@ -222,7 +223,7 @@ namespace CoupledField
         updateMaterialData(parameter_);
         if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
           updateComplexMaterialData(parameterC_);
-        createF(F_hat_, FALSE);
+        createF(F_hat_, false);
         for (UInt i=0;i<nrMeasuredData;i++)
           F_y[i]=F_hat_[i]-y_hat_[i];
         norm(F_y,normFy1,maxres,y_hat_);
@@ -231,7 +232,7 @@ namespace CoupledField
           if (parameter_[par]<0.0&&par!=6){
             //  parameter[par]=parameter_old[par];
             std::cout<<"parameter( " << par << " ) was negative " <<std::endl;
-            negFlag=TRUE;
+            negFlag=true;
           }
       
       }

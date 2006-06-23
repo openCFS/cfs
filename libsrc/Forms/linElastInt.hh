@@ -16,17 +16,14 @@ namespace CoupledField {
 
     //! Constructor
     linElastInt( BaseMaterial* matData, SubTensorType type = FULL );
-  
-    //! Constructor
-    linElastInt( BaseFE *aptelem, BaseMaterial* matData, 
-		 SubTensorType type = FULL );
 
     //! Destructor
     virtual ~linElastInt();
 
     //! Function for calculation bdb matrix 
-    virtual void CalcElementMatrix( Matrix<Double> &ptCoord,
-                                    Matrix<Double> &elemmat );
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
 
   protected:    
 

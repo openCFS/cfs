@@ -8,6 +8,7 @@
 #include "Forms/FlatShellInt.hh"
 #include "Forms/massInt.hh"
 #include "Forms/linPressureInt.hh"
+#include "Forms/singleEntryInt.hh"
 #include "DataInOut/writeresults.hh"
 #include "Driver/assemble.hh"
 #include "newmark.hh"
@@ -16,25 +17,23 @@
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/domain.hh"
 #include "Utils/coordSystem.hh"
+#include "Domain/ansatzFct.hh"
 #include "Driver/stdSolveStep.hh"
 
 #ifdef TCL_INTERFACE
 #include "DataInOut/Scripting/cfsmessenger.hh" 
 #endif
 
-namespace CoupledField
-{
+namespace CoupledField {
 
   MechPDE::MechPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut)
     :SinglePDE(aptgrid, aptOut, aptTimeFunc), 
-     preStressVal_(0.0)
-
-  {
+     preStressVal_(0.0) {
     ENTER_FCN( "MechPDE::MechPDE" );
 
     pdename_          = "mechanic";
     pdematerialclass_ = MECHANIC;
-    fracDamping_ = FALSE;
+    fracDamping_ = false;
 
     // ****************************
     // DETERMINE GEOMETRY
@@ -48,30 +47,25 @@ namespace CoupledField
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
     if ( subType_ == "3d" && probGeo == "3d" ) {
-      dofspernode_ = 3;
       stressDim_ = 6;
       Info->PrintF("", "=== 3D PROBLEM\n");
     }
     else if ( subType_ == "axi" && probGeo == "axi" ) {
-      isaxi_ = TRUE;
-      dofspernode_ = 2;
+      isaxi_ = true;
       stressDim_ = 4;
       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
     else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
-      dofspernode_ = 2;
       stressDim_ = 3;
       Info->PrintF("", "=== PLANE STRAIN PROBLEM\n");
-      }
+    }
       
     else if ( subType_ == "planeStress" && probGeo == "plane" ) {
-      dofspernode_ = 2;
       stressDim_ = 3;
       Info->PrintF("", "=== PLANE STRESS PROBLEM\n");
     }
 
     else if ( subType_ == "flatShell" && probGeo == "3d" ) {
-      dofspernode_ = 6;
       stressDim_ = 3;
       Info->PrintF("", "=== FLAT SHELL PROBLEM\n");
     }
@@ -86,8 +80,19 @@ namespace CoupledField
     // =====================================================================
     // set solution information
     // =====================================================================
-    solTypes_ = MECH_DISPLACEMENT;
-    solDofs_ = dofspernode_;
+    
+    // Create new resultDof object
+    shared_ptr<ResultDof> res1(new ResultDof);
+    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    res1->resultType = MECH_DISPLACEMENT;
+    if( dim_ == 3 ) {
+      res1->dofNames = "ux", "uy", "uz";
+    } else {
+      res1->dofNames = "ux", "uy";
+    }
+    res1->definedOn = ResultDof::NODE;
+    res1->fctType = fct;
+    results_.Push_back( res1 );
     
     effectiveMass_ = params->IsSet( "effMass" );
     
@@ -143,7 +148,7 @@ namespace CoupledField
 
     
     fracMemory_ = 0;
-    Boolean identical = TRUE; // i.e. same type of damping for all regions
+    bool identical = true; // i.e. same type of damping for all regions
     Integer firstFrac=-1;
 
     // Construct vectors for restricted search parameter
@@ -182,7 +187,7 @@ namespace CoupledField
       }
       else if (dampInfo[0] == "fractional") {
         dampingList_[actRegion] = FRACTIONAL;
-        fracDamping_ = TRUE;
+        fracDamping_ = true;
         Info->PrintF( pdename_, 
                       "      * FRACTIONAL damping for region: %s\n", 
                       actRegionName.c_str() );
@@ -241,7 +246,7 @@ namespace CoupledField
     // Check, if all entries are identical
     for ( UInt i = 1; i < dampingList_.size(); i++ ) {
       if ( dampingList_[subdoms_[i-1]] != dampingList_[subdoms_[i]] ) {
-        identical = FALSE;
+        identical = false;
         break;
       }
     }
@@ -249,11 +254,11 @@ namespace CoupledField
 
     // Fractional damping can only be enabled, if all regions are damped
     // this way. Oterhwise an error is thrown.
-    if ( fracDamping_ == TRUE ) {
+    if ( fracDamping_ == true ) {
       
-      if ( identical == TRUE ) {
+      if ( identical == true ) {
         
-        fracDamping_ = TRUE;
+        fracDamping_ = true;
         Info->PrintF(pdename_, "Memory size for fractional damping  is: %d\n",
                      fracMemory_ );
       } else {
@@ -275,6 +280,79 @@ namespace CoupledField
 
   }
 
+
+  void MechPDE::DefineSprings() {
+    ENTER_FCN( "MechPDE::DefineSprings" );
+
+    // Read information from xml file
+    StdVector<std::string> keyVec, attrVec, valVec;
+    StdVector<std::string> springNames, springDofs;
+    StdVector<Double> stiffVals, dampVals, massVals;
+
+    attrVec = "", "tag", "";
+    valVec = "", bcSequenceTag_, "";
+    
+    keyVec = pdename_, "bcsAndLoads", "spring", "name";
+    params->GetList(keyVec, attrVec, valVec, springNames);
+
+    keyVec = pdename_, "bcsAndLoads", "spring", "dof";
+    params->GetList(keyVec, attrVec, valVec, springDofs);
+
+    keyVec = pdename_, "bcsAndLoads", "spring", "massValue";
+    params->GetList(keyVec, attrVec, valVec, massVals);
+
+    keyVec = pdename_, "bcsAndLoads", "spring", "dampingValue";
+    params->GetList(keyVec, attrVec, valVec, dampVals);
+
+    keyVec = pdename_, "bcsAndLoads", "spring", "stiffnessValue";
+    params->GetList(keyVec, attrVec, valVec, stiffVals);
+    
+
+    // Iterate over all springs
+    for( UInt iSp = 0; iSp < springNames.GetSize(); iSp++ ) {
+
+      UInt dof = results_[0]->GetDofIndex( springDofs[iSp] );
+
+      shared_ptr<NodeList> spNode (new NodeList(ptgrid_) );
+      spNode->SetNodes( springNames[iSp] );
+      
+      // stiffness value
+      if( stiffVals[iSp] > EPS ) {
+        SingleEntryInt * stiffInt = 
+          new SingleEntryInt( stiffVals[iSp], dof, dim_ );
+        BiLinFormContext * stiffIntContext = 
+          new BiLinFormContext( stiffInt, STIFFNESS );
+        stiffIntContext->SetPtPdes(this, this);
+        stiffIntContext->SetResults( results_[0], results_[0],
+                                     spNode, spNode );
+        assemble_->AddBiLinearForm( stiffIntContext );
+      }
+
+      // mass Value
+      if ( massVals[iSp] > EPS ) {
+        SingleEntryInt * massInt = 
+          new SingleEntryInt( massVals[iSp], dof, dim_ );
+        BiLinFormContext * massIntContext = 
+          new BiLinFormContext( massInt, MASS );
+        massIntContext->SetPtPdes(this, this);
+        massIntContext->SetResults( results_[0], results_[0],
+                                    spNode, spNode );
+        assemble_->AddBiLinearForm( massIntContext );
+      }
+      
+      // damping value
+      if( dampVals[iSp] > EPS ) {
+        SingleEntryInt * dampInt = 
+          new SingleEntryInt( dampVals[iSp], dof, dim_ );
+        BiLinFormContext * dampIntContext = 
+          new BiLinFormContext( dampInt, DAMPING );
+        dampIntContext->SetPtPdes(this, this);
+        dampIntContext->SetResults( results_[0], results_[0],
+                                    spNode, spNode );
+        assemble_->AddBiLinearForm( dampIntContext );
+      }
+    }
+  }
   
   void MechPDE::InitNonLin()
   {
@@ -289,7 +367,7 @@ namespace CoupledField
     params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
     // Should not happen with validating parser, but beware!
     if ( nonLinRegion.GetSize() == 0 ) {
-      nonLin_ = FALSE;
+      nonLin_ = false;
     }
     else {
       for ( UInt k = 1; k < nonLinRegion.GetSize(); k++ ) {
@@ -298,11 +376,11 @@ namespace CoupledField
                        __FILE__, __LINE__ );
         }
       }
-      nonLin_ = nonLinRegion[0] == "geo" ? TRUE : FALSE;
+      nonLin_ = nonLinRegion[0] == "geo" ? true : false;
     }
 
     // In non-linear case determine type of line search strategy
-    if ( nonLin_ == TRUE ) {
+    if ( nonLin_ == true ) {
 
       Info->PrintF( pdename_, "Non-linearity in %d regions\n",
                     nonLinRegion.GetSize() );
@@ -324,7 +402,7 @@ namespace CoupledField
       lineSearch_ = "no";
     }
 
-    if( nonLin_ == TRUE )
+    if( nonLin_ == true )
       {
         // incremental stopping criterion
         params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
@@ -345,7 +423,7 @@ namespace CoupledField
     // ------------------------------------------
     params->GetList( "reducedInt", reducedIntegration_, pdename_, "region" );
 
-    if ( nonLin_ == TRUE ) {
+    if ( nonLin_ == true ) {
       for ( UInt i = 0; i < reducedIntegration_.GetSize(); i++ ) {
         if ( reducedIntegration_[i] == "yes" ) {
           (*error) << "Currently we do not support non-linearity with "
@@ -357,8 +435,7 @@ namespace CoupledField
   }
   
 
-  void MechPDE::DefineIntegrators()
-  {
+  void MechPDE::DefineIntegrators() {
     ENTER_FCN( "MechPDE::DefineIntegerators" );
 
     // help variables for parameter checking
@@ -370,7 +447,7 @@ namespace CoupledField
     
     
     // check for complex valued material parameter
-    Boolean complexMaterial = 
+    bool complexMaterial = 
       params->HasValue( "type", "imagMaterialParameter", "materialDataType" );
     
     //voulme integrators
@@ -381,6 +458,11 @@ namespace CoupledField
       // Get current region and material
       actRegion = it->first;
       actSDMat = it->second;
+
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( actRegion );
+
       
       // ==============  add "standard" stiffness ===========================
       BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat, actRegion);
@@ -397,19 +479,22 @@ namespace CoupledField
       if (softeningInfo.GetSize() > 0)
         bilinearStiff->SetSofteningModel(softeningInfo[0]);
       
-      IntegratorDescriptor * actIntDescrStiff =
-        new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+      BiLinFormContext * actIntDescrStiff =
+        new BiLinFormContext(bilinearStiff, STIFFNESS );
       
-      actIntDescrStiff->SetPDEIds(this, this);
-      
+      actIntDescrStiff->SetPtPdes(this, this);
+      actIntDescrStiff->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );
+
+
       //check for damping
-      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == FALSE ) {
+      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
         Double beta;
         actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
-        actIntDescrStiff->SetSecondaryMat(DAMPING, beta,analysistype_);
+        actIntDescrStiff->SetSecDestMat(DAMPING, beta );
       }
       
-      assemble_->AddIntegrator(actIntDescrStiff, actRegion);
+      assemble_->AddBiLinearForm( actIntDescrStiff );
         
       // check for complex valued material parameter
       if( complexMaterial ) {
@@ -422,13 +507,15 @@ namespace CoupledField
         if (softeningInfo.GetSize() > 0)
           bilinearStiffImag->SetSofteningModel(softeningInfo[0]);
           
-        IntegratorDescriptor * actIntDescrStiffImag =
-          new IntegratorDescriptor(bilinearStiffImag, STIFFNESS);
+        BiLinFormContext * actIntDescrStiffImag =
+          new BiLinFormContext(bilinearStiffImag, STIFFNESS );
           
-        actIntDescrStiffImag->SetPDEIds(this, this);
+        actIntDescrStiffImag->SetPtPdes(this, this);
+        actIntDescrStiffImag->SetResults( results_[0], results_[0],
+                                          actSDList, actSDList );
         actIntDescrStiffImag->SetMatDataType(matType);
           
-        assemble_->AddIntegrator(actIntDescrStiffImag, actRegion );
+        assemble_->AddBiLinearForm(actIntDescrStiffImag  );
       }
         
         
@@ -450,97 +537,131 @@ namespace CoupledField
           else 
             Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);               
 	    
-          IntegratorDescriptor * actIntDescrPre =
-            new IntegratorDescriptor(bilinearPreStress, STIFFNESS);
-          actIntDescrPre->SetPDEIds(this, this);
+          BiLinFormContext * actIntDescrPre =
+            new BiLinFormContext(bilinearPreStress, STIFFNESS );
+          actIntDescrPre->SetPtPdes(this, this);
+          actIntDescrPre->SetResults( results_[0], results_[0],
+                                      actSDList, actSDList );
 	    
-          assemble_->AddIntegrator(actIntDescrPre, actRegion);
+          assemble_->AddBiLinearForm(actIntDescrPre);
         }
       }
       
       
       // ==============  add nonlinear stiffness ============================
-      if (nonLin_)
-        {
-          BaseForm *nLinPart1 = NULL;
-          BaseForm *nLinPart2 = NULL;
+      if (nonLin_) {
+        BaseForm *nLinPart1 = NULL;
+        BaseForm *nLinPart2 = NULL;
 	    
-          if (subType_ == "3d")
-            {   
-              nLinPart1 = new nLinMech3dInt_BNonLin(actSDMat);    
-              nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
-            }
+        if (subType_ == "3d")
+          {   
+            nLinPart1 = new nLinMech3dInt_BNonLin(actSDMat);    
+            nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
+          }
 	    
-          else if (subType_ == "planeStrain")
-            {
-              nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
-              nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
+        else if (subType_ == "planeStrain")
+          {
+            nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
+            nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
 		
-            }
-          else if (subType_ == "axi")
-            {
-              nLinPart1 = new nLinMechAxiInt_BNonLin(actSDMat);    
-              nLinPart2 = new nLinMechAxiInt_PiolaStress(actSDMat);
+          }
+        else if (subType_ == "axi")
+          {
+            nLinPart1 = new nLinMechAxiInt_BNonLin(actSDMat);    
+            nLinPart2 = new nLinMechAxiInt_PiolaStress(actSDMat);
 		
-            }
+          }
+        // pass solution pointer to nonlinear forms
+        nLinPart1->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+        nLinPart2->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+          
+        BiLinFormContext * stiffNL1Descr = 
+          new BiLinFormContext(nLinPart1, STIFFNESS );
 	    
-          IntegratorDescriptor * stiffNL1Descr = 
-            new IntegratorDescriptor(nLinPart1, STIFFNESS, nonLin_);
+        stiffNL1Descr->SetPtPdes(this, this);
+        stiffNL1Descr->SetResults( results_[0], results_[0],
+                                   actSDList, actSDList );
+        assemble_->AddBiLinearForm(stiffNL1Descr);
+          
+        BiLinFormContext * stiffNL2Descr = 
+          new BiLinFormContext(nLinPart2, STIFFNESS );
 	    
-          stiffNL1Descr->SetPDEIds(this, this);
-          assemble_->AddIntegrator(stiffNL1Descr, actRegion);
+        stiffNL2Descr->SetPtPdes(this, this);
+        stiffNL2Descr->SetResults( results_[0], results_[0],
+                                   actSDList, actSDList );
+        assemble_->AddBiLinearForm(stiffNL2Descr);
 	    
-          IntegratorDescriptor * stiffNL2Descr = 
-            new IntegratorDescriptor(nLinPart2, STIFFNESS, nonLin_);
-	    
-          stiffNL2Descr->SetPDEIds(this, this);
-          assemble_->AddIntegrator(stiffNL2Descr, actRegion);
-	    
-          // assemble prestress, if in config-file given
-          //    if (preStressVal_)
-          //      AssemblePreStressMat(ptEl, connect_PDE, ptCoord,
-          //      actMatData, elDisp);
-        }
+        // assemble prestress, if in config-file given
+        //    if (preStressVal_)
+        //      AssemblePreStressMat(ptEl, connect_PDE, ptCoord,
+        //      actMatData, elDisp);
+      }
 	
 	
       // ==============  add mass ===========================================
       double density;
       actSDMat->GetScalar(density,DENSITY,REAL);
-      BaseForm * bilinearMass  = new MassInt(density, dofspernode_, isaxi_);
+      BaseForm * bilinearMass  = new MassInt(density, dim_, isaxi_);
 	
-      IntegratorDescriptor * actIntDescr =
-        new IntegratorDescriptor(bilinearMass, MASS);
-      actIntDescr->SetPDEIds(this, this);
-	
+      BiLinFormContext * actIntDescr =
+        new BiLinFormContext(bilinearMass, MASS );
+      actIntDescr->SetPtPdes(this, this);
+      actIntDescr->SetResults( results_[0], results_[0],
+                               actSDList, actSDList );
+      
       //check for damping (mass part)
 	
       if ( dampingList_[actRegion] == RAYLEIGH ) {
         Double alpha;
         actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-        actIntDescr->SetSecondaryMat(DAMPING, alpha, analysistype_);
+        actIntDescr->SetSecDestMat(DAMPING, alpha);
       }
 	
-      assemble_->AddIntegrator(actIntDescr, actRegion);
+      assemble_->AddBiLinearForm(actIntDescr);
 	
 	
       // ==================== RHS ===========================================
-      if (nonLin_)
-        {
-          BaseForm * rhsSource = new nLinMech_linFormInt(actSDMat, isaxi_);
-          assemble_->AddRhsIntegrator(rhsSource, actRegion, nonLin_);
-        }
+      if (nonLin_) {
+        LinearForm * rhsSource = new nLinMech_linFormInt(actSDMat, isaxi_);
+        rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+        LinearFormContext * nLinRhs = 
+          new LinearFormContext( rhsSource );
+        nLinRhs->SetPtPde( this );
+        nLinRhs->SetResult( results_[0], actSDList );
+        assemble_->AddLinearForm( nLinRhs );
+      }
+
+      // Give entities and result to equation numbering class
+      // and solution class
+      eqnMap_->AddResult( *results_[0], actSDList );      
     }
     
   
    
+
+
     //surface integrators
     //RHS-part
-    Boolean nonlin = FALSE;
     for (UInt actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
+
+      // create new surface element list
+      shared_ptr<SurfElemList> actPressSurf( new SurfElemList(ptgrid_ ) );
+      actPressSurf->SetRegion( pressSurf_[actSF] );
+   
+
+
       LinearSurfForm * rhsSrcSurf = new PressureLinForm(pressVals_[actSF], isaxi_);
       rhsSrcSurf->SetVoluInfo( materials_ );
-      assemble_->AddRhsSrcSurfIntegrator(rhsSrcSurf, pressSurf_[actSF], pressFnc_[actSF],
-					 nonlin);
+
+      LinearFormContext * pressRhs = 
+        new LinearFormContext( rhsSrcSurf, 0.0, pressFnc_[actSF] );
+      pressRhs->SetPtPde( this );
+      pressRhs->SetResult( results_[0], actPressSurf );
+      assemble_->AddLinearForm( pressRhs );
+      
+      // Give entities and result to equation numbering class
+      // and solution class
+      eqnMap_->AddResult( *results_[0], actPressSurf );
     }
     
     
@@ -548,25 +669,38 @@ namespace CoupledField
     MechVolForceInt * forceInt;
     std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads_.begin();
     if (regionLoads_.size() != 0 ) {
-      (*loadIt).second.Print(TRUE, pdename_ );
+      (*loadIt).second.Print(true, pdename_ );
     }
     for( loadIt = regionLoads_.begin(); loadIt != regionLoads_.end(); loadIt++ ) {
       forceInt = (*loadIt).second.GetIntegrator();
-      assemble_->AddRhsSrcIntegrator( forceInt, (*loadIt).first,
-                                      (*loadIt).second.dynamics, nonLin_ );
-      (*loadIt).second.Print(FALSE, pdename_);
+
+      // Create new element list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( loadIt->first );
+      LinearFormContext * forceContext = 
+        new LinearFormContext( forceInt, 0.0, (*loadIt).second.dynamics );
+      forceContext->SetPtPde(this);
+      forceContext->SetResult( results_[0], actSDList );
+      assemble_->AddLinearForm( forceContext );
+
+      //assemble_->AddRhsSrcIntegrator( forceInt, (*loadIt).first,
+      //                                (*loadIt).second.dynamics, nonLin_ );
+      (*loadIt).second.Print(false, pdename_);
 
     }
+
+    // Define Springs
+    DefineSprings();
 
   }
 
 
-   BaseForm *
-   MechPDE::GetStiffIntegrator(BaseMaterial* actSDMat, 
-                               RegionIdType regionId,
-                               Boolean reducedInt)
-   {
-     ENTER_FCN( "MechPDE::GetStiffIntegrator" );
+  BaseForm *
+  MechPDE::GetStiffIntegrator(BaseMaterial* actSDMat, 
+                              RegionIdType regionId,
+                              bool reducedInt)
+  {
+    ENTER_FCN( "MechPDE::GetStiffIntegrator" );
     
     // Construct vectors for restricted search parameter
     StdVector<std::string> keyVec;
@@ -578,51 +712,51 @@ namespace CoupledField
     attrVec = "", "", "name";
     valVec = "", "", regionName;
     
-     BaseForm * bilinearStiff = NULL;
+    BaseForm * bilinearStiff = NULL;
      
-     // Check for FlatShellIntegrator, as this one is a special sub-type,
-     // not handled by the SubTensorType
-     if (subType_ == "flatShell" ) {
-       FlatShellInt * myInt = new FlatShellInt(actSDMat);
+    // Check for FlatShellIntegrator, as this one is a special sub-type,
+    // not handled by the SubTensorType
+    if (subType_ == "flatShell" ) {
+      FlatShellInt * myInt = new FlatShellInt(actSDMat);
        
-       // Get thickness of region
-       Double thickness;
-       keyVec = "pdeList", "mechanic", "region", "thickness";
-       params->Get( keyVec, attrVec, valVec, thickness );
-       myInt->SetThickness( thickness );
-       std::cerr << "Thickness of region " << regionName << " is " << thickness << std::endl;
+      // Get thickness of region
+      Double thickness;
+      keyVec = "pdeList", "mechanic", "region", "thickness";
+      params->Get( keyVec, attrVec, valVec, thickness );
+      myInt->SetThickness( thickness );
+      std::cerr << "Thickness of region " << regionName << " is " << thickness << std::endl;
        
-       // Get penalty value for drilling dof of region
-       Double penaltyDof;
-       keyVec = "pdeList", "mechanic", "region", "penaltyDof";
-       params->Get( keyVec, attrVec, valVec, penaltyDof );
-       myInt->SetPenaltyDof( penaltyDof );
-       std::cerr << "PenaltyDof of region " << regionName << " is " << penaltyDof << std::endl;
+      // Get penalty value for drilling dof of region
+      Double penaltyDof;
+      keyVec = "pdeList", "mechanic", "region", "penaltyDof";
+      params->Get( keyVec, attrVec, valVec, penaltyDof );
+      myInt->SetPenaltyDof( penaltyDof );
+      std::cerr << "PenaltyDof of region " << regionName << " is " << penaltyDof << std::endl;
        
-       bilinearStiff = myInt;
-       myInt = NULL;
-     } else { 
+      bilinearStiff = myInt;
+      myInt = NULL;
+    } else { 
        
-       //transform the type
-       SubTensorType tensorType;
-       String2Enum(subType_,tensorType);
+      //transform the type
+      SubTensorType tensorType;
+      String2Enum(subType_,tensorType);
        
-       if( fracDamping_ == FALSE ) {
-         bilinearStiff = new linElastInt(actSDMat, tensorType);
-       } 
-       else {
-         StdVector<std::string> keyVec, attrVec, valVec;
-         keyVec = "transient", "firstDt";
-         attrVec = "tag";
-         valVec  =  bcSequenceTag_;
-         Double dt = 0.0;
-         params->Get(keyVec,attrVec,valVec,dt);
-         bilinearStiff = new LinViscoElastInt(actSDMat,tensorType, "modifiedStiffness",dt );
-       }
-     } // if "flatShell"
+      if( fracDamping_ == false ) {
+        bilinearStiff = new linElastInt(actSDMat, tensorType);
+      } 
+      else {
+        StdVector<std::string> keyVec, attrVec, valVec;
+        keyVec = "transient", "firstDt";
+        attrVec = "tag";
+        valVec  =  bcSequenceTag_;
+        Double dt = 0.0;
+        params->Get(keyVec,attrVec,valVec,dt);
+        bilinearStiff = new LinViscoElastInt(actSDMat,tensorType, "modifiedStiffness",dt );
+      }
+    } // if "flatShell"
 
-     return bilinearStiff;
-   }
+    return bilinearStiff;
+  }
   
   
   void MechPDE::ReadRegionLoads( ) {
@@ -640,7 +774,7 @@ namespace CoupledField
     
     // Check, if function was called by a scripting command
 #ifdef TCL_INTERFACE
-    if ( messenger->IsEvaluating() == TRUE ) {
+    if ( messenger->IsEvaluating() == true ) {
       
       // obtain parameters from messenger object
       // Note: If scripting is used, only one region load
@@ -755,7 +889,7 @@ namespace CoupledField
 
       if ( it == regionLoads_.end() ) {
         regionLoads_.insert( std::map<RegionIdType, RegionLoad>::value_type( regionIds[i], 
-                                                     RegionLoad( dim_, isaxi_ ) ) );
+                                                                             RegionLoad( dim_, isaxi_ ) ) );
       }
       it = regionLoads_.find( regionIds[i] );
       curLoad = & (*it).second;
@@ -812,7 +946,7 @@ namespace CoupledField
   {
     ENTER_FCN( "MechPDE::InitCoupling" );
   
-    isIterCoupled_ = TRUE;
+    isIterCoupled_ = true;
     ptCoupling_   = Coupling;
   
     for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++)
@@ -835,7 +969,7 @@ namespace CoupledField
             ptCoupling_->CreateCouplingVector(i,isComplex_); 
 
             //now since we need a incremental formulation, initialize some necessary vectors
-            isIncrFormulation_ = TRUE;
+            isIncrFormulation_ = true;
           }
       }
 
@@ -859,7 +993,7 @@ namespace CoupledField
     StdVector<std::string> outputRegions;
   
     // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == FALSE)
+    if (isIterCoupled_ == false)
       return;
 
     // loop over all output coupling quantities
@@ -919,100 +1053,101 @@ namespace CoupledField
   {
     ENTER_FCN( "MechPDE::CalcAcousticCouplingRHS" );
 
-    Matrix<Double> ptCoord, elemMat;
-    Vector<Double> normal, sol, forceOnElem, nSol;
-    Elem * ptVolElem;
-    Double sign = 0.0;
-    Double density = 0.0;
-    Integer matIndex = -1;
+    Error( "Not working at the moment", __FILE__, __LINE__ );
+    //     Matrix<Double> ptCoord, elemMat;
+    //     Vector<Double> normal, sol, forceOnElem, nSol;
+    //     Elem * ptVolElem;
+    //     Double sign = 0.0;
+    //     Double density = 0.0;
+    //     Integer matIndex = -1;
 
-    elemCouplingSols.Init(0.0);
+    //     elemCouplingSols.Init(0.0);
   
-    for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++)
-      {
-        // Perform cast from volume element to surface element, since
-        // mech-acou coupling makes only sense on surface elements
-        SurfElem * actCoupleElem = 
-          dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
+    //     for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++)
+    //       {
+    //         // Perform cast from volume element to surface element, since
+    //         // mech-acou coupling makes only sense on surface elements
+    //         SurfElem * actCoupleElem = 
+    //           dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
         
 
-        BaseFE * ptElem = actCoupleElem->ptElem;
-        StdVector<UInt> & connecth = (*couplingElems)[actElem]->connect;
-        GetElemCoords(connecth, ptCoord);
+    //         BaseFE * ptElem = actCoupleElem->ptElem;
+    //         StdVector<UInt> & connecth = (*couplingElems)[actElem]->connect;
+    //         GetElemCoords(connecth, ptCoord);
       
-        // Try to find according region for first neighbouring volume
-        // element of the surface element
-        matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
+    //         // Try to find according region for first neighbouring volume
+    //         // element of the surface element
+    //         matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
         
-        // If first volume element does not belong to acoustic PDE, try the
-        // second one
-        if ( matIndex == -1 ) {
-          matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
-          ptVolElem = actCoupleElem->ptVolElem2;
-          sign = -1.0 * actCoupleElem->normalSign;
-        } else {
-          ptVolElem = actCoupleElem->ptVolElem1;
-          sign = 1.0 * actCoupleElem->normalSign;
-        }
+    //         // If first volume element does not belong to acoustic PDE, try the
+    //         // second one
+    //         if ( matIndex == -1 ) {
+    //           matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
+    //           ptVolElem = actCoupleElem->ptVolElem2;
+    //           sign = -1.0 * actCoupleElem->normalSign;
+    //         } else {
+    //           ptVolElem = actCoupleElem->ptVolElem1;
+    //           sign = 1.0 * actCoupleElem->normalSign;
+    //         }
         
-        if ( matIndex == -1) {
-          (*error) << "MechPDE::CalcAcousticCouplingRHS: The two volume "
-                   << "element neighbours of surface element Nr. "
-                   << actCoupleElem->elemNum << " do not belong to my regions!";
-          Error( __FILE__, __LINE__ );
-        }
+    //         if ( matIndex == -1) {
+    //           (*error) << "MechPDE::CalcAcousticCouplingRHS: The two volume "
+    //                    << "element neighbours of surface element Nr. "
+    //                    << actCoupleElem->elemNum << " do not belong to my regions!";
+    //           Error( __FILE__, __LINE__ );
+    //         }
       
-        // Assign correct density
-	materials[actElem]->GetScalar(density,DENSITY,REAL);
+    //         // Assign correct density
+    // 	materials[actElem]->GetScalar(density,DENSITY,REAL);
         
-        // get correct density belonging to the the neighbouring element
-        // in the fluid subdomain
-        //density = (*couplingMaterials)[actElem]->GetDensity();
+    //         // get correct density belonging to the the neighbouring element
+    //         // in the fluid subdomain
+    //         //density = (*couplingMaterials)[actElem]->GetDensity();
       
-        BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
-        Matrix<Double> elemmat;
-        bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
-        delete bilinear_mass;       
+    //         BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
+    //         Matrix<Double> elemmat;
+    //         bilinear_mass->CalcElementMatrix(ptCoord, elemmat);
+    //         delete bilinear_mass;       
 
         
-        GetDerivSolVecOfElement(sol, connecth);
-        nSol.Resize(connecth.GetSize());   // solution in normal direction
+    //         GetDerivSolVecOfElement(sol, connecth);
+    //         nSol.Resize(connecth.GetSize());   // solution in normal direction
 
-        // the normal vector points outwards of the mechanical domain
-        // (see. Kaltenbacher, "Num. Sim. of Mech. Act. & Sens." chapter 8.2)
-        ptgrid_->CalcSurfNormal( normal, *actCoupleElem );
-        normal *= sign;
+    //         // the normal vector points outwards of the mechanical domain
+    //         // (see. Kaltenbacher, "Num. Sim. of Mech. Act. & Sens." chapter 8.2)
+    //         ptgrid_->CalcSurfNormal( normal, *actCoupleElem );
+    //         normal *= sign;
       
 
-        for (UInt actNode=0; actNode < connecth.GetSize(); actNode++)
-          for (UInt actDof=0; actDof<dofspernode_; actDof++)
-            nSol[actNode] += sol[actDof + actNode*dofspernode_] * normal[actDof];
+    //         for (UInt actNode=0; actNode < connecth.GetSize(); actNode++)
+    //           for (UInt actDof=0; actDof<dofspernode_; actDof++)
+    //             nSol[actNode] += sol[actDof + actNode*dofspernode_] * normal[actDof];
 
 
-        Vector<Double> forceOnElem;
-        forceOnElem= elemmat * nSol;  
+    //         Vector<Double> forceOnElem;
+    //         forceOnElem= elemmat * nSol;  
       
-        for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++)
-          {
-            UInt nodePos = 0;
+    //         for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++)
+    //           {
+    //             UInt nodePos = 0;
           
-            while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.GetSize()) 
-              nodePos++;
-            elemCouplingSols[nodePos] += forceOnElem[actNode];
-          }      
-      }
+    //             while(connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.GetSize()) 
+    //               nodePos++;
+    //             elemCouplingSols[nodePos] += forceOnElem[actNode];
+    //           }      
+    //       }
   } 
 
 
 
-  Boolean MechPDE::HasOutput(SolutionType output)
+  bool MechPDE::HasOutput(SolutionType output)
   {
     ENTER_FCN( "MechPDE::HasOutput" );
 
     if (output == MECH_DISPLACEMENT || output == MECH_VELOCITY || output == MECH_FORCE)
-      return TRUE;
+      return true;
 
-    return FALSE;
+    return false;
   }
 
 
@@ -1026,19 +1161,17 @@ namespace CoupledField
   {
     ENTER_FCN( "MechPDE::InitTimeStepping" );
 
-    UInt rhsSize = eqnData_->GetNumEQNs() *
-      eqnData_->GetNumDofsPerEQN();
 
-    if ( fracDamping_ == FALSE ) { 
+    if ( fracDamping_ == false ) { 
       if (effectiveMass_)  
-        TS_alg_ = new NewmarkEffMass( algsys_, rhsSize );
+        TS_alg_ = new NewmarkEffMass( algsys_ );
       else
-        TS_alg_ = new Newmark( algsys_, rhsSize );
+        TS_alg_ = new Newmark( algsys_);
     }
     else {
-      if (effectiveMass_ == FALSE)
-        TS_alg_ = new NewmarkFracDampMech( algsys_, rhsSize, pdeId_,
-                                           eqnData_, ptgrid_, this, 
+      if (effectiveMass_ == false)
+        TS_alg_ = new NewmarkFracDampMech( algsys_, pdeId_,
+                                           eqnMap_, ptgrid_, this, 
                                            subdoms_, dampingList_ );
       else
         Error("This needs to be implemented!",__FILE__,__LINE__);
@@ -1074,7 +1207,7 @@ namespace CoupledField
     rhs.SetNumNodes(numPDENodes_);
     rhs.SetSolutionType(ACOU_RHSVAL);
     rhs.SetNumDofs(dim_);
-    rhs.SetPtrEQNData(eqnData_, ptgrid_);
+    rhs.SetPtrEQNData(eqnMap_.get(), ptgrid_);
     rhs.Init(0.0);
     
     Double *ptRHS;
@@ -1083,20 +1216,21 @@ namespace CoupledField
     outFile_->WriteNodeSolutionTransient(rhs, actStep, actTime);
 #endif
 
-    if ( isComplex_ == FALSE ) {
+    if ( isComplex_ == false ) {
+
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     
-      if (saveSol_ == TRUE ) 
+      if (saveSol_ == true ) 
         outFile_->WriteNodeSolutionTransient(*solTransient, actStep, actTime);
     
       if (analysistype_== TRANSIENT) {
-        if (saveDeriv1_ == TRUE)
+        if (saveDeriv1_ == true)
           {
             solDeriv1_.SetAlgSysVector(getS1());
             outFile_->WriteNodeSolutionTransient(solDeriv1_, actStep, actTime);
           }
       
-        if (saveDeriv2_ == TRUE)
+        if (saveDeriv2_ == true)
           {
             solDeriv2_.SetAlgSysVector(getS2());
             outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
@@ -1112,7 +1246,7 @@ namespace CoupledField
     } else {
       solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
       
-      if (saveSol_ == TRUE )
+      if (saveSol_ == true )
         outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actStep,
                                             actTime, complexFormat_);
     
@@ -1142,27 +1276,27 @@ namespace CoupledField
     Double actTime = asteptime + timeOffset;
     UInt actStep = kstep + stepOffset;
     
-    if ( isComplex_ == FALSE ) {
+    if ( isComplex_ == false ) {
       solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
       
-      if (saveSolHist_ == TRUE)
+      if (saveSolHist_ == true)
         outFile_->WriteNodeHistoryTransient(*solTransient, actStep, actTime);
       
       if (analysistype_== TRANSIENT) {
-        if (saveDeriv1Hist_ == TRUE) {
+        if (saveDeriv1Hist_ == true) {
           solDeriv1_.SetAlgSysVector(getS1());
           outFile_->WriteNodeHistoryTransient(solDeriv1_, actStep, actTime);
         }
       }
       
-      if (saveDeriv2Hist_ == TRUE) {
+      if (saveDeriv2Hist_ == true) {
         solDeriv2_.SetAlgSysVector(getS2());
         outFile_->WriteNodeHistoryTransient(solDeriv2_, actStep, actTime);
       }
     } else  {
       solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
-      if (saveSolHist_ == TRUE)
+      if (saveSolHist_ == true)
         outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actStep, 
                                            actTime, complexFormat_);
     
@@ -1195,8 +1329,8 @@ namespace CoupledField
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
     if (nodeValues.GetSize() > 0) {
-      saveSol_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSol_ = true;
+      hasOutput_ = true;
     }
 
 
@@ -1205,15 +1339,16 @@ namespace CoupledField
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
     if (nodeValues.GetSize() > 0) {
-      saveDeriv1_ = TRUE;
-      hasOutput_ = TRUE;
+      saveDeriv1_ = true;
+      hasOutput_ = true;
     
       // intialize corresponding storesolution object
       solDeriv1_.SetNumSolutions(1);
       solDeriv1_.SetNumNodes(numPDENodes_);
       solDeriv1_.SetSolutionType(MECH_VELOCITY);
       solDeriv1_.SetNumDofs(dim_);
-      solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_); 
+      solDeriv1_.SetPtrEQNData( eqnMap_.get(),ptgrid_); 
+      solDeriv1_.SetRegions( subdoms_ );
       solDeriv1_.Init();
     }
 
@@ -1222,15 +1357,16 @@ namespace CoupledField
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
     if (nodeValues.GetSize() > 0) {
-      saveDeriv2_ = TRUE;
-      hasOutput_ = TRUE;
+      saveDeriv2_ = true;
+      hasOutput_ = true;
       
       // intialize corresponding storesolution object
       solDeriv2_.SetNumSolutions(1);
       solDeriv2_.SetNumNodes(numPDENodes_);
       solDeriv2_.SetSolutionType(MECH_ACCELERATION);
       solDeriv2_.SetNumDofs(dim_);
-      solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_);
+      solDeriv2_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
+      solDeriv2_.SetRegions( subdoms_ );
       solDeriv2_.Init();
     }
 
@@ -1254,14 +1390,14 @@ namespace CoupledField
 
     // Log to info file
     if ( calcStress_.GetSize() > 0 ) {
-      hasOutput_ = TRUE;
+      hasOutput_ = true;
       Info->PrintF( pdename_,
                     " Computing mechanical stress for regions:\n");
       for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
       }
 
-      if ( isComplex_ == FALSE ) {
+      if ( isComplex_ == false ) {
         stress_ = new ElemStoreSol<Double>;
       } else {
         stress_ = new ElemStoreSol<Complex>;
@@ -1270,7 +1406,7 @@ namespace CoupledField
       stress_->SetSolutionType(MECH_STRESS);
       stress_->SetNumElems(numElems_);
       stress_->SetNumDofs(6);
-      stress_->SetPtrEQNData(eqnData_, ptgrid_);
+      stress_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
       stress_->Init();
     }
 
@@ -1287,7 +1423,7 @@ namespace CoupledField
 
     // Log to info file
     if ( calcEnergy_.GetSize() > 0 ) {
-      hasOutput_ = TRUE;
+      hasOutput_ = true;
       Info->PrintF( pdename_,
                     " Computing mechanical Energy for regions:\n");
       for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
@@ -1308,8 +1444,8 @@ namespace CoupledField
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
     if (saveNodeHist.GetSize() > 0) {
-      saveSolHist_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSolHist_ = true;
+      hasOutput_ = true;
       Info->PrintF( pdename_, " Saving mechDisplacement for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
@@ -1322,20 +1458,20 @@ namespace CoupledField
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
     if (saveNodeHist.GetSize() > 0) {
-      saveDeriv1Hist_ = TRUE;
-      hasOutput_ = TRUE;
+      saveDeriv1Hist_ = true;
+      hasOutput_ = true;
       Info->PrintF( pdename_, " Saving mechVelocity for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
       }
       // Check if solDeriv_1 was already set by the previous nodal
       // output check
-      if ( saveDeriv1_ != TRUE ) {   
+      if ( saveDeriv1_ != true ) {   
         solDeriv1_.SetNumSolutions(1);
         solDeriv1_.SetNumNodes(numPDENodes_);
         solDeriv1_.SetSolutionType(MECH_VELOCITY);
         solDeriv1_.SetNumDofs(dim_);
-        solDeriv1_.SetPtrEQNData(eqnData_, ptgrid_); 
+        solDeriv1_.SetPtrEQNData( eqnMap_.get(),ptgrid_); 
         solDeriv1_.Init();
       }
     }
@@ -1346,8 +1482,8 @@ namespace CoupledField
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
   
     if (saveNodeHist.GetSize() > 0) {
-      saveDeriv2Hist_ = TRUE;
-      hasOutput_ = TRUE;
+      saveDeriv2Hist_ = true;
+      hasOutput_ = true;
       Info->PrintF( pdename_, " Saving mechAcceleration for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
         Info->PrintF( pdename_, " %s\n", saveNodeHist[k].c_str() );
@@ -1355,12 +1491,12 @@ namespace CoupledField
 
       // Check if solDeriv_1 was already set by the previous nodal
       // output check
-      if ( saveDeriv2_ != TRUE ) {
+      if ( saveDeriv2_ != true ) {
         solDeriv2_.SetNumSolutions(1);
         solDeriv2_.SetNumNodes(numPDENodes_);
         solDeriv2_.SetSolutionType(MECH_ACCELERATION);
         solDeriv2_.SetNumDofs(dim_);
-        solDeriv2_.SetPtrEQNData(eqnData_, ptgrid_);
+        solDeriv2_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
         solDeriv2_.Init();
       }
     }
@@ -1402,7 +1538,7 @@ namespace CoupledField
 
     //check for mechanical energy calculation
     if (calcEnergy_.GetSize() !=0 ) {
-      if ( isComplex_ == FALSE) {
+      if ( isComplex_ == false) {
         CalcEnergy<Double>();
       } else {
         CalcEnergy<Complex>();
@@ -1410,7 +1546,7 @@ namespace CoupledField
     }
   
     if (calcStress_.GetSize() !=0 ) {
-      if ( isComplex_ == FALSE) {
+      if ( isComplex_ == false) {
         CalcStresses<Double>();
       } else {
         CalcStresses<Complex>();
@@ -1456,6 +1592,7 @@ namespace CoupledField
     elemStress.Resize(stressDim_);
     elemStress.Init(0);
     sortedStress.Resize(6);
+    sortedStress.Init();
     
     // loop over all subdomains
     for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
@@ -1463,27 +1600,21 @@ namespace CoupledField
       BaseMaterial* actSDMat = materials_[subdoms_[isd]];
       MechStressStrain<TYPE> *stress = new MechStressStrain<TYPE>(actSDMat,type);
       
-      // get vector of Elements of subdomains
-      StdVector<Elem*> elemssd;     
-      ptgrid_->GetVolElems( elemssd,subdoms_[isd] );
+
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[isd] );
+      
+      EntityIterator it = actSDList.GetIterator();
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
         
-      // loop over elements of subdomain
-      for (UInt iel=0; iel< elemssd.GetSize(); iel++) {
-        UInt pdeElem = eqnData_->Mesh2PDEElem(elemssd[iel]->elemNum);
-        elemssd[iel]->ptElem->GetCoordMidPoint(intPoint);
-        //set element pointer
-        BaseFE * ptEl = elemssd[iel]->ptElem;
-        stress->SetElemPtr(ptEl);
+        UInt pdeElem = eqnMap_->Mesh2PdeElem(it.GetElem()->elemNum);
+        it.GetElem()->ptElem->GetCoordMidPoint(intPoint);
           
         //set element solution        
         Matrix<TYPE> elSol;
-        StdVector<UInt> connecth = elemssd[iel]->connect;
+        StdVector<UInt> connecth = it.GetElem()->connect;
         sol_->GetElemSolutionAsMatrix(elSol, connecth);
         stress->SetActElemSol(elSol);
-          
-        //get coordinates of element
-        Matrix<Double> ptCoord;
-        GetElemCoords(connecth, ptCoord);
           
         Vector<TYPE> actStress;     
           
@@ -1491,7 +1622,7 @@ namespace CoupledField
         stress->SetIntPoint(intPoint);
 
         //calculates the stress
-        stress->CalcStressVec(elemStress,1,ptCoord);
+        stress->CalcStressVec(elemStress,1,it);
         sortStresses(elemStress,sortedStress);
         stress_->SetElemResult(pdeElem-1, sortedStress);
       }
@@ -1562,34 +1693,31 @@ namespace CoupledField
     ENTER_FCN( "MechPDE::CalcEnergy" );
 
     Matrix<Double> elemmat;  
-    Matrix<Double> ptCoord;
-    BaseFE         * ptElem;
 
     StdVector<UInt> connecth;
     Vector<TYPE> help;
 
     TYPE totalE = 0;
 
-    UInt i, j;
+    UInt i;
     Vector<TYPE> energy(subdoms_.GetSize());
 
     for (i=0; i<subdoms_.GetSize(); i++) {
     
-      StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems( elemssd,subdoms_[i] );
-
       //get material
       BaseMaterial* actSDMat = materials_[subdoms_[i]];
-    
-      energy[i] = 0;
-      for (j=0; j < elemssd.GetSize(); j++) {  
-        ptElem=elemssd[j]->ptElem;
+      energy[i] = 0.0;
+
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[i] );
+      
+      EntityIterator it = actSDList.GetIterator();
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+        
 	BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat, subdoms_[i]);
 
-        connecth=elemssd[j]->connect;
-        GetElemCoords(connecth, ptCoord);
-        bilinear_stiff->SetElemPtr(ptElem);
-        bilinear_stiff->CalcElementMatrix(ptCoord, elemmat);
+        connecth=it.GetElem()->connect;
+        bilinear_stiff->CalcElementMatrix(elemmat,it,it);
 
         Vector<TYPE> eldisp;
         sol_->GetElemSolution(eldisp, connecth);
@@ -1659,7 +1787,7 @@ namespace CoupledField
 
 
   // ========================== RegionLoads ==========================
-  MechPDE::RegionLoad::RegionLoad( UInt dim, Boolean isAxi ) {
+  MechPDE::RegionLoad::RegionLoad( UInt dim, bool isAxi ) {
     
     value.Resize( dim );
     value.Init( "0.0");
@@ -1674,11 +1802,11 @@ namespace CoupledField
                                                       isAxi_);
 
     // Check, if type is "unit"
-    Boolean isUnit;
+    bool isUnit;
     if ( type == "total" ) {
-      isUnit = FALSE;
+      isUnit = false;
     } else {
-      isUnit = TRUE;
+      isUnit = true;
     }
     forceInt->SetVolForceVector( value,
                                  domain->GetCoordSystem( refCoord),
@@ -1689,51 +1817,51 @@ namespace CoupledField
     
   }
 
-  void MechPDE::RegionLoad::Print( Boolean onlyHeader, std::string pdeName ) {
-      std::ostringstream out;
+  void MechPDE::RegionLoad::Print( bool onlyHeader, std::string pdeName ) {
+    std::ostringstream out;
 
-      if (onlyHeader) {
-        Info->PrintF(pdeName, "The following regions have a region load:\n\n");
-        out.clear();
-        out << std::setw(15) << "name" << " | " 
-            << std::setw(15) << "refCoordSys" << " | "
-            << std::setw(15) << "dynamics" << " | "
-            << std::setw(11) << "volume" << " | "
-            << std::setw(6) << "type" << " | "
-            << std::setw(11) << "load" <<std::endl;
-        Info->PrintF(pdeName, out.str().c_str());
-        out.str("");
-        out << std::setw(90) << std::setfill('-') << "" 
-            << std::setfill(' ') << std::endl;
-        Info->PrintF(pdeName, out.str().c_str());
-        out.str("");
-      } else {
+    if (onlyHeader) {
+      Info->PrintF(pdeName, "The following regions have a region load:\n\n");
+      out.clear();
+      out << std::setw(15) << "name" << " | " 
+          << std::setw(15) << "refCoordSys" << " | "
+          << std::setw(15) << "dynamics" << " | "
+          << std::setw(11) << "volume" << " | "
+          << std::setw(6) << "type" << " | "
+          << std::setw(11) << "load" <<std::endl;
+      Info->PrintF(pdeName, out.str().c_str());
+      out.str("");
+      out << std::setw(90) << std::setfill('-') << "" 
+          << std::setfill(' ') << std::endl;
+      Info->PrintF(pdeName, out.str().c_str());
+      out.str("");
+    } else {
   
         
-        // write logging information into info file
-        for (UInt k = 0; k < value.GetSize(); k++ ) {
-          out.str("");
-          if ( k == 0) {
-            out << std::setw(15) << name << " | " 
-                << std::setw(15) << refCoord << " | "
-                << std::setw(15) << dynamics << " | "
-                << std::setw(11) << volume << " | "
-                << std::setw(6) << type << "|";
-          } else {
-            out << std::setw(15) << "" << " | " 
-                << std::setw(15) << "" << " | "
-                << std::setw(15) << "" << " | "
-                << std::setw(11) << "" << " | "
-                << std::setw(6) << "" << " | ";
+      // write logging information into info file
+      for (UInt k = 0; k < value.GetSize(); k++ ) {
+        out.str("");
+        if ( k == 0) {
+          out << std::setw(15) << name << " | " 
+              << std::setw(15) << refCoord << " | "
+              << std::setw(15) << dynamics << " | "
+              << std::setw(11) << volume << " | "
+              << std::setw(6) << type << "|";
+        } else {
+          out << std::setw(15) << "" << " | " 
+              << std::setw(15) << "" << " | "
+              << std::setw(15) << "" << " | "
+              << std::setw(11) << "" << " | "
+              << std::setw(6) << "" << " | ";
             
-          }
-          
-          out << std::setw(11) << value[k] << std::endl;
-          
-          Info->PrintF(pdeName,out.str().c_str());
         }
-        
+          
+        out << std::setw(11) << value[k] << std::endl;
+          
+        Info->PrintF(pdeName,out.str().c_str());
       }
+        
+    }
   }
   
 } // end namespace CoupledField

@@ -37,11 +37,11 @@ namespace CoupledField {
       lastTime_ = 0.0;
       currTime_ = 0.0;
 
-      firstGridWritten_ = FALSE;
+      firstGridWritten_ = false;
       output = NULL;
 
-      ascii_ = TRUE;
-      fixedgrid_ = TRUE;
+      ascii_ = true;
+      fixedgrid_ = true;
 
       // Set allowed lenght of characters for names
       charOutSize_ = 32;
@@ -64,7 +64,7 @@ namespace CoupledField {
 
     // The last gmv-file is closed by the destructor
     if ( output != NULL ) {
-      if ( PrintGridOnly == FALSE ) {
+      if ( PrintGridOnly == false ) {
         if (ascii_) {
           (*output) << "\nendvars\n" ;
           (*output) << "probtime " << lastTime_ << std::endl;
@@ -385,6 +385,7 @@ namespace CoupledField {
     ptGrid_->GetRegionIds(subdoms);
 
     regionID.Resize(ptGrid_->GetNumElems());
+    regionID.Init();
 
     if (ascii_)
       (*output) << "material " << subdoms.GetSize() << " 0" << std::endl;
@@ -743,8 +744,8 @@ namespace CoupledField {
     // ---------------------------
     // Section for PrintGridOnly
     // ----------------------------
-    if (PrintGridOnly == TRUE) {
-      if(fixedgrid_ == TRUE) {
+    if (PrintGridOnly == true) {
+      if(fixedgrid_ == true) {
         OpenFile(-1);
       }
       else {
@@ -768,8 +769,8 @@ namespace CoupledField {
     // Section for first 
     // fixedGrid step
     // ----------------------------
-    if (fixedgrid_ == TRUE &&
-        firstGridWritten_ == FALSE) {
+    if (fixedgrid_ == true &&
+        firstGridWritten_ == false) {
       OpenFile(-1);
       WriteNodes();
       WriteCells();
@@ -780,7 +781,7 @@ namespace CoupledField {
         (*output) << "\nendgmv";
       else 
         (*output) << "endgmv  ";
-      firstGridWritten_ = TRUE;
+      firstGridWritten_ = true;
       return;
     }
   

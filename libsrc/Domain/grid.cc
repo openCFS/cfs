@@ -168,6 +168,47 @@ namespace CoupledField
   }
   
 
+  shared_ptr<EntityList> Grid::GetEntityList( EntityList::Type type, 
+                                             const std::string& name ) {
+    ENTER_FCN( "Grid::GetEntityList" );
+
+    shared_ptr<EntityList> ret;
+
+    if( type == EntityList::ELEM_LIST ) {
+      shared_ptr<ElemList> eList  = shared_ptr<ElemList>( new ElemList(this) );
+      RegionIdType regionId = RegionNameToId( name );
+      eList->SetRegion( regionId);
+      ret = eList;
+      
+    } else if( type == EntityList::SURF_ELEM_LIST ) {
+      shared_ptr<SurfElemList> surfList  = 
+        shared_ptr<SurfElemList>( new SurfElemList(this) );
+      RegionIdType regionId = RegionNameToId( name );
+      surfList->SetRegion( regionId);
+      ret = surfList;
+
+    } else if( type == EntityList::NODE_LIST ) {
+      shared_ptr<NodeList> nodeList = shared_ptr<NodeList>( new NodeList(this) );
+
+      // Check if name describes a nodeList
+      StdVector<std::string> nodeNames;
+      GetListNodeNames( nodeNames );
+      if( nodeNames.Find(name) < 0 ) {
+        *error << "'" << name << "' describes no named nodes!";
+        Error( __FILE__, __LINE__ );
+      }
+      nodeList->SetNodes( name );
+      ret = nodeList;
+    } else {
+      *error << "Type '" << type << "' describes no EntityList which is created "
+             << "by the grid-class.";
+      Error( __FILE__, __LINE__ );
+    }
+    
+    return ret;
+
+  }
+
 
 
   // =======================================================================

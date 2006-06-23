@@ -27,12 +27,10 @@ namespace CoupledField
     //----------------------- STATIC---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void PreStepStatic( const Boolean reset )  {;};
+    virtual void PreStepStatic()  {;};
  
     //! base method for solving one static step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void SolveStepStatic( const Boolean reset );
+    virtual void SolveStepStatic();
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic() {;}
@@ -41,13 +39,11 @@ namespace CoupledField
     //----------------------- TRANSIENT---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void PreStepTrans( const Boolean reset ) {;};
+    virtual void PreStepTrans() {;};
 
 
     //! base method for solving one transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void SolveStepTrans( const Boolean updatesysmat );
+    virtual void SolveStepTrans();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans() {;};
@@ -55,29 +51,24 @@ namespace CoupledField
     //----------------------- HARMONIC---------------------------------------
     
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void PreStepHarmonic( const Boolean reset ) {;};
+    virtual void PreStepHarmonic(  ) {;};
 
 
     //!  base method for solving one harmonic step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void SolveStepHarmonic( const Boolean reset );
+    virtual void SolveStepHarmonic(  );
 
 
     //!  routine for actions after the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void PostStepHarmonic( const Boolean reset ) {;};
+    virtual void PostStepHarmonic(  ) {;};
 
     //----------------------- TRANSIENTHARMONIC------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void PreStepTransHarmonic( const Boolean reset ) {;};
+    virtual void PreStepTransHarmonic() {;};
 
 
     //! base method for solving one transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    virtual void SolveStepTransHarmonic( const Boolean updatesysmat );
+    virtual void SolveStepTransHarmonic();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTransHarmonic() {;};

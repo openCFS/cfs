@@ -229,7 +229,7 @@ namespace CoupledField
 
     //! Returns the volume of a given region
     Double CalcVolumeOfRegion( const RegionIdType regionId, 
-                               Boolean isaxi) {
+                               bool isaxi) {
       //return ptGridAdaptive->CalcVolumeOfRegion(regionId, isaxi);
     }
       
@@ -245,7 +245,7 @@ namespace CoupledField
     //! Returns node numbers of a list of Elements
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
                              const StdVector<Elem*> & elemList,
-			     Boolean onlyLinNodes = FALSE) {
+			     bool onlyLinNodes = false) {
       //ptGridAdaptive->GetNodesOfElemList(nodeList, elemList, onlyLinNodes);
     }
     

@@ -21,7 +21,9 @@ namespace CoupledField
     (*trace) << "entering MagEdgePDE::MagEdgePDE " << std::endl;
 #endif
 
-    dofspernode_ =1;
+
+    Error( "Not working at the moment", __FILE__, __LINE__ );
+
     dofsperedge_ =1;
 
     SetMatrixFactors();
@@ -75,7 +77,7 @@ namespace CoupledField
     else 
       Error("Analysis Type not supported",__FILE__,__LINE__);
   
-    SystemMatrix_ = TRUE;
+    SystemMatrix_ = true;
     GraphType_    = EDGEGRAPH;
   }
 

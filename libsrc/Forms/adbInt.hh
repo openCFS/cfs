@@ -35,18 +35,16 @@ namespace CoupledField {
 
     //@{ \name Construction and destruction
 
-    //! Default constructor
-    ADBInt() {
-      ENTER_FCN( "ADBInt::ADBInt" );
-      baseType_ = STIFFNESS;
-    };
+
 
     //! Constructor expecting reference to a material data object
-//     ADBInt( BaseMaterial* matData ) : BaseForm( matData ) {
-//       ENTER_FCN( "ADBInt::ADBInt" );
-//       baseType_ = STIFFNESS;
-//     };
-
+    ADBInt( BaseMaterial* matData, SubTensorType type = FULL ) 
+      : BaseForm( matData, type ) {
+      ENTER_FCN( "ADBInt::ADBInt" );
+      baseType_ = STIFFNESS;
+      name_ = "ADBInt";
+    };
+    
     //! Destructor
     virtual ~ADBInt() {
       ENTER_FCN( "ADBInt::~ADBInt" );
@@ -55,8 +53,9 @@ namespace CoupledField {
     //@}
 
     //! Compute element matrix associated to ADB form
-    void CalcElementMatrix( Matrix<Double> &ptCoord,
-                            Matrix<Double> &elemMat );
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
 
 
     // =======================================================================

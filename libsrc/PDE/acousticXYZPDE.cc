@@ -14,11 +14,11 @@
 #include "newmarkFracDamp.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "PDE/scalarnodeEQN.hh"
 #include "Utils/mathfunctions.hh"
 #include "Utils/nodestoresol.hh"
 #include "Driver/solveStepAcoustic.hh"
 #include "CoupledPDE/pdecoupling.hh"
+#include "Driver/assemble.hh"
 
 #ifdef TCL_INTERFACE
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -49,38 +49,43 @@ namespace CoupledField {
     std::string probGeo;
     params->Get( "type", probGeo, "geometry" );
 
+    // Create new resultDof object
+    shared_ptr<ResultDof> res1(new ResultDof);
+    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    
     // Set number of degrees of freedom and
-    // ensure that subtype fits to problem geometry
+    // ensure that subtype fits to problem geometry    
     if ( probGeo == "3d" ) {
-      dofspernode_ = 3;
+      res1->dofNames = "x", "y", "z";
       Info->PrintF("", "=== 3D PROBLEM\n");
     }
     else if (probGeo == "axi" ) {
-      isaxi_ = TRUE;
-      dofspernode_ = 2;
+      isaxi_ = true;
+      res1->dofNames = "r", "phi";
       Info->PrintF("", "=== AXISYSMMETRIC PROBLEM\n");
     }
     else if ( probGeo == "plane" ) {
-      dofspernode_ = 2;
+      res1->dofNames = "x", "y";
       Info->PrintF("", "=== PLANE PROBLEM\n");
     }
+    res1->resultType = ACOU_PRESSUREXYZ;
+    res1->definedOn = ResultDof::NODE;
+    res1->fctType = fct;
+    results_.Push_back( res1 );
 
-    solDofs_ = dofspernode_;
     pdename_          = "acousticXYZ";
     pdematerialclass_ = FLUID;
-
-    solTypes_ = ACOU_PRESSUREXYZ;
 
     // timestepping formulation
     std::string str;
     params->Get( "timeSteppingFormulation", str, "pdeList", pdename_ );
     if ( str == "effMassMatrix" ) {
-      effectiveMass_ = TRUE;
+      effectiveMass_ = true;
       Info->PrintF( pdename_, 
                     "      * effective mass matrix timestepping\n");
     } 
     else {
-      effectiveMass_ = FALSE;
+      effectiveMass_ = false;
       Info->PrintF( pdename_, 
                     "      * effective stiffness matrix timestepping\n");
     }
@@ -153,6 +158,10 @@ namespace CoupledField {
 
       BaseMaterial * actMat = materials_[subdoms_[actSD]];
 
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( subdoms_[actSD] );
+
       // ********************************************************************
       //   Attention:
       //   In AcousticXYZPDE ALL integrators are multiplied with density!
@@ -173,7 +182,6 @@ namespace CoupledField {
 
 
       //do the stiffness part;
-      IntegratorDescriptor * stiffIntDescr;
 
       //check  for PML!
       RegionIdType actRegion = subdoms_[actSD];
@@ -211,15 +219,17 @@ namespace CoupledField {
 	coeffstiff = 1.0 / (c0*c0);
 	BaseForm * bilinearStiffPML = 
 	  new PMLTransXYZInt(formsType, coeffstiff, dampingTypePML, dampPML, 
-			     dofspernode_, isaxi_);
+			     dim_, isaxi_);
 
 	bilinearStiffPML->SetPosPML(inner,outer);
 
-	IntegratorDescriptor * stiffIntDescrPML = 
-	  new IntegratorDescriptor(bilinearStiffPML, STIFFNESS);
+	BiLinFormContext * stiffContextPML = 
+	  new BiLinFormContext(bilinearStiffPML, STIFFNESS );
 
-	stiffIntDescrPML->SetPDEIds(this, this);
-	assemble_->AddIntegrator(stiffIntDescrPML, subdoms_[actSD]);
+	stiffContextPML->SetPtPdes( this, this );
+        stiffContextPML->SetResults( results_[0], results_[0],
+                                     actSDList, actSDList );
+	assemble_->AddBiLinearForm( stiffContextPML );
 
 	//====================================================================
 	//	 damping integrator for PML
@@ -228,34 +238,42 @@ namespace CoupledField {
 	coeffdamp = 1.0 / (c0*c0);
 	BaseForm * bilinearDampPML = 
 	  new PMLTransXYZInt(formsType, coeffdamp, dampingTypePML, dampPML, 
-			     dofspernode_, isaxi_);
+			     dim_, isaxi_);
 
 	bilinearDampPML->SetPosPML(inner,outer);
 
-	IntegratorDescriptor * dampIntDescrPML = 
-	  new IntegratorDescriptor(bilinearDampPML, DAMPING);
+	BiLinFormContext * dampContextPML = 
+	  new BiLinFormContext(bilinearDampPML, DAMPING );
 
-	dampIntDescrPML->SetPDEIds(this, this);
-	assemble_->AddIntegrator(dampIntDescrPML, subdoms_[actSD]);
+	dampContextPML->SetPtPdes( this, this );
+        dampContextPML->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );
+
+	assemble_->AddBiLinearForm( dampContextPML );
       }
-
+      
       //      else {
-
+      
       // stiffness integrator 
       coeffstiff = 1.0;
-      BaseForm * bilinearStiff = new LaplaceXYZInt(coeffstiff,dofspernode_,isaxi_);        
-      stiffIntDescr = new IntegratorDescriptor(bilinearStiff, STIFFNESS);
+      BaseForm * bilinearStiff = new LaplaceXYZInt(coeffstiff,dim_,isaxi_);        
+      BiLinFormContext * stiffContext = 
+        new BiLinFormContext( bilinearStiff, STIFFNESS );
       
-      stiffIntDescr->SetPDEIds(this, this);
+      stiffContext->SetPtPdes( this, this );
+      stiffContext->SetResults( results_[0], results_[0],
+                                actSDList, actSDList );
       
       // mass integrator
       coeffmass = 1.0 / (c0*c0);
       
-      BaseForm * bilinearMass  = new MassInt(coeffmass, dofspernode_, isaxi_);
-      IntegratorDescriptor * massIntDescr = 
-	new IntegratorDescriptor(bilinearMass, MASS);
+      BaseForm * bilinearMass  = new MassInt(coeffmass, dim_, isaxi_);
+      BiLinFormContext * massContext = 
+	new BiLinFormContext(bilinearMass, MASS );
       
-      massIntDescr->SetPDEIds(this, this);
+      massContext->SetPtPdes(this, this);
+      massContext->SetResults( results_[0], results_[0],
+                               actSDList, actSDList );
       
       
       // ********************************************************************
@@ -268,8 +286,8 @@ namespace CoupledField {
       }
       
       // Finally add the stiffness/mass integrators
-      assemble_->AddIntegrator(stiffIntDescr, subdoms_[actSD]);
-      assemble_->AddIntegrator(massIntDescr, subdoms_[actSD]); 
+      assemble_->AddBiLinearForm( stiffContext );
+      assemble_->AddBiLinearForm( massContext ); 
       //      }
     }
   
@@ -290,17 +308,12 @@ namespace CoupledField {
   void AcousticXYZPDE::InitTimeStepping() {
     ENTER_FCN( "AcousticXYZPDE::InitTimeStepping" );
 
-    UInt rhsSize = eqnData_->GetNumEQNs() *
-      eqnData_->GetNumDofsPerEQN();
-
-    if ( effectiveMass_ == FALSE ) {
-      TS_alg_ = new Newmark( algsys_, rhsSize );
+    if ( effectiveMass_ == false ) {
+      TS_alg_ = new Newmark( algsys_ );
     }
     else {
-      TS_alg_ = new NewmarkEffMass( algsys_, rhsSize );
+      TS_alg_ = new NewmarkEffMass( algsys_ );
     }
-    // Needed for fractional damping model, see Assemble::AssembleMatrices
-    assemble_->SetPDEPointer(this);
 
   }
 
@@ -347,7 +360,7 @@ namespace CoupledField {
       NodeStoreSol<Complex> * solHarmonic;
 
       NodeStoreSol<Double> * solTransientPress;
-      NodeStoreSol<Complex> * solHarmonicPress;
+      //NodeStoreSol<Complex> * solHarmonicPress;
 
       
       Double actTime = asteptime + timeOffset;
@@ -375,7 +388,7 @@ namespace CoupledField {
 	  Double val,valDof;
 	  for (UInt node=0; node<numPDENodes_; node++) {
 	    val= 0;
-	    for (UInt dof=0; dof<dofspernode_; dof++) {
+	    for (UInt dof=0; dof<dim_; dof++) {
 	      solTransient->Get(ACOU_PRESSUREXYZ, node,dof,valDof);
 	      val += valDof;
 	    }
@@ -417,7 +430,7 @@ namespace CoupledField {
       NodeStoreSol<Complex> * solHarmonic;
       
       NodeStoreSol<Double> * solTransientPress;
-      NodeStoreSol<Complex> * solHarmonicPress;
+      //NodeStoreSol<Complex> * solHarmonicPress;
 
       Double actTime = asteptime + timeOffset;
       UInt actStep = kstep + stepOffset;
@@ -446,7 +459,7 @@ namespace CoupledField {
 	  Double val,valDof;
 	  for (UInt node=0; node<numPDENodes_; node++) {
 	    val= 0;
-	    for (UInt dof=0; dof<dofspernode_; dof++) {
+	    for (UInt dof=0; dof<dim_; dof++) {
 	      solTransient->Get(ACOU_PRESSUREXYZ, node,dof,valDof);
 	      val += valDof;
 	    }
@@ -496,18 +509,18 @@ namespace CoupledField {
     Enum2String(ACOU_PRESSUREXYZ, quantity);
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
-    saveSol_ = FALSE;
+    saveSol_ = false;
     if (nodeValues.GetSize() > 0) {
-      saveSol_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSol_ = true;
+      hasOutput_ = true;
     }
   
     Enum2String(ACOU_PRESSURE, quantity);
     valVec = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, nodeValues);
-    savePress_ = FALSE;
+    savePress_ = false;
     if (nodeValues.GetSize() > 0) {
-      savePress_ = TRUE;
+      savePress_ = true;
       if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
 	press_ = new NodeStoreSol<Complex>;
       }
@@ -519,7 +532,7 @@ namespace CoupledField {
       press_->SetSolutionType(ACOU_PRESSURE);
       press_->SetNumNodes(numPDENodes_);
       press_->SetNumDofs(1);
-      press_->SetPtrEQNData(eqnData_, ptgrid_);
+      press_->SetPtrEQNData(eqnMap_.get(),ptgrid_);
       press_->Init();
     }
     
@@ -543,8 +556,8 @@ namespace CoupledField {
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
     if (saveNodeHist.GetSize() > 0) {
-      saveSolHist_ = TRUE;
-      hasOutput_ = TRUE;
+      saveSolHist_ = true;
+      hasOutput_ = true;
       Info->PrintF( pdename_, "Saving acouPressureXYZ for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
 	Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
@@ -556,7 +569,7 @@ namespace CoupledField {
     params->GetList( keyVec, attrVec, valVec, saveNodeHist );
     
     if (saveNodeHist.GetSize() > 0) {
-      savePressHist_ = TRUE;
+      savePressHist_ = true;
       Info->PrintF( pdename_, "Saving acouPressure for Nodes:\n" );
       for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
 	Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
@@ -574,6 +587,7 @@ namespace CoupledField {
     ENTER_FCN( "AcousticXYZPDE::ReadDataPML" );
 
     inner.Resize(dim_,dim_);
+    inner.Init();
 
     // help variables for parameter checking
     StdVector<std::string> keyVec;
@@ -647,17 +661,14 @@ namespace CoupledField {
     //                xmax  ymax  zmax
 
 
-    Double minXPML, minYPML, minZPML, maxXPML, maxYPML, maxZPML;
-
     StdVector<Elem*> elemssd;
     ptgrid_->GetElems(elemssd, subdoms_[actSD]);
 
     for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-      BaseFE * ptEl = elemssd[actEl]->ptElem;
       StdVector<UInt> connecth = elemssd[actEl]->connect;
                              
       Matrix<Double> ptCoord;
-      GetElemCoords(connecth, ptCoord);
+      ptgrid_->GetElemNodesCoord( ptCoord, connecth, false );
       for (UInt i=0; i< ptCoord.GetSizeCol(); i++) {
 	//minXPML
 	if ( ptCoord[0][i] < outer[0][0] )

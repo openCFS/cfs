@@ -22,18 +22,18 @@ namespace CoupledField
     //----------------------- STATIC---------------------------------------
 
     //! solves for one nonlinear static step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepStaticNonLin( const Boolean reset );
+    //! \param reset true: perfrom new assembly, etc
+    void StepStaticNonLin( const bool reset );
 
     //----------------------- TRANSIENT---------------------------------------  
     //! base method for solving one transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void SolveStepTrans( const Boolean updatesysmat )
+    //! \param reset true: perfrom new assembly, etc
+    void SolveStepTrans( const bool updatesysmat )
     {SolveStepStatic(updatesysmat);};
 
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    void PreStepTrans( const Boolean reset )
+    //! \param reset true: perfrom new assembly, etc
+    void PreStepTrans( const bool reset )
     {PreStepStatic(reset);};
   
     //! routine for actions after the SolveStep-method
@@ -41,8 +41,8 @@ namespace CoupledField
     {PostStepStatic();};
   
     //! solves for one nonlinear transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepTransNonLin( const Boolean reset )
+    //! \param reset true: perfrom new assembly, etc
+    void StepTransNonLin( const bool reset )
     {StepStaticNonLin(reset);};
 
 

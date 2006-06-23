@@ -19,7 +19,7 @@ namespace CoupledField {
   public:
 
     //! Datatype for identifying a specific mathParser
-    typedef UInt HandlerType;
+    typedef UInt HandleType;
 
     //! Abbreviation for global handler
     enum {GLOB_HANDLER=0};
@@ -30,20 +30,34 @@ namespace CoupledField {
     //! Destructor
     ~MathParser();
 
-    //! Get new parser handler
+    //! Get new parser handle
 
-    //! Returns a handler for a new parser. This handler is needed for all
+    //! Returns a handle for a new parser. This handle is needed for all
     //! subsequent communication with this parser.
     //! \return New MathParser handler
-    HandlerType GetNewHandler();
+    HandleType GetNewHandle();
 
-    //! Evaluate mathematical expression
+    //! Free the memory and parameters associated with a certain handle
 
-    //! This method evaluates the given expression using in the specified
-    //! parser.
+    //! This method frees the internal parser, its memory and variables 
+    //! associated with this handle.
+    //! \param handle Parser handle identifying an internal parser(context)
+    //!               bo be freed.
+    void ReleaseHandle( HandleType handle );
+
+    //! Pass the expression to be evaluated to the parser
+    
+    //! This methods passes an expression to be evaluated to the parser
+    //! itself. This will trigger the syntactical analysis of the 
+    //! expression. In order to evaluate the expression, a successive call
+    //! to Eval() has to be performed
+    void SetExpr( HandleType handler, const std::string &expr );
+
+    //! Evaluate mathematical expression previously set by SetExpr()
+
+    //! This method evaluates the expression previously set by SetExpr()
     //! \param handler MathParser handler for identifying specific parser
-    //! \param expr Mathematical expression to be evaluated
-    Double Eval( HandlerType handler, const std::string &expr );
+    Double Eval( HandleType handler );
 
     // =======================================================================
     //  SET METHODS
@@ -62,7 +76,7 @@ namespace CoupledField {
     //! \param handler MathParser handler for identifying specific parser
     //! \param varName Name of variable to be set
     //! \param val Value of variable
-    void SetValue( HandlerType handler,
+    void SetValue( HandleType handler,
                    const std::string &varName,
                    Double val );
     
@@ -79,7 +93,7 @@ namespace CoupledField {
     //! \param coosy Local coordinate system, for which the coordinate components
     //!              are to be registered within the given parser
     //! \param globCoord Global coordinates (x,y,z) of the given point
-    void SetCoordinates( HandlerType handler,
+    void SetCoordinates( HandleType handler,
                          const CoordSystem &coosy,
                          const Vector<Double> &globCoord );
     //@}
@@ -90,16 +104,16 @@ namespace CoupledField {
     typedef std::map<std::string, Double>  VarPool;
     
     //! Typedef for mapping handler to variable pool
-    typedef std::map<HandlerType, VarPool> PoolMap;
+    typedef std::map<HandleType, VarPool> PoolMap;
     
     //! Typedef for parser pool
-    typedef std::map<HandlerType, mu::Parser> ParserMap;
+    typedef std::map<HandleType, mu::Parser> ParserMap;
     
     //! Initialize parser
-    void InitParser( mu::Parser &parser, Boolean isGlobal );
+    void InitParser( mu::Parser &parser, bool isGlobal );
 
     //! Get parser by handler
-    mu::Parser & GetParser( HandlerType handler );
+    mu::Parser & GetParser( HandleType handler );
     
     //! Factory function for adding variables
     static Double * AddVariable( const char *varName );
@@ -120,6 +134,9 @@ namespace CoupledField {
     
     //! Pool of variables
     PoolMap pools_;
+
+    //! Set with currently active handles
+    std::set<HandleType> activeHandles_;
 
     //! Memory for implicitly allocated variables
     static std::list<Double> dynamicPool_;
@@ -142,20 +159,21 @@ namespace CoupledField {
   //! expressions in bytecode format. Additionally one can define own 
   //! variables and functions within the parser object.
   //!
-  //! The class implements the following concepts
+  //! The class implements the following concepts:
   //! - There can exist several parser objects within a program with different
   //!   known variables and functions, which are all
   //!   administered by the MathParser-class. To identify a specific parser, a
-  //!   MathParserHandle is used.
-  //! - There exist two set of administered parser (identified by their 
-  //!   Handler):
+  //!   MathParserHandle is used, which uniquely identifies a certain parser
+  //!   context
+  //! - There exist two sets of administered parser (identified by their 
+  //!   Handle):
   //!   One consists only of the global parser
-  //!   ( defined by the Handler GLOB_HANDLER ) and the other only of 
+  //!   ( defined by the Handle GLOB_HANDLER ) and the other only of 
   //!   normal/local ones, which can
   //!   be created on demand. The difference between both sets is, that all
   //!   variables set in the global parser will automatically also be promoted
-  //!   to all the other parser object,s but not vice-versa. A global variable
-  //!   is for example the current (global) timestep, whereas to coordinates
+  //!   to all the other parser objects but not vice-versa. A global variable
+  //!   is for example the current (global) timestep t, whereas to coordinates
   //!   of the current boundary node are defined only in a local parser 
   //!   context within a specific PDE.
   //! 

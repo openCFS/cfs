@@ -14,21 +14,18 @@ public:
 
   //! Constructor
   PMLTransXYZInt(std::string type, Double factor, std::string dampingTypePML, Double damp, 
-		 const UInt nrDofsPerNode=1, Boolean axi=FALSE);
+		 const UInt nrDofsPerNode=1, bool axi=false);
 
   /// 
   virtual ~PMLTransXYZInt();
 
   //! Calculation of stiffmess matrix
-  void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
 
   //! set min/max of x,y,z coordinates form where PML starts and ends
   void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer);
-
-  virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
-
-  
-  virtual void SetActElemSol(Matrix<Double>& disp){};
 
 
 private:

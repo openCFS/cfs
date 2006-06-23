@@ -11,16 +11,16 @@ class MassEdgeInt : public BaseForm
 {
 public:
   /// Constructor
-  MassEdgeInt(BaseFE * aptelemt, Double acond);
+  MassEdgeInt(Double acond);
 
   /// Destructor
   virtual ~MassEdgeInt();
 
   /// Calculation of stiffmess matrix
-  void CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMa);
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
 
-
-  virtual void Print(std::ostream * out, const Matrix<Double> Result) const;
 
 private:
   // multiplicative value for mass integrator

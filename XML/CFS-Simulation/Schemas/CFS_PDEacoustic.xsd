@@ -224,6 +224,8 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="entityType" type="DT_EntityType"
+          use="optional" default="nodeList"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -252,7 +254,10 @@
   <!-- Identical to that of inhomogeneous Dirichlet case -->
   <xsd:complexType name="DT_AcousticIN">
     <xsd:complexContent>
-      <xsd:extension base="DT_AcousticID"/>
+      <xsd:restriction base="DT_AcousticID">
+        <xsd:attribute name="entityType" type="DT_EntityType"
+          use="optional" default="surfElemList"/>
+        </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
 

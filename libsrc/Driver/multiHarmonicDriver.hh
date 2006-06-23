@@ -23,7 +23,7 @@ namespace CoupledField
                         UInt stepOffset = 0,
                         Double timeOffset = 0.0,
                         std::string driverTag = "anyTag",
-                        Boolean isPartOfSequence = FALSE);
+                        bool isPartOfSequence = false);
 
     //! Destructor
     virtual ~MultiHarmonicDriver();
@@ -59,7 +59,7 @@ namespace CoupledField
     // pointers to classes involved
     BaseSystem * ptAlgsys_;
     Assemble * ptAssemble_;
-    Boolean adjustDamping_;
+    bool adjustDamping_;
 
     Vector<Complex> EfieldInZDir_;
 

@@ -6,20 +6,13 @@
 namespace CoupledField
 {
 
-  CurlCurlNode2DInt::CurlCurlNode2DInt(BaseFE * aptelem, Double aVal, Boolean axi)
-    : BaseForm(aptelem),matVal_ (aVal)
-  {
-    ENTER_FCN( "CurlCurlNode2DInt::CurlCurlNode2DInt" );
-    
-    isaxi_ = axi;
-  }
-
-
-  CurlCurlNode2DInt::CurlCurlNode2DInt(Double aVal, Boolean axi)
-    : BaseForm(),matVal_ (aVal)
+  CurlCurlNode2DInt::CurlCurlNode2DInt(Double aVal, bool axi,
+                                       bool coordUpdate )
+    : BaseForm(NULL,FULL,coordUpdate ),matVal_ (aVal)
   {
     ENTER_FCN( "CurlCurlNode2DInt::CurlCurlNode2DInt" );
 
+    name_ = "CurlCurlNode2DInt";
     isaxi_ = axi;
   }
 
@@ -32,10 +25,14 @@ namespace CoupledField
 
 
 
-  void CurlCurlNode2DInt::CalcElementMatrix(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
-  {
+  void CurlCurlNode2DInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                             EntityIterator& ent1, 
+                                             EntityIterator& ent2  ) {
     ENTER_FCN( "CurlCurlNode2DInt::CalcElementMatrix" );
   
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );
+
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -53,18 +50,19 @@ namespace CoupledField
 
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes); elemMat.Init();
+    elemMat.Resize(nrNodes); 
+    elemMat.Init();
     
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
 
         if (isaxi_)
           {
             ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-            CoordAtIP = ptCoord * ShpFncAtIp;
+            CoordAtIP = ptCoord_ * ShpFncAtIp;
             for (UInt i=0; i<nrNodes; i++)
               xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
             
@@ -77,14 +75,6 @@ namespace CoupledField
         elemMat += partElemMat;
       }
   
-  }
-
-
-
-  void CurlCurlNode2DInt::Print(std::ostream * out, const Matrix<Double> Result) const
-  {
-    ENTER_FCN( "CurlCurlNode2DInt::Print" );
-    (*out)<< "Laplace stiffness matrix:" << std::endl << Result;
   }
 
 } // end namespace CoupledField

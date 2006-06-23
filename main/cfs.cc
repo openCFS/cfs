@@ -160,7 +160,7 @@ int main( int argc, const char **argv ) {
 #endif
 
 #ifdef PROFILING
-  if ( commandLine->GetDoProfile() == TRUE ) {
+  if ( commandLine->GetDoProfile() == true ) {
     Info->StartProgress( "Opening file for profiling output" );
   }
   else {
@@ -181,7 +181,7 @@ int main( int argc, const char **argv ) {
   // the debug and trace file are opened separately here. Definefiles cannot
   // be used, since it would try to open other files also, that need not be
   // present????
-  if ( commandLine->GetWriteSkeleton() == TRUE ) {
+  if ( commandLine->GetWriteSkeleton() == true ) {
 #ifdef TRACE
     FileHandler.OpenFile( TRACE_FILE );
 #endif
@@ -271,7 +271,7 @@ int main( int argc, const char **argv ) {
 
   // Log command line parameters
   std::ostream *myInfo = Info->GetInfoStreamPointer();
-  commandLine->PrintParams( *myInfo, FALSE );
+  commandLine->PrintParams( *myInfo, false );
 
   // Open file for status reports by OLAS
   FileHandler.OpenFile( OLAS_FILE );
@@ -295,9 +295,9 @@ int main( int argc, const char **argv ) {
   // =========================================================================
   // Only output of grid
   // =========================================================================
-  if ( commandLine->GetPrintGrid() == TRUE ) {
+  if ( commandLine->GetPrintGrid() == true ) {
     STDOUT << "Printing grid to file " << myEndl << myEndl;
-    PrintGridOnly = TRUE;
+    PrintGridOnly = true;
     domain->PrintGrid();
     delete domain;
     delete Info;
@@ -317,7 +317,7 @@ int main( int argc, const char **argv ) {
   BaseDriver   *ptdriver = NULL;
   AnalysisType analysisType;
   std::string  analysis;
-  Boolean      adaptspace;
+  bool      adaptspace;
 
   // Determine type of analysis and, if adaptivity is to be used
   params->Get( "type", analysis, "analysis" );
@@ -373,22 +373,21 @@ int main( int argc, const char **argv ) {
     ptdriver = new EigenFrequencyDriver( domain );
     break;
 
-  case MULTIHARMONIC:
-    ptdriver = new MultiHarmonicDriver( domain );
-    break;
+    //case MULTIHARMONIC:
+    //ptdriver = new MultiHarmonicDriver( domain );
+    //break;
 
   case MULTI_SEQUENCE:
     ptdriver = new MultiSequenceDriver( domain );
-    break;
-
-  case BUBBLEDYNAMIC:
-    ptdriver = new BubbleDriver( domain );
     break;
 
   default:
     (*error) << "Driver '" << analysis << "' not supported!";
     Error( __FILE__, __LINE__ );
   }
+
+  // Pass driver to domain object
+  domain->SetDriver( ptdriver );
 
   Info->FinishProgress();
 

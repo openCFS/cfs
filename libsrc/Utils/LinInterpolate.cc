@@ -23,9 +23,7 @@ namespace CoupledField
   Double LinInterpolate::EvaluateFuncInv(double inVal)
   {
     ENTER_FCN( "LinInterpolate::EvaluateFuncInv" );
-  
-    Integer     i;
- 
+   
     if ( inVal < y[0] )
       Error("Wrong evaluation: input is smaller as defined in nonlinear file",__FILE__,__LINE__);
 
@@ -37,7 +35,7 @@ namespace CoupledField
     Double yPrev, yAfter, xPrev, xAfter;
 
     yAfter = y[0];
-    for ( Integer k=1; k<nummeas; k++ ) {
+    for ( UInt k=1; k<nummeas; k++ ) {
       yPrev = yAfter;
       yAfter = y[k];
 
@@ -71,8 +69,6 @@ namespace CoupledField
   {
     ENTER_FCN( "LinInterpolate::EvaluateFuncInv" );
   
-    Integer     i;
- 
     if ( inVal < y[0] )
       Error("Wrong evaluation: input is smaller as defined in nonlinear file",__FILE__,__LINE__);
 
@@ -84,7 +80,7 @@ namespace CoupledField
     Double yPrev, yAfter, xPrev, xAfter;
 
     yAfter = y[0];
-    for ( Integer k=1; k<nummeas; k++ ) {
+    for ( UInt k=1; k<nummeas; k++ ) {
       yPrev = yAfter;
       yAfter = y[k];
 

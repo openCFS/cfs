@@ -24,16 +24,13 @@ namespace CoupledField
     //----------------------- TRANSIENT---------------------------------------
 
     //! routine for initilizations befor execution the SolveStep-method
-    //! \param reset TRUE: perfrom new assembly, etc
-    void PreStepTrans( const Boolean reset );
+    void PreStepTrans();
 
     //! base method for solving one transient step 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void SolveStepTrans( const Boolean reset );
+    void SolveStepTrans();
 
     //! solves for one nonlinear transient step (with hysteresis) 
-    //! \param reset TRUE: perfrom new assembly, etc
-    void StepTransNonLinEpsDiff( const Boolean reset );
+    void StepTransNonLinEpsDiff();
 
     //! update the hysteresis values
     void DoUpdateHyst();
@@ -43,7 +40,7 @@ namespace CoupledField
 
   private:
 
-    Boolean doInit_;
+    bool doInit_;
 
     //for differential permittivity
     Vector<Double> Eprevious_;

@@ -133,9 +133,11 @@ namespace CoupledField
       if ( dataType == REAL || dataType == IMAG ) {
 	if ( tensorParams_[matType].GetSizeRow() == 0 ) {
 	  tensorParams_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+          tensorParams_[matType].Init();
 	}
 	if ( tensorParamsOrig_[matType].GetSizeRow() == 0 ) {
 	  tensorParamsOrig_[matType].Resize( param.GetSizeRow(), param.GetSizeCol() );
+          tensorParamsOrig_[matType].Init();
 	}
 
 	tensorParams_[matType].SetPart( dataType, param );
@@ -291,6 +293,7 @@ namespace CoupledField
 	Matrix<Double> help; 
 	help = matTensor.GetPart( dataType );
 	param.Resize( matTensor.GetSizeRow(), matTensor.GetSizeCol() );
+        param.Init();
 	param.SetPart( dataType, help );
       }
       else if ( dataType == COMPLEX ) {
@@ -314,6 +317,7 @@ namespace CoupledField
     if ( subTensor == AXI ) {
       UInt nrElemsAxi = 4;
       matMatrix.Resize( nrElemsAxi, nrElemsAxi );
+      matMatrix.Init();
 
       UInt rowPtr[] = {2,3,4,1};  // indices of rows and lines for yz-plane
       for ( UInt i=0; i<nrElemsAxi; i++ )
@@ -323,6 +327,7 @@ namespace CoupledField
     else if ( subTensor == PLANE_STRAIN ) {
       UInt nrElems = 3;
       matMatrix.Resize( nrElems, nrElems    );
+      matMatrix.Init();
 
       UInt rowPtr[] = {2,3,4};  // indices of rows and lines for yz-plane
       for ( UInt i=0; i<nrElems; i++ )
@@ -332,6 +337,7 @@ namespace CoupledField
     else if ( subTensor == PLANE_STRESS ) {
       UInt nrElems = 3;
       matMatrix.Resize( nrElems, nrElems );
+      matMatrix.Init();
 
       if ( abs(mat[0][0]) < 1.09E-15 ) {
 	Error("Singular material tensor when computing plane stress case",

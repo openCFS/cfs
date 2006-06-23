@@ -1,7 +1,6 @@
 #ifndef FILE_BUBBLE_PDE_HH
 #define FILE_BUBBLE_PDE_HH
 
-#include "scalarnodeEQN.hh"
 #include "SinglePDE.hh" 
 
 namespace CoupledField
@@ -89,7 +88,7 @@ namespace CoupledField
     void CalcOutputCoupling();
 
     //! Returns if PDE can compute the quantity
-    Boolean HasOutput(SolutionType output);
+    bool HasOutput(SolutionType output);
   
   private:
 
@@ -196,7 +195,7 @@ namespace CoupledField
     ElemStoreSol<Double> addElemResult_;
 
     //! Flags indicating writing of results
-    Boolean writeValues_, writeRHS_;
+    bool writeValues_, writeRHS_;
 
   };
 

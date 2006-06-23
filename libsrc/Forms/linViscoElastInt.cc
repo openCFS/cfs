@@ -9,40 +9,14 @@
 namespace CoupledField
 {
 
-  LinViscoElastInt::LinViscoElastInt(BaseFE * aptelem, BaseMaterial* matData, 
-				     SubTensorType type, std::string matrixType, 
-				     Double timeStep) 
-    : linElastInt(aptelem, matData, type)
-  {
-    ENTER_FCN( "LinViscoElastInt::LinViscoElastInt" );
-
-    SetDimensions(type);
-
-    aptelem_ = aptelem;
-    matrixType_ = matrixType;
-    timeStep_ = timeStep;
-
-    ptMaterial->GetScalar(dampAlpha_,RAYLEIGH_ALPHA,REAL);
-    ptMaterial->GetScalar(dampBeta_,RAYLEIGH_BETA,REAL);
-
-    StdVector<Double> fracDerivList_;
-    params->GetList( "fracDeriv", fracDerivList_, "mechanic", "damping" );
-    fracDeriv_ = fracDerivList_[0];
-    //std::cerr <<"fracDeriv_=" << fracDeriv_ <<std::endl;
-    timeStepPowerFracDeriv_ = std::pow(timeStep_,-fracDeriv_);
-
-    StdVector<Double> elastModuleList_;
-    params->GetList( "ElastModule", elastModuleList_, "mechanic", "damping" );
-    elastModule_ = elastModuleList_[0];
-
-  }
-
 
   LinViscoElastInt::LinViscoElastInt(BaseMaterial* matData, SubTensorType type, 
 				     std::string matrixType, Double timeStep) 
     : linElastInt(matData, type)
   {
     ENTER_FCN( "LinViscoElastInt::LinViscoElastInt" );
+
+    name_ = "LinViscoElastInt";
 
     SetDimensions(type);
 
@@ -82,6 +56,7 @@ namespace CoupledField
 
     // compute matrix inverse(A) - 
     aMat.Resize(getDimD());
+    aMat.Init();
     
     // set entries on the diagonal
     val = timeStepPowerFracDeriv_ * dampAlpha_;
@@ -105,14 +80,12 @@ namespace CoupledField
        cMat  = ((cMat *  val) + cMat);
 
        // compute D-matrix (inverse(A)*C)
-       dMat.Resize(getDimD());
        dMat = aMat * cMat;
      }
    else if(matrixType_ == "MatDepRHSMatrix")
      {
        val = (dampBeta_/E);
        cMat  = (cMat *  val);
-       dMat.Resize(getDimD());
        dMat = aMat * cMat;
      }      
     else
@@ -145,7 +118,8 @@ void LinViscoElastInt::GetModifiedMaterialMat(Matrix<Double>& cMat)
       {
 	val = dampBeta_ * timeStepPowerFracDeriv_;
 	Matrix<Double> betaMat;
-	betaMat.Resize(getDimD());	
+	betaMat.Resize(getDimD());
+        betaMat.Init();
 	//val = val/100;
 	for(UInt i=0; i< getDimD();i++)
 	  {
@@ -160,9 +134,10 @@ void LinViscoElastInt::GetModifiedMaterialMat(Matrix<Double>& cMat)
   void LinViscoElastInt::CalcAInvMat(Matrix<Double>& aInvMat)
   {
 
-     std::cerr << "LINVISCOELASTINT::calcAInvMat" << std::endl;
+    std::cerr << "LINVISCOELASTINT::calcAInvMat" << std::endl;
     
-    aInvMat.Resize(getDimD());
+    aInvMat.Resize(getDimD(),true);
+    aInvMat.Init();
     Double val;
     val = timeStepPowerFracDeriv_ * dampAlpha_;
 	
@@ -192,7 +167,7 @@ void LinViscoElastInt::GetModifiedMaterialMat(Matrix<Double>& cMat)
     else if ( type == AXI ) {
       dimD_   = 4;
       nrDofs_ = 2;
-      isaxi_  = TRUE;
+      isaxi_  = true;
     }
     else {
       Error("wrongh Type(axi,planeStrein,3d) specified", __FILE__, __LINE__);  

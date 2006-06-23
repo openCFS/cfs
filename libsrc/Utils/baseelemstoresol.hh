@@ -6,11 +6,10 @@
 
 #include "Utils/StdVector.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "PDE/nodeEQN.hh"
 #include "General/environment.hh"
 #include "Utils/tools.hh"
 #include "Utils/vector.hh"
-#include "PDE/nodeEQN.hh"
+#include "PDE/eqnMap.hh"
 
 
 namespace CoupledField{
@@ -75,10 +74,16 @@ namespace CoupledField{
     virtual BaseElemStoreSol & operator= (const BaseElemStoreSol & x) = 0;
 
     //! Set Pointer to nodal equation object
-    virtual void SetPtrEQNData(NodeEQN * ptNodeEQN,
-                               Grid * ptGrid)
+    virtual void SetPtrEQNData( EqnMap * eqnMap,
+                                Grid * ptGrid)
     {Error( "Not implemented here", __FILE__, __LINE__);}
  
+    virtual void SetResult( shared_ptr<ResultDof>& result ) {
+      result_ = result; }
+
+    virtual void AddElemList( shared_ptr<ElemList> elems ) {
+      elems_.Push_back( elems ); }
+
     //! Deletes all data and layout information
 
     //! Deletes all data and layout information.
@@ -355,8 +360,14 @@ namespace CoupledField{
     //! Pointer to grid class
     Grid * ptGrid_;
 
-    //! Pointer to equation class
-    NodeEQN * ptEQN_;
+    //! Pointer to equation map
+    EqnMap * eqnMap_;
+
+    //! Type of result
+    shared_ptr<ResultDof> result_;   
+
+    //! Element list
+    StdVector<shared_ptr<ElemList> >elems_;
 
     //! Number of elements
     UInt numElems_;

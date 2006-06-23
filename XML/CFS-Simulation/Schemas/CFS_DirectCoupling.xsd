@@ -116,14 +116,55 @@
   <!--   Definition of Post Processing Results -->
   <!-- ******************************************************************* -->
 
+ <!-- What data can a single element have in a piezoelectric PDE -->
+  <xsd:simpleType name="DT_ElemDataPiezo">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="mechStrain"/>
+      <xsd:enumeration value="mechStress"/>
+      <xsd:enumeration value="elecFieldIntensity"/>
+      <xsd:enumeration value="elecEnergy"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  <!-- Data type for describing final element values to be stored -->
+  <xsd:complexType name="DT_ElemResultsPiezo">
+    <xsd:attribute name="type" type="DT_ElemDataPiezo" use="required"/>
+    <xsd:attribute name="region" type="xsd:token" use="optional"
+      default="all"/>
+  </xsd:complexType>
+
+  <!-- Data type for describing history of element values to be stored -->
+  <xsd:complexType name="DT_ElemHistoryPiezo">
+    <xsd:attribute name="type" type="DT_ElemDataPiezo" use="required"/>
+    <xsd:attribute name="saveElems" type="xsd:token" use="optional"
+      default=""/>
+    <xsd:attribute name="saveRegion" type="xsd:token" use="optional"
+      default=""/>
+  </xsd:complexType>
+
+  <!-- Data type for computing of electric charges -->
+  <xsd:complexType name="DT_ChargePiezo">
+    <xsd:attribute name="region" type="xsd:token" use="required"/>
+    <xsd:attribute name="element" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
+  <!-- Data type for computing the volume over a surface -->
+  <xsd:complexType name="DT_SurfVolumePiezo">
+    <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="dof" use="required">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="ux"/>
+          <xsd:enumeration value="uy"/>
+          <xsd:enumeration value="uz"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
+
   <!-- Piezo - Case -->
   <!-- Global type for specifying the desired  output quantities -->
   <xsd:complexType name="DT_PiezoDirectStoreResults">
     <xsd:sequence>
-      <xsd:element name="nodeResults" type="DT_NodeResultsPiezo" minOccurs="0"
-        maxOccurs="unbounded"/>
-      <xsd:element name="nodeHistory" type="DT_NodeHistoryPiezo" minOccurs="0"
-        maxOccurs="unbounded"/>
       <xsd:element name="elemResults" type="DT_ElemResultsPiezo" minOccurs="0"
         maxOccurs="unbounded"/>
       <xsd:element name="elemHistory" type="DT_ElemHistoryPiezo" minOccurs="0"

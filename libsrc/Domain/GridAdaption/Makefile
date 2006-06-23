@@ -4,8 +4,6 @@
 C_DIR=../../..
 src = GridAdaption.cc
 #
-lib = gridadaption
-libpath = libsrc/Domain/GridAdaption
 CFLAGS3 =
 #
 include ../../makefile.inc

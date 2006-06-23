@@ -457,6 +457,7 @@ namespace CoupledField {
     for (UInt iSol=0; iSol<solTypes.GetSize(); iSol++)
       {
         sol.GetGlobalSolVector(solTypes[iSol],globalSolution);
+
         title = SolutionTypeToString(solTypes[iSol]);
 
         NodeElemDataTransient(55,title, globalSolution, step, 

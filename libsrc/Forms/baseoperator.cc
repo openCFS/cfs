@@ -4,15 +4,16 @@ namespace CoupledField
 {
 
   BaseOperator::BaseOperator(Grid * ptGrid, StdPDE * ptPDE, 
-                             NodeEQN * ptEQN, 
-                             Boolean isaxi)
+                             shared_ptr<EqnMap> eqnMap,
+                             bool isaxi, bool coordUpdate )
     : isaxi_(isaxi)
   {
     ENTER_FCN( "BaseOperator::BaseOperator" );
 
     this->ptGrid_ = ptGrid;
     this->ptPDE_ = ptPDE;
-    this->ptEQN_ = ptEQN;
+    this->eqnMap_ = eqnMap;
+    this->coordUpdate_ = coordUpdate;
   }
 
 

@@ -52,11 +52,11 @@ namespace CoupledField{
   }
 
   template<class TYPE>
-  void ElemStoreSol<TYPE>::SetPtrEQNData(NodeEQN * ptNodeEQN,
-                                         Grid * ptGrid)
+  void ElemStoreSol<TYPE>::SetPtrEQNData( EqnMap * eqnMap,
+                                          Grid * ptGrid)
   {
     ENTER_FCN( "ElemStoreSol::SetPtrEQNData ");
-    ptEQN_ = ptNodeEQN; 
+    eqnMap_ = eqnMap;
     ptGrid_ = ptGrid;
   }
 
@@ -260,6 +260,7 @@ namespace CoupledField{
   
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
     temp.Resize(ptGrid_->GetNumElems()*totalDofs_);
+    temp.Init();
 
     // Loop over all PDE elements
     for (UInt iElem=1; iElem<numElems_+1; iElem++)
@@ -267,7 +268,9 @@ namespace CoupledField{
       for (UInt iDof=0; iDof<totalDofs_; iDof++)
         {
           //temp.data_[(mapping_[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
-          temp.data_[(ptEQN_->PDE2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
+          // temp.data_[(ptEQN_->PDE2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
+//             data_[(iElem-1)*totalDofs_ + iDof];
+          temp.data_[(eqnMap_->Pde2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
             data_[(iElem-1)*totalDofs_ + iDof];
         }
 
@@ -293,12 +296,13 @@ namespace CoupledField{
 #endif
 
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(val);
-    temp.Resize(ptEQN_->GetNumGlobalElems());
+    temp.Resize( ptGrid_->GetNumElems() );
+    temp.Init();
 
     // Loop over all PDE elements
     for (UInt iElem=1; iElem<numElems_+1; iElem++)
       // Loop over all dimensions
-      temp.data_[ptEQN_->PDE2MeshElem(iElem)-1] = data_[(iElem-1)*totalDofs_ + dof];
+      temp.data_[eqnMap_->Pde2MeshElem(iElem)-1] = data_[(iElem-1)*totalDofs_ + dof];
   
   }
 
@@ -366,6 +370,7 @@ namespace CoupledField{
   
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(transformedSolution);
     temp.Resize(ptGrid->GetNumElems()*totalDofs_);
+    temp.Init();
 
     // Loop over all PDE elements
     for (UInt iElem=1; iElem<numElems_+1; iElem++)
@@ -373,7 +378,7 @@ namespace CoupledField{
       for (UInt iDof=0; iDof<totalDofs_; iDof++)
         {
           //temp.data_[(mapping_[iElem]-1)*totalDofs_ + iDof] = data_[iElem*totalDofs_ + iDof];
-          temp.data_[(ptEQN_->PDE2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
+          temp.data_[(eqnMap_->Pde2MeshElem(iElem)-1)*totalDofs_ + iDof] = 
             data_[(iElem-1)*totalDofs_ + iDof];
         }
   }

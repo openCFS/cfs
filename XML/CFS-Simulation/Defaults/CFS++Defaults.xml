@@ -68,23 +68,6 @@
 
 
     <!-- ***************************************************************** -->
-    <!-- Template for piezo PDE -->
-    <!-- ***************************************************************** -->
-    <piezo>
-  
-      <region name="dummyRegion"/>
-
-      <nonLinear>
-        <lineSearch/>
-        <incStopCrit>1</incStopCrit>
-        <resStopCrit>1</resStopCrit>
-        <maxNumIters>1</maxNumIters>
-      </nonLinear>
-
-    </piezo>
-
-
-    <!-- ***************************************************************** -->
     <!-- Template for magnetics PDE -->
     <!-- ***************************************************************** -->
     <magnetic>

@@ -17,9 +17,6 @@ namespace CoupledField
   public:
 
     /// Constructor
-    MechStressStrain(BaseFE * aptelem, BaseMaterial* matData, SubTensorType type);
-
-    /// Constructor
     MechStressStrain(BaseMaterial* matData, SubTensorType type);
   
     /// Destructor
@@ -27,11 +24,11 @@ namespace CoupledField
   
     /// calculates Piola-Kirchoff-stresses (vector notation)
     void CalcStressVec(Vector<TYPE>& stressVec, UInt ip, 
-                       Matrix<Double> & ptCoord);  
+                       EntityIterator& ent);  
 
     // calculate linear part of Green Lagrangian Strain tensor
     void CalcStrainVec(Vector<TYPE>& strainVec, UInt ip, 
-                       Matrix<Double> & ptCoord);  
+                       EntityIterator& ent);  
     
     /// in stress calculations, the actual displacement of the element is needed
     /*!

@@ -86,14 +86,12 @@ namespace CoupledField
     //! Change size of general matrix 
     //! \param nRows (input) Number of rows
     //! \param nCols (input) Number of columns
-    //! \note The matrix contains afterwards only zeroes
     void Resize(const UInt nRows, const UInt nCols );
 
     //! Changes the size so that the matrix gets quadratic
     
     //! Changes the size of the matrix according to \a size.
     //! \param size (input) Number of rows / columns
-    //! \note The matrix contains afterwards only zeroes
     void Resize( const UInt size );
 
     //@}
@@ -319,10 +317,10 @@ namespace CoupledField
     
     
     //! Return number of rows
-    inline int rows() const { return size_row_; }
+    inline unsigned int rows() const { return size_row_; }
     
     //! Return number of columns
-    inline int cols() const { return size_col_; }
+    inline unsigned int cols() const { return size_col_; }
     
     //@}
 #else
@@ -388,15 +386,15 @@ namespace CoupledField
     // BOOLEAN OPERATORS
     // =======================================================================
 
-    //! \name Boolean operators
+    //! \name bool operators
 
     //@{
     
     //! Returns true if \a mat has the same entries as own matrix
-    Boolean operator ==( const Matrix<TYPE> & mat ) const;
+    bool operator ==( const Matrix<TYPE> & mat ) const;
 
     //! Returns true if \a mat has different entries than own matrix
-    Boolean operator!=( const Matrix<TYPE> & mat ) const;
+    bool operator!=( const Matrix<TYPE> & mat ) const;
  
     //@}
 

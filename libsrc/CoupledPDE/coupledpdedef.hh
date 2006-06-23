@@ -76,7 +76,7 @@ namespace CoupledField
     virtual void AddInputCoupling(std::string PDEName, 
                                   CouplingInputType InType, 
                                   SolutionType Quantity,
-                                  Boolean optional=FALSE);
+                                  bool optional=false);
   
     //! return number of pdes
     virtual UInt GetNumPDEs(){return NumPDEs_;}
@@ -113,7 +113,7 @@ namespace CoupledField
       \param InputType (output) vector containing input coupling types of PDE
     */
     virtual void GetCouplingOptionality(std::string  PDEName, 
-                                        StdVector<Boolean> & optionality) 
+                                        StdVector<bool> & optionality) 
     {optionality = optionalCoupling_[PDEName];}
   
   protected:
@@ -130,7 +130,7 @@ namespace CoupledField
     std::map <std::string, StdVector<SolutionType> > InputCouplingQuantities_;  
   
     //!< mapping of PDEnames to optionality of input coupling quantities
-    std::map <std::string, StdVector<Boolean> > optionalCoupling_;             
+    std::map <std::string, StdVector<bool> > optionalCoupling_;             
 
   };
 

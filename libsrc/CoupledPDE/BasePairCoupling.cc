@@ -6,6 +6,7 @@
 #include "Domain/domain.hh"
 #include "DataInOut/PlainMaterialHandler.hh"
 #include "Materials/piezoMaterial.hh"
+#include "Driver/assemble.hh"
 
 namespace CoupledField {
 
@@ -25,13 +26,15 @@ namespace CoupledField {
     pde2_         = NULL;
     ptGrid_       = NULL;
     algsys_       = NULL;
-    eqnData_      = NULL;
 
     pde1_   = pde1;
     pde2_   = pde2;
     ptGrid_ = pde1_->ptgrid_;
 
-    isaxi_ = FALSE;
+    results1_ = pde1_->GetResults();
+    results2_ = pde2_->GetResults();
+
+    isaxi_ = false;
     
     
   }
@@ -47,9 +50,6 @@ namespace CoupledField {
     pde1_ = NULL;
     pde2_ = NULL;
 
-    // We generated assemble object, so we also must delete it
-    delete assemble_;
-    
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       delete it->second;
@@ -117,9 +117,9 @@ namespace CoupledField {
     std::string probGeo;
     params->Get( "type", probGeo, "geometry" );
     if( probGeo == "axi" ) {
-      isaxi_ = TRUE;
+      isaxi_ = true;
     } else {
-      isaxi_ = FALSE;
+      isaxi_ = false;
     }
 
     // Get type of analysis and create according 
@@ -137,48 +137,39 @@ namespace CoupledField {
       Error( __FILE__, __LINE__ );
     }
 
-    switch ( (*pde1_).analysistype_ ) {
+ //    switch ( (*pde1_).analysistype_ ) {
 
-    case STATIC:
-      assemble_ = new StaticAssemble( algsys_, ptGrid_, bcSequenceTag_ );
-      break;
-    case TRANSIENT:
-      assemble_ = new TransientAssemble( algsys_, ptGrid_, bcSequenceTag_ );
-      break;
-    case HARMONIC:
-      assemble_ = new HarmonicAssemble( algsys_, ptGrid_, bcSequenceTag_ );
-      break;
-    case EIGENFREQUENCY:
-      assemble_ = new TransientAssemble( algsys_, ptGrid_, bcSequenceTag_ );
-      break;
-    case MULTIHARMONIC:
-      assemble_ = new MHassemble( algsys_, ptGrid_, bcSequenceTag_ );
-      break;
-    default:
-      std::string myType;
-      Enum2String( (*pde1_).analysistype_, myType );
-      (*error) << "Unsupported analysis type '" << myType << "' detected "
-               << "(in PDE1)";
-      Error ( __FILE__, __LINE__ );
-      break;
-    }
+//     case STATIC:
+//       assemble_ = new StaticAssemble( algsys_, ptGrid_, bcSequenceTag_ );
+//       break;
+//     case TRANSIENT:
+//       assemble_ = new TransientAssemble( algsys_, ptGrid_, bcSequenceTag_ );
+//       break;
+//     case HARMONIC:
+//       assemble_ = new HarmonicAssemble( algsys_, ptGrid_, bcSequenceTag_ );
+//       break;
+//     case EIGENFREQUENCY:
+//       assemble_ = new TransientAssemble( algsys_, ptGrid_, bcSequenceTag_ );
+//       break;
+// //     case MULTIHARMONIC:
+// //       assemble_ = new MHassemble( algsys_, ptGrid_, bcSequenceTag_ );
+// //       break;
+//     default:
+//       std::string myType;
+//       Enum2String( (*pde1_).analysistype_, myType );
+//       (*error) << "Unsupported analysis type '" << myType << "' detected "
+//                << "(in PDE1)";
+//       Error ( __FILE__, __LINE__ );
+//       break;
+//     }
 
-    // Set general parameter of assemble class
-    assemble_->SetGeneralParams(couplingName_, 1, subdoms_,
-                                surfRegions_ );
-                                
-    // set PDE Ids to assemble object
-    PdeIdType id1 = (*pde1_).pdeId_;
-    PdeIdType id2 = (*pde2_).pdeId_;
-    assemble_->SetPDEId( id1, id2 );
+ 
+    //assemble_ = pde1_->getPDE_assemble();
 
-   
-    // initialize nonlinearities
-    
-    // get the equation objects the assigned pdes
-    NodeEQN * eqn1 = (*pde1_).eqnData_;
-    NodeEQN * eqn2 = (*pde2_).eqnData_;
-    assemble_->SetPtr2EQNData(eqn1, eqn2);
+    eqnMap1_ = pde1_->GetEqnMap();
+    eqnMap2_ = pde2_->GetEqnMap();
+    assert( eqnMap1_ != NULL);
+    assert( eqnMap2_ != NULL);
 
     // Read in material data
     ReadMaterialData();
@@ -226,58 +217,6 @@ namespace CoupledField {
     }
   }
 
-  void BasePairCoupling::GetElemCoords( const StdVector<UInt> connect, 
-                              Matrix<Double> &coordMat ) {
-
-    ENTER_FCN( "StdPDE::GetElemCoords" );
-    
-    UInt pdeNode;
-    ptGrid_->GetElemNodesCoord(coordMat, connect);
-    
-    if (deltCoords_.GetSizeRow() != 0 && geoUpdate_ == TRUE) {
-      for (UInt i=0; i<coordMat.GetSizeRow(); i++) {
-        for (UInt j=0; j<coordMat.GetSizeCol(); j++) {
-          pdeNode = eqnData_->Mesh2PDENode(connect[j]);
-          coordMat(i,j) += deltCoords_(i, pdeNode - 1);
-        }
-      }
-    }
-  }
-  
-  // ======================================================
-  // METHODS FOR ASSEMBLING
-  // ======================================================
-  
-  void BasePairCoupling::SetupMatrixGraph() {
-    algsys_->AssembleInit( GetPdeId1(), GetPdeId2(), true );
-    assemble_->SetupMatrixGraph();
-    algsys_->AssembleDone( GetPdeId1(), GetPdeId2(), true );
-  }
-
-  void BasePairCoupling::AssembleMatrices() {
-    assemble_->AssembleMatrices();
-  }
-    
-  void BasePairCoupling::AssembleSrcRHS(const Double time) {
-    assemble_->AssembleSrcRHS(time);
-  }
-  
-  void BasePairCoupling::AssembleNLRHS(const Double time) {
-    assemble_->AssembleNLRHS(time);
-  }
-
-  void BasePairCoupling::AssembleSprings(const Double time) {
-    assemble_->AssembleSprings(time);
-  }
-
-  void BasePairCoupling::SetFrequency(Double actFreq) {
-    assemble_->SetFrequency(actFreq);
-  }
-  
-  void BasePairCoupling::SetReassemble() {
-    ENTER_FCN( "BasePairCoupling::SetReassemble" );
-    assemble_->SetReassemble();
-  }
 
   PdeIdType BasePairCoupling::GetPdeId1() {
     ENTER_FCN( "BasePairCoupling::GetPdeId1" );

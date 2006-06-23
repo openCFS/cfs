@@ -68,7 +68,7 @@ namespace CoupledField
     void PostProcess() {;};
   
     //! returns if PDE can compute the quantity
-    virtual Boolean HasOutput(SolutionType output);
+    virtual bool HasOutput(SolutionType output);
   
   protected:
 
@@ -78,7 +78,7 @@ namespace CoupledField
 
     std::string method_;
 
-    Boolean firstTurn_;
+    bool firstTurn_;
 
     Vector<Double> factor_;
 

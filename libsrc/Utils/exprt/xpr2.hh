@@ -34,9 +34,9 @@ class Xpr2Func {
   A a;
 public:
   inline Xpr2Func(const A& a_) : a(a_) {}
-  inline P operator()(int i, int j) const { return F::apply( a(i,j) ); }
-  inline int rows() const {return a.rows();}
-  inline int cols() const {return a.cols();}
+  inline P operator()(unsigned int i, unsigned int j) const { return F::apply( a(i,j) ); }
+  inline unsigned int rows() const {return a.rows();}
+  inline unsigned int cols() const {return a.cols();}
 
 };
 
@@ -48,9 +48,9 @@ class Xpr2BinOp {
   B b;
 public:
   inline Xpr2BinOp(const A& a_, const B& b_) : a(a_), b(b_) {}
-  inline P operator()(int i, int j) const { return Op::apply( a(i,j), b(i,j) ); }
-  inline int rows() const {return a.rows();}
-  inline int cols() const {return a.cols();}
+  inline P operator()(unsigned int i, unsigned int j) const { return Op::apply( a(i,j), b(i,j) ); }
+  inline unsigned int rows() const {return a.rows();}
+  inline unsigned int cols() const {return a.cols();}
 };
 
 // Specialziation for Scalar Addition and Substractin
@@ -61,9 +61,9 @@ class Xpr2OpScalar {
   P b;
 public:
   inline Xpr2OpScalar(const A& a_, const P& b_) : a(a_), b(b_) {}
-  inline PROMOTE(P,P2) operator()(int i, int j) const { return Op::apply( a(i,j), b ); }
-  inline int rows() const {return a.rows();}
-  inline int cols() const {return a.cols();}
+  inline PROMOTE(P,P2) operator()(unsigned int i, unsigned int j) const { return Op::apply( a(i,j), b ); }
+  inline unsigned int rows() const {return a.rows();}
+  inline unsigned int cols() const {return a.cols();}
 };
 
 template <class P, class B, class Op, class P2>
@@ -72,9 +72,9 @@ class Xpr2ScalarOp {
   B b;
 public:
   inline Xpr2ScalarOp(const P& a_, const B& b_) : a(a_), b(b_) {}
-  inline PROMOTE(P,P2) operator()(int i, int j) const { return Op::apply( a, b(i,j) ); }
-  inline int rows() const {return b.rows();}
-  inline int cols() const {return b.cols();}
+  inline PROMOTE(P,P2) operator()(unsigned int i, unsigned int j) const { return Op::apply( a, b(i,j) ); }
+  inline unsigned int rows() const {return b.rows();}
+  inline unsigned int cols() const {return b.cols();}
 };
 
 
@@ -83,9 +83,9 @@ class ConstRef2 {
   const M& m;
 public:
   inline ConstRef2(const M& m_) : m(m_) {}
-  inline P operator()(int i, int j) const { return m(i,j); }
-  inline int rows() const {return m.rows();}
-  inline int cols() const { return m.cols(); }
+  inline P operator()(unsigned int i, unsigned int j) const { return m(i,j); }
+  inline unsigned int rows() const {return m.rows();}
+  inline unsigned int cols() const { return m.cols(); }
 };
 
 template <class P, class E>
@@ -94,12 +94,12 @@ private:
   E e;
 public:
   inline Xpr2(const E& e_) : e(e_) {}
-  inline P operator()(int i, int j) const { return e(i,j); }
-  inline int rows() const {return e.rows();}
-  inline int cols() const {return e.cols();}
+  inline P operator()(unsigned int i, unsigned int j) const { return e(i,j); }
+  inline unsigned int rows() const {return e.rows();}
+  inline unsigned int cols() const {return e.cols();}
 };
 
-//template <int Nr,int Nc,class P,class I> class TDim2;
+//template <unsigned int Nr,unsigned int Nc,class P,class I> class TDim2;
 
 template <class P, class I>
 class Dim2 {
@@ -111,23 +111,23 @@ private:
 
 public:
   explicit Dim2() {}
-  int size() const { return static_cast<const I*>(this)->size(); }
-  int rows() const { return static_cast<const I*>(this)->rows(); }
-  int cols() const { return static_cast<const I*>(this)->cols(); }
+  unsigned int size() const { return static_cast<const I*>(this)->size(); }
+  unsigned int rows() const { return static_cast<const I*>(this)->rows(); }
+  unsigned int cols() const { return static_cast<const I*>(this)->cols(); }
   void Resize(unsigned int nRows, unsigned int nCols) {
     static_cast<const I*>(this)->Resize(nRows,nCols);
   }
   //P operator() (int n) const {
   //  return static_cast<const I*>(this)->operator()(n);
   //}
-  P operator() (int i, int j) const {
+  P operator() (unsigned int i, unsigned int j) const {
     return static_cast<const I*>(this)->operator()(i,j);
   }
   template <class X> I& assignFrom(const Xpr2<P,X>& rhs) {
     I *me = static_cast<I*>(this);
     me->Resize(rhs.rows(),rhs.cols());
-    for (int i=0; i<me->rows(); i++) {
-      for (int j=0; j<me->cols(); j++) me->operator()(i,j) = rhs(i,j);
+    for (unsigned int i=0; i<me->rows(); i++) {
+      for (unsigned int j=0; j<me->cols(); j++) me->operator()(i,j) = rhs(i,j);
     }
     return *me;
   }
@@ -135,15 +135,15 @@ public:
     I *me = static_cast<I*>(this);
     me->Resize(x.rows(),x.cols());
     //for (int i=0; i < me->size(); i++) me->operator()(i) = x(i);
-    for (int i=0; i<me->rows(); i++) {
-      for (int j=0; j<me->cols(); j++) me->operator()(i,j) = x(i,j);
+    for (unsigned  int i=0; i<me->rows(); i++) {
+      for (unsigned int j=0; j<me->cols(); j++) me->operator()(i,j) = x(i,j);
     }
     return *me;
   }
   //template <int Nr,int Nc,class M> I& assignFrom(const TDim2<Nr,Nc,P,M>& x);
   I& assignFrom(P x) {  // for Square Matrix Only
     I *me = static_cast<I*>(this);
-    int i,j, rsz = me->rows(), csz = me->cols(),
+    unsigned int i,j, rsz = me->rows(), csz = me->cols(),
       //min = ( rsz < csz ) ? rsz : csz ;
       min = rsz;
     for (i=0; i<min; i++) {
@@ -159,16 +159,16 @@ public:
 
   template <class X> Dim2<P,I>& operator+=(const Xpr2<P,X>& rhs) {
     I *me = static_cast<I*>(this);
-    for (int i=0; i<me->rows(); i++) {
-      for (int j=0; j<me->cols(); j++) me->operator()(i,j) += rhs(i,j);
+    for (unsigned int i=0; i<me->rows(); i++) {
+      for (unsigned int j=0; j<me->cols(); j++) me->operator()(i,j) += rhs(i,j);
     }
     return *me;
   }
   template <class M> Dim2<P,I>& operator+=(const Dim2<P,M>& rhs) {
     I *me = static_cast<I*>(this);
     //for (int i=0; i < me->size(); i++) me->operator()(i) += x(i);
-    for (int i=0; i<me->rows(); i++) {
-      for (int j=0; j<me->cols(); j++) me->operator()(i,j) += rhs(i,j);
+    for (unsigned  int i=0; i<me->rows(); i++) {
+      for (unsigned int j=0; j<me->cols(); j++) me->operator()(i,j) += rhs(i,j);
     }
     return *me;
   }
@@ -176,22 +176,22 @@ public:
     I *me = static_cast<I*>(this);
     //int rsz = me->rows(), csz = me->cols(),
     //min = ( rsz < csz ) ? rsz : csz ;
-    for (int i=0; i<me->rows(); i++) me->operator()(i,i) += this->rhs;
+    for (unsigned int i=0; i<me->rows(); i++) me->operator()(i,i) += this->rhs;
     return *me;
   }
  
   template <class X> Dim2<P,I>& operator-=(const Xpr2<P,X>& rhs) {
     I *me = static_cast<I*>(this);
-    for (int i=0; i<me->rows(); i++) {
-      for (int j=0; j<me->cols(); j++) me->operator()(i,j) -= rhs(i,j);
+    for (unsigned int i=0; i<me->rows(); i++) {
+      for (unsigned int j=0; j<me->cols(); j++) me->operator()(i,j) -= rhs(i,j);
     }
     return *me;
   }
   template <class M> Dim2<P,I>& operator-=(const Dim2<P,M>& rhs) {
     I *me = static_cast<I*>(this);
     //for (int i=0; i < me->size(); i++) me->operator()(i) -= x(i);
-    for (int i=0; i<me->rows(); i++) {
-      for (int j=0; j<me->cols(); j++) me->operator()(i,j) -= rhs(i,j);
+    for (unsigned int i=0; i<me->rows(); i++) {
+      for (unsigned int j=0; j<me->cols(); j++) me->operator()(i,j) -= rhs(i,j);
     }
     return *me;
   }
@@ -199,22 +199,22 @@ public:
     I *me = static_cast<I*>(this);
     //int rsz = me->rows(), csz = me->cols(),
     //min = ( rsz < csz ) ? rsz : csz ;
-    for (int i=0; i<me->rows(); i++) me->operator()(i,i) -= this->rhs;
+    for (unsigned int i=0; i<me->rows(); i++) me->operator()(i,i) -= this->rhs;
     return *me;
   }
  
   Dim2<P,I>& operator*=(P x) {
     I *me = static_cast<I*>(this);
-    for (int i=0; i<me->rows(); i++) {
-      for (int j=0; j<me->cols(); j++) me->operator()(i,j) *= x;
+    for (unsigned int i=0; i<me->rows(); i++) {
+      for (unsigned int j=0; j<me->cols(); j++) me->operator()(i,j) *= x;
     }
     return *me;
   }
 
   Dim2<P,I>& operator/=(P x) {
     I *me = static_cast<I*>(this);
-    for (int i=0; i<me->rows(); i++) {
-      for (int j=0; j<me->cols(); j++) me->operator()(i,j) /= x;
+    for (unsigned int i=0; i<me->rows(); i++) {
+      for (unsigned int j=0; j<me->cols(); j++) me->operator()(i,j) /= x;
     }
     return *me;
   }
@@ -222,8 +222,8 @@ public:
 
 template <class T,class A>
 std::ostream& operator<<(std::ostream& s, const Dim2<T,A>& a) {
-  for (int i=0; i< a.rows(); i++) {
-    for (int j=0; j< a.cols(); j++)
+  for (unsigned int i=0; i< a.rows(); i++) {
+    for (unsigned int j=0; j< a.cols(); j++)
       s << std::setw(6) << std::setprecision(3) << a(i,j);
     s << std::endl;
   }
@@ -241,14 +241,14 @@ class Xpr1Reduct {
   B b;
 public:
   inline Xpr1Reduct(const A& a_, const B& b_) : a(a_), b(b_) {}
-  inline P operator()(int i) const {
+  inline P operator()(unsigned int i) const {
     P sum = a(i,0)*b(0);
-    for (int j=1; j < a.cols(); j++) sum += a(i,j)*b(j);
+    for (unsigned int j=1; j < a.cols(); j++) sum += a(i,j)*b(j);
     return sum;
   }
-  inline int cols() const {return a.cols(); }
-  inline int rows() const {return a.rows();}
-  inline int size() const {return a.rows();}
+  inline unsigned int cols() const {return a.cols(); }
+  inline unsigned int rows() const {return a.rows();}
+  inline unsigned int size() const {return a.rows();}
 };
 
 // Matrix Matrix Multiplication
@@ -262,13 +262,13 @@ class Xpr2Reduct {
   B b;
 public:
   inline Xpr2Reduct(const A& a_, const B& b_) : a(a_), b(b_) {}
-  inline P operator()(int i, int j) const {
+  inline P operator()(unsigned int i, unsigned int j) const {
     P sum = a(i,0)*b(0,j);
-    for (int k=1; k < a.cols(); k++) sum += a(i,k)*b(k,j);
+    for (unsigned int k=1; k < a.cols(); k++) sum += a(i,k)*b(k,j);
     return sum;
   }
-  inline int cols() const {return b.cols(); }
-  inline int rows() const {return a.rows();}
+  inline unsigned int cols() const {return b.cols(); }
+  inline unsigned int rows() const {return a.rows();}
 };
 
 

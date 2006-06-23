@@ -55,13 +55,18 @@ namespace CoupledField
     Double                  normGradSPR;
 
     errorMap.Resize(maxelem);
+    errorMap.Init();
     gradSPRElemL2norm.Resize(maxelem);
+    gradSPRElemL2norm.Init();
     areaElms.Resize(maxelem);
+    areaElms.Init();
 
     for (idm=0;idm<dim;idm++)
       {
         SPRgrad[idm].Resize(size);
+        SPRgrad[idm].Init();
         numberAvergVals[idm].Resize(size);
+        numberAvergVals[idm].Init();
       }
   
     // computation of SPR gradient
@@ -298,7 +303,9 @@ namespace CoupledField
     Integer          nnodes=CalcNumberOfNodesInPatch(Elems);
     //    Warning("For mass element matrices material data is not defined",__FILE__,__LINE__);
     SysMatrix.Resize(nnodes,nnodes);
+    SysMatrix.Init();
     RHSVector.Resize(nnodes);
+    RHSVector.Init();
     // in this vector we store global numbers of nodes that occure in the patch.
     // number of position is ,accordingly, local number in patch
     std::vector<Integer>  mapGlbNumNodes2LocInPatch;
@@ -332,14 +339,14 @@ namespace CoupledField
         rhs->CalcElemVectorRHSForSPR(ptCoord,valFnc,aComponent,vecRHS);
         
         // do renumbering of nodes for this element for assembling procedure
-        Boolean UseOldNumber;
+        bool UseOldNumber;
    
         std::vector<Integer> assembleConnect(vec_connect.size());
         Integer ivc,imp;
         // do a loop over connection vector 
         for (ivc=0; ivc<vec_connect.size(); ivc++)
           {    
-            UseOldNumber=FALSE;
+            UseOldNumber=false;
 
             // loop over vector with global nodes for previous elements
             for (imp=0; imp<mapGlbNumNodes2LocInPatch.size(); imp++)
@@ -349,7 +356,7 @@ namespace CoupledField
                   {
                     // if node is new, then we use previous local number in assembling
                     assembleConnect[ivc] = imp;      
-                    UseOldNumber=TRUE;
+                    UseOldNumber=true;
                   }
               }
             
@@ -411,7 +418,7 @@ namespace CoupledField
 
     Integer              iels,ivc,imp;
     Vector<Integer>      vec_connect;
-    Boolean              NewNode;
+    bool              NewNode;
     std::vector<Integer> globalNumbers; // store global numbers of nodes of element
     // that occurs in patch
 
@@ -421,13 +428,13 @@ namespace CoupledField
       
         for (ivc=0; ivc<vec_connect.size(); ivc++)
           { 
-            NewNode=TRUE;
+            NewNode=true;
             // loop over vector with global nodes for previous elements
             for (imp=0; imp<globalNumbers.size(); imp++)
               {
                 // check that this node is not new
                 if (globalNumbers[imp] == vec_connect[ivc])  
-                  NewNode=FALSE;
+                  NewNode=false;
           
               }
           
@@ -481,14 +488,20 @@ namespace CoupledField
     Double                  normGradSPR;
 
     errorMap.Resize(maxelem);
+    errorMap.Init();
     gradSPRElemL2norm.Resize(maxelem);
+    gradSPRElemL2norm.Init();
     areaElms.Resize(maxelem);
+    areaElms.Init();
 
     for (idm=0;idm<dim;idm++)
       {
         SPRgrad[idm].Resize(size);
+        SPRgrad[idm].Init();
         SPRgradIm[idm].Resize(size);
+        SPRgradIm[idm].Init();
         numberAvergVals[idm].Resize(size);
+        numberAvergVals[idm].Init();
       }
   
     // computation of SPR gradient

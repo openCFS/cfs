@@ -40,17 +40,17 @@ namespace CoupledField
   {
     ENTER_IFCN( "ConfFile::get" );
     std::string::size_type pos,pos1=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
     if (section != "") 
       { 
         pos1=getsectionpos(section); 
-        inSection=TRUE;
+        inSection=true;
       }
     if (subsection !="") 
       {
         pos1=getsubsectionpos(subsection,pos1);
-        inSubSection = TRUE;
+        inSubSection = true;
       }
     if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
     infile.seekg(pos1, std::ios::beg);
@@ -72,17 +72,17 @@ namespace CoupledField
   {
     ENTER_IFCN( "ConfFile::get" );
     std::string::size_type pos,pos1=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
     if (section != "") 
       { 
         pos1=getsectionpos(section); 
-        inSection=TRUE;
+        inSection=true;
       }
     if (subsection !="") 
       {
         pos1=getsubsectionpos(subsection,pos1);
-        inSubSection = TRUE;
+        inSubSection = true;
       }
     if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
     infile.seekg(pos1, std::ios::beg);
@@ -105,17 +105,17 @@ namespace CoupledField
   {
     ENTER_IFCN( "ConfFile::get" );
     std::string::size_type pos,pos1=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
     if (section != "") 
       { 
         pos1=getsectionpos(section); 
-        inSection=TRUE;
+        inSection=true;
       }
     if (subsection !="") 
       {
         pos1=getsubsectionpos(subsection,pos1);
-        inSubSection = TRUE;
+        inSubSection = true;
       }
     if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
     infile.seekg(pos1, std::ios::beg);
@@ -135,17 +135,17 @@ namespace CoupledField
   {
     ENTER_IFCN( "ConfFile::get2" );
     std::string::size_type pos,pos1=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
     if (section != "") 
       { 
         pos1=getsectionpos(section); 
-        inSection=TRUE;
+        inSection=true;
       }
     if (subsection !="") 
       {
         pos1=getsubsectionpos(subsection,pos1);
-        inSubSection = TRUE;
+        inSubSection = true;
       }
     if (subsubsection != "") 
       { 
@@ -160,14 +160,14 @@ namespace CoupledField
     infile.seekg(pos, std::ios::beg);
     std::string dummy;
     std::string comma = ","; 
-    Boolean fnc_file = FALSE;
+    bool fnc_file = false;
 
     std::getline(infile,dummy);
     Integer idx;
     for (Integer i=0; i<dummy.size(); i++)
       if (dummy[i] == comma[0])  
         {
-          fnc_file = TRUE;
+          fnc_file = true;
           idx = i;
         }
 
@@ -196,17 +196,17 @@ namespace CoupledField
   {
     ENTER_FCN( "ConfFile::getCoilData" );
     std::string::size_type pos,pos1=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
     if (section != "") 
       { 
         pos1=getsectionpos(section); 
-        inSection=TRUE;
+        inSection=true;
       }
     if (subsection !="") 
       {
         pos1=getsubsectionpos(subsection,pos1);
-        inSubSection = TRUE;
+        inSubSection = true;
       }
 
     std::string keyword;
@@ -214,7 +214,7 @@ namespace CoupledField
     acoil.timefnc = "---not-defined--";
 
     keyword = "current";
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
     if (pos!=std::string::npos) 
       {
         getVal_Fnc(pos, acoil.current, acoil.timefnc);
@@ -224,7 +224,7 @@ namespace CoupledField
       acoil.current = 0;
  
     keyword = "voltage";
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
     if (pos!=std::string::npos) 
       {
         getVal_Fnc(pos, acoil.voltage, acoil.timefnc);
@@ -235,7 +235,7 @@ namespace CoupledField
       acoil.voltage = 0;
 
     keyword = "area";
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
     if (pos!=std::string::npos) 
       {
         infile.seekg(pos, std::ios::beg);
@@ -248,7 +248,7 @@ namespace CoupledField
 
     keyword = "resistance";
     acoil.resistance = 1.0;
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
     if (pos!=std::string::npos) 
       {
         infile.seekg(pos, std::ios::beg);
@@ -257,7 +257,7 @@ namespace CoupledField
 
     keyword = "phase";
     acoil.phase = 0;
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
     if (pos!=std::string::npos) 
       {
         infile.seekg(pos, std::ios::beg);
@@ -265,7 +265,7 @@ namespace CoupledField
       }
 
     keyword = "id";
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
     if (pos!=std::string::npos) 
       {
         infile.seekg(pos, std::ios::beg);
@@ -275,7 +275,7 @@ namespace CoupledField
       acoil.ID = 0;
 
     keyword = "calc_L";
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
     if (pos!=std::string::npos) 
       {
         infile.seekg(pos, std::ios::beg);
@@ -285,7 +285,7 @@ namespace CoupledField
       acoil.Lfile = "--not--defined";
 
     //  keyword = "calc_UI";
-    //  pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    //  pos=getpos(keyword,pos1,inSection,inSubSection,false);
     //  if (pos!=std::string::npos) 
     //    {
     //      infile.seekg(pos, std::ios::beg);
@@ -302,7 +302,7 @@ namespace CoupledField
 
 
 
-  Boolean ConfFile::ifget(const std::string keyword, 
+  bool ConfFile::ifget(const std::string keyword, 
                           std::string & val, 
                           const std::string section, 
                           const std::string subsection, 
@@ -310,18 +310,18 @@ namespace CoupledField
   {
     ENTER_IFCN( "ConFile::ifget" );
     std::string::size_type pos,pos1=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
 
     if (section != "") 
       { 
-        pos1=getsectionpos(section,0, FALSE); 
-        inSection=TRUE;
+        pos1=getsectionpos(section,0, false); 
+        inSection=true;
       }
     if (subsection !="") 
       {
-        pos1=getsubsectionpos(subsection,pos1,FALSE);
-        inSubSection = TRUE;
+        pos1=getsubsectionpos(subsection,pos1,false);
+        inSubSection = true;
       }
 
     if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
@@ -330,17 +330,17 @@ namespace CoupledField
     pos1=infile.tellg();
     }
 
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
 
-    if (pos==std::string::npos) return FALSE;
+    if (pos==std::string::npos) return false;
 
     infile.seekg(pos, std::ios::beg);
     infile >> val;
  
-    return TRUE;  
+    return true;  
   }
 
-  Boolean ConfFile::ifget(const std::string keyword, 
+  bool ConfFile::ifget(const std::string keyword, 
                           Integer & val, 
                           const std::string section, 
                           const std::string subsection, 
@@ -348,18 +348,18 @@ namespace CoupledField
   {
     ENTER_IFCN( "ConfFile::ifget" );
     std::string::size_type pos,pos1=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
 
     if (section != "") 
       { 
-        pos1=getsectionpos(section,0, FALSE); 
-        inSection=TRUE;
+        pos1=getsectionpos(section,0, false); 
+        inSection=true;
       }
     if (subsection !="") 
       {
-        pos1=getsubsectionpos(subsection,pos1,FALSE);
-        inSubSection = TRUE;
+        pos1=getsubsectionpos(subsection,pos1,false);
+        inSubSection = true;
       }
 
     if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
@@ -368,17 +368,17 @@ namespace CoupledField
     pos1=infile.tellg();
     }
 
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
 
-    if (pos==std::string::npos) return FALSE;
+    if (pos==std::string::npos) return false;
 
     infile.seekg(pos, std::ios::beg);
     infile >> val;
  
-    return TRUE;  
+    return true;  
   }
 
-  Boolean ConfFile::ifget(const std::string keyword, 
+  bool ConfFile::ifget(const std::string keyword, 
                           Double & val, 
                           const std::string section, 
                           const std::string subsection, 
@@ -386,18 +386,18 @@ namespace CoupledField
   {
     ENTER_IFCN( "ConfFile::ifget" );
     std::string::size_type pos,pos1=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
 
     if (section != "") 
       { 
-        pos1=getsectionpos(section,0, FALSE); 
-        inSection=TRUE;
+        pos1=getsectionpos(section,0, false); 
+        inSection=true;
       }
     if (subsection !="") 
       {
-        pos1=getsubsectionpos(subsection,pos1,FALSE);
-        inSubSection = TRUE;
+        pos1=getsubsectionpos(subsection,pos1,false);
+        inSubSection = true;
       }
 
     if (subsubsection != "") { pos1=getpos(subsubsection,pos1);
@@ -406,17 +406,17 @@ namespace CoupledField
     pos1=infile.tellg();
     }
 
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
 
-    if (pos==std::string::npos) return FALSE;
+    if (pos==std::string::npos) return false;
 
     infile.seekg(pos, std::ios::beg);
     infile >> val;
  
-    return TRUE;  
+    return true;  
   }
 
-  Boolean ConfFile::get_option(const std::string keyword, 
+  bool ConfFile::get_option(const std::string keyword, 
                                const std::string section, 
                                const std::string subsection, 
                                const std::string subsubsection)
@@ -424,18 +424,18 @@ namespace CoupledField
     ENTER_IFCN( "ConfFile::get_option" );
 
     std::string::size_type pos,pos1=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
 
     if (section != "") 
       { 
         pos1=getsectionpos(section); 
-        inSection=TRUE;
+        inSection=true;
       }
     if (subsection !="") 
       {
         pos1=getsubsectionpos(subsection,pos1);
-        inSubSection = TRUE;
+        inSubSection = true;
       }
 
 
@@ -445,22 +445,22 @@ namespace CoupledField
     pos1=infile.tellg();
     }
 
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
 
 
-    if (pos==std::string::npos) return FALSE;
+    if (pos==std::string::npos) return false;
 
     infile.seekg(pos, std::ios::beg);
     std::string option;
     infile >> option;
  
-    if (option == "yes") return TRUE;
+    if (option == "yes") return true;
 
-    return FALSE;
+    return false;
   }
 
 
-  Boolean ConfFile::get_optionNo(const std::string keyword, 
+  bool ConfFile::get_optionNo(const std::string keyword, 
                                  const std::string section, 
                                  const std::string subsection, 
                                  const std::string subsubsection)
@@ -468,18 +468,18 @@ namespace CoupledField
     ENTER_IFCN( "ConfFile::get_optionNo" );
 
     std::string::size_type pos,pos1=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
 
     if (section != "") 
       { 
         pos1=getsectionpos(section); 
-        inSection=TRUE;
+        inSection=true;
       }
     if (subsection !="") 
       {
         pos1=getsubsectionpos(subsection,pos1);
-        inSubSection = TRUE;
+        inSubSection = true;
       }
 
 
@@ -489,31 +489,31 @@ namespace CoupledField
     pos1=infile.tellg();
     }
 
-    pos=getpos(keyword,pos1,inSection,inSubSection,FALSE);
+    pos=getpos(keyword,pos1,inSection,inSubSection,false);
 
 
-    if (pos==std::string::npos) return FALSE;
+    if (pos==std::string::npos) return false;
 
     infile.seekg(pos, std::ios::beg);
     std::string option;
     infile >> option;
  
-    if (option == "no") return TRUE;
+    if (option == "no") return true;
 
-    return FALSE;
+    return false;
   }
 
 
   std::string::size_type ConfFile::getpos(const std::string keyword,
                                           const std::string::size_type startpos,
-                                          Boolean inSection,
-                                          Boolean inSubSection,
-                                          Boolean writeErr)
+                                          bool inSection,
+                                          bool inSubSection,
+                                          bool writeErr)
   {
     ENTER_IFCN( "ConfFile::getpos" );
     std::string::size_type help,pos=std::string::npos;
     std::string buf;
-    bool nextSectionReached = FALSE;
+    bool nextSectionReached = false;
 
     if (startpos == std::string::npos)
       return std::string::npos;
@@ -532,12 +532,12 @@ namespace CoupledField
           {
             if ((buf[0] != '\t' && inSection) && buf[0] != '\n' && buf[0] != ' ')
               {
-                nextSectionReached = TRUE;
+                nextSectionReached = true;
                 break;
               }
             if (buf[0] != '\t' && buf[1] != '\t' && inSubSection && buf[0] != '\n' && buf[0] != ' ')
               {
-                nextSectionReached = TRUE;
+                nextSectionReached = true;
                 break;
               }
             pos=buf.find(keyword);
@@ -557,7 +557,7 @@ namespace CoupledField
 
   std::string::size_type ConfFile::getsectionpos(const std::string keyword, 
                                                  const std::string::size_type 
-                                                 startpos, Boolean writeErr)
+                                                 startpos, bool writeErr)
   {
     ENTER_IFCN( "ConfFile::getsectionpos" );
     std::string::size_type help,pos=std::string::npos;
@@ -594,13 +594,13 @@ namespace CoupledField
 
   std::string::size_type ConfFile::getsubsectionpos(const std::string keyword, 
                                                     const std::string::size_type 
-                                                    startpos, Boolean writeErr)
+                                                    startpos, bool writeErr)
   {
     ENTER_IFCN( "ConfFile::getsubsectionpos" );
     std::string::size_type help,pos=std::string::npos;
     std::string buf;
     std::string::size_type pos_helper;
-    bool nextSectionReached = FALSE;
+    bool nextSectionReached = false;
 
     if (startpos == std::string::npos)
       return std::string::npos;
@@ -617,7 +617,7 @@ namespace CoupledField
           {
             if (buf[0] != '\t' && buf[0] != '\n' && buf[0] != ' ')
               {
-                nextSectionReached = TRUE;
+                nextSectionReached = true;
                 break;
               }
         
@@ -644,9 +644,9 @@ namespace CoupledField
   // template void ConfFile::get(const std::string , Integer &, const std::string, const std::string, const std::string);
   // template void ConfFile::get(const std::string , Double &,const std::string, const std::string, const std::string);
 
-  // template Boolean ConfFile::ifget(const std::string , std::string &, const std::string, const std::string, const std::string);
-  // template Boolean ConfFile::ifget(const std::string , Integer &,const std::string, const std::string, const std::string);
-  // template Boolean ConfFile::ifget(const std::string , Double &, const std::string, const std::string, const std::string);
+  // template bool ConfFile::ifget(const std::string , std::string &, const std::string, const std::string, const std::string);
+  // template bool ConfFile::ifget(const std::string , Integer &,const std::string, const std::string, const std::string);
+  // template bool ConfFile::ifget(const std::string , Double &, const std::string, const std::string, const std::string);
   // #endif
 
   void ConfFile::getsubdom(StdVector<std::string> & subdoms)
@@ -721,18 +721,18 @@ namespace CoupledField
     ENTER_IFCN( "ConfFile::getlist" );
     std::string::size_type pos=0;
 
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
 
     if (section != "")
       {
         pos=getsectionpos(section);
-        inSection = TRUE;
+        inSection = true;
       }
     if (subsection !="") 
       {   
         pos=getsubsectionpos(subsection,pos);
-        inSubSection = TRUE;
+        inSubSection = true;
       }
 
     pos=getpos(seekexp,pos);
@@ -761,18 +761,18 @@ namespace CoupledField
     ENTER_IFCN( "ConfFile::getliststr" );
     std::string::size_type pos=0;
 
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
 
     if (section != "")
       {
         pos=getsectionpos(section);
-        inSection = TRUE;
+        inSection = true;
       }
     if (subsection !="") 
       {   
         pos=getsubsectionpos(subsection,pos);
-        inSubSection = TRUE;
+        inSubSection = true;
       }
 
     pos=getpos(seekexp,pos,inSection,inSubSection);
@@ -795,18 +795,18 @@ namespace CoupledField
   {
     ENTER_IFCN( "ConfFile::getstr" );
     std::string::size_type pos=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
 
     if (section != "")
       {
-        pos=getsectionpos(section,0,TRUE);
-        inSection = TRUE;
+        pos=getsectionpos(section,0,true);
+        inSection = true;
       }
     if (subsection !="") 
       {   
         pos=getsubsectionpos(subsection,pos);
-        inSubSection = TRUE;
+        inSubSection = true;
       }
 
     pos=getpos(seekexp,pos,inSection,inSubSection);
@@ -818,30 +818,30 @@ namespace CoupledField
 
   }
 
-  Boolean ConfFile::ifgetliststr( const std::string seekexp,
+  bool ConfFile::ifgetliststr( const std::string seekexp,
                                   StdVector<std::string> & stlist, 
                                   const std::string section, 
                                   const std::string subsection)
   {
     ENTER_IFCN( "ConfFile::ifgetliststr" );
     std::string::size_type pos=0;
-    Boolean inSection = FALSE;
-    Boolean inSubSection = FALSE;
+    bool inSection = false;
+    bool inSubSection = false;
 
     if (section != "")
       {
-        pos=getsectionpos(section,0,FALSE);
-        inSection = TRUE;
+        pos=getsectionpos(section,0,false);
+        inSection = true;
       }
     if (subsection !="") 
       {   
-        pos=getsubsectionpos(subsection,pos,FALSE);
-        inSubSection = TRUE;
+        pos=getsubsectionpos(subsection,pos,false);
+        inSubSection = true;
       }
 
-    pos=getpos(seekexp,pos,inSection,inSubSection,FALSE);
+    pos=getpos(seekexp,pos,inSection,inSubSection,false);
 
-    if (pos==std::string::npos) return FALSE;
+    if (pos==std::string::npos) return false;
 
     infile.seekg(pos,std::ios::beg);
 
@@ -864,7 +864,7 @@ namespace CoupledField
         if (help != "non") stlist.Push_back(help);
       } while  (help != "non");
 
-    return TRUE;
+    return true;
   }
 
   std::string ConfFile::getfilename()
@@ -903,11 +903,11 @@ namespace CoupledField
   void ConfFile::check(const std::string value, const StdVector<std::string> data)
   {
     ENTER_IFCN( "ConfFile::check" );
-    Boolean Find=FALSE;
+    bool Find=false;
     Integer id;
     for (id=0; id<data.GetSize();id++) {
       if (value==data[id]) {
-        Find=TRUE;
+        Find=true;
         break;
       }
     }
@@ -930,14 +930,14 @@ namespace CoupledField
     infile.seekg(startpos, std::ios::beg);
     std::string dummy;
     std::string comma = ","; 
-    Boolean fnc_file = FALSE;
+    bool fnc_file = false;
   
     std::getline(infile,dummy);
     Integer idx;
     for (Integer i=0; i<dummy.size(); i++)
       if (dummy[i] == comma[0])  
         {
-          fnc_file = TRUE;
+          fnc_file = true;
           idx = i;
         }
   

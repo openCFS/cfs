@@ -8,7 +8,7 @@
 #include "ODESolve/ODESolver_RKF45.hh"
 #include "ODESolve/ODESolver_Rosenbrock.hh"
 #include "DataInOut/writeresults.hh"
-
+#include "Forms/linearForm.hh"
 
 #ifdef TCL_INTERFACE
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -24,6 +24,9 @@ namespace CoupledField {
     :SinglePDE(aptgrid, aptOut, aptTimeFunc) {
 
     ENTER_FCN( "BubblePDE::BubblePDE" );
+
+    Error( "Not working at the moment due to change in EQN-class",
+           __FILE__, __LINE__ );
 
     // =====================================================================
     // Initialize all private variables
@@ -53,17 +56,25 @@ namespace CoupledField {
     // =====================================================================
     // set solution information
     // =====================================================================
-    dofspernode_ = 1;
-    solTypes_ = BUBBLE_RADIUS;
-    solDofs_ = 1;
+   //  dofspernode_ = 1;
+//     solTypes_ = BUBBLE_RADIUS;
+//     solDofs_ = 1;
     pdename_          = "bubble";
     pdematerialclass_ = FLUID;
  
-    geoUpdate_ = FALSE;
     nonLin_    = FALSE;
     writeValues_ = FALSE;
     writeRHS_    = FALSE;
 
+    
+    // Create new resultDof object
+    shared_ptr<ResultDof> res1(new ResultDof);
+    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    res1->resultType = BUBBLE_RADIUS;
+    res1->dofNames = "";
+    res1->definedOn = ResultDof::ELEMENT;
+    res1->fctType = fct;
+    results_.Push_back( res1 );
 
     //check, if problem is axisymmetric
     if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
@@ -431,7 +442,7 @@ namespace CoupledField {
         // Map global element number to local one
 
         UInt locElemNum = 
-          eqnData_->Mesh2PDEElem((*couplElems_)[el]->elemNum );
+          eqnMap_->Mesh2PdeElem((*couplElems_)[el]->elemNum );
         elemResult_.SetElemResult( locElemNum-1,result );
       }
       
@@ -605,21 +616,20 @@ namespace CoupledField {
 
     for( UInt iRegion = 0; iRegion < regionIds.GetSize(); iRegion++ ) {
 
-      StdVector<Elem*> elems;
-      ptgrid_->GetElems( elems, regionIds[iRegion] );
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( regionIds[iRegion] );
+      
+      EntityIterator it = actSDList.GetIterator();
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
 
-
-
-      for( UInt iElem = 0; iElem < elems.GetSize(); iElem++ ) {
-       
-        BaseFE * ptEl = elems[iElem]->ptElem;
-        StdVector<UInt> & connecth = elems[iElem]->connect;
+        BaseFE * ptEl = it.GetElem()->ptElem;
+        StdVector<UInt> const & connecth = it.GetElem()->connect;
 
         // Find correct index for this element in vector couplElems_
         Integer couplIndex = -1;
 
         for( UInt iCouplElem = 0; iCouplElem < couplElems_->GetSize(); iCouplElem++ ) {
-          if( (*couplElems_)[iCouplElem]->elemNum == elems[iElem]->elemNum ) {
+          if( (*couplElems_)[iCouplElem]->elemNum == it.GetElem()->elemNum ) {
             couplIndex = iCouplElem;
             break;
           }
@@ -627,13 +637,10 @@ namespace CoupledField {
         
         if( couplIndex == -1 ) {
           (*error) << "Found no matching element for coupling element Nr" 
-                   << elems[iElem]->elemNum << "!";
+                   << it.GetElem()->elemNum << "!";
           Error( __FILE__, __LINE__ );
         }
           
-
-        Matrix<Double> ptCoord;
-        GetElemCoords(connecth, ptCoord);
 
 	Double beta2 = 1.0;
         Double beta2Com = 1.0;
@@ -682,10 +689,9 @@ namespace CoupledField {
         }
 
         rhsForm->SetFactor(beta2);            
-        rhsForm->SetElemPtr(ptEl);
 
 	Vector<Double> elemVec, helpVec;
-        rhsForm->CalcElemVector(ptCoord, elemVec);
+        rhsForm->CalcElemVector( elemVec, it );
 
         // Get indices in nodes-vector for the node numbers of the current element
         for( UInt iNode = 0; iNode < connecth.GetSize(); iNode++ ) {
@@ -700,7 +706,7 @@ namespace CoupledField {
           helpVec[0] = beta2;
           helpVec[1] = Rpp;
           //helpVec[2] = beta2Com;
-          UInt locElemNum = eqnData_->Mesh2PDEElem(elems[iElem]->elemNum);
+          UInt locElemNum = eqnMap_->Mesh2PdeElem(it.GetElem()->elemNum);
           addElemResult_.SetElemResult(locElemNum-1, helpVec);
         }
         
@@ -714,7 +720,7 @@ namespace CoupledField {
   }
 
 
-  Boolean BubblePDE::HasOutput(SolutionType output)
+  bool BubblePDE::HasOutput(SolutionType output)
   {
     ENTER_FCN( "BubblePDE::HasOutput" );
   
@@ -762,9 +768,9 @@ namespace CoupledField {
 
       elemResult_.SetNumSolutions(1);
       elemResult_.SetSolutionType(MAG_FLUX_DENSITY);
-      elemResult_.SetNumElems(eqnData_->GetNumLocalElems());
+      elemResult_.SetNumElems(eqnMap_->GetNumLocalElems());
       elemResult_.SetNumDofs(3);
-      elemResult_.SetPtrEQNData(eqnData_, ptgrid_);
+      elemResult_.SetPtrEQNData(eqnMap_.get(), ptgrid_);
       elemResult_.Init(); 
     }
 
@@ -780,9 +786,9 @@ namespace CoupledField {
 
       addElemResult_.SetNumSolutions(1);
       addElemResult_.SetSolutionType(ELEC_FIELD_INTENSITY);
-      addElemResult_.SetNumElems(eqnData_->GetNumLocalElems());
+      addElemResult_.SetNumElems(eqnMap_->GetNumLocalElems());
       addElemResult_.SetNumDofs(2);
-      addElemResult_.SetPtrEQNData(eqnData_, ptgrid_);
+      addElemResult_.SetPtrEQNData(eqnMap_.get(), ptgrid_);
       addElemResult_.Init(); 
     }
 

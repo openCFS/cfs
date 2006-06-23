@@ -30,6 +30,10 @@ namespace CoupledField
       ptGridStruct->GetAllRegionNames(regionNames_);
     }
 
+    //! Map element sub-entities
+    void MapSubEntities() {
+      ptGridStruct->MapSubEntities();
+    }
     //==================================================================================
     //special functions for structured Grid
     //! Read of structured mesh
@@ -56,7 +60,7 @@ namespace CoupledField
     //@{ \name General Grid Information
 
     //! Return if grid uses quadratic elements
-    Boolean IsQuadratic() {
+    bool IsQuadratic() {
       return ptGridStruct->IsQuadratic();
     }
 
@@ -153,16 +157,18 @@ namespace CoupledField
     //! \param rfPoint (output) coordinates of point 2D
     //! \param inode (input) node number
     void GetNodeCoordinate( Point<DIM> & rfPoint,
-                            const UInt inode ) {
-      ptGridStruct->GetNodeCoordinate(rfPoint, inode);
+                            const UInt inode,
+                            bool updated = false ) {
+      ptGridStruct->GetNodeCoordinate(rfPoint, inode, updated);
     }
 
     //! Get coordinates of node with global number inode as vector
     //! \param rfPoint (output) coordinates of point 2D
     //! \param inode (input) node number
     void GetNodeCoordinate( Vector<Double> & rfPoint,
-                            const UInt inode ) {
-      ptGridStruct->GetNodeCoordinate(rfPoint, inode);
+                            const UInt inode,
+                            bool updated = false) {
+      ptGridStruct->GetNodeCoordinate(rfPoint, inode, updated);
     }
     //@}
   
@@ -210,8 +216,9 @@ namespace CoupledField
   
     //! Get coordinates of element nodes
     void GetElemNodesCoord( Matrix<Double> & coordMat,  
-                            const StdVector<UInt> & connect ) {
-      ptGridStruct->GetElemNodesCoord(coordMat, connect);
+                            const StdVector<UInt> & connect,
+                            bool updated = false) {
+      ptGridStruct->GetElemNodesCoord(coordMat, connect, updated);
     }
   
     //! Get elements associated with given nodes
@@ -241,21 +248,25 @@ namespace CoupledField
     //! Returns surface element normal without defined orientation
 
     void CalcSurfNormal( Vector<Double> & n, 
-                         const Elem & surfElem ) {
-      ptGridStruct->CalcSurfNormal(n, surfElem);
+                         const Elem & surfElem,
+                         bool updated = false ) {
+      ptGridStruct->CalcSurfNormal(n, surfElem, updated );
     }
     
     //! Returns surface element normal with defined orientation
   
     void CalcSurfNormalOutOfVol( Vector<Double> & n,
                                  const Elem & surfElem,
-                                 const Elem & volElem ) {
-      ptGridStruct->CalcSurfNormalOutOfVol(n, surfElem, volElem);
+                                 const Elem & volElem,
+                                 bool updated = false  ) {
+      ptGridStruct->CalcSurfNormalOutOfVol(n, surfElem, volElem,updated);
     }
   
     //! Returns the volume of a given region
-    Double CalcVolumeOfRegion( const RegionIdType regionId, Boolean isaxi = FALSE ) {
-      return ptGridStruct->CalcVolumeOfRegion(regionId,isaxi);
+    Double CalcVolumeOfRegion( const RegionIdType regionId, 
+                               bool isaxi = false,
+                               bool updated = false ) {
+      return ptGridStruct->CalcVolumeOfRegion(regionId,isaxi,updated);
     }
   
     //@}
@@ -264,16 +275,26 @@ namespace CoupledField
     // ======================================================
     // MISCELLANEOUS
     // ======================================================
-    //@{ \name Miscellaneous  
+    //@{ \name Miscellaneo2us  
  
 
     //! Returns node numbers of a list of Elements
     void GetNodesOfElemList( StdVector<UInt> & nodeList,
                              const StdVector<Elem*> & elemList,
-			     Boolean onlyLinNodes = FALSE) {
+			     bool onlyLinNodes = false) {
       ptGridStruct->GetNodesOfElemList(nodeList, elemList, onlyLinNodes);
     }
+
     
+    //! Set offset for coordinates due to updated Lagrangian formulation
+    void SetNodeOffset( const StdVector<UInt>& nodes, 
+                        const Vector<Double>& offsets ) {
+      ptGridStruct->SetNodeOffset( nodes, offsets );
+    }
+
+    bool HasNodalOffset() {
+      return ptGridStruct->HasNodalOffset();
+    }
   
   protected:
 

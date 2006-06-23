@@ -10,8 +10,6 @@ src = Edge.cc Hexahedron.cc  MeshReader.cc Octahedron.cc  Quadrangle.cc   Triang
 	GridLevel.cc  Jacobian.cc    MultilevelGrid.cc  Pyramid.cc     Tetrahedron.cc  Vertex.cc
 
 #
-lib = adaptgrid
-libpath = libsrc/Domain/AdaptGrid
 CFLAGS3 =
 #
 

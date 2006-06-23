@@ -100,7 +100,16 @@
     </xsd:complexContent>
   </xsd:complexType>
 
+  <!-- ******************************************************************* -->
+  <!--   Definition of enumeration type describing the degrees of freedom  -->
+  <!-- ******************************************************************* -->
 
+  <xsd:simpleType name="DT_MagneticDOF">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="mp"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
   <!-- ******************************************************************* -->
   <!--   Definition of the boundary condition types for magnetics -->
   <!-- ******************************************************************* -->
@@ -111,6 +120,9 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
+        <xsd:attribute name="dof" type="DT_MagneticDOF" use="optional" default="mp"/>
+        <xsd:attribute name="entityType" type="DT_EntityType"
+          use="optional" default="nodeList"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

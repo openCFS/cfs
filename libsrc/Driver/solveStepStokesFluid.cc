@@ -3,7 +3,6 @@
 #include <string>
 
 #include "solveStepStokesFluid.hh"
-#include "Forms/forms_header.hh"
 
 #include "assemble.hh"
 
@@ -25,11 +24,11 @@ namespace CoupledField {
   // Solve Step Static SECTION  
   // ======================================================
 
-  void SolveStepStokesFluid::StepStaticNonLin( const Boolean reset )
+  void SolveStepStokesFluid::StepStaticNonLin()
   {
     ENTER_FCN( "SolveStepStokesFluid::SolveStepStaticNonLin" );
 
-    Boolean performOneMoreStep;
+    bool performOneMoreStep;
     UInt iterationCounter=0;
     NodeStoreSol<Double>  & solHelp = dynamic_cast<NodeStoreSol<Double>&>(*sol_);
   
@@ -37,8 +36,8 @@ namespace CoupledField {
 
     Vector<Double> newSol;
     Vector<Double> solIncrement;
-    newSol.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
-    solIncrement.Resize(eqnData_->GetNumEQNs() * eqnData_->GetNumDofsPerEQN());
+    newSol.Resize( numEqns_ );
+    solIncrement.Resize( numEqns_ );
 
     PDE_.SetBCs(0);
 
@@ -66,8 +65,8 @@ namespace CoupledField {
 
 
         // setup and solve new system (rhs is already set) =====================
-        PDE_.InitNonLinMatrices();
-        PDE_.AssembleMatrices();
+        //InitNonLinMatrices();
+        assemble_->AssembleMatrices();
       
         algsys_->ConstructEffectiveMatrix(matrix_factor_);
         algsys_->BuildInDirichlet();
@@ -166,7 +165,7 @@ namespace CoupledField {
   // Solve Step Transient SECTION  
   // ======================================================
 
-  //  void SolveStepStokesFluid::StepTransNonLin( const Boolean reset ) {
+  //  void SolveStepStokesFluid::StepTransNonLin() {
   //    ENTER_FCN( "SolveStepStokesFluid::StepTransNonLin" );
   //  }
 

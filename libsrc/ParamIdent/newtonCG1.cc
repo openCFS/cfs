@@ -18,7 +18,6 @@
 #include "Driver/singleDriver.hh"
 #include "PDE/nodeEQN.hh"
 #include <Domain/elem.hh>
-#include "Forms/forms_header.hh"
 
 
 #ifdef __sgi
@@ -82,8 +81,10 @@ namespace CoupledField
     Vector<Complex> step(actNrParameter+actNrParameterC);
     Vector<Double> stepR(actNrParameter);    
     res_NE.Resize(actNrParameter);
+    res_NE.Init();
     Vector<Complex> res_NE_rescaled(actNrParameter);
     bas.Resize(actNrParameter);
+    bas.Init();
     Vector<Complex> basbar(nrMeasuredData);
     Vector<Complex> Res_outer(nrMeasuredData);
     Vector<Complex> Res_inner(nrMeasuredData);
@@ -91,6 +92,7 @@ namespace CoupledField
     Vector<Complex> res_JacFs(nrMeasuredData);
     Vector<Complex> basC(actNrParameter);
     res_NE.Resize(actNrParameter);
+    res_NE.Init();
 
     Double res_inner, res_inner_old, res_outer, res_outer_old, lin_res, lin_res_max, max_res, max_res_outer, max_res_inner;
 
@@ -114,10 +116,11 @@ namespace CoupledField
       nrNewtonIterations++;
 
       step.Resize(actNrParameter);
+      step.Init();
 
       updateMaterialData(parameter, ptMaterial);
 
-      createF(ptMaterial, ptBCs, F_hat,FALSE);
+      createF(ptMaterial, ptBCs, F_hat,false);
 
       res=y_hat-F_hat;
       Res_inner=res;
@@ -243,7 +246,7 @@ namespace CoupledField
 
       updateMaterialData(parameter_new, ptMaterial);
 
-      createF(ptMaterial, ptBCs, F_hat,FALSE);
+      createF(ptMaterial, ptBCs, F_hat,false);
       
       res=y_hat-F_hat;
 
@@ -329,7 +332,7 @@ namespace CoupledField
 
         updateMaterialData(parameter_new,ptMaterial);
 
-        createF(ptMaterial, ptBCs, F_hat,FALSE);
+        createF(ptMaterial, ptBCs, F_hat,false);
 
         res=y_hat-F_hat;
 

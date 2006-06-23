@@ -9,10 +9,10 @@ namespace CoupledField
 
   template<class TYPE>
   ElecChargeOp<TYPE>::ElecChargeOp(Grid * ptGrid,
-                             StdPDE * ptPDE,
-                             NodeEQN * ptEQN,
-                             Boolean isaxi)
-    : BaseOperator(ptGrid, ptPDE, ptEQN, isaxi)
+                                   StdPDE * ptPDE,
+                                   shared_ptr<EqnMap> eqnMap,
+                                   bool isaxi, bool coordUpdate )
+    : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
     ENTER_FCN( "ElecChargeOp::ElecChargeOp" );
     
@@ -48,7 +48,7 @@ namespace CoupledField
     nrNodes = ptElemFE->GetNumNodes();
     const Vector<Double> & intWeights = ptElemFE->GetIntWeights();   
   
-    ptPDE_->GetElemCoords(ptElement->connect, coordMat);
+    ptGrid_->GetElemNodesCoord( coordMat, ptElement->connect, coordUpdate_ );
   
     // loop over all integration points
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -94,13 +94,14 @@ namespace CoupledField
 
   
   template <class TYPE>
-  void ElecChargeOp<TYPE>::CalcElemCharges(Vector<TYPE> & charges,
-                                     const StdVector<Elem*> & surfElems,
-                                     const Vector<Double> & lCoord,
-                                     const Vector<TYPE> & eNormalFluxDensity)
+  void ElecChargeOp<TYPE>::
+  CalcElemCharges(Vector<TYPE> & charges,
+                  const StdVector<Elem*> & surfElems,
+                  const Vector<Double> & lCoord,
+                  const Vector<TYPE> & eNormalFluxDensity)
   {
     ENTER_FCN( "ElecChargeOp::CalcElemCharges" );
-  
+    
     Double jacDet; 
     TYPE charge,helpNormalFluxDensity;
     Vector<Double> shFnc, globCoord;
@@ -108,6 +109,8 @@ namespace CoupledField
     BaseFE * ptElem;
     UInt nrIntPts, nrNodes;
     charges.Resize(surfElems.GetSize());
+    charges.Init();
+    
   
     // loop over all surface elements
     for (UInt iElem=0; iElem<surfElems.GetSize(); iElem++)
@@ -119,7 +122,8 @@ namespace CoupledField
         nrNodes = ptElem->GetNumNodes();
         const Vector<Double> & intWeights = ptElem->GetIntWeights();   
       
-        ptPDE_->GetElemCoords(surfElems[iElem]->connect, coordMat);
+        ptGrid_->GetElemNodesCoord(coordMat, surfElems[iElem]->connect, 
+                                   coordUpdate_ );
         ptElem->GetShFnc(shFnc, lCoord);
         // if (charges.IsComplex()){
           for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)

@@ -20,8 +20,6 @@ namespace CoupledField
 class nLinElastInt : public linElastInt
 {
 public:
-  /// Constructor
-  nLinElastInt(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
   nLinElastInt(BaseMaterial* matData);
@@ -29,37 +27,20 @@ public:
   /// Destructor
   virtual ~nLinElastInt();  
 
-  /// in nonlinear calculations, the actual displacement of the element is needed
-  /*!
-    \param disp (input) Matrix with displacement d of all nodes of actual element
-    \f[ \left( \begin{array}{ccc} 
-    d_{x1} &  d_{x2} &  d_{x3} \\
-    d_{y1} &  d_{y2} &  d_{y3} \\
-    \end{array}\right) \f]         
-  */
-  void setActElemDispl(Matrix<Double>& disp) {elemDisp_ = disp;};  
-
-  /// in nonlinear calculations, the actual displacement of the element is needed
-  /*!
-    \param disp (input) Matrix with displacement d of all nodes of actual element
-    \f[ \left( \begin{array}{ccc} 
-    d_{x1} &  d_{x2} &  d_{x3} \\
-    d_{y1} &  d_{y2} &  d_{y3} \\
-    \end{array}\right) \f]         
-  */
-  virtual void SetActElemSol(Matrix<Double>& disp) {elemDisp_ = disp;};
-
+  //! Compute element matrix associated to ADB form
+  void CalcElementMatrix( Matrix<Double>& elemMat,
+                          EntityIterator& ent1, 
+                          EntityIterator& ent2 );
 
 protected:    
 
   /// returns B - matrix for BDB
-  virtual void calcBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
+  virtual void calcBMat(Matrix<Double> & bMat, UInt ip, 
+                        Matrix<Double> & ptCoord );
 
   /// displacement of all nodes of actual element
   Matrix<Double> elemDisp_;
 
-
-  char * className;
 };
   
   
@@ -75,9 +56,6 @@ protected:
 class nLinMech3dInt_BNonLin : public nLinElastInt
 {
 public:
-
-  /// Constructor
-  nLinMech3dInt_BNonLin(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
   nLinMech3dInt_BNonLin(BaseMaterial* matData);
@@ -107,10 +85,6 @@ class nLinMechInt_PiolaStress : public nLinElastInt
 public:
   friend class nLinMech_linFormInt;
   
-
-  /// Constructor
-  nLinMechInt_PiolaStress(BaseFE * aptelem, BaseMaterial* matData);
-
   /// Constructor
   nLinMechInt_PiolaStress(BaseMaterial* matData);
   
@@ -136,13 +110,19 @@ protected:
   virtual void setPiolaDimD(UInt actDim){piolaDimD_ = actDim;};
 
   /// calculates Piola-Kirchoff-stresses (vector notation)
-  virtual void CalcStressVec(Vector<Double>& piolaStressVec, UInt ip, Matrix<Double> & ptCoord);  
+  virtual void CalcStressVec(Vector<Double>& piolaStressVec, UInt ip, 
+                             BaseFE *elem,
+                             Matrix<Double> & ptCoord,
+                             Matrix<Double> & elemDisp );  
 
   /// returns linear B - matrix
-  virtual void calcLinBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
+  virtual void calcLinBMat(Matrix<Double> & bMat, UInt ip, 
+                           BaseFE *elem, Matrix<Double> & ptCoord );
 
   /// returns nonlinear B - matrix
-  virtual void calcNonLinBMat(Matrix<Double> & bMat, UInt ip, Matrix<Double> & ptCoord);
+  virtual void calcNonLinBMat(Matrix<Double> & bMat, UInt ip, 
+                              BaseFE *elem, Matrix<Double> & ptCoord,
+                              Matrix<Double> & elemDisp );
 
   /// returns material D-matrix for 3d mechanics
   virtual void calcMaterialDMat(Matrix<Double> & dMat);
@@ -169,9 +149,6 @@ private:
 class nLinMech3dInt_PiolaStress : public nLinMechInt_PiolaStress
 {
 public:
-
-  /// Constructor
-  nLinMech3dInt_PiolaStress(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
   nLinMech3dInt_PiolaStress(BaseMaterial* matData);
@@ -208,9 +185,6 @@ class nLinMechPlaneStrainInt_BNonLin : public nLinElastInt
 public:
 
   /// Constructor
-  nLinMechPlaneStrainInt_BNonLin(BaseFE * aptelem, BaseMaterial* matData);
-
-  /// Constructor
   nLinMechPlaneStrainInt_BNonLin(BaseMaterial* matData);
 
   
@@ -236,8 +210,6 @@ protected:
 class nLinMechPlaneStrainInt_PiolaStress : public nLinMechInt_PiolaStress
 {
 public:
-  /// Constructor
-  nLinMechPlaneStrainInt_PiolaStress(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
   nLinMechPlaneStrainInt_PiolaStress(BaseMaterial* matData);
@@ -280,9 +252,6 @@ class nLinMechAxiInt_BNonLin : public nLinElastInt
 public:
 
   /// Constructor
-  nLinMechAxiInt_BNonLin(BaseFE * aptelem, BaseMaterial* matData);
-
-  /// Constructor
   nLinMechAxiInt_BNonLin(BaseMaterial* matData);
 
   
@@ -308,8 +277,6 @@ protected:
 class nLinMechAxiInt_PiolaStress : public nLinMechInt_PiolaStress
 {
 public:
-  /// Constructor
-  nLinMechAxiInt_PiolaStress(BaseFE * aptelem, BaseMaterial* matData);
 
   /// Constructor
   nLinMechAxiInt_PiolaStress(BaseMaterial* matData);
@@ -353,9 +320,6 @@ class PreStressInt : public nLinMechInt_PiolaStress
 public:
   // preStressLinFormInt uses calcDMat from this class
   friend class PreStressLinFormInt;
-  
-  /// Constructor
-  PreStressInt(BaseFE * aptelem, BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   //! Constructor
   PreStressInt(BaseMaterial* matData, Vector<Double> aPreStressVal);
@@ -415,8 +379,6 @@ private:
 class PreStressInt3D : public PreStressInt
 {
 public:
-  /// Constructor
-  PreStressInt3D(BaseFE * aptelem, BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   //! Constructor
   PreStressInt3D(BaseMaterial* matData, Vector<Double> aPreStressVal);
@@ -447,9 +409,6 @@ protected:
 class PreStressIntPlaneStrain : public PreStressInt
 {
 public:
-  /// Constructor
-  PreStressIntPlaneStrain(BaseFE * aptelem, BaseMaterial* matData, Vector<Double> aPreStressVal);
-  
   //! Constructor
   PreStressIntPlaneStrain(BaseMaterial* matData, Vector<Double> aPreStressVal);
   
@@ -479,8 +438,6 @@ protected:
 class PreStressIntAxi : public PreStressInt
 {
 public:
-  /// Constructor
-  PreStressIntAxi(BaseFE * aptelem, BaseMaterial* matData, Vector<Double> aPreStressVal);
   
   //! Constructor
   PreStressIntAxi(BaseMaterial* matData, Vector<Double> aPreStressVal);

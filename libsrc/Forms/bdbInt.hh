@@ -11,25 +11,22 @@ namespace CoupledField {
   public:
 
     //! Constructor with pointer to BaseElem
-    BDBInt();
-    
-    //! Constructor with pointer to BaseElem
-    BDBInt(BaseFE *aptelem, BaseMaterial* matData);
-
-    //! Constructor with pointer to BaseElem
-    BDBInt(BaseMaterial* matData, SubTensorType type = FULL);
+    BDBInt(BaseMaterial* matData, SubTensorType type = FULL,
+           bool coordUpdate = false );
 
     //! Destructor
     virtual ~BDBInt();
 
-    //! Function for calculation bdb matrix 
-    virtual void CalcElementMatrix( Matrix<Double> &ptCoord,
-                                    Matrix<Double> &elemmat );
-
+    //! Compute element matrix associated to ADB form
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+    
     //! \note This memorial is dedicated to the undocumented function
-    virtual void CalcComplexElementMatrix(Matrix<Double> &ptCoord,
-                                          Matrix<Complex> &elemMat,
-                                          Double &beta, Double &omega );
+    void CalcComplexElementMatrix( Matrix<Complex> & elemMat,
+                                   EntityIterator& ent1, 
+                                   EntityIterator& ent2,
+                                   Double & beta, Double & omega );
 
     virtual void GetDMat(Matrix<Double> & dMat);
 
@@ -71,13 +68,13 @@ namespace CoupledField {
     //! returns nr. of degrees of freedom
     virtual UInt getNrDofs() = 0;
 
-    //! Boolean for signaling that D matrix is non-constant
+    //! bool for signaling that D matrix is non-constant
 
     //! In some cases, e.g. in non-linear computations, it may be
     //! necessary to compute the D matrix for each integration point
     //! individually. This attribute is used to signal when the latter is
     //! required.
-    Boolean updateDMatInEveryIP_;
+    bool updateDMatInEveryIP_;
   };
 
 }

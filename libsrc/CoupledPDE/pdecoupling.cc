@@ -181,7 +181,7 @@ namespace CoupledField
     if (inputTypes_[myNum] == COORD)
       myInterface->dof = myPDE_->dim_;
     else
-      myInterface->dof = myPDE_->dofspernode_;
+      myInterface->dof = myPDE_->results_[0]->dofNames.GetSize();
   
     // Initialize the values and oldValues arrays
     //myInterface->values->SetDof(myPDE_->dofspernode_);
@@ -261,18 +261,18 @@ namespace CoupledField
       
         //       for (UInt i=0; i<myInterface->neighbours.GetSize(); i++)
         //      {
-        //        Boolean subdomFound = FALSE;
+        //        bool subdomFound = false;
         //        UInt subDomNr = 0;
           
         //        for (subDomNr=0; subDomNr<myPDE_->subdoms_.GetSize(); subDomNr++)
         //          if (myPDE_->subdoms_[subDomNr] == myInterface->neighbours[i]->regionId)
         //            {
-        //              subdomFound = TRUE;
+        //              subdomFound = true;
         //              break;
         //            }
           
           
-        //        if (subdomFound == FALSE)
+        //        if (subdomFound == false)
         //          Error("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
           
         //        myInterface->materials[i] = &(myPDE_->materialData_[subDomNr]);           
@@ -301,18 +301,18 @@ namespace CoupledField
       
         //       for (UInt i=0; i<neighbours.GetSize(); i++)
         //         {
-        //           Boolean subdomFound = FALSE;
+        //           bool subdomFound = false;
         //           UInt subDomNr = 0;
           
         //           for (subDomNr=0; subDomNr<oppositePDE->subdoms_.GetSize(); subDomNr++)
         //             if (oppositePDE->subdoms_[subDomNr] == neighbours[i]->regionId)
         //               {
-        //                 subdomFound = TRUE;
+        //                 subdomFound = true;
         //                 break;
         //               }
                   
           
-        //        if (subdomFound == FALSE)
+        //        if (subdomFound == false)
         //          Error("Subdomain name of neighbouring elements was not found",__FILE__,__LINE__);
           
         //        myInterface->oppositePdeMaterials[i] = &(oppositePDE->materialData_[subDomNr]);
@@ -320,6 +320,7 @@ namespace CoupledField
       
         Integer index = -1;
         myInterface->oppositePdeMaterials.Resize(interfaceElems.GetSize());
+        myInterface->oppositePdeMaterials.Init(NULL);
 
         for ( UInt iElem = 0; iElem < interfaceElems.GetSize(); iElem++ ) {
         
@@ -373,7 +374,7 @@ namespace CoupledField
   
   
     // if not find out if PDE can calculate desired output
-    if (myPDE_->HasOutput(quantity) == FALSE)
+    if (myPDE_->HasOutput(quantity) == false)
       return 0;
   
     // create new Coupling Output
@@ -461,6 +462,7 @@ namespace CoupledField
           numNodes+= ptGrid_->GetNumNodes(regions[i]);
 
         myInterface->nodes.Resize(numNodes);
+        myInterface->nodes.Init();
       
         inode =0;
 
@@ -538,6 +540,7 @@ namespace CoupledField
       
         myInterface->numElems = myInterface->elements.GetSize();
         myInterface->materials.Resize(myInterface->elements.GetSize());
+        myInterface->materials.Init( NULL );
             
 
         break;
@@ -617,7 +620,7 @@ namespace CoupledField
 
 
   void PDECoupling::CreateCouplingVector(UInt i,
-                                         Boolean isComplex)
+                                         bool isComplex)
   {
     ENTER_FCN("PDECoupling::CreateCouplingVector");
 
@@ -655,12 +658,17 @@ namespace CoupledField
     }
 
     // resize vector with coupling values
-    
     outputInterfaces_[i]->values->Resize(dof*size);
-  
-    // resize vector with old coupling values
     outputInterfaces_[i]->oldValues->Resize(dof*size);
 
+    if( isComplex ) {
+      outputInterfaces_[i]->values->Init(Complex(0.0,0.0));
+      outputInterfaces_[i]->oldValues->Init(Complex(0.0,0.0));
+    } else {
+      outputInterfaces_[i]->values->Init(0.0);
+      outputInterfaces_[i]->oldValues->Init( 0.0 );
+    }
+    
   }
 
 
@@ -707,7 +715,7 @@ namespace CoupledField
     for (UInt i=0; i<inputInterfaces_.GetSize(); i++){
       memento.inputInterfaces_[i] = *(inputInterfaces_[i]);
     }
-    memento.isSet_ = TRUE;
+    memento.isSet_ = true;
   }
 
 
@@ -717,7 +725,7 @@ namespace CoupledField
     std::string errMsg, warnMsg, helper;
 
     // if there is no information in the memento just leave
-    if (memento.isSet_ == FALSE)
+    if (memento.isSet_ == false)
       return;
   
     // Check if size of internal vectors
@@ -737,7 +745,7 @@ namespace CoupledField
 
     // loop over all memento interfaces
     for (UInt iMem=0; iMem<memento.inputTypes_.GetSize(); iMem++) {
-      Boolean couplingFound = FALSE;
+      bool couplingFound = false;
 
       // loop over all own interfaces
       for (UInt iOwn=0; iOwn<inputTypes_.GetSize(); iOwn++) {
@@ -788,7 +796,7 @@ namespace CoupledField
                 (*(memento.inputInterfaces_[iMem].values));
             }
             
-            couplingFound = TRUE;
+            couplingFound = true;
             break;
           } // if statement
       

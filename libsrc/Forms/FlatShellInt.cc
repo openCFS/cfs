@@ -6,11 +6,15 @@
 
 namespace CoupledField {
 
-  void FlatShellInt::CalcElementMatrix( Matrix<Double> &ptCoord,
-                                        Matrix<Double> &elemMat ) {
+  void FlatShellInt::CalcElementMatrix( Matrix<Double>& elemMat,
+                                        EntityIterator& ent1, 
+                                        EntityIterator& ent2 ) {
 
     ENTER_FCN( "FlatShellInt::CalcElementMatrix" );
     
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 );    
+
     const UInt nrNodes  = ptelem->GetNumNodes();   
     const UInt nrDofs   = getNrDofs();  
     double jacDet=0.0;
@@ -25,40 +29,46 @@ namespace CoupledField {
     Matrix<Double> ShellCoord; //Shell Coordinates
 
     //Element matrix in the case of Flat Shells with linear elements is 24x24
-    elemMat.Resize(nrNodes * nrDofs);
+    elemMat.Resize(nrNodes * nrDofs );
+    elemMat.Init();
        
     //B matrix in the case of flat shells 8x24 
     bMat.Resize( getDimD(), nrNodes * nrDofs );
+    bMat.Init();
     
     //D matrix in the case of flat shells 8x8
     dMat.Resize(getDimD()); 
+    dMat.Init();
       
     //D*B matrix in the case of flat shells 8x24
     dB.Resize( getDimD(), nrNodes * nrDofs );
+    dB.Init();
      
     //The transpose of B in the case of flat shells is 24x8
     bTrans.Resize( nrNodes * nrDofs , getDimD() );
+    bTrans.Init();
       
     //The partial Element Matrix with the size of 24x24 
-    partElemMat.Resize(nrNodes * nrDofs);
+    partElemMat.Resize( nrNodes * nrDofs );
+    partElemMat.Init();
          
     // 1. rotate 3D-coordintates to 2D (x-y-reference plane) on the element level,4 nodes x 6 coordinates = 24
     //and stor the full Element transformation matrix in TransMat
 	
-    FlatShellInt::CoordTrans(ptCoord, TransMat, ShellCoord );
+    FlatShellInt::CoordTrans(ptCoord_, TransMat, ShellCoord );
     
     // 2. calculate partial B- and D-Matrices and assemble into big one
 	
     // If the material parameters are constant within the element
     // we can compute the D matrix once and for all
-    if ( updateDMatInEveryIP_ == FALSE ) {
+    if ( updateDMatInEveryIP_ == false ) {
       FlatShellInt::calcDMat( dMat );
     }
 
     for (UInt i =0 ; i<parts_.GetSize(); i++ ) {
 	
       //Set the reduced integration          
-      if (reducedPart_[i] == TRUE ) {
+      if (reducedPart_[i] == true ) {
         ptelem->SetReducedIntegration();
       }
       const UInt nrIntPts = ptelem->GetNumIntPoints();
@@ -67,7 +77,7 @@ namespace CoupledField {
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
         // Check if D matrix must be re-determined for the current integration point
-        if ( updateDMatInEveryIP_ == TRUE ) {
+        if ( updateDMatInEveryIP_ == true ) {
           FlatShellInt::calcDMat(dMat);
         }
         //The calcBMat function calculates the B matrix either membrane shear or bending part
@@ -120,7 +130,7 @@ namespace CoupledField {
 
       }
      
-      if (reducedPart_[i] == TRUE ) 
+      if (reducedPart_[i] == true ) 
         ptelem->SetStandardIntegration();
     }
 	
@@ -149,11 +159,17 @@ namespace CoupledField {
     UInt i=0,j=0,k=0;
     
     TransMat.Resize(ElementTransMatDim);//Resize the Element Transformation Matrix 24x24 and initialize with zeroes
+    TransMat.Init();
     TMat.Resize(TMatDim);//Resize the whole node transformation matrix 6x6
+    TMat.Init();
     lambdaMat.Resize(lambdaDim);//Resize the lambda submatrix with dimension 3x3
+    lambdaMat.Init();
     NewCoord.Resize( row, col ); //Resize NewCoord Matrix 3x4 and initialize with zeroes
+    NewCoord.Init();
     temp.Resize( row, col ); //Resize the temporary Matrix 3x4 and initialize with zeroes
+    temp.Init();
     ShellCoord.Resize( row - 1, col ); //Resize the shell coordinates 2D 2x4 and initialize with zeroes
+    ShellCoord.Init();
     Vx.Resize(row); //Resize the vectors of directional cosines
     Vr.Resize(row);
     Vz.Resize(row);
@@ -250,8 +266,11 @@ namespace CoupledField {
     Matrix<Double> KTF;
     
     StiffTrans.Resize(row);
+    StiffTrans.Init();
     TFTrans.Resize(row);
+    TFTrans.Init();
     KTF.Resize(row);
+    KTF.Init();
 
     //Construction of the big Element Transformation matrix 24x24
     for (i=0 ; i < row; i++)
@@ -366,20 +385,31 @@ namespace CoupledField {
     Matrix<Double> A, B, D, K, Ck, Qk, Buffer;
     
     dMat.Resize(SizeOfD);
+    dMat.Init();
     
     RtMat.Resize(3);
+    RtMat.Init();
     RsMat.Resize(3);
+    RsMat.Init();
     RtMatInv.Resize(3);
+    RtMatInv.Init();
     
     Ck.Resize(3);
+    Ck.Init();
     Buffer.Resize(3);
+    Buffer.Init();
     Qk.Resize(3);
+    Qk.Init();
         
     A.Resize(3);
+    A.Init();
     B.Resize(3);
+    B.Init();
     D.Resize(3);
+    D.Init();
     K.Resize(2);
-  
+    K.Init();
+    
     for (UInt k=1 ; k <= nrLayers ; k++)
       {
         //Construction of the Transformation Matrices Rt and Rs 
@@ -506,31 +536,11 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  FlatShellInt::FlatShellInt( ) {
-    ENTER_FCN( "FlatShellInt::FlatShellInt" );
-    baseType_ = STIFFNESS;
-    thickness_ = 0.0;
-    penaltyDof_ = 0.0;
-    
-    Error( "Wrong constructor", __FILE__, __LINE__ );
-  }
-
-  // ***************
-  //   Constructor
-  // ***************
-  FlatShellInt::FlatShellInt( BaseFE *aptelem, BaseMaterial *matData )
-    : BaseForm(aptelem, matData), updateDMatInEveryIP_(0) {
-    ENTER_FCN( "FlatShellInt::FlatShellInt" );
-    baseType_ = STIFFNESS;
-    Error( "Wrong constructor", __FILE__, __LINE__ );
-  }
-
-  // ***************
-  //   Constructor
-  // ***************
   FlatShellInt::FlatShellInt( BaseMaterial * matData ) 
     : BaseForm(matData), updateDMatInEveryIP_(0) {
     ENTER_FCN( "FlatShellInt::FlatShellInt" );
+
+    name_ = "FlatShellInt";
     baseType_ = STIFFNESS;
     
     parts_.Push_back(MEMBRANE);
@@ -539,11 +549,11 @@ namespace CoupledField {
     parts_.Push_back(COUPLED1);
     parts_.Push_back(COUPLED2);
 
-    reducedPart_.Push_back(FALSE);
-    reducedPart_.Push_back(FALSE);
-    reducedPart_.Push_back(FALSE);
-    reducedPart_.Push_back(FALSE);
-    reducedPart_.Push_back(FALSE);
+    reducedPart_.Push_back(false);
+    reducedPart_.Push_back(false);
+    reducedPart_.Push_back(false);
+    reducedPart_.Push_back(false);
+    reducedPart_.Push_back(false);
     
 
     //Thickness of the laminas' layers
