@@ -45,6 +45,10 @@ namespace CoupledField
     // ======================================================
     //@{ \name General Grid Information
 
+    //! Search and add directivity nodes, if defined in input file,
+    //! to list of saved nodes     
+    void GetNodesForDirectivity();
+
     //! Return if grid uses quadratic elements
     bool IsQuadratic() {
       return ptGridCFS->IsQuadratic();
