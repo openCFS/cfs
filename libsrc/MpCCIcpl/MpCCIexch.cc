@@ -6,6 +6,7 @@
 #include "MpCCIexch.hh"
 #include <DataInOut/ParamHandling/ConfFile.hh>
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "PDE/eqnMap.hh"
 
  //#ifdef MpCCI
 #include <cci.h>
@@ -365,7 +366,7 @@ void MpCCIexch::DefMpcciPartition(UInt meshId, UInt partId)
 }
 
 void MpCCIexch::DefMpcciNodes(UInt meshId, UInt partId, UInt nrNodesSD, 
-                              UInt* nodeIds,  NodeEQN & eqnData)
+                              UInt* nodeIds,  shared_ptr<EqnMap> eqnMap)
 {
   ENTER_FCN( "MpCCIexch::DefMpcciNodes" );
 
@@ -381,7 +382,7 @@ void MpCCIexch::DefMpcciNodes(UInt meshId, UInt partId, UInt nrNodesSD,
 
   for (i=0; i<nrNodesSD ; i++)
     {
-      globalNode = eqnData.PDE2MeshNode(nodeIds[i]);
+      globalNode = eqnMap->Pde2MeshNode(nodeIds[i]);
       ptgrid_->GetNodeCoordinate(ptPoint, globalNode);
       
       NODEDATA_[partId-1][3*i]  =ptPoint[0];		      
@@ -392,7 +393,7 @@ void MpCCIexch::DefMpcciNodes(UInt meshId, UInt partId, UInt nrNodesSD,
       else
 	NODEDATA_[partId-1][3*i+2]= 0.0; // z-component for the 2d case is zero	
 
-//       Info->PrintF("","local:%d;\t global:%d; \t%f\t%f\t%f\n",nodeIds[i],eqnData.PDE2MeshNode(nodeIds[i]), 
+//       Info->PrintF("","local:%d;\t global:%d; \t%f\t%f\t%f\n",nodeIds[i],eqnMap.Pde2MeshNode(nodeIds[i]), 
 // 		   NODEDATA_[partId-1][3*i], NODEDATA_[partId-1][3*i+1], NODEDATA_[partId-1][3*i+2]);
 
     }
@@ -402,7 +403,7 @@ void MpCCIexch::DefMpcciNodes(UInt meshId, UInt partId, UInt nrNodesSD,
                  (int) nrNodesSD, (int*) nodeIds, REALTYPE, NODEDATA_[partId-1]);
 }
 
-void MpCCIexch::DefMpcciElements(UInt meshId, UInt partId, NodeEQN & eqnData)
+void MpCCIexch::DefMpcciElements(UInt meshId, UInt partId, shared_ptr<EqnMap> eqnMap)
 {
   UInt i,j;
   UInt NrOfElemsInSD, NodesPerElem;
@@ -426,10 +427,10 @@ void MpCCIexch::DefMpcciElements(UInt meshId, UInt partId, NodeEQN & eqnData)
 //       Info->PrintF("","local elem:%d\t",i);
       for (j=0; j<NodesPerElem; j++)
 	{
-	  localPDENode = eqnData.Mesh2PDENode(connecth[j]);
+	  localPDENode = eqnMap->Mesh2PdeNode(connecth[j]);
 	  TOPOLOGYDATA_[partId-1][NodesPerElem*i+j]=localPDENode;
 
-// 	  Info->PrintF("","Top[%d]=%d, %d\t",NodesPerElem*i+j, TOPOLOGYDATA_[partId-1][NodesPerElem*i+j], eqnData.PDE2MeshNode(localPDENode));
+// 	  Info->PrintF("","Top[%d]=%d, %d\t",NodesPerElem*i+j, TOPOLOGYDATA_[partId-1][NodesPerElem*i+j], eqnMap.PDE2MeshNode(localPDENode));
 	}  
 //       Info->PrintF("","\n");
     }
