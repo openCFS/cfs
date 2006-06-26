@@ -1,0 +1,143 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                                                             %
+%                              IMMD10_THESIS.STY                              %
+%                                                                             %
+%                      LaTeX-Style for Thesis-Titelblatt                      %
+%                           (Marcus Mohr: Oct 2000)                           %
+%                        (Changed: Jul 2001/Marcus Mohr)                      %
+%                                                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% This style defines the following two commands
+%
+%            \IXTITLE{Title}{Author}{Type}
+%
+%   Title  = Title of the work
+%   Author = Author of the work
+%   Type   = Type of the work (e.g. Master Thesis, Technical Report, ...)
+%
+%            \IXTHESIS{Title}{Author}{Type}{From}{Assist}{Time}
+%
+%   Title  = Title of the work
+%   Author = Author of the work
+%   Type   = Type of the work (Diplomarbeit, Master Thesis, Studienarbeit)
+%   From   = Aufgabensteller
+%   Assist = Betreuer der Arbeit
+%   Time   = Zeitraum der Bearbeitung
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% -------------------------- Copyright Message --------------------------------
+%
+\typeout{**************************************************}
+\typeout{ LaTeX-Title-Style for LSE-Publications}
+\typeout{ Marcus Mohr (June 2004)}
+\typeout{ See lsepaper.sty for Documentation}
+\typeout{**************************************************}
+%       
+% ------------------------- Load Graphics-Package -----------------------------
+%
+\usepackage{graphicx}
+%       
+% --------------------------- Adjust Paper Size -------------------------------
+%
+\addtolength{\topmargin}{-2cm}
+\addtolength{\oddsidemargin}{-1.5cm}
+\addtolength{\textwidth}{3cm}
+\addtolength{\textheight}{3cm}
+%       
+% --------------------------- Define Some Fonts -------------------------------
+%
+\newfont{\fonta}{cmssdc10 scaled 1628}
+\newfont{\fontb}{cmss10 scaled 1080}
+\newfont{\fontc}{cmssdc10 scaled 1600}
+\newfont{\fontd}{cmss10 scaled 1500}
+%       
+% ----------------------------- Define Command --------------------------------
+%
+\newcommand{\LSETITLE}[3]{%
+%       
+%
+\vspace*{-0.5cm}
+\begin{center}
+%
+%
+\thispagestyle{empty}
+%
+\begin{minipage}[t]{159.2mm}
+{\fonta FRIEDRICH-ALEXANDER-UNIVERSIT\"AT ERLANGEN-N\"URNBERG} \\
+\centering
+{\fontb INSTITUT F\"UR ELEKTROTECHNIK, ELEKTRONIK UND INFORMATIONSTECHNIK}
+\end{minipage}\\[2cm]
+%
+%
+{\fonta Lehrstuhl f\"ur Sensorik}\\[2.5ex]
+\includegraphics[width=3.5cm]{lse}\\[3.5cm]
+%
+%
+{\fontc #1}
+\\[0.8cm]
+%
+%
+{\fontd #2}\\
+%
+%
+\vspace*{\fill}
+{\fontd #3} \\
+%
+%
+\end{center}
+\newpage}
+%       
+% ----------------------------- Define Command --------------------------------
+%
+\newcommand{\IXTHESIS}[6]{%
+%
+%
+\IXTITLE{#1}{#2}{#3}
+%
+%
+\vspace*{-0.5cm}
+\begin{center}
+%
+%
+\thispagestyle{empty}
+%
+%
+%
+\vspace*{5cm}
+{\fontc #1}
+\\[0.8cm]
+%
+%
+{\fontd #2}\\[1ex]
+{\fontb #3} \\[2cm]
+%
+%
+\begin{tabular}{ll}
+\fontd Aufgabensteller:      & \fontd #4\\[1ex]
+\fontd Betreuer:             & \fontd #5\\[1ex]
+\fontd Bearbeitungszeitraum: & \fontd #6
+\end{tabular}\\
+%
+%
+\vspace*{\fill}
+%
+%
+\end{center}
+\newpage
+\thispagestyle{empty}
+\begin{otherlanguage}{german}
+\noindent\textbf{Erkl{\"a}rung:}\\[2ex]
+Ich versichere, da{\ss} ich die Arbeit ohne fremde Hilfe und ohne Benutzung
+anderer als der angegebenen Quellen angefertigt habe und da{\ss} die Arbeit
+in gleicher oder {\"a}hnlicher Form noch keiner anderen Pr{\"u}fungsbeh{\"o}rde
+vorgelegen hat und von dieser als Teil einer Pr{\"u}fungs\-leistung angenommen
+wurde. Alle Ausf{\"u}hrungen, die w{\"o}rtlich oder sinngem{\"a}{\ss}
+{\"u}bernommen wurden, sind als solche gekennzeichnet.\\[1.5cm]
+%
+%
+Erlangen, den \today \hfill \makebox[6cm]{\dotfill}
+\newpage
+\end{otherlanguage}
+}
