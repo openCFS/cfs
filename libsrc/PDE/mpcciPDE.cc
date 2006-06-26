@@ -118,7 +118,7 @@ namespace CoupledField {
 	{
 	  ptMpCCIexch_->DefMpcciPartition(meshId_[i], j+1);
 	  ptMpCCIexch_->DefMpcciNodes(meshId_[i], j+1, numOfNodesInSD_[j], localNodes_[j], eqnMap_);
-	  ptMpCCIexch_->DefMpcciElements(meshId_[i], j+1, eqnMap);
+	  ptMpCCIexch_->DefMpcciElements(meshId_[i], j+1, eqnMap_);
 	  //possible alternative:
 	  //ptMpCCIexch_->DefMpcciPartNodeElem(i+1, MpCCInodes_,*eqnData_);
 	}
