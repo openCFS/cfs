@@ -20,8 +20,9 @@ namespace CoupledField {
     typedef std::map<MaterialType, Complex > scalarMap;
     typedef std::map<MaterialType, std::string > stringMap;
     typedef std::map<MaterialType, Integer > integerMap;
-
   public:
+
+    typedef enum {GENERAL, ISOTROPIC, ORTHOTROPIC, TRANS_OTHOTROP } SymmetryType;
 
     //! Default constructor
     BaseMaterial();
@@ -105,6 +106,16 @@ namespace CoupledField {
 			    const DataType& dataType ){
       Error("SetTensor not implemented",__FILE__,__LINE__); };
 
+
+    //! set the symmetry type
+    void SetSymmetryType(SymmetryType symType) {
+      symmetryType_=symType; 
+    };
+
+    //! get the symmetry type
+    void GetSymmetryType(SymmetryType symType) {
+      symType=symmetryType_; 
+    };
 
     //! set a complex material tensor
     virtual void SetTensor( Matrix<Complex>& param, const MaterialType& matType,
@@ -222,6 +233,7 @@ namespace CoupledField {
     //! material data is a tensor
     bool isTensor;
 
+    SymmetryType symmetryType_;
   };
 
   std::ostream& operator << ( std::ostream & , const  BaseMaterial &);
