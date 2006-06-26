@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <math.h>
+#include <algorithm>
 #include <set>
 
 #include "grid_cfs.hh"
@@ -144,6 +145,10 @@ namespace CoupledField
     // 9. Read in named elements
     inFile_->GetNamedElems( namedElems_, namedElemNames_ );
 
+    // 10. Get nodes for directivity plots if defined in XML file
+    GetNodesForDirectivity() ;
+
+
     // Print information about region mapping into
     PrintGridInfo();
     
@@ -154,6 +159,340 @@ namespace CoupledField
     isInitialized_ = true;
   }
 
+  template<UInt DIM>
+  void  GridCFS<DIM>::GetNodesForDirectivity() {
+    ENTER_FCN( "GridCFS::GetNodesForDirectivity" );
+
+
+    StdVector<std::string> keyVec, attrVec, valVec;
+    StdVector<Double> radiiVec;
+    attrVec = "","","";
+    valVec = "","","";
+    UInt j,k,l;
+
+    keyVec = "domain", "directivityNodes", "distance", "radius";
+    params->GetList(keyVec, attrVec, valVec, radiiVec);
+    // Check if there are any radii for saving nodes,
+    // otherwise, jump out
+    if ( radiiVec.GetSize() == 0 ) 
+      {
+        return;
+      }
+    std::cout<<"radii "<<radiiVec<<std::endl;
+
+    StdVector<UInt> val;
+
+    //Read the coordinates of center of circle
+    StdVector<Double> center;
+    center.Resize(dim_);
+    //x
+    keyVec = "domain" , "directivityNodes" , "center" , "x";
+    params->GetList( keyVec, attrVec, valVec, val);
+    std::cout<<"x "<<val[0]<<std::endl;
+    center[0] =  val[0];
+    //y
+    keyVec = "domain" , "directivityNodes" , "center" , "y";
+    params->GetList( keyVec, attrVec, valVec, val);
+    std::cout<<"y "<<val[0]<<std::endl;
+    center[1] =  val[0];
+    
+    if ( dim_ == 3 ) {
+    //z
+    keyVec = "domain" , "directivityNodes" , "center" , "z";
+    params->GetList( keyVec, attrVec, valVec, val); 
+    std::cout<<"z "<<val[0]<<std::endl;
+    center[2] =  val[0];
+    }
+    else{
+      center[2] = 0;
+    }
+    
+    //Read planes for saving nodes
+    Double planeFlag;
+    StdVector<UInt> nodePlanes;
+    if ( dim_ == 3 )
+      {
+        nodePlanes.Resize(dim_);
+        for (UInt i=0;i<dim_;i++)
+          nodePlanes[i]=0;
+      }
+    else
+      {
+        nodePlanes.Resize(1);
+        nodePlanes[0]=0;
+      }
+    
+    StdVector<Double> Begin, End;
+    Begin.Resize(3);
+    End.Resize(3);
+    for (UInt i=0;i<3;i++)
+      {
+        Begin[i]=0;
+        End[i]=0;
+      }
+
+    const char *planeNames[] =
+    { "XY", "XZ", "YZ"};
+ 
+    
+    keyVec = "domain" , "directivityNodes" , "planes" , "xyBegin";
+    params->Get( keyVec, attrVec, valVec, planeFlag);
+    std::cout<<"xyBegin "<<planeFlag<<std::endl;
+    Begin[0]=planeFlag; // flag for XY plane
+
+    keyVec = "domain" , "directivityNodes" , "planes" , "xyEnd";
+    params->Get( keyVec, attrVec, valVec, planeFlag);
+    std::cout<<"xyEnd "<<planeFlag<<std::endl;
+    End[0]=planeFlag; // flag for XY plane
+   
+    if ( dim_ == 3 ) {
+      keyVec = "domain" , "directivityNodes" , "planes" , "xzBegin";    
+      params->Get( keyVec, attrVec, valVec, planeFlag);
+      std::cout<<"XZbegin "<<planeFlag<<std::endl;
+      Begin[1]=planeFlag; // flag for XZ plane
+      
+      keyVec = "domain" , "directivityNodes" , "planes" , "xzEnd";    
+      params->Get( keyVec, attrVec, valVec, planeFlag);
+      std::cout<<"XZend "<<planeFlag<<std::endl;
+      End[1]=planeFlag; // flag for XZ plane
+
+      keyVec = "domain" , "directivityNodes" , "planes" , "yzBegin";    
+      params->Get( keyVec, attrVec, valVec, planeFlag);
+      std::cout<<"YZbegin "<<planeFlag<<std::endl;
+      Begin[2]=planeFlag; // flag for YZ plane
+
+      keyVec = "domain" , "directivityNodes" , "planes" , "yzEnd";    
+      params->Get( keyVec, attrVec, valVec, planeFlag);
+      std::cout<<"YZend "<<planeFlag<<std::endl;
+      End[2]=planeFlag; // flag for YZ plane
+    }
+
+    //Read angle interval size for saving nodes
+    Double angleStep;
+    params->Get( "saveIncr", angleStep, "directivityNodes");
+    std::cout<<"angleStep "<<angleStep<<std::endl;
+   
+    if (angleStep<=0){
+          (*error) << "Step angle for directivity nodes "
+                   <<"must be greater than zero!";
+          Error( __FILE__, __LINE__ );
+        }
+    
+    StdVector<UInt> numDiv;
+    numDiv.Resize(3);
+    for (UInt i=0;i<3;i++)
+      numDiv[i]=0;
+
+    numDiv[0]=UInt(floor((End[0]-Begin[0])/angleStep));
+    if (((End[0]-Begin[0])/angleStep)>1.0)
+      nodePlanes[0]=1;
+    else
+      {
+        (*warning) << "Not saving XY directivity nodes "
+                   << " since sweep angle (xzEnd-xzBegin) "<<(End[0]-Begin[0])
+                   <<" is smaller than step angle " << angleStep << "";
+        Warning( __FILE__, __LINE__ );
+      }
+
+    if(dim_==3)
+      {
+        for (UInt dim=1; dim<=2; dim++)
+          {
+            numDiv[dim]=UInt(floor((End[dim]-Begin[dim])/angleStep));
+            if (((End[dim]-Begin[dim])/angleStep)>1.0)
+              {
+                nodePlanes[dim]=1;
+              }
+            else
+              {
+                (*warning) << "Not saving directivity nodes on plane"
+                           << " since sweep angle (End-Begin) "<<(End[dim]-Begin[dim])
+                           <<" is smaller than step angle " << angleStep << "";
+                Warning( __FILE__, __LINE__ );
+              }
+          }
+      }
+    
+    for (UInt i=0; i<3; i++)
+      std::cout<<"numDiv "<<numDiv[i]<<std::endl;
+    //Here finally we start computing things
+    //Create vector with angles to save solutions
+    Matrix<Double> angleList;
+    UInt totalNumDiv=numDiv[0]+numDiv[1]+numDiv[2];
+    UInt plane=1;
+    if (dim_==3)
+      plane=3;
+
+    angleList.Resize(plane,totalNumDiv);
+    std::cout<<"total numDivisions: "<<totalNumDiv<<std::endl;    
+    for (UInt plane=0; plane<numDiv.GetSize() ; plane++)
+      {
+        for (UInt i=0; i<numDiv[plane] ; i++)
+          {
+            angleList[plane][i] = (Begin[plane] + i*angleStep);
+          }
+      }
+  
+    for (UInt plane=0; plane<numDiv.GetSize(); plane++)
+      for (UInt i=0; i<numDiv[plane] ; i++)
+        std::cout<<"angleList["<<plane<<"]["<<i<<"] "<<angleList[plane][i]<<std::endl;    
+
+    StdVector<UInt> directNodes;
+
+    if (dim_==3)
+      directNodes.Resize(radiiVec.GetSize()*(numDiv[0]*nodePlanes[0]+numDiv[1]*nodePlanes[1]+numDiv[2]*nodePlanes[2]));
+    else
+      directNodes.Resize(radiiVec.GetSize()*numDiv[0]);
+    
+    UInt ctr=0;
+    for (UInt actPlane=0; actPlane<nodePlanes.GetSize(); actPlane++)
+      {
+        std::cout<<"directNodes  Size: "<<directNodes.GetSize()<<std::endl;  
+        if (nodePlanes[actPlane]==1)
+          {
+            if (actPlane==0)//XY
+              {
+                j=0;
+                k=1;
+                l=2;
+              }
+            if (dim_==3)
+              {
+                if (actPlane==1)//XZ
+                  {
+                    j=0;
+                    k=2;
+                    l=1;
+                  }             
+                if (actPlane==2)//YZ
+                  {
+                    j=1;
+                    k=2;
+                    l=0;
+                  }             
+              }  
+            for (UInt actRadIndex=0; actRadIndex<radiiVec.GetSize(); actRadIndex++)
+              {
+                std::vector<Double>::iterator it;
+                Matrix<Double> save_point;
+                save_point.Resize(numDiv[actPlane],dim_);
+
+                
+                for (UInt i=0; i<numDiv[actPlane] ; i++)
+                  {
+                    save_point[i][j] = center[j] + cos(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];
+                    std::cout<<"save_point["<<i<<"]["<<j<<"]: "<< save_point[i][j]<<std::endl;    
+                    save_point[i][k] = center[k] + sin(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];  
+                    std::cout<<"save_point["<<i<<"]["<<k<<"]: "<< save_point[i][k]<<std::endl;  
+                    if (dim_==3)
+                      {
+                        save_point[i][l] = center[l] + 0.0; 
+                        std::cout<<"save_point["<<i<<"]["<<l<<"]: "<< save_point[i][l]<<std::endl;  
+                      }
+                    
+                    
+                    
+                    //Computing distance between the savedpoint and the mesh nodes
+                    std::vector<Double> dist2;
+                    dist2.resize(numNodes_);
+                    for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
+                      {
+                        dist2[nodeIndex] = pow((coords_[nodeIndex][j] - save_point[i][j]),2) +
+                          pow((coords_[nodeIndex][k] -  save_point[i][k]),2);
+                        if (dim_==3)
+                          dist2[nodeIndex] +=  pow((coords_[nodeIndex][l] -  save_point[i][l]),2);
+                        //std::cout<<"dist2: "<<dist2[nodeIndex]<<std::endl;
+                      }
+                    it=min_element(dist2.begin(), dist2.end());
+                    std::cout << "The minimun element in dist2 is: " << *it << std::endl;
+                    UInt numNodeMin = -1;
+                    for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
+                      {
+                        if (*it==dist2[nodeIndex])
+                          {
+                            numNodeMin=nodeIndex+1;
+                          }
+                      } 
+                    std::cout << "Index is: " << numNodeMin-1 << std::endl;
+                    std::cout << "dist[numNodeMin-1]: " << dist2[numNodeMin-1] << std::endl;
+                    directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i] = numNodeMin;
+                  } 
+
+                std::string nodename; 
+                Info->PrintF("", "Saved nodes on circle with radius R= %f\n[", radiiVec[actRadIndex]);  
+                for (UInt i=0; i<numDiv[actPlane] ; i++)
+                  {
+                    nodename = "plane";
+                    nodename.append( planeNames[actPlane] );
+                    nodename.append( "_r" );
+                    nodename.append( GenStr(actRadIndex+1) );
+                    nodename.append( "_a" );
+                    nodename.append( GenStr(angleList[actPlane][i]) );
+                    namedNodeNames_.Push_back(nodename);
+                    namedNodes_.Push_back( StdVector<UInt>() );
+                    UInt lastIndex = namedNodes_.GetSize()-1; 
+                    namedNodes_[lastIndex].Push_back(directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i]);
+                    Info->PrintF( "", " %i;", directNodes[ctr*radiiVec.GetSize()+actRadIndex*numDiv[actPlane] + i] ); 
+                  }
+                Info->PrintF( "", "]\n" );
+              }
+            ctr+=numDiv[actPlane];
+          }
+      }
+    
+
+
+
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// % angles in rad
+// alfa = 0:2*pi/72:pi;
+// % angles in deg
+// beta = alfa / pi *180
+// % array with radii for saving nodes on circles
+// dist = [200,300,400];
+// for d = 1:length(dist) % XZ plane
+//     save_kp(d,:,1) = 0.0 + cos(alfa')*dist(d);  % saving points x-coord
+//     save_kp(d,:,2) = 0.0 + sin(alfa')*dist(d);      % z-coord
+
+//     for ind=1:37
+//         dist2 = ( mesh(:,2) - save_kp(d,ind,1) ).^2 + ( mesh(:,3) - save_kp(d,ind,2) ).^2;
+//         [m,index] = min( dist2 );
+//         snode( (d-1)*37 + ind ) = index;
+//     end
+// end
+
+// snode = snode';
+
+// fprintf('Time for finding the directivity nodes:\n');
+// toc
+
+// tic
+
+// for d= 1:length(dist) % XZ
+//     fprintf(fid3,'%% circle #%d: r = %0.1g m\nnodes = [',d, dist(d));
+//     for ind = 1:37
+//         fprintf(fid,'nsel,s,NODE,,%d\n', snode( (d-1)*37+ind));
+//         fprintf(fid,'wsavnod, ''sc_%d_%d''\n',d,ind);
+
+//         fprintf(fid2,'        <nodeHistory type="acouPotential" saveNodes="sc_%d_%d"/>\n',d,ind);
+//         fprintf(fid3,'%d', snode( (d-1)*37+ind));
+//         if i < 37
+//             fprintf(fid3,';');
+//         end
+//         fprintf(fid4,'%d sc_%d_%d\n',snode( (d-1)*37+ind), d, ind);
+//     end
+//     fprintf(fid3,'];\n');
+// end
+
+
+
+
+    
+  }
+  
+
+
+
 
  template<UInt DIM>
  void GridCFS<DIM>::MapSubEntities() {
@@ -162,6 +501,7 @@ namespace CoupledField
 
 
  }
+
 
   // ======================================================
   // GENERAL GRID INFORMATION
