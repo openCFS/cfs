@@ -76,6 +76,13 @@ namespace CoupledField
                             Double timeOffset = 0.0);
 
 
+    void WriteRestart(const UInt nstep, UInt totalUnknowns=0)
+    { ENTER_FCN( "MpcciPDE::WriteRestart");};
+
+
+    void ReadRestart(UInt &startStep, UInt totalUnknowns=0)
+    { ENTER_FCN( "MpcciPDE::ReadRestart");};
+
     // ======================================================
     // COUPLING SECTION
     // ======================================================
