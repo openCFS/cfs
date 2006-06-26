@@ -720,7 +720,7 @@ namespace CoupledField
 
 
   void PDECoupling::SetMemento(CouplingMemento & memento) {
-    ENTER_FCN( "PDECoupling::GetMemento" );
+    ENTER_FCN( "PDECoupling::SetMemento" );
   
     std::string errMsg, warnMsg, helper;
 
