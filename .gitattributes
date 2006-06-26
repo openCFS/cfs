@@ -5,6 +5,14 @@ Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
 Doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 Doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
 Doc/developer/AddDoc/splitting.png -text svneol=unset#image/png
+Doc/developer/Concepts/Dof-Mapping/dof-mapping.dia -text
+Doc/developer/Concepts/Dof-Mapping/dof-mapping.png -text svneol=unset#image/png
+Doc/developer/Concepts/Dof-Mapping/dofmapping.pdf -text svneol=unset#application/pdf
+Doc/developer/Concepts/Dof-Mapping/dofmapping.tex svneol=native#text/plain
+Doc/developer/Concepts/Dof-Mapping/lse.eps -text svneol=unset#application/postscript
+Doc/developer/Concepts/Dof-Mapping/lse.png -text svneol=unset#image/png
+Doc/developer/Concepts/Dof-Mapping/lsepaper.sty svneol=native#text/plain
+Doc/developer/Concepts/Dof-Mapping/mycommands.tex svneol=native#text/plain
 Doc/developer/Concepts/cfs/128037 -text
 Doc/developer/Concepts/cfs/128038.diagram -text
 Doc/developer/Concepts/cfs/128165 -text
