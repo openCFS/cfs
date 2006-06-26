@@ -393,10 +393,8 @@ namespace CoupledField {
       material->GetScalar( EModul, MECH_EMODULUS, REAL ); 
       material->GetScalar( PoissonNumber, MECH_POISSON, REAL ); 
       ComputeIsoMechStiffnesTensor(EModul,PoissonNumber,elasticityTensor);
-      //material->SetIsotrop();
+      material->SetSymmetryType(BaseMaterial::ISOTROPIC);
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
-      // std::cerr << "E=" << EModul << " nu=" << PoissonNumber << std::endl;
-      // std::cerr << "real isotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
     else if (flagEModulReal==false && 
         flagPoissonReal==false && 
@@ -423,9 +421,8 @@ namespace CoupledField {
       material->GetScalar( GZX, MECH_GMODULUS_ZX, REAL ); 
       material->GetScalar( GXY, MECH_GMODULUS_XY, REAL ); 
       ComputeOrthoMechStiffnesTensor(EX,EY,EZ,nuXY,nuYZ,nuXZ,GYZ,GZX,GXY,elasticityTensor);
-      //material-> SetOrthotrop();
+      material-> SetSymmetryType(BaseMaterial::ORTHOTROPIC);
       material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
-      std::cerr << "real othotropic elasticityTensor=" << std::endl << elasticityTensor << std::endl;
     }
     else if (flagEModulReal==true && 
         flagPoissonReal==true && 
@@ -892,7 +889,6 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, inteValue );
       dim=inteValue;
-      //material->SetScalar( dim, PREISACH_DIM); 
     }
 
     Matrix<Double> preisachWeightTensor(dim,dim);
