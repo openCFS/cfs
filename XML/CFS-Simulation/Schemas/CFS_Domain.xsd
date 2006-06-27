@@ -115,9 +115,6 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-
-
-
   <!-- ******************************************************************** -->
   <!--   Data type for domain section -->
   <!-- ******************************************************************** -->
@@ -140,6 +137,68 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
+      <xsd:element name="directivityNodes" type="DT_DirectiNodes" minOccurs="0"
+        maxOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!-- Data type for specif. a distance elem for saving directivity  nodes  -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_DirectiDistance">
+    <xsd:attribute name="radius" type="xsd:double" use="required"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!-- Data type for specif. the sweep angle for saving directivity  nodes  -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_DirectiAngle">
+    <xsd:attribute name="begin" type="xsd:double" use="required"/>
+    <xsd:attribute name="end" type="xsd:double" use="required"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!-- Data type for specif. the center point for saving directivity nodes  -->
+  <!-- ******************************************************************** -->
+   <xsd:complexType name="DT_DirectiCenter">
+    <xsd:attribute name="x" type="xsd:double" use="required"/>
+    <xsd:attribute name="y" type="xsd:double" use="required"/>
+    <xsd:attribute name="z" type="xsd:double" use="required"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!-- Data type for specif. the planes for saving directivity nodes        -->
+  <!-- ******************************************************************** -->
+   <xsd:complexType name="DT_DirectiPlanes">
+    <xsd:attribute name="xyBegin" type="xsd:double"
+    use="optional" default="0"/>
+    <xsd:attribute name="xyEnd" type="xsd:double"
+    use="optional" default="360"/>
+    <xsd:attribute name="xzBegin" type="xsd:double"
+    use="optional"/>
+    <xsd:attribute name="xzEnd" type="xsd:double"
+    use="optional"/>
+    <xsd:attribute name="yzBegin" type="xsd:double"
+    use="optional"/>
+    <xsd:attribute name="yzEnd" type="xsd:double"
+    use="optional"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Data type for directivityNodes section -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_DirectiNodes">
+    <xsd:sequence>
+      <xsd:element name="distance" type="DT_DirectiDistance" minOccurs="1" 
+        maxOccurs="unbounded"/>
+      <xsd:element name="angle" type="DT_DirectiAngle" minOccurs="0"
+        maxOccurs="1"/>
+      <xsd:element name="center" type="DT_DirectiCenter" minOccurs="0"
+        maxOccurs="1"/>
+      <xsd:element name="planes" type="DT_DirectiPlanes" minOccurs="0"
+        maxOccurs="1"/>
+      <xsd:element name="saveIncr" type="DT_PosFloat" minOccurs="0"
+        maxOccurs="1"/>
     </xsd:sequence>
   </xsd:complexType>
 
