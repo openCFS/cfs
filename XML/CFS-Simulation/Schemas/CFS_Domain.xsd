@@ -150,14 +150,6 @@
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
-  <!-- Data type for specif. the sweep angle for saving directivity  nodes  -->
-  <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_DirectiAngle">
-    <xsd:attribute name="begin" type="xsd:double" use="required"/>
-    <xsd:attribute name="end" type="xsd:double" use="required"/>
-  </xsd:complexType>
-
-  <!-- ******************************************************************** -->
   <!-- Data type for specif. the center point for saving directivity nodes  -->
   <!-- ******************************************************************** -->
    <xsd:complexType name="DT_DirectiCenter">
@@ -170,18 +162,21 @@
   <!-- Data type for specif. the planes for saving directivity nodes        -->
   <!-- ******************************************************************** -->
    <xsd:complexType name="DT_DirectiPlanes">
+    <xsd:attribute name="xyName" type="xsd:string" use="optional" default="dir_XY"/>
     <xsd:attribute name="xyBegin" type="xsd:double"
     use="optional" default="0"/>
     <xsd:attribute name="xyEnd" type="xsd:double"
     use="optional" default="360"/>
+    <xsd:attribute name="xzName" type="xsd:string" use="optional" default="dir_XZ"/>
     <xsd:attribute name="xzBegin" type="xsd:double"
-    use="optional"/>
+    use="optional" default="0"/>
     <xsd:attribute name="xzEnd" type="xsd:double"
-    use="optional"/>
+    use="optional" default="0"/>
+    <xsd:attribute name="yzName" type="xsd:string" use="optional" default="dir_YZ"/> 
     <xsd:attribute name="yzBegin" type="xsd:double"
-    use="optional"/>
+    use="optional" default="0"/>
     <xsd:attribute name="yzEnd" type="xsd:double"
-    use="optional"/>
+    use="optional" default="0"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -191,8 +186,6 @@
     <xsd:sequence>
       <xsd:element name="distance" type="DT_DirectiDistance" minOccurs="1" 
         maxOccurs="unbounded"/>
-      <xsd:element name="angle" type="DT_DirectiAngle" minOccurs="0"
-        maxOccurs="1"/>
       <xsd:element name="center" type="DT_DirectiCenter" minOccurs="0"
         maxOccurs="1"/>
       <xsd:element name="planes" type="DT_DirectiPlanes" minOccurs="0"
