@@ -179,15 +179,17 @@ namespace CoupledField
         return;
       }
 
-    StdVector<UInt> val;
+    StdVector<Double> val;
 
     //Read the coordinates of center of circle
     StdVector<Double> center;
     center.Resize(dim_);
+    center.Init();
     //x
     keyVec = "domain" , "directivityNodes" , "center" , "x";
     params->GetList( keyVec, attrVec, valVec, val);
     center[0] =  val[0];
+    
     //y
     keyVec = "domain" , "directivityNodes" , "center" , "y";
     params->GetList( keyVec, attrVec, valVec, val);
@@ -202,7 +204,7 @@ namespace CoupledField
     else{
       center[2] = 0;
     }
-    
+     
     //Read planes for saving nodes
     Double planeFlag;
     
@@ -273,7 +275,7 @@ namespace CoupledField
     nodePlanes[0]=1;
     if (((End[0]-Begin[0])/angleStep)<1.0)
       {
-        (*warning) << "Not saving directivity nodes on " << planeNames[0]
+        (*warning) << "Not saving directivity nodes on plane: " << planeNames[0]
                    << " since sweep angle (End-Begin) "<<(End[0]-Begin[0])
                    <<" is smaller than step angle " << angleStep << "";
         Warning( __FILE__, __LINE__ );
@@ -281,8 +283,11 @@ namespace CoupledField
         Begin[0]=0;
       }
     numDiv[0]=Integer(floor((End[0]-Begin[0])/angleStep));
-    if ((Begin[0] + (numDiv[0]+1)*angleStep) <= (End[0]-Begin[0]))
-      numDiv[0]++;
+    if (angleStep <= (360.0-(End[0]-Begin[0])) && (End[0]-Begin[0])>0.0)
+      {
+        numDiv[0]++;
+      }
+    
             
     if(dim_==3)
       {
@@ -291,7 +296,7 @@ namespace CoupledField
             nodePlanes[actPlane]=1;
             if (((End[actPlane]-Begin[actPlane])/angleStep)<1.0)
               {
-                (*warning) << "Not saving directivity nodes on " << planeNames[actPlane]
+                (*warning) << "Not saving directivity nodes on plane: " << planeNames[actPlane]
                            << " plane since sweep angle (End-Begin) "<<(End[actPlane]-Begin[actPlane])
                            <<" is smaller than step angle " << angleStep << "";
                 Warning( __FILE__, __LINE__ );
@@ -299,8 +304,10 @@ namespace CoupledField
                 Begin[actPlane]=0;
               }
             numDiv[actPlane]=Integer(floor((End[actPlane]-Begin[actPlane])/angleStep));
-            if ((Begin[actPlane] + (numDiv[actPlane]+1)*angleStep) <= (End[actPlane]-Begin[actPlane]))
-              numDiv[actPlane]++;
+            if (angleStep <= (360.0-(End[actPlane]-Begin[actPlane])) && (End[actPlane]-Begin[actPlane])>0.0)
+              {
+                numDiv[actPlane]++;
+              }
           }
       }
     
@@ -331,13 +338,12 @@ namespace CoupledField
     UInt ctr=0;
     for (UInt actPlane=0; actPlane<nodePlanes.GetSize(); actPlane++)
       {
-        if (nodePlanes[actPlane]==1)
+        if (nodePlanes[actPlane]==1 && numDiv[actPlane]>0)
           {
-
             namedNodeNames_.Push_back( planeNames[actPlane]);
             namedNodes_.Push_back( StdVector<UInt>() );
+            Info->PrintF("", "Saved directivity nodes on plane: %s\n", planeNames[actPlane].c_str()); 
             
-            Info->PrintF("", "Saved directivity nodes on plane: %s\n", planeNames[actPlane].c_str());  
             if (actPlane==0)//XY
               {
                 j=0;
@@ -388,7 +394,7 @@ namespace CoupledField
                         //std::cout<<"dist2: "<<dist2[nodeIndex]<<std::endl;
                       }
                     it=min_element(dist2.begin(), dist2.end());
-                    UInt numNodeMin = -1;
+                    Integer numNodeMin = -1;
                     for (UInt nodeIndex=0; nodeIndex<numNodes_; nodeIndex++ )
                       {
                         if (*it==dist2[nodeIndex])
@@ -412,6 +418,7 @@ namespace CoupledField
                   }
                 Info->PrintF( "", "]\n" );
               }
+                Info->PrintF( "", "\n" );
             ctr+=numDiv[actPlane];
           }
       }
