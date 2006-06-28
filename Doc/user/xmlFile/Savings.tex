@@ -72,6 +72,12 @@ nsel,r,loc,y,height
 wsavnod,'ptName'
 \end{verbatim}
 
+As a special case, for storing nodal results at specific radial distances
+from a center point (e.g for directivity plots), first the nodes at these
+points have to be defined (searched) using the element {\bf
+  directivityNodes} in section {\bf $<$domain$>$}. Then the
+procedure above can be used, using the name given to this set of
+nodes. 
 
 \section{Results at Special Elements} 
 Again, saving results of selected elements is similar to the procedure
