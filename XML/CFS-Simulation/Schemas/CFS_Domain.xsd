@@ -153,9 +153,9 @@
   <!-- Data type for specif. the center point for saving directivity nodes  -->
   <!-- ******************************************************************** -->
    <xsd:complexType name="DT_DirectiCenter">
-    <xsd:attribute name="x" type="xsd:double" use="required"/>
-    <xsd:attribute name="y" type="xsd:double" use="required"/>
-    <xsd:attribute name="z" type="xsd:double" use="required"/>
+    <xsd:attribute name="x" type="xsd:double" use="optional" default="0.0"/>
+    <xsd:attribute name="y" type="xsd:double" use="optional" default="0.0"/>
+    <xsd:attribute name="z" type="xsd:double" use="optional" default="0.0"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
