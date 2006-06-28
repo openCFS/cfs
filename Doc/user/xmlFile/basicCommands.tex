@@ -356,6 +356,16 @@ nodes, save nodes, ...
 
   <elements name="mySaveElem"/>
 
+  <directivityNodes>
+    <distance radius="0.5"/>
+    <distance radius="1.0"/>
+    <center x="0.0" y="0.0" z="0.0"/>
+    <planes xyName="myXYnodes" xyBegin="0" xyEnd="180"
+            xzName="myXZnodes" xzBegin="0" xzEnd="360" 
+            yzName="myYZnodes" yzBegin="-90" yzEnd="90"/>
+    <saveIncr> 10 </saveIncr>
+  </directivityNodes>
+
 </domain>
 \end{verbatim}
 
@@ -364,6 +374,14 @@ Further on, all in the simulation needed nodes (e.g. nodes which hold
 a boundary condition) must be defined by the keyword {\bf nodes}.
 Needed elements have to be defined by the keyword {\bf elements}.
 
+Additionally, the optional element {\bf $<$directivityNodes$>$} is available if one wants to define (search) a collection of nodes near specific
+radial distances from a center point (default 0, 0, 0) for later storing of results at
+these nodes (e.g. for producing directivity plots in
+acoustics). Nodes are selected on planes parallel to the principal planes. All 3D parameters are optional. XY plane is the default
+plane for defining the nodes on a 2D simulation. Sweep angle for XY (xyEnd-xyBegin) is by default
+360deg for the other planes it is 0deg. A name can be given to the nodes defined on each plane, otherwise default names will
+also be used (dir\_XY, dir\_XZ, dir\_YZ). Finally, {\bf saveIncr}
+represents the interval in degrees for defining the nodes.
 
 
 
