@@ -25,7 +25,11 @@ namespace CoupledField
     MidPoint_[1] = 1./3;
 
     std::string integtype;
+#ifndef INTEGLIB
     params->Get( "type", integtype, "integRules", "triangle" );
+#else
+    integtype="GaussOrder2";
+#endif
 
     IntegType=String2EnumIntegrationType(integtype.c_str());
 

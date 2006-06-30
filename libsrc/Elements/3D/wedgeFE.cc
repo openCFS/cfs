@@ -26,7 +26,11 @@ namespace CoupledField
   
   
     std::string integtype;
+#ifndef INTEGLIB
     params->Get( "type", integtype, "integRules", "wedge" );
+#else
+    integtype="GaussOrder2";
+#endif
   
     IntegType = String2EnumIntegrationType(integtype.c_str());
   

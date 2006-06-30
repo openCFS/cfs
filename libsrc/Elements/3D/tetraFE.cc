@@ -25,7 +25,11 @@ TetraFE::TetraFE()
     MidPoint_[2] = 1./4;
     
     std::string integtype;
+#ifndef INTEGLIB
     params->Get( "type", integtype, "integRules", "tetra" );
+#else
+    integtype="GaussOrder2";
+#endif
 
     IntegType = String2EnumIntegrationType(integtype.c_str());
 
