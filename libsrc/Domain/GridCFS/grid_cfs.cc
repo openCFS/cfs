@@ -227,7 +227,8 @@ namespace CoupledField
 
     StdVector<std::string> planeNames;
     planeNames.Resize(3);
- 
+    planeNames.Init();
+    
     keyVec = "domain" , "directivityNodes" , "planes" , "xyName";
     params->Get( keyVec, attrVec, valVec, planeNames[0]);
     
@@ -343,6 +344,12 @@ namespace CoupledField
             namedNodeNames_.Push_back( planeNames[actPlane]);
             namedNodes_.Push_back( StdVector<UInt>() );
             Info->PrintF("", "Saved directivity nodes on plane: %s\n", planeNames[actPlane].c_str()); 
+            Info->PrintF("", "Angle list: \nangles = [");  
+            for (UInt i=0; i<numDiv[actPlane] ; i++)
+              {
+                Info->PrintF( "", " %.1f;", angleList[actPlane][i] );
+              }
+            Info->PrintF( "", "]\n" );
             
             if (actPlane==0)//XY
               {
@@ -371,7 +378,7 @@ namespace CoupledField
                 Matrix<Double> save_point;
                 save_point.Resize(numDiv[actPlane],dim_);
                 std::string nodename; 
-                Info->PrintF("", "Radius R= %f\n[", radiiVec[actRadIndex]);  
+                Info->PrintF("", "Radius R= %.4f\nnodes = [", radiiVec[actRadIndex]);  
 
                 for (UInt i=0; i<numDiv[actPlane] ; i++)
                   {
