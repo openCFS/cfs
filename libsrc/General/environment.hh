@@ -154,9 +154,15 @@ namespace CoupledField {
   //! - WED
   typedef enum {NOFETYPE, LINE, TRIA, QUAD, TET, HEX, PYR, WED} FEType;
 
-  //! enumeration with integration types. it is used in Elements classes
-  enum IntegrationType {GaussOrder1, GaussOrder2, GaussOrder3, GaussOrder4,
-                        GaussOrder5, GaussOrder7, null};
+  /** enumeration with integration types - to be renamed into IntegrationType
+   * ECONOMICAL are the "efficient" gaussian quadrature weights
+   *            (->Solin, Segeth, Dolezel, Higher-Order Finite Element Methods) -> see also Elements/BaseFE 
+   * CLASSICAL either the "original" implementation before ECONOMICAL refactoring or fixed product rule (wedge)
+   * EXPERIMENTAL is only for developer/debugging use -> one does not need to modify "real" data
+   * CARTESIAN is only for developer/debugging -> x1 =0-9, x2 = 1x-9x, x3 = 1xx-9xx
+   * UNDEFINED only internal use!
+   * LOBATTO and CHEBYSHEV are special line intgration methods (->Solin, Segeth, Dolezel, Higher-Order Finite Element Methods)*/
+  enum IntegrationMethod {ECONOMICAL, CLASSICAL, LOBATTO, CHEBYSHEV, EXPERIMENTAL, CARTESIAN, UNDEFINED}; 
 
   //! Damping type
   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,
@@ -381,7 +387,7 @@ namespace CoupledField {
   //! conversion from enum types to strings
   template<class TYPE>
   void Enum2String(const TYPE &in, std::string &out);
-
+ 
   // Instantiation for all known enum types;
 #if defined (__GNUC__)
 #define DEFINE_ENUM_CONVERSION(TYPE)                                  \
@@ -400,6 +406,7 @@ namespace CoupledField {
   DEFINE_ENUM_CONVERSION(EntryType::ScalarType)
   DEFINE_ENUM_CONVERSION(DataType)
   DEFINE_ENUM_CONVERSION(MaterialClass)
+  DEFINE_ENUM_CONVERSION(IntegrationMethod)
 #endif
 
 #ifdef INTEGLIB

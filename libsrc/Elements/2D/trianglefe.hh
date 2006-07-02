@@ -43,13 +43,12 @@ namespace CoupledField
                                    const StdVector<UInt> & volConnect,
                                    const Vector<Double> & surfIntPoint,
                                    Vector<Double> & volIntPoint);
-  protected:
-
-    //! Set integration points
-    virtual void SetIntPoints();
-
-
-  
+ 
+ protected:
+    /** the childs fill here the integration points map via AddIntegrationPoints() */    
+    virtual void FillIntegrationPoints();
+ 
+ 
   };
 
 } // end of namespace

@@ -42,6 +42,7 @@ namespace CoupledField {
     // If the material parameters are constant within the element
     // we can compute the D matrix once and for all
     if ( updateDMatInEveryIP_ == false ) {
+
       calcDMat( dMat );
     }
 
@@ -50,7 +51,7 @@ namespace CoupledField {
 
       // Check if D matrix must be re-determined for
       // the current integration point
-      if ( updateDMatInEveryIP_ == true ) {
+      if ( updateDMatInEveryIP_ == true )
         calcDMat( dMat, actIntPt, ptCoord );
       }
 
@@ -129,13 +130,26 @@ namespace CoupledField {
     //  Material matrix independent of integration point
     // **************************************************
     if ( updateDMatInEveryIP_ == false ) {
+      
 
-
-      // Setup material matrix once and for all
-      calcDMat( dMat );
-
+      // // Check if material has to be rotated
+      if( ptMaterial->GetCoordSys() == NULL ) {
+        calcDMat( dMat );
+      }
       // Loop over all integration points
       for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
+
+        // Check if material has to be rotated for each integration point
+        if( ptMaterial->GetCoordSys() != NULL ) {
+          // Get global coordinates
+          Vector<Double> * intPoints = ptelem->GetIntPoints();
+          Vector<Double> globIntPoint;
+          
+          ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1], ptCoord_);
+          ptMaterial->RotateTensorByPointCoord( globIntPoint,MECH_STIFFNESS_TENSOR );
+          calcDMat( dMat );
+        }
+        
 
         // Setup the B matrix for current integration point
         calcBMat( bMat, actIntPt, ptCoord_ );

@@ -39,46 +39,7 @@ namespace CoupledField
 
   }
 
-
-
-
   
-  void Grid::SetIntTypeAllElems(IntegrationType aIntType)
-  {
-    ENTER_FCN( "Grid::SetIntTypeAllElems" );
-
-
-    ptQ1    -> SetIntegrationType(aIntType);
-    ptQ2    -> SetIntegrationType(aIntType);
-    ptTet1  -> SetIntegrationType(aIntType);
-    ptTet2  -> SetIntegrationType(aIntType);
-    ptL1    -> SetIntegrationType(aIntType);
-    ptL2    -> SetIntegrationType(aIntType);
-    ptTr1   -> SetIntegrationType(aIntType);
-    ptTr2   -> SetIntegrationType(aIntType);
-    ptHexa1 -> SetIntegrationType(aIntType);
-    ptHexa2 -> SetIntegrationType(aIntType);
-    ptPyra1 -> SetIntegrationType(aIntType);
-    ptPyra2 -> SetIntegrationType(aIntType);
-    ptWedge1-> SetIntegrationType(aIntType);
-    ptWedge2-> SetIntegrationType(aIntType);
-
-    ptQ1    ->Init();
-    ptQ2    ->Init();
-    ptTet1  ->Init();
-    ptTet2  ->Init();
-    ptL1    ->Init();
-    ptL2    ->Init();
-    ptTr1   -> Init();
-    ptTr2   -> Init();
-    ptHexa1 -> Init();
-    ptHexa2 -> Init();
-    ptPyra1 -> Init();
-    ptPyra2 -> Init();
-    ptWedge1-> Init();
-    ptWedge2-> Init();
-  }
-
 
   Grid::~Grid()
   {

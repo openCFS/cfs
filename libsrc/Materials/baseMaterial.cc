@@ -7,6 +7,7 @@
 #include <string>
 #include "Utils/StdVector.hh"
 #include "Matrix/matrix.hh"
+#include "Utils/coordSystem.hh"
 
 #include "baseMaterial.hh"
 
@@ -25,11 +26,9 @@ namespace CoupledField
     materialDatabaseName_ = "";
     matFileName_ = "";
     nonlinFileName_ = "";
-    isScalar    = false;
-    isIsotrop   = false;
-    isOrthotrop = false;
-    isTensor    = false;
 
+    coosy_      = NULL;
+    symmetryType_ = GENERAL;
   }
 
 
@@ -237,16 +236,20 @@ namespace CoupledField
   }  
 
 
-  void BaseMaterial::RotateTensorByRotationAngles( StdVector<Double>& rotAngle, 
+  void BaseMaterial::RotateTensorByRotationAngles( Vector<Double>& rotAngle, 
 						   const MaterialType& matType) {
 
     ENTER_FCN( "BaseMaterial::RotateTensorByRotationAngles" );
 
+    std::cerr << *this;
+
     tensorMap::const_iterator pos;
-    pos = tensorParams_.find( matType );
+    pos = this->tensorParams_.find( matType );
+
+    std::cerr << "size of tensorParams_:" << tensorParams_.size() << std::endl;
 
     tensorMap::const_iterator posOrig;
-    posOrig = tensorParamsOrig_.find( matType );
+    posOrig = this->tensorParamsOrig_.find( matType );
 
     if ( pos == tensorParams_.end() ) {
       std::string dim = "tensor";
@@ -260,15 +263,17 @@ namespace CoupledField
 
       Matrix<Complex> matTensor;
       matTensor = pos->second;
+      Matrix<Complex> const & matTensorOrig = posOrig->second;
 
-      Matrix<Complex> matTensorOrig;
-      matTensorOrig = posOrig->second;
-
+      std::cerr << "matTensorOrig = \n" << posOrig->first << std::endl;
+      std::cerr << "matTensor = \n" << matTensor << std::endl;
+      
       // transfer to radiant
       for ( UInt i=0; i<rotAngle.GetSize(); i++ ) {
 	rotAngle[i] *= PI / 180.0;
       }
-
+      std::cerr << "rotAngles in rad are: \n" 
+                << rotAngle << std::endl;
       // limit for angles used in special cases
       Double eps = 1e-6;
 
@@ -277,8 +282,10 @@ namespace CoupledField
       R.Resize(3,3);  
 
       Matrix<Complex> helpTensor = matTensorOrig;
+      std::cerr << "helpTensor =\n" << helpTensor;
 
       if ( abs(rotAngle[0]) > eps ) {
+        std::cerr << "Rotating by 1st component\n";
 	// rotate around x-axis
 	R.Init(Complex(0.0,0.0));
 	R[0][0] =  Complex( 1.0, 0.0);
@@ -293,6 +300,7 @@ namespace CoupledField
 
 
       if ( abs(rotAngle[1]) > eps ) {
+        std::cerr << "Rotating by 2nd component\n";
 	// rotate around y-axis
 	R.Init(Complex(0.0,0.0));
 	R[0][0] =  Complex( std::cos(rotAngle[1]), 0.0 );
@@ -306,6 +314,7 @@ namespace CoupledField
       }
 
       if ( abs(rotAngle[2]) > eps ) {
+        std::cerr << "Rotating by 3d component\n";
 	// rotate around z-axis
 	R.Init(Complex(0.0,0.0));
 	R[0][0] =  Complex( std::cos(rotAngle[2]), 0.0 );
@@ -316,16 +325,39 @@ namespace CoupledField
 
 	PerformRotation(R, matTensor, helpTensor);  
       }
-
+      std::cerr << "original material:\n" << matTensorOrig << std::endl;
+      std::cerr << "rotated material:\n" << matTensor << std::endl;
+    
+      // save rotated matrix back
+      tensorParams_[matType] = matTensor;
     }
+    
+  }
+
+  void BaseMaterial::RotateTensorByPointCoord( Vector<Double> coord,
+                                               const MaterialType& matType ) {
+
+    ENTER_FCN( "BaseMaterial:: RotateTensorByPointCoord" );
+
+    // Determine rotation angles from attached coordinate system
+    Vector<Double> angles;
+    coosy_->GetGlobRotationAngles( angles, coord );
+
+    std::cerr << "angles for point \n" << coord << " are \n" << angles << "\n\n";
+
+    // Calculate rotation
+    RotateTensorByRotationAngles( angles, matType );
+
   }
 
 
   void BaseMaterial::PerformRotation( Matrix<Complex>& R,  Matrix<Complex>& matTensor,
-				      Matrix<Complex>& matTensorOrig) {
+				      const Matrix<Complex>& matTensorOrig) {
 
     ENTER_FCN( "BaseMaterial::PerformRotation" );
 
+
+    std::cerr << "Rotation matrix is \n" << R << std::endl;
       // get memory for transposed rotation matrix
       Matrix<Complex> RT;
       RT.Resize(3,3);
@@ -335,9 +367,13 @@ namespace CoupledField
       UInt rowSize = matTensorOrig.GetSizeRow();
       UInt colSize = matTensorOrig.GetSizeCol();
 
+      std::cerr << "rowSize = " << rowSize << std::endl;
+      std::cerr << "colwSize = " << colSize << std::endl;
+      std::cerr << "R = \n" << R << std::endl;
       Matrix<Complex> helpMat;
 
       if ( rowSize == 3 && colSize == 3) {
+        std::cerr << "Rotating a 3x3 Tensor\n";
 	// tensor is a 3x3 matrix: sol = R * matrixOrig * RT
 	helpMat   = matTensorOrig * RT;
 	matTensor = R * helpMat;
@@ -350,45 +386,46 @@ namespace CoupledField
 	Q[0][0] = R[0][0]*R[0][0];
 	Q[0][1] = R[0][1]*R[0][1];
 	Q[0][2] = R[0][2]*R[0][2];
-	Q[0][3] = R[0][1]*R[0][2];
-	Q[0][4] = R[0][0]*R[0][2];
-	Q[0][5] = R[0][0]*R[0][1];
+	Q[0][3] = 2.0*R[0][1]*R[0][2];
+	Q[0][4] = 2.0*R[0][0]*R[0][2];
+	Q[0][5] = 2.0*R[0][0]*R[0][1];
 
 	Q[1][0] = R[1][0]*R[1][0];
 	Q[1][1] = R[1][1]*R[1][1];
 	Q[1][2] = R[1][2]*R[1][2];
-	Q[1][3] = R[1][1]*R[1][2];
-	Q[1][4] = R[1][0]*R[1][2];
-	Q[1][5] = R[1][0]*R[1][1];
+	Q[1][3] = 2.0*R[1][1]*R[1][2];
+	Q[1][4] = 2.0*R[1][0]*R[1][2];
+	Q[1][5] = 2.0*R[1][0]*R[1][1];
 
 	Q[2][0] = R[2][0]*R[2][0];
 	Q[2][1] = R[2][1]*R[2][1];
 	Q[2][2] = R[2][2]*R[2][2];
-	Q[2][3] = R[2][1]*R[2][2];
-	Q[2][4] = R[2][0]*R[2][2];
-	Q[2][5] = R[2][0]*R[2][1];
+	Q[2][3] = 2.0*R[2][1]*R[2][2];
+	Q[2][4] = 2.0*R[2][0]*R[2][2];
+	Q[2][5] = 2.0*R[2][0]*R[2][1];
 
-	Q[3][0] = 2.0*R[1][0]*R[2][0];
-	Q[3][1] = 2.0*R[1][1]*R[2][1];
-	Q[3][2] = 2.0*R[1][2]*R[2][2];
+	Q[3][0] = R[1][0]*R[2][0];
+	Q[3][1] = R[1][1]*R[2][1];
+	Q[3][2] = R[1][2]*R[2][2];
 	Q[3][3] = R[1][1]*R[2][2] + R[1][2]*R[2][1];
 	Q[3][4] = R[1][0]*R[2][2] + R[1][2]*R[2][0];
 	Q[3][5] = R[1][0]*R[2][1] + R[1][1]*R[2][0];
 
-	Q[4][0] = 2.0*R[0][0]*R[2][0];
-	Q[4][1] = 2.0*R[0][1]*R[2][1];
-	Q[4][2] = 2.0*R[0][2]*R[2][2];
+	Q[4][0] = R[0][0]*R[2][0];
+	Q[4][1] = R[0][1]*R[2][1];
+	Q[4][2] = R[0][2]*R[2][2];
 	Q[4][3] = R[0][1]*R[2][2] + R[0][2]*R[2][1];
 	Q[4][4] = R[0][0]*R[2][2] + R[0][2]*R[2][0];
 	Q[4][5] = R[0][0]*R[2][1] + R[0][1]*R[2][0];
 
-	Q[5][0] = 2.0*R[0][0]*R[1][0];
-	Q[5][1] = 2.0*R[0][1]*R[1][1];
-	Q[5][2] = 2.0*R[0][2]*R[1][2];
+	Q[5][0] = R[0][0]*R[1][0];
+	Q[5][1] = R[0][1]*R[1][1];
+	Q[5][2] = R[0][2]*R[1][2];
 	Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1];
 	Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
 	Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
 
+        std::cerr << "Q = \n" << Q << std::endl;
 
 // 	std::cout << "R:\n" << R << std::endl;
 // 	std::cout << "Q:\n" << Q << std::endl;
@@ -397,14 +434,18 @@ namespace CoupledField
 	Matrix<Complex> QT;
 	QT.Resize(6,6);
 	Q.Transpose(QT);
+        std::cerr << "Q^T = \n" << QT << std::endl;
 
 	if ( rowSize == 3 && colSize == 6 ) {
 	  helpMat   = matTensorOrig * QT;
 	  matTensor = R * helpMat;
 	}
 	else if (rowSize == 6 && colSize == 6 ) {
+          std::cerr << "Rotating a 6x6 Tensor\n";
 	  helpMat   = matTensorOrig * QT;
+          std::cerr << "helpMat = \n" << helpMat << std::endl;
 	  matTensor = Q * helpMat;
+          std::cerr << "matTensor = \n" << matTensor;
 	}
 	else {
 	  Error("Cannot rotate tensor due to dimensions!",__FILE__,__LINE__);

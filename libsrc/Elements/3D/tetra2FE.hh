@@ -83,6 +83,21 @@ protected:
 					  const Vector<Double> & lCoord,
 					  const Matrix<Double> & CornerCoords);
 
+    /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    void SetDefaultIntegration()
+    {
+        IntegMethod = ECONOMICAL;
+        IntegOrder  = 2;
+    }
+
+    /** Sets the default reduced integration  */ 
+    void SetDefaultReducedIntegration()
+    {
+        IntegMethod = ECONOMICAL;
+        IntegOrder  = 2;
+    }
+
+
 protected:
   /// defines the connected nodes with every edge 
   void SetEdgeVertices();   

@@ -28,9 +28,22 @@ namespace CoupledField
 
   protected:
 
-    //! Set integration points
-    virtual void SetIntPoints();
+    virtual void FillIntegrationPoints();
+    
+    /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    void SetDefaultIntegration()
+    {
+        IntegMethod = CLASSICAL;
+        IntegOrder  = 2;
+    }    
 
+    /** Sets the default reduced integration But we don't have more elements! */ 
+    void SetDefaultReducedIntegration()
+    {
+        IntegMethod = CLASSICAL;
+        IntegOrder  = 2;
+    }    
+    
   };
 
 }

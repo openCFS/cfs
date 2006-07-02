@@ -45,6 +45,20 @@ namespace CoupledField
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                         const Vector<Double> & LCoord);
 
+    /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    void SetDefaultIntegration()
+    {
+        IntegMethod = ECONOMICAL;
+        IntegOrder  = 3; // 2+3 are same -> avoid msg
+    }
+
+    /** Sets the default reduced integration */ 
+    void SetDefaultReducedIntegration()
+    {
+        IntegMethod = ECONOMICAL;
+        IntegOrder  = 1; 
+    }
+
 
   private:
   };

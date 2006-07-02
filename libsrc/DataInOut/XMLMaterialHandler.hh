@@ -8,7 +8,7 @@ namespace CoupledField {
   // forward class declaration
   class XMLParamHandler;
 
-   //! Class for reading materials fron xml-file
+  //! Class for reading materials fron xml-file
   class XMLMaterialHandler : public MaterialHandler {
   
   public:
@@ -46,26 +46,11 @@ namespace CoupledField {
     void ReadMechanic(BaseMaterial *material,
                       const std::string matName);
 
-    //! computes the 6x6 stiffness tensor of a isotropic
-    //! mechanical material based on E-Modul and Poisson number.
-    //! \param EModul isotropic elasticity modulus
-    //! \param PoissonNumber isotropic Poisson number
-    //! \param elasticityTensor isotropic stiffness tensor, which will be computed
-    void ComputeIsoMechStiffnesTensor(Double EModul, 
-                                      Double PoissonNumber,
-                                      Matrix<Double>& elasticityTensor);
-
-    //! computes the 6x6 stiffness tensor of a orthotropic
-    //! mechanical material based on E-Moduli, Poisson numbers and shear moduli.
-    void ComputeOrthoMechStiffnesTensor(Double EX, Double EY, Double EZ, 
-                                        Double nuXY, Double nuYZ, Double nuXZ,
-                                        Double GYZ, Double GZX, Double GXY,
-                                        Matrix<Double>& elasticityTensor);
     //! Reads acoustic material.
     //! \param material Material object to be filled with data
     //! \param matName Name of the material to be read
     void ReadAcoustic(BaseMaterial *material,
-                           const std::string matName);
+                      const std::string matName);
 
     //! Reads electric material.
     //! \param material Material object to be filled with data
@@ -83,13 +68,13 @@ namespace CoupledField {
     //! \param material Material object to be filled with data
     //! \param matName Name of the material to be read
     void ReadThermic(BaseMaterial *material,
-                      const std::string matName);
+                     const std::string matName);
 
     //! Reads flow material.
     //! \param material Material object to be filled with data
     //! \param matName Name of the material to be read
     void ReadFlow(BaseMaterial *material,
-                      const std::string matName);
+                  const std::string matName);
 
   };
   

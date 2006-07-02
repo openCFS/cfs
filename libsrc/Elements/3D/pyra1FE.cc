@@ -24,18 +24,10 @@ namespace CoupledField
   {
     ENTER_IFCN( "Pyra1FE::Init" );
   
-    Dim_ = 3;
     NumNodes_ = 5;
     NumEdges_ = 8;
 
-    // first set integration points and corner coords ...
-    SetIntPoints();
-    SetCornerCoords();
-
-    // ... then calc shape function values at integration points
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();
-    // SetEdgeVertices();
+    CommonInit();
   }
 
 
@@ -110,10 +102,10 @@ namespace CoupledField
       }
 
 
-
-
     if (Shape[4] < 0)
-      Error("Local coordinates are not inside pyramidal element!",__FILE__,__LINE__);
+      std::cerr << "There would be 'Local coordinates are not inside pyramidal element!' in Pyra1FE :: CalcShapeFnc() ?? - Fabian\n";
+      // Killme - check this!! Fabian 14.06.06
+      // Error("Local coordinates are not inside pyramidal element!",__FILE__,__LINE__);
 
   }
 

@@ -7,11 +7,11 @@ namespace CoupledField
 {
 
 
-  Line1FE :: Line1FE() : LineFE()
+  Line1FE :: Line1FE(IntegrationMethod method, int order) : LineFE()
   {
     ENTER_FCN( "Line1FE::Line1FE" );
 
-    Init();
+    Init(method, order);
   }
   
   Line1FE :: ~Line1FE()
@@ -19,15 +19,12 @@ namespace CoupledField
     ENTER_FCN( "Line1FE::~Line1FE" );
   }
 
-  void Line1FE :: Init()
+  void Line1FE :: Init(IntegrationMethod method, int order)
   {
     ENTER_IFCN( "Line1FE::Init" );
-
     NumNodes_ = 2;
-    SetIntPoints();
-    SetCornerCoords();
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();  
+
+    CommonInit(method, order);
   }
 
   void Line1FE :: SetCornerCoords()

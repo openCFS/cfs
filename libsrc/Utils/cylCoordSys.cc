@@ -55,7 +55,7 @@ namespace CoupledField{
 
     if ( loc.GetSize() != 3 ) {
       (*error) << "CylCoordSystem::Local2GlobalCoord: Coordinate system only "
-               << "defined for 3-dimensionl coordinates!";
+               << "defined for 3-dimensional coordinates!";
       Error( __FILE__, __LINE__ );
     }
     
@@ -77,7 +77,7 @@ namespace CoupledField{
     Vector<Double> temp(3);
     if ( glob.GetSize() != 3 ) {
       (*error) << "CylCoordSystem::Local2GlobalCoord: Coordinate system only "
-               << "defined for 3-dimensionl coordinates!";
+               << "defined for 3-dimensional coordinates!";
       Error( __FILE__, __LINE__ );
     }
 
@@ -87,10 +87,25 @@ namespace CoupledField{
     // transform local cartesian nodes to cylindrical ones
     loc.Resize(3);
     loc[0] = std::sqrt(temp[0] * temp[0] + temp[1] * temp[1]);
-    loc[1] = std::atan2(temp[1],temp[0]);
+    loc[1] = std::atan2(temp[1],temp[0])/PI*180;
     loc[2] = temp[2];
                         
   }
+
+  void  CylCoordSystem::
+  GetGlobRotationAngles( Vector<Double> & angles,
+                         const Vector<Double>& point ) const {
+    ENTER_FCN( "CylCoordSystem::GetGlobRotationAngles" );
+    Vector<Double> loc;
+    Global2LocalCoord( loc, point );
+
+    // Note: currently we simply return the 'phi' part, as this 
+    // is the only changing one.
+    angles.Resize(3);
+    angles.Init();
+    angles[2] = loc[1];
+  }
+
   
   void CylCoordSystem::
   Local2GlobalVector( Vector<Double> & globVec, 
@@ -175,7 +190,7 @@ namespace CoupledField{
     //    (ref. Bronstein: Taschenbuch der Mathematik, p. 217f)
     // Note: in order to avoid dividing by zero, an additional check
     //       is performed, if the x/y/z-component is in the order of
-    //       machine precission.
+    //       machine precision.
 
     rotationMat_.Resize(3,3);
     rotationMat_[0][0] = (std::abs(x[0]) < EPS ) ? 0.0 : (x[0]);
@@ -190,7 +205,7 @@ namespace CoupledField{
     rotationMat_[2][1] = (std::abs(z[1]) < EPS ) ? 0.0 : (z[1]);
     rotationMat_[2][2] = (std::abs(z[2]) < EPS ) ? 0.0 : (z[2]);
 
-    // 3) Calculate transposed invers rotation matrix, which defines 
+    // 3) Calculate transposed inverse rotation matrix, which defines 
     //    mapping from  local to global cartesian coordinate system
     Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);

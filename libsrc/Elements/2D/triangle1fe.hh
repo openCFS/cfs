@@ -12,8 +12,11 @@ namespace CoupledField
   {
   public:
 
-    //! Constructor with type of integration rule
-    Triangle1FE();
+    /** Constructor with optional integraption paramters
+     * used only to construct higher order wedge elements
+     * @param method leave blank as normal user! Then the default or XML stuff is loaded
+     * @param oder see method */
+    Triangle1FE(IntegrationMethod method = UNDEFINED, int order=0);
   
     //! Destructor
     virtual ~Triangle1FE();
@@ -22,7 +25,7 @@ namespace CoupledField
   protected:
 
     //! Initialize Trianglerilateral element
-    virtual void Init();
+    virtual void Init(IntegrationMethod method, int order);
 
     //! Set local corner coordinates
     virtual void SetCornerCoords();
@@ -48,6 +51,21 @@ namespace CoupledField
     */
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                         const Vector<Double> & LCoord);
+
+    /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    void SetDefaultIntegration()
+    {
+        IntegMethod = ECONOMICAL;
+        IntegOrder  = 2;
+    }
+
+    /** Sets the default reduced integration  */ 
+    void SetDefaultReducedIntegration()
+    {
+        IntegMethod = ECONOMICAL;
+        IntegOrder  = 1;
+    }
+
 
   private:
   };

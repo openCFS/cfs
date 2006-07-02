@@ -16,14 +16,10 @@
   <!-- ******************************************************************** -->
   <xsd:simpleType name="DT_IntegType">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="GaussOrder1"/>
-      <xsd:enumeration value="GaussOrder2"/>
-      <xsd:enumeration value="GaussOrder3"/>
-      <xsd:enumeration value="GaussOrder4"/>
-      <xsd:enumeration value="GaussOrder5"/>
-      <xsd:enumeration value="GaussOrder6"/>
-      <xsd:enumeration value="GaussOrder7"/>
-    </xsd:restriction>
+      <xsd:enumeration value="Gauss_standard"/>
+      <xsd:enumeration value="Classic"/>
+      <xsd:enumeration value="GaussOrder2"/> 
+   </xsd:restriction>
   </xsd:simpleType>
 
 
@@ -45,6 +41,8 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_IntegRules">
     <xsd:sequence>
+      <xsd:element name="type" type="xsd:token" minOccurs ="0"/>
+      <xsd:element name="order" type="xsd:positiveInteger" minOccurs ="0"/>
       <xsd:element name="line"      type="DT_IntegElemRule" minOccurs="0" />
       <xsd:element name="rectangle" type="DT_IntegElemRule" minOccurs="0" />
       <xsd:element name="triangle"  type="DT_IntegElemRule" minOccurs="0" />

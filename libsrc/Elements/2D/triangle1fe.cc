@@ -6,11 +6,11 @@
 namespace CoupledField
 {
 
-  Triangle1FE :: Triangle1FE() : TriangleFE()
+  Triangle1FE :: Triangle1FE(IntegrationMethod method, int order) : TriangleFE()
   {
     ENTER_FCN( "Triangle1FE::Triangle1FE" );
 
-    Init();
+    Init(method, order);
   }
   
   Triangle1FE :: ~Triangle1FE()
@@ -18,16 +18,12 @@ namespace CoupledField
     ENTER_FCN( "Triangle1FE::~Triangle1FE" );
   }
 
-  void Triangle1FE :: Init()
+  void Triangle1FE :: Init(IntegrationMethod method, int order)
   {
     ENTER_FCN( "Triangle1FE::Init" );
-
     NumNodes_ = 3;
-    SetIntPoints();
-    SetCornerCoords();
-    SetEdgeIndices();
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();  
+
+    CommonInit(method, order);
   }
 
   void Triangle1FE :: SetCornerCoords()

@@ -6,7 +6,7 @@
 namespace CoupledField
 {
 
-  //! Class with general description of tetrahedral element
+  //! Class with general description of a tetrahedron (Volume is 1/6)
 
   //! This class is derived from BaseFE. It stores general procedures for each
   //! type of finite element based on <em>tetrahedra</em>, such as information
@@ -48,12 +48,9 @@ namespace CoupledField
                               Vector<Double> & volIntPoint);
 
   protected:
-
-    //! Set integration points
-    virtual void SetIntPoints();
-
-    /// Corrects the integration weights due to volume unequal 1
-    virtual void CorrectIntWeights();  
+  
+    /** the childs fill here the integration points map via AddIntegrationPoints() */    
+    virtual void FillIntegrationPoints();
 
   };
 

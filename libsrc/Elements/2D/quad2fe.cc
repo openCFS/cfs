@@ -22,12 +22,9 @@ namespace CoupledField
   void Quad2FE :: Init()
   {
     ENTER_IFCN( "Quad2FE::Init" );
-
     NumNodes_ = 8;
-    SetIntPoints();
-    SetCornerCoords();
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();  
+
+    CommonInit();   
   }
   // Should be called SetNodalCoords!!
   void Quad2FE :: SetCornerCoords()

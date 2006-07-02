@@ -31,9 +31,8 @@ namespace CoupledField
 
   protected:
 
-
-    //! Set integration points
-    virtual void SetIntPoints();
+   /** the childs fill here the integration points map via AddIntegrationPoints() */    
+    virtual void FillIntegrationPoints();
   
     //! Set value of shape fnc at integration points
     virtual void SetShapeFncAtIp();

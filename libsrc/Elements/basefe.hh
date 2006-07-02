@@ -5,10 +5,10 @@
 #include "General/environment.hh"
 #include "Utils/vector.hh"
 #include "Utils/StdVector.hh"
+#include <map>
 
 namespace CoupledField
 {
-
   // Forward class declaration
   class BaseSystem;
 
@@ -400,20 +400,28 @@ namespace CoupledField
                                            const Matrix<Double> & cornerCoords);
   
 
-    //! Set integration type (GaussOrder1, GaussOrder2, ...)
-    virtual void SetIntegrationType(const IntegrationType aIntType)
-    {IntegType = aIntType;};
-  
+    /** sets the element to default reduced integration mode
+     * See the comment of SetStandardIntegration */
+    void SetReducedIntegration()
+    {
+       ENTER_FCN( "BaseFE:SetReducedIntegration():" );
+       SetDefaultReducedIntegration();
+       SetIntPoints();
+    }   
+
+    /** sets the element to standard integration 
+     * It would be smarter to save the old value in SetReducedIntegration()
+     * and do a switch back here! */
+    void SetStandardIntegration()
+    {
+       ENTER_FCN( "BaseFE:SetStandardIntegration():" );
+       SetDefaultIntegration();
+       SetIntPoints();
+    }   
     
-    //! Get integration type (GaussOrder1, GaussOrder2, ...)
-    virtual IntegrationType GetIntType() {return IntegType;};
 
-
-    //! sets the element to reduced integration (cuurently: GaussOrder1)
-    void SetReducedIntegration();
-
-    //! sets the element to standard integration (cuurently: GaussOrder2)
-    void SetStandardIntegration();
+    //! a public helper method that dumps the current content of the map
+    void DumpIntegrationPointsMap();
 
   protected:
     //! Define variables of this class
@@ -451,13 +459,72 @@ namespace CoupledField
     //! Set value of shape fnc derivatives at integration points
     virtual void SetShapeFncDerivAtIp();
 
-    //! Set integration points
-    virtual void SetIntPoints() {
-      Error( "Not implemented in baseFE!", __FILE__, __LINE__ );
-    };
+    //! Set local corner coordinates
+    virtual void SetCornerCoords() = 0;
+
+    /** returns the shape name as used for integration type in the XML file based on
+     * the abstract feType() */
+    const char* GetShapeName(); 
+
+    /** the childs fill here the integration points map via AddIntegrationPoints() */    
+    virtual void FillIntegrationPoints() = 0;
+
+    /** Every Element has to set the preferred default integration mode */
+    virtual void SetDefaultIntegration() = 0;
+
+    /** Every Element has also a default reduced integration set -> see the tex documentation for details */
+    virtual void SetDefaultReducedIntegration() = 0;
+
+
+
+    /** The child classes add here their integration point data to the elements map. Called in the constructors.
+     * Too avoid errors, any key (type+order) must be unique, otherwise exit!
+     * @param type e.g. ECONOMICAL
+     * @param order the polynomial order
+     * @param numberOfRows the first dimension of data
+     * @param data actually [][2] for 1D (coord + weight) and [][3] for 2D and  [][4] for 3D */
+    void AddIntegrationPoints(IntegrationMethod type, int order, int numberOfRows, Double* data);
+     
 
     //! Helper function for printing a coordinate matrix in a string
     std::string CoordMatrix2String(const Matrix<Double> & coordMat);
+
+    /** This is the common Init/Constructor for all element classes! 
+     *  It calls the (virtual) inititialization methods.
+     *  To be called AFTER all individual attributes (Dim_, ...) are set! 
+     *  The parametes are only used in cartesian integration points mode, leave blank as normal user.
+     * BaseFE::CommonInit() sets BaseFE::IntegMethod and BaseFE::IntegOrder via the 
+     * XML file (see above) or from the virtual SetDefaultIntegration(). These two 
+     * attributes should always represent the current setting (NumIntPoints_, 
+     * IntPoints_ and IntWeights_) - even when a GetIntegrationPoints() choosed 
+     * alternative values.
+     * @param method only for LineFE in cartesian usage - leave to default in any other case
+     * @param order same as for parameter method applies. */
+    void CommonInit(IntegrationMethod method, int order);  
+
+    void CommonInit()
+    {
+        CommonInit(UNDEFINED, 0);
+    }  
+
+    
+    /** Creates the integration points by cartesian product of 1D for rectangle and cube.
+     * The creation is quite expensive, but the results are cached in THIS element!
+     * For rectangle, hexaeder (cube) and wedge practically arbitrary high integration orders
+     * can be constructed via the cartesian product rule. For the hexaeder the ECONOMICAL
+     * ones are much more efficient! For anisotropic elements, RectangeFE::SetCartesianIntegration()
+     * and HexaFE::SetCartesianIntegration() creates the elements and stores them in
+     * the map or simple loads it from the map. The internal method type is CARTESIAN and 
+     * the order is zyx where z is the order of the coordinate x3 with z in [1;9], ...
+     * This can also be set for testing in the XML file, always set for three coordinates (order > 111).
+     * 
+     * When debugging or altering code be carefull, the calling sequence of
+     * SetCartesianIntegration() is not really straight forward. :(
+     * 
+     * @param order3 if smaller 1 this dimension is omitted (rectangle)
+     * @param create_only false or leave to default for any user, true only for internal purpose (recursive call) */
+    void SetCartesianInteg(int order1, int order2, int order3, bool create_only);
+
 
 
     UInt Dim_;                    //!< space dimension
@@ -466,7 +533,6 @@ namespace CoupledField
     UInt NumFaces_;               //!< number of faces
     UInt NumCorners_;             //!< number of corners
     UInt NumIntPoints_;           //!< number of integration points
-    UInt DegreeInteg_;            //!< numerical integration order
     Vector<Double> MidPoint_;         //!< coordinate of midpoint (for 1. order integration)
     Matrix<Double> LCornerCoords_;    //!< Matrix of local corner coordinates (x:number, y:Dim)
     Vector<Double> * ShFncAtIp_;      //!< Array of vectors of function values at IPs (x:local Dim, y:Number)
@@ -475,18 +541,19 @@ namespace CoupledField
     Vector<Double> IntWeights_;       //!< integration weights
     UInt numChilds_;               //!< number of children for element in refinement
 
+    //! AddIntegrationPoints stores here all availabe integrations
+    std::map<const std::string, StdVector<Double*>*> IntegrationPointsMap_; 
+
     //! Vectors with node indices of each edge
     StdVector<UInt> * edgeIndices_;
 
     //! Vectors with node indices of each surface
     StdVector<UInt> * surfIndices_;
 
-    enum IntegrationType IntegType;
+    enum IntegrationMethod IntegMethod; //! set in XML and SetStandard/ReducedIntegration
+
+    UInt IntegOrder;                    //! accompanies IntegMethod 
   
-    //! Converts the string used for the integration type to an integer
-    enum IntegrationType String2EnumIntegrationType(const Char * inttype);
-
-
     /// Matrix with connected nodes to the proper edge
     /*!
       \f[ \left( \begin{array}{c} E_1 \\ E_2 \\ \cdots \end{array} \right) = 
@@ -496,6 +563,49 @@ namespace CoupledField
       \end{array} \right) \f]
     */
     Matrix<UInt> edgeVertices_; 
+    
+    private: 
+    /** Helper method that generates the key for the map */
+    void MakeKey(IntegrationMethod type, int order, std::string &out);
+    
+    /** generate a key for a cartesian integration
+     * @param line3 optional, use < 1 for 2D */
+    void MakeKey(int order1, int order2, int order3, std::string &out);
+
+    /** Helper function for SetIntPoints. Makes a comfortable search and searches for default when fallback is true
+     * @param fallback caller do true, false for internal recursive search
+     * @return when fallback is true not null but exit with message */
+    StdVector<Double*>* GetIntegrationPoints(IntegrationMethod type, int order, bool search_upwards, bool search_downwards, bool fallback);
+    
+    /** Creates the integration points via cartesian product for 2D and 3D elements. The result is stored in the map.
+      *  @param element1 IntegMethod and IntegOrder shall be set
+      *  @param element2 IntegMethod and IntegOrder shall be set
+      *  @param element3 the only optional element */
+    void CreateCartesianIntegration(BaseFE* line1, BaseFE* line2, BaseFE* line3);
+    
+   
+    /** Private Helper Method that dumps the currently set integration points */
+    void DumpIntegrationPoints();    
+
+    /** Sets the integration points for the data filled by the virtual FillIntegrationPoints.
+     * This mehtod reads the data from the map with the help of the dimension */
+    void SetIntPoints();
+
+    /** encodes the orders of the cartesian product 
+     * @param order3 is ignored if < 1 or Dim_ != 3 
+     * @return zyx where z = x3 in [1..9], ... */
+    int EncodeCartesianOrder(int order1, int order2, int order3);
+
+    /** private order decoder
+     * @param order3 0 is written here if Dim_ != 3 */
+    void DecodeCartesianOrder(int encoded_order, int* order1, int* order2, int* order3);
+
+
+    /** Expicitly set and load the integration type and order */
+    void SetIntPoints(IntegrationMethod method, int order);
+    
+    
+    
   };
  
 }

@@ -20,6 +20,9 @@ namespace CoupledField {
     //! Destructor
     ~MechanicMaterial();
 
+    //! Trigger finalization of mataterial (calculation of rotated matrices)
+    void Finalize();
+
    //! set a scalar string material parameter
     void SetScalar( std::string& param, const MaterialType& matType);
 
@@ -61,10 +64,13 @@ namespace CoupledField {
   private:
 
 
-    //! compute the correct subTensor (3D, AXI, ..)
+    //! compute the2 correct subTensor (3D, AXI, ..)
     void ComputeSubTensor(Matrix<Complex>& matMatrix,
 			  const MaterialType& matType, 
 			  const SubTensorType& subTensor) const;
+
+    //! Compute elasticity tensor from giben parameters
+    void ComputeFullStiffTensor();
 
     Double density_;
     Double PoissonRatio_;
