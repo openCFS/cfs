@@ -12,8 +12,11 @@ namespace CoupledField
   {
   public:
   
-    //! Constructor with type of integration rule
-    Line1FE();
+    /** Constructor with type of integration rule for cartesian product rule. 
+     * Leave blank in any other case 
+     * @param method leave to default - usage only internally for product rule integratio points 
+     * @param order  same as for parameter method applies*/
+    Line1FE(IntegrationMethod method = UNDEFINED, int order=0);
   
     //! Destructor
     virtual ~Line1FE();
@@ -22,7 +25,7 @@ namespace CoupledField
   protected:
 
     //! Initialize line element
-    virtual void Init();
+    virtual void Init(IntegrationMethod method, int order);
 
     //! Set local corner coordinates
     virtual void SetCornerCoords();
@@ -44,6 +47,19 @@ namespace CoupledField
     */
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                         const Vector<Double> & LCoord);
+
+    /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    void SetDefaultIntegration()
+    {
+        IntegMethod = ECONOMICAL;
+        IntegOrder  = 3; // NOT confirmed :( - Fabian
+    }
+
+    /** Sets the default reduced numerical integration */ 
+    void SetDefaultReducedIntegration()
+    {
+        SetDefaultIntegration();
+    }
 
 
   private:

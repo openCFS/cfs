@@ -51,6 +51,16 @@ namespace CoupledField {
     virtual void Global2LocalCoord( Vector<Double> &loc,  
                                     const Vector<Double> & glob ) const = 0;
 
+
+    //! Return the global rotation angles for a given point
+
+    //! This method returns the rotation angles about the x,y, and z axis,
+    //! by which the global coordinate system has to be rotated, so that
+    //! it represents the current one in that point.
+    virtual void 
+    GetGlobRotationAngles( Vector<Double> & angles,
+                           const Vector<Double>& point ) const = 0;
+
     //! Transform local vector into global one for a given global model point
 
     //! This method transforms a vector with a local coordinate representation

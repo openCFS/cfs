@@ -834,12 +834,13 @@ namespace CoupledField {
 
     // Get list of subdomains and materials
     StdVector< std::string > subdomName, keyVec, attrVec, valVec;
-    StdVector< std::string > subdomMaterial, subdomComposite;
+    StdVector< std::string > subdomMaterial, subdomComposite, subdomCoordSys;
     StdVector< RegionIdType > subdomId;
     params->GetList( "name", subdomName, "domain", "region" );
     params->GetList( "material", subdomMaterial, "domain", "region" );
     params->GetList( "composite", subdomComposite, "domain", "region" );
-    
+    params->GetList( "refCoordSys", subdomCoordSys, "domain", "region" );
+
     // Convert region names to Ids
     ptgrid_->RegionNameToId( subdomId, subdomName );
     params->Get("format", outformat, "output");
@@ -864,10 +865,16 @@ namespace CoupledField {
             Info->PrintF( pdename_, "Material '%s' for region '%s' (ID = %d) "
                           "follows\n", subdomMaterial[k].c_str(),
                           actRegionName.c_str(), subdomId[k] );
-            
             // Read data
             materials_[subdoms_[i]] = matLoader->
               LoadMaterial( subdomMaterial[k], pdematerialclass_ );
+
+            // Check if coordinate system is present
+            if( subdomCoordSys[k] != "" ) {
+              CoordSystem * actCoosy = 
+                domain->GetCoordSystem(subdomCoordSys[k]);
+              materials_[subdoms_[i]]->SetCoordSys( actCoosy );
+            }
             break;
           }
         }

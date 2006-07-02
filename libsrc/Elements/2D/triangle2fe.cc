@@ -21,12 +21,9 @@ namespace CoupledField
   void Triangle2FE :: Init()
   {
     ENTER_FCN( "Triangle2FE::Init" );
-
     NumNodes_ = 6;
-    SetIntPoints();
-    SetCornerCoords();
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();  
+  
+    CommonInit(); 
   }
 
   void Triangle2FE :: SetCornerCoords()

@@ -28,14 +28,7 @@ namespace CoupledField
     NumNodes_ = 6;
     NumEdges_ = 9;
 
-    // first set integration points and corner coords ...
-    SetIntPoints();
-    SetCornerCoords();
-
-    // ... then calc shape function values at integration points
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();
-    // SetEdgeVertices();
+    CommonInit();
   }
 
 

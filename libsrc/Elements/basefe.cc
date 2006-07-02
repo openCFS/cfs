@@ -2,7 +2,10 @@
 #include <fstream>
 #include <string>
 
+#include <string.h>
 #include "basefe.hh"
+#include "1D/line1fe.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #ifndef INTEGLIB
 #include "olas.hh"
 #endif
@@ -21,7 +24,6 @@ namespace CoupledField
     ShFncAtIp_      = NULL;
     ShFncDerivAtIp_ = NULL; 
     IntPoints_      = NULL; 
-  
   }
  
   BaseFE :: ~BaseFE()
@@ -31,8 +33,27 @@ namespace CoupledField
     if( ShFncAtIp_ ) delete[] ShFncAtIp_;
     if( ShFncDerivAtIp_ ) delete[] ShFncDerivAtIp_;
     if( IntPoints_ ) delete[] IntPoints_;
+    
+    // delete our map. The content of normal integration rules are static array
+    // the cartesian rules are complete dynamic
+    std::map<const std::string, StdVector<Double*>*>::iterator iter; 
+    for(iter = IntegrationPointsMap_.begin(); 
+        iter != IntegrationPointsMap_.end(); iter++)  {
+      StdVector<Double*>* data = iter->second; 
+      if(data != NULL) {
+        if(iter->first.find("Cartesian", 0 ) != std::string::npos)  { 
+          for(UInt i = 0; i < data->GetSize(); i++)  {
+            delete (*data)[i];
+          } 
+        }
+        
+        delete data;
+      }    
+      IntegrationPointsMap_.erase(iter);
+    }
+    
   }
-
+  
   void BaseFE :: GetShFnc(Vector<double> & S, 
                           const Vector<Double> & LCoord)
   {
@@ -279,9 +300,9 @@ namespace CoupledField
 
 
     for( UInt i=0; i<NumIntPoints_; i++ )
-    {
+      {
         CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i]);
-    }
+      }
   }
   
   void BaseFE :: SetShapeFncDerivAtIp()
@@ -294,26 +315,6 @@ namespace CoupledField
     for( UInt i=0; i<NumIntPoints_; i++ )
       CalcLocalDerivShapeFnc( ShFncDerivAtIp_[i], IntPoints_[i]);
 
-  }
-
-
-
-  enum IntegrationType BaseFE::String2EnumIntegrationType(const Char * inttype)
-  {
-    ENTER_FCN( "BaseFE::String2EnumIntegrationType" );
-
-    enum IntegrationType result=null;
-    if (!strcmp(inttype,"GaussOrder2")) result=GaussOrder2;
-    if (!strcmp(inttype,"GaussOrder3")) result=GaussOrder3;
-    if (!strcmp(inttype,"GaussOrder4")) result=GaussOrder4;
-    if (!strcmp(inttype,"GaussOrder5")) result=GaussOrder5;
-    if (!strcmp(inttype,"GaussOrder7")) result=GaussOrder7;
-
-    if (result==null) 
-      Error("Check your config file. Your integration type is wrong",
-            __FILE__,__LINE__);
-
-    return result;
   }
 
 
@@ -395,29 +396,6 @@ namespace CoupledField
     return ret;
   }
 
-  void BaseFE::SetReducedIntegration()
-  {
-    ENTER_FCN( "BaseFE:SetReducedIntegration:" );
-
-    IntegType =  GaussOrder1;
-
-    SetIntPoints();
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();  
-
-  }
-
-  void BaseFE::SetStandardIntegration()
-  {
-    ENTER_FCN( "BaseFE:SetStandardIntegration:" );
-
-    IntegType =  GaussOrder2;
-
-    SetIntPoints();
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();  
-
-  }
 
   Double BaseFE :: CalcVolume(const Matrix<Double> & CornerCoords, 
                               const bool isaxi)
@@ -450,8 +428,8 @@ namespace CoupledField
   /////// For geometrical transformation using direction cosines //////
 
   void BaseFE::CoordTrans( const Matrix<Double> &ptCoord, 
-			     Matrix<Double> &TransMat, 
-			     Matrix<Double> &ShellCoord )
+                           Matrix<Double> &TransMat, 
+                           Matrix<Double> &ShellCoord )
   {
     ENTER_FCN( "BaseFE::CoordTrans" );
 
@@ -515,13 +493,13 @@ namespace CoupledField
 	//transform
 	temp[i][j] = ptCoord[i][j] - ptCoord[i][0];
 
-//     std::cout << "The new coordinate is\n" << temp << std::endl;
+    //     std::cout << "The new coordinate is\n" << temp << std::endl;
 
-//     std::cout << "The base TransMatrix is\n" << TransMat << std::endl;
+    //     std::cout << "The base TransMatrix is\n" << TransMat << std::endl;
 
     NewCoord = TransMat * temp;
 
-//     std::cout << "The 3D LocalCoord matrix is\n" << NewCoord << std::endl;
+    //     std::cout << "The 3D LocalCoord matrix is\n" << NewCoord << std::endl;
 
     //rotate
     for( UInt i = 0; i < row - 1; i++)
@@ -577,19 +555,421 @@ namespace CoupledField
 	//transform
 	temp[i][j] = ptCoord[i][j] - ptCoord[i][0];
 
-     std::cout << "The new coordinate is\n" << temp << std::endl;
+    std::cout << "The new coordinate is\n" << temp << std::endl;
 
-     std::cout << "The base TransMatrix is\n" << TransMat << std::endl;
+    std::cout << "The base TransMatrix is\n" << TransMat << std::endl;
 
     NewCoord = TransMat * temp;
 
-     std::cout << "The 2D LocalCoord matrix is\n" << NewCoord << std::endl;
+    std::cout << "The 2D LocalCoord matrix is\n" << NewCoord << std::endl;
 
     //rotate
     for( UInt i = 0; i < row - 1; i++)
       for( UInt j = 0; j < col; j++)
 	ShellCoord[i][j] = NewCoord[i][j];
 
+  }
+  
+   
+  void BaseFE::MakeKey(IntegrationMethod type, int order, std::string &out)
+  {
+    ENTER_FCN( "BaseFE::MakeKey" );         
+    Enum2String(type, out);       
+    std::stringstream ss;
+    ss << GetShapeName() << " (" << out << ") order " << order;
+    out.assign(ss.str());
+  }   
+
+  /** private order encoder. Makes a check and exits on error */
+  int BaseFE::EncodeCartesianOrder(int order1, int order2, int order3)
+  {
+    if(order1 > 9 || order2 > 9 || order3 > 9) 
+      Error("Cartesian product numerical integration only with orders < 10", __FILE__, __LINE__ );
+        
+    return order1 + 10 * order2 + (order3 > 0 && Dim_ == 3 ? 100 : 0) * order3;
+  }
+
+  /** private order decoder */
+  void BaseFE::DecodeCartesianOrder(int encoded_order, int* order1, int* order2, int* order3)
+  {
+    if(encoded_order <= 11 || encoded_order > 999) 
+      Error("Invalid encoded cartesian integration order", __FILE__, __LINE__ );
+           
+           
+    *order3 = (encoded_order >= 100) ? encoded_order/100 : 0;   
+    encoded_order -= 100 * (*order3);
+        
+    *order2 = encoded_order/10;
+    encoded_order -= 10 * (*order2);        
+        
+    *order1 = encoded_order;
+        
+    // we cannot set it to 0 before as order2 needs to be < 9
+    if(Dim_ != 3) *order3 = 0;
+  }
+
+
+  void BaseFE::MakeKey(int order1, int order2, int order3, std::string &out)
+  {
+    ENTER_FCN( "BaseFE::MakeKey(order1,order2,order3)" );         
+    // this is only for debugging, we can encode the orders as defined in environment.hh
+    int order = EncodeCartesianOrder(order1, order2, order3);
+       
+    MakeKey(CARTESIAN, order, out);
+  }   
+
+
+
+  /** check CreateCartesian... for similar implementation! */   
+  void BaseFE::AddIntegrationPoints(IntegrationMethod type, int order, 
+                                    int numberOfRows, Double* data)
+  {
+    ENTER_FCN( "BaseFE::AddIntegrationPoints" );   	   	
+
+    std::string key;
+    MakeKey(type, order, key);
+        
+    // check the key for uniqueness
+    if(IntegrationPointsMap_.find(key) != IntegrationPointsMap_.end())
+      {
+        key.append(" is already in BaseFE::IntegrationPointsMap_");
+        Error(key.c_str(), __FILE__, __LINE__ ); 
+        exit(-1);         
+      }
+
+    // create the payload
+    StdVector<Double*>*  value = new StdVector<Double*>(numberOfRows);
+    for(int i = 0; i < numberOfRows; i++) (*value)[i]=(data + i * (Dim_+1)); // the data is Dim_ * coordintates + weight
+
+    IntegrationPointsMap_[key] = value;  
+
+    // sum up and print the weights for debugging         
+    //Double sum = 0;
+    //for(int i = 0; i < numberOfRows; i++) sum += *((*value)[i]+Dim_);
+    //std::cout << key << " has weight sum " << sum << std::endl;
+       
+  }
+
+  StdVector<Double*>* BaseFE::GetIntegrationPoints(IntegrationMethod type, int order, bool search_upwards, 
+                                                   bool search_downwards, bool fallback)     
+  {
+    ENTER_FCN( "BaseFE::GetIntegrationPoints" );   	   	
+    std::string key;
+    int org_order = order;
+
+    do
+      {
+        MakeKey(type, order, key);
+          
+        // store current value so the state is set to what we have
+        IntegMethod = type;
+        IntegOrder  = order;
+   	      
+        if(IntegrationPointsMap_.find(key) != IntegrationPointsMap_.end())
+          {
+            if(order != org_order)
+              {
+                *warning << "Use Integration " << key << " instead of the wanted order " << org_order << std::endl;
+                Warning(__FILE__, __LINE__);
+              }    
+            return IntegrationPointsMap_[key];
+          }   
+   	      
+        // nothing found
+        if(search_upwards) order++;
+        if(search_downwards) order--;   
+        if(search_upwards && search_downwards) Error("searching up- and downward concurrently!! Stupid!",  __FILE__, __LINE__ );
+      }    	
+    while(order > 0 && order < 42 && (search_upwards || search_downwards));
+    
+    // this is a call from the fallback-part
+    if(!fallback) return NULL;  
+
+    // print msg;
+    MakeKey(type, org_order, key);
+    *warning << "No integration points defined for " << key << "! Available are: ";
+    std::map<const std::string, StdVector<Double*>*>::iterator iter;
+   
+    for(iter = IntegrationPointsMap_.begin(); iter != IntegrationPointsMap_.end(); iter++) {
+      *warning << iter->first << "\n";
+    }                    
+    Warning(__FILE__, __LINE__);
+           
+    // use default
+    // restrict to order 2 but stay on 1 if desired
+    int alt_o = IntegOrder >= 2 ? 2 : 1;
+
+    // when no economical already use it - if economical doesn't work use classic
+    IntegrationMethod alt_m = IntegOrder == ECONOMICAL ? CLASSICAL : ECONOMICAL;
+    StdVector<Double*>* data = GetIntegrationPoints(alt_m, alt_o, false, false, false);
+      
+    // more tries
+    if(data == NULL)
+      {
+        // try again with flipped method
+        alt_m = alt_m == ECONOMICAL ? CLASSICAL : ECONOMICAL;          
+        data = GetIntegrationPoints(alt_m, alt_o, false, false, false);
+      }
+
+    // special pyramid handling :(
+    if(data == NULL && alt_o == 1)
+      {
+        alt_o = 2;
+        alt_m = CLASSICAL;
+        data = GetIntegrationPoints(alt_m, alt_o, false, false, false);
+      } 
+
+    // no more tries   
+    if(data != NULL)
+      {
+        MakeKey(alt_m, alt_o, key);
+        *warning << "Use fallback " << key << " for integration\n";
+        Warning(__FILE__, __LINE__);
+        return data;
+      }
+          
+    Error("No default integration found", __FILE__, __LINE__ );  
+    exit(-1);
+  } 
+
+  void BaseFE::CommonInit(IntegrationMethod method, int order)
+  {
+    ENTER_FCN( "BaseFE::CommonInit()" );             
+    
+    // if undefined we have an empty constructor and search :)
+    if(method == UNDEFINED)
+      {  
+        // when we habe a XML setting use it
+        StdVector<std::string> list;
+        // check defaults in case of legacy XML files
+        params->GetList("type", list, "integRules");
+        if(list.GetSize() > 0)    
+          { 
+            // we have values in the XML file
+            String2Enum(list[0], IntegMethod );    
+    
+            std::string str;
+           
+            params->Get( "order", str, "integRules");
+            IntegOrder = String2Int(str);    
+          }    
+        else
+          {
+            // The default Integration rules
+            SetDefaultIntegration();
+          }
+      }
+    else
+      {
+        IntegMethod = method;
+        IntegOrder  = order;
+      }        
+
+    // first set integration points and corner coords ...
+    // load all into the map
+    FillIntegrationPoints();    
+    // get the values by IntegMethod and IntegOrder
+    SetIntPoints();
+    SetCornerCoords();
+
+    // ... then calc shape function values at integration points
+    SetShapeFncAtIp();
+    SetShapeFncDerivAtIp();      
+  }
+
+  void BaseFE::DumpIntegrationPoints()
+  {
+    std::string str;
+    Enum2String(IntegMethod, str);
+    
+    std::cout << "Current integration points for " << GetShapeName() << " method=" << str << " order=" << IntegOrder << std::endl;
+
+    for(UInt ip=0; ip<NumIntPoints_; ip++)
+      {         
+        for(UInt dim = 0; dim < Dim_; dim++)
+          {
+            std::cout << ip << ":" << dim << "=" << IntPoints_[ip][dim] << "  ";
+          }
+          
+        std::cout << "weight=" << IntWeights_[ip] << std::endl;
+      }
+  }
+
+  void BaseFE::SetCartesianInteg(int order1, int order2, int order3, bool create_only)
+  {
+    // check if we already have
+    std::string key;
+    MakeKey(order1, order2, order3, key);
+
+    if(IntegrationPointsMap_.find(key) == IntegrationPointsMap_.end())
+      {
+        // doesn't exist -> create
+        Line1FE* line1 = new Line1FE(ECONOMICAL, order1);
+        Line1FE* line2 = new Line1FE(ECONOMICAL, order2);
+        Line1FE* line3 = Dim_ == 3 ? new Line1FE(ECONOMICAL, order3) : NULL;
+          
+        // store in map 
+        CreateCartesianIntegration(line1, line2, line3);
+          
+        // destroy temp objects
+        if(line3) delete line3;
+        delete line2;
+        delete line1;
+      }   
+      
+    // set the state variables so SetIntPoints can load the data from the map
+    IntegMethod = CARTESIAN;
+    IntegOrder  = EncodeCartesianOrder(order1, order2, order3);
+      
+    // false only for the call from SetIntPoints()
+    if(!create_only) SetIntPoints(); // this calls this method again but the map entry will already the set
+  }
+  
+
+  /** Creates the integration points via cartesian product for 2D and 3D elements. The result is stored in the map.
+   *  @param element1 IntegMethod and IntegOrder shall be set
+   *  @param element2 IntegMethod and IntegOrder shall be set
+   *  @param element3 the only optional element */
+  void BaseFE::CreateCartesianIntegration(BaseFE* line1, BaseFE* line2, BaseFE* line3)
+  {
+    // we store in map format, as such we have dim corrdinates + weight
+    int rows = line1->NumIntPoints_ * line2->NumIntPoints_ * (Dim_ == 3 ? line3->NumIntPoints_ : 1);
+
+    std::string key;
+    MakeKey(line1->IntegOrder, line2->IntegOrder, line3 != NULL ? line3->IntegOrder : 0, key);
+        
+    // check the key for uniqueness
+    if(IntegrationPointsMap_.find(key) != IntegrationPointsMap_.end())
+      {
+        key.append(" is already in BaseFE::IntegrationPointsMap_");
+        Error(key.c_str(), __FILE__, __LINE__ ); 
+      }
+     
+    StdVector<Double*>* data = new StdVector<Double*>(rows);
+    Double* row = NULL;
+     
+    int counter = 0;
+    for(UInt i = 0; i < line1->NumIntPoints_; i++)
+      {
+        for(UInt j = 0; j < line2->NumIntPoints_; j++)
+          {
+            // in 2D run the k loop one time for every i,j iteration
+            for(UInt k = 0; k < (Dim_ == 3 ? line3->NumIntPoints_ : 1); k++)
+              {
+                // create and store our data
+                row = new Double[Dim_ + 1];
+                (*data)[counter] = row;
+                counter++;
+                
+                // store the coordinates and the weight
+                *(row + 0)= line1->IntPoints_[i][0];
+                *(row + 1)= line2->IntPoints_[j][0];                
+                if(Dim_ == 3) *(row + 2)= line3->IntPoints_[k][0];                
+                *(row + Dim_)= line1->IntWeights_[i] * line2->IntWeights_[j] * (Dim_  == 3 ? line3->IntWeights_[k] : 1.);
+              }
+          }
+      }
+
+    IntegrationPointsMap_[key] = data;  
+  }
+
+  /** Expicitly set and load the integration type  */
+  void BaseFE::SetIntPoints(IntegrationMethod method, int order)
+  {
+    ENTER_FCN( "BaseFE:SetIntPoints(method,order):" );
+    IntegMethod = method;
+    IntegOrder  = order;
+
+    SetIntPoints();
+
+    SetShapeFncAtIp();
+    SetShapeFncDerivAtIp();  
+  }
+
+
+  
+  // reads from the map but generates cartesian integration points on the fly when set in XML for the proper elements!
+  void BaseFE::SetIntPoints()
+  {
+    ENTER_FCN( "BaseFE::SetIntPoints" );   	
+      
+    // if we are not a valid element for CARTESIAN (assuming reading from XML) the fallback will work
+    if(IntegMethod == CARTESIAN 
+       && (strcmp(GetShapeName(), "rectangle") == 0  
+           || strcmp(GetShapeName(), "hexa") == 0))
+      {        
+        // create the map entry on the fly
+        int order1, order2, order3;
+        DecodeCartesianOrder(IntegOrder, &order1, &order2, &order3);
+         
+        // this is the cached version, true to omit calling this method recursively!
+        SetCartesianInteg(order1, order2, order3, true);
+      }
+      
+    // searched upwards, e.g. a quadrilateral for order 2,3 should be stored with higher order 3, so we find for 2
+    StdVector<Double*>* data = GetIntegrationPoints(IntegMethod, IntegOrder, true, false, true);
+      
+    NumIntPoints_= data->GetSize();
+
+    if(IntPoints_ == NULL) IntPoints_ = new Vector<Double>[NumIntPoints_];
+    else IntPoints_->Resize(NumIntPoints_);
+      
+    IntWeights_.Resize(NumIntPoints_);
+      
+    for(UInt ip=0; ip<NumIntPoints_; ip++)
+      {         
+        IntPoints_[ip].Resize(Dim_);      	
+          
+        for(UInt dim = 0; dim < Dim_; dim++)
+          {
+            IntPoints_[ip][dim] = *((*data)[ip]+dim);
+          }
+          
+        IntWeights_[ip]= *((*data)[ip]+Dim_);
+      }
+      
+    // DumpIntegrationPoints();
+  }
+  
+  void BaseFE::DumpIntegrationPointsMap()
+  {
+    std::string key;
+    MakeKey(IntegMethod, IntegOrder, key);
+        
+    std::cout << "Current Integration method with " << key << " and " << NumIntPoints_ << " integration points\n";
+      
+    std::map<const std::string, StdVector<Double*>*>::iterator iter;
+
+    for(iter = IntegrationPointsMap_.begin(); iter != IntegrationPointsMap_.end(); iter++) {
+      std::cout << iter->first << std::endl;
+    }                    
+    std::cout << std::flush;
+  }  
+ 
+  const char* BaseFE::GetShapeName() 
+  {
+    // the string representation of the FEType (environment.cc) does not
+    // always match the names used on the XML file for integration type :(
+    switch(feType()) 
+      {
+      case  LINE:
+        return "line";
+      case  TRIA:
+        return "triangle";
+      case  QUAD:
+        return "rectangle";
+      case  TET:
+        return "tetra";
+      case  HEX:
+        return "hexa";
+      case  PYR:
+        return "pyra";
+      case  WED:
+        return "wedge";
+      default:
+        Error("type not implemented", __FILE__, __LINE__ );
+        exit(-1);
+      }
   }
 
 } // end namespace CoupledField

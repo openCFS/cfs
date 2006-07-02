@@ -51,12 +51,17 @@ namespace CoupledField
                                    const StdVector<UInt> & volConnect,
                                    const Vector<Double> & surfIntPoint,
                                    Vector<Double> & volIntPoint);
+     
+    /** Set cartesian integration points */                               
+    void SetCartesianIntegration(int order1, int order2)
+    {
+        SetCartesianInteg(order1, order2, 0, false);
+    }
+                                   
+   protected:
+      /** the childs fill here the integration points map via AddIntegrationPoints() */    
+    virtual void FillIntegrationPoints();
  
-  protected:
-
-    //! Set integration points
-    virtual void SetIntPoints();
-
   };
 
 } // end of namespace

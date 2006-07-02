@@ -19,6 +19,7 @@
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="material" type="xsd:token" use="optional" default=""/>
     <xsd:attribute name="composite" type="xsd:token" use="optional" default=""/>
+    <xsd:attribute name="refCoordSys" type="xsd:token" use="optional" default=""/>
   </xsd:complexType>
 
 

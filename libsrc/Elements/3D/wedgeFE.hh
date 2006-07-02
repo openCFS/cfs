@@ -47,10 +47,35 @@ namespace CoupledField
                                    const Vector<Double> & surfIntPoint,
                                    Vector<Double> & volIntPoint);
 
+    /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    void SetDefaultIntegration()
+    {
+        // no alternative :)
+        IntegMethod = CLASSICAL;
+        IntegOrder  = 2;
+    }
+
+    /** Sets the default reduced integration  */ 
+    void SetDefaultReducedIntegration()
+    {
+        // no alternative :)
+        IntegMethod = CLASSICAL;
+        IntegOrder  = 2;
+    }
+
+
   protected:
 
-    //! Set integration points
-    virtual void SetIntPoints();
+    /** the childs fill here the integration points map via AddIntegrationPoints() */    
+    virtual void FillIntegrationPoints();
+
+  private:
+     
+     /** Creates higher order elements and prints them. This method is only used manually
+      * if higher integration is required -> Probable it will never be called again, so kill it if
+      * it is in the way - Fabian */
+     void CreateHigherOrderElements();
+     
 
   };
 

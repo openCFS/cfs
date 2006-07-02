@@ -382,8 +382,55 @@ plane for defining the nodes on a 2D simulation. Sweep angle for XY (xyEnd-xyBeg
 360deg for the other planes it is 0deg. A name can be given to the nodes defined on each plane, otherwise default names will
 also be used (dir\_XY, dir\_XZ, dir\_YZ). Finally, {\bf saveIncr}
 represents the interval in degrees for defining the nodes.
+\section{Numerical Integration Rules}
+The numerical integration of the finite elements is done via Gaussian quadrature\footnote{See \emph{Higher-Order Finite Element Methods},
+  Pavel Solin, Karel Segeth, Ivo Dolezel, 2004.}. Note that the integration rules are theoretically exact for the given order and hence a too low order of Ansatz-functions, a too coarse or deformed meshing cannot be compensated simply by a higher integration order. Table \ref{tab:default_order} gives the default order which should be sufficient for most simulations.
 
+\begin{table}
+\begin{center}
+\begin{tabular}{r|r|r|r|r|r}
+element & Ansatz-function & Gauss order & number of points \\
+\hline
+line & 1 & 1 & 1\\
+     & 2 & 2=3 & 2 \\
+\hline
+triangle & 1 & 2 & 3 \\
+         & 2 & 3 & 4 \\
+\hline
+rectangle & 1 & 2=3 & 4 \\
+          & 2 & 2=3 & 4 \\
+\hline
+tetrahedron & 1 & 1 & 1 \\
+         & 2 & 2 & 4 \\
+\hline
+hexahedron & 1 & 2=3 & 6 \\
+         & 2 & 4=5 & 14 \\
+\end{tabular}
+\caption{This are the default settings for numerical integration of elements via Gaussian quadrature. Note that the integration rules for odd and even orders coincide for line, rectangle and hexahedron elements.}
+\label{tab:default_order}
+\end{center}
+\end{table}
+ 
+One can optionally define a different integration rule in the following way:
+\begin{verbatim}
+<integRules>
+  <type>Gauss_standard</type>
+  <order>5</order>
+</integRules>
+\end{verbatim}
 
+The setting is applied on all element types, even if they are not used in the simulation. If the requested integration rule is not known for an element, CFS uses a default setting and prints a warning message stating all available integration rules for that element.
+
+\begin{center}
+\begin{tabular}{l|l}
+integration type & description \\
+\hline
+Gauss\_standard & The so called economical Gaussian quadrature rules. \\
+Classic & The legacy implementation, not of general interest. \\
+Lobatto & An alternative integration rule for 1D. \\
+Chebyshev & An alternative integration rule for 1D. \\
+\end{tabular}
+\end{center}
 
 %%% Local Variables: 
 %%% mode: latex

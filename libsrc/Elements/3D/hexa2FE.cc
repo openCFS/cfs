@@ -24,21 +24,10 @@ namespace CoupledField
   {
     ENTER_IFCN( "Hexa2FE::Init" );
   
-    Dim_ = 3;
     NumNodes_ = 20;
     NumEdges_ = 12;
-    //NumFaces_ = 6;
 
-    // first set integration points and corner coords ...
-    SetIntPoints();
-    SetCornerCoords();
-
-
-    // ... then calc shape function values at integration points
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();
-
-
+    CommonInit(); 
   }
 
   void Hexa2FE::SetCornerCoords()

@@ -1,4 +1,4 @@
-#include <stdlib.h>
+ #include <stdlib.h>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -42,11 +42,21 @@ namespace CoupledField
     isAllowed_.insert( ACOU_ALPHA );
     isAllowed_.insert( FRACTIONAL_EXPONENT );
 
-}
+  }
 
   MechanicMaterial::~MechanicMaterial() {
 
     ENTER_FCN("BaseMaterial::~BaseMaterial");
+
+  }
+
+  void MechanicMaterial::Finalize() {
+    ENTER_FCN( "MechanicMaterial::Finalize" );
+
+
+    std::cerr << "---> FINALIZING <---\n";
+    // Trigger calculation of stiffness tensor
+    ComputeFullStiffTensor();
 
   }
 
@@ -361,4 +371,100 @@ namespace CoupledField
     }
   }
  
+
+  void MechanicMaterial::ComputeFullStiffTensor() {
+    ENTER_FCN( "MechanicMaterial::ComputeFullStiffnessTensor" ) 
+
+      Matrix<Complex> elasticityTensor;
+
+    
+    if( symmetryType_ == GENERAL ) {
+
+      // check that general stiffness tensor is present
+      std::cerr << "===> GENERAL SYMMETRY -> nothing to do!" << std::endl;
+ 
+    } else if( symmetryType_ == ISOTROPIC ) {
+
+      // get complex valued values
+      Complex EModul, poisson;
+        
+      GetScalar( EModul, MECH_EMODULUS, COMPLEX ); 
+      GetScalar( poisson, MECH_POISSON, COMPLEX ); 
+  
+      // calculate isothropic case        
+      Complex LameLambda, LameMu;
+      elasticityTensor.Resize(6,6);
+      elasticityTensor.Init();
+      LameLambda = (poisson*EModul)/
+        ((Complex(1.0,0) + poisson)*
+         (Complex(1.0,0)  - Complex(2.0,0)*poisson));
+      LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
+      
+      elasticityTensor[0][0]=LameLambda+Complex(2.0,0)*LameMu;
+      elasticityTensor[1][1]=LameLambda+Complex(2.0,0)*LameMu;
+      elasticityTensor[2][2]=LameLambda+Complex(2.0,0)*LameMu;
+      
+      elasticityTensor[0][1]=LameLambda;
+      elasticityTensor[0][2]=LameLambda;
+      elasticityTensor[1][0]=LameLambda;
+      elasticityTensor[1][2]=LameLambda;
+      elasticityTensor[2][0]=LameLambda;
+      elasticityTensor[2][1]=LameLambda;
+      
+      elasticityTensor[3][3]=LameMu;
+      elasticityTensor[4][4]=LameMu;
+      elasticityTensor[5][5]=LameMu;
+
+      SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, COMPLEX ); 
+
+
+
+    } else if( symmetryType_ == ORTHOTROPIC ) {
+        
+      Complex EX, EY, EZ, nuXY, nuYZ, nuXZ, GYZ, GZX, GXY;
+      GetScalar( EX, MECH_EMODULUS_X, COMPLEX ); 
+      GetScalar( EY, MECH_EMODULUS_Y, COMPLEX ); 
+      GetScalar( EZ, MECH_EMODULUS_Z, COMPLEX ); 
+      GetScalar( nuXY, MECH_POISSON_XY, COMPLEX ); 
+      GetScalar( nuYZ, MECH_POISSON_YZ, COMPLEX ); 
+      GetScalar( nuXZ, MECH_POISSON_XZ, COMPLEX ); 
+      GetScalar( GYZ, MECH_GMODULUS_YZ, COMPLEX ); 
+      GetScalar( GZX, MECH_GMODULUS_ZX, COMPLEX ); 
+      GetScalar( GXY, MECH_GMODULUS_XY, COMPLEX ); 
+        
+      Complex nuYX, nuZY, nuZX, aux;
+      nuYX=(EY/EX)*nuXY;
+      nuZY=(EZ/EY)*nuYZ;
+      nuZX=(EZ/EX)*nuXZ;
+        
+      aux= (Complex(1,0)-nuXY*nuYX-nuYZ*nuZY-nuXZ*nuZX-
+            Complex(2.0,0)*nuYX*nuZY*nuXZ)/(EX*EY*EZ);
+        
+      std::cerr << "aux = " << aux << std::endl;
+      elasticityTensor.Resize(6,6);
+      elasticityTensor.Init();
+        
+      elasticityTensor[0][0]=(Complex(1,0)-nuYZ*nuZY)/(EY*EZ*aux);
+      elasticityTensor[1][1]=(Complex(1,0)-nuXZ*nuZX)/(EX*EZ*aux);
+      elasticityTensor[2][2]=(Complex(1,0)-nuXY*nuYX)/(EX*EY*aux);
+        
+      elasticityTensor[0][1]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
+      elasticityTensor[0][2]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
+      elasticityTensor[1][0]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
+      elasticityTensor[1][2]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
+      elasticityTensor[2][0]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
+      elasticityTensor[2][1]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
+        
+      elasticityTensor[3][3]=GYZ;
+      elasticityTensor[4][4]=GZX;
+      elasticityTensor[5][5]=GXY;
+      SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, COMPLEX );
+    } else {
+      *error << "Calculation of full stiffness matrix for symmetryType '"
+             << symmetryType_ << "' not implemented!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    
+  }
 }

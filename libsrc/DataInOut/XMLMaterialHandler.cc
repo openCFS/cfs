@@ -91,6 +91,9 @@ namespace CoupledField {
       (*error) << "Error: material type:" << matClass << " not defined ";
       Error( __FILE__, __LINE__ );
     }
+    // Finalize setup of material
+    material->Finalize();
+
     return material;
   }
 //**********************************************************************
@@ -390,11 +393,7 @@ namespace CoupledField {
         flagPoissonReal==true && 
         flagElastTensorReal==false) {
       Double EModul, PoissonNumber;
-      material->GetScalar( EModul, MECH_EMODULUS, REAL ); 
-      material->GetScalar( PoissonNumber, MECH_POISSON, REAL ); 
-      ComputeIsoMechStiffnesTensor(EModul,PoissonNumber,elasticityTensor);
       material->SetSymmetryType(BaseMaterial::ISOTROPIC);
-      material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
     }
     else if (flagEModulReal==false && 
         flagPoissonReal==false && 
@@ -410,19 +409,7 @@ namespace CoupledField {
              flagShearModulYZReal==true &&
              flagShearModulZXReal==true &&
              flagShearModulXYReal==true) {
-      Double EX, EY, EZ, nuXY, nuYZ, nuXZ, GYZ, GZX, GXY;
-      material->GetScalar( EX, MECH_EMODULUS_X, REAL ); 
-      material->GetScalar( EY, MECH_EMODULUS_Y, REAL ); 
-      material->GetScalar( EZ, MECH_EMODULUS_Z, REAL ); 
-      material->GetScalar( nuXY, MECH_POISSON_XY, REAL ); 
-      material->GetScalar( nuYZ, MECH_POISSON_YZ, REAL ); 
-      material->GetScalar( nuXZ, MECH_POISSON_XZ, REAL ); 
-      material->GetScalar( GYZ, MECH_GMODULUS_YZ, REAL ); 
-      material->GetScalar( GZX, MECH_GMODULUS_ZX, REAL ); 
-      material->GetScalar( GXY, MECH_GMODULUS_XY, REAL ); 
-      ComputeOrthoMechStiffnesTensor(EX,EY,EZ,nuXY,nuYZ,nuXZ,GYZ,GZX,GXY,elasticityTensor);
-      material-> SetSymmetryType(BaseMaterial::ORTHOTROPIC);
-      material->SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, REAL ); 
+      material->SetSymmetryType(BaseMaterial::ORTHOTROPIC);
     }
     else if (flagEModulReal==true && 
         flagPoissonReal==true && 
@@ -571,61 +558,61 @@ namespace CoupledField {
     Info->PrintMaterial( material);
   }
 
-  void XMLMaterialHandler::ComputeIsoMechStiffnesTensor(Double EModul, 
-                                                        Double PoissonNumber,
-                                                        Matrix<Double>& elasticityTensor){
-    Double LameLambda, LameMu;
-    elasticityTensor.Resize(6,6);
-    elasticityTensor.Init();
-    LameLambda = (PoissonNumber*EModul)/((1.0 + PoissonNumber)*(1.0 - 2.0*PoissonNumber));
-    LameMu    = (EModul)/(2.0*(1.0+PoissonNumber));
-    // std::cerr << "LameLambda=" << LameLambda << "\nLameMu=" << LameMu << std::endl;
+//   void XMLMaterialHandler::ComputeIsoMechStiffnesTensor(Double EModul, 
+//                                                         Double PoissonNumber,
+//                                                         Matrix<Double>& elasticityTensor){
+//     Double LameLambda, LameMu;
+//     elasticityTensor.Resize(6,6);
+//     elasticityTensor.Init();
+//     LameLambda = (PoissonNumber*EModul)/((1.0 + PoissonNumber)*(1.0 - 2.0*PoissonNumber));
+//     LameMu    = (EModul)/(2.0*(1.0+PoissonNumber));
+//     // std::cerr << "LameLambda=" << LameLambda << "\nLameMu=" << LameMu << std::endl;
 
-    elasticityTensor[0][0]=LameLambda+2.0*LameMu;
-    elasticityTensor[1][1]=LameLambda+2.0*LameMu;
-    elasticityTensor[2][2]=LameLambda+2.0*LameMu;
+//     elasticityTensor[0][0]=LameLambda+2.0*LameMu;
+//     elasticityTensor[1][1]=LameLambda+2.0*LameMu;
+//     elasticityTensor[2][2]=LameLambda+2.0*LameMu;
 
-    elasticityTensor[0][1]=LameLambda;
-    elasticityTensor[0][2]=LameLambda;
-    elasticityTensor[1][0]=LameLambda;
-    elasticityTensor[1][2]=LameLambda;
-    elasticityTensor[2][0]=LameLambda;
-    elasticityTensor[2][1]=LameLambda;
+//     elasticityTensor[0][1]=LameLambda;
+//     elasticityTensor[0][2]=LameLambda;
+//     elasticityTensor[1][0]=LameLambda;
+//     elasticityTensor[1][2]=LameLambda;
+//     elasticityTensor[2][0]=LameLambda;
+//     elasticityTensor[2][1]=LameLambda;
 
-    elasticityTensor[3][3]=LameMu;
-    elasticityTensor[4][4]=LameMu;
-    elasticityTensor[5][5]=LameMu;
-  }
+//     elasticityTensor[3][3]=LameMu;
+//     elasticityTensor[4][4]=LameMu;
+//     elasticityTensor[5][5]=LameMu;
+//   }
 
-  void XMLMaterialHandler::ComputeOrthoMechStiffnesTensor(Double EX, Double EY, Double EZ, 
-                                                          Double nuXY, Double nuYZ, Double nuXZ,
-                                                          Double GYZ, Double GZX, Double GXY,
-                                                          Matrix<Double>& elasticityTensor){
-    Double nuYX, nuZY, nuZX, aux;
-    nuYX=(EY/EX)*nuXY;
-    nuZY=(EZ/EY)*nuYZ;
-    nuZX=(EZ/EX)*nuXZ;
+//   void XMLMaterialHandler::ComputeOrthoMechStiffnesTensor(Double EX, Double EY, Double EZ, 
+//                                                           Double nuXY, Double nuYZ, Double nuXZ,
+//                                                           Double GYZ, Double GZX, Double GXY,
+//                                                           Matrix<Double>& elasticityTensor){
+//     Double nuYX, nuZY, nuZX, aux;
+//     nuYX=(EY/EX)*nuXY;
+//     nuZY=(EZ/EY)*nuYZ;
+//     nuZX=(EZ/EX)*nuXZ;
 
-    aux=(1-nuXY*nuYX-nuYZ*nuZY-nuXZ*nuZX-2.0*nuYX*nuZY*nuXZ)/(EX*EY*EZ);
+//     aux=(1-nuXY*nuYX-nuYZ*nuZY-nuXZ*nuZX-2.0*nuYX*nuZY*nuXZ)/(EX*EY*EZ);
 
-    elasticityTensor.Resize(6,6);
-    elasticityTensor.Init();
+//     elasticityTensor.Resize(6,6);
+//     elasticityTensor.Init();
 
-    elasticityTensor[0][0]=(1-nuYZ*nuZY)/(EY*EZ*aux);
-    elasticityTensor[1][1]=(1-nuXZ*nuZX)/(EX*EZ*aux);
-    elasticityTensor[2][2]=(1-nuXY*nuYX)/(EX*EY*aux);
+//     elasticityTensor[0][0]=(1-nuYZ*nuZY)/(EY*EZ*aux);
+//     elasticityTensor[1][1]=(1-nuXZ*nuZX)/(EX*EZ*aux);
+//     elasticityTensor[2][2]=(1-nuXY*nuYX)/(EX*EY*aux);
 
-    elasticityTensor[0][1]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
-    elasticityTensor[0][2]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
-    elasticityTensor[1][0]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
-    elasticityTensor[1][2]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
-    elasticityTensor[2][0]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
-    elasticityTensor[2][1]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
+//     elasticityTensor[0][1]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
+//     elasticityTensor[0][2]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
+//     elasticityTensor[1][0]=(nuYX+nuZX*nuYZ)/(EY*EZ*aux);
+//     elasticityTensor[1][2]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
+//     elasticityTensor[2][0]=(nuZX+nuYX*nuZY)/(EY*EZ*aux);
+//     elasticityTensor[2][1]=(nuZY+nuXY*nuZX)/(EX*EZ*aux);
 
-    elasticityTensor[3][3]=GYZ;
-    elasticityTensor[4][4]=GZX;
-    elasticityTensor[5][5]=GXY;
-  }
+//     elasticityTensor[3][3]=GYZ;
+//     elasticityTensor[4][4]=GZX;
+//     elasticityTensor[5][5]=GXY;
+//   }
 
 //**********************************************************************
 //*************  READ ACOUSTICS ****************************************

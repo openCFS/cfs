@@ -21,13 +21,10 @@ namespace CoupledField
 
   void Line2FE :: Init()
   {
-    ENTER_IFCN( "Line2FE::Init" );
-
-    NumNodes_ = 3;
-    SetIntPoints();
-    SetCornerCoords();
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();  
+     ENTER_IFCN( "Line2FE::Init" );
+     NumNodes_ = 3;
+     
+     CommonInit();
   }
 
   void Line2FE :: SetCornerCoords()

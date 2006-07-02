@@ -10,6 +10,9 @@
 
 namespace CoupledField {
 
+  // forward class declarations
+  class CoordSystem;
+
   //! Class for Material Data
   /*! 
     Base class for handling material data
@@ -29,6 +32,10 @@ namespace CoupledField {
 
     //! Destructor
     virtual ~BaseMaterial();
+
+
+    //! Trigger finalization of mataterial (calculation of rotated matrices)
+    virtual void Finalize() {};
 
     //! set the name of the material set
     void SetName(const Char* name) {
@@ -154,9 +161,20 @@ namespace CoupledField {
       Error("GetTensor not implemented",__FILE__,__LINE__); };
 
     //! rotate a material tensor by rotation angles given in degree
-    virtual void RotateTensorByRotationAngles( StdVector<Double>& rotAngle, 
+    virtual void RotateTensorByRotationAngles( Vector<Double>& rotAngle, 
 					       const MaterialType& matType);
 
+    //! Rotates the tensor in a way that is represents the attached
+    //! coordinate system behaviour (cartesian, cylindri, spherical)
+    //! in this point
+    virtual void RotateTensorByPointCoord( Vector<Double> coord,
+                                           const MaterialType& matType );
+
+    //! Pass coordinate system to material
+    void SetCoordSys( CoordSystem* system ) {coosy_ = system;}
+
+    //! Get coordinate system from material
+    CoordSystem* GetCoordSys() { return coosy_; }
 
   protected:
 
@@ -185,7 +203,7 @@ namespace CoupledField {
 
     //! rotate a tensor
     virtual void PerformRotation( Matrix<Complex>& rotMatrix,  Matrix<Complex>& matMatrix,
-				  Matrix<Complex>& origMatMatrix);
+				  const Matrix<Complex>& origMatMatrix);
 
     //! name of material database
     std::string materialDatabaseName_;
@@ -220,18 +238,8 @@ namespace CoupledField {
     //! map, which knows about the original tensorial material parameters before being rotated
     tensorMap tensorParamsOrig_;
 
-    //! material data is scalar
-    bool isScalar;
-
-    //! material data is isotrop
-    bool isIsotrop;
-
-    //! material data is orthotrop
-    bool isOrthotrop;
-
-
-    //! material data is a tensor
-    bool isTensor;
+    //! Pointer to attaches coordinate system
+    CoordSystem * coosy_;
 
     SymmetryType symmetryType_;
   };

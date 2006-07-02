@@ -84,7 +84,6 @@ namespace CoupledField {
     Error("Not implemented", __FILE__, __LINE__);
   }
   
-
   // AnalysisType
   template<>
   void String2Enum<AnalysisType>(const std::string &in, AnalysisType &out) {
@@ -185,6 +184,77 @@ namespace CoupledField {
             __FILE__, __LINE__);
     }
   }
+  
+  // IntegrationMethod
+  template<>
+  void String2Enum<IntegrationMethod>( const std::string &in, IntegrationMethod &out ) {
+    if ( in == "Gauss_standard" )
+      out = ECONOMICAL;
+
+    else if ( in == "Classic" )
+      out = CLASSICAL;
+
+    else if ( in == "Lobatto" )
+      out = LOBATTO;
+
+    else if ( in == "Chebyshev" )
+      out = CHEBYSHEV;
+
+    else if ( in == "Experimental" )
+      out = EXPERIMENTAL;
+
+    else if ( in == "Cartesian" )
+      out = CARTESIAN;
+
+    else if ( in == "Undefined" )
+      out = UNDEFINED;
+
+
+    else {
+      (*error) << "'" << in << "' cannot be converted into item of "
+               << "'IntegrationMethod'!";
+      Error( __FILE__, __LINE__);
+    }
+  }
+
+  template<> 
+  void Enum2String<IntegrationMethod>( const IntegrationMethod &in, std::string &out ) {
+    switch(in) {
+    case ECONOMICAL:
+      out = "Gauss_standard";
+      break;
+
+    case CLASSICAL:
+      out = "Classic";
+      break;
+
+    case LOBATTO:
+      out = "Lobatto";
+      break;
+      
+    case CHEBYSHEV:
+      out = "Chebyshev";  
+      break;
+
+    case EXPERIMENTAL:
+      out = "Experimental";
+      break;
+
+    case CARTESIAN:
+      out = "Cartesian";
+      break;
+
+    case UNDEFINED:
+       out = "Undefined";
+       break;
+
+    default:    
+      Error( "No conversion found for your 'IntegrationMethod'",
+             __FILE__, __LINE__ );
+    }
+  }
+  
+  
 
   // BubbleDynType
   template<>

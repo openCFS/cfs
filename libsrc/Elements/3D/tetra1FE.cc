@@ -25,18 +25,10 @@ namespace CoupledField
   {
     ENTER_IFCN( "Tetra1FE::Init" );
   
-    Dim_ = 3;
     NumNodes_ = 4;
     NumEdges_ = 6;
-
-    // first set integration points and corner coords ...
-    SetIntPoints();
-    SetCornerCoords();
-
-    // ... then calc shape function values at integration points
-    SetShapeFncAtIp();
-    SetShapeFncDerivAtIp();
-    SetEdgeVertices();
+    
+    CommonInit();
   }
 
 

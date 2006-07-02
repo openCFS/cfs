@@ -93,7 +93,8 @@ INPUT                  = ../../Doc/developer/DoxygenConfig/mainpage.txt \
                          ../../libsrc/CoupledPDE \
                          ../../libsrc/MpCCIcpl \
                          ../../libsrc/ODEDescr \
-                         ../../libsrc/ODESolve
+                         ../../libsrc/ODESolve \
+                         ../../libsrc/Materials
 FILE_PATTERNS          = *.hh
 RECURSIVE              = NO
 EXCLUDE                = 

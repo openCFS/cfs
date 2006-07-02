@@ -25,17 +25,10 @@ void Pyra2FE::Init()
 {
   ENTER_IFCN( "Pyra2FE::Init" );
 
-  Dim_ = 3;
   NumNodes_ = 13;
   NumEdges_ = 8;
-  // first set integration points and corner coords ...
-  SetIntPoints();
-  SetCornerCoords();
-
-  // ... then calc shape function values at integration points
-  SetShapeFncAtIp();
-  SetShapeFncDerivAtIp();
-  // SetEdgeVertices();
+  
+  CommonInit();
 }
 
 

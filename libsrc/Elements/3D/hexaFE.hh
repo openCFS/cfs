@@ -50,10 +50,18 @@ namespace CoupledField
     //! compute length of edge with maximal size
     void GetMaxMinEdgeLength( Matrix<Double> &ptCoord, Double &Lmax, Double &Lmin );
 
-  protected:
+    /** Set cartesian integration points */                               
+    void SetCartesianIntegration(int order1, int order2, int order3)
+    {
+        SetCartesianInteg(order1, order2, order3, false);
+    }
 
-    //! Set integration points
-    virtual void SetIntPoints();
+   protected:
+
+   
+      /** the childs fill here the integration points map via AddIntegrationPoints() */    
+    virtual void FillIntegrationPoints();
+
 
   };
 

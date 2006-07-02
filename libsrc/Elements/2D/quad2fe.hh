@@ -54,6 +54,21 @@ namespace CoupledField
     */
     virtual Double CalcMeanStrain(Matrix<Double> &cornerCoords, Matrix<Double> &displacements);
 
+    /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
+    void SetDefaultIntegration()
+    {
+        IntegMethod = ECONOMICAL;
+        IntegOrder  = 3; // actually 2 but 2+3 is same and we avoid the msg
+    }
+
+    /** Sets the default reduced integration  */ 
+    void SetDefaultReducedIntegration()
+    {
+        IntegMethod = ECONOMICAL;
+        IntegOrder  = 3; 
+    }
+
+
   private:
   };
 

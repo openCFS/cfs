@@ -54,6 +54,15 @@ namespace CoupledField {
                              const Vector<Double> & locVec, 
                              const Vector<Double> & globModelPoint ) const;
     
+    //! Return the global rotation angles for a given point
+    
+    //! This method returns the rotation angles about the x,y, and z axis,
+    //! by which the global coordinate system has to be rotated, so that
+    //! it represents the current one in that point.
+    void  GetGlobRotationAngles( Vector<Double> & angles,
+                                 const Vector<Double>& point ) const {};
+
+
     //! Returns for a given coordinate name the according index
 
     //! This method returns for a given coordinate name (rad,phi,ax)

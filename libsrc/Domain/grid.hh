@@ -463,10 +463,6 @@ namespace CoupledField
     virtual void GetNodesOfElemList( StdVector<UInt> & nodeList,
                                      const StdVector<Elem*> & elemList,
 				     bool onlyLinNodes = false ) = 0;
-  
-    //! Resets the integration type of all known elements
-    //! \deprecated Does anyone need this function?
-    void SetIntTypeAllElems( IntegrationType aIntType );
 
     //! Set offset for coordinates due to updated Lagrangian formulation
     virtual void SetNodeOffset( const StdVector<UInt>& nodes, 

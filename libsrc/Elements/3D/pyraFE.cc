@@ -24,17 +24,7 @@ namespace CoupledField
     MidPoint_[0] = 0.0;
     MidPoint_[1] = 0.0;
     MidPoint_[2] = 1./4;
-  
-    std::string integtype;
-#ifndef INTEGLIB
-    params->Get( "type", integtype, "integRules", "pyra" );
-#else
-    integtype="GaussOrder2";
-#endif
-  
-    IntegType = String2EnumIntegrationType(integtype.c_str());
-  
-    //  isSetAtCenter_=false;
+
   }
   
   PyraFE::~PyraFE()
@@ -42,83 +32,26 @@ namespace CoupledField
     ENTER_FCN( "PyraFE::~PyraFE" );
   }
 
-  void PyraFE::SetIntPoints()
-  {
-    ENTER_IFCN( "PyraFE::SetIntPoints" );
 
-    switch(IntegType)
-      {
-      case GaussOrder1:
+ void PyraFE::FillIntegrationPoints()
+ {
+      ENTER_IFCN("PyraFE::FillIntegrationPoints");      
 
-        Error("Integration type GaussOrder1 is not implemented for pyramids",__FILE__,__LINE__);
-        break;
-
-      case GaussOrder2:
-        //"Pyramidal Elements"
-        // F. Zgainski, J.L. Coulomb, Y. Marechal. IEEE Transactions on Magnetics, Vol. 32, No. 3, May 1996
-        NumIntPoints_ = 8;
-        DegreeInteg_  = 3;
-
-        IntWeights_.Resize(NumIntPoints_);
-        // weights are different for the lower and upper integration points
-        for(UInt i=0; i<IntWeights_.GetSize(); i++)
-          {
-            if(i<(IntWeights_.GetSize()/2))
-              {
-                IntWeights_[i] = 0.100785882079825;
-              }
-            else
-              {
-                IntWeights_[i] = 0.232547451253508;
-              }
-          }
-        
-        if (!IntPoints_)
-          IntPoints_ = new Vector<Double>[NumIntPoints_];
-
-        for(UInt i=0; i<NumIntPoints_; i++)
-          IntPoints_[i].Resize(Dim_);
-
-        IntPoints_[0][0] = -0.506616303350116;
-        IntPoints_[0][1] = -0.506616303350116;
-        IntPoints_[0][2] = 0.122514822655441;
-        
-        IntPoints_[1][0] = 0.506616303350116;
-        IntPoints_[1][1] = -0.506616303350116;
-        IntPoints_[1][2] = 0.122514822655441;
-
-        IntPoints_[2][0] = 0.506616303350116;
-        IntPoints_[2][1] = 0.506616303350116;
-        IntPoints_[2][2] = 0.122514822655441;
-        
-        IntPoints_[3][0] = -0.506616303350116;
-        IntPoints_[3][1] = 0.506616303350116;
-        IntPoints_[3][2] = 0.122514822655441;
-        
-        IntPoints_[4][0] = -0.263184055569884;
-        IntPoints_[4][1] = -0.263184055569884;
-        IntPoints_[4][2] = 0.544151844011225;
-
-        IntPoints_[5][0] = 0.263184055569884;
-        IntPoints_[5][1] = -0.263184055569884;
-        IntPoints_[5][2] = 0.544151844011225;
-
-        IntPoints_[6][0] = 0.263184055569884;
-        IntPoints_[6][1] = 0.263184055569884;
-        IntPoints_[6][2] = 0.544151844011225;
-
-        IntPoints_[7][0] = -0.263184055569884;
-        IntPoints_[7][1] = 0.263184055569884;
-        IntPoints_[7][2] = 0.544151844011225;
-        
-
-
-        break;
+      //"Pyramidal Elements"
+      // F. Zgainski, J.L. Coulomb, Y. Marechal. IEEE Transactions on Magnetics, Vol. 32, No. 3, May 1996
+      // converted from the old setIntPoints()
+      static Double c2[][4] = { 
+        {-0.506616303350116,  -0.506616303350116,  0.122514822655441,  0.100785882079825},
+        {0.506616303350116,  -0.506616303350116,  0.122514822655441,  0.100785882079825},
+        {0.506616303350116,  0.506616303350116,  0.122514822655441,  0.100785882079825},
+        {-0.506616303350116,  0.506616303350116,  0.122514822655441,  0.100785882079825},
+        {-0.263184055569884,  -0.263184055569884,  0.544151844011225,  0.232547451253508},
+        {0.263184055569884,  -0.263184055569884,  0.544151844011225,  0.232547451253508},
+        {0.263184055569884,  0.263184055569884,  0.544151844011225,  0.232547451253508},
+        {-0.263184055569884,  0.263184055569884,  0.544151844011225,  0.232547451253508},
+      };
+      AddIntegrationPoints(CLASSICAL, 2, 8, (Double*) c2);
       
-      default:
-        Error("Integration type is not implemented",__FILE__,__LINE__);
-      }  
   }
-
-
+     
 } // end of namespace
