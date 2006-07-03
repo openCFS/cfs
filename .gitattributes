@@ -4,6 +4,7 @@ Doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
 Doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 Doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
+Doc/developer/AddDoc/numerical_integration/numerical_integration.tex svneol=native#text/plain
 Doc/developer/AddDoc/splitting.png -text svneol=unset#image/png
 Doc/developer/Concepts/Dof-Mapping/dof-mapping.dia -text
 Doc/developer/Concepts/Dof-Mapping/dof-mapping.png -text svneol=unset#image/png
