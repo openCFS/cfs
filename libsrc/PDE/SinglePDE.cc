@@ -99,7 +99,9 @@ namespace CoupledField {
     // Delete algebraic system only if
     // PDE is not direct coupled
     if ( isDirectCoupled_ == false ) {
-      delete algsys_;
+      if( needsAlgsys_ ) {
+        delete algsys_;
+      }
       delete solveStep_;
       delete TS_alg_;
       delete assemble_;
@@ -164,33 +166,36 @@ namespace CoupledField {
 
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
-    if ( isDirectCoupled_ == false ) {
-      algsys_ = new StandardSystem();
-    }
-
-    // Get parameter and report object of OLAS
-    olasParams_ = algsys_->GetOLASParams();
-    olasReport_ = algsys_->GetOLASReport();
-
-    // Obtain unique pde identifier
-    pdeId_ = algsys_->ObtainPDEId( pdename_ );
-
-    // Determine, if this is a parallel run
-    // and pass this information to OLAS
-    bool parallel = false;
-
+    if( needsAlgsys_ == true ) {
+      if ( isDirectCoupled_ == false) {
+        algsys_ = new StandardSystem();
+      }
+      
+      // Get parameter and report object of OLAS
+      olasParams_ = algsys_->GetOLASParams();
+      olasReport_ = algsys_->GetOLASReport();
+      
+      // Obtain unique pde identifier
+      pdeId_ = algsys_->ObtainPDEId( pdename_ );
+    
+      
+      // Determine, if this is a parallel run
+      // and pass this information to OLAS
+      bool parallel = false;
+      
 #ifdef PARALLEL
-
-    // If more than one process is running,
-    // then we consider this a parallel run
-    int commsize;
-    MPI_Comm_size( MPI_COMM_WORLD, &commsize );
-    parallel = ( commsize > 1 );
-
+      
+      // If more than one process is running,
+      // then we consider this a parallel run
+      int commsize;
+      MPI_Comm_size( MPI_COMM_WORLD, &commsize );
+      parallel = ( commsize > 1 );
+      
 #endif
-
-    olasParams_->SetValue( "Parallel", parallel );
-
+      
+      olasParams_->SetValue( "Parallel", parallel );
+    }
+    
     // =====================================================================
     // Get type of analysis
     // =====================================================================
@@ -234,7 +239,7 @@ namespace CoupledField {
     }
 
     // Create new assemble class with according analysistype
-    if( isDirectCoupled_ == false ) {
+    if( isDirectCoupled_ == false && needsAlgsys_ == true) {
       assemble_ = new Assemble( algsys_, analysistype_, ptTimeFunc_ );
     }
         
@@ -340,7 +345,7 @@ namespace CoupledField {
 
     // Print information about defined integrators
 #ifdef DEBUG
-    if( !isDirectCoupled_ ) {
+    if( !isDirectCoupled_ && needsAlgsys_ == true ) {
       assemble_->PrintInfo( *debug );
     }
 #endif
@@ -982,6 +987,11 @@ namespace CoupledField {
   void SinglePDE::DefineAlgSys() {
 
     ENTER_FCN( "StdPDE::DefineAlgSys" );
+
+    // First check if the PDE needs an algebraic system at all
+    if( needsAlgsys_ == false ) {
+      return;
+    }
 
 
     // If PDE is not direct coupled then the PDE has to register

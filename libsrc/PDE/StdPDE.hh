@@ -501,6 +501,9 @@ namespace CoupledField {
     //! Vector containing the results calculated by this PDE
     ResultList results_;
 
+    //! flag indicating if this PDE needs the algebraic system
+    bool needsAlgsys_;
+
     AnalysisType analysistype_; //!< analysis type
     bool isAlwaysStatic_;    //!< flag for static PDEs (like electrostatic)
     UInt dim_;                  //!< space dimension of pde

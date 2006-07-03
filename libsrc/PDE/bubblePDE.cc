@@ -25,9 +25,9 @@ namespace CoupledField {
 
     ENTER_FCN( "BubblePDE::BubblePDE" );
 
-    Error( "Not working at the moment due to change in EQN-class",
-           __FILE__, __LINE__ );
-
+    // set flag for algsys
+    needsAlgsys_ = false;
+    
     // =====================================================================
     // Initialize all private variables
     // =====================================================================
@@ -62,9 +62,9 @@ namespace CoupledField {
     pdename_          = "bubble";
     pdematerialclass_ = FLUID;
  
-    nonLin_    = FALSE;
-    writeValues_ = FALSE;
-    writeRHS_    = FALSE;
+    nonLin_    = false;
+    writeValues_ = false;
+    writeRHS_    = false;
 
     
     // Create new resultDof object
@@ -77,7 +77,7 @@ namespace CoupledField {
     results_.Push_back( res1 );
 
     //check, if problem is axisymmetric
-    if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = TRUE;
+    if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = true;
 
     // **************************************************
     //   Check what type of bubble model should be used
@@ -138,6 +138,18 @@ namespace CoupledField {
   {
     ENTER_FCN( "BubblePDE::DefineIntegerators" );
 
+    // Define entitlists for the eqnMap in order to get
+    // a local<->global mapping of results
+    for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
+      
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( subdoms_[actSD] );
+
+      // Give result to equation numbering class
+      eqnMap_->AddResult( *results_[0], actSDList );
+  }
+    
     // =============================================
     //  Query ParamHandler for material parameters
     // =============================================
@@ -189,9 +201,9 @@ namespace CoupledField {
     StdVector<std::string> names;
     params->GetPDEList( names );
     if( names.GetSize() > 1 ) {
-      isIterCoupled_ = TRUE;
+      isIterCoupled_ = true;
     } else {
-      isIterCoupled_ = FALSE;
+      isIterCoupled_ = false;
     }
 
 
@@ -307,7 +319,7 @@ namespace CoupledField {
     
 
     // Check if we are coupled iterative
-    if( isIterCoupled_ == TRUE ) {
+    if( isIterCoupled_ == true ) {
 
       if (iterCoupledCounter_ == 0){
 	radiusOldStep_   = radius_;
@@ -419,11 +431,11 @@ namespace CoupledField {
     UInt actStep = kstep + stepOffset;
     Double actTime = timeOffset + asteptime;
     
-    if( writeRHS_ == TRUE ) {
+    if( writeRHS_ == true ) {
       outFile_->WriteElemSolutionTransient( addElemResult_, actStep, actTime);
     }
 
-    if( writeValues_ == TRUE ) {
+    if( writeValues_ == true ) {
       
       
       UInt numElems = couplElems_->GetSize();
@@ -527,21 +539,22 @@ namespace CoupledField {
   {
     ENTER_FCN( "BubblePDE::InitCoupling" );
   
-    isIterCoupled_ = TRUE;
+    isIterCoupled_ = true;
     ptCoupling_   = Coupling;
     
     StdVector<std::string> * nRegions;
     StdVector<RegionIdType> nRegionIds;
     const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
-    
-    nonLin_ = FALSE;
+    std::cerr << "numCoupling = " << numCouplings << std::endl;
+    std::cerr << "numInputCouplings = " << ptCoupling_->GetNumInputCouplings() << std::endl;
+    nonLin_ = false;
 
     // Initialization of coupling helper arrays
     std::string quantity;
     StdVector<UInt> * couplingnodes = NULL;
 
     for (UInt i = 0; i < numCouplings; i++) {
-      
+      std::cerr << "First time in BubblePDE::InitCoupling\n";
        if (ptCoupling_->GetOutputQuantity(i) == ACOU_BUBBLE_RHS_VAL) {
 
          // Intialize the memory of the coupling values
@@ -565,7 +578,7 @@ namespace CoupledField {
     StdVector<std::string> regions;
 
     // at first, check if this PDE is iterative coupled
-    if (isIterCoupled_ == FALSE)
+    if (isIterCoupled_ == false)
       return;
 
     // loop over all output coupling quantities
@@ -701,7 +714,7 @@ namespace CoupledField {
 
 
         // store element result
-        if ( writeRHS_ == TRUE ) {
+        if ( writeRHS_ == true ) {
           helpVec.Resize( 2 );
           helpVec[0] = beta2;
           helpVec[1] = Rpp;
@@ -726,13 +739,14 @@ namespace CoupledField {
   
     switch (output) {
     case ACOU_BUBBLE_RHS_VAL:
-      return TRUE;
+      std::cerr << "BubblePDE: Return true for for ACOU_BUBBLE_RHS_VAL\n";
+      return true;
       break;
     default:
-      return FALSE;
+      return false;
       break;
     }
-    return FALSE;
+    return false;
   }
 
 
@@ -762,8 +776,8 @@ namespace CoupledField {
     params->GetList( keyVec, attrVec, valVec, regionNames );
 
     if ( regionNames.GetSize() > 0 ) {
-      hasOutput_ = TRUE;
-      writeValues_ = TRUE;
+      hasOutput_ = true;
+      writeValues_ = true;
       Info->PrintF( pdename_, " Storing bubbleValues to file\n" );
 
       elemResult_.SetNumSolutions(1);
@@ -780,8 +794,8 @@ namespace CoupledField {
     params->GetList( keyVec, attrVec, valVec, regionNames );
 
     if ( regionNames.GetSize() > 0 ) {
-      hasOutput_ = TRUE;
-      writeRHS_ = TRUE;
+      hasOutput_ = true;
+      writeRHS_ = true;
       Info->PrintF( pdename_, " Storing bubbleRHS to file\n" );
 
       addElemResult_.SetNumSolutions(1);

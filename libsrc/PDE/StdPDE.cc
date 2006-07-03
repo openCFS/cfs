@@ -56,6 +56,12 @@ namespace CoupledField {
     iterCoupledCounter_ = 0;
     effectiveMass_ = false;
 
+    // =====================================================================
+    // various parameters
+    // =====================================================================
+    needsAlgsys_ = true;
+
+
   }
   
   StdPDE::~StdPDE() {
