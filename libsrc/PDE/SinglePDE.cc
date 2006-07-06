@@ -7,7 +7,7 @@
 // header for Paramhandling
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/ParamHandling/CFSOLASParams.hh"
-
+#include "DataInOut/CommandLine/BaseCommandLineHandler.hh"
 
 
 // header for scripting
@@ -359,6 +359,11 @@ namespace CoupledField {
      // Report results to logfile
     Info->PrintF( pdename_, "Linear system will have %d equations\n\n",
                   eqnMap_->GetNumEqns() );
+
+    // Check if eqnmap should be printed onto screen
+    if ( commandLine->GetShowEqnMap() == true ) {
+      eqnMap_->Print( (*cla) );
+    }
 
 #ifdef DEBUG
     eqnMap_->Print(*debug);
@@ -819,8 +824,12 @@ namespace CoupledField {
       actLoad->entities = actList;
       actLoad->result = results_[0];
       actLoad->eqnMap = eqnMap_;
-      actLoad->dof = 
-        results_[0]->GetDofIndex(dof[i]);
+      if( dof.GetSize() == 0 ) {
+        actLoad->dof = 1;
+      } else {
+        actLoad->dof = 
+          results_[0]->GetDofIndex(dof[i]);
+      }
       actLoad->value = value[i];
       actLoad->phase = phase[i];
       actLoad->dynamics = dynamics[i];
