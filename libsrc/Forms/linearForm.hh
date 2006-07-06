@@ -4,7 +4,10 @@
 #include "baseForm.hh"
 #include "Forms/nLinElastInt.hh"
 #include "Utils/ApproxData.hh"
+
+#ifndef INTEGLIB
 #include "Utils/mathParser.hh"
+#endif
 
 namespace CoupledField
 {

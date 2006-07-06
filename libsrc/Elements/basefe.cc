@@ -736,6 +736,7 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseFE::CommonInit()" );             
     
+#ifndef INTEGLIB
     // if undefined we have an empty constructor and search :)
     if(method == UNDEFINED)
       {  
@@ -763,7 +764,11 @@ namespace CoupledField
       {
         IntegMethod = method;
         IntegOrder  = order;
-      }        
+      }
+#else
+    // The default Integration rules
+    SetDefaultIntegration();
+#endif        
 
     // first set integration points and corner coords ...
     // load all into the map
