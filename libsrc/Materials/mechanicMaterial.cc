@@ -54,7 +54,6 @@ namespace CoupledField
     ENTER_FCN( "MechanicMaterial::Finalize" );
 
 
-    std::cerr << "---> FINALIZING <---\n";
     // Trigger calculation of stiffness tensor
     ComputeFullStiffTensor();
 
@@ -381,7 +380,6 @@ namespace CoupledField
     if( symmetryType_ == GENERAL ) {
 
       // check that general stiffness tensor is present
-      std::cerr << "===> GENERAL SYMMETRY -> nothing to do!" << std::endl;
  
     } else if( symmetryType_ == ISOTROPIC ) {
 
@@ -440,7 +438,6 @@ namespace CoupledField
       aux= (Complex(1,0)-nuXY*nuYX-nuYZ*nuZY-nuXZ*nuZX-
             Complex(2.0,0)*nuYX*nuZY*nuXZ)/(EX*EY*EZ);
         
-      std::cerr << "aux = " << aux << std::endl;
       elasticityTensor.Resize(6,6);
       elasticityTensor.Init();
         
