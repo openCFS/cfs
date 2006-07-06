@@ -34,12 +34,15 @@ namespace CoupledField
     isSolDependent_ = false;
     softeningModel_ = "no";   
 
+#ifndef INTEGLIB
+
     // Get grip of a new math parser object.
     // This object has per default the variable
     // f (harmonic) or t (transient) registered with the
     // current value
     mHandle_ =  domain->GetMathParser()->GetNewHandle();
     mParser_ = domain->GetMathParser();
+#endif
   }
 
  
@@ -52,8 +55,10 @@ namespace CoupledField
   BaseForm::~BaseForm() {
     ENTER_FCN( "BaseForm::~BaseForm" );
 
+#ifndef INTEGLIB
     // Release math parser object
     mParser_->ReleaseHandle( mHandle_ );
+#endif
 
 //     if ( delMatDataAtEnd_ == true ) {
 //       delete ptMaterial;
@@ -80,6 +85,7 @@ namespace CoupledField
 
  
   
+#ifndef INTEGLIB
   void BaseForm::ExtractElemInfo( EntityIterator& it ) {
     ptelem = it.GetElem()->ptElem;
     
@@ -87,6 +93,7 @@ namespace CoupledField
                                           it.GetElem()->connect,
                                           coordUpdate_ );
   }
+#endif
 
   // ------------- SURFACE BILINEAR FORMS -------------
 
@@ -129,6 +136,7 @@ namespace CoupledField
     factor_ = factor;
   } 
   
+#ifndef INTEGLIB
   void SurfForm::ExtractElemInfo( EntityIterator& it ) {
     ptelem = it.GetElem()->ptElem;
     
@@ -142,4 +150,5 @@ namespace CoupledField
                                           it.GetElem()->connect,
                                           coordUpdate_ );
   }
+#endif
 }

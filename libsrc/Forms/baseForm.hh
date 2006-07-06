@@ -7,8 +7,10 @@
 #include "Domain/surfElem.hh"
 #include "Materials/baseMaterial.hh"
 #include "Domain/entityList.hh"
-#include "Utils/mathParser.hh"
 
+#ifndef INTEGLIB
+#include "Utils/mathParser.hh"
+#endif
 
 namespace CoupledField
 {
@@ -25,6 +27,8 @@ namespace CoupledField
     //! Deconstructor
     virtual ~BaseForm();
 
+
+
     //! Return the name of this (bi)linearform
     const std::string& GetName() const { return name_;}
 
@@ -32,6 +36,7 @@ namespace CoupledField
     //! or its derivatives
     bool IsSolDependent() { return isSolDependent_; }
 
+#ifndef INTEGLIB
     //! Virtual function
     virtual void CalcElementMatrix( Matrix<Double>& stiffMat,
                                     EntityIterator& ent1, 
@@ -50,6 +55,7 @@ namespace CoupledField
     virtual void CalcElemVector( Vector<Double> & result,
                                  EntityIterator& ent )
     {Error("CalcElemVector not implemented!",__FILE__,__LINE__);};
+#endif
 
     //
     virtual void SetNonLinMethod(std::string atype) {;};
@@ -145,11 +151,13 @@ namespace CoupledField
 
   protected:
     
+#ifndef INTEGLIB
     //! Get reference element and coordinates from element iterator
     virtual void ExtractElemInfo( EntityIterator& it);
     
     //! Current entities of the base form
     EntityIterator ent1_, ent2_;
+#endif
 
     //! pointer to reference element
     BaseFE  * ptelem;   
@@ -199,11 +207,13 @@ namespace CoupledField
     //minimal length of an edge within an element
     Double minEdgeLength_;
 
+#ifndef INTEGLIB
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;
 
     //! Pointer to MathParser object
     MathParser * mParser_;
+#endif
 
     //! solution vector
     NodeStoreSol<Double>* sol_;
@@ -264,8 +274,10 @@ namespace CoupledField
 
   protected:
 
+#ifndef INTEGLIB
     //! Get reference element and coordinates from element iterator
     void ExtractElemInfo( EntityIterator& it);
+#endif
 
     //! Current surface element
     const SurfElem * actElem_;
