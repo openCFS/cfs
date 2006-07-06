@@ -791,7 +791,7 @@ namespace CoupledField {
             GetNodesOfEntities( slaveNodes, actCsList[i]->slaveEntities );
             UInt slaveDof = actCsList[i]->slaveDof;
             
-            for ( UInt iNode = 0; iNode < slaveNodes.GetSize(); iNode++ ) {
+            for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
               actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] = 0;
             }
           }
@@ -848,11 +848,10 @@ namespace CoupledField {
             UInt masterNode = slaveNodes[0];
             for ( UInt iNode = 1; iNode < slaveNodes.GetSize(); iNode++ ) {
               actMap[mesh2PdeNode_[slaveNodes[iNode]-1]-1] [slaveDof-1] =
-                actMap[mesh2PdeNode_[masterNode-1]] [masterDof-1];
+                -actMap[mesh2PdeNode_[masterNode-1]-1] [masterDof-1];
             }
           }
         }
-        
         
         // -------
         // STEP 5b
