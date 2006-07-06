@@ -1,4 +1,4 @@
-#include <iostream>
+>#include <iostream>
 #include <fstream>
 #include <time.h>
 #include <string>
@@ -169,7 +169,6 @@ namespace CoupledField
 #endif  
 
     if (this == &x)  {
-      std::cerr << "--->Matrices are the same!\n";
       return *this;
     }
   
@@ -178,7 +177,6 @@ namespace CoupledField
     if (size_row_ != x.size_row_ || size_col_ != x.size_col_ )
       {
       
-        std::cerr << "--->Matrix: deleting old data!\n";
         if (data_)
           {
             delete[] data_[0];
