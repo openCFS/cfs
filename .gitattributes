@@ -573,6 +573,8 @@ libsrc/Forms/mechStressStrain.cc svneol=native#text/plain
 libsrc/Forms/mechStressStrain.hh svneol=native#text/plain
 libsrc/Forms/nLinElastInt.cc svneol=native#text/plain
 libsrc/Forms/nLinElastInt.hh svneol=native#text/plain
+libsrc/Forms/nLinElecHystInt.cc -text
+libsrc/Forms/nLinElecHystInt.hh -text
 libsrc/Forms/nLinStokesFluidInt.cc svneol=native#text/plain
 libsrc/Forms/nLinStokesFluidInt.hh svneol=native#text/plain
 libsrc/Forms/nLincurlCurlNodeInt.cc svneol=native#text/plain
