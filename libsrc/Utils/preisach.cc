@@ -24,18 +24,34 @@ namespace CoupledField
     isVirgin_    = isVirgin;
 
     lastVal_.Resize(numElem);
-    lastVal_.Init();
     preisachSum_.Resize(numElem);
     preisachSum_.Init(0);
 
-    isMinMax_    = new std::vector<Integer>[numElem];
-    extremaList_ = new std::vector<Double>[numElem];
+    StringLenght_.resize(numElem);
+
+    strings_     = new std::vector<Double>[numElem];
+    helpStrings_ = new std::vector<Double>[numElem];
+
+    maxStringLength_ = 4;
+
+    for (Integer el=0; el<numElem; el++) {
+      strings_[el].resize(maxStringLength_);
+      helpStrings_[el].resize(maxStringLength_+1);
+
+      StringLenght_[el] = 1;
+      for ( UInt i=0; i<maxStringLength_; i++) {
+	strings_[el][i] = 0.0;
+      }
+    }
+
+    computePreisachWeights();
   }
 
   Preisach :: ~Preisach()
   {
-    delete [] isMinMax_;
-    delete [] extremaList_;
+    delete [] strings_;
+    delete [] helpStrings_;
+
   }
 
   Double Preisach :: computeValue(Double Xin, Integer idxElem) 
@@ -47,14 +63,10 @@ namespace CoupledField
     //normalize input
     Double newX = normalizeInput(Xin);
 
-    // get last entry of extremaList
-    Integer posEL = extremaList_[idx].size()-1;
-    Double lastX  = extremaList_[idx][posEL] ;
+    //do the deletion
+    updateMinMaxList(Xin, idxElem);
 
-    Double val =  everett(lastX,newX);
-
-    //  std::cerr << "lastX=" << lastX << " newX=" << newX << " val=" << val << std::endl;
-    return ( (val + preisachSum_[idx])*YSaturated_ );
+    return ( preisachSum_[idx]*YSaturated_ );
   }
 
 
@@ -62,368 +74,76 @@ namespace CoupledField
   {
     ENTER_FCN( "Preisach::updateMinMaxList" );
 
-    //==========================================================================//
-    //
-    //  modification of the extrema list                                         
-    //
-    //  empty list:                                                            
-    //
-    //      I) isvirgin = 0                                                    
-    //         insert two extrema for polarization into the list and    
-    //         insert the new timestepvalue as can be seen below.   
-    //
-    //     II) isvirgin = 1                                                    
-    //         insert the new timestepvalue in the extremalist as       
-    //         maximum if value is greater zero and as minimum if 
-    //         value is less than zero                       
-    //
-    //  general algorithm:
-    //
-    //  if the new value is larger as the last value in the extrema list and
-    //  this last value was a maximum, then overwrite the last value in the 
-    //  extrema list with the new one
-    //
-    //  if the new value is smaller as the last value in the extrema list and
-    //  this last value was a minimum, then overwrite the last value in the 
-    //  extrema list with the new one
-    //
-    //  if the new value is larger as the last value in the extrema list and
-    //  this last value was a minimum, then insert the new value as a maximum
-    //
-    //  if the new value is smaller as the last value in the extrema list and
-    //  this last value was a maximum, then insert the new value as a minimum
-    //
-    //==========================================================================//
+    Integer idx = nrEl - 1;
 
     //normalize input
     Double newX = normalizeInput(Xin);
 
-    //array starts at 0!!
-    nrEl -= 1;
+    std::vector<Double> &stringEl     = strings_[idx];
+    std::vector<Double> &helpStringEl = helpStrings_[idx];
 
-    if ((isMinMax_[nrEl].size() == 0) && (isVirgin_ == true) ) {
-      //list of minimums and maximums is empty
-      extremaList_[nrEl].push_back(newX);
-      if (newX > 0) {
-        isMinMax_[nrEl].push_back(1);
-      }
-      else if (newX < 0) {
-        isMinMax_[nrEl].push_back(-1);
-      }
-      else {
-        //exact zero: complicated to handle;
-        isMinMax_[nrEl].push_back(0);
-      }
+    UInt& actLength = StringLenght_[idx];
 
-      preisachSum_[nrEl] = 0.5 * everett(-newX, newX);
+    Double eps = 1.0e-10;
+    if ( abs(newX) > abs(stringEl[0] - eps) || actLength == 0 ) {
+      actLength   = 1;
+      stringEl[0] = newX;
     }
-
     else {
-      if ( isMinMax_[nrEl].size() == 0 ) {
-        //insert polarisation state
-        isMinMax_[nrEl].push_back(2);
-        //   extremaList_[nrEl].push_back(Xsaturated_);
-        extremaList_[nrEl].push_back(1);
-        preisachSum_[nrEl] = 0.5*everett(-1,1);
-        // preisachSum_[nrEl] = everett(-Xsaturated_,Xsaturated_);
-
-        isMinMax_[nrEl].push_back(-2);
-        extremaList_[nrEl].push_back(0);
-        preisachSum_[nrEl] += everett(1,0);
-        //      extremaList_[nrEl].push_back(XCoercitive_);
-        //    preisachSum_[nrEl] += everett(XCoercitive_,Xsaturated_);
+      helpStringEl[0] = -stringEl[0];
+      for ( UInt i=1; i<=actLength; i++ ) {
+	helpStringEl[i] = stringEl[i-1];
       }
 
-      // get last entry of extremaList
-      Integer posEL = extremaList_[nrEl].size()-1;
-      Double lastX  = extremaList_[nrEl][posEL] ;
+      UInt k = 0;
 
-      // get last entry of minMaxList
-      Integer posMM      = isMinMax_[nrEl].size()-1;
-      Integer lastMinMax = isMinMax_[nrEl][posMM];
+      Double a = helpStringEl[actLength-1];
+      Double b = helpStringEl[actLength];
 
-      Double prevLastX=0;
-      if ( posMM > 0)
-        prevLastX = extremaList_[nrEl][posMM-1];
+      //      std::cout << "a=" << a << "  b=" << b << std::endl;
 
-      //if the first value was excat zero, lasMinMax was set to 0
-      //now check if we should set it to 1 or to -1;
-      if (lastMinMax == 0 ) {
-        if (newX >  prevLastX) {
-          lastMinMax = 1;
-          isMinMax_[nrEl][posMM] = 1;
-        }
-        else {
-          lastMinMax = -1;
-          isMinMax_[nrEl][posMM] = -1;
-        }
+      while ( ( k<actLength-1) && 
+	      ( ( newX<=std::min(a,b) ) || ( newX>=std::max(a,b) ) ) ) {
+	k = k + 1;
+	a = helpStringEl[actLength-k-1];
+	b = helpStringEl[actLength-k];
       }
 
-      if ( lastMinMax > 0 ) {
-        //last entry was a maximum
-        if ( newX >= lastX ) {
-          //overwrite last entry
-          extremaList_[nrEl][posEL] = newX;
-          if ( posMM == 0) {
-            preisachSum_[nrEl] = 0.5 * everett(-newX, newX);
-          }
-          else {
-            preisachSum_[nrEl] -= everett(prevLastX,lastX);
-            preisachSum_[nrEl] += everett(prevLastX,newX);
-          }
+      actLength = actLength - k + 1;
 
-        }
-        else {
-          //add new value as a minimum
-          isMinMax_[nrEl].push_back(-1);
-          extremaList_[nrEl].push_back(newX);
-          preisachSum_[nrEl] += everett(lastX,newX);
-        }
+      std::cout << "actLength= " << actLength << std::endl;
+      //check, if capacity of string-arrays is too less
+      if ( actLength > maxStringLength_ ) {
+	//resize the string-arrays
+	maxStringLength_ += (UInt) round( (Double)maxStringLength_ / 2.0 );
+	stringEl.resize(maxStringLength_);
+
+	//store the resulting strings
+	for ( UInt i=0; i<actLength-1; i++ ) {
+	  stringEl[i] = helpStringEl[i+1];
+	}
+
+	// resize help-String-array 
+	helpStringEl.resize(maxStringLength_+1);
       }
       else {
-        //last entry was a minimum
-        if ( newX <= lastX ) {
-          //overwrite last entry
-          extremaList_[nrEl][posEL] = newX;
-          if ( posMM == 0) {
-            preisachSum_[nrEl] = 0.5 * everett(-newX, newX);
-          }
-          else {
-            preisachSum_[nrEl] -= everett(prevLastX,lastX);
-            preisachSum_[nrEl] += everett(prevLastX,newX);
-          }
-        }
-        else {
-          //add new value as a maximum
-          isMinMax_[nrEl].push_back(1);
-          extremaList_[nrEl].push_back(newX);
-          preisachSum_[nrEl] += everett(lastX,newX);
-        }
+	//store the resulting strings
+	for ( UInt i=0; i<actLength-1; i++ ) {
+	  stringEl[i] = helpStringEl[i+1];
+	}
       }
+      //store the new input
+      stringEl[actLength-1] = newX;
     }
 
-    //  Integer size = extremaList_[nrEl].size();
-
-    //   std::cout << "Size=" << extremaList_[nrEl].size() << std::endl;
-    //   std::vector<Double>   &extremaList =  extremaList_[nrEl];
-  
-    //   std::cout << "List" << std::endl;
-    //   for (Integer k=0; k < extremaList.size(); k++) {
-    //     std::cout << " " << extremaList[k] << std::endl;
-    //   }
-
-    //now check, if we can cancle any extrema
-    //   if (isMinMax_[nrEl].size() > 0) {
-    //     wipout(nrEl);
-    //   }
+    //compute preisach-sum
+    preisachSum_[idx] =  everett(-stringEl[0],stringEl[0]);
+    for ( UInt i=0; i<actLength-1; i++ ) {
+      preisachSum_[idx] +=  2.0*everett(stringEl[i],stringEl[i+1]);
+    }
 
   }
 
-
-  void Preisach :: wipout(Integer nrEl)
-  {
-    ENTER_FCN( "Preisach::wipout" );
-
-    //==========================================================================//
-    //  clear all non dominant maxima out of the list                            
-    //     
-    //  I) last (latest) value is a maxima: will be denoted as the actual 
-    //                                      maximum
-    //
-    //         if the actual maximum is larger than the last maximum    
-    //         search for a minimum that is smaller than the actual  
-    //         minimum (= value before the actual maximum);
-    //         test if all maxima in between are smaller than the actual 
-    //         one. If such a minimum exists clear all extrema between 
-    //         the actual maximum and this minimum.
-    //
-    //
-    //  II) last (latest) value is a minimum: will be denotes as the actual 
-    //                                        minimum
-    //
-    //         if the actual minimum is smaller than the last minimum    
-    //         search for a maximum that is larger than the actual  
-    //         maximum (= value before the actual minimum);
-    //         test if all maxima in between are larger than the actual 
-    //         one. If such a maximim exists clear all extrema between 
-    //         the actual minimum and this maximum.
-    //                                            
-    //==========================================================================//
-                                                                           
-
-    std::vector<Double>   &extremaList =  extremaList_[nrEl];
-    std::vector<Integer>  &isMinMax    = isMinMax_[nrEl];
-
-    // get last entry of extremaList
-    //  Double lastX  = extremaList.back();
-  
-    // get last entry of minMaxList
-    Integer lastMinMax = isMinMax.back();
-  
-    Integer actPosMax, actPosMin, lastPos, actPos;
-    std::vector<Double>::iterator iterExtremalList;
-    std::vector<Integer>::iterator iterMinMax;
-
-    std::vector<Double>::iterator endDeleteExtremList, startDeleteExtremList;
-    std::vector<Integer>::iterator endDeleteMinMax, startDeleteMinMax ;
-
-    std::cout << "ExtremaList before wipout: " << extremaList.size() << std::endl;
-
-    bool kill = true;
-    if ( lastMinMax == 1 ) {
-      //last value is a maximum
-  
-      bool minFound = false;
-
-      while ( kill ) {
-        std::cout << "kill=" << kill << std::endl;
-
-        //position of actual maximum
-        actPosMax = extremaList.size()-1;
-
-        //position of actual minmum
-        actPosMin = actPosMax -1;
-
-        //set the iterators
-        iterExtremalList = extremaList.end();
-        iterMinMax = isMinMax.end();
-
-        if (actPosMin >= 0 && isMinMax[actPosMin] > -2 ) {
-          lastPos = actPosMin;
-          actPos = lastPos - 1;
-          --iterExtremalList;
-          --iterMinMax;
-          std::cout << "actPosMin=" << actPosMin << std::endl;
-
-          //now the iteration counter points to the last element
-          //in Extrema- and MinmaxList, which is a maximum!!
-          //this element is not allowed to be cleared!
-          endDeleteExtremList = iterExtremalList;
-          endDeleteMinMax     = iterMinMax;
-
-          while ( kill == true && minFound == false ) {
-            std::cout << "actPos=" << actPos << std::endl;
-            if ( actPos >= 0) {
-              if ( isMinMax[actPos] == 2 || isMinMax[actPos] == -2 ) {
-                kill = false;
-              }
-              else if ( isMinMax[actPos] == 1 && extremaList[actPos] > extremaList[actPosMax]) {
-                kill = false;
-              }
-              else if ( isMinMax[actPos] == -1 && extremaList[actPos] < extremaList[actPosMin]) {
-                minFound = true;
-              }
-
-              lastPos = actPos;
-              actPos -= 1;
-              --iterExtremalList;
-              --iterMinMax;
-
-              //if minFound = true, then iterExtremalList (iterMinMax) points to
-              //the first element, which will be wiped out
-              startDeleteExtremList = iterExtremalList;
-              startDeleteMinMax     = iterMinMax;
-            }
-            else {
-              kill = false;
-            }
-          }
-
-          if ( (kill = true) && (minFound == true) ) {
-            // kill all extrema in between
-            extremaList.erase(startDeleteExtremList,endDeleteExtremList);
-            isMinMax.erase(startDeleteMinMax,endDeleteMinMax);
-            minFound = false;
-          }
-        }
-
-        else {
-          kill = false;
-        }
-   
-      }
-
-    }
-  
-    else if ( lastMinMax == -1 ) {
-      //last value is a minimum
-      
-      bool maxFound = false;
-      while ( kill ) {
-        std::cout << "kill=" << kill << std::endl;
-
-        //position of actual minimum
-        actPosMin = extremaList.size()-1;
-
-        //position of actual maximum
-        actPosMax = actPosMin -1;
-
-        //set the iterators
-        iterExtremalList = extremaList.end();
-        iterMinMax = isMinMax.end();
-
-        std::cout << "actPosMax=" << actPosMax << std::endl;
-
-        if (actPosMax >= 0 && isMinMax[actPosMax] < 2 ) {
-          lastPos = actPosMax;
-          actPos  = lastPos - 1;
-          --iterExtremalList;
-          --iterMinMax;
-
-          std::cout << "lastPos=" << lastPos << std::endl;
-
-          //now the iteration counter point to the last element
-          //in Extrema- and MinmaxList, which is a maximum!!
-          //this element is not allowed to be cleared!
-          endDeleteExtremList = iterExtremalList;
-          endDeleteMinMax     = iterMinMax;
-
-          while ( kill == true && maxFound == false ) {
-            std::cout << "In while, actPos=" << actPos << std::endl;
-
-            if ( actPos >= 0) {
-              if ( isMinMax[actPos] == 2 || isMinMax[actPos] == -2 ) {
-                kill = false;
-              }
-              else if ( isMinMax[actPos] == -1 && extremaList[actPos] < extremaList[actPosMin]) {
-                kill = false;
-              }
-              else if ( isMinMax[actPos] == 1 && extremaList[actPos] > extremaList[actPosMax]) {
-                maxFound = true;
-              }
-              lastPos = actPos;
-              actPos -= 1;
-              --iterExtremalList;
-              --iterMinMax;
-
-              //if maxFound = true, then iterExtremalList (iterMinMax) points to
-              //the first element, which will be wiped out
-              startDeleteExtremList = iterExtremalList;
-              startDeleteMinMax     = iterMinMax;
-            }
-            else {
-              kill = false;
-            }
-          }
-
-          if ( (kill = true) && (maxFound == true) ) {
-            // kill all extrema in between
-            extremaList.erase(startDeleteExtremList,endDeleteExtremList);
-            isMinMax.erase(startDeleteMinMax,endDeleteMinMax);
-            maxFound = false;
-          }
-        }
-
-        else {
-          kill = false;
-        }
-   
-      }
-    }
-
-    std::cout << "ExtremaList after wipout: " << extremaList.size() << std::endl;
-
-  }
 
 
   Double Preisach :: everett(Double X1, Double X2)
@@ -434,15 +154,143 @@ namespace CoupledField
     Double diffX = X2 - X1;
 
     if ( diffX > 0) {
-      newY = 0.5*diffX*diffX;
+      newY = 0.25*diffX*diffX;
     }
     else {
-      newY = -0.5*diffX*diffX;
+      newY = -0.25*diffX*diffX;
     }
 
-    return newY;
+    Double pPixel =  everettPixel(X1, X2);
+
+    std::cout << "P=" << newY << "  Ppixel=" << pPixel << std::endl;
+
+    //return newY;
+    return pPixel;
   }
 
+
+  Double Preisach :: everettPixel(Double val1, Double val2)
+  {
+    ENTER_FCN( "Preisach:: everettPixel" );
+
+    Double X1 = std::max(val1,val2);
+    Double X2 = std::min(val1,val2);
+
+    UInt M = preisachWeights.GetSizeRow();
+    Double delta = 2.0 / ( (Double) M );
+    std::cout << "delta=" << delta << std::endl;
+    std::cout << "e1=" << val1 << "  e2=" << val2 << std::endl;
+    std::cout << "X1=" << X1 << "  X2=" << X2 << std::endl;
+
+    // we compute the upper left corner within the preisach-domain
+    // alpha > X1; beta < X2;
+
+    //compute index for X1 (alpha)
+    Integer idx1 = -1;
+    Double alpha = -1.0;
+    while ( alpha <= X1 ) {
+      idx1++;
+      alpha += delta;
+      std::cout << "idx1=" << idx1 << "  alpha=" << alpha << std::endl;
+    }
+
+    if (alpha > 1.0) {
+      alpha = 1.0;
+      idx1 = M-1;
+    }
+
+    //compute index for X2 (beta)
+    Integer idx2 = -1;
+    Double  beta = -1.0;
+    while ( beta <= X2 ) {
+      idx2++;
+      beta += delta;
+    }
+    beta -= delta;
+
+    std::cout << "idx1=" << idx1 << "  idx2=" << idx2 << std::endl;
+    std::cout << "alpha=" << alpha << "  beta=" << beta << std::endl;
+
+    Double area = 0.0;
+    if ( idx1 >= 0 ) {
+      UInt start = std::min(idx1,idx2);
+      UInt stop  = std::max(idx1,idx2);
+      for ( UInt i=start; i<=stop; i++ ) {
+	for ( UInt j=start; j<=stop; j++ ) {
+	  area += preisachWeights[i][j];
+	}
+      }
+
+      area *= 0.5*delta*delta;
+
+      std::cout << "areaToMuch=" << area << std::endl;
+
+      //reduce the computed area
+      Double diffX1 = alpha - X1;
+      Double diffX2 = X2    - beta;
+      std::cout << " diffX1=" << diffX1 << "  diffX2=" << diffX2 << std::endl;
+
+      Double minusArea;
+ 
+      //check, if we are already on the diagonal!!
+      if ( idx1 == idx2 ) {
+	minusArea = (   diffX2 * (delta - 0.5*diffX2) 
+		      + diffX1 * (delta - 0.5*diffX1)
+                      - diffX1*diffX2 
+		     ) * preisachWeights[idx1][idx2];
+	std::cout << "minusArea1end=" << minusArea << std::endl;
+      }
+      else {
+	minusArea = ( (diffX1+diffX2 )*delta - diffX1*diffX2 ) 
+	  * preisachWeights[idx1][idx2];
+
+	std::cout << "minusArea1=" << minusArea << std::endl;
+	UInt idx = idx1-1;
+	while ( idx > idx2 ) {
+	  minusArea += diffX2 * delta * preisachWeights[idx][idx2];
+	  idx--;
+	  std::cout << "minusArea2=" << minusArea << std::endl;
+	}
+	minusArea += ( delta*diffX2 - 0.5*diffX2*diffX2 )
+	  * preisachWeights[idx][idx2]; 
+
+	std::cout << "minusArea3=" <<  ( delta*diffX2 - 0.5*diffX2*diffX2 )
+	  * preisachWeights[idx][idx2] << std::endl;
+	
+	idx = idx2 + 1;
+	while ( idx < idx1 ) {
+	  minusArea += diffX1 * delta * preisachWeights[idx1][idx];
+	  idx++;
+	}
+	minusArea += ( delta*diffX1 - 0.5*diffX1*diffX1 )  
+	  * preisachWeights[idx1][idx];
+      }
+
+      area -= minusArea; 
+    }
+
+    //sgn-function
+    if ( val2 < val1 ) {
+      std::cout << "val2 < val1" << std::endl;
+      area *= -1.0; 
+    }
+
+    return area;
+  }
+
+
+  void Preisach :: computePreisachWeights()
+  {
+    ENTER_FCN( "Preisach::computePreisachWeights" );
+
+    UInt dim = 6;
+    preisachWeights.Resize(dim,dim);
+    for ( UInt i=0; i<dim; i++) {
+      for ( UInt j=0; j<dim; j++) {
+	preisachWeights[i][j] = 0.5;
+      }
+    }
+  }
 
   Double Preisach :: normalizeInput(Double Xin)
   {

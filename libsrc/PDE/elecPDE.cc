@@ -64,6 +64,37 @@ namespace CoupledField {
     res1->fctType = fct;
     results_.Push_back( res1 );
     
+    //check for hysteresis modeling
+    isHysteresis_ = FALSE;
+    params->GetList( "nonLinear", nonLinType_, pdename_, "region" );
+    
+    for ( Integer k = 0; k < nonLinType_.GetSize(); k++ ) {
+      if ( nonLinType_[k] == "hysteresis" ) {
+        isHysteresis_ = TRUE;
+        break;
+      }
+    }
+
+    if( isHysteresis_ ) {
+
+      // solution method
+      params->Get( "method", nonLinMethod_, pdename_, "nonLinear" );
+      
+      // perform logging?
+      nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
+
+      // type of line search
+      params->Get( "type", lineSearch_, pdename_, "lineSearch" );
+
+      // incremental stopping criterion
+      params->Get( "incStopCrit", incStopCrit_, pdename_, "nonLinear" );
+      
+      // residual stopping criterion
+      params->Get( "resStopCrit", residualStopCrit_, pdename_, "nonLinear" );
+
+      // maximal number of NL-iterations
+      params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
+    }
     
   }
   

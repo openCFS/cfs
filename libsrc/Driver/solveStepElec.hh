@@ -29,9 +29,6 @@ namespace CoupledField
     void SolveStepStatic( );
 
     //! solves for one nonlinear static step 
-    void StepStaticNonLin( );
-
-    //! solves for one nonlinear static step 
     void StepStaticNonLinEpsDiff( );
 
     //----------------------- TRANSIENT---------------------------------------
