@@ -148,6 +148,9 @@ namespace CoupledField
 
   private:
 
+    //! List of regions with non-linearity
+    StdVector<std::string> nonLinType_;
+
     //! Obtain information on desired output quantities from parameter file
 
     //! This method is used to query the parameter handling object for the

@@ -37,19 +37,14 @@ namespace CoupledField {
     //       for transient analysis ;-)
     algsys_->InitRHS();
 
-   //  if ( PDE_.IsGeoUpdate() ) {
-//       algsys_->InitSol();
-//       algsys_->InitMatrix();
-//       //assemble_->SetReassemble();   
-//     }
-
 
     //for hysteresis modeling
     bool hystModel = false;
     //  bool hystModel = true;
     UInt numElems = PDE_.getPDE_numElems();
 
-    if (hystModel) {
+    //for hysteresis modeling
+    if ( isHyst_ ) {
       if ( actStep_ == 1 ) {
         Eprevious_.Resize(numElems);
         Dprevious_.Resize(numElems);
@@ -87,7 +82,7 @@ namespace CoupledField {
     bool nonLin = false;
 
     //  bool nonLin = true;
-    if (nonLin) {
+    if ( isHyst_ ) {
       StepStaticNonLinEpsDiff();
     }
     else {
@@ -121,19 +116,11 @@ namespace CoupledField {
     NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
     solhelp->GetAlgSysVector(solPrev);
 
-    // Update extrema-list just for first time step
-    if (actStep_ == 1) {
-      DoUpdateHyst();
-    }
-
     //clear RHS
     algsys_->InitRHS();
 
     //set BCs
     PDE_.SetBCs( actTime_ );
-
-    //compute constant part of RHS (div D(t) )
-    // ComputeConstPartRHS();
 
     // stores this as linear part of RHS
     algsys_->GetRHSVal( actRHS );
@@ -189,16 +176,8 @@ namespace CoupledField {
       // set changing part of RHS
       algsys_->UpdateRHS(SYSTEM,solPrev.GetPointer());
 
-      //compute residual for incremental solution
-      //    coeff = -oldSol;
-      //algsys_->UpdateRHS(SYSTEM,coeff.GetPointer());
-
-      //   algsys_->Print(SYSTEM);
-
       // build in the Dirichlet vales in system mmatrix and rhs
       algsys_->BuildInDirichlet();
-
-      algsys_->Print(SYSTEM);
 
       //get RHS
       Vector<Double> RHS;
@@ -252,10 +231,6 @@ namespace CoupledField {
       //    std::cout << "ResNorm=" << residualNorm << "  incrNorm=" 
       //        << incrementalErr << std::endl;
     
-      // boolean variable, holds condition if another iteration step
-      //   is necessary
-      incStopCrit_ = 1e-2;
-      nonLinMaxIter_ = 200;
       performOneMoreStep =  ( (incrementalErr > incStopCrit_) || (residualNorm > 1e-5))
         && (residualNorm > 1e-10) ;
     
@@ -533,146 +508,6 @@ namespace CoupledField {
   }
 
 
-  void SolveStepElec::StepStaticNonLin() {
-
-    ENTER_FCN( "SolveStepElec::StepStaticNonLin" );
-
-    //   actStep_ = kstep;
-    //   actTime_ = asteptime;
-
-    //   UInt job;
-    //   bool performOneMoreStep;
-    //   UInt iterationCounter=0;
-  
-    //   Vector<Double> newSol(numPDENodes_);
-    //   Vector<Double> oldSol(numPDENodes_);
-  
-    //   // just update dirichlet values
-    //   job = 3;
-  
-    //   // if first time step, setup system matrix
-    //   if (actStep_ == 1) {
-    //     assemble_->AssembleMatrices();
-    //     algsys_->ConstructEffectiveMatrix(matrix_factor_);
-    
-    //     //set job to 1: build in dirichlet BCs and compute preconditioner
-    //     job = 1;
-    //   }  
-  
-    //   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-
-    //   // set BCs, if effective mass matrix formulation, values of BCs depend on 
-    //   //  predictors, so predictors have to be computed beforehand
-    //   SetBCs(actTime_);
-
-    //   // set old solution  
-    //   newSol = solhelp->GetAlgSysVector();
-
-    //   // stores this as linear part of RHS
-    //   // StoreAlgsysToVec(RhsLinVal_, algsys_->GetRHSVal() );
-
-    //   // Update extrema-list just for first time step
-    //   if (actStep_ == 1) {
-    //     DoUpdateHyst();
-    //   }
-
-    //   do {
-    //     iterationCounter++;
-    //     // for every time step write out number of iteration loops to standard out
-    //     if (iterationCounter == 1)
-    //       std::cout << std::endl << "Time step:   "  << kstep 
-    //              << "  ,Iterations: " << iterationCounter << std::endl;
-    //     else 
-    //       std::cout      << "  " << iterationCounter << std::endl;
-    
-    // #ifdef DEBUG
-    //     *debug << std::endl
-    //         << "====================================================== "
-    //         << std::endl
-    //         <<   "Nonlinear Elecs: Perform internal loop no. "
-    //         << iterationCounter << std::endl;      
-    // #endif
-        
-    //     // set solution of previous iteration
-    //     oldSol = newSol;
-    
-    //     if ( iterationCounter>1 ) 
-    //       job = 3;
-    
-    //     // Set linear part of RHS
-    //     //    algsys_->InitRHS(RhsLinVal_.GetPointer());
-    //     algsys_->InitRHS();
-    
-    //     //std::cout << "  ,Iterations: " << iterationCounter << std::endl;
-    //     // put nonlinear part to RHS
-    //     AddPolarizationToRHS();
-
-    //     // calculation of residual error (takes care for Dirichlet BCs========
-    //     Vector<Double> actRHS;
-    //     StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() );       
-  
-    //     // std::cerr << "RHS\n" << actRHS << std::endl;
-
-    //     algsys_->BuildInDirichlet();
-
-    //     StoreAlgsysToVec(actRHS, algsys_->GetRHSVal() ); 
-    //     //  std::cerr << "RHS\n" << actRHS << std::endl;
-
-    //     if ( job == 1 ) {
-    //       algsys_->SetupSolver(job);
-    //       algsys_->SetupPrecond(job);
-    //     }
-    
-    //     algsys_->Solve();
-    
-    //     // store new solution in newSol
-    //     StoreAlgsysToVec(newSol, algsys_->GetSolutionVal() );
-
-    //     //   Double relax_val = 0.1;
-    //     //    newSol = oldSol*(1-relax_val) +  newSol*relax_val;
-     
-    //     //   std::cout << "NewSol:\n " << newSol << std::endl;
-
-    // #ifdef DEBUG
-    //     *debug << std::endl
-    //         << "New Solution:" << std::endl << newSol << std::endl;
-    // #endif
-
-    //     //put new solution to sol_
-    //     sol_->SetAlgSysVector(newSol);  
-    
-    //     // compute L2-Norm of error between last incremental solution and
-    //     // actual incremental solution
-    //     Double solIncrL2Norm=0;
-    //     for (UInt i=0; i<newSol.GetSize(); i++)
-    //       solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
-    
-    //     solIncrL2Norm = sqrt(solIncrL2Norm);
-    //     Double actSolL2Norm = newSol.NormL2();
-    
-    //     Double incrementalErr;
-    //     if (actSolL2Norm > 1)
-    //       incrementalErr = solIncrL2Norm / actSolL2Norm;
-    //     else
-    //       incrementalErr = solIncrL2Norm;
-    
-    //     // output of norms and data
-    //     nonLinLogging_ = true;
-    //     if ( nonLinLogging_ == true ) {
-    //       Info->WriteNonLinIter(pdename_, iterationCounter, incrementalErr,
-    //                          incrementalErr);
-    //     }
-    
-    //     // boolean variable, holds condition if another iteration step
-    //     //   is necessary
-    //     incStopCrit_ = 1e-4;
-    //     nonLinMaxIter_ = 200;
-    //     performOneMoreStep =    (incrementalErr > incStopCrit_);
-    
-    //   } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
-  
-  
-  }
 
 } // end of namespace
 

@@ -23,17 +23,21 @@ namespace CoupledField {
     //!
     void updateMinMaxList(Double newX, Integer idxElem);
 
+    //!
     void SetTimeStepVal(Double dt) 
     {;};
-
-    //!
-    void wipout(Integer idx);
 
     //!
     Double everett(Double x1, Double x2);
 
     //!
+    Double everettPixel(Double x1, Double x2);
+
+    //!
     Double normalizeInput(Double xInput);
+
+    //! compute preisach weights;
+    void computePreisachWeights();
 
   protected:
 
@@ -49,10 +53,13 @@ namespace CoupledField {
     Vector<Double> lastVal_;
     Vector<Double> preisachSum_;
 
-    std::vector<Integer> *isMinMax_;
-    std::vector<Double>  *extremaList_;
+    std::vector<Double>* strings_;
+    std::vector<Double>* helpStrings_;
 
+    std::vector<UInt> StringLenght_;
+    UInt maxStringLength_;
 
+    Matrix<Double> preisachWeights;
   };
 
 
