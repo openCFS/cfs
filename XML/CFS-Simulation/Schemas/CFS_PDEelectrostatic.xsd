@@ -246,6 +246,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
       <xsd:enumeration value="geo"/>
+      <xsd:enumeration value="hysteresis"/>
     </xsd:restriction>
   </xsd:simpleType>
 
