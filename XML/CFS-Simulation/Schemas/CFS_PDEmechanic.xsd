@@ -426,8 +426,12 @@
     <xsd:attribute name="stress1" type="xsd:float"/>
     <xsd:attribute name="stress2" type="xsd:float"/>
     <xsd:attribute name="stress3" type="xsd:float"/>
-    <xsd:attribute name="tag" type="xsd:token" use="optional"
-      default="anyTag"/>
+    <xsd:attribute name="stress4" type="xsd:float"/>
+    <xsd:attribute name="stress5" type="xsd:float"/>
+    <xsd:attribute name="stress6" type="xsd:float"/>
+    <xsd:attribute name="dynamics" type="xsd:token" use="optional" default=""/>
+    <!--xsd:attribute name="phase" type="xsd:float" use="optional" default=""/-->
+    <xsd:attribute name="tag" type="xsd:token" use="optional" default="anyTag"/>
   </xsd:complexType>
 
 </xsd:schema>
