@@ -598,7 +598,7 @@ namespace CoupledField {
       if (params->HasValue( "format", "gmv", "output"))
         stress_->SetNumDofs(3);
             
-      stress_->SetPtrEQNData(pde2_->GetEqnMap().get(), ptGrid_);
+      stress_->SetPtrEQNData(pde1_->GetEqnMap().get(), ptGrid_);
       stress_->Init();
             
     }
