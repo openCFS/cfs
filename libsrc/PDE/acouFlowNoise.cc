@@ -124,10 +124,10 @@ namespace CoupledField
     // On CFS side we always use the complete coupled region and later give a zero src to the
     // quadratic (or mid) nodes in case of 3D quadratric acoustic grid.
     MpCCInodes_=mapSD_allNodes_.GetSize();
-    
-    
     ptMpCCIexch_->PutExchangeGrid2MpCCI(couplSubDomId_);
+
 #else
+
     if( params->HasValue( "type", "vortexSrc", pdename_, "flowData" ) ) {
       vortexSrc_ = true;
       params->GetList( "name", regionNames, pdename_, "region" );
@@ -248,8 +248,6 @@ namespace CoupledField
 
     static UInt timestep=1;
 
-    std::cout<<"timestep counter in ComputeRHS: "<<timestep<<std::endl;
-
 #ifdef MpCCI
     double starttime, endtime;
     //std::cout<<"MpCCInodes_: "<< MpCCInodes_ << " dimension: " 
@@ -290,8 +288,8 @@ namespace CoupledField
 
 
 // Variables for ramping
-//     Double xfmin, yfmin, zfmin, xfmax, yfmax, zfmax, facRampXmin, facRampYmin, 
-//       facRampZmin, facRampXmax, facRampYmax, facRampZmax;
+    Double xfmin, yfmin, zfmin, xfmax, yfmax, zfmax, facRampXmin, facRampYmin, 
+       facRampZmin, facRampXmax, facRampYmax, facRampZmax;
     Double bndoffsetXmin, bndoffsetYmin, bndoffsetZmin, bndoffsetXmax, bndoffsetYmax, bndoffsetZmax ;
 #ifdef MpCCI
     params->Get("xfmin",xfmin, "MpCCI-flownoise");
@@ -342,6 +340,7 @@ namespace CoupledField
               for (j=0; j< elemssd.GetSize(); j++)
                 {
                   ptEl=elemssd[j]->ptElem;
+
                   LinearFlowNoiseInt * linear_load = 
                     new LinearFlowNoiseInt(ptEl);
                   
@@ -400,7 +399,7 @@ namespace CoupledField
         }
     }
     
-    else {     //for assigning nodal source
+    else {     //for assigning acoustic nodal sources
       UInt node, dof;
       Integer eqnNr;
       StdVector<UInt> connect(1);
@@ -465,16 +464,17 @@ namespace CoupledField
           StdVector<Double> Ampl_Phase;
           Ampl_Phase.Resize(2);
           Ampl_Phase.Init();
-
-          //Getting current freq (received as atime)
+          //Getting freq. file name without node number extension from xml file
+          std::string nameFreqFile;
+          params->Get("name", nameFreqFile, "freqDataFile");
           for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++) {
-          actFreq = atime;
+            actFreq = atime;
             if (dim_==3)
               node = mapSD_onlyLinNodes_[idx];
             else
               node = mapSD_allNodes_[idx];    
           
-              Ampl_Phase=ptFreqFunc->NodalFreqFuncAtFreq(actFreq,"freqsrcfile.node",
+              Ampl_Phase=ptFreqFunc->NodalFreqFuncAtFreq(actFreq,nameFreqFile.c_str(),
                                                          node);              
             Double valAmpl = Ampl_Phase[0];
             Double valPhase = Ampl_Phase[1];
@@ -523,7 +523,8 @@ namespace CoupledField
               {
                 eqnNr = eqnMap_->GetNodeEqn(mapSD_onlyLinNodes_[idx],dof );
                 //std::cout<<"EqnDOF= "<<eqnDof<<" EqnNr= "<<eqnNr<<" dof= "<<dof
-                //         <<" NodeNumber= "<<mapSD_onlyLinNodes_[idx]<<" Ampl= "<<Ampl_Phase[0]<<std::endl;
+                //         <<" NodeNumber= "<<mapSD_onlyLinNodes_[idx]
+                //         <<" Ampl= "<<Ampl_Phase[0]<<std::endl;
               }
             else
               eqnNr = eqnMap_->GetNodeEqn(mapSD_allNodes_[idx],dof );
@@ -537,7 +538,7 @@ namespace CoupledField
 #endif    
   
     if (plotRHS_ && !isHarmonic_ && vortexFlag_!=6 && vortexFlag_!=7){
-      ///////// For plotting the RHS as solution for analysing it
+      // For plotting the RHS as solution for analysing it
       //std::cout<<"Init rhs_ in ComputeRHS(). vortexFlag="<<vortexFlag_<<std::endl;
       rhs_.SetNumSolutions(1);
       rhs_.SetNumNodes(numPDENodes_);
@@ -920,8 +921,6 @@ namespace CoupledField
            std::cerr <<std::endl;
          }
      }
-   
-
 }
 
   void AcouFlowNoise::ReadFlowData(const Char * aname, UInt timestep,
@@ -938,24 +937,7 @@ namespace CoupledField
 
     strcpy(anameloc,aname);
          
-    //   if (timestep > 199)
-    //     {
-    //       timestep=timestep-200;
-    //       strcat(anameloc,"8");
-    //     }  
-    //   else
-    //     {
-    //       if (timestep > 99)
-    //      {
-    //        timestep=timestep-100;
-    //        strcat(anameloc,"7"); 
-    //      }
-    //       else
-    //      {
-    //        strcat(anameloc,"6"); 
-    //      }      
-    //     }
-  
+
     sprintf(aux,"%i",timestep);
 
     //   if (timestep/10 < 1) strcat(anameloc,"0");
