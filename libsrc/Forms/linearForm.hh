@@ -213,6 +213,45 @@ namespace CoupledField
   };
 
 
+
+  // =============================================================================
+  // add mecganical stress as forces on RHS
+  // =============================================================================
+  
+
+  /// add mecganical stress as forces on RHS
+  class  AddStressRHSInt : public LinearForm
+  {
+  public:
+
+    /// constructor
+    AddStressRHSInt(BaseMaterial* matData,
+		     Vector<Double>& addStrainVec,
+		     SubTensorType type);
+
+    /// destructor
+    virtual ~AddStressRHSInt();
+
+    /// Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Double> & result,
+                         EntityIterator& ent );
+
+  
+  protected:
+    /// returns nr. of degrees of freedom
+    virtual UInt getNrDofs(){return 3;};
+
+    /// material data
+    BaseMaterial* matData_;
+
+    //! strain vector
+    Vector<Double> addStress_;
+
+    //!
+    SubTensorType subTensorType_;
+  };
+
+
   // =============================================================================
   // calculation for right hand side of flownoise problem
   // =============================================================================

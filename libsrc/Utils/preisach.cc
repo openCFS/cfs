@@ -6,8 +6,8 @@
 namespace CoupledField
 { 
 
-  Preisach :: Preisach(Integer numElem, Double xSat, Double ySat, Double xRem,
-                       bool isVirgin) 
+  Preisach :: Preisach(Integer numElem, Double xSat, Double ySat, 
+		       Matrix<Double>& preisachWeight, bool isVirgin) 
     : Hysteresis(numElem)
   {
     ENTER_FCN("Preisach::Preisach" );
@@ -20,8 +20,10 @@ namespace CoupledField
     }
 
     YSaturated_  = ySat;
-    YRemnant_    = xRem;
+    //    YRemnant_    = xRem;
     isVirgin_    = isVirgin;
+
+    preisachWeights_ = preisachWeight;
 
     lastVal_.Resize(numElem);
     preisachSum_.Resize(numElem);
@@ -43,6 +45,13 @@ namespace CoupledField
 	strings_[el][i] = 0.0;
       }
     }
+
+    //allocate memory for previous results, needed for the
+    //effective material parameter formulation
+    Xprevious_.Resize(numElem);
+    Yprevious_.Resize(numElem);
+    Xprevious_.Init(0.0);
+    Yprevious_.Init(0.0);
 
     computePreisachWeights();
   }
@@ -176,7 +185,7 @@ namespace CoupledField
     Double X1 = std::max(val1,val2);
     Double X2 = std::min(val1,val2);
 
-    UInt M = preisachWeights.GetSizeRow();
+    UInt M = preisachWeights_.GetSizeRow();
     Double delta = 2.0 / ( (Double) M );
     std::cout << "delta=" << delta << std::endl;
     std::cout << "e1=" << val1 << "  e2=" << val2 << std::endl;
@@ -217,7 +226,7 @@ namespace CoupledField
       UInt stop  = std::max(idx1,idx2);
       for ( UInt i=start; i<=stop; i++ ) {
 	for ( UInt j=start; j<=stop; j++ ) {
-	  area += preisachWeights[i][j];
+	  area += preisachWeights_[i][j];
 	}
       }
 
@@ -237,33 +246,33 @@ namespace CoupledField
 	minusArea = (   diffX2 * (delta - 0.5*diffX2) 
 		      + diffX1 * (delta - 0.5*diffX1)
                       - diffX1*diffX2 
-		     ) * preisachWeights[idx1][idx2];
+		     ) * preisachWeights_[idx1][idx2];
 	std::cout << "minusArea1end=" << minusArea << std::endl;
       }
       else {
 	minusArea = ( (diffX1+diffX2 )*delta - diffX1*diffX2 ) 
-	  * preisachWeights[idx1][idx2];
+	  * preisachWeights_[idx1][idx2];
 
 	std::cout << "minusArea1=" << minusArea << std::endl;
 	UInt idx = idx1-1;
 	while ( idx > idx2 ) {
-	  minusArea += diffX2 * delta * preisachWeights[idx][idx2];
+	  minusArea += diffX2 * delta * preisachWeights_[idx][idx2];
 	  idx--;
 	  std::cout << "minusArea2=" << minusArea << std::endl;
 	}
 	minusArea += ( delta*diffX2 - 0.5*diffX2*diffX2 )
-	  * preisachWeights[idx][idx2]; 
+	  * preisachWeights_[idx][idx2]; 
 
 	std::cout << "minusArea3=" <<  ( delta*diffX2 - 0.5*diffX2*diffX2 )
-	  * preisachWeights[idx][idx2] << std::endl;
+	  * preisachWeights_[idx][idx2] << std::endl;
 	
 	idx = idx2 + 1;
 	while ( idx < idx1 ) {
-	  minusArea += diffX1 * delta * preisachWeights[idx1][idx];
+	  minusArea += diffX1 * delta * preisachWeights_[idx1][idx];
 	  idx++;
 	}
 	minusArea += ( delta*diffX1 - 0.5*diffX1*diffX1 )  
-	  * preisachWeights[idx1][idx];
+	  * preisachWeights_[idx1][idx];
       }
 
       area -= minusArea; 
@@ -284,10 +293,10 @@ namespace CoupledField
     ENTER_FCN( "Preisach::computePreisachWeights" );
 
     UInt dim = 6;
-    preisachWeights.Resize(dim,dim);
+    preisachWeights_.Resize(dim,dim);
     for ( UInt i=0; i<dim; i++) {
       for ( UInt j=0; j<dim; j++) {
-	preisachWeights[i][j] = 0.5;
+	preisachWeights_[i][j] = 0.5;
       }
     }
   }

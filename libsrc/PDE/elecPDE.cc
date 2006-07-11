@@ -7,6 +7,7 @@
 #include "elecPDE.hh"
 
 #include "Forms/linElecInt.hh"
+#include "Forms/nLinElecHystInt.hh"
 #include "Forms/elecchargeop.hh"
 #include "Forms/laplaceInt.hh"
 #include "DataInOut/writeresults.hh"
@@ -137,20 +138,46 @@ namespace CoupledField {
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( subdoms_[actSD] );
 
-      // --- standard real-valued stiffness integrator ---
-      form = new linElecInt( materials_[subdoms_[actSD]], tensorType,
-                             upLagrangeForm );
-      form->SetFactor( factor );
+      if ( nonLinType_[actSD] == "hysteresis" ) {
+	StdVector<Elem*> elemssd;
+	ptgrid_->GetElems(elemssd, subdoms_[actSD]);
+	UInt numElSD =  elemssd.GetSize();
 
-      BiLinFormContext * stiffIntDescr = 
-        new BiLinFormContext(form, STIFFNESS );
+	//allocate for hystersis modeling
+	materials_[subdoms_[actSD]]->InitHyst(numElSD, actSDList);
+	
+	nlinElecHystInt* nlForm;
+	nlForm = new nlinElecHystInt( materials_[subdoms_[actSD]], tensorType,
+				      upLagrangeForm );
 
-      stiffIntDescr->SetPtPdes(this, this);
-      stiffIntDescr->SetResults( results_[0], results_[0],
+	nlForm->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+	nlForm->Set4Hyst(ptgrid_, this, eqnMap_,  results_[0]);
+	nlForm->SetFactor( factor );
+
+	BiLinFormContext * stiffIntDescr = 
+	  new BiLinFormContext(nlForm, STIFFNESS );
+	
+	stiffIntDescr->SetPtPdes(this, this);
+	stiffIntDescr->SetResults( results_[0], results_[0],
+				   actSDList, actSDList );
+	
+	assemble_->AddBiLinearForm( stiffIntDescr );
+      }
+      else {
+	// --- standard real-valued stiffness integrator ---
+	form = new linElecInt( materials_[subdoms_[actSD]], tensorType,
+			       upLagrangeForm );
+	form->SetFactor( factor );
+
+	BiLinFormContext * stiffIntDescr = 
+	  new BiLinFormContext(form, STIFFNESS );
+
+	stiffIntDescr->SetPtPdes(this, this);
+	stiffIntDescr->SetResults( results_[0], results_[0],
                                  actSDList, actSDList );
-
-      assemble_->AddBiLinearForm( stiffIntDescr );
-
+	
+	assemble_->AddBiLinearForm( stiffIntDescr );
+      }
       
       // --- check for complex valued material parameter ---
       if( params->HasValue( "type", "imagMaterialParameter", 

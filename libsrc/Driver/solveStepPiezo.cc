@@ -73,7 +73,7 @@ namespace CoupledField {
             materialData_[iSD]->GetScalar((Integer&)dir,P_DIRECTION,INTEGER);
             isVirgin = true; 
 
-            hyst_[iSD] = new Preisach(numSDElems, Esat, Psat, Ec, isVirgin);
+	    //            hyst_[iSD] = new Preisach(numSDElems, Esat, Psat, isVirgin);
           }
           else if (hystType == "jiles") {
             Double a, alpha, k, c;

@@ -3,6 +3,7 @@
 
 #include <Elements/basefe.hh>
 #include <Forms/bdbInt.hh>
+#include <Forms/gradfieldop.hh>
 #include <Materials/baseMaterial.hh>
 #include <General/environment.hh>
 
@@ -38,6 +39,12 @@ namespace CoupledField {
     // =======================================================================
     // CALCULATION 
     // =======================================================================
+
+    //! Compute element matrix associated to ADB form
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+			    EntityIterator& ent1, 
+			    EntityIterator& ent2 );
+
     //! Compute the matrix \f$B\f$ of the \f$BDB\f$ operator
     //! \param bMat    (output) computed matrix \f$B\f$
     //! \param ip      (input)  number of integration point
@@ -68,6 +75,13 @@ namespace CoupledField {
     }
     
     //@}
+
+    //! set objects for computation of E-field
+    void Set4Hyst(Grid * ptGrid, 
+		  StdPDE* ptPDE,
+		  shared_ptr<EqnMap> eqnMap,
+		  shared_ptr<ResultDof> result);
+
     
   protected:
     
@@ -76,6 +90,11 @@ namespace CoupledField {
 
     //! multiplicative factor for material
     Double factor_;
+
+    /// scalar electric potential of all nodes of actual element
+    Vector<Double> elemPot_;
+
+    GradientFieldOp<Double> * EfieldOp_;
     
   };
 
