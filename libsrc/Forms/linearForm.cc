@@ -1389,7 +1389,32 @@ namespace CoupledField {
       isaxi_ = true;
 
     subTensorType_ = type;
-    addStress_     = stressVec;
+    if ( type == AXI ) {
+      addStress_.Resize(4);
+      addStress_.Init(0.0);
+      addStress_[0] = stressVec[0];
+      addStress_[1] = stressVec[1];
+      addStress_[2] = stressVec[5];
+      addStress_[3] = stressVec[2];
+    }
+    else if ( type == PLANE_STRAIN ) {
+      addStress_.Resize(3);
+      addStress_.Init(0.0);
+      addStress_[0] = stressVec[0];
+      addStress_[1] = stressVec[1];
+      addStress_[2] = stressVec[5];
+
+    }
+    else if ( type == FULL ) {
+      addStress_.Resize(6);
+      addStress_.Init(0.0);
+      addStress_[0] = stressVec[0];
+      addStress_[1] = stressVec[1];
+      addStress_[2] = stressVec[2];
+      addStress_[3] = stressVec[3];      
+      addStress_[4] = stressVec[4];
+      addStress_[5] = stressVec[5];
+    }
   }
 
   AddStressRHSInt::~AddStressRHSInt()
@@ -1422,7 +1447,7 @@ namespace CoupledField {
     partElemVec.Init();
   
     elemVec.Resize(nrNodes*nrDofs);
-    elemVec.Init();
+    elemVec.Init(0.0);
   
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -1444,10 +1469,10 @@ namespace CoupledField {
 	}
       
         partElemVec *= jacDet * intWeights[actIntPt-1];
-	elemVec =  partElemVec;
+	elemVec +=  partElemVec;
       }
 
-    //    std::cout << "RHS Forcfe:\n" <<  elemVec << std::endl;
+    //    std::cout << "\n  Forcfe:\n" <<  elemVec << std::endl;
     delete bilinearStiff;
   }
 

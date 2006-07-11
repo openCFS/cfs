@@ -642,7 +642,7 @@ namespace CoupledField {
 	LinearForm * rhsStress = new AddStressRHSInt(actSDMat, preStress, tensorType);
 
         LinearFormContext * linRhs = 
-          new LinearFormContext( rhsStress );
+          new LinearFormContext( rhsStress,0.0, preStressFnc_[actRegion] );
         linRhs->SetPtPde( this );
         linRhs->SetResult( results_[0], actSDList );
         assemble_->AddLinearForm( linRhs );
@@ -1676,8 +1676,9 @@ namespace CoupledField {
   
       if ( !stressInfo.IsEmpty() ) {
 	preStressList_[actRegion] = "RHS";
-	Vector<Double> stress(3);
+	Vector<Double> stress(6);
 	StdVector<Double> getStress;
+	StdVector<std::string> fncName;
 	
 	keyVec = "mechanic" , "region" , "preStress" , "stress1";
 	params->GetList( keyVec, attrVec, valVec, getStress );
@@ -1691,7 +1692,24 @@ namespace CoupledField {
 	params->GetList( keyVec, attrVec, valVec, getStress );      
 	stress[2] = getStress[0];
 
+	keyVec = "mechanic" , "region" , "preStress" , "stress4";
+	params->GetList( keyVec, attrVec, valVec, getStress );      
+	stress[3] = getStress[0];
+
+	keyVec = "mechanic" , "region" , "preStress" , "stress5";
+	params->GetList( keyVec, attrVec, valVec, getStress );      
+	stress[4] = getStress[0];
+
+	keyVec = "mechanic" , "region" , "preStress" , "stress6";
+	params->GetList( keyVec, attrVec, valVec, getStress );      
+	stress[5] = getStress[0];
+
 	preStressVal_[actRegion] = stress;
+
+	keyVec = "mechanic" , "region" , "preStress" , "dynamics";
+	params->GetList( keyVec, attrVec, valVec, fncName );      
+
+	preStressFnc_[actRegion] = fncName[0];
       }
     }
 
