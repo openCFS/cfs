@@ -3,8 +3,6 @@
 #include <fstream>
 #include <math.h>
 
-#include "Domain/grid.hh"
-#include "Domain/GridCFS/interface_gridcfs.hh"
 #include "freqfunc.hh"
 #include "WriteInfo.hh"
 #include "ParamHandling/BaseParamHandler.hh"

@@ -61,11 +61,9 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
       valVec = "anyTag";
       keyVec = "transient", "numSteps";
       params->Get(keyVec, attrVec, valVec, numSteps_);
-      std::cout<<"Total number of TS from MpCCI class"<<numSteps_<<std::endl;
       keyVec = "transient", "firstDt";
       params->Get(keyVec, attrVec, valVec, firstdt_);
-      std::cout<<"TS size got from MpCCI class"<<firstdt_<<std::endl;
-
+      
       nodalSrcMat_=new Double*[MpCCInodes_];
       for (UInt i=0; i<=MpCCInodes_;i++)
         nodalSrcMat_[i]=new Double[numSteps_];

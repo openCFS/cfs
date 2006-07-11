@@ -569,7 +569,6 @@ namespace CoupledField {
     
   }
   
-
   void WriteResults::WriteElemHistoryHarmonic(const ElemStoreSol<Complex>&data,
                                               const UInt step,
                                               const Double frequency,

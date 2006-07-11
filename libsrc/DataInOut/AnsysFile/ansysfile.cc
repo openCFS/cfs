@@ -526,8 +526,8 @@ namespace CoupledField {
         Warning( __FILE__, __LINE__ );
       } // end if 
     } // end for
-  }
 
+  }
 
   void AnsysFile::GetNamedElems( StdVector<StdVector<UInt> > & elems,
                                  StdVector<std::string> & elemNames ) {

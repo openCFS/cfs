@@ -65,33 +65,21 @@ namespace CoupledField
     //<! mapping containing all nodes of coupled region
      StdVector<UInt> mapSD_allNodes_;
     
-  bool  writeGridFile_; //!<flags to write grid with coupled vals in file
-  bool  writeSrcFileperTS_; //!<flags to write coarse srcs in time step files
-  //!Objects for topology files
-  std::ofstream * outelemfile_;
-  std::ofstream * outnodefile_;
-  //!Object to file for storing src in time step files (NrFiles=NrTimeSteps)
-  std::ofstream * outsrcfile_;
+    bool  writeGridFile_; //!<flags to write grid with coupled vals in file
+    bool  writeSrcFileperTS_; //!<flags to write coarse srcs in time step files
+    //!Objects for topology files
+    std::ofstream * outelemfile_;
+    std::ofstream * outnodefile_;
+    //!Object to file for storing src in time step files (NrFiles=NrTimeSteps)
+    std::ofstream * outsrcfile_;
 
-    UInt vortexFlag_;//!
+    UInt vortexFlag_;//! To choose output for vortex sound computation
 
 
     //!MpCCI
 #ifdef MpCCI
-     MpCCIexch * ptMpCCIexch_;
-     Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
-//     //    Integer meshId_;
-//     //    Integer partId_;
-//     //    Integer nNodeIds_;
-//     //Integer *nodeIds_;
-//     //Integer GlobalDim_;
-//     //Integer nElemIds_;
-//     //Integer *elemIds_;
-//     //Integer nElemTypes_;
-//     //Integer *nNodesPerElem_;
-//     //Integer *elemTypes_;
-//     //Integer MpCCIprocess_;
-
+    MpCCIexch * ptMpCCIexch_;
+    Integer MpCCInodes_; //<! number of FE-nodes for MpCCI-domain
 #endif
 
   };
