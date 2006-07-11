@@ -267,7 +267,10 @@ namespace CoupledField
     std::map<RegionIdType,std::string> preStressList_;
 
     //! prestress-values: numSubdoms x 3 
-     std::map< RegionIdType, Vector<Double> > preStressVal_; 
+    std::map< RegionIdType, Vector<Double> > preStressVal_; 
+
+    //! dynamics of pressure loads
+     std::map< RegionIdType, std::string > preStressFnc_;
 
     /// external forces (for nonlin simulations)
     Vector<Double> extForces_;
