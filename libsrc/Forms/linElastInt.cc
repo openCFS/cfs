@@ -132,6 +132,15 @@ namespace CoupledField
     isSetIntPoint_ = false;
   }
 
+  // returns B - matrix 
+  void linElastInt::calcBMatOnly( Matrix<Double> &bMat, UInt ip,
+				  BaseFE* elem, Matrix<Double> &ptCoord ) {
+
+    ptelem = elem;
+    calcBMat(bMat, ip, ptCoord);
+  }
+
+
   void linElastInt:: calcDMat(Matrix<Double> & dMat)
   {
     ENTER_FCN( "linElastInt::calcDMat" );

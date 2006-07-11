@@ -27,8 +27,7 @@
 namespace CoupledField {
 
   MechPDE::MechPDE(Grid * aptgrid, TimeFunc *aptTimeFunc, WriteResults *aptOut)
-    :SinglePDE(aptgrid, aptOut, aptTimeFunc), 
-     preStressVal_(0.0) {
+    :SinglePDE(aptgrid, aptOut, aptTimeFunc) {
     ENTER_FCN( "MechPDE::MechPDE" );
 
     pdename_          = "mechanic";
@@ -129,7 +128,7 @@ namespace CoupledField {
       }
 
     //check for prestressing
-    ReadPreStressing();
+    //    ReadPreStressing();
 
     // Register functions for scripting
     RegisterFunctions();
@@ -144,9 +143,7 @@ namespace CoupledField {
   void MechPDE::ReadDampingInformation( )
   {
     ENTER_FCN( "MechPDE::ReadDampingInformation" );
-    
-
-    
+      
     fracMemory_ = 0;
     bool identical = true; // i.e. same type of damping for all regions
     Integer firstFrac=-1;
@@ -277,6 +274,9 @@ namespace CoupledField {
     ENTER_FCN( "MechPDE::ReadSpecialBCs" );
     
     ReadRegionLoads();
+
+    //check for prestressing
+    ReadPreStressing();
 
   }
 
@@ -518,34 +518,36 @@ namespace CoupledField {
         assemble_->AddBiLinearForm(actIntDescrStiffImag  );
       }
         
+      //check for prestressing
+      //    if ( isPreStresss[ 
         
       //for prestressing
-      for ( UInt preStr=0; preStr<preStressDomain_.GetSize(); preStr++ ) {
-        if ( actRegion == preStressDomain_[preStr]) {
-          Vector<Double> preStrVal(3);
-          preStrVal[0] = preStressValX_[preStr];
-          preStrVal[1] = preStressValY_[preStr];
-          preStrVal[2] = preStressValZ_[preStr];
+//       for ( UInt preStr=0; preStr<preStressDomain_.GetSize(); preStr++ ) {
+//         if ( actRegion == preStressDomain_[preStr]) {
+//           Vector<Double> preStrVal(3);
+//           preStrVal[0] = preStressValX_[preStr];
+//           preStrVal[1] = preStressValY_[preStr];
+//           preStrVal[2] = preStressValZ_[preStr];
             
-          BaseForm * bilinearPreStress;
-          if (subType_ == "planeStrain")
-            bilinearPreStress = new PreStressIntPlaneStrain(actSDMat, preStrVal);
-          else if (subType_ == "axi")
-            bilinearPreStress = new PreStressIntAxi(actSDMat, preStrVal);
-          else if (subType_ == "3d")
-            bilinearPreStress = new PreStressInt3D(actSDMat, preStrVal);
-          else 
-            Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);               
+//           BaseForm * bilinearPreStress;
+//           if (subType_ == "planeStrain")
+//             bilinearPreStress = new PreStressIntPlaneStrain(actSDMat, preStrVal);
+//           else if (subType_ == "axi")
+//             bilinearPreStress = new PreStressIntAxi(actSDMat, preStrVal);
+//           else if (subType_ == "3d")
+//             bilinearPreStress = new PreStressInt3D(actSDMat, preStrVal);
+//           else 
+//             Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);               
 	    
-          BiLinFormContext * actIntDescrPre =
-            new BiLinFormContext(bilinearPreStress, STIFFNESS );
-          actIntDescrPre->SetPtPdes(this, this);
-          actIntDescrPre->SetResults( results_[0], results_[0],
-                                      actSDList, actSDList );
+//           BiLinFormContext * actIntDescrPre =
+//             new BiLinFormContext(bilinearPreStress, STIFFNESS );
+//           actIntDescrPre->SetPtPdes(this, this);
+//           actIntDescrPre->SetResults( results_[0], results_[0],
+//                                       actSDList, actSDList );
 	    
-          assemble_->AddBiLinearForm(actIntDescrPre);
-        }
-      }
+//           assemble_->AddBiLinearForm(actIntDescrPre);
+//         }
+//       }
       
       
       // ==============  add nonlinear stiffness ============================
@@ -629,6 +631,21 @@ namespace CoupledField {
         nLinRhs->SetPtPde( this );
         nLinRhs->SetResult( results_[0], actSDList );
         assemble_->AddLinearForm( nLinRhs );
+      }
+
+      if (  preStressList_[actRegion] == "RHS" ) {
+	Vector<Double> preStress = preStressVal_[actRegion];
+
+	//transform the type
+	SubTensorType tensorType;
+	String2Enum(subType_,tensorType);
+	LinearForm * rhsStress = new AddStressRHSInt(actSDMat, preStress, tensorType);
+
+        LinearFormContext * linRhs = 
+          new LinearFormContext( rhsStress );
+        linRhs->SetPtPde( this );
+        linRhs->SetResult( results_[0], actSDList );
+        assemble_->AddLinearForm( linRhs );
       }
 
       // Give entities and result to equation numbering class
@@ -1638,53 +1655,96 @@ namespace CoupledField {
 
     ENTER_FCN( "MechPDE::ReadPreStressing" );
 
+    // Construct vectors for restricted search parameter
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
-    StdVector<std::string> regionNames;
 
-    keyVec = pdename_, "preStressing", "preStress", "name";
-    attrVec = "", "", "tag";
-    valVec  = "", "", bcSequenceTag_;
+    for (UInt k = 0; k < subdoms_.GetSize(); k++) {
 
-    params->GetList(keyVec, attrVec, valVec, regionNames );
-    ptgrid_->RegionNameToId( preStressDomain_, regionNames );
+      RegionIdType actRegion = subdoms_[k];
 
-    if ( preStressDomain_.GetSize() > 0 ) {
+      std::string actRegionName;
+      actRegionName = ptgrid_->RegionIdToName( actRegion );
+      keyVec = "mechanic" , "region" , "preStress" , "type";
+      attrVec= ""         , "name"   , "";
+      valVec = ""         , actRegionName, "";
+      StdVector<std::string> stressInfo;
 
-      Info->PrintF( pdename_,
-                    " Found prestressing in the following regions:\n" );
+      params->GetList( keyVec, attrVec, valVec, stressInfo);
+      
+  
+      if ( !stressInfo.IsEmpty() ) {
+	preStressList_[actRegion] = "RHS";
+	Vector<Double> stress(3);
+	StdVector<Double> getStress;
+	
+	keyVec = "mechanic" , "region" , "preStress" , "stress1";
+	params->GetList( keyVec, attrVec, valVec, getStress );
+	stress[0] = getStress[0];
+	  
+	keyVec = "mechanic" , "region" , "preStress" , "stress2";
+	params->GetList( keyVec, attrVec, valVec, getStress );      
+	stress[1] = getStress[0];
+	  
+	keyVec = "mechanic" , "region" , "preStress" , "stress3";
+	params->GetList( keyVec, attrVec, valVec, getStress );      
+	stress[2] = getStress[0];
 
-      Double tmpDir;
-
-      // Construct vectors for restricted search parameter
-      StdVector<std::string> keyVec;
-      StdVector<std::string> attrVec;
-      StdVector<std::string> valVec;
-      attrVec = "", "", "name";
-
-      // for each prestress domain ...
-      for ( UInt k = 0; k < preStressDomain_.GetSize(); k++ ) {
-
-        // ... read direction of magnetisation
-        valVec = "", "", regionNames[k];
-
-        keyVec  = pdename_, "preStressing", "preStress", "orientX";
-        params->Get( keyVec, attrVec, valVec, tmpDir);
-        preStressValX_.Push_back( tmpDir);
-
-        keyVec  = pdename_, "preStressing", "preStress", "orientY";
-        params->Get( keyVec, attrVec, valVec, tmpDir );
-        preStressValY_.Push_back( tmpDir );
-
-        keyVec  = pdename_, "preStressing", "preStress", "orientZ";
-        params->Get( keyVec, attrVec, valVec, tmpDir );
-        preStressValZ_.Push_back( tmpDir );
-
-        // ... report name to logfile
-        Info->PrintF( pdename_, "%s\n", regionNames[k].c_str());
+	preStressVal_[actRegion] = stress;
       }
     }
+
+//     StdVector<std::string> keyVec;
+//     StdVector<std::string> attrVec;
+//     StdVector<std::string> valVec;
+//     StdVector<std::string> regionNames;
+
+//     keyVec = pdename_, "preStressing", "preStress", "name";
+//     attrVec = "", "", "tag";
+//     valVec  = "", "", bcSequenceTag_;
+
+//     params->GetList(keyVec, attrVec, valVec, regionNames );
+//     ptgrid_->RegionNameToId( preStressDomain_, regionNames );
+
+//     if ( preStressDomain_.GetSize() > 0 ) {
+
+//       Info->PrintF( pdename_,
+//                     " Found prestressing in the following regions:\n" );
+
+//       Double tmpDir;
+
+//       // Construct vectors for restricted search parameter
+//       StdVector<std::string> keyVec;
+//       StdVector<std::string> attrVec;
+//       StdVector<std::string> valVec;
+//       attrVec = "", "", "name";
+
+//       // for each prestress domain ...
+//       for ( UInt k = 0; k < preStressDomain_.GetSize(); k++ ) {
+
+//         // ... read direction of magnetisation
+//         valVec = "", "", regionNames[k];
+
+//         keyVec  = pdename_, "preStressing", "preStress", "orientX";
+//         params->Get( keyVec, attrVec, valVec, tmpDir);
+//         preStressValX_.Push_back( tmpDir);
+
+//         keyVec  = pdename_, "preStressing", "preStress", "orientY";
+//         params->Get( keyVec, attrVec, valVec, tmpDir );
+//         preStressValY_.Push_back( tmpDir );
+
+//         keyVec  = pdename_, "preStressing", "preStress", "orientZ";
+//         params->Get( keyVec, attrVec, valVec, tmpDir );
+//         preStressValZ_.Push_back( tmpDir );
+
+//         // ... report name to logfile
+//         Info->PrintF( pdename_, "%s\n", regionNames[k].c_str());
+//       }
+
+//    }
+
+
   }
 
   template <class TYPE>

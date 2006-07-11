@@ -25,6 +25,10 @@ namespace CoupledField {
                             EntityIterator& ent1, 
                             EntityIterator& ent2 );
 
+    //! just for computation of B - matrix
+    void calcBMatOnly( Matrix<Double> &bMat, UInt ip,
+		       BaseFE* elem, Matrix<Double> &ptCoord );
+
   protected:    
 
      //! calculates the material data 

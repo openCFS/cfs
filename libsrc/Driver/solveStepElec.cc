@@ -61,7 +61,7 @@ namespace CoupledField {
         Ec_       = 0.9e6;
         Dir_      = 2;
         isVirgin_ = true;   
-        hyst_ = new Preisach(numElems, Esat_, Psat_, Ec_, isVirgin_);
+	//        hyst_ = new Preisach(numElems, Esat_, Psat_, isVirgin_);
       
         doInit_ = false;
       }

@@ -263,18 +263,12 @@ namespace CoupledField
     StdVector<std::string> pressFnc_;
 
 
-    //!
-    StdVector<RegionIdType> preStressDomain_;
-    StdVector<Double> preStressValX_; //! orientation in x
-    StdVector<Double> preStressValY_; //! orientation in y
-    StdVector<Double> preStressValZ_; //! orientation in z
+    //! list of prestressing types
+    std::map<RegionIdType,std::string> preStressList_;
 
-    /// value of prestress
-    Double preStressVal_;
+    //! prestress-values: numSubdoms x 3 
+     std::map< RegionIdType, Vector<Double> > preStressVal_; 
 
-    /// direction of prestress
-    Directions preStressDir_;
-  
     /// external forces (for nonlin simulations)
     Vector<Double> extForces_;
 

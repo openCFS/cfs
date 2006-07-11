@@ -8,6 +8,8 @@
 #include "Utils/StdVector.hh"
 #include "Matrix/matrix.hh"
 #include "Utils/coordSystem.hh"
+#include "Utils/preisach.hh"
+#include "Domain/entityList.hh"
 
 #include "baseMaterial.hh"
 
@@ -195,6 +197,7 @@ namespace CoupledField
       posStr = stringData.find( *iter );
       std::map<MaterialType, Integer >::const_iterator posInt;
       posInt = integerData.find( *iter );
+
 
 
       if ( posTens != tensorData.end() ) {
@@ -453,4 +456,33 @@ namespace CoupledField
       }
   }
 
+
+  void BaseMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList ) {
+    ENTER_FCN( "BaseMaterial::InitHyst" );
+
+    std::string val = stringParams_[HYST_MODEL];
+    if ( val != "preisach" ) {
+      Error("Currently we just support Preisach Hysteresis Model",
+	    __FILE__,__LINE__);
+    }
+    else {
+      Double Esat, Psat;
+      GetScalar(Esat, E_SATURATION, REAL);
+      GetScalar(Psat, P_SATURATION, REAL);
+      Matrix<Double> weights;
+      GetTensor(weights,  PREISACH_WEIGHTS, REAL);
+      bool isVirgin = true;   
+      hyst_ = new Preisach(numElemSD, Esat, Psat, weights, isVirgin);
+
+      // set map: global to local element number
+      EntityIterator it = actSDList->GetIterator();
+      UInt iel = 0;
+      UInt globalElNr;
+      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+	globalElNr = it.GetElem()->elemNum;
+	globalElem2Local_[iel] = globalElNr;
+      }
+    }
+
+  }
 }

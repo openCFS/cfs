@@ -411,44 +411,40 @@ namespace CoupledField {
     partElemVec.Resize(nrNodes * nrDofs);
     partElemVec.Init();
   
-  
     elemVec.Resize(nrNodes*nrDofs);
     elemVec.Init();
   
-  
-    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
-      {    
-        stressBiformInt->CalcStressVec(piolaStressVec, actIntPt,
-                                       ptelem, ptCoord_, elemDisp);
-        stressBiformInt->calcNonLinBMat(nonLinBMat, actIntPt, 
-                                        ptelem, ptCoord_, elemDisp);
-        stressBiformInt->calcLinBMat(linBMat, actIntPt, ptelem, ptCoord_);
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {    
+      stressBiformInt->CalcStressVec(piolaStressVec, actIntPt,
+				     ptelem, ptCoord_, elemDisp);
+      stressBiformInt->calcNonLinBMat(nonLinBMat, actIntPt, 
+				      ptelem, ptCoord_, elemDisp);
+      stressBiformInt->calcLinBMat(linBMat, actIntPt, ptelem, ptCoord_);
       
-        nonLinBMat += linBMat;
-      
-        nonLinBMat.Transpose(transpSumB);
-      
-        partElemVec = transpSumB * piolaStressVec;
-      
-        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
-      
-        if (isaxi_)
-          {
-            Vector<Double> shpFncAtIp;
-            Vector<Double> coordAtIP;
-            ptelem->GetShFncAtIp(shpFncAtIp, actIntPt);
-            coordAtIP = ptCoord_ * shpFncAtIp;
-            jacDet *= 2 * PI * coordAtIP[0];
-          }
-      
-        partElemVec *= jacDet * intWeights[actIntPt-1];
-      
-        // the negative sign is due the fact, that this vector has
-        // to be subtracted from the RHS!! 
-        // (see Kaltenbacher  "Numerical Sim. of Mechatronic Sensors 
-        // and Actuators" p. 55
-        elemVec -=  partElemVec;
+      nonLinBMat += linBMat;
+	
+      nonLinBMat.Transpose(transpSumB);
+	
+      partElemVec = transpSumB * piolaStressVec;
+	
+      Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+	
+      if (isaxi_) {
+	Vector<Double> shpFncAtIp;
+	Vector<Double> coordAtIP;
+	ptelem->GetShFncAtIp(shpFncAtIp, actIntPt);
+	coordAtIP = ptCoord_ * shpFncAtIp;
+	jacDet *= 2 * PI * coordAtIP[0];
       }
+      
+      partElemVec *= jacDet * intWeights[actIntPt-1];
+      
+      // the negative sign is due the fact, that this vector has
+      // to be subtracted from the RHS!! 
+      // (see Kaltenbacher  "Numerical Sim. of Mechatronic Sensors 
+      // and Actuators" p. 55
+      elemVec -=  partElemVec;
+    }
 
     delete stressBiformInt;
   }
@@ -1376,5 +1372,83 @@ namespace CoupledField {
     }
   }
 
+
+
+  // ==================================================================
+  // linMech: add mechanical stress as force to RHS
+  // ==================================================================
+
+  AddStressRHSInt::AddStressRHSInt(BaseMaterial* matData,
+				     Vector<Double>& stressVec,
+				     SubTensorType type)
+    : LinearForm(), matData_(matData)
+  {
+    ENTER_FCN( "AddStressRHSInt::AddStressRHSInt" );
+    name_ = "AddStressRHSInt";
+    if ( type == AXI ) 
+      isaxi_ = true;
+
+    subTensorType_ = type;
+    addStress_     = stressVec;
+  }
+
+  AddStressRHSInt::~AddStressRHSInt()
+  {
+    ENTER_FCN( "AddStressRHSInt::~AddStressRHSInt" );
+  }
+
+  void AddStressRHSInt::CalcElemVector( Vector<Double> & elemVec,
+					 EntityIterator& ent )
+  {
+    ENTER_FCN( "AddStressRHSInt::CalcElemVector" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const UInt nrNodes  = ptelem->GetNumNodes();
+
+    const UInt nrDofs   = ptelem->GetDim(); 
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+    Vector<Double> piolaStressVec;    
+    Vector<Double> partElemVec;
+  
+    Matrix<Double> linBMat; 
+    Matrix<Double> transpB;    // we need transposed of the b-matrices
+  
+    linElastInt* bilinearStiff = new linElastInt(matData_, subTensorType_);
+
+    partElemVec.Resize(nrNodes * nrDofs);
+    partElemVec.Init();
+  
+    elemVec.Resize(nrNodes*nrDofs);
+    elemVec.Init();
+  
+  
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
+      {    
+        bilinearStiff->calcBMatOnly(linBMat, actIntPt, ptelem, ptCoord_);
+      
+	linBMat.Transpose(transpB);
+      
+        partElemVec = transpB * addStress_;
+      
+        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+      
+        if (isaxi_) {
+	  Vector<Double> shpFncAtIp;
+	  Vector<Double> coordAtIP;
+	  ptelem->GetShFncAtIp(shpFncAtIp, actIntPt);
+	  coordAtIP = ptCoord_ * shpFncAtIp;
+	  jacDet *= 2 * PI * coordAtIP[0];
+	}
+      
+        partElemVec *= jacDet * intWeights[actIntPt-1];
+	elemVec =  partElemVec;
+      }
+
+    //    std::cout << "RHS Forcfe:\n" <<  elemVec << std::endl;
+    delete bilinearStiff;
+  }
 
 } // end of namespace

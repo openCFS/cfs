@@ -3,6 +3,7 @@
 
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "Utils/nodestoresol.hh"
 #include "nLinElecHystInt.hh"
 
 namespace CoupledField {
@@ -61,10 +62,51 @@ namespace CoupledField {
   void nlinElecHystInt::calcDMat( Matrix<Double> &dMat ) {
 
     ENTER_FCN( "nlinElecHystInt::calcDMat" );
+
     ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
     dMat *= factor_;
   }
 
+
+  // ====================
+  //   calcElementMatrix
+  // ====================
+  void nlinElecHystInt::CalcElementMatrix( Matrix<Double>& elemMat,
+					   EntityIterator& ent1, 
+					   EntityIterator& ent2 ) {
+    ENTER_FCN( "nlinElecHystInt::CalcElementMatrix" );
+
+    // get displacements of element
+    sol_->GetElemSolution( elemPot_, ent1.GetElem()->connect );
+    
+    Vector<Double> LCoord, Efield;
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent1 ); 
+
+    //compute electric field in the midpoint of element
+    ptelem->GetCoordMidPoint(LCoord);
+    EfieldOp_->CalcElemGradField( Efield,  ent1.GetElem(), LCoord, 1 );
+ 
+
+    // call method of base class
+    BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
+  }
+
+  // ====================
+  //   set 
+  // ====================
+  void nlinElecHystInt::Set4Hyst(Grid* ptGrid, StdPDE* ptPDE,
+				 shared_ptr<EqnMap> eqnMap,
+				 shared_ptr<ResultDof> result) {
+    ENTER_FCN( "nlinElecHystInt::Set4Hyst" );
+    
+    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
+					     eqnMap, *sol_, 
+					     ELEC_POTENTIAL, 
+					     result, isaxi_, 
+					     coordUpdate_);
+  }
 
 
   // ================
@@ -91,6 +133,9 @@ namespace CoupledField {
     if ( type == AXI ) {
       isaxi_     = true;
     }
+
+    isSolDependent_ = true;
+
   }
 
 

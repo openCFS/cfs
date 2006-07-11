@@ -11,8 +11,9 @@ namespace CoupledField {
   class Preisach : public Hysteresis
   {
   public:
-    Preisach(Integer numElem, Double xSat, Double ysat, Double xRem,
-             bool isVirgin);
+    //! constructor
+    Preisach(Integer numElem, Double xSat, Double ysat, 
+	     Matrix<Double>& preisachWeight, bool isVirgin);
 
     //!
     virtual ~Preisach();
@@ -59,7 +60,10 @@ namespace CoupledField {
     std::vector<UInt> StringLenght_;
     UInt maxStringLength_;
 
-    Matrix<Double> preisachWeights;
+    Vector<Double> Xprevious_;
+    Vector<Double> Yprevious_;
+
+    Matrix<Double> preisachWeights_;
   };
 
 

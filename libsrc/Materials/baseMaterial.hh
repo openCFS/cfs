@@ -12,6 +12,8 @@ namespace CoupledField {
 
   // forward class declarations
   class CoordSystem;
+  class Hysteresis;
+  class ElemList;
 
   //! Class for Material Data
   /*! 
@@ -176,6 +178,9 @@ namespace CoupledField {
     //! Get coordinate system from material
     CoordSystem* GetCoordSys() { return coosy_; }
 
+    //Initialize hysteresis
+    void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList);
+
   protected:
 
     //! Error for material type not defined
@@ -242,6 +247,11 @@ namespace CoupledField {
     CoordSystem * coosy_;
 
     SymmetryType symmetryType_;
+
+    //! hysteresis object
+    Hysteresis * hyst_;
+
+    std::map<UInt, UInt> globalElem2Local_;
   };
 
   std::ostream& operator << ( std::ostream & , const  BaseMaterial &);
