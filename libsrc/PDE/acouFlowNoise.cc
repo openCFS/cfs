@@ -91,7 +91,7 @@ namespace CoupledField
       {
         for (UInt j=0; j<couplSubDomId_.GetSize(); j++)
           {
-            if (couplSubDomId_[j] == subdoms_[i])
+            if (coupledRegionNames[j] == regionNames[i])
               {
 
                 ptgrid_->GetVolElems(elemssd,couplSubDomId_[j]);
@@ -175,7 +175,7 @@ namespace CoupledField
                 {
                   for (UInt j=0; j<couplSubDomId_.GetSize(); j++)
                     {
-                      if (couplSubDomId_[j] == subdoms_[i])
+                      if (coupledRegionNames[j] == regionNames[i])
                         {
                           ptgrid_->GetVolElems(elemssd,couplSubDomId_[j]);
                           ptgrid_->GetNodesOfElemList(mapSD_allNodes_, elemssd, false);
@@ -281,9 +281,8 @@ namespace CoupledField
     std::string flowdata;
     //    Warning( "Using no MpCCI, vortexSrc is assumed.", __FILE__, __LINE__ );
       
-//     conf->get("acousrc_file",flowdata);
-//     // ReadFlowData(flowdata.c_str(), timestep, flowdata_); 
-
+    //     conf->get("acousrc_file",flowdata);
+    //     ReadFlowData(flowdata.c_str(), timestep, flowdata_); 
 #endif 
 
 
@@ -1311,7 +1310,7 @@ namespace CoupledField
           break;
         }
       default:
-        (*error) << "Need to give an outType value between 1 and 4 "
+        (*error) << "Need to give an outType value between 1 and 7 "
                  << "Current outType value: " << outType;
         Error( __FILE__,__LINE__ );
       }

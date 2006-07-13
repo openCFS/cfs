@@ -600,10 +600,6 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
     Integer globalConvergence = CCI_CONTINUE;
     Integer myConvergence     = CCI_CONTINUE;
 
-    //Retrieve valuedata via MpCCI
-    //   while ( globalConvergence != CCI_STOP ) 
-    //     {
-
     CCI_Recv(nQuantityIds, quantityIds, nLocalMeshIds, localMeshIds, comm, &status);
 //     std::cout<<"nodeIds size: "<<nodeIds_[MpCCInodes_-1]<<std::endl;
 //     std::cout<<"nNodeIds= "<<nNodeIds_<<std::endl;
@@ -617,8 +613,6 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
 
     // Putting values in our matrix flowdata
     Integer k = 0;
-
-
     bool nodalSrc=false;
     //check type of flow data
     if( params->HasValue( "type", "nodalSrc", "acoustic", "flowData" ) ) {
@@ -680,15 +674,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
                         filename.append( ".node" );
                         filename.append( GenStr( nodeIds_[inode] ) );
                         //create the file if it doesn't exist yet
-                
- //                        if (TimeStepCtr==1)
-//                           {
-                            outsrcnodalfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
-//                           }
-//                         else
-//                           {
-//                           outsrcnodalfile.open(filename.c_str(), std::ios::app);
-//                           }
+                        outsrcnodalfile.open(filename.c_str(), std::ios::out | std::ios::trunc);
 
                         if (!outsrcnodalfile) 
                           {
@@ -711,7 +697,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
                   }
               }
           }
-    TimeStepCtr++;
+        TimeStepCtr++;
       }
     else
       {
@@ -726,10 +712,9 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
       }
       
  
-    //check covergence: do another time step or not!
     CCI_Check_convergence(myConvergence,&globalConvergence,CCI_ANY_CODE);
 
-    //     }
+
 
 if (quantityIds)  delete [] quantityIds;
 if (value_Press)  delete [] value_Press;
