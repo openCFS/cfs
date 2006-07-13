@@ -128,7 +128,6 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
 #define REALTYPE CCI_DOUBLE
   typedef double Realtype;
 
-  //std::cout<<"\nCoupled Nodes: "<<MpCCInodes_;
   Realtype * NODEDATA=new Realtype[3*MpCCInodes_];
   int ** TOPOLOGYDATA;
   TOPOLOGYDATA=new int*[coupledsubdoms.GetSize()];
@@ -148,8 +147,6 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
 	for (UInt n=0; n<(mapSD_.GetSize()); n++)
 	  {
 	    nodeIds_[n] = (int)mapSD_[n];
-//   	    std::cout<<"nodeIds["<<n<<"]= "<<nodeIds_[n]<<std::endl;
-//   	    std::cout<<"mapSD_.GetSize: "<<mapSD_.GetSize()<<std::endl;
             if (Dim_==2)
               {
                 ptgrid_->GetNodeCoordinate(ptNodalCoord2D, nodeIds_[n]);
@@ -201,8 +198,6 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
       for (j=0; j< elemssd.GetSize(); j++)
 	{
 	  connecth=elemssd[j]->connect;
-	  //	  ptgrid_->GetCoordNodesElem(connecth,ptCoordNodes,actlevel_);
-	  // ptgrid_->GetCoordNodesElemMat(connecth,ptCoordNodes,actlevel_);
           ptgrid_->GetElemNodesCoord(ptCoordNodes,connecth);
 	  for (ii=0; ii<elsize; ii++, k++)
 	    {  
@@ -351,10 +346,6 @@ if (elemIds_)  delete [] elemIds_;
 if ( nNodesPerElem_)  delete [] nNodesPerElem_;
 if (elemTypes_)  delete [] elemTypes_;
 
-//  if (outelemfile_)
-//    delete [] outelemfile_;
-//  if (outnodefile_)
-//    delete [] outnodefile_;
 }
     
 void MpCCIexch::DefMpcciPartition(UInt meshId, UInt partId)
@@ -601,8 +592,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
     Integer myConvergence     = CCI_CONTINUE;
 
     CCI_Recv(nQuantityIds, quantityIds, nLocalMeshIds, localMeshIds, comm, &status);
-//     std::cout<<"nodeIds size: "<<nodeIds_[MpCCInodes_-1]<<std::endl;
-//     std::cout<<"nNodeIds= "<<nNodeIds_<<std::endl;
+
     //Get_nodes is a local operation
     //PRESSURE
     CCI_Get_nodes((int)meshId_, (int)partId_, quantityId1, quantityDim1, (int)MpCCInodes_, nNodeIds_,  &nodeIds_[0],
@@ -620,7 +610,6 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
       Info->PrintF("acoustic", "In MpCCIexch Using FlowData as RHS nodal source\n" );
     }
     
-
     //std::cout<<"flowdata length= "<<flowdata.GetSizeCol()<<std::endl;
     if (nodalSrc == true)
       {
@@ -652,8 +641,6 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
             // Getting first column as INT(dTdxdw) with node identifier
             flowdata[0][nodeIds_[inode]-1] = value_Press[inode];
 
-            // std::cout<<"flowdata[0]["<<nodeIds_[inode]-1<<"]= "<<value_Press[inode]<<std::endl;
-            // std::cout<<"value_Press["<<inode<<"]= "<<value_Press[inode]<<std::endl;
             if (writeSrcFileperTS_)
               {
                 (*outsrcfile_) <<  value_Press[inode]<<std::endl;
@@ -686,8 +673,6 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
                           outsrcnodalfile<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
                                          << firstdt_*(i+1) << " " << nodalSrcMat_[nodeIds_[inode]][i] << std::endl;                          
 
-                        //    outsrcnodalfile<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
-                        //               << acttime << " " << value_Press[inode] << std::endl;
                         // !!!!THIS IS ONLY TO test reading of the data
                         // we assign the nodal index as output to the nodal value just for checking!!!
                         //outsrcnodalfile << nodeIds_[inode] <<std::endl;
@@ -720,11 +705,6 @@ if (quantityIds)  delete [] quantityIds;
 if (value_Press)  delete [] value_Press;
 if (value_VxVy)  delete []  value_VxVy;
 
-// if (outsrcfile_) 
-//      delete outsrcfile_;
-
-
-//    std::cout<<"Leaving CplCompPhase"<<std::endl;
 }
 
 void MpCCIexch::RecvAllPartitions(std::string couplingType)
