@@ -10,6 +10,7 @@
 #include "Forms/nLinElecHystInt.hh"
 #include "Forms/elecchargeop.hh"
 #include "Forms/laplaceInt.hh"
+#include "Forms/FlatShellElecInt.hh"
 #include "DataInOut/writeresults.hh"
 #include "Forms/gradfieldop.hh"
 #include "General/defs.hh"
@@ -56,14 +57,44 @@ namespace CoupledField {
     //check, if problem is axisymmetric
     if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = true;
 
-    // Create new resultDof object
-    shared_ptr<ResultDof> res1(new ResultDof);
-    shared_ptr<AnsatzFct> fct(new LagrangeFct);
-    res1->resultType = ELEC_POTENTIAL;
-    res1->dofNames = "ep";
-    res1->definedOn = ResultDof::NODE;
-    res1->fctType = fct;
-    results_.Push_back( res1 );
+    // Check the subtype of the problem
+    params->Get("subType", subType_, "pdeList",pdename_ );
+
+    if ( subType_ != "flatShell" ) {
+      // Create new resultDof object
+      shared_ptr<ResultDof> res1(new ResultDof);
+      shared_ptr<AnsatzFct> fct(new LagrangeFct);
+      res1->resultType = ELEC_POTENTIAL;
+      res1->dofNames = "ep";
+      res1->definedOn = ResultDof::NODE;
+      res1->fctType = fct;
+      results_.Push_back( res1 );
+    } else {
+
+      // Create new resultDof object
+      shared_ptr<ResultDof> res1(new ResultDof);
+      shared_ptr<AnsatzFct> fct(new LagrangeFct);
+      res1->resultType = ELEC_POTENTIAL;
+
+      // Determine number of laminas for setting number of dofs
+      StdVector<std::string> lamina;
+      params->GetList("material", lamina, "composite", "lamina" );
+      
+      if (lamina.GetSize() == 0) {
+        res1->dofNames.Push_back("ep");
+      }
+
+      for( UInt i=0; i<lamina.GetSize(); i++ ) {
+        std::string dofName = "ep";
+        dofName += GenStr(i+1);
+        res1->dofNames.Push_back( dofName );
+      }
+
+      //res1->dofNames = "ep1", "ep2";
+      res1->definedOn = ResultDof::ELEMENT;
+      res1->fctType = fct;
+      results_.Push_back( res1 );
+    }
     
     //check for hysteresis modeling
     isHysteresis_ = FALSE;
@@ -106,6 +137,8 @@ namespace CoupledField {
     ENTER_FCN( "ElecPDE::DefineIntegerators" );
 
     BaseForm *form, *formC;
+    RegionIdType actRegion;
+    BaseMaterial * actSDMat = NULL;
 
     // flag for updatedLagrange formulation
     bool upLagrangeForm = true;
@@ -131,23 +164,39 @@ namespace CoupledField {
     Double factor = 1.0;
     if ( isPiezoCoupled_ == true )
       factor *= -1.0;  
-  
-    for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
+
+    // Define integrators for "standard" materials
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      
+      // Set current region and material
+      actRegion = it->first;
+      actSDMat = it->second;
 
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
-      actSDList->SetRegion( subdoms_[actSD] );
+      actSDList->SetRegion( actRegion );
 
-      if ( nonLinType_[actSD] == "hysteresis" ) {
+      // get related index position in subdoms_ vector
+      Integer index = subdoms_.Find( actRegion );
+      if( index < 0 ) {
+        *error << "Could not find region '" 
+              << ptgrid_->RegionIdToName( actRegion )
+              << "' in list of non-linear types for regions.";
+        Error( __FILE__, __LINE__ );
+      }
+
+      if ( nonLinType_[index] == "hysteresis" ) {
 	StdVector<Elem*> elemssd;
-	ptgrid_->GetElems(elemssd, subdoms_[actSD]);
+	ptgrid_->GetElems(elemssd, actRegion);
 	UInt numElSD =  elemssd.GetSize();
 
+
 	//allocate for hystersis modeling
-	materials_[subdoms_[actSD]]->InitHyst(numElSD, actSDList);
+	actSDMat->InitHyst(numElSD, actSDList);
 	
 	nlinElecHystInt* nlForm;
-	nlForm = new nlinElecHystInt( materials_[subdoms_[actSD]], tensorType,
+	nlForm = new nlinElecHystInt( actSDMat, tensorType,
 				      upLagrangeForm );
 
 	nlForm->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
@@ -165,7 +214,7 @@ namespace CoupledField {
       }
       else {
 	// --- standard real-valued stiffness integrator ---
-	form = new linElecInt( materials_[subdoms_[actSD]], tensorType,
+	form = new linElecInt( actSDMat, tensorType,
 			       upLagrangeForm );
 	form->SetFactor( factor );
 
@@ -184,7 +233,7 @@ namespace CoupledField {
                             "materialDataType" ) ) {
         DataType matType = IMAG; 
 
-        formC = new linElecInt( materials_[subdoms_[actSD]], tensorType,
+        formC = new linElecInt( materials_[actRegion], tensorType,
                                 upLagrangeForm);
 	formC->SetFactor( factor );
 	formC->SetMatDataType(matType);
@@ -202,6 +251,32 @@ namespace CoupledField {
       // Give result to equation numbering class
       eqnMap_->AddResult( *results_[0], actSDList );
     }
+
+    // Define integrators for composite materials
+    // (only for subType "flatShell")
+    std::map<RegionIdType, Composite>::iterator compIt;
+    for( compIt=compositeMaterials_.begin(); compIt!=compositeMaterials_.end();
+         compIt++ ) {
+      
+      // Get current subdomain and composite material
+      RegionIdType actRegion = compIt->first;
+      Composite * composite = &compIt->second;
+      
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( actRegion );
+      
+      FlatShellElecInt * compElecInt = new FlatShellElecInt( composite );
+      BiLinFormContext * stiffContext = 
+        new BiLinFormContext( compElecInt, STIFFNESS);
+      stiffContext->SetPtPdes( this, this );
+      stiffContext->SetResults( results_[0], results_[0],
+                                actSDList, actSDList );
+      assemble_->AddBiLinearForm( stiffContext );
+      eqnMap_->AddResult( *results_[0], actSDList );
+      
+    }
+    
 
   }
 

@@ -11,6 +11,7 @@
 #include "Forms/linPiezoCoupling.hh"
 #include "Forms/forms_header.hh"
 #include "Forms/linElecInt.hh"
+#include "Forms/FlatShellPiezoInt.hh"
 
 #include "Utils/elemstoresol.hh"
 
@@ -160,6 +161,15 @@ namespace CoupledField {
 
     // loop over all subdomains
     for (UInt isd=0; isd<calcStress_.GetSize(); isd++) {
+
+//       Integer regionIndex = -1;
+//       regionIndex = subdoms_.Find( calcStress_[isd] );
+//       if ( regionIndex == -1 ) {
+//         (*error) << "PiezoPDE:CalcStress:: For the region with Name " 
+//                  << ptGrid_->RegionIdToName(calcStress_[isd])
+//                  << " no material data was found.!";
+//         Error( __FILE__, __LINE__ );
+//       }
 
       // get the materials for the subdomain
       BaseMaterial* matPiezo = materials_[calcStress_[isd]];
@@ -431,21 +441,27 @@ namespace CoupledField {
     ENTER_FCN( "PiezoCoupling::DefineIntegrators" );
     
     DataType matType = REAL;
+    RegionIdType actRegion;
+    BaseMaterial * actSDMat = NULL;
 
-   //transform the type
-    SubTensorType tensorType;
-    String2Enum(subType_,tensorType);
-
-    // iterate over all subdomains
-    for ( UInt actSD = 0; actSD < subdoms_.GetSize(); actSD++ ) {
+    // Define integrators for "standard" materials
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      // Set current region and material
+      actRegion = it->first;
+      actSDMat = it->second;
       
+      //transform the type
+      SubTensorType tensorType;
+      String2Enum(subType_,tensorType);
+
       // create new entity list
       shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-      actSDList->SetRegion( subdoms_[actSD] );
+      actSDList->SetRegion( actRegion );
 
       // add stiffness
       BaseForm *bilinearStiff = 
-        new linPiezoCoupling(materials_[subdoms_[actSD]], tensorType);
+        new linPiezoCoupling(materials_[actRegion], tensorType);
 
       //GetStiffIntegrator( materials_[actSD] );
 
@@ -466,7 +482,7 @@ namespace CoupledField {
         matType = IMAG; 
 
         BaseForm * bilinearStiffC = 
-          new linPiezoCoupling( materials_[subdoms_[actSD]], tensorType);
+          new linPiezoCoupling( materials_[actRegion], tensorType);
 
 	//GetStiffIntegrator(materialData_[actSD]);
         BiLinFormContext *actComplexContextStiff = 
@@ -480,6 +496,30 @@ namespace CoupledField {
       }
 
     }
+
+    // Define integrators for composite materials
+    // (only for subType "flatShell")
+    std::map<RegionIdType, Composite>::iterator compIt;
+    for( compIt=compositeMaterials_.begin(); compIt!=compositeMaterials_.end();
+         compIt++ ) {
+      // Get current subdomain and composite material
+      RegionIdType actRegion = compIt->first;
+      Composite * composite = &compIt->second;
+      
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+      actSDList->SetRegion( actRegion );
+      
+      FlatShellPiezoInt * compPiezoInt = new FlatShellPiezoInt( composite );
+      BiLinFormContext * stiffContext = 
+        new BiLinFormContext( compPiezoInt, STIFFNESS);
+      stiffContext->SetPtPdes( pde1_, pde2_ );
+      stiffContext->SetResults( results1_[0], results2_[0],
+                                actSDList, actSDList );
+      assemble_->AddBiLinearForm( stiffContext );
+      
+    }
+    
   }
 
 

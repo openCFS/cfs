@@ -39,21 +39,21 @@ namespace CoupledField {
     Vector<Double> shapeFnc;
     
 
-    // calculcate correct orientation of normal
-    std::map<RegionIdType, BaseMaterial*>::iterator it = 
-      materials_.find( actElem_->ptVolElem1->regionId );
+ //    // calculcate correct orientation of normal
+//     std::map<RegionIdType, BaseMaterial*>::iterator it = 
+//       materials_.find( actElem_->ptVolElem1->regionId );
 
-    if ( it == materials_.end() && actElem_->ptVolElem2 != NULL ) {
-      it = materials_.find( actElem_->ptVolElem2->regionId );
-    } else {
-      normal_ *= -1;
-    }
+//     if ( it == materials_.end() && actElem_->ptVolElem2 != NULL ) {
+//       it = materials_.find( actElem_->ptVolElem2->regionId );
+//     } else {
+//       normal_ *= -1;
+//     }
     
-    if( it == materials_.end() ) {
-      (*error) << "PressureLinForm: Surface element number " << actElem_->elemNum
-               << " has no mechanic volume element neighbour!";
-      Error( __FILE__, __LINE__ );
-    };
+//     if( it == materials_.end() ) {
+//       (*error) << "PressureLinForm: Surface element number " << actElem_->elemNum
+//                << " has no mechanic volume element neighbour!";
+//       Error( __FILE__, __LINE__ );
+//     };
 
     elemVec.Resize(nrNodes*dim);
     elemVec.Init(0);

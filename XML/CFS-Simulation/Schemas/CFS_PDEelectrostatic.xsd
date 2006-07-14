@@ -73,6 +73,17 @@
             minOccurs="0" maxOccurs="1"/>
 
         </xsd:sequence>
+
+        <!-- Subtype of PDE -->
+        <xsd:attribute name="subType" use="optional" default="normal">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+	      <xsd:enumeration value="normal"/>
+	      <xsd:enumeration value="flatShell"/>
+              <xsd:enumeration value="axi"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -90,6 +101,8 @@
         <xsd:attribute name="name" type="xsd:token" use="required"/>
         <xsd:attribute name="entityType" type="DT_EntityType"
           use="optional" default="nodeList"/>
+        <xsd:attribute name="dof" type="xsd:token" use="optional"
+          default="ep"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

@@ -461,7 +461,6 @@ namespace CoupledField
              << symmetryType_ << "' not implemented!";
       Error( __FILE__, __LINE__ );
     }
-
     
   }
 }

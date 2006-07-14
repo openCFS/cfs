@@ -192,6 +192,8 @@ namespace CoupledField {
 
     std::string matFileName;
 
+
+
     // Obtain pointer to materialHandler
     MaterialHandler * matLoader = NULL;
     matLoader = domain->GetMaterialHandler();
@@ -207,11 +209,96 @@ namespace CoupledField {
     // Load material data for subdomains on which this PDE lives
     // from data file
     for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
-      for( UInt k = 0; k <= subdomName.GetSize(); k++ ) {
+      for( UInt k = 0; k < subdomName.GetSize(); k++ ) {
         if( subdoms_[i] == subdomId[k] ){
-          materials_[subdoms_[i]] = matLoader->
-            LoadMaterial( subdomMaterial[k],materialClass_ );
-          break;
+          // Check if region contains a material
+          if ( subdomMaterial[k] != "" ) {
+            materials_[subdoms_[i]] = matLoader->
+              LoadMaterial( subdomMaterial[k],materialClass_ );
+            break;
+          }
+        }
+      }
+    }
+
+     // -------------------
+    // COMPOSITE MATERIALS
+    // -------------------
+    Double startHeight;
+    StdVector< std::string > keyVec, attrVec, valVec;
+    StdVector<std::string> compMaterials, subdomComposite;
+    StdVector<Double> compOrient, compThick;
+    std::string actRegionName;
+    
+    params->GetList( "composite", subdomComposite, "domain", "region" );
+
+    std::ostringstream out;
+    for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+      for( UInt k = 0; k < subdomId.GetSize(); k++ ) {
+        if( subdoms_[i] == subdomId[k] ){
+          
+          // Check if region contains a material
+          if ( subdomComposite[k] != "" ) {
+            
+            actRegionName = ptGrid_->RegionIdToName( subdomId[k] );
+            out << "Composite material '" << subdomComposite[k] << "' for "
+                << "region '" << actRegionName << "' (ID = " << subdomId[k]
+                << ") follows:\n";
+            Info->PrintF( couplingName_, out.str().c_str());
+            out.str("");
+            
+            // Read data from parameter file
+            
+            // StartHeight
+            keyVec = "domain", "composite", "startHeight";
+            attrVec = "", "name";
+            valVec = "", subdomComposite[k];
+            params->Get( keyVec, attrVec, valVec, startHeight );
+            
+            // materials of laminae
+            attrVec = "", "name", "";
+            valVec = "", subdomComposite[k], "";
+            keyVec = "domain", "composite", "lamina", "material";
+            params->GetList( keyVec, attrVec, valVec, compMaterials );
+            
+            // thickness of laminae
+            keyVec = "domain", "composite", "lamina", "thickness";
+            params->GetList( keyVec, attrVec, valVec, compThick );
+            
+            // orientation of laminae
+            keyVec = "domain", "composite", "lamina", "orientation";
+            params->GetList( keyVec, attrVec, valVec, compOrient );
+            
+            // Check, if all vectors have same length
+            if ( compMaterials.GetSize() != compThick.GetSize() ||
+                 compMaterials.GetSize() != compOrient.GetSize() ) {
+              Error( "Inconsistent definition of composite material",
+                     __FILE__, __LINE__ );
+            }
+            
+            // Create new lamina and fill ine materials and thicknesses
+            Composite & myMat = compositeMaterials_[subdomId[k]];
+            UInt numLaminae = compMaterials.GetSize();
+            myMat.name = subdomComposite[k];
+            myMat.zStart = startHeight;
+            myMat.thickness = compThick;
+            myMat.orientation = compOrient;
+            
+            // Read single materials and print data
+            myMat.materials.Resize( numLaminae );
+            for ( UInt iLam = 0; iLam < numLaminae; iLam++ ) {
+              
+              // Print information
+              out << " --- Lamina " << iLam+1 << ": thickness = " 
+                  << compThick[iLam]
+                  << " m, orientation = " << compOrient[iLam] << "° ---\n";
+              Info->PrintF( couplingName_, out.str().c_str());
+              out.str("");
+              
+              myMat.materials[iLam] = matLoader->
+                LoadMaterial( compMaterials[iLam], materialClass_ );
+            } // over  laminae
+          }
         }
       }
     }

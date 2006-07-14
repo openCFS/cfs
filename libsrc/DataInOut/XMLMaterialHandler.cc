@@ -334,7 +334,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON_XY, REAL ); 
       flagPoissonXYReal=true;
-      std::cerr << "poissonNumber_XY=" <<  doubValue << std::endl;
+      //std::cerr << "poissonNumber_XY=" <<  doubValue << std::endl;
     }
 
     keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_YZ";
@@ -344,7 +344,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON_YZ, REAL ); 
       flagPoissonYZReal=true;
-      std::cerr << "poissonNumber_YZ=" <<  doubValue << std::endl;
+      //std::cerr << "poissonNumber_YZ=" <<  doubValue << std::endl;
     }
 
     keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_XZ";
@@ -354,7 +354,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_POISSON_XZ, REAL ); 
       flagPoissonXZReal=true;
-      std::cerr << "poissonNumber_XZ=" <<  doubValue << std::endl;
+      //std::cerr << "poissonNumber_XZ=" <<  doubValue << std::endl;
     }
 
     //read orthotropic shear modulus
@@ -365,7 +365,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_GMODULUS_YZ, REAL ); 
       flagShearModulYZReal=true;
-      std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
+      //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
     }
 
     keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_ZX";
@@ -375,7 +375,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_GMODULUS_ZX, REAL ); 
       flagShearModulZXReal=true;
-      std::cerr << "shearModulus_ZX=" << doubValue << std::endl;
+      //std::cerr << "shearModulus_ZX=" << doubValue << std::endl;
     }
 
     keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_XY";
@@ -385,7 +385,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_GMODULUS_XY, REAL ); 
       flagShearModulXYReal=true;
-      std::cerr << "shearModulus_XY=" << doubValue << std::endl;
+      //std::cerr << "shearModulus_XY=" << doubValue << std::endl;
     }
 
 

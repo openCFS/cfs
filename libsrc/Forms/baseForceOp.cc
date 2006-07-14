@@ -90,6 +90,11 @@ namespace CoupledField
         // Get Material Parameter
         Double matVal;
       
+//         for (UInt i=0; i<PDEsubdoms_.GetSize(); i++)   {
+//           if (interfaceElems_[ielem]->regionId == PDEsubdoms_[i]) {
+//             matVal = GetMatVal(i); 
+//           }
+//         }
         matVal = GetMatVal (interfaceElems_[ielem]->regionId );
       
         CalcElemElecForce( force_temp, interfaceElems_[ielem], matVal, isBoundaryNode_[ielem]);

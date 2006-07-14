@@ -1198,11 +1198,7 @@ namespace CoupledField
 
         // check, if each surface element has at least one volume neighbour
         if ( surfElems_[iRegion][iSurfElem]->ptVolElem1 == NULL ) {
-
-          // Note: The following lines were commented out, in order to get
-          // shell and plate elements work, as they will be treated as surface
-          // elements with no volume neighbour
-//            (*error) << "Pointer to first volume element is NULL for surface"
+         //  (*error) << "Pointer to first volume element is NULL for surface"
 //                    << " element no. "  
 //                    << surfElems_[iRegion][iSurfElem]->elemNum << ".\n"
 //                    << "Please check your mesh-file!";
@@ -1220,7 +1216,7 @@ namespace CoupledField
           
           // Check if all entries have the same sign by calulating
           // a scalar product between both vectors.
-          // If it is positive, they point in the same direction,
+          // If it is positive, they point in the smae direction,
           // otherwise an angle of 180 lies in between.
           sign = normalUndefSign * normalDefSign;
           

@@ -107,6 +107,9 @@ namespace CoupledField
 
 
   protected:
+
+    //! SubType of electrostatic section
+    std::string subType_;
     
     // *****************
     //  POSTPROCESSING

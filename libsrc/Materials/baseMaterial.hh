@@ -122,8 +122,8 @@ namespace CoupledField {
     };
 
     //! get the symmetry type
-    void GetSymmetryType(SymmetryType symType) {
-      symType=symmetryType_; 
+    SymmetryType GetSymmetryType() const {
+      return symmetryType_; 
     };
 
     //! set a complex material tensor
