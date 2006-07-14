@@ -19,7 +19,8 @@ namespace CoupledField
   class Grid;
   class BaseMaterial;
   class BaseNodeStoreSol;
-
+  class Composite;
+  
   //! Base class for pairwise direct coupling of two pdes
   class BasePairCoupling
   {
@@ -164,6 +165,9 @@ namespace CoupledField
 
     //! Maps regions and (simple) materials
     std::map<RegionIdType, BaseMaterial*> materials_;    
+
+    //! Maps regions and composite materials
+    std::map<RegionIdType, Composite> compositeMaterials_;
 
     //! material class
     MaterialClass materialClass_;

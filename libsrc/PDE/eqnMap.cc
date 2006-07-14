@@ -126,11 +126,30 @@ namespace CoupledField {
     // assign equation numbers to nodes
     CalcNodalEquations( 1 );
 
+    //   b) elem <-> eqnNr
+    //   -----------------
+
+    // iterate over all resultDofs
+    for ( it=resEntMap_.begin(); it!=resEntMap_.end(); it++ ) {
+
+      // check if resultDof is mapped onto nodes
+      if( it->first.definedOn == ResultDof::ELEMENT ) {
+        for( UInt iList = 0; iList < it->second.GetSize(); iList++ ) {
+          elemMappedList_[it->first].Push_back( it->second[iList] );
+        }
+      }
+    }
+    
+    // assign equation numbers to nodes
+    CalcElemEquations( 1 );
+
     // ==== PHASE 2: Renumber fixed-equations ====
 
     // Afterwards re-iterate and give dirichletDOFs highest
     // numbers
     CalcNodalEquations( 2 );
+
+    CalcElemEquations( 2 );
 
     // Now class is finalized
     isFinalized_ = true;
@@ -145,7 +164,7 @@ namespace CoupledField {
       return;
     }
 
-    // Iterate over all maps and map the new ordering
+    // Iterate over all nodal maps and map the new ordering
     EqnMapType::iterator it;
 
     // iterate over all resuls
@@ -164,10 +183,27 @@ namespace CoupledField {
           }
         }
       }
-      delete [] (*order);
-      (*order) = NULL;
+
     }
-    
+    // Iterate over all element maps and map the new ordering
+    for ( it=elemEqns_.begin(); it!=elemEqns_.end(); it++ ) {
+      Matrix<Integer> & actMap = it->second;
+      
+      // iterate over all entries in the current map and renumber them
+      for ( UInt i = 0; i < actMap.GetSizeRow(); i++ ) {
+        for ( UInt j = 0; j < actMap.GetSizeCol(); j++ ) {
+          if ( actMap[i][j] > 0 ) {
+            actMap[i][j] = (*order)[actMap[i][j]-1];
+          }
+          else if(actMap[i][j] < 0 ) {
+            //due to constraints
+            actMap[i][j] = -(*order)[-actMap[i][j]-1];   
+          }
+        }
+      }
+    }
+    delete [] (*order);
+    (*order) = NULL;
   }
   
   
@@ -179,17 +215,18 @@ namespace CoupledField {
                         const EntityIterator& it ) const{
     ENTER_IFCN( "EqnMap::GetEqns" );
     
-      
+    UInt numDofs = result.dofNames.GetSize();      
+    Matrix<Integer> const & elemMap = (elemEqns_.find( result ) )->second;
+    Matrix<Integer> const & map = (nodeEqns_.find( result ) )->second;
+    
+
     if ( result.definedOn == ResultDof::NODE ) {
-      
-      
-      Matrix<Integer> const & map = (nodeEqns_.find( result ) )->second;
       
       // Distinguish the type the of the list
       if ( it.GetType() == EntityList::ELEM_LIST
            || it.GetType() == EntityList::SURF_ELEM_LIST ) {
         StdVector<UInt> const & nodes = it.GetElem()->connect;
-        UInt numDofs = result.dofNames.GetSize();
+        
         eqns.Resize( nodes.GetSize() * numDofs );
         eqns.Init();
         
@@ -231,28 +268,29 @@ namespace CoupledField {
       }
 
       return;
-    }
+    } else if( result.definedOn == ResultDof::NODELIST ) {
+      Error( "Not yet implemented", __FILE__, __LINE__ );
+    }else if( result.definedOn == ResultDof::EDGE ) {
+
+    } else if( result.definedOn == ResultDof::SURFACE ) {
+
+    } else if( result.definedOn == ResultDof::REGION ) {
     
-    switch( result.definedOn ) {
-      
-      
-      // Get element
-      // iterate over nodes
-      break;
-    case ResultDof::NODELIST:
-      break;
-    case ResultDof::EDGE:
-      break;
-    case ResultDof::SURFACE:
-      break;
-    case ResultDof::REGION:
-      break;
-    case ResultDof::ELEMENT:
-      break;
-      
-    default:
-      Error( "Unknown case implementation", 
-             __FILE__, __LINE__ );
+    } else if( result.definedOn == ResultDof::ELEMENT ) {
+      eqns.Resize(numDofs);
+      UInt localElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
+      for (UInt iDof = 0; iDof < numDofs; iDof++ ) {
+        
+        if (localElem < 1 ) {
+          eqns[iDof] = 0;
+        } else {
+          eqns[iDof] = elemMap[localElem-1][iDof];
+        }
+        
+      }
+    } else {
+      *error << "The entity type '" << result.definedOn
+             << "' is not known for result types!";
     }
     
     
@@ -886,6 +924,166 @@ namespace CoupledField {
    
   void EqnMap::CalcElemEquations( UInt phase ) {
     ENTER_FCN( "EqnMap::CalcElemEquations" );
+
+     // Big outer loop over all nodal mapped element lists
+    ResultEntityMap::iterator listIt;
+    
+    for( listIt = elemMappedList_.begin(); 
+         listIt != elemMappedList_.end(); 
+         listIt++ ) {
+
+      UInt eqnCounter = numRealEqns_;
+      
+      // Remeber current result and list of elementLists
+      const ResultDof & actRes = listIt->first;
+      StdVector<shared_ptr<EntityList> > & actLists = listIt->second;
+      
+      
+      // Get grip of homogeneous and in-homogeneous boundary conditions
+      // for this tpye of result
+      ResultHdBcMap::iterator hdBcIt = hdBcs_.find( actRes );
+      ResultIdBcMap::iterator idBcIt = idBcs_.find( actRes );
+      ResultConstraintMap::iterator csIt = constraints_.find( actRes );
+      
+      
+      std::string type;
+      Enum2String( actRes.resultType, type );
+      Matrix<Integer> & actMap = elemEqns_[actRes];
+
+      // Get number of dofs
+      UInt dofsPerElem = actRes.dofNames.GetSize();
+    
+      // Idea of the algorithm:
+      //
+      // -- PHASE 1 --
+      // Step 1:  Initialize actMap with 1
+      // Step 2:  For each entry in homoDirichletNodes_ set the corresponding
+      //          entry in pdeNode2eqn_ to 0
+      // Step 2b: For each entry in inhomoDirichletNodes_ set the corresponding
+      //          entry in pdeNode2eqn_ to 0
+      // Step 3:  For each entry in constraintSlaveNodes_ set the corresponding
+      //          entry in pdeNode2eqn_ to 0
+      // Step 4:  Loop over all entries in pde2Meshnode
+      //          and assign each non-zero entry an equation number
+
+      // -- PHASE 2 --
+      // Step 5:  Afterwards loop again over all nodes in constraintSlaveNodes_
+      //          and set the corresponding entry in pdeNode2EQN_ to the
+      //          negative of the value of constraintMasterNode
+      // Step 5b: Loop over all entries in inhomoDirichletNodes_ and assign that
+      //          dof an equation number after the hightest equation number of
+      //          the free dofs
+      //
+      // Note:    Steps 2b and 5b are only performed, if sortEQNs = true
+      
+      if( phase == 1 ) {
+        
+        // ------
+        // STEP 1
+        // ------
+        //UInt multipleBCs = 0;
+        Matrix<UInt> countElems;
+        countElems.Resize( numLocElems_, dofsPerElem );
+        countElems.Init( 0 );
+        
+        actMap.Resize( numLocElems_, dofsPerElem );
+        actMap.Init( 1 );
+
+        // -------
+        // STEP 2b
+        // -------
+
+        countElems.Init(0);
+
+        // Check if any inhom. boundary condition is defined for the current
+        // result
+        if( idBcIt != idBcs_.end() ) {
+          IdBcList const & actIdBcList = idBcIt->second;
+
+          for ( UInt i = 0; i < actIdBcList.GetSize(); i++ ) {
+            StdVector<UInt> nodes;
+            EntityIterator elemIt = actIdBcList[i]->entities->GetIterator();
+            
+            UInt actDof = actIdBcList[i]->dof;
+            
+            for( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
+              UInt actElem = elemIt.GetElem()->elemNum;
+              if ( mesh2PdeElem_[ actElem - 1 ] - 1 < 0 ) {
+                (*warning) << "EqnMap::CalcElemEquations: Inhom. Dirichlet "
+                           << "elem #" << actElem
+                           << " is not contained in any of the regions for "
+                           << "this Pde";
+                Warning( __FILE__, __LINE__ );
+              }
+              else if ( countElems[mesh2PdeElem_[actElem-1]-1]
+                        [actDof-1] != 0 ) {
+                (*warning) << "EqnMap::CalcElemEquations: Inhom. Dirichlet "
+                           << "elem #" << actElem
+                           << "\nappeared already at least once in the list of "
+                           << "boundary nodes for this Pde!\n Please check, if "
+                           << "this node is defined in more than one level of "
+                           << "boundary nodes!";
+                Warning( __FILE__, __LINE__ );
+              }
+              else {
+                if ( sortEqns_ == true ) {
+                  actMap[mesh2PdeElem_[actElem-1]-1] [actDof-1] = 0;
+                  countElems[mesh2PdeElem_[actElem-1]-1][actDof-1]++;
+                }
+                // In any case we have to increment the number of idBC-conditions
+                numIdBcs_++;
+              }
+            }
+          }
+        }
+        
+        // ------
+        // STEP 4
+        // ------
+        // Initialize countNodes to zero. It will be used to count if
+        // a node got already an equation number
+        countElems.Init(0);
+        
+        StdVector<Elem*> elems;
+        // Iterate over all element list belonging to this result
+        // and assign each of them a node number
+        for( UInt iList = 0; iList < actLists.GetSize(); iList++ ) {
+
+          EntityIterator it = actLists[iList]->GetIterator();
+          
+          Integer locElem = 0;
+          for ( it.Begin(); !it.IsEnd(); it++ ) {
+            locElem = mesh2PdeElem_[(it.GetElem()->elemNum)-1];
+            for ( UInt iDof = 0; iDof < dofsPerElem; iDof++ ) {
+              if ( actMap[locElem-1][iDof] != 0 &&
+                   countElems[locElem-1][iDof] == 0) {
+                eqnCounter++;
+                actMap[locElem-1][iDof] = eqnCounter;
+                countElems[locElem-1][iDof] = 1;
+              }
+            }
+          }
+        }
+        
+        // now we know the number of 'real' dofs
+        numRealEqns_ = eqnCounter;
+
+      } else if( phase == 2 ) {
+        
+        // ------
+        
+        
+        
+        numEqns_ = eqnCounter;        
+        
+        //numDroppedDofs_ = numLocNodes_ * dofsPerNode - numEqns_ + multipleBCs;
+        
+      } else {
+        *error << "Phase '" << phase << "' does not exist!";
+        Error( __FILE__, __LINE__ );
+      }
+    }
+
   }
   
   void EqnMap::CalcEdgeSurfEquations( UInt phase ) {

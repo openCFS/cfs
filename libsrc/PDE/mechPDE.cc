@@ -5,7 +5,8 @@
 
 #include "Forms/forms_header.hh"
 #include "Forms/linElastInt.hh"
-#include "Forms/FlatShellInt.hh"
+#include "Forms/FlatShellStiffInt.hh"
+#include "Forms/FlatShellMassInt.hh"
 #include "Forms/massInt.hh"
 #include "Forms/linPressureInt.hh"
 #include "Forms/singleEntryInt.hh"
@@ -84,11 +85,18 @@ namespace CoupledField {
     shared_ptr<ResultDof> res1(new ResultDof);
     shared_ptr<AnsatzFct> fct(new LagrangeFct);
     res1->resultType = MECH_DISPLACEMENT;
-    if( dim_ == 3 ) {
-      res1->dofNames = "ux", "uy", "uz";
+
+    // Check for subType
+    if( subType_ != "flatShell" ) {
+      if( dim_ == 3 ) {
+	res1->dofNames = "ux", "uy", "uz";
+      } else {
+	res1->dofNames = "ux", "uy";
+      }
     } else {
-      res1->dofNames = "ux", "uy";
+      res1->dofNames = "ux", "uy", "uz", "tx", "ty", "tz";
     }
+      
     res1->definedOn = ResultDof::NODE;
     res1->fctType = fct;
     results_.Push_back( res1 );
@@ -455,7 +463,7 @@ namespace CoupledField {
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
 
-      // Get current region and material
+      // Set current region and material
       actRegion = it->first;
       actSDMat = it->second;
 
@@ -601,26 +609,55 @@ namespace CoupledField {
 	
 	
       // ==============  add mass ===========================================
-      double density;
-      actSDMat->GetScalar(density,DENSITY,REAL);
-      BaseForm * bilinearMass  = new MassInt(density, dim_, isaxi_);
+    
+
+      BiLinFormContext * actIntDescr = NULL;
+      if ( subType_ != "flatShell" ) {
+
+	double density;
+	actSDMat->GetScalar(density,DENSITY,REAL);
+	BaseForm * bilinearMass  = new MassInt(density, dim_, isaxi_);
 	
-      BiLinFormContext * actIntDescr =
-        new BiLinFormContext(bilinearMass, MASS );
+	actIntDescr =  new BiLinFormContext(bilinearMass, MASS );
+
+
+      } else {
+        
+        FlatShellMassInt * bilinearMass = new FlatShellMassInt(actSDMat);
+                	
+        // Obtain thickness and penalty dof
+        StdVector<std::string> keyVec, attrVec, valVec;
+        std::string regionName = ptgrid_->RegionIdToName( actRegion );
+        attrVec = "", "", "name";
+        valVec = "", "", regionName;
+        
+        Double thickness;
+        keyVec = "pdeList", "mechanic", "region", "thickness";
+        params->Get( keyVec, attrVec, valVec, thickness );
+        bilinearMass->SetThickness( thickness );
+       
+        // Get penalty value for drilling dof of region
+        Double penaltyDof;
+        keyVec = "pdeList", "mechanic", "region", "penaltyDof";
+        params->Get( keyVec, attrVec, valVec, penaltyDof );
+        bilinearMass->SetPenaltyDof( penaltyDof );
+
+        actIntDescr = new BiLinFormContext(bilinearMass, MASS);
+      }        
+
       actIntDescr->SetPtPdes(this, this);
       actIntDescr->SetResults( results_[0], results_[0],
-                               actSDList, actSDList );
-      
-      //check for damping (mass part)
-	
+			       actSDList, actSDList );
+
+      // Check for damping (mass part)
       if ( dampingList_[actRegion] == RAYLEIGH ) {
-        Double alpha;
-        actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-        actIntDescr->SetSecDestMat(DAMPING, alpha);
+	Double alpha;
+	actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+	actIntDescr->SetSecDestMat( DAMPING, alpha );
       }
-	
+
       assemble_->AddBiLinearForm(actIntDescr);
-	
+
 	
       // ==================== RHS ===========================================
       if (nonLin_) {
@@ -653,10 +690,74 @@ namespace CoupledField {
       eqnMap_->AddResult( *results_[0], actSDList );      
     }
     
-  
-   
+    // Define Integrators for composite materials
+    std::map<RegionIdType, Composite>::iterator compIt;
+    for( compIt=compositeMaterials_.begin(); compIt!=compositeMaterials_.end();
+         compIt++ ) {
+
+      // Get current subdomain and composite material
+      RegionIdType actRegion = compIt->first;
+      Composite & composite = compIt->second;
+      
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( actRegion );
+ 
+
+      // penalty dof
+        StdVector<std::string> keyVec, attrVec, valVec;
+        std::string regionName = ptgrid_->RegionIdToName( actRegion );
+        attrVec = "", "", "name";
+        valVec = "", "", regionName;
+        
+        // Get penalty value for drilling dof of region
+        Double penaltyDof;
+        keyVec = "pdeList", "mechanic", "region", "penaltyDof";
+        params->Get( keyVec, attrVec, valVec, penaltyDof );
 
 
+      // ==============  add stiffness ===========================================
+
+      // Now define integrator for this region
+      FlatShellStiffInt * myInt = new FlatShellStiffInt(&composite);
+      myInt->SetPenaltyDof( penaltyDof );
+      BiLinFormContext * actIntDescrStiff =
+        new BiLinFormContext( myInt, STIFFNESS);
+      
+      //check for damping
+      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == FALSE ) {
+	Double beta;
+	actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
+	actIntDescrStiff->SetSecDestMat( DAMPING, beta );
+      }
+
+      actIntDescrStiff->SetPtPdes(this, this);
+      actIntDescrStiff->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );
+      
+      assemble_->AddBiLinearForm( actIntDescrStiff );
+      eqnMap_->AddResult( *results_[0], actSDList );
+      
+      // ==============  add mass ===========================================
+      FlatShellMassInt * bilinearMass = new FlatShellMassInt(&composite);
+      bilinearMass->SetPenaltyDof( penaltyDof );
+      BiLinFormContext * actIntDescrMass = new BiLinFormContext(bilinearMass, MASS);
+            
+      //check for damping
+      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == FALSE ) {
+	Double alpha;
+	actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+	actIntDescrMass->SetSecDestMat( DAMPING, alpha );
+      }
+
+      actIntDescrMass->SetPtPdes(this, this);
+      actIntDescrMass->SetResults( results_[0], results_[0],
+                                    actSDList, actSDList );
+      
+      assemble_->AddBiLinearForm( actIntDescrMass );
+      eqnMap_->AddResult( *results_[0], actSDList );
+    }
+ 
     //surface integrators
     //RHS-part
     for (UInt actSF = 0; actSF < pressSurf_.GetSize(); actSF++) {
@@ -734,7 +835,8 @@ namespace CoupledField {
     // Check for FlatShellIntegrator, as this one is a special sub-type,
     // not handled by the SubTensorType
     if (subType_ == "flatShell" ) {
-      FlatShellInt * myInt = new FlatShellInt(actSDMat);
+      FlatShellStiffInt * myInt = new FlatShellStiffInt(actSDMat);
+      
        
       // Get thickness of region
       Double thickness;

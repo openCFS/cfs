@@ -1,5 +1,5 @@
-#ifndef FILE_LAMINA
-#define FILE_LAMINA
+#ifndef FILE_COMPOSITE
+#define FILE_COMPOSITE
 
 
 #include "General/environment.hh"
@@ -20,7 +20,7 @@ namespace CoupledField {
     Double zStart;
 		
     //----Definition of Layers----
-		
+   
     //! Thickness of individual lamina
     StdVector<Double> thickness;
 		
