@@ -334,7 +334,11 @@ namespace CoupledField {
       params->GetList( keyVec, attrVec, valVec, pmlInfo);
 
       if (pmlInfo.GetSize() > 0) {
-        //read data for PML layer
+	if ( analysistype_ != HARMONIC ) {
+	  Error("PML just supported for Harmonic-Analysis",__FILE__,__LINE__);
+	}
+
+	//read data for PML layer
 
         //type of PML damping
         std::string dampingTypePML;
@@ -466,6 +470,41 @@ namespace CoupledField {
         // ********************************************************************
         //   Additional terms for damping
         // ********************************************************************
+
+	//check  for damping layer
+	keyVec = "acoustic" , "region" , "dampLayer" , "type";
+	attrVec= ""         , "name"   , "";
+	valVec = ""         , actRegionName, "";
+	StdVector<std::string> dampInfo;
+	params->GetList( keyVec, attrVec, valVec, dampInfo);
+
+	if (dampInfo.GetSize() > 0) {
+	  
+	  //type of damping fnc
+	  std::string dampFnc;
+
+	  //damping data
+	  Double dampFactor, dampFactorMax, startRadius, stopRadius;
+	  Vector<Double> mPoint;
+	  ReadDataDampLayer(dampFnc, mPoint, dampFactor, dampFactorMax, 
+			    startRadius, stopRadius, actRegion);
+
+	  //get the Rayleigh material parameters
+	  Double alpha, beta;
+	  materials_[subdoms_[actSD]]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+	  materials_[subdoms_[actSD]]->GetScalar(beta,RAYLEIGH_BETA,REAL);
+    
+	  // stiffness part
+	  stiffContext->SetSecDestMat( DAMPING, beta );
+	  stiffContext->SetDampLayer(dampFnc, mPoint, dampFactor, 
+				     dampFactorMax, startRadius, 
+				     stopRadius);	    
+	  // mass part
+	  massContext->SetSecDestMat( DAMPING, alpha );
+	  massContext->SetDampLayer(dampFnc, mPoint, dampFactor, 
+				    dampFactorMax, startRadius, 
+				    stopRadius);
+	}
 
         if ( dampingList_.size() > 0 ) {
 	  
@@ -2014,6 +2053,8 @@ namespace CoupledField {
 
   }
 
+
+
   // ***********************************************************************
   //   Obtain information on desired output quantities from parameter file
   // ***********************************************************************
@@ -2023,7 +2064,13 @@ namespace CoupledField {
 
     ENTER_FCN( "AcousticPDE::GetPMLLayerData" );
     
-    outer = inner;
+    outer.Resize(inner.GetSizeRow(),inner.GetSizeCol());
+
+    outer[0][0] = outer[1][0] = inner[1][0];
+    outer[0][1] = outer[1][1] = inner[1][1];
+    if (inner.GetSizeCol() > 2 ) {
+      outer[0][2] = outer[1][2] = inner[1][2];
+    }
 
     // inner/outer:   xmin  ymin  zmin
     //                xmax  ymax  zmax
@@ -2069,7 +2116,77 @@ namespace CoupledField {
 
     }
 
-    //   std::cout << "outer:\n" << outer << std::endl;
+  }
+
+
+  void AcousticPDE::ReadDataDampLayer(std::string& dampingTypePML, 
+				      Vector<Double>& mPoint, 
+				      Double& dampFactor, 
+				      Double& dampFactorMax, 
+				      Double& startRadius, 
+				      Double& endRadius, 
+				      RegionIdType actRegion) {
+  
+    ENTER_FCN( "AcousticPDE::ReadDataDampLayer" );
+
+    mPoint.Resize(dim_);
+
+    // help variables for parameter checking
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+
+    StdVector<std::string> stringVal;
+
+    // Construct vectors for restricted parameter search
+    std::string actRegionName;
+    actRegionName = ptgrid_->RegionIdToName( actRegion );
+    keyVec = "acoustic" , "region" , "dampLayer" , "type";
+    attrVec= ""         , "name"   , "";
+    valVec = ""         , actRegionName, "";
+    params->GetList( keyVec, attrVec, valVec, stringVal);
+    dampingTypePML = stringVal[0];
+
+    StdVector<Double> val;
+ 
+    //get the center point
+
+    //xM
+    keyVec = "acoustic" , "region" , "dampLayer" , "xM";
+    params->GetList( keyVec, attrVec, valVec, val);
+    mPoint[0] =  val[0];
+
+    //yM
+    keyVec = "acoustic" , "region" , "dampLayer" , "yM";
+    params->GetList( keyVec, attrVec, valVec, val);
+    mPoint[1] =  val[0];
+
+    if ( dim_ == 3 ) {
+      //zM
+      keyVec = "acoustic" , "region" , "dampLayer" , "zM";
+      params->GetList( keyVec, attrVec, valVec, val);
+      mPoint[2] =  val[0];
+    }
+
+    //start radius
+    keyVec = "acoustic" , "region" , "dampLayer" , "radiusStart";
+    params->GetList( keyVec, attrVec, valVec, val);
+    startRadius =  val[0];
+
+    //end radius
+    keyVec = "acoustic" , "region" , "dampLayer" , "radiusEnd";
+    params->GetList( keyVec, attrVec, valVec, val);
+    endRadius =  val[0];
+
+    //get damping factor
+    keyVec = "acoustic" , "region" , "dampLayer" , "dampFactor";
+    params->GetList( keyVec, attrVec, valVec, val);
+    dampFactor = val[0];
+
+    //get maximal damping factor (saturation)
+    keyVec = "acoustic" , "region" , "dampLayer" , "dampFactorMax";
+    params->GetList( keyVec, attrVec, valVec, val);
+    dampFactorMax = val[0];
 
   }
 

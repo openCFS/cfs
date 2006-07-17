@@ -217,6 +217,15 @@ namespace CoupledField {
     void GetPMLLayerData(Matrix<Double>& inner, Matrix<Double>& outer,
 			 UInt actSD);
 
+    //! information for damoing layer
+    void ReadDataDampLayer(std::string& dampingTypePML, 
+			   Vector<Double>& mPoint, 
+			   Double& dampFactor, 
+			   Double& dampFactorMax, 
+			   Double& startRadius, 
+			   Double& endRadius, 
+			   RegionIdType actRegion);
+  
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

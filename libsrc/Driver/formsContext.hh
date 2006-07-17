@@ -4,6 +4,7 @@
 
 #include "General/environment.hh"
 #include "Utils/StdVector.hh"
+#include "Utils/dampLayer.hh"
 
 namespace CoupledField
 {
@@ -62,6 +63,14 @@ namespace CoupledField
                           Double aSecMatFac ) {
       secDestMat_ = aSecMat;
       secMatFac_ = aSecMatFac; }
+
+    //! initialize object for damping layer
+    void SetDampLayer(std::string& dampingTypeFnc, 
+		      Vector<Double>& mPoint, 
+		      Double& dampFactor, 
+		      Double& dampFactorMax, 
+		      Double& startRadius, 
+		      Double& endRadius);
     
     //! Returns matrix type of the secondary matrix 
     FEMatrixType GetSecDestMat() const { return secDestMat_; } 
@@ -123,6 +132,9 @@ namespace CoupledField
     //! upper and lower part of global matrix
     bool IsSetCounterPart() const {return setCounterPart_; }
 
+    //get the pointe rto damping layer object!
+    DampLayer* getPtDamplayer() {
+      return dampingLayer_;};
 
   protected:
 
@@ -143,6 +155,9 @@ namespace CoupledField
     
     //! Type of used materialData
     DataType matDataType_;
+
+    //! for damping layer
+    DampLayer* dampingLayer_;
 
     // ======================================================
     //  MAPPING DATA
