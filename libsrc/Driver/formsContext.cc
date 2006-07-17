@@ -25,8 +25,8 @@ namespace CoupledField {
 
     ptPde1_ = NULL;
     ptPde2_ = NULL;
-    
 
+    dampingLayer_ = NULL;
   }
 
   BiLinFormContext::~BiLinFormContext() {
@@ -97,6 +97,21 @@ namespace CoupledField {
     }
   }
 
+  void BiLinFormContext::SetDampLayer(std::string& typeFnc, 
+				      Vector<Double>& mPoint, 
+				      Double& dampFactor, 
+				      Double& dampFactorMax, 
+				      Double& startRadius, 
+				      Double& endRadius) {
+    ENTER_FCN( "BiLinFormContext::SetDampLayer" );
+
+    dampingLayer_ = new DampLayer(typeFnc);
+    dampingLayer_->SetDampingParams(mPoint, dampFactor, 
+				    dampFactorMax, startRadius, 
+				    endRadius);
+
+  }
+
 // -------------------------------------------------------------------------
 
   LinearFormContext::LinearFormContext( LinearForm* linearForm, 
@@ -154,6 +169,7 @@ namespace CoupledField {
       return false;
     }
   }
-  
-  
+
+
+ 
 }

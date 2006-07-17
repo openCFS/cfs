@@ -237,12 +237,18 @@ namespace CoupledField {
         // Pass element matrix to algebraic system (primary matrix)
         InsertMatrix( destMat, actContext, elemMatrix, eqnVec1, eqnVec2,
                       pdeId1, pdeId2);
-        
+
         // Check for secondary matrix type
         if (secDestMat != NOTYPE ) {
           
+	  Double dampFactor = 1.0;
+	  if ( actContext.getPtDamplayer() != NULL ) {
+	    actContext.getPtDamplayer()->CalcDampFactor(dampFactor, it1);
+	    // std::cout << "   dampFactor: " <<  dampFactor << std::endl;
+	  }
+
           // Rayleigh damping
-          elemMatrix *= raylDampFactor_ * actContext.GetSecMatFac();
+          elemMatrix *= raylDampFactor_ * dampFactor * actContext.GetSecMatFac();
 
           // Pass secondary matrix part to algebraic system
           InsertMatrix( secDestMat, actContext, elemMatrix, eqnVec1, eqnVec2,

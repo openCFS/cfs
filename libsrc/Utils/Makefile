@@ -5,7 +5,8 @@ include ../../main/Makefile.option
 src =   myclock.cc nodestoresol.cc elemstoresol.cc tools.cc vector.cc\
 	tracing.cc Coil.cc ApproxData.cc SmoothSpline.cc\
 	mathfunctions.cc hysteresis.cc preisach.cc LinInterpolate.cc jiles.cc \
-	profiler.cc coordSystem.cc cylCoordSys.cc defaultCoordSys.cc mathParser.cc
+	profiler.cc coordSystem.cc cylCoordSys.cc defaultCoordSys.cc mathParser.cc \
+	dampLayer.cc
 #
 CFLAGS3 =
 #
