@@ -40,6 +40,8 @@
                   minOccurs="0"/>
                 <xsd:element name="pml" type="DT_AcousticPML"
                   minOccurs="0"/>
+                <xsd:element name="dampLayer" type="DT_AcousticDampLayer"
+                  minOccurs="0"/>
               </xsd:sequence>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="nonLinear" type="DT_AcousticNonLin"
@@ -315,6 +317,35 @@
     <xsd:attribute name="zMax" type="xsd:double" use="required"/>
     <xsd:attribute name="dampFactor" type="xsd:double" use="optional"
       default="10"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition for damping Layer                                      -->
+  <!-- ******************************************************************* -->
+
+   <xsd:complexType name="DT_AcousticDampLayer">
+
+    <!-- Type of PML -->
+    <xsd:attribute name="type" use="optional" default="exponential">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="linear"   />
+          <xsd:enumeration value="quadDist"     />
+          <xsd:enumeration value="inverseDist"     />
+          <xsd:enumeration value="exponential"     />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <xsd:attribute name="xM" type="xsd:double" use="required"/>
+    <xsd:attribute name="yM" type="xsd:double" use="required"/>
+    <xsd:attribute name="zM" type="xsd:double" use="required"/>
+    <xsd:attribute name="radiusStart" type="xsd:double" use="required"/>
+    <xsd:attribute name="radiusEnd" type="xsd:double" use="required"/>
+    <xsd:attribute name="dampFactor" type="xsd:double" use="optional"
+      default="10"/>
+    <xsd:attribute name="dampFactorMax" type="xsd:double" use="optional"
+      default="100"/>
   </xsd:complexType>
 
 
