@@ -167,6 +167,17 @@ namespace CoupledField
         // flag in 'solvePDE_' is set to true
         if (rPDE_.solvePDE_[i] == true) {
           
+#ifdef MpCCI
+          // check for a HALTCFS File
+          // if there exist a file with name HALTCFS in the executing directory
+          // than CFS++ will create a HALT file such that FASTEST also stops
+          std::ifstream readHALTCFS("HALTCFS", std::ios_base::in );
+          if (readHALTCFS && actStep_== numTimeStep_) {
+            readHALTCFS.close();
+            std::ofstream stopFASTEST3D("../HALT", std::ios_base::out );
+          }
+#endif
+
           rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
           rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
           rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
@@ -190,6 +201,9 @@ namespace CoupledField
               Info->PrintF(rPDE_.pdename_, " %s : Norm of %s = %g\n", 
                            (rCouplings_[i]->GetPDE()->GetName()).c_str(),
                            quantityConv.c_str(), rPDE_.norms_[counter]);
+
+              Info->PrintF(rPDE_.pdename_, " actStep_ = %d\n", actStep_);
+              Info->PrintF(rPDE_.pdename_, " numTimeStep_ = %d\n", numTimeStep_);
             }
             if (rPDE_.norms_[counter] > rCouplings_[i]->GetOutputEpsilon(k)) 
               normsReached = false;
@@ -214,8 +228,7 @@ namespace CoupledField
 
 
 #ifdef MpCCI
-    if (actStep_==numTimeStep_) {
-      
+    if (actStep_== numTimeStep_) {
       rPDE_.PDEs_[0]->converged_ = true;
       rPDE_.PDEs_[0]->CalcInputCoupling();
     }
@@ -239,7 +252,6 @@ namespace CoupledField
       if ( actAnalysisType_ == TRANSIENT )
         rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep_);
     }
-
 
     bool normsReached = false;
     std::string quantityConv;
@@ -416,8 +428,10 @@ namespace CoupledField
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
 
-      if ( actAnalysisType_ == TRANSIENT )
+      if ( actAnalysisType_ == TRANSIENT ) {
         rPDE_.PDEs_[i]->GetSolveStep()->SetNumTimeSteps(numTimeStep);
+        numTimeStep_=numTimeStep;
+      }
     }
   }
 

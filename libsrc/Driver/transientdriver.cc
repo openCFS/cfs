@@ -5,6 +5,12 @@
 #include <list>
 #include <math.h>
 
+
+// include generic file system handling routines
+// #include "boost/filesystem/operations.hpp"
+// #include "boost/filesystem/path.hpp"
+// using boost::filesystem;
+
 #include "transientdriver.hh"
 #include "stdSolveStep.hh"
 
@@ -13,6 +19,8 @@
 #include "PDE/StdPDE.hh"
 #include "PDE/pdememento.hh"
 #include "Domain/domain.hh"
+
+
 
 namespace CoupledField {
 
@@ -68,6 +76,17 @@ namespace CoupledField {
   
     ptMeshes_ = NULL;
   
+
+    // remove HALTCFS File at the beginning
+    std::string command = "rm -f ./HALTCFS";
+    std::system( command.c_str() );
+    
+//     boost::filesystem::path haltFile ( "./HALTCFS" );
+//     if ( boost::filesystem::exists( haltFile ) ) {
+//       boost::filesystem::remove( haltFile );
+//     }
+
+    
   }
 
   // ==============
@@ -91,6 +110,7 @@ namespace CoupledField {
     UInt restartStep  = isavebegin_ + restartIncr_ - 1;
   
     Double  dt = firstdt_;
+    bool haltFlag=false;
   
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
@@ -102,10 +122,6 @@ namespace CoupledField {
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
   
-    // Solve problem
-    ptPDE_->GetSolveStep()->SetTimeStep(dt);
-
-    ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
   
     // if multiSequence is performed, the ms-driver
     // writes out the grid one time
@@ -120,6 +136,7 @@ namespace CoupledField {
       ptPDE_->ReadRestart(lastStepToRestartFrom);
       startStep = lastStepToRestartFrom + 1;
       stepsave=startStep;
+      numstep_+=lastStepToRestartFrom;
       ptPDE_->GetSolveStep()->SetStartStep(startStep);
       steptime=(startStep)*dt;
       restartStep  = startStep + restartIncr_ - 1;
@@ -131,11 +148,26 @@ namespace CoupledField {
     else {
       ptPDE_->GetSolveStep()->SetStartStep(1);
     }
+    // Solve problem
+    ptPDE_->GetSolveStep()->SetTimeStep(dt);
+
+    ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
 
     UInt nstep;
 
     // Out loop over all timesteps
     for (nstep = startStep; nstep <= numstep_; nstep++) {
+
+      // check for a HALTCFS File
+      // if there exist a file with name HALTCFS in the executing directory
+      // than CFS++ will end after the current time step
+      std::ifstream readHALTCFS("HALTCFS", std::ios_base::in );
+      if (readHALTCFS) {
+        readHALTCFS.close();
+        haltFlag = true;
+        numstep_=nstep;
+        ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
+      }
       
       // Set curent value of timestep in the mathParser
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
@@ -188,7 +220,13 @@ namespace CoupledField {
           restartStep+=restartIncr_;
         }
       }
-    
+      if (haltFlag) {
+        std::cout << myEndl << "Write a restart file after interuppting a simulation run with a HALTCFS-file at step:  " 
+                  << nstep <<" *********** " << std::endl;      
+
+        ptPDE_->WriteRestart(nstep);
+      }    
+
       steptime+=dt;        
 
       SETPROFILE("After Transient Step");
