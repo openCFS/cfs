@@ -62,11 +62,11 @@ namespace CoupledField
     //                  const bool updatesysmat);
   
     //! write a restart file "simname_pdename.restart"
-    void WriteRestart(const UInt nstep);
+    void WriteRestart(const UInt nstep, UInt totalUnknowns = 0);
 
 
     //! read a restart file "simname_pdename.restart"
-    void ReadRestart(UInt &startStep);
+    void ReadRestart(UInt &startStep, UInt totalUnknowns = 0);
 
     //! write results in file
     void WriteResultsInFile(const UInt kstep = 0,
