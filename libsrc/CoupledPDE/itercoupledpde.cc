@@ -299,20 +299,20 @@ namespace CoupledField
   }
 
 
-  void IterCoupledPDE::WriteRestart(const UInt nstep) 
+  void IterCoupledPDE::WriteRestart(const UInt nstep, UInt totalUnknowns) 
   {
     ENTER_FCN( "IterCoupledPDE::WriteRestart" );
 
-    for (UInt actPDE=0; actPDE < PDEs_.GetSize()-1; actPDE++)
+    for (UInt actPDE=0; actPDE < PDEs_.GetSize(); actPDE++)
       PDEs_[actPDE]->WriteRestart(nstep);
   }
 
 
-  void IterCoupledPDE::ReadRestart(UInt &startStep) 
+  void IterCoupledPDE::ReadRestart(UInt &startStep, UInt totalUnknowns) 
   {
-    ENTER_FCN( "IterCoupledPDE::WriteRestart" );
+    ENTER_FCN( "IterCoupledPDE::ReadRestart" );
     
-    for (UInt actPDE=0; actPDE < PDEs_.GetSize()-1; actPDE++)
+    for (UInt actPDE=0; actPDE < PDEs_.GetSize(); actPDE++)
       PDEs_[actPDE]->ReadRestart(startStep);
   }
 
