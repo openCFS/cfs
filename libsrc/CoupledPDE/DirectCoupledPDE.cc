@@ -398,6 +398,20 @@ namespace CoupledField {
       couplings_[i]->PostProcess();
     }
   }
+
+   void DirectCoupledPDE::WriteRestart(const UInt nstep, UInt totalUnknowns) 
+   {
+     ENTER_FCN( "DirectCoupledPDE::WriteRestart" );
+
+     singlePDEs_[0]->WriteRestart(nstep,totalUnknowns_);
+   }
+
+   void DirectCoupledPDE::ReadRestart(UInt &startStep, UInt totalUnknowns) 
+   {
+     ENTER_FCN( "DirectCoupledPDE::ReadRestart" );
+
+     singlePDEs_[0]->ReadRestart(startStep,totalUnknowns_);
+   }
   
 
   void DirectCoupledPDE::WriteResultsInFile(const UInt kstep,
