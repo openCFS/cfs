@@ -134,14 +134,24 @@ namespace CoupledField {
     return actRHS.NormL2();
   }
 
-  void StdPDE::WriteRestart(const UInt nstep) {
+  void StdPDE::WriteRestart(const UInt nstep, UInt totalUnknowns) {
 
     ENTER_FCN( "StdPDE::WriteRestart" );
 
     if (pdename_=="mechanic" || pdename_=="acoustic")
       {
         std::string simName = commandLine->GetSimName();
-        std::string restartFileName_ = simName+"_"+pdename_+".restart";
+
+        //only in case of a direct coupling totalUnknowns has a senseful entry.
+        //namely the number of unknowns of the direct coupled system
+        std::string restartFileName_ ="";
+        if (totalUnknowns == 0)
+          restartFileName_ = simName+"_"+pdename_+".restart";
+        else if (totalUnknowns > 0)
+          restartFileName_ = simName+"_"+pdename_+"DirectCoupled.restart";
+        else
+          Error( "totalUnknowns < 0 ?!?!", __FILE__, __LINE__ );
+
         std::ofstream writeTo(restartFileName_.c_str(), std::ios_base::out|std::ios_base::trunc);
         GetMemento(memento_);
         writeTo << nstep << std::endl;
@@ -155,7 +165,7 @@ namespace CoupledField {
 
   }
 
-  void StdPDE::ReadRestart(UInt &startStep) {
+  void StdPDE::ReadRestart(UInt &startStep, UInt totalUnknowns) {
 
     ENTER_FCN( "StdPDE::ReadRestart" );
 
@@ -165,8 +175,17 @@ namespace CoupledField {
         std::string transFromTo = "standard";
         Double actFrequency=0.0;
         char buffer[64];
-
-        std::string restartFileName_ = simName+"_"+pdename_+".restart";
+        
+        //only in case of a direct coupling totalUnknowns has a senseful entry.
+        //namely the number of unknowns of the direct coupled system
+        std::string restartFileName_ = "";
+        if (totalUnknowns == 0)
+          restartFileName_ = simName+"_"+pdename_+".restart";
+        else if (totalUnknowns > 0)
+          restartFileName_ = simName+"_"+pdename_+"DirectCoupled.restart";
+        else
+          Error( "totalUnknowns < 0 ?!?!", __FILE__, __LINE__ );
+        
         std::ifstream readRestart(restartFileName_.c_str(), std::ios_base::in );
         if (!readRestart) {
           Error( "Can not find the restart file from which i should read ?!?!", 
@@ -175,8 +194,16 @@ namespace CoupledField {
         readRestart.seekg(0, std::ios_base::beg);
         readRestart.getline( buffer, 64, '\n' );
         std::sscanf(buffer,"%u", &startStep );
-    
-        UInt rhsSize = eqnMap_->GetNumEqns();
+
+        UInt rhsSize;
+        if (totalUnknowns == 0)
+          rhsSize = eqnMap_->GetNumEqns();
+        
+        else if (totalUnknowns > 0)
+          rhsSize = totalUnknowns;
+        else
+          Error( "totalUnknowns < 0 ?!?!", __FILE__, __LINE__ );
+        
 
         memento_.SetSize(rhsSize);
         memento_.analysisType_ = analysistype_;
