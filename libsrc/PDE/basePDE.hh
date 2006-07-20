@@ -41,10 +41,10 @@ namespace CoupledField
 
 
     //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
-    virtual void WriteRestart(const UInt nstep) = 0;
+    virtual void WriteRestart(const UInt nstep, UInt totalUnknowns = 0) = 0;
 
     //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
-    virtual void ReadRestart(UInt &startStep) = 0;
+    virtual void ReadRestart(UInt &startStep, UInt totalUnknowns = 0) = 0;
 
     // ======================================================
     // POSTPROC SECTION

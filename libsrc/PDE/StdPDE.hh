@@ -96,10 +96,10 @@ namespace CoupledField {
                                    Vector<Complex> disp);
   
     //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
-    void WriteRestart(const UInt nstep);
+    void WriteRestart(const UInt nstep, UInt totalUnknowns=0);
 
     //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
-    void ReadRestart(UInt &startStep);
+    void ReadRestart(UInt &startStep, UInt totalUnknowns=0);
 
     // ======================================================
     // GET/SET METHODS

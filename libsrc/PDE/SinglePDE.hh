@@ -35,8 +35,8 @@ namespace CoupledField
 
     bool boolComplexMaterialData_;
  
-    void Init(UInt sequenceStep = 0,
-              std::string  bcSequenceTag = "anyTag");
+    virtual void Init(UInt sequenceStep = 0,
+                      std::string  bcSequenceTag = "anyTag");
   
     // ---------------------- ***** --------------------------------
 
@@ -51,7 +51,7 @@ namespace CoupledField
     // ======================================================
   
     //! define algebraic system 
-    void DefineAlgSys();
+    virtual void DefineAlgSys();
  
   
     // ======================================================
