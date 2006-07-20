@@ -31,7 +31,7 @@ namespace CoupledField {
     //solTypes_ = MPCCI;
     //solDofs_ = 1;
     pdename_          = "mpcci";
-    pdematerialclass_ = PIEZO;
+    pdematerialclass_ = MECHANIC;
     flagFirstTimeStep_= true;
     converged_=false;
 
@@ -41,13 +41,15 @@ namespace CoupledField {
       {
 	NumMeshIds_=2;
 	meshId_= new UInt[NumMeshIds_];
-	std::cerr << "i am a shell" << std::endl;
+        Info->PrintF( pdename_, 
+                      "thin structure is assumed (forces on both sides!\n" );
 	params->Get("meshIdA", meshId_[0], "mpcciFSI");
 	params->Get("meshIdB", meshId_[1], "mpcciFSI");
       }
     else if (MpCCIType_[0]=="solid")
       {
-	std::cerr << "i am a solid" << std::endl;
+        Info->PrintF( pdename_, 
+                      "thick structure is assumed (forces on one side!\n" );
 	NumMeshIds_=1;
 	meshId_ = new UInt[NumMeshIds_];
 	params->Get("meshIdA", meshId_[0], "mpcciFSI");
@@ -58,6 +60,17 @@ namespace CoupledField {
         errmsg += "does not exist";
         Info->Error( errmsg, __FILE__, __LINE__ );
       }
+
+    // Create dummy result dof object
+    shared_ptr<ResultDof> res1(new ResultDof);
+    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+    res1->resultType = MECH_FORCE;
+    res1->dofNames = "";
+    //res1->dofNames = "mpcci";
+    res1->definedOn = ResultDof::NODE;
+    res1->fctType = fct;
+    results_.Push_back( res1 );
+
   }
 
   void MpcciPDE::Init(UInt bcSequenceIndex, std::string  bcSequenceTag)
@@ -75,19 +88,36 @@ namespace CoupledField {
     params->GetList( "name", regionNames, pdename_, "region" );
     ptgrid_->RegionNameToId( subdoms_, regionNames );
 
+    bool usePenalty = false;
+    eqnMap_ = shared_ptr<EqnMap>(new EqnMap( ptgrid_, pdeId_, !usePenalty ));
+
     Info->PrintF( pdename_, " %s lives on regions:\n", pdename_.c_str());
     for ( UInt k = 0; k < regionNames.GetSize(); k++ ) 
       {
         Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
+
+        // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
+      actSDList->SetRegion( subdoms_[k] );
+
+      //std::cerr << "results_->size():" << results_->size() << std::endl;
+      // Give result to equation numbering class
+      eqnMap_->AddResult( *results_[0], actSDList );
+        
       }
+
+    eqnMap_->Finalize();
  
-    Error( "CalcMpcciMapping not yet implemented", __FILE__, __LINE__ );
     //eqnData_ = new ScalarNodeEQN( ptgrid_, subdoms_, dofspernode_, false );
     //eqnData_->CalcMpcciMapping();
     numPDENodes_ = eqnMap_->GetNumLocalNodes();
     numElems_ = eqnMap_->GetNumLocalElems();
 
+    solVec_ = new Vector<Double>;
+
+
     PreparePDE4Computation();
+    DefineSolveStep();
   }
 
 
@@ -127,6 +157,10 @@ namespace CoupledField {
 #endif
   }
 
+  void MpcciPDE::DefineAlgSys() {
+    
+    ENTER_FCN( "MpcciPDE::DefineAlgSys" );
+  }
 
   void MpcciPDE::DefineIntegrators()
   {
@@ -389,11 +423,13 @@ namespace CoupledField {
 #ifdef MpCCI
                 if (MpCCIType_[0]=="shell")
                   {
-                    std::cerr << "i am a shell" << std::endl;
+                    Info->PrintF( pdename_, 
+                        "thin structure is assumed (forces on both sides!\n" );
                   }
                 else if (MpCCIType_[0]=="solid")
                   {
-                    std::cerr << "i am a solid" << std::endl;
+                    Info->PrintF( pdename_, 
+                        "thick structure is assumed (forces on oned side!\n" );
                   }
                 else
                   {

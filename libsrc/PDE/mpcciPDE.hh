@@ -34,6 +34,9 @@ namespace CoupledField
 
     virtual void PreparePDE4Computation();
 
+    //! define algebraic system 
+    void DefineAlgSys();
+
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators();
 
