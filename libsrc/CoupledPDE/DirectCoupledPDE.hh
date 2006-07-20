@@ -84,6 +84,12 @@ namespace CoupledField {
     //! Do Postprocessing as descriped in conf file
     void PostProcess();
   
+    //! write a restart file "simname_pdename.restart"
+    void WriteRestart(const UInt nstep, UInt totalUnknowns=0);
+
+    //! read a restart file "simname_pdename.restart"
+    void ReadRestart(UInt &startStep, UInt totalUnknowns=0);
+
     //! write results in file
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time  
