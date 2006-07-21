@@ -80,13 +80,8 @@ namespace CoupledField {
                           Matrix<Double>& origMat,
                           FEMatrixType matrixType,
                           DataType matDataType,
-                          Double freq );
+                          Double omega );
       
-    //! Transform real-valued vector to harmonic representation
-    void Vector2Harmonic( Vector<Double>& harmVec,
-                          Vector<Double>& origVec,
-                          Double valPhase );
-                         
     //! Create map for mapping general FEMatrixtype to analysis-specific ones
     void CreateMatrixMap();
 
@@ -98,11 +93,6 @@ namespace CoupledField {
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
                        PdeIdType pdeId1, PdeIdType pdeId2 );
-
-
-    //! Insert vector onto RHS of algebraic system and adapt harmonic entries
-    void InsertVector( LinearFormContext& context, Vector<Double>& elemVec,
-                       StdVector<Integer>& eqnVec, PdeIdType pdeId );
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation

@@ -50,11 +50,7 @@ namespace CoupledField
                                            EntityIterator& ent2,
                                            Double & beta, Double & omega) {
       Error( "Not implemented here", __FILE__, __LINE__ );}
-  
-    /// Calculation of vector of right hand side 
-    virtual void CalcElemVector( Vector<Double> & result,
-                                 EntityIterator& ent )
-    {Error("CalcElemVector not implemented!",__FILE__,__LINE__);};
+
 #endif
 
     //

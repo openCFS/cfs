@@ -56,9 +56,9 @@ namespace CoupledField {
     // =====================================================================
     // set solution information
     // =====================================================================
-   //  dofspernode_ = 1;
-//     solTypes_ = BUBBLE_RADIUS;
-//     solDofs_ = 1;
+    //  dofspernode_ = 1;
+    //     solTypes_ = BUBBLE_RADIUS;
+    //     solDofs_ = 1;
     pdename_          = "bubble";
     pdematerialclass_ = FLUID;
  
@@ -99,10 +99,10 @@ namespace CoupledField {
 
 
       //*********Doppelt siehe unten ***
-//       //Set bubbledensity
-//       keyVec = pdename_, "bubbles", "bubbleNumDensity";
-//       params->Get(keyVec, attrVec, valVec, bubbleDensity_);
-    }
+          //       //Set bubbledensity
+          //       keyVec = pdename_, "bubbles", "bubbleNumDensity";
+          //       params->Get(keyVec, attrVec, valVec, bubbleDensity_);
+          }
     else if ( auxVec.GetSize() > 1 ) {
       Error("Specification of bubble type not unique in xml-file", __FILE__,
             __LINE__ );
@@ -121,7 +121,7 @@ namespace CoupledField {
 
       UInt  numElems = ptgrid_->GetNumElems( subdoms_ );
       for( UInt iElem = 0; iElem < numElems; iElem++ ) {
-	delete ptBubble_[iElem];
+        delete ptBubble_[iElem];
       }
     } else {
       delete ptBubble_[0];
@@ -148,7 +148,7 @@ namespace CoupledField {
 
       // Give result to equation numbering class
       eqnMap_->AddResult( *results_[0], actSDList );
-  }
+    }
     
     // =============================================
     //  Query ParamHandler for material parameters
@@ -219,9 +219,9 @@ namespace CoupledField {
       // Generate initial data for each element in the iteration workingcopy
       for( UInt iElem = 0; iElem < numElems; iElem++ ) {
       
-	// set initial data for each element
-	radiusOldStep_[iElem]    = initRadius_;
-	velocityOldStep_[iElem]  = initVel_;
+        // set initial data for each element
+        radiusOldStep_[iElem]    = initRadius_;
+        velocityOldStep_[iElem]  = initVel_;
       }
       
 
@@ -322,8 +322,8 @@ namespace CoupledField {
     if( isIterCoupled_ == true ) {
 
       if (iterCoupledCounter_ == 0){
-	radiusOldStep_   = radius_;
-	velocityOldStep_ = velocity_;
+        radiusOldStep_   = radius_;
+        velocityOldStep_ = velocity_;
       }
 
       // NOTE: We are iterating over the couplingElems_ entries, which might have a 
@@ -369,7 +369,7 @@ namespace CoupledField {
 
         //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-	iterCoupledCounter_++;
+        iterCoupledCounter_++;
       }
       
 
@@ -394,15 +394,15 @@ namespace CoupledField {
       y_[1] = velocity_[0] / (sqrt( pStatic_/ density_));
       
       ptODESolver_->Solve(steptime_, t_, y_, *ptBubble_[0], hTry_[0],
-       			  0, dt_);
+                          0, dt_);
       
       //set the new values
       radius_[0]   = y_[0] * initRadius_;
       velocity_[0] = y_[1] * sqrt( pStatic_/ density_);
       hTry_[0]     = hTry_[0]  * initRadius_ / (sqrt(pStatic_/ density_)); // Kann man evtl. woanders machen
-       //+++++Dimensionless case ++++++++++++ 
+      //+++++Dimensionless case ++++++++++++ 
        
-       //+++++Ausgabe von radius_, velocity_, berechnetem Druck, zeit ---- > 
+      //+++++Ausgabe von radius_, velocity_, berechnetem Druck, zeit ---- > 
       outValues_ << solveStep_->GetActTime() << '\t' 
                  << pressure_ *pStatic_ << '\t'
                  << radius_[0] << '\t'
@@ -468,9 +468,9 @@ namespace CoupledField {
   //   WriteHistoryInFile
   // **********************
   void BubblePDE::WriteHistoryInFile( const UInt kstep,
-                                    const Double asteptime,
-                                    UInt stepOffset,
-                                    Double timeOffset ) {
+                                      const Double asteptime,
+                                      UInt stepOffset,
+                                      Double timeOffset ) {
 
     ENTER_FCN( "BubblePDE::WriteHistoryInFile" );
 
@@ -519,9 +519,9 @@ namespace CoupledField {
         }
 
         // Print values on screen
-	// for( UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
-          //std::cerr << "ElemNr: " << (*elems)[iElem]->elemNum
-          //          << ", value: " << values[iElem] << std::endl;
+        // for( UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
+        //std::cerr << "ElemNr: " << (*elems)[iElem]->elemNum
+        //          << ", value: " << values[iElem] << std::endl;
         //} 
         
         break;
@@ -555,12 +555,12 @@ namespace CoupledField {
 
     for (UInt i = 0; i < numCouplings; i++) {
       std::cerr << "First time in BubblePDE::InitCoupling\n";
-       if (ptCoupling_->GetOutputQuantity(i) == ACOU_BUBBLE_RHS_VAL) {
+      if (ptCoupling_->GetOutputQuantity(i) == ACOU_BUBBLE_RHS_VAL) {
 
-         // Intialize the memory of the coupling values
-         ptCoupling_->CreateCouplingVector( i, isComplex_ );
+        // Intialize the memory of the coupling values
+        ptCoupling_->CreateCouplingVector( i, isComplex_ );
          
-       } 
+      } 
        
     } 
   }
@@ -625,7 +625,7 @@ namespace CoupledField {
 
     // create rhs integrator
     Double dummy = 1.0;
-    BaseForm *rhsForm = new VolumeSrcInt(dummy, isaxi_);        
+    LinearForm *rhsForm = new VolumeSrcInt(dummy, isaxi_);        
 
     for( UInt iRegion = 0; iRegion < regionIds.GetSize(); iRegion++ ) {
 
@@ -655,7 +655,7 @@ namespace CoupledField {
         }
           
 
-	Double beta2 = 1.0;
+        Double beta2 = 1.0;
         Double beta2Com = 1.0;
         Double Rpp = 0.0; 
        
@@ -669,9 +669,9 @@ namespace CoupledField {
           beta2 =density_*density_* 4/3*PI*bubbleDensity_*6*bubbleValues[0]
             *bubbleValues[1]*bubbleValues[1]; 
 
-	  //Vereinfachte RHS Siehe Commander
-	  beta2Com=0.0;
-	}
+          //Vereinfachte RHS Siehe Commander
+          beta2Com=0.0;
+        }
 
         else {
           StdVector<Double> dydt(2);
@@ -686,24 +686,24 @@ namespace CoupledField {
             (6*bubbleValues[0]*bubbleValues[1]*bubbleValues[1]
              + 3*bubbleValues[0]*bubbleValues[0]*dydt[1] ); 
 
-	  //Vereinfachte RHS Siehe Commander
-	  beta2Com= density_*density_*4.0*PI*bubbleDensity_*initRadius_ *initRadius_*dydt[1];
+          //Vereinfachte RHS Siehe Commander
+          beta2Com= density_*density_*4.0*PI*bubbleDensity_*initRadius_ *initRadius_*dydt[1];
 
           // dimensionless**************************************
 
-	  //Normal case+++++++++++++++++++++++++++++++++++++++
+          //Normal case+++++++++++++++++++++++++++++++++++++++
           //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues, dydt);
           //	  beta2 =density_*density_* 4/3*PI*bubbleDensity_*
           //	    (6*bubbleValues[0]*bubbleValues[1]*bubbleValues[1]
           //	     + 3*bubbleValues[0]*bubbleValues[0]*dydt[1] ); 
           //Normal case+++++++++++++++++++++++++++++++++++++++
 	  
- 	  Rpp=dydt[1];
+          Rpp=dydt[1];
         }
 
         rhsForm->SetFactor(beta2);            
 
-	Vector<Double> elemVec, helpVec;
+        Vector<Double> elemVec, helpVec;
         rhsForm->CalcElemVector( elemVec, it );
 
         // Get indices in nodes-vector for the node numbers of the current element

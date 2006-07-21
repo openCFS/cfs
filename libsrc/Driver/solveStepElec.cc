@@ -270,7 +270,7 @@ namespace CoupledField {
     StdVector<UInt> connect;
     StdVector<Integer>  connect_PDE;
   
-    BaseForm * rhsInt = new  
+    LinearForm * rhsInt = new  
       PiezoPolarizationInt(Dir_, ptgrid_->GetDim(), isaxi_);
 
     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {

@@ -12,19 +12,31 @@ namespace CoupledField
   public:
     
     //! Standard constructor
-    LinNeumannInt( Double amplitude, MaterialType materialParam, bool isaxi );
+    LinNeumannInt( std::string amplitudeStr, std::string phaseStr,
+                   MaterialType materialParam, bool isaxi );
     
     //! Destructor
     ~LinNeumannInt();
 
-    /// Calculation of vector of right hand side 
+    /// comprises part of CalcElemVector, which is equal for double and complex
+    void PrepareElemVector( Vector<Double> & elemVec,
+                            EntityIterator& ent );
+
+    /// Calculation of RHS vector for double entries, i.e. transient and static 
     void CalcElemVector( Vector<Double> & elemVec,
+                         EntityIterator& ent );
+
+    /// Calculation of RHS vector for complex entries, i.e. harmonic
+    void CalcElemVector( Vector<Complex> & elemVec,
                          EntityIterator& ent );
     
   protected:
 
-    Double amplitude_;
+    std::string amplitudeStr_;
+    std::string phaseStr_;
     MaterialType materialParam_;
+
+    Elem * ptVolElem_;
 
   };
 
