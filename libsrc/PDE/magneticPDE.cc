@@ -199,7 +199,7 @@ namespace CoupledField {
             new nLinMagNode2D_linFormInt(NULL,reluctivity, isaxi_, upLagrangeForm );
           rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
           LinearFormContext * rhsContext = 
-            new LinearFormContext( rhsSource, true );
+            new LinearFormContext( rhsSource );
           rhsContext->SetPtPde( this );
           rhsContext->SetResult( results_[0], actSDList );
           assemble_->AddLinearForm( rhsContext );
@@ -228,8 +228,7 @@ namespace CoupledField {
             VolumeSrcInt( factor, isaxi_,  upLagrangeForm  );  
 
           LinearFormContext * coilContext = 
-            new LinearFormContext( coilSource, 0.0, 
-                                   coilDef_[coil]->dynamicsFile_ );
+            new LinearFormContext( coilSource, coilDef_[coil]->dynamicsFile_ );
           coilContext->SetPtPde( this );
           coilContext->SetResult( results_[0], actSDList );
           assemble_->AddLinearForm( coilContext );
@@ -263,7 +262,7 @@ namespace CoupledField {
                              isaxi_, upLagrangeForm );
 
           LinearFormContext * permContext = 
-            new LinearFormContext( permSource, false );
+            new LinearFormContext( permSource, "" );
           permContext->SetPtPde( this );
           permContext->SetResult( results_[0], actSDList );
           assemble_->AddLinearForm( permContext );

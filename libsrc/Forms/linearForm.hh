@@ -26,10 +26,13 @@ namespace CoupledField
     ///
     virtual ~LinearForm();
 
-    /// Calculation of vector of right hand side 
-    void CalcElemVector( Vector<Double> & result,
+    /// Calculation of RHS vector for double entries, i.e. transient and static 
+    virtual void CalcElemVector( Vector<Double> & result,
                          EntityIterator& ent );
 
+    /// Calculation of RHS vector for double entries, i.e. harmonic 
+    virtual void CalcElemVector( Vector<Complex> & result,
+                         EntityIterator& ent );
   };
 
 

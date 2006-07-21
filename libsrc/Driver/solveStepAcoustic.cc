@@ -167,7 +167,7 @@ namespace CoupledField {
     Double coeff1, coeff2;
     Double density, compressibility, c0, BoverA;
 
-    BaseForm * rhsInt = NULL;
+    LinearForm * rhsInt = NULL;
 
     if ( subdoms_.GetSize() != nonLinPDEName_.GetSize() )
       Error("nonLinPDEName_ does not match size of subdoms_",__FILE__,__LINE__);
@@ -208,14 +208,14 @@ namespace CoupledField {
         connect = it.GetElem()->connect;
 
         PDE_.GetSolVecOfElement(sol, connect);
-	PDE_.GetDerivSolVecOfElement(solderiv1, connect);
+        PDE_.GetDerivSolVecOfElement(solderiv1, connect);
         PDE_.GetDeriv2SolVecOfElement(solderiv2, connect);
-
+        
         rhsInt->SetActElemSol(sol);
         rhsInt->SetActElemSolDeriv1(solderiv1);
         rhsInt->SetActElemSolDeriv2(solderiv2);
         rhsInt->CalcElemVector(rhs, it);
-          
+        
         //get equation numbers 
         
         eqnMap_->GetNodeEqn( connect, connect_PDE );

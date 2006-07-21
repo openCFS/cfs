@@ -115,14 +115,12 @@ namespace CoupledField {
 // -------------------------------------------------------------------------
 
   LinearFormContext::LinearFormContext( LinearForm* linearForm, 
-                                        Double phase,
                                         const std::string &dynamics ) {
     ENTER_FCN( "LinearFormContext::LinearFormContext" );
 
     integrator_ = linearForm;
 
     ptPde_ = NULL;
-    phase_ = phase;
     dynamics_ = dynamics;
   }
 

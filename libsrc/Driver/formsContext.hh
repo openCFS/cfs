@@ -199,7 +199,6 @@ namespace CoupledField
 
     //! Constructor
     LinearFormContext( LinearForm* linearForm,
-                       Double phase = 0.0, 
                        const std::string& dynamics = std::string() );
 
     //! Destructor
@@ -207,9 +206,6 @@ namespace CoupledField
 
     //! Return integrator
     LinearForm* GetIntegrator() { return integrator_; }
-
-    //! Get phase
-    Double GetPhase() { return phase_;}
 
     //! Get dynamics
     const std::string& GetDynamics() { return dynamics_; }
@@ -255,9 +251,6 @@ namespace CoupledField
     //  LOAD DATA
     // ======================================================
     
-    //! Load phase
-    Double phase_;
-
     //! Load dynamics file
     std::string dynamics_;
     

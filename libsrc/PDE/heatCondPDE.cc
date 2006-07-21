@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <math.h>
 
@@ -64,8 +65,6 @@ namespace CoupledField {
 
     // First, delete all of the "normal" boundary conditions
     inBcs_.Clear();
-    
-
 
     StdVector<std::string> inName, inDof, inValue, inPhase, inDynamics;
     StdVector<std::string> inType;
@@ -178,17 +177,26 @@ namespace CoupledField {
       // get current Bc
       InhomHeatNeumannBc const & actBc = *heatInBcs_[iBc];
 
-      // we assume the surface normal points out of the domain,
-      // but we want to take heat flux into the domain positive
-      Double amplitude = -1.0 * String2Double(actBc.value);
-      if (actBc.htc  != 0) {
-        amplitude = actBc.htc  * ( actBc.tSolid - actBc.tFluid );
+      // Because the value of the Neumann BC can be determined by either
+      //  'value' or
+      //  'heatTransferCoefficient', 'tSolid' and 'tFluid'
+      // we convert everything to doubles and look at the values
+      Double value  = String2Double(actBc.value);
+
+      // If 'htc' is different from zero, we assume the user wants this definition
+      if (actBc.htc  != 0.0) {
+        value = actBc.htc  * ( actBc.tSolid - actBc.tFluid );
         
         Info->PrintF( pdename_, "For inhomogeneous Neumann BC use \
  \n  heat transfer coefficient: %f \n  TempSolid:  %f \n  TempFluid: %f\n\n",
                       actBc.htc, actBc.tSolid , actBc.tFluid );
       }
-      LinearSurfForm *neumannBC = new LinNeumannInt( amplitude, 
+
+      std::stringstream chosenValue;
+      chosenValue << value;
+
+      LinearSurfForm *neumannBC = new LinNeumannInt( chosenValue.str(),
+                                                     actBc.phase, 
                                                      HEAT_CONDUCTIVITY,
                                                      isaxi_ );
       neumannBC->SetVoluInfo( materials_ );

@@ -334,11 +334,11 @@ namespace CoupledField {
       params->GetList( keyVec, attrVec, valVec, pmlInfo);
 
       if (pmlInfo.GetSize() > 0) {
-	if ( analysistype_ != HARMONIC ) {
-	  Error("PML just supported for Harmonic-Analysis",__FILE__,__LINE__);
-	}
+        if ( analysistype_ != HARMONIC ) {
+          Error("PML just supported for Harmonic-Analysis",__FILE__,__LINE__);
+        }
 
-	//read data for PML layer
+        //read data for PML layer
 
         //type of PML damping
         std::string dampingTypePML;
@@ -471,40 +471,40 @@ namespace CoupledField {
         //   Additional terms for damping
         // ********************************************************************
 
-	//check  for damping layer
-	keyVec = "acoustic" , "region" , "dampLayer" , "type";
-	attrVec= ""         , "name"   , "";
-	valVec = ""         , actRegionName, "";
-	StdVector<std::string> dampInfo;
-	params->GetList( keyVec, attrVec, valVec, dampInfo);
+        //check  for damping layer
+        keyVec = "acoustic" , "region" , "dampLayer" , "type";
+        attrVec= ""         , "name"   , "";
+        valVec = ""         , actRegionName, "";
+        StdVector<std::string> dampInfo;
+        params->GetList( keyVec, attrVec, valVec, dampInfo);
 
-	if (dampInfo.GetSize() > 0) {
+        if (dampInfo.GetSize() > 0) {
 	  
-	  //type of damping fnc
-	  std::string dampFnc;
+          //type of damping fnc
+          std::string dampFnc;
 
-	  //damping data
-	  Double dampFactor, dampFactorMax, startRadius, stopRadius;
-	  Vector<Double> mPoint;
-	  ReadDataDampLayer(dampFnc, mPoint, dampFactor, dampFactorMax, 
-			    startRadius, stopRadius, actRegion);
+          //damping data
+          Double dampFactor, dampFactorMax, startRadius, stopRadius;
+          Vector<Double> mPoint;
+          ReadDataDampLayer(dampFnc, mPoint, dampFactor, dampFactorMax, 
+                            startRadius, stopRadius, actRegion);
 
-	  //get the Rayleigh material parameters
-	  Double alpha, beta;
-	  materials_[subdoms_[actSD]]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-	  materials_[subdoms_[actSD]]->GetScalar(beta,RAYLEIGH_BETA,REAL);
+          //get the Rayleigh material parameters
+          Double alpha, beta;
+          materials_[subdoms_[actSD]]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+          materials_[subdoms_[actSD]]->GetScalar(beta,RAYLEIGH_BETA,REAL);
     
-	  // stiffness part
-	  stiffContext->SetSecDestMat( DAMPING, beta );
-	  stiffContext->SetDampLayer(dampFnc, mPoint, dampFactor, 
-				     dampFactorMax, startRadius, 
-				     stopRadius);	    
-	  // mass part
-	  massContext->SetSecDestMat( DAMPING, alpha );
-	  massContext->SetDampLayer(dampFnc, mPoint, dampFactor, 
-				    dampFactorMax, startRadius, 
-				    stopRadius);
-	}
+          // stiffness part
+          stiffContext->SetSecDestMat( DAMPING, beta );
+          stiffContext->SetDampLayer(dampFnc, mPoint, dampFactor, 
+                                     dampFactorMax, startRadius, 
+                                     stopRadius);	    
+          // mass part
+          massContext->SetSecDestMat( DAMPING, alpha );
+          massContext->SetDampLayer(dampFnc, mPoint, dampFactor, 
+                                    dampFactorMax, startRadius, 
+                                    stopRadius);
+        }
 
         if ( dampingList_.size() > 0 ) {
 	  
@@ -519,9 +519,9 @@ namespace CoupledField {
           if (dampingList_[subdoms_[actSD]] == RAYLEIGH) {
             // This works even after assemble_->AddIntegrator() is executed
             //   because of the pointers...
-	    Double alpha, beta;
-	    materials_[subdoms_[actSD]]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-	    materials_[subdoms_[actSD]]->GetScalar(beta,RAYLEIGH_BETA,REAL);
+            Double alpha, beta;
+            materials_[subdoms_[actSD]]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+            materials_[subdoms_[actSD]]->GetScalar(beta,RAYLEIGH_BETA,REAL);
     
             // stiffness part
             stiffContext->SetSecDestMat( DAMPING, beta );
@@ -532,15 +532,15 @@ namespace CoupledField {
 	  
 	  
           else if ( dampingList_[subdoms_[actSD]] == THERMOVISCOUS ) {
-	    Double viscousAlpha;
-	    materials_[subdoms_[actSD]]->GetScalar(viscousAlpha, ACOU_ALPHA,REAL);
+            Double viscousAlpha;
+            materials_[subdoms_[actSD]]->GetScalar(viscousAlpha, ACOU_ALPHA,REAL);
 
             coeffdamp  =  density * 2.0 * viscousAlpha * c0;
             BaseForm * bilinearStiff  = new LaplaceInt(coeffdamp, isaxi_);  
             BiLinFormContext * dampContext = 
               new BiLinFormContext(bilinearStiff, DAMPING );
-	    dampContext->SetResults( results_[0], results_[0],
-                                      actSDList, actSDList );
+            dampContext->SetResults( results_[0], results_[0],
+                                     actSDList, actSDList );
             dampContext->SetPtPdes(this, this);   
             assemble_->AddBiLinearForm( dampContext );
           }
@@ -548,9 +548,9 @@ namespace CoupledField {
           else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
                     dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ) {
 
-	    Double fracAlpha, fracExp;
-	    materials_[subdoms_[actSD]]->GetScalar(fracAlpha,ACOU_ALPHA,REAL);
-	    materials_[subdoms_[actSD]]->GetScalar(fracExp,FRACTIONAL_EXPONENT,REAL);
+            Double fracAlpha, fracExp;
+            materials_[subdoms_[actSD]]->GetScalar(fracAlpha,ACOU_ALPHA,REAL);
+            materials_[subdoms_[actSD]]->GetScalar(fracExp,FRACTIONAL_EXPONENT,REAL);
 
             coeffdamp = - density * 2.0 * fracAlpha / c0 / sin((fracExp-1.0)*PI/2.0);
 
@@ -570,7 +570,7 @@ namespace CoupledField {
             //   matrix_factors[STIFFNESS] = 1.0
             BiLinFormContext * dampContext = 
               new BiLinFormContext( bilinearDamp, STIFFNESS );
-	    dampContext->SetResults( results_[0], results_[0],
+            dampContext->SetResults( results_[0], results_[0],
                                      actSDList, actSDList );
             dampContext->SetPtPdes(this, this);
             assemble_->AddBiLinearForm( dampContext );
@@ -579,9 +579,9 @@ namespace CoupledField {
           else if  ( dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
                      dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT ) {
 
-	    Double fracAlpha, fracExp;
-	    materials_[subdoms_[actSD]]->GetScalar(fracAlpha,ACOU_ALPHA,REAL);
-	    materials_[subdoms_[actSD]]->GetScalar(fracExp,FRACTIONAL_EXPONENT,REAL);
+            Double fracAlpha, fracExp;
+            materials_[subdoms_[actSD]]->GetScalar(fracAlpha,ACOU_ALPHA,REAL);
+            materials_[subdoms_[actSD]]->GetScalar(fracExp,FRACTIONAL_EXPONENT,REAL);
 
             coeffdamp =  - density * 2.0 * fracAlpha / c0 / sin((fracExp-1.0)*PI/2.0);
             // prefactor of blank alg
@@ -604,8 +604,8 @@ namespace CoupledField {
             //   matrix_factors[STIFFNESS] = 1.0
             BiLinFormContext * dampContext = 
               new BiLinFormContext( bilinearDamp, STIFFNESS );
-	    dampContext->SetResults( results_[0], results_[0],
-                                      actSDList, actSDList );
+            dampContext->SetResults( results_[0], results_[0],
+                                     actSDList, actSDList );
             dampContext->SetPtPdes(this, this);
             assemble_->AddBiLinearForm( dampContext );
 
@@ -629,16 +629,12 @@ namespace CoupledField {
       // get current Bc
       InhomNeumannBc const & actBc = *inBcs_[iBc];
       
-      // we assume the surface normal points out of domain,
-      //  but we want to take deflections into the domain positive
-      Double amplitude= -1.0 * String2Double(actBc.value);
-      
       //BaseForm *neumannBC = new VolumeSrcInt( amplitude, isaxi_ );
-      LinearSurfForm *neumannBC = new LinNeumannInt( amplitude, DENSITY, isaxi_ );
+      LinearSurfForm *neumannBC = new LinNeumannInt( actBc.value, actBc.phase,
+                                                     DENSITY, isaxi_ );
       neumannBC->SetVoluInfo( materials_ );
       LinearFormContext * neumannContext = 
         new LinearFormContext( neumannBC, 
-                               String2Double( actBc.phase),
                                actBc.dynamics );
       neumannContext->SetPtPde( this );
       neumannContext->SetResult( actBc.result, actBc.entities );
@@ -918,85 +914,85 @@ namespace CoupledField {
     
     Error( "Not working at the moment", __FILE__, __LINE__ );
     
-//     Double density = 0.0;
-//     Double sign = 0.0;
-//     Integer matIndex = -1;
-//     Elem * ptVolElem = NULL;
-//     Matrix<Double> ptCoord, elemMat;
-//     Vector<Double> sol, forceOnElem, normal;
+    //     Double density = 0.0;
+    //     Double sign = 0.0;
+    //     Integer matIndex = -1;
+    //     Elem * ptVolElem = NULL;
+    //     Matrix<Double> ptCoord, elemMat;
+    //     Vector<Double> sol, forceOnElem, normal;
     
-//     elemCouplingSols.Init(0.0);
+    //     elemCouplingSols.Init(0.0);
     
-//     for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
+    //     for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
       
-//       // Perform cast from volume element to surface element, since
-//       // mech-acou coupling makes only sense on surface elements
-//       SurfElem * actCoupleElem = 
-//         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
+    //       // Perform cast from volume element to surface element, since
+    //       // mech-acou coupling makes only sense on surface elements
+    //       SurfElem * actCoupleElem = 
+    //         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
 
-//       if (actCoupleElem == NULL) {
-//         Error( "No elements found for coupling!", __FILE__, __LINE__ );
-//       }
+    //       if (actCoupleElem == NULL) {
+    //         Error( "No elements found for coupling!", __FILE__, __LINE__ );
+    //       }
       
-//       BaseFE * ptElem = actCoupleElem->ptElem;
-//       StdVector<UInt> & connecth = actCoupleElem->connect;
-//       GetElemCoords(connecth, ptCoord);
+    //       BaseFE * ptElem = actCoupleElem->ptElem;
+    //       StdVector<UInt> & connecth = actCoupleElem->connect;
+    //       GetElemCoords(connecth, ptCoord);
       
-//       // Try to find according region for first neighbouring volume
-//       // element of the surface element
-//       matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
+    //       // Try to find according region for first neighbouring volume
+    //       // element of the surface element
+    //       matIndex = subdoms_.Find(actCoupleElem->ptVolElem1->regionId);
       
-//       // If first volume element does not belong to acoustic PDE, try the
-//       // second one
-//       if ( matIndex == -1 ) {
-//         matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
-//         ptVolElem = actCoupleElem->ptVolElem2;
-//         sign = actCoupleElem->normalSign;
-//       } else {
-//         ptVolElem = actCoupleElem->ptVolElem1;
-//         sign = -1.0 * actCoupleElem->normalSign;
-//       }
+    //       // If first volume element does not belong to acoustic PDE, try the
+    //       // second one
+    //       if ( matIndex == -1 ) {
+    //         matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
+    //         ptVolElem = actCoupleElem->ptVolElem2;
+    //         sign = actCoupleElem->normalSign;
+    //       } else {
+    //         ptVolElem = actCoupleElem->ptVolElem1;
+    //         sign = -1.0 * actCoupleElem->normalSign;
+    //       }
       
-//       if ( matIndex == -1) {
-//         (*error) << "AcousticPDE::CalcMechCouplingRHS: The two volume "
-//                  << "element neighbours of surface element Nr. "
-//                  << actCoupleElem->elemNum << " do not belong to my regions!";
-//         Error( __FILE__, __LINE__ );
-//       }
+    //       if ( matIndex == -1) {
+    //         (*error) << "AcousticPDE::CalcMechCouplingRHS: The two volume "
+    //                  << "element neighbours of surface element Nr. "
+    //                  << actCoupleElem->elemNum << " do not belong to my regions!";
+    //         Error( __FILE__, __LINE__ );
+    //       }
       
-//       // Assign correct density
-//       materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,REAL);
+    //       // Assign correct density
+    //       materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,REAL);
       
-//       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
-//       bilinear_mass->CalcElementMatrix(ptCoord, elemMat);
-//       delete bilinear_mass;     
+    //       BaseForm * bilinear_mass = new MassInt(ptElem, density, isaxi_);
+    //       bilinear_mass->CalcElementMatrix(ptCoord, elemMat);
+    //       delete bilinear_mass;     
       
-//       GetDerivSolVecOfElement(sol, connecth);
+    //       GetDerivSolVecOfElement(sol, connecth);
       
-//       forceOnElem = elemMat * sol;
+    //       forceOnElem = elemMat * sol;
       
-//       // force has to be added on RHS with negative sign
-//       forceOnElem *= - 1.0;
+    //       // force has to be added on RHS with negative sign
+    //       forceOnElem *= - 1.0;
       
-//       // the normal vector points outwards of the MECHANICAL domain
-//       // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
-//       ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
-//       normal *= sign;
+    //       // the normal vector points outwards of the MECHANICAL domain
+    //       // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
+    //       ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
+    //       normal *= sign;
 
-//       for (UInt actNode=0; actNode<ptCoord.GetSizeCol(); actNode++) {
-//         UInt nodePos = 0;
+    //       for (UInt actNode=0; actNode<ptCoord.GetSizeCol(); actNode++) {
+    //         UInt nodePos = 0;
           
-//         while(connecth[actNode] != couplingNodes[nodePos] &&
-//               nodePos < couplingNodes.GetSize()) {
-//           nodePos++;
-//         }
+    //         while(connecth[actNode] != couplingNodes[nodePos] &&
+    //               nodePos < couplingNodes.GetSize()) {
+    //           nodePos++;
+    //         }
           
-//         for (UInt actDof=0; actDof < couplingdof ; actDof++) {
-//           elemCouplingSols[nodePos*couplingdof +actDof] += 
-//             forceOnElem[actNode] * normal[actDof];
-//         }
-//       }
-//     }
+    //         for (UInt actDof=0; actDof < couplingdof ; actDof++) {
+    //           elemCouplingSols[nodePos*couplingdof +actDof] += 
+    //             forceOnElem[actNode] * normal[actDof];
+    //         }
+    //       }
+    //     }
   }
   
   void AcousticPDE::
@@ -1009,145 +1005,145 @@ namespace CoupledField {
     
     Error( "Not working at the moment", __FILE__, __LINE__ );
 
-//     Double density = 0.0;
-//     Double sign = 0.0;
-//     Double coeff_Pmass, coeff_Qstiff;
-//     UInt nrbcMatType=0; // 1=Rmat, 2=pmat, 3=Qmat
-//     Integer matIndex = -1;
-//     Elem * ptVolElem = NULL;
-//     Matrix<Double> ptCoord, elemMat;
-//     Vector<Double> sol, deriv2sol, Qmat_x_sol, Pmat_x_2derSol, normal;
+    //     Double density = 0.0;
+    //     Double sign = 0.0;
+    //     Double coeff_Pmass, coeff_Qstiff;
+    //     UInt nrbcMatType=0; // 1=Rmat, 2=pmat, 3=Qmat
+    //     Integer matIndex = -1;
+    //     Elem * ptVolElem = NULL;
+    //     Matrix<Double> ptCoord, elemMat;
+    //     Vector<Double> sol, deriv2sol, Qmat_x_sol, Pmat_x_2derSol, normal;
     
-//     elemCouplingSols.Init(0.0);
+    //     elemCouplingSols.Init(0.0);
     
-//     for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
+    //     for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++) {
       
-//       // Perform cast from volume element to surface element, since
-//       // nrbc-acou coupling makes only sense on surface elements
-//       SurfElem * actSurfCoupleElem = 
-//         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
+    //       // Perform cast from volume element to surface element, since
+    //       // nrbc-acou coupling makes only sense on surface elements
+    //       SurfElem * actSurfCoupleElem = 
+    //         dynamic_cast<SurfElem*> ((*couplingElems)[actElem]);
 
-//       if (actSurfCoupleElem == NULL) {
-//         Error( "No elements found for coupling!", __FILE__, __LINE__ );
-//       }
+    //       if (actSurfCoupleElem == NULL) {
+    //         Error( "No elements found for coupling!", __FILE__, __LINE__ );
+    //       }
       
-//       BaseFE * ptElem = actSurfCoupleElem->ptElem;
-//       StdVector<UInt> & connecth = actSurfCoupleElem->connect;
-//       GetElemCoords(connecth, ptCoord);
+    //       BaseFE * ptElem = actSurfCoupleElem->ptElem;
+    //       StdVector<UInt> & connecth = actSurfCoupleElem->connect;
+    //       GetElemCoords(connecth, ptCoord);
       
-//       // Try to find according region for first neighbouring volume
-//       // element of the surface element
-//       matIndex = subdoms_.Find(actSurfCoupleElem->ptVolElem1->regionId);
+    //       // Try to find according region for first neighbouring volume
+    //       // element of the surface element
+    //       matIndex = subdoms_.Find(actSurfCoupleElem->ptVolElem1->regionId);
       
-//       // If first volume element does not belong to acoustic PDE, try the
-//       // second one
-//       if ( matIndex == -1 ) {
-//         matIndex = subdoms_.Find(actSurfCoupleElem->ptVolElem2->regionId);
-//         ptVolElem = actSurfCoupleElem->ptVolElem2;
-//         //        sign = actSurfCoupleElem->normalSign;
-//       } else {
-//         ptVolElem = actSurfCoupleElem->ptVolElem1;
-//         //        sign = -1.0 * actSurfCoupleElem->normalSign;
-//       }
+    //       // If first volume element does not belong to acoustic PDE, try the
+    //       // second one
+    //       if ( matIndex == -1 ) {
+    //         matIndex = subdoms_.Find(actSurfCoupleElem->ptVolElem2->regionId);
+    //         ptVolElem = actSurfCoupleElem->ptVolElem2;
+    //         //        sign = actSurfCoupleElem->normalSign;
+    //       } else {
+    //         ptVolElem = actSurfCoupleElem->ptVolElem1;
+    //         //        sign = -1.0 * actSurfCoupleElem->normalSign;
+    //       }
       
-//       if ( matIndex == -1) {
-//         (*error) << "AcousticPDE::CalcNRBCCouplingRHS: The two volume "
-//                  << "element neighbours of surface element Nr. "
-//                  << actSurfCoupleElem->elemNum << " do not belong to my regions!";
-//         Error( __FILE__, __LINE__ );
-//       }
+    //       if ( matIndex == -1) {
+    //         (*error) << "AcousticPDE::CalcNRBCCouplingRHS: The two volume "
+    //                  << "element neighbours of surface element Nr. "
+    //                  << actSurfCoupleElem->elemNum << " do not belong to my regions!";
+    //         Error( __FILE__, __LINE__ );
+    //       }
       
-//       // Density set to 1 since for this mass integrator no fac is needed
-//       density = 1.0;
+    //       // Density set to 1 since for this mass integrator no fac is needed
+    //       density = 1.0;
       
-//       // !!!!!!!!!!!!!!!USE PTELEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//       // FIRST WE COMPUTE THE "Qmat_x_sol" RHS term
-//       // Standard "mass" matrix shape so using default constructor
-//       coeff_Qstiff=1.0;
-//       nrbcMatType=3;
-//       NrbcInt * bilinear_Qstiff  = 
-//         new NrbcInt(ptElem, coeff_Qstiff, nrbcMatType, isaxi_);
+    //       // !!!!!!!!!!!!!!!USE PTELEM!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    //       // FIRST WE COMPUTE THE "Qmat_x_sol" RHS term
+    //       // Standard "mass" matrix shape so using default constructor
+    //       coeff_Qstiff=1.0;
+    //       nrbcMatType=3;
+    //       NrbcInt * bilinear_Qstiff  = 
+    //         new NrbcInt(ptElem, coeff_Qstiff, nrbcMatType, isaxi_);
       
-//       // Now we get the Q matrix with tangential derivatives 
-//       bilinear_Qstiff->CalcElementMatrix(ptCoord, elemMat);
+    //       // Now we get the Q matrix with tangential derivatives 
+    //       bilinear_Qstiff->CalcElementMatrix(ptCoord, elemMat);
       
-//       //std::cout<<"%%%%%%----ACOUSTIC-PDE COUPLING OUTPUT----%%%%%"<<std::endl;
-//       // std::cout<<"Qmatrix= "<<std::endl;
-//       // std::cout<<elemMat<<std::endl;
+    //       //std::cout<<"%%%%%%----ACOUSTIC-PDE COUPLING OUTPUT----%%%%%"<<std::endl;
+    //       // std::cout<<"Qmatrix= "<<std::endl;
+    //       // std::cout<<elemMat<<std::endl;
       
-//       delete  bilinear_Qstiff;
-//       GetSolVecOfElement(sol, connecth);
-//       //          for(UInt k=0; k<sol.GetSize(); k++)
-//       //           if (abs(sol[k])<=5e-16)
-//       //             sol[k]=0;
+    //       delete  bilinear_Qstiff;
+    //       GetSolVecOfElement(sol, connecth);
+    //       //          for(UInt k=0; k<sol.GetSize(); k++)
+    //       //           if (abs(sol[k])<=5e-16)
+    //       //             sol[k]=0;
         
-//       // std::cout<<"AcouSolution= "<<std::endl;
-//       // std::cout<<sol<<std::endl;
-//       Qmat_x_sol = elemMat * sol;
+    //       // std::cout<<"AcouSolution= "<<std::endl;
+    //       // std::cout<<sol<<std::endl;
+    //       Qmat_x_sol = elemMat * sol;
       
-//       // std::cout<<"Qmat_x_sol= "<<std::endl;
-//       // std::cout<<Qmat_x_sol<<std::endl;
-//       //  Q_x_sol has to be added on RHS of nrbcPDE1 with negative sign
+    //       // std::cout<<"Qmat_x_sol= "<<std::endl;
+    //       // std::cout<<Qmat_x_sol<<std::endl;
+    //       //  Q_x_sol has to be added on RHS of nrbcPDE1 with negative sign
       
-//       Qmat_x_sol *= - 1.0;
-//       //END OF "Qmat_x_sol" Computation   
+    //       Qmat_x_sol *= - 1.0;
+    //       //END OF "Qmat_x_sol" Computation   
       
-//       //NOW WE COMPUTE "Pmat_x_Deriv2Sol" RHS term 
-//       coeff_Pmass=1.0;
-//       nrbcMatType=2;
-//       NrbcInt * bilinear_Pmass  = 
-//         new NrbcInt(ptElem, coeff_Pmass, nrbcMatType, isaxi_);
+    //       //NOW WE COMPUTE "Pmat_x_Deriv2Sol" RHS term 
+    //       coeff_Pmass=1.0;
+    //       nrbcMatType=2;
+    //       NrbcInt * bilinear_Pmass  = 
+    //         new NrbcInt(ptElem, coeff_Pmass, nrbcMatType, isaxi_);
       
-//       bilinear_Pmass->CalcElementMatrix(ptCoord, elemMat);
+    //       bilinear_Pmass->CalcElementMatrix(ptCoord, elemMat);
         
-//       //std::cout<<"Pmatrix= "<<std::endl;
-//       // std::cout<<elemMat<<std::endl;
+    //       //std::cout<<"Pmatrix= "<<std::endl;
+    //       // std::cout<<elemMat<<std::endl;
       
-//       delete  bilinear_Pmass;
+    //       delete  bilinear_Pmass;
       
-//       GetDeriv2SolVecOfElement(deriv2sol, connecth);
+    //       GetDeriv2SolVecOfElement(deriv2sol, connecth);
       
-//       // std::cout<<"Acou2ndDerivSolution= "<<std::endl;
-//       // std::cout<<deriv2sol<<std::endl;
+    //       // std::cout<<"Acou2ndDerivSolution= "<<std::endl;
+    //       // std::cout<<deriv2sol<<std::endl;
       
-//       Pmat_x_2derSol = elemMat * deriv2sol;
-//       // Computation of alpha factor (like in nrbcPDE)
-//       Double c0, alphaNRBC, Cj, density, compressibility;
-//       //actSD is 0 since there is only one acoustic domain
-//       materials_.begin()->second->GetScalar( density, DENSITY, REAL );
-//       density=1;
-//       materials_.begin()->second->GetScalar( compressibility, ACOU_BULK_MODULUS, REAL );
-//       c0 = sqrt(compressibility/density);
-//       Cj = 1.0;
-//       alphaNRBC = (1/(Cj*Cj) - 1/(c0*c0));
-//       Pmat_x_2derSol *= alphaNRBC;
+    //       Pmat_x_2derSol = elemMat * deriv2sol;
+    //       // Computation of alpha factor (like in nrbcPDE)
+    //       Double c0, alphaNRBC, Cj, density, compressibility;
+    //       //actSD is 0 since there is only one acoustic domain
+    //       materials_.begin()->second->GetScalar( density, DENSITY, REAL );
+    //       density=1;
+    //       materials_.begin()->second->GetScalar( compressibility, ACOU_BULK_MODULUS, REAL );
+    //       c0 = sqrt(compressibility/density);
+    //       Cj = 1.0;
+    //       alphaNRBC = (1/(Cj*Cj) - 1/(c0*c0));
+    //       Pmat_x_2derSol *= alphaNRBC;
       
-//       // std::cout<<"Pmat_x_2derSol= "<<std::endl;
-//       // std::cout<<Pmat_x_2derSol<<std::endl;
+    //       // std::cout<<"Pmat_x_2derSol= "<<std::endl;
+    //       // std::cout<<Pmat_x_2derSol<<std::endl;
       
-//       // END OF "Pmat_x_2derSol" Computation   
+    //       // END OF "Pmat_x_2derSol" Computation   
       
-//       for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
-//         UInt nodePos = 0;
-//         while(connecth[actNode] != couplingNodes[nodePos] &&
-//               nodePos < couplingNodes.GetSize()) {
-//           nodePos++;
-//         }
+    //       for (UInt actNode=0; actNode<ptCoord.GetSizeRow(); actNode++) {
+    //         UInt nodePos = 0;
+    //         while(connecth[actNode] != couplingNodes[nodePos] &&
+    //               nodePos < couplingNodes.GetSize()) {
+    //           nodePos++;
+    //         }
         
-//         elemCouplingSols[nodePos*couplingdof] = 
-//           (Qmat_x_sol[actNode] + Pmat_x_2derSol[actNode]);
+    //         elemCouplingSols[nodePos*couplingdof] = 
+    //           (Qmat_x_sol[actNode] + Pmat_x_2derSol[actNode]);
         
-//         // std::cout <<"elemCouplingSols["<<(nodePos*couplingdof)<<"]= "
-//         //           <<elemCouplingSols[nodePos*couplingdof]<<std::endl;
+    //         // std::cout <<"elemCouplingSols["<<(nodePos*couplingdof)<<"]= "
+    //         //           <<elemCouplingSols[nodePos*couplingdof]<<std::endl;
         
-//       }
-//       // std::cout<<"elemCouplingSols = "<<elemCouplingSols<<std::endl;
+    //       }
+    //       // std::cout<<"elemCouplingSols = "<<elemCouplingSols<<std::endl;
       
-//       //std::cout <<"%%%--END ACOUSTIC-PDE COUPLING OUTPUT INFO----%%%%"
-//       //          <<std::endl;                  
+    //       //std::cout <<"%%%--END ACOUSTIC-PDE COUPLING OUTPUT INFO----%%%%"
+    //       //          <<std::endl;                  
       
-//     }
-    }
+    //     }
+  }
 
   
   template <class TYPE>
@@ -1204,7 +1200,7 @@ namespace CoupledField {
       offset = elemssd.GetSize();
     }
   }
- void AcousticPDE::CalcBubblePressure( StdVector<Elem*> & elems,
+  void AcousticPDE::CalcBubblePressure( StdVector<Elem*> & elems,
                                         Vector<Double>& couplVals,
                                         SolutionType solType ) {
 
@@ -1272,7 +1268,7 @@ namespace CoupledField {
       }
     }
     return false;
- }
+  }
 
 
 
@@ -1375,7 +1371,7 @@ namespace CoupledField {
       
         // Assign correct density
         Double density;
-	materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,REAL);
+        materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,REAL);
 		
         // retrieve 1st derivative, since F = rho * dpsi/dt * A
         GetDerivSolVecOfElement(valueElem, connect);
@@ -1746,11 +1742,11 @@ namespace CoupledField {
         saveSol_ = true;
         hasOutput_ = true;
 
-	//        // Note: If errors occur using the acoustic pressure formulation,
-	//        // just comment out the following three lines
-	//        sol_->SetSolutionType(ACOU_PRESSURE);
-	//        sol_->SetNumDofs(1);
-	//        sol_->Init();
+        //        // Note: If errors occur using the acoustic pressure formulation,
+        //        // just comment out the following three lines
+        //        sol_->SetSolutionType(ACOU_PRESSURE);
+        //        sol_->SetNumDofs(1);
+        //        sol_->Init();
 
       }
     }
@@ -1847,7 +1843,7 @@ namespace CoupledField {
         // Check if solDeriv_1 was already set by the previous nodal
         // output check
         if( saveDeriv1_ != true ) {
-   // intialize corresponding storesolution object
+          // intialize corresponding storesolution object
           solDeriv1_.SetNumSolutions(1);
           solDeriv1_.SetNumNodes(numPDENodes_);
           solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
@@ -2120,12 +2116,12 @@ namespace CoupledField {
 
 
   void AcousticPDE::ReadDataDampLayer(std::string& dampingTypePML, 
-				      Vector<Double>& mPoint, 
-				      Double& dampFactor, 
-				      Double& dampFactorMax, 
-				      Double& startRadius, 
-				      Double& endRadius, 
-				      RegionIdType actRegion) {
+                                      Vector<Double>& mPoint, 
+                                      Double& dampFactor, 
+                                      Double& dampFactorMax, 
+                                      Double& startRadius, 
+                                      Double& endRadius, 
+                                      RegionIdType actRegion) {
   
     ENTER_FCN( "AcousticPDE::ReadDataDampLayer" );
 

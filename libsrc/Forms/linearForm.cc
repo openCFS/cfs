@@ -28,6 +28,16 @@ namespace CoupledField {
     ENTER_FCN( "LinearForm::CalcElemVector" );
   }
 
+  void LinearForm::CalcElemVector( Vector<Complex> & result,
+                                   EntityIterator& ent ) {
+    ENTER_FCN( "LinearForm::CalcElemVector" );
+
+    Vector<Double> helpVec;
+    CalcElemVector( helpVec, ent);
+    
+    Complex amplitude = Complex( 1.0, 0.0 );
+    result = amplitude * helpVec;
+  }
 
   // ================================================================
   // edge integration

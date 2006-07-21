@@ -679,7 +679,7 @@ namespace CoupledField {
 	LinearForm * rhsStress = new AddStressRHSInt(actSDMat, preStress, tensorType);
 
         LinearFormContext * linRhs = 
-          new LinearFormContext( rhsStress,0.0, preStressFnc_[actRegion] );
+          new LinearFormContext( rhsStress, preStressFnc_[actRegion] );
         linRhs->SetPtPde( this );
         linRhs->SetResult( results_[0], actSDList );
         assemble_->AddLinearForm( linRhs );
@@ -772,7 +772,7 @@ namespace CoupledField {
       rhsSrcSurf->SetVoluInfo( materials_ );
 
       LinearFormContext * pressRhs = 
-        new LinearFormContext( rhsSrcSurf, 0.0, pressFnc_[actSF] );
+        new LinearFormContext( rhsSrcSurf, pressFnc_[actSF] );
       pressRhs->SetPtPde( this );
       pressRhs->SetResult( results_[0], actPressSurf );
       assemble_->AddLinearForm( pressRhs );
@@ -796,7 +796,7 @@ namespace CoupledField {
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( loadIt->first );
       LinearFormContext * forceContext = 
-        new LinearFormContext( forceInt, 0.0, (*loadIt).second.dynamics );
+        new LinearFormContext( forceInt, (*loadIt).second.dynamics );
       forceContext->SetPtPde(this);
       forceContext->SetResult( results_[0], actSDList );
       assemble_->AddLinearForm( forceContext );

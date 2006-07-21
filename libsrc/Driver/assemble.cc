@@ -281,11 +281,10 @@ namespace CoupledField {
     ENTER_FCN( " Assemble::AssembleRHSLinForms" );
     
     StdVector<Integer> eqnVec;
-    Vector<Double> elemVec;
     PdeIdType pdeId;
-    
-    // iterate over all descriptors
     std::set<LinearFormContext*>::iterator formsIt;
+
+    // iterate over all descriptors
     for ( formsIt = linForms_.begin(); 
           formsIt != linForms_.end(); 
           formsIt++ ) {
@@ -303,30 +302,72 @@ namespace CoupledField {
       // get entity iterator
       EntityIterator  entIt = actContext.GetEntities()->GetIterator();
 
-      // calculate multiplicative factor of rhs
-      Double timeVal = 1.0;
-      if ( analysisType_ == STATIC ||
-           analysisType_ == TRANSIENT ) {
-        if ( timeFunc_->GetmaxTimeFnc() > 0 
-             && actContext.GetDynamics() != "" )
-          timeVal = timeFunc_->
-            TimeFuncAtTime(actTimeFreq, actContext.GetDynamics() );
-      }
+      if ( analysisType_ == HARMONIC ) {
 
-      // iterate over all entities
-      for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
-       
-        // Calc element vector
-        form->CalcElemVector( elemVec, entIt );
+        Vector<Complex> elemVec;
+        for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
 
-        // Multiplicate vector by value of time dependent function
-        elemVec *= timeVal;
+          // Calculate complex valued element vector
+          form->CalcElemVector( elemVec, entIt );
 
-        // Map equation numbers
-        actContext.MapEqns( entIt, eqnVec, pdeId );
+          // Map equation numbers
+          actContext.MapEqns( entIt, eqnVec, pdeId );
 
-        // Pass element vector to algebraic system
-        InsertVector( actContext, elemVec, eqnVec, pdeId );
+          // We copy the complex vector 'elemVec' to a double vector
+          //  'harmVec' which has real and imaginary part in consecutive 
+          //  order and has double length
+          Vector<Double> harmVec;
+          Integer size = elemVec.GetSize();
+          harmVec.Resize(2*size);
+    
+          Integer k=0;
+          //real part
+          for (Integer i=0; i<size; i++) {
+            harmVec[k] = elemVec[i].real();
+            k++;
+          }
+          //imaginary part
+          for (Integer i=0; i<size; i++) {
+            harmVec[k] = elemVec[i].imag();
+            k++;
+          }
+          
+          algsys_-> SetElementRHS( harmVec.GetPointer(), 
+                                   pdeId, eqnVec.GetPointer(),
+                                   eqnVec.GetSize() );
+        }
+
+      } else {
+
+        // That should be STATIC, TRANSIENT or EIGENFREQUENCY
+
+        // calculate multiplicative factor of RHS
+        Double timeVal = 1.0;
+        if ( analysisType_ == STATIC || analysisType_ == TRANSIENT ) {
+          if ( timeFunc_->GetmaxTimeFnc() > 0  && 
+               actContext.GetDynamics() != "" )
+            timeVal = timeFunc_->
+              TimeFuncAtTime(actTimeFreq, actContext.GetDynamics() ); 
+        }
+
+        Vector<Double> elemVec;
+        // iterate over all entities
+        for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
+          
+          // Calculate real valued element vector
+          form->CalcElemVector( elemVec, entIt );
+          
+          // Multiplicate vector by value of time dependent function
+          elemVec *= timeVal;
+          
+          // Map equation numbers
+          actContext.MapEqns( entIt, eqnVec, pdeId );
+          
+          // Pass element vector to algebraic system
+          algsys_-> SetElementRHS( elemVec.GetPointer(), 
+                                   pdeId, eqnVec.GetPointer(),
+                                   eqnVec.GetSize() );
+        }
 
       }
     }
@@ -513,7 +554,7 @@ namespace CoupledField {
                                  Matrix<Double>& origMat,
                                  FEMatrixType matrixType,
                                  DataType matDataType,
-                                 Double freq ) {
+                                 Double omega ) {
     ENTER_FCN( "Assemble::Matrix2Harmonic" );
     
     Integer numRow = origMat.GetSizeRow();
@@ -533,7 +574,7 @@ namespace CoupledField {
       }
     
       else if (matrixType == MASS) {
-        Double factor = -freq*freq;
+        Double factor = -omega*omega;
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
             harmMat[k] = factor*origMat[row][col];
@@ -542,7 +583,7 @@ namespace CoupledField {
       }
       
       else if (matrixType == DAMPING) {       
-        Double factor = freq;
+        Double factor = omega;
         
         k=numRow*numCol;
         for (Integer row=0; row<numRow; row++)
@@ -566,7 +607,7 @@ namespace CoupledField {
       
     
       else if (matrixType == MASS) {
-        Double factor = -freq*freq;
+        Double factor = -omega*omega;
         k=numRow*numCol;
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
@@ -576,7 +617,7 @@ namespace CoupledField {
       }
       
       else if (matrixType == DAMPING) {
-        Double factor = freq;
+        Double factor = omega;
         k=0;  
         for (Integer row=0; row<numRow; row++)
           for (Integer col=0; col<numCol; col++) {
@@ -595,34 +636,6 @@ namespace CoupledField {
     
   }
     
-  void Assemble::Vector2Harmonic( Vector<Double>& harmVec,
-                                  Vector<Double>& origVec,
-                                  Double valPhaseGrad ) {
-    ENTER_FCN( "Assemble::Vector2Harmonic" );
-
-    Integer size = origVec.GetSize();
-    harmVec.Resize(2*size);
-    
-    // Note: Since valPhaseGrad is in °(grad), we have to transform it into
-    // rad-value
-    Double valPhaseRad = valPhaseGrad / 180 * PI;
-    
-    Double valReal = cos(valPhaseRad);
-    Double valImag = sin(valPhaseRad);
-    
-    Integer k=0;
-    //real part
-    for (Integer i=0; i<size; i++) {
-      harmVec[k] = origVec[i]*valReal;
-      k++;
-    }
-
-    //imaginary part
-    for (Integer i=0; i<size; i++) {
-      harmVec[k] = origVec[i]*valImag;
-      k++;
-    }
-  }
 
   void Assemble::CreateMatrixMap() {
     ENTER_FCN( "Assemble::CreateMatrixMap()" );
@@ -674,30 +687,33 @@ namespace CoupledField {
       // obtain current frequency
       MathParser * parser = domain->GetMathParser();
       parser->SetExpr( mHandle_, "f" );
-      Double actFreq = parser->Eval( mHandle_ );
+      Double actOmega = parser->Eval( mHandle_ );
       
       // obtain matData-freq
       StdVector<Double> freqs;
-      Double matDataFreq, startFreq;
-      params->Get( "startFreq", startFreq, "harmonic" );
       params->GetList( "matDataFreq", freqs, "harmonic" );
+      Double startFreq;
+      params->Get( "startFreq", startFreq, "harmonic" );
+      Double startOmega = startFreq * 2.0 * PI;
+
+      Double matDataOmega;
       if ( freqs.GetSize() == 1 ) {
-        matDataFreq = freqs[0] * 2.0 * PI;
+        matDataOmega = freqs[0] * 2.0 * PI;
       }
       else {
-        matDataFreq = startFreq;
+        matDataOmega = startOmega;
       }
 
       // get multiplicative pre factor depending on frequency
-      if ( matDataFreq > 0 && actFreq > 0 ) {
+      if ( matDataOmega > 0 && actOmega > 0 ) {
         
         if ( context.GetDestMat() == STIFFNESS ) {
-          raylDampFactor_ = matDataFreq / actFreq;
+          raylDampFactor_ = matDataOmega / actOmega;
           Info->PrintF( "", " dampTransform for STIFFNESS ... %e\n",
                         raylDampFactor_ );
         }
         else if ( context.GetDestMat() == MASS ) {
-          raylDampFactor_ = actFreq / matDataFreq;
+          raylDampFactor_ = actOmega / matDataOmega;
           Info->PrintF( "", " dampTransform for MASS ........ %e\n",
                         raylDampFactor_ );
         }
@@ -728,9 +744,9 @@ namespace CoupledField {
                           context.IsSetCounterPart() );
     } else {
       Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
-      freq *= 2 * PI;
+      Double omega = freq * 2 * PI;
       Matrix2Harmonic( harmMat, elemMat, dest,
-                       context.GetMatDataType(), freq );
+                       context.GetMatDataType(), omega );
       algsys_->
         SetElementMatrix( mappedDest, harmMat.GetPointer(), 
                           pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 
@@ -738,27 +754,4 @@ namespace CoupledField {
                           context.IsSetCounterPart() );
     }
   }
-
-  void Assemble::InsertVector( LinearFormContext& context, Vector<Double>& elemVec,
-                               StdVector<Integer>& eqnVec, PdeIdType pdeId ) {
-    ENTER_FCN( "Assemble::InsertVector" );
-    if( analysisType_ == TRANSIENT || analysisType_ == STATIC 
-        || analysisType_ == EIGENFREQUENCY) {
-
-      algsys_->
-        SetElementRHS( elemVec.GetPointer(), pdeId, eqnVec.GetPointer(),
-                       eqnVec.GetSize() );
-    } else {
-      Vector<Double> harmVec;
-      Double phase = context.GetPhase();
-      Vector2Harmonic( harmVec, elemVec, phase );
-      algsys_->
-        SetElementRHS( harmVec.GetPointer(), pdeId, eqnVec.GetPointer(),
-                       eqnVec.GetSize() );
-    }
-
-  }
-
-      
-  
 }
