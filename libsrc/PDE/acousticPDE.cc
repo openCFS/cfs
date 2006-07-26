@@ -1494,22 +1494,48 @@ namespace CoupledField {
     MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
     if (!commrank) {
 #endif
-      NodeStoreSol<Double> solIm_mesh;
-      NodeStoreSol<Double> * solTransient;
+
       NodeStoreSol<Complex> * solHarmonic;
-      
-      
+      NodeStoreSol<Double> * solTransient;
+
+      NodeStoreSol<Complex> solD1Harmonic;
+
       Double actTime = asteptime + timeOffset;
       UInt actStep = kstep + stepOffset;
       
       if (analysistype_==HARMONIC) {
+
+
         solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
 
         // Please remember, that in harmonic case actTime means indeed
         //  the actual frequency
         if (saveSol_)
-          outFile_->WriteNodeSolutionHarmonic(*solHarmonic,  actStep, 
+          outFile_->WriteNodeSolutionHarmonic(*solHarmonic, actStep, 
                                               actTime, complexFormat_);
+
+        if (saveDeriv1_) {
+
+          Vector<Complex> solD1 = solHarmonic->GetAlgSysVector();
+
+          Double omega = 2.0 * PI * actTime;
+          Complex factor = Complex(0.0,omega); // factor = j*2*PI*f
+          solD1 *= factor;
+
+
+          solD1Harmonic.SetNumSolutions(1);
+          solD1Harmonic.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
+          solD1Harmonic.SetNumDofs(1);
+          solD1Harmonic.SetNumNodes(numPDENodes_);
+          solD1Harmonic.SetPtrEQNData(eqnMap_.get(), ptgrid_);
+          solD1Harmonic.SetRegions( subdoms_ );
+          solD1Harmonic.SetResult( results_[0] );
+          solD1Harmonic.Init();
+
+          solD1Harmonic.SetAlgSysVector(solD1);
+          outFile_->WriteNodeSolutionHarmonic(solD1Harmonic, actStep, 
+                                              actTime, complexFormat_);
+        }
 
         if (calcElemPressure_.GetSize() != 0 ) {
           ElemStoreSol<Complex> & pressureConverted = 
@@ -1518,7 +1544,8 @@ namespace CoupledField {
                                               actTime, complexFormat_);
         }
       }
-      else {  
+      else {
+
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
 
         if (saveSol_){
@@ -1567,7 +1594,6 @@ namespace CoupledField {
     MPI_Comm_rank(MPI_COMM_WORLD,&commrank);
     if (!commrank) {
 #endif
-      NodeStoreSol<Double> solIm_mesh;
       NodeStoreSol<Double> * solTransient;
       NodeStoreSol<Complex> * solHarmonic;
       
@@ -1582,9 +1608,6 @@ namespace CoupledField {
           outFile_->WriteNodeHistoryHarmonic(*solHarmonic,  actStep, 
                                              actTime, complexFormat_);
 
-        if (saveDeriv1Hist_) {
-          // multiply solution with j * omega
-        }
       }
       else {  
         solTransient = dynamic_cast<NodeStoreSol<Double>*>(sol_);
@@ -1685,20 +1708,24 @@ namespace CoupledField {
       Enum2String(ACOU_POTENTIAL_DERIV_1, quantity);
       valVec = "", "", quantity;
       params->GetList( keyVec, attrVec, valVec, nodeValues);
-      if (nodeValues.GetSize() > 0 && analysistype_ != HARMONIC ) {
+      if (nodeValues.GetSize() > 0) {
+
         saveDeriv1_ = true;
         hasOutput_ = true;
-        // intialize corresponding storesolution object
-        solDeriv1_.SetNumSolutions(1);
-        solDeriv1_.SetNumNodes(numPDENodes_);
-        solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
-        solDeriv1_.SetNumDofs(1);
-        solDeriv1_.SetResult( results_[0] );
-        solDeriv1_.SetPtrEQNData(eqnMap_.get(), ptgrid_); 
-        solDeriv1_.SetRegions( subdoms_ );
-        solDeriv1_.Init(0);
-      }
+        if (analysistype_ != HARMONIC ) {
 
+          // intialize corresponding storesolution object
+          solDeriv1_.SetNumSolutions(1);
+          solDeriv1_.SetNumNodes(numPDENodes_);
+          solDeriv1_.SetSolutionType(ACOU_POTENTIAL_DERIV_1);
+          solDeriv1_.SetNumDofs(1);
+          solDeriv1_.SetResult( results_[0] );
+          solDeriv1_.SetPtrEQNData(eqnMap_.get(), ptgrid_); 
+          solDeriv1_.SetRegions( subdoms_ );
+          solDeriv1_.Init(0);
+        }
+      }
+      
       // --- acoustic potential, 2. Deriv ---
       Enum2String(ACOU_POTENTIAL_DERIV_2, quantity);
       valVec = "", "", quantity;
