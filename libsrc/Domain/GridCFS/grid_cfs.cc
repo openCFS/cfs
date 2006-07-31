@@ -183,7 +183,7 @@ namespace CoupledField
 
     //Read the coordinates of center of circle
     StdVector<Double> center;
-    center.Resize(dim_);
+    center.Resize(3);
     center.Init();
     //x
     keyVec = "domain" , "directivityNodes" , "center" , "x";
