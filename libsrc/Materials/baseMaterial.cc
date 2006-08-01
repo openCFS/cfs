@@ -244,12 +244,9 @@ namespace CoupledField
 
     ENTER_FCN( "BaseMaterial::RotateTensorByRotationAngles" );
 
-    std::cerr << *this;
 
     tensorMap::const_iterator pos;
     pos = this->tensorParams_.find( matType );
-
-    std::cerr << "size of tensorParams_:" << tensorParams_.size() << std::endl;
 
     tensorMap::const_iterator posOrig;
     posOrig = this->tensorParamsOrig_.find( matType );
@@ -268,15 +265,11 @@ namespace CoupledField
       matTensor = pos->second;
       Matrix<Complex> const & matTensorOrig = posOrig->second;
 
-      std::cerr << "matTensorOrig = \n" << posOrig->first << std::endl;
-      std::cerr << "matTensor = \n" << matTensor << std::endl;
       
       // transfer to radiant
       for ( UInt i=0; i<rotAngle.GetSize(); i++ ) {
 	rotAngle[i] *= PI / 180.0;
       }
-      std::cerr << "rotAngles in rad are: \n" 
-                << rotAngle << std::endl;
       // limit for angles used in special cases
       Double eps = 1e-6;
 
@@ -285,10 +278,8 @@ namespace CoupledField
       R.Resize(3,3);  
 
       Matrix<Complex> helpTensor = matTensorOrig;
-      std::cerr << "helpTensor =\n" << helpTensor;
 
       if ( abs(rotAngle[0]) > eps ) {
-        std::cerr << "Rotating by 1st component\n";
 	// rotate around x-axis
 	R.Init(Complex(0.0,0.0));
 	R[0][0] =  Complex( 1.0, 0.0);
@@ -303,7 +294,6 @@ namespace CoupledField
 
 
       if ( abs(rotAngle[1]) > eps ) {
-        std::cerr << "Rotating by 2nd component\n";
 	// rotate around y-axis
 	R.Init(Complex(0.0,0.0));
 	R[0][0] =  Complex( std::cos(rotAngle[1]), 0.0 );
@@ -317,7 +307,6 @@ namespace CoupledField
       }
 
       if ( abs(rotAngle[2]) > eps ) {
-        std::cerr << "Rotating by 3d component\n";
 	// rotate around z-axis
 	R.Init(Complex(0.0,0.0));
 	R[0][0] =  Complex( std::cos(rotAngle[2]), 0.0 );
@@ -328,8 +317,6 @@ namespace CoupledField
 
 	PerformRotation(R, matTensor, helpTensor);  
       }
-      std::cerr << "original material:\n" << matTensorOrig << std::endl;
-      std::cerr << "rotated material:\n" << matTensor << std::endl;
     
       // save rotated matrix back
       tensorParams_[matType] = matTensor;
@@ -346,7 +333,6 @@ namespace CoupledField
     Vector<Double> angles;
     coosy_->GetGlobRotationAngles( angles, coord );
 
-    std::cerr << "angles for point \n" << coord << " are \n" << angles << "\n\n";
 
     // Calculate rotation
     RotateTensorByRotationAngles( angles, matType );
@@ -360,7 +346,6 @@ namespace CoupledField
     ENTER_FCN( "BaseMaterial::PerformRotation" );
 
 
-    std::cerr << "Rotation matrix is \n" << R << std::endl;
       // get memory for transposed rotation matrix
       Matrix<Complex> RT;
       RT.Resize(3,3);
@@ -370,13 +355,9 @@ namespace CoupledField
       UInt rowSize = matTensorOrig.GetSizeRow();
       UInt colSize = matTensorOrig.GetSizeCol();
 
-      std::cerr << "rowSize = " << rowSize << std::endl;
-      std::cerr << "colwSize = " << colSize << std::endl;
-      std::cerr << "R = \n" << R << std::endl;
       Matrix<Complex> helpMat;
 
       if ( rowSize == 3 && colSize == 3) {
-        std::cerr << "Rotating a 3x3 Tensor\n";
 	// tensor is a 3x3 matrix: sol = R * matrixOrig * RT
 	helpMat   = matTensorOrig * RT;
 	matTensor = R * helpMat;
@@ -428,7 +409,6 @@ namespace CoupledField
 	Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
 	Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0];
 
-        std::cerr << "Q = \n" << Q << std::endl;
 
 // 	std::cout << "R:\n" << R << std::endl;
 // 	std::cout << "Q:\n" << Q << std::endl;
@@ -437,18 +417,14 @@ namespace CoupledField
 	Matrix<Complex> QT;
 	QT.Resize(6,6);
 	Q.Transpose(QT);
-        std::cerr << "Q^T = \n" << QT << std::endl;
 
 	if ( rowSize == 3 && colSize == 6 ) {
 	  helpMat   = matTensorOrig * QT;
 	  matTensor = R * helpMat;
 	}
 	else if (rowSize == 6 && colSize == 6 ) {
-          std::cerr << "Rotating a 6x6 Tensor\n";
 	  helpMat   = matTensorOrig * QT;
-          std::cerr << "helpMat = \n" << helpMat << std::endl;
 	  matTensor = Q * helpMat;
-          std::cerr << "matTensor = \n" << matTensor;
 	}
 	else {
 	  Error("Cannot rotate tensor due to dimensions!",__FILE__,__LINE__);
