@@ -303,7 +303,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS_X, REAL ); 
       flagEModulXReal=true;
-      std::cerr << "elasticityModulus_X=" << doubValue << std::endl;
+      //std::cerr << "elasticityModulus_X=" << doubValue << std::endl;
     }
 
     keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_Y";
@@ -313,7 +313,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS_Y, REAL ); 
       flagEModulYReal=true;
-      std::cerr << "elasticityModulus_Y=" << doubValue << std::endl;
+      //   std::cerr << "elasticityModulus_Y=" << doubValue << std::endl;
     }
 
     keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_Z";
@@ -323,7 +323,7 @@ namespace CoupledField {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MECH_EMODULUS_Z, REAL ); 
       flagEModulZReal=true;
-      std::cerr << "elasticityModulus_Z=" << doubValue << std::endl;
+      //std::cerr << "elasticityModulus_Z=" << doubValue << std::endl;
     }
 
     //read orthotropic Poisson numbers
