@@ -87,12 +87,12 @@ namespace CoupledField
     LCornerCoords_[1][12] =  0.0;
     LCornerCoords_[2][12] =  0.0;
 
-    LCornerCoords_[0][13] =  0.5;
+    LCornerCoords_[0][13] =  1.0;
     LCornerCoords_[1][13] =  0.0;
     LCornerCoords_[2][13] =  0.0;
 
     LCornerCoords_[0][14] =  0.0;
-    LCornerCoords_[1][14] =  0.5;
+    LCornerCoords_[1][14] =  1.0;
     LCornerCoords_[2][14] =  0.0;
 
 
