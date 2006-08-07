@@ -114,7 +114,7 @@ namespace CoupledField
     LCornerCoords_[2][18] =   0;
  
     LCornerCoords_[0][19] =  -1;
-    LCornerCoords_[1][19] =  -1;
+    LCornerCoords_[1][19] =   1;
     LCornerCoords_[2][19] =   0;
 
   }

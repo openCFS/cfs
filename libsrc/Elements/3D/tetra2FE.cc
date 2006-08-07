@@ -68,6 +68,10 @@ void Tetra2FE::SetCornerCoords()
   LCornerCoords_[1][6] =  0.5;
   LCornerCoords_[2][6] =  0;
 
+  LCornerCoords_[0][7] =  0;
+  LCornerCoords_[1][7] =  0;
+  LCornerCoords_[2][7] =  0.5;
+
   LCornerCoords_[0][8] =  0.5;
   LCornerCoords_[1][8] =  0;
   LCornerCoords_[2][8] =  0.5;
@@ -76,9 +80,6 @@ void Tetra2FE::SetCornerCoords()
   LCornerCoords_[1][9] =  0.5;
   LCornerCoords_[2][9] =  0.5;
 
-  LCornerCoords_[0][7] =  0;
-  LCornerCoords_[1][7] =  0;
-  LCornerCoords_[2][7] =  0.5;
 }
 
 /// defines the connection between nodes with "their" edge
@@ -139,9 +140,10 @@ void Tetra2FE :: CalcShapeFnc(Vector<Double> & Shape,
 	Shape[4]=4*LCoord[0]*(1 - LCoord[0] - LCoord[1] - LCoord[2]);
 	Shape[5]=4*LCoord[0]*LCoord[1];
 	Shape[6]=4*LCoord[1]*(1 - LCoord[0] - LCoord[1] - LCoord[2]);
+	Shape[7]=4*LCoord[2]*(1 - LCoord[0] - LCoord[1] - LCoord[2]);
 	Shape[8]=4*LCoord[0]*LCoord[2];
 	Shape[9]=4*LCoord[1]*LCoord[2];
-	Shape[7]=4*LCoord[2]*(1 - LCoord[0] - LCoord[1] - LCoord[2]);
+        
 
 //definition of the shape functions from 1 to 4
 	
