@@ -1326,6 +1326,7 @@ namespace CoupledField {
     rhs.SetNumNodes(numPDENodes_);
     rhs.SetSolutionType(ACOU_RHSVAL);
     rhs.SetNumDofs(dim_);
+    rhs.SetResult( results_[0] );
     rhs.SetPtrEQNData(eqnMap_.get(), ptgrid_);
     rhs.Init(0.0);
     
@@ -1466,6 +1467,7 @@ namespace CoupledField {
       solDeriv1_.SetNumNodes(numPDENodes_);
       solDeriv1_.SetSolutionType(MECH_VELOCITY);
       solDeriv1_.SetNumDofs(dim_);
+      solDeriv1_.SetResult( results_[0] );
       solDeriv1_.SetPtrEQNData( eqnMap_.get(),ptgrid_); 
       solDeriv1_.SetRegions( subdoms_ );
       solDeriv1_.Init();
@@ -1484,6 +1486,7 @@ namespace CoupledField {
       solDeriv2_.SetNumNodes(numPDENodes_);
       solDeriv2_.SetSolutionType(MECH_ACCELERATION);
       solDeriv2_.SetNumDofs(dim_);
+      solDeriv2_.SetResult( results_[0] );
       solDeriv2_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
       solDeriv2_.SetRegions( subdoms_ );
       solDeriv2_.Init();
@@ -1525,6 +1528,7 @@ namespace CoupledField {
       stress_->SetSolutionType(MECH_STRESS);
       stress_->SetNumElems(numElems_);
       stress_->SetNumDofs(6);
+      stress_->SetResult( results_[0] );
       stress_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
       stress_->Init();
     }
@@ -1590,6 +1594,7 @@ namespace CoupledField {
         solDeriv1_.SetNumNodes(numPDENodes_);
         solDeriv1_.SetSolutionType(MECH_VELOCITY);
         solDeriv1_.SetNumDofs(dim_);
+        solDeriv1_.SetResult( results_[0] );
         solDeriv1_.SetPtrEQNData( eqnMap_.get(),ptgrid_); 
         solDeriv1_.Init();
       }
@@ -1615,6 +1620,7 @@ namespace CoupledField {
         solDeriv2_.SetNumNodes(numPDENodes_);
         solDeriv2_.SetSolutionType(MECH_ACCELERATION);
         solDeriv2_.SetNumDofs(dim_);
+        solDeriv2_.SetResult( results_[0] );
         solDeriv2_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
         solDeriv2_.Init();
       }

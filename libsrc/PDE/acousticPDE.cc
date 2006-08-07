@@ -1738,6 +1738,7 @@ namespace CoupledField {
         solDeriv2_.SetNumNodes(numPDENodes_);
         solDeriv2_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
         solDeriv2_.SetNumDofs(1);
+        solDeriv2_.SetResult( results_[0] );
         solDeriv2_.SetPtrEQNData(eqnMap_.get(),ptgrid_); 
         solDeriv2_.SetRegions( subdoms_ );
         solDeriv2_.Init(0);
@@ -1818,6 +1819,7 @@ namespace CoupledField {
         acouPressure_->SetSolutionType(ACOU_PRESSURE);
         acouPressure_->SetNumElems(numElems_);
         acouPressure_->SetNumDofs(1);
+        acouPressure_->SetResult( results_[0] );
         acouPressure_->SetPtrEQNData(eqnMap_.get(), ptgrid_);
         acouPressure_->Init();
       }
@@ -1900,7 +1902,7 @@ namespace CoupledField {
           solDeriv2_.SetNumNodes(numPDENodes_);
           solDeriv2_.SetSolutionType(ACOU_POTENTIAL_DERIV_2);
           solDeriv2_.SetNumDofs(1);
-          solDeriv1_.SetResult( results_[0] );
+          solDeriv2_.SetResult( results_[0] );
           solDeriv2_.SetPtrEQNData(eqnMap_.get(),ptgrid_); 
           solDeriv2_.Init(0);
         }
@@ -1947,6 +1949,7 @@ namespace CoupledField {
 
           sol_->SetSolutionType(ACOU_PRESSURE);
           sol_->SetNumDofs(1);
+          sol_->SetResult( results_[0] );
           sol_->Init();
         }
       }
@@ -1971,6 +1974,7 @@ namespace CoupledField {
         acouForce_.SetSolutionType(ACOU_FORCE);
         acouForce_.SetNumElems(numElems_);
         acouForce_.SetNumDofs(1);
+        acouForce_.SetResult( results_[0] );
         acouForce_.SetPtrEQNData(eqnMap_.get(), ptgrid_);
         acouForce_.Init();
 
@@ -1993,6 +1997,7 @@ namespace CoupledField {
         acouPressure_->SetSolutionType(ACOU_PRESSURE);
         acouPressure_->SetNumElems(numElems_);
         acouPressure_->SetNumDofs(1);
+        acouPressure_->SetResult( results_[0] );
         acouPressure_->SetPtrEQNData(eqnMap_.get(),ptgrid_);
         acouPressure_->Init();
 
