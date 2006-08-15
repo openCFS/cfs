@@ -118,7 +118,7 @@ namespace CoupledField
     MathParser * parser = domain->GetMathParser();
 
     // Get midpoint of element
-    Vector<Double> locMidPoint, locMidPointVol;
+    Vector<Double> locMidPoint, locMidPointVol, globMidPointVol;
 
     const StdVector<UInt> & surfConnect = actElem_->connect;
     const StdVector<UInt> & volConnect = ptVolElem_->connect;
@@ -127,8 +127,11 @@ namespace CoupledField
     ptVolElem_->ptElem->GetLocalIntPoints4Surface(surfConnect, volConnect,
                                                   locMidPoint, locMidPointVol);
 
+    // Map to global coordinate system
+    ptVolElem_->ptElem->Local2GlobalCoord(globMidPointVol, locMidPointVol, ptCoord_);
+
     // Update variables for mathParser
-    parser->SetCoordinates( mHandle_, *coosy, locMidPointVol );
+    parser->SetCoordinates( mHandle_, *coosy, globMidPointVol );
 
     // Get amplitude and phase
     Double amplitude;
@@ -150,6 +153,9 @@ namespace CoupledField
     Complex val = Complex( realPart, imagPart); 
 
     elemVec = val * helpVec;
+
+//     std::cerr << "In LinNeumannInt::CalcElemVector amplitude: " << amplitude << std::endl
+//               << "                                 phase:     " << phase << std::endl;
 
   }
 
