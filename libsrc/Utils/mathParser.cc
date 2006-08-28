@@ -56,7 +56,12 @@ namespace CoupledField {
     ENTER_FCN( "MathParser::GetNewHandle" );
     
     // Obtain new handle
-    HandleType newHandle = *(activeHandles_.end()) + 1;
+    HandleType newHandle = GLOB_HANDLER;
+   
+    if( activeHandles_.size() > 0 ) {
+      std::set<HandleType>::iterator it = activeHandles_.end();
+      newHandle = *(--it);
+    }
 
     while( activeHandles_.find( newHandle) != activeHandles_.end() ) {
       newHandle++;
