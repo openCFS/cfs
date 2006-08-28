@@ -49,7 +49,6 @@ namespace CoupledField
         
         delete data;
       }    
-      IntegrationPointsMap_.erase(iter);
     }
     
   }
