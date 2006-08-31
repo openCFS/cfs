@@ -381,7 +381,8 @@ acoustics). Nodes are selected on planes parallel to the principal planes. All 3
 plane for defining the nodes on a 2D simulation. Sweep angle for XY (xyEnd-xyBegin) is by default
 360deg for the other planes it is 0deg. A name can be given to the nodes defined on each plane, otherwise default names will
 also be used (dir\_XY, dir\_XZ, dir\_YZ). Finally, {\bf saveIncr}
-represents the interval in degrees for defining the nodes.
+represents the interval in degrees for defining the nodes. The arrays following the saving sequence containing the indices of the nodes for each radius can be found in the '.info' file from the simulation. These arrays can then be used (e.g. in Matlab) when creating a polar plot to read the nodal results in the correct order.
+
 \section{Numerical Integration Rules}
 The numerical integration of the finite elements is done via Gaussian quadrature\footnote{See \emph{Higher-Order Finite Element Methods},
   Pavel Solin, Karel Segeth, Ivo Dolezel, 2004.}. Note that the integration rules are theoretically exact for the given order and hence a too low order of Ansatz-functions, a too coarse or deformed meshing cannot be compensated simply by a higher integration order. Table \ref{tab:default_order} gives the default order which should be sufficient for most simulations.
