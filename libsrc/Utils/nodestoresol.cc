@@ -405,8 +405,10 @@ namespace CoupledField {
 #endif
 
     const Vector<TYPE> & temp = dynamic_cast<const Vector<TYPE>&>(val);
-    for (UInt i=0; i<temp.GetSize(); i++)
-      data_[nodeNr*totalDofs_ + i] = temp[i];
+    for (UInt i=0; i<temp.GetSize(); i++) {
+      UInt eqnNr = eqnMap_->GetNodeEqn( nodeNr, i+1 );
+      data_[eqnNr-1] = temp[i];
+    }
   }
 
   template<class TYPE>
