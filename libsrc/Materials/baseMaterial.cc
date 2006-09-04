@@ -244,6 +244,7 @@ namespace CoupledField
 
     ENTER_FCN( "BaseMaterial::RotateTensorByRotationAngles" );
 
+    using namespace std;
 
     tensorMap::const_iterator pos;
     pos = this->tensorParams_.find( matType );
@@ -274,52 +275,78 @@ namespace CoupledField
       Double eps = 1e-6;
 
       //compute rotation matrix; check also for special cases 
-      Matrix<Complex> R;
+      Matrix<Complex> RComplex;
+      Matrix<Double> R;
       R.Resize(3,3);  
+      RComplex.Resize(3,3);
 
       Matrix<Complex> helpTensor = matTensorOrig;
 
-      if ( abs(rotAngle[0]) > eps ) {
-	// rotate around x-axis
-	R.Init(Complex(0.0,0.0));
-	R[0][0] =  Complex( 1.0, 0.0);
-	R[1][1] =  Complex( std::cos(rotAngle[0]), 0.0 );
-	R[1][2] =  Complex( std::sin(rotAngle[0]), 0.0 );
-	R[2][1] = -R[1][2];
-	R[2][2] =  R[1][1];
+      // Calculate rotation matrix;
+      Double alpha = rotAngle[0];
+      Double beta  = rotAngle[1];
+      Double gamma = rotAngle[2];
+      
+      R[0][0] =  cos(beta) * cos(gamma);
+      R[0][1] = -cos(beta) * sin(gamma);
+      R[0][2] =  sin(beta); 
+      R[1][0] =  cos(alpha)*sin(gamma) + sin(alpha)*sin(beta)*cos(gamma);
+      R[1][1] =  cos(alpha)*cos(gamma) - sin(alpha)*sin(beta)*sin(gamma);
+      R[1][2] = -sin(alpha)*cos(beta);
+      R[2][0] =  sin(alpha)*sin(gamma) - cos(alpha)*sin(beta)*cos(gamma);
+      R[2][1] =  sin(alpha)*cos(gamma) + cos(alpha)*sin(beta)*sin(gamma);
+      R[2][2] =  cos(alpha)*cos(beta);
 
-	PerformRotation(R, matTensor, helpTensor);  
-	helpTensor = matTensor;
-      }
-
-
-      if ( abs(rotAngle[1]) > eps ) {
-	// rotate around y-axis
-	R.Init(Complex(0.0,0.0));
-	R[0][0] =  Complex( std::cos(rotAngle[1]), 0.0 );
-	R[0][2] = -Complex( std::sin(rotAngle[1]), 0.0 );
-	R[1][1] =  Complex( 1.0, 0.0);
-	R[2][0] = -R[0][2];
-	R[2][2] =  R[0][0];
-
-	PerformRotation(R, matTensor, helpTensor);
-	helpTensor = matTensor;  
-      }
-
-      if ( abs(rotAngle[2]) > eps ) {
-	// rotate around z-axis
-	R.Init(Complex(0.0,0.0));
-	R[0][0] =  Complex( std::cos(rotAngle[2]), 0.0 );
-	R[0][1] =  Complex( std::sin(rotAngle[2]), 0.0 );
-	R[1][0] = -R[0][1];
-	R[1][1] =  R[0][0];
-	R[2][2] =  Complex( 1.0, 0.0);
-
-	PerformRotation(R, matTensor, helpTensor);  
-      }
-    
-      // save rotated matrix back
+      RComplex.Resize(3,3);
+      RComplex.Init();
+      RComplex.SetPart( REAL, R );
+      PerformRotation(RComplex, matTensor, helpTensor); 
       tensorParams_[matType] = matTensor;
+
+//       if ( abs(rotAngle[0]) > eps ) {
+// 	// rotate around x-axis
+// 	R.Init(Complex(0.0,0.0));
+// 	R[0][0] =  Complex( 1.0, 0.0);
+// 	R[1][1] =  Complex( std::cos(rotAngle[0]), 0.0 );
+// 	R[1][2] =  -Complex( std::sin(rotAngle[0]), 0.0 );
+// 	R[2][1] = -R[1][2];
+// 	R[2][2] =  R[1][1];
+
+//         //std::cerr << "matTensor before first rotation \n" << helpTensor << std::endl;
+// 	PerformRotation(R, matTensor, helpTensor);  
+// 	helpTensor = matTensor;
+//         //std::cerr << "matTensor after first rotation \n" << matTensor << std::endl;
+//       }
+
+
+//       if ( abs(rotAngle[1]) > eps ) {
+// 	// rotate around y-axis
+// 	R.Init(Complex(0.0,0.0));
+// 	R[0][0] = Complex( std::cos(rotAngle[1]), 0.0 );
+// 	R[0][2] = Complex( std::sin(rotAngle[1]), 0.0 );
+// 	R[1][1] = Complex( 1.0, 0.0);
+// 	R[2][0] = -R[0][2];
+// 	R[2][2] =  R[0][0];
+
+// 	PerformRotation(R, matTensor, helpTensor);
+// 	helpTensor = matTensor;  
+//       }
+
+//       if ( abs(rotAngle[2]) > eps ) {
+// 	// rotate around z-axis
+// 	R.Init(Complex(0.0,0.0));
+// 	R[0][0] =  Complex( std::cos(rotAngle[2]), 0.0 );
+// 	R[0][1] =  -Complex( std::sin(rotAngle[2]), 0.0 );
+// 	R[1][0] = -R[0][1];
+// 	R[1][1] =  R[0][0];
+// 	R[2][2] =  Complex( 1.0, 0.0);
+//         //std::cerr << "matTensor before 2nd rotation \n" << helpTensor << std::endl;
+// 	PerformRotation(R, matTensor, helpTensor);  
+//         //std::cerr << "matTensor after 2nd rotation \n" << matTensor << std::endl;
+//       }
+    
+//       // save rotated matrix back
+//       tensorParams_[matType] = matTensor;
     }
     
   }
@@ -332,7 +359,6 @@ namespace CoupledField
     // Determine rotation angles from attached coordinate system
     Vector<Double> angles;
     coosy_->GetGlobRotationAngles( angles, coord );
-
 
     // Calculate rotation
     RotateTensorByRotationAngles( angles, matType );
