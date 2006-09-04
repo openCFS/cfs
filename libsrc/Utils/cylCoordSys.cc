@@ -96,14 +96,21 @@ namespace CoupledField{
   GetGlobRotationAngles( Vector<Double> & angles,
                          const Vector<Double>& point ) const {
     ENTER_FCN( "CylCoordSystem::GetGlobRotationAngles" );
-    Vector<Double> loc;
+    Vector<Double> loc, anglesLoc, anglesGlob(3);
     Global2LocalCoord( loc, point );
 
     // Note: currently we simply return the 'phi' part, as this 
     // is the only changing one.
-    angles.Resize(3);
-    angles.Init();
-    angles[2] = loc[1];
+    anglesLoc.Resize(3);
+    anglesLoc.Init();
+    anglesLoc[2] = loc[1];
+
+    // Now add to the point rotation angles the 
+    // angles to rotate the angles back to the global system
+    angles = invRotationAng_;
+    angles *= 180 / PI;
+    angles += anglesLoc;
+      
   }
 
   
@@ -210,6 +217,10 @@ namespace CoupledField{
     Matrix<Double> tempInvers;
     rotationMat_.Invert(invRotationMat_);
 
+    // Now calculate the related kardan angles for forward and 
+    // backward transformation
+    CalcKardanAngles( rotationAng_, rotationMat_ );
+    CalcKardanAngles( invRotationAng_, invRotationMat_ );
   }
 
 
@@ -274,7 +285,9 @@ namespace CoupledField{
         << "  h-axis:\t" << hAxis_[0] << "," << hAxis_[1] << ","
         << hAxis_[2] << std::endl
         << "  r-axis:\t" << rAxis_[0] << "," << rAxis_[1] << ","
-        << rAxis_[2] << "\n\n";
+        << rAxis_[2] << "\n";
+    out << "  angles:\t" << rotationAng_[0]/PI*180 << ","
+        << rotationAng_[1]/PI*180 << "," << rotationAng_[2]/PI*180 << "\n\n";
     Info->PrintF(std::string(), out.str().c_str());
 
   }

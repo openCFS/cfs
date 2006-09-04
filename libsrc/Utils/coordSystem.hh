@@ -106,6 +106,13 @@ namespace CoupledField {
     //! Calculate rotation matrix and inverse
     virtual void CalcRotationMatrix() = 0;
     
+    //! Extract kardan angles from 3x3 rotation matrix
+    void CalcKardanAngles( Vector<Double>& angles,
+                           Matrix<Double>& rotMat );
+
+    //! Return the correct angle (rad) for given sin and cos value
+    Double GetAngle( Double sinAlpha, Double cosAlpha );
+
     //! Name of the coordinate system
     std::string name_;
 
@@ -114,12 +121,18 @@ namespace CoupledField {
 
     //! Origin of coordinate system
     Vector<Double> origin_;
-
+    
     //! Rotation matrix (global -> local)
     Matrix<Double> rotationMat_;
 
-    //! Inverse of the rotation matrix (local->global)
+    //! Rotation angles (kardan / Bryant angles) (global -> local)
+    Vector<Double> rotationAng_;
+
+    //! Inverse of the rotation matrix (local -> global)
     Matrix<Double> invRotationMat_;
+
+    //! Rotation angles (kardan / Bryant angles) (local -> global)
+    Vector<Double> invRotationAng_;
     
     //! Pointer to grid object
     Grid * ptGrid_;
