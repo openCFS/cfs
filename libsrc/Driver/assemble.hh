@@ -6,7 +6,7 @@
 
 #include "formsContext.hh"
 #include "Domain/bcs.hh"
-#include "Utils/mathParser.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 namespace CoupledField {
 

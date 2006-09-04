@@ -9,7 +9,7 @@
 #include "Domain/entityList.hh"
 
 #ifndef INTEGLIB
-#include "Utils/mathParser.hh"
+#include "Utils/mathParser/mathParser.hh"
 #endif
 
 namespace CoupledField
