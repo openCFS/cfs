@@ -14,6 +14,8 @@ LIBB := $(LIB_DIR)/lib$(CFS_LIB).a
 .SUFFIXES: .f .cc .cpp .o
 .cc.o:
 	$(CC) -c -I$(LIBSRC_DIR) $(CFLAGS_GLOBAL) $(CFLAGS_MACHINE) $< 
+.cpp.o:
+	$(CC) -c -I$(LIBSRC_DIR) $(CFLAGS_GLOBAL) $(CFLAGS_MACHINE) $< 
 
 #
 libgoal: $(LIB_DIR) $(LIBB)
@@ -25,8 +27,8 @@ libgoal: $(LIB_DIR) $(LIBB)
 #.PHONY: $(LIBB)
 #$(LIBB): 
 .PRECIOUS: $(LIBB)
-$(LIBB): $(src:.cc=.o)
-	$(AR) $(ARFLAGS) $@ $(src:.cc=.o)
+$(LIBB): $(src:.cc=.o) $(src:.cpp=.o)
+	$(AR) $(ARFLAGS) $@ $(src:.cc=.o) $(src:.cpp=.o)
 	-@$(RANLIB) $@
 
 $(LIB_DIR) :

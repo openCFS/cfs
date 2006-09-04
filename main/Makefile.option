@@ -25,10 +25,9 @@
 #       | 10 | Metis       |   yes    |     no   | METIS_ROOT    |
 #       | 11 | gidpost     |   yes    |    yes   | GIDPOST_ROOT  |
 #       | 12 | tcl         |   yes    |    yes   | TCL_ROOT      |
-#       | 13 | muparser    |   yes    |    yes   | MUPARSER_ROOT | 
-#       | 14 | boost       |    no    |    yes   | BOOST_ROOT    |
+#       | 13 | boost       |    no    |    yes   | BOOST_ROOT    |
 #       |--------------------------------------------------------|
-#       | 15 | XML Schemas |         (b)         | SCHEMA_ROOT   |
+#       | 14 | XML Schemas |         (b)         | SCHEMA_ROOT   |
 #       ---------------------------------------------------------
 #
 #  (a) The Basic Linear Algebra Subroutines (BLAS) and the Linear Algebra
@@ -101,7 +100,6 @@
 # ARPACK_ROOT
 # GIDPOST_ROOT
 # TCL_ROOT
-# MUPARSER_ROOT
 # BOOS_ROOT
 #
 # -----------------------------------------------------------------------------
@@ -140,10 +138,6 @@ endif
 
 ifeq ("$(TCL_ROOT)","")
 TCL_ROOT = /home/data/libraries/TCL
-endif
-
-ifeq ("$(MUPARSER_ROOT)","")
-MUPARSER_ROOT = /home/data/libraries/muparser
 endif
 
 ifeq ("$(BOOST_ROOT)","")
@@ -262,7 +256,6 @@ LIB_DIR    = $(C_DIR)/lib/$(MACHINE)
 # - TVMET
 # - GIDPOST
 # - TCL_INTERFACE
-# - MUPARSER
 # - BOOST
 #
 # These will be combined into a COMPILE_INCDIRS parameter
@@ -314,16 +307,13 @@ else
   INCDIR_TCL_INTERFACE =
 endif
 
-# MUPARSER
-INCDIR_MUPARSER = -I$(MUPARSER_ROOT)/$(ARCH)/include
-
 # BOOST
 INCDIR_BOOST = -I$(BOOST_ROOT)/$(ARCH)/include
 
 # Combine everything
 COMPILE_INCDIRS = $(INCDIR_OLAS) $(INCDIR_HYPRE) $(INCDIR_XERCES) \
 $(INCDIR_ADAPTIVITY) $(INCDIR_TVMET) $(INCDIR_GIDPOST) \
-$(INCDIR_TCL_INTERFACE) $(INCDIR_MUPARSER) $(INCDIR_BOOST)
+$(INCDIR_TCL_INTERFACE) $(INCDIR_BOOST)
 
 
 # -----------------------------------------------------------------------------
@@ -443,7 +433,6 @@ COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
 #  - DATABASE
 #  - GIDPOST
 #  - TCL_INTERFACE
-#  - MUPARSER
 #
 # These will be combined into a LINK_LIBS parameter.
 # -----------------------------------------------------------------------------
@@ -515,17 +504,12 @@ else
    LIB_TCL_INTERFACE =
 endif
 
-# MUPARSER
-LIBDIR_MUPARSER = -L$(MUPARSER_ROOT)/$(ARCH)/lib
-LIB_MUPARSER = -lmuparser
-
-
 # Combine everything
 LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) $(LIBDIR_METIS) \
 $(LIBDIR_ARPACK) $(LIBDIR_GIDPOST) $(LIBDIR_TCL_INTERFACE)\
-$(LIBDIR_MUPARSER) $(LIB_OLAS) \
+$(LIB_OLAS) \
 $(LIB_HYPRE) $(LIB_XERCES) $(LIB_METIS) $(LIB_ARPACK) $(LIB_GIDPOST) \
-$(LIB_TCL_INTERFACE) $(LIB_MUPARSER)
+$(LIB_TCL_INTERFACE)
 
 # -----------------------------------------------------------------------------
 # LAPACK and BLAS

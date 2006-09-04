@@ -44,7 +44,7 @@ mymodules = Driver PDE CoupledPDE \
             DataInOut/Scripting \
             DataInOut \
             DataInOut/Database\
-            Utils Matrix General ODESolve ODEDescr \
+            Utils Utils/mathParser Matrix General ODESolve ODEDescr \
 	    ParamIdent Materials \
             $(EXTRA_MODULES)
 
