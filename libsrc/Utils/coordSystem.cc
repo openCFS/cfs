@@ -70,5 +70,54 @@ namespace CoupledField{
       
   }
 
+  void CoordSystem::CalcKardanAngles( Vector<Double>& angles,
+                                      Matrix<Double>& rotMat ) {
+    ENTER_FCN( "CoordSystem::CalcKardanAngles" );
+
+    angles.Resize(3);
+
+    // Safety check: T_33 must not be 1!
+    if ( (std::abs(std::abs (rotMat[0][2]) - 1.0)) < EPS ) {
+      *error << "Rotation angle beta for coordinate system '"
+             << name_ << "' must not be 90°!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    // Calculate  beta
+    Double cos_beta = std::sqrt( 1 - rotMat[0][2]*rotMat[0][2] );
+    Double sin_beta = rotMat[0][2];
+    Double beta = GetAngle( sin_beta, cos_beta );
+    
+    // Calculate alpha
+    Double cos_alpha = rotMat[2][2] / cos_beta;
+    Double sin_alpha = -rotMat[1][2] / cos_beta;
+    Double alpha = GetAngle( sin_alpha, cos_alpha );
+
+    // Calculate gamma
+    Double cos_gamma = rotMat[0][0] / cos_beta;
+    Double sin_gamma = -rotMat[0][1] / cos_beta;
+    Double gamma = GetAngle( sin_gamma, cos_gamma );
+
+    // Fill angles into vector
+    angles[0] = alpha;
+    angles[1] = beta;
+    angles[2] = gamma;
+  }
+
+  Double CoordSystem::GetAngle( Double sinAlpha, Double cosAlpha ) {
+    ENTER_FCN( "CoordSystem::GetAngle ");
+    
+    // Calculate absolute value of angle ( 0 < alpha < pi/2)
+    Double angle = std::abs(std::acos( cosAlpha ) );
+    
+    // Determine correct sign for angle
+    if ( sinAlpha < 0 ) {
+      angle *= -1.0;
+    }
+
+    return angle;
+         
+  }
+
 
 } // end of namespace
