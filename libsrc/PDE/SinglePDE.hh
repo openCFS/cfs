@@ -8,7 +8,7 @@
 
 #include "Domain/GridAdaption/GridAdaption.hh"
 #include "DataInOut/Scripting/scriptable.hh"
-#include "Utils/mathParser.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "Domain/resultDof.hh"
 #include "Utils/elemstoresol.hh"
 #include "DataInOut/timefunc.hh"

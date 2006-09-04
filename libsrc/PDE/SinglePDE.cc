@@ -30,8 +30,6 @@
 #include <mpi.h>
 #endif
 
-#include "muParser.h"
-
 namespace CoupledField {
 
 
