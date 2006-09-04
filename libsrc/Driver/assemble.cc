@@ -687,7 +687,8 @@ namespace CoupledField {
       // obtain current frequency
       MathParser * parser = domain->GetMathParser();
       parser->SetExpr( mHandle_, "f" );
-      Double actOmega = parser->Eval( mHandle_ );
+      Double actFreq = parser->Eval( mHandle_ );
+      Double actOmega = actFreq * 2.0 * PI;
       
       // obtain matData-freq
       StdVector<Double> freqs;
