@@ -43,7 +43,7 @@ namespace CoupledField
         { 0.000000000000000,  0.000000000000000,  0.000000000000000,  8.000000000000000 }
       };
       AddIntegrationPoints(ECONOMICAL, 1, 1, (Double*) a1);
-    
+
       // Gauss  quadrature  points  and  weights  on  the  reference  cube  order  p=2  3
       static Double a3[][4] = { 
         {1.000000000000000,  0.000000000000000,  0.000000000000000,  1.333333333333333},
@@ -164,6 +164,13 @@ namespace CoupledField
       };
       AddIntegrationPoints(ECONOMICAL, 9, 53, (Double*) a9);
       
+     // Gauss  quadrature  points  and  weights  special form Braess/Kaltenbacher
+      static Double a2[][4] = { 
+        { 0.000000000000000,  0.000000000000000,  -0.57735026919,  4.000000000000000 },
+        { 0.000000000000000,  0.000000000000000,   0.57735026919,  4.000000000000000 }
+      };
+      AddIntegrationPoints(SPECIAL, 1, 2, (Double*) a2);
+    
       
       // The original values from SetIntPoints() - no source given
       // There are different values for Hexa1FE and Hexa2FE - only for first order! (?!) - Fabian

@@ -406,7 +406,7 @@ namespace CoupledField
     {
        ENTER_FCN( "BaseFE:SetReducedIntegration():" );
        SetDefaultReducedIntegration();
-       SetIntPoints();
+       //   SetIntPoints();
     }   
 
     /** sets the element to standard integration 
@@ -416,7 +416,7 @@ namespace CoupledField
     {
        ENTER_FCN( "BaseFE:SetStandardIntegration():" );
        SetDefaultIntegration();
-       SetIntPoints();
+       SetIntPoints(IntegMethod, IntegOrder);
     }   
     
 
@@ -475,7 +475,8 @@ namespace CoupledField
     /** Every Element has also a default reduced integration set -> see the tex documentation for details */
     virtual void SetDefaultReducedIntegration() = 0;
 
-
+    /** Expicitly set and load the integration type and order */
+    void SetIntPoints(IntegrationMethod method, int order);
 
     /** The child classes add here their integration point data to the elements map. Called in the constructors.
      * Too avoid errors, any key (type+order) must be unique, otherwise exit!
@@ -506,7 +507,6 @@ namespace CoupledField
     {
         CommonInit(UNDEFINED, 0);
     }  
-
     
     /** Creates the integration points by cartesian product of 1D for rectangle and cube.
      * The creation is quite expensive, but the results are cached in THIS element!
@@ -591,6 +591,7 @@ namespace CoupledField
      * This mehtod reads the data from the map with the help of the dimension */
     void SetIntPoints();
 
+    
     /** encodes the orders of the cartesian product 
      * @param order3 is ignored if < 1 or Dim_ != 3 
      * @return zyx where z = x3 in [1..9], ... */
@@ -600,10 +601,6 @@ namespace CoupledField
      * @param order3 0 is written here if Dim_ != 3 */
     void DecodeCartesianOrder(int encoded_order, int* order1, int* order2, int* order3);
 
-
-    /** Expicitly set and load the integration type and order */
-    void SetIntPoints(IntegrationMethod method, int order);
-    
     
     
   };
