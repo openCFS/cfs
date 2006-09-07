@@ -162,7 +162,7 @@ namespace CoupledField {
    * CARTESIAN is only for developer/debugging -> x1 =0-9, x2 = 1x-9x, x3 = 1xx-9xx
    * UNDEFINED only internal use!
    * LOBATTO and CHEBYSHEV are special line intgration methods (->Solin, Segeth, Dolezel, Higher-Order Finite Element Methods)*/
-  enum IntegrationMethod {ECONOMICAL, CLASSICAL, LOBATTO, CHEBYSHEV, EXPERIMENTAL, CARTESIAN, UNDEFINED}; 
+  enum IntegrationMethod {ECONOMICAL, CLASSICAL, LOBATTO, CHEBYSHEV, EXPERIMENTAL, CARTESIAN, SPECIAL, UNDEFINED}; 
 
   //! Damping type
   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,
