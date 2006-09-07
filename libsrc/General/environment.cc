@@ -206,6 +206,9 @@ namespace CoupledField {
     else if ( in == "Cartesian" )
       out = CARTESIAN;
 
+    else if ( in == "Special" )
+      out = SPECIAL;
+
     else if ( in == "Undefined" )
       out = UNDEFINED;
 
@@ -242,6 +245,10 @@ namespace CoupledField {
 
     case CARTESIAN:
       out = "Cartesian";
+      break;
+
+    case SPECIAL:
+      out = "Special";
       break;
 
     case UNDEFINED:
