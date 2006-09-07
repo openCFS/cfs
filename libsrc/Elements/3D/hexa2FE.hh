@@ -56,8 +56,10 @@ namespace CoupledField
     /** Sets the default reduced integration  */ 
     void SetDefaultReducedIntegration()
     {
-        IntegMethod = ECONOMICAL;
-        IntegOrder  = 5; 
+      IntegMethod = CLASSICAL;
+      //  IntegMethod = SPECIAL;
+        IntegOrder  = 1; 
+	SetIntPoints(IntegMethod,IntegOrder);
     }
 
 
