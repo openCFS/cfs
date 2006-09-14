@@ -4,6 +4,8 @@
 //#include <General/environment.hh>
 #include "hexa2FE.hh"
 
+#define Hexa2New
+
 namespace CoupledField
 {
 
@@ -126,6 +128,8 @@ namespace CoupledField
   {
     ENTER_IFCN( "Hexa2FE::CalcShapeFnc" );
 
+#ifdef Hexa2Old
+    //shape function according to Bathe(deutsche Überstzung) "Finite-Elemente-Methoden" S. 224 Kap. 5.3
     //helping variables
     Double  rgauss,sgauss,tgauss;
     Double  onehalf,one,two;
@@ -186,13 +190,55 @@ namespace CoupledField
     Shape[5] -= onehalf * (Shape[12] + Shape[13] + Shape[19]);
     Shape[6] -= onehalf * (Shape[13] + Shape[14] + Shape[16]);
     Shape[7] -= onehalf * (Shape[14] + Shape[15] + Shape[19]);
+#endif
+
+#ifdef Hexa2New
+    //shape function according to Zienkiewicz 2000 (Volume 1 - The Basis) "The Finite Element Method" S. 185 Kap. 8.11
+    Double  xi, eta, zeta;
+    UInt i;
+    Shape.Resize(NumNodes_);
+    
+    //integration points
+    xi   = LCoord[0];
+    eta  = LCoord[1];
+    zeta = LCoord[2];
+    
+    //Corner coordinates:
+    // Ni
+    for (i=0;i<8; i++) {
+      Shape[i] =  0.125
+        *(1.0+xi  *LCornerCoords_[0][i])
+        *(1.0+eta *LCornerCoords_[1][i])
+        *(1.0+zeta*LCornerCoords_[2][i])
+        *(xi*LCornerCoords_[0][i]+eta*LCornerCoords_[1][i]+zeta*LCornerCoords_[2][i]-2.0);
+    }
+    
+    //Midside nodes xi_i=0:
+    // Ni
+    for (i=8;i<=14; i+=2) {
+      Shape[i]  = 0.25*(1.0-xi*xi)*(1.0+eta*LCornerCoords_[1][i])*(1.0+zeta*LCornerCoords_[2][i]);
+    }
+    
+    //Midside nodes eta_i=0:
+    // Ni
+    for (i=9;i<=15; i+=2) {
+      Shape[i]  = 0.25*(1.0+xi*LCornerCoords_[0][i])*(1.0-eta*eta)*(1.0+zeta*LCornerCoords_[2][i]);
+    }
+    
+    //Midside nodes zeta_i=0:
+    // Ni
+    for (i=16;i<20; i++) {
+      Shape[i] = 0.25*(1.0+xi*LCornerCoords_[0][i])*(1.0+eta*LCornerCoords_[1][i])*(1.0-zeta*zeta);
+    }
+#endif    
   }
 
   void Hexa2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
                                        const Vector<Double> & LCoord)
   {
     ENTER_IFCN( "Hexa2FE::CalcLocalDerivShapeFnc" );
-
+#ifdef Hexa2Old
+    //shape function according to Bathe(deutsche Überstzung) "Finite-Elemente-Methoden" S. 224 Kap. 5.3
     //helper variables
     Double  rgauss,sgauss,tgauss;
     Double  onehalf,one,two;
@@ -306,8 +352,83 @@ namespace CoupledField
       LDeriv[6][i] -= onehalf * (LDeriv[13][i] + LDeriv[14][i] + LDeriv[18][i]);
       LDeriv[7][i] -= onehalf * (LDeriv[14][i] + LDeriv[15][i] + LDeriv[19][i]);
     }
+#endif
 
+#ifdef Hexa2New
+    //shape function according to Zienkiewicz 2000 (Volume 1 - The Basis) "The Finite Element Method" S. 185 Kap. 8.11
+    Double  xi, eta, zeta;
+    UInt i;
+    LDeriv.Resize(NumNodes_,Dim_);
+    LDeriv.Init(0);
+    xi   = LCoord[0];
+    eta  = LCoord[1];
+    zeta = LCoord[2];
+    
+    for (i=0;i<8; i++) {
+      //Corner coordinates: Ni,x
+      LDeriv[i][0] =  0.25*xi*LCornerCoords_[0][i]*LCornerCoords_[0][i]
+        -0.125*LCornerCoords_[0][i]
+        +0.25*zeta*xi*LCornerCoords_[2][i]*LCornerCoords_[0][i]*LCornerCoords_[0][i]
+        +0.125*zeta*zeta*LCornerCoords_[0][i]*LCornerCoords_[2][i]*LCornerCoords_[2][i]
+        +0.25*eta*xi*LCornerCoords_[1][i]*LCornerCoords_[0][i]*LCornerCoords_[0][i]
+        +0.125*eta*eta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[1][i]
+        +0.25*xi*eta*zeta*LCornerCoords_[1][i]*LCornerCoords_[2][i]*LCornerCoords_[0][i]*LCornerCoords_[0][i]
+        +0.125*eta*eta*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]
+        +0.125*eta*zeta*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]*LCornerCoords_[2][i]
+        +0.125*eta*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i];
+      //Corner coordinates: Ni,y
+      LDeriv[i][1] =  0.25*eta*LCornerCoords_[1][i]*LCornerCoords_[1][i]
+        -0.125*LCornerCoords_[1][i]
+        +0.25*eta*zeta*LCornerCoords_[1][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]
+        +0.125*zeta*zeta*LCornerCoords_[1][i]*LCornerCoords_[2][i]*LCornerCoords_[2][i]
+        +0.125*xi*xi*LCornerCoords_[0][i]*LCornerCoords_[0][i]*LCornerCoords_[1][i]
+        +0.25*eta*xi*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[1][i]
+        +0.125*xi*xi*zeta*LCornerCoords_[0][i]*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]
+        +0.25*xi*eta*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]
+        +0.125*xi*zeta*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]*LCornerCoords_[2][i]
+        +0.125*xi*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i];
+      
+      //Corner coordinates: Ni,z
+      LDeriv[i][2] =  0.25*zeta*LCornerCoords_[2][i]*LCornerCoords_[2][i]
+        -0.125*LCornerCoords_[2][i]
+        +0.125*eta*eta*LCornerCoords_[1][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]
+        +0.25*eta*zeta*LCornerCoords_[1][i]*LCornerCoords_[2][i]*LCornerCoords_[2][i]
+        +0.125*xi*xi*LCornerCoords_[0][i]*LCornerCoords_[0][i]*LCornerCoords_[2][i]
+        +0.25*xi*zeta*LCornerCoords_[0][i]*LCornerCoords_[2][i]*LCornerCoords_[2][i]
+        +0.125*xi*xi*eta*LCornerCoords_[0][i]*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]
+        +0.125*xi*eta*eta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]
+        +0.25*xi*eta*zeta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i]*LCornerCoords_[2][i]
+        +0.125*xi*eta*LCornerCoords_[0][i]*LCornerCoords_[1][i]*LCornerCoords_[2][i];
+    }
+    
+    for (i=8;i<=14; i+=2) {
+      //Midside nodes xi_i=0: Ni,x
+      LDeriv[i][0]  = -0.5*xi*(1.0+eta*LCornerCoords_[1][i])*(1.0+zeta*LCornerCoords_[2][i]);
+      //Midside nodes xi_i=0: Ni,y
+      LDeriv[i][1]  = -0.25*(xi*xi - 1.0)*LCornerCoords_[1][i]*(1.0+zeta*LCornerCoords_[2][i]);
+      //Midside nodes xi_i=0: Ni,z
+      LDeriv[i][2]  = -0.25*(xi*xi - 1.0)*(1.0+eta*LCornerCoords_[1][i])*LCornerCoords_[2][i];
+    }
+    
+    for (i=9;i<=15; i+=2) {
+      //Midside nodes eta_i=0: Ni,x
+      LDeriv[i][0]  = -0.25*LCornerCoords_[0][i] *(eta*eta-1.0)*(1.0+zeta*LCornerCoords_[2][i]);
+      //Midside nodes eta_i=0: Ni,y
+      LDeriv[i][1]  = -0.5*(1.0+xi*LCornerCoords_[0][i])*eta*(1.0+zeta*LCornerCoords_[2][i]);
+      //Midside nodes eta_i=0: Ni,z
+      LDeriv[i][2]  = -0.25*(1.0+xi*LCornerCoords_[0][i])*(eta*eta-1.0)*LCornerCoords_[2][i];
+    }      
+    for (i=16;i<20; i++) {
+      //Midside nodes zeta_i=0: Ni,x
+      LDeriv[i][0] = -0.25*LCornerCoords_[0][i]*(1+eta*LCornerCoords_[1][i])*(zeta*zeta-1.0);
+      //Midside nodes zeta_i=0: Ni,y
+      LDeriv[i][1] = -0.25*(1.0+xi*LCornerCoords_[0][i])*LCornerCoords_[1][i]*(zeta*zeta-1.0);
+      //Midside nodes zeta_i=0:  Ni,z
+      LDeriv[i][2] = -0.5*(1.0+xi*LCornerCoords_[0][i])*(1.0+eta*LCornerCoords_[1][i])*zeta;
+    }
+#endif
   }
+
 
 } // end of namespace
 
