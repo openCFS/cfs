@@ -6,6 +6,8 @@
 #include "ODEDescr/Gilmore.hh"
 #include "ODESolve/ODESolver_RKF45.hh"
 #include "Domain/GridAdaption/GridAdaption.hh"
+#include "Forms/bubbleDampInt.hh"
+#include "Forms/bubbleStiffInt.hh"
  
 namespace CoupledField {
 
@@ -42,6 +44,9 @@ namespace CoupledField {
   
     //! define the SoltionStep-Driver
     void DefineSolveStep();
+
+//     //! define the algbraic system
+//     void DefineAlgSys();
 
     //! perform postprocessing on data
     void PostProcess();
@@ -143,6 +148,9 @@ namespace CoupledField {
     StdVector<RegionIdType> absBCs_; //!< subdomains, which form absorbing BCs
 
     bool absorbingBCs_; //!< switch for absorbing BCs     
+
+    //! indicator for bubble coupling
+    bool isBubbleCoupled_;   
     
     //bool fracDamping_; //!< switch indicating use of fractional damping
     
@@ -225,6 +233,9 @@ namespace CoupledField {
 			   Double& startRadius, 
 			   Double& endRadius, 
 			   RegionIdType actRegion);
+
+    std::map<RegionIdType, BubbleDampInt*> bubbleDampIntMap_; 
+    std::map<RegionIdType, BubbleStiffInt*> bubbleStiffIntMap_; 
   
   };
 
