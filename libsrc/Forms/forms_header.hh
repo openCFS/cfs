@@ -32,4 +32,6 @@
 #include "stokesFluidAxiInt.hh"
 #include "nLinStokesFluidInt.hh"
 #include "nLinElecHystInt.hh"
+#include "bubbleDampInt.hh"
+#include "bubbleStiffInt.hh"
 #endif
