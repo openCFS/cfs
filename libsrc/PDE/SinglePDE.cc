@@ -995,6 +995,7 @@ namespace CoupledField {
 
     ENTER_FCN( "StdPDE::DefineAlgSys" );
 
+
     // First check if the PDE needs an algebraic system at all
     if( needsAlgsys_ == false ) {
       return;
@@ -1305,7 +1306,7 @@ namespace CoupledField {
         break;
           
       case MAT:
-        Error( "Not implemented yet", __FILE__, __LINE__ );
+        //Error( "Not implemented yet", __FILE__, __LINE__ );
         break;
 
 
