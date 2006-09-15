@@ -191,6 +191,8 @@
               <xsd:enumeration value="mechForce"/>
               <xsd:enumeration value="nrbcPhi"/>
               <xsd:enumeration value="acouBubbleRhsVal"/>
+              <xsd:enumeration value="bubbleRadius"/>
+              <xsd:enumeration value="bubbleRadiusD1"/>
               <!--<xsd:enumeration value="smoothDisplacement"/>-->
             </xsd:restriction>
           </xsd:simpleType>
