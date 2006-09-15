@@ -50,6 +50,7 @@ namespace CoupledField {
     isNrbcCoupled_ = false;
     saveRHSval_ = false;
     saveRHSvalHist_ = false;
+    isBubbleCoupled_ = false;
 
 
     // PDE formulation either in acoustic potential or pressure
@@ -612,6 +613,73 @@ namespace CoupledField {
           }
         }
 
+    // **********************************************************************
+    //   Additional terms for cavitation computation
+    // **********************************************************************
+    keyVec = "multiSequence", "step", "pde","type";
+    attrVec = "", "index", "";
+    valVec = "", GenStr(bcSequenceIndex_), "";
+    StdVector<std::string> pdeSearchBubble;
+    params->GetList( keyVec, attrVec, valVec,pdeSearchBubble );    
+    for (UInt i=0;i< pdeSearchBubble.GetSize();i++) {
+      if (pdeSearchBubble[i] == "bubble"){
+	isBubbleCoupled_ = true;
+	Info->PrintF(  pdename_, " will use bubble-bilinearform\n");
+      }
+    }
+
+    if( isBubbleCoupled_){
+
+	  //get paramters and starting values for the computation of coefficients
+	  Double sonicVel, densityforbubble, viscosity, bubbleDensity, frequency;
+	  params->Get( "density", densityforbubble, "bubble", "bubbleDynamic" );
+	  params->Get( "sonicVel", sonicVel, "bubble", "bubbleDynamic" );
+	  params->Get( "viscosity", viscosity, "bubble", "bubbleDynamic" );
+	  params->Get( "bubbleNumDensity", bubbleDensity, "bubble", "bubbles" );
+	  params->Get( "frequency", frequency, "bubble", "excitation" );
+
+	  //create two additional matricies due to the influence of the bubbles
+	  //onto the wave behaviour
+	  BubbleStiffInt * bubbleStiff = new BubbleStiffInt( density,
+							     densityforbubble,
+							     sonicVel, viscosity,
+							     bubbleDensity,
+							     frequency, isaxi_);        
+	  BiLinFormContext * bubbleStiffContext = 
+	    new BiLinFormContext( bubbleStiff, STIFFNESS );
+
+	  bubbleStiffContext->SetResults( results_[0], results_[0],
+				    actSDList, actSDList );
+	  bubbleStiffContext->SetPtPdes( this, this );
+	  
+	  assemble_->AddBiLinearForm( bubbleStiffContext );
+	  
+	  BubbleDampInt * bubbleDamp  = new BubbleDampInt(density,
+							  densityforbubble,
+							  sonicVel, viscosity,
+							  bubbleDensity,
+							  frequency, isaxi_);
+	  BiLinFormContext * bubbleDampContext = 
+	    new BiLinFormContext( bubbleDamp, DAMPING );
+
+	  bubbleDampContext->SetResults( results_[0], results_[0],
+					 actSDList, actSDList );
+	  bubbleDampContext->SetPtPdes(this, this);
+
+	  assemble_->AddBiLinearForm( bubbleDampContext );
+	  
+	  //remember the forms objects to associate them with the result
+	  //vectors of the bubble dynamics
+	  bubbleDampIntMap_[actRegion] = bubbleDamp;
+	  bubbleStiffIntMap_[actRegion] = bubbleStiff;
+
+
+
+	  std::cerr<<"test in acou define integrators"<< std::endl;
+	}
+
+
+
         // Finally add the stiffness/mass integrators
         assemble_->AddBiLinearForm( stiffContext );
         assemble_->AddBiLinearForm( massContext );
@@ -687,6 +755,86 @@ namespace CoupledField {
   }
 
 
+
+//   // ======================================================
+//   // ALGSYS SECTION (SOLVER, ...) need for acoububble coupling
+//   // ======================================================
+//   void AcousticPDE::DefineAlgSys() {
+    
+//     ENTER_FCN( "Acoustic::DefineAlgSys" );
+
+//     //=====================================================
+//     // Only if acousticPDE is iteratively coupled with
+//     // the bubblePDE
+//     //====================================================
+
+//     if( isBubbleCoupled_){
+//       // Process input couplings of the bubblePDE to the
+//       // additional baseforms of the acousticPDE 
+//       UInt numInCouplings = ptCoupling_->GetNumInputCouplings();
+      
+//       // bubble coupling data
+//       StdVector<UInt> elemNumbers;
+//       Vector<Double> * radius = NULL;
+//       Vector<Double> * radiusDeriv  = NULL;
+//       std::cerr<<"definealssys numOutCouplings "<<numInCouplings<< std::endl;
+//       for (UInt i = 0; i < numInCouplings; i++) {
+      
+// 	std::cerr<<"definealgsys ptCoupling_->GetInputQuantity(i)"<<ptCoupling_->GetInputQuantity(i)<< std::endl;
+// 	if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS) {
+	
+// 	  // get coupling elements and create vector with element numbers
+// 	  StdVector<Elem*> * elems = NULL;
+// 	  ptCoupling_->GetInputElements(i, elems );
+ 	
+// 	  elemNumbers.Resize( elems->GetSize() );
+// 	  for (UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
+// 	    elemNumbers[iElem] = (*elems)[iElem]->elemNum;
+// 	  }
+	
+// 	  // get buffer with coupling values 
+// 	  CFSVector * temp;
+// 	  ptCoupling_->GetInputValues( i, temp );    
+// 	  std::cerr<<"acou definealgsys size temp"<< (* temp).GetSize()<<std::endl;
+
+// 	  radius = dynamic_cast<Vector<Double>*>(temp);
+
+// 	} else if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS_DERIV_1 ) {
+	
+// 	  // get buffer with coupling values 
+// 	  CFSVector * temp;
+// 	  ptCoupling_->GetInputValues( i, temp );
+// 	  radiusDeriv = dynamic_cast<Vector<Double>*>(temp);
+	
+// 	}
+// 	std::cerr<<"test in acou definealgsys nach"<< std::endl;
+//       }
+
+//       // Iterate over all BubbleMass/Stiff-Integrators and pass the
+//       // radius data to them
+
+//       std::map<RegionIdType, BubbleDampInt*>::iterator dampIt;
+//       std::map<RegionIdType, BubbleStiffInt*>::iterator stiffIt;
+
+//       for( dampIt = bubbleDampIntMap_.begin();
+// 	   dampIt != bubbleDampIntMap_.end(); dampIt++ ) {
+// 	dampIt->second->SetValues( elemNumbers, radius, radiusDeriv);
+//       }
+
+//       for( stiffIt = bubbleStiffIntMap_.begin();
+// 	   stiffIt != bubbleStiffIntMap_.end();
+// 	   stiffIt++ ) {
+// 	stiffIt->second->SetValues( elemNumbers, radius, radiusDeriv);
+//       }
+//     }
+    
+//     SinglePDE::DefineAlgSys();
+
+//   }
+
+
+
+
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================
@@ -733,13 +881,15 @@ namespace CoupledField {
     isIterCoupled_ = true;
     ptCoupling_   = Coupling;
 
-    const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
+
+    // Process all otput couplings
+    UInt numOutCouplings = ptCoupling_->GetNumOutputCouplings();
 
     StdVector<StdVector<UInt> > elemNodeToCouplingNode_tmp;
-    elemNodeToCouplingNode_.Resize(numCouplings);
+    elemNodeToCouplingNode_.Resize(numOutCouplings);
     elemNodeToCouplingNode_.Init();
     
-    for (UInt i = 0; i < numCouplings; i++) {
+    for (UInt i = 0; i < numOutCouplings; i++) {
 
       if (ptCoupling_->GetOutputQuantity(i) == ACOU_FORCE) {
         // Intialize the memory of the coupling values
@@ -830,6 +980,67 @@ namespace CoupledField {
       }
 
     }
+
+
+
+//     // Process input couplings
+//     UInt numInCouplings = ptCoupling_->GetNumInputCouplings();
+
+//     // bubble coupling data
+//     StdVector<UInt> elemNumbers;
+//     Vector<Double> * radius = NULL;
+//     Vector<Double> * radiusDeriv  = NULL;
+//     	  std::cerr<<"acouInitCoupl numOutCouplings "<<numOutCouplings<< std::endl;
+//     for (UInt i = 0; i < numInCouplings; i++) {
+      
+// 	  std::cerr<<"acouInitCoupl ptCoupling_->GetInputQuantity(i)"<<ptCoupling_->GetInputQuantity(i)<< std::endl;
+//       if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS) {
+	
+//  	// get coupling elements and create vector with element numbers
+// 	StdVector<Elem*> * elems = NULL;
+//  	ptCoupling_->GetInputElements(i, elems );
+ 	
+//  	elemNumbers.Resize( elems->GetSize() );
+//  	for (UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
+//  	  elemNumbers[iElem] = (*elems)[iElem]->elemNum;
+//  	}
+	
+// 	// get buffer with coupling values 
+// 	CFSVector * temp;
+// 	ptCoupling_->GetInputValues( i, temp );    
+// 	  std::cerr<<"acou initcoupling size temp"<< (* temp).GetSize()<<std::endl;
+
+// 	radius = dynamic_cast<Vector<Double>*>(temp);
+
+//       } else if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS_DERIV_1 ) {
+	
+// 	// get buffer with coupling values 
+// 	CFSVector * temp;
+// 	ptCoupling_->GetInputValues( i, temp );
+// 	radiusDeriv = dynamic_cast<Vector<Double>*>(temp);
+	
+//       }
+// 	  std::cerr<<"test in acou initcouplng nach"<< std::endl;
+//     }
+
+//     // Iterate over all BubbleMass/Stiff-Integrators and pass the
+//     // radius data to them
+
+//     std::map<RegionIdType, BubbleDampInt*>::iterator dampIt;
+//     std::map<RegionIdType, BubbleStiffInt*>::iterator stiffIt;
+
+//     for( dampIt = bubbleDampIntMap_.begin();
+// 	 dampIt != bubbleDampIntMap_.end(); dampIt++ ) {
+//       dampIt->second->SetValues( elemNumbers, radius, radiusDeriv);
+//     }
+
+//     for( stiffIt = bubbleStiffIntMap_.begin();
+// 	 stiffIt != bubbleStiffIntMap_.end();
+// 	 stiffIt++ ) {
+//       stiffIt->second->SetValues( elemNumbers, radius, radiusDeriv);
+
+//     }
+      
   }
   
 
