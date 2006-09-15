@@ -196,7 +196,7 @@
     <!-- Make sure that for all 'nodes' referenced in PDE section also -->
     <!-- corresponding 'nodes' have been designated in the domain part -->
     <xsd:keyref name="CS_ElemsExist" refer="CS_DomainNamesElems">
-      <xsd:selector xpath="cfs:pdeList/*/cfs:storeResults/cfs:elemResults|cfs:pdeList/*/cfs:storeResults/cfs:elemHistory"/>
+      <xsd:selector xpath="cfs:pdeList/*/cfs:storeResults/cfs:elemResults"/>
       <xsd:field xpath="@saveElems"/>
     </xsd:keyref>
 
