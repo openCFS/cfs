@@ -49,6 +49,7 @@ namespace CoupledField {
     pressureAmpl_ = 0.0;
     frequency_ = 0.0;
     dt_ = 0.0;
+    dtStep_ = 0.0;
     steptime_ = 0.0;
     y_.Resize(2);
 
@@ -194,6 +195,9 @@ namespace CoupledField {
     // Generate ODE solver object
     ptODESolver_ = new ODESolver_RKF45;
     Info->PrintF( pdename_, "Using the Runge-Kutta-Method to solve bubbledynamics\n");
+
+    
+    params->Get( "frequency", frequency_,  pdename_, "excitation" );
     
     // Hack for determining iterative coupling:
     // Check the number of PDEs defined in this step. If there is more than one,
@@ -230,7 +234,7 @@ namespace CoupledField {
 
       // Read additional data for pressure and requency
       params->Get( "pressure", pressureAmpl_, pdename_, "excitation" );
-      params->Get( "frequency", frequency_,  pdename_, "excitation" );
+      //params->Get( "frequency", frequency_,  pdename_, "excitation" );
 
       //+++++Dimensionless case ++++++++++++
       pressureAmpl_= pressureAmpl_ / pStatic_;
@@ -260,15 +264,18 @@ namespace CoupledField {
       switch(bubbleDynType_){
 
       case KELLERMIKSIS:
-        //         ptBubble_[iElem] = new KellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
-        //                                          pVapour_, surfaceTension_, polytrop_, viscosity_);
-        //           Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
-        ptBubble_[iElem] = 
-          new LinearKellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
-                                 pVapour_, surfaceTension_, polytrop_, viscosity_);
-        if( iElem == 0 ) {
-          Info->PrintF( pdename_, "Using Linear-Keller-Miksis-Bubble-Model\n");
-        }
+        ptBubble_[iElem] = new KellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
+					    pVapour_, surfaceTension_, polytrop_, viscosity_);
+	if( iElem == 0 ) {
+	Info->PrintF( pdename_, "Using Keller-Miksis-Bubble-Model\n");
+	}
+
+//         ptBubble_[iElem] = 
+//           new LinearKellerMiksis(initRadius_,density_, sonicVel_, pStatic_, 
+//                                  pVapour_, surfaceTension_, polytrop_, viscosity_);
+//         if( iElem == 0 ) {
+//           Info->PrintF( pdename_, "Using Linear-Keller-Miksis-Bubble-Model\n");
+//         }
         
         break;
         
@@ -310,13 +317,14 @@ namespace CoupledField {
    
     // Calculate basic data
     params->Get( "firstDt",dt_,"transient" );
+    dtStep_ = dt_;
     steptime_ =  solveStep_->GetActTime() - dt_;
     
     
     dt_ = dt_ / initRadius_ * (sqrt( pStatic_ / density_));
     steptime_   = steptime_ / initRadius_ * (sqrt(pStatic_/ density_));
-    t_ = solveStep_->GetActTime() / initRadius_ * (sqrt(pStatic_/ density_));
-    
+    tDim_ = solveStep_->GetActTime();
+    t_ = tDim_ / initRadius_ * (sqrt(pStatic_/ density_));
 
     // Check if we are coupled iterative
     if( isIterCoupled_ == true ) {
@@ -338,7 +346,7 @@ namespace CoupledField {
 
         //Dimensionless case ++++++++++++++++++++++++++++++++++++++++++++++++
 
-        //Mittelwertbildung hier oder in Coupled Bereich?  
+        //Diemensionless  
         pressure_ = pressure_ / pStatic_ ;
         pressureDeriv_ = pressureDeriv_ * initRadius_ / pStatic_ / ( sqrt ( pStatic_ / density_));
         
@@ -430,6 +438,7 @@ namespace CoupledField {
 
     UInt actStep = kstep + stepOffset;
     Double actTime = timeOffset + asteptime;
+
     
     if( writeRHS_ == true ) {
       outFile_->WriteElemSolutionTransient( addElemResult_, actStep, actTime);
@@ -442,14 +451,53 @@ namespace CoupledField {
 
       for (UInt el = 0; el < numElems; el++) {
         Vector<Double> result(3);
-            
-        result[0] = radius_[el];
-        result[1] = velocity_[el];
-        result[2] = (4.0/3.0) * PI * bubbleDensity_ * radius_[el]
-          * radius_[el] * radius_[el];
+ 
+	//zum Testen
+	if ( actStep * dtStep_  <= 1.0 / frequency_){
+	 
+	  result[0] = 0.0;
+	  result[1] = 0.0;
+	  result[2] = 0.0; 
+	}
+	else{
+	  if (el = numElems - 1 ){
+	    Info->PrintF( pdename_, "Ausgabe der Bubbleergebnisse %e \n", actTime);
+	  }
+
+	  result[0] = radius_[el];
+	  result[1] = velocity_[el];
+	  result[2] = (4.0/3.0) * PI * bubbleDensity_ * radius_[el]
+	    * radius_[el] * radius_[el];
+
+	//Achtung hier müsste ich noch das Maximum über die Zeit nehmen
+	//dann habe ich allerdings nur einen Wert, es könnte ja nur 
+	//einmal erreicht werden, was eigentlich zum Reinigen  nicht
+	//ausreicht
+// 	//Determination of collaps -> cleaning
+// 	Double temp;
+// 	temp = result[0] - initRadius_;
+// 	if ( temp <= 1.0 ){
+// 	  result[2] = 1.0;
+// 	}
+// 	else if( temp <= 1.5 ){
+// 	  result[2] = 2.0;
+// 	}
+// 	else if( temp <= 2.0 ){
+// 	  result[2] = 3.0;
+// 	}
+// 	else if( temp <= 5.0 ){
+// 	  result[2] = 4.0;
+// 	}
+// 	else{
+// 	  result[2] = 5.0;
+// 	}
+
+
         //        if (el == 90)
         //std::cerr<<actTime<<"   " <<el<< "   " << result[0] << "   " 
         // result[1] << "     " << result[2] << std::endl;
+
+	}
         
         // Map global element number to local one
 
@@ -474,6 +522,44 @@ namespace CoupledField {
 
     ENTER_FCN( "BubblePDE::WriteHistoryInFile" );
 
+
+    if (analysistype_== TRANSIENT) {
+
+      UInt actStep = kstep + stepOffset;
+      Double actTime = timeOffset + asteptime;
+
+      if (saveElemBubbleHist_.GetSize() != 0) {
+
+
+	if( writeValues_ == false ) {
+	  UInt numElems = couplElems_->GetSize();
+
+	  for (UInt el = 0; el < numElems; el++) {
+	    Vector<Double> result(3);
+            
+	    result[0] = radius_[el];
+	    result[1] = velocity_[el];
+	    result[2] = (4.0/3.0) * PI * bubbleDensity_ * radius_[el]
+	      * radius_[el] * radius_[el];
+
+	    UInt locElemNum = 
+	      eqnMap_->Mesh2PdeElem((*couplElems_)[el]->elemNum );
+	    elemResult_.SetElemResult( locElemNum-1,result );
+	  }
+	}
+	
+	outFile_->WriteElemHistoryTransient(elemResult_, actStep, 
+					    actTime);
+      }
+      if (saveElemRHSHist_.GetSize() != 0) {
+	
+	outFile_->WriteElemHistoryTransient(addElemResult_, actStep, 
+					    actTime);
+      }
+
+
+
+    }
 
   }
 
@@ -545,8 +631,9 @@ namespace CoupledField {
     StdVector<std::string> * nRegions;
     StdVector<RegionIdType> nRegionIds;
     const UInt numCouplings = ptCoupling_->GetNumOutputCouplings();
-    std::cerr << "numCoupling = " << numCouplings << std::endl;
-    std::cerr << "numInputCouplings = " << ptCoupling_->GetNumInputCouplings() << std::endl;
+
+    std::cerr << "bubbleInitCoupl  numCoupling = " << numCouplings << std::endl;
+    std::cerr << "bubbleInitCoupl numOutputCouplings = " << ptCoupling_->GetNumOutputCouplings() << std::endl;
     nonLin_ = false;
 
     // Initialization of coupling helper arrays
@@ -560,7 +647,22 @@ namespace CoupledField {
         // Intialize the memory of the coupling values
         ptCoupling_->CreateCouplingVector( i, isComplex_ );
          
+      }
+
+      if (ptCoupling_->GetOutputQuantity(i) == BUBBLE_RADIUS) {
+
+        // Intialize the memory of the coupling values
+        ptCoupling_->CreateCouplingVector( i, isComplex_ );
+         
+      }
+
+      if (ptCoupling_->GetOutputQuantity(i) == BUBBLE_RADIUS_DERIV_1) {
+
+        // Intialize the memory of the coupling values
+        ptCoupling_->CreateCouplingVector( i, isComplex_ );
+         
       } 
+  
        
     } 
   }
@@ -572,6 +674,7 @@ namespace CoupledField {
     ENTER_FCN( "BubblePDE::CalcOutputCoupling" );
 
     SolutionType quantity;
+    StdVector<Elem*> * couplingElems = NULL;
     StdVector<UInt> * couplingNodes     = NULL;
     CFSVector * values = 0;
     UInt forcesCount = 0;
@@ -602,7 +705,12 @@ namespace CoupledField {
         break;
         
       case ELEM:
-        Error("No Element coupling output", __FILE__,__LINE__);
+        ptCoupling_->GetOutputElements(actCoupling, couplingElems);
+        if ( quantity == BUBBLE_RADIUS ||
+             quantity == BUBBLE_RADIUS_DERIV_1 ) {
+          CalcBubbleRadius( *couplingElems, *temp, quantity );
+        }
+	//   Error("No Element coupling output", __FILE__,__LINE__);
         break;
       }
     }
@@ -655,53 +763,93 @@ namespace CoupledField {
         }
           
 
-        Double beta2 = 1.0;
-        Double beta2Com = 1.0;
+        Double beta2 = 0.0;
+        Double beta2Com = 0.0;
         Double Rpp = 0.0; 
+
+	//Hier Abfrage wegen Einschwingen
        
         bubbleValues[0] = radius_[couplIndex];
         bubbleValues[1] = velocity_[couplIndex];
-	 
-        // New rhs for cavitational fluid
-        // rho0 * 4/3 * pi* n * ( 3 * R^2 * d^2R/dt^2 + 6 * R * (dR/dt)^2) 
-        if ( solveStep_->GetActStep() == 1){ 
 
-          beta2 =density_*density_* 4/3*PI*bubbleDensity_*6*bubbleValues[0]
-            *bubbleValues[1]*bubbleValues[1]; 
+	//Compute bubble acceleration
+	StdVector<Double> dydt(2);
+	y_[0] = bubbleValues[0] / initRadius_;
+	y_[1] = bubbleValues[1] / (sqrt( pStatic_/ density_));
+	t_    = solveStep_->GetActTime()  / initRadius_ * (sqrt(pStatic_/ density_));
+	ptBubble_[couplIndex]->CompDeriv(t_, y_, dydt);
+	dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
+	Rpp=dydt[1];
 
-          //Vereinfachte RHS Siehe Commander
-          beta2Com=0.0;
-        }
+	//Compute factor for RHS
+	//ATTENTION only compatible with Keller-Miksis
+	Double temp, temp2, temp3;
+	temp = -3.0 / 2.0 * ( 1.0 - (bubbleValues[1] / 3.0 / sonicVel_) ) 
+	  * bubbleValues[1] * bubbleValues[1];
+	temp -= 2.0 * surfaceTension_ / density_ / bubbleValues[0];
+	temp -= 4.0 * viscosity_ * bubbleValues[1] / density_ / bubbleValues[0];
+	temp += 1.0 / density_ * ( pStatic_ - pVapour_ + 2.0 * surfaceTension_ / initRadius_)
+	  * std::pow((initRadius_/bubbleValues[0]),(3.0*polytrop_)) 
+	  * (1.0 + bubbleValues[1] / sonicVel_ * ( 1.0 - 3.0 * polytrop_));
+	temp += (1.0 + (bubbleValues[1] / sonicVel_)) /density_ * (pVapour_ - pStatic_);
+	
+	temp2  = 4.0 * PI * density_ * bubbleDensity_ * bubbleValues[0] * bubbleValues[0] / ( ( 1.0 -( bubbleValues[1] / sonicVel_)) * bubbleValues[0]  + 4.0 * viscosity_ / density_ /sonicVel_ );
 
-        else {
-          StdVector<Double> dydt(2);
+	temp3 = 8.0 * PI * density_ * bubbleDensity_ * bubbleValues[0] 
+	  * bubbleValues[1] * bubbleValues[1];
 
-          // dimensionless**************************************
-          y_[0] = bubbleValues[0] / initRadius_;
-          y_[1] = bubbleValues[1] / (sqrt( pStatic_/ density_));
-          t_    = solveStep_->GetActTime()  / initRadius_ * (sqrt(pStatic_/ density_));
-          ptBubble_[couplIndex]->CompDeriv(t_, y_, dydt);
-          dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
-          beta2 =density_*density_*4/3*PI*bubbleDensity_*
-            (6*bubbleValues[0]*bubbleValues[1]*bubbleValues[1]
-             + 3*bubbleValues[0]*bubbleValues[0]*dydt[1] ); 
+	beta2 = ( temp * temp2 + temp3 ) * density_ ;
 
-          //Vereinfachte RHS Siehe Commander
-          beta2Com= density_*density_*4.0*PI*bubbleDensity_*initRadius_ *initRadius_*dydt[1];
 
-          // dimensionless**************************************
+//         // New rhs for cavitational fluid
+//         // rho0 * 4/3 * pi* n * ( 3 * R^2 * d^2R/dt^2 + 6 * R * (dR/dt)^2) 
+//         if ( solveStep_->GetActStep() == 1){ 
 
-          //Normal case+++++++++++++++++++++++++++++++++++++++
-          //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues, dydt);
-          //	  beta2 =density_*density_* 4/3*PI*bubbleDensity_*
-          //	    (6*bubbleValues[0]*bubbleValues[1]*bubbleValues[1]
-          //	     + 3*bubbleValues[0]*bubbleValues[0]*dydt[1] ); 
-          //Normal case+++++++++++++++++++++++++++++++++++++++
+//           beta2 =density_*density_* 4/3*PI*bubbleDensity_*6*bubbleValues[0]
+//             *bubbleValues[1]*bubbleValues[1]; 
+
+//           //Vereinfachte RHS Siehe Commander
+//           beta2Com=0.0;
+//         }
+
+//         else {
+//           StdVector<Double> dydt(2);
+
+//           // dimensionless**************************************
+//           y_[0] = bubbleValues[0] / initRadius_;
+//           y_[1] = bubbleValues[1] / (sqrt( pStatic_/ density_));
+//           t_    = solveStep_->GetActTime()  / initRadius_ * (sqrt(pStatic_/ density_));
+//           ptBubble_[couplIndex]->CompDeriv(t_, y_, dydt);
+//           dydt[1] = dydt[1] * pStatic_ / ( density_ * initRadius_ );
+//           beta2 =density_*density_*4/3*PI*bubbleDensity_*
+//             (6*bubbleValues[0]*bubbleValues[1]*bubbleValues[1]
+//              + 3*bubbleValues[0]*bubbleValues[0]*dydt[1] ); 
+
+//           //Vereinfachte RHS Siehe Commander
+//           beta2Com= density_*density_*4.0*PI*bubbleDensity_*initRadius_ *initRadius_*dydt[1];
+
+//           // dimensionless**************************************
+
+//           //Normal case+++++++++++++++++++++++++++++++++++++++
+//           //	  ptBubble_[numEl]->CompDeriv(actTime_, bubbleValues, dydt);
+//           //	  beta2 =density_*density_* 4/3*PI*bubbleDensity_*
+//           //	    (6*bubbleValues[0]*bubbleValues[1]*bubbleValues[1]
+//           //	     + 3*bubbleValues[0]*bubbleValues[0]*dydt[1] ); 
+//           //Normal case+++++++++++++++++++++++++++++++++++++++
 	  
-          Rpp=dydt[1];
-        }
+//           Rpp=dydt[1];
+//         }
 
-        rhsForm->SetFactor(beta2);            
+
+	if ( tDim_  <= 1.0 / frequency_){
+	  rhsForm->SetFactor(0.0);
+	}
+	else{
+	  if (couplIndex == 0  )
+	    Info->PrintF( pdename_, "Full coupling in RHS %e \n",tDim_);
+
+	  rhsForm->SetFactor(beta2);
+	}
 
         Vector<Double> elemVec, helpVec;
         rhsForm->CalcElemVector( elemVec, it );
@@ -714,7 +862,7 @@ namespace CoupledField {
 
 
         // store element result
-        if ( writeRHS_ == true ) {
+        if ( writeRHS_ == true || saveElemRHSHist_.GetSize() > 0 ) {
           helpVec.Resize( 2 );
           helpVec[0] = beta2;
           helpVec[1] = Rpp;
@@ -722,7 +870,6 @@ namespace CoupledField {
           UInt locElemNum = eqnMap_->Mesh2PdeElem(it.GetElem()->elemNum);
           addElemResult_.SetElemResult(locElemNum-1, helpVec);
         }
-        
       }
     }
     // delete rhs integrator
@@ -733,6 +880,68 @@ namespace CoupledField {
   }
 
 
+  void BubblePDE::CalcBubbleRadius( StdVector<Elem*> & elems,
+				    Vector<Double>& couplVals,
+				    SolutionType solType ) {
+
+    ENTER_FCN( "BubblePDE::CalcBubbleRadius" );
+
+
+	std::cerr<<"bubble calcradius radiussize "<<radius_.GetSize()<<std::endl;
+    // Initialize coupling values
+    couplVals.Init();
+
+    if ( solType == BUBBLE_RADIUS ) {
+
+      for (UInt iElem = 0; iElem < elems.GetSize(); iElem++ ) {
+
+        // Find correct index for this element in vector couplElems_
+        Integer couplIndex = -1;
+        
+        for( UInt iCouplElem = 0; iCouplElem < couplElems_->GetSize(); iCouplElem++ ) {
+          if( (*couplElems_)[iCouplElem]->elemNum == elems[iElem]->elemNum ) {
+            couplIndex = iCouplElem;
+            break;
+          }
+        }
+
+        if( couplIndex == -1 ) {
+          (*error) << "Found no matching element for coupling element Nr" 
+                   << elems[iElem]->elemNum << "!";
+          Error( __FILE__, __LINE__ );
+        }
+        // store back to vector
+        couplVals[iElem] = radius_[couplIndex];
+      }
+
+    } else {
+      for (UInt iElem = 0; iElem < elems.GetSize(); iElem++ ) {
+
+        // Find correct index for this element in vector couplElems_
+        Integer couplIndex = -1;
+        
+        for( UInt iCouplElem = 0; iCouplElem < couplElems_->GetSize(); iCouplElem++ ) {
+          if( (*couplElems_)[iCouplElem]->elemNum == elems[iElem]->elemNum ) {
+            couplIndex = iCouplElem;
+            break;
+          }
+        }
+
+        if( couplIndex == -1 ) {
+          (*error) << "Found no matching element for coupling element Nr" 
+                   << elems[iElem]->elemNum << "!";
+          Error( __FILE__, __LINE__ );
+        }
+
+        // store back to vector
+        couplVals[iElem] = velocity_[couplIndex];
+      }
+    }
+
+
+  }  
+
+
   bool BubblePDE::HasOutput(SolutionType output)
   {
     ENTER_FCN( "BubblePDE::HasOutput" );
@@ -740,6 +949,14 @@ namespace CoupledField {
     switch (output) {
     case ACOU_BUBBLE_RHS_VAL:
       std::cerr << "BubblePDE: Return true for for ACOU_BUBBLE_RHS_VAL\n";
+      return true;
+      break;
+    case BUBBLE_RADIUS:
+      std::cerr << "BubblePDE: Return true for for BUBBLE_RADIUS\n";
+      return true;
+      break;
+    case BUBBLE_RADIUS_DERIV_1:
+      std::cerr << "BubblePDE: Return true for for BUBBLE_RADIUS_DERIV_1\n";
       return true;
       break;
     default:
@@ -767,6 +984,7 @@ namespace CoupledField {
     // *****************************
     // Determine element results
     // *****************************
+
     keyVec  = pdename_, "storeResults", "elemResults", "region";
     attrVec = "", "", "type";
 
@@ -778,7 +996,7 @@ namespace CoupledField {
     if ( regionNames.GetSize() > 0 ) {
       hasOutput_ = true;
       writeValues_ = true;
-      Info->PrintF( pdename_, " Storing bubbleValues to file\n" );
+      Info->PrintF( pdename_, " Storing bubbleValues to file 1\n" );
 
       elemResult_.SetNumSolutions(1);
       elemResult_.SetSolutionType(MAG_FLUX_DENSITY);
@@ -786,17 +1004,78 @@ namespace CoupledField {
       elemResult_.SetNumDofs(3);
       elemResult_.SetPtrEQNData(eqnMap_.get(), ptgrid_);
       elemResult_.Init(); 
+
+      keyVec  = pdename_, "storeResults", "elemHistory", "saveRegion";
+      attrVec = "", "", "type";
+      quantity = "bubbleValues";
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveElemBubbleHistRegion_ );
+
+      if ( saveElemBubbleHistRegion_.GetSize() > 0 ) {
+	Info->PrintF( pdename_, " Storing bubbleValues to file 2 \n" );
+        for ( UInt k = 0; k < saveElemBubbleHistRegion_.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveElemBubbleHistRegion_[k].c_str() );
+        }
+      }
+
+      keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
+      attrVec = "", "", "type";
+      quantity = "bubbleValues";
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveElemBubbleHist_ );
+
+      if ( saveElemBubbleHist_.GetSize() > 0 ) {
+	Info->PrintF( pdename_, " Storing bubbleValues to file 3 \n" );
+        for ( UInt k = 0; k < saveElemBubbleHist_.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveElemBubbleHist_[k].c_str() );
+        }
+      }
+
+    }
+    else{
+
+      keyVec  = pdename_, "storeResults", "elemHistory", "saveRegion";
+      attrVec = "", "", "type";
+      quantity = "bubbleValues";
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveElemBubbleHistRegion_ );
+
+      keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
+      attrVec = "", "", "type";
+      quantity = "bubbleValues";
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveElemBubbleHist_ );
+
+      if ( saveElemBubbleHist_.GetSize() > 0 || saveElemBubbleHistRegion_.GetSize() > 0  ) {
+	hasOutput_ = true;
+	Info->PrintF( pdename_, " Storing bubbleValues to file 4 \n" );
+        for ( UInt k = 0; k < saveElemBubbleHistRegion_.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveElemBubbleHistRegion_[k].c_str() );
+        }
+        for ( UInt k = 0; k < saveElemBubbleHist_.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveElemBubbleHist_[k].c_str() );
+        }
+      
+	elemResult_.SetNumSolutions(1);
+	elemResult_.SetSolutionType(MAG_FLUX_DENSITY);
+	elemResult_.SetNumElems(eqnMap_->GetNumLocalElems());
+	elemResult_.SetNumDofs(3);
+	elemResult_.SetPtrEQNData(eqnMap_.get(), ptgrid_);
+	elemResult_.Init(); 
+      }
     }
 
     // --- RHS bubble Result -> ElecFieldIntensity  ---
-    quantity = "bubbleValues";
+    keyVec  = pdename_, "storeResults", "elemResults", "region";
+    attrVec = "", "", "type";
+    quantity = "bubbleRHS";
     valVec  = "", "", quantity;
     params->GetList( keyVec, attrVec, valVec, regionNames );
 
     if ( regionNames.GetSize() > 0 ) {
       hasOutput_ = true;
       writeRHS_ = true;
-      Info->PrintF( pdename_, " Storing bubbleRHS to file\n" );
+      Info->PrintF( pdename_, " Storing bubbleRHS to file 5\n" );
 
       addElemResult_.SetNumSolutions(1);
       addElemResult_.SetSolutionType(ELEC_FIELD_INTENSITY);
@@ -804,8 +1083,67 @@ namespace CoupledField {
       addElemResult_.SetNumDofs(2);
       addElemResult_.SetPtrEQNData(eqnMap_.get(), ptgrid_);
       addElemResult_.Init(); 
-    }
 
+      keyVec  = pdename_, "storeResults", "elemHistory", "saveRegion";
+      attrVec = "", "", "type";
+      quantity = "bubbleRHS";
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveElemRHSHistRegion_ );
+
+      if ( saveElemRHSHistRegion_.GetSize() > 0 ) {
+	Info->PrintF( pdename_, " Storing bubbleRHS to file 6\n" );
+        for ( UInt k = 0; k < saveElemRHSHistRegion_.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveElemRHSHistRegion_[k].c_str() );
+        }
+      }
+      keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
+      attrVec = "", "", "type";
+      quantity = "bubbleRHS";
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveElemRHSHist_ );
+
+      if ( saveElemRHSHist_.GetSize() > 0 ) {
+	Info->PrintF( pdename_, " Storing bubbleRHS to file 7\n" );
+        for ( UInt k = 0; k < saveElemRHSHist_.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveElemRHSHist_[k].c_str() );
+        }
+      }
+
+
+    }
+    else{
+
+      keyVec  = pdename_, "storeResults", "elemHistory", "saveRegion";
+      attrVec = "", "", "type";
+      quantity = "bubbleRHS";
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveElemRHSHistRegion_ );
+
+      keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
+      attrVec = "", "", "type";
+      quantity = "bubbleRHS";
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveElemRHSHist_ );
+      
+      if ( saveElemRHSHist_.GetSize() > 0 || saveElemBubbleHistRegion_.GetSize() > 0  ) {
+	hasOutput_ = true;
+	Info->PrintF( pdename_, " Storing bubbleRHS to file 8\n" );
+        for ( UInt k = 0; k < saveElemRHSHistRegion_.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveElemRHSHistRegion_[k].c_str() );
+        }
+	Info->PrintF( pdename_, " Storing bubbleRHS to file 9\n" );
+        for ( UInt k = 0; k < saveElemRHSHist_.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveElemRHSHist_[k].c_str() );
+        }
+
+	addElemResult_.SetNumSolutions(1);
+	addElemResult_.SetSolutionType(ELEC_FIELD_INTENSITY);
+	addElemResult_.SetNumElems(eqnMap_->GetNumLocalElems());
+	addElemResult_.SetNumDofs(2);
+	addElemResult_.SetPtrEQNData(eqnMap_.get(), ptgrid_);
+	addElemResult_.Init();
+      }
+    }
     
   }
   

@@ -99,6 +99,11 @@ namespace CoupledField
     void CalcAcouRHS( StdVector<std::string>& regions, StdVector<UInt>& nodes,
                       Vector<Double>& values );
 
+    //! Allocate the radius and velocity solutions to the right coupling elements
+    void CalcBubbleRadius( StdVector<Elem*> & elems,
+				      Vector<Double>& couplVals,
+				      SolutionType solType );
+
     //! Output stream for writing results of one element
     std::ofstream outValues_;
 
@@ -155,6 +160,7 @@ namespace CoupledField
 
     //! Parameter for the dimensionless case
     StdVector<Double> y_;
+    Double tDim_;
     Double t_;
     Double pressure_;
     Double pressureDeriv_;  
@@ -173,6 +179,7 @@ namespace CoupledField
 
 
     Double dt_;
+    Double dtStep_;
     Double steptime_;
 
     // buffer for pressure input
@@ -193,6 +200,11 @@ namespace CoupledField
 
     //! Storesolution for vecotrial result( RHS, 2nd derivative of radius )
     ElemStoreSol<Double> addElemResult_;
+
+    StdVector<std::string> saveElemBubbleHist_;//!< name of elements to be saved
+    StdVector<std::string> saveElemBubbleHistRegion_;//!< name of elements to be saved
+    StdVector<std::string> saveElemRHSHist_;//!< name of elements to be saved
+    StdVector<std::string> saveElemRHSHistRegion_;//!< name of elements to be saved
 
     //! Flags indicating writing of results
     bool writeValues_, writeRHS_;
