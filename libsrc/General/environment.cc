@@ -561,8 +561,8 @@ namespace CoupledField {
       out = BUBBLE_RADIUS;
     else if (in == "bubbleRadiusD1")
       out = BUBBLE_RADIUS_DERIV_1;
-    else if (in == "bubbleVolumeFrac")
-      out = BUBBLE_VOLUME_FRAC;
+    else if (in == "bubbleValues")
+      out = MAG_FLUX_DENSITY;
 	           
     else {
       (*error) << "'" << in << "' cannot be converted into item of "
