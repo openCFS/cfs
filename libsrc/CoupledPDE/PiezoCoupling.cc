@@ -450,6 +450,7 @@ namespace CoupledField {
       // Set current region and material
       actRegion = it->first;
       actSDMat = it->second;
+      matType = REAL;
       
       //transform the type
       SubTensorType tensorType;
