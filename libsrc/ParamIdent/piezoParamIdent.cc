@@ -6,6 +6,7 @@
 #include "CoupledPDE/BasePairCoupling.hh"
 #include "PDE/mechPDE.hh"
 #include "Forms/linPressureInt.hh"
+#include "Materials/baseMaterial.hh"
 
 
 
@@ -29,9 +30,10 @@ namespace CoupledField
 
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
 
+
     // Set analysistype
     analysis_ = HARMONIC;
-    
+
     ptDomain_ = adomain;
     ptMyPDE_ = NULL;
     residuumParIdent_=1.0;
@@ -54,11 +56,11 @@ namespace CoupledField
       std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
     }
 
-    //     filenameMeasuredData="mess.dat";
-    //     mess = new std::ifstream(filenameMeasuredData.c_str(), std::basic_ios<char>::in);
-    //     if (!mess){
-    //       std::cerr << "\n File mess.dat does not exist!" << std::endl;
-    //     }
+    filenameMeasuredData="mess.dat";
+    mess = new std::ifstream(filenameMeasuredData.c_str(), std::basic_ios<char>::in);
+    if (!mess){
+      std::cerr << "\n File mess.dat does not exist!" << std::endl;
+    }
 
     Info->StartProgress( "\n Opening output files \n imped.dat, piezoLog.dat, parLog.dat, mechDispl.dat, parFinal.dat ... " );
 
@@ -194,30 +196,30 @@ namespace CoupledField
       confInterval->close();
     if(rhosOut)
       rhosOut->close();
-    //     if(mess)
-    //       mess->close();
+
+    if(mess)
+      mess->close();
 
 
 #ifdef USE_LAPACK
-    if(lp_af77)
-      DeleteArray(lp_af77);
-    std::cout<<"delete wf77 in destructor ..."<<std::endl;
-    if(&lp_wf77)
-      DeleteArray(lp_wf77);
-    std::cout<<"delete workf77"<<std::endl;
-    if(lp_workf77)
-      DeleteArray(lp_workf77);
-    std::cout<<"delete rwork77"<<std::endl;
-    if(lp_rworkf77)
-      DeleteArray(lp_rworkf77);
+   //  if(lp_af77)
+//       DeleteArray(lp_af77);
+//     std::cout<<"delete wf77 in destructor ..."<<std::endl;
+//     if(&lp_wf77)
+//       DeleteArray(lp_wf77);
+//     std::cout<<"delete workf77"<<std::endl;
+//     if(lp_workf77)
+//       DeleteArray(lp_workf77);
+//     std::cout<<"delete rwork77"<<std::endl;
+//     if(lp_rworkf77)
+//       DeleteArray(lp_rworkf77);
 #endif
   }
 
   void piezoParamIdent :: SolveProblem() {
     ENTER_FCN( "piezoParamIdent::SolveProblem" );
 
-
-    UInt highestAssumableNrOfMeasData=25;
+    UInt highestAssumableNrOfMeasData=100;
     
     ptDomain_->PrintGrid();
     GetMyPDEs();
@@ -236,77 +238,87 @@ namespace CoupledField
       actNrParameterC = 10;
     }
     else if (subdomsMech_.GetSize()>1){
-    nrParameter_ = 14;
-    actNrParameter = 14;
-    actNrParameterC = 14;
+    nrParameter_ = 16;
+    actNrParameter = 16;
+    actNrParameterC = 16;
     }
 
     parameter_.Resize(nrParameter_);
-    parameter_.Init();
     parameterC_.Resize(nrParameter_);
+    parameter_.Init();
     parameterC_.Init();
+
     whichParameterToUpdate_.Resize(nrParameter_);
-    whichParameterToUpdate_.Init();
     whichParameterToUpdateC_.Resize(nrParameter_);
+    whichParameterToUpdate_.Init();
     whichParameterToUpdateC_.Init();
+
+    whichParToUpInd_.Init();
+    whichParToUpIndC_.Init();
 
     //     parameterIncrement.Resize(nrParameter_);
     //parameterIncrement = parameter_;
     omegas_.Resize(highestAssumableNrOfMeasData);
-    omegas_.Init();
     freqs_.Resize(highestAssumableNrOfMeasData);
-    freqs_.Init();
     real_.Resize(highestAssumableNrOfMeasData);
-    real_.Init();
     imag_.Resize(highestAssumableNrOfMeasData);
-    imag_.Init();
     amplitude_phase.Resize(highestAssumableNrOfMeasData);
-    amplitude_phase.Init();
     F_hat_.Resize(highestAssumableNrOfMeasData);
-    F_hat_.Init();
-    
+
+    omegas_.Init();
+    freqs_.Init();
+    real_.Init();
+    imag_.Init();
+    amplitude_phase.Init();
+    F_hat_.Init();  
+
+
     // the following passage reads Data from file measuredData.dat
     // The rows are containing the values of the given frequencies, such as phase and amplitude!
     readMeasuredData(freqs_, real_, imag_, parameter_, voltage_, 
                      nrMeasuredData, thickness_, radius_, delta_);
 
+
     Vector<Double> freqsTemp = freqs_;
     freqs_.Resize(nrMeasuredData);
+    freqs_.Init();
 
     for(UInt i=0;i<nrMeasuredData;i++)
       freqs_[i]=freqsTemp[i];
+    
+    std::cout<<"Frequencies from which measurements are taken:" <<std::endl;
+    std::cout<<freqs_<<std::endl;
 
     y_hat_.Resize(2*nrMeasuredData);
-    y_hat_.Init();
     //    bas.Resize(nrParameter_);
     res_NE_new.Resize(actNrParameter+actNrParameterC);
-    res_NE_new.Init();
     res_NE.Resize(actNrParameter+actNrParameterC);
-    res_NE.Init();
     lin_res.Resize(2*nrMeasuredData);
-    lin_res.Init();
     res.Resize(2*nrMeasuredData);
-    res.Init();
     bas_bar.Resize(2*nrMeasuredData);
-    bas_bar.Init();
     s.Resize(actNrParameter+actNrParameterC);
-    s.Init();
     scaling_.Resize(nrParameter_);
-    scaling_.Init();
     scalingC_.Resize(nrParameter_);
-    scalingC_.Init();
     F_hat_.Resize(2*nrMeasuredData);
-    F_hat_.Init();
     overall_res0.Resize(2*nrMeasuredData);
-    overall_res0.Init();
     parameter_new_.Resize(nrParameter_);
-    parameter_new_.Init();
 
     actNrParameter=0;
     actNrParameterC=0;
 
+    y_hat_.Init();
+    res_NE_new.Init();
+    res_NE.Init();
+    lin_res.Init();
+    res.Init();
+    bas_bar.Init();
+    s.Init();
+    scaling_.Init(0.0);
+    scalingC_.Init(0.0);
+    F_hat_.Init();
+    overall_res0.Init();
+    parameter_new_.Init();
 
- 
 
     ptPDE_->WriteGeneralPDEdefines();
 
@@ -318,17 +330,18 @@ namespace CoupledField
     for (UInt i=0;i<whichParameterToUpdateC_.GetSize();i++)
       if (whichParameterToUpdateC_[i]==1)
         actNrParameterC++;
-    if (actNrParameter!=0) {
+
+    if (actNrParameter!=0){
       whichParToUpInd_.Resize(actNrParameter);
       whichParToUpInd_.Init();
     }
 
-    if (whichNewtonCG_==4||whichNewtonCG_==6||whichNewtonCG_==8
-        ||whichNewtonCG_==10||whichNewtonCG_==12)
-      if (actNrParameterC!=0) {
-        whichParToUpIndC_.Resize(actNrParameterC);
-        whichParToUpIndC_.Init();
-      }
+
+    if (actNrParameterC!=0) {
+      whichParToUpIndC_.Resize(actNrParameterC);
+      whichParToUpIndC_.Init();
+    }
+
 
     UInt intTemp=0;
 
@@ -338,6 +351,7 @@ namespace CoupledField
         intTemp++;
       }
 
+
     intTemp=0;
     for (UInt i=0;i<whichParameterToUpdateC_.GetSize();i++)
       if (whichParameterToUpdateC_[i]==1) {
@@ -346,11 +360,9 @@ namespace CoupledField
       }
 
 
-
     // ************************************************************************
     // Communication with BasePDE ... gets i.G. pointers to objects involved  *
     // ************************************************************************
-
 
 
     StdVector<BasePairCoupling*> ptCoupling = ptCoupledPDE->GetCouplingsObject();
@@ -363,91 +375,26 @@ namespace CoupledField
     ptMaterialElec_  = ptPDE2_[0].getPDEMaterialData();   // Pointer to elec. MaterialData
     ptMaterialPiezo_ = ptCoupling[0]->getPDEMaterialData();   // Pointer to piezo MaterialData
 
-//     StdVector<Double> pressVals = ptPDE1_[0].getPressureVals();
-
-//     std::cout<<"pressVals" <<std::endl;
-//     std::cout<<pressVals<<std::endl;
-
-//     pressVals[0]= 1.0;
-//     pressVals[1]= -1.0;
-
-//     ptPDE1_[0].setPressureVals(pressVals);
-    
-//     LinearSurfForm * ptLinSurfForm =  dynamic_cast<MechPDE*>(ptPDE1_)->getRHSSurfForm();
-
-//     PressureLinForm * ptPressLinForm = dynamic_cast<PressureLinForm*>(ptLinSurfForm);
-
-// //     ptPressLinForm[0].setLinPressure(pressVals[0]);
-// //     ptPressLinForm[1].setLinPressure(pressVals[1]);
-    
-//     StdVector<Double> pressValsNew = ptPDE1_[0].getPressureVals();
-    
-//     std::cout<<"pressValsNew" <<std::endl;
-//     std::cout<<pressValsNew<<std::endl;
-
-//     BaseIntDescriptor * actRhsID0 = 
-//       (*ptAssemble_->rhsSrcSurfIntegrators_[0])[0];
-
-//     BaseIntDescriptor * actRhsID1 = 
-//       (*ptAssemble_->rhsSrcSurfIntegrators_[1])[0];
-
-     // LinearSurfForm * myForm0 =  dynamic_cast<LinearSurfForm*>(actRhsID0->GetIntegrator());    
-     //LinearSurfForm * myForm1 =  dynamic_cast<LinearSurfForm*>(actRhsID1->GetIntegrator());
-//     PressureLinForm * ptPressLinForm0 = dynamic_cast<PressureLinForm*>(myForm0);
-//     PressureLinForm * ptPressLinForm1 = dynamic_cast<PressureLinForm*>(myForm1);
-//     ptPressLinForm0->setLinPressure(pressVals[0]);
-//     ptPressLinForm1->setLinPressure(pressVals[0]);
-
-
     
     //get the material tensors
     Matrix<Double> piezoMat,stiffMat, stiffMatAlu, stiffMatSteel, permMat;
     Matrix<Complex> piezoMatC, stiffMatC, permMatC;
     
   
-    //     if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
-    //       std::cerr << "should not be here " <<std::endl;
-    //       ptMaterialPiezo_[0]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
-    //       ptMaterialMech_[0]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
-    //       ptMaterialElec_[0]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
-    //       std::cout<< " Mech-Tensor (Imag) \n" << stiffMatC  << std::endl;
-    //       std::cout<< " Elec-Tensor (Imag) \n" << permMatC   << std::endl;
-    //       std::cout<< " Piezo-Tensor (Imag) \n" << piezoMatC << std::endl;
-    //     }
+//     if (subdomsMech_.GetSize()==1){
+//       ptMaterialPiezo_[0]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
+//       ptMaterialMech_[0]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
+//       ptMaterialElec_[0]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
+//     }
 
 
-    if (subdomsMech_.GetSize()==1){
-      ptMaterialPiezo_[0]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
-      ptMaterialMech_[0]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
-      ptMaterialElec_[0]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
+    if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
+      updateComplexMaterialData(parameterC_);
     }
-    else {      
-      ptMaterialMech_[1]->GetTensor(stiffMatAlu,MECH_STIFFNESS_TENSOR, REAL,FULL);
 
-      ptMaterialPiezo_[2]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
-      ptMaterialMech_[2]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
-      ptMaterialElec_[2]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
-      
-      ptMaterialMech_[3]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
 
-      //ptMaterialMech_[4]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
-      ptMaterialMech_[5]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
-
-      std::cout<<"++ All pointers to the material tensors are set ..." <<std::endl;
-
-      // std::cout<< " Mech-Tensor Steel (Real) \n" << stiffMatSteel   << std::endl;
-//       std::cout<< " Mech-Tensor Alu (Real) \n" << stiffMatAlu << std::endl;
-
-    }
-//     std::cout<< " Mech-Tensor (Real) \n" << stiffMat  << std::endl;
-//     std::cout<< " Elec-Tensor (Real) \n" << permMat   << std::endl;
-//     std::cout<< " Piezo-Tensor (Real) \n" << piezoMat << std::endl;
-
-    
     updateMaterialData(parameter_);
 
-    if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
-      updateComplexMaterialData(parameterC_);
 
     parameterIncrement_=parameter_;
 
@@ -457,7 +404,6 @@ namespace CoupledField
     if (CalcMechDisplCurve_ == true){
       Vector<Double> freqsTemp = freqs_;
       freqs_.Resize(nrfreq_);
-      freqs_.Init();
       Double startFreqTemp;
       startFreqTemp=startfreq_;
       Double freqincr=(stopfreq_-startfreq_)/nrfreq_;
@@ -475,9 +421,9 @@ namespace CoupledField
     // <<<<<<<<<<<<<< calc impedance curve <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
      
     if (CalcImpedanceCurve_ == true){
+      std::cout<<"calc Impedance curve ..."<<std::endl;
       Vector<Double> freqsTemp = freqs_;
       freqs_.Resize(nrfreq_);
-      freqs_.Init();
       Double startFreqTemp;
       startFreqTemp=startfreq_;
       Double freqincr=(stopfreq_-startfreq_)/nrfreq_;
@@ -497,6 +443,16 @@ namespace CoupledField
 
     // xxxxxxxxxxxxxxxxxxxxxxx Choose different regularizing solvers here xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
     
+
+    if (whichNewtonCG_==1){
+      std::cout<<"++ Nonlinear Landweber's iteration ... " <<std::endl;
+      Vector<Double> newFreqs;
+      readInMeasurement(newFreqs);
+      std::cout<<"++ Fitting will be performed with the following " 
+               << nrMeasuredData << " frequencies:" <<std::endl;
+      std::cout<<freqs_ <<std::endl;
+      nonlinLandweber();
+    }
 
     if (whichNewtonCG_==7){
       if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
@@ -595,7 +551,7 @@ namespace CoupledField
     // xxxxxxxxxxxxxxxxxxxxxxx End of choice xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx //
 
     if ( maxNumberNewtonLoops_!=0){
-      std::cout<<"\n\n *** FINALLY CALCULATED PARAMETERS *** ... here they are: " <<std::endl;
+      std::cout<<"\n\n *** FINALLY CALCULATED PARAMETER *** " <<std::endl;
       
       *parFinal<<"4) "<<std::endl;
       for (UInt i=0;i<parameter_.GetSize();i++){
@@ -612,7 +568,6 @@ namespace CoupledField
     if (CalcImpedanceCurve_ == true && maxNumberNewtonLoops_!=0){
       Vector<Double> freqsTemp = freqs_;
       freqs_.Resize(nrfreq_);
-      freqs_.Init();
       Double freqincr=(stopfreq_-startfreq_)/nrfreq_;
       for(UInt i=0;i<nrfreq_;i++){
         startfreq_+=freqincr;
@@ -631,20 +586,33 @@ namespace CoupledField
   //! Updates material data & updates system matrices!!
   void piezoParamIdent::updateMaterialData(Vector<Double> & parameter_){
     ENTER_FCN("piezoParamIdent::updateMaterialData");    
+    //   std::cout<<"++ updateMaterialData " <<std::endl;
     
-    Matrix<Double> stiffTensor,stiffTensorSteel,stiffTensorAlu;
-    Matrix<Double> piezoTensor;
+    Matrix<Double> stiffTensor,stiffTensorSteel,stiffTensorAlu, stiffTensorSchraube;
+    Matrix<Double> piezoTensor,piezoTensorP;
     Matrix<Double> permTensor;
 
     stiffTensor.Resize(6,6);
     stiffTensorSteel.Resize(6,6);
     stiffTensorAlu.Resize(6,6);
-
+    stiffTensorSchraube.Resize(6,6);
+    piezoTensorP.Resize(3,6);
     piezoTensor.Resize(3,6);
     permTensor.Resize(3,3);
 
+    stiffTensor.Init(0);
+    stiffTensorAlu.Init(0); 
+    stiffTensorSteel.Init(0);
+    stiffTensorSchraube.Init(0);
+    piezoTensor.Init(0); 
+    piezoTensor.Init(0);
+    permTensor.Init(0);
+
+
     subdomsMech_ = ptPDE1_->getPDE_subdoms();
 
+    
+    // Materialparameteridentifizierung fuer nur eine Scheibe:
     if (subdomsMech_.GetSize()==1){         
       stiffTensor[0][0] = parameter_[0]; //c_11
       stiffTensor[1][1] = parameter_[0]; //c_11
@@ -670,26 +638,44 @@ namespace CoupledField
       permTensor[2][2] = parameter_[9]; //eps_33
 
       Double a1, a2, a3;
-      a1=a2=a3=0;
+      a1=a2=a3=0.0;
       
-      if( params->HasValue( "x", "1", "piezo", "polingDirection" ) )
-        a1=1;
+      if( params->HasValue( "x", "1", "piezoDirect", "polingDirection" ) ){
+        a1=90;
+        //        std::cout<<" Poling rotated around x axis ! " <<std::endl;
+      }
       
       if( params->HasValue( "y", "1", "piezo", "polingDirection" ) )
-        a2=1;
+        a2=90;
       
       if( params->HasValue( "z", "1", "piezo", "polingDirection" ) )
-        a3=1;
+        a3=90;
       
-      if (a1==0&&a2==0&&a3==0)
-        a3=1.0;    // if no poling direction is specified, the z-direction is chosen by default 
-      
-      //     ptMaterial_[2].RotateMaterialMatrix(a1,a2,a3); //?
 
       ptMaterialPiezo_[0]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
       ptMaterialMech_[0]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
       ptMaterialElec_[0]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
+
+      StdVector<Double> rotAngle;
+      rotAngle.Resize(3);
+      rotAngle[0]=a1;
+      rotAngle[1]=a2;
+      rotAngle[2]=a3;
+      
+      Matrix<Complex> rotatedMatrix;
+    
+
+//       ptMaterialPiezo_[0]->RotateTensorByRotationAngles( rotAngle, PIEZO_TENSOR, rotatedMatrix);      
+//       for(UInt i=0; i<rotatedMatrix.GetSizeRow();i++)
+//         for(UInt j=0; j<rotatedMatrix.GetSizeCol();j++)
+//           piezoTensor[i][j] = rotatedMatrix[i][j].real();
+
+//        ptMaterialPiezo_[0]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
+
     }
+
+    // Materialparameteridentifizierung fuer Langevin Type Transducer
+    
     else if (subdomsMech_.GetSize()>1){
 
       stiffTensor[0][0] = parameter_[0]; //c_11
@@ -750,38 +736,108 @@ namespace CoupledField
       stiffTensorAlu[4][4] = parameter_[12]; //c_44
       stiffTensorAlu[5][5] = parameter_[12]; //c_66
 
-    
-      // alu
-      ptMaterialMech_[1]->SetTensor(stiffTensorAlu,MECH_STIFFNESS_TENSOR, REAL);
-      //piezo
-      ptMaterialPiezo_[2]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
-      ptMaterialMech_[2]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
-      ptMaterialElec_[2]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
-      ptMaterialPiezo_[3]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
-      ptMaterialMech_[3]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
-      ptMaterialElec_[3]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
-      //Steel
-      ptMaterialMech_[4]->SetTensor(stiffTensorSteel,MECH_STIFFNESS_TENSOR, REAL);
-      ptMaterialMech_[5]->SetTensor(stiffTensorSteel,MECH_STIFFNESS_TENSOR, REAL);
+
+
+      lambda2nu=parameter_[15]+2*parameter_[14];
+
+      stiffTensorSchraube[0][0] = lambda2nu; //c_11 
+      stiffTensorSchraube[1][1] = lambda2nu; //c_11
+      stiffTensorSchraube[2][2] = lambda2nu; //c_33
+      stiffTensorSchraube[0][1] = parameter_[15]; //c_12
+      stiffTensorSchraube[1][0] = parameter_[15]; //c_12
+      stiffTensorSchraube[0][2] = parameter_[15]; //c_13
+      stiffTensorSchraube[2][0] = parameter_[15]; //c_13
+      stiffTensorSchraube[1][2] = parameter_[15]; //c_13
+      stiffTensorSchraube[2][1] = parameter_[15]; //c_13
+      stiffTensorSchraube[3][3] = parameter_[14]; //c_44
+      stiffTensorSchraube[4][4] = parameter_[14]; //c_44
+      stiffTensorSchraube[5][5] = parameter_[14]; //c_66
+
+
+      //this is the case when we want to identify all parameters in the metals!
+      if (true){
+        // alu
+        ptMaterialMech_[1]->SetTensor(stiffTensorAlu,MECH_STIFFNESS_TENSOR, REAL);
+        //piezo
+        ptMaterialPiezo_[2]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
+        ptMaterialMech_[2]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
+        ptMaterialElec_[2]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
+        
+        // drehe Kopplungstensor für zweite Piezoscheibe
+        for(UInt i=0;i<piezoTensor.GetSizeRow();i++)
+          for(UInt j=0;j<piezoTensor.GetSizeCol();j++)
+            piezoTensorP[i][j]=-1.0*piezoTensor[i][j];
+        
+        ptMaterialPiezo_[3]->SetTensor(piezoTensorP,PIEZO_TENSOR,REAL);
+        ptMaterialMech_[3]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
+        ptMaterialElec_[3]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
+        //Steel
+        ptMaterialMech_[4]->SetTensor(stiffTensorSteel,MECH_STIFFNESS_TENSOR, REAL);
+        ptMaterialMech_[5]->SetTensor(stiffTensorSchraube,MECH_STIFFNESS_TENSOR, REAL);
+      }
+
+      //this is the case when just the material parameters of the screw are changed
+      if (false){
+               // set material for first piezoceramic
+        ptMaterialPiezo_[2]->SetTensor(piezoTensor,PIEZO_TENSOR,REAL);
+        ptMaterialMech_[2]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
+        ptMaterialElec_[2]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
+        
+        
+        for(UInt i=0;i<piezoTensor.GetSizeRow();i++)
+          for(UInt j=0;j<piezoTensor.GetSizeCol();j++)
+            piezoTensorP[i][j]=-1.0*piezoTensor[i][j];
+        
+        // set material for second piezoceramic
+        ptMaterialPiezo_[3]->SetTensor(piezoTensorP,PIEZO_TENSOR,REAL);
+        ptMaterialMech_[3]->SetTensor(stiffTensor,MECH_STIFFNESS_TENSOR, REAL);
+        ptMaterialElec_[3]->SetTensor(permTensor,ELEC_PERMITTIVITY,REAL);
+      
+        // this should be the screw
+        ptMaterialMech_[5]->SetTensor(stiffTensorSchraube,MECH_STIFFNESS_TENSOR, REAL);
+      
+      }
+
+      // Check, what we have set: 
+   //     std::cout<< " We have set the following materials ... " <<std::endl;
+//        std::cout<< " Mech-Tensor Steel (Real) \n" << stiffTensorSteel   << std::endl;
+//        std::cout<< " Mech-Tensor Alu (Real) \n" << stiffTensorAlu << std::endl;
+//        std::cout<< " Mech-Tensor (Real) \n" << stiffTensor  << std::endl;
+//        std::cout<< " Elec-Tensor (Real) \n" << permTensor   << std::endl;
+//        std::cout<< " Piezo-Tensor (Real) \n" << piezoTensor << std::endl;
+//        std::cout<< " Piezo-TensorP (Real) \n" << piezoTensorP << std::endl;
+//        getchar();
+
 
     }
-    
+        
    
   } // end updateMaterialData
 
   void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC_){
     ENTER_FCN("piezoParamIdent::updateComplexMaterialData");    
-    
-    Matrix<Double> stiffTensorC, stiffTensorAluC, stiffTensorSteelC;
-    Matrix<Double> piezoTensorC;
+
+    Matrix<Double> stiffTensorC, stiffTensorAluC, stiffTensorSchraubeC, stiffTensorSteelC;
+    Matrix<Double> piezoTensorC, piezoTensorCP;
     Matrix<Double> permTensorC;
 
+
+    stiffTensorSchraubeC.Resize(6,6);
     stiffTensorAluC.Resize(6,6);
     stiffTensorSteelC.Resize(6,6);
     stiffTensorC.Resize(6,6);
 
     piezoTensorC.Resize(3,6);
+    piezoTensorCP.Resize(3,6);
     permTensorC.Resize(3,3);
+
+    stiffTensorSchraubeC.Init(0);
+    stiffTensorC.Init(0);
+    stiffTensorAluC.Init(0); 
+    stiffTensorSteelC.Init(0);
+    piezoTensorC.Init(0); 
+    piezoTensorCP.Init(0);
+    permTensorC.Init(0);
 
     subdomsMech_ = ptPDE1_->getPDE_subdoms();
     
@@ -875,21 +931,60 @@ namespace CoupledField
         stiffTensorAluC[4][4] = parameterC_[12]; //c_44
         stiffTensorAluC[5][5] = parameterC_[12]; //c_66
 
-  //       // alu
-        ptMaterialMech_[1]->SetTensor(stiffTensorAluC,MECH_STIFFNESS_TENSOR,IMAG);
-        ptMaterialMech_[1]->GetTensor(stiffTensorAluC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
-        ptMaterialMech_[1]->GetTensor(stiffTensorAluC,MECH_STIFFNESS_TENSOR,REAL,FULL);
 
-        //       //piezo
-        ptMaterialPiezo_[2]->SetTensor(piezoTensorC,PIEZO_TENSOR,IMAG);
-        ptMaterialMech_[2]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR,IMAG);
-        ptMaterialElec_[2]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
-        ptMaterialPiezo_[3]->SetTensor(piezoTensorC,PIEZO_TENSOR,IMAG);
-        ptMaterialMech_[3]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR, IMAG);
-        ptMaterialElec_[3]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
+        lambda2nuC=parameterC_[15]+2*parameterC_[14];
+
+
+        stiffTensorSchraubeC[0][0] = lambda2nuC; //c_11 
+        stiffTensorSchraubeC[1][1] = lambda2nuC; //c_11
+        stiffTensorSchraubeC[2][2] = lambda2nuC; //c_33
+        stiffTensorSchraubeC[0][1] = parameterC_[15]; //c_12
+        stiffTensorSchraubeC[1][0] = parameterC_[15]; //c_12
+        stiffTensorSchraubeC[0][2] = parameterC_[15]; //c_13
+        stiffTensorSchraubeC[2][0] = parameterC_[15]; //c_13
+        stiffTensorSchraubeC[1][2] = parameterC_[15]; //c_13
+        stiffTensorSchraubeC[2][1] = parameterC_[15]; //c_13
+        stiffTensorSchraubeC[3][3] = parameterC_[14]; //c_44
+        stiffTensorSchraubeC[4][4] = parameterC_[14]; //c_44
+        stiffTensorSchraubeC[5][5] = parameterC_[14]; //c_66
+        
+        for(UInt i=0;i<piezoTensorC.GetSizeRow();i++)
+          for(UInt j=0;j<piezoTensorC.GetSizeCol();j++)
+            piezoTensorCP[i][j]=-1.0*piezoTensorC[i][j];
+
+
+        if (true){
+          // setze alle Materialparameter
+          // alu
+          ptMaterialMech_[1]->SetTensor(stiffTensorAluC,MECH_STIFFNESS_TENSOR,IMAG);
+          //       //piezo
+          ptMaterialPiezo_[2]->SetTensor(piezoTensorC,PIEZO_TENSOR,IMAG);
+          ptMaterialMech_[2]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR,IMAG);
+          ptMaterialElec_[2]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
+
+          ptMaterialPiezo_[3]->SetTensor(piezoTensorCP,PIEZO_TENSOR,IMAG);
+          ptMaterialMech_[3]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR, IMAG);
+          ptMaterialElec_[3]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
+
         //       //Steel
-        ptMaterialMech_[4]->SetTensor(stiffTensorSteelC,MECH_STIFFNESS_TENSOR, IMAG);
-        ptMaterialMech_[5]->SetTensor(stiffTensorSteelC,MECH_STIFFNESS_TENSOR, IMAG);
+          ptMaterialMech_[4]->SetTensor(stiffTensorSteelC,MECH_STIFFNESS_TENSOR, IMAG);
+          ptMaterialMech_[5]->SetTensor(stiffTensorSchraubeC,MECH_STIFFNESS_TENSOR, IMAG);
+        }
+        else if (false){
+          // setze nur Piezo und Schraube:
+        //       //piezo
+          ptMaterialPiezo_[2]->SetTensor(piezoTensorC,PIEZO_TENSOR,IMAG);
+          ptMaterialMech_[2]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR,IMAG);
+          ptMaterialElec_[2]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
+          
+          ptMaterialPiezo_[3]->SetTensor(piezoTensorCP,PIEZO_TENSOR,IMAG);
+          ptMaterialMech_[3]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR, IMAG);
+          ptMaterialElec_[3]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
+
+          ptMaterialMech_[5]->SetTensor(stiffTensorSchraubeC,MECH_STIFFNESS_TENSOR, IMAG);
+
+        }
+
     }
 
   } // end updateComplexMaterialData
@@ -914,16 +1009,39 @@ namespace CoupledField
 
   } // end setNewParameterSet
 
-  void piezoParamIdent::computeScaling(){
+
+ void piezoParamIdent::computeScaling(){
     ENTER_FCN("piezoParamIdent::coumputeScaling");
 
-    Matrix<Double> piezoMat,stiffMat, stiffMatAlu, stiffMatSteel, permMat;
-    Matrix<Double> piezoMatC, stiffMatAluC, stiffMatSteelC, stiffMatC, permMatC;
+    Matrix<Double> piezoMat,stiffMat, stiffMatAlu, stiffMatSteel, permMat, stiffMatSchraube;
+    Matrix<Double> piezoMatC, stiffMatAluC, stiffMatSteelC, stiffMatC, permMatC, stiffMatSchraubeC;
+
+    stiffMat.Resize(6,6);
+    stiffMat.Init();
+    
+    piezoMat.Resize(3,6);
+    piezoMat.Init();
+    
+    permMat.Resize(3,3);
+    permMat.Init();
+
+    stiffMatC.Resize(6,6);
+    stiffMatC.Init();
+    
+    piezoMatC.Resize(3,6);
+    piezoMatC.Init();
+    
+    permMatC.Resize(3,3);
+    permMatC.Init();
+
     
     if (subdomsMech_.GetSize()==1){
       ptMaterialPiezo_[0]->GetTensor(piezoMat,PIEZO_TENSOR,REAL,FULL);
       ptMaterialMech_[0]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
       ptMaterialElec_[0]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
+
+      scaling_.Resize(nrParameter_);
+      scaling_.Init();
 
       scaling_[0]=1.0/(stiffMat[0][0]); 
       scaling_[1]=1.0/(stiffMat[2][2]);
@@ -935,12 +1053,16 @@ namespace CoupledField
       scaling_[7]=1.0/((piezoMat)[2][2]);
       scaling_[8]=1.0/((permMat)[0][0]); 
       scaling_[9]=1.0/((permMat)[2][2]);
-        
+
 
       if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
         ptMaterialPiezo_[0]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
         ptMaterialMech_[0]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
         ptMaterialElec_[0]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
+
+        scalingC_.Resize(nrParameter_);
+        scalingC_.Init();
+
         scalingC_[0]=1.0/(stiffMatC[0][0]); 
         scalingC_[1]=1.0/(stiffMatC[2][2]);
         scalingC_[2]=1.0/(stiffMatC[1][0]);
@@ -961,7 +1083,8 @@ namespace CoupledField
       ptMaterialMech_[2]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
       ptMaterialElec_[2]->GetTensor(permMat,ELEC_PERMITTIVITY,REAL,FULL);
       // ptMaterialMech_[3]->GetTensor(stiffMat,MECH_STIFFNESS_TENSOR, REAL,FULL);
-      ptMaterialMech_[5]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
+      ptMaterialMech_[4]->GetTensor(stiffMatSteel,MECH_STIFFNESS_TENSOR, REAL,FULL);
+      ptMaterialMech_[5]->GetTensor(stiffMatSchraube,MECH_STIFFNESS_TENSOR, REAL,FULL);
 
       scaling_[0]=1.0/(stiffMat[0][0]); 
       scaling_[1]=1.0/(stiffMat[2][2]);
@@ -979,6 +1102,10 @@ namespace CoupledField
 
       scaling_[12]=1.0/(stiffMatAlu[3][3]); 
       scaling_[13]=1.0/(stiffMatAlu[0][1]);
+
+      scaling_[14]=1.0/(stiffMatSchraube[3][3]); 
+      scaling_[15]=1.0/(stiffMatSchraube[0][1]);
+
         
       if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
 
@@ -986,7 +1113,8 @@ namespace CoupledField
         ptMaterialPiezo_[2]->GetTensor(piezoMatC,PIEZO_TENSOR,IMAG,FULL);
         ptMaterialMech_[2]->GetTensor(stiffMatC,MECH_STIFFNESS_TENSOR,IMAG,FULL);
         ptMaterialElec_[2]->GetTensor(permMatC,ELEC_PERMITTIVITY,IMAG,FULL);
-        ptMaterialMech_[5]->GetTensor(stiffMatSteelC,MECH_STIFFNESS_TENSOR, IMAG,FULL);
+        ptMaterialMech_[4]->GetTensor(stiffMatSteelC,MECH_STIFFNESS_TENSOR, IMAG,FULL);
+        ptMaterialMech_[5]->GetTensor(stiffMatSchraubeC,MECH_STIFFNESS_TENSOR, REAL,FULL);
 
         scalingC_[0]=1.0/(stiffMatC[0][0]); 
         scalingC_[1]=1.0/(stiffMatC[2][2]);
@@ -1004,14 +1132,15 @@ namespace CoupledField
           
         scalingC_[12]=1.0/(stiffMatAluC[3][3]); 
         scalingC_[13]=1.0/(stiffMatAluC[0][1]);                
+
+        scalingC_[14]=1.0/(stiffMatSchraubeC[3][3]); 
+        scalingC_[15]=1.0/(stiffMatSchraubeC[0][1]);        
+
+
       }
     }
 
-}//end compute scaling
-
-
-
-
+ }//end compute scaling
 
 } // end namespace CoupledField
 

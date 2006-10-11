@@ -35,10 +35,14 @@ namespace CoupledField
     Vector<Complex> F_y(nrMeasuredData);
     Vector <Double> parameter_old(10);
     Vector <Double> parameter_oldC(10);
+    Vector <Double> parameter_initial(10);
+    Vector <Double> parameter_initialC(10);
     Vector <Double> gradP(actNrParameter+actNrParameterC);
     Vector<Double> newFreqs;
     parameter_old=parameter_;
     parameter_oldC=parameterC_;
+    parameter_initial=parameter_;
+    parameter_initialC=parameterC_;
     Double normFy, maxres, normFy0,normFy1;
     Integer indPar=0;
     Integer indParC=0;
@@ -50,7 +54,7 @@ namespace CoupledField
 
     calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
 
-    for (UInt iterIndex=0; iterIndex<1000;iterIndex++){
+    for (UInt iterIndex=0; iterIndex<maxNumberNewtonLoops_;iterIndex++){
 
       updateMaterialData(parameter_);
 
@@ -63,7 +67,6 @@ namespace CoupledField
         Integer nrfreqTemp=100;
         Vector<Double> freqsTemp = freqs_;
         freqs_.Resize(nrfreqTemp);
-        freqs_.Init();
         Double startFreqTemp;
         startFreqTemp=startfreq_;
         Double freqincr=(stopfreq_-startfreq_)/nrfreqTemp;
@@ -115,7 +118,9 @@ namespace CoupledField
       indParC=0;
 
       for (UInt par=0;par<nrParameter_;par++)
+
         if (whichParameterToUpdate_[par]==1){
+
           parameter_[par]=1.000001*parameter_[par];
           
           updateMaterialData(parameter_);
@@ -136,7 +141,7 @@ namespace CoupledField
           if (whichParameterToUpdateC_[par]==1){
 
             parameterC_[par]=1.000001*parameterC_[par];
-
+            
             updateMaterialData(parameter_);
 
             if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
@@ -149,7 +154,8 @@ namespace CoupledField
           
             norm(F_y,normFy,maxres,y_hat_);
 
-            gradP[indParC+actNrParameter]=normFy0-normFy;
+            //            gradP[indParC+actNrParameter]=1.0*(normFy0-normFy);
+            gradP[indParC+actNrParameter]=100.0*(normFy0-normFy);
           
             parameterC_[par]=parameter_oldC[par];
 
@@ -171,7 +177,33 @@ namespace CoupledField
       lambda=100*lambda;
       for (UInt par=0;par<nrParameter_;par++)
         if (whichParameterToUpdate_[par]==1){
+          Integer innerLoopCount2=0;
+          Double lambdaLocal=lambda;
           parameter_[par]+=lambda*gradP[indPar]/scaling_[par];
+
+          // Now we do not allow non piezo parameters to be more than 2 percent away from the initial guess
+
+//            while((par>=10&&std::abs((parameter_[par]-parameter_initial[par])/parameter_initial[par])>=0.02)
+//                  ||(par==7&&std::abs((parameter_[par]-parameter_initial[par])/parameter_initial[par])>=0.01)){
+
+          while(par>=15&&std::abs((parameter_[par]-parameter_initial[par])/parameter_initial[par])>=0.02){                        
+            lambdaLocal=0.5*lambdaLocal;
+
+            parameter_[par] = parameter_old[par] + lambdaLocal*gradP[indPar]/scaling_[par];
+
+            innerLoopCount2++;
+
+            if(innerLoopCount2>1000){
+              std::cout<<"Help, we are hang up in least-square, penalization of parameter " << par <<std::endl;
+              std::cout<<"lambdaLocal = "<< lambdaLocal<<std::endl;
+              std::cout<<"(p-p0)/p = " 
+                       << std::abs((parameter_[par]-parameter_initial[par])/parameter_initial[par])<<std::endl;
+              std::cout<<"reset parameter [" << par << " ] from " << parameter_[par] << " to " << parameter_old[par]<<std::endl;
+              parameter_[par]=parameter_old[par];
+              break;
+            }
+            
+          }
           indPar++;
         }
       indParC=0;
@@ -180,7 +212,7 @@ namespace CoupledField
           parameterC_[par]+=lambda*gradP[indParC+actNrParameter]/scalingC_[par];
           indParC++;
         }
-
+      
 
       for (UInt par=0;par<nrParameter_;par++)
         if (parameter_[par]<0.0&&par!=6){
@@ -198,6 +230,8 @@ namespace CoupledField
       norm(F_y,normFy1,maxres,y_hat_);
 
 
+      Integer lineSearchCount=0;
+
       while (normFy1>normFy0||negFlag==true){
         if (negFlag==true)
           std::cout<< "reduce lambda due to negative parameters or non reduction of norm ... "<<std::endl;
@@ -206,11 +240,43 @@ namespace CoupledField
         lambda=0.5*lambda;
         std::cout<<"lambda = " << lambda <<std::endl;
         negFlag=false;
+
+        //avoids that programm stagnates!
+        lineSearchCount++;
+        if (lineSearchCount>1000)
+          break;
         
         indPar=0;
         for (UInt par=0;par<nrParameter_;par++)
           if (whichParameterToUpdate_[par]==1){
+            Integer innerLoopCount=0;
+            Double lambdaLocal=lambda;
             parameter_[par]+=lambda*gradP[indPar]/scaling_[par];
+
+            // Now we do not allow the single parameter to be more than 3 percent away from the initial guess
+
+   //           while((par>=10&&std::abs((parameter_[par]-parameter_initial[par])/parameter_initial[par])>=0.02)   
+//                    ||(par==7&&std::abs((parameter_[par]-parameter_initial[par])/parameter_initial[par])>=0.01)){
+
+            while(par>=17 && std::abs((parameter_[par]-parameter_initial[par])/parameter_initial[par])>=0.02){
+
+              //               std::cout<<std::abs((parameter_[par]-parameter_initial[par])/parameter_initial[par])<<std::endl;
+//               std::cout<<"parameter["<<par<<"] out of 3 percent circle " <<std::endl;
+              lambdaLocal=0.5*lambdaLocal;
+              //              std::cout<<"lambdaLocal = "<< lambdaLocal<<std::endl;
+              parameter_[par] = parameter_old[par] + lambdaLocal*gradP[indPar]/scaling_[par];
+              innerLoopCount++;
+              if(innerLoopCount>200){
+                std::cout<<"Help, we are hang up in least-square, penalization of parameter " << par <<std::endl;
+                std::cout<<"lambdaLocal = "<< lambdaLocal<<std::endl;
+                std::cout<<"(p-p0)/p = " 
+                         << std::abs((parameter_[par]-parameter_initial[par])/parameter_initial[par])<<std::endl;
+                std::cout<<"reset parameter [" << par << " ] from " << parameter_[par] << " to " << parameter_old[par]<<std::endl;
+                parameter_[par]=parameter_old[par];
+                break;
+              }
+                             
+            }
             indPar++;
           }
         indParC=0;

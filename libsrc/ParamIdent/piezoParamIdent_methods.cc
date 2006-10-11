@@ -35,7 +35,7 @@ namespace CoupledField
       x=absZ[i]*cos(PI/180*phi[i]);
       y=absZ[i]*sin(PI/180*phi[i]);
       Z=Complex(x,y);
-      phase = 180.0/PI*std::arg(Z);
+      phase = 180.0/PI * std::atan2(Z.imag(),Z.real());
     
       // two criteria .. either charge
       if(whichNormCriteria_==1)
@@ -119,8 +119,8 @@ namespace CoupledField
 
 
       // Set curent frequency value in the mathParser
-      //    domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-      //                                 "f", actFreq_ );
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "f", actFreq_ );
 
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep); 
@@ -152,10 +152,11 @@ namespace CoupledField
       Complex impedC;
 	
       Complex im=Complex(0.0,1);
-      impedC=voltage_/(charge*freqs_[fstep]*im);
-      //      imped = std::abs(voltage_/(charge*2.0*PI*freqs_[fstep]*im)); 
-      imped = std::abs(voltage_/(charge*freqs_[fstep]*im)); 
-      phase = 180.0/PI*(std::arg(impedC));
+      impedC=voltage_/(2.0*PI*charge*freqs_[fstep]*im);
+      imped = std::abs(voltage_/(2.0*PI*charge*freqs_[fstep]*im)); 
+
+      
+      phase = 180.0/PI * (std::atan2(impedC.imag(), impedC.real()));
 
       std::cout << fstep <<");\t Frequency: " << freqs_[fstep] << ";\t Impedance: "<< imped
                 << ";\t Phase: " << phase <<";\t Current = "<<voltage_<<";\t Charge = "<< charge<< std::endl;
@@ -164,10 +165,12 @@ namespace CoupledField
                   << impedC.real()<<"  " << impedC.imag() << "  " << charge.real()
                   << "  " << charge.imag()<< std::endl;
 
-      synMess->setf(std::ios::fixed); // output should by in fixed point numbers,
-                                      // i.e. 100.23 instead of 1.0023e+2
-
+      // output should by in fixed point numbers,
+      // i.e. 100.23 instead of 1.0023e+2
+      
+      synMess->setf(std::ios::fixed);
       *synMess <<freqs_[fstep]<<"\t"<<imped<<"\t"<<phase<<"\t"<<fstep<<std::endl;
+
 
       // determine resonance and antiresonance frequency
       if (imped>maxImpedance){
@@ -206,6 +209,9 @@ namespace CoupledField
         ////////////////////////////////////////////////////////
         //                   SOLVES PDE                      //
         ///////////////////////////////////////////////////////  
+
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "f", actFreq_ );
         
         ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
         ptPDE_->GetSolveStep()->SetActStep(fstep); 
@@ -283,6 +289,9 @@ namespace CoupledField
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
 
+
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "f", actFreq_ );
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep);       
       ptPDE_->GetSolveStep()->PreStepHarmonic(); 
@@ -319,7 +328,7 @@ namespace CoupledField
           F_hat_[fstep]=(sign_*charge*Z)/std::log(Z); // without minus --- classical way ...     
         
         else  if (whichNormCriteria_==2)         // logarithmic value of impedance
-          F_hat_[fstep]=std::log(std::abs(voltage_/(charge*freqs_[fstep]*im)));
+          F_hat_[fstep]=std::log(std::abs(voltage_/(2*PI*charge*freqs_[fstep]*im)));
 
         //calcAbsImped(charge, freqs_[fstep], fstep,typeOut);   // calculates |Z| and writes results in File
 
@@ -465,6 +474,8 @@ namespace CoupledField
     UInt parInd=0;
 
     updateMaterialData(parameter_);
+    updateComplexMaterialData(parameterC_);
+
     createF(F_hat_, false);
 
     for (UInt ind_param=0;ind_param<nrParameter_;ind_param++){ 
@@ -557,11 +568,11 @@ namespace CoupledField
     Complex im=Complex(0.0,1);
     impedC=voltage_/(charge*2.0*PI*freq*im);
     // We need the following line for a comparison with CAPA
-    //    imped = std::abs(voltage_/(charge*2.0*PI*freq*im)); phase = -90 - 180.0/PI*(std::arg(charge));
+    //    imped = std::abs(voltage_/(charge*2.0*PI*freq*im)); phase = -90 - 180.0/PI*(std::atan2(charge));
     // This line makes sense in this routine!
 
     imped = std::abs(voltage_/(charge*2.0*PI*freq*im));
-    phase = 180/PI*(std::arg(impedC));
+    phase = 180/PI*(std::atan2(impedC.imag(), impedC.real()));
 
 
     if(typeOut==true){
@@ -779,9 +790,9 @@ namespace CoupledField
                                          Double & thickness_, Double & radius_,
                                          Double & delta_){
     ENTER_FCN( "piezoParamIdent::readMeasuredData" );
-    char mDataRow[256], helpChar[64];
+    char mDataRow[1024], helpChar[64];
     UInt i=0, j=0, k=0;
-    while(allMeasuredData->getline(mDataRow, 256)){
+    while(allMeasuredData->getline(mDataRow, 1024)){
       if (mDataRow[0]=='1')
         {i=2;
           while(mDataRow){
@@ -1004,6 +1015,7 @@ namespace CoupledField
     if (whichNormCriteria_!=1 && whichNormCriteria_!=2){
       std::cout<<" Check your norm criteria selected in measuredData.dat!!" <<std::endl;
       std::cout<<" It is at point 6) and should be 1 for log(q) and 2 for log(Z)" <<std::endl;
+      std::cout<<"Now it is " << whichNormCriteria_<<std::endl;
       getchar();
     }
   } // end read MeasuredData
