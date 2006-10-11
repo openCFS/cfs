@@ -622,7 +622,7 @@ namespace CoupledField {
       } else {
         for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {
           if ( std::abs(var[iEnt-1].imag()) > 1e-16 ) {
-            GiD_WriteScalar( iEnt, std::arg(var[iEnt-1])*180/PI);             
+            GiD_WriteScalar( iEnt, std::atan2(var[iEnt-1].imag(),var[iEnt-1].real())*180/PI);             
           } else {
             GiD_WriteScalar( iEnt, 0.0); 
           }
@@ -700,17 +700,17 @@ namespace CoupledField {
           if ( dof == 3 ) {
             GiD_WriteVector( iEnt, 
                              (std::abs(var[offset].imag()) > 1e-16) ? 
-                             std::arg(var[offset])*180/PI : 0.0,
+                             std::atan2(var[offset].imag(),var[offset].real() )*180/PI : 0.0,
                              (std::abs(var[offset+1].imag()) > 1e-16) ? 
-                             std::arg(var[offset+1])*180/PI : 0.0,
+                             std::atan2(var[offset+1].imag(),var[offset+1].real() )*180/PI : 0.0,
                              (std::abs(var[offset+2].imag()) > 1e-16) ? 
-                             std::arg(var[offset+2])*180/PI : 0.0 );
+                             std::atan2(var[offset+2].imag(),var[offset+2].real() )*180/PI : 0.0 );
           } else { 
             GiD_WriteVector( iEnt, 
                              (std::abs(var[offset].imag()) > 1e-16) ? 
-                             std::arg(var[offset])*180/PI : 0.0,
+                             std::atan2(var[offset].imag(),var[offset].real() )*180/PI : 0.0,
                              (std::abs(var[offset+1].imag()) > 1e-16) ? 
-                             std::arg(var[offset+1])*180/PI : 0.0,
+                             std::atan2(var[offset+1].imag(),var[offset+1].real() )*180/PI : 0.0,
                              0.0 );
           }
         }
