@@ -553,7 +553,7 @@ namespace CoupledField {
             else if (format == AMPLITUDE_PHASE) {
               val1 = std::abs(val); 
               if (abs(val.imag()) > 1e-16) {
-                val2 = std::arg(val)*180/PI;
+                val2 = std::atan2(val.imag(),val.real())*180/PI;
               }
               else {
                 val2 = 0;
@@ -613,7 +613,7 @@ namespace CoupledField {
             else if (format == AMPLITUDE_PHASE) {
               val1 = std::abs(val); 
               if (abs(val.imag()) > 1e-16) {
-                val2 = std::arg(val)*180/PI;
+                val2 = std::atan2(val.imag(), val.real() )*180/PI;
               }
               else {
                 val2 = 0;

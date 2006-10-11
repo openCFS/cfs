@@ -392,7 +392,7 @@ namespace CoupledField {
                 vec1[i*nrDofs+j] = (float) std::abs(x[i*nrDofs +j]);
 
                 if (abs(x[i*nrDofs +j].imag()) > 1e-16)
-                  vec2[i*nrDofs+j] = (float) std::arg(x[i*nrDofs +j])*180/PI;
+                  vec2[i*nrDofs+j] = (float) std::atan2(x[i*nrDofs +j].imag(),x[i*nrDofs +j].real() )*180/PI;
                 else
                   vec2[i*nrDofs+j] = (float) 0.0;
               }
@@ -505,7 +505,7 @@ namespace CoupledField {
                 vec1[i*nrDofs+j] = (float) std::abs(x[i*nrDofs +j]);
 
                 if (abs(x[i*nrDofs +j].imag()) > 1e-16)
-                  vec2[i*nrDofs+j] = (float) std::arg(x[i*nrDofs +j])*180/PI;
+                  vec2[i*nrDofs+j] = (float) std::atan2(x[i*nrDofs +j].imag(),x[i*nrDofs +j].real())*180/PI;
                 else
                   vec2[i*nrDofs+j] = (float) 0.0;
               }

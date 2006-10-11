@@ -682,7 +682,7 @@ namespace CoupledField {
         {
           for (i=0; i<var.GetSize(); i++) {
             if (abs(var[i].imag()) > 1e-16)
-              (*output) << std::arg(var[i])*180/PI << " ";
+              (*output) << std::atan2(var[i].imag(), var[i].real())*180/PI <<" ";
             else
               (*output) << "0.0 ";
           }
@@ -690,7 +690,7 @@ namespace CoupledField {
       else {
         for (i=0; i<var.GetSize(); i++){
           if (abs(var[i].imag()) > 1e-16)
-            val = std::arg(var[i])*180/PI;
+            val = std::atan2(var[i].imag(), var[i].real())*180/PI;
           else
             val = 0.0;
           output->write((char*)(&val),sizeof(Double));
