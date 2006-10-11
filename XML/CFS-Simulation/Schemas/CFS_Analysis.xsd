@@ -179,6 +179,10 @@
           <xsd:element name="calcMechDisplCurve" type="DT_CFSBool"
             minOccurs="0" maxOccurs="1" default="no"/>
           <xsd:element name="mechDisplAtNode" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="mechDisplAtNode1" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="mechDisplAtNode2" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="mechDisplAtNode3" type="xsd:nonNegativeInteger"/>
+          <xsd:element name="mechDisplAtNode4" type="xsd:nonNegativeInteger"/>
           <xsd:element name="dofOfMechDispl" type="xsd:nonNegativeInteger"/>
           <xsd:element name="numFreq" type="xsd:nonNegativeInteger"/>
           <xsd:element name="startFreq" type="DT_PosFloat"/>
