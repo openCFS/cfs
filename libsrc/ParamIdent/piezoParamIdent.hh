@@ -57,6 +57,8 @@ namespace CoupledField
     //! input file, here problem specific details will be set
     std::ifstream * allMeasuredData; 
 
+    std::ifstream * mess;
+
     //! output file, simulated impedance curve
     std::ofstream * impedCurve;
     //! output file, norm of residue, 
@@ -209,6 +211,9 @@ namespace CoupledField
 
     //! Try to solve problem with a least square approach
     void leastSquare();
+
+    //! nonlinear Landweber's iteration p^{k+1} = p^k - \omega F'*(p^k)(F(p^k)-y)
+    void nonlinLandweber();
 
     //! saves sysmat of forward problem, multiplication with \omega*\beta*j ...
     void createAndSetRHSforJacobian(UInt & fstep);
