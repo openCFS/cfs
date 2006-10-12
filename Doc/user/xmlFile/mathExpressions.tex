@@ -148,3 +148,10 @@ Of couse one can also combine space- and time dependency:
   <dirichletInhom name="bcNode" value="10 * x * sin(2 * _pi * 1e-3 * t)"/>
 <bcsAndLoads>
 \end{verbatim}
+The usage of the \verb#if#-statement is as follows:
+\begin{verbatim}
+<bcsAndLoads>
+  <dirichletInhom name="bcNode" value="if(t lt 1,t,1.0)"/>
+<bcsAndLoads>
+\end{verbatim}
+
