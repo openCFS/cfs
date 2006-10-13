@@ -1297,6 +1297,7 @@ namespace CoupledField {
             if (eqnNr==0) {
               Error( "The specified coupling node has no equation number",
                      __FILE__, __LINE__ );
+	      //	      std::cerr << "node=" << *nodes)[j]
             }
 
             algsys_->SetDirichlet( couplingBCsCounter_ + 1, pdeId_, eqnNr,

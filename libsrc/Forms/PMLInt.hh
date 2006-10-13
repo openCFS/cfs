@@ -39,7 +39,7 @@ private:
   void CalcElementMatrixMass(Matrix<Double> & ptCoord, Matrix<Double> & elemMat);
 
   //! calculates position and values
-  void ComputeFactorPML(Vector<Double>& factorsPML, Matrix<Double> & ptCoord);
+  void ComputeFactorPML(Vector<Double>& factorsPML, Vector<Double>& coordAtIP);
 
   //! calculates the damping factor
   Double ComputeDampingFactor(Vector<Double>& pos, Directions dir);
