@@ -23,7 +23,6 @@ namespace CoupledField {
   class BaseMaterial {
 
   public:
-    
     typedef std::map<MaterialType, Matrix<Complex> > tensorMap;
     typedef std::map<MaterialType, Complex > scalarMap;
     typedef std::map<MaterialType, std::string > stringMap;

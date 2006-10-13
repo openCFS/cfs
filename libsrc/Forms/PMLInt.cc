@@ -77,11 +77,11 @@ namespace CoupledField
   void PMLInt::CalcElementMatrixStiff(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
   {
     ENTER_FCN( "PMLInt::CalcElementMatrixStiff" );
+    
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
-
 
     // derivation of shape functions after global coordinates 
     Matrix<Double> xiDx;
@@ -95,17 +95,19 @@ namespace CoupledField
     elemMat.Init();
 
     Vector<Double> factorsPML;
-    ComputeFactorPML( factorsPML, ptCoord);
 
     //    std::cout << "in Forms:\n" << factorsPML << std::endl;
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
-        
         ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
-
         xiDx.Transpose(xiDxTransp);
+
+	// compute PML factor 
+	ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+	CoordAtIP = ptCoord * ShpFncAtIp;
+	ComputeFactorPML( factorsPML, CoordAtIP);        
 
 	//multiply the derivatives with the x-,y- and z-factors
 	for (UInt i=0; i<xiDx.GetSizeCol(); i++) {
@@ -115,14 +117,10 @@ namespace CoupledField
 	}
 
         partElemMat = xiDx * xiDxTransp;
-        
-        if (isaxi_)
-          {
-            ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-            CoordAtIP = ptCoord * ShpFncAtIp;
-            partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * formsFactor_ * CoordAtIP[0];
 
-          }
+        if (isaxi_) {
+	  partElemMat *= 2 * PI * intWeights[actIntPt-1] * jacDet * formsFactor_ * CoordAtIP[0];
+	}
         else 
           partElemMat *= intWeights[actIntPt-1] * jacDet * formsFactor_;
 
@@ -136,7 +134,7 @@ namespace CoupledField
   void PMLInt::CalcElementMatrixMass(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
   {
     ENTER_FCN( "PMLInt::CalcElementMatrixMass" );
-  
+    
     const UInt nrIntPts= ptelem->GetNumIntPoints();
     const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
@@ -151,47 +149,36 @@ namespace CoupledField
     elemMat.Init();
     
     Vector<Double> factorsPML;
-    ComputeFactorPML( factorsPML, ptCoord);
-
-    Double factorPML = factorsPML[0] * formsFactor_;
+    Double factorPML;
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
-
       jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
         
       ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
         
       partElemMat.DyadicMult(shapeFncAtIp);
         
-      if (isaxi_) {
-        CoordAtIP = ptCoord * shapeFncAtIp;
+      // compute PML factor 
+      CoordAtIP = ptCoord * shapeFncAtIp;
+      ComputeFactorPML( factorsPML, CoordAtIP);
+      factorPML = factorsPML[0] * formsFactor_;
+
+      if (isaxi_) 
         partElemMat *= 2 * PI * intWeights[actIntPt-1] * factorPML * jacDet * CoordAtIP[0];
-      }
       else 
         partElemMat *= intWeights[actIntPt-1] * factorPML * jacDet;
         
       elemMat += partElemMat;
     }
 
-    //    std::cout << "PML-ElemMatMass:\n" << elemMat << std::endl;
-
   }
 
 
-  void PMLInt::ComputeFactorPML(Vector<Double>& factorsPML, Matrix<Double> & coordMat)
+  void PMLInt::ComputeFactorPML(Vector<Double>& factorsPML, Vector<Double> & pos)
   {
     ENTER_FCN( "PMLInt ::ComputefactorPML"); 
 
-    UInt numVals = coordMat.GetSizeRow();
-    Vector<Double> pos;
-    pos.Resize(numVals);
-    pos.Init(0);
-    for (UInt i=0; i<coordMat.GetSizeRow(); i++) {
-      for (UInt j=0; j<coordMat.GetSizeCol(); j++) {
-	pos[i] += coordMat[i][j];
-      }
-      pos[i] /= (Double) coordMat.GetSizeCol();
-    }
+    UInt numVals = pos.GetSize();
 
     Vector<Complex> factors(numVals);
     Double frequency = 2 * PI * mParser_->Eval( mHandle_ );

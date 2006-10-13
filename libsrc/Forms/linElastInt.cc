@@ -219,7 +219,7 @@ namespace CoupledField
 	
 	dMat[3][3] *= factor;   
 	dMat[4][4] *= factor;   
-	dMat[5][5] *= factor;   
+	//	dMat[5][5] *= factor;   
       }
       
       else if (softeningPart_ == "bendingSRI" ) {
@@ -242,7 +242,8 @@ namespace CoupledField
 	factor = f1 / ( f1 + 2* minEdgeLength_* minEdgeLength_ ); 
 	dMat[3][3] *= factor;   
 	dMat[4][4] *= factor;   
-	dMat[5][5] *= factor; 
+	dMat[5][5]  = 0.0;
+	//	dMat[5][5] *= factor; 
       }
       
       else if (softeningPart_ == "shearSRI" ) {
