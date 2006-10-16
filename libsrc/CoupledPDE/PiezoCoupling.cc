@@ -397,11 +397,12 @@ namespace CoupledField {
         chargeOp->CalcElemCharge(charge, it.GetSurfElem(), 
                                  lCoordSurf, elemNormalD);
     
-        pdeElemNum = eqnMap1_->Mesh2PdeElem(ptVolElem->elemNum);
+        pdeElemNum = eqnMap2_->Mesh2PdeElem(ptVolElem->elemNum);
     
         Vector<TYPE> chargeVec(1);
         chargeVec[0] = charge;
         charges_->SetElemResult(pdeElemNum-1, chargeVec);
+
         chargeSD[isd] += charge;        
         delete mechStrainOp;
       }
