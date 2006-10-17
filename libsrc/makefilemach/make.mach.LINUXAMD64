@@ -17,10 +17,14 @@ ARCH = LINUXAMD64
 #
 # Which program do we use for compiling, linking, etc.
 # -----------------------------------------------------------------------------
+# NOTE: The standard Fortran compiler was changed from f77 to gfortran in 
+# SuSE 10.0, which involves also the the c-fortran libraries g2c / gfortran
 ifeq ($(strip $(shell which gfortran 2> /dev/null)), )
-F77     = g77
+F77          = g77
+C_FORTRANLIB = g2c
 else
-F77     = gfortran
+F77           = gfortran
+C_FORTRANLIB  = gfortran
 endif
 
 CC     = g++ 
@@ -67,21 +71,17 @@ CFLAGS_MACHINE = $(OPT) $(STANDARD) $(PROFILE)
 BLASLIB = -lblas
 LAPACKLIB = -llapack
 
+# Note: As BLAS and LAPACK are normally part of the system libraries, the
+# library path has normally not to be set explicitly
 LAPACK_INSTALLDIR =
 
 ifeq "$(LINK_LAPACK)" "yes"
-BLASLAPACK = $(LAPACKLIB) $(BLASLIB) -lg2c
-ifeq "$(F77)" "gfortran"
-BLASLAPACK += -lgfortran
-endif
-LIBDIR_BLASLAPACK = $(LAPACK_INSTALLDIR)
+BLASLAPACK = $(LAPACKLIB) $(BLASLIB) 
+LIBDIR_BLASLAPACK = $(LAPACK_INSTALLDIR) -l$(C_FORTRANLIB)
 else
 ifeq "$(LINK_BLAS)" "yes"
-LIBDIR_BLASLAPACK = $(LAPACK_INSTALLDIR)
-BLASLAPACK = $(BLASLIB) -lg2c
-ifeq "$(F77)" "gfortran"
-BLASLAPACK += -lgfortran
-endif
+LIBDIR_BLASLAPACK = $(LAPACK_INSTALLDIR) -l$(C_FORTRANLIB)
+BLASLAPACK = $(BLASLIB)
 else
 LIBDIR_BLASLAPACK =
 BLASLAPACK =
@@ -102,6 +102,20 @@ LIB_PARDISO    =
 endif
 
 # -----------------------------------------------------------------------------
+# ARPACK
+#
+# Set library for linking against ARPACK. The concrete version depends
+# upon the used fortran-compiler
+# -----------------------------------------------------------------------------
+ifeq "$(ARPACK)" "yes"
+ifeq "$(F77)" "gfortran"
+LIB_ARPACK = -larpack_gfortran
+else
+LIB_ARPACK = -larpack
+endif
+endif
+
+# -----------------------------------------------------------------------------
 # LINKING
 #
 # Assemble machine-dependent linker flags (LFLAGS_MACHINE) and system libraries
@@ -109,6 +123,6 @@ endif
 # options for generation of the executable via LFLAGS_EXE.
 # -----------------------------------------------------------------------------
 
-syslib = -lm -lc $(BLASLAPACK) $(LIBDIR_BLASLAPACK)
+syslib = -lm -lc $(LIB_ARPACK) $(BLASLAPACK) $(LIBDIR_BLASLAPACK)
 LFLAGS_MACHINE = $(LIBDIR_PARDISO) $(LIB_PARDISO)
 LFLAGS_EXE =

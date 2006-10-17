@@ -198,7 +198,7 @@ HYPRE = yes
 # Was OLAS compiled with support for LAPACK?
 LAPACK = yes
 
-# Was OLAS compiled with support for ARPACK(++)?
+# Was OLAS compiled with support for ARPACK?
 ARPACK = yes
 
 # Was OLAS compiled with support for TVMET?
@@ -469,12 +469,13 @@ else
 endif
 
 # ARPACK
+# NOTE: The library itself is determined and linked in the related
+# machine-dependent Makefile, as the correct version of the library depends on 
+# the used fortran compiler (gfortran vs. f77)
 ifeq "$(ARPACK)" "yes"
    LIBDIR_ARPACK = -L$(ARPACK_ROOT)/$(ARCH)/
-   LIB_ARPACK = -larpack
 else
    LIBDIR_ARPACK =
-   LIB_ARPACK =
 endif
 
 # DATABASE
@@ -508,7 +509,7 @@ endif
 LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) $(LIBDIR_METIS) \
 $(LIBDIR_ARPACK) $(LIBDIR_GIDPOST) $(LIBDIR_TCL_INTERFACE)\
 $(LIB_OLAS) \
-$(LIB_HYPRE) $(LIB_XERCES) $(LIB_METIS) $(LIB_ARPACK) $(LIB_GIDPOST) \
+$(LIB_HYPRE) $(LIB_XERCES) $(LIB_METIS) $(LIB_GIDPOST) \
 $(LIB_TCL_INTERFACE)
 
 # -----------------------------------------------------------------------------

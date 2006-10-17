@@ -90,6 +90,14 @@ LIBDIR_PARDISO =
 LIB_PARDISO    =
 endif
 
+# -----------------------------------------------------------------------------
+# ARPACK
+#
+# Set library for linking against ARPACK.
+# -----------------------------------------------------------------------------
+ifeq "$(ARPACK)" "yes"
+LIB_ARPACK = -larpack
+endif
 
 # -----------------------------------------------------------------------------
 # LINKING
@@ -99,6 +107,6 @@ endif
 # options for generation of the executable via LFLAGS_EXE.
 # -----------------------------------------------------------------------------
 
-syslib = -lm -lc $(BLASLAPACK) -lcci -lmpich -lg2c -Xlinker -R -Xlinker /opt/intel_fc_81-023/lib -L/opt/intel_fc_81-023/lib -lifcore
+syslib = -lm -lc $(LIB_ARPACK) $(BLASLAPACK) -lcci -lmpich -lg2c -Xlinker -R -Xlinker /opt/intel_fc_81-023/lib -L/opt/intel_fc_81-023/lib -lifcore
 LFLAGS_MACHINE = $(LIBDIR_MPCCI) $(LIBDIR_MPICH) $(LIBDIR_PARDISO) $(LIB_PARDISO)
 LFLAGS_EXE =
