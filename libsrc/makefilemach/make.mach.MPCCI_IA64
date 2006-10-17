@@ -76,6 +76,15 @@ LIBDIR_MPCCI = -L/opt/MpCCI/mpcci-3.0.3-sdk-linux-ia64-glibc23/lib
 LIBDIR_MPICH = -L/opt/MpCCI/mpich-1.2.6-intel81/lib
 
 # -----------------------------------------------------------------------------
+# ARPACK
+#
+# Set library for linking against ARPACK.
+# -----------------------------------------------------------------------------
+ifeq "$(ARPACK)" "yes"
+LIB_ARPACK = -larpack
+endif
+
+# -----------------------------------------------------------------------------
 # LINKING
 #
 # Assemble machine-dependent linker flags (LFLAGS_MACHINE) and system libraries
@@ -84,6 +93,6 @@ LIBDIR_MPICH = -L/opt/MpCCI/mpich-1.2.6-intel81/lib
 # -----------------------------------------------------------------------------
 
 #syslib = -lm -lc $(BLASLAPACK) -lcci -lmpich -lg2c -Xlinker -R -Xlinker /opt/intel9/ia64_fc_9.0-024/lib -L/opt/intel9/ia64_fc_9.0-024/lib -lifcore -Xlinker -R -Xlinker /opt/intel_cc_81-026/lib
-syslib = -lm -lc $(BLASLAPACK) -lcci -lmpich -lg2c -Xlinker -R -Xlinker /opt/intel_cc_81-026/lib -L/opt/intel_cc_81-026/lib
+syslib = -lm -lc $(LIB_ARPACK) $(BLASLAPACK) -lcci -lmpich -lg2c -Xlinker -R -Xlinker /opt/intel_cc_81-026/lib -L/opt/intel_cc_81-026/lib
 LFLAGS_MACHINE = $(LIBDIR_MPCCI) $(LIBDIR_MPICH)
 LFLAGS_EXE = -Wl,-rpath -Wl,/usr/lib
