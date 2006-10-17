@@ -799,6 +799,7 @@ libsrc/makefilemach/make.mach.LINUXPAR svneol=native#text/plain
 libsrc/makefilemach/make.mach.LINUXg svneol=native#text/plain
 libsrc/makefilemach/make.mach.LINUXmpi svneol=native#text/plain
 libsrc/makefilemach/make.mach.MPCCI svneol=native#text/plain
+libsrc/makefilemach/make.mach.MPCCI_3_0_5_AMD64 -text
 libsrc/makefilemach/make.mach.MPCCI_IA32 -text
 libsrc/makefilemach/make.mach.MPCCI_IA64 svneol=native#text/plain
 libsrc/makefilemach/make.mach.MPCCIg svneol=native#text/plain
