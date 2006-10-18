@@ -193,22 +193,22 @@ USE_EXPR_TEMPLATES = yes
 # -----------------------------------------------------------------------------
 
 # Was OLAS compiled with support for hypre?
-HYPRE = yes
+HYPRE = no
 
 # Was OLAS compiled with support for LAPACK?
 LAPACK = yes
 
 # Was OLAS compiled with support for ARPACK?
-ARPACK = yes
+ARPACK = no
 
 # Was OLAS compiled with support for TVMET?
 TVMET = no
 
 # Was OLAS compiled with support for Pardiso?
-PARDISO = no
+PARDISO = yes
 
 # Was OLAS compiled with support for Metis?
-METIS = yes
+METIS = no
 
 
 # -----------------------------------------------------------------------------
