@@ -503,6 +503,8 @@ namespace CoupledField {
       out = ACOU_POTENTIAL;
     else if (in == "acouPressureD1")
       out = ACOU_PRESSURE_DERIV_1;
+    else if (in == "acouPressureD2")
+      out = ACOU_PRESSURE_DERIV_2;
     else if (in == "acouForce")
       out = ACOU_FORCE;
     else if (in == "acouPotentialD1")
@@ -638,6 +640,9 @@ namespace CoupledField {
         break;
       case ACOU_PRESSURE_DERIV_1:
         out = "acouPressureD1";
+        break;
+      case ACOU_PRESSURE_DERIV_2:
+        out = "acouPressureD2";
         break;
       case ACOU_FORCE:
         out = "acouForce";

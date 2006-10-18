@@ -86,10 +86,11 @@ namespace CoupledField {
     shared_ptr<AnsatzFct> fct(new LagrangeFct);
     if ( formulation_ ==  ACOU_PRESSURE) {
       res1->resultType = ACOU_PRESSURE;
+      res1->dofNames = "p";
     } else {
       res1->resultType = ACOU_POTENTIAL;
+      res1->dofNames = "vp";
     }
-    res1->dofNames = "vp";
     res1->definedOn = ResultDof::NODE;
     res1->fctType = fct;
     results_.Push_back( res1 );
@@ -1961,7 +1962,7 @@ namespace CoupledField {
       valVec = "", "", quantity;
       params->GetList( keyVec, attrVec, valVec, nodeValues);
       if (nodeValues.GetSize() > 0) {
-        (*error) << "It acoustic pressure formulation, \n" 
+        (*error) << "In acoustic pressure formulation, \n" 
                  << "retrieving acoustic potential requires integration.\n"
                  << "So forget it!";
         Error(__FILE__,__LINE__);
@@ -1972,21 +1973,58 @@ namespace CoupledField {
       valVec = "", "", quantity;
       params->GetList( keyVec, attrVec, valVec, nodeValues);
       if (nodeValues.GetSize() > 0) {
-        std::string warnMsg;
-        warnMsg = "Due to the restrictions in the .unv file format, the ";
-        warnMsg += "acoustic pressure is written as acoustic (fluid) ";
-        warnMsg += "potential!";
-        Warning(warnMsg.c_str(), __FILE__, __LINE__);
-
         saveSol_ = true;
         hasOutput_ = true;
+      }
 
-        //        // Note: If errors occur using the acoustic pressure formulation,
-        //        // just comment out the following three lines
-        //        sol_->SetSolutionType(ACOU_PRESSURE);
-        //        sol_->SetNumDofs(1);
-        //        sol_->Init();
+      // --- acoustic rhsval ---
+      Enum2String(ACOU_RHSVAL, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0) {
+        saveRHSval_ = true;
+        hasOutput_ = true;
+      }
 
+
+      // --- acoustic pressure, 1. Deriv ---
+      Enum2String(ACOU_PRESSURE_DERIV_1, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0) {
+
+        saveDeriv1_ = true;
+        hasOutput_ = true;
+        if (analysistype_ != HARMONIC ) {
+
+          // intialize corresponding storesolution object
+          solDeriv1_.SetNumSolutions(1);
+          solDeriv1_.SetNumNodes(numPDENodes_);
+          solDeriv1_.SetSolutionType(ACOU_PRESSURE_DERIV_1);
+          solDeriv1_.SetNumDofs(1);
+          solDeriv1_.SetResult( results_[0] );
+          solDeriv1_.SetPtrEQNData(eqnMap_.get(), ptgrid_); 
+          solDeriv1_.SetRegions( subdoms_ );
+          solDeriv1_.Init(0);
+        }
+      }
+      
+      // --- acoustic pressure, 2. Deriv ---
+      Enum2String(ACOU_PRESSURE_DERIV_2, quantity);
+      valVec = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues);
+      if (nodeValues.GetSize() > 0 && analysistype_ != HARMONIC) {
+        saveDeriv2_ = true;
+        hasOutput_ = true;
+
+        solDeriv2_.SetNumSolutions(1);
+        solDeriv2_.SetNumNodes(numPDENodes_);
+        solDeriv2_.SetSolutionType(ACOU_PRESSURE_DERIV_2);
+        solDeriv2_.SetNumDofs(1);
+        solDeriv2_.SetResult( results_[0] );
+        solDeriv2_.SetPtrEQNData(eqnMap_.get(),ptgrid_); 
+        solDeriv2_.SetRegions( subdoms_ );
+        solDeriv2_.Init(0);
       }
     }
     
@@ -2157,11 +2195,70 @@ namespace CoupledField {
         Info->PrintF( pdename_, "Saving acouPotential for Nodes:\n" );
         for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
           Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
+        }
+      }
 
-          sol_->SetSolutionType(ACOU_PRESSURE);
-          sol_->SetNumDofs(1);
-          sol_->SetResult( results_[0] );
-          sol_->Init();
+      // --- acoustic pressure, 1. Deriv ---
+      Enum2String(ACOU_PRESSURE_DERIV_1, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+      if (saveNodeHist.GetSize() > 0) {
+        saveDeriv1Hist_ = true;
+        hasOutput_ = true;
+        Info->PrintF( pdename_, "Saving acouPressureD1 for Nodes:\n" );
+        for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
+        }
+        // Check if solDeriv_1 was already set by the previous nodal
+        // output check
+        if( saveDeriv1_ != true ) {
+          // intialize corresponding storesolution object
+          solDeriv1_.SetNumSolutions(1);
+          solDeriv1_.SetNumNodes(numPDENodes_);
+          solDeriv1_.SetSolutionType(ACOU_PRESSURE_DERIV_1);
+          solDeriv1_.SetNumDofs(1);
+          solDeriv1_.SetResult( results_[0] );
+          solDeriv1_.SetPtrEQNData(eqnMap_.get(), ptgrid_); 
+          solDeriv1_.Init(0);
+        }
+      }
+
+      // --- acoustic potential, 2. Deriv ---
+      Enum2String(ACOU_PRESSURE_DERIV_2, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+    
+      if (saveNodeHist.GetSize() > 0) {
+        saveDeriv2Hist_ = true;
+        hasOutput_ = true;
+        Info->PrintF( pdename_, "Saving acouPressureD2 for Nodes:\n" );
+        for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
+        }
+        // Check if solDeriv_2 was already set by the previous nodal
+        // output check
+        if( saveDeriv2_ != true ) {
+          solDeriv2_.SetNumSolutions(1);
+          solDeriv2_.SetNumNodes(numPDENodes_);
+          solDeriv2_.SetSolutionType(ACOU_PRESSURE_DERIV_2);
+          solDeriv2_.SetNumDofs(1);
+          solDeriv2_.SetResult( results_[0] );
+          solDeriv2_.SetPtrEQNData(eqnMap_.get(),ptgrid_); 
+          solDeriv2_.Init(0);
+        }
+      }
+
+      // --- acoustic RHS ---
+      Enum2String(ACOU_RHSVAL, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, saveNodeHist );
+    
+      if (saveNodeHist.GetSize() > 0) {
+        saveRHSvalHist_ = true;
+        hasOutput_ = true;
+        Info->PrintF( pdename_, "Saving acouRHSval for Nodes:\n" );
+        for ( UInt k = 0; k < saveNodeHist.GetSize(); k++ ) {
+          Info->PrintF( pdename_, "  %s\n", saveNodeHist[k].c_str() );
         }
       }
     }

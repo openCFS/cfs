@@ -194,7 +194,7 @@
 
         <!-- Type of acoustic formulation (optional) -->
         <xsd:attribute name="formulation" use="optional"
-          default="acouPotential">
+          default="acouPressure">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="acouPressure"/>
