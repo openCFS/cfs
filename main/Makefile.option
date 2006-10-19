@@ -25,9 +25,10 @@
 #       | 10 | Metis       |   yes    |     no   | METIS_ROOT    |
 #       | 11 | gidpost     |   yes    |    yes   | GIDPOST_ROOT  |
 #       | 12 | tcl         |   yes    |    yes   | TCL_ROOT      |
-#       | 13 | boost       |    no    |    yes   | BOOST_ROOT    |
+#       | 13 | python      |   yes    |    yes   | PY_ROOT       |
+#       | 14 | boost       |    no    |    yes   | BOOST_ROOT    |
 #       |--------------------------------------------------------|
-#       | 14 | XML Schemas |         (b)         | SCHEMA_ROOT   |
+#       | 15 | XML Schemas |         (b)         | SCHEMA_ROOT   |
 #       ---------------------------------------------------------
 #
 #  (a) The Basic Linear Algebra Subroutines (BLAS) and the Linear Algebra
@@ -100,6 +101,7 @@
 # ARPACK_ROOT
 # GIDPOST_ROOT
 # TCL_ROOT
+# PY_ROOT
 # BOOS_ROOT
 #
 # -----------------------------------------------------------------------------
@@ -140,6 +142,10 @@ ifeq ("$(TCL_ROOT)","")
 TCL_ROOT = /home/data/libraries/TCL
 endif
 
+ifeq ("$(PY_ROOT)","")
+PY_ROOT = /home/data/libraries/python
+endif
+
 ifeq ("$(BOOST_ROOT)","")
 BOOST_ROOT = /home/data/libraries/boost
 endif
@@ -176,8 +182,11 @@ GIDPOST = yes
 # can only be compiled if MySQL-devel is installed
 DATABASE = no
 
-# switch for use of tcl interface, enabling dynamic interaction with cfs
-TCL_INTERFACE = yes
+# switch for use of tcl as scripting language for cfs
+TCL_SCRIPTING = yes
+
+# switch for use of python as scripting language for cfs
+PY_SCRIPTING = no 
 
 # switch for activating the use of expression template for the matrix
 # and vector class. 
@@ -193,22 +202,22 @@ USE_EXPR_TEMPLATES = yes
 # -----------------------------------------------------------------------------
 
 # Was OLAS compiled with support for hypre?
-HYPRE = no
+HYPRE = yes
 
 # Was OLAS compiled with support for LAPACK?
 LAPACK = yes
 
 # Was OLAS compiled with support for ARPACK?
-ARPACK = no
+ARPACK = yes
 
 # Was OLAS compiled with support for TVMET?
 TVMET = no
 
 # Was OLAS compiled with support for Pardiso?
-PARDISO = yes
+PARDISO = no
 
 # Was OLAS compiled with support for Metis?
-METIS = no
+METIS = yes
 
 
 # -----------------------------------------------------------------------------
@@ -255,7 +264,8 @@ LIB_DIR    = $(C_DIR)/lib/$(MACHINE)
 # - ADAPTIVITY
 # - TVMET
 # - GIDPOST
-# - TCL_INTERFACE
+# - TCL_SCRIPTING
+# - PY_SCRIPTING
 # - BOOST
 #
 # These will be combined into a COMPILE_INCDIRS parameter
@@ -300,11 +310,18 @@ else
   INCDIR_GIDPOST =
 endif
 
-# TCL_INTERFACE
-ifeq "$(TCL_INTERFACE)" "yes"
-  INCDIR_TCL_INTERFACE = -I$(TCL_ROOT)/$(ARCH)/include
+# TCL_SCRIPTING
+ifeq "$(TCL_SCRIPTING)" "yes"
+  INCDIR_TCL_SCRIPTING = -I$(TCL_ROOT)/$(ARCH)/include
 else
-  INCDIR_TCL_INTERFACE =
+  INCDIR_TCL_SCRIPTING =
+endif
+
+# PY_SCRIPTING
+ifeq "$(PY_SCRIPTING)" "yes"
+  INCDIR_PY_SCRIPTING = -I$(PY_ROOT)/$(ARCH)/include
+else
+  INCDIR_PY_SCRIPTING =
 endif
 
 # BOOST
@@ -313,7 +330,7 @@ INCDIR_BOOST = -I$(BOOST_ROOT)/$(ARCH)/include
 # Combine everything
 COMPILE_INCDIRS = $(INCDIR_OLAS) $(INCDIR_HYPRE) $(INCDIR_XERCES) \
 $(INCDIR_ADAPTIVITY) $(INCDIR_TVMET) $(INCDIR_GIDPOST) \
-$(INCDIR_TCL_INTERFACE) $(INCDIR_BOOST)
+$(INCDIR_TCL_SCRIPTING) $(INCDIR_PY_SCRIPTING) $(INCDIR_BOOST)
 
 
 # -----------------------------------------------------------------------------
@@ -330,7 +347,8 @@ $(INCDIR_TCL_INTERFACE) $(INCDIR_BOOST)
 #  - METIS
 #  - LAPACK
 #  - GIDPOST
-#  - TCL_INTERFACE
+#  - TCL_SCRIPTING
+#  - PY_SCRIPTING
 #
 # These will be combined into a COMPILE_MACROS parameter
 # -----------------------------------------------------------------------------
@@ -398,11 +416,22 @@ else
   MACRO_GIDPOST =
 endif
 
-# TCL_INTERFACE
-ifeq "$(TCL_INTERFACE)" "yes"
-  MACRO_TCL_INTERFACE = -DTCL_INTERFACE
+# TCL_SCRIPTING
+ifeq "$(TCL_SCRIPTING)" "yes"
+  MACRO_TCL_SCRIPTING = -DUSE_SCRIPTING_TCL
+  MACRO_SCRIPTING = -DUSE_SCRIPTING
 else
-  MACRO_TCL_INTERFACE = 
+  MACRO_TCL_SCRIPTING = 
+  MACRO_SCRIPTING =
+endif
+
+# PY_SCRIPTING
+ifeq "$(PY_SCRIPTING)" "yes"
+  MACRO_PY_SCRIPTING = -DUSE_SCRIPTING_PY
+  MACRO_SCRIPTING = -DUSE_SCRIPTING
+else
+  MACRO_PY_SCRIPTING =
+  MACRO_SCRIPTING =
 endif
 
 # EXPRESSION TEMPLATES
@@ -415,7 +444,8 @@ endif
 # Combine everything
 COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
                  $(MACRO_GSI) $(MACRO_XERCES) $(MACRO_TVMET) $(MACRO_METIS)\
-                 $(MACRO_LAPACK) $(MACRO_GIDPOST) $(MACRO_TCL_INTERFACE)\
+                 $(MACRO_LAPACK) $(MACRO_GIDPOST) $(MACRO_SCRIPTING)\
+                 $(MACRO_TCL_SCRIPTING) $(MACRO_PY_SCRIPTING)\
 		 $(MACRO_EXPR_TEMPLATES)
 
 
@@ -432,7 +462,8 @@ COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
 #  - ARPACK
 #  - DATABASE
 #  - GIDPOST
-#  - TCL_INTERFACE
+#  - TCL_SCRIPTING
+#  - PY_SCRIPTING
 #
 # These will be combined into a LINK_LIBS parameter.
 # -----------------------------------------------------------------------------
@@ -496,21 +527,30 @@ else
    LIB_GIDPOST =
 endif
 
-# TCL_INTERFACE
-ifeq ($(TCL_INTERFACE),yes)
-   LIBDIR_TCL_INTERFACE = -L$(TCL_ROOT)/$(ARCH)/lib
-   LIB_TCL_INTERFACE = -ltcl8.4
+# TCL_SCRIPTING
+ifeq ($(TCL_SCRIPTING),yes)
+   LIBDIR_TCL_SCRIPTING = -L$(TCL_ROOT)/$(ARCH)/lib
+   LIB_TCL_SCRIPTING = -ltcl8.4
 else
-   LIBDIR_TCL_INTERFACE =
-   LIB_TCL_INTERFACE =
+   LIBDIR_TCL_SCRIPTING =
+   LIB_TCL_SCRIPTING =
+endif
+
+# PY_SCRIPTING
+ifeq ($(PY_SCRIPTING),yes)
+   LIBDIR_PY_SCRIPTING = -L$(PY_ROOT)/$(ARCH)/lib
+   LIB_PY_SCRIPTING = -lpython2.4
+else
+   LIBDIR_PY_SCRIPTING =
+   LIB_PY_SCRIPTING =
 endif
 
 # Combine everything
 LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) $(LIBDIR_METIS) \
-$(LIBDIR_ARPACK) $(LIBDIR_GIDPOST) $(LIBDIR_TCL_INTERFACE)\
-$(LIB_OLAS) \
-$(LIB_HYPRE) $(LIB_XERCES) $(LIB_METIS) $(LIB_GIDPOST) \
-$(LIB_TCL_INTERFACE)
+$(LIBDIR_ARPACK) $(LIBDIR_HYPRE) $(LIBDIR_GIDPOST) $(LIBDIR_TCL_SCRIPTING)\
+ $(LIBDIR_PY_SCRIPTING)\
+$(LIB_OLAS) $(LIB_HYPRE) $(LIB_XERCES) $(LIB_METIS) $(LIB_GIDPOST) \
+$(LIB_TCL_SCRIPTING) $(LIB_PY_SCRIPTING) 
 
 # -----------------------------------------------------------------------------
 # LAPACK and BLAS
@@ -571,63 +611,65 @@ endif
 # - DATABASE
 # - GSI
 # - GIDPOST
-# - TCL_INTERFACE
+# - TCL_SCRIPTING
+# - PY_SCRIPTING
 #
-# These will be combined into an EXTRA_MODULES and EXTRA_CFSLIBS parameter.
-# These two parameters will be appended in Makefile to SUBLIBDIR and mylibrary.
+# These will be combined into an EXTRA_MODULES parameter.
+# These two parameters will be appended in Makefile to mymodules.
 # -----------------------------------------------------------------------------
 
 # ADAPTIVITY
 ifeq ($(Adaptivity),yes)
   MODULE_ADAPTIVITY = Domain/AdaptGrid Estimator
-  CFSLIB_ADAPTIVITY = estimator toadaptgrid adaptgrid
 else
   MODULE_ADAPTIVITY =
-  CFSLIB_ADAPTIVITY =
 endif
 
 # MPCCI
 ifeq ($(MpCCI),yes)
   MODULE_MPCCI = MpCCIcpl
-  CFSLIB_MPCCI = mpccicpl
 else
   MODULE_MPCCI =
-  CFSLIB_MPCCI =
 endif
 
 # DATABASE
 ifeq ($(DATABASE),yes)
   MODULE_DATABASE = DataInOut/Database
-  CFSLIB_DATABASE = database
 else
   MODULE_DATABASE =
-  CFSLIB_DATABASE =
 endif
 
 # GSI
 ifeq ($(GSI),yes)
   MODULE_GSI = DataInOut/GSI
-  CFSLIB_GSI = gsi
 else
   MODULE_GSI =
-  CFSLIB_GSI =
 endif
 
 # GIDPOST
 ifeq ($(GIDPOST),yes)
   MODULE_GIDPOST = DataInOut/GiD
-  CFSLIB_GIDPOST = gid
 else
   MODULE_GIDPOST =
-  CFSLIB_GIDPOST =
+endif
+
+# TCL_SCRIPTING
+ifeq ($(TCL_SCRIPTING),yes)
+  MODULE_TCL_SCRIPTING = DataInOut/Scripting/tcl
+else
+  MODULE_TCL_SCRIPTING =
+endif
+
+# PY_SCRIPTING
+ifeq ($(PY_SCRIPTING),yes)
+  MODULE_PY_SCRIPTING = DataInOut/Scripting/python
+else
+  MODULE_PY_SCRIPTING =
 endif
 
 # Combine everything
 EXTRA_MODULES = $(MODULE_ADAPTIVITY) $(MODULE_MPCCI) $(MODULE_DATABASE) \
-$(MODULE_GSI) $(MODULE_GIDPOST) 
-
-EXTRA_CFSLIBS = $(CFSLIB_ADAPTIVITY) $(CFSLIB_MPCCI) $(CFSLIB_DATABASE) \
-$(CFSLIB_GSI) $(CFSLIB_GIDPOST)
+$(MODULE_GSI) $(MODULE_GIDPOST) $(MODULE_TCL_SCRIPTING) $(MODULE_PY_SCRIPTING)
 
 # =========================================================================== #
 #                                                                             #

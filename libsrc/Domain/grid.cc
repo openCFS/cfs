@@ -32,7 +32,7 @@ namespace CoupledField
   ptWedge1 = new Wedge1FE();
   ptWedge2 = new Wedge2FE();
 
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
   // Register functions
   RegisterFunctions();
 #endif

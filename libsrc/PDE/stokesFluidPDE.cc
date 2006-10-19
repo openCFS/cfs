@@ -17,7 +17,7 @@
 #include "Utils/coordSystem.hh"
 #include "Driver/assemble.hh"
 
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
 #endif
 

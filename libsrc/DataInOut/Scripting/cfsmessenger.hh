@@ -15,7 +15,8 @@ namespace CoupledField {
   public: 
 
     //! Define all available eventtypes
-    typedef enum {CFS_Init, CFS_ReadBCs, CFS_SetBCs, CFS_PostProcess} EventType;
+    typedef enum {CFS_Init, CFS_ReadBCs, CFS_SetBCs, CFS_PostProcess,
+                  CFS_Finish} EventType;
     
     //! Constructor
     CFSMessenger();

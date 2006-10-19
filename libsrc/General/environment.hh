@@ -132,8 +132,7 @@ namespace CoupledField {
   //! Global pointer to domain object
   extern Domain *domain;
 
-#ifdef TCL_INTERFACE
-
+#ifdef USE_SCRIPTING
   //! Global pointer to messenger object
   extern CFSMessenger * messenger;
 #endif

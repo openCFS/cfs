@@ -4,7 +4,7 @@
 #include <tcl.h>
 #include <map>
 
-#include "cfsmessenger.hh"
+#include "DataInOut/Scripting/cfsmessenger.hh"
 
 
 namespace CoupledField {
@@ -26,7 +26,7 @@ namespace CoupledField {
 
     //! This method triggers the call of a related event procedure.
     //! \param event Type of event function to be called
-    //! \param context Additional read only parameters to be passes to the 
+    //! \param context Additional read only parameters to be passed to the 
     //!  function
     //! \return true, if function exists and is successfully executed
     bool TriggerEvent( const EventType event, 

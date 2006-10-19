@@ -137,6 +137,7 @@ namespace CoupledField {
     eventNames_[CFS_ReadBCs] = "CFS_ReadBCs";
     eventNames_[CFS_SetBCs] = "CFS_SetBCs";
     eventNames_[CFS_PostProcess] = "CFS_PostProcess";
+    eventNames_[CFS_Finish] = "CFS_Finish";
     
     // Check, if for all events the number
     // of parameters has been passed correctly

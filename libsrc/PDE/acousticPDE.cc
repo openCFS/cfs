@@ -21,7 +21,7 @@
 #include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
 
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
 #endif
 
@@ -1517,7 +1517,7 @@ namespace CoupledField {
      
 
     // Last but no least trigger postprocessing fromt within script-file
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
     StdVector<std::string> context;
     context.Push_back( pdename_ );
     context.Push_back( GenStr(solveStep_->GetActStep() ) );

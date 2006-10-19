@@ -10,7 +10,7 @@
 #include "DataInOut/writeresults.hh"
 #include "Forms/linearForm.hh"
 
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
 #endif
 
