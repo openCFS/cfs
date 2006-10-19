@@ -734,6 +734,10 @@ namespace CoupledField {
     // map original matrix destination to analysis-dependent one
     FEMatrixType mappedDest = matrixMap_[dest]; 
     
+    if( mappedDest == NOTYPE ) {
+      return;
+    }
+    
     if( analysisType_ == TRANSIENT 
         || analysisType_ == STATIC
         || analysisType_ == EIGENFREQUENCY) {
