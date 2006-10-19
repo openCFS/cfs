@@ -1,11 +1,11 @@
 #
-C_DIR = ../../..
+C_DIR = ../../../..
 include $(C_DIR)/main/Makefile.option
-src = scriptable.cc cfsmessenger.cc
+src = py-messenger.cc
 #
 CFLAGS3 =
 #
-include ../../makefile.inc
+include ../../../makefile.inc
 -include $(DEPEND_FILE)
 # DO NOT DELETE
 

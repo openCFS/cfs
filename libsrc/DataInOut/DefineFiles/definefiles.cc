@@ -27,6 +27,18 @@
 #include "DataInOut/ParamHandling/PlainXMLParamHandler.hh"
 #include "DataInOut/ParamHandling/XMLParamHandler.hh"
 
+#ifdef USE_SCRIPTING
+#include "DataInOut/Scripting/cfsmessenger.hh"
+#endif
+
+#ifdef USE_SCRIPTING_TCL
+#include "DataInOut/Scripting/tcl/tcl-messenger.hh"
+#endif
+
+#ifdef USE_SCRIPTING_PY
+#include "DataInOut/Scripting/python/py-messenger.hh"
+#endif
+
 #ifdef USE_DATABASE
 #include "DataInOut/Database/outDB.hh"
 #endif
@@ -307,6 +319,32 @@ namespace CoupledField
       }
       break;
 
+    }
+  }
+
+  CFSMessenger* DefineInOutFiles::CreateScriptMessenger( const std::string& fileName) {
+    ENTER_FCN( "DefineInOutFiles::CreateScriptMessenger" );
+    
+    // check filename, if it is not empty
+    if( fileName == "") {
+      return new CFSMessenger();
+    }
+
+#ifdef USE_SCRIPTING_TCL
+    else if( fileName.find( ".tcl") != std::string::npos ) {
+      return new TCL_CFSMessenger();
+    }
+#endif
+#ifdef USE_SCRIPTING_PY
+    else if( fileName.find( ".py") != std::string::npos ) {
+      return new PY_CFSMessenger();
+    }
+#endif
+    else {
+      std::stringstream msg;
+      msg << "Could not determine script language of file '"
+          << fileName << "'!";
+      Error( msg.str().c_str(), __FILE__, __LINE__ );
     }
   }
 

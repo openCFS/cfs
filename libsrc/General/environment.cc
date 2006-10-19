@@ -37,7 +37,7 @@ namespace CoupledField {
   Profiler * profiler = NULL;
 #endif  
 
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
   CFSMessenger * messenger = NULL;
 #endif
 

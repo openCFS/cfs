@@ -21,7 +21,7 @@
 #include "Domain/ansatzFct.hh"
 #include "Driver/stdSolveStep.hh"
 
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
 #endif
 
@@ -892,7 +892,7 @@ namespace CoupledField {
     Integer index = -1;
     
     // Check, if function was called by a scripting command
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
     if ( messenger->IsEvaluating() == true ) {
       
       // obtain parameters from messenger object
@@ -948,7 +948,7 @@ namespace CoupledField {
       // get load type (total / unit)
       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "type";
       params->GetList(keyVec, attrVec, valVec, tempType);
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
     }
 #endif
 
@@ -1684,7 +1684,7 @@ namespace CoupledField {
     }
 
     // Last but no least trigger setting of BC from script file
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
     StdVector<std::string> context;
     context.Push_back( pdename_ );
     context.Push_back( GenStr(solveStep_->GetActStep() ) );

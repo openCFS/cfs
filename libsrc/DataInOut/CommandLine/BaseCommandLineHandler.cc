@@ -30,7 +30,7 @@ namespace CoupledField {
   "name of mesh file for the simulation";  
 
   const std::string BaseCommandLineHandler::helpScriptFileName_ =
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
   "name of script file to be evaluated";  
 #else
   "name of script file to be evaluated \

@@ -11,7 +11,7 @@
 
 
 // header for scripting
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
@@ -317,7 +317,7 @@ namespace CoupledField {
     ReadBCs();
     ReadSpecialBCs();
     //
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
     // Trigger event for scripting 
     StdVector<std::string> args;
     args.Push_back( pdename_ );
@@ -494,7 +494,7 @@ namespace CoupledField {
      ENTER_FCN( "SinglePDE::SetBCs" );
   
      // Trigger setting of BC from script file
- #ifdef TCL_INTERFACE
+ #ifdef USE_SCRIPTING
      StdVector<std::string> context;
      context.Push_back( pdename_ );
      context.Push_back( GenStr(solveStep_->GetActStep() ) );

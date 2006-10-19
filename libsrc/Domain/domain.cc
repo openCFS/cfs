@@ -332,7 +332,7 @@ namespace CoupledField {
     // create direct coupled pde(s)
     CreateDirectCoupledPDEs(tags);
 
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
 
     // Call intialization procedure
     StdVector<std::string> context;

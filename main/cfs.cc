@@ -35,9 +35,8 @@
 #endif
 
 
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"
-#include "DataInOut/Scripting/tcl-messenger.hh"
 #endif
 
 
@@ -88,41 +87,38 @@ int main( int argc, const char **argv ) {
   // =========================================================================
   commandLine = new CommandLineHandlerSetting( argc, argv );
 
-
-  // =========================================================================
-  // GENERATE CENTRAL MESSENGER OBJECT (CURRENTLY ONLY TCL)
-  // =========================================================================
-#ifdef TCL_INTERFACE
-
-  // Try to determine (optional) script file name
-  std::string scriptFileName = commandLine->GetScriptFileName();
-  
-  // Check if script file was provided
-  if ( scriptFileName != "" ) {
-    
-    std::stringstream msg;
-    msg << "Activating Scripting using '" << scriptFileName << "'";
-    Info->StartProgress( msg.str() );
-
-    // Create new central messenger object (up to now only tcl available)
-    messenger = new TCL_CFSMessenger();
-    messenger->ReadScriptFile(scriptFileName );
-    Info->FinishProgress();    
-  }  else {
-
-    // Crate dummy oject for Script evaluating
-    messenger = new CFSMessenger( );
-  }
-
-#endif
-
-
   // =========================================================================
   // GENERATE OBJECT FOR HANDLING FILE-IO
   // =========================================================================
   Info->StartProgress( "Generating object for handling file-IO" );
   DefineInOutFiles FileHandler( commandLine->GetSimName().c_str() );
   Info->FinishProgress();
+  
+
+  // =========================================================================
+  // GENERATE CENTRAL MESSENGER OBJECT
+  // =========================================================================
+#ifdef USE_SCRIPTING
+
+  // Try to determine (optional) script file name
+  std::string scriptFileName = commandLine->GetScriptFileName();
+  
+  messenger = FileHandler.CreateScriptMessenger( scriptFileName );
+  
+  // Check if script file was provided
+  if ( scriptFileName != "" ) {
+    std::stringstream msg;
+    msg << "Activating Scripting using '" << scriptFileName << "'";
+    Info->StartProgress( msg.str() );
+
+    // Create new central messenger object (up to now only tcl available)
+    //messenger = new TCL_CFSMessenger();
+    //messenger = new PY_CFSMessenger();
+    messenger->ReadScriptFile(scriptFileName );
+    Info->FinishProgress();    
+  }
+
+#endif
 
 
   // =========================================================================
@@ -403,6 +399,14 @@ int main( int argc, const char **argv ) {
   std::cout << std::endl;
   std::cout << std::endl;
 
+#ifdef USE_SCRIPTING
+
+    // Call intialization procedure
+    StdVector<std::string> context;
+    context.Push_back( commandLine->GetSimName() );
+    messenger->TriggerEvent(CFSMessenger::CFS_Finish, context);
+#endif
+
   Double wTime, cTime;
   oClockTotal.GetTime(wTime, cTime);
   std::cout << std::setw(70) << std::setfill('=') << "" << std::endl;
@@ -427,7 +431,7 @@ int main( int argc, const char **argv ) {
   delete params;
   delete commandLine;
 
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
   delete messenger;
   messenger = NULL;
 #endif

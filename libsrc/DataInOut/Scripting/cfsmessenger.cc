@@ -15,6 +15,7 @@ namespace CoupledField {
     eventNumParams_[CFS_ReadBCs] = 1;
     eventNumParams_[CFS_SetBCs] = 3;
     eventNumParams_[CFS_PostProcess] = 3;
+    eventNumParams_[CFS_Finish] = 1;
 
     isEvaluating_ = false;
     

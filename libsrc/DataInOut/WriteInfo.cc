@@ -17,7 +17,7 @@
 #endif
 #include "Utils/vector.hh"
 
-#ifdef TCL_INTERFACE
+#ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
@@ -497,8 +497,8 @@ namespace CoupledField {
 #ifdef INTEGLIB
     std::cerr << "INTEGLIB WARNING: " << Text << std::endl;
 #else
-#ifdef TCL_INTERFACE
-    if ( messenger->IsEvaluating() ) {
+#ifdef USE_SCRIPTING
+    if ( messenger != NULL && messenger->IsEvaluating() ) {
       messenger->Warning( Text.c_str(), filename, numline );
     }
 #endif
@@ -557,8 +557,8 @@ namespace CoupledField {
 #ifdef INTEGLIB
     std::cerr << "INTEGLIB ERROR: " << Text << std::endl;
 #else
-#ifdef TCL_INTERFACE
-    if ( messenger->IsEvaluating() ) {
+#ifdef USE_SCRIPTING
+    if ( messenger != NULL && messenger->IsEvaluating() ) {
       messenger->Error( Text.c_str(), filename, numline );
     }
 #endif
