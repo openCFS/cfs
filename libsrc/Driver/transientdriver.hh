@@ -24,8 +24,11 @@ namespace CoupledField {
     //! Default destructor
     virtual ~TransientDriver();
 
+    //! Initialization method
+    void Init();
+
     //! main method, where time-stepping is implemented. it is for transient and static problem
-    virtual void SolveProblem();
+    void SolveProblem();
 
     //! Return time step
     Double GetTimeStep() { return firstdt_;}

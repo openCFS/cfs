@@ -41,6 +41,11 @@ namespace CoupledField
     antiResonanceFrequency_=0;
     tau_=1.0;
     sign_=1.0;
+  }
+
+  void piezoParamIdent :: Init() {
+    ENTER_FCN( "piezoParamIdent::Init" );
+    
     StdVector<std::string> pdeList;
     params->GetPDEList( pdeList );
 

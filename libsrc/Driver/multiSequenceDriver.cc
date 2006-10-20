@@ -22,9 +22,6 @@ namespace CoupledField {
     numSteps_ = 0;
     actStep_ = 0;
     actTime_ = 0;
-    
-    // Not much to do...
-    Init();
   }
 
 
@@ -111,6 +108,7 @@ namespace CoupledField {
         nextStep = actStep_ + 1;
       }
       
+
       // Initialize all PDEs
       ptdomain_->InitPDEs(pdesPerStep_[iStep],iStep+1, tagsPerStep_[iStep]);
       actDriver->SetPDE(ptdomain_->GetBasePDE());
@@ -121,7 +119,8 @@ namespace CoupledField {
       for (iPDE=0; iPDE<pdesPerStep_[iStep].GetSize(); iPDE++)
         ptPDEs[iPDE]=ptdomain_->GetStdPDE(pdesPerStep_[iStep][iPDE]);
 
-
+      // Initialize driver objects
+      actDriver->Init();
 
       // After the first run, initialize this PDE
       // with the solution of the previous run

@@ -23,6 +23,9 @@ namespace CoupledField
     //! Destructor
     virtual ~BaseDriver();
     
+    //! Initialization method
+    virtual void Init() = 0;
+
     //! Main method for solvin the problem
     virtual void SolveProblem()=0;
 

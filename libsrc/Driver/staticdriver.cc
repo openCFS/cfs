@@ -25,6 +25,10 @@ namespace CoupledField {
     analysis_ = STATIC;
   }
 
+  void StaticDriver::Init() {
+    ENTER_FCN( "StaticDriver::Init" );
+  }
+
 
   // **********************
   //   Default destructor

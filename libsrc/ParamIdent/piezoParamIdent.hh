@@ -55,6 +55,7 @@ namespace CoupledField
     ~piezoParamIdent();
 
     //! input file, here problem specific details will be set
+
     std::ifstream * allMeasuredData; 
 
     std::ifstream * mess;
@@ -79,6 +80,9 @@ namespace CoupledField
     std::ofstream * synMess;
     //! output file, writes synthetically created impedance curve
     std::ofstream * nrOfFreqs;
+
+    //! Initialization method
+    void Init();
 
     //! Starts parameter identification
     void SolveProblem();
