@@ -47,7 +47,6 @@ namespace CoupledField {
     attrVec = "tag";
     valVec = driverTag_;
    
-
     // Get time stepping information from parameter object
     keyVec = "transient", "numSteps";
     params->Get(keyVec, attrVec, valVec, numstep_);
@@ -85,8 +84,6 @@ namespace CoupledField {
 //     if ( boost::filesystem::exists( haltFile ) ) {
 //       boost::filesystem::remove( haltFile );
 //     }
-
-    
   }
 
   // ==============
@@ -97,6 +94,22 @@ namespace CoupledField {
     ENTER_FCN( "TransientDriver::~TransientDriver" );
   }
 
+  // ==================
+  //   Initialization
+  // ==================
+  void TransientDriver::Init() {
+    ENTER_FCN( "TransientDriver::Init" );
+
+    // if driver is not part of multiSequence Driver, get list
+    // of pdes which have to be solved and intialize them
+    if (isPartOfSequence_ == false) {     
+      GetMyPDEs();
+      Info->StartProgress ("Starting to solve problem", false);
+    }
+    ptPDE_->GetSolveStep()->SetTimeStep(firstdt_);
+
+  }
+    
 
   // =================
   //   Solve Problem
@@ -112,12 +125,8 @@ namespace CoupledField {
     Double  dt = firstdt_;
     bool haltFlag=false;
   
-    // if driver is not part of multiSequence Driver, get list
-    // of pdes which have to be solved and intialize them
-    if (isPartOfSequence_ == false) {     
-      GetMyPDEs();
-      Info->StartProgress ("Starting to solve problem", false);
-    }
+
+
 
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
@@ -149,8 +158,8 @@ namespace CoupledField {
       ptPDE_->GetSolveStep()->SetStartStep(1);
     }
     // Solve problem
-    ptPDE_->GetSolveStep()->SetTimeStep(dt);
-
+    //ptPDE_->GetSolveStep()->SetTimeStep(dt);
+    
     ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
 
     UInt nstep;

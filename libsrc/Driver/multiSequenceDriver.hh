@@ -31,8 +31,11 @@ namespace CoupledField
     */
     MultiSequenceDriver(Domain * adomain);
 
-    //! deconstructor
+    //! destructir
     virtual ~MultiSequenceDriver();
+
+    //! Initialization method
+    void Init();
   
     //! main method, where time-stepping is implemented. 
     //! it is for transient and static problem
@@ -47,9 +50,6 @@ namespace CoupledField
     AnalysisType GetAnalysisType( const std::string& pdename );
 
   private:
-
-    //! initializes the multiStepSequence
-    void Init();
 
     //! number of sequence steps
     UInt numSteps_;

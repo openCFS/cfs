@@ -23,7 +23,12 @@ namespace CoupledField {
 
     // set correct analysistype
     analysis_ = EIGENFREQUENCY;
+  }
 
+
+  void EigenFrequencyDriver::Init() {
+    ENTER_FCN( "EigenFrequencyDriver::Init" );
+    
     // vectors for accessing parameters
     StdVector<std::string> keyVec, attrVec, valVec;
 
@@ -58,7 +63,6 @@ namespace CoupledField {
     } else {
       isQuadratic_ = false;
     }
-    
     
   }
 

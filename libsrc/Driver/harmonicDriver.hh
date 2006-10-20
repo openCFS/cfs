@@ -26,8 +26,11 @@ namespace CoupledField
     //! Detructor 
     virtual ~HarmonicDriver();
 
+    //! Initialization method
+    void Init();
+    
     //! Main method, where harmonic analysis is implemented.
-    virtual void SolveProblem();
+    void SolveProblem();
 
   private:
 

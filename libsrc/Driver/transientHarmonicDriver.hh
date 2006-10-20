@@ -25,6 +25,9 @@ namespace CoupledField {
     //! Default destructor
     virtual ~TransientHarmonicDriver();
 
+    //! Initialization method
+    void Init();
+
     //! Main method, where time-stepping is implemented.
     void SolveProblem();
 

@@ -24,6 +24,9 @@ namespace CoupledField {
     //! Destructor 
     ~StaticDriver();
   
+    //! Initialization method
+    void Init();
+
     //! Main method solution method
 
     //! This method constitutes the actual driving method which controls the

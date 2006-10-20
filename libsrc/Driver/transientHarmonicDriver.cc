@@ -32,6 +32,10 @@ namespace CoupledField {
     
     // set correct analysistype
     analysis_ = TRANSIENTHARMONIC;
+  }
+
+  void TransientHarmonicDriver::Init() {
+    ENTER_FCN( "TransientHarmonicDriver::Init" );
 
     // vectors for accessing parameters
     StdVector<std::string> keyVec, attrVec, valVec;

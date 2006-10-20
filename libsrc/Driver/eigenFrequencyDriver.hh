@@ -20,6 +20,9 @@ namespace CoupledField {
     
     //! Destructor 
     ~EigenFrequencyDriver();
+
+    //! Initialization method
+    void Init();
   
     //! Main method solution method
 

@@ -32,6 +32,10 @@ namespace CoupledField {
 
     // Set correct analysistype
     analysis_ = HARMONIC;
+  }
+
+  void HarmonicDriver::Init() {
+    ENTER_FCN( "HarmonicDriver::Init" );
 
     // vectors for accessing parameters
     StdVector<std::string> keyVec, attrVec, valVec;
