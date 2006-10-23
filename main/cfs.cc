@@ -382,8 +382,9 @@ int main( int argc, const char **argv ) {
     Error( __FILE__, __LINE__ );
   }
 
-  // Pass driver to domain object
+  // Initialize driver object and pass it to domain
   domain->SetDriver( ptdriver );
+  ptdriver->Init();
 
   Info->FinishProgress();
 
