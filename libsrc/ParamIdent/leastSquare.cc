@@ -49,8 +49,6 @@ namespace CoupledField
     Double lambda=50.0;
     bool negFlag=false;      
 
-    //    readInMeasurement(newFreqs);
-
 
     calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
 
@@ -63,8 +61,14 @@ namespace CoupledField
 
       createF(F_hat_, false);
 
-      if ((iterIndex+1)%5==0){
-        Integer nrfreqTemp=100;
+      std::cout<<"y_hat"<<std::endl;
+      std::cout<<y_hat_<<std::endl;
+     
+      std::cout<<"F_hat"<<std::endl;
+      std::cout<<F_hat_<<std::endl;
+
+      if ((iterIndex+1)%10==0){
+        Integer nrfreqTemp=200;
         Vector<Double> freqsTemp = freqs_;
         freqs_.Resize(nrfreqTemp);
         Double startFreqTemp;
@@ -76,11 +80,13 @@ namespace CoupledField
         }
         if (impedCurve)
           impedCurve->close();
+        if(mechDispl)
+          mechDispl->close();
         std::string filename= "imped.dat";
         impedCurve = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
-        if (!impedCurve){
-          std::cerr << "\n ImpedanceCurve.dat could not be initialized" << std::endl;
-        }
+        filename="mechDispl.dat";
+        mechDispl = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
+
         calcImpedanceCurve();
         freqs_ = freqsTemp;
       }
@@ -117,7 +123,7 @@ namespace CoupledField
       indPar=0;
       indParC=0;
 
-      for (UInt par=0;par<nrParameter_;par++)
+      for (UInt par=0;par<nrParameter_;par++){
 
         if (whichParameterToUpdate_[par]==1){
 
@@ -137,32 +143,33 @@ namespace CoupledField
           parameter_[par]=parameter_old[par];
 
           indPar++;
-
-          if (whichParameterToUpdateC_[par]==1){
-
-            parameterC_[par]=1.000001*parameterC_[par];
-            
-            updateMaterialData(parameter_);
-
-            if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
-              updateComplexMaterialData(parameterC_);
-         
-            createF(F_hat_, false);
-          
-            for (UInt i=0;i<nrMeasuredData;i++)
-              F_y[i]=F_hat_[i]-y_hat_[i];
-          
-            norm(F_y,normFy,maxres,y_hat_);
-
-            //            gradP[indParC+actNrParameter]=1.0*(normFy0-normFy);
-            gradP[indParC+actNrParameter]=100.0*(normFy0-normFy);
-          
-            parameterC_[par]=parameter_oldC[par];
-
-            indParC++;
-          
-          }
         }
+
+        if (whichParameterToUpdateC_[par]==1){
+          
+          parameterC_[par]=1.000001*parameterC_[par];
+          
+          updateMaterialData(parameter_);
+          
+          if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
+            updateComplexMaterialData(parameterC_);
+          
+          createF(F_hat_, false);
+          
+          for (UInt i=0;i<nrMeasuredData;i++)
+            F_y[i]=F_hat_[i]-y_hat_[i];
+          
+          norm(F_y,normFy,maxres,y_hat_);
+          
+          //            gradP[indParC+actNrParameter]=1.0*(normFy0-normFy);
+          gradP[indParC+actNrParameter]=100.0*(normFy0-normFy);
+          
+          parameterC_[par]=parameter_oldC[par];
+          
+          indParC++;
+        }
+
+      }
       
       computeScaling();     
           
