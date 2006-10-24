@@ -134,6 +134,11 @@ namespace CoupledField {
     //! Init the time stepping
     void InitTimeStepping();
 
+
+    //! Calculate acoustic power
+    template <class TYPE>
+    void CalcAcouPower();
+
     // ========================
     // set solution information
     // ========================    
@@ -187,8 +192,19 @@ namespace CoupledField {
     StdVector<RegionIdType> calcElemPressure_; //!< contains the regions
 
     //! Contains pressure results
-    BaseElemStoreSol * acouPressure_; //!< conatins acoustic pressure
+    BaseElemStoreSol * acouPressure_; //!< conatins acoustic power
+    BaseElemStoreSol * acouIntensity_; //!< conatins acoustic intensity
     StdVector<std::string> saveElemPressureHist_;//!< name of elements
+
+    //! Contains the surface-regions, on which the acoustic power is computed
+    StdVector<RegionIdType> calcAcouPower_;
+
+    //! Contains the (Volume) subdomains next to the surface
+    //! elements where the acoustic power is computed
+    StdVector<RegionIdType> acouPowerNeighborRegion_;
+
+    //! Contains acoustic power
+    BaseElemStoreSol * acouPower_;
 
     //! Attribute describing model for bubble dynamics
     BubbleDynType bubbleDynType_;

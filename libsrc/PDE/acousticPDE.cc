@@ -20,6 +20,7 @@
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
+#include "Domain/domain.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -94,7 +95,6 @@ namespace CoupledField {
     res1->definedOn = ResultDof::NODE;
     res1->fctType = fct;
     results_.Push_back( res1 );
-
   }
 
 
@@ -1515,6 +1515,12 @@ namespace CoupledField {
       }
     }
      
+    // *** Acoustic Power ***
+    if ( calcAcouPower_.GetSize() !=0 ) {
+      if (analysistype_ == HARMONIC ) {
+        CalcAcouPower<Complex>();
+      }
+    }
 
     // Last but no least trigger postprocessing fromt within script-file
 #ifdef USE_SCRIPTING
@@ -1695,6 +1701,172 @@ namespace CoupledField {
   }
 
 
+  template <class TYPE>
+  void AcousticPDE::CalcAcouPower()
+  {
+    ENTER_FCN( "ElecPDE::CalcAcouPower" );
+    
+    // currently we just support harmonic analysis: complex data
+
+    //get frequency
+    MathParser * parser = domain->GetMathParser();
+    parser->SetExpr( mHandle_, "f" );
+    Double actFreq = parser->Eval( mHandle_ );
+
+    //check solution type and compute factor
+    SolutionType solType;
+    Complex multVal = 0;
+
+    // factor 0.5 is due to the fact, that the values are peak values
+    if ( formulation_ == ACOU_PRESSURE ) {
+      solType = ACOU_PRESSURE;
+      multVal = Complex(0.0, -0.5/ (2.0*PI*actFreq) );
+    }
+    else {
+      solType = ACOU_POTENTIAL;
+      multVal = Complex(0.0, -0.5*(2.0*PI*actFreq));
+    }
+
+    NodeStoreSol<TYPE> * solhelp = dynamic_cast<NodeStoreSol<TYPE>*>(sol_);
+    StdVector<SurfElem*> surfElems;
+
+    UInt numSD = calcAcouPower_.GetSize();
+
+    //some help variables
+    Vector<Double> lCoordSurf, lCoordVol, normal;
+    Vector<TYPE> gradVal(dim_);
+    Vector<TYPE> sumOfPower(numSD);
+    Vector<TYPE> elemIntensity(dim_);
+    sumOfPower.Init();
+
+    Elem * ptVolElem;
+    BaseFE * ptSurfElemFE, * ptVolElemFE;
+
+    TYPE gradNormal = 0.0;
+    TYPE elemPower  = 0.0;
+    Double normSign = 0;
+    Double density  = 0.0;
+    Double elemPowerReal;
+    UInt pdeElemNum = 0;
+ 
+    // Create vector with interpolation coordinate.
+    // For simplicity we only evaluate the integral
+    // in coordinate origin
+    lCoordSurf.Resize(dim_-1);
+    lCoordSurf.Init(0);
+  
+    // Create operator for gradient computation of solution
+    GradientFieldOp<TYPE> * gradOp = 
+      new GradientFieldOp<TYPE>(ptgrid_, this, eqnMap_, *solhelp,
+                                solType, results_[0], isaxi_);
+
+    TYPE factorI;  
+
+    // loop over all subdomains
+    for (UInt iSD=0; iSD<calcAcouPower_.GetSize(); iSD++){
+    
+      // get surface and acoording volume elements
+      ptgrid_->GetSurfElems( surfElems, calcAcouPower_[iSD] );
+    
+      // loop over all surface elements
+      for (UInt iElem=0; iElem<surfElems.GetSize(); iElem++) {
+        
+	// Determine, which volume element is the right neighbour for the 
+	// calculation;
+	// our normal should point out of the correct neighbor volume element!
+	if ( acouPowerNeighborRegion_.
+	     Find(surfElems[iElem]->ptVolElem1->regionId) != -1 ) {
+	  ptVolElem = surfElems[iElem]->ptVolElem1;
+	  normSign = 1.0;
+	} 
+	else {
+	  ptVolElem = surfElems[iElem]->ptVolElem2;
+	  normSign = -1.0;
+	}
+	
+	normSign *= (Double) surfElems[iElem]->normalSign;
+	
+	ptSurfElemFE = surfElems[iElem]->ptElem; 
+	ptVolElemFE = ptVolElem->ptElem;
+        
+	const StdVector<UInt> & surfConnect = surfElems[iElem]->connect;
+	const StdVector<UInt> & volConnect = ptVolElem->connect;
+        
+	// calculate volume integration coordinates from
+	// surface integration coordinat for evalauting the 
+	// gradient on the surface of the volume element
+	ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
+	ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
+					       lCoordSurf, lCoordVol);
+	
+	BaseMaterial * myMat = materials_[ptVolElem->regionId];
+	myMat->GetScalar(density,DENSITY,REAL);
+	
+	Matrix<Double> CornerCoords; 
+	ptgrid_->GetElemNodesCoord( CornerCoords, surfConnect, false );
+	Double area = ptSurfElemFE->CalcVolume( CornerCoords, isaxi_);
+	
+	// Calc gradient
+	gradOp->CalcElemGradField(gradVal, ptVolElem, 
+				  lCoordVol,1.0);
+	// Calc global normal
+	ptgrid_->CalcSurfNormal(normal, *surfElems[iElem]);
+	
+	normal    *= normSign;
+	gradNormal = normal * gradVal;
+
+	//get average solution
+	TYPE elemSol = 0;
+	TYPE nodeSol;
+	for ( UInt k=0; k<surfConnect.GetSize(); k++) {
+	  solhelp->Get(solType, surfConnect[k]-1,0, nodeSol);
+	  elemSol += nodeSol;
+	}
+	elemSol /= (Double)surfConnect.GetSize(); 
+	
+	// get the conjugate complex value
+	elemSol = std::conj(elemSol);
+	
+	pdeElemNum = eqnMap_->Mesh2PdeElem(ptVolElem->elemNum);
+	//pdeElemNum = eqnMap_->Mesh2PdeElem(surfElems[iElem]->elemNum);
+        
+	if ( formulation_ == ACOU_PRESSURE ) {
+	  elemPower = multVal * gradNormal * elemSol / density;
+	  factorI   = multVal * elemSol / density;
+	  elemIntensity = factorI * gradVal;
+	}
+	else {
+	  elemPower = multVal * density * gradNormal * elemSol;
+	  factorI   = multVal * density * elemSol;
+	  elemIntensity = factorI * gradVal;
+	}
+	
+	//take the real part and multiply it with surface
+	elemPower *= area;
+	
+	// Create temporary vector, since SetElemResult only
+	// can handle these
+	Vector<Complex> acouPowerVec(1);
+	acouPowerVec[0] = elemPower;
+	sumOfPower[iSD] += elemPower;
+	acouPower_->SetElemResult(pdeElemNum-1, acouPowerVec);
+
+	acouIntensity_->SetElemResult(pdeElemNum-1, elemIntensity);
+      }
+      
+    }
+    
+    StdVector<std::string> subdomNames;
+    ptgrid_->RegionIdToName( subdomNames,  calcAcouPower_ );
+
+    Info->WriteAcouPower(pdename_, subdomNames, sumOfPower);
+
+    delete gradOp;
+
+
+  }
+
+
   void AcousticPDE::WriteResultsInFile(const UInt kstep,
                                        const Double asteptime,
                                        UInt stepOffset,
@@ -1755,6 +1927,21 @@ namespace CoupledField {
           outFile_->WriteElemSolutionHarmonic(pressureConverted, actStep,
                                               actTime, complexFormat_);
         }
+
+	if ( calcAcouPower_.GetSize() > 0 ) {
+	  ComplexFormat complexFormat = REAL_IMAG;
+
+          ElemStoreSol<Complex> & acouPowerConverted = 
+            dynamic_cast<ElemStoreSol<Complex>&>(*acouPower_);
+          outFile_->WriteElemSolutionHarmonic(acouPowerConverted, actStep,
+                                              actTime, complexFormat);
+
+          ElemStoreSol<Complex> & acouIntensityConverted = 
+            dynamic_cast<ElemStoreSol<Complex>&>(*acouIntensity_);
+          outFile_->WriteElemSolutionHarmonic(acouIntensityConverted, actStep,
+                                              actTime, complexFormat);
+	}
+
       }
       else {
 
@@ -2291,6 +2478,49 @@ namespace CoupledField {
           Info->PrintF( pdename_, "  %s\n", saveElemForceHist_[k].c_str() );
         }
       }
+
+  
+      // --- acoustic power ---
+      StdVector<std::string> temp;
+      params->GetList( "region", regionNames, pdename_, "acouIntensityPower" );
+      params->GetList( "element", temp, pdename_, "acouIntensityPower" );
+
+      ptgrid_->RegionNameToId( acouPowerNeighborRegion_, regionNames );
+      ptgrid_->RegionNameToId( calcAcouPower_, temp );
+
+      if (calcAcouPower_.GetSize() > 0) {
+        if ( analysistype_ == HARMONIC ) {
+	  hasOutput_ = true;
+	  Info->PrintF( pdename_,
+			" Computing acoustic intensity/power for regions:\n");
+	  for ( UInt k = 0; k < temp.GetSize(); k++ ) {
+	    Info->PrintF( pdename_, " %s\n", temp[k].c_str() );
+	  }
+
+	  acouPower_     = new ElemStoreSol<Complex>;
+	  acouIntensity_ = new ElemStoreSol<Complex>;
+
+	  // Resize solution arrays
+	  acouPower_->SetNumSolutions(1);
+	  acouPower_->SetSolutionType(ACOU_POWER);
+	  acouPower_->SetNumElems(numElems_);
+	  acouPower_->SetNumDofs(1);
+	  acouPower_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
+	  acouPower_->Init();
+
+	  acouIntensity_->SetNumSolutions(1);
+	  acouIntensity_->SetSolutionType(ACOU_INTENSITY);
+	  acouIntensity_->SetNumElems(numElems_);
+	  acouIntensity_->SetNumDofs(dim_);
+	  acouIntensity_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
+	  acouIntensity_->Init();
+	}
+	else {
+          (*warning) << "Acoustic power computation just supported for harmonic analysis.\n";
+	  Warning( __FILE__, __LINE__ );
+        }
+      } 
+      
     }
     if ( formulation_==ACOU_POTENTIAL ) {
 

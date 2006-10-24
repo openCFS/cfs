@@ -117,6 +117,11 @@ namespace CoupledField {
     /// writes definition of loads
     void WriteLoad( const std::string& pdeName, LoadList& list );
     
+    /// writes acoustic power 
+    template <class TYPE>
+    void WriteAcouPower(std::string pdename, 
+				 StdVector<std::string> & subdoms,
+				 Vector<TYPE>& power);
 
     /// write Result values
     void WriteResult(std::string pdename, std::string resulttype,
