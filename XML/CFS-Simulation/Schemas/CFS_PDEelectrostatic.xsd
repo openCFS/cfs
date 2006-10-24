@@ -184,7 +184,6 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecFieldIntensity"/>
       <xsd:enumeration value="elecEnergy"/>
-      <xsd:enumeration value="elecCharge"/>
     </xsd:restriction>
   </xsd:simpleType>
 
