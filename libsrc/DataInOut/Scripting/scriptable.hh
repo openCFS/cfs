@@ -170,7 +170,7 @@ namespace CoupledField
 
 #define DEFINE_PARAM(TYPE_ENUM, TYPE)                                   \
     private:                                                            \
-    std::map<std::string, TYPE> TYPE_ENUM ## pool_;                     \
+    std::map<std::string, TYPE > TYPE_ENUM ## pool_;                    \
   public:                                                               \
         void SetParam( const std::string key, TYPE & param ) {          \
           if ( paramMap_.find(key) == paramMap_.end() ) {               \
@@ -183,7 +183,7 @@ namespace CoupledField
             (*error) << "Parameter '" << key << "' is not registered!"; \
             Error( __FILE__, __LINE__ );                                \
           }                                                             \
-          std::map<std::string, TYPE>::const_iterator it;               \
+          std::map<std::string, TYPE >::const_iterator it;              \
           it = TYPE_ENUM ## pool_.find(key);                            \
           if ( it ==  TYPE_ENUM ## pool_.end() ) {                      \
             (*error) << "Parameter '" << key << "' is not set!";        \
