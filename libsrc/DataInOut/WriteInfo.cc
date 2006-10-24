@@ -17,7 +17,7 @@
 #endif
 #include "Utils/vector.hh"
 
-#ifdef USE_SCRIPTING
+#ifdef USE_SCRIPTING 
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
@@ -428,6 +428,24 @@ namespace CoupledField {
     *cfsInfo << std::endl << myEndl;
   }
 
+  template <class TYPE>
+  void WriteInfo:: WriteAcouPower(std::string pdename, 
+					   StdVector<std::string> & subdoms,
+					   Vector<TYPE>& power)
+  {
+    ENTER_FCN( "WriteInfo::WriteAcouIntensityPower" );
+ 
+    if (cfsInfo) {
+      *cfsInfo << std::endl << " PostProcessing Result for PDE " << pdename
+               << ": " << " ==========" << std::endl;
+      *cfsInfo << "   Acoustic Power: \n";
+      for ( UInt i = 0; i < subdoms.GetSize(); i++ ) {
+        *cfsInfo << "    Subdomain: " <<  subdoms[i] << " : " <<  power[i] 
+		 << " W" << std::endl;
+      }
+    }
+  }
+
 
   void WriteInfo::PrintVec(Vector<Complex>& vec)
   {
@@ -497,8 +515,8 @@ namespace CoupledField {
 #ifdef INTEGLIB
     std::cerr << "INTEGLIB WARNING: " << Text << std::endl;
 #else
-#ifdef USE_SCRIPTING
-    if ( messenger != NULL && messenger->IsEvaluating() ) {
+#ifdef TCL_INTERFACE
+    if ( messenger->IsEvaluating() ) {
       messenger->Warning( Text.c_str(), filename, numline );
     }
 #endif
@@ -557,8 +575,8 @@ namespace CoupledField {
 #ifdef INTEGLIB
     std::cerr << "INTEGLIB ERROR: " << Text << std::endl;
 #else
-#ifdef USE_SCRIPTING
-    if ( messenger != NULL && messenger->IsEvaluating() ) {
+#ifdef TCL_INTERFACE
+    if ( messenger->IsEvaluating() ) {
       messenger->Error( Text.c_str(), filename, numline );
     }
 #endif
@@ -922,5 +940,16 @@ namespace CoupledField {
     progressRunning_ = false;
   }
 
-  
+  // explicit template instantiation for GCC compiler
+#ifdef __GNUC__
+  template
+  void  WriteInfo::WriteAcouPower<Double>(std::string pdename, 
+						   StdVector<std::string> & subdoms,
+						   Vector<Double>& power);
+  template 
+  void  WriteInfo::WriteAcouPower<Complex>(std::string pdename, 
+						    StdVector<std::string> & subdoms,
+						    Vector<Complex>& power);
+#endif
+
 }

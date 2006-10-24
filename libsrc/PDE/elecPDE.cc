@@ -761,7 +761,7 @@ namespace CoupledField {
           // the charges
           elemNormalD = 0.0;
           for ( UInt iComp = 0; iComp < normal.GetSize(); iComp++ ) {
-            elemNormalD =  elemDField[iComp] * normal[iComp];
+            elemNormalD +=  elemDField[iComp] * normal[iComp];
           }
           
           chargeOp->CalcElemCharge(charge, surfElems[iElem], 

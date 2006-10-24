@@ -523,6 +523,10 @@ namespace CoupledField {
       out = ACOU_PRESSUREXYZ;
     else if (in == "acouPowerDensity")
       out = ACOU_POWERDENSITY;
+    else if (in == "acouPower")
+      out = ACOU_POWER;
+    else if (in == "acouIntensity")
+      out = ACOU_INTENSITY;
       
     //magnetics
     else if (in == "magPotential")
@@ -671,6 +675,12 @@ namespace CoupledField {
       case ACOU_POWERDENSITY:
         out = "acouPowerDensity";
         break;
+      case ACOU_POWER:
+        out = "acouPower";
+        break;
+      case ACOU_INTENSITY:
+        out = "acouIntensity";
+        break;
  
         //magnetics  
       case MAG_POTENTIAL:
@@ -817,6 +827,7 @@ namespace CoupledField {
   void Enum2String<FreqSamplingType>( const FreqSamplingType &in,
                                       std::string &out ) {
 
+    std::cout << "is " << in << std::endl;
     switch( in ) {
 
     case NO_SAMPLING_TYPE:
