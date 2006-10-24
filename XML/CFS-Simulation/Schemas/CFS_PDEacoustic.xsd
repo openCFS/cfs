@@ -474,6 +474,12 @@
       default=""/>
   </xsd:complexType>  
 
+  <!-- Element type for computing of acoustic power -->
+  <xsd:complexType name="DT_PowerAcou">
+    <xsd:attribute name="region" type="xsd:token" use="required" />
+    <xsd:attribute name="element" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
   <!-- Global type for specifying the desired acoustic output quantities -->
   <xsd:complexType name="DT_AcousticStoreResults">
     <xsd:sequence>
@@ -487,6 +493,8 @@
         minOccurs="0" maxOccurs="unbounded"/>
       <xsd:element name="elemHistory" type="DT_AcousticElemHistory"
         minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="acouIntensityPower" type="DT_PowerAcou" minOccurs="0"
+        maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
 
