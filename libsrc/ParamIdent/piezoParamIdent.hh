@@ -58,7 +58,11 @@ namespace CoupledField
 
     std::ifstream * allMeasuredData; 
 
-    std::ifstream * mess;
+    // ! input of impedance measurements
+    std::ifstream inMess_;
+
+    // ! input of mechanical measurements
+    std::ifstream inMechMess_;
 
     //! output file, simulated impedance curve
     std::ofstream * impedCurve;
@@ -165,7 +169,7 @@ namespace CoupledField
                           Double & voltage, UInt & nrMeasuredData, Double & thickness, Double & radius, Double & delta);
 
     //! reads whole set of measured data
-    void readInMeasurement(Vector<Double> & frequencies);
+    void readInMeasurement(Vector<Double> & frequencies,Vector<Double> & frequenciesMech);
 
     //! updates the piezoMatrix in MaterialData parameter = 
     //! \f$(c_11, c_33, c_12, c_13, c_44, e_15, e_31, e_33, eps_11, eps_33)\f$
@@ -347,10 +351,14 @@ namespace CoupledField
 
 
     Vector<Double> freqs_;
+    Vector<Double> freqsElec_;
+    Vector<Double> freqsMech_;
+
     Vector<Double> real_, imag_;
     Vector<Complex> amplitude_phase;
     Vector<Complex> F_hat_;
     Vector<Complex> y_hat_;
+    Matrix<Complex> mechDisplMess_;
 
     Vector<Double> bas;
     Vector<Complex> basC;
@@ -371,7 +379,11 @@ namespace CoupledField
 
     Integer whichNormCriteria_;
 
+    UInt numMechMeasurements_;
+
     UInt nrMeasuredData;
+    UInt nrMeasuredDataMech_;
+    UInt nrMeasuredDataElec_;
     UInt nrParameter_;
     UInt actNrParameter;
     UInt actNrParameterC;

@@ -31,7 +31,7 @@ namespace CoupledField
     y_hat_.Init();
 
     Vector<Complex> rand(nrMeasuredData);
-    for (UInt i=0; i<nrMeasuredData; i++){
+    for (UInt i=0; i<nrMeasuredDataElec_; i++){
       x=absZ[i]*cos(PI/180*phi[i]);
       y=absZ[i]*sin(PI/180*phi[i]);
       Z=Complex(x,y);
@@ -42,13 +42,41 @@ namespace CoupledField
         y_hat_[i]=sign_*voltage_/(2.0*PI*std::log(Z)*freqs_[i]*j);
       
       else if(whichNormCriteria_==2)
-        y_hat_[i]=std::log(std::abs(Z));      // or log imedance ...
+        y_hat_[i]=std::log(std::abs(Z));      // or log abs |imedance ...|
 
+      else if(whichNormCriteria_==3)
+        y_hat_[i]=Z;      // or  imedance ...
 
+      else if(whichNormCriteria_==4)
+        y_hat_[i]=std::log(Z);      // or log imedance ...
 
     }
+
+    for (UInt i=0; i<nrMeasuredDataMech_; i++)
+      for (UInt j=0; j<numMechMeasurements_; j++) {
+        //         y_hat[i+nrMeasuredDataElec_] =
+        //           Complex(abs(mechDisplMess_[i][j].real())*cos(PI/180*mechDisplMess_[i][j].imag()),
+        //                   abs(mechDisplMess_[i][j].real())*sin(PI/180*mechDisplMess_[i][j].imag())  );
+
+        if (whichNormCriteria_==1)
+          y_hat[i+nrMeasuredDataElec_]=Complex(mechDisplMess_[i][j].real()*std::cos(-mechDisplMess_[i][j].imag()), 
+                                               mechDisplMess_[i][j].real()*std::sin(-mechDisplMess_[i][j].imag()));
+
+        // y_hat[i+nrMeasuredDataElec_]=std::abs(mechDisplMess_[i][j].real());
+        
+        if (whichNormCriteria_==3)
+          y_hat[i+nrMeasuredDataElec_]=Complex(mechDisplMess_[i][j].real()*std::cos(-mechDisplMess_[i][j].imag()), 
+                                               mechDisplMess_[i][j].real()*std::sin(-mechDisplMess_[i][j].imag()));
+       
+        if (whichNormCriteria_==4)
+
+          y_hat[i+nrMeasuredDataElec_]=std::log(Complex(mechDisplMess_[i][j].real()*std::cos(-mechDisplMess_[i][j].imag()), 
+                                                        mechDisplMess_[i][j].real()*std::sin(-mechDisplMess_[i][j].imag())));
+        //          y_hat[i+nrMeasuredDataElec_]=log(mechDisplMess_[i][j].real());
+      }
+
    
-    if (true){ // generates synthetically created radom noise
+    if (false){ // generates synthetically created radom noise
       for (UInt i=0;i<nrMeasuredData;i++){
         rand[i] = Complex(2.0*Double(std::rand())/RAND_MAX-1);
         if (randFactor<std::abs(rand[i]))
@@ -98,6 +126,7 @@ namespace CoupledField
 
     std::cout<<"++ Starting to compute impedance curve with " << freqs_.GetSize()  <<" steps " <<std::endl;
     std::cout<<"++ Results are written in file imped.dat " <<std::endl;
+
      
     updateMaterialData(parameter_);
     if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) )
@@ -108,20 +137,15 @@ namespace CoupledField
     Integer freqAtMaxImpedance=0;
     Integer freqAtMinImpedance=0;
 
-
     for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) { 
           
       ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
 
-      //    ptAssemble_->SetReassemble();
-
-
       // Set curent frequency value in the mathParser
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "f", actFreq_ );
-
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep); 
       ptPDE_->GetSolveStep()->PreStepHarmonic(); 
@@ -130,13 +154,12 @@ namespace CoupledField
       ptPDE_->PostProcess();   
       
       Vector<Complex> chargeVec;
-  
       chargeVec = ptPDE1_->getPDE_complexValuedCharge(); 
-        
+     
       Complex charge=Complex(0.0,0.0);
 	
       for (UInt i=0;i<chargeVec.GetSize();i++){
-       charge+=chargeVec[i];
+        charge+=chargeVec[i];
       }
 
 
@@ -150,12 +173,12 @@ namespace CoupledField
     
       Double imped, phase;
       Complex impedC;
+
 	
       Complex im=Complex(0.0,1);
       impedC=voltage_/(2.0*PI*charge*freqs_[fstep]*im);
       imped = std::abs(voltage_/(2.0*PI*charge*freqs_[fstep]*im)); 
-
-      
+  
       phase = 180.0/PI * (std::atan2(impedC.imag(), impedC.real()));
 
       std::cout << fstep <<");\t Frequency: " << freqs_[fstep] << ";\t Impedance: "<< imped
@@ -166,8 +189,7 @@ namespace CoupledField
                   << "  " << charge.imag()<< std::endl;
 
       // output should by in fixed point numbers,
-      // i.e. 100.23 instead of 1.0023e+2
-      
+      // i.e. 100.23 instead of 1.0023e+2   
       synMess->setf(std::ios::fixed);
       *synMess <<freqs_[fstep]<<"\t"<<imped<<"\t"<<phase<<"\t"<<fstep<<std::endl;
 
@@ -183,6 +205,89 @@ namespace CoupledField
         resonanceFrequency_=freqs_[fstep];
       }
 
+
+      //compute mechanical displacement at nodes specified in xml - Scheme
+
+      BaseNodeStoreSol * ptSol;
+      ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !      
+      NodeStoreSol<Complex> * ptNodeStoreSol;
+      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);           
+      ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);      
+      Vector<Complex> nodeSol;
+      Vector<Complex> nodeResult(6);
+      
+      StdVector<std::string> keyVec, attrVec, valVec;
+      attrVec = "tag";
+      valVec = "paramIdent";
+      UInt node0, node1, node2, node3, node4, node5;
+      Vector<UInt> dof(6);
+      dof.Init();
+
+      keyVec = "paramIdent", "mechDisplAtNode0";
+      params->Get( keyVec, attrVec, valVec, node0 );      
+      keyVec = "paramIdent", "mechDisplAtNode1";
+      params->Get( keyVec, attrVec, valVec, node1 );
+      keyVec = "paramIdent", "mechDisplAtNode2";
+      params->Get( keyVec, attrVec, valVec, node2 );
+      keyVec = "paramIdent", "mechDisplAtNode3";
+      params->Get( keyVec, attrVec, valVec, node3 );
+      keyVec = "paramIdent", "mechDisplAtNode4";
+      params->Get( keyVec, attrVec, valVec, node4 );
+      keyVec = "paramIdent", "mechDisplAtNode5";
+      params->Get( keyVec, attrVec, valVec, node5 );
+
+      keyVec= "paramIdent", "dofOfMechDispl0";
+      params->Get(keyVec, attrVec, valVec, dof[0]);
+      keyVec= "paramIdent", "dofOfMechDispl1";
+      params->Get(keyVec, attrVec, valVec, dof[1]);
+      keyVec= "paramIdent", "dofOfMechDispl2";
+      params->Get(keyVec, attrVec, valVec, dof[2]);
+      keyVec= "paramIdent", "dofOfMechDispl3";
+      params->Get(keyVec, attrVec, valVec, dof[3]);
+      keyVec= "paramIdent", "dofOfMechDispl4";
+      params->Get(keyVec, attrVec, valVec, dof[4]);
+      keyVec= "paramIdent", "dofOfMechDispl5";
+      params->Get(keyVec, attrVec, valVec, dof[5]);
+      
+      ptNodeStoreSol->Get(node0,dof[0],nodeResult[0]);	
+      ptNodeStoreSol->Get(node1,dof[1],nodeResult[1]);	
+      ptNodeStoreSol->Get(node2,dof[2],nodeResult[2]);	
+      ptNodeStoreSol->Get(node3,dof[3],nodeResult[3]);	
+      ptNodeStoreSol->Get(node4,dof[4],nodeResult[4]);	
+      ptNodeStoreSol->Get(node5,dof[5],nodeResult[5]);	
+
+      //   std::cout<<"nodeResult"<<std::endl;      
+
+      //       std::cout<<numMechMeasurements_<<std::endl;
+      
+      //      mechDispl->setf(std::ios::fixed);
+      *mechDispl<<freqs_[fstep];
+      //      for(UInt imech=0;imech<numMechMeasurements_;imech++){
+      //        *mechDispl<<" "<<std::abs(nodeResult[imech]);
+
+      //  for(UInt imech=0;imech<numMechMeasurements_;imech+=2)
+      //        F_hat_[fstep+nrMeasuredDataElec_]+=std::abs(nodeResult[imech]);
+
+      UInt imech=0;
+      // Betrag und phase sollen ausgegeben werden:
+
+      Complex z = nodeResult[imech]+nodeResult[imech+1];
+      Complex zz = nodeResult[imech]-nodeResult[imech+1];
+      //       *mechDispl<<"\t"<<std::abs(z)<<"\t"
+      //                 <<std::atan2(z.imag(),z.real() ) ;
+
+      //       *mechDispl<<"\t"<< std::abs(nodeResult[imech]) <<"\t"<< std::abs(nodeResult[imech+1]) << "\t" << std::abs(z) << "\t" << std::abs(zz);
+      //       *mechDispl<<"\t" << std::atan2(nodeResult[imech].imag(),nodeResult[imech].real())<< "\t" << std::atan2(nodeResult[imech+1].imag(),nodeResult[imech+1].real());
+
+      *mechDispl<<"\t"<<  std::abs(z) << "\t" << std::abs(zz);
+      *mechDispl<<"\t" << std::atan2(z.imag(),z.real())<< "\t" << std::atan2(zz.imag(),zz.real());
+
+      //*mechDispl<<"\t"<<nodeResult[imech].real()+node<<"\t"<<nodeResult[imech].imag();
+      //        st::cout<<std::abs(nodeResult[imech])<<std::endl;
+    
+      *mechDispl<<std::endl;
+           
+      
     } //  end loop over freqs
 
     std::cout<<"++ Resonance lies at " << resonanceFrequency_ 
@@ -199,80 +304,81 @@ namespace CoupledField
 
     
       
-      ptAssemble_ = ptPDE1_->getPDE_assemble(); // Vector wich contains charges for each element !
+    ptAssemble_ = ptPDE1_->getPDE_assemble(); // Vector wich contains charges for each element !
       
-      updateMaterialData(parameter_);
-      updateComplexMaterialData(parameterC_);
+    updateMaterialData(parameter_);
+    updateComplexMaterialData(parameterC_);
       
-      for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) {       
+    for (UInt fstep = 0; fstep < freqs_.GetSize(); fstep++) {       
         
-        ////////////////////////////////////////////////////////
-        //                   SOLVES PDE                      //
-        ///////////////////////////////////////////////////////  
+      ////////////////////////////////////////////////////////
+      //                   SOLVES PDE                      //
+      ///////////////////////////////////////////////////////  
 
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "f", actFreq_ );
         
-        ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
-        ptPDE_->GetSolveStep()->SetActStep(fstep); 
-        ptPDE_->GetSolveStep()->PreStepHarmonic();         
-        ptPDE_->GetSolveStep()->SolveStepHarmonic();        
-        ptPDE_->GetSolveStep()->PostStepHarmonic();
-        ptPDE_->PostProcess();   
+      ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
+      ptPDE_->GetSolveStep()->SetActStep(fstep); 
+      ptPDE_->GetSolveStep()->PreStepHarmonic();         
+      ptPDE_->GetSolveStep()->SolveStepHarmonic();        
+      ptPDE_->GetSolveStep()->PostStepHarmonic();
+      ptPDE_->PostProcess();   
         
-        //ptMyPDE_->WriteResultsInFile();
+      //ptMyPDE_->WriteResultsInFile();
         
-        BaseNodeStoreSol * ptSol;
+      BaseNodeStoreSol * ptSol;
        
-        ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !
+      ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !
        
 
-        NodeStoreSol<Complex> * ptNodeStoreSol;
-        ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
+      NodeStoreSol<Complex> * ptNodeStoreSol;
+      ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);     
         
-                //      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot_);
-        ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);
+      //      ptNodeStoreSol->GetGlobalSolVector(ELEC_POTENTIAL, solElecPot_);
+      ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);
         
-        Vector<Complex> nodeSol;
-        Vector<Complex> nodeResult(12);
+      Vector<Complex> nodeSol;
+      Vector<Complex> nodeResult(12);
         
-        StdVector<std::string> keyVec, attrVec, valVec;
-        attrVec = "tag";
-        valVec = "paramIdent";
-        UInt node1, node2, node3, node4;
+      StdVector<std::string> keyVec, attrVec, valVec;
+      attrVec = "tag";
+      valVec = "paramIdent";
+      UInt node1, node2, node3, node4;
         
-        keyVec = "paramIdent", "mechDisplAtNode1";
-        params->Get( keyVec, attrVec, valVec, node1 );
-        keyVec = "paramIdent", "mechDisplAtNode2";
-        params->Get( keyVec, attrVec, valVec, node2 );
-        keyVec = "paramIdent", "mechDisplAtNode3";
-        params->Get( keyVec, attrVec, valVec, node3 );
-        keyVec = "paramIdent", "mechDisplAtNode4";
-        params->Get( keyVec, attrVec, valVec, node4 );
+      keyVec = "paramIdent", "mechDisplAtNode1";
+      params->Get( keyVec, attrVec, valVec, node1 );
+      keyVec = "paramIdent", "mechDisplAtNode2";
+      params->Get( keyVec, attrVec, valVec, node2 );
+      keyVec = "paramIdent", "mechDisplAtNode3";
+      params->Get( keyVec, attrVec, valVec, node3 );
+      keyVec = "paramIdent", "mechDisplAtNode4";
+      params->Get( keyVec, attrVec, valVec, node4 );
         
-        ptNodeStoreSol->Get(node1,1,nodeResult[0]);	
-        ptNodeStoreSol->Get(node1,2,nodeResult[1]);	
-        ptNodeStoreSol->Get(node1,3,nodeResult[2]);	
-        ptNodeStoreSol->Get(node2,1,nodeResult[3]);	
-        ptNodeStoreSol->Get(node2,2,nodeResult[4]);	
-        ptNodeStoreSol->Get(node2,3,nodeResult[5]);	
-        ptNodeStoreSol->Get(node3,1,nodeResult[6]);	
-        ptNodeStoreSol->Get(node3,2,nodeResult[7]);	
-        ptNodeStoreSol->Get(node3,3,nodeResult[8]);	
-        ptNodeStoreSol->Get(node4,1,nodeResult[9]);	
-        ptNodeStoreSol->Get(node4,2,nodeResult[10]);	
-        ptNodeStoreSol->Get(node4,3,nodeResult[11]);	
+      ptNodeStoreSol->Get(node1,1,nodeResult[0]);	
+      ptNodeStoreSol->Get(node1,2,nodeResult[1]);	
+      ptNodeStoreSol->Get(node1,3,nodeResult[2]);	
+      ptNodeStoreSol->Get(node2,1,nodeResult[3]);	
+      ptNodeStoreSol->Get(node2,2,nodeResult[4]);	
+      ptNodeStoreSol->Get(node2,3,nodeResult[5]);	
+      ptNodeStoreSol->Get(node3,1,nodeResult[6]);	
+      ptNodeStoreSol->Get(node3,2,nodeResult[7]);	
+      ptNodeStoreSol->Get(node3,3,nodeResult[8]);	
+      ptNodeStoreSol->Get(node4,1,nodeResult[9]);	
+      ptNodeStoreSol->Get(node4,2,nodeResult[10]);	
+      ptNodeStoreSol->Get(node4,3,nodeResult[11]);	
 
-        std::cout<<"Mechanical displacement al selected nodes at frequency "
-                 <<freqs_[fstep]<< std::endl;   
+      std::cout<<"Mechanical displacement al selected nodes at frequency "
+               <<freqs_[fstep]<< std::endl;   
 
-        *mechDispl<<freqs_[fstep];
-        for(UInt imech=0;imech<nodeResult.GetSize();imech++)
-          *mechDispl<<"  "<<nodeResult[imech].real();
-        *mechDispl<<std::endl;
+      *mechDispl<<freqs_[fstep];
+      for(UInt imech=0;imech<nodeResult.GetSize();imech++)
+        *mechDispl<<", "<<nodeResult[imech].real();
+      *mechDispl<<std::endl;
 
-      } //  end loop over freqs
+    } //  end loop over freqs
   }
+
 
 
   void piezoParamIdent::createF(Vector<Complex> & F_hat_, bool typeOut){
@@ -281,18 +387,17 @@ namespace CoupledField
 
     F_hat_.Resize(nrMeasuredData);
     F_hat_.Init();
-
            
-    for (UInt fstep = 0; fstep < nrMeasuredData; fstep++) { 
+    for (UInt fstep = 0; fstep < nrMeasuredDataElec_; fstep++) { 
 
-          ////////////////////////////////////////////////////////
+      ////////////////////////////////////////////////////////
       //                   SOLVES PDE                      //
       ///////////////////////////////////////////////////////  
 
 
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "f", actFreq_ );
-      ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
+      ptPDE_->GetSolveStep()->SetActFreq(freqsElec_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep);       
       ptPDE_->GetSolveStep()->PreStepHarmonic(); 
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
@@ -330,10 +435,115 @@ namespace CoupledField
         else  if (whichNormCriteria_==2)         // logarithmic value of impedance
           F_hat_[fstep]=std::log(std::abs(voltage_/(2*PI*charge*freqs_[fstep]*im)));
 
-        //calcAbsImped(charge, freqs_[fstep], fstep,typeOut);   // calculates |Z| and writes results in File
+        else if (whichNormCriteria_==3)
+          F_hat_[fstep]=voltage_/(2*PI*charge*freqs_[fstep]*im);
+
+        else if (whichNormCriteria_==4)
+          F_hat_[fstep]=std::log(voltage_/(2*PI*charge*freqs_[fstep]*im));
+          
 
     } // end of loop over all frequencies
 
+
+    for (UInt fstep = 0; fstep < nrMeasuredDataMech_; fstep++) { 
+
+      ////////////////////////////////////////////////////////
+      //                   SOLVES PDE                      //
+      ///////////////////////////////////////////////////////  
+
+
+      domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                         "f", actFreq_ );
+      ptPDE_->GetSolveStep()->SetActFreq(freqsMech_[fstep]); 
+      ptPDE_->GetSolveStep()->SetActStep(fstep);       
+      ptPDE_->GetSolveStep()->PreStepHarmonic(); 
+      ptPDE_->GetSolveStep()->SolveStepHarmonic();
+      ptPDE_->GetSolveStep()->PostStepHarmonic();
+      ptPDE_->PostProcess();
+
+
+      //////////////////////////////////////////////////////////
+      //Retrieves & stores Solution for further calculations  //
+      /////////////////////////////////////////////////////////
+
+
+        // write mechanical deformation at second part of F_hat:
+        BaseNodeStoreSol * ptSol;
+        ptSol = ptPDE1_->getPDESolution(); // Vector wich contains charges for each element !      
+        NodeStoreSol<Complex> * ptNodeStoreSol;
+        ptNodeStoreSol = dynamic_cast<NodeStoreSol<Complex>*>(ptSol);           
+        ptNodeStoreSol->GetGlobalSolVector(MECH_DISPLACEMENT, solMechDispl_);      
+        Vector<Complex> nodeSol;
+        Vector<Complex> nodeResult(6);
+      
+        StdVector<std::string> keyVec, attrVec, valVec;
+        attrVec = "tag";
+        valVec = "paramIdent";
+        UInt node0, node1, node2, node3, node4, node5;
+        Vector<UInt> dof(6);
+        dof.Init();
+      
+        keyVec = "paramIdent", "mechDisplAtNode0";
+        params->Get( keyVec, attrVec, valVec, node0 );      
+        keyVec = "paramIdent", "mechDisplAtNode1";
+        params->Get( keyVec, attrVec, valVec, node1 );
+        keyVec = "paramIdent", "mechDisplAtNode2";
+        params->Get( keyVec, attrVec, valVec, node2 );
+        keyVec = "paramIdent", "mechDisplAtNode3";
+        params->Get( keyVec, attrVec, valVec, node3 );
+        keyVec = "paramIdent", "mechDisplAtNode4";
+        params->Get( keyVec, attrVec, valVec, node4 );
+        keyVec = "paramIdent", "mechDisplAtNode5";
+        params->Get( keyVec, attrVec, valVec, node5 );
+      
+        keyVec= "paramIdent", "dofOfMechDispl0";
+        params->Get(keyVec, attrVec, valVec, dof[0]);
+        keyVec= "paramIdent", "dofOfMechDispl1";
+        params->Get(keyVec, attrVec, valVec, dof[1]);
+        keyVec= "paramIdent", "dofOfMechDispl2";
+        params->Get(keyVec, attrVec, valVec, dof[2]);
+        keyVec= "paramIdent", "dofOfMechDispl3";
+        params->Get(keyVec, attrVec, valVec, dof[3]);
+        keyVec= "paramIdent", "dofOfMechDispl4";
+        params->Get(keyVec, attrVec, valVec, dof[4]);
+        keyVec= "paramIdent", "dofOfMechDispl5";
+        params->Get(keyVec, attrVec, valVec, dof[5]);
+      
+        ptNodeStoreSol->Get(node0,dof[0],nodeResult[0]);	
+        ptNodeStoreSol->Get(node1,dof[1],nodeResult[1]);	
+        ptNodeStoreSol->Get(node2,dof[2],nodeResult[2]);	
+        ptNodeStoreSol->Get(node3,dof[3],nodeResult[3]);	
+        ptNodeStoreSol->Get(node4,dof[4],nodeResult[4]);	
+        ptNodeStoreSol->Get(node5,dof[5],nodeResult[5]);	
+      
+        //         std::cout<<"Mechanical displacement al selected nodes at frequency "
+        //                  <<freqs_[fstep]<< std::endl;   
+      
+        Complex z;
+        UInt imech=0;
+        //      for(UInt imech=0;imech<numMechMeasurements_;imech+=2)
+        //        F_hat_[fstep+nrMeasuredDataElec_]+=std::abs(nodeResult[imech]);
+        z=(nodeResult[imech]+nodeResult[imech+1]);
+
+        if (whichNormCriteria_==1)
+          F_hat_[fstep+nrMeasuredDataElec_]=Complex(std::abs(z.real()),0.0);
+      
+        if (whichNormCriteria_==2)
+          F_hat_[fstep+nrMeasuredDataElec_]=Complex(log(std::abs(z.real())),0.0);
+      
+        if (whichNormCriteria_==3)
+          F_hat_[fstep+nrMeasuredDataElec_]=z;
+
+        //Complex(z.real()*std::cos(z.imag()), 
+        //                                            z.real()*std::sin(z.imag()));
+        //        F_hat_[fstep+nrMeasuredDataElec_]=Complex(std::abs(z.real()),0.0);
+
+        if (whichNormCriteria_==4)
+          F_hat_[fstep+nrMeasuredDataElec_]=log(z);
+        //        F_hat_[fstep+nrMeasuredDataElec_]=Complex(log(std::abs(z.real())),0.0);
+        //   F_hat_[fstep+nrMeasuredDataElec_]=Complex(abs(z.real()), z.imag());
+        // Complex(std::abs(z), std::atan2(z.imag(),z.real()));
+    }
 
     if (typeOut==true){
       for (UInt i=0;i<F_hat_.GetSize();i++)
@@ -792,6 +1002,10 @@ namespace CoupledField
     ENTER_FCN( "piezoParamIdent::readMeasuredData" );
     char mDataRow[1024], helpChar[64];
     UInt i=0, j=0, k=0;
+    //Initialize helpChar
+    for (UInt ii=0;ii<64;ii++)
+      helpChar[ii]=0;
+    
     while(allMeasuredData->getline(mDataRow, 1024)){
       if (mDataRow[0]=='1')
         {i=2;
@@ -809,7 +1023,7 @@ namespace CoupledField
               j++; i++; k=0;
             }
           }
-          nrMeasuredData = j;
+          nrMeasuredDataElec_ = j;
         }
       else if (mDataRow[0]=='2'){
         i=2;j=0;k=0;
@@ -821,12 +1035,13 @@ namespace CoupledField
             k++; i++;
           }
           else{
-            real_[j]=atof(helpChar);
+            freqsMech_[j]=atof(helpChar);
             for(UInt l=0;l<=k;l++)
               helpChar[l]=0;
             j++; i++; k=0;
           }
         }
+        nrMeasuredDataMech_=j;
       }
       else if (mDataRow[0]=='3'){
         i=2; k=0; j=0;
@@ -1012,83 +1227,106 @@ namespace CoupledField
       }
     }
 
-    if (whichNormCriteria_!=1 && whichNormCriteria_!=2){
+    if (whichNormCriteria_!=1 && whichNormCriteria_!=2 
+        && whichNormCriteria_ != 3  && whichNormCriteria_ != 4 ){
       std::cout<<" Check your norm criteria selected in measuredData.dat!!" <<std::endl;
-      std::cout<<" It is at point 6) and should be 1 for log(q) and 2 for log(Z)" <<std::endl;
+      std::cout<<" It is at point 6) and should be 1 for log(q) and 2 for log(|Z|)" <<std::endl;
+      std::cout<< "3 for Z and 4 for log(Z)" <<std::endl;
       std::cout<<"Now it is " << whichNormCriteria_<<std::endl;
       getchar();
     }
+
+    std::cout<<"readMeasuredData - nrMeasuredDataElec = " <<  nrMeasuredDataElec_ <<std::endl;
+    std::cout<<"readMeasuredData - nrMeasuredDataElec = " <<  nrMeasuredDataMech_ <<std::endl;
   } // end read MeasuredData
 
 
- void piezoParamIdent::readInMeasurement(Vector<Double> & frequencies){
+  void piezoParamIdent::readInMeasurement(Vector<Double> & frequenciesElec, Vector<Double> & frequenciesMech){
 
     ENTER_FCN("piezoParamIdent::readInMeasurement");
 
     std::cout<<"++ Open and read file mess.dat ... " <<std::endl;    
 
-    frequencies.Resize(nrMeasuredData);
-    frequencies.Init();
-    real_.Resize(nrMeasuredData);
+    frequenciesElec.Resize(nrMeasuredDataElec_);
+    frequenciesElec.Init();
+    real_.Resize(nrMeasuredDataElec_);
     real_.Init();
-    imag_.Resize(nrMeasuredData);
+    imag_.Resize(nrMeasuredDataElec_);
     imag_.Init();
 
-    //! input file, reads set of measurements, frequencies, re(Z), im(z)
-    std::ifstream * mess; 
-    Char* messChar="mess.dat";
-    mess = new std::ifstream(messChar, std::basic_ios<char>::in);
 
-    if (!mess){
-      std::cerr << "\n File mess.dat does not exist!" << std::endl;
-    }
-
-    std::cout<<"++ Found file mess.dat  ... " <<std::endl;  
-      
-    char mDataRow[512], helpChar[64];
-    UInt i=0, j=0;
     Double newFreq, amplitude, phase;
 
-    while(mess->getline(mDataRow, 512)){
-      //      std::cout<<mDataRow<<std::endl;
-      i=0;j=0;
-      while (mDataRow[i]!='\t'){
-        helpChar[j]=mDataRow[i];
-        i++;j++;
-      }// end while madataRow
-      newFreq=atof(helpChar);
-      i++;
-      j=0;
-      for(UInt k=0;k<i;k++) // Delete content of helpChar
-        helpChar[k]='0';
+    inMess_.open("mess.dat");
+    std::string line;
 
-      while (mDataRow[i]!='\t'){
-        helpChar[j]=mDataRow[i];
-        i++;j++;
-      }// end while mdataRow
-      amplitude=atof(helpChar);
-      i++;
-      j=0;
-      for(UInt k=0;k<i;k++) // Delete content of helpChar
-        helpChar[k]='0';
-      while (mDataRow[i]!='\n'){
-        helpChar[j]=mDataRow[i];
-        i++;j++;
-      }// end while mdataRow
-      phase=atof(helpChar);
-    
-      for(UInt mInd=0;mInd<nrMeasuredData;mInd++){
-        if(std::abs(freqs_[mInd]-newFreq)<std::abs(freqs_[mInd]-frequencies[mInd])){
-          frequencies[mInd]=newFreq;
+    while (!inMess_.eof()){
+      std::getline(inMess_, line,'\n');
+      
+      inMess_ >> newFreq >> amplitude >> phase;
+      
+      for(UInt mInd=0;mInd<nrMeasuredDataElec_;mInd++){
+        if(std::abs(freqs_[mInd]-newFreq)<std::abs(freqs_[mInd]-frequenciesElec[mInd])){
+          frequenciesElec[mInd]=newFreq;
           real_[mInd]=amplitude;
           imag_[mInd]=phase;
         }
       }
     }// end while mess
 
-    freqs_=frequencies;   
-    mess->close();
-    std::cout<<"++ Open and read of file mess.dat finished ... " <<std::endl;    
+  //   std::cout<<"frequenciesElec"<<std::endl;
+//     std::cout<<frequenciesElec<<std::endl;
+//     std::cout<<"real_"<<std::endl;
+//     std::cout<<real_<<std::endl;
+
+//     std::cout<<"imag_"<<std::endl;
+//     std::cout<<imag_<<std::endl;
+
+    // ####### READ IN MECHANICAL MEASUREMETS
+
+
+    Double absMech, phaseMech;
+    
+    freqsElec_=frequenciesElec;
+    freqs_=frequenciesElec; 
+
+    if (nrMeasuredDataMech_>0){
+      mechDisplMess_.Resize(nrMeasuredDataMech_,numMechMeasurements_);
+      mechDisplMess_.Init();
+    }
+
+    Vector<Double>mechDisplPerFreq(2*numMechMeasurements_);
+    mechDisplPerFreq.Init();
+
+    frequenciesMech.Resize(nrMeasuredDataMech_);
+    frequenciesMech.Init();
+
+    inMechMess_.open("messMech.dat");
+
+    while (nrMeasuredDataMech_>0&&!inMechMess_.eof()){
+      std::getline(inMechMess_, line,'\n');
+      
+      inMechMess_ >> newFreq >> absMech >> phaseMech;
+      
+      for(UInt mInd=0;mInd<nrMeasuredDataMech_;mInd++){
+        //      std::cout<<freqsMech_[mInd]<<std::endl;
+        //         std::cout<<"std::abs(freqsMech_[mInd]-newFreq)"<<std::endl;
+        //         std::cout<<std::abs(freqsMech_[mInd]-newFreq)<<std::endl;
+        //         getchar();
+        if(std::abs(freqsMech_[mInd]-newFreq)<std::abs(freqsMech_[mInd]-frequenciesMech[mInd])){
+          frequenciesMech[mInd]=newFreq;
+          mechDisplMess_[mInd][0]=Complex(absMech,phaseMech);
+        }
+      }
+    }
+   
+    
+    freqsMech_=frequenciesMech;
+    
+   //  std::cout<<"Mechanical measurements " <<std::endl;
+//     std::cout<<freqsMech_<<std::endl;
+//     std::cout<<mechDisplMess_<<std::endl;
+    
   }// end readInMeasurements
 
   

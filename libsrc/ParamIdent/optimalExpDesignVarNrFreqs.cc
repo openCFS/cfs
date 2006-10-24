@@ -28,6 +28,7 @@ namespace CoupledField
       params->Get(keyVec, attrVec, valVec, nrfreq_);
 
       Vector<Double> newFreqs;
+      Vector<Double> newFreqsMech;
 
       //      if (optExpVarFreqCout==0){
 
@@ -46,7 +47,7 @@ namespace CoupledField
           for (UInt actFreq=0;actFreq<nrfreq_;actFreq++)
             freqs_[actFreq] = startfreq_+actFreq*hOmega;
           std::cout<<"message 0 " <<std::endl;
-          readInMeasurement(newFreqs);  // get frequencies
+          readInMeasurement(newFreqs,newFreqsMech);  // get frequencies
           std::cout<<"message 1 " <<std::endl;
           calc_measuredCharge(freqs_, real_, imag_, y_hat_); // indispensable for calculation of conf intervals
           std::cout<<"message 2 " <<std::endl;
@@ -70,7 +71,7 @@ namespace CoupledField
           std::cout<<"message 0 " <<std::endl;
           for (UInt actFreq=0;actFreq<12;actFreq++)
             freqs_[actFreq] = startfreq_+actFreq*hOmega;
-          readInMeasurement(newFreqs);
+          readInMeasurement(newFreqs,newFreqsMech);
           std::cout<<"message 1 " <<std::endl;
           calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
           std::cout<<"message 2 " <<std::endl;
@@ -90,7 +91,7 @@ namespace CoupledField
           freqs_[actFreq] = startfreq_+actFreq*hOmega;
         
         std::cout<<"Until here " <<std::endl;
-        readInMeasurement(newFreqs);
+        readInMeasurement(newFreqs,newFreqsMech);
         std::cout<<"newFreqs:"<<std::endl;
         //        std::cout<<newFreqs<<std::endl;
         calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
@@ -364,7 +365,7 @@ namespace CoupledField
                  <<" frequencies and "<<actNrParameter+actNrParameterC
                  << " parameter! " << std::endl;
         
-        readInMeasurement(newFreqs);
+        readInMeasurement(newFreqs,newFreqsMech);
         std::cout<<newFreqs<<std::endl;
         
 //         for(UInt fr=0;fr<nrMeasuredData;fr++)

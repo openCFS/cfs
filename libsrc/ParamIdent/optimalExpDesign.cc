@@ -164,8 +164,9 @@ namespace CoupledField
       " frequencies and "<<actNrParameter+actNrParameterC <<
       " parameter_ ..." << std::endl;
     Vector<Double> newFreqs;
+    Vector<Double> newFreqsMech;
    
-    readInMeasurement(newFreqs);
+    readInMeasurement(newFreqs,newFreqsMech);
     //     newFreqs[0]=newFreqs[1];
     //     real_[0]=real_[1];
     //     imag_[0]=imag_[1];
@@ -218,7 +219,7 @@ namespace CoupledField
 
       descentMethod(functional);
 
-      readInMeasurement(newFreqs);
+      readInMeasurement(newFreqs,newFreqsMech);
 
       std::cout<<"++ Frequencies, just taken from mess.dat - file ... " <<std::endl;
       std::cout<<newFreqs<<std::endl;
@@ -285,6 +286,7 @@ namespace CoupledField
 
     nrMeasuredData=1;
     Vector<Double> newFreqs;
+    Vector<Double> newFreqsMech;
 
     Vector<Double> freqs2;
     freqs2.Resize(2);
@@ -349,7 +351,7 @@ namespace CoupledField
       else if(nrMeasuredData>7)
         break;
 
-      readInMeasurement(newFreqs);
+      readInMeasurement(newFreqs,newFreqsMech);
       
       calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements 
 

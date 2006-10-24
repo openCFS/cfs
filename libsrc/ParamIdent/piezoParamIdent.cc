@@ -49,10 +49,15 @@ namespace CoupledField
     StdVector<std::string> pdeList;
     params->GetPDEList( pdeList );
 
+    numMechMeasurements_=1;
+
     if (pdeList[0]=="piezo")
       directCoupling_=false;
     else 
       directCoupling_=true;
+
+
+    Info->StartProgress( "\n Opening in and output files ... " );
 
     std::string  filenameMeasuredData="measuredData.dat";
     allMeasuredData = new std::ifstream(filenameMeasuredData.c_str(), 
@@ -61,13 +66,17 @@ namespace CoupledField
       std::cerr << "\n File measuredData.dat does not exist!" << std::endl;
     }
 
-    filenameMeasuredData="mess.dat";
-    mess = new std::ifstream(filenameMeasuredData.c_str(), std::basic_ios<char>::in);
-    if (!mess){
-      std::cerr << "\n File mess.dat does not exist!" << std::endl;
-    }
+//     filenameMeasuredData="mess.dat";
+//     mess = new std::ifstream(filenameMeasuredData.c_str(), std::basic_ios<char>::in);
+//     if (!mess){
+//       std::cerr << "\n File mess.dat does not exist!" << std::endl;
+//     }
 
-    Info->StartProgress( "\n Opening output files \n imped.dat, piezoLog.dat, parLog.dat, mechDispl.dat, parFinal.dat ... " );
+//     filenameMeasuredData="messMech.dat";
+//     messMech = new std::ifstream(filenameMeasuredData.c_str(), std::basic_ios<char>::in);
+//     if (!messMech){
+//       std::cerr << "\n File mess.dat does not exist!" << std::endl;
+//     }
 
     std::string filename= "imped.dat";
     impedCurve = new std::ofstream(filename.c_str(),std::basic_ios<char>::out);
@@ -148,6 +157,9 @@ namespace CoupledField
     keyVec = "paramIdent", "numFreq";
     params->Get(keyVec, attrVec, valVec, nrfreq_);
 
+    keyVec = "paramIdent", "numMechMeasurements";
+    params->Get(keyVec, attrVec, valVec, numMechMeasurements_);
+
     
     // should we calculate the impedance curve?
     CalcImpedanceCurve_ = params->IsSet("calcImpedanceCurve",  "paramIdent");
@@ -159,12 +171,7 @@ namespace CoupledField
     //     keyVec="paramIdent", "mechDisplAtNode_";
     //     params->Get(keyVec, attrVec, valVec, mechDisplAtNode_);
 
-    // DOF of mechDispl.
-    keyVec="paramIdent", "dofOfMechDispl";
-    params->Get(keyVec, attrVec, valVec, dofOfMechDispl_);
-
-
-    // further important constants for truncated Newton methods
+    // further global constants for truncated Newton methods
     keyVec="paramIdent", "maxNrInnerIterations";
     params->Get(keyVec, attrVec, valVec, maxNumberInnerLoops_);
 
@@ -202,8 +209,10 @@ namespace CoupledField
     if(rhosOut)
       rhosOut->close();
 
-    if(mess)
-      mess->close();
+    if(inMess_)
+      inMess_.close();
+    if(inMechMess_)
+      inMechMess_.close();
 
 
 #ifdef USE_LAPACK
@@ -265,6 +274,7 @@ namespace CoupledField
     //parameterIncrement = parameter_;
     omegas_.Resize(highestAssumableNrOfMeasData);
     freqs_.Resize(highestAssumableNrOfMeasData);
+    freqsMech_.Resize(highestAssumableNrOfMeasData);
     real_.Resize(highestAssumableNrOfMeasData);
     imag_.Resize(highestAssumableNrOfMeasData);
     amplitude_phase.Resize(highestAssumableNrOfMeasData);
@@ -272,40 +282,56 @@ namespace CoupledField
 
     omegas_.Init();
     freqs_.Init();
+    freqsMech_.Init();
     real_.Init();
     imag_.Init();
     amplitude_phase.Init();
     F_hat_.Init();  
 
-
+    //will be overwritten in readMeasuredData ...
+    nrMeasuredDataElec_=0;
+    nrMeasuredDataMech_=0;
+   
     // the following passage reads Data from file measuredData.dat
     // The rows are containing the values of the given frequencies, such as phase and amplitude!
     readMeasuredData(freqs_, real_, imag_, parameter_, voltage_, 
                      nrMeasuredData, thickness_, radius_, delta_);
 
+   
 
     Vector<Double> freqsTemp = freqs_;
-    freqs_.Resize(nrMeasuredData);
+    freqs_.Resize(nrMeasuredDataElec_);
     freqs_.Init();
 
-    for(UInt i=0;i<nrMeasuredData;i++)
+    for(UInt i=0;i<nrMeasuredDataElec_;i++)
       freqs_[i]=freqsTemp[i];
-    
-    std::cout<<"Frequencies from which measurements are taken:" <<std::endl;
-    std::cout<<freqs_<<std::endl;
 
-    y_hat_.Resize(2*nrMeasuredData);
+    Vector<Double> freqsTempMech = freqsMech_;
+    freqsMech_.Resize(nrMeasuredDataMech_);
+    freqsMech_.Init();
+
+    for(UInt i=0;i<nrMeasuredDataMech_;i++)
+      freqsMech_[i]=freqsTempMech[i];
+
+    nrMeasuredData = nrMeasuredDataElec_ + nrMeasuredDataMech_;
+    
+//     std::cout<<"Frequencies from which electrical measurements are taken:" <<std::endl;
+//     std::cout<<freqs_<<std::endl;
+//     std::cout<<"Frequencies from which mechanical measurements are taken:" <<std::endl;
+//     std::cout<<freqsMech_<<std::endl;
+
+    y_hat_.Resize(nrMeasuredData);
     //    bas.Resize(nrParameter_);
     res_NE_new.Resize(actNrParameter+actNrParameterC);
     res_NE.Resize(actNrParameter+actNrParameterC);
-    lin_res.Resize(2*nrMeasuredData);
-    res.Resize(2*nrMeasuredData);
-    bas_bar.Resize(2*nrMeasuredData);
+    lin_res.Resize(nrMeasuredData);
+    res.Resize(nrMeasuredData);
+    bas_bar.Resize(nrMeasuredData);
     s.Resize(actNrParameter+actNrParameterC);
     scaling_.Resize(nrParameter_);
     scalingC_.Resize(nrParameter_);
-    F_hat_.Resize(2*nrMeasuredData);
-    overall_res0.Resize(2*nrMeasuredData);
+    F_hat_.Resize(nrMeasuredData);
+    overall_res0.Resize(nrMeasuredData);
     parameter_new_.Resize(nrParameter_);
 
     actNrParameter=0;
@@ -347,6 +373,14 @@ namespace CoupledField
       whichParToUpIndC_.Init();
     }
 
+//      std::cout<<"actNrParameter:"<<std::endl;
+//      std::cout<<"actNrParameterC:"<<std::endl;
+//      std::cout<<actNrParameter<<std::endl;
+//      std::cout<<actNrParameterC<<std::endl;
+
+//      std::cout<<"WhichParameter to update " <<std::endl;
+//      std::cout<<whichParameterToUpdate_<<std::endl;
+//      std::cout<<whichParameterToUpdateC_<<std::endl;
 
     UInt intTemp=0;
 
@@ -374,7 +408,6 @@ namespace CoupledField
     
     // if driver is not part of multiSequence Driver, get list
     // of pdes which have to be solved and intialize them
-
     
     ptMaterialMech_  = ptPDE1_[0].getPDEMaterialData();   // Pointer to mech. MaterialData
     ptMaterialElec_  = ptPDE2_[0].getPDEMaterialData();   // Pointer to elec. MaterialData
@@ -396,7 +429,6 @@ namespace CoupledField
     if( params->HasValue( "type", "imagMaterialParameter", "materialDataType" ) ){
       updateComplexMaterialData(parameterC_);
     }
-
 
     updateMaterialData(parameter_);
 
@@ -452,11 +484,14 @@ namespace CoupledField
     if (whichNewtonCG_==1){
       std::cout<<"++ Nonlinear Landweber's iteration ... " <<std::endl;
       Vector<Double> newFreqs;
-      readInMeasurement(newFreqs);
+      Vector<Double> newFreqsMech;
+      readInMeasurement(newFreqs,newFreqsMech);
       std::cout<<"++ Fitting will be performed with the following " 
                << nrMeasuredData << " frequencies:" <<std::endl;
       std::cout<<freqs_ <<std::endl;
+      std::cout<<freqsMech_ <<std::endl;
       nonlinLandweber();
+      CalcImpedanceCurve_ = false;
     }
 
     if (whichNewtonCG_==7){
@@ -472,7 +507,8 @@ namespace CoupledField
       inner_eta_=1.0;
 
       Vector<Double> newFreqs;
-      readInMeasurement(newFreqs);
+      Vector<Double> newFreqsMech;
+      readInMeasurement(newFreqs,newFreqsMech);
       calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
 
       while (nrNuMethods<maxNumberNewtonLoops_){
@@ -492,7 +528,8 @@ namespace CoupledField
       std::cout<<"++ Newton - nu MethodsC " <<std::endl;
 
       Vector<Double> newFreqs;
-      readInMeasurement(newFreqs);
+      Vector<Double> newFreqsMech;
+      readInMeasurement(newFreqs,newFreqsMech);
       calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
 
       UInt nrNuMethodsC=0;
@@ -535,14 +572,17 @@ namespace CoupledField
 
       std::cout<<"++ Least squares fitting started with maximal " << maxNumberNewtonLoops_ << " descent steps ... "<<std::endl;
       Vector<Double> newFreqs;
-      readInMeasurement(newFreqs);
+      Vector<Double> newFreqsMech;
+      readInMeasurement(newFreqs,newFreqsMech);
       calc_measuredCharge(freqs_, real_, imag_, y_hat_); // out of new measurements
       std::cout<<"++ Fitting will be performed with the following " 
                << nrMeasuredData << " frequencies:" <<std::endl;
 
       std::cout<<freqs_ <<std::endl;
+      std::cout<<freqsMech_ <<std::endl;
 
       leastSquare();
+      CalcImpedanceCurve_ = false;
     }
 
 
@@ -591,7 +631,7 @@ namespace CoupledField
   //! Updates material data & updates system matrices!!
   void piezoParamIdent::updateMaterialData(Vector<Double> & parameter_){
     ENTER_FCN("piezoParamIdent::updateMaterialData");    
-    //   std::cout<<"++ updateMaterialData " <<std::endl;
+    //     std::cout<<"++ updateMaterialData " <<std::endl;
     
     Matrix<Double> stiffTensor,stiffTensorSteel,stiffTensorAlu, stiffTensorSchraube;
     Matrix<Double> piezoTensor,piezoTensorP;
@@ -821,10 +861,14 @@ namespace CoupledField
 
   void piezoParamIdent::updateComplexMaterialData(Vector<Double> & parameterC_){
     ENTER_FCN("piezoParamIdent::updateComplexMaterialData");    
+    //    std::cout<<"++ updateComplexMaterialData " <<std::endl;
 
     Matrix<Double> stiffTensorC, stiffTensorAluC, stiffTensorSchraubeC, stiffTensorSteelC;
     Matrix<Double> piezoTensorC, piezoTensorCP;
     Matrix<Double> permTensorC;
+
+//     std::cout<<"parameterC_"<<std::endl;
+//     std::cout<<parameterC_<<std::endl;
 
 
     stiffTensorSchraubeC.Resize(6,6);
@@ -879,6 +923,8 @@ namespace CoupledField
     }
     else if (subdomsMech_.GetSize()>1){
 
+      //      std::cout<<"++ updateComplexMaterialData 1" <<std::endl;
+
       stiffTensorC[0][0] = parameterC_[0]; //c_11
       stiffTensorC[1][1] = parameterC_[0]; //c_11
       stiffTensorC[2][2] = parameterC_[1]; //c_33
@@ -919,53 +965,56 @@ namespace CoupledField
       stiffTensorSteelC[3][3] = parameterC_[10]; //c_44
       stiffTensorSteelC[4][4] = parameterC_[10]; //c_44
       stiffTensorSteelC[5][5] = parameterC_[10]; //c_66
+      
+      //       // Aluminium
+      lambda2nuC=parameterC_[13]+2*parameterC_[12];
+      
+      stiffTensorAluC[0][0] = lambda2nuC; //c_11 
+      stiffTensorAluC[1][1] = lambda2nuC; //c_11
+      stiffTensorAluC[2][2] = lambda2nuC; //c_33
+      stiffTensorAluC[0][1] = parameterC_[13]; //c_12
+      stiffTensorAluC[1][0] = parameterC_[13]; //c_12
+      stiffTensorAluC[0][2] = parameterC_[13]; //c_13
+      stiffTensorAluC[2][0] = parameterC_[13]; //c_13
+      stiffTensorAluC[1][2] = parameterC_[13]; //c_13
+      stiffTensorAluC[2][1] = parameterC_[13]; //c_13
+      stiffTensorAluC[3][3] = parameterC_[12]; //c_44
+      stiffTensorAluC[4][4] = parameterC_[12]; //c_44
+      stiffTensorAluC[5][5] = parameterC_[12]; //c_66
+      
+      
+      lambda2nuC=parameterC_[15]+2*parameterC_[14];
+      
+      
+      stiffTensorSchraubeC[0][0] = lambda2nuC; //c_11 
+      stiffTensorSchraubeC[1][1] = lambda2nuC; //c_11
+      stiffTensorSchraubeC[2][2] = lambda2nuC; //c_33
+      stiffTensorSchraubeC[0][1] = parameterC_[15]; //c_12
+      stiffTensorSchraubeC[1][0] = parameterC_[15]; //c_12
+      stiffTensorSchraubeC[0][2] = parameterC_[15]; //c_13
+      stiffTensorSchraubeC[2][0] = parameterC_[15]; //c_13
+      stiffTensorSchraubeC[1][2] = parameterC_[15]; //c_13
+      stiffTensorSchraubeC[2][1] = parameterC_[15]; //c_13
+      stiffTensorSchraubeC[3][3] = parameterC_[14]; //c_44
+      stiffTensorSchraubeC[4][4] = parameterC_[14]; //c_44
+      stiffTensorSchraubeC[5][5] = parameterC_[14]; //c_66
+      
+      //      std::cout<<"++ updateComplexMaterialData 2" <<std::endl;
 
-      ///       // Aluminium
-        lambda2nuC=parameterC_[13]+2*parameterC_[12];
-        
-        stiffTensorAluC[0][0] = lambda2nuC; //c_11 
-        stiffTensorAluC[1][1] = lambda2nuC; //c_11
-        stiffTensorAluC[2][2] = lambda2nuC; //c_33
-        stiffTensorAluC[0][1] = parameterC_[13]; //c_12
-        stiffTensorAluC[1][0] = parameterC_[13]; //c_12
-        stiffTensorAluC[0][2] = parameterC_[13]; //c_13
-        stiffTensorAluC[2][0] = parameterC_[13]; //c_13
-        stiffTensorAluC[1][2] = parameterC_[13]; //c_13
-        stiffTensorAluC[2][1] = parameterC_[13]; //c_13
-        stiffTensorAluC[3][3] = parameterC_[12]; //c_44
-        stiffTensorAluC[4][4] = parameterC_[12]; //c_44
-        stiffTensorAluC[5][5] = parameterC_[12]; //c_66
-
-
-        lambda2nuC=parameterC_[15]+2*parameterC_[14];
-
-
-        stiffTensorSchraubeC[0][0] = lambda2nuC; //c_11 
-        stiffTensorSchraubeC[1][1] = lambda2nuC; //c_11
-        stiffTensorSchraubeC[2][2] = lambda2nuC; //c_33
-        stiffTensorSchraubeC[0][1] = parameterC_[15]; //c_12
-        stiffTensorSchraubeC[1][0] = parameterC_[15]; //c_12
-        stiffTensorSchraubeC[0][2] = parameterC_[15]; //c_13
-        stiffTensorSchraubeC[2][0] = parameterC_[15]; //c_13
-        stiffTensorSchraubeC[1][2] = parameterC_[15]; //c_13
-        stiffTensorSchraubeC[2][1] = parameterC_[15]; //c_13
-        stiffTensorSchraubeC[3][3] = parameterC_[14]; //c_44
-        stiffTensorSchraubeC[4][4] = parameterC_[14]; //c_44
-        stiffTensorSchraubeC[5][5] = parameterC_[14]; //c_66
-        
         for(UInt i=0;i<piezoTensorC.GetSizeRow();i++)
           for(UInt j=0;j<piezoTensorC.GetSizeCol();j++)
             piezoTensorCP[i][j]=-1.0*piezoTensorC[i][j];
-
+        
 
         if (true){
           // setze alle Materialparameter
           // alu
           ptMaterialMech_[1]->SetTensor(stiffTensorAluC,MECH_STIFFNESS_TENSOR,IMAG);
-          //       //piezo
+          //       //piezo       
           ptMaterialPiezo_[2]->SetTensor(piezoTensorC,PIEZO_TENSOR,IMAG);
           ptMaterialMech_[2]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR,IMAG);
           ptMaterialElec_[2]->SetTensor(permTensorC,ELEC_PERMITTIVITY,IMAG);
+
 
           ptMaterialPiezo_[3]->SetTensor(piezoTensorCP,PIEZO_TENSOR,IMAG);
           ptMaterialMech_[3]->SetTensor(stiffTensorC,MECH_STIFFNESS_TENSOR, IMAG);
@@ -974,6 +1023,8 @@ namespace CoupledField
         //       //Steel
           ptMaterialMech_[4]->SetTensor(stiffTensorSteelC,MECH_STIFFNESS_TENSOR, IMAG);
           ptMaterialMech_[5]->SetTensor(stiffTensorSchraubeC,MECH_STIFFNESS_TENSOR, IMAG);
+
+
         }
         else if (false){
           // setze nur Piezo und Schraube:

@@ -48,6 +48,9 @@ namespace CoupledField
     parameterNew = parameter_;
     parameterCNew = parameterC_;
 
+    std::cout<<"y_hat"<<std::endl;
+    std::cout<<y_hat_<<std::endl;
+
 
     for (UInt iterIndex=0; iterIndex<maxNumberNewtonLoops_;iterIndex++){
      
@@ -56,6 +59,9 @@ namespace CoupledField
         updateComplexMaterialData(parameterC_);
       
       createF(F_hat_, FALSE);
+
+      std::cout<<"F_hat_"<<std::endl;
+      std::cout<<F_hat_<<std::endl;
 
       act_res = y_hat_-F_hat_;
 
@@ -75,8 +81,8 @@ namespace CoupledField
    
       JacobiMatrix_=approxJacobiMatrix_;
 
-      std::cout<<"JacobiMatrix_"<<std::endl;
-      std::cout<<JacobiMatrix_<<std::endl;
+//       std::cout<<"JacobiMatrix_"<<std::endl;
+//       std::cout<<JacobiMatrix_<<std::endl;
 
       for (UInt i=0;i<nrMeasuredData;i++)
         for (UInt j=0;j<nrMeasuredData;j++)
@@ -92,12 +98,12 @@ namespace CoupledField
 
       parUpdate=adjJacobiMatrix_*act_res;
 
-      std::cout<<"parUpdate"<<std::endl;
-      std::cout<<parUpdate<<std::endl;
+//       std::cout<<"parUpdate"<<std::endl;
+//       std::cout<<parUpdate<<std::endl;
 
       // make Landwebers iteration a steepest descent method
 
-       if (false){
+       if (true){
          Vector<Complex> adjResidual(actNrParameter+actNrParameterC);
          Vector<Complex> normalResidual(nrMeasuredData);
        
@@ -114,15 +120,15 @@ namespace CoupledField
 
          norm(normalResidual,normNormalResidual,maxres,y_hat_);
 
-         std::cout<<"adjResidual Norm = " << normAdjResidual<< std::endl;
-         std::cout<<"normalResidual Norm (relative) = " << normNormalResidual<< std::endl;
-         std::cout<<"omega = " << normAdjResidual/normNormalResidual<< std::endl;
+//          std::cout<<"adjResidual Norm = " << normAdjResidual<< std::endl;
+//          std::cout<<"normalResidual Norm (relative) = " << normNormalResidual<< std::endl;
+//          std::cout<<"omega = " << normAdjResidual/normNormalResidual<< std::endl;
          omega = normAdjResidual/normNormalResidual;
          *piezoLog<<omega;
       }
 
        // make Landweber a minimal error method:
-       if (true){
+       if (false){
 
          Vector<Complex> adjResidual(actNrParameter+actNrParameterC);
         
