@@ -35,7 +35,7 @@ namespace CoupledField{
       \param nRows (input) Number of rows
       \param nCols (input) Number of columns)
     */
-    CFSMatrix(const UInt nRows, const UInt nCols){};
+    explicit CFSMatrix(const UInt nRows, const UInt nCols){};
   
     //! Default Copy Construcctor
     CFSMatrix(const CFSMatrix &m){};

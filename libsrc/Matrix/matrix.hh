@@ -50,7 +50,7 @@ namespace CoupledField
     //! with zeroes
     //! \param nRows (input) Number of rows
     //! \param nCols (input) Number of columns)
-    Matrix( const UInt nRows, const UInt nCols );
+    explicit Matrix( const UInt nRows, const UInt nCols );
 
     //! Constructor from array of column-vectors
 

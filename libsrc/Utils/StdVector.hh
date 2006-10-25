@@ -25,7 +25,7 @@ namespace CoupledField {
 
     //! Constructor with inital size.
     //! All entries are filled with zeroes
-    StdVector(UInt size);
+    explicit StdVector(UInt size);
 
     //! Copy constructor
     StdVector(const StdVector<TYPE> & vec);

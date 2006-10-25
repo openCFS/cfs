@@ -422,7 +422,9 @@ namespace CoupledField {
 
       else if (pdeNames[i] == "nrbc")
         {
-          ptSinglePde_[i]=new nrbcPDE(ptgrid_,ptTimeFunc_,OutFile_, "nrbc", NRBC_PHI);
+          StdVector<SolutionType> type(1);
+          type[0] = NRBC_PHI;
+          ptSinglePde_[i]=new nrbcPDE(ptgrid_,ptTimeFunc_,OutFile_, "nrbc", type);
         }
       
       else if (pdeNames[i] == "smooth")
