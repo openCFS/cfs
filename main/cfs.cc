@@ -384,9 +384,10 @@ int main( int argc, const char **argv ) {
 
   // Initialize driver object and pass it to domain
   domain->SetDriver( ptdriver );
+  Info->FinishProgress();
   ptdriver->Init();
 
-  Info->FinishProgress();
+  
 
   // =========================================================================
   // SOLUTION PHASE
