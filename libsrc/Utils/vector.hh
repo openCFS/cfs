@@ -53,7 +53,7 @@ namespace CoupledField {
     //! Creates an vector with size \a size and gets initialized
     //! with \a entry. If no \a entry is provided, the vector
     //! is initialized with zeroes.
-    Vector<TYPE>( const UInt size, const TYPE entry = TYPE() );
+    explicit Vector<TYPE>( const UInt size, const TYPE entry = TYPE() );
 
     //! Copy constructor
     Vector( const Vector<TYPE> & vec );

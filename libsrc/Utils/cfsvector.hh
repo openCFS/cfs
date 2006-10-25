@@ -25,7 +25,7 @@ namespace CoupledField
     CFSVector(){};
 
     //! Constructor with size
-    CFSVector(int size){};
+    explicit CFSVector(int size){};
 
     //! Default destructor
     virtual ~CFSVector(){};
