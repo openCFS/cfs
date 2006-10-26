@@ -387,7 +387,7 @@ namespace CoupledField
 
     F_hat_.Resize(nrMeasuredData);
     F_hat_.Init();
-           
+
     for (UInt fstep = 0; fstep < nrMeasuredDataElec_; fstep++) { 
 
       ////////////////////////////////////////////////////////
@@ -396,7 +396,7 @@ namespace CoupledField
 
 
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "f", actFreq_ );
+                                         "f", freqsElec_[fstep]);
       ptPDE_->GetSolveStep()->SetActFreq(freqsElec_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep);       
       ptPDE_->GetSolveStep()->PreStepHarmonic(); 
@@ -411,7 +411,7 @@ namespace CoupledField
         
         Vector<Complex> chargeVec;
       
-        chargeVec = ptPDE1_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
+        chargeVec = ptPDE2_->getPDE_complexValuedCharge(); // Vector wich contains charges for each element !
              
         Complex charge=Complex(0.0,0.0);
         Complex im=Complex(0.0,1.0);
@@ -453,7 +453,7 @@ namespace CoupledField
 
 
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "f", actFreq_ );
+                                         "f", freqsMech_[fstep] );
       ptPDE_->GetSolveStep()->SetActFreq(freqsMech_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep);       
       ptPDE_->GetSolveStep()->PreStepHarmonic(); 
@@ -523,23 +523,24 @@ namespace CoupledField
         UInt imech=0;
         //      for(UInt imech=0;imech<numMechMeasurements_;imech+=2)
         //        F_hat_[fstep+nrMeasuredDataElec_]+=std::abs(nodeResult[imech]);
+
         z=(nodeResult[imech]+nodeResult[imech+1]);
 
         if (whichNormCriteria_==1)
           F_hat_[fstep+nrMeasuredDataElec_]=Complex(std::abs(z.real()),0.0);
       
-        if (whichNormCriteria_==2)
-          F_hat_[fstep+nrMeasuredDataElec_]=Complex(log(std::abs(z.real())),0.0);
+        else if (whichNormCriteria_==2)
+          F_hat_[fstep+nrMeasuredDataElec_]=Complex(std::log(std::abs(z.real())),0.0);
       
-        if (whichNormCriteria_==3)
+        else if (whichNormCriteria_==3)
           F_hat_[fstep+nrMeasuredDataElec_]=z;
 
         //Complex(z.real()*std::cos(z.imag()), 
         //                                            z.real()*std::sin(z.imag()));
         //        F_hat_[fstep+nrMeasuredDataElec_]=Complex(std::abs(z.real()),0.0);
 
-        if (whichNormCriteria_==4)
-          F_hat_[fstep+nrMeasuredDataElec_]=log(z);
+        else if (whichNormCriteria_==4)
+          F_hat_[fstep+nrMeasuredDataElec_]=std::log(z);
         //        F_hat_[fstep+nrMeasuredDataElec_]=Complex(log(std::abs(z.real())),0.0);
         //   F_hat_[fstep+nrMeasuredDataElec_]=Complex(abs(z.real()), z.imag());
         // Complex(std::abs(z), std::atan2(z.imag(),z.real()));
@@ -549,8 +550,7 @@ namespace CoupledField
       for (UInt i=0;i<F_hat_.GetSize();i++)
         std::cout<<"F("<<i<<")="<<F_hat_[i]<<"; \t";
       std::cout<<"\n ------------------------------- " <<std::endl;
-      
-    }
+     }
 
   
   } // end createF
