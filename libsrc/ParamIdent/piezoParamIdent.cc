@@ -30,10 +30,8 @@ namespace CoupledField
 
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
 
-
     // Set analysistype
     analysis_ = HARMONIC;
-
     ptDomain_ = adomain;
     ptMyPDE_ = NULL;
     residuumParIdent_=1.0;
@@ -41,6 +39,10 @@ namespace CoupledField
     antiResonanceFrequency_=0;
     tau_=1.0;
     sign_=1.0;
+    whichNormCriteria_=1;
+    nrMeasuredDataElec_=0;
+    nrMeasuredDataMech_=0;
+
   }
 
   void piezoParamIdent :: Init() {
