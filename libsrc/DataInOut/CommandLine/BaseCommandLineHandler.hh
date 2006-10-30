@@ -181,6 +181,7 @@ namespace CoupledField {
     //! XML format that contains the steering parameters for the simulation.
     virtual std::string GetParamFile() const = 0;
 
+#ifdef USE_SCRIPTING
     //! Return (optional) name of scripting file
 
     //! This method returns the full name of an (optional) scripting file,
@@ -188,7 +189,8 @@ namespace CoupledField {
     //! interact dynamically with CFS++. If no filename was provided an
     //! empty string is returned.
     virtual std::string GetScriptFileName() const = 0;
-    
+#endif    
+
     //! Return path to XML schema file
 
     //! This method can be used to query the path to the XML schema file
@@ -278,7 +280,9 @@ namespace CoupledField {
     //@{
     const static std::string helpSimName_;
     const static std::string helpParamFile_;
+#ifdef USE_SCRIPTING
     const static std::string helpScriptFileName_;
+#endif
     const static std::string helpMeshFile_;
     const static std::string helpTraceDepth_;
     const static std::string helpWriteSkeleton_;
@@ -296,7 +300,9 @@ namespace CoupledField {
     //@{
     const static std::string markerParamFile_;
     const static std::string markerMeshFile_;
+#ifdef USE_SCRIPTING
     const static std::string markerScriptFileName_;
+#endif
     const static std::string markerTraceDepth_;
     const static std::string markerWriteSkeleton_;
     const static std::string markerPrintGrid_;
@@ -312,7 +318,9 @@ namespace CoupledField {
     //@{
     const static std::string markerLongParamFile_;
     const static std::string markerLongMeshFile_;
+#ifdef USE_SCRIPTING
     const static std::string markerLongScriptFileName_;
+#endif
     const static std::string markerLongTraceDepth_;
     const static std::string markerLongWriteSkeleton_;
     const static std::string markerLongPrintGrid_;

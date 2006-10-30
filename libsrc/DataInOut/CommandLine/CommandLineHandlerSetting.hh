@@ -68,6 +68,7 @@ namespace CoupledField {
       return paramFile;
     };
 
+#ifdef USE_SCRIPTING
     //! Return (optional) name of scripting file
 
     //! This method returns the full name of an (optional) scripting file,
@@ -83,6 +84,7 @@ namespace CoupledField {
       }
       return fileName;
     };
+#endif
     
     //! Return path to XML schema file
 
