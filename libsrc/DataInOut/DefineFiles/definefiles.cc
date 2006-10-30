@@ -325,19 +325,22 @@ namespace CoupledField
   CFSMessenger* DefineInOutFiles::CreateScriptMessenger( const std::string& fileName) {
     ENTER_FCN( "DefineInOutFiles::CreateScriptMessenger" );
     
+    CFSMessenger * messenger = NULL;
+
+#ifdef USE_SCRIPTING
     // check filename, if it is not empty
     if( fileName == "") {
-      return new CFSMessenger();
+      messenger = new CFSMessenger();
     }
 
 #ifdef USE_SCRIPTING_TCL
     else if( fileName.find( ".tcl") != std::string::npos ) {
-      return new TCL_CFSMessenger();
+      messenger = new TCL_CFSMessenger();
     }
 #endif
 #ifdef USE_SCRIPTING_PY
     else if( fileName.find( ".py") != std::string::npos ) {
-      return new PY_CFSMessenger();
+      messenger = new PY_CFSMessenger();
     }
 #endif
     else {
@@ -346,6 +349,10 @@ namespace CoupledField
           << fileName << "'!";
       Error( msg.str().c_str(), __FILE__, __LINE__ );
     }
+#endif
+
+    return messenger;
+
   }
 
 } // end of namespace
