@@ -35,6 +35,15 @@ namespace CoupledField{
     globVec = locVec;
   }
 
+  void DefaultCoordSystem::
+  Local2GlobalVector( Vector<Complex> & globVec, 
+                      const Vector<Complex> & locVec, 
+                      const Vector<Double> & globModelPoint ) const { 
+    ENTER_FCN("DefaultCoordSystem::Local2GlobalVector");
+
+    globVec = locVec;
+  }
+
   UInt DefaultCoordSystem::GetVecComponent( const std::string & dof )  const {
     ENTER_FCN( "DefaultCoordSystem::GetVecComponent" );
 
@@ -121,5 +130,6 @@ namespace CoupledField{
 
     return ret;
   }
+
 
 } // end of namespace

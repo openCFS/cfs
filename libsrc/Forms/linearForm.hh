@@ -497,7 +497,7 @@ namespace CoupledField
   public:
     
     //! Constructor
-    MechVolForceInt(UInt numDof, bool isaxi);
+    MechVolForceInt(UInt numDof, const std::string& phase, bool isaxi);
     
     //! Destructor
     virtual ~MechVolForceInt();
@@ -505,20 +505,34 @@ namespace CoupledField
     //! Set the volume force vector
     //! \param volForce vector with volume force w.r.t. coordSys
     //! \param coordSys pointer to reference coordinate system
-    void SetVolForceVector(StdVector<std::string> & volForce, const CoordSystem * coordSys,
+    void SetVolForceVector(StdVector<std::string> & volForce, 
+                           const CoordSystem * coordSys,
                            bool isUnit, Double volume);
     
     //! Calculation of vector of right hand side 
     void CalcElemVector( Vector<Double> & result,
                          EntityIterator& ent );
 
+    //! Calculation of vector of right hand side 
+    void CalcElemVector( Vector<Complex> & result,
+                         EntityIterator& ent );
+
   protected:
+
+    //! Helper function for calculating part element vector
+    template<class TYPE>
+    void CalcPartVector( Vector<TYPE>& elemVec, 
+                         Vector<TYPE>& loadVec,
+                         EntityIterator& ent );
     
     //! Number of degrees of freedom
     UInt numDofs_;
     
     //! Vector with volume force (local coordinate system)
     StdVector<std::string> locForce_;
+
+    //! Phase of force
+    std::string phase_;
 
     //! Reference coordinate system
     const CoordSystem * coordSys_;

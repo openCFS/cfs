@@ -211,6 +211,9 @@ namespace CoupledField
       //! Reference to time dynamics file
       std::string dynamics;
 
+      //! Phase value
+      std::string phase;
+
       //! Name of reference coordinate system
       std::string refCoord;
 

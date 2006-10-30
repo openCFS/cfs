@@ -1288,13 +1288,16 @@ namespace CoupledField {
   // =========================================================================
   
   
-  MechVolForceInt::MechVolForceInt(UInt numDof, bool isaxi) {
+  MechVolForceInt::MechVolForceInt(UInt numDof, 
+                                   const std::string& phase,
+                                   bool isaxi) {
 
     ENTER_FCN( "MechVolForceInt::MechVolForceInt" );
 
     name_ = "MechVolForceInt";
     isaxi_ = isaxi;
     numDofs_ = numDof;
+    phase_ = phase;
 
   }
     
@@ -1325,11 +1328,6 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
-    const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
-    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-    Vector<Double> shapeFnc, CoordAtIP, globVec;
-
     // get global coordinate system and math parser
     MathParser * parser = domain->GetMathParser();
 
@@ -1355,7 +1353,72 @@ namespace CoupledField {
     }
     
     // Map local load vector to global one
+    Vector<Double> globVec;
     coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
+
+    // Calculate vector
+    CalcPartVector( elemVec, globVec, ent );
+  }
+
+  void MechVolForceInt::CalcElemVector( Vector<Complex> & elemVec,
+                                        EntityIterator& ent ) {
+
+    ENTER_FCN( "MechVolForceInt::CalcElemVector");
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    // get global coordinate system and math parser
+    MathParser * parser = domain->GetMathParser();
+
+    // First, map force to global coordinate system
+    Vector<Double> globMidPoint, locMidPoint;
+
+    ptelem->GetCoordMidPoint(locMidPoint);
+    ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, ptCoord_);
+
+    // Update variables for mathParser
+    parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
+
+    // Now evaluate each entry 
+    Vector<Complex> locLoadVec( numDofs_ );
+    Double amplitude, phase;
+
+    // -- phase --
+    parser->SetExpr( mHandle_, phase_ );
+    phase = parser->Eval( mHandle_ );
+    
+    for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
+      parser->SetExpr( mHandle_, locForce_[i] );
+      amplitude = parser->Eval( mHandle_ );
+      locLoadVec[i].real() =  amplitude * cos(phase/180*PI);
+      locLoadVec[i].imag() =  amplitude * sin(phase/180*PI);
+    }
+
+    // If load is not unit load, divide by volume
+    if ( isUnitValue_ == false ) {
+      locLoadVec /= volume_;
+    }
+    
+    // Map local load vector to global one
+    Vector<Complex> globVec;
+    coordSys_->Local2GlobalVector(globVec, locLoadVec,  globMidPoint);
+
+    // Calculate vector
+    CalcPartVector( elemVec, globVec, ent );
+  }
+
+  template<class TYPE>
+  void MechVolForceInt::CalcPartVector( Vector<TYPE>& elemVec, 
+                                        Vector<TYPE>& loadVec,
+                                        EntityIterator& ent ) {
+    
+    /// ----- part of interior function ---
+
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+                    Vector<Double> shapeFnc, CoordAtIP;
 
     // Then, calculate element vector
     elemVec.Resize(nrNodes * numDofs_);
@@ -1376,12 +1439,12 @@ namespace CoupledField {
       for (UInt iNode = 0; iNode < nrNodes; iNode++) {
         for (UInt iDof = 0; iDof < numDofs_; iDof++) {
           elemVec[iNode*numDofs_ + iDof] += 
-            factor * shapeFnc[iNode] * globVec[iDof]; 
+            factor * shapeFnc[iNode] * loadVec[iDof]; 
         }
       }
     }
   }
-
+  
 
 
   // ==================================================================

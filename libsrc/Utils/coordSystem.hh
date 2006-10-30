@@ -61,6 +61,7 @@ namespace CoupledField {
     GetGlobRotationAngles( Vector<Double> & angles,
                            const Vector<Double>& point ) const = 0;
 
+    //@{
     //! Transform local vector into global one for a given global model point
 
     //! This method transforms a vector with a local coordinate representation
@@ -78,7 +79,14 @@ namespace CoupledField {
     Local2GlobalVector( Vector<Double> & globVec, 
                         const Vector<Double> & locVec, 
                         const Vector<Double> & globModelPoint ) const = 0;
+
+    virtual void 
+    Local2GlobalVector( Vector<Complex> & globVec, 
+                        const Vector<Complex> & locVec, 
+                        const Vector<Double> & globModelPoint ) const = 0;
+    //@}
     
+
     //! Returns for a given coordinate name the according index
 
     //! This method returns for a given coordinate name (x,y,z,rad,...)

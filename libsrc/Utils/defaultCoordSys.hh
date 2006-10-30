@@ -36,7 +36,8 @@ namespace CoupledField {
     //! \param glob (in) point w.r.t. to global cartesian coordinate system
     void Global2LocalCoord( Vector<Double> &loc,  
                             const Vector<Double> & glob ) const;
-    
+
+    //@{
     //! Transform local vector into global one for a given global model point
     
     //! This method transforms a vector with a local coordinate representation
@@ -53,7 +54,12 @@ namespace CoupledField {
     void Local2GlobalVector( Vector<Double> & globVec, 
                              const Vector<Double> & locVec, 
                              const Vector<Double> & globModelPoint ) const;
+    void Local2GlobalVector( Vector<Complex> & globVec, 
+                             const Vector<Complex> & locVec, 
+                             const Vector<Double> & globModelPoint ) const;
+    //@}
     
+
     //! Return the global rotation angles for a given point
     
     //! This method returns the rotation angles about the x,y, and z axis,

@@ -47,6 +47,7 @@ namespace CoupledField {
                                  const Vector<Double>& point ) const;
 
 
+    //@{
     //! Transform local vector into global one for a given global model point
     
     //! This method transforms a vector with a local coordinate representation
@@ -63,6 +64,11 @@ namespace CoupledField {
     void Local2GlobalVector( Vector<Double> & globVec, 
                              const Vector<Double> & locVec, 
                              const Vector<Double> & globModelPoint ) const;
+
+    void Local2GlobalVector( Vector<Complex> & globVec, 
+                             const Vector<Complex> & locVec, 
+                             const Vector<Double> & globModelPoint ) const;
+    //@}
     
     //! Returns for a given coordinate name the according index
 
@@ -86,9 +92,15 @@ namespace CoupledField {
     //! Calculate rotation matrix
     void CalcRotationMatrix();
     
+    //! Internal implementation of Local2GlobalVectorInt
+    template<class TYPE>
+    void Local2GlobalVectorInt( Vector<TYPE> & globVec, 
+                                const Vector<TYPE> & locVec, 
+                                const Vector<Double> & globModelPoint ) const;
+    
     //! Write summary of coordinate system
     void PrintInfo();
-
+    
     //! second point defining h-axis
     Vector<Double> hAxis_;
 
