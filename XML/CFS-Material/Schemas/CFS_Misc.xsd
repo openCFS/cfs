@@ -75,17 +75,8 @@
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_RayleighDamping">
     <xsd:sequence>
-      <xsd:choice>
-        <xsd:sequence>
-          <xsd:element name="alpha" type="DT_NonNegFloat"/>
-          <xsd:element name="beta" type="DT_NonNegFloat"/>
-        </xsd:sequence>
-        <xsd:sequence>
-          <xsd:element name="tanDelta" type="DT_NonNegFloat"/>
-        </xsd:sequence>
-      </xsd:choice>
-      <xsd:element name="freq" type="DT_NonNegFloat" minOccurs="0"/>
-      <xsd:element name="deltaFreq" type="DT_NonNegFloat" minOccurs="0"/>
+      <xsd:element name="alpha" type="DT_NonNegFloat"/>
+      <xsd:element name="beta" type="DT_NonNegFloat"/>
     </xsd:sequence>
   </xsd:complexType>
   
