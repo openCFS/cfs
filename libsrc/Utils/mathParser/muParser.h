@@ -32,7 +32,7 @@ namespace mu
   Can be used as a reference implementation for subclassing the parser.
 
   <small>
-  (C) 2004, 2005 Ingo Berg<br>
+  (C) 2004-2006 Ingo Berg<br>
   ingo_berg(at)gmx.de
   </small>
 */
@@ -67,9 +67,10 @@ private:
 	  static value_type  Sign(value_type);
     static value_type  Ite(value_type, value_type, value_type);
 
-    // Prefic operators
+    // Prefix operators
     // !!! Unary Minus is a MUST if you want to use negative signs !!!
     static value_type  UnaryMinus(value_type);
+
     // Functions with variable number of arguments
     static value_type Sum(const value_type*, int);  // sum
     static value_type Avg(const value_type*, int);  // mean value

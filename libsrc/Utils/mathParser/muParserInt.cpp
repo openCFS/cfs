@@ -207,28 +207,28 @@ void ParserInt::InitOprt()
   DefineInfixOprt("-", UnaryMinus);
   DefineInfixOprt("!", Not);
 
-  DefineOprt("&", LogAnd, 1);
-  DefineOprt("|", LogOr, 1);
-  DefineOprt("^", LogXor, 1);
-  DefineOprt("&&", And, 1);
-  DefineOprt("||", Or, 1);
+  DefineOprt("&", LogAnd, prLOGIC);
+  DefineOprt("|", LogOr, prLOGIC);
+  DefineOprt("^", LogXor, prLOGIC);
+  DefineOprt("&&", And, prLOGIC);
+  DefineOprt("||", Or, prLOGIC);
 
-  DefineOprt("<", Less, 2);
-  DefineOprt(">", Greater, 2);
-  DefineOprt("<=", LessEq, 2);
-  DefineOprt(">=", GreaterEq, 2);
-  DefineOprt("==", Equal, 2);
-  DefineOprt("!=", NotEqual, 2);
+  DefineOprt("<", Less, prCMP);
+  DefineOprt(">", Greater, prCMP);
+  DefineOprt("<=", LessEq, prCMP);
+  DefineOprt(">=", GreaterEq, prCMP);
+  DefineOprt("==", Equal, prCMP);
+  DefineOprt("!=", NotEqual, prCMP);
 
-  DefineOprt("+", Add, 3);
-  DefineOprt("-", Sub, 3);
+  DefineOprt("+", Add, prADD_SUB);
+  DefineOprt("-", Sub, prADD_SUB);
 
-  DefineOprt("*", Mul, 4);
-  DefineOprt("/", Div, 4);
-  DefineOprt("%", Mod, 4);
+  DefineOprt("*", Mul, prMUL_DIV);
+  DefineOprt("/", Div, prMUL_DIV);
+  DefineOprt("%", Mod, prMUL_DIV);
 
-  DefineOprt(">>", Shr, 5);
-  DefineOprt("<<", Shl, 5);
+  DefineOprt(">>", Shr, prMUL_DIV+1);
+  DefineOprt("<<", Shl, prMUL_DIV+1);
 }
 
 } // namespace mu

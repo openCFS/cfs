@@ -1,5 +1,5 @@
 /*  
-  Copyright (C) 2004, 2005 Ingo Berg
+  Copyright (C) 2004-2006 Ingo Berg
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of this 
   software and associated documentation files (the "Software"), to deal in the Software
@@ -58,11 +58,11 @@ value_type Parser::Ln(value_type v)    { return log(v);   } // Logarithm base e 
 
 //---------------------------------------------------------------------------
 //  misc
-value_type Parser::Exp(value_type v)   { return exp(v);   }
-value_type Parser::Abs(value_type v)   { return fabs(v);  }
-value_type Parser::Sqrt(value_type v)  { return sqrt(v);  }
-value_type Parser::Rint(value_type v)  { return floor(v + (value_type)0.5); }
-value_type Parser::Sign(value_type v)  { return (value_type)((v<0) ? -1 : (v>0) ? 1 : 0); }
+value_type Parser::Exp(value_type v)  { return exp(v);   }
+value_type Parser::Abs(value_type v)  { return fabs(v);  }
+value_type Parser::Sqrt(value_type v) { return sqrt(v);  }
+value_type Parser::Rint(value_type v) { return floor(v + (value_type)0.5); }
+value_type Parser::Sign(value_type v) { return (value_type)((v<0) ? -1 : (v>0) ? 1 : 0); }
 
 //---------------------------------------------------------------------------
 // Conditional (if then else)
@@ -127,11 +127,22 @@ value_type Parser::Max(const value_type *a_afArg, int a_iArgc)
 // Default value recognition callback
 bool Parser::IsVal(const char_type *a_szExpr, int &a_iPos, value_type &a_fVal)
 {
-  stringstream_type stream(a_szExpr);
   value_type fVal(0);
 
+// thanks to CodeProject member sailorickm for writing this fix:
+// http://www.codeproject.com/cpp/FastMathParser.asp?msg=1354598#xx1354598xx
+// i cant test it myself, if you see problems please contact me.
+#if defined (__hpux) || (defined __GNUC__ && (__GNUC__ == 3 && (__GNUC_MINOR__ < 3 )))
+  int iEnd = 0;
+  int nAssigned = sscanf(a_szExpr, "%lf%n", &fVal, &iEnd);
+  if (nAssigned == 0)
+  iEnd = -1;
+#else
+  stringstream_type stream(a_szExpr);
+  stream.seekg(0); // todo:  check if thus really is necessary
   stream >> fVal;
-  int iEnd = stream.tellg();    // Position after reading
+  int iEnd = stream.tellg(); // Position after reading
+#endif
 
   if (iEnd==-1)
     return false;
@@ -163,7 +174,8 @@ Parser::Parser()
 void Parser::InitCharSets()
 {
   DefineNameChars("0123456789_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ");
-  DefineOprtChars("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ+-*^/?<>=#!$%&|~'_");
+  DefineOprtChars("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                  "+-*^/?<>=#!$%&|~'_");
   DefineInfixOprtChars("/+-*^?<>=#!$%&|~'_");
 }
 

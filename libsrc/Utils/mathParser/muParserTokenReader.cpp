@@ -1,5 +1,5 @@
  /*
-  Copyright (C) 2005 Ingo Berg
+  Copyright (C) 2004-2006 Ingo Berg
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of this 
   software and associated documentation files (the "Software"), to deal in the Software
@@ -84,6 +84,7 @@ namespace mu
     m_bIgnoreUndefVar = a_Reader.m_bIgnoreUndefVar;
     m_vIdentFun = a_Reader.m_vIdentFun;
     m_pFactory = a_Reader.m_pFactory;
+    m_iBrackets = a_Reader.m_iBrackets;
   }
 
   //---------------------------------------------------------------------------
@@ -112,6 +113,7 @@ namespace mu
     ,m_vIdentFun()
     ,m_UsedVar()
     ,m_fZero(0)
+    ,m_iBrackets(0)
   {
     assert(m_pParser);
     SetParent(m_pParser);
@@ -239,6 +241,7 @@ namespace mu
   {
     m_iPos = 0;
     m_iSynFlags = noOPT | noBC | noPOSTOP | noASSIGN;
+    m_iBrackets = 0;
     m_UsedVar.clear();
   }
 
@@ -311,14 +314,14 @@ namespace mu
     \throw nothrow
   */
   int ParserTokenReader::ExtractToken( const char_type *a_szCharSet, 
-                                       string_type &a_strTok, int a_iPos ) const
+                                       string_type &a_sTok, int a_iPos ) const
   {
     int iEnd = (int)m_strFormula.find_first_not_of(a_szCharSet, a_iPos);
 
     if (iEnd==(int)string_type::npos)
-        iEnd = (int)m_strFormula.length();  
+        iEnd = (int)m_strFormula.length();
 
-    a_strTok = string_type( m_strFormula.begin()+a_iPos, m_strFormula.begin()+iEnd);
+    a_sTok = string_type( m_strFormula.begin()+a_iPos, m_strFormula.begin()+iEnd);
     a_iPos = iEnd;
     return iEnd;
   }
@@ -390,6 +393,7 @@ namespace mu
 					              Error(ecUNEXPECTED_PARENS, m_iPos, pOprtDef[i]);
 
 				              m_iSynFlags = noBC | noOPT | noEND | noCOMMA | noPOSTOP | noASSIGN;
+                      ++m_iBrackets;
 				              break;
 
 		    case cmBC:
@@ -397,7 +401,10 @@ namespace mu
 					              Error(ecUNEXPECTED_PARENS, m_iPos, pOprtDef[i]);
 
 				              m_iSynFlags  = noBO | noVAR | noVAL | noFUN | noINFIXOP | noSTR | noASSIGN;
-				              break;
+
+                      if (--m_iBrackets<0)
+                        Error(ecUNEXPECTED_PARENS, m_iPos, pOprtDef[i]);
+                      break;
       	
 		    default:      // The operator is listed in c_DefaultOprt, but not here. This is a bad thing...
                       Error(ecINTERNAL_ERROR);
@@ -430,6 +437,9 @@ namespace mu
       if ( m_iSynFlags & noEND )
         Error(ecUNEXPECTED_EOF, m_iPos);
 
+      if (m_iBrackets>0)
+        Error(ecMISSING_PARENS, m_iPos, _T(")"));
+
       m_iSynFlags = 0;
       a_Tok.Set(cmEND);
       return true;
@@ -444,16 +454,16 @@ namespace mu
   */
   bool ParserTokenReader::IsInfixOpTok(token_type &a_Tok)
   {
-    string_type strTok;
-    int iEnd = ExtractToken(m_pParser->ValidInfixOprtChars(), strTok, m_iPos);
+    string_type sTok;
+    int iEnd = ExtractToken(m_pParser->ValidInfixOprtChars(), sTok, m_iPos);
     if (iEnd==m_iPos)
       return false;
 
-    funmap_type::const_iterator item = m_pInfixOprtDef->find(strTok);
+    funmap_type::const_iterator item = m_pInfixOprtDef->find(sTok);
     if (item==m_pInfixOprtDef->end())
       return false;
 
-    a_Tok.Set(item->second, strTok);
+    a_Tok.Set(item->second, sTok);
     m_iPos = (int)iEnd;
 
     if (m_iSynFlags & noINFIXOP) 
@@ -504,8 +514,8 @@ namespace mu
     // token readers.
     
     // Test if there could be a postfix operator
-    string_type strTok;
-    int iEnd = ExtractToken(m_pParser->ValidOprtChars(), strTok, m_iPos);
+    string_type sTok;
+    int iEnd = ExtractToken(m_pParser->ValidOprtChars(), sTok, m_iPos);
     if (iEnd==m_iPos)
       return false;
 
@@ -513,10 +523,10 @@ namespace mu
     funmap_type::const_iterator item = m_pPostOprtDef->begin();
     for (item=m_pPostOprtDef->begin(); item!=m_pPostOprtDef->end(); ++item)
     {
-      if (strTok.find(item->first)!=0)
+      if (sTok.find(item->first)!=0)
         continue;
 
-      a_Tok.Set(item->second, strTok);
+      a_Tok.Set(item->second, sTok);
   	  m_iPos += (int)item->first.length();
 
       if (m_iSynFlags & noPOSTOP)
@@ -581,8 +591,6 @@ namespace mu
       #pragma warning( disable : 4244 )
     #endif
 
-
-    stringstream_type stream(&m_strFormula[m_iPos]);
     string_type strTok;
     value_type fVal(0);
     int iEnd(0);
@@ -704,7 +712,11 @@ namespace mu
       return false;
 
     if (m_iSynFlags & noVAR)
-      Error(ecUNEXPECTED_VAR, m_iPos - (int)a_Tok.GetAsString().length(), a_Tok.GetAsString());
+    {
+      // <ibg/> 20061021 added token string strTok instead of a_Tok.GetAsString() as the 
+      //                token identifier.
+      Error(ecUNEXPECTED_VAR, m_iPos - (int)a_Tok.GetAsString().length(), strTok);
+    }
 
     // If a factory is available implicitely create new variables
     if (m_pFactory)
@@ -770,7 +782,7 @@ namespace mu
     a_Tok.SetString(strTok, m_pParser->m_vStringBuf.size());
 
     m_iPos += (int)strTok.length() + 2 + (int)iSkip;  // +2 wg Anführungszeichen; +iSkip für entfernte escape zeichen
-    m_iSynFlags = m_iSynFlags = noANY ^ ( noBC | noOPT | noEND );
+    m_iSynFlags = m_iSynFlags = noANY ^ ( noCOMMA | noBC | noOPT | noEND );
 
     return true;
   }

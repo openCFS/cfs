@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2004, 2005 Ingo Berg
+  Copyright (C) 2004-2006 Ingo Berg
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of this 
   software and associated documentation files (the "Software"), to deal in the Software
@@ -11,10 +11,10 @@
   substantial portions of the Software.
 
   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-  NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
-  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
+  NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
   DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 #include "muParser.h"
 
@@ -124,7 +124,7 @@ void ParserBase::Assign(const ParserBase &a_Parser)
   if (&a_Parser==this)
     return;
 
-  // Don't copy bytecode instead cause the parser to create new bytecode 
+  // Don't copy bytecode instead cause the parser to create new bytecode
   // by resetting the parse function.
   ReInit();
 
@@ -191,7 +191,7 @@ void ParserBase::SetVarFactory(facfun_type a_pFactory)
 //---------------------------------------------------------------------------
 /** \brief Add a function or operator callback to the parser.
 */
-void ParserBase::AddCallback( const string_type &a_strName, 
+void ParserBase::AddCallback( const string_type &a_strName,
                               const ParserCallback &a_Callback, 
                               funmap_type &a_Storage,
                               const char_type *a_szCharSet )
@@ -224,12 +224,12 @@ void ParserBase::AddCallback( const string_type &a_strName,
 
     \throw ParserException if the name contains invalid charakters.
 */
-void ParserBase::CheckName(const string_type &a_strName, 
+void ParserBase::CheckName(const string_type &a_sName,
                            const string_type &a_szCharSet) const
 {
-  if ( !a_strName.length() || 
-       (a_strName.find_first_not_of(a_szCharSet)!=string_type::npos) ||
-       (a_strName[0]>='0' && a_strName[0]<='9'))
+  if ( !a_sName.length() ||
+       (a_sName.find_first_not_of(a_szCharSet)!=string_type::npos) ||
+       (a_sName[0]>='0' && a_sName[0]<='9'))
   {
     Error(ecINVALID_NAME);
   }
@@ -237,7 +237,7 @@ void ParserBase::CheckName(const string_type &a_strName,
 
 //---------------------------------------------------------------------------
 /** \brief Set the formula. 
-    Triggers first time calculation thus the creation of the bytecode and 
+    Triggers first time calculation thus the creation of the bytecode and
     scanning of used variables.
 
     \param a_strFormula Formula as string_type
@@ -245,7 +245,13 @@ void ParserBase::CheckName(const string_type &a_strName,
 */
 void ParserBase::SetExpr(const string_type &a_sExpr)
 {
-  m_pTokenReader->SetFormula(a_sExpr);
+  // <ibg> 20060222: Bugfix for Borland-Kylix:
+  // adding a space to the expression will keep Borlands KYLIX from going wild
+  // when calling tellg on a stringstream created from the expression after 
+  // reading a value at the end of an expression. (mu::Parser::IsVal function)
+  // (tellg returns -1 otherwise causing the parser to ignore the value)
+  string_type sBuf(a_sExpr + _T(" ") );
+  m_pTokenReader->SetFormula(sBuf);
   ReInit();
 }
 
@@ -253,10 +259,12 @@ void ParserBase::SetExpr(const string_type &a_sExpr)
 /** \brief Add a user defined operator. 
     \post Will reset the Parser to string parsing mode.
 */
-void ParserBase::DefinePostfixOprt(const string_type &a_strName, fun_type1 a_pFun, bool a_bAllowOpt)
+void ParserBase::DefinePostfixOprt(const string_type &a_sName, 
+                                   fun_type1 a_pFun,
+                                   bool a_bAllowOpt)
 {
-  AddCallback( a_strName, 
-               ParserCallback(a_pFun, a_bAllowOpt), 
+  AddCallback( a_sName, 
+               ParserCallback(a_pFun, a_bAllowOpt, prPOSTFIX, cmOPRT_POSTFIX),
                m_PostOprtDef, 
                ValidOprtChars() );
 }
@@ -264,28 +272,37 @@ void ParserBase::DefinePostfixOprt(const string_type &a_strName, fun_type1 a_pFu
 //---------------------------------------------------------------------------
 /** \brief Add a user defined operator. 
     \post Will reset the Parser to string parsing mode.
+    \param a_sName [in] operator Identifier 
+    \param a_pFun [in] Operator callback function
+    \param a_iPrec [in] Operator Precedence (default=prSIGN)
+    \param a_bAllowOpt [in] True if operator is volatile (default=false)
+
+    \sa EPrec
 */
-void ParserBase::DefineInfixOprt(const string_type &a_strName, fun_type1 a_pFun, bool a_bAllowOpt)
+void ParserBase::DefineInfixOprt(const string_type &a_sName, 
+                                 fun_type1 a_pFun, 
+                                 int a_iPrec, 
+                                 bool a_bAllowOpt)
 {
-  AddCallback( a_strName, 
-               ParserCallback(a_pFun, a_bAllowOpt), 
+  AddCallback( a_sName, 
+               ParserCallback(a_pFun, a_bAllowOpt, a_iPrec, cmOPRT_INFIX), 
                m_InfixOprtDef, 
                ValidOprtChars() );
 }
 
 //---------------------------------------------------------------------------
-void ParserBase::DefineOprt( const string_type &a_strName, 
+void ParserBase::DefineOprt( const string_type &a_sName, 
                              fun_type2 a_pFun, 
-                             unsigned a_iPri, 
+                             unsigned a_iPrec, 
                              bool a_bAllowOpt )
 {
   // Check for conflicts with built in operator names
   for (int i=0; m_bBuiltInOp && i<cmCOMMA; ++i)
-    if (a_strName == string_type(c_DefaultOprt[i])) 
+    if (a_sName == string_type(c_DefaultOprt[i]))
       Error(ecBUILTIN_OVERLOAD);
 
-  AddCallback( a_strName, 
-               ParserCallback(a_pFun, a_bAllowOpt, a_iPri), 
+  AddCallback( a_sName, 
+               ParserCallback(a_pFun, a_bAllowOpt, a_iPrec, cmOPRT_BIN), 
                m_OprtDef, 
                ValidOprtChars() );
 }
@@ -353,29 +370,30 @@ int ParserBase::GetOprtPri(const token_type &a_Tok) const
   switch (a_Tok.GetCode())
   {
     // built in operators
-    case cmEND:    return -4;
-	  case cmCOMMA:  return -3;
+    case cmEND:        return -5;
+	  case cmCOMMA:      return -4;
     case cmBO :	
-    case cmBC :    return -2;
-    case cmASSIGN: return -1;               
+    case cmBC :        return -2;
+    case cmASSIGN:     return -1;               
     case cmAND:
     case cmXOR:
-    case cmOR:     return  1;  
+    case cmOR:         return  prLOGIC;  
     case cmLT :
     case cmGT :
     case cmLE :
     case cmGE :
     case cmNEQ:
-    case cmEQ :    return  2; 
+    case cmEQ :        return  prCMP; 
     case cmADD:
-    case cmSUB:    return  3;
+    case cmSUB:        return  prADD_SUB;
     case cmMUL:
-    case cmDIV:    return  4;
-    case cmPOW:    return  5;
+    case cmDIV:        return  prMUL_DIV;
+    case cmPOW:        return  prPOW;
 
-      // user defined binary operators
-    case cmBINOP:  return a_Tok.GetPri();
-    default:  Error(ecINTERNAL_ERROR);
+    // user defined binary operators
+    case cmOPRT_INFIX: 
+    case cmOPRT_BIN:   return a_Tok.GetPri();
+    default:  Error(ecINTERNAL_ERROR, 5);
               return 999;
   }  
 }
@@ -466,26 +484,26 @@ ParserBase::token_type ParserBase::ApplyNumFunc( const token_type &a_FunTok,
 	        }
 	        break;
 
-    case 1: valTok.SetVal( ((fun_type1)a_FunTok.GetFuncAddr())(a_vArg[0].GetVal()) );  break; 
-    case 2: valTok.SetVal( ((fun_type2)a_FunTok.GetFuncAddr())(a_vArg[1].GetVal(),
-		                                                           a_vArg[0].GetVal()) );  break;
-    case 3: valTok.SetVal( ((fun_type3)a_FunTok.GetFuncAddr())(a_vArg[2].GetVal(), 
-		                                                           a_vArg[1].GetVal(), 
-														                                   a_vArg[0].GetVal()) );  break;
-    case 4: valTok.SetVal( ((fun_type4)a_FunTok.GetFuncAddr())(a_vArg[3].GetVal(), 
-	                                                             a_vArg[2].GetVal(), 
-				   	  	                                               a_vArg[1].GetVal(),
-													                                     a_vArg[0].GetVal()) );  break;
-    case 5: valTok.SetVal( ((fun_type5)a_FunTok.GetFuncAddr())(a_vArg[4].GetVal(), 
-														                                   a_vArg[3].GetVal(), 
-	                                                             a_vArg[2].GetVal(), 
-				   	  	                                               a_vArg[1].GetVal(),
-													                                     a_vArg[0].GetVal()) );  break;
-    default: Error(ecINTERNAL_ERROR);
+    case 1: valTok.SetVal( ((fun_type1)pFunc)(a_vArg[0].GetVal()) );  break;
+    case 2: valTok.SetVal( ((fun_type2)pFunc)(a_vArg[1].GetVal(),
+		                                          a_vArg[0].GetVal()) );  break;
+    case 3: valTok.SetVal( ((fun_type3)pFunc)(a_vArg[2].GetVal(), 
+		                                          a_vArg[1].GetVal(), 
+														                  a_vArg[0].GetVal()) ); break;
+    case 4: valTok.SetVal( ((fun_type4)pFunc)(a_vArg[3].GetVal(),
+	                                            a_vArg[2].GetVal(), 
+				   	  	                              a_vArg[1].GetVal(),
+													                    a_vArg[0].GetVal()) );  break;
+    case 5: valTok.SetVal( ((fun_type5)pFunc)(a_vArg[4].GetVal(), 
+														                  a_vArg[3].GetVal(), 
+	                                            a_vArg[2].GetVal(), 
+				   	  	                              a_vArg[1].GetVal(),
+													                    a_vArg[0].GetVal()) );  break;
+    default: Error(ecINTERNAL_ERROR, 6);
   }
 
   // Find out if the result will depend on a variable
-  /** \todo remove this loop, put content in the loop that takes the argument values. 
+  /** \todo remove this loop, put content in the loop that takes the argument values.
     
       (Attention: SetVal will reset Flags.)
   */
@@ -502,7 +520,7 @@ ParserBase::token_type ParserBase::ApplyNumFunc( const token_type &a_FunTok,
 
   // Formula optimization
   if ( m_bOptimize && 
-       !valTok.IsFlagSet(token_type::flVOLATILE) && 
+       !valTok.IsFlagSet(token_type::flVOLATILE) &&
        !a_FunTok.IsFlagSet(token_type::flVOLATILE) ) 
 	{
     m_vByteCode.RemoveValEntries(iArgCount);
@@ -518,7 +536,7 @@ ParserBase::token_type ParserBase::ApplyNumFunc( const token_type &a_FunTok,
   return valTok;
 
 #if defined(_MSC_VER)
-  #pragma warning( default : 4311 ) 
+  #pragma warning( default : 4311 )
 #endif
 }
 
@@ -529,32 +547,51 @@ ParserBase::token_type ParserBase::ApplyNumFunc( const token_type &a_FunTok,
     \throw exception_type If the function token is not a string function
 */
 ParserBase::token_type ParserBase::ApplyStrFunc(const token_type &a_FunTok,
-                                                token_type &a_Arg) const
+                                                const std::vector<token_type> &a_vArg) const
 {
-  if (a_Arg.GetCode()!=cmSTRING)
+  if (a_vArg.back().GetCode()!=cmSTRING)
     Error(ecSTRING_EXPECTED, m_pTokenReader->GetPos(), a_FunTok.GetAsString());
 
-  strfun_type1 pFunc = (strfun_type1)a_FunTok.GetFuncAddr();
+  token_type  valTok;
+  int  iArgCount = (unsigned)a_vArg.size();
+  void  *pFunc = a_FunTok.GetFuncAddr();
   assert(pFunc);
+
+  try
+  {
+    // Collect the function arguments from the value stack
+    switch(a_FunTok.GetArgCount())
+    {
+      case 0: valTok.SetVal( ((strfun_type1)pFunc)(a_vArg[0].GetAsString().c_str()) );  break;
+      case 1: valTok.SetVal( ((strfun_type2)pFunc)(a_vArg[1].GetAsString().c_str(),
+		                                               a_vArg[0].GetVal()) );  break;
+      case 2: valTok.SetVal( ((strfun_type3)pFunc)(a_vArg[2].GetAsString().c_str(), 
+                                                   a_vArg[1].GetVal(), 
+                                                   a_vArg[0].GetVal()) );  break;
+      default: Error(ecINTERNAL_ERROR);
+    }
+  }
+  catch(ParserError &e)
+  {
+    Error(ecVAL_EXPECTED, m_pTokenReader->GetPos(), a_FunTok.GetAsString());
+  }
+
+  // Find out if the result will depend on a variable
+  /** \todo remove this loop, put content in the loop that takes the argument values.
+    
+      (Attention: SetVal will reset Flags.)
+  */
+  bool bVolatile = a_FunTok.IsFlagSet(token_type::flVOLATILE);
+  for (int i=0; (bVolatile==false) && (i<iArgCount); ++i)
+    bVolatile |= a_vArg[i].IsFlagSet(token_type::flVOLATILE);
+
+  if (bVolatile)
+    valTok.AddFlags(token_type::flVOLATILE);
+
+  // string functions won't be optimized
+  m_vByteCode.AddStrFun((void*)pFunc, a_FunTok.GetArgCount(), a_vArg.back().GetIdx());
   
-  value_type fResult = pFunc( a_Arg.GetAsString().c_str() );
-  
-  // Formula optimization
-  if ( m_bOptimize && 
-       !a_FunTok.IsFlagSet(token_type::flVOLATILE) ) 
-	{
-    m_vByteCode.AddVal( fResult );
-	}
-	else 
-	{ 
-    // operation dosnt depends on a variable or the function is flagged unoptimizeable
-    // we cant optimize here...
-    m_vByteCode.AddStrFun((void*)pFunc, a_FunTok.GetArgCount(), a_Arg.GetIdx());
-	}
-  
-  a_Arg.SetVal(fResult);
-  
-  return a_Arg;
+  return valTok;
 }
 
 //---------------------------------------------------------------------------
@@ -581,18 +618,29 @@ void ParserBase::ApplyFunc( ParserStack<token_type> &a_stOpt,
   // Binary operators must rely on their internal operator number
   // since counting of operators relies on commas for function arguments
   // binary operators do not have commas in their expression
-  int iArgCount = ( funTok.GetCode()==cmBINOP ) ? funTok.GetArgCount() : a_iArgCount;
+  int iArgCount = ( funTok.GetCode()==cmOPRT_BIN ) ? funTok.GetArgCount() : a_iArgCount;
 
   if (funTok.GetArgCount()>0 && iArgCount>funTok.GetArgCount()) 
 	    Error(ecTOO_MANY_PARAMS, m_pTokenReader->GetPos()-1, funTok.GetAsString());
 
-	if ( funTok.GetCode()!=cmBINOP && iArgCount<funTok.GetArgCount() )
+	if ( funTok.GetCode()!=cmOPRT_BIN && iArgCount<funTok.GetArgCount() )
 	    Error(ecTOO_FEW_PARAMS, m_pTokenReader->GetPos()-1, funTok.GetAsString());
 
-  // Collect the function arguments from the value stack and store them
+  if ( funTok.GetCode()==cmFUNC_STR && iArgCount>funTok.GetArgCount() )
+	    Error(ecTOO_MANY_PARAMS, m_pTokenReader->GetPos()-1, funTok.GetAsString());
+
+  // Collect the numeric function arguments from the value stack and store them
   // in a vector
   std::vector<token_type> stArg;  
   for (int i=0; i<iArgCount; ++i)
+  {
+    stArg.push_back( a_stVal.pop() );
+    if ( stArg.back().GetType()==tpSTR && funTok.GetType()!=tpSTR )
+      Error(ecVAL_EXPECTED, m_pTokenReader->GetPos(), funTok.GetAsString());
+  }
+
+  // for string functions add the string argument
+  if (funTok.GetCode()==cmFUNC_STR)
   {
     stArg.push_back( a_stVal.pop() );
     if ( stArg.back().GetType()==tpSTR && funTok.GetType()!=tpSTR )
@@ -613,7 +661,7 @@ void ParserBase::ApplyFunc( ParserStack<token_type> &a_stOpt,
 #else
   // String functions accept only one parameter
   a_stVal.push( (funTok.GetType()==tpSTR) ?
-                      ApplyStrFunc(funTok, stArg.back()) :
+                      ApplyStrFunc(funTok, stArg) :
                       ApplyNumFunc(funTok, stArg) );
 #endif // __BORLANDC__
 }
@@ -621,18 +669,19 @@ void ParserBase::ApplyFunc( ParserStack<token_type> &a_stOpt,
 //---------------------------------------------------------------------------
 void ParserBase::ApplyBinOprt( ParserStack<token_type> &a_stOpt,
                                ParserStack<token_type> &a_stVal) const
-{ 
+{
   assert(a_stOpt.size());
 
   // user defined binary operator
-  if (a_stOpt.top().GetCode()==cmBINOP)
+  if (a_stOpt.top().GetCode()==cmOPRT_BIN)
   {
      ApplyFunc(a_stOpt, a_stVal, 2);
   }
   else
   {
     // internal binary operator
-    assert(a_stVal.size()>=2);
+    MUP_ASSERT(a_stVal.size()>=2);
+
     token_type valTok1 = a_stVal.pop(),
                valTok2 = a_stVal.pop(),
                optTok = a_stOpt.pop(),
@@ -666,9 +715,9 @@ void ParserBase::ApplyBinOprt( ParserStack<token_type> &a_stOpt,
       case cmASSIGN: 
                 // The assignement operator needs special treatment
                 // it uses a different format when stored in the bytecode!
-                { 
+                {
                   if (valTok2.GetCode()!=cmVAR)
-                    Error(ecINTERNAL_ERROR);
+                    Error(ecINTERNAL_ERROR, 7);
                     
                   double *pVar = valTok2.GetVar();
                   resTok.SetVal( *pVar = y );
@@ -679,7 +728,7 @@ void ParserBase::ApplyBinOprt( ParserStack<token_type> &a_stOpt,
                            // stuff does not apply
                 }
 
-      default:  Error(ecINTERNAL_ERROR);
+      default:  Error(ecINTERNAL_ERROR, 8);
     }
 
     // Create the bytecode entries
@@ -712,7 +761,7 @@ void ParserBase::ApplyBinOprt( ParserStack<token_type> &a_stOpt,
 //---------------------------------------------------------------------------
 /** \brief Parse the command code.
 
-  Command code contains precalculated stack positions of the values and the 
+  Command code contains precalculated stack positions of the values and the
   associated operators.  
   The Stack is filled beginning from index one the value at index zero is
   not used at all.
@@ -727,22 +776,19 @@ value_type ParserBase::ParseCmdCode() const
 
   value_type Stack[99];
   ECmdCode iCode;
-  int_type idx(0);
+  bytecode_type idx(0);
   int i(0);
 
   __start:
 
-  idx = m_pCmdCode[i]; 
+  idx = m_pCmdCode[i];
   iCode = (ECmdCode)m_pCmdCode[i+1];
   i += 2;
 
 #ifdef _DEBUG
   if (idx>=99)
-  {
     throw exception_type(ecGENERIC, "", m_pTokenReader->GetFormula(), -1);
-  }
 #endif
-//  assert(idx<99); // Formula too complex
 
   switch (iCode)
   {
@@ -763,31 +809,30 @@ value_type ParserBase::ParseCmdCode() const
     case cmPOW: Stack[idx]  = pow(Stack[idx], Stack[1+idx]); goto __start;
 
     // Assignement needs special treatment
-    case cmASSIGN: 
+    case cmASSIGN:
            {
              // next is a pointer to the target
              value_type **pDest = (value_type**)(&m_pCmdCode[i]);
-      
+
              // advance index according to pointer size
              i += m_vByteCode.GetPtrSize();
              // assign the value
-             Stack[idx] = **pDest = Stack[idx+1]; 
-           }     
+             Stack[idx] = **pDest = Stack[idx+1];
+           }
            goto __start;
 
     // user defined binary operators
-    case cmBINOP: 
+    case cmOPRT_BIN:
            Stack[idx] = (**(fun_type2**)(&m_pCmdCode[i]))(Stack[idx], Stack[idx+1]);
            ++i;
            goto __start;
 
     // variable tokens
 	  case cmVAR:
-//		        Stack[idx] = *( (value_type*)(m_pCmdCode[i]) );
 		        Stack[idx] = **(value_type**)(&m_pCmdCode[i]);
 		        i += m_vByteCode.GetValSize();
 		        goto __start;
-	
+
     // value tokens
 	  case cmVAL:
             Stack[idx] = *(value_type*)(&m_pCmdCode[i]);
@@ -797,24 +842,28 @@ value_type ParserBase::ParseCmdCode() const
     // Next is treatment of string functions
     case cmFUNC_STR:
             {
-              i++; // skip the unused argument count
-              strfun_type1 pFun = *(strfun_type1*)(&m_pCmdCode[i]);
-              i += m_vByteCode.GetPtrSize();
+		          // The function argument count
+              int iArgCount = (int)m_pCmdCode[ i++ ];  
 
-              int iIdxStack = (int)m_pCmdCode[i++];
-#if defined(_DEBUG)  
-              if ( (iIdxStack<0) || (iIdxStack>=(int)m_vStringBuf.size()) )
-                Error(ecINTERNAL_ERROR);
-#endif  
-              Stack[idx] = pFun(m_vStringBuf[iIdxStack].c_str());
+              // The index of the string argument in the string table
+              int iIdxStack = (int)m_pCmdCode[ i++ ];  
+              MUP_ASSERT( iIdxStack>=0 && iIdxStack<(int)m_vStringBuf.size() );
+
+              switch(iArgCount)  // switch according to argument count
+		          {
+                case 0: Stack[idx] = (*(strfun_type1*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str()); break;
+			          case 1: Stack[idx] = (*(strfun_type2*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str(), Stack[idx]); break;
+			          case 2: Stack[idx] = (*(strfun_type3*)(&m_pCmdCode[i]))(m_vStringBuf[iIdxStack].c_str(), Stack[idx], Stack[idx+1]); break;
+              }
+		          i += m_vByteCode.GetPtrSize();
             }
             goto __start;
 
     // Next is treatment of numeric functions
-    case cmFUNC:	
+    case cmFUNC:
 		        {
 		          int iArgCount = (int)m_pCmdCode[i++];
-          		   
+
               switch(iArgCount)  // switch according to argument count
 		          {
                 case 1: Stack[idx] = (*(fun_type1*)(&m_pCmdCode[i]))(Stack[idx]); break;
@@ -824,20 +873,20 @@ value_type ParserBase::ParseCmdCode() const
   		          case 5: Stack[idx] = (*(fun_type5*)(&m_pCmdCode[i]))(Stack[idx], Stack[idx+1], Stack[idx+2], Stack[idx+3], Stack[idx+4]); break;
                 default:
 				          if (iArgCount>0) // function with variable arguments store the number as a negative value
-                    Error(ecINTERNAL_ERROR);
+                    Error(ecINTERNAL_ERROR, 1);
 
-                  Stack[idx] =(*(multfun_type*)(&m_pCmdCode[i]))(&Stack[idx], -iArgCount); 
+                  Stack[idx] =(*(multfun_type*)(&m_pCmdCode[i]))(&Stack[idx], -iArgCount);
                   break;
 		          }
 		          i += m_vByteCode.GetPtrSize();
 		        }
 		        goto __start;
 
-	  case cmEND: 
+	  case cmEND:
 		        return Stack[1];
 
-	  default: 
-            Error(ecINTERNAL_ERROR);
+	  default:
+            Error(ecINTERNAL_ERROR, 2);
             return 0;
   }
 
@@ -847,10 +896,10 @@ value_type ParserBase::ParseCmdCode() const
 }
 
 //---------------------------------------------------------------------------
-/** \brief Return result for constant functions. 
+/** \brief Return result for constant functions.
 
-  Seems pointless, but for parser functions that are made up of only a value, which occur 
-  in real world applications, this speeds up things by removing the parser overhead almost 
+  Seems pointless, but for parser functions that are made up of only a value, which occur
+  in real world applications, this speeds up things by removing the parser overhead almost
   completely.
 */
 value_type ParserBase::ParseValue() const
@@ -868,19 +917,17 @@ value_type ParserBase::ParseValue() const
  \sa ParseCmdCode(), ParseValue()
 */
 value_type ParserBase::ParseString() const
-{ 
+{
 #if defined(_MSC_VER)
-  #pragma warning( disable : 4311 ) 
+  #pragma warning( disable : 4311 )
 #endif
-
-  if (!m_pTokenReader->GetFormula().length()) 
+  if (!m_pTokenReader->GetFormula().length())
       Error(ecUNEXPECTED_EOF, 0);
 
   ParserStack<token_type> stOpt, stVal;
   ParserStack<int> stArgCount;
   token_type opta, opt;  // for storing operators
   token_type val, tval;  // for storing value
-  int  iBrackets(0);     // bracket level counter
   string_type strBuf;    // buffer for string function arguments
 
   ReInit();
@@ -903,32 +950,60 @@ value_type ParserBase::ParseString() const
       case cmVAR:
    		        stVal.push(opt);
               m_vByteCode.AddVar( static_cast<value_type*>(opt.GetVar()) );
-
-              // If there is a function token that is no binary operator
-              // it is an infix operator execute it now!
-              if (stOpt.size() && stOpt.top().GetCode()!=cmBINOP) 
-                ApplyFunc(stOpt, stVal, 1);
               break;
 
       case cmVAL:
 		          stVal.push(opt);
               m_vByteCode.AddVal( opt.GetVal() );
-              
-              // If there is a function token that is no binary operator
-              // it is an infix operator
-              if (stOpt.size() && stOpt.top().GetCode()!=cmBINOP) 
-                ApplyFunc(stOpt, stVal, 1);
+              break;
+
+      case cmCOMMA:
+              if (stArgCount.empty())
+                Error(ecUNEXPECTED_COMMA, m_pTokenReader->GetPos());
+              ++stArgCount.top(); // Record number of arguments
+              // fall through...
+      case cmEND:
+      case cmBC:
+              {
+                while ( stOpt.size() && stOpt.top().GetCode() != cmBO)
+                {
+                  if (stOpt.top().GetCode()==cmOPRT_INFIX)
+                    ApplyFunc(stOpt, stVal, 1);  // infix operator
+                  else
+                    ApplyBinOprt(stOpt, stVal);
+                }
+
+                // <ibg> 20060218 infix operator treatment moved here
+                if (stOpt.size() && stOpt.top().GetCode()==cmOPRT_INFIX) 
+                  ApplyFunc(stOpt, stVal, 1);  // infix operator
+
+                if ( opt.GetCode()!=cmBC || stOpt.size()==0 || stOpt.top().GetCode()!=cmBO )
+                  break;
+
+                // if opt is ")" and opta is "(" the bracket has been evaluated, now its time to check
+			          // if there is either a function or a sign pending
+		   	        // neither the opening nor the closing bracket will be pushed back to
+			          // the operator stack
+			          // Check if a function is standing in front of the opening bracket, 
+                // if yes evaluate it afterwards check for infix operators
+			          assert(stArgCount.size());
+			          int iArgCount = stArgCount.pop();
+                
+                stOpt.pop(); // Take opening bracket from stack
+
+                if (iArgCount>1 && ( stOpt.size()==0 || 
+                                     (stOpt.top().GetCode()!=cmFUNC && 
+                                     stOpt.top().GetCode()!=cmFUNC_STR) ) )
+                  Error(ecUNEXPECTED_ARG, m_pTokenReader->GetPos());
+                
+                if (stOpt.size() && stOpt.top().GetCode()!=cmOPRT_INFIX)
+                  ApplyFunc(stOpt, stVal, iArgCount);
+			        } // if bracket content is evaluated
               break;
 
       //
       // Next are the binary operator entries
       //
-      case cmBC:    // For closing brackets make some syntax checks
-		          if ( --iBrackets < 0 )  
-						    Error(ecUNEXPECTED_PARENS, m_pTokenReader->GetPos(), opt.GetAsString());
- 					    // no break; Fall through behaviour!
-      case cmCOMMA:
-      case cmEND:	
       case cmAND:   // built in binary operators
       case cmOR:
       case cmXOR:
@@ -944,89 +1019,43 @@ value_type ParserBase::ParseString() const
       case cmDIV:
       case cmPOW:
       case cmASSIGN:
-      case cmBINOP:
-  		        if (opt.GetCode()==cmCOMMA)
-	    		    {
-			          if (stArgCount.empty())
-				          Error(ecUNEXPECTED_COMMA, m_pTokenReader->GetPos());
-
-                ++stArgCount.top(); // Record number of arguments
-		    	    }
-              
-              // a binary operator, a comma, a closing bracket or an end of expression
-              // has been found. Now it is necessary to check if a function token
-              // for a postfix operator is in the stack at the preceding position.
-              // if yes this must be a postfix operator. Deal with it now...
-              if (stOpt.size() && stOpt.top().GetCode()!=cmBINOP )
+      case cmOPRT_BIN:
+              // A binary operator (user defined or built in) has been found. 
+              while ( stOpt.size() && stOpt.top().GetCode() != cmBO)
               {
-                ApplyFunc(stOpt, stVal, 1);  // postfix operator
+                if (GetOprtPri(stOpt.top()) < GetOprtPri(opt))
+                  break;
 
-                if (stOpt.size() && stOpt.top().GetCode()!=cmBINOP) 
+                if (stOpt.top().GetCode()==cmOPRT_INFIX)
                   ApplyFunc(stOpt, stVal, 1);  // infix operator
-              }
-
-              // There must be at least two operator tokens  available before we can start
-		          // the calculation. It's necessary to compare their priorities
-		     	    // Get the previous operator from the operator stack in order to find
-		          // out if this operator can be applied (must have a higher priority)
-              if ( !stOpt.size() && opt.GetCode()!=cmEND )
-              {
-                stOpt.push(opt);
-                break;
-              }
-
-              // Order does matter in the while statement because Priority will fail
-		     	    // if iErrc is set!
-			        while ( stOpt.size() && 
-                      stOpt.top().GetCode() != cmBO && 
-                      stOpt.top().GetCode() != cmCOMMA && 
-				        	    GetOprtPri(stOpt.top()) >= GetOprtPri(opt) )
-              {
-                ApplyBinOprt(stOpt, stVal);
+                else
+                  ApplyBinOprt(stOpt, stVal);
               } // while ( ... )
 
-              // if opt is ")" and opta is "(" the bracket has been evaluated, now its time to check
-			        // if there is either a function or a sign pending
-		   	      // neither the opening nor the closing bracket will be pushed back to
-			        // the operator stack
-              if ( stOpt.size() && stOpt.top().GetCode()==cmBO && opt.GetCode()==cmBC )
-              {
-			          // Check if a function is standing in front of the opening bracket, 
-                // if yes evaluate it afterwards check for infix operators
-			          assert(stArgCount.size());
-			          int iArgCount = stArgCount.pop();
-                
-                stOpt.pop(); // Take opening bracket from stack
-
-                if (iArgCount>1 && (stOpt.size()==0 || stOpt.top().GetCode()!=cmFUNC) )
-                  Error(ecUNEXPECTED_ARG, m_pTokenReader->GetPos());
-                
-                ApplyFunc(stOpt, stVal, iArgCount);
-
-                if (stOpt.size() && stOpt.top().GetCode()!=cmBINOP) 
-                  ApplyFunc(stOpt, stVal, 1);  // infix operator
-  
-                break;
-			        } // if bracket content is evaluated
-
-    			    // The operator can't be evaluated right now, push back to the operator stack 
-		    	    // CmdEND, CmdCOMMA will not be pushed back, they have done their job now
-		    	    // (and triggerd evaluation of the formula or an expression used as function argument)
-		    	    if (opt.GetCode()!=cmEND && opt.GetCode()!=cmCOMMA) 
-				        stOpt.push(opt);
-              
+    			    // The operator can't be evaluated right now, push back to the operator stack
+              stOpt.push(opt);
               break;
 
       //
       // Last section contains functions and operators implicitely mapped to functions
       //
-	    case cmBO:    ++iBrackets;  stArgCount.push(1);
-	    case cmFUNC:
-      case cmFUNC_STR:  
+	    case cmBO:
+              stArgCount.push( (stOpt.size() && stOpt.top().GetCode()==cmFUNC_STR) ? 0 : 1 );
               stOpt.push(opt);
 		    	    break;
 
-	    default:  Error(ecINTERNAL_ERROR);
+      case cmFUNC_STR:  
+      case cmFUNC:
+      case cmOPRT_INFIX:
+              stOpt.push(opt);
+		    	    break;
+
+      case cmOPRT_POSTFIX:
+              stOpt.push(opt);
+              ApplyFunc(stOpt, stVal, 1);  // this is the postfix operator
+              break;
+
+	    default:  Error(ecINTERNAL_ERROR, 3);
     } // end of switch operator-token
 
     if ( opt.GetCode() == cmEND )
@@ -1035,25 +1064,22 @@ value_type ParserBase::ParseString() const
       break;
     }
 
-#if defined(MU_PARSER_DUMP_STACK)
+#if defined(MUP_DUMP_STACK)
     StackDump(stVal, stOpt);
+    m_vByteCode.AsciiDump();
 #endif
   } // while (true)
 
   // Store pointer to start of bytecode
   m_pCmdCode = m_vByteCode.GetRawData();
 
-#if defined(MU_PARSER_DUMP_CMDCODE)
+#if defined(MUP_DUMP_CMDCODE)
   m_vByteCode.AsciiDump();
 #endif
 
-  // check bracket counter
-  if (iBrackets>0) 
-    Error(ecMISSING_PARENS, m_pTokenReader->GetPos(), c_DefaultOprt[cmBC]);
-  
   // get the last value (= final result) from the stack
   if (stVal.size()!=1)
-    Error(ecINTERNAL_ERROR);
+    Error(ecINTERNAL_ERROR, 4);
 
   if (stVal.top().GetType()!=tpDBL)
     Error(ecSTR_RESULT);
@@ -1064,7 +1090,7 @@ value_type ParserBase::ParseString() const
   if (m_bUseByteCode)
   {
     m_pParseFormula = (m_pCmdCode[1]==cmVAL && m_pCmdCode[6]==cmEND) ? 
-                            &ParserBase::ParseValue : 
+                            &ParserBase::ParseValue :
                             &ParserBase::ParseCmdCode;
   }
 
@@ -1073,26 +1099,28 @@ value_type ParserBase::ParseString() const
 #if defined(_MSC_VER)
   #pragma warning( default : 4311 )
 #endif
-} 
+}
+
 
 //---------------------------------------------------------------------------
 /** \brief Create an error containing the parse error position.
 
-  This function will create an Parser Exception object containing the error text and its position.
+  This function will create an Parser Exception object containing the error text and
+  its position.
 
   \param a_iErrc [in] The error code of type #EErrorCodes.
   \param a_iPos [in] The position where the error was detected.
   \param a_strTok [in] The token string representation associated with the error.
   \throw ParserException always throws thats the only purpose of this function.
 */
-void  ParserBase::Error(EErrorCodes a_iErrc, int a_iPos, const string_type &a_strTok) const
+void  ParserBase::Error(EErrorCodes a_iErrc, int a_iPos, const string_type &a_sTok) const
 {
-  throw exception_type(a_iErrc, a_strTok, m_pTokenReader->GetFormula(), a_iPos);
+  throw exception_type(a_iErrc, a_sTok, m_pTokenReader->GetFormula(), a_iPos);
 }
 
 //------------------------------------------------------------------------------
 /** \brief Clear all user defined variables.
-    
+
     Resets the parser to string parsing mode by calling #ReInit.
     \throw nothrow
 */
@@ -1136,7 +1164,7 @@ void ParserBase::ClearFormula()
 }
 
 //------------------------------------------------------------------------------
-/** \brief Clear all functions. 
+/** \brief Clear all functions.
     \post Resets the parser to string parsing mode.
     \throw nothrow
 */
@@ -1172,7 +1200,7 @@ void ParserBase::ClearPostfixOprt()
 }
 
 //------------------------------------------------------------------------------
-/** \brief Clear all user defined binary operators. 
+/** \brief Clear all user defined binary operators.
     \post Resets the parser to string parsing mode.
     \throw nothrow
 */
@@ -1244,7 +1272,7 @@ bool ParserBase::HasBuiltInOprt() const
   return m_bBuiltInOp;
 }
 
-#if defined(MU_PARSER_DUMP_STACK) | defined(MU_PARSER_DUMP_CMDCODE)
+#if defined(MUP_DUMP_STACK) | defined(MUP_DUMP_CMDCODE)
 
 //------------------------------------------------------------------------------
 /** \brief Dump stack content. 
@@ -1262,42 +1290,48 @@ void ParserBase::StackDump( const ParserStack<token_type > &a_stVal,
   while ( !stVal.empty() ) 
   {
     token_type val = stVal.pop();
-    cout << " " << val.GetVal() << " ";
+    if (val.GetType()==tpSTR)
+      cout << " \"" << val.GetAsString() << "\" ";
+    else
+      cout << " " << val.GetVal() << " ";
   }
   cout << "\nOperator stack:\n";
 
   while ( !stOprt.empty() )
   {
-     if (stOprt.top().GetType()<=cmXOR) 
+     if (stOprt.top().GetCode()<=cmASSIGN) 
   	 {
 	  	 cout << "OPRT_INTRNL \"" 
-            << ParserBase::c_DefaultOprt[stOprt.top().GetType()] 
-            << "\" ";
+            << ParserBase::c_DefaultOprt[stOprt.top().GetCode()] 
+            << "\" \n";
 	   }
      else
      {
 		    switch(stOprt.top().GetCode())
 		    {
-		      case cmVAR:      cout << "VAR\n";  break;
-		      case cmVAL:      cout << "VAL\n";  break;
-		      case cmFUNC:     cout << "FUNC_NUM \"" 
-                                << stOprt.top().GetAsString() 
-                                << "\"\n";  break;
-          case cmBINOP:    cout << "OPRT_BIN \"" 
-                                << stOprt.top().GetAsString() 
-                                << "\"\n";  break;
-          case cmFUNC_STR: cout << "FUNC_STR\n";  break;
-		      case cmEND:      cout << "END\n";  break;
-		      case cmUNKNOWN:  cout << "UNKNOWN\n";  break;
-		      case cmBO:       cout << "BRACKET \"(\"\n";  break;
-		      case cmBC:       cout << "BRACKET \")\"\n";  break;
-		      default:  cout << stOprt.top().GetType() << " ";  break;
+		      case cmVAR:        cout << "VAR\n";  break;
+		      case cmVAL:        cout << "VAL\n";  break;
+		      case cmFUNC:       cout << "FUNC_NUM \"" 
+                                  << stOprt.top().GetAsString() 
+                                  << "\"\n";   break;
+		      case cmOPRT_INFIX: cout << "OPRT_INFIX \"" 
+                                  << stOprt.top().GetAsString() 
+                                  << "\"\n";   break;
+          case cmOPRT_BIN:   cout << "OPRT_BIN \"" 
+                                  << stOprt.top().GetAsString() 
+                                  << "\"\n";        break;
+          case cmFUNC_STR:   cout << "FUNC_STR\n";  break;
+		      case cmEND:        cout << "END\n";       break;
+		      case cmUNKNOWN:    cout << "UNKNOWN\n";   break;
+		      case cmBO:         cout << "BRACKET \"(\"\n";  break;
+		      case cmBC:         cout << "BRACKET \")\"\n";  break;
+          default:           cout << stOprt.top().GetType() << " ";  break;
 		    }
      }	
      stOprt.pop();
   }
 
-  cout <<endl;
+  cout << dec << endl;
 }
 
 #endif

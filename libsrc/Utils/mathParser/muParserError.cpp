@@ -83,7 +83,7 @@ namespace mu
     m_vErrMsg[ecUNEXPECTED_STR]      = "Unexpected string token found at position $POS$.";
     m_vErrMsg[ecUNTERMINATED_STRING] = "Unterminated string starting at position $POS$.";
     m_vErrMsg[ecSTRING_EXPECTED]     = "String function called with a non string type of argument.";
-    m_vErrMsg[ecVAL_EXPECTED]        = "Numerical function called with a non value type of argument.";
+    m_vErrMsg[ecVAL_EXPECTED]        = "String value used where a numerical argument is expected.";
     m_vErrMsg[ecOPRT_TYPE_CONFLICT]  = "No suitable overload for operator \"$TOK$\" at position $POS$.";
     m_vErrMsg[ecGENERIC]             = "Parser error.";
     m_vErrMsg[ecSTR_RESULT]          = "Function result is a string.";
@@ -124,9 +124,8 @@ namespace mu
   ParserError::ParserError(EErrorCodes a_iErrc) 
     :m_ErrMsg(ParserErrorMsg::Instance())
   {
-    assert(a_iErrc==ecINTERNAL_ERROR);
     Reset();
-    m_strMsg = "internal error";
+    m_strMsg = "parser error";
   }
 
   //------------------------------------------------------------------------------
