@@ -86,6 +86,7 @@ namespace CoupledField {
                   Setting::COMMAND_LINE_ONLY | Setting::EXPLICIT_ASSIGNMENT,
                   helpMeshFile_.c_str() ),
 
+#ifdef USE_SCRIPTING
       // --script
       SettingDef( markerLongScriptFileName_.c_str(),
                   markerScriptFileName_.c_str(),
@@ -94,6 +95,7 @@ namespace CoupledField {
                   1,
                   Setting::COMMAND_LINE_ONLY | Setting::EXPLICIT_ASSIGNMENT,
                   helpMeshFile_.c_str() ),
+#endif
       
       // --traceDepth
       SettingDef( markerLongTraceDepth_.c_str(),

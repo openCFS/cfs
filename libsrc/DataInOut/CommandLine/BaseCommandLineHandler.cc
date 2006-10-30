@@ -28,13 +28,9 @@ namespace CoupledField {
 
   const std::string BaseCommandLineHandler::helpMeshFile_      =
   "name of mesh file for the simulation";  
-
-  const std::string BaseCommandLineHandler::helpScriptFileName_ =
 #ifdef USE_SCRIPTING
+  const std::string BaseCommandLineHandler::helpScriptFileName_ =
   "name of script file to be evaluated";  
-#else
-  "name of script file to be evaluated \
- \033[1m(de-activated in this version)\033[0m";
 #endif
 
   const std::string BaseCommandLineHandler::helpTraceDepth_    =
@@ -65,7 +61,9 @@ namespace CoupledField {
   // Short forms of markers
   const std::string BaseCommandLineHandler::markerParamFile_       = "-p";
   const std::string BaseCommandLineHandler::markerMeshFile_        = "-m";
+#ifdef USE_SCRIPTING
   const std::string BaseCommandLineHandler::markerScriptFileName_  = "-e";
+#endif
   const std::string BaseCommandLineHandler::markerTraceDepth_      = "-t";
   const std::string BaseCommandLineHandler::markerWriteSkeleton_   = "-w";
   const std::string BaseCommandLineHandler::markerPrintGrid_       = "-g";
@@ -79,8 +77,10 @@ namespace CoupledField {
   "--paramFile";
   const std::string BaseCommandLineHandler::markerLongMeshFile_      =
   "--meshFile";
+#ifdef USE_SCRIPTING
   const std::string BaseCommandLineHandler::markerLongScriptFileName_ =
   "--scriptFile";
+#endif
   const std::string BaseCommandLineHandler::markerLongTraceDepth_    =
   "--traceDepth";
   const std::string BaseCommandLineHandler::markerLongWriteSkeleton_ =
@@ -139,12 +139,14 @@ namespace CoupledField {
        << " = <string>\n"
        << " " << helpMeshFile_ << "\n\n"
 
+#ifdef USE_SCRIPTING
       // --scriptFile
        << COLOR_INIT
        << " " << markerScriptFileName_ << ", " << markerLongScriptFileName_
        << COLOR_STOP
        << " = <string>\n"
        << " " << helpScriptFileName_ << "\n\n"
+#endif
 
       // --traceDepth
        << " " << COLOR_INIT
@@ -238,10 +240,12 @@ namespace CoupledField {
         << GetMeshFile()
         << colorStop << '\n'
 
+#ifdef USE_SCRIPTING
         << ' ' << markerLongScriptFileName_ << " = "
         << colorInit
         << GetScriptFileName()
         << colorStop << '\n'
+#endif
 
         << ' ' << markerLongTraceDepth_ << " = "
         << colorInit
