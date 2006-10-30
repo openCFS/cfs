@@ -22,22 +22,21 @@
 namespace mu
 {
 
-  ParserCallback::ParserCallback(fun_type1 a_pFun, bool a_bAllowOpti)
+  ParserCallback::ParserCallback(fun_type1 a_pFun, bool a_bAllowOpti, int a_iPrec, ECmdCode a_iCode)
     :m_pFun((void*)a_pFun)
     ,m_iArgc(1)
-    ,m_iPri(-1)
-    ,m_iCode(cmFUNC)
+    ,m_iPri(a_iPrec)
+    ,m_iCode(a_iCode)
     ,m_iType(tpDBL)
     ,m_bAllowOpti(a_bAllowOpti)
   {}
 
-  ParserCallback::ParserCallback( fun_type2 a_pFun, 
-                                  bool a_bAllowOpti, 
-                                  int a_iPri)
+
+  ParserCallback::ParserCallback( fun_type2 a_pFun, bool a_bAllowOpti, int a_iPrec, ECmdCode a_iCode)
     :m_pFun((void*)a_pFun)
     ,m_iArgc(2)
-    ,m_iPri(a_iPri)
-    ,m_iCode( (a_iPri!=-999) ? cmBINOP : cmFUNC)
+    ,m_iPri(a_iPrec)
+    ,m_iCode(a_iCode)
     ,m_iType(tpDBL)
     ,m_bAllowOpti(a_bAllowOpti)
   {}
@@ -51,6 +50,7 @@ namespace mu
     ,m_iType(tpDBL)
     ,m_bAllowOpti(a_bAllowOpti)
   {}
+
 
   ParserCallback::ParserCallback(fun_type4 a_pFun, bool a_bAllowOpti)
     :m_pFun((void*)a_pFun)
@@ -81,7 +81,25 @@ namespace mu
 
   ParserCallback::ParserCallback(strfun_type1 a_pFun, bool a_bAllowOpti)
     :m_pFun((void*)a_pFun)
+    ,m_iArgc(0)
+    ,m_iPri(-1)
+    ,m_iCode(cmFUNC_STR)
+    ,m_iType(tpSTR)
+    ,m_bAllowOpti(a_bAllowOpti)
+  {}
+
+  ParserCallback::ParserCallback(strfun_type2 a_pFun, bool a_bAllowOpti)
+    :m_pFun((void*)a_pFun)
     ,m_iArgc(1)
+    ,m_iPri(-1)
+    ,m_iCode(cmFUNC_STR)
+    ,m_iType(tpSTR)
+    ,m_bAllowOpti(a_bAllowOpti)
+  {}
+
+  ParserCallback::ParserCallback(strfun_type3 a_pFun, bool a_bAllowOpti)
+    :m_pFun((void*)a_pFun)
+    ,m_iArgc(2)
     ,m_iPri(-1)
     ,m_iCode(cmFUNC_STR)
     ,m_iType(tpSTR)
@@ -158,7 +176,7 @@ namespace mu
 
   /** \brief Return the operator priority. 
   
-     Only valid if the callback token is an operator token.
+     Only valid if the callback token is an operator token (binary or infix).
   */
   int ParserCallback::GetPri()  const 
   { 

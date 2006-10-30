@@ -36,18 +36,20 @@ namespace mu
     of arguments. 
     This class is not used for string function prototyping.
 
-    \author (C) 2004, 2005 Ingo Berg
+    \author (C) 2004-2006 Ingo Berg
 */
 class ParserCallback
 {
 public:
-    ParserCallback(fun_type1 a_pFun, bool a_bAllowOpti);
-    ParserCallback(fun_type2 a_pFun, bool a_bAllowOpti, int a_iPri = -999);
+    ParserCallback(fun_type1 a_pFun, bool a_bAllowOpti, int a_iPrec = -1, ECmdCode a_iCode=cmFUNC);
+    ParserCallback(fun_type2 a_pFun, bool a_bAllowOpti, int a_iPrec = -1, ECmdCode a_iCode=cmFUNC);
     ParserCallback(fun_type3 a_pFun, bool a_bAllowOpti);
     ParserCallback(fun_type4 a_pFun, bool a_bAllowOpti);
     ParserCallback(fun_type5 a_pFun, bool a_bAllowOpti);
     ParserCallback(multfun_type a_pFun, bool a_bAllowOpti);
     ParserCallback(strfun_type1 a_pFun, bool a_bAllowOpti);
+    ParserCallback(strfun_type2 a_pFun, bool a_bAllowOpti);
+    ParserCallback(strfun_type3 a_pFun, bool a_bAllowOpti);
     ParserCallback();
     ParserCallback(const ParserCallback &a_Fun);
     
@@ -63,13 +65,13 @@ public:
 private:
     void *m_pFun;       ///< Pointer to the callback function, casted to void
     
-    /** \brief Number of function arguments
+    /** \brief Number of numeric function arguments
     
         This number is negative for functions with variable number of arguments. in this cases
         they represent the actual number of arguments found.
     */
-    int   m_iArgc;    
-    int   m_iPri;
+    int   m_iArgc;      
+    int   m_iPri;       ///< Valid only for binary and infix operators; Operator precedence.
     ECmdCode  m_iCode;
     ETypeCode m_iType;
     bool  m_bAllowOpti; ///< Flag indication optimizeability 

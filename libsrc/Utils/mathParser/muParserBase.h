@@ -1,5 +1,5 @@
 /** 
-  Copyright (C) 2004, 2005 Ingo Berg
+  Copyright (C) 2004-2006 Ingo Berg
 
   Permission is hereby granted, free of charge, to any person obtaining a copy of this 
   software and associated documentation files (the "Software"), to deal in the Software
@@ -37,7 +37,7 @@ namespace mu
 
 /** \brief Mathematical expressions parser (base parser engine).
   
-  Version 1.25 (20051111)
+  Version 1.26 (20060226)
 
   This is the implementation of a bytecode based mathematical expressions parser. 
   The formula will be parsed from string and converted into a bytecode. 
@@ -46,7 +46,7 @@ namespace mu
   Complementary to a set of internally implemented functions the parser is able to handle 
   user defined functions and variables. 
 
-  \author (C) 2004, 2005 Ingo Berg
+  \author (C) 2004-2006 Ingo Berg
 */
 class ParserBase 
 {
@@ -124,6 +124,8 @@ private:
     MUP_DEFINE_FUNC(fun_type5)
     MUP_DEFINE_FUNC(multfun_type)
     MUP_DEFINE_FUNC(strfun_type1)
+    MUP_DEFINE_FUNC(strfun_type2)
+    MUP_DEFINE_FUNC(strfun_type3)
 #undef MUP_DEFINE_FUNC
 
     void DefineOprt(const string_type &a_strName, fun_type2 a_pFun, unsigned a_iPri=0, bool a_bAllowOpt = false);
@@ -131,7 +133,7 @@ private:
     void DefineStrConst(const string_type &a_sName, const string_type &a_strVal);
     void DefineVar(const string_type &a_sName, value_type *a_fVar);
     void DefinePostfixOprt(const string_type &a_strFun, fun_type1 a_pOprt, bool a_bAllowOpt=true);
-    void DefineInfixOprt(const string_type &a_strName, fun_type1 a_pOprt, bool a_bAllowOpt=true);
+    void DefineInfixOprt(const string_type &a_strName, fun_type1 a_pOprt, int a_iPrec=prINFIX, bool a_bAllowOpt=true);
 
     // Clear user defined variables, constants or functions
   	void ClearVar();
@@ -264,7 +266,7 @@ private:
                             const std::vector<token_type> &a_vArg) const;
 
     token_type ApplyStrFunc(const token_type &a_FunTok,
-                            token_type &a_Arg) const;
+                            const std::vector<token_type> &a_vArg) const;
 
     int GetOprtPri(const token_type &a_Tok) const;
 
@@ -275,7 +277,7 @@ private:
     void  ClearFormula();
     void  CheckName(const string_type &a_strName, const string_type &a_CharSet) const;
 
-#if defined(MU_PARSER_DUMP_STACK) | defined(MU_PARSER_DUMP_CMDCODE)
+#if defined(MUP_DUMP_STACK) | defined(MUP_DUMP_CMDCODE)
     void StackDump(const ParserStack<token_type > &a_stVal, 
                    const ParserStack<token_type > &a_stOprt) const;
 #endif

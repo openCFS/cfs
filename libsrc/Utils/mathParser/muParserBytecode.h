@@ -51,7 +51,7 @@ public:
        values and pointers. Values and pointer will be casted to this 
        type before their storage.
     */
-    typedef int_type map_type;
+    typedef bytecode_type map_type;
 
 private:
 

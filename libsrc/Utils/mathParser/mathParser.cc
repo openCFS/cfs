@@ -1,6 +1,10 @@
 #include "mathParser.hh"
+
+#include <boost/algorithm/string/replace.hpp>
+
 #include "Utils/vector.hh"
 #include "Utils/coordSystem.hh"
+#include "Utils/interpolate.hh"
 
 
 namespace CoupledField {
@@ -20,7 +24,6 @@ namespace CoupledField {
              << " Errc:     " << e.GetCode() << "\n";           \
     Error( __FILE__, __LINE__ );                                \
   }
-
   
   MathParser::MathParser() {
     ENTER_FCN( "MathParser::MathParser" );
@@ -182,7 +185,16 @@ namespace CoupledField {
 
     // Get parser related to handler
     mu::Parser & myParser = GetParser( handler );
-    MATHPARSER_EXEC( myParser.SetExpr(expr) );
+    
+    // Special handling in case the expression is set in a xml-file:
+    // We have to replace all occurences of the single quote '
+    // by the related double quote " in order to get muParser
+    // recognize the expression as a string.
+    std::string modExpr = expr;
+    boost::algorithm::replace_all( modExpr, "'", "\"" );
+    
+
+    MATHPARSER_EXEC( myParser.SetExpr(modExpr) );
   }
 
 
@@ -196,7 +208,6 @@ namespace CoupledField {
     Double ret = 0.0;
     MATHPARSER_EXEC( ret = myParser.Eval() );
 
-
     return ret;
   }
 
@@ -209,6 +220,9 @@ namespace CoupledField {
     parser.DefineOprt( "le", MathParser::Op_le, 2);
     parser.DefineOprt( "lt", MathParser::Op_lt, 2);
     
+
+    // Register functions from within CFS
+    parser.DefineFun("sample1D", Interpolate1D::Interpolate, false );
 
     // Register factory for dynamic variable registering
     //parser.SetVarFactory( AddVariable );

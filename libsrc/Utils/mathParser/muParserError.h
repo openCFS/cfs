@@ -36,40 +36,40 @@ namespace mu
 enum EErrorCodes
 {
   // Formula syntax errors
-  ecUNEXPECTED_OPERATOR =  0, ///< Unexpected binary operator found
-  ecUNASSIGNABLE_TOKEN,       ///< Token cant be identified.
-  ecUNEXPECTED_EOF,           ///< Unexpected end of formula. (Example: "2+sin(")
-  ecUNEXPECTED_COMMA,         ///< An unexpected comma has been found. (Example: "1,23")
-  ecUNEXPECTED_ARG,           ///< An unexpected argument has been found
-  ecUNEXPECTED_VAL,           ///< An unexpected value token has been found
-  ecUNEXPECTED_VAR,           ///< An unexpected variable token has been found
-  ecUNEXPECTED_PARENS,        ///< Unexpected Parenthesis, opening or closing
-  ecUNEXPECTED_STR,           ///< A string has been found at an inapropriate position
-  ecSTRING_EXPECTED,          ///< A string function has been called with a different type of argument
-  ecVAL_EXPECTED,             ///< A numerical function has been called with a non value type of argument
-  ecMISSING_PARENS,           ///< Missing parens. (Example: "3*sin(3")
-  ecUNEXPECTED_FUN,           ///< Unexpected function found. (Example: "sin(8)cos(9)")
-  ecUNTERMINATED_STRING,      ///< unterminated string constant. (Example: "3*valueof("hello)")
-  ecTOO_MANY_PARAMS,          ///< Too many function parameters
-  ecTOO_FEW_PARAMS,           ///< Too few function parameters. (Example: "ite(1<2,2)")
-  ecOPRT_TYPE_CONFLICT,       ///< binary operators may only be applied to value items of the same type
-  ecSTR_RESULT,               ///< result is a string
+  ecUNEXPECTED_OPERATOR = 0,  ///< Unexpected binary operator found
+  ecUNASSIGNABLE_TOKEN  = 1,  ///< Token cant be identified.
+  ecUNEXPECTED_EOF      = 2,  ///< Unexpected end of formula. (Example: "2+sin(")
+  ecUNEXPECTED_COMMA    = 3,  ///< An unexpected comma has been found. (Example: "1,23")
+  ecUNEXPECTED_ARG      = 4,  ///< An unexpected argument has been found
+  ecUNEXPECTED_VAL      = 5,  ///< An unexpected value token has been found
+  ecUNEXPECTED_VAR      = 6,  ///< An unexpected variable token has been found
+  ecUNEXPECTED_PARENS   = 7,  ///< Unexpected Parenthesis, opening or closing
+  ecUNEXPECTED_STR      = 8,  ///< A string has been found at an inapropriate position
+  ecSTRING_EXPECTED     = 9,  ///< A string function has been called with a different type of argument
+  ecVAL_EXPECTED        = 10, ///< A numerical function has been called with a non value type of argument
+  ecMISSING_PARENS      = 11, ///< Missing parens. (Example: "3*sin(3")
+  ecUNEXPECTED_FUN      = 12, ///< Unexpected function found. (Example: "sin(8)cos(9)")
+  ecUNTERMINATED_STRING = 13, ///< unterminated string constant. (Example: "3*valueof("hello)")
+  ecTOO_MANY_PARAMS     = 14, ///< Too many function parameters
+  ecTOO_FEW_PARAMS      = 15, ///< Too few function parameters. (Example: "ite(1<2,2)")
+  ecOPRT_TYPE_CONFLICT  = 16, ///< binary operators may only be applied to value items of the same type
+  ecSTR_RESULT          = 17, ///< result is a string
 
   // Invalid Parser input Parameters
-  ecINVALID_NAME,             ///< Invalid function, variable or constant name.
-  ecBUILTIN_OVERLOAD,         ///< Trying to overload builtin operator
-  ecINVALID_FUN_PTR,          ///< Invalid callback function pointer 
-  ecINVALID_VAR_PTR,          ///< Invalid variable pointer 
+  ecINVALID_NAME        = 18, ///< Invalid function, variable or constant name.
+  ecBUILTIN_OVERLOAD    = 19, ///< Trying to overload builtin operator
+  ecINVALID_FUN_PTR     = 20, ///< Invalid callback function pointer 
+  ecINVALID_VAR_PTR     = 21, ///< Invalid variable pointer 
 
-  ecNAME_CONFLICT,            ///< Name conflict
-  ecOPT_PRI,                  ///< Invalid operator priority
+  ecNAME_CONFLICT       = 22, ///< Name conflict
+  ecOPT_PRI             = 23, ///< Invalid operator priority
   // 
-  ecDOMAIN_ERROR,             ///< catch division by zero, sqrt(-1), log(0) (currently unused)
-  ecDIV_BY_ZERO,              ///< Division by zero (currently unused)
-  ecGENERIC,                  ///< Generic error
+  ecDOMAIN_ERROR        = 24, ///< catch division by zero, sqrt(-1), log(0) (currently unused)
+  ecDIV_BY_ZERO         = 25, ///< Division by zero (currently unused)
+  ecGENERIC             = 26, ///< Generic error
 
   // internal errors
-  ecINTERNAL_ERROR,           ///< Internal error of any kind.
+  ecINTERNAL_ERROR      = 27, ///< Internal error of any kind.
 
   // The last two are special entries 
   ecCOUNT,                    ///< This is no error code, It just stores just the total number of error codes

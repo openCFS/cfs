@@ -79,13 +79,13 @@ public:
         \sa ECmdCode
     */
     ParserToken()
-    :m_iCode(cmUNKNOWN)
-    ,m_iType(tpVOID)
-    ,m_pTok(0)
-    ,m_iFlags(0)
-    ,m_iIdx(-1)
-    ,m_strTok()
-    ,m_pCallback()
+      :m_iCode(cmUNKNOWN)
+      ,m_iType(tpVOID)
+      ,m_pTok(0)
+      ,m_iFlags(0)
+      ,m_iIdx(-1)
+      ,m_strTok()
+      ,m_pCallback()
     {}
 
     //------------------------------------------------------------------------------
@@ -192,13 +192,13 @@ public:
 
     //------------------------------------------------------------------------------
     /** \brief Set Callback type. */
-    ParserToken& Set(const ParserCallback &a_pCallback, const TString &a_strTok)
+    ParserToken& Set(const ParserCallback &a_pCallback, const TString &a_sTok)
     {
       assert(a_pCallback.GetAddr());
 
       m_iCode = a_pCallback.GetCode();
       m_iType = tpVOID;
-      m_strTok = a_strTok;
+      m_strTok = a_sTok;
       m_pCallback.reset(new ParserCallback(a_pCallback));
 
       m_pTok = 0;
@@ -253,7 +253,7 @@ public:
     }
 
     //------------------------------------------------------------------------------
-    /** \brief make this token a variable token. 
+    /** \brief Make this token a variable token. 
     
         Member variables not necessary for variable tokens will be invalidated.
         \throw nothrow
@@ -364,7 +364,7 @@ public:
       if ( !m_pCallback.get())
 	      throw ParserError(ecINTERNAL_ERROR);
           
-      if ( m_pCallback->GetCode()!=cmBINOP )
+      if ( m_pCallback->GetCode()!=cmOPRT_BIN && m_pCallback->GetCode()!=cmOPRT_INFIX)
 	      throw ParserError(ecINTERNAL_ERROR);
 
       return m_pCallback->GetPri();
@@ -381,7 +381,7 @@ public:
                  <li>cmSTRFUNC</li>
                  <li>cmPOSTOP</li>
                  <li>cmINFIXOP</li>
-                 <li>cmBINOP</li>
+                 <li>cmOPRT_BIN</li>
                </ul>
         \sa ECmdCode
     */
@@ -402,7 +402,7 @@ public:
       {
         case cmVAL:  return m_fVal;
         case cmVAR:  return *((TBase*)m_pTok);
-        default:     throw ParserError(ecINTERNAL_ERROR);
+        default:     throw ParserError(ecVAL_EXPECTED);
       }
     }
 
