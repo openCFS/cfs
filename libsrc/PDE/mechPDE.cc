@@ -882,8 +882,8 @@ namespace CoupledField {
     ENTER_FCN ( "MechPDE::ReadRegionLoads" );
     
     StdVector<std::string> keyVec, attrVec, valVec;
-    StdVector<std::string> names, dofs, dynamics, refCoord, type;
-    StdVector<std::string> tempNames, tempDofs, tempDynamics;
+    StdVector<std::string> names, dofs, dynamics, refCoord, type, phase;
+    StdVector<std::string> tempNames, tempDofs, tempDynamics, tempPhase;
     StdVector<std::string>  tempRefCoord, tempType;
     StdVector<RegionIdType> regionIds;
     StdVector<UInt> vecComp;
@@ -936,7 +936,11 @@ namespace CoupledField {
       // get dynamics
       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dynamics";
       params->GetList(keyVec, attrVec, valVec, tempDynamics);
-     
+
+      // get phase
+      keyVec = "mechanic", "bcsAndLoads", "regionLoad", "phase";
+      params->GetList(keyVec, attrVec, valVec, tempPhase);     
+
       // get dofs
       keyVec = "mechanic", "bcsAndLoads", "regionLoad", "dof";
       params->GetList(keyVec, attrVec, valVec, tempDofs);
@@ -974,6 +978,7 @@ namespace CoupledField {
       // dof, refCoordSys and type
       loadVec.Clear();
       dynamics.Clear();
+      phase.Clear();
       dofs.Clear();
       refCoord.Clear();
       type.Clear();
@@ -981,6 +986,7 @@ namespace CoupledField {
         if ( names[i] == tempNames[iEntry] ) {
           loadVec.Push_back(tempLoadVec[iEntry]);
           dynamics.Push_back(tempDynamics[iEntry]);
+          phase.Push_back(tempPhase[iEntry]);
           dofs.Push_back(tempDofs[iEntry]);
           refCoord.Push_back(tempRefCoord[iEntry]);
           type.Push_back(tempType[iEntry]);
@@ -1015,6 +1021,7 @@ namespace CoupledField {
       
       // -- Fill in the data we have so far --
       curLoad->name = ptgrid_->RegionIdToName( regionIds[i] );
+      curLoad->phase = phase[0];
       if ( curLoad->dynamics != std::string() 
            && curLoad->dynamics != dynamics[0] ) {
         Error( "Inconsistent definition of time data for regionLoads",
@@ -1985,6 +1992,7 @@ namespace CoupledField {
 
   MechVolForceInt * MechPDE::RegionLoad::GetIntegrator() {
     MechVolForceInt * forceInt = new MechVolForceInt( value.GetSize(),
+                                                      phase,
                                                       isAxi_);
 
     // Check, if type is "unit"

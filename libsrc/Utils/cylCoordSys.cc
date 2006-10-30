@@ -112,16 +112,32 @@ namespace CoupledField{
     angles += anglesLoc;
       
   }
-
   
   void CylCoordSystem::
   Local2GlobalVector( Vector<Double> & globVec, 
                       const Vector<Double> & locVec, 
                       const Vector<Double> & globModelPoint ) const { 
-    ENTER_FCN("CylCoordSystem::Local2GlobalVector");
+    Local2GlobalVectorInt<Double>( globVec, locVec, globModelPoint );
+  }
+
+  void CylCoordSystem::
+  Local2GlobalVector( Vector<Complex> & globVec, 
+                      const Vector<Complex> & locVec, 
+                      const Vector<Double> & globModelPoint ) const { 
+    Local2GlobalVectorInt<Complex>( globVec, locVec, globModelPoint );
+  }
+
+
+  template <class TYPE>
+  void CylCoordSystem::
+  Local2GlobalVectorInt( Vector<TYPE> & globVec, 
+                         const Vector<TYPE> & locVec, 
+                         const Vector<Double> & globModelPoint ) const { 
+    ENTER_FCN("CylCoordSystem::Local2GlobalVectorInt");
 
     Double phi, r;
-    Vector<Double> locModelPoint(3), temp(3), d(3);
+    Vector<Double> locModelPoint(3), d(3);
+    Vector<TYPE> temp(3);
 
     // Transform global cartesian model point into local
     // cartesian one
@@ -148,7 +164,7 @@ namespace CoupledField{
     // Now we have the vector in cartesian coordinates for the
     // LOCAL cartesian system. To get the cartesian representation for
     // the GLOBAL one, we have to apply the inverse rotation matrix.
-    invRotationMat_.Mult(temp,globVec);
+    globVec = invRotationMat_ * temp;
 
   }
     
@@ -291,5 +307,6 @@ namespace CoupledField{
     Info->PrintF(std::string(), out.str().c_str());
 
   }
+
 
 } // end of namespace
