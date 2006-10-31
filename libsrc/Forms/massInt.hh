@@ -53,10 +53,6 @@ namespace CoupledField
   
   };
 
-
-
-
-
 }
 
 #endif // FILE_MASSINT

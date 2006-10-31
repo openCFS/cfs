@@ -34,4 +34,5 @@
 #include "nLinElecHystInt.hh"
 #include "bubbleDampInt.hh"
 #include "bubbleStiffInt.hh"
+#include "pierceInt.hh"
 #endif

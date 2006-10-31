@@ -467,8 +467,54 @@ namespace CoupledField {
         massContext->SetResults( results_[0], results_[0],
                                  actSDList, actSDList );
         massContext->SetPtPdes(this, this);
-        
-        
+
+	//********************** TEST ************************************//
+
+	//check  for Flow Data
+
+	RegionIdType regionFlow = subdoms_[actSD];
+	std::string regionName;
+	regionName = ptgrid_->RegionIdToName( regionFlow );
+	keyVec = "acoustic" , "region" , "flowData" , "flowDir";
+	attrVec= ""         , "name"   , "";
+	valVec = ""         , regionName, "";
+	StdVector<std::string> flowInfo;
+	params->GetList( keyVec, attrVec, valVec, flowInfo);
+
+	if (flowInfo.GetSize() > 0) {
+
+	  if ( formulation_ == ACOU_PRESSURE )
+	    Error("Pierce-Equation just possible in velocity potential formulation",
+		  __FILE__, __LINE__);
+
+	  //read flow data 
+	  SimpleFlow* flowData = new SimpleFlow();
+	  flowData->ReadFlowData(pdename_, regionName, dim_);
+
+	  Double coeffPierceStiff = -density / (c0*c0);
+	  BaseForm * bilinearPierceStiff  = new PierceStiffInt(coeffPierceStiff, 
+							       flowData,
+							       isaxi_);
+	  BiLinFormContext * pierceStiffContext = 
+	    new BiLinFormContext( bilinearPierceStiff, STIFFNESS );
+	  pierceStiffContext->SetResults( results_[0], results_[0],
+					  actSDList, actSDList );
+	  pierceStiffContext->SetPtPdes(this, this);
+	  assemble_->AddBiLinearForm( pierceStiffContext );    
+
+
+	  Double coeffPierceDamp = 2.0 * density / (c0*c0);
+	  BaseForm * bilinearPierceDamp  = new PierceDampInt(coeffPierceDamp, 
+							     flowData,
+							     isaxi_);
+	  BiLinFormContext * pierceDampContext = 
+	    new BiLinFormContext( bilinearPierceDamp, DAMPING );
+	  pierceDampContext->SetResults( results_[0], results_[0],
+					 actSDList, actSDList );
+	  pierceDampContext->SetPtPdes(this, this);
+	  assemble_->AddBiLinearForm( pierceDampContext );        	
+        }
+
         // ********************************************************************
         //   Additional terms for damping
         // ********************************************************************
@@ -2618,7 +2664,6 @@ namespace CoupledField {
 
 
   }
-
 
 
   // ***********************************************************************
