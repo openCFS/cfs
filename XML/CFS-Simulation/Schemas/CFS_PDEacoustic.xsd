@@ -42,6 +42,8 @@
                   minOccurs="0"/>
                 <xsd:element name="dampLayer" type="DT_AcousticDampLayer"
                   minOccurs="0"/>
+                <xsd:element name="flowData" type="DT_AcousticFlow"
+                  minOccurs="0"/>
               </xsd:sequence>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="nonLinear" type="DT_AcousticNonLin"
@@ -346,6 +348,26 @@
       default="10"/>
     <xsd:attribute name="dampFactorMax" type="xsd:double" use="optional"
       default="100"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition for Flow data                                          -->
+  <!-- ******************************************************************* -->
+
+   <xsd:complexType name="DT_AcousticFlow">
+
+      <xsd:sequence>
+        <xsd:element name="flowDir" type="xsd:token"/>
+        <xsd:element name="flowOrd" type="xsd:nonNegativeInteger"/>
+        <xsd:element name="flowVel" type="xsd:double"/>
+        <xsd:element name="flowDia" type="xsd:double"/>
+        <xsd:element name="flowLen" type="xsd:double"/>
+        <xsd:element name="flowDecay" type="xsd:double"/>
+        <xsd:element name="flowCenterX" type="xsd:double"/>
+        <xsd:element name="flowCenterY" type="xsd:double"/>
+        <xsd:element name="flowCenterZ" type="xsd:double"/>
+      </xsd:sequence>
+
   </xsd:complexType>
 
 
