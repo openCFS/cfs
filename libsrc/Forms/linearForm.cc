@@ -1387,12 +1387,12 @@ namespace CoupledField {
     // -- phase --
     parser->SetExpr( mHandle_, phase_ );
     phase = parser->Eval( mHandle_ );
-    
+
     for ( UInt i = 0; i < locForce_.GetSize(); i++ ) {
       parser->SetExpr( mHandle_, locForce_[i] );
       amplitude = parser->Eval( mHandle_ );
-      locLoadVec[i].real() =  amplitude * cos(phase/180*PI);
-      locLoadVec[i].imag() =  amplitude * sin(phase/180*PI);
+      locLoadVec[i] = Complex( amplitude * cos(phase/180*PI), 
+                               amplitude * sin(phase/180*PI) );
     }
 
     // If load is not unit load, divide by volume
