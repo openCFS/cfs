@@ -141,9 +141,6 @@ namespace CoupledField
     //! set min/max of x,y,z coordinates form where PML starts
     virtual void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer) {;};
 
-  
-
-    
 
   protected:
     
@@ -298,7 +295,6 @@ namespace CoupledField
 
     //! formulation type
     SolutionType formulation_;
-
 
   };
 
