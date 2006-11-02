@@ -1,6 +1,7 @@
 #include "linNeumannInt.hh"
 
 #include "Domain/domain.hh"
+#include "Domain/grid.hh"
 
 namespace CoupledField 
 {
@@ -17,6 +18,9 @@ namespace CoupledField
     amplitudeStr_ = amplitudeStr;
     phaseStr_ = phaseStr;
     materialParam_ = materialParam;
+
+    std::cerr << "In LinNeumannInt::CalcElemVector output " << std::endl
+              << " coordinate     amplitude    phase " << std::endl;
     
   }
 
@@ -128,7 +132,10 @@ namespace CoupledField
                                                   locMidPoint, locMidPointVol);
 
     // Map to global coordinate system
-    ptVolElem_->ptElem->Local2GlobalCoord(globMidPointVol, locMidPointVol, ptCoord_);
+    Matrix<Double> volCoordMat;
+    domain->GetGrid()->GetElemNodesCoord( volCoordMat, volConnect, coordUpdate_ ); 
+    ptVolElem_->ptElem->Local2GlobalCoord( globMidPointVol, locMidPointVol,
+                                           volCoordMat );
 
     // Update variables for mathParser
     parser->SetCoordinates( mHandle_, *coosy, globMidPointVol );
@@ -154,8 +161,9 @@ namespace CoupledField
 
     elemVec = val * helpVec;
 
-//     std::cerr << "In LinNeumannInt::CalcElemVector amplitude: " << amplitude << std::endl
-//               << "                                 phase:     " << phase << std::endl;
+    std::cerr << globMidPointVol[0] 
+              << "   " << amplitude 
+              << "   " << phase << std::endl;
 
   }
 
