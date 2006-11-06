@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <boost/serialization/split_member.hpp>
+#include <boost/serialization/is_abstract.hpp>
 
 #include "tools.hh"
 #include <vector>
@@ -196,6 +197,9 @@ namespace CoupledField
   };
   
 } // end of namespace
+
+//! Indicate that this is a pure virtual class
+BOOST_IS_ABSTRACT( CoupledField::CFSVector )
 #endif  
 
 

@@ -3,6 +3,7 @@
  
 #include <iostream>
 #include <boost/serialization/split_member.hpp>
+#include <boost/serialization/is_abstract.hpp>
 
 #include "Utils/cfsvector.hh"
 #include "Utils/tools.hh"
@@ -237,4 +238,8 @@ namespace CoupledField{
 
 
 } // namespace
+
+//! Indicate that this is a pure virtual class
+BOOST_IS_ABSTRACT( CoupledField::CFSMatrix )
+
 #endif
