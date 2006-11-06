@@ -39,8 +39,9 @@ namespace boost {
     
   }
 }
-BOOST_CLASS_TRACKING( CoupledField::Complex, boost::serialization::track_never );
-BOOST_SERIALIZATION_SPLIT_FREE( CoupledField::Complex );
 
+
+BOOST_CLASS_TRACKING( CoupledField::Complex, boost::serialization::track_never )
+BOOST_SERIALIZATION_SPLIT_FREE( CoupledField::Complex )
 
 #endif
