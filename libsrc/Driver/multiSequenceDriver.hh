@@ -3,8 +3,8 @@
 
 #include "basedriver.hh"
 #include "singleDriver.hh"
-
 #include "Utils/StdVector.hh"
+#include "PDE/pdememento.hh"
 
 namespace CoupledField
 {
@@ -26,10 +26,7 @@ namespace CoupledField
   public:
   
     //! constructor
-    /*!
-      \param adomain pointer to class Domain
-    */
-    MultiSequenceDriver(Domain * adomain);
+    MultiSequenceDriver();
 
     //! destructir
     virtual ~MultiSequenceDriver();
@@ -41,13 +38,11 @@ namespace CoupledField
     //! it is for transient and static problem
     void SolveProblem();
 
-    //! Return current analysistype
-    
-    //! Returns the current analysistype. 
-    //! \param pdeName Name of the pdename in case there is a coexistence
-    //!                of two different analysistypes in one analysisstep
-    //!                (e.g. transient-harmonic)
-    AnalysisType GetAnalysisType( const std::string& pdename );
+    //! Return current time / frequency step of simulation
+    UInt GetActStep( const std::string& pdename );
+
+    //! Return current singleDriver 
+    SingleDriver* GetSingleDriver() { return actDriver_; }
 
   private:
 
@@ -62,9 +57,15 @@ namespace CoupledField
   
     //! current time
     Double actTime_;
+
+    //! current singleDriver object
+    SingleDriver * actDriver_;
   
     //! stores for each step the participating pdes as name
     StdVector<StdVector<std::string> > pdesPerStep_;
+
+    //! stores for each step the usage of the values for each pde
+    StdVector<StdVector<PDEMemento::ValueUsageType> > valueUsagePerStep_;
 
     //! stores for each step the participating pdes as pointer
 

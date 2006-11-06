@@ -10,20 +10,21 @@ namespace CoupledField {
 
   public:
     //! constructor
-    //! \param adomain pointer to class Domain
     //! \param stepOffset offset for starting (time)step
     //! \param timeOffset offset for starting time
     //! \param driverTag tag for current driver section
     //! \param true, if driver is part of  multiSequence
-    StaticDriver(Domain * adomain,
-                 UInt stepOffset = 0,
-                 Double timeOffset = 0.0,
-                 std::string driverTag = "anyTag",
-                 bool isPartOfSequence = false);
+    StaticDriver( UInt stepOffset = 0,
+                  Double timeOffset = 0.0,
+                  std::string driverTag = "anyTag",
+                  bool isPartOfSequence = false );
 
     //! Destructor 
     ~StaticDriver();
   
+    //! Return current time / frequency step of simulation
+    UInt GetActStep( const std::string& pdename ) { return 1;}
+
     //! Initialization method
     void Init();
 
@@ -33,6 +34,14 @@ namespace CoupledField {
     //! solution process for the problem.
     void SolveProblem();
 
+  private:
+    
+    //! offset for first timestep
+    UInt stepOffset_;
+    
+    //! offset for first time
+    Double timeOffset_;
+    
   };
 
 }

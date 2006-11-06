@@ -137,16 +137,10 @@ namespace CoupledField
       numTimeStep_ = numTimeStep;
     };
     
-    //! Set the current time step value
-    virtual void SetTimeStep( Double dt ) = 0;
-
-    
-
   protected:
 
     //! Constructor
     BaseSolveStep();
-
 
     //! Actual time / frequency step
     UInt actStep_;

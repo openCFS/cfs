@@ -423,6 +423,28 @@ namespace CoupledField {
     return out;
   }  
   
+  template<class TYPE> template< class Archive>
+  void StdVector<TYPE>::save(Archive & ar, const unsigned int version) const {
+    ar & size_;
+    ar & capacity_;
+    for( UInt i = 0; i < size_; i++ ) 
+      ar & data_[i];
+  }
+  
+  template<class TYPE> template <class Archive>
+  void StdVector<TYPE>::load(Archive & ar, const unsigned int version) {
+    if( data_ != NULL ) {
+      delete[] data_;
+    }
+    
+    ar & size_;
+    ar & capacity_;
+    data_ = new TYPE[capacity_];
+    for( UInt i = 0; i < size_; i++ ) {
+      ar & data_[i];
+    }
+  }
+  
 } // end of namespace
 
 #endif

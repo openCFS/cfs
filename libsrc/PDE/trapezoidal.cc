@@ -28,8 +28,7 @@ namespace CoupledField
 
   }
 
-  void Trapezoidal::Init( std::map<FEMatrixType,Double> & matrix_factors,
-                          Double dt, UInt rhsSize ) {
+  void Trapezoidal::Init( Double dt, UInt rhsSize ) {
     ENTER_FCN( "Trapezoidal::Init" );
     
     dt_ = dt;
@@ -37,16 +36,18 @@ namespace CoupledField
     
     CalcParameters(dt_);
 
-    matrix_factors[STIFFNESS] = 1.0;
-    matrix_factors[MASS] = a1_;
+    matrix_factors_[STIFFNESS] = 1.0;
+    matrix_factors_[MASS] = a1_;
 
     //not used matrices
-    matrix_factors[CONVECTION] = 0.0; 
-    matrix_factors[DAMPING] = 0.0;       
+    matrix_factors_[CONVECTION] = 0.0; 
+    matrix_factors_[DAMPING] = 0.0;       
 
     //get the memory
-    solderiv1_.Resize(rhsSize_);  
-    solderiv1_.Init();
+    if( !isDeriv1Set_ ) {
+      solderiv1_.Resize(rhsSize_);  
+      solderiv1_.Init();
+    }
 
     solpred_.Resize(rhsSize_); 
     solpred_.Init();

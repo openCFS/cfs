@@ -13,20 +13,25 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  StaticDriver::StaticDriver(Domain * adomain, 
-                             UInt stepOffset,
-                             Double timeOffset,
-                             std::string driverTag,
-                             bool isPartOfSequence) 
-    : SingleDriver(adomain, stepOffset, timeOffset, 
-                   driverTag, isPartOfSequence) {
+  StaticDriver::StaticDriver( UInt stepOffset,
+                              Double timeOffset,
+                              std::string driverTag,
+                              bool isPartOfSequence ) 
+    : SingleDriver( driverTag, isPartOfSequence ) {
+    
     ENTER_FCN( "StaticDriver::StaticDriver" );
 
     analysis_ = STATIC;
+
+    stepOffset_ = stepOffset;
+    timeOffset_ = timeOffset;
+    
   }
 
   void StaticDriver::Init() {
     ENTER_FCN( "StaticDriver::Init" );
+
+    InitializePDEs();
   }
 
 
@@ -43,13 +48,6 @@ namespace CoupledField {
   // *****************
   void StaticDriver::SolveProblem() {
     ENTER_FCN( "StaticDriver::SolveProblem" );
-
-    // if driver is not part of multiSequence Driver, get list
-    // of pdes which have to be solved and intialize them
-    if (isPartOfSequence_ == false){     
-      GetMyPDEs();
-      Info->StartProgress ("Starting to solve problem", false);
-    }
 
     // Initialize 'TimeStepping'
     const UInt nstep = 1;
@@ -68,7 +66,7 @@ namespace CoupledField {
     // if multiSequence is performed, the ms-driver
     // writes out the grid one time
     if (! isPartOfSequence_)
-      ptdomain_->PrintGrid();
+      domain->PrintGrid();
       
     ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
     ptPDE_->WriteHistoryInFile(nstep, steptime, stepOffset_, timeOffset_);

@@ -49,8 +49,7 @@ using namespace CoupledField;
 #endif
 
 int main( int argc, const char **argv ) {
-
-
+  
   // =========================================================================
   // INITIALISATION OF MPI
   // =========================================================================
@@ -344,37 +343,37 @@ int main( int argc, const char **argv ) {
 
     // without adaptivity
     else {
-      ptdriver = new StaticDriver( domain );
+      ptdriver = new StaticDriver( );
     }
     break;
 
   case TRANSIENT:
-    ptdriver = new TransientDriver( domain );
+    ptdriver = new TransientDriver( );
     break;
 
   case HARMONIC:
     // calls Driver for parameter identification, using harmonic analysis
     if ( analysis == "paramIdent" ) {
-      ptdriver = new piezoParamIdent( domain );
+      ptdriver = new piezoParamIdent( );
     }
     else
-      ptdriver = new HarmonicDriver( domain );
+      ptdriver = new HarmonicDriver(  );
     break;
 
   case TRANSIENTHARMONIC:
-    ptdriver = new TransientHarmonicDriver( domain );
+    ptdriver = new TransientHarmonicDriver( );
     break;
 
   case EIGENFREQUENCY:
-    ptdriver = new EigenFrequencyDriver( domain );
+    ptdriver = new EigenFrequencyDriver( );
     break;
 
     //case MULTIHARMONIC:
-    //ptdriver = new MultiHarmonicDriver( domain );
+    //ptdriver = new MultiHarmonicDriver( );
     //break;
 
   case MULTI_SEQUENCE:
-    ptdriver = new MultiSequenceDriver( domain );
+    ptdriver = new MultiSequenceDriver( );
     break;
 
   default:

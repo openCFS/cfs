@@ -29,6 +29,11 @@ namespace CoupledField {
     sol_          = PDE_.getPDESolution();
     assemble_     = PDE_.getPDE_assemble();
     TS_alg_       = PDE_.getTimeStepping();
+
+    if( TS_alg_ != NULL ) {
+      matrix_factor_ = TS_alg_->GetEffSysMatFactors();
+    }
+    
     eqnMap_       = PDE_.GetEqnMap();
     results_      = PDE_.GetResults();
     numEqns_      = PDE_.GetSolutionVector()->GetSize();
@@ -49,6 +54,8 @@ namespace CoupledField {
     pdeId2_   = NO_PDE_ID;
 
     startStep_ = 1;
+
+
   }
 
   
@@ -695,16 +702,6 @@ namespace CoupledField {
     }
   }
 
-
-  void StdSolveStep::SetTimeStep( Double dt ) {
-    ENTER_FCN( "StdSolveStep::SetTimeStep") ;
-
-    // Check if timestepping is eneabled
-    if ( TS_alg_ != NULL ) {
-      TS_alg_->Init( matrix_factor_, dt, numEqns_ );
-    }
-  }
-  
 
   Double StdSolveStep::LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
                                   Double& etaLineSearch, bool trans)

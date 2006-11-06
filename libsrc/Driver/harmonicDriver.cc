@@ -19,19 +19,26 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  HarmonicDriver::HarmonicDriver( Domain * adomain, 
-                                  UInt stepOffset,
-                                  Double timeOffset,
+  HarmonicDriver::HarmonicDriver( UInt stepOffset,
+                                  Double freqOffset,
                                   std::string driverTag,
                                   bool isPartOfSequence )
 
-    : SingleDriver( adomain, stepOffset, timeOffset, driverTag,
-                    isPartOfSequence ) {
+    : SingleDriver(driverTag,isPartOfSequence ) {
 
     ENTER_FCN( " HarmonicDriver::HarmonicDriver" );
 
     // Set correct analysistype
     analysis_ = HARMONIC;
+
+    stepOffset_ = stepOffset;
+    freqOffset_ = freqOffset;
+    
+    startFreq_ = 0.0;
+    stopFreq_ = 0.0;
+    numFreq_ = 0;
+    actFreqStep_ = 0;
+    adjustDamping_ = true;
   }
 
   void HarmonicDriver::Init() {
@@ -148,6 +155,8 @@ namespace CoupledField {
         samplingType_ = LINEAR_SAMPLING;
       }
     }
+
+    InitializePDEs();
   }
 
 
@@ -170,42 +179,37 @@ namespace CoupledField {
     // There are some special things to do in the case that we are not
     // part of a multi sequence analysis
     if ( isPartOfSequence_ == false ) {
-
-      ptdomain_->PrintGrid();
-
-      // Get list of PDEs which have to be solved and intialize them
-      GetMyPDEs();
-      Info->StartProgress ( "Starting to solve problem", false );
+      domain->PrintGrid();
     }
 
     ptPDE_->WriteGeneralPDEdefines();
 
     // Perform one simulation for each desired frequency
-    for ( UInt fstep = 1; fstep <= numFreq_; fstep++ ) {
+    for ( actFreqStep_ = 1; actFreqStep_ <= numFreq_; actFreqStep_++ ) {
 
       // Determine next frequency value
-      actFreq_ = ComputeNextFrequency( fstep );
+      actFreq_ = ComputeNextFrequency( actFreqStep_ );
 
       // Set curent frequency value in the mathParser
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
                                          "f", actFreq_ );
 
       // Log info for this frequency
-      Info->WriteHarmonicStep( ptPDE_->GetName(), fstep, actFreq_ );
+      Info->WriteHarmonicStep( ptPDE_->GetName(), actFreqStep_, actFreq_ );
 
       // Perform steps for the solution
       ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
-      ptPDE_->GetSolveStep()->SetActStep( fstep );
+      ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
       ptPDE_->GetSolveStep()->PreStepHarmonic();
       ptPDE_->GetSolveStep()->SolveStepHarmonic();
       ptPDE_->GetSolveStep()->PostStepHarmonic();
 
       // Write results into output-file
       ptPDE_->PostProcess();
-      ptPDE_->WriteResultsInFile(fstep, actFreq_);
+      ptPDE_->WriteResultsInFile(actFreqStep_, actFreq_);
 
       //write history data
-      ptPDE_->WriteHistoryInFile(fstep, actFreq_);
+      ptPDE_->WriteHistoryInFile(actFreqStep_, actFreq_);
     }
   }
 

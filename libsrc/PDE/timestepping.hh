@@ -27,8 +27,11 @@ namespace CoupledField {
   
     //! initialization
     //! \param rhsSIze total number of entries in the rhs vector
-    virtual void Init( std::map<FEMatrixType,Double> & matrix_factors, 
-                       Double dt, UInt rhsSize ) = 0;
+    virtual void Init( Double dt, UInt rhsSize ) = 0;
+
+    //! get matrix factors for effective systems matrix
+    virtual const std::map<FEMatrixType,Double>  &
+    GetEffSysMatFactors( ) const;
 
     //! perform predictor step
     virtual void Predictor(Vector<Double>& solold)=0;
@@ -48,12 +51,14 @@ namespace CoupledField {
     virtual void AdvanceTimestep(Vector<Double>& solnew){;};
 
     //! set vector with first derivative
-    virtual void SetDeriv1(const Vector<Double> & deriv1)
-    {solderiv1_ = deriv1;}
+    virtual void SetDeriv1(const Vector<Double> & deriv1) {
+      solderiv1_ = deriv1;
+      isDeriv1Set_ = true;}
   
     //! set vector with second derivative
-    virtual void SetDeriv2(const Vector<Double> & deriv2)
-    {solderiv2_ = deriv2;}
+    virtual void SetDeriv2(const Vector<Double> & deriv2) {
+      solderiv2_ = deriv2;
+      isDeriv2Set_ = true; }
 
     //!  return pointer to vector with first derivative of solution
     virtual const Vector<Double>& GetDeriv1() const { return solderiv1_;}
@@ -83,7 +88,10 @@ namespace CoupledField {
     }
 
   protected:
-    
+
+    //! Checks if a given FE-Matrixtype is defined
+    bool FeMatrixPresent( FEMatrixType type);
+
     //! pointer to algebraic system
     BaseSystem * algsys_;
 
@@ -93,8 +101,17 @@ namespace CoupledField {
     //! time step size
     Double dt_;     
 
+    //! matrix factors
+    std::map<FEMatrixType,Double> matrix_factors_;
+
     //! first and second time derivative of solution
     Vector<Double> solderiv1_, solderiv2_;
+
+    //! Flag indicating if 1st derivative was already set from outside
+    bool isDeriv1Set_;
+
+    //! Flag indicating if 2nd derivative was already set from outside
+    bool isDeriv2Set_;
 
   private:
    

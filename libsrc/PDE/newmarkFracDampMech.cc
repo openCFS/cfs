@@ -10,6 +10,8 @@
 #include "basePDE.hh"
 #include "Materials/baseMaterial.hh"
 #include "Utils/mathfunctions.hh"
+#include "Domain/domain.hh"
+#include "Driver/singleDriver.hh"
 
 namespace CoupledField {
 
@@ -58,8 +60,7 @@ namespace CoupledField {
     ENTER_FCN( "NewmarkFracDampMech::~NewmarkFracDampMech" );
   }
 
-  void NewmarkFracDampMech::Init( std::map<FEMatrixType,Double> & matrix_factors,
-                                  Double dt, UInt rhsSize ) {
+  void NewmarkFracDampMech::Init( Double dt, UInt rhsSize ) {
 	
     ENTER_FCN( "NewmarkFracDampMech::Init" );
 
@@ -85,17 +86,22 @@ namespace CoupledField {
   
     modulo_ = Integer(temp);
     
-    matrix_factors[STIFFNESS] = 1.0;
-    matrix_factors[DAMPING] = 1.0*a4_; // needed for thermoviscous damping
-    matrix_factors[CONVECTION] = 0.0;
-    matrix_factors[MASS] = 1.0*a2_;
+    matrix_factors_[STIFFNESS] = 1.0;
+    matrix_factors_[DAMPING] = 1.0*a4_; // needed for thermoviscous damping
+    matrix_factors_[CONVECTION] = 0.0;
+    matrix_factors_[MASS] = 1.0*a2_;
 
 
     // get the memory
-    solderiv1_.Resize(rhsSize_);  
-    solderiv1_.Init();
-    solderiv2_.Resize(rhsSize_);  
-    solderiv2_.Init();
+    if( !isDeriv1Set_ ) {
+      solderiv1_.Resize(rhsSize_);  
+      solderiv1_.Init();
+    }
+
+    if( !isDeriv2Set_ ) {
+      solderiv2_.Resize(rhsSize_);  
+      solderiv2_.Init();
+    }
   
 
     solpred_.Resize(rhsSize_); 
@@ -130,7 +136,7 @@ namespace CoupledField {
 
     ENTER_FCN( "NewmarkFracDampMech::Predictor" );
 
-    actStep_ = ptStdPDE_->GetTimeStepCounter();
+    actStep_ = domain->GetSingleDriver()->GetActStep( pdename_ );
 
     // determine number of terms over which BDF is calculated
     //   assumes first nstep = 1 (see transientdriver.cc)!

@@ -144,13 +144,19 @@ namespace CoupledField {
     std::string GetName() const;
 
     //! Set name of named node list
-    void SetNodes( const std::string& name);
+    void SetNamedNodes( const std::string& name);
+
+    //! Set nodes by region ID
+    void SetNodesOfRegion( RegionIdType region );
 
     //! Set explicitly the nodal vector
     void SetNodes( const StdVector<UInt>& nodeList );
     
     //! Get Name of nodes
     const std::string& GetNodesName() { return name_;}
+
+    //! Get list of nodes
+    const StdVector<UInt> & GetNodes() { return list_; }
     
     //! Get iterator
     EntityIterator GetIterator() const;

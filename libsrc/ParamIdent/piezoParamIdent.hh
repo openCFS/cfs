@@ -40,19 +40,21 @@ namespace CoupledField
   public:
 
     //! constructor
-    //! \param adomain pointer to class Domain
-    //! \param stepOffset offset for starting (time)step
-    //! \param timeOffset offset for starting time
     //! \param driverTag tag for current driver
     //! \param isPartOfSequence true, if driver is part of  multiSequence
-    piezoParamIdent(Domain * adomain,
-                    Integer stepOffset = 0,
-                    Double timeOffset = 0.0,
-                    std::string driverTag = "anyTag",
-                    bool isPartOfSequence = false);
+    piezoParamIdent( std::string driverTag = "anyTag",
+                     bool isPartOfSequence = false);
 
     //! Destructor
     ~piezoParamIdent();
+
+    //! Return current time / frequency step of simulation
+    UInt GetActStep( const std::string& pdename ) { 
+      Warning("Tom: Does there exist a meaningful value for this?");
+      return 0;
+    }
+              
+                                
 
     //! input file, here problem specific details will be set
 
@@ -309,7 +311,6 @@ namespace CoupledField
 
     StdVector<RegionIdType> subdomsMech_;
     StdVector<RegionIdType> subdomsElec_;
-    Domain * ptDomain_;
     Double startfreq_;
     Double stopfreq_;
     UInt nrfreq_;

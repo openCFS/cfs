@@ -38,8 +38,7 @@ namespace CoupledField {
   
     //! initilization
     //! \param rhsSize size of right hand side vector
-    void Init( std::map<FEMatrixType,Double> & matrix_factors, 
-               Double dt, UInt rhsSize );
+    void Init( Double dt, UInt rhsSize );
     
     //! perform predictor step
     void Predictor(Vector<Double>& solold);

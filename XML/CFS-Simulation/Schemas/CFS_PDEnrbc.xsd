@@ -39,7 +39,10 @@
                 <xsd:element name="damping" type="DT_NrbcDamp"
                   minOccurs="0"/>
               </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:token" use="required"/>
+              <xsd:attribute name="name" type="xsd:token"
+              use="required"/>
+              <xsd:attribute name="tag" type="xsd:token" use="optional"
+                default="anyTag"/>
             </xsd:complexType>
           </xsd:element>
           

@@ -322,7 +322,7 @@ namespace CoupledField {
       UInt dof = results_[0]->GetDofIndex( springDofs[iSp] );
 
       shared_ptr<NodeList> spNode (new NodeList(ptgrid_) );
-      spNode->SetNodes( springNames[iSp] );
+      spNode->SetNamedNodes( springNames[iSp] );
       
       // stiffness value
       if( stiffVals[iSp] > EPS ) {

@@ -691,11 +691,10 @@ namespace CoupledField {
       Double actOmega = actFreq * 2.0 * PI;
       
       // obtain matData-freq
-      StdVector<Double> freqs;
+      StdVector<Double> freqs, startFreq;
       params->GetList( "matDataFreq", freqs, "harmonic" );
-      Double startFreq;
-      params->Get( "startFreq", startFreq, "harmonic" );
-      Double startOmega = startFreq * 2.0 * PI;
+      params->GetList( "startFreq", startFreq, "harmonic" );
+      Double startOmega = startFreq[0] * 2.0 * PI;
 
       Double matDataOmega;
       if ( freqs.GetSize() == 1 ) {

@@ -20,18 +20,17 @@ namespace CoupledField {
   // ===============
   //   Constructor
   // ===============
-  TransientHarmonicDriver::TransientHarmonicDriver(Domain * adomain, 
-                                                   UInt stepOffset,
-                                                   Double timeOffset, 
-                                                   std::string driverTag,
-                                                   bool isPartOfSequence)
-    : SingleDriver(adomain, stepOffset, timeOffset, 
-                   driverTag, isPartOfSequence)
+  TransientHarmonicDriver::TransientHarmonicDriver( UInt stepOffset,
+                                                    Double timeOffset, 
+                                                    std::string driverTag,
+                                                    bool isPartOfSequence)
+    : TransientDriver( stepOffset, timeOffset, driverTag, isPartOfSequence),
+      HarmonicDriver( stepOffset, 0, driverTag, isPartOfSequence )
+      
   {
     ENTER_FCN( "TransientHarmonicDriver::TransientHarmonicDriver" );
     
-    // set correct analysistype
-    analysis_ = TRANSIENTHARMONIC;
+
   }
 
   void TransientHarmonicDriver::Init() {
@@ -41,67 +40,6 @@ namespace CoupledField {
     StdVector<std::string> keyVec, attrVec, valVec;
     attrVec = "tag";
     valVec  = driverTag_;
-
-
-
-    // Get harmonic information from parameter object
-    // ==============================================
-    StdVector<Double> auxVec;
-    keyVec = "harmonic", "startFreq";
-    params->GetList( keyVec, attrVec, valVec, auxVec );
-    if ( auxVec.GetSize() == 1 ) {
-      startFreq_ = auxVec[0];
-    }
-    else {
-      (*error) << "Could not find a section <harmonic> with tag = '"
-               << driverTag_ << "' in " << commandLine->GetParamFile();
-      Error( __FILE__, __LINE__ );
-    }
-
-    keyVec = "harmonic", "stopFreq";
-    params->Get( keyVec, attrVec, valVec, stopFreq_ );
-
-    keyVec = "harmonic", "numFreq";
-    params->Get( keyVec, attrVec, valVec, numFreq_ );
-
-    // Dirty Hack!!!
-    // We allow only one frequency, so check that start and stop are equal
-    if ( ( numFreq_ != 1 ) && ( startFreq_ != stopFreq_ ) ) {
-      (*error) << "Found numFreq = " << numFreq_ << " in xml-File, "
-               << "and startFreq_ = " << startFreq_ << " != "
-               << "stopFreq_ = " << stopFreq_;
-      Error( __FILE__, __LINE__ );
-
-    }
-
-
-    // Get time stepping information from parameter object
-    // ===================================================
-    keyVec = "transient", "firstDt";
-    params->GetList( keyVec, attrVec, valVec, auxVec );
-    if ( auxVec.GetSize() == 1 ) {
-      firstdt_ = auxVec[0];
-    }
-    else {
-      (*error) << "Could not find a section <transient> with tag = '"
-               << driverTag_ << "' in " << commandLine->GetParamFile();
-      Error( __FILE__, __LINE__ );
-    }
-
-    keyVec  = "transient", "numSteps";
-    params->Get(keyVec, attrVec, valVec, numstep_);
-
-    keyVec = "transient", "stepSaveBeg";
-    params->Get(keyVec, attrVec, valVec, isavebegin_);
-
-    keyVec = "transient", "stepSaveEnd";
-    params->Get(keyVec, attrVec, valVec, isaveend_);
-
-    keyVec = "transient", "stepSaveInc";
-    params->Get(keyVec, attrVec, valVec, isaveincr_);
-
-    keyVec = "transient", "writeRestartInc";
-    params->Get(keyVec, attrVec, valVec, restartIncr_);
 
     // Be verbose!
     Info->PrintF( "", "\n TransientHarmonicDriver:\n" ); 
@@ -131,7 +69,7 @@ namespace CoupledField {
     } 
     Info->PrintF( "", "\n" );
 
-
+    Info->StartProgress ("Starting to solve problem", false);
   }
 
   // ==============
@@ -160,6 +98,16 @@ namespace CoupledField {
     return actType;
   }
 
+  UInt TransientHarmonicDriver::GetActStep( const std::string& pdename ) {
+    ENTER_FCN( "TransientHarmonicDriver::GetActStep" );
+
+    if( GetAnalysisType( pdename) == HARMONIC ) {
+      return 1;
+    } else {
+      return actTimeStep_;
+    }
+  }
+
   // =================
   //   Solve Problem
   // =================
@@ -186,25 +134,22 @@ namespace CoupledField {
     if (isPartOfSequence_ == false) {
 
       // writes out the grid one time
-      ptdomain_->PrintGrid();
-
-      GetMyPDEs();
-      Info->StartProgress ("Starting to solve problem", false);
+      domain->PrintGrid();
     }
 
     ptPDE_->WriteGeneralPDEdefines();
 
     // Solve problem
-    ptPDE_->GetSolveStep()->SetTimeStep(dt);
     ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
     ptPDE_->GetSolveStep()->SetStartStep(startStep);
 
 
 
-    for (UInt nstep = 1; nstep <= numstep_; nstep++) {
+    for (UInt actTimeStep_ = 1; actTimeStep_ <= numstep_; actTimeStep_++) {
 
-      if ((double)nstep >= percentCounter  ){           
-        Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
+      if ((double)actTimeStep_ >= percentCounter  ){           
+        Info->WriteTimeStep(ptPDE_->GetName(), 
+                            actTimeStep_+TransientDriver::stepOffset_, 
                             steptime+timeOffset_);
         percentCounter += timeStepPercent;
       }
@@ -221,7 +166,7 @@ namespace CoupledField {
       // harmonic settings
       ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
 
-      ptPDE_->GetSolveStep()->SetActStep( nstep );
+      ptPDE_->GetSolveStep()->SetActStep( actTimeStep_ );
 
       ptPDE_->GetSolveStep()->PreStepTransHarmonic();
       ptPDE_->GetSolveStep()->SolveStepTransHarmonic();
@@ -229,12 +174,14 @@ namespace CoupledField {
 
       ptPDE_->PostProcess();   
       // write history data
-      ptPDE_->WriteHistoryInFile(nstep, steptime, stepOffset_, timeOffset_);
+      ptPDE_->WriteHistoryInFile(actTimeStep_, steptime, 
+                                 TransientDriver::stepOffset_, timeOffset_);
 
     
       // writing results in output-file
-      if (nstep == stepsave && (nstep <= isaveend_)) { 
-        ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
+      if (actTimeStep_ == stepsave && (actTimeStep_ <= isaveend_)) { 
+        ptPDE_->WriteResultsInFile(actTimeStep_, steptime, 
+                                   TransientDriver::stepOffset_, timeOffset_);
 
         stepsave+=isaveincr_;
       }

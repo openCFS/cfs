@@ -28,18 +28,25 @@ namespace CoupledField {
   // ===============
   //   Constructor
   // ===============
-  TransientDriver::TransientDriver(Domain * adomain, 
-                                   UInt stepOffset,
-                                   Double timeOffset, 
-                                   std::string driverTag,
-                                   bool isPartOfSequence) 
-    : SingleDriver(adomain, stepOffset, timeOffset, 
-                   driverTag, isPartOfSequence)
-  {
+  TransientDriver::TransientDriver( UInt stepOffset,
+                                    Double timeOffset, 
+                                    std::string driverTag,
+                                    bool isPartOfSequence) 
+    : SingleDriver( driverTag, isPartOfSequence ) {
     ENTER_FCN( "TransientDriver::TransientDriver" );
-  
+    
     // Set analysistype
     analysis_ = TRANSIENT;
+
+    stepOffset_ = stepOffset;
+    timeOffset_ = timeOffset;
+    actTimeStep_ = 0;
+    firstdt_ = 0.0;
+    isavebegin_ = 0;
+    isaveincr_ = 0;
+    isaveend_ = 0;
+    restartIncr_ = 0;
+    restartStep_ = 0;
 
     // vecotrs for accessing parameters
     StdVector<std::string> keyVec, attrVec, valVec;
@@ -99,15 +106,8 @@ namespace CoupledField {
   // ==================
   void TransientDriver::Init() {
     ENTER_FCN( "TransientDriver::Init" );
-
-    // if driver is not part of multiSequence Driver, get list
-    // of pdes which have to be solved and intialize them
-    if (isPartOfSequence_ == false) {     
-      GetMyPDEs();
-      Info->StartProgress ("Starting to solve problem", false);
-    }
-    ptPDE_->GetSolveStep()->SetTimeStep(firstdt_);
-
+    
+    InitializePDEs();
   }
     
 
@@ -118,16 +118,15 @@ namespace CoupledField {
   {
     ENTER_FCN( "TransientDriver::SolveProblem" );
   
-    Double  steptime  = firstdt_;
-    UInt stepsave     = isavebegin_;
-    UInt restartStep  = isavebegin_ + restartIncr_ - 1;
-  
+    UInt startStep = restartStep_ + 1;
+
+    Double  steptime  = startStep * firstdt_;
+    UInt stepsave     = startStep > isavebegin_ ? startStep : isavebegin_;
+    isaveend_ += restartStep_;
+    UInt nextRestart  = isavebegin_ + restartStep_ + restartIncr_ - 1;
     Double  dt = firstdt_;
     bool haltFlag=false;
-  
-
-
-
+ 
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
   
@@ -135,37 +134,19 @@ namespace CoupledField {
     // if multiSequence is performed, the ms-driver
     // writes out the grid one time
     if (! isPartOfSequence_)
-      ptdomain_->PrintGrid();
+      domain->PrintGrid();
   
     ptPDE_->WriteGeneralPDEdefines();
 
-    UInt startStep=1, lastStepToRestartFrom=0;
-  
-    if ( commandLine->GetRestart() ){
-      ptPDE_->ReadRestart(lastStepToRestartFrom);
-      startStep = lastStepToRestartFrom + 1;
-      stepsave=startStep;
-      numstep_+=lastStepToRestartFrom;
-      ptPDE_->GetSolveStep()->SetStartStep(startStep);
-      steptime=(startStep)*dt;
-      restartStep  = startStep + restartIncr_ - 1;
-      std::cout << myEndl << "Reading a restart file from step " 
-                << lastStepToRestartFrom <<" ********** " << std::endl;      
-      ptPDE_->GetSolveStep()->SetStartStep(startStep);
-    }
-
-    else {
-      ptPDE_->GetSolveStep()->SetStartStep(1);
-    }
+    ptPDE_->GetSolveStep()->SetStartStep( startStep );
     // Solve problem
     //ptPDE_->GetSolveStep()->SetTimeStep(dt);
     
-    ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
+    
+    ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
 
-    UInt nstep;
-
-    // Out loop over all timesteps
-    for (nstep = startStep; nstep <= numstep_; nstep++) {
+    // Outer loop over all timesteps
+    for (actTimeStep_ = startStep; actTimeStep_ <= numstep_+restartStep_; actTimeStep_++) {
 
       // check for a HALTCFS File
       // if there exist a file with name HALTCFS in the executing directory
@@ -174,7 +155,7 @@ namespace CoupledField {
       if (readHALTCFS) {
         readHALTCFS.close();
         haltFlag = true;
-        numstep_=nstep;
+        numstep_=actTimeStep_;
         ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
       }
       
@@ -184,17 +165,18 @@ namespace CoupledField {
     
       // Determine when to write logging information on terminal
       if ( numstep_ <= 50 )
-        Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
+        Info->WriteTimeStep(ptPDE_->GetName(), actTimeStep_+stepOffset_, 
                             steptime+timeOffset_);
       else if ( (numstep_ > 50) && (numstep_ <= 500) ) {
-        if ( (nstep%10) == 0 )            
-          Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
+        if ( (actTimeStep_%10) == 0 )            
+          Info->WriteTimeStep(ptPDE_->GetName(), actTimeStep_+stepOffset_, 
                               steptime+timeOffset_);
       }
       else if ( numstep_ > 500 ) {
         // Output in steps of ten percent 
-        if ((double)nstep >= percentCounter  ){           
-          Info->WriteTimeStep(ptPDE_->GetName(), nstep+stepOffset_, 
+        if ((double)actTimeStep_ >= percentCounter  ){           
+          Info->WriteTimeStep(ptPDE_->GetName(), 
+                              actTimeStep_+stepOffset_, 
                               steptime+timeOffset_);
           percentCounter += timeStepPercent;
         }
@@ -202,7 +184,7 @@ namespace CoupledField {
       
       // Perform actions
       ptPDE_->GetSolveStep()->SetActTime(steptime);
-      ptPDE_->GetSolveStep()->SetActStep(nstep);
+      ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);
       ptPDE_->GetSolveStep()->PreStepTrans();
       ptPDE_->GetSolveStep()->SolveStepTrans();
       ptPDE_->GetSolveStep()->PostStepTrans();
@@ -210,30 +192,34 @@ namespace CoupledField {
       ptPDE_->PostProcess();  
       
       //write history data
-      ptPDE_->WriteHistoryInFile(nstep, steptime, stepOffset_, timeOffset_);
+      ptPDE_->WriteHistoryInFile(actTimeStep_, steptime, 
+                                 stepOffset_, timeOffset_);
     
       // writing results in output-file
 
-      if (nstep == stepsave && (nstep <= isaveend_)) { 
-        ptPDE_->WriteResultsInFile(nstep, steptime, stepOffset_, timeOffset_);
+      if (actTimeStep_ == stepsave && (actTimeStep_ <= isaveend_)) { 
+        ptPDE_->WriteResultsInFile(actTimeStep_, steptime, 
+                                   stepOffset_, timeOffset_);
         stepsave+=isaveincr_;
       }
 
       // writing current PDE-state into the restart-file
       if (restartIncr_ >= 1){
-        if ( ( nstep == restartStep && (nstep <= isaveend_) ) || (nstep == isaveend_) ) { 
+        if ( ( actTimeStep_ == nextRestart && (actTimeStep_ <= isaveend_) ) 
+             || (actTimeStep_ == isaveend_) ) { 
           std::cout << myEndl << "Write a restart file after step " 
-                    << nstep <<" *********** " << std::endl;      
+                    << actTimeStep_ <<" *********** " << std::endl;      
 
-          ptPDE_->WriteRestart(nstep);
-          restartStep+=restartIncr_;
+          ptPDE_->WriteRestart( );
+          nextRestart+=restartIncr_;
         }
       }
       if (haltFlag) {
-        std::cout << myEndl << "Write a restart file after interuppting a simulation run with a HALTCFS-file at step:  " 
-                  << nstep <<" *********** " << std::endl;      
+        std::cout << myEndl << "Write a restart file after interuppting a simulation "
+                  << "run with a HALTCFS-file at step:  " 
+                  << actTimeStep_ <<" *********** " << std::endl;      
 
-        ptPDE_->WriteRestart(nstep);
+        ptPDE_->WriteRestart( );
       }    
 
       steptime+=dt;        
@@ -241,6 +227,22 @@ namespace CoupledField {
       SETPROFILE("After Transient Step");
     }
   
+  }
+  
+  void TransientDriver::ReadRestart() {
+    ENTER_FCN( "TransientDriver::ReadRestart" );
+    
+    if ( commandLine->GetRestart() ){
+      ptPDE_->ReadRestart( restartStep_ );
+      //startStep = restartStep_ + 1;
+      //stepsave=startStep;
+      //numstep_+=lastStepToRestartFrom;
+      //steptime=(startStep)*dt;
+      //restartStep  = startStep + restartIncr_ - 1;
+      std::cout << myEndl << "Reading a restart file from step " 
+                << restartStep_ <<" ********** " << std::endl;      
+    }
+    
   }
 
 } // end of namespace

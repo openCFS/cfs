@@ -25,6 +25,7 @@ namespace CoupledField
   class CoordSystem;
   class MaterialHandler;
   class BaseDriver;
+  class SingleDriver;
 
   //! This class defines the computational domain.
 
@@ -59,13 +60,19 @@ namespace CoupledField
     //@{
     //! \name Methods for initialization and update
 
-    //! Initialize all PDEs
-    //! \param pdes vector of pointers to pdes
+    //! Create PDE objects
+    //! \param pdes vector of names of (Single)pdes to be created
     //! \param sequenceStep step index in MultiSequenceSimulation
     //! \param tags tags for each PDE 
-    void InitPDEs(StdVector<std::string> &pdeNames,
-                  UInt sequenceStep,
-                  StdVector<std::string> tags);
+    void CreatePDEs( StdVector<std::string> &pdeNames,
+                     UInt sequenceStep,
+                     StdVector<std::string> tags );
+    
+    //! Initialize all PDEs which are previously created
+    //! \param sequenceStep step index in MultiSequenceSimulation
+    //! \param tags tags for each PDE 
+    void InitPDEs( UInt sequenceStep,
+                   StdVector<std::string> tags );
 
     //! Delete pointer to PDEs and create them new
     void ResetPDEs();
@@ -94,10 +101,10 @@ namespace CoupledField
     SinglePDE * GetSinglePDE(const std::string pdename);
 
     //! Set driver object
-    void SetDriver( BaseDriver * driver ) { ptDriver_ = driver;}
+    void SetDriver( BaseDriver * driver );
 
     //! Get driver object
-    BaseDriver * GetDriver() { return ptDriver_;}
+    SingleDriver * GetSingleDriver() { return ptSingleDriver_; }
 
     //! Get pointer to CoupledPDE
     DirectCoupledPDE* GetDirectCoupledPDE()
@@ -218,8 +225,8 @@ namespace CoupledField
     //! Pointer to object handling time functions
     TimeFunc * ptTimeFunc_;
 
-    //! Pointer to driver
-    BaseDriver   *ptDriver_;
+    //! Pointer to SingleDriver
+    SingleDriver * ptSingleDriver_;
 
     //! Pointer to object handling input file (mesh data)
     FileType *InFile_;

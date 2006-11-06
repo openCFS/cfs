@@ -21,8 +21,7 @@ namespace CoupledField
   
     //! initilization
     //! \param rhsSize total number of entries in the rhs vector
-    void Init( std::map<FEMatrixType,Double> & matrix_factors,
-               Double dt, UInt rhsSize );
+    void Init( Double dt, UInt rhsSize );
 
     //! perform predictor step
     void Predictor(Vector<Double>& solold);
@@ -53,9 +52,6 @@ namespace CoupledField
     Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_;
     //@}
 
-    //! flag indicating if damping matrix is needed
-    bool damping_;
-
     //! predictor for nodal solution
     Vector<Double> solpred_;
 
@@ -79,8 +75,7 @@ namespace CoupledField
   
     //! initilization
     //! \param rhsSIze total number of entries in the rhs vector
-    void Init( std::map<FEMatrixType,Double> & matrix_factors, 
-               Double dt, UInt rhsSize );
+    void Init( Double dt, UInt rhsSize );
     
     //! perform predictor step
     void Predictor(Vector<Double>& solold);
@@ -117,9 +112,6 @@ namespace CoupledField
     Double a0_,a1_,a2_,a3_,a4_,a5_,a6_,a7_; 
     //@}
 
-    //! flag indicating if damping matrix is needed
-    bool damping_;
-    
     //! nodal solution
     Vector<Double> sol_;
     

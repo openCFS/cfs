@@ -145,7 +145,7 @@ namespace CoupledField
 
       // Set curent frequency value in the mathParser
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "f", actFreq_ );
+                                         "f", freqs_[fstep] );
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep); 
       ptPDE_->GetSolveStep()->PreStepHarmonic(); 
@@ -316,7 +316,7 @@ namespace CoupledField
       ///////////////////////////////////////////////////////  
 
       domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-                                         "f", actFreq_ );
+                                         "f", freqs_[fstep] );
         
       ptPDE_->GetSolveStep()->SetActFreq(freqs_[fstep]); 
       ptPDE_->GetSolveStep()->SetActStep(fstep); 

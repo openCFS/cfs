@@ -174,12 +174,29 @@ namespace CoupledField {
   }
 
   std::string NodeList::GetName() const {
-    return name_;
+    if( name_ == std::string() ) {
+      std::stringstream out;
+      for (UInt i = 0; i < list_.GetSize()-1; i++ ) {
+        out << list_[i] << ", ";
+      }
+      if ( list_.GetSize() > 0 ) {
+        out << list_.Last();
+      }
+      return out.str();
+    } else {
+      return name_;
+    }
   }
   
-  void NodeList::SetNodes( const std::string & name) {
+  void NodeList::SetNamedNodes( const std::string & name) {
     name_ = name;
     grid_->GetNodesByName( list_, name );
+    size_ = list_.GetSize();
+  }
+
+  void NodeList::SetNodesOfRegion( RegionIdType regionId ) {
+    name_ = grid_->RegionIdToName( regionId );
+    grid_->GetNodesByRegion( list_, regionId );
     size_ = list_.GetSize();
   }
   

@@ -22,8 +22,7 @@ namespace CoupledField
   
     //! initilization
     //! \param rhsSIze total number of entries in the rhs vector
-    void Init( std::map<FEMatrixType,Double> & matrix_factors, 
-               Double dt, UInt rhsSize );
+    void Init( Double dt, UInt rhsSize );
 
     //! perform predictor step
     void Predictor(Vector<Double>& solold);

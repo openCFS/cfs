@@ -7,21 +7,17 @@
 namespace CoupledField{
 
 
-  SingleDriver::SingleDriver(Domain * adomain, 
-                             UInt stepOffset, 
-                             Double timeOffset, 
-                             std::string driverTag,
-                             bool isPartOfSequence)
-    : BaseDriver(adomain)
+  SingleDriver::SingleDriver( std::string driverTag,
+                              bool isPartOfSequence )
+    : BaseDriver()
       
   {
   
     ENTER_FCN( "SingleDriver::SingleDriver" );
 
-    stepOffset_ = stepOffset;
-    timeOffset_ = timeOffset;
     driverTag_ = driverTag;
     isPartOfSequence_ = isPartOfSequence;
+    ptPDE_ = NULL;
   }
   
 
@@ -31,25 +27,48 @@ namespace CoupledField{
   
   }
 
+  void SingleDriver::InitializePDEs() {
+    ENTER_FCN( "void InitializePDEs()" );
+   
+       // read in pde data 
+    if( ! isPartOfSequence_ ) {
+      StdVector<std::string> pdeNames;
+      params->GetPDEList( pdeNames );
+      
+      // Initialize pdes with general Tag 'anyTag'
+      StdVector<std::string> tags;
+      tags.Resize(pdeNames.GetSize());
+      tags.Init( driverTag_ );
+      domain->CreatePDEs( pdeNames, 1, tags );
+      ptPDE_ = domain->GetBasePDE();
+
+      // Trigger reading of restart file
+      ReadRestart();
+
+      domain->InitPDEs(1, tags );
+     
+      Info->StartProgress ("Starting to solve problem", false);
+    }
+  }
+
   void SingleDriver::SetPDE( BasePDE *pde) {
     ENTER_FCN( "SingleDriver::SetPDE" );
     ptPDE_ = pde;
   }
 
-  void SingleDriver::GetMyPDEs()
-  {
-    ENTER_FCN( "SingleDriver::GetMyPDEs()" );
+//   void SingleDriver::GetMyPDEs()
+//   {
+//     ENTER_FCN( "SingleDriver::GetMyPDEs()" );
 
-    StdVector<std::string> pdeNames;
-    params->GetPDEList( pdeNames );
+//     StdVector<std::string> pdeNames;
+//     params->GetPDEList( pdeNames );
   
-    // Initialize pdes with general Tag 'anyTag'
-    StdVector<std::string> tags;
-    tags.Resize(pdeNames.GetSize());
-    tags.Init("anyTag");
-    ptdomain_->InitPDEs(pdeNames,1,tags);
-  
-    ptPDE_ = ptdomain_->GetBasePDE();
-  }
+//     // Initialize pdes with general Tag 'anyTag'
+//     StdVector<std::string> tags;
+//     tags.Resize(pdeNames.GetSize());
+//     tags.Init("anyTag");
+//     domain->CreatePDEs( pdeNames, 1, tags );
+//     ptPDE_ = domain->GetBasePDE();
+//   }
       
 } // end of namespace
