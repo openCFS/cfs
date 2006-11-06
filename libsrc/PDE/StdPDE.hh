@@ -2,7 +2,6 @@
 #define FILE_STDPDE
 #include <fstream>
 #include "PDE/basePDE.hh"
-#include "pdememento.hh"
 
 #include <set>
 
@@ -29,7 +28,6 @@ namespace CoupledField {
   public:
 
     // friend cStdlass declarations
-    friend class PDEMemento;
     friend class PDECoupling;
 
     // public typedefs
@@ -94,58 +92,22 @@ namespace CoupledField {
     //!
     virtual Complex ComputeVolElem(BaseFE * ptSurfEl, Matrix<Double>& SurfCoord, 
                                    Vector<Complex> disp);
-  
-    //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
-    void WriteRestart(const UInt nstep, UInt totalUnknowns=0);
-
-    //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
-    void ReadRestart(UInt &startStep, UInt totalUnknowns=0);
 
     // ======================================================
     // GET/SET METHODS
     // ======================================================
-    //! get the encapsulated state of the PDE
-  
-    //! returns the current state of the PDE (solution, derivative,
-    //! coupling-objects) in an encapsulated object. This is needed to
-    //! enable full MultiSequence simulation, where from one step to 
-    //! another the solution, the derivative and perhaps coupling 
-    //! values like geometry update have to be passed. 
-    //! The PDEMemento object encapsulates this information. 
-    //! Later on the information can be given back to the PDE
-    //! with the method SetMemento();
-    //! \param memento (output) Object where the current state gets saved
-    virtual void GetMemento(PDEMemento & memento);
-  
-    //! set the encapsulated state of the PDE
-  
-    //! set the current state of this PDE (solution, derivative,
-    //! coupling-objects) from an encapsulated object. This is needed to
-    //! enable full MultiSequence simulation, where from one step to 
-    //! another the solution, the derivative and perhaps coupling 
-    //! values like geometry update have to be passed. 
-    //! The PDEMemento object encapsulates this information. 
-    //! With this method the previous stored information can be set
-    //! to the current PDE.
-    //! \param memento (input) Previously saved state of the PDE
-    //! \param frequency   (input) : frequency of previous sequence
-    virtual void SetMemento(PDEMemento & memento, std::string transFromTo,
-                            Double frequency);
-                   
+
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
 
     //! Return vector with result types
     ResultList& GetResults() { return results_;}
 
-    virtual UInt GetTimeStepCounter();
-   
     //! return pointer to vector with subdomains, on which we calculate the PDE
     virtual StdVector<RegionIdType> * getSDsPDE()
     { return &subdoms_;}
 
-    //! Get type of analysis
-    AnalysisType GetAnalysisType() {
+    virtual AnalysisType GetAnalysisType() {
       return analysistype_;
     }
   
@@ -530,9 +492,6 @@ namespace CoupledField {
     
     //! flag for knowing if we have to call ComputeRHS() in the harmonic driver
     bool ComputeRHSforHarm_;    
-   
-    //! PDEMemento
-    PDEMemento memento_;
 
     //! Pointer to object of analysis (Static, Trans, Harm or Eig)
     Assemble * assemble_;

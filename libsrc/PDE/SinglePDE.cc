@@ -21,10 +21,15 @@
 // header for Solvestep and assemble
 #include "Driver/stdSolveStep.hh"
 #include "Driver/assemble.hh"
-#include "Driver/basedriver.hh"
+#include "Driver/singleDriver.hh"
+#include "Driver/transientdriver.hh"
+#include "Driver/harmonicDriver.hh"
 
 // header for iterative coupling
 #include "CoupledPDE/pdecoupling.hh"
+
+// header for memento/restart handling
+#include "Utils/boost-serialization.hh"
 
 #ifdef PARALLEL
 #include <mpi.h>
@@ -77,6 +82,7 @@ namespace CoupledField {
     // =====================================================================
     pdeId_ = NO_PDE_ID;
     isDirectCoupled_  = false;
+    isInitialized_ = false;
     numCouplingBcs_ = 0;
 
     // Obtain mathParser handler
@@ -134,10 +140,23 @@ namespace CoupledField {
     // =====================================================================
     // get regions/subdomains for PDE
     // =====================================================================
+    // Construct vectors for restricted search parameter
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
     StdVector<std::string> regionNames, surfaceNames;
-    params->GetList( "name", regionNames, pdename_, "region" );
+    
+    keyVec = "pdeList", pdename_, "region", "name";
+    attrVec = "", "", "tag";
+    valVec = "", "", bcSequenceTag_;
+
+    // region names
+    params->GetList( keyVec, attrVec, valVec,  regionNames );
     ptgrid_->RegionNameToId( subdoms_, regionNames );
-    params->GetList( "name", surfaceNames, pdename_, "surface" );
+
+    // surface names
+    keyVec.Last() = "surface";
+    params->GetList( keyVec, attrVec, valVec, surfaceNames );
     ptgrid_->RegionNameToId( surfdoms_, surfaceNames );
 
     // Create vector of all IDs
@@ -198,12 +217,7 @@ namespace CoupledField {
     // Get type of analysis
     // =====================================================================
     
-    // Construct vectors for restricted search parameter
-    StdVector<std::string> keyVec;
-    StdVector<std::string> attrVec;
-    StdVector<std::string> valVec;
-
-    analysistype_ = domain->GetDriver()->GetAnalysisType( pdename_ );
+    analysistype_ = domain->GetSingleDriver()->GetAnalysisType();
 
     // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
     //       and must be re-designed
@@ -227,6 +241,10 @@ namespace CoupledField {
       
     case EIGENFREQUENCY:
       isComplex_ = false;
+      break;
+
+    case TRANSIENTHARMONIC:
+      Error( "To be implemented....", __FILE__, __LINE__ );
       break;
       
     default:
@@ -314,6 +332,15 @@ namespace CoupledField {
     // =====================================================================
     // read in boundary conditions
     // =====================================================================
+    
+    // Incorporate values of memento here, if the values are used
+    // as "dirichlet"-values from a previous simulation run
+    // (e.g. obtained from a previous static run)
+    if( memento_ != NULL
+        && mementoUsage_ == PDEMemento::DIRICHLET_VALUE ) {
+      IncorporateMemento();
+    }
+    
     ReadBCs();
     ReadSpecialBCs();
     //
@@ -331,8 +358,16 @@ namespace CoupledField {
          isDirectCoupled_ == false) {
       SETPROFILE("Before Definition of Timestepping");
       InitTimeStepping();
+      if ( TS_alg_ != NULL ) {
+        Double dt;
+        dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+          ->GetTimeStep();
+      }
+      
       SETPROFILE("After Definition of TimeStepping");
     }
+
+ 
 
     // =====================================================================
     // define the integrators for PDE and initialize eqn object
@@ -402,6 +437,15 @@ namespace CoupledField {
     }
     
 
+    if ( analysistype_ == TRANSIENT && 
+         isDirectCoupled_ == false) {
+      Double dt;
+      dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+        ->GetTimeStep();
+      TS_alg_->Init( dt, eqnMap_->GetNumEqns() );
+    }
+
+
     // =====================================================================
     // define which solution types have to be saved
     // =====================================================================
@@ -430,6 +474,8 @@ namespace CoupledField {
       DefineSolveStep();
     }
 
+    // Finally set the initialization flag to true
+    isInitialized_ = true;
   }
 
   
@@ -1044,6 +1090,14 @@ namespace CoupledField {
     // create matrices and solver object, if PDE is not direct coupled
     if ( isDirectCoupled_ == false ) {
       CreateMatrices_Solver();
+      
+      // Incorporate values of memento here, if the values are used
+      // as "start"-values from a previous simulation run
+      // (e.g. obtained from a previous static run)
+      if( memento_ != NULL
+          && mementoUsage_ == PDEMemento::START_VALUE ) {
+        IncorporateMemento();
+      }
     }
 
   }
@@ -1310,8 +1364,6 @@ namespace CoupledField {
         //Error( "Not implemented yet", __FILE__, __LINE__ );
         break;
 
-
-
       }
     }
   }
@@ -1391,6 +1443,401 @@ namespace CoupledField {
 
   }
 
+
+ void SinglePDE::WriteRestart( ) {
+   ENTER_FCN( "SinglePDE::WriteRestart" );
+   
+   if (pdename_=="mechanic" || pdename_=="acoustic") {
+     std::string simName = commandLine->GetSimName();
+     
+     // create name of output file
+     std::string restartFileName = simName+"_"+pdename_+".restart";
+     
+     std::ofstream writeTo(restartFileName.c_str(), std::ios::binary);
+     if( !writeTo.good() ) {
+       *error << "Could not write to restart file '" << restartFileName 
+              << "'!";
+       Error( __FILE__, __LINE__ );
+     }
+     
+     boost::archive::binary_oarchive outArchive(writeTo);
+     GetMemento(memento_);
+     PDEMemento const & temp = *memento_;
+     outArchive << temp;
+     writeTo.close();
+   } else {
+     Error( "Restart functionality only for mechanic and acoustic tested", 
+            __FILE__, __LINE__ );
+   }
+   
+     
+ }
+
+  void SinglePDE::ReadRestart(UInt &startStep ) {
+    ENTER_FCN( "SinglePDE::ReadRestart" );
+    
+    if (pdename_=="mechanic" || pdename_=="acoustic") {
+      std::string simName = commandLine->GetSimName();
+      std::string restartFileName = simName+"_"+pdename_+".restart";
+      
+      std::ifstream readRestart(restartFileName.c_str(), std::ios_base::in );
+      if( !readRestart.good() ) {
+        *error << "Could not open restart file '" << restartFileName << "'!";
+        Error( __FILE__, __LINE__ );
+      }
+
+      boost::archive::binary_iarchive inArchive( readRestart );
+      shared_ptr<PDEMemento> myMemento (new PDEMemento );
+      inArchive >> *myMemento;
+      readRestart.close();
+      SetMemento( myMemento, PDEMemento::START_VALUE );
+
+      startStep = myMemento->GetRestartStep();
+    } else  {
+      Error( "Restart functionality only for mechanic and acoustic tested", 
+             __FILE__, __LINE__ );
+    }
+    
+  }
+  
+  
+  void SinglePDE::GetMemento( shared_ptr<PDEMemento>& memento) {
+    ENTER_FCN( "SinglePDE::GetMemento" );
+
+    // create new memento
+    shared_ptr<PDEMemento> myMemento (new PDEMemento() );
+
+    // first get memento of coupling object
+    if (isIterCoupled_) {
+      ptCoupling_->GetMemento(myMemento->couplingMemento_);
+      myMemento->isIterCoupled_ = true;
+    }
+
+    // then write own data to PDEMemento
+    myMemento->analysisType_ = analysistype_;
+    myMemento->gridFileName_ = commandLine->GetMeshFile();
+    myMemento->stepNum_ = domain->GetSingleDriver()->GetActStep(pdename_);
+
+    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
+
+      // --- Real values --
+      Vector<Double> & solReal = 
+        dynamic_cast<NodeStoreSol<Double>&>(*(sol_)).GetAlgSysVector();
+      UInt numDofs = results_[0]->dofNames.GetSize();
+      StdVector<Integer> eqns;
+      for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ){
+
+        // create new entity list
+        shared_ptr<NodeList> actSDList( new NodeList(ptgrid_ ) );
+        actSDList->SetNodesOfRegion( subdoms_[iRegion] );
+
+        // create new vector
+        Vector<Double> * values = new Vector<Double>;
+        Vector<Double> deriv1, deriv2;
+
+        values->Resize( actSDList->GetSize() * numDofs );
+        values->Init();
+        if (analysistype_ == TRANSIENT ) {
+          deriv1.Resize( actSDList->GetSize() * numDofs );
+          deriv2.Resize( actSDList->GetSize() * numDofs );
+        }
+        
+        EntityIterator it = actSDList->GetIterator();
+        UInt pos = 0;
+        for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+          eqnMap_->GetEqns( eqns, *results_[0], it );
+          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+            if ( eqns[iDof] != 0 ) {
+              (*values)[numDofs*pos+iDof] = solReal[(abs(eqns[iDof]-1))];
+              if( analysistype_ == TRANSIENT ) {
+                deriv1[numDofs*pos+iDof] = 
+                  TS_alg_->GetDeriv1()[(abs(eqns[iDof]-1))];
+                deriv2[numDofs*pos+iDof] = 
+                  TS_alg_->GetDeriv2()[(abs(eqns[iDof]-1))];
+              }
+            } else {
+              (*values)[numDofs*pos+iDof] = 0.0;
+              if ( analysistype_ == TRANSIENT ) {
+                deriv1[numDofs*pos+iDof] = 0.0;
+                deriv2[numDofs*pos+iDof] = 0.0;
+              }
+            }
+          }
+        }
+
+        // pass vector to memento object
+        std::string regionName = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+        myMemento->solution_[regionName] = values;
+        if ( analysistype_ == TRANSIENT ) {
+          myMemento->solDeriv1_[regionName] = deriv1;
+          myMemento->solDeriv2_[regionName] = deriv2;
+        }
+      }
+    } else {
+      
+      // --- Complex values --    
+
+      // store current frequency
+      myMemento->freq_ = dynamic_cast<HarmonicDriver*>(domain->GetSingleDriver())
+        ->GetActFreq();
+      
+      Vector<Complex> & solComp = 
+        dynamic_cast<NodeStoreSol<Complex>&>(*(sol_)).GetAlgSysVector();
+      UInt numDofs = results_[0]->dofNames.GetSize();
+      StdVector<Integer> eqns;
+      for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ){
+
+        // create new entity list
+        shared_ptr<NodeList> actSDList( new NodeList(ptgrid_ ) );
+        actSDList->SetNodesOfRegion( subdoms_[iRegion] );
+
+        // create new vector
+        Vector<Complex> * values = new Vector<Complex>;
+        values->Resize( actSDList->GetSize() * numDofs );
+        values->Init();
+        EntityIterator it = actSDList->GetIterator();
+        UInt pos = 0;
+        for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+          eqnMap_->GetEqns( eqns, *results_[0], it );
+          for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+            if ( eqns[iDof] != 0 ) {
+              (*values)[numDofs*pos+iDof] = solComp[(abs(eqns[iDof]-1))];
+            } else {
+              (*values)[numDofs*pos+iDof] = 0.0;
+            }
+          }
+        }
+
+        // pass vector to memento object
+        std::string regionName = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+        myMemento->solution_[regionName] = values;
+      }
+    } 
+    
+    // now memento is initialized
+    myMemento->isSet_ = true;
+
+    // pass back memento
+    memento = myMemento;
+  }
+  
+
+  void SinglePDE::SetMemento( shared_ptr<PDEMemento>& memento, 
+                              PDEMemento::ValueUsageType usage) {
+    ENTER_FCN( "SinglePDE::SetMemento" );
+    
+    if( isInitialized_ == true ) {
+      *error << "SetMemento may only be called, if the method "
+             << "SinglePDE::Init() was not called yet!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    memento_ = memento;
+    mementoUsage_ = usage;
+  }
+
+  void SinglePDE::IncorporateMemento( ) {
+    ENTER_FCN( "SinglePDE::IncorporateMemento" );
+    
+    // if there is no memento present -> leave
+    if( !memento_ ) {
+      return;
+    }
+    
+   // if there is no information in the memento just leave
+    if ( memento_->isSet_ == false ) {
+      return;
+    }
+  
+    // check that memento is bases on the same grid file
+    if( memento_->gridFileName_ != commandLine->GetMeshFile() ) {
+      *error << "Error in reading in memento: Memento is based on grid '"
+             << memento_->gridFileName_ 
+             << ", whereas the current simulation is based on grid '"
+             << commandLine->GetMeshFile();
+      Error( __FILE__, __LINE__ );
+    }
+
+    UInt numDofs = results_[0]->dofNames.GetSize();
+    if ( analysistype_ == STATIC || analysistype_ == TRANSIENT ) {
+      
+      // convert solution to transient StoreSolution type
+      Vector<Double> & solVec = 
+        (dynamic_cast<NodeStoreSol<Double> &>(*sol_)).GetAlgSysVector();
+      
+
+      Vector<Double> solDeriv1, solDeriv2;
+      if( TS_alg_->GetDeriv1().GetSize() != 0 ) {
+        solDeriv1 = TS_alg_->GetDeriv1();
+      } else {
+        solDeriv1.Resize( solVec.GetSize() );
+        solDeriv1.Init();
+      }
+
+      if( TS_alg_->GetDeriv2().GetSize() != 0 ) {
+        solDeriv2 = TS_alg_->GetDeriv2();
+      } else {
+        solDeriv2.Resize( solVec.GetSize() );
+        solDeriv2.Init();
+      }
+      
+      if ( memento_->analysisType_ == HARMONIC ) {
+        
+        // -> perform complex-to-real adjustment
+        
+        // frequency of memento
+        Double freq = memento_->freq_;
+
+        // Iterate over all regions
+        for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
+
+          // Check for related region in memento object
+          std::string name = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+          if( memento_->solution_.find( name) != memento_->solution_.end() ) {
+            
+            // get grip of vector and derivatives of memento
+            Vector<Complex> const & sol = 
+              dynamic_cast<const Vector<Complex>& >(*(memento_->solution_[name]) );
+
+            // create entitylist
+            shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
+            nodes->SetNodesOfRegion( subdoms_[iRegion] );
+
+            // iterate over all entries
+            EntityIterator it = nodes->GetIterator();
+            StdVector<Integer> eqns;
+            UInt pos = 0;
+            for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+              eqnMap_->GetEqns( eqns, *results_[0], it );
+              for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+                UInt actPos = numDofs*pos+iDof;
+                if ( eqns[iDof] != 0 
+                     && std::abs(eqns[iDof]-1) < solVec.GetSize() ) {
+                  solVec[eqns[iDof]-1] = sol[actPos].real();
+                  if ( analysistype_ == TRANSIENT ) {
+                    solDeriv1[eqns[iDof]-1] = -2*PI*freq* sol[actPos].imag();
+                    solDeriv2[eqns[iDof]-1] = 
+                      -4*PI*PI*freq*freq*sol[actPos].real();
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // pass derivatives to timestepping algorithm
+        if( analysistype_ == TRANSIENT ) {
+          TS_alg_->SetDeriv1( solDeriv1 );
+          TS_alg_->SetDeriv2( solDeriv2 );
+        }
+        
+      } else {
+        
+        // check if derivatives are also needed
+        bool needDeriv = ( analysistype_ == TRANSIENT ) &&
+          (memento_->analysisType_ == TRANSIENT);
+        
+        // Iterate over all regions
+        for( UInt iRegion = 0; iRegion < subdoms_.GetSize(); iRegion++ ) {
+
+          // Check for related region in memento object
+          std::string name = ptgrid_->RegionIdToName( subdoms_[iRegion] );
+          if( memento_->solution_.find( name) != memento_->solution_.end() ) {
+            
+            // get grip of vector and derivatives of memento
+            Vector<Double> const & sol = 
+              dynamic_cast<const Vector<Double>& >(*(memento_->solution_[name]) );
+            Vector<Double> const & deriv1 = memento_->solDeriv1_[name];
+            Vector<Double> const & deriv2 = memento_->solDeriv2_[name];
+
+            // create entitylist
+            shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
+            nodes->SetNodesOfRegion( subdoms_[iRegion] );
+
+            // iterate over all entries
+            EntityIterator it = nodes->GetIterator();
+            StdVector<Integer> eqns;
+            UInt pos = 0;
+            for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+              eqnMap_->GetEqns( eqns, *results_[0], it );
+              for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+                if ( eqns[iDof] != 0 
+                     && std::abs(eqns[iDof]-1) < solVec.GetSize() ) {
+                  solVec[eqns[iDof]-1] = sol[numDofs*pos+iDof];
+                  if ( needDeriv ) {
+                    solDeriv1[eqns[iDof]-1] = deriv1[numDofs*pos+iDof];
+                    solDeriv2[eqns[iDof]-1] = deriv2[numDofs*pos+iDof];
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // pass derivatives to timestepping algorithm
+        if( needDeriv ) {
+          TS_alg_->SetDeriv1( solDeriv1 );
+          TS_alg_->SetDeriv2( solDeriv2 );
+        }
+      }
+    } else if ( analysistype_ == HARMONIC ) {
+
+      // check value-usage type
+      if( mementoUsage_ != PDEMemento::DIRICHLET_VALUE ) {
+        *error << "For an harmonic simulation only the usage "
+               << "of a memento as Drichlet values makes sense!";
+        Error( __FILE__, __LINE__ );
+      }
+
+          // iterate over all regions of pde
+      for( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
+      
+        std::string regionName = ptgrid_->RegionIdToName( subdoms_[i] );
+
+        // try to find related region in memento object
+        if( memento_->solution_.find( regionName ) !=
+            memento_->solution_.end() ) {
+
+          Vector<Complex> const & regionSol = 
+            dynamic_cast<Vector<Complex>&>(*memento_->solution_[regionName]);
+
+          // create entitylist
+          shared_ptr<NodeList> nodes (new NodeList(ptgrid_));
+          nodes->SetNodesOfRegion( subdoms_[i] );
+
+          // iterate over all entries
+          EntityIterator it = nodes->GetIterator();
+          UInt pos = 0;
+          for( it.Begin(); !it.IsEnd(); it++, pos++ ) {
+            
+            for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
+              Complex val = regionSol[pos * numDofs + iDof];          
+              
+              // create idbc-condition and append to class container
+              shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
+              shared_ptr<NodeList> actList (new NodeList(ptgrid_) );
+              StdVector<UInt> nodeList(1);
+              nodeList[0] = it.GetNode();
+              actList->SetNodes(nodeList);
+
+              actBc->entities = actList;
+              actBc->result = results_[0];
+              actBc->eqnMap = eqnMap_;
+              actBc->dof = iDof+1;
+              actBc->value = GenStr(std::abs( val ) );
+              actBc->phase = GenStr(std::atan2( val.imag(), val.real()) 
+                                    *180/PI );
+              
+              // append idbc at end of list
+              idBcs_.Push_back( actBc );
+            }
+          }
+        }
+      }
+    }
+    
+
+  }
   
   // ======================================================
   // SCRIPTING SECTION

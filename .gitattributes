@@ -739,6 +739,7 @@ libsrc/Utils/StdVector.cc svneol=native#text/plain
 libsrc/Utils/StdVector.hh svneol=native#text/plain
 libsrc/Utils/baseelemstoresol.hh svneol=native#text/plain
 libsrc/Utils/basenodestoresol.hh svneol=native#text/plain
+libsrc/Utils/boost-serialization.hh svneol=native#text/plain
 libsrc/Utils/cfsvector.hh svneol=native#text/plain
 libsrc/Utils/coordSystem.cc svneol=native#text/plain
 libsrc/Utils/coordSystem.hh svneol=native#text/plain

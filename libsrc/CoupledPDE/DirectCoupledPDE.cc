@@ -11,7 +11,8 @@
 #include "PDE/SinglePDE.hh"
 
 #include "Domain/domain.hh"
-#include "Driver/basedriver.hh"
+#include "Driver/singleDriver.hh"
+#include "Driver/transientdriver.hh"
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 
@@ -124,10 +125,15 @@ namespace CoupledField {
     //  Detection of analysis type
     // ----------------------------
 
-    analysistype_ = domain->GetDriver()->GetAnalysisType( pdename_ );
+    analysistype_ = domain->GetSingleDriver()->GetAnalysisType( );
 
     // Create new Assemble object
     assemble_ = new Assemble( algsys_, analysistype_, ptTimeFunc_ );
+
+  // Initialize timestepping
+    if ( analysistype_ == TRANSIENT ) {
+      InitTimeStepping();
+    }
 
     // activate direct coupling information
     // and initialize all single pdes
@@ -138,7 +144,6 @@ namespace CoupledField {
       // Initialize all SinglePDEs
       singlePDEs_[i]->Init( bcSequenceStep, bcSequenceTag );
 
-      
     }
 
     // Get information about number of dirichlet values,
@@ -152,9 +157,11 @@ namespace CoupledField {
       totalUnknowns_ += eqn->GetNumEqns();
     }
     
-    // Initialize timestepping
     if ( analysistype_ == TRANSIENT ) {
-      InitTimeStepping();
+        Double dt;
+        dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+          ->GetTimeStep();
+        TS_alg_->Init( dt, totalUnknowns_ );
     }
 
 
@@ -324,6 +331,14 @@ namespace CoupledField {
 
     // Allocate the necessary matrices as well as solver and preconditioner
     CreateMatrices_Solver();
+
+    for( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+      if (singlePDEs_[i]->memento_ != NULL &&
+          singlePDEs_[i]->mementoUsage_ == PDEMemento::START_VALUE ) {
+        singlePDEs_[i]->IncorporateMemento();
+      }
+    }
+        
   }
 
   void DirectCoupledPDE::SaveSolution( const Double * ptSol, UInt size) {
@@ -399,18 +414,38 @@ namespace CoupledField {
     }
   }
 
-   void DirectCoupledPDE::WriteRestart(const UInt nstep, UInt totalUnknowns) 
+   void DirectCoupledPDE::WriteRestart( ) 
    {
      ENTER_FCN( "DirectCoupledPDE::WriteRestart" );
 
-     singlePDEs_[0]->WriteRestart(nstep,totalUnknowns_);
+     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+       singlePDEs_[i]->WriteRestart( );
+     }
    }
 
-   void DirectCoupledPDE::ReadRestart(UInt &startStep, UInt totalUnknowns) 
+   void DirectCoupledPDE::ReadRestart( UInt &startStep ) 
    {
      ENTER_FCN( "DirectCoupledPDE::ReadRestart" );
 
-     singlePDEs_[0]->ReadRestart(startStep,totalUnknowns_);
+     StdVector<UInt> startSteps( singlePDEs_.GetSize() );
+     
+     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+     singlePDEs_[i]->ReadRestart(startSteps[i]);
+     }
+     
+     for( UInt i = 1; i < startSteps.GetSize(); i++ ) {
+       if( startSteps[i] != startSteps[0] ) {
+         std::stringstream errMsg;
+         errMsg << "Error during read in of restart files:\n";
+         errMsg << "Restart step numbers differ for the different PDEs!\n";
+         for( UInt j = 0; j< singlePDEs_.GetSize(); j++ ) {
+           errMsg << singlePDEs_[i]->GetName() << "\t"
+                  << startSteps[i] << "\n";
+         }
+         Error( errMsg.str().c_str(), __FILE__, __LINE__ );
+       }
+       
+     }
    }
   
 

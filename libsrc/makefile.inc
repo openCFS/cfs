@@ -24,16 +24,20 @@ libgoal: $(LIB_DIR) $(LIBB)
 #
 
 
-#.PHONY: $(LIBB)
+.PHONY: link
 #$(LIBB): 
 .PRECIOUS: $(LIBB)
 $(LIBB): $(src:.cc=.o) $(src:.cpp=.o)
-	$(AR) $(ARFLAGS) $@ $(src:.cc=.o) $(src:.cpp=.o)
+	 $(AR) $(ARFLAGS) $@ $(addsuffix .o, $(basename $(src)))
 	-@$(RANLIB) $@
 
 $(LIB_DIR) :
 	-@mkdir $(C_DIR)/lib
 	@mkdir $(LIB_DIR)
+
+link:
+	 $(AR) $(ARFLAGS) $(LIBB) $(addsuffix .o, $(basename $(src)))
+	-@$(RANLIB) $(LIBB)
 #
 ########## Make clean for each directory and its subdirectories
 #

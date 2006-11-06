@@ -409,18 +409,6 @@ namespace CoupledField
   }
 
 
-  void IterSolveStep::SetTimeStep( Double dt)
-  {
-    ENTER_FCN( "IterSolveStep::SetTimeStep");
-
-    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
-      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
-
-      if ( actAnalysisType_ == TRANSIENT )
-        rPDE_.PDEs_[i]->GetSolveStep()->SetTimeStep(dt);
-    }
-  }
-
   void IterSolveStep::SetNumTimeSteps( UInt numTimeStep)
   {
     ENTER_FCN( "IterSolveStep::SetNumTimeSteps");

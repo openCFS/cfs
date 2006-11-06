@@ -36,6 +36,8 @@
             <xsd:complexType>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="type"  type="DT_MpcciType" use="required"/>
+              <xsd:attribute name="tag" type="xsd:token" use="optional"
+                default="anyTag"/>
             </xsd:complexType>
           </xsd:element>
           <!-- Boundary Conditions & Loads (optional) -->

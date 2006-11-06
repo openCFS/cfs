@@ -16,8 +16,19 @@ namespace CoupledField
   {
   public:
     // Friend declarations
-    friend class StdPDE;
+    friend class SinglePDE;
 
+    //! Type of usage of stored values: usage as start values or
+    //! dirichlet values
+    typedef enum { NO_TYPE, START_VALUE, DIRICHLET_VALUE } ValueUsageType;
+
+    //@{
+    //! Conversion of ValueUsageType
+    static std::string Enum2String( ValueUsageType type );
+    static ValueUsageType String2Enum( std::string typeString );
+    //@}
+    
+    
     //! Constructor
     PDEMemento();
 
@@ -36,37 +47,55 @@ namespace CoupledField
     //! Query if information is saved
     bool IsSet() {return isSet_;};
 
-    //! Set the size of the memento (length of all vectors)
-    void SetSize(UInt size) {size_ = size;};
-
-    friend std::ostream & operator << ( std::ostream & out, const PDEMemento & mem);
-    //std::ostream & operator << ( std::ostream & out);
-
-    friend std::ifstream & operator >> ( std::ifstream & in, PDEMemento & mem );
-    //std::ifstream & operator >> ( std::ifstream & in );
+    //! Get restart step
+    UInt GetRestartStep() { return stepNum_; }
 
   protected:
 
     //! true, if information is saved
     bool isSet_;
-
-    //! Set the size of the memento (length of all vectors)
-    UInt size_;
-
+    
     //! Contains analysistype of PDE
     AnalysisType analysisType_;
 
-    //! Contains solution of PDE
-    CFSVector * sol_;
+    //! Name of the related grid 
+    std::string gridFileName_;
+
+    //! Step number within current analysistype
+    UInt stepNum_;
+
+    //! Frequency of solution (harmonic case)
+    Double freq_;
+
+    //! Stores the nodal solution for each region
+    std::map<std::string,CFSVector*> solution_;
   
-    //! Contains first derivative of PDE solution
-    Vector<Double> solDeriv1_;
+    //! Contains first derivative of PDE solution for each region
+    std::map<std::string, Vector<Double> > solDeriv1_;
   
-    //! Contains second derivative of PDE solution
-    Vector<Double> solDeriv2_;
+    //! Contains second derivative of PDE solution for each region
+    std::map<std::string, Vector<Double> > solDeriv2_;
+
+    //! Flag indicating iterative coupling
+    bool isIterCoupled_;
 
     //! Contains the state of the coupling object
     CouplingMemento couplingMemento_;
+
+    // =======================================================================
+    // SERIALIZATION FUNCTIONS
+    // =======================================================================
+    // These functions allow us to write a memento directly
+    // into an boost::archive, for saving on a disk or in a 
+    // iostream object
+
+    //! allow serialization class to access memento entries
+    friend class boost::serialization::access;
+    
+    //! Saving internal state into a boost::archive
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version);
+
 
   };
 #ifdef DOXYGEN_DETAILED_DOC

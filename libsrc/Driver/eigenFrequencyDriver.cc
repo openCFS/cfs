@@ -12,13 +12,10 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  EigenFrequencyDriver::EigenFrequencyDriver(Domain * adomain, 
-                             UInt stepOffset,
-                             Double timeOffset,
+  EigenFrequencyDriver::EigenFrequencyDriver(
                              std::string driverTag,
                              bool isPartOfSequence) 
-    : SingleDriver(adomain, stepOffset, timeOffset, 
-                   driverTag, isPartOfSequence) {
+    : SingleDriver( driverTag, isPartOfSequence ) {
     ENTER_FCN( "EigenFrequencyDriver::EigenFrequencyDriver" );
 
     // set correct analysistype
@@ -64,6 +61,7 @@ namespace CoupledField {
       isQuadratic_ = false;
     }
     
+    InitializePDEs();
   }
 
 
@@ -80,13 +78,6 @@ namespace CoupledField {
   // *****************
   void EigenFrequencyDriver::SolveProblem() {
     ENTER_FCN( "EigenFrequencyDriver::SolveProblem" );
-
-    // if driver is not part of multiSequence Driver, get list
-    // of pdes which have to be solved and intialize them
-    if (isPartOfSequence_ == false){     
-             GetMyPDEs();
-             Info->StartProgress ("Starting to solve problem", false);
-    }
     
     // ------------------------------
     // Phase 1: calculate eigenvalues( generalized problem)
@@ -129,14 +120,14 @@ namespace CoupledField {
         
         // Iterate over all frequencies an calculate according mode
         if (! isPartOfSequence_)
-          ptdomain_->PrintGrid();
+          domain->PrintGrid();
         
         for ( UInt i = 0 ; i < numConverged; i++ ) {
           ptPDE_->GetSolveStep()->SetActStep(i);
           ptPDE_->GetSolveStep()->SetActFreq(std::abs(eigenFreqs[i]));
           ptPDE_->GetSolveStep()->CalcEigenMode( i );
           ptPDE_->WriteResultsInFile(i+1, std::abs(eigenFreqs[i]), 
-                                     stepOffset_, timeOffset_);
+                                     0, 0.0);
         }
       }
     } else {
@@ -176,14 +167,14 @@ namespace CoupledField {
         
         // Iterate over all frequencies an calculate according mode
         if (! isPartOfSequence_)
-          ptdomain_->PrintGrid();
+          domain->PrintGrid();
         
         for ( UInt i = 0 ; i < numConverged; i++ ) {
           ptPDE_->GetSolveStep()->SetActStep(i);
           ptPDE_->GetSolveStep()->SetActTime(eigenFreqs[i]);
           ptPDE_->GetSolveStep()->CalcEigenMode( i );
           ptPDE_->WriteResultsInFile(i+1, eigenFreqs[i], 
-                                     stepOffset_, timeOffset_);
+                                     0, 0.0);
         }
       }
     }

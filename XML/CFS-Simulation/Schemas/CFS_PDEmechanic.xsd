@@ -53,8 +53,10 @@
                 use="optional" default="no"/>
               <xsd:attribute name="thickness" type="DT_NonNegFloat"
                 use="optional" default="0.0"/>
-		<xsd:attribute name="penaltyDof" type="DT_NonNegFloat"
+              <xsd:attribute name="penaltyDof" type="DT_NonNegFloat"
                 use="optional" default="0.0"/>
+              <xsd:attribute name="tag" type="xsd:token" use="optional"
+                default="anyTag"/>
 	    </xsd:complexType>
           </xsd:element>
 

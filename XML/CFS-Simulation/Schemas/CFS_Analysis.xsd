@@ -261,6 +261,14 @@
                         </xsd:restriction>
                       </xsd:simpleType>
                     </xsd:attribute>
+                    <xsd:attribute name="usage" use="optional" default="startValue">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:token">
+                          <xsd:enumeration value="startValue"/>
+                          <xsd:enumeration value="dirichletValue"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:attribute>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>

@@ -12,11 +12,8 @@ namespace CoupledField {
   public:
 
     //! constructor
-    EigenFrequencyDriver(Domain * adomain,
-                 UInt stepOffset = 0,
-                 Double timeOffset = 0.0,
-                 std::string driverTag = "anyTag",
-                 bool isPartOfSequence = false);
+    EigenFrequencyDriver( std::string driverTag = "anyTag",
+                          bool isPartOfSequence = false );
     
     //! Destructor 
     ~EigenFrequencyDriver();
@@ -30,6 +27,9 @@ namespace CoupledField {
     //! solution process for the problem.
     void SolveProblem();
     
+    //! Return current time / frequency step of simulation
+    UInt GetActStep( const std::string& pdename ) { return 1;}
+
   private:
 
     //! Flag indicating, if a quadratic eigenvalue problem is to

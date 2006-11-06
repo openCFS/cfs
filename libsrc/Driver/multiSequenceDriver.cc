@@ -6,7 +6,7 @@
 #include "harmonicDriver.hh"
 
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include "PDE/StdPDE.hh"
+#include "PDE/SinglePDE.hh"
 #include "PDE/pdememento.hh"
 #include "Domain/domain.hh"
 
@@ -15,13 +15,16 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  MultiSequenceDriver::MultiSequenceDriver(Domain * adomain) 
-    : BaseDriver(adomain) {
+  MultiSequenceDriver::MultiSequenceDriver( ) 
+    : BaseDriver() {
     ENTER_FCN( "MultiSequenceDriver::MultiSequenceDriver" );
 
+    analysis_ = MULTI_SEQUENCE;
+    
     numSteps_ = 0;
     actStep_ = 0;
     actTime_ = 0;
+    actDriver_ = 0;
   }
 
 
@@ -44,25 +47,21 @@ namespace CoupledField {
     StdVector<std::string> keyVec, attrVec, valVec;
     
     // current driver
-    SingleDriver * actDriver;
+    //SingleDriver * actDriver_;
 
     // vector containing pointer to current set of PDEs
-    StdVector<StdPDE *> ptPDEs;
+    StdVector<SinglePDE *> ptPDEs;
     
     // Vector of memento objects, which save the internal state
     // of a PDE
-    StdVector<PDEMemento> memento;
+    StdVector<shared_ptr<PDEMemento> > memento;
     UInt nextStep = 0;
     Double nextTime = 0.0;
     UInt actNumSteps;
     Double actDt = 0.0;
-    Double actFrequency;
   
-    // helper variables
-    UInt iPDE, kPDE;
-
     // Print out the grid
-    ptdomain_->PrintGrid();
+    domain->PrintGrid();
 
     Info->StartProgress("Starting to solve problem",false);
 
@@ -79,13 +78,13 @@ namespace CoupledField {
       // analysis is allowed, we simple access
       // the first entry fo analysisPerStep_
       if (analysisPerStep_[iStep][0] == STATIC) {
-        actDriver = new StaticDriver(ptdomain_, actStep_, actTime_,
-                                     tagsPerStep_[iStep][0], true);
+        actDriver_ = new StaticDriver( actStep_, actTime_,
+                                       tagsPerStep_[iStep][0], true );
         nextStep = actStep_ + 1;
       }
       else if (analysisPerStep_[iStep][0] == TRANSIENT) {      
-        actDriver = new TransientDriver(ptdomain_, actStep_, actTime_, 
-                                        tagsPerStep_[iStep][0],true);
+        actDriver_ = new TransientDriver( actStep_, actTime_, 
+                                          tagsPerStep_[iStep][0],true );
 
         // the time step and the current time have to adapted 
         // after solving the first multiSequence step
@@ -102,79 +101,71 @@ namespace CoupledField {
         nextTime = actTime_ + actNumSteps * actDt;
       }
       else if (analysisPerStep_[iStep][0] == HARMONIC) {
-        actDriver = new HarmonicDriver(ptdomain_, actStep_, actTime_,
-                                       tagsPerStep_[iStep][0], true);
+        actDriver_ = new HarmonicDriver( actStep_, actTime_,
+                                         tagsPerStep_[iStep][0], true );
 
         nextStep = actStep_ + 1;
       }
       
 
       // Initialize all PDEs
-      ptdomain_->InitPDEs(pdesPerStep_[iStep],iStep+1, tagsPerStep_[iStep]);
-      actDriver->SetPDE(ptdomain_->GetBasePDE());
+      domain->CreatePDEs(pdesPerStep_[iStep],iStep+1, tagsPerStep_[iStep]);
+      
+      domain->SetDriver( actDriver_ );
+      actDriver_->SetPDE(domain->GetBasePDE());
 
       // Give the according pdes to the driver
       ptPDEs.Clear();
       ptPDEs.Resize(pdesPerStep_[iStep].GetSize());
-      for (iPDE=0; iPDE<pdesPerStep_[iStep].GetSize(); iPDE++)
-        ptPDEs[iPDE]=ptdomain_->GetStdPDE(pdesPerStep_[iStep][iPDE]);
+      for (UInt iPde=0; iPde < pdesPerStep_[iStep].GetSize(); iPde++)
+        ptPDEs[iPde]=domain->GetSinglePDE( pdesPerStep_[iStep][iPde] );
 
       // Initialize driver objects
-      actDriver->Init();
+      actDriver_->Init();
 
       // After the first run, initialize this PDE
       // with the solution of the previous run
       if (iStep > 0) {
-        std::string transFromTo = "standard";
-        //check, if hamonic analysis is followed by transient one
-        if ( analysisPerStep_[iStep-1][0] == HARMONIC && 
-             analysisPerStep_[iStep][0] == TRANSIENT) {
-          transFromTo = "complexToReal";
-        }
-        for (UInt i=0; i<pdesPerStep_[iStep].GetSize(); i++) {
-          if (memento[i].IsSet()) {
-            ptPDEs[i]->SetMemento( memento[i], transFromTo, actFrequency );
+        for (UInt iPde = 0; iPde < pdesPerStep_[iStep].GetSize(); iPde++ ) {
+          if( memento[iPde] != NULL) {
+            if (memento[iPde]->IsSet()) {
+              ptPDEs[iPde]->SetMemento( memento[iPde], 
+                                        valueUsagePerStep_[iStep][iPde] );
+            }
           }
         }
       }
+
+      //! Initialize Pdes, after having set the memento object
+      domain->InitPDEs(iStep+1, tagsPerStep_[iStep]);
       
       // Solve Problem
-      actDriver->SolveProblem();
-
-      //if harmonic analysis, save the used frequencies
-      if ( analysisPerStep_[iStep][0] == HARMONIC ) {
-        actFrequency = actDriver->GetActFrequency();
-      }
-      else {
-        actFrequency = 0;
-      }
-
+      actDriver_->SolveProblem();
 
       // Get solution for next step and delete
       // all PDEs
       if (iStep < numSteps_-1) {
         memento.Resize(pdesPerStep_[iStep+1].GetSize());
 
-
         // Iterate over all PDEs in the next step
-        for (iPDE=0; iPDE<pdesPerStep_[iStep+1].GetSize(); iPDE++) {
+        for (UInt iPde = 0; iPde < pdesPerStep_[iStep+1].GetSize(); iPde++) {
           // Iterate over all PDEs in the current step
-          for(kPDE=0; kPDE<pdesPerStep_[iStep].GetSize(); kPDE++) {
+          for(UInt kPde = 0; kPde < pdesPerStep_[iStep].GetSize(); kPde++) {
             // If both match, then save the result of this step
             // for the next step
-            if (pdesPerStep_[iStep+1][iPDE] == pdesPerStep_[iStep][kPDE])
+            if (pdesPerStep_[iStep+1][iPde] == pdesPerStep_[iStep][kPde])
               //dynamic_cast<const NodeStoreSol<Double>& >
-              ptPDEs[kPDE]->GetMemento(memento[iPDE]);
+              ptPDEs[kPde]->GetMemento(memento[iPde]);
           }
         }
         
         // delete PDEs
-        ptdomain_->ResetPDEs();
+        domain->ResetPDEs();
       }
 
 
       // delete analysistypes
-      delete actDriver;
+      delete actDriver_;
       
       // increase stepNumber and time
       actStep_ = nextStep;
@@ -183,11 +174,10 @@ namespace CoupledField {
   }
 
 
-
-  AnalysisType MultiSequenceDriver::GetAnalysisType( const std::string& pdename) {
-    ENTER_FCN( "MultiSequenceDriver::GetAnalysisType" );
-    return analysisPerStep_[curSequenceStep_][0];
-
+  UInt MultiSequenceDriver::GetActStep( const std::string& pdename ) {
+    ENTER_FCN( "MultiSequenceDriver::GetActStep" );
+    assert( actDriver_);
+    return actDriver_->GetActStep( pdename );
   }
 
   // *****************
@@ -198,7 +188,7 @@ namespace CoupledField {
     ENTER_FCN( "MultiSequenceDriver::Init" );
     
     StdVector<UInt> steps;
-    StdVector<std::string> pdesAux, tagsAux, analysisAux;
+    StdVector<std::string> pdesAux, tagsAux, analysisAux, valueUsageAux;
 
     // 1.) Read in all steps
     params->GetList("index", steps, "multiSequence", "step");
@@ -227,8 +217,10 @@ namespace CoupledField {
     pdesPerStep_.Resize(numSteps_);
     tagsPerStep_.Resize(numSteps_);
     analysisPerStep_.Resize(numSteps_);
+    valueUsagePerStep_.Resize(numSteps_);
     
     AnalysisType analysisType;
+    PDEMemento::ValueUsageType usage;
 
     // 4.) Read in all pdes, tags and simulation types
 
@@ -249,15 +241,14 @@ namespace CoupledField {
       keyVec  = "multiSequence", "step", "pde", "refTag";      
       params->GetList( keyVec, attrVec, valVec, tagsAux );
 
-      //       std::cerr << "The tags for step " << stepString << " are: " << std::endl;
-      //       std::cerr << tagsAux << std::endl << std::endl;
-      
-
-      keyVec  = "multiSequence", "step", "pde", "type";      
+       keyVec  = "multiSequence", "step", "pde", "type";      
       params->GetList( keyVec, attrVec, valVec, pdesAux );    
 
       keyVec  = "multiSequence", "step", "pde", "analysis";      
       params->GetList( keyVec, attrVec, valVec, analysisAux );
+
+      keyVec  = "multiSequence", "step", "pde", "usage";      
+      params->GetList( keyVec, attrVec, valVec, valueUsageAux );
 
       //       std::cerr << "The pdes for step " << stepString << " are: " << std::endl;
       //       std::cerr << pdesAux << std::endl << std::endl;
@@ -273,6 +264,9 @@ namespace CoupledField {
         
         tagsPerStep_[iStep].Push_back(tagsAux[iPDE]);
         analysisPerStep_[iStep].Push_back(analysisType);
+        
+        usage = PDEMemento::String2Enum( valueUsageAux[iPDE] );
+        valueUsagePerStep_[iStep].Push_back( usage );
       }
       
     }
@@ -412,14 +406,11 @@ namespace CoupledField {
           }
           
           if (! tagFound) {
-            errMsg  = "MultiSequenceDriver::Init(): The section for ";
-            errMsg += "analysistype '";
-            errMsg += analysis;
-            errMsg += "' with the tag '";
-            errMsg += tagsPerStep_[iStep][iPDE];
-            errMsg += "' was not found in step ";
-            errMsg += GenStr(iStep+1);
-            Error(errMsg.c_str(), __FILE__, __LINE__);
+            *error << "MultiSequenceDriver::Init(): The section for"
+                   << "analysistype '" << analysis <<"' with the tag '"
+                   << tagsPerStep_[iStep][iPDE] << "' was not found in step "
+                   << GenStr(iStep+1);
+            Error(__FILE__, __LINE__ );
           }
           
         }

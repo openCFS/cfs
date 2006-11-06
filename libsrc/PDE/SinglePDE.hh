@@ -1,7 +1,6 @@
 #ifndef FILE_SINGLEPDE
 #define FILE_SINGLEPDE
 
-
 #include "PDE/StdPDE.hh"
 
 #include <list>
@@ -13,6 +12,7 @@
 #include "Utils/elemstoresol.hh"
 #include "DataInOut/timefunc.hh"
 #include "Domain/bcs.hh"
+#include "pdememento.hh"
 
 namespace CoupledField
 {
@@ -32,7 +32,7 @@ namespace CoupledField
     // friend declaration
     friend class BasePairCoupling;
     friend class DirectCoupledPDE;
-
+    
     bool boolComplexMaterialData_;
  
     virtual void Init(UInt sequenceStep = 0,
@@ -123,6 +123,42 @@ namespace CoupledField
     //! write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
 
+    //! get the encapsulated state of the PDE
+  
+    //! returns the current state of the PDE (solution, derivative,
+    //! coupling-objects) in an encapsulated object. This is needed to
+    //! enable full MultiSequence simulation, where from one step to 
+    //! another the solution, the derivative and perhaps coupling 
+    //! values like geometry update have to be passed. 
+    //! The PDEMemento object encapsulates this information. 
+    //! Later on the information can be given back to the PDE
+    //! with the method SetMemento();
+    //! \param memento (output) Object where the current state gets saved
+    void GetMemento(shared_ptr<PDEMemento>& memento);
+  
+    //! set the encapsulated state of the PDE
+  
+    //! set the current state of this PDE (solution, derivative,
+    //! coupling-objects) from an encapsulated object. This is needed to
+    //! enable full MultiSequence simulation, where from one step to 
+    //! another the solution, the derivative and perhaps coupling 
+    //! values like geometry update have to be passed. 
+    //! The PDEMemento object encapsulates this information. 
+    //! With this method the previous stored information can be set
+    //! to the current PDE.
+    //! \param memento (input) Previously saved state of the PDE
+    //! \param usage (input) Usage type of values (start-value / 
+    //!                      dirichlet value )
+    void SetMemento( shared_ptr<PDEMemento>&  memento, 
+                     PDEMemento::ValueUsageType usage );
+                   
+
+    //! write the PDE state (pdememento) to a restart file "simname_pdename.restart"
+    void WriteRestart( );
+
+    //! read the PDE state (pdememento)from a restart file: "simname_pdename.restart"
+    void ReadRestart(UInt &startStep );
+
     // ======================================================
     // METHODS & MEMBERS FOR POST PROCESSING
     // ======================================================
@@ -177,6 +213,10 @@ namespace CoupledField
     // overloaded version of ReadBCs for special
     // boundary conditions in derived classes
     virtual void ReadSpecialBCs(){}
+
+    //! incorporate information of memento object, if set
+    virtual void IncorporateMemento();
+
 
     //! Initialize NonLinearities
     virtual void InitNonLin(){};
@@ -312,6 +352,15 @@ namespace CoupledField
   
     //! flag for direct coupling
     bool isDirectCoupled_;
+
+    //! flag indicating if Init() was already called
+    bool isInitialized_;
+
+    //! PDEMemento
+    shared_ptr<PDEMemento> memento_;
+
+    //! usage type of memento
+    PDEMemento::ValueUsageType mementoUsage_;
 
     //! Handle for MathParser object
     MathParser::HandleType mHandle_;

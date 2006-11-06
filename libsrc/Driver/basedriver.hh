@@ -18,7 +18,7 @@ namespace CoupledField
 
     //! Constructor
     //! \param adomain pointer to class Domain
-    BaseDriver(Domain * adomain);
+    BaseDriver();
 
     //! Destructor
     virtual ~BaseDriver();
@@ -32,19 +32,16 @@ namespace CoupledField
     //! Return current analysistype
 
     //! Returns the current analysistype. 
-    //! \param pdeName Name of the pdename in case there is a coexistence
-    //!                of two different analysistypes in one analysisstep
-    //!                (e.g. transient-harmonic)
-    virtual AnalysisType GetAnalysisType( const std::string& pdename) { 
+    virtual AnalysisType GetAnalysisType( ) { 
       return analysis_; }
+    
+    //! Return current time / frequency step of simulation
+    virtual UInt GetActStep ( const std::string& pdename ) = 0;
   
   protected:
     
     //! type of analysis
     AnalysisType analysis_;
-
-    //! pointer to class Domain
-    Domain * ptdomain_;
 
     //! --------------------- stuff for computation with adaptivity
     //! for printing a sequence of files in dir meshes in gmv-format

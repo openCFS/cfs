@@ -14,8 +14,6 @@ namespace CoupledField
   {
     ENTER_FCN( "Newmark::Newmark" );
 
-    damping_ = false;
-
     alpha_ = 0.0;
     //    alpha_ = -1/3;
     beta_ = (1-alpha_)*(1-alpha_) / 4.0;
@@ -38,44 +36,34 @@ namespace CoupledField
 
   }
 
-  void Newmark::Init( std::map<FEMatrixType,Double> & matrix_factors,
-                      Double dt, UInt rhsSize ) {
+  void Newmark::Init( Double dt, UInt rhsSize ) {
     ENTER_FCN( "Newmark::Init" );
 
     rhsSize_ = rhsSize;
 
-    // Check if a damping matrix is present
-    std::set<FEMatrixType> matTypes;    
-    algsys_->GetFEMatrixTypes(matTypes);
-
-    if ( matTypes.find(DAMPING) != matTypes.end() )
-      damping_ = true;
-    
     // Calculate parameters and store it in matrix_factors
     dt_ = dt;
     CalcParameters(dt_);
         
-    matrix_factors[STIFFNESS] = (1.0 + alpha_);
-    matrix_factors[MASS] = 1.0*a2_;   
-    matrix_factors[CONVECTION] = 0.0; 
-
-    if ( damping_ == true ) {
-      matrix_factors[DAMPING] = 1.0*a4_;
-    } else {
-      matrix_factors[DAMPING] = 0.0;     
-    }
+    matrix_factors_[STIFFNESS] = (1.0 + alpha_);
+    matrix_factors_[MASS] = 1.0*a2_;   
+    matrix_factors_[CONVECTION] = 0.0; 
+    matrix_factors_[DAMPING] = 1.0*a4_;
 
     //get the memory
-    solderiv1_.Resize(rhsSize_);
-    solderiv1_.Init();
-    solderiv2_.Resize(rhsSize_);
-    solderiv2_.Init();
+    if( !isDeriv1Set_ ) {
+      solderiv1_.Resize(rhsSize_);
+      solderiv1_.Init();
+    }
+    if( !isDeriv2Set_ ) {
+      solderiv2_.Resize(rhsSize_);
+      solderiv2_.Init();
+    }
 
     solpred_.Resize(rhsSize_);
     solpred_.Init();
     solderiv1pred_.Resize(rhsSize_);
     solderiv1pred_.Init();
-
 
   }
 
@@ -85,14 +73,7 @@ namespace CoupledField
 
     solpred_ = solold + solderiv1_*dt_ + solderiv2_*a0_;
     solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
-    //std::cout << "solOld: \n" << solold << std::endl;
-    //  std::cout << "solD1Old: \n" << solderiv1_ << std::endl;
-    //  std::cout << "solD2Old: \n" << solderiv2_ << std::endl;
-#ifdef DEBUG
-    (*debug) << "Predictor:\n";
-    (*debug) << "solpred: \n" << solpred_ << std::endl;
-    (*debug) << " solderiv1pred: \n" <<  solderiv1pred_ << std::endl;
-#endif
+ 
   }
 
   void Newmark::UpdateRHS()
@@ -106,7 +87,7 @@ namespace CoupledField
     algsys_->UpdateRHS(MASS,coeffMass.GetPointer());
 
     // damping part
-    if (damping_) {
+    if ( FeMatrixPresent( DAMPING ) ) {
       Vector<Double> coeffDamp;
         
       coeffDamp = -solderiv1pred_ + solpred_*a4_;
@@ -133,7 +114,7 @@ namespace CoupledField
 
 
     // damping part
-    if (damping_) {
+    if ( FeMatrixPresent( DAMPING ) ) {
       Vector<Double> coeffDamp;
         
       coeffDamp = -solderiv1pred_ + (solpred_-actSol)*a4_;
@@ -155,12 +136,6 @@ namespace CoupledField
 
     solderiv2_ = (solnew - solpred_) * a2_;
     solderiv1_ = solderiv1pred_ + solderiv2_*a3_;
-#ifdef DEBUG
-    (*debug) << "Corrector:\n";
-    (*debug) << "sol: \n" << solnew << std::endl;
-    (*debug) << "solderiv1: \n" <<  solderiv1_ << std::endl;
-    (*debug) << "solderiv2: \n" <<  solderiv2_ << std::endl;
-#endif
   }
 
 
@@ -191,17 +166,9 @@ namespace CoupledField
   { 
     ENTER_FCN( "NewmarkEffMass::NewmarkEffMass" );
 
-    damping_ = false;
-
     alpha_ = 0.0;
     beta_  = 0.25;
     gamma_ = 0.5;
-
-    //check if integration parameters are defined in conf-file
-    std::string analysis;
-    params->Get( "type", analysis, "analysis" );
-    if(analysis != "paramIdent")
-      Info->Warning( "Newmark: Using defaults for alpha, beta and gamma!" );
 
   }
 
@@ -211,19 +178,11 @@ namespace CoupledField
 
   }
 
-  void NewmarkEffMass::Init( std::map<FEMatrixType,Double> & matrix_factors,
-                             Double dt, UInt rhsSize ) 
+  void NewmarkEffMass::Init( Double dt, UInt rhsSize ) 
   {
     ENTER_FCN( "NewmarkEffMass::Init" );
 
     rhsSize_ = rhsSize;
-
-    // Check if a damping matrix is present
-    std::set<FEMatrixType> matTypes;    
-    algsys_->GetFEMatrixTypes(matTypes);
-
-    if ( matTypes.find(DAMPING) != matTypes.end() )
-      damping_ = true;
 
     
     // Calculate parameters and store it in matrix_factors
@@ -231,15 +190,10 @@ namespace CoupledField
     CalcParameters(dt_);
 
     
-    matrix_factors[STIFFNESS] = 1.0*a2_;
-    matrix_factors[MASS] = 1.0;
-    matrix_factors[CONVECTION] = 0.0;
-    
-    if (damping_) {
-      matrix_factors[DAMPING] = 1.0*a3_; 
-    } else {
-      matrix_factors[DAMPING] = 0.0; 
-    }
+    matrix_factors_[STIFFNESS] = 1.0*a2_;
+    matrix_factors_[MASS] = 1.0;
+    matrix_factors_[CONVECTION] = 0.0;
+    matrix_factors_[DAMPING] = 1.0*a3_; 
     
     //get the memory
     sol_.Resize(rhsSize_);
@@ -247,10 +201,15 @@ namespace CoupledField
     solpred_.Resize(rhsSize_);
     solpred_.Init();
 
-    solderiv1_.Resize(rhsSize_);
-    solderiv1_.Init();
-    solderiv2_.Resize(rhsSize_);
-    solderiv2_.Init();
+    if( !isDeriv1Set_ ) {
+      solderiv1_.Resize(rhsSize_);
+      solderiv1_.Init();
+    }
+
+    if( !isDeriv2Set_ ) {
+      solderiv2_.Resize(rhsSize_);
+      solderiv2_.Init();
+    }
 
   
     solderiv1pred_.Resize(rhsSize_);
@@ -266,11 +225,7 @@ namespace CoupledField
     solpred_ = sol_ + solderiv1_*dt_ + solderiv2_*a0_;
     solderiv1pred_ = solderiv1_ + solderiv2_*a1_;
 
-#ifdef DEBUG
-    (*debug) << "Predictor:\n";
-    (*debug) << "solpred: \n" << solpred_ << std::endl;
-    (*debug) << " solderiv1pred: \n" <<  solderiv1pred_ << std::endl;
-#endif
+
   }
 
   void NewmarkEffMass::Corrector(Vector<Double>& aNew)
@@ -286,12 +241,6 @@ namespace CoupledField
     //now overwrite the solution with the physical quantity itself
     aNew = sol_;
 
-#ifdef DEBUG
-    (*debug) << "Corrector:\n";
-    (*debug) << "sol: \n" << sol_ << std::endl;
-    (*debug) << "solderiv1: \n" <<  solderiv1_ << std::endl;
-    (*debug) << "solderiv2: \n" <<  solderiv2_ << std::endl;
-#endif
   }
 
   void NewmarkEffMass::UpdateRHS()
@@ -304,7 +253,7 @@ namespace CoupledField
     algsys_->UpdateRHS(STIFFNESS, coeffStiff.GetPointer());
 
     // damping part
-    if (damping_)
+    if ( FeMatrixPresent( DAMPING ) )
       {
         Vector<Double> coeffDamp;
         coeffDamp = -solderiv1pred_;

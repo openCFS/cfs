@@ -1,7 +1,8 @@
 #ifndef FILE_CFSVECTOR_2004
 #define FILE_CFSVECTOR_2004
- 
+
 #include <iostream>
+#include <boost/serialization/split_member.hpp>
 
 #include "tools.hh"
 #include <vector>
@@ -150,8 +151,7 @@ namespace CoupledField
   
     //! Compute Euclidean L2 norm of this vector object
     virtual Double NormL2() const  = 0;
-
-
+      
 #define DECL_BASEVECTOR_FCN(TYPE)                                                               \
  virtual void Init(const TYPE entry = TYPE())                                           \
   {Error("CFSVector::Init(): Not implemented here",__FILE__,__LINE__);}         \
@@ -169,9 +169,31 @@ namespace CoupledField
   {Error("CFSVector::Inner(): Not implemented here",__FILE__,__LINE__);}
 
     DECL_BASEVECTOR_FCN(Integer)
-      DECL_BASEVECTOR_FCN(Complex)
+    DECL_BASEVECTOR_FCN(Complex)
 
-      };
+  private:    
+    // =======================================================================
+    // SERIALIZATION FUNCTIONS
+    // =======================================================================
+    // These functions allow us to write a vector directly
+    // into an boost::archive, for saving on a disk or in a 
+    // iostream object
+    
+    //! allow serialization class to access vector entries
+    friend class boost::serialization::access;
+    
+    //! Saving internal state into a boost::archive
+    template<class Archive>
+    void save(Archive & ar, const unsigned int version) const {}
+    
+    //! Reading internal state from a boost::archive
+    template<class Archive>
+    void load(Archive & ar, const unsigned int version) {}
+    
+    //! The following statement is needed for boost
+    BOOST_SERIALIZATION_SPLIT_MEMBER()
+
+  };
   
 } // end of namespace
 #endif  

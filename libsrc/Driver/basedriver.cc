@@ -11,11 +11,9 @@
 namespace CoupledField
 {
 
-  BaseDriver :: BaseDriver(Domain * adomain)
+  BaseDriver :: BaseDriver( )
   {
     ENTER_FCN( "BaseDriver::BaseDriver" );
-
-    ptdomain_ = adomain;
 
     nummeshes_=0;
   }

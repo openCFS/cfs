@@ -19,12 +19,16 @@ namespace CoupledField
   template<class TYPE> class Vector;
   template<class TYPE> class Matrix;
 
+   
+
   //! This class holds information about itertive Coupling terms
   class PDECoupling
   {
 
     // friend declaration
     friend class CouplingMemento;
+
+  public:
 
     // structure for coupling terms
     struct CouplingInterface{
@@ -85,9 +89,24 @@ namespace CoupledField
 
       //! maximal error tolerance from one step to another
       Double epsilon;
+    private:
+
+      // =======================================================================
+      // SERIALIZATION FUNCTIONS
+      // =======================================================================
+      // These functions allow us to write a memento directly
+      // into an boost::archive, for saving on a disk or in a 
+      // iostream object
+      
+      //! allow serialization class to access memento entries
+      friend class boost::serialization::access;
+      
+      //! Saving internal state into a boost::archive
+      template<class Archive>
+      void serialize(Archive & ar, const unsigned int version);
+      
     };
 
-  public:
   
     //! constructor
     PDECoupling( Grid * aptgrid );

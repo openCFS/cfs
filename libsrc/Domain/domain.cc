@@ -27,6 +27,10 @@
 #include "CoupledPDE/PiezoCoupling.hh"
 #include "CoupledPDE/AcouMechCoupling.hh"
 
+// Include driver
+#include "Driver/basedriver.hh"
+#include "Driver/singleDriver.hh"
+#include "Driver/multiSequenceDriver.hh"
 
 #ifdef NETGEN
 #include "interface_netgen.hh"
@@ -67,6 +71,7 @@ namespace CoupledField {
     ptMatHandler_ = ptMat;
     ptTimeFunc_ = aptTimeFunc;
     ptIterCoupledPde_ = NULL;
+    ptSingleDriver_ = NULL;
 
     // read type of mesh library
     std::string libmesh;
@@ -319,12 +324,11 @@ namespace CoupledField {
   // **************************
   //   Initialization of PDEs
   // **************************
-  void Domain::InitPDEs( StdVector<std::string> & pdeNames,
+  void Domain::CreatePDEs( StdVector<std::string> & pdeNames,
                          UInt sequenceStep,
                          StdVector<std::string> tags ) {
 
-    ENTER_FCN( "Domain::InitPDEs" );
-
+    ENTER_FCN( "Domain::CreatePDEs" );
 
     // create single pde(s)
     CreateSinglePDEs(pdeNames);    
@@ -332,9 +336,18 @@ namespace CoupledField {
     // create direct coupled pde(s)
     CreateDirectCoupledPDEs(tags);
 
+    // Create iterative coupled pde
+    CreateIterCoupledPDE(tags);
+  }
+
+  void Domain::InitPDEs(  UInt sequenceStep,
+                          StdVector<std::string> tags ) {
+
+    ENTER_FCN( "Domain::InitPDEs" );
+
 #ifdef USE_SCRIPTING
 
-    // Call intialization procedure
+    // Call initialization procedure
     StdVector<std::string> context;
     context.Push_back( commandLine->GetSimName() );
     messenger->TriggerEvent(CFSMessenger::CFS_Init, context);
@@ -365,9 +378,6 @@ namespace CoupledField {
       Info->FinishProgress();
     }
     
-    // Create iterative coupled pde
-    CreateIterCoupledPDE(tags);
-
     // Initialize coupledPDE
     if (ptIterCoupledPde_ != NULL) {
       Info->StartProgress("Initializing iterative coupling");
@@ -709,7 +719,21 @@ namespace CoupledField {
 
   }
 
+  
 
+  // *************
+  //   SetDriver
+  // *************
+  void Domain::SetDriver( BaseDriver * driver ) {
+
+    if( driver->GetAnalysisType() == MULTI_SEQUENCE ) {
+      ptSingleDriver_ = dynamic_cast<MultiSequenceDriver*>(driver)
+        ->GetSingleDriver();
+    } else {
+      ptSingleDriver_ = dynamic_cast<SingleDriver*>(driver);
+    }
+  }
+  
   // *************
   //   ResetPDEs
   // *************

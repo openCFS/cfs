@@ -150,7 +150,6 @@ namespace CoupledField
 
     } else if( type == EntityList::NODE_LIST ) {
       shared_ptr<NodeList> nodeList = shared_ptr<NodeList>( new NodeList(this) );
-
       // Check if name describes a nodeList
       StdVector<std::string> nodeNames;
       GetListNodeNames( nodeNames );
@@ -158,7 +157,7 @@ namespace CoupledField
         *error << "'" << name << "' describes no named nodes!";
         Error( __FILE__, __LINE__ );
       }
-      nodeList->SetNodes( name );
+      nodeList->SetNamedNodes( name );
       ret = nodeList;
     } else {
       *error << "Type '" << type << "' describes no EntityList which is created "

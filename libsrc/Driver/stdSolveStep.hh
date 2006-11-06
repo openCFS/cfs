@@ -106,9 +106,6 @@ namespace CoupledField
     
     //----------------------- helpfull methods--------------------------------------
 
-    //! Set the current time step
-    void SetTimeStep( Double dt );
-
     //! computes linear part of RHS
     Double SetLinRHS(Double loadFactor);
 

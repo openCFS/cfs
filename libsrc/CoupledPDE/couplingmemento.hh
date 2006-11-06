@@ -46,6 +46,20 @@ namespace CoupledField
     //! vector containing pointer to coupling interfaces  
     StdVector<PDECoupling::CouplingInterface> inputInterfaces_;  
   
+    // =======================================================================
+    // SERIALIZATION FUNCTIONS
+    // =======================================================================
+    // These functions allow us to write a memento directly
+    // into an boost::archive, for saving on a disk or in a 
+    // iostream object
+    
+    //! allow serialization class to access memento entries
+    friend class boost::serialization::access;
+    
+    //! Saving internal state into a boost::archive
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version);
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

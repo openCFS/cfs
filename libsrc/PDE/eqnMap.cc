@@ -1117,7 +1117,7 @@ namespace CoupledField {
     case EntityList::NODE_LIST:
       nodeList = 
         dynamic_pointer_cast<NodeList, EntityList>(ent);        
-      ptGrid_->GetNodesByName( nodes, nodeList->GetNodesName() );
+      nodes = nodeList->GetNodes();
       break;
       
     default :

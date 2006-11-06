@@ -39,6 +39,8 @@
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="nonLinear" type="DT_ElecNonLin"
                 use="optional" default="no"/>
+              <xsd:attribute name="tag" type="xsd:token" use="optional"
+                default="anyTag"/>
             </xsd:complexType>
           </xsd:element>
 

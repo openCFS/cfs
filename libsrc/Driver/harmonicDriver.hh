@@ -7,24 +7,29 @@ namespace CoupledField
 {
 
   //! driver for harmonic problems. it is derived from BaseDriver
-  class HarmonicDriver : public SingleDriver {
+  class HarmonicDriver : public virtual SingleDriver {
 
   public:
 
     //! Constructor
-    //! \param adomain pointer to class Domain
-    //! \param stepOffset offset for starting (time)step
-    //! \param timeOffset offset for starting time
+    //! \param stepOffset offset for starting (frequency)step
+    //! \param reqOffset offset for starting frequency
     //! \param driverTag tag for current driver
     //! \param isPartOfSequence true, if driver is part of  multiSequence
-    HarmonicDriver(Domain * adomain,
-                   UInt stepOffset = 0,
-                   Double timeOffset = 0.0,
-                   std::string driverTag = "anyTag",
-                   bool isPartOfSequence = false);
+    HarmonicDriver( UInt stepOffset = 0,
+                    Double freqOffset = 0.0,
+                    std::string driverTag = "anyTag",
+                    bool isPartOfSequence = false);
 
     //! Detructor 
     virtual ~HarmonicDriver();
+
+    //! Return current time / frequency step of simulation
+    UInt GetActStep( const std::string& pdename ) { 
+      return actFreqStep_; }
+
+    //! Return current frequency
+    Double GetActFreq( ) { return actFreq_; }
 
     //! Initialization method
     void Init();
@@ -32,7 +37,7 @@ namespace CoupledField
     //! Main method, where harmonic analysis is implemented.
     void SolveProblem();
 
-  private:
+  protected:
 
     //! Method for computing the actual frequency for a given frequency number
 
@@ -43,6 +48,9 @@ namespace CoupledField
     //!                  an integral value from [1:numFreq_]
     Double ComputeNextFrequency( UInt freqIndex );
 
+    //! Current frequency value
+    Double actFreq_;
+    
     //! First frequency for which a simulation is performed
     Double startFreq_;
 
@@ -52,8 +60,17 @@ namespace CoupledField
     //! Number of frequencies for which a simulation is performed
     UInt numFreq_;
 
+    //! Current frequency step
+    UInt actFreqStep_;
+
     //! A attribute storing the type of algorithm used for frequency sampling
     FreqSamplingType samplingType_;
+
+    //! Offset for first frequency step
+    UInt stepOffset_;
+
+    //! offset for first time
+    Double freqOffset_;
 
     //! Flag for signalling frequency dependend damping
 

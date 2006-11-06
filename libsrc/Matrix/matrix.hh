@@ -1,6 +1,5 @@
 #ifndef FILE_MATRIX_2004
 #define FILE_MATRIX_2004
-
 #include "cfsmatrix.hh"
 #include "Utils/promote.hh"
 
@@ -535,6 +534,28 @@ namespace CoupledField
     //! Data of the matrix
     TYPE** data_;
 
+    // =======================================================================
+    // SERIALIZATION FUNCTIONS
+    // =======================================================================
+    // These functions allow us to write a vector directly
+    // into an boost::archive, for saving on a disk or in a 
+    // iostream object
+
+    //! allow serialization class to access vector entries
+    friend class boost::serialization::access;
+    
+    //! Saving internal state into a boost::archive
+    template<class Archive>
+    void save(Archive & ar, const unsigned int version) const;
+    
+    //! Reading internal state from a boost::archive
+    template<class Archive>
+    void load(Archive & ar, const unsigned int version);
+    
+    //! The following statement is needed for boost
+    BOOST_SERIALIZATION_SPLIT_MEMBER()
+    
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
@@ -892,7 +913,6 @@ namespace CoupledField
     return z;
   }
 #endif //EXPR_TEMPLATES
-
 } //end of namespace
 
 

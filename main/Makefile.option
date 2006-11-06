@@ -147,7 +147,7 @@ PY_ROOT = /home/data/libraries/python
 endif
 
 ifeq ("$(BOOST_ROOT)","")
-BOOST_ROOT = /home/data/libraries/boost
+BOOST_ROOT = /usr/include/boost
 endif
 
 # -----------------------------------------------------------------------------
@@ -325,7 +325,7 @@ else
 endif
 
 # BOOST
-INCDIR_BOOST = -I$(BOOST_ROOT)/$(ARCH)/include
+INCDIR_BOOST = -I$(BOOST_ROOT)
 
 # Combine everything
 COMPILE_INCDIRS = $(INCDIR_OLAS) $(INCDIR_HYPRE) $(INCDIR_XERCES) \
@@ -545,12 +545,17 @@ else
    LIB_PY_SCRIPTING =
 endif
 
+
+# BOOST
+LIBDIR_BOOST = -L$(BOOST_ROOT)
+LIB_BOOST = -lboost_serialization
+
 # Combine everything
 LINK_LIBS = $(LIBDIR_OLAS) $(LIBDIR_HYPRE) $(LIBDIR_XERCES) $(LIBDIR_METIS) \
 $(LIBDIR_ARPACK) $(LIBDIR_HYPRE) $(LIBDIR_GIDPOST) $(LIBDIR_TCL_SCRIPTING)\
- $(LIBDIR_PY_SCRIPTING)\
+ $(LIBDIR_PY_SCRIPTING) $(LIBDIR_BOOST) \
 $(LIB_OLAS) $(LIB_HYPRE) $(LIB_XERCES) $(LIB_METIS) $(LIB_GIDPOST) \
-$(LIB_TCL_SCRIPTING) $(LIB_PY_SCRIPTING) 
+$(LIB_TCL_SCRIPTING) $(LIB_PY_SCRIPTING) $(LIB_BOOST) 
 
 # -----------------------------------------------------------------------------
 # LAPACK and BLAS

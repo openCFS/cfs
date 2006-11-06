@@ -1,11 +1,14 @@
 #include "pdecoupling.hh"
 
+#include <list>
+
 #include "couplingmemento.hh"
 #include "PDE/StdPDE.hh"
 #include "Domain/elem.hh"
 #include "Domain/grid.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
-#include <list>
+#include "Utils/boost-serialization.hh"
+
 
 
 namespace CoupledField
@@ -59,7 +62,24 @@ namespace CoupledField
     return *this;
 
   }
- 
+  
+  
+  template<class Archive>
+  void PDECoupling::CouplingInterface::serialize(Archive & ar, 
+                                                 const unsigned int version) {
+    
+    Error( "Not implemented at the moment!", __FILE__, __LINE__ );
+
+    // The problem at this point is that between reading and writing a 
+    // restart file we can not keep the pointers contained in 
+    // elements. 
+    // Anyway, the whole mechanism has to be rewritten when we incorporate
+    // the concept of p-fem, where we do not have only values associated
+    // with nodes, but also edges surfaces and so on.
+    // In this case we do have even more problems, as we cannot repsresent
+    // these quantities without having the eqnMap object of the related
+    // PDE available.
+  }
 
   PDECoupling::CouplingInterface::
   CouplingInterface(const CouplingInterface &x ){
@@ -834,3 +854,7 @@ namespace CoupledField
   //   } 
 
 } // end of namespace
+
+#include <boost/serialization/export.hpp>
+BOOST_CLASS_EXPORT_GUID(CoupledField::PDECoupling::CouplingInterface,
+                        "CoupledField_CouplingInterface")

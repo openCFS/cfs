@@ -7,6 +7,8 @@
 #include "matrix.hh"
 #include "Utils/vector.hh"
 
+#include "Utils/boost-serialization.hh"
+
 namespace CoupledField
 {      
 
@@ -36,6 +38,7 @@ namespace CoupledField
 
     for (UInt k=1; k < size_row_; k++) 
       data_[k]=data_[k-1]+size_col_;
+    Init();
   }
 
 
@@ -1266,6 +1269,56 @@ namespace CoupledField
     return amSymm;
   }
 
+  template<class TYPE> template< class Archive>
+  void Matrix<TYPE>::save(Archive & ar, const unsigned int version) const {
+    
+    // invoke serialization of the base class 
+    ar & boost::serialization::base_object<CFSMatrix>(*this);
+    
+    // save own members
+    ar & size_row_;
+    ar & size_col_;
+    
+    for( UInt i = 0 ; i < size_row_; i++ ) {
+      for( UInt j = 0; j < size_col_; j++ ) {
+        ar & data_[i][j];
+      }
+    }
+  }
+  
+  template<class TYPE> template <class Archive>
+  void Matrix<TYPE>::load(Archive & ar, const unsigned int version) {
+
+    // invoke serialization of the base class 
+    ar & boost::serialization::base_object<CFSMatrix>(*this);
+
+    // check if data is already present
+    if (data_ != NULL)
+      {
+        delete[] data_[0];
+        delete[] data_;
+      }
+
+    // invoke serialization of the base class 
+    ar & boost::serialization::base_object<CFSMatrix>(*this);
+
+    ar & size_row_;
+    ar & size_col_;
+
+    // create storage for data to read in
+    data_ = new TYPE* [size_row_];
+    data_[0]=new TYPE[size_col_*size_row_];
+    for (UInt k=1; k < size_row_; k++) 
+      data_[k]=data_[k-1]+size_col_;
+
+    // copy data itself from archive
+    for( UInt i = 0 ; i < size_row_; i++ ) {
+      for( UInt j = 0; j < size_col_; j++ ) {
+        ar & data_[i][j];
+      }
+    }
+
+  }
 
   // Alternate version of symmetry checker, that will report
   // asymmetries to standard output
@@ -1288,7 +1341,6 @@ namespace CoupledField
   //   return amSymm;
   // }
 
-// explicit template instantiation for GCC compiler
 #ifdef __GNUC__
   template class Matrix<Double>;
   template class Matrix<Integer>;
@@ -1296,6 +1348,7 @@ namespace CoupledField
   template class Matrix<Complex>;
   template class Matrix<bool>;
 #endif
+
 
 // explicit template instantiation for SGI compiler
 #ifdef __sgi
@@ -1307,3 +1360,14 @@ namespace CoupledField
 #endif
 
 } // end of namespace
+
+#include "Utils/boost-serialization.hh"
+#include <boost/serialization/export.hpp>
+  BOOST_CLASS_EXPORT_GUID(CoupledField::CFSMatrix, "CoupledField_CFSMatrix")
+  BOOST_CLASS_EXPORT_GUID(CoupledField::Matrix<CoupledField::Double>, "CoupledField_Matrix_Double")
+  BOOST_CLASS_EXPORT_GUID(CoupledField::Matrix<CoupledField::Complex>, "CoupledField_Matrix_Complex")
+  BOOST_CLASS_EXPORT_GUID(CoupledField::Matrix<CoupledField::Integer>, "CoupledField_Matrix_Integer")
+  BOOST_CLASS_EXPORT_GUID(CoupledField::Matrix<CoupledField::UInt>, "CoupledField_Matrix_UInt")
+  BOOST_CLASS_EXPORT_GUID(CoupledField::Matrix<bool>, "CoupledField_Matrix_Bool")
+    
+

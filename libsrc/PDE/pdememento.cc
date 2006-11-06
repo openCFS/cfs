@@ -1,96 +1,95 @@
 #include "pdememento.hh"
 
+#include "Utils/boost-serialization.hh"
+
 namespace CoupledField{
 
   PDEMemento::PDEMemento()
   {
     ENTER_IFCN( "PDEMemento::PDEMemento");
-  
-    sol_       = NULL;
+
     isSet_ = false;
+    stepNum_ = 0;
+    isIterCoupled_ = false;
   }
 
   PDEMemento::~PDEMemento()
   {
     ENTER_IFCN( "PDEMemento::~PDEMemento");
-  
-    if (sol_)
-      delete sol_;
-
-    sol_       = NULL;
+    solution_.clear();
   }
 
   void PDEMemento::Clear()
   {
     ENTER_FCN( "PDEMemento::Clear");
-    if (sol_)
-      delete sol_;
-
-    sol_       = NULL;
-    solDeriv1_.Clear();
-    solDeriv2_.Clear();
+    std::map<std::string,CFSVector*>::iterator it;
+    
+    for( it = solution_.begin(); it != solution_.end(); it++ ) {
+      delete it->second;
+    }
+    solution_.clear();
   }
 
-  std::ostream & operator << ( std::ostream & out, const PDEMemento & mem)
-  {
-    ENTER_FCN( "operator <<(PDEMemento)" );
+  std::string PDEMemento::Enum2String( ValueUsageType type ) {
 
-    UInt Size;
-
-    Vector<Double>solOut_ = dynamic_cast<Vector<Double>&>(*mem.sol_);
-
-    if(solOut_.GetSize() != mem.solDeriv1_.GetSize() || solOut_.GetSize() != mem.solDeriv2_.GetSize()) {
-      Error( "The sizes of sol, solDeriv1 and solDeriv2 are not coincident!", __FILE__, __LINE__  );
-      Size=0;
-    }
-    else {
-      Size=solOut_.GetSize();
-    }
-
-    for (UInt i=0; i < Size; i++) {
-      out << solOut_[i] << " " << mem.solDeriv1_[i] << " " << mem.solDeriv2_[i] << " " << std::endl;
+    std::string ret;
+    switch( type ) {
+    case NO_TYPE:
+      ret = "noType";
+      break;
+    case START_VALUE :
+      ret = "startValue";
+      break;
+    case DIRICHLET_VALUE:
+      ret = "dirichletValue";
+      break;
+    default:
+      *error << "ValueUsageType " << type << " not known!";
+      Error( __FILE__, __LINE__ );
     }
 
-    return out;
+    return ret;
   }
 
-  std::ifstream & operator >> ( std::ifstream & in, PDEMemento & mem )
-  {
-    ENTER_FCN( "operator >>(PDEMemento)" );
-
-    // Buffer to hold the input of one line
-    char buffer[64];
-    Vector<Double> solIn_;
-
-    solIn_.Resize(mem.size_);
-    solIn_.Init();
-    mem.solDeriv1_.Resize(mem.size_);
-    mem.solDeriv1_.Init();
-    mem.solDeriv2_.Resize(mem.size_);
-    mem.solDeriv2_.Init();
-
-    // set reading position to the beginning of the file
-    in.seekg(0, std::ios_base::beg);
-
-    // not very elegant method to start reading in line number 2
-    in.getline( buffer, 64, '\n' );
-
-    for (UInt i=0; i < mem.size_; i++) {
-      if ( !in.eof() ) {
-        in.getline( buffer, 64, '\n' );
-        if ( in.eof() ) {
-          Error( "ReadLine: Unexpected end of file! Maybe your resatrt file is not correct",
-                 __FILE__, __LINE__  ); 
-        }
-      }
-      
-      std::sscanf(buffer,"%lf%lf%lf", &solIn_[i], &mem.solDeriv1_[i], &mem.solDeriv2_[i] );
-
+  PDEMemento::ValueUsageType PDEMemento::String2Enum( std::string typeString ) {
+    ValueUsageType ret = NO_TYPE;
+    
+    if( typeString == "noType" ) {
+      ret = NO_TYPE;
+    } else if ( typeString == "startValue" ) {
+      ret = START_VALUE;
+    } else if ( typeString == "dirichletValue" ) {
+      ret = DIRICHLET_VALUE;
+    } else {
+      *error << "ValueUsageType '" << typeString << "' not known!";
+      Error( __FILE__, __LINE__ );
     }
 
-    mem.sol_ = new Vector<Double>(solIn_);
-    mem.isSet_ = true;
-
-    return in;
+    return ret;
   }
+  
+  
+  
+  template <class Archive>
+  void PDEMemento::serialize(Archive & ar, const unsigned int version) {
+
+    ar & isSet_;
+    ar & analysisType_;
+    ar & gridFileName_;
+    ar & stepNum_;
+    ar & freq_;
+    ar & solution_;
+    ar & solDeriv1_;
+    ar & solDeriv2_;
+    ar & isIterCoupled_;
+    if( isIterCoupled_ ) {
+      ar & couplingMemento_;
+    }
+
+  }
+
 } // namespace
+
+#include <boost/serialization/export.hpp>
+BOOST_CLASS_EXPORT_GUID(CoupledField::PDEMemento, "CoupledField_PDEMemento")
+

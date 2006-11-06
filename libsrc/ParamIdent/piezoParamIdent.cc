@@ -20,19 +20,14 @@ namespace CoupledField
   //constructor
   // opens datafiles: measuredData.dat for input, imedCurve.dat and piezoLog.dat for output
 
-  piezoParamIdent :: piezoParamIdent(Domain * adomain,
-                                     Integer stepOffset,
-                                     Double timeOffset,
-                                     std::string driverTag,
-                                     bool isPartOfSequence)
-    :SingleDriver(adomain, stepOffset, timeOffset, 
-                  driverTag, isPartOfSequence){
+  piezoParamIdent :: piezoParamIdent( std::string driverTag,
+                                      bool isPartOfSequence )
+    :SingleDriver( driverTag, isPartOfSequence ){
 
     ENTER_FCN( "piezoParamIdent::piezoParamIdent" );
 
     // Set analysistype
     analysis_ = HARMONIC;
-    ptDomain_ = adomain;
     ptMyPDE_ = NULL;
     residuumParIdent_=1.0;
     resonanceFrequency_=0;
@@ -237,13 +232,12 @@ namespace CoupledField
 
     UInt highestAssumableNrOfMeasData=100;
     
-    ptDomain_->PrintGrid();
-    GetMyPDEs();
-    DirectCoupledPDE* ptCoupledPDE =  ptDomain_->GetDirectCoupledPDE();
-    Info->StartProgress ("Starting to solve problem", false);
-  
-    ptPDE1_=ptDomain_-> GetSinglePDE("mechanic");
-    ptPDE2_=ptDomain_-> GetSinglePDE("electrostatic");
+    InitializePDEs();
+    domain->PrintGrid();
+    DirectCoupledPDE* ptCoupledPDE =  domain->GetDirectCoupledPDE();
+      
+    ptPDE1_=domain-> GetSinglePDE("mechanic");
+    ptPDE2_=domain-> GetSinglePDE("electrostatic");
 
     subdomsMech_ = ptPDE1_->getPDE_subdoms();
     subdomsElec_ = ptPDE1_->getPDE_subdoms();
