@@ -102,6 +102,21 @@ $(mymodules):
 
 
 # -----------------------------------------------------------------------------
+# LINK TARGETS
+#
+# We define a set of targets for the individual modules/subdirectories.
+# -----------------------------------------------------------------------------
+.PHONY: link
+link:
+	make libclean
+	 @for n in $(PATHSUBLIBDIR); do \
+         (if cd $$n; \
+                     then $(MAKE) link; \
+                     else echo "WARNING:" $$n " doesn't exist"; \
+          fi); \
+         done
+
+# -----------------------------------------------------------------------------
 # CLEANING TARGETS I
 #
 # We define a set of targets for cleaning individual modules/subdirectories or
@@ -131,6 +146,8 @@ clean-library:
                      else echo "WARNING:" $$n " doesn't exist"; \
           fi); \
          done 
+	@rm -rf ../lib/$(MACHINE)
+
 clean-prog:
 	@-rm -f *.o
 
@@ -194,4 +211,7 @@ clean-depend:
 tags:
 	etags --declarations --members --ignore-indentation  -o ../libsrc/TAGS $(TAGSPATH)
 
-# DO NOT DELETE THIS LINE -- make depend depends on it
+
+
+# Dependency of cfs.o
+-include $(DEPEND_FILE)
