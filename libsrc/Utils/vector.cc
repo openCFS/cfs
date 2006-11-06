@@ -883,7 +883,6 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 }
 
 #include <boost/serialization/export.hpp>
-BOOST_CLASS_EXPORT_GUID(CoupledField::CFSVector, "CoupledField_CFSVector")
 BOOST_CLASS_EXPORT_GUID(CoupledField::Vector<CoupledField::Double>, "CoupledField_Vector_Double")
 BOOST_CLASS_EXPORT_GUID(CoupledField::Vector<CoupledField::Complex>, "CoupledField_Vector_Complex")
 BOOST_CLASS_EXPORT_GUID(CoupledField::Vector<CoupledField::Integer>, "CoupledField_Vector_Integer")

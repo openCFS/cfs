@@ -13,17 +13,34 @@
 #include <boost/serialization/set.hpp>
 #include <boost/serialization/list.hpp>
 
+// Additional includes
+#include <boost/serialization/split_free.hpp>
+#include <boost/serialization/tracking.hpp>
+
 #include "General/environment.hh"
 
 // Define Conversion of Complex data
 namespace boost {
   namespace serialization {
     template<class Archive>
-    void serialize(Archive & ar, CoupledField::Complex & c, const unsigned int version) {
-      ar & c.real();
-      ar & c.imag();
+    void load(Archive & ar, CoupledField::Complex & c, const unsigned int version) {
+      Double real, imag;
+      ar >> real;
+      ar >>  imag;
+      c = Complex( real, imag );
     }
+    template<class Archive>
+    void save(Archive & ar, const CoupledField::Complex & c, const unsigned int version) {
+      const Double real = c.real();
+      const Double imag = c.imag();
+      ar << real;
+      ar << imag;
+    }
+    
   }
 }
+BOOST_CLASS_TRACKING( CoupledField::Complex, boost::serialization::track_never );
+BOOST_SERIALIZATION_SPLIT_FREE( CoupledField::Complex );
+
 
 #endif
