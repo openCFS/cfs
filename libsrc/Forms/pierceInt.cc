@@ -342,21 +342,13 @@ namespace CoupledField {
       if ( flowDir_ == X ) {
 	velocity[0] = vel;
 	derivVel[0] = der2*vel;
-	derivVel[1] = der*dy;
-	if ( dim == 3) 
-	  derivVel[2] = der*dz;
       }
       else if ( flowDir_ == Y ) {
 	velocity[1] = vel;
-	derivVel[0] = der*dx;
 	derivVel[1] = der2*vel;
-	if ( dim == 3) 
-	  derivVel[2] = der*dz;
       }
       else if ( flowDir_ == Z ) {
 	velocity[2] = vel;
-	derivVel[0] = der*dx;
-	derivVel[1] = der*dy;
 	if ( dim == 3) 
 	  derivVel[2] = der2*vel;
       }
