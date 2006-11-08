@@ -4,6 +4,7 @@
 #include "General/environment.hh"
 #include "CoupledPDE/couplingmemento.hh"
 #include "Utils/basenodestoresol.hh"
+#include "Utils/boost-serialization.hh"
 
 namespace CoupledField
 {
@@ -127,6 +128,24 @@ namespace CoupledField
   //! also perform multisequence analysis with a DirectCooupledPDE.
 
 #endif
+
+  template <class Archive>
+  void PDEMemento::serialize(Archive & ar, const unsigned int version) {
+
+    ar & isSet_;
+    ar & analysisType_;
+    ar & gridFileName_;
+    ar & stepNum_;
+    ar & freq_;
+    ar & solution_;
+    ar & solDeriv1_;
+    ar & solDeriv2_;
+    ar & isIterCoupled_;
+    if( isIterCoupled_ ) {
+      ar & couplingMemento_;
+    }
+
+  }
 
 } // end of namespace
 

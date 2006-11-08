@@ -9,8 +9,6 @@
 #include "Matrix/matrix.hh"
 #include "Utils/tools.hh"
 
-#include "boost-serialization.hh"
-
 namespace CoupledField
 { 
 
@@ -826,33 +824,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   }
 
   
-  template<class TYPE> template< class Archive>
-  void Vector<TYPE>::save(Archive & ar, const unsigned int version) const {
 
-    // invoke serialization of the base class 
-    ar & boost::serialization::base_object<CFSVector>(*this);
-
-    ar & size_;
-    for( UInt i = 0; i < size_; i++ ) 
-      ar & data_[i];
-  }
-  
-  template<class TYPE> template <class Archive>
-  void Vector<TYPE>::load(Archive & ar, const unsigned int version) {
-
-    // invoke serialization of the base class 
-    ar & boost::serialization::base_object<CFSVector>(*this);
-
-    if( data_ != NULL ) {
-      delete[] data_;
-    }
-    
-    ar & size_;
-    data_ = new TYPE[size_];
-    for( UInt i = 0; i < size_; i++ ) {
-      ar & data_[i];
-    }
-  }
 
 
 // explicit template instantiation for GCC compiler
@@ -882,6 +854,7 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
 #endif
 }
 
+#include "Utils/boost-serialization.hh"
 #include <boost/serialization/export.hpp>
 BOOST_CLASS_EXPORT_GUID(CoupledField::Vector<CoupledField::Double>, "CoupledField_Vector_Double")
 BOOST_CLASS_EXPORT_GUID(CoupledField::Vector<CoupledField::Complex>, "CoupledField_Vector_Complex")
