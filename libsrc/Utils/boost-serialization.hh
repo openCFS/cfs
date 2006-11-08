@@ -24,15 +24,15 @@ namespace boost {
   namespace serialization {
     template<class Archive>
     void load(Archive & ar, CoupledField::Complex & c, const unsigned int version) {
-      Double real, imag;
+      CoupledField::Double real, imag;
       ar >> real;
       ar >>  imag;
-      c = Complex( real, imag );
+      c = CoupledField::Complex( real, imag );
     }
     template<class Archive>
     void save(Archive & ar, const CoupledField::Complex & c, const unsigned int version) {
-      const Double real = c.real();
-      const Double imag = c.imag();
+      const CoupledField::Double real = c.real();
+      const CoupledField::Double imag = c.imag();
       ar << real;
       ar << imag;
     }

@@ -1,7 +1,5 @@
 #include "couplingmemento.hh"
 
-#include "Utils/boost-serialization.hh"
-
 namespace CoupledField{
 
   CouplingMemento::CouplingMemento()
@@ -29,14 +27,6 @@ namespace CoupledField{
 
   }
 
-  template<class Archive>
-  void CouplingMemento::serialize(Archive & ar, 
-                                  const unsigned int version) {
-    Error( "Not imeplemented at the momement", __FILE__, __LINE__ );
-    
-    // For further details, why this is currently not imeplemented,
-    // see PDECoupling::CouplingInterface::serialize
-  }
 }
 
 #include <boost/serialization/export.hpp>

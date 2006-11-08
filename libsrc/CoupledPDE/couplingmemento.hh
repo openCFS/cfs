@@ -1,6 +1,7 @@
 #ifndef FILE_COUPLINGMEMENTO
 #define FILE_COUPLINGMEMENTO
 
+#include "Utils/boost-serialization.hh"
 #include "General/environment.hh"
 #include "pdecoupling.hh"
 
@@ -84,6 +85,15 @@ namespace CoupledField
   //! 
 
 #endif
+
+ template<class Archive>
+  void CouplingMemento::serialize(Archive & ar, 
+                                  const unsigned int version) {
+    Error( "Not imeplemented at the momement", __FILE__, __LINE__ );
+    
+    // For further details, why this is currently not imeplemented,
+    // see PDECoupling::CouplingInterface::serialize
+  }
 
 } // end of namespace
 

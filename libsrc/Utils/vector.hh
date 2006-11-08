@@ -1,6 +1,7 @@
 #ifndef FILE_VECTOR_2004
 #define FILE_VECTOR_2004
 
+#include "Utils/boost-serialization.hh"
 #include "cfsvector.hh"
 #include "DataInOut/WriteInfo.hh"
 #include "promote.hh"
@@ -674,6 +675,34 @@ namespace CoupledField {
     return ret;
   }
 #endif // EXPR_TEMPLATE
+
+  template<class TYPE> template< class Archive>
+  void Vector<TYPE>::save(Archive & ar, const unsigned int version) const {
+
+    // invoke serialization of the base class 
+    ar & boost::serialization::base_object<CFSVector>(*this);
+
+    ar & size_;
+    for( UInt i = 0; i < size_; i++ ) 
+      ar & data_[i];
+  }
+  
+  template<class TYPE> template <class Archive>
+  void Vector<TYPE>::load(Archive & ar, const unsigned int version) {
+
+    // invoke serialization of the base class 
+    ar & boost::serialization::base_object<CFSVector>(*this);
+
+    if( data_ != NULL ) {
+      delete[] data_;
+    }
+    
+    ar & size_;
+    data_ = new TYPE[size_];
+    for( UInt i = 0; i < size_; i++ ) {
+      ar & data_[i];
+    }
+  }
 
 } // end of namespace
 
