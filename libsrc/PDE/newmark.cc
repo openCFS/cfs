@@ -161,10 +161,12 @@ namespace CoupledField
   // Effective Mass Matrix Formulation
   // ====================================================
 
-  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem)
+  NewmarkEffMass::NewmarkEffMass(BaseSystem * algebraicsystem, bool intExplicit)
     :TimeStepping(algebraicsystem)
   { 
     ENTER_FCN( "NewmarkEffMass::NewmarkEffMass" );
+
+    intExplicit_ = intExplicit;
 
     alpha_ = 0.0;
     beta_  = 0.25;
@@ -189,12 +191,21 @@ namespace CoupledField
     dt_ = dt;
     CalcParameters(dt_);
 
-    
-    matrix_factors_[STIFFNESS] = 1.0*a2_;
-    matrix_factors_[MASS] = 1.0;
-    matrix_factors_[CONVECTION] = 0.0;
-    matrix_factors_[DAMPING] = 1.0*a3_; 
-    
+    if ( intExplicit_ == true ) {
+      matrix_factors_[MASS] = 1.0; 
+    }
+    else {
+      matrix_factors_[STIFFNESS] = 1.0*a2_;
+      matrix_factors_[MASS] = 1.0;
+      matrix_factors_[CONVECTION] = 0.0;
+      
+      matrix_factors_[DAMPING] = 1.0*a3_; 
+    }
+
+//     std::cout << "STIFF: " <<  matrix_factors_[STIFFNESS] << std::endl;
+//     std::cout << "MASS: " <<  matrix_factors_[MASS] << std::endl;
+//     std::cout << "DAMP: " <<  matrix_factors_[DAMPING] << std::endl;
+
     //get the memory
     sol_.Resize(rhsSize_);
     sol_.Init();

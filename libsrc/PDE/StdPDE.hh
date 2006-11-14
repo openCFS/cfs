@@ -446,6 +446,7 @@ namespace CoupledField {
     //! \name Attributes connected to time stepping
     TimeStepping * TS_alg_;       //!< handles the time stepping
     bool effectiveMass_;       //!< use effective mass formulation for transient analysis
+    bool diagMass_;           //!< use of diagonal mass matrix in explicit time stepping
     bool firstTimeStepStatic_; //!< needed for coupled, iterative methods
 
     //@}
