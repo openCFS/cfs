@@ -46,7 +46,7 @@ namespace CoupledField {
       \param density (input) multiplicative factor
     */
     virtual void CalcElemPD(Vector<Double> & elemPD,
-                            const Elem * ptElement,
+                            const EntityIterator& it,
                             const Double density);
     
 

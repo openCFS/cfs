@@ -284,7 +284,7 @@ namespace CoupledField {
         //compute the electric field intensity
         
         it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, it.GetElem(), LCoord, 1);
+        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
 
         //get correct component of electric field for scalar Preisach model
         Ecomp = Efield[comp]; 
@@ -348,7 +348,7 @@ namespace CoupledField {
         it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
 
         //compute electric field
-        FieldOp->CalcElemGradField( Efield, it.GetElem(), LCoord, 1);
+        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
 
         //get correct component of electric field for scalar Preisach model
         //and invoke the update MinMaxList method
@@ -405,7 +405,7 @@ namespace CoupledField {
 
         //compute the electric field intensity
         it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, it.GetElem(), LCoord, 1);
+        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
 
         //get correct component of electric field for scalar Preisach model
         Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
@@ -473,7 +473,7 @@ namespace CoupledField {
 
         //compute the electric field intensity
         it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, it.GetElem(), LCoord, 1);
+        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
 
         //get correct component of electric field for scalar Preisach model
         Ecomp = Efield[comp]; //.NormL2(); //[comp]; 

@@ -5,6 +5,7 @@
 
 #include "Domain/elem.hh"
 #include "Domain/surfElem.hh"
+#include "Domain/edgeFace.hh"
 #include "Domain/entityList.hh"
 #include "DataInOut/Scripting/scriptable.hh"
 
@@ -51,13 +52,20 @@ namespace CoupledField
     //! Reads the grid from input file
     virtual void Read()=0;
 
-    //! Trigger mapping of element sub-entities (edges, surfaces)
+    //! Trigger mapping of elements' faces
+
+    //! This method calculates global surface numbers and 
+    //! makes them available in the element definitions, so they can
+    //! be used for higher order elements or edge functions.
+    virtual void MapFaces() = 0;
+    
+    //! Trigger mapping of edges
 
     //! This method calculates global edge and surface numbers and 
     //! makes them available in the element definitions, so they can
     //! be used for higher order elements or edge functions.
-    virtual void MapSubEntities() = 0;
-
+    virtual void MapEdges() = 0;
+ 
     //@}
 
     // =======================================================================
@@ -113,6 +121,7 @@ namespace CoupledField
     virtual UInt GetNumElems( const StdVector<RegionIdType> 
                                  & regions ) = 0;
   
+
     //! Get vector with all (surface and volume) region identifiers
     
     //! Return a vector with names of all region identifiers in the
@@ -318,20 +327,30 @@ namespace CoupledField
 
 
     // =======================================================================
-    // SURFACE ACCESS FUNCTIONS
+    // ELEMENT FACE ACCESS FUNCTIONS
     // =======================================================================
     //@{ \name Surface Access Functions
 
-    //virtual Surface& GetSurface( UInt surfNr);
+    //! Get total number of faces in the grid
+    virtual UInt GetNumFaces() = 0;
+
+    //! Return face with given face
+    virtual const Face& GetFace( UInt faceNr) = 0;
 
     //@}
 
     // =======================================================================
-    // EDGE ACCESS FUNCTIONS
+    // ELEMENT EDGE ACCESS FUNCTIONS
     // =======================================================================
     //@{ \name Edge Access Functions
           
-    //virtual Edge& GetEdge( UInt edgeNr );
+
+    //! Get number of edges in the grid
+    virtual UInt GetNumEdges() = 0;
+
+    //! Return edge with given number
+    virtual const Edge& GetEdge( UInt edgeNr ) = 0;
+
     //@}
 
     // =======================================================================

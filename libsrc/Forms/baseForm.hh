@@ -14,6 +14,9 @@
 
 namespace CoupledField
 {
+  
+  // forward class declaration
+  class AnsatzFct;
 
   //! Base class for calculation of bdb element matrices
   class BaseForm 
@@ -74,6 +77,10 @@ namespace CoupledField
 
     //! sets pointer to actual material
     void SetMaterial( BaseMaterial* matPtr );
+
+    //!
+    void SetAnsatzFct( shared_ptr<AnsatzFct> actFct1,
+                       shared_ptr<AnsatzFct> actFct2 = shared_ptr<AnsatzFct>() );
 
     bool IsCoordUpdate() { return coordUpdate_; }
     
@@ -140,20 +147,27 @@ namespace CoupledField
 
     //! set min/max of x,y,z coordinates form where PML starts
     virtual void SetPosPML(Matrix<Double> & inner, Matrix<Double> & outer) {;};
-
-
-  protected:
-    
+      
 #ifndef INTEGLIB
     //! Get reference element and coordinates from element iterator
     virtual void ExtractElemInfo( EntityIterator& it);
     
-    //! Current entities of the base form
-    EntityIterator ent1_, ent2_;
 #endif
+
+  protected:
 
     //! pointer to reference element
     BaseFE  * ptelem;   
+
+#ifndef INTEGLIB
+    //! current entity iterators
+    EntityIterator it1_;
+    EntityIterator it2_;
+
+    //! pointer to ansatz fct
+    shared_ptr<AnsatzFct> ansatzFct1_;
+    shared_ptr<AnsatzFct> ansatzFct2_;
+#endif
 
     //! flag indicating updated lagrangian formulation
     bool coordUpdate_;
@@ -265,12 +279,13 @@ namespace CoupledField
     void SetFormulation(SolutionType aformulation) 
     { formulation_ = aformulation;};
 
-  protected:
-
+ 
 #ifndef INTEGLIB
     //! Get reference element and coordinates from element iterator
     void ExtractElemInfo( EntityIterator& it);
 #endif
+
+  protected:
 
     //! Current surface element
     const SurfElem * actElem_;

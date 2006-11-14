@@ -16,40 +16,42 @@ namespace CoupledField {
 
     ENTER_FCN( "linElecInt::calcBMat" );
 
-    // Obtain info on number of element's nodes
-    const UInt numNodes = ptelem->GetNumNodes();
-
+    // Obtain info on number of elements' funtions
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    
     // Set correct size of matrix B and initialise with zeros
-    bMat.Resize( dim_, numNodes );
+    bMat.Resize( dim_, numFncs );
     bMat.Init();
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
     Matrix<Double> xiDx;
-    ptelem->GetGlobDerivShFncAtIp( xiDx, ip, ptCoord );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    ptelem->GetGlobDerivShFncAtIp( xiDx, ip, ptCoord, it1_.GetElem() );
 
     if ( subTensorType_ == FULL ) {
-      // The matrix bMat can be seen as a 3 x numNodes block-vector.
+      // The matrix bMat can be seen as a 3 x numFncs block-vector.
       // The k-th entry of this block vector corresponds to the matrix
       // B of the BDB product evaluated at the k-th node of the finite
       // element. 
-      for( UInt actNode = 0; actNode < numNodes; actNode++ ) {
+      for( UInt actNode = 0; actNode < numFncs; actNode++ ) {
 	bMat[0][actNode] = xiDx[actNode][0];
 	bMat[1][actNode] = xiDx[actNode][1];
 	bMat[2][actNode] = xiDx[actNode][2];
       }
     }
     else  {
-      // The matrix bMat can be seen as a 1 x numNodes block-vector.
+      // The matrix bMat can be seen as a 1 x numFncs block-vector.
       // The k-th entry of this block vector corresponds to the matrix
       // B of the ADB product evaluated at the k-th node of the finite
       // element. We assume that the first coordinate equals y and the
       // second z.
-      for( UInt actNode = 0; actNode < numNodes; actNode++ ) {
+      for( UInt actNode = 0; actNode < numFncs; actNode++ ) {
         bMat[0][actNode] = xiDx[actNode][0];
         bMat[1][actNode] = xiDx[actNode][1];
       }
     }
+
     
   }
 

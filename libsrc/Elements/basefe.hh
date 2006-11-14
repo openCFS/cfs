@@ -5,12 +5,14 @@
 #include "General/environment.hh"
 #include "Utils/vector.hh"
 #include "Utils/StdVector.hh"
+#include "Domain/ansatzFct.hh"
 #include <map>
 
 namespace CoupledField
 {
   // Forward class declaration
   class BaseSystem;
+  class Elem;
 
   //! Base class for description of elements
 
@@ -37,7 +39,9 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void GetShFnc(Vector<Double> & S, 
-                          const Vector<Double> & LCoord);
+                          const Vector<Double> & LCoord, 
+                          const Elem* elem,
+                          UInt dof = 1 );
 
 
     //! Get local coordinates of element corners 
@@ -55,7 +59,8 @@ namespace CoupledField
     //!                         (spaceDim \f$\times\f$ nrNodes)
     virtual void Local2GlobalCoord(Vector<Double> & globCoord,
                                    const Vector<Double> & locCoord,
-                                   const Matrix<Double> & coordMat);
+                                   const Matrix<Double> & coordMat,
+                                   const Elem* elem );
 
   
     //! Get value of all shape fnc at integration point ip
@@ -64,7 +69,10 @@ namespace CoupledField
       \param ip (input) Integration point
     */
     virtual void GetShFncAtIp(Vector<Double> & S, 
-                              const UInt ip);
+                              const UInt ip, 
+                              const Elem * elem, 
+                              UInt dof = 1);
+    
 
     //! Get global derivatives of all shape fnc at arbitrary local point
     /*! 
@@ -79,8 +87,9 @@ namespace CoupledField
     */
     virtual  void GetGlobDerivShFnc(Matrix<Double> & Deriv, 
                                     const Vector<Double> & LCoord,
-                                    const Matrix<Double> & CornerCoords);
-
+                                    const Matrix<Double> & CornerCoords,
+                                    const Elem * elem, 
+                                    UInt dof = 1);
 
 
     //! Get global derivatives of all shape fnc at integration point ip
@@ -98,7 +107,9 @@ namespace CoupledField
     virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & deriv, 
                                         const UInt ip,
                                         const Matrix<Double> & cornerCoords,
-                                        Double & jacDet);
+                                        Double & jacDet,
+                                        const Elem * elem, 
+                                        UInt dof = 1);
 
 
 
@@ -115,7 +126,9 @@ namespace CoupledField
     */
     virtual  void GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
                                         const UInt ip,
-                                        const Matrix<Double> & CornerCoords);
+                                        const Matrix<Double> & CornerCoords,
+                                        const Elem * elem, 
+                                        UInt dof = 1 );
 
     //! Calculates the Jacobian Matrix at an arbitrary local point
     /*!
@@ -130,8 +143,9 @@ namespace CoupledField
     */
     virtual void CalcJacobian(Matrix<Double> & J, 
                               const Vector<Double> & LCoord, 
-                              const Matrix<Double> & CornerCoords);
-
+                              const Matrix<Double> & CornerCoords,
+                              const Elem* elem );
+    
     //! Calculates the Jacobian Matrix at integration point ip
     /*!
       \param J (output) Jacobian Matrix
@@ -145,7 +159,8 @@ namespace CoupledField
     */
     virtual void CalcJacobianAtIp(Matrix<Double> & J, 
                                   const UInt ip, 
-                                  const Matrix<Double> & CornerCoords);
+                                  const Matrix<Double> & CornerCoords,
+                                  const Elem* elem );
 
     //! Calculates the Inverse Jacobian Matrix at an arbitrary local point
     /*!
@@ -160,7 +175,8 @@ namespace CoupledField
     */
     virtual void CalcInvJacobian(Matrix<Double> & JInv,
                                  const Vector<Double> & LCoord,
-                                 const Matrix<Double> & CornerCoords);
+                                 const Matrix<Double> & CornerCoords,
+                                 const Elem* elem);
   
     //! Calculates the Inverse Jacobian Matrix at integration point ip
     /*!
@@ -175,7 +191,8 @@ namespace CoupledField
     */
     virtual void CalcInvJacobianAtIp(Matrix<Double> & JInv,
                                      const UInt ip,
-                                     const Matrix<Double> & CornerCoords);
+                                     const Matrix<Double> & CornerCoords,
+                                     const Elem* elem);
 
 
     //! Calculation of Jacobian determinant at arbitrary local point
@@ -186,7 +203,8 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f]
     */
     virtual Double CalcJacobianDet(const Vector<Double> & LCoord,
-                                   const Matrix<Double> & CornerCoords);
+                                   const Matrix<Double> & CornerCoords,
+                                   const Elem* elem);
 
     //! Calculation of Jacobian determinant at integration point ip
     /*! 
@@ -196,7 +214,8 @@ namespace CoupledField
       \cdots & \cdots & \cdots \end{array} \right) \f]
     */
     virtual Double CalcJacobianDetAtIp(const UInt ip, 
-                                       const Matrix<Double> & CornerCoords);
+                                       const Matrix<Double> & CornerCoords,
+                                       const Elem* elem);
 
     //! Calculation the volume (area, length) of an element
     /*! 
@@ -220,7 +239,7 @@ namespace CoupledField
     }
 
 
-    //! Calculates corresponding volume point of neighbouring surface
+    //! Calculates corresponding volume point of neighbouring surfaces
     //! For a given surface element and a neighbouring volume element this
     //! mehtod calculates the local volume-coordinates out of the given
     //! local surface-coordinates, which have one less dimension.
@@ -250,6 +269,9 @@ namespace CoupledField
     virtual void CoordTrans2D( const Matrix<Double> &ptCoord, 
 			     Matrix<Double> &TransMat, 
                              Matrix<Double> &ShellCoord );
+
+    //! Get total number of dofs for particular dof
+    virtual UInt GetNumFncs( const shared_ptr<AnsatzFct>& fncType );
 
     //! Return space dimension
     UInt GetDim() const {return Dim_;}
@@ -376,9 +398,9 @@ namespace CoupledField
     virtual void GetEdgeIndices( StdVector<UInt>& indices, UInt edgeNr ) {
       indices = edgeIndices_[edgeNr]; }
 
-    //! Get the indices in the connect array belonging to given surface
-    virtual void GetSurfIndices( StdVector<UInt>& indices, UInt surfNr ) {
-      indices = surfIndices_[surfNr]; }
+    //! Get the indices in the connect array belonging to given face
+    virtual void GetFaceIndices( StdVector<UInt>& indices, UInt faceNr ) {
+      indices = faceIndices_[faceNr]; }
 
     //! Get global edge numbers
     /*! 
@@ -423,6 +445,30 @@ namespace CoupledField
     //! a public helper method that dumps the current content of the map
     void DumpIntegrationPointsMap();
 
+
+    // =======================================================================
+    // L E G E N D R E    P A R T
+    // =======================================================================
+
+    //! Get number of functions for this element and this dof
+    void virtual GetNumFncs(Vector<UInt>& numFcns, 
+                    const shared_ptr<AnsatzFct>& fcnType, 
+                    AnsatzFct::FctEntityType fctEntityType, 
+                    UInt dof = 1);
+
+    //! Evaluate polynom and its derivative using Honer's algorithm
+    void EvalPolynom( Double& value, Double& deriv,
+                      const UInt order, const Double* coeff, 
+                      const Double xVal );
+
+    //! Coefficients of 1D Legendre coefficients up to order 9
+    static Double lCoeff_[9][10];
+
+    //! Set current ansatz-fct object
+    virtual void SetAnsatzFct( shared_ptr<AnsatzFct>& actFct,
+                               bool setIntPoints = true ) {
+    }
+
   protected:
     //! Define variables of this class
     virtual void Init()
@@ -439,7 +485,9 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcShapeFnc(Vector<Double> & Shape, 
-                              const Vector<Double> & LCoord) = 0;
+                              const Vector<Double> & LCoord,
+                              const Elem* elem , UInt dof,
+                              AnsatzFct::FctEntityType = AnsatzFct::ALL ) = 0;
   
     //! Calculates the local derivatives of shape functions at an arbitrary local point
     /*!
@@ -450,7 +498,9 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                        const Vector<Double> & LCoord) = 0;
+                                        const Vector<Double> & LCoord,
+                                        const Elem* elem, UInt dof,
+                                        AnsatzFct::FctEntityType = AnsatzFct::ALL ) = 0;
 
     //! Set value of shape fnc at integration points
     virtual void SetShapeFncAtIp();
@@ -547,8 +597,8 @@ namespace CoupledField
     //! Vectors with node indices of each edge
     StdVector<UInt> * edgeIndices_;
 
-    //! Vectors with node indices of each surface
-    StdVector<UInt> * surfIndices_;
+    //! Vectors with node indices of each face
+    StdVector<UInt> * faceIndices_;
 
     enum IntegrationMethod IntegMethod; //! set in XML and SetStandard/ReducedIntegration
 
@@ -564,7 +614,13 @@ namespace CoupledField
     */
     Matrix<UInt> edgeVertices_; 
     
-    private: 
+
+    //! Current ansatz function ( which is used for current ansatz functions)
+    shared_ptr<AnsatzFct> actFct_;
+
+    //! Actual number of ansatz functions
+    Integer actNumFcns_;
+    
     /** Helper method that generates the key for the map */
     void MakeKey(IntegrationMethod type, int order, std::string &out);
     
@@ -601,7 +657,6 @@ namespace CoupledField
      * @param order3 0 is written here if Dim_ != 3 */
     void DecodeCartesianOrder(int encoded_order, int* order1, int* order2, int* order3);
 
-    
     
   };
  

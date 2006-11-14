@@ -285,7 +285,7 @@ namespace CoupledField {
     ptgrid->GetElemNodesCoord(ptCoord,connect);
 
     for (i=0; i<nrIntPnts; i++) {
-      jacDet = ptelem->CalcJacobianDetAtIp(i+1, ptCoord);
+      jacDet = ptelem->CalcJacobianDetAtIp(i+1, ptCoord, NULL);
       area +=jacDet*intWeights[i];
     }
 

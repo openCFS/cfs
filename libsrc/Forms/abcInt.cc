@@ -31,9 +31,10 @@ namespace CoupledField {
     Vector<Double> shapeFncAtIp;
     Matrix<Double> partElemMat;
     Double coordAtIp;
-    
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -56,21 +57,22 @@ namespace CoupledField {
     factor = factor_ * density / sqrt( compressibility / density );
 
     // 2) Calculate a normal mass matrix
-    elemMat.Resize(nrNodes);
+    elemMat.Resize(numFncs);
     elemMat.Init();
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, 
+                                           ent1.GetElem() );
         
-      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt);
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
         
       partElemMat.DyadicMult(shapeFncAtIp);
         
       if (isaxi_) {
         // For the entry 1/r things are more complicated
         coordAtIp = 0.0;
-        for( j = 0; j < nrNodes; j++ ) {
+        for( j = 0; j < numFncs; j++ ) {
           coordAtIp += ptCoord_[0][j] * shapeFncAtIp[j];
         }
         partElemMat *= 2 * PI * intWeights[actIntPt-1] 

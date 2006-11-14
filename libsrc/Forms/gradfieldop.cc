@@ -40,56 +40,47 @@ namespace CoupledField
   }
 
   template <class TYPE>
-  void GradientFieldOp<TYPE>::CalcElemGradField(CFSVector & elemField,
-                                                const Elem * ptElement,
+  void GradientFieldOp<TYPE>::CalcElemGradField(Vector<TYPE> & elemField,
+                                                const EntityIterator& ent,
                                                 const Vector<Double> & lCoord,
                                                 const Double factor)
   {
     ENTER_FCN( "GradientFieldOp::CalcElemGradField" );
   
     UInt dim;
-    Vector<TYPE> potEntry(1);
-    dim = ptElement->ptElem->GetDim();
- 
-    Vector<TYPE> & helpElemField = dynamic_cast<Vector<TYPE>&> (elemField);   
 
-    helpElemField.Resize(dim);
-    helpElemField.Init(0.0);
+    dim = ent.GetElem()->ptElem->GetDim();
+    elemField.Resize(dim);
+    elemField.Init(0.0);
    
     UInt nShFnc = 0;
-    nShFnc = ptElement->ptElem->GetNumNodes();
- 
-    const StdVector<UInt> & connect = ptElement->connect;
+    ent.GetElem()->ptElem->SetAnsatzFct( result_->fctType );
+    nShFnc = ent.GetElem()->ptElem->GetNumFncs( result_->fctType );
+    const StdVector<UInt> & connect = ent.GetElem()->connect;
   
     Matrix<Double> CornerCoords; 
     ptGrid_->GetElemNodesCoord( CornerCoords, connect, coordUpdate_ );
 
     Matrix<Double> GlobalGradient;
+    ent.GetElem()->ptElem->GetGlobDerivShFnc(GlobalGradient, lCoord, 
+                                         CornerCoords, ent.GetElem() );
 
-
-    ptElement->ptElem->GetGlobDerivShFnc(GlobalGradient, lCoord, CornerCoords);
+    Vector<TYPE> potential;
+    potential_->GetElemSolution( potential, ent );
+    
 
     // loop over shape functions
-    for( UInt i=0; i<dim; i++ )
-      for( UInt j=0; j<nShFnc; j++ )
-        {
-          //std::cerr << "Longing for connect = " << connect[j] << std::endl;
-
-
-          potential_->Get(solType_, connect[j]-1,0, potEntry[0]);
-
-          //istd:cerr << "elecEntry = " << elecEntry << std::endl;
-          //E[i] -= GlobalGradient[j][i] * (*EPotential_)[(*ptMesh2PDENode_) [connect[j]-1]-1];
-
-          helpElemField.AddEntry(i,-GlobalGradient[j][i]*potEntry[0]*factor);
-
-        }
+    for( UInt i=0; i<dim; i++ ) {
+      for( UInt j=0; j<nShFnc; j++ ) {
+        elemField[i] += -GlobalGradient[j][i] * potential[j] * factor;
+      }
+    }
   
   }
 
 
   template<class TYPE>
-  void GradientFieldOp<TYPE>::CalcSDGradField(CFSVector & elemField,
+  void GradientFieldOp<TYPE>::CalcSDGradField(Vector<TYPE> & elemField,
                                               const StdVector<RegionIdType> & SD, 
                                               const Vector<Double> & lCoord,
                                               const Vector<Double> & factors)
@@ -121,11 +112,15 @@ namespace CoupledField
         // Iterate over whole SubDomain
         for( UInt k=0; k<subDomain.GetSize(); k++) 
           {
-            nShFnc = subDomain[k]->ptElem->GetNumNodes();
+            nShFnc = subDomain[k]->ptElem->GetNumFncs( result_->fctType );
+            subDomain[k]->ptElem->SetAnsatzFct( result_->fctType );
           
-            ptGrid_->GetElemNodesCoord( cornerCoords,subDomain[k]->connect, coordUpdate_ );
+            ptGrid_->GetElemNodesCoord( cornerCoords,subDomain[k]->connect, 
+                                        coordUpdate_ );
           
-            subDomain[k]->ptElem->GetGlobDerivShFnc(globalGradient, lCoord, cornerCoords);
+            subDomain[k]->ptElem-> 
+              GetGlobDerivShFnc(globalGradient, lCoord, 
+                                cornerCoords, subDomain[k] );
           
             // loop over shape functions
             for( UInt i=0; i<dim; i++ )

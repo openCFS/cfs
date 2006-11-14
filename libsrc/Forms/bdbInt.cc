@@ -97,7 +97,11 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
-    const UInt nrNodes  = ptelem->GetNumNodes();   
+
+    // First of all, set ansatz function to element
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+
+    UInt nrFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrDofs   = getNrDofs();  
 
     double jacDet;
@@ -107,10 +111,10 @@ namespace CoupledField {
     Matrix<Double> dbMat; 
     Double aux, fac, *ptr1, *ptr2;
 
-    elemMat.Resize( nrNodes * nrDofs);
+    elemMat.Resize( nrFncs * nrDofs);
     elemMat.Init();
 
-    dbMat.Resize( getDimD(), nrNodes * nrDofs);
+    dbMat.Resize( getDimD(), nrFncs * nrDofs);
 
     //if softening, get maximal/minimal edge lenght
     if ( softeningPart_ == "bendingBK1" ) {
@@ -123,6 +127,7 @@ namespace CoupledField {
     }
 
     //get integration points
+    
     const UInt nrIntPts = ptelem->GetNumIntPoints(); 
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
 
@@ -145,7 +150,8 @@ namespace CoupledField {
           Vector<Double> * intPoints = ptelem->GetIntPoints();
           Vector<Double> globIntPoint;
           
-          ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1], ptCoord_);
+          ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1], 
+                                    ptCoord_, ent1.GetElem() );
           ptMaterial->RotateTensorByPointCoord( globIntPoint,MECH_STIFFNESS_TENSOR );
           calcDMat( dMat );
         }
@@ -155,7 +161,7 @@ namespace CoupledField {
         calcBMat( bMat, actIntPt, ptCoord_ );
 
         // Compute Jacobian for integration point
-        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_ );
+        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
 
         // Perform a safety check
         if ( jacDet < 0.0 ) {
@@ -168,7 +174,7 @@ namespace CoupledField {
         if ( isaxi_ ) {
           Vector<Double> ShpFncAtIp;
           Vector<Double> CoordAtIP;
-          ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
+          ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
 
           CoordAtIP = ptCoord_ * ShpFncAtIp;
           jacDet *= 2 * PI * CoordAtIP[0];
@@ -192,6 +198,7 @@ namespace CoupledField {
           }
         }
       }
+
     }
 
 
@@ -210,7 +217,7 @@ namespace CoupledField {
         calcBMat( bMat, actIntPt, ptCoord_ );
 
         // Compute Jacobian for integration point
-        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_ );
+        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
 
         // Perform a safety check
         if ( jacDet < 0.0 ) {
@@ -223,7 +230,7 @@ namespace CoupledField {
         if ( isaxi_ ) {
           Vector<Double> ShpFncAtIp;
           Vector<Double> CoordAtIP;
-          ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
+          ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
 
           CoordAtIP = ptCoord_ * ShpFncAtIp;
           jacDet *= 2 * PI * CoordAtIP[0];
@@ -254,7 +261,6 @@ namespace CoupledField {
       //set back to standard integration
       ptelem->SetStandardIntegration();
     }
-
   }
 
 #endif
@@ -327,7 +333,7 @@ namespace CoupledField {
         }
       }
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord_);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt,ptCoord_, ent1.GetElem());
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
@@ -339,7 +345,7 @@ namespace CoupledField {
       if (isaxi_) {
         Vector<Double> ShpFncAtIp;
         Vector<Double> CoordAtIP;
-        ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+        ptelem->GetShFncAtIp(ShpFncAtIp, actIntPt, ent1.GetElem());
 
         CoordAtIP = ptCoord_ * ShpFncAtIp;
         jacDet *= 2 * PI * CoordAtIP[0];

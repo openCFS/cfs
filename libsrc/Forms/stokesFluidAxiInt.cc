@@ -32,9 +32,10 @@ namespace CoupledField
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
-
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
     UInt j, N;  // DOFs per Node
@@ -51,9 +52,9 @@ namespace CoupledField
     N = 4; // 4 DOFs per Node
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*N); 
+    elemMat.Resize(numFncs*N); 
     elemMat.Init();
-    locElemMat.Resize(nrNodes*N); 
+    locElemMat.Resize(numFncs*N); 
     locElemMat.Init();
 
 
@@ -61,27 +62,28 @@ namespace CoupledField
       {
         jacDet = 0;
         
-        ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, ptCoord_, jacDet);
+        ptelem->GetShFncAtIp(xi, actIntPt, ent1.GetElem() );
+        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, 
+                                      ptCoord_, jacDet, ent1.GetElem() );
 
 //        xiDx = xiDxDy.get_col(0);
 //        xiDy = xiDxDy.get_col(1);
 
-        partElemATMat.Resize(N,nrNodes*N); partElemATMat.Init();
-        for (j=0; j<nrNodes; j++)
+        partElemATMat.Resize(N,numFncs*N); partElemATMat.Init();
+        for (j=0; j<numFncs; j++)
           {
             partElemATMat[0][j]           =xiDx[j];
-            partElemATMat[0][j+nrNodes]   =xiDy[j];
+            partElemATMat[0][j+numFncs]   =xiDy[j];
 
-            partElemATMat[1][j+2*nrNodes]=xiDx[j];
-            partElemATMat[1][j+3*nrNodes]=density_ * xiDy[j];
+            partElemATMat[1][j+2*numFncs]=xiDx[j];
+            partElemATMat[1][j+3*numFncs]=density_ * xiDy[j];
 
-            partElemATMat[2][j+2*nrNodes] =xiDy[j];
-            partElemATMat[2][j+3*nrNodes] =-density_ * xiDx[j];
+            partElemATMat[2][j+2*numFncs] =xiDy[j];
+            partElemATMat[2][j+3*numFncs] =-density_ * xiDx[j];
 
             partElemATMat[3][j]          =xiDy[j];
-            partElemATMat[3][j+nrNodes]  =-xiDx[j];
-            partElemATMat[3][j+3*nrNodes]=xi[j];
+            partElemATMat[3][j+numFncs]  =-xiDx[j];
+            partElemATMat[3][j+3*numFncs]=xi[j];
           }
 
         partElemATMat *= intWeights[actIntPt-1] * jacDet;
@@ -91,7 +93,7 @@ namespace CoupledField
         // assemble element matrix
         locElemMat += partElemAMat * partElemATMat;
       }
-    ResortElementMatrix(elemMat, locElemMat, nrNodes, N);
+    ResortElementMatrix(elemMat, locElemMat, numFncs, N);
   }
 
 

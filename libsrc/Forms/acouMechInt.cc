@@ -31,9 +31,9 @@ namespace CoupledField {
     Vector<Double> shapeFncAtIp;
     Matrix<Double> partHelpMat, helpMat;
     Double coordAtIp;
-    
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -63,20 +63,21 @@ namespace CoupledField {
     }
     
     // 2) Calculate a normal mass matrix
-    helpMat.Resize(nrNodes);
+    helpMat.Resize(numFncs);
     helpMat.Init();
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_,
+                                           ent1.GetElem() );
         
-      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt);
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
         
       partHelpMat.DyadicMult(shapeFncAtIp);
         
       if (isaxi_) {
         // For the entry 1/r things are more complicated
         coordAtIp = 0.0;
-        for( j = 0; j < nrNodes; j++ ) {
+        for( j = 0; j < numFncs; j++ ) {
           coordAtIp += ptCoord_[0][j] * shapeFncAtIp[j];
         }
         partHelpMat *= 2 * PI * intWeights[actIntPt-1] 
@@ -94,9 +95,9 @@ namespace CoupledField {
 
     //for pressure forumation
     if (formulation_ == ACOU_PRESSURE && firstPDEName_ == "acoustic" ) {
-      elemMat.Resize( nrNodes, nrNodes*dofs_ );
-      for ( UInt iRow = 0; iRow < nrNodes; iRow++ ) {
-	for ( UInt iCol = 0; iCol < nrNodes; iCol++ ) {
+      elemMat.Resize( numFncs, numFncs*dofs_ );
+      for ( UInt iRow = 0; iRow < numFncs; iRow++ ) {
+	for ( UInt iCol = 0; iCol < numFncs; iCol++ ) {
 	  for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
 	    elemMat[iRow][iCol*dofs_+iDof] = 
 	      normal_[iDof] * helpMat[iCol][iRow];
@@ -105,9 +106,9 @@ namespace CoupledField {
       }
     }
     else {
-      elemMat.Resize( nrNodes*dofs_, nrNodes );
-      for ( UInt iRow = 0; iRow < nrNodes; iRow++ ) {
-	for ( UInt iCol = 0; iCol < nrNodes; iCol++ ) {
+      elemMat.Resize( numFncs*dofs_, numFncs );
+      for ( UInt iRow = 0; iRow < numFncs; iRow++ ) {
+	for ( UInt iCol = 0; iCol < numFncs; iCol++ ) {
 	  for ( UInt iDof = 0; iDof < dofs_; iDof++ ) {
 	    elemMat[iRow*dofs_+iDof][iCol] = 
 	      normal_[iDof] * helpMat[iRow][iCol];

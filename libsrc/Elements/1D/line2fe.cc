@@ -40,7 +40,9 @@ namespace CoupledField
   }
 
   void Line2FE :: CalcShapeFnc(Vector<Double> & Shape, 
-                               const Vector<Double> & LCoord)
+                               const Vector<Double> & LCoord,
+                               const Elem*, UInt dof,
+                               AnsatzFct::FctEntityType )
   {
     ENTER_IFCN( "Line2FE::CalcShapeFnc" );
 
@@ -56,7 +58,9 @@ namespace CoupledField
 
 
   void Line2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                         const Vector<Double> & LCoord)
+                                         const Vector<Double> & LCoord,
+                                         const Elem*, UInt dof,
+                                         AnsatzFct::FctEntityType )
   {
     ENTER_IFCN( "Line2FE::CalcLocalDerivShapeFnc" );
 

@@ -205,27 +205,31 @@ namespace CoupledField
     UInt dim;
     Double solEntry;
     dim = ptElement->ptElem->GetDim();
-    if (dim ==2)
-      {
+
+    if (dim ==2) {
         B.Resize(dim);
         B.Init();
 
         UInt nShFnc = 0;
         nShFnc = ptElement->ptElem->GetNumNodes();
-      
+
+       
+        //ptElement->ptElem->SetAnsatzFct( rsult_->fctType );
+        
         Matrix<Double> CornerCoords; 
         ptGrid_->GetElemNodesCoord( CornerCoords, ptElement->connect, 
                                     coordUpdate_ );
       
         Matrix<Double> GlobalGradient;
       
-        ptElement->ptElem->GetGlobDerivShFnc(GlobalGradient, LCoord, CornerCoords);
+        ptElement->ptElem->GetGlobDerivShFnc(GlobalGradient, LCoord, 
+                                             CornerCoords, ptElement );
       
         if (isaxi_)
           {
             Vector<Double> ShpFncAtIp;
             Vector<Double> CoordAtIP;
-            ptElement->ptElem->GetShFnc(ShpFncAtIp,LCoord);
+            ptElement->ptElem->GetShFnc(ShpFncAtIp,LCoord,ptElement);
             CoordAtIP = CornerCoords * ShpFncAtIp;
             for (UInt i=0; i<nShFnc; i++)
               GlobalGradient[i][0] += ShpFncAtIp[i] / CoordAtIP[0];

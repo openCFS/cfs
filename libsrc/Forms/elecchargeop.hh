@@ -39,6 +39,7 @@ namespace CoupledField {
     ElecChargeOp(Grid * ptGrid,
                  StdPDE * ptPDE,
                  shared_ptr<EqnMap> eqnMap,
+                 shared_ptr<ResultDof> result,
                  bool isaxi=false,
                  bool coordUpdate = false );
 
@@ -48,12 +49,12 @@ namespace CoupledField {
     //! Calculate charge for one surfac element
     /*!
       \param charge (output) Charge of given surface element
-      \param ptElem (input) Pointer to elemeent
+      \param ent (input) EntityIterator pointing to current element
       \param lCoord (input) Local coordinates of evaluation point
       \param eFluxDensity (input) Normal component of Flux density in lCoord
     */
     virtual void CalcElemCharge(TYPE & charge,
-                                const Elem * ptElement,
+                                const EntityIterator& ent,
                                 const Vector<Double> & lCoord,
                                 const TYPE & eNormalFluxDensity);
  
@@ -61,17 +62,19 @@ namespace CoupledField {
     //! Calculate charges for whole surface
     /*!
       \param charges (output) Vector of element charges
-      \param surfElems (input) Vector of surface elements
+      \param surfElems (input) Entity list with surface elements
       \param lCoord (input) Local coordinate of evaluation
       \param eFluxDensity (input) Vector of normal components of 
       Flux density in lCoord
     */
     virtual void CalcElemCharges(Vector<TYPE> & charges,
-                                 const StdVector<Elem*> & surfElems,
+                                 const shared_ptr<SurfElemList> surfElems,
                                  const Vector<Double> & lCoord,
                                  const Vector<TYPE> & eNormalFluxDensity);
   protected:
-  
+
+    //! Pointer to resultDof object
+    shared_ptr<ResultDof> result_;
   };
 
 } // end of namespace

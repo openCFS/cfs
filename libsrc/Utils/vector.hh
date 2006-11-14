@@ -249,6 +249,9 @@ namespace CoupledField {
     //! Calculates the Euclidean L2-norm
     Double NormL2() const;
 
+    //! Return vector as separated string
+    std::string Serialize( Char separator = ',') const;
+
     //! Create scalar product of vector and second one
     template <class TYPE2>
     PROMOTE(TYPE,TYPE2)  operator*( const Vector<TYPE2> & x ) const;

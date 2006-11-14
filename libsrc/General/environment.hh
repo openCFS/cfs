@@ -43,6 +43,7 @@ namespace CoupledField {
   // forward class declaration
   class Domain;
   class CFSMessenger;
+  class LogConfigurator;
 
   //! redeclaration of types
   typedef int Integer;
@@ -123,6 +124,10 @@ namespace CoupledField {
 
   //! print grid only and then exit
   extern bool PrintGridOnly;
+
+  //! logging configurator
+  
+  extern LogConfigurator * logConf;
 
 #ifdef PROFILING
   //! Global memtrace pointer

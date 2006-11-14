@@ -34,7 +34,8 @@ namespace CoupledField
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
-        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, 
+                                             ent1.GetElem() );
       
         ptelem->CalcEdgeShapeFncAtIp(shapeEdge, actIntPt, ptCoord_);
       

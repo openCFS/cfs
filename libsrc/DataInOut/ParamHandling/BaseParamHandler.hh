@@ -337,6 +337,38 @@ namespace CoupledField
                       const StdVector<std::string> &attrVec,
                       const StdVector<std::string> &valVec,
                       UInt &value ) = 0;
+
+    //! Perform search and return values as matrix of Doubles
+    virtual void GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                                     const StdVector<std::string> &attrVec,
+                                     const StdVector<std::string> &valVec,
+                                     const unsigned int &dim1,
+                                     const unsigned int &dim2,
+                                     Matrix<Double> &matr ) = 0;
+    
+    //! Perform search and return values as matrix of Integers
+    virtual void GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                                     const StdVector<std::string> &attrVec,
+                                     const StdVector<std::string> &valVec,
+                                     const unsigned int &dim1,
+                                     const unsigned int &dim2,
+                                     Matrix<Integer> &matr ) = 0;
+
+    //! Perform search and return values as matrix of unsigned Integers
+    virtual void GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                                     const StdVector<std::string> &attrVec,
+                                     const StdVector<std::string> &valVec,
+                                     const unsigned int &dim1,
+                                     const unsigned int &dim2,
+                                     Matrix<UInt> &matr ) = 0;
+    
+    //! Perform search and return values as vector of strings
+    virtual void GetVector( const StdVector<std::string> &keyVec,
+                            const StdVector<std::string> &attrVec,
+                            const StdVector<std::string> &valVec,
+                            StdVector<std::string> &strVec ) = 0;
+    
+
     //@}
 
 
@@ -411,8 +443,8 @@ namespace CoupledField
     //! \param subsection Name of a subsection in which to look for keyword
     //!                   (optional)
     virtual bool IsSet( const std::string key,
-                           const std::string section = "",
-                           const std::string subsection = "" ) = 0;
+                        const std::string section = "",
+                        const std::string subsection = "" ) = 0;
 
     //! Query whether a parameter has a certain value
 
@@ -431,9 +463,9 @@ namespace CoupledField
     //! \param value      String against which to test value of parameter
     //!                   (optional)
     virtual bool HasValue( const std::string key,
-                              const std::string value,
-                              const std::string section = "",
-                              const std::string subsection = "" ) = 0;
+                           const std::string value,
+                           const std::string section = "",
+                           const std::string subsection = "" ) = 0;
   };
 
 }

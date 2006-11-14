@@ -53,9 +53,12 @@ namespace CoupledField {
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
-    
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );    
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    
+    
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;
 
@@ -64,8 +67,8 @@ namespace CoupledField {
     Vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
-    //    partElemMat.Resize(nrNodes);
-    elemMat.Resize(nrNodes);
+    //    partElemMat.Resize(numFncs);
+    elemMat.Resize(numFncs);
     elemMat.Init();
 
      Matrix<Double> TransMattotest;    
@@ -101,7 +104,7 @@ namespace CoupledField {
         Vector<Double> normal;
         for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
           
-          jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+          jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
           
           //ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
           if(ptCoord_.GetSizeRow()==3)
@@ -109,7 +112,8 @@ namespace CoupledField {
               Matrix<Double> ptCoord_onXY;
               Matrix<Double> TransMat;
               ptelem->CoordTrans( ptCoord_, TransMattotest, ptCoord_onXY );
-              ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_onXY, jacDet);
+              ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_onXY, 
+                                            jacDet, ent1.GetElem() );
             }
           else
             {
@@ -122,7 +126,8 @@ namespace CoupledField {
               ptCoord_onXline[0][1]=length;
               //              ptCoord_onXline[1][0]=0.;
               //ptCoord_onXline[1][1]=0.;
-              ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_onXline);
+              ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, 
+                                            ptCoord_onXline, ent1.GetElem());
  
               //ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord);
 
@@ -170,9 +175,9 @@ namespace CoupledField {
       {
         for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
           
-          jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+          jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
           
-          ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
+          ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
           
           partElemMat.DyadicMult(shapeFncAtIp);
           

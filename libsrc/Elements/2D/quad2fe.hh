@@ -33,7 +33,9 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcShapeFnc(Vector<Double> & LShape, 
-                              const Vector<Double> & LCoord);
+                              const Vector<Double> & LCoord,
+                              const Elem*, UInt dof,
+                              AnsatzFct::FctEntityType );
   
     //! calculates the local derivatives of shape functions at an arbitrary local point
     /*!
@@ -44,7 +46,9 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                        const Vector<Double> & LCoord);
+                                        const Vector<Double> & LCoord,
+                                        const Elem*, UInt dof,
+                                        AnsatzFct::FctEntityType );
   
     //! NOT YET IMPLEMENTED FOR QUADRATIC ELEMENTS!!!Calculates a measure for the geometric distortion of an element
     /*!

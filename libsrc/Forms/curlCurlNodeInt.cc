@@ -33,8 +33,11 @@ namespace CoupledField
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    
+
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
 
@@ -50,20 +53,21 @@ namespace CoupledField
 
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes); 
+    elemMat.Resize(numFncs); 
     elemMat.Init();
     
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+                                      jacDet, ent1.GetElem() );
 
         if (isaxi_)
           {
-            ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+            ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent1.GetElem() );
             CoordAtIP = ptCoord_ * ShpFncAtIp;
-            for (UInt i=0; i<nrNodes; i++)
+            for (UInt i=0; i<numFncs; i++)
               xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
             
             jacDet *= 2 * PI * CoordAtIP[0];

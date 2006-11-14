@@ -406,6 +406,20 @@ namespace CoupledField {
     ENTER_IFCN( "StdVector::operator!=" );
     return ! ( *this==vec );
   }
+
+  template<class TYPE>
+  std::string StdVector<TYPE>::Serialize( Char separator ) const {
+    std::stringstream out;
+
+    if( size_ > 0 ) {
+      for( UInt i = 0; i < size_-1; i++ ) {
+        out << data_[i] << separator << " ";
+      }
+      out << data_[size_-1];
+    }
+    return out.str();
+  }
+        
   
   template <class S> 
   void Sort(S* v, UInt n)

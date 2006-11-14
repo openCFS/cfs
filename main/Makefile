@@ -42,6 +42,7 @@ mymodules = Driver PDE CoupledPDE \
             DataInOut/GMV \
             DataInOut/AnsysFile \
             DataInOut/Scripting \
+            DataInOut/Logging \
             DataInOut \
             DataInOut/Database\
             Utils Utils/mathParser Matrix General ODESolve ODEDescr \

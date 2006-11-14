@@ -23,6 +23,7 @@ namespace CoupledField {
     typedef std::map<ResultDof, StdVector<shared_ptr<ElemList> > > ResultElemListMap;
     typedef std::map<ResultDof, StdVector<shared_ptr<NodeList> > > ResultNodeListMap;
     typedef std::map<ResultDof, Matrix<Integer> > EqnMapType;
+    typedef std::map<ResultDof, StdVector<Vector<Integer> > > VecEqnMapType;
     typedef std::map<ResultDof, HdBcList> ResultHdBcMap;
     typedef std::map<ResultDof, IdBcList> ResultIdBcMap;
     typedef std::map<ResultDof, ConstraintList> ResultConstraintMap;
@@ -162,8 +163,8 @@ namespace CoupledField {
     //! Get number of local edges
     inline UInt GetNumLocalEdges() const {return numLocEdges_;}
 
-    //! Get number of local surfaces
-    inline UInt GetNumLocalSurfaces() const {return numLocSurfaces_;}
+    //! Get number of local faces
+    inline UInt GetNumLocalFaces() const {return numLocFaces_;}
 
     //! Map global to local node numbers
     //! (needed for nodal displacement of grid)
@@ -180,7 +181,6 @@ namespace CoupledField {
     
     //! Map local to global node number
     UInt Pde2MeshNode(const UInt pdeNode) const;
-
 
     //! Map global to local elem number
     UInt Mesh2PdeElem(const UInt elemNumGlob) const;
@@ -210,8 +210,11 @@ namespace CoupledField {
     //! Trigger local/global mapping of element/nodal numbers
     void CalcNodeElemMapping();
 
-    //! Trigger local/global mapping of edge/surface numbers
-    void CalcEdgeSurfaceMapping();
+    //! Trigger local/global mapping of edge numbers
+    void CalcEdgeMapping();
+
+    //! Trigger local/global mapping of face numbers
+    void CalcFaceMapping();
 
     //! Calculate equation numbers for nodes
 
@@ -221,21 +224,37 @@ namespace CoupledField {
     //!              be mapped (2)
     void CalcNodalEquations( UInt phase );
 
-    //! Calculate equation numbers for elements
+    //! Calculate equation numbers for elements interior (pfem)
 
     //! Triggers the mapping for element equations
     //! \param phase Parameter indicating if numbering of free equations (1)
     //!              has to be performed or if the fixed equations have to
     //!              be mapped (2)
-    void CalcElemEquations( UInt phase );
+    void CalcElemInteriorEquations( UInt phase );
 
-    //! Calculate equation numbers for edges/surfaces
+    //! Calculate equation numbers for elements (constants)
+
+    //! Triggers the mapping for element equations
+    //! \param phase Parameter indicating if numbering of free equations (1)
+    //!              has to be performed or if the fixed equations have to
+    //!              be mapped (2)
+    void CalcElemConstEquations( UInt phase );
+
+    //! Calculate equation numbers for edges
 
     //! Triggers the mapping for edge equations
     //! \param phase Parameter indicating if numbering of free equations (1)
     //!              has to be performed or if the fixed equations have to
     //!              be mapped (2)
-    void CalcEdgeSurfEquations( UInt phase );
+    void CalcEdgeEquations( UInt phase );
+
+    //! Calculate equation numbers for faces
+
+    //! Triggers the mapping for face equations
+    //! \param phase Parameter indicating if numbering of free equations (1)
+    //!              has to be performed or if the fixed equations have to
+    //!              be mapped (2)
+    void CalcFaceEquations( UInt phase );
 
     //! Extract node numbers from given entitylist
     void GetNodesOfEntities( StdVector<UInt>& nodeNr, 
@@ -288,11 +307,14 @@ namespace CoupledField {
     //! Store all edge-mapped element list
     ResultEntityMap edgeMappedList_;
     
-    //! Store all surface-mapped entity lists
-    ResultEntityMap surfMappedList_;
+    //! Store all face-mapped entity lists
+    ResultEntityMap faceMappedList_;
 
-    //! Store all element-mapped entity lists
-    ResultEntityMap elemMappedList_;
+    //! Store all interio element-mapped lists
+    ResultEntityMap elemIntMappedList_;
+
+    //! Store all constant element-mapped entity lists
+    ResultEntityMap elemConstMappedList_;
     
     //! Store all free entity lists
     ResultEntityMap freeMappedList_;
@@ -301,13 +323,13 @@ namespace CoupledField {
     EqnMapType nodeEqns_;
     
     //! Map of results and their nodal-edge equations (local edge -> eqn)
-    EqnMapType nodeEdgeEqns_;
+    VecEqnMapType edgeEqns_;
 
-    //! Map of results and their nodal-surface equations (local surf -> eqn)
-    EqnMapType nodeSurfEqns_;
+    //! Map of results and their nodal-face equations (local face -> eqn)
+    VecEqnMapType faceEqns_;
     
     //! Map of results and their element equations (local element -> eqn)
-    EqnMapType elemEqns_;
+    VecEqnMapType elemEqns_;
 
     //! Map of results and their free equations
     EqnMapType freeEqns_;
@@ -325,14 +347,11 @@ namespace CoupledField {
     //! Number of local edges
     UInt numLocEdges_;
  
-    //! Number of local surfaces
-    UInt numLocSurfaces_;
+    //! Number of local faces
+    UInt numLocFaces_;
 
-    //! Elements for which element and nodal numbers have to be locally mapped
-    StdVector<shared_ptr<ElemList> > nodalLocElems_;
-
-    //! Elements for which edge (and surface) numbers have to belocally mapped
-    StdVector<shared_ptr<ElemList> > edgeSurfElems_;
+    //! Elements which are locally element/nodal/edge/face mapped
+    StdVector<shared_ptr<ElemList> > locElems_;
 
     //! Mapping Local -> Global node numbering
     StdVector<UInt> pde2MeshNode_;
@@ -349,8 +368,8 @@ namespace CoupledField {
     //! Edge mapping from global->local
     StdVector<Integer> mesh2PdeEdge_;
 
-    //! Surface mapping from global->local
-    StdVector<Integer> mesh2PdeSurf_;
+    //! Face mapping from global->local
+    StdVector<Integer> mesh2PdeFace_;
 
     // ======================================================================
     // BOUNDARY CONDITIONS

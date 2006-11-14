@@ -195,17 +195,16 @@ namespace CoupledField {
         // Calc E - field;
         it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
 
-        FieldOp2->CalcElemGradField( TempE, it.GetElem(), LCoord, 1); 
+        FieldOp2->CalcElemGradField( TempE, it, LCoord, 1); 
 
         pdeElem = eqnMap1_->Mesh2PdeElem(it.GetElem()->elemNum);
 
         // Calc linear mechanical stresses
 
-        StdVector<UInt> const & connecth = it.GetElem()->connect;
         //get coordinates of element
 
         // c^E S
-        solhelp1->GetElemSolutionAsMatrix(elemDisp, connecth);
+        solhelp1->GetElemSolutionAsMatrix(elemDisp, it);
         mechStressOp->SetActElemSol(elemDisp);
         mechStressOp->SetIntPoint(LCoord);
         mechStressOp->CalcStressVec(TempMechStress,1,it);
@@ -269,7 +268,7 @@ namespace CoupledField {
     //charge operator  
     ElecChargeOp<TYPE> * chargeOp;
     chargeOp = new ElecChargeOp<TYPE>(ptGrid_, pde2_, eqnMap2_,
-                                      isaxi_);
+                                      results2_[0], isaxi_);
 
     Vector<TYPE> chargeSD(calcCharge_.GetSize());
     chargeSD.Init();
@@ -352,8 +351,10 @@ namespace CoupledField {
         BaseMaterial* elecMatSD = elecMat[ptVolElem->regionId];
     
         // 1.) calculate electric field
-        FieldOp2->CalcElemGradField(TempE, ptVolElem, lCoordVol,1);
-    
+        ElemList tempList(ptGrid_);
+        tempList.SetElement( ptVolElem );
+        EntityIterator tempIt = tempList.GetIterator();
+        FieldOp2->CalcElemGradField(TempE, tempIt, lCoordVol,1);
        
     
         // 2.) calculate linear mechanical strains
@@ -365,14 +366,18 @@ namespace CoupledField {
         ptGrid_->GetElemNodesCoord( Coord, volConnect, false);
     
         Matrix<TYPE> elemDisp;
-        solhelp1->GetElemSolutionAsMatrix(elemDisp, volConnect);
+        ElemList elemList(ptGrid_);
+        elemList.SetElement( ptVolElem );
+        EntityIterator itLocal = elemList.GetIterator();
+        
+        solhelp1->GetElemSolutionAsMatrix(elemDisp, itLocal);
         mechStrainOp->SetActElemSol(elemDisp);
         mechStrainOp->SetIntPoint(lCoordVol);
         ElemList eList(ptGrid_);
         eList.SetElement( ptVolElem );
         EntityIterator it2 = eList.GetIterator();
         mechStrainOp->CalcStrainVec(TempBu,1,it2);
-    
+
         Vector<TYPE> DField;
         Vector<TYPE> piezoCouplTimesStrain;
     
@@ -394,7 +399,7 @@ namespace CoupledField {
         elemNormalD = normal * DField;
     
         // Integrate over DField * normal
-        chargeOp->CalcElemCharge(charge, it.GetSurfElem(), 
+        chargeOp->CalcElemCharge(charge, it, 
                                  lCoordSurf, elemNormalD);
     
         pdeElemNum = eqnMap2_->Mesh2PdeElem(ptVolElem->elemNum);

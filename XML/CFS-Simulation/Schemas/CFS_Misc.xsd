@@ -248,6 +248,11 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- Data type for setting a array of doubles -->
+  <xsd:simpleType name="DT_DoubleList">
+    <xsd:list itemType="xsd:double"/>
+  </xsd:simpleType> 
+
 
   <!-- Data type for distinguishing the different PDEs in multiSequence -->
   <xsd:simpleType name="DT_PDEType">

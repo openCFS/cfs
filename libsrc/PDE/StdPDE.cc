@@ -221,128 +221,108 @@ namespace CoupledField {
 
   // real valued method (for TRANSIENT and STATIC)
   void StdPDE::GetSolVecOfElement( Vector<Double>& elemSol,
-                                   StdVector<UInt>& connecth ) {
+                                   const EntityIterator& it ) {
 
     ENTER_FCN( "StdPDE::GetSolVecOfElement" );
 
-    UInt dofspernode = results_[0]->dofNames.GetSize();
-    // displacement of element nodes
-    elemSol.Resize(dofspernode * connecth.GetSize());
-    elemSol.Init(0);
-    Integer eqnNr; 
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *results_[0], it );
 
+
+    elemSol.Resize( eqns.GetSize() );
+    elemSol.Init(0);
     NodeStoreSol<Double> * solhelp = 
       dynamic_cast<NodeStoreSol<Double>*>(sol_);
     Vector<Double> sol = solhelp->GetAlgSysVector();
-  
-    for(UInt actNode=0; actNode<connecth.GetSize(); actNode++) {
-      for(UInt actDof=0; actDof < dofspernode; actDof++) {
-        eqnNr = eqnMap_->GetNodeEqn( connecth[actNode], actDof+1 );
-        if (eqnNr!= 0) {
-          elemSol[actDof + actNode*dofspernode] =
-            sol[(abs(eqnNr-1))];
-        }
-        else {
-          elemSol[actDof + actNode*dofspernode] = 0.0;
-        }
+    
+    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+      if ( eqns[i] != 0 ) {
+        elemSol[i] = sol[(abs(eqns[i]-1))];
+      } else {
+        elemSol[i] = 0.0;
       }
-    }
+     }
   }
 
 
   // complex valued method (for HARMONIC)
   void StdPDE::GetSolVecOfElement( Vector<Complex>& elemSol,
-                                   StdVector<UInt>& connecth ) {
+                                   const EntityIterator& it ) {
 
     ENTER_FCN( "StdPDE::GetSolVecOfElement" );
-    UInt dofspernode = results_[0]->dofNames.GetSize();
-    
-    // displacement of element nodes
-    elemSol.Resize(dofspernode * connecth.GetSize());
-    elemSol.Init(0);
-    Integer eqnNr; 
+    Warning( "Implement", __FILE__, __LINE__);
 
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *results_[0], it );
+
+
+    elemSol.Resize( eqns.GetSize() );
+    elemSol.Init( Complex(0.0, 0.0) );
     NodeStoreSol<Complex> * solhelp = 
       dynamic_cast<NodeStoreSol<Complex>*>(sol_);
     Vector<Complex> sol = solhelp->GetAlgSysVector();
-  
-    for(UInt actNode=0; actNode<connecth.GetSize(); actNode++) {
-      for(UInt actDof=0; actDof < dofspernode; actDof++) {
-        eqnNr = eqnMap_->GetNodeEqn( connecth[actNode], actDof+1 );
-        if (eqnNr!= 0) {
-          elemSol[actDof + actNode*dofspernode] =
-            sol[ (abs(eqnNr-1))];
-        }
-        else {
-          elemSol[actDof + actNode*dofspernode] = 0.0;
-        }
+    
+    for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+      if ( eqns[i] != 0 ) {
+        elemSol[i] = sol[(abs(eqns[i]-1))];
+      } else {
+        elemSol[i] = Complex(0.0, 0.0);
       }
-    }
+     }
   }
 
   
   // real valued method (for TRANSIENT)
   void StdPDE::GetDerivSolVecOfElement(Vector<Double>& sol,
-                                       StdVector<UInt>& connecth) {
+                                       const EntityIterator& it) {
 
     ENTER_FCN( "StdPDE::GetDerivSolVecOfElement" );
-
-    UInt dofspernode = results_[0]->dofNames.GetSize();
-
-    // displacement of element nodes
-    sol.Resize(dofspernode * connecth.GetSize());
-    sol.Init(0);
-    Integer eqnNr;
-  
-    if ( analysistype_ == TRANSIENT ) {
-      const Vector<Double> & sol_der1 = getS1();
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *results_[0], it );
+    sol.Resize( eqns.GetSize() );
+    sol.Init( 0.0 ); 
     
-      for( UInt actNode = 0; actNode < connecth.GetSize(); actNode++ ) {
-        for( UInt actDof = 0; actDof < dofspernode; actDof++ ) {
-          eqnNr = eqnMap_->GetNodeEqn( connecth[actNode], actDof+1 );
-          if ( eqnNr != 0 ) {
-            sol[actDof + actNode*dofspernode] =
-              sol_der1[(abs(eqnNr-1))];
-          }
-          else {
-            sol[actDof + actNode*dofspernode] = 0.0;
-          }
+    if (  analysistype_ == TRANSIENT) {
+      const Vector<Double> & sol_der1 = getS1();
+        
+      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+        if ( eqns[i] != 0 ) {
+          sol[i] = sol_der1[(abs(eqns[i]-1))];
+        } else {
+          sol[i] = 0.0;
         }
       }
     }
   }
 
+
+
   // complex valued method (for HARMONIC)
   void StdPDE::GetDerivSolVecOfElement(Vector<Complex>& sol,
-                                       StdVector<UInt>& connecth) {
+                                        const EntityIterator& it) {
 
     ENTER_FCN( "StdPDE::GetDerivSolVecOfElement" );
 
-    // displacement of element nodes
-    UInt dofspernode = results_[0]->dofNames.GetSize();
-    sol.Resize(dofspernode * connecth.GetSize());
-    sol.Init(0);
-    Integer eqnNr;
-
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *results_[0], it );
+    
+    sol.Resize( eqns.GetSize() );
+    sol.Init( 0.0 );
+    
     // we obtain from assemble: frequency =  2*PI*actFreq
     Double omega = solveStep_->GetActFreq() * 2 * PI;
     Complex jomega = Complex(0.0,omega);
-
+    
     if ( analysistype_ == HARMONIC ) {
       NodeStoreSol<Complex> * solhelp = 
-	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+ 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
       Vector<Complex> solAtNode = solhelp->GetAlgSysVector();
 
-      for( UInt actNode = 0; actNode < connecth.GetSize(); actNode++ ) {
-        for( UInt actDof = 0; actDof < dofspernode; actDof++ ) {
-          eqnNr = eqnMap_->GetNodeEqn( connecth[actNode], actDof+1 );
-          if ( eqnNr != 0 ) {
-            sol[actDof + actNode*dofspernode] =
-              solAtNode[(abs(eqnNr-1))] * jomega;
-          }
-          else {
-            sol[actDof + actNode*dofspernode] = 0.0;
-          }
+      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+        if ( eqns[i] != 0 ) {
+          sol[i] = jomega * solAtNode[(abs(eqns[i]-1))];
+        } else {
+          sol[i] = Complex(0.0, 0.0);
         }
       }
     }
@@ -352,29 +332,23 @@ namespace CoupledField {
 
   // real valued method (for TRANSIENT)
   void StdPDE::GetDeriv2SolVecOfElement( Vector<Double>& sol,
-                                         StdVector<UInt>& connecth ) {
+                                         const EntityIterator& it) {
 
     ENTER_FCN( "StdPDE::GetDeriv2SolVecOfElement" );
 
-    UInt dofspernode = results_[0]->dofNames.GetSize();
-    // displacement of element nodes
-    sol.Resize(dofspernode * connecth.GetSize());
-    sol.Init(0);
-    Integer eqnNr; 
-
-    if (analysistype_ == TRANSIENT) {
-      const Vector<Double> & sol_der2 = getS2();
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *results_[0], it );
     
-      for( UInt actNode = 0; actNode < connecth.GetSize(); actNode++ ) {
-        for( UInt actDof = 0; actDof < dofspernode; actDof++ ) {
-          eqnNr = eqnMap_->GetNodeEqn( connecth[actNode], actDof+1 );
-          if (eqnNr!= 0) {
-            sol[actDof + actNode*dofspernode] =
-              sol_der2[(abs(eqnNr-1))];
-          }
-          else {
-            sol[actDof + actNode*dofspernode] = 0.0;
-          }
+    sol.Resize( eqns.GetSize() );
+    sol.Init( 0.0 );
+    
+    if ( analysistype_ == TRANSIENT ) {
+      const Vector<Double> & sol_der2 = getS2();
+      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+        if ( eqns[i] != 0 ) {
+          sol[i] = sol_der2[(abs(eqns[i]-1))];
+        } else {
+          sol[i] = 0.0;
         }
       }
     }
@@ -383,61 +357,34 @@ namespace CoupledField {
 
   // real valued method (for HARMONIC)
   void StdPDE::GetDeriv2SolVecOfElement( Vector<Complex>& sol,
-                                         StdVector<UInt>& connecth ) {
+                                         const EntityIterator& it) {
 
     ENTER_FCN( "StdPDE::GetDeriv2SolVecOfElement" );
 
-    UInt dofspernode = results_[0]->dofNames.GetSize();
-
-    // displacement of element nodes
-    sol.Resize(dofspernode * connecth.GetSize());
-    sol.Init(0);
-    Integer eqnNr; 
-
-    // we obtain from assemble: frequency =  2*PI*actFreq
-    Double omega = solveStep_->GetActFreq();
-
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *results_[0], it );
+    
+    sol.Resize( eqns.GetSize() );
+    sol.Init( 0.0 );
+    
+    // we obtain from assemble: frequency 
+    Double omega = solveStep_->GetActFreq() * 2 * PI;
+    
     if ( analysistype_ == HARMONIC ) {
       NodeStoreSol<Complex> * solhelp = 
-	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
+ 	dynamic_cast<NodeStoreSol<Complex>*>(sol_);
       Vector<Complex> solAtNode = solhelp->GetAlgSysVector();
 
-      for( UInt actNode = 0; actNode < connecth.GetSize(); actNode++ ) {
-        for( UInt actDof = 0; actDof < dofspernode; actDof++ ) {
-          eqnNr = eqnMap_->GetNodeEqn( connecth[actNode], actDof+1 );
-          if (eqnNr!= 0) {
-            sol[actDof + actNode*dofspernode] = - omega * omega *
-	      solAtNode[(abs(eqnNr-1))];
-          }
-          else {
-            sol[actDof + actNode*dofspernode] = 0.0;
-          }
+      for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+        if ( eqns[i] != 0 ) {
+          sol[i] = - omega * omega *solAtNode[(abs(eqns[i]-1))];
+        } else {
+          sol[i] = Complex(0.0, 0.0);
         }
       }
     }
   }
 
-
-  void StdPDE::GetDerivSolOfElement( Matrix<Double>& sol,
-                                     StdVector<UInt>& connect_PDE ) {
-
-    ENTER_FCN( "StdPDE::GetDerivSolOfElement" );
-
-    UInt dofspernode = results_[0]->dofNames.GetSize();
-
-    // displacement of element nodes
-    sol.Resize(dofspernode, connect_PDE.GetSize());
-    sol.Init();
-
-    const Vector<Double>& sol_der1 = getS1();  
-
-    for( UInt actNode = 0; actNode < connect_PDE.GetSize(); actNode++ ) {
-      for( UInt actDof = 0; actDof < dofspernode; actDof++) {
-        sol[actDof][actNode] =
-          sol_der1[actDof + dofspernode*(connect_PDE[actNode]-1)];
-      }
-    }
-  }
 
   void StdPDE::sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted){
 

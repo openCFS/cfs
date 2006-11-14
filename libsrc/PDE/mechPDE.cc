@@ -10,6 +10,7 @@
 #include "Forms/massInt.hh"
 #include "Forms/linPressureInt.hh"
 #include "Forms/singleEntryInt.hh"
+#include "Forms/linSurfStressInt.hh"
 #include "DataInOut/writeresults.hh"
 #include "Driver/assemble.hh"
 #include "newmark.hh"
@@ -82,9 +83,11 @@ namespace CoupledField {
     // set solution information
     // =====================================================================
     
+    StdVector<std::string> keyVec, attrVec, valVec;
+
     // Create new resultDof object
     shared_ptr<ResultDof> res1(new ResultDof);
-    shared_ptr<AnsatzFct> fct(new LagrangeFct);
+
     res1->resultType = MECH_DISPLACEMENT;
 
     // Check for subType
@@ -97,9 +100,35 @@ namespace CoupledField {
     } else {
       res1->dofNames = "ux", "uy", "uz", "tx", "ty", "tz";
     }
+
+    // check if problem is lagrange or legendre
+    std::string approxType;
+    params->Get( "type", approxType, "pdeList", pdename_ );
+    if ( approxType == "lagrange" ) {
+      shared_ptr<AnsatzFct> fct(new LagrangeFct);
+      res1->fctType = fct;
+      res1->definedOn = ResultDof::NODE;
+    } else {
       
-    res1->definedOn = ResultDof::NODE;
-    res1->fctType = fct;
+       // define Legendre type
+       shared_ptr<LegendreFct> fct(new LegendreFct);
+       if( params->IsSet( "isIsotropic", "pdeList", pdename_ ) ) {
+         UInt order;
+         params->Get( "order", order, "pdeList", pdename_ );
+         fct->SetIsoOrder( order );
+       } else {
+         Matrix<UInt> orderMat;
+         keyVec = pdename_, "anisotropic";
+         attrVec = "";
+         valVec = "";
+         params->GetDim1xDim2Tensor( keyVec, attrVec, valVec, dim_, dim_,
+                                     orderMat );
+         fct->SetAnisoOrder( orderMat );
+       }
+       res1->fctType = fct;
+       res1->definedOn = ResultDof::PFEM;
+    }
+      
     results_.Push_back( res1 );
     
     // timestepping formulation
@@ -302,10 +331,14 @@ namespace CoupledField {
   void MechPDE::ReadSpecialBCs() {
     ENTER_FCN( "MechPDE::ReadSpecialBCs" );
     
+    // read volume force definition
     ReadRegionLoads();
 
-    //check for prestressing
+    // check for prestressing
     ReadPreStressing();
+
+    // read surface stress information
+    ReadSurfStress();
 
   }
 
@@ -659,6 +692,7 @@ namespace CoupledField {
         Double thickness;
         keyVec = "pdeList", "mechanic", "region", "thickness";
         params->Get( keyVec, attrVec, valVec, thickness );
+        
         bilinearMass->SetThickness( thickness );
        
         // Get penalty value for drilling dof of region
@@ -714,7 +748,7 @@ namespace CoupledField {
       // and solution class
       eqnMap_->AddResult( *results_[0], actSDList );      
     }
-    
+
     // Define Integrators for composite materials
     std::map<RegionIdType, Composite>::iterator compIt;
     for( compIt=compositeMaterials_.begin(); compIt!=compositeMaterials_.end();
@@ -789,11 +823,13 @@ namespace CoupledField {
 
       // create new surface element list
       shared_ptr<SurfElemList> actPressSurf( new SurfElemList(ptgrid_ ) );
+      shared_ptr<ElemList> actPressElem( new ElemList(ptgrid_ ) );
       actPressSurf->SetRegion( pressSurf_[actSF] );
-   
+      actPressElem->SetRegion( pressSurf_[actSF] );
 
 
-      LinearSurfForm * rhsSrcSurf = new PressureLinForm(pressVals_[actSF], isaxi_);
+      LinearSurfForm * rhsSrcSurf = 
+        new PressureLinForm(pressVals_[actSF], isaxi_ );
       rhsSrcSurf->SetVoluInfo( materials_ );
 
       LinearFormContext * pressRhs = 
@@ -804,10 +840,30 @@ namespace CoupledField {
       
       // Give entities and result to equation numbering class
       // and solution class
-      eqnMap_->AddResult( *results_[0], actPressSurf );
+      eqnMap_->AddResult( *results_[0], actPressElem );
     }
     
     
+    // Add integrator for surface stresses
+    std::map<RegionIdType,SurfStress>::iterator  stressIt;
+    for( stressIt = surfStresses_.begin(); 
+         stressIt != surfStresses_.end(); stressIt++ ) {
+      shared_ptr<SurfElemList> surfElems( new SurfElemList(ptgrid_ ) );
+      shared_ptr<ElemList> volElems( new ElemList(ptgrid_ ) );
+      surfElems->SetRegion( stressIt->first );
+      volElems->SetRegion( stressIt->second.region );
+
+      SurfStress3DLinForm * stressInt = 
+        new SurfStress3DLinForm((*stressIt).second.stress, surfElems );
+      LinearFormContext * stressContext = 
+        new LinearFormContext( stressInt, (*stressIt).second.dynamics );
+      stressContext->SetPtPde(this);
+      stressContext->SetResult( results_[0], volElems );
+      assemble_->AddLinearForm( stressContext );
+      eqnMap_->AddResult( *results_[0], volElems );
+
+    }
+
     // Add integrators for region loads
     MechVolForceInt * forceInt;
     std::map<RegionIdType, RegionLoad>::iterator loadIt = regionLoads_.begin();
@@ -868,14 +924,12 @@ namespace CoupledField {
       keyVec = "pdeList", "mechanic", "region", "thickness";
       params->Get( keyVec, attrVec, valVec, thickness );
       myInt->SetThickness( thickness );
-      std::cerr << "Thickness of region " << regionName << " is " << thickness << std::endl;
        
       // Get penalty value for drilling dof of region
       Double penaltyDof;
       keyVec = "pdeList", "mechanic", "region", "penaltyDof";
       params->Get( keyVec, attrVec, valVec, penaltyDof );
       myInt->SetPenaltyDof( penaltyDof );
-      std::cerr << "PenaltyDof of region " << regionName << " is " << penaltyDof << std::endl;
        
       bilinearStiff = myInt;
       myInt = NULL;
@@ -1777,8 +1831,7 @@ namespace CoupledField {
           
         //set element solution        
         Matrix<TYPE> elSol;
-        StdVector<UInt> connecth = it.GetElem()->connect;
-        sol_->GetElemSolutionAsMatrix(elSol, connecth);
+        sol_->GetElemSolutionAsMatrix(elSol, it);
         stress->SetActElemSol(elSol);
           
         Vector<TYPE> actStress;     
@@ -1913,26 +1966,81 @@ namespace CoupledField {
 
   }
 
+  void MechPDE::ReadSurfStress() {
+    ENTER_FCN( "MechPDE::ReadSurfStress" );
+    
+    
+    // Construct vectors for restricted search parameter
+    StdVector<std::string> keyVec, attrVec, valVec;
+    StdVector<std::string> surf, volume, dynamics, phase;
+    
+    attrVec = "", "", "";
+    valVec = "", "", "";
+
+    // name of surface elements
+    keyVec = "mechanic", "bcsAndLoads", "surfStress", "name";
+    params->GetList( keyVec, attrVec, valVec, surf );
+    
+    // name of neighbouring volume elements
+    keyVec = "mechanic", "bcsAndLoads", "surfStress", "region";
+    params->GetList( keyVec, attrVec, valVec, volume );
+
+    // dynamics
+    keyVec = "mechanic", "bcsAndLoads", "surfStress", "dynamics";
+    params->GetList( keyVec, attrVec, valVec, dynamics );
+
+    // phase
+    keyVec = "mechanic", "bcsAndLoads", "surfStress", "phase";
+    params->GetList( keyVec, attrVec, valVec, phase );
+
+    // Iterate over all surface stresses
+    for( UInt i = 0; i < surf.GetSize(); i++ ) {
+
+      SurfStress actStress;
+      
+      actStress.surface = ptgrid_->RegionNameToId(surf[i]);
+      actStress.region = ptgrid_->RegionNameToId(volume[i]);
+      actStress.dynamics = dynamics[i];
+      actStress.phase = phase[i];
+      
+      // get value
+      Matrix<Double> valMat;
+      keyVec = "mechanic", "bcsAndLoads", "surfStress", "value";
+      attrVec = "", "", "name";
+      valVec = "", "", surf[i];
+      params->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
+                                  stressDim_, 1, valMat );
+      valMat.ConvertToVec_AppendRows( actStress.stress );
+
+
+      // add surface stress definition
+      RegionIdType regionId =  ptgrid_->RegionNameToId( surf[i] );
+      surfStresses_[regionId] = actStress;
+    }
+    
+
+
+  }
+
+
   template <class TYPE>
   void MechPDE::CalcEnergy()
   {
     ENTER_FCN( "MechPDE::CalcEnergy" );
 
     Matrix<Double> elemmat;  
-
-    StdVector<UInt> connecth;
-    Vector<TYPE> help;
-
+    Vector<TYPE> help, eldisp;
     TYPE totalE = 0;
-
-    UInt i;
     Vector<TYPE> energy(subdoms_.GetSize());
 
-    for (i=0; i<subdoms_.GetSize(); i++) {
+    for ( UInt i = 0; i < subdoms_.GetSize(); i++ ) {
     
       //get material
       BaseMaterial* actSDMat = materials_[subdoms_[i]];
       energy[i] = 0.0;
+
+      // get bilinear stiffness integrator
+      BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat, subdoms_[i]);
 
       ElemList actSDList(ptgrid_ );
       actSDList.SetRegion( subdoms_[i] );
@@ -1940,22 +2048,15 @@ namespace CoupledField {
       EntityIterator it = actSDList.GetIterator();
       for ( it.Begin(); !it.IsEnd(); it++ ) {
         
-	BaseForm * bilinear_stiff = GetStiffIntegrator(actSDMat, subdoms_[i]);
-
-        connecth=it.GetElem()->connect;
+        bilinear_stiff->SetAnsatzFct( results_[0]->fctType );
         bilinear_stiff->CalcElementMatrix(elemmat,it,it);
-
-        Vector<TYPE> eldisp;
-        sol_->GetElemSolution(eldisp, connecth);
+        sol_->GetElemSolution(eldisp, it);
         help = elemmat * eldisp;
-        energy[i] += help * eldisp;
-
-        delete bilinear_stiff;      
-
-      }  
-
+        energy[i] += ( help * eldisp) * 0.5;
+      } 
+      
       totalE += energy[i];
-
+      delete bilinear_stiff;    
     }
 
     std::string resulttype = "Mechanic Deformation Energy";
@@ -1982,6 +2083,7 @@ namespace CoupledField {
     tmp[0] = totalE;
     Info->WriteResult(pdename_,  resulttype, suball, tmp, unit,
                       analysis, analysisVal);
+
   }
   
   

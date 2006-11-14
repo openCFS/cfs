@@ -1,6 +1,8 @@
 #ifndef FILE_CFS_ELEM_2002
 #define FILE_CFS_ELEM_2002
 
+#include <bitset>
+
 #include "Utils/StdVector.hh"
 #include "Elements/basefe.hh"
 
@@ -49,15 +51,20 @@ namespace CoupledField
     //! array with edge numbers
     StdVector<Integer> edges;
 
-    //! array with surface numbers
-    StdVector<Integer> surfaces;
+    //! array with face numbers
+    StdVector<Integer> faces;
+
+    //! bitset describing the orientation of the faces (3 for each)
+    StdVector<std::bitset<3> > faceFlags;
   
+#ifdef ADAPTGRID
     //! flag for refinement
     bool refinementFlag; 
   
     //! number of refinement for the element
     UInt refinementNumber; 
-  
+
+#endif
     //@}
 
     // ======================================================
@@ -91,8 +98,10 @@ namespace CoupledField
       ptElem=t.ptElem;
       connect=t.connect;
       regionId=t.regionId;
+#ifdef ADAPTGRID
       refinementFlag=t.refinementFlag;
       refinementNumber=t.refinementNumber;
+#endif
     }
     return *this;
   }

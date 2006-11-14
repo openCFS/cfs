@@ -147,7 +147,7 @@
   <!-- Data type for specif. a distance elem for saving directivity  nodes  -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DirectiDistance">
-    <xsd:attribute name="radius" type="DT_PosFloat" use="required"/>
+    <xsd:attribute name="radius" type="xsd:double" use="required"/>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->

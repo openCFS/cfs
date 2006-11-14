@@ -65,7 +65,7 @@ namespace CoupledField
       
         partElemMat = curlTransp * curl;
       
-        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem());
       
         partElemMat *= intWeights[actIntPt-1] * jacDet * reluctivity_;
       

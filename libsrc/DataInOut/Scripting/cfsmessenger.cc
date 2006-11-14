@@ -1,6 +1,8 @@
 #include "cfsmessenger.hh"
 
 #include "PDE/SinglePDE.hh"
+#include "DataInOut/Logging/cfslog.hh"
+
 namespace CoupledField {
 
 
@@ -95,6 +97,9 @@ namespace CoupledField {
     } else if ( args[1] == "grid" ) {
       success = domain->GetGrid()->Script_Eval(args, argOffset, retVal);
 
+      // -- logConfigurator --
+    } else if ( args[1] == "logConf" ) {
+      success = logConf->Script_Eval(args, argOffset, retVal);
     } else {
       success = false;
       std::ostringstream msg;

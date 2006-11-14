@@ -18,8 +18,11 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs1 = ptelem->GetNumFncs( ansatzFct1_ );
+    UInt numFncs2 = ptelem->GetNumFncs( ansatzFct2_ );
+    
     const UInt nrIntPts = ptelem->GetNumIntPoints(); 
-    const UInt nrNodes  = ptelem->GetNumNodes();   
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     double jacDet;
 
@@ -29,7 +32,7 @@ namespace CoupledField {
     Matrix<Double> dbMat;
     Double aux;
 
-    elemMat.Resize( nrNodes * getNumDofsA(), nrNodes * getNumDofsB() );
+    elemMat.Resize( numFncs1 * getNumDofsA(), numFncs2 * getNumDofsB() );
     elemMat.Init();
 
 
@@ -43,14 +46,17 @@ namespace CoupledField {
     // Loop over all integration points
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
 
+      //std::cerr << "*** Calculating A ****\n";
       // Setup the A matrix for current integration point
       calcAMat( aMat, actIntPt, ptCoord_ );
 
+      //std::cerr << "*** Calculating B ****\n";
       // Setup the B matrix for current integration point
       calcBMat( bMat, actIntPt, ptCoord_ );
 
       // Compute Jacobian for integration point
-      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_ );
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, 
+                                            ent1.GetElem() );
 
       // Perform a safety check
       if ( jacDet < 0.0 ) {
@@ -68,10 +74,10 @@ namespace CoupledField {
       //       2 pi r = "2 pi x"
       if ( isaxi_ ) {
         Vector<Double> ShpFncAtIp;
-        ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
+        ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent1.GetElem() );
         Double aux = 0.0;
         
-        for ( UInt i = 0; i < nrNodes; i++ ) {
+        for ( UInt i = 0; i < numFncs1; i++ ) {
           aux += ptCoord_[0][i] * ShpFncAtIp[i];
         }
         
@@ -100,6 +106,9 @@ namespace CoupledField {
         }
       }
     }
+
+
+    //std::cerr << "elemMat = \n" << elemMat << std::endl;
   }
 
 }

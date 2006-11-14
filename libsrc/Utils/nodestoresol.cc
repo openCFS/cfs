@@ -344,7 +344,8 @@ namespace CoupledField {
         StdVector<UInt> const & nodes  = it.GetElem()->connect;
 
         // Get related equation numbers
-        eqnMap_->GetEqns( eqns, *result_, it );
+        //eqnMap_->GetEqns( eqns, *result_, it );
+        eqnMap_->GetNodeEqn( nodes, eqns );
 
         // Iterate over all nodes
         for( UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
@@ -354,8 +355,8 @@ namespace CoupledField {
             
             Integer eqnNr = eqns[iNode*numDofs+iDof];
 
-            if( eqnNr > 0 ) {
-              temp[(globNode-1)*numDofs + iDof] = data_[eqnNr-1];
+            if( eqnNr != 0 ) {
+              temp[(globNode-1)*numDofs + iDof] = data_[std::abs(eqnNr-1)];
             } else if ( eqnNr == 0 ) {
               temp[(globNode-1)*numDofs + iDof] = TYPE();
             }
@@ -458,7 +459,7 @@ namespace CoupledField {
       globNode = eqnMap_->Pde2MeshNode(iNode+1);
       eqnNr = eqnMap_->GetNodeEqn( globNode, dof+1+offset ); 
  
-      if (eqnNr > 0) 
+      if (eqnNr != 0) 
         temp[globNode-1] = data_[(eqnNr-1)];
       else if (eqnNr == 0)
         temp[globNode-1] = TYPE();
@@ -714,59 +715,52 @@ namespace CoupledField {
 
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetElemSolution(CFSVector & elemSol,
-                                           const StdVector<UInt> & connect) const
+                                           const EntityIterator& it) const
   {
     ENTER_FCN( "NodeStoreSol::GetElemSolution" );
-    Integer eqnNr;
 
     Vector<TYPE> & temp = dynamic_cast<Vector<TYPE>&>(elemSol);
-  
-    temp.Resize(totalDofs_*connect.GetSize());
+
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *result_, it );
+    temp.Resize(eqns.GetSize());
     temp.Init();
 
-    for (UInt iDof=0; iDof<totalDofs_; iDof++)
-      for (UInt iNode=0; iNode<connect.GetSize(); iNode++)
-        {
-          eqnNr = eqnMap_->GetNodeEqn( connect[iNode], iDof+1 );
-
-          if (eqnNr != 0)
-            //temp[iDof][iNode] = data_[totalDofs_*(connect[iNode]-1) + iDof];
-            temp[iDof+iNode*totalDofs_] = data_[(abs(eqnNr)-1)*eqnDofs_];
-          else
-            temp[iDof + iNode*totalDofs_] = TYPE();
-        }
+     for( UInt i = 0; i < eqns.GetSize(); i++ ) {
+       if ( eqns[i] != 0 ) {
+         temp[i] = data_[(abs(eqns[i])-1)];
+       } else {
+         temp[i] = TYPE();
+       }
+     }
   }
 
 
   template<class TYPE>
   void NodeStoreSol<TYPE>::GetElemSolutionAsMatrix(CFSMatrix & elemSol, 
-                                                   const StdVector<UInt> & connect) const
+                                                   const EntityIterator& it) const
   {
     ENTER_FCN("NodeStoreSol::GetElemSolutionAsMatrix");
 #ifdef CHECK_INITIALIZED
     if (length_ == 0) Error("NodeStoreSol: Use of uninitialized object!",__FILE__,__LINE__);
 #endif
   
-    Integer eqnNr;
     Matrix<TYPE> & temp = dynamic_cast<Matrix<TYPE>&>(elemSol);
+    StdVector<Integer> eqns;
+    eqnMap_->GetEqns( eqns, *result_, it );
 
-    // Matrix<Double> & temp = dynamic_cast<Matrix<Double&>(elemSol);
+    UInt numFcns = (UInt) eqns.GetSize() / totalDofs_;    
+    temp.Resize(totalDofs_, numFcns);
 
-    temp.Resize(totalDofs_,connect.GetSize());
-    temp.Init();
-    //  std::cout<<"NodeStoreSol::GetElemSolAsMatrix"<<std::endl;
-
-    for (UInt iDof=0; iDof<totalDofs_; iDof++)
-      for (UInt iNode=0; iNode<connect.GetSize(); iNode++)
-        {
-          eqnNr = eqnMap_->GetNodeEqn( connect[iNode], iDof+1);
-          if (eqnNr != 0){
-            temp[iDof][iNode] = data_[(abs(eqnNr)-1)];
-            //      std::cout<<data_[abs(eqnNr-1)*eqnDofs_+eqnDof-1]<<"; ";
-          }
-          else
-            temp[iDof][iNode] = TYPE();
+    for ( UInt iDof = 0; iDof < totalDofs_; iDof++ )
+      for ( UInt iFcn=0; iFcn < numFcns; iFcn++ ) {
+        Integer actEqn = eqns[iFcn * totalDofs_ + iDof];
+        if ( actEqn != 0){
+          temp[iDof][iFcn] = data_[(abs(actEqn)-1)];
+        } else {
+          temp[iDof][iFcn] = TYPE();
         }
+      }
   }
 
   

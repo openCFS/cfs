@@ -3,6 +3,7 @@
 #include <fstream>
 #include <math.h>
 
+#include "Domain/grid.hh"
 #include "timefunc.hh"
 #include "WriteInfo.hh"
 #include "ParamHandling/BaseParamHandler.hh"

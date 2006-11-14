@@ -629,17 +629,12 @@ namespace CoupledField {
   // ===================================================
   //   Return Double vector matching a keyword
   // ===================================================
-  void XMLParamHandler::GetDim1xDim2Tensor(  const StdVector<std::string> &keyVec,
-                                             const StdVector<std::string> &attrVec,
-                                             const StdVector<std::string> &valVec,
-                                             const unsigned int &dim1,
-                                             const unsigned int &dim2,
-                                             Matrix<Double> &matr ) {
+  void XMLParamHandler::GetVector(  const StdVector<std::string> &keyVec,
+                                    const StdVector<std::string> &attrVec,
+                                    const StdVector<std::string> &valVec,
+                                    StdVector<std::string> &strVec ) {
 
-    ENTER_FCN( "XMLParamHandler::Get6x6Tensor" );
-
-    // Initialize matrix
-    matr.Init();
+    ENTER_FCN( "XMLParamHandler::GetDim1xDim2Tensor" );
 
     // First determine all matches as strings
     StdVector<std::string> matches;
@@ -657,24 +652,98 @@ namespace CoupledField {
     
     // There was a unique match, so convert detected value
     else {
-      StdVector<std::string> strVec;
       SplitStringList( matches[0], strVec, ' ' );
+    }
+  }
 
-      if (strVec.GetSize() == dim1*dim2)
-        // Now perform conversion
-        for ( unsigned int i = 0; i < dim1; i++ ) {
-          for ( unsigned int j = 0; j < dim2; j++ ) {
+  void XMLParamHandler::GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                                            const StdVector<std::string> &attrVec,
+                                            const StdVector<std::string> &valVec,
+                                            const unsigned int &dim1,
+                                            const unsigned int &dim2,
+                                            Matrix<Double> &matr ) {
+    ENTER_FCN( "XMLParamHandler::GetDim1xDim2Tensor" );
+
+    StdVector<std::string> strVec;
+    GetVector( keyVec, attrVec, valVec, strVec );
+
+    matr.Resize( dim1, dim2 );
+    matr.Init();
+
+    if (strVec.GetSize() == dim1*dim2)
+      for ( UInt i = 0; i < dim1; i++ ) {
+          for ( UInt j = 0; j < dim2; j++ ) {
             matr[i][j]=( String2Double( strVec[i*dim2+j] ) );
           }
-        }
-      else{
-        (*error) << "Wrong size of " << keyVec[4] << " " 
-                 << keyVec[2] << " " << keyVec[3] << " for "<< keyVec[1] 
-                 <<" material " << valVec[0] << "!"; 
-        Error( __FILE__, __LINE__ );
       }
-
+    else{
+      (*error) << "Wrong size of matrix ' " << keyVec.Last()
+               << "'!. It contains of " << strVec.GetSize() 
+               << " entries which cannot be converted into matrix of size"
+               << dim1 << " x " << dim2 << ""; 
+      Error( __FILE__, __LINE__ );
     }
+    
+  }
+  
+  void XMLParamHandler::GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                                            const StdVector<std::string> &attrVec,
+                                            const StdVector<std::string> &valVec,
+                                            const unsigned int &dim1,
+                                            const unsigned int &dim2,
+                                            Matrix<Integer> &matr ) {
+    ENTER_FCN( "XMLParamHandler::GetDim1xDim2Tensor" );
+ StdVector<std::string> strVec;
+    GetVector( keyVec, attrVec, valVec, strVec );
+
+    matr.Resize( dim1, dim2 );
+    matr.Init();
+
+    if (strVec.GetSize() == dim1*dim2)
+      for ( UInt i = 0; i < dim1; i++ ) {
+          for ( UInt j = 0; j < dim2; j++ ) {
+            matr[i][j]=( String2Integer( strVec[i*dim2+j] ) );
+          }
+      }
+    else{
+      (*error) << "Wrong size of matrix ' " << keyVec.Last()
+               << "'!. It contains of " << strVec.GetSize() 
+               << " entries which cannot be converted into matrix of size"
+               << dim1 << " x " << dim2 << ""; 
+      Error( __FILE__, __LINE__ );
+    }
+    
+
+    
+  }
+  void XMLParamHandler::GetDim1xDim2Tensor(  const StdVector<std::string> &keyVec,
+                                             const StdVector<std::string> &attrVec,
+                                             const StdVector<std::string> &valVec,
+                                             const unsigned int &dim1,
+                                             const unsigned int &dim2,
+                                             Matrix<UInt> &matr ) {
+    ENTER_FCN( "XMLParamHandler::GetDim1xDim2Tensor" );
+    StdVector<std::string> strVec;
+    GetVector( keyVec, attrVec, valVec, strVec );
+
+    matr.Resize( dim1, dim2 );
+    matr.Init();
+
+    if (strVec.GetSize() == dim1*dim2)
+      for ( UInt i = 0; i < dim1; i++ ) {
+          for ( UInt j = 0; j < dim2; j++ ) {
+            matr[i][j]=( String2UInt( strVec[i*dim2+j] ) );
+          }
+      }
+    else{
+      (*error) << "Wrong size of matrix ' " << keyVec.Last()
+               << "'!. It contains of " << strVec.GetSize() 
+               << " entries which cannot be converted into matrix of size"
+               << dim1 << " x " << dim2 << ""; 
+      Error( __FILE__, __LINE__ );
+    }
+    
+
   }
 
 
@@ -684,6 +753,7 @@ namespace CoupledField {
 
 
   // =====================================
+
   //   Return a list of the defined PDEs
   // =====================================
   void XMLParamHandler::GetPDEList( StdVector<std::string> &list ) {

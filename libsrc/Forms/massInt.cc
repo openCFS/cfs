@@ -40,9 +40,11 @@ namespace CoupledField {
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
-    
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+    
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;
 
@@ -51,18 +53,17 @@ namespace CoupledField {
     Vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
-    //    partElemMat.Resize(nrNodes);
-    elemMat.Resize(nrNodes);
+    //    partElemMat.Resize(numFncs);
+    elemMat.Resize(numFncs);
     elemMat.Init();
     
     if (diagMass_ ) {
       Double mass = 0.0;
       for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
-
-	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
         
 	if (isaxi_) {
-	  ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
+	  ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
 	  CoordAtIP = ptCoord_ * shapeFncAtIp;
 	  mass += 2 * PI * intWeights[actIntPt-1] * density_ * factor_* jacDet * CoordAtIP[0];
 	}
@@ -70,16 +71,16 @@ namespace CoupledField {
 	  mass += intWeights[actIntPt-1] * density_ * factor_ * jacDet;
       }
 
-      for ( UInt i=0; i<nrNodes; i++ ) 
-	elemMat[i][i] = mass / (Double)nrNodes;
+      for ( UInt i=0; i<numFncs; i++ ) 
+	elemMat[i][i] = mass / (Double)numFncs;
    
     }
     else {
       for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
-        
-	ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
+	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
+
+        ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
         
 	partElemMat.DyadicMult(shapeFncAtIp);
         

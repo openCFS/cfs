@@ -32,8 +32,9 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
     const UInt dim      = ptCoord_.GetSizeRow();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
     Vector<Double> shapeFnc;
@@ -55,13 +56,14 @@ namespace CoupledField {
 //       Error( __FILE__, __LINE__ );
 //     };
 
-    elemVec.Resize(nrNodes*dim);
+    elemVec.Resize(numFncs*dim);
     elemVec.Init(0);
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
-        ptelem->GetShFncAtIp(shapeFnc, actIntPt);
-        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+        ptelem->GetShFncAtIp(shapeFnc, actIntPt, ent.GetElem() );
+        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_,
+                                                    ent.GetElem() );
         Double factor = multiplier_ * intWeights[actIntPt-1] * jacDet;
 
         if (isaxi_)

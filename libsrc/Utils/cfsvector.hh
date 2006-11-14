@@ -152,23 +152,27 @@ namespace CoupledField
   
     //! Compute Euclidean L2 norm of this vector object
     virtual Double NormL2() const  = 0;
-      
-#define DECL_BASEVECTOR_FCN(TYPE)                                                               \
- virtual void Init(const TYPE entry = TYPE())                                           \
-  {Error("CFSVector::Init(): Not implemented here",__FILE__,__LINE__);}         \
-  virtual void SetEntry(const UInt i, const TYPE &s)                                 \
-  {Error("CFSVector::SetEntry(): Not implemented here",__FILE__,__LINE__);}             \
-  virtual void GetEntry(const UInt i,  TYPE &ret) const                              \
-  {Error("CFSVector::GetEntry(): Not implemented here",__FILE__,__LINE__);}             \
-  virtual void AddEntry(const UInt i, const TYPE &s)                                 \
-  {Error("CFSVector::AddEntry(): Not implemented here",__FILE__,__LINE__);}             \
-  virtual void MultEntry(const UInt i, const TYPE &s)                                \
-  {Error("CFSVector::MultEntry(): Not implemented here",__FILE__,__LINE__);}            \
-  virtual void MultAddEntry(const UInt i, const TYPE &a, const TYPE &s)              \
-  {Error("CFSVector::MultAddEntry(): Not implemented here",__FILE__,__LINE__);}        \
-  virtual void Inner(const CFSVector &y, TYPE &result)                                 \
-  {Error("CFSVector::Inner(): Not implemented here",__FILE__,__LINE__);}
 
+    //! Return vector as separated string
+    virtual std::string Serialize( Char separator = ',') const = 0;
+
+#define DECL_BASEVECTOR_FCN(TYPE)                                             \
+    virtual void Init(const TYPE entry = TYPE())                              \
+    {Error("CFSVector::Init(): Not implemented here",__FILE__,__LINE__);}     \
+        virtual void SetEntry(const UInt i, const TYPE &s)                    \
+    {Error("CFSVector::SetEntry(): Not implemented here",__FILE__,__LINE__);} \
+        virtual void GetEntry(const UInt i,  TYPE &ret) const                 \
+    {Error("CFSVector::GetEntry(): Not implemented here",__FILE__,__LINE__);} \
+        virtual void AddEntry(const UInt i, const TYPE &s)                    \
+    {Error("CFSVector::AddEntry(): Not implemented here",__FILE__,__LINE__);} \
+        virtual void MultEntry(const UInt i, const TYPE &s)                   \
+    {Error("CFSVector::MultEntry(): Not implemented here",__FILE__,__LINE__);}\
+        virtual void MultAddEntry(const UInt i, const TYPE &a, const TYPE &s) \
+    {Error("CFSVector::MultAddEntry(): Not implemented here",                 \
+           __FILE__,__LINE__);}                                               \
+        virtual void Inner(const CFSVector &y, TYPE &result)                  \
+    {Error("CFSVector::Inner(): Not implemented here",__FILE__,__LINE__);}
+    
     DECL_BASEVECTOR_FCN(Integer)
     DECL_BASEVECTOR_FCN(Complex)
 

@@ -25,16 +25,18 @@ namespace CoupledField
 
 
   void StokesFluid3DInt::CalcElementMatrix( Matrix<Double>& elemMat,
-                          EntityIterator& ent1, 
-                          EntityIterator& ent2 )
+                                            EntityIterator& ent1, 
+                                            EntityIterator& ent2 )
   {
     ENTER_FCN( "StokesFluid3DInt::CalcElementMatrix" );
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
     Double W1=1.0, W2=1.0, W3=1.0;
@@ -81,12 +83,12 @@ namespace CoupledField
     N = 7; // 7 DOFs per Node
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*N); elemMat.Init(0.0);
-    locElemMat.Resize(nrNodes*N); locElemMat.Init(0.0);
+    elemMat.Resize(numFncs*N); elemMat.Init(0.0);
+    locElemMat.Resize(numFncs*N); locElemMat.Init(0.0);
 
-    //xiDx.Resize(nrNodes);
-    //xiDy.Resize(nrNodes);
-    //xiDz.Resize(nrNodes);
+    //xiDx.Resize(numFncs);
+    //xiDy.Resize(numFncs);
+    //xiDz.Resize(numFncs);
 
     //std::cerr << "nrIntPts=" << nrIntPts << std::endl;
     
@@ -94,13 +96,14 @@ namespace CoupledField
       {
         jacDet = 0;
         
-        ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord_, jacDet);
+        ptelem->GetShFncAtIp(xi, actIntPt, ent1.GetElem() );
+        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, 
+                                      ptCoord_, jacDet, ent1.GetElem() );
 
 /////////////////////////////////////////////////////////////////////
 //      Submatrix for 7 unknowns
 /////////////////////////////////////////////////////////////////////
-//        for (UInt i=0; i< nrNodes; i++) 
+//        for (UInt i=0; i< numFncs; i++) 
 //          {
 //            xiDx[i] = xiDxDyDz[i][0];
 //            xiDy[i] = xiDxDyDz[i][1];
@@ -245,55 +248,55 @@ namespace CoupledField
 //
 //        //Diagonal of Element-Matrix
 //	locElemMat.AddSubMatrix(A       ,  0,          0);
-//        locElemMat.AddSubMatrix(A       ,  nrNodes,    nrNodes);
-//        locElemMat.AddSubMatrix(A       ,  2*nrNodes,  2*nrNodes);
-//        locElemMat.AddSubMatrix(B1      ,  3*nrNodes,  3*nrNodes);
-//        locElemMat.AddSubMatrix(B2      ,  4*nrNodes,  4*nrNodes);
-//        locElemMat.AddSubMatrix(B3      ,  5*nrNodes,  5*nrNodes);
-//        locElemMat.AddSubMatrix(A       ,  6*nrNodes,  6*nrNodes);
+//        locElemMat.AddSubMatrix(A       ,  numFncs,    numFncs);
+//        locElemMat.AddSubMatrix(A       ,  2*numFncs,  2*numFncs);
+//        locElemMat.AddSubMatrix(B1      ,  3*numFncs,  3*numFncs);
+//        locElemMat.AddSubMatrix(B2      ,  4*numFncs,  4*numFncs);
+//        locElemMat.AddSubMatrix(B3      ,  5*numFncs,  5*numFncs);
+//        locElemMat.AddSubMatrix(A       ,  6*numFncs,  6*numFncs);
 //
-//        locElemMat.AddSubMatrix(C1      ,  nrNodes,    0);
-//        locElemMat.AddSubMatrix(C1T     ,  0,          nrNodes);
+//        locElemMat.AddSubMatrix(C1      ,  numFncs,    0);
+//        locElemMat.AddSubMatrix(C1T     ,  0,          numFncs);
 //
-//        locElemMat.AddSubMatrix(C2      ,  2*nrNodes,  0);
-//        locElemMat.AddSubMatrix(C2T     ,  0,          2*nrNodes);
+//        locElemMat.AddSubMatrix(C2      ,  2*numFncs,  0);
+//        locElemMat.AddSubMatrix(C2T     ,  0,          2*numFncs);
 //
-//        locElemMat.AddSubMatrix(C3      ,  2*nrNodes,  nrNodes);
-//        locElemMat.AddSubMatrix(C3T     ,  nrNodes,    2*nrNodes);
+//        locElemMat.AddSubMatrix(C3      ,  2*numFncs,  numFncs);
+//        locElemMat.AddSubMatrix(C3T     ,  numFncs,    2*numFncs);
 //
-//        locElemMat.AddSubMatrix(D1      ,  3*nrNodes,  nrNodes);
-//        locElemMat.AddSubMatrix(mD1     ,  4*nrNodes,  0);
+//        locElemMat.AddSubMatrix(D1      ,  3*numFncs,  numFncs);
+//        locElemMat.AddSubMatrix(mD1     ,  4*numFncs,  0);
 //
-//        locElemMat.AddSubMatrix(D2      ,  5*nrNodes,  0);
-//        locElemMat.AddSubMatrix(mD2     ,  3*nrNodes,  2*nrNodes);
+//        locElemMat.AddSubMatrix(D2      ,  5*numFncs,  0);
+//        locElemMat.AddSubMatrix(mD2     ,  3*numFncs,  2*numFncs);
 //
-//        locElemMat.AddSubMatrix(D3      ,  4*nrNodes,  2*nrNodes);
-//        locElemMat.AddSubMatrix(mD3     ,  5*nrNodes,  nrNodes);
+//        locElemMat.AddSubMatrix(D3      ,  4*numFncs,  2*numFncs);
+//        locElemMat.AddSubMatrix(mD3     ,  5*numFncs,  numFncs);
 //
-//        locElemMat.AddSubMatrix(E1      ,  nrNodes,    3*nrNodes);
-//        locElemMat.AddSubMatrix(mE1     ,  0,          4*nrNodes);
+//        locElemMat.AddSubMatrix(E1      ,  numFncs,    3*numFncs);
+//        locElemMat.AddSubMatrix(mE1     ,  0,          4*numFncs);
 //
-//        locElemMat.AddSubMatrix(E2      ,  0,          5*nrNodes);
-//        locElemMat.AddSubMatrix(mE2     ,  2*nrNodes,  3*nrNodes);
+//        locElemMat.AddSubMatrix(E2      ,  0,          5*numFncs);
+//        locElemMat.AddSubMatrix(mE2     ,  2*numFncs,  3*numFncs);
 //
-//        locElemMat.AddSubMatrix(E3      ,  2*nrNodes,  4*nrNodes);
-//        locElemMat.AddSubMatrix(mE3     ,  nrNodes,    5*nrNodes);
+//        locElemMat.AddSubMatrix(E3      ,  2*numFncs,  4*numFncs);
+//        locElemMat.AddSubMatrix(mE3     ,  numFncs,    5*numFncs);
 //
-//        locElemMat.AddSubMatrix(F1      ,  4*nrNodes,  3*nrNodes);
-//        locElemMat.AddSubMatrix(F2      ,  5*nrNodes,  3*nrNodes);
-//        locElemMat.AddSubMatrix(F3      ,  5*nrNodes,  4*nrNodes);
+//        locElemMat.AddSubMatrix(F1      ,  4*numFncs,  3*numFncs);
+//        locElemMat.AddSubMatrix(F2      ,  5*numFncs,  3*numFncs);
+//        locElemMat.AddSubMatrix(F3      ,  5*numFncs,  4*numFncs);
 //
-//        locElemMat.AddSubMatrix(G1      ,  3*nrNodes,  4*nrNodes);
-//        locElemMat.AddSubMatrix(G2      ,  3*nrNodes,  5*nrNodes);
-//        locElemMat.AddSubMatrix(G3      ,  4*nrNodes,  5*nrNodes);
+//        locElemMat.AddSubMatrix(G1      ,  3*numFncs,  4*numFncs);
+//        locElemMat.AddSubMatrix(G2      ,  3*numFncs,  5*numFncs);
+//        locElemMat.AddSubMatrix(G3      ,  4*numFncs,  5*numFncs);
 //
-//        locElemMat.AddSubMatrix(H1      ,  6*nrNodes,  3*nrNodes);
-//        locElemMat.AddSubMatrix(H2      ,  6*nrNodes,  4*nrNodes);
-//        locElemMat.AddSubMatrix(H3      ,  6*nrNodes,  5*nrNodes);
+//        locElemMat.AddSubMatrix(H1      ,  6*numFncs,  3*numFncs);
+//        locElemMat.AddSubMatrix(H2      ,  6*numFncs,  4*numFncs);
+//        locElemMat.AddSubMatrix(H3      ,  6*numFncs,  5*numFncs);
 //
-//        locElemMat.AddSubMatrix(I1      ,  3*nrNodes,  6*nrNodes);
-//        locElemMat.AddSubMatrix(I2      ,  4*nrNodes,  6*nrNodes);
-//        locElemMat.AddSubMatrix(I3      ,  5*nrNodes,  6*nrNodes);
+//        locElemMat.AddSubMatrix(I1      ,  3*numFncs,  6*numFncs);
+//        locElemMat.AddSubMatrix(I2      ,  4*numFncs,  6*numFncs);
+//        locElemMat.AddSubMatrix(I3      ,  5*numFncs,  6*numFncs);
 //
 /////////////////////////////////////////////////////////////////////
 //      A-Matrix for 8 unknowns
@@ -328,87 +331,87 @@ namespace CoupledField
 /////////////////////////////////////////////////////////////////////
 //      A-Matrix for 8 unknowns
 /////////////////////////////////////////////////////////////////////
-//        partElemAMat.Resize(N,nrNodes*N); partElemAMat.Init();
+//        partElemAMat.Resize(N,numFncs*N); partElemAMat.Init();
 /////////////////////////////////////////////////////////////////////
 //      A-Matrix for 7 unknowns
 /////////////////////////////////////////////////////////////////////
-          partElemAMat.Resize(N+1,nrNodes*N); partElemAMat.Init(0.0);
+          partElemAMat.Resize(N+1,numFncs*N); partElemAMat.Init(0.0);
 //
-        for (j=0; j<nrNodes; j++)
+        for (j=0; j<numFncs; j++)
           {
 ///////////////////////////////////////////////////////////////////////
 ////      A-Matrix for 8 unknowns
 ///////////////////////////////////////////////////////////////////////
-//            partElemAMat[0][j+5*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][2];
-//            partElemAMat[0][j+6*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][1];
-//            partElemAMat[0][j+7*nrNodes]   =  xiDxDyDz[j][0];
+//            partElemAMat[0][j+5*numFncs]   = -dynamicViscosity_*xiDxDyDz[j][2];
+//            partElemAMat[0][j+6*numFncs]   =  dynamicViscosity_*xiDxDyDz[j][1];
+//            partElemAMat[0][j+7*numFncs]   =  xiDxDyDz[j][0];
 //            
-//            partElemAMat[1][j+4*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][2];
-//            partElemAMat[1][j+6*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][0];
-//            partElemAMat[1][j+7*nrNodes]   =  xiDxDyDz[j][1];
+//            partElemAMat[1][j+4*numFncs]   =  dynamicViscosity_*xiDxDyDz[j][2];
+//            partElemAMat[1][j+6*numFncs]   = -dynamicViscosity_*xiDxDyDz[j][0];
+//            partElemAMat[1][j+7*numFncs]   =  xiDxDyDz[j][1];
 //
-//            partElemAMat[2][j+4*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][1];
-//            partElemAMat[2][j+5*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][0];
-//            partElemAMat[2][j+7*nrNodes]   =  xiDxDyDz[j][2];
+//            partElemAMat[2][j+4*numFncs]   = -dynamicViscosity_*xiDxDyDz[j][1];
+//            partElemAMat[2][j+5*numFncs]   =  dynamicViscosity_*xiDxDyDz[j][0];
+//            partElemAMat[2][j+7*numFncs]   =  xiDxDyDz[j][2];
 //
-//            partElemAMat[3][j+4*nrNodes]   =  xiDxDyDz[j][0];
-//            partElemAMat[3][j+5*nrNodes]   =  xiDxDyDz[j][1];
-//            partElemAMat[3][j+6*nrNodes]   =  xiDxDyDz[j][2];
+//            partElemAMat[3][j+4*numFncs]   =  xiDxDyDz[j][0];
+//            partElemAMat[3][j+5*numFncs]   =  xiDxDyDz[j][1];
+//            partElemAMat[3][j+6*numFncs]   =  xiDxDyDz[j][2];
 //
-//            partElemAMat[4][j+1*nrNodes]   = -xiDxDyDz[j][2];
-//            partElemAMat[4][j+2*nrNodes]   =  xiDxDyDz[j][1];
-//            partElemAMat[4][j+3*nrNodes]   =  xiDxDyDz[j][0];
-//            partElemAMat[4][j+4*nrNodes]   = -xi[j];
+//            partElemAMat[4][j+1*numFncs]   = -xiDxDyDz[j][2];
+//            partElemAMat[4][j+2*numFncs]   =  xiDxDyDz[j][1];
+//            partElemAMat[4][j+3*numFncs]   =  xiDxDyDz[j][0];
+//            partElemAMat[4][j+4*numFncs]   = -xi[j];
 //
 //            partElemAMat[5][j]             =  xiDxDyDz[j][2];
-//            partElemAMat[5][j+2*nrNodes]   = -xiDxDyDz[j][0];
-//            partElemAMat[5][j+3*nrNodes]   =  xiDxDyDz[j][1];
-//            partElemAMat[5][j+5*nrNodes]   = -xi[j];
+//            partElemAMat[5][j+2*numFncs]   = -xiDxDyDz[j][0];
+//            partElemAMat[5][j+3*numFncs]   =  xiDxDyDz[j][1];
+//            partElemAMat[5][j+5*numFncs]   = -xi[j];
 //
 //            partElemAMat[6][j]             = -xiDxDyDz[j][1];
-//            partElemAMat[6][j+1*nrNodes]   =  xiDxDyDz[j][0];
-//            partElemAMat[6][j+3*nrNodes]   =  xiDxDyDz[j][2];
-//            partElemAMat[6][j+6*nrNodes]   = -xi[j];
+//            partElemAMat[6][j+1*numFncs]   =  xiDxDyDz[j][0];
+//            partElemAMat[6][j+3*numFncs]   =  xiDxDyDz[j][2];
+//            partElemAMat[6][j+6*numFncs]   = -xi[j];
 //
 //            partElemAMat[7][j]             =  xiDxDyDz[j][0];
-//            partElemAMat[7][j+1*nrNodes]   =  xiDxDyDz[j][1];
-//            partElemAMat[7][j+2*nrNodes]   =  xiDxDyDz[j][2];
+//            partElemAMat[7][j+1*numFncs]   =  xiDxDyDz[j][1];
+//            partElemAMat[7][j+2*numFncs]   =  xiDxDyDz[j][2];
 //
 //
 /////////////////////////////////////////////////////////////////////
 //      A-Matrix for 7 unknowns
 /////////////////////////////////////////////////////////////////////
-             partElemAMat[0][j+4*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][2];
-             partElemAMat[0][j+5*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][1];
-             partElemAMat[0][j+6*nrNodes]   =  xiDxDyDz[j][0];
+             partElemAMat[0][j+4*numFncs]   = -dynamicViscosity_*xiDxDyDz[j][2];
+             partElemAMat[0][j+5*numFncs]   =  dynamicViscosity_*xiDxDyDz[j][1];
+             partElemAMat[0][j+6*numFncs]   =  xiDxDyDz[j][0];
 
-             partElemAMat[1][j+3*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][2];
-             partElemAMat[1][j+5*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][0];
-             partElemAMat[1][j+6*nrNodes]   =  xiDxDyDz[j][1];
+             partElemAMat[1][j+3*numFncs]   =  dynamicViscosity_*xiDxDyDz[j][2];
+             partElemAMat[1][j+5*numFncs]   = -dynamicViscosity_*xiDxDyDz[j][0];
+             partElemAMat[1][j+6*numFncs]   =  xiDxDyDz[j][1];
 
-             partElemAMat[2][j+3*nrNodes]   = -dynamicViscosity_*xiDxDyDz[j][1];
-             partElemAMat[2][j+4*nrNodes]   =  dynamicViscosity_*xiDxDyDz[j][0];
-             partElemAMat[2][j+6*nrNodes]   =  xiDxDyDz[j][2];
+             partElemAMat[2][j+3*numFncs]   = -dynamicViscosity_*xiDxDyDz[j][1];
+             partElemAMat[2][j+4*numFncs]   =  dynamicViscosity_*xiDxDyDz[j][0];
+             partElemAMat[2][j+6*numFncs]   =  xiDxDyDz[j][2];
 
-             partElemAMat[3][j+3*nrNodes]   =  W1*xiDxDyDz[j][0];
-             partElemAMat[3][j+4*nrNodes]   =  W1*xiDxDyDz[j][1];
-             partElemAMat[3][j+5*nrNodes]   =  W1*xiDxDyDz[j][2];
+             partElemAMat[3][j+3*numFncs]   =  W1*xiDxDyDz[j][0];
+             partElemAMat[3][j+4*numFncs]   =  W1*xiDxDyDz[j][1];
+             partElemAMat[3][j+5*numFncs]   =  W1*xiDxDyDz[j][2];
 
-             partElemAMat[4][j+1*nrNodes]   = -W3*xiDxDyDz[j][2];
-             partElemAMat[4][j+2*nrNodes]   =  W3*xiDxDyDz[j][1];
-             partElemAMat[4][j+3*nrNodes]   = -W3*xi[j];
+             partElemAMat[4][j+1*numFncs]   = -W3*xiDxDyDz[j][2];
+             partElemAMat[4][j+2*numFncs]   =  W3*xiDxDyDz[j][1];
+             partElemAMat[4][j+3*numFncs]   = -W3*xi[j];
 
              partElemAMat[5][j]             =  W3*xiDxDyDz[j][2];
-             partElemAMat[5][j+2*nrNodes]   = -W3*xiDxDyDz[j][0];
-             partElemAMat[5][j+4*nrNodes]   = -W3*xi[j];
+             partElemAMat[5][j+2*numFncs]   = -W3*xiDxDyDz[j][0];
+             partElemAMat[5][j+4*numFncs]   = -W3*xi[j];
 
              partElemAMat[6][j]             = -W3*xiDxDyDz[j][1];
-             partElemAMat[6][j+1*nrNodes]   =  W3*xiDxDyDz[j][0];
-             partElemAMat[6][j+5*nrNodes]   = -W3*xi[j];
+             partElemAMat[6][j+1*numFncs]   =  W3*xiDxDyDz[j][0];
+             partElemAMat[6][j+5*numFncs]   = -W3*xi[j];
 
              partElemAMat[7][j]             =  W2*xiDxDyDz[j][0];
-             partElemAMat[7][j+1*nrNodes]   =  W2*xiDxDyDz[j][1];
-             partElemAMat[7][j+2*nrNodes]   =  W2*xiDxDyDz[j][2];
+             partElemAMat[7][j+1*numFncs]   =  W2*xiDxDyDz[j][1];
+             partElemAMat[7][j+2*numFncs]   =  W2*xiDxDyDz[j][2];
           }
 
         partElemAMat.Transpose(partElemATMat);
@@ -416,7 +419,7 @@ namespace CoupledField
 //        // assemble element matrix
         locElemMat += (partElemATMat * partElemAMat) * intWeights[actIntPt-1] * jacDet;
       }
-    ResortElementMatrix(elemMat, locElemMat, nrNodes, N);
+    ResortElementMatrix(elemMat, locElemMat, numFncs, N);
   }
 
 } // end namespace CoupledField

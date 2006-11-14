@@ -44,8 +44,9 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
     const UInt nrDofs = getNrDofs();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet=0.0, t=thickness_;
@@ -58,11 +59,11 @@ namespace CoupledField {
     Matrix<Double> ShellCoord; 
 
     // set matrix to desired size and set all elements to zero
-    //    partElemMat.Resize(nrNodes);
+    //    partElemMat.Resize(numFncs);
     //See Finite Element Modeling of smart cantilever plate page 167
-    elemMat.Resize(nrNodes * nrDofs);
+    elemMat.Resize(numFncs * nrDofs);
     elemMat.Init();
-    partElemMat.Resize(nrNodes * nrDofs);
+    partElemMat.Resize(numFncs * nrDofs);
     partElemMat.Init();
     
     //Transformation from 3d to 2d
@@ -103,12 +104,13 @@ namespace CoupledField {
         
       for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
            
-        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ShellCoord);
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ShellCoord,
+                                             ent1.GetElem() );
         
-        ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
-        for (UInt i = 0; i < nrNodes ; i++ ) {
+        ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+        for (UInt i = 0; i < numFncs ; i++ ) {
 	
-	  for (UInt j=0; j < nrNodes ; j++ ) {
+	  for (UInt j=0; j < numFncs ; j++ ) {
                  
 	    partElemMat[nrDofs*i][nrDofs*j]         = fac_alpha*shapeFncAtIp[i]*shapeFncAtIp[j];
 	    partElemMat[nrDofs*i + 1][nrDofs*j + 1] = fac_alpha*shapeFncAtIp[i]*shapeFncAtIp[j];
@@ -147,13 +149,14 @@ namespace CoupledField {
     
       for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
            
-	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ShellCoord);
+	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ShellCoord,
+                                             ent1.GetElem() );
         
-	ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
+	ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
       
-	for (UInt i = 0; i < nrNodes ; i++ ) {
+	for (UInt i = 0; i < numFncs ; i++ ) {
 	
-	  for (UInt j=0; j < nrNodes ; j++ ) {
+	  for (UInt j=0; j < numFncs ; j++ ) {
                  
 	    partElemMat[nrDofs*i][nrDofs*j]         = fac_alpha*shapeFncAtIp[i]*shapeFncAtIp[j];
 	    partElemMat[nrDofs*i + 1][nrDofs*j + 1] = fac_alpha*shapeFncAtIp[i]*shapeFncAtIp[j];

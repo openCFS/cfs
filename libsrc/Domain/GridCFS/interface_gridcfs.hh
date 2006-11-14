@@ -34,9 +34,14 @@ namespace CoupledField
       ptGridCFS->GetAllRegionNames(regionNames_);
     }
 
-    //! Map element sub-entities
-    void MapSubEntities() {
-      ptGridCFS->MapSubEntities();
+    //! Map element faces
+    void MapFaces() {
+      ptGridCFS->MapFaces();
+    }
+
+    //! Map element edges
+    void MapEdges() {
+      ptGridCFS->MapEdges();
     }
 
 
@@ -226,6 +231,42 @@ namespace CoupledField
     }
     
     //@}
+
+    // =======================================================================
+    // ELEMENT FACE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Surface Access Functions
+
+    //! Get total number of faces in the grid
+    UInt GetNumFaces() {
+      return ptGridCFS->GetNumFaces();
+    }
+    
+    //! Return face with given face
+    const Face& GetFace( UInt faceNr) {
+      return ptGridCFS->GetFace( faceNr );
+    }
+
+    //@}
+
+    // =======================================================================
+    // EDGE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Edge Access Functions
+          
+
+    //! Get number ofe edges
+    UInt GetNumEdges() {
+      return ptGridCFS->GetNumEdges();
+    }
+    
+    //! Return edge with given number
+    const Edge& GetEdge( UInt edgeNr ) {
+      return ptGridCFS->GetEdge( edgeNr );
+    }
+
+    //@}
+
 
     // =======================================================================
     // GEOMETRY CALCULATION

@@ -78,6 +78,10 @@ namespace CoupledField {
     result2_ = result2;
     ent1_ = list1;
     ent2_ = list2;
+
+    assert( integrator_ != NULL);
+    assert( result1->fctType != NULL );
+    integrator_->SetAnsatzFct( result1->fctType, result2->fctType );
   }  
 
   bool BiLinFormContext::IsNonLin() {
@@ -156,6 +160,14 @@ namespace CoupledField {
     
 
   }
+
+  void LinearFormContext::SetResult( shared_ptr<ResultDof> result,
+                                     shared_ptr<EntityList> list ) {
+
+    result_ = result;
+    ent_ = list;
+    integrator_->SetAnsatzFct( result->fctType );
+    }
 
   bool LinearFormContext::IsNonLin() {
     ENTER_FCN( "LinearFormContext::IsNonLin" );

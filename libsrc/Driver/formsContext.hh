@@ -232,9 +232,7 @@ namespace CoupledField
     
     //! Set the result types and entities the linearform is defined on
     void SetResult( shared_ptr<ResultDof> result,
-                    shared_ptr<EntityList> list ) {
-      result_ = result;
-      ent_ = list; }
+                    shared_ptr<EntityList> list );
     
     //! Return first set of current entities
     shared_ptr<EntityList> GetEntities() { return ent_; }

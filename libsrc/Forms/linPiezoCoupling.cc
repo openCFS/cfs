@@ -17,20 +17,26 @@ namespace CoupledField {
     ENTER_FCN( "linPiezoCoupling::calcAMat" );
 
     // Obtain info on problem sizes
-    const UInt numNodes = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+
+    // Set type of ansatz function , but do not recalculate
+    // integration points
+    ptelem->SetAnsatzFct( ansatzFct1_, false );
     //    const UInt nDofMech = 3;
     //    const UInt nRowsD   = 6;
 
     // Set correct size of matrix A and initialise with zeros
-    aMat.Resize( numNodes * numDofsA_, matDimRow_ );
+    aMat.Resize( numFncs * numDofsA_, matDimRow_ );
     aMat.Init();
 
     // Get derivatives of local shape functions with respect to global coords
-    // (format: nrNodes x spaceDim)
+    // (format: numFncs x spaceDim)
     Matrix<Double> xiDx;
-    ptelem->GetGlobDerivShFncAtIp( xiDx, ip, ptCoord );
+    ptelem->GetGlobDerivShFncAtIp( xiDx, ip, ptCoord, it1_.GetElem() );
 
-    // The matrix aMat can be seen as a numNodes x 1 block-vector.
+    //std::cerr << "xiDx = \n" << xiDx << std::endl;
+
+    // The matrix aMat can be seen as a numFncs x 1 block-vector.
     // The k-th entry of this block vector corresponds to the matrix
     // A of the ADB product evaluated at the k-th node of the finite
     // element. We assemble aMat in a top-down fashion.
@@ -38,7 +44,7 @@ namespace CoupledField {
     UInt actNode;
 
     if ( subTensorType_ == FULL ) {
-      for( actNode = 0; actNode < numNodes; actNode++ ) {
+      for( actNode = 0; actNode < numFncs; actNode++ ) {
 
 	// 1st row of sub-matrix A(actNode)
 	aMat[actInd][0] = xiDx[actNode][0];
@@ -66,9 +72,9 @@ namespace CoupledField {
       UInt j;
       Double coordAtIp;
       Vector<Double> ShpFncAtIp;
-      ptelem->GetShFncAtIp( ShpFncAtIp, ip );
+      ptelem->GetShFncAtIp( ShpFncAtIp, ip, it1_.GetElem() );
       
-      for( actNode = 0; actNode < numNodes; actNode++ ) {
+      for( actNode = 0; actNode < numFncs; actNode++ ) {
 	
 	// 1st row of sub-matrix A(actNode)
 	aMat[actInd][0] = xiDx[actNode][0];    // dN/dr
@@ -76,7 +82,7 @@ namespace CoupledField {
 	
 	// For the entry 1/r things are more complicated
 	coordAtIp = 0.0;
-	for( j = 0; j < numNodes; j++ ) {
+	for( j = 0; j < numFncs; j++ ) {
 	  coordAtIp += ptCoord[0][j] * ShpFncAtIp[j];
 	}
 	aMat[actInd][3] = ShpFncAtIp[actNode] / coordAtIp;    // 1/r
@@ -94,7 +100,7 @@ namespace CoupledField {
     else if ( subTensorType_ == PLANE_STRAIN ) {
       // we assume that the first coordinate equals y and the second z.
       
-      for( actNode = 0; actNode < numNodes; actNode++ ) {
+      for( actNode = 0; actNode < numFncs; actNode++ ) {
 	
 	// 1st row of sub-matrix A(actNode)
 	aMat[actInd][0] = xiDx[actNode][0];   // dN/dy
@@ -119,25 +125,29 @@ namespace CoupledField {
 
     ENTER_FCN( "linPiezoCoupling::calcBMat" );
 
+    // Set type of ansatz function , but do not recalculate
+    // integration points
+    ptelem->SetAnsatzFct( ansatzFct2_, false );
+
     // Obtain info on number of element's nodes
-    const UInt numNodes = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct2_ );
 
     // Set correct size of matrix B and initialise with zeros
-    bMat.Resize( numDofsA_, numNodes );
+    bMat.Resize( numDofsA_, numFncs );
     bMat.Init();
 
     // Get derivatives of local shape functions with respect to global coords
-    // (format: nrNodes x spaceDim)
+    // (format: numFncs x spaceDim)
     Matrix<Double> xiDx;
-    ptelem->GetGlobDerivShFncAtIp( xiDx, ip, ptCoord );
+    ptelem->GetGlobDerivShFncAtIp( xiDx, ip, ptCoord, it1_.GetElem() );
 
 
-    // The matrix bMat can be seen as a 1 x numNodes block-vector.
+    // The matrix bMat can be seen as a 1 x numFncs block-vector.
     // The k-th entry of this block vector corresponds to the matrix
     // B of the ADB product evaluated at the k-th node of the finite
     // element. We simply must transpose xiDx.
     if ( subTensorType_ == FULL ) {
-      for( UInt actNode = 0; actNode < numNodes; actNode++ ) {
+      for( UInt actNode = 0; actNode < numFncs; actNode++ ) {
 	bMat[0][actNode] = xiDx[actNode][0];
 	bMat[1][actNode] = xiDx[actNode][1];
 	bMat[2][actNode] = xiDx[actNode][2];
@@ -146,7 +156,7 @@ namespace CoupledField {
     else if ( subTensorType_ == AXI ) {
       // element. We assume that the first coordinate equals r and the
       // second z.
-      for( UInt actNode = 0; actNode < numNodes; actNode++ ) {
+      for( UInt actNode = 0; actNode < numFncs; actNode++ ) {
 	bMat[0][actNode] = xiDx[actNode][0];
 	bMat[1][actNode] = xiDx[actNode][1];
       }
@@ -154,12 +164,13 @@ namespace CoupledField {
    else if ( subTensorType_ == PLANE_STRAIN ) {
      // We assume that the first coordinate equals y and the
      // second z.
-     for( UInt actNode = 0; actNode < numNodes; actNode++ ) {
+     for( UInt actNode = 0; actNode < numFncs; actNode++ ) {
        bMat[0][actNode] = xiDx[actNode][0];
        bMat[1][actNode] = xiDx[actNode][1];
      }
    }
 
+    //std::cerr << "bMat = \n" << bMat << std::endl;
   }
 
 

@@ -5,6 +5,7 @@
 #include "environment.hh"
 #include "Utils/tools.hh"
 #include "Domain/domain.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
 
 // Since OLAS uses a separate namespace for 
@@ -32,6 +33,8 @@ namespace CoupledField {
 
 
   bool PrintGridOnly = false;
+
+  LogConfigurator * logConf = new LogConfigurator();
 
 #ifdef PROFILING
   Profiler * profiler = NULL;

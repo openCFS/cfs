@@ -36,7 +36,10 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcShapeFnc(Vector<Double> & LShape, 
-                              const Vector<Double> & LCoord);
+                              const Vector<Double> & LCoord,
+                              const Elem* elem,
+                              UInt dof,
+                              AnsatzFct::FctEntityType );
   
     //! calculates the local derivatives of shape functions at an arbitrary local point
     /*!
@@ -47,7 +50,10 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                        const Vector<Double> & LCoord);
+                                        const Vector<Double> & LCoord,
+                                        const Elem* elem,
+                                        UInt dof,
+                                        AnsatzFct::FctEntityType);
   
     //! Calculates a measure for the geometric distortion of an element
     /*!
@@ -72,8 +78,25 @@ namespace CoupledField
         IntegOrder  = 1; 
     }
 
+    void SetAnsatzFct( shared_ptr<AnsatzFct>& actFct,
+                       bool setIntPoints = true);
+
+    void GetNumFncs(Vector<UInt>& numFcns, 
+                    const shared_ptr<AnsatzFct>& fcnType, 
+                    AnsatzFct::FctEntityType fctEntityType, 
+                    UInt dof = 1);
+
+
+    UInt GetNumFncs( const shared_ptr<AnsatzFct>& fncType );
+
 
   private:
+
+    //! 1D Legendre functions at IPs
+    Vector<Double> * lShFcnAtIp_;
+    
+    //! 1D derivatives of legendre functions at IP
+    Matrix<Double> * lDerivAtIp_;
   };
 
 } // end of namespace

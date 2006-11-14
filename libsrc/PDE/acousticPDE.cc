@@ -91,9 +91,13 @@ namespace CoupledField {
     if( params->IsSet( "isCoupledNrbc","pdeList" ,"acoustic" ) ) {
       isNrbcCoupled_=true;
     }
+
+    // check if problem is lagrange or legendre
+    std::string approxType;
+    params->Get( "type", approxType, "pdeList", pdename_ );
+    
     // Create new resultDof object
     shared_ptr<ResultDof> res1(new ResultDof);
-    shared_ptr<AnsatzFct> fct(new LagrangeFct);
     if ( formulation_ ==  ACOU_PRESSURE) {
       res1->resultType = ACOU_PRESSURE;
       res1->dofNames = "p";
@@ -101,8 +105,23 @@ namespace CoupledField {
       res1->resultType = ACOU_POTENTIAL;
       res1->dofNames = "vp";
     }
-    res1->definedOn = ResultDof::NODE;
-    res1->fctType = fct;
+    
+    if ( approxType == "lagrange" ) {
+      shared_ptr<AnsatzFct> fct(new LagrangeFct);
+      res1->definedOn = ResultDof::NODE;
+      res1->fctType = fct;
+    } else {
+      UInt order;
+      params->Get( "order", order, "pdeList", pdename_ );
+      
+      // Create new resultDof object
+      shared_ptr<LegendreFct> fct(new LegendreFct);
+      fct->SetIsoOrder( order );
+      //fct->order_ = order;
+      res1->definedOn = ResultDof::PFEM;
+      res1->fctType = fct;
+    }
+    
     results_.Push_back( res1 );
   }
 
@@ -1457,15 +1476,17 @@ namespace CoupledField {
       materials_[regionIds[reg]]->GetScalar(density,DENSITY,REAL);
       
       // get elements belonging to subdomain
-      StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[SDidx] );
       
-      for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
+      EntityIterator it = actSDList.GetIterator();
+      UInt actEl = 0;
+      for ( it.Begin(); !it.IsEnd(); it++, actEl++) {
 
-        SourceOp->CalcElemPD(elemPowerDensity, elemssd[actEl], density);
+        SourceOp->CalcElemPD(elemPowerDensity, it, density);
 
         // Add the element energy to the according coupling node
-        StdVector<UInt> connecth = elemssd[actEl]->connect;
+        StdVector<UInt> const & connecth = it.GetElem()->connect;
         for (UInt elnode=0; elnode<connecth.GetSize(); elnode++) {
 
           sourceValue[elemNodeToCouplingNode[actEl+offset][elnode]]
@@ -1474,7 +1495,7 @@ namespace CoupledField {
       }
       
       //in the case, that we have more than one coupling region!
-      offset = elemssd.GetSize();
+      offset = actSDList.GetSize();
     }
   }
   void AcousticPDE::CalcBubblePressure( StdVector<Elem*> & elems,
@@ -1501,9 +1522,10 @@ namespace CoupledField {
 
       Vector<Double> elPressure;
       for (UInt iElem = 0; iElem < elems.GetSize(); iElem++ ) {
-
-        StdVector<UInt> & myConnect = elems[iElem]->connect;
-        sol_->GetElemSolution( elPressure, myConnect );
+        ElemList elemList(ptgrid_);
+        elemList.SetElement( elems[iElem] );
+        EntityIterator it = elemList.GetIterator();
+        sol_->GetElemSolution( elPressure, it );
         Double pressure = 0.0;
 
         for( UInt iNode = 0; iNode < elPressure.GetSize(); iNode++ ) {
@@ -1529,9 +1551,10 @@ namespace CoupledField {
     } else {
       Vector<Double> elPressureDeriv;
       for (UInt iElem = 0; iElem < elems.GetSize(); iElem++ ) {
-
-        StdVector<UInt> & myConnect = elems[iElem]->connect;
-        GetDerivSolVecOfElement( elPressureDeriv, myConnect );
+        ElemList elemList(ptgrid_);
+        elemList.SetElement( elems[iElem] );
+        EntityIterator it = elemList.GetIterator();
+        GetDerivSolVecOfElement( elPressureDeriv, it );
         Double pressureDeriv = 0.0;
 
         for( UInt iNode = 0; iNode < elPressureDeriv.GetSize(); iNode++ ) {
@@ -1686,14 +1709,20 @@ namespace CoupledField {
         materials_[subdoms_[matIndex]]->GetScalar(density,DENSITY,REAL);
 		
         // retrieve 1st derivative, since F = rho * dpsi/dt * A
-        GetDerivSolVecOfElement(valueElem, connect);
+        ElemList elemList(ptgrid_);
+        elemList.SetElement( actSaveElem );
+        EntityIterator it = elemList.GetIterator();
+        GetDerivSolVecOfElement(valueElem,  it);
 
         valueElem *= density;
       }
       else if ( formulation_ == ACOU_PRESSURE ) {
 
         // retrieve solution, since F = p * A
-        GetSolVecOfElement(valueElem,connect);
+        ElemList elemList(ptgrid_);
+        elemList.SetElement( actSaveElem );
+        EntityIterator it = elemList.GetIterator();
+        GetSolVecOfElement(valueElem,it);
       }
 
       const UInt nrIntPts= ptElem->GetNumIntPoints();
@@ -1705,9 +1734,9 @@ namespace CoupledField {
       Double jacDet;
       for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
 
-        jacDet = ptElem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+        jacDet = ptElem->CalcJacobianDetAtIp(actIntPt, ptCoord, actSaveElem);
         Vector<Double> shapeFnc;  
-        ptElem -> GetShFncAtIp(shapeFnc, actIntPt);
+        ptElem -> GetShFncAtIp(shapeFnc, actIntPt, actSaveElem);
 
         if (isaxi_) {
           Vector<Double> coordAtIP;
@@ -1743,20 +1772,22 @@ namespace CoupledField {
     for (UInt actSD=0; actSD<calcElemPressure_.GetSize(); actSD++) {
 
       // get all elements belonging to subdomain
-      StdVector<Elem*> elemsSD;
-      ptgrid_->GetVolElems( elemsSD, calcElemPressure_[actSD] );
-
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( calcElemPressure_[actSD] );
+      
+      EntityIterator it = actSDList.GetIterator();
+      
       // density of elements in subdomain
       Double density;
       materials_[subdoms_[actSD]]->GetScalar(density,DENSITY,REAL);
 
       // loop over all elements of subdomain
-      for (UInt actEl=0; actEl< elemsSD.GetSize(); actEl++) {
+      for (it.Begin(); !it.IsEnd(); it++ ) {
 
-        BaseFE * ptElem = elemsSD[actEl]->ptElem;
+        BaseFE * ptElem = it.GetElem()->ptElem;
 
         // get element coordinates
-        StdVector<UInt> & connect = elemsSD[actEl]->connect;
+        StdVector<UInt> const & connect = it.GetElem()->connect;
         Matrix<Double> ptCoord;
         ptgrid_->GetElemNodesCoord( ptCoord, connect, false );
 
@@ -1764,12 +1795,12 @@ namespace CoupledField {
         Vector<Double> shapeFnc;
         Vector<Double> LCoord;
         ptElem -> GetCoordMidPoint(LCoord);
-        ptElem -> GetShFnc(shapeFnc,LCoord);
+        ptElem -> GetShFnc(shapeFnc,LCoord,it.GetElem());
 
         // retrieve 1st derivative and multiply with density, 
         //  since p = rho * dpsi/dt
         Vector<TYPE> valueElem;
-        GetDerivSolVecOfElement(valueElem, connect);
+        GetDerivSolVecOfElement(valueElem, it);
 
         valueElem *= density;
         Vector<TYPE> pressureElem(1);
@@ -1777,7 +1808,7 @@ namespace CoupledField {
 
         // map element result back in global set of results
         UInt pdeElem;
-        pdeElem = eqnMap_->Mesh2PdeElem(elemsSD[actEl]->elemNum);
+        pdeElem = eqnMap_->Mesh2PdeElem(it.GetElem()->elemNum);
 
         if ( isComplex_ == true ) {
           ElemStoreSol<Complex> & pressure = 
@@ -1859,31 +1890,34 @@ namespace CoupledField {
     // loop over all subdomains
     for (UInt iSD=0; iSD<calcAcouPower_.GetSize(); iSD++){
     
-      // get surface and acoording volume elements
-      ptgrid_->GetSurfElems( surfElems, calcAcouPower_[iSD] );
-    
+      SurfElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( calcAcouPower_[iSD] );
+      EntityIterator it = actSDList.GetIterator();
+
       // loop over all surface elements
-      for (UInt iElem=0; iElem<surfElems.GetSize(); iElem++) {
-        
+      UInt counterElems = 0;
+      for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
+      
+        const SurfElem * actSurfElem = it.GetSurfElem();
 	// Determine, which volume element is the right neighbour for the 
 	// calculation;
 	// our normal should point out of the correct neighbor volume element!
 	if ( acouPowerNeighborRegion_.
-	     Find(surfElems[iElem]->ptVolElem1->regionId) != -1 ) {
-	  ptVolElem = surfElems[iElem]->ptVolElem1;
+	     Find(actSurfElem->ptVolElem1->regionId) != -1 ) {
+	  ptVolElem = actSurfElem->ptVolElem1;
 	  normSign = 1.0;
 	} 
 	else {
-	  ptVolElem = surfElems[iElem]->ptVolElem2;
+	  ptVolElem = actSurfElem->ptVolElem2;
 	  normSign = -1.0;
 	}
 	
-	normSign *= (Double) surfElems[iElem]->normalSign;
+	normSign *= (Double) actSurfElem->normalSign;
 	
-	ptSurfElemFE = surfElems[iElem]->ptElem; 
+	ptSurfElemFE = actSurfElem->ptElem; 
 	ptVolElemFE = ptVolElem->ptElem;
         
-	const StdVector<UInt> & surfConnect = surfElems[iElem]->connect;
+	const StdVector<UInt> & surfConnect = actSurfElem->connect;
 	const StdVector<UInt> & volConnect = ptVolElem->connect;
         
 	// calculate volume integration coordinates from
@@ -1901,10 +1935,13 @@ namespace CoupledField {
 	Double area = ptSurfElemFE->CalcVolume( CornerCoords, isaxi_);
 	
 	// Calc gradient
-	gradOp->CalcElemGradField(gradVal, ptVolElem, 
+        ElemList elList(ptgrid_);
+        elList.SetElement( ptVolElem );
+        EntityIterator it2 = elList.GetIterator();
+	gradOp->CalcElemGradField(gradVal, it2, 
 				  lCoordVol,1.0);
 	// Calc global normal
-	ptgrid_->CalcSurfNormal(normal, *surfElems[iElem]);
+	ptgrid_->CalcSurfNormal(normal, *actSurfElem);
 	
 	normal    *= normSign;
 	gradNormal = normal * gradVal;
@@ -1922,7 +1959,7 @@ namespace CoupledField {
 	elemSol = std::conj(elemSol);
 	
 	pdeElemNum = eqnMap_->Mesh2PdeElem(ptVolElem->elemNum);
-	//pdeElemNum = eqnMap_->Mesh2PdeElem(surfElems[iElem]->elemNum);
+	//pdeElemNum = eqnMap_->Mesh2PdeElem(actSurfElem->elemNum);
         
 	if ( formulation_ == ACOU_PRESSURE ) {
 	  elemPower = multVal * gradNormal * elemSol / density;

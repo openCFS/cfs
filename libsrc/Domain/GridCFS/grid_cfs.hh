@@ -1,7 +1,10 @@
 #ifndef FILE_SCFE_GRID_CFS_2001
 #define FILE_SCFE_GRID_CFS_2001
 
+#include<bitset>
+
 #include "DataInOut/filetype.hh"
+#include "Domain/edgeFace.hh"
 
 #ifdef ADAPTGRID
 #include "Vertex.h"
@@ -50,12 +53,19 @@ namespace CoupledField
     //! Reads the grid from input file
     void Read();
 
-    //! Trigger mapping of element sub-entities (edges, surfaces)
+    //! Trigger mapping of elements' faces
+
+    //! This method calculates global surface numbers and 
+    //! makes them available in the element definitions, so they can
+    //! be used for higher order elements or edge functions.
+    void MapFaces();
+    
+    //! Trigger mapping of edges
 
     //! This method calculates global edge and surface numbers and 
     //! makes them available in the element definitions, so they can
     //! be used for higher order elements or edge functions.
-    void MapSubEntities();
+    void MapEdges();
     
     //@}
 
@@ -289,7 +299,33 @@ namespace CoupledField
                                 &neighRegions );
     
     //@}
+
+    // =======================================================================
+    // ELEMENT FACE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Surface Access Functions
+
+    //! Get total number of faces in the grid
+    UInt GetNumFaces();
+
+    //! Return face with given face
+    const Face& GetFace( UInt faceNr);
+
+    //@}
+
+    // =======================================================================
+    // ELEMENT EDGE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Edge Access Functions
     
+    //! Get number ofe edges
+    UInt GetNumEdges();
+    
+    //! Return edge with given number
+    const Edge& GetEdge( UInt edgeNr );
+
+    //@}
+
     // =======================================================================
     // GEOMETRY CALCULATION
     // =======================================================================
@@ -413,6 +449,8 @@ namespace CoupledField
     void CreateSurfaceElements( StdVector<StdVector<Elem*> > & elems);
 
     
+    
+
     //! Prints information about the grid into the .info file
     void PrintGridInfo() const;
     //@}
@@ -437,6 +475,18 @@ namespace CoupledField
     //! Total number of elements
     UInt numElems_;
 
+    //! Total number of faces
+    UInt numFaces_;
+
+    //! Total number of edges
+    UInt numEdges_;
+
+    //! Flag indicating if edges are already mapped
+    bool edgesMapped_;
+
+    //! Flag indicating if faces are already mapped
+    bool facesMapped_;
+    
     //! Flag indicating use of quadratic elements
     bool isQuadratic_;
 
@@ -481,6 +531,18 @@ namespace CoupledField
     std::map<FEType, UInt> numElemTypes_;
     //@}
   
+    //! Map containing face number for each face
+    std::map<Face,UInt> faceNums_;
+
+    //! Map containing edge number for each edge
+    std::map<Edge,UInt> edgeNums_;
+
+    //! Vector containing all edges
+    StdVector<Face> faces_;
+
+    //! Vector containing all edges
+    StdVector<Edge> edges_;
+    
     // =======================================================================
     // Named Entities
     // =======================================================================
@@ -499,6 +561,7 @@ namespace CoupledField
     StdVector<std::string> namedElemNames_;
 
     //@}
+ 
     
 #ifdef ADAPTGRID
     

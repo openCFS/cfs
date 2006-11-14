@@ -48,28 +48,28 @@ namespace CoupledField
 
     ENTER_FCN( "linElastInt::calcBMat" );
 
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    const UInt numFncs  = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt spaceDim = ptelem->GetDim();  
     const UInt nrDofs   = getNrDofs();  
 
     UInt actDim, actNode, j, k;
     
     
-    bMat.Resize(getDimD(), nrNodes * nrDofs);
+    bMat.Resize(getDimD(), numFncs * nrDofs);
     bMat.Init();
-    
+
     // local shape functions derived after global coords
-    // (format: nrNodes x spaceDim)
+    // (format: numFncs x spaceDim)
     Matrix<Double> xiDx;
-
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+      
     if (isSetIntPoint_) 
-      ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord);
+      ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, it1_.GetElem() );
     else
-      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
-
+      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
 
     for(actDim=0; actDim < spaceDim; actDim++)
-      for(actNode=0; actNode < nrNodes; actNode++)
+      for(actNode=0; actNode < numFncs; actNode++)
         bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
 
     switch(spaceDim)
@@ -78,7 +78,7 @@ namespace CoupledField
         j = 1;
         k = 0;
         
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
             bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
@@ -91,13 +91,13 @@ namespace CoupledField
             Vector<Double> CoordAtIP;
 
             if (isSetIntPoint_) 
-              ptelem->GetShFnc(ShpFncAtIp,intPoint_);
+              ptelem->GetShFnc(ShpFncAtIp,intPoint_, it1_.GetElem());
             else
-              ptelem->GetShFncAtIp(ShpFncAtIp,ip);
+              ptelem->GetShFncAtIp(ShpFncAtIp,ip, it1_.GetElem() );
 
             CoordAtIP = ptCoord * ShpFncAtIp;
 
-            for (actNode = 0; actNode < nrNodes; actNode++)          
+            for (actNode = 0; actNode < numFncs; actNode++)          
               bMat[idxtheta-1][actNode * spaceDim] =
                 ShpFncAtIp[actNode] / CoordAtIP[0];
           }
@@ -107,21 +107,21 @@ namespace CoupledField
 
       case 3:
         UInt actDim=spaceDim;
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
             bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
           }
 
         actDim++;
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
             bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
           }
 
         actDim++;
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
             bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];

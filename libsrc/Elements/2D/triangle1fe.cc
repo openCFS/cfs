@@ -58,8 +58,10 @@ namespace CoupledField
   }
 
 
-  void Triangle1FE :: CalcShapeFnc(Vector<Double> & Shape, 
-                                   const Vector<Double> & LCoord)
+  void Triangle1FE :: CalcShapeFnc( Vector<Double> & Shape, 
+                                    const Vector<Double> & LCoord,
+                                    const Elem*, UInt dof,
+                                    AnsatzFct::FctEntityType )
   {
     ENTER_IFCN( "Triangle1FE::CalcShapeFnc" );
 
@@ -81,8 +83,10 @@ namespace CoupledField
   }
 
 
-  void Triangle1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                             const Vector<Double> & LCoord)
+  void Triangle1FE :: CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
+                                              const Vector<Double> & LCoord,
+                                              const Elem*, UInt dof,
+                                              AnsatzFct::FctEntityType )
   {
     ENTER_IFCN( "Triangle1FE::CalcLocalDerivShapeFnc" );
 

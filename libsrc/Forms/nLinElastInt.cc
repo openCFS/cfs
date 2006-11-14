@@ -38,10 +38,16 @@ namespace CoupledField
     ENTER_FCN( "nLinElastInt::CalcElementMatrix" );
 
     // get displacements of element
-    sol_->GetElemSolutionAsMatrix( elemDisp_, ent1.GetElem()->connect );
+    sol_->GetElemSolutionAsMatrix( elemDisp_, ent1  );
     
     // call method of base class
     BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
+  }
+
+  void nLinElastInt::SetActEntities( EntityIterator ent1,
+                                     EntityIterator ent2 ) {
+    it1_ = ent1;
+    it2_ = ent2;
   }
 
   // returns nonlinear B - matrix (first part) for BDB
@@ -54,27 +60,31 @@ namespace CoupledField
     if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
       Error("Undefined displacements! ",__FILE__,__LINE__);
 
-    const UInt nrNodes = ptelem->GetNumNodes();
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+   
     const UInt nrDofs  = getNrDofs();    
     const UInt dimD    = getDimD();
 
+    
+    
     Matrix<Double> linBMat;    
     linElastInt::calcBMat( linBMat, ip, ptCoord);
 
 
-    bMat.Resize( dimD, nrNodes * nrDofs );
+    bMat.Resize( dimD, numFncs * nrDofs );
     bMat.Init();
 
     
     // local shape functions derived after global coords 
-    // (format: nrNodes x nrDofs)
+    // (format: numFncs x nrDofs)
     Matrix<Double> xiDx;
-    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
 
 
     // calculate derivates of global displacements at element nodes
-    // elemDisp_ holds displacement of the actual element (dimension: nrDofs x nrNodes)
-    // xiDx holds derivatives of shape functions after global coords in one IP (dimension: nrNodes x nrDofs)
+    // elemDisp_ holds displacement of the actual element (dimension: nrDofs x numFncs)
+    // xiDx holds derivatives of shape functions after global coords in one IP (dimension: numFncs x nrDofs)
     // displDeriv dimension: nrDofs x nrDofs
     Matrix<Double>  displDeriv;  
     displDeriv = elemDisp_ * xiDx;
@@ -91,7 +101,7 @@ namespace CoupledField
 
     
     Matrix<Double> helpMat;
-    for( UInt actNode=0; actNode < nrNodes; actNode++)
+    for( UInt actNode=0; actNode < numFncs; actNode++)
       {
         linBMat.GetSubMatrix(bMatOneNode, 0, actNode*nrDofs);
 
@@ -106,7 +116,7 @@ namespace CoupledField
         const UInt spaceDim  = ptelem->GetDim();
 
         Vector<Double> shpFncAtIp;
-        ptelem->GetShFncAtIp(shpFncAtIp, ip);
+        ptelem->GetShFncAtIp(shpFncAtIp, ip, it1_.GetElem() );
 
         Vector<Double> coordAtIP;
         coordAtIP = ptCoord * shpFncAtIp;
@@ -116,7 +126,7 @@ namespace CoupledField
           l33 += elemDisp_[0][actPos] * shpFncAtIp[actPos] / coordAtIP[0];
         
         
-        for (UInt actNode = 0; actNode < nrNodes; actNode++)      
+        for (UInt actNode = 0; actNode < numFncs; actNode++)      
           {         
             //  (N_a/r) * (u_x/r)
             bMat[dimD - 1][actNode * spaceDim]     = l33 * shpFncAtIp[actNode] / coordAtIP[0];
@@ -357,21 +367,22 @@ namespace CoupledField
   {
     ENTER_FCN( "nLinMechInt_PiolaStress::calcBMat" );
 
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrDofs   = getNrDofs();    
 
 
-    bMat.Resize(getDimD(), nrNodes * nrDofs);
+    bMat.Resize(getDimD(), numFncs * nrDofs);
     bMat.Init();
 
     
     // local shape functions derived after global coords 
-    // (format: nrNodes x nrDofs)
+    // (format: numFncs x nrDofs)
     Matrix<Double> xiDx;
-    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
 
 
-    for( UInt actNode=0; actNode < nrNodes; actNode++ )
+    for( UInt actNode=0; actNode < numFncs; actNode++ )
       for( UInt globPos=0; globPos < nrDofs; globPos++ )
         for( UInt actDof=0; actDof < nrDofs; actDof++ )
           bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
@@ -383,10 +394,10 @@ namespace CoupledField
         Vector<Double> shpFncAtIp;
         Vector<Double> coordAtIP;
         
-        ptelem->GetShFncAtIp(shpFncAtIp,ip);
+        ptelem->GetShFncAtIp(shpFncAtIp,ip, it1_.GetElem() );
         coordAtIP = ptCoord * shpFncAtIp;
         
-        for ( UInt  actNode = 0; actNode < nrNodes; actNode++)          
+        for ( UInt  actNode = 0; actNode < numFncs; actNode++)          
           bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
       }
   }
@@ -513,21 +524,22 @@ namespace CoupledField
   {
     ENTER_FCN( "PreStressInt::calcBMat" );
 
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrDofs   = getNrDofs();    
 
     UInt dimD = getFullPiolaDMatSize();
-    bMat.Resize(dimD, nrNodes * nrDofs);
+    bMat.Resize(dimD, numFncs * nrDofs);
     bMat.Init();
 
     
     // local shape functions derived after global coords 
-    // (format: nrNodes x nrDofs)
+    // (format: numFncs x nrDofs)
     Matrix<Double> xiDx;
-    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
 
 
-    for( UInt actNode=0; actNode < nrNodes; actNode++ )
+    for( UInt actNode=0; actNode < numFncs; actNode++ )
       for( UInt globPos=0; globPos < nrDofs; globPos++ )
         for( UInt actDof=0; actDof < nrDofs; actDof++ )
           bMat[globPos*nrDofs + actDof][actNode * nrDofs + globPos] = xiDx[actNode][actDof];      
@@ -539,10 +551,10 @@ namespace CoupledField
         Vector<Double> shpFncAtIp;
         Vector<Double> coordAtIP;
         
-        ptelem->GetShFncAtIp(shpFncAtIp,ip);
+        ptelem->GetShFncAtIp(shpFncAtIp,ip, it1_.GetElem() );
         coordAtIP = ptCoord * shpFncAtIp;
         
-        for ( UInt actNode = 0; actNode < nrNodes; actNode++)          
+        for ( UInt actNode = 0; actNode < numFncs; actNode++)          
           bMat[getDimD() -1][actNode * spaceDim] = shpFncAtIp[actNode] / coordAtIP[0];
       }
   }

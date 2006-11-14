@@ -13,24 +13,25 @@ namespace CoupledField
   {
     ENTER_FCN( "SmoothInt::calcBMat" );
     
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt spaceDim = ptelem->GetDim();  
     const UInt nrDofs   = getNrDofs();  
 
     UInt actDim, actNode, j, k;
     
     
-    bMat.Resize(getDimD(), nrNodes * nrDofs);
+    bMat.Resize(getDimD(), numFncs * nrDofs);
     bMat.Init();
     
-    // local shape functions derived after global coords (format: nrNodes x spaceDim)
+    // local shape functions derived after global coords (format: numFncs x spaceDim)
     Matrix<Double> xiDx;
 
-    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem());
 
 
     for(actDim=0; actDim < spaceDim; actDim++)
-      for(actNode=0; actNode < nrNodes; actNode++)
+      for(actNode=0; actNode < numFncs; actNode++)
         bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
 
     switch(spaceDim)
@@ -39,7 +40,7 @@ namespace CoupledField
         j = 1;
         k = 0;
         
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
             bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
@@ -49,21 +50,21 @@ namespace CoupledField
 
       case 3:
         UInt actDim=spaceDim;
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
             bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
           }
 
         actDim++;
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
             bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
           }
 
         actDim++;
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
             bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];
@@ -86,7 +87,7 @@ namespace CoupledField
     dMat.Resize(dimRow, dimCol);
 
     Double jacDetInv;
-    jacDetInv = 1.0/ptelem->CalcJacobianDetAtIp(ip,ptCoord);
+    jacDetInv = 1.0/ptelem->CalcJacobianDetAtIp(ip,ptCoord, it1_.GetElem() );
 
     for (UInt i=0; i<dimRow; i++)
       for (UInt j=0; j<dimCol; j++)

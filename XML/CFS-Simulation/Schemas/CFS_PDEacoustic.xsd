@@ -216,6 +216,17 @@
           </xsd:simpleType>
         </xsd:attribute>
 
+        <xsd:attribute name="type" use="optional" default="lagrange">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="lagrange"/>
+              <xsd:enumeration value="legendre"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="order" use="optional"
+        type="xsd:positiveInteger" default="1"/>
+
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

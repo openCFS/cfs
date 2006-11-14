@@ -47,7 +47,8 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f]
     */
     virtual Double CalcJacobianDet(const Vector<Double> & LCoord,
-                                   const Matrix<Double> & CornerCoords);
+                                   const Matrix<Double> & CornerCoords,
+                                   const Elem* elem );
 
     //! Calculation of Jacobian determinant at integration point ip
     /*! 
@@ -56,7 +57,8 @@ namespace CoupledField
       \f[ \left( \begin{array}{ccc} x_{1} & x_{2} & \cdots \end{array} \right) \f]
     */
     virtual Double CalcJacobianDetAtIp(const UInt ip, 
-                                       const Matrix<Double> & CornerCoors);
+                                       const Matrix<Double> & CornerCoors,
+                                       const Elem* elem );
 
     //! calculates the Jacobian Matrix at an arbitrary local point
     /*!
@@ -68,7 +70,8 @@ namespace CoupledField
     */
     virtual void CalcJacobian(Matrix<Double> & J, 
                               const Vector<Double> & LCoord, 
-                              const Matrix<Double> & CornerCoords);
+                              const Matrix<Double> & CornerCoords,
+                              const Elem* elem );
   
     //! Calculates the Jacobian Matrix at integration point ip
     /*!
@@ -80,7 +83,8 @@ namespace CoupledField
     */
     virtual void CalcJacobianAtIp(Matrix<Double> & J, 
                                   const UInt ip, 
-                                  const Matrix<Double> & CornerCoords);
+                                  const Matrix<Double> & CornerCoords,
+                                  const Elem* elem );
 
     //! calculates the Inverse Jacobian Matrix at an arbitrary local point
     /*!
@@ -92,7 +96,8 @@ namespace CoupledField
     */
     virtual void CalcInvJacobian(Matrix<Double> & JInv,
                                  const Vector<Double> & LCoord,
-                                 const Matrix<Double> & CornerCoords);
+                                 const Matrix<Double> & CornerCoords,
+                                 const Elem* elem );
   
     //! Calculates the Inverse Jacobian Matrix at integration point ip
     /*!
@@ -104,7 +109,8 @@ namespace CoupledField
     */
     virtual void CalcInvJacobianAtIp(Matrix<Double> & JInv,
                                      const UInt ip,
-                                     const Matrix<Double> & CornerCoords);
+                                     const Matrix<Double> & CornerCoords,
+                                     const Elem* elem );
   };
 
 }

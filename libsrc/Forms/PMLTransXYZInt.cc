@@ -62,8 +62,10 @@ namespace CoupledField
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
 
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;
 
@@ -72,9 +74,9 @@ namespace CoupledField
     Vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*nrDofsPerNode_);
+    elemMat.Resize(numFncs*nrDofsPerNode_);
     elemMat.Init();
-    singleMat.Resize(nrNodes); 
+    singleMat.Resize(numFncs); 
     singleMat.Init();
 
     Vector<Double> factorsPML;
@@ -82,9 +84,9 @@ namespace CoupledField
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
         
-      ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
+      ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
         
       partElemMat.DyadicMult(shapeFncAtIp);
         
@@ -107,8 +109,8 @@ namespace CoupledField
     factor   = factorsPML[0] * formsFactor_;
     startCol = 0;
     startRow = 0;
-    for (UInt i=0; i < nrNodes; i++) {
-      for (UInt j=0; j < nrNodes; j++) {
+    for (UInt i=0; i < numFncs; i++) {
+      for (UInt j=0; j < numFncs; j++) {
 	elemMat[i*nrDofsPerNode_ + startRow][j*nrDofsPerNode_ + startCol] = factor*singleMat[i][j]; 
       }
     }
@@ -119,8 +121,8 @@ namespace CoupledField
     factor   = factorsPML[1] * formsFactor_;
     startCol = 1;
     startRow = 1;
-    for (UInt i=0; i < nrNodes; i++) {
-      for (UInt j=0; j < nrNodes; j++) {
+    for (UInt i=0; i < numFncs; i++) {
+      for (UInt j=0; j < numFncs; j++) {
 	elemMat[i*nrDofsPerNode_ + startRow][j*nrDofsPerNode_ + startCol] = factor*singleMat[i][j]; 
       }
     }
@@ -135,8 +137,8 @@ namespace CoupledField
       factor   = factorsPML[2] * formsFactor_;
       startCol = 2;
       startRow = 2;
-      for (UInt i=0; i < nrNodes; i++) {
-	for (UInt j=0; j < nrNodes; j++) {
+      for (UInt i=0; i < numFncs; i++) {
+	for (UInt j=0; j < numFncs; j++) {
 	  elemMat[i*nrDofsPerNode_ + startRow][j*nrDofsPerNode_ + startCol] = factor*singleMat[i][j]; 
 	}
       }

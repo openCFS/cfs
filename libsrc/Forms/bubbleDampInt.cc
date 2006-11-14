@@ -54,8 +54,9 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
     
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;
 
@@ -65,7 +66,7 @@ namespace CoupledField {
 
     // set matrix to desired size and set all elements to zero
     //    partElemMat.Resize(nrNodes);
-    elemMat.Resize(nrNodes);
+    elemMat.Resize( numFncs );
     elemMat.Init();
     
     // get value of radius und its derivative
@@ -95,9 +96,9 @@ namespace CoupledField {
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
         
-      ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
         
       partElemMat.DyadicMult(shapeFncAtIp);
      
