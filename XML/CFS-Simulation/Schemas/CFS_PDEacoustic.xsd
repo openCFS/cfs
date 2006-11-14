@@ -424,6 +424,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="effMassMatrix"/>
       <xsd:enumeration value="effStiffMatrix"/>
+      <xsd:enumeration value="diagMassMatrix"/>
     </xsd:restriction>
   </xsd:simpleType>
 

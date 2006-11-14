@@ -40,6 +40,8 @@
     <mechanic>
   
       <region name="dummyRegion"/>
+ 
+     <timeSteppingFormulation/>
 
       <nonLinear>
         <lineSearch/>

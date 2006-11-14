@@ -104,6 +104,7 @@
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="expertsChoice"/>
           <xsd:enumeration value="Richardson"/>
+          <xsd:enumeration value="diagsolver"/>
           <xsd:enumeration value="cg"/>
           <xsd:enumeration value="gmres"/>
           <xsd:enumeration value="minres"/>
