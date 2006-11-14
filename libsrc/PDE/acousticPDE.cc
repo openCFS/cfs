@@ -53,6 +53,9 @@ namespace CoupledField {
     saveRHSvalHist_ = false;
     isBubbleCoupled_ = false;
 
+//      mHandle_ =  domain->GetMathParser()->GetNewHandle();
+//      MathParser * mParser =  domain->GetMathParser();
+//      mParser->SetExpr( mHandle_, "t" );
 
     // PDE formulation either in acoustic potential or pressure
     std::string str;
@@ -804,89 +807,90 @@ namespace CoupledField {
     }
   }
 
-  void AcousticPDE::DefineSolveStep() {
-    ENTER_FCN( "AcousticPDE::DefineSolveStep" );
+   void AcousticPDE::DefineSolveStep() {
+     ENTER_FCN( "AcousticPDE::DefineSolveStep" );
 
-    solveStep_ = new SolveStepAcoustic(*this);
-  }
+     solveStep_ = new SolveStepAcoustic(*this);
+   }
 
 
 
-//   // ======================================================
-//   // ALGSYS SECTION (SOLVER, ...) need for acoububble coupling
-//   // ======================================================
-//   void AcousticPDE::DefineAlgSys() {
+//    // ======================================================
+//    // ALGSYS SECTION (SOLVER, ...) need for acoububble coupling
+//    // ======================================================
+//    void AcousticPDE::DefineAlgSys() {
     
-//     ENTER_FCN( "Acoustic::DefineAlgSys" );
+//      ENTER_FCN( "Acoustic::DefineAlgSys" );
 
-//     //=====================================================
-//     // Only if acousticPDE is iteratively coupled with
-//     // the bubblePDE
-//     //====================================================
+//      //=====================================================
+//      // Only if acousticPDE is iteratively coupled with
+//      // the bubblePDE
+//      //====================================================
 
-//     if( isBubbleCoupled_){
-//       // Process input couplings of the bubblePDE to the
-//       // additional baseforms of the acousticPDE 
-//       UInt numInCouplings = ptCoupling_->GetNumInputCouplings();
+//      if( isBubbleCoupled_){
+
+//        // Process input couplings of the bubblePDE to the
+//        // additional baseforms of the acousticPDE 
+//        UInt numInCouplings = ptCoupling_->GetNumInputCouplings();
       
-//       // bubble coupling data
-//       StdVector<UInt> elemNumbers;
-//       Vector<Double> * radius = NULL;
-//       Vector<Double> * radiusDeriv  = NULL;
-//       std::cerr<<"definealssys numOutCouplings "<<numInCouplings<< std::endl;
-//       for (UInt i = 0; i < numInCouplings; i++) {
+//        // bubble coupling data
+//        StdVector<UInt> elemNumbers;
+//        Vector<Double> * radius = NULL;
+//        Vector<Double> * radiusDeriv  = NULL;
+//        std::cerr<<"definealssys numOutCouplings "<<numInCouplings<< std::endl;
+//        for (UInt i = 0; i < numInCouplings; i++) {
       
-// 	std::cerr<<"definealgsys ptCoupling_->GetInputQuantity(i)"<<ptCoupling_->GetInputQuantity(i)<< std::endl;
-// 	if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS) {
+//  	std::cerr<<"definealgsys ptCoupling_->GetInputQuantity(i)"<<ptCoupling_->GetInputQuantity(i)<< std::endl;
+//  	if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS) {
 	
-// 	  // get coupling elements and create vector with element numbers
-// 	  StdVector<Elem*> * elems = NULL;
-// 	  ptCoupling_->GetInputElements(i, elems );
+//  	  // get coupling elements and create vector with element numbers
+//  	  StdVector<Elem*> * elems = NULL;
+//  	  ptCoupling_->GetInputElements(i, elems );
  	
-// 	  elemNumbers.Resize( elems->GetSize() );
-// 	  for (UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
+//  	  elemNumbers.Resize( elems->GetSize() );
+//  	  for (UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
 // 	    elemNumbers[iElem] = (*elems)[iElem]->elemNum;
-// 	  }
+//  	  }
 	
-// 	  // get buffer with coupling values 
-// 	  CFSVector * temp;
-// 	  ptCoupling_->GetInputValues( i, temp );    
-// 	  std::cerr<<"acou definealgsys size temp"<< (* temp).GetSize()<<std::endl;
+//  	  // get buffer with coupling values 
+//  	  CFSVector * temp;
+//  	  ptCoupling_->GetInputValues( i, temp );    
+//  	  std::cerr<<"acou definealgsys size temp"<< (* temp).GetSize()<<std::endl;
 
-// 	  radius = dynamic_cast<Vector<Double>*>(temp);
+//  	  radius = dynamic_cast<Vector<Double>*>(temp);
 
-// 	} else if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS_DERIV_1 ) {
+//  	} else if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS_DERIV_1 ) {
 	
-// 	  // get buffer with coupling values 
-// 	  CFSVector * temp;
-// 	  ptCoupling_->GetInputValues( i, temp );
-// 	  radiusDeriv = dynamic_cast<Vector<Double>*>(temp);
+//  	  // get buffer with coupling values 
+//  	  CFSVector * temp;
+//  	  ptCoupling_->GetInputValues( i, temp );
+//  	  radiusDeriv = dynamic_cast<Vector<Double>*>(temp);
 	
-// 	}
-// 	std::cerr<<"test in acou definealgsys nach"<< std::endl;
-//       }
+//  	}
+//  	std::cerr<<"test in acou definealgsys nach"<< std::endl;
+//        }
 
-//       // Iterate over all BubbleMass/Stiff-Integrators and pass the
-//       // radius data to them
+//        // Iterate over all BubbleMass/Stiff-Integrators and pass the
+//        // radius data to them
 
-//       std::map<RegionIdType, BubbleDampInt*>::iterator dampIt;
-//       std::map<RegionIdType, BubbleStiffInt*>::iterator stiffIt;
+//        std::map<RegionIdType, BubbleDampInt*>::iterator dampIt;
+//        std::map<RegionIdType, BubbleStiffInt*>::iterator stiffIt;
 
-//       for( dampIt = bubbleDampIntMap_.begin();
-// 	   dampIt != bubbleDampIntMap_.end(); dampIt++ ) {
-// 	dampIt->second->SetValues( elemNumbers, radius, radiusDeriv);
-//       }
+//        for( dampIt = bubbleDampIntMap_.begin();
+//  	   dampIt != bubbleDampIntMap_.end(); dampIt++ ) {
+//  	dampIt->second->SetValues( elemNumbers, radius, radiusDeriv);
+//        }
 
-//       for( stiffIt = bubbleStiffIntMap_.begin();
-// 	   stiffIt != bubbleStiffIntMap_.end();
-// 	   stiffIt++ ) {
-// 	stiffIt->second->SetValues( elemNumbers, radius, radiusDeriv);
-//       }
-//     }
+//        for( stiffIt = bubbleStiffIntMap_.begin();
+//  	   stiffIt != bubbleStiffIntMap_.end();
+//  	   stiffIt++ ) {
+//  	stiffIt->second->SetValues( elemNumbers, radius, radiusDeriv);
+//        }
+//      }
     
-//     SinglePDE::DefineAlgSys();
+//      SinglePDE::DefineAlgSys();
 
-//   }
+//    }
 
 
 
@@ -1479,9 +1483,19 @@ namespace CoupledField {
 
     ENTER_FCN( "AcousticPDE::CalcBubblePressure" );
 
+//     //NUR BEI BOSCH!!!
+//     mHandle_ =  domain->GetMathParser()->GetNewHandle();
+//     MathParser * mParser =  domain->GetMathParser();
+//     mParser->SetExpr( mHandle_, "t" );
 
     // Initialize coupling values
     couplVals.Init();
+
+    UInt locElemNum = 0;
+    Vector<Double> pressureOut(3);
+    pressureOut.Init();
+
+  //  MathParser * mParser =  domain->GetMathParser();
 
     if ( solType == ACOU_PRESSURE ) {
 
@@ -1499,6 +1513,17 @@ namespace CoupledField {
 
         // store back to vector
         couplVals[iElem] = pressure;
+
+
+//  	locElemNum = eqnMap_->Mesh2PdeElem(elems[iElem]->elemNum );
+//  	if( locElemNum == 2 ){
+//  	  pressureOut[0]= mParser->Eval( mHandle_ );
+//  	  pressureOut[1]= pressure;
+//  	  //	  std::cout<<pressureOut[0]<<"   "<<pressureOut[1];
+//  	}
+	
+
+
       }
 
     } else {
@@ -1516,9 +1541,17 @@ namespace CoupledField {
 
         // store back to vector
         couplVals[iElem] = pressureDeriv;
+
+
+//  	locElemNum = eqnMap_->Mesh2PdeElem(elems[iElem]->elemNum );
+//  	if( locElemNum == 2 ){
+//  	  pressureOut[2]= pressureDeriv;
+//  	  //	  std::cout<<"    "<<pressureOut[2]<<std::endl;; 
+
+//  	}
+	  
       }
     }
-
 
   }  
 
