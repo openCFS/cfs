@@ -453,16 +453,16 @@ namespace CoupledField {
         Vector<Double> result(3);
  
 	//zum Testen
-	if ( actStep * dtStep_  <= 1.0 / frequency_){
+// 	if ( actTime  < 1.0 / frequency_){
 	 
-	  result[0] = 0.0;
-	  result[1] = 0.0;
-	  result[2] = 0.0; 
-	}
-	else{
-	  if (el = numElems - 1 ){
-	    Info->PrintF( pdename_, "Ausgabe der Bubbleergebnisse %e \n", actTime);
-	  }
+// 	  result[0] = 0.0;
+// 	  result[1] = 0.0;
+// 	  result[2] = 0.0; 
+// 	}
+// 	else{
+// 	  if (el = numElems - 1 ){
+// 	    Info->PrintF( pdename_, "Ausgabe der Bubbleergebnisse %e \n", actTime);
+// 	  }
 
 	  result[0] = radius_[el];
 	  result[1] = velocity_[el];
@@ -497,7 +497,7 @@ namespace CoupledField {
         //std::cerr<<actTime<<"   " <<el<< "   " << result[0] << "   " 
         // result[1] << "     " << result[2] << std::endl;
 
-	}
+	  //	}
         
         // Map global element number to local one
 
@@ -841,7 +841,10 @@ namespace CoupledField {
 //         }
 
 
-	if ( tDim_  <= 1.0 / frequency_){
+	if ( tDim_  < 1.0 / frequency_){
+	  if (couplIndex == 0  )
+	    Info->PrintF( pdename_, "Partial coupling in RHS %e \n",tDim_);
+
 	  rhsForm->SetFactor(0.0);
 	}
 	else{
@@ -862,13 +865,16 @@ namespace CoupledField {
 
 
         // store element result
-        if ( writeRHS_ == true || saveElemRHSHist_.GetSize() > 0 ) {
+        if ( writeRHS_ == true || saveElemRHSHist_.GetSize() > 0 ||  saveElemRHSHistRegion_.GetSize() > 0) {
           helpVec.Resize( 2 );
           helpVec[0] = beta2;
           helpVec[1] = Rpp;
           //helpVec[2] = beta2Com;
           UInt locElemNum = eqnMap_->Mesh2PdeElem(it.GetElem()->elemNum);
           addElemResult_.SetElemResult(locElemNum-1, helpVec);
+	  //	  if( locElemNum == 2 ){
+	    //  std::cout<<tDim_ << "   "<< beta2<< "   "<<Rpp<<std::endl;
+	  //}
         }
       }
     }
@@ -887,7 +893,7 @@ namespace CoupledField {
     ENTER_FCN( "BubblePDE::CalcBubbleRadius" );
 
 
-	std::cerr<<"bubble calcradius radiussize "<<radius_.GetSize()<<std::endl;
+    //	std::cerr<<"bubble calcradius radiussize "<<radius_.GetSize()<<std::endl;
     // Initialize coupling values
     couplVals.Init();
 
