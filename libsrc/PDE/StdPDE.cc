@@ -25,6 +25,7 @@ namespace CoupledField {
       residualStopCrit_(1e-3),
       TS_alg_(NULL),
       effectiveMass_(false),
+      diagMass_(false),
       firstTimeStepStatic_(true),
       isAlwaysStatic_(false),
       isaxi_(false),

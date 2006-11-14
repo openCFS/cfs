@@ -68,7 +68,7 @@ namespace CoupledField
     //! constructor
     //! constructor
     //! \param algebraicsystem pointer to algebraic system 
-    NewmarkEffMass( BaseSystem * algebraicsystem );
+    NewmarkEffMass( BaseSystem * algebraicsystem, bool intExplicit = false );
 
     //! destructor
     virtual ~NewmarkEffMass();
@@ -121,6 +121,8 @@ namespace CoupledField
     //! predictor for derivative of solution
     Vector<Double> solderiv1pred_;
   
+    // if true, we perform explicit time stepping
+    bool intExplicit_;
 
 };
 

@@ -13,7 +13,8 @@ namespace CoupledField {
                    bool axi, bool coordUpdate )
     : BaseForm(NULL), 
       density_(aDensity), 
-      nrDofsPerNode_(nrDofsPerNode)
+      nrDofsPerNode_(nrDofsPerNode),
+      diagMass_(false)
       
   {
     ENTER_FCN( "MassInt::MassInt" );
@@ -54,32 +55,52 @@ namespace CoupledField {
     elemMat.Resize(nrNodes);
     elemMat.Init();
     
+    if (diagMass_ ) {
+      Double mass = 0.0;
+      for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
-
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
         
-      ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
-        
-      partElemMat.DyadicMult(shapeFncAtIp);
-        
-      if (isaxi_) {
-        CoordAtIP = ptCoord_ * shapeFncAtIp;
-        partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor_* jacDet * CoordAtIP[0];
+	if (isaxi_) {
+	  ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
+	  CoordAtIP = ptCoord_ * shapeFncAtIp;
+	  mass += 2 * PI * intWeights[actIntPt-1] * density_ * factor_* jacDet * CoordAtIP[0];
+	}
+	else 
+	  mass += intWeights[actIntPt-1] * density_ * factor_ * jacDet;
       }
-      else 
-        partElemMat *= intWeights[actIntPt-1] * density_ * factor_ * jacDet;
-        
-      elemMat += partElemMat;
+
+      for ( UInt i=0; i<nrNodes; i++ ) 
+	elemMat[i][i] = mass / (Double)nrNodes;
+   
     }
-  
+    else {
+      for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
+
+	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+        
+	ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
+        
+	partElemMat.DyadicMult(shapeFncAtIp);
+        
+	if (isaxi_) {
+	  CoordAtIP = ptCoord_ * shapeFncAtIp;
+	  partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor_* jacDet * CoordAtIP[0];
+	}
+	else 
+	  partElemMat *= intWeights[actIntPt-1] * density_ * factor_ * jacDet;
+        
+	elemMat += partElemMat;
+      }
+    }
+
     if (nrDofsPerNode_ > 1 ) {
       Matrix <Double> multDofMass;
       MassMultiDof(multDofMass, elemMat, nrDofsPerNode_);       
       elemMat = multDofMass;
     }
-
-    //    std::cout << "ElemMatMass:\n" << elemMat << std::endl;
+    
+    //     std::cout << "ElemMatMass:\n" << elemMat << std::endl;
   }
 
   void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 

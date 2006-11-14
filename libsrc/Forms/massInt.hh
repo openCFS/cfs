@@ -24,6 +24,11 @@ namespace CoupledField
                             EntityIterator& ent2 );
       
 
+    //! define diagonal mass matrix
+    void SetDiagMass() {
+      diagMass_ = true;
+    };
+
     //! for fractional damping model, is called in AcousticPDE::DefineIntegrators
     void SetFracDamping() 
     {isFracDamping_ = true;};
@@ -50,7 +55,7 @@ namespace CoupledField
     Double density_;          //!< multiplicative value for mass integrator
     Double factor_;           //!< yet another multiplicative value for mass integrator
     UInt nrDofsPerNode_;   //!< degrees of freedom per node
-  
+    bool diagMass_;         //<! true, mass matrix is diagonal
   };
 
 }

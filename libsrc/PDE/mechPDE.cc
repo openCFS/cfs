@@ -33,7 +33,8 @@ namespace CoupledField {
 
     pdename_          = "mechanic";
     pdematerialclass_ = MECHANIC;
-    fracDamping_ = false;
+    fracDamping_   = false;
+    effectiveMass_ = false;
 
     // ****************************
     // DETERMINE GEOMETRY
@@ -101,7 +102,27 @@ namespace CoupledField {
     res1->fctType = fct;
     results_.Push_back( res1 );
     
-    effectiveMass_ = params->IsSet( "effMass" );
+    // timestepping formulation
+     std::string str;
+     params->Get( "timeSteppingFormulation", str, "pdeList", pdename_ );
+    if ( str == "effMassMatrix" ) {
+      effectiveMass_ = true;
+      Info->PrintF( pdename_, 
+                    "      * effective mass matrix timestepping\n");
+    } 
+    else if ( str == "diagMassMatrix" ) {
+      diagMass_      = true;
+      effectiveMass_ = true;
+      Info->PrintF( pdename_, 
+                    "      * diagonal mass matrix in explicit timestepping\n");
+    } 
+    else {
+      effectiveMass_ = false;
+      Info->PrintF( pdename_, 
+                    "      * effective stiffness matrix timestepping\n");
+    }
+
+    //    effectiveMass_ = params->IsSet( "effMass" );
     
     // *********************************
     //  Check for pressure loads
@@ -616,8 +637,12 @@ namespace CoupledField {
 
 	double density;
 	actSDMat->GetScalar(density,DENSITY,REAL);
-	BaseForm * bilinearMass  = new MassInt(density, dim_, isaxi_);
-	
+	MassInt * bilinearMass  = new MassInt(density, dim_, isaxi_);
+	if ( diagMass_ ) {
+	  // diagonal mass matrix
+	  bilinearMass->SetDiagMass();
+	}
+
 	actIntDescr =  new BiLinFormContext(bilinearMass, MASS );
 
 
@@ -1288,11 +1313,19 @@ namespace CoupledField {
     ENTER_FCN( "MechPDE::InitTimeStepping" );
 
 
-    if ( fracDamping_ == false ) { 
-      if (effectiveMass_)  
-        TS_alg_ = new NewmarkEffMass( algsys_ );
-      else
-        TS_alg_ = new Newmark( algsys_);
+    if ( fracDamping_ == false ) {
+      if ( effectiveMass_ == true ) {
+        if ( diagMass_ == true ) {
+	  //explicit time stepping
+	  TS_alg_ = new NewmarkEffMass( algsys_, true );
+	}
+	else {
+	  TS_alg_ = new NewmarkEffMass( algsys_ );
+	}
+      }
+      else if ( effectiveMass_ == false ) {
+        TS_alg_ = new Newmark( algsys_ );
+      }
     }
     else {
       if (effectiveMass_ == false)

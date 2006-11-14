@@ -282,6 +282,9 @@ namespace CoupledField {
 
     switch( sType ) {
 
+    case OLAS::DIAGSOLVER:
+      break;
+
     case OLAS::CG:
       keyVec[2] = "cg";
 

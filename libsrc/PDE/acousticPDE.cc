@@ -69,6 +69,12 @@ namespace CoupledField {
       Info->PrintF( pdename_, 
                     "      * effective mass matrix timestepping\n");
     } 
+    else if ( str == "diagMassMatrix" ) {
+      diagMass_      = true;
+      effectiveMass_ = true;
+      Info->PrintF( pdename_, 
+                    "      * diagonal mass matrix in explicit timestepping\n");
+    } 
     else {
       effectiveMass_ = false;
       Info->PrintF( pdename_, 
@@ -461,14 +467,17 @@ namespace CoupledField {
         // mass integrator
         coeffmass = density / (c0*c0);
 
-        BaseForm * bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
+        MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
+	if ( diagMass_ ) {
+	  // diagonal mass matrix
+	  bilinearMass->SetDiagMass();
+	}
+
         BiLinFormContext * massContext = 
           new BiLinFormContext( bilinearMass, MASS );
         massContext->SetResults( results_[0], results_[0],
                                  actSDList, actSDList );
         massContext->SetPtPdes(this, this);
-
-	//********************** TEST ************************************//
 
 	//check  for Flow Data
 
@@ -891,11 +900,17 @@ namespace CoupledField {
 
     // this includes rayleigh and thermoviscous damping
     if ( fracDamping_ == false ) { 
-      if ( effectiveMass_ == false ) {
-        TS_alg_ = new Newmark( algsys_ );
+      if ( effectiveMass_ == true ) {
+        if ( diagMass_ == true ) {
+	  //explicit time stepping
+	  TS_alg_ = new NewmarkEffMass( algsys_, true );
+	}
+	else {
+	  TS_alg_ = new NewmarkEffMass( algsys_ );
+	}
       }
-      else {
-        TS_alg_ = new NewmarkEffMass( algsys_ );
+      else if ( effectiveMass_ == false ) {
+        TS_alg_ = new Newmark( algsys_ );
       }
     }
     else {
