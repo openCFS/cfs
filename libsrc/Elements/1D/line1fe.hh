@@ -30,13 +30,18 @@ namespace CoupledField
     //! Set local corner coordinates
     virtual void SetCornerCoords();
 
+    //! Set local edge indices
+    void SetEdgeIndices();
+
     //! calculates the shape functions at an arbitrary local point
     /*!
       \param Shape (output) Vector of shape fnc values \f$ (N_{1},N_{2})^T \f$
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcShapeFnc(Vector<Double> & LShape, 
-                              const Vector<Double> & LCoord);
+                              const Vector<Double> & LCoord,
+                              const Elem* elem , UInt dof,
+                              AnsatzFct::FctEntityType );
   
     //! calculates the local derivatives of shape functions at an arbitrary local point
     /*!
@@ -46,7 +51,9 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                        const Vector<Double> & LCoord);
+                                        const Vector<Double> & LCoord,
+                                        const Elem* elem , UInt dof,
+                                        AnsatzFct::FctEntityType );
 
     /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
     void SetDefaultIntegration()

@@ -1,4 +1,4 @@
-#include <iostream>
+ #include <iostream>
 #include <fstream>
 #include <string>
 
@@ -24,6 +24,11 @@ namespace CoupledField
     ShFncAtIp_      = NULL;
     ShFncDerivAtIp_ = NULL; 
     IntPoints_      = NULL; 
+
+    // Create dummy ansatzFct object for lagrange functions
+    shared_ptr<AnsatzFct> fct( new LagrangeFct() );
+    actFct_ = fct;
+    actNumFcns_ = 0;
   }
  
   BaseFE :: ~BaseFE()
@@ -54,23 +59,26 @@ namespace CoupledField
   }
   
   void BaseFE :: GetShFnc(Vector<double> & S, 
-                          const Vector<Double> & LCoord)
+                          const Vector<Double> & LCoord,
+                          const Elem* elem,
+                          UInt dof  )
   {
     ENTER_FCN( "BaseFE::GetShFnc" );
 
-    CalcShapeFnc(S, LCoord);
+    CalcShapeFnc(S, LCoord, elem, dof );
 
   }
   
   void BaseFE :: Local2GlobalCoord(Vector<Double> & globCoord,
                                    const Vector<Double> & locCoord, 
-                                   const Matrix<Double> & coordMat ) {
+                                   const Matrix<Double> & coordMat,
+                                   const Elem* elem ) {
     
     ENTER_FCN( "BaseFE::Local2GlobalCoord");
     
     // step 1: evaluate shape fncs. at local coordinate
     Vector<Double> shFnc;
-    CalcShapeFnc(shFnc, locCoord);
+    CalcShapeFnc(shFnc, locCoord, elem, 1, AnsatzFct::NODE);
 
     // step2: multiply shape fncs for each dimension with according matrix entries
     globCoord.Resize(Dim_);
@@ -80,27 +88,33 @@ namespace CoupledField
 
 
 
-  void BaseFE :: GetShFncAtIp(Vector<Double> & S, 
-                              const UInt ip)
+  void BaseFE :: GetShFncAtIp(Vector<Double> & S, const UInt ip,
+                              const Elem * elem, UInt dof )
   {
     ENTER_FCN( "GetShFncAtIp" );
-
-    S = ShFncAtIp_[ip-1];
-  
+    
+    if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
+      S = ShFncAtIp_[ip-1];
+    } else {
+      CalcShapeFnc( S, IntPoints_[ip-1], elem, dof, 
+                    AnsatzFct::ALL );
+    }
   }
 
   void BaseFE :: GetGlobDerivShFnc(Matrix<Double> & Deriv, 
                                    const Vector<Double> & LCoord,
-                                   const Matrix<Double> & CornerCoords)
+                                   const Matrix<Double> & CornerCoords,
+                                   const Elem * elem, 
+                                   UInt dof )
   {
     ENTER_FCN( "BaseFE::GetGlobDerivShFnc" );
 
     Deriv.Resize(NumNodes_,Dim_);
     Matrix<Double> LDeriv, JInv;
 
-    CalcLocalDerivShapeFnc(LDeriv, LCoord);
+    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, dof);
 
-    CalcInvJacobian(JInv, LCoord, CornerCoords);
+    CalcInvJacobian(JInv, LCoord, CornerCoords, elem );
  
     Deriv = LDeriv * JInv;
   }
@@ -108,7 +122,9 @@ namespace CoupledField
   void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
                                        const UInt ip,
                                        const Matrix<Double> & CornerCoords,
-                                       Double & jacDet)
+                                       Double & jacDet,
+                                       const Elem * elem, 
+                                       UInt dof )
   {
     ENTER_FCN( "BaseFE::GetGlobDerivShFncAtIp" );
 
@@ -118,10 +134,17 @@ namespace CoupledField
     Matrix<Double> JInv;
     Double JInvDet;
   
-    CalcInvJacobianAtIp(JInv, ip, CornerCoords);
+    CalcInvJacobianAtIp(JInv, ip, CornerCoords, elem);
 
-    Deriv = ShFncDerivAtIp_[ip-1] * JInv;
-
+    if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
+      Deriv = ShFncDerivAtIp_[ip-1] * JInv;
+    } else {
+      Matrix<Double> lDeriv;
+      CalcLocalDerivShapeFnc( lDeriv, IntPoints_[ip-1],
+                              elem, dof, AnsatzFct::ALL );
+      Deriv = lDeriv * JInv;
+    }
+        
     // det(A) = 1 / det(A^(-1))
     JInv.Determinant(JInvDet);
     jacDet = 1.0 / JInvDet;
@@ -141,16 +164,28 @@ namespace CoupledField
 
   void BaseFE :: GetGlobDerivShFncAtIp(Matrix<Double> & Deriv, 
                                        const UInt ip,
-                                       const Matrix<Double> & CornerCoords)
+                                       const Matrix<Double> & CornerCoords,
+                                       const Elem* elem,
+                                       UInt dof )
   {
     ENTER_FCN( "BaseFE::GetGlobDerivShFncAtIp" );
   
     //  Deriv.Resize(NumNodes_,Dim_);
     Matrix<Double> JInv;
   
-    CalcInvJacobianAtIp(JInv, ip, CornerCoords);
+    CalcInvJacobianAtIp(JInv, ip, CornerCoords, elem);
   
-    Deriv = ShFncDerivAtIp_[ip-1] * JInv;
+
+    if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
+      Deriv = ShFncDerivAtIp_[ip-1] * JInv;
+    } else {
+      Matrix<Double> lDeriv;
+      CalcLocalDerivShapeFnc( lDeriv, IntPoints_[ip-1],
+                              elem, dof, AnsatzFct::ALL );
+      Deriv = lDeriv * JInv;
+    }
+
+    //std::cerr << "Deriv = \n" << Deriv << std::endl;
   }
 
 
@@ -158,7 +193,8 @@ namespace CoupledField
 
   void BaseFE :: CalcJacobian(Matrix<Double> & J, 
                               const Vector<Double> & LCoord, 
-                              const Matrix<Double> & CornerCoords)
+                              const Matrix<Double> & CornerCoords,
+                              const Elem* elem )
   {
     ENTER_FCN( "BaseFE::CalcJacobian" );
 
@@ -166,14 +202,15 @@ namespace CoupledField
 
     Matrix<Double> LDeriv;
 
-    CalcLocalDerivShapeFnc(LDeriv, LCoord);
+    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, AnsatzFct::NODE );
     J = CornerCoords * LDeriv;
   }
 
 
   void BaseFE :: CalcJacobianAtIp(Matrix<Double> & J, 
                                   const UInt ip, 
-                                  const Matrix<Double> & CornerCoords)
+                                  const Matrix<Double> & CornerCoords,
+                                  const Elem* elem)
   {
     ENTER_FCN( "BaseFE::CalcJacobianAtIp" );
 
@@ -184,7 +221,8 @@ namespace CoupledField
   }
 
   Double BaseFE :: CalcJacobianDet(const Vector<Double> & LCoord,
-                                   const Matrix<Double> & CornerCoords)
+                                   const Matrix<Double> & CornerCoords,
+                                   const Elem* elem )
   {
     ENTER_FCN( "BaseFE::CalcJacobianDet" );
 
@@ -192,7 +230,7 @@ namespace CoupledField
     Matrix<Double> J;
     Double jacDet;
 
-    CalcJacobian( J, LCoord, CornerCoords );
+    CalcJacobian( J, LCoord, CornerCoords, elem  );
     J.Determinant(jacDet);
 
     if ( jacDet < 0.0 ){
@@ -207,14 +245,15 @@ namespace CoupledField
 
 
   Double BaseFE :: CalcJacobianDetAtIp(const UInt ip, 
-                                       const Matrix<Double> & CornerCoords)
+                                       const Matrix<Double> & CornerCoords,
+                                       const Elem* elem)
   {
     ENTER_FCN( "BaseFE::CalcJacobianDetAtIp" );
 
     Matrix<Double> J;
     std::string errMsg;
 
-    CalcJacobianAtIp( J, ip, CornerCoords);
+    CalcJacobianAtIp( J, ip, CornerCoords, elem);
 
     if (CornerCoords.GetSizeRow()==3 && Dim_==2)
       {
@@ -254,7 +293,8 @@ namespace CoupledField
 
   void BaseFE :: CalcInvJacobian(Matrix<Double> & JInv,
                                  const Vector<Double> & LCoord,
-                                 const Matrix<Double> & CornerCoords)
+                                 const Matrix<Double> & CornerCoords,
+                                 const Elem* elem )
   {
     ENTER_FCN( "BaseFE::CalcInvJacobian" );
   
@@ -262,7 +302,7 @@ namespace CoupledField
 
     //  J.Resize(Dim_,Dim_);
 
-    CalcLocalDerivShapeFnc(LDeriv, LCoord);
+    CalcLocalDerivShapeFnc(LDeriv, LCoord, elem, AnsatzFct::NODE);
 
     J = CornerCoords * LDeriv;
 
@@ -274,7 +314,8 @@ namespace CoupledField
  
   void BaseFE :: CalcInvJacobianAtIp(Matrix<Double> & JInv,
                                      const UInt ip,
-                                     const Matrix<Double> & CornerCoords)
+                                     const Matrix<Double> & CornerCoords,
+                                     const Elem* elem)
   {
     ENTER_FCN( "BaseFE::CalcInvJacobianAtIp" );
 
@@ -294,13 +335,18 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseFE::SetShapeFncAtIp" );
   
-    if (!ShFncAtIp_)
+    if (!ShFncAtIp_) {
       ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
+    } else{ 
+      delete[] ShFncAtIp_ ;
+      ShFncAtIp_ = new Vector<Double>[NumIntPoints_];
+    }
 
 
     for( UInt i=0; i<NumIntPoints_; i++ )
       {
-        CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i]);
+        CalcShapeFnc( ShFncAtIp_[i], IntPoints_[i], 
+                      NULL, 1, AnsatzFct::NODE );
       }
   }
   
@@ -308,11 +354,16 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseFE::SetShapeFncDerivAtIp" );
 
-    if( !ShFncDerivAtIp_)
+    if( !ShFncDerivAtIp_) {
+      ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_]; 
+  } else{ 
+      delete[] ShFncDerivAtIp_ ;
       ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
+    }
 
     for( UInt i=0; i<NumIntPoints_; i++ )
-      CalcLocalDerivShapeFnc( ShFncDerivAtIp_[i], IntPoints_[i]);
+      CalcLocalDerivShapeFnc( ShFncDerivAtIp_[i], IntPoints_[i], 
+                              NULL, 1, AnsatzFct::NODE );
 
   }
 
@@ -405,12 +456,12 @@ namespace CoupledField
     Double  jacDet, partVol;
     for (UInt actIntPt=1; actIntPt <= NumIntPoints_; actIntPt++) {
 
-      jacDet = CalcJacobianDetAtIp(actIntPt, CornerCoords);
+      jacDet = CalcJacobianDetAtIp(actIntPt, CornerCoords, NULL);
         
       if (isaxi) {
         Vector<Double> shapeFncAtIp;
         Vector<Double> CoordAtIP;
-        GetShFncAtIp(shapeFncAtIp, actIntPt);
+        GetShFncAtIp(shapeFncAtIp, actIntPt, NULL);
         CoordAtIP = CornerCoords * shapeFncAtIp;
         partVol = 2 * PI * IntWeights_[actIntPt-1] * jacDet * CoordAtIP[0];
       }
@@ -582,28 +633,28 @@ namespace CoupledField
   /** private order encoder. Makes a check and exits on error */
   int BaseFE::EncodeCartesianOrder(int order1, int order2, int order3)
   {
-    if(order1 > 9 || order2 > 9 || order3 > 9) 
-      Error("Cartesian product numerical integration only with orders < 10", __FILE__, __LINE__ );
+    if(order1 > 99 || order2 > 99 || order3 > 99) 
+      Error("Cartesian product numerical integration only with orders < 99", __FILE__, __LINE__ );
         
-    return order1 + 10 * order2 + (order3 > 0 && Dim_ == 3 ? 100 : 0) * order3;
+    return order1 + 100 * order2 + (order3 > 0 && Dim_ == 3 ? 10000 : 0) * order3;
   }
 
   /** private order decoder */
   void BaseFE::DecodeCartesianOrder(int encoded_order, int* order1, int* order2, int* order3)
   {
-    if(encoded_order <= 11 || encoded_order > 999) 
+    if(encoded_order <= 11 || encoded_order > 999999) 
       Error("Invalid encoded cartesian integration order", __FILE__, __LINE__ );
            
            
-    *order3 = (encoded_order >= 100) ? encoded_order/100 : 0;   
-    encoded_order -= 100 * (*order3);
+    *order3 = (encoded_order >= 10000) ? encoded_order/10000 : 0;   
+    encoded_order -= 10000 * (*order3);
         
-    *order2 = encoded_order/10;
-    encoded_order -= 10 * (*order2);        
+    *order2 = encoded_order/100;
+    encoded_order -= 100 * (*order2);        
         
     *order1 = encoded_order;
         
-    // we cannot set it to 0 before as order2 needs to be < 9
+    // we cannot set it to 0 before as order2 needs to be < 19
     if(Dim_ != 3) *order3 = 0;
   }
 
@@ -915,8 +966,12 @@ namespace CoupledField
       
     NumIntPoints_= data->GetSize();
 
-    if(IntPoints_ == NULL) IntPoints_ = new Vector<Double>[NumIntPoints_];
-    else IntPoints_->Resize(NumIntPoints_);
+    if(IntPoints_ == NULL) {
+      IntPoints_ = new Vector<Double>[NumIntPoints_];
+    } else {
+      delete[] IntPoints_;
+      IntPoints_ = new Vector<Double>[NumIntPoints_];
+    }
       
     IntWeights_.Resize(NumIntPoints_);
       
@@ -975,5 +1030,75 @@ namespace CoupledField
         exit(-1);
       }
   }
+  
+  // =======================================================================
+  // L E G E N D R E    P A R T
+  // =======================================================================
+  void  BaseFE::GetNumFncs(Vector<UInt>& numFcns,  
+                           const shared_ptr<AnsatzFct>& fcnType, 
+                           AnsatzFct::FctEntityType fctEntityType, 
+                           UInt dof) {
 
+    ENTER_FCN( "BaseFE::GetNumFcns" );
+    
+    // Check ansatzFctType
+    if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
+      numFcns.Resize( NumNodes_ );
+      numFcns.Init(1);
+    } else {
+      *error << "In base class only implemented for Lagrange functions!";
+      Error( __FILE__, __LINE__ );
+    }
+  }
+  
+  
+  UInt BaseFE::GetNumFncs( const shared_ptr<AnsatzFct>& fcnType ) {
+
+    // Check ansatzFctType
+    if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
+      return GetNumNodes();
+    } else {
+      *error << "In base class only implemented for Lagrange functions!";
+      Error( __FILE__, __LINE__ );
+    }
+
+    return 0;
+    
+  }
+  
+  
+  void BaseFE::EvalPolynom( Double& value, Double& deriv,
+                            const UInt order, const Double* coeff, 
+                            const Double xVal ) {
+    ENTER_FCN( "BaseFE::EvalPolynom" );
+
+    // Consider the following expression
+    // f(xVal) = a0 * (a1*x^order + a2*x^(order-1) + .. + a(order+1))
+    // The coefficients a0..a(order+1) are stored in the coeff-array
+
+    value = coeff[1];
+    deriv = 0.0;
+    for( UInt i = 2; i < order+2; i++ ) {
+      deriv = deriv * xVal + value;
+      value = value * xVal + coeff[i];
+    }
+    // Multiply by pre-factor
+    deriv *= coeff[0];
+    value *= coeff[0];
+  }
+  
+  
+  // Define coefficients for legendre ansatz functions up to order 8
+  Double  BaseFE::lCoeff_[9][10] = {
+    {0.5                  ,   -1, 1,    0, 0,   0, 0,    0, 0, 0 },
+    {0.5                  ,    1, 1,    0, 0,   0, 0,    0, 0, 0 },
+    {0.25*sqrt(6.0)       ,    1, 0,   -1, 0,   0, 0,    0, 0, 0 },
+    {0.25*sqrt(10.0)      ,    1, 0,   -1, 0,   0, 0,    0, 0, 0 },
+    {1.0/16.0*sqrt(14.0)  ,    5, 0,   -6, 0,   1, 0,    0, 0, 0 },
+    {3.0/16.0*sqrt(2.0)   ,    7, 0,  -10, 0,   3, 0,    0, 0, 0 },
+    {1.0/32.0*sqrt(22.0)  ,   21, 0,  -35, 0,  15, 0,   -1, 0, 0 },
+    {1.0/32.0*sqrt(26.0)  ,   33, 0,  -63, 0,  35, 0,   -5, 0, 0 },
+    {1.0/256.0*sqrt(30.0) ,  429, 0, -924, 0, 630, 0, -140, 0, 5 }
+  };
+  
 } // end namespace CoupledField

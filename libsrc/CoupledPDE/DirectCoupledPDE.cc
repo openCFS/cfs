@@ -183,6 +183,7 @@ namespace CoupledField {
       solVec_->Init( Complex(0.0, 0.0 ) );
       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
       for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+        singlePDEs_[i]->solVec_ = solVec_;
         ptNodeSol = singlePDEs_[i]->getPDESolution();
         ptNodeSol->SetAlgSysDataPointer(totalUnknowns_, solHelp.GetPointer());
       }
@@ -190,6 +191,7 @@ namespace CoupledField {
       solVec_->Init( 0.0 );
       Vector<Double> & solHelp = dynamic_cast<Vector<Double>&>(*solVec_);
       for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+        singlePDEs_[i]->solVec_ = solVec_;
         ptNodeSol = singlePDEs_[i]->getPDESolution();
         ptNodeSol->SetAlgSysDataPointer(totalUnknowns_, solHelp.GetPointer());
       }
@@ -356,6 +358,7 @@ namespace CoupledField {
        // set pointer to solution object of the PDE
       ptNodeSol = singlePDEs_[i]->getPDESolution();
       ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
+      singlePDEs_[i]->solVec_  = solVec_;
       
     }
   }

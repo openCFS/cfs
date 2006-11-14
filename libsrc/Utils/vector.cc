@@ -603,7 +603,19 @@ Add(T,Basevector,T,Basevector)",__FILE__, __LINE__);
   
     return sqrt(ret);
   
- 
+  }
+
+  template<class TYPE>
+  std::string Vector<TYPE>::Serialize( Char separator ) const {
+    std::stringstream out;
+    
+    if( size_ > 0 ) {
+      for( UInt i = 0; i < size_-1; i++ ) {
+        out << data_[i] << separator << " ";
+      }
+      out << data_[size_-1];
+    }
+    return out.str();
   }
 
 

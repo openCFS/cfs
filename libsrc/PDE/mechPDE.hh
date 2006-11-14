@@ -181,6 +181,9 @@ namespace CoupledField
     //! read in volume sources
     void ReadRegionLoads();
 
+    //! read in surface stress boundary conditions
+    void ReadSurfStress();
+
     //! Class defining data needed for region loads
     class RegionLoad {
 
@@ -228,9 +231,31 @@ namespace CoupledField
       //@}
 
     };
+
+    struct SurfStress {
+      
+      //! Name of surface elements
+      RegionIdType surface;
+
+      //! Name of neighbouring region
+      RegionIdType region;
+      
+      //! Vector of load
+      Vector<Double> stress;
+
+      //! Dynamics file
+      std::string dynamics;
+
+      //! Phase value
+      std::string phase;
+    };
+      
     
     //! List of region loads
     std::map<RegionIdType, RegionLoad> regionLoads_;
+
+    //! List of surface stresses
+    std::map<RegionIdType, SurfStress> surfStresses_;
 
     //! Read information about springs and define related integrators
     void DefineSprings();

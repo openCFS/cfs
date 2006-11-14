@@ -298,30 +298,6 @@ namespace CoupledField
 
     //@}
     
-    // -----------------------------------------------------------------------
-    // Boundary conditions
-    // -----------------------------------------------------------------------    
-
-    //@{
-    //! \name boundary conitions
-
-    //! Homogeneous Dirichlet boundary coniditions
-    StdVector<HomDirichletBc> hdBc_;
-
-    //! Inhomogeneous Dirichlet boundary conditions
-    StdVector<InhomDirichletBc> idBC_;
-    
-    //! Inhomogeneous Neumann boundary conditions
-    StdVector<InhomNeumannBc> inBC_;
-
-    //! Right hand side load definitions
-    LoadList loads_;
-
-    //! Number of additional in. dirichlet boundary equations due to coupling
-    UInt numCouplingBcs_;
-
-    //@}
-
 
     // -----------------------------------------------------------------------
     // Adaptivity

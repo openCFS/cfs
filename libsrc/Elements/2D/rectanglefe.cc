@@ -50,6 +50,7 @@ namespace CoupledField
       {-0.577350269189626,  0.577350269189626,  1.000000000000000},
       {-0.577350269189626,  -0.577350269189626,  1.000000000000000}
     };
+    AddIntegrationPoints(ECONOMICAL, 2, 4, (Double*) a3);
     AddIntegrationPoints(ECONOMICAL, 3, 4, (Double*) a3);
 
     // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=4  5
@@ -63,6 +64,7 @@ namespace CoupledField
       {-0.881917103688197,  0.881917103688197,  0.183673469387755},
       {-0.881917103688197,  -0.881917103688197,  0.183673469387755}
     };
+    AddIntegrationPoints(ECONOMICAL, 4, 8, (Double*) a5);
     AddIntegrationPoints(ECONOMICAL, 5, 8, (Double*) a5);
 
     // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=6  7
@@ -80,6 +82,7 @@ namespace CoupledField
       {-0.380554433208316,  0.380554433208316,  0.520592916667394},
       {-0.380554433208316,  -0.380554433208316,  0.520592916667394}
     };
+    AddIntegrationPoints(ECONOMICAL, 6, 12, (Double*) a7);
     AddIntegrationPoints(ECONOMICAL, 7, 12, (Double*) a7);
 
     // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=8  9
@@ -105,6 +108,7 @@ namespace CoupledField
       {-0.411623426336542,  0.824396370749276,  0.254188020152646},
       {-0.411623426336542,  -0.824396370749276,  0.254188020152646}
     };
+    AddIntegrationPoints(ECONOMICAL, 8, 20, (Double*) a9);
     AddIntegrationPoints(ECONOMICAL, 9, 20, (Double*) a9);
 
     // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=10  11
@@ -135,6 +139,7 @@ namespace CoupledField
       {-0.575653595840465,  0.883025508525690,  0.146684377651312},
       {-0.575653595840465,  -0.883025508525690,  0.146684377651312}
     };  
+    AddIntegrationPoints(ECONOMICAL, 10, 25, (Double*) a11);
     AddIntegrationPoints(ECONOMICAL, 11, 25, (Double*) a11);
 
     // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=12  13
@@ -176,6 +181,7 @@ namespace CoupledField
       {-0.745052720131169,  0.929866705560780,  0.066655770186205},
       {-0.745052720131169,  -0.929866705560780,  0.066655770186205},
     };  
+    AddIntegrationPoints(ECONOMICAL, 12, 36, (Double*) a13);
     AddIntegrationPoints(ECONOMICAL, 13, 36, (Double*) a13);
 
     // Gauss  quadrature  points  and  weights  on  the  reference  quadrilateral  order  p=14  15
@@ -226,6 +232,7 @@ namespace CoupledField
       {-0.809863684081217,  0.960457474887516,  0.028794154400064},
       {-0.809863684081217,  -0.960457474887516,  0.028794154400064},
     };  
+    AddIntegrationPoints(ECONOMICAL, 14, 45, (Double*) a15);
     AddIntegrationPoints(ECONOMICAL, 15, 45, (Double*) a15);
       
       

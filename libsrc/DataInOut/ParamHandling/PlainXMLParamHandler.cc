@@ -1148,6 +1148,51 @@ namespace CoupledField {
     
   }
 
+   
+  void PlainXMLParamHandler::
+  GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                      const StdVector<std::string> &attrVec,
+                      const StdVector<std::string> &valVec,
+                      const unsigned int &dim1,
+                      const unsigned int &dim2,
+                      Matrix<Double> &matr ) {
+    Error( "GetDim1xDim2Tensor not implemented for PlainParamHandler",
+       __FILE__, __LINE__ );
+  }
+    
+  
+  void PlainXMLParamHandler::
+  GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                             const StdVector<std::string> &attrVec,
+                             const StdVector<std::string> &valVec,
+                             const unsigned int &dim1,
+                             const unsigned int &dim2,
+                      Matrix<Integer> &matr ) {
+    Error( "GetDim1xDim2Tensor not implemented for PlainParamHandler",
+       __FILE__, __LINE__ );
+  }
+
+   
+  void PlainXMLParamHandler::
+  GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                      const StdVector<std::string> &attrVec,
+                      const StdVector<std::string> &valVec,
+                      const unsigned int &dim1,
+                      const unsigned int &dim2,
+                      Matrix<UInt> &matr ) {
+    Error( "GetDim1xDim2Tensor not implemented for PlainParamHandler",
+       __FILE__, __LINE__ );
+  }
+
+  void PlainXMLParamHandler::
+  GetVector( const StdVector<std::string> &keyVec,
+             const StdVector<std::string> &attrVec,
+             const StdVector<std::string> &valVec,
+             StdVector<std::string> &strVec ) {
+    Error( " GetVector not implemented for PlainParamHandler",
+       __FILE__, __LINE__ );
+  }
+             
 
   void PlainXMLParamHandler::GetList( const std::string key, StdVector<Integer> &list,
                                       const std::string section ,

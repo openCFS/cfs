@@ -23,6 +23,7 @@ namespace CoupledField {
     ENTER_FCN( "AcouPowerDensityOp::AcouPowerDensityOp" );
     
     isaxi_ = isaxi;
+    //Warning( "Only working with Lagrange Functions", __FILE__, __LINE__ );
 
   }
 
@@ -35,11 +36,12 @@ namespace CoupledField {
 
   template<class TYPE>
   void AcouPowerDensityOp<TYPE>::CalcElemPD(Vector<Double> & elemPD,
-                                            const Elem * ptElement,
+                                            const EntityIterator& it,
                                             const Double density)
   {
     ENTER_FCN( "AcouPowerDensityOp::CalcElemEnergy" );
 
+    Elem const * ptElement = it.GetElem();
     const UInt nrIntPts = ptElement->ptElem->GetNumIntPoints();
     const UInt nrNodes  = ptElement->ptElem->GetNumNodes();
 
@@ -58,8 +60,8 @@ namespace CoupledField {
     Vector<Double> CoordAtIp;
 
     Vector<TYPE> elemSol, elemSolDeriv1;
-    ptPDE_->GetSolVecOfElement(elemSol,connect);
-    ptPDE_->GetDerivSolVecOfElement(elemSolDeriv1,connect);
+    ptPDE_->GetSolVecOfElement(elemSol,it);
+    ptPDE_->GetDerivSolVecOfElement(elemSolDeriv1,it);
 
 //     std::cout << "Number Nodes:\n" << nrNodes << std::endl;
 //     std::cout << "Number IntPoints:\n" << nrIntPts << std::endl;
@@ -77,8 +79,9 @@ namespace CoupledField {
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
 
       jacDet = 0;
-      ptElement->ptElem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-      ptElement->ptElem->GetGlobDerivShFncAtIp(xiDx,actIntPt,ptCoord,jacDet);
+      ptElement->ptElem->GetShFncAtIp(ShpFncAtIp,actIntPt,ptElement);
+      ptElement->ptElem->GetGlobDerivShFncAtIp(xiDx,actIntPt,
+                                               ptCoord,jacDet, ptElement);
         
       if (isaxi_) {
         CoordAtIp = ptCoord * ShpFncAtIp;

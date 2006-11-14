@@ -232,13 +232,37 @@ namespace CoupledField {
               const StdVector<std::string> &valVec,
               UInt &value );
 
-    //! Perform search and return values of matches as Doubles.
+  
+    //! Perform search and return values as matrix of Doubles
     void GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
                              const StdVector<std::string> &attrVec,
                              const StdVector<std::string> &valVec,
                              const unsigned int &dim1,
                              const unsigned int &dim2,
                              Matrix<Double> &matr );
+    
+    //! Perform search and return values as matrix of Integers
+    void GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                             const StdVector<std::string> &attrVec,
+                             const StdVector<std::string> &valVec,
+                             const unsigned int &dim1,
+                             const unsigned int &dim2,
+                             Matrix<Integer> &matr );
+
+    //! Perform search and return values as matrix of unsigned Integers
+    void GetDim1xDim2Tensor( const StdVector<std::string> &keyVec,
+                             const StdVector<std::string> &attrVec,
+                             const StdVector<std::string> &valVec,
+                             const unsigned int &dim1,
+                             const unsigned int &dim2,
+                             Matrix<UInt> &matr );
+
+    //! Perform search and return values as vector of strings
+    void GetVector( const StdVector<std::string> &keyVec,
+                    const StdVector<std::string> &attrVec,
+                    const StdVector<std::string> &valVec,
+                    StdVector<std::string> &strVec );
+
 
     //@}
 

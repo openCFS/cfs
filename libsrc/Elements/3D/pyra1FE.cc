@@ -71,7 +71,9 @@ namespace CoupledField
 
 
   void Pyra1FE :: CalcShapeFnc(Vector<Double> & Shape, 
-                               const Vector<Double> & LCoord)
+                               const Vector<Double> & LCoord,
+                               const Elem*, UInt dof,
+                               AnsatzFct::FctEntityType fctEntityType )
   {
     ENTER_IFCN( "Pyra1FE::CalcShapeFnc" );
 
@@ -111,7 +113,9 @@ namespace CoupledField
 
 
   void Pyra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                         const Vector<Double> & LCoord)
+                                         const Vector<Double> & LCoord,
+                                         const Elem*, UInt dof,
+                                         AnsatzFct::FctEntityType fctEntityType )
   {
     ENTER_IFCN( "Pyra1FE::CalcLocalDerivShapeFnc" );
 

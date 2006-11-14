@@ -138,6 +138,9 @@ namespace CoupledField {
     //! Swap 2 elements in vector Ex Swap(v[i],v[j])
     template<class T2> void Swap(T2& a, T2 & b);
 
+    //! Return vector as separated string
+    std::string Serialize( Char separator = ',') const;
+
   protected:
 
     //! Length of the vector

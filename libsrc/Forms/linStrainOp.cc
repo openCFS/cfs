@@ -7,6 +7,8 @@
 #include "Utils/vector.hh"
 #include "Matrix/matrix.hh"
 #include "Forms/linStrainOp.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
 
 #include <PDE/StdPDE.hh>
 
@@ -56,10 +58,12 @@ namespace CoupledField
     UInt ip=1;
     nShFnc = ptElement->ptElem->GetNumNodes();
 
-    StdVector<UInt> connecth = ptElement->connect;
   
     Vector<TYPE> actDispl;
-    displacement_->GetElemSolution(actDispl,connecth);
+    ElemList elemList(domain->GetGrid());
+    elemList.SetElement( ptElement );
+    EntityIterator it = elemList.GetIterator();
+    displacement_->GetElemSolution(actDispl,it);
     
     // linear differential operator B_lin
     Matrix<Double> linBMat;    
@@ -74,32 +78,34 @@ namespace CoupledField
                                    UInt ip, Matrix<Double> & ptCoord){
     ENTER_FCN("LinStrainOP::calcBMat");
 
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumNodes ();
     const UInt spaceDim = ptelem->GetDim();  
     const UInt nrDofs   = spaceDim;
 
     UInt actDim, actNode, j, k;
     if (spaceDim==2)
       if (isaxi_)      
-        bMat.Resize(4, nrNodes * nrDofs);
+        bMat.Resize(4, numFncs * nrDofs);
       else // plane strain
-        bMat.Resize(3, nrNodes * nrDofs);
+        bMat.Resize(3, numFncs * nrDofs);
     else // 3d
-      bMat.Resize(6, nrNodes*nrDofs);
+      bMat.Resize(6, numFncs*nrDofs);
     
     bMat.Init();
     // local shape functions derived after global coords
-    // (format: nrNodes x spaceDim)
+    // (format: numFncs x spaceDim)
     Matrix<Double> xiDx;
 
   //   if (isSetIntPoint_) 
 //       ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord);
 //     else
-      ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord);
+    Warning( "In the following line the NULL has to be replaced (Andreas )",
+             __FILE__, __LINE__ );
+    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, NULL );
 
 
     for(actDim=0; actDim < spaceDim; actDim++)
-      for(actNode=0; actNode < nrNodes; actNode++)
+      for(actNode=0; actNode < numFncs; actNode++)
         bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
 
     switch(spaceDim)
@@ -108,7 +114,7 @@ namespace CoupledField
         j = 1;
         k = 0;
         
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
             bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
@@ -123,11 +129,13 @@ namespace CoupledField
            //  if (isSetIntPoint_) 
 //               ptelem->GetShFnc(ShpFncAtIp,intPoint_);
 //             else
-              ptelem->GetShFncAtIp(ShpFncAtIp,ip);
+            Warning( "In the following line the NULL has to be replaced (Andreas )",
+                     __FILE__, __LINE__ );
+            ptelem->GetShFncAtIp(ShpFncAtIp,ip,NULL);
 
             CoordAtIP = ptCoord * ShpFncAtIp;
 
-            for (actNode = 0; actNode < nrNodes; actNode++)          
+            for (actNode = 0; actNode < numFncs; actNode++)          
               bMat[idxtheta-1][actNode * spaceDim] =
                 ShpFncAtIp[actNode] / CoordAtIP[0];
           }
@@ -137,21 +145,21 @@ namespace CoupledField
 
       case 3:
         UInt actDim=spaceDim;
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
             bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
           }
 
         actDim++;
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
             bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
           }
 
         actDim++;
-        for (actNode = 0; actNode < nrNodes; actNode++)
+        for (actNode = 0; actNode < numFncs; actNode++)
           {
             bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
             bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];

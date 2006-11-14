@@ -140,9 +140,11 @@ namespace CoupledField
 
     if (!elemVelocity_.GetSizeRow() || !elemVelocity_.GetSizeCol()) 
       Error("Undefined velocities! ",__FILE__,__LINE__);
-  
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
     UInt j, N;  // DOFs per Node
@@ -157,17 +159,18 @@ namespace CoupledField
     N = 7; // 7 DOFs per Node
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*N); 
+    elemMat.Resize(numFncs*N); 
     elemMat.Init();
-    locElemMat.Resize(nrNodes*N); 
+    locElemMat.Resize(numFncs*N); 
     locElemMat.Init();
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
-        ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord_, jacDet);
+        ptelem->GetShFncAtIp(xi, actIntPt, ent1.GetElem() );
+        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord_, 
+                                      jacDet, ent1.GetElem() );
 
 //  __ Sucessive-Substitution                                                          __
 //  __                                                                                       __
@@ -184,11 +187,11 @@ namespace CoupledField
         Matrix<Double>  vxM, vyM, vzM, vxDxDyDzAtIP, vyDxDyDzAtIP, vzDxDyDzAtIP;  
         Vector<Double>  vxAtIP, vyAtIP, vzAtIP;
 
-        vxM.Resize(nrNodes,1);
-        vyM.Resize(nrNodes,1);
-        vzM.Resize(nrNodes,1);
+        vxM.Resize(numFncs,1);
+        vyM.Resize(numFncs,1);
+        vzM.Resize(numFncs,1);
 
-        for (UInt i=0; i<nrNodes; i++) {
+        for (UInt i=0; i<numFncs; i++) {
             vxM[i][0]=elemVelocity_[0][i];
             vyM[i][0]=elemVelocity_[1][i];
             vzM[i][0]=elemVelocity_[2][i];
@@ -202,20 +205,20 @@ namespace CoupledField
         //vyDxDyDzAtIP = vyM * xiDxDyDz;
         //vzDxDyDzAtIP = vzM * xiDxDyDz;
 
-        partElemAMat.Resize(N,nrNodes*N); 
+        partElemAMat.Resize(N,numFncs*N); 
         partElemAMat.Init();
-        for (j=0; j<nrNodes; j++)
+        for (j=0; j<numFncs; j++)
           {
 //          Sucessive-Substitution                                                 
             partElemAMat[0][j]   =           vxAtIP[j]*xiDxDyDz[j][0]
                                            + vyAtIP[j]*xiDxDyDz[j][1]
                                            + vzAtIP[j]*xiDxDyDz[j][2];
 
-            partElemAMat[1][j+1*nrNodes] =   vxAtIP[j]*xiDxDyDz[j][0]
+            partElemAMat[1][j+1*numFncs] =   vxAtIP[j]*xiDxDyDz[j][0]
                                            + vyAtIP[j]*xiDxDyDz[j][1]
                                            + vzAtIP[j]*xiDxDyDz[j][2];
             
-            partElemAMat[2][j+2*nrNodes] =   vxAtIP[j]*xiDxDyDz[j][0]
+            partElemAMat[2][j+2*numFncs] =   vxAtIP[j]*xiDxDyDz[j][0]
                                            + vyAtIP[j]*xiDxDyDz[j][1]
                                            + vzAtIP[j]*xiDxDyDz[j][2];
 
@@ -224,23 +227,23 @@ namespace CoupledField
 //                                            + vyAtIP[j]*xiDxDyDz[j][1]
 //                                            + vzAtIP[j]*xiDxDyDz[j][2]
 
-//             partElemAMat[0][j+1*nrNodes] =   velocityDerivTransp[j][1]; //v_xDy;
-//             partElemAMat[0][j+2*nrNodes] =   velocityDerivTransp[j][2]; //v_xDz;
+//             partElemAMat[0][j+1*numFncs] =   velocityDerivTransp[j][1]; //v_xDy;
+//             partElemAMat[0][j+2*numFncs] =   velocityDerivTransp[j][2]; //v_xDz;
             
-//             partElemAMat[1][j]          =    velocityDerivTransp[j+1*nrNodes][0]; //v_yDx;
-//             partElemAMat[1][j+1*nrNodes] =   velocityTransp[j][0]*xiDxDyDz[j][0]
+//             partElemAMat[1][j]          =    velocityDerivTransp[j+1*numFncs][0]; //v_yDx;
+//             partElemAMat[1][j+1*numFncs] =   velocityTransp[j][0]*xiDxDyDz[j][0]
 //                                            + velocityTransp[j][1]*xiDxDyDz[j][1]
 //                                            + velocityTransp[j][2]*xiDxDyDz[j][2]
-//                                            + velocityDerivTransp[j+1*nrNodes][1];
-//             partElemAMat[1][j+2*nrNodes] =   velocityDerivTransp[j+1*nrNodes][2]; //v_yDz;
+//                                            + velocityDerivTransp[j+1*numFncs][1];
+//             partElemAMat[1][j+2*numFncs] =   velocityDerivTransp[j+1*numFncs][2]; //v_yDz;
             
 
-//             partElemAMat[2][j]          =    velocityDerivTransp[j+2*nrNodes][0]; //v_zDx;
-//             partElemAMat[2][j+1*nrNodes] =   velocityDerivTransp[j+2*nrNodes][1]; //v_zDy;
-//             partElemAMat[2][j+2*nrNodes] =   velocityTransp[j][0]*xiDxDyDz[j][0]
+//             partElemAMat[2][j]          =    velocityDerivTransp[j+2*numFncs][0]; //v_zDx;
+//             partElemAMat[2][j+1*numFncs] =   velocityDerivTransp[j+2*numFncs][1]; //v_zDy;
+//             partElemAMat[2][j+2*numFncs] =   velocityTransp[j][0]*xiDxDyDz[j][0]
 //                                            + velocityTransp[j][1]*xiDxDyDz[j][1]
 //                                            + velocityTransp[j][2]*xiDxDyDz[j][2]
-//                                            + velocityDerivTransp[j+2*nrNodes][2]; //v_zDz;
+//                                            + velocityDerivTransp[j+2*numFncs][2]; //v_zDz;
           }
 
         partElemAMat *= intWeights[actIntPt-1] * jacDet;
@@ -250,7 +253,7 @@ namespace CoupledField
         // assemble element matrix
         locElemMat += partElemATMat * partElemAMat;
       }
-    ResortElementMatrix(elemMat, locElemMat, nrNodes, N);
+    ResortElementMatrix(elemMat, locElemMat, numFncs, N);
   }
 
 
@@ -271,9 +274,11 @@ namespace CoupledField
 
     if (!elemVelocity_.GetSizeRow() || !elemVelocity_.GetSizeCol()) 
       Error("Undefined velocities! ",__FILE__,__LINE__);
-  
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+   
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
     UInt j, N;  // DOFs per Node
@@ -288,17 +293,18 @@ namespace CoupledField
     N = 4; // 4 DOFs per Node
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*N); 
+    elemMat.Resize(numFncs*N); 
     elemMat.Init();
-    locElemMat.Resize(nrNodes*N); 
+    locElemMat.Resize(numFncs*N); 
     locElemMat.Init();
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
-        ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, ptCoord_, jacDet);
+        ptelem->GetShFncAtIp(xi, actIntPt, ent1.GetElem() );
+        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, ptCoord_, 
+                                      jacDet, ent1.GetElem() );
 
 //  __ Sucessive-Substitution                                                          __
 //  |  0                   1                   2   3 |
@@ -317,10 +323,10 @@ namespace CoupledField
         Matrix<Double>  vxM, vyM, vxDxDyAtIP, vyDxDyAtIP;  
         Vector<Double>  vxAtIP, vyAtIP;
 
-        vxM.Resize(nrNodes,1);
-        vyM.Resize(nrNodes,1);
+        vxM.Resize(numFncs,1);
+        vyM.Resize(numFncs,1);
 
-        for (UInt i=0; i<nrNodes; i++) {
+        for (UInt i=0; i<numFncs; i++) {
             vxM[i][0]=elemVelocity_[0][i];
             vyM[i][0]=elemVelocity_[1][i];
         }
@@ -330,15 +336,15 @@ namespace CoupledField
         //vxDxDyAtIP = vxM * xiDxDy;
         //vyDxDyAtIP = vyM * xiDxDy;
 
-        partElemAMat.Resize(N,nrNodes*N); 
+        partElemAMat.Resize(N,numFncs*N); 
         partElemAMat.Init();
-        for (j=0; j<nrNodes; j++)
+        for (j=0; j<numFncs; j++)
           {
 //          Sucessive Substitution
            partElemAMat[1][j]   =           vxAtIP[j]*xiDxDy[j][0]
                                           + vyAtIP[j]*xiDxDy[j][1];
            
-           partElemAMat[2][j+1*nrNodes] =   vxAtIP[j]*xiDxDy[j][0]
+           partElemAMat[2][j+1*numFncs] =   vxAtIP[j]*xiDxDy[j][0]
                                           + vyAtIP[j]*xiDxDy[j][1];
 
 //            Newton-Verfahren
@@ -346,11 +352,11 @@ namespace CoupledField
 //                                            + vyAtIP[j]*xiDxDy[j][1]
 //                                            + vxDxDyAtIP[j][0];
 
-//             partElemAMat[1][j+1*nrNodes] =   vxDxDyAtIP[j][1];
+//             partElemAMat[1][j+1*numFncs] =   vxDxDyAtIP[j][1];
 
 //             partElemAMat[2][j]          =    vyDxDyAtIP[j][0];
 
-//             partElemAMat[2][j+1*nrNodes] =   vxAtIP[j]*xiDxDy[j][0]
+//             partElemAMat[2][j+1*numFncs] =   vxAtIP[j]*xiDxDy[j][0]
 //                                            + vyAtIP[j]*xiDxDy[j][1]
 //                                            + vyDxDyAtIP[j][1];
           }
@@ -362,7 +368,7 @@ namespace CoupledField
         // assemble element matrix
         locElemMat += partElemATMat * partElemAMat;
       }
-    ResortElementMatrix(elemMat, locElemMat, nrNodes, N);
+    ResortElementMatrix(elemMat, locElemMat, numFncs, N);
 
   }
   
@@ -458,8 +464,11 @@ namespace CoupledField
 
     Double jacDet;  
 
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    
+
     UInt N; 
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
 
@@ -484,10 +493,10 @@ namespace CoupledField
     if (!elemVelocity_.GetSizeRow() || !elemVelocity_.GetSizeCol()) 
        Error("Undefined velocities! ",__FILE__,__LINE__);
   
-    partElemVec.Resize(nrNodes * N);
+    partElemVec.Resize(numFncs * N);
     partElemVec.Init();
 
-    elemVec.Resize(nrNodes*N);
+    elemVec.Resize(numFncs*N);
     elemVec.Init();
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
@@ -495,7 +504,8 @@ namespace CoupledField
         jacDet = 0;
         
         //ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord_, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDxDyDz, actIntPt, ptCoord_, 
+                                      jacDet, ent.GetElem() );
 
 //   __                                            __                                                                   __
 // 0|  v_x*(v_x*xiDx)+v_y*(v_x*xiDy)+v_z*(v_x*xiDz)  |
@@ -531,7 +541,7 @@ namespace CoupledField
         Matrix<Double> velocityDerivTransp;
         velocityDeriv.Transpose(velocityDerivTransp);  
 
-        for (UInt j=0; j<nrNodes; j++)
+        for (UInt j=0; j<numFncs; j++)
           {
 //            partElemVec[j*N+1]   =  velocityTransp[j][0]*velocityDerivTransp[j][0]
 //                              + velocityTransp[j][1]*velocityDerivTransp[j][1];

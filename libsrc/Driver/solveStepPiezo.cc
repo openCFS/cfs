@@ -9,6 +9,7 @@
 #include "Forms/gradfieldop.hh"
 #include "Utils/nodestoresol.hh"
 #include "PDE/StdPDE.hh"
+#include "Domain/domain.hh"
 
 namespace CoupledField {
 
@@ -296,19 +297,21 @@ namespace CoupledField {
 
     // loop over all subdomains
     for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
-      // get vector of Elem of subdomain with color: subdoms[isd]
-      ptgrid_->GetVolElems(elemssd,subdoms_[isd]);
+
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( subdoms_[isd] );
+      EntityIterator it = actSDList.GetIterator();
       
       //get direction of polarization
       materialData_[isd]->GetScalar((Integer&)comp,P_DIRECTION,INTEGER);
       comp -= 1;
 
       // loop over elements of subdomain
-      for (UInt iel=0; iel< elemssd.GetSize(); iel++)        {
-        elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
 
         //compute electric field
-        FieldOp->CalcElemGradField( Efield, elemssd[iel], LCoord, 1);
+        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
 
         //get correct component of electric field for scalar Preisach model
         //and invoke the update MinMaxList method
@@ -351,18 +354,19 @@ namespace CoupledField {
     UInt pdeElem=1;
 
     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-      StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems(elemssd,subdoms_[actSD]);
-    
+      ElemList actSDList(domain->GetGrid() );
+      actSDList.SetRegion( subdoms_[actSD] );
+      EntityIterator it = actSDList.GetIterator();
+      
       //get direction of polarization
       materialData_[actSD]->GetScalar((Integer&)comp,P_DIRECTION,INTEGER);
       comp -= 1;
-    
-      for (UInt iel=0; iel < elemssd.GetSize(); iel++) {
-
+      UInt iel = 0;
+      for ( it.Begin(); !it.IsEnd(); it++, iel++ ) {
+        
         //compute the electric field intensity
-        elemssd[iel]->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, elemssd[iel], LCoord, 1);
+        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
 
         //get correct component of electric field for scalar Preisach model
         Ecomp = Efield[comp]; //.NormL2(); //[comp]; 

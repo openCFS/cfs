@@ -388,12 +388,12 @@ namespace CoupledField{
     /////////////////////////////////////////
 
     void GetElemSolution(CFSVector & elemSol,
-                         const StdVector<UInt> & connect) const;
+                         const EntityIterator& it) const;
 
 
     //!
     void GetElemSolutionAsMatrix(CFSMatrix & elemSol, 
-                                 const StdVector<UInt> & connect) const;
+                                 const EntityIterator& it) const;
 
 
     //! maps the local node solution to the coupling nodes

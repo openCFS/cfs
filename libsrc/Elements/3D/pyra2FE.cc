@@ -167,7 +167,9 @@ void Pyra2FE::SetCornerCoords()
 
 
 void Pyra2FE :: CalcShapeFnc(Vector<Double> & Shape,
-			     const Vector<Double> & LCoord)
+			     const Vector<Double> & LCoord,
+                             const Elem*, UInt dof,
+                             AnsatzFct::FctEntityType fctEntityType )
 {
   ENTER_IFCN( "Pyra2FE::CalcShapeFnc" );
 
@@ -282,7 +284,9 @@ void Pyra2FE :: CalcShapeFnc(Vector<Double> & Shape,
 
 
 void Pyra2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv,
-				       const Vector<Double> & LCoord)
+				       const Vector<Double> & LCoord,
+                                       const Elem*, UInt dof,
+                                       AnsatzFct::FctEntityType fctEntityType )
 {
   ENTER_IFCN( "Pyra2FE::CalcLocalDerivShapeFnc" );
 

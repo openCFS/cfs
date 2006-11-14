@@ -126,8 +126,10 @@ namespace CoupledField
   // }
 
 
-  void Tetra1FE :: CalcShapeFnc(Vector<Double> & Shape, 
-                                const Vector<Double> & LCoord)
+  void Tetra1FE :: CalcShapeFnc( Vector<Double> & Shape, 
+                                 const Vector<Double> & LCoord,
+                                 const Elem*, UInt dof,
+                                 AnsatzFct::FctEntityType fctEntityType )
   {
     ENTER_IFCN( "Tetra1FE::CalcShapeFnc" );
 
@@ -147,8 +149,10 @@ namespace CoupledField
   }
 
 
-  void Tetra1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                          const Vector<Double> & LCoord)
+  void Tetra1FE :: CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
+                                           const Vector<Double> & LCoord,
+                                           const Elem*, UInt dof,
+                                           AnsatzFct::FctEntityType fctEntityType )
   {
     ENTER_IFCN( "Tetra1FE::CalcLocalDerivShapeFnc" );
 
@@ -176,13 +180,13 @@ namespace CoupledField
 
     // nodal shape functions of a tet
     Vector<Double> nodeShape;
-    CalcShapeFnc(nodeShape, LCoord);
+    CalcShapeFnc(nodeShape, LCoord, NULL, 1, AnsatzFct::NODE);
 
 
     // local derivates of nodal tet, dimension: nrNodes x Dim_
     Matrix<Double> xDxi;  
     //  CalcLocalDerivShapeFnc(xDxi, localcoord);
-    GetGlobDerivShFnc(xDxi, LCoord, cornernodes);    
+    GetGlobDerivShFnc(xDxi, LCoord, cornernodes, NULL, 1);    
 
     for (UInt actEdge=0; actEdge<NumEdges_; actEdge++)
       {
@@ -210,7 +214,7 @@ namespace CoupledField
 
     // local derivates of nodal tet, dimension: nrNodes x Dim_
     Matrix<Double> xDxi;  
-    GetGlobDerivShFnc(xDxi, lCoord, cornerCoords);
+    GetGlobDerivShFnc(xDxi, lCoord, cornerCoords, NULL);
   
   
     for (UInt actEdge=0; actEdge<NumEdges_; actEdge++)

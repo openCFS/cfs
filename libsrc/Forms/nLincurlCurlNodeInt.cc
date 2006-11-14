@@ -42,16 +42,17 @@ namespace CoupledField
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );  
-
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
 
 
     // get solution of current element
     Matrix<Double> temp;
-    sol_->GetElemSolutionAsMatrix( temp, ent1.GetElem()->connect );
+    sol_->GetElemSolutionAsMatrix( temp, ent1 );
     temp.ConvertToVec_AppendRows( magPot_ );
 
 
@@ -67,19 +68,20 @@ namespace CoupledField
     Double reluctivity, derivReluctivity, Hfield, dHfield;
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes); elemMat.Init(0);
+    elemMat.Resize(numFncs); elemMat.Init(0);
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+                                      jacDet, ent1.GetElem() );
 
         if (isaxi_)
           {
-            ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+            ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent1.GetElem() );
             CoordAtIP = ptCoord_ * ShpFncAtIp;
-            for (UInt i=0; i<nrNodes; i++)
+            for (UInt i=0; i<numFncs; i++)
               xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
             
             jacDet *= 2 * PI * CoordAtIP[0];
@@ -92,7 +94,7 @@ namespace CoupledField
         Vector<Double> B(2);
         UInt dim = 2;
         for( UInt i=0; i<dim; i++ )
-          for( UInt j=0; j<nrNodes; j++ )
+          for( UInt j=0; j<numFncs; j++ )
             B[i] += xiDx[j][i] * magPot_[j];
 
         Double Babs = B.NormL2();
@@ -114,8 +116,8 @@ namespace CoupledField
             Vector<Double> eB(2); eB = B * (1/Babs);
             dHfield = nlinFnc_->EvaluatePrimeInv(Babs);
             derivReluctivity = (dHfield*Babs - Hfield) / (Babs*Babs);
-            for (UInt p=0;  p<nrNodes; p++)
-              for (UInt q=0; q<nrNodes; q++) {               
+            for (UInt p=0;  p<numFncs; p++)
+              for (UInt q=0; q<numFncs; q++) {               
                 partElemMat[p][q] +=  derivReluctivity * 
                   (eB[0]*eB[0]*xiDx[p][1]*xiDx[q][1] +
                    eB[1]*eB[1]*xiDx[p][0]*xiDx[q][0] -

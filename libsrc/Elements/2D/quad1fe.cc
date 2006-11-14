@@ -2,6 +2,7 @@
 #include <fstream>
 
 #include "quad1fe.hh"
+#include "Domain/elem.hh"
 
 namespace CoupledField
 {
@@ -25,6 +26,7 @@ namespace CoupledField
     NumNodes_ = 4;
     
     CommonInit();
+    SetEdgeIndices();
   }
 
   void Quad1FE :: SetCornerCoords()
@@ -53,46 +55,219 @@ namespace CoupledField
       edgeIndices_[i].Resize(2);
     }
 
+    // Note: The orientation is taken from
+    // A. Duester: High Order FEM, Lecture Nodes,
+    // p. 25
+
+    // edge 1
     edgeIndices_[0][0] = 1;
     edgeIndices_[0][1] = 2;
+
+    // edge 2
     edgeIndices_[1][0] = 2;
     edgeIndices_[1][1] = 3;
-    edgeIndices_[2][0] = 3;
-    edgeIndices_[2][1] = 4;
-    edgeIndices_[3][0] = 4;
-    edgeIndices_[3][1] = 1;
+
+    // edge 3
+    edgeIndices_[2][0] = 4;
+    edgeIndices_[2][1] = 3;
+
+    // edge 4
+    edgeIndices_[3][0] = 1;
+    edgeIndices_[3][1] = 4;
         
   }
 
-  void Quad1FE :: CalcShapeFnc(Vector<Double> & Shape, 
-                               const Vector<Double> & LCoord)
+  void Quad1FE :: CalcShapeFnc( Vector<Double> & Shape, 
+                                const Vector<Double> & actCoord,
+                                const Elem* elem,
+                                UInt dof, AnsatzFct::FctEntityType type )
   {
     ENTER_IFCN( "Quad1FE::CalcShapeFnc" );
 
-    Shape.Resize(NumNodes_);
-  
-    for( UInt i=0; i<NumNodes_; i++)
-      Shape[i] = 0.25 * (1 + LCornerCoords_[0][i] * LCoord[0])
-        * (1 + LCornerCoords_[1][i] * LCoord[1]);
 
+    // Check ansatzFctType
+    if(  actFct_->GetType() == AnsatzFct::LAGRANGE ||
+         type == AnsatzFct::NODE ) {
+
+      // ===============
+      //  LAGRANGE PART
+      // ===============
+      Shape.Resize(NumNodes_);
+      
+      for( UInt i=0; i<NumNodes_; i++)
+        Shape[i] = 0.25 * (1 + LCornerCoords_[0][i] * actCoord[0])
+          * (1 + LCornerCoords_[1][i] * actCoord[1]);
+    } else {
+      
+      // ===============
+      //  LEGENDRE PART
+      // ===============
+
+      // Get number of ansatz functions
+      UInt totalFcns = GetNumFncs( actFct_ );
+
+      Shape.Resize( totalFcns );
+
+      // --------------------
+      //  a) nodal functions
+      // --------------------
+         // Offset for different functions
+      UInt offset = 0;
+      
+      // First of all, calculate all nodal function derivatives
+      for( UInt iNode = 0; iNode < NumCorners_; iNode++,offset++ ) {
+        Shape[offset] = 0.25 * (1 + LCornerCoords_[0][iNode] * actCoord[0] )
+                             * (1 + LCornerCoords_[1][iNode] * actCoord[1] );
+      }
+
+      // --------------------
+      //  b) edge functions
+      // --------------------
+      // Obtain order of element
+      Integer order = 
+        dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_)->GetIsoOrder();
+      Double val, factor, deriv;      
+
+#define QUAD_EDGE_FCN(edgeNum,  sign_1, dir_1, dir_2 )                  \
+      factor = elem->edges[edgeNum-1] < 0 ? -1.0 : 1.0;                 \
+      for( Integer iDof = 2; iDof <= order; iDof++, offset++ ) {        \
+        EvalPolynom( val, deriv, iDof, lCoeff_[iDof],                   \
+                     factor*actCoord[dir_2] );                          \
+        Shape[offset] = 0.5 * ( 1 sign_1 actCoord[dir_1] ) * val;       \
+      }
+
+      //  EDGE #1
+      QUAD_EDGE_FCN( 1, -, 1, 0 );
+
+      //  EDGE #2
+      QUAD_EDGE_FCN( 2, +, 0, 1 );
+
+      //  EDGE #3
+      QUAD_EDGE_FCN( 3, +, 1, 0 );
+
+      //  EDGE #4
+      QUAD_EDGE_FCN( 4, -, 0, 1 );
+ 
+
+      // ----------------------
+      //  c) bubble functions
+      // ----------------------
+      Double val_i, val_j;
+      for( Integer i = 2; i <= order-2; i++ ) {
+        for( Integer j = 2; j <= order-2; j++ ) {
+          
+          // Condition for trunk space: i+j in [2..max{order_i,order_j}]
+          if ( (i+j) > order ) {continue;}
+          EvalPolynom( val_i, deriv, i, lCoeff_[i], actCoord[0] );
+          EvalPolynom( val_j, deriv, j, lCoeff_[j], actCoord[1] );
+
+          Shape[offset++] = val_i * val_j;
+        }
+      }
+    }
   }
 
 
-  void Quad1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                         const Vector<Double> & LCoord)
+  void Quad1FE ::CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
+                                         const Vector<Double> & actCoord,
+                                         const Elem* elem,
+                                         UInt dof, AnsatzFct::FctEntityType type )
   {
     ENTER_IFCN( "Quad1FE::CalcLocalDerivShapeFnc" );
 
-    LDeriv.Resize(NumNodes_,Dim_);
 
-    for( UInt i=0; i<NumNodes_; i++)
-      {
-        LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] 
-          * (1 + LCornerCoords_[1][i] * LCoord[1] );
-        LDeriv[i][1] = 0.25 * (1 + LCornerCoords_[0][i] * LCoord[0] )
-          * LCornerCoords_[1][i];
+
+    if( actFct_->GetType() == AnsatzFct::LAGRANGE ||
+        type == AnsatzFct::NODE ) {
+
+      // ===============
+      //  LAGRANGE PART
+      // ===============
+
+      LDeriv.Resize(NumNodes_,Dim_);
+      
+      for( UInt i=0; i<NumNodes_; i++)
+        {
+          LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] 
+            * (1 + LCornerCoords_[1][i] * actCoord[1] );
+          LDeriv[i][1] = 0.25 * (1 + LCornerCoords_[0][i] * actCoord[0] )
+            * LCornerCoords_[1][i];
+        }
+
+    } else {
+
+      // ===============
+      //  LEGENDRE PART
+      // ===============
+      
+      // Get number of ansatz functions
+      UInt totalFcns = GetNumFncs( actFct_ );
+      LDeriv.Resize( totalFcns, Dim_ );
+
+      // --------------------
+      //  a) nodal functions
+      // --------------------
+      UInt offset = 0;
+      
+      // First of all, calculate all nodal function derivatives
+      for( UInt iNode = 0; iNode < NumCorners_; iNode++,offset++ ) {
+        
+        LDeriv[offset][0] = 0.25 * LCornerCoords_[0][iNode] 
+          * (1 + LCornerCoords_[1][iNode] * actCoord[1] );
+        
+        LDeriv[offset][1] = 0.25 * (1 + LCornerCoords_[0][iNode] * actCoord[0] )
+          * LCornerCoords_[1][iNode];
       }
-  
+
+      // -------------------
+      //  b) edge functions
+      // -------------------
+      
+      // Obtain order of element
+      Double val, deriv, factor;
+      Integer order = 
+        dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct_)->GetIsoOrder();
+      
+#define QUAD_EDGE_DERIV( edgeNum, sign_1, dir_1, dir_2 )                \
+      factor = elem->edges[edgeNum-1] < 0 ? -1.0 : 1.0;                 \
+      for( Integer iDof = 2; iDof <= order; iDof++, offset++ ) {        \
+        EvalPolynom( val, deriv, iDof, lCoeff_[iDof],                   \
+                     factor*actCoord[dir_2] );                          \
+        LDeriv[offset][dir_1] = sign_1(0.5 * val);                      \
+        LDeriv[offset][dir_2] =  0.5 * ( 1.0 sign_1 actCoord[dir_1])    \
+                                     * deriv * factor;                  \
+      }
+
+      // EDGE #1
+      QUAD_EDGE_DERIV( 1, -, 1, 0 );
+      
+      // EDGE #2
+      QUAD_EDGE_DERIV( 2, +, 0, 1 );
+
+      // EDGE #3
+      QUAD_EDGE_DERIV( 3, +, 1, 0 );
+
+      // EDGE #4
+      QUAD_EDGE_DERIV( 4, -, 0, 1 );
+
+      // ---------------------
+      //  c) bubble functions
+      // ---------------------
+      Double val_i, deriv_i, val_j, deriv_j;
+      for( Integer i = 2; i <= order-2; i++ ) {
+        for( Integer j = 2; j <= order-2; j++ ) {
+    
+          // Condition for trunk space: i+j in [2..max{order_i,order_j}]
+          if ( (i+j) > order ) {continue;}
+          EvalPolynom( val_i, deriv_i, i, lCoeff_[i], actCoord[0] );
+          EvalPolynom( val_j, deriv_j, j, lCoeff_[j], actCoord[1] );
+
+          LDeriv[offset][0] = deriv_i * val_j;
+          LDeriv[offset][1] =   val_i * deriv_j;
+          offset++;
+        }
+      }
+    }
   }
 
 
@@ -140,6 +315,122 @@ namespace CoupledField
     return factor;
   }
 
+  void  Quad1FE::GetNumFncs( Vector<UInt>& numFcns,  
+                             const shared_ptr<AnsatzFct>& fcnType, 
+                             AnsatzFct::FctEntityType fctEntityType, 
+                             UInt dof ) {
+    ENTER_FCN( "Quad1FE::GetNumFncs" );
+
+    // Check ansatzFctType
+    if( fcnType->GetType() == AnsatzFct::LAGRANGE ) {
+      numFcns.Resize( NumNodes_ );
+      numFcns.Init(1);
+    } else if ( fcnType->GetType() == AnsatzFct::LEGENDRE ) {
+      
+      // Remember approximation order
+      Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
+        (fcnType)->GetIsoOrder();
+      // Check for subentity-type
+      if( fctEntityType == AnsatzFct::NODE ) {
+        numFcns.Resize( NumNodes_ );
+        numFcns.Init( 1 );
+        
+      } else if( fctEntityType == AnsatzFct::EDGE ) {
+        numFcns.Resize( NumEdges_ );
+        numFcns.Init( order - 1 );
+      } 
+      else if( fctEntityType == AnsatzFct::INTERIOR ) {
+        numFcns.Resize(1);
+        
+        UInt inc = 1;
+        UInt total = 0;
+        for (Integer i = 4; i<=order; i++ ) {
+          total += inc++;
+        }
+        numFcns.Init(total);
+      } else if( fctEntityType == AnsatzFct::FACE ) {
+        numFcns.Clear();
+      } else {
+        Error( "Not yet implemented!", __FILE__, __LINE__ );
+      }
+      
+    } else {
+      *error << "AnsatzFcnType '" << fcnType->GetType() 
+             << "' is not known!";
+      Error( __FILE__, __LINE__ );
+    }
+  }
+  
+  UInt Quad1FE::GetNumFncs( const shared_ptr<AnsatzFct>& type ) {
+    
+    // TODO: FOr anisotropic functions we have
+    // to incorporate the dof in the determination
+    // Check ansatzFctType
+    if( type->GetType() == AnsatzFct::LAGRANGE ) {
+      return NumNodes_;
+    } else if ( type->GetType() == AnsatzFct::LEGENDRE ) {
+      Integer order =  dynamic_pointer_cast<LegendreFct, AnsatzFct>
+        (type)->GetIsoOrder();
+      UInt numBubbles = 0;
+      UInt inc = 1;
+      for (Integer i = 4; i<=order; i++ ) {
+        numBubbles += inc++;
+      }
+      return (NumNodes_ + (NumEdges_*(order-1)) + numBubbles);
+      
+    }
+    return 0;
+  }
+
+
+  void Quad1FE::SetAnsatzFct( shared_ptr<AnsatzFct>& actFct, 
+                              bool setIntPoints ) {
+    ENTER_FCN( "Quad1FE::SetAnsatzFct" );
+
+    // Check if this ansatz fct was already set
+    if( actFct_ == actFct ) {
+      return;
+    }
+    actFct_ = actFct;
+    
+    if( actFct->GetType() == AnsatzFct::LEGENDRE
+        && setIntPoints == true ) {
+      
+      // If not, get order of functions
+      shared_ptr<LegendreFct> legFct = 
+        dynamic_pointer_cast<LegendreFct, AnsatzFct>(actFct);
+      
+      // check if isotropic order is present
+      if( legFct->IsIsotropic() ) {
+        
+        // Prevent integration of first order, as this may
+        // cause non-reasonable results
+        if( legFct->GetIsoOrder() > 1 ) {
+          IntegMethod = CARTESIAN;
+          IntegOrder =  EncodeCartesianOrder( legFct->GetIsoOrder() + 2,
+                                              legFct->GetIsoOrder() + 2,
+                                              legFct->GetIsoOrder() + 2);
+        } else {
+          IntegOrder = 2;
+        } 
+      } else {
+        IntegMethod = CARTESIAN;
+        IntegOrder =  EncodeCartesianOrder( legFct->GetMaxOrder() + 2,
+                                            legFct->GetMaxOrder() + 2,
+                                            legFct->GetMaxOrder() + 2);
+      }
+      
+      
+      // get the values by IntegMethod and IntegOrder
+      SetIntPoints();
+      
+      // ... then calc shape function values at integration points
+      // for subsequent calls to CalcJacobian() ....
+      SetShapeFncAtIp();
+      SetShapeFncDerivAtIp();
+      
+    }
+  }
 
 
 } // end of namespace

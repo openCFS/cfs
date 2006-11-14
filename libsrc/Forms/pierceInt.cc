@@ -37,9 +37,10 @@ namespace CoupledField {
    
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
-    
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet, factor;
 
@@ -53,13 +54,14 @@ namespace CoupledField {
     Vector<Double> velDerivAtIp(dim);
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes);
+    elemMat.Resize(numFncs);
     elemMat.Init();
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
-      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+                                    jacDet, ent1.GetElem() );
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem());
 
       // compute velocity and derivative at IP        
 
@@ -79,8 +81,8 @@ namespace CoupledField {
       else 
         factor = intWeights[actIntPt-1] * dampFactor_ * jacDet;
         
-      for (UInt i=0; i<nrNodes; i++) {
-	for (UInt j=0; j<nrNodes; j++) {
+      for (UInt i=0; i<numFncs; i++) {
+	for (UInt j=0; j<numFncs; j++) {
 	  elemMat[i][j] += shapeFncAtIp[i] * partVec[j] * factor;
 	}
       }
@@ -122,9 +124,10 @@ namespace CoupledField {
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
-    
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     const UInt dim = ptCoord_.GetSizeRow();
 
@@ -140,14 +143,15 @@ namespace CoupledField {
     Vector<Double> velDerivAtIp(dim);
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes);
+    elemMat.Resize( numFncs );
     elemMat.Init();
     
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
-      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+                                    jacDet, ent1.GetElem() );
+      ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
         
       // compute velocity and derivative at IP        
       coordAtIp = ptCoord_ * shapeFncAtIp;
@@ -170,9 +174,9 @@ namespace CoupledField {
       for ( UInt i=0; i<dim; i++) 
 	divVel += velDerivAtIp[i];
 
-      for (UInt i=0; i<nrNodes; i++) {
+      for (UInt i=0; i<numFncs; i++) {
 	Double part1 =  partVec[i] + shapeFncAtIp[i] * divVel; 
-	for (UInt j=0; j<nrNodes; j++) {
+	for (UInt j=0; j<numFncs; j++) {
 	  elemMat[i][j] += part1 * partVec[j] * factor;
 	}
       }
@@ -224,7 +228,7 @@ namespace CoupledField {
     else if ( stringVal[0] == "y" ) 
       flowDir_ = Y;
     else if ( stringVal[0] == "z" ) {
-      if ( dim = 2) {
+      if ( dim == 2) {
 	Error("Direction of flow in 2D can just be x or y",__FILE__,__LINE__);
       }
       flowDir_ = Z;

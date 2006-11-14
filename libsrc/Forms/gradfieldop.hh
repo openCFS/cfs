@@ -55,12 +55,12 @@ namespace CoupledField
     //! Calculate element gradient field
     /*!
       \param elemField (output) Element vector of gradient field
-      \param ptElem (input) Pointer to element
+      \param ent (input) EntityIterator pointing to current element
       \param lCoord (input) Local coordinates of evaluation point
       \param factor (input) Scaling factor (e.g. permittivity for E-Field)
     */
-    virtual void CalcElemGradField(CFSVector & elemField,
-                                   const Elem * ptElement,
+    virtual void CalcElemGradField(Vector<TYPE> & elemField,
+                                   const EntityIterator& ent,
                                    const Vector<Double> & lCoord,
                                    const Double factor);
   
@@ -74,7 +74,7 @@ namespace CoupledField
       \param SD (input) Name of the subdomain
       \param LCoord (input) Local coordinates of evalutation point
     */
-    virtual void CalcSDGradField(CFSVector & elemField,
+    virtual void CalcSDGradField(Vector<TYPE> & elemField,
                                  const StdVector<RegionIdType> & SD,
                                  const Vector<Double> & lCoord,
                                  const Vector<Double> & factors);

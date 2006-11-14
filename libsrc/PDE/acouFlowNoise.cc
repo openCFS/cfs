@@ -891,14 +891,15 @@ namespace CoupledField
                       
                    for (UInt actIntPt=1; actIntPt<=nrIntPts; actIntPt++)
                      {
-                       ptEl->GetShFncAtIp(Sf, actIntPt);
+                       ptEl->GetShFncAtIp(Sf, actIntPt, elemssd[j]);
                        valueAtIP[actIntPt-1]= nodalval*Sf;
                      }
                    Double jacDet;
                    for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
                         
-                     jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoordNodes);
-                     ptEl -> GetShFncAtIp(Sf, actIntPt);
+                     jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoordNodes,
+                                                        elemssd[j]);
+                     ptEl -> GetShFncAtIp(Sf, actIntPt, elemssd[j]);
                         
                      if (isaxi_) {
                        Vector<Double> coordAtIP;

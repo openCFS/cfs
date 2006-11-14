@@ -77,9 +77,11 @@ namespace CoupledField
   void PMLInt::CalcElementMatrixStiff(Matrix<Double> & ptCoord, Matrix<Double> & elemMat)
   {
     ENTER_FCN( "PMLInt::CalcElementMatrixStiff" );
+
     
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
 
@@ -91,7 +93,7 @@ namespace CoupledField
     Vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes); 
+    elemMat.Resize(numFncs); 
     elemMat.Init();
 
     Vector<Double> factorsPML;
@@ -101,11 +103,12 @@ namespace CoupledField
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord, 
+                                      jacDet, it1_.GetElem() );
         xiDx.Transpose(xiDxTransp);
 
 	// compute PML factor 
-	ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+	ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, it1_.GetElem() );
 	CoordAtIP = ptCoord * ShpFncAtIp;
 	ComputeFactorPML( factorsPML, CoordAtIP);        
 
@@ -135,8 +138,9 @@ namespace CoupledField
   {
     ENTER_FCN( "PMLInt::CalcElementMatrixMass" );
     
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;
 
@@ -145,16 +149,18 @@ namespace CoupledField
     Vector<Double> CoordAtIP;
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes);
+    elemMat.Resize(numFncs);
     elemMat.Init();
     
     Vector<Double> factorsPML;
     Double factorPML;
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord);
+      ptelem->SetAnsatzFct( ansatzFct1_ );
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord,
+                                           it1_.GetElem() );
         
-      ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
+      ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, it1_.GetElem() );
         
       partElemMat.DyadicMult(shapeFncAtIp);
         

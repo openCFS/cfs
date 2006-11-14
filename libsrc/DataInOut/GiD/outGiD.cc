@@ -517,8 +517,8 @@ namespace CoupledField {
         // Check which mechanic subtype we have to treat
         params->Get( "subType", subType, "mechanic" );
         
-        if( subType == "3D" ) {
-          const char *names[] = {"xx", "yy", "zz", "yz", "xz", "xy"};
+        if( subType == "3d" ) {
+          const char *names[] = {"xx", "xy", "yy", "xz", "yz", "zz"};
           GiD_ResultComponents( 6, names );
         } else if( subType == "planeStrain" ) {
           const char *names[] = {"_", "__", "xx", "___", "xy", "yy"};

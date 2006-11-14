@@ -32,9 +32,10 @@ namespace CoupledField
   
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
-
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+  
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;  
 
@@ -57,22 +58,23 @@ namespace CoupledField
     N = 4; // 4 DOFs per Node
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*N); 
+    elemMat.Resize(numFncs*N); 
     elemMat.Init();
-    locElemMat.Resize(nrNodes*N); 
+    locElemMat.Resize(numFncs*N); 
     locElemMat.Init();
 
-    xiDx.Resize(nrNodes);
-    xiDy.Resize(nrNodes);
+    xiDx.Resize(numFncs);
+    xiDy.Resize(numFncs);
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
-        ptelem->GetShFncAtIp(xi, actIntPt);
-        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, ptCoord_, jacDet);
+        ptelem->GetShFncAtIp(xi, actIntPt, ent1.GetElem());
+        ptelem->GetGlobDerivShFncAtIp(xiDxDy, actIntPt, 
+                                      ptCoord_, jacDet, ent1.GetElem() );
 
-        for (UInt i=0; i< nrNodes; i++) 
+        for (UInt i=0; i< numFncs; i++) 
           {
             xiDx[i] = xiDxDy[i][0];
             xiDy[i] = xiDxDy[i][1];
@@ -113,22 +115,22 @@ namespace CoupledField
 
         //****************************************************************
 	locElemMat.AddSubMatrix(A1       ,  0,          0);
-        locElemMat.AddSubMatrix(A1       ,  nrNodes,    nrNodes);
-        locElemMat.AddSubMatrix(A1       ,  2*nrNodes,  2*nrNodes);
+        locElemMat.AddSubMatrix(A1       ,  numFncs,    numFncs);
+        locElemMat.AddSubMatrix(A1       ,  2*numFncs,  2*numFncs);
         //
-        locElemMat.AddSubMatrix(A2       ,  0,          nrNodes);
-        locElemMat.AddSubMatrix(A2n      ,  nrNodes,    0);
+        locElemMat.AddSubMatrix(A2       ,  0,          numFncs);
+        locElemMat.AddSubMatrix(A2n      ,  numFncs,    0);
         //
-        locElemMat.AddSubMatrix(A3_1     ,  0,          3*nrNodes);
-        locElemMat.AddSubMatrix(A3_2     ,  3*nrNodes,  0);
+        locElemMat.AddSubMatrix(A3_1     ,  0,          3*numFncs);
+        locElemMat.AddSubMatrix(A3_2     ,  3*numFncs,  0);
         //
-        locElemMat.AddSubMatrix(A4_1     ,  nrNodes,    3*nrNodes);
-        locElemMat.AddSubMatrix(A4_2     ,  3*nrNodes,  nrNodes);
+        locElemMat.AddSubMatrix(A4_1     ,  numFncs,    3*numFncs);
+        locElemMat.AddSubMatrix(A4_2     ,  3*numFncs,  numFncs);
         //
-        locElemMat.AddSubMatrix(vA2      ,  2*nrNodes,  3*nrNodes);
-        locElemMat.AddSubMatrix(vA2n     ,  3*nrNodes,  2*nrNodes);
+        locElemMat.AddSubMatrix(vA2      ,  2*numFncs,  3*numFncs);
+        locElemMat.AddSubMatrix(vA2n     ,  3*numFncs,  2*numFncs);
         //
-        locElemMat.AddSubMatrix(A5       ,  3*nrNodes,  3*nrNodes);
+        locElemMat.AddSubMatrix(A5       ,  3*numFncs,  3*numFncs);
 
 //  __                                 __
 // |                                    |
@@ -148,46 +150,46 @@ namespace CoupledField
 
 
 
-//        partElemAMat.Resize(nrNodes*N,nrNodes*N); partElemAMat.Init();
+//        partElemAMat.Resize(numFncs*N,numFncs*N); partElemAMat.Init();
 
 
-//        for (i=0; i<nrNodes; i++)
+//        for (i=0; i<numFncs; i++)
 //          {
-//            for (j=0; j<nrNodes; j++)
+//            for (j=0; j<numFncs; j++)
 //              {
 //	        xiDx2_Plus_xiDy2 = (xiDxDy[i][0]*xiDxDy[j][0]) + (xiDxDy[i][1]*xiDxDy[j][1]);
 //	        partElemAMat[i][j]                     =  xiDx2_Plus_xiDy2;
-//	        partElemAMat[i+1*nrNodes][j+1*nrNodes] =  xiDx2_Plus_xiDy2;
-//	        partElemAMat[i+2*nrNodes][j+2*nrNodes] =  xiDx2_Plus_xiDy2;
+//	        partElemAMat[i+1*numFncs][j+1*numFncs] =  xiDx2_Plus_xiDy2;
+//	        partElemAMat[i+2*numFncs][j+2*numFncs] =  xiDx2_Plus_xiDy2;
 //		      
 //	        xi_Mult_xiDy = (xi[i]*xiDxDy[j][1]);
-//	        partElemAMat[i+3*nrNodes][j]           =  xi_Mult_xiDy;
+//	        partElemAMat[i+3*numFncs][j]           =  xi_Mult_xiDy;
 //
 //	        xiDy_Mult_xi = (xiDxDy[i][1]*xi[j]);
-//	        partElemAMat[i][j+3*nrNodes]           =  xiDy_Mult_xi;
+//	        partElemAMat[i][j+3*numFncs]           =  xiDy_Mult_xi;
 //		      
 //	        xi_Mult_xiDx = (xi[i]*xiDxDy[j][0]);
-//	        partElemAMat[i+3*nrNodes][j+nrNodes]   = -xi_Mult_xiDx;
+//	        partElemAMat[i+3*numFncs][j+numFncs]   = -xi_Mult_xiDx;
 //		      
 //	        xiDx_Mult_xi = (xiDxDy[i][0]*xi[j]);
-//	        partElemAMat[i+nrNodes][j+3*nrNodes]   = -xiDx_Mult_xi;
+//	        partElemAMat[i+numFncs][j+3*numFncs]   = -xiDx_Mult_xi;
 //
 //	        mu2_xiDy2_Plus_mu2_xiDx2_Plus_xi2 = (mu*mu*xiDxDy[i][1]*xiDxDy[j][1]) + (mu*mu*xiDxDy[i][0]*xiDxDy[j][0]) + (xi[i]*xi[j]);
-//	        partElemAMat[i+3*nrNodes][j+3*nrNodes] = mu2_xiDy2_Plus_mu2_xiDx2_Plus_xi2;
+//	        partElemAMat[i+3*numFncs][j+3*numFncs] = mu2_xiDy2_Plus_mu2_xiDx2_Plus_xi2;
 		      
 		           
 //            partElemAMat[0][j]           =  xiDxDy[j][0];
-//            partElemAMat[0][j+nrNodes]   =  xiDxDy[j][1];
+//            partElemAMat[0][j+numFncs]   =  xiDxDy[j][1];
 
-//            partElemAMat[1][j+2*nrNodes] =  xiDxDy[j][0];
-//            partElemAMat[1][j+3*nrNodes] =  dynamicViscosity_ * xiDxDy[j][1];
+//            partElemAMat[1][j+2*numFncs] =  xiDxDy[j][0];
+//            partElemAMat[1][j+3*numFncs] =  dynamicViscosity_ * xiDxDy[j][1];
 
-//            partElemAMat[2][j+2*nrNodes] =  xiDxDy[j][1];
-//            partElemAMat[2][j+3*nrNodes] = -dynamicViscosity_ * xiDxDy[j][0];
+//            partElemAMat[2][j+2*numFncs] =  xiDxDy[j][1];
+//            partElemAMat[2][j+3*numFncs] = -dynamicViscosity_ * xiDxDy[j][0];
 
 //            partElemAMat[3][j]           =  xiDxDy[j][1];
-//            partElemAMat[3][j+nrNodes]   = -xiDxDy[j][0];
-//            partElemAMat[3][j+3*nrNodes] =  xi[j];
+//            partElemAMat[3][j+numFncs]   = -xiDxDy[j][0];
+//            partElemAMat[3][j+3*numFncs] =  xi[j];
 
 
 //              }
@@ -201,7 +203,7 @@ namespace CoupledField
 //        locElemMat += partElemAMat;
       }
       
-    ResortElementMatrix(elemMat, locElemMat, nrNodes, N);
+    ResortElementMatrix(elemMat, locElemMat, numFncs, N);
     //std::cout << "locElemMat:" << std::endl
     //          << locElemMat << std::endl;
     //std::cout << "elemMat:" << std::endl

@@ -878,13 +878,14 @@ namespace CoupledField {
       dim=inteValue;
     }
 
-    Matrix<Double> preisachWeightTensor(dim,dim);
+    
 
     //read real permittivity tensor
     keyVec = "material","electric","hystModel","preisach","weights";
     attrVec= "name"    ,""        ,""            ,"";
     valVec =  matName  ,""        ,""            ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      Matrix<Double> preisachWeightTensor(dim,dim);
       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
                                    dim, dim, preisachWeightTensor );
       material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, REAL); 

@@ -15,6 +15,9 @@
 #include "DataInOut/Scripting/cfsmessenger.hh"
 #endif
 
+// header for logging
+#include "DataInOut/Logging/cfslog.hh"
+
 // header for Materialhandling
 #include "DataInOut/MaterialHandler.hh"
 
@@ -37,6 +40,9 @@
 
 namespace CoupledField {
 
+  // declare logging stream
+  DECLARE_LOG(pde)
+  DEFINE_LOG(pde, "pde")
 
   SinglePDE::SinglePDE( Grid *aptgrid, WriteResults *aOutFile,
                         TimeFunc *aptTimeFunc )
@@ -113,7 +119,8 @@ namespace CoupledField {
 
 
     delete sol_;
-    delete solVec_;
+    if( !isDirectCoupled_ )
+      delete solVec_;
 
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -133,6 +140,7 @@ namespace CoupledField {
     ENTER_FCN( "SinglePDE::Init()" );
 
     StdVector<RegionIdType> allIDs;
+    LOG_TRACE(pde) << pdename_ << ": Starting Initialization";
 
     bcSequenceIndex_ = bcSequenceIndex;
     bcSequenceTag_ = bcSequenceTag;
@@ -140,6 +148,9 @@ namespace CoupledField {
     // =====================================================================
     // get regions/subdomains for PDE
     // =====================================================================
+
+    LOG_TRACE(pde) << pdename_ << ": Obtaining regions";
+
     // Construct vectors for restricted search parameter
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
@@ -216,7 +227,7 @@ namespace CoupledField {
     // =====================================================================
     // Get type of analysis
     // =====================================================================
-    
+    LOG_TRACE(pde) << pdename_ << ": Obtaining analysistye";
     analysistype_ = domain->GetSingleDriver()->GetAnalysisType();
 
     // NOTE: The concept of isAlwaysStatic bites with Direct Coupling
@@ -262,11 +273,14 @@ namespace CoupledField {
     // Determine if solution is of complex type or not
     if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
       sol_ = new NodeStoreSol<Complex>;
-      solVec_ = new Vector<Complex>;
+      if(!isDirectCoupled_ )
+        solVec_ = new Vector<Complex>;
     }
     else {
       sol_ = new NodeStoreSol<Double>;
-      solVec_ = new Vector<Double>;
+
+      if(!isDirectCoupled_ )
+        solVec_ = new Vector<Double>;
     }
 
     // =====================================================================
@@ -282,17 +296,20 @@ namespace CoupledField {
     // =====================================================================
     // read in damping information
     // =====================================================================
+    LOG_TRACE(pde) << pdename_ << ": Reading damping information";
     ReadDampingInformation( );
       
 
     // =====================================================================
     // read in NonLinearities
     // =====================================================================
+    LOG_TRACE(pde) << pdename_ << ": Initializing non-linearities";
     InitNonLin();
 
     // =====================================================================
     // read in material data
     // =====================================================================
+    LOG_TRACE(pde) << pdename_ << ": Reading material information";
     ReadMaterialData();
 
     // =====================================================================
@@ -341,6 +358,7 @@ namespace CoupledField {
       IncorporateMemento();
     }
     
+    LOG_TRACE(pde) << pdename_ << ": Reading boundary conditions";
     ReadBCs();
     ReadSpecialBCs();
     //
@@ -374,6 +392,7 @@ namespace CoupledField {
     // =====================================================================
 
     // Call initialization of (bi)linear integrators
+    LOG_TRACE(pde) << pdename_ << ": Defining integrators";
     DefineIntegrators();
 
     // Print information about defined integrators
@@ -384,6 +403,7 @@ namespace CoupledField {
 #endif
 
     // Finish equation mapping
+    LOG_TRACE(pde) << pdename_ << ": Mapping Equations";
     eqnMap_->SetHomoDirichletBCs ( hdBcs_ );
     eqnMap_->SetInhomDirichletBCs( idBcs_ );
     eqnMap_->SetConstraints( constraints_ );
@@ -420,20 +440,22 @@ namespace CoupledField {
     
 
     SETPROFILE("Before Resizing StoreSol");
-    solVec_->Resize( eqnMap_->GetNumEqns() );
-    if( isComplex_ ) {
-      solVec_->Init( Complex(0.0,0.0) );
-    } else {
-      solVec_->Init( 0.0 );
-    }
-    SETPROFILE("After Resizing StoreSol");
-    if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
-      sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
-                                 dynamic_cast<Vector<Complex>&>(*solVec_).GetPointer() );
-    } else {
-      sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
-                                 dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
-
+    if(!isDirectCoupled_ ) {
+      solVec_->Resize( eqnMap_->GetNumEqns() );
+      if( isComplex_ ) {
+        solVec_->Init( Complex(0.0,0.0) );
+      } else {
+        solVec_->Init( 0.0 );
+      }
+      SETPROFILE("After Resizing StoreSol");
+      if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+        sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
+                                   dynamic_cast<Vector<Complex>&>(*solVec_).GetPointer() );
+      } else {
+        sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
+                                   dynamic_cast<Vector<Double>&>(*solVec_).GetPointer() );
+        
+      }
     }
     
 
@@ -449,6 +471,7 @@ namespace CoupledField {
     // =====================================================================
     // define which solution types have to be saved
     // =====================================================================
+    LOG_TRACE(pde) << pdename_ << ": Reading store results";
     ReadStoreResults();
 
 #ifndef MpCCI
@@ -471,11 +494,13 @@ namespace CoupledField {
 
     //! Define step solution driver
     if ( isDirectCoupled_ == false ) {
+      LOG_TRACE(pde) << pdename_ << ": Defining solveStep class";
       DefineSolveStep();
     }
 
     // Finally set the initialization flag to true
     isInitialized_ = true;
+    LOG_TRACE(pde) << pdename_ << ": Finished initializaton";
   }
 
   
@@ -868,8 +893,8 @@ namespace CoupledField {
       actLoad->entities = actList;
       actLoad->result = results_[0];
       actLoad->eqnMap = eqnMap_;
-      if( dof.GetSize() == 0 ) {
-        actLoad->dof = 1;
+      if ( dof.GetSize() == 0 ) {
+        actLoad->dof = 1; 
       } else {
         actLoad->dof = 
           results_[0]->GetDofIndex(dof[i]);
@@ -1383,64 +1408,25 @@ namespace CoupledField {
                            const std::string &dynamics) {
     ENTER_FCN("SinglePDE::SetIDBC");
 
-    Warning( "Not working yet!", __FILE__, __LINE__ );
-  //   // Try ro find existing entry in IDBC vector
-//     Integer index = -1;
-//     UInt dofspernode = results_[0]->dofNames.GetSize();
+    // Try ro find existing entry in IDBC vector
+    Integer index = -1;
 
-    
-//     for ( UInt i = 0; i < bcs_id_.GetSize(); i++ ) {
+    for( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
+      if( idBcs_[i]->entities->GetName() == name ) {
+        index = i;
+        break;
+      } 
+    }
 
-//       if ( bcs_id_[i] == name ) {
-//         if ( dofspernode > 1 ) {
-//           if ( inhomDirichDof_[i] == dofString ) {
-//             index = i;
-//             break;
-//           }
-//         } else {
-//           index = i;
-//           break;
-//         }
-//       }
-//     }
-    
-//     // If entry was already defined, we can always change
-//     // the value of the boundary condition
-//     if ( index != -1 ) {
-//       val_id_[index] = value;
-//       if (analysistype_ == HARMONIC
-//           ||analysistype_ == MULTIHARMONIC) {
-//         bcs_id_phase_[index] = phase;
-//       }
-//     } else {
-//       // Entry was not yet defined. We can only add a new
-//       // idbc entry, if eqnData was not yet initialized / created
-//       if ( eqnMap_.get() == NULL) {
-//         bcs_id_.Push_back( name );
-//         val_id_.Push_back( value );
-//         if ( dofspernode > 1 ) {
-//           inhomDirichDof_.Push_back( dofString );
-//         }
-//         if (analysistype_ == HARMONIC
-//             ||analysistype_ == MULTIHARMONIC) {
-//           bcs_id_phase_.Push_back( phase );
-//         } else {
-//           fncnames_id_.Push_back( dynamics );
-//         }
-
-//         // Re-calculate the correct number of boundary condition entries
-//         for ( UInt i = 0; i < bcs_id_.GetSize(); i++) {
-//           numDirichletBCs_ += ptgrid_->GetNumNodes(bcs_id_[i]);
-//         }
-        
-//       } else {
-//         (*error) << "No new ihom. Dirichlet BC can be defined " 
-//                  << "at this point, as the equation numbering "
-//                  << "was already performed!";
-//         Error( __FILE__, __LINE__ );
-//       }
-//     } 
-
+    if( index == -1 ) {
+      (*error) << "Entities '" << name << "' not found for "
+               << "Dirichlet values!";
+      Error( __FILE__, __LINE__ );
+    } else {
+      idBcs_[index]->value = value;
+      idBcs_[index]->phase = phase;
+      idBcs_[index]->dynamics = dynamics;
+    }
   }
 
 

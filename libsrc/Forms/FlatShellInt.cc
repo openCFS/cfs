@@ -14,7 +14,9 @@ namespace CoupledField {
     ENTER_FCN( "FlatShellInt::CoordTrans");
    
     //std::cout << "FlatShellInt::CoordTrans\n" << std::endl;
-    const UInt nrNodes  = ptelem->GetNumNodes();   
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrNodes = ptelem->GetNumFncs( ansatzFct1_ );
+    //const UInt nrNodes  = ptelem->GetNumNodes();   
     const UInt nrDofs   = getNrDofs();
     const UInt lambdaDim = 3; //dimension of the submatrix lambda, part of the transformation matrix
     const UInt TMatDim = getNrDofs(); //dimension of the nodal transformation matrix
@@ -49,6 +51,7 @@ namespace CoupledField {
     Vx[0]= ptCoord[0][1] - ptCoord[0][0] ;
     Vx[1]= ptCoord[1][1] - ptCoord[1][0] ;
     Vx[2]= ptCoord[2][1] - ptCoord[2][0] ;
+
 
     // 1/Length of the vector Vx
     length = 1.0 / sqrt( Vx[0] * Vx[0] + Vx[1] * Vx[1] + Vx[2] * Vx[2] );
@@ -151,13 +154,15 @@ namespace CoupledField {
     //adding the Drilling degree of freedom,which can be defined in the beginning of the file
     const Double K = penaltyDof_;
     UInt dofspernode_=6;
-    
+    std::cerr << "penaltyDof = " <<  penaltyDof_ << std::endl;
+
     for( i = dofspernode_ - 1; i < row; i+= dofspernode_ )
       for( j = dofspernode_ - 1; j < row; j+= dofspernode_ )
         ElemMat[i][j] = K /*0.001 * Max*/;
 
     //Multiplying the stiffness Matrix with the Transformation matrix
     
+
     KTF = ElemMat * StiffTrans;
 
     //Calculates the transpose of the Transformation Matrix
@@ -167,7 +172,8 @@ namespace CoupledField {
     //Calculates the global stiffness matrix 
 
     ElemMat = TFTrans * KTF;
-
+    
+   
     // to check if the transform matrix is orthogonal
     //    KTF = TFTrans * StiffTrans;
 

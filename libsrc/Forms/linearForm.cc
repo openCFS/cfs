@@ -150,7 +150,7 @@ namespace CoupledField {
 
         partElemVec = shapeEdge * currentVec;
 
-        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem());
 
         for(UInt i=0; i<partElemVec.GetSize(); i++)
           elemVec[i] += partElemVec[i] * intWeights[actIntPt-1] * jacDet; 
@@ -196,19 +196,21 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Vector<Double> shapeFnc;
   
-    elemVec.Resize(nrNodes);
+    elemVec.Resize(numFncs);
     elemVec.Init();
   
     Double factor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {  
-        ptelem->GetShFncAtIp(shapeFnc,actIntPt);
-        factor = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_) * 
+        ptelem->GetShFncAtIp(shapeFnc,actIntPt, ent.GetElem() );
+        factor = 
+          ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem()) * 
           intWeights[actIntPt-1] * val_;
       
         if (isaxi_)
@@ -255,27 +257,29 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
     
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Vector<Double> ShpFncAtIp, helpVec, CoordAtIP;
     Matrix<Double> xiDx;
 
-    elemVec.Resize(nrNodes);
+    elemVec.Resize(numFncs);
     elemVec.Init(0);  
-    helpVec.Resize(nrNodes);
+    helpVec.Resize(numFncs);
     helpVec.Init(0);
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
       Double jacDet = 0;
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, 
+                                    ptCoord_, jacDet, ent.GetElem() );
 
       if (isaxi_)
         {
-          ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+          ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent.GetElem());
           CoordAtIP = ptCoord_ * ShpFncAtIp;
-          for (UInt i=0; i<nrNodes; i++)
+          for (UInt i=0; i<numFncs; i++)
             xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
         
           jacDet *= 2 * PI * CoordAtIP[0];
@@ -320,8 +324,9 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
     
-    const UInt nrNodes  = ptelem->GetNumNodes();
-  
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+
     BaseForm * curlcurl2D;
     if (nlinFnc_== NULL) 
       //define the linear element matrix
@@ -341,9 +346,9 @@ namespace CoupledField {
 
     // Get element solution
     Vector<Double> magPot;
-    sol_->GetElemSolution( magPot, ent.GetElem()->connect );
+    sol_->GetElemSolution( magPot, ent  );
 
-    elemVec.Resize(nrNodes);
+    elemVec.Resize(numFncs);
     elemVec = -(elemmat * magPot);
 
     delete curlcurl2D;
@@ -385,8 +390,10 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    
     // getNrDofs() would not work, because CalcElemVec is used for 2d&3d!
     //    const UInt nrDofs   = getNrDofs();
     const UInt nrDofs   = ptelem->GetDim(); 
@@ -413,15 +420,18 @@ namespace CoupledField {
     else {
       Error("Wrong space dimension of elements! ",__FILE__,__LINE__);
     }  
-  
+    
+    stressBiformInt->SetActEntities( ent, ent );
+
     // Get element solution
     Matrix<Double> elemDisp;
-    sol_->GetElemSolutionAsMatrix( elemDisp, ent.GetElem()->connect );
+    sol_->GetElemSolutionAsMatrix( elemDisp, ent  );
 
-    partElemVec.Resize(nrNodes * nrDofs);
+    partElemVec.Resize(numFncs * nrDofs);
     partElemVec.Init();
+    
   
-    elemVec.Resize(nrNodes*nrDofs);
+    elemVec.Resize(numFncs*nrDofs);
     elemVec.Init();
   
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {    
@@ -434,18 +444,20 @@ namespace CoupledField {
       nonLinBMat += linBMat;
 	
       nonLinBMat.Transpose(transpSumB);
-	
+
       partElemVec = transpSumB * piolaStressVec;
-	
-      Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
-	
-      if (isaxi_) {
-	Vector<Double> shpFncAtIp;
-	Vector<Double> coordAtIP;
-	ptelem->GetShFncAtIp(shpFncAtIp, actIntPt);
-	coordAtIP = ptCoord_ * shpFncAtIp;
-	jacDet *= 2 * PI * coordAtIP[0];
-      }
+      
+      Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, 
+                                                  ptCoord_, ent.GetElem() );
+      
+      if (isaxi_)
+        {
+          Vector<Double> shpFncAtIp;
+          Vector<Double> coordAtIP;
+          ptelem->GetShFncAtIp(shpFncAtIp, actIntPt, ent.GetElem());
+          coordAtIP = ptCoord_ * shpFncAtIp;
+          jacDet *= 2 * PI * coordAtIP[0];
+        }
       
       partElemVec *= jacDet * intWeights[actIntPt-1];
       
@@ -455,7 +467,6 @@ namespace CoupledField {
       // and Actuators" p. 55
       elemVec -=  partElemVec;
     }
-
     delete stressBiformInt;
   }
 
@@ -485,9 +496,10 @@ namespace CoupledField {
                                                          Vector<Double> & elemVec)
   {
     ENTER_FCN( "RHSForRecoveryProcedure::CalcElemVectorRHSForSPR" );
-             
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPnts = ptelem->GetNumIntPoints();
-    const UInt nrNodes   = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Vector<double> shFnc;
     Matrix<Double>      dvShFnc ;
@@ -495,23 +507,24 @@ namespace CoupledField {
     Double              valFnc=0;
     UInt             iIntPnts,iShFnc;
   
-    elemVec.Resize(nrNodes);
+    elemVec.Resize(numFncs);
     elemVec.Init();
   
     for (iIntPnts=0; iIntPnts < nrIntPnts; iIntPnts ++)
       {
         valFnc = 0;
       
-        jacDet = ptelem->CalcJacobianDetAtIp(iIntPnts+1, ptCoord);
+        jacDet = ptelem->CalcJacobianDetAtIp(iIntPnts+1, ptCoord, NULL );
       
-        ptelem->GetGlobDerivShFncAtIp(dvShFnc, iIntPnts+1, ptCoord, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(dvShFnc, iIntPnts+1, 
+                                      ptCoord, jacDet, NULL );
       
-        ptelem->GetShFncAtIp(shFnc, iIntPnts+1);
+        ptelem->GetShFncAtIp(shFnc, iIntPnts+1, NULL  );
       
-        for (iShFnc = 0; iShFnc < nrNodes; iShFnc ++)
+        for (iShFnc = 0; iShFnc < numFncs; iShFnc ++)
           valFnc += fncNodesElem[iShFnc]*dvShFnc[iShFnc][aComponent];
       
-        for (iShFnc = 0; iShFnc < nrNodes; iShFnc++) 
+        for (iShFnc = 0; iShFnc < numFncs; iShFnc++) 
           elemVec[iShFnc]+=jacDet*valFnc*shFnc[iShFnc]*intWeights[iIntPnts];
       
       } // loop over integration points
@@ -551,7 +564,7 @@ namespace CoupledField {
            __FILE__, __LINE__ );
 
     //   const UInt nrIntPts = ptelem->GetNumIntPoints();
-    //   const UInt nrNodes  = ptelem->GetNumNodes();
+    //   const UInt numFncs  = ptelem->GetNumNodes();
     //   const UInt nrDofs   = getNrDofs();
     //   const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     //   Vector<Double> piolaStressVec;    
@@ -572,10 +585,10 @@ namespace CoupledField {
     //   if (!elemDisp_.GetSizeRow() || !elemDisp_.GetSizeCol()) 
     //     Error("Undefined displacements! ",__FILE__,__LINE__);
 
-    //   partElemVec.Resize(nrNodes * nrDofs);
+    //   partElemVec.Resize(numFncs * nrDofs);
 
 
-    //   elemVec.Resize( nrNodes * nrDofs );
+    //   elemVec.Resize( numFncs * nrDofs );
     //   elemVec *= 0;    // set elems to 0
    
 
@@ -668,9 +681,9 @@ namespace CoupledField {
   
     for (i=0; i<l; i++)
       {
-        jacDet = ptelem->CalcJacobianDetAtIp(i+1, ptCoord);
+        jacDet = ptelem->CalcJacobianDetAtIp(i+1, ptCoord, NULL );
       
-        ptelem->GetShFncAtIp(Sf, i+1);
+        ptelem->GetShFncAtIp(Sf, i+1, NULL );
       
         for (ii=0; ii < n; ii++)
           {
@@ -720,8 +733,9 @@ namespace CoupledField {
     // Loop over all integration points 
     for (actInt=1; actInt<=l; actInt++)
       {
-	ptelem->GetShFncAtIp(Sf, actInt);
-	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet);
+	ptelem->GetShFncAtIp(Sf, actInt, NULL );
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, 
+                                      jacDet, NULL );
 
 	// dTijdi at integration point: (dTijdx  dTijdy)^T  (2x1)
 	dTijdiAtIP =  dTijdi * Sf;
@@ -781,8 +795,9 @@ namespace CoupledField {
     // Loop over all integration points 
     for (actInt=1; actInt<=l; actInt++)
       {
-	ptelem->GetShFncAtIp(Sf, actInt);
-	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet);
+	ptelem->GetShFncAtIp(Sf, actInt, NULL  );
+	ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, 
+                                      jacDet, NULL );
 
 	// velocity at integration point: (vx  vy)^T  (2x1)
 	VelAtIP = NodalVel * Sf;
@@ -899,7 +914,7 @@ namespace CoupledField {
     elVelAtIP.Init();
     for (actInt=1; actInt<=l; actInt++)
       {
-        ptelem->GetShFncAtIp(Sf, actInt);
+        ptelem->GetShFncAtIp(Sf, actInt, NULL );
         //jacDet = ptelem->CalcJacobianDetAtIp(actInt, ptCoord);
         VelAtIP=elVel*Sf;
         
@@ -914,8 +929,9 @@ namespace CoupledField {
 
     for (actInt=1; actInt<=l; actInt++)
       {
-        ptelem->GetShFncAtIp(Sf, actInt);
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, jacDet);
+        ptelem->GetShFncAtIp(Sf, actInt, NULL );
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actInt, ptCoord, 
+                                      jacDet, NULL );
       
         // This work only for quad1 and trilinear hexahedrals 
         // elements since we have values
@@ -1026,9 +1042,11 @@ namespace CoupledField {
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
-    
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+   
 
     // derivative of shape functions after global coordinates 
     Matrix<Double> xiDx, xiDxTransp;
@@ -1040,19 +1058,20 @@ namespace CoupledField {
 
     Double jacDet;
   
-    elemVec.Resize(nrNodes);
+    elemVec.Resize(numFncs);
     elemVec.Init(0.0);
 
     Double totalfactor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
 
       jacDet = 0;
-      ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
+      ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent.GetElem() );
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+                                    jacDet, ent.GetElem() );
         
       if (isaxi_) {
         CoordAtIp = ptCoord_ * ShpFncAtIp;
-        for (UInt i=0; i<nrNodes; i++)
+        for (UInt i=0; i<numFncs; i++)
           xiDx[i][0] += ShpFncAtIp[i] / CoordAtIp[0];
           
         jacDet *= 2 * PI * CoordAtIp[0];
@@ -1076,7 +1095,7 @@ namespace CoupledField {
       totalfactor += factorN1_ * solDeriv1AtIp * solDeriv2AtIp;
         
       totalfactor *= jacDet;
-      for (UInt i=0; i< nrNodes; i++)
+      for (UInt i=0; i< numFncs; i++)
         elemVec[i] += ShpFncAtIp[i] * totalfactor;
         
     }
@@ -1105,24 +1124,26 @@ namespace CoupledField {
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
-    
-    const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
 
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+   
+    
     Vector<Double> ShpFncAtIp;
     Vector<Double> CoordAtIp;
     Double solAtIp, solDeriv1AtIp, solDeriv2AtIp;
 
     Double jacDet;
   
-    elemVec.Resize(nrNodes);
+    elemVec.Resize(numFncs);
     elemVec.Init(0.0);
 
     Double totalfactor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
-      ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem() );
+      ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent.GetElem() );
         
       if (isaxi_) {
         CoordAtIp = ptCoord_ * ShpFncAtIp;
@@ -1137,7 +1158,7 @@ namespace CoupledField {
       totalfactor = jacDet*factor_*2.0*(solDeriv1AtIp * solDeriv1AtIp +
                                         solAtIp*solDeriv2AtIp);
         
-      for (UInt i=0; i< nrNodes; i++)
+      for (UInt i=0; i< numFncs; i++)
         elemVec[i] += ShpFncAtIp[i] * totalfactor;
     }
   }
@@ -1170,33 +1191,36 @@ namespace CoupledField {
     
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
-    
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+   
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Vector<Double> ShpFncAtIp, CoordAtIP;
     Matrix<Double> xiDx;
 
-    elemVec.Resize(nrNodes);
+    elemVec.Resize(numFncs);
     elemVec.Init(0);
 
     Double factor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
       Double jacDet = 0;
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+                                    jacDet, ent.GetElem() );
 
       if (isaxi_) {
-        ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+        ptelem->GetShFncAtIp(ShpFncAtIp, actIntPt, ent.GetElem() );
         CoordAtIP = ptCoord_ * ShpFncAtIp;
-        for (UInt i=0; i<nrNodes; i++)
+        for (UInt i=0; i<numFncs; i++)
           xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
       
         jacDet *= 2 * PI * CoordAtIP[0];
       }
 
       factor = intWeights[actIntPt-1] * jacDet;
-      for (UInt i=0; i<nrNodes; i++) {
+      for (UInt i=0; i<numFncs; i++) {
         for (UInt j=0; j<D_.GetSize(); j++) {
           elemVec[i] += xiDx[i][j] * D_[j];
         }
@@ -1235,34 +1259,37 @@ namespace CoupledField {
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
-    
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+   
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Vector<Double> ShpFncAtIp, partElemVec, CoordAtIP;
     Matrix<Double> xiDx;
 
-    partElemVec.Resize(nrNodes);
+    partElemVec.Resize(numFncs);
     partElemVec.Init(0);  
 
     Double factor;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
       Double jacDet = 0;
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
+      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+                                    jacDet, ent.GetElem() );
 
       if (isaxi_) {
         if ( comp_ == 0 ) {
-          ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+          ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent.GetElem() );
           CoordAtIP = ptCoord_ * ShpFncAtIp;
-          for (UInt i=0; i<nrNodes; i++)
+          for (UInt i=0; i<numFncs; i++)
             xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
         }
         jacDet *= 2 * PI * CoordAtIP[0];
       }
 
       factor = intWeights[actIntPt-1] * jacDet * Pval_;
-      for (UInt i=0; i<nrNodes; i++) {
+      for (UInt i=0; i<numFncs; i++) {
         partElemVec[i] += xiDx[i][comp_] * factor;
       }
     }
@@ -1272,10 +1299,10 @@ namespace CoupledField {
     //compute element vector by correctly putting the components of
     //partlementVec into elemVec, since the values for the mechanical
     //degree of freedoms are zero
-    elemVec.Resize(nrNodes*numDofs_);
+    elemVec.Resize(numFncs*numDofs_);
     elemVec.Init(0);  
     UInt idx;
-    for (UInt i=0; i<nrNodes; i++) {
+    for (UInt i=0; i<numFncs; i++) {
       idx = numDofs_*i + numDofs_ - 1;
       elemVec[idx] = partElemVec[i];
     }
@@ -1334,8 +1361,9 @@ namespace CoupledField {
     // First, map force to global coordinate system
     Vector<Double> globMidPoint, locMidPoint;
 
-    ptelem->GetCoordMidPoint(locMidPoint);
-    ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, ptCoord_);
+    ptelem->GetCoordMidPoint(locMidPoint  );
+    ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, 
+                              ptCoord_, ent.GetElem() );
 
     // Update variables for mathParser
     parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
@@ -1375,7 +1403,8 @@ namespace CoupledField {
     Vector<Double> globMidPoint, locMidPoint;
 
     ptelem->GetCoordMidPoint(locMidPoint);
-    ptelem->Local2GlobalCoord(globMidPoint, locMidPoint, ptCoord_);
+    ptelem->Local2GlobalCoord( globMidPoint, locMidPoint, 
+                               ptCoord_, ent.GetElem() );
 
     // Update variables for mathParser
     parser->SetCoordinates( mHandle_, *coordSys_, globMidPoint );
@@ -1413,22 +1442,23 @@ namespace CoupledField {
                                         Vector<TYPE>& loadVec,
                                         EntityIterator& ent ) {
     
-    /// ----- part of interior function ---
 
+    /// ----- part of interior function ---
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-                    Vector<Double> shapeFnc, CoordAtIP;
+    Vector<Double> shapeFnc, CoordAtIP;
 
     // Then, calculate element vector
-    elemVec.Resize(nrNodes * numDofs_);
+    elemVec.Resize(numFncs * numDofs_);
     elemVec.Init(0.0);
     Double factor;
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
-      Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
-      ptelem->GetShFncAtIp(shapeFnc,actIntPt);
+      Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem() );
+      ptelem->GetShFncAtIp(shapeFnc,actIntPt, ent.GetElem() );
 
       if (isaxi_) {
         CoordAtIP = ptCoord_ * shapeFnc;
@@ -1436,10 +1466,10 @@ namespace CoupledField {
       }
           
       factor = intWeights[actIntPt-1] * jacDet;
-      for (UInt iNode = 0; iNode < nrNodes; iNode++) {
+      for (UInt iFnc = 0; iFnc < numFncs; iFnc++) {
         for (UInt iDof = 0; iDof < numDofs_; iDof++) {
-          elemVec[iNode*numDofs_ + iDof] += 
-            factor * shapeFnc[iNode] * loadVec[iDof]; 
+          elemVec[iFnc*numDofs_ + iDof] += 
+            factor * shapeFnc[iFnc] * loadVec[iDof]; 
         }
       }
     }
@@ -1503,6 +1533,7 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
 
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     const UInt nrNodes  = ptelem->GetNumNodes();
 
@@ -1531,12 +1562,13 @@ namespace CoupledField {
       
         partElemVec = transpB * addStress_;
       
-        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+        Double jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_,
+                                                    ent.GetElem());
       
         if (isaxi_) {
 	  Vector<Double> shpFncAtIp;
 	  Vector<Double> coordAtIP;
-	  ptelem->GetShFncAtIp(shpFncAtIp, actIntPt);
+	  ptelem->GetShFncAtIp(shpFncAtIp, actIntPt, ent.GetElem() );
 	  coordAtIP = ptCoord_ * shpFncAtIp;
 	  jacDet *= 2 * PI * coordAtIP[0];
 	}

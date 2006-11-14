@@ -32,9 +32,11 @@ namespace CoupledField
       \param Shape (output) Vector of shape fnc values \f$ (N_{1},N_{2})^T \f$
       \param LCoord (input) Local coordinates of evalutation point 
     */
-    virtual void CalcShapeFnc(Vector<Double> & LShape, 
-                              const Vector<Double> & LCoord);
-  
+    virtual void CalcShapeFnc( Vector<Double> & LShape, 
+                               const Vector<Double> & LCoord,
+                               const Elem* elem , UInt dof,
+                               AnsatzFct::FctEntityType );
+    
     //! calculates the local derivatives of shape functions at an arbitrary local point
     /*!
       \param LDeriv (output) Matrix with local derivatives of all shape functions
@@ -42,8 +44,10 @@ namespace CoupledField
       N_{2,d\xi} \end{array}\right) \f]
       \param LCoord (input) Local coordinates of evalutation point 
     */
-    virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                        const Vector<Double> & LCoord);
+    virtual void CalcLocalDerivShapeFnc( Matrix<Double> & LDeriv, 
+                                         const Vector<Double> & LCoord,
+                                         const Elem* elem , UInt dof,
+                                         AnsatzFct::FctEntityType );
 
     /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
     void SetDefaultIntegration()

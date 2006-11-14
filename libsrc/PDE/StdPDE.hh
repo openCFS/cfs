@@ -165,22 +165,19 @@ namespace CoupledField {
     //! get the data vector of the current solution of a PDE.
     CFSVector * GetSolutionVector();
     
-    /// returns the time derivative of the solution belonging to all nodes of the actual element
-    void GetDerivSolOfElement(Matrix<Double>& sol, StdVector<UInt>& connect_PDE);
-    
     /// returns the vector of the solution belonging to all nodes of the actual element
-    void GetSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
-    void GetSolVecOfElement(Vector<Complex>& sol, StdVector<UInt>& connect_PDE);
+    void GetSolVecOfElement(Vector<Double>& sol, const EntityIterator& it);
+    void GetSolVecOfElement(Vector<Complex>& sol, const EntityIterator& it);
     
     /// returns the vector of time derivative of the solution belonging 
     /// to all nodes of the actual element
-    void GetDerivSolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
-    void GetDerivSolVecOfElement(Vector<Complex>& sol, StdVector<UInt>& connect_PDE);
+    void GetDerivSolVecOfElement(Vector<Double>& sol, const EntityIterator& it);
+    void GetDerivSolVecOfElement(Vector<Complex>& sol, const EntityIterator& it);
     
     /// returns the vector of 2nd time derivative of the solution belonging to all nodes 
     /// of the actual element
-    void GetDeriv2SolVecOfElement(Vector<Double>& sol, StdVector<UInt>& connect_PDE);
-    void GetDeriv2SolVecOfElement(Vector<Complex>& sol, StdVector<UInt>& connect_PDE);
+    void GetDeriv2SolVecOfElement(Vector<Double>& sol, const EntityIterator& it);
+    void GetDeriv2SolVecOfElement(Vector<Complex>& sol, const EntityIterator& it);
 
     //! Init the time stepping
     virtual void InitTimeStepping()
@@ -352,17 +349,17 @@ namespace CoupledField {
     std::string subType_;
     //@}
 
-    // -----------------------------------------------------------------------
+      // -----------------------------------------------------------------------
     // Boundary conditions
-    // -----------------------------------------------------------------------
-  
+    // -----------------------------------------------------------------------    
+
     //@{
-    //! \name Attributes connected to the handling of boundary conditions
-  
-    //! List of homogeneous Dirichlet boundary conditions
+    //! \name boundary conitions
+
+    //! Homogeneous Dirichlet boundary coniditions
     HdBcList hdBcs_;
 
-    //! List of inhomogeneous Dirichlet boundary conditions
+    //! Inhomogeneous Dirichlet boundary conditions
     IdBcList idBcs_;
     
     //! List of inhomogeneous Nuemann boundary conditions
@@ -370,6 +367,12 @@ namespace CoupledField {
 
     //! List of constraints
     ConstraintList constraints_;
+
+    //! Right hand side load definitions
+    LoadList loads_;
+
+    //! Number of additional in. dirichlet boundary equations due to coupling
+    UInt numCouplingBcs_;
 
     //@}
 

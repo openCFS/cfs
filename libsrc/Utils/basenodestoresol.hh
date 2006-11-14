@@ -393,11 +393,11 @@ namespace CoupledField{
     /////////////////////////////////////////
 
     virtual void GetElemSolution(CFSVector & elemSol,
-                                 const StdVector<UInt> & connect) const = 0;
+                                 const EntityIterator& it) const = 0;
 
     //! 
     virtual void GetElemSolutionAsMatrix(CFSMatrix & elemSol,
-                                         const StdVector<UInt> & connect) const = 0;
+                                         const EntityIterator& it) const = 0;
   
     //! maps the local node solution to the coupling nodes
     virtual

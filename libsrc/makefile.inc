@@ -23,10 +23,9 @@ libgoal: $(LIB_DIR) $(LIBB)
 #################### to make library
 #
 
-
 .PHONY: link
-#$(LIBB): 
-.PRECIOUS: $(LIBB)
+.PRECIOUS: $(LIBB) link 
+
 $(LIBB): $(src:.cc=.o) $(src:.cpp=.o)
 	 $(AR) $(ARFLAGS) $@ $(addsuffix .o, $(basename $(src)))
 	-@$(RANLIB) $@

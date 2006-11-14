@@ -47,7 +47,11 @@ namespace CoupledField
   {
     ENTER_FCN( "ElecForceOp::ComputeField" );
 
-    gradFieldOp_->CalcElemGradField(Field, ptElement, lCoord, 1);
+    ElemList tempList(ptGrid_);
+    tempList.SetElement( ptElement );
+    EntityIterator tempIt = tempList.GetIterator();
+    
+    gradFieldOp_->CalcElemGradField(Field, tempIt, lCoord, 1);
 
   } 
 

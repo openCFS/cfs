@@ -39,8 +39,10 @@ namespace CoupledField
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
     
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
-    const UInt nrNodes  = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Vector<Double> shapeFnc, CoordAtIP;
 
@@ -72,13 +74,13 @@ namespace CoupledField
     }
 
     // Calculate element vector  
-    elemVec.Resize(nrNodes);
+    elemVec.Resize(numFncs);
     elemVec.Init(0.0);
     Double value = 0.0;
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
       
-      ptelem->GetShFncAtIp(shapeFnc,actIntPt);
-      value = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_) * 
+      ptelem->GetShFncAtIp(shapeFnc,actIntPt,ent.GetElem() );
+      value = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent.GetElem()) * 
         intWeights[actIntPt-1] * factor;
       
       if (isaxi_) {
@@ -135,7 +137,7 @@ namespace CoupledField
     Matrix<Double> volCoordMat;
     domain->GetGrid()->GetElemNodesCoord( volCoordMat, volConnect, coordUpdate_ ); 
     ptVolElem_->ptElem->Local2GlobalCoord( globMidPointVol, locMidPointVol,
-                                           volCoordMat );
+                                           volCoordMat, ptVolElem_ );
 
     // Update variables for mathParser
     parser->SetCoordinates( mHandle_, *coosy, globMidPointVol );

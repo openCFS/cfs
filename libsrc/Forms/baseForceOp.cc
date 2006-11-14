@@ -23,7 +23,7 @@ namespace CoupledField
     : BaseOperator(ptGrid, ptPDE, eqnMap, isaxi, coordUpdate )
   {
     ENTER_FCN( "BaseForceOp::BaseForceOp" );
-
+    //Warning( "Only working wit Lagrange elements", __FILE__, __LINE__ );
     dim_ = dim;
     materials_ = matData;
 
@@ -127,6 +127,7 @@ namespace CoupledField
   {
     ENTER_FCN( "BaseForceOp::CalcElemElecForce" );
 
+    
     Vector<Double> E;
     Vector<Double> * Ip;
     Vector<Double> intWeights = ptElement->ptElem->GetIntWeights();
@@ -162,15 +163,18 @@ namespace CoupledField
         ComputeField(E, ptElement, Ip[nIp-1]);
 
         // Calculate J 
-        ptElement->ptElem->CalcJacobianAtIp(J, nIp, CornerCoords);
+        ptElement->ptElem->CalcJacobianAtIp(J, nIp,CornerCoords,
+                                            ptElement);
 
         // Calculate J-1
-        ptElement->ptElem->CalcInvJacobianAtIp(JInv, nIp, CornerCoords);        
+        ptElement->ptElem->CalcInvJacobianAtIp(JInv, nIp, CornerCoords,
+                                               ptElement);        
         JInv.Transpose(J_Inv_Trans);
         JInv = J_Inv_Trans;
 
         // Calculate Det(J)
-        DetJ = ptElement->ptElem->CalcJacobianDetAtIp(nIp, CornerCoords);
+        DetJ = ptElement->ptElem->CalcJacobianDetAtIp(nIp, CornerCoords,
+                                                      ptElement);
           
         Matrix<Double> SpecCornerCoords, J_Transposed;
         SpecCornerCoords.Resize(Dim,NumNodes);
@@ -181,7 +185,7 @@ namespace CoupledField
           {
             Vector<Double> shpFncAtIp;
             Vector<Double> coordAtIP;
-            ptElement->ptElem->GetShFncAtIp(shpFncAtIp, nIp);
+            ptElement->ptElem->GetShFncAtIp(shpFncAtIp, nIp, ptElement );
             coordAtIP = CornerCoords * shpFncAtIp;
             factor = 2 * PI * coordAtIP[0];
           }     
@@ -205,7 +209,8 @@ namespace CoupledField
 
 
                 // calculate dJ_dr and Det(dJ_dr)
-                ptElement->ptElem->CalcJacobianAtIp(dJ_dr, nIp, SpecCornerCoords);
+                ptElement->ptElem->CalcJacobianAtIp(dJ_dr, nIp, SpecCornerCoords,
+                                                    ptElement );
 
                 //std::cerr << "dJ_dr = " << std::endl << dJ_dr << std::endl;
                 DetdJ_dr = CalcDetJDr(J, dJ_dr, i);

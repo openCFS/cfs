@@ -54,7 +54,9 @@ namespace CoupledField
   }
 
   void Quad2FE :: CalcShapeFnc(Vector<Double> & Shape, 
-                               const Vector<Double> & LCoord)
+                               const Vector<Double> & LCoord,
+                               const Elem*, UInt dof,
+                               AnsatzFct::FctEntityType )
   {
     ENTER_IFCN( "Quad2FE::CalcShapeFnc" );
 
@@ -78,7 +80,9 @@ namespace CoupledField
 
 
   void Quad2FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                         const Vector<Double> & LCoord)
+                                         const Vector<Double> & LCoord,
+                                         const Elem*, UInt dof,
+                                         AnsatzFct::FctEntityType )
   {
     ENTER_IFCN( "Quad2FE::CalcLocalDerivShapeFnc" );
 

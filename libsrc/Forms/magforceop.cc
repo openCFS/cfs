@@ -19,6 +19,7 @@ namespace CoupledField
   {
     ENTER_FCN( "MagLorentzForceOp::MagLorentzForceOp" );
 
+    //Warning( "Only working with Lagrange Elements" __FILE__, __LINE__ );
     curlFieldOp_ = new  CurlNodeOp(ptGrid, ptPDE, eqnMap,magPotential, coordUpdate);
     curlFieldOp_->Set2DType(isaxi);
     if ( ptGrid->GetDim() != 2 ) {
@@ -48,7 +49,7 @@ namespace CoupledField
     Vector<Double> intWeights = ptElement->ptElem->GetIntWeights();
 
     UInt Dim, NumNodes, NumIntPoints;
-
+    
     Dim = ptElement->ptElem->GetDim();
     NumNodes = ptElement->ptElem->GetNumNodes();
     NumIntPoints = ptElement->ptElem->GetNumIntPoints();
@@ -82,18 +83,19 @@ namespace CoupledField
         curlFieldOp_->CalcElemCurlNode(B, ptElement, Ip[nIp-1]);
       
         Vector<Double> shpFncAtIp;
-        ptElement->ptElem->GetShFncAtIp(shpFncAtIp, nIp);
+        ptElement->ptElem->GetShFncAtIp(shpFncAtIp, nIp, ptElement );
         Double JeddyAtIp =  shpFncAtIp * Jeddy;     
  
         if (isaxi_)
           {
             Vector<Double> coordAtIP;
-            ptElement->ptElem->GetShFncAtIp(shpFncAtIp, nIp);
+            ptElement->ptElem->GetShFncAtIp(shpFncAtIp, nIp, ptElement);
             coordAtIP = CornerCoords * shpFncAtIp;
             factor = 2 * PI * coordAtIP[0];
           }     
 
-        Double jacDet = ptElement->ptElem->CalcJacobianDetAtIp(nIp, CornerCoords);
+        Double jacDet = ptElement->ptElem->
+          CalcJacobianDetAtIp(nIp, CornerCoords, ptElement );
         JeddyAtIp *= factor * intWeights[nIp-1] * jacDet;
 
         //compute J x B

@@ -17,8 +17,11 @@ namespace CoupledField {
     ExtractElemInfo( ent1 );
 
     //std::cout << "FlatShellStiffInt::CalcElementMatrix\n" << std::endl;
-    const UInt nrNodes  = ptelem->GetNumNodes();
-    //std::cout << "The Number of nodes is\n" << nrNodes << std::endl;   
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    
+    
+    //std::cout << "The Number of nodes is\n" << numFncs << std::endl;   
     const UInt nrDofs   = getNrDofs();  
     //std::cout << "The Number of Dof is\n" << nrDofs << std::endl;
     double jacDet=0.0;
@@ -33,11 +36,11 @@ namespace CoupledField {
     Matrix<Double> ShellCoord; //Shell Coordinates
 
     //Element matrix in the case of Flat Shells with linear elements is 24x24
-    elemMat.Resize(nrNodes * nrDofs);
+    elemMat.Resize(numFncs * nrDofs);
     elemMat.Init();
        
     //B matrix in the case of flat shells 8x24 
-    bMat.Resize( getDimD(), nrNodes * nrDofs );
+    bMat.Resize( getDimD(), numFncs * nrDofs );
     bMat.Init();
     
     //D matrix in the case of flat shells 8x8
@@ -45,15 +48,15 @@ namespace CoupledField {
     dMat.Init();
       
     //D*B matrix in the case of flat shells 8x24
-    dB.Resize( getDimD(), nrNodes * nrDofs );
+    dB.Resize( getDimD(), numFncs * nrDofs );
     dB.Init();
      
     //The transpose of B in the case of flat shells is 24x8
-    bTrans.Resize( nrNodes * nrDofs , getDimD() );
+    bTrans.Resize( numFncs * nrDofs , getDimD() );
     bTrans.Init();
       
     //The partial Element Matrix with the size of 24x24 
-    partElemMat.Resize(nrNodes * nrDofs);
+    partElemMat.Resize(numFncs * nrDofs);
     partElemMat.Init();
          
     // 1. rotate 3D-coordintates to 2D (x-y-reference plane) on the element level,4 nodes x 6 coordinates = 24
@@ -128,7 +131,8 @@ namespace CoupledField {
           partElemMat = bTrans * dB;
         }
 	
-        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ShellCoord );
+        jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ShellCoord,
+                                              ent1.GetElem() );
 
         // Perform a safety check
         if ( jacDet < 0.0 ) {
@@ -156,33 +160,34 @@ namespace CoupledField {
 
     ENTER_FCN( "FlatShellStiffInt::calcBMat" );
 
-    const UInt nrNodes  = elem->GetNumNodes(); //4 nodes for linear element
+    const UInt numFncs = elem->GetNumFncs( ansatzFct1_ );
+    elem->SetAnsatzFct( ansatzFct1_ );
     const UInt spaceDim = getDimD(); //8 
     const UInt nrDofs   = getNrDofs(); //6 
 
     UInt actDim, actNode;
 
     // local shape functions derived after global coords
-    // (format: nrNodes x spaceDim)
+    // (format: numFncs x spaceDim)
     Matrix<Double> xiDx; //derivatives of the shape functions
     Vector<Double> shapeFnc;  //shape functions
 
-    bMat.Resize(spaceDim, nrDofs * nrNodes);// 8x24
+    bMat.Resize(spaceDim, nrDofs * numFncs);// 8x24
     bMat.Init();
-    elem->GetShFncAtIp(shapeFnc,ip);
-    elem->GetGlobDerivShFncAtIp(xiDx, ip, ShellCoord);
+    elem->GetShFncAtIp(shapeFnc,ip, it1_.GetElem());
+    elem->GetGlobDerivShFncAtIp(xiDx, ip, ShellCoord, it1_.GetElem());
     
     //Filling of the big B matrix
 
     if (part == MEMBRANE || part == PIEZO){
       //Membrane part
       for(actDim = 0; actDim < spaceDim-6; actDim++)
-        for(actNode = 0; actNode < nrNodes; actNode++)
+        for(actNode = 0; actNode < numFncs; actNode++)
           bMat[actDim][actNode * nrDofs + actDim] = xiDx[actNode][actDim];
 
       actDim = spaceDim - 6;
   	
-      for(actNode = 0; actNode < nrNodes; actNode++){
+      for(actNode = 0; actNode < numFncs; actNode++){
         bMat[actDim][actNode * nrDofs]     = xiDx[actNode][1];
         bMat[actDim][actNode * nrDofs + 1] = xiDx[actNode][0];
       }
@@ -192,12 +197,12 @@ namespace CoupledField {
     if (part == BENDING || part == PIEZO){
       //Bending Part
       for( actDim = 3; actDim < spaceDim - 3; actDim++ )
-        for(actNode = 0; actNode < nrNodes; actNode++ )
+        for(actNode = 0; actNode < numFncs; actNode++ )
           bMat[actDim][actNode * nrDofs + actDim] = xiDx[actNode][actDim-3];
 
       actDim = spaceDim - 3;
 
-      for( actNode = 0; actNode < nrNodes; actNode++ ){
+      for( actNode = 0; actNode < numFncs; actNode++ ){
         bMat[actDim][actNode * nrDofs + 3] = xiDx[actNode][1];
         bMat[actDim][actNode * nrDofs + 4] = xiDx[actNode][0];
       }
@@ -207,11 +212,11 @@ namespace CoupledField {
     if (part == SHEAR || part == PIEZO) {
       //Shear Part
       for( actDim = 6; actDim < spaceDim; actDim++ )
-        for( actNode = 0; actNode < nrNodes; actNode++ )
+        for( actNode = 0; actNode < numFncs; actNode++ )
           bMat[actDim][actNode * nrDofs + 2] = xiDx[actNode][actDim-6];
 
       for( actDim = 6; actDim < spaceDim; actDim++ )
-        for( actNode = 0; actNode < nrNodes; actNode++ )
+        for( actNode = 0; actNode < numFncs; actNode++ )
           bMat[actDim][actNode * nrDofs + actDim - 3] = -shapeFnc[actNode];
     } 
  
@@ -232,7 +237,7 @@ namespace CoupledField {
     Matrix<Double> A, B, D, K, Q, Q_, Qs, Qs_, Ck, Qk, Cs, Buffer, Buffer_shear;
     Matrix<Double> matMatrix;
     Matrix<Double> RtMat, RsMat, RkMat, RtMatInv, RkMatInv;
-    Double Ex, Ey, Ez, NUxy, NUyz, NUxz, Gyz, Gzx, Gxy;
+    Double Ex, Ey, Ez, NUxy, NUyz, NUxz, Gyz, Gzx, Gxy,  NUyx, NUzy, NUzx;
     dMat.Resize(SizeOfD);
     dMat.Init();
     
@@ -246,7 +251,9 @@ namespace CoupledField {
     for (UInt k=0; k < nrLayers; k++) {
       thickness_all += composite_->thickness[k];
     }
+
     z_[0]= - (thickness_all/2.0);
+    //z_[0] = composite_->zStart;
     orAngle_[0]= 0.0;
     
     for(UInt i=1; i <= nrLayers; i++) {
@@ -290,24 +297,29 @@ namespace CoupledField {
 	composite_->materials[k-1]->GetScalar(Gxy,MECH_GMODULUS_XY,REAL);
                         
 	//see Finite Element Analysis of Composite Laminates O.O.Ochoa and J.N.Reddy page 10 and 12
-	Q_[0][0] = Ex/(1 - NUxy*NUxy); 
-	Q_[0][1] = NUxy*Ey/(1 - NUxy*NUxy);
+        NUyx=(Ey/Ex)*NUxy;
+        NUzy=(Ez/Ey)*NUyz;
+        NUzx=(Ez/Ex)*NUxz;
+	Q_[0][0] = Ex/(1 - NUxy*NUyx); 
+	Q_[0][1] = NUxy*Ey/(1 - NUxy*NUyx);
 	Q_[0][2] = 0.0;
-	Q_[1][0] = NUxy*Ey/(1 - NUxy*NUxy);
-	Q_[1][1] = Ey/(1 - NUxy*NUxy);
+	Q_[1][0] = NUxy*Ey/(1 - NUxy*NUyx);
+	Q_[1][1] = Ey/(1 - NUxy*NUyx);
 	Q_[1][2] = 0.0;
 	Q_[2][0] = 0.0;
 	Q_[2][1] = 0.0;
 	Q_[2][2] = Gxy;
 	//std::cout << "Q_ Matrix is\n" << Q_ << std::endl;
-                        
+        
+        //std::cout << "dMat = \n" << dMat << std::endl;
 	//Matrix Qs_ taken from Reddy page 10
-	Qs_[0][0] = Gxy; //Gyz; 
+	Qs_[0][0] = Gyz; //Gyz; 
 	Qs_[0][1] = 0.0;
 	Qs_[1][0] = 0.0;
-	Qs_[1][1] = Gxy; //Gzx;
+	Qs_[1][1] = Gzx; //Gzx;
 	//std::cout << "Qs_ Matrix is\n" << Qs_ << std::endl;
 	
+        
 	//Matrix Q taken from Reddy page 22
 	Q[0][0] = Q_[0][0]*cos(orAngle_[k])*cos(orAngle_[k])*cos(orAngle_[k])*cos(orAngle_[k]) + 2.0*(Q_[0][1] + 2.0*Q_[2][2])*sin(orAngle_[k])*sin(orAngle_[k])*cos(orAngle_[k])*cos(orAngle_[k]) + Q_[1][1]*sin(orAngle_[k])*sin(orAngle_[k])*sin(orAngle_[k])*sin(orAngle_[k]);
  
@@ -330,7 +342,7 @@ namespace CoupledField {
 	//std::cout << "Q matrix\n" << Q << std::endl;
 
 	//Matrix Qs
-	Qs[0][0] = Qs_[1][1]*cos(orAngle_[k])*cos(orAngle_[k]) +Qs_[0][0]*sin(orAngle_[k])*sin(orAngle_[k]);
+        Qs[0][0] = Qs_[1][1]*cos(orAngle_[k])*cos(orAngle_[k]) +Qs_[0][0]*sin(orAngle_[k])*sin(orAngle_[k]);
 	Qs[0][1] = (Qs_[1][1] - Qs_[0][0])*cos(orAngle_[k])*sin(orAngle_[k]);
 	Qs[1][0] = (Qs_[1][1] - Qs_[0][0])*cos(orAngle_[k])*sin(orAngle_[k]);
 	Qs[1][1] = Qs_[0][0]*cos(orAngle_[k])*cos(orAngle_[k]) +Qs_[1][1]*sin(orAngle_[k])*sin(orAngle_[k]);

@@ -34,8 +34,9 @@ namespace CoupledField
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
     
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet, factor;  
 
@@ -48,19 +49,22 @@ namespace CoupledField
 
 
     // set matrix to desired size and set all elements to zero
-    elemMat.Resize(nrNodes*nrDofsPerNode_,true); elemMat.Init();
+    elemMat.Resize(numFncs*nrDofsPerNode_,true); 
+    elemMat.Init();
 
     //(Kx, Ky, Kz)^T
-    elemMatXYZ.Resize(nrNodes*nrDofsPerNode_,nrNodes); elemMatXYZ.Init();
+    elemMatXYZ.Resize(numFncs*nrDofsPerNode_,numFncs); 
+    elemMatXYZ.Init();
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++)
       {
         jacDet = 0;
         
-        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, jacDet);
+        ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
+                                      jacDet, ent1.GetElem());
       
         if (isaxi_) {
-	  ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt);
+	  ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt,ent1.GetElem());
 	  CoordAtIP = ptCoord_ * ShpFncAtIp;
 	  factor = 2 * PI * intWeights[actIntPt-1] * jacDet * laplVal_ * CoordAtIP[0];
 	}
@@ -68,21 +72,21 @@ namespace CoupledField
           factor = intWeights[actIntPt-1] * jacDet * laplVal_;
 	}
 
-	for (UInt i=0; i<nrNodes; i++) {
-	  for (UInt j=0; j<nrNodes; j++) {
+	for (UInt i=0; i<numFncs; i++) {
+	  for (UInt j=0; j<numFncs; j++) {
 	    for (UInt k=0; k<nrDofsPerNode_; k++) {
-	      elemMatXYZ[i+k*nrNodes][j] += xiDx[i][k]*xiDx[j][k]*factor;
+	      elemMatXYZ[i+k*numFncs][j] += xiDx[i][k]*xiDx[j][k]*factor;
 	    }
 	  }
 	}
 
       }
 
-    for (UInt i=0; i<nrNodes; i++) {
-      for (UInt j=0; j<nrNodes; j++) {
+    for (UInt i=0; i<numFncs; i++) {
+      for (UInt j=0; j<numFncs; j++) {
 	for (UInt k=0; k<nrDofsPerNode_; k++) {
 	  for (UInt l=0; l<nrDofsPerNode_; l++) {
-	    elemMat[i*nrDofsPerNode_+k][j*nrDofsPerNode_+l]   = elemMatXYZ[i+k*nrNodes][j];
+	    elemMat[i*nrDofsPerNode_+k][j*nrDofsPerNode_+l]   = elemMatXYZ[i+k*numFncs][j];
 	  }
 	}
       }

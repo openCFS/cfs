@@ -124,7 +124,9 @@ namespace CoupledField
 
 
   void Hexa2FE :: CalcShapeFnc(Vector<Double> & Shape, 
-                               const Vector<Double> & LCoord)
+                               const Vector<Double> & LCoord,
+                               const Elem*, UInt dof,
+                               AnsatzFct::FctEntityType fctEntityType )
   {
     ENTER_IFCN( "Hexa2FE::CalcShapeFnc" );
 
@@ -234,7 +236,9 @@ namespace CoupledField
   }
 
   void Hexa2FE::CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                       const Vector<Double> & LCoord)
+                                       const Vector<Double> & LCoord,
+                                       const Elem*, UInt dof,
+                                       AnsatzFct::FctEntityType fctEntityType )
   {
     ENTER_IFCN( "Hexa2FE::CalcLocalDerivShapeFnc" );
 #ifdef Hexa2Old

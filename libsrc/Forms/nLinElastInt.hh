@@ -32,6 +32,10 @@ public:
                           EntityIterator& ent1, 
                           EntityIterator& ent2 );
 
+  //! Helper function for setting the current entity
+  void SetActEntities( EntityIterator ent1,
+                       EntityIterator ent2 );
+
 protected:    
 
   /// returns B - matrix for BDB

@@ -57,50 +57,84 @@ namespace CoupledField {
     //check, if problem is axisymmetric
     if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = true;
 
+    // check if problem is lagrange or legendre
+    std::string approxType;
+    params->Get( "type", approxType, "pdeList", pdename_ );
+
+
     // Check the subtype of the problem
     params->Get("subType", subType_, "pdeList",pdename_ );
 
-    if ( subType_ != "flatShell" ) {
+    StdVector<std::string> keyVec, attrVec, valVec;
+
+    if ( approxType == "lagrange" ) {
       // Create new resultDof object
       shared_ptr<ResultDof> res1(new ResultDof);
-      shared_ptr<AnsatzFct> fct(new LagrangeFct);
+      res1->resultType = ELEC_POTENTIAL;
+
+      // check for special subtype 
+      if( subType_  != "flatShell" ) {
+        shared_ptr<AnsatzFct> fct(new LagrangeFct);
+        res1->dofNames = "ep";
+        res1->definedOn = ResultDof::NODE;
+        res1->fctType = fct;
+      } else {
+        // Determine number of laminas for setting number of dofs
+        StdVector<std::string> lamina, keyVec, attrVec, valVec, regions;
+        params->GetList("material", lamina, "composite", "lamina" );
+        
+        if (lamina.GetSize() == 0) {
+          res1->dofNames.Push_back("ep");
+        }
+
+        for( UInt i=0; i<lamina.GetSize(); i++ ) {
+          std::string dofName = "ep";
+          dofName += GenStr(i+1);
+          res1->dofNames.Push_back( dofName );
+        }
+        shared_ptr<AnsatzFct> fct(new LagrangeFct);
+        res1->fctType = fct;
+        res1->definedOn = ResultDof::ELEMENT;
+        std::cerr << "dofNames of FlatShell = \n" << res1->dofNames << std::endl;
+      }
+        
+      results_.Push_back( res1 );
+      
+    } else {
+      // Create new resultDof object
+      shared_ptr<ResultDof> res1(new ResultDof);
+      shared_ptr<LegendreFct> fct(new LegendreFct);
+      if( params->IsSet( "isIsotropic", "pdeList", pdename_ ) ) {
+        UInt order;
+        params->Get( "order", order, "pdeList", pdename_ );
+        fct->SetIsoOrder( order );
+      } else {
+        Matrix<UInt> orderMat;
+        keyVec = pdename_, "anisotropic";
+        attrVec = "";
+        valVec = "";
+        params->GetDim1xDim2Tensor( keyVec, attrVec, valVec, dim_, 1,
+                                    orderMat );
+        fct->SetAnisoOrder( orderMat );
+      }
+      
+      if( subType_ == "flatShell" ) {
+        *error << "Subtype 'flatShell' not working with Legendre functions.";
+        Error( __FILE__, __LINE__ );
+      }
+
       res1->resultType = ELEC_POTENTIAL;
       res1->dofNames = "ep";
-      res1->definedOn = ResultDof::NODE;
-      res1->fctType = fct;
-      results_.Push_back( res1 );
-    } else {
-
-      // Create new resultDof object
-      shared_ptr<ResultDof> res1(new ResultDof);
-      shared_ptr<AnsatzFct> fct(new LagrangeFct);
-      res1->resultType = ELEC_POTENTIAL;
-
-      // Determine number of laminas for setting number of dofs
-      StdVector<std::string> lamina;
-      params->GetList("material", lamina, "composite", "lamina" );
-      
-      if (lamina.GetSize() == 0) {
-        res1->dofNames.Push_back("ep");
-      }
-
-      for( UInt i=0; i<lamina.GetSize(); i++ ) {
-        std::string dofName = "ep";
-        dofName += GenStr(i+1);
-        res1->dofNames.Push_back( dofName );
-      }
-
-      //res1->dofNames = "ep1", "ep2";
-      res1->definedOn = ResultDof::ELEMENT;
+      res1->definedOn = ResultDof::PFEM;
       res1->fctType = fct;
       results_.Push_back( res1 );
     }
-    
+
     //check for hysteresis modeling
     isHysteresis_ = FALSE;
     params->GetList( "nonLinear", nonLinType_, pdename_, "region" );
     
-    for ( Integer k = 0; k < nonLinType_.GetSize(); k++ ) {
+    for ( UInt k = 0; k < nonLinType_.GetSize(); k++ ) {
       if ( nonLinType_[k] == "hysteresis" ) {
         isHysteresis_ = TRUE;
         break;
@@ -643,18 +677,17 @@ namespace CoupledField {
       // loop over all subdomains
     for (UInt isd=0; isd<calcEfield_.GetSize(); isd++)
       {
-        
-        // ------ Calculation of the electric field ------
-        ptgrid_->GetVolElems( elemssd, calcEfield_[isd] );
-        
-        // loop over elements of subdomain
-        for (UInt iel=0; iel< elemssd.GetSize(); iel++,counterElems++)
-          {
-            elemssd[iel]->ptElem->GetCoordMidPoint(lCoord);
-            FieldOp->CalcElemGradField( tempE, elemssd[iel], lCoord, 1); 
-            pdeElem = eqnMap_->Mesh2PdeElem( elemssd[iel]->elemNum );
-            E_->SetElemResult(pdeElem-1, tempE);
-          }
+
+        ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion( calcEfield_[isd] );
+      EntityIterator it = actSDList.GetIterator();
+      // loop over elements of subdomain
+      for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
+        it.GetElem()->ptElem->GetCoordMidPoint(lCoord);
+        FieldOp->CalcElemGradField( tempE, it, lCoord, 1); 
+        pdeElem = eqnMap_->Mesh2PdeElem( it.GetElem()->elemNum );
+        E_->SetElemResult(pdeElem-1, tempE);
+      }
       }
     
     delete FieldOp;
@@ -697,43 +730,42 @@ namespace CoupledField {
                                 ELEC_POTENTIAL, results_[0], isaxi_);
 
     ElecChargeOp<TYPE> * chargeOp = 
-      new ElecChargeOp<TYPE>(ptgrid_, this, eqnMap_, isaxi_);
+      new ElecChargeOp<TYPE>(ptgrid_, this, eqnMap_, results_[0], isaxi_ );
   
     // loop over all subdomains
     for (UInt iSD=0; iSD<calcCharges_.GetSize(); iSD++){
     
-      // get surface and acoording volume elements
-      ptgrid_->GetSurfElems( surfElems, calcCharges_[iSD] );
-    
+      SurfElemList surfElems( ptgrid_ );
+      surfElems.SetRegion( calcCharges_[iSD] );
+      EntityIterator it = surfElems.GetIterator();
+
       // loop over all surface elements
-      for (UInt iElem=0; iElem<surfElems.GetSize(); iElem++)
-        {
-        
-          // Determine, which volume element is the right neighbour for the 
-          // calculation
-          if ( chargeNeighborRegion_.
-               Find(surfElems[iElem]->ptVolElem1->regionId) != -1 ) {
-            ptVolElem = surfElems[iElem]->ptVolElem1;
-            normSign = -1.0;
-          } else {
-            ptVolElem = surfElems[iElem]->ptVolElem2;
-            normSign = 1.0;
-          }
+      for ( it.Begin(); !it.IsEnd(); it++ ) {
+        // Determine, which volume element is the right neighbour for the 
+        // calculation
+        if ( chargeNeighborRegion_.
+             Find(it.GetSurfElem()->ptVolElem1->regionId) != -1 ) {
+          ptVolElem = it.GetSurfElem()->ptVolElem1;
+          normSign = -1.0;
+        } else {
+          ptVolElem = it.GetSurfElem()->ptVolElem2;
+          normSign = 1.0;
+        }
 
-          normSign *= (Double) surfElems[iElem]->normalSign;
-
-          ptSurfElemFE = surfElems[iElem]->ptElem; 
-          ptVolElemFE = ptVolElem->ptElem;
+        normSign *= (Double) it.GetSurfElem()->normalSign;
         
-          const StdVector<UInt> & surfConnect = surfElems[iElem]->connect;
-          const StdVector<UInt> & volConnect = ptVolElem->connect;
+        ptSurfElemFE = it.GetSurfElem()->ptElem; 
+        ptVolElemFE = ptVolElem->ptElem;
         
-          // calculate volume integration coordinates from
-          // surfe integration coordinat for evalauting the 
-          // electric flux density on the surface of the volume
-          // element
-          ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
-          ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
+        const StdVector<UInt> & surfConnect = it.GetSurfElem()->connect;
+        const StdVector<UInt> & volConnect = ptVolElem->connect;
+        
+        // calculate volume integration coordinates from
+        // surfe integration coordinat for evalauting the 
+        // electric flux density on the surface of the volume
+        // element
+        ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
+        ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
                                                  lCoordSurf, lCoordVol);
 
 
@@ -747,11 +779,14 @@ namespace CoupledField {
           myMat->GetScalar(permittivity,ELEC_PERMITTIVITY,REAL);
 
           // Calc electric flux density
-          dFieldOp->CalcElemGradField(elemDField, ptVolElem, 
+          ElemList tempList(ptgrid_);
+          tempList.SetElement( ptVolElem );
+          EntityIterator tempIt = tempList.GetIterator();
+          dFieldOp->CalcElemGradField(elemDField, tempIt, 
                                       lCoordVol,permittivity);
         
           // Calc global normal
-          ptgrid_->CalcSurfNormal(normal, *surfElems[iElem]);
+          ptgrid_->CalcSurfNormal(normal, *(it.GetSurfElem()));
 
           normal *= normSign;
 
@@ -764,11 +799,11 @@ namespace CoupledField {
             elemNormalD +=  elemDField[iComp] * normal[iComp];
           }
           
-          chargeOp->CalcElemCharge(charge, surfElems[iElem], 
+          chargeOp->CalcElemCharge(charge, it, 
                                    lCoordSurf, elemNormalD);
 
           if ( outputType == "surface" ) {
-            pdeElemNum = eqnMap_->Mesh2PdeElem(surfElems[iElem]->elemNum);
+            pdeElemNum = eqnMap_->Mesh2PdeElem(it.GetSurfElem()->elemNum);
           } else {
             pdeElemNum = eqnMap_->Mesh2PdeElem(ptVolElem->elemNum);
           }
@@ -832,9 +867,8 @@ namespace CoupledField {
         
         bilinear_stiff->CalcElementMatrix( elemmat, it, it );
 
-        StdVector<UInt> const & connecth  = it.GetElem()->connect;
         Vector<TYPE> elpot;
-        sol_->GetElemSolution(elpot, connecth);
+        sol_->GetElemSolution(elpot, it );
         help =  elemmat * elpot;
         energy[i] += 0.5 * (help * elpot);
         

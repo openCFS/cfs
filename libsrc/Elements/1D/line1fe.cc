@@ -25,6 +25,7 @@ namespace CoupledField
     NumNodes_ = 2;
 
     CommonInit(method, order);
+    SetEdgeIndices();
   }
 
   void Line1FE :: SetCornerCoords()
@@ -38,8 +39,23 @@ namespace CoupledField
 
   }
 
+  void Line1FE :: SetEdgeIndices () {
+    ENTER_FCN( "Line1FE::SetEdgeIndices" );
+
+    edgeIndices_ = new StdVector<UInt>[NumEdges_];
+    edgeIndices_[0].Resize(2);
+
+    // edge 1
+    edgeIndices_[0][0] = 1;
+    edgeIndices_[0][1] = 2;
+
+  }
+    
+
   void Line1FE :: CalcShapeFnc(Vector<Double> & Shape, 
-                               const Vector<Double> & LCoord)
+                               const Vector<Double> & LCoord,
+                               const Elem* elem, UInt dof,
+                               AnsatzFct::FctEntityType )
   {
     ENTER_IFCN( "Line1FE::CalcShapeFnc" );
 
@@ -51,7 +67,9 @@ namespace CoupledField
   }
 
   void Line1FE :: CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                         const Vector<Double> & LCoord)
+                                         const Vector<Double> & LCoord,
+                                         const Elem* elem, UInt dof,
+                                         AnsatzFct::FctEntityType )
   {
     ENTER_IFCN( "Line1FE::CalcLocalDerivShapeFnc" );
 

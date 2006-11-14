@@ -2,6 +2,7 @@
 #define FILE_CFS_GRID_STRUCT_2004
 
 #include "DataInOut/filetype.hh"
+#include "Domain/edgeFace.hh"
 
 #ifdef ADAPTGRID
 #include "Vertex.h"
@@ -34,18 +35,25 @@ namespace CoupledField
     GridStruct(UInt DIM);
 
     //! Deconstructor
-    ~GridStruct() {}; 
+    virtual ~GridStruct() {}; 
 
     //! Read Grid Information
     //for normal Grid
     void Read();
+    
+    //! Trigger mapping of elements' faces
 
-    //! Trigger mapping of element sub-entities (edges, surfaces)
+    //! This method calculates global surface numbers and 
+    //! makes them available in the element definitions, so they can
+    //! be used for higher order elements or edge functions.
+    void MapFaces();
+    
+    //! Trigger mapping of edges
 
     //! This method calculates global edge and surface numbers and 
     //! makes them available in the element definitions, so they can
     //! be used for higher order elements or edge functions.
-    void MapSubEntities();
+    void MapEdges();
 
    // =======================================================================
     // SPECIAL METHODS for STRUCTGRID
@@ -283,6 +291,42 @@ namespace CoupledField
     {Error("Method not supported by GridStruct-Class",__FILE__,__LINE__); };
    
     //@}
+
+
+    // =======================================================================
+    // ELEMENT FACE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Surface Access Functions
+
+    //! Get total number of faces in the grid
+    UInt GetNumFaces() {
+      Error( "Not implemented!", __FILE__, __LINE__ );
+    }
+
+    //! Return face with given face
+    Face& GetFace( UInt faceNr) {
+      Error( "Not implemented!", __FILE__, __LINE__ );
+    }
+
+    //@}
+
+    // =======================================================================
+    // ELEMENT EDGE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Edge Access Functions
+          
+
+    //! Get number ofe edges
+    UInt GetNumEdges() {
+      Error( "Not implemented!", __FILE__, __LINE__ );
+    }
+    
+    Edge& GetEdge( UInt edgeNr ) {
+      Error( "Not implemented!", __FILE__, __LINE__ );
+    }
+
+    //@}
+
     
     // =======================================================================
     // GEOMETRY CALCULATION

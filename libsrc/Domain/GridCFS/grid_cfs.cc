@@ -8,12 +8,16 @@
 
 #include "grid_cfs.hh"
 
-#include <Domain/grid.hh>
-#include <Elements/elements_header.hh>
-#include <DataInOut/ParamHandling/BaseParamHandler.hh>
+#include "Domain/grid.hh"
+#include "Elements/elements_header.hh"
+#include "DataInOut/ParamHandling/BaseParamHandler.hh"
+#include "DataInOut/Logging/cfslog.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
+
+// declare class specific logging stream
+  DECLARE_LOG(gridcfs)
+  DEFINE_LOG(gridcfs, "grid.cfs")
 
   template<UInt DIM>
   GridCFS<DIM>::GridCFS( FileType * const aptFileType) {
@@ -27,6 +31,12 @@ namespace CoupledField
     dim_ = 0;
     numNodes_ = 0;
     numElems_ = 0;
+    numFaces_ = 0;
+    numEdges_ = 0;
+    edgesMapped_ = false;
+    facesMapped_ = false;
+
+
   } 
 
 
@@ -430,15 +440,239 @@ namespace CoupledField
           }
       }
   }
-  
-  template<UInt DIM>
-  void GridCFS<DIM>::MapSubEntities() {
-   ENTER_FCN( "GridCFS::MapSubEntities" );
-   std::cerr << "In GridCFS::MapSubEntities\n";
 
+  template<UInt DIM>
+  void GridCFS<DIM>::MapFaces() {
+   ENTER_FCN( "GridCFS::MapFaces" );
+
+   LOG_TRACE(gridcfs) << "Starting to map faces ";
+
+   
+   // assert that any mesh was already read in
+   assert( isInitialized_ == true );
+   
+   // If faces are already mapped ->leave
+   if( facesMapped_ == true ) {
+     return;
+   }
+
+   // create counter for number of faces
+   UInt actFaceNum = 1;
+
+   // vectors for local / global nodes
+   StdVector<UInt> faceIndices, faceNodes;
+   
+   // iterate over all elements
+   for( UInt iElem = 0; iElem < orderedElems_.GetSize(); iElem++ ) {
+
+     // remember current element
+     Elem & actElem = *orderedElems_[iElem];
+
+     // if element is of wrong dimension (surface element )
+     // ->leave
+     if ( actElem.ptElem->GetDim() < DIM ) { continue; }
+
+     // get number of element faces
+     UInt numFaces = actElem.ptElem->GetNumFaces();
+
+     // adapt size of faces and orientation array of element
+     actElem.faces.Resize( numFaces );
+     actElem.faceFlags.Resize( numFaces );
+
+     // offset for face index
+     UInt offset=0;
+
+     // iterate over all faces of this element
+     for( UInt iFace = 0; iFace < numFaces; iFace++ ) {
+       
+       // get local nodal indices of current face
+       actElem.ptElem->GetFaceIndices( faceIndices, iFace );
+
+       // create new Face object
+       Face actFace;
+       actFace.nodes.Resize( faceIndices.GetSize() );
+
+       // insert node numbers into current face definition
+       for( UInt iNode = 0; iNode < faceIndices.GetSize(); iNode++ ) {
+         actFace.nodes[iNode] = actElem.connect[faceIndices[iNode]-1];
+       }
+       
+       LOG_DBG3(gridcfs) << "Cecking face with nodes : " 
+                         << actFace.nodes.Serialize();
+       
+       // Re-orientate face to match global orientation and
+       // obtain the orientation flags
+       std::bitset<3> orientation;
+       actFace.Normalize( orientation );
+       
+       LOG_DBG3(gridcfs) << "Normalized : " 
+                         << actFace.nodes.Serialize();
+       LOG_DBG3(gridcfs) << "Orientation: " << orientation;
+       
+
+       // check if face was already numbered
+       if( faceNums_.find( actFace ) == faceNums_.end() ) {
+         LOG_DBG2(gridcfs) << "Adding face number " 
+                           << actFaceNum << std::endl;
+         faceNums_[actFace] = actFaceNum;
+         faces_.Push_back( actFace );
+         actElem.faces[iFace] = actFaceNum;
+         actFaceNum++;
+       } else {
+         actElem.faces[iFace] = faceNums_[actFace];
+         LOG_DBG2(gridcfs) << "--> already defined\n";
+       }
+
+       // Set also orientation flags for face
+       actElem.faceFlags[iFace] = orientation;
+     } // loop over faces
+     
+     // Print information about connectivity and faces
+     LOG_DBG2(gridcfs) << "Elem Nr. " << actElem.elemNum;
+     LOG_DBG2(gridcfs) << "===================";
+     LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
+     LOG_DBG2(gridcfs) << "Faces: " << actElem.faces.Serialize();
+
+     LOG_TRACE(gridcfs) << "Finished to map faces\n";
+
+   } // loop over elements
+
+   // Set flag for mapping of sub-entities
+   numFaces_ = actFaceNum-1;
+   LOG_DBG2(gridcfs) << "Total number of faces: " << numFaces_;
+
+   // Set flag
+   facesMapped_ = true;
+
+   LOG_TRACE(gridcfs) << "Finished mapping faces\n";
 
  }
+  
 
+
+
+  template<UInt DIM>
+  void GridCFS<DIM>::MapEdges() {
+   ENTER_FCN( "GridCFS::MapEdges" );
+
+   LOG_TRACE(gridcfs) << "Starting to map edges";
+
+   // assert that any mesh was already read in
+   assert( isInitialized_ == true );
+
+   // If edges/surfaces were already mapped ->leave
+   if( edgesMapped_ == true ) {
+     return;
+   }
+
+   // create counter for number of edges
+   UInt actEdgeNum = 1;
+   StdVector<UInt> locEdge(2), globEdge(2);
+
+   // iterate over all elements
+   for( UInt iElem = 0; iElem < orderedElems_.GetSize(); iElem++ ) {
+
+     // remember current element
+     Elem & actElem = *orderedElems_[iElem];
+
+     // get number of edges
+     UInt numEdges= actElem.ptElem->GetNumEdges();
+
+     // adapt size of edge number array of element
+     actElem.edges.Resize( numEdges );
+
+     // iterate over all edges of this element
+     for( UInt iEdge = 0; iEdge < numEdges; iEdge++ ) {
+       
+       // get local edge indices 
+       actElem.ptElem->GetEdgeIndices( locEdge, iEdge );
+
+       //std::cerr << "EdgeIndices = \n" << locEdge << std::endl;
+       // create new edge
+       Edge actEdge;
+       actEdge.nodes[0] = actElem.connect[locEdge[0]-1];
+       actEdge.nodes[1] = actElem.connect[locEdge[1]-1];
+
+       // check if ordering is correct
+       Integer orientation = 1;
+       
+       if( actEdge.nodes[1] < actEdge.nodes[0] ) {
+         UInt secNode = actEdge.nodes[1];
+         actEdge.nodes[1] = actEdge.nodes[0];
+         actEdge.nodes[0] = secNode;
+
+         // swap factor for orientation
+         orientation = -1;
+       }
+
+       // check if edge was already numbered
+       if( edgeNums_.find( actEdge ) == edgeNums_.end() ) {
+         LOG_DBG2(gridcfs) << "Adding edge number " << actEdgeNum;
+         LOG_DBG3(gridcfs) << "with nodes: " << actEdge.nodes[0] << ","
+                           << actEdge.nodes[1] << std::endl;
+         edgeNums_[actEdge] = actEdgeNum;
+         edges_.Push_back( actEdge );
+         actElem.edges[iEdge] = actEdgeNum*orientation;
+         actEdgeNum++;
+       } else {
+         actElem.edges[iEdge] = edgeNums_[actEdge]*orientation;       
+       }
+
+     }
+     
+     // Print information about connectivity and edges
+     LOG_DBG2(gridcfs) << "Elem Nr. " << actElem.elemNum;
+     LOG_DBG2(gridcfs) << "===================";
+     LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
+     LOG_DBG2(gridcfs) << "Edges: " << actElem.edges.Serialize();
+
+     LOG_TRACE(gridcfs) << "Finished to map edges\n";
+   }
+
+   // Set flag for mapping of sub-entities
+   numEdges_ = actEdgeNum-1;
+   LOG_DBG2(gridcfs) << "Total number of edges: " << numEdges_ << std::endl;
+
+   // Set flag
+   edgesMapped_ = true;
+ }
+
+  template<UInt DIM>
+  UInt GridCFS<DIM>::GetNumEdges() {
+    return numEdges_;
+    
+  }
+
+  template<UInt DIM>
+  UInt GridCFS<DIM>::GetNumFaces() {
+    return numFaces_;
+    
+  }
+
+
+  template<UInt DIM>
+  const Edge&  GridCFS<DIM>::GetEdge( UInt edgeNr ) {
+    if( !edgesMapped_ ) {
+      Error( "Edges are not mapped yet!",
+             __FILE__, __LINE__ );
+    }
+  
+    Edge const & ret = edges_[edgeNr-1];
+    
+    return ret;
+  }
+  
+  template<UInt DIM>
+  const Face&  GridCFS<DIM>::GetFace( UInt faceNr ) {
+    if( !facesMapped_ ) {
+      Error( "Surfaces are not mapped yet!",
+             __FILE__, __LINE__ );
+    }
+  
+    Face const & ret = faces_[faceNr-1];
+    
+    return ret;
+  }
 
   // ======================================================
   // GENERAL GRID INFORMATION
@@ -1927,430 +2161,6 @@ namespace CoupledField
 #endif // end of ADAPTGRID
 
 
- 
-
-  //   template<Integer DIM>
-  //   void GridCFS<DIM>::FormNeighborsLists()
-  //   {
-  //     ENTER_FCN( "GridCFS::FormNeighborsLists" );
-
-  //     Integer i,j,k,n,m;
-
-  //     Integer size=sd_.GetSize(); // number of subdomains in domain
-  //     elNeighbors_ = new  StdVector<StdVector<Elem*> >*[size];
-  //     // initialize                                           
-  //     // for each subdomain of grid we create vector( noOfElems) with vector of
-  //     // neighbors of each element
-  //     for (i = 0; i < sd_.GetSize(); i++) {
-  //       size=elems_[i].GetSize();
-  //       elNeighbors_[i] = new StdVector<StdVector<Elem*> >(size);    
-  //     }
-
-  //     // vector with vector of neighbors-elements for each node
-  //     vtNeighbors_.Resize(maxnumnodes_);
-
-  //     // first main loop: form list with element-neighbors for each node
-  //     for (i = 0; i < sd_.GetSize(); i++) {
-  //       for (j = 0; j < elems_[i].GetSize(); j++) {
-  //    Integer noOfVertices = elems_[i][j]->connect.GetSize();
-  //    for (k = 0; k < noOfVertices; k++) {
-  //      Integer id = elems_[i][j]->connect[k];
-  //      vtNeighbors_[id-1].Push_back(elems_[i][j]);
-  //    } // for loop over vertices, index k
-  //       } // for loop over elements of the subdomain i, index j
-  //     } // for loop over sd, index i
-
-  //     //   // check of nodes list
-  //     //   for (i=0; i<maxnumnodes_; i++) {
-  //     //     for (j=0; j<vtNeighbors_[i].GetSize(); j++) {
-  //     //       cout << " size " << vtNeighbors_[i].GetSize() << endl;
-  //     //       Elem* ptE=vtNeighbors_[i][j];
-  //     //       cout << " no of nodes " << i+1 << endl;
-  //     //       cout << ptE->connect << endl;
-  //     //     }
-  //     //   }
-      
-  //     // second main loop: form list with element-neighbors for each element
-  //     for (i = 0; i < sd_.GetSize(); i++) {   // do loop over subdomains
-  //       for (j = 0; j < elems_[i].GetSize(); j++) {   // do loop over elements of subdomain
-  //    Integer noOfVertices = elems_[i][j]->connect.GetSize(); 
-  //    for (k = 0; k < noOfVertices; k++) {   // do loop over vertices of elements of the subdomain
-  //      Integer id = elems_[i][j]->connect[k]; 
-  //      for (n= 0; n < vtNeighbors_[id-1].GetSize(); n++) {  // do loop over list of neighbors for node
-  //        Elem* ptel = vtNeighbors_[id-1][n];           
-
-  //        if (ptel != elems_[i][j]) {           // check that this element is not the same element for which we are looking for neighbors
-  //          bool flag = false;
-  //          for (m = 0; m < (*elNeighbors_[i])[j].GetSize(); m++) { // check that this element is new in list of neighbors
-  //            Elem* ptel_tmp = (*elNeighbors_[i])[j][m];
-  //            if (ptel_tmp == ptel)
-  //              flag = true;
-  //          } // for loop over neighbors, index m
-  //          if (!flag)
-  //            (*elNeighbors_[i])[j].Push_back(ptel);
-
-  //        } // if (ptle != elem)
-  //      } // for loop over vtNeighbors, index n
-  //    } // for loop over vertices, index k
-  //       } // for loop over elements of the subdomain, index j
-  //     } // for loop over sd, index i
-
-  //     //check of element-neighbors
-  //     //   for (i=0; i<sd_.GetSize(); i++) {
-  //     //       for (j = 0; j < elems_[i].GetSize(); j++) {  
-  //     //     cout << " element: " << j << " with connect " << elems_[i][j]->connect << endl; 
-
-  //     //     for (m = 0; m < (*elNeighbors_[i])[j].GetSize(); m++) { // loop over neigbors for elem j
-  //     //       cout << " neighbors: " << m << endl;   
-  //     //       Elem * ptElm=(*elNeighbors_[i])[j][m];
-  //     //       cout << ptElm->connect;
-  //     //     }
-  //     //       }
-  //     //   }
-
-  //   } // end of function FormNeighborsLists
-
-  //   //! return pointer to vector of element-neighbors for the element with number noOfElem
-  //   template<Integer DIM>
-  //   StdVector<Elem*> * GridCFS<DIM>::GetptNeighboursOfElem(const Integer noOfElem, const std::string color)
-  //   {
-  
-  //     StdVector<Elem*> * result;
-
-  //     if (elNeighbors_==NULL) Error("You can't use function GetptNeighboursOfElem, since list of neighbors is not formed. You should use function FormNeighborsList before.");
-
-  //     Integer i;
-  //     for (i=0; i<sd_.GetSize(); i++) {
-  //       if (sd_[i]==color) {          
-  //         result=&(*elNeighbors_[i])[noOfElem];
-  //       }
-  //     }
-
-  //     return result;
-  //   }
-
-  
-
-  //   template<Integer DIM>
-  //   void GridCFS<DIM>::FormNeighbors4NodesOfElements(const StdVector<Elem*>& elems, 
-  //                                               StdVector<StdVector<Elem*> > &nodeNeighbors, 
-  //                                               StdVector<Integer> & map)
-  //   {
-  //     ENTER_FCN( "GridCFS::FormNeighbors4NodeOfElements" );
-
-  //     Integer iel,k;
-  //     CalcNumberOfNodesInPatch(elems,map);
-  //     Integer maxnumnodes=map.GetSize();
-  //     // calculation number of nodes in patch of elements
-
-  //     // vector with vector of neighbors-elements for each node
-  //     nodeNeighbors.Resize(maxnumnodes);    
-
-  //     // first main loop: form list with element-neighbors for each node
-  //     for (iel = 0; iel < elems.GetSize(); iel++) {
-  //       Integer noOfVertices = elems[iel]->connect.GetSize();
-  //       for (k = 0; k < noOfVertices; k++) {
-  //    Integer id = elems[iel]->connect[k];
-  //    Integer imp;
-  //    for (imp=0;imp<map.GetSize();imp++) 
-  //      {
-  //        if (id==map[imp]) 
-  //          {
-  //            break;
-  //          }     
-  //      }     
-  //    nodeNeighbors[imp].Push_back(elems[iel]);
-  //       } // for loop over vertices, index k
-  //     } // for loop over elements iel
-
-  //   } // end of function FormNeighbors4NodesOfElements
-
-
-
-
-  //  template<Integer DIM> void
-  //   GridCFS<DIM>::DefineBelonging4Elems(const StdVector<Elem*>& elemsSurf, 
-  //                                  const StdVector<Elem*>&elems, 
-  //                                  StdVector<Elem*> & belongingSE)
-  //   {
-  //     ENTER_FCN( "GridCFS:DefineBelonging4Elems" );
-
-  //     Integer noOfSurfElems=elemsSurf.GetSize();
-  //     belongingSE.Resize(noOfSurfElems);
-
-
-  //     // form list with neighbors for each nodes in patch of boundary elements
-  //     StdVector<Integer> map;
-  //     StdVector<StdVector<Elem*> > listNeighbors;
-  //     FormNeighbors4NodesOfElements(elems,listNeighbors,map);
-
-  //     Integer ise,je;
-  //     for (ise=0; ise<noOfSurfElems; ise++) 
-  //       { // loop over surface elements
-      
-  //    bool FoundNd=false;
-  //    Elem * ptAuxElem;
-      
-  //    StdVector<Integer> &connectSE=elemsSurf[ise]->connect;
-      
-  //    // get list of neighbors for first node of the surface element
-  //    Integer imp;   // get local number for this node
-  //    for (imp=0; imp<map.GetSize(); imp++)
-  //      if (connectSE[0]==map[imp]) 
-  //        break;
-      
-    
-  //    StdVector<Elem*> &listNeigh4Elem=listNeighbors[imp];
-      
-  //    // loop over list of neighbors
-  //    Integer ine;
-  //    for (ine=0;ine<listNeigh4Elem.GetSize();ine++)
-  //      {
-  //        ptAuxElem=listNeigh4Elem[ine];
-          
-  //        // check is there other vertices of element
-  //        // loop over other nodes of surf element
-  //        for (je=1;je<connectSE.GetSize();je++) {
-  //          Integer verSE=connectSE[je];
-            
-  //          //loop over vertices of the element
-  //          FoundNd=false;
-  //          StdVector<Integer> &vertices=ptAuxElem->connect;
-  //          Integer ivt;
-  //          for(ivt=0;ivt<vertices.GetSize();ivt++) {
-  //            if (verSE==vertices[ivt]) {
-  //              FoundNd=true;
-  //              break;
-  //            }
-  //          } // end of loop over vertices of neigh-element
-            
-  //          if (!FoundNd) break;
-  //        } // end of loop over nodes of surf element
-          
-  //        if (FoundNd) {
-  //          belongingSE[ise]=ptAuxElem;
-  //          break;
-  //        }
-  //      } // end loop over neighbors 
-      
-  //       } // loop over Surf element 
-  //   }
-
-
-
-//   template<UInt DIM> void
-//   GridCFS<DIM>::CalcNumberOfNodesInPatch(const StdVector<Elem*> & patch,
-// 					 StdVector<Integer> & map, 
-// 					 bool OnlyLinNodes)
-//   {
-//     ENTER_FCN( "GridCFS::CalcNumberOfNodesInPatch" );
-
-//     Integer iels,ivc,imp;
-//     StdVector<Integer> vec_connect;
-//     bool NewNode;
-
-//     for (iels=0; iels<patch.GetSize(); iels++) // loop over elements in patch
-//       {
-     
-// 	vec_connect=patch[iels]->connect;
-// 	Integer numElemCorners;
-// 	if (OnlyLinNodes == true)
-// 	  numElemCorners = patch[iels]->ptElem->GetNumCorners();
-// 	else
-// 	  numElemCorners = vec_connect.GetSize();
-	
-// 	for (ivc=0; ivc<numElemCorners; ivc++) {
-// 	  NewNode=true;
-// 	  // loop over vector with global nodes for previous elements
-// 	  for (imp=0; imp<map.GetSize(); imp++) {
-// 	    // check that this node is not new
-// 	    if (map[imp] == vec_connect[ivc]) { 
-// 	      NewNode=false;
-// 	    }	 
-// 	  }
-
-// 	  if (NewNode) {
-// 	    map.Push_back(vec_connect[ivc]);
-// 	  }
-
-// 	} // end of loop over nodes in element
-
-//       } // end of loop over elements in patch   
-//   }
-
-
-
-
-  //   template<Integer DIM> void
-  //   GridCFS<DIM>::GetVolNeighboursForSurf(const StdVector<Elem*> & surfElems,
-  //                                    const StdVector<std::string> & neighRegions,
-  //                                    StdVector<Elem*> & volElems,
-  //                                    const Integer level)
-  //   {
-  //     ENTER_FCN( "GridCFS::GetVolNeighboursForSurf" );
-
-  //     std::string errMsg;
-  //     StdVector<Elem*> auxElems, neighElems;
-  //     Integer noOfSurfElems=surfElems.GetSize();
-  //     volElems.Resize(noOfSurfElems);
-
-
-  //     // form list with neighbors for each nodes in patch of boundary elements
-  //     StdVector<Integer> map;
-  //     StdVector<StdVector<Elem*> > listNeighbors;
-    
-  //     // get all elements in neighborin region, from where later
-  //     // the volume elems are picked
-  //     for (Integer iSD=0; iSD<neighRegions.GetSize(); iSD++)
-  //       {
-  //    GetElemSD(auxElems, neighRegions[iSD], level);
-  //    for (Integer iEl=0; iEl<auxElems.GetSize(); iEl++)
-  //      neighElems.Push_back(auxElems[iEl]);
-  //       }
-
-  //     // create a list of elements in 'neighRegion', which have at least
-  //     // one node in common with the element lying in neighRegions
-  //     FormNeighbors4NodesOfElements(neighElems,listNeighbors,map);
-  //     Integer ise,je;
-  //     for (ise=0; ise<noOfSurfElems; ise++) 
-  //       { // loop over surface elements
-        
-  //    bool FoundNd=false;
-  //    Elem * ptAuxElem;
-        
-  //    StdVector<Integer> &connectSE=surfElems[ise]->connect;
-        
-  //    // get list of neighbors for first node of the surface element
-  //    Integer imp;   // get local number for this node
-  //    for (imp=0; imp<map.GetSize(); imp++)
-  //      if (connectSE[0]==map[imp]) 
-  //        break;
-        
-        
-  //    StdVector<Elem*> &listNeigh4Elem=listNeighbors[imp];
-        
-  //    // loop over list of neighbors
-  //    Integer ine;
-  //    for (ine=0;ine<listNeigh4Elem.GetSize();ine++)
-  //      {
-  //        ptAuxElem=listNeigh4Elem[ine];
-            
-  //        // check are there other vertices of element
-  //        // loop over other nodes of surf element
-  //        for (je=1;je<connectSE.GetSize();je++) {
-  //          Integer verSE=connectSE[je];
-              
-  //          //loop over vertices of the element
-  //          FoundNd=false;
-  //          StdVector<Integer> &vertices=ptAuxElem->connect;
-  //          Integer ivt;
-  //          for(ivt=0;ivt<vertices.GetSize();ivt++) {
-  //            if (verSE==vertices[ivt]) {
-  //              FoundNd=true;
-  //              break;
-  //            }
-  //          } // end of loop over vertices of neigh-element
-              
-  //          if (!FoundNd) break;
-  //        } // end of loop over nodes of surf element
-            
-  //        if (FoundNd) {
-  //          volElems[ise]=ptAuxElem;
-  //          break;
-  //        }
-  //      } // end loop over all elements in neighbouring region
-  //    if (!FoundNd)
-  //      {
-  //        errMsg  = "GridCFS::GetVolNeighboursForSurf: For the surface element with Nr. ";
-  //        errMsg += GenStr(surfElems[ise]->elemNum);
-  //        errMsg += " an according volume element was not ";
-  //        errMsg += "found in the regions '";
-  //        for (Integer j=0; j<neighRegions.GetSize()-1; j++) 
-  //          errMsg += neighRegions[j] + "', '";
-  //        errMsg += neighRegions[neighRegions.GetSize()-1] + "'.\n";
-  //        errMsg += "Please make sure, that for each ";
-  //        errMsg += "surface element there is exactly ONE volume element ";
-  //        errMsg += "in the speciefied neighbouring region.";
-            
-            
-  //        Error(errMsg.c_str(), __FILE__, __LINE__);
-  //      }
-        
-        
-  //       } // loop over all Surface elements 
-  //   }
-  
-  
-
-
-
-  //  template<>
-  //   Double GridCFS<2>::CalcAreaElem(const Elem* elem)
-  //   {
-  //     ENTER_FCN( "GridCFS<Dim>::CalcAreaElem" );
-
-  //     Double res;
-  //     Double a,b,c,s;
-  //     Point<2> A,B,C,D;
-
-  //     Integertype=elem->ptElem->feType();
-  //     switch(type) {
-  //     case LINE: // line
-  //       A=ptCoordinate_[elem->connect[0]-1];
-  //       B=ptCoordinate_[elem->connect[1]-1];
-  //       res=dist(A,B);
-  //       break;
-  //     case TRIA:     // triangle
-  //       A=ptCoordinate_[elem->connect[0]-1];
-  //       B=ptCoordinate_[elem->connect[1]-1];
-  //       C=ptCoordinate_[elem->connect[2]-1];
-  
-  //       a=dist(A,B);
-  //       b=dist(B,C);
-  //       c=dist(A,C);
-  
-  //       s=(a+b+c)/2;
-  //       res=sqrt(s*(s-a)*(s-b)*(s-c));
-
-  //       break; 
-  //     case QUAD:     // quadrilateral
-  //       Double res1, res2;
-  //       A=ptCoordinate_[elem->connect[0]-1];
-  //       B=ptCoordinate_[elem->connect[1]-1];
-  //       C=ptCoordinate_[elem->connect[2]-1];
-  //       D=ptCoordinate_[elem->connect[3]-1];
-   
-  //       a=dist(A,B);
-  //       b=dist(B,C);
-  //       c=dist(A,C);
-  //       s=(a+b+c)/2;
-  //       res1=sqrt(s*(s-a)*(s-b)*(s-c));
-  //       a=dist(C,D);
-  //       b=dist(A,D);
-  //       s=(a+b+c)/2;
-  //       res2=sqrt(s*(s-a)*(s-b)*(s-c));
-  //       res=res1+res2;
-  //       break;
-
-  //     default:
-  //       Error("There isn't such kind of element's type",__FILE__,__LINE__);
-  //     }
-
-  //     return res;
-  //   }
-
-
-
-
-  //   template<>
-  //   Double GridCFS<3>::CalcAreaElem(const Elem* elem)
-  //   {
-  //     Error("Not implemented yet",__FILE__,__LINE__);
-
-  //     //just for SUN compiler
-  //     Double dummy =0.0;
-  //     return dummy;
-  //   }
 
   // ecplicit template instantiation for gcc
 #ifdef __GNUC__

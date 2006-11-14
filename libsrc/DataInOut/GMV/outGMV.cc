@@ -939,15 +939,15 @@ namespace CoupledField {
     // Iterate over all solutiontypes
     for (UInt iSol=0; iSol<sol.GetNumSolutions(); iSol++) {
     
-      // GMV can not visualize tensor data
-      if (sol.GetDof(solTypes[iSol]) > 3){
-        (*warning) << "OutGMV::WriteElemSolutionTransient: GMV can only "
-                   << "visualize 3 dimensional data.\n Your solution has "
-                   << GenStr(sol.GetDof(solTypes[iSol]))
-                   << " degrees of freedom!";
-        Warning(__FILE__, __LINE__);
-        return;
-      }
+     //  // GMV can not visualize tensor data
+//       if (sol.GetDof(solTypes[iSol]) > 3){
+//         (*warning) << "OutGMV::WriteElemSolutionTransient: GMV can only "
+//                    << "visualize 3 dimensional data.\n Your solution has "
+//                    << GenStr(sol.GetDof(solTypes[iSol]))
+//                    << " degrees of freedom!";
+//         Warning(__FILE__, __LINE__);
+//         return;
+//       }
         
       // Iterate over all degrees of freedom
       for (iDof=0; iDof< sol.GetDof(solTypes[iSol]); iDof++) {

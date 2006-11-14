@@ -1,6 +1,8 @@
 #ifndef FILE_HEXA1FE_2003
 #define FILE_HEXA1FE_2003
 
+#include <bitset>
+
 #include "hexaFE.hh"
 
 namespace CoupledField
@@ -24,14 +26,21 @@ namespace CoupledField
     //! Set local corner coordinates
     virtual void SetCornerCoords();
 
+    //! Set local edge indices
+    void SetEdgeIndices();
+
+    //! Set local face indices
+    void SetFaceIndices();
 
     //! calculates the shape functions at an arbitrary local point
     /*!
       \param Shape (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
       \param LCoord (input) Local coordinates of evalutation point 
     */
-    virtual void CalcShapeFnc(Vector<Double> & LShape, 
-                              const Vector<Double> & LCoord);
+    virtual void CalcShapeFnc( Vector<Double> & LShape, 
+                               const Vector<Double> & LCoord,
+                               const Elem* elem , UInt dof,
+                               AnsatzFct::FctEntityType );
 
 
   
@@ -44,7 +53,9 @@ namespace CoupledField
       \param LCoord (input) Local coordinates of evalutation point 
     */
     virtual void CalcLocalDerivShapeFnc(Matrix<Double> & LDeriv, 
-                                        const Vector<Double> & LCoord);
+                                        const Vector<Double> & LCoord,
+                                        const Elem* elem , UInt dof,
+                                        AnsatzFct::FctEntityType );
 
     /** Sets the default numerical integration - can be overwritten in XML with integRules */ 
     void SetDefaultIntegration()
@@ -60,6 +71,17 @@ namespace CoupledField
         IntegOrder  = 1; 
     }
 
+
+    void SetAnsatzFct( shared_ptr<AnsatzFct>& actFct,
+                       bool setIntPoints = true );
+
+    void GetNumFncs(Vector<UInt>& numFcns, 
+                    const shared_ptr<AnsatzFct>& fcnType, 
+                    AnsatzFct::FctEntityType fctEntityType, 
+                    UInt dof = 1);
+
+
+    UInt GetNumFncs( const shared_ptr<AnsatzFct>& fncType );
 
   private:
    

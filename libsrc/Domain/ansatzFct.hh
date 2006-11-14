@@ -1,6 +1,9 @@
 #ifndef FILE_CFS_ANSATZFCT_HH
 #define FILE_CFS_ANSATZFCT_HH
 
+#include "General/environment.hh"
+#include "Matrix/matrix.hh"
+#include "Utils/StdVector.hh"
 
 namespace CoupledField {
 
@@ -11,16 +14,27 @@ namespace CoupledField {
   public:
     typedef enum {CONST, LAGRANGE, LEGENDRE} AnsatzFctType;
 
+    typedef enum {NONE, ALL, NODE, EDGE, FACE, INTERIOR} FctEntityType;
+
     //! Constuctor
     AnsatzFct();
 
+    //! Destructor
+    virtual ~AnsatzFct();
+    
     //! Return type of ansatz functions
-    AnsatzFctType GetType() { return type_; }
+    AnsatzFctType GetType() const { return type_; }
+
+    //! Return true, if approximation is isotropic
+    bool IsIsotropic() const { return isIsotropic_; }
 
   protected:
     
     //! Type of ansatz functions used
     AnsatzFctType type_;
+
+    //! Flag indicating isotropy of ansatz functions
+    bool isIsotropic_;
 
   };
 
@@ -51,13 +65,61 @@ namespace CoupledField {
   };
 
   //! Class for hierarchic Legendre ansatz functions
-  class LegendreFct { 
+  class LegendreFct : public AnsatzFct{ 
 
   public:
 
+    //! Define enum for different sub-spaces of Legendre polynomials
+    typedef enum {TENSOR, PRODUCT} SubSpaceType;
+    
     //! Constructor
     LegendreFct();
     
+    //! Set isotropic order
+    void SetIsoOrder( UInt order );
+
+    //! Return isotropic order
+    UInt GetIsoOrder() const;
+
+    //! Set anisotropic order matrix
+    void SetAnisoOrder( Matrix<UInt>& order );
+
+    //! Return anisotropic order
+    const Matrix<UInt>& GetAnisoOrder() const;
+
+    //! Get maximum order w.r.t. to local coordinate direction
+    UInt GetMaxOrderLocDir( UInt locDir ) const;
+
+    //! Get maximum order w.r.t. to degree of freedom
+    UInt GetMaxOrderDof( UInt dof ) const;
+
+    //! Get maximum polynomial degree
+    UInt GetMaxOrder() const;
+    
+    // =======================================================================
+    // D A T A   M E M B E R S
+    // =======================================================================
+    
+  protected:
+
+    //! Isotropic order of method
+    UInt isoOrder_;
+
+    //! Anisotropic order (local dir x DOFs)
+    Matrix<UInt> anOrder_;
+
+    //! Maximum order w.r.t. to local coordinate direction
+    StdVector<UInt> maxOrderLocDir_;
+
+    //! Maximum order w.r.t. to degree of freedom
+    StdVector<UInt> maxOrderDof_;
+
+    //! Maximum order in complete array
+    UInt maxOrder_;
+
+    //! Type of subspace for approximation
+    SubSpaceType subSpace_;
+
   };
 
 }

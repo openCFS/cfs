@@ -154,8 +154,14 @@ namespace CoupledField
 
 
   template<UInt DIM>
-  void GridStruct<DIM>::MapSubEntities() {
-    ENTER_FCN( "GridStruct::MapSubEntities" );
+  void GridStruct<DIM>::MapEdges() {
+    ENTER_FCN( "GridStruct::MapEdges" );
+    Error( "Not defined", __FILE__, __LINE__ );
+  }
+
+  template<UInt DIM>
+  void GridStruct<DIM>::MapFaces() {
+    ENTER_FCN( "GridStruct::MapFaces" );
     Error( "Not defined", __FILE__, __LINE__ );
   }
 

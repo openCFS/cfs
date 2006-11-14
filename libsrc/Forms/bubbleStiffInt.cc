@@ -54,8 +54,9 @@ namespace CoupledField {
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent1 );
     
+    ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts= ptelem->GetNumIntPoints();
-    const UInt nrNodes = ptelem->GetNumNodes();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
     Double jacDet;
 
@@ -63,37 +64,24 @@ namespace CoupledField {
     Matrix<Double> partElemMat;
     Vector<Double> CoordAtIP;
 
-    UInt locElemNum = 0;
-
     // set matrix to desired size and set all elements to zero
     //    partElemMat.Resize(nrNodes);
-    elemMat.Resize(nrNodes);
+    elemMat.Resize( numFncs);
     elemMat.Init();
     
     // get value of radius und its derivative
     Double radius =  (*radius_)[indexMap_[ent1.GetElem()->elemNum]];
     Double radiusDeriv =  (*radiusDeriv_)[indexMap_[ent1.GetElem()->elemNum]];
 
-    Double stiffFact = 0.0;
-    if (mParser_->Eval( mHandle_ ) < 10.0 / frequency_ ){
-//       if (indexMap_[ent1.GetElem()->elemNum] == 0)
-//        	std::cerr<< "Faktor 0  in bubbleStiffIt " <<mParser_->Eval( mHandle_ )<< std::endl;
+
+    if (mParser_->Eval( mHandle_ ) <= 1.0 / frequency_ ){
+      if (indexMap_[ent1.GetElem()->elemNum] == 0)
+	std::cerr<< "Faktor 0  in bubbleStiffIt" <<std::endl;
       factor_ = 0.0;
-      stiffFact = 4.0 * PI * bubbleDensity_ * radius * radius;
-      stiffFact*= (1.0 + radiusDeriv /sonicVel_) ;  
-      stiffFact /= ((1.0- (radiusDeriv /sonicVel_)) * radius 
-		  + 4.0 * viscosity_ / densityforbubble_ /sonicVel_);
-
-   
-//       if( ent1.GetElem()->elemNum == 1 ){
-//      	std::cout<<mParser_->Eval( mHandle_ ) <<"   "<< stiffFact<<std::endl; 
-//       }
-
-      //    std::cout<<stiffFact<<std::endl;
     }
     else{
-//       if (indexMap_[ent1.GetElem()->elemNum] == 0)
-//        	std::cerr <<"Faktor computed  in bubbleStiffIt" <<std::endl;
+      if (indexMap_[ent1.GetElem()->elemNum] == 0)
+	std::cerr <<"Faktor computed  in bubbleStiffIt" <<std::endl;
       factor_ = 4.0 * PI * bubbleDensity_ * radius * radius;
       factor_*= (1.0 + radiusDeriv /sonicVel_) ;  
       factor_ /= ((1.0- (radiusDeriv /sonicVel_)) * radius 
@@ -103,9 +91,9 @@ namespace CoupledField {
 
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_);
+      jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
         
-      ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt);
+      ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
         
       partElemMat.DyadicMult(shapeFncAtIp);
         

@@ -473,8 +473,10 @@ namespace CoupledField {
       // loop over all subdomains
       for (UInt actSD=0; actSD<calcEddy_.GetSize(); actSD++) {
 
-        // get vector of Elem of subdomain with color: subdoms[isd]
-        ptgrid_->GetVolElems( elemssd, calcEddy_[actSD] );
+        ElemList actSDList(ptgrid_ );
+        actSDList.SetRegion( calcEddy_[actSD] );
+        
+        EntityIterator it = actSDList.GetIterator();
           
         // Get the right material parameter for actual subdomain
         for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++)
@@ -482,16 +484,13 @@ namespace CoupledField {
 	    materials_[subdoms_[iSD]]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
 
         // loop over elements of subdomain
-        for ( UInt actEl=0; actEl< elemssd.GetSize();
-              actEl++,counterElems++ ) {
-          BaseFE * ptEl = elemssd[actEl]->ptElem;
-          elemssd[actEl]->ptElem->GetCoordMidPoint( lCoord );
-          ptEl->GetShFnc(shpFnc,lCoord);
-          pdeElem = eqnMap_->Mesh2PdeElem(elemssd[actEl]->elemNum);
+        for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
+          BaseFE * ptEl = it.GetElem()->ptElem;
+          it.GetElem()->ptElem->GetCoordMidPoint( lCoord );
+          ptEl->GetShFnc(shpFnc,lCoord,it.GetElem());
+          pdeElem = eqnMap_->Mesh2PdeElem(it.GetElem()->elemNum);
 
-          connect = elemssd[actEl]->connect;
-          
-          GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
+          GetDerivSolVecOfElement(magVecDeriv1Elem,it);
           JeddyElem[0] = magVecDeriv1Elem * shpFnc;
           JeddyElem[0] *= -conductivity;
           Jeddy_.SetElemResult(pdeElem-1, JeddyElem);
@@ -606,10 +605,8 @@ namespace CoupledField {
       EntityIterator it = actSDList.GetIterator();
       for ( it.Begin(); !it.IsEnd(); it++ ) {
 
-        connecth=it.GetElem()->connect;
-       
         Vector<Double> magvecpot;   
-        sol_->GetElemSolution(magvecpot,connecth);
+        sol_->GetElemSolution(magvecpot,it);
         bilinear_stiff->CalcElementMatrix(elemmat,it,it);
         
         help = elemmat * magvecpot;
@@ -654,33 +651,32 @@ namespace CoupledField {
       for (UInt dom=0; dom<coilDef_.GetSize(); dom++) {
         if (subdoms_[actSD] == coilRegionId_[dom]) {
            
-          StdVector<Elem*> elemssd;             
-          // get vector of Elem of subdomain with color: subdoms[isd]
-          ptgrid_->GetVolElems( elemssd,subdoms_[actSD] );
-            
-
-          // loop over elements of subdomain        
-          for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-            BaseFE * ptEl = elemssd[actEl]->ptElem;
+          ElemList actSDList(ptgrid_ );
+          actSDList.SetRegion( subdoms_[actSD] );
+          
+          EntityIterator it = actSDList.GetIterator();
+          for ( it.Begin(); !it.IsEnd(); it++ ) {
+            BaseFE * ptEl = it.GetElem()->ptElem;
                 
             const UInt nrIntPts= ptEl->GetNumIntPoints();
             const Vector<Double> & intWeights = ptEl->GetIntWeights();  
             Double jacDet;
                 
             StdVector<UInt> connect;
-            connect = elemssd[actEl]->connect;
+            connect = it.GetElem()->connect;
 
             Matrix<Double> ptCoord;
             ptgrid_->GetElemNodesCoord( ptCoord, connect, true );
 
             Vector<Double> magVecDeriv1Elem;
-            GetDerivSolVecOfElement(magVecDeriv1Elem,connect);
+            GetDerivSolVecOfElement(magVecDeriv1Elem,it);
             Double uiElem=0;
                 
             for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
               Vector<Double> shapeFnc;
-              jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoord);    
-              ptEl -> GetShFncAtIp(shapeFnc, actIntPt);
+              jacDet = ptEl->CalcJacobianDetAtIp(actIntPt, ptCoord, 
+                                                 it.GetElem());    
+              ptEl -> GetShFncAtIp(shapeFnc, actIntPt, it.GetElem() );
 
               uiElem += shapeFnc * magVecDeriv1Elem;
                     
@@ -1213,16 +1209,19 @@ namespace CoupledField {
       Double conductivity;
       materials_[subdoms_[SDidx]]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);      
       
-      StdVector<Elem*> elemssd;
-      ptgrid_->GetVolElems(elemssd, subdoms_[SDidx]);
-  
-      for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-        StdVector<UInt> connecth = elemssd[actEl]->connect;
+      ElemList actSDList(ptgrid_ );
+      actSDList.SetRegion(subdoms_[SDidx] );
+      
+      EntityIterator it = actSDList.GetIterator();
+      UInt actEl = 0;
+      for ( it.Begin(); !it.IsEnd(); it++, actEl++ ) {
+        
+        StdVector<UInt> const & connecth = it.GetElem()->connect;
         Matrix<Double> elemForce;
-        GetDerivSolVecOfElement(Jeddy,connecth);
+        GetDerivSolVecOfElement(Jeddy,it);
         Jeddy *= -conductivity;
 
-        ForceOp->CalcElemMagLorentzForce(elemForce, Jeddy, elemssd[actEl]);
+        ForceOp->CalcElemMagLorentzForce(elemForce, Jeddy, it.GetElem());
 
         // Add the element force to the according coupling node
         for (UInt ielemnode=0; ielemnode<connecth.GetSize(); ielemnode++) {
@@ -1234,7 +1233,7 @@ namespace CoupledField {
       }
 
       //in the case, that we have more than one coupling region!
-      offset = elemssd.GetSize();
+      offset = actSDList.GetSize();
     }
   }
 

@@ -34,6 +34,11 @@ namespace CoupledField
     isSolDependent_ = false;
     softeningModel_ = "no";   
 
+    // Initialize form with standard Lagrange ansatz fct object
+    shared_ptr<AnsatzFct> fct( new LagrangeFct() );
+    ansatzFct1_ = fct;
+    ansatzFct2_ = fct;
+
 #ifndef INTEGLIB
 
     // Get grip of a new math parser object.
@@ -84,11 +89,27 @@ namespace CoupledField
   }
 
  
+
+  void BaseForm::SetAnsatzFct( shared_ptr<AnsatzFct> actFct1,
+                               shared_ptr<AnsatzFct> actFct2 ) {
+    ENTER_FCN( "BaseForm::SetAnsatzFct" );
+
+    assert( actFct1 != NULL );
+    ansatzFct1_ = actFct1;
+
+    if( actFct2 != NULL ) {
+      ansatzFct2_ = actFct2;
+    } else {
+      ansatzFct2_ = ansatzFct1_;
+    } 
+
+  }
   
 #ifndef INTEGLIB
   void BaseForm::ExtractElemInfo( EntityIterator& it ) {
     ptelem = it.GetElem()->ptElem;
-    
+    it1_ = it;
+
     domain->GetGrid()->GetElemNodesCoord( ptCoord_, 
                                           it.GetElem()->connect,
                                           coordUpdate_ );

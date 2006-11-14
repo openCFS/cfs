@@ -30,10 +30,16 @@ namespace CoupledField
       ptGridStruct->GetAllRegionNames(regionNames_);
     }
 
-    //! Map element sub-entities
-    void MapSubEntities() {
-      ptGridStruct->MapSubEntities();
+    //! Map element faces
+    void MapFaces() {
+      ptGridStruct->MapFaces();
     }
+
+    //! Map element edges
+    void MapEdges() {
+      ptGridStruct->MapEdges();
+    }
+
     //==================================================================================
     //special functions for structured Grid
     //! Read of structured mesh
@@ -238,6 +244,38 @@ namespace CoupledField
                                           neighRegions );
     }
     
+    //@}
+
+    // =======================================================================
+    // ELEMENT FACE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Surface Access Functions
+
+    //! Get total number of faces in the grid
+    UInt GetNumFaces() {
+      return ptGridStruct->GetNumFaces();
+    }
+    
+    //! Return face with given face
+    const Face& GetFace( UInt faceNr) {
+      return ptGridStruct->GetFace( faceNr );
+    }
+
+    // =======================================================================
+    // EDGE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Edge Access Functions
+          
+
+    //! Get number ofe edges
+    UInt GetNumEdges() {
+      return ptGridStruct->GetNumEdges();
+    }
+    
+    const Edge& GetEdge( UInt edgeNr ) {
+      return ptGridStruct->GetEdge( edgeNr );
+    }
+
     //@}
 
     // =======================================================================
