@@ -8,6 +8,7 @@
 #include "Domain/GridAdaption/GridAdaption.hh"
 #include "Forms/bubbleDampInt.hh"
 #include "Forms/bubbleStiffInt.hh"
+#include "Utils/mathParser/mathParser.hh"
  
 namespace CoupledField {
 
@@ -45,8 +46,8 @@ namespace CoupledField {
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 
-//     //! define the algbraic system
-//     void DefineAlgSys();
+    //     //! define the algbraic system
+    //     void DefineAlgSys();
 
     //! perform postprocessing on data
     void PostProcess();
@@ -253,6 +254,10 @@ namespace CoupledField {
     std::map<RegionIdType, BubbleDampInt*> bubbleDampIntMap_; 
     std::map<RegionIdType, BubbleStiffInt*> bubbleStiffIntMap_; 
   
+
+    //! Handle for MathParser object
+    MathParser::HandleType mHandle_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
