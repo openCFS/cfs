@@ -74,15 +74,22 @@ namespace CoupledField {
 
 
 
-
-    if (mParser_->Eval( mHandle_ ) <= 1.0 / frequency_ ){
-      if (indexMap_[ent1.GetElem()->elemNum] == 0)
-	std::cerr<<"Faktor 0  in bubbleDampIt" <<std::endl;
+    Double dampFact = 0.0;
+    if (mParser_->Eval( mHandle_ ) < 10.0 / frequency_ ){
+//       if (indexMap_[ent1.GetElem()->elemNum] == 0)
+//        	std::cerr<<"Faktor 0  in bubbleDampIt" <<std::endl;
       factor_ = 0.0;
+      dampFact = 4.0 * PI * bubbleDensity_ * radius * radius * radius / sonicVel_ /((1.0 - (radiusDeriv /sonicVel_)) * radius + 4.0 * viscosity_ / densityforbubble_ /sonicVel_); 
+      //     std::cout<<dampFact<<std::endl;
+
+//       if( ent1.GetElem()->elemNum == 294 ){
+//      	std::cout<<mParser_->Eval( mHandle_ ) <<"   "<< dampFact<<std::endl; 
+//       }
+
     }
     else{   
-      if (indexMap_[ent1.GetElem()->elemNum] == 0)
-	std::cerr<<"Faktor computed  in bubbleDampIt" <<std::endl;
+//       if (indexMap_[ent1.GetElem()->elemNum] == 0)
+//        	std::cerr<<"Faktor computed  in bubbleDampIt" <<std::endl;
       factor_= 4.0 * PI * bubbleDensity_ * radius * radius * radius / sonicVel_ /((1.0 - (radiusDeriv /sonicVel_)) * radius + 4.0 * viscosity_ / densityforbubble_ /sonicVel_); 
     }
 
