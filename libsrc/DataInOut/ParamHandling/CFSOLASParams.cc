@@ -3,7 +3,7 @@
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/WriteInfo.hh"
-#include "CFSOLASParams.hh"
+#include "DataInOut/ParamHandling/CFSOLASParams.hh"
 
 namespace CoupledField {
 

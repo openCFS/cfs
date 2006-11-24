@@ -130,6 +130,11 @@ namespace CoupledField {
       isNrbcCoupled_ = true;
     }
 
+    //! returns formulation (pressure/scalar potential)
+    SolutionType GetFormulation() {
+      return formulation_;
+    }
+
   protected:
 
     //! Init the time stepping

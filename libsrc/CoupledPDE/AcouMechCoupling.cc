@@ -5,7 +5,7 @@
 #include "Materials/baseMaterial.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "PDE/SinglePDE.hh"
-
+#include "PDE/acousticPDE.hh" 
 
 // integrator (bi-)linear forms
 #include "Forms/acouMechInt.hh"
@@ -24,6 +24,26 @@ namespace CoupledField {
 
     couplingName_ = "acouMechDirect";
     materialClass_ = FLUID;
+
+    // Check, if matrix storage is SparseNonSym
+    std::string mMatString;
+    StdVector<std::string> keyVec;
+    StdVector<std::string> attrVec;
+    StdVector<std::string> valVec;
+    keyVec  = "linearSystems", "system", "matrix", "storage";
+    attrVec = "", "name", "";
+    valVec  = "", "direct", "";
+    params->Get( keyVec, attrVec, valVec, mMatString );
+//     OLAS::MatrixStorageType mType;
+//     OLAS::String2Enum( mMatString, mType );
+
+    AcousticPDE* acouPDE  = dynamic_cast<AcousticPDE*> (pde2);
+    SolutionType formulation = acouPDE->GetFormulation();
+
+    if ( formulation ==  ACOU_PRESSURE && mMatString != "sparseNonSym" ) {
+      Error("For MechAcou-Coupling with pressure formulation we need matrix storage: SPARSE_NONSYM",
+	    __FILE__,__LINE__);
+    }
   }
 
 
