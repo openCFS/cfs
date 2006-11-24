@@ -12,6 +12,7 @@ namespace CoupledField
   {
     ENTER_FCN( "Quad1FE::Quad1FE" );
 
+    UseICModes();
     Init();
   }
   
@@ -183,17 +184,15 @@ namespace CoupledField
       // ===============
       //  LAGRANGE PART
       // ===============
-
       LDeriv.Resize(NumNodes_,Dim_);
-      
       for( UInt i=0; i<NumNodes_; i++)
-        {
-          LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] 
-            * (1 + LCornerCoords_[1][i] * actCoord[1] );
-          LDeriv[i][1] = 0.25 * (1 + LCornerCoords_[0][i] * actCoord[0] )
-            * LCornerCoords_[1][i];
-        }
-
+	{
+	  LDeriv[i][0] = 0.25 * LCornerCoords_[0][i] 
+	    * (1 + LCornerCoords_[1][i] * actCoord[1] );
+	  LDeriv[i][1] = 0.25 * (1 + LCornerCoords_[0][i] * actCoord[0] )
+	    * LCornerCoords_[1][i];
+	}
+    
     } else {
 
       // ===============
@@ -267,6 +266,33 @@ namespace CoupledField
           offset++;
         }
       }
+    }
+  }
+
+
+  void Quad1FE ::CalcLocalICModesDerivShapeFnc( Matrix<Double> & LDeriv, 
+						const Vector<Double> & actCoord,
+						const Elem* elem,
+						UInt dof, AnsatzFct::FctEntityType type )
+  {
+    ENTER_IFCN( "Quad1FE::CalcLocalICModesDerivShapeFnc" );
+
+
+
+    if( actFct_->GetType() == AnsatzFct::LAGRANGE ||
+        type == AnsatzFct::NODE ) {
+
+      // ===============
+      //  LAGRANGE PART
+      // ===============
+      LDeriv.Resize(2,Dim_);
+      LDeriv.Init();
+      LDeriv[0][0] = -2.0*actCoord[0];
+      LDeriv[1][1] = -2.0*actCoord[1];
+    } 
+    else {
+      Error("CalcLocalICModesDerivShapeFnc for Legendre type not implemented",
+	    __FILE__,__LINE__);
     }
   }
 

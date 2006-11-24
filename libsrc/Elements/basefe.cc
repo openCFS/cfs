@@ -21,14 +21,18 @@ namespace CoupledField
     ENTER_FCN( "entering BaseFE::BaseFE" );
   
     // initializing dynamic objects
-    ShFncAtIp_      = NULL;
-    ShFncDerivAtIp_ = NULL; 
-    IntPoints_      = NULL; 
+    ShFncAtIp_             = NULL;
+    ShFncDerivAtIp_        = NULL; 
+    ShFncICModesDerivAtIp_ = NULL; 
+    IntPoints_             = NULL; 
 
     // Create dummy ansatzFct object for lagrange functions
     shared_ptr<AnsatzFct> fct( new LagrangeFct() );
     actFct_ = fct;
     actNumFcns_ = 0;
+
+    ICModes_     = false;
+    CalcICModes_ = false;
   }
  
   BaseFE :: ~BaseFE()
@@ -173,19 +177,27 @@ namespace CoupledField
     //  Deriv.Resize(NumNodes_,Dim_);
     Matrix<Double> JInv;
   
-    CalcInvJacobianAtIp(JInv, ip, CornerCoords, elem);
-  
-
-    if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
-      Deriv = ShFncDerivAtIp_[ip-1] * JInv;
-    } else {
-      Matrix<Double> lDeriv;
-      CalcLocalDerivShapeFnc( lDeriv, IntPoints_[ip-1],
-                              elem, dof, AnsatzFct::ALL );
-      Deriv = lDeriv * JInv;
+    if ( CalcICModes_ && ICModes_ ) {
+      //incompatible modes
+      Vector<Double> LCoord( CornerCoords.GetSizeRow());
+      LCoord.Init();
+      CalcInvJacobian(JInv, LCoord, CornerCoords, elem);
+      Deriv = ShFncICModesDerivAtIp_[ip-1] * JInv;
     }
+    else {
+      CalcInvJacobianAtIp(JInv, ip, CornerCoords, elem);
 
-    //std::cerr << "Deriv = \n" << Deriv << std::endl;
+      if( actFct_->GetType() == AnsatzFct::LAGRANGE ) {
+	Deriv = ShFncDerivAtIp_[ip-1] * JInv;
+      } 
+      else {
+	Matrix<Double> lDeriv;
+	CalcLocalDerivShapeFnc( lDeriv, IntPoints_[ip-1],
+				elem, dof, AnsatzFct::ALL );
+	Deriv = lDeriv * JInv;
+      }
+      //std::cerr << "Deriv = \n" << Deriv << std::endl;
+    }
   }
 
 
@@ -356,7 +368,8 @@ namespace CoupledField
 
     if( !ShFncDerivAtIp_) {
       ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_]; 
-  } else{ 
+    } 
+    else{ 
       delete[] ShFncDerivAtIp_ ;
       ShFncDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
     }
@@ -365,6 +378,20 @@ namespace CoupledField
       CalcLocalDerivShapeFnc( ShFncDerivAtIp_[i], IntPoints_[i], 
                               NULL, 1, AnsatzFct::NODE );
 
+    // check, if incompatible modes are used
+    if ( ICModes_ ) {
+      if( !ShFncICModesDerivAtIp_ ) {
+	 ShFncICModesDerivAtIp_ = new Matrix<Double>[NumIntPoints_]; 
+      } 
+      else{ 
+	delete[]  ShFncICModesDerivAtIp_ ;
+	 ShFncICModesDerivAtIp_ = new Matrix<Double>[NumIntPoints_];
+      }
+      for( UInt i=0; i<NumIntPoints_; i++ ) {
+	CalcLocalICModesDerivShapeFnc(  ShFncICModesDerivAtIp_[i], IntPoints_[i], 
+					NULL, 1, AnsatzFct::NODE );
+      }
+    }
   }
 
 

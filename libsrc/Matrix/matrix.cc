@@ -951,13 +951,50 @@ namespace CoupledField
         break;
       
       default: 
-        Error("Inversion not implemented fo dimension larger than 2!",__FILE__,__LINE__);
+	//        Error("Inversion not implemented fo dimension larger than 2!",__FILE__,__LINE__);
+	Double eps = 1e-20;
+	TYPE pivot;
+	TYPE pinv;
+
+	//just copy the matrix
+	inv.Resize(size_row_);
+	for ( UInt k=0; k < size_row_*size_col_; k++ )  
+	  inv.data_[0][k] = data_[0][k];
+	for ( UInt k=1; k < size_row_; k++ ) 
+	  inv.data_[k] = inv.data_[k-1]+size_col_;       
+
+	//compute the invers
+        for ( UInt k=0; k<size_row_; k++) {
+	  pivot = inv[k][k];
+	  pinv  = 1/pivot;
+	  if ( abs(pivot) > eps ) {
+	    for (UInt j=0; j<size_row_; j++) {
+	      if ( j != k ) {
+		inv[k][j] = -inv[k][j] * pinv;
+		for ( UInt i=0; i<size_row_; i++ ) {
+		  if ( i != k ) {
+		    inv[i][j] = inv[i][j] + inv[i][k] * inv[k][j];
+		  }
+		}
+	      }
+	    }
+	    for ( UInt i=0;  i<size_row_; i++ ) {
+	      inv[i][k] = inv[i][k] * pinv;
+	    }
+	    inv[k][k] = pinv;
+	    //	    std::cout << "inv current:\n" << inv << std::endl;
+	  }
+	  else {
+	    Error("Get divison by zero in matrix inversion",__FILE__,__LINE__);
+	  }
+	}
       }
   }
 
   template<> void Matrix<Complex>::Invert (Matrix <Complex> & inv) const
   {
     ENTER_FCN("Matrix::Invert"); 
+
     Error("Matrix<Complex>::Invert: Not implemented!",__FILE__,__LINE__);
   }
 

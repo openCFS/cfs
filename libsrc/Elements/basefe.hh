@@ -441,6 +441,20 @@ namespace CoupledField
        SetIntPoints(IntegMethod, IntegOrder);
     }   
     
+    // set incompatible modes cabaility to yes
+    void UseICModes() {
+      ICModes_ = true;
+    } 
+
+    //! compute now just with incompatible modes
+    void SetCalcICModes() {
+      CalcICModes_ = true;
+    }
+
+    //! compute now with standard basis functions
+    void ResetCalcICModes() {
+      CalcICModes_ = false;
+    }
 
     //! a public helper method that dumps the current content of the map
     void DumpIntegrationPointsMap();
@@ -501,6 +515,21 @@ namespace CoupledField
                                         const Vector<Double> & LCoord,
                                         const Elem* elem, UInt dof,
                                         AnsatzFct::FctEntityType = AnsatzFct::ALL ) = 0;
+
+    //! Calculates the local derivatives of incompatible mode shape functions at an arbitrary local point
+    /*!
+      \param LDeriv (output) Matrix with local derivatives of all shape functions
+      \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
+      N_{2,d\xi} & N_{2,d\eta} & \cdots \\
+      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \param LCoord (input) Local coordinates of evalutation point 
+    */
+    virtual void CalcLocalICModesDerivShapeFnc(Matrix<Double> & LDeriv, 
+					       const Vector<Double> & LCoord,
+					       const Elem* elem, UInt dof,
+					       AnsatzFct::FctEntityType = AnsatzFct::ALL ) {
+      Error("CalcLocalICModesDerivShapeFnc not implemented",__FILE__,__LINE__);
+    };
 
     //! Set value of shape fnc at integration points
     virtual void SetShapeFncAtIp();
@@ -587,9 +616,13 @@ namespace CoupledField
     Matrix<Double> LCornerCoords_;    //!< Matrix of local corner coordinates (x:number, y:Dim)
     Vector<Double> * ShFncAtIp_;      //!< Array of vectors of function values at IPs (x:local Dim, y:Number)
     Matrix<Double> * ShFncDerivAtIp_; //!< Array of local derivatives in each integration point
+    Matrix<Double> * ShFncICModesDerivAtIp_; //!< Array of local derivatives of incomp. modes in each integration point
     Vector<Double> * IntPoints_;      //!< integration points
     Vector<Double> IntWeights_;       //!< integration weights
     UInt numChilds_;               //!< number of children for element in refinement
+
+    bool ICModes_; //yes, if we use incompatible modes
+    bool CalcICModes_; //yes, then we do the computations just with incompatible modes
 
     //! AddIntegrationPoints stores here all availabe integrations
     std::map<const std::string, StdVector<Double*>*> IntegrationPointsMap_; 
