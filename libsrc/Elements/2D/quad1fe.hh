@@ -55,6 +55,19 @@ namespace CoupledField
                                         UInt dof,
                                         AnsatzFct::FctEntityType);
   
+    //! Calculates the local derivatives of incompatible mode shape functions at an arbitrary local point
+    /*!
+      \param LDeriv (output) Matrix with local derivatives of all shape functions
+      \f[ \left( \begin{array}{ccc} N_{1,d\xi} & N_{1,d\eta} & \cdots \\
+      N_{2,d\xi} & N_{2,d\eta} & \cdots \\
+      \cdots     & \cdots      & \cdots \end{array}\right) \f]
+      \param LCoord (input) Local coordinates of evalutation point 
+    */
+    virtual void CalcLocalICModesDerivShapeFnc(Matrix<Double> & LDeriv, 
+					       const Vector<Double> & LCoord,
+					       const Elem* elem, UInt dof,
+					       AnsatzFct::FctEntityType = AnsatzFct::ALL );
+
     //! Calculates a measure for the geometric distortion of an element
     /*!
       \param cornerCoords (input) Corner coordinates of the element

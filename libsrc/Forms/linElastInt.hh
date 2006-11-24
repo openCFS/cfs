@@ -25,6 +25,11 @@ namespace CoupledField {
                             EntityIterator& ent1, 
                             EntityIterator& ent2 );
 
+    //! Function for calculation bdb matrix using incompatible modes 
+    void CalcElementMatrixICM( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 );
+
     //! just for computation of B - matrix
     void calcBMatOnly( Matrix<Double> &bMat, UInt ip,
 		       BaseFE* elem, Matrix<Double> &ptCoord );
@@ -39,6 +44,10 @@ namespace CoupledField {
 
     //! returns B - matrix for BDB
     virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
+                           Matrix<Double> &ptCoord );
+
+    //! returns G - matrix for GDG (incompatible modes)
+    virtual void calcGMat( Matrix<Double> &bMat, UInt ip,
                            Matrix<Double> &ptCoord );
 
     //! set dimensions
@@ -64,6 +73,9 @@ namespace CoupledField {
 
     //! subtype of tensor
     SubTensorType subTensorType_;
+
+    //! number of incompatible modes
+    UInt nrICModes_;
     
   };
   

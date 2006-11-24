@@ -34,7 +34,7 @@ namespace CoupledField
 //       std::cerr << "\n";
 //     }
 
-
+    UseICModes();
     Init();
   }
 
@@ -633,6 +633,29 @@ namespace CoupledField
         *error << "Approximation type not known";
         Error( __FILE__, __LINE__ );
     }
+  }
+
+
+  void Hexa1FE::CalcLocalICModesDerivShapeFnc( Matrix<Double> & LDeriv, 
+					       const Vector<Double> & actCoord,
+					       const Elem* elem, UInt dof,
+					       AnsatzFct::FctEntityType fctType ) {
+    ENTER_IFCN( "Hexa1FE::CalcLocalICModesDerivShapeFnc" );
+    
+    if( actFct_->GetType() == AnsatzFct::LAGRANGE ||
+        fctType == AnsatzFct::NODE ) {
+      
+      LDeriv.Resize(3,Dim_);
+      LDeriv.Init();
+      LDeriv[0][0] = -2.0*actCoord[0];
+      LDeriv[1][1] = -2.0*actCoord[1];
+      LDeriv[2][2] = -2.0*actCoord[2];
+    } 
+    else if ( actFct_->GetType() == AnsatzFct::LEGENDRE ) {
+      Error("CalcLocalICModesDerivShapeFnc for Legendre type not implemented",
+	    __FILE__,__LINE__);
+    }
+
   }
 
 

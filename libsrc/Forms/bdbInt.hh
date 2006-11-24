@@ -38,6 +38,13 @@ namespace CoupledField {
     virtual void calcBMat( Matrix<Double> &bMat, UInt ip,
                            Matrix<Double> &ptCoord ) = 0;
 
+    //! returns G - matrix for GDG (incompatible modes)
+    virtual void calcGMat( Matrix<Double> &bMat, UInt ip,
+                           Matrix<Double> &ptCoord ) {
+      Error( "BDBInt::calcGMat not implemented!",
+             __FILE__, __LINE__);
+    };
+
     //! returns D - matrix for BDB
     virtual void calcDMat( Matrix<Double> &dMat ) {
       Error( "BDBInt::calcDMat(Matrix<Double>&) not correctly overwritten!",
