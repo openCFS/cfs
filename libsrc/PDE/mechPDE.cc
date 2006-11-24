@@ -538,9 +538,15 @@ namespace CoupledField {
       StdVector<std::string> softeningInfo;
       params->GetList( keyVec, attrVec, valVec, softeningInfo);
       
-      if (softeningInfo.GetSize() > 0)
+      if (softeningInfo.GetSize() > 0) {
         bilinearStiff->SetSofteningModel(softeningInfo[0]);
-      
+	std::ostringstream out;
+	out.clear();
+	out << "Use softening method " << softeningInfo[0] 
+	    << " for region: " << actRegionName << std::endl << std::endl;
+	Info->PrintF(pdename_, out.str().c_str());
+      }
+
       BiLinFormContext * actIntDescrStiff =
         new BiLinFormContext(bilinearStiff, STIFFNESS );
       
