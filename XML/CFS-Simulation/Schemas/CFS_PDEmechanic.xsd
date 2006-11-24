@@ -382,6 +382,7 @@
           <xsd:enumeration value="no"/>
           <xsd:enumeration value="BK1"/>
           <xsd:enumeration value="SRI"/>
+          <xsd:enumeration value="ICModesTW"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
