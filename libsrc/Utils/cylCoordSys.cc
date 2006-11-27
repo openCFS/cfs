@@ -60,13 +60,16 @@ namespace CoupledField{
     }
     
     // transform cylindrical coords into local cartesian ones
-    temp[0] = loc[0] * std::cos(loc[1]);
-    temp[1] = loc[0] * std::sin(loc[1]);
+    temp[0] = loc[0] * std::cos(loc[1]/180*PI);
+    temp[1] = loc[0] * std::sin(loc[1]/180*PI);
     temp[2] = loc[2];
     
     // rotate local cartesian coordinate system to global one
     glob.Resize(3);
     invRotationMat_.Mult(temp,glob);
+
+    // add global coordinate midpoint
+    glob += origin_;
     
   }
   
@@ -81,21 +84,26 @@ namespace CoupledField{
       Error( __FILE__, __LINE__ );
     }
 
-    // rotate global cartesian coordinate system to local one
-    rotationMat_.Mult(glob,temp);
+   // calculate differential vector   
+   Vector<Double> d(3);
+   d = glob - origin_; 
 
-    // transform local cartesian nodes to cylindrical ones
-    loc.Resize(3);
-    loc[0] = std::sqrt(temp[0] * temp[0] + temp[1] * temp[1]);
-    loc[1] = std::atan2(temp[1],temp[0])/PI*180;
-    loc[2] = temp[2];
-                        
+   // rotate global cartesian coordinate system to local one
+   rotationMat_.Mult(d,temp);
+
+   // transform local cartesian nodes to cylindrical ones
+   loc.Resize(3);
+   loc[0] = std::sqrt(temp[0] * temp[0] + temp[1] * temp[1]);
+   loc[1] = std::atan2(temp[1],temp[0])/PI*180;
+   loc[2] = temp[2];
+   
   }
 
   void  CylCoordSystem::
   GetGlobRotationAngles( Vector<Double> & angles,
                          const Vector<Double>& point ) const {
     ENTER_FCN( "CylCoordSystem::GetGlobRotationAngles" );
+
     Vector<Double> loc, anglesLoc, anglesGlob(3);
     Global2LocalCoord( loc, point );
 
