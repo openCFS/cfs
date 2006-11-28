@@ -96,6 +96,7 @@
     <xsd:sequence>
       <xsd:element name="eSat" type="xsd:double"/>
       <xsd:element name="pSat" type="xsd:double"/>
+      <xsd:element name="dirP" type="DT_Direction"/>
       <xsd:element name="dim"  type="xsd:nonNegativeInteger"/>
       <xsd:element name="weights">
         <xsd:simpleType>

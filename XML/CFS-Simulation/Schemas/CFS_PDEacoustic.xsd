@@ -312,9 +312,23 @@
   <!-- ******************************************************************* -->
 
    <xsd:complexType name="DT_AcousticPML">
+     <xsd:sequence>
+       <xsd:element name="propRegion" minOccurs="0" maxOccurs="1">
+         <xsd:complexType>
+            <xsd:sequence>
+              <xsd:element name="xMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+              <xsd:element name="xMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+              <xsd:element name="yMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+              <xsd:element name="yMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+              <xsd:element name="zMin" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+              <xsd:element name="zMax" type="xsd:double" minOccurs="1" maxOccurs="1"/>
+            </xsd:sequence>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:sequence>
 
     <!-- Type of PML -->
-    <xsd:attribute name="type" use="optional" default="constant">
+    <xsd:attribute name="type" use="optional" default="inverseDist">
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="constant"   />
@@ -323,15 +337,8 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
-
-    <xsd:attribute name="xMin" type="xsd:double" use="required"/>
-    <xsd:attribute name="xMax" type="xsd:double" use="required"/>
-    <xsd:attribute name="yMin" type="xsd:double" use="required"/>
-    <xsd:attribute name="yMax" type="xsd:double" use="required"/>
-    <xsd:attribute name="zMin" type="xsd:double" use="required"/>
-    <xsd:attribute name="zMax" type="xsd:double" use="required"/>
     <xsd:attribute name="dampFactor" type="xsd:double" use="optional"
-      default="10"/>
+      default="1"/>
   </xsd:complexType>
 
   <!-- ******************************************************************* -->

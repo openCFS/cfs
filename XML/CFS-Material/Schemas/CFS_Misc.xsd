@@ -80,6 +80,14 @@
     </xsd:sequence>
   </xsd:complexType>
   
+  <!-- Data type for specifying flow direction (directly) -->
+  <xsd:simpleType name="DT_Direction">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="X"/>
+      <xsd:enumeration value="Y"/>
+      <xsd:enumeration value="Z"/>
+    </xsd:restriction>
+  </xsd:simpleType>
   
 </xsd:schema>
 

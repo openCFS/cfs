@@ -198,6 +198,7 @@
   <xsd:simpleType name="DT_ElemDataElec">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecFieldIntensity"/>
+      <xsd:enumeration value="elecPolarization"/>
       <xsd:enumeration value="elecEnergy"/>
     </xsd:restriction>
   </xsd:simpleType>
