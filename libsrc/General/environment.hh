@@ -185,7 +185,7 @@ namespace CoupledField {
                MECH_ENERGY,
                ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP, 
                ELEC_INTERFACE_FORCE, ELEC_CHARGE, ELEC_FLUX_DENSITY,
-               ELEC_ENERGY,
+               ELEC_ENERGY,ELEC_POLARIZATION,
                SMOOTH_DISPLACEMENT, 
                ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_PRESSURE_DERIV_1,
                ACOU_PRESSURE_DERIV_2,ACOU_FORCE, ACOU_POT_NRBC, 
@@ -260,7 +260,7 @@ namespace CoupledField {
   //! Enumeration for directions
   //! direction of various fields 
   //! "Rad" means readial, following two letters indicate the stress-plane
-  enum  Directions {X, Y, Z, radXY, radXZ, radYZ};
+  enum  Directions {X=0, Y=1, Z=2, radXY=3, radXZ=4, radYZ=5};
 
   //! orientation of calculation plane in 2D
   //! (especially important for anisotropic simulations)

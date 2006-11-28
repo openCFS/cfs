@@ -7,87 +7,6 @@
 
 namespace CoupledField {
 
-  // New version seems to be buggy
-#define BDB_NEW_VERSION
-
-
-#ifndef BDB_NEW_VERSION
-
-  // *********************
-  //   CalcElementMatrix
-  // *********************
-
-
-  void BDBInt::CalcElementMatrix( Matrix<Double> &ptCoord,
-                                  Matrix<Double> &elemMat ) {
-
-    ENTER_FCN( "BDBInt::CalcElementMatrix" );
-
-    const UInt nrIntPts = ptelem->GetNumIntPoints(); 
-    const UInt nrNodes  = ptelem->GetNumNodes();   
-    const UInt nrDofs   = getNrDofs();  
-    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-    double jacDet;
-
-    Matrix<Double> bMat; 
-    Matrix<Double> dMat; 
-    Matrix<Double> dB; 
-    Matrix<Double> bTrans; 
-    Matrix<Double> partElemMat;
-  
-    elemMat.Resize(nrNodes * nrDofs);
-    elemMat.Init();
-    dB.Resize( getDimD(), nrNodes * nrDofs );
-
-    // If the material parameters are constant within the element
-    // we can compute the D matrix once and for all
-    if ( updateDMatInEveryIP_ == false ) {
-
-      calcDMat( dMat );
-    }
-
-    // Loop over all integration points
-    for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
-
-      // Check if D matrix must be re-determined for
-      // the current integration point
-      if ( updateDMatInEveryIP_ == true )
-        calcDMat( dMat, actIntPt, ptCoord );
-      }
-
-      // Setup the B matrix for this integration point
-      calcBMat( bMat, actIntPt, ptCoord );
-
-      dMat.Mult( bMat, dB );
-      // dB = dMat * bMat;
-      bMat.Transpose(bTrans);
-      partElemMat = bTrans * dB;
-
-      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord );
-
-      // Perform a safety check
-      if ( jacDet < 0.0 ) {
-        (*error) << "BDBInt::CalcElementMatrix: Encountered "
-                 << "negative Jacobian determinant!";
-        Error( __FILE__, __LINE__ );
-      }
-
-      // Special things must be done in the axi-symmetric case
-      if ( isaxi_ ) {
-        Vector<Double> ShpFncAtIp;
-        Vector<Double> CoordAtIP;
-        ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt );
-
-        CoordAtIP = ptCoord * ShpFncAtIp;
-        jacDet *= 2 * PI * CoordAtIP[0];
-      }
-
-      elemMat += partElemMat * jacDet * intWeights[actIntPt-1];
-    }
-
-  }
-
-#else
   void BDBInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                   EntityIterator& ent1, 
                                   EntityIterator& ent2 ) {
@@ -262,8 +181,6 @@ namespace CoupledField {
       ptelem->SetStandardIntegration();
     }
   }
-
-#endif
 
 
 

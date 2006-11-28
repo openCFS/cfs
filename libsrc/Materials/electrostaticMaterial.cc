@@ -46,7 +46,7 @@ namespace CoupledField
 
     ENTER_FCN( "ElectroStaticMaterial::SetScalar" );
 
-    if ( matType == HYST_MODEL ) {
+    if ( matType == HYST_MODEL || matType == P_DIRECTION ) {
       stringParams_[matType] = param;
       isSet_.insert( matType );
     }
@@ -184,6 +184,24 @@ namespace CoupledField
 	scalarParams_[matType] = param[2][2];
 	isComplex_.insert( matType );
       }
+    }    
+  }
+
+
+  void ElectroStaticMaterial::GetScalar( std::string& param, 
+					 const MaterialType& matType) const {
+
+    ENTER_FCN( "ElectroStaticMaterial::GetScalar" );
+
+    stringMap::const_iterator pos;
+    pos = stringParams_.find( matType );
+
+    if ( pos == stringParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      param = pos->second;
     }    
   }
 

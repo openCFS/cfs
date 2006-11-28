@@ -119,6 +119,9 @@ namespace CoupledField
     template <class TYPE>
     void CalcElectricField();
 
+    //! calculates the polarization vector
+    void CalcPolarizationField();
+
     //! Calculate electric charges
     template <class TYPE>
     void CalcCharges();
@@ -129,6 +132,9 @@ namespace CoupledField
 
     //! Contains the subdomains, on which the electric field is computed
     StdVector<RegionIdType> calcEfield_; 
+
+    //! Contains the subdomains, on which the electric field is computed
+    StdVector<RegionIdType> calcPolarization_; 
     
     //! Contains the subdomains, on which the electric energy is computed
     StdVector<RegionIdType> calcEnergy_;  
@@ -142,6 +148,15 @@ namespace CoupledField
 
     //! Conatins electric field
     BaseElemStoreSol * E_;  
+
+    //! names for elements, for which polarization is saved
+    StdVector<std::string> saveElemElecIntensityHist_;
+
+    //! Conatins electric field
+    BaseElemStoreSol * P_;  
+
+    //! names for elements, for which polarization is saved
+    StdVector<std::string> saveElemPolarizationHist_;
 
     //! Contains electric charges
     BaseElemStoreSol * charges_;

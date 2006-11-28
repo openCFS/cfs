@@ -484,6 +484,8 @@ namespace CoupledField {
       out = ELEC_POTENTIAL;
     else if (in == "elecFieldIntensity")
       out = ELEC_FIELD_INTENSITY;
+    else if (in == "elecPolarization")
+      out = ELEC_POLARIZATION;
     else if (in == "elecForceVWP")
       out = ELEC_FORCE_VWP;
     else if (in == "elecInterfaceForce")
@@ -616,6 +618,9 @@ namespace CoupledField {
         break;
       case ELEC_FIELD_INTENSITY:
         out = "elecFieldIntensity";
+        break;
+      case ELEC_POLARIZATION:
+        out = "elecPolarization";
         break;
       case ELEC_FORCE_VWP: 
         out = "elecForceVWP";
@@ -1334,4 +1339,62 @@ namespace CoupledField {
       Error( __FILE__, __LINE__);
     }
   }
+
+  template<>
+  void String2Enum<Directions>( const std::string &in, Directions &out ) {
+
+    if ( in == "X" ) {
+      out = X;
+    }
+    else if ( in == "Y" ) {
+      out = Y;
+    }
+    else if ( in == "Z" ) {
+      out = Z;
+    }
+    else if ( in == "radXY" ) {
+      out = radXY;
+    }
+    else if ( in == "radXZ" ) {
+      out = radXZ;
+    }
+    else if ( in == "radYZ" ) {
+      out = radYZ;
+    }
+    else {
+      (*error) << "'" << in << "' cannot be converted into an '"
+               << "DataType' item!";
+      Error( __FILE__, __LINE__);
+    }
+  }
+
+  template<> 
+  void Enum2String<Directions>(const Directions &in, 
+			       std::string &out) {
+    switch(in) {
+    case X:
+      out = "X";
+      break;
+    case Y:
+      out = "Y";
+      break;
+    case Z:
+      out = "Z";
+      break;
+    case radXY:
+      out = "radXY";
+      break;
+    case radXZ:
+      out = "radXZ";
+      break;
+    case radYZ:
+      out = "radYZ";
+      break;
+      
+    default:  
+      Error("No conversion found for your 'MaterialClass'", 
+            __FILE__, __LINE__);
+    }
+  }
+  
 }

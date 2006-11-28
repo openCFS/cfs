@@ -64,7 +64,14 @@ namespace CoupledField {
     ENTER_FCN( "nlinElecHystInt::calcDMat" );
 
     ptMaterial->GetTensor(dMat,ELEC_PERMITTIVITY,matDataType_,subTensorType_);
+    dMat.Init();
+    for ( UInt i=0; i<dMat.GetSizeRow(); i++ ) {
+      dMat[i][i] = diffEpsVal_;
+    }
+
     dMat *= factor_;
+
+    //    std::cout << "dMat: \n" << dMat << std::endl;
   }
 
 
@@ -76,18 +83,25 @@ namespace CoupledField {
 					   EntityIterator& ent2 ) {
     ENTER_FCN( "nlinElecHystInt::CalcElementMatrix" );
 
-    // get displacements of element
-    sol_->GetElemSolution( elemPot_, ent1 );
-    
-    Vector<Double> LCoord, Efield;
+    // Get pointer to reference element and its coordinates
+    ExtractElemInfo( ent1 );
 
-    // Extract pointer to reference element and get coordinates
-    ExtractElemInfo( ent1 ); 
+    // get scalar electric potential
+    sol_->GetElemSolution( elemPot_, ent1 );
+
+    Vector<Double> LCoord, Efield;
 
     //compute electric field in the midpoint of element
     ptelem->GetCoordMidPoint(LCoord);
     EfieldOp_->CalcElemGradField( Efield,  ent1, LCoord, 1 );
+
+    Double Ecomp = Efield[dirP_]; //.NormL2(); // Efield[1]; //Efield.NormL2();
  
+    UInt nrEl = ent1.GetElem()->elemNum;
+    diffEpsVal_ = ptMaterial->ComputeScalarDiffVal( nrEl, Ecomp );
+
+    if (  diffEpsVal_ < 0.0 ) 
+      Error("Negative effective permittivity", __FILE__, __LINE__);
 
     // call method of base class
     BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
@@ -106,6 +120,11 @@ namespace CoupledField {
 					     ELEC_POTENTIAL, 
 					     result, isaxi_, 
 					     coordUpdate_);
+    std::string str;
+    ptMaterial->GetScalar(str, P_DIRECTION);
+    Directions dir;
+    String2Enum(str,dir);
+    dirP_ = dir;
   }
 
 

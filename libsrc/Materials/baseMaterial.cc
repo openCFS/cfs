@@ -29,7 +29,8 @@ namespace CoupledField
     matFileName_ = "";
     nonlinFileName_ = "";
 
-    coosy_      = NULL;
+    coosy_ = NULL;
+    hyst_  = NULL;
     symmetryType_ = GENERAL;
   }
 
@@ -482,9 +483,68 @@ namespace CoupledField
       UInt globalElNr;
       for ( it.Begin(); !it.IsEnd(); it++, iel++) {
 	globalElNr = it.GetElem()->elemNum;
-	globalElem2Local_[iel] = globalElNr;
+	globalElem2Local_[globalElNr] = iel;
       }
     }
 
+    //allocate memory for previous results, needed for the
+    //effective material parameter formulation
+    Xprevious_.Resize(numElemSD);
+    Yprevious_.Resize(numElemSD);
+    Xprevious_.Init(0.0);
+    Yprevious_.Init(0.0);
+  }
+
+  void BaseMaterial::SetPreviousHystVal( UInt nrElem, Double& Xval) {
+    ENTER_FCN( "BaseMaterial::SetPreviousHystVal" );
+
+    UInt idx = globalElem2Local_[nrElem];
+
+    Xprevious_[idx] = Xval;
+    Yprevious_[idx] = hyst_->computeValue( Xval, nrElem );
+  }
+
+  Double BaseMaterial::ComputeScalarDiffVal( UInt nrElem, Double& Xval) {
+    ENTER_FCN( "BaseMaterial::ComputeScalarDiffVal" );
+
+    Double matDiff, eps;
+
+    UInt idx = globalElem2Local_[nrElem];
+    Double Ycurrent = hyst_->computeValue(Xval, nrElem);
+
+    //compute differential material parameter
+    Double dX = Xval - Xprevious_[idx];
+    Double dY = Ycurrent -Yprevious_[idx];
+
+    if ( (abs(dY) < 1e-12) || (abs(dX) < 1e-10) ) {
+      GetScalar(eps,ELEC_PERMITTIVITY,REAL);
+      matDiff = eps;
+    }
+    else {
+      matDiff = dY / dX;
+    }
+
+    return matDiff;
+
+  }
+
+  Double BaseMaterial::ComputeScalarHystVal( UInt nrElem, Double& Xval) {
+    ENTER_FCN( "BaseMaterial::ComputeScalarHystVal" );
+
+    Double matDiff, eps;
+
+    UInt idx = globalElem2Local_[nrElem];
+    Double Yval = hyst_->computeValue( Xval, nrElem );
+
+    return Yval;
+  }
+
+
+  Double BaseMaterial::GetScalarHystVal( UInt nrElem ) {
+    ENTER_FCN( "BaseMaterial::GetScalarHystVal" );
+
+    Double Yval = hyst_->getValue( nrElem );
+
+    return Yval;
   }
 }

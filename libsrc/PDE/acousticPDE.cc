@@ -2690,18 +2690,66 @@ namespace CoupledField {
   
     ENTER_FCN( "AcousticPDE::ReadDataPML" );
 
-    inner.Resize(dim_,dim_);
-    inner.Init();
-
     // help variables for parameter checking
     StdVector<std::string> keyVec;
     StdVector<std::string> attrVec;
     StdVector<std::string> valVec;
-
+    StdVector<std::string> propGeo;
     StdVector<std::string> stringVal;
+    StdVector<Double> val;
 
     // Construct vectors for restricted parameter search
     std::string actRegionName;
+    actRegionName = ptgrid_->RegionIdToName( actRegion );
+    
+    //check, if geometry for propagation region is specified
+    keyVec = "acoustic" , "region" , "pml" , "propRegion";
+    attrVec= ""         , "name"   , "";
+    valVec = ""         , actRegionName, "";
+    params->GetList( keyVec, attrVec, valVec, propGeo);
+
+    if ( propGeo.GetSize() > 0 ) {
+      //resize data for ptopagation region
+      inner.Resize(2,dim_);
+      inner.Init();
+
+      //xMin
+      keyVec = "acoustic" , "region" , "pml" , "propRegion", "xMin";
+      attrVec= ""         , "name"   , "", "";
+      valVec = ""         , actRegionName, "", "";
+      params->GetList( keyVec, attrVec, valVec, val);
+      inner[0][0] =  val[0];
+      
+      //xMax
+      keyVec = "acoustic" , "region" , "pml" , "propRegion", "xMax";
+      params->GetList( keyVec, attrVec, valVec, val);
+      inner[1][0] =  val[0];
+      
+      //yMin
+      keyVec = "acoustic" , "region" , "pml" , "propRegion", "yMin";
+      params->GetList( keyVec, attrVec, valVec, val);
+      inner[0][1] =  val[0];
+      
+      //yMax
+      keyVec = "acoustic" , "region" , "pml" , "propRegion", "yMax";
+      params->GetList( keyVec, attrVec, valVec, val);
+      inner[1][1] =  val[0];
+      
+      if ( dim_ == 3 ) {
+	//zMin
+	keyVec = "acoustic" , "region" , "pml", "propRegion", "zMin";
+	params->GetList( keyVec, attrVec, valVec, val);
+	inner[0][2] =  val[0];
+	
+	//zMax     
+	keyVec = "acoustic" , "region" , "pml", "propRegion", "zMax";
+	params->GetList( keyVec, attrVec, valVec, val);
+	inner[1][2] =  val[0];
+      }
+    }
+
+
+    //get type of damping function
     actRegionName = ptgrid_->RegionIdToName( actRegion );
     keyVec = "acoustic" , "region" , "pml" , "type";
     attrVec= ""         , "name"   , "";
@@ -2709,40 +2757,7 @@ namespace CoupledField {
     params->GetList( keyVec, attrVec, valVec, stringVal);
     dampingTypePML = stringVal[0];
 
-    StdVector<Double> val;
- 
-    //xMin
-    keyVec = "acoustic" , "region" , "pml" , "xMin";
-    params->GetList( keyVec, attrVec, valVec, val);
-    inner[0][0] =  val[0];
-
-    //xMax
-    keyVec = "acoustic" , "region" , "pml" , "xMax";
-    params->GetList( keyVec, attrVec, valVec, val);
-    inner[1][0] =  val[0];
-
-    //yMin
-    keyVec = "acoustic" , "region" , "pml" , "yMin";
-    params->GetList( keyVec, attrVec, valVec, val);
-    inner[0][1] =  val[0];
-
-    //yMax
-    keyVec = "acoustic" , "region" , "pml" , "yMax";
-    params->GetList( keyVec, attrVec, valVec, val);
-    inner[1][1] =  val[0];
-
-    if ( dim_ == 3 ) {
-      //zMin
-      keyVec = "acoustic" , "region" , "pml" , "zMin";
-      params->GetList( keyVec, attrVec, valVec, val);
-      inner[0][2] =  val[0];
-
-      //zMax     
-      keyVec = "acoustic" , "region" , "pml" , "zMax";
-      params->GetList( keyVec, attrVec, valVec, val);
-      inner[1][2] =  val[0];
-    }
-
+    //get factor for damping function
     keyVec = "acoustic" , "region" , "pml" , "dampFactor";
     params->GetList( keyVec, attrVec, valVec, val);
     dampPML = val[0];
@@ -2759,7 +2774,72 @@ namespace CoupledField {
                                     UInt actSD)  {  
 
     ENTER_FCN( "AcousticPDE::GetPMLLayerData" );
-    
+
+    // inner/outer:   xmin  ymin  zmin
+    //                xmax  ymax  zmax
+
+    if ( inner.GetSizeCol() != dim_ ) {
+      //we have to compute it, since the user has not specified it
+
+      inner.Resize(2,dim_);
+      inner.Init();
+
+      for (UInt isd = 0; isd < subdoms_.GetSize(); isd++) {
+	if ( isd != actSD ) {
+	  StdVector<Elem*> elemssd;
+	  ptgrid_->GetElems(elemssd, subdoms_[isd]);
+	  for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
+	    StdVector<UInt> connecth = elemssd[actEl]->connect;
+	    
+	    Matrix<Double> ptCoord;
+	    ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
+	    for (UInt i=0; i< ptCoord.GetSizeCol(); i++) {
+	      //minInnerX
+	      if ( ptCoord[0][i] < inner[0][0] )
+		inner[0][0] = ptCoord[0][i];
+	      
+	      //minInnerY
+	      if ( ptCoord[1][i] < inner[0][1] )
+		inner[0][1] = ptCoord[1][i];
+	      
+	      if ( dim_ > 2 ) {
+		//minInnerZ
+		if ( ptCoord[2][i] < inner[0][2] )
+		  inner[0][2] = ptCoord[2][i];
+	      }
+	      
+	      //maxInnerX
+	      if ( ptCoord[0][i] > inner[1][0] )
+		inner[1][0] = ptCoord[0][i];
+	      
+	      //maxInnerY
+	      if ( ptCoord[1][i] > inner[1][1] )
+		inner[1][1] = ptCoord[1][i];
+	      
+	      if ( dim_ > 2 ) {
+		//maxInnerZ
+		if ( ptCoord[2][i] > inner[1][2] )
+		  inner[1][2] = ptCoord[2][i];
+	      }
+	    }
+	  }
+	}
+      }
+      std::ostringstream out;
+      out.clear();
+      out << "Acoustic propagation region:\n" 
+	  << "   xmin = " << inner[0][0] << std::endl
+	  << "   xmax = " << inner[1][0] << std::endl
+	  << "   ymin = " << inner[0][1] << std::endl
+	  << "   ymax = " << inner[1][1] << std::endl;
+      if ( dim_ == 3) {
+	out << "   zmin = " << inner[0][2] << std::endl
+	    << "   zmax = " << inner[1][2] << std::endl;
+      }
+      out << std::endl;
+      Info->PrintF( pdename_, out.str().c_str() );
+    }
+
     outer.Resize(inner.GetSizeRow(),inner.GetSizeCol());
 
     outer[0][0] = outer[1][0] = inner[1][0];
@@ -2767,10 +2847,6 @@ namespace CoupledField {
     if (inner.GetSizeCol() > 2 ) {
       outer[0][2] = outer[1][2] = inner[1][2];
     }
-
-    // inner/outer:   xmin  ymin  zmin
-    //                xmax  ymax  zmax
-
 
     StdVector<Elem*> elemssd;
     ptgrid_->GetElems(elemssd, subdoms_[actSD]);

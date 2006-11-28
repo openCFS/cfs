@@ -94,8 +94,14 @@ namespace CoupledField {
     /// scalar electric potential of all nodes of actual element
     Vector<Double> elemPot_;
 
+    //! electric field operator
     GradientFieldOp<Double> * EfieldOp_;
-    
+
+    //! diferential electric permittivity dD/dE
+    Double diffEpsVal_;    
+
+    //! direction of ploarization
+    UInt dirP_;
   };
 
 } // end of namespace

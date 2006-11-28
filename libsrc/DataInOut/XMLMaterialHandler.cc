@@ -869,6 +869,15 @@ namespace CoupledField {
       material->SetScalar( doubValue, P_SATURATION, REAL ); 
     }
 
+    //read direction of polarization
+    keyVec = "material","electric","hystModel","preisach","dirP";
+    attrVec= "name"    ,""        ,""         ,"";
+    valVec =  matName  ,""        ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, striValue );
+      material->SetScalar( striValue, P_DIRECTION ); 
+    }
+
     //read weight dimension of Preisach hysterese model
     keyVec = "material","electric","hystModel","preisach","dim";
     attrVec= "name"    ,""        ,""         ,"";

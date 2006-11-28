@@ -37,38 +37,6 @@ namespace CoupledField {
     //       for transient analysis ;-)
     algsys_->InitRHS();
 
-
-    //for hysteresis modeling
-    bool hystModel = false;
-    //  bool hystModel = true;
-    UInt numElems = PDE_.getPDE_numElems();
-
-    //for hysteresis modeling
-    if ( isHyst_ ) {
-      if ( actStep_ == 1 ) {
-        Eprevious_.Resize(numElems);
-        Dprevious_.Resize(numElems);
-        epsDiff_.Resize(subdoms_.GetSize(),numElems);
-        Eprevious_.Init(0);
-        Dprevious_.Init(0);
-        epsDiff_.Init(8.854e-12);
-      }
-
-      if (doInit_) {
-        //set the Preisach values; should be obtained from the xml_file
-        Esat_     = 2.0e6;
-        Psat_     = 0.04;
-        Ec_       = 0.9e6;
-        Dir_      = 2;
-        isVirgin_ = true;   
-	//        hyst_ = new Preisach(numElems, Esat_, Psat_, isVirgin_);
-      
-        doInit_ = false;
-      }
-      else {
-        DoUpdateHyst();
-      }
-    }
   }
 
 
@@ -157,20 +125,8 @@ namespace CoupledField {
       //clear RHS
       algsys_->InitRHS();
 
-      //compute differential permittivity
-      if ( iterationCounter != 1 || actStep_ ==1 ) {
-        ComputeDiffEpsilon();
-      }
-
-      //set up the new system-matrix
-      algsys_->InitMatrix(SYSTEM);
-      //assemble_->SetReassemble();   
-
-      //assemble_->SetMaterialArray( &epsDiff_ ); 
-      Warning( "Assemble: Set MaterialArray not implemented!",
-               __FILE__, __LINE__ );
+      //perform new assembly
       assemble_->AssembleMatrices();
-
       algsys_->ConstructEffectiveMatrix(matrix_factor_);
 
       // set changing part of RHS
@@ -231,10 +187,11 @@ namespace CoupledField {
       //    std::cout << "ResNorm=" << residualNorm << "  incrNorm=" 
       //        << incrementalErr << std::endl;
     
-      performOneMoreStep =  ( (incrementalErr > incStopCrit_) || (residualNorm > 1e-5))
-        && (residualNorm > 1e-10) ;
-    
-    } while ( performOneMoreStep && iterationCounter < nonLinMaxIter_ );  
+      // boolean variable, holds condition if another iteration step is necessary
+      performOneMoreStep = 
+	(incrementalErr > incStopCrit_) ; //|| (residualErr > residualStopCrit_);      
+      
+    } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
 
     if ( iterationCounter >= nonLinMaxIter_ ) {
       (*error) << "Number of nonlinear iterations exceeds limit "
@@ -242,210 +199,15 @@ namespace CoupledField {
                << nonLinMaxIter_;
       Error( __FILE__, __LINE__ );
     }
-  
+
+    //set the current values to the previous for the next time step!
+    SetPreviousVals4Hyst();
   }
 
 
-
-  void SolveStepElec::AddPolarizationToRHS() {
+  void SolveStepElec::SetPreviousVals4Hyst() {
   
-    ENTER_FCN( "SolveStepElec::AddPolarizationToRHS" );
-
-    //we assume, that the actual solution is stored in sol_!
-    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
-
-    GradientFieldOp<Double> * FieldOp = 
-      new GradientFieldOp<Double>(ptgrid_, &PDE_, 
-                                  eqnMap_,
-                                  *solhelp, ELEC_POTENTIAL,
-                                  results_[0],
-                                  isaxi_);
-    Vector<Double> LCoord, Efield;
-    Double Ecomp, Pval, PvalReduced;
-    UInt comp = Dir_ - 1;
-    UInt pdeElem=1;
-
-    Vector<Double>     sol, solderiv1, solderiv2, rhs;
-    BaseFE             *ptElem;
-    StdVector<UInt> connect;
-    StdVector<Integer>  connect_PDE;
-  
-    LinearForm * rhsInt = new  
-      PiezoPolarizationInt(Dir_, ptgrid_->GetDim(), isaxi_);
-
-    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-
-      ElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( subdoms_[actSD] );
-      
-      EntityIterator it = actSDList.GetIterator();
-      for ( it.Begin(); !it.IsEnd(); it++) {
-      
-        //compute the electric field intensity
-        
-        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
-
-        //get correct component of electric field for scalar Preisach model
-        Ecomp = Efield[comp]; 
-
-        //compute polarization
-        Pval = hyst_->computeValue(Ecomp,pdeElem);
-     
-        //      Pval = Ecomp * 8.85500e-11;
-        PvalReduced = (8.85500e-12 - 5.84000E-09)*Ecomp + Pval;
-
-        //      std::cerr << Ecomp << "  " << Pval << "  " << PvalReduced << std::endl;
-
-        ptElem  = it.GetElem()->ptElem;
-        connect = it.GetElem()->connect;
-
-        rhsInt->SetFactor(PvalReduced);
-        rhsInt->CalcElemVector(rhs, it);
-      
-        //get equation numbers 
-        eqnMap_->GetNodeEqn( connect, connect_PDE );
-
-        //assemble
-        algsys_->SetElementRHS(&rhs[0],  pdeId1_, connect_PDE.GetPointer(), connect_PDE.GetSize());
-
-        pdeElem++;
-      }  
-    }
-
-  }
-
-
-  void SolveStepElec::DoUpdateHyst() {
-  
-    ENTER_FCN( "SolveStepElec::DoUpdateHyst" );
-
-    NodeStoreSol<Double> * solhelp = 
-      dynamic_cast<NodeStoreSol<Double>*>(sol_);
-
-    GradientFieldOp<Double> * FieldOp = 
-      new GradientFieldOp<Double>(ptgrid_, &PDE_,
-                                  eqnMap_,
-                                  *solhelp, ELEC_POTENTIAL, 
-                                  results_[0],
-                                  isaxi_);
-    
-    Vector<Double> LCoord, Efield;
-    StdVector<Elem*> elemssd;
-    UInt pdeElem=1;
-    Double Ecomp, Pval;
-    Integer comp = Dir_-1;
-
-    // loop over all subdomains
-    for (UInt isd=0; isd<subdoms_.GetSize(); isd++) {
-
-
-      ElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( subdoms_[isd] );
-      
-      EntityIterator it = actSDList.GetIterator();
-      for ( it.Begin(); !it.IsEnd(); it++) {
-        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-
-        //compute electric field
-        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
-
-        //get correct component of electric field for scalar Preisach model
-        //and invoke the update MinMaxList method
-        Ecomp = Efield[comp]; 
-        hyst_->updateMinMaxList(Ecomp, pdeElem);
-
-        Pval = hyst_->computeValue(Ecomp,pdeElem);
-
-        //      std::cerr << Ecomp << "    " << Pval << std::endl;
-
-        Eprevious_[pdeElem-1] = Ecomp;
-        Dprevious_[pdeElem-1] = Pval; //8.85419E-12 * Ecomp + Pval;
-
-        pdeElem++;
-      }
-    }
-
-    delete FieldOp;
-
-  }
-
-  void SolveStepElec::ComputeConstPartRHS() {
-  
-    ENTER_FCN( "SolveStepElec::ComputeConstPartRHS" );
-
-    //we assume, that the actual solution is stored in sol_!
-    NodeStoreSol<Double> * solhelp = 
-      dynamic_cast<NodeStoreSol<Double>*>(sol_);
-
-    GradientFieldOp<Double> * FieldOp = 
-      new GradientFieldOp<Double>(ptgrid_, &PDE_, eqnMap_,
-                                  *solhelp, ELEC_POTENTIAL,
-                                  results_[0], isaxi_);
-
-    Vector<Double> LCoord, Efield;
-    Double Ecomp, Pval, Dval;
-    Integer comp = Dir_ - 1;
-    UInt pdeElem=1;
-
-    Vector<Double>     Dfield, rhs;
-    BaseFE             *ptElem;
-    StdVector<UInt> connect;
-    StdVector<Integer>   connect_PDE;
-  
-    ElecPolarizationInt *rhsInt = new ElecPolarizationInt(isaxi_);
-
-    for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
-
-      ElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( subdoms_[actSD] );
-      
-      EntityIterator it = actSDList.GetIterator();
-      for ( it.Begin(); !it.IsEnd(); it++) {
-
-        //compute the electric field intensity
-        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
-
-        //get correct component of electric field for scalar Preisach model
-        Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
-
-        //compute polarization
-        Pval = hyst_->computeValue(Ecomp,pdeElem);
-
-        //      Pval = Ecomp*2e-7;
-
-        //compute dielectric displacement
-        Dval = Pval; //8.85419E-12 * Ecomp + Pval;
-
-        if (Ecomp > 0 ) {
-          Dfield  = Efield * ( Dval/Ecomp);
-        }
-        else {
-          Dfield = Efield;
-        }
-
-        ptElem  = it.GetElem()->ptElem;
-        connect = it.GetElem()->connect;
-          
-        rhsInt->SetSrcVec(Dfield);
-        rhsInt->CalcElemVector(rhs, it);
-      
-        //get equation numbers 
-        eqnMap_->GetNodeEqn( connect, connect_PDE );
-
-        //assemble
-        algsys_->SetElementRHS(&rhs[0], pdeId1_, connect_PDE.GetPointer(), connect_PDE.GetSize());
-
-        pdeElem++;
-      }  
-    }
-
-  }
-
-  void SolveStepElec::ComputeDiffEpsilon() {
-  
-    ENTER_FCN( "SolveStepElec::ComputeDiffEpsilon" );
+    ENTER_FCN( "SolveStepElec::SetPreviousVals4Hyst");
 
     
     //we assume, that the actual solution is stored in sol_!
@@ -459,52 +221,39 @@ namespace CoupledField {
 
     Vector<Double> LCoord, Efield;
     Double Ecomp, Pval, Dval, dE, dD, eps;
-    Integer comp = Dir_ - 1;
-    UInt pdeElem=1;
+    UInt pdeElem;
 
     for (UInt actSD=0; actSD<subdoms_.GetSize(); actSD++) {
 
-      ElemList actSDList(ptgrid_ );
-      actSDList.SetRegion( subdoms_[actSD] );
-      
-      EntityIterator it = actSDList.GetIterator();
-      UInt iel = 0;
-      for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+      Hysteresis* hyst = materialData_[actSD]->getHysteresis();
+      if ( hyst!= NULL ) {
+	//get direction of polarization
+	std::string str;
+	materialData_[actSD]->GetScalar(str, P_DIRECTION);
+	Directions dirP;
+	String2Enum(str,dirP);
 
-        //compute the electric field intensity
-        it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
-        FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
-
-        //get correct component of electric field for scalar Preisach model
-        Ecomp = Efield[comp]; //.NormL2(); //[comp]; 
-
-        //compute polarization
-        Pval = hyst_->computeValue(Ecomp,pdeElem);
-
-        //      Pval = Ecomp*2e-7;
-
-        //compute dielectric displacement
-        Dval = Pval; //8.85419E-12 * Ecomp + Pval;
-
-        //compute differential epsilon
-        dE = Ecomp - Eprevious_[pdeElem-1];
-        dD = Dval - Dprevious_[pdeElem-1];
-        if ( (abs(dD) < 1e-12) || (abs(dE) < 1e-10) ) {
-          materialData_[actSD]->GetScalar(eps,ELEC_PERMITTIVITY,REAL);
-          if (eps < 8.854e-12) {
-            eps = 8.854e-12;
-          }
-          epsDiff_[actSD][iel] = eps;
-        }
-        else {
-          epsDiff_[actSD][iel] = dD / dE;
-        }
-
-        pdeElem++;
-      }  
+	ElemList actSDList(ptgrid_ );
+	actSDList.SetRegion( subdoms_[actSD] );
+	
+	EntityIterator it = actSDList.GetIterator();
+	UInt iel = 0;
+	for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+	  
+	  //compute the electric field intensity
+	  it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+	  FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
+	  
+	  //get correct component of electric field for scalar Preisach model
+	  Ecomp = Efield[dirP]; //Efield.NormL2(); //[comp]; 
+	  
+	  pdeElem = it.GetElem()->elemNum;
+	  
+	  //set the values
+	  materialData_[actSD]->SetPreviousHystVal( pdeElem, Ecomp );
+	}  
+      }
     }
-
-    //  std::cout << "EpsDiff: " << epsDiff_ << std::endl;
   }
 
 
