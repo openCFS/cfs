@@ -21,6 +21,9 @@ namespace CoupledField {
     //!
     Double computeValue(Double xVal, Integer idxElem);
 
+    //! 
+    Double getValue(  Integer idxElem);
+
     //!
     void updateMinMaxList(Double newX, Integer idxElem);
 
@@ -54,14 +57,11 @@ namespace CoupledField {
     Vector<Double> lastVal_;
     Vector<Double> preisachSum_;
 
-    std::vector<Double>* strings_;
-    std::vector<Double>* helpStrings_;
+    Vector<Double>* strings_;
+    Vector<Double>* helpStrings_;
 
-    std::vector<UInt> StringLenght_;
+    Vector<UInt> StringLenght_;
     UInt maxStringLength_;
-
-    Vector<Double> Xprevious_;
-    Vector<Double> Yprevious_;
 
     Matrix<Double> preisachWeights_;
   };

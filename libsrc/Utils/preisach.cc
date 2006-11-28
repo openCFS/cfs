@@ -29,16 +29,16 @@ namespace CoupledField
     preisachSum_.Resize(numElem);
     preisachSum_.Init(0);
 
-    StringLenght_.resize(numElem);
+    StringLenght_.Resize(numElem);
 
-    strings_     = new std::vector<Double>[numElem];
-    helpStrings_ = new std::vector<Double>[numElem];
+    strings_     = new Vector<Double>[numElem];
+    helpStrings_ = new Vector<Double>[numElem];
 
-    maxStringLength_ = 4;
+    maxStringLength_ = 15;
 
     for (Integer el=0; el<numElem; el++) {
-      strings_[el].resize(maxStringLength_);
-      helpStrings_[el].resize(maxStringLength_+1);
+      strings_[el].Resize(maxStringLength_);
+      helpStrings_[el].Resize(maxStringLength_+1);
 
       StringLenght_[el] = 1;
       for ( UInt i=0; i<maxStringLength_; i++) {
@@ -46,14 +46,7 @@ namespace CoupledField
       }
     }
 
-    //allocate memory for previous results, needed for the
-    //effective material parameter formulation
-    Xprevious_.Resize(numElem);
-    Yprevious_.Resize(numElem);
-    Xprevious_.Init(0.0);
-    Yprevious_.Init(0.0);
-
-    computePreisachWeights();
+    //    computePreisachWeights();
   }
 
   Preisach :: ~Preisach()
@@ -62,6 +55,15 @@ namespace CoupledField
     delete [] helpStrings_;
 
   }
+
+  Double Preisach :: getValue( Integer idxElem ) 
+  {
+    ENTER_FCN( "Preisach::getValue" );
+
+    Integer idx = idxElem - 1;
+    return ( preisachSum_[idx]*YSaturated_ );
+  }
+
 
   Double Preisach :: computeValue(Double Xin, Integer idxElem) 
   {
@@ -88,8 +90,8 @@ namespace CoupledField
     //normalize input
     Double newX = normalizeInput(Xin);
 
-    std::vector<Double> &stringEl     = strings_[idx];
-    std::vector<Double> &helpStringEl = helpStrings_[idx];
+    Vector<Double> &stringEl     = strings_[idx];
+    Vector<Double> &helpStringEl = helpStrings_[idx];
 
     UInt& actLength = StringLenght_[idx];
 
@@ -120,12 +122,15 @@ namespace CoupledField
 
       actLength = actLength - k + 1;
 
-      std::cout << "actLength= " << actLength << std::endl;
+      //      std::cout << "actLength= " << actLength << std::endl;
+
       //check, if capacity of string-arrays is too less
       if ( actLength > maxStringLength_ ) {
+	//	std::cout << "Resize array" << std::endl;
+
 	//resize the string-arrays
 	maxStringLength_ += (UInt) round( (Double)maxStringLength_ / 2.0 );
-	stringEl.resize(maxStringLength_);
+	stringEl.Resize(maxStringLength_);
 
 	//store the resulting strings
 	for ( UInt i=0; i<actLength-1; i++ ) {
@@ -133,7 +138,7 @@ namespace CoupledField
 	}
 
 	// resize help-String-array 
-	helpStringEl.resize(maxStringLength_+1);
+	helpStringEl.Resize(maxStringLength_+1);
       }
       else {
 	//store the resulting strings
@@ -171,7 +176,7 @@ namespace CoupledField
 
     Double pPixel =  everettPixel(X1, X2);
 
-    std::cout << "P=" << newY << "  Ppixel=" << pPixel << std::endl;
+    //    std::cout << "P=" << newY << "  Ppixel=" << pPixel << std::endl;
 
     //return newY;
     return pPixel;
@@ -187,9 +192,9 @@ namespace CoupledField
 
     UInt M = preisachWeights_.GetSizeRow();
     Double delta = 2.0 / ( (Double) M );
-    std::cout << "delta=" << delta << std::endl;
-    std::cout << "e1=" << val1 << "  e2=" << val2 << std::endl;
-    std::cout << "X1=" << X1 << "  X2=" << X2 << std::endl;
+//     std::cout << "delta=" << delta << std::endl;
+//     std::cout << "e1=" << val1 << "  e2=" << val2 << std::endl;
+//     std::cout << "X1=" << X1 << "  X2=" << X2 << std::endl;
 
     // we compute the upper left corner within the preisach-domain
     // alpha > X1; beta < X2;
@@ -200,7 +205,7 @@ namespace CoupledField
     while ( alpha <= X1 ) {
       idx1++;
       alpha += delta;
-      std::cout << "idx1=" << idx1 << "  alpha=" << alpha << std::endl;
+      //      std::cout << "idx1=" << idx1 << "  alpha=" << alpha << std::endl;
     }
 
     if (alpha > 1.0) {
@@ -217,8 +222,8 @@ namespace CoupledField
     }
     beta -= delta;
 
-    std::cout << "idx1=" << idx1 << "  idx2=" << idx2 << std::endl;
-    std::cout << "alpha=" << alpha << "  beta=" << beta << std::endl;
+//     std::cout << "idx1=" << idx1 << "  idx2=" << idx2 << std::endl;
+//     std::cout << "alpha=" << alpha << "  beta=" << beta << std::endl;
 
     Double area = 0.0;
     if ( idx1 >= 0 ) {
@@ -232,12 +237,12 @@ namespace CoupledField
 
       area *= 0.5*delta*delta;
 
-      std::cout << "areaToMuch=" << area << std::endl;
+      //      std::cout << "areaToMuch=" << area << std::endl;
 
       //reduce the computed area
       Double diffX1 = alpha - X1;
       Double diffX2 = X2    - beta;
-      std::cout << " diffX1=" << diffX1 << "  diffX2=" << diffX2 << std::endl;
+      //      std::cout << " diffX1=" << diffX1 << "  diffX2=" << diffX2 << std::endl;
 
       Double minusArea;
  
@@ -247,24 +252,24 @@ namespace CoupledField
 		      + diffX1 * (delta - 0.5*diffX1)
                       - diffX1*diffX2 
 		     ) * preisachWeights_[idx1][idx2];
-	std::cout << "minusArea1end=" << minusArea << std::endl;
+	//	std::cout << "minusArea1end=" << minusArea << std::endl;
       }
       else {
 	minusArea = ( (diffX1+diffX2 )*delta - diffX1*diffX2 ) 
 	  * preisachWeights_[idx1][idx2];
 
-	std::cout << "minusArea1=" << minusArea << std::endl;
+	//	std::cout << "minusArea1=" << minusArea << std::endl;
 	UInt idx = idx1-1;
 	while ( idx > idx2 ) {
 	  minusArea += diffX2 * delta * preisachWeights_[idx][idx2];
 	  idx--;
-	  std::cout << "minusArea2=" << minusArea << std::endl;
+	  //	  std::cout << "minusArea2=" << minusArea << std::endl;
 	}
 	minusArea += ( delta*diffX2 - 0.5*diffX2*diffX2 )
 	  * preisachWeights_[idx][idx2]; 
 
-	std::cout << "minusArea3=" <<  ( delta*diffX2 - 0.5*diffX2*diffX2 )
-	  * preisachWeights_[idx][idx2] << std::endl;
+// 	std::cout << "minusArea3=" <<  ( delta*diffX2 - 0.5*diffX2*diffX2 )
+// 	  * preisachWeights_[idx][idx2] << std::endl;
 	
 	idx = idx2 + 1;
 	while ( idx < idx1 ) {
@@ -280,7 +285,7 @@ namespace CoupledField
 
     //sgn-function
     if ( val2 < val1 ) {
-      std::cout << "val2 < val1" << std::endl;
+      //      std::cout << "val2 < val1" << std::endl;
       area *= -1.0; 
     }
 

@@ -39,6 +39,10 @@ namespace CoupledField {
     void SetTensor( Matrix<Complex>& param, const MaterialType& matType,
 		    const DataType& dataType );
 
+    //! get a string material parameter
+    void GetScalar( std::string& param, 
+		    const MaterialType& matType) const;
+
     //! get a scalar real material parameter
     void GetScalar( Double& param, const MaterialType& matType, 
 		    const DataType& dataType ) const;

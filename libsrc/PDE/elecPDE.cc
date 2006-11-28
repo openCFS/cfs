@@ -3,7 +3,6 @@
 #include <sstream>
 #include <math.h>
 #include <string>
-
 #include "elecPDE.hh"
 
 #include "Forms/linElecInt.hh"
@@ -20,6 +19,8 @@
 #include "CoupledPDE/pdecoupling.hh"
 #include "Domain/ansatzFct.hh"
 #include "Driver/assemble.hh"
+#include "Utils/hysteresis.hh"
+#include "Utils/preisach.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -53,6 +54,10 @@ namespace CoupledField {
     nonLin_    = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
+
+    E_ = NULL;
+    P_ = NULL;
+    charges_ = NULL;
 
     //check, if problem is axisymmetric
     if ( params->HasValue( "type", "axi", "geometry" ) ) isaxi_ = true;
@@ -143,6 +148,11 @@ namespace CoupledField {
 
     if( isHysteresis_ ) {
 
+      if ( analysistype_ == HARMONIC ) {
+	Error("Hysteresis in harmonic computation not allowed",
+	      __FILE__,__LINE__);
+      }
+
       // solution method
       params->Get( "method", nonLinMethod_, pdename_, "nonLinear" );
       
@@ -161,7 +171,7 @@ namespace CoupledField {
       // maximal number of NL-iterations
       params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
     }
-    
+
   }
   
 
@@ -444,6 +454,12 @@ namespace CoupledField {
         outFile_->WriteElemSolutionTransient(eFieldConv, actStep, actTime);
       }
 
+      if ( calcPolarization_.GetSize() != 0 ) {
+        ElemStoreSol<Double> & ePConv = 
+          dynamic_cast<ElemStoreSol<Double>& >(*P_);
+        outFile_->WriteElemSolutionTransient(ePConv, actStep, actTime);
+      }
+
       if ( calcCharges_.GetSize() != 0 ) {
         ElemStoreSol<Double> & chargeConv = 
           dynamic_cast<ElemStoreSol<Double>& >(*charges_);
@@ -586,6 +602,19 @@ namespace CoupledField {
         outFile_->WriteNodeHistoryTransient(*solConverted, actStep, actTime);
       }
 
+      if ( saveElemPolarizationHist_.GetSize() > 0 ) {
+	ElemStoreSol<Double> & polarizationConverted = 
+	  dynamic_cast<ElemStoreSol<Double>&>(*P_);
+	outFile_->WriteElemHistoryTransient(polarizationConverted, actStep, 
+                                              actTime);
+      }
+
+      if ( saveElemElecIntensityHist_.GetSize() > 0 ) {
+	ElemStoreSol<Double> & efield = 
+	  dynamic_cast<ElemStoreSol<Double>&>(*E_);
+	outFile_->WriteElemHistoryTransient(efield, actStep, 
+					    actTime);
+      }
     }
     else {
 
@@ -619,6 +648,14 @@ namespace CoupledField {
         CalcElectricField<Complex>();
       }
     }
+
+     // *** Electric Field Intensity ***
+    if ( calcPolarization_.GetSize() !=0 ) {
+       if (analysistype_ == TRANSIENT ||
+          analysistype_ == STATIC ) {
+        CalcPolarizationField();
+      } 
+    }
   
     // *** Electric Charges ***
     if (calcCharges_.GetSize() !=0 ) {
@@ -639,6 +676,31 @@ namespace CoupledField {
       }
     }     
     
+    //check for element history
+    if ( saveElemPolarizationHist_.GetSize() > 0) {
+      if ( calcPolarization_.GetSize() ==0 ) {
+	// we have to compute the polarization
+	calcPolarization_ = subdoms_;
+	if (analysistype_ == TRANSIENT ||
+	    analysistype_ == STATIC ) {
+	  CalcPolarizationField();
+	}
+	calcPolarization_.Clear();
+      }
+    }
+
+    if ( saveElemElecIntensityHist_.GetSize() > 0) {
+      if ( calcEfield_.GetSize() ==0 ) {
+	// we have to compute the polarization
+	calcEfield_ = subdoms_;
+	if (analysistype_ == TRANSIENT ||
+	    analysistype_ == STATIC ) {
+	  CalcElectricField<Double>();
+	}
+	calcEfield_.Clear();
+      }
+    }
+
 
 #ifdef USE_SCRIPTING
     StdVector<std::string> context;
@@ -675,10 +737,8 @@ namespace CoupledField {
                                   eqnMap_, solhelp, 
                                   ELEC_POTENTIAL, results_[0],isaxi_);
       // loop over all subdomains
-    for (UInt isd=0; isd<calcEfield_.GetSize(); isd++)
-      {
-
-        ElemList actSDList(ptgrid_ );
+    for (UInt isd=0; isd<calcEfield_.GetSize(); isd++) {
+      ElemList actSDList(ptgrid_ );
       actSDList.SetRegion( calcEfield_[isd] );
       EntityIterator it = actSDList.GetIterator();
       // loop over elements of subdomain
@@ -688,10 +748,65 @@ namespace CoupledField {
         pdeElem = eqnMap_->Mesh2PdeElem( it.GetElem()->elemNum );
         E_->SetElemResult(pdeElem-1, tempE);
       }
-      }
+    }
     
     delete FieldOp;
   }
+
+
+  void ElecPDE::CalcPolarizationField() {
+    ENTER_FCN( "ElecPDE::CalcPolarizationField" );
+  
+    //we assume, that the actual solution is stored in sol_!
+    NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
+
+    GradientFieldOp<Double> * FieldOp = 
+      new GradientFieldOp<Double>(ptgrid_,this, eqnMap_,
+				  *solhelp, ELEC_POTENTIAL, 
+				  results_[0], isaxi_);
+    
+    Vector<Double> LCoord, Efield, vecE, vecP;
+    Double Ecomp, Pval, Dval, dE, dD, eps;
+    UInt pdeElem, ielGlob;
+    vecP.Resize(2);
+
+    // loop over all subdomains
+    for (UInt isd=0; isd<calcPolarization_.GetSize(); isd++) {
+      Hysteresis* hyst = materials_[ subdoms_[isd] ]->getHysteresis();
+      if ( hyst!= NULL ) {
+	// get direction of polarization
+	std::string str;
+	materials_[ subdoms_[isd] ]->GetScalar(str, P_DIRECTION);
+	Directions dirP;
+	String2Enum(str,dirP);
+
+	ElemList actSDList(ptgrid_ );
+	actSDList.SetRegion( subdoms_[isd] );
+	
+	EntityIterator it = actSDList.GetIterator();
+	UInt iel = 0;
+	for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+	  
+	  //compute the electric field intensity
+	  it.GetElem()->ptElem->GetCoordMidPoint(LCoord);
+	  FieldOp->CalcElemGradField( Efield, it, LCoord, 1);
+	  
+	  vecE = Efield / Efield.NormL2();
+	  //get correct component of electric field for scalar Preisach model
+	  //materials_[ subdoms_[isd] ]->
+	  Ecomp = Efield[dirP]; //.NormL2(); //[comp]; 
+	  ielGlob = it.GetElem()->elemNum ;
+	  Pval = materials_[ subdoms_[isd] ]->ComputeScalarHystVal( ielGlob, Ecomp );
+	  vecP.Init();
+	  vecP[dirP] = Pval;
+	  //set the values
+	  pdeElem = eqnMap_->Mesh2PdeElem( ielGlob );
+	  P_->SetElemResult(pdeElem-1, vecP);
+	}  
+      }
+    }
+  }
+
 
   template <class TYPE>
   void ElecPDE::CalcCharges()
@@ -739,6 +854,9 @@ namespace CoupledField {
       surfElems.SetRegion( calcCharges_[iSD] );
       EntityIterator it = surfElems.GetIterator();
 
+      // check for hysteresis
+      Hysteresis* hyst = materials_[ subdoms_[iSD] ]->getHysteresis();
+
       // loop over all surface elements
       for ( it.Begin(); !it.IsEnd(); it++ ) {
         // Determine, which volume element is the right neighbour for the 
@@ -768,54 +886,72 @@ namespace CoupledField {
         ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
                                                  lCoordSurf, lCoordVol);
 
+	// get global element number
+	if ( outputType == "surface" ) {
+	  pdeElemNum = eqnMap_->Mesh2PdeElem(it.GetSurfElem()->elemNum);
+	} 
+	else {
+	  pdeElemNum = eqnMap_->Mesh2PdeElem(ptVolElem->elemNum);
+	}
 
-          // Get the right material parameter for actual volume element
-//           for (UInt i=0; i<subdoms_.GetSize(); i++)
-//             {
-//               if (subdoms_[i] == ptVolElem->regionId)
-//                 materialData_[i]->GetScalar(permittivity,ELEC_PERMITTIVITY,REAL);
-//             }
-          BaseMaterial * myMat = materials_[ptVolElem->regionId];
-          myMat->GetScalar(permittivity,ELEC_PERMITTIVITY,REAL);
+	BaseMaterial * myMat = materials_[ptVolElem->regionId];
+	myMat->GetScalar(permittivity,ELEC_PERMITTIVITY,REAL);
 
-          // Calc electric flux density
-          ElemList tempList(ptgrid_);
-          tempList.SetElement( ptVolElem );
-          EntityIterator tempIt = tempList.GetIterator();
-          dFieldOp->CalcElemGradField(elemDField, tempIt, 
-                                      lCoordVol,permittivity);
+	// Calc electric flux density
+	ElemList tempList(ptgrid_);
+	tempList.SetElement( ptVolElem );
+	EntityIterator tempIt = tempList.GetIterator();
+	
+	// D = eps_0 E * P
+	if ( hyst != NULL ) {
+	  //compute electric field
+	  dFieldOp->CalcElemGradField(elemDField, tempIt, 
+				      lCoordVol,1.0);
+	  // get direction of polarization
+	  std::string str;
+	  materials_[ subdoms_[iSD] ]->GetScalar(str, P_DIRECTION);
+	  Directions dirP;
+	  String2Enum(str,dirP);
+
+	  Vector<Double> vecP(dim_);
+          vecP.Init();
+          vecP[dirP] = materials_[ subdoms_[iSD] ]->GetScalarHystVal( pdeElemNum );
+
+	  // D = eps_0 E * P
+	  elemDField *= 8.854e-12;
+	  elemDField =  elemDField + vecP;
+	}
+	else {
+	  dFieldOp->CalcElemGradField(elemDField, tempIt, 
+				      lCoordVol,permittivity);
+	}
+	
         
-          // Calc global normal
-          ptgrid_->CalcSurfNormal(normal, *(it.GetSurfElem()));
-
-          normal *= normSign;
-
-          // Since the routine CalcLineNormal always computes a normal
-          // which points in the OPPOSITE direction of the volume element,
-          // we have to multiply the normal with -1 to get the correct sign for
-          // the charges
-          elemNormalD = 0.0;
-          for ( UInt iComp = 0; iComp < normal.GetSize(); iComp++ ) {
-            elemNormalD +=  elemDField[iComp] * normal[iComp];
-          }
-          
-          chargeOp->CalcElemCharge(charge, it, 
-                                   lCoordSurf, elemNormalD);
-
-          if ( outputType == "surface" ) {
-            pdeElemNum = eqnMap_->Mesh2PdeElem(it.GetSurfElem()->elemNum);
-          } else {
-            pdeElemNum = eqnMap_->Mesh2PdeElem(ptVolElem->elemNum);
-          }
+	// Calc global normal
+	ptgrid_->CalcSurfNormal(normal, *(it.GetSurfElem()));
+	
+	normal *= normSign;
+	
+	// Since the routine CalcLineNormal always computes a normal
+	// which points in the OPPOSITE direction of the volume element,
+	// we have to multiply the normal with -1 to get the correct sign for
+	// the charges
+	elemNormalD = 0.0;
+	for ( UInt iComp = 0; iComp < normal.GetSize(); iComp++ ) {
+	  elemNormalD +=  elemDField[iComp] * normal[iComp];
+	}
         
-          // Create temporary vector, since SetElemResult only
-          // can handle these
-          Vector<TYPE> chargeVec(1);
-          chargeVec[0] = charge;
-          sumOfCharges +=charge;
-          charges_->SetElemResult(pdeElemNum-1, chargeVec);
+	chargeOp->CalcElemCharge(charge, it, 
+				 lCoordSurf, elemNormalD);
         
-        }
+	// Create temporary vector, since SetElemResult only
+	// can handle these
+	Vector<TYPE> chargeVec(1);
+	chargeVec[0] = charge;
+	sumOfCharges +=charge;
+	charges_->SetElemResult(pdeElemNum-1, chargeVec);
+        
+      }
     }
     std::string outstring = "Sum of electric charges:\n";
     outstring += GenStr(sumOfCharges);
@@ -1218,6 +1354,41 @@ namespace CoupledField {
       E_->Init(); 
     }
 
+    if ( isHysteresis_ ) {
+      // --- Electric Polarization Intensity ---
+      Enum2String(ELEC_POLARIZATION, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, regionNames );
+      ptgrid_->RegionNameToId( calcPolarization_, regionNames );
+      
+      // If the the symbolic name is "all" compute electric field for all regions
+      if ( calcPolarization_.GetSize() == 1 && calcPolarization_[0] == ALL_REGIONS ) {
+	calcPolarization_ = subdoms_;
+      }
+      
+      if ( calcPolarization_.GetSize() > 0 ) {
+	hasOutput_ = true;
+	Info->PrintF( pdename_, " Computing electric polarization for regions:\n" );
+	for ( UInt k = 0; k < regionNames.GetSize(); k++ ) {
+	  Info->PrintF( pdename_, " %s\n", regionNames[k].c_str() );
+	}
+	if ( !isComplex_ ) {
+	  P_ = new ElemStoreSol<Double>;
+	} 
+	else {
+	  Error("Electric polarization not available for harmonic analysis",
+		__FILE__,__LINE__); 
+	}
+	
+	P_->SetNumSolutions(1);
+	P_->SetSolutionType(ELEC_POLARIZATION);
+	P_->SetNumElems(numElems_);
+	P_->SetNumDofs(dim_);
+	P_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
+	P_->Init(); 
+      }
+    }
+
     // --- Electric Energy ---
     Enum2String(ELEC_ENERGY, quantity);
     valVec  = "", "", quantity;
@@ -1301,17 +1472,66 @@ namespace CoupledField {
     // *****************************
     // Determine element history
     // *****************************
-    StdVector<std::string> saveElemHist;
     keyVec  = pdename_, "storeResults", "elemHistory", "saveElems";
     attrVec = "", "", "";
-    valVec = "", "", "";
-    params->GetList(keyVec, attrVec, valVec, saveElemHist);
+
+    Enum2String(ELEC_FIELD_INTENSITY, quantity);
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, saveElemElecIntensityHist_ );
   
-    if (saveElemHist.GetSize() > 0) {
-      std::string errMsg = pdename_;
-      errMsg += ": Saving history elements is not implemented yet!\n";
-      errMsg += "Meanwhile you can use 'unvtool' to extract element data.";
-      Error( errMsg.c_str(), __FILE__, __LINE__);
+    if ( saveElemElecIntensityHist_.GetSize() > 0 ) {
+
+      if (  calcEfield_.GetSize() <= 0 ) {
+	if ( !isComplex_ ) {
+	  E_ = new ElemStoreSol<Double>;
+	} 
+	else {
+	  Error("Electric polarization not available for harmonic analysis",
+		__FILE__,__LINE__); 
+	}
+	
+	E_->SetNumSolutions(1);
+	E_->SetSolutionType(ELEC_FIELD_INTENSITY);
+	E_->SetNumElems(numElems_);
+	E_->SetNumDofs(dim_);
+	E_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
+	E_->Init(); 
+      }
+
+      Info->PrintF( pdename_, "Saving electric field intensity for Elements:\n" );
+      for ( UInt k = 0; k < saveElemElecIntensityHist_.GetSize(); k++ ) {
+	Info->PrintF( pdename_, "  %s\n", saveElemElecIntensityHist_[k].c_str() );
+      }
+    }
+
+    Enum2String(ELEC_POLARIZATION, quantity);
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, saveElemPolarizationHist_ );
+  
+    if ( saveElemPolarizationHist_.GetSize() > 0 ) {
+
+      if (  calcPolarization_.GetSize() <= 0 ) {
+	if ( !isComplex_ ) {
+	  P_ = new ElemStoreSol<Double>;
+	} 
+	else {
+	  Error("Electric polarization not available for harmonic analysis",
+		__FILE__,__LINE__); 
+	}
+	
+	P_->SetNumSolutions(1);
+	P_->SetSolutionType(ELEC_POLARIZATION);
+	P_->SetNumElems(numElems_);
+	P_->SetNumDofs(dim_);
+	P_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
+	P_->Init(); 
+      }
+
+      Info->PrintF( pdename_, "Saving electric Polarization for Elements:\n" );
+      for ( UInt k = 0; k < saveElemPolarizationHist_.GetSize(); k++ ) {
+	Info->PrintF( pdename_, "  %s\n", saveElemPolarizationHist_[k].c_str() );
+      }
+
     }
   
   }

@@ -21,6 +21,13 @@ namespace CoupledField {
       return 0.0;
     };
 
+    //! 
+    virtual Double getValue(  Integer idxElem) {
+      Error( "getValue not implemented in base-Class",
+             __FILE__, __LINE__ );
+      return 0.0;
+    }
+
     //!
     virtual void updateMinMaxList(Double newX, Integer idxElem) {
       Error( "updateMinMaxList not implemented in base-Class",
@@ -32,6 +39,7 @@ namespace CoupledField {
       Error( "SetTimeStepVal not implemented in base-Class"
              __FILE__, __LINE__ );
     };
+
 
   protected:
 

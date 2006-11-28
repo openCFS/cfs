@@ -133,7 +133,7 @@ namespace CoupledField {
       Error("SetTensor not implemented",__FILE__,__LINE__); };
 
     //! get a string material parameter
-    void GetScalar( std::string& param, const MaterialType& matType) const {
+    virtual void GetScalar( std::string& param, const MaterialType& matType) const {
      Error("GetScalar not implemented",__FILE__,__LINE__); };
 
     void GetScalar( Integer& param, const MaterialType& matType, 
@@ -180,7 +180,27 @@ namespace CoupledField {
     CoordSystem* GetCoordSys() { return coosy_; }
 
     //Initialize hysteresis
-    void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList);
+    void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList );
+
+    //! get hysteresis operator
+    Hysteresis* getHysteresis() {
+      return hyst_;
+    };
+
+
+
+    //set values for differential material approach
+    void SetPreviousHystVal( UInt nrElem, Double& Xval );
+
+    //! compute scalar differential parameter
+    Double ComputeScalarDiffVal( UInt nrElem, Double& Xval );
+
+    //! computes the scalar hystereis value
+    Double ComputeScalarHystVal( UInt nrElem, Double& Xval );
+
+    //! computes the scalar hystereis value
+    Double GetScalarHystVal( UInt nrElem );
+
 
   protected:
 
@@ -251,6 +271,9 @@ namespace CoupledField {
 
     //! hysteresis object
     Hysteresis * hyst_;
+
+    Vector<Double> Xprevious_; //! previous Xval in hysteresis
+    Vector<Double> Yprevious_; //! previous Yval in hysteresis
 
     std::map<UInt, UInt> globalElem2Local_;
   };

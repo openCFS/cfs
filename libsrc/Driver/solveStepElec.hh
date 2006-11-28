@@ -48,17 +48,8 @@ namespace CoupledField
      void PostStepTrans()
     {PostStepStatic();};
 
-    //! compute polarization and add the term to RHS
-    void AddPolarizationToRHS();
-
-    //! update the hysteresis values
-    void DoUpdateHyst();
-
-    //! compute constant part of RHS for differential permittivity formulation 
-    void ComputeConstPartRHS();
-
     //! computes differential permittivity
-    void ComputeDiffEpsilon();
+    void SetPreviousVals4Hyst();
 
   private:
 
