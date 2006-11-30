@@ -107,10 +107,12 @@ namespace CoupledField
     //! Init the time stepping
     virtual void InitTimeStepping();
 
-    //!
-    void ComputeUI(Vector<Double>& uiSD);
+    //! Compute flux / derivative of flux pder coil region
+    void ComputeFlux(Vector<Double>& uiSD, bool useDeriv);
   
     void WriteUI2File(Vector<Double>& uiSD);
+  
+    void WriteL2File(Vector<Double>& uiSD);
 
     //! contains first derivative of magnetic vector potential
     NodeStoreSol<Double> solDeriv1_;
@@ -195,12 +197,6 @@ namespace CoupledField
 
     //! force operator (for coupling as well as postprocessing)
     MagForceOp* ForceOpVWP_;
-
-    //! file for informational output of coils
-    std::ofstream * UIfile_; 
-
-    //! name of file for saving current/voltage values
-    std::string UIfilename_;
    
   private:
 
