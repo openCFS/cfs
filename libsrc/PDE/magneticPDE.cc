@@ -498,11 +498,19 @@ namespace CoupledField {
       }
     }
 
-    if (UIfilename_.size() > 0 && analysistype_ == TRANSIENT) {
+    // Calculate induced voltage
+    if (  analysistype_ == TRANSIENT) {
       Vector<Double> uiSD;
-      ComputeUI(uiSD);
+      ComputeFlux(uiSD, true);
       WriteUI2File(uiSD);
     }
+
+    // Calculate inductance
+    Vector<Double> lSD;
+    ComputeFlux( lSD, false );
+    WriteL2File( lSD);
+
+    
 
     //check for force computation
     if ( calcForceVWP_.GetSize() > 0 ) {
@@ -566,7 +574,6 @@ namespace CoupledField {
 
       Double reluctivity;
       materials_[calcEnergy_[i]]->GetScalar(reluctivity,MAG_RELUCTIVITY,REAL);
-      
 
       // find related region in subdoms_
       Integer sdIndex = subdoms_.Find( calcEnergy_[i] );
@@ -636,9 +643,9 @@ namespace CoupledField {
   }
 
   // *************
-  //   ComputeUI
+  //   CalculateFlux
   // *************
-  void MagPDE::ComputeUI(Vector<Double>& uiSD) {
+  void MagPDE::ComputeFlux(Vector<Double>& uiSD, bool useDeriv) {
 
     ENTER_FCN( "MagPDE::ComputeUI" );
 
@@ -668,8 +675,13 @@ namespace CoupledField {
             Matrix<Double> ptCoord;
             ptgrid_->GetElemNodesCoord( ptCoord, connect, true );
 
-            Vector<Double> magVecDeriv1Elem;
-            GetDerivSolVecOfElement(magVecDeriv1Elem,it);
+            Vector<Double> elemValue;
+            if( useDeriv ) {
+              GetDerivSolVecOfElement( elemValue, it);
+            } else {
+              GetSolVecOfElement( elemValue, it );
+            }
+            
             Double uiElem=0;
                 
             for (UInt actIntPt=1; actIntPt<=nrIntPts;  actIntPt++) {
@@ -678,19 +690,18 @@ namespace CoupledField {
                                                  it.GetElem());    
               ptEl -> GetShFncAtIp(shapeFnc, actIntPt, it.GetElem() );
 
-              uiElem += shapeFnc * magVecDeriv1Elem;
-                    
               if (isaxi_) {
                 Vector<Double> coordAtIP;
                  coordAtIP = ptCoord * shapeFnc;
-                uiElem += shapeFnc * magVecDeriv1Elem * 2 * PI * coordAtIP[0]
-                  * intWeights[actIntPt-1];
+                uiElem += shapeFnc * elemValue * 2 * PI * coordAtIP[0]
+                  * intWeights[actIntPt-1] * jacDet;
               }
               else {
-                uiElem += shapeFnc * magVecDeriv1Elem * intWeights[actIntPt-1];
+                uiElem += shapeFnc * elemValue 
+                  * intWeights[actIntPt-1] * jacDet;
+                  
               }
             }
-            
             uiSD[dom] += uiElem;
           }    
         }
@@ -734,14 +745,69 @@ namespace CoupledField {
       uiID[abs(actCoilID)-1] += uiSD[dom] * actCoilID/abs(actCoilID);
     }
 
-    *UIfile_ << solveStep_->GetActTime() << " \t";
+
     for (UInt actID=0; actID < coilIDs.GetSize(); actID++) {
-      if ( coilDef_[coilIDs[actID]-1]->coilType_ == Coil::MEASUREMENT2D )
-        *UIfile_ << uiID[coilIDs[actID]-1] *
-          coilDef_[coilIDs[actID]-1]->windingCrossSection_ << " \t";
+      if ( coilDef_[coilIDs[actID]-1]->coilType_ == Coil::MEASUREMENT2D ) {
+        std::ofstream * out = coilDef_[coilIDs[actID]-1]->fileU_;
+        if( out != NULL ) {
+          *out << solveStep_->GetActTime() << " \t";
+          *out <<  uiID[coilIDs[actID]-1] /
+            coilDef_[coilIDs[actID]-1]->windingCrossSection_;
+          *out << std::endl;
+        }
+      }
+    }
+    
+    
+  }
+
+
+  void MagPDE::WriteL2File(Vector<Double>& lSD) {
+
+    ENTER_FCN( "MagPDE::WriteUI2File" );
+
+    Vector<UInt> coilIDs;   // just positive ids
+    coilIDs.Push_back(abs(coilDef_[0]->id_));
+
+    Integer maxID = coilDef_[0]->id_;
+
+    for (UInt dom=1; dom < coilDef_.GetSize(); dom++) {
+
+      bool isInVec = false;
+      
+      for (UInt dom2=0; dom2 < coilIDs.GetSize(); dom2++)    
+        if (abs(coilDef_[dom]->id_) == coilIDs[dom2])
+          isInVec = true;
+      
+      if (!isInVec)
+        coilIDs.Push_back(abs(coilDef_[dom]->id_));
+      
+      if (abs(coilDef_[dom]->id_) > maxID)
+        maxID = coilDef_[dom]->id_;
+    }
+
+    Vector<Double> lID(maxID);
+    lID.Init();
+
+    for (UInt dom=0; dom < coilDef_.GetSize(); dom++) {
+      Integer actCoilID = coilDef_[dom]->id_;
+      lID[abs(actCoilID)-1] += lSD[dom] * actCoilID/abs(actCoilID);
+    }
+
+
+    for (UInt actID=0; actID < coilIDs.GetSize(); actID++) {
+      if ( coilDef_[coilIDs[actID]-1]->coilType_ == Coil::CURRENT2D ) {
+        std::ofstream * out = coilDef_[coilIDs[actID]-1]->fileL_;
+        if( out != NULL ) {
+          *out << solveStep_->GetActTime() << " \t";
+          *out <<  lID[coilIDs[actID]-1] /
+            coilDef_[coilIDs[actID]-1]->windingCrossSection_ 
+            / coilDef_[coilIDs[actID]-1]->value_;
+          *out << std::endl;
+        }
+      }
     }
   
-    *UIfile_ << myEndl;
   
   }
 
@@ -908,7 +974,6 @@ namespace CoupledField {
           }
 
       }
-      //      std::cout << "ForceNodes:\n" << ForceNodes_ << std::endl;
 
       //initialize the force operator
       NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double> *>(sol_);

@@ -284,7 +284,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_MeasurementCoil3D">
         <xsd:sequence>
-          <xsd:element name="id"         type="xsd:nonNegativeInteger"/>
+          <xsd:element name="id"         type="xsd:positiveInteger"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -311,7 +311,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_VoltageCoil3D">
         <xsd:sequence>
-          <xsd:element name="id"         type="xsd:nonNegativeInteger"/>
+          <xsd:element name="id"         type="xsd:positiveInteger"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -327,7 +327,9 @@
             default="none"/>
           <xsd:element name="phase"      type="DT_DegAngle" minOccurs="0"
             default="0"/>
-          <xsd:element name="id"         type="xsd:nonNegativeInteger"/>
+          <xsd:element name="id"         type="xsd:positiveInteger"/>
+          <xsd:element name="saveFileL"  type="xsd:token" minOccurs="0"
+            default="none"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>

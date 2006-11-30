@@ -96,6 +96,7 @@
           <dynamics/>
           <phase/>
           <id>    1 </id>
+          <saveFileL/>
         </currentCoil2d>
 
         <currentCoil3d name="dummyRegion">

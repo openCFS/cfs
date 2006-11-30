@@ -207,6 +207,9 @@ namespace CoupledField {
 
       keyVec  = pdeName, "coils", "currentCoil2d", "id";
       params->Get( keyVec, attrVec, valVec, id_ );
+      
+      keyVec  = pdeName, "coils", "currentCoil2d", "saveFileL";
+      params->Get( keyVec, attrVec, valVec, saveFileL_ );
     }
 
     // ***************************************
@@ -233,7 +236,7 @@ namespace CoupledField {
     // *******************************************
     //   Open results files for measurement coil
     // *******************************************
-    if ( coilType_ == MEASUREMENT2D || coilType_ == MEASUREMENT3D ) {
+    if ( coilType_ == CURRENT2D || coilType_ == CURRENT3D ) {
 
       // Open file stream for storing inductivity
       if ( saveFileL_ != "none" ) {
@@ -247,17 +250,19 @@ namespace CoupledField {
           Info->Error( "Could not open " + saveFileL_, __FILE__, __LINE__ );
         }
       }
+    }
 
+    if ( coilType_ == MEASUREMENT2D || coilType_ == MEASUREMENT3D ) {
       // Open file stream for storing current/voltages
-      if ( saveFileL_ != "none" ) {
+      if ( saveFileU_ != "none" ) {
 
         std::string msg = " Currents/voltages are stored in: "
           + saveFileU_ + '\n';
         Info->PrintF( pdeName, "%s", msg.c_str() );
 
-        fileL_ = new std::ofstream( saveFileU_.c_str() );
+        fileU_ = new std::ofstream( saveFileU_.c_str() );
 
-        if ( fileL_ == NULL ) {
+        if ( fileU_ == NULL ) {
           Info->Error( "Could not open " + saveFileU_, __FILE__, __LINE__ );
         }
       }

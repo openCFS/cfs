@@ -927,7 +927,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MAG_CONDUCTIVITY, REAL );
-      std::cerr << matName << "electricConductivity=" << doubValue << std::endl;
+      //std::cerr << matName << "electricConductivity=" << doubValue << std::endl;
     }
 
     //read magnetic permeability
@@ -937,7 +937,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, doubValue );
       material->SetScalar( doubValue, MAG_PERMEABILITY, REAL ); 
-      std::cerr << matName << "magneticPermeability=" << doubValue << std::endl;
+      //std::cerr << matName << "magneticPermeability=" << doubValue << std::endl;
     }
 
     //read nonlinear dependency of magnetic permeability
