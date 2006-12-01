@@ -188,10 +188,6 @@ TCL_SCRIPTING = yes
 # switch for use of python as scripting language for cfs
 PY_SCRIPTING = no 
 
-# switch for activating the use of expression template for the matrix
-# and vector class. 
-USE_EXPR_TEMPLATES = yes
-
 # -----------------------------------------------------------------------------
 # EXTERNAL PACKAGES required by OLAS interface
 #
@@ -434,19 +430,11 @@ else
   MACRO_SCRIPTING =
 endif
 
-# EXPRESSION TEMPLATES
-ifeq "$(USE_EXPR_TEMPLATES)" "yes"
-  MACRO_EXPR_TEMPLATES = -DEXPR_TEMPLATES
-else
-  MACRO_EXPR_TEMPLATES =
-endif
-
 # Combine everything
 COMPILE_MACROS = $(MARCO_DATABASE) $(MACRO_MPCCI) $(MACRO_ADAPTIVITY) \
                  $(MACRO_GSI) $(MACRO_XERCES) $(MACRO_TVMET) $(MACRO_METIS)\
                  $(MACRO_LAPACK) $(MACRO_GIDPOST) $(MACRO_SCRIPTING)\
-                 $(MACRO_TCL_SCRIPTING) $(MACRO_PY_SCRIPTING)\
-		 $(MACRO_EXPR_TEMPLATES)
+                 $(MACRO_TCL_SCRIPTING) $(MACRO_PY_SCRIPTING)
 
 
 # -----------------------------------------------------------------------------

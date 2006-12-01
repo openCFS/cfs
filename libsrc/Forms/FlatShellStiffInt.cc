@@ -349,10 +349,10 @@ namespace CoupledField {
 	//std::cout << "Qs Matrix is\n" << Qs << std::endl;
 	                    
 	//Equations (2.65) (2.66) (2.67) and ()
-	A += (z_[k] - z_[k-1])*Q;
-	B += 0.5*(z_[k]*z_[k] - z_[k-1]*z_[k-1])*Q;
-	D += 1.0/3.0*(z_[k]*z_[k]*z_[k] - z_[k-1]*z_[k-1]*z_[k-1])*Q;
-	K += kappa*(z_[k] - z_[k-1])*Qs;
+	A += Q*(z_[k] - z_[k-1]);
+	B += Q*0.5*(z_[k]*z_[k] - z_[k-1]*z_[k-1]);
+	D += Q*(1.0/3.0*(z_[k]*z_[k]*z_[k] - z_[k-1]*z_[k-1]*z_[k-1]));
+	K += Qs*kappa*(z_[k] - z_[k-1]);
 	// std::cout << "The A Matrix is\n" << A << std::endl;
 	// std::cout << "The B Matrix is\n" << B << std::endl;
 	// std::cout << "The D Matrix is\n" << D << std::endl;
@@ -462,10 +462,10 @@ namespace CoupledField {
 	//std::cout << "The Qk Matrix is\n" << Qk << std::endl;
 	//std::cout << "The Qs Matrix is\n" << Qs << std::endl;
 	//Equations (2.65) (2.66) (2.67) and ()
-	A += (z_[k] - z_[k-1])*Qk;
-	B += 0.5*(z_[k]*z_[k] - z_[k-1]*z_[k-1])*Qk;
-	D += 1.0/3.0*(z_[k]*z_[k]*z_[k] - z_[k-1]*z_[k-1]*z_[k-1])*Qk;
-	K += kappa*(z_[k] - z_[k-1])*Qs;
+	A += Qk*(z_[k] - z_[k-1]);
+	B += Qk*0.5*(z_[k]*z_[k] - z_[k-1]*z_[k-1]);
+	D += Qk*(1.0/3.0*(z_[k]*z_[k]*z_[k] - z_[k-1]*z_[k-1]*z_[k-1]));
+	K += Qs*(kappa*(z_[k] - z_[k-1]));
 	//std::cout << "The A Matrix is\n" << A << std::endl;
 	//std::cout << "The B Matrix is\n" << B << std::endl;
 	//std::cout << "The D Matrix is\n" << D << std::endl;

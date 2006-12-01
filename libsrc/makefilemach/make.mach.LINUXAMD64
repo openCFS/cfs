@@ -54,7 +54,7 @@ ARFLAGS = r
 # -----------------------------------------------------------------------------
 
 PROFILE  = -DPROFILING
-OPT      = -O3 -march=k8
+OPT      = -O3 -march=k8 -DEXPR_TEMPLATES
 STANDARD = -ansi -pedantic -Wno-long-long -Wno-comments
 
 CFLAG_EXE      = $(OPT)

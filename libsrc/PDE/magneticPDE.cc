@@ -499,16 +499,19 @@ namespace CoupledField {
     }
 
     // Calculate induced voltage
-    if (  analysistype_ == TRANSIENT) {
+    if (  analysistype_ == TRANSIENT 
+          && coilDef_.GetSize() > 0) {
       Vector<Double> uiSD;
       ComputeFlux(uiSD, true);
       WriteUI2File(uiSD);
     }
 
-    // Calculate inductance
-    Vector<Double> lSD;
-    ComputeFlux( lSD, false );
-    WriteL2File( lSD);
+    if ( coilDef_.GetSize() > 0 ) {
+      // Calculate inductance
+      Vector<Double> lSD;
+      ComputeFlux( lSD, false );
+      WriteL2File( lSD);
+    }
 
     
 

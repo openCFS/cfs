@@ -1964,12 +1964,12 @@ namespace CoupledField {
 	if ( formulation_ == ACOU_PRESSURE ) {
 	  elemPower = multVal * gradNormal * elemSol / density;
 	  factorI   = multVal * elemSol / density;
-	  elemIntensity = factorI * gradVal;
+	  elemIntensity = gradVal * factorI;
 	}
 	else {
 	  elemPower = multVal * density * gradNormal * elemSol;
 	  factorI   = multVal * density * elemSol;
-	  elemIntensity = factorI * gradVal;
+	  elemIntensity =  gradVal * factorI;
 	}
 	
 	//take the real part and multiply it with surface

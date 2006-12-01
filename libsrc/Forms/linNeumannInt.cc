@@ -161,7 +161,7 @@ namespace CoupledField
 
     Complex val = Complex( realPart, imagPart); 
 
-    elemVec = val * helpVec;
+    elemVec =  helpVec * val;
 
     std::cerr << globMidPointVol[0] 
               << "   " << amplitude 

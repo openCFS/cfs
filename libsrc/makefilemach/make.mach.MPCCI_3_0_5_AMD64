@@ -59,7 +59,7 @@ ARFLAGS = r
 # -----------------------------------------------------------------------------
 
 PROFILE  = -DPROFILING
-OPT      = -fPIC -O3 -Wall -march=k8
+OPT      = -fPIC -O3 -Wall -march=k8 -DEXPR_TEMPLATES
 STANDARD = -ansi -pedantic -Wno-long-long -Wno-comments
 
 CFLAG_EXE      = $(OPT) $(C_FLAGS)  
