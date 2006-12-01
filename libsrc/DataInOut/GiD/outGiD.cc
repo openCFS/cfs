@@ -195,13 +195,15 @@ namespace CoupledField {
     // for each set of named nodes a separate MESH section
     StdVector<std::string> nodeNames, elemNames;
     StdVector<UInt> nodeNumbers, elemNumbers;
-
     ptGrid_->GetListNodeNames(nodeNames);
     
     // check if there are any named nodes / elems in the grid
     if( nodeNames.GetSize() == 0 ) {
       return;
     }
+    
+    // get number of 'normal' regions within the grid
+    UInt numRegions = regionIds.GetSize();
     
     // remember number of 'normal' elements
     UInt numelem =ptGrid_->GetNumElems();
@@ -220,8 +222,8 @@ namespace CoupledField {
       GiD_BeginElements();
       
       for ( UInt iNode = 0; iNode < nodeNumbers.GetSize(); iNode ++ ) {
-        UInt nodeNumber = nodeNumbers[iNode];
-        GiD_WriteElement( numelem++, (int*)(&nodeNumber) ); 
+        UInt nodeNumber[2] = {nodeNumbers[iNode],i+numRegions+1};
+        GiD_WriteElementMat( numelem++, (int*)(&nodeNumber) ); 
       }
       GiD_EndElements();
       GiD_EndMesh();
@@ -378,7 +380,8 @@ namespace CoupledField {
         connectM = connect;
       }
     }
-    GiD_WriteElement( ptEl->elemNum, (int*)(connectM.GetPointer()) ); 
+    connectM.Push_back(ptEl->regionId+1);
+    GiD_WriteElementMat( ptEl->elemNum, (int*)(connectM.GetPointer()) ); 
   }
   
   
