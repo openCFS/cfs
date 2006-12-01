@@ -431,14 +431,14 @@ namespace CoupledField
         
         // Prevent integration of first order, as this may
         // cause non-reasonable results
-        if( legFct->GetIsoOrder() > 1 ) {
+        //if( legFct->GetIsoOrder() > 1 ) {
           IntegMethod = CARTESIAN;
-          IntegOrder =  EncodeCartesianOrder( legFct->GetIsoOrder() + 2,
-                                              legFct->GetIsoOrder() + 2,
-                                              legFct->GetIsoOrder() + 2);
-        } else {
-          IntegOrder = 2;
-        } 
+          IntegOrder =  EncodeCartesianOrder( legFct->GetIsoOrder() *2,
+                                              legFct->GetIsoOrder() *2,
+                                              legFct->GetIsoOrder() *2);
+          // } else {
+          //IntegOrder = 2;
+          //} 
       } else {
         IntegMethod = CARTESIAN;
         IntegOrder =  EncodeCartesianOrder( legFct->GetMaxOrder() + 2,
