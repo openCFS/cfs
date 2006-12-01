@@ -45,7 +45,7 @@ ARFLAGS = r
 # -----------------------------------------------------------------------------
 
 PROFILE  = -DPROFILING
-OPT      = -O3 -mcpu=pentium
+OPT      = -O3 -mcpu=pentium -DEXPR_TEMPLATES
 STANDARD = -ansi -pedantic -Wno-long-long -Wno-comments
 
 CFLAG_EXE      = $(OPT)

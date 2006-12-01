@@ -36,7 +36,7 @@ namespace CoupledField {
     CalcElemVector( helpVec, ent);
     
     Complex amplitude = Complex( 1.0, 0.0 );
-    result = amplitude * helpVec;
+    result = helpVec * amplitude;
   }
 
   // ================================================================

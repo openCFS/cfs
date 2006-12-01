@@ -58,8 +58,8 @@ ARFLAGS = r
 # Makefile.option.
 # -----------------------------------------------------------------------------
 SUPP  = -woff1681,1682
-TEMPL = -ptused -no_prelink -no_auto_include
-OPT   = -O3 -r12000 -LNO
+TEMPL = -ptused -no_prelink -no_auto_include 
+OPT   = -O3 -r12000 -LNO -DEXPR_TEMPLATES
 ASTD  = -LANG:std 
 
 CFLAG_EXE      = $(OPT)
