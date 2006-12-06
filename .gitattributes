@@ -4,6 +4,24 @@ Doc/auxilliaries/Pics/lse.eps -text svneol=unset#application/postscript
 Doc/auxilliaries/Pics/lse.png -text svneol=unset#image/png
 Doc/developer/AddDoc/coding-rules/coding_rules.html svneol=native#text/html
 Doc/developer/AddDoc/coding-rules/coding_rules.tex svneol=native#text/plain
+Doc/developer/AddDoc/element_types/elementtypes.pdf -text svneol=unset#application/pdf
+Doc/developer/AddDoc/element_types/hexa20.dia -text
+Doc/developer/AddDoc/element_types/hexa27.dia -text
+Doc/developer/AddDoc/element_types/hexa8.dia -text
+Doc/developer/AddDoc/element_types/line2.dia -text
+Doc/developer/AddDoc/element_types/line3.dia -text
+Doc/developer/AddDoc/element_types/point.dia -text
+Doc/developer/AddDoc/element_types/prism15.dia -text
+Doc/developer/AddDoc/element_types/prism6.dia -text
+Doc/developer/AddDoc/element_types/pyra13.dia -text
+Doc/developer/AddDoc/element_types/pyra5.dia -text
+Doc/developer/AddDoc/element_types/quad4.dia -text
+Doc/developer/AddDoc/element_types/quad8.dia -text
+Doc/developer/AddDoc/element_types/quad9.dia -text
+Doc/developer/AddDoc/element_types/tet10.dia -text
+Doc/developer/AddDoc/element_types/tet4.dia -text
+Doc/developer/AddDoc/element_types/tria3.dia -text
+Doc/developer/AddDoc/element_types/tria6.dia -text
 Doc/developer/AddDoc/numerical_integration/numerical_integration.tex svneol=native#text/plain
 Doc/developer/AddDoc/splitting.png -text svneol=unset#image/png
 Doc/developer/Concepts/Dof-Mapping/dof-mapping.dia -text
