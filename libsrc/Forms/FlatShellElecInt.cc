@@ -36,7 +36,7 @@ namespace CoupledField {
     
     Omega = ptelem->CalcVolume(ShellCoord,FALSE);    
     //See equation 4.65 Pietfort
-    elemMat = eMat * (- Omega);
+    elemMat = (- Omega)*eMat ;
 
     // Do the back-Rotation and return
     // Back Rotation is not needed, as this matrix does not depend on 
