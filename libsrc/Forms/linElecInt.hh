@@ -55,6 +55,9 @@ namespace CoupledField {
       return dim_;
     }
 
+    //! Query material type for \f$D\f$ tensor
+    MaterialType getDMaterialType() { return ELEC_PERMITTIVITY; }
+
     //! Returns nr. of degrees of freedom
     UInt getNrDofs() {
       ENTER_IFCN( "linElecInt::getNrDofs" );

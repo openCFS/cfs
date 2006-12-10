@@ -45,7 +45,19 @@ namespace CoupledField {
 
     // Loop over all integration points
     for ( UInt actIntPt = 1; actIntPt <= nrIntPts; actIntPt++ ) {
-
+      
+      // Check if material has to be rotated for each integration point
+      if( ptMaterial->GetCoordSys() != NULL ) {
+        // Get global coordinates
+        Vector<Double> * intPoints = ptelem->GetIntPoints();
+        Vector<Double> globIntPoint;
+        
+        ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1], 
+                                  ptCoord_, ent1.GetElem() );
+        ptMaterial->RotateTensorByPointCoord( globIntPoint, getDMaterialType() );
+        calcDMat( dMat );
+      }
+      
       //std::cerr << "*** Calculating A ****\n";
       // Setup the A matrix for current integration point
       calcAMat( aMat, actIntPt, ptCoord_ );

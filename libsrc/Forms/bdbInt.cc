@@ -71,7 +71,7 @@ namespace CoupledField {
           
           ptelem->Local2GlobalCoord(globIntPoint, intPoints[actIntPt-1], 
                                     ptCoord_, ent1.GetElem() );
-          ptMaterial->RotateTensorByPointCoord( globIntPoint,MECH_STIFFNESS_TENSOR );
+          ptMaterial->RotateTensorByPointCoord( globIntPoint,getDMaterialType() );
           calcDMat( dMat );
         }
         

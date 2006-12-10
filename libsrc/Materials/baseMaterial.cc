@@ -241,7 +241,8 @@ namespace CoupledField
 
 
   void BaseMaterial::RotateTensorByRotationAngles( Vector<Double>& rotAngle, 
-						   const MaterialType& matType) {
+						   const MaterialType& matType,
+                                                   bool persistent ) {
 
     ENTER_FCN( "BaseMaterial::RotateTensorByRotationAngles" );
 
@@ -265,7 +266,7 @@ namespace CoupledField
 
       Matrix<Complex> matTensor;
       matTensor = pos->second;
-      Matrix<Complex> const & matTensorOrig = posOrig->second;
+      Matrix<Complex> const matTensorOrig = posOrig->second;
 
       
       // transfer to radiant
@@ -283,7 +284,11 @@ namespace CoupledField
 
       Matrix<Complex> helpTensor = matTensorOrig;
 
-      // Calculate rotation matrix;
+      // Calculate rotation matrix( based on Kardan-Angles)
+      // Ref.: C. Woernle, "Skript: Dynamik von Mehrkörpersystemen,
+      // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
+      // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
+
       Double alpha = rotAngle[0];
       Double beta  = rotAngle[1];
       Double gamma = rotAngle[2];
@@ -303,6 +308,13 @@ namespace CoupledField
       RComplex.SetPart( REAL, R );
       PerformRotation(RComplex, matTensor, helpTensor); 
       tensorParams_[matType] = matTensor;
+      
+      // In the case of a persistent rotation, we override the
+      // original tensor
+      if ( persistent ) {
+        tensorParamsOrig_[matType] = matTensor;
+      }
+        
 
 //       if ( abs(rotAngle[0]) > eps ) {
 // 	// rotate around x-axis
@@ -352,6 +364,17 @@ namespace CoupledField
     
   }
 
+  void BaseMaterial::RotateAllTensorsByRotationAngles( Vector<Double>& rotAngle, 
+                                                       bool persistent ) {
+    ENTER_FCN( "BaseMaterial::RotateAllTensorsByRotationAngles" );
+
+    BaseMaterial::tensorMap::iterator it = tensorParams_.begin();
+    for( ; it != tensorParams_.end(); it++ ) {
+      RotateTensorByRotationAngles( rotAngle, it->first, persistent );
+    }
+  }
+    
+
   void BaseMaterial::RotateTensorByPointCoord( Vector<Double> coord,
                                                const MaterialType& matType ) {
 
@@ -361,8 +384,10 @@ namespace CoupledField
     Vector<Double> angles;
     coosy_->GetGlobRotationAngles( angles, coord );
 
-    // Calculate rotation
-    RotateTensorByRotationAngles( angles, matType );
+    // Calculate rotation. In this case this is always
+    // non-persistent, as the orientation may change for each point in the
+    // related coordinate system
+    RotateTensorByRotationAngles( angles, matType, false );
 
   }
 
@@ -392,7 +417,13 @@ namespace CoupledField
       else {
 	// we also need Q;
 	Matrix<Complex> Q;
-	Q.Resize(6,6);  // Composed Rotation Matrix
+
+        // Composed Rotation Matrix
+        // Ref.: M.Richter, "Entwicklung mechanischer Modelle zur analytischen
+        // Beschreibung der Materialeigenschaften von textilbewehrtem Feinbeton",
+        // Diss., Dresden, 2005, p. 27
+        
+	Q.Resize(6,6);  
 
 	Q[0][0] = R[0][0]*R[0][0];
 	Q[0][1] = R[0][1]*R[0][1];

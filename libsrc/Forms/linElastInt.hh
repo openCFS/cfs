@@ -34,6 +34,10 @@ namespace CoupledField {
     void calcBMatOnly( Matrix<Double> &bMat, UInt ip,
 		       BaseFE* elem, Matrix<Double> &ptCoord );
 
+
+    //! Query material type for \f$D\f$ tensor
+    MaterialType getDMaterialType() { return MECH_STIFFNESS_TENSOR; }
+
   protected:    
 
      //! calculates the material data 

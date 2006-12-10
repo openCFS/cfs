@@ -165,7 +165,12 @@ namespace CoupledField {
 
     //! rotate a material tensor by rotation angles given in degree
     virtual void RotateTensorByRotationAngles( Vector<Double>& rotAngle, 
-					       const MaterialType& matType);
+					       const MaterialType& matType,
+                                               bool persistent = false );
+
+    //! Rotate all tensor material parameters by given rotation angle
+    virtual void RotateAllTensorsByRotationAngles(  Vector<Double>& rotAngle,
+                                                    bool persistent = false );
 
     //! Rotates the tensor in a way that is represents the attached
     //! coordinate system behaviour (cartesian, cylindri, spherical)
