@@ -16,6 +16,18 @@
   <!-- Data type for specification of a region in the mesh file -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DomainRegion">
+    <xsd:sequence>
+      <xsd:element name="rotation" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:attribute name="xAxis" type="xsd:double" use="optional"
+            default="0.0"/>
+          <xsd:attribute name="yAxis" type="xsd:double" use="optional"
+            default="0.0"/>
+          <xsd:attribute name="zAxis" type="xsd:double" use="optional"
+            default="0.0"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="material" type="xsd:token" use="optional" default=""/>
     <xsd:attribute name="composite" type="xsd:token" use="optional" default=""/>

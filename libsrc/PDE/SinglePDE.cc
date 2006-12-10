@@ -958,6 +958,45 @@ namespace CoupledField {
                 domain->GetCoordSystem(subdomCoordSys[k]);
               materials_[subdoms_[i]]->SetCoordSys( actCoosy );
             }
+
+            // Fetch for each material rotation paramters
+            StdVector<Double> rotVecX, rotVecY, rotVecZ;
+            Vector<Double> rotVec (3);
+            rotVec.Init();
+
+            bool isRotated = false;
+
+            attrVec = "", "name", "";
+            valVec = "", actRegionName, "";
+
+            // xAxis
+            keyVec = "domain", "region", "rotation", "xAxis";
+            params->GetList( keyVec, attrVec, valVec, rotVecX );
+            if( rotVecX.GetSize() == 1) {
+              rotVec[0] = rotVecX[0];
+              isRotated = true;
+            }
+
+            // yAxis
+            keyVec = "domain", "region", "rotation", "yAxis";
+            params->GetList( keyVec, attrVec, valVec, rotVecY );
+            if( rotVecY.GetSize() == 1) {
+              rotVec[1] = rotVecY[0];
+              isRotated = true;
+            }
+            
+            // zAxis
+            keyVec = "domain", "region", "rotation", "zAxis";
+            params->GetList( keyVec, attrVec, valVec, rotVecZ );
+            if( rotVecZ.GetSize() == 1) {
+              rotVec[2] = rotVecZ[0];
+              isRotated = true;
+            }
+            
+            if( isRotated ) {
+              materials_[subdoms_[i]]->
+                RotateAllTensorsByRotationAngles( rotVec, true );
+            }
             break;
           }
         }

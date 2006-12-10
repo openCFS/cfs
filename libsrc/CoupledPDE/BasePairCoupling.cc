@@ -190,8 +190,8 @@ namespace CoupledField {
     // XMLPARAMS
     // -------------------
 
-    std::string matFileName;
-
+    std::string matFileName, actRegionName;
+    StdVector< std::string > keyVec, attrVec, valVec;
 
 
     // Obtain pointer to materialHandler
@@ -201,9 +201,10 @@ namespace CoupledField {
     // Get list of subdomains and materials
     StdVector< std::string > subdomName;
     StdVector< RegionIdType> subdomId;
-    StdVector< std::string > subdomMaterial;
+    StdVector< std::string > subdomMaterial, subdomCoordSys;
     params->GetList( "name", subdomName, "domain", "region" );
     params->GetList( "material", subdomMaterial, "domain", "region" );
+    params->GetList( "refCoordSys", subdomCoordSys, "domain", "region" );
     ptGrid_->RegionNameToId( subdomId, subdomName );
 
     // Load material data for subdomains on which this PDE lives
@@ -213,8 +214,56 @@ namespace CoupledField {
         if( subdoms_[i] == subdomId[k] ){
           // Check if region contains a material
           if ( subdomMaterial[k] != "" ) {
+
+            actRegionName = ptGrid_->RegionIdToName( subdomId[k] );
             materials_[subdoms_[i]] = matLoader->
               LoadMaterial( subdomMaterial[k],materialClass_ );
+            
+            // Check if coordinate system is present
+            if( subdomCoordSys[k] != "" ) {
+              CoordSystem * actCoosy = 
+                domain->GetCoordSystem(subdomCoordSys[k]);
+              materials_[subdoms_[i]]->SetCoordSys( actCoosy );
+            }
+            
+            // Fetch for each material rotation paramters
+            StdVector<Double> rotVecX, rotVecY, rotVecZ;
+            Vector<Double> rotVec (3);
+            rotVec.Init();
+
+            bool isRotated = false;
+
+            attrVec = "", "name", "";
+            valVec = "", actRegionName, "";
+
+            // xAxis
+            keyVec = "domain", "region", "rotation", "xAxis";
+            params->GetList( keyVec, attrVec, valVec, rotVecX );
+            if( rotVecX.GetSize() == 1) {
+              rotVec[0] = rotVecX[0];
+              isRotated = true;
+            }
+
+            // yAxis
+            keyVec = "domain", "region", "rotation", "yAxis";
+            params->GetList( keyVec, attrVec, valVec, rotVecY );
+            if( rotVecY.GetSize() == 1) {
+              rotVec[1] = rotVecY[0];
+              isRotated = true;
+            }
+            
+            // zAxis
+            keyVec = "domain", "region", "rotation", "zAxis";
+            params->GetList( keyVec, attrVec, valVec, rotVecZ );
+            if( rotVecZ.GetSize() == 1) {
+              rotVec[2] = rotVecZ[0];
+              isRotated = true;
+            }
+            
+            if( isRotated ) {
+              materials_[subdoms_[i]]->
+                RotateAllTensorsByRotationAngles( rotVec, true );
+            }
             break;
           }
         }
@@ -225,10 +274,8 @@ namespace CoupledField {
     // COMPOSITE MATERIALS
     // -------------------
     Double startHeight;
-    StdVector< std::string > keyVec, attrVec, valVec;
     StdVector<std::string> compMaterials, subdomComposite;
     StdVector<Double> compOrient, compThick;
-    std::string actRegionName;
     
     params->GetList( "composite", subdomComposite, "domain", "region" );
 

@@ -96,6 +96,9 @@ namespace CoupledField {
     //! Query dimensions of matrix \f$D\f$
     virtual void getDimD( UInt nRows, UInt nCols ) = 0;
 
+    //! Query material type for \f$D\f$ tensor
+    virtual MaterialType getDMaterialType() = 0;
+
     //@}
 
   };

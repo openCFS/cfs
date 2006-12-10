@@ -76,6 +76,11 @@ namespace CoupledField{
 
     angles.Resize(3);
 
+    // Ref.: C. Woernle, "Skript: Dynamik von Mehrkörpersystemen,
+    // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
+    // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
+    
+
     // Safety check: T_33 must not be 1!
     if ( (std::abs(std::abs (rotMat[0][2]) - 1.0)) < EPS ) {
       *error << "Rotation angle beta for coordinate system '"

@@ -75,6 +75,9 @@ namespace CoupledField {
     //! returns nr. of degrees of freedom
     virtual UInt getNrDofs() = 0;
 
+    //! Query material type for \f$D\f$ tensor
+    virtual MaterialType getDMaterialType() = 0;
+
     //! bool for signaling that D matrix is non-constant
 
     //! In some cases, e.g. in non-linear computations, it may be

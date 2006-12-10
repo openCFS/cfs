@@ -33,6 +33,10 @@ protected:
   virtual UInt getDimD() {
     return dimD_; 
   };
+
+  //! Query material type for \f$D\f$ tensor
+  MaterialType getDMaterialType() { return MECH_STIFFNESS_TENSOR; }
+
   
   //! returns nr. of degrees of freedom
   virtual UInt getNrDofs() {
