@@ -360,7 +360,7 @@ XXX(operator*)
 #define XXX(op,ap) \
   template <class P,class A, class P2>                                   \
   Xpr2<PROMOTE(P,P2), Xpr2OpScalar<P2, ConstRef2<P, Dim2<P,A> >, ap<P,P2>, P > > \
-static inline op (const Dim2<P,A>& a, P2& b) {\
+static inline op (const Dim2<P,A>& a, const P2& b) {\
   typedef \
     Xpr2OpScalar<P2, ConstRef2<P,Dim2<P,A> >, ap<P,P2>, P >       \
       ExprT;\
