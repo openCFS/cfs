@@ -345,7 +345,7 @@ namespace CoupledField
     //2D tensor axi or plane is the same
     matMatrix.Resize(2,2);
     matMatrix.Init();
-    pos->second.GetSubMatrix(matMatrix, 1, 1);
+    pos->second.GetSubMatrix(matMatrix, 0, 0);
   }
 
   

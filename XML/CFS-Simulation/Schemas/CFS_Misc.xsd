@@ -273,7 +273,7 @@
   
 
   <!-- Data type for describing a point either by a node name or a -->
-  <!-- position vector -->
+  <!-- position vector (in 3D)-->
   <xsd:complexType name="DT_PointType">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
@@ -281,6 +281,18 @@
         <xsd:attribute name="x" type="xsd:float" use="optional" default="0.0"/>
         <xsd:attribute name="y" type="xsd:float" use="optional" default="0.0"/>
         <xsd:attribute name="z" type="xsd:float" use="optional" default="0.0"/>
+      </xsd:restriction>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- Data type for describing a point either by a node name or a -->
+  <!-- position vector (in 2D x-y plane)-->
+  <xsd:complexType name="DT_PointType2D">
+    <xsd:complexContent>
+      <xsd:restriction base="xsd:anyType">
+        <xsd:attribute name="node" type="xsd:token" use="optional" default="none"/>
+        <xsd:attribute name="x" type="xsd:float" use="optional" default="0.0"/>
+        <xsd:attribute name="y" type="xsd:float" use="optional" default="0.0"/>
       </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>

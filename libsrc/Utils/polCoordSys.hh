@@ -1,13 +1,12 @@
-#ifndef CYL_COORD_SYSTEM_HH
-#define CYL_COORD_SYSTEM_HH
+#ifndef POL_COORD_SYSTEM_HH
+#define POL_COORD_SYSTEM_HH
 
 #include "coordSystem.hh"
 
 namespace CoupledField {
 
-
-  //! Describes a cylindrical coordinate system.
-  class CylCoordSystem : public CoordSystem{
+  //! Describes a polar coordinate system.
+  class PolarCoordSystem : public CoordSystem{
 
   public:
 
@@ -15,15 +14,15 @@ namespace CoupledField {
     //! \param name (in) name of the coordinate system which is used to 
     //!                  find the additional parameters in the .xml-file
     //! \param ptGrid (in) pointer to finite element grid object
-    CylCoordSystem(const std::string & name, Grid * ptGrid);
+    PolarCoordSystem(const std::string & name, Grid * ptGrid);
     
     //! Destructor
-    virtual ~CylCoordSystem();
-
+    virtual ~PolarCoordSystem();
+    
     //! Transform local into global coordinate
-
+    
     //! This method transforms a point given in local coordinates into a
-    //! point w.r.t to the global cartesian x,y,z coordinates.
+    //! point w.r.t to the global cartesian x,y coordinates.
     //! \param glob (out) point w.r.t. to global cartesian coordinate system
     //! \param loc (in) point w.r.t. to local coordinate system
     void Local2GlobalCoord( Vector<Double> & glob, 
@@ -40,7 +39,7 @@ namespace CoupledField {
     
     //! Return the global rotation angles for a given point
 
-    //! This method returns the Kardan rotation angles,
+    //! This method returns the rotation angles about the x and y axis,
     //! by which the global coordinate system has to be rotated, so that
     //! it represents the current one in that point.
     void  GetGlobRotationAngles( Vector<Double> & angles,
@@ -72,7 +71,7 @@ namespace CoupledField {
     
     //! Returns for a given coordinate name the according index
 
-    //! This method returns for a given coordinate name (r,phi,z)
+    //! This method returns for a given coordinate name (r,phi)
     //! the according index in the local vector representation.
     //! \param dof (in) name of a coordinate component
     //! \return index of the coordinate component
@@ -80,8 +79,8 @@ namespace CoupledField {
 
     //! Returns for a given coordinate index the according name
 
-    //! This method returns for a given coordinate index (1,2,3)
-    //! the according name (r,phi,z).
+    //! This method returns for a given coordinate index (1,2)
+    //! the according name (r,phi).
     //! \param dof (in) index of the coordinate component
     //! \return name of the coordinate component
     const std::string GetDofName( const UInt dof ) const;
@@ -101,10 +100,7 @@ namespace CoupledField {
     //! Write summary of coordinate system
     void PrintInfo();
     
-    //! vector pointing in z-direction
-    Vector<Double> zAxis_;
-
-    //! vector pointing in r(phi=0°)-direction
+    //! second point defining r-axis
     Vector<Double> rAxis_;
 
   };
@@ -115,13 +111,12 @@ namespace CoupledField {
   //     Detailed description of the class 
   // =========================================================================
 
-  //! \class CylCoordSystem
+  //! \class PolarCoordSystem
   //! 
   //! \purpose 
-  //! Thic class implements the representation of clyindrical coordinate
-  //! system. It is defined by an point of origin, one vector defining the 
-  //! the z-direction (3rd component) and one vector defining
-  //! the r-axis relative to the origin. The latter one is the axis, where 
+  //! Thic class implements the representation of a polar coordinate
+  //! system in 2D. It is defined by an point of origin and a vector pointing 
+  //! r-direction. The latter one is the axis, where 
   //! \f$\phi = 0\f$ holds.
   //! 
   //! \collab 

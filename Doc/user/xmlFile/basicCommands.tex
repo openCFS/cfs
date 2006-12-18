@@ -45,15 +45,17 @@ while the meshLibrary attribute can currently be one of
 By default, the input format is \textbf{mesh}, the ouput format is \textbf{unv}
 and the value for meshLibrary is \textbf{cfsGrid }.
 
-
-\section{Defining the Material File}
+\
+\section{Material Data File}
 To specify the name of the material file, the command 
 \begin{verbatim}
 <materialData file="matFileName"/>
 \end{verbatim}
 must be used. The default name for the material file is {\bf mat.dat}.
 
-%
+
+
+
 % =============================================================================
 % TYPES OF ANALYSIS
 % =============================================================================
@@ -342,6 +344,7 @@ defined as
 
 
 \section{Geometrical Definitions}
+\label{sec:geometricDef}
 In the top level section {\bf $<$domain$>$} one has to define all
 geometrical entities, such as regions and their materials, boundary
 nodes, save nodes, ...
@@ -356,6 +359,13 @@ nodes, save nodes, ...
 
   <elements name="mySaveElem"/>
 
+  <coordSys>
+     <polar name="mid">
+       <origin x="0" y="0"/>
+       <rAxis x="1" y="0"/>
+     </polar>
+  </coordSys>
+
   <directivityNodes>
     <distance radius="0.5"/>
     <distance radius="1.0"/>
@@ -369,11 +379,11 @@ nodes, save nodes, ...
 </domain>
 \end{verbatim}
 
-The keyword {\bf region} assigns a subdomain called {\bf name} to a material.
+The keyword {\bf region} assigns a subdomain called {\bf name} to a material. For further details, refer to section \ref{sec:materialAss}.
 Further on, all in the simulation needed nodes (e.g. nodes which hold
 a boundary condition) must be defined by the keyword {\bf nodes}.
 Needed elements have to be defined by the keyword {\bf elements}.
-
+In the next section, local coordinate systems can be defined (see section. \ref{sec:coordSys}.
 Additionally, the optional element {\bf $<$directivityNodes$>$} is available if one wants to define (search) a collection of nodes near specific
 radial distances from a center point (default 0, 0, 0) for later storing of results at
 these nodes (e.g. for producing directivity plots in
@@ -383,11 +393,243 @@ plane for defining the nodes on a 2D simulation. Sweep angle for XY (xyEnd-xyBeg
 also be used (dir\_XY, dir\_XZ, dir\_YZ). Finally, {\bf saveIncr}
 represents the interval in degrees for defining the nodes. The arrays following the saving sequence containing the indices of the nodes for each radius can be found in the '.info' file from the simulation. These arrays can then be used (e.g. in Matlab) when creating a polar plot to read the nodal results in the correct order.
 
+\section{Coordinate Systems}
+\label{sec:coordSys}
+CFS allows the definition of different kinds of coordinate systems. They can be used for the definition and rotation of materials, as well as for the definition of boundary- and load-conditions.
+The definition of local coordinate systems is done within the \verb#domain# element in the configuration file:
+\begin{verbatim}
+<domain>
+  <region ...../>
+  <nodes ..../>
+  <coordSys>
+      ...
+  </coordSys>
+</domain>
+\end{verbatim}
+
+\subsection{Global Cartesian}
+The standard coordinate system is the global cartesian one. It is defined by default and if no other local coordinate system is given, degree of freedoms are expressed in terms of the directions $\vec{x} = (x,y,z)$ in 3D and for 2D as $\vec{x} = (x,y)$ (see Fig. \ref{fig:globCart}).
+\begin{figure}
+ \begin{center}
+   \includegraphics[width=3cm]{pics/cartesian.png}
+ \end{center}
+  \caption{Global cartesian coordinate system}
+  \label{fig:globCart}
+\end{figure}
+
+\subsection{Local Polar}
+In 2D, a polar coordinate system (see Fig. \ref{fig:locPolar}) can only be defined in the x-y-plane. Each point is uniquely defined by its radial component $r$ and the angle $\varphi$ in circumferential direction
+\begin{equation}
+ \vec{x} = \left(
+\begin{array}{c}
+r \\ \varphi \\
+\end{array}
+\right)
+\end{equation}
+In order to define a local polar coordinate system, one needs to specify the origin of the coordinate system and also the radial direction where $\varphi = 0^\circ$. 
+\newline
+\noindent
+The related section in the xml-file looks like
+\begin{verbatim}
+<polar name="myPolar1">
+  <origin x="0" y="0"/>
+  <rAxis  x="1" y="0"/>
+</polar>
+ \end{verbatim}
+Note that the absolute length of the vector $\vec{r}_{(\varphi = 0)}$ defined by \verb#rAxis# does not matter, as it gets normalized to 1.
+\begin{figure}[ht]
+ \begin{center}
+   \includegraphics[width=5cm]{pics/polar.png}
+ \end{center}
+  \caption{Local polar coordinate system}
+  \label{fig:locPolar}
+\end{figure}
+
+\subsection{Local Cylindrical}
+In a 3D grid a cylindrical coordinate system is defined by its radial, circumferential and axial direction ($z$-direction) (see Fig. \ref{fig:locCylindric}
+\begin{equation}
+ \vec{x} = \left(
+\begin{array}{c}
+r \\ \varphi \\
+z
+\end{array}
+\right)
+\end{equation}
+In order to define a cylindrical coordinate system, one needs to specify the origin, the radial direction where $\vec{r}_{(\varphi = 0)}$ and the axial $z$-direction.
+
+\begin{verbatim}
+<cylindric name="myCylindrical1">
+  <origin x="0" y="0" z="0"/>
+  <rAxis  x="1" y="0" z="0"/>
+  <zAxis  x="0" y="0" z="0"/>
+</polar>
+\end{verbatim}
+Similar to the polar coordinate system, the absolute length of the vectors $\vec{r}_{(\varphi = 0)}$ and $\vec{z}$ does not matter, as they get normalized to 1.
+
+\begin{figure}[ht]
+ \begin{center}
+\includegraphics[width=6cm]{pics/cyl.png}   
+ \end{center}
+  \caption{Local cylindrical coordinate system}
+  \label{fig:locCylindric}
+\end{figure}
+
+\newpage
+\section{Material assignment}
+\label{sec:materialAss}
+A material has to be assigned for each region, as denoted in section \ref{sec:geometricDef}. In addition there are several options which can be defined for each region/material in addition.
+
+\subsection{Material coordinate system}
+\label{sec:materialCoordSys}
+The material data (e.g. tensor of elasticity modulus) is defined in a separate material local coordinate system, which is defined by the three axes $(1,2,3)$ as shown in Fig. \ref{fig:matCoordSys}.
+\begin{figure}[ht]
+\begin{center}
+ \includegraphics[width=3cm]{pics/matCoord.png}
+\end{center}
+\caption{Material coordinate system $(1,2,3)$}
+  \label{fig:matCoordSys}
+\end{figure}
+If no further option is specified, the material coordinate directions $(1,2,3)$ get associated with the global cartesian direction $(x,y,z)$. In a 2D geometry, only the first two components are taken $(1,2)$.
+
+In order to rotate the material coordinate system, one can specify three rotation angles (\emph{Kardan angles})
+\begin{equation}
+\left( 
+ \begin{array}{c}
+ \alpha \\ \beta \\ \gamma 
+ \end{array}
+\right)
+\end{equation}
+These angles define three successive rotations around the three material axes (see Fig. \ref{fig:matRotation}). This is done in three steps
+\begin{enumerate}
+ \item Rotation of $\alpha$ degrees around material direction 1 (= global direction $x_0$)
+ \item Rotation of $\beta$ degrees around material direction 2 (= global direction $y_1$)
+ \item Rotation of $\gamma$ degrees around material direction 3 (= global direction $z_2$)
+\end{enumerate}
+The rotation can be specified for each region separately in the parameter file by the three rotation angles $\alpha, \beta, \gamma$:
+\begin{verbatim}
+  <domain>
+    <region name="pzt" material="PZT-4">
+      <rotation alpha="-90" beta="0" gamma="0"/>
+    </region>
+  </domain>
+\end{verbatim}
+The previous example would e.g. rotate the (material-) local $3$-direction by $\alpha=-90^\circ$ around the local $1$-axis, so that it coincides with the global $y$-direction. This is needed, if for example a plane simulation of a piezoelectric material has to be performed, where the polarization is given in local $3$-direction, whereas the geometric model assumes a polarization in $y$-direction.
+\newline
+
+Please note, that the positive direction of the angles is always defined in counter-clockwise fashion around the corresponding axis (\emph{right-hand-rule}). If the value of one rotation angle is $0$, it may be omitted.
+
+\begin{figure}[h!]
+\begin{center}
+ \includegraphics[width=13cm]{pics/rot1.png}
+ % matCoord.png: 2228x588 pixel, 300dpi, 18.86x4.98 cm, bb=0 0 535 141
+ \includegraphics[width=13cm]{pics/rot2.png}
+ % matCoord.png: 2228x588 pixel, 300dpi, 18.86x4.98 cm, bb=0 0 535 141
+\end{center}
+\caption{Rotation of material coordinate system (1,2,3) by Kardan angles $(\alpha, \beta, \gamma)$}
+  \label{fig:matRotation}
+\end{figure}
+
+\subsection{Rotated material coordinate systems}
+A material can also be associated with a local coordinate system, as defined in section \ref{sec:coordSys}. This allows one, e.g. to have a radially polarized material in 2D (polar coordinate system) or in 3D (cylindrical coordinate system). In this case, the material local directions $(1,2,3)$ are associated with the global directions as defined in Table \ref{tb:matLocGlobAssoc}.
+\begin{table}[h!]
+\begin{center}
+% use packages: array
+\begin{tabular}{c|ccc}
+ & \multicolumn{3}{x}{Local Coordinate system} \\
+ & cartesian & polar & cylindrical \\ \hline
+1 & x & r & r \\ 
+2 & y & phi & phi \\ 
+3 & z &  & z 
+\end{tabular}
+\end{center}
+\caption{Association of material directions $(1,2,3)$ with local coordinate system directions}
+\label{tb:matLocGlobAssoc}
+\end{table}
+In the parameter file, this can be defined by
+\begin{verbatim}
+  <domain>
+    <region name="pzt" material="PZT-4" refCoordSys="myPolar1"/>
+  </domain>
+\end{verbatim}
+Here the material PZT-4 is associated with a previously defined coordinate system \verb#myPoar1#.
+
+It is also possible to rotate a material first - as defined in section \ref{sec:materialCoordSys} - and then associate it with a local coordinate system:
+\begin{verbatim}
+  <domain>
+    <region name="pzt" material="PZT-4" refCoordSys="midPoint">
+      <rotation beta="90"/>
+    </region>
+    <coordSys>
+     <cylindric name="midpoint"> 
+        <origin x="0" y="0" z="0"/>
+        <hAxis  x="0" y="1" z="0"/>
+        <rAxis  x="1" y="0" z="0"/>
+      </cylindric>
+    </coordSys>
+  </domain>
+\end{verbatim}
+In this example the following happens (see Fig. \ref{fig:matRotationExample}):
+\begin{itemize}
+ \item First, the material is rotated around the material local $2$-axis by $\beta=90^\circ$, so that the local $3$-direction coincides with the global $x$-direction.
+\begin{equation}
+\left( 
+\begin{array}{c}
+  1 \\ 2 \\ 3 
+ \end{array}
+\right)
+\rightarrow
+\left(
+\begin{array}{c}
+  -z \\ y \\ x 
+ \end{array}
+\right)
+\end{equation}
+\item Then the material gets associated with a cylindrical local coordinate system, which radial direction coincides with the $x$-axis and which axial direction is the $y$-axis.
+\begin{equation}
+\left( 
+\begin{array}{c}
+  x \\ y \\ z 
+ \end{array}
+\right)
+\rightarrow
+\left(
+\begin{array}{c}
+  r \\ z \\ -\varphi 
+ \end{array}
+\right)
+\end{equation}
+
+\end{itemize}
+
+Putting both definitions together, the material axes $(1,2,3)$ are associated with the cyldindric components $(r,\varphi,z)$in the following way
+\begin{equation}
+\left( 
+\begin{array}{c}
+  1 \\ 2 \\ 3 
+ \end{array}
+\right)
+\rightarrow
+\left(
+\begin{array}{c}
+  \varphi \\ z \\ rad 
+ \end{array}
+\right)
+\end{equation}
+The procedure is visualized in Fig. \ref{fig:matRotationExample}.
+\begin{figure}[h!]
+\begin{center}
+ \includegraphics[width=8cm]{pics/cylExample.png}
+\end{center}
+\caption{Rotated material associated with a cylindrical coordinate system}
+  \label{fig:matRotationExample}
+\end{figure}
+
+
 \section{Numerical Integration Rules}
 The numerical integration of the finite elements is done via Gaussian quadrature\footnote{See \emph{Higher-Order Finite Element Methods},
   Pavel Solin, Karel Segeth, Ivo Dolezel, 2004.}. Note that the integration rules are theoretically exact for the given order and hence a too low order of Ansatz-functions, a too coarse or deformed meshing cannot be compensated simply by a higher integration order. Table \ref{tab:default_order} gives the default order which should be sufficient for most simulations.
 
-\begin{table}
+\begin{table}[ht]
 \begin{center}
 \begin{tabular}{r|r|r|r|r|r}
 element & Ansatz-function & Gauss order & number of points \\
@@ -422,7 +664,7 @@ One can optionally define a different integration rule in the following way:
 
 The setting is applied on all element types, even if they are not used in the simulation. If the requested integration rule is not known for an element, CFS uses a default setting and prints a warning message stating all available integration rules for that element.
 
-\begin{center}
+\begin{center}[ht]
 \begin{tabular}{l|l}
 integration type & description \\
 \hline

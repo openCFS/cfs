@@ -13,6 +13,7 @@
 #include "DataInOut/writeresults.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/cylCoordSys.hh"
+#include "Utils/polCoordSys.hh"
 #include "Utils/defaultCoordSys.hh"
 #include "DataInOut/Scripting/cfsmessenger.hh"
 
@@ -706,13 +707,26 @@ namespace CoupledField {
 
     // then read in the additional coordinate systems
     StdVector<std::string> keyVec, attrVec, valVec, names;
-    keyVec = "domain", "coordSys", "cylindric", "name";
     attrVec = "", "", "";
     valVec = "", "", "";
+    
+    // a) cylindrical coordinate systems
+    keyVec = "domain", "coordSys", "cylindric", "name";
     params->GetList(keyVec, attrVec, valVec, names);
 
     for (UInt i = 0; i < names.GetSize(); i++ ) {
       CoordSystem * actCoord = new CylCoordSystem(names[i],ptgrid_);
+      coordSys_[names[i]] = actCoord;
+    }
+
+    // b) polar coordinate systems
+    names.Clear();
+    keyVec = "domain", "coordSys", "polar", "name";
+    params->GetList(keyVec, attrVec, valVec, names);
+
+    for (UInt i = 0; i < names.GetSize(); i++ ) {
+      CoordSystem * actCoord = 
+        new PolarCoordSystem(names[i],ptgrid_);
       coordSys_[names[i]] = actCoord;
     }
     
