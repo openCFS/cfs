@@ -412,13 +412,15 @@ else
   MACRO_GIDPOST =
 endif
 
+# Initialize Macro defining use of scripting
+MACRO_SCRIPTING =
+
 # TCL_SCRIPTING
 ifeq "$(TCL_SCRIPTING)" "yes"
   MACRO_TCL_SCRIPTING = -DUSE_SCRIPTING_TCL
   MACRO_SCRIPTING = -DUSE_SCRIPTING
 else
   MACRO_TCL_SCRIPTING = 
-  MACRO_SCRIPTING =
 endif
 
 # PY_SCRIPTING
@@ -427,7 +429,6 @@ ifeq "$(PY_SCRIPTING)" "yes"
   MACRO_SCRIPTING = -DUSE_SCRIPTING
 else
   MACRO_PY_SCRIPTING =
-  MACRO_SCRIPTING =
 endif
 
 # Combine everything
