@@ -227,7 +227,7 @@ namespace CoupledField {
             }
             
             // Fetch for each material rotation paramters
-            StdVector<Double> rotVecX, rotVecY, rotVecZ;
+            StdVector<Double> rotAlpha, rotBeta, rotGamma;
             Vector<Double> rotVec (3);
             rotVec.Init();
 
@@ -236,27 +236,27 @@ namespace CoupledField {
             attrVec = "", "name", "";
             valVec = "", actRegionName, "";
 
-            // xAxis
-            keyVec = "domain", "region", "rotation", "xAxis";
-            params->GetList( keyVec, attrVec, valVec, rotVecX );
-            if( rotVecX.GetSize() == 1) {
-              rotVec[0] = rotVecX[0];
+            // alpha
+            keyVec = "domain", "region", "rotation", "alpha";
+            params->GetList( keyVec, attrVec, valVec, rotAlpha );
+            if( rotAlpha.GetSize() == 1) {
+              rotVec[0] = rotAlpha[0];
               isRotated = true;
             }
 
-            // yAxis
-            keyVec = "domain", "region", "rotation", "yAxis";
-            params->GetList( keyVec, attrVec, valVec, rotVecY );
-            if( rotVecY.GetSize() == 1) {
-              rotVec[1] = rotVecY[0];
+            // beta
+            keyVec = "domain", "region", "rotation", "beta";
+            params->GetList( keyVec, attrVec, valVec, rotBeta );
+            if( rotBeta.GetSize() == 1) {
+              rotVec[1] = rotBeta[0];
               isRotated = true;
             }
             
-            // zAxis
-            keyVec = "domain", "region", "rotation", "zAxis";
-            params->GetList( keyVec, attrVec, valVec, rotVecZ );
-            if( rotVecZ.GetSize() == 1) {
-              rotVec[2] = rotVecZ[0];
+            // gamma
+            keyVec = "domain", "region", "rotation", "gamma";
+            params->GetList( keyVec, attrVec, valVec, rotGamma );
+            if( rotGamma.GetSize() == 1) {
+              rotVec[2] = rotGamma[0];
               isRotated = true;
             }
             

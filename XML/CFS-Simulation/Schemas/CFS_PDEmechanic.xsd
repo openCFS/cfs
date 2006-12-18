@@ -161,8 +161,7 @@
       <xsd:enumeration value="tx"/>
       <xsd:enumeration value="ty"/>
       <xsd:enumeration value="tz"/>
-      <xsd:enumeration value="urad"/>
-      <xsd:enumeration value="uax"/>
+      <xsd:enumeration value="ur"/>
       <xsd:enumeration value="uphi"/>
     </xsd:restriction>
   </xsd:simpleType>

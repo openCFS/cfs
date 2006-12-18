@@ -313,25 +313,28 @@ namespace CoupledField
 
     if ( subTensor == AXI ) {
       matMatrix.Resize(2,4);
-      matMatrix[0][0] = mat[1][1];
-      matMatrix[0][1] = mat[1][2];
-      matMatrix[0][2] = mat[1][3];
-      matMatrix[0][3] = mat[1][0];
-      matMatrix[1][0] = mat[2][1];
-      matMatrix[1][1] = mat[2][2];
-      matMatrix[1][2] = mat[2][3];
-      matMatrix[1][3] = mat[2][0];
+
+      matMatrix[0][0] = mat[0][0];
+      matMatrix[0][1] = mat[0][1];
+      matMatrix[0][2] = mat[0][5];
+      matMatrix[0][3] = mat[0][2];
+      matMatrix[1][0] = mat[1][0];
+      matMatrix[1][1] = mat[1][1];
+      matMatrix[1][2] = mat[1][5];
+      matMatrix[1][3] = mat[1][2];
     }
-    else if ( subTensor == PLANE_STRAIN ) {
+    else if ( subTensor == PLANE_STRAIN ||
+              subTensor == PLANE_STRESS ) {
       matMatrix.Resize(2,3);
-      matMatrix[0][0] = mat[1][1];
-      matMatrix[0][1] = mat[1][2];
-      matMatrix[0][2] = mat[1][3];
-      matMatrix[1][0] = mat[2][1];
-      matMatrix[1][1] = mat[2][2];
-      matMatrix[1][2] = mat[2][3];
-    }
-    else {
+
+      matMatrix[0][0] = mat[0][0];
+      matMatrix[0][1] = mat[0][1];
+      matMatrix[0][2] = mat[0][5];
+      matMatrix[1][0] = mat[1][0];
+      matMatrix[1][1] = mat[1][1];
+      matMatrix[1][2] = mat[1][5];
+
+    } else {
       subTensorNotAvailable( matType, subTensor );
     }
   }

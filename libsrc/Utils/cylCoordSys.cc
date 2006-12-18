@@ -23,11 +23,11 @@ namespace CoupledField{
     valVec = "", "", name;
     GetPoint(origin_, keyVec, attrVec, valVec);
 
-    // get second point for defining the h-axis
-    keyVec = "domain", "coordSys", "cylindric", "hAxis";
+    // get second point for defining the z-axis
+    keyVec = "domain", "coordSys", "cylindric", "zAxis";
     attrVec = "", "", "name";
     valVec = "", "", name;
-    GetPoint(hAxis_, keyVec, attrVec, valVec);
+    GetPoint(zAxis_, keyVec, attrVec, valVec);
 
     // get second point for defining the r-axis
     keyVec = "domain", "coordSys", "cylindric", "rAxis";
@@ -112,10 +112,10 @@ namespace CoupledField{
     anglesLoc.Resize(3);
     anglesLoc.Init();
     anglesLoc[2] = loc[1];
-
+    
     // Now add to the point rotation angles the 
     // angles to rotate the angles back to the global system
-    angles = invRotationAng_;
+    angles = rotationAng_;
     angles *= 180 / PI;
     angles += anglesLoc;
       
@@ -192,13 +192,21 @@ namespace CoupledField{
     //    x': is the normal part of the vector 'origin_-rAxis' w.r.t
     //        z'-Axis
     //    y': implicitly given by cross product of z' and  x' (right hand rule)
-    z = hAxis_ - origin_;
+    //z = hAxis_ - origin_;
+    z = zAxis_;
     z /= z.NormL2();
 
-    Vector<Double> temp;
-    temp = rAxis_- origin_;
-    r_dot = (temp * z) / hAxis_.NormL2();
-    x = temp  - ((hAxis_ *r_dot) / hAxis_.NormL2());
+
+    //Vector<Double> temp;
+    //temp = rAxis_- origin_;
+    // if( temp.NormL2() < EPS ) {
+//       *error << "The pointing vector for the r_axis and the origin coincide "
+//              << "in the cylindrical coordinate system '"
+//              << name_ << "'!";
+//       Error( __FILE__, __LINE__ );
+//     }
+    
+    x = rAxis_;
     x /= x.NormL2();
 
     y[0] = z[1]*x[2] - z[2]*x[1];
@@ -209,12 +217,11 @@ namespace CoupledField{
     if (x.NormL2() < EPS ||
         y.NormL2() < EPS ||
         z.NormL2() < EPS ) {
-      (*error) << "At least two of your points for origin, h-Axis and "
+      (*error) << "At least two of the vectors for origin, z-Axis and "
                << "r-Axis coincide in the coordinate system '" << name_
                << "'.\nPlease correct your parameter file!";
       Error( __FILE__, __LINE__ );
     }
-
 
     // 2) Calculation of the rotation matrix, which defines the mapping
     //    from the global to the local coordinate system
@@ -243,8 +250,9 @@ namespace CoupledField{
 
     // Now calculate the related kardan angles for forward and 
     // backward transformation
-    CalcKardanAngles( rotationAng_, rotationMat_ );
-    CalcKardanAngles( invRotationAng_, invRotationMat_ );
+    CalcKardanAngles( rotationAng_, invRotationMat_ );
+    CalcKardanAngles( invRotationAng_, rotationMat_ );
+
   }
 
 
@@ -254,11 +262,11 @@ namespace CoupledField{
     
     UInt component = 0;
     
-    if ( dof == "urad" )
+    if ( dof == "ur" )
       component = 1;
     if ( dof == "uphi" )
       component = 2;
-    if ( dof == "uax" )
+    if ( dof == "uz" )
       component = 3;
     
     if ( component == 0 ) {
@@ -279,13 +287,13 @@ namespace CoupledField{
     
     switch (dof) {
     case 1:
-      ret = "urad";
+      ret = "ur";
       break;
     case 2:
       ret = "uphi";
       break;
     case 3:
-      ret = "uax";
+      ret = "ux";
       break;
     default:
       (*error) << "CylCoordSystem::GetDofName:\n"
@@ -306,8 +314,8 @@ namespace CoupledField{
         << "    type:\tcylindrical" << std::endl
         << "  origin:\t" << origin_[0] << "," << origin_[1] << "," 
         << origin_[2] << std::endl
-        << "  h-axis:\t" << hAxis_[0] << "," << hAxis_[1] << ","
-        << hAxis_[2] << std::endl
+        << "  z-axis:\t" << zAxis_[0] << "," << zAxis_[1] << ","
+        << zAxis_[2] << std::endl
         << "  r-axis:\t" << rAxis_[0] << "," << rAxis_[1] << ","
         << rAxis_[2] << "\n";
     out << "  angles:\t" << rotationAng_[0]/PI*180 << ","

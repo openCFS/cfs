@@ -328,7 +328,8 @@ namespace CoupledField
       matMatrix.Resize( nrElemsAxi, nrElemsAxi );
       matMatrix.Init();
 
-      UInt rowPtr[] = {2,3,4,1};  // indices of rows and lines for yz-plane
+      // indices of rows and lines for xy-plane (rr, zz, rz, phiphi)
+      UInt rowPtr[] = {1,2,6,3};  
       for ( UInt i=0; i<nrElemsAxi; i++ )
 	for ( UInt j=0; j<nrElemsAxi; j++ )
 	  matMatrix[i][j] = mat[rowPtr[i]-1][rowPtr[j]-1];
@@ -338,7 +339,8 @@ namespace CoupledField
       matMatrix.Resize( nrElems, nrElems    );
       matMatrix.Init();
 
-      UInt rowPtr[] = {2,3,4};  // indices of rows and lines for yz-plane
+      // indices of rows and lines for xy-plane (xx, yy, xy)
+      UInt rowPtr[] = {1,2,6}; 
       for ( UInt i=0; i<nrElems; i++ )
 	for ( UInt j=0; j<nrElems; j++ )
 	  matMatrix[i][j] = mat[rowPtr[i]-1][rowPtr[j]-1];
@@ -353,17 +355,30 @@ namespace CoupledField
 	      __FILE__,__LINE__);
       }
 
-      //explicite computation
-      matMatrix[0][0] = mat[1][1] - mat[0][1]*mat[1][0]/mat[0][0];
-      matMatrix[0][1] = mat[1][2] - mat[0][2]*mat[1][0]/mat[0][0];
-      matMatrix[0][2] = mat[1][3] - mat[0][3]*mat[1][0]/mat[0][0];
-      matMatrix[1][0] = mat[2][1] - mat[0][1]*mat[2][0]/mat[0][0];
-      matMatrix[1][1] = mat[2][2] - mat[0][2]*mat[2][0]/mat[0][0];
-      matMatrix[1][2] = mat[2][3] - mat[0][3]*mat[2][0]/mat[0][0];
-      matMatrix[2][0] = mat[3][1] - mat[0][1]*mat[3][0]/mat[0][0];
-      matMatrix[2][1] = mat[3][2] - mat[0][2]*mat[3][0]/mat[0][0];
-      matMatrix[2][2] = mat[3][3] - mat[0][3]*mat[3][0]/mat[0][0];
-      //std::cout << "MatMatrix:\n" << matMatrix << std::endl;
+      // calculate plane stress matrix for xy-plane
+      matMatrix[0][0] = mat[0][0] - mat[2][0]*mat[0][2]/mat[2][2];
+      matMatrix[0][1] = mat[0][1] - mat[2][1]*mat[0][2]/mat[2][2];
+      matMatrix[0][2] = mat[0][5];
+      matMatrix[1][0] = mat[1][0] - mat[2][0]*mat[1][2]/mat[2][2];
+      matMatrix[1][1] = mat[1][1] - mat[2][1]*mat[1][2]/mat[2][2];
+      matMatrix[1][2] = mat[1][5];
+      matMatrix[2][0] = mat[5][0];
+      matMatrix[2][1] = mat[5][1];
+      matMatrix[2][2] = mat[5][5];
+
+
+      //explicite computation (old case for yz-plane
+//       matMatrix[0][0] = mat[1][1] - mat[0][1]*mat[1][0]/mat[0][0];
+//       matMatrix[0][1] = mat[1][2] - mat[0][2]*mat[1][0]/mat[0][0];
+//       matMatrix[0][2] = mat[1][3] - mat[0][3]*mat[1][0]/mat[0][0];
+//       matMatrix[1][0] = mat[2][1] - mat[0][1]*mat[2][0]/mat[0][0];
+//       matMatrix[1][1] = mat[2][2] - mat[0][2]*mat[2][0]/mat[0][0];
+//       matMatrix[1][2] = mat[2][3] - mat[0][3]*mat[2][0]/mat[0][0];
+//       matMatrix[2][0] = mat[3][1] - mat[0][1]*mat[3][0]/mat[0][0];
+//       matMatrix[2][1] = mat[3][2] - mat[0][2]*mat[3][0]/mat[0][0];
+//       matMatrix[2][2] = mat[3][3] - mat[0][3]*mat[3][0]/mat[0][0]
+        ;
+      
     }
     else {
       subTensorNotAvailable( matType, subTensor );

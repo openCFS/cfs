@@ -19,11 +19,11 @@
     <xsd:sequence>
       <xsd:element name="rotation" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
-          <xsd:attribute name="xAxis" type="xsd:double" use="optional"
+          <xsd:attribute name="alpha" type="xsd:double" use="optional"
             default="0.0"/>
-          <xsd:attribute name="yAxis" type="xsd:double" use="optional"
+          <xsd:attribute name="beta" type="xsd:double" use="optional"
             default="0.0"/>
-          <xsd:attribute name="zAxis" type="xsd:double" use="optional"
+          <xsd:attribute name="gamma" type="xsd:double" use="optional"
             default="0.0"/>
         </xsd:complexType>
       </xsd:element>
@@ -121,12 +121,35 @@
       <xsd:extension base="DT_CoordSysBasic">
         <xsd:sequence>
           <xsd:element name="origin" type="DT_PointType"/>
-          <xsd:element name="hAxis" type="DT_PointType"/>
+          <xsd:element name="zAxis" type="DT_PointType"/>
           <xsd:element name="rAxis" type="DT_PointType"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of element for polar coordinate system -->
+  <!-- ******************************************************************** -->
+  <xsd:element name="polar" type="DT_CoordSysPolar"
+    substitutionGroup="CoordSysBasic"/>
+  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for polar coordinate system -->
+  <!-- ******************************************************************** -->
+
+  <xsd:complexType name="DT_CoordSysPolar">
+    <xsd:complexContent>
+      <xsd:extension base="DT_CoordSysBasic">
+        <xsd:sequence>
+          <xsd:element name="origin" type="DT_PointType2D"/>
+          <xsd:element name="rAxis" type="DT_PointType2D"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
 
   <!-- ******************************************************************** -->
   <!--   Data type for domain section -->
