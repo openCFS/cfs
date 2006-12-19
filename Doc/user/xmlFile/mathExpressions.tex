@@ -33,7 +33,6 @@ Note that it is currently not possible to define own variables within
 the parser, as otherwise any occurrence of a not explicitly defined
 variable would create a new one, initialized with zero.
 \begin{table}[ht]
- 
   \begin{longtable}{c|c|c}
     \hline\noalign{\smallskip}
     name & \# of args. & description \\
@@ -99,6 +98,34 @@ variable would create a new one, initialized with zero.
  \caption{Built-in operators and constants}  
 \end{table}
 \clearpage
+\section{CFS custom functions}
+We can subscribe boundary conditions with values read in from sample files.
+The notation is as follows:
+\begin{verbatim}
+<bcsAndLoads>
+  <neumannInhom name="transducer" value="sample1D('x_amplitude.dat',x,2)"
+    phase="sample1D('x_phase.dat',x,2)"/>
+</bcsAndLoads>
+\end{verbatim}
+Sample data (2 columns) is read in from the files x\_amplitude.dat and x\_phase.dat.
+Please note the type of quotes used!!!!
+\newline
+
+\noindent
+x specifies the direction, where the sample data is applied.
+2 means cubic spline interpolation between sample values. 
+Could also be 0=nearest neighbour, or 1=linear interpolation.
+\begin{table}[ht]
+  \begin{longtable}{c|c|c}
+    \hline\noalign{\smallskip}
+    name & \# of args. & description \\
+    \noalign{\smallskip}\hline\noalign{\smallskip} 
+    \verb#sample1D#     & 3 & interpolation of boundary condition values from 
+ sample data files \\
+  \end{longtable}
+ \caption{CFS specific functions}
+\end{table}
+
 \section{CFS custom variables}
 In addition to the built-in variables, CFS++ registers additionally
 some variables, which can be used in the mathematical expression (see
