@@ -460,8 +460,8 @@ In order to define a cylindrical coordinate system, one needs to specify the ori
 \begin{verbatim}
 <cylindric name="myCylindrical1">
   <origin x="0" y="0" z="0"/>
-  <rAxis  x="1" y="0" z="0"/>
   <zAxis  x="0" y="0" z="0"/>
+  <rAxis  x="1" y="0" z="0"/>
 </polar>
 \end{verbatim}
 Similar to the polar coordinate system, the absolute length of the vectors $\vec{r}_{(\varphi = 0)}$ and $\vec{z}$ does not matter, as they get normalized to 1.
@@ -535,7 +535,7 @@ A material can also be associated with a local coordinate system, as defined in 
 \begin{center}
 % use packages: array
 \begin{tabular}{c|ccc}
- & \multicolumn{3}{x}{Local Coordinate system} \\
+ & \multicolumn{3}{c}{Local Coordinate system} \\
  & cartesian & polar & cylindrical \\ \hline
 1 & x & r & r \\ 
 2 & y & phi & phi \\ 
@@ -601,7 +601,7 @@ In this example the following happens (see Fig. \ref{fig:matRotationExample}):
 
 \end{itemize}
 
-Putting both definitions together, the material axes $(1,2,3)$ are associated with the cyldindric components $(r,\varphi,z)$in the following way
+Putting both definitions together, the material axes $(1,2,3)$ are associated with the cylindric components $(r,\varphi,z)$in the following way
 \begin{equation}
 \left( 
 \begin{array}{c}
