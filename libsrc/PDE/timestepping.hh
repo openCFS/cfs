@@ -42,6 +42,10 @@ namespace CoupledField {
     //! perform an update to RHS
     virtual void UpdateRHS()=0;
 
+    //! Substract Stiffness from RHS
+    virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol)
+    {Error("Error not implemented!",__FILE__,__LINE__);};
+
     //! perform an update to RHS with actual solution (for nonlin calculation)
     virtual void UpdateRHS(Vector<Double>& actSol)
     {Error("Error not implemented!",__FILE__,__LINE__);};

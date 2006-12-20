@@ -44,6 +44,9 @@ namespace CoupledField
                              const Double asteptime,
                              UInt stepOffset,
                              Double timeOffse) = 0;
+
+    //! initialize nonlinearities
+    virtual void InitNonLin() = 0;
     
     // ======================================================
     // GET / SET METHODS
@@ -82,6 +85,15 @@ namespace CoupledField
     //! Return identifier of second PDE
     PdeIdType GetPdeId2();
 
+    bool nonLin_;           //!< flag for nonlinear calculations
+    bool nonLinMaterial_;           //!< flag for nonlinear material calculations
+    
+    void SetNonLinearity(bool nonLin){
+      nonLin_=nonLin;};
+    
+    void SetMaterialNonLinearity(bool nonLin){
+      nonLinMaterial_=nonLin;};
+
 
   protected:
 
@@ -109,6 +121,25 @@ namespace CoupledField
     bool isaxi_;             //!< true: axisymmetric problem
 
     bool geoUpdate_;        //!< flag for geometric update
+
+
+    // -----------------------------------------------------------------------
+    // NON_LINEARITY
+    // -----------------------------------------------------------------------
+
+    //@{
+    //! \name Attributes connected to nonlinearity
+    //    bool nonLin_;           //!< flag for nonlinear calculations
+    Double incStopCrit_;       //!< stopping criterion for incremental error
+    Double residualStopCrit_;  //!< stopping criterion for residual error
+    UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
+    std::string nonLinMethod_; //!< method for handling the non-linearity
+    bool nonLinLogging_;    //!< log progress of non-linear iterations
+    bool isHysteresis_;     //!< flag for hysteresis
+
+    std::string lineSearch_;   //!< switch for lineSearch
+    StdVector<NonLinPDE> nonLinPDEName_;//!< some PDEs carry a name (->acoustics!)
+    //@}
 
     // ======================================================
     // DATA SECTION

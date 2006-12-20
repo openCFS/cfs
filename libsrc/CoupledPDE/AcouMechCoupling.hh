@@ -48,6 +48,10 @@ namespace CoupledField
     //! This method is overwritten here, since the material of the 
     //! acoustic domain is already written in.
     void ReadMaterialData();
+
+    //! initialize nonlinearities
+    virtual void InitNonLin(){;};
+ 
   private:
 
   };

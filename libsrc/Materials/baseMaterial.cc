@@ -513,8 +513,10 @@ namespace CoupledField
       UInt iel = 0;
       UInt globalElNr;
       for ( it.Begin(); !it.IsEnd(); it++, iel++) {
+
 	globalElNr = it.GetElem()->elemNum;
 	globalElem2Local_[globalElNr] = iel;
+
       }
     }
 

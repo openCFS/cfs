@@ -103,6 +103,16 @@ namespace CoupledField
 
   }
 
+  void Newmark::SubstractStiffnessFromRHS(Vector<Double>& actSol) {
+
+    ENTER_FCN( "Newmark::SubstractStiffness" );
+
+    Vector<Double> actSolTemp;
+    actSolTemp=-actSol;
+
+    algsys_->UpdateRHS(STIFFNESS,actSolTemp.GetPointer());
+  }
+
   void Newmark::UpdateRHS(Vector<Double>& actSol)
   {
     ENTER_FCN( "Newmark::UpdateRHS" );
@@ -183,6 +193,8 @@ namespace CoupledField
   void NewmarkEffMass::Init( Double dt, UInt rhsSize ) 
   {
     ENTER_FCN( "NewmarkEffMass::Init" );
+
+    std::cout<<"Newmark uses Effective Mass Formulation " <<std::endl;
 
     rhsSize_ = rhsSize;
 

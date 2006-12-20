@@ -21,6 +21,7 @@
 #include "Utils/coordSystem.hh"
 #include "Domain/ansatzFct.hh"
 #include "Driver/stdSolveStep.hh"
+#include "Utils/SmoothSpline.hh"
 
 #ifdef USE_SCRIPTING
 #include "DataInOut/Scripting/cfsmessenger.hh" 
@@ -34,8 +35,12 @@ namespace CoupledField {
 
     pdename_          = "mechanic";
     pdematerialclass_ = MECHANIC;
+
     fracDamping_   = false;
     effectiveMass_ = false;
+    nonLin_        = false;
+    nonLinMaterial_= false;
+
 
     // ****************************
     // DETERMINE GEOMETRY
@@ -93,9 +98,9 @@ namespace CoupledField {
     // Check for subType
     if( subType_ != "flatShell" ) {
       if( dim_ == 3 ) {
-	res1->dofNames = "ux", "uy", "uz";
+        res1->dofNames = "ux", "uy", "uz";
       } else {
-	res1->dofNames = "ux", "uy";
+        res1->dofNames = "ux", "uy";
       }
     } else {
       res1->dofNames = "ux", "uy", "uz", "tx", "ty", "tz";
@@ -110,6 +115,7 @@ namespace CoupledField {
       res1->definedOn = ResultDof::NODE;
     } else {
       
+
        // define Legendre type
        shared_ptr<LegendreFct> fct(new LegendreFct);
        if( params->IsSet( "isIsotropic", "pdeList", pdename_ ) ) {
@@ -130,9 +136,10 @@ namespace CoupledField {
     }
       
     results_.Push_back( res1 );
-    
+
+
     // timestepping formulation
-     std::string str;
+    std::string str;
      params->Get( "timeSteppingFormulation", str, "pdeList", pdename_ );
     if ( str == "effMassMatrix" ) {
       effectiveMass_ = true;
@@ -428,6 +435,7 @@ namespace CoupledField {
     StdVector<std::string> nonLinRegion;
     params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
     // Should not happen with validating parser, but beware!
+
     if ( nonLinRegion.GetSize() == 0 ) {
       nonLin_ = false;
     }
@@ -438,7 +446,8 @@ namespace CoupledField {
                        __FILE__, __LINE__ );
         }
       }
-      nonLin_ = nonLinRegion[0] == "geo" ? true : false;
+      if (nonLinRegion[0] == "geo" || nonLinRegion[0] == "material")
+        nonLin_ =   true;
     }
 
     // In non-linear case determine type of line search strategy
@@ -475,8 +484,8 @@ namespace CoupledField {
         // maximal number of NL-iterations
         params->Get("maxNumIters", nonLinMaxIter_, pdename_, "nonLinear");
 
-	// perform logging?
-	nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
+        // perform logging?
+        nonLinLogging_ = params->IsSet( "logging", pdename_, "nonLinear" );
 
       }
 
@@ -525,6 +534,8 @@ namespace CoupledField {
       shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
       actSDList->SetRegion( actRegion );
 
+      StdVector<std::string> nonLinRegion;
+      params->GetList( "nonLinear", nonLinRegion, pdename_, "region" );
       
       // ==============  add "standard" stiffness ===========================
       BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat, actRegion);
@@ -554,120 +565,175 @@ namespace CoupledField {
       actIntDescrStiff->SetResults( results_[0], results_[0],
                                     actSDList, actSDList );
 
+      // ==============  add "standard" linear stiffness ===========================     
 
-      //check for damping
-      if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
-        Double beta;
-        actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
-        actIntDescrStiff->SetSecDestMat(DAMPING, beta );
-      }
-      
-      assemble_->AddBiLinearForm( actIntDescrStiff );
+      if (nonLinRegion[0] != "material") { 
+        BaseForm * bilinearStiff = GetStiffIntegrator(actSDMat, actRegion);
         
-      // check for complex valued material parameter
-      if( complexMaterial ) {
-        BaseForm * bilinearStiffImag = GetStiffIntegrator(actSDMat, 
-                                                          actRegion);
-          
-        DataType matType = IMAG; 
-        bilinearStiffImag->SetMatDataType(matType);
-          
+        //check  for softening!
+        std::string actRegionName;
+        actRegionName = ptgrid_->RegionIdToName( actRegion );
+        keyVec = "mechanic" , "region" , "softening" , "type";
+        attrVec= ""         , "name"   , "";
+        valVec = ""         , actRegionName, "";
+        StdVector<std::string> softeningInfo;
+        params->GetList( keyVec, attrVec, valVec, softeningInfo);
+        
         if (softeningInfo.GetSize() > 0)
-          bilinearStiffImag->SetSofteningModel(softeningInfo[0]);
-          
-        BiLinFormContext * actIntDescrStiffImag =
-          new BiLinFormContext(bilinearStiffImag, STIFFNESS );
-          
-        actIntDescrStiffImag->SetPtPdes(this, this);
-        actIntDescrStiffImag->SetResults( results_[0], results_[0],
-                                          actSDList, actSDList );
-        actIntDescrStiffImag->SetMatDataType(matType);
-          
-        assemble_->AddBiLinearForm(actIntDescrStiffImag  );
-      }
+          bilinearStiff->SetSofteningModel(softeningInfo[0]);
         
+        BiLinFormContext * actIntDescrStiff =
+          new BiLinFormContext(bilinearStiff, STIFFNESS );
+        
+        actIntDescrStiff->SetPtPdes(this, this);
+        actIntDescrStiff->SetResults( results_[0], results_[0],
+                                      actSDList, actSDList );
+        
+        
+        //check for damping
+        if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == false ) {
+          Double beta;
+          actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
+          actIntDescrStiff->SetSecDestMat(DAMPING, beta );
+        }
+        
+        assemble_->AddBiLinearForm( actIntDescrStiff );
+        
+        // check for complex valued material parameter
+        if( complexMaterial ) {
+          BaseForm * bilinearStiffImag = GetStiffIntegrator(actSDMat, 
+                                                            actRegion);
+          
+          DataType matType = IMAG; 
+          bilinearStiffImag->SetMatDataType(matType);
+          
+          if (softeningInfo.GetSize() > 0)
+            bilinearStiffImag->SetSofteningModel(softeningInfo[0]);
+          
+          BiLinFormContext * actIntDescrStiffImag =
+            new BiLinFormContext(bilinearStiffImag, STIFFNESS );
+          
+          actIntDescrStiffImag->SetPtPdes(this, this);
+          actIntDescrStiffImag->SetResults( results_[0], results_[0],
+                                            actSDList, actSDList );
+          actIntDescrStiffImag->SetMatDataType(matType);
+          
+          assemble_->AddBiLinearForm(actIntDescrStiffImag  );
+        }
+        
+      } // end linear stiffness
       //check for prestressing
       //    if ( isPreStresss[ 
         
       //for prestressing
-//       for ( UInt preStr=0; preStr<preStressDomain_.GetSize(); preStr++ ) {
-//         if ( actRegion == preStressDomain_[preStr]) {
-//           Vector<Double> preStrVal(3);
-//           preStrVal[0] = preStressValX_[preStr];
-//           preStrVal[1] = preStressValY_[preStr];
-//           preStrVal[2] = preStressValZ_[preStr];
+      //       for ( UInt preStr=0; preStr<preStressDomain_.GetSize(); preStr++ ) {
+      //         if ( actRegion == preStressDomain_[preStr]) {
+      //           Vector<Double> preStrVal(3);
+      //           preStrVal[0] = preStressValX_[preStr];
+      //           preStrVal[1] = preStressValY_[preStr];
+      //           preStrVal[2] = preStressValZ_[preStr];
             
-//           BaseForm * bilinearPreStress;
-//           if (subType_ == "planeStrain")
-//             bilinearPreStress = new PreStressIntPlaneStrain(actSDMat, preStrVal);
-//           else if (subType_ == "axi")
-//             bilinearPreStress = new PreStressIntAxi(actSDMat, preStrVal);
-//           else if (subType_ == "3d")
-//             bilinearPreStress = new PreStressInt3D(actSDMat, preStrVal);
-//           else 
-//             Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);               
+      //           BaseForm * bilinearPreStress;
+      //           if (subType_ == "planeStrain")
+      //             bilinearPreStress = new PreStressIntPlaneStrain(actSDMat, preStrVal);
+      //           else if (subType_ == "axi")
+      //             bilinearPreStress = new PreStressIntAxi(actSDMat, preStrVal);
+      //           else if (subType_ == "3d")
+      //             bilinearPreStress = new PreStressInt3D(actSDMat, preStrVal);
+      //           else 
+      //             Info->Error("Unknown subtype in mech PDE! ",__FILE__,__LINE__);               
 	    
-//           BiLinFormContext * actIntDescrPre =
-//             new BiLinFormContext(bilinearPreStress, STIFFNESS );
-//           actIntDescrPre->SetPtPdes(this, this);
-//           actIntDescrPre->SetResults( results_[0], results_[0],
-//                                       actSDList, actSDList );
+      //           BiLinFormContext * actIntDescrPre =
+      //             new BiLinFormContext(bilinearPreStress, STIFFNESS );
+      //           actIntDescrPre->SetPtPdes(this, this);
+      //           actIntDescrPre->SetResults( results_[0], results_[0],
+      //                                       actSDList, actSDList );
 	    
-//           assemble_->AddBiLinearForm(actIntDescrPre);
-//         }
-//       }
+      //           assemble_->AddBiLinearForm(actIntDescrPre);
+      //         }
+      //       }
       
       
       // ==============  add nonlinear stiffness ============================
-      if (nonLin_) {
+      if (nonLin_ && nonLinRegion[0] == "geo") {
+
         BaseForm *nLinPart1 = NULL;
         BaseForm *nLinPart2 = NULL;
-	    
+        
         if (subType_ == "3d")
           {   
             nLinPart1 = new nLinMech3dInt_BNonLin(actSDMat);    
             nLinPart2 = new nLinMech3dInt_PiolaStress(actSDMat);
           }
-	    
+        
         else if (subType_ == "planeStrain")
           {
             nLinPart1 = new nLinMechPlaneStrainInt_BNonLin(actSDMat);    
             nLinPart2 = new nLinMechPlaneStrainInt_PiolaStress(actSDMat);
-		
+            
           }
         else if (subType_ == "axi")
           {
             nLinPart1 = new nLinMechAxiInt_BNonLin(actSDMat);    
             nLinPart2 = new nLinMechAxiInt_PiolaStress(actSDMat);
-		
+            
           }
         // pass solution pointer to nonlinear forms
         nLinPart1->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
         nLinPart2->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-          
+        
         BiLinFormContext * stiffNL1Descr = 
           new BiLinFormContext(nLinPart1, STIFFNESS );
-	    
+        
         stiffNL1Descr->SetPtPdes(this, this);
         stiffNL1Descr->SetResults( results_[0], results_[0],
                                    actSDList, actSDList );
         assemble_->AddBiLinearForm(stiffNL1Descr);
-          
+        
         BiLinFormContext * stiffNL2Descr = 
           new BiLinFormContext(nLinPart2, STIFFNESS );
-	    
+        
         stiffNL2Descr->SetPtPdes(this, this);
         stiffNL2Descr->SetResults( results_[0], results_[0],
                                    actSDList, actSDList );
         assemble_->AddBiLinearForm(stiffNL2Descr);
-	    
+        
         // assemble prestress, if in config-file given
         //    if (preStressVal_)
         //      AssemblePreStressMat(ptEl, connect_PDE, ptCoord,
         //      actMatData, elDisp);
       }
-	
-	
+      
+      if (nonLin_ && nonLinRegion[0] == "material") {
+
+        BaseForm *nLinMaterial = NULL;
+        
+        std::string nlfnc;
+        materials_[subdoms_[actRegion]]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
+        
+        ApproxData *nlinFnc = new SmoothSpline(nlfnc);
+        //            ApproxData *nlinFnc = new LinInterpolate(nlfnc);
+        nlinFnc->CalcBestParameter();
+        nlinFnc->CalcApproximation();
+        
+        if (subType_ == "3d")
+          {   
+            nLinMaterial = new nLinMech3dInt_Material(nlinFnc, actSDMat);    
+          }
+        
+        nLinMaterial->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
+        
+        BiLinFormContext * stiffNLMaterialDescr = 
+          new BiLinFormContext(nLinMaterial, STIFFNESS );
+        
+        stiffNLMaterialDescr->SetPtPdes(this, this);
+        stiffNLMaterialDescr->SetResults( results_[0], results_[0],
+                                          actSDList, actSDList );
+        assemble_->AddBiLinearForm(stiffNLMaterialDescr);
+          
+      }
+      
+      
       // ==============  add mass ===========================================
     
 
@@ -712,20 +778,23 @@ namespace CoupledField {
 
       actIntDescr->SetPtPdes(this, this);
       actIntDescr->SetResults( results_[0], results_[0],
-			       actSDList, actSDList );
+                               actSDList, actSDList );
 
       // Check for damping (mass part)
       if ( dampingList_[actRegion] == RAYLEIGH ) {
-	Double alpha;
-	actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-	actIntDescr->SetSecDestMat( DAMPING, alpha );
+        Double alpha;
+        actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+        actIntDescr->SetSecDestMat( DAMPING, alpha );
       }
-
+      
       assemble_->AddBiLinearForm(actIntDescr);
 
+
+      
 	
       // ==================== RHS ===========================================
-      if (nonLin_) {
+      if (nonLin_ && nonLinRegion[0] != "material") {
+
         LinearForm * rhsSource = new nLinMech_linFormInt(actSDMat, isaxi_);
         rhsSource->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
         LinearFormContext * nLinRhs = 
@@ -736,13 +805,13 @@ namespace CoupledField {
       }
 
       if (  preStressList_[actRegion] == "RHS" ) {
-	Vector<Double> preStress = preStressVal_[actRegion];
-
-	//transform the type
-	SubTensorType tensorType;
-	String2Enum(subType_,tensorType);
-	LinearForm * rhsStress = new AddStressRHSInt(actSDMat, preStress, tensorType);
-
+        Vector<Double> preStress = preStressVal_[actRegion];
+        
+        //transform the type
+        SubTensorType tensorType;
+        String2Enum(subType_,tensorType);
+        LinearForm * rhsStress = new AddStressRHSInt(actSDMat, preStress, tensorType);
+        
         LinearFormContext * linRhs = 
           new LinearFormContext( rhsStress, preStressFnc_[actRegion] );
         linRhs->SetPtPde( this );
@@ -770,15 +839,15 @@ namespace CoupledField {
  
 
       // penalty dof
-        StdVector<std::string> keyVec, attrVec, valVec;
-        std::string regionName = ptgrid_->RegionIdToName( actRegion );
-        attrVec = "", "", "name";
-        valVec = "", "", regionName;
+      StdVector<std::string> keyVec, attrVec, valVec;
+      std::string regionName = ptgrid_->RegionIdToName( actRegion );
+      attrVec = "", "", "name";
+      valVec = "", "", regionName;
         
-        // Get penalty value for drilling dof of region
-        Double penaltyDof;
-        keyVec = "pdeList", "mechanic", "region", "penaltyDof";
-        params->Get( keyVec, attrVec, valVec, penaltyDof );
+      // Get penalty value for drilling dof of region
+      Double penaltyDof;
+      keyVec = "pdeList", "mechanic", "region", "penaltyDof";
+      params->Get( keyVec, attrVec, valVec, penaltyDof );
 
 
       // ==============  add stiffness ===========================================
@@ -791,9 +860,9 @@ namespace CoupledField {
       
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == FALSE ) {
-	Double beta;
-	actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
-	actIntDescrStiff->SetSecDestMat( DAMPING, beta );
+        Double beta;
+        actSDMat->GetScalar(beta,RAYLEIGH_BETA,REAL);
+        actIntDescrStiff->SetSecDestMat( DAMPING, beta );
       }
 
       actIntDescrStiff->SetPtPdes(this, this);
@@ -810,14 +879,14 @@ namespace CoupledField {
             
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH && complexMaterial == FALSE ) {
-	Double alpha;
-	actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
-	actIntDescrMass->SetSecDestMat( DAMPING, alpha );
+        Double alpha;
+        actSDMat->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
+        actIntDescrMass->SetSecDestMat( DAMPING, alpha );
       }
 
       actIntDescrMass->SetPtPdes(this, this);
       actIntDescrMass->SetResults( results_[0], results_[0],
-                                    actSDList, actSDList );
+                                   actSDList, actSDList );
       
       assemble_->AddBiLinearForm( actIntDescrMass );
       eqnMap_->AddResult( *results_[0], actSDList );
@@ -1232,7 +1301,7 @@ namespace CoupledField {
                 ptCoupling_->GetOutputNodes(i, couplingnodes);
                 solDeriv1_.SetAlgSysVector(getS1());     
                 solDeriv1_.NodeSolutionToCoupling(*values, *couplingnodes);
-	      }
+              }
           
 
             if (quantity == MECH_FORCE)
@@ -1429,7 +1498,6 @@ namespace CoupledField {
     rhs.SetResult( results_[0] );
     rhs.SetPtrEQNData(eqnMap_.get(), ptgrid_);
     rhs.Init(0.0);
-    
     Double *ptRHS;
     algsys_->GetRHSVal( ptRHS );
     rhs.CopyFromAlgSysDataPointer(ptRHS);
@@ -1748,7 +1816,7 @@ namespace CoupledField {
     params->GetList( "name", regionNames, pdename_, "volumeAboveDefSurf" );
     ptgrid_->RegionNameToId( volAboveDefSurfRegions_, regionNames );
     params->GetList( "dof", volAboveDefSurfDir_, pdename_, 
-		     "volumeAboveDefSurf" );
+                     "volumeAboveDefSurf" );
 
   }
 
@@ -1882,92 +1950,92 @@ namespace CoupledField {
       
   
       if ( !stressInfo.IsEmpty() ) {
-	preStressList_[actRegion] = "RHS";
-	Vector<Double> stress(6);
-	StdVector<Double> getStress;
-	StdVector<std::string> fncName;
+        preStressList_[actRegion] = "RHS";
+        Vector<Double> stress(6);
+        StdVector<Double> getStress;
+        StdVector<std::string> fncName;
 	
-	keyVec = "mechanic" , "region" , "preStress" , "stress1";
-	params->GetList( keyVec, attrVec, valVec, getStress );
-	stress[0] = getStress[0];
+        keyVec = "mechanic" , "region" , "preStress" , "stress1";
+        params->GetList( keyVec, attrVec, valVec, getStress );
+        stress[0] = getStress[0];
 	  
-	keyVec = "mechanic" , "region" , "preStress" , "stress2";
-	params->GetList( keyVec, attrVec, valVec, getStress );      
-	stress[1] = getStress[0];
+        keyVec = "mechanic" , "region" , "preStress" , "stress2";
+        params->GetList( keyVec, attrVec, valVec, getStress );      
+        stress[1] = getStress[0];
 	  
-	keyVec = "mechanic" , "region" , "preStress" , "stress3";
-	params->GetList( keyVec, attrVec, valVec, getStress );      
-	stress[2] = getStress[0];
+        keyVec = "mechanic" , "region" , "preStress" , "stress3";
+        params->GetList( keyVec, attrVec, valVec, getStress );      
+        stress[2] = getStress[0];
 
-	keyVec = "mechanic" , "region" , "preStress" , "stress4";
-	params->GetList( keyVec, attrVec, valVec, getStress );      
-	stress[3] = getStress[0];
+        keyVec = "mechanic" , "region" , "preStress" , "stress4";
+        params->GetList( keyVec, attrVec, valVec, getStress );      
+        stress[3] = getStress[0];
 
-	keyVec = "mechanic" , "region" , "preStress" , "stress5";
-	params->GetList( keyVec, attrVec, valVec, getStress );      
-	stress[4] = getStress[0];
+        keyVec = "mechanic" , "region" , "preStress" , "stress5";
+        params->GetList( keyVec, attrVec, valVec, getStress );      
+        stress[4] = getStress[0];
 
-	keyVec = "mechanic" , "region" , "preStress" , "stress6";
-	params->GetList( keyVec, attrVec, valVec, getStress );      
-	stress[5] = getStress[0];
+        keyVec = "mechanic" , "region" , "preStress" , "stress6";
+        params->GetList( keyVec, attrVec, valVec, getStress );      
+        stress[5] = getStress[0];
 
-	preStressVal_[actRegion] = stress;
+        preStressVal_[actRegion] = stress;
 
-	keyVec = "mechanic" , "region" , "preStress" , "dynamics";
-	params->GetList( keyVec, attrVec, valVec, fncName );      
+        keyVec = "mechanic" , "region" , "preStress" , "dynamics";
+        params->GetList( keyVec, attrVec, valVec, fncName );      
 
-	preStressFnc_[actRegion] = fncName[0];
+        preStressFnc_[actRegion] = fncName[0];
       }
     }
 
-//     StdVector<std::string> keyVec;
-//     StdVector<std::string> attrVec;
-//     StdVector<std::string> valVec;
-//     StdVector<std::string> regionNames;
+    //     StdVector<std::string> keyVec;
+    //     StdVector<std::string> attrVec;
+    //     StdVector<std::string> valVec;
+    //     StdVector<std::string> regionNames;
 
-//     keyVec = pdename_, "preStressing", "preStress", "name";
-//     attrVec = "", "", "tag";
-//     valVec  = "", "", bcSequenceTag_;
+    //     keyVec = pdename_, "preStressing", "preStress", "name";
+    //     attrVec = "", "", "tag";
+    //     valVec  = "", "", bcSequenceTag_;
 
-//     params->GetList(keyVec, attrVec, valVec, regionNames );
-//     ptgrid_->RegionNameToId( preStressDomain_, regionNames );
+    //     params->GetList(keyVec, attrVec, valVec, regionNames );
+    //     ptgrid_->RegionNameToId( preStressDomain_, regionNames );
 
-//     if ( preStressDomain_.GetSize() > 0 ) {
+    //     if ( preStressDomain_.GetSize() > 0 ) {
 
-//       Info->PrintF( pdename_,
-//                     " Found prestressing in the following regions:\n" );
+    //       Info->PrintF( pdename_,
+    //                     " Found prestressing in the following regions:\n" );
 
-//       Double tmpDir;
+    //       Double tmpDir;
 
-//       // Construct vectors for restricted search parameter
-//       StdVector<std::string> keyVec;
-//       StdVector<std::string> attrVec;
-//       StdVector<std::string> valVec;
-//       attrVec = "", "", "name";
+    //       // Construct vectors for restricted search parameter
+    //       StdVector<std::string> keyVec;
+    //       StdVector<std::string> attrVec;
+    //       StdVector<std::string> valVec;
+    //       attrVec = "", "", "name";
 
-//       // for each prestress domain ...
-//       for ( UInt k = 0; k < preStressDomain_.GetSize(); k++ ) {
+    //       // for each prestress domain ...
+    //       for ( UInt k = 0; k < preStressDomain_.GetSize(); k++ ) {
 
-//         // ... read direction of magnetisation
-//         valVec = "", "", regionNames[k];
+    //         // ... read direction of magnetisation
+    //         valVec = "", "", regionNames[k];
 
-//         keyVec  = pdename_, "preStressing", "preStress", "orientX";
-//         params->Get( keyVec, attrVec, valVec, tmpDir);
-//         preStressValX_.Push_back( tmpDir);
+    //         keyVec  = pdename_, "preStressing", "preStress", "orientX";
+    //         params->Get( keyVec, attrVec, valVec, tmpDir);
+    //         preStressValX_.Push_back( tmpDir);
 
-//         keyVec  = pdename_, "preStressing", "preStress", "orientY";
-//         params->Get( keyVec, attrVec, valVec, tmpDir );
-//         preStressValY_.Push_back( tmpDir );
+    //         keyVec  = pdename_, "preStressing", "preStress", "orientY";
+    //         params->Get( keyVec, attrVec, valVec, tmpDir );
+    //         preStressValY_.Push_back( tmpDir );
 
-//         keyVec  = pdename_, "preStressing", "preStress", "orientZ";
-//         params->Get( keyVec, attrVec, valVec, tmpDir );
-//         preStressValZ_.Push_back( tmpDir );
+    //         keyVec  = pdename_, "preStressing", "preStress", "orientZ";
+    //         params->Get( keyVec, attrVec, valVec, tmpDir );
+    //         preStressValZ_.Push_back( tmpDir );
 
-//         // ... report name to logfile
-//         Info->PrintF( pdename_, "%s\n", regionNames[k].c_str());
-//       }
+    //         // ... report name to logfile
+    //         Info->PrintF( pdename_, "%s\n", regionNames[k].c_str());
+    //       }
 
-//    }
+    //    }
 
 
   }

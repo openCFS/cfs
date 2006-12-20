@@ -53,6 +53,8 @@ namespace CoupledField {
     nonLin_ = false;
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
+    nonLinMaxIter_  = 10;
+    nonLinLogging_  = true;
   
     // =====================================================================
     // set file pointers
@@ -958,6 +960,7 @@ namespace CoupledField {
                 domain->GetCoordSystem(subdomCoordSys[k]);
               materials_[subdoms_[i]]->SetCoordSys( actCoosy );
             }
+
 
             // Fetch for each material rotation paramters
             StdVector<Double> rotAlpha, rotBeta, rotGamma;

@@ -230,6 +230,15 @@ namespace CoupledField {
     void setPDE_complexValuedCharge(Vector<Complex> chargeVec)
     {complexValuedCharge_=chargeVec;};
 
+    // set if PDE is nonlinear
+    virtual void SetNonLinearity(bool nonLin){
+      nonLin_=nonLin;};
+
+    // set if PDE is nonlinear (material dependency)
+    virtual void SetMaterialNonLinearity(bool nonLin){
+      nonLinMaterial_=nonLin;};
+
+
     //!
     void sortStresses(Vector<Double>& unsorted, Vector<Double>& sorted);
     void sortStresses(Vector<Complex>& unsorted, Vector<Complex>& sorted);
@@ -241,6 +250,9 @@ namespace CoupledField {
 
     bool IsNonLin() 
     { return nonLin_;};
+
+    bool IsNonLinMaterial() 
+    { return nonLinMaterial_;};
 
     bool GetNonlinLogging() 
     { return nonLinLogging_;};
@@ -281,6 +293,15 @@ namespace CoupledField {
     UInt& GetIterCoupledCounter() 
     { return iterCoupledCounter_;};
 
+    PDECoupling* GetCoupling()
+    {return ptCoupling_;};
+
+    //! List of inhomogeneous Dirichlet boundary conditions
+    IdBcList GetIDBCList(){
+      return idBcs_;};
+
+
+
     //@}
 
   protected:
@@ -307,7 +328,7 @@ namespace CoupledField {
     void StoreAlgsysToVec(Vector<Double>& vec, Double * pt);
 
     //! calculates L2-norm of RHS regarding entries due to penalty formulation
-    Double RhsL2Norm(Vector<Double>& stdVec);
+    virtual Double RhsL2Norm(Vector<Double>& stdVec);
 
     //! Get coefficient for damping matrix in fractional damping model
     //! \todo This function has to be removed when the fractional
@@ -383,6 +404,7 @@ namespace CoupledField {
     //@{
     //! \name Attributes connected to nonlinearity
     bool nonLin_;           //!< flag for nonlinear calculations
+    bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations

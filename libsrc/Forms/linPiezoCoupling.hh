@@ -6,6 +6,11 @@
 #include "Forms/adbInt.hh"
 #include "Materials/baseMaterial.hh"
 
+#include <Utils/ApproxData.hh>
+#include <Forms/bdbInt.hh>
+#include <Forms/gradfieldop.hh>
+
+
 
 namespace CoupledField {
 
@@ -132,7 +137,7 @@ namespace CoupledField {
     //! This method returns the dimensions of the data-matrix \f$D\f$.
     //! In the case of 2D plane strain piezoelectric coupling we have
     //! \f$\mbox{dim}D=3\times 2\f$
-    void getDimD( UInt nRows, UInt nCols ) {
+    virtual void getDimD( UInt nRows, UInt nCols ) {
       ENTER_IFCN( "linPiezoCoupling::getDimD" );
       nRows = matDimRow_;
       nCols = matDimCol_;
@@ -146,7 +151,7 @@ namespace CoupledField {
     //! In the case of 2D plane strain piezoelectric coupling the first
     //! physical quantity is the mechanical displacements.
     //! \return 2
-    UInt getNumDofsA() {
+    virtual UInt getNumDofsA() {
       ENTER_IFCN( "linPiezoCoupling::getNumDofsA" );
       return numDofsA_;
     }

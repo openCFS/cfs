@@ -31,10 +31,12 @@ namespace CoupledField
 
     //! perform an update to RHS
     void UpdateRHS();
-
+    
     //! perform an update to RHS with actual solution (for nonlin calculation)
     virtual void UpdateRHS(Vector<Double>& actSol);  
-
+    
+    //! substracts -Ku from RHS
+    virtual void SubstractStiffnessFromRHS(Vector<Double>& actSol);
 
 
   private:

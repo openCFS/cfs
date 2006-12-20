@@ -106,8 +106,10 @@ namespace CoupledField {
   // ==================
   void TransientDriver::Init() {
     ENTER_FCN( "TransientDriver::Init" );
-    
+
+
     InitializePDEs();
+
   }
     
 
@@ -126,7 +128,7 @@ namespace CoupledField {
     UInt nextRestart  = isavebegin_ + restartStep_ + restartIncr_ - 1;
     Double  dt = firstdt_;
     bool haltFlag=false;
- 
+
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
   

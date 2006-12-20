@@ -68,14 +68,13 @@ namespace CoupledField
     Vector<TYPE> potential;
     potential_->GetElemSolution( potential, ent );
     
-
     // loop over shape functions
     for( UInt i=0; i<dim; i++ ) {
       for( UInt j=0; j<nShFnc; j++ ) {
         elemField[i] += -GlobalGradient[j][i] * potential[j] * factor;
       }
     }
-  
+    
   }
 
 

@@ -125,7 +125,7 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="planeStrain"/>
               <xsd:enumeration value="planeStress"/>
-	      <xsd:enumeration value="flatShell"/>
+              <xsd:enumeration value="flatShell"/>
               <xsd:enumeration value="3d"/>
               <xsd:enumeration value="axi"/>
             </xsd:restriction>
@@ -458,6 +458,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
       <xsd:enumeration value="geo"/>
+      <xsd:enumeration value="material"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -7,6 +7,8 @@
 #include "Utils/vector.hh"
 #include "Utils/hysteresis.hh"
 #include "Materials/baseMaterial.hh"
+#include "Domain/domain.hh"
+
 
 namespace CoupledField
 {
@@ -18,6 +20,11 @@ namespace CoupledField
   class WriteResults;
   class EqnMap;
   class ResultDof;
+  class SingleDriver;
+  class IDBC_Handler;
+  class BaseIDBC_Handler;
+
+  //  class Domain;
   
   //! Derived class for step-wise solving of StdPDEs
   class StdSolveStep : public BaseSolveStep {
@@ -65,6 +72,10 @@ namespace CoupledField
 
     //! solves for one nonlinear transient step 
     virtual void StepTransNonLin();
+
+    //! solves for one nonlinear transient step 
+    //! consideres material nonlinearities in direct coupled PDEs
+    void StepTransNonLinMaterial();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
@@ -116,6 +127,12 @@ namespace CoupledField
     Double LineSearch(Vector<Double>& solIncrement, Vector<Double>& actSol, 
                       Double& etaLineSearch, bool trans=false);
 
+    //! does a line search and returns the optimal residual norm
+    Double LineSearchMaterial(Vector<Double>& solIncrement, Vector<Double>& actSol, 
+                              Double& etaLineSearch, Double& RHSLin2Norm,
+                              bool trans=false);
+
+
     //! returns that L2-norm of an algsys vector
     Double AlgsysL2Norm(Double * pt);
 
@@ -144,7 +161,6 @@ namespace CoupledField
 
 
     //-------------------------------- Pointers to (Copies of) StdPDE -------------------
-
     StdPDE& PDE_;                   //!< reference to PDE
     std::string pdename_;            //!< name of PDE 
     UInt numPDENodes_;            //!< number of nodes belonging to the PDE
@@ -170,6 +186,7 @@ namespace CoupledField
 
     std::string lineSearch_;   //!< switch for lineSearch
     bool nonLin_;           //!< flag for nonlinear calculations
+    bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool isHyst_;           //!< flag for hystersis modeling
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error

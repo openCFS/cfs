@@ -41,6 +41,10 @@ namespace CoupledField
     isAllowed_.insert( LOSS_TANGENS_DELTA);
     isAllowed_.insert( ACOU_ALPHA );
     isAllowed_.insert( FRACTIONAL_EXPONENT );
+    isAllowed_.insert( NONLIN_COEFFICIENT );
+    isAllowed_.insert( NONLIN_DEPENDENCY );
+    isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
+    isAllowed_.insert( NONLIN_DATA_NAME );
 
   }
 
@@ -62,9 +66,21 @@ namespace CoupledField
   void MechanicMaterial::SetScalar( std::string& param, const MaterialType& matType) {
 
     ENTER_FCN( "AcousticMaterial::SetScalar" );
-    Error("SetScalar for 'String' not implemented",__FILE__,__LINE__);
-  }
 
+      
+    //check, if allowed
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotAllowed( matType, dim );
+    }
+    else {
+      isSet_.insert( matType );
+    }
+
+    stringParams_[matType] = param;
+    
+  }
+  
 
   void MechanicMaterial::SetScalar( Double& param, const MaterialType& matType, 
 				    const DataType& dataType ) {
@@ -81,15 +97,15 @@ namespace CoupledField
 
       Complex val;
       if ( dataType == REAL ) {
-	val = Complex ( param, 0.0 );
+        val = Complex ( param, 0.0 );
       }
       else if (dataType == IMAG ) {
-	val = Complex ( 0.0, param );
-	isComplex_.insert( matType );
+        val = Complex ( 0.0, param );
+        isComplex_.insert( matType );
       }
       else {
-	std::string msg = "SetScalar-Double";
-	dataTypeNotAllowed4SetGet ( dataType, msg );
+        std::string msg = "SetScalar-Double";
+        dataTypeNotAllowed4SetGet ( dataType, msg );
       }
       
       scalarParams_[matType] = val;
@@ -99,6 +115,7 @@ namespace CoupledField
 
   void MechanicMaterial::SetScalar( Complex& param, const MaterialType& matType, 
 				    const DataType& dataType ) {
+
 
     ENTER_FCN( "MechanicMaterial::SetScalar" );
 
@@ -187,6 +204,41 @@ namespace CoupledField
     }
   }
 
+  void MechanicMaterial::GetScalar( std::string& param, const MaterialType& matType)  const {
+
+    ENTER_FCN( "MechanicMaterial::GetScalar" );
+
+    stringMap::const_iterator pos;
+    pos = stringParams_.find( matType );
+    std::string value;
+
+    if ( pos == stringParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      param=pos->second;
+    }
+  }    
+ 
+   void MechanicMaterial::GetScalar( Integer& param, const MaterialType& matType)  const {
+    
+     ENTER_FCN( "MechanicMaterial::GetScalar" );
+    
+     integerMap::const_iterator pos;
+     pos = integerParams_.find( matType );
+     std::string value;
+    
+     if ( pos == integerParams_.end() ) {
+       std::string dim = "scalar";
+       matTypeNotInDataBase( matType, dim );
+     }
+     else {
+       param=pos->second;
+     }
+   }    
+  
+
 
   void MechanicMaterial::GetScalar( Double& param, const MaterialType& matType, 
 				    const DataType& dataType )  const {
@@ -203,14 +255,14 @@ namespace CoupledField
     else {
       Complex val = pos->second;
       if ( dataType == REAL ) {
-	param = val.real();
+        param = val.real();
       }
       else if ( dataType == IMAG ) {
-	param = val.imag();
+        param = val.imag();
       }
       else {
-	std::string msg = "GetScalar-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
+        std::string msg = "GetScalar-Double";
+        dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }    
   }

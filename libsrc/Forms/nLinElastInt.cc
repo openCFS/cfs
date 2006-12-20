@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "nLinElastInt.hh"
+#include "Forms/nLinElastInt.hh"
 #include "Utils/nodestoresol.hh"
 
 namespace CoupledField
@@ -38,11 +38,13 @@ namespace CoupledField
     ENTER_FCN( "nLinElastInt::CalcElementMatrix" );
 
     // get displacements of element
+
     sol_->GetElemSolutionAsMatrix( elemDisp_, ent1  );
     
     // call method of base class
     BDBInt::CalcElementMatrix( elemMat, ent1, ent2 );
   }
+
 
   void nLinElastInt::SetActEntities( EntityIterator ent1,
                                      EntityIterator ent2 ) {
@@ -163,7 +165,206 @@ namespace CoupledField
     ENTER_FCN( "nLinMech3dInt_BNonLin::calcDMat" );
     ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL);
   }
-  
+
+
+
+  // =============================================================================
+  // 3D nonlinear mechanics (material nonlinearity)
+  // =============================================================================
+
+
+  // class for mechanical material nonlinearities ...
+ nLinMech3dInt_Material::nLinMech3dInt_Material(ApproxData *nlinFnc,
+                                                BaseMaterial* matData) 
+   : nLinElastInt(matData)
+  {
+    ENTER_FCN( "nLinMech3dInt_Material::nLinMech3dInt_Material" );
+    name_ = "nLinMech3dInt_Material";
+    updateDMatInEveryIP_ = 1;
+    isSolDependent_ = true;
+    nLinFnc_ = nlinFnc;
+  }
+ 
+
+  nLinMech3dInt_Material::~nLinMech3dInt_Material()
+  {
+    ENTER_FCN( "nLinMech3dInt_Material::~nLinMech3dInt_Material" );
+  }
+
+
+  // calculates the D-matrix of a 3d-problem 
+  // (see mech3dInt::calcDMat)
+  void nLinMech3dInt_Material::calcDMat(Matrix<Double> & dMat, 
+                                        UInt ip, 
+                                        Matrix<Double> & ptCoord)
+  {
+    ENTER_FCN( "nLinMech3dInt_Material::calcDMat" );
+    ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL);
+   
+    Matrix<Double> xiDx;
+    ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, it1_.GetElem() );
+
+    Matrix<Double>  displDeriv;  
+    displDeriv = elemDisp_ * xiDx;
+
+    Vector<Double> stressVec;
+    // calc stress:
+
+    Vector<Double> displVec;
+    elemDisp_.ConvertToVec_AppendCols(displVec);
+
+    Matrix<Double> linBMat;    
+    calcBMat( linBMat, ip, ptCoord);
+
+    std::string nonLinDepend;
+    ptMaterial->GetScalar(nonLinDepend, NONLIN_DEPENDENCY);
+
+    Integer nonLinCoeff;
+    ptMaterial->GetScalar(nonLinCoeff, NONLIN_COEFFICIENT);
+
+    std::string nonLinApproxType;
+    ptMaterial->GetScalar(nonLinApproxType,NONLIN_APPROXIMATION_TYPE);
+
+
+    if(nonLinDepend=="mechStress"){
+
+      //Compute element stress
+      
+      Vector<Double> linStrain(linBMat.GetSizeRow());
+      linStrain.Init();
+      stressVec.Init();
+      linStrain = linBMat * displVec;
+      stressVec = dMat * linStrain;
+      
+      Double stressSum=0.0;
+      for(UInt i=0; i<displDeriv.GetSizeRow();i++)
+        stressSum+=std::abs(stressVec[i]);
+      
+      Double c11, c13;
+      
+      if (nonLinApproxType=="polynomial"){
+        if(nonLinCoeff==33)
+          dMat[2][2]+=0.01*(stressSum + 0.02*stressSum*stressSum)*dMat[2][2];
+        else if(nonLinCoeff==11){
+          c11 = dMat[0][0]+0.01*(stressSum + 0.02*stressSum*stressSum)*dMat[0][0];
+          dMat[0][0] = c11;
+          dMat[1][1] = c11;
+          dMat[5][5] = 0.5 * (c11 - dMat[0][1]);
+        }
+        else if(nonLinCoeff==13){
+          c13 == dMat[0][2]+0.01*(stressSum + 0.02*stressSum*stressSum)*dMat[0][2];
+          dMat[0][2] = c13;
+          dMat[1][2] = c13;
+          dMat[2][0] = c13;
+          dMat[2][1] = c13;
+        }
+        else
+          Error("The nonlinear parameter dependency is not known", __FILE__, __LINE__);
+      }
+      else if (nonLinApproxType=="smoothSplines")
+        {
+          Double approxCoeff;
+
+          approxCoeff = nLinFnc_->EvaluateFunc(stressSum);
+          if(nonLinCoeff==33){
+            dMat[2][2] = approxCoeff * 1.0e+11;
+          }
+        }
+      else
+        Error("The nonlinear approximation type is not known", __FILE__, __LINE__);
+    }
+    else{
+      std::cout<<"The data dependency you have chosen is " << nonLinDepend <<std::endl;
+      std::cout<<"(If this is true, check if there is a blank in font of choice) " <<std::endl;
+      Error("Nonlinear dependency not implemented here", __FILE__, __LINE__);
+    }
+  }
+
+  void nLinMech3dInt_Material::calcBMat( Matrix<Double> &bMat, UInt ip,
+                                         Matrix<Double> &ptCoord ) {
+
+    ENTER_FCN( "linElastInt::calcBMat" );
+
+    const UInt nrNodes  = ptelem->GetNumNodes();
+    const UInt spaceDim = ptelem->GetDim();  
+    const UInt nrDofs   = getNrDofs();  
+
+    UInt actDim, actNode, j, k;
+    
+    
+    bMat.Resize(getDimD(), nrNodes * nrDofs);
+    bMat.Init();
+    
+    // local shape functions derived after global coords
+    // (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+
+    ptelem->GetGlobDerivShFncAtIp(xiDx, ip, ptCoord, it1_.GetElem() );
+
+    for(actDim=0; actDim < spaceDim; actDim++)
+      for(actNode=0; actNode < nrNodes; actNode++)
+        bMat[actDim][actNode * spaceDim + actDim] = xiDx[actNode][actDim];
+
+    switch(spaceDim)
+      {
+      case 2:
+        j = 1;
+        k = 0;
+        
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[spaceDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+            bMat[spaceDim][actNode * spaceDim]     = xiDx[actNode][1];
+          }
+
+        if (isaxi_)
+          {
+            UInt idxtheta = getDimD();
+            Vector<Double> ShpFncAtIp;
+            Vector<Double> CoordAtIP;
+
+            if (isSetIntPoint_) 
+              ptelem->GetShFnc(ShpFncAtIp,intPoint_,it1_.GetElem());
+            else
+              ptelem->GetShFncAtIp(ShpFncAtIp,ip,it1_.GetElem());
+
+            CoordAtIP = ptCoord * ShpFncAtIp;
+
+            for (actNode = 0; actNode < nrNodes; actNode++)          
+              bMat[idxtheta-1][actNode * spaceDim] =
+                ShpFncAtIp[actNode] / CoordAtIP[0];
+          }
+
+        break;
+
+
+      case 3:
+        UInt actDim=spaceDim;
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][2];
+            bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][1];
+          }
+
+        actDim++;
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[actDim][actNode * spaceDim]     = xiDx[actNode][2];
+            bMat[actDim][actNode * spaceDim + 2] = xiDx[actNode][0];
+          }
+
+        actDim++;
+        for (actNode = 0; actNode < nrNodes; actNode++)
+          {
+            bMat[actDim][actNode * spaceDim]     = xiDx[actNode][1];
+            bMat[actDim][actNode * spaceDim + 1] = xiDx[actNode][0];
+          }
+        break;
+      }
+
+    isSetIntPoint_ = false;
+  }
+
 
 
 

@@ -35,4 +35,6 @@
 #include "bubbleDampInt.hh"
 #include "bubbleStiffInt.hh"
 #include "pierceInt.hh"
+#include "nLinElecMaterial.hh" 
+#include "nLinPiezoCoupling.hh" 
 #endif
