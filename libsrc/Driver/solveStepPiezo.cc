@@ -67,7 +67,7 @@ namespace CoupledField {
           numSDElems = elemssd.GetSize(); 
 
           std::string hystType;
-	  materialData_[iSD]->GetScalar(hystType, HYST_MODEL);
+          materialData_[iSD]->GetScalar(hystType, HYST_MODEL);
           if ( hystType == "preisach" ) {
             materialData_[iSD]->GetScalar(Esat,E_SATURATION,REAL);
             materialData_[iSD]->GetScalar(Psat,P_SATURATION,REAL);
@@ -104,16 +104,34 @@ namespace CoupledField {
   void SolveStepPiezo::SolveStepTrans() {
 
     ENTER_FCN( "SolveStepPiezo::SolveStepTrans" );
-  
+
+    std::cout<<"Solve Step Trans"<<std::endl;  
     if (isHyst_) {
       StepTransNonLinEpsDiff();
     }
+    else if (nonLin_){
+      std::cout<<"We do a transient nonlinear calculation"<<std::endl;
+      StepTransNonLin();
+    }
+//     else if (nonLinMaterial_){
+//       std::cout<<"We do a transient nonlinear calculation"<<std::endl;
+//       StepTransNonLinMaterial();
+//     }
     else {
+      std::cout<<"We do a transient linear calculation"<<std::endl;
       StepTransLin();
     }
 
   }
 
+  void SolveStepPiezo::StepTransMaterialNonLin(){
+    
+    ENTER_FCN( "SolveStepPiezo::StepTransMaterialNonLin" );
+
+      std::cout<<"We do a step of transient nonlinear calculation"<<std::endl;
+
+
+  }
 
   void SolveStepPiezo::StepTransNonLinEpsDiff() {
 

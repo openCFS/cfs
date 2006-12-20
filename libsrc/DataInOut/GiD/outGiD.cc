@@ -520,8 +520,8 @@ namespace CoupledField {
         // Check which mechanic subtype we have to treat
         params->Get( "subType", subType, "mechanic" );
         
-        if( subType == "3d" ) {
-          const char *names[] = {"xx", "xy", "yy", "xz", "yz", "zz"};
+        if( subType == "3D" || subType =="3d") {
+          const char *names[] = {"xx", "yy", "zz", "yz", "xz", "xy"};
           GiD_ResultComponents( 6, names );
         } else if( subType == "planeStrain" ) {
           const char *names[] = {"_", "__", "xx", "___", "xy", "yy"};
@@ -530,7 +530,8 @@ namespace CoupledField {
           const char *names[] = {"phiphi", "_", "rr", "__", "rz", "zz"};
           GiD_ResultComponents( 6, names );
         } else {
-          Error (" subType not known", __FILE__, __LINE__ );
+          std::cout<<"your subType is = " << subType <<std::endl;
+          Error (" which is not known", __FILE__, __LINE__ );
         }
       } else {
         GiD_BeginResultHeader( name.c_str(), "transient", time,

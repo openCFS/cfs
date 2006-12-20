@@ -20,12 +20,14 @@ namespace CoupledField {
     ENTER_FCN( "BasePairCoupling::BasePairCoupling" );
     
     // initialize pointers
-    sol_          = NULL;
-    solVec_       = NULL;
-    pde1_         = NULL;
-    pde2_         = NULL;
-    ptGrid_       = NULL;
-    algsys_       = NULL;
+    sol_            = NULL;
+    solVec_         = NULL;
+    pde1_           = NULL;
+    pde2_           = NULL;
+    ptGrid_         = NULL;
+    algsys_         = NULL;
+    nonLin_         = false;
+    nonLinMaterial_ = false;
 
     pde1_   = pde1;
     pde2_   = pde2;
@@ -170,6 +172,9 @@ namespace CoupledField {
     eqnMap2_ = pde2_->GetEqnMap();
     assert( eqnMap1_ != NULL);
     assert( eqnMap2_ != NULL);
+
+    // Initialize nonlinearities
+    InitNonLin();
 
     // Read in material data
     ReadMaterialData();

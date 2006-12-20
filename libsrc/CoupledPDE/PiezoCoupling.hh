@@ -45,6 +45,9 @@ namespace CoupledField
                              const Double asteptime,
                              UInt stepOffset,
                              Double timeOffset);    
+
+    //! Gathers all information concerning nonlinear computations
+    void InitNonLin();
     
   protected:
 
@@ -56,7 +59,7 @@ namespace CoupledField
     
     //! Definition of the (bi)linear forms
     void DefineIntegrators();
-    
+   
     // Data section
     bool hasOutput_;
 

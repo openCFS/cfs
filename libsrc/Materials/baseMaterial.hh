@@ -133,17 +133,21 @@ namespace CoupledField {
       Error("SetTensor not implemented",__FILE__,__LINE__); };
 
     //! get a string material parameter
-    virtual void GetScalar( std::string& param, const MaterialType& matType) const {
-     Error("GetScalar not implemented",__FILE__,__LINE__); };
 
+    virtual void GetScalar( std::string& param, const MaterialType& matType) const {
+      Error("GetScalar not implemented",__FILE__,__LINE__); };
+    
+    //! get a integer material parameter
+    virtual void GetScalar( Integer& param, const MaterialType& matType) const {
+      Error("GetScalar not implemented",__FILE__,__LINE__); };   
+    
     void GetScalar( Integer& param, const MaterialType& matType, 
-		    const DataType& dataType) const;
+                    const DataType& dataType) const;
 
     //! get a scalar real material parameter
     virtual void GetScalar( Double& param, const MaterialType& matType, 
 			    const DataType& dataType ) const {
       Error("GetScalar not implemented",__FILE__,__LINE__); };
-
 
     //! get a scalar complex material parameter
     virtual void GetScalar( Complex& param, const MaterialType& matType, 

@@ -209,7 +209,7 @@ namespace CoupledField {
       if( isFirstTime_ == false && matReassemble_[destMat] == false ) {
         continue;
       }
-      
+
       // Update flag
       matrixUpdated_ = true;
 

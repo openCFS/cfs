@@ -197,9 +197,66 @@ namespace CoupledField {
       }
     }
 
+  
+    //! Augment nonlinearity information
+    //! from PiezoCoupling, mechPDE and elecPDE
+
+    bool globalNonLin = false;
+    bool globalNonLinMaterial = false;
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      if(singlePDEs_[i]->IsNonLin())
+        globalNonLin=true;
+      if(singlePDEs_[i]->IsNonLinMaterial())
+        globalNonLinMaterial=true;
+      
+    }
+    
+    for (UInt i=0; i<couplings_.GetSize(); i++) {
+      //      Is NonLin()
+      if(couplings_[i]->nonLin_==true)
+        globalNonLin=true;
+      if(couplings_[i]->nonLinMaterial_==true)
+        globalNonLinMaterial=true;
+    }
+    
+    nonLin_=globalNonLin;    
+    nonLinMaterial_=globalNonLinMaterial;    
+
+    // copy nonlinearity information to singlePDEs
+
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++){
+      singlePDEs_[i]->SetNonLinearity(globalNonLin);
+      singlePDEs_[i]->SetMaterialNonLinearity(globalNonLin);
+    }
+     
+    // copy nonlinearity information to couplings   
+    for (UInt i=0; i<couplings_.GetSize(); i++) {
+      couplings_[i]->SetNonLinearity(globalNonLin);    
+      couplings_[i]->SetMaterialNonLinearity(globalNonLin);
+    }
+     
+    
+    if(nonLin_){
+      // which kind of lineSearch do we use?
+      params->Get( "type", lineSearch_,couplings_[0]->GetName() , "lineSearch" );
+
+      // incremental stopping criterion
+      params->Get( "incStopCrit", incStopCrit_, couplings_[0]->GetName(), "nonLinear" );
+      
+      // residual stopping criterion
+      params->Get( "resStopCrit", residualStopCrit_, couplings_[0]->GetName(), "nonLinear" );
+      
+      // maximal number of NL-iterations
+      params->Get("maxNumIters", nonLinMaxIter_, couplings_[0]->GetName(), "nonLinear");
+
+      // perform logging?
+      nonLinLogging_ = params->IsSet( "logging", couplings_[0]->GetName(), "nonLinear" );
+    }
+    
+  
     // define solveStep-driver
     DefineSolveStep();
-    
+
     // Pass SolveStep object to all single pdes
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->solveStep_ = solveStep_;
@@ -229,6 +286,42 @@ namespace CoupledField {
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       singlePDEs_[i]->SetBCs( atimestep );
     }
+  }
+
+
+
+  // calculates L2-norm of RHS regarding dirichlet entries due to penalty 
+  // formulation by setting them 0
+  Double DirectCoupledPDE::RhsL2Norm(Vector<Double>& actRHS)
+  {
+    ENTER_FCN( "DirectCoupledPDE::RhsL2Norm" );
+
+    Integer eqnNr;
+
+    for ( UInt j = 0; j < singlePDEs_.GetSize(); j++ ) {
+
+      IdBcList idbcList = singlePDEs_[j]->GetIDBCList();
+
+      // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
+      for ( UInt i = 0; i < idbcList.GetSize(); i++ ) {
+        
+        // Get grip of current idBC
+        InhomDirichletBc const & actBc = *idbcList[i];
+
+        // Get entity iterator
+        EntityIterator it = actBc.entities->GetIterator();
+
+        
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+          eqnNr = singlePDEs_[j]->GetEqnMap()->GetEqn( *actBc.result, it, actBc.dof );
+          if ( eqnNr != 0 ) {
+            actRHS[(eqnNr-1)] = 0.0;
+          }
+        }
+      } 
+    }
+    
+    return actRHS.NormL2();
   }
 
 

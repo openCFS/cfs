@@ -143,7 +143,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, inteValue );
       material->SetScalar( inteValue, NONLIN_COEFFICIENT ); 
-      //std::cerr << "entry=" << inteValue << std::endl;
+      // std::cerr << "entry=" << inteValue << std::endl;
     }
 
     //read non linear dependency of a coupling coefficient
@@ -153,7 +153,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      //std::cerr << "dependency=" << striValue << std::endl;
+      // std::cerr << "dependency=" << striValue << std::endl;
     }
 
     //read non linear approxType of a coupling coefficient
@@ -163,7 +163,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      //std::cerr << "approxType=" << striValue << std::endl;
+      //   std::cerr << "approxType=" << striValue << std::endl;
     }
 
     //read non linear data name of a coupling coefficient
@@ -173,7 +173,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      //std::cerr << "dataName=" << striValue << std::endl;
+      //      std::cerr << "dataName=" << striValue << std::endl;
     }
 
     // Print material information to .info-file
@@ -441,7 +441,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, inteValue );
       material->SetScalar( inteValue, NONLIN_COEFFICIENT ); 
-      // std::cerr << "entry=" << inteValue << std::endl;
+      //      std::cerr << "entry=" << inteValue << std::endl;
     }
 
     //read non linear dependency of a elasticity coefficient
@@ -451,7 +451,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      // std::cerr << "dependency=" << striValue << std::endl;
+      //      std::cerr << "dependency=" << striValue << std::endl;
     }
 
     //read non linear approxType of a elasticity coefficient
@@ -461,7 +461,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      // std::cerr << "approxType=" << striValue << std::endl;
+      //      std::cerr << "approxType=" << striValue << std::endl;
     }
 
     //read non linear data name of a elasticity coefficient
@@ -471,7 +471,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      // std::cerr << "dataName=" << striValue << std::endl;
+      //      std::cerr << "dataName=" << striValue << std::endl;
     }
 
     //read alpha of Rayleigh damping
@@ -768,7 +768,7 @@ namespace CoupledField {
       parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
                                    dim1, dim2, permittivityTensor );
       material->SetTensor( permittivityTensor, ELEC_PERMITTIVITY, REAL ); 
-      // std::cerr << "real permittivityTensor=" << std::endl << permittivityTensor << std::endl;
+      //      std::cerr << "real permittivityTensor=" << std::endl << permittivityTensor << std::endl;
     }
 
     //read imaginary permittivity tensor
@@ -809,7 +809,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, inteValue );
       material->SetScalar( inteValue, NONLIN_COEFFICIENT ); 
-      // std::cerr << "entry=" << inteValue << std::endl;
+      //      std::cerr << "entry=" << inteValue << std::endl;
     }
 
     //read non linear dependency of a permittivity coefficient
@@ -819,7 +819,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DEPENDENCY ); 
-      // std::cerr << "dependency=" << striValue << std::endl;
+      //      std::cerr << "dependency=" << striValue << std::endl;
     }
 
     //read non linear approxType of a permittivity coefficient
@@ -829,7 +829,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_APPROXIMATION_TYPE ); 
-      // std::cerr << "approxType=" << striValue << std::endl;
+      //      std::cerr << "approxType=" << striValue << std::endl;
     }
 
     //read non linear data name of a permittivity coefficient
@@ -839,7 +839,7 @@ namespace CoupledField {
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
       parser_->Get( keyVec, attrVec, valVec, striValue );
       material->SetScalar( striValue, NONLIN_DATA_NAME ); 
-      // std::cerr << "dataName=" << striValue << std::endl;
+      //      std::cerr << "dataName=" << striValue << std::endl;
     }
 
     //read Preisach hysterese model

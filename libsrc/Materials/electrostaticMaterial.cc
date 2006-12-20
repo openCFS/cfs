@@ -31,7 +31,10 @@ namespace CoupledField
     isAllowed_.insert( K_JILES );
     isAllowed_.insert( C_JILES );
     isAllowed_.insert( P_DIRECTION );
-    isAllowed_.insert( HYST_MODEL );
+    isAllowed_.insert( NONLIN_COEFFICIENT );
+    isAllowed_.insert( NONLIN_DEPENDENCY );
+    isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
+    isAllowed_.insert( NONLIN_DATA_NAME );
 
 
   }
@@ -51,8 +54,15 @@ namespace CoupledField
       isSet_.insert( matType );
     }
     else {
-      std::string dim = "string";
-      matTypeNotAllowed( matType, dim );
+
+      if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+        std::string dim = "scalar";
+        matTypeNotAllowed( matType, dim );
+      }
+      else {
+        isSet_.insert( matType );
+      }     
+      stringParams_[matType] = param;
     }
   }
 
@@ -262,6 +272,25 @@ namespace CoupledField
       }
     }    
   }
+
+ 
+
+  void ElectroStaticMaterial::GetScalar( Integer& param, const MaterialType& matType)  const {
+    
+    ENTER_FCN( "ElectrostaticMaterial::GetScalar" );
+    
+     integerMap::const_iterator pos;
+     pos = integerParams_.find( matType );
+     std::string value;
+    
+     if ( pos == integerParams_.end() ) {
+       std::string dim = "scalar";
+       matTypeNotInDataBase( matType, dim );
+     }
+     else {
+       param=pos->second;
+     }
+   } 
 
   void ElectroStaticMaterial::GetTensor( Matrix<Double>& param, 
 					 const MaterialType& matType, 

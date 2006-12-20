@@ -94,6 +94,18 @@ namespace CoupledField
     void SetSolution( NodeStoreSol<Double>& sol ) {
       sol_ = &sol; }
 
+    // ! In case of coupled PDEs set sol1
+   void SetSolution1(NodeStoreSol<Double> & sol){
+     sol1_= &sol;
+   }
+
+    // ! In case of coupled PDEs set sol2
+   void SetSolution2(NodeStoreSol<Double> & sol){
+     sol2_= &sol;
+   }
+
+
+
     //! Set first time derivative of solution for non-linear integrators
     void SetSolDeriv1( NodeStoreSol<Double>& solDeriv1 ) {
       solDeriv1_ = &solDeriv1; }
@@ -222,8 +234,8 @@ namespace CoupledField
     MathParser * mParser_;
 #endif
 
-    //! solution vector
-    NodeStoreSol<Double>* sol_;
+    //! solution vector, sol1 and sol2 are solutions in case id direct couplings
+    NodeStoreSol<Double>* sol_, *sol1_, *sol2_;
 
     //! first derivative of solution
     NodeStoreSol<Double>* solDeriv1_;

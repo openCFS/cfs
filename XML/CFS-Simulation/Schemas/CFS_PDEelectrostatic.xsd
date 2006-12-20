@@ -275,6 +275,7 @@
       <xsd:enumeration value="no"/>
       <xsd:enumeration value="geo"/>
       <xsd:enumeration value="hysteresis"/>
+      <xsd:enumeration value="material"/>
     </xsd:restriction>
   </xsd:simpleType>
 

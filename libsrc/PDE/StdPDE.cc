@@ -112,7 +112,8 @@ namespace CoupledField {
   // formulation by setting them 0
   Double StdPDE::RhsL2Norm(Vector<Double>& actRHS)
   {
-    ENTER_FCN( "StdSolveStep::RhsL2Norm" );
+    ENTER_FCN( "StdPDE::RhsL2Norm" );
+
     Integer eqnNr;
   
     // Eliminate inhom. dirichlet node from RHS (due to penalty formulation)
@@ -132,6 +133,7 @@ namespace CoupledField {
       }
     } 
     
+
     return actRHS.NormL2();
   }
 

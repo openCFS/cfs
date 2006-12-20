@@ -59,7 +59,7 @@ namespace CoupledField
             yy.push_back(yval);
             xx.push_back(xval);
             datafile.ignore(100,'\n');
-          
+
           }
       
         pos = datafile.tellg();  // and, where we are ?    
@@ -71,10 +71,13 @@ namespace CoupledField
     x = new double[nummeas];
     y = new double[nummeas];
 
+    
     for (Integer k=0; k<nummeas; k++) {
       x[k] = xx[k];
       y[k] = yy[k];
+
     }
+
 
   }
 

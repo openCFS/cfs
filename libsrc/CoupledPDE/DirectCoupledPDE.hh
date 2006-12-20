@@ -10,6 +10,7 @@ namespace CoupledField {
   class BasePairCoupling;
   class Assemble;
   class BaseSystem;
+  class StdPDE;
   
   //! This class implements the direct coupling of StdPDEs.
   class DirectCoupledPDE : public StdPDE
@@ -53,11 +54,14 @@ namespace CoupledField {
 
     //! write general defines (BCs, loads, etc.) to info-file
     void WriteGeneralPDEdefines();
-
   
     //! set boundary condition
     //! \param atimestep         time step of claculation
     void SetBCs(const Double atimestep);
+
+    //! compute norm of RHS removing IDBCs
+    //! \param sctRHS
+    Double RhsL2Norm(Vector<Double>&actRHS);
 
     //! define algebraic system 
     void DefineAlgSys();
@@ -72,8 +76,8 @@ namespace CoupledField {
 
     //!
     virtual void InitTimeStepping();
-    
 
+ 
     // ======================================================
     // POSTPROC SECTION
     // ======================================================

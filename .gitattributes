@@ -646,6 +646,10 @@ libsrc/Forms/nLinElastInt.cc svneol=native#text/plain
 libsrc/Forms/nLinElastInt.hh svneol=native#text/plain
 libsrc/Forms/nLinElecHystInt.cc -text
 libsrc/Forms/nLinElecHystInt.hh -text
+libsrc/Forms/nLinElecMaterial.cc svneol=native#text/plain
+libsrc/Forms/nLinElecMaterial.hh svneol=native#text/plain
+libsrc/Forms/nLinPiezoCoupling.cc svneol=native#text/plain
+libsrc/Forms/nLinPiezoCoupling.hh svneol=native#text/plain
 libsrc/Forms/nLinStokesFluidInt.cc svneol=native#text/plain
 libsrc/Forms/nLinStokesFluidInt.hh svneol=native#text/plain
 libsrc/Forms/nLincurlCurlNodeInt.cc svneol=native#text/plain

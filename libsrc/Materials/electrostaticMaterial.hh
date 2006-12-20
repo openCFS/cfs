@@ -51,6 +51,11 @@ namespace CoupledField {
     void GetScalar( Complex& param, const MaterialType& matType, 
 		    const DataType& dataType ) const;
 
+
+    //! get a scalar integer material parameter
+    void GetScalar( Integer& param, 
+                    const MaterialType& matType ) const;
+    
     //! get a real material tensor
     void GetTensor( Matrix<Double>& param, const MaterialType& matType,
 		    const DataType& dataType,

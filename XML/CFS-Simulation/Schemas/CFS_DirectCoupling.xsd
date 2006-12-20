@@ -72,6 +72,8 @@
                   </xsd:simpleType>
                 </xsd:attribute>
                 <xsd:attribute name="name" type="xsd:token" use="required"/>
+                <xsd:attribute name="nonLinear" type="DT_PiezoNonLin"
+                  use="optional" default="no"/>               
               </xsd:complexType>
             </xsd:element>            
             <!-- Desired solution values (optional) -->
@@ -80,11 +82,21 @@
             <!-- Type of materialDataType (real / complex) (optional) -->
             <xsd:element name="materialDataType" type="DT_MatData"
               minOccurs="0" maxOccurs="1"/>          
+            <xsd:element name="nonLinear" type="DT_NonLinParams" minOccurs="0"/>
           </xsd:sequence>
         </xsd:extension>
       </xsd:complexContent>
     </xsd:complexType>
   </xsd:element> 
+
+  <xsd:simpleType name="DT_PiezoNonLin">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="no"/>
+      <xsd:enumeration value="geo"/>
+      <xsd:enumeration value="hysteresis"/>
+      <xsd:enumeration value="material"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
   <!-- Acoustic-Mechanic coupling -->
   <xsd:element name="acouMechDirect"
@@ -175,5 +187,6 @@
         minOccurs="0" maxOccurs="unbounded"/>
     </xsd:sequence>
   </xsd:complexType>
+
 
 </xsd:schema>

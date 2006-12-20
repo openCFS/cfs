@@ -1,5 +1,4 @@
 #include <string.h>
-
 #include "General/environment.hh"
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "DataInOut/WriteInfo.hh"
