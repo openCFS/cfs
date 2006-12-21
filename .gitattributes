@@ -219,6 +219,7 @@ auxiliary/mysql/getelementresult.sql svneol=native#text/plain
 auxiliary/mysql/getelements.sql svneol=native#text/plain
 auxiliary/mysql/getnodalresult.sql svneol=native#text/plain
 auxiliary/mysql/getresultidx.sql svneol=native#text/plain
+auxiliary/scripts/log.tcl svneol=native#text/plain
 libsrc/CoupledPDE/AcouMechCoupling.cc svneol=native#text/plain
 libsrc/CoupledPDE/AcouMechCoupling.hh svneol=native#text/plain
 libsrc/CoupledPDE/BasePairCoupling.cc svneol=native#text/plain
