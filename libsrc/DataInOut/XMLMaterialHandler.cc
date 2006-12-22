@@ -1019,8 +1019,21 @@ namespace CoupledField {
     attrVec= "name"    ,""        ,""         ,"";
     valVec =  matName  ,""        ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
-      parser_->Get( keyVec, attrVec, valVec, striValue );
-      material->SetScalar( striValue, P_DIRECTION ); 
+      parser_->Get( keyVec, attrVec, valVec, inteValue );
+      if (inteValue==1){
+        striValue="X";
+        material->SetScalar( striValue, P_DIRECTION ); 
+      }
+      else if (inteValue==2){
+        striValue="Y";
+        material->SetScalar( striValue, P_DIRECTION ); 
+      }
+      else if (inteValue==3){
+        striValue="Z";
+        material->SetScalar( striValue, P_DIRECTION ); 
+      }
+      else
+        Error("Non existing coordinate direction",__FILE__,__LINE__);
     }
 
     //read weight dimension of Preisach hysterese model
