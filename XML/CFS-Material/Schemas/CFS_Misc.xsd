@@ -83,9 +83,9 @@
   <!-- Data type for specifying flow direction (directly) -->
   <xsd:simpleType name="DT_Direction">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="X"/>
-      <xsd:enumeration value="Y"/>
-      <xsd:enumeration value="Z"/>
+      <xsd:enumeration value="1"/>
+      <xsd:enumeration value="2"/>
+      <xsd:enumeration value="3"/>
     </xsd:restriction>
   </xsd:simpleType>
   
