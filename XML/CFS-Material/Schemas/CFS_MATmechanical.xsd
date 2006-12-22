@@ -34,6 +34,7 @@
     <xsd:choice>
       <xsd:element name="tensor" type="DT_MechElastTensor"/>
       <xsd:element name="isotropic" type="DT_MechElastIsotropic"/>
+      <!--xsd:element name="transversalIsotropic" type="DT_MechElastTransIsotrop"/-->
       <xsd:element name="orthotropic" type="DT_MechElastOrthotropic"/>
     </xsd:choice>
   </xsd:complexType>
@@ -70,6 +71,16 @@
       <xsd:element name="imag" type="DT_MechElastIsotrRealImag" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of transversal isotropic mechanical elasticity                     -->
+  <!-- ******************************************************************* -->
+  <!--xsd:complexType name="DT_MechElastTransIsotrop">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_MechElastTransIsotrRealImag"/>
+      <xsd:element name="imag" type="DT_MechElastTransIsotrRealImag" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType-->
   
   <!-- ******************************************************************* -->
   <!--   Definition of orthotropic mechanical elasticity                     -->
@@ -110,19 +121,34 @@
   </xsd:complexType>
   
   <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery part transversAl isotropic mechanical elasticity  -->
+  <!-- ******************************************************************* -->
+  <!--xsd:complexType name="DT_MechElastTransIsotrRealImag">
+    <xsd:choice>
+      <xsd:sequence>
+        <xsd:element name="elasticityModulus_1" type="DT_NonNegFloat"/>
+        <xsd:element name="elasticityModulus_3" type="DT_NonNegFloat"/>
+        <xsd:element name="poissonNumber_12" type="DT_FloatPoissonInterval"/>
+        <xsd:element name="poissonNumber_13" type="DT_FloatPoissonInterval"/>
+        <xsd:element name="shearModulus_31" type="DT_NonNegFloat"/>
+      </xsd:sequence>
+    </xsd:choice>
+  </xsd:complexType-->
+  
+  <!-- ******************************************************************* -->
   <!--   Definition of real and imaginery part orthotropic mechanical elasticity  -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_MechElastOrthotrRealImag">
     <xsd:sequence>
-      <xsd:element name="elasticityModulus_X" type="DT_NonNegFloat"/>
-      <xsd:element name="elasticityModulus_Y" type="DT_NonNegFloat"/>
-      <xsd:element name="elasticityModulus_Z" type="DT_NonNegFloat"/>
-      <xsd:element name="poissonNumber_XY" type="DT_FloatPoissonInterval"/>
-      <xsd:element name="poissonNumber_YZ" type="DT_FloatPoissonInterval"/>
-      <xsd:element name="poissonNumber_XZ" type="DT_FloatPoissonInterval"/>
-      <xsd:element name="shearModulus_YZ" type="DT_NonNegFloat"/>
-      <xsd:element name="shearModulus_ZX" type="DT_NonNegFloat"/>
-      <xsd:element name="shearModulus_XY" type="DT_NonNegFloat"/>
+      <xsd:element name="elasticityModulus_1" type="DT_NonNegFloat"/>
+      <xsd:element name="elasticityModulus_2" type="DT_NonNegFloat"/>
+      <xsd:element name="elasticityModulus_3" type="DT_NonNegFloat"/>
+      <xsd:element name="poissonNumber_12" type="DT_FloatPoissonInterval"/>
+      <xsd:element name="poissonNumber_23" type="DT_FloatPoissonInterval"/>
+      <xsd:element name="poissonNumber_13" type="DT_FloatPoissonInterval"/>
+      <xsd:element name="shearModulus_23" type="DT_NonNegFloat"/>
+      <xsd:element name="shearModulus_31" type="DT_NonNegFloat"/>
+      <xsd:element name="shearModulus_12" type="DT_NonNegFloat"/>
     </xsd:sequence>
   </xsd:complexType>
   

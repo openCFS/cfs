@@ -296,7 +296,7 @@ namespace CoupledField {
     }
 
     //read orthotropic elasticity modulus
-    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_X";
+    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_1";
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
@@ -306,7 +306,7 @@ namespace CoupledField {
       //std::cerr << "elasticityModulus_X=" << doubValue << std::endl;
     }
 
-    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_Y";
+    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_2";
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
@@ -316,7 +316,7 @@ namespace CoupledField {
       //   std::cerr << "elasticityModulus_Y=" << doubValue << std::endl;
     }
 
-    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_Z";
+    keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_3";
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
@@ -327,7 +327,7 @@ namespace CoupledField {
     }
 
     //read orthotropic Poisson numbers
-    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_XY";
+    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_12";
     attrVec= "name"     ,""         ,""          ,""         ,"";
     valVec =  matName   ,""         ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
@@ -337,7 +337,7 @@ namespace CoupledField {
       //std::cerr << "poissonNumber_XY=" <<  doubValue << std::endl;
     }
 
-    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_YZ";
+    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_23";
     attrVec= "name"     ,""         ,""          ,""         ,"";
     valVec =  matName   ,""         ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
@@ -347,7 +347,7 @@ namespace CoupledField {
       //std::cerr << "poissonNumber_YZ=" <<  doubValue << std::endl;
     }
 
-    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_XZ";
+    keyVec = "material","mechanical","elasticity","orthotropic","real","poissonNumber_13";
     attrVec= "name"     ,""         ,""          ,""         ,"";
     valVec =  matName   ,""         ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
@@ -358,7 +358,7 @@ namespace CoupledField {
     }
 
     //read orthotropic shear modulus
-    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_YZ";
+    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_23";
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
@@ -368,7 +368,7 @@ namespace CoupledField {
       //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
     }
 
-    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_ZX";
+    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_31";
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
@@ -378,7 +378,7 @@ namespace CoupledField {
       //std::cerr << "shearModulus_ZX=" << doubValue << std::endl;
     }
 
-    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_XY";
+    keyVec = "material","mechanical","elasticity","orthotropic","real","shearModulus_12";
     attrVec= "name"    ,""          ,""          ,""         ,"";
     valVec =  matName  ,""          ,""          ,""         ,"";
     if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
