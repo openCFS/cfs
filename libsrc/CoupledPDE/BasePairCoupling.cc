@@ -38,7 +38,7 @@ namespace CoupledField {
 
     isaxi_ = false;
     
-    
+    dim_ = domain->GetGrid()->GetDim();
   }
 
 
@@ -242,7 +242,7 @@ namespace CoupledField {
             valVec = "", actRegionName, "";
 
             // alpha
-            keyVec = "domain", "region", "rotation", "alpha";
+            keyVec = "domain", "region", "matRotation", "alpha";
             params->GetList( keyVec, attrVec, valVec, rotAlpha );
             if( rotAlpha.GetSize() == 1) {
               rotVec[0] = rotAlpha[0];
@@ -250,7 +250,7 @@ namespace CoupledField {
             }
 
             // beta
-            keyVec = "domain", "region", "rotation", "beta";
+            keyVec = "domain", "region", "matRotation", "beta";
             params->GetList( keyVec, attrVec, valVec, rotBeta );
             if( rotBeta.GetSize() == 1) {
               rotVec[1] = rotBeta[0];
@@ -258,7 +258,7 @@ namespace CoupledField {
             }
             
             // gamma
-            keyVec = "domain", "region", "rotation", "gamma";
+            keyVec = "domain", "region", "matRotation", "gamma";
             params->GetList( keyVec, attrVec, valVec, rotGamma );
             if( rotGamma.GetSize() == 1) {
               rotVec[2] = rotGamma[0];
@@ -268,9 +268,19 @@ namespace CoupledField {
             if( isRotated ) {
               materials_[subdoms_[i]]->
                 RotateAllTensorsByRotationAngles( rotVec, true );
+            } else {
+              // check if grid dimension is 2D -> material is rotated by
+              // alpha = -90 and gamma = -90 degree, 
+              // so that we pick by default the yz-plane
+              if ( dim_ == 2 ) {
+                rotVec[0] = -90.0;
+                rotVec[2] = -90;
+                materials_[subdoms_[i]]->
+                  RotateAllTensorsByRotationAngles( rotVec, true );
+              }
             }
-            break;
           }
+          break;
         }
       }
     }

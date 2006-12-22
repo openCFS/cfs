@@ -489,7 +489,7 @@ The material data (e.g. tensor of elasticity modulus) is defined in a separate m
 \caption{Material coordinate system $(1,2,3)$}
   \label{fig:matCoordSys}
 \end{figure}
-If no further option is specified, the material coordinate directions $(1,2,3)$ get associated with the global cartesian direction $(x,y,z)$. In a 2D geometry, only the first two components are taken $(1,2)$.
+If no further option is specified, the material coordinate directions $(1,2,3)$ get associated with the global cartesian direction $(x,y,z)$. 
 
 In order to rotate the material coordinate system, one can specify three rotation angles (\emph{Kardan angles})
 \begin{equation}
@@ -509,11 +509,15 @@ The rotation can be specified for each region separately in the parameter file b
 \begin{verbatim}
   <domain>
     <region name="pzt" material="PZT-4">
-      <rotation alpha="-90" beta="0" gamma="0"/>
+      <matRotation alpha="-90" beta="0" gamma="-90"/>
     </region>
   </domain>
 \end{verbatim}
-The previous example would e.g. rotate the (material-) local $3$-direction by $\alpha=-90^\circ$ around the local $1$-axis, so that it coincides with the global $y$-direction. This is needed, if for example a plane simulation of a piezoelectric material has to be performed, where the polarization is given in local $3$-direction, whereas the geometric model assumes a polarization in $y$-direction.
+The previous example would e.g. first rotate the (material-) local $3$-direction by $\alpha=-90^\circ$ around the local $1$-axis, so that it coincides with the global $y$-direction. In a second step then the material is rotated around the local $3$-axis by $\gamma=-90^\circ$, such that the local $2$-direction coincides with the global $x$-direction. 
+This is needed, if for example a plane simulation of a piezoelectric material has to be performed, where the polarization is given in local $3$-direction, whereas the geometric model assumes a polarization in $y$-direction. So in the end, the material 23-plane coincides with the geometrical xy-plane.
+\newline
+
+{\bf NOTE:} In a 2D simulation (\verb#<geometry type="plane/axi"/>#) the rotation described above is always performed automatically by CFS++, until the user gives another explicit rotation command. This is done to ensure that a piezoelectric material is always poled in y-direction ( good old CAPA ...)!
 \newline
 
 Please note, that the positive direction of the angles is always defined in counter-clockwise fashion around the corresponding axis (\emph{right-hand-rule}). If the value of one rotation angle is $0$, it may be omitted.
@@ -551,13 +555,13 @@ In the parameter file, this can be defined by
     <region name="pzt" material="PZT-4" refCoordSys="myPolar1"/>
   </domain>
 \end{verbatim}
-Here the material PZT-4 is associated with a previously defined coordinate system \verb#myPoar1#.
+Here the material PZT-4 is associated with a previously defined coordinate system \verb#myPolar1#.
 
 It is also possible to rotate a material first - as defined in section \ref{sec:materialCoordSys} - and then associate it with a local coordinate system:
 \begin{verbatim}
   <domain>
     <region name="pzt" material="PZT-4" refCoordSys="midPoint">
-      <rotation beta="90"/>
+      <matRotation beta="90"/>
     </region>
     <coordSys>
      <cylindric name="midPoint"> 
@@ -611,7 +615,7 @@ Putting both definitions together, the material axes $(1,2,3)$ are associated wi
 \rightarrow
 \left(
 \begin{array}{c}
-  \varphi \\ z \\ rad 
+  \varphi \\ z \\ r 
  \end{array}
 \right)
 \end{equation}
