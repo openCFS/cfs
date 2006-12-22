@@ -294,7 +294,152 @@ namespace CoupledField {
       flagPoissonImag=true;
       // std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
     }
+    //*******************************************************************************
+    //read transversal isotropic elasticity modulus
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","elasticityModulus";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      Error("needs to be implemented",__FILE__,__LINE__);
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_EMODULUS, REAL ); 
+      flagEModulReal=true;
+      // std::cerr << "elasticityModulus=" << doubValue << std::endl;
+    }
 
+    //read imaginary elasticity modulus
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","imag","elasticityModulus";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      Error("needs to be implemented",__FILE__,__LINE__);
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_EMODULUS, IMAG ); 
+      flagEModulImag=true;
+      // std::cerr << "imaginary elasticityModulus=" << doubValue << std::endl;
+    }
+
+    //read transversal isotropic elasticity modulus
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","elasticityModulus_3";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      Error("needs to be implemented",__FILE__,__LINE__);
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_EMODULUS_Z, REAL ); 
+      flagEModulReal=true;
+      // std::cerr << "elasticityModulus=" << doubValue << std::endl;
+    }
+
+    //read imaginary elasticity modulus
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","imag","elasticityModulus_3";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      Error("needs to be implemented",__FILE__,__LINE__);
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_EMODULUS_Z, IMAG ); 
+      flagEModulImag=true;
+      // std::cerr << "imaginary elasticityModulus=" << doubValue << std::endl;
+    }
+
+    //read Poisson number
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","poissonNumber";
+    attrVec= "name"     ,""         ,""          ,""         ,"";
+    valVec =  matName   ,""         ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      Error("needs to be implemented",__FILE__,__LINE__);
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_POISSON, REAL ); 
+      flagPoissonReal=true;
+      // std::cerr << "poissonNumber=" <<  doubValue << std::endl;
+    }
+
+    //read imaginary Poisson number
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","imag","poissonNumber";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      Error("needs to be implemented",__FILE__,__LINE__);
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_POISSON, IMAG ); 
+      flagPoissonImag=true;
+      // std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
+    }
+
+    //read Poisson number
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","poissonNumber_3";
+    attrVec= "name"     ,""         ,""          ,""         ,"";
+    valVec =  matName   ,""         ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      Error("needs to be implemented",__FILE__,__LINE__);
+      //material->SetScalar( doubValue, MECH_POISSON_ZX, REAL ); 
+      flagPoissonReal=true;
+      // std::cerr << "poissonNumber=" <<  doubValue << std::endl;
+    }
+
+    //read imaginary Poisson number
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","imag","poissonNumber_3";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      Error("needs to be implemented",__FILE__,__LINE__);
+      //material->SetScalar( doubValue, MECH_POISSON_ZX, IMAG ); 
+      flagPoissonImag=true;
+      // std::cerr << "imaginary poissonNumber=" << doubValue << std::endl;
+    }
+    //read transversal isotropic shear modulus
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","shearModulus";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      Error("needs to be implemented",__FILE__,__LINE__);
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_GMODULUS, REAL ); 
+      flagShearModulYZReal=true;
+      //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
+    }
+
+    //read transversal isotropic shear modulus
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","shearModulus";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      Error("needs to be implemented",__FILE__,__LINE__);
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      material->SetScalar( doubValue, MECH_GMODULUS, IMAG ); 
+      flagShearModulYZReal=true;
+      //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
+    }
+
+    //read transversal isotropic shear modulus
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","shearModulus_3";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      Error("needs to be implemented",__FILE__,__LINE__);
+      //material->SetScalar( doubValue, MECH_GMODULUS_ZX, REAL ); 
+      flagShearModulYZReal=true;
+      //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
+    }
+
+    //read transversal isotropic shear modulus
+    keyVec = "material","mechanical","elasticity","transversalIsotropic","real","shearModulus_3";
+    attrVec= "name"    ,""          ,""          ,""         ,"";
+    valVec =  matName  ,""          ,""          ,""         ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, doubValue );
+      Error("needs to be implemented",__FILE__,__LINE__);
+      material->SetScalar( doubValue, MECH_GMODULUS_ZX, IMAG ); 
+      flagShearModulYZReal=true;
+      //std::cerr << "shearModulus_YZ=" << doubValue << std::endl;
+    }
+
+
+    //*******************************************************************************
     //read orthotropic elasticity modulus
     keyVec = "material","mechanical","elasticity","orthotropic","real","elasticityModulus_1";
     attrVec= "name"    ,""          ,""          ,""         ,"";
