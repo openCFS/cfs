@@ -2,6 +2,55 @@
 
 <cfsMaterialDataBase xmlns="http://www.cfs++.org">
    <material name="iron">
+    <mechanical>
+      <density> 7180.0 </density>
+      <elasticity> 
+        <tensor dim1="6">
+          <real>
+            1.07800E+11 5.49300E+10 5.49300E+10 0.00000E+00 0.00000E+00 0.00000E+00
+            5.49300E+10 1.07800E+11 5.49300E+10 0.00000E+00 0.00000E+00 0.00000E+00
+            5.49300E+10 5.49300E+10 1.07800E+11 0.00000E+00 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+10 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+10 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+10
+          </real>
+<!--          <imag>
+            1.07800E+06 5.49300E+05 5.49300E+05 0.00000E+00 0.00000E+00 0.00000E+00
+            5.49300E+05 1.07800E+06 5.49300E+05 0.00000E+00 0.00000E+00 0.00000E+00
+            5.49300E+05 5.49300E+05 1.07800E+06 0.00000E+00 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+05 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+05 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+05
+          </imag> -->
+        </tensor>
+<!--        <isotropic>
+	  <real>
+            <elasticityModulus>  1.5E10  </elasticityModulus>
+            <poissonNumber>      0.3     </poissonNumber>
+	  </real>
+        </isotropic> -->
+      </elasticity>
+      <elasticityCoefficient nonlinear="function">
+        <entry>      33            </entry>
+        <dependency> mechStress    </dependency>
+        <approxType> smoothSplines </approxType>
+        <dataName>   alu33NL1      </dataName>
+      </elasticityCoefficient>
+      <mechanicalDamping>
+        <rayleigh>
+          <alpha>            1E+04 </alpha>
+          <beta>             1E-08 </beta>
+<!--          <lossTangensDelta> 1E-08 </lossTangensDelta> -->
+          <freq>             1E6   </freq>
+          <deltaFreq>        10    </deltaFreq>
+        </rayleigh>
+<!--        <fractional>
+          <alg>             blank </alg>
+          <memory>          10    </memory>
+          <interpolation>   lin1p </interpolation>
+        </fractional> -->
+      </mechanicalDamping>
+    </mechanical>
     <acoustic>
       <density> 7180.0 </density>
       <compressionModulus> 2.25000E+09 </compressionModulus>
@@ -87,59 +136,6 @@
         </nonlinear>
       </magneticPermeability>
     </magnetic>
-    <mechanical>
-      <density> 7180.0 </density>
-      <elasticity> 
-        <tensor dim1="6">
-          <real>
-            1.07800E+11 5.49300E+10 5.49300E+10 0.00000E+00 0.00000E+00 0.00000E+00
-            5.49300E+10 1.07800E+11 5.49300E+10 0.00000E+00 0.00000E+00 0.00000E+00
-            5.49300E+10 5.49300E+10 1.07800E+11 0.00000E+00 0.00000E+00 0.00000E+00
-            0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+10 0.00000E+00 0.00000E+00
-            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+10 0.00000E+00
-            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+10
-          </real>
-<!--          <imag>
-            1.07800E+06 5.49300E+05 5.49300E+05 0.00000E+00 0.00000E+00 0.00000E+00
-            5.49300E+05 1.07800E+06 5.49300E+05 0.00000E+00 0.00000E+00 0.00000E+00
-            5.49300E+05 5.49300E+05 1.07800E+06 0.00000E+00 0.00000E+00 0.00000E+00
-            0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+05 0.00000E+00 0.00000E+00
-            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+05 0.00000E+00
-            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 2.64500E+05
-          </imag> -->
-        </tensor>
-<!--        <isotropic>
-	  <real>
-            <elasticityModulus>  1.5E10  </elasticityModulus>
-            <shearModulus>       1.5E10  </shearModulus>
-            <compressionModulus> 1.5E10  </compressionModulus>
-            <lameParameterMu>    1.5E10  </lameParameterMu>
-            <lameParameterLamda> 1.5E10  </lameParameterLamda>
-            <poissonNumber>      0.3     </poissonNumber>
-	  </real>
-        </isotropic> -->
-      </elasticity>
-      <elasticityCoefficient nonlinear="function">
-        <entry>      33            </entry>
-        <dependency> mechStress    </dependency>
-        <approxType> smoothSplines </approxType>
-        <dataName>   alu33NL1      </dataName>
-      </elasticityCoefficient>
-      <mechanicalDamping>
-        <rayleigh>
-          <alpha>            1E+04 </alpha>
-          <beta>             1E-08 </beta>
-<!--          <lossTangensDelta> 1E-08 </lossTangensDelta> -->
-          <freq>             1E6   </freq>
-          <deltaFreq>        10    </deltaFreq>
-        </rayleigh>
-<!--        <fractional>
-          <alg>             blank </alg>
-          <memory>          10    </memory>
-          <interpolation>   lin1p </interpolation>
-        </fractional> -->
-      </mechanicalDamping>
-    </mechanical>
     <piezo>
       <piezoCouplingTensor dim1="3" dim2="6">
       	<real>
