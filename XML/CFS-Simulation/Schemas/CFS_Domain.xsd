@@ -17,7 +17,7 @@
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_DomainRegion">
     <xsd:sequence>
-      <xsd:element name="rotation" minOccurs="0" maxOccurs="1">
+      <xsd:element name="matRotation" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:attribute name="alpha" type="xsd:double" use="optional"
             default="0.0"/>
