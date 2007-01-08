@@ -521,7 +521,7 @@ namespace CoupledField {
     savePress_ = false;
     if (nodeValues.GetSize() > 0) {
       savePress_ = true;
-      if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+      if ( analysistype_ == HARMONIC  ) {
 	press_ = new NodeStoreSol<Complex>;
       }
       else {

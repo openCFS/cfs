@@ -113,10 +113,11 @@ namespace CoupledField {
       std::cout<<"We do a transient nonlinear calculation"<<std::endl;
       StepTransNonLin();
     }
-//     else if (nonLinMaterial_){
-//       std::cout<<"We do a transient nonlinear calculation"<<std::endl;
-//       StepTransNonLinMaterial();
-//     }
+    else if (nonLinMaterial_){
+      std::cout<<"We do a transient nonlinear calculation"<<std::endl;
+      StepTransNonLinMaterial();
+    }
+
     else {
       std::cout<<"We do a transient linear calculation"<<std::endl;
       StepTransLin();

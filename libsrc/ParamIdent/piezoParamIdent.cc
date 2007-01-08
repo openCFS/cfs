@@ -294,27 +294,31 @@ namespace CoupledField
                      nrMeasuredData, thickness_, radius_, delta_);
 
    
-
-    Vector<Double> freqsTemp = freqs_;
+    Vector<Double> freqsTemp;
+    freqsTemp = freqs_;
     freqs_.Resize(nrMeasuredDataElec_);
     freqs_.Init();
 
+
     for(UInt i=0;i<nrMeasuredDataElec_;i++)
       freqs_[i]=freqsTemp[i];
+
 
     Vector<Double> freqsTempMech = freqsMech_;
     freqsMech_.Resize(nrMeasuredDataMech_);
     freqsMech_.Init();
 
+
     for(UInt i=0;i<nrMeasuredDataMech_;i++)
       freqsMech_[i]=freqsTempMech[i];
 
+
     nrMeasuredData = nrMeasuredDataElec_ + nrMeasuredDataMech_;
     
-//     std::cout<<"Frequencies from which electrical measurements are taken:" <<std::endl;
-//     std::cout<<freqs_<<std::endl;
-//     std::cout<<"Frequencies from which mechanical measurements are taken:" <<std::endl;
-//     std::cout<<freqsMech_<<std::endl;
+     std::cout<<"Frequencies from which electrical measurements are taken:" <<std::endl;
+     std::cout<<freqs_<<std::endl;
+     std::cout<<"Frequencies from which mechanical measurements are taken:" <<std::endl;
+     std::cout<<freqsMech_<<std::endl;
 
     y_hat_.Resize(nrMeasuredData);
     //    bas.Resize(nrParameter_);

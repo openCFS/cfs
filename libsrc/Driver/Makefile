@@ -21,7 +21,7 @@ ifeq ($(Adaptivity),yes)
 	baseSolveStep.cc solveStepElec.cc basedriver.cc transientdriver.cc staticdriver.cc \
 	multiSequenceDriver.cc harmonicDriver.cc harmonicAdapt.cc staticAdaptSpaceDriver.cc \
 	piezoParamIdent.cc singleDriver.cc \
-	iterSolveStep.cc multiHarmonicDriver.cc solveStepAcousticBubble.cc\
+	iterSolveStep.cc  solveStepAcousticBubble.cc\
 	solveStepStokesFluid.cc eigenFrequencyDriver.cc solveStepODE.cc
 
 

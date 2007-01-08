@@ -62,7 +62,8 @@ namespace CoupledField
           y_hat[i+nrMeasuredDataElec_]=Complex(mechDisplMess_[i][j].real()*std::cos(-mechDisplMess_[i][j].imag()), 
                                                mechDisplMess_[i][j].real()*std::sin(-mechDisplMess_[i][j].imag()));
 
-        // y_hat[i+nrMeasuredDataElec_]=std::abs(mechDisplMess_[i][j].real());
+        if (whichNormCriteria_==2)
+          y_hat[i+nrMeasuredDataElec_]=std::log(std::abs(mechDisplMess_[i][j].real()));
         
         if (whichNormCriteria_==3)
           y_hat[i+nrMeasuredDataElec_]=Complex(mechDisplMess_[i][j].real()*std::cos(-mechDisplMess_[i][j].imag()), 
@@ -383,8 +384,7 @@ namespace CoupledField
 
   void piezoParamIdent::createF(Vector<Complex> & F_hat_, bool typeOut){
     ENTER_FCN("PiezoParamIdent:createF");
-    //   std::cout<<"\nF wil be created ..."<<std::endl;
-
+   
     F_hat_.Resize(nrMeasuredData);
     F_hat_.Init();
 
@@ -1002,13 +1002,14 @@ namespace CoupledField
     ENTER_FCN( "piezoParamIdent::readMeasuredData" );
     char mDataRow[1024], helpChar[64];
     UInt i=0, j=0, k=0;
+    nrMeasuredDataElec_=0;
     //Initialize helpChar
     for (UInt ii=0;ii<64;ii++)
       helpChar[ii]=0;
     
     while(allMeasuredData->getline(mDataRow, 1024)){
       if (mDataRow[0]=='1')
-        {i=2;
+        {i=2;j=0;k=0;
           while(mDataRow){
             if (mDataRow[i]=='/')
               break;
@@ -1237,7 +1238,7 @@ namespace CoupledField
     }
 
     std::cout<<"readMeasuredData - nrMeasuredDataElec = " <<  nrMeasuredDataElec_ <<std::endl;
-    std::cout<<"readMeasuredData - nrMeasuredDataElec = " <<  nrMeasuredDataMech_ <<std::endl;
+    std::cout<<"readMeasuredData - nrMeasuredDataMech = " <<  nrMeasuredDataMech_ <<std::endl;
   } // end read MeasuredData
 
 

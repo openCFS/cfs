@@ -242,12 +242,11 @@ namespace CoupledField {
       }
       cfs->Get( "type", analysis, "analysis" );
       if ( matType[0] == "imagMaterialParameter" &&
-           analysis != "harmonic" && analysis != "paramIdent" &&
-           analysis!="multiHarmonic") {
+           analysis != "harmonic" && analysis != "paramIdent") {
         (*error) << "XML-file specifies material parameters with imaginary "
                  << "part for an analysis\n of type '" << analysis << "'.\n\n"
                  << " Complex parameters are currently only implemented for "
-                 << "a 'harmonic',\n 'multiHarmonic', or 'paramIdent' "
+                 << "a 'harmonic' or 'paramIdent' "
                  << "analysis, however.";
         Error( __FILE__, __LINE__ );
       }
@@ -1226,22 +1225,6 @@ namespace CoupledField {
       eType = OLAS::COMPLEX;
       Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
                     "for parameter identification\n" );
-    }
-
-    if ( analysisType == MULTIHARMONIC && eType != OLAS::COMPLEX ) {
-      eType = OLAS::COMPLEX;
-      Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type "
-                    "for parameter identification\n" );
-    }
-
-    if ( analysisType == MULTIHARMONIC ) {
-      if (( analysisType == HARMONIC
-            ||analysisType == MULTIHARMONIC) &&
-          eType != OLAS::COMPLEX ) {
-        eType = OLAS::COMPLEX;
-        Info->PrintF( pdename, "Expert: Using COMPLEX as matrix entry type, "
-                      "harmonic part of multi-sequence analysis\n" );
-      }
     }
 
     // If an eigenvalue problem is solved, the entrytype of the matrices has

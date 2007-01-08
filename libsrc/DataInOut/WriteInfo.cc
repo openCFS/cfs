@@ -358,7 +358,7 @@ namespace CoupledField {
       *cfsInfo << "Voltage value = " << coil.value_      << std::endl;
       *cfsInfo << "Resistance    = " << coil.resistance_ << std::endl;
 
-      if ( analysistype == HARMONIC || analysistype == MULTIHARMONIC) {
+      if ( analysistype == HARMONIC) {
         *cfsInfo << "Voltage phase = " << coil.phase_ << std::endl;
       }
       else if ( analysistype == TRANSIENT ) {

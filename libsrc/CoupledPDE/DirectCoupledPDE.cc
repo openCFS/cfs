@@ -166,7 +166,7 @@ namespace CoupledField {
 
 
     // Set correct size of direct solution value
-    if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+    if ( analysistype_ == HARMONIC  ) {
       solVec_ = new Vector<Complex>;
     }
     else {
@@ -179,7 +179,7 @@ namespace CoupledField {
     // TEMPORARY CHANGE CHANGE CHANGE
     BaseNodeStoreSol *ptNodeSol;
 
-    if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+    if ( analysistype_ == HARMONIC  ) {
       solVec_->Init( Complex(0.0, 0.0 ) );
       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex>&>(*solVec_);
       for (UInt i=0; i<singlePDEs_.GetSize(); i++) {

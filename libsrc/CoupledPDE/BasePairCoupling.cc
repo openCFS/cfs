@@ -153,9 +153,6 @@ namespace CoupledField {
 //     case EIGENFREQUENCY:
 //       assemble_ = new TransientAssemble( algsys_, ptGrid_, bcSequenceTag_ );
 //       break;
-// //     case MULTIHARMONIC:
-// //       assemble_ = new MHassemble( algsys_, ptGrid_, bcSequenceTag_ );
-// //       break;
 //     default:
 //       std::string myType;
 //       Enum2String( (*pde1_).analysistype_, myType );
