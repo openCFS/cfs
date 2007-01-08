@@ -104,8 +104,6 @@ namespace CoupledField {
     else if (in == "paramIdent")
       // since the parameter identification process lives in frequency domain
       out = HARMONIC;
-    else if (in=="multiHarmonic")
-      out = MULTIHARMONIC;
     else if (in=="transientHarmonic")
       out = TRANSIENTHARMONIC;
     else {
@@ -126,9 +124,6 @@ namespace CoupledField {
       break;
     case HARMONIC:
       out = "harmonic";
-      break;
-    case MULTIHARMONIC:
-      out = "multiHarmonic";
       break;
     case EIGENFREQUENCY:
       out = "eigenFrequency";

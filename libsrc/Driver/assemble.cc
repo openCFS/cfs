@@ -420,7 +420,7 @@ namespace CoupledField {
         // Obtain equation number
         eqnNr = eqnMap.GetEqn( *(actLoad.result), it, actLoad.dof );
 
-        if (analysisType_ == HARMONIC || analysisType_ == MULTIHARMONIC) {
+        if (analysisType_ == HARMONIC) {
           parser->SetExpr( mHandle_, actLoad.phase  );
           phase = parser->Eval( mHandle_ );
           Complex complexValue( val * cos( phase / 180 * PI ),
@@ -657,8 +657,7 @@ namespace CoupledField {
       matrixMap_[DAMPING]   = DAMPING;
       matrixMap_[MASS]      = MASS;
       
-    } else if( analysisType_ == HARMONIC ||
-               analysisType_ == MULTIHARMONIC ) {
+    } else if( analysisType_ == HARMONIC ) {
       matrixMap_[SYSTEM]    = SYSTEM; 
       matrixMap_[STIFFNESS] = SYSTEM;
       matrixMap_[DAMPING]   = SYSTEM;

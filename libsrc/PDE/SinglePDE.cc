@@ -273,7 +273,7 @@ namespace CoupledField {
     }
         
     // Determine if solution is of complex type or not
-    if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+    if ( analysistype_ == HARMONIC ) {
       sol_ = new NodeStoreSol<Complex>;
       if(!isDirectCoupled_ )
         solVec_ = new Vector<Complex>;
@@ -450,7 +450,7 @@ namespace CoupledField {
         solVec_->Init( 0.0 );
       }
       SETPROFILE("After Resizing StoreSol");
-      if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+      if ( analysistype_ == HARMONIC ) {
         sol_->SetAlgSysDataPointer(solVec_->GetSize(), 
                                    dynamic_cast<Vector<Complex>&>(*solVec_).GetPointer() );
       } else {
@@ -618,7 +618,7 @@ namespace CoupledField {
        // Get the correct time function value
        val_tfunc = 1.0;
        if ( ptTimeFunc_->GetmaxTimeFnc() > 0 &&
-            (analysistype_ != HARMONIC || analysistype_ != MULTIHARMONIC) ) {
+            (analysistype_ != HARMONIC ) ) {
            val_tfunc=ptTimeFunc_->TimeFuncAtTime(time, dynamics);
        }
        
@@ -662,7 +662,7 @@ namespace CoupledField {
          }
          
          // Case of complex-valued entries
-         if (analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC) {
+         if (analysistype_ == HARMONIC ) {
 
            parser->SetExpr( mHandle_, actBc.phase );
            phase = parser->Eval( mHandle_ );

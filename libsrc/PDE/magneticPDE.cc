@@ -165,12 +165,12 @@ namespace CoupledField {
                                                          isaxi_, upLagrangeForm );
         curlcurl2D->SetNonLinMethod(nonLinMethod_);      
         curlcurl2D->SetSolution( dynamic_cast<NodeStoreSol<Double>&>(*sol_ ));
-	BiLinFormContext * stiffContext = 
-	  new BiLinFormContext( curlcurl2D, STIFFNESS );
-	stiffContext->SetPtPdes(this, this);   
+        BiLinFormContext * stiffContext = 
+          new BiLinFormContext( curlcurl2D, STIFFNESS );
+        stiffContext->SetPtPdes(this, this);   
         stiffContext->SetResults( results_[0], results_[0],
                                   actSDList, actSDList );     
-	assemble_->AddBiLinearForm( stiffContext);
+        assemble_->AddBiLinearForm( stiffContext);
 
         // nonlinear RHS linearform!!
         LinearForm * rhsSource = 
@@ -185,12 +185,12 @@ namespace CoupledField {
       }
       else {
         BaseForm *curlcurl2D = new CurlCurlNode2DInt(reluctivity, isaxi_, upLagrangeForm);
-	BiLinFormContext * stiffContext = 
-	  new BiLinFormContext(curlcurl2D, STIFFNESS );
-	stiffContext->SetPtPdes(this, this);  
+        BiLinFormContext * stiffContext = 
+          new BiLinFormContext(curlcurl2D, STIFFNESS );
+        stiffContext->SetPtPdes(this, this);  
         stiffContext->SetResults( results_[0], results_[0],
-                                actSDList, actSDList );      
-	assemble_->AddBiLinearForm( stiffContext );
+                                  actSDList, actSDList );      
+        assemble_->AddBiLinearForm( stiffContext );
 
         if (nonLin_==true) {
           // for nonlinear RHS linearform we need linear and nonlinear
@@ -213,11 +213,11 @@ namespace CoupledField {
         new MassInt(conductivity, 1,isaxi_,  upLagrangeForm );
 
       BiLinFormContext * massContext = 
-	new BiLinFormContext(bilinear_mass, MASS );
-	massContext->SetPtPdes(this, this);
-        massContext->SetResults( results_[0], results_[0],
-                                 actSDList, actSDList );        
-	assemble_->AddBiLinearForm( massContext );
+        new BiLinFormContext(bilinear_mass, MASS );
+      massContext->SetPtPdes(this, this);
+      massContext->SetResults( results_[0], results_[0],
+                               actSDList, actSDList );        
+      assemble_->AddBiLinearForm( massContext );
 
       // If this subdomain is a coil we have to do special things
       for ( UInt coil = 0; coil < coilDef_.GetSize(); coil++ ) {
@@ -481,7 +481,7 @@ namespace CoupledField {
         // Get the right material parameter for actual subdomain
         for (UInt iSD=0; iSD<subdoms_.GetSize(); iSD++)
           if (subdoms_[iSD] == calcEddy_[actSD])
-	    materials_[subdoms_[iSD]]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
+            materials_[subdoms_[iSD]]->GetScalar(conductivity,MAG_CONDUCTIVITY,REAL);
 
         // loop over elements of subdomain
         for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
@@ -695,7 +695,7 @@ namespace CoupledField {
 
               if (isaxi_) {
                 Vector<Double> coordAtIP;
-                 coordAtIP = ptCoord * shapeFnc;
+                coordAtIP = ptCoord * shapeFnc;
                 uiElem += shapeFnc * elemValue * 2 * PI * coordAtIP[0]
                   * intWeights[actIntPt-1] * jacDet;
               }
@@ -947,7 +947,7 @@ namespace CoupledField {
       UInt numNodes = 0;
       
       // initalize force nodestoresol
-       // intialize corresponding storesolution object
+      // intialize corresponding storesolution object
       Force_.SetNumSolutions(1);
       Force_.SetNumNodes(numPDENodes_);
       Force_.SetSolutionType(MAG_FORCE_VWP);

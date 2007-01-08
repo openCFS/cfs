@@ -45,7 +45,7 @@ namespace CoupledField {
     if (nonLinRegion[0] == "material" || nonLinRegion[0] == "geo")
       InitNonLin();
     
-    }
+  }
 
 
   // **************
@@ -65,7 +65,7 @@ namespace CoupledField {
     //calc charges
     if (calcCharge_.GetSize() !=0 ) {
       
-      if (analysisType_ == HARMONIC || analysisType_== MULTIHARMONIC){
+      if (analysisType_ == HARMONIC ){
         CalcCharges<Complex>();
       }
       else{
@@ -75,7 +75,7 @@ namespace CoupledField {
 
     // calc stresses
     if (calcStress_.GetSize() !=0 ) {
-      if (analysisType_ == HARMONIC || analysisType_==MULTIHARMONIC)
+      if (analysisType_ == HARMONIC )
         CalcStress<Complex>();
       else
         CalcStress<Double>();
@@ -683,7 +683,7 @@ namespace CoupledField {
       } 
     }
    
-    else if (analysisType_ == HARMONIC || analysisType_==MULTIHARMONIC) {
+    else if (analysisType_ == HARMONIC ) {
      
       //element results
       if (calcCharge_.GetSize() !=0 ) {
@@ -745,7 +745,7 @@ namespace CoupledField {
       }
       Info->PrintF( "", "\n" );
 
-      if( analysisType_ == HARMONIC || analysisType_==MULTIHARMONIC) {
+      if( analysisType_ == HARMONIC) {
         stress_ = new ElemStoreSol<Complex>;
       } else {
         stress_ = new ElemStoreSol<Double>;
@@ -789,7 +789,7 @@ namespace CoupledField {
       Info->PrintF( "", "\n" );
       
       // Resize solution arrays
-      if( analysisType_ == HARMONIC || analysisType_==MULTIHARMONIC) {
+      if( analysisType_ == HARMONIC ) {
         charges_ = new ElemStoreSol<Complex>;
       } else {
         charges_ = new ElemStoreSol<Double>;
@@ -813,7 +813,7 @@ namespace CoupledField {
 
     //         std::cout<<"analysisType_"<<std::endl;
     //         std::cout<<analysisType_<<std::endl;
-    //         if ( analysisType_ == HARMONIC || analysisType_==MULTIHARMONIC) {
+    //         if ( analysisType_ == HARMONIC ) {
     //           std::cout<<" Resize solution arrays ... harmonic case"<<std::endl;
 
     //           DfieldComplex_.SetNumSolutions(1);

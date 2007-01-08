@@ -500,7 +500,7 @@ namespace CoupledField {
     // function uses index starting at zero
     Vector<Double>  subDomVolReal;
     Vector<Complex> subDomVolComplex;
-    if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+    if ( analysistype_ == HARMONIC ) {
       subDomVolComplex.Resize(surfRegions.GetSize());
       subDomVolComplex.Init();
     }
@@ -535,7 +535,7 @@ namespace CoupledField {
 
       NodeStoreSol<Complex> * solHarmonic;
       NodeStoreSol<Double> * solTransient;
-      if ( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ) {
+      if ( analysistype_ == HARMONIC ) {
         solHarmonic = dynamic_cast<NodeStoreSol<Complex>*>(sol_);
         subDomVolComplex[actSF] = 0;   
       }
@@ -555,7 +555,7 @@ namespace CoupledField {
         ptgrid_->GetElemNodesCoord( ptSurfCoord, connecth, true );
 
         //get the deformed solution
-        if (analysistype_ == HARMONIC || analysistype_==MULTIHARMONIC) {
+        if (analysistype_ == HARMONIC ) {
           Vector<Complex> disp(ptSurfEl->GetNumNodes());
           for (UInt lnode=0; lnode < ptSurfEl->GetNumNodes(); lnode++) {
             solHarmonic->Get(connecth[lnode]-1, dof, disp[lnode]);
@@ -584,7 +584,7 @@ namespace CoupledField {
     StdVector<std::string> regionNames;
     ptgrid_->RegionIdToName( regionNames, surfRegions );
     
-    if ( analysistype_ == HARMONIC || analysistype_== MULTIHARMONIC ) {
+    if ( analysistype_ == HARMONIC ) {
       subDomVolReal.Resize(surfRegions.GetSize());
       subDomVolReal.Init();
       for (UInt actSF = 0; actSF < surfRegions.GetSize(); actSF++) {

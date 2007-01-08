@@ -6,7 +6,6 @@ include ../../main/Makefile.option
 #
 src = filetype.cc timefunc.cc freqfunc.cc writeresults.cc \
 	XMLMaterialHandler.cc PlainMaterialHandler.cc WriteInfo.cc\
-	MHMaterialDataFile.cc \
 
 #
 ifeq ($(DATABASE),yes)
