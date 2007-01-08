@@ -368,10 +368,6 @@ int main( int argc, const char **argv ) {
     ptdriver = new EigenFrequencyDriver( );
     break;
 
-    //case MULTIHARMONIC:
-    //ptdriver = new MultiHarmonicDriver( );
-    //break;
-
   case MULTI_SEQUENCE:
     ptdriver = new MultiSequenceDriver( );
     break;
