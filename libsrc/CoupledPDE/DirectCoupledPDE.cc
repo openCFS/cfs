@@ -143,7 +143,6 @@ namespace CoupledField {
       singlePDEs_[i]->SetDirectCoupling();
       // Initialize all SinglePDEs
       singlePDEs_[i]->Init( bcSequenceStep, bcSequenceTag );
-
     }
 
     // Get information about number of dirichlet values,
@@ -175,7 +174,6 @@ namespace CoupledField {
     
     solVec_->Resize(totalUnknowns_);
 
-
     // TEMPORARY CHANGE CHANGE CHANGE
     BaseNodeStoreSol *ptNodeSol;
 
@@ -203,12 +201,13 @@ namespace CoupledField {
 
     bool globalNonLin = false;
     bool globalNonLinMaterial = false;
+    bool globalNonLinHysteresis = false;
+
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       if(singlePDEs_[i]->IsNonLin())
         globalNonLin=true;
       if(singlePDEs_[i]->IsNonLinMaterial())
         globalNonLinMaterial=true;
-      
     }
     
     for (UInt i=0; i<couplings_.GetSize(); i++) {
@@ -217,24 +216,29 @@ namespace CoupledField {
         globalNonLin=true;
       if(couplings_[i]->nonLinMaterial_==true)
         globalNonLinMaterial=true;
+
+      if(couplings_[i]->nonLinHysteresis_==true) {
+        globalNonLinHysteresis = true;
+	isHysteresis_ = true;
+      }
     }
     
     nonLin_=globalNonLin;    
     nonLinMaterial_=globalNonLinMaterial;    
 
-    // copy nonlinearity information to singlePDEs
-
-    for (UInt i=0; i<singlePDEs_.GetSize(); i++){
-      singlePDEs_[i]->SetNonLinearity(globalNonLin);
-      singlePDEs_[i]->SetMaterialNonLinearity(globalNonLin);
+    if ( !globalNonLinHysteresis ) {
+      // copy nonlinearity information to singlePDEs
+      for (UInt i=0; i<singlePDEs_.GetSize(); i++){
+	singlePDEs_[i]->SetNonLinearity(globalNonLin);
+	singlePDEs_[i]->SetMaterialNonLinearity(globalNonLin);
+      }
+      
+      // copy nonlinearity information to couplings   
+      for (UInt i=0; i<couplings_.GetSize(); i++) {
+	couplings_[i]->SetNonLinearity(globalNonLin);    
+	couplings_[i]->SetMaterialNonLinearity(globalNonLin);
+      }
     }
-     
-    // copy nonlinearity information to couplings   
-    for (UInt i=0; i<couplings_.GetSize(); i++) {
-      couplings_[i]->SetNonLinearity(globalNonLin);    
-      couplings_[i]->SetMaterialNonLinearity(globalNonLin);
-    }
-     
     
     if(nonLin_){
       // which kind of lineSearch do we use?

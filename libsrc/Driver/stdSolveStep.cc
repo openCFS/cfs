@@ -55,14 +55,11 @@ namespace CoupledField {
     nonLinLogging_    = PDE_.GetNonlinLogging();
     nonLinPDEName_    = PDE_.GetNonlinPDEName();
 
-   
     // for direct coupled PDEs
     pdeId1_   = NO_PDE_ID;
     pdeId2_   = NO_PDE_ID;
 
     startStep_ = 1;
-
-
   }
 
   
@@ -292,6 +289,9 @@ namespace CoupledField {
     // do a nonlinear material time step
     if ( nonLin_ && nonLinMaterial_ ) {
       StepTransNonLinMaterial();
+    }
+    else if ( nonLin_ && isHyst_ ) {
+       StepTransNonLinHysteresis();
     }
     // do a nonlinear time step
     else if (nonLin_){
@@ -727,6 +727,181 @@ namespace CoupledField {
     // perform corrector step  
     TS_alg_->Corrector(actSol);
 
+  }
+
+
+  void StdSolveStep::StepTransNonLinHysteresis() {
+
+    ENTER_FCN( "StdSolveStep::StepTransNonLinHysteresis" );
+
+    Double *solPtr;
+    bool performOneMoreStep;
+
+    Vector<Double> solInc( numEqns_ );
+    Vector<Double> actSol( numEqns_ );
+    Vector<Double> oldSol( numEqns_ );
+    Vector<Double> prevSol( numEqns_ );
+    actSol.Init();
+  
+    // get actual solution
+    UInt length = algsys_->GetSolutionVal( solPtr );      
+    StoreAlgsysToVec(actSol, solPtr );
+
+    //solution from previous time step
+    prevSol = actSol;
+
+    // perform predictor step
+    if ( TS_alg_== NULL ) {
+      Error( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin",
+             __FILE__, __LINE__ );
+    }
+    else {
+      //compute predictors
+      TS_alg_->Predictor(actSol);
+    }
+
+    //! account for Dirichlet BCs
+    PDE_.SetBCs( actTime_ );
+
+    // currently just for testing!!
+    // loop over load factor
+    Double loadFactor = 0.0;
+
+    for ( UInt iload=0; iload<1; iload++ ) {
+      loadFactor += 1.0;
+      Info->PrintF(pdename_, "\n");
+      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
+
+      // setup right hand side 
+      Double RhsLinL2Norm = SetLinRHS(loadFactor); 
+
+      // inner forces due to nonlin formulation
+      assemble_->AssembleNonLinRHS( actTime_ );  
+
+      //Update RHS (mass matrix on right hand side)
+      TS_alg_->UpdateRHS();
+
+      // set iteration counter
+      UInt iterationCounter=0;
+
+      do {
+	//std::cout << "\n Iteration counter: " <<  iterationCounter << std::endl;
+
+        iterationCounter++;
+	oldSol = actSol;
+
+	//	std::cout << "Old Solution:\n" << oldSol << std::endl;
+
+	//        RHS is already set up!!
+	if ( iterationCounter > 0 ) {
+	  // setup linear part of right hand side 
+	  algsys_->InitRHS(RhsLinVal_.GetPointer());
+
+	  // inner forces due to nonlin formulation
+	  assemble_->AssembleNonLinRHS( actTime_ );  
+
+	  //Update RHS (mass matrix on right hand side)
+	  TS_alg_->UpdateRHS();
+	}
+
+        assemble_->AssembleMatrices();
+        algsys_->ConstructEffectiveMatrix(matrix_factor_);
+        algsys_->BuildInDirichlet();
+  
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
+        algsys_->Solve();
+
+        // new solution is only an increment of the full solution =============
+	length = algsys_->GetSolutionVal( solPtr );      
+	StoreAlgsysToVec(solInc, solPtr );
+
+        Double residualL2Norm;
+        Double etaLineSearch = 1.0;
+
+        if ( lineSearch_ == "none" ) {
+          actSol = solInc;
+        }
+        else {
+	  Error("Currently lineSreach not supported",__FILE__,__LINE__);
+          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
+        }
+
+	//	std::cout << "New Solution:\n" << actSol << std::endl;
+      
+        //store actual solution to the solution-object sol_
+	PDE_.SaveSolution(actSol.GetPointer(),length); 
+
+        if ( lineSearch_ == "none" ) {
+          // calculation of error norms
+          // recalculate RHS with new values to get new residual (f^(k+1))=======
+          algsys_->InitRHS(RhsLinVal_.GetPointer());
+
+          //substract from RHS: intFactro*MASS*acc - intFactor*DAMP*vel
+	  TS_alg_->UpdateRHS(actSol);
+
+	  // substracte stiff-matrix from RHS
+	  TS_alg_->SubstractStiffnessFromRHS(actSol);
+
+          // inner forces due to nonlin formulation
+          //assemble_->AssembleNonLinRHS( actTime_ );
+
+	  Vector<Double> actRHS;
+          Double *rhsPtr;
+	  algsys_->GetRHSVal( rhsPtr );
+	  StoreAlgsysToVec( actRHS, rhsPtr );
+	  //	  std::cout << "actRHS:\n" << actRHS << std::endl;
+
+          // calculation of residual error: L2Norm of ( f_i^(k+1) - f_a )
+          residualL2Norm = PDE_.GetRhsL2Norm(actRHS);
+        }
+
+        Double residualErr;
+        if ( RhsLinL2Norm > 1.0 )
+          residualErr    = residualL2Norm /  RhsLinL2Norm;
+        else
+          residualErr    = residualL2Norm;
+
+	//	std::cout << "Residual error: " << residualErr << std::endl;
+
+	residualErr = 0.0;
+
+        // calculate incremental error
+
+	// compute L2-Norm of error between last incremental solution and
+	// actual incremental solution
+	Double solIncrL2Norm=0;
+	for (UInt i=0; i<actSol.GetSize(); i++)
+	  solIncrL2Norm += (actSol[i]-oldSol[i])*(actSol[i]-oldSol[i]);
+	
+	solIncrL2Norm = sqrt(solIncrL2Norm);
+	Double actSolL2Norm = actSol.NormL2();
+	
+	Double incrementalErr;
+	if (actSolL2Norm > 1)
+	  incrementalErr = solIncrL2Norm / actSolL2Norm;
+	else
+	  incrementalErr = solIncrL2Norm;
+
+        // --------------------------------------------------------------------
+        // output of norms and data
+        // --------------------------------------------------------------------
+        if ( nonLinLogging_ == true ) {
+          Info->WriteNonLinIter(pdename_, iterationCounter, residualErr,
+                                incrementalErr, etaLineSearch);
+        }
+
+        // boolean variable, holds condition if another iteration step
+        // is necessary
+        performOneMoreStep = 
+          (incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
+      
+      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
+
+    } // load step loop
+
+    //perform corrector step  
+    TS_alg_->Corrector(actSol);
   }
 
 

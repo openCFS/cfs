@@ -85,8 +85,9 @@ namespace CoupledField
     //! Return identifier of second PDE
     PdeIdType GetPdeId2();
 
-    bool nonLin_;           //!< flag for nonlinear calculations
-    bool nonLinMaterial_;           //!< flag for nonlinear material calculations
+    bool nonLin_;             //!< flag for nonlinear calculations
+    bool nonLinMaterial_;     //!< flag for nonlinear material calculations
+    bool nonLinHysteresis_;   //!< flag for hysteresis calculations
     
     void SetNonLinearity(bool nonLin){
       nonLin_=nonLin;};

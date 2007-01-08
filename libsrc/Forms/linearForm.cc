@@ -1231,31 +1231,123 @@ namespace CoupledField {
 
 
   // ==================================================================
-  // piezoelectric polarization
+  // piezoelectric polarization: 
   // ==================================================================
 
-  PiezoPolarizationInt::PiezoPolarizationInt(UInt dir, UInt numdof, 
-                                             bool isaxi)
-    : LinearForm(), comp_(dir-1), numDofs_(numdof) 
-  {
-    ENTER_FCN( "PiezoPolarizationInt::PiezoPolarizationInt" );
-    name_ = "PiezoPolarizationInt";
-    isaxi_ = isaxi;
-    Pval_  = 0.0;
+  // base class
+  PiezoPolarizationRhsInt::PiezoPolarizationRhsInt( BaseMaterial* matDataElec,
+						    SubTensorType type ) 
+    : LinearForm() {
+
+    matDataElec_   = matDataElec;
+    subTensorType_ = type;
+
+    isaxi_ = false;
+    if ( subTensorType_ == AXI )
+      isaxi_ = true;
+
+    // get direction of polarization
+    std::string str;
+    matDataElec_->GetScalar(str, P_DIRECTION);
+    Directions dir;
+    String2Enum(str,dir);
+    dirP_ = dir;
+
+    piezoBilinearForm_ = new linPiezoCoupling(matDataElec, type); 
+
+
+    //get basis vector for irreversibel strain
+    ComputeNormalizedSirr(subTensorType_, dirP_, baseVecSirr_);
+
+  }
+
+  PiezoPolarizationRhsInt::~PiezoPolarizationRhsInt() {
+    ENTER_FCN( "PiezoPolarizationRhsInt::~PiezoPolarizationRhsInt" );
+
+    delete EfieldOp_;
+    delete piezoBilinearForm_;
+    delete matDataElec_;
+  }
+
+  void PiezoPolarizationRhsInt::ComputeNormalizedSirr(SubTensorType type, 
+						      UInt dirP,
+						      Vector<Double>& baseVecSirr) {
+
+   ENTER_FCN( "PiezoPolarizationRhsInt::ComputeNormalizedSirr" );
+
+    //get basis vector for irreversibel strain
+    if ( type == FULL ) {
+      baseVecSirr.Resize(6);
+      baseVecSirr.Init();
+      for ( UInt i=0; i<3; i++ )
+	baseVecSirr[i] = -0.5;
+      baseVecSirr[ dirP ] = 1.0;
+    }
+    else if ( type ==  AXI ) {
+      baseVecSirr.Resize(4);
+      baseVecSirr.Init();
+      for ( UInt i=0; i<4; i++ )
+	baseVecSirr[i] = -0.5;
+      baseVecSirr[2] = 0.0;  // no shear strain
+      baseVecSirr[ dirP ] = 1.0;
+    }
+    else {
+      baseVecSirr.Resize(3);
+      baseVecSirr.Init();
+      for ( UInt i=0; i<1; i++ )
+	baseVecSirr[i] = -0.5;
+      baseVecSirr[ dirP ] = 1.0;
+    }
   }
 
 
-  PiezoPolarizationInt::~PiezoPolarizationInt()
-  {
-    ENTER_FCN( "PiezoPolarizationInt::~PiezoPolarizationInt" );
+  void PiezoPolarizationRhsInt::Set4NonLinMaterial(Grid* ptGrid, 
+						   StdPDE* ptPDE,
+						   shared_ptr<EqnMap> eqnMap,
+						   shared_ptr<ResultDof> result) {
+
+    ENTER_FCN( "PiezoPolarizationRhsInt::Set4NonLinMaterial" );
+
+    EfieldOp_ =  new GradientFieldOp<Double>(ptGrid, ptPDE, 
+                                             eqnMap, *sol_, 
+                                             ELEC_POTENTIAL, 
+                                             result, isaxi_, 
+                                             coordUpdate_);
   }
 
 
-  void PiezoPolarizationInt::CalcElemVector( Vector<Double> & elemVec,
-                                             EntityIterator& ent ) 
+  // ==================================================================
+  // piezoelectric polarization: RHS of electric equation
+  // ==================================================================
+
+  PiezoPolarizationElecRhsInt::PiezoPolarizationElecRhsInt( BaseMaterial* matDataElec,
+							    BaseMaterial* matDataPiezo,
+							    BaseMaterial* matDataMech,
+							    SubTensorType type) 
+    : PiezoPolarizationRhsInt( matDataElec, type ) {
+
+    ENTER_FCN( "PiezoPolarisationElecRhsInt::PiezoPolarisationElecRhsInt" );
+
+    name_  = "PiezoPolarisationElecRhsInt";
+
+    matDataPiezo_ = matDataPiezo;
+    matDataMech_  = matDataMech;
+  }
+
+
+  PiezoPolarizationElecRhsInt::~PiezoPolarizationElecRhsInt() {
+    ENTER_FCN( "PiezoPolarizationElecRhsInt::~PiezoPolarizationElecRhsInt" );
+
+    delete matDataPiezo_;
+    delete matDataMech_; 
+  }
+
+
+  void PiezoPolarizationElecRhsInt::CalcElemVector( Vector<Double> & elemVec,
+						    EntityIterator& ent ) 
     
   {
-    ENTER_FCN( "PiezoPolarizationInt::CalcElemVector" );
+    ENTER_FCN( "PiezoPolarizationElecRhsInt::CalcElemVector" );
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
@@ -1263,51 +1355,206 @@ namespace CoupledField {
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
-   
+    const UInt nrNodes  = ptelem->GetNumNodes();      
     const Vector<Double> & intWeights = ptelem->GetIntWeights();  
-    Vector<Double> ShpFncAtIp, partElemVec, CoordAtIP;
-    Matrix<Double> xiDx;
+   
+    Double jacDet;
+    Vector<Double> partElemVec, Sirr, partSirr, elecD;
+    Vector<Double> ShpFncAtIp;
+    Matrix<Double> bMat;
 
-    partElemVec.Resize(numFncs);
-    partElemVec.Init(0);  
+    elemVec.Resize(numFncs);
+    elemVec.Init(0);  
 
-    Double factor;
+    //compute polarization
+    Vector<Double> LCoord, Efield;
+
+    // calc E-Field:
+    //compute electric field in the midpoint of element
+    ptelem->GetCoordMidPoint(LCoord);
+
+    EfieldOp_->CalcElemGradField( Efield, ent, LCoord, 1);
+    UInt nrEl = ent.GetElem()->elemNum;
+    Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield[dirP_] );
+    Vector<Double> elecP( Efield.GetSize() );
+    elecP.Init();
+    elecP[ dirP_ ] = actP; 
+
+    // get coupling tensor
+    Matrix<Double> ematMatrix;
+    matDataPiezo_->GetTensor( ematMatrix, PIEZO_TENSOR, REAL, subTensorType_);
+
+    // compute irreversibel strain
+    Vector<Double> coeff;
+    matDataMech_->GetVector( coeff, COEFF_STRAIN_IRREVERSIBLE, REAL);
+
+    Double val = 1.5 * ( coeff[0] +
+			 coeff[1] * actP +
+			 coeff[2] * actP * actP +
+			 coeff[3] * actP * actP * actP + 
+			 coeff[4] * actP * actP * actP * actP );
+
+    Sirr = baseVecSirr_ * val;
+
+    partSirr = ematMatrix * Sirr;
+
+//     std::cout << "Sirr:\n" << Sirr << std::endl;
+//     std::cout << "Pirr:\n" << elecP << std::endl;
+//     std::cout << "partD_Sirr:\n" << partSirr << std::endl;
+
+    // P - [e] * Sirr
+    elecD = elecP - partSirr;
+
+    piezoBilinearForm_->ExtractElemInfo( ent );
+
     for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
 
-      Double jacDet = 0;
-      ptelem->GetGlobDerivShFncAtIp(xiDx, actIntPt, ptCoord_, 
-                                    jacDet, ent.GetElem() );
+      // Setup the B matrix for current integration point
+      piezoBilinearForm_->calcBMat( bMat, actIntPt, ptCoord_ );
 
-      if (isaxi_) {
-        if ( comp_ == 0 ) {
-          ptelem->GetShFncAtIp(ShpFncAtIp,actIntPt, ent.GetElem() );
-          CoordAtIP = ptCoord_ * ShpFncAtIp;
-          for (UInt i=0; i<numFncs; i++)
-            xiDx[i][0] += ShpFncAtIp[i] / CoordAtIP[0];
-        }
-        jacDet *= 2 * PI * CoordAtIP[0];
+      // Compute Jacobian for integration point
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_,ent.GetElem() );
+
+      //shape functions at IP  
+      ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent.GetElem() );
+
+      if ( isaxi_ ) {
+        Double aux = 0.0;
+        
+        for ( UInt i = 0; i < nrNodes; i++ ) {
+          aux += ptCoord_[0][i] * ShpFncAtIp[i];
+        } 
+        jacDet *= 2.0 * PI * aux;
       }
+      jacDet *= intWeights[actIntPt-1];
 
-      factor = intWeights[actIntPt-1] * jacDet * Pval_;
-      for (UInt i=0; i<numFncs; i++) {
-        partElemVec[i] += xiDx[i][comp_] * factor;
-      }
+      partElemVec = bMat * elecD;
+      for ( UInt i=0; i<partElemVec.GetSize(); i++)
+	partElemVec[i] *=  ShpFncAtIp[i] * jacDet;
+
+      elemVec += partElemVec;
     }
+    
+    //    std::cout << "elemPvec:\n" << elemVec << std::endl;
+  }
 
-    // std::cerr << "rhs=" << partElemVec << std::endl; 
 
-    //compute element vector by correctly putting the components of
-    //partlementVec into elemVec, since the values for the mechanical
-    //degree of freedoms are zero
-    elemVec.Resize(numFncs*numDofs_);
-    elemVec.Init(0);  
-    UInt idx;
-    for (UInt i=0; i<numFncs; i++) {
-      idx = numDofs_*i + numDofs_ - 1;
-      elemVec[idx] = partElemVec[i];
-    }
+  // ==================================================================
+  // piezoelectric polarization: RHS of mechanic equation
+  // ==================================================================
+
+  PiezoPolarizationMechRhsInt::PiezoPolarizationMechRhsInt( BaseMaterial* matDataElec,
+							    BaseMaterial* matDataMech,
+							    SubTensorType type) 
+    : PiezoPolarizationRhsInt( matDataElec, type ) {
+
+    ENTER_FCN( "PiezoPolarisationMechRhsInt::PiezoPolarisationMechRhsInt" );
+
+    name_  = "PiezoPolarisationMechRhsInt";
+    matDataMech_  = matDataMech;
 
   }
+
+
+  PiezoPolarizationMechRhsInt::~PiezoPolarizationMechRhsInt()
+  {
+    ENTER_FCN( "PiezoPolarizationMechRhsInt::~PiezoPolarizationMechRhsInt" );
+
+    delete matDataMech_; 
+  }
+
+
+  void PiezoPolarizationMechRhsInt::CalcElemVector( Vector<Double> & elemVec,
+						    EntityIterator& ent ) 
+    
+  {
+    ENTER_FCN( "PiezoPolarizationMechRhsInt::CalcElemVector" );
+
+    // Extract pointer to reference element and get coordinates
+    ExtractElemInfo( ent );
+
+    ptelem->SetAnsatzFct( ansatzFct1_ );
+    const UInt nrIntPts = ptelem->GetNumIntPoints();
+    UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
+    const UInt nrNodes  = ptelem->GetNumNodes();      
+    const Vector<Double> & intWeights = ptelem->GetIntWeights();  
+
+    UInt dim = 2;
+    if ( subTensorType_ == FULL ) 
+      dim = 3;
+
+    Double jacDet;
+    Vector<Double> partElemVec, strainIrr, stressIrr;
+    Vector<Double> ShpFncAtIp;
+    Matrix<Double> bMat;
+
+    elemVec.Resize( numFncs*dim );
+    elemVec.Init(0);  
+
+    //    compute polarization
+    Vector<Double> LCoord, Efield;
+
+    // compute electric field in the midpoint of element
+    ptelem->GetCoordMidPoint(LCoord);
+
+    EfieldOp_->CalcElemGradField( Efield, ent, LCoord, 1);
+    UInt nrEl = ent.GetElem()->elemNum;
+    Double actP = matDataElec_->ComputeScalarHystVal( nrEl, Efield[dirP_] );
+
+    // get coupling tensor
+    Matrix<Double> cmatMatrix;
+    matDataMech_->GetTensor( cmatMatrix, MECH_STIFFNESS_TENSOR, REAL, subTensorType_);
+
+    // compute irreversibel strain
+    Vector<Double> coeff;
+    matDataMech_->GetVector( coeff, COEFF_STRAIN_IRREVERSIBLE, REAL);
+
+    Double val = 1.5 * ( coeff[0] +
+			 coeff[1] * actP +
+			 coeff[2] * actP * actP +
+			 coeff[3] * actP * actP * actP + 
+			 coeff[4] * actP * actP * actP * actP );
+
+    strainIrr = baseVecSirr_ * val;
+    stressIrr = cmatMatrix * strainIrr;
+
+    piezoBilinearForm_->ExtractElemInfo( ent );
+
+    for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {     
+
+      // Setup the B matrix for current integration point
+      piezoBilinearForm_->calcAMat( bMat, actIntPt, ptCoord_ );
+
+      // Compute Jacobian for integration point
+      jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_,ent.GetElem() );
+
+      // shape functions at IP  
+      ptelem->GetShFncAtIp( ShpFncAtIp, actIntPt, ent.GetElem() );
+
+      if ( isaxi_ ) {
+        Double aux = 0.0;
+        for ( UInt i = 0; i < nrNodes; i++ ) {
+          aux += ptCoord_[0][i] * ShpFncAtIp[i];
+        }
+        jacDet *= 2.0 * PI * aux;
+      }
+
+      jacDet *= intWeights[actIntPt-1];
+
+      partElemVec = bMat * stressIrr;
+      UInt idx = 0;
+      for ( UInt i=0; i<numFncs; i++) {
+	for ( UInt j=0; j<dim; j++ ) {
+	  partElemVec[idx] *=  ShpFncAtIp[i] * jacDet;
+	  idx += 1;
+	}
+      }
+      elemVec -= partElemVec;
+    }
+    
+//     std::cout << "elemSvec:\n" << elemVec << std::endl;
+  }
+
 
 
   // =========================================================================

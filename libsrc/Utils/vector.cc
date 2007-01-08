@@ -205,6 +205,95 @@ namespace CoupledField
     ret=  data_[i];
   }
 
+
+  template<class TYPE>
+  Matrix<Double> Matrix<TYPE>::GetPart(  DataType part ) const {
+    Error( "Matrix::GetPart: Only Implemented for Real and Complex matrices!", 
+           __FILE__, __LINE__ );
+    Matrix<Double> temp;
+    return temp;
+  }
+
+  
+  template<>
+  Vector<Double> Vector<Double>::GetPart(  DataType part ) const {
+    ENTER_FCN( "Vector<Double>::GetPart" )
+    
+    if ( part != REAL ) {
+      Error("Vector<Double>::GetPart: Only possible for REAL part.",__FILE__, __LINE__ );
+    }
+      return *this;
+  }
+
+  template<>
+  Vector<Double> Vector<Complex>::GetPart(  DataType part ) const {
+    ENTER_FCN( "Vector<Complex>::GetPart" );
+    
+    Vector<Double> ret;
+    if ( part == REAL ) {
+      ret.Resize( size_ );
+      for ( UInt i = 0; i < size_; i++ ) {
+	ret[i]  = data_[i].real();
+      }
+    } 
+    else if ( part == IMAG ) {
+      ret.Resize( size_ );
+      for ( UInt i = 0; i < size_; i++ ) {
+	ret[i]  = data_[i].imag();
+      }
+    } 
+    else {
+      Error("Vector<Complex>::GetPart: Only possible for REAL or IMAG part!" , 
+	    __FILE__, __LINE__ );
+    }
+    
+    return ret;
+  }
+
+
+  template<class TYPE>
+  void Vector<TYPE>::SetPart( DataType part, const Vector<Double> & partVector ) {
+    Error( "Vector::SetPart: Only Implemented for Real and Complex vectors!", 
+           __FILE__, __LINE__ );
+  }
+  
+  template<>
+  void Vector<Double>::SetPart( DataType part, const Vector<Double> & partVector ) {
+    
+    if ( size_ != partVector.GetSize() ) {
+      Error( "Vector<Double>::SetPart: Dimension of vectors do not match!", __FILE__, __LINE__ );
+    }
+ 
+    if ( part != REAL ) {
+      Error( "Vector<Double>::SetPart: Only possible for REAL part.", __FILE__, __LINE__ );
+    }
+    *this = partVector;
+  }
+
+  template<>
+  void Vector<Complex>::SetPart( DataType part, const Vector<Double> & partVector ) {
+
+    if ( size_ != partVector.GetSize() ) {
+      Error( "Vector<Complex>::SetPart: Dimension of vectors do not match!", __FILE__, __LINE__ );
+    }
+        
+    if ( part == REAL ) {
+      for ( UInt i = 0; i < size_; i++ ) {
+	data_[i]  = Complex( partVector[i], data_[i].imag() );
+      }
+    } 
+    else if ( part == IMAG ) {
+      for ( UInt i = 0; i < size_; i++ ) {
+	data_[i]  = Complex( data_[i].real(), partVector[i] );
+      }
+    } 
+    else {
+      Error( "Vector<Complex>::SetPart: Only possible for REAL or IMAG part!",
+	     __FILE__, __LINE__ );
+    }
+  }
+ 
+
   template<class TYPE> 
   void Vector<TYPE>::AddEntry(const UInt i, const TYPE &s)
   {

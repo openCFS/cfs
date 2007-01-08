@@ -21,6 +21,8 @@ namespace CoupledField {
       numPDENodes_(0),
       numElems_(0),
       nonLin_(false),
+      nonLinMaterial_(false),
+      isHysteresis_(false),
       incStopCrit_(1e-2), 
       residualStopCrit_(1e-3),
       TS_alg_(NULL),

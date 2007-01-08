@@ -34,6 +34,10 @@ namespace CoupledField {
     void SetScalar( Complex& param, const MaterialType& matType, 
 		    const DataType& dataType );
 
+    //! set a real vector
+    virtual void SetVector( Vector<Double>& param, const MaterialType& matType,
+			    const DataType& dataType );
+
     //! set a real material tensor
     void SetTensor( Matrix<Double>& param, const MaterialType& matType,
 		    const DataType& dataType );
@@ -57,6 +61,10 @@ namespace CoupledField {
     //! get a scalar complex real material parameter
     void GetScalar( Complex& param, const MaterialType& matType, 
 		    const DataType& dataType ) const;
+
+    //! get a real vector
+    virtual void GetVector( Vector<Double>& param, const MaterialType& matType,
+			    const DataType& dataType ) const;
 
     //! get a real material tensor
     void GetTensor( Matrix<Double>& param, const MaterialType& matType,

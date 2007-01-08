@@ -24,6 +24,7 @@ namespace CoupledField {
 
   public:
     typedef std::map<MaterialType, Matrix<Complex> > tensorMap;
+    typedef std::map<MaterialType, Vector<Complex> > vectorMap;
     typedef std::map<MaterialType, Complex > scalarMap;
     typedef std::map<MaterialType, std::string > stringMap;
     typedef std::map<MaterialType, Integer > integerMap;
@@ -111,6 +112,12 @@ namespace CoupledField {
       Error("SetScalar not implemented",__FILE__,__LINE__); };
 
 
+    //! set a real vector
+    virtual void SetVector( Vector<Double>& param, const MaterialType& matType,
+			    const DataType& dataType ){
+      Error("SetVector not implemented",__FILE__,__LINE__); };
+
+
     //! set a real material tensor
     virtual void SetTensor( Matrix<Double>& param, const MaterialType& matType,
 			    const DataType& dataType ){
@@ -153,6 +160,12 @@ namespace CoupledField {
     virtual void GetScalar( Complex& param, const MaterialType& matType, 
 			    const DataType& dataType ) const {
       Error("GetScalar not implemented",__FILE__,__LINE__); };
+
+
+    //! get a real vector
+    virtual void GetVector( Vector<Double>& param, const MaterialType& matType,
+			    const DataType& dataType ) const {
+      Error("GetVector not implemented",__FILE__,__LINE__); };
 
 
     //! get a real material tensor
@@ -266,6 +279,9 @@ namespace CoupledField {
 
     //! map, which knows about the scalar material parameters being set during read in 
     scalarMap scalarParams_;
+
+    //! map, which knows about the actual tensorial material parameters 
+    vectorMap vectorParams_;
 
     //! map, which knows about the actual tensorial material parameters 
     tensorMap tensorParams_;

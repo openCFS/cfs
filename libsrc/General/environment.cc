@@ -913,6 +913,9 @@ namespace CoupledField {
     case MECH_STIFFNESS_TENSOR:
       out = "MechanicStiffnessTensor";
       break;
+    case COEFF_STRAIN_IRREVERSIBLE:
+      out = "Coeff_Strain_Irreversible";
+      break;
     case MECH_EMODULUS:
       out = "Mechanic_Emodulus";
       break;
@@ -1078,6 +1081,9 @@ namespace CoupledField {
     }
     else if ( in == "MechanicStiffnessTensor" ) {
       out = MECH_STIFFNESS_TENSOR;
+    }
+    else if ( in == "Coeff_Strain_Irreversibel" ) {
+      out = COEFF_STRAIN_IRREVERSIBLE;
     }
     else if ( in == "Mechanic_Emodulus" ) {
       out = MECH_EMODULUS;
