@@ -22,6 +22,8 @@
       <xsd:element name="elasticity" type="DT_MechElasticity"/>
       <xsd:element name="elasticityCoefficient"
         type="DT_NonLinMechElastCoeff" minOccurs="0"/>
+      <xsd:element name="irreversibleStrainCoefficient"
+        type="DT_IrreversibelStrainCoeff" minOccurs="0"/>
       <xsd:element name="mechanicalDamping" type="DT_MechDamping"
         minOccurs="0"/>
     </xsd:sequence>
@@ -189,4 +191,20 @@
     </xsd:sequence>
   </xsd:complexType>
   
+  <!-- ******************************************************************* -->
+  <!--   Definition of polynomial coefficients of irreversible strain-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_IrreversibelStrainCoeff">
+     <xsd:sequence>
+       <xsd:element name="coeffs">
+          <xsd:simpleType>
+            <xsd:restriction base="DT_DoubleList">
+              <xsd:maxLength value="5"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+       </xsd:element> 
+     </xsd:sequence>
+    <xsd:attribute name="dim" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+
 </xsd:schema>
