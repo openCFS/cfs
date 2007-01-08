@@ -619,6 +619,33 @@ namespace CoupledField {
       //      std::cerr << "dataName=" << striValue << std::endl;
     }
 
+    //read coefficients for irreversible mechanical strain
+    UInt coeffDim;
+    keyVec = "material","mechanical","irreversibleStrainCoefficient";
+    attrVec= "name"    ,"dim";
+    valVec =  matName  ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->Get( keyVec, attrVec, valVec, inteValue  );
+      coeffDim = inteValue;
+      std::cout << "dim=" << coeffDim << std::endl;
+    }
+
+    Matrix<Double> matrixCoeffs(5,1);
+    Vector<Double> coeffs;
+    const unsigned int dimM1=1, dimM2=5;
+    keyVec = "material","mechanical","irreversibleStrainCoefficient","coeffs";
+    attrVec= "name"    ,""          ,"";
+    valVec =  matName  ,""          ,"";
+    if (parser_->ContainElem( keyVec, attrVec, valVec ) ) {
+      parser_->GetDim1xDim2Tensor( keyVec, attrVec, valVec, 
+                                   dimM1, dimM2, matrixCoeffs );
+      coeffs.Resize( matrixCoeffs.GetSizeCol());
+      for ( UInt i=0; i<matrixCoeffs.GetSizeCol(); i++)
+	coeffs[i] = matrixCoeffs[0][i];
+      material->SetVector( coeffs, COEFF_STRAIN_IRREVERSIBLE, REAL ); 
+    }
+
+
     //read alpha of Rayleigh damping
     keyVec = "material","mechanical","mechanicalDamping","rayleigh","alpha";
     attrVec= "name"    ,""          ,""                 ,"";

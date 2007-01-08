@@ -24,6 +24,7 @@ namespace CoupledField
     //set the allowed material parameters
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( MECH_STIFFNESS_TENSOR );
+    isAllowed_.insert( COEFF_STRAIN_IRREVERSIBLE );
     isAllowed_.insert( MECH_EMODULUS );
     isAllowed_.insert( MECH_EMODULUS_X );
     isAllowed_.insert( MECH_EMODULUS_Y );
@@ -143,6 +144,39 @@ namespace CoupledField
       scalarParams_[matType] = val;
     }
   }
+
+
+  void MechanicMaterial::SetVector( Vector<Double>& param, const MaterialType& matType, 
+				    const DataType& dataType ) {
+    
+    ENTER_FCN( "MechanicMaterial::SetTensor" );
+
+    //check, if allowed
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+      std::string dim = "vector";
+      matTypeNotAllowed( matType, dim );
+    }
+    else {
+      isSet_.insert( matType );
+      if ( dataType == REAL || dataType == IMAG ) {
+	if ( vectorParams_[matType].GetSize() == 0 ) {
+	  vectorParams_[matType].Resize( param.GetSize() );
+          vectorParams_[matType].Init();
+	}
+
+	vectorParams_[matType].SetPart( dataType, param );
+
+	if ( dataType == IMAG ) {
+	  isComplex_.insert( matType );
+	}
+      }
+      else {
+	std::string msg = "SeVector-Double";
+	dataTypeNotAllowed4SetGet ( dataType, msg );
+      }
+    }
+  }
+
 
   void MechanicMaterial::SetTensor( Matrix<Double>& param, const MaterialType& matType, 
 				    const DataType& dataType ) {
@@ -293,6 +327,35 @@ namespace CoupledField
       }
     }    
   }
+
+
+  void MechanicMaterial::GetVector( Vector<Double>& param, 
+				    const MaterialType& matType, 
+				    const DataType& dataType ) const {
+    
+    ENTER_FCN( "MechanicMaterial::GetVector" );
+
+    vectorMap::const_iterator pos;
+    pos = vectorParams_.find( matType );
+
+    if ( pos == vectorParams_.end() ) {
+      std::string dim = "vector";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      Vector<Complex> matVector;
+      matVector = pos->second;
+
+      if ( dataType == REAL || dataType == IMAG) {
+	param = matVector.GetPart( dataType );
+      }
+      else {
+	std::string msg = "GetVector-Double";
+	dataTypeNotAllowed4SetGet( dataType, msg );
+      }
+    }
+  }
+
 
   void MechanicMaterial::GetTensor( Matrix<Double>& param, 
 				    const MaterialType& matType, 

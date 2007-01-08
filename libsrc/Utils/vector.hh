@@ -175,6 +175,14 @@ namespace CoupledField {
     //! \param i (input) Index of entry 
     //! \param ret (output) Entry on position i
     void GetEntry( const UInt i, TYPE &ret ) const;
+
+
+    //! Return a special part ( real, imag, amplitude, phase) of a vector
+    Vector<Double> GetPart(  DataType part ) const;
+
+    //! Set special part ( real, imag, amplitude, phase) of a vector
+    void SetPart( DataType part, const Vector<Double> & partVector );
+
   
     //! Add s to i-th vector entry (x[i] += s)
 

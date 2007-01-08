@@ -19,8 +19,8 @@ ARCH = LINUXg
 # NOTE: The standard Fortran compiler was changed from f77 to gfortran in 
 # SuSE 10.0, which involves also the the c-fortran libraries g2c / gfortran
 ifeq ($(strip $(shell which gfortran 2> /dev/null)), )
-F77          = g77
-C_FORTRANLIB = g2c
+F77          = gfortran
+C_FORTRANLIB = gfortran
 else
 F77           = gfortran
 C_FORTRANLIB  = gfortran
@@ -115,7 +115,7 @@ endif
 # -----------------------------------------------------------------------------
 ifeq "$(LINK_PARDISO)" "yes"
 LIBDIR_PARDISO = -L$(PARDISO_ROOT)/lib
-LIB_PARDISO    = -lpardiso_GNU_IA32 -lg2c
+LIB_PARDISO    = -lpardiso_GNU_IA32 -lgfortran
 else
 LIBDIR_PARDISO =
 LIB_PARDISO    =

@@ -45,9 +45,7 @@ namespace CoupledField {
    void calcDMat(Matrix<Double> & dMat, UInt ip, 
                           Matrix<Double> & ptCoord);
 
-   //    void calcDMat( Matrix<Double> &dMat );
-
-    //! set objects for computation of E-field
+   //! set objects for computation of E-field
    void Set4NonLinMaterial(Grid* ptGrid, 
                            StdPDE* ptPDE,
                            shared_ptr<EqnMap> eqnMap,
@@ -106,14 +104,15 @@ namespace CoupledField {
    UInt matDimRow_;
    UInt matDimCol_;
    
-   SubTensorType sunTensorType_;
-   
    NodeStoreSol<Double> * solElec_;
    NodeStoreSol<Double> * solMech_;
 
    BaseMaterial* matDataMech_;
    BaseMaterial* matDataElec_;
 
+   bool isHysteresis_; 
+   UInt dirP_;   //< direction of polarization
+   Double Psat_; //< maximum value of saturation
   };
 
 }
