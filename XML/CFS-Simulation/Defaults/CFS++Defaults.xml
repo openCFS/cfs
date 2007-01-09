@@ -138,6 +138,12 @@
        <damping/>
       </region>
       <timeSteppingFormulation/>
+      <nonLinear>
+        <lineSearch/>
+        <incStopCrit>1</incStopCrit>
+        <resStopCrit>1</resStopCrit>
+        <maxNumIters>1</maxNumIters>
+      </nonLinear>
 
     </acoustic> 
 
