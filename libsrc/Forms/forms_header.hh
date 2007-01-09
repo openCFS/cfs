@@ -37,4 +37,6 @@
 #include "pierceInt.hh"
 #include "nLinElecMaterial.hh" 
 #include "nLinPiezoCoupling.hh" 
+#include "nLinMassInt.hh"
+#include "nlinLaplaceInt.hh"
 #endif

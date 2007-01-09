@@ -462,6 +462,50 @@ namespace CoupledField {
   }
   
 
+  void WriteInfo::WriteCombustionNoiseInfo(std::string filename, std::string cplRegion,
+					   UInt sosIdx, UInt src1, UInt src2, UInt src3, 
+					   UInt src4, UInt src5, UInt src6, UInt src7) {
+
+    ENTER_FCN( "WriteInfo::PrintSrcRHS" );
+
+    *cfsInfo << "\nCombustion Noise Info:\n" 
+	     << " Name of file: " << filename  
+	     << "\n Coupling region: " << cplRegion <<  std::endl;
+
+    if ( sosIdx > 0 ) {      
+      *cfsInfo << " Use variable speed of sound: yes" << std::endl;
+    }
+    else {
+      *cfsInfo << " Use variable speed of sound: no" << std::endl;
+    }
+
+    *cfsInfo << "\n Use the following source terms" << std::endl;
+
+    if ( src1 > 0 ) {
+      *cfsInfo << "      Reynolds stress tensor " << std::endl;
+    }
+    if ( src2 > 0 ) {
+      *cfsInfo << "      Fluctuation of momentum flux " << std::endl;
+    }
+    if ( src3 > 0 ) {
+      *cfsInfo << "      Unsteady reaction rates " << std::endl;
+    }
+    if ( src4 > 0 ) {
+      *cfsInfo << "      2nd order derivative of density " << std::endl;
+    }
+    if ( src5 > 0 ) {
+      *cfsInfo << "      Heat release " << std::endl;
+    }    
+    if ( src6 > 0 ) {
+      *cfsInfo << "      Gas Const. 2nd time derivative " << std::endl;
+    }
+    if ( src7 > 0 ) {
+      *cfsInfo << "      Shear term " << std::endl;
+    }
+
+    *cfsInfo << std::endl;
+  }
+
 
   void WriteInfo::PrintVec(StdVector<Integer>& vec)
   {

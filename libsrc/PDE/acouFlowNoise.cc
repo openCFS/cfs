@@ -94,7 +94,7 @@ namespace CoupledField
             if (coupledRegionNames[j] == regionNames[i])
               {
 
-                ptgrid_->GetVolElems(elemssd,couplSubDomId_[j]);
+                ptgrid_->GetVolElems(elemssd,subdoms_[i]); //couplSubDomId_[j]);
 		
                 if (dim_ == 3)
                   { //TO SEND ONLY LINEAR 3D ELEMS TO MPCCI SINCE NO QUADRATIC 
@@ -245,6 +245,7 @@ namespace CoupledField
     UInt elsize = 0;
     StdVector<Elem*> elemssd;     
     Double valmult;
+    Vector<Double> valVec(1);
 
     static UInt timestep=1;
 
@@ -252,9 +253,14 @@ namespace CoupledField
     double starttime, endtime;
     //std::cout<<"MpCCInodes_: "<< MpCCInodes_ << " dimension: " 
     //             << dim_ << std::endl;
-    if (nodalSrc_ == true)
+    if (nodalSrc_ == true) {
       //we get already the integrated acoustic source term
-      flowdata_.Resize(1, MpCCInodes_);
+//      if ( variableSpeedOfSoundCN_ )  {
+         flowdata_.Resize(2, MpCCInodes_);
+//      }
+ //     else 
+ //        flowdata_.Resize(1, MpCCInodes_);
+    }
     else
       flowdata_.Resize(1+dim_, MpCCInodes_);
 
@@ -402,57 +408,95 @@ namespace CoupledField
       UInt node, dof;
       Integer eqnNr;
       StdVector<UInt> connect(1);
- 
-      valmult=-1.0;    
-     
-      dof    = 1;
+      Double srcVal;
+      Double pointX, pointY, pointZ;
+      bool inBox; 
+
+      valmult = -1.0;    
+      dof     = 1;
+
+      Vector<Double> sos(1);
+      if ( variableSpeedOfSoundCN_ ) {
+	// we will store here the variable speed of sound
+	// so that it is evailable in the bilinearform
+	speedOfSound_.Init();
+      }
 
       if (!isHarmonic_)
         {
           for (UInt idx=0; idx<flowdata_.GetSizeCol() ; idx++)
             {
-              Double val = flowdata_[0][idx];
+              srcVal = flowdata_[0][idx];
+              sos[0] = flowdata_[1][idx];  //variable speed of sound
               node = idx + 1;
 
-              ///////////////////////////////////////////////////////////////////////
-                // Ramping before adding to RHS vector (NOW IT MAKES ZERO THE RHS ENTRY!)
+              /////////////////////////////////////////////////////////////////////
+	      // Ramping before adding to RHS vector (NOW IT MAKES ZERO THE RHS ENTRY!)
                 Matrix<Double> ptCoordNodes;
                 connecth.Resize(1);
                 connecth[0] = node;
                 ptgrid_->GetElemNodesCoord(ptCoordNodes, connecth);         
 
-                if (ptCoordNodes[0][0]<bndoffsetXmin)
-                  //val -= val*(ptCoordNodes[0][0]-bndoffsetXmin)/(xfmin-bndoffsetXmin);
-                  val = 0;
-                else
-                  if (ptCoordNodes[0][0]>bndoffsetXmax)
-                    //val -= val*(ptCoordNodes[0][0]-bndoffsetXmax)/(xfmax-bndoffsetXmax);
-                    val = 0;
-                if (ptCoordNodes[1][0]<bndoffsetYmin)
-                  //val -= val*(ptCoordNodes[1][0]-bndoffsetYmin)/(yfmin-bndoffsetYmin);
-                  val = 0;
-                else      
-                  if (ptCoordNodes[1][0]>bndoffsetYmax)
-                    //val -= val*(ptCoordNodes[1][0]-bndoffsetYmax)/(yfmax-bndoffsetYmax);
-                    val = 0;
-                if(dim_==3)
-                  {
-                    if (ptCoordNodes[2][0]<bndoffsetZmin)
-                      //val -= val*(ptCoordNodes[2][0]-bndoffsetZmin)/(zfmin-bndoffsetZmin);
-                      val = 0;
-                    else      
-                      if (ptCoordNodes[2][0]>bndoffsetZmax)
-                        //val -= val*(ptCoordNodes[2][0]-bndoffsetZmax)/(zfmax-bndoffsetZmax);
-                        val = 0;
-                  }
-                //end ramping
-                /////////////////////////////////////////////////////////////////////////
-
-                  val*=valmult;
-
-                  //add to RHS
-                  eqnNr = eqnMap_->GetNodeEqn(node,dof );
-                  algsys_->SetNodeRHS(val, pdeId_, eqnNr, 1);      
+		pointX = ptCoordNodes[0][0];
+		pointY = ptCoordNodes[1][0];
+		if(dim_==3) {
+		  pointZ = ptCoordNodes[2][0];
+		}
+		
+		//check, if point is in specified (xml-file) box 
+		inBox = false;
+		if ( pointX > xfmin &&  pointX < xfmax ) {
+		  if ( pointY > yfmin &&  pointY < yfmax ) {
+		    inBox = true;
+		    if ( dim_ == 3 ) {
+		      inBox = false;
+		      if ( pointZ > zfmin &&  pointZ < zfmax ) {
+			inBox = true;
+		      }
+		    }
+		  }
+		}
+		if ( !inBox ) {
+		  srcVal = 0.0;
+		}
+		else {
+		  // check for smoothing down
+		  if ( pointX < bndoffsetXmin )
+		    srcVal -= srcVal*(pointX-bndoffsetXmin)/(xfmin-bndoffsetXmin);
+		  else
+		    if ( pointX > bndoffsetXmax )
+		      srcVal -= srcVal*(pointX-bndoffsetXmax)/(xfmax-bndoffsetXmax);
+		  
+		  if ( pointY < bndoffsetYmin )
+		    srcVal  -= srcVal*(pointY-bndoffsetYmin)/(yfmin-bndoffsetYmin);
+		  else      
+		    if ( pointY > bndoffsetYmax )
+		      srcVal -= srcVal*(pointY-bndoffsetYmax)/(yfmax-bndoffsetYmax);
+		  
+		  if(dim_==3) {
+		    if ( pointZ < bndoffsetZmin )
+		      srcVal -= srcVal*(pointZ-bndoffsetZmin)/(zfmin-bndoffsetZmin);
+		    else      
+		      if ( pointZ > bndoffsetZmax )
+			srcVal -= srcVal*( pointZ-bndoffsetZmax)/(zfmax-bndoffsetZmax);
+		  }
+		}
+		
+		
+		//srcVal *= valmult;
+		
+		//add to RHS
+		eqnNr = eqnMap_->GetNodeEqn(node,dof );
+		algsys_->SetNodeRHS(srcVal, pdeId_, eqnNr, 1);   
+		if ( variableSpeedOfSoundCN_ ) {
+		  speedOfSound_.SetNodalResult(eqnNr, sos);
+		}
+		
+		if ( saveNodalSourcesRHS_ ) {
+		  // Info->PrintSrcRhs(node, eqnNr , val);
+		  valVec[0] = srcVal;
+		  rhsNodalSrc_.SetNodalResult(eqnNr, valVec);
+		}   
             }
       
         } 
@@ -527,6 +571,7 @@ namespace CoupledField
               }
             else
               eqnNr = eqnMap_->GetNodeEqn(mapSD_allNodes_[idx],dof );
+
             algsys_->SetNodeRHS(complexValue, pdeId_, eqnNr, 1);  
           }
        }//end else for frequency analysis
@@ -542,6 +587,7 @@ namespace CoupledField
       rhs_.SetNumSolutions(1);
       rhs_.SetNumNodes(numPDENodes_);
       rhs_.SetSolutionType(ACOU_RHSVAL);
+      rhs_.SetResult( results_[0] );
       rhs_.SetNumDofs(1);
       rhs_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
       rhs_.Init(0.0);
@@ -678,6 +724,7 @@ namespace CoupledField
                rhs_.SetNumSolutions(1);
                rhs_.SetNumNodes(elemssd.GetSize());
                rhs_.SetSolutionType(ACOU_RHSVAL);
+               rhs_.SetResult( results_[0] );
                rhs_.SetNumDofs(1);
                rhs_.SetPtrEQNData( eqnMap_.get(), ptgrid_);
                rhs_.Init(0.0);
@@ -685,6 +732,7 @@ namespace CoupledField
                rhs2_.SetNumSolutions(1);
                rhs2_.SetNumNodes(elemssd.GetSize());
                rhs2_.SetSolutionType(ACOU_POT_NRBC);
+               rhs2_.SetResult( results_[0] );
                rhs2_.SetNumDofs(1);
                rhs2_.SetPtrEQNData(eqnMap_.get(),ptgrid_);
                rhs2_.Init(0.0);
@@ -935,8 +983,7 @@ namespace CoupledField
     Char * aux=new Char[2];
     Char * anameloc=new Char[30];
 
-    strcpy(anameloc,aname);
-         
+    strcpy(anameloc,aname);     
 
     sprintf(aux,"%i",timestep);
 

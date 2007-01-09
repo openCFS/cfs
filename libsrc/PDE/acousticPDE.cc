@@ -52,10 +52,8 @@ namespace CoupledField {
     saveRHSval_ = false;
     saveRHSvalHist_ = false;
     isBubbleCoupled_ = false;
-
-//      mHandle_ =  domain->GetMathParser()->GetNewHandle();
-//      MathParser * mParser =  domain->GetMathParser();
-//      mParser->SetExpr( mHandle_, "t" );
+    variableSpeedOfSoundCN_ = false;
+    saveNodalSourcesRHS_ = false;
 
     // PDE formulation either in acoustic potential or pressure
     std::string str;
@@ -297,8 +295,26 @@ namespace CoupledField {
                    << "Kuznetsov equation!";
         Error( __FILE__, __LINE__ );
       }
+      else if ( strVec[k] == "variableSOS_CN1" ) {
+      //  nonLin_ = true;
+        nonLinPDEName_[k] = VARIABLE_SOS_CN1;
+        Info->PrintF(pdename_, 
+              "      * Variable Speed of Sound in Combustion Noise Form 1: %d\n",
+              k );
+        variableSpeedOfSoundCN_ = true;
+      }
+      else if ( strVec[k] == "variableSOS_CN2" ) {
+       // nonLin_ = true;
+        nonLinPDEName_[k] =  VARIABLE_SOS_CN2;
+        Info->PrintF(pdename_,
+              "      * Variable Speed of Sound in Combustion Noise Form 2: %d\n",
+              k );
+        variableSpeedOfSoundCN_ = true;
+      }
+
     }
-    
+
+
     if( nonLin_ ) {
       // solution method
       params->Get("method", nonLinMethod_, pdename_, "nonLinear" );
@@ -319,6 +335,17 @@ namespace CoupledField {
   void AcousticPDE::DefineIntegrators() {
 
     ENTER_FCN( "AcousticPDE::DefineIntegerators" );
+
+    if ( variableSpeedOfSoundCN_ ) {
+        speedOfSound_.SetNumSolutions(1);
+        speedOfSound_.SetNumNodes(numPDENodes_);
+        speedOfSound_.SetSolutionType(ACOU_RHSVAL);
+        speedOfSound_.SetResult( results_[0] );
+        speedOfSound_.SetNumDofs(1);
+        speedOfSound_.SetPtrEQNData(eqnMap_.get(),ptgrid_);
+        speedOfSound_.SetRegions( subdoms_ );
+        speedOfSound_.Init(0);
+    }
 
     // help variables for parameter checking
     StdVector<std::string> keyVec;
@@ -478,7 +505,15 @@ namespace CoupledField {
 
       else {
         // stiffness integrator 
-        BaseForm * bilinearStiff = new LaplaceInt( density, isaxi_ );        
+        BaseForm * bilinearStiff;
+        if ( nonLinPDEName_[actSD] == VARIABLE_SOS_CN2 ) {
+            bilinearStiff = new nLinLaplaceInt( density, isaxi_ );        
+            bilinearStiff->SetSolution( speedOfSound_);
+        }
+        else {
+            bilinearStiff = new LaplaceInt( density, isaxi_ );        
+        }
+
         BiLinFormContext * stiffContext = 
           new BiLinFormContext( bilinearStiff, STIFFNESS );
 
@@ -486,14 +521,22 @@ namespace CoupledField {
                                   actSDList, actSDList );
         stiffContext->SetPtPdes( this, this );
 
-        // mass integrator
-        coeffmass = density / (c0*c0);
+        // mass integratora
+        BaseForm * bilinearMass;
+        if ( nonLinPDEName_[actSD] == VARIABLE_SOS_CN1 ) {
+           coeffmass = 1.0;
+           bilinearMass  = new NlinMassInt(coeffmass, 1, isaxi_);
+           bilinearMass->SetSolution( speedOfSound_ );
+        }
+        else {
+            coeffmass = density / (c0*c0);
+            bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
 
-        MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
-	if ( diagMass_ ) {
-	  // diagonal mass matrix
-	  bilinearMass->SetDiagMass();
-	}
+	    if ( diagMass_ ) {
+	      // diagonal mass matrix
+	      bilinearMass->SetDiagMass();
+	    }
+        }
 
         BiLinFormContext * massContext = 
           new BiLinFormContext( bilinearMass, MASS );
@@ -2054,7 +2097,7 @@ namespace CoupledField {
 
         if (calcElemPressure_.GetSize() != 0 ) {
           ElemStoreSol<Complex> & pressureConverted = 
-            dynamic_cast<ElemStoreSol<Complex>&>(*acouPressure_);
+          dynamic_cast<ElemStoreSol<Complex>&>(*acouPressure_);
           outFile_->WriteElemSolutionHarmonic(pressureConverted, actStep,
                                               actTime, complexFormat_);
         }
@@ -2092,9 +2135,14 @@ namespace CoupledField {
           outFile_->WriteNodeSolutionTransient(solDeriv2_, actStep, actTime);
         }
 
+        if (saveNodalSourcesRHS_){ 
+//          std::cout << "write RHS" << std::endl;
+          outFile_->WriteNodeSolutionTransient(rhsNodalSrc_, actStep, actTime);
+	}
 
-        if (saveRHSval_){
-          outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
+        if (saveRHSval_){ 
+	  // std::cout << "write RHS" << std::endl;
+          // outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
           if (plotRHSVel_==true)
             outFile_->WriteNodeSolutionTransient(rhs2_, actStep, actTime);
         }
@@ -2345,6 +2393,33 @@ namespace CoupledField {
         solDeriv2_.Init(0);
       }
     }
+
+      // --- acoustic Nodal Sources
+      Enum2String(ACOU_RHSVAL, quantity);
+      valVec  = "", "", quantity;
+      params->GetList( keyVec, attrVec, valVec, nodeValues );
+    
+      if ( nodeValues.GetSize() > 0) {
+        saveNodalSourcesRHS_ = true;
+        hasOutput_ = true;
+        Info->PrintF( pdename_, "Saving acoustic nodal sources:\n" );
+
+//        shared_ptr<ResultDof> res1(new ResultDof);
+//        res1->resultType = ACOU_RHSVAL;
+//        res1->dofNames = "vp";
+//        res1->definedOn = ResultDof::NODE;
+//        results_.Push_back( res1 );
+
+        rhsNodalSrc_.SetNumSolutions(1);
+        rhsNodalSrc_.SetNumNodes(numPDENodes_);
+        rhsNodalSrc_.SetSolutionType(ACOU_RHSVAL);
+        rhsNodalSrc_.SetResult( results_[0] );
+        rhsNodalSrc_.SetNumDofs(1);
+        rhsNodalSrc_.SetPtrEQNData(eqnMap_.get(),ptgrid_); 
+        rhsNodalSrc_.SetRegions( subdoms_ );
+        rhsNodalSrc_.Init(0);
+
+      }
     
     
     // *****************************

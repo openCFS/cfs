@@ -14,6 +14,7 @@
 #include "acousticXYZPDE.hh"
 #include "stokesFluidPDE.hh"
 #include "bubblePDE.hh"
+#include "acouCombustion.hh"
 
 
 #endif

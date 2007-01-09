@@ -117,7 +117,7 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
     ENTER_FCN("entering MpCCIexch::PutExchangeGrid2MpCCI");
 
     // Here starts part for giving mixed mesh to MpCCI
-  
+
   CCI_Def_partition(meshId_, partId_);
 
   Matrix<Double> ptCoordNodes;
@@ -146,6 +146,7 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
         // This is part of workaround for 3D quadratic elements
 	for (UInt n=0; n<(mapSD_.GetSize()); n++)
 	  {
+//             std::cout << "node:" << n << std::endl;
 	    nodeIds_[n] = (int)mapSD_[n];
             if (Dim_==2)
               {
@@ -254,6 +255,8 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
   //define the nodes
           CCI_Def_nodes((int)meshId_, (int)partId_, (int)GlobalDim_, MpCCInodes_, (int)nNodeIds_, &nodeIds_[0], REALTYPE, NODEDATA);
 
+//   std::cout << "node ok" << std::endl;
+
    for (i=0; i<coupledsubdoms.GetSize(); i++)
      {
        ptgrid_->GetElems(elemssd,coupledsubdoms[i]);
@@ -329,7 +332,8 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
       //define the elements
       CCI_Def_elems((int)meshId_, (int)partId_, (int)nElemSD, (int)nElemIds_, elemIds_, 
 		    (int)nElemTypes_, elemTypes_, (int*)nNodesPerElem_, TOPOLOGYDATA[i]);
-          }
+//      std::cout << "elem ok" << std::endl;
+     }
   
 
   //Close the definition phase; contact detection.
@@ -345,7 +349,6 @@ if (TOPOLOGYDATA)  delete [] TOPOLOGYDATA;
 if (elemIds_)  delete [] elemIds_;
 if ( nNodesPerElem_)  delete [] nNodesPerElem_;
 if (elemTypes_)  delete [] elemTypes_;
-
 }
     
 void MpCCIexch::DefMpcciPartition(UInt meshId, UInt partId)
@@ -640,6 +643,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
             
             // Getting first column as INT(dTdxdw) with node identifier
             flowdata[0][nodeIds_[inode]-1] = value_Press[inode];
+            flowdata[1][nodeIds_[inode]-1] = value_VxVy[inode*3];
 
             if (writeSrcFileperTS_)
               {
@@ -689,9 +693,9 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
         for (UInt inode=0; inode<MpCCInodes_; inode++)
           {
             flowdata[0][inode] = value_Press[inode];
-            for(Integer i=0;i<Dim_;i++)
+            for(Integer i=0;i<Dim_;i++) {
               flowdata[i+1][inode] = value_VxVy[k+i];
-            
+            }
             k = k+3;
           }
       }

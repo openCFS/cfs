@@ -19,8 +19,8 @@ namespace CoupledField
     phaseStr_ = phaseStr;
     materialParam_ = materialParam;
 
-    std::cerr << "In LinNeumannInt::CalcElemVector output " << std::endl
-              << " coordinate     amplitude    phase " << std::endl;
+    //    std::cerr << "In LinNeumannInt::CalcElemVector output " << std::endl
+    //              << " coordinate     amplitude    phase " << std::endl;
     
   }
 

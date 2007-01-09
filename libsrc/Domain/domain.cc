@@ -422,9 +422,11 @@ namespace CoupledField {
       else if (pdeNames[i] == "acoustic") {
         StdVector<std::string> acouSubType;
         params->GetList( "subType", acouSubType,"pdeList", "acoustic");
-        if (acouSubType.GetSize())
+        if (acouSubType[0] == "flowNoise")
           ptSinglePde_[i]=new AcouFlowNoise(ptgrid_,ptTimeFunc_,OutFile_);
-        else
+        else if  (acouSubType[0] == "combustionNoise")
+          ptSinglePde_[i]=new AcouCombustionNoise(ptgrid_,ptTimeFunc_,OutFile_);
+	else
           ptSinglePde_[i]=new AcousticPDE(ptgrid_,ptTimeFunc_,OutFile_);
       }
       

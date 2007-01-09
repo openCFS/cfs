@@ -643,12 +643,16 @@ libsrc/Forms/nLinElecHystInt.cc -text
 libsrc/Forms/nLinElecHystInt.hh -text
 libsrc/Forms/nLinElecMaterial.cc svneol=native#text/plain
 libsrc/Forms/nLinElecMaterial.hh svneol=native#text/plain
+libsrc/Forms/nLinMassInt.cc svneol=native#text/plain
+libsrc/Forms/nLinMassInt.hh svneol=native#text/plain
 libsrc/Forms/nLinPiezoCoupling.cc svneol=native#text/plain
 libsrc/Forms/nLinPiezoCoupling.hh svneol=native#text/plain
 libsrc/Forms/nLinStokesFluidInt.cc svneol=native#text/plain
 libsrc/Forms/nLinStokesFluidInt.hh svneol=native#text/plain
 libsrc/Forms/nLincurlCurlNodeInt.cc svneol=native#text/plain
 libsrc/Forms/nLincurlCurlNodeInt.hh svneol=native#text/plain
+libsrc/Forms/nlinLaplaceInt.cc svneol=native#text/plain
+libsrc/Forms/nlinLaplaceInt.hh svneol=native#text/plain
 libsrc/Forms/nrbcInt.cc svneol=native#text/plain
 libsrc/Forms/nrbcInt.hh svneol=native#text/plain
 libsrc/Forms/pierceInt.cc svneol=native#text/plain
@@ -727,6 +731,8 @@ libsrc/PDE/SinglePDE.cc svneol=native#text/plain
 libsrc/PDE/SinglePDE.hh svneol=native#text/plain
 libsrc/PDE/StdPDE.cc svneol=native#text/plain
 libsrc/PDE/StdPDE.hh svneol=native#text/plain
+libsrc/PDE/acouCombustion.cc svneol=native#text/plain
+libsrc/PDE/acouCombustion.hh svneol=native#text/plain
 libsrc/PDE/acouFlowNoise.cc svneol=native#text/plain
 libsrc/PDE/acouFlowNoise.hh svneol=native#text/plain
 libsrc/PDE/acousticPDE.cc svneol=native#text/plain
@@ -848,6 +854,7 @@ libsrc/Utils/preisach.hh svneol=native#text/plain
 libsrc/Utils/profiler.cc svneol=native#text/plain
 libsrc/Utils/profiler.hh svneol=native#text/plain
 libsrc/Utils/promote.hh svneol=native#text/plain
+libsrc/Utils/readCFDbinary.cc -text
 libsrc/Utils/tools.cc svneol=native#text/plain
 libsrc/Utils/tools.hh svneol=native#text/plain
 libsrc/Utils/tracing.cc svneol=native#text/plain
@@ -860,6 +867,7 @@ libsrc/makefilemach/make.mach.IRIX64g svneol=native#text/plain
 libsrc/makefilemach/make.mach.LINUX svneol=native#text/plain
 libsrc/makefilemach/make.mach.LINUXAMD64 svneol=native#text/plain
 libsrc/makefilemach/make.mach.LINUXAMD64g svneol=native#text/plain
+libsrc/makefilemach/make.mach.LINUXMELTING64 -text
 libsrc/makefilemach/make.mach.LINUXPAR svneol=native#text/plain
 libsrc/makefilemach/make.mach.LINUXg svneol=native#text/plain
 libsrc/makefilemach/make.mach.LINUXmpi svneol=native#text/plain
