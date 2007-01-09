@@ -177,7 +177,7 @@ namespace CoupledField {
   enum InterpolType{NOTUSED=0, trueVAL=1, LIN1PT=2};
 
   //! Identifier, if there are different PDE formulations for one field e.g. acoustics
-  enum NonLinPDE{WESTERVELT=0, KUZNETSOV=1, VARIABLE_SOS_CN1=3, VARIABLE_SOS_CN2=4};
+  enum NonLinPDE{WESTERVELT=0, KUZNETSOV=1, VARIABLE_SOS_CN1=3, VARIABLE_SOS_CN2=4, VARIABLE_SOS_CN2Mean=5};
 
   //! Describes all possible solution types in a CFS simulation
   typedef enum{NO_SOLUTION_TYPE, MECH_DISPLACEMENT, MECH_ACCELERATION,
@@ -191,7 +191,7 @@ namespace CoupledField {
                ACOU_PRESSURE_DERIV_2,ACOU_FORCE, ACOU_POT_NRBC, 
                NRBC_PHI, ACOU_POWERDENSITY, ACOU_POWER, ACOU_INTENSITY,
                ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2, ACOU_RHSVAL,
-               ACOU_BUBBLE_RHS_VAL,
+               ACOU_BUBBLE_RHS_VAL, ACOU_SOUND_SPEEED, 
                MAG_POTENTIAL, MAG_FLUX_DENSITY, MAG_EDDY_CURRENT, 
                MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY,
                HEAT_TEMPERATURE,

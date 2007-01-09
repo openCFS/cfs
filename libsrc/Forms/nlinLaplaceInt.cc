@@ -10,13 +10,18 @@ namespace CoupledField
 {
 
 
-  nLinLaplaceInt::nLinLaplaceInt(Double aVal, bool axi, bool coordUpdate )
+  nLinLaplaceInt::nLinLaplaceInt(Double aVal, bool axi,  bool isSpeedVariable, 
+                                 bool coordUpdate )
     : BaseForm(NULL),laplVal_ (aVal)
   {
     ENTER_FCN( "nLinLaplaceInt::LaplaceInt" );
 
     name_ = "nLinLaplaceInt";
-    isSolDependent_ = true;
+
+    isSolDependent_ = false;
+    if ( isSpeedVariable ) 
+      isSolDependent_ = true;
+
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
   }
@@ -100,6 +105,7 @@ namespace CoupledField
         elemMat += partElemMat;
       }
 
+    //    std::cout << "nlinLaplace" << std::endl;
     //    std::cout << "ElemMatnLinnLinLaplace:\n" << elemMat << std::endl;
   }
 

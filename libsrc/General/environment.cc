@@ -513,6 +513,8 @@ namespace CoupledField {
       out = ACOU_POTENTIAL_DERIV_2;
     else if (in == "acouRHSval")
       out = ACOU_RHSVAL;
+    else if (in == "acouSoundSpeed")
+      out = ACOU_SOUND_SPEEED;
     else if (in == "acouBubbleRhsVal")
       out = ACOU_BUBBLE_RHS_VAL;
     else if (in == "acouPotNRBC")
@@ -662,6 +664,9 @@ namespace CoupledField {
         break;
       case ACOU_RHSVAL:
         out = "acouRHSval";
+        break;
+      case ACOU_SOUND_SPEEED:
+        out = "acouSoundSpeed";
         break;
       case ACOU_BUBBLE_RHS_VAL:
         out = "acouBubbleRhsVal";
