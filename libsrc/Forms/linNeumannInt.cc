@@ -19,17 +19,19 @@ namespace CoupledField
     phaseStr_ = phaseStr;
     materialParam_ = materialParam;
 
-    //    std::cerr << "In LinNeumannInt::CalcElemVector output " << std::endl
-    //              << " coordinate     amplitude    phase " << std::endl;
-    
+#ifdef DEBUG
+    (*debug) << "In LinNeumannInt::CalcElemVector output " << std::endl
+             << " coordinate     amplitude    phase " << std::endl;
+#endif
+
   }
 
-  
+
   LinNeumannInt::~LinNeumannInt() {
     ENTER_FCN( "LinNeumannInt::~LinNeumannInt" );
 
     actElem_ = NULL;
-    
+
   }
 
   void LinNeumannInt::PrepareElemVector( Vector<Double> & elemVec,
@@ -38,7 +40,7 @@ namespace CoupledField
 
     // Extract pointer to reference element and get coordinates
     ExtractElemInfo( ent );
-    
+
     ptelem->SetAnsatzFct( ansatzFct1_ );
     const UInt nrIntPts = ptelem->GetNumIntPoints();
     UInt numFncs = ptelem->GetNumFncs( ansatzFct1_ );
@@ -154,7 +156,7 @@ namespace CoupledField
     parser->SetExpr( mHandle_, phaseStr_ );
     phase = parser->Eval( mHandle_ );
 
-    // Note: Since phase is in °(grad), we have to transform it into
+    // Note: Since phase is in (grad), we have to transform it into
     //        rad-value
     Double realPart = amplitude * cos(phase/180*PI);
     Double imagPart = amplitude * sin(phase/180*PI);
@@ -163,9 +165,11 @@ namespace CoupledField
 
     elemVec =  helpVec * val;
 
-    std::cerr << globMidPointVol[0] 
-              << "   " << amplitude 
-              << "   " << phase << std::endl;
+#ifdef DEBUG
+    (*debug) << globMidPointVol[0] 
+             << "   " << amplitude 
+             << "   " << phase << std::endl;
+#endif
 
   }
 

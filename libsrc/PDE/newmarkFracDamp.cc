@@ -20,6 +20,7 @@ namespace CoupledField {
                                     shared_ptr<EqnMap> eqnMap,
                                     Grid * aptgrid,
                                     StdPDE * aptStdPDE,
+                                    shared_ptr<ResultDof> aresult,
                                     StdVector<RegionIdType> asubdomainList,
                                     std::map<RegionIdType,DampingType> adampingList) 
     :TimeStepping( algebraicsystem ){
@@ -31,6 +32,7 @@ namespace CoupledField {
     ptgrid_      = aptgrid;
     ptStdPDE_    = aptStdPDE;
     eqnMap_      = eqnMap;
+    result_      = aresult;
 	
     subdoms_     = asubdomainList;
     dampingList_ = adampingList;
@@ -54,6 +56,8 @@ namespace CoupledField {
     }
 
     isaxi_       = aptStdPDE->GetIsaxi();
+    // std::cerr << "In NewmarkFracDamp isaxi_ has value of: " << isaxi_ << std::endl;
+
   
     alpha_ = 0.0;
     beta_  = 0.25;
@@ -153,7 +157,7 @@ beta and gamma!\n" );
 
     // damping part
     Matrix<Double>  elemmat,ptCoord;
-    StdVector<UInt> connecth;
+    StdVector<Integer> eqnNumbers;
     Vector<Double>  rhsAssemble, rhsvec, elemsol;
     Double          density, compressibility, c0, alpha0, y, factor;
     std::map<RegionIdType, BaseMaterial*> mymaterialData;
@@ -172,12 +176,12 @@ beta and gamma!\n" );
         algsys_->UpdateRHS(DAMPING,coeffDamp.GetPointer());
       }
       else {
-	mymaterialData[subdoms_[actSD]]->GetScalar(density,DENSITY,REAL);
-	mymaterialData[subdoms_[actSD]]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
-	mymaterialData[subdoms_[actSD]]->GetScalar(alpha0,ACOU_ALPHA,REAL);
-	mymaterialData[subdoms_[actSD]]->GetScalar(y,FRACTIONAL_EXPONENT,REAL);
+        mymaterialData[subdoms_[actSD]]->GetScalar(density,DENSITY,REAL);
+        mymaterialData[subdoms_[actSD]]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
+        mymaterialData[subdoms_[actSD]]->GetScalar(alpha0,ACOU_ALPHA,REAL);
+        mymaterialData[subdoms_[actSD]]->GetScalar(y,FRACTIONAL_EXPONENT,REAL);
 
-	c0 = sqrt(compressibility/density);
+        c0 = sqrt(compressibility/density);
 
         // factor: pre factor in Newmark timestepping scheme
         //         times pre factor of damping term
@@ -208,22 +212,20 @@ beta and gamma!\n" );
           BlankWeights(numValues_, y, true);
           CompressWeights();
         }
+        BaseForm * bilinear_mass = new MassInt(factor, 1, isaxi_);
+        bilinear_mass->SetAnsatzFct( result_->fctType, result_->fctType );
 
         ElemList actSDList(ptgrid_ );
         actSDList.SetRegion( subdoms_[actSD] );
-        
         EntityIterator it = actSDList.GetIterator();
 
-        BaseForm * bilinear_mass = new MassInt(factor, isaxi_);
+        // iterate over all elements of subdomain
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
-          connecth=it.GetElem()->connect;
-          
           bilinear_mass->CalcElementMatrix(elemmat,it,it);
           
-          // map connect to PDE node numbers
-          StdVector<Integer> connect_PDE;
-          eqnMap_->GetNodeEqn(connecth, connect_PDE);
+          // map node numbers to equation numbers
+          eqnMap_->GetEqns( eqnNumbers, *result_, it );
 
 #ifdef DEBUG
           UInt elemNum = it.GetElem()->elemNum;
@@ -233,13 +235,14 @@ beta and gamma!\n" );
                    << elemNum << std::endl;
           (*debug) << elemmat << std::endl;
 #endif
+
           // compute BDF
-          GetElemSolution(solpred_, elemsol, connect_PDE);
+          GetElemSolution( solpred_, elemsol, eqnNumbers );
           rhsvec = -elemsol * coeff_[0];
 
           for (UInt i=1; i<numTrueValues_; i++) {
 
-            GetElemSolution(solMemory_[i-1], elemsol, connect_PDE);
+            GetElemSolution(solMemory_[i-1], elemsol, eqnNumbers );
             rhsvec += elemsol * coeff_[i];
           }
 
@@ -252,8 +255,8 @@ beta and gamma!\n" );
           
           //assemble to RHS
           algsys_->SetElementRHS(&rhsAssemble[0], pdeId_, 
-                                 connect_PDE.GetPointer(),
-                                 connect_PDE.GetSize());
+                                 eqnNumbers.GetPointer(),
+                                 eqnNumbers.GetSize());
         }
         delete bilinear_mass;
       }
@@ -348,12 +351,17 @@ beta and gamma!\n" );
   void NewmarkFracDamp::
   GetElemSolution ( const Vector<Double>& sol, 
                     Vector<Double>& elemsol,
-                    const StdVector<Integer> & connectPDE ) {
+                    const StdVector<Integer> eqnNumbers  ) {
 
     ENTER_FCN( "NewmarkFracDamp::GetElemSolution" );
-    elemsol.Resize(connectPDE.GetSize());
-    for (UInt eqn=0; eqn<connectPDE.GetSize(); eqn++) 
-      elemsol[eqn] = sol[connectPDE[eqn]-1];
+
+    elemsol.Resize(eqnNumbers.GetSize());
+    for (UInt eqn=0; eqn<eqnNumbers.GetSize(); eqn++) {
+      if( eqnNumbers[eqn] != 0 ) {
+        elemsol[eqn] = sol[eqnNumbers[eqn]-1];
+      } else
+        elemsol[eqn] = 0.0;
+    }
   }
 
   void NewmarkFracDamp::GLWeights(UInt memory, Double y ) {
@@ -427,25 +435,31 @@ beta and gamma!\n" );
         noInt++;
       }
     }
-    // output weight factors coeff_
-    // 	PrintSolMemoryVal();
-    // 	std::cout << "Weight factors of BDF are:" << std::endl;
-    // 	for(UInt i=0; i<coeff_.size(); i++)
-    // 	  std::cout << coeff_[i] << "  ";
-    // 	std::cout << std::endl << "Compressed Weight factors are:" << std::endl;
-    // 	for(UInt i=0; i<newCoeff.size(); i++)
-    // 	  std::cout << newCoeff[i] << "  ";
-    // 	std::cout << std::endl;
+
+    // output weight factors vector 'coeff_'
+#ifdef DEBUG
+    std::string mymessage;
+    PrintSolMemoryVal(mymessage);
+    (*debug) << mymessage << std::endl << std::endl;
+
+    (*debug) << "Weight factors of BDF are:" << std::endl;
+    for(UInt i=0; i<coeff_.size(); i++)
+      (*debug) << coeff_[i] << "  ";
+    (*debug) << std::endl << "Compressed Weight factors are:" << std::endl;
+    for(UInt i=0; i<newCoeff.size(); i++)
+      (*debug) << newCoeff[i] << "  ";
+    (*debug) << std::endl;
+#endif
 
     // assign compressed weight factors to coeff_
     coeff_ = newCoeff;
   }
 
-  void NewmarkFracDamp::PrintSolMemoryVal() {
+  void NewmarkFracDamp::PrintSolMemoryVal(std::string & msg) {
 
     ENTER_FCN( "NewmarkFracDamp::PrintSolMemoryVal" );
 
-    std::string msg="solMemory_ is:";
+    msg="BDF will be build from (T=true value, L=linear interpolated):\n";
     for (UInt i=0; i<solMemoryVal_.size(); i++) {
       if ( solMemoryVal_[i] == NOTUSED )
         msg += " N";
@@ -454,9 +468,9 @@ beta and gamma!\n" );
       else if ( solMemoryVal_[i] ==  LIN1PT )
         msg += " L";
     }
-    msg += "\n\n";
+
     //Info->PrintF(pdename_, msg.c_str() );
-    std::cout << msg;
+    //std::cerr << msg;
   }
 
 } // end of namespace
