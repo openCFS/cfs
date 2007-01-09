@@ -29,7 +29,8 @@ namespace CoupledField {
                      const PdeIdType apdeId,
                      shared_ptr<EqnMap> eqnMap,
                      Grid * aptgrid,
-                     StdPDE * aptStdPDE, 
+                     StdPDE * aptStdPDE,
+                     shared_ptr<ResultDof> aresult,
                      StdVector<RegionIdType> asubdomainList,
                      std::map<RegionIdType,DampingType> adampingList);
   
@@ -62,9 +63,9 @@ namespace CoupledField {
   private:
 
     //! get element solution, for assembling RHS in fractional damping model
-    void GetElemSolution (const Vector<Double>& sol, 
-                          Vector<Double>& elemsol, 
-                          const StdVector<Integer> & connectPDE);
+    void GetElemSolution ( const Vector<Double>& sol, 
+                           Vector<Double>& elemsol, 
+                           const StdVector<Integer> eqnNumbers );
 
     //! compute Weights for Gruenwald-Letnikov formula
     void GLWeights(UInt memory, Double y);
@@ -75,8 +76,8 @@ namespace CoupledField {
     //! integrate interpolation of past function values in weight vector
     void CompressWeights();
 
-    //! print solMemoryVal_ in .info file
-    void PrintSolMemoryVal();
+    //! print solMemoryVal_ into string 'msg'
+    void PrintSolMemoryVal(std::string & msg);
 
     //! name of the pde
     std::string pdename_;
@@ -108,6 +109,9 @@ namespace CoupledField {
 
     //! pointer to equation object
     shared_ptr<EqnMap> eqnMap_;
+
+    //! pointer to results description object
+    shared_ptr<ResultDof> result_;
 
     //! time step
     UInt actStep_;

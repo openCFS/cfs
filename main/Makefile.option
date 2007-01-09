@@ -107,7 +107,7 @@
 # -----------------------------------------------------------------------------
 
 ifeq ("$(OLAS_ROOT)","")
-OLAS_ROOT = /home/lse10/lse/bahr/CFS/OLAS
+OLAS_ROOT = /home/lse10/lse/bahr/CFS/OLAS64
 endif
 
 ifeq ("$(HYPRE_ROOT)","")
@@ -119,7 +119,8 @@ TVMET_ROOT = /home/data/libraries/tvmet
 endif
 
 ifeq ("$(XERCES_ROOT)","")
-XERCES_ROOT = /home/data/libraries/xerces-c
+#XERCES_ROOT = /home/data/libraries/xerces-c
+# Workaround error caused by Xerces version -> use machine's own version
 endif
 
 ifeq ("$(METIS_ROOT)","")
@@ -198,19 +199,19 @@ PY_SCRIPTING = no
 # -----------------------------------------------------------------------------
 
 # Was OLAS compiled with support for hypre?
-HYPRE = yes
+HYPRE = no
 
 # Was OLAS compiled with support for LAPACK?
 LAPACK = yes
 
 # Was OLAS compiled with support for ARPACK?
-ARPACK = yes
+ARPACK = no
 
 # Was OLAS compiled with support for TVMET?
 TVMET = no
 
 # Was OLAS compiled with support for Pardiso?
-PARDISO = no
+PARDISO = yes
 
 # Was OLAS compiled with support for Metis?
 METIS = yes

@@ -7,7 +7,7 @@
 #include "Utils/StdVector.hh"
 
 // maximum number of open history files
-#define MAX_NUM_HIST_FILES 1000
+#define MAX_NUM_HIST_FILES 1500
 
 namespace CoupledField {
 

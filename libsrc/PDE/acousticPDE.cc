@@ -56,6 +56,11 @@ namespace CoupledField {
     saveNodalSourcesRHS_ = false;
     saveSoundSpeed_ = false;
 
+    //      mHandle_ =  domain->GetMathParser()->GetNewHandle();
+    //      MathParser * mParser =  domain->GetMathParser();
+    //      mParser->SetExpr( mHandle_, "t" );
+
+
     // PDE formulation either in acoustic potential or pressure
     std::string str;
     params->Get( "formulation", str, "pdeList", pdename_ );
@@ -281,20 +286,24 @@ namespace CoupledField {
         nonLinPDEName_[k] = WESTERVELT;
         Info->PrintF(pdename_, "      * Westervelt equation for region: %d\n",
                      k );
-        if ( formulation_ == ACOU_POTENTIAL )
+        if ( formulation_ == ACOU_POTENTIAL ) {
           (*error) << "Acoustic potential formulation not supported for "
                    << "Westervelt equation";
-        Error( __FILE__, __LINE__ );
+          Error( __FILE__, __LINE__ );
+        }
+
       }
       else if ( strVec[k] == "kuznetsov" ) {
         nonLin_ = true;
         nonLinPDEName_[k] = KUZNETSOV;
         Info->PrintF(pdename_, "      * Kuznetsov equation for region: %d\n",
                      k );
-        if ( formulation_ == ACOU_PRESSURE )
+        if ( formulation_ == ACOU_PRESSURE ) {
           (*error) << "Acoustic pressure formulation not supported for"
                    << "Kuznetsov equation!";
-        Error( __FILE__, __LINE__ );
+          Error( __FILE__, __LINE__ );
+        }
+
       }
       else if ( strVec[k] == "variableSOS_CN1" ) {
       //  nonLin_ = true;
@@ -377,7 +386,8 @@ namespace CoupledField {
       // ********************************************************************
 
       materials_[subdoms_[actSD]]->GetScalar(density,DENSITY,REAL);
-      materials_[subdoms_[actSD]]->GetScalar(compressibility,ACOU_BULK_MODULUS,REAL);
+      materials_[subdoms_[actSD]]->GetScalar(compressibility,
+                                             ACOU_BULK_MODULUS,REAL);
       c0 = sqrt(compressibility/density);
 
       // if pde couples with mechanic, we have to multiply the density by -1
@@ -386,11 +396,8 @@ namespace CoupledField {
       }
 
       // ********************************************************************
-      //   Linear wave equation
+      //   PML = Perfectly Matched Layer
       // ********************************************************************
-
-
-      //check  for PML!
       RegionIdType actRegion = subdoms_[actSD];
       std::string actRegionName;
       actRegionName = ptgrid_->RegionIdToName( actRegion );
@@ -405,8 +412,6 @@ namespace CoupledField {
           Error("PML just supported for Harmonic-Analysis",__FILE__,__LINE__);
         }
 
-        //read data for PML layer
-
         //type of PML damping
         std::string dampingTypePML;
 
@@ -417,15 +422,15 @@ namespace CoupledField {
         //damping factor
         Double dampPML;
 
+        //read data for PML layer
         ReadDataPML(dampingTypePML, inner, dampPML, actRegion);
         dampPML *= c0;
 
         GetPMLLayerData(inner, outer, actSD);
 
-        //====================================================================
+        //********************************************************************
         //	 stiffness integrator for PML
-        //====================================================================
-
+        //********************************************************************
         std::string formsType = "laplaceInt";
 
         //set real part
@@ -464,9 +469,9 @@ namespace CoupledField {
         assemble_->AddBiLinearForm( stiffContextImag );
 
 
-        //====================================================================
+        //********************************************************************
         //	 mass integrator for PML
-        //====================================================================
+        //********************************************************************
         formsType = "massInt";
 
         //	Double dampMass = (2.0/3.0)*density/c0;
@@ -514,20 +519,25 @@ namespace CoupledField {
       }
 
       else {
+
+        //********************************************************************
+        //  Linear wave equation
+        //********************************************************************
+
         // stiffness integrator 
         BaseForm * bilinearStiff;
         if ( nonLinPDEName_[actSD] == VARIABLE_SOS_CN2 ) {
           bool isSpeedVariable = true;
-          bilinearStiff = new nLinLaplaceInt( density, isaxi_, isSpeedVariable );        
+          bilinearStiff = new nLinLaplaceInt( density, isaxi_, isSpeedVariable );
             bilinearStiff->SetSolution( speedOfSound_);
         }
         else if ( nonLinPDEName_[actSD] == VARIABLE_SOS_CN2Mean ) {
-          bilinearStiff = new nLinLaplaceInt( density, isaxi_);        
+          bilinearStiff = new nLinLaplaceInt( density, isaxi_);
           bilinearStiff->SetSolution( speedOfSound_);
         }
 
         else {
-            bilinearStiff = new LaplaceInt( density, isaxi_ );        
+          bilinearStiff = new LaplaceInt( density, isaxi_ );
         }
 
         BiLinFormContext * stiffContext = 
@@ -540,18 +550,18 @@ namespace CoupledField {
         // mass integrator
         BaseForm * bilinearMass;
         if ( nonLinPDEName_[actSD] == VARIABLE_SOS_CN1 ) {
-           coeffmass = 1.0;
-           bilinearMass  = new NlinMassInt(coeffmass, 1, isaxi_);
-           bilinearMass->SetSolution( speedOfSound_ );
+          coeffmass = 1.0;
+          bilinearMass  = new NlinMassInt(coeffmass, 1, isaxi_);
+          bilinearMass->SetSolution( speedOfSound_ );
         }
         else {
-            coeffmass = density / (c0*c0);
-            bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
-
-	    if ( diagMass_ ) {
-	      // diagonal mass matrix
-	      bilinearMass->SetDiagMass();
-	    }
+          coeffmass = density / (c0*c0);
+          bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
+          MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
+          if ( diagMass_ ) {
+            // diagonal mass matrix
+            bilinearMass->SetDiagMass();
+          }
         }
 
         BiLinFormContext * massContext = 
@@ -560,56 +570,57 @@ namespace CoupledField {
                                  actSDList, actSDList );
         massContext->SetPtPdes(this, this);
 
-	//check  for Flow Data
+        //********************************************************************
+        //  Flow Data = Pierce Equation
+        //********************************************************************
+        RegionIdType regionFlow = subdoms_[actSD];
+        std::string regionName;
+        regionName = ptgrid_->RegionIdToName( regionFlow );
+        keyVec = "acoustic" , "region" , "flowData" , "flowDir";
+        attrVec= ""         , "name"   , "";
+        valVec = ""         , regionName, "";
+        StdVector<std::string> flowInfo;
+        params->GetList( keyVec, attrVec, valVec, flowInfo);
 
-	RegionIdType regionFlow = subdoms_[actSD];
-	std::string regionName;
-	regionName = ptgrid_->RegionIdToName( regionFlow );
-	keyVec = "acoustic" , "region" , "flowData" , "flowDir";
-	attrVec= ""         , "name"   , "";
-	valVec = ""         , regionName, "";
-	StdVector<std::string> flowInfo;
-	params->GetList( keyVec, attrVec, valVec, flowInfo);
+        if (flowInfo.GetSize() > 0) {
 
-	if (flowInfo.GetSize() > 0) {
+          if ( formulation_ == ACOU_PRESSURE )
+            Error("Pierce-Equation just possible in velocity potential formulation",
+                  __FILE__, __LINE__);
 
-	  if ( formulation_ == ACOU_PRESSURE )
-	    Error("Pierce-Equation just possible in velocity potential formulation",
-		  __FILE__, __LINE__);
+          //read flow data 
+          SimpleFlow* flowData = new SimpleFlow();
+          flowData->ReadFlowData(pdename_, regionName, dim_);
 
-	  //read flow data 
-	  SimpleFlow* flowData = new SimpleFlow();
-	  flowData->ReadFlowData(pdename_, regionName, dim_);
-
-	  Double coeffPierceStiff = -density / (c0*c0);
-	  BaseForm * bilinearPierceStiff  = new PierceStiffInt(coeffPierceStiff, 
-							       flowData,
-							       isaxi_);
-	  BiLinFormContext * pierceStiffContext = 
-	    new BiLinFormContext( bilinearPierceStiff, STIFFNESS );
-	  pierceStiffContext->SetResults( results_[0], results_[0],
-					  actSDList, actSDList );
-	  pierceStiffContext->SetPtPdes(this, this);
-	  assemble_->AddBiLinearForm( pierceStiffContext );    
+          Double coeffPierceStiff = -density / (c0*c0);
+          BaseForm * bilinearPierceStiff  = new PierceStiffInt(coeffPierceStiff, 
+                                                               flowData,
+                                                               isaxi_);
+          BiLinFormContext * pierceStiffContext = 
+            new BiLinFormContext( bilinearPierceStiff, STIFFNESS );
+          pierceStiffContext->SetResults( results_[0], results_[0],
+                                          actSDList, actSDList );
+          pierceStiffContext->SetPtPdes(this, this);
+          assemble_->AddBiLinearForm( pierceStiffContext );    
 
 
-	  Double coeffPierceDamp = 2.0 * density / (c0*c0);
-	  BaseForm * bilinearPierceDamp  = new PierceDampInt(coeffPierceDamp, 
-							     flowData,
-							     isaxi_);
-	  BiLinFormContext * pierceDampContext = 
-	    new BiLinFormContext( bilinearPierceDamp, DAMPING );
-	  pierceDampContext->SetResults( results_[0], results_[0],
-					 actSDList, actSDList );
-	  pierceDampContext->SetPtPdes(this, this);
-	  assemble_->AddBiLinearForm( pierceDampContext );        	
+          Double coeffPierceDamp = 2.0 * density / (c0*c0);
+          BaseForm * bilinearPierceDamp  = new PierceDampInt(coeffPierceDamp, 
+                                                             flowData,
+                                                             isaxi_);
+          BiLinFormContext * pierceDampContext = 
+            new BiLinFormContext( bilinearPierceDamp, DAMPING );
+          pierceDampContext->SetResults( results_[0], results_[0],
+                                         actSDList, actSDList );
+          pierceDampContext->SetPtPdes(this, this);
+          assemble_->AddBiLinearForm( pierceDampContext );        	
         }
 
-        // ********************************************************************
-        //   Additional terms for damping
-        // ********************************************************************
 
-        //check  for damping layer
+
+        //********************************************************************
+        //  damping layer
+        //********************************************************************
         keyVec = "acoustic" , "region" , "dampLayer" , "type";
         attrVec= ""         , "name"   , "";
         valVec = ""         , actRegionName, "";
@@ -617,7 +628,7 @@ namespace CoupledField {
         params->GetList( keyVec, attrVec, valVec, dampInfo);
 
         if (dampInfo.GetSize() > 0) {
-	  
+
           //type of damping fnc
           std::string dampFnc;
 
@@ -631,7 +642,7 @@ namespace CoupledField {
           Double alpha, beta;
           materials_[subdoms_[actSD]]->GetScalar(alpha,RAYLEIGH_ALPHA,REAL);
           materials_[subdoms_[actSD]]->GetScalar(beta,RAYLEIGH_BETA,REAL);
-    
+
           // stiffness part
           stiffContext->SetSecDestMat( DAMPING, beta );
           stiffContext->SetDampLayer(dampFnc, mPoint, dampFactor, 
@@ -644,6 +655,10 @@ namespace CoupledField {
                                     stopRadius);
         }
 
+
+        // *******************************************************************
+        //   additional integrators for damping
+        // *******************************************************************
         if ( dampingList_.size() > 0 ) {
 	  
           // We check, if damping has been specified for all regions.
@@ -667,7 +682,6 @@ namespace CoupledField {
             // mass part
             massContext->SetSecDestMat( DAMPING, alpha );
           }
-	  
 	  
           else if ( dampingList_[subdoms_[actSD]] == THERMOVISCOUS ) {
             Double viscousAlpha;
@@ -750,70 +764,67 @@ namespace CoupledField {
           }
         }
 
-    // **********************************************************************
-    //   Additional terms for cavitation computation
-    // **********************************************************************
-    keyVec = "multiSequence", "step", "pde","type";
-    attrVec = "", "index", "";
-    valVec = "", GenStr(bcSequenceIndex_), "";
-    StdVector<std::string> pdeSearchBubble;
-    params->GetList( keyVec, attrVec, valVec,pdeSearchBubble );    
-    for (UInt i=0;i< pdeSearchBubble.GetSize();i++) {
-      if (pdeSearchBubble[i] == "bubble"){
-	isBubbleCoupled_ = true;
-	Info->PrintF(  pdename_, " will use bubble-bilinearform\n");
-      }
-    }
+        // **********************************************************************
+        //   Additional terms for cavitation computation
+        // **********************************************************************
+        keyVec = "multiSequence", "step", "pde","type";
+        attrVec = "", "index", "";
+        valVec = "", GenStr(bcSequenceIndex_), "";
+        StdVector<std::string> pdeSearchBubble;
+        params->GetList( keyVec, attrVec, valVec,pdeSearchBubble );    
+        for (UInt i=0;i< pdeSearchBubble.GetSize();i++) {
+          if (pdeSearchBubble[i] == "bubble"){
+            isBubbleCoupled_ = true;
+            Info->PrintF(  pdename_, " will use bubble-bilinearform\n");
+          }
+        }
 
-    if( isBubbleCoupled_){
+        if( isBubbleCoupled_){
 
-	  //get paramters and starting values for the computation of coefficients
-	  Double sonicVel, densityforbubble, viscosity, bubbleDensity, frequency;
-	  params->Get( "density", densityforbubble, "bubble", "bubbleDynamic" );
-	  params->Get( "sonicVel", sonicVel, "bubble", "bubbleDynamic" );
-	  params->Get( "viscosity", viscosity, "bubble", "bubbleDynamic" );
-	  params->Get( "bubbleNumDensity", bubbleDensity, "bubble", "bubbles" );
-	  params->Get( "frequency", frequency, "bubble", "excitation" );
+          //get paramters and starting values for the computation of coefficients
+          Double sonicVel, densityforbubble, viscosity, bubbleDensity, frequency;
+          params->Get( "density", densityforbubble, "bubble", "bubbleDynamic" );
+          params->Get( "sonicVel", sonicVel, "bubble", "bubbleDynamic" );
+          params->Get( "viscosity", viscosity, "bubble", "bubbleDynamic" );
+          params->Get( "bubbleNumDensity", bubbleDensity, "bubble", "bubbles" );
+          params->Get( "frequency", frequency, "bubble", "excitation" );
 
-	  //create two additional matricies due to the influence of the bubbles
-	  //onto the wave behaviour
-	  BubbleStiffInt * bubbleStiff = new BubbleStiffInt( density,
-							     densityforbubble,
-							     sonicVel, viscosity,
-							     bubbleDensity,
-							     frequency, isaxi_);        
-	  BiLinFormContext * bubbleStiffContext = 
-	    new BiLinFormContext( bubbleStiff, STIFFNESS );
+          //create two additional matricies due to the influence of the bubbles
+          //onto the wave behaviour
+          BubbleStiffInt * bubbleStiff = new BubbleStiffInt( density,
+                                                             densityforbubble,
+                                                             sonicVel, viscosity,
+                                                             bubbleDensity,
+                                                             frequency, isaxi_);        
+          BiLinFormContext * bubbleStiffContext = 
+            new BiLinFormContext( bubbleStiff, STIFFNESS );
 
-	  bubbleStiffContext->SetResults( results_[0], results_[0],
-				    actSDList, actSDList );
-	  bubbleStiffContext->SetPtPdes( this, this );
+          bubbleStiffContext->SetResults( results_[0], results_[0],
+                                          actSDList, actSDList );
+          bubbleStiffContext->SetPtPdes( this, this );
 	  
-	  assemble_->AddBiLinearForm( bubbleStiffContext );
+          assemble_->AddBiLinearForm( bubbleStiffContext );
 	  
-	  BubbleDampInt * bubbleDamp  = new BubbleDampInt(density,
-							  densityforbubble,
-							  sonicVel, viscosity,
-							  bubbleDensity,
-							  frequency, isaxi_);
-	  BiLinFormContext * bubbleDampContext = 
-	    new BiLinFormContext( bubbleDamp, DAMPING );
+          BubbleDampInt * bubbleDamp  = new BubbleDampInt(density,
+                                                          densityforbubble,
+                                                          sonicVel, viscosity,
+                                                          bubbleDensity,
+                                                          frequency, isaxi_);
+          BiLinFormContext * bubbleDampContext = 
+            new BiLinFormContext( bubbleDamp, DAMPING );
 
-	  bubbleDampContext->SetResults( results_[0], results_[0],
-					 actSDList, actSDList );
-	  bubbleDampContext->SetPtPdes(this, this);
+          bubbleDampContext->SetResults( results_[0], results_[0],
+                                         actSDList, actSDList );
+          bubbleDampContext->SetPtPdes(this, this);
 
-	  assemble_->AddBiLinearForm( bubbleDampContext );
+          assemble_->AddBiLinearForm( bubbleDampContext );
 	  
-	  //remember the forms objects to associate them with the result
-	  //vectors of the bubble dynamics
-	  bubbleDampIntMap_[actRegion] = bubbleDamp;
-	  bubbleStiffIntMap_[actRegion] = bubbleStiff;
+          //remember the forms objects to associate them with the result
+          //vectors of the bubble dynamics
+          bubbleDampIntMap_[actRegion] = bubbleDamp;
+          bubbleStiffIntMap_[actRegion] = bubbleStiff;
 
-
-
-	  std::cerr<<"test in acou define integrators"<< std::endl;
-	}
+        }
 
 
 
@@ -885,90 +896,90 @@ namespace CoupledField {
     }
   }
 
-   void AcousticPDE::DefineSolveStep() {
-     ENTER_FCN( "AcousticPDE::DefineSolveStep" );
+  void AcousticPDE::DefineSolveStep() {
+    ENTER_FCN( "AcousticPDE::DefineSolveStep" );
 
-     solveStep_ = new SolveStepAcoustic(*this);
-   }
+    solveStep_ = new SolveStepAcoustic(*this);
+  }
 
 
 
-//    // ======================================================
-//    // ALGSYS SECTION (SOLVER, ...) need for acoububble coupling
-//    // ======================================================
-//    void AcousticPDE::DefineAlgSys() {
+  //    // ======================================================
+  //    // ALGSYS SECTION (SOLVER, ...) need for acoububble coupling
+  //    // ======================================================
+  //    void AcousticPDE::DefineAlgSys() {
     
-//      ENTER_FCN( "Acoustic::DefineAlgSys" );
+  //      ENTER_FCN( "Acoustic::DefineAlgSys" );
 
-//      //=====================================================
-//      // Only if acousticPDE is iteratively coupled with
-//      // the bubblePDE
-//      //====================================================
+  //      //=====================================================
+  //      // Only if acousticPDE is iteratively coupled with
+  //      // the bubblePDE
+  //      //====================================================
 
-//      if( isBubbleCoupled_){
+  //      if( isBubbleCoupled_){
 
-//        // Process input couplings of the bubblePDE to the
-//        // additional baseforms of the acousticPDE 
-//        UInt numInCouplings = ptCoupling_->GetNumInputCouplings();
+  //        // Process input couplings of the bubblePDE to the
+  //        // additional baseforms of the acousticPDE 
+  //        UInt numInCouplings = ptCoupling_->GetNumInputCouplings();
       
-//        // bubble coupling data
-//        StdVector<UInt> elemNumbers;
-//        Vector<Double> * radius = NULL;
-//        Vector<Double> * radiusDeriv  = NULL;
-//        std::cerr<<"definealssys numOutCouplings "<<numInCouplings<< std::endl;
-//        for (UInt i = 0; i < numInCouplings; i++) {
+  //        // bubble coupling data
+  //        StdVector<UInt> elemNumbers;
+  //        Vector<Double> * radius = NULL;
+  //        Vector<Double> * radiusDeriv  = NULL;
+  //        std::cerr<<"definealssys numOutCouplings "<<numInCouplings<< std::endl;
+  //        for (UInt i = 0; i < numInCouplings; i++) {
       
-//  	std::cerr<<"definealgsys ptCoupling_->GetInputQuantity(i)"<<ptCoupling_->GetInputQuantity(i)<< std::endl;
-//  	if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS) {
+  //  	std::cerr<<"definealgsys ptCoupling_->GetInputQuantity(i)"<<ptCoupling_->GetInputQuantity(i)<< std::endl;
+  //  	if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS) {
 	
-//  	  // get coupling elements and create vector with element numbers
-//  	  StdVector<Elem*> * elems = NULL;
-//  	  ptCoupling_->GetInputElements(i, elems );
+  //  	  // get coupling elements and create vector with element numbers
+  //  	  StdVector<Elem*> * elems = NULL;
+  //  	  ptCoupling_->GetInputElements(i, elems );
  	
-//  	  elemNumbers.Resize( elems->GetSize() );
-//  	  for (UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
-// 	    elemNumbers[iElem] = (*elems)[iElem]->elemNum;
-//  	  }
+  //  	  elemNumbers.Resize( elems->GetSize() );
+  //  	  for (UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
+  // 	    elemNumbers[iElem] = (*elems)[iElem]->elemNum;
+  //  	  }
 	
-//  	  // get buffer with coupling values 
-//  	  CFSVector * temp;
-//  	  ptCoupling_->GetInputValues( i, temp );    
-//  	  std::cerr<<"acou definealgsys size temp"<< (* temp).GetSize()<<std::endl;
+  //  	  // get buffer with coupling values 
+  //  	  CFSVector * temp;
+  //  	  ptCoupling_->GetInputValues( i, temp );    
+  //  	  std::cerr<<"acou definealgsys size temp"<< (* temp).GetSize()<<std::endl;
 
-//  	  radius = dynamic_cast<Vector<Double>*>(temp);
+  //  	  radius = dynamic_cast<Vector<Double>*>(temp);
 
-//  	} else if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS_DERIV_1 ) {
+  //  	} else if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS_DERIV_1 ) {
 	
-//  	  // get buffer with coupling values 
-//  	  CFSVector * temp;
-//  	  ptCoupling_->GetInputValues( i, temp );
-//  	  radiusDeriv = dynamic_cast<Vector<Double>*>(temp);
+  //  	  // get buffer with coupling values 
+  //  	  CFSVector * temp;
+  //  	  ptCoupling_->GetInputValues( i, temp );
+  //  	  radiusDeriv = dynamic_cast<Vector<Double>*>(temp);
 	
-//  	}
-//  	std::cerr<<"test in acou definealgsys nach"<< std::endl;
-//        }
+  //  	}
+  //  	std::cerr<<"test in acou definealgsys nach"<< std::endl;
+  //        }
 
-//        // Iterate over all BubbleMass/Stiff-Integrators and pass the
-//        // radius data to them
+  //        // Iterate over all BubbleMass/Stiff-Integrators and pass the
+  //        // radius data to them
 
-//        std::map<RegionIdType, BubbleDampInt*>::iterator dampIt;
-//        std::map<RegionIdType, BubbleStiffInt*>::iterator stiffIt;
+  //        std::map<RegionIdType, BubbleDampInt*>::iterator dampIt;
+  //        std::map<RegionIdType, BubbleStiffInt*>::iterator stiffIt;
 
-//        for( dampIt = bubbleDampIntMap_.begin();
-//  	   dampIt != bubbleDampIntMap_.end(); dampIt++ ) {
-//  	dampIt->second->SetValues( elemNumbers, radius, radiusDeriv);
-//        }
+  //        for( dampIt = bubbleDampIntMap_.begin();
+  //  	   dampIt != bubbleDampIntMap_.end(); dampIt++ ) {
+  //  	dampIt->second->SetValues( elemNumbers, radius, radiusDeriv);
+  //        }
 
-//        for( stiffIt = bubbleStiffIntMap_.begin();
-//  	   stiffIt != bubbleStiffIntMap_.end();
-//  	   stiffIt++ ) {
-//  	stiffIt->second->SetValues( elemNumbers, radius, radiusDeriv);
-//        }
-//      }
+  //        for( stiffIt = bubbleStiffIntMap_.begin();
+  //  	   stiffIt != bubbleStiffIntMap_.end();
+  //  	   stiffIt++ ) {
+  //  	stiffIt->second->SetValues( elemNumbers, radius, radiusDeriv);
+  //        }
+  //      }
     
-//      SinglePDE::DefineAlgSys();
+  //      SinglePDE::DefineAlgSys();
 
-//    }
+  //    }
 
 
 
@@ -984,12 +995,12 @@ namespace CoupledField {
     if ( fracDamping_ == false ) { 
       if ( effectiveMass_ == true ) {
         if ( diagMass_ == true ) {
-	  //explicit time stepping
-	  TS_alg_ = new NewmarkEffMass( algsys_, true );
-	}
-	else {
-	  TS_alg_ = new NewmarkEffMass( algsys_ );
-	}
+          //explicit time stepping
+          TS_alg_ = new NewmarkEffMass( algsys_, true );
+        }
+        else {
+          TS_alg_ = new NewmarkEffMass( algsys_ );
+        }
       }
       else if ( effectiveMass_ == false ) {
         TS_alg_ = new Newmark( algsys_ );
@@ -998,7 +1009,8 @@ namespace CoupledField {
     else {
       if ( effectiveMass_ == false )
         TS_alg_ = new NewmarkFracDamp( algsys_,  
-                                       pdeId_, eqnMap_, ptgrid_, this, 
+                                       pdeId_, eqnMap_, ptgrid_, this,
+                                       results_[0],
                                        subdoms_, dampingList_ );
       else
         Error("This needs to be implemented!",__FILE__,__LINE__);
@@ -1127,63 +1139,63 @@ namespace CoupledField {
 
 
 
-//     // Process input couplings
-//     UInt numInCouplings = ptCoupling_->GetNumInputCouplings();
+    //     // Process input couplings
+    //     UInt numInCouplings = ptCoupling_->GetNumInputCouplings();
 
-//     // bubble coupling data
-//     StdVector<UInt> elemNumbers;
-//     Vector<Double> * radius = NULL;
-//     Vector<Double> * radiusDeriv  = NULL;
-//     	  std::cerr<<"acouInitCoupl numOutCouplings "<<numOutCouplings<< std::endl;
-//     for (UInt i = 0; i < numInCouplings; i++) {
+    //     // bubble coupling data
+    //     StdVector<UInt> elemNumbers;
+    //     Vector<Double> * radius = NULL;
+    //     Vector<Double> * radiusDeriv  = NULL;
+    //     	  std::cerr<<"acouInitCoupl numOutCouplings "<<numOutCouplings<< std::endl;
+    //     for (UInt i = 0; i < numInCouplings; i++) {
       
-// 	  std::cerr<<"acouInitCoupl ptCoupling_->GetInputQuantity(i)"<<ptCoupling_->GetInputQuantity(i)<< std::endl;
-//       if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS) {
+    // 	  std::cerr<<"acouInitCoupl ptCoupling_->GetInputQuantity(i)"<<ptCoupling_->GetInputQuantity(i)<< std::endl;
+    //       if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS) {
 	
-//  	// get coupling elements and create vector with element numbers
-// 	StdVector<Elem*> * elems = NULL;
-//  	ptCoupling_->GetInputElements(i, elems );
+    //  	// get coupling elements and create vector with element numbers
+    // 	StdVector<Elem*> * elems = NULL;
+    //  	ptCoupling_->GetInputElements(i, elems );
  	
-//  	elemNumbers.Resize( elems->GetSize() );
-//  	for (UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
-//  	  elemNumbers[iElem] = (*elems)[iElem]->elemNum;
-//  	}
+    //  	elemNumbers.Resize( elems->GetSize() );
+    //  	for (UInt iElem = 0; iElem < elems->GetSize(); iElem++ ) {
+    //  	  elemNumbers[iElem] = (*elems)[iElem]->elemNum;
+    //  	}
 	
-// 	// get buffer with coupling values 
-// 	CFSVector * temp;
-// 	ptCoupling_->GetInputValues( i, temp );    
-// 	  std::cerr<<"acou initcoupling size temp"<< (* temp).GetSize()<<std::endl;
+    // 	// get buffer with coupling values 
+    // 	CFSVector * temp;
+    // 	ptCoupling_->GetInputValues( i, temp );    
+    // 	  std::cerr<<"acou initcoupling size temp"<< (* temp).GetSize()<<std::endl;
 
-// 	radius = dynamic_cast<Vector<Double>*>(temp);
+    // 	radius = dynamic_cast<Vector<Double>*>(temp);
 
-//       } else if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS_DERIV_1 ) {
+    //       } else if (ptCoupling_->GetInputQuantity(i) == BUBBLE_RADIUS_DERIV_1 ) {
 	
-// 	// get buffer with coupling values 
-// 	CFSVector * temp;
-// 	ptCoupling_->GetInputValues( i, temp );
-// 	radiusDeriv = dynamic_cast<Vector<Double>*>(temp);
+    // 	// get buffer with coupling values 
+    // 	CFSVector * temp;
+    // 	ptCoupling_->GetInputValues( i, temp );
+    // 	radiusDeriv = dynamic_cast<Vector<Double>*>(temp);
 	
-//       }
-// 	  std::cerr<<"test in acou initcouplng nach"<< std::endl;
-//     }
+    //       }
+    // 	  std::cerr<<"test in acou initcouplng nach"<< std::endl;
+    //     }
 
-//     // Iterate over all BubbleMass/Stiff-Integrators and pass the
-//     // radius data to them
+    //     // Iterate over all BubbleMass/Stiff-Integrators and pass the
+    //     // radius data to them
 
-//     std::map<RegionIdType, BubbleDampInt*>::iterator dampIt;
-//     std::map<RegionIdType, BubbleStiffInt*>::iterator stiffIt;
+    //     std::map<RegionIdType, BubbleDampInt*>::iterator dampIt;
+    //     std::map<RegionIdType, BubbleStiffInt*>::iterator stiffIt;
 
-//     for( dampIt = bubbleDampIntMap_.begin();
-// 	 dampIt != bubbleDampIntMap_.end(); dampIt++ ) {
-//       dampIt->second->SetValues( elemNumbers, radius, radiusDeriv);
-//     }
+    //     for( dampIt = bubbleDampIntMap_.begin();
+    // 	 dampIt != bubbleDampIntMap_.end(); dampIt++ ) {
+    //       dampIt->second->SetValues( elemNumbers, radius, radiusDeriv);
+    //     }
 
-//     for( stiffIt = bubbleStiffIntMap_.begin();
-// 	 stiffIt != bubbleStiffIntMap_.end();
-// 	 stiffIt++ ) {
-//       stiffIt->second->SetValues( elemNumbers, radius, radiusDeriv);
+    //     for( stiffIt = bubbleStiffIntMap_.begin();
+    // 	 stiffIt != bubbleStiffIntMap_.end();
+    // 	 stiffIt++ ) {
+    //       stiffIt->second->SetValues( elemNumbers, radius, radiusDeriv);
 
-//     }
+    //     }
       
   }
   
@@ -1563,10 +1575,10 @@ namespace CoupledField {
 
     ENTER_FCN( "AcousticPDE::CalcBubblePressure" );
 
-//     //NUR BEI BOSCH!!!
-//     mHandle_ =  domain->GetMathParser()->GetNewHandle();
-//     MathParser * mParser =  domain->GetMathParser();
-//     mParser->SetExpr( mHandle_, "t" );
+    //     //NUR BEI BOSCH!!!
+    //     mHandle_ =  domain->GetMathParser()->GetNewHandle();
+    //     MathParser * mParser =  domain->GetMathParser();
+    //     mParser->SetExpr( mHandle_, "t" );
 
     // Initialize coupling values
     couplVals.Init();
@@ -1575,7 +1587,7 @@ namespace CoupledField {
     Vector<Double> pressureOut(3);
     pressureOut.Init();
 
-  //  MathParser * mParser =  domain->GetMathParser();
+    //  MathParser * mParser =  domain->GetMathParser();
 
     if ( solType == ACOU_PRESSURE ) {
 
@@ -1596,12 +1608,12 @@ namespace CoupledField {
         couplVals[iElem] = pressure;
 
 
-//  	locElemNum = eqnMap_->Mesh2PdeElem(elems[iElem]->elemNum );
-//  	if( locElemNum == 2 ){
-//  	  pressureOut[0]= mParser->Eval( mHandle_ );
-//  	  pressureOut[1]= pressure;
-//  	  //	  std::cout<<pressureOut[0]<<"   "<<pressureOut[1];
-//  	}
+        //  	locElemNum = eqnMap_->Mesh2PdeElem(elems[iElem]->elemNum );
+        //  	if( locElemNum == 2 ){
+        //  	  pressureOut[0]= mParser->Eval( mHandle_ );
+        //  	  pressureOut[1]= pressure;
+        //  	  //	  std::cout<<pressureOut[0]<<"   "<<pressureOut[1];
+        //  	}
 	
 
 
@@ -1625,12 +1637,12 @@ namespace CoupledField {
         couplVals[iElem] = pressureDeriv;
 
 
-//  	locElemNum = eqnMap_->Mesh2PdeElem(elems[iElem]->elemNum );
-//  	if( locElemNum == 2 ){
-//  	  pressureOut[2]= pressureDeriv;
-//  	  //	  std::cout<<"    "<<pressureOut[2]<<std::endl;; 
+        //  	locElemNum = eqnMap_->Mesh2PdeElem(elems[iElem]->elemNum );
+        //  	if( locElemNum == 2 ){
+        //  	  pressureOut[2]= pressureDeriv;
+        //  	  //	  std::cout<<"    "<<pressureOut[2]<<std::endl;; 
 
-//  	}
+        //  	}
 	  
       }
     }
@@ -1958,90 +1970,90 @@ namespace CoupledField {
       for ( it.Begin(); !it.IsEnd(); it++, counterElems++ ) {
       
         const SurfElem * actSurfElem = it.GetSurfElem();
-	// Determine, which volume element is the right neighbour for the 
-	// calculation;
-	// our normal should point out of the correct neighbor volume element!
-	if ( acouPowerNeighborRegion_.
-	     Find(actSurfElem->ptVolElem1->regionId) != -1 ) {
-	  ptVolElem = actSurfElem->ptVolElem1;
-	  normSign = 1.0;
-	} 
-	else {
-	  ptVolElem = actSurfElem->ptVolElem2;
-	  normSign = -1.0;
-	}
+        // Determine, which volume element is the right neighbour for the 
+        // calculation;
+        // our normal should point out of the correct neighbor volume element!
+        if ( acouPowerNeighborRegion_.
+             Find(actSurfElem->ptVolElem1->regionId) != -1 ) {
+          ptVolElem = actSurfElem->ptVolElem1;
+          normSign = 1.0;
+        } 
+        else {
+          ptVolElem = actSurfElem->ptVolElem2;
+          normSign = -1.0;
+        }
 	
-	normSign *= (Double) actSurfElem->normalSign;
+        normSign *= (Double) actSurfElem->normalSign;
 	
-	ptSurfElemFE = actSurfElem->ptElem; 
-	ptVolElemFE = ptVolElem->ptElem;
+        ptSurfElemFE = actSurfElem->ptElem; 
+        ptVolElemFE = ptVolElem->ptElem;
         
-	const StdVector<UInt> & surfConnect = actSurfElem->connect;
-	const StdVector<UInt> & volConnect = ptVolElem->connect;
+        const StdVector<UInt> & surfConnect = actSurfElem->connect;
+        const StdVector<UInt> & volConnect = ptVolElem->connect;
         
-	// calculate volume integration coordinates from
-	// surface integration coordinat for evalauting the 
-	// gradient on the surface of the volume element
-	ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
-	ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
-					       lCoordSurf, lCoordVol);
+        // calculate volume integration coordinates from
+        // surface integration coordinat for evalauting the 
+        // gradient on the surface of the volume element
+        ptSurfElemFE->GetCoordMidPoint(lCoordSurf);
+        ptVolElemFE->GetLocalIntPoints4Surface(surfConnect, volConnect,
+                                               lCoordSurf, lCoordVol);
 	
-	BaseMaterial * myMat = materials_[ptVolElem->regionId];
-	myMat->GetScalar(density,DENSITY,REAL);
+        BaseMaterial * myMat = materials_[ptVolElem->regionId];
+        myMat->GetScalar(density,DENSITY,REAL);
 	
-	Matrix<Double> CornerCoords; 
-	ptgrid_->GetElemNodesCoord( CornerCoords, surfConnect, false );
-	Double area = ptSurfElemFE->CalcVolume( CornerCoords, isaxi_);
+        Matrix<Double> CornerCoords; 
+        ptgrid_->GetElemNodesCoord( CornerCoords, surfConnect, false );
+        Double area = ptSurfElemFE->CalcVolume( CornerCoords, isaxi_);
 	
-	// Calc gradient
+        // Calc gradient
         ElemList elList(ptgrid_);
         elList.SetElement( ptVolElem );
         EntityIterator it2 = elList.GetIterator();
-	gradOp->CalcElemGradField(gradVal, it2, 
-				  lCoordVol,1.0);
-	// Calc global normal
-	ptgrid_->CalcSurfNormal(normal, *actSurfElem);
+        gradOp->CalcElemGradField(gradVal, it2, 
+                                  lCoordVol,1.0);
+        // Calc global normal
+        ptgrid_->CalcSurfNormal(normal, *actSurfElem);
 	
-	normal    *= normSign;
-	gradNormal = normal * gradVal;
+        normal    *= normSign;
+        gradNormal = normal * gradVal;
 
-	//get average solution
-	TYPE elemSol = 0;
-	TYPE nodeSol;
-	for ( UInt k=0; k<surfConnect.GetSize(); k++) {
-	  solhelp->Get(solType, surfConnect[k]-1,0, nodeSol);
-	  elemSol += nodeSol;
-	}
-	elemSol /= (Double)surfConnect.GetSize(); 
+        //get average solution
+        TYPE elemSol = 0;
+        TYPE nodeSol;
+        for ( UInt k=0; k<surfConnect.GetSize(); k++) {
+          solhelp->Get(solType, surfConnect[k]-1,0, nodeSol);
+          elemSol += nodeSol;
+        }
+        elemSol /= (Double)surfConnect.GetSize(); 
 	
-	// get the conjugate complex value
-	elemSol = std::conj(elemSol);
+        // get the conjugate complex value
+        elemSol = std::conj(elemSol);
 	
-	pdeElemNum = eqnMap_->Mesh2PdeElem(ptVolElem->elemNum);
-	//pdeElemNum = eqnMap_->Mesh2PdeElem(actSurfElem->elemNum);
+        pdeElemNum = eqnMap_->Mesh2PdeElem(ptVolElem->elemNum);
+        //pdeElemNum = eqnMap_->Mesh2PdeElem(actSurfElem->elemNum);
         
-	if ( formulation_ == ACOU_PRESSURE ) {
-	  elemPower = multVal * gradNormal * elemSol / density;
-	  factorI   = multVal * elemSol / density;
-	  elemIntensity = gradVal * factorI;
-	}
-	else {
-	  elemPower = multVal * density * gradNormal * elemSol;
-	  factorI   = multVal * density * elemSol;
-	  elemIntensity =  gradVal * factorI;
-	}
+        if ( formulation_ == ACOU_PRESSURE ) {
+          elemPower = multVal * gradNormal * elemSol / density;
+          factorI   = multVal * elemSol / density;
+          elemIntensity = gradVal * factorI;
+        }
+        else {
+          elemPower = multVal * density * gradNormal * elemSol;
+          factorI   = multVal * density * elemSol;
+          elemIntensity =  gradVal * factorI;
+        }
 	
-	//take the real part and multiply it with surface
-	elemPower *= area;
+        //take the real part and multiply it with surface
+        elemPower *= area;
 	
-	// Create temporary vector, since SetElemResult only
-	// can handle these
-	Vector<Complex> acouPowerVec(1);
-	acouPowerVec[0] = elemPower;
-	sumOfPower[iSD] += elemPower;
-	acouPower_->SetElemResult(pdeElemNum-1, acouPowerVec);
+        // Create temporary vector, since SetElemResult only
+        // can handle these
+        Vector<Complex> acouPowerVec(1);
+        acouPowerVec[0] = elemPower;
+        sumOfPower[iSD] += elemPower;
+        acouPower_->SetElemResult(pdeElemNum-1, acouPowerVec);
 
-	acouIntensity_->SetElemResult(pdeElemNum-1, elemIntensity);
+        acouIntensity_->SetElemResult(pdeElemNum-1, elemIntensity);
       }
       
     }
@@ -2118,8 +2130,8 @@ namespace CoupledField {
                                               actTime, complexFormat_);
         }
 
-	if ( calcAcouPower_.GetSize() > 0 ) {
-	  ComplexFormat complexFormat = REAL_IMAG;
+        if ( calcAcouPower_.GetSize() > 0 ) {
+          ComplexFormat complexFormat = REAL_IMAG;
 
           ElemStoreSol<Complex> & acouPowerConverted = 
             dynamic_cast<ElemStoreSol<Complex>&>(*acouPower_);
@@ -2130,7 +2142,7 @@ namespace CoupledField {
             dynamic_cast<ElemStoreSol<Complex>&>(*acouIntensity_);
           outFile_->WriteElemSolutionHarmonic(acouIntensityConverted, actStep,
                                               actTime, complexFormat);
-	}
+        }
 
       }
       else {
@@ -2724,34 +2736,34 @@ namespace CoupledField {
 
       if (calcAcouPower_.GetSize() > 0) {
         if ( analysistype_ == HARMONIC ) {
-	  hasOutput_ = true;
-	  Info->PrintF( pdename_,
-			" Computing acoustic intensity/power for regions:\n");
-	  for ( UInt k = 0; k < temp.GetSize(); k++ ) {
-	    Info->PrintF( pdename_, " %s\n", temp[k].c_str() );
-	  }
+          hasOutput_ = true;
+          Info->PrintF( pdename_,
+                        " Computing acoustic intensity/power for regions:\n");
+          for ( UInt k = 0; k < temp.GetSize(); k++ ) {
+            Info->PrintF( pdename_, " %s\n", temp[k].c_str() );
+          }
 
-	  acouPower_     = new ElemStoreSol<Complex>;
-	  acouIntensity_ = new ElemStoreSol<Complex>;
+          acouPower_     = new ElemStoreSol<Complex>;
+          acouIntensity_ = new ElemStoreSol<Complex>;
 
-	  // Resize solution arrays
-	  acouPower_->SetNumSolutions(1);
-	  acouPower_->SetSolutionType(ACOU_POWER);
-	  acouPower_->SetNumElems(numElems_);
-	  acouPower_->SetNumDofs(1);
-	  acouPower_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
-	  acouPower_->Init();
+          // Resize solution arrays
+          acouPower_->SetNumSolutions(1);
+          acouPower_->SetSolutionType(ACOU_POWER);
+          acouPower_->SetNumElems(numElems_);
+          acouPower_->SetNumDofs(1);
+          acouPower_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
+          acouPower_->Init();
 
-	  acouIntensity_->SetNumSolutions(1);
-	  acouIntensity_->SetSolutionType(ACOU_INTENSITY);
-	  acouIntensity_->SetNumElems(numElems_);
-	  acouIntensity_->SetNumDofs(dim_);
-	  acouIntensity_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
-	  acouIntensity_->Init();
-	}
-	else {
+          acouIntensity_->SetNumSolutions(1);
+          acouIntensity_->SetSolutionType(ACOU_INTENSITY);
+          acouIntensity_->SetNumElems(numElems_);
+          acouIntensity_->SetNumDofs(dim_);
+          acouIntensity_->SetPtrEQNData( eqnMap_.get(), ptgrid_);
+          acouIntensity_->Init();
+        }
+        else {
           (*warning) << "Acoustic power computation just supported for harmonic analysis.\n";
-	  Warning( __FILE__, __LINE__ );
+          Warning( __FILE__, __LINE__ );
         }
       } 
       
@@ -2839,15 +2851,15 @@ namespace CoupledField {
       inner[1][1] =  val[0];
       
       if ( dim_ == 3 ) {
-	//zMin
-	keyVec = "acoustic" , "region" , "pml", "propRegion", "zMin";
-	params->GetList( keyVec, attrVec, valVec, val);
-	inner[0][2] =  val[0];
+        //zMin
+        keyVec = "acoustic" , "region" , "pml", "propRegion", "zMin";
+        params->GetList( keyVec, attrVec, valVec, val);
+        inner[0][2] =  val[0];
 	
-	//zMax     
-	keyVec = "acoustic" , "region" , "pml", "propRegion", "zMax";
-	params->GetList( keyVec, attrVec, valVec, val);
-	inner[1][2] =  val[0];
+        //zMax     
+        keyVec = "acoustic" , "region" , "pml", "propRegion", "zMax";
+        params->GetList( keyVec, attrVec, valVec, val);
+        inner[1][2] =  val[0];
       }
     }
 
@@ -2888,56 +2900,56 @@ namespace CoupledField {
       inner.Init();
 
       for (UInt isd = 0; isd < subdoms_.GetSize(); isd++) {
-	if ( isd != actSD ) {
-	  StdVector<Elem*> elemssd;
-	  ptgrid_->GetElems(elemssd, subdoms_[isd]);
-	  for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
-	    StdVector<UInt> connecth = elemssd[actEl]->connect;
+        if ( isd != actSD ) {
+          StdVector<Elem*> elemssd;
+          ptgrid_->GetElems(elemssd, subdoms_[isd]);
+          for (UInt actEl=0; actEl< elemssd.GetSize(); actEl++) {
+            StdVector<UInt> connecth = elemssd[actEl]->connect;
 	    
-	    Matrix<Double> ptCoord;
-	    ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
-	    for (UInt i=0; i< ptCoord.GetSizeCol(); i++) {
-	      //minInnerX
-	      if ( ptCoord[0][i] < inner[0][0] )
-		inner[0][0] = ptCoord[0][i];
+            Matrix<Double> ptCoord;
+            ptgrid_->GetElemNodesCoord(ptCoord, connecth,  false );
+            for (UInt i=0; i< ptCoord.GetSizeCol(); i++) {
+              //minInnerX
+              if ( ptCoord[0][i] < inner[0][0] )
+                inner[0][0] = ptCoord[0][i];
 	      
-	      //minInnerY
-	      if ( ptCoord[1][i] < inner[0][1] )
-		inner[0][1] = ptCoord[1][i];
+              //minInnerY
+              if ( ptCoord[1][i] < inner[0][1] )
+                inner[0][1] = ptCoord[1][i];
 	      
-	      if ( dim_ > 2 ) {
-		//minInnerZ
-		if ( ptCoord[2][i] < inner[0][2] )
-		  inner[0][2] = ptCoord[2][i];
-	      }
+              if ( dim_ > 2 ) {
+                //minInnerZ
+                if ( ptCoord[2][i] < inner[0][2] )
+                  inner[0][2] = ptCoord[2][i];
+              }
 	      
-	      //maxInnerX
-	      if ( ptCoord[0][i] > inner[1][0] )
-		inner[1][0] = ptCoord[0][i];
+              //maxInnerX
+              if ( ptCoord[0][i] > inner[1][0] )
+                inner[1][0] = ptCoord[0][i];
 	      
-	      //maxInnerY
-	      if ( ptCoord[1][i] > inner[1][1] )
-		inner[1][1] = ptCoord[1][i];
+              //maxInnerY
+              if ( ptCoord[1][i] > inner[1][1] )
+                inner[1][1] = ptCoord[1][i];
 	      
-	      if ( dim_ > 2 ) {
-		//maxInnerZ
-		if ( ptCoord[2][i] > inner[1][2] )
-		  inner[1][2] = ptCoord[2][i];
-	      }
-	    }
-	  }
-	}
+              if ( dim_ > 2 ) {
+                //maxInnerZ
+                if ( ptCoord[2][i] > inner[1][2] )
+                  inner[1][2] = ptCoord[2][i];
+              }
+            }
+          }
+        }
       }
       std::ostringstream out;
       out.clear();
       out << "Acoustic propagation region:\n" 
-	  << "   xmin = " << inner[0][0] << std::endl
-	  << "   xmax = " << inner[1][0] << std::endl
-	  << "   ymin = " << inner[0][1] << std::endl
-	  << "   ymax = " << inner[1][1] << std::endl;
+          << "   xmin = " << inner[0][0] << std::endl
+          << "   xmax = " << inner[1][0] << std::endl
+          << "   ymin = " << inner[0][1] << std::endl
+          << "   ymax = " << inner[1][1] << std::endl;
       if ( dim_ == 3) {
-	out << "   zmin = " << inner[0][2] << std::endl
-	    << "   zmax = " << inner[1][2] << std::endl;
+        out << "   zmin = " << inner[0][2] << std::endl
+            << "   zmax = " << inner[1][2] << std::endl;
       }
       out << std::endl;
       Info->PrintF( pdename_, out.str().c_str() );
