@@ -265,7 +265,7 @@ namespace CoupledField
 	//variable speed of sound
 	if ( variableSpeedOfSoundCN_ ) {
 	  sos[0] = dataCFD_[varSpeedOfSoundIdx_][idx];  
-//          std::cout << "sos = " << sos[0] << std::endl;
+          //          std::cout << "sos = " << sos[0] << std::endl;
 	}
 
 	//	  node = idx + 1;
@@ -333,13 +333,15 @@ namespace CoupledField
 	  algsys_->SetNodeRHS(srcVal, pdeId_, eqnNr, 1);   
 
 	  if ( variableSpeedOfSoundCN_ ) {
-	    speedOfSound_.SetNodalResult(eqnNr, sos);
+            //	    speedOfSound_.SetNodalResult(eqnNr, sos);
+	    speedOfSound_.SetNodalResult(nodeNr, sos);
 	  }
 	  
 	  if ( saveNodalSourcesRHS_ ) {
 	    //		    Info->PrintSrcRhs(nodeNr, eqnNr , val);
 	    valVec[0] = srcVal;
-	    rhsNodalSrc_.SetNodalResult(eqnNr, valVec);
+	    rhsNodalSrc_.SetNodalResult(nodeNr, valVec);
+            //	    rhsNodalSrc_.SetNodalResult(eqnNr, valVec);
 	  }   
 	}
       
@@ -370,12 +372,13 @@ namespace CoupledField
     std::cout<<"name of current CFD-File: "<< filename << std::endl;
     read_in(filename.c_str(), dataCFD_, numNodesInCoupledRegion_,  numDataInCFD_, nodesCFD_);
 
-//   for ( UInt i=0; i<numNodesInCoupledRegion_; i++ ) {
-//     for ( UInt j=0; j< numDataInCFD_; j++ ) {
-//       std::cout << dataCFD_[j][i] << "   ";
-//     }
-//     std::cout << std::endl;
-//   }    
+//     std::cout << "numData: " << numDataInCFD_ << std::endl;
+//     for ( UInt i=0; i<numNodesInCoupledRegion_; i++ ) {
+//       for ( UInt j=0; j< numDataInCFD_; j++ ) {
+//         std::cout << dataCFD_[j][i] << "   ";
+//       }
+//       std::cout << std::endl;
+//     }    
 
 }
 

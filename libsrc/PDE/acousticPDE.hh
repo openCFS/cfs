@@ -186,7 +186,7 @@ namespace CoupledField {
     NodeStoreSol<Double> solDeriv1_; //!< contains 1st derivative of solution
     NodeStoreSol<Double> solDeriv2_; //!< contains 2nd derivative of solution
     NodeStoreSol<Double> rhs_; //!< right hand side vector
-    NodeStoreSol<Double> rhsNodalSrc_; //!< inodal acoustic sources
+    NodeStoreSol<Double> rhsNodalSrc_; //!< for nodal acoustic sources
     NodeStoreSol<Double> speedOfSound_; //!< for variable speed of sound
     //!< right hand side vector if we have a multi-dim RHS (e.g. vel)
     NodeStoreSol<Double> rhs2_;
@@ -223,6 +223,7 @@ namespace CoupledField {
     bool plotRHSVel_; //!< Flag for saving of rhs as a vector field
 
     bool saveNodalSourcesRHS_;  //!< Flag for saving nodal acoustic sources
+    bool saveSoundSpeed_;  //!< Flag for saving acoustic sound speed
 
     // variable speed of sound
     bool variableSpeedOfSoundCN_;

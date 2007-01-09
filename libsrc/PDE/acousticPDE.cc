@@ -54,6 +54,7 @@ namespace CoupledField {
     isBubbleCoupled_ = false;
     variableSpeedOfSoundCN_ = false;
     saveNodalSourcesRHS_ = false;
+    saveSoundSpeed_ = false;
 
     // PDE formulation either in acoustic potential or pressure
     std::string str;
@@ -312,6 +313,15 @@ namespace CoupledField {
         variableSpeedOfSoundCN_ = true;
       }
 
+      else if ( strVec[k] == "variableSOS_CN2Mean" ) {
+       // nonLin_ = true;
+        nonLinPDEName_[k] =  VARIABLE_SOS_CN2Mean;
+        Info->PrintF(pdename_,
+              "      * Variable Speed of Sound (mean values) in Combustion Noise Form 2: %d\n",
+              k );
+        variableSpeedOfSoundCN_ = true;
+      }
+
     }
 
 
@@ -339,7 +349,7 @@ namespace CoupledField {
     if ( variableSpeedOfSoundCN_ ) {
         speedOfSound_.SetNumSolutions(1);
         speedOfSound_.SetNumNodes(numPDENodes_);
-        speedOfSound_.SetSolutionType(ACOU_RHSVAL);
+        speedOfSound_.SetSolutionType( ACOU_SOUND_SPEEED );
         speedOfSound_.SetResult( results_[0] );
         speedOfSound_.SetNumDofs(1);
         speedOfSound_.SetPtrEQNData(eqnMap_.get(),ptgrid_);
@@ -507,9 +517,15 @@ namespace CoupledField {
         // stiffness integrator 
         BaseForm * bilinearStiff;
         if ( nonLinPDEName_[actSD] == VARIABLE_SOS_CN2 ) {
-            bilinearStiff = new nLinLaplaceInt( density, isaxi_ );        
+          bool isSpeedVariable = true;
+          bilinearStiff = new nLinLaplaceInt( density, isaxi_, isSpeedVariable );        
             bilinearStiff->SetSolution( speedOfSound_);
         }
+        else if ( nonLinPDEName_[actSD] == VARIABLE_SOS_CN2Mean ) {
+          bilinearStiff = new nLinLaplaceInt( density, isaxi_);        
+          bilinearStiff->SetSolution( speedOfSound_);
+        }
+
         else {
             bilinearStiff = new LaplaceInt( density, isaxi_ );        
         }
@@ -521,7 +537,7 @@ namespace CoupledField {
                                   actSDList, actSDList );
         stiffContext->SetPtPdes( this, this );
 
-        // mass integratora
+        // mass integrator
         BaseForm * bilinearMass;
         if ( nonLinPDEName_[actSD] == VARIABLE_SOS_CN1 ) {
            coeffmass = 1.0;
@@ -2140,6 +2156,11 @@ namespace CoupledField {
           outFile_->WriteNodeSolutionTransient(rhsNodalSrc_, actStep, actTime);
 	}
 
+        if ( saveSoundSpeed_ ){ 
+          //          std::cout << "write SoundSpeed" << std::endl;
+          outFile_->WriteNodeSolutionTransient(speedOfSound_, actStep, actTime);
+	}
+
         if (saveRHSval_){ 
 	  // std::cout << "write RHS" << std::endl;
           // outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
@@ -2273,13 +2294,13 @@ namespace CoupledField {
       }
 
       // --- acoustic rhsval ---
-      Enum2String(ACOU_RHSVAL, quantity);
-      valVec = "", "", quantity;
-      params->GetList( keyVec, attrVec, valVec, nodeValues);
-      if (nodeValues.GetSize() > 0) {
-        saveRHSval_ = true;
-        hasOutput_ = true;
-      }
+//       Enum2String(ACOU_RHSVAL, quantity);
+//       valVec = "", "", quantity;
+//       params->GetList( keyVec, attrVec, valVec, nodeValues);
+//       if (nodeValues.GetSize() > 0) {
+//         saveRHSval_ = true;
+//         hasOutput_ = true;
+//       }
 
 
       // --- acoustic potential, 1. Deriv ---
@@ -2394,33 +2415,40 @@ namespace CoupledField {
       }
     }
 
-      // --- acoustic Nodal Sources
-      Enum2String(ACOU_RHSVAL, quantity);
-      valVec  = "", "", quantity;
-      params->GetList( keyVec, attrVec, valVec, nodeValues );
+
+    // --- acoustic Nodal Sources
+    Enum2String(ACOU_RHSVAL, quantity);
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, nodeValues );
     
-      if ( nodeValues.GetSize() > 0) {
-        saveNodalSourcesRHS_ = true;
+    if ( nodeValues.GetSize() > 0) {
+      saveNodalSourcesRHS_ = true;
+      hasOutput_ = true;
+      Info->PrintF( pdename_, "Saving acoustic nodal sources:\n" );
+      
+      rhsNodalSrc_.SetNumSolutions(1);
+      rhsNodalSrc_.SetNumNodes(numPDENodes_);
+      rhsNodalSrc_.SetSolutionType(ACOU_RHSVAL);
+      rhsNodalSrc_.SetResult( results_[0] );
+      rhsNodalSrc_.SetNumDofs(1);
+      rhsNodalSrc_.SetPtrEQNData(eqnMap_.get(),ptgrid_); 
+      rhsNodalSrc_.SetRegions( subdoms_ );
+      rhsNodalSrc_.Init(0);
+      
+    }
+
+    // --- acoustic sound speed
+    Enum2String( ACOU_SOUND_SPEEED, quantity);
+    valVec  = "", "", quantity;
+    params->GetList( keyVec, attrVec, valVec, nodeValues );
+    
+    if ( nodeValues.GetSize() > 0) {
+      if ( variableSpeedOfSoundCN_ ) {
+        saveSoundSpeed_ = true;
         hasOutput_ = true;
-        Info->PrintF( pdename_, "Saving acoustic nodal sources:\n" );
-
-//        shared_ptr<ResultDof> res1(new ResultDof);
-//        res1->resultType = ACOU_RHSVAL;
-//        res1->dofNames = "vp";
-//        res1->definedOn = ResultDof::NODE;
-//        results_.Push_back( res1 );
-
-        rhsNodalSrc_.SetNumSolutions(1);
-        rhsNodalSrc_.SetNumNodes(numPDENodes_);
-        rhsNodalSrc_.SetSolutionType(ACOU_RHSVAL);
-        rhsNodalSrc_.SetResult( results_[0] );
-        rhsNodalSrc_.SetNumDofs(1);
-        rhsNodalSrc_.SetPtrEQNData(eqnMap_.get(),ptgrid_); 
-        rhsNodalSrc_.SetRegions( subdoms_ );
-        rhsNodalSrc_.Init(0);
-
+        Info->PrintF( pdename_, "Saving acoustic sound speed:\n" );
       }
-    
+    }
     
     // *****************************
     // Determine element results

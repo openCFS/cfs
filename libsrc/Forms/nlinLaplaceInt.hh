@@ -14,8 +14,8 @@ class nLinLaplaceInt : public BaseForm
 public:
 
   /// Constructor
-  nLinLaplaceInt(Double laplVal, bool axi=false, 
-             bool coordUpdate = false );
+  nLinLaplaceInt(Double laplVal, bool axi=false, bool isSpeedVariable = false, 
+                 bool coordUpdate = false );
 
   /// 
   virtual ~nLinLaplaceInt();
