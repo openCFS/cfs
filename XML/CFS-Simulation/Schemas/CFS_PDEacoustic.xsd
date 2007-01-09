@@ -339,6 +339,7 @@
       <xsd:enumeration value="kuznetsov"/>
       <xsd:enumeration value="variableSOS_CN1"/>
       <xsd:enumeration value="variableSOS_CN2"/>
+      <xsd:enumeration value="variableSOS_CN2Mean"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -495,6 +496,7 @@
       <xsd:enumeration value="acouPotentialD1"/>
       <xsd:enumeration value="acouPotentialD2"/>
       <xsd:enumeration value="acouRHSval"/>
+      <xsd:enumeration value="acouSoundSpeed"/>
     </xsd:restriction>
   </xsd:simpleType>
 
