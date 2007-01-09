@@ -104,6 +104,37 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Type of Combustion Data (optional) -->
+          <xsd:element name="combustionData" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+               <xsd:element name="coupledRegion" type="xsd:token"/>
+               <xsd:element name="fileName" type="xsd:token"/>
+               <xsd:element name="numDataInCFD" type="xsd:nonNegativeInteger"/>
+               <xsd:element name="varSpeedOfSound" type="xsd:nonNegativeInteger"/>
+               <xsd:element name="ReynoldStress" type="xsd:nonNegativeInteger"/>
+               <xsd:element name="momentum" type="xsd:nonNegativeInteger"/>
+               <xsd:element name="chemical" type="xsd:nonNegativeInteger"/>
+               <xsd:element name="densityDeriv2" type="xsd:nonNegativeInteger"/>
+               <xsd:element name="heatRelease" type="xsd:nonNegativeInteger"/>
+               <xsd:element name="gasConstDeriv2" type="xsd:nonNegativeInteger"/>
+               <xsd:element name="shearTerm" type="xsd:nonNegativeInteger"/>
+               <xsd:element name="xfmin"       type="xsd:float"/>	
+    	       <xsd:element name="yfmin"       type="xsd:float"/>
+    	       <xsd:element name="zfmin"       type="xsd:float"/>
+    	       <xsd:element name="xfmax"       type="xsd:float"/>
+    	       <xsd:element name="yfmax"       type="xsd:float"/>
+    	       <xsd:element name="zfmax"       type="xsd:float"/>
+    	       <xsd:element name="facrampXmin" type="xsd:float"/>
+    	       <xsd:element name="facrampYmin" type="xsd:float"/>
+    	       <xsd:element name="facrampZmin" type="xsd:float"/> 
+    	       <xsd:element name="facrampXmax" type="xsd:float"/>
+    	       <xsd:element name="facrampYmax" type="xsd:float"/>
+    	       <xsd:element name="facrampZmax" type="xsd:float"/>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Time Stepping Formulation (optional)-->
           <xsd:element name="timeSteppingFormulation"
             type="DT_AcousticTimeStep" minOccurs="0"
@@ -208,10 +239,13 @@
         </xsd:attribute>
 
         <!-- Type of acoustic pde -->
-        <xsd:attribute name="subType" use="optional">
+        <xsd:attribute name="subType" use="optional"
+          default="standard">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="standard"/>
               <xsd:enumeration value="flowNoise"/>
+              <xsd:enumeration value="combustionNoise"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -303,6 +337,8 @@
       <xsd:enumeration value="no"/>
       <xsd:enumeration value="westervelt"/>
       <xsd:enumeration value="kuznetsov"/>
+      <xsd:enumeration value="variableSOS_CN1"/>
+      <xsd:enumeration value="variableSOS_CN2"/>
     </xsd:restriction>
   </xsd:simpleType>
 
