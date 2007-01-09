@@ -85,6 +85,11 @@ namespace CoupledField {
     /// prints all data of a coil (e.g. current, area, magnetization, ...)
     void PrintCoil( Coil &coil, AnalysisType &analysistype );
 
+    /// for combustion noise
+    void WriteCombustionNoiseInfo(std::string filename, std::string cplRegion,
+				  UInt sos, UInt src1, UInt src2, UInt src3, 
+				  UInt src4, UInt src5, UInt src6, UInt src7);
+ 
     /// prints the process of a nonlinear iteration
     void WriteNonLinIter(const std::string& pdeName, const UInt iterationCounter,
                          const Double residualErr, const Double incrementalErr,
@@ -116,7 +121,8 @@ namespace CoupledField {
 
     /// writes definition of loads
     void WriteLoad( const std::string& pdeName, LoadList& list );
-    
+    // RHS-Src 
+    void PrintSrcRhs( UInt node, UInt eqn, Double val);
     /// writes acoustic power 
     template <class TYPE>
     void WriteAcouPower(std::string pdename, 

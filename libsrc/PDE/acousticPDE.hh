@@ -186,6 +186,8 @@ namespace CoupledField {
     NodeStoreSol<Double> solDeriv1_; //!< contains 1st derivative of solution
     NodeStoreSol<Double> solDeriv2_; //!< contains 2nd derivative of solution
     NodeStoreSol<Double> rhs_; //!< right hand side vector
+    NodeStoreSol<Double> rhsNodalSrc_; //!< inodal acoustic sources
+    NodeStoreSol<Double> speedOfSound_; //!< for variable speed of sound
     //!< right hand side vector if we have a multi-dim RHS (e.g. vel)
     NodeStoreSol<Double> rhs2_;
 
@@ -220,6 +222,10 @@ namespace CoupledField {
     bool plotRHS_; //!< Flag for saving of rhs for output
     bool plotRHSVel_; //!< Flag for saving of rhs as a vector field
 
+    bool saveNodalSourcesRHS_;  //!< Flag for saving nodal acoustic sources
+
+    // variable speed of sound
+    bool variableSpeedOfSoundCN_;
     // DODO
     // the grid adaption object
     GridAdaption *m_pGridAdaption;

@@ -56,6 +56,11 @@ namespace CoupledField
 
 #endif
 
+    //! define diagonal mass matrix
+    virtual void SetDiagMass() {
+      Error( "Not implemented here", __FILE__, __LINE__ );
+    };
+
     //
     virtual void SetNonLinMethod(std::string atype) {;};
 

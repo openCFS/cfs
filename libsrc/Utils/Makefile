@@ -6,7 +6,7 @@ src =   myclock.cc nodestoresol.cc elemstoresol.cc tools.cc vector.cc\
 	tracing.cc Coil.cc ApproxData.cc SmoothSpline.cc\
 	mathfunctions.cc hysteresis.cc preisach.cc LinInterpolate.cc jiles.cc \
 	profiler.cc coordSystem.cc cylCoordSys.cc defaultCoordSys.cc \
-	dampLayer.cc interpolate.cc polCoordSys.cc
+	dampLayer.cc interpolate.cc polCoordSys.cc readCFDbinary.cc
 #
 CFLAGS3 =
 #

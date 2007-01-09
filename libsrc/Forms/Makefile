@@ -15,8 +15,8 @@ src = baseForm.cc laplaceInt.cc bdbInt.cc bdInt.cc massInt.cc baseoperator.cc\
       stokesFluidPlaneInt.cc stokesFluidAxiInt.cc nLinStokesFluidInt.cc \
       linElecInt.cc FlatShellStiffInt.cc FlatShellMassInt.cc FlatShellPiezoInt.cc \
       FlatShellElecInt.cc singleEntryInt.cc nLinElecHystInt.cc bubbleDampInt.cc \
-      bubbleStiffInt.cc	pierceInt.cc nLinElecMaterial.cc linSurfStressInt.cc
-
+      bubbleStiffInt.cc	pierceInt.cc nLinElecMaterial.cc linSurfStressInt.cc \
+      nlinLaplaceInt.cc nLinMassInt.cc
 #
 CFLAGS3 =
 #

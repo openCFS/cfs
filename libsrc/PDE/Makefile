@@ -23,7 +23,8 @@ src =   basePDE.cc\
 	acousticXYZPDE.cc \
 	stokesFluidPDE.cc \
 	eqnMap.cc \
-	bubblePDE.cc
+	bubblePDE.cc \
+	acouCombustion.cc
 #
 CFLAGS3 =
 #
