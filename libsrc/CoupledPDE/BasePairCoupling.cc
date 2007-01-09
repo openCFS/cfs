@@ -28,6 +28,8 @@ namespace CoupledField {
     algsys_         = NULL;
     nonLin_         = false;
     nonLinMaterial_ = false;
+    isHysteresis_   = false;
+    nonLinHysteresis_ = false;
 
     pde1_   = pde1;
     pde2_   = pde2;
