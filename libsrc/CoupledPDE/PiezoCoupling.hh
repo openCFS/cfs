@@ -63,6 +63,12 @@ namespace CoupledField
     // Data section
     bool hasOutput_;
 
+    //! flag, which is true if piezo coupling is nonlinear, i.e. 
+    //! if we have a nonlinear piezoelectric coupling form
+    //! it is not the same as nonLin_ which is already set true if one of the
+    //! singlePDEs is nonlinear
+    bool nonLinPiezoCoupling_;
+
   private:
     
 

@@ -56,6 +56,7 @@ namespace CoupledField {
     pdematerialclass_ = ELECTROSTATIC;
  
     nonLin_    = false;
+    nonLinMaterial_ = false;
     isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
 
@@ -150,6 +151,7 @@ namespace CoupledField {
       }
       if ( nonLinType_[k] == "material" ) {
         nonLin_ = true;
+        nonLinMaterial_ = true;
         break;
       }
     }
