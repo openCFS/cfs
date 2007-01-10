@@ -1361,7 +1361,7 @@ namespace CoupledField {
     Double jacDet;
     Vector<Double> partElemVec, Sirr, partSirr, elecD;
     Vector<Double> ShpFncAtIp;
-    Matrix<Double> bMat;
+    Matrix<Double> bMat, bMatTrans;
 
     elemVec.Resize(numFncs);
     elemVec.Init(0);  
@@ -1428,7 +1428,10 @@ namespace CoupledField {
       }
       jacDet *= intWeights[actIntPt-1];
 
-      partElemVec = bMat * elecD;
+  
+      bMat.Transpose(bMatTrans);
+      partElemVec = bMatTrans * elecD;
+
       for ( UInt i=0; i<partElemVec.GetSize(); i++)
 	partElemVec[i] *=  ShpFncAtIp[i] * jacDet;
 
