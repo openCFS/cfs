@@ -209,7 +209,7 @@ namespace CoupledField {
       if(singlePDEs_[i]->IsNonLinMaterial())
         globalNonLinMaterial=true;
     }
-    std::cout<< "Direct CoupledPDE - Init globalNonLinMaterial " << globalNonLinMaterial << std::endl;
+    //    std::cout<< "Direct CoupledPDE - Init globalNonLinMaterial " << globalNonLinMaterial << std::endl;
     
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       //      Is NonLin()
