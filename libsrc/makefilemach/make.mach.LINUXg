@@ -19,8 +19,8 @@ ARCH = LINUXg
 # NOTE: The standard Fortran compiler was changed from f77 to gfortran in 
 # SuSE 10.0, which involves also the the c-fortran libraries g2c / gfortran
 ifeq ($(strip $(shell which gfortran 2> /dev/null)), )
-F77          = gfortran
-C_FORTRANLIB = gfortran
+F77          = g77
+C_FORTRANLIB = g2c
 else
 F77           = gfortran
 C_FORTRANLIB  = gfortran
