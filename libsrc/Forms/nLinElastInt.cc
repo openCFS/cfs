@@ -201,14 +201,8 @@ namespace CoupledField
     ENTER_FCN( "nLinMech3dInt_Material::calcDMat" );
     ptMaterial->GetTensor(dMat,MECH_STIFFNESS_TENSOR,REAL);
    
-    Matrix<Double> xiDx;
-    ptelem->GetGlobDerivShFnc(xiDx, intPoint_, ptCoord, it1_.GetElem() );
-
     Matrix<Double>  displDeriv;  
-    displDeriv = elemDisp_ * xiDx;
-
     Vector<Double> stressVec;
-    // calc stress:
 
     Vector<Double> displVec;
     elemDisp_.ConvertToVec_AppendCols(displVec);
@@ -237,9 +231,9 @@ namespace CoupledField
       stressVec = dMat * linStrain;
       
       Double stressSum=0.0;
-      for(UInt i=0; i<displDeriv.GetSizeRow();i++)
+      for(UInt i=0; i<stressVec.GetSize();i++)
         stressSum+=std::abs(stressVec[i]);
-      
+
       Double c11, c13;
       
       if (nonLinApproxType=="polynomial"){
