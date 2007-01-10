@@ -39,12 +39,17 @@ namespace CoupledField {
 
     if (subType_ == "axi") 
       isaxi_ = true;
+
+    nonLinPiezoCoupling_=false;
     
     StdVector<std::string> nonLinRegion;
     params->GetList( "nonLinear", nonLinRegion, couplingName_, "coupling" );
+
     if (nonLinRegion[0] == "material" || nonLinRegion[0] == "geo" || 
-	nonLinRegion[0] == "hysteresis")
+        nonLinRegion[0] == "hysteresis"){ 
       InitNonLin();
+      nonLinPiezoCoupling_=true;
+    }
     
   }
 
@@ -171,14 +176,14 @@ namespace CoupledField {
     // loop over all subdomains
     for (UInt isd=0; isd<calcStress_.GetSize(); isd++) {
 
-//       Integer regionIndex = -1;
-//       regionIndex = subdoms_.Find( calcStress_[isd] );
-//       if ( regionIndex == -1 ) {
-//         (*error) << "PiezoPDE:CalcStress:: For the region with Name " 
-//                  << ptGrid_->RegionIdToName(calcStress_[isd])
-//                  << " no material data was found.!";
-//         Error( __FILE__, __LINE__ );
-//       }
+      //       Integer regionIndex = -1;
+      //       regionIndex = subdoms_.Find( calcStress_[isd] );
+      //       if ( regionIndex == -1 ) {
+      //         (*error) << "PiezoPDE:CalcStress:: For the region with Name " 
+      //                  << ptGrid_->RegionIdToName(calcStress_[isd])
+      //                  << " no material data was found.!";
+      //         Error( __FILE__, __LINE__ );
+      //       }
 
       // get the materials for the subdomain
       BaseMaterial* matPiezo = materials_[calcStress_[isd]];
@@ -465,7 +470,7 @@ namespace CoupledField {
         }
       }
       if ( nonLinRegion[0] == "material" || nonLinRegion[0] == "geo" || 
-	   nonLinRegion[0] == "hysteresis" ) {
+           nonLinRegion[0] == "hysteresis" ) {
         nonLin_=true;
         nonLinMaterial_ = nonLinRegion[0] == "material" ? true : false;
         nonLinHysteresis_ = nonLinRegion[0] == "hysteresis" ? true : false;
@@ -475,15 +480,15 @@ namespace CoupledField {
 
     if(nonLin_) { 
       if ( !nonLinHysteresis_ ) {
-	pde1_->SetNonLinearity(nonLin_);
-	pde2_->SetNonLinearity(nonLin_);
-	//    this->SetNonLinearity(nonLin_);
+        pde1_->SetNonLinearity(nonLin_);
+        pde2_->SetNonLinearity(nonLin_);
+        //    this->SetNonLinearity(nonLin_);
 	
-	if ( nonLinMaterial_ ) {
-	  pde1_->SetMaterialNonLinearity(nonLinMaterial_);
-	  pde2_->SetMaterialNonLinearity(nonLinMaterial_);
-	  //      this->SetMaterialNonLinearity(nonLin_);
-	}
+        if ( nonLinMaterial_ ) {
+          pde1_->SetMaterialNonLinearity(nonLinMaterial_);
+          pde2_->SetMaterialNonLinearity(nonLinMaterial_);
+          //      this->SetMaterialNonLinearity(nonLin_);
+        }
       }
     }
   }
@@ -505,21 +510,21 @@ namespace CoupledField {
 
     //NOT NECESSARY: already done in constructor!!!!!!
 
-//     StdVector<std::string> nonLinRegion;
-//     params->GetList( "nonLinear", nonLinRegion, couplingName_, "coupling" );
-//     if ( nonLinRegion.GetSize() == 0 ) {
-//       nonLin_ = false;
-//     }
-//     else {
-//       for ( UInt k = 1; k < nonLinRegion.GetSize(); k++ ) {
-//         if ( nonLinRegion[k] != nonLinRegion[0] ) {
-//           Info->Error( "Non-linearity should be the same for all regions!",
-//                        __FILE__, __LINE__ );
-//         }
-//       }
-//       nonLin_ = nonLinRegion[0] == "material" ? true : false;
-//       nonLinMaterial_ = nonLinRegion[0] == "material" ? true : false;
-//     }
+    //     StdVector<std::string> nonLinRegion;
+    //     params->GetList( "nonLinear", nonLinRegion, couplingName_, "coupling" );
+    //     if ( nonLinRegion.GetSize() == 0 ) {
+    //       nonLin_ = false;
+    //     }
+    //     else {
+    //       for ( UInt k = 1; k < nonLinRegion.GetSize(); k++ ) {
+    //         if ( nonLinRegion[k] != nonLinRegion[0] ) {
+    //           Info->Error( "Non-linearity should be the same for all regions!",
+    //                        __FILE__, __LINE__ );
+    //         }
+    //       }
+    //       nonLin_ = nonLinRegion[0] == "material" ? true : false;
+    //       nonLinMaterial_ = nonLinRegion[0] == "material" ? true : false;
+    //     }
     
 
     // get material from electrostatics
@@ -547,33 +552,33 @@ namespace CoupledField {
       
       BiLinFormContext *actContextStiff = NULL;
 
-      if (nonLin_){
-	ApproxData *nlinFnc;
+      if (nonLinPiezoCoupling_){
+        ApproxData *nlinFnc;
 
-	if (  nonLinMaterial_ ) {
-	  std::string nlfnc = materials_[subdoms_[actRegion]]->GetNonlinFileName();
-	  materials_[subdoms_[actRegion]]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
+        if (  nonLinMaterial_ ) {
+          std::string nlfnc = materials_[subdoms_[actRegion]]->GetNonlinFileName();
+          materials_[subdoms_[actRegion]]->GetScalar(nlfnc,NONLIN_DATA_NAME);           
         
-	  nlinFnc = new SmoothSpline(nlfnc);
-	  // ApproxData *nlinFnc = new SmoothSpline("PZT4_Coupl33NL.dat");
-	  // oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
-	  nlinFnc->CalcBestParameter();
-	  nlinFnc->CalcApproximation();
-	}
-	else if ( nonLinHysteresis_ ) {
-	  nlinFnc = NULL;
+          nlinFnc = new SmoothSpline(nlfnc);
+          // ApproxData *nlinFnc = new SmoothSpline("PZT4_Coupl33NL.dat");
+          // oder        ApproxData *nlinFnc = new LinInterpolate(nlfnc);
+          nlinFnc->CalcBestParameter();
+          nlinFnc->CalcApproximation();
+        }
+        else if ( nonLinHysteresis_ ) {
+          nlinFnc = NULL;
 
-	  //allocate for hystersis modeling
-	  StdVector<Elem*> elemssd;
-	  ptGrid_->GetElems(elemssd, actRegion);
-	  UInt numElSD =  elemssd.GetSize();
-	  elecMat[actRegion]->InitHyst(numElSD, actSDList);
-	}
-	else {
-	  Error("PiezoCoupling: Nonlinear Type not supported",__FILE__,__LINE__);
-	}
+          //allocate for hystersis modeling
+          StdVector<Elem*> elemssd;
+          ptGrid_->GetElems(elemssd, actRegion);
+          UInt numElSD =  elemssd.GetSize();
+          elecMat[actRegion]->InitHyst(numElSD, actSDList);
+        }
+        else {
+          Error("PiezoCoupling: Nonlinear Type not supported",__FILE__,__LINE__);
+        }
 
-	  // get material from mechanics
+        // get material from mechanics
         std::map<RegionIdType, BaseMaterial*> mechMat = 
           pde1_->getPDEMaterialData();
 
@@ -600,49 +605,49 @@ namespace CoupledField {
         bilinearStiffNonLin->SetSolution2(*solhelp2);
 
         bilinearStiffNonLin->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
-						results2_[0]);
+                                                results2_[0]);
 
         bilinearStiffNonLin->SetMatDataType( matType );
         
         actContextStiff =
           new BiLinFormContext( bilinearStiffNonLin, STIFFNESS  );
         
-	if ( nonLinHysteresis_ ) {
-	  //hysteresis formulation: RHS for electric equation
-	  PiezoPolarizationElecRhsInt * elecRHS = 
-	    new PiezoPolarizationElecRhsInt( elecMat[actRegion],
-					 materials_[actRegion],
-					 mechMat[actRegion],
-					 tensorType );	 
+        if ( nonLinHysteresis_ ) {
+          //hysteresis formulation: RHS for electric equation
+          PiezoPolarizationElecRhsInt * elecRHS = 
+            new PiezoPolarizationElecRhsInt( elecMat[actRegion],
+                                             materials_[actRegion],
+                                             mechMat[actRegion],
+                                             tensorType );	 
 
-	  elecRHS->SetSolution( *solhelp2 );
+          elecRHS->SetSolution( *solhelp2 );
 
-	  elecRHS->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
-					      results2_[0]);
-	  LinearFormContext * rhsContextElec = 
-	    new LinearFormContext( elecRHS );
-	  rhsContextElec->SetPtPde( pde2_ );
-	  rhsContextElec->SetResult( results2_[0], actSDList );
-	  assemble_->AddLinearForm( rhsContextElec );
+          elecRHS->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
+                                      results2_[0]);
+          LinearFormContext * rhsContextElec = 
+            new LinearFormContext( elecRHS );
+          rhsContextElec->SetPtPde( pde2_ );
+          rhsContextElec->SetResult( results2_[0], actSDList );
+          assemble_->AddLinearForm( rhsContextElec );
 
 
-	  //	  hysteresis formulation: RHS for mechanic equation
-	  PiezoPolarizationMechRhsInt * mechRHS = 
-	    new PiezoPolarizationMechRhsInt( elecMat[actRegion],
-					     mechMat[actRegion],
-					     tensorType );	 
-	  // we need electric potential
-	  mechRHS->SetSolution( *solhelp2 );
+          //	  hysteresis formulation: RHS for mechanic equation
+          PiezoPolarizationMechRhsInt * mechRHS = 
+            new PiezoPolarizationMechRhsInt( elecMat[actRegion],
+                                             mechMat[actRegion],
+                                             tensorType );	 
+          // we need electric potential
+          mechRHS->SetSolution( *solhelp2 );
 
-	  // for computation of electric field
-	  mechRHS->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
-					      results2_[0]);
-	  LinearFormContext * rhsContextMech = 
-	    new LinearFormContext( mechRHS );
-	  rhsContextMech->SetPtPde( pde1_ );
-	  rhsContextMech->SetResult( results1_[0], actSDList );
-	  assemble_->AddLinearForm( rhsContextMech );
-	}
+          // for computation of electric field
+          mechRHS->Set4NonLinMaterial(ptGrid_, pde2_, eqnMap2_,  
+                                      results2_[0]);
+          LinearFormContext * rhsContextMech = 
+            new LinearFormContext( mechRHS );
+          rhsContextMech->SetPtPde( pde1_ );
+          rhsContextMech->SetResult( results1_[0], actSDList );
+          assemble_->AddLinearForm( rhsContextMech );
+        }
       } 
       else 
         {

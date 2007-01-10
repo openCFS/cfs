@@ -446,8 +446,10 @@ namespace CoupledField {
                        __FILE__, __LINE__ );
         }
       }
-      if (nonLinRegion[0] == "geo" || nonLinRegion[0] == "material")
+      if (nonLinRegion[0] == "geo" || nonLinRegion[0] == "material"){
         nonLin_ =   true;
+        nonLinMaterial_ = true;
+      }
     }
 
     // In non-linear case determine type of line search strategy

@@ -130,7 +130,7 @@ namespace CoupledField {
     // Create new Assemble object
     assemble_ = new Assemble( algsys_, analysistype_, ptTimeFunc_ );
 
-  // Initialize timestepping
+    // Initialize timestepping
     if ( analysistype_ == TRANSIENT ) {
       InitTimeStepping();
     }
@@ -157,10 +157,10 @@ namespace CoupledField {
     }
     
     if ( analysistype_ == TRANSIENT ) {
-        Double dt;
-        dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
-          ->GetTimeStep();
-        TS_alg_->Init( dt, totalUnknowns_ );
+      Double dt;
+      dt = dynamic_cast<TransientDriver*>(domain->GetSingleDriver())
+        ->GetTimeStep();
+      TS_alg_->Init( dt, totalUnknowns_ );
     }
 
 
@@ -209,6 +209,7 @@ namespace CoupledField {
       if(singlePDEs_[i]->IsNonLinMaterial())
         globalNonLinMaterial=true;
     }
+    std::cout<< "Direct CoupledPDE - Init globalNonLinMaterial " << globalNonLinMaterial << std::endl;
     
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       //      Is NonLin()
@@ -219,7 +220,7 @@ namespace CoupledField {
 
       if(couplings_[i]->nonLinHysteresis_==true) {
         globalNonLinHysteresis = true;
-	isHysteresis_ = true;
+        isHysteresis_ = true;
       }
     }
     
@@ -229,14 +230,14 @@ namespace CoupledField {
     if ( !globalNonLinHysteresis ) {
       // copy nonlinearity information to singlePDEs
       for (UInt i=0; i<singlePDEs_.GetSize(); i++){
-	singlePDEs_[i]->SetNonLinearity(globalNonLin);
-	singlePDEs_[i]->SetMaterialNonLinearity(globalNonLin);
+        singlePDEs_[i]->SetNonLinearity(globalNonLin);
+        singlePDEs_[i]->SetMaterialNonLinearity(globalNonLin);
       }
       
       // copy nonlinearity information to couplings   
       for (UInt i=0; i<couplings_.GetSize(); i++) {
-	couplings_[i]->SetNonLinearity(globalNonLin);    
-	couplings_[i]->SetMaterialNonLinearity(globalNonLin);
+        couplings_[i]->SetNonLinearity(globalNonLin);    
+        couplings_[i]->SetMaterialNonLinearity(globalNonLin);
       }
     }
     
@@ -452,7 +453,7 @@ namespace CoupledField {
     }
     
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-       // set pointer to solution object of the PDE
+      // set pointer to solution object of the PDE
       ptNodeSol = singlePDEs_[i]->getPDESolution();
       ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
       singlePDEs_[i]->solVec_  = solVec_;
@@ -472,7 +473,7 @@ namespace CoupledField {
     }
     
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-       // set pointer to solution object of the PDE
+      // set pointer to solution object of the PDE
       ptNodeSol = singlePDEs_[i]->getPDESolution();
       ptNodeSol->SetAlgSysDataPointer( size, solHelp.GetPointer() );
       
@@ -514,39 +515,39 @@ namespace CoupledField {
     }
   }
 
-   void DirectCoupledPDE::WriteRestart( ) 
-   {
-     ENTER_FCN( "DirectCoupledPDE::WriteRestart" );
+  void DirectCoupledPDE::WriteRestart( ) 
+  {
+    ENTER_FCN( "DirectCoupledPDE::WriteRestart" );
 
-     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-       singlePDEs_[i]->WriteRestart( );
-     }
-   }
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      singlePDEs_[i]->WriteRestart( );
+    }
+  }
 
-   void DirectCoupledPDE::ReadRestart( UInt &startStep ) 
-   {
-     ENTER_FCN( "DirectCoupledPDE::ReadRestart" );
+  void DirectCoupledPDE::ReadRestart( UInt &startStep ) 
+  {
+    ENTER_FCN( "DirectCoupledPDE::ReadRestart" );
 
-     StdVector<UInt> startSteps( singlePDEs_.GetSize() );
+    StdVector<UInt> startSteps( singlePDEs_.GetSize() );
      
-     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
-     singlePDEs_[i]->ReadRestart(startSteps[i]);
-     }
+    for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+      singlePDEs_[i]->ReadRestart(startSteps[i]);
+    }
      
-     for( UInt i = 1; i < startSteps.GetSize(); i++ ) {
-       if( startSteps[i] != startSteps[0] ) {
-         std::stringstream errMsg;
-         errMsg << "Error during read in of restart files:\n";
-         errMsg << "Restart step numbers differ for the different PDEs!\n";
-         for( UInt j = 0; j< singlePDEs_.GetSize(); j++ ) {
-           errMsg << singlePDEs_[i]->GetName() << "\t"
-                  << startSteps[i] << "\n";
-         }
-         Error( errMsg.str().c_str(), __FILE__, __LINE__ );
-       }
+    for( UInt i = 1; i < startSteps.GetSize(); i++ ) {
+      if( startSteps[i] != startSteps[0] ) {
+        std::stringstream errMsg;
+        errMsg << "Error during read in of restart files:\n";
+        errMsg << "Restart step numbers differ for the different PDEs!\n";
+        for( UInt j = 0; j< singlePDEs_.GetSize(); j++ ) {
+          errMsg << singlePDEs_[i]->GetName() << "\t"
+                 << startSteps[i] << "\n";
+        }
+        Error( errMsg.str().c_str(), __FILE__, __LINE__ );
+      }
        
-     }
-   }
+    }
+  }
   
 
   void DirectCoupledPDE::WriteResultsInFile(const UInt kstep,
@@ -562,7 +563,7 @@ namespace CoupledField {
     }
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       couplings_[i]->WriteResultsInFile( kstep, asteptime, 
-                                          stepOffset, timeOffset);
+                                         stepOffset, timeOffset);
     }
   }
 
