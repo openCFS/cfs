@@ -123,7 +123,6 @@ namespace CoupledField
 
     // get global coordinate system and math parser
     CoordSystem * coosy = domain->GetCoordSystem();
-    MathParser * parser = domain->GetMathParser();
 
     // Get midpoint of element
     Vector<Double> locMidPoint, locMidPointVol, globMidPointVol;
@@ -142,19 +141,19 @@ namespace CoupledField
                                            volCoordMat, ptVolElem_ );
 
     // Update variables for mathParser
-    parser->SetCoordinates( mHandle_, *coosy, globMidPointVol );
+    mParser_->SetCoordinates( mHandle_, *coosy, globMidPointVol );
 
     // Get amplitude and phase
     Double amplitude;
-    parser->SetExpr( mHandle_, amplitudeStr_ );
-    amplitude = parser->Eval( mHandle_ );
+    mParser_->SetExpr( mHandle_, amplitudeStr_ );
+    amplitude = mParser_->Eval( mHandle_ );
     // we assume the surface normal points out of domain,
     //  but we want to take deflections into the domain positive
     amplitude *= - 1.0;
 
     Double phase;
-    parser->SetExpr( mHandle_, phaseStr_ );
-    phase = parser->Eval( mHandle_ );
+    mParser_->SetExpr( mHandle_, phaseStr_ );
+    phase = mParser_->Eval( mHandle_ );
 
     // Note: Since phase is in (grad), we have to transform it into
     //        rad-value

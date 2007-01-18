@@ -37,23 +37,23 @@ namespace CoupledField
     void UnsetFracDamping() 
     {isFracDamping_ = false;};
   
-    //! set additional multiplicative factor of mass matrix
-    void SetFactor(Double aFactor) 
-    {factor_ = aFactor;};
+    //! set expression evaluated by muparser
+    void SetExpression(std::string aExpression)
+    {mParser_->SetExpr( mHandle_, aExpression );};
    
   protected:
     
     //! generates a multi-dof-matrix with similar entries for all dofs
-    virtual void MassMultiDof(Matrix<Double>& massMultDof, const Matrix<Double>& massMatSingleDof,  
+    virtual void MassMultiDof(Matrix<Double>& massMultDof,
+                              const Matrix<Double>& massMatSingleDof,  
                               const UInt nrDofs);
 
     virtual void MassMultiDofZero(Matrix<Double>& massMultDofZero, 
                                   const Matrix<Double>& massMatSingleDof);
-  
+    
   private:
 
     Double density_;          //!< multiplicative value for mass integrator
-    Double factor_;           //!< yet another multiplicative value for mass integrator
     UInt nrDofsPerNode_;   //!< degrees of freedom per node
     bool diagMass_;         //<! true, mass matrix is diagonal
   };
