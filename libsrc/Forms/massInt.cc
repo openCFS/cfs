@@ -19,7 +19,10 @@ namespace CoupledField {
   {
     ENTER_FCN( "MassInt::MassInt" );
     name_ = "MassInt";
-    factor_ = 1.0;
+
+    // Initialization -> muparser can be allways evaluated in CalcElementMatrix
+    mParser_->SetExpr( mHandle_, "1.0" );
+
     isaxi_ = axi;
     coordUpdate_ = coordUpdate;
     baseType_ = MASS;
@@ -56,42 +59,48 @@ namespace CoupledField {
     //    partElemMat.Resize(numFncs);
     elemMat.Resize(numFncs);
     elemMat.Init();
+
+    // Evaluate Expression
+    Double factor;
+    factor = mParser_->Eval( mHandle_ );
     
     if (diagMass_ ) {
       Double mass = 0.0;
       for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
         jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
         
-	if (isaxi_) {
-	  ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
-	  CoordAtIP = ptCoord_ * shapeFncAtIp;
-	  mass += 2 * PI * intWeights[actIntPt-1] * density_ * factor_* jacDet * CoordAtIP[0];
-	}
-	else 
-	  mass += intWeights[actIntPt-1] * density_ * factor_ * jacDet;
+        if (isaxi_) {
+          ptelem-> GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
+          CoordAtIP = ptCoord_ * shapeFncAtIp;
+          mass += 2 * PI * intWeights[actIntPt-1] * density_ * factor 
+            * jacDet * CoordAtIP[0];
+        }
+        else 
+          mass += intWeights[actIntPt-1] * density_ * factor * jacDet;
       }
 
       for ( UInt i=0; i<numFncs; i++ ) 
-	elemMat[i][i] = mass / (Double)numFncs;
+        elemMat[i][i] = mass / (Double)numFncs;
    
     }
     else {
       for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {
 
-	jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
+        jacDet = ptelem->CalcJacobianDetAtIp(actIntPt, ptCoord_, ent1.GetElem() );
 
         ptelem->GetShFncAtIp(shapeFncAtIp, actIntPt, ent1.GetElem() );
         
-	partElemMat.DyadicMult(shapeFncAtIp);
+        partElemMat.DyadicMult(shapeFncAtIp);
         
-	if (isaxi_) {
-	  CoordAtIP = ptCoord_ * shapeFncAtIp;
-	  partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor_* jacDet * CoordAtIP[0];
-	}
-	else 
-	  partElemMat *= intWeights[actIntPt-1] * density_ * factor_ * jacDet;
+        if (isaxi_) {
+          CoordAtIP = ptCoord_ * shapeFncAtIp;
+          partElemMat *= 2 * PI * intWeights[actIntPt-1] * density_ * factor 
+            * jacDet * CoordAtIP[0];
+        }
+        else 
+          partElemMat *= intWeights[actIntPt-1] * density_ * factor * jacDet;
         
-	elemMat += partElemMat;
+        elemMat += partElemMat;
       }
     }
 
@@ -105,7 +114,8 @@ namespace CoupledField {
   }
 
   void MassInt::MassMultiDof(Matrix<Double>& massMultDof, 
-                             const Matrix<Double>& massMatSingleDof,  const UInt nrDofs)
+                             const Matrix<Double>& massMatSingleDof,
+                             const UInt nrDofs)
   {
     ENTER_FCN( "MassInt::MassMultiDof" );
     
@@ -123,7 +133,8 @@ namespace CoupledField {
   }
 
 
-  void MassInt::MassMultiDofZero(Matrix<Double>& massMultDofZero, const Matrix<Double>& massMatSingleDof)
+  void MassInt::MassMultiDofZero(Matrix<Double>& massMultDofZero,
+                                 const Matrix<Double>& massMatSingleDof)
   {
     ENTER_FCN( "MassInt::MassMultiDofZero" );
     
@@ -134,13 +145,15 @@ namespace CoupledField {
     massMultDofZero.Resize(nrDofsPerNode_*singleDofSize);
     massMultDofZero.Init();
     
-    for (i=0; i < singleDofSize; i++)
-      for (j=0; j < singleDofSize; j++)
-        for (actDof=0; actDof < nrDofsPerNode_ ; actDof++)
-          {
-            massMultDofZero[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = 
-              massMatSingleDof[i][j]; 
-          }
+    for (i=0; i < singleDofSize; i++) {
+      for (j=0; j < singleDofSize; j++) {
+        for (actDof=0; actDof < nrDofsPerNode_ ; actDof++){
+          
+          massMultDofZero[i*nrDofsPerNode_ + actDof][j*nrDofsPerNode_ + actDof] = 
+            massMatSingleDof[i][j]; 
+        }
+      }
+    }
   }
   
 } // end namespace CoupledField

@@ -306,28 +306,28 @@ namespace CoupledField {
 
       }
       else if ( strVec[k] == "variableSOS_CN1" ) {
-      //  nonLin_ = true;
+        //  nonLin_ = true;
         nonLinPDEName_[k] = VARIABLE_SOS_CN1;
         Info->PrintF(pdename_, 
-              "      * Variable Speed of Sound in Combustion Noise Form 1: %d\n",
-              k );
+                     "      * Variable Speed of Sound in Combustion Noise Form 1: %d\n",
+                     k );
         variableSpeedOfSoundCN_ = true;
       }
       else if ( strVec[k] == "variableSOS_CN2" ) {
-       // nonLin_ = true;
+        // nonLin_ = true;
         nonLinPDEName_[k] =  VARIABLE_SOS_CN2;
         Info->PrintF(pdename_,
-              "      * Variable Speed of Sound in Combustion Noise Form 2: %d\n",
-              k );
+                     "      * Variable Speed of Sound in Combustion Noise Form 2: %d\n",
+                     k );
         variableSpeedOfSoundCN_ = true;
       }
 
       else if ( strVec[k] == "variableSOS_CN2Mean" ) {
-       // nonLin_ = true;
+        // nonLin_ = true;
         nonLinPDEName_[k] =  VARIABLE_SOS_CN2Mean;
         Info->PrintF(pdename_,
-              "      * Variable Speed of Sound (mean values) in Combustion Noise Form 2: %d\n",
-              k );
+                     "      * Variable Speed of Sound (mean values) in Combustion Noise Form 2: %d\n",
+                     k );
         variableSpeedOfSoundCN_ = true;
       }
 
@@ -356,14 +356,14 @@ namespace CoupledField {
     ENTER_FCN( "AcousticPDE::DefineIntegerators" );
 
     if ( variableSpeedOfSoundCN_ ) {
-        speedOfSound_.SetNumSolutions(1);
-        speedOfSound_.SetNumNodes(numPDENodes_);
-        speedOfSound_.SetSolutionType( ACOU_SOUND_SPEEED );
-        speedOfSound_.SetResult( results_[0] );
-        speedOfSound_.SetNumDofs(1);
-        speedOfSound_.SetPtrEQNData(eqnMap_.get(),ptgrid_);
-        speedOfSound_.SetRegions( subdoms_ );
-        speedOfSound_.Init(0);
+      speedOfSound_.SetNumSolutions(1);
+      speedOfSound_.SetNumNodes(numPDENodes_);
+      speedOfSound_.SetSolutionType( ACOU_SOUND_SPEEED );
+      speedOfSound_.SetResult( results_[0] );
+      speedOfSound_.SetNumDofs(1);
+      speedOfSound_.SetPtrEQNData(eqnMap_.get(),ptgrid_);
+      speedOfSound_.SetRegions( subdoms_ );
+      speedOfSound_.Init(0);
     }
 
     // help variables for parameter checking
@@ -428,9 +428,9 @@ namespace CoupledField {
 
         GetPMLLayerData(inner, outer, actSD);
 
-        //********************************************************************
+        // ********************************************************************
         //	 stiffness integrator for PML
-        //********************************************************************
+        // ********************************************************************
         std::string formsType = "laplaceInt";
 
         //set real part
@@ -469,9 +469,9 @@ namespace CoupledField {
         assemble_->AddBiLinearForm( stiffContextImag );
 
 
-        //********************************************************************
+        // ********************************************************************
         //	 mass integrator for PML
-        //********************************************************************
+        // ********************************************************************
         formsType = "massInt";
 
         //	Double dampMass = (2.0/3.0)*density/c0;
@@ -520,22 +520,22 @@ namespace CoupledField {
 
       else {
 
-        //********************************************************************
+        // ********************************************************************
         //  Linear wave equation
-        //********************************************************************
-
+        // ********************************************************************
+        
         // stiffness integrator 
         BaseForm * bilinearStiff;
         if ( nonLinPDEName_[actSD] == VARIABLE_SOS_CN2 ) {
           bool isSpeedVariable = true;
           bilinearStiff = new nLinLaplaceInt( density, isaxi_, isSpeedVariable );
-            bilinearStiff->SetSolution( speedOfSound_);
+          bilinearStiff->SetSolution( speedOfSound_);
         }
         else if ( nonLinPDEName_[actSD] == VARIABLE_SOS_CN2Mean ) {
           bilinearStiff = new nLinLaplaceInt( density, isaxi_);
           bilinearStiff->SetSolution( speedOfSound_);
         }
-
+        
         else {
           bilinearStiff = new LaplaceInt( density, isaxi_ );
         }
@@ -569,10 +569,10 @@ namespace CoupledField {
         massContext->SetResults( results_[0], results_[0],
                                  actSDList, actSDList );
         massContext->SetPtPdes(this, this);
-
-        //********************************************************************
+        
+        // ********************************************************************
         //  Flow Data = Pierce Equation
-        //********************************************************************
+        // ********************************************************************
         RegionIdType regionFlow = subdoms_[actSD];
         std::string regionName;
         regionName = ptgrid_->RegionIdToName( regionFlow );
@@ -618,9 +618,9 @@ namespace CoupledField {
 
 
 
-        //********************************************************************
+        // ********************************************************************
         //  damping layer
-        //********************************************************************
+        // ********************************************************************
         keyVec = "acoustic" , "region" , "dampLayer" , "type";
         attrVec= ""         , "name"   , "";
         valVec = ""         , actRegionName, "";
@@ -697,8 +697,9 @@ namespace CoupledField {
             assemble_->AddBiLinearForm( dampContext );
           }
 	  
-          else if ( dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
-                    dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ) {
+          else if ( (analysistype_ != HARMONIC) &&
+                    (dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
+                     dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT) ) {
 
             Double fracAlpha, fracExp;
             materials_[subdoms_[actSD]]->GetScalar(fracAlpha,ACOU_ALPHA,REAL);
@@ -706,11 +707,13 @@ namespace CoupledField {
 
             coeffdamp = - density * 2.0 * fracAlpha / c0 / sin((fracExp-1.0)*PI/2.0);
 
-            BaseForm * bilinearDamp  = 
-              new MassInt(coeffdamp, 1, isaxi_);
+            BaseForm * bilinearDamp = new MassInt(coeffdamp, 1, isaxi_);
+            
             bilinearDamp->SetFracDamping();
             Double fracDampCoeff = GetFracDampMatrixCoeff( subdoms_[actSD] );
-            bilinearDamp->SetFactor( fracDampCoeff );
+            std::string coeffStr;
+            coeffStr =  GenStr(fracDampCoeff);
+            bilinearDamp->SetExpression( coeffStr );
 
             // formulation using DAMPING matrix
             // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
@@ -720,6 +723,7 @@ namespace CoupledField {
             // two matrices formulation
             // added to STIFFNESS matrix because, because 
             //   matrix_factors[STIFFNESS] = 1.0
+            
             BiLinFormContext * dampContext = 
               new BiLinFormContext( bilinearDamp, STIFFNESS );
             dampContext->SetResults( results_[0], results_[0],
@@ -728,8 +732,9 @@ namespace CoupledField {
             assemble_->AddBiLinearForm( dampContext );
           }
 	  
-          else if  ( dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
-                     dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT ) {
+          else if  ( (analysistype_ != HARMONIC) &&
+                     (dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
+                      dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT) ) {
 
             Double fracAlpha, fracExp;
             materials_[subdoms_[actSD]]->GetScalar(fracAlpha,ACOU_ALPHA,REAL);
@@ -739,12 +744,15 @@ namespace CoupledField {
             // prefactor of blank alg
             coeffdamp *= exp(-gammaln(1.0- (fracExp- 1.0)) ); 
             // weight factor of index 0
-            coeffdamp *= 1.0/(1.0- (fracExp- 1.0));           
-            BaseForm * bilinearDamp  = 
-              new MassInt(coeffdamp, 1, isaxi_);
+            coeffdamp *= 1.0/(1.0- (fracExp- 1.0));
+            
+            BaseForm * bilinearDamp = new MassInt(coeffdamp, 1, isaxi_);
+            
             bilinearDamp->SetFracDamping();
             Double fracDampCoeff = GetFracDampMatrixCoeff( subdoms_[actSD] );
-            bilinearDamp->SetFactor( fracDampCoeff );
+            std::string coeffStr;
+            coeffStr =  GenStr(fracDampCoeff);
+            bilinearDamp->SetExpression( coeffStr );
 
             // formulation using DAMPING matrix
             // adapt NewmarkFracDamp::Init and StdPDE::GetFracDampMatrixCoeff
@@ -760,7 +768,54 @@ namespace CoupledField {
                                      actSDList, actSDList );
             dampContext->SetPtPdes(this, this);
             assemble_->AddBiLinearForm( dampContext );
+          }
+          
+          else if ( (analysistype_ == HARMONIC) &&
+                    (dampingList_[subdoms_[actSD]] == FRACTIONAL_GL ||
+                     dampingList_[subdoms_[actSD]] == FRACTIONAL_GL_INT ||
+                     dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK ||
+                     dampingList_[subdoms_[actSD]] == FRACTIONAL_BLANK_INT) ) {
 
+            Double fracAlpha, fracExp;
+            materials_[subdoms_[actSD]]->GetScalar(fracAlpha,ACOU_ALPHA,REAL);
+            materials_[subdoms_[actSD]]->GetScalar(fracExp,FRACTIONAL_EXPONENT,REAL);
+            
+            Double factorReal, factorImag;
+            factorReal = density * 2.0 * fracAlpha / c0 / tan((fracExp-1.0)*PI/2.0);
+            factorImag = density * 2.0 * fracAlpha / c0;
+            
+            // set up real and imaginary part of damping matrix
+            BaseForm * bilinearDampReal = new MassInt(factorReal, 1, isaxi_);
+            BaseForm * bilinearDampImag = new MassInt(factorImag, 1, isaxi_);
+            
+            std::string omegaFac, fracExpStr;
+            fracExpStr = GenStr(fracExp);
+            omegaFac = "exp((" + fracExpStr + "+1)*ln(2*pi*f))";
+            bilinearDampReal->SetExpression( omegaFac );
+            bilinearDampImag->SetExpression( omegaFac );
+
+            // Choose stiffness matrix, because in HARMONIC calculation mass and
+            //  damping matrix are multiplied by multiples of omega
+            //  See method Matrix2Harmonic in assemble.cc  
+            BiLinFormContext * dampContextReal = 
+              new BiLinFormContext( bilinearDampReal, STIFFNESS );
+            dampContextReal->SetPtPdes(this, this); 
+            dampContextReal->SetResults( results_[0], results_[0],
+                                         actSDList, actSDList );
+                                     
+             BiLinFormContext * dampContextImag = 
+              new BiLinFormContext( bilinearDampImag, STIFFNESS );
+            dampContextImag->SetPtPdes(this, this); 
+            dampContextImag->SetResults( results_[0], results_[0],
+                                         actSDList, actSDList );
+            // set imaginary flag of matrix context
+            DataType complexType = IMAG;                                    
+            dampContextImag->SetMatDataType(complexType);  
+            
+            assemble_->AddBiLinearForm( dampContextReal );
+            assemble_->AddBiLinearForm( dampContextImag );
+            
+            
           }
         }
 
@@ -2125,7 +2180,7 @@ namespace CoupledField {
 
         if (calcElemPressure_.GetSize() != 0 ) {
           ElemStoreSol<Complex> & pressureConverted = 
-          dynamic_cast<ElemStoreSol<Complex>&>(*acouPressure_);
+            dynamic_cast<ElemStoreSol<Complex>&>(*acouPressure_);
           outFile_->WriteElemSolutionHarmonic(pressureConverted, actStep,
                                               actTime, complexFormat_);
         }
@@ -2164,17 +2219,17 @@ namespace CoupledField {
         }
 
         if (saveNodalSourcesRHS_){ 
-//          std::cout << "write RHS" << std::endl;
+          //          std::cout << "write RHS" << std::endl;
           outFile_->WriteNodeSolutionTransient(rhsNodalSrc_, actStep, actTime);
-	}
+        }
 
         if ( saveSoundSpeed_ ){ 
           //          std::cout << "write SoundSpeed" << std::endl;
           outFile_->WriteNodeSolutionTransient(speedOfSound_, actStep, actTime);
-	}
+        }
 
         if (saveRHSval_){ 
-	  // std::cout << "write RHS" << std::endl;
+          // std::cout << "write RHS" << std::endl;
           // outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
           if (plotRHSVel_==true)
             outFile_->WriteNodeSolutionTransient(rhs2_, actStep, actTime);
@@ -2306,13 +2361,13 @@ namespace CoupledField {
       }
 
       // --- acoustic rhsval ---
-//       Enum2String(ACOU_RHSVAL, quantity);
-//       valVec = "", "", quantity;
-//       params->GetList( keyVec, attrVec, valVec, nodeValues);
-//       if (nodeValues.GetSize() > 0) {
-//         saveRHSval_ = true;
-//         hasOutput_ = true;
-//       }
+      //       Enum2String(ACOU_RHSVAL, quantity);
+      //       valVec = "", "", quantity;
+      //       params->GetList( keyVec, attrVec, valVec, nodeValues);
+      //       if (nodeValues.GetSize() > 0) {
+      //         saveRHSval_ = true;
+      //         hasOutput_ = true;
+      //       }
 
 
       // --- acoustic potential, 1. Deriv ---

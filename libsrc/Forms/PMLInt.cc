@@ -187,8 +187,8 @@ namespace CoupledField
     UInt numVals = pos.GetSize();
 
     Vector<Complex> factors(numVals);
-    Double frequency = 2 * PI * mParser_->Eval( mHandle_ );
-    Double omegaInv = 1.0 / frequency;
+    Double omega = 2 * PI * mParser_->Eval( mHandle_ );
+    Double omegaInv = 1.0 / omega;
     Double imagVal, factor;
 
     if ( pos[0] < minX_ || pos[0] > maxX_ ) {
@@ -371,7 +371,7 @@ namespace CoupledField
 //     }
 
 //     Vector<Complex> factors(numVals);
-//     Double omegaInv = 1.0 / frequency_;
+//     Double omegaInv = 1.0 / omega_;
 //     Double imagVal;
 
 //     if ( pos[0] < minX_ || pos[0] > maxX_ ) {

@@ -76,6 +76,9 @@ namespace CoupledField
 
     //! set additional multiplicative factor for matrix
     virtual void SetFactor(Double factor) {;};
+    
+    //! set expression evaluated by muparser
+    virtual void SetExpression(std::string aExpression) {;};
 
     //! set second multiplicative factor for matrix
     virtual void SetSecondFactor(Double factor) {;};
