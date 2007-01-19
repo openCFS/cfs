@@ -447,7 +447,7 @@ namespace CoupledField {
         stiffContextReal->SetPtPdes(this, this);
         stiffContextReal->SetResults( results_[0], results_[0],
                                       actSDList, actSDList );
-        stiffContextReal->SetMatDataType(matType);
+        stiffContextReal->SetEntryType( matType );
         assemble_->AddBiLinearForm( stiffContextReal);
 
         //set imaginary part
@@ -465,7 +465,7 @@ namespace CoupledField {
         stiffContextImag->SetPtPdes(this, this);
         stiffContextImag->SetResults( results_[0], results_[0],
                                       actSDList, actSDList );
-        stiffContextImag->SetMatDataType(matType);
+        stiffContextImag->SetEntryType( matType );
         assemble_->AddBiLinearForm( stiffContextImag );
 
 
@@ -491,7 +491,7 @@ namespace CoupledField {
         massContextReal->SetPtPdes(this, this);
         massContextReal->SetResults( results_[0], results_[0],
                                      actSDList, actSDList );
-        massContextReal->SetMatDataType( matType );
+        massContextReal->SetEntryType( matType );
         assemble_->AddBiLinearForm( massContextReal );
 
         //set imaginary part
@@ -508,7 +508,7 @@ namespace CoupledField {
         massContextImag->SetPtPdes( this, this );
         massContextImag->SetResults( results_[0], results_[0],
                                      actSDList, actSDList );
-        massContextImag->SetMatDataType( matType );
+        massContextImag->SetEntryType( matType );
         assemble_->AddBiLinearForm( massContextImag );
 
         // Finally add the stiffness/mass integrators
@@ -557,7 +557,6 @@ namespace CoupledField {
         else {
           coeffmass = density / (c0*c0);
           bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
-          MassInt* bilinearMass  = new MassInt(coeffmass, 1, isaxi_);
           if ( diagMass_ ) {
             // diagonal mass matrix
             bilinearMass->SetDiagMass();
@@ -810,7 +809,7 @@ namespace CoupledField {
                                          actSDList, actSDList );
             // set imaginary flag of matrix context
             DataType complexType = IMAG;                                    
-            dampContextImag->SetMatDataType(complexType);  
+            dampContextImag->SetEntryType(complexType);  
             
             assemble_->AddBiLinearForm( dampContextReal );
             assemble_->AddBiLinearForm( dampContextImag );

@@ -20,8 +20,14 @@ namespace CoupledField {
     destMat_ = destMat;
     secDestMat_ = NOTYPE;
     secMatFac_ = 0.0;
-    setCounterPart_ = true;
-    matDataType_ = REAL;
+    entryType_ = REAL;
+
+    // Note: By default, we do not set the transposed
+    // of a matrix as well, i.e. if an element matrix
+    // gets assembled to a main diagonal block within the
+    // big FE-Matrix, this flag must not be changed
+    // through 'SetCounterPart()'
+    setCounterPart_ = false;
 
     ptPde1_ = NULL;
     ptPde2_ = NULL;

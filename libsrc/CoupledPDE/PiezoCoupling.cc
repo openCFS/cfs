@@ -612,6 +612,10 @@ namespace CoupledField {
         actContextStiff =
           new BiLinFormContext( bilinearStiffNonLin, STIFFNESS  );
         
+        // We also need to set the transposed of the coupling
+        // matrix to the lower diagonal side
+        actContextStiff->SetCounterPart( true );
+        
         if ( nonLinHysteresis_ ) {
           //hysteresis formulation: RHS for electric equation
           PiezoPolarizationElecRhsInt * elecRHS = 
@@ -648,25 +652,27 @@ namespace CoupledField {
           rhsContextMech->SetResult( results1_[0], actSDList );
           assemble_->AddLinearForm( rhsContextMech );
         }
-      } 
-      else 
-        {
-          
-          // add stiffness
-          bilinearStiff = 
-            new linPiezoCoupling(materials_[actRegion], tensorType);
-
-          //GetStiffIntegrator( materials_[actSD] );
+      } else {
         
-          bilinearStiff->SetMatDataType( matType );  
-
-          actContextStiff =
-            new BiLinFormContext( bilinearStiff, STIFFNESS  );
-                  
-        }
+        // add stiffness
+        bilinearStiff = 
+          new linPiezoCoupling(materials_[actRegion], tensorType);
+        
+        //GetStiffIntegrator( materials_[actSD] );
+        
+        bilinearStiff->SetMatDataType( matType );  
+        
+        actContextStiff =
+          new BiLinFormContext( bilinearStiff, STIFFNESS  );
+        
+      }
       
-        
-      actContextStiff->SetMatDataType( matType );
+      
+      // We also need to set the transposed of the coupling
+      // matrix to the lower diagonal side
+      actContextStiff->SetCounterPart( true );
+      
+      actContextStiff->SetEntryType( matType );
       actContextStiff->SetPtPdes( pde1_, pde2_ );
       actContextStiff->SetResults( results1_[0], results2_[0],
                                    actSDList, actSDList );
@@ -687,7 +693,11 @@ namespace CoupledField {
         actComplexContextStiff->SetPtPdes(pde1_, pde2_);
         actComplexContextStiff->SetResults( results1_[0], results2_[0],
                                             actSDList, actSDList );
-        actComplexContextStiff->SetMatDataType(matType);
+        // We also need to set the transposed of the coupling
+        // matrix to the lower diagonal side
+        actComplexContextStiff->SetCounterPart( true );
+
+        actComplexContextStiff->SetEntryType(matType);
         bilinearStiffC->SetMatDataType(matType);
         assemble_->AddBiLinearForm( actComplexContextStiff );
       }
@@ -710,6 +720,11 @@ namespace CoupledField {
       FlatShellPiezoInt * compPiezoInt = new FlatShellPiezoInt( composite );
       BiLinFormContext * stiffContext = 
         new BiLinFormContext( compPiezoInt, STIFFNESS);
+
+      // We also need to set the transposed of the coupling
+      // matrix to the lower diagonal side
+      stiffContext->SetCounterPart( true );
+      
       stiffContext->SetPtPdes( pde1_, pde2_ );
       stiffContext->SetResults( results1_[0], results2_[0],
                                 actSDList, actSDList );

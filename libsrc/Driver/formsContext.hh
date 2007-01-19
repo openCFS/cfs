@@ -81,12 +81,12 @@ namespace CoupledField
     //! Returns the integrator
     BaseForm * GetIntegrator() {return integrator_; };
 
-    //! Return type of used materialtype (real/complex)
-    DataType GetMatDataType(){return matDataType_;};
+    //! Return entry type of matrix (real/imag part)
+    DataType GetEntryType() {return entryType_;};
 
-    //! Set type of used materialtype (real/complex)
-    void SetMatDataType(DataType &pMatType){
-      matDataType_ = pMatType;};
+    //! Set entrytype for matrix (real/imag part)
+    void SetEntryType( DataType &pEntryType ){
+      entryType_ = pEntryType;};
 
     // ======================================================
     //  MAPPING METHODS
@@ -153,8 +153,8 @@ namespace CoupledField
     //! Flag indicating assembling of counterpart
     bool setCounterPart_;
     
-    //! Type of used materialData
-    DataType matDataType_;
+    //! Entry type of matrix (real/imag part)
+    DataType entryType_;
 
     //! for damping layer
     DampLayer* dampingLayer_;

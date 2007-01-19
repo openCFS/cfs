@@ -165,6 +165,11 @@ namespace CoupledField {
         
         BiLinFormContext * dampContext = 
           new BiLinFormContext( dampInt, DAMPING );
+
+        // We also need to set the transposed of the coupling
+        // matrix to the lower diagonal side
+        dampContext->SetCounterPart( true );
+
         dampContext->SetPtPdes(pde1_, pde2_);      
         dampContext->SetResults( results1_[0], results2_[0],
                                  actSDList, actSDList );

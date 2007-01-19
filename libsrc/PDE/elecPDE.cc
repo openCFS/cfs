@@ -326,7 +326,7 @@ namespace CoupledField {
           new BiLinFormContext(formC, STIFFNESS);
           
           stiffIntDescrC->SetPtPdes(this, this);
-          stiffIntDescrC->SetMatDataType(matType);
+          stiffIntDescrC->SetEntryType(matType);
           stiffIntDescrC->SetResults( results_[0], results_[0],
                                       actSDList, actSDList );
           assemble_->AddBiLinearForm( stiffIntDescrC );
