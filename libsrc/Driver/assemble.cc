@@ -554,7 +554,7 @@ namespace CoupledField {
   void Assemble::Matrix2Harmonic(Vector<Double>& harmMat,
                                  Matrix<Double>& origMat,
                                  FEMatrixType matrixType,
-                                 DataType matDataType,
+                                 DataType entryType,
                                  Double omega ) {
     ENTER_FCN( "Assemble::Matrix2Harmonic" );
     
@@ -564,7 +564,7 @@ namespace CoupledField {
     harmMat.Init();
     Integer k=0;
 
-    if (matDataType == REAL) {
+    if (entryType == REAL) {
 
       if (matrixType == STIFFNESS) {
         for (Integer row=0; row<numRow; row++)
@@ -595,7 +595,7 @@ namespace CoupledField {
       }
     } // end, if matatType == real...
 
-    else if(matDataType == IMAG){  // the "imaginary parts"
+    else if(entryType == IMAG){  // the "imaginary parts"
    
       if (matrixType == STIFFNESS) {
         k=numRow*numCol;
@@ -630,7 +630,7 @@ namespace CoupledField {
     } // end if matType == imag
     
     else {
-      (*error) <<"\n DataType" << matDataType 
+      (*error) <<"\n DataType" << entryType
                << "not specified "<<std::endl;
       Error( __FILE__, __LINE__ );
     }
@@ -750,7 +750,7 @@ namespace CoupledField {
       Double freq = context.GetFirstPde()->GetSolveStep()->GetActFreq();
       Double omega = freq * 2 * PI;
       Matrix2Harmonic( harmMat, elemMat, dest,
-                       context.GetMatDataType(), omega );
+                       context.GetEntryType(), omega );
       algsys_->
         SetElementMatrix( mappedDest, harmMat.GetPointer(), 
                           pdeId1, eqnVec1.GetPointer(), eqnVec1.GetSize(), 

@@ -446,9 +446,11 @@ namespace CoupledField {
                        __FILE__, __LINE__ );
         }
       }
-      if (nonLinRegion[0] == "geo" || nonLinRegion[0] == "material"){
+      if (nonLinRegion[0] == "geo" || nonLinRegion[0] == "material" ) {
         nonLin_ =   true;
-        nonLinMaterial_ = true;
+        if( nonLinRegion[0] == "material"){
+          nonLinMaterial_ = true;
+        }
       }
     }
 
@@ -618,7 +620,7 @@ namespace CoupledField {
           actIntDescrStiffImag->SetPtPdes(this, this);
           actIntDescrStiffImag->SetResults( results_[0], results_[0],
                                             actSDList, actSDList );
-          actIntDescrStiffImag->SetMatDataType(matType);
+          actIntDescrStiffImag->SetEntryType(matType);
           
           assemble_->AddBiLinearForm(actIntDescrStiffImag  );
         }
