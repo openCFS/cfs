@@ -22,7 +22,8 @@
 #endif
 
 #ifdef MpCCI
-#include <cci.h>
+//for MpCCI 3.0.3 #include <cci.h>
+#include <mpcci.h>
 #endif
 
 #ifdef GRIDLIB
@@ -201,7 +202,10 @@ int main( int argc, const char **argv ) {
 
 #ifdef MpCCI
   Info->StartProgress( "Setting up MpCCI interface" );
-  CCI_Init( &argc, const_cast<char***>(&argv) );  
+
+  CCI_Init_with_id_string( &argc, const_cast<char***>(&argv), "simulationcode2" );  
+  //  CCI_Init( &argc, const_cast<char***>(&argv));
+
   Info->FinishProgress();
 #endif
 
