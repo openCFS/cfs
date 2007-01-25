@@ -79,6 +79,11 @@
           <xsd:element name="isCoupledNrbc" type="DT_CFSBool" minOccurs="0"
             maxOccurs="1" default="no"/>
 
+          <!--  Parameter to check if we are using acousrcs computed 
+          from fluid pressure (optional) -->
+          <xsd:element name="pressFormul" type="DT_CFSBool" minOccurs="0"
+            maxOccurs="1" default="no"/>
+
           <!--  Three parameters are to activate the write out of the
           grid and coupled values (optional) -->
           <xsd:element name="writeCoupledGrid" type="DT_CFSBool" minOccurs="0"

@@ -15,7 +15,7 @@ ARCH = LINUXAMD64
 # NEW MPCCI 3.0.5 COMPILING AND LINKING CONFIGURATION FILE
 # -----------------------------------------------------------------------------
 
-include /home/lse16/lse/mescobar/MpCCI_3.0.5/examples_Wolf/examples-sdk305/Makefile.MpCCI-SDK.config
+include /home/data/programs/MpCCI/MpCCI_3.0.5/examples_Wolf/examples-sdk305/Makefile.MpCCI-SDK.config
 
 # -----------------------------------------------------------------------------
 # UTILITIES

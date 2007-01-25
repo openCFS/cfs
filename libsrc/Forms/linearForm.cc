@@ -778,7 +778,7 @@ namespace CoupledField {
 
     Double jacDet;
     Integer actInt;
-    Double density=1.204; //at 20C
+    Double density=1.0; //1.0 since all properties of material for vortex are 1.0
 
     Result.Resize(n);
     Result.Init();
