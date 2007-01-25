@@ -2229,7 +2229,7 @@ namespace CoupledField {
 
         if (saveRHSval_){ 
           // std::cout << "write RHS" << std::endl;
-          // outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
+          outFile_->WriteNodeSolutionTransient(rhs_, actStep, actTime);
           if (plotRHSVel_==true)
             outFile_->WriteNodeSolutionTransient(rhs2_, actStep, actTime);
         }
@@ -2359,14 +2359,14 @@ namespace CoupledField {
         hasOutput_ = true;
       }
 
-      // --- acoustic rhsval ---
-      //       Enum2String(ACOU_RHSVAL, quantity);
-      //       valVec = "", "", quantity;
-      //       params->GetList( keyVec, attrVec, valVec, nodeValues);
-      //       if (nodeValues.GetSize() > 0) {
-      //         saveRHSval_ = true;
-      //         hasOutput_ = true;
-      //       }
+//       // --- acoustic rhsval ---
+//       Enum2String(ACOU_RHSVAL, quantity);
+//       valVec = "", "", quantity;
+//       params->GetList( keyVec, attrVec, valVec, nodeValues);
+//       if (nodeValues.GetSize() > 0) {
+//         saveRHSval_ = true;
+//         hasOutput_ = true;
+//       }
 
 
       // --- acoustic potential, 1. Deriv ---
@@ -2430,14 +2430,14 @@ namespace CoupledField {
         hasOutput_ = true;
       }
 
-      // --- acoustic rhsval ---
-      Enum2String(ACOU_RHSVAL, quantity);
-      valVec = "", "", quantity;
-      params->GetList( keyVec, attrVec, valVec, nodeValues);
-      if (nodeValues.GetSize() > 0) {
-        saveRHSval_ = true;
-        hasOutput_ = true;
-      }
+//       // --- acoustic rhsval ---
+//       Enum2String(ACOU_RHSVAL, quantity);
+//       valVec = "", "", quantity;
+//       params->GetList( keyVec, attrVec, valVec, nodeValues);
+//       if (nodeValues.GetSize() > 0) {
+//         saveRHSval_ = true;
+//         hasOutput_ = true;
+//       }
 
 
       // --- acoustic pressure, 1. Deriv ---

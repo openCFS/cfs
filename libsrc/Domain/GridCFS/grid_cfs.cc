@@ -333,7 +333,7 @@ namespace CoupledField {
     
     for (UInt actPlane=0; actPlane<numDiv.GetSize() ; actPlane++)
       {
-        for (UInt i=0; i<numDiv[actPlane] ; i++)
+        for (int i=0; i<numDiv[actPlane] ; i++)
           {
             angleList[actPlane][i] = (Begin[actPlane] + i*angleStep);
           }
@@ -355,7 +355,7 @@ namespace CoupledField {
             namedNodes_.Push_back( StdVector<UInt>() );
             Info->PrintF("", "Saved directivity nodes on plane: %s\n", planeNames[actPlane].c_str()); 
             Info->PrintF("", "Angle list: \nangles = [");  
-            for (UInt i=0; i<numDiv[actPlane] ; i++)
+            for (int i=0; i<numDiv[actPlane] ; i++)
               {
                 Info->PrintF( "", " %.1f;", angleList[actPlane][i] );
               }
@@ -390,7 +390,7 @@ namespace CoupledField {
                 std::string nodename; 
                 Info->PrintF("", "Radius R= %.4f\nnodes = [", radiiVec[actRadIndex]);  
 
-                for (UInt i=0; i<numDiv[actPlane] ; i++)
+                for (int i=0; i<numDiv[actPlane] ; i++)
                   {
                     save_point[i][j] = center[j] + cos(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];
                     save_point[i][k] = center[k] + sin(angleList[actPlane][i]/ 180 * PI)*radiiVec[actRadIndex];  

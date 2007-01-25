@@ -8,9 +8,10 @@
 #include "DataInOut/ParamHandling/BaseParamHandler.hh"
 #include "PDE/eqnMap.hh"
 
- //#ifdef MpCCI
-#include <cci.h>
- //#endif
+#ifdef MpCCI
+//for MpCCI 3.0.3 -> #include <cci.h>
+#include <mpcci.h>
+#endif
 
 namespace CoupledField
 {
@@ -46,7 +47,7 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
       writeSrcFileperNode_ = false;
     if( params->IsSet( "writeCoupledGrid","pdeList" ,"acoustic" ) ) {
       writeGridFile_ = true;
-      Info->PrintF("acoustic","Writing grid def. file of coupled domain\n");
+      Info->PrintF("acoustic","Writing grid def. file of coupled domain from MpCCIexch class\n");
     }
     if( params->IsSet( "writeSrcFileperTS","pdeList" ,"acoustic" ) ) {
       writeSrcFileperTS_ = true;
@@ -56,7 +57,7 @@ MpCCIexch::MpCCIexch(Grid *aptgrid, StdVector<UInt> & mapSD)
       writeSrcFileperNode_ = true;
       // Get total number of time steps information from parameter object
       StdVector<std::string> keyVec, attrVec, valVec;
-      UInt numsteps;
+      
       attrVec = "tag";
       valVec = "anyTag";
       keyVec = "transient", "numSteps";
@@ -178,7 +179,7 @@ void MpCCIexch::PutExchangeGrid2MpCCI(StdVector<RegionIdType> coupledsubdoms)
         //ptgrid_->GetElemSD(elemssd,coupledsubdoms[i],actlevel_);
       
       elsize=(elemssd[0]->connect).GetSize();
-      //workaround for computing with quadratic hexas 
+      //workaround for computing with quadratic hexas and tetras
       if  ((elsize==20)&&(Dim_==3))
 	{
 	  elsize=8;
@@ -384,7 +385,7 @@ void MpCCIexch::DefMpcciNodes(UInt meshId, UInt partId, UInt nrNodesSD,
 	NODEDATA_[partId-1][3*i+2]= ptPoint[2]; // z-component for the 2d case is zero
       else
 	NODEDATA_[partId-1][3*i+2]= 0.0; // z-component for the 2d case is zero	
-
+ 
 //       Info->PrintF("","local:%d;\t global:%d; \t%f\t%f\t%f\n",nodeIds[i],eqnMap.Pde2MeshNode(nodeIds[i]), 
 // 		   NODEDATA_[partId-1][3*i], NODEDATA_[partId-1][3*i+1], NODEDATA_[partId-1][3*i+2]);
 
@@ -561,7 +562,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
   //    quantityIds[0] = 0;
   UInt nLocalMeshIds;
   Integer *localMeshIds = new Integer[CCI_MAX_NQUANTITIES];
-  localMeshIds[0] = 0;
+  localMeshIds[0] = meshId_;
   UInt remoteCodeId;
 
 
@@ -584,7 +585,6 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
   Integer comm = CCI_COMM_RCODE[remoteCodeId];
   quantityIds[0] = quantityId1;
   quantityIds[1] = quantityId2;
-
   Integer *emptyNodes = new Integer[MpCCInodes_];
   Integer nEmptyNodes;
 
@@ -593,17 +593,27 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
 
     Integer globalConvergence = CCI_CONTINUE;
     Integer myConvergence     = CCI_CONTINUE;
-
+    
     CCI_Recv(nQuantityIds, quantityIds, nLocalMeshIds, localMeshIds, comm, &status);
-
+    for(UInt i=0; i< nQuantityIds; i++)
+      {
+        switch(quantityIds[i])
+          {
+          case 11:
     //Get_nodes is a local operation
     //PRESSURE
-    CCI_Get_nodes((int)meshId_, (int)partId_, quantityId1, quantityDim1, (int)MpCCInodes_, nNodeIds_,  &nodeIds_[0],
-		   CCI_DOUBLE, value_Press, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
+    CCI_Get_nodes((int)meshId_, (int)partId_, quantityIds[i],quantityDim1 , (int)MpCCInodes_, (int)nNodeIds_,  &nodeIds_[0],
+    		   CCI_DOUBLE, value_Press, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
+            break;
+          case 12:
     //VELOCITY
-    CCI_Get_nodes((int) meshId_, (int)partId_, quantityId2, quantityDim2, MpCCInodes_, (int)nNodeIds_,  &nodeIds_[0],
-		   CCI_DOUBLE, value_VxVy, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
-
+    CCI_Get_nodes((int) meshId_, (int)partId_, quantityIds[i], quantityDim2, (int)MpCCInodes_, (int)nNodeIds_,  &nodeIds_[0],
+    		   CCI_DOUBLE, value_VxVy, maxnEmptyNodes, emptyNodes, &nEmptyNodes);
+            break;
+          }
+        
+      }
+    
     // Putting values in our matrix flowdata
     Integer k = 0;
     bool nodalSrc=false;
@@ -656,7 +666,7 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
               {
                 if (TimeStepCtr<=numSteps_)
                   {
-                    nodalSrcMat_[nodeIds_[inode]][TimeStepCtr-1]= value_Press[inode];
+                    nodalSrcMat_[inode][TimeStepCtr-1]= value_Press[inode];
                     if (TimeStepCtr==numSteps_)
                       {
                         std::string filename;
@@ -675,12 +685,12 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
                           }
                         for (UInt i=0; i<numSteps_; i++)
                           outsrcnodalfile<< std::setiosflags(std::ios::uppercase | std::ios::scientific)
-                                         << firstdt_*(i+1) << " " << nodalSrcMat_[nodeIds_[inode]][i] << std::endl;                          
+                                         << firstdt_*(i+1) << " " << nodalSrcMat_[inode][i] << std::endl;                          
 
                         // !!!!THIS IS ONLY TO test reading of the data
                         // we assign the nodal index as output to the nodal value just for checking!!!
                         //outsrcnodalfile << nodeIds_[inode] <<std::endl;
-
+            
                         outsrcnodalfile.close();
                       }
                   }
@@ -700,14 +710,12 @@ void MpCCIexch::CouplCompPhase(Matrix<Double> & flowdata, Double acttime)
           }
       }
       
- 
     CCI_Check_convergence(myConvergence,&globalConvergence,CCI_ANY_CODE);
-
 
 
 if (quantityIds)  delete [] quantityIds;
 if (value_Press)  delete [] value_Press;
-if (value_VxVy)  delete []  value_VxVy;
+if (value_VxVy)  delete [] value_VxVy;
 
 }
 

@@ -27,6 +27,10 @@ namespace CoupledField
     //!
     void ComputeRHS(const Double atime);
 
+    //! Writes out fine RHS sources computed using VortexAnalytical() in
+    //! transient files
+    void WriteOutVortexFineSources(UInt timestep);
+
     //! Computes RHS using VortexAnalytical() to get source values
     void ComputeRHSwithVortexSource(const Double atime);
 
@@ -67,6 +71,8 @@ namespace CoupledField
     
     bool  writeGridFile_; //!<flags to write grid with coupled vals in file
     bool  writeSrcFileperTS_; //!<flags to write coarse srcs in time step files
+    bool pressFormul_;//!<Flag for recognizing sources from pressure formulation
+    
     //!Objects for topology files
     std::ofstream * outelemfile_;
     std::ofstream * outnodefile_;
